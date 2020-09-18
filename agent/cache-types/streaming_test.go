@@ -3,9 +3,10 @@ package cachetype
 import (
 	"context"
 
-	"github.com/hashicorp/consul/agent/agentpb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
+
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
 // TestStreamingClient is a mock StreamingClient for testing that allows
@@ -17,7 +18,7 @@ type TestStreamingClient struct {
 
 type eventOrErr struct {
 	Err   error
-	Event *agentpb.Event
+	Event *pbsubscribe.Event
 }
 
 func NewTestStreamingClient() *TestStreamingClient {
@@ -26,13 +27,16 @@ func NewTestStreamingClient() *TestStreamingClient {
 	}
 }
 
-func (t *TestStreamingClient) Subscribe(ctx context.Context, in *agentpb.SubscribeRequest, opts ...grpc.CallOption) (agentpb.Consul_SubscribeClient, error) {
+func (t *TestStreamingClient) Subscribe(
+	ctx context.Context,
+	_ *pbsubscribe.SubscribeRequest,
+	_ ...grpc.CallOption,
+) (pbsubscribe.StateChangeSubscription_SubscribeClient, error) {
 	t.ctx = ctx
-
 	return t, nil
 }
 
-func (t *TestStreamingClient) QueueEvents(events ...*agentpb.Event) {
+func (t *TestStreamingClient) QueueEvents(events ...*pbsubscribe.Event) {
 	for _, e := range events {
 		t.events <- eventOrErr{Event: e}
 	}
@@ -42,7 +46,7 @@ func (t *TestStreamingClient) QueueErr(err error) {
 	t.events <- eventOrErr{Err: err}
 }
 
-func (t *TestStreamingClient) Recv() (*agentpb.Event, error) {
+func (t *TestStreamingClient) Recv() (*pbsubscribe.Event, error) {
 	select {
 	case eoe := <-t.events:
 		if eoe.Err != nil {

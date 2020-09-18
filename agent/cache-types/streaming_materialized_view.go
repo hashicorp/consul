@@ -6,11 +6,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/consul/agent/agentpb"
-	"github.com/hashicorp/consul/agent/cache"
-	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
+	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
 const (
@@ -22,7 +25,7 @@ const (
 // StreamingClient is the interface we need from the gRPC client stub. Separate
 // interface simplifies testing.
 type StreamingClient interface {
-	Subscribe(ctx context.Context, in *agentpb.SubscribeRequest, opts ...grpc.CallOption) (agentpb.Consul_SubscribeClient, error)
+	Subscribe(ctx context.Context, in *pbsubscribe.SubscribeRequest, opts ...grpc.CallOption) (pbsubscribe.StateChangeSubscription_SubscribeClient, error)
 }
 
 // MaterializedViewState is the interface used to manage they type-specific
@@ -42,7 +45,7 @@ type MaterializedViewState interface {
 	// include _all_ events in the initial snapshot which may be an empty set.
 	// Subsequent calls will contain one or more update events in the order they
 	// are received.
-	Update(events []*agentpb.Event) error
+	Update(events []*pbsubscribe.Event) error
 
 	// Result returns the type-specific cache result based on the state. When no
 	// events have been delivered yet the result should be an empty value type
@@ -83,6 +86,14 @@ func (e resetErr) Error() string {
 	return string(e)
 }
 
+type Request struct {
+	pbsubscribe.SubscribeRequest
+	// Filter is a bexpr filter expression that is used to filter events on the
+	// client side.
+	// TODO: is this used?
+	Filter string
+}
+
 // MaterializedView is a partial view of the state on servers, maintained via
 // streaming subscriptions. It is specialized for different cache types by
 // providing a MaterializedViewState that encapsulates the logic to update the
@@ -97,7 +108,7 @@ type MaterializedView struct {
 	typ        StreamingCacheType
 	client     StreamingClient
 	logger     hclog.Logger
-	req        agentpb.SubscribeRequest
+	req        Request
 	ctx        context.Context
 	cancelFunc func()
 
@@ -120,9 +131,11 @@ type MaterializedView struct {
 // the cache evicts the result. If the view is not returned in a result state
 // though Close must be called some other way to avoid leaking the goroutine and
 // memory.
-func MaterializedViewFromFetch(t StreamingCacheType, opts cache.FetchOptions,
-	subReq agentpb.SubscribeRequest) *MaterializedView {
-
+func MaterializedViewFromFetch(
+	t StreamingCacheType,
+	opts cache.FetchOptions,
+	subReq Request,
+) *MaterializedView {
 	if opts.LastResult == nil || opts.LastResult.State == nil {
 		ctx, cancel := context.WithCancel(context.Background())
 		v := &MaterializedView{
@@ -225,26 +238,21 @@ func (v *MaterializedView) runSubscription() error {
 
 	v.l.Unlock()
 
-	s, err := v.client.Subscribe(ctx, &req)
+	s, err := v.client.Subscribe(ctx, &req.SubscribeRequest)
 	if err != nil {
 		return err
 	}
 
-	snapshotEvents := make([]*agentpb.Event, 0)
+	snapshotEvents := make([]*pbsubscribe.Event, 0)
 
 	for {
 		event, err := s.Recv()
-		if err != nil {
-			return err
-		}
-
-		if event.GetResetStream() {
-			// Server has requested we reset the view and start with a fresh snapshot
-			// - perhaps because our ACL policy changed. We reset the view state and
-			// then return an error to allow the `run` method to retry after a backoff
-			// if necessary.
+		switch {
+		case isGrpcStatus(err, codes.Aborted):
 			v.reset()
 			return resetErr("stream reset requested")
+		case err != nil:
+			return err
 		}
 
 		if event.GetEndOfSnapshot() {
@@ -276,7 +284,7 @@ func (v *MaterializedView) runSubscription() error {
 			continue
 		}
 
-		if event.GetResumeStream() {
+		if event.GetEndOfEmptySnapshot() {
 			// We've opened a new subscribe with a non-zero index to resume a
 			// connection and the server confirms it's not sending a new snapshot.
 			if !snapshotDone {
@@ -291,7 +299,7 @@ func (v *MaterializedView) runSubscription() error {
 		}
 
 		// We have an event for the topic
-		events := []*agentpb.Event{event}
+		events := []*pbsubscribe.Event{event}
 
 		// If the event is a batch, unwrap and deliver the raw events
 		if batch := event.GetEventBatch(); batch != nil {
@@ -320,6 +328,11 @@ func (v *MaterializedView) runSubscription() error {
 			snapshotEvents = append(snapshotEvents, events...)
 		}
 	}
+}
+
+func isGrpcStatus(err error, code codes.Code) bool {
+	s, ok := status.FromError(err)
+	return ok && s.Code() == code
 }
 
 // reset clears the state ready to start a new stream from scratch.

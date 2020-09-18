@@ -856,11 +856,12 @@ func TestCacheGet_expireClose(t *testing.T) {
 
 	require := require.New(t)
 
-	typ := TestType(t)
+	typ := &MockType{}
 	defer typ.AssertExpectations(t)
 	c := New(Options{})
 	typ.On("RegisterOptions").Return(RegisterOptions{
-		LastGetTTL: 100 * time.Millisecond,
+		SupportsBlocking: true,
+		LastGetTTL:       100 * time.Millisecond,
 	})
 
 	// Register the type with a timeout

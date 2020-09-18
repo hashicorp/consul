@@ -6,12 +6,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/agentpb"
+	"github.com/hashicorp/go-hclog"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-hclog"
-
-	"github.com/stretchr/testify/require"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
 func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
@@ -23,8 +25,7 @@ func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
 
 	// Initially there are no services registered. Server should send an
 	// EndOfSnapshot message immediately with index of 1.
-	eosEv := agentpb.TestEventEndOfSnapshot(t, agentpb.Topic_ServiceHealth, 1)
-	client.QueueEvents(&eosEv)
+	client.QueueEvents(newEndOfSnapshotEvent(pbsubscribe.Topic_ServiceHealth, 1))
 
 	// This contains the view state so important we share it between calls.
 	opts := cache.FetchOptions{
@@ -42,7 +43,7 @@ func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
 		},
 	}
 
-	require.True(t, t.Run("empty snapshot returned", func(t *testing.T) {
+	runStep(t, "empty snapshot returned", func(t *testing.T) {
 		// Fetch should return an empty
 		// result of the right type with a non-zero index, and in the background begin
 		// streaming updates.
@@ -54,9 +55,9 @@ func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
 
 		opts.MinIndex = result.Index
 		opts.LastResult = &result
-	}))
+	})
 
-	require.True(t, t.Run("blocks for timeout", func(t *testing.T) {
+	runStep(t, "blocks for timeout", func(t *testing.T) {
 		// Subsequent fetch should block for the timeout
 		start := time.Now()
 		opts.Timeout = 200 * time.Millisecond
@@ -71,9 +72,9 @@ func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
 
 		opts.MinIndex = result.Index
 		opts.LastResult = &result
-	}))
+	})
 
-	require.True(t, t.Run("blocks until update", func(t *testing.T) {
+	runStep(t, "blocks until update", func(t *testing.T) {
 		// Make another blocking query with a longer timeout and trigger an update
 		// event part way through.
 		start := time.Now()
@@ -81,7 +82,7 @@ func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
 			time.Sleep(200 * time.Millisecond)
 
 			// Then a service registers
-			healthEv := agentpb.TestEventServiceHealthRegister(t, 4, 1, "web")
+			healthEv := newEventServiceHealthRegister(4, 1, "web")
 			client.QueueEvents(&healthEv)
 		}()
 
@@ -100,17 +101,16 @@ func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
 
 		opts.MinIndex = result.Index
 		opts.LastResult = &result
-	}))
+	})
 
-	require.True(t, t.Run("reconnects and resumes after transient stream error", func(t *testing.T) {
+	runStep(t, "reconnects and resumes after transient stream error", func(t *testing.T) {
 		// Use resetErr just because it's "temporary" this is a stand in for any
 		// network error that uses that same interface though.
 		client.QueueErr(resetErr("broken pipe"))
 
 		// After the error the view should re-subscribe with same index so will get
 		// a "resume stream".
-		resumeEv := agentpb.TestEventResumeStream(t, agentpb.Topic_ServiceHealth, opts.MinIndex)
-		client.QueueEvents(&resumeEv)
+		client.QueueEvents(newEndOfEmptySnapshotEvent(pbsubscribe.Topic_ServiceHealth, opts.MinIndex))
 
 		// Next fetch will continue to block until timeout and receive the same
 		// result.
@@ -129,7 +129,7 @@ func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
 		opts.LastResult = &result
 
 		// But an update should still be noticed due to reconnection
-		healthEv := agentpb.TestEventServiceHealthRegister(t, 10, 2, "web")
+		healthEv := newEventServiceHealthRegister(10, 2, "web")
 		client.QueueEvents(&healthEv)
 
 		start = time.Now()
@@ -146,9 +146,9 @@ func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
 
 		opts.MinIndex = result.Index
 		opts.LastResult = &result
-	}))
+	})
 
-	require.True(t, t.Run("returns non-temporary error to watchers", func(t *testing.T) {
+	runStep(t, "returns non-temporary error to watchers", func(t *testing.T) {
 		// Wait and send the error while fetcher is waiting
 		go func() {
 			time.Sleep(200 * time.Millisecond)
@@ -156,8 +156,7 @@ func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
 
 			// After the error the view should re-subscribe with same index so will get
 			// a "resume stream".
-			resumeEv := agentpb.TestEventResumeStream(t, agentpb.Topic_ServiceHealth, opts.MinIndex)
-			client.QueueEvents(&resumeEv)
+			client.QueueEvents(newEndOfEmptySnapshotEvent(pbsubscribe.Topic_ServiceHealth, opts.MinIndex))
 		}()
 
 		// Next fetch should return the error
@@ -183,7 +182,7 @@ func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
 		opts.LastResult = &result
 
 		// But an update should still be noticed due to reconnection
-		healthEv := agentpb.TestEventServiceHealthRegister(t, opts.MinIndex+5, 3, "web")
+		healthEv := newEventServiceHealthRegister(opts.MinIndex+5, 3, "web")
 		client.QueueEvents(&healthEv)
 
 		opts.Timeout = time.Second
@@ -199,7 +198,7 @@ func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
 
 		opts.MinIndex = result.Index
 		opts.LastResult = &result
-	}))
+	})
 }
 
 // requireResultsSame compares two IndexedCheckServiceNodes without requiring
@@ -229,17 +228,15 @@ func TestStreamingHealthServices_FullSnapshot(t *testing.T) {
 	}
 
 	// Create an initial snapshot of 3 instances on different nodes
-	makeReg := func(index uint64, nodeNum int) *agentpb.Event {
-		e := agentpb.TestEventServiceHealthRegister(t, index, nodeNum, "web")
+	makeReg := func(index uint64, nodeNum int) *pbsubscribe.Event {
+		e := newEventServiceHealthRegister(index, nodeNum, "web")
 		return &e
 	}
-	eosEv := agentpb.TestEventEndOfSnapshot(t, agentpb.Topic_ServiceHealth, 5)
 	client.QueueEvents(
 		makeReg(5, 1),
 		makeReg(5, 2),
 		makeReg(5, 3),
-		&eosEv,
-	)
+		newEndOfSnapshotEvent(pbsubscribe.Topic_ServiceHealth, 5))
 
 	// This contains the view state so important we share it between calls.
 	opts := cache.FetchOptions{
@@ -260,7 +257,7 @@ func TestStreamingHealthServices_FullSnapshot(t *testing.T) {
 		return nodes
 	}
 
-	require.True(t, t.Run("full snapshot returned", func(t *testing.T) {
+	runStep(t, "full snapshot returned", func(t *testing.T) {
 		result, err := typ.Fetch(opts, req)
 		require.NoError(t, err)
 
@@ -270,9 +267,9 @@ func TestStreamingHealthServices_FullSnapshot(t *testing.T) {
 
 		opts.MinIndex = result.Index
 		opts.LastResult = &result
-	}))
+	})
 
-	require.True(t, t.Run("blocks until deregistration", func(t *testing.T) {
+	runStep(t, "blocks until deregistration", func(t *testing.T) {
 		// Make another blocking query with a longer timeout and trigger an update
 		// event part way through.
 		start := time.Now()
@@ -280,7 +277,7 @@ func TestStreamingHealthServices_FullSnapshot(t *testing.T) {
 			time.Sleep(200 * time.Millisecond)
 
 			// Deregister instance on node1
-			healthEv := agentpb.TestEventServiceHealthDeregister(t, 20, 1, "web")
+			healthEv := newEventServiceHealthDeregister(20, 1, "web")
 			client.QueueEvents(&healthEv)
 		}()
 
@@ -299,21 +296,19 @@ func TestStreamingHealthServices_FullSnapshot(t *testing.T) {
 
 		opts.MinIndex = result.Index
 		opts.LastResult = &result
-	}))
+	})
 
-	require.True(t, t.Run("server reload is respected", func(t *testing.T) {
+	runStep(t, "server reload is respected", func(t *testing.T) {
 		// Simulates the server noticing the request's ACL token privs changing. To
 		// detect this we'll queue up the new snapshot as a different set of nodes
 		// to the first.
-		resetEv := agentpb.TestEventResetStream(t, agentpb.Topic_ServiceHealth, 45)
-		eosEv := agentpb.TestEventEndOfSnapshot(t, agentpb.Topic_ServiceHealth, 50)
+		client.QueueErr(status.Error(codes.Aborted, "reset by server"))
+
 		client.QueueEvents(
-			&resetEv,
 			makeReg(50, 3), // overlap existing node
 			makeReg(50, 4),
 			makeReg(50, 5),
-			&eosEv,
-		)
+			newEndOfSnapshotEvent(pbsubscribe.Topic_ServiceHealth, 50))
 
 		// Make another blocking query with THE SAME index. It should immediately
 		// return the new snapshot.
@@ -331,7 +326,7 @@ func TestStreamingHealthServices_FullSnapshot(t *testing.T) {
 
 		opts.MinIndex = result.Index
 		opts.LastResult = &result
-	}))
+	})
 }
 
 func TestStreamingHealthServices_EventBatches(t *testing.T) {
@@ -342,17 +337,13 @@ func TestStreamingHealthServices_EventBatches(t *testing.T) {
 	}
 
 	// Create an initial snapshot of 3 instances but in a single event batch
-	batchEv := agentpb.TestEventBatchWithEvents(t,
-		agentpb.TestEventServiceHealthRegister(t, 5, 1, "web"),
-		agentpb.TestEventServiceHealthRegister(t, 5, 2, "web"),
-		agentpb.TestEventServiceHealthRegister(t, 5, 3, "web"),
-	)
-	eosEv := agentpb.TestEventEndOfSnapshot(t, agentpb.Topic_ServiceHealth, 5)
-
+	batchEv := newEventBatchWithEvents(
+		newEventServiceHealthRegister(5, 1, "web"),
+		newEventServiceHealthRegister(5, 2, "web"),
+		newEventServiceHealthRegister(5, 3, "web"))
 	client.QueueEvents(
 		&batchEv,
-		&eosEv,
-	)
+		newEndOfSnapshotEvent(pbsubscribe.Topic_ServiceHealth, 5))
 
 	// This contains the view state so important we share it between calls.
 	opts := cache.FetchOptions{
@@ -373,7 +364,7 @@ func TestStreamingHealthServices_EventBatches(t *testing.T) {
 		return nodes
 	}
 
-	require.True(t, t.Run("full snapshot returned", func(t *testing.T) {
+	runStep(t, "full snapshot returned", func(t *testing.T) {
 		result, err := typ.Fetch(opts, req)
 		require.NoError(t, err)
 
@@ -383,16 +374,16 @@ func TestStreamingHealthServices_EventBatches(t *testing.T) {
 
 		opts.MinIndex = result.Index
 		opts.LastResult = &result
-	}))
+	})
 
-	require.True(t, t.Run("batched updates work too", func(t *testing.T) {
+	runStep(t, "batched updates work too", func(t *testing.T) {
 		// Simulate multiple registrations happening in one Txn (so all have same
 		// index)
-		batchEv := agentpb.TestEventBatchWithEvents(t,
+		batchEv := newEventBatchWithEvents(
 			// Deregister an existing node
-			agentpb.TestEventServiceHealthDeregister(t, 20, 1, "web"),
+			newEventServiceHealthDeregister(20, 1, "web"),
 			// Register another
-			agentpb.TestEventServiceHealthRegister(t, 20, 4, "web"),
+			newEventServiceHealthRegister(20, 4, "web"),
 		)
 		client.QueueEvents(&batchEv)
 		opts.Timeout = time.Second
@@ -405,7 +396,7 @@ func TestStreamingHealthServices_EventBatches(t *testing.T) {
 
 		opts.MinIndex = result.Index
 		opts.LastResult = &result
-	}))
+	})
 }
 
 func TestStreamingHealthServices_Filtering(t *testing.T) {
@@ -416,16 +407,13 @@ func TestStreamingHealthServices_Filtering(t *testing.T) {
 	}
 
 	// Create an initial snapshot of 3 instances but in a single event batch
-	batchEv := agentpb.TestEventBatchWithEvents(t,
-		agentpb.TestEventServiceHealthRegister(t, 5, 1, "web"),
-		agentpb.TestEventServiceHealthRegister(t, 5, 2, "web"),
-		agentpb.TestEventServiceHealthRegister(t, 5, 3, "web"),
-	)
-	eosEv := agentpb.TestEventEndOfSnapshot(t, agentpb.Topic_ServiceHealth, 5)
+	batchEv := newEventBatchWithEvents(
+		newEventServiceHealthRegister(5, 1, "web"),
+		newEventServiceHealthRegister(5, 2, "web"),
+		newEventServiceHealthRegister(5, 3, "web"))
 	client.QueueEvents(
 		&batchEv,
-		&eosEv,
-	)
+		newEndOfSnapshotEvent(pbsubscribe.Topic_ServiceHealth, 5))
 
 	// This contains the view state so important we share it between calls.
 	opts := cache.FetchOptions{
@@ -449,7 +437,7 @@ func TestStreamingHealthServices_Filtering(t *testing.T) {
 		return nodes
 	}
 
-	require.True(t, t.Run("filtered snapshot returned", func(t *testing.T) {
+	runStep(t, "filtered snapshot returned", func(t *testing.T) {
 		result, err := typ.Fetch(opts, req)
 		require.NoError(t, err)
 
@@ -459,16 +447,16 @@ func TestStreamingHealthServices_Filtering(t *testing.T) {
 
 		opts.MinIndex = result.Index
 		opts.LastResult = &result
-	}))
+	})
 
-	require.True(t, t.Run("filtered updates work too", func(t *testing.T) {
+	runStep(t, "filtered updates work too", func(t *testing.T) {
 		// Simulate multiple registrations happening in one Txn (so all have same
 		// index)
-		batchEv := agentpb.TestEventBatchWithEvents(t,
+		batchEv := newEventBatchWithEvents(
 			// Deregister an existing node
-			agentpb.TestEventServiceHealthDeregister(t, 20, 1, "web"),
+			newEventServiceHealthDeregister(20, 1, "web"),
 			// Register another
-			agentpb.TestEventServiceHealthRegister(t, 20, 4, "web"),
+			newEventServiceHealthRegister(20, 4, "web"),
 		)
 		client.QueueEvents(&batchEv)
 		opts.Timeout = time.Second
@@ -481,5 +469,11 @@ func TestStreamingHealthServices_Filtering(t *testing.T) {
 
 		opts.MinIndex = result.Index
 		opts.LastResult = &result
-	}))
+	})
+}
+
+func runStep(t *testing.T, name string, fn func(t *testing.T)) {
+	if !t.Run(name, fn) {
+		t.FailNow()
+	}
 }

@@ -3,11 +3,13 @@ package cachetype
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul/agent/agentpb"
-	"github.com/hashicorp/consul/agent/cache"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
+
+	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/pbservice"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
 const (
@@ -40,18 +42,20 @@ func (c *StreamingHealthServices) Fetch(opts cache.FetchOptions, req cache.Reque
 			"Internal cache failure: request wrong type: %T", req)
 	}
 
-	r := agentpb.SubscribeRequest{
-		Topic:      agentpb.Topic_ServiceHealth,
-		Key:        reqReal.ServiceName,
-		Token:      reqReal.Token,
-		Index:      reqReal.MinQueryIndex,
-		Filter:     reqReal.Filter,
-		Datacenter: reqReal.Datacenter,
+	r := Request{
+		SubscribeRequest: pbsubscribe.SubscribeRequest{
+			Topic:      pbsubscribe.Topic_ServiceHealth,
+			Key:        reqReal.ServiceName,
+			Token:      reqReal.Token,
+			Index:      reqReal.MinQueryIndex,
+			Datacenter: reqReal.Datacenter,
+		},
+		Filter: reqReal.Filter,
 	}
 
 	// Connect requests need a different topic
 	if reqReal.Connect {
-		r.Topic = agentpb.Topic_ServiceHealthConnect
+		r.Topic = pbsubscribe.Topic_ServiceHealthConnect
 	}
 
 	view := MaterializedViewFromFetch(c, opts, r)
@@ -105,7 +109,7 @@ func (s *healthViewState) InitFilter(expression string) error {
 }
 
 // Update implements MaterializedViewState
-func (s *healthViewState) Update(events []*agentpb.Event) error {
+func (s *healthViewState) Update(events []*pbsubscribe.Event) error {
 	for _, event := range events {
 		serviceHealth := event.GetServiceHealth()
 		if serviceHealth == nil {
@@ -116,13 +120,10 @@ func (s *healthViewState) Update(events []*agentpb.Event) error {
 		id := fmt.Sprintf("%s/%s", node.Node.Node, node.Service.ID)
 
 		switch serviceHealth.Op {
-		case agentpb.CatalogOp_Register:
-			checkServiceNode, err := serviceHealth.CheckServiceNode.ToStructs()
-			if err != nil {
-				return err
-			}
+		case pbsubscribe.CatalogOp_Register:
+			checkServiceNode := pbservice.CheckServiceNodeToStructs(serviceHealth.CheckServiceNode)
 			s.state[id] = *checkServiceNode
-		case agentpb.CatalogOp_Deregister:
+		case pbsubscribe.CatalogOp_Deregister:
 			delete(s.state, id)
 		}
 	}
