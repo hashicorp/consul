@@ -1,9 +1,12 @@
-td a.is-management::after {
-  @extend %with-star-fill-mask, %as-pseudo;
-  background-color: var(--swatch-brand-600, $black);
-  height: 16px;
-  top: 2px;
-  padding-left: 32px;
+html.template-acl.template-list main td strong {
+  @extend %pill-500, %frame-gray-900;
+  margin-right: 3px;
+}
+html.template-acl.template-list .filter-bar {
+  @extend %filter-bar-reversed;
+}
+html.template-acl.template-list .filter-bar [role='radiogroup'] {
+  @extend %expanded-single-select;
 }
 @media #{$--horizontal-tabs} {
   .template-policy.template-list main header .actions,

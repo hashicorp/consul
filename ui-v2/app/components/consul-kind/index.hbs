@@ -1,15 +1,10 @@
 {{#if item.Kind}}
   {{#let (titleize (humanize item.Kind)) as |Name|}}
-    {{#if (has-block)}}
-      {{yield
-        (component 'consul-kind' item=item withInfo=withInfo)
-      }}
-    {{else}}
     {{#if withInfo}}
         <dl class="tooltip-panel">
           <dt>
-            <span data-test-kind={{item.Kind}} class="consul-kind gateway">
-                <span>{{Name}}</span>
+            <span data-test-kind={{item.Kind}} class="consul-kind">
+              {{Name}}
             </span>
           </dt>
           <dd>
@@ -86,10 +81,9 @@
           </dd>
         </dl>
       {{else}}
-          <span data-test-kind={{item.Kind}} class="consul-kind gateway">
-              <span>{{Name}}</span>
+          <span data-test-kind={{item.Kind}} class="consul-kind">
+            {{Name}}
           </span>
       {{/if}}
-    {{/if}}
   {{/let}}
 {{/if}}

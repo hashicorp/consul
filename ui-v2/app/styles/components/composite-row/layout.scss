@@ -25,3 +25,12 @@
   justify-self: center;
   align-self: center;
 }
+
+%composite-row-header:nth-last-child(2) {
+  grid-column-start: header;
+  grid-column-end: actions;
+}
+%composite-row-detail:last-child {
+  grid-column-start: detail;
+  grid-column-end: actions;
+}

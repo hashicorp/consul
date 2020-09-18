@@ -5,12 +5,15 @@
 %consul-intention-list td.destination {
   @extend %tbody-th;
 }
+%consul-intention-list td strong {
+  @extend %pill-700;
+}
 %consul-intention-list td.intent-allow strong {
-  @extend %increased-pill, %pill-allow;
+  @extend %pill-allow;
 }
 %consul-intention-list td.intent-deny strong {
-  @extend %increased-pill, %pill-deny;
+  @extend %pill-deny;
 }
 %consul-intention-list td.intent-l7-rules strong {
-  @extend %increased-pill, %pill-l7;
+  @extend %pill-l7;
 }

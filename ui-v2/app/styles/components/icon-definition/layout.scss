@@ -1,0 +1,18 @@
+%icon-definition {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+%icon-definition {
+  display: inline-flex;
+  flex-wrap: nowrap;
+}
+%icon-definition > dt {
+  align-self: center;
+}
+%icon-definition > dt > * {
+  display: none;
+}
+%icon-definition > dd {
+  margin-left: 4px;
+  white-space: nowrap;
+}

@@ -21,3 +21,10 @@
 %list-row-detail {
   color: $gray-500;
 }
+%list-row-detail a {
+  color: inherit;
+}
+%list-row-detail a:hover {
+  color: $color-action;
+  text-decoration: underline;
+}

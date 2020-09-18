@@ -7,15 +7,12 @@
   align-items: center;
   white-space: nowrap;
   position: relative;
-  z-index: 1;
+  z-index: 4;
 }
 %app-view-actions {
   margin-left: auto;
   display: flex;
   align-items: flex-start;
-}
-%app-view-header dl {
-  float: left;
 }
 /* units */
 %app-view {
@@ -36,11 +33,6 @@
 }
 %app-view-actions > *:not(:last-child) {
   margin-right: 12px;
-}
-%app-view-header dl {
-  margin-top: 19px;
-  margin-bottom: 23px;
-  margin-right: 50px;
 }
 
 /* content */

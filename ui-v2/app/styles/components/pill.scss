@@ -1,3 +1,43 @@
+span.policy-service-identity,
+span.policy-node-identity,
+.consul-external-source,
+.consul-kind,
+.leader {
+  @extend %pill-200, %frame-gray-600;
+}
+span.policy-service-identity::before,
+span.policy-node-identity::before {
+  width: auto;
+  align-self: start;
+  font-size: inherit;
+}
+span.policy-node-identity::before {
+  content: 'Node Identity: ';
+}
+span.policy-service-identity::before {
+  content: 'Service Identity: ';
+}
+%pill.kubernetes::before {
+  @extend %with-kubernetes-logo-color-icon, %as-pseudo;
+}
+%pill.terraform::before {
+  @extend %with-terraform-logo-color-icon, %as-pseudo;
+}
+%pill.nomad::before {
+  @extend %with-nomad-logo-color-icon, %as-pseudo;
+}
+%pill.consul::before {
+  @extend %with-consul-logo-color-icon, %as-pseudo;
+}
+%pill.aws::before {
+  @extend %with-logo-aws-color-icon, %as-pseudo;
+}
+%pill.consul-kind::before {
+  @extend %with-gateway-mask, %as-pseudo;
+}
+%pill.leader::before {
+  @extend %with-star-outline-mask, %as-pseudo;
+}
 %pill-allow:before,
 %pill-deny:before,
 %pill-l7:before {
@@ -5,47 +45,30 @@
   margin-right: 5px;
   font-size: 0.9em;
 }
+%pill-allow,
+%pill-deny,
+%pill-l7 {
+  text-transform: capitalize;
+  font-weight: $typo-weight-normal;
+  font-size: $typo-size-600;
+}
 %pill-allow {
   color: $green-800;
   background-color: $green-100;
-}
-%pill-allow::before {
-  @extend %with-arrow-right-color-mask;
 }
 %pill-deny {
   color: $red-800;
   background-color: $red-100;
 }
-%pill-deny::before {
-  @extend %with-deny-color-mask;
-}
 %pill-l7 {
   @extend %frame-gray-900;
 }
+%pill-allow::before {
+  @extend %with-arrow-right-color-mask;
+}
+%pill-deny::before {
+  @extend %with-deny-color-mask;
+}
 %pill-l7::before {
   @extend %with-layers-mask;
-}
-td strong {
-  @extend %pill, %frame-gray-900;
-  margin-right: 3px;
-}
-
-span.policy-service-identity,
-span.policy-node-identity,
-.consul-external-source,
-.consul-kind,
-.leader {
-  @extend %reduced-pill;
-}
-span.policy-service-identity::before,
-span.policy-node-identity::before {
-  display: inline-block;
-  width: auto;
-  vertical-align: baseline;
-}
-span.policy-node-identity::before {
-  content: 'Node Identity: ';
-}
-span.policy-service-identity::before {
-  content: 'Service Identity: ';
 }
