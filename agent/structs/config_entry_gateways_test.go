@@ -27,8 +27,10 @@ func TestIngressConfigEntry_Normalize(t *testing.T) {
 				},
 			},
 			expected: IngressGatewayConfigEntry{
-				Kind: "ingress-gateway",
-				Name: "ingress-web",
+				Kind:              "ingress-gateway",
+				Name:              "ingress-web",
+				TracingStrategy:   "random_sampling",
+				TracingPercentage: 0.0,
 				Listeners: []IngressListener{
 					{
 						Port:     1111,
@@ -58,8 +60,10 @@ func TestIngressConfigEntry_Normalize(t *testing.T) {
 				},
 			},
 			expected: IngressGatewayConfigEntry{
-				Kind: "ingress-gateway",
-				Name: "ingress-web",
+				Kind:              "ingress-gateway",
+				Name:              "ingress-web",
+				TracingStrategy:   "random_sampling",
+				TracingPercentage: 0.0,
 				Listeners: []IngressListener{
 					{
 						Port:     1111,
@@ -512,6 +516,49 @@ func TestIngressConfigEntry_Validate(t *testing.T) {
 				},
 			},
 			expectErr: `Host '*' is not allowed when TLS is enabled, all hosts must be valid DNS records to add as a DNSSAN`,
+		},
+		{
+			name: "trace sampling strategy must be supported by envoy listener",
+			entry: IngressGatewayConfigEntry{
+				Kind:            "ingress-gateway",
+				Name:            "ingress-web",
+				TracingStrategy: "bogus",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name:  "db",
+								Hosts: []string{"*"},
+							},
+						},
+					},
+				},
+			},
+			expectErr: `"bogus" is not a valid trace sampling strategy. valid values are "random_sampling" and "client_sampling"`,
+		},
+		{
+			name: "trace sampling percentage must be between 0 and 100",
+			entry: IngressGatewayConfigEntry{
+				Kind:              "ingress-gateway",
+				Name:              "ingress-web",
+				TracingStrategy:   "client_sampling",
+				TracingPercentage: 200,
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name:  "db",
+								Hosts: []string{"*"},
+							},
+						},
+					},
+				},
+			},
+			expectErr: `trace sampling percentage must be between 0 and 100 inclusive`,
 		},
 	}
 

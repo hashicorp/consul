@@ -319,14 +319,17 @@ func (s *Server) makeIngressGatewayListeners(address string, cfgSnap *proxycfg.C
 			// If multiple upstreams share this port, make a special listener for the protocol.
 			listener := makeListener(listenerKey.Protocol, address, listenerKey.Port, envoycore.TrafficDirection_OUTBOUND)
 			opts := listenerFilterOpts{
-				useRDS:          true,
-				protocol:        listenerKey.Protocol,
-				filterName:      listenerKey.RouteName(),
-				routeName:       listenerKey.RouteName(),
-				cluster:         "",
-				statPrefix:      "ingress_upstream.",
-				routePath:       "",
-				httpAuthzFilter: nil,
+				useRDS:            true,
+				protocol:          listenerKey.Protocol,
+				filterName:        listenerKey.RouteName(),
+				routeName:         listenerKey.RouteName(),
+				cluster:           "",
+				statPrefix:        "ingress_upstream.",
+				routePath:         "",
+				ingress:           false,
+				httpAuthzFilter:   nil,
+				tracingStrategy:   cfgSnap.IngressGateway.TracingStrategy,
+				tracingPercentage: cfgSnap.IngressGateway.TracingPercentage,
 			}
 			filter, err := makeListenerFilter(opts)
 			if err != nil {
@@ -1120,15 +1123,18 @@ func getAndModifyUpstreamConfigForListener(logger hclog.Logger, u *structs.Upstr
 }
 
 type listenerFilterOpts struct {
-	useRDS           bool
-	protocol         string
-	filterName       string
-	routeName        string
-	cluster          string
-	statPrefix       string
-	routePath        string
-	requestTimeoutMs *int
-	httpAuthzFilter  *envoyhttp.HttpFilter
+	useRDS            bool
+	protocol          string
+	filterName        string
+	routeName         string
+	cluster           string
+	statPrefix        string
+	routePath         string
+	ingress           bool
+	requestTimeoutMs  *int
+	tracingStrategy   string
+	tracingPercentage float64
+	httpAuthzFilter   *envoyhttp.HttpFilter
 }
 
 func makeListenerFilter(opts listenerFilterOpts) (*envoylistener.Filter, error) {
@@ -1186,12 +1192,15 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoylistener.Filter, error) {
 				Name: "envoy.filters.http.router",
 			},
 		},
-		Tracing: &envoyhttp.HttpConnectionManager_Tracing{
-			// Don't trace any requests by default unless the client application
-			// explicitly propagates trace headers that indicate this should be
-			// sampled.
-			RandomSampling: &envoytype.Percent{Value: 0.0},
-		},
+		Tracing: &envoyhttp.HttpConnectionManager_Tracing{},
+	}
+
+	tracePercent := &envoytype.Percent{Value: opts.tracingPercentage}
+	switch strings.ToLower(opts.tracingStrategy) {
+	case "client_sampling":
+		cfg.Tracing.ClientSampling = tracePercent
+	case "random_sampling":
+		cfg.Tracing.RandomSampling = tracePercent
 	}
 
 	if opts.useRDS {

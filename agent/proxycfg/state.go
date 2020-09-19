@@ -1447,6 +1447,8 @@ func (s *state) handleUpdateIngressGateway(u cache.UpdateEvent, snap *ConfigSnap
 
 		snap.IngressGateway.TLSEnabled = gatewayConf.TLS.Enabled
 		snap.IngressGateway.TLSSet = true
+		snap.IngressGateway.TracingStrategy = gatewayConf.TracingStrategy
+		snap.IngressGateway.TracingPercentage = gatewayConf.TracingPercentage
 
 		if err := s.watchIngressLeafCert(snap); err != nil {
 			return err
