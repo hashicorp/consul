@@ -2,7 +2,9 @@ package lib
 
 import (
 	"errors"
+	"fmt"
 	"io"
+	"net/rpc"
 	"strings"
 
 	"github.com/hashicorp/yamux"
@@ -20,9 +22,16 @@ func IsErrEOF(err error) bool {
 
 	errStr := err.Error()
 	if strings.Contains(errStr, yamuxStreamClosed) ||
-		strings.Contains(errStr, yamuxSessionShutdown) ||
-		strings.HasSuffix(errStr, io.EOF.Error()) {
+		strings.Contains(errStr, yamuxSessionShutdown) {
 		return true
+	}
+
+	if srvErr, ok := err.(rpc.ServerError); ok {
+		return strings.HasSuffix(srvErr.Error(), fmt.Sprintf(": %s", io.EOF.Error()))
+	}
+
+	if srvErr, ok := errors.Unwrap(err).(rpc.ServerError); ok {
+		return strings.HasSuffix(srvErr.Error(), fmt.Sprintf(": %s", io.EOF.Error()))
 	}
 
 	return false
