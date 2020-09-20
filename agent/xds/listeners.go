@@ -1201,6 +1201,8 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoylistener.Filter, error) {
 		cfg.Tracing.ClientSampling = tracePercent
 	case "random_sampling":
 		cfg.Tracing.RandomSampling = tracePercent
+	default:
+		cfg.Tracing.RandomSampling = &envoytype.Percent{Value: 0.0}
 	}
 
 	if opts.useRDS {

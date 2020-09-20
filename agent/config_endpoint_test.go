@@ -307,12 +307,15 @@ func TestConfig_Apply_IngressGateway(t *testing.T) {
 		got.ModifyIndex = 0
 
 		expect := &structs.IngressGatewayConfigEntry{
-			Name: "ingress",
-			Kind: structs.IngressGateway,
+			Name:              "ingress",
+			Kind:              structs.IngressGateway,
+			TracingStrategy:   "random_sampling",
+			TracingPercentage: 0.0,
 			Listeners: []structs.IngressListener{
 				{
 					Port:     8080,
 					Protocol: "tcp",
+
 					Services: []structs.IngressService{
 						{
 							Name:           "web",
