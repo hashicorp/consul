@@ -1,6 +1,23 @@
 # ---------------------------------------------------------------------------------------------------------------------
 # Start up test servers to run tests from
 # ---------------------------------------------------------------------------------------------------------------------
+resource "aws_instance" "test-server-primary" {
+  ami           = var.test_server_ami
+  instance_type = var.test_instance_type
+  key_name      = module.keys.key_name
+  subnet_id     = (module.vpc.public_subnets)[0]
+  security_groups = [module.consul.security_group_id_clients]
+  associate_public_ip_address = var.test_public_ip
+  tags = {
+    Name = "test-server-primary"
+  }
+    user_data = templatefile(
+    "./start-locust-primary.sh",
+    {
+      lb_endpoint = module.alb.this_lb_dns_name
+    }
+  )
+}
 
 resource "aws_launch_configuration" "test-servers" {
   name_prefix          = "${var.cluster_name}-test-"
@@ -16,6 +33,7 @@ resource "aws_launch_configuration" "test-servers" {
   user_data = templatefile(
     "./start-locust.sh",
     {
+      primary_ip  = aws_instance.test-server-primary.public_ip
       lb_endpoint = module.alb.this_lb_dns_name
     }
   )
@@ -31,7 +49,6 @@ resource "aws_autoscaling_group" "test-servers" {
   health_check_grace_period = 15
   health_check_type         = "EC2"
   vpc_zone_identifier       = module.vpc.public_subnets
-
   lifecycle {
     create_before_destroy = true
   }

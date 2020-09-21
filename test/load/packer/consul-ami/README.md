@@ -13,4 +13,4 @@ To build the Consul AMI:
 5. For additional customization you can add [tags](https://docs.datadoghq.com/getting_started/tagging/assigning_tags/?tab=noncontainerizedenvironments) within the `scripts/datadog.yaml` file. One example of a tag could be `"consul_version" : "consulent_175"`. These tags are searchable through the datadog dashboard. Another form of customization is changing the datacenter tag within `scripts/telemetry.json`, however it is defaulted to `us-east-1`.
 6. Run `packer build consul.json`. 
 
-When the build finishes, it will output the IDs of the new AMI. Add this AMI ID in the `ami_id` variable in the `vars.tfvars` file.
+When the build finishes, it will output the IDs of the new AMI. Add this AMI ID in the `consul_ami_id` variable in the `vars.tfvars` file.
