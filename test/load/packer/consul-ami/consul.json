@@ -1,7 +1,7 @@
 {
   "min_packer_version": "1.5.4",
   "variables": {
-    "aws_region": "us-east-1",
+    "aws_region": "us-east-2",
     "consul_version": "1.5.1",
     "download_url": "{{env `CONSUL_DOWNLOAD_URL`}}",
     "dd_api_key": "{{env `DD_API_KEY`}}"
@@ -52,16 +52,16 @@
     ],
     "pause_before": "30s"
   },{
-    // "type": "shell",
-  //   "environment_vars": [
-  //     "DD_API_KEY={{user `dd_api_key`}}"
-  //   ],
-  //   "execute_command": "sudo -S sh -c '{{ .Vars }} {{ .Path }}'",
-  //   "script": "{{template_dir}}/scripts/move-files.sh"
-  // },{
     "type": "shell",
     "inline": [
       "DD_AGENT_MAJOR_VERSION=7 DD_API_KEY={{user `dd_api_key`}} bash -c \"$(curl -L https://raw.githubusercontent.com/DataDog/datadog-agent/master/cmd/agent/install_script.sh)\""
     ]
+  },{
+    "type": "shell",
+    "execute_command": "sudo sh -c '{{ .Vars }} {{ .Path }}'",
+    "environment_vars": [
+      "DD_API_KEY={{user `dd_api_key`}}"
+  ],
+    "script": "{{template_dir}}/scripts/move-files.sh"
   }]
 }

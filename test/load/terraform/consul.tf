@@ -10,7 +10,7 @@ data "aws_ami" "consul" {
 
   filter {
     name   = "is-public"
-    values = ["true"]
+    values = ["false"]
   }
 
   filter {

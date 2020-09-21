@@ -1,5 +1,5 @@
 {
-"datacenter": "us-east-1",
+"datacenter": "us-east-2",
 "telemetry": {
   "dogstatsd_addr": "127.0.0.1:8125"
 }
