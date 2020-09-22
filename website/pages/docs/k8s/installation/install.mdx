@@ -300,7 +300,7 @@ Kubernetes downward API. See
 [accessing the Consul HTTP API](/docs/k8s/installation/install#accessing-the-consul-http-api)
 for an example.
 
-We do not use a **NodePort** because requests to node ports get randomly routed
+We do not use a **NodePort** Kubernetes service because requests to node ports get randomly routed
 to any pod in the service and we need to be able to route directly to the Consul
 client running on our node.
 
