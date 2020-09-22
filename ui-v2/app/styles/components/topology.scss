@@ -1,25 +1,37 @@
 .topology-container {
   display: grid;
-  grid-gap: 70px;
   color: $gray-700;
+  height: 100%;
   align-items: start;
-  grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: auto;
-  grid-template-areas:
-    'downstream . upstream'
-    'downstream grafana upstream'
-    'downstream . upstream';
+  grid-template-columns: 2fr 20px 1fr 20px 2fr 20px 1fr 20px 2fr;
+  grid-template-rows: 50px 1fr 50px;
 }
 
 // Upstream & Downstream Containers
+.downstream-container {
+  grid-row: 1 / 3;
+  grid-column: 1 / 3;
+}
+.downstream-lines {
+  grid-row: 1 / 3;
+  grid-column: 2 / 5;
+  z-index: 1;
+  position: relative;
+  height: 100%;
+}
+.upstream-lines {
+  grid-row: 1 / 3;
+  grid-column: 6 / 9;
+  z-index: 1;
+  position: relative;
+  height: 100%;
+}
 .upstream-container {
-  grid-area: upstream;
+  grid-row: 1 / 3;
+  grid-column: 8 / 10;
 }
-.downstream-container {
-  grid-area: downstream;
-}
-.upstream-container,
-.downstream-container {
+.downstream-container,
+.upstream-container {
   background-color: $gray-100;
   border-radius: $decor-radius-100;
   border: 1px solid $gray-200;
@@ -28,7 +40,6 @@
 .upstream-card,
 .downstream-card {
   padding: 12px;
-  height: fit-content;
   background-color: $white;
   border-radius: $decor-radius-100;
   border: 1px solid $gray-200;
@@ -72,13 +83,14 @@
   background-color: $red-500;
 }
 
-// Grafana Container
-.grafana-container {
-  grid-area: grafana;
+// Metrics Container
+.metrics-container {
+  grid-row: 2 / 3;
+  grid-column: 4 / 7;
   border: 1px solid $gray-200;
   border-radius: $decor-radius-100;
 }
-.grafana-header {
+.metrics-header {
   padding: 12px;
   background-color: $white;
   border: none;
@@ -99,4 +111,27 @@
   @extend %with-exit-mask, %as-pseudo;
   background-color: $gray-500;
   margin-right: 4px;
+}
+
+// SVG Line styling
+.lines {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+.line-fill {
+  fill: $transparent;
+  stroke: $gray-300;
+  stroke-width: 2;
+}
+.line-circle {
+  fill: $white;
+  stroke: $gray-300;
+  stroke-width: 2;
+}
+.line-arrow {
+  fill: $gray-300;
+  stroke: $gray-300;
+  stroke-width: 2;
+  stroke-linejoin: round;
 }
