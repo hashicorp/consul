@@ -45,16 +45,6 @@ module.exports = function(environment, $ = process.env) {
         .split('-')
         .shift();
     })(process.env.CONSUL_COPYRIGHT_YEAR),
-    CONSUL_GIT_SHA: (function(val) {
-      if (val) {
-        return val;
-      }
-
-      return require('child_process')
-        .execSync('git rev-parse --short HEAD')
-        .toString()
-        .trim();
-    })(process.env.CONSUL_GIT_SHA),
     CONSUL_VERSION: (function(val) {
       if (val) {
         return val;
@@ -136,7 +126,7 @@ module.exports = function(environment, $ = process.env) {
         // won't really exist in the actual ember ENV when it's being served
         // through Consul. See settingsInjectedIndexFS.Open in Go code for the
         // details.
-        CONSUL_UI_SETTINGS_PLACEHOLDER: "__CONSUL_UI_SETTINGS_GO_HERE__",
+        CONSUL_UI_SETTINGS_PLACEHOLDER: '__CONSUL_UI_SETTINGS_GO_HERE__',
       });
       break;
   }
