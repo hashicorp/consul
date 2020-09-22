@@ -20,6 +20,7 @@ export default Model.extend({
   Action: attr('string'),
   Meta: attr(),
   Legacy: attr('boolean', { defaultValue: true }),
+  LegacyID: attr('string'),
 
   IsManagedByCRD: computed('Meta', function() {
     const meta = Object.entries(this.Meta || {}).find(
