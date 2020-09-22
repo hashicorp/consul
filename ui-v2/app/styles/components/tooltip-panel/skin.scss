@@ -1,3 +1,6 @@
+%tooltip-panel dt {
+  cursor: pointer;
+}
 /* This is the top chevron */
 %tooltip-panel dd > div::before {
   @extend %as-pseudo;

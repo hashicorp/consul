@@ -17,31 +17,3 @@
 %with-composite-row-intent:active {
   @extend %list-row-intent;
 }
-%list-row-header > dl:first-child {
-  @extend %list-row-header-icon;
-}
-
-// TODO: %defined-by-icon
-// Copy Button
-%composite-row .copy-button {
-  display: inline-flex;
-}
-%composite-row .copy-button button {
-  padding: 0 !important;
-  margin: 0 !important;
-}
-%composite-row-detail .copy-button {
-  margin-right: 4px;
-  margin-top: 2px;
-}
-%composite-row-header .copy-button {
-  margin-left: 4px;
-}
-/* buttons need to be displayed in order for the tooltip */
-/* to track them */
-%composite-row-header .copy-button button {
-  opacity: 0;
-}
-%composite-row-header:hover .copy-button button {
-  opacity: 1;
-}

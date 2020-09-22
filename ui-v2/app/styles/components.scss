@@ -3,12 +3,15 @@
 /**/
 
 @import './components/card/index';
+@import './components/list-row/index';
+@import './components/expanded-single-select/index';
+
+@import './components/icon-definition';
 @import './components/form-elements';
 @import './components/breadcrumbs';
 @import './components/anchors';
 @import './components/progress';
 @import './components/buttons';
-@import './components/list-row';
 @import './components/composite-row';
 @import './components/secret-button';
 @import './components/tabs';

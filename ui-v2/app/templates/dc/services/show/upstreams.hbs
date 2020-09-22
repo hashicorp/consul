@@ -26,8 +26,9 @@
   {{#let (sort-by (comparator 'service' sort) filtered) as |sorted|}}
       <ChangeableSet @dispatcher={{searchable 'service' sorted}} @terms={{search}}>
         <BlockSlot @name="set" as |searched|>
-          <ConsulServiceList
+          <ConsulUpstreamList
             @items={{searched}}
+            @dc={{dc}}
             @nspace={{nspace}}
           />
         </BlockSlot>

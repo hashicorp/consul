@@ -1,19 +1,13 @@
 @import './app-view/index';
 
+main {
+  @extend %app-view;
+}
 %app-view-actions label + div {
   /* We need this extra to allow tooltips to show */
   overflow: visible !important;
 }
 
-main {
-  @extend %app-view;
-}
-%app-view > div > header {
-  @extend %app-view-header;
-}
-%app-view > div > div {
-  @extend %app-view-content;
-}
 %app-view > div.unauthorized,
 %app-view > div.error {
   @extend %app-view-error;
@@ -24,9 +18,6 @@ main {
 %app-view-actions a,
 %app-view-actions button {
   @extend %button-compact;
-}
-%app-view-content div > dl {
-  @extend %form-row;
 }
 [role='tabpanel'] > p:only-child,
 %app-view-content > p:only-child {

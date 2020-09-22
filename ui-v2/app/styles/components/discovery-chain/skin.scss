@@ -8,7 +8,7 @@
   @extend %with-tooltip;
 }
 %route-card > header ul li {
-  @extend %pill, %frame-gray-900;
+  @extend %pill-500, %frame-gray-900;
 }
 %discovery-chain-tween {
   transition-duration: 0.1s;

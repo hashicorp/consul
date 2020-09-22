@@ -1,7 +1,7 @@
 <ul data-test-proxy-exposed-paths>
 {{#each items as |path|}}
   <li>
-    <div>
+    <div class="header">
     {{#let (concat address ':' path.Path) as |combinedAddress|}}
       <p class="combined-address">
         <span>
@@ -14,7 +14,7 @@
       </p>
     {{/let}}
     </div>
-    <div>
+    <div class="detail">
     {{#if path.Protocol}}
       <dl class="protocol">
         <dt>

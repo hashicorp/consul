@@ -61,14 +61,17 @@
       </dl>
 {{/if}}
 {{#if (and checks item.Port)}}
-      <dl>
+      <dl class="port">
         <dt>
+          Port
+        </dt>
+        <dd data-test-service-port={{item.Port}}>
           <CopyButton
             @value={{item.Port}}
             @name="Port"
           />
-        </dt>
-        <dd data-test-service-port={{item.Port}}>:{{item.Port}}</dd>
+          :{{item.Port}}
+        </dd>
       </dl>
 {{/if}}
 {{#if checks}}
