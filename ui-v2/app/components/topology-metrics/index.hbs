@@ -1,0 +1,122 @@
+{{on-window 'resize' (action "calculate") }}
+<div {{did-insert (action "calculate")}} class="topology-container">
+{{#if true}}
+  <div id="downstream-container" class="downstream-container">
+    <p>Downstreams</p>
+    <div id="downstreamCard-1" class="downstream-card">
+      <p>
+        redis
+      </p>
+      <div class="details">
+        <span class="datacenter">us-east-1</span>
+        <span class="passing">80%</span>
+        <span class="critical">20%</span>
+      </div>
+    </div>
+    <div id="downstreamCard-2" class="downstream-card">
+      <p>
+        service-a
+      </p>
+      <div class="details">
+        <span class="datacenter">us-east-1</span>
+        <span class="passing">100%</span>
+      </div>
+    </div>
+  </div>
+  <div id="metrics-container" class="metrics-container">
+    <div class="metrics-header">
+      web
+    </div>
+    <div class="grafana-link">
+      <a href="#">Open Grafana Dashboard</a>
+    </div>
+  </div>
+  <div  id="downstream-lines" class="downstream-lines">
+    {{#if (gt this.downCardDimensions.length 0)}}
+    <svg
+      viewBox={{concat downView.x ' ' downView.y ' ' downView.width ' ' downView.height}}
+      preserveAspectRatio="none"
+    >
+    {{#each this.downCardDimensions as |svg| }}
+      <g>
+        <path
+          class="line-fill"
+          id={{concat 'downstream-' svg.id}}
+          d={{svg.line}}
+        />
+        <circle class="line-circle" cx={{add svg.x svg.width}} cy={{add svg.y (div svg.height 2)}} r="5"/>
+      </g>
+    {{/each}}
+
+      <polygon class="line-arrow"
+        points={{
+          concat (sub this.centerDimensions.x 3) ' ' (sub (add this.centerDimensions.y (div this.centerDimensions.height 4)) 5) ' '
+          concat (add this.centerDimensions.x 7) ' ' (add this.centerDimensions.y (div this.centerDimensions.height 4)) ' '
+          concat (sub this.centerDimensions.x 3) ' ' (add (add this.centerDimensions.y (div this.centerDimensions.height 4)) 5) ' '
+        }}
+      />
+    </svg>
+    {{/if}}
+  </div>
+{{/if}}
+{{#if true}}
+  <div class="upstream-container">
+    <p>Upstreams</p>
+    <div id="upstreamCard-1" class="upstream-card">
+      <p>
+        consul
+      </p>
+      <div class="details">
+        <span class="port">:80</span>
+        <span class="passing">100%</span>
+      </div>
+    </div>
+    <div id="upstreamCard-2" class="upstream-card">
+      <p>
+        consul
+      </p>
+      <div class="details">
+        <span class="port">:80</span>
+        <span class="passing">33%</span>
+        <span class="critical">66%</span>
+      </div>
+    </div>
+    <div id="upstreamCard-3" class="upstream-card">
+      <p>
+        consul
+      </p>
+      <div class="details">
+        <span class="datacenter">us-east-1</span>
+        <span class="port">:8080</span>
+        <span class="passing">100%</span>
+      </div>
+    </div>
+  </div>
+  <div id="upstream-lines" class="upstream-lines">
+  {{#if (gt this.upCardDimensions.length 0)}}
+    <svg viewBox={{concat this.centerDimensions.x ' ' upView.y ' ' upView.width ' ' upView.height}} preserveAspectRatio="none">
+    {{#each this.upCardDimensions as |svg| }}
+      <g>
+        <path id={{concat 'upstream-' svg.id}} class="line-fill" d={{svg.line}} />
+        <polygon class="line-arrow"
+          points={{
+          concat (sub (sub svg.x svg.width) 31) ' ' (sub (add svg.y (div svg.height 2)) 5) ' '
+          concat (sub (sub svg.x svg.width) 21) ' ' (add svg.y (div svg.height 2)) ' '
+          concat (sub (sub svg.x svg.width) 31) ' ' (add (add svg.y (div svg.height 2)) 5) ' '
+          }}
+        />
+      </g>
+    {{/each}}
+
+
+       <circle
+        class="line-circle"
+        cx={{add this.centerDimensions.x 6}}
+        cy={{add this.centerDimensions.y (div this.centerDimensions.height 4)}}
+        r="5"
+      />
+    </svg>
+  {{/if}}
+  </div>
+{{/if}}
+</div>
