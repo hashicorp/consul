@@ -3,7 +3,8 @@ import { setupTest } from 'ember-qunit';
 module('Integration | Adapter | intention', function(hooks) {
   setupTest(hooks);
   const dc = 'dc-1';
-  const id = 'intention-name';
+  const legacyId = 'intention-name';
+  const id = 'SourceNS:SourceName:DestinationNS:DestinationName';
   test('requestForQuery returns the correct url', function(assert) {
     const adapter = this.owner.lookup('adapter:intention');
     const client = this.owner.lookup('service:client/http');
@@ -16,7 +17,7 @@ module('Integration | Adapter | intention', function(hooks) {
   test('requestForQueryRecord returns the correct url', function(assert) {
     const adapter = this.owner.lookup('adapter:intention');
     const client = this.owner.lookup('service:client/http');
-    const expected = `GET /v1/connect/intentions/${id}?dc=${dc}`;
+    const expected = `GET /v1/connect/intentions/exact?source=SourceNS%2FSourceName&destination=DestinationNS%2FDestinationName&dc=${dc}`;
     const actual = adapter
       .requestForQueryRecord(client.url, {
         dc: dc,
@@ -53,7 +54,7 @@ module('Integration | Adapter | intention', function(hooks) {
   test('requestForUpdateRecord returns the correct url', function(assert) {
     const adapter = this.owner.lookup('adapter:intention');
     const client = this.owner.lookup('service:client/http');
-    const expected = `PUT /v1/connect/intentions/${id}?dc=${dc}`;
+    const expected = `PUT /v1/connect/intentions/${legacyId}?dc=${dc}`;
     const actual = adapter
       .requestForUpdateRecord(
         client.url,
@@ -61,6 +62,7 @@ module('Integration | Adapter | intention', function(hooks) {
         {
           Datacenter: dc,
           ID: id,
+          LegacyID: legacyId,
         }
       )
       .split('\n')[0];
@@ -69,7 +71,7 @@ module('Integration | Adapter | intention', function(hooks) {
   test('requestForDeleteRecord returns the correct url', function(assert) {
     const adapter = this.owner.lookup('adapter:intention');
     const client = this.owner.lookup('service:client/http');
-    const expected = `DELETE /v1/connect/intentions/${id}?dc=${dc}`;
+    const expected = `DELETE /v1/connect/intentions/${legacyId}?dc=${dc}`;
     const actual = adapter
       .requestForDeleteRecord(
         client.url,
@@ -77,6 +79,7 @@ module('Integration | Adapter | intention', function(hooks) {
         {
           Datacenter: dc,
           ID: id,
+          LegacyID: legacyId,
         }
       )
       .split('\n')[0];
