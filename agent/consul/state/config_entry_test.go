@@ -1246,7 +1246,7 @@ func TestStore_ReadDiscoveryChainConfigEntries_SubsetSplit(t *testing.T) {
 		require.NoError(t, s.EnsureConfigEntry(0, entry, nil))
 	}
 
-	_, entrySet, err := s.ReadDiscoveryChainConfigEntries(nil, "main", nil)
+	_, entrySet, err := s.readDiscoveryChainConfigEntries(nil, "main", nil, nil)
 	require.NoError(t, err)
 
 	require.Len(t, entrySet.Routers, 0)
@@ -1451,4 +1451,273 @@ func TestStore_ValidateIngressGatewayErrorOnMismatchedProtocols(t *testing.T) {
 		require.NoError(t, s.EnsureConfigEntry(1, newIngress("tcp", "web"), nil))
 		require.NoError(t, s.DeleteConfigEntry(5, structs.IngressGateway, "gateway", nil))
 	})
+}
+
+func TestSourcesForTarget(t *testing.T) {
+	defaultMeta := *structs.DefaultEnterpriseMeta()
+
+	type expect struct {
+		idx uint64
+		ids []structs.ServiceName
+	}
+	tt := []struct {
+		name    string
+		entries []structs.ConfigEntry
+		expect  expect
+	}{
+		{
+			name: "from route match",
+			entries: []structs.ConfigEntry{
+				&structs.ProxyConfigEntry{
+					Kind: structs.ProxyDefaults,
+					Name: structs.ProxyConfigGlobal,
+					Config: map[string]interface{}{
+						"protocol": "http",
+					},
+				},
+				&structs.ServiceRouterConfigEntry{
+					Kind: structs.ServiceRouter,
+					Name: "web",
+					Routes: []structs.ServiceRoute{
+						{
+							Match: &structs.ServiceRouteMatch{
+								HTTP: &structs.ServiceRouteHTTPMatch{
+									PathExact: "/sink",
+								},
+							},
+							Destination: &structs.ServiceRouteDestination{
+								Service: "sink",
+							},
+						},
+					},
+				},
+			},
+			expect: expect{
+				idx: 2,
+				ids: []structs.ServiceName{
+					{Name: "web", EnterpriseMeta: defaultMeta},
+				},
+			},
+		},
+		{
+			name: "from redirect",
+			entries: []structs.ConfigEntry{
+				&structs.ProxyConfigEntry{
+					Kind: structs.ProxyDefaults,
+					Name: structs.ProxyConfigGlobal,
+					Config: map[string]interface{}{
+						"protocol": "http",
+					},
+				},
+				&structs.ServiceResolverConfigEntry{
+					Kind: structs.ServiceResolver,
+					Name: "web",
+					Redirect: &structs.ServiceResolverRedirect{
+						Service: "sink",
+					},
+				},
+			},
+			expect: expect{
+				idx: 2,
+				ids: []structs.ServiceName{
+					{Name: "web", EnterpriseMeta: defaultMeta},
+				},
+			},
+		},
+		{
+			name: "from failover",
+			entries: []structs.ConfigEntry{
+				&structs.ProxyConfigEntry{
+					Kind: structs.ProxyDefaults,
+					Name: structs.ProxyConfigGlobal,
+					Config: map[string]interface{}{
+						"protocol": "http",
+					},
+				},
+				&structs.ServiceResolverConfigEntry{
+					Kind: structs.ServiceResolver,
+					Name: "web",
+					Failover: map[string]structs.ServiceResolverFailover{
+						"*": {
+							Service:     "sink",
+							Datacenters: []string{"dc2", "dc3"},
+						},
+					},
+				},
+			},
+			expect: expect{
+				idx: 2,
+				ids: []structs.ServiceName{
+					{Name: "web", EnterpriseMeta: defaultMeta},
+				},
+			},
+		},
+		{
+			name: "from splitter",
+			entries: []structs.ConfigEntry{
+				&structs.ProxyConfigEntry{
+					Kind: structs.ProxyDefaults,
+					Name: structs.ProxyConfigGlobal,
+					Config: map[string]interface{}{
+						"protocol": "http",
+					},
+				},
+				&structs.ServiceSplitterConfigEntry{
+					Kind: structs.ServiceSplitter,
+					Name: "web",
+					Splits: []structs.ServiceSplit{
+						{Weight: 90, Service: "web"},
+						{Weight: 10, Service: "sink"},
+					},
+				},
+			},
+			expect: expect{
+				idx: 2,
+				ids: []structs.ServiceName{
+					{Name: "web", EnterpriseMeta: defaultMeta},
+				},
+			},
+		},
+		{
+			name: "chained route redirect",
+			entries: []structs.ConfigEntry{
+				&structs.ProxyConfigEntry{
+					Kind: structs.ProxyDefaults,
+					Name: structs.ProxyConfigGlobal,
+					Config: map[string]interface{}{
+						"protocol": "http",
+					},
+				},
+				&structs.ServiceRouterConfigEntry{
+					Kind: structs.ServiceRouter,
+					Name: "source",
+					Routes: []structs.ServiceRoute{
+						{
+							Match: &structs.ServiceRouteMatch{
+								HTTP: &structs.ServiceRouteHTTPMatch{
+									PathExact: "/route",
+								},
+							},
+							Destination: &structs.ServiceRouteDestination{
+								Service: "routed",
+							},
+						},
+					},
+				},
+				&structs.ServiceResolverConfigEntry{
+					Kind: structs.ServiceResolver,
+					Name: "routed",
+					Redirect: &structs.ServiceResolverRedirect{
+						Service: "sink",
+					},
+				},
+			},
+			expect: expect{
+				idx: 3,
+				ids: []structs.ServiceName{
+					{Name: "source", EnterpriseMeta: defaultMeta},
+					{Name: "routed", EnterpriseMeta: defaultMeta},
+				},
+			},
+		},
+		{
+			name: "kitchen sink with multiple services referencing sink directly",
+			entries: []structs.ConfigEntry{
+				&structs.ProxyConfigEntry{
+					Kind: structs.ProxyDefaults,
+					Name: structs.ProxyConfigGlobal,
+					Config: map[string]interface{}{
+						"protocol": "http",
+					},
+				},
+				&structs.ServiceRouterConfigEntry{
+					Kind: structs.ServiceRouter,
+					Name: "routed",
+					Routes: []structs.ServiceRoute{
+						{
+							Match: &structs.ServiceRouteMatch{
+								HTTP: &structs.ServiceRouteHTTPMatch{
+									PathExact: "/sink",
+								},
+							},
+							Destination: &structs.ServiceRouteDestination{
+								Service: "sink",
+							},
+						},
+					},
+				},
+				&structs.ServiceResolverConfigEntry{
+					Kind: structs.ServiceResolver,
+					Name: "redirected",
+					Redirect: &structs.ServiceResolverRedirect{
+						Service: "sink",
+					},
+				},
+				&structs.ServiceResolverConfigEntry{
+					Kind: structs.ServiceResolver,
+					Name: "failed-over",
+					Failover: map[string]structs.ServiceResolverFailover{
+						"*": {
+							Service:     "sink",
+							Datacenters: []string{"dc2", "dc3"},
+						},
+					},
+				},
+				&structs.ServiceSplitterConfigEntry{
+					Kind: structs.ServiceSplitter,
+					Name: "split",
+					Splits: []structs.ServiceSplit{
+						{Weight: 90, Service: "no-op"},
+						{Weight: 10, Service: "sink"},
+					},
+				},
+				&structs.ServiceSplitterConfigEntry{
+					Kind: structs.ServiceSplitter,
+					Name: "unrelated",
+					Splits: []structs.ServiceSplit{
+						{Weight: 90, Service: "zip"},
+						{Weight: 10, Service: "zop"},
+					},
+				},
+			},
+			expect: expect{
+				idx: 6,
+				ids: []structs.ServiceName{
+					{Name: "split", EnterpriseMeta: defaultMeta},
+					{Name: "failed-over", EnterpriseMeta: defaultMeta},
+					{Name: "redirected", EnterpriseMeta: defaultMeta},
+					{Name: "routed", EnterpriseMeta: defaultMeta},
+				},
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			s := testStateStore(t)
+			ws := memdb.NewWatchSet()
+
+			ca := &structs.CAConfiguration{
+				Provider: "consul",
+			}
+			err := s.CASetConfig(0, ca)
+			require.NoError(t, err)
+
+			var i uint64 = 1
+			for _, entry := range tc.entries {
+				require.NoError(t, entry.Normalize())
+				require.NoError(t, s.EnsureConfigEntry(i, entry, nil))
+				i++
+			}
+
+			tx := s.db.ReadTxn()
+			defer tx.Abort()
+
+			idx, ids, err := s.sourcesForTarget(ws, tx, "dc1", "sink", nil)
+			require.NoError(t, err)
+
+			require.Equal(t, tc.expect.idx, idx)
+			require.ElementsMatch(t, tc.expect.ids, ids)
+		})
+	}
 }
