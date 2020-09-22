@@ -105,14 +105,16 @@ func (a *Agent) vetServiceRegisterWithAuthorizer(authz acl.Authorizer, service *
 	service.FillAuthzContext(&authzContext)
 	// Vet the service itself.
 	if authz.ServiceWrite(service.Service, &authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+		serviceName := service.CompoundServiceName()
+		return acl.PermissionDenied("Missing service:write on %s", serviceName.String())
 	}
 
 	// Vet any service that might be getting overwritten.
 	if existing := a.State.Service(service.CompoundServiceID()); existing != nil {
 		existing.FillAuthzContext(&authzContext)
 		if authz.ServiceWrite(existing.Service, &authzContext) != acl.Allow {
-			return acl.ErrPermissionDenied
+			serviceName := service.CompoundServiceName()
+			return acl.PermissionDenied("Missing service:write on %s", serviceName.String())
 		}
 	}
 
@@ -121,7 +123,7 @@ func (a *Agent) vetServiceRegisterWithAuthorizer(authz acl.Authorizer, service *
 	if service.Kind == structs.ServiceKindConnectProxy {
 		service.FillAuthzContext(&authzContext)
 		if authz.ServiceWrite(service.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
-			return acl.ErrPermissionDenied
+			return acl.PermissionDenied("Missing service:write on %s", service.Proxy.DestinationServiceName)
 		}
 	}
 
@@ -151,7 +153,8 @@ func (a *Agent) vetServiceUpdateWithAuthorizer(authz acl.Authorizer, serviceID s
 	if existing := a.State.Service(serviceID); existing != nil {
 		existing.FillAuthzContext(&authzContext)
 		if authz.ServiceWrite(existing.Service, &authzContext) != acl.Allow {
-			return acl.ErrPermissionDenied
+			serviceName := existing.CompoundServiceName()
+			return acl.PermissionDenied("Missing service:write on %s", serviceName.String())
 		}
 	} else {
 		return fmt.Errorf("Unknown service %q", serviceID)
@@ -229,11 +232,11 @@ func (a *Agent) vetCheckUpdateWithAuthorizer(authz acl.Authorizer, checkID struc
 	if existing := a.State.Check(checkID); existing != nil {
 		if len(existing.ServiceName) > 0 {
 			if authz.ServiceWrite(existing.ServiceName, &authzContext) != acl.Allow {
-				return acl.ErrPermissionDenied
+				return acl.PermissionDenied("Missing service:write on %s", existing.ServiceName)
 			}
 		} else {
 			if authz.NodeWrite(a.config.NodeName, &authzContext) != acl.Allow {
-				return acl.ErrPermissionDenied
+				return acl.PermissionDenied("Missing node:write on %s", a.config.NodeName)
 			}
 		}
 	} else {
