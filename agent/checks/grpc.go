@@ -13,8 +13,6 @@ import (
 	"google.golang.org/grpc/resolver"
 )
 
-var ErrGRPCUnhealthy = fmt.Errorf("gRPC application didn't report service healthy")
-
 // GrpcHealthProbe connects to gRPC application and queries health service for application/service status.
 type GrpcHealthProbe struct {
 	server      string
@@ -69,8 +67,8 @@ func (probe *GrpcHealthProbe) Check(target string) error {
 	if err != nil {
 		return err
 	}
-	if response == nil || response.Status != hv1.HealthCheckResponse_SERVING {
-		return ErrGRPCUnhealthy
+	if response.Status != hv1.HealthCheckResponse_SERVING {
+		return fmt.Errorf("gRPC %s serving status: %s", target, response.Status)
 	}
 
 	return nil
