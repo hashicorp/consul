@@ -244,6 +244,13 @@ An alias check for a local service:
 }
 ```
 
+~> Configuration info: The alias check configuration expects the alias to be 
+registered on the same agent as the one you are aliasing. If the service is 
+not registered with the same agent, `"alias_node": "<node_id>"` must also be 
+specified. When using `alias_node`, if no service is specified, the check will 
+alias the health of the node. If a service is specified, the check will alias 
+the specified service on this particular node.
+
 Each type of definition must include a `name` and may optionally provide an
 `id` and `notes` field. The `id` must be unique per _agent_ otherwise only the
 last defined check with that `id` will be registered. If the `id` is not set
