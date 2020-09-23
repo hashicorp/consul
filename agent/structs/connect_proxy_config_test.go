@@ -108,8 +108,7 @@ func TestUpstream_MarshalJSON(t *testing.T) {
 				"DestinationName": "foo",
 				"Datacenter": "dc1",
 				"LocalBindPort": 1234,
-				"MeshGateway": {},
-				"Config": null
+				"MeshGateway": {}
 			}`,
 			wantErr: false,
 		},
@@ -126,8 +125,7 @@ func TestUpstream_MarshalJSON(t *testing.T) {
 				"DestinationName": "foo",
 				"Datacenter": "dc1",
 				"LocalBindPort": 1234,
-				"MeshGateway": {},
-				"Config": null
+				"MeshGateway": {}
 			}`,
 			wantErr: false,
 		},
@@ -148,10 +146,11 @@ func TestUpstream_MarshalJSON(t *testing.T) {
 
 func TestUpstream_UnmarshalJSON(t *testing.T) {
 	tests := []struct {
-		name    string
-		json    string
-		want    Upstream
-		wantErr bool
+		name      string
+		json      string
+		jsonSnake string
+		want      Upstream
+		wantErr   bool
 	}{
 		{
 			name: "service",
@@ -197,18 +196,303 @@ func TestUpstream_UnmarshalJSON(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "kitchen sink",
+			json: `
+				{
+				  "DestinationType": "service",
+				  "DestinationNamespace": "default",
+				  "DestinationName": "bar1",
+				  "Datacenter": "dc1",
+				  "LocalBindAddress": "127.0.0.2",
+				  "LocalBindPort": 6060,
+				  "Config": {
+					"x": "y",
+					"z": -2
+				  },
+				  "MeshGateway": {
+					"Mode": "local"
+				  }
+				}
+			`,
+			jsonSnake: `
+				{
+				  "destination_type": "service",
+				  "destination_namespace": "default",
+				  "destination_name": "bar1",
+				  "datacenter": "dc1",
+				  "local_bind_address": "127.0.0.2",
+				  "local_bind_port": 6060,
+				  "config": {
+					"x": "y",
+					"z": -2
+				  },
+				  "mesh_gateway": {
+					"mode": "local"
+				  }
+				}
+			`,
+			want: Upstream{
+				DestinationType:      UpstreamDestTypeService,
+				DestinationNamespace: "default",
+				DestinationName:      "bar1",
+				Datacenter:           "dc1",
+				LocalBindAddress:     "127.0.0.2",
+				LocalBindPort:        6060,
+				Config: map[string]interface{}{
+					"x": "y",
+					"z": float64(-2),
+				},
+				MeshGateway: MeshGatewayConfig{
+					Mode: "local",
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			require := require.New(t)
-			var got Upstream
-			err := json.Unmarshal([]byte(tt.json), &got)
-			if tt.wantErr {
-				require.Error(err)
-				return
+			t.Run("camel", func(t *testing.T) {
+				var got Upstream
+				err := json.Unmarshal([]byte(tt.json), &got)
+				if tt.wantErr {
+					require.Error(t, err)
+				} else {
+					require.NoError(t, err)
+					require.Equal(t, tt.want, got, "%+v", got)
+				}
+			})
+
+			if tt.jsonSnake != "" {
+				t.Run("snake", func(t *testing.T) {
+					var got Upstream
+					err := json.Unmarshal([]byte(tt.jsonSnake), &got)
+					if tt.wantErr {
+						require.Error(t, err)
+					} else {
+						require.NoError(t, err)
+						require.Equal(t, tt.want, got)
+					}
+				})
 			}
-			require.NoError(err)
-			require.Equal(tt.want, got)
+		})
+	}
+}
+
+func TestConnectProxyConfig_UnmarshalJSON(t *testing.T) {
+	tests := []struct {
+		name      string
+		json      string
+		jsonSnake string
+		want      ConnectProxyConfig
+		wantErr   bool
+	}{
+		{
+			name: "kitchen sink",
+			json: `
+				{
+				  "DestinationServiceName": "foo-name",
+				  "DestinationServiceID": "foo-id",
+				  "LocalServiceAddress": "127.0.0.1",
+				  "LocalServicePort": 5050,
+				  "Config": {
+					"a": "b",
+					"v": 42
+				  },
+				  "Upstreams": [
+					{
+					  "DestinationType": "service",
+					  "DestinationNamespace": "default",
+					  "DestinationName": "bar1",
+					  "Datacenter": "dc1",
+					  "LocalBindAddress": "127.0.0.2",
+					  "LocalBindPort": 6060,
+					  "Config": {
+						"x": "y",
+						"z": -2
+					  },
+					  "MeshGateway": {
+						"Mode": "local"
+					  }
+					},
+					{
+					  "DestinationType": "service",
+					  "DestinationNamespace": "default",
+					  "DestinationName": "bar2",
+					  "Datacenter": "dc2",
+					  "LocalBindAddress": "127.0.0.2",
+					  "LocalBindPort": 6161
+					}
+				  ],
+				  "MeshGateway": {
+					"Mode": "remote"
+				  },
+				  "Expose": {
+					"Checks": true,
+					"Paths": [
+					  {
+						"ListenerPort": 8080,
+						"Path": "/foo",
+						"LocalPathPort": 7070,
+						"Protocol": "http2",
+						"ParsedFromCheck": true
+					  },
+					  {
+						"ListenerPort": 8181,
+						"Path": "/foo2",
+						"LocalPathPort": 7171,
+						"Protocol": "http",
+						"ParsedFromCheck": false
+					  }
+					]
+				  }
+				}
+			`,
+			jsonSnake: `
+				{
+				  "destination_service_name": "foo-name",
+				  "destination_service_id": "foo-id",
+				  "local_service_address": "127.0.0.1",
+				  "local_service_port": 5050,
+				  "config": {
+					"a": "b",
+					"v": 42
+				  },
+				  "upstreams": [
+					{
+					  "destination_type": "service",
+					  "destination_namespace": "default",
+					  "destination_name": "bar1",
+					  "datacenter": "dc1",
+					  "local_bind_address": "127.0.0.2",
+					  "local_bind_port": 6060,
+					  "config": {
+						"x": "y",
+						"z": -2
+					  },
+					  "mesh_gateway": {
+						"mode": "local"
+					  }
+					},
+					{
+					  "destination_type": "service",
+					  "destination_namespace": "default",
+					  "destination_name": "bar2",
+					  "datacenter": "dc2",
+					  "local_bind_address": "127.0.0.2",
+					  "local_bind_port": 6161
+					}
+				  ],
+				  "mesh_gateway": {
+					"mode": "remote"
+				  },
+				  "expose": {
+					"checks": true,
+					"paths": [
+					  {
+						"listener_port": 8080,
+						"path": "/foo",
+						"local_path_port": 7070,
+						"protocol": "http2",
+						"parsed_from_check": true
+					  },
+					  {
+						"listener_port": 8181,
+						"path": "/foo2",
+						"local_path_port": 7171,
+						"protocol": "http",
+						"parsed_from_check": false
+					  }
+					]
+				  }
+				}
+			`,
+			want: ConnectProxyConfig{
+				DestinationServiceName: "foo-name",
+				DestinationServiceID:   "foo-id",
+				LocalServiceAddress:    "127.0.0.1",
+				LocalServicePort:       5050,
+				Config: map[string]interface{}{
+					"a": "b",
+					"v": float64(42),
+				},
+				Upstreams: []Upstream{
+					{
+						DestinationType:      UpstreamDestTypeService,
+						DestinationNamespace: "default",
+						DestinationName:      "bar1",
+						Datacenter:           "dc1",
+						LocalBindAddress:     "127.0.0.2",
+						LocalBindPort:        6060,
+						Config: map[string]interface{}{
+							"x": "y",
+							"z": float64(-2),
+						},
+						MeshGateway: MeshGatewayConfig{
+							Mode: "local",
+						},
+					},
+
+					{
+						DestinationType:      UpstreamDestTypeService,
+						DestinationNamespace: "default",
+						DestinationName:      "bar2",
+						Datacenter:           "dc2",
+						LocalBindAddress:     "127.0.0.2",
+						LocalBindPort:        6161,
+					},
+				},
+
+				MeshGateway: MeshGatewayConfig{
+					Mode: "remote",
+				},
+				Expose: ExposeConfig{
+					Checks: true,
+					Paths: []ExposePath{
+						{
+							ListenerPort:    8080,
+							Path:            "/foo",
+							LocalPathPort:   7070,
+							Protocol:        "http2",
+							ParsedFromCheck: true,
+						},
+						{
+							ListenerPort:    8181,
+							Path:            "/foo2",
+							LocalPathPort:   7171,
+							Protocol:        "http",
+							ParsedFromCheck: false,
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Run("camel", func(t *testing.T) {
+				//
+				var got ConnectProxyConfig
+				err := json.Unmarshal([]byte(tt.json), &got)
+				if tt.wantErr {
+					require.Error(t, err)
+				} else {
+					require.NoError(t, err)
+					require.Equal(t, tt.want, got)
+				}
+			})
+			if tt.jsonSnake != "" {
+				t.Run("snake", func(t *testing.T) {
+					//
+					var got ConnectProxyConfig
+					err := json.Unmarshal([]byte(tt.json), &got)
+					if tt.wantErr {
+						require.Error(t, err)
+					} else {
+						require.NoError(t, err)
+						require.Equal(t, tt.want, got)
+					}
+				})
+			}
 		})
 	}
 }
