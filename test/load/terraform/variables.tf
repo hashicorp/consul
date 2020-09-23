@@ -64,8 +64,8 @@ variable "vpc_az" {
   type        = list(string)
   description = "VPC Availability Zone"
   validation {
-  condition = length(var.vpc_az) == 2
-  error_message = "VPC needs at least two Availability Zones for ALB to work."
+    condition     = length(var.vpc_az) == 2
+    error_message = "VPC needs at least two Availability Zones for ALB to work."
   }
 }
 

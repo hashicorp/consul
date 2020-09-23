@@ -13,4 +13,5 @@ run-time = 10m
 CONF
 
 # run test
-locust 
+sleep 30
+locust -f scripts/puts_locustfile.py

@@ -8,8 +8,9 @@ master-host = ${primary_ip}
 host = http://${lb_endpoint}:8500
 users = 100
 spawn-rate = 10
-run-time = 10m  
 CONF
 
 # run test
-locust 
+sleep 60
+locust -f scripts/puts_locustfile.py
+ 
