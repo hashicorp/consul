@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/NYTimes/gziphandler"
+	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
@@ -417,62 +418,56 @@ func TestHTTPAPI_TranslateAddrHeader(t *testing.T) {
 func TestHTTPAPIResponseHeaders(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, `
+		ui_config {
+			# Explicitly disable UI so we can ensure the index replacement gets headers too.
+			enabled = false
+		}
 		http_config {
 			response_headers = {
 				"Access-Control-Allow-Origin" = "*"
 				"X-XSS-Protection" = "1; mode=block"
-			}
-		}
-	`)
-	defer a.Shutdown()
-
-	resp := httptest.NewRecorder()
-	handler := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-		return nil, nil
-	}
-
-	req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
-	a.srv.wrap(handler, []string{"GET"})(resp, req)
-
-	origin := resp.Header().Get("Access-Control-Allow-Origin")
-	if origin != "*" {
-		t.Fatalf("bad Access-Control-Allow-Origin: expected %q, got %q", "*", origin)
-	}
-
-	xss := resp.Header().Get("X-XSS-Protection")
-	if xss != "1; mode=block" {
-		t.Fatalf("bad X-XSS-Protection header: expected %q, got %q", "1; mode=block", xss)
-	}
-}
-func TestUIResponseHeaders(t *testing.T) {
-	t.Parallel()
-	a := NewTestAgent(t, `
-		http_config {
-			response_headers = {
-				"Access-Control-Allow-Origin" = "*"
 				"X-Frame-Options" = "SAMEORIGIN"
 			}
 		}
 	`)
 	defer a.Shutdown()
 
+	requireHasHeadersSet(t, a, "/v1/agent/self")
+
+	// Check the Index page that just renders a simple message with UI disabled
+	// also gets the right headers.
+	requireHasHeadersSet(t, a, "/")
+}
+
+func requireHasHeadersSet(t *testing.T, a *TestAgent, path string) {
+	t.Helper()
+
 	resp := httptest.NewRecorder()
-	handler := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-		return nil, nil
-	}
+	req, _ := http.NewRequest("GET", path, nil)
+	a.srv.handler(true).ServeHTTP(resp, req)
 
-	req, _ := http.NewRequest("GET", "/ui", nil)
-	a.srv.wrap(handler, []string{"GET"})(resp, req)
+	hdrs := resp.Header()
+	require.Equal(t, "*", hdrs.Get("Access-Control-Allow-Origin"),
+		"Access-Control-Allow-Origin header value incorrect")
 
-	origin := resp.Header().Get("Access-Control-Allow-Origin")
-	if origin != "*" {
-		t.Fatalf("bad Access-Control-Allow-Origin: expected %q, got %q", "*", origin)
-	}
+	require.Equal(t, "1; mode=block", hdrs.Get("X-XSS-Protection"),
+		"X-XSS-Protection header value incorrect")
+}
 
-	frameOptions := resp.Header().Get("X-Frame-Options")
-	if frameOptions != "SAMEORIGIN" {
-		t.Fatalf("bad X-XSS-Protection header: expected %q, got %q", "SAMEORIGIN", frameOptions)
-	}
+func TestUIResponseHeaders(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t, `
+		http_config {
+			response_headers = {
+				"Access-Control-Allow-Origin" = "*"
+				"X-XSS-Protection" = "1; mode=block"
+				"X-Frame-Options" = "SAMEORIGIN"
+			}
+		}
+	`)
+	defer a.Shutdown()
+
+	requireHasHeadersSet(t, a, "/ui")
 }
 
 func TestAcceptEncodingGzip(t *testing.T) {
@@ -1210,34 +1205,36 @@ func TestEnableWebUI(t *testing.T) {
 	require.Equal(t, http.StatusOK, resp.Code)
 
 	// Validate that it actually sent the index page we expect since an error
-	// during serving the special intercepted index.html in
-	// settingsInjectedIndexFS.Open will actually result in http.FileServer just
-	// serving a plain directory listing instead which still passes the above HTTP
-	// status assertion. This comment is part of our index.html template
+	// during serving the special intercepted index.html can result in an empty
+	// response but a 200 status.
 	require.Contains(t, resp.Body.String(), `<!-- CONSUL_VERSION:`)
-}
 
-func TestEnableWebUIWithMetricsOptions(t *testing.T) {
-	t.Parallel()
-	a := NewTestAgent(t, `
-		ui_config {
-			enabled = true
-			metrics_provider_options_json = "{\"foo\": 1}"
-		}
-	`)
-	defer a.Shutdown()
+	// Verify that we injected the variables we expected. The rest of injection
+	// behavior is tested in the uiserver package, this just ensures it's plumbed
+	// in correctly.
+	require.NotContains(t, resp.Body.String(), `__RUNTIME_BOOL`)
 
-	req, _ := http.NewRequest("GET", "/ui/", nil)
-	resp := httptest.NewRecorder()
-	a.srv.handler(true).ServeHTTP(resp, req)
-	require.Equal(t, http.StatusOK, resp.Code)
+	// Reload the config with changed metrics provider options and verify that
+	// they are present in the output.
+	newHCL := `
+	data_dir = "` + a.DataDir + `"
+	ui_config {
+		enabled = true
+		metrics_provider = "valid-but-unlikely-metrics-provider-name"
+	}
+	`
+	c := TestConfig(testutil.Logger(t), config.FileSource{Name: t.Name(), Format: "hcl", Data: newHCL})
+	require.NoError(t, a.reloadConfigInternal(c))
 
-	// Validate that it actually sent the index page we expect since an error
-	// during serving the special intercepted index.html in
-	// settingsInjectedIndexFS.Open will actually result in http.FileServer just
-	// serving a plain directory listing instead which still passes the above HTTP
-	// status assertion. This comment is part of our index.html template
-	require.Contains(t, resp.Body.String(), `<!-- CONSUL_VERSION:`)
+	// Now index requests should contain that metrics provider name.
+	{
+		req, _ := http.NewRequest("GET", "/ui/", nil)
+		resp := httptest.NewRecorder()
+		a.srv.handler(true).ServeHTTP(resp, req)
+		require.Equal(t, http.StatusOK, resp.Code)
+		require.Contains(t, resp.Body.String(), `<!-- CONSUL_VERSION:`)
+		require.Contains(t, resp.Body.String(), `valid-but-unlikely-metrics-provider-name`)
+	}
 }
 
 func TestAllowedNets(t *testing.T) {

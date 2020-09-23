@@ -3503,36 +3503,6 @@ func TestAgent_ReloadConfigTLSConfigFailure(t *testing.T) {
 	require.Len(t, tlsConf.RootCAs.Subjects(), 1)
 }
 
-func TestAgent_ReloadConfigUIConfig(t *testing.T) {
-	t.Parallel()
-	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
-	hcl := `
-		data_dir = "` + dataDir + `"
-		ui_config {
-			enabled = true // note that this is _not_ reloadable
-			metrics_provider = "foo"
-		}
-	`
-	a := NewTestAgent(t, hcl)
-	defer a.Shutdown()
-
-	uiCfg := a.getUIConfig()
-	require.Equal(t, "foo", uiCfg.MetricsProvider)
-
-	hcl = `
-		data_dir = "` + dataDir + `"
-		ui_config {
-			enabled = true
-			metrics_provider = "bar"
-		}
-	`
-	c := TestConfig(testutil.Logger(t), config.FileSource{Name: t.Name(), Format: "hcl", Data: hcl})
-	require.NoError(t, a.reloadConfigInternal(c))
-
-	uiCfg = a.getUIConfig()
-	require.Equal(t, "bar", uiCfg.MetricsProvider)
-}
-
 func TestAgent_consulConfig_AutoEncryptAllowTLS(t *testing.T) {
 	t.Parallel()
 	dataDir := testutil.TempDir(t, "agent") // we manage the data dir

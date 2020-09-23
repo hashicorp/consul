@@ -1,16 +1,13 @@
 package agent
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/pprof"
 	"net/url"
-	"os"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -21,8 +18,10 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/uiserver"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
@@ -78,135 +77,12 @@ func (e ForbiddenError) Error() string {
 	return "Access is restricted"
 }
 
-// HTTPHandlers provides http.Handler functions for the HTTP APi.
+// HTTPHandlers provides an HTTP api for an agent.
 type HTTPHandlers struct {
-	agent    *Agent
-	denylist *Denylist
-}
-
-// bufferedFile implements os.File and allows us to modify a file from disk by
-// writing out the new version into a buffer and then serving file reads from
-// that. It assumes you are modifying a real file and presents the actual file's
-// info when queried.
-type bufferedFile struct {
-	templated *bytes.Reader
-	info      os.FileInfo
-}
-
-func newBufferedFile(buf *bytes.Buffer, raw http.File) *bufferedFile {
-	info, _ := raw.Stat()
-	return &bufferedFile{
-		templated: bytes.NewReader(buf.Bytes()),
-		info:      info,
-	}
-}
-
-func (t *bufferedFile) Read(p []byte) (n int, err error) {
-	return t.templated.Read(p)
-}
-
-func (t *bufferedFile) Seek(offset int64, whence int) (int64, error) {
-	return t.templated.Seek(offset, whence)
-}
-
-func (t *bufferedFile) Close() error {
-	return nil
-}
-
-func (t *bufferedFile) Readdir(count int) ([]os.FileInfo, error) {
-	return nil, errors.New("not a directory")
-}
-
-func (t *bufferedFile) Stat() (os.FileInfo, error) {
-	return t, nil
-}
-
-func (t *bufferedFile) Name() string {
-	return t.info.Name()
-}
-
-func (t *bufferedFile) Size() int64 {
-	return int64(t.templated.Len())
-}
-
-func (t *bufferedFile) Mode() os.FileMode {
-	return t.info.Mode()
-}
-
-func (t *bufferedFile) ModTime() time.Time {
-	return t.info.ModTime()
-}
-
-func (t *bufferedFile) IsDir() bool {
-	return false
-}
-
-func (t *bufferedFile) Sys() interface{} {
-	return nil
-}
-
-type redirectFS struct {
-	fs http.FileSystem
-}
-
-func (fs *redirectFS) Open(name string) (http.File, error) {
-	file, err := fs.fs.Open(name)
-	if err != nil {
-		file, err = fs.fs.Open("/index.html")
-	}
-	return file, err
-}
-
-type settingsInjectedIndexFS struct {
-	fs         http.FileSystem
-	UISettings map[string]interface{}
-}
-
-func (fs *settingsInjectedIndexFS) Open(name string) (http.File, error) {
-	file, err := fs.fs.Open(name)
-	if err != nil || name != "/index.html" {
-		return file, err
-	}
-
-	content, err := ioutil.ReadAll(file)
-	if err != nil {
-		return nil, fmt.Errorf("failed reading index.html: %s", err)
-	}
-	file.Seek(0, 0)
-
-	// Replace the placeholder in the meta ENV with the actual UI config settings.
-	// Ember passes the ENV with URL encoded JSON in a meta tag. We are replacing
-	// a key and value that is the encoded version of
-	// `"CONSUL_UI_SETTINGS_PLACEHOLDER":"__CONSUL_UI_SETTINGS_GO_HERE__"`
-	// with a URL-encoded JSON blob representing the actual config.
-
-	// First built an escaped, JSON blob from the settings passed.
-	bs, err := json.Marshal(fs.UISettings)
-	if err != nil {
-		return nil, fmt.Errorf("failed marshalling UI settings JSON: %s", err)
-	}
-	// We want to remove the first and last chars which will be the { and } since
-	// we are injecting these variabled into the middle of an existing object.
-	bs = bytes.Trim(bs, "{}")
-
-	// We use PathEscape because we don't want  spaces to be turned into "+" like
-	// QueryEscape does.
-	escaped := url.PathEscape(string(bs))
-
-	content = bytes.Replace(content,
-		[]byte("%22CONSUL_UI_SETTINGS_PLACEHOLDER%22%3A%22__CONSUL_UI_SETTINGS_GO_HERE__%22"),
-		[]byte(escaped), 1)
-
-	// We also need to inject the content path. This used to be a go template
-	// hence the syntax but for now simple string replacement is fine esp. since
-	// all the other templated stuff above can't easily be done that was as we are
-	// replacing an entire placeholder element in an encoded JSON blob with
-	// multiple encoded JSON elements.
-	if path, ok := fs.UISettings["CONSUL_CONTENT_PATH"].(string); ok {
-		content = bytes.Replace(content, []byte("{{.ContentPath}}"), []byte(path), -1)
-	}
-
-	return newBufferedFile(bytes.NewBuffer(content), file), nil
+	agent           *Agent
+	denylist        *Denylist
+	configReloaders []ConfigReloader
+	h               http.Handler
 }
 
 // endpoint is a Consul-specific HTTP handler that takes the usual arguments in
@@ -249,8 +125,45 @@ func (w *wrappedMux) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	w.handler.ServeHTTP(resp, req)
 }
 
-// handler is used to attach our handlers to the mux
+// ReloadConfig updates any internal state when the config is changed at
+// runtime.
+func (s *HTTPHandlers) ReloadConfig(newCfg *config.RuntimeConfig) error {
+	for _, r := range s.configReloaders {
+		if err := r(newCfg); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// handler is used to initialize the Handler. In agent code we only ever call
+// this once during agent initialization so it was always intended as a single
+// pass init method. However many test rely on it as a cheaper way to get a
+// handler to call ServeHTTP against and end up calling it multiple times on a
+// single agent instance. Until this method had to manage state that might be
+// affected by a reload or otherwise vary over time that was not problematic
+// although it was wasteful to redo all this setup work multiple times in one
+// test.
+//
+// Now uiserver and possibly other components need to handle reloadable state
+// having test randomly clobber the state with the original config again for
+// each call gets confusing fast. So handler will memoize it's response - it's
+// allowed to call it multiple times on the same agent, but it will only do the
+// work the first time and return the same handler on subsequent calls.
+//
+// The `enableDebug` argument used in the first call will be effective and a
+// later change will not do anything. The same goes for the initial config. For
+// example if config is reloaded with UI enabled but it was not originally, the
+// http.Handler returned will still have it disabled.
+//
+// The first call must not be concurrent with any other call. Subsequent calls
+// may be concurrent with HTTP requests since no state is modified.
 func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
+	// Memoize multiple calls.
+	if s.h != nil {
+		return s.h
+	}
+
 	mux := http.NewServeMux()
 
 	// handleFuncMetrics takes the given pattern and handler and wraps to produce
@@ -347,38 +260,27 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 	handlePProf("/debug/pprof/trace", pprof.Trace)
 
 	if s.IsUIEnabled() {
-		// Note that we _don't_ support reloading ui_config.{enabled,content_dir}
-		// since this only runs at initial startup.
+		// Note that we _don't_ support reloading ui_config.{enabled, content_dir,
+		// content_path} since this only runs at initial startup.
 
-		var uifs http.FileSystem
-		// Use the custom UI dir if provided.
-		uiConfig := s.agent.getUIConfig()
-		if uiConfig.Dir != "" {
-			uifs = http.Dir(uiConfig.Dir)
-		} else {
-			fs := assetFS()
-			uifs = fs
-		}
+		uiHandler := uiserver.NewHandler(s.agent.config, s.agent.logger.Named(logging.HTTP))
+		s.configReloaders = append(s.configReloaders, uiHandler.ReloadConfig)
 
-		uifs = &redirectFS{fs: &settingsInjectedIndexFS{
-			fs:         uifs,
-			UISettings: s.GetUIENVFromConfig(),
-		}}
-		// create a http handler using the ui file system
-		// and the headers specified by the http_config.response_headers user config
-		uifsWithHeaders := serveHandlerWithHeaders(
-			http.FileServer(uifs),
+		// Wrap it to add the headers specified by the http_config.response_headers
+		// user config
+		uiHandlerWithHeaders := serveHandlerWithHeaders(
+			uiHandler,
 			s.agent.config.HTTPResponseHeaders,
 		)
 		mux.Handle(
 			"/robots.txt",
-			uifsWithHeaders,
+			uiHandlerWithHeaders,
 		)
 		mux.Handle(
-			uiConfig.ContentPath,
+			s.agent.config.UIConfig.ContentPath,
 			http.StripPrefix(
-				uiConfig.ContentPath,
-				uifsWithHeaders,
+				s.agent.config.UIConfig.ContentPath,
+				uiHandlerWithHeaders,
 			),
 		)
 	}
@@ -391,37 +293,11 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 		h = mux
 	}
 	h = s.enterpriseHandler(h)
-	return &wrappedMux{
+	s.h = &wrappedMux{
 		mux:     mux,
 		handler: h,
 	}
-}
-
-func (s *HTTPHandlers) GetUIENVFromConfig() map[string]interface{} {
-	uiCfg := s.agent.getUIConfig()
-
-	vars := map[string]interface{}{
-		"CONSUL_CONTENT_PATH":     uiCfg.ContentPath,
-		"CONSUL_ACLS_ENABLED":     s.agent.config.ACLsEnabled,
-		"CONSUL_METRICS_PROVIDER": uiCfg.MetricsProvider,
-		// We explicitly MUST NOT pass the metrics_proxy object since it might
-		// contain add_headers with secrets that the UI shouldn't know e.g. API
-		// tokens for the backend. The provider should either require the proxy to
-		// be configured and then use that or hit the backend directly from the
-		// browser.
-		"CONSUL_METRICS_PROXY_ENABLED":   uiCfg.MetricsProxy.BaseURL != "",
-		"CONSUL_DASHBOARD_URL_TEMPLATES": uiCfg.DashboardURLTemplates,
-	}
-
-	// Only set this if there is some actual JSON or we'll cause a JSON
-	// marshalling error later during serving which ends up being silent.
-	if uiCfg.MetricsProviderOptionsJSON != "" {
-		vars["CONSUL_METRICS_PROVIDER_OPTIONS"] = json.RawMessage(uiCfg.MetricsProviderOptionsJSON)
-	}
-
-	s.addEnterpriseUIENVVars(vars)
-
-	return vars
+	return s.h
 }
 
 // nodeName returns the node name of the agent
@@ -659,11 +535,17 @@ func (s *HTTPHandlers) marshalJSON(req *http.Request, obj interface{}) ([]byte, 
 
 // Returns true if the UI is enabled.
 func (s *HTTPHandlers) IsUIEnabled() bool {
-	return s.agent.config.UIDir != "" || s.agent.config.EnableUI
+	// Note that we _don't_ support reloading ui_config.{enabled,content_dir}
+	// since this only runs at initial startup.
+	return s.agent.config.UIConfig.Dir != "" || s.agent.config.UIConfig.Enabled
 }
 
 // Renders a simple index page
 func (s *HTTPHandlers) Index(resp http.ResponseWriter, req *http.Request) {
+	// Send special headers too since this endpoint isn't wrapped with something
+	// that sends them.
+	setHeaders(resp, s.agent.config.HTTPResponseHeaders)
+
 	// Check if this is a non-index path
 	if req.URL.Path != "/" {
 		resp.WriteHeader(http.StatusNotFound)
@@ -678,8 +560,12 @@ func (s *HTTPHandlers) Index(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	// Redirect to the UI endpoint
-	uiCfg := s.agent.getUIConfig()
-	http.Redirect(resp, req, uiCfg.ContentPath, http.StatusMovedPermanently) // 301
+	http.Redirect(
+		resp,
+		req,
+		s.agent.config.UIConfig.ContentPath,
+		http.StatusMovedPermanently,
+	) // 301
 }
 
 func decodeBody(body io.Reader, out interface{}) error {

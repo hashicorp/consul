@@ -165,7 +165,7 @@ function build_assetfs {
       (
          tar -c pkg/web_ui GNUmakefile | docker cp - ${container_id}:/consul &&
          status "Running build in container" && docker start -i ${container_id} &&
-         status "Copying back artifacts" && docker cp ${container_id}:/consul/bindata_assetfs.go ${sdir}/agent/bindata_assetfs.go
+         status "Copying back artifacts" && docker cp ${container_id}:/consul/bindata_assetfs.go ${sdir}/agent/uiserver/bindata_assetfs.go
       )
       ret=$?
       docker rm ${container_id} > /dev/null

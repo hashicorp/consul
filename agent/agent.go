@@ -255,6 +255,23 @@ type Agent struct {
 	// fail, the agent will be shutdown.
 	apiServers *apiServers
 
+	// httpHandlers provides direct access to (one of) the HTTPHandlers started by
+	// this agent. This is used in tests to test HTTP endpoints without overhead
+	// of TCP connections etc.
+	//
+	// TODO: this is a temporary re-introduction after we removed a list of
+	// HTTPServers in favour of apiServers abstraction. Now that HTTPHandlers is
+	// stateful and has config reloading though it's not OK to just use a
+	// different instance of handlers in tests to the ones that the agent is wired
+	// up to since then config reloads won't actually affect the handlers under
+	// test while plumbing the external handlers in the TestAgent through bypasses
+	// testing that the agent itself is actually reloading the state correctly.
+	// Once we move `apiServers` to be a passed-in dependency for NewAgent, we
+	// should be able to remove this and have the Test Agent create the
+	// HTTPHandlers and pass them in removing the need to pull them back out
+	// again.
+	httpHandlers *HTTPHandlers
+
 	// wgServers is the wait group for all HTTP and DNS servers
 	// TODO: remove once dnsServers are handled by apiServers
 	wgServers sync.WaitGroup
@@ -290,6 +307,11 @@ type Agent struct {
 	// IP.
 	httpConnLimiter connlimit.Limiter
 
+	// configReloaders are subcomponents that need to be notified on a reload so
+	// they can update their internal state.
+	configReloaders []ConfigReloader
+
+	// enterpriseAgent embeds fields that we only access in consul-enterprise builds
 	enterpriseAgent
 }
 
@@ -332,9 +354,6 @@ func New(bd BaseDeps) (*Agent, error) {
 		config:          bd.RuntimeConfig,
 		cache:           bd.Cache,
 	}
-
-	// Initialize the UI Config
-	a.uiConfig.Store(a.config.UIConfig)
 
 	a.serviceManager = NewServiceManager(&a)
 
@@ -737,6 +756,8 @@ func (a *Agent) listenHTTP() ([]apiServer, error) {
 				agent:    a,
 				denylist: NewDenylist(a.config.HTTPBlockEndpoints),
 			}
+			a.configReloaders = append(a.configReloaders, srv.ReloadConfig)
+			a.httpHandlers = srv
 			httpServer := &http.Server{
 				Addr:      l.Addr().String(),
 				TLSConfig: tlscfg,
@@ -3573,8 +3594,11 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 
 	a.State.SetDiscardCheckOutput(newCfg.DiscardCheckOutput)
 
-	// Reload metrics config
-	a.uiConfig.Store(newCfg.UIConfig)
+	for _, r := range a.configReloaders {
+		if err := r(newCfg); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -3827,15 +3851,4 @@ func defaultIfEmpty(val, defaultVal string) string {
 		return val
 	}
 	return defaultVal
-}
-
-// getUIConfig is the canonical way to read the value of the UIConfig at
-// runtime. It is thread safe and returns the most recent configuration which
-// may have changed since the agent started due to config reload.
-func (a *Agent) getUIConfig() config.UIConfig {
-	if cfg, ok := a.uiConfig.Load().(config.UIConfig); ok {
-		return cfg
-	}
-	// Shouldn't happen but be defensive
-	return config.UIConfig{}
 }

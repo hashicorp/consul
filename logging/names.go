@@ -52,6 +52,7 @@ const (
 	TLSUtil            string = "tlsutil"
 	Transaction        string = "txn"
 	UsageMetrics       string = "usage_metrics"
+	UIServer           string = "ui_server"
 	WAN                string = "wan"
 	Watch              string = "watch"
 	Vault              string = "vault"
