@@ -62,7 +62,7 @@ resource "aws_launch_configuration" "test-servers" {
     create_before_destroy = true
   }
   user_data = templatefile(
-    "./start-locust.sh",
+    "./start-locust-worker.sh",
     {
       primary_ip  = aws_instance.test-server-primary.public_ip
       lb_endpoint = module.alb.this_lb_dns_name

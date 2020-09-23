@@ -11,7 +11,3 @@ users = 100
 spawn-rate = 10
 run-time = 10m  
 CONF
-
-# run test
-sleep 30
-locust -f scripts/puts_locustfile.py
