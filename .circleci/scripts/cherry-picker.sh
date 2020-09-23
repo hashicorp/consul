@@ -30,7 +30,7 @@ function get_latest_backport_label {
     fi
 
     latest_backport_label=$(echo "$resp" | jq -r '.[] | select(.name | startswith("backport/")) | .name' | sort -rV | head -n1)
-    echo"$latest_backport_label"
+    echo "$latest_backport_label"
     return 0
 }
 
