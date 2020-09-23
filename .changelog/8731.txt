@@ -1,0 +1,3 @@
+```release-note:bug
+entreprise: properly update consul server meta non_voter for non-voting Entreprise Consul servers
+```
