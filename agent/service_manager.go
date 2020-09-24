@@ -86,7 +86,11 @@ func (s *ServiceManager) registerOnce(args *addServiceRequest) error {
 	s.agent.stateLock.Lock()
 	defer s.agent.stateLock.Unlock()
 
-	err := s.agent.addServiceInternal(args, s.agent.snapshotCheckState())
+	if args.snap == nil {
+		args.snap = s.agent.snapshotCheckState()
+	}
+
+	err := s.agent.addServiceInternal(args)
 	if err != nil {
 		return fmt.Errorf("error updating service registration: %v", err)
 	}
@@ -127,7 +131,7 @@ func (s *ServiceManager) AddService(req *addServiceRequest) error {
 		req.persistService = nil
 		req.persistDefaults = nil
 		req.persistServiceConfig = false
-		return s.agent.addServiceInternal(req, s.agent.snapshotCheckState())
+		return s.agent.addServiceInternal(req)
 	}
 
 	var (
@@ -279,7 +283,8 @@ func (w *serviceConfigWatch) RegisterAndStart(
 		token:                 w.registration.token,
 		replaceExistingChecks: w.registration.replaceExistingChecks,
 		source:                w.registration.source,
-	}, w.agent.snapshotCheckState())
+		snap:                  w.agent.snapshotCheckState(),
+	})
 	if err != nil {
 		return fmt.Errorf("error updating service registration: %v", err)
 	}

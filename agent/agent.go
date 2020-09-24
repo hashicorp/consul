@@ -1893,7 +1893,8 @@ func (a *Agent) AddServiceAndReplaceChecks(service *structs.NodeService, chkType
 		token:                 token,
 		replaceExistingChecks: true,
 		source:                source,
-	}, a.snapshotCheckState())
+		snap:                  a.snapshotCheckState(),
+	})
 }
 
 // AddService is used to add a service entry.
@@ -1912,12 +1913,13 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.Che
 		token:                 token,
 		replaceExistingChecks: false,
 		source:                source,
-	}, a.snapshotCheckState())
+		snap:                  a.snapshotCheckState(),
+	})
 }
 
 // addServiceLocked adds a service entry to the service manager if enabled, or directly
 // to the local state if it is not. This function assumes the state lock is already held.
-func (a *Agent) addServiceLocked(req *addServiceRequest, snap map[structs.CheckID]*structs.HealthCheck) error {
+func (a *Agent) addServiceLocked(req *addServiceRequest) error {
 	req.fixupForAddServiceLocked()
 
 	req.service.EnterpriseMeta.Normalize()
@@ -1935,7 +1937,7 @@ func (a *Agent) addServiceLocked(req *addServiceRequest, snap map[structs.CheckI
 	req.persistDefaults = nil
 	req.persistServiceConfig = false
 
-	return a.addServiceInternal(req, snap)
+	return a.addServiceInternal(req)
 }
 
 // addServiceRequest is the union of arguments for calling both
@@ -1960,6 +1962,7 @@ type addServiceRequest struct {
 	token                 string
 	replaceExistingChecks bool
 	source                configSource
+	snap                  map[structs.CheckID]*structs.HealthCheck
 }
 
 func (r *addServiceRequest) fixupForAddServiceLocked() {
@@ -1973,7 +1976,7 @@ func (r *addServiceRequest) fixupForAddServiceInternal() {
 }
 
 // addServiceInternal adds the given service and checks to the local state.
-func (a *Agent) addServiceInternal(req *addServiceRequest, snap map[structs.CheckID]*structs.HealthCheck) error {
+func (a *Agent) addServiceInternal(req *addServiceRequest) error {
 	req.fixupForAddServiceInternal()
 	var (
 		service               = req.service
@@ -1985,6 +1988,7 @@ func (a *Agent) addServiceInternal(req *addServiceRequest, snap map[structs.Chec
 		token                 = req.token
 		replaceExistingChecks = req.replaceExistingChecks
 		source                = req.source
+		snap                  = req.snap
 	)
 
 	// Pause the service syncs during modification
@@ -3119,7 +3123,8 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 			token:                 service.Token,
 			replaceExistingChecks: false, // do default behavior
 			source:                ConfigSourceLocal,
-		}, snap)
+			snap:                  snap,
+		})
 		if err != nil {
 			return fmt.Errorf("Failed to register service %q: %v", service.Name, err)
 		}
@@ -3137,7 +3142,8 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 				token:                 sidecarToken,
 				replaceExistingChecks: false, // do default behavior
 				source:                ConfigSourceLocal,
-			}, snap)
+				snap:                  snap,
+			})
 			if err != nil {
 				return fmt.Errorf("Failed to register sidecar for service %q: %v", service.Name, err)
 			}
@@ -3229,7 +3235,8 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 				token:                 p.Token,
 				replaceExistingChecks: false, // do default behavior
 				source:                source,
-			}, snap)
+				snap:                  snap,
+			})
 			if err != nil {
 				return fmt.Errorf("failed adding service %q: %s", serviceID, err)
 			}
