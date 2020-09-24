@@ -13,6 +13,7 @@ export default Service.extend({
   proxies: service('repository/proxy'),
   ['proxy-instance']: service('repository/proxy'),
   ['discovery-chain']: service('repository/discovery-chain'),
+  ['topology']: service('repository/topology'),
   coordinates: service('repository/coordinate'),
   sessions: service('repository/session'),
   namespaces: service('repository/nspace'),
@@ -97,6 +98,14 @@ export default Service.extend({
         switch (method) {
           case 'for-service':
             find = configuration => repo.findGatewayBySlug(slug, dc, nspace, configuration);
+            break;
+        }
+        break;
+      case 'topology':
+        [method, slug] = rest;
+        switch (method) {
+          case 'for-service':
+            find = configuration => repo.findBySlug(slug, dc, nspace, configuration);
             break;
         }
         break;

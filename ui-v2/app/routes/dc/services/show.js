@@ -31,7 +31,16 @@ export default Route.extend({
               uri => uri`/${nspace}/${dc}/proxies/for-service/${params.name}`
             ),
           });
-    });
+    }).then(model => {
+        return ['ingress-gateway', ''].includes(get(model, 'items.firstObject.Service.Kind'))
+          ? hash({
+              ...model,
+              topology: this.data.source(
+                uri => uri`/${nspace}/${dc}/topology/for-service/${params.name}`
+              ),
+            })
+          : model;
+      });
   },
   setupController: function(controller, model) {
     this._super(...arguments);
