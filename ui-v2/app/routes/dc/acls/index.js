@@ -28,6 +28,7 @@ export default Route.extend(WithAclActions, {
   },
   model: function(params) {
     return hash({
+      routeName: this.routeName,
       isLoading: false,
       items: this.repo.findAllByDatacenter(this.modelFor('dc').dc.Name),
       token: this.settings.findBySlug('token'),

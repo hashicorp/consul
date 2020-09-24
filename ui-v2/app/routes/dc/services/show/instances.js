@@ -12,7 +12,10 @@ export default Route.extend({
       .split('.')
       .slice(0, -1)
       .join('.');
-    return this.modelFor(parent);
+    return {
+      ...this.modelFor(parent),
+      routeName: this.routeName,
+    };
   },
   setupController: function(controller, model) {
     controller.setProperties(model);

@@ -16,6 +16,7 @@ export default Route.extend(WithAclActions, {
       Datacenter: this.modelFor('dc').dc.Name,
     });
     return hash({
+      routeName: this.routeName,
       create: true,
       isLoading: false,
       item: this.item,

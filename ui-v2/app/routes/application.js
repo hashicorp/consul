@@ -16,6 +16,7 @@ export default Route.extend(WithBlockingActions, {
   settings: service('settings'),
   model: function() {
     return hash({
+      routeName: this.routeName,
       router: this.router,
       dcs: this.repo.findAll(),
       nspaces: this.nspacesRepo.findAll().catch(function() {

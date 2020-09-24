@@ -32,6 +32,7 @@ export default Route.extend({
     const nspace = this.modelFor('nspace').nspace.substr(1);
     const dc = this.modelFor('dc').dc.Name;
     return hash({
+      routeName: this.routeName,
       nspace: nspace,
       dc: dc,
       terms: terms !== '' ? terms.split('\n') : [],

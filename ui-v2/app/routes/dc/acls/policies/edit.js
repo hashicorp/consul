@@ -16,6 +16,7 @@ export default SingleRoute.extend(WithPolicyActions, {
       return hash({
         ...model,
         ...{
+          routeName: this.routeName,
           items: tokenRepo.findByPolicy(get(model.item, 'ID'), dc, nspace).catch(function(e) {
             switch (get(e, 'errors.firstObject.status')) {
               case '403':

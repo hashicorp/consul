@@ -32,6 +32,7 @@ export default Route.extend(WithTokenActions, {
           this.modelFor('nspace').nspace.substr(1)
         ),
       }),
+      routeName: this.routeName,
       nspace: this.modelFor('nspace').nspace.substr(1),
       isLoading: false,
       token: this.settings.findBySlug('token'),

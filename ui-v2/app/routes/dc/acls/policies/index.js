@@ -21,6 +21,7 @@ export default Route.extend(WithPolicyActions, {
           this.modelFor('nspace').nspace.substr(1)
         ),
       }),
+      routeName: this.routeName,
       isLoading: false,
     });
   },

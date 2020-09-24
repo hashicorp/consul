@@ -14,6 +14,7 @@ export default Route.extend(WithNspaceActions, {
     const create = this.isCreate(...arguments);
     const dc = this.modelFor('dc').dc.Name;
     return hash({
+      routeName: this.routeName,
       isLoading: false,
       create: create,
       dc: dc,

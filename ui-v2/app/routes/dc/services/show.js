@@ -10,6 +10,7 @@ export default Route.extend({
     const dc = this.modelFor('dc').dc.Name;
     const nspace = this.modelFor('nspace').nspace.substr(1);
     return hash({
+      routeName: this.routeName,
       slug: params.name,
       dc: dc,
       nspace: nspace,

@@ -9,6 +9,7 @@ export default Route.extend({
     const nspace = this.modelFor('nspace').nspace.substr(1);
     const name = params.name;
     return hash({
+      routeName: this.routeName,
       dc: dc,
       nspace: nspace,
       item: this.data.source(uri => uri`/${nspace}/${dc}/node/${name}`),
@@ -16,7 +17,6 @@ export default Route.extend({
       return hash({
         ...model,
         tomography: this.data.source(uri => uri`/${nspace}/${dc}/coordinates/for-node/${name}`),
-        sessions: this.data.source(uri => uri`/${nspace}/${dc}/sessions/for-node/${name}`),
       });
     });
   },

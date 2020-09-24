@@ -3,6 +3,7 @@ import Route from '@ember/routing/route';
 export default Route.extend({
   model: function(params, transition) {
     return {
+      routeName: this.routeName,
       nspace: '*',
       dc: this.paramsFor('dc').dc,
       service: this.paramsFor('dc.services.show').name,

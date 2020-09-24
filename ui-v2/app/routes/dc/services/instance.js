@@ -9,6 +9,7 @@ export default Route.extend({
     const dc = this.modelFor('dc').dc.Name;
     const nspace = this.modelFor('nspace').nspace.substr(1) || 'default';
     return hash({
+      routeName: this.routeName,
       dc: dc,
       nspace: nspace,
       item: this.data.source(

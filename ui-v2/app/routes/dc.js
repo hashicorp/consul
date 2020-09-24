@@ -67,6 +67,9 @@ export default Route.extend({
     // but we need to wait until we are in this route so we know what the dc
     // and or nspace is if the below changes please revists the comments
     // in routes/application:model
+    controller.setProperties({
+      routeName: this.routeName,
+    });
     this.controllerFor('application').setProperties(model);
   },
   actions: {

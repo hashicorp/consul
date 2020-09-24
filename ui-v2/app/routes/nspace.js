@@ -40,6 +40,7 @@ export default Route.extend({
   },
   model: function(params) {
     return hash({
+      routeName: this.routeName,
       item: this.repo.getActive(),
       nspace: params.nspace,
     });

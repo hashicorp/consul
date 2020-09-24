@@ -16,6 +16,7 @@ export default Route.extend({
     const dc = this.modelFor('dc').dc.Name;
     const nspace = '*';
     return hash({
+      routeName: this.routeName,
       items: this.data.source(uri => uri`/${nspace}/${dc}/nodes`),
       leader: this.repo.findByLeader(dc),
     });

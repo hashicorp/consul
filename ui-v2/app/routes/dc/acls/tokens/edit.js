@@ -12,6 +12,7 @@ export default SingleRoute.extend(WithTokenActions, {
       return hash({
         ...model,
         ...{
+          routeName: this.routeName,
           token: this.settings.findBySlug('token'),
         },
       });
