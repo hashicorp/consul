@@ -231,6 +231,10 @@ export default [
     content: [
       'partnerships',
       {
+        title: 'Vault Integration',
+        href: '/docs/connect/ca/vault',
+      },
+      {
         title: 'Ambassador Integration',
         href: '/docs/k8s/connect/ambassador',
       },
