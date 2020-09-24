@@ -8,8 +8,8 @@ main {
   overflow: visible !important;
 }
 
-%app-view > div.unauthorized,
-%app-view > div.error {
+%app-view .outlet > div.unauthorized,
+%app-view .outlet > div.error {
   @extend %app-view-error;
 }
 %app-view header form {

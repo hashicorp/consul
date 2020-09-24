@@ -5,9 +5,9 @@
 %loader circle {
   fill: $magenta-100;
 }
-html:not(.loading) .view-loader {
+html[data-state='idle'] .view-loader {
   display: none;
 }
-html.loading .app-view {
+.outlet[data-state='loading'] {
   display: none;
 }
