@@ -1,0 +1,3 @@
+```release-note:bug
+agent: when enable_central_service_config is enabled ensure agent reload doesn't revert check state to critical
+```
