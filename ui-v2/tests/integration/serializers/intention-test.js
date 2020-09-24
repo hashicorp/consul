@@ -23,7 +23,7 @@ module('Integration | Serializer | intention', function(hooks) {
           // TODO: default isn't required here, once we've
           // refactored out our Serializer this can go
           Namespace: nspace,
-          uid: `["${nspace}","${dc}","${item.ID}"]`,
+          uid: `["${nspace}","${dc}","${item.SourceNS}:${item.SourceName}:${item.DestinationNS}:${item.DestinationName}"]`,
         })
       );
       const actual = serializer.respondForQuery(
@@ -46,7 +46,17 @@ module('Integration | Serializer | intention', function(hooks) {
     const request = {
       url: `/v1/connect/intentions/${id}?dc=${dc}`,
     };
+    const item = {
+      SourceNS: 'SourceNS',
+      SourceName: 'SourceName',
+      DestinationNS: 'DestinationNS',
+      DestinationName: 'DestinationName',
+    };
     return get(request.url).then(function(payload) {
+      payload = {
+        ...payload,
+        ...item,
+      };
       const expected = Object.assign({}, payload, {
         Datacenter: dc,
         [META]: {
@@ -56,7 +66,7 @@ module('Integration | Serializer | intention', function(hooks) {
         // TODO: default isn't required here, once we've
         // refactored out our Serializer this can go
         Namespace: nspace,
-        uid: `["${nspace}","${dc}","${id}"]`,
+        uid: `["${nspace}","${dc}","${item.SourceNS}:${item.SourceName}:${item.DestinationNS}:${item.DestinationName}"]`,
       });
       const actual = serializer.respondForQueryRecord(
         function(cb) {

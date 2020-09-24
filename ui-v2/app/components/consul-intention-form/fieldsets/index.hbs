@@ -43,7 +43,9 @@
                   {{nspace.Name}}
                 {{/if}}
           </PowerSelectWithCreate>
-          <em>Search for an existing namespace, or enter any Namespace name.</em>
+          {{#if create}}
+            <em>Search for an existing namespace, or enter any Namespace name.</em>
+          {{/if}}
         </label>
 {{/if}}
       </fieldset>
@@ -52,6 +54,7 @@
         <label data-test-destination-element class="type-select{{if item.error.DestinationName ' has-error'}}">
           <span>Destination Service</span>
           <PowerSelectWithCreate
+              @disabled={{not create}}
               @options={{services}}
               @searchField="Name"
               @selected={{DestinationName}}
@@ -66,12 +69,15 @@
                     {{service.Name}}
                   {{/if}}
           </PowerSelectWithCreate>
-          <em>Search for an existing service, or enter any Service name.</em>
+          {{#if create}}
+            <em>Search for an existing service, or enter any Service name.</em>
+          {{/if}}
         </label>
   {{#if (env 'CONSUL_NSPACES_ENABLED')}}
         <label data-test-destination-nspace class="type-select{{if item.error.DestinationNS ' has-error'}}">
           <span>Destination Namespace</span>
           <PowerSelectWithCreate
+              @disabled={{not create}}
               @options={{nspaces}}
               @searchField="Name"
               @selected={{DestinationNS}}

@@ -1,5 +1,6 @@
 import Serializer from './application';
 import { inject as service } from '@ember/service';
+import { get } from '@ember/object';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/intention';
 
 export default Serializer.extend({
@@ -11,13 +12,14 @@ export default Serializer.extend({
     this.uri = this.encoder.uriTag();
   },
   ensureID: function(item) {
-    if (typeof item.ID !== 'string') {
-      item.ID = this
-        .uri`${item.SourceNS}:${item.SourceName}:${item.DestinationNS}:${item.DestinationName}`;
+    if (!get(item, 'ID.length')) {
       item.Legacy = false;
     } else {
       item.Legacy = true;
+      item.LegacyID = item.ID;
     }
+    item.ID = this
+      .uri`${item.SourceNS}:${item.SourceName}:${item.DestinationNS}:${item.DestinationName}`;
     return item;
   },
   respondForQuery: function(respond, query) {
@@ -40,6 +42,18 @@ export default Serializer.extend({
           return cb(headers, body);
         }),
       query
+    );
+  },
+  respondForUpdateRecord: function(respond, serialized, data) {
+    return this._super(
+      cb =>
+        respond((headers, body) => {
+          body.LegacyID = body.ID;
+          body.ID = serialized.ID;
+          return cb(headers, body);
+        }),
+      serialized,
+      data
     );
   },
 });
