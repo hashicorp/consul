@@ -3,6 +3,7 @@ package keyring
 import (
 	"flag"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/consul/agent"
 	consulapi "github.com/hashicorp/consul/api"
@@ -23,12 +24,13 @@ type cmd struct {
 	help  string
 
 	// flags
-	installKey string
-	useKey     string
-	removeKey  string
-	listKeys   bool
-	relay      int
-	local      bool
+	installKey      string
+	useKey          string
+	removeKey       string
+	listKeys        bool
+	listPrimaryKeys bool
+	relay           int
+	local           bool
 }
 
 func (c *cmd) init() {
@@ -45,6 +47,8 @@ func (c *cmd) init() {
 			"performed on keys which are not currently the primary key.")
 	c.flags.BoolVar(&c.listKeys, "list", false,
 		"List all keys currently in use within the cluster.")
+	c.flags.BoolVar(&c.listPrimaryKeys, "list-primary", false,
+		"List all primary keys currently in use within the cluster.")
 	c.flags.IntVar(&c.relay, "relay-factor", 0,
 		"Setting this to a non-zero value will cause nodes to relay their response "+
 			"to the operation through this many randomly-chosen other nodes in the "+
@@ -56,6 +60,22 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	c.help = flags.Usage(help, c.flags)
+}
+
+func numberActions(listKeys, listPrimaryKeys bool, installKey, useKey, removeKey string) int {
+	count := 0
+	if listKeys {
+		count++
+	}
+	if listPrimaryKeys {
+		count++
+	}
+	for _, arg := range []string{installKey, useKey, removeKey} {
+		if len(arg) > 0 {
+			count++
+		}
+	}
+	return count
 }
 
 func (c *cmd) Run(args []string) int {
@@ -70,19 +90,13 @@ func (c *cmd) Run(args []string) int {
 		Ui:           c.UI,
 	}
 
-	// Only accept a single argument
-	found := c.listKeys
-	for _, arg := range []string{c.installKey, c.useKey, c.removeKey} {
-		if found && len(arg) > 0 {
-			c.UI.Error("Only a single action is allowed")
-			return 1
-		}
-		found = found || len(arg) > 0
-	}
-
-	// Fail fast if no actionable args were passed
-	if !found {
+	num := numberActions(c.listKeys, c.listPrimaryKeys, c.installKey, c.useKey, c.removeKey)
+	if num == 0 {
 		c.UI.Error(c.Help())
+		return 1
+	}
+	if num > 1 {
+		c.UI.Error("Only a single action is allowed")
 		return 1
 	}
 
@@ -114,7 +128,22 @@ func (c *cmd) Run(args []string) int {
 			c.UI.Error(fmt.Sprintf("error: %s", err))
 			return 1
 		}
-		c.handleList(responses)
+		for _, response := range responses {
+			c.UI.Output(formatResponse(response, response.Keys))
+		}
+		return 0
+	}
+
+	if c.listPrimaryKeys {
+		c.UI.Info("Gathering installed primary encryption keys...")
+		responses, err := client.Operator().KeyringList(&consulapi.QueryOptions{RelayFactor: relayFactor, LocalOnly: c.local})
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("error: %s", err))
+			return 1
+		}
+		for _, response := range responses {
+			c.UI.Output(formatResponse(response, response.PrimaryKeys))
+		}
 		return 0
 	}
 
@@ -153,27 +182,40 @@ func (c *cmd) Run(args []string) int {
 	return 0
 }
 
-func (c *cmd) handleList(responses []*consulapi.KeyringResponse) {
-	for _, response := range responses {
-		pool := response.Datacenter + " (LAN)"
-		if response.Segment != "" {
-			pool += fmt.Sprintf(" [%s]", response.Segment)
-		}
-		if response.WAN {
-			pool = "WAN"
-		}
+func formatResponse(response *consulapi.KeyringResponse, keys map[string]int) string {
+	b := new(strings.Builder)
+	b.WriteString("\n")
+	b.WriteString(poolName(response.Datacenter, response.WAN, response.Segment))
+	b.WriteString(formatMessages(response.Messages))
+	b.WriteString(formatKeys(keys, response.NumNodes))
+	return strings.TrimRight(b.String(), "\n")
+}
 
-		c.UI.Output("")
-		c.UI.Output(pool + ":")
-
-		for from, msg := range response.Messages {
-			c.UI.Output(fmt.Sprintf("  ===> %s: %s", from, msg))
-		}
-
-		for key, num := range response.Keys {
-			c.UI.Output(fmt.Sprintf("  %s [%d/%d]", key, num, response.NumNodes))
-		}
+func poolName(dc string, wan bool, segment string) string {
+	pool := fmt.Sprintf("%s (LAN)", dc)
+	if wan {
+		pool = "WAN"
 	}
+	if segment != "" {
+		segment = fmt.Sprintf(" [%s]", segment)
+	}
+	return fmt.Sprintf("%s%s:\n", pool, segment)
+}
+
+func formatMessages(messages map[string]string) string {
+	b := new(strings.Builder)
+	for from, msg := range messages {
+		b.WriteString(fmt.Sprintf("  ===> %s: %s\n", from, msg))
+	}
+	return b.String()
+}
+
+func formatKeys(keys map[string]int, total int) string {
+	b := new(strings.Builder)
+	for key, num := range keys {
+		b.WriteString(fmt.Sprintf("  %s [%d/%d]\n", key, num, total))
+	}
+	return b.String()
 }
 
 func (c *cmd) Synopsis() string {
