@@ -52,6 +52,25 @@ func TestLoadTargetStructs(t *testing.T) {
 				},
 				"Flood": {
 					Name: "Flood",
+					Fields: []*types.Var{
+						newField("StructIsAlsoAField", types.Typ[types.Bool]),
+					},
+				},
+				"StructIsAlsoAField": {
+					Name: "StructIsAlsoAField",
+					Fields: []*types.Var{
+						newField("ID", types.NewNamed(
+							types.NewTypeName(0, nil, "Identifier", nil),
+							&types.Struct{},
+							nil)),
+					},
+				},
+				"Identifier": {
+					Name: "Identifier",
+					Fields: []*types.Var{
+						newField("Name", types.Typ[types.String]),
+						newField("Namespace", types.Typ[types.String]),
+					},
 				},
 			},
 		},
@@ -60,17 +79,27 @@ func TestLoadTargetStructs(t *testing.T) {
 	assert.DeepEqual(t, expected, actual, cmpTypesVar)
 }
 
-var cmpTypesVar = gocmp.Comparer(func(x, y *types.Var) bool {
-	if x == nil || y == nil {
-		return x == y
-	}
-	if x.Name() != y.Name() {
-		return false
-	}
-	return gocmp.Equal(x.Type(), y.Type(), cmpTypesTypes)
-})
+var cmpTypesVar = gocmp.Options{
+	gocmp.Comparer(func(x, y *types.Var) bool {
+		if x == nil || y == nil {
+			return x == y
+		}
+		if x.Name() != y.Name() {
+			return false
+		}
+		return gocmp.Equal(x.Type(), y.Type(), cmpTypesTypes)
+	}),
+}
 
-var cmpTypesTypes = gocmp.AllowUnexported(types.Pointer{}, types.Basic{})
+var cmpTypesTypes = gocmp.Options{
+	gocmp.AllowUnexported(types.Pointer{}, types.Basic{}),
+	gocmp.Comparer(func(x, y *types.Named) bool {
+		if x == nil || y == nil {
+			return x == y
+		}
+		return x.String() != y.String()
+	}),
+}
 
 func newField(name string, typ types.Type) *types.Var {
 	return types.NewField(0, nil, name, typ, false)

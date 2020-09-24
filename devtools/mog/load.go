@@ -198,7 +198,9 @@ func loadTargetStructs(names []string) (map[string]targetPkg, error) {
 
 		structs := map[string]targetStruct{}
 		for ident, obj := range pkg.TypesInfo.Defs {
-			if obj == nil || !obj.Exported() {
+			// skip unexported structs, and exported fields by looking for a nil
+			// parent scope.
+			if obj == nil || !obj.Exported() || obj.Parent() == nil {
 				continue
 			}
 

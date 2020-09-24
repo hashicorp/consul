@@ -6,4 +6,14 @@ type Lamp struct {
 }
 
 type Flood struct {
+	StructIsAlsoAField bool
+}
+
+type StructIsAlsoAField struct {
+	ID Identifier
+}
+
+type Identifier struct {
+	Name      string
+	Namespace string
 }
