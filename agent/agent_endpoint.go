@@ -152,7 +152,7 @@ func (s *HTTPHandlers) AgentMetrics(resp http.ResponseWriter, req *http.Request)
 		handler.ServeHTTP(resp, req)
 		return nil, nil
 	}
-	return s.agent.MemSink.DisplayMetrics(resp, req)
+	return s.agent.baseDeps.MetricsHandler.DisplayMetrics(resp, req)
 }
 
 func (s *HTTPHandlers) AgentReload(resp http.ResponseWriter, req *http.Request) (interface{}, error) {

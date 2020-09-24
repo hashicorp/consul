@@ -70,14 +70,6 @@ const (
 	raftState         = "raft/"
 	snapshotsRetained = 2
 
-	// serverRPCCache controls how long we keep an idle connection
-	// open to a server
-	serverRPCCache = 2 * time.Minute
-
-	// serverMaxStreams controls how many idle streams we keep
-	// open to a server
-	serverMaxStreams = 64
-
 	// raftLogCacheSize is the maximum number of logs to cache in-memory.
 	// This is used to reduce disk I/O for the recently committed entries.
 	raftLogCacheSize = 512
@@ -324,15 +316,8 @@ type connHandler interface {
 
 // NewServer is used to construct a new Consul server from the configuration
 // and extra options, potentially returning an error.
-func NewServer(config *Config, options ...ConsulOption) (*Server, error) {
-	flat := flattenConsulOptions(options)
-
-	logger := flat.logger
-	tokens := flat.tokens
-	tlsConfigurator := flat.tlsConfigurator
-	connPool := flat.connPool
-	rpcRouter := flat.router
-
+func NewServer(config *Config, flat Deps) (*Server, error) {
+	logger := flat.Logger
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
 	}
@@ -341,9 +326,6 @@ func NewServer(config *Config, options ...ConsulOption) (*Server, error) {
 	}
 	if err := config.CheckACL(); err != nil {
 		return nil, err
-	}
-	if logger == nil {
-		return nil, fmt.Errorf("logger is required")
 	}
 
 	// Check if TLS is enabled
@@ -373,40 +355,24 @@ func NewServer(config *Config, options ...ConsulOption) (*Server, error) {
 	// Create the shutdown channel - this is closed but never written to.
 	shutdownCh := make(chan struct{})
 
-	if connPool == nil {
-		connPool = &pool.ConnPool{
-			Server:          true,
-			SrcAddr:         config.RPCSrcAddr,
-			Logger:          logger.StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true}),
-			MaxTime:         serverRPCCache,
-			MaxStreams:      serverMaxStreams,
-			TLSConfigurator: tlsConfigurator,
-			Datacenter:      config.Datacenter,
-		}
-	}
-
-	serverLogger := logger.NamedIntercept(logging.ConsulServer)
+	serverLogger := flat.Logger.NamedIntercept(logging.ConsulServer)
 	loggers := newLoggerStore(serverLogger)
-
-	if rpcRouter == nil {
-		rpcRouter = router.NewRouter(serverLogger, config.Datacenter, fmt.Sprintf("%s.%s", config.NodeName, config.Datacenter))
-	}
 
 	// Create server.
 	s := &Server{
 		config:                  config,
-		tokens:                  tokens,
-		connPool:                connPool,
+		tokens:                  flat.Tokens,
+		connPool:                flat.ConnPool,
 		eventChLAN:              make(chan serf.Event, serfEventChSize),
 		eventChWAN:              make(chan serf.Event, serfEventChSize),
 		logger:                  serverLogger,
 		loggers:                 loggers,
 		leaveCh:                 make(chan struct{}),
 		reconcileCh:             make(chan serf.Member, reconcileChSize),
-		router:                  rpcRouter,
+		router:                  flat.Router,
 		rpcServer:               rpc.NewServer(),
 		insecureRPCServer:       rpc.NewServer(),
-		tlsConfigurator:         tlsConfigurator,
+		tlsConfigurator:         flat.TLSConfigurator,
 		reassertLeaderCh:        make(chan chan error),
 		segmentLAN:              make(map[string]*serf.Serf, len(config.Segments)),
 		sessionTimers:           NewSessionTimers(),

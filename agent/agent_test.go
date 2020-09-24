@@ -4609,7 +4609,7 @@ func TestSharedRPCRouter(t *testing.T) {
 
 	testrpc.WaitForTestAgent(t, srv.RPC, "dc1")
 
-	mgr, server := srv.Agent.router.FindLANRoute()
+	mgr, server := srv.Agent.baseDeps.Router.FindLANRoute()
 	require.NotNil(t, mgr)
 	require.NotNil(t, server)
 
@@ -4621,7 +4621,7 @@ func TestSharedRPCRouter(t *testing.T) {
 
 	testrpc.WaitForTestAgent(t, client.RPC, "dc1")
 
-	mgr, server = client.Agent.router.FindLANRoute()
+	mgr, server = client.Agent.baseDeps.Router.FindLANRoute()
 	require.NotNil(t, mgr)
 	require.NotNil(t, server)
 }
