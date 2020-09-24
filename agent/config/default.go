@@ -45,6 +45,7 @@ func DefaultSource() Source {
 		disable_host_node_id = true
 		disable_remote_exec = true
 		domain = "consul."
+		enable_central_service_config = true
 		encrypt_verify_incoming = true
 		encrypt_verify_outgoing = true
 		log_level = "INFO"
