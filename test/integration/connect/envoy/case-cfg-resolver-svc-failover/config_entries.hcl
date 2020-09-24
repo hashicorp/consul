@@ -1,5 +1,3 @@
-enable_central_service_config = true
-
 config_entries {
   bootstrap {
     kind = "proxy-defaults"
