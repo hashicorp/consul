@@ -219,3 +219,12 @@ func TestKeyringCommand_formatResponse(t *testing.T) {
 	keys = map[string]int{"key1": 1}
 	require.Equal(t, "\nWAN:\n  key1 [1/1]", formatResponse(response, keys))
 }
+
+func TestKeyringCommand_numActions(t *testing.T) {
+	require.Equal(t, 0, numberActions(false, false, "", "", ""))
+	require.Equal(t, 1, numberActions(true, false, "", "", ""))
+	require.Equal(t, 1, numberActions(false, true, "", "", ""))
+	require.Equal(t, 1, numberActions(false, false, "1", "", ""))
+	require.Equal(t, 2, numberActions(true, false, "1", "", ""))
+	require.Equal(t, 2, numberActions(false, false, "1", "1", ""))
+}

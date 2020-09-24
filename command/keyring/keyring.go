@@ -62,6 +62,22 @@ func (c *cmd) init() {
 	c.help = flags.Usage(help, c.flags)
 }
 
+func numberActions(listKeys, listPrimaryKeys bool, installKey, useKey, removeKey string) int {
+	count := 0
+	if listKeys {
+		count++
+	}
+	if listPrimaryKeys {
+		count++
+	}
+	for _, arg := range []string{installKey, useKey, removeKey} {
+		if len(arg) > 0 {
+			count++
+		}
+	}
+	return count
+}
+
 func (c *cmd) Run(args []string) int {
 	if err := c.flags.Parse(args); err != nil {
 		return 1
@@ -74,19 +90,13 @@ func (c *cmd) Run(args []string) int {
 		Ui:           c.UI,
 	}
 
-	// Only accept a single argument
-	found := c.listKeys || c.listPrimaryKeys
-	for _, arg := range []string{c.installKey, c.useKey, c.removeKey} {
-		if found && len(arg) > 0 {
-			c.UI.Error("Only a single action is allowed")
-			return 1
-		}
-		found = found || len(arg) > 0
-	}
-
-	// Fail fast if no actionable args were passed
-	if !found {
+	num := numberActions(c.listKeys, c.listPrimaryKeys, c.installKey, c.useKey, c.removeKey)
+	if num == 0 {
 		c.UI.Error(c.Help())
+		return 1
+	}
+	if num > 1 {
+		c.UI.Error("Only a single action is allowed")
 		return 1
 	}
 
