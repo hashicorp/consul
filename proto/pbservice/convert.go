@@ -74,7 +74,7 @@ func NewCheckServiceNodeFromStructs(t *structs.CheckServiceNode) *CheckServiceNo
 		r := NewNodeServiceFromStructs(*t.Service)
 		s.Service = &r
 	}
-	t.Checks = make(structs.HealthChecks, len(t.Checks))
+	s.Checks = make([]*HealthCheck, len(t.Checks))
 	for i, c := range t.Checks {
 		if c == nil {
 			continue
