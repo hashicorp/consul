@@ -26,12 +26,9 @@ func IsErrEOF(err error) bool {
 		return true
 	}
 
-	if srvErr, ok := err.(rpc.ServerError); ok {
-		return strings.HasSuffix(srvErr.Error(), fmt.Sprintf(": %s", io.EOF.Error()))
-	}
-
-	if srvErr, ok := errors.Unwrap(err).(rpc.ServerError); ok {
-		return strings.HasSuffix(srvErr.Error(), fmt.Sprintf(": %s", io.EOF.Error()))
+	var serverError rpc.ServerError
+	if errors.As(err, &serverError) {
+		return strings.HasSuffix(err.Error(), fmt.Sprintf(": %s", io.EOF.Error()))
 	}
 
 	return false
