@@ -225,7 +225,7 @@ func fmtErrors(msg string, errs []error) error {
 	case 0:
 		return nil
 	case 1:
-		return errs[0]
+		return fmt.Errorf(msg+": %w", errs[0])
 	default:
 		b := new(strings.Builder)
 

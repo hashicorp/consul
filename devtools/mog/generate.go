@@ -89,6 +89,8 @@ func generateConversion(cfg structConfig, t targetStruct, imports *imports) (gen
 	to := generateToFunc(cfg, imports)
 	from := generateFromFunc(cfg, imports)
 
+	var errs []error
+
 	// TODO: would it make sense to store the fields as a map instead of building it here?
 	sourceFields := sourceFieldMap(cfg.Fields)
 	for _, field := range t.Fields {
@@ -99,8 +101,12 @@ func generateConversion(cfg structConfig, t targetStruct, imports *imports) (gen
 			continue
 		}
 
-		sourceField := sourceFields[name]
-		// TODO: store error for missing sourceField, and return error at the end
+		sourceField, ok := sourceFields[name]
+		if !ok {
+			msg := "struct %v is missing field %v. Add the missing field or exclude it using ignore-fields."
+			errs = append(errs, fmt.Errorf(msg, cfg.Source, name))
+			continue
+		}
 
 		// TODO: handle pointer
 
@@ -129,7 +135,7 @@ func generateConversion(cfg structConfig, t targetStruct, imports *imports) (gen
 	g.To = to
 	g.From = from
 
-	return g, nil
+	return g, fmtErrors("failed to generate", errs)
 }
 
 // TODO: test case with funcFrom/FuncTo

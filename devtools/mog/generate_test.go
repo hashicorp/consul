@@ -92,6 +92,30 @@ func TestGenerateConversion(t *testing.T) {
 	// TODO: check gen.RoundTripTest
 }
 
+func TestGenerateConversion_WithMissingSourceField(t *testing.T) {
+	c := structConfig{
+		Source:           "Node",
+		FuncNameFragment: "Core",
+		Target: target{
+			Package: "example.com/org/project/core",
+			Struct:  "Node",
+		},
+		Fields: []fieldConfig{
+			{SourceName: "Iden", TargetName: "ID"},
+		},
+	}
+	target := targetStruct{
+		Fields: []*types.Var{
+			newField("ID", types.Typ[types.String]),
+			newField("Name", types.Typ[types.String]),
+		},
+	}
+	imports := newImports()
+	_, err := generateConversion(c, target, imports)
+	expected := "struct Node is missing field Name. Add the missing field or exclude it"
+	assert.ErrorContains(t, err, expected)
+}
+
 func TestImports(t *testing.T) {
 	imp := newImports()
 
