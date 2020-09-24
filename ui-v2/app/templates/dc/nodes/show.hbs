@@ -2,7 +2,6 @@
 <DataLoader as |api|>
 
   <BlockSlot @name="data">
-    <EventSource @src={{sessions}} />
     <EventSource @src={{tomography}} />
     <EventSource @src={{item}} @onerror={{queue (action api.dispatchError)}} />
   </BlockSlot>
@@ -62,7 +61,11 @@
           <CopyButton @value={{item.Address}} @name="Address">{{item.Address}}</CopyButton>
         </BlockSlot>
         <BlockSlot @name="content">
-          {{outlet}}
+          <Outlet
+            @name={{routeName}}
+          as |o|>
+            {{outlet}}
+          </Outlet>
         </BlockSlot>
     </AppView>
 

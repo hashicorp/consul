@@ -50,6 +50,10 @@
                       (hash label="Tags & Meta" href=(href-to "dc.services.instance.metadata") selected=(is-href "dc.services.instance.metadata"))
               )
         }}/>
+      <Outlet
+        @name={{routeName}}
+      as |o|>
         {{outlet}}
+      </Outlet>
     </BlockSlot>
 </AppView>

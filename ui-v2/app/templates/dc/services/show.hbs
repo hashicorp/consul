@@ -51,6 +51,10 @@
     {{/if}}
   </BlockSlot>
   <BlockSlot @name="content">
-    {{outlet}}
+    <Outlet
+      @name={{routeName}}
+    as |o|>
+      {{outlet}}
+    </Outlet>
   </BlockSlot>
 </AppView>
