@@ -421,11 +421,11 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 				srv:            s,
 				gatewayLocator: s.gatewayLocator,
 			},
-			Logger: s.logger,
+			Logger: s.loggers.Named(logging.Replication).Named(logging.FederationState),
 		},
 		Rate:             s.config.FederationStateReplicationRate,
 		Burst:            s.config.FederationStateReplicationBurst,
-		Logger:           logger,
+		Logger:           s.logger,
 		SuppressErrorLog: isErrFederationStatesNotSupported,
 	}
 	s.federationStateReplicator, err = NewReplicator(&federationStateReplicatorConfig)
