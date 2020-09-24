@@ -3438,7 +3438,17 @@ func TestAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
 }
 
 func TestAgent_ReloadConfigAndKeepChecksStatus(t *testing.T) {
-	t.Parallel()
+	t.Run("normal", func(t *testing.T) {
+		t.Parallel()
+		testAgent_ReloadConfigAndKeepChecksStatus(t, "enable_central_service_config = false")
+	})
+	t.Run("service manager", func(t *testing.T) {
+		t.Parallel()
+		testAgent_ReloadConfigAndKeepChecksStatus(t, "enable_central_service_config = true")
+	})
+}
+
+func testAgent_ReloadConfigAndKeepChecksStatus(t *testing.T, extraHCL string) {
 	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
 	defer os.RemoveAll(dataDir)
 	waitDurationSeconds := 1
@@ -3449,7 +3459,7 @@ func TestAgent_ReloadConfigAndKeepChecksStatus(t *testing.T) {
 		  check{name="check1",
 		  args=["true"],
 		  interval="` + strconv.Itoa(waitDurationSeconds) + `s"}}
-		]`
+		] ` + extraHCL
 	a := NewTestAgent(t, t.Name(), hcl)
 	defer a.Shutdown()
 
