@@ -117,7 +117,7 @@ func testCluster(self string) *mockCluster {
 
 func testRouter(t testing.TB, dc string) *Router {
 	logger := testutil.Logger(t)
-	return NewRouter(logger, dc, "")
+	return NewRouter(logger, dc, "", nil)
 }
 
 func TestRouter_Shutdown(t *testing.T) {
