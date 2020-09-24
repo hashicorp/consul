@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"path/filepath"
+	"sync/atomic"
 	"testing"
 
 	"github.com/hashicorp/consul/agent/config"
@@ -877,4 +878,173 @@ func TestUIEndpoint_modifySummaryForGatewayService_UseRequestedDCInsteadOfConfig
 	modifySummaryForGatewayService(&cfg, dc, &sum, &gwsvc)
 	expected := serviceCanonicalDNSName("test", "ingress", "dc2", "consul", nil) + ":42"
 	require.Equal(t, expected, sum.GatewayConfig.Addresses[0])
+}
+
+func TestUIEndpoint_MetricsProxy(t *testing.T) {
+	t.Parallel()
+
+	var lastHeadersSent atomic.Value
+
+	backendH := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		lastHeadersSent.Store(r.Header)
+		if r.URL.Path == "/some/prefix/ok" {
+			w.Header().Set("X-Random-Header", "Foo")
+			w.Write([]byte("OK"))
+			return
+		}
+		if r.URL.Path == "/.passwd" {
+			w.Write([]byte("SECRETS!"))
+			return
+		}
+		http.Error(w, "not found on backend", http.StatusNotFound)
+	})
+
+	backend := httptest.NewServer(backendH)
+	defer backend.Close()
+
+	backendURL := backend.URL + "/some/prefix"
+
+	// Share one agent for all these test cases. This has a few nice side-effects:
+	//  1. it's cheaper
+	//  2. it implicitly tests that config reloading works between cases
+	//
+	// Note we can't test the case where UI is disabled though as that's not
+	// reloadable so we'll do that in a separate test below rather than have many
+	// new tests all with a new agent. response headers also aren't reloadable
+	// currently due to the way we wrap API endpoints at startup.
+	a := NewTestAgent(t, `
+		ui_config {
+			enabled = true
+		}
+		http_config {
+			response_headers {
+				"Access-Control-Allow-Origin" = "*"
+			}
+		}
+	`)
+	defer a.Shutdown()
+
+	endpointPath := "/v1/internal/ui/metrics-proxy"
+
+	cases := []struct {
+		name            string
+		config          config.UIMetricsProxy
+		path            string
+		wantCode        int
+		wantContains    string
+		wantHeaders     map[string]string
+		wantHeadersSent map[string]string
+	}{
+		{
+			name:     "disabled",
+			config:   config.UIMetricsProxy{},
+			path:     endpointPath + "/ok",
+			wantCode: http.StatusNotFound,
+		},
+		{
+			name: "basic proxying",
+			config: config.UIMetricsProxy{
+				BaseURL: backendURL,
+			},
+			path:         endpointPath + "/ok",
+			wantCode:     http.StatusOK,
+			wantContains: "OK",
+			wantHeaders: map[string]string{
+				"X-Random-Header": "Foo",
+			},
+		},
+		{
+			name: "404 on backend",
+			config: config.UIMetricsProxy{
+				BaseURL: backendURL,
+			},
+			path:         endpointPath + "/random-path",
+			wantCode:     http.StatusNotFound,
+			wantContains: "not found on backend",
+		},
+		{
+			// Note that this case actually doesn't exercise our validation logic at
+			// all since the top level API mux resolves this to /v1/internal/.passwd
+			// and it never hits our handler at all. I left it in though as this
+			// wasn't obvious and it's worth knowing if we change something in our mux
+			// that might affect path traversal opportunity here. In fact this makes
+			// our path traversal handling somewhat redundant because any traversal
+			// that goes "back" far enough to traverse up from the BaseURL of the
+			// proxy target will in fact miss our handler entirely. It's still better
+			// to be safe than sorry though.
+			name: "path traversal should fail - api mux",
+			config: config.UIMetricsProxy{
+				BaseURL: backendURL,
+			},
+			path:         endpointPath + "/../../.passwd",
+			wantCode:     http.StatusMovedPermanently,
+			wantContains: "Moved Permanently",
+		},
+		{
+			name: "adding auth header",
+			config: config.UIMetricsProxy{
+				BaseURL: backendURL,
+				AddHeaders: []config.UIMetricsProxyAddHeader{
+					{
+						Name:  "Authorization",
+						Value: "SECRET_KEY",
+					},
+					{
+						Name:  "X-Some-Other-Header",
+						Value: "foo",
+					},
+				},
+			},
+			path:         endpointPath + "/ok",
+			wantCode:     http.StatusOK,
+			wantContains: "OK",
+			wantHeaders: map[string]string{
+				"X-Random-Header": "Foo",
+			},
+			wantHeadersSent: map[string]string{
+				"X-Some-Other-Header": "foo",
+				"Authorization":       "SECRET_KEY",
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			// Reload the agent config with the desired UI config by making a copy and
+			// using internal reload.
+			cfg := *a.Agent.config
+
+			// Modify the UIConfig part (this is a copy remember and that struct is
+			// not a pointer)
+			cfg.UIConfig.MetricsProxy = tc.config
+
+			require.NoError(t, a.Agent.reloadConfigInternal(&cfg))
+
+			// Now fetch the API handler to run requests against
+			h := a.srv.handler(true)
+
+			req := httptest.NewRequest("GET", tc.path, nil)
+			rec := httptest.NewRecorder()
+
+			h.ServeHTTP(rec, req)
+
+			require.Equal(t, tc.wantCode, rec.Code,
+				"Wrong status code. Body = %s", rec.Body.String())
+			require.Contains(t, rec.Body.String(), tc.wantContains)
+			for k, v := range tc.wantHeaders {
+				// Headers are a slice of values, just assert that one of the values is
+				// the one we want.
+				require.Contains(t, rec.Result().Header[k], v)
+			}
+			if len(tc.wantHeadersSent) > 0 {
+				headersSent, ok := lastHeadersSent.Load().(http.Header)
+				require.True(t, ok, "backend not called")
+				for k, v := range tc.wantHeadersSent {
+					require.Contains(t, headersSent[k], v,
+						"header %s doesn't have the right value set", k)
+				}
+			}
+		})
+	}
 }

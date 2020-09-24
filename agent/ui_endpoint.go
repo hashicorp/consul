@@ -3,12 +3,17 @@ package agent
 import (
 	"fmt"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
+	"path"
 	"sort"
 	"strings"
 
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-hclog"
 )
 
 // metaExternalSource is the key name for the service instance meta that
@@ -400,4 +405,81 @@ func (s *HTTPHandlers) UIGatewayIntentions(resp http.ResponseWriter, req *http.R
 	}
 
 	return reply.Intentions, nil
+}
+
+// UIMetricsProxy handles the /v1/internal/ui/metrics-proxy/ endpoint which, if
+// configured, provides a simple read-only HTTP proxy to a single metrics
+// backend to expose it to the UI.
+func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Check the UI was enabled at agent startup (note this is not reloadable
+	// currently).
+	if !s.IsUIEnabled() {
+		return nil, NotFoundError{Reason: "UI is not enabled"}
+	}
+
+	// Load reloadable proxy config
+	cfg, ok := s.metricsProxyCfg.Load().(config.UIMetricsProxy)
+	if !ok || cfg.BaseURL == "" {
+		// Proxy not configured
+		return nil, NotFoundError{Reason: "Metrics proxy is not enabled"}
+	}
+
+	log := s.agent.logger.Named(logging.UIMetricsProxy)
+
+	// Construct the new URL from the path and the base path. Note we do this here
+	// not in the Director function below because we can handle any errors cleanly
+	// here.
+
+	// Replace prefix in the path
+	subPath := strings.TrimPrefix(req.URL.Path, "/v1/internal/ui/metrics-proxy")
+
+	// Append that to the BaseURL (which might contain a path prefix component)
+	newURL := cfg.BaseURL + subPath
+
+	// Parse it into a new URL
+	u, err := url.Parse(newURL)
+	if err != nil {
+		log.Error("couldn't parse target URL", "base_url", cfg.BaseURL, "path", subPath)
+		return nil, BadRequestError{Reason: "Invalid path."}
+	}
+
+	// Clean the new URL path to prevent path traversal attacks and remove any
+	// double slashes etc.
+	u.Path = path.Clean(u.Path)
+
+	// Validate that the full BaseURL is still a prefix - if there was a path
+	// prefix on the BaseURL but an attacker tried to circumvent it with path
+	// traversal then the Clean above would have resolve the /../ components back
+	// to the actual path which means part of the prefix will now be missing.
+	//
+	// Note that in practice this is not currently possible since any /../ in the
+	// path would have already been resolved by the API server mux and so not even
+	// hit this handler. Any /../ that are far enough into the path to hit this
+	// handler, can't backtrack far enough to eat into the BaseURL either. But we
+	// leave this in anyway in case something changes in the future.
+	if !strings.HasPrefix(u.String(), cfg.BaseURL) {
+		log.Error("target URL escaped from base path",
+			"base_url", cfg.BaseURL,
+			"path", subPath,
+			"target_url", u.String(),
+		)
+		return nil, BadRequestError{Reason: "Invalid path."}
+	}
+
+	// Add any configured headers
+	for _, h := range cfg.AddHeaders {
+		req.Header.Set(h.Name, h.Value)
+	}
+
+	proxy := httputil.ReverseProxy{
+		Director: func(r *http.Request) {
+			r.URL = u
+		},
+		ErrorLog: log.StandardLogger(&hclog.StandardLoggerOptions{
+			InferLevels: true,
+		}),
+	}
+
+	proxy.ServeHTTP(resp, req)
+	return nil, nil
 }

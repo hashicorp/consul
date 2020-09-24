@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/NYTimes/gziphandler"
@@ -83,6 +84,7 @@ type HTTPHandlers struct {
 	denylist        *Denylist
 	configReloaders []ConfigReloader
 	h               http.Handler
+	metricsProxyCfg atomic.Value
 }
 
 // endpoint is a Consul-specific HTTP handler that takes the usual arguments in
@@ -273,7 +275,6 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 	if s.IsUIEnabled() {
 		// Note that we _don't_ support reloading ui_config.{enabled, content_dir,
 		// content_path} since this only runs at initial startup.
-
 		uiHandler := uiserver.NewHandler(s.agent.config, s.agent.logger.Named(logging.HTTP))
 		s.configReloaders = append(s.configReloaders, uiHandler.ReloadConfig)
 
@@ -295,6 +296,12 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 			),
 		)
 	}
+	// Initialize (reloadable) metrics proxy config
+	s.metricsProxyCfg.Store(s.agent.config.UIConfig.MetricsProxy)
+	s.configReloaders = append(s.configReloaders, func(cfg *config.RuntimeConfig) error {
+		s.metricsProxyCfg.Store(cfg.UIConfig.MetricsProxy)
+		return nil
+	})
 
 	// Wrap the whole mux with a handler that bans URLs with non-printable
 	// characters, unless disabled explicitly to deal with old keys that fail this

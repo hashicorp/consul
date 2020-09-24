@@ -94,6 +94,7 @@ func init() {
 	registerEndpoint("/v1/health/service/", []string{"GET"}, (*HTTPHandlers).HealthServiceNodes)
 	registerEndpoint("/v1/health/connect/", []string{"GET"}, (*HTTPHandlers).HealthConnectServiceNodes)
 	registerEndpoint("/v1/health/ingress/", []string{"GET"}, (*HTTPHandlers).HealthIngressServiceNodes)
+	registerEndpoint("/v1/internal/ui/metrics-proxy/", []string{"GET"}, (*HTTPHandlers).UIMetricsProxy)
 	registerEndpoint("/v1/internal/ui/nodes", []string{"GET"}, (*HTTPHandlers).UINodes)
 	registerEndpoint("/v1/internal/ui/node/", []string{"GET"}, (*HTTPHandlers).UINodeInfo)
 	registerEndpoint("/v1/internal/ui/services", []string{"GET"}, (*HTTPHandlers).UIServices)
