@@ -4,15 +4,15 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/hashicorp/consul/agent/consul/state"
-	"github.com/hashicorp/consul/proto/pbservice"
 	"github.com/hashicorp/go-uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
+	"github.com/hashicorp/consul/proto/pbservice"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
@@ -107,6 +107,7 @@ func (h *Server) Subscribe(req *pbsubscribe.SubscribeRequest, serverStream pbsub
 			snapshotDone = true
 			h.Logger.Trace("snapshot complete",
 				"index", first.Index, "sent", sentCount, "stream_id", streamID)
+
 		case snapshotDone:
 			h.Logger.Trace("sending events",
 				"index", first.Index,
@@ -208,8 +209,20 @@ func newEventFromStreamEvents(req *pbsubscribe.SubscribeRequest, events []stream
 		Key:   req.Key,
 		Index: events[0].Index,
 	}
+
 	if len(events) == 1 {
-		setPayload(e, events[0].Payload)
+		event := events[0]
+		// TODO: refactor so these are only checked once, instead of 3 times.
+		switch {
+		case event.IsEndOfSnapshot():
+			e.Payload = &pbsubscribe.Event_EndOfSnapshot{EndOfSnapshot: true}
+			return e
+		case event.IsEndOfEmptySnapshot():
+			e.Payload = &pbsubscribe.Event_EndOfEmptySnapshot{EndOfEmptySnapshot: true}
+			return e
+		}
+
+		setPayload(e, event.Payload)
 		return e
 	}
 
