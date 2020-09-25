@@ -15,6 +15,7 @@ export default class TopologyMetrics extends Component {
   @tracked centerDimensions;
   @tracked upView;
   @tracked upCardDimensions = [];
+  @tracked toMetricsArrow;
 
   // =methods
   getDownCards() {
@@ -60,7 +61,7 @@ export default class TopologyMetrics extends Component {
       .join(',')}`;
   }
 
-  drawSVG(dest, src) {
+  drawLine(dest, src) {
     let args = [
       dest,
       {
@@ -75,6 +76,30 @@ export default class TopologyMetrics extends Component {
     });
 
     return `M ${src.x} ${src.y} ${this.curve(...args)}`;
+  }
+
+  drawArrowToMetrics(dest) {
+    // The top/bottom points have the same X position
+    const x = dest.x - 3;
+    const topY = dest.y + dest.height * 0.25 - 5;
+    const bottomY = dest.y + dest.height * 0.25 + 5;
+
+    const middleX = dest.x + 7;
+    const middleY = dest.y + dest.height / 4;
+
+    return `${x} ${topY} ${middleX} ${middleY} ${x} ${bottomY}`;
+  }
+
+  drawArrowToUpstream(dest) {
+    // The top/bottom points have the same X position
+    const x = dest.x - dest.width - 31;
+    const topY = dest.y + dest.height / 2 - 5;
+    const bottomY = dest.y + dest.height / 2 + 5;
+
+    const middleX = dest.x - dest.width - 21;
+    const middleY = dest.y + dest.height / 2;
+
+    return `${x} ${topY} ${middleX} ${middleY} ${x} ${bottomY}`;
   }
 
   // =actions
@@ -92,6 +117,9 @@ export default class TopologyMetrics extends Component {
     // Set center positioning points
     this.centerDimensions = this.getSVGDimensions(grafanaCard.id.toString());
 
+    // Draws the arrow that goes from Downstreams -> Metrics
+    this.toMetricsArrow = this.drawArrowToMetrics(this.centerDimensions);
+
     let downCalcs = [];
     downCards.forEach(item => {
       const dimensions = this.getSVGDimensions(item.id.toString());
@@ -107,7 +135,7 @@ export default class TopologyMetrics extends Component {
 
       downCalcs.push({
         ...dimensions,
-        line: this.drawSVG(dest, src),
+        line: this.drawLine(dest, src),
         id: this.dom.guid(item),
       });
     });
@@ -129,7 +157,9 @@ export default class TopologyMetrics extends Component {
 
       upCalcs.push({
         ...dimensions,
-        line: this.drawSVG(dest, src),
+        line: this.drawLine(dest, src),
+        // Draws the arrow that goes from Metrics -> Upstream
+        arrow: this.drawArrowToUpstream(dimensions),
         id: this.dom.guid(item),
       });
     });
