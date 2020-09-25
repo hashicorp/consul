@@ -26,22 +26,24 @@
     <TabNav @items={{
       compact
           (array
+(if (and (not-eq item.Service.Kind 'mesh-gateway') (not-eq item.Service.Kind 'terminating-gateway'))
+            (hash label="Topology" href=(href-to "dc.services.show.topology") selected=(is-href "dc.services.show.topology"))
+'')
 (if (eq item.Service.Kind 'terminating-gateway')
-                (hash label="Linked Services" href=(href-to "dc.services.show.services") selected=(is-href "dc.services.show.services"))
+            (hash label="Linked Services" href=(href-to "dc.services.show.services") selected=(is-href "dc.services.show.services"))
 '')
 (if (eq item.Service.Kind 'ingress-gateway')
-                (hash label="Upstreams" href=(href-to "dc.services.show.upstreams") selected=(is-href "dc.services.show.upstreams"))
+            (hash label="Upstreams" href=(href-to "dc.services.show.upstreams") selected=(is-href "dc.services.show.upstreams"))
 '')
-                (hash label="Topology" href=(href-to "dc.services.show.topology") selected=(is-href "dc.services.show.topology"))
-                (hash label="Instances" href=(href-to "dc.services.show.instances") selected=(is-href "dc.services.show.instances"))
+            (hash label="Instances" href=(href-to "dc.services.show.instances") selected=(is-href "dc.services.show.instances"))
 (if (not-eq item.Service.Kind 'terminating-gateway')
-                (hash label="Intentions" href=(href-to "dc.services.show.intentions") selected=(is-href "dc.services.show.intentions"))
+            (hash label="Intentions" href=(href-to "dc.services.show.intentions") selected=(is-href "dc.services.show.intentions"))
 '')
 (if chain.Chain
-                (hash label="Routing" href=(href-to "dc.services.show.routing") selected=(is-href "dc.services.show.routing"))
+            (hash label="Routing" href=(href-to "dc.services.show.routing") selected=(is-href "dc.services.show.routing"))
 '')
 (if (not item.Service.Kind)
-                (hash label="Tags" href=(href-to "dc.services.show.tags") selected=(is-href "dc.services.show.tags"))
+            (hash label="Tags" href=(href-to "dc.services.show.tags") selected=(is-href "dc.services.show.tags"))
 '')
           )
     }}/>

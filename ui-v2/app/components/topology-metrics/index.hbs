@@ -1,27 +1,40 @@
 {{on-window 'resize' (action "calculate") }}
 <div {{did-insert (action "calculate")}} class="topology-container">
-{{#if true}}
+{{#if (gt @downstreams.length 0)}}
   <div id="downstream-container" class="downstream-container">
-    <p>Downstreams</p>
-    {{#each @downstreams as |downstream|}}
+    <div>
+      <p>{{@dc}}</p>
+      <span class="dc-info">
+        <Tooltip>
+          Only showing downstreams withing the current datacenter for {{@service.Service.Service}}.
+        </Tooltip>
+      </span>
+    </div>
+  {{#each @downstreams as |downstream|}}
+  {{#if (eq @dc downstream.Datacenter)}}
     <div id="downstreamCard-{{downstream.Name}}" class="downstream-card">
       <p>
         {{downstream.Name}}
       </p>
       <div class="details">
-        <span class="datacenter">{{downstream.Datacenter}}</span>
         <span class="passing">80%</span>
         <span class="critical">20%</span>
       </div>
     </div>
-    {{/each}}
+  {{/if}}
+  {{/each}}
   </div>
+{{/if}}
   <div id="metrics-container" class="metrics-container">
     <div class="metrics-header">
-      {{@item.Service.Service}}
+      {{@service.Service.Service}}
     </div>
-    <div class="grafana-link">
-      <a href="#">Open Grafana Dashboard</a>
+    <div class="link-container">
+    {{#if @grafanaLink}}
+      <a class="grafana-link" href={{@grafanaLink}}>Open Grafana Dashboard</a>
+    {{else}}
+      <a class="settings-link" href={{href-to 'settings'}}>Configure metrics dashboard</a>
+    {{/if}}
     </div>
   </div>
   <div  id="downstream-lines" class="downstream-lines">
@@ -52,11 +65,11 @@
     </svg>
     {{/if}}
   </div>
-{{/if}}
-{{#if true}}
+{{#if (gt @upstreams.length 0)}}
   <div class="upstream-container">
-    <p>Upstreams</p>
     {{#each @upstreams as |upstream|}}
+
+    <p>{{upstream.Datacenter}}</p>
     <div id="upstreamCard-{{upstream.Name}}" class="upstream-card">
       <p>
         {{upstream.Name}}
@@ -67,8 +80,9 @@
         <span class="critical">20%</span>
       </div>
     </div>
-    {{/each}}
+  {{/each}}
   </div>
+{{/if}}
   <div id="upstream-lines" class="upstream-lines">
   {{#if (gt this.upCardDimensions.length 0)}}
     <svg viewBox={{concat this.centerDimensions.x ' ' upView.y ' ' upView.width ' ' upView.height}} preserveAspectRatio="none">
@@ -90,5 +104,4 @@
     </svg>
   {{/if}}
   </div>
-{{/if}}
 </div>

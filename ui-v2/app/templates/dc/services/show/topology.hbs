@@ -1,7 +1,13 @@
 <div id="tags" class="tab-section">
   <div role="tabpanel">
-  {{#if true}}
-    <TopologyMetrics  />
+  {{#if topology}}
+    <TopologyMetrics
+      @service={{items.firstObject}}
+      @upstreams={{topology.Upstreams}}
+      @downstreams={{topology.Downstreams}}
+      @dc={{topology.Datacenter}}
+      @grafanaLink={{urls.service}}
+    />
   {{else}}
     <EmptyState>
       <BlockSlot @name="header">

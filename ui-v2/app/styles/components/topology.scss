@@ -37,6 +37,9 @@
   border: 1px solid $gray-200;
   padding: 12px;
 }
+.downstream-container :first-child {
+  display: inline-flex;
+}
 .upstream-card,
 .downstream-card {
   padding: 12px;
@@ -97,20 +100,31 @@
   font-size: 16px;
   font-weight: bold;
 }
-.grafana-link {
+.link-container {
   padding: 18px;
   background-color: $gray-100;
 }
-.grafana-link a {
+.link-container a {
   color: $gray-700;
 }
-.grafana-link a:hover {
+.link-container a:hover {
   color: $color-action;
 }
-.grafana-link a::before {
+.grafana-link::before {
   @extend %with-exit-mask, %as-pseudo;
   background-color: $gray-500;
   margin-right: 4px;
+}
+.settings-link::before {
+  @extend %with-docs-mask, %as-pseudo;
+  background-color: $gray-500;
+  margin-right: 4px;
+}
+
+.dc-info::before {
+  @extend %with-info-circle-outline-mask, %as-pseudo;
+  background-color: $gray-500;
+  margin-left: 4px;
 }
 
 // SVG Line styling

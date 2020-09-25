@@ -25,11 +25,15 @@
       {{item.Name}}
     </a>
   {{else if (eq item.Kind 'ingress-gateway')}}
-    <a data-test-service-name href={{href-to "dc.services.show.upstreams" item.Name}}>
+    <a data-test-service-name href={{href-to "dc.services.show.topology" item.Name}}>
+      {{item.Name}}
+    </a>
+  {{else if (eq item.Kind 'mesh-gateway')}}
+    <a data-test-service-name href={{href-to "dc.services.show.instances" item.Name}}>
       {{item.Name}}
     </a>
   {{else}}
-    <a data-test-service-name href={{href-to "dc.services.show.instances" item.Name}}>
+    <a data-test-service-name href={{href-to "dc.services.show.topology" item.Name}}>
       {{item.Name}}
     </a>
   {{/if}}
