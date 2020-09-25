@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/raft"
 )
 
 func TestStatsFetcher(t *testing.T) {
@@ -48,7 +49,7 @@ func TestStatsFetcher(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
-			stats := s1.statsFetcher.Fetch(ctx, s1.LANMembers())
+			stats := s1.statsFetcher.Fetch(ctx, s1.autopilotServers())
 			if len(stats) != 3 {
 				r.Fatalf("bad: %#v", stats)
 			}
@@ -71,12 +72,12 @@ func TestStatsFetcher(t *testing.T) {
 	// from it.
 	func() {
 		retry.Run(t, func(r *retry.R) {
-			s1.statsFetcher.inflight[string(s3.config.NodeID)] = struct{}{}
-			defer delete(s1.statsFetcher.inflight, string(s3.config.NodeID))
+			s1.statsFetcher.inflight[raft.ServerID(s3.config.NodeID)] = struct{}{}
+			defer delete(s1.statsFetcher.inflight, raft.ServerID(s3.config.NodeID))
 
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
-			stats := s1.statsFetcher.Fetch(ctx, s1.LANMembers())
+			stats := s1.statsFetcher.Fetch(ctx, s1.autopilotServers())
 			if len(stats) != 2 {
 				r.Fatalf("bad: %#v", stats)
 			}

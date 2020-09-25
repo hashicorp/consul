@@ -403,20 +403,12 @@ func (s *Server) maybeBootstrap() {
 	// Attempt a live bootstrap!
 	var configuration raft.Configuration
 	var addrs []string
-	minRaftVersion, err := s.autopilot.MinRaftProtocol()
-	if err != nil {
-		s.logger.Error("Failed to read server raft versions", "error", err)
-	}
 
 	for _, server := range servers {
 		addr := server.Addr.String()
 		addrs = append(addrs, addr)
-		var id raft.ServerID
-		if minRaftVersion >= 3 {
-			id = raft.ServerID(server.ID)
-		} else {
-			id = raft.ServerID(addr)
-		}
+		id := raft.ServerID(server.ID)
+
 		suffrage := raft.Voter
 		if server.NonVoter {
 			suffrage = raft.Nonvoter

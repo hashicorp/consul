@@ -905,6 +905,8 @@ func (l *State) updateSyncState() error {
 		!reflect.DeepEqual(svcNode.TaggedAddresses, l.config.TaggedAddresses) ||
 		!reflect.DeepEqual(svcNode.Meta, l.metadata) {
 		l.nodeInfoInSync = false
+	} else {
+
 	}
 
 	// Check which services need syncing

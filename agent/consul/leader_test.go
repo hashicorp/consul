@@ -741,7 +741,7 @@ func TestLeader_MultiBootstrap(t *testing.T) {
 
 	// Ensure we don't have multiple raft peers
 	for _, s := range servers {
-		peers, _ := s.numPeers()
+		peers, _ := s.autopilot.NumVoters()
 		if peers != 1 {
 			t.Fatalf("should only have 1 raft peer!")
 		}
@@ -886,7 +886,6 @@ func TestLeader_RollRaftServer(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = true
 		c.Datacenter = "dc1"
-		c.RaftConfig.ProtocolVersion = 2
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -894,7 +893,6 @@ func TestLeader_RollRaftServer(t *testing.T) {
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = false
 		c.Datacenter = "dc1"
-		c.RaftConfig.ProtocolVersion = 1
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
@@ -902,7 +900,6 @@ func TestLeader_RollRaftServer(t *testing.T) {
 	dir3, s3 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = false
 		c.Datacenter = "dc1"
-		c.RaftConfig.ProtocolVersion = 2
 	})
 	defer os.RemoveAll(dir3)
 	defer s3.Shutdown()
@@ -922,21 +919,15 @@ func TestLeader_RollRaftServer(t *testing.T) {
 
 	for _, s := range []*Server{s1, s3} {
 		retry.Run(t, func(r *retry.R) {
-			minVer, err := s.autopilot.MinRaftProtocol()
-			if err != nil {
-				r.Fatal(err)
-			}
-			if got, want := minVer, 2; got != want {
-				r.Fatalf("got min raft version %d want %d", got, want)
-			}
+			// autopilot should force removal of the shutdown node
+			r.Check(wantPeers(s, 2))
 		})
 	}
 
-	// Replace the dead server with one running raft protocol v3
+	// Replace the dead server with a new one
 	dir4, s4 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = false
 		c.Datacenter = "dc1"
-		c.RaftConfig.ProtocolVersion = 3
 	})
 	defer os.RemoveAll(dir4)
 	defer s4.Shutdown()
@@ -946,25 +937,7 @@ func TestLeader_RollRaftServer(t *testing.T) {
 	// Make sure the dead server is removed and we're back to 3 total peers
 	for _, s := range servers {
 		retry.Run(t, func(r *retry.R) {
-			addrs := 0
-			ids := 0
-			future := s.raft.GetConfiguration()
-			if err := future.Error(); err != nil {
-				r.Fatal(err)
-			}
-			for _, server := range future.Configuration().Servers {
-				if string(server.ID) == string(server.Address) {
-					addrs++
-				} else {
-					ids++
-				}
-			}
-			if got, want := addrs, 2; got != want {
-				r.Fatalf("got %d server addresses want %d", got, want)
-			}
-			if got, want := ids, 1; got != want {
-				r.Fatalf("got %d server ids want %d", got, want)
-			}
+			r.Check(wantPeers(s, 3))
 		})
 	}
 }
