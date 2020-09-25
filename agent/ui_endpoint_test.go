@@ -802,5 +802,6 @@ func TestUIEndpoint_modifySummaryForGatewayService_UseRequestedDCInsteadOfConfig
 	sum := ServiceSummary{GatewayConfig: GatewayConfig{}}
 	gwsvc := structs.GatewayService{Service: structs.ServiceName{Name: "test"}, Port: 42}
 	modifySummaryForGatewayService(&cfg, dc, &sum, &gwsvc)
-	require.Equal(t, "test.ingress.dc2.consul:42", sum.GatewayConfig.Addresses[0])
+	expected := serviceCanonicalDNSName("test", "ingress", "dc2", "consul", nil) + ":42"
+	require.Equal(t, expected, sum.GatewayConfig.Addresses[0])
 }
