@@ -16,9 +16,18 @@
       <p>
         {{downstream.Name}}
       </p>
-      <div class="details">
-        <span class="passing">80%</span>
-        <span class="critical">20%</span>
+      <div class="detail">
+    {{#let (service/health-percentage downstream) as |percentage|}}
+      {{#if (not-eq percentage.passing 0)}}
+        <span class="passing">{{percentage.passing}}%</span>
+      {{/if}}
+      {{#if (not-eq percentage.warning 0)}}
+        <span class="warning">{{percentage.warning}}%</span>
+      {{/if}}
+      {{#if (not-eq percentage.critical 0)}}
+        <span class="critical">{{percentage.critical}}%</span>
+      {{/if}}
+    {{/let}}
       </div>
     </div>
   {{/if}}
@@ -31,7 +40,7 @@
     </div>
     <div class="link-container">
     {{#if @grafanaLink}}
-      <a class="grafana-link" href={{@grafanaLink}}>Open Grafana Dashboard</a>
+      <a class="metrics-link" href={{@grafanaLink}}>Open Grafana Dashboard</a>
     {{else}}
       <a class="settings-link" href={{href-to 'settings'}}>Configure metrics dashboard</a>
     {{/if}}
@@ -47,7 +56,7 @@
       <g>
         <path
           class="line-fill"
-          id={{concat 'downstream-' svg.id}}
+          id={{concat 'downstream-line-' svg.id}}
           d={{svg.line}}
         />
         <circle
@@ -75,7 +84,7 @@
         <p>
           {{upstream.Name}}
         </p>
-        <div class="details">
+        <div class="detail">
         {{#if (and nspace (env 'CONSUL_NSPACES_ENABLED'))}}
           <dl class="nspace">
             <dt>
@@ -88,8 +97,30 @@
             </dd>
           </dl>
         {{/if}}
-          <span class="passing">80%</span>
-          <span class="critical">20%</span>
+      {{#if (eq upstream.Datacenter @dc)}}
+      {{#let (service/health-percentage upstream) as |percentage|}}
+        {{#if (not-eq percentage.passing 0)}}
+          <span class="passing">{{percentage.passing}}%</span>
+        {{/if}}
+        {{#if (not-eq percentage.warning 0)}}
+          <span class="warning">{{percentage.warning}}%</span>
+        {{/if}}
+        {{#if (not-eq percentage.critical 0)}}
+          <span class="critical">{{percentage.critical}}%</span>
+        {{/if}}
+      {{/let}}
+      {{else}}
+          <dl class="health">
+            <dt>
+              <Tooltip>
+                  We are unable to determine the health status of services in remote datacenters.
+              </Tooltip>
+            </dt>
+            <dd>
+              Health
+            </dd>
+          </dl>
+      {{/if}}
         </div>
       </div>
     {{/each}}
@@ -102,7 +133,7 @@
     <svg viewBox={{concat this.centerDimensions.x ' ' upView.y ' ' upView.width ' ' upView.height}} preserveAspectRatio="none">
     {{#each this.upCardDimensions as |svg| }}
       <g>
-        <path id={{concat 'upstream-' svg.id}} class="line-fill" d={{svg.line}} />
+        <path id={{concat 'upstream-line-' svg.id}} class="line-fill" d={{svg.line}} />
         <polygon class="line-arrow"
           points={{svg.arrow}}
         />

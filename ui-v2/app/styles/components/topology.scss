@@ -60,31 +60,41 @@
   font-weight: 600;
   margin-bottom: 0 !important;
 }
-.details,
-.details dl {
+.detail,
+.detail dl {
   display: inline-flex;
 }
-.details span,
-.details dl {
+.detail span,
+.detail dl {
   margin-right: 8px;
 }
-.details span::before,
-.details dl::before {
+.detail span::before,
+.detail dt::before {
   margin-right: 4px;
 }
-.details dd {
+.detail dd {
   color: $gray-700;
 }
-.nspace::before {
+.detail .nspace dt::before {
   @extend %with-folder-outline-mask, %as-pseudo;
+}
+.detail .health dt::before {
+  @extend %with-help-circle-outline-mask, %as-pseudo;
+}
+.detail .nspace dt::before,
+.detail .health dt::before {
   background-color: $gray-500;
   margin-top: 2px;
 }
-.passing::before {
+.detail .passing::before {
   @extend %with-check-circle-fill-color-mask, %as-pseudo;
   background-color: $green-500;
 }
-.critical::before {
+.detail .warning::before {
+  @extend %with-alert-triangle-color-mask, %as-pseudo;
+  background-color: $orange-500;
+}
+.detail .critical::before {
   @extend %with-cancel-square-fill-color-mask, %as-pseudo;
   background-color: $red-500;
 }
@@ -113,7 +123,7 @@
 .link-container a:hover {
   color: $color-action;
 }
-.grafana-link::before {
+.metrics-link::before {
   @extend %with-exit-mask, %as-pseudo;
   background-color: $gray-500;
   margin-right: 4px;
