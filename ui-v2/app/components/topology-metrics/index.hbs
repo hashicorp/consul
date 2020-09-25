@@ -66,21 +66,35 @@
     {{/if}}
   </div>
 {{#if (gt @upstreams.length 0)}}
-  <div class="upstream-container">
-    {{#each @upstreams as |upstream|}}
-
-    <p>{{upstream.Datacenter}}</p>
-    <div id="upstreamCard-{{upstream.Name}}" class="upstream-card">
-      <p>
-        {{upstream.Name}}
-      </p>
-      <div class="details">
-        <span class="datacenter">{{upstream.Datacenter}}</span>
-        <span class="passing">80%</span>
-        <span class="critical">20%</span>
+  <div class="upstreams-column">
+  {{#each-in (group-by "Datacenter" @upstreams) as |dc upstreams|}}
+    <div class="upstream-container">
+      <p>{{dc}}</p>
+      {{#each upstreams as |upstream|}}
+      <div id="upstreamCard-{{upstream.Name}}" class="upstream-card">
+        <p>
+          {{upstream.Name}}
+        </p>
+        <div class="details">
+        {{#if (and nspace (env 'CONSUL_NSPACES_ENABLED'))}}
+          <dl class="nspace">
+            <dt>
+              <Tooltip>
+                  Namespace
+              </Tooltip>
+            </dt>
+            <dd>
+              {{upstream.Namespace}}
+            </dd>
+          </dl>
+        {{/if}}
+          <span class="passing">80%</span>
+          <span class="critical">20%</span>
+        </div>
       </div>
+    {{/each}}
     </div>
-  {{/each}}
+  {{/each-in}}
   </div>
 {{/if}}
   <div id="upstream-lines" class="upstream-lines">

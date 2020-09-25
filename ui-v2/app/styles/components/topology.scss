@@ -26,7 +26,7 @@
   position: relative;
   height: 100%;
 }
-.upstream-container {
+.upstreams-column {
   grid-row: 1 / 3;
   grid-column: 8 / 10;
 }
@@ -37,7 +37,7 @@
   border: 1px solid $gray-200;
   padding: 12px;
 }
-.downstream-container :first-child {
+.downstream-container div:first-child {
   display: inline-flex;
 }
 .upstream-card,
@@ -46,6 +46,9 @@
   background-color: $white;
   border-radius: $decor-radius-100;
   border: 1px solid $gray-200;
+}
+.upstreams-column .upstream-container:not(:last-child) {
+  margin-bottom: 8px;
 }
 .upstream-container .upstream-card:not(:last-child),
 .downstream-container .downstream-card:not(:last-child) {
@@ -57,31 +60,31 @@
   font-weight: 600;
   margin-bottom: 0 !important;
 }
-.upstream-card .details span,
-.downstream-card .details span {
+.details,
+.details dl {
+  display: inline-flex;
+}
+.details span,
+.details dl {
   margin-right: 8px;
 }
-.upstream-card .details span::before,
-.downstream-card .details span::before {
+.details span::before,
+.details dl::before {
   margin-right: 4px;
 }
-.upstream-card .datacenter::before,
-.downstream-card .datacenter::before {
-  @extend %with-user-organization-mask, %as-pseudo;
-  background-color: $gray-500;
+.details dd {
+  color: $gray-700;
 }
-.upstream-card .port::before,
-.downstream-card .port::before {
-  @extend %with-copy-action-mask, %as-pseudo;
+.nspace::before {
+  @extend %with-folder-outline-mask, %as-pseudo;
   background-color: $gray-500;
+  margin-top: 2px;
 }
-.upstream-card .passing::before,
-.downstream-card .passing::before {
+.passing::before {
   @extend %with-check-circle-fill-color-mask, %as-pseudo;
   background-color: $green-500;
 }
-.upstream-card .critical::before,
-.downstream-card .critical::before {
+.critical::before {
   @extend %with-cancel-square-fill-color-mask, %as-pseudo;
   background-color: $red-500;
 }
