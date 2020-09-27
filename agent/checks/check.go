@@ -796,6 +796,7 @@ func (c *CheckGRPC) Stop() {
 	c.stopLock.Lock()
 	defer c.stopLock.Unlock()
 	if !c.stop {
+		c.probe.Stop()
 		c.stop = true
 		close(c.stopCh)
 	}

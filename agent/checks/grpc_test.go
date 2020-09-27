@@ -171,3 +171,12 @@ func TestGRPC_NotProxied(t *testing.T) {
 		}
 	})
 }
+
+func BenchmarkNewGrpcHealthProbe(b *testing.B) {
+	probe := NewGrpcHealthProbe(server, 10*time.Second, nil)
+	for i := 0; i < b.N; i++ {
+		if err := probe.Check(svcHealthy); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
