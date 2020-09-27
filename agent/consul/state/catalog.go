@@ -12,11 +12,13 @@ import (
 	"github.com/hashicorp/consul/types"
 	memdb "github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
+	"github.com/mitchellh/copystructure"
 )
 
 const (
 	servicesTableName        = "services"
 	gatewayServicesTableName = "gateway-services"
+	topologyTableName        = "mesh-topology"
 
 	// serviceLastExtinctionIndexName keeps track of the last raft index when the last instance
 	// of any service was unregistered. This is used by blocking queries on missing services.
@@ -103,6 +105,47 @@ func gatewayServicesTableNameSchema() *memdb.TableSchema {
 	}
 }
 
+// topologyTableNameSchema returns a new table schema used to store information
+// relating upstream and downstream services
+func topologyTableNameSchema() *memdb.TableSchema {
+	return &memdb.TableSchema{
+		Name: topologyTableName,
+		Indexes: map[string]*memdb.IndexSchema{
+			"id": {
+				Name:         "id",
+				AllowMissing: false,
+				Unique:       true,
+				Indexer: &memdb.CompoundIndex{
+					Indexes: []memdb.Indexer{
+						&ServiceNameIndex{
+							Field: "Upstream",
+						},
+						&ServiceNameIndex{
+							Field: "Downstream",
+						},
+					},
+				},
+			},
+			"upstream": {
+				Name:         "upstream",
+				AllowMissing: true,
+				Unique:       false,
+				Indexer: &ServiceNameIndex{
+					Field: "Upstream",
+				},
+			},
+			"downstream": {
+				Name:         "downstream",
+				AllowMissing: false,
+				Unique:       false,
+				Indexer: &ServiceNameIndex{
+					Field: "Downstream",
+				},
+			},
+		},
+	}
+}
+
 type ServiceNameIndex struct {
 	Field string
 }
@@ -164,6 +207,7 @@ func init() {
 	registerSchema(servicesTableSchema)
 	registerSchema(checksTableSchema)
 	registerSchema(gatewayServicesTableNameSchema)
+	registerSchema(topologyTableNameSchema)
 }
 
 const (
@@ -782,9 +826,15 @@ func ensureServiceTxn(tx *txn, idx uint64, node string, preserveIndexes bool, sv
 	}
 
 	// Check if this service is covered by a gateway's wildcard specifier
-	err = checkGatewayWildcardsAndUpdate(tx, idx, svc)
-	if err != nil {
+	if err = checkGatewayWildcardsAndUpdate(tx, idx, svc); err != nil {
 		return fmt.Errorf("failed updating gateway mapping: %s", err)
+	}
+	// Update upstream/downstream mappings if it's a connect service
+	// TODO (freddy) What to do about Connect native services that don't define upstreams?
+	if svc.Kind == structs.ServiceKindConnectProxy {
+		if err = updateMeshTopology(tx, idx, node, svc, existing); err != nil {
+			return fmt.Errorf("failed updating upstream/downstream association")
+		}
 	}
 
 	// Create the service node entry and populate the indexes. Note that
@@ -1485,8 +1535,13 @@ func (s *Store) deleteServiceTxn(tx *txn, idx uint64, nodeName, serviceID string
 	}
 
 	svc := service.(*structs.ServiceNode)
+	name := svc.CompoundServiceName()
+
 	if err := catalogUpdateServiceKindIndexes(tx, svc.ServiceKind, idx, &svc.EnterpriseMeta); err != nil {
 		return err
+	}
+	if err := cleanupMeshTopology(tx, idx, svc); err != nil {
+		return fmt.Errorf("failed to clean up gateway-service associations for %q: %v", name.String(), err)
 	}
 
 	if _, remainingService, err := firstWatchWithTxn(tx, "services", "service", svc.ServiceName, entMeta); err == nil {
@@ -1508,26 +1563,8 @@ func (s *Store) deleteServiceTxn(tx *txn, idx uint64, nodeName, serviceID string
 			if err := catalogUpdateServiceExtinctionIndex(tx, idx, entMeta); err != nil {
 				return err
 			}
-
-			// Clean up association between service name and gateways if needed
-			gateways, err := serviceGateways(tx, svc.ServiceName, &svc.EnterpriseMeta)
-			if err != nil {
-				return fmt.Errorf("failed gateway lookup for %q: %s", svc.ServiceName, err)
-			}
-			for mapping := gateways.Next(); mapping != nil; mapping = gateways.Next() {
-				if gs, ok := mapping.(*structs.GatewayService); ok && gs != nil {
-					// Only delete if association was created by a wildcard specifier.
-					// Otherwise the service was specified in the config entry, and the association should be maintained
-					// for when the service is re-registered
-					if gs.FromWildcard {
-						if err := tx.Delete(gatewayServicesTableName, gs); err != nil {
-							return fmt.Errorf("failed to truncate gateway services table: %v", err)
-						}
-						if err := indexUpdateMaxTxn(tx, idx, gatewayServicesTableName); err != nil {
-							return fmt.Errorf("failed updating gateway-services index: %v", err)
-						}
-					}
-				}
+			if err := cleanupGatewayWildcards(tx, idx, svc); err != nil {
+				return fmt.Errorf("failed to clean up gateway-service associations for %q: %v", name.String(), err)
 			}
 		}
 	} else {
@@ -2702,6 +2739,30 @@ func checkGatewayWildcardsAndUpdate(tx *txn, idx uint64, svc *structs.NodeServic
 	return nil
 }
 
+func cleanupGatewayWildcards(tx *txn, idx uint64, svc *structs.ServiceNode) error {
+	// Clean up association between service name and gateways if needed
+	gateways, err := serviceGateways(tx, svc.ServiceName, &svc.EnterpriseMeta)
+	if err != nil {
+		return fmt.Errorf("failed gateway lookup for %q: %s", svc.ServiceName, err)
+	}
+	for mapping := gateways.Next(); mapping != nil; mapping = gateways.Next() {
+		if gs, ok := mapping.(*structs.GatewayService); ok && gs != nil {
+			// Only delete if association was created by a wildcard specifier.
+			// Otherwise the service was specified in the config entry, and the association should be maintained
+			// for when the service is re-registered
+			if gs.FromWildcard {
+				if err := tx.Delete(gatewayServicesTableName, gs); err != nil {
+					return fmt.Errorf("failed to truncate gateway services table: %v", err)
+				}
+				if err := indexUpdateMaxTxn(tx, idx, gatewayServicesTableName); err != nil {
+					return fmt.Errorf("failed updating gateway-services index: %v", err)
+				}
+			}
+		}
+	}
+	return nil
+}
+
 // serviceGateways returns all GatewayService entries with the given service name. This effectively looks up
 // all the gateways mapped to this service.
 func serviceGateways(tx *txn, name string, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
@@ -2819,4 +2880,167 @@ func checkProtocolMatch(tx ReadTxn, ws memdb.WatchSet, svc *structs.GatewayServi
 	}
 
 	return idx, svc.Protocol == protocol, nil
+}
+
+// upstreamsFromRegistration returns the ServiceNames of the upstreams defined across instances of the input
+func upstreamsFromRegistration(ws memdb.WatchSet, tx ReadTxn, sn structs.ServiceName) (uint64, []structs.ServiceName, error) {
+	return linkedFromRegistration(ws, tx, sn, false)
+}
+
+// downstreamsFromRegistration returns the ServiceNames of downstream services based on registrations across instances of the input
+func downstreamsFromRegistration(ws memdb.WatchSet, tx ReadTxn, sn structs.ServiceName) (uint64, []structs.ServiceName, error) {
+	return linkedFromRegistration(ws, tx, sn, true)
+}
+
+func linkedFromRegistration(ws memdb.WatchSet, tx ReadTxn, sn structs.ServiceName, downstreams bool) (uint64, []structs.ServiceName, error) {
+	// To fetch upstreams we query services that have the input listed as a downstream
+	// To fetch downstreams we query services that have the input listed as an upstream
+	index := "downstream"
+	if downstreams {
+		index = "upstream"
+	}
+
+	iter, err := tx.Get(topologyTableName, index, sn)
+	if err != nil {
+		return 0, nil, fmt.Errorf("%q lookup failed: %v", topologyTableName, err)
+	}
+	ws.Add(iter.WatchCh())
+
+	var (
+		idx  uint64
+		resp []structs.ServiceName
+	)
+	for raw := iter.Next(); raw != nil; raw = iter.Next() {
+		entry := raw.(*structs.UpstreamDownstream)
+		if entry.ModifyIndex > idx {
+			idx = entry.ModifyIndex
+		}
+
+		linked := entry.Upstream
+		if downstreams {
+			linked = entry.Downstream
+		}
+		resp = append(resp, linked)
+	}
+
+	// TODO (freddy) This needs a tombstone to avoid the index sliding back on mapping deletion
+	//  Using the table index here means that blocking queries will wake up more often than they should
+	tableIdx := maxIndexTxn(tx, topologyTableName)
+	if tableIdx > idx {
+		idx = tableIdx
+	}
+	return idx, resp, nil
+}
+
+// updateMeshTopology creates associations between the input service and its upstreams in the topology table
+func updateMeshTopology(tx *txn, idx uint64, node string, svc *structs.NodeService, existing interface{}) error {
+	oldUpstreams := make(map[structs.ServiceName]bool)
+	if e, ok := existing.(*structs.ServiceNode); ok {
+		for _, u := range e.ServiceProxy.Upstreams {
+			upstreamMeta := structs.EnterpriseMetaInitializer(u.DestinationNamespace)
+			sn := structs.NewServiceName(u.DestinationName, &upstreamMeta)
+
+			oldUpstreams[sn] = true
+		}
+	}
+
+	// Despite the name "destination", this service name is downstream of the proxy
+	downstream := structs.NewServiceName(svc.Proxy.DestinationServiceName, &svc.EnterpriseMeta)
+	inserted := make(map[structs.ServiceName]bool)
+	for _, u := range svc.Proxy.Upstreams {
+		upstreamMeta := structs.EnterpriseMetaInitializer(u.DestinationNamespace)
+		upstream := structs.NewServiceName(u.DestinationName, &upstreamMeta)
+
+		obj, err := tx.First(topologyTableName, "id", upstream, downstream)
+		if err != nil {
+			return fmt.Errorf("%q lookup failed: %v", topologyTableName, err)
+		}
+		sid := svc.CompoundServiceID()
+		uid := structs.UniqueID(node, sid.String())
+
+		var mapping *structs.UpstreamDownstream
+		if existing, ok := obj.(*structs.UpstreamDownstream); ok {
+			rawCopy, err := copystructure.Copy(existing)
+			if err != nil {
+				return fmt.Errorf("failed to copy existing topology mapping: %v", err)
+			}
+			mapping, ok = rawCopy.(*structs.UpstreamDownstream)
+			if !ok {
+				return fmt.Errorf("unexpected topology type %T", rawCopy)
+			}
+			mapping.Refs[uid] = true
+			mapping.ModifyIndex = idx
+
+			inserted[upstream] = true
+		}
+		if mapping == nil {
+			mapping = &structs.UpstreamDownstream{
+				Upstream:   upstream,
+				Downstream: downstream,
+				Refs:       map[string]bool{uid: true},
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: idx,
+					ModifyIndex: idx,
+				},
+			}
+		}
+		if err := tx.Insert(topologyTableName, mapping); err != nil {
+			return fmt.Errorf("failed inserting %s mapping: %s", topologyTableName, err)
+		}
+		if err := indexUpdateMaxTxn(tx, idx, topologyTableName); err != nil {
+			return fmt.Errorf("failed updating %s index: %v", topologyTableName, err)
+		}
+		inserted[upstream] = true
+	}
+
+	for u := range oldUpstreams {
+		if !inserted[u] {
+			if _, err := tx.DeleteAll(topologyTableName, "id", u, downstream); err != nil {
+				return fmt.Errorf("failed to truncate %s table: %v", topologyTableName, err)
+			}
+			if err := indexUpdateMaxTxn(tx, idx, topologyTableName); err != nil {
+				return fmt.Errorf("failed updating %s index: %v", topologyTableName, err)
+			}
+		}
+	}
+	return nil
+}
+
+// cleanupMeshTopology removes a service from the mesh topology table
+// This is only safe to call when there are no more known instances of this proxy
+func cleanupMeshTopology(tx *txn, idx uint64, service *structs.ServiceNode) error {
+	if service.ServiceKind != structs.ServiceKindConnectProxy {
+		return nil
+	}
+	sn := structs.NewServiceName(service.ServiceProxy.DestinationServiceName, &service.EnterpriseMeta)
+
+	sid := service.CompoundServiceID()
+	uid := structs.UniqueID(service.Node, sid.String())
+
+	iter, err := tx.Get(topologyTableName, "downstream", sn)
+	if err != nil {
+		return fmt.Errorf("%q lookup failed: %v", topologyTableName, err)
+	}
+	for raw := iter.Next(); raw != nil; raw = iter.Next() {
+		entry := raw.(*structs.UpstreamDownstream)
+		rawCopy, err := copystructure.Copy(entry)
+		if err != nil {
+			return fmt.Errorf("failed to copy existing topology mapping: %v", err)
+		}
+		copy, ok := rawCopy.(*structs.UpstreamDownstream)
+		if !ok {
+			return fmt.Errorf("unexpected topology type %T", rawCopy)
+		}
+		delete(copy.Refs, uid)
+
+		if len(copy.Refs) == 0 {
+			if err := tx.Delete(topologyTableName, entry); err != nil {
+				return fmt.Errorf("failed to truncate %s table: %v", topologyTableName, err)
+			}
+			if err := indexUpdateMaxTxn(tx, idx, topologyTableName); err != nil {
+				return fmt.Errorf("failed updating %s index: %v", topologyTableName, err)
+			}
+		}
+	}
+	return nil
 }

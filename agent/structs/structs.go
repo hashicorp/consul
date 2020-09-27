@@ -1031,6 +1031,12 @@ func (ns *NodeService) CompoundServiceName() ServiceName {
 	}
 }
 
+// UniqueID is a unique identifier for a service instance within a datacenter by encoding:
+// node/namespace/service_id
+func UniqueID(node string, compoundID string) string {
+	return fmt.Sprintf("%s/%s", node, compoundID)
+}
+
 // ServiceConnect are the shared Connect settings between all service
 // definitions from the agent to the state store.
 type ServiceConnect struct {
@@ -2390,4 +2396,12 @@ func (r *KeyringResponses) Add(v interface{}) {
 
 func (r *KeyringResponses) New() interface{} {
 	return new(KeyringResponses)
+}
+
+type UpstreamDownstream struct {
+	Upstream   ServiceName
+	Downstream ServiceName
+	Refs       map[string]bool
+
+	RaftIndex
 }

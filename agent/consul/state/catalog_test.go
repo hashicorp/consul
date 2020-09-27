@@ -6114,3 +6114,596 @@ func TestStateStore_DumpGatewayServices(t *testing.T) {
 		assert.Len(t, out, 0)
 	})
 }
+
+func TestCatalog_catalogDownstreams_Watches(t *testing.T) {
+	type expect struct {
+		idx   uint64
+		names []structs.ServiceName
+	}
+
+	s := testStateStore(t)
+
+	require.NoError(t, s.EnsureNode(0, &structs.Node{
+		ID:   "c73b8fdf-4ef8-4e43-9aa2-59e85cc6a70c",
+		Node: "foo",
+	}))
+
+	defaultMeta := structs.DefaultEnterpriseMeta()
+
+	admin := structs.NewServiceName("admin", defaultMeta)
+	cache := structs.NewServiceName("cache", defaultMeta)
+
+	// Watch should fire since the admin <-> web-proxy pairing was inserted into the topology table
+	ws := memdb.NewWatchSet()
+	tx := s.db.ReadTxn()
+	idx, names, err := downstreamsFromRegistration(ws, tx, admin)
+	require.NoError(t, err)
+	assert.Zero(t, idx)
+	assert.Len(t, names, 0)
+
+	svc := structs.NodeService{
+		Kind:    structs.ServiceKindConnectProxy,
+		ID:      "web-proxy",
+		Service: "web-proxy",
+		Address: "127.0.0.2",
+		Port:    443,
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "web",
+			Upstreams: structs.Upstreams{
+				structs.Upstream{
+					DestinationName: "db",
+				},
+				structs.Upstream{
+					DestinationName: "admin",
+				},
+			},
+		},
+		EnterpriseMeta: *defaultMeta,
+	}
+	require.NoError(t, s.EnsureService(1, "foo", &svc))
+	assert.True(t, watchFired(ws))
+
+	ws = memdb.NewWatchSet()
+	tx = s.db.ReadTxn()
+	idx, names, err = downstreamsFromRegistration(ws, tx, admin)
+	require.NoError(t, err)
+
+	exp := expect{
+		idx: 1,
+		names: []structs.ServiceName{
+			{Name: "web", EnterpriseMeta: *defaultMeta},
+		},
+	}
+	require.Equal(t, exp.idx, idx)
+	require.ElementsMatch(t, exp.names, names)
+
+	// Now replace the admin upstream to verify watch fires and mapping is removed
+	svc.Proxy.Upstreams = structs.Upstreams{
+		structs.Upstream{
+			DestinationName: "db",
+		},
+		structs.Upstream{
+			DestinationName: "not-admin",
+		},
+		structs.Upstream{
+			DestinationName: "cache",
+		},
+	}
+	require.NoError(t, s.EnsureService(2, "foo", &svc))
+	assert.True(t, watchFired(ws))
+
+	ws = memdb.NewWatchSet()
+	tx = s.db.ReadTxn()
+	idx, names, err = downstreamsFromRegistration(ws, tx, admin)
+	require.NoError(t, err)
+
+	exp = expect{
+		// Expect index where the upstream was replaced
+		idx: 2,
+	}
+	require.Equal(t, exp.idx, idx)
+	require.Empty(t, exp.names)
+
+	// Should still be able to get downstream for one of the other upstreams
+	ws = memdb.NewWatchSet()
+	tx = s.db.ReadTxn()
+	idx, names, err = downstreamsFromRegistration(ws, tx, cache)
+	require.NoError(t, err)
+
+	exp = expect{
+		idx: 2,
+		names: []structs.ServiceName{
+			{Name: "web", EnterpriseMeta: *defaultMeta},
+		},
+	}
+	require.Equal(t, exp.idx, idx)
+	require.ElementsMatch(t, exp.names, names)
+
+	// Now delete the web-proxy service and the result should be empty
+	require.NoError(t, s.DeleteService(3, "foo", "web-proxy", defaultMeta))
+	assert.True(t, watchFired(ws))
+
+	ws = memdb.NewWatchSet()
+	tx = s.db.ReadTxn()
+	idx, names, err = downstreamsFromRegistration(ws, tx, cache)
+
+	require.NoError(t, err)
+
+	exp = expect{
+		// Expect deletion index
+		idx: 3,
+	}
+	require.Equal(t, exp.idx, idx)
+	require.Empty(t, exp.names)
+}
+
+func TestCatalog_catalogDownstreams(t *testing.T) {
+	defaultMeta := structs.DefaultEnterpriseMeta()
+
+	type expect struct {
+		idx   uint64
+		names []structs.ServiceName
+	}
+	tt := []struct {
+		name     string
+		services []*structs.NodeService
+		expect   expect
+	}{
+		{
+			name: "single proxy with multiple upstreams",
+			services: []*structs.NodeService{
+				{
+					Kind:    structs.ServiceKindConnectProxy,
+					ID:      "api-proxy",
+					Service: "api-proxy",
+					Address: "127.0.0.1",
+					Port:    443,
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "api",
+						Upstreams: structs.Upstreams{
+							structs.Upstream{
+								DestinationName: "cache",
+							},
+							structs.Upstream{
+								DestinationName: "db",
+							},
+							structs.Upstream{
+								DestinationName: "admin",
+							},
+						},
+					},
+					EnterpriseMeta: *defaultMeta,
+				},
+			},
+			expect: expect{
+				idx: 1,
+				names: []structs.ServiceName{
+					{Name: "api", EnterpriseMeta: *defaultMeta},
+				},
+			},
+		},
+		{
+			name: "multiple proxies with multiple upstreams",
+			services: []*structs.NodeService{
+				{
+					Kind:    structs.ServiceKindConnectProxy,
+					ID:      "api-proxy",
+					Service: "api-proxy",
+					Address: "127.0.0.1",
+					Port:    443,
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "api",
+						Upstreams: structs.Upstreams{
+							structs.Upstream{
+								DestinationName: "cache",
+							},
+							structs.Upstream{
+								DestinationName: "db",
+							},
+							structs.Upstream{
+								DestinationName: "admin",
+							},
+						},
+					},
+					EnterpriseMeta: *defaultMeta,
+				},
+				{
+					Kind:    structs.ServiceKindConnectProxy,
+					ID:      "web-proxy",
+					Service: "web-proxy",
+					Address: "127.0.0.2",
+					Port:    443,
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "web",
+						Upstreams: structs.Upstreams{
+							structs.Upstream{
+								DestinationName: "db",
+							},
+							structs.Upstream{
+								DestinationName: "admin",
+							},
+						},
+					},
+					EnterpriseMeta: *defaultMeta,
+				},
+			},
+			expect: expect{
+				idx: 2,
+				names: []structs.ServiceName{
+					{Name: "api", EnterpriseMeta: *defaultMeta},
+					{Name: "web", EnterpriseMeta: *defaultMeta},
+				},
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			s := testStateStore(t)
+			ws := memdb.NewWatchSet()
+
+			require.NoError(t, s.EnsureNode(0, &structs.Node{
+				ID:   "c73b8fdf-4ef8-4e43-9aa2-59e85cc6a70c",
+				Node: "foo",
+			}))
+
+			var i uint64 = 1
+			for _, svc := range tc.services {
+				require.NoError(t, s.EnsureService(i, "foo", svc))
+				i++
+			}
+
+			tx := s.db.ReadTxn()
+			idx, names, err := downstreamsFromRegistration(ws, tx, structs.NewServiceName("admin", structs.DefaultEnterpriseMeta()))
+			require.NoError(t, err)
+
+			require.Equal(t, tc.expect.idx, idx)
+			require.ElementsMatch(t, tc.expect.names, names)
+		})
+	}
+}
+
+func TestCatalog_upstreamsFromRegistration(t *testing.T) {
+	defaultMeta := structs.DefaultEnterpriseMeta()
+
+	type expect struct {
+		idx   uint64
+		names []structs.ServiceName
+	}
+	tt := []struct {
+		name     string
+		services []*structs.NodeService
+		expect   expect
+	}{
+		{
+			name: "single proxy with multiple upstreams",
+			services: []*structs.NodeService{
+				{
+					Kind:    structs.ServiceKindConnectProxy,
+					ID:      "api-proxy",
+					Service: "api-proxy",
+					Address: "127.0.0.1",
+					Port:    443,
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "api",
+						Upstreams: structs.Upstreams{
+							structs.Upstream{
+								DestinationName: "cache",
+							},
+							structs.Upstream{
+								DestinationName: "db",
+							},
+							structs.Upstream{
+								DestinationName: "admin",
+							},
+						},
+					},
+					EnterpriseMeta: *defaultMeta,
+				},
+			},
+			expect: expect{
+				idx: 1,
+				names: []structs.ServiceName{
+					{Name: "cache", EnterpriseMeta: *defaultMeta},
+					{Name: "db", EnterpriseMeta: *defaultMeta},
+					{Name: "admin", EnterpriseMeta: *defaultMeta},
+				},
+			},
+		},
+		{
+			name: "multiple proxies with multiple upstreams",
+			services: []*structs.NodeService{
+				{
+					Kind:    structs.ServiceKindConnectProxy,
+					ID:      "api-proxy",
+					Service: "api-proxy",
+					Address: "127.0.0.1",
+					Port:    443,
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "api",
+						Upstreams: structs.Upstreams{
+							structs.Upstream{
+								DestinationName: "cache",
+							},
+							structs.Upstream{
+								DestinationName: "db",
+							},
+							structs.Upstream{
+								DestinationName: "admin",
+							},
+						},
+					},
+					EnterpriseMeta: *defaultMeta,
+				},
+				{
+					Kind:    structs.ServiceKindConnectProxy,
+					ID:      "api-proxy-2",
+					Service: "api-proxy",
+					Address: "127.0.0.2",
+					Port:    443,
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "api",
+						Upstreams: structs.Upstreams{
+							structs.Upstream{
+								DestinationName: "cache",
+							},
+							structs.Upstream{
+								DestinationName: "db",
+							},
+							structs.Upstream{
+								DestinationName: "new-admin",
+							},
+						},
+					},
+					EnterpriseMeta: *defaultMeta,
+				},
+				{
+					Kind:    structs.ServiceKindConnectProxy,
+					ID:      "different-api-proxy",
+					Service: "different-api-proxy",
+					Address: "127.0.0.4",
+					Port:    443,
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "api",
+						Upstreams: structs.Upstreams{
+							structs.Upstream{
+								DestinationName: "elasticache",
+							},
+							structs.Upstream{
+								DestinationName: "db",
+							},
+							structs.Upstream{
+								DestinationName: "admin",
+							},
+						},
+					},
+					EnterpriseMeta: *defaultMeta,
+				},
+				{
+					Kind:    structs.ServiceKindConnectProxy,
+					ID:      "web-proxy",
+					Service: "web-proxy",
+					Address: "127.0.0.3",
+					Port:    80,
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "web",
+						Upstreams: structs.Upstreams{
+							structs.Upstream{
+								DestinationName: "db",
+							},
+							structs.Upstream{
+								DestinationName: "billing",
+							},
+						},
+					},
+					EnterpriseMeta: *defaultMeta,
+				},
+			},
+			expect: expect{
+				idx: 4,
+				names: []structs.ServiceName{
+					{Name: "cache", EnterpriseMeta: *defaultMeta},
+					{Name: "db", EnterpriseMeta: *defaultMeta},
+					{Name: "admin", EnterpriseMeta: *defaultMeta},
+					{Name: "new-admin", EnterpriseMeta: *defaultMeta},
+					{Name: "elasticache", EnterpriseMeta: *defaultMeta},
+				},
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			s := testStateStore(t)
+			ws := memdb.NewWatchSet()
+
+			require.NoError(t, s.EnsureNode(0, &structs.Node{
+				ID:   "c73b8fdf-4ef8-4e43-9aa2-59e85cc6a70c",
+				Node: "foo",
+			}))
+
+			var i uint64 = 1
+			for _, svc := range tc.services {
+				require.NoError(t, s.EnsureService(i, "foo", svc))
+				i++
+			}
+
+			tx := s.db.ReadTxn()
+			idx, names, err := upstreamsFromRegistration(ws, tx, structs.NewServiceName("api", structs.DefaultEnterpriseMeta()))
+			require.NoError(t, err)
+
+			require.Equal(t, tc.expect.idx, idx)
+			require.ElementsMatch(t, tc.expect.names, names)
+		})
+	}
+}
+
+func TestCatalog_upstreamsFromRegistration_Watches(t *testing.T) {
+	type expect struct {
+		idx   uint64
+		names []structs.ServiceName
+	}
+
+	s := testStateStore(t)
+
+	require.NoError(t, s.EnsureNode(0, &structs.Node{
+		ID:   "c73b8fdf-4ef8-4e43-9aa2-59e85cc6a70c",
+		Node: "foo",
+	}))
+
+	defaultMeta := structs.DefaultEnterpriseMeta()
+	web := structs.NewServiceName("web", defaultMeta)
+
+	ws := memdb.NewWatchSet()
+	tx := s.db.ReadTxn()
+	idx, names, err := upstreamsFromRegistration(ws, tx, web)
+	require.NoError(t, err)
+	assert.Zero(t, idx)
+	assert.Len(t, names, 0)
+
+	// Watch should fire since the admin <-> web pairing was inserted into the topology table
+	svc := structs.NodeService{
+		Kind:    structs.ServiceKindConnectProxy,
+		ID:      "web-proxy",
+		Service: "web-proxy",
+		Address: "127.0.0.2",
+		Port:    443,
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "web",
+			Upstreams: structs.Upstreams{
+				structs.Upstream{
+					DestinationName: "db",
+				},
+				structs.Upstream{
+					DestinationName: "admin",
+				},
+			},
+		},
+		EnterpriseMeta: *defaultMeta,
+	}
+	require.NoError(t, s.EnsureService(1, "foo", &svc))
+	assert.True(t, watchFired(ws))
+
+	ws = memdb.NewWatchSet()
+	tx = s.db.ReadTxn()
+	idx, names, err = upstreamsFromRegistration(ws, tx, web)
+	require.NoError(t, err)
+
+	exp := expect{
+		idx: 1,
+		names: []structs.ServiceName{
+			{Name: "db", EnterpriseMeta: *defaultMeta},
+			{Name: "admin", EnterpriseMeta: *defaultMeta},
+		},
+	}
+	require.Equal(t, exp.idx, idx)
+	require.ElementsMatch(t, exp.names, names)
+
+	// Now edit the upstreams list to verify watch fires and mapping is removed
+	svc.Proxy.Upstreams = structs.Upstreams{
+		structs.Upstream{
+			DestinationName: "db",
+		},
+		structs.Upstream{
+			DestinationName: "not-admin",
+		},
+	}
+	require.NoError(t, s.EnsureService(2, "foo", &svc))
+	assert.True(t, watchFired(ws))
+
+	ws = memdb.NewWatchSet()
+	tx = s.db.ReadTxn()
+	idx, names, err = upstreamsFromRegistration(ws, tx, web)
+	require.NoError(t, err)
+
+	exp = expect{
+		// Expect index where the upstream was replaced
+		idx: 2,
+		names: []structs.ServiceName{
+			{Name: "db", EnterpriseMeta: *defaultMeta},
+			{Name: "not-admin", EnterpriseMeta: *defaultMeta},
+		},
+	}
+	require.Equal(t, exp.idx, idx)
+	require.ElementsMatch(t, exp.names, names)
+
+	// Adding a new instance with distinct upstreams should result in a list that joins both
+	svc = structs.NodeService{
+		Kind:    structs.ServiceKindConnectProxy,
+		ID:      "web-proxy-2",
+		Service: "web-proxy",
+		Address: "127.0.0.3",
+		Port:    443,
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "web",
+			Upstreams: structs.Upstreams{
+				structs.Upstream{
+					DestinationName: "db",
+				},
+				structs.Upstream{
+					DestinationName: "also-not-admin",
+				},
+				structs.Upstream{
+					DestinationName: "cache",
+				},
+			},
+		},
+		EnterpriseMeta: *defaultMeta,
+	}
+	require.NoError(t, s.EnsureService(3, "foo", &svc))
+	assert.True(t, watchFired(ws))
+
+	ws = memdb.NewWatchSet()
+	tx = s.db.ReadTxn()
+	idx, names, err = upstreamsFromRegistration(ws, tx, web)
+	require.NoError(t, err)
+
+	exp = expect{
+		idx: 3,
+		names: []structs.ServiceName{
+			{Name: "db", EnterpriseMeta: *defaultMeta},
+			{Name: "not-admin", EnterpriseMeta: *defaultMeta},
+			{Name: "also-not-admin", EnterpriseMeta: *defaultMeta},
+			{Name: "cache", EnterpriseMeta: *defaultMeta},
+		},
+	}
+	require.Equal(t, exp.idx, idx)
+	require.ElementsMatch(t, exp.names, names)
+
+	// Now delete the web-proxy service and the result should mirror the one of the remaining instance
+	require.NoError(t, s.DeleteService(4, "foo", "web-proxy", defaultMeta))
+	assert.True(t, watchFired(ws))
+
+	ws = memdb.NewWatchSet()
+	tx = s.db.ReadTxn()
+	idx, names, err = upstreamsFromRegistration(ws, tx, web)
+	require.NoError(t, err)
+
+	exp = expect{
+		idx: 4,
+		names: []structs.ServiceName{
+			{Name: "db", EnterpriseMeta: *defaultMeta},
+			{Name: "also-not-admin", EnterpriseMeta: *defaultMeta},
+			{Name: "cache", EnterpriseMeta: *defaultMeta},
+		},
+	}
+	require.Equal(t, exp.idx, idx)
+	require.ElementsMatch(t, exp.names, names)
+
+	// Now delete the last web-proxy instance and the mappings should be cleared
+	require.NoError(t, s.DeleteService(5, "foo", "web-proxy-2", defaultMeta))
+	assert.True(t, watchFired(ws))
+
+	ws = memdb.NewWatchSet()
+	tx = s.db.ReadTxn()
+	idx, names, err = upstreamsFromRegistration(ws, tx, web)
+
+	require.NoError(t, err)
+
+	exp = expect{
+		// Expect deletion index
+		idx: 5,
+	}
+	require.Equal(t, exp.idx, idx)
+	require.Empty(t, exp.names)
+}
