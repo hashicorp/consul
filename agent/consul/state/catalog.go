@@ -2882,6 +2882,108 @@ func checkProtocolMatch(tx ReadTxn, ws memdb.WatchSet, svc *structs.GatewayServi
 	return idx, svc.Protocol == protocol, nil
 }
 
+// UpstreamsForService will find all upstream services that the input could route traffic to.
+// There are two factors at play. Upstreams defined in a proxy registration, and the discovery chain for those upstreams.
+// TODO (freddy): Account for ingress gateways
+func (s *Store) UpstreamsForService(ws memdb.WatchSet, dc, service string, entMeta *structs.EnterpriseMeta) (uint64, []structs.ServiceName, error) {
+	tx := s.db.ReadTxn()
+	defer tx.Abort()
+
+	sn := structs.NewServiceName(service, entMeta)
+	idx, upstreams, err := upstreamsFromRegistration(ws, tx, sn)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to get upstreams for %q: %v", sn.String(), err)
+	}
+
+	var maxIdx uint64
+	if idx > maxIdx {
+		maxIdx = idx
+	}
+
+	var (
+		resp []structs.ServiceName
+		seen = make(map[structs.ServiceName]bool)
+	)
+	for _, u := range upstreams {
+		// Evaluate the targets from the upstream's discovery chain
+		idx, targets, err := s.targetsForSource(ws, tx, dc, u.Name, &u.EnterpriseMeta)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to get discovery chain targets for %q: %v", u.String(), err)
+		}
+		if idx > maxIdx {
+			maxIdx = idx
+		}
+		for _, t := range targets {
+			if !seen[t] {
+				resp = append(resp, t)
+				seen[t] = true
+			}
+		}
+		if len(targets) == 0 && !seen[u] {
+			resp = append(resp, u)
+			seen[u] = true
+		}
+	}
+	return maxIdx, resp, nil
+}
+
+// DownstreamsForService will find all downstream services that could route traffic to the input service.
+// There are two factors at play. Upstreams defined in a proxy registration, and the discovery chain for those upstreams.
+// TODO (freddy): Account for ingress gateways
+func (s *Store) DownstreamsForService(ws memdb.WatchSet, dc, service string, entMeta *structs.EnterpriseMeta) (uint64, []structs.ServiceName, error) {
+	tx := s.db.ReadTxn()
+	defer tx.Abort()
+
+	// First fetch services with discovery chains that list the input as a target
+	sn := structs.NewServiceName(service, entMeta)
+	idx, sources, err := s.sourcesForTarget(ws, tx, dc, service, entMeta)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to get sources for discovery chain target %q: %v", sn.String(), err)
+	}
+
+	var maxIdx uint64
+	if idx > maxIdx {
+		maxIdx = idx
+	}
+
+	var (
+		resp []structs.ServiceName
+		seen = make(map[structs.ServiceName]bool)
+	)
+	for _, s := range sources {
+		// We then follow these discovery chain sources one level down to the services defining them as an upstream.
+		idx, downstreams, err := downstreamsFromRegistration(ws, tx, s)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to get downstreams for %q: %v", s.String(), err)
+		}
+		if idx > maxIdx {
+			maxIdx = idx
+		}
+		for _, d := range downstreams {
+			if !seen[d] {
+				resp = append(resp, d)
+				seen[d] = true
+			}
+		}
+	}
+
+	// Also append services that directly listed the input as an upstream
+	idx, downstreams, err := downstreamsFromRegistration(ws, tx, sn)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to get downstreams for %q: %v", sn.String(), err)
+	}
+	if idx > maxIdx {
+		maxIdx = idx
+	}
+	for _, d := range downstreams {
+		if !seen[d] {
+			resp = append(resp, d)
+			seen[d] = true
+		}
+	}
+	return maxIdx, resp, nil
+}
+
 // upstreamsFromRegistration returns the ServiceNames of the upstreams defined across instances of the input
 func upstreamsFromRegistration(ws memdb.WatchSet, tx ReadTxn, sn structs.ServiceName) (uint64, []structs.ServiceName, error) {
 	return linkedFromRegistration(ws, tx, sn, false)
@@ -2948,6 +3050,11 @@ func updateMeshTopology(tx *txn, idx uint64, node string, svc *structs.NodeServi
 	downstream := structs.NewServiceName(svc.Proxy.DestinationServiceName, &svc.EnterpriseMeta)
 	inserted := make(map[structs.ServiceName]bool)
 	for _, u := range svc.Proxy.Upstreams {
+		if u.DestinationType == structs.UpstreamDestTypePreparedQuery {
+			continue
+		}
+
+		// TODO (freddy): Account for upstream datacenter
 		upstreamMeta := structs.EnterpriseMetaInitializer(u.DestinationNamespace)
 		upstream := structs.NewServiceName(u.DestinationName, &upstreamMeta)
 

@@ -373,6 +373,35 @@ var serviceGraphKinds = []string{
 	structs.ServiceResolver,
 }
 
+// targetsForSource will return a list of services listed as a target for the input's discovery chain
+func (s *Store) targetsForSource(ws memdb.WatchSet, tx ReadTxn, dc, service string, entMeta *structs.EnterpriseMeta) (uint64, []structs.ServiceName, error) {
+	source := structs.NewServiceName(service, entMeta)
+	req := discoverychain.CompileRequest{
+		ServiceName:         source.Name,
+		EvaluateInNamespace: source.NamespaceOrDefault(),
+
+		// TODO(freddy) : Should these be anything other than the known DC?
+		EvaluateInDatacenter: dc,
+		UseInDatacenter:      dc,
+	}
+	idx, chain, err := s.ServiceDiscoveryChain(ws, source.Name, entMeta, req)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to fetch discovery chain for %q: %v", source.String(), err)
+	}
+
+	var resp []structs.ServiceName
+	for _, t := range chain.Targets {
+		em := structs.EnterpriseMetaInitializer(t.Namespace)
+		target := structs.NewServiceName(t.Service, &em)
+
+		// TODO (freddy): Allow upstream DC and encode in response
+		if t.Datacenter == dc {
+			resp = append(resp, target)
+		}
+	}
+	return idx, resp, nil
+}
+
 // sourcesForTarget will return a list of services whose discovery chains have the input service as a target
 func (s *Store) sourcesForTarget(ws memdb.WatchSet, tx ReadTxn, dc, service string, entMeta *structs.EnterpriseMeta) (uint64, []structs.ServiceName, error) {
 	destination := structs.NewServiceName(service, entMeta)
