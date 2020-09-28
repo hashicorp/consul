@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"time"
 
+	memdb "github.com/hashicorp/go-memdb"
+
 	"github.com/hashicorp/consul/agent/structs"
 	pbacl "github.com/hashicorp/consul/proto/pbacl"
-	memdb "github.com/hashicorp/go-memdb"
 )
 
 type TokenPoliciesIndex struct {

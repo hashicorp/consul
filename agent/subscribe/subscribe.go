@@ -88,7 +88,6 @@ func (h *Server) Subscribe(req *pbsubscribe.SubscribeRequest, serverStream pbsub
 	for {
 		events, err := sub.Next(ctx)
 		switch {
-		// TODO: test case
 		case errors.Is(err, stream.ErrSubscriptionClosed):
 			h.Logger.Trace("subscription reset by server", "stream_id", streamID)
 			return status.Error(codes.Aborted, err.Error())
