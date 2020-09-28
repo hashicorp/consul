@@ -10,17 +10,17 @@ export default Model.extend({
   [PRIMARY_KEY]: attr('string'),
   [SLUG_KEY]: attr('string'),
   Description: attr('string'),
-  SourceNS: attr('string'),
+  SourceNS: attr('string', { defaultValue: 'default' }),
   SourceName: attr('string', { defaultValue: '*' }),
   DestinationName: attr('string', { defaultValue: '*' }),
-  DestinationNS: attr('string'),
+  DestinationNS: attr('string', { defaultValue: 'default' }),
   Precedence: attr('number'),
   Permissions: fragmentArray('intention-permission'),
   SourceType: attr('string', { defaultValue: 'consul' }),
   Action: attr('string'),
   Meta: attr(),
-  Legacy: attr('boolean', { defaultValue: true }),
   LegacyID: attr('string'),
+  Legacy: attr('boolean', { defaultValue: true }),
 
   IsManagedByCRD: computed('Meta', function() {
     const meta = Object.entries(this.Meta || {}).find(
@@ -29,7 +29,7 @@ export default Model.extend({
     return typeof meta !== 'undefined';
   }),
   IsEditable: computed('Legacy', 'IsManagedByCRD', function() {
-    return this.Legacy && !this.IsManagedByCRD;
+    return !this.IsManagedByCRD;
   }),
   SyncTime: attr('number'),
   Datacenter: attr('string'),

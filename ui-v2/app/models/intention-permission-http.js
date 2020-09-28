@@ -5,7 +5,15 @@ import { or } from '@ember/object/computed';
 import Fragment from 'ember-data-model-fragments/fragment';
 import { fragmentArray, array } from 'ember-data-model-fragments/attributes';
 
-const pathProps = ['PathPrefix', 'PathExact', 'PathRegex'];
+export const schema = {
+  PathType: {
+    allowedValues: ['PathPrefix', 'PathExact', 'PathRegex'],
+  },
+  Methods: {
+    allowedValues: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'CONNECT', 'OPTIONS', 'TRACE', 'PATCH'],
+  },
+};
+
 export default Fragment.extend({
   PathExact: attr('string'),
   PathPrefix: attr('string'),
@@ -14,8 +22,8 @@ export default Fragment.extend({
   Header: fragmentArray('intention-permission-http-header'),
   Methods: array('string'),
 
-  Path: or(...pathProps),
-  PathType: computed(...pathProps, function() {
-    return pathProps.find(prop => typeof this[prop] === 'string');
+  Path: or(...schema.PathType.allowedValues),
+  PathType: computed(...schema.PathType.allowedValues, function() {
+    return schema.PathType.allowedValues.find(prop => typeof this[prop] === 'string');
   }),
 });
