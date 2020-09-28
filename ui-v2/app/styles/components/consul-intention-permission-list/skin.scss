@@ -1,9 +1,0 @@
-%consul-intention-permission-list dt::before {
-  @extend %with-glyph-icon;
-}
-%consul-intention-permission-list dl.route-path dt::before {
-  content: 'P';
-}
-%consul-intention-permission-list dl.route-header dt::before {
-  content: 'H';
-}

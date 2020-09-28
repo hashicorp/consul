@@ -112,12 +112,17 @@
               header="Deny"
               body="The source service will not be allowed to connect to the destination."
             )
+            (hash
+              intent=""
+              header="L7 Permissions"
+              body="The source service may or may not connect to the destination service via unique permissions based on L7 criteria: path, header, or method."
+            )
           )
-        as |_action|}}
+      as |_action|}}
           <RadioCard
             class={{concat 'value-' _action.intent}}
             @value={{_action.intent}}
-            @checked={{if (eq item.Action _action.intent) 'checked'}}
+            @checked={{if (eq (or item.Action '') _action.intent) 'checked'}}
             @onchange={{action onchange}}
             @name="Action"
           as |radio|>
@@ -131,13 +136,10 @@
         {{/each}}
       </div>
     </div>
-    <label class="type-text{{if item.error.Description ' has-error'}}">
-      <span>Description (Optional)</span>
-      <input type="text" name="Description" value={{item.Description}} placeholder="Description (Optional)" onchange={{action onchange}} />
-    </label>
   </fieldset>
-{{#if (not item.Legacy)}}
-  <fieldset>
+{{#if (eq (or item.Action '') '')}}
+  <fieldset class="permissions">
+    <button type="button" onclick={{action (mut shouldShowPermissionForm) true}}>Add permission</button>
     <h2>Permissions</h2>
 {{#if (gt item.Permissions.length 0) }}
     <div class="notice info">
@@ -148,17 +150,21 @@
         <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl-migrate-tokens.html" target="_blank" rel="noopener noreferrer">documentation</a>
       </p>
     </div>
-    <ConsulIntentionPermissionList @items={{item.Permissions}} />
+    <ConsulIntentionPermissionList
+      @items={{item.Permissions}}
+      @onclick={{queue (action (mut permission)) (action (mut shouldShowPermissionForm) true)}}
+      @ondelete={{action 'delete' 'Permissions' item}}
+    />
 {{else}}
     <EmptyState>
       <BlockSlot @name="header">
         <h3>
-          Add permissions via CLI
+          No permissions yet
         </h3>
       </BlockSlot>
       <BlockSlot @name="body">
         <p>
-          Permissions intercept an Intention's traffic using L7 criteria, such as path prefixes and http headers. You can use the CLI to add permissions to this intention.
+          Permissions intercept an Intention's traffic using L7 criteria, such as path prefixes and http headers.
         </p>
       </BlockSlot>
       <BlockSlot @name="actions">
@@ -173,4 +179,47 @@
 {{/if}}
   </fieldset>
 {{/if}}
+  <fieldset>
+    <label class="type-text{{if item.error.Description ' has-error'}}">
+      <span>Description (Optional)</span>
+      <input type="text" name="Description" value={{item.Description}} placeholder="Description (Optional)" onchange={{action onchange}} />
+    </label>
+  </fieldset>
+
+{{#if shouldShowPermissionForm}}
+  <ModalDialog
+    class="consul-intention-permission-modal"
+    @onclose={{queue (action (mut shouldShowPermissionForm) false) (action (mut permission) undefined)}}
+  as |modal|>
+    <BlockSlot @name="header">
+      <h3>Edit Permission</h3>
+    </BlockSlot>
+    <BlockSlot @name="body">
+      <ConsulIntentionPermissionForm
+        @item={{permission}}
+        @onsubmit={{action 'add' 'Permissions' item}}
+      as |permissionForm|>
+        <Ref @target={{this}} @name="permissionForm" @value={{permissionForm}} />
+      </ConsulIntentionPermissionForm>
+    </BlockSlot>
+    <BlockSlot @name="actions">
+      <button
+        type="button"
+        class="type-submit"
+        disabled={{if (not this.permissionForm.isDirty) 'disabled'}}
+        onclick={{queue (action this.permissionForm.submit) (action modal.close)}}
+      >
+        Save
+      </button>
+      <button
+        type="button"
+        class="type-cancel"
+        onclick={{queue (action this.permissionForm.reset) (action modal.close)}}
+      >
+        Cancel
+      </button>
+    </BlockSlot>
+  </ModalDialog>
+{{/if}}
+
 </div>

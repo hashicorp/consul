@@ -6,7 +6,7 @@ export default Route.extend({
       nspace: '*',
       dc: this.paramsFor('dc').dc,
       service: this.paramsFor('dc.services.show').name,
-      src: params.intention,
+      src: params.intention_id,
     };
   },
   setupController: function(controller, model) {
