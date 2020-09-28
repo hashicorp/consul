@@ -6,13 +6,13 @@
   display: inline-flex;
   flex-wrap: nowrap;
 }
-%icon-definition > dt {
+%icon-definition > * {
   align-self: center;
+}
+%icon-definition > dd {
+  white-space: nowrap;
+  margin-left: 4px;
 }
 %icon-definition > dt > * {
   display: none;
-}
-%icon-definition > dd {
-  margin-left: 4px;
-  white-space: nowrap;
 }

@@ -1,4 +1,5 @@
 button[type='submit'],
+button.type-submit,
 a.type-create {
   @extend %primary-button;
 }
