@@ -23,6 +23,10 @@ func TestAPI_ConfigEntries(t *testing.T) {
 				"foo": "bar",
 				"bar": 1.0,
 			},
+			Meta: map[string]string{
+				"foo": "bar",
+				"gir": "zim",
+			},
 		}
 
 		// set it
@@ -43,6 +47,8 @@ func TestAPI_ConfigEntries(t *testing.T) {
 		require.Equal(t, global_proxy.Kind, readProxy.Kind)
 		require.Equal(t, global_proxy.Name, readProxy.Name)
 		require.Equal(t, global_proxy.Config, readProxy.Config)
+		require.Equal(t, global_proxy.Meta, readProxy.Meta)
+		require.Equal(t, global_proxy.Meta, readProxy.GetMeta())
 
 		global_proxy.Config["baz"] = true
 		// CAS update fail
@@ -92,6 +98,10 @@ func TestAPI_ConfigEntries(t *testing.T) {
 			Kind:     ServiceDefaults,
 			Name:     "foo",
 			Protocol: "udp",
+			Meta: map[string]string{
+				"foo": "bar",
+				"gir": "zim",
+			},
 		}
 
 		service2 := &ServiceConfigEntry{
@@ -124,6 +134,8 @@ func TestAPI_ConfigEntries(t *testing.T) {
 		require.Equal(t, service.Kind, readService.Kind)
 		require.Equal(t, service.Name, readService.Name)
 		require.Equal(t, service.Protocol, readService.Protocol)
+		require.Equal(t, service.Meta, readService.Meta)
+		require.Equal(t, service.Meta, readService.GetMeta())
 
 		// update it
 		service.Protocol = "tcp"
