@@ -1528,9 +1528,9 @@
     js-yaml "^3.13.1"
 
 "@hashicorp/consul-api-double@^5.0.0":
-  version "5.0.1"
-  resolved "https://registry.yarnpkg.com/@hashicorp/consul-api-double/-/consul-api-double-5.0.1.tgz#07880706ab26cc242332cef86b2c03b3b4ec4e56"
-  integrity sha512-uptXq/XTGL5uzGqvwRqC0tzHKCJMVAaRMucPxjbMb4r9wOmOdT4Z2BUJD8GDcCSFIWE8hbWeqAlCXRrokZ3wbw==
+  version "5.2.1"
+  resolved "https://registry.yarnpkg.com/@hashicorp/consul-api-double/-/consul-api-double-5.2.1.tgz#a411139fa1afa0dfaf1b9973f21275530a39939b"
+  integrity sha512-ASQv2I8iprnFmpAvbHEoKE8MXTpOxdeBan6nkgobmz4OyvMcqu/h29CGEXZ9j63NX6+nxmE84nV5yAqADRubGQ==
 
 "@hashicorp/ember-cli-api-double@^3.1.0":
   version "3.1.1"
