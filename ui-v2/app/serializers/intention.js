@@ -44,16 +44,24 @@ export default Serializer.extend({
       query
     );
   },
+  respondForCreateRecord: function(respond, serialized, data) {
+    const slugKey = this.slugKey;
+    const primaryKey = this.primaryKey;
+    return respond((headers, body) => {
+      body = data;
+      body.ID = this
+        .uri`${serialized.SourceNS}:${serialized.SourceName}:${serialized.DestinationNS}:${serialized.DestinationName}`;
+      return this.fingerprint(primaryKey, slugKey, body.Datacenter)(body);
+    });
+  },
   respondForUpdateRecord: function(respond, serialized, data) {
-    return this._super(
-      cb =>
-        respond((headers, body) => {
-          body.LegacyID = body.ID;
-          body.ID = serialized.ID;
-          return cb(headers, body);
-        }),
-      serialized,
-      data
-    );
+    const slugKey = this.slugKey;
+    const primaryKey = this.primaryKey;
+    return respond((headers, body) => {
+      body = data;
+      body.LegacyID = body.ID;
+      body.ID = serialized.ID;
+      return this.fingerprint(primaryKey, slugKey, body.Datacenter)(body);
+    });
   },
 });
