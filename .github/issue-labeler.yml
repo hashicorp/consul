@@ -60,7 +60,7 @@ theme/service-metadata:
 theme/streaming:
     - '(stream|streaming)'
 theme/telemetry:
-    - '(circonis|datadog|DataDog|prometheus|Prometheus|metric)'
+    - '(circonis|statsd|dogstatsd|datadog|DataDog|prometheus|Prometheus|metric|metrics|trace|tracing)'
 theme/terminating-gw:
     - 'terminating'
 theme/testing:
