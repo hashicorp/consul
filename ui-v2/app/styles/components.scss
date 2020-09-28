@@ -54,6 +54,15 @@
 @import './components/footer';
 
 /**/
-@import './components/consul-intention-list';
-@import './components/consul-intention-permission-list';
-@import './components/consul-intention-fieldsets';
+
+/**
+ * Migration: We are migrating our consul-* styles to use colocated styles
+ * consul-* component styles should be moved or added under here
+ * when convienient
+ **/
+
+@import 'consul-ui/components/consul-intention-list';
+@import 'consul-ui/components/consul-intention-form/fieldsets';
+@import 'consul-ui/components/consul-intention-permission-list';
+@import 'consul-ui/components/consul-intention-permission-form';
+@import 'consul-ui/components/consul-intention-permission-header-list';
