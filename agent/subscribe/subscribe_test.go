@@ -32,7 +32,7 @@ import (
 func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 	backend, err := newTestBackend()
 	require.NoError(t, err)
-	srv := &Server{Backend: backend, Logger: hclog.New(nil)}
+	srv := NewServer(backend, hclog.New(nil))
 	addr := newTestServer(t, srv)
 	ids := newCounter()
 
@@ -373,11 +373,11 @@ func raftIndex(ids *counter, created, modified string) pbcommon.RaftIndex {
 func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 	backendLocal, err := newTestBackend()
 	require.NoError(t, err)
-	addrLocal := newTestServer(t, &Server{Backend: backendLocal, Logger: hclog.New(nil)})
+	addrLocal := newTestServer(t, NewServer(backendLocal, hclog.New(nil)))
 
 	backendRemoteDC, err := newTestBackend()
 	require.NoError(t, err)
-	srvRemoteDC := &Server{Backend: backendRemoteDC, Logger: hclog.New(nil)}
+	srvRemoteDC := NewServer(backendRemoteDC, hclog.New(nil))
 	addrRemoteDC := newTestServer(t, srvRemoteDC)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -592,7 +592,7 @@ func TestServer_Subscribe_IntegrationWithBackend_FilterEventsByACLToken(t *testi
 
 	backend, err := newTestBackend()
 	require.NoError(t, err)
-	srv := &Server{Backend: backend, Logger: hclog.New(nil)}
+	srv := NewServer(backend, hclog.New(nil))
 	addr := newTestServer(t, srv)
 
 	// Create a policy for the test token.
@@ -796,7 +796,7 @@ node "node1" {
 func TestServer_Subscribe_IntegrationWithBackend_ACLUpdate(t *testing.T) {
 	backend, err := newTestBackend()
 	require.NoError(t, err)
-	srv := &Server{Backend: backend, Logger: hclog.New(nil)}
+	srv := NewServer(backend, hclog.New(nil))
 	addr := newTestServer(t, srv)
 
 	rules := `

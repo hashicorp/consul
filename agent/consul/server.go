@@ -18,6 +18,16 @@ import (
 	"time"
 
 	metrics "github.com/armon/go-metrics"
+	connlimit "github.com/hashicorp/go-connlimit"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/memberlist"
+	"github.com/hashicorp/raft"
+	raftboltdb "github.com/hashicorp/raft-boltdb"
+	"github.com/hashicorp/serf/serf"
+	"golang.org/x/time/rate"
+	"google.golang.org/grpc"
+
 	"github.com/hashicorp/consul/acl"
 	ca "github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
@@ -38,15 +48,6 @@ import (
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
-	connlimit "github.com/hashicorp/go-connlimit"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
-	"github.com/hashicorp/memberlist"
-	"github.com/hashicorp/raft"
-	raftboltdb "github.com/hashicorp/raft-boltdb"
-	"github.com/hashicorp/serf/serf"
-	"golang.org/x/time/rate"
-	"google.golang.org/grpc"
 )
 
 // These are the protocol versions that Consul can _understand_. These are
@@ -615,10 +616,9 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 	}
 
 	register := func(srv *grpc.Server) {
-		pbsubscribe.RegisterStateChangeSubscriptionServer(srv, &subscribe.Server{
-			Backend: &subscribeBackend{srv: s, connPool: deps.GRPCConnPool},
-			Logger:  deps.Logger.Named("grpc-api.subscription"),
-		})
+		pbsubscribe.RegisterStateChangeSubscriptionServer(srv, subscribe.NewServer(
+			&subscribeBackend{srv: s, connPool: deps.GRPCConnPool},
+			deps.Logger.Named("grpc-api.subscription")))
 	}
 	return agentgrpc.NewHandler(config.RPCAddr, register)
 }

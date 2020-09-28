@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -23,9 +23,13 @@ type Server struct {
 	Logger  Logger
 }
 
+func NewServer(backend Backend, logger Logger) *Server {
+	return &Server{Backend: backend, Logger: logger}
+}
+
 type Logger interface {
-	IsTrace() bool
 	Trace(msg string, args ...interface{})
+	With(args ...interface{}) hclog.Logger
 }
 
 var _ pbsubscribe.StateChangeSubscriptionServer = (*Server)(nil)
@@ -37,41 +41,17 @@ type Backend interface {
 }
 
 func (h *Server) Subscribe(req *pbsubscribe.SubscribeRequest, serverStream pbsubscribe.StateChangeSubscription_SubscribeServer) error {
-	// streamID is just used for message correlation in trace logs and not
-	// populated normally.
-	var streamID string
-
-	if h.Logger.IsTrace() {
-		// TODO(banks) it might be nice one day to replace this with OpenTracing ID
-		// if one is set etc. but probably pointless until we support that properly
-		// in other places so it's actually propagated properly. For now this just
-		// makes lifetime of a stream more traceable in our regular server logs for
-		// debugging/dev.
-		var err error
-		streamID, err = uuid.GenerateUUID()
-		if err != nil {
-			return err
-		}
-	}
-
-	// TODO: add fields to logger and pass logger around instead of streamID
-	handled, err := h.Backend.Forward(req.Datacenter, h.forwardToDC(req, serverStream, streamID))
+	logger := h.newLoggerForRequest(req)
+	handled, err := h.Backend.Forward(req.Datacenter, forwardToDC(req, serverStream, logger))
 	if handled || err != nil {
 		return err
 	}
 
-	h.Logger.Trace("new subscription",
-		"topic", req.Topic.String(),
-		"key", req.Key,
-		"index", req.Index,
-		"stream_id", streamID,
-	)
-
-	var sentCount uint64
-	defer h.Logger.Trace("subscription closed", "stream_id", streamID)
+	logger.Trace("new subscription")
+	defer logger.Trace("subscription closed")
 
 	// Resolve the token and create the ACL filter.
-	// TODO: handle token expiry gracefully...
+	// TODO(streaming): handle token expiry gracefully...
 	authz, err := h.Backend.ResolveToken(req.Token)
 	if err != nil {
 		return err
@@ -84,12 +64,13 @@ func (h *Server) Subscribe(req *pbsubscribe.SubscribeRequest, serverStream pbsub
 	defer sub.Unsubscribe()
 
 	ctx := serverStream.Context()
-	snapshotDone := false
+
+	elog := &eventLogger{logger: logger}
 	for {
 		events, err := sub.Next(ctx)
 		switch {
 		case errors.Is(err, stream.ErrSubscriptionClosed):
-			h.Logger.Trace("subscription reset by server", "stream_id", streamID)
+			logger.Trace("subscription reset by server")
 			return status.Error(codes.Aborted, err.Error())
 		case err != nil:
 			return err
@@ -100,23 +81,7 @@ func (h *Server) Subscribe(req *pbsubscribe.SubscribeRequest, serverStream pbsub
 			continue
 		}
 
-		first := events[0]
-		switch {
-		case first.IsEndOfSnapshot() || first.IsEndOfEmptySnapshot():
-			snapshotDone = true
-			h.Logger.Trace("snapshot complete",
-				"index", first.Index, "sent", sentCount, "stream_id", streamID)
-
-		case snapshotDone:
-			h.Logger.Trace("sending events",
-				"index", first.Index,
-				"sent", sentCount,
-				"batch_size", len(events),
-				"stream_id", streamID,
-			)
-		}
-
-		sentCount += uint64(len(events))
+		elog.Trace(events)
 		e := newEventFromStreamEvents(req, events)
 		if err := serverStream.Send(e); err != nil {
 			return err
@@ -134,26 +99,14 @@ func toStreamSubscribeRequest(req *pbsubscribe.SubscribeRequest) *stream.Subscri
 	}
 }
 
-func (h *Server) forwardToDC(
+func forwardToDC(
 	req *pbsubscribe.SubscribeRequest,
 	serverStream pbsubscribe.StateChangeSubscription_SubscribeServer,
-	streamID string,
+	logger Logger,
 ) func(conn *grpc.ClientConn) error {
 	return func(conn *grpc.ClientConn) error {
-		h.Logger.Trace("forwarding to another DC",
-			"dc", req.Datacenter,
-			"topic", req.Topic.String(),
-			"key", req.Key,
-			"index", req.Index,
-			"stream_id", streamID,
-		)
-
-		defer func() {
-			h.Logger.Trace("forwarded stream closed",
-				"dc", req.Datacenter,
-				"stream_id", streamID,
-			)
-		}()
+		logger.Trace("forwarding to another DC")
+		defer logger.Trace("forwarded stream closed")
 
 		client := pbsubscribe.NewStateChangeSubscriptionClient(conn)
 		streamHandle, err := client.Subscribe(serverStream.Context(), req)
@@ -175,7 +128,7 @@ func (h *Server) forwardToDC(
 
 // filterStreamEvents to only those allowed by the acl token.
 func filterStreamEvents(authz acl.Authorizer, events []stream.Event) []stream.Event {
-	// TODO: when is authz nil?
+	// authz will be nil when ACLs are disabled
 	if authz == nil || len(events) == 0 {
 		return events
 	}
