@@ -39,7 +39,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func makeReadOnlyAgentACL(t *testing.T, srv *HTTPServer) string {
+func makeReadOnlyAgentACL(t *testing.T, srv *HTTPHandlers) string {
 	args := map[string]interface{}{
 		"Name":  "User Token",
 		"Type":  "client",
@@ -5615,7 +5615,7 @@ func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
 	})
 }
 
-func waitForActiveCARoot(t *testing.T, srv *HTTPServer, expect *structs.CARoot) {
+func waitForActiveCARoot(t *testing.T, srv *HTTPHandlers, expect *structs.CARoot) {
 	retry.Run(t, func(r *retry.R) {
 		req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/roots", nil)
 		resp := httptest.NewRecorder()

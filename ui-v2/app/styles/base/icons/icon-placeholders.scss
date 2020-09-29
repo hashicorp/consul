@@ -808,6 +808,16 @@
   mask-image: $learn-svg;
 }
 
+%with-layers-icon {
+  @extend %with-icon;
+  background-image: $layers-svg;
+}
+%with-layers-mask {
+  @extend %with-mask;
+  -webkit-mask-image: $layers-svg;
+  mask-image: $layers-svg;
+}
+
 %with-link-icon {
   @extend %with-icon;
   background-image: $link-svg;

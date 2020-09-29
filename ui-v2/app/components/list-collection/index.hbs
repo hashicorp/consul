@@ -18,14 +18,14 @@
             'linkable'
       }}
     >
-      <YieldSlot @name="header"><div>{{yield cell.item cell.index}}</div></YieldSlot>
-      <YieldSlot @name="details"><div>{{yield cell.item cell.index}}</div></YieldSlot>
+      <YieldSlot @name="header"><div class="header">{{yield cell.item cell.index}}</div></YieldSlot>
+      <YieldSlot @name="details"><div class="detail">{{yield cell.item cell.index}}</div></YieldSlot>
       <YieldSlot @name="actions"
         @params={{
           block-params (component 'more-popover-menu' expanded=(if (eq checked cell.index) true false) onchange=(action "change" cell.index))
         }}
       >
-        <div>
+        <div class="actions">
           {{yield cell.item cell.index}}
         </div>
       </YieldSlot>

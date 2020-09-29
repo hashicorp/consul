@@ -17,10 +17,12 @@ type ServiceRouterConfigEntry struct {
 	ModifyIndex uint64
 }
 
-func (e *ServiceRouterConfigEntry) GetKind() string        { return e.Kind }
-func (e *ServiceRouterConfigEntry) GetName() string        { return e.Name }
-func (e *ServiceRouterConfigEntry) GetCreateIndex() uint64 { return e.CreateIndex }
-func (e *ServiceRouterConfigEntry) GetModifyIndex() uint64 { return e.ModifyIndex }
+func (e *ServiceRouterConfigEntry) GetKind() string            { return e.Kind }
+func (e *ServiceRouterConfigEntry) GetName() string            { return e.Name }
+func (e *ServiceRouterConfigEntry) GetNamespace() string       { return e.Namespace }
+func (e *ServiceRouterConfigEntry) GetMeta() map[string]string { return e.Meta }
+func (e *ServiceRouterConfigEntry) GetCreateIndex() uint64     { return e.CreateIndex }
+func (e *ServiceRouterConfigEntry) GetModifyIndex() uint64     { return e.ModifyIndex }
 
 type ServiceRoute struct {
 	Match       *ServiceRouteMatch       `json:",omitempty"`
@@ -117,10 +119,12 @@ type ServiceSplitterConfigEntry struct {
 	ModifyIndex uint64
 }
 
-func (e *ServiceSplitterConfigEntry) GetKind() string        { return e.Kind }
-func (e *ServiceSplitterConfigEntry) GetName() string        { return e.Name }
-func (e *ServiceSplitterConfigEntry) GetCreateIndex() uint64 { return e.CreateIndex }
-func (e *ServiceSplitterConfigEntry) GetModifyIndex() uint64 { return e.ModifyIndex }
+func (e *ServiceSplitterConfigEntry) GetKind() string            { return e.Kind }
+func (e *ServiceSplitterConfigEntry) GetName() string            { return e.Name }
+func (e *ServiceSplitterConfigEntry) GetNamespace() string       { return e.Namespace }
+func (e *ServiceSplitterConfigEntry) GetMeta() map[string]string { return e.Meta }
+func (e *ServiceSplitterConfigEntry) GetCreateIndex() uint64     { return e.CreateIndex }
+func (e *ServiceSplitterConfigEntry) GetModifyIndex() uint64     { return e.ModifyIndex }
 
 type ServiceSplit struct {
 	Weight        float32
@@ -185,10 +189,12 @@ func (e *ServiceResolverConfigEntry) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (e *ServiceResolverConfigEntry) GetKind() string        { return e.Kind }
-func (e *ServiceResolverConfigEntry) GetName() string        { return e.Name }
-func (e *ServiceResolverConfigEntry) GetCreateIndex() uint64 { return e.CreateIndex }
-func (e *ServiceResolverConfigEntry) GetModifyIndex() uint64 { return e.ModifyIndex }
+func (e *ServiceResolverConfigEntry) GetKind() string            { return e.Kind }
+func (e *ServiceResolverConfigEntry) GetName() string            { return e.Name }
+func (e *ServiceResolverConfigEntry) GetNamespace() string       { return e.Namespace }
+func (e *ServiceResolverConfigEntry) GetMeta() map[string]string { return e.Meta }
+func (e *ServiceResolverConfigEntry) GetCreateIndex() uint64     { return e.CreateIndex }
+func (e *ServiceResolverConfigEntry) GetModifyIndex() uint64     { return e.ModifyIndex }
 
 type ServiceResolverSubset struct {
 	Filter      string `json:",omitempty"`

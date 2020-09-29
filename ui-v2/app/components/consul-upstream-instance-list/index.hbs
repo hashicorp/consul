@@ -1,12 +1,12 @@
 <ul data-test-proxy-upstreams>
 {{#each items as |item|}}
   <li>
-    <div>
+    <div class="header">
       <p data-test-destination-name>
         {{item.DestinationName}}
       </p>
     </div>
-    <div>
+    <div class="detail">
   {{#if (env 'CONSUL_NSPACES_ENABLED')}}
     {{#if (not-eq item.DestinationType 'prepared_query')}}
       <dl class="nspace">

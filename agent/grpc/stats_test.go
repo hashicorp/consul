@@ -8,6 +8,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/grpc/internal/testservice"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
@@ -18,12 +19,11 @@ func TestHandler_EmitsStats(t *testing.T) {
 
 	addr := &net.IPAddr{IP: net.ParseIP("127.0.0.1")}
 	handler := NewHandler(addr)
-
 	testservice.RegisterSimpleServer(handler.srv, &simple{})
 
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
-	defer lis.Close()
+	t.Cleanup(logError(t, lis.Close))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
@@ -43,7 +43,7 @@ func TestHandler_EmitsStats(t *testing.T) {
 
 	conn, err := grpc.DialContext(ctx, lis.Addr().String(), grpc.WithInsecure())
 	require.NoError(t, err)
-	defer conn.Close()
+	t.Cleanup(logError(t, conn.Close))
 
 	client := testservice.NewSimpleClient(conn)
 	fClient, err := client.Flow(ctx, &testservice.Req{Datacenter: "mine"})
@@ -53,36 +53,24 @@ func TestHandler_EmitsStats(t *testing.T) {
 	_, err = fClient.Recv()
 	require.NoError(t, err)
 
+	cancel()
+	// Wait for the server to stop so that active_streams is predictable.
+	retry.RunWith(fastRetry, t, func(r *retry.R) {
+		expectedGauge := []metricCall{
+			{key: []string{"testing", "grpc", "server", "active_conns"}, val: 1},
+			{key: []string{"testing", "grpc", "server", "active_streams"}, val: 1},
+			{key: []string{"testing", "grpc", "server", "active_streams"}, val: 0},
+		}
+		require.Equal(r, expectedGauge, sink.gaugeCalls)
+	})
+
 	expectedCounter := []metricCall{
 		{key: []string{"testing", "grpc", "server", "request"}, val: 1},
 	}
 	require.Equal(t, expectedCounter, sink.incrCounterCalls)
-	expectedGauge := []metricCall{
-		{key: []string{"testing", "grpc", "server", "active_conns"}, val: 1},
-		{key: []string{"testing", "grpc", "server", "active_streams"}, val: 1},
-		// TODO: why is the count reset to 0 before the client receives the second message?
-		{key: []string{"testing", "grpc", "server", "active_streams"}, val: 0},
-	}
-	require.Equal(t, expectedGauge, sink.gaugeCalls)
 }
 
-type simple struct {
-	name string
-}
-
-func (s *simple) Flow(_ *testservice.Req, flow testservice.Simple_FlowServer) error {
-	if err := flow.Send(&testservice.Resp{ServerName: "one"}); err != nil {
-		return err
-	}
-	if err := flow.Send(&testservice.Resp{ServerName: "two"}); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *simple) Something(_ context.Context, _ *testservice.Req) (*testservice.Resp, error) {
-	return &testservice.Resp{ServerName: "the-fake-service-name"}, nil
-}
+var fastRetry = &retry.Timer{Timeout: 7 * time.Second, Wait: 2 * time.Millisecond}
 
 func patchGlobalMetrics(t *testing.T) *fakeMetricsSink {
 	t.Helper()
@@ -94,7 +82,8 @@ func patchGlobalMetrics(t *testing.T) *fakeMetricsSink {
 		ProfileInterval:  time.Second,      // Poll runtime every second
 		FilterDefault:    true,
 	}
-	_, err := metrics.NewGlobal(cfg, sink)
+	var err error
+	defaultMetrics, err = metrics.New(cfg, sink)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		_, err = metrics.NewGlobal(cfg, &metrics.BlackholeSink{})
@@ -121,4 +110,12 @@ type metricCall struct {
 	key    []string
 	val    float32
 	labels []metrics.Label
+}
+
+func logError(t *testing.T, f func() error) func() {
+	return func() {
+		if err := f(); err != nil {
+			t.Logf(err.Error())
+		}
+	}
 }

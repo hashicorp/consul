@@ -10,7 +10,10 @@ export default RepositoryService.extend({
   },
   create: function(obj) {
     delete obj.Namespace;
-    return this._super(obj);
+    return this._super({
+      Action: 'allow',
+      ...obj,
+    });
   },
   findByService: function(slug, dc, nspace, configuration = {}) {
     const query = {

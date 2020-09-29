@@ -15,7 +15,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"text/template"
 	"time"
 
 	"github.com/NYTimes/gziphandler"
@@ -79,73 +78,70 @@ func (e ForbiddenError) Error() string {
 	return "Access is restricted"
 }
 
-// HTTPServer provides an HTTP api for an agent.
-//
-// TODO: rename this struct to something more appropriate. It is an http.Handler,
-// request router or multiplexer, but it is not a Server.
-type HTTPServer struct {
+// HTTPHandlers provides http.Handler functions for the HTTP APi.
+type HTTPHandlers struct {
 	agent    *Agent
 	denylist *Denylist
 }
 
-type templatedFile struct {
+// bufferedFile implements os.File and allows us to modify a file from disk by
+// writing out the new version into a buffer and then serving file reads from
+// that. It assumes you are modifying a real file and presents the actual file's
+// info when queried.
+type bufferedFile struct {
 	templated *bytes.Reader
-	name      string
-	mode      os.FileMode
-	modTime   time.Time
+	info      os.FileInfo
 }
 
-func newTemplatedFile(buf *bytes.Buffer, raw http.File) *templatedFile {
+func newBufferedFile(buf *bytes.Buffer, raw http.File) *bufferedFile {
 	info, _ := raw.Stat()
-	return &templatedFile{
+	return &bufferedFile{
 		templated: bytes.NewReader(buf.Bytes()),
-		name:      info.Name(),
-		mode:      info.Mode(),
-		modTime:   info.ModTime(),
+		info:      info,
 	}
 }
 
-func (t *templatedFile) Read(p []byte) (n int, err error) {
+func (t *bufferedFile) Read(p []byte) (n int, err error) {
 	return t.templated.Read(p)
 }
 
-func (t *templatedFile) Seek(offset int64, whence int) (int64, error) {
+func (t *bufferedFile) Seek(offset int64, whence int) (int64, error) {
 	return t.templated.Seek(offset, whence)
 }
 
-func (t *templatedFile) Close() error {
+func (t *bufferedFile) Close() error {
 	return nil
 }
 
-func (t *templatedFile) Readdir(count int) ([]os.FileInfo, error) {
+func (t *bufferedFile) Readdir(count int) ([]os.FileInfo, error) {
 	return nil, errors.New("not a directory")
 }
 
-func (t *templatedFile) Stat() (os.FileInfo, error) {
+func (t *bufferedFile) Stat() (os.FileInfo, error) {
 	return t, nil
 }
 
-func (t *templatedFile) Name() string {
-	return t.name
+func (t *bufferedFile) Name() string {
+	return t.info.Name()
 }
 
-func (t *templatedFile) Size() int64 {
+func (t *bufferedFile) Size() int64 {
 	return int64(t.templated.Len())
 }
 
-func (t *templatedFile) Mode() os.FileMode {
-	return t.mode
+func (t *bufferedFile) Mode() os.FileMode {
+	return t.info.Mode()
 }
 
-func (t *templatedFile) ModTime() time.Time {
-	return t.modTime
+func (t *bufferedFile) ModTime() time.Time {
+	return t.info.ModTime()
 }
 
-func (t *templatedFile) IsDir() bool {
+func (t *bufferedFile) IsDir() bool {
 	return false
 }
 
-func (t *templatedFile) Sys() interface{} {
+func (t *bufferedFile) Sys() interface{} {
 	return nil
 }
 
@@ -161,28 +157,56 @@ func (fs *redirectFS) Open(name string) (http.File, error) {
 	return file, err
 }
 
-type templatedIndexFS struct {
-	fs           http.FileSystem
-	templateVars func() map[string]interface{}
+type settingsInjectedIndexFS struct {
+	fs         http.FileSystem
+	UISettings map[string]interface{}
 }
 
-func (fs *templatedIndexFS) Open(name string) (http.File, error) {
+func (fs *settingsInjectedIndexFS) Open(name string) (http.File, error) {
 	file, err := fs.fs.Open(name)
 	if err != nil || name != "/index.html" {
 		return file, err
 	}
 
-	content, _ := ioutil.ReadAll(file)
-	file.Seek(0, 0)
-	t, err := template.New("fmtedindex").Parse(string(content))
+	content, err := ioutil.ReadAll(file)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed reading index.html: %s", err)
 	}
-	var out bytes.Buffer
-	if err := t.Execute(&out, fs.templateVars()); err != nil {
-		return nil, err
+	file.Seek(0, 0)
+
+	// Replace the placeholder in the meta ENV with the actual UI config settings.
+	// Ember passes the ENV with URL encoded JSON in a meta tag. We are replacing
+	// a key and value that is the encoded version of
+	// `"CONSUL_UI_SETTINGS_PLACEHOLDER":"__CONSUL_UI_SETTINGS_GO_HERE__"`
+	// with a URL-encoded JSON blob representing the actual config.
+
+	// First built an escaped, JSON blob from the settings passed.
+	bs, err := json.Marshal(fs.UISettings)
+	if err != nil {
+		return nil, fmt.Errorf("failed marshalling UI settings JSON: %s", err)
 	}
-	return newTemplatedFile(&out, file), nil
+	// We want to remove the first and last chars which will be the { and } since
+	// we are injecting these variabled into the middle of an existing object.
+	bs = bytes.Trim(bs, "{}")
+
+	// We use PathEscape because we don't want  spaces to be turned into "+" like
+	// QueryEscape does.
+	escaped := url.PathEscape(string(bs))
+
+	content = bytes.Replace(content,
+		[]byte("%22CONSUL_UI_SETTINGS_PLACEHOLDER%22%3A%22__CONSUL_UI_SETTINGS_GO_HERE__%22"),
+		[]byte(escaped), 1)
+
+	// We also need to inject the content path. This used to be a go template
+	// hence the syntax but for now simple string replacement is fine esp. since
+	// all the other templated stuff above can't easily be done that was as we are
+	// replacing an entire placeholder element in an encoded JSON blob with
+	// multiple encoded JSON elements.
+	if path, ok := fs.UISettings["CONSUL_CONTENT_PATH"].(string); ok {
+		content = bytes.Replace(content, []byte("{{.ContentPath}}"), []byte(path), -1)
+	}
+
+	return newBufferedFile(bytes.NewBuffer(content), file), nil
 }
 
 // endpoint is a Consul-specific HTTP handler that takes the usual arguments in
@@ -191,7 +215,7 @@ func (fs *templatedIndexFS) Open(name string) (http.File, error) {
 type endpoint func(resp http.ResponseWriter, req *http.Request) (interface{}, error)
 
 // unboundEndpoint is an endpoint method on a server.
-type unboundEndpoint func(s *HTTPServer, resp http.ResponseWriter, req *http.Request) (interface{}, error)
+type unboundEndpoint func(s *HTTPHandlers, resp http.ResponseWriter, req *http.Request) (interface{}, error)
 
 // endpoints is a map from URL pattern to unbound endpoint.
 var endpoints map[string]unboundEndpoint
@@ -226,7 +250,7 @@ func (w *wrappedMux) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 }
 
 // handler is used to attach our handlers to the mux
-func (s *HTTPServer) handler(enableDebug bool) http.Handler {
+func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 	mux := http.NewServeMux()
 
 	// handleFuncMetrics takes the given pattern and handler and wraps to produce
@@ -332,7 +356,7 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 			uifs = fs
 		}
 
-		uifs = &redirectFS{fs: &templatedIndexFS{fs: uifs, templateVars: s.GenerateHTMLTemplateVars}}
+		uifs = &redirectFS{fs: &settingsInjectedIndexFS{fs: uifs, UISettings: s.GetUIENVFromConfig()}}
 		// create a http handler using the ui file system
 		// and the headers specified by the http_config.response_headers user config
 		uifsWithHeaders := serveHandlerWithHeaders(
@@ -366,19 +390,19 @@ func (s *HTTPServer) handler(enableDebug bool) http.Handler {
 	}
 }
 
-func (s *HTTPServer) GenerateHTMLTemplateVars() map[string]interface{} {
+func (s *HTTPHandlers) GetUIENVFromConfig() map[string]interface{} {
 	vars := map[string]interface{}{
-		"ContentPath": s.agent.config.UIContentPath,
-		"ACLsEnabled": s.agent.config.ACLsEnabled,
+		"CONSUL_CONTENT_PATH": s.agent.config.UIContentPath,
+		"CONSUL_ACLS_ENABLED": s.agent.config.ACLsEnabled,
 	}
 
-	s.addEnterpriseHTMLTemplateVars(vars)
+	s.addEnterpriseUIENVVars(vars)
 
 	return vars
 }
 
 // nodeName returns the node name of the agent
-func (s *HTTPServer) nodeName() string {
+func (s *HTTPHandlers) nodeName() string {
 	return s.agent.config.NodeName
 }
 
@@ -406,7 +430,7 @@ var (
 )
 
 // wrap is used to wrap functions to make them more convenient
-func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
+func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc {
 	httpLogger := s.agent.logger.Named(logging.HTTP)
 	return func(resp http.ResponseWriter, req *http.Request) {
 		setHeaders(resp, s.agent.config.HTTPResponseHeaders)
@@ -593,7 +617,7 @@ func (s *HTTPServer) wrap(handler endpoint, methods []string) http.HandlerFunc {
 
 // marshalJSON marshals the object into JSON, respecting the user's pretty-ness
 // configuration.
-func (s *HTTPServer) marshalJSON(req *http.Request, obj interface{}) ([]byte, error) {
+func (s *HTTPHandlers) marshalJSON(req *http.Request, obj interface{}) ([]byte, error) {
 	if _, ok := req.URL.Query()["pretty"]; ok || s.agent.config.DevMode {
 		buf, err := json.MarshalIndent(obj, "", "    ")
 		if err != nil {
@@ -611,12 +635,12 @@ func (s *HTTPServer) marshalJSON(req *http.Request, obj interface{}) ([]byte, er
 }
 
 // Returns true if the UI is enabled.
-func (s *HTTPServer) IsUIEnabled() bool {
+func (s *HTTPHandlers) IsUIEnabled() bool {
 	return s.agent.config.UIDir != "" || s.agent.config.EnableUI
 }
 
 // Renders a simple index page
-func (s *HTTPServer) Index(resp http.ResponseWriter, req *http.Request) {
+func (s *HTTPHandlers) Index(resp http.ResponseWriter, req *http.Request) {
 	// Check if this is a non-index path
 	if req.URL.Path != "/" {
 		resp.WriteHeader(http.StatusNotFound)
@@ -871,7 +895,7 @@ func parseCacheControl(resp http.ResponseWriter, req *http.Request, b structs.Qu
 
 // parseConsistency is used to parse the ?stale and ?consistent query params.
 // Returns true on error
-func (s *HTTPServer) parseConsistency(resp http.ResponseWriter, req *http.Request, b structs.QueryOptionsCompat) bool {
+func (s *HTTPHandlers) parseConsistency(resp http.ResponseWriter, req *http.Request, b structs.QueryOptionsCompat) bool {
 	query := req.URL.Query()
 	defaults := true
 	if _, ok := query["stale"]; ok {
@@ -926,7 +950,7 @@ func (s *HTTPServer) parseConsistency(resp http.ResponseWriter, req *http.Reques
 }
 
 // parseDC is used to parse the ?dc query param
-func (s *HTTPServer) parseDC(req *http.Request, dc *string) {
+func (s *HTTPHandlers) parseDC(req *http.Request, dc *string) {
 	if other := req.URL.Query().Get("dc"); other != "" {
 		*dc = other
 	} else if *dc == "" {
@@ -936,7 +960,7 @@ func (s *HTTPServer) parseDC(req *http.Request, dc *string) {
 
 // parseTokenInternal is used to parse the ?token query param or the X-Consul-Token header or
 // Authorization Bearer token (RFC6750).
-func (s *HTTPServer) parseTokenInternal(req *http.Request, token *string) {
+func (s *HTTPHandlers) parseTokenInternal(req *http.Request, token *string) {
 	tok := ""
 	if other := req.URL.Query().Get("token"); other != "" {
 		tok = other
@@ -970,7 +994,7 @@ func (s *HTTPServer) parseTokenInternal(req *http.Request, token *string) {
 // parseTokenWithDefault passes through to parseTokenInternal and optionally resolves proxy tokens to real ACL tokens.
 // If the token is invalid or not specified it will populate the token with the agents UserToken (acl_token in the
 // consul configuration)
-func (s *HTTPServer) parseTokenWithDefault(req *http.Request, token *string) {
+func (s *HTTPHandlers) parseTokenWithDefault(req *http.Request, token *string) {
 	s.parseTokenInternal(req, token) // parseTokenInternal modifies *token
 	if token != nil && *token == "" {
 		*token = s.agent.tokens.UserToken()
@@ -981,7 +1005,7 @@ func (s *HTTPServer) parseTokenWithDefault(req *http.Request, token *string) {
 
 // parseToken is used to parse the ?token query param or the X-Consul-Token header or
 // Authorization Bearer token header (RFC6750). This function is used widely in Consul's endpoints
-func (s *HTTPServer) parseToken(req *http.Request, token *string) {
+func (s *HTTPHandlers) parseToken(req *http.Request, token *string) {
 	s.parseTokenWithDefault(req, token)
 }
 
@@ -1011,7 +1035,7 @@ func sourceAddrFromRequest(req *http.Request) string {
 // parseSource is used to parse the ?near=<node> query parameter, used for
 // sorting by RTT based on a source node. We set the source's DC to the target
 // DC in the request, if given, or else the agent's DC.
-func (s *HTTPServer) parseSource(req *http.Request, source *structs.QuerySource) {
+func (s *HTTPHandlers) parseSource(req *http.Request, source *structs.QuerySource) {
 	s.parseDC(req, &source.Datacenter)
 	source.Ip = sourceAddrFromRequest(req)
 	if node := req.URL.Query().Get("near"); node != "" {
@@ -1025,7 +1049,7 @@ func (s *HTTPServer) parseSource(req *http.Request, source *structs.QuerySource)
 
 // parseMetaFilter is used to parse the ?node-meta=key:value query parameter, used for
 // filtering results to nodes with the given metadata key/value
-func (s *HTTPServer) parseMetaFilter(req *http.Request) map[string]string {
+func (s *HTTPHandlers) parseMetaFilter(req *http.Request) map[string]string {
 	if filterList, ok := req.URL.Query()["node-meta"]; ok {
 		filters := make(map[string]string)
 		for _, filter := range filterList {
@@ -1047,7 +1071,7 @@ func parseMetaPair(raw string) (string, string) {
 
 // parseInternal is a convenience method for endpoints that need
 // to use both parseWait and parseDC.
-func (s *HTTPServer) parseInternal(resp http.ResponseWriter, req *http.Request, dc *string, b structs.QueryOptionsCompat) bool {
+func (s *HTTPHandlers) parseInternal(resp http.ResponseWriter, req *http.Request, dc *string, b structs.QueryOptionsCompat) bool {
 	s.parseDC(req, dc)
 	var token string
 	s.parseTokenWithDefault(req, &token)
@@ -1066,11 +1090,11 @@ func (s *HTTPServer) parseInternal(resp http.ResponseWriter, req *http.Request, 
 
 // parse is a convenience method for endpoints that need
 // to use both parseWait and parseDC.
-func (s *HTTPServer) parse(resp http.ResponseWriter, req *http.Request, dc *string, b structs.QueryOptionsCompat) bool {
+func (s *HTTPHandlers) parse(resp http.ResponseWriter, req *http.Request, dc *string, b structs.QueryOptionsCompat) bool {
 	return s.parseInternal(resp, req, dc, b)
 }
 
-func (s *HTTPServer) checkWriteAccess(req *http.Request) error {
+func (s *HTTPHandlers) checkWriteAccess(req *http.Request) error {
 	if req.Method == http.MethodGet || req.Method == http.MethodHead || req.Method == http.MethodOptions {
 		return nil
 	}
@@ -1096,7 +1120,7 @@ func (s *HTTPServer) checkWriteAccess(req *http.Request) error {
 	return ForbiddenError{}
 }
 
-func (s *HTTPServer) parseFilter(req *http.Request, filter *string) {
+func (s *HTTPHandlers) parseFilter(req *http.Request, filter *string) {
 	if other := req.URL.Query().Get("filter"); other != "" {
 		*filter = other
 	}

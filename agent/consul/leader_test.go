@@ -10,12 +10,10 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/go-hclog"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/serf"
@@ -1303,12 +1301,11 @@ func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
 		Level:  hclog.Debug,
 		Output: io.MultiWriter(pw, testutil.NewLogBuffer(t)),
 	})
-	tlsConf, err := tlsutil.NewConfigurator(config.ToTLSUtilConfig(), logger)
-	require.NoError(t, err)
-	srv, err := NewServer(config,
-		WithLogger(logger),
-		WithTokenStore(new(token.Store)),
-		WithTLSConfigurator(tlsConf))
+
+	deps := newDefaultDeps(t, config)
+	deps.Logger = logger
+
+	srv, err := NewServer(config, deps)
 	require.NoError(t, err)
 	defer srv.Shutdown()
 

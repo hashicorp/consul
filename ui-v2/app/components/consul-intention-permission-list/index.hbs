@@ -1,0 +1,35 @@
+{{#if (gt items.length 0)}}
+<div class="consul-intention-permission-list">
+  <ul>
+  {{#each items as |item|}}
+    <li>
+      <strong class={{concat 'intent-' item.Action}}>{{item.Action}}</strong>
+{{#if item.Http.Path}}
+        <dl class="route-path">
+          <dt>
+            <Tooltip>
+              {{item.Http.PathType}}
+            </Tooltip>
+          </dt>
+          <dd>
+            {{item.Http.Path}}
+          </dd>
+        </dl>
+{{/if}}
+{{#each item.Http.Header as |item|}}
+        <dl class="route-header">
+          <dt>
+            <Tooltip>
+              Header
+            </Tooltip>
+          </dt>
+          <dd>
+          {{item.Name}} {{route-match item}}
+          </dd>
+        </dl>
+{{/each}}
+    </li>
+  {{/each}}
+  </ul>
+</div>
+{{/if}}

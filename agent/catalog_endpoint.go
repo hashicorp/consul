@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-func (s *HTTPServer) CatalogRegister(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) CatalogRegister(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_register"}, 1,
 		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
 
@@ -43,7 +43,7 @@ func (s *HTTPServer) CatalogRegister(resp http.ResponseWriter, req *http.Request
 	return true, nil
 }
 
-func (s *HTTPServer) CatalogDeregister(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) CatalogDeregister(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_deregister"}, 1,
 		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
 
@@ -75,7 +75,7 @@ func (s *HTTPServer) CatalogDeregister(resp http.ResponseWriter, req *http.Reque
 	return true, nil
 }
 
-func (s *HTTPServer) CatalogDatacenters(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) CatalogDatacenters(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_datacenters"}, 1,
 		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
 
@@ -111,7 +111,7 @@ func (s *HTTPServer) CatalogDatacenters(resp http.ResponseWriter, req *http.Requ
 	return out, nil
 }
 
-func (s *HTTPServer) CatalogNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) CatalogNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_nodes"}, 1,
 		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
 
@@ -149,7 +149,7 @@ RETRY_ONCE:
 	return out.Nodes, nil
 }
 
-func (s *HTTPServer) CatalogServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) CatalogServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_services"}, 1,
 		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
 
@@ -205,15 +205,15 @@ func (s *HTTPServer) CatalogServices(resp http.ResponseWriter, req *http.Request
 	return out.Services, nil
 }
 
-func (s *HTTPServer) CatalogConnectServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) CatalogConnectServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	return s.catalogServiceNodes(resp, req, true)
 }
 
-func (s *HTTPServer) CatalogServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) CatalogServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	return s.catalogServiceNodes(resp, req, false)
 }
 
-func (s *HTTPServer) catalogServiceNodes(resp http.ResponseWriter, req *http.Request, connect bool) (interface{}, error) {
+func (s *HTTPHandlers) catalogServiceNodes(resp http.ResponseWriter, req *http.Request, connect bool) (interface{}, error) {
 	metricsKey := "catalog_service_nodes"
 	pathPrefix := "/v1/catalog/service/"
 	if connect {
@@ -302,7 +302,7 @@ func (s *HTTPServer) catalogServiceNodes(resp http.ResponseWriter, req *http.Req
 	return out.ServiceNodes, nil
 }
 
-func (s *HTTPServer) CatalogNodeServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) CatalogNodeServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_node_services"}, 1,
 		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
 
@@ -365,7 +365,7 @@ RETRY_ONCE:
 	return out.NodeServices, nil
 }
 
-func (s *HTTPServer) CatalogNodeServiceList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) CatalogNodeServiceList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_node_service_list"}, 1,
 		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
 
@@ -415,7 +415,7 @@ RETRY_ONCE:
 	return &out.NodeServices, nil
 }
 
-func (s *HTTPServer) CatalogGatewayServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) CatalogGatewayServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_gateway_services"}, 1,
 		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
 

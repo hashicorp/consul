@@ -6,6 +6,7 @@ import PrefooterCTA from '../../components/prefooter-cta'
 import LearnCallout from '../../components/learn-callout'
 import CaseStudyCarousel from '../../components/case-study-carousel'
 import ProductFeaturesList from '@hashicorp/react-product-features-list'
+import MiniCTA from '../../components/mini-cta'
 
 export default function HomePage() {
   return (
@@ -84,14 +85,16 @@ export default function HomePage() {
             title: 'Deploy Consul Service Mesh on Kubernetes',
             category: 'Step-by-Step Tutorial',
             time: '10 mins',
-            link: 'https://learn.hashicorp.com/tutorials/consul/service-mesh-deploy',
+            link:
+              'https://learn.hashicorp.com/tutorials/consul/service-mesh-deploy',
             image: require('./img/learn/getting-started.svg?url'),
           },
           {
             title: 'Observe Layer 7 Traffic',
             category: 'Step-by-Step Tutorial',
             time: '15 mins',
-            link: 'https://learn.hashicorp.com/tutorials/consul/service-mesh-features',
+            link:
+              'https://learn.hashicorp.com/tutorials/consul/service-mesh-features',
             image: require('./img/learn/kubernetes.svg?url'),
           },
         ]}
@@ -161,6 +164,15 @@ export default function HomePage() {
           ],
         }}
       />
+      <MiniCTA
+        title="Are you using Consul in production?"
+        link={{
+          text: 'Share your success story and receive special Consul swag.',
+          url:
+            'https://docs.google.com/forms/d/1B-4XlRndv2hX9G4Gt2dMnJBqilctrrof7dfpyQ1EVIg/edit',
+          type: 'outbound',
+        }}
+      />
 
       <div className="use-cases g-grid-container">
         <h2 className="g-type-display-2">Use Cases</h2>
@@ -209,32 +221,37 @@ export default function HomePage() {
         />
       </div>
 
-      <section id="cloud-offerings" className="cloud-offerings g-grid-container">
-        <h2 className="g-type-display-2">Learn more about Consul cloud offerings</h2>
+      <section
+        id="cloud-offerings"
+        className="cloud-offerings g-grid-container"
+      >
+        <h2 className="g-type-display-2">
+          Learn more about Consul cloud offerings
+        </h2>
         <CloudOfferingsList
           offerings={[
             {
               image: require('./img/cloud/hcs.jpg?url'),
-              eyebrow: "General Availability",
-              title: "HashiCorp Consul Service on Azure",
-              description: "Native Azure Experience",
+              eyebrow: 'General Availability',
+              title: 'HashiCorp Consul Service on Azure',
+              description: 'Native Azure Experience',
               link: {
-                text: "Get Started",
-                url: "https://learn.hashicorp.com/consul/hcs-azure/deploy",
-                type: "outbound"
-              }
+                text: 'Get Started',
+                url: 'https://learn.hashicorp.com/consul/hcs-azure/deploy',
+                type: 'outbound',
+              },
             },
             {
               image: require('./img/cloud/hcp.jpg?url'),
-              eyebrow: "Private Beta",
-              title: "HCP Consul on AWS",
-              description: "HashiCorp Cloud Platform",
+              eyebrow: 'Private Beta',
+              title: 'HCP Consul on AWS',
+              description: 'HashiCorp Cloud Platform',
               link: {
-                text: "Request Access",
-                url: "https://www.hashicorp.com/cloud-platform/request-access/",
-                type: "outbound"
-              }
-            }
+                text: 'Request Access',
+                url: 'https://www.hashicorp.com/cloud-platform/request-access/',
+                type: 'outbound',
+              },
+            },
           ]}
         />
       </section>

@@ -23,7 +23,7 @@ module('Integration | Serializer | intention', function(hooks) {
           // TODO: default isn't required here, once we've
           // refactored out our Serializer this can go
           Namespace: nspace,
-          uid: `["${nspace}","${dc}","${item.ID}"]`,
+          uid: `["${nspace}","${dc}","${item.SourceNS}:${item.SourceName}:${item.DestinationNS}:${item.DestinationName}"]`,
         })
       );
       const actual = serializer.respondForQuery(
@@ -36,7 +36,9 @@ module('Integration | Serializer | intention', function(hooks) {
           dc: dc,
         }
       );
-      assert.deepEqual(actual, expected);
+      assert.equal(actual[0].Namespace, expected[0].Namespace);
+      assert.equal(actual[0].Datacenter, expected[0].Datacenter);
+      assert.equal(actual[0].uid, expected[0].uid);
     });
   });
   test('respondForQueryRecord returns the correct data for item endpoint', function(assert) {
@@ -44,7 +46,17 @@ module('Integration | Serializer | intention', function(hooks) {
     const request = {
       url: `/v1/connect/intentions/${id}?dc=${dc}`,
     };
+    const item = {
+      SourceNS: 'SourceNS',
+      SourceName: 'SourceName',
+      DestinationNS: 'DestinationNS',
+      DestinationName: 'DestinationName',
+    };
     return get(request.url).then(function(payload) {
+      payload = {
+        ...payload,
+        ...item,
+      };
       const expected = Object.assign({}, payload, {
         Datacenter: dc,
         [META]: {
@@ -54,7 +66,7 @@ module('Integration | Serializer | intention', function(hooks) {
         // TODO: default isn't required here, once we've
         // refactored out our Serializer this can go
         Namespace: nspace,
-        uid: `["${nspace}","${dc}","${id}"]`,
+        uid: `["${nspace}","${dc}","${item.SourceNS}:${item.SourceName}:${item.DestinationNS}:${item.DestinationName}"]`,
       });
       const actual = serializer.respondForQueryRecord(
         function(cb) {
@@ -66,7 +78,9 @@ module('Integration | Serializer | intention', function(hooks) {
           dc: dc,
         }
       );
-      assert.deepEqual(actual, expected);
+      assert.equal(actual.Namespace, expected.Namespace);
+      assert.equal(actual.Datacenter, expected.Datacenter);
+      assert.equal(actual.uid, expected.uid);
     });
   });
 });

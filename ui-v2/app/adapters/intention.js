@@ -1,6 +1,5 @@
 import Adapter, { DATACENTER_QUERY_PARAM as API_DATACENTER_KEY } from './application';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
-import { SLUG_KEY } from 'consul-ui/models/intention';
 // Intentions use SourceNS and DestinationNS properties for namespacing
 // so we don't need to add the `?ns=` anywhere here
 
@@ -26,8 +25,13 @@ export default Adapter.extend({
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
+    const [SourceNS, SourceName, DestinationNS, DestinationName] = id
+      .split(':')
+      .map(decodeURIComponent);
     return request`
-      GET /v1/connect/intentions/${id}?${{ dc }}
+      GET /v1/connect/intentions/exact?source=${SourceNS +
+        '/' +
+        SourceName}&destination=${DestinationNS + '/' + DestinationName}&${{ dc }}
       Cache-Control: no-store
 
       ${{ index }}
@@ -51,7 +55,7 @@ export default Adapter.extend({
   },
   requestForUpdateRecord: function(request, serialized, data) {
     return request`
-      PUT /v1/connect/intentions/${data[SLUG_KEY]}?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
+      PUT /v1/connect/intentions/${data.LegacyID}?${{ [API_DATACENTER_KEY]: data[DATACENTER_KEY] }}
 
       ${{
         SourceNS: serialized.SourceNS,
@@ -60,13 +64,14 @@ export default Adapter.extend({
         DestinationName: serialized.DestinationName,
         SourceType: serialized.SourceType,
         Action: serialized.Action,
+        Meta: serialized.Meta,
         Description: serialized.Description,
       }}
     `;
   },
   requestForDeleteRecord: function(request, serialized, data) {
     return request`
-      DELETE /v1/connect/intentions/${data[SLUG_KEY]}?${{
+      DELETE /v1/connect/intentions/${data.LegacyID}?${{
       [API_DATACENTER_KEY]: data[DATACENTER_KEY],
     }}
     `;

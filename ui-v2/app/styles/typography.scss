@@ -14,6 +14,7 @@ h3 {
   @extend %h3;
   font-size: $typo-header-300;
 }
+%radio-card header,
 fieldset > header,
 %main-nav-horizontal-action,
 %app-view-content div > dl > dt,
@@ -81,7 +82,6 @@ pre code,
 %button {
   font-weight: $typo-weight-semibold;
 }
-%app-view-header dt,
 %menu-panel dt,
 %route-card section dt,
 %route-card header:not(.short) dd,

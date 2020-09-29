@@ -1917,13 +1917,15 @@ func TestAgent_HTTPCheck_EnableAgentTLSForChecks(t *testing.T) {
 			Status:  api.HealthCritical,
 		}
 
-		url := fmt.Sprintf("https://%s/v1/agent/self", a.HTTPAddr())
+		addr, err := firstAddr(a.Agent.apiServers, "https")
+		require.NoError(t, err)
+		url := fmt.Sprintf("https://%s/v1/agent/self", addr.String())
 		chk := &structs.CheckType{
 			HTTP:     url,
 			Interval: 20 * time.Millisecond,
 		}
 
-		err := a.AddCheck(health, chk, false, "", ConfigSourceLocal)
+		err = a.AddCheck(health, chk, false, "", ConfigSourceLocal)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -3395,14 +3397,24 @@ func TestAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
 }
 
 func TestAgent_ReloadConfigAndKeepChecksStatus(t *testing.T) {
-	t.Parallel()
+	t.Run("normal", func(t *testing.T) {
+		t.Parallel()
+		testAgent_ReloadConfigAndKeepChecksStatus(t, "")
+	})
+	t.Run("service manager", func(t *testing.T) {
+		t.Parallel()
+		testAgent_ReloadConfigAndKeepChecksStatus(t, "enable_central_service_config = true")
+	})
+}
+
+func testAgent_ReloadConfigAndKeepChecksStatus(t *testing.T, extraHCL string) {
 	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
 	hcl := `data_dir = "` + dataDir + `"
 		enable_local_script_checks=true
 		services=[{
 		  name="webserver1",
 		  check{id="check1", ttl="30s"}
-		}]`
+		}] ` + extraHCL
 	a := NewTestAgent(t, hcl)
 	defer a.Shutdown()
 
@@ -3417,6 +3429,7 @@ func TestAgent_ReloadConfigAndKeepChecksStatus(t *testing.T) {
 
 	c := TestConfig(testutil.Logger(t), config.FileSource{Name: t.Name(), Format: "hcl", Data: hcl})
 	require.NoError(t, a.reloadConfigInternal(c))
+
 	// After reload, should be passing directly (no critical state)
 	for id, check := range a.State.Checks(nil) {
 		require.Equal(t, "passing", check.Status, "check %q is wrong", id)
@@ -4607,7 +4620,7 @@ func TestSharedRPCRouter(t *testing.T) {
 
 	testrpc.WaitForTestAgent(t, srv.RPC, "dc1")
 
-	mgr, server := srv.Agent.router.FindLANRoute()
+	mgr, server := srv.Agent.baseDeps.Router.FindLANRoute()
 	require.NotNil(t, mgr)
 	require.NotNil(t, server)
 
@@ -4619,7 +4632,7 @@ func TestSharedRPCRouter(t *testing.T) {
 
 	testrpc.WaitForTestAgent(t, client.RPC, "dc1")
 
-	mgr, server = client.Agent.router.FindLANRoute()
+	mgr, server = client.Agent.baseDeps.Router.FindLANRoute()
 	require.NotNil(t, mgr)
 	require.NotNil(t, server)
 }

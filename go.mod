@@ -13,7 +13,7 @@ require (
 	github.com/NYTimes/gziphandler v1.0.1
 	github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 // indirect
 	github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e
-	github.com/armon/go-metrics v0.3.4
+	github.com/armon/go-metrics v0.3.5-0.20200914211745-2bc64ebd2914
 	github.com/armon/go-radix v1.0.0
 	github.com/aws/aws-sdk-go v1.25.41
 	github.com/coredns/coredns v1.1.2
@@ -22,6 +22,7 @@ require (
 	github.com/docker/go-connections v0.3.0
 	github.com/elazarl/go-bindata-assetfs v0.0.0-20160803192304-e1a2a7ec64b0
 	github.com/envoyproxy/go-control-plane v0.9.5
+	github.com/frankban/quicktest v1.11.0 // indirect
 	github.com/go-ole/go-ole v1.2.1 // indirect
 	github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
 	github.com/golang/protobuf v1.3.5
@@ -42,6 +43,7 @@ require (
 	github.com/hashicorp/go-msgpack v0.5.5
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/hashicorp/go-raftchunking v0.6.1
+	github.com/hashicorp/go-retryablehttp v0.6.7 // indirect
 	github.com/hashicorp/go-sockaddr v1.0.2
 	github.com/hashicorp/go-syslog v1.0.0
 	github.com/hashicorp/go-uuid v1.0.2
@@ -54,7 +56,7 @@ require (
 	github.com/hashicorp/raft v1.1.2
 	github.com/hashicorp/raft-boltdb v0.0.0-20171010151810-6e5ba93211ea
 	github.com/hashicorp/serf v0.9.4
-	github.com/hashicorp/vault/api v1.0.4
+	github.com/hashicorp/vault/api v1.0.5-0.20200717191844-f687267c8086
 	github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d
 	github.com/imdario/mergo v0.3.6
 	github.com/joyent/triton-go v1.7.1-0.20200416154420-6801d15b779f // indirect
@@ -69,6 +71,7 @@ require (
 	github.com/mitchellh/pointerstructure v1.0.0
 	github.com/mitchellh/reflectwalk v1.0.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible
+	github.com/pierrec/lz4 v2.5.2+incompatible // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/pquerna/cachecontrol v0.0.0-20180517163645-1555304b9b35 // indirect
 	github.com/prometheus/client_golang v1.4.0
@@ -78,17 +81,18 @@ require (
 	github.com/stretchr/testify v1.5.1
 	go.opencensus.io v0.22.0 // indirect
 	go.uber.org/goleak v1.0.0
-	golang.org/x/crypto v0.0.0-20200604202706-70a84ac30bf9
-	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b
+	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
+	golang.org/x/net v0.0.0-20200904194848-62affa334b73
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 	golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae
-	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1
+	golang.org/x/text v0.3.3 // indirect
+	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 	golang.org/x/tools v0.0.0-20200513154647-78b527d18275 // indirect
 	google.golang.org/api v0.9.0 // indirect
 	google.golang.org/appengine v1.6.0 // indirect
 	google.golang.org/grpc v1.25.1
-	gopkg.in/square/go-jose.v2 v2.4.1
+	gopkg.in/square/go-jose.v2 v2.5.1
 	k8s.io/api v0.16.9
 	k8s.io/apimachinery v0.16.9
 	k8s.io/client-go v0.16.9

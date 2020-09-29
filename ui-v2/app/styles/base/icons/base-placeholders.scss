@@ -7,6 +7,12 @@
   mask-position: center;
   background-color: currentColor;
 }
+%with-glyph-icon {
+  font-weight: $typo-weight-normal;
+  background-color: $gray-100;
+  visibility: visible;
+  padding: 0 4px;
+}
 %as-pseudo {
   display: inline-block;
   content: '';

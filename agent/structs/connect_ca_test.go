@@ -18,14 +18,16 @@ func TestCAConfiguration_GetCommonConfig(t *testing.T) {
 			name: "basic defaults",
 			cfg: &CAConfiguration{
 				Config: map[string]interface{}{
-					"RotationPeriod":  "2160h",
-					"LeafCertTTL":     "72h",
-					"CSRMaxPerSecond": "50",
+					"RotationPeriod":      "2160h",
+					"LeafCertTTL":         "72h",
+					"IntermediateCertTTL": "4320h",
+					"CSRMaxPerSecond":     "50",
 				},
 			},
 			want: &CommonCAProviderConfig{
-				LeafCertTTL:     72 * time.Hour,
-				CSRMaxPerSecond: 50,
+				LeafCertTTL:         72 * time.Hour,
+				IntermediateCertTTL: 4320 * time.Hour,
+				CSRMaxPerSecond:     50,
 			},
 		},
 		{
@@ -38,13 +40,15 @@ func TestCAConfiguration_GetCommonConfig(t *testing.T) {
 			name: "basic defaults after encoding fun",
 			cfg: &CAConfiguration{
 				Config: map[string]interface{}{
-					"RotationPeriod": []uint8("2160h"),
-					"LeafCertTTL":    []uint8("72h"),
+					"RotationPeriod":      []uint8("2160h"),
+					"LeafCertTTL":         []uint8("72h"),
+					"IntermediateCertTTL": []uint8("4320h"),
 				},
 			},
 			want: &CommonCAProviderConfig{
-				LeafCertTTL:     72 * time.Hour,
-				CSRMaxPerSecond: 50, // The default value
+				LeafCertTTL:         72 * time.Hour,
+				IntermediateCertTTL: 4320 * time.Hour,
+				CSRMaxPerSecond:     50, // The default value
 			},
 		},
 	}
@@ -63,39 +67,60 @@ func TestCAConfiguration_GetCommonConfig(t *testing.T) {
 func TestCAProviderConfig_Validate(t *testing.T) {
 	tests := []struct {
 		name    string
-		cfg     *ConsulCAProviderConfig
+		cfg     *CommonCAProviderConfig
 		wantErr bool
 		wantMsg string
 	}{
 		{
 			name:    "defaults",
-			cfg:     &ConsulCAProviderConfig{},
+			cfg:     &CommonCAProviderConfig{},
 			wantErr: true,
-			wantMsg: "Intermediate Cert TTL must be greater or equal than 3h",
+			wantMsg: "leaf cert TTL must be greater or equal than 1h0m0s",
 		},
 		{
 			name: "intermediate cert ttl too short",
-			cfg: &ConsulCAProviderConfig{
-				CommonCAProviderConfig: CommonCAProviderConfig{LeafCertTTL: 2 * time.Hour},
-				IntermediateCertTTL:    4 * time.Hour,
+			cfg: &CommonCAProviderConfig{
+				LeafCertTTL:         2 * time.Hour,
+				IntermediateCertTTL: 4 * time.Hour,
 			},
 			wantErr: true,
 			wantMsg: "Intermediate Cert TTL must be greater or equal than 3 * LeafCertTTL (>=6h0m0s).",
 		},
 		{
 			name: "intermediate cert ttl too short",
-			cfg: &ConsulCAProviderConfig{
-				CommonCAProviderConfig: CommonCAProviderConfig{LeafCertTTL: 5 * time.Hour},
-				IntermediateCertTTL:    15*time.Hour - 1,
+			cfg: &CommonCAProviderConfig{
+				LeafCertTTL:         5 * time.Hour,
+				IntermediateCertTTL: 15*time.Hour - 1,
 			},
 			wantErr: true,
 			wantMsg: "Intermediate Cert TTL must be greater or equal than 3 * LeafCertTTL (>=15h0m0s).",
 		},
 		{
-			name: "good intermediate and leaf cert TTL",
-			cfg: &ConsulCAProviderConfig{
-				CommonCAProviderConfig: CommonCAProviderConfig{LeafCertTTL: 1 * time.Hour},
-				IntermediateCertTTL:    4 * time.Hour,
+			name: "good intermediate and leaf cert TTL, missing key type",
+			cfg: &CommonCAProviderConfig{
+				LeafCertTTL:         1 * time.Hour,
+				IntermediateCertTTL: 4 * time.Hour,
+			},
+			wantErr: true,
+			wantMsg: "private key type must be either 'ec' or 'rsa'",
+		},
+		{
+			name: "good intermediate/leaf cert TTL/key type, missing bits",
+			cfg: &CommonCAProviderConfig{
+				LeafCertTTL:         1 * time.Hour,
+				IntermediateCertTTL: 4 * time.Hour,
+				PrivateKeyType:      "ec",
+			},
+			wantErr: true,
+			wantMsg: "EC key length must be one of (224, 256, 384, 521) bits",
+		},
+		{
+			name: "good intermediate/leaf cert TTL/key type/bits",
+			cfg: &CommonCAProviderConfig{
+				LeafCertTTL:         1 * time.Hour,
+				IntermediateCertTTL: 4 * time.Hour,
+				PrivateKeyType:      "ec",
+				PrivateKeyBits:      256,
 			},
 			wantErr: false,
 		},

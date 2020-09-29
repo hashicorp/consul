@@ -58,7 +58,8 @@ export default function MultiPlatformServiceMeshPage() {
           links: [
             {
               text: 'Learn More',
-              url: 'https://learn.hashicorp.com/tutorials/consul/service-mesh-features',
+              url:
+                'https://learn.hashicorp.com/tutorials/consul/service-mesh-features',
               type: 'outbound',
             },
           ],
@@ -90,7 +91,7 @@ Splits = [
           links: [
             {
               text: 'Learn More',
-              url: '/docs/platform/k8s/run',
+              url: '/docs/k8s/installation/install',
               type: 'inbound',
             },
           ],

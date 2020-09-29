@@ -13,7 +13,7 @@ type aclCreateResponse struct {
 	ID string
 }
 
-func (s *HTTPServer) ACLDestroy(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ACLDestroy(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkACLDisabled(resp, req) {
 		return nil, nil
 	}
@@ -39,21 +39,21 @@ func (s *HTTPServer) ACLDestroy(resp http.ResponseWriter, req *http.Request) (in
 	return true, nil
 }
 
-func (s *HTTPServer) ACLCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ACLCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkACLDisabled(resp, req) {
 		return nil, nil
 	}
 	return s.aclSet(resp, req, false)
 }
 
-func (s *HTTPServer) ACLUpdate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ACLUpdate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkACLDisabled(resp, req) {
 		return nil, nil
 	}
 	return s.aclSet(resp, req, true)
 }
 
-func (s *HTTPServer) aclSet(resp http.ResponseWriter, req *http.Request, update bool) (interface{}, error) {
+func (s *HTTPHandlers) aclSet(resp http.ResponseWriter, req *http.Request, update bool) (interface{}, error) {
 	args := structs.ACLRequest{
 		Datacenter: s.agent.config.ACLDatacenter,
 		Op:         structs.ACLSet,
@@ -90,7 +90,7 @@ func (s *HTTPServer) aclSet(resp http.ResponseWriter, req *http.Request, update 
 	return aclCreateResponse{out}, nil
 }
 
-func (s *HTTPServer) ACLClone(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ACLClone(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkACLDisabled(resp, req) {
 		return nil, nil
 	}
@@ -142,7 +142,7 @@ func (s *HTTPServer) ACLClone(resp http.ResponseWriter, req *http.Request) (inte
 	return aclCreateResponse{outID}, nil
 }
 
-func (s *HTTPServer) ACLGet(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ACLGet(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkACLDisabled(resp, req) {
 		return nil, nil
 	}
@@ -176,7 +176,7 @@ func (s *HTTPServer) ACLGet(resp http.ResponseWriter, req *http.Request) (interf
 	return out.ACLs, nil
 }
 
-func (s *HTTPServer) ACLList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ACLList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkACLDisabled(resp, req) {
 		return nil, nil
 	}

@@ -15,16 +15,14 @@ func NewHandler(addr net.Addr) *Handler {
 	// We don't need to pass tls.Config to the server since it's multiplexed
 	// behind the RPC listener, which already has TLS configured.
 	srv := grpc.NewServer(
-		grpc.StatsHandler(&statsHandler{}),
+		grpc.StatsHandler(newStatsHandler()),
 		grpc.StreamInterceptor((&activeStreamCounter{}).Intercept),
 	)
 
 	// TODO(streaming): add gRPC services to srv here
 
-	return &Handler{
-		srv:      srv,
-		listener: &chanListener{addr: addr, conns: make(chan net.Conn)},
-	}
+	lis := &chanListener{addr: addr, conns: make(chan net.Conn)}
+	return &Handler{srv: srv, listener: lis}
 }
 
 // Handler implements a handler for the rpc server listener, and the
@@ -57,15 +55,26 @@ type chanListener struct {
 // Accept blocks until a connection is received from Handle, and then returns the
 // connection. Accept implements part of the net.Listener interface for grpc.Server.
 func (l *chanListener) Accept() (net.Conn, error) {
-	return <-l.conns, nil
+	select {
+	case c, ok := <-l.conns:
+		if !ok {
+			return nil, &net.OpError{
+				Op:   "accept",
+				Net:  l.addr.Network(),
+				Addr: l.addr,
+				Err:  fmt.Errorf("listener closed"),
+			}
+		}
+		return c, nil
+	}
 }
 
 func (l *chanListener) Addr() net.Addr {
 	return l.addr
 }
 
-// Close does nothing. The connections are managed by the caller.
 func (l *chanListener) Close() error {
+	close(l.conns)
 	return nil
 }
 

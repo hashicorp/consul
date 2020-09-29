@@ -12,7 +12,7 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-func (s *HTTPServer) DiscoveryChainRead(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) DiscoveryChainRead(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args structs.DiscoveryChainRequest
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil

@@ -14,4 +14,5 @@ message Req {
 
 message Resp {
     string ServerName = 1;
+    string Datacenter = 2;
 }

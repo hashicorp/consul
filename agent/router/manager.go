@@ -98,6 +98,8 @@ type Manager struct {
 	// client.ConnPool.
 	connPoolPinger Pinger
 
+	rebalancer Rebalancer
+
 	// serverName has the name of the managers's server. This is used to
 	// short-circuit pinging to itself.
 	serverName string
@@ -267,7 +269,7 @@ func (m *Manager) saveServerList(l serverList) {
 }
 
 // New is the only way to safely create a new Manager struct.
-func New(logger hclog.Logger, shutdownCh chan struct{}, clusterInfo ManagerSerfCluster, connPoolPinger Pinger, serverName string) (m *Manager) {
+func New(logger hclog.Logger, shutdownCh chan struct{}, clusterInfo ManagerSerfCluster, connPoolPinger Pinger, serverName string, rb Rebalancer) (m *Manager) {
 	if logger == nil {
 		logger = hclog.New(&hclog.LoggerOptions{})
 	}
@@ -278,6 +280,7 @@ func New(logger hclog.Logger, shutdownCh chan struct{}, clusterInfo ManagerSerfC
 	m.connPoolPinger = connPoolPinger // can't pass *consul.ConnPool: import cycle
 	m.rebalanceTimer = time.NewTimer(clientRPCMinReuseDuration)
 	m.shutdownCh = shutdownCh
+	m.rebalancer = rb
 	m.serverName = serverName
 	atomic.StoreInt32(&m.offline, 1)
 
@@ -529,6 +532,7 @@ func (m *Manager) Start() {
 	for {
 		select {
 		case <-m.rebalanceTimer.C:
+			m.rebalancer()
 			m.RebalanceServers()
 			m.refreshServerRebalanceTimer()
 

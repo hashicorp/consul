@@ -44,7 +44,7 @@ type ServiceSummary struct {
 
 // UINodes is used to list the nodes in a given datacenter. We return a
 // NodeDump which provides overview information for all the nodes
-func (s *HTTPServer) UINodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) UINodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Parse arguments
 	args := structs.DCSpecificRequest{}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
@@ -87,7 +87,7 @@ RPC:
 
 // UINodeInfo is used to get info on a single node in a given datacenter. We return a
 // NodeInfo which provides overview information for the node
-func (s *HTTPServer) UINodeInfo(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) UINodeInfo(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Parse arguments
 	args := structs.NodeSpecificRequest{}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
@@ -137,7 +137,7 @@ RPC:
 
 // UIServices is used to list the services in a given datacenter. We return a
 // ServiceSummary which provides overview information for the service
-func (s *HTTPServer) UIServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) UIServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Parse arguments
 	args := structs.ServiceDumpRequest{}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
@@ -165,11 +165,11 @@ RPC:
 
 	// Generate the summary
 	// TODO (gateways) (freddy) Have Internal.ServiceDump return ServiceDump instead. Need to add bexpr filtering for type.
-	return summarizeServices(out.Nodes.ToServiceDump(), out.Gateways, s.agent.config), nil
+	return summarizeServices(out.Nodes.ToServiceDump(), out.Gateways, s.agent.config, args.Datacenter), nil
 }
 
 // UIGatewayServices is used to query all the nodes for services associated with a gateway along with their gateway config
-func (s *HTTPServer) UIGatewayServicesNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) UIGatewayServicesNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Parse arguments
 	args := structs.ServiceSpecificRequest{}
 	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
@@ -200,10 +200,11 @@ RPC:
 		return nil, err
 	}
 
-	return summarizeServices(out.Dump, nil, s.agent.config), nil
+	return summarizeServices(out.Dump, nil, s.agent.config, args.Datacenter), nil
 }
 
-func summarizeServices(dump structs.ServiceDump, gateways structs.GatewayServices, cfg *config.RuntimeConfig) []*ServiceSummary {
+// TODO (freddy): Refactor to split up for the two use cases
+func summarizeServices(dump structs.ServiceDump, gateways structs.GatewayServices, cfg *config.RuntimeConfig, dc string) []*ServiceSummary {
 	// Collect the summary information
 	var services []structs.ServiceName
 	summary := make(map[structs.ServiceName]*ServiceSummary)
@@ -240,7 +241,7 @@ func summarizeServices(dump structs.ServiceDump, gateways structs.GatewayService
 		if csn.GatewayService != nil {
 			gwsvc := csn.GatewayService
 			sum := getService(gwsvc.Service)
-			modifySummaryForGatewayService(cfg, sum, gwsvc)
+			modifySummaryForGatewayService(cfg, dc, sum, gwsvc)
 		}
 
 		// Will happen in cases where we only have the GatewayServices mapping
@@ -328,6 +329,7 @@ func summarizeServices(dump structs.ServiceDump, gateways structs.GatewayService
 
 func modifySummaryForGatewayService(
 	cfg *config.RuntimeConfig,
+	datacenter string,
 	sum *ServiceSummary,
 	gwsvc *structs.GatewayService,
 ) {
@@ -340,7 +342,7 @@ func modifySummaryForGatewayService(
 		}
 		dnsAddresses = append(dnsAddresses, serviceIngressDNSName(
 			gwsvc.Service.Name,
-			cfg.Datacenter,
+			datacenter,
 			domain,
 			&gwsvc.Service.EnterpriseMeta,
 		))
@@ -362,7 +364,7 @@ func modifySummaryForGatewayService(
 }
 
 // GET /v1/internal/ui/gateway-intentions/:gateway
-func (s *HTTPServer) UIGatewayIntentions(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) UIGatewayIntentions(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args structs.IntentionQueryRequest
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil

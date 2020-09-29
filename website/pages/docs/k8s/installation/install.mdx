@@ -252,9 +252,9 @@ spec:
 
 ## Architecture
 
-We recommend running Consul on Kubernetes with the same
-[general architecture](/docs/internals/architecture)
-as running it anywhere else. There are some benefits Kubernetes can provide
+Consul runs on Kubernetes with the same
+[architecture](/docs/internals/architecture)
+as other platforms. There are some benefits Kubernetes can provide
 that eases operating a Consul cluster and we document those below. The standard
 [production deployment guide](https://learn.hashicorp.com/consul/datacenter-deploy/deployment-guide) is still an
 important read even if running Consul within Kubernetes.
@@ -293,24 +293,26 @@ so this must done manually when removing servers.
 
 The client agents are run as a **DaemonSet**. This places one agent
 (within its own pod) on each Kubernetes node.
-The clients expose the Consul HTTP API via a static port (default 8500)
+The clients expose the Consul HTTP API via a static port (8500)
 bound to the host port. This enables all other pods on the node to connect
 to the node-local agent using the host IP that can be retrieved via the
 Kubernetes downward API. See
 [accessing the Consul HTTP API](/docs/k8s/installation/install#accessing-the-consul-http-api)
 for an example.
 
-There is a major limitation to this: there is no way to bind to a local-only
+We do not use a **NodePort** Kubernetes service because requests to node ports get randomly routed
+to any pod in the service and we need to be able to route directly to the Consul
+client running on our node.
+
+-> **Note:** There is no way to bind to a local-only
 host port. Therefore, any other node can connect to the agent. This should be
 considered for security. For a properly production-secured agent with TLS
 and ACLs, this is safe.
 
-Some people prefer to run **Consul agent per pod** architectures, since this
-makes it easy to register the pod as a service. However, this turns
+We run Consul clients as a **DaemonSet** instead of running a client in each
+application pod as a sidecar because this would turn
 a pod into a "node" in Consul and also causes an explosion of resource usage
-since every pod needs a Consul agent. We recommend instead running an
-agent (in a dedicated pod) per node, via the DaemonSet. This maintains the
-node equivalence in Consul. Service registration should be handled via the
+since every pod needs a Consul agent. Service registration should be handled via the
 catalog syncing feature with Services rather than pods.
 
 -> **Note:** Due to a limitation of anti-affinity rules with DaemonSets,

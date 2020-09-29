@@ -1,18 +1,18 @@
 import { helper } from '@ember/component/helper';
 
-export default helper(function routeMatch([params] /*, hash*/) {
-  const keys = Object.keys(params);
+export default helper(function routeMatch([item], hash) {
+  const keys = Object.keys(item.data || item);
   switch (true) {
     case keys.includes('Present'):
-      return `${params.Invert ? `NOT ` : ``}present`;
+      return `${item.Invert ? `NOT ` : ``}present`;
     case keys.includes('Exact'):
-      return `${params.Invert ? `NOT ` : ``}exactly matching "${params.Exact}"`;
+      return `${item.Invert ? `NOT ` : ``}exactly matching "${item.Exact}"`;
     case keys.includes('Prefix'):
-      return `${params.Invert ? `NOT ` : ``}prefixed by "${params.Prefix}"`;
+      return `${item.Invert ? `NOT ` : ``}prefixed by "${item.Prefix}"`;
     case keys.includes('Suffix'):
-      return `${params.Invert ? `NOT ` : ``}suffixed by "${params.Suffix}"`;
+      return `${item.Invert ? `NOT ` : ``}suffixed by "${item.Suffix}"`;
     case keys.includes('Regex'):
-      return `${params.Invert ? `NOT ` : ``}matching the regex "${params.Regex}"`;
+      return `${item.Invert ? `NOT ` : ``}matching the regex "${item.Regex}"`;
   }
   return '';
 });

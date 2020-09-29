@@ -130,10 +130,13 @@ module.exports = function(environment, $ = process.env) {
       // Make sure all templated variables check for existence first
       // before outputting them, this means they all should be conditionals
       ENV = Object.assign({}, ENV, {
-        CONSUL_ACLS_ENABLED: '{{ if .ACLsEnabled }}{{.ACLsEnabled}}{{ else }}false{{ end }}',
-        CONSUL_SSO_ENABLED: '{{ if .SSOEnabled }}{{.SSOEnabled}}{{ else }}false{{ end }}',
-        CONSUL_NSPACES_ENABLED:
-          '{{ if .NamespacesEnabled }}{{.NamespacesEnabled}}{{ else }}false{{ end }}',
+        // This ENV var is a special placeholder that Consul will replace
+        // entirely with multiple vars from the runtime config for example
+        // CONSUL_ACLs_ENABLED and CONSUL_NSPACES_ENABLED. The actual key here
+        // won't really exist in the actual ember ENV when it's being served
+        // through Consul. See settingsInjectedIndexFS.Open in Go code for the
+        // details.
+        CONSUL_UI_SETTINGS_PLACEHOLDER: "__CONSUL_UI_SETTINGS_GO_HERE__",
       });
       break;
   }

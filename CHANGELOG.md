@@ -26,7 +26,7 @@ BUGFIXES:
 * connect: `connect envoy` command now respects the `-ca-path` flag [[GH-8606](https://github.com/hashicorp/consul/issues/8606)]
 * connect: fix bug in preventing some namespaced config entry modifications [[GH-8601](https://github.com/hashicorp/consul/issues/8601)]
 * connect: fix renewing secondary intermediate certificates [[GH-8588](https://github.com/hashicorp/consul/issues/8588)]
-* ui: fixed a bug related to in-folder KV creation [GH-8613](https://github.com/hashicorp/consul/pull/8613)
+* ui: fixed a bug related to in-folder KV creation [[GH-8613](https://github.com/hashicorp/consul/issues/8613)]
 
 ## 1.8.3 (August 12, 2020)
 

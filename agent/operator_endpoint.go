@@ -15,7 +15,7 @@ import (
 
 // OperatorRaftConfiguration is used to inspect the current Raft configuration.
 // This supports the stale query mode in case the cluster doesn't have a leader.
-func (s *HTTPServer) OperatorRaftConfiguration(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) OperatorRaftConfiguration(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args structs.DCSpecificRequest
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
@@ -31,7 +31,7 @@ func (s *HTTPServer) OperatorRaftConfiguration(resp http.ResponseWriter, req *ht
 
 // OperatorRaftPeer supports actions on Raft peers. Currently we only support
 // removing peers by address.
-func (s *HTTPServer) OperatorRaftPeer(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) OperatorRaftPeer(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args structs.RaftRemovePeerRequest
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
@@ -73,7 +73,7 @@ type keyringArgs struct {
 }
 
 // OperatorKeyringEndpoint handles keyring operations (install, list, use, remove)
-func (s *HTTPServer) OperatorKeyringEndpoint(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) OperatorKeyringEndpoint(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args keyringArgs
 	if req.Method == "POST" || req.Method == "PUT" || req.Method == "DELETE" {
 		if err := decodeBody(req.Body, &args); err != nil {
@@ -125,7 +125,7 @@ func (s *HTTPServer) OperatorKeyringEndpoint(resp http.ResponseWriter, req *http
 }
 
 // KeyringInstall is used to install a new gossip encryption key into the cluster
-func (s *HTTPServer) KeyringInstall(resp http.ResponseWriter, req *http.Request, args *keyringArgs) (interface{}, error) {
+func (s *HTTPHandlers) KeyringInstall(resp http.ResponseWriter, req *http.Request, args *keyringArgs) (interface{}, error) {
 	responses, err := s.agent.InstallKey(args.Key, args.Token, args.RelayFactor)
 	if err != nil {
 		return nil, err
@@ -135,7 +135,7 @@ func (s *HTTPServer) KeyringInstall(resp http.ResponseWriter, req *http.Request,
 }
 
 // KeyringList is used to list the keys installed in the cluster
-func (s *HTTPServer) KeyringList(resp http.ResponseWriter, req *http.Request, args *keyringArgs) (interface{}, error) {
+func (s *HTTPHandlers) KeyringList(resp http.ResponseWriter, req *http.Request, args *keyringArgs) (interface{}, error) {
 	responses, err := s.agent.ListKeys(args.Token, args.LocalOnly, args.RelayFactor)
 	if err != nil {
 		return nil, err
@@ -145,7 +145,7 @@ func (s *HTTPServer) KeyringList(resp http.ResponseWriter, req *http.Request, ar
 }
 
 // KeyringRemove is used to list the keys installed in the cluster
-func (s *HTTPServer) KeyringRemove(resp http.ResponseWriter, req *http.Request, args *keyringArgs) (interface{}, error) {
+func (s *HTTPHandlers) KeyringRemove(resp http.ResponseWriter, req *http.Request, args *keyringArgs) (interface{}, error) {
 	responses, err := s.agent.RemoveKey(args.Key, args.Token, args.RelayFactor)
 	if err != nil {
 		return nil, err
@@ -155,7 +155,7 @@ func (s *HTTPServer) KeyringRemove(resp http.ResponseWriter, req *http.Request, 
 }
 
 // KeyringUse is used to change the primary gossip encryption key
-func (s *HTTPServer) KeyringUse(resp http.ResponseWriter, req *http.Request, args *keyringArgs) (interface{}, error) {
+func (s *HTTPHandlers) KeyringUse(resp http.ResponseWriter, req *http.Request, args *keyringArgs) (interface{}, error) {
 	responses, err := s.agent.UseKey(args.Key, args.Token, args.RelayFactor)
 	if err != nil {
 		return nil, err
@@ -183,7 +183,7 @@ func keyringErrorsOrNil(responses []*structs.KeyringResponse) error {
 
 // OperatorAutopilotConfiguration is used to inspect the current Autopilot configuration.
 // This supports the stale query mode in case the cluster doesn't have a leader.
-func (s *HTTPServer) OperatorAutopilotConfiguration(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) OperatorAutopilotConfiguration(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Switch on the method
 	switch req.Method {
 	case "GET":
@@ -261,7 +261,7 @@ func (s *HTTPServer) OperatorAutopilotConfiguration(resp http.ResponseWriter, re
 }
 
 // OperatorServerHealth is used to get the health of the servers in the local DC
-func (s *HTTPServer) OperatorServerHealth(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) OperatorServerHealth(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args structs.DCSpecificRequest
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil

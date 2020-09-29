@@ -1315,7 +1315,7 @@ func TestStructs_DirEntry_Clone(t *testing.T) {
 func TestStructs_ValidateServiceAndNodeMetadata(t *testing.T) {
 	tooMuchMeta := make(map[string]string)
 	for i := 0; i < metaMaxKeyPairs+1; i++ {
-		tooMuchMeta[string(i)] = "value"
+		tooMuchMeta[fmt.Sprint(i)] = "value"
 	}
 	type testcase struct {
 		Meta              map[string]string
