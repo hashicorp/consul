@@ -643,7 +643,7 @@ jobs:
       - run:
           name: commit agent/bindata_assetfs.go if there are changes
           command: |
-            if git diff --exit-code agent/bindata_assetfs.go; then
+            if ! git diff --exit-code agent/bindata_assetfs.go; then
               git add agent/bindata_assetfs.go
               git commit -m "auto-updated agent/bindata_assetfs.go"
               git push origin master
