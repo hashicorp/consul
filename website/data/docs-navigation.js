@@ -151,6 +151,7 @@ export default [
           'terminating-gateways',
           'connect-ca-provider',
           'ambassador',
+          'health',
         ],
       },
       'service-sync',
