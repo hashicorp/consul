@@ -297,6 +297,64 @@ func TestUiServices(t *testing.T) {
 		require.NoError(t, a.RPC("Catalog.Register", args, &out))
 	}
 
+	// Register a terminating gateway associated with api and cache
+	{
+		arg := structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				ID:      "terminating-gateway",
+				Service: "terminating-gateway",
+				Kind:    structs.ServiceKindTerminatingGateway,
+				Port:    443,
+			},
+		}
+		var regOutput struct{}
+		require.NoError(t, a.RPC("Catalog.Register", &arg, &regOutput))
+
+		args := &structs.TerminatingGatewayConfigEntry{
+			Name: "terminating-gateway",
+			Kind: structs.TerminatingGateway,
+			Services: []structs.LinkedService{
+				{
+					Name: "api",
+				},
+				{
+					Name: "cache",
+				},
+			},
+		}
+
+		req := structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry:      args,
+		}
+		var configOutput bool
+		require.NoError(t, a.RPC("ConfigEntry.Apply", &req, &configOutput))
+		require.True(t, configOutput)
+
+		// Web should not show up as ConnectedWithGateway since this one does not have any instances
+		args = &structs.TerminatingGatewayConfigEntry{
+			Name: "other-terminating-gateway",
+			Kind: structs.TerminatingGateway,
+			Services: []structs.LinkedService{
+				{
+					Name: "web",
+				},
+			},
+		}
+
+		req = structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry:      args,
+		}
+		require.NoError(t, a.RPC("ConfigEntry.Apply", &req, &configOutput))
+		require.True(t, configOutput)
+	}
+
 	t.Run("No Filter", func(t *testing.T) {
 		t.Parallel()
 		req, _ := http.NewRequest("GET", "/v1/internal/ui/services/dc1", nil)
@@ -307,36 +365,38 @@ func TestUiServices(t *testing.T) {
 
 		// Should be 2 nodes, and all the empty lists should be non-nil
 		summary := obj.([]*ServiceSummary)
-		require.Len(t, summary, 4)
+		require.Len(t, summary, 5)
 
 		// internal accounting that users don't see can be blown away
 		for _, sum := range summary {
 			sum.externalSourceSet = nil
-			sum.proxyForSet = nil
 		}
 
 		expected := []*ServiceSummary{
 			{
-				Kind:           structs.ServiceKindTypical,
-				Name:           "api",
-				Tags:           []string{"tag1", "tag2"},
-				Nodes:          []string{"foo"},
-				InstanceCount:  1,
-				ChecksPassing:  2,
-				ChecksWarning:  1,
-				ChecksCritical: 0,
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				Kind:                 structs.ServiceKindTypical,
+				Name:                 "api",
+				Tags:                 []string{"tag1", "tag2"},
+				Nodes:                []string{"foo"},
+				InstanceCount:        1,
+				ChecksPassing:        2,
+				ChecksWarning:        1,
+				ChecksCritical:       0,
+				ConnectedWithProxy:   true,
+				ConnectedWithGateway: true,
+				EnterpriseMeta:       *structs.DefaultEnterpriseMeta(),
 			},
 			{
-				Kind:           structs.ServiceKindTypical,
-				Name:           "cache",
-				Tags:           nil,
-				Nodes:          []string{"zip"},
-				InstanceCount:  1,
-				ChecksPassing:  0,
-				ChecksWarning:  0,
-				ChecksCritical: 0,
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				Kind:                 structs.ServiceKindTypical,
+				Name:                 "cache",
+				Tags:                 nil,
+				Nodes:                []string{"zip"},
+				InstanceCount:        1,
+				ChecksPassing:        0,
+				ChecksWarning:        0,
+				ChecksCritical:       0,
+				ConnectedWithGateway: true,
+				EnterpriseMeta:       *structs.DefaultEnterpriseMeta(),
 			},
 			{
 				Kind:            structs.ServiceKindConnectProxy,
@@ -344,7 +404,6 @@ func TestUiServices(t *testing.T) {
 				Tags:            nil,
 				Nodes:           []string{"bar", "foo"},
 				InstanceCount:   2,
-				ProxyFor:        []string{"api"},
 				ChecksPassing:   2,
 				ChecksWarning:   1,
 				ChecksCritical:  1,
@@ -362,7 +421,19 @@ func TestUiServices(t *testing.T) {
 				ChecksCritical: 0,
 				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
+			{
+				Kind:           structs.ServiceKindTerminatingGateway,
+				Name:           "terminating-gateway",
+				Tags:           nil,
+				Nodes:          []string{"foo"},
+				InstanceCount:  1,
+				ChecksPassing:  2,
+				ChecksWarning:  1,
+				GatewayConfig:  GatewayConfig{AssociatedServiceCount: 2},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			},
 		}
+
 		require.ElementsMatch(t, expected, summary)
 	})
 
@@ -381,20 +452,21 @@ func TestUiServices(t *testing.T) {
 		// internal accounting that users don't see can be blown away
 		for _, sum := range summary {
 			sum.externalSourceSet = nil
-			sum.proxyForSet = nil
 		}
 
 		expected := []*ServiceSummary{
 			{
-				Kind:           structs.ServiceKindTypical,
-				Name:           "api",
-				Tags:           []string{"tag1", "tag2"},
-				Nodes:          []string{"foo"},
-				InstanceCount:  1,
-				ChecksPassing:  2,
-				ChecksWarning:  1,
-				ChecksCritical: 0,
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				Kind:                 structs.ServiceKindTypical,
+				Name:                 "api",
+				Tags:                 []string{"tag1", "tag2"},
+				Nodes:                []string{"foo"},
+				InstanceCount:        1,
+				ChecksPassing:        2,
+				ChecksWarning:        1,
+				ChecksCritical:       0,
+				ConnectedWithProxy:   true,
+				ConnectedWithGateway: false,
+				EnterpriseMeta:       *structs.DefaultEnterpriseMeta(),
 			},
 			{
 				Kind:            structs.ServiceKindConnectProxy,
@@ -402,7 +474,6 @@ func TestUiServices(t *testing.T) {
 				Tags:            nil,
 				Nodes:           []string{"bar", "foo"},
 				InstanceCount:   2,
-				ProxyFor:        []string{"api"},
 				ChecksPassing:   2,
 				ChecksWarning:   1,
 				ChecksCritical:  1,

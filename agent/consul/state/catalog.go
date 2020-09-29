@@ -2194,30 +2194,19 @@ func (s *Store) CheckServiceTagNodes(ws memdb.WatchSet, serviceName string, tags
 func (s *Store) GatewayServices(ws memdb.WatchSet, gateway string, entMeta *structs.EnterpriseMeta) (uint64, structs.GatewayServices, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
+
 	iter, err := gatewayServices(tx, gateway, entMeta)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed gateway services lookup: %s", err)
 	}
 	ws.Add(iter.WatchCh())
 
-	var maxIdx uint64
-	var results structs.GatewayServices
-	for service := iter.Next(); service != nil; service = iter.Next() {
-		svc := service.(*structs.GatewayService)
-
-		if svc.Service.Name != structs.WildcardSpecifier {
-			idx, matches, err := checkProtocolMatch(tx, ws, svc)
-			if err != nil {
-				return 0, nil, fmt.Errorf("failed checking protocol: %s", err)
-			}
-			maxIdx = lib.MaxUint64(maxIdx, idx)
-			if matches {
-				results = append(results, svc)
-			}
-		}
+	maxIdx, results, err := s.collectGatewayServices(tx, ws, iter)
+	if err != nil {
+		return 0, nil, err
 	}
-
 	idx := maxIndexTxn(tx, gatewayServicesTableName)
+
 	return lib.MaxUint64(maxIdx, idx), results, nil
 }
 
@@ -2721,6 +2710,48 @@ func serviceGateways(tx *txn, name string, entMeta *structs.EnterpriseMeta) (mem
 
 func gatewayServices(tx *txn, name string, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get(gatewayServicesTableName, "gateway", structs.NewServiceName(name, entMeta))
+}
+
+func (s *Store) DumpGatewayServices(ws memdb.WatchSet) (uint64, structs.GatewayServices, error) {
+	tx := s.db.ReadTxn()
+	defer tx.Abort()
+
+	iter, err := tx.Get(gatewayServicesTableName, "id")
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to dump gateway-services: %s", err)
+	}
+	ws.Add(iter.WatchCh())
+
+	maxIdx, results, err := s.collectGatewayServices(tx, ws, iter)
+	if err != nil {
+		return 0, nil, err
+	}
+	idx := maxIndexTxn(tx, gatewayServicesTableName)
+
+	return lib.MaxUint64(maxIdx, idx), results, nil
+}
+
+func (s *Store) collectGatewayServices(tx *txn, ws memdb.WatchSet, iter memdb.ResultIterator) (uint64, structs.GatewayServices, error) {
+	var maxIdx uint64
+	var results structs.GatewayServices
+
+	for obj := iter.Next(); obj != nil; obj = iter.Next() {
+		gs := obj.(*structs.GatewayService)
+		maxIdx = lib.MaxUint64(maxIdx, gs.ModifyIndex)
+
+		if gs.Service.Name != structs.WildcardSpecifier {
+			idx, matches, err := checkProtocolMatch(tx, ws, gs)
+			if err != nil {
+				return 0, nil, fmt.Errorf("failed checking protocol: %s", err)
+			}
+			maxIdx = lib.MaxUint64(maxIdx, idx)
+
+			if matches {
+				results = append(results, gs)
+			}
+		}
+	}
+	return maxIdx, results, nil
 }
 
 // TODO(ingress): How to handle index rolling back when a config entry is

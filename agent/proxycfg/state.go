@@ -773,7 +773,7 @@ func (s *state) handleUpdateUpstreams(u cache.UpdateEvent, snap *ConfigSnapshotU
 		snap.WatchedUpstreamEndpoints[svc][targetID] = resp.Nodes
 
 	case strings.HasPrefix(u.CorrelationID, "mesh-gateway:"):
-		resp, ok := u.Result.(*structs.IndexedCheckServiceNodes)
+		resp, ok := u.Result.(*structs.IndexedNodesWithGateways)
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
@@ -1378,7 +1378,7 @@ func (s *state) handleUpdateMeshGateway(u cache.UpdateEvent, snap *ConfigSnapsho
 				delete(snap.MeshGateway.ServiceGroups, sn)
 			}
 		case strings.HasPrefix(u.CorrelationID, "mesh-gateway:"):
-			resp, ok := u.Result.(*structs.IndexedCheckServiceNodes)
+			resp, ok := u.Result.(*structs.IndexedNodesWithGateways)
 			if !ok {
 				return fmt.Errorf("invalid type for response: %T", u.Result)
 			}
