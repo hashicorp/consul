@@ -5,9 +5,6 @@ import { get, set } from '@ember/object';
 
 import WithBlockingActions from 'consul-ui/mixins/with-blocking-actions';
 
-const removeLoading = function($from) {
-  return $from.classList.remove('ember-loading', 'loading');
-};
 export default Route.extend(WithBlockingActions, {
   dom: service('dom'),
   router: service('router'),
@@ -38,12 +35,6 @@ export default Route.extend(WithBlockingActions, {
     controller.setProperties(model);
   },
   actions: {
-    loading: function(transition, originRoute) {
-      const $root = this.dom.root();
-      transition.promise.finally(() => {
-        removeLoading($root);
-      });
-    },
     error: function(e, transition) {
       // TODO: Normalize all this better
       let error = {
@@ -91,14 +82,12 @@ export default Route.extend(WithBlockingActions, {
       })
         .then(model => Promise.all([model, this.repo.clearActive()]))
         .then(([model]) => {
-          removeLoading($root);
           // we can't use setupController as we received an error
           // so we do it manually instead
           this.controllerFor('application').setProperties(model);
           this.controllerFor('error').setProperties({ error: error });
         })
         .catch(e => {
-          removeLoading($root);
           this.controllerFor('error').setProperties({ error: error });
         });
       return true;

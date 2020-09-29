@@ -72,6 +72,7 @@ export default class Outlet extends Component {
       name = name.substr(0, 'nspace.'.length);
     }
     this.dom.root().dataset.route = name;
+    this.dom.root().classList.remove('ember-loading');
   }
 
   setAppState(state) {
