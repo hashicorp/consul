@@ -306,7 +306,7 @@ lint:
 # also run as part of the release build script when it verifies that there are no
 # changes to the UI assets that aren't checked in.
 static-assets:
-	@go-bindata-assetfs -pkg agent -prefix pkg -o $(ASSETFS_PATH) ./pkg/web_ui/...
+	@go-bindata-assetfs -modtime 1 -pkg agent -prefix pkg -o $(ASSETFS_PATH) ./pkg/web_ui/...
 	@go fmt $(ASSETFS_PATH)
 
 
