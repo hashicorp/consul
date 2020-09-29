@@ -17,7 +17,6 @@ export default Service.extend({
   notify: service('flashMessages'),
   logger: service('logger'),
   execute: function(handle, action, status = defaultStatus, controller) {
-    set(controller, 'isLoading', true);
     const getAction = callableType(action);
     const getStatus = callableType(status);
     const notify = this.notify;
@@ -58,9 +57,6 @@ export default Service.extend({
               error: e,
             });
           }
-        })
-        .finally(function() {
-          set(controller, 'isLoading', false);
         })
     );
   },
