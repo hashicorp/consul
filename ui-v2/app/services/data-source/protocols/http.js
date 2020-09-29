@@ -24,6 +24,7 @@ export default Service.extend({
   policy: service('repository/policy'),
   roles: service('repository/role'),
   oidc: service('repository/oidc-provider'),
+  metrics: service('repository/metrics'),
 
   type: service('data-source/protocols/http/blocking'),
 
@@ -47,6 +48,20 @@ export default Service.extend({
     };
     let method, slug;
     switch (model) {
+      case 'metrics':
+        [method, ...slug] = rest;
+        switch (method) {
+          case 'summary-for-service':
+            find = configuration => repo.findServiceSummary(slug, dc, nspace, configuration);
+            break;
+          case 'upstream-summary-for-service':
+            find = configuration => repo.findUpstreamSummary(slug, dc, nspace, configuration);
+            break;
+          case 'downstream-summary-for-service':
+            find = configuration => repo.findDownstreamSummary(slug, dc, nspace, configuration);
+            break;
+        }
+        break;
       case 'datacenters':
       case 'namespaces':
         find = configuration => repo.findAll(configuration);

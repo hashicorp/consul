@@ -21,6 +21,13 @@
       <ConsulKind @item={{item.Service}} @withInfo={{true}} />
   </BlockSlot>
   <BlockSlot @name="nav">
+  <DataSource
+    @src={{uri nspace dc 'metrics' 'summary-for-service' item.Service.Service}}
+    @onchange={{action (mut metrics) value="data"}}
+  />
+  {{#each metrics.stats as |stat| }}
+    <div><b>{{stat.label}}:</b> {{stat.value}}</div>
+  {{/each}}
   {{#if (not-eq item.Service.Kind 'mesh-gateway')}}
     <TabNav @items={{
       compact
