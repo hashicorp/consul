@@ -1,6 +1,7 @@
-import Component from '@ember/component';
+import Component from '@glimmer/component';
+import { tracked } from '@glimmer/tracking';
+import { action } from '@ember/object';
 import { inject as service } from '@ember/service';
-import { setProperties } from '@ember/object';
 
 class State {
   constructor(name) {
@@ -10,74 +11,126 @@ class State {
     return this.name === match;
   }
 }
-const outlets = new Set();
-export default Component.extend({
-  tagName: '',
-  router: service('router'),
-  dom: service('dom'),
-  root: false,
-  init: function() {
-    this._super(...arguments);
-    this._listeners = this.dom.listeners();
-    if (outlets.size === 0) {
-      this.root = true;
-    }
-    if (this.root) {
+
+class Outlets {
+  constructor() {
+    this.map = new Map();
+  }
+  sort() {
+    this.sorted = [...this.map.keys()];
+    this.sorted.sort((a, b) => {
+      const al = a.split('.').length;
+      const bl = b.split('.').length;
+      switch (true) {
+        case al > bl:
+          return -1;
+        case al < bl:
+          return 1;
+        default:
+          return 0;
+      }
+    });
+  }
+  set(name, value) {
+    this.map.set(name, value);
+    this.sort();
+  }
+  get(name) {
+    return this.map.get(name);
+  }
+  delete(name) {
+    this.map.delete(name);
+    this.sort();
+  }
+  keys() {
+    return this.sorted;
+  }
+  get size() {
+    return this.map.size;
+  }
+}
+const outlets = new Outlets();
+
+export default class Outlet extends Component {
+  @service('router') router;
+  @service('dom') dom;
+
+  @tracked route;
+  @tracked state;
+  @tracked previousState;
+
+  constructor() {
+    super(...arguments);
+    if (this.args.name === 'application') {
       this.setAppRoute(this.router.currentRouteName);
       this.setAppState('idle');
     }
-  },
-  didDestroyElement: function() {
-    this._super(...arguments);
-    outlets.delete(this.name);
-    this._listeners.remove();
-  },
-  setAppRoute: function(name) {
+  }
+
+  setAppRoute(name) {
     if (name.startsWith('nspace.')) {
       name = name.substr(0, 'nspace.'.length);
     }
     this.dom.root().dataset.route = name;
-  },
-  setAppState: function(state) {
+  }
+
+  setAppState(state) {
     this.dom.root().dataset.state = state;
-  },
-  didInsertElement: function() {
-    this._super(...arguments);
-    outlets.add(this.name);
-    setProperties(this, {
-      state: new State('idle'),
-    });
-    setProperties(this, {
-      previousState: this.state,
-    });
-    this._listeners.add(this.router, {
-      routeWillChange: transition => {
-        const to = transition.to.name;
-        const outlet =
-          [...outlets].reverse().find(item => {
-            return to.indexOf(item) !== -1;
-          }) || 'application';
-        if (this.name === outlet) {
-          setProperties(this, {
-            previousState: this.state,
-            state: new State('loading'),
-          });
-        }
-        if (this.root) {
-          this.setAppState('loading');
-        }
-      },
-      routeDidChange: transition => {
-        setProperties(this, {
-          // route: transition.to.name,
-          previousState: this.state,
-          state: new State('idle'),
-        });
-        if (this.root) {
-          this.setAppRoute(this.router.currentRouteName);
-          this.setAppState('idle');
-        }
-      },
-    });
-  },
-});
+  }
+
+  @action
+  startLoad(transition) {
+    const keys = [...outlets.keys()];
+
+    const outlet =
+      keys.find(item => {
+        return transition.to.name.indexOf(item) !== -1;
+      }) || 'application';
+
+    if (this.args.name === outlet) {
+      this.previousState = this.state;
+      this.state = new State('loading');
+    }
+    if (this.args.name === 'application') {
+      this.setAppState('loading');
+    }
+  }
+
+  setOutletRoutes(route) {
+    const keys = [...outlets.keys()];
+    const pos = keys.indexOf(this.name);
+    const key = pos + 1;
+    const parent = outlets.get(keys[key]);
+    parent.route = this.args.name;
+
+    this.route = route;
+  }
+
+  @action
+  endLoad(transition) {
+    if (this.state.matches('loading')) {
+      this.setOutletRoutes(transition.to.name);
+
+      this.previousState = this.state;
+      this.state = new State('idle');
+    }
+    if (this.args.name === 'application') {
+      this.setAppRoute(this.router.currentRouteName);
+      this.setAppState('idle');
+    }
+  }
+  @action
+  connect() {
+    outlets.set(this.args.name, this);
+    this.previousState = this.state = new State('idle');
+    this.router.on('routeWillChange', this.startLoad);
+    this.router.on('routeDidChange', this.endLoad);
+  }
+
+  @action
+  disconnect() {
+    outlets.delete(this.args.name);
+    this.router.off('routeWillChange', this.startLoad);
+    this.router.off('routeDidChange', this.endLoad);
+  }
+}
