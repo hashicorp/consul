@@ -14,4 +14,3 @@ sysctl -p
 sleep 60
 cp /home/ubuntu/scripts/loadtest.service /etc/systemd/system/loadtest.service
 chmod 644 /etc/systemd/system/loadtest.service
-systemctl enable loadtest
