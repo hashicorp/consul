@@ -56,7 +56,7 @@
     "@ember/render-modifiers": "^1.0.2",
     "@glimmer/component": "^1.0.0",
     "@glimmer/tracking": "^1.0.0",
-    "@hashicorp/consul-api-double": "^5.0.0",
+    "@hashicorp/consul-api-double": "^5.2.3",
     "@hashicorp/ember-cli-api-double": "^3.1.0",
     "@xstate/fsm": "^1.4.0",
     "babel-eslint": "^10.0.3",
