@@ -26,6 +26,8 @@ const (
 type ConfigEntry interface {
 	GetKind() string
 	GetName() string
+	GetNamespace() string
+	GetMeta() map[string]string
 	GetCreateIndex() uint64
 	GetModifyIndex() uint64
 }
@@ -108,6 +110,14 @@ func (s *ServiceConfigEntry) GetName() string {
 	return s.Name
 }
 
+func (s *ServiceConfigEntry) GetNamespace() string {
+	return s.Namespace
+}
+
+func (s *ServiceConfigEntry) GetMeta() map[string]string {
+	return s.Meta
+}
+
 func (s *ServiceConfigEntry) GetCreateIndex() uint64 {
 	return s.CreateIndex
 }
@@ -134,6 +144,14 @@ func (p *ProxyConfigEntry) GetKind() string {
 
 func (p *ProxyConfigEntry) GetName() string {
 	return p.Name
+}
+
+func (p *ProxyConfigEntry) GetNamespace() string {
+	return p.Namespace
+}
+
+func (p *ProxyConfigEntry) GetMeta() map[string]string {
+	return p.Meta
 }
 
 func (p *ProxyConfigEntry) GetCreateIndex() uint64 {
