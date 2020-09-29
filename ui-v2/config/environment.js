@@ -11,6 +11,9 @@ module.exports = function(environment, $ = process.env) {
     // torii provider. We provide this object here to
     // prevent ember from giving a log message when starting ember up
     torii: {},
+    'ember-cli-app-version': {
+      version: 'consul-ui',
+    },
     EmberENV: {
       FEATURES: {
         // Here you can enable experimental features on an ember canary build
@@ -45,16 +48,6 @@ module.exports = function(environment, $ = process.env) {
         .split('-')
         .shift();
     })(process.env.CONSUL_COPYRIGHT_YEAR),
-    CONSUL_GIT_SHA: (function(val) {
-      if (val) {
-        return val;
-      }
-
-      return require('child_process')
-        .execSync('git rev-parse --short HEAD')
-        .toString()
-        .trim();
-    })(process.env.CONSUL_GIT_SHA),
     CONSUL_VERSION: (function(val) {
       if (val) {
         return val;

@@ -629,6 +629,29 @@ jobs:
             - ./agent/bindata_assetfs.go
       - run: *notify-slack-failure
 
+  # commits static assets to git
+  publish-static-assets:
+    docker:
+      - image: *GOLANG_IMAGE
+    steps:
+      - checkout
+      - add_ssh_keys: # needs a key to push updated static asset commit back to github
+          fingerprints:
+            - "c9:04:b7:85:bf:0e:ce:93:5f:b8:0e:68:8e:16:f3:71"
+      - attach_workspace:
+          at: .
+      - run:
+          name: commit agent/bindata_assetfs.go if there are changes
+          command: |
+            if git diff --exit-code agent/bindata_assetfs.go; then
+              git add agent/bindata_assetfs.go
+              git commit -m "auto-updated agent/bindata_assetfs.go"
+              git push origin master
+            else
+              echo "no new static assets to publish"
+            fi
+      - run: *notify-slack-failure
+
   # run ember frontend tests
   ember-test-oss:
     docker:
@@ -806,7 +829,6 @@ workflows:
           requires: [dev-build]
       - go-test-race: *filter-ignore-non-go-branches
       - go-test-sdk: *filter-ignore-non-go-branches
-
   build-distros:
     jobs:
       - check-vendor: *filter-ignore-non-go-branches
@@ -828,6 +850,13 @@ workflows:
       - build-static-assets:
           requires:
             - ember-build-prod
+      - publish-static-assets:
+          filters:
+            branches:
+              only:
+                - master
+          requires:
+            - build-static-assets
       - dev-build:
           requires:
             - build-static-assets
@@ -871,7 +900,6 @@ workflows:
       - envoy-integration-test-1.15.0:
           requires:
             - dev-build
-
   website:
     jobs:
       - build-website-docker-image:
@@ -880,7 +908,6 @@ workflows:
             branches:
               only:
                 - master
-
       - algolia-index:
           context: consul-docs
           filters:
