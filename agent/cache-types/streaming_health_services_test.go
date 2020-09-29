@@ -3,6 +3,7 @@ package cachetype
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"testing"
 	"time"
 
@@ -254,6 +255,7 @@ func TestStreamingHealthServices_FullSnapshot(t *testing.T) {
 		for _, csn := range r.Nodes {
 			nodes = append(nodes, csn.Node.Node)
 		}
+		sort.Strings(nodes)
 		return nodes
 	}
 
@@ -291,8 +293,7 @@ func TestStreamingHealthServices_FullSnapshot(t *testing.T) {
 			"Fetch should have returned before the timeout")
 
 		require.Equal(t, uint64(20), result.Index)
-		require.ElementsMatch(t, []string{"node2", "node3"},
-			gatherNodes(result.Value))
+		require.Equal(t, []string{"node2", "node3"}, gatherNodes(result.Value))
 
 		opts.MinIndex = result.Index
 		opts.LastResult = &result
@@ -321,8 +322,7 @@ func TestStreamingHealthServices_FullSnapshot(t *testing.T) {
 			"Fetch should have returned before the timeout")
 
 		require.Equal(t, uint64(50), result.Index)
-		require.ElementsMatch(t, []string{"node3", "node4", "node5"},
-			gatherNodes(result.Value))
+		require.Equal(t, []string{"node3", "node4", "node5"}, gatherNodes(result.Value))
 
 		opts.MinIndex = result.Index
 		opts.LastResult = &result
