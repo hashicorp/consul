@@ -17,7 +17,6 @@ export default Route.extend(WithNspaceActions, {
     return hash({
       routeName: this.routeName,
       items: this.data.source(uri => uri`/*/*/namespaces`),
-      isLoading: false,
     });
   },
   setupController: function(controller, model) {

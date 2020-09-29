@@ -6,8 +6,6 @@
 
 {{#let (or sortBy "Name:asc") as |sort|}}
 <AppView
-  @class="role list"
-  @loading={{isLoading}}
   @authorized={{isAuthorized}}
   @enabled={{isEnabled}}
   >

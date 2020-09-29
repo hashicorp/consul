@@ -22,7 +22,6 @@ export default Route.extend(WithRoleActions, {
         ),
       }),
       routeName: this.routeName,
-      isLoading: false,
     });
   },
   setupController: function(controller, model) {

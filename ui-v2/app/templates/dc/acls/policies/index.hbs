@@ -9,8 +9,6 @@
 ) as |filters|}}
   {{#let (or sortBy "Name:asc") as |sort|}}
     <AppView
-      @class="policy list"
-      @loading={{isLoading}}
       @authorized={{isAuthorized}}
       @enabled={{isEnabled}}
       >

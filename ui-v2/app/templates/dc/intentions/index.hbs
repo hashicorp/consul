@@ -11,7 +11,7 @@
     accesses=(if access (split access ',') undefined)
   ) as |filters|}}
     {{#let (or sortBy "Action:asc") as |sort|}}
-      <AppView @class="intention list">
+      <AppView>
         <BlockSlot @name="header">
             <h1>
                 Intentions <em>{{format-number items.length}} total</em>

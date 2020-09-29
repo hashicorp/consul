@@ -9,8 +9,6 @@
 ) as |filters|}}
   {{#let (or sortBy "CreateTime:desc") as |sort|}}
     <AppView
-      @class="token list"
-      @loading={{isLoading}}
       @authorized={{isAuthorized}}
       @enabled={{isEnabled}}
       >

@@ -10,7 +10,6 @@ export default Route.extend(WithAclActions, {
   model: function(params) {
     return hash({
       routeName: this.routeName,
-      isLoading: false,
       item: this.repo.findBySlug(params.id, this.modelFor('dc').dc.Name),
       types: ['management', 'client'],
     });

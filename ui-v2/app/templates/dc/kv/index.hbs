@@ -1,6 +1,6 @@
 {{title 'Key/Value'}}
 {{#let (or sortBy "isFolder:asc") as |sort|}}
-  <AppView @class="kv list">
+  <AppView>
     <BlockSlot @name="breadcrumbs">
       <ol>
   {{#if (not-eq parent.Key '/') }}

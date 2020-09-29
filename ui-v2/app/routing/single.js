@@ -16,7 +16,6 @@ export default Route.extend({
     const nspace = this.modelFor('nspace').nspace.substr(1);
     const create = this.isCreate(...arguments);
     return hash({
-      isLoading: false,
       dc: dc,
       nspace: nspace,
       create: create,

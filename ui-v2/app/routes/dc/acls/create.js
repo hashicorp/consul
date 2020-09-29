@@ -18,7 +18,6 @@ export default Route.extend(WithAclActions, {
     return hash({
       routeName: this.routeName,
       create: true,
-      isLoading: false,
       item: this.item,
       types: ['management', 'client'],
     });
