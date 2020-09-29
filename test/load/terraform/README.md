@@ -19,7 +19,7 @@ ami_owners           = ["******"]
 consul_ami_id        = "ami-016d80ff5472346f0"
 ```
 4. In `providers.tf` the region variable can be set.
-5. When ready, run `terraform plan -var-file=vars.tfvars`, and then `terraform apply -var-file=vars.tfvars` when ready.
+5. Run `terraform plan -var-file=vars.tfvars`, and then `terraform apply -var-file=vars.tfvars` when ready.
 6. Upon completion the locust files should run and push metrics to desired Datadog dashboard. 
 
 # Customization 
