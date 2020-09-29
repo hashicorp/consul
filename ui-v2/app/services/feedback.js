@@ -1,5 +1,4 @@
 import Service, { inject as service } from '@ember/service';
-import { set } from '@ember/object';
 import callableType from 'consul-ui/utils/callable-type';
 
 const TYPE_SUCCESS = 'success';

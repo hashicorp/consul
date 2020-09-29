@@ -1,12 +1,10 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
-import { get, set } from '@ember/object';
 
 import WithBlockingActions from 'consul-ui/mixins/with-blocking-actions';
 
 export default Route.extend(WithBlockingActions, {
-  dom: service('dom'),
   router: service('router'),
   nspacesRepo: service('repository/nspace/disabled'),
   repo: service('repository/dc'),
@@ -70,7 +68,6 @@ export default Route.extend(WithBlockingActions, {
       const app = this.modelFor('application') || {};
       const dcs = app.dcs || [model.dc];
       const nspaces = app.nspaces || [model.nspace];
-      const $root = this.dom.root();
       hash({
         dc:
           error.status.toString().indexOf('5') !== 0
