@@ -28,7 +28,7 @@ main,
 #wrapper > footer {
   @extend %content-container;
 }
-html.template-edit main {
+html[data-route$='.edit'] main {
   @extend %content-container-restricted;
 }
 
