@@ -282,6 +282,7 @@ var translateCheckTypeTCs = [][]translateKeyTestCase{
 	translateScriptArgsTCs,
 	translateDeregisterTCs,
 	translateDockerTCs,
+	translateGRPCUseTLSTCs,
 	translateTLSTCs,
 	translateServiceIDTCs,
 }
@@ -557,6 +558,63 @@ var translateTLSTCs = []translateKeyTestCase{
 		want:       false, // zero value
 		jsonFmtStr: "{}",
 		equalityFn: tlsEqFn,
+	},
+}
+
+// GRPCUseTLS: bool
+func grpcUseTLSEqFn(out interface{}, want interface{}) error {
+	var got interface{}
+	switch v := out.(type) {
+	case structs.CheckDefinition:
+		got = v.GRPCUseTLS
+	case *structs.CheckDefinition:
+		got = v.GRPCUseTLS
+	case structs.CheckType:
+		got = v.GRPCUseTLS
+	case *structs.CheckType:
+		got = v.GRPCUseTLS
+	case structs.HealthCheckDefinition:
+		got = v.GRPCUseTLS
+	case *structs.HealthCheckDefinition:
+		got = v.GRPCUseTLS
+	default:
+		panic(fmt.Sprintf("unexpected type %T", out))
+	}
+	if got != want {
+		return fmt.Errorf("expected GRPCUseTLS to be %v, got %v", want, got)
+	}
+	return nil
+}
+
+var grpcUseTLSFields = []string{`"GRPCUseTLS": %s`, `"grpc_use_tls": %s`}
+var translateGRPCUseTLSTCs = []translateKeyTestCase{
+	{
+		desc:       "GRPCUseTLS: both set",
+		in:         []interface{}{"true", "false"},
+		want:       true,
+		jsonFmtStr: "{" + strings.Join(grpcUseTLSFields, ",") + "}",
+		equalityFn: grpcUseTLSEqFn,
+	},
+	{
+		desc:       "GRPCUseTLS: first set",
+		in:         []interface{}{`true`},
+		want:       true,
+		jsonFmtStr: "{" + grpcUseTLSFields[0] + "}",
+		equalityFn: grpcUseTLSEqFn,
+	},
+	{
+		desc:       "GRPCUseTLS: second set",
+		in:         []interface{}{`true`},
+		want:       true,
+		jsonFmtStr: "{" + grpcUseTLSFields[1] + "}",
+		equalityFn: grpcUseTLSEqFn,
+	},
+	{
+		desc:       "GRPCUseTLS: neither set",
+		in:         []interface{}{},
+		want:       false, // zero value
+		jsonFmtStr: "{}",
+		equalityFn: grpcUseTLSEqFn,
 	},
 }
 
