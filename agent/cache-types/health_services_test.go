@@ -1,6 +1,7 @@
 package cachetype
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -63,4 +64,58 @@ func TestHealthServices_badReqType(t *testing.T) {
 	require.Error(err)
 	require.Contains(err.Error(), "wrong type")
 
+}
+
+func TestHealthServices_IntegrationWithCache_NotModifiedResponse(t *testing.T) {
+	rpc := &MockRPC{}
+	typ := &HealthServices{RPC: rpc}
+
+	nodes := []structs.CheckServiceNode{
+		{Service: &structs.NodeService{Service: "foo"}},
+	}
+	rpc.On("RPC", "Health.ServiceNodes", mock.Anything, mock.Anything).
+		Return(nil).
+		Run(func(args mock.Arguments) {
+			req := args.Get(1).(*structs.ServiceSpecificRequest)
+			require.True(t, req.AllowStale)
+			require.True(t, req.AllowNotModifiedResponse)
+
+			reply := args.Get(2).(*structs.IndexedCheckServiceNodes)
+			reply.QueryMeta.Index = 44
+			reply.NotModified = true
+		})
+
+	c := cache.New(cache.Options{})
+	c.RegisterType(HealthServicesName, typ)
+	last := cache.FetchResult{
+		Value: &structs.IndexedCheckServiceNodes{
+			Nodes:     nodes,
+			QueryMeta: structs.QueryMeta{Index: 42},
+		},
+		Index: 42,
+	}
+	req := &structs.ServiceSpecificRequest{
+		Datacenter: "dc1",
+		QueryOptions: structs.QueryOptions{
+			Token:         "token",
+			MinQueryIndex: 44,
+			MaxQueryTime:  time.Second,
+		},
+	}
+
+	err := c.Prepopulate(HealthServicesName, last, "dc1", "token", req.CacheInfo().Key)
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	actual, _, err := c.Get(ctx, HealthServicesName, req)
+	require.NoError(t, err)
+
+	expected := &structs.IndexedCheckServiceNodes{
+		Nodes:     nodes,
+		QueryMeta: structs.QueryMeta{Index: 42},
+	}
+	require.Equal(t, expected, actual)
+
+	rpc.AssertExpectations(t)
 }

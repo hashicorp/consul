@@ -37,11 +37,14 @@ func (c *CatalogServices) Fetch(opts cache.FetchOptions, req cache.Request) (cac
 
 	// Always allow stale - there's no point in hitting leader if the request is
 	// going to be served from cache and end up arbitrarily stale anyway. This
-	// allows cached service-discover to automatically read scale across all
+	// allows cached entries to automatically read scale across all
 	// servers too.
-	reqReal.AllowStale = true
+	reqReal.QueryOptions.AllowStale = true
 
-	// Fetch
+	if opts.LastResult != nil {
+		reqReal.QueryOptions.AllowNotModifiedResponse = true
+	}
+
 	var reply structs.IndexedServiceNodes
 	if err := c.RPC.RPC("Catalog.ServiceNodes", reqReal, &reply); err != nil {
 		return result, err
@@ -49,5 +52,6 @@ func (c *CatalogServices) Fetch(opts cache.FetchOptions, req cache.Request) (cac
 
 	result.Value = &reply
 	result.Index = reply.QueryMeta.Index
+	result.NotModified = reply.QueryMeta.NotModified
 	return result, nil
 }
