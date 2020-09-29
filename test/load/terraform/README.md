@@ -20,7 +20,7 @@ consul_ami_id        = "ami-016d80ff5472346f0"
 ```
 4. In `providers.tf` the region variable can be set.
 5. When ready, run `terraform plan -var-file=vars.tfvars`, and then `terraform apply -var-file=vars.tfvars` when ready.
-6. Upon completion the locust files should run and push metrics to desire datadog dashboard. 
+6. Upon completion the locust files should run and push metrics to desired Datadog dashboard. 
 
 # Customization 
 All customization for infrastructure that is available can be found by looking through the `variables.tf` file. However, if customization of tests is desired then the `start-locust-primary.sh` and `start-locust.sh` can be modified to run different locustfiles. Desired locustfiles can be added to the 
