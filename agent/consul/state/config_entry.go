@@ -373,8 +373,8 @@ var serviceGraphKinds = []string{
 	structs.ServiceResolver,
 }
 
-// targetsForSource will return a list of services listed as a target for the input's discovery chain
-func (s *Store) targetsForSource(ws memdb.WatchSet, tx ReadTxn, dc, service string, entMeta *structs.EnterpriseMeta) (uint64, []structs.ServiceName, error) {
+// discoveryChainTargets will return a list of services listed as a target for the input's discovery chain
+func (s *Store) discoveryChainTargets(ws memdb.WatchSet, dc, service string, entMeta *structs.EnterpriseMeta) (uint64, []structs.ServiceName, error) {
 	source := structs.NewServiceName(service, entMeta)
 	req := discoverychain.CompileRequest{
 		ServiceName:         source.Name,
@@ -402,8 +402,8 @@ func (s *Store) targetsForSource(ws memdb.WatchSet, tx ReadTxn, dc, service stri
 	return idx, resp, nil
 }
 
-// sourcesForTarget will return a list of services whose discovery chains have the input service as a target
-func (s *Store) sourcesForTarget(ws memdb.WatchSet, tx ReadTxn, dc string, destination structs.ServiceName) (uint64, []structs.ServiceName, error) {
+// discoveryChainSources will return a list of services whose discovery chains have the input service as a target
+func (s *Store) discoveryChainSources(ws memdb.WatchSet, tx ReadTxn, dc string, destination structs.ServiceName) (uint64, []structs.ServiceName, error) {
 	queue := []structs.ServiceName{destination}
 
 	seenLink := make(map[structs.ServiceName]bool)

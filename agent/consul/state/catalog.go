@@ -3009,7 +3009,7 @@ func (s *Store) UpstreamsForService(ws memdb.WatchSet, dc string, sn structs.Ser
 	)
 	for _, u := range upstreams {
 		// Evaluate the targets from the upstream's discovery chain
-		idx, targets, err := s.targetsForSource(ws, tx, dc, u.Name, &u.EnterpriseMeta)
+		idx, targets, err := s.discoveryChainTargets(ws, dc, u.Name, &u.EnterpriseMeta)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed to get discovery chain targets for %q: %v", u.String(), err)
 		}
@@ -3038,7 +3038,7 @@ func (s *Store) DownstreamsForService(ws memdb.WatchSet, dc string, service stru
 	defer tx.Abort()
 
 	// First fetch services with discovery chains that list the input as a target
-	idx, sources, err := s.sourcesForTarget(ws, tx, dc, service)
+	idx, sources, err := s.discoveryChainSources(ws, tx, dc, service)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to get sources for discovery chain target %q: %v", service.String(), err)
 	}

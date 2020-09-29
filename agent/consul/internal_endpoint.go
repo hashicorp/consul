@@ -144,6 +144,45 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 		})
 }
 
+func (m *Internal) ServiceTopology(args *structs.ServiceSpecificRequest, reply *structs.IndexedServiceTopology) error {
+	if done, err := m.srv.ForwardRPC("Internal.ServiceTopology", args, args, reply); done {
+		return err
+	}
+	if args.ServiceName == "" {
+		return fmt.Errorf("Must provide a service name")
+	}
+
+	var authzContext acl.AuthorizerContext
+	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
+	if err != nil {
+		return err
+	}
+	if err := m.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+	if authz != nil && authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
+		return acl.ErrPermissionDenied
+	}
+
+	return m.srv.blockingQuery(
+		&args.QueryOptions,
+		&reply.QueryMeta,
+		func(ws memdb.WatchSet, state *state.Store) error {
+			index, topology, err := state.ServiceTopology(ws, args.Datacenter, args.ServiceName, &args.EnterpriseMeta)
+			if err != nil {
+				return err
+			}
+
+			reply.Index = index
+			reply.ServiceTopology = topology
+
+			if err := m.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
+			return nil
+		})
+}
+
 // GatewayServiceNodes returns all the nodes for services associated with a gateway along with their gateway config
 func (m *Internal) GatewayServiceDump(args *structs.ServiceSpecificRequest, reply *structs.IndexedServiceDump) error {
 	if done, err := m.srv.ForwardRPC("Internal.GatewayServiceDump", args, args, reply); done {
