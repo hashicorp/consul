@@ -4,7 +4,7 @@
     <TopologyMetrics
       @service={{items.firstObject}}
       @upstreams={{topology.Upstreams}}
-      @downstreams={{topology.Downstreams}}
+      @downstreams={{filter-by 'Datacenter' topology.Datacenter topology.Downstreams}}
       @dc={{topology.Datacenter}}
       @grafanaLink={{urls.service}}
     />

@@ -1,57 +1,20 @@
 import Component from '@glimmer/component';
 import { tracked } from '@glimmer/tracking';
 import { action } from '@ember/object';
-import { inject as service } from '@ember/service';
 
 export default class TopologyMetrics extends Component {
-  // =services
-  @service dom;
-
   // =attributes
   tagName = '';
 
-  @tracked downView;
-  @tracked downCardDimensions = [];
   @tracked centerDimensions;
-  @tracked upView;
-  @tracked upCardDimensions = [];
+  @tracked downView;
+  @tracked downLines = [];
   @tracked toMetricsArrow;
+  @tracked fromMetricsCircle;
+  @tracked upView;
+  @tracked upLines = [];
 
   // =methods
-  getDownCards() {
-    return document.querySelectorAll('[id^="downstreamCard"]');
-  }
-
-  getGrafana() {
-    return document.getElementById('metrics-container');
-  }
-
-  getUpCards() {
-    return document.querySelectorAll('[id^="upstreamCard"]');
-  }
-
-  getDimensions(item) {
-    return this.dom.element(item).getBoundingClientRect();
-  }
-
-  getSVGDimensions(item) {
-    const $el = this.dom.element('#' + item);
-    const $refs = [$el.offsetParent, $el];
-
-    return $refs.reduce(
-      function(prev, item) {
-        prev.x += item.offsetLeft;
-        prev.y += item.offsetTop;
-        return prev;
-      },
-      {
-        x: 0,
-        y: 0,
-        height: $el.offsetHeight,
-        width: $el.offsetWidth,
-      }
-    );
-  }
 
   curve() {
     const args = [...arguments];
@@ -59,6 +22,44 @@ export default class TopologyMetrics extends Component {
       .concat(args.shift())
       .map(p => Object.values(p).join(' '))
       .join(',')}`;
+  }
+
+  drawArrowToUpstream(dest) {
+    // The top/bottom points have the same X position
+    const x = dest.x - dest.width - 31;
+    const topY = dest.y + dest.height / 2 - 5;
+    const bottomY = dest.y + dest.height / 2 + 5;
+
+    const middleX = dest.x - dest.width - 21;
+    const middleY = dest.y + dest.height / 2;
+
+    return `${x} ${topY} ${middleX} ${middleY} ${x} ${bottomY}`;
+  }
+
+  drawDownLines(items) {
+    let calculations = [];
+    items.forEach(item => {
+      const dimensions = this.getSVGDimensions(item);
+      const dest = {
+        x: this.centerDimensions.x,
+        y: this.centerDimensions.y + this.centerDimensions.height / 4,
+      };
+      const src = {
+        x: dimensions.x + dimensions.width,
+        y: dimensions.y + dimensions.height / 2,
+      };
+
+      calculations.push({
+        ...dimensions,
+        line: this.drawLine(dest, src),
+        id: item.id
+          .split('-')
+          .slice(1)
+          .join('-'),
+      });
+    });
+
+    return calculations;
   }
 
   drawLine(dest, src) {
@@ -78,93 +79,97 @@ export default class TopologyMetrics extends Component {
     return `M ${src.x} ${src.y} ${this.curve(...args)}`;
   }
 
-  drawArrowToMetrics(dest) {
+  drawMetricsArrow(src) {
     // The top/bottom points have the same X position
-    const x = dest.x - 3;
-    const topY = dest.y + dest.height * 0.25 - 5;
-    const bottomY = dest.y + dest.height * 0.25 + 5;
+    const x = src.x - 3;
+    const topY = src.y + src.height * 0.25 - 5;
+    const bottomY = src.y + src.height * 0.25 + 5;
 
-    const middleX = dest.x + 7;
-    const middleY = dest.y + dest.height / 4;
+    const middleX = src.x + 7;
+    const middleY = src.y + src.height / 4;
 
     return `${x} ${topY} ${middleX} ${middleY} ${x} ${bottomY}`;
   }
 
-  drawArrowToUpstream(dest) {
-    // The top/bottom points have the same X position
-    const x = dest.x - dest.width - 31;
-    const topY = dest.y + dest.height / 2 - 5;
-    const bottomY = dest.y + dest.height / 2 + 5;
-
-    const middleX = dest.x - dest.width - 21;
-    const middleY = dest.y + dest.height / 2;
-
-    return `${x} ${topY} ${middleX} ${middleY} ${x} ${bottomY}`;
+  drawMetricsCircle(src) {
+    return {
+      x: src.x + 20,
+      y: src.y + src.height / 4,
+    };
   }
 
-  // =actions
-  @action
-  calculate() {
-    // Calculate viewBox dimensions
-    this.downView = this.getDimensions('#downstream-lines');
-    this.upView = this.getDimensions('#upstream-lines');
-
-    // Get Element Positions
-    const downCards = this.getDownCards();
-    const grafanaCard = this.getGrafana();
-    const upCards = this.getUpCards();
-
-    // Set center positioning points
-    this.centerDimensions = this.getSVGDimensions(grafanaCard.id.toString());
-
-    // Draws the arrow that goes from Downstreams -> Metrics
-    this.toMetricsArrow = this.drawArrowToMetrics(this.centerDimensions);
-
-    let downCalcs = [];
-    downCards.forEach(item => {
-      const dimensions = this.getSVGDimensions(item.id.toString());
-
-      const dest = {
-        x: this.centerDimensions.x,
-        y: this.centerDimensions.y + this.centerDimensions.height / 4,
-      };
-      const src = {
-        x: dimensions.x + dimensions.width,
-        y: dimensions.y + dimensions.height / 2,
-      };
-
-      downCalcs.push({
-        ...dimensions,
-        line: this.drawLine(dest, src),
-        id: this.dom.guid(item),
-      });
-    });
-
-    // Set Downstream Cards Positioning points
-    this.downCardDimensions = downCalcs;
-
-    let upCalcs = [];
-    upCards.forEach(item => {
-      const dimensions = this.getSVGDimensions(item.id.toString());
+  drawUpLines(items) {
+    let calculations = [];
+    items.forEach(item => {
+      const dimensions = this.getSVGDimensions(item);
       const dest = {
         x: dimensions.x - dimensions.width - 30,
         y: dimensions.y + dimensions.height / 2,
       };
       const src = {
-        x: this.centerDimensions.x,
+        x: this.centerDimensions.x + 20,
         y: this.centerDimensions.y + this.centerDimensions.height / 4,
       };
 
-      upCalcs.push({
+      calculations.push({
         ...dimensions,
         line: this.drawLine(dest, src),
         // Draws the arrow that goes from Metrics -> Upstream
         arrow: this.drawArrowToUpstream(dimensions),
-        id: this.dom.guid(item),
+        id: item.id
+          .split('-')
+          .slice(1)
+          .join('-'),
       });
     });
 
+    return calculations;
+  }
+
+  getSVGDimensions(item) {
+    const $el = item;
+    const $refs = [$el.offsetParent, $el];
+
+    return $refs.reduce(
+      function(prev, item) {
+        prev.x += item.offsetLeft;
+        prev.y += item.offsetTop;
+        return prev;
+      },
+      {
+        x: 0,
+        y: 0,
+        height: $el.offsetHeight,
+        width: $el.offsetWidth,
+      }
+    );
+  }
+
+  // =actions
+  @action
+  calculate(e) {
+    // Calculate viewBox dimensions
+    this.downView = document.querySelector('#downstream-lines').getBoundingClientRect();
+    this.upView = document.querySelector('#upstream-lines').getBoundingClientRect();
+
+    // Get Card elements positions
+    const downCards = document.querySelectorAll('[id^="downstreamCard"]');
+    const grafanaCard = document.querySelector('#metrics-container');
+    const upCards = document.querySelectorAll('[id^="upstreamCard"]');
+
+    // Set center positioning points
+    this.centerDimensions = this.getSVGDimensions(grafanaCard);
+
+    // Set Downstream Cards Positioning points
+    this.downLines = this.drawDownLines(downCards);
+
+    // Draw arrow that goes from Downstreams -> Metrics
+    this.toMetricsArrow = this.drawMetricsArrow(this.centerDimensions);
+
     // Set Upstream Cards Positioning points
-    this.upCardDimensions = upCalcs;
+    this.upLines = this.drawUpLines(upCards);
+
+    // Draw the circle Metrics -> Upstreams
+    this.fromMetricsCircle = this.drawMetricsCircle(this.centerDimensions);
   }
 }

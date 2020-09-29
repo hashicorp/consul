@@ -1,4 +1,5 @@
-{{on-window 'resize' (action "calculate") }}
+{{on-window 'resize' (action "calculate")}}
+
 <div {{did-insert (action "calculate")}} class="topology-container">
 {{#if (gt @downstreams.length 0)}}
   <div id="downstream-container" class="downstream-container">
@@ -6,13 +7,12 @@
       <p>{{@dc}}</p>
       <span class="dc-info">
         <Tooltip>
-          Only showing downstreams withing the current datacenter for {{@service.Service.Service}}.
+          Only showing downstreams within the current datacenter for {{@service.Service.Service}}.
         </Tooltip>
       </span>
     </div>
   {{#each @downstreams as |downstream|}}
-  {{#if (eq @dc downstream.Datacenter)}}
-    <div id="downstreamCard-{{downstream.Name}}" class="downstream-card">
+    <div id="downstreamCard-{{downstream.Namespace}}{{downstream.Name}}" class="downstream-card">
       <p>
         {{downstream.Name}}
       </p>
@@ -30,7 +30,6 @@
     {{/let}}
       </div>
     </div>
-  {{/if}}
   {{/each}}
   </div>
 {{/if}}
@@ -46,17 +45,17 @@
     {{/if}}
     </div>
   </div>
-  <div  id="downstream-lines" class="downstream-lines">
-    {{#if (gt this.downCardDimensions.length 0)}}
+  <div id="downstream-lines" class="downstream-lines">
+  {{#if (gt this.downLines.length 0)}}
     <svg
       viewBox={{concat downView.x ' ' downView.y ' ' downView.width ' ' downView.height}}
       preserveAspectRatio="none"
     >
-    {{#each this.downCardDimensions as |svg| }}
+    {{#each this.downLines as |svg| }}
       <g>
         <path
           class="line-fill"
-          id={{concat 'downstream-line-' svg.id}}
+          id={{concat 'downstreamLine-' svg.id}}
           d={{svg.line}}
         />
         <circle
@@ -72,7 +71,7 @@
         points={{this.toMetricsArrow}}
       />
     </svg>
-    {{/if}}
+  {{/if}}
   </div>
 {{#if (gt @upstreams.length 0)}}
   <div class="upstreams-column">
@@ -80,7 +79,7 @@
     <div class="upstream-container">
       <p>{{dc}}</p>
       {{#each upstreams as |upstream|}}
-      <div id="upstreamCard-{{upstream.Name}}" class="upstream-card">
+      <div id="upstreamCard-{{upstream.Namespace}}{{upstream.Name}}" class="upstream-card">
         <p>
           {{upstream.Name}}
         </p>
@@ -129,11 +128,14 @@
   </div>
 {{/if}}
   <div id="upstream-lines" class="upstream-lines">
-  {{#if (gt this.upCardDimensions.length 0)}}
-    <svg viewBox={{concat this.centerDimensions.x ' ' upView.y ' ' upView.width ' ' upView.height}} preserveAspectRatio="none">
-    {{#each this.upCardDimensions as |svg| }}
+  {{#if (gt this.upLines.length 0)}}
+    <svg
+      viewBox={{concat this.centerDimensions.x ' ' upView.y ' ' upView.width ' ' upView.height}}
+      preserveAspectRatio="none"
+    >
+    {{#each this.upLines as |svg| }}
       <g>
-        <path id={{concat 'upstream-line-' svg.id}} class="line-fill" d={{svg.line}} />
+        <path id={{concat 'upstreamLine-' svg.id}} class="line-fill" d={{svg.line}} />
         <polygon class="line-arrow"
           points={{svg.arrow}}
         />
@@ -142,8 +144,8 @@
 
       <circle
         class="line-circle"
-        cx={{add this.centerDimensions.x 6}}
-        cy={{add this.centerDimensions.y (div this.centerDimensions.height 4)}}
+        cx={{this.fromMetricsCircle.x}}
+        cy={{this.fromMetricsCircle.y}}
         r="5"
       />
     </svg>
