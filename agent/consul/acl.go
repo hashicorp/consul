@@ -1409,6 +1409,21 @@ func (f *aclFilter) filterCheckServiceNodes(nodes *structs.CheckServiceNodes) {
 	*nodes = csn
 }
 
+// filterServiceTopology is used to filter upstreams/downstreams based on ACL rules.
+// this filter is unlike other in that it also returns whether the result was filtered by ACLs
+func (f *aclFilter) filterServiceTopology(topology *structs.ServiceTopology) bool {
+	numUp := len(topology.Upstreams)
+	numDown := len(topology.Downstreams)
+
+	f.filterCheckServiceNodes(&topology.Upstreams)
+	f.filterCheckServiceNodes(&topology.Downstreams)
+
+	if numUp != len(topology.Upstreams) || numDown != len(topology.Downstreams) {
+		return true
+	}
+	return false
+}
+
 // filterDatacenterCheckServiceNodes is used to filter nodes based on ACL rules.
 func (f *aclFilter) filterDatacenterCheckServiceNodes(datacenterNodes *map[string]structs.CheckServiceNodes) {
 	dn := *datacenterNodes
@@ -1845,6 +1860,12 @@ func (r *ACLResolver) filterACLWithAuthorizer(authorizer acl.Authorizer, subj in
 
 	case *structs.IndexedCheckServiceNodes:
 		filt.filterCheckServiceNodes(&v.Nodes)
+
+	case *structs.IndexedServiceTopology:
+		filtered := filt.filterServiceTopology(v.ServiceTopology)
+		if filtered {
+			v.FilteredByACLs = true
+		}
 
 	case *structs.DatacenterIndexedCheckServiceNodes:
 		filt.filterDatacenterCheckServiceNodes(&v.DatacenterNodes)
