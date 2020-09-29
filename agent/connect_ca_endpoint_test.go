@@ -2,6 +2,8 @@ package agent
 
 import (
 	"bytes"
+	"crypto/x509"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -257,4 +259,35 @@ func TestConnectCAConfig(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestConnectCARoots_PEMEncoding(t *testing.T) {
+	primary := NewTestAgent(t, "")
+	defer primary.Shutdown()
+	testrpc.WaitForActiveCARoot(t, primary.RPC, "dc1", nil)
+
+	secondary := NewTestAgent(t, `
+		primary_datacenter = "dc1"
+		datacenter = "dc2"
+		retry_join_wan = ["`+primary.Config.SerfBindAddrWAN.String()+`"]
+	`)
+	defer secondary.Shutdown()
+	testrpc.WaitForActiveCARoot(t, secondary.RPC, "dc2", nil)
+
+	req, _ := http.NewRequest("GET", "/v1/connect/ca/roots?pem=true", nil)
+	recorder := httptest.NewRecorder()
+	obj, err := secondary.srv.ConnectCARoots(recorder, req)
+	require.NoError(t, err)
+	require.Nil(t, obj, "Endpoint returned an object for serialization when it should have returned nil and written to the responses")
+	resp := recorder.Result()
+	require.Equal(t, resp.Header.Get("Content-Type"), "application/pem-certificate-chain")
+
+	data, err := ioutil.ReadAll(resp.Body)
+	require.NoError(t, err)
+
+	pool := x509.NewCertPool()
+
+	require.True(t, pool.AppendCertsFromPEM(data))
+	// expecting the root cert from dc1 and an intermediate in dc2
+	require.Len(t, pool.Subjects(), 2)
 }
