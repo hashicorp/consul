@@ -92,7 +92,9 @@
                     {{nspace.Name}}
                   {{/if}}
           </PowerSelectWithCreate>
+        {{#if create}}
           <em>For the destination, you may choose any namespace for which you have access.</em>
+        {{/if}}
         </label>
 {{/if}}
       </fieldset>
