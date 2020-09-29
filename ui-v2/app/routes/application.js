@@ -39,14 +39,8 @@ export default Route.extend(WithBlockingActions, {
   },
   actions: {
     loading: function(transition, originRoute) {
-      const from = get(transition, 'from.name') || 'application';
-      const controller = this.controllerFor(from);
-
-      set(controller, 'loading', true);
       const $root = this.dom.root();
-      $root.classList.add('loading');
       transition.promise.finally(() => {
-        set(controller, 'loading', false);
         removeLoading($root);
       });
     },
