@@ -3,7 +3,7 @@
 # How to use
 1. Build an image with the desired Consul version and a loadtest image in the Packer folder here.
 2. Create your own `vars.tfvars` file in this directory.
-3. Place the apprioate AMI IDs in the `consul_ami_id` and `test_server_ami` variables, here is an example of a `vars.tfvars`:
+3. Place the appropriate AMI IDs in the `consul_ami_id` and `test_server_ami` variables, here is an example of a `vars.tfvars`:
 ```
 vpc_name             = "consul-test-vpc"
 vpc_cidr             = "11.0.0.0/16"
