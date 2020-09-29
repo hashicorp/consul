@@ -403,8 +403,7 @@ func (s *Store) targetsForSource(ws memdb.WatchSet, tx ReadTxn, dc, service stri
 }
 
 // sourcesForTarget will return a list of services whose discovery chains have the input service as a target
-func (s *Store) sourcesForTarget(ws memdb.WatchSet, tx ReadTxn, dc, service string, entMeta *structs.EnterpriseMeta) (uint64, []structs.ServiceName, error) {
-	destination := structs.NewServiceName(service, entMeta)
+func (s *Store) sourcesForTarget(ws memdb.WatchSet, tx ReadTxn, dc string, destination structs.ServiceName) (uint64, []structs.ServiceName, error) {
 	queue := []structs.ServiceName{destination}
 
 	seenLink := make(map[structs.ServiceName]bool)
@@ -444,7 +443,7 @@ func (s *Store) sourcesForTarget(ws memdb.WatchSet, tx ReadTxn, dc, service stri
 			EvaluateInDatacenter: dc,
 			UseInDatacenter:      dc,
 		}
-		idx, chain, err := s.ServiceDiscoveryChain(ws, sn.Name, entMeta, req)
+		idx, chain, err := s.ServiceDiscoveryChain(ws, sn.Name, &sn.EnterpriseMeta, req)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed to fetch discovery chain for %q: %v", sn.String(), err)
 		}

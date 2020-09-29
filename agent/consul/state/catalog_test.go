@@ -6861,7 +6861,8 @@ func TestCatalog_UpstreamsForService(t *testing.T) {
 			}
 
 			ws := memdb.NewWatchSet()
-			idx, names, err := s.UpstreamsForService(ws, "dc1", "api", structs.DefaultEnterpriseMeta())
+			sn := structs.NewServiceName("api", structs.DefaultEnterpriseMeta())
+			idx, names, err := s.UpstreamsForService(ws, "dc1", sn)
 			require.NoError(t, err)
 
 			require.Equal(t, tc.expect.idx, idx)
@@ -6993,11 +6994,12 @@ func TestCatalog_DownstreamsForService(t *testing.T) {
 			}
 
 			ws := memdb.NewWatchSet()
-			idx, ids, err := s.DownstreamsForService(ws, "dc1", "admin", structs.DefaultEnterpriseMeta())
+			sn := structs.NewServiceName("api", structs.DefaultEnterpriseMeta())
+			idx, names, err := s.DownstreamsForService(ws, "dc1", sn)
 			require.NoError(t, err)
 
 			require.Equal(t, tc.expect.idx, idx)
-			require.ElementsMatch(t, tc.expect.names, ids)
+			require.ElementsMatch(t, tc.expect.names, names)
 		})
 	}
 }

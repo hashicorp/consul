@@ -1855,6 +1855,17 @@ type IndexedGatewayServices struct {
 	QueryMeta
 }
 
+type IndexedServiceTopology struct {
+	ServiceTopology *ServiceTopology
+	FilteredByACLs  bool
+	QueryMeta
+}
+
+type ServiceTopology struct {
+	Upstreams   CheckServiceNodes
+	Downstreams CheckServiceNodes
+}
+
 // IndexedConfigEntries has its own encoding logic which differs from
 // ConfigEntryRequest as it has to send a slice of ConfigEntry.
 type IndexedConfigEntries struct {
