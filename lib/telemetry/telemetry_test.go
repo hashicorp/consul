@@ -48,7 +48,7 @@ func makeFullTelemetryConfig(t *testing.T) Config {
 }
 
 // note(kit): We should able to check for the presence of specific sinks, but the fact that we hard error
-//  out if any sinks fail to build means that NoError is sufficient... even if it feels imprecise.
+//  out if any sinks fail to build means that require.NoError() is sufficient... even if it feels imprecise.
 func TestTelemetry_Sinks(t *testing.T) {
 	tests := []struct {
 		name string
@@ -105,7 +105,7 @@ func TestTelemetry_Sinks(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, _, err := Init(tt.cfg)
+			_, err := Init(tt.cfg)
 			require.NoError(t, err)
 		})
 	}

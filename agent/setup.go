@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/hashicorp/consul/lib/telemetry"
-
 	"github.com/armon/go-metrics"
 
 	autoconf "github.com/hashicorp/consul/agent/auto-config"
@@ -18,6 +16,7 @@ import (
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/ipaddr"
+	"github.com/hashicorp/consul/lib/telemetry"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/go-hclog"
@@ -30,20 +29,37 @@ import (
 type BaseDeps struct {
 	Logger          hclog.InterceptLogger
 	TLSConfigurator *tlsutil.Configurator // TODO: use an interface
-	// todo(kit): migrate this to an internal metrics client
-	MetricsClient  *metrics.Metrics
-	MetricsHandler MetricsHandler
-	RuntimeConfig  *config.RuntimeConfig
-	Tokens         *token.Store
-	Cache          *cache.Cache
-	AutoConfig     *autoconf.AutoConfig // TODO: use an interface
-	ConnPool       *pool.ConnPool       // TODO: use an interface
-	Router         *router.Router
+	MetricsClient   MetricsClient
+	MetricsHandler  MetricsHandler
+	RuntimeConfig   *config.RuntimeConfig
+	Tokens          *token.Store
+	Cache           *cache.Cache
+	AutoConfig      *autoconf.AutoConfig // TODO: use an interface
+	ConnPool        *pool.ConnPool       // TODO: use an interface
+	Router          *router.Router
 }
 
 // MetricsHandler provides an http.Handler for displaying metrics.
 type MetricsHandler interface {
 	DisplayMetrics(resp http.ResponseWriter, req *http.Request) (interface{}, error)
+}
+
+// MetricsClient provides methods for writing metrics to various sinks.
+type MetricsClient interface {
+	// Gauges retain the last value they are set to
+	SetGauge(key []string, val float32, labels ...telemetry.Label)
+
+	// Counters accumulate
+	IncrCounter(key []string, val float32, labels ...telemetry.Label)
+
+	// Samples provide a time
+	AddSample(key []string, val float32, labels ...telemetry.Label)
+
+	// Convenience fn to capture durations for samples
+	MeasureSince(key []string, start time.Time, labels ...telemetry.Label)
+
+	// Exposes InmemSink for rendering local process metrics
+	GetInmemSink() *metrics.InmemSink
 }
 
 type ConfigLoader func(source config.Source) (cfg *config.RuntimeConfig, warnings []string, err error)
@@ -72,10 +88,11 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 		return d, fmt.Errorf("failed to setup node ID: %w", err)
 	}
 
-	d.MetricsClient, d.MetricsHandler, err = telemetry.Init(cfg.Telemetry)
+	d.MetricsClient, err = telemetry.Init(cfg.Telemetry)
 	if err != nil {
 		return d, fmt.Errorf("failed to initialize telemetry: %w", err)
 	}
+	d.MetricsHandler = d.MetricsClient.GetInmemSink()
 
 	d.TLSConfigurator, err = tlsutil.NewConfigurator(cfg.ToTLSUtilConfig(), d.Logger)
 	if err != nil {

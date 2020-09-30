@@ -167,6 +167,9 @@ type Agent struct {
 	// In-memory sink used for collecting metrics
 	MemSink MetricsHandler
 
+	// Client for recording and submitting metrics
+	MetricsClient MetricsClient
+
 	// delegate is either a *consul.Server or *consul.Client
 	// depending on the configuration
 	delegate delegate
@@ -344,6 +347,7 @@ func New(bd BaseDeps) (*Agent, error) {
 		config:          bd.RuntimeConfig,
 		cache:           bd.Cache,
 		MemSink:         bd.MetricsHandler,
+		MetricsClient:   bd.MetricsClient,
 		connPool:        bd.ConnPool,
 		autoConf:        bd.AutoConfig,
 		router:          bd.Router,

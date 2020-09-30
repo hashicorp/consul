@@ -2,13 +2,13 @@ package proxy
 
 import (
 	"crypto/x509"
-
-	"github.com/hashicorp/consul/lib/telemetry"
+	"time"
 
 	"github.com/armon/go-metrics"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/connect"
+	"github.com/hashicorp/consul/lib/telemetry"
 	"github.com/hashicorp/go-hclog"
 )
 
@@ -19,7 +19,24 @@ type Proxy struct {
 	stopChan      chan struct{}
 	logger        hclog.Logger
 	service       *connect.Service
-	metricsClient *metrics.Metrics
+	metricsClient MetricsClient
+}
+
+// MetricsClient provides methods for writing metrics to various sinks.
+type MetricsClient interface {
+	// Gauges retain the last value they are set to
+	SetGauge(key []string, val float32, labels ...telemetry.Label)
+
+	// Counters accumulate
+	IncrCounter(key []string, val float32, labels ...telemetry.Label)
+
+	// Samples provide a time
+	AddSample(key []string, val float32, labels ...telemetry.Label)
+
+	// Convenience fn to capture durations for samples
+	MeasureSince(key []string, start time.Time, labels ...telemetry.Label)
+
+	GetInmemSink() *metrics.InmemSink
 }
 
 // New returns a proxy with the given configuration source.
@@ -58,7 +75,8 @@ func (p *Proxy) Serve() error {
 				// Initial setup
 
 				// Setup telemetry if configured
-				_, _, err := telemetry.Init(newCfg.Telemetry)
+				var err error
+				p.metricsClient, err = telemetry.Init(newCfg.Telemetry)
 				if err != nil {
 					p.logger.Error("proxy telemetry config error", "error", err)
 				}
