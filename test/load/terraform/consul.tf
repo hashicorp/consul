@@ -65,7 +65,7 @@ module "alb" {
   source  = "terraform-aws-modules/alb/aws"
   version = "~> 5.0"
 
-  name = "${var.cluster_name}-alb"
+  name = "${var.cluster_name}-${local.random_name}-alb"
 
   load_balancer_type = "application"
 

@@ -28,7 +28,7 @@ module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "2.21.0"
 
-  name               = var.vpc_name
+  name               = "${local.random_name}-${var.vpc_name}"
   cidr               = var.vpc_cidr
   azs                = var.vpc_az
   public_subnets     = var.public_subnet_cidrs

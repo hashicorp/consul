@@ -1,9 +1,7 @@
 [Unit]
-Description=Controls Locust Load Test
-
+Description=Execute run-k6.
 [Service]
 Type=simple
-ExecStart=/bin/bash /home/ubuntu/scripts/enable-loadtest.sh
-
+ExecStart=/bin/bash -c 'exec /home/ubuntu/scripts/run-k6.sh'
 [Install]
 WantedBy=multi-user.target

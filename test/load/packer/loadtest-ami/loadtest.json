@@ -35,7 +35,7 @@
   },{
     "type": "shell",
     "execute_command": "sudo -S sh -c '{{ .Vars }} {{ .Path }}'",
-    "script": "./scripts/install-locust.sh"
+    "script": "./scripts/install-k6.sh"
     }]
   
 }
