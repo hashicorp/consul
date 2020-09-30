@@ -92,7 +92,7 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 
 	// Set up a renewer to renew the token automatically, if supported.
 	if token.Renewable {
-		lifetimeWatcher, err := client.NewLifetimeWatcher(&vaultapi.LifetimeWatcherInput{
+		renewer, err := client.NewRenewer(&vaultapi.RenewerInput{
 			Secret: &vaultapi.Secret{
 				Auth: &vaultapi.SecretAuth{
 					ClientToken:   config.Token,
@@ -100,8 +100,7 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 					LeaseDuration: secret.LeaseDuration,
 				},
 			},
-			Increment:     token.TTL,
-			RenewBehavior: vaultapi.RenewBehaviorIgnoreErrors,
+			Increment: token.TTL,
 		})
 		if err != nil {
 			return fmt.Errorf("Error beginning Vault provider token renewal: %v", err)
@@ -109,31 +108,31 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 
 		ctx, cancel := context.WithCancel(context.TODO())
 		v.shutdown = cancel
-		go v.renewToken(ctx, lifetimeWatcher)
+		go v.renewToken(ctx, renewer)
 	}
 
 	return nil
 }
 
 // renewToken uses a vaultapi.Renewer to repeatedly renew our token's lease.
-func (v *VaultProvider) renewToken(ctx context.Context, watcher *vaultapi.LifetimeWatcher) {
-	go watcher.Start()
-	defer watcher.Stop()
+func (v *VaultProvider) renewToken(ctx context.Context, renewer *vaultapi.Renewer) {
+	go renewer.Renew()
+	defer renewer.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
 			return
 
-		case err := <-watcher.DoneCh():
+		case err := <-renewer.DoneCh():
 			if err != nil {
 				v.logger.Error("Error renewing token for Vault provider", "error", err)
 			}
 
-			// Watcher routine has finished, so start it again.
-			go watcher.Start()
+			// Renewer routine has finished, so start it again.
+			go renewer.Renew()
 
-		case <-watcher.RenewCh():
+		case <-renewer.RenewCh():
 			v.logger.Error("Successfully renewed token for Vault provider")
 		}
 	}
@@ -384,6 +383,7 @@ func (v *VaultProvider) GenerateIntermediate() (string, error) {
 		"csr":            csr,
 		"use_csr_values": true,
 		"format":         "pem_bundle",
+		"ttl":            v.config.IntermediateCertTTL.String(),
 	})
 	if err != nil {
 		return "", err
@@ -456,6 +456,7 @@ func (v *VaultProvider) SignIntermediate(csr *x509.CertificateRequest) (string, 
 		"use_csr_values":  true,
 		"format":          "pem_bundle",
 		"max_path_length": 0,
+		"ttl":             v.config.IntermediateCertTTL.String(),
 	})
 	if err != nil {
 		return "", err

@@ -510,6 +510,31 @@ func (s *Server) persistNewRoot(provider ca.Provider, newActiveRoot *structs.CAR
 	return nil
 }
 
+// getIntermediateCAPrimary regenerates the intermediate cert in the primary datacenter.
+// This is only run for CAs that require an intermediary in the primary DC, such as Vault.
+// This function is being called while holding caProviderReconfigurationLock
+// which means it must never take that lock itself or call anything that does.
+func (s *Server) getIntermediateCAPrimary(provider ca.Provider, newActiveRoot *structs.CARoot) error {
+	connectLogger := s.loggers.Named(logging.Connect)
+	intermediatePEM, err := provider.GenerateIntermediate()
+	if err != nil {
+		return fmt.Errorf("error generating new intermediate cert: %v", err)
+	}
+
+	intermediateCert, err := connect.ParseCert(intermediatePEM)
+	if err != nil {
+		return fmt.Errorf("error parsing intermediate cert: %v", err)
+	}
+
+	// Append the new intermediate to our local active root entry. This is
+	// where the root representations start to diverge.
+	newActiveRoot.IntermediateCerts = append(newActiveRoot.IntermediateCerts, intermediatePEM)
+	newActiveRoot.SigningKeyID = connect.EncodeSigningKeyID(intermediateCert.SubjectKeyId)
+
+	connectLogger.Info("generated new intermediate certificate in primary datacenter")
+	return nil
+}
+
 // getIntermediateCASigned is being called while holding caProviderReconfigurationLock
 // which means it must never take that lock itself or call anything that does.
 func (s *Server) getIntermediateCASigned(provider ca.Provider, newActiveRoot *structs.CARoot) error {
@@ -558,10 +583,10 @@ func (s *Server) startConnectLeader() {
 	if s.config.ConnectEnabled && s.config.Datacenter != s.config.PrimaryDatacenter {
 		s.leaderRoutineManager.Start(secondaryCARootWatchRoutineName, s.secondaryCARootWatch)
 		s.leaderRoutineManager.Start(intentionReplicationRoutineName, s.replicateIntentions)
-		s.leaderRoutineManager.Start(secondaryCertRenewWatchRoutineName, s.secondaryIntermediateCertRenewalWatch)
 		s.startConnectLeaderEnterprise()
 	}
 
+	s.leaderRoutineManager.Start(intermediateCertRenewWatchRoutineName, s.intermediateCertRenewalWatch)
 	s.leaderRoutineManager.Start(caRootPruningRoutineName, s.runCARootPruning)
 }
 
@@ -652,11 +677,12 @@ func (s *Server) pruneCARoots() error {
 	return nil
 }
 
-// secondaryIntermediateCertRenewalWatch checks the intermediate cert for
+// intermediateCertRenewalWatch checks the intermediate cert for
 // expiration. As soon as more than half the time a cert is valid has passed,
 // it will try to renew it.
-func (s *Server) secondaryIntermediateCertRenewalWatch(ctx context.Context) error {
+func (s *Server) intermediateCertRenewalWatch(ctx context.Context) error {
 	connectLogger := s.loggers.Named(logging.Connect)
+	isPrimary := s.config.Datacenter == s.config.PrimaryDatacenter
 
 	for {
 		select {
@@ -672,7 +698,8 @@ func (s *Server) secondaryIntermediateCertRenewalWatch(ctx context.Context) erro
 					// this happens when leadership is being revoked and this go routine will be stopped
 					return nil
 				}
-				if !s.configuredSecondaryCA() {
+				// If this isn't the primary, make sure the CA has been initialized.
+				if !isPrimary && !s.configuredSecondaryCA() {
 					return fmt.Errorf("secondary CA is not yet configured.")
 				}
 
@@ -682,13 +709,26 @@ func (s *Server) secondaryIntermediateCertRenewalWatch(ctx context.Context) erro
 					return err
 				}
 
+				// If this is the primary, check if this is a provider that uses an intermediate cert. If
+				// it isn't, we don't need to check for a renewal.
+				if isPrimary {
+					_, config, err := state.CAConfig(nil)
+					if err != nil {
+						return err
+					}
+
+					if _, ok := ca.PrimaryIntermediateProviders[config.Provider]; !ok {
+						return nil
+					}
+				}
+
 				activeIntermediate, err := provider.ActiveIntermediate()
 				if err != nil {
 					return err
 				}
 
 				if activeIntermediate == "" {
-					return fmt.Errorf("secondary datacenter doesn't have an active intermediate.")
+					return fmt.Errorf("datacenter doesn't have an active intermediate.")
 				}
 
 				intermediateCert, err := connect.ParseCert(activeIntermediate)
@@ -698,10 +738,15 @@ func (s *Server) secondaryIntermediateCertRenewalWatch(ctx context.Context) erro
 
 				if lessThanHalfTimePassed(time.Now(), intermediateCert.NotBefore.Add(ca.CertificateTimeDriftBuffer),
 					intermediateCert.NotAfter) {
+					//connectLogger.Info("checked time passed", intermediateCert.NotBefore.Add(ca.CertificateTimeDriftBuffer), intermediateCert.NotAfter)
 					return nil
 				}
 
-				if err := s.getIntermediateCASigned(provider, activeRoot); err != nil {
+				renewalFunc := s.getIntermediateCAPrimary
+				if !isPrimary {
+					renewalFunc = s.getIntermediateCASigned
+				}
+				if err := renewalFunc(provider, activeRoot); err != nil {
 					return err
 				}
 
@@ -713,7 +758,7 @@ func (s *Server) secondaryIntermediateCertRenewalWatch(ctx context.Context) erro
 				return nil
 			}, func(err error) {
 				connectLogger.Error("error renewing intermediate certs",
-					"routine", secondaryCertRenewWatchRoutineName,
+					"routine", intermediateCertRenewWatchRoutineName,
 					"error", err,
 				)
 			})
