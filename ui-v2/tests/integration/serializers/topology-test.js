@@ -11,7 +11,7 @@ module('Integration | Serializer | topology', function(hooks) {
     const dc = 'dc-1';
     const id = 'slug';
     const request = {
-      url: `/v1/internal/ui/topology/${id}?dc=${dc}`,
+      url: `/v1/internal/ui/service-topology/${id}?dc=${dc}`,
     };
     return get(request.url).then(function(payload) {
       const expected = {

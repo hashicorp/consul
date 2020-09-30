@@ -13,7 +13,7 @@ test('findBySlug returns the correct data for item endpoint', function(assert) {
     'findBySlug',
     this.subject(),
     function retrieveStub(stub) {
-      return stub(`/v1/internal/ui/topology/${id}?dc=${dc}`, {
+      return stub(`/v1/internal/ui/service-topology/${id}?dc=${dc}`, {
         CONSUL_DISCOVERY_CHAIN_COUNT: 1,
       });
     },

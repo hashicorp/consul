@@ -6,7 +6,7 @@ export default Adapter.extend({
       throw new Error('You must specify an id');
     }
     return request`
-      GET /v1/internal/ui/topology/${id}?${{ dc }}
+      GET /v1/internal/ui/service-topology/${id}?${{ dc }}
       X-Request-ID: ${uri}
 
       ${{

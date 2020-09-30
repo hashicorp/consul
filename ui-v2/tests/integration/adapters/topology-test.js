@@ -10,7 +10,7 @@ module('Integration | Adapter | topology', function(hooks) {
   test('requestForQueryRecord returns the correct url/method', function(assert) {
     const adapter = this.owner.lookup('adapter:topology');
     const client = this.owner.lookup('service:client/http');
-    const expected = `GET /v1/internal/ui/topology/${id}?dc=${dc}`;
+    const expected = `GET /v1/internal/ui/service-topology/${id}?dc=${dc}`;
     const actual = adapter.requestForQueryRecord(client.requestParams.bind(client), {
       dc: dc,
       id: id,
