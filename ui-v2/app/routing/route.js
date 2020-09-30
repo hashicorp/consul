@@ -1,4 +1,5 @@
 import Route from '@ember/routing/route';
+import { setProperties } from '@ember/object';
 
 /**
  * Set the routeName for the controller so that it is
@@ -6,7 +7,9 @@ import Route from '@ember/routing/route';
  */
 export default class BaseRoute extends Route {
   setupController(controller, model) {
-    controller.routeName = this.routeName;
+    setProperties(controller, {
+      routeName: this.routeName,
+    });
     super.setupController(...arguments);
   }
 }
