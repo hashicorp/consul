@@ -272,7 +272,7 @@ github.com/hashicorp/hil
 github.com/hashicorp/hil/ast
 github.com/hashicorp/hil/parser
 github.com/hashicorp/hil/scanner
-# github.com/hashicorp/mdns v1.0.1
+# github.com/hashicorp/mdns v1.0.3
 github.com/hashicorp/mdns
 # github.com/hashicorp/memberlist v0.2.2
 github.com/hashicorp/memberlist
@@ -316,13 +316,13 @@ github.com/konsorten/go-windows-terminal-sequences
 github.com/kr/text
 # github.com/linode/linodego v0.7.1
 github.com/linode/linodego
-# github.com/mattn/go-colorable v0.1.6
+# github.com/mattn/go-colorable v0.1.7
 github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.12
 github.com/mattn/go-isatty
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
 github.com/matttproud/golang_protobuf_extensions/pbutil
-# github.com/miekg/dns v1.1.26
+# github.com/miekg/dns v1.1.31
 github.com/miekg/dns
 # github.com/mitchellh/cli v1.1.0
 github.com/mitchellh/cli
@@ -459,7 +459,7 @@ go.opencensus.io/trace/tracestate
 # go.uber.org/goleak v1.0.0
 go.uber.org/goleak
 go.uber.org/goleak/internal/stack
-# golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
+# golang.org/x/crypto v0.0.0-20200930160638-afb6bcd081ae
 golang.org/x/crypto/blake2b
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/chacha20
@@ -478,7 +478,7 @@ golang.org/x/crypto/ssh/terminal
 # golang.org/x/lint v0.0.0-20190930215403-16217165b5de
 golang.org/x/lint
 golang.org/x/lint/golint
-# golang.org/x/net v0.0.0-20200904194848-62affa334b73
+# golang.org/x/net v0.0.0-20200930145003-4acb6c075d10
 golang.org/x/net/bpf
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp

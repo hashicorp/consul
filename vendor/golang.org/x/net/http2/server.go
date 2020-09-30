@@ -1694,6 +1694,7 @@ func (sc *serverConn) processData(f *DataFrame) error {
 		if len(data) > 0 {
 			wrote, err := st.body.Write(data)
 			if err != nil {
+				sc.sendWindowUpdate(nil, int(f.Length)-wrote)
 				return streamError(id, ErrCodeStreamClosed)
 			}
 			if wrote != len(data) {
