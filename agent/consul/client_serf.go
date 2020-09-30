@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	libserf "github.com/hashicorp/consul/lib/serf"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-hclog"
@@ -27,6 +28,9 @@ func (c *Client) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 	conf.Tags["vsn_min"] = fmt.Sprintf("%d", ProtocolVersionMin)
 	conf.Tags["vsn_max"] = fmt.Sprintf("%d", ProtocolVersionMax)
 	conf.Tags["build"] = c.config.Build
+	if c.config.AdvertiseReconnectTimeout != 0 {
+		conf.Tags[libserf.ReconnectTimeoutTag] = c.config.AdvertiseReconnectTimeout.String()
+	}
 	if c.acls.ACLsEnabled() {
 		// we start in legacy mode and then transition to normal
 		// mode once we know the cluster can handle it.
@@ -64,6 +68,8 @@ func (c *Client) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 	}
 
 	c.addEnterpriseSerfTags(conf.Tags)
+
+	conf.ReconnectTimeoutOverride = libserf.NewReconnectOverride(c.logger)
 
 	return serf.Create(conf)
 }

@@ -253,6 +253,15 @@ type Config struct {
 	//
 	// WARNING: this should ONLY be used in tests
 	messageDropper func(typ messageType) bool
+
+	// ReconnectTimeoutOverride is an optional interface which when present allows
+	// the application to cause reaping of a node to happen when it otherwise wouldn't
+	ReconnectTimeoutOverride ReconnectTimeoutOverrider
+
+	// ValidateNodeNames controls whether nodenames only
+	// contain alphanumeric, dashes and '.'characters
+	// and sets maximum length to 128 characters
+	ValidateNodeNames bool
 }
 
 // Init allocates the subdata structures
@@ -298,6 +307,7 @@ func DefaultConfig() *Config {
 		QuerySizeLimit:               1024,
 		EnableNameConflictResolution: true,
 		DisableCoordinates:           false,
+		ValidateNodeNames:            false,
 		UserEventSizeLimit:           512,
 	}
 }
