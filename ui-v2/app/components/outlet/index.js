@@ -82,6 +82,16 @@ export default class Outlet extends Component {
     this.dom.root().dataset.state = state;
   }
 
+  setOutletRoutes(route) {
+    const keys = [...outlets.keys()];
+    const pos = keys.indexOf(this.name);
+    const key = pos + 1;
+    const parent = outlets.get(keys[key]);
+    parent.route = this.args.name;
+
+    this.route = route;
+  }
+
   @action
   startLoad(transition) {
     const keys = [...outlets.keys()];
@@ -100,16 +110,6 @@ export default class Outlet extends Component {
     }
   }
 
-  setOutletRoutes(route) {
-    const keys = [...outlets.keys()];
-    const pos = keys.indexOf(this.name);
-    const key = pos + 1;
-    const parent = outlets.get(keys[key]);
-    parent.route = this.args.name;
-
-    this.route = route;
-  }
-
   @action
   endLoad(transition) {
     if (this.state.matches('loading')) {
@@ -122,6 +122,7 @@ export default class Outlet extends Component {
       this.setAppRoute(this.router.currentRouteName);
     }
   }
+
   @action
   connect() {
     outlets.set(this.args.name, this);
