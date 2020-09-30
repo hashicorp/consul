@@ -422,7 +422,7 @@ jobs:
           at: bin/
       - run:
           name: package binary
-          command: tar -czf consul.tar.gz -C bin/ .
+          command: tar -czf consul.tar.gz -C bin/ consul
       - run:
           name: Upload to s3
           command: |
