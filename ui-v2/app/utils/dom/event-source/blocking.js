@@ -42,6 +42,7 @@ export const validateCursor = function(current, prev = null) {
 const throttle = function(configuration, prev, current) {
   return function(obj) {
     return new Promise(function(resolve, reject) {
+      const wait = configuration.pollInterval || pause;
       setTimeout(function() {
         resolve(obj);
       }, configuration.interval || pause);
