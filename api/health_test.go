@@ -213,6 +213,16 @@ func TestAPI_HealthChecks(t *testing.T) {
 	}
 
 	retry.Run(t, func(r *retry.R) {
+		services, _, err := c.Catalog().Services(nil)
+		if err != nil {
+			r.Fatal(err)
+		}
+		if _, ok := services["foo"]; !ok {
+			r.Fatal("service foo not synced")
+		}
+	})
+
+	retry.Run(t, func(r *retry.R) {
 		checks := HealthChecks{
 			&HealthCheck{
 				Node:        "node123",
