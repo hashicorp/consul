@@ -1166,6 +1166,16 @@
   mask-image: $menu-svg;
 }
 
+%with-mesh-icon {
+  @extend %with-icon;
+  background-image: $mesh-svg;
+}
+%with-mesh-mask {
+  @extend %with-mask;
+  -webkit-mask-image: $mesh-svg;
+  mask-image: $mesh-svg;
+}
+
 %with-message-icon {
   @extend %with-icon;
   background-image: $message-svg;

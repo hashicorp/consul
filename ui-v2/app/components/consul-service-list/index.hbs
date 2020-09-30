@@ -61,16 +61,35 @@
       {{format-number item.InstanceCount}} {{pluralize item.InstanceCount 'Instance' without-count=true}}
     </span>
   {{/if}}
-  {{#if item.Proxy}}
-    <dl class="proxy">
+  {{#if (eq item.Kind 'terminating-gateway')}}
+    <span data-test-associated-service-count>
+      {{format-number item.GatewayConfig.AssociatedServiceCount}} linked services
+    </span>
+  {{else if (eq item.Kind 'ingress-gateway')}}
+    <span data-test-associated-service-count>
+      {{format-number item.GatewayConfig.AssociatedServiceCount}} upstreams
+    </span>
+  {{/if}}
+  {{#if (or item.ConnectedWithGateway item.ConnectedWithProxy)}}
+    <dl class="mesh">
       <dt>
         <Tooltip>
           This service uses a proxy for the Consul service mesh
         </Tooltip>
       </dt>
-      <dd data-test-proxy>
-        connected with proxy
-      </dd>
+      {{#if (and item.ConnectedWithGateway item.ConnectedWithProxy )}}
+        <dd data-test-mesh>
+          in service mesh with proxy and gateway
+        </dd>
+      {{else if item.ConnectedWithProxy}}
+        <dd data-test-mesh>
+          in service mesh with proxy
+        </dd>
+      {{else if item.ConnectedWithGateway}}
+        <dd data-test-mesh>
+          in service mesh with gateway
+        </dd>
+      {{/if}}
     </dl>
   {{/if}}
     <TagList @item={{item}} />

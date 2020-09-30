@@ -32,8 +32,8 @@
 %icon-definition.address dt::before {
   @extend %with-public-default-mask, %as-pseudo;
 }
-%icon-definition.proxy dt::before {
-  @extend %with-swap-horizontal-mask, %as-pseudo;
+%icon-definition.mesh dt::before {
+  @extend %with-mesh-mask, %as-pseudo;
 }
 %icon-definition.nspace dt::before {
   @extend %with-folder-outline-mask, %as-pseudo;
