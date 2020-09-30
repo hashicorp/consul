@@ -5,6 +5,7 @@
 %loader circle {
   fill: $magenta-100;
 }
+html.ember-loading .view-loader,
 html[data-state='idle'] .view-loader {
   display: none;
 }

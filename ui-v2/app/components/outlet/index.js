@@ -45,9 +45,6 @@ class Outlets {
   keys() {
     return this.sorted;
   }
-  get size() {
-    return this.map.size;
-  }
 }
 const outlets = new Outlets();
 
@@ -62,8 +59,8 @@ export default class Outlet extends Component {
   constructor() {
     super(...arguments);
     if (this.args.name === 'application') {
+      this.setAppState('loading');
       this.setAppRoute(this.router.currentRouteName);
-      this.setAppState('idle');
     }
   }
 
@@ -71,8 +68,14 @@ export default class Outlet extends Component {
     if (name.startsWith('nspace.')) {
       name = name.substr(0, 'nspace.'.length);
     }
-    this.dom.root().dataset.route = name;
-    this.dom.root().classList.remove('ember-loading');
+    if (name !== 'loading') {
+      const doc = this.dom.root();
+      if (doc.classList.contains('ember-loading')) {
+        doc.classList.remove('ember-loading');
+      }
+      doc.dataset.route = name;
+      this.setAppState('idle');
+    }
   }
 
   setAppState(state) {
@@ -117,7 +120,6 @@ export default class Outlet extends Component {
     }
     if (this.args.name === 'application') {
       this.setAppRoute(this.router.currentRouteName);
-      this.setAppState('idle');
     }
   }
   @action
