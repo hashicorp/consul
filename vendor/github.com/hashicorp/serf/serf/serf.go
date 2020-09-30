@@ -1103,8 +1103,6 @@ func (s *Serf) handleNodeLeaveIntent(leaveMsg *messageLeave) bool {
 	case StatusAlive:
 		member.Status = StatusLeaving
 		member.statusLTime = leaveMsg.LTime
-
-		member.statusLTime = leaveMsg.LTime
 		if leaveMsg.Prune {
 			s.handlePrune(member)
 		}
