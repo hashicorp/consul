@@ -644,8 +644,12 @@ jobs:
           name: commit agent/bindata_assetfs.go if there are changes
           command: |
             if ! git diff --exit-code agent/bindata_assetfs.go; then
+              git config --local user.email "hashicorp-ci@users.noreply.github.com"
+              git config --local user.name "hashicorp-ci"
+
+              short_sha=$(git rev-parse --short HEAD)
               git add agent/bindata_assetfs.go
-              git commit -m "auto-updated agent/bindata_assetfs.go"
+              git commit -m "auto-updated agent/bindata_assetfs.go from commit ${short_sha}"
               git push origin master
             else
               echo "no new static assets to publish"
