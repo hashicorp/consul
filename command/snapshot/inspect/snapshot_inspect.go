@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"text/tabwriter"
@@ -76,12 +77,15 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if c.enhance {
-		err := Enhance(f)
+		b, err := enhance(f)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error verifying snapshot: %s", err))
 			return 1
 		}
-
+		//TODO(schristoff): Will this make it so we can exit out here? Should we print
+		// the other stuff too?
+		c.UI.Info(b.String())
+		return 0
 	}
 	var b bytes.Buffer
 	tw := tabwriter.NewWriter(&b, 0, 2, 6, ' ', 0)
@@ -127,7 +131,7 @@ func enhance(file io.Reader) error {
 	var offset int
 	offset = 0
 	cr := &countingReader{wrappedReader: file}
-	handler := func(header *snapshotHeader, msg structs.MessageType, dec *codec.Decoder) error {
+	handler := func(header *fsm.SnapshotHeader, msg structs.MessageType, dec *codec.Decoder) error {
 		name := structs.MessageType.String(msg)
 		s := stats[msg]
 		if s.Name == "" {
@@ -146,16 +150,43 @@ func enhance(file io.Reader) error {
 		stats[msg] = s
 		return nil
 	}
-	fsm.ReadSnapshot(cr, handler)
-	return err
+	return fsm.ReadSnapshot(cr, handler)
 }
 
-func (c *cmd) Synopsis() string {
-	return synopsis
-}
+type statSlice []typeStats
 
-func (c *cmd) Help() string {
-	return c.help
+func (s statSlice) Len() int { return len(s) }
+
+// TODO(schristoff) : do we need all this?
+// Less sorts by size descending
+func (s statSlice) Less(i, j int) bool { return s[i].Sum > s[j].Sum }
+func (s statSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+
+func (c *cmd) readStats(stats map[structs.MessageType]typeStats) (bytes.Buffer, error) {
+	// Output stats in size-order
+	ss := make(statSlice, 0, len(stats))
+
+	for _, s := range stats {
+		ss = append(ss, s)
+	}
+
+	// Sort the stat slice
+	sort.Sort(ss)
+
+	var b bytes.Buffer
+	tw := tabwriter.NewWriter(&b, 0, 3, 6, ' ', 0)
+	for _, s := range ss {
+		fmt.Fprintf(tw, "Type\t%s\n", s.Name)
+		fmt.Fprintf(tw, "Count\t%d\n", s.Count)
+		fmt.Fprintf(tw, "Size\t%d\n", ByteSize(uint64(s.Sum)))
+	}
+	if err := tw.Flush(); err != nil {
+		c.UI.Error(fmt.Sprintf("Error rendering snapshot info: %s", err))
+		return b, err
+	}
+
+	return b, nil
+
 }
 
 const (
@@ -200,6 +231,14 @@ func ByteSize(bytes uint64) string {
 	result := strconv.FormatFloat(value, 'f', 1, 64)
 	result = strings.TrimSuffix(result, ".0")
 	return result + unit
+}
+
+func (c *cmd) Synopsis() string {
+	return synopsis
+}
+
+func (c *cmd) Help() string {
+	return c.help
 }
 
 const synopsis = "Displays information about a Consul snapshot file"
