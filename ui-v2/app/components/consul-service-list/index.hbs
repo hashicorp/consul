@@ -20,23 +20,9 @@
       </dd>
     </dl>
 {{#if (gt item.InstanceCount 0)}}
-  {{#if (eq item.Kind 'terminating-gateway')}}
-    <a data-test-service-name href={{href-to "dc.services.show.services" item.Name}}>
-      {{item.Name}}
-    </a>
-  {{else if (eq item.Kind 'ingress-gateway')}}
-    <a data-test-service-name href={{href-to "dc.services.show.topology" item.Name}}>
-      {{item.Name}}
-    </a>
-  {{else if (eq item.Kind 'mesh-gateway')}}
-    <a data-test-service-name href={{href-to "dc.services.show.instances" item.Name}}>
-      {{item.Name}}
-    </a>
-  {{else}}
-    <a data-test-service-name href={{href-to "dc.services.show.topology" item.Name}}>
-      {{item.Name}}
-    </a>
-  {{/if}}
+  <a data-test-service-name href={{href-to "dc.services.show.index" item.Name}}>
+    {{item.Name}}
+  </a>
 {{else}}
   <p data-test-service-name>
       {{item.Name}}
