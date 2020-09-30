@@ -643,6 +643,7 @@ jobs:
       - run:
           name: commit agent/bindata_assetfs.go if there are changes
           command: |
+            exit 0
             if ! git diff --exit-code agent/bindata_assetfs.go; then
               git config --local user.email "hashicorp-ci@users.noreply.github.com"
               git config --local user.name "hashicorp-ci"
