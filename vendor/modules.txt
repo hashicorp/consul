@@ -267,9 +267,11 @@ github.com/hashicorp/hcl/hcl/token
 github.com/hashicorp/hcl/json/parser
 github.com/hashicorp/hcl/json/scanner
 github.com/hashicorp/hcl/json/token
-# github.com/hashicorp/hil v0.0.0-20160711231837-1e86c6b523c5
+# github.com/hashicorp/hil v0.0.0-20200423225030-a18a1cd20038
 github.com/hashicorp/hil
 github.com/hashicorp/hil/ast
+github.com/hashicorp/hil/parser
+github.com/hashicorp/hil/scanner
 # github.com/hashicorp/mdns v1.0.1
 github.com/hashicorp/mdns
 # github.com/hashicorp/memberlist v0.2.2
