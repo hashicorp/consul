@@ -1,4 +1,4 @@
-import Route from '@ember/routing/route';
+import Route from 'consul-ui/routing/route';
 
 export default Route.extend({
   queryParams: {
@@ -9,13 +9,13 @@ export default Route.extend({
   },
   model: function(params) {
     return {
-      routeName: this.routeName,
       dc: this.modelFor('dc').dc.Name,
       nspace: this.modelFor('nspace').nspace.substr(1) || 'default',
       slug: this.paramsFor('dc.services.show').name,
     };
   },
   setupController: function(controller, model) {
+    this._super(...arguments);
     controller.setProperties(model);
   },
 });

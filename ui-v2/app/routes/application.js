@@ -1,4 +1,4 @@
-import Route from '@ember/routing/route';
+import Route from 'consul-ui/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 
@@ -11,7 +11,6 @@ export default Route.extend(WithBlockingActions, {
   settings: service('settings'),
   model: function() {
     return hash({
-      routeName: this.routeName,
       router: this.router,
       dcs: this.repo.findAll(),
       nspaces: this.nspacesRepo.findAll().catch(function() {
@@ -30,6 +29,7 @@ export default Route.extend(WithBlockingActions, {
     });
   },
   setupController: function(controller, model) {
+    this._super(...arguments);
     controller.setProperties(model);
   },
   actions: {

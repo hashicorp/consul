@@ -1,4 +1,4 @@
-import Route from '@ember/routing/route';
+import Route from 'consul-ui/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 import WithBlockingActions from 'consul-ui/mixins/with-blocking-actions';
@@ -16,7 +16,6 @@ export default Route.extend(WithBlockingActions, {
     const nspace = this.modelFor('nspace').nspace.substr(1);
     const node = this.paramsFor(parent).name;
     return hash({
-      routeName: this.routeName,
       dc: dc,
       nspace: nspace,
       node: node,
@@ -24,6 +23,7 @@ export default Route.extend(WithBlockingActions, {
     });
   },
   setupController: function(controller, model) {
+    this._super(...arguments);
     controller.setProperties(model);
   },
   actions: {

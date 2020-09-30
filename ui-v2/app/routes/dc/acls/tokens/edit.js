@@ -19,6 +19,7 @@ export default SingleRoute.extend(WithTokenActions, {
     });
   },
   setupController: function(controller, model) {
+    this._super(...arguments);
     controller.setProperties(model);
   },
 });

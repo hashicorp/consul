@@ -16,7 +16,6 @@ export default SingleRoute.extend(WithRoleActions, {
       return hash({
         ...model,
         ...{
-          routeName: this.routeName,
           items: tokenRepo.findByRole(get(model.item, 'ID'), dc, nspace).catch(function(e) {
             switch (get(e, 'errors.firstObject.status')) {
               case '403':
@@ -31,6 +30,7 @@ export default SingleRoute.extend(WithRoleActions, {
     });
   },
   setupController: function(controller, model) {
+    this._super(...arguments);
     controller.setProperties(model);
   },
 });

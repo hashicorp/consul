@@ -1,4 +1,4 @@
-import Route from '@ember/routing/route';
+import Route from 'consul-ui/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 import { getOwner } from '@ember/application';
@@ -40,7 +40,6 @@ export default Route.extend({
   },
   model: function(params) {
     return hash({
-      routeName: this.routeName,
       item: this.repo.getActive(),
       nspace: params.nspace,
     });

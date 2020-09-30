@@ -1,4 +1,4 @@
-import Route from '@ember/routing/route';
+import Route from 'consul-ui/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 import { get } from '@ember/object';
@@ -9,7 +9,6 @@ export default Route.extend({
     const dc = this.modelFor('dc').dc.Name;
     const nspace = this.modelFor('nspace').nspace.substr(1) || 'default';
     return hash({
-      routeName: this.routeName,
       dc: dc,
       nspace: nspace,
       item: this.data.source(
@@ -50,6 +49,7 @@ export default Route.extend({
     });
   },
   setupController: function(controller, model) {
+    this._super(...arguments);
     controller.setProperties(model);
   },
 });
