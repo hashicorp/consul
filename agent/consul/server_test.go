@@ -1031,8 +1031,8 @@ func TestServer_Leave(t *testing.T) {
 		t.Fatal("leave failed: ", err)
 	}
 
-	// Should lose a peer
-	retry.Run(t, func(r *retry.R) {
+	timer := &retry.Timer{Timeout: 10 * time.Second, Wait: 500 * time.Millisecond}
+	retry.RunWith(timer, t, func(r *retry.R) {
 		r.Check(wantPeers(s1, 1))
 		r.Check(wantPeers(s2, 1))
 	})
