@@ -42,9 +42,10 @@ export const validateCursor = function(current, prev = null) {
 const throttle = function(configuration, prev, current) {
   return function(obj) {
     return new Promise(function(resolve, reject) {
+      const wait = configuration.pollInterval || pause;
       setTimeout(function() {
         resolve(obj);
-      }, pause);
+      }, wait);
     });
   };
 };
@@ -104,6 +105,7 @@ export default function(EventSource, backoff = createErrorBackoff()) {
               // along with cursor validation
               configuration.cursor = validateCursor(meta.cursor, configuration.cursor);
               configuration.cacheControl = meta.cacheControl;
+              configuration.pollInterval =  meta.pollInterval;
             }
             if ((configuration.cacheControl || '').indexOf('no-store') === -1) {
               this.currentEvent = event;

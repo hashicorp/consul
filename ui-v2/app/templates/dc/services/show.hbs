@@ -22,9 +22,18 @@
   </BlockSlot>
   <BlockSlot @name="nav">
   <DataSource
-    @src={{uri nspace dc 'metrics' 'summary-for-service' item.Service.Service}}
+    @src={{uri nspace dc 'metrics' 'summary-for-service' item.Service.Service 'tcp'}}
     @onchange={{action (mut metrics) value="data"}}
   />
+  <!--
+  <DataSource
+    @src={{uri nspace dc 'metrics' 'upstream-summary-for-service' item.Service.Service}}
+    @onchange={{action (mut up_metrics) value="data"}}
+  />
+  <DataSource
+    @src={{uri nspace dc 'metrics' 'downstream-summary-for-service' item.Service.Service}}
+    @onchange={{action (mut down_metrics) value="data"}}
+  />-->
   {{#each metrics.stats as |stat| }}
     <div><b>{{stat.label}}:</b> {{stat.value}}</div>
   {{/each}}

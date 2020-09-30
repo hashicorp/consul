@@ -278,7 +278,7 @@
     },
 
     fetchRequestRateSeries: function(serviceName, options){
-      var q = `sum(irate(envoy_listener_http_downstream_rq_xx{local_cluster="${serviceName}",envoy_http_conn_manager_prefix="public_listener_http",envoy_response_code_class!="5"}[10m]))`
+      var q = `sum(irate(envoy_listener_http_downstream_rq_xx{local_cluster="${serviceName}",envoy_http_conn_manager_prefix="public_listener_http"}[10m]))`
       return this.fetchSeries(q, options).then(this.reformatSeries, function(xhr){
         // Failure. log to console and return an blank result for now.
         console.log("ERROR: failed to fetch requestRate", xhr.responseText)
@@ -287,7 +287,25 @@
     },
 
     fetchErrorRateSeries: function(serviceName, options){
-      var q = `sum(irate(envoy_listener_http_downstream_rq_xx{local_cluster="${serviceName}",envoy_http_conn_manager_prefix="public_listener_http",envoy_response_code_class="5"}[10m]))`
+      // 100 * to get a result in percent
+      var q = `100 * (`+
+        // Sum the rates for all inbound requests to the service's public
+        // listener that were 5xx (errors).
+        `sum(`+
+          `irate(envoy_listener_http_downstream_rq_xx{`+
+            `local_cluster="${serviceName}",`+
+            `envoy_http_conn_manager_prefix="public_listener_http",`+
+            `envoy_response_code_class="5"}[10m]`+
+          `)`+
+        `)`+
+      // Divided by the total request rate (sum over all response code classes)
+      `/`+
+      `sum(`+
+        `irate(envoy_listener_http_downstream_rq_xx{`+
+          `local_cluster="${serviceName}",`+
+          `envoy_http_conn_manager_prefix="public_listener_http"}[10m]`+
+        `)`+
+      `)`
       return this.fetchSeries(q, options).then(this.reformatSeries, function(xhr){
         // Failure. log to console and return an blank result for now.
         console.log("ERROR: failed to fetch errorRate", xhr.responseText)
@@ -642,7 +660,7 @@
     if (n < 1e3) return Math.round(n) + "ms";
 
     var secs = n / 1e3
-    if (sec < 60) return secs.toFixed(1) + "s"
+    if (secs < 60) return secs.toFixed(1) + "s"
 
     var mins = secs/60
     if (mins < 60) return mins.toFixed(1) + "m"
