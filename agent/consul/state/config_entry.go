@@ -434,7 +434,7 @@ func (s *Store) discoveryChainSources(ws memdb.WatchSet, tx ReadTxn, dc string, 
 
 	// Only return the services that directly target the destination
 	seenSource := make(map[structs.ServiceName]bool)
-	for sn, _ := range seenLink {
+	for sn := range seenLink {
 		req := discoverychain.CompileRequest{
 			ServiceName:         sn.Name,
 			EvaluateInNamespace: sn.NamespaceOrDefault(),

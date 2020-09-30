@@ -223,6 +223,7 @@ func TestUiServices(t *testing.T) {
 			Service: &structs.NodeService{
 				Kind:    structs.ServiceKindTypical,
 				Service: "api",
+				ID:      "api-1",
 				Tags:    []string{"tag1", "tag2"},
 			},
 			Checks: structs.HealthChecks{
@@ -230,18 +231,20 @@ func TestUiServices(t *testing.T) {
 					Node:        "foo",
 					Name:        "api svc check",
 					ServiceName: "api",
+					ServiceID:   "api-1",
 					Status:      api.HealthWarning,
 				},
 			},
 		},
-		// register web svc on node foo
+		// register api-proxy svc on node foo
 		{
 			Datacenter:     "dc1",
 			Node:           "foo",
 			SkipNodeUpdate: true,
 			Service: &structs.NodeService{
 				Kind:    structs.ServiceKindConnectProxy,
-				Service: "web",
+				Service: "api-proxy",
+				ID:      "api-proxy-1",
 				Tags:    []string{},
 				Meta:    map[string]string{metaExternalSource: "k8s"},
 				Port:    1234,
@@ -252,8 +255,9 @@ func TestUiServices(t *testing.T) {
 			Checks: structs.HealthChecks{
 				&structs.HealthCheck{
 					Node:        "foo",
-					Name:        "web svc check",
-					ServiceName: "web",
+					Name:        "api proxy listening",
+					ServiceName: "api-proxy",
+					ServiceID:   "api-proxy-1",
 					Status:      api.HealthPassing,
 				},
 			},
@@ -264,14 +268,12 @@ func TestUiServices(t *testing.T) {
 			Node:       "bar",
 			Address:    "127.0.0.2",
 			Service: &structs.NodeService{
-				Kind:    structs.ServiceKindConnectProxy,
+				Kind:    structs.ServiceKindTypical,
 				Service: "web",
+				ID:      "web-1",
 				Tags:    []string{},
 				Meta:    map[string]string{metaExternalSource: "k8s"},
 				Port:    1234,
-				Proxy: structs.ConnectProxyConfig{
-					DestinationServiceName: "api",
-				},
 			},
 			Checks: []*structs.HealthCheck{
 				{
@@ -279,6 +281,7 @@ func TestUiServices(t *testing.T) {
 					Name:        "web svc check",
 					Status:      api.HealthCritical,
 					ServiceName: "web",
+					ServiceID:   "web-1",
 				},
 			},
 		},
@@ -366,76 +369,107 @@ func TestUiServices(t *testing.T) {
 		assertIndex(t, resp)
 
 		// Should be 2 nodes, and all the empty lists should be non-nil
-		summary := obj.([]*ServiceSummary)
-		require.Len(t, summary, 5)
+		summary := obj.([]*ServiceListingSummary)
+		require.Len(t, summary, 6)
 
 		// internal accounting that users don't see can be blown away
 		for _, sum := range summary {
 			sum.externalSourceSet = nil
+			sum.checks = nil
 		}
 
-		expected := []*ServiceSummary{
+		expected := []*ServiceListingSummary{
 			{
-				Kind:                 structs.ServiceKindTypical,
-				Name:                 "api",
-				Tags:                 []string{"tag1", "tag2"},
-				Nodes:                []string{"foo"},
-				InstanceCount:        1,
-				ChecksPassing:        2,
-				ChecksWarning:        1,
-				ChecksCritical:       0,
+				ServiceSummary: ServiceSummary{
+					Kind:           structs.ServiceKindTypical,
+					Name:           "api",
+					Datacenter:     "dc1",
+					Tags:           []string{"tag1", "tag2"},
+					Nodes:          []string{"foo"},
+					InstanceCount:  1,
+					ChecksPassing:  2,
+					ChecksWarning:  1,
+					ChecksCritical: 0,
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				},
 				ConnectedWithProxy:   true,
 				ConnectedWithGateway: true,
-				EnterpriseMeta:       *structs.DefaultEnterpriseMeta(),
 			},
 			{
-				Kind:                 structs.ServiceKindTypical,
-				Name:                 "cache",
-				Tags:                 nil,
-				Nodes:                []string{"zip"},
-				InstanceCount:        1,
-				ChecksPassing:        0,
-				ChecksWarning:        0,
-				ChecksCritical:       0,
+				ServiceSummary: ServiceSummary{
+					Kind:            structs.ServiceKindConnectProxy,
+					Name:            "api-proxy",
+					Datacenter:      "dc1",
+					Tags:            nil,
+					Nodes:           []string{"foo"},
+					InstanceCount:   1,
+					ChecksPassing:   2,
+					ChecksWarning:   0,
+					ChecksCritical:  0,
+					ExternalSources: []string{"k8s"},
+					EnterpriseMeta:  *structs.DefaultEnterpriseMeta(),
+				},
+			},
+			{
+				ServiceSummary: ServiceSummary{
+					Kind:           structs.ServiceKindTypical,
+					Name:           "cache",
+					Datacenter:     "dc1",
+					Tags:           nil,
+					Nodes:          []string{"zip"},
+					InstanceCount:  1,
+					ChecksPassing:  0,
+					ChecksWarning:  0,
+					ChecksCritical: 0,
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				},
 				ConnectedWithGateway: true,
-				EnterpriseMeta:       *structs.DefaultEnterpriseMeta(),
 			},
 			{
-				Kind:            structs.ServiceKindConnectProxy,
-				Name:            "web",
-				Tags:            nil,
-				Nodes:           []string{"bar", "foo"},
-				InstanceCount:   2,
-				ChecksPassing:   2,
-				ChecksWarning:   1,
-				ChecksCritical:  1,
-				ExternalSources: []string{"k8s"},
-				EnterpriseMeta:  *structs.DefaultEnterpriseMeta(),
+				ServiceSummary: ServiceSummary{
+					Kind:           structs.ServiceKindTypical,
+					Name:           "consul",
+					Datacenter:     "dc1",
+					Tags:           nil,
+					Nodes:          []string{a.Config.NodeName},
+					InstanceCount:  1,
+					ChecksPassing:  1,
+					ChecksWarning:  0,
+					ChecksCritical: 0,
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				},
 			},
 			{
-				Kind:           structs.ServiceKindTypical,
-				Name:           "consul",
-				Tags:           nil,
-				Nodes:          []string{a.Config.NodeName},
-				InstanceCount:  1,
-				ChecksPassing:  1,
-				ChecksWarning:  0,
-				ChecksCritical: 0,
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				ServiceSummary: ServiceSummary{
+					Kind:           structs.ServiceKindTerminatingGateway,
+					Name:           "terminating-gateway",
+					Datacenter:     "dc1",
+					Tags:           nil,
+					Nodes:          []string{"foo"},
+					InstanceCount:  1,
+					ChecksPassing:  1,
+					ChecksWarning:  0,
+					ChecksCritical: 0,
+					GatewayConfig:  GatewayConfig{AssociatedServiceCount: 2},
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				},
 			},
 			{
-				Kind:           structs.ServiceKindTerminatingGateway,
-				Name:           "terminating-gateway",
-				Tags:           nil,
-				Nodes:          []string{"foo"},
-				InstanceCount:  1,
-				ChecksPassing:  2,
-				ChecksWarning:  1,
-				GatewayConfig:  GatewayConfig{AssociatedServiceCount: 2},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				ServiceSummary: ServiceSummary{
+					Kind:            structs.ServiceKindTypical,
+					Name:            "web",
+					Datacenter:      "dc1",
+					Tags:            nil,
+					Nodes:           []string{"bar"},
+					InstanceCount:   1,
+					ChecksPassing:   0,
+					ChecksWarning:   0,
+					ChecksCritical:  1,
+					ExternalSources: []string{"k8s"},
+					EnterpriseMeta:  *structs.DefaultEnterpriseMeta(),
+				},
 			},
 		}
-
 		require.ElementsMatch(t, expected, summary)
 	})
 
@@ -448,39 +482,46 @@ func TestUiServices(t *testing.T) {
 		assertIndex(t, resp)
 
 		// Should be 2 nodes, and all the empty lists should be non-nil
-		summary := obj.([]*ServiceSummary)
+		summary := obj.([]*ServiceListingSummary)
 		require.Len(t, summary, 2)
 
 		// internal accounting that users don't see can be blown away
 		for _, sum := range summary {
 			sum.externalSourceSet = nil
+			sum.checks = nil
 		}
 
-		expected := []*ServiceSummary{
+		expected := []*ServiceListingSummary{
 			{
-				Kind:                 structs.ServiceKindTypical,
-				Name:                 "api",
-				Tags:                 []string{"tag1", "tag2"},
-				Nodes:                []string{"foo"},
-				InstanceCount:        1,
-				ChecksPassing:        2,
-				ChecksWarning:        1,
-				ChecksCritical:       0,
-				ConnectedWithProxy:   true,
+				ServiceSummary: ServiceSummary{
+					Kind:           structs.ServiceKindTypical,
+					Name:           "api",
+					Datacenter:     "dc1",
+					Tags:           []string{"tag1", "tag2"},
+					Nodes:          []string{"foo"},
+					InstanceCount:  1,
+					ChecksPassing:  1,
+					ChecksWarning:  1,
+					ChecksCritical: 0,
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				},
+				ConnectedWithProxy:   false,
 				ConnectedWithGateway: false,
-				EnterpriseMeta:       *structs.DefaultEnterpriseMeta(),
 			},
 			{
-				Kind:            structs.ServiceKindConnectProxy,
-				Name:            "web",
-				Tags:            nil,
-				Nodes:           []string{"bar", "foo"},
-				InstanceCount:   2,
-				ChecksPassing:   2,
-				ChecksWarning:   1,
-				ChecksCritical:  1,
-				ExternalSources: []string{"k8s"},
-				EnterpriseMeta:  *structs.DefaultEnterpriseMeta(),
+				ServiceSummary: ServiceSummary{
+					Kind:            structs.ServiceKindTypical,
+					Name:            "web",
+					Datacenter:      "dc1",
+					Tags:            nil,
+					Nodes:           []string{"bar"},
+					InstanceCount:   1,
+					ChecksPassing:   0,
+					ChecksWarning:   0,
+					ChecksCritical:  1,
+					ExternalSources: []string{"k8s"},
+					EnterpriseMeta:  *structs.DefaultEnterpriseMeta(),
+				},
 			},
 		}
 		require.ElementsMatch(t, expected, summary)
@@ -582,7 +623,14 @@ func TestUIGatewayServiceNodes_Terminating(t *testing.T) {
 	assert.Nil(t, err)
 	assertIndex(t, resp)
 
-	dump := obj.([]*ServiceSummary)
+	summary := obj.([]*ServiceSummary)
+
+	// internal accounting that users don't see can be blown away
+	for _, sum := range summary {
+		sum.externalSourceSet = nil
+		sum.checks = nil
+	}
+
 	expect := []*ServiceSummary{
 		{
 			Name:           "redis",
@@ -590,6 +638,7 @@ func TestUIGatewayServiceNodes_Terminating(t *testing.T) {
 		},
 		{
 			Name:           "db",
+			Datacenter:     "dc1",
 			Tags:           []string{"backup", "primary"},
 			Nodes:          []string{"bar", "baz"},
 			InstanceCount:  2,
@@ -599,7 +648,7 @@ func TestUIGatewayServiceNodes_Terminating(t *testing.T) {
 			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 		},
 	}
-	assert.ElementsMatch(t, expect, dump)
+	assert.ElementsMatch(t, expect, summary)
 }
 
 func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
@@ -748,6 +797,7 @@ func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
 		},
 		{
 			Name:           "db",
+			Datacenter:     "dc1",
 			Tags:           []string{"backup", "primary"},
 			Nodes:          []string{"bar", "baz"},
 			InstanceCount:  2,
@@ -767,6 +817,7 @@ func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
 	// internal accounting that users don't see can be blown away
 	for _, sum := range dump {
 		sum.GatewayConfig.addressesSet = nil
+		sum.checks = nil
 	}
 	assert.ElementsMatch(t, expect, dump)
 }
@@ -877,4 +928,387 @@ func TestUIEndpoint_modifySummaryForGatewayService_UseRequestedDCInsteadOfConfig
 	modifySummaryForGatewayService(&cfg, dc, &sum, &gwsvc)
 	expected := serviceCanonicalDNSName("test", "ingress", "dc2", "consul", nil) + ":42"
 	require.Equal(t, expected, sum.GatewayConfig.Addresses[0])
+}
+
+func TestUIServiceTopology(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
+	// Register terminating gateway and config entry linking it to postgres + redis
+	{
+		registrations := map[string]*structs.RegisterRequest{
+			"Node foo": {
+				Datacenter: "dc1",
+				Node:       "foo",
+				Address:    "127.0.0.2",
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:    "foo",
+						CheckID: "foo:alive",
+						Name:    "foo-liveness",
+						Status:  api.HealthPassing,
+					},
+				},
+			},
+			"Service api on foo": {
+				Datacenter:     "dc1",
+				Node:           "foo",
+				SkipNodeUpdate: true,
+				Service: &structs.NodeService{
+					Kind:    structs.ServiceKindTypical,
+					ID:      "api",
+					Service: "api",
+					Port:    9090,
+					Address: "198.18.1.2",
+				},
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:        "foo",
+						CheckID:     "foo:api",
+						Name:        "api-liveness",
+						Status:      api.HealthPassing,
+						ServiceID:   "api",
+						ServiceName: "api",
+					},
+				},
+			},
+			"Service api-proxy": {
+				Datacenter:     "dc1",
+				Node:           "foo",
+				SkipNodeUpdate: true,
+				Service: &structs.NodeService{
+					Kind:    structs.ServiceKindConnectProxy,
+					ID:      "api-proxy",
+					Service: "api-proxy",
+					Port:    8443,
+					Address: "198.18.1.2",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "api",
+						Upstreams: structs.Upstreams{
+							{
+								DestinationName: "web",
+								LocalBindPort:   8080,
+							},
+						},
+					},
+				},
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:        "foo",
+						CheckID:     "foo:api-proxy",
+						Name:        "api proxy listening",
+						Status:      api.HealthPassing,
+						ServiceID:   "api-proxy",
+						ServiceName: "api-proxy",
+					},
+				},
+			},
+			"Node bar": {
+				Datacenter: "dc1",
+				Node:       "bar",
+				Address:    "127.0.0.3",
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:    "bar",
+						CheckID: "bar:alive",
+						Name:    "bar-liveness",
+						Status:  api.HealthPassing,
+					},
+				},
+			},
+			"Service web on bar": {
+				Datacenter:     "dc1",
+				Node:           "bar",
+				SkipNodeUpdate: true,
+				Service: &structs.NodeService{
+					Kind:    structs.ServiceKindTypical,
+					ID:      "web",
+					Service: "web",
+					Port:    80,
+					Address: "198.18.1.20",
+				},
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:        "bar",
+						CheckID:     "bar:web",
+						Name:        "web-liveness",
+						Status:      api.HealthWarning,
+						ServiceID:   "web",
+						ServiceName: "web",
+					},
+				},
+			},
+			"Service web-proxy on bar": {
+				Datacenter:     "dc1",
+				Node:           "bar",
+				SkipNodeUpdate: true,
+				Service: &structs.NodeService{
+					Kind:    structs.ServiceKindConnectProxy,
+					ID:      "web-proxy",
+					Service: "web-proxy",
+					Port:    8443,
+					Address: "198.18.1.20",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "web",
+						Upstreams: structs.Upstreams{
+							{
+								DestinationName: "redis",
+								LocalBindPort:   123,
+							},
+						},
+					},
+				},
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:        "bar",
+						CheckID:     "bar:web-proxy",
+						Name:        "web proxy listening",
+						Status:      api.HealthCritical,
+						ServiceID:   "web-proxy",
+						ServiceName: "web-proxy",
+					},
+				},
+			},
+			"Node baz": {
+				Datacenter: "dc1",
+				Node:       "baz",
+				Address:    "127.0.0.4",
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:    "baz",
+						CheckID: "baz:alive",
+						Name:    "baz-liveness",
+						Status:  api.HealthPassing,
+					},
+				},
+			},
+			"Service web on baz": {
+				Datacenter:     "dc1",
+				Node:           "baz",
+				SkipNodeUpdate: true,
+				Service: &structs.NodeService{
+					Kind:    structs.ServiceKindTypical,
+					ID:      "web",
+					Service: "web",
+					Port:    80,
+					Address: "198.18.1.40",
+				},
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:        "baz",
+						CheckID:     "baz:web",
+						Name:        "web-liveness",
+						Status:      api.HealthPassing,
+						ServiceID:   "web",
+						ServiceName: "web",
+					},
+				},
+			},
+			"Service web-proxy on baz": {
+				Datacenter:     "dc1",
+				Node:           "baz",
+				SkipNodeUpdate: true,
+				Service: &structs.NodeService{
+					Kind:    structs.ServiceKindConnectProxy,
+					ID:      "web-proxy",
+					Service: "web-proxy",
+					Port:    8443,
+					Address: "198.18.1.40",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "web",
+						Upstreams: structs.Upstreams{
+							{
+								DestinationName: "redis",
+								LocalBindPort:   123,
+							},
+						},
+					},
+				},
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:        "baz",
+						CheckID:     "baz:web-proxy",
+						Name:        "web proxy listening",
+						Status:      api.HealthCritical,
+						ServiceID:   "web-proxy",
+						ServiceName: "web-proxy",
+					},
+				},
+			},
+			"Node zip": {
+				Datacenter: "dc1",
+				Node:       "zip",
+				Address:    "127.0.0.5",
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:    "zip",
+						CheckID: "zip:alive",
+						Name:    "zip-liveness",
+						Status:  api.HealthPassing,
+					},
+				},
+			},
+			"Service redis on zip": {
+				Datacenter:     "dc1",
+				Node:           "zip",
+				SkipNodeUpdate: true,
+				Service: &structs.NodeService{
+					Kind:    structs.ServiceKindTypical,
+					ID:      "redis",
+					Service: "redis",
+					Port:    6379,
+					Address: "198.18.1.60",
+				},
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:        "zip",
+						CheckID:     "zip:redis",
+						Name:        "redis-liveness",
+						Status:      api.HealthPassing,
+						ServiceID:   "redis",
+						ServiceName: "redis",
+					},
+				},
+			},
+			"Service redis-proxy on zip": {
+				Datacenter:     "dc1",
+				Node:           "zip",
+				SkipNodeUpdate: true,
+				Service: &structs.NodeService{
+					Kind:    structs.ServiceKindConnectProxy,
+					ID:      "redis-proxy",
+					Service: "redis-proxy",
+					Port:    8443,
+					Address: "198.18.1.60",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "redis",
+					},
+				},
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:        "zip",
+						CheckID:     "zip:redis-proxy",
+						Name:        "redis proxy listening",
+						Status:      api.HealthCritical,
+						ServiceID:   "redis-proxy",
+						ServiceName: "redis-proxy",
+					},
+				},
+			},
+		}
+		for _, args := range registrations {
+			var out struct{}
+			require.NoError(t, a.RPC("Catalog.Register", args, &out))
+		}
+	}
+
+	t.Run("api", func(t *testing.T) {
+		// Request topology for api
+		req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/api", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.UIServiceTopology(resp, req)
+		assert.Nil(t, err)
+		assertIndex(t, resp)
+
+		expect := ServiceTopology{
+			Upstreams: []*ServiceSummary{
+				{
+					Name:           "web",
+					Datacenter:     "dc1",
+					Nodes:          []string{"bar", "baz"},
+					InstanceCount:  2,
+					ChecksPassing:  3,
+					ChecksWarning:  1,
+					ChecksCritical: 2,
+				},
+			},
+			FilteredByACLs: false,
+		}
+		result := obj.(ServiceTopology)
+
+		// Internal accounting that is not returned in JSON response
+		for _, u := range result.Upstreams {
+			u.externalSourceSet = nil
+			u.checks = nil
+		}
+		require.Equal(t, expect, result)
+	})
+
+	t.Run("web", func(t *testing.T) {
+		// Request topology for web
+		req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/web", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.UIServiceTopology(resp, req)
+		assert.Nil(t, err)
+		assertIndex(t, resp)
+
+		expect := ServiceTopology{
+			Upstreams: []*ServiceSummary{
+				{
+					Name:           "redis",
+					Datacenter:     "dc1",
+					Nodes:          []string{"zip"},
+					InstanceCount:  1,
+					ChecksPassing:  2,
+					ChecksCritical: 1,
+				},
+			},
+			Downstreams: []*ServiceSummary{
+				{
+					Name:          "api",
+					Datacenter:    "dc1",
+					Nodes:         []string{"foo"},
+					InstanceCount: 1,
+					ChecksPassing: 3,
+				},
+			},
+			FilteredByACLs: false,
+		}
+		result := obj.(ServiceTopology)
+
+		// Internal accounting that is not returned in JSON response
+		for _, u := range result.Upstreams {
+			u.externalSourceSet = nil
+			u.checks = nil
+		}
+		for _, d := range result.Downstreams {
+			d.externalSourceSet = nil
+			d.checks = nil
+		}
+		require.Equal(t, expect, result)
+	})
+
+	t.Run("redis", func(t *testing.T) {
+		// Request topology for redis
+		req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/redis", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.UIServiceTopology(resp, req)
+		assert.Nil(t, err)
+		assertIndex(t, resp)
+
+		expect := ServiceTopology{
+			Downstreams: []*ServiceSummary{
+				{
+					Name:           "web",
+					Datacenter:     "dc1",
+					Nodes:          []string{"bar", "baz"},
+					InstanceCount:  2,
+					ChecksPassing:  3,
+					ChecksWarning:  1,
+					ChecksCritical: 2,
+				},
+			},
+			FilteredByACLs: false,
+		}
+		result := obj.(ServiceTopology)
+
+		// Internal accounting that is not returned in JSON response
+		for _, d := range result.Downstreams {
+			d.externalSourceSet = nil
+			d.checks = nil
+		}
+		require.Equal(t, expect, result)
+	})
 }
