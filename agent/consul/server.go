@@ -914,6 +914,10 @@ func (s *Server) Shutdown() error {
 		s.serfLAN.Shutdown()
 	}
 
+	for _, segment := range s.segmentLAN {
+		segment.Shutdown()
+	}
+
 	if s.serfWAN != nil {
 		s.serfWAN.Shutdown()
 		if err := s.router.RemoveArea(types.AreaWAN); err != nil {
