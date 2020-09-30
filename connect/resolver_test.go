@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/stretchr/testify/require"
 )
 
@@ -101,6 +102,8 @@ func TestConsulResolver_Resolve(t *testing.T) {
 		agent.Config.AdvertiseAddrLAN.String() + ":9090",
 		agent.Config.AdvertiseAddrLAN.String() + ":9091",
 	}
+
+	testrpc.WaitForTestAgent(t, agent.RPC, "dc1", testrpc.WaitForService("db"))
 
 	type fields struct {
 		Namespace  string

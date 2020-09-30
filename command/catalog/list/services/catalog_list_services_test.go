@@ -48,6 +48,8 @@ func TestCatalogListServicesCommand(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1", testrpc.WaitForService("testing"))
+
 	t.Run("simple", func(t *testing.T) {
 		ui := cli.NewMockUi()
 		c := New(ui)
