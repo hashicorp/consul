@@ -1,35 +1,83 @@
 {{#if (gt items.length 0)}}
-<div class="consul-intention-permission-list">
-  <ul>
-  {{#each items as |item|}}
-    <li>
+<ListCollection
+  class="consul-intention-permission-list{{if (not onclick) ' readonly'}}"
+  @scroll="native"
+  @items={{items}}
+  @cellHeight={{42}}
+as |item|>
+  <BlockSlot @name="details">
+    <div onclick={{action (optional onclick) item}}>
       <strong class={{concat 'intent-' item.Action}}>{{item.Action}}</strong>
-{{#if item.Http.Path}}
-        <dl class="route-path">
+{{#if (gt item.HTTP.Methods.length 0)}}
+        <dl class="permission-methods">
           <dt>
             <Tooltip>
-              {{item.Http.PathType}}
+              Methods
             </Tooltip>
           </dt>
           <dd>
-            {{item.Http.Path}}
+{{#each item.HTTP.Methods as |item|}}
+            {{item}}
+{{/each}}
           </dd>
         </dl>
 {{/if}}
-{{#each item.Http.Header as |item|}}
-        <dl class="route-header">
+{{#if item.HTTP.Path}}
+        <dl class="permission-path">
+          <dt>
+            <Tooltip>
+              {{item.HTTP.PathType}}
+            </Tooltip>
+          </dt>
+          <dd>
+            {{item.HTTP.Path}}
+          </dd>
+        </dl>
+{{/if}}
+{{#each item.HTTP.Header as |item|}}
+        <dl class="permission-header">
           <dt>
             <Tooltip>
               Header
             </Tooltip>
           </dt>
           <dd>
-          {{item.Name}} {{route-match item}}
+            {{item.Name}} {{route-match item}}
           </dd>
         </dl>
 {{/each}}
-    </li>
-  {{/each}}
-  </ul>
-</div>
+    </div>
+  </BlockSlot>
+{{#if onclick}}
+  <BlockSlot @name="actions" as |Actions|>
+    <Actions as |Action|>
+      <Action data-test-edit-action @onclick={{action (optional onclick) item}} @close={{true}}>
+        <BlockSlot @name="label">
+          Edit
+        </BlockSlot>
+      </Action>
+      <Action data-test-delete-action @onclick={{action ondelete item}} class="dangerous">
+        <BlockSlot @name="label">
+          Delete
+        </BlockSlot>
+        <BlockSlot @name="confirmation" as |Confirmation|>
+          <Confirmation class="warning">
+            <BlockSlot @name="header">
+              Confirm delete
+            </BlockSlot>
+            <BlockSlot @name="body">
+              <p>
+                Are you sure you want to delete this permission?
+              </p>
+            </BlockSlot>
+            <BlockSlot @name="confirm" as |Confirm|>
+              <Confirm>Delete</Confirm>
+            </BlockSlot>
+          </Confirmation>
+        </BlockSlot>
+      </Action>
+    </Actions>
+  </BlockSlot>
+{{/if}}
+</ListCollection>
 {{/if}}
