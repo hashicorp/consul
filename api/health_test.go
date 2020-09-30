@@ -244,7 +244,7 @@ func TestAPI_HealthChecks(t *testing.T) {
 		if meta.LastIndex == 0 {
 			r.Fatalf("bad: %v", meta)
 		}
-		require.NotEmpty(t, out)
+		require.NotEmpty(r, out)
 		checks[0].CreateIndex = out[0].CreateIndex
 		checks[0].ModifyIndex = out[0].ModifyIndex
 		require.Equal(r, checks, out)
