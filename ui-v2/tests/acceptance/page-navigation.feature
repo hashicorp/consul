@@ -58,7 +58,6 @@ Feature: page-navigation
       - /v1/namespaces
       - /v1/internal/ui/node/node-0?dc=dc-1
       - /v1/coordinate/nodes?dc=dc-1
-      - /v1/session/node/node-0?dc=dc-1&ns=@namespace
     ---
   Scenario: The kv detail page calls the correct API endpoints
     When I visit the kv page for yaml
