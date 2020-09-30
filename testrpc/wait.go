@@ -95,10 +95,6 @@ func flattenOptions(options []waitOption) waitOption {
 	return flat
 }
 
-func WaitForSyncedTestAgent(t *testing.T, rpc rpcFn, dc string, options ...waitOption) {
-	t.Helper()
-}
-
 // WaitForTestAgent ensures we have a node with serfHealth check registered
 func WaitForTestAgent(t *testing.T, rpc rpcFn, dc string, options ...waitOption) {
 	t.Helper()
