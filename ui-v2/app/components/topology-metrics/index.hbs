@@ -2,17 +2,17 @@
 
 <div {{did-insert (action "calculate")}} class="topology-container">
 {{#if (gt @downstreams.length 0)}}
-  <div id="downstream-container" class="downstream-container">
+  <div id="downstream-container">
     <div>
       <p>{{@dc}}</p>
-      <span class="dc-info">
+      <span>
         <Tooltip>
           Only showing downstreams within the current datacenter for {{@service.Service.Service}}.
         </Tooltip>
       </span>
     </div>
   {{#each @downstreams as |downstream|}}
-    <div id="downstreamCard-{{downstream.Namespace}}{{downstream.Name}}" class="downstream-card">
+    <div id="downstreamCard-{{downstream.Namespace}}{{downstream.Name}}" class="card">
       <p>
         {{downstream.Name}}
       </p>
@@ -33,11 +33,11 @@
   {{/each}}
   </div>
 {{/if}}
-  <div id="metrics-container" class="metrics-container">
-    <div class="metrics-header">
+  <div id="metrics-container">
+    <div>
       {{@service.Service.Service}}
     </div>
-    <div class="link-container">
+    <div>
     {{#if @grafanaLink}}
       <a class="metrics-link" href={{@grafanaLink}}>Open Grafana Dashboard</a>
     {{else}}
@@ -45,41 +45,35 @@
     {{/if}}
     </div>
   </div>
-  <div id="downstream-lines" class="downstream-lines">
+  <div id="downstream-lines">
   {{#if (gt this.downLines.length 0)}}
     <svg
       viewBox={{concat downView.x ' ' downView.y ' ' downView.width ' ' downView.height}}
       preserveAspectRatio="none"
     >
     {{#each this.downLines as |svg| }}
-      <g>
-        <path
-          class="line-fill"
-          id={{concat 'downstreamLine-' svg.id}}
-          d={{svg.line}}
-        />
-        <circle
-          class="line-circle"
-          cx={{add svg.x svg.width}}
-          cy={{add svg.y (div svg.height 2)}}
-          r="5"
-        />
-      </g>
+      <path
+        id={{concat 'downstreamLine-' svg.id}}
+        d={{svg.line}}
+      />
+      <circle
+        cx={{add svg.x svg.width}}
+        cy={{add svg.y (div svg.height 2)}}
+        r="5"
+      />
     {{/each}}
 
-      <polygon class="line-arrow"
-        points={{this.toMetricsArrow}}
-      />
+      <polygon points={{this.toMetricsArrow}}/>
     </svg>
   {{/if}}
   </div>
 {{#if (gt @upstreams.length 0)}}
-  <div class="upstreams-column">
+  <div id="upstreams-column">
   {{#each-in (group-by "Datacenter" @upstreams) as |dc upstreams|}}
-    <div class="upstream-container">
+    <div id="upstream-container">
       <p>{{dc}}</p>
       {{#each upstreams as |upstream|}}
-      <div id="upstreamCard-{{upstream.Namespace}}{{upstream.Name}}" class="upstream-card">
+      <div id="upstreamCard-{{upstream.Namespace}}{{upstream.Name}}" class="card">
         <p>
           {{upstream.Name}}
         </p>
@@ -127,19 +121,17 @@
   {{/each-in}}
   </div>
 {{/if}}
-  <div id="upstream-lines" class="upstream-lines">
+  <div id="upstream-lines">
   {{#if (gt this.upLines.length 0)}}
     <svg
       viewBox={{concat this.centerDimensions.x ' ' upView.y ' ' upView.width ' ' upView.height}}
       preserveAspectRatio="none"
     >
     {{#each this.upLines as |svg| }}
-      <g>
-        <path id={{concat 'upstreamLine-' svg.id}} class="line-fill" d={{svg.line}} />
-        <polygon class="line-arrow"
-          points={{svg.arrow}}
-        />
-      </g>
+      <path id={{concat 'upstreamLine-' svg.id}} class="line-fill" d={{svg.line}} />
+      <polygon class="line-arrow"
+        points={{svg.arrow}}
+      />
     {{/each}}
 
       <circle

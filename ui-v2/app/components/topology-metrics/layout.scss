@@ -1,0 +1,98 @@
+.topology-container {
+  display: grid;
+  height: 100%;
+  align-items: start;
+  grid-template-columns: 2fr 20px 1fr 20px 2fr 20px 1fr 20px 2fr;
+  grid-template-rows: 50px 1fr 50px;
+}
+
+// Grid Layout
+#downstream-container {
+  grid-row: 1 / 3;
+  grid-column: 1 / 3;
+}
+#downstream-lines {
+  grid-row: 1 / 3;
+  grid-column: 2 / 5;
+}
+#upstream-lines {
+  grid-row: 1 / 3;
+  grid-column: 6 / 9;
+}
+#upstreams-column {
+  grid-row: 1 / 3;
+  grid-column: 8 / 10;
+}
+
+// Columns/Containers & Lines
+#downstream-lines,
+#upstream-lines {
+  z-index: 1;
+  position: relative;
+  height: 100%;
+}
+#downstream-container,
+#upstream-container {
+  padding: 12px;
+}
+#downstream-container div:first-child {
+  display: inline-flex;
+  span::before {
+    @extend %with-info-circle-outline-mask, %as-pseudo;
+    margin-left: 4px;
+  }
+}
+#upstreams-column #upstream-container:not(:last-child) {
+  margin-bottom: 8px;
+}
+#upstream-container .card:not(:last-child),
+#downstream-container .card:not(:last-child) {
+  margin-bottom: 8px;
+}
+#upstream-container .card,
+#downstream-container .card {
+  padding: 12px;
+  p {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 0 !important;
+  }
+  div {
+    display: inline-flex;
+    dl {
+      display: inline-flex;
+      margin-right: 8px;
+    }
+    span {
+      margin-right: 8px;
+    }
+    span::before,
+    dt::before {
+      margin-right: 4px;
+    }
+    .nspace dt::before,
+    .health dt::before {
+      margin-top: 2px;
+    }
+  }
+}
+
+// Metrics Container
+#metrics-container {
+  grid-row: 2 / 3;
+  grid-column: 4 / 7;
+
+  div:first-child {
+    padding: 12px;
+    border: none;
+    font-size: 16px;
+    font-weight: bold;
+  }
+  div:nth-child(2) {
+    padding: 18px;
+    a::before {
+      margin-right: 4px;
+    }
+  }
+}
+
