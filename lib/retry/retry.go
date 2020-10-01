@@ -47,10 +47,10 @@ func (j *JitterRandomStagger) AddJitter(baseTime time.Duration) time.Duration {
 // RetryWaiter will record failed and successful operations and provide
 // a channel to wait on before a failed operation can be retried.
 type Waiter struct {
-	minFailures uint
-	minWait     time.Duration
-	maxWait     time.Duration
-	jitter      Jitter
+	MinFailures uint
+	MinWait     time.Duration
+	MaxWait     time.Duration
+	Jitter      Jitter
 	failures    uint
 }
 
@@ -69,35 +69,35 @@ func NewRetryWaiter(minFailures int, minWait, maxWait time.Duration, jitter Jitt
 	}
 
 	return &Waiter{
-		minFailures: uint(minFailures),
-		minWait:     minWait,
-		maxWait:     maxWait,
+		MinFailures: uint(minFailures),
+		MinWait:     minWait,
+		MaxWait:     maxWait,
 		failures:    0,
-		jitter:      jitter,
+		Jitter:      jitter,
 	}
 }
 
 // calculates the necessary wait time before the
 // next operation should be allowed.
 func (rw *Waiter) calculateWait() time.Duration {
-	waitTime := rw.minWait
-	if rw.failures > rw.minFailures {
-		shift := rw.failures - rw.minFailures - 1
-		waitTime = rw.maxWait
+	waitTime := rw.MinWait
+	if rw.failures > rw.MinFailures {
+		shift := rw.failures - rw.MinFailures - 1
+		waitTime = rw.MaxWait
 		if shift < 31 {
 			waitTime = (1 << shift) * time.Second
 		}
-		if waitTime > rw.maxWait {
-			waitTime = rw.maxWait
+		if waitTime > rw.MaxWait {
+			waitTime = rw.MaxWait
 		}
 
-		if rw.jitter != nil {
-			waitTime = rw.jitter.AddJitter(waitTime)
+		if rw.Jitter != nil {
+			waitTime = rw.Jitter.AddJitter(waitTime)
 		}
 	}
 
-	if waitTime < rw.minWait {
-		waitTime = rw.minWait
+	if waitTime < rw.MinWait {
+		waitTime = rw.MinWait
 	}
 
 	return waitTime
