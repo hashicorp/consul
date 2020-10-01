@@ -4,18 +4,13 @@ import { action } from '@ember/object';
 
 export default class TopologyMetrics extends Component {
   // =attributes
-  tagName = '';
-
   @tracked centerDimensions;
   @tracked downView;
   @tracked downLines = [];
-  @tracked toMetricsArrow;
-  @tracked fromMetricsCircle;
   @tracked upView;
   @tracked upLines = [];
 
   // =methods
-
   curve() {
     const args = [...arguments];
     return `${arguments.length > 2 ? `C` : `Q`} ${args
@@ -79,18 +74,6 @@ export default class TopologyMetrics extends Component {
     return `M ${src.x} ${src.y} ${this.curve(...args)}`;
   }
 
-  drawMetricsArrow(src) {
-    // The top/bottom points have the same X position
-    const x = src.x - 3;
-    const topY = src.y + src.height * 0.25 - 5;
-    const bottomY = src.y + src.height * 0.25 + 5;
-
-    const middleX = src.x + 7;
-    const middleY = src.y + src.height / 4;
-
-    return `${x} ${topY} ${middleX} ${middleY} ${x} ${bottomY}`;
-  }
-
   drawMetricsCircle(src) {
     return {
       x: src.x + 20,
@@ -103,7 +86,7 @@ export default class TopologyMetrics extends Component {
     items.forEach(item => {
       const dimensions = this.getSVGDimensions(item);
       const dest = {
-        x: dimensions.x - dimensions.width - 30,
+        x: dimensions.x - dimensions.width - 26,
         y: dimensions.y + dimensions.height / 2,
       };
       const src = {
@@ -147,7 +130,7 @@ export default class TopologyMetrics extends Component {
 
   // =actions
   @action
-  calculate(e) {
+  calculate() {
     // Calculate viewBox dimensions
     this.downView = document.querySelector('#downstream-lines').getBoundingClientRect();
     this.upView = document.querySelector('#upstream-lines').getBoundingClientRect();
@@ -163,13 +146,7 @@ export default class TopologyMetrics extends Component {
     // Set Downstream Cards Positioning points
     this.downLines = this.drawDownLines(downCards);
 
-    // Draw arrow that goes from Downstreams -> Metrics
-    this.toMetricsArrow = this.drawMetricsArrow(this.centerDimensions);
-
     // Set Upstream Cards Positioning points
     this.upLines = this.drawUpLines(upCards);
-
-    // Draw the circle Metrics -> Upstreams
-    this.fromMetricsCircle = this.drawMetricsCircle(this.centerDimensions);
   }
 }

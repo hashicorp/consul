@@ -1,6 +1,6 @@
-{{on-window 'resize' (action "calculate")}}
+{{on-window 'resize' (action this.calculate)}}
 
-<div {{did-insert (action "calculate")}} class="topology-container">
+<div {{did-insert (action this.calculate)}} {{did-update (action this.calculate) @upstreams @downstreams}} class="topology-container">
 {{#if (gt @downstreams.length 0)}}
   <div id="downstream-container">
     <div>
@@ -39,7 +39,7 @@
     </div>
     <div>
     {{#if @grafanaLink}}
-      <a class="metrics-link" href={{@grafanaLink}}>Open Grafana Dashboard</a>
+      <a class="metrics-link" href={{@grafanaLink}} target="_blank" rel="noopener noreferrer">Open Grafana Dashboard</a>
     {{else}}
       <a class="settings-link" href={{href-to 'settings'}}>Configure metrics dashboard</a>
     {{/if}}
@@ -51,19 +51,28 @@
       viewBox={{concat downView.x ' ' downView.y ' ' downView.width ' ' downView.height}}
       preserveAspectRatio="none"
     >
+      <defs>
+        <marker id="dot" viewBox="-2 -2 15 15" refX="6" refY="6" markerWidth="6" markerHeight="6">
+          <circle
+            cx="6"
+            cy="6"
+            r="6"
+          />
+        </marker>
+        <marker id="arrow" viewBox="-1 -1 12 12" refX="5" refY="5"
+            markerWidth="6" markerHeight="6"
+            orient="auto-start-reverse">
+          <polygon points="0 0 10 5 0 10" />
+        </marker>
+      </defs>
     {{#each this.downLines as |svg| }}
       <path
         id={{concat 'downstreamLine-' svg.id}}
         d={{svg.line}}
-      />
-      <circle
-        cx={{add svg.x svg.width}}
-        cy={{add svg.y (div svg.height 2)}}
-        r="5"
+        marker-start="url(#dot)"
+        marker-end="url(#arrow)"
       />
     {{/each}}
-
-      <polygon points={{this.toMetricsArrow}}/>
     </svg>
   {{/if}}
   </div>
@@ -127,19 +136,28 @@
       viewBox={{concat this.centerDimensions.x ' ' upView.y ' ' upView.width ' ' upView.height}}
       preserveAspectRatio="none"
     >
+      <defs>
+        <marker id="dot" viewBox="-2 -2 15 15" refX="6" refY="6" markerWidth="6" markerHeight="6">
+          <circle
+            cx="6"
+            cy="6"
+            r="6"
+          />
+        </marker>
+        <marker id="arrow" viewBox="-1 -1 12 12" refX="5" refY="5"
+            markerWidth="6" markerHeight="6"
+            orient="auto-start-reverse">
+          <polygon points="0 0 10 5 0 10" />
+        </marker>
+      </defs>
     {{#each this.upLines as |svg| }}
-      <path id={{concat 'upstreamLine-' svg.id}} class="line-fill" d={{svg.line}} />
-      <polygon class="line-arrow"
-        points={{svg.arrow}}
+      <path
+        id={{concat 'upstreamLine-' svg.id}}
+        class="line-fill" d={{svg.line}}
+        marker-start="url(#dot)"
+        marker-end="url(#arrow)"
       />
     {{/each}}
-
-      <circle
-        class="line-circle"
-        cx={{this.fromMetricsCircle.x}}
-        cy={{this.fromMetricsCircle.y}}
-        r="5"
-      />
     </svg>
   {{/if}}
   </div>

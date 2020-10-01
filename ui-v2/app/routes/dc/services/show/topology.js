@@ -9,6 +9,7 @@ export default Route.extend({
     return this.modelFor(parent);
   },
   setupController: function(controller, model) {
+    this._super(...arguments);
     controller.setProperties(model);
   },
 });
