@@ -28,18 +28,20 @@ func TestUiIndex(t *testing.T) {
 
 	// Make the server
 	a := NewTestAgent(t, `
-		ui_dir = "`+uiDir+`"
+		ui_config {
+			dir = "`+uiDir+`"
+		}
 	`)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	// Create file
 	path := filepath.Join(a.Config.UIConfig.Dir, "my-file")
-	if err := ioutil.WriteFile(path, []byte("test"), 0777); err != nil {
+	if err := ioutil.WriteFile(path, []byte("test"), 0644); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Register node
+	// Request the custom file
 	req, _ := http.NewRequest("GET", "/ui/my-file", nil)
 	req.URL.Scheme = "http"
 	req.URL.Host = a.HTTPAddr()

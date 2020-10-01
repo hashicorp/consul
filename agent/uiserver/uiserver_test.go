@@ -2,9 +2,12 @@ package uiserver
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"path/filepath"
 	"regexp"
 	"testing"
 
@@ -227,4 +230,24 @@ func TestReload(t *testing.T) {
 		require.Contains(t, rec.Body.String(), "<!-- CONSUL_VERSION:")
 		require.Contains(t, rec.Body.String(), "exotic-metrics-provider-name")
 	}
+}
+
+func TestCustomDir(t *testing.T) {
+	uiDir := testutil.TempDir(t, "consul-uiserver")
+	defer os.RemoveAll(uiDir)
+
+	path := filepath.Join(uiDir, "test-file")
+	require.NoError(t, ioutil.WriteFile(path, []byte("test"), 0644))
+
+	cfg := basicUIEnabledConfig()
+	cfg.UIConfig.Dir = uiDir
+	h := NewHandler(cfg, testutil.Logger(t))
+
+	req := httptest.NewRequest("GET", "/test-file", nil)
+	rec := httptest.NewRecorder()
+
+	h.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Contains(t, rec.Body.String(), "test")
 }

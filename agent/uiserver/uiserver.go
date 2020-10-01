@@ -88,22 +88,36 @@ func (h *Handler) ReloadConfig(newCfg *config.RuntimeConfig) error {
 
 	// Render a new index.html with the new config values ready to serve.
 	buf, info, err := renderIndex(newCfg, fs)
-	if err != nil {
+	if _, ok := err.(*os.PathError); ok && newCfg.UIConfig.Dir != "" {
+		// A Path error indicates that there is no index.html. This could happen if
+		// the user configured their own UI dir and is serving something that is not
+		// our usual UI. This won't work perfectly because our uiserver will still
+		// redirect everything to the UI but we shouldn't fail the entire UI server
+		// with a 500 in this case. Partly that's just bad UX and partly it's a
+		// breaking change although quite an edge case. Instead, continue but just
+		// return a 404 response for the index.html and log a warning.
+		h.logger.Warn("ui_config.dir does not contain an index.html. Index templating and redirects to index.html are disabled.")
+	} else if err != nil {
 		return err
 	}
 
-	// Create a new fs that serves the rendered index file or falls back to the
-	// underlying FS.
-	fs = &bufIndexFS{
-		fs:            fs,
-		indexRendered: buf,
-		indexInfo:     info,
+	// buf can be nil in the PathError case above. We should skip this part but
+	// still serve the rest of the files in that case.
+	if buf != nil {
+		// Create a new fs that serves the rendered index file or falls back to the
+		// underlying FS.
+		fs = &bufIndexFS{
+			fs:            fs,
+			indexRendered: buf,
+			indexInfo:     info,
+		}
+
+		// Wrap the buffering FS our redirect FS. This needs to happen later so that
+		// redirected requests for /index.html get served the rendered version not the
+		// original.
+		fs = &redirectFS{fs: fs}
 	}
 
-	// Wrap the buffering FS our redirect FS. This needs to happen later so that
-	// redirected requests for /index.html get served the rendered version not the
-	// original.
-	fs = &redirectFS{fs: fs}
 	newState.srv = http.FileServer(fs)
 
 	// Store the new state

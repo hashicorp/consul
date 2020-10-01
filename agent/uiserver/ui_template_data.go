@@ -35,6 +35,9 @@ func uiTemplateDataFromConfig(cfg *config.RuntimeConfig) (map[string]interface{}
 	}
 
 	err := uiTemplateDataFromConfigEnterprise(cfg, d, uiCfg)
+	if err != nil {
+		return nil, err
+	}
 
 	// Render uiCfg down to JSON ready to inject into the template
 	bs, err := json.Marshal(uiCfg)
