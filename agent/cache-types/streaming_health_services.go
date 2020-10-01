@@ -26,65 +26,59 @@ const (
 // StreamingHealthServices supports fetching discovering service instances via the
 // catalog using the streaming gRPC endpoint.
 type StreamingHealthServices struct {
-	client submatview.StreamingClient
-	logger hclog.Logger
+	RegisterOptionsBlockingRefresh
+	deps MaterializerDeps
 }
 
 // NewStreamingHealthServices creates a cache-type for watching for service
 // health results via streaming updates.
-func NewStreamingHealthServices(client submatview.StreamingClient, logger hclog.Logger) *StreamingHealthServices {
-	return &StreamingHealthServices{
-		client: client,
-		logger: logger,
-	}
+func NewStreamingHealthServices(deps MaterializerDeps) *StreamingHealthServices {
+	return &StreamingHealthServices{deps: deps}
+}
+
+type MaterializerDeps struct {
+	Client submatview.StreamingClient
+	Logger hclog.Logger
 }
 
 // Fetch implements cache.Type
 func (c *StreamingHealthServices) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
-	// The request should be a ServiceSpecificRequest.
-	reqReal, ok := req.(*structs.ServiceSpecificRequest)
-	if !ok {
-		return cache.FetchResult{}, fmt.Errorf(
-			"Internal cache failure: request wrong type: %T", req)
+	if opts.LastResult != nil && opts.LastResult.State != nil {
+		return opts.LastResult.State.(*submatview.Materializer).Fetch(opts)
 	}
 
-	r := submatview.Request{
-		SubscribeRequest: pbsubscribe.SubscribeRequest{
-			Topic:      pbsubscribe.Topic_ServiceHealth,
-			Key:        reqReal.ServiceName,
-			Token:      reqReal.Token,
-			Index:      reqReal.MinQueryIndex,
-			Datacenter: reqReal.Datacenter,
-		},
-		Filter: reqReal.Filter,
+	srvReq := req.(*structs.ServiceSpecificRequest)
+	subReq := pbsubscribe.SubscribeRequest{
+		Topic:      pbsubscribe.Topic_ServiceHealth,
+		Key:        srvReq.ServiceName,
+		Token:      srvReq.Token,
+		Index:      srvReq.MinQueryIndex,
+		Datacenter: srvReq.Datacenter,
 	}
-
-	// Connect requests need a different topic
-	if reqReal.Connect {
-		r.Topic = pbsubscribe.Topic_ServiceHealthConnect
+	if srvReq.Connect {
+		subReq.Topic = pbsubscribe.Topic_ServiceHealthConnect
 	}
-
-	view, err := c.getMaterializedView(opts, r)
+	view, err := newMaterializer(c.deps, subReq, srvReq.Filter)
 	if err != nil {
 		return cache.FetchResult{}, err
 	}
 	return view.Fetch(opts)
 }
 
-func (c *StreamingHealthServices) getMaterializedView(opts cache.FetchOptions, r submatview.Request) (*submatview.Materializer, error) {
-	if opts.LastResult != nil && opts.LastResult.State != nil {
-		return opts.LastResult.State.(*submatview.Materializer), nil
-	}
-
-	state, err := newHealthViewState(r.Filter)
+func newMaterializer(
+	d MaterializerDeps,
+	r pbsubscribe.SubscribeRequest,
+	filter string,
+) (*submatview.Materializer, error) {
+	state, err := newHealthViewState(filter)
 	if err != nil {
 		return nil, err
 	}
 	ctx, cancel := context.WithCancel(context.TODO())
 	view := submatview.NewMaterializer(submatview.ViewDeps{
 		State:  state,
-		Client: c.client,
-		Logger: c.logger,
+		Client: d.Client,
+		Logger: d.Logger,
 		Waiter: &retry.Waiter{
 			MinFailures: 1,
 			MinWait:     0,
@@ -99,11 +93,6 @@ func (c *StreamingHealthServices) getMaterializedView(opts cache.FetchOptions, r
 	return view, nil
 }
 
-// SupportsBlocking implements cache.Type
-func (c *StreamingHealthServices) SupportsBlocking() bool {
-	return true
-}
-
 func newHealthViewState(filterExpr string) (submatview.View, error) {
 	s := &healthViewState{state: make(map[string]structs.CheckServiceNode)}
 
@@ -114,16 +103,6 @@ func newHealthViewState(filterExpr string) (submatview.View, error) {
 	var err error
 	s.filter, err = bexpr.CreateFilter(filterExpr, nil, s.state)
 	return s, err
-}
-
-// StreamingClient implements StreamingCacheType
-func (c *StreamingHealthServices) StreamingClient() submatview.StreamingClient {
-	return c.client
-}
-
-// Logger implements StreamingCacheType
-func (c *StreamingHealthServices) Logger() hclog.Logger {
-	return c.logger
 }
 
 // healthViewState implements View for storing the view state

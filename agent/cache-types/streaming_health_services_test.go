@@ -19,10 +19,10 @@ import (
 
 func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
 	client := NewTestStreamingClient()
-	typ := StreamingHealthServices{
-		client: client,
-		logger: hclog.Default(),
-	}
+	typ := StreamingHealthServices{deps: MaterializerDeps{
+		Client: client,
+		Logger: hclog.Default(),
+	}}
 
 	// Initially there are no services registered. Server should send an
 	// EndOfSnapshot message immediately with index of 1.
@@ -233,10 +233,10 @@ func requireResultsSame(t *testing.T, want, got *structs.IndexedCheckServiceNode
 
 func TestStreamingHealthServices_FullSnapshot(t *testing.T) {
 	client := NewTestStreamingClient()
-	typ := StreamingHealthServices{
-		client: client,
-		logger: hclog.Default(),
-	}
+	typ := StreamingHealthServices{deps: MaterializerDeps{
+		Client: client,
+		Logger: hclog.Default(),
+	}}
 
 	// Create an initial snapshot of 3 instances on different nodes
 	makeReg := func(index uint64, nodeNum int) *pbsubscribe.Event {
@@ -341,10 +341,10 @@ func TestStreamingHealthServices_FullSnapshot(t *testing.T) {
 
 func TestStreamingHealthServices_EventBatches(t *testing.T) {
 	client := NewTestStreamingClient()
-	typ := StreamingHealthServices{
-		client: client,
-		logger: hclog.Default(),
-	}
+	typ := StreamingHealthServices{deps: MaterializerDeps{
+		Client: client,
+		Logger: hclog.Default(),
+	}}
 
 	// Create an initial snapshot of 3 instances but in a single event batch
 	batchEv := newEventBatchWithEvents(
@@ -411,10 +411,10 @@ func TestStreamingHealthServices_EventBatches(t *testing.T) {
 
 func TestStreamingHealthServices_Filtering(t *testing.T) {
 	client := NewTestStreamingClient()
-	typ := StreamingHealthServices{
-		client: client,
-		logger: hclog.Default(),
-	}
+	typ := StreamingHealthServices{deps: MaterializerDeps{
+		Client: client,
+		Logger: hclog.Default(),
+	}}
 
 	// Create an initial snapshot of 3 instances but in a single event batch
 	batchEv := newEventBatchWithEvents(

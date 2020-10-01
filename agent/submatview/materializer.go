@@ -56,13 +56,6 @@ func (e resetErr) Error() string {
 	return string(e)
 }
 
-type Request struct {
-	pbsubscribe.SubscribeRequest
-	// Filter is a bexpr filter expression that is used to filter events on the
-	// client side.
-	Filter string
-}
-
 // TODO: update godoc
 // Materializer is a partial view of the state on servers, maintained via
 // streaming subscriptions. It is specialized for different cache types by
@@ -94,7 +87,7 @@ type ViewDeps struct {
 	Client  StreamingClient
 	Logger  hclog.Logger
 	Waiter  *retry.Waiter
-	Request Request
+	Request pbsubscribe.SubscribeRequest
 	Stop    func()
 	Done    <-chan struct{}
 }
@@ -203,7 +196,7 @@ func (v *Materializer) runSubscription(ctx context.Context) error {
 
 	v.l.Unlock()
 
-	s, err := v.deps.Client.Subscribe(ctx, &req.SubscribeRequest)
+	s, err := v.deps.Client.Subscribe(ctx, &req)
 	if err != nil {
 		return err
 	}
