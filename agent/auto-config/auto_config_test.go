@@ -11,6 +11,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/config"
@@ -18,13 +21,11 @@ import (
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/consul/proto/pbautoconf"
 	"github.com/hashicorp/consul/proto/pbconfig"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
+	testretry "github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 type configLoader struct {
@@ -412,7 +413,7 @@ func TestInitialConfiguration_retries(t *testing.T) {
 	mcfg.Config.Loader = loader.Load
 
 	// reduce the retry wait times to make this test run faster
-	mcfg.Config.Waiter = lib.NewRetryWaiter(2, 0, 1*time.Millisecond, nil)
+	mcfg.Config.Waiter = retry.NewWaiter(2, 0, 1*time.Millisecond, nil)
 
 	indexedRoots, cert, extraCerts := mcfg.setupInitialTLS(t, "autoconf", "dc1", "secret")
 
@@ -927,7 +928,7 @@ func TestRootsUpdate(t *testing.T) {
 	// however there is no deterministic way to know once its been written outside of maybe a filesystem
 	// event notifier. That seems a little heavy handed just for this and especially to do in any sort
 	// of cross platform way.
-	retry.Run(t, func(r *retry.R) {
+	testretry.Run(t, func(r *testretry.R) {
 		resp, err := testAC.ac.readPersistedAutoConfig()
 		require.NoError(r, err)
 		require.Equal(r, secondRoots.ActiveRootID, resp.CARoots.GetActiveRootID())
@@ -972,7 +973,7 @@ func TestCertUpdate(t *testing.T) {
 	// persisting these to disk happens after all the things we would wait for in assertCertUpdated
 	// will have fired. There is no deterministic way to know once its been written so we wrap
 	// this in a retry.
-	retry.Run(t, func(r *retry.R) {
+	testretry.Run(t, func(r *testretry.R) {
 		resp, err := testAC.ac.readPersistedAutoConfig()
 		require.NoError(r, err)
 
@@ -1099,7 +1100,7 @@ func TestFallback(t *testing.T) {
 
 	// persisting these to disk happens after the RPC we waited on above will have fired
 	// There is no deterministic way to know once its been written so we wrap this in a retry.
-	retry.Run(t, func(r *retry.R) {
+	testretry.Run(t, func(r *testretry.R) {
 		resp, err := testAC.ac.readPersistedAutoConfig()
 		require.NoError(r, err)
 

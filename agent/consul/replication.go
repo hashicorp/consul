@@ -7,10 +7,11 @@ import (
 	"time"
 
 	metrics "github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/go-hclog"
 	"golang.org/x/time/rate"
+
+	"github.com/hashicorp/consul/lib/retry"
+	"github.com/hashicorp/consul/logging"
 )
 
 const (
@@ -46,7 +47,7 @@ type ReplicatorConfig struct {
 
 type Replicator struct {
 	limiter          *rate.Limiter
-	waiter           *lib.RetryWaiter
+	waiter           *retry.Waiter
 	delegate         ReplicatorDelegate
 	logger           hclog.Logger
 	lastRemoteIndex  uint64
@@ -75,7 +76,7 @@ func NewReplicator(config *ReplicatorConfig) (*Replicator, error) {
 	if minFailures < 0 {
 		minFailures = 0
 	}
-	waiter := lib.NewRetryWaiter(minFailures, 0*time.Second, maxWait, lib.NewJitterRandomStagger(10))
+	waiter := retry.NewRetryWaiter(minFailures, 0*time.Second, maxWait, retry.NewJitterRandomStagger(10))
 	return &Replicator{
 		limiter:          limiter,
 		waiter:           waiter,

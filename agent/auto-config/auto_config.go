@@ -7,13 +7,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/proto/pbautoconf"
-	"github.com/hashicorp/go-hclog"
 )
 
 // AutoConfig is all the state necessary for being able to parse a configuration
@@ -24,7 +25,7 @@ type AutoConfig struct {
 	acConfig           Config
 	logger             hclog.Logger
 	cache              Cache
-	waiter             *lib.RetryWaiter
+	waiter             *retry.Waiter
 	config             *config.RuntimeConfig
 	autoConfigResponse *pbautoconf.AutoConfigResponse
 	autoConfigSource   config.Source
@@ -84,7 +85,7 @@ func New(config Config) (*AutoConfig, error) {
 	}
 
 	if config.Waiter == nil {
-		config.Waiter = lib.NewRetryWaiter(1, 0, 10*time.Minute, lib.NewJitterRandomStagger(25))
+		config.Waiter = retry.NewRetryWaiter(1, 0, 10*time.Minute, retry.NewJitterRandomStagger(25))
 	}
 
 	return &AutoConfig{

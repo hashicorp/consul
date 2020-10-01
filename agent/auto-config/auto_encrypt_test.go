@@ -11,16 +11,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 )
 
 func TestAutoEncrypt_generateCSR(t *testing.T) {
@@ -247,7 +248,7 @@ func TestAutoEncrypt_InitialCerts(t *testing.T) {
 		resp.VerifyServerHostname = true
 	})
 
-	mcfg.Config.Waiter = lib.NewRetryWaiter(2, 0, 1*time.Millisecond, nil)
+	mcfg.Config.Waiter = retry.NewRetryWaiter(2, 0, 1*time.Millisecond, nil)
 
 	ac := AutoConfig{
 		config: &config.RuntimeConfig{
