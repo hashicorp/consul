@@ -901,7 +901,9 @@ func (l *State) updateSyncState() error {
 		!reflect.DeepEqual(svcNode.TaggedAddresses, l.config.TaggedAddresses) ||
 		!reflect.DeepEqual(svcNode.Meta, l.metadata) {
 
-		l.syncNodeInfo()
+		if err := l.syncNodeInfo(); err != nil {
+			return err
+		}
 	}
 
 	// Check which services need syncing
@@ -1302,7 +1304,7 @@ func (l *State) syncCheck(key structs.CheckID) error {
 	}
 }
 
-func (l *State) syncNodeInfo() {
+func (l *State) syncNodeInfo() error {
 	at := l.tokens.AgentToken()
 	req := structs.RegisterRequest{
 		Datacenter:      l.config.Datacenter,
@@ -1318,6 +1320,7 @@ func (l *State) syncNodeInfo() {
 	switch {
 	case err == nil:
 		l.logger.Info("Synced node info")
+		return nil
 
 	case acl.IsErrPermissionDenied(err), acl.IsErrNotFound(err):
 		// todo(fs): mark the node info to be in sync to prevent excessive retrying before next full sync
@@ -1325,9 +1328,11 @@ func (l *State) syncNodeInfo() {
 		accessorID := l.aclAccessorID(at)
 		l.logger.Warn("Node info update blocked by ACLs", "node", l.config.NodeID, "accessorID", accessorID)
 		metrics.IncrCounter([]string{"acl", "blocked", "node", "registration"}, 1)
+		return nil
 
 	default:
 		l.logger.Warn("Syncing node info failed.", "error", err)
+		return err
 	}
 }
 
