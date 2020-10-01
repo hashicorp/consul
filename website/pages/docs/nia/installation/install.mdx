@@ -1,0 +1,45 @@
+---
+layout: docs
+page_title: Install Consul and Consul-Terraform-Sync
+sidebar_title: Installation
+description: >-
+  Consul-Terraform-Sync is a daemon that runs alongside Consul. Consul-Terraform-Sync is not included with the Consul binary and will need to be installed separately.
+---
+
+# Installing Consul
+
+Consul-Terraform-Sync is a daemon that runs alongside Consul, similar to other Consul ecosystem tools like Consul Template. Consul-Terraform-Sync is not included with the Consul binary and will need to be installed separately. First, we recommend installing Consul. For simplicity, we are using a local Consul agent in development mode which can be started with consul agent -dev. To quickly set up a local Consul agent, refer to the getting started [guide](https://learn.hashicorp.com/tutorials/consul/get-started-install). The Consul agent must be running to dynamically update network devices.
+
+# Installing Consul-Terraform-Sync
+
+To install Consul-Terraform-Sync, find the [appropriate package](https://releases.hashicorp.com/) for your system and download it as a zip archive. Unzip the package to extract the binary named consul-terraform-sync. Move the consul-terraform-sync binary to a location available on your PATH.
+
+```shell-session
+$ mv ~/Downloads/consul-terraform-sync /usr/local/bin/consul-terraform-sync
+```
+
+You can also install Consul-Terraform-Sync as a [Docker container](https://hub.docker.com/u/hashicorp/consul-terraform-sync) or build the binary from [source](https://github.com/hashicorp/consul-terraform-sync).
+
+Once installed, verify the installation works by prompting the help option.
+
+```shell-session
+$ consul-terraform-sync -h
+Usage of consul-terraform-sync:
+  -config-dir value
+      A directory to load files for configuring Sync. Configuration files
+      require an .hcl or .json file extention in order to specify their format.
+      This option can be specified multiple times to load different directories.
+  -config-file value
+      A file to load for configuring Sync. Configuration file requires an
+      .hcl or .json extension in order to specify their format. This option can
+      be specified multiple times to load different configuration files.
+  -once
+      Render templates and run tasks once. Does not run the process as a daemon
+      and disables wait timers.
+  -version
+      Print the version of this daemon.
+```
+
+# Connect your Network Device
+
+## Multiple Instances per Provider

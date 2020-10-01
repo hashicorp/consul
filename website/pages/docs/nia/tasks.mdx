@@ -1,0 +1,11 @@
+---
+layout: docs
+page_title: Tasks
+sidebar_title: Tasks
+description: >-
+  Consul-Terraform-Sync Tasks
+---
+
+# Tasks
+
+A task is the translation of dynamic service information from the Consul Catalog into network infrastructure changes downstream. Consul-Terraform-Sync carries out automation for executing tasks using network drivers. The scope of a task in terms of the Terraform driver is the execution of a Terraform module. An example of a task is to automate a firewall security policy rule with discovered IP addresses for a set of Consul services.
