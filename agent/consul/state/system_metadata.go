@@ -45,12 +45,12 @@ func (s *Snapshot) SystemMetadataEntries() ([]*structs.SystemMetadataEntry, erro
 }
 
 // SystemMetadataEntry is used when restoring from a snapshot.
-func (s *Restore) SystemMetadataEntry(g *structs.SystemMetadataEntry) error {
+func (s *Restore) SystemMetadataEntry(entry *structs.SystemMetadataEntry) error {
 	// Insert
-	if err := s.tx.Insert(systemMetadataTableName, g); err != nil {
+	if err := s.tx.Insert(systemMetadataTableName, entry); err != nil {
 		return fmt.Errorf("failed restoring system metadata object: %s", err)
 	}
-	if err := indexUpdateMaxTxn(s.tx, g.ModifyIndex, systemMetadataTableName); err != nil {
+	if err := indexUpdateMaxTxn(s.tx, entry.ModifyIndex, systemMetadataTableName); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
