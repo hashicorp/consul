@@ -503,7 +503,7 @@ func NewRaft(conf *Config, fsm FSM, logs LogStore, stable StableStore, snaps Sna
 		fsm:                   fsm,
 		fsmMutateCh:           make(chan interface{}, 128),
 		fsmSnapshotCh:         make(chan *reqSnapshotFuture),
-		leaderCh:              make(chan bool),
+		leaderCh:              make(chan bool, 1),
 		localID:               localID,
 		localAddr:             localAddr,
 		logger:                logger,
@@ -526,13 +526,6 @@ func NewRaft(conf *Config, fsm FSM, logs LogStore, stable StableStore, snaps Sna
 
 	// Initialize as a follower.
 	r.setState(Follower)
-
-	// Start as leader if specified. This should only be used
-	// for testing purposes.
-	if conf.StartAsLeader {
-		r.setState(Leader)
-		r.setLeader(r.localAddr)
-	}
 
 	// Restore the current term and the last log.
 	r.setCurrentTerm(currentTerm)
@@ -959,10 +952,17 @@ func (r *Raft) State() RaftState {
 	return r.getState()
 }
 
-// LeaderCh is used to get a channel which delivers signals on
-// acquiring or losing leadership. It sends true if we become
-// the leader, and false if we lose it. The channel is not buffered,
-// and does not block on writes.
+// LeaderCh is used to get a channel which delivers signals on acquiring or
+// losing leadership. It sends true if we become the leader, and false if we
+// lose it.
+//
+// Receivers can expect to receive a notification only if leadership
+// transition has occured.
+//
+// If receivers aren't ready for the signal, signals may drop and only the
+// latest leadership transition. For example, if a receiver receives subsequent
+// `true` values, they may deduce that leadership was lost and regained while
+// the the receiver was processing first leadership transition.
 func (r *Raft) LeaderCh() <-chan bool {
 	return r.leaderCh
 }
