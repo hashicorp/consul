@@ -133,7 +133,7 @@ func systemMetadataGetTxn(tx ReadTxn, ws memdb.WatchSet, key string) (uint64, *s
 
 	entry, ok := existing.(*structs.SystemMetadataEntry)
 	if !ok {
-		return 0, nil, fmt.Errorf("system metadata %q is an invalid type: %T", key, entry)
+		return 0, nil, fmt.Errorf("system metadata %q is an invalid type: %T", key, existing)
 	}
 
 	return idx, entry, nil
