@@ -8,3 +8,10 @@ html[data-route^='dc.services.instance'] .app-view > header dl {
 html[data-route^='dc.services.instance'] .app-view > header dt {
   font-weight: $typo-weight-bold;
 }
+html[data-route^='dc.services.instance'] [role='tabpanel'] section:not(:last-child) {
+  padding-bottom: 24px;
+  border-bottom: 1px solid $gray-200;
+}
+html[data-route^='dc.services.instance'] [role='tabpanel'] section h3 {
+  margin: 24px 0 12px 0;
+}
