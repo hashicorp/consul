@@ -16,8 +16,8 @@ endif
 TEST_RESULTS_DIR?=/tmp/test-results
 
 test:
-	go test $(TESTARGS) -timeout=60s -race .
-	go test $(TESTARGS) -timeout=60s -tags batchtest -race .
+	GOTRACEBACK=all go test $(TESTARGS) -timeout=60s -race .
+	GOTRACEBACK=all go test $(TESTARGS) -timeout=60s -tags batchtest -race .
 
 integ: test
 	INTEG_TESTS=yes go test $(TESTARGS) -timeout=25s -run=Integ .
