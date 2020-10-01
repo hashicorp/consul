@@ -4,8 +4,8 @@ package structs
 type SystemMetadataOp string
 
 const (
-	SystemMetadataOpUpsert SystemMetadataOp = "upsert"
-	SystemMetadataOpDelete SystemMetadataOp = "delete"
+	SystemMetadataUpsert SystemMetadataOp = "upsert"
+	SystemMetadataDelete SystemMetadataOp = "delete"
 )
 
 // SystemMetadataRequest is used to upsert and delete system metadata.

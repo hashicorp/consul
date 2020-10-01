@@ -71,7 +71,7 @@ func TestLeader_SystemMetadata_CRUD(t *testing.T) {
 
 func setSystemMetadataKey(s *Server, key, val string) error {
 	args := &structs.SystemMetadataRequest{
-		Op: structs.SystemMetadataOpUpsert,
+		Op: structs.SystemMetadataUpsert,
 		Entries: []*structs.SystemMetadataEntry{
 			{Key: key, Value: val},
 		},
@@ -90,7 +90,7 @@ func setSystemMetadataKey(s *Server, key, val string) error {
 
 func deleteSystemMetadataKey(s *Server, key string) error {
 	args := &structs.SystemMetadataRequest{
-		Op: structs.SystemMetadataOpDelete,
+		Op: structs.SystemMetadataDelete,
 		Entries: []*structs.SystemMetadataEntry{
 			{Key: key},
 		},

@@ -577,14 +577,14 @@ func (c *FSM) applySystemMetadataOperation(buf []byte, index uint64) interface{}
 	}
 
 	switch req.Op {
-	case structs.SystemMetadataOpUpsert:
+	case structs.SystemMetadataUpsert:
 		defer metrics.MeasureSinceWithLabels([]string{"fsm", "system_metadata"}, time.Now(),
 			[]metrics.Label{{Name: "op", Value: "upsert"}})
 		if err := c.state.SystemMetadataSet(index, req.Entries); err != nil {
 			return err
 		}
 		return true
-	case structs.SystemMetadataOpDelete:
+	case structs.SystemMetadataDelete:
 		defer metrics.MeasureSinceWithLabels([]string{"fsm", "system_metadata"}, time.Now(),
 			[]metrics.Label{{Name: "op", Value: "delete"}})
 		return c.state.SystemMetadataDelete(index, req.Entries)
