@@ -99,7 +99,7 @@ function confirm_git_push_changes {
                ;;
             ?)
                # bindata_assetfs.go will make these meaningless
-               git_diff "$(pwd)" ":!agent/bindata_assetfs.go"|| ret 1
+               git_diff "$(pwd)" ":!agent/uiserver/bindata_assetfs.go"|| ret 1
                answer=""
                ;;
             * )

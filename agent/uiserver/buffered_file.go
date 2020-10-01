@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// bufferedFile implements os.File and allows us to modify a file from disk by
+// bufferedFile implements http.File and allows us to modify a file from disk by
 // writing out the new version into a buffer and then serving file reads from
 // that.
 type bufferedFile struct {
