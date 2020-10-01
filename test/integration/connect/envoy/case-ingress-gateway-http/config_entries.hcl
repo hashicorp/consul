@@ -1,5 +1,3 @@
-enable_central_service_config = true
-
 config_entries {
   bootstrap = [
     {
@@ -15,7 +13,7 @@ config_entries {
 
       listeners = [
         {
-          port = 9999
+          port     = 9999
           protocol = "http"
           services = [
             {
@@ -40,7 +38,7 @@ config_entries {
           }
 
           destination {
-            service = "s1"
+            service        = "s1"
             prefix_rewrite = "/"
           }
         },
@@ -52,7 +50,7 @@ config_entries {
           }
 
           destination {
-            service = "s2"
+            service        = "s2"
             prefix_rewrite = "/"
           }
         }

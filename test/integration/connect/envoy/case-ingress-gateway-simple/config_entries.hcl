@@ -1,5 +1,3 @@
-enable_central_service_config = true
-
 config_entries {
   bootstrap {
     kind = "ingress-gateway"
@@ -7,7 +5,7 @@ config_entries {
 
     listeners = [
       {
-        port = 9999
+        port     = 9999
         protocol = "tcp"
         services = [
           {

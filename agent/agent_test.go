@@ -255,7 +255,7 @@ func TestAgent_ReconnectConfigWanDisabled(t *testing.T) {
 func TestAgent_AddService(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_AddService(t, "")
+		testAgent_AddService(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -451,7 +451,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 func TestAgent_AddServices_AliasUpdateCheckNotReverted(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_AddServices_AliasUpdateCheckNotReverted(t, "")
+		testAgent_AddServices_AliasUpdateCheckNotReverted(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -669,7 +669,7 @@ func TestAgent_CheckAliasRPC(t *testing.T) {
 func TestAgent_AddServiceNoExec(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_AddServiceNoExec(t, "")
+		testAgent_AddServiceNoExec(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -711,7 +711,7 @@ func testAgent_AddServiceNoExec(t *testing.T, extraHCL string) {
 func TestAgent_AddServiceNoRemoteExec(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_AddServiceNoRemoteExec(t, "")
+		testAgent_AddServiceNoRemoteExec(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -977,7 +977,7 @@ func TestAddServiceIPv6TaggedSet(t *testing.T) {
 func TestAgent_RemoveService(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RemoveService(t, "")
+		testAgent_RemoveService(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -1088,7 +1088,7 @@ func testAgent_RemoveService(t *testing.T, extraHCL string) {
 func TestAgent_RemoveServiceRemovesAllChecks(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RemoveServiceRemovesAllChecks(t, "")
+		testAgent_RemoveServiceRemovesAllChecks(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -2009,7 +2009,7 @@ func TestAgent_updateTTLCheck(t *testing.T) {
 func TestAgent_PersistService(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_PersistService(t, "")
+		testAgent_PersistService(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -2108,7 +2108,7 @@ func testAgent_PersistService(t *testing.T, extraHCL string) {
 func TestAgent_persistedService_compat(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_persistedService_compat(t, "")
+		testAgent_persistedService_compat(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -2162,7 +2162,7 @@ func testAgent_persistedService_compat(t *testing.T, extraHCL string) {
 func TestAgent_PurgeService(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_PurgeService(t, "")
+		testAgent_PurgeService(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -2217,7 +2217,7 @@ func testAgent_PurgeService(t *testing.T, extraHCL string) {
 func TestAgent_PurgeServiceOnDuplicate(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_PurgeServiceOnDuplicate(t, "")
+		testAgent_PurgeServiceOnDuplicate(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -2501,7 +2501,7 @@ func TestAgent_unloadChecks(t *testing.T) {
 func TestAgent_loadServices_token(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_loadServices_token(t, "")
+		testAgent_loadServices_token(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -2531,7 +2531,7 @@ func testAgent_loadServices_token(t *testing.T, extraHCL string) {
 func TestAgent_loadServices_sidecar(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_loadServices_sidecar(t, "")
+		testAgent_loadServices_sidecar(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -2572,7 +2572,7 @@ func testAgent_loadServices_sidecar(t *testing.T, extraHCL string) {
 func TestAgent_loadServices_sidecarSeparateToken(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_loadServices_sidecarSeparateToken(t, "")
+		testAgent_loadServices_sidecarSeparateToken(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -2611,7 +2611,7 @@ func testAgent_loadServices_sidecarSeparateToken(t *testing.T, extraHCL string) 
 func TestAgent_loadServices_sidecarInheritMeta(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_loadServices_sidecarInheritMeta(t, "")
+		testAgent_loadServices_sidecarInheritMeta(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -2655,7 +2655,7 @@ func testAgent_loadServices_sidecarInheritMeta(t *testing.T, extraHCL string) {
 func TestAgent_loadServices_sidecarOverrideMeta(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_loadServices_sidecarOverrideMeta(t, "")
+		testAgent_loadServices_sidecarOverrideMeta(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -2703,7 +2703,7 @@ func testAgent_loadServices_sidecarOverrideMeta(t *testing.T, extraHCL string) {
 func TestAgent_unloadServices(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_unloadServices(t, "")
+		testAgent_unloadServices(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -2905,7 +2905,7 @@ func TestAgent_Service_NoReap(t *testing.T) {
 func TestAgent_AddService_restoresSnapshot(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_AddService_restoresSnapshot(t, "")
+		testAgent_AddService_restoresSnapshot(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -3399,7 +3399,7 @@ func TestAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
 func TestAgent_ReloadConfigAndKeepChecksStatus(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_ReloadConfigAndKeepChecksStatus(t, "")
+		testAgent_ReloadConfigAndKeepChecksStatus(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
