@@ -17,11 +17,11 @@ func newEndOfSnapshotEvent(topic pbsubscribe.Topic, index uint64) *pbsubscribe.E
 	}
 }
 
-func newEndOfEmptySnapshotEvent(topic pbsubscribe.Topic, index uint64) *pbsubscribe.Event {
+func newNewSnapshotToFollowEvent(topic pbsubscribe.Topic, index uint64) *pbsubscribe.Event {
 	return &pbsubscribe.Event{
 		Topic:   topic,
 		Index:   index,
-		Payload: &pbsubscribe.Event_EndOfEmptySnapshot{EndOfEmptySnapshot: true},
+		Payload: &pbsubscribe.Event_NewSnapshotToFollow{NewSnapshotToFollow: true},
 	}
 }
 

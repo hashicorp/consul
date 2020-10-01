@@ -37,46 +37,59 @@ func NewStreamingHealthServices(deps MaterializerDeps) *StreamingHealthServices 
 }
 
 type MaterializerDeps struct {
-	Client submatview.StreamingClient
+	Client submatview.StreamClient
 	Logger hclog.Logger
 }
 
 // Fetch implements cache.Type
 func (c *StreamingHealthServices) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	if opts.LastResult != nil && opts.LastResult.State != nil {
-		return opts.LastResult.State.(*submatview.Materializer).Fetch(opts)
+		state := opts.LastResult.State.(*streamingHealthState)
+		return state.materializer.Fetch(state.done, opts)
 	}
 
 	srvReq := req.(*structs.ServiceSpecificRequest)
-	subReq := pbsubscribe.SubscribeRequest{
-		Topic:      pbsubscribe.Topic_ServiceHealth,
-		Key:        srvReq.ServiceName,
-		Token:      srvReq.Token,
-		Index:      srvReq.MinQueryIndex,
-		Datacenter: srvReq.Datacenter,
+	newReqFn := func(index uint64) pbsubscribe.SubscribeRequest {
+		req := pbsubscribe.SubscribeRequest{
+			Topic:      pbsubscribe.Topic_ServiceHealth,
+			Key:        srvReq.ServiceName,
+			Token:      srvReq.Token,
+			Datacenter: srvReq.Datacenter,
+			Index:      index,
+		}
+		if srvReq.Connect {
+			req.Topic = pbsubscribe.Topic_ServiceHealthConnect
+		}
+		return req
 	}
-	if srvReq.Connect {
-		subReq.Topic = pbsubscribe.Topic_ServiceHealthConnect
-	}
-	view, err := newMaterializer(c.deps, subReq, srvReq.Filter)
+
+	m, err := newMaterializer(c.deps, newReqFn, srvReq.Filter)
 	if err != nil {
 		return cache.FetchResult{}, err
 	}
-	return view.Fetch(opts)
+	ctx, cancel := context.WithCancel(context.TODO())
+	go m.Run(ctx)
+
+	result, err := m.Fetch(ctx.Done(), opts)
+	result.State = &streamingHealthState{
+		materializer: m,
+		done:         ctx.Done(),
+		cancel:       cancel,
+	}
+	return result, err
 }
 
 func newMaterializer(
 	d MaterializerDeps,
-	r pbsubscribe.SubscribeRequest,
+	r func(uint64) pbsubscribe.SubscribeRequest,
 	filter string,
 ) (*submatview.Materializer, error) {
-	state, err := newHealthViewState(filter)
+	view, err := newHealthViewState(filter)
 	if err != nil {
 		return nil, err
 	}
-	ctx, cancel := context.WithCancel(context.TODO())
-	view := submatview.NewMaterializer(submatview.ViewDeps{
-		State:  state,
+	return submatview.NewMaterializer(submatview.Deps{
+		View:   view,
 		Client: d.Client,
 		Logger: d.Logger,
 		Waiter: &retry.Waiter{
@@ -86,15 +99,22 @@ func newMaterializer(
 			Jitter:      retry.NewJitter(100),
 		},
 		Request: r,
-		Stop:    cancel,
-		Done:    ctx.Done(),
-	})
-	go view.Run(ctx)
-	return view, nil
+	}), nil
+}
+
+type streamingHealthState struct {
+	materializer *submatview.Materializer
+	done         <-chan struct{}
+	cancel       func()
+}
+
+func (c *streamingHealthState) Close() error {
+	c.cancel()
+	return nil
 }
 
 func newHealthViewState(filterExpr string) (submatview.View, error) {
-	s := &healthViewState{state: make(map[string]structs.CheckServiceNode)}
+	s := &healthView{state: make(map[string]structs.CheckServiceNode)}
 
 	// We apply filtering to the raw CheckServiceNodes before we are done mutating
 	// state in Update to save from storing stuff in memory we'll only filter
@@ -105,19 +125,19 @@ func newHealthViewState(filterExpr string) (submatview.View, error) {
 	return s, err
 }
 
-// healthViewState implements View for storing the view state
+// healthView implements submatview.View for storing the view state
 // of a service health result. We store it as a map to make updates and
 // deletions a little easier but we could just store a result type
 // (IndexedCheckServiceNodes) and update it in place for each event - that
 // involves re-sorting each time etc. though.
-type healthViewState struct {
+type healthView struct {
 	state map[string]structs.CheckServiceNode
 	// TODO: test case with filter
 	filter *bexpr.Filter
 }
 
 // Update implements View
-func (s *healthViewState) Update(events []*pbsubscribe.Event) error {
+func (s *healthView) Update(events []*pbsubscribe.Event) error {
 	for _, event := range events {
 		serviceHealth := event.GetServiceHealth()
 		if serviceHealth == nil {
@@ -147,7 +167,7 @@ func (s *healthViewState) Update(events []*pbsubscribe.Event) error {
 }
 
 // Result implements View
-func (s *healthViewState) Result(index uint64) (interface{}, error) {
+func (s *healthView) Result(index uint64) (interface{}, error) {
 	var result structs.IndexedCheckServiceNodes
 	// Avoid a nil slice if there are no results in the view
 	// TODO: why this ^
@@ -159,6 +179,6 @@ func (s *healthViewState) Result(index uint64) (interface{}, error) {
 	return &result, nil
 }
 
-func (s *healthViewState) Reset() {
+func (s *healthView) Reset() {
 	s.state = make(map[string]structs.CheckServiceNode)
 }

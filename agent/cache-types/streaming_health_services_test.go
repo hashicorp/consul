@@ -28,10 +28,9 @@ func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
 	// EndOfSnapshot message immediately with index of 1.
 	client.QueueEvents(newEndOfSnapshotEvent(pbsubscribe.Topic_ServiceHealth, 1))
 
-	// This contains the view state so important we share it between calls.
 	opts := cache.FetchOptions{
 		MinIndex: 0,
-		Timeout:  1 * time.Second,
+		Timeout:  time.Second,
 	}
 	req := &structs.ServiceSpecificRequest{
 		Datacenter:  "dc1",
@@ -111,7 +110,7 @@ func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
 
 		// After the error the view should re-subscribe with same index so will get
 		// a "resume stream".
-		client.QueueEvents(newEndOfEmptySnapshotEvent(pbsubscribe.Topic_ServiceHealth, opts.MinIndex))
+		client.QueueEvents(newNewSnapshotToFollowEvent(pbsubscribe.Topic_ServiceHealth, opts.MinIndex))
 
 		// Next fetch will continue to block until timeout and receive the same
 		// result.
@@ -157,7 +156,7 @@ func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
 
 			// After the error the view should re-subscribe with same index so will get
 			// a "resume stream".
-			client.QueueEvents(newEndOfEmptySnapshotEvent(pbsubscribe.Topic_ServiceHealth, opts.MinIndex))
+			client.QueueEvents(newNewSnapshotToFollowEvent(pbsubscribe.Topic_ServiceHealth, opts.MinIndex))
 		}()
 
 		// Next fetch should return the error
