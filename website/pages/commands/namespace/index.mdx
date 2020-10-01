@@ -1,0 +1,84 @@
+---
+layout: commands
+page_title: 'Commands: Namespace'
+sidebar_title: namespace
+description: |
+  The namespace command provides management of Consul Enterprise namespaces.
+---
+
+# Consul Namespace
+
+Command: `consul namespace`
+
+<EnterpriseAlert />
+
+The `namespace` command provides management of Consul Enterprise namespaces. This was added in Consul Enterprise 1.7.0.
+
+If ACLs are enabled then a token with operator privileges may be required in order to use this command. Write
+requests are forwarded to the leader in the primary datacenter. Therefore these commands can be run against
+any agent in any datacenter.
+
+## Usage
+
+Usage: `consul namespace <subcommand>`
+
+For the exact documentation for your Consul version, run `consul namespace -h` to view the complete list of subcommands.
+
+```text
+Usage: consul namespace <subcommand> [options] [args]
+
+  This command has subcommands for interacting with Consul Enterprise
+  Namespaces. Here are some simple examples. More detailed
+  examples are available in the subcommands or the documentation.
+
+  ...
+
+Subcommands:
+    create    Create a Namespace
+    delete    Delete a Namespace
+    list      List all Namespaces
+    read      Read a Namespace
+    update    Update a Namespace
+    write     Create or update a Namespace from its full definition
+```
+
+For more information, examples, and usage about a subcommand, click on the name
+of the subcommand in the sidebar.
+
+## Basic Examples
+
+Create a Namespace
+
+```shell-session
+$ consul namespace create -name team1
+```
+
+Create or Update a Namespace from its full definition:
+
+```shell-session
+$ consul namespace write ns1.hcl
+```
+
+Read a Namespace:
+
+```shell-session
+$ consul namespace read ns1
+```
+
+List all Namespaces:
+
+```shell-session
+$ consul namespace list
+```
+
+Update a namespace
+
+```shell-session
+$ consul namespace update -name team1 -description "first namespace"
+```
+
+Delete a Namespace:
+
+```shell-session
+$ consul namespace delete team1
+```

@@ -13,7 +13,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
-	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -27,6 +26,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	tokenStore "github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -39,7 +39,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func makeReadOnlyAgentACL(t *testing.T, srv *HTTPServer) string {
+func makeReadOnlyAgentACL(t *testing.T, srv *HTTPHandlers) string {
 	args := map[string]interface{}{
 		"Name":  "User Token",
 		"Type":  "client",
@@ -1209,39 +1209,65 @@ func TestAgent_Checks_ACLFilter(t *testing.T) {
 
 func TestAgent_Self(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, `
-		node_meta {
-			somekey = "somevalue"
-		}
-	`)
-	defer a.Shutdown()
 
-	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
-	req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
-	obj, err := a.srv.AgentSelf(nil, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
+	cases := map[string]struct {
+		hcl       string
+		expectXDS bool
+	}{
+		"normal": {
+			hcl: `
+			node_meta {
+				somekey = "somevalue"
+			}
+			`,
+			expectXDS: true,
+		},
+		"no grpc": {
+			hcl: `
+			node_meta {
+				somekey = "somevalue"
+			}
+			ports = {
+				grpc = -1
+			}
+			`,
+			expectXDS: false,
+		},
 	}
 
-	val := obj.(Self)
-	if int(val.Member.Port) != a.Config.SerfPortLAN {
-		t.Fatalf("incorrect port: %v", obj)
-	}
+	for name, tc := range cases {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			a := NewTestAgent(t, tc.hcl)
+			defer a.Shutdown()
 
-	if val.DebugConfig["SerfPortLAN"].(int) != a.Config.SerfPortLAN {
-		t.Fatalf("incorrect port: %v", obj)
-	}
+			testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+			req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
+			obj, err := a.srv.AgentSelf(nil, req)
+			require.NoError(t, err)
 
-	cs, err := a.GetLANCoordinate()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if c := cs[a.config.SegmentName]; !reflect.DeepEqual(c, val.Coord) {
-		t.Fatalf("coordinates are not equal: %v != %v", c, val.Coord)
-	}
-	delete(val.Meta, structs.MetaSegmentKey) // Added later, not in config.
-	if !reflect.DeepEqual(a.config.NodeMeta, val.Meta) {
-		t.Fatalf("meta fields are not equal: %v != %v", a.config.NodeMeta, val.Meta)
+			val := obj.(Self)
+			require.Equal(t, a.Config.SerfPortLAN, int(val.Member.Port))
+			require.Equal(t, a.Config.SerfPortLAN, val.DebugConfig["SerfPortLAN"].(int))
+
+			cs, err := a.GetLANCoordinate()
+			require.NoError(t, err)
+			require.Equal(t, cs[a.config.SegmentName], val.Coord)
+
+			delete(val.Meta, structs.MetaSegmentKey) // Added later, not in config.
+			require.Equal(t, a.config.NodeMeta, val.Meta)
+
+			if tc.expectXDS {
+				require.NotNil(t, val.XDS, "xds component missing when gRPC is enabled")
+				require.Equal(t,
+					map[string][]string{"envoy": proxysupport.EnvoyVersions},
+					val.XDS.SupportedProxies,
+				)
+
+			} else {
+				require.Nil(t, val.XDS, "xds component should be missing when gRPC is disabled")
+			}
+		})
 	}
 }
 
@@ -1332,7 +1358,7 @@ func TestAgent_Reload(t *testing.T) {
 		t.Fatal("missing redis service")
 	}
 
-	cfg2 := TestConfig(testutil.Logger(t), config.Source{
+	cfg2 := TestConfig(testutil.Logger(t), config.FileSource{
 		Name:   "reload",
 		Format: "hcl",
 		Data: `
@@ -1466,7 +1492,7 @@ func TestAgent_ReloadDoesNotTriggerWatch(t *testing.T) {
 	})
 
 	// Let's take almost the same config
-	cfg2 := TestConfig(testutil.Logger(t), config.Source{
+	cfg2 := TestConfig(testutil.Logger(t), config.FileSource{
 		Name:   "reload",
 		Format: "hcl",
 		Data: `
@@ -2668,7 +2694,7 @@ func TestAgent_UpdateCheck_ACLDeny(t *testing.T) {
 func TestAgent_RegisterService(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService(t, "")
+		testAgent_RegisterService(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -2754,7 +2780,7 @@ func testAgent_RegisterService(t *testing.T, extraHCL string) {
 func TestAgent_RegisterService_ReRegister(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_ReRegister(t, "")
+		testAgent_RegisterService_ReRegister(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -2830,7 +2856,7 @@ func testAgent_RegisterService_ReRegister(t *testing.T, extraHCL string) {
 func TestAgent_RegisterService_ReRegister_ReplaceExistingChecks(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_ReRegister_ReplaceExistingChecks(t, "")
+		testAgent_RegisterService_ReRegister_ReplaceExistingChecks(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -2905,7 +2931,7 @@ func testAgent_RegisterService_ReRegister_ReplaceExistingChecks(t *testing.T, ex
 func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_ACLDeny(t, "")
+		testAgent_RegisterService_ACLDeny(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -3121,7 +3147,7 @@ func testAgent_RegisterService_TranslateKeys(t *testing.T, extraHCL string) {
 func TestAgent_RegisterService_ACLDeny(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_ACLDeny(t, "")
+		testAgent_RegisterService_ACLDeny(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -3171,7 +3197,7 @@ func testAgent_RegisterService_ACLDeny(t *testing.T, extraHCL string) {
 func TestAgent_RegisterService_InvalidAddress(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_UnmanagedConnectProxy(t, "")
+		testAgent_RegisterService_InvalidAddress(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -3215,7 +3241,7 @@ func testAgent_RegisterService_InvalidAddress(t *testing.T, extraHCL string) {
 func TestAgent_RegisterService_UnmanagedConnectProxy(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_UnmanagedConnectProxy(t, "")
+		testAgent_RegisterService_UnmanagedConnectProxy(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -3349,7 +3375,7 @@ func testCreatePolicy(t *testing.T, a *TestAgent, name, rules string) string {
 func TestAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterServiceDeregisterService_Sidecar(t, "")
+		testAgent_RegisterServiceDeregisterService_Sidecar(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -3845,7 +3871,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 func TestAgent_RegisterService_UnmanagedConnectProxyInvalid(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_UnmanagedConnectProxyInvalid(t, "")
+		testAgent_RegisterService_UnmanagedConnectProxyInvalid(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -3888,7 +3914,7 @@ func testAgent_RegisterService_UnmanagedConnectProxyInvalid(t *testing.T, extraH
 func TestAgent_RegisterService_ConnectNative(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_ConnectNative(t, "")
+		testAgent_RegisterService_ConnectNative(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -3933,7 +3959,7 @@ func testAgent_RegisterService_ConnectNative(t *testing.T, extraHCL string) {
 func TestAgent_RegisterService_ScriptCheck_ExecDisable(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_ScriptCheck_ExecDisable(t, "")
+		testAgent_RegisterService_ScriptCheck_ExecDisable(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -3979,7 +4005,7 @@ func testAgent_RegisterService_ScriptCheck_ExecDisable(t *testing.T, extraHCL st
 func TestAgent_RegisterService_ScriptCheck_ExecRemoteDisable(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_ScriptCheck_ExecRemoteDisable(t, "")
+		testAgent_RegisterService_ScriptCheck_ExecRemoteDisable(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -4465,7 +4491,8 @@ func TestAgent_Monitor(t *testing.T) {
 			req = req.WithContext(cancelCtx)
 
 			resp := httptest.NewRecorder()
-			go a.srv.Handler.ServeHTTP(resp, req)
+			handler := a.srv.handler(true)
+			go handler.ServeHTTP(resp, req)
 
 			args := &structs.ServiceDefinition{
 				Name: "monitor",
@@ -4541,12 +4568,15 @@ func TestAgent_Monitor(t *testing.T) {
 		req = req.WithContext(cancelCtx)
 
 		resp := httptest.NewRecorder()
-		errCh := make(chan error)
+		chErr := make(chan error)
+		chStarted := make(chan struct{})
 		go func() {
+			close(chStarted)
 			_, err := a.srv.AgentMonitor(resp, req)
-			errCh <- err
+			chErr <- err
 		}()
 
+		<-chStarted
 		require.NoError(t, a.Shutdown())
 
 		// Wait until we have received some type of logging output
@@ -4555,7 +4585,7 @@ func TestAgent_Monitor(t *testing.T) {
 		}, 3*time.Second, 100*time.Millisecond)
 
 		cancelFunc()
-		err := <-errCh
+		err := <-chErr
 		require.NoError(t, err)
 
 		got := resp.Body.String()
@@ -4744,13 +4774,14 @@ func TestAgent_Token(t *testing.T) {
 		init        tokens
 		raw         tokens
 		effective   tokens
+		expectedErr error
 	}{
 		{
-			name:   "bad token name",
-			method: "PUT",
-			url:    "nope?token=root",
-			body:   body("X"),
-			code:   http.StatusNotFound,
+			name:        "bad token name",
+			method:      "PUT",
+			url:         "nope?token=root",
+			body:        body("X"),
+			expectedErr: NotFoundError{Reason: `Token "nope" is unknown`},
 		},
 		{
 			name:   "bad JSON",
@@ -4912,7 +4943,12 @@ func TestAgent_Token(t *testing.T) {
 			url := fmt.Sprintf("/v1/agent/token/%s", tt.url)
 			resp := httptest.NewRecorder()
 			req, _ := http.NewRequest(tt.method, url, tt.body)
+
 			_, err := a.srv.AgentToken(resp, req)
+			if tt.expectedErr != nil {
+				require.Equal(t, tt.expectedErr, err)
+				return
+			}
 			require.NoError(t, err)
 			require.Equal(t, tt.code, resp.Code)
 			require.Equal(t, tt.effective.user, a.tokens.UserToken())
@@ -5246,6 +5282,8 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 	assert.Equal(fmt.Sprintf("%d", issued.ModifyIndex),
 		resp.Header().Get("X-Consul-Index"))
 
+	index := resp.Header().Get("X-Consul-Index")
+
 	// Test caching
 	{
 		// Fetch it again
@@ -5258,39 +5296,25 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 		require.Equal("HIT", resp.Header().Get("X-Cache"))
 	}
 
-	// Test that caching is updated in the background
+	// Issue a blocking query to ensure that the cert gets updated appropriately
 	{
 		// Set a new CA
 		ca := connect.TestCAConfigSet(t, a, nil)
 
-		retry.Run(t, func(r *retry.R) {
-			resp := httptest.NewRecorder()
-			// Try and sign again (note no index/wait arg since cache should update in
-			// background even if we aren't actively blocking)
-			obj, err := a.srv.AgentConnectCALeafCert(resp, req)
-			r.Check(err)
+		resp := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test?index="+index, nil)
+		obj, err := a.srv.AgentConnectCALeafCert(resp, req)
+		require.NoError(err)
+		issued2 := obj.(*structs.IssuedCert)
+		require.NotEqual(issued.CertPEM, issued2.CertPEM)
+		require.NotEqual(issued.PrivateKeyPEM, issued2.PrivateKeyPEM)
 
-			issued2 := obj.(*structs.IssuedCert)
-			if issued.CertPEM == issued2.CertPEM {
-				r.Fatalf("leaf has not updated")
-			}
+		// Verify that the cert is signed by the new CA
+		requireLeafValidUnderCA(t, issued2, ca)
 
-			// Got a new leaf. Sanity check it's a whole new key as well as different
-			// cert.
-			if issued.PrivateKeyPEM == issued2.PrivateKeyPEM {
-				r.Fatalf("new leaf has same private key as before")
-			}
-
-			// Verify that the cert is signed by the new CA
-			requireLeafValidUnderCA(t, issued2, ca)
-
-			// Should be a cache hit! The data should've updated in the cache
-			// in the background so this should've been fetched directly from
-			// the cache.
-			if resp.Header().Get("X-Cache") != "HIT" {
-				r.Fatalf("should be a cache hit")
-			}
-		})
+		// Should not be a cache hit! The data was updated in response to the blocking
+		// query being made.
+		require.Equal("MISS", resp.Header().Get("X-Cache"))
 	}
 }
 
@@ -5591,7 +5615,7 @@ func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
 	})
 }
 
-func waitForActiveCARoot(t *testing.T, srv *HTTPServer, expect *structs.CARoot) {
+func waitForActiveCARoot(t *testing.T, srv *HTTPHandlers, expect *structs.CARoot) {
 	retry.Run(t, func(r *retry.R) {
 		req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/roots", nil)
 		resp := httptest.NewRecorder()

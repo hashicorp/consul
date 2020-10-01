@@ -7,7 +7,7 @@
     )
     as |filter|
   }}
-<AppView @class="acl list" @loading={{isLoading}}>
+<AppView>
   <BlockSlot @name="notification" as |status type|>
     {{partial 'dc/acls/notifications'}}
   </BlockSlot>

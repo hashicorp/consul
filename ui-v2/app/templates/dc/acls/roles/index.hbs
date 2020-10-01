@@ -3,9 +3,9 @@
 {{else}}
   {{title 'Access Controls'}}
 {{/if}}
+
+{{#let (or sortBy "Name:asc") as |sort|}}
 <AppView
-  @class="role list"
-  @loading={{isLoading}}
   @authorized={{isAuthorized}}
   @enabled={{isEnabled}}
   >
@@ -31,70 +31,25 @@
   <BlockSlot @name="actions">
     <a data-test-create href="{{href-to 'dc.acls.roles.create'}}" class="type-create">Create</a>
   </BlockSlot>
-  <BlockSlot @name="content">
-{{#if (gt items.length 0) }}
-    <SearchBar
-      @value={{search}}
+  <BlockSlot @name="toolbar">
+  {{#if (gt items.length 0) }}
+    <ConsulRoleSearchBar
+      @search={{search}}
       @onsearch={{action (mut search) value="target.value"}}
+
+      @sort={{sort}}
+      @onsort={{action (mut sortBy) value="target.selected"}}
     />
-{{/if}}
-    <ChangeableSet @dispatcher={{searchable 'role' items}} @terms={{search}}>
+  {{/if}}
+  </BlockSlot>
+  <BlockSlot @name="content">
+  {{#let (sort-by (comparator 'role' sort) items) as |sorted|}}
+    <ChangeableSet @dispatcher={{searchable 'role' sorted}} @terms={{search}}>
       <BlockSlot @name="set" as |filtered|>
-        <TabularCollection @items={{sort-by "CreateIndex:desc" "Name:asc" filtered}} as |item index|>
-            <BlockSlot @name="header">
-              <th>Name</th>
-              <th>Description</th>
-              <th>Policies</th>
-            </BlockSlot>
-            <BlockSlot @name="row">
-              <td data-test-role="{{item.Name}}">
-                <a href={{href-to 'dc.acls.roles.edit' item.ID}}>{{item.Name}}</a>
-              </td>
-              <td data-test-description>
-                <p>{{item.Description}}</p>
-              </td>
-              <td>
-                {{#each item.Policies as |item|}}
-                  <strong data-test-policy class={{policy/typeof item}}>{{item.Name}}</strong>
-                {{/each}}
-              </td>
-            </BlockSlot>
-            <BlockSlot @name="actions" as |index change checked|>
-              <PopoverMenu @expanded={{if (eq checked index) true false}} @onchange={{action change index}} @keyboardAccess={{false}}>
-                <BlockSlot @name="trigger">
-                  More
-                </BlockSlot>
-                <BlockSlot @name="menu" as |confirm send keypressClick|>
-                    <li role="none">
-                      <a role="menuitem" tabindex="-1" href={{href-to 'dc.acls.roles.edit' item.ID}}>Edit</a>
-                    </li>
-                    <li role="none" class="dangerous">
-                      <label for={{confirm}} role="menuitem" tabindex="-1" onkeypress={{keypressClick}} data-test-delete>Delete</label>
-                      <div role="menu">
-                        <div class="confirmation-alert warning">
-                          <div>
-                            <header>
-                              Confirm Delete
-                            </header>
-                            <p>
-                              Are you sure you want to delete this role?
-                            </p>
-                          </div>
-                          <ul>
-                            <li class="dangerous">
-                              <button tabindex="-1" type="button" class="type-delete" onclick={{action send 'delete' item}}>Delete</button>
-                            </li>
-                            <li>
-                              <label for={{confirm}}>Cancel</label>
-                            </li>
-                          </ul>
-                        </div>
-                      </div>
-                    </li>
-                </BlockSlot>
-              </PopoverMenu>
-            </BlockSlot>
-        </TabularCollection>
+        <ConsulRoleList
+          @items={{filtered}}
+          @ondelete={{action send 'delete'}}
+        />
       </BlockSlot>
       <BlockSlot @name="empty">
         <EmptyState @allowLogin={{true}}>
@@ -127,5 +82,7 @@
         </EmptyState>
       </BlockSlot>
     </ChangeableSet>
+  {{/let}}
   </BlockSlot>
 </AppView>
+{{/let}}

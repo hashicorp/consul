@@ -5,18 +5,17 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net"
+	"regexp"
 	"strings"
 	"sync/atomic"
 	"time"
-
-	"regexp"
 
 	metrics "github.com/armon/go-metrics"
 	radix "github.com/armon/go-radix"
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/config"
-	"github.com/hashicorp/consul/agent/consul"
+	agentdns "github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/ipaddr"
@@ -39,11 +38,7 @@ const (
 	staleCounterThreshold = 5 * time.Second
 
 	defaultMaxUDPSize = 512
-
-	MaxDNSLabelLength = 63
 )
-
-var InvalidDnsRe = regexp.MustCompile(`[^A-Za-z0-9\\-]+`)
 
 type dnsSOAConfig struct {
 	Refresh uint32 // 3600 by default
@@ -318,7 +313,11 @@ START:
 }
 
 func serviceNodeCanonicalDNSName(sn *structs.ServiceNode, domain string) string {
-	return serviceCanonicalDNSName(sn.ServiceName, sn.Datacenter, domain, &sn.EnterpriseMeta)
+	return serviceCanonicalDNSName(sn.ServiceName, "service", sn.Datacenter, domain, &sn.EnterpriseMeta)
+}
+
+func serviceIngressDNSName(service, datacenter, domain string, entMeta *structs.EnterpriseMeta) string {
+	return serviceCanonicalDNSName(service, "ingress", datacenter, domain, entMeta)
 }
 
 // handlePtr is used to handle "reverse" DNS queries
@@ -536,7 +535,7 @@ func (d *DNSServer) nameservers(cfg *dnsConfig, maxRecursionLevel int) (ns []dns
 	for _, o := range out.Nodes {
 		name, dc := o.Node.Node, o.Node.Datacenter
 
-		if InvalidDnsRe.MatchString(name) {
+		if agentdns.InvalidNameRe.MatchString(name) {
 			d.logger.Warn("Skipping invalid node for NS records", "node", name)
 			continue
 		}
@@ -738,7 +737,7 @@ func (d *DNSServer) doDispatch(network string, remoteAddr net.Addr, req, resp *d
 
 		// Allow a "." in the node name, just join all the parts
 		node := strings.Join(queryParts, ".")
-		d.nodeLookup(cfg, network, datacenter, node, req, resp, maxRecursionLevel)
+		d.nodeLookup(cfg, datacenter, node, req, resp, maxRecursionLevel)
 	case "query":
 		// ensure we have a query name
 		if len(queryParts) < 1 {
@@ -824,15 +823,14 @@ func (d *DNSServer) computeRCode(err error) int {
 	if err == nil {
 		return dns.RcodeSuccess
 	}
-	dErr := err.Error()
-	if dErr == structs.ErrNoDCPath.Error() || dErr == consul.ErrQueryNotFound.Error() {
+	if structs.IsErrNoDCPath(err) || structs.IsErrQueryNotFound(err) {
 		return dns.RcodeNameError
 	}
 	return dns.RcodeServerFailure
 }
 
 // nodeLookup is used to handle a node query
-func (d *DNSServer) nodeLookup(cfg *dnsConfig, network, datacenter, node string, req, resp *dns.Msg, maxRecursionLevel int) {
+func (d *DNSServer) nodeLookup(cfg *dnsConfig, datacenter, node string, req, resp *dns.Msg, maxRecursionLevel int) {
 	// Only handle ANY, A, AAAA, and TXT type requests
 	qType := req.Question[0].Qtype
 	if qType != dns.TypeANY && qType != dns.TypeA && qType != dns.TypeAAAA && qType != dns.TypeTXT {
@@ -882,7 +880,7 @@ func (d *DNSServer) nodeLookup(cfg *dnsConfig, network, datacenter, node string,
 	}
 
 	if cfg.NodeMetaTXT || qType == dns.TypeTXT || qType == dns.TypeANY {
-		metas := d.generateMeta(n.Datacenter, q.Name, n, cfg.NodeTTL)
+		metas := d.generateMeta(q.Name, n, cfg.NodeTTL)
 		*metaTarget = append(*metaTarget, metas...)
 	}
 }
@@ -1138,7 +1136,8 @@ func trimUDPResponse(req, resp *dns.Msg, udpAnswerLimit int) (trimmed bool) {
 }
 
 // trimDNSResponse will trim the response for UDP and TCP
-func (d *DNSServer) trimDNSResponse(cfg *dnsConfig, network string, req, resp *dns.Msg) (trimmed bool) {
+func (d *DNSServer) trimDNSResponse(cfg *dnsConfig, network string, req, resp *dns.Msg) {
+	var trimmed bool
 	if network != "tcp" {
 		trimmed = trimUDPResponse(req, resp, cfg.UDPAnswerLimit)
 	} else {
@@ -1148,7 +1147,6 @@ func (d *DNSServer) trimDNSResponse(cfg *dnsConfig, network string, req, resp *d
 	if trimmed && cfg.EnableTruncate {
 		resp.Truncated = true
 	}
-	return trimmed
 }
 
 // lookupServiceNodes returns nodes with a given service.
@@ -1771,7 +1769,7 @@ func (d *DNSServer) nodeServiceRecords(dc string, node structs.CheckServiceNode,
 	return d.makeRecordFromFQDN(dc, serviceAddr, node, req, ttl, cfg, maxRecursionLevel)
 }
 
-func (d *DNSServer) generateMeta(dc string, qName string, node *structs.Node, ttl time.Duration) []dns.RR {
+func (d *DNSServer) generateMeta(qName string, node *structs.Node, ttl time.Duration) []dns.RR {
 	extra := make([]dns.RR, 0, len(node.Meta))
 	for key, value := range node.Meta {
 		txt := value
@@ -1813,7 +1811,7 @@ func (d *DNSServer) serviceSRVRecords(cfg *dnsConfig, dc string, nodes structs.C
 		resp.Extra = append(resp.Extra, extra...)
 
 		if cfg.NodeMetaTXT {
-			resp.Extra = append(resp.Extra, d.generateMeta(dc, fmt.Sprintf("%s.node.%s.%s", node.Node.Node, dc, d.domain), node.Node, ttl)...)
+			resp.Extra = append(resp.Extra, d.generateMeta(fmt.Sprintf("%s.node.%s.%s", node.Node.Node, dc, d.domain), node.Node, ttl)...)
 		}
 	}
 }

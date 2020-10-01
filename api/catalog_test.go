@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -1086,5 +1087,151 @@ func TestAPI_CatalogEnableTagOverride(t *testing.T) {
 		if services[0].ServiceEnableTagOverride != true {
 			r.Fatal("tag override not set")
 		}
+	})
+}
+
+func TestAPI_CatalogGatewayServices_Terminating(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+	s.WaitForSerfCheck(t)
+
+	catalog := c.Catalog()
+
+	// Register a service to be covered by a wildcard in the config entry
+	svc := &AgentService{
+		ID:      "redis",
+		Service: "redis",
+		Port:    6379,
+	}
+	reg := &CatalogRegistration{
+		Datacenter: "dc1",
+		Node:       "bar",
+		Address:    "192.168.10.11",
+		Service:    svc,
+	}
+	retry.Run(t, func(r *retry.R) {
+		if _, err := catalog.Register(reg, nil); err != nil {
+			r.Fatal(err)
+		}
+	})
+
+	entries := c.ConfigEntries()
+
+	// Associate the gateway and api/redis services
+	gwEntry := TerminatingGatewayConfigEntry{
+		Kind: TerminatingGateway,
+		Name: "terminating",
+		Services: []LinkedService{
+			{
+				Name:     "api",
+				CAFile:   "api/ca.crt",
+				CertFile: "api/client.crt",
+				KeyFile:  "api/client.key",
+				SNI:      "my-domain",
+			},
+			{
+				Name:     "*",
+				CAFile:   "ca.crt",
+				CertFile: "client.crt",
+				KeyFile:  "client.key",
+				SNI:      "my-alt-domain",
+			},
+		},
+	}
+	retry.Run(t, func(r *retry.R) {
+		if success, _, err := entries.Set(&gwEntry, nil); err != nil || !success {
+			r.Fatal(err)
+		}
+	})
+
+	expect := []*GatewayService{
+		{
+			Service:     CompoundServiceName{"api", defaultNamespace},
+			Gateway:     CompoundServiceName{"terminating", defaultNamespace},
+			GatewayKind: ServiceKindTerminatingGateway,
+			CAFile:      "api/ca.crt",
+			CertFile:    "api/client.crt",
+			KeyFile:     "api/client.key",
+			SNI:         "my-domain",
+		},
+		{
+			Service:      CompoundServiceName{"redis", defaultNamespace},
+			Gateway:      CompoundServiceName{"terminating", defaultNamespace},
+			GatewayKind:  ServiceKindTerminatingGateway,
+			CAFile:       "ca.crt",
+			CertFile:     "client.crt",
+			KeyFile:      "client.key",
+			SNI:          "my-alt-domain",
+			FromWildcard: true,
+		},
+	}
+	retry.Run(t, func(r *retry.R) {
+		resp, _, err := catalog.GatewayServices("terminating", nil)
+		assert.NoError(r, err)
+		assert.Equal(r, expect, resp)
+	})
+}
+
+func TestAPI_CatalogGatewayServices_Ingress(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	s.WaitForSerfCheck(t)
+
+	entries := c.ConfigEntries()
+
+	// Associate the gateway and api/redis services
+	gwEntry := IngressGatewayConfigEntry{
+		Kind: "ingress-gateway",
+		Name: "ingress",
+		Listeners: []IngressListener{
+			{
+				Port: 8888,
+				Services: []IngressService{
+					{
+						Name: "api",
+					},
+				},
+			},
+			{
+				Port: 9999,
+				Services: []IngressService{
+					{
+						Name: "redis",
+					},
+				},
+			},
+		},
+	}
+	retry.Run(t, func(r *retry.R) {
+		if success, _, err := entries.Set(&gwEntry, nil); err != nil || !success {
+			r.Fatal(err)
+		}
+	})
+
+	catalog := c.Catalog()
+
+	expect := []*GatewayService{
+		{
+			Service:     CompoundServiceName{"api", defaultNamespace},
+			Gateway:     CompoundServiceName{"ingress", defaultNamespace},
+			GatewayKind: ServiceKindIngressGateway,
+			Protocol:    "tcp",
+			Port:        8888,
+		},
+		{
+			Service:     CompoundServiceName{"redis", defaultNamespace},
+			Gateway:     CompoundServiceName{"ingress", defaultNamespace},
+			GatewayKind: ServiceKindIngressGateway,
+			Protocol:    "tcp",
+			Port:        9999,
+		},
+	}
+	retry.Run(t, func(r *retry.R) {
+		resp, _, err := catalog.GatewayServices("ingress", nil)
+		assert.NoError(r, err)
+		assert.Equal(r, expect, resp)
 	})
 }

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/base64"
 	"io"
-	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -38,10 +37,6 @@ func TestKVPutCommand_Validation(t *testing.T) {
 		"-release without -session": {
 			[]string{"-release", "foo"},
 			"Missing -session",
-		},
-		"-cas no -modify-index": {
-			[]string{"-cas", "foo"},
-			"Must specify -modify-index",
 		},
 		"no key": {
 			[]string{},
@@ -180,7 +175,6 @@ func TestKVPutCommand_File(t *testing.T) {
 	c := New(ui)
 
 	f := testutil.TempFile(t, "kv-put-command-file")
-	defer os.Remove(f.Name())
 	if _, err := f.WriteString("bar"); err != nil {
 		t.Fatalf("err: %#v", err)
 	}

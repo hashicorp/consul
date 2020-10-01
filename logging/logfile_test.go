@@ -2,7 +2,6 @@ package logging
 
 import (
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -12,21 +11,19 @@ import (
 
 const (
 	testFileName = "Consul.log"
-	testDuration = 2 * time.Second
+	testDuration = 50 * time.Millisecond
 	testBytes    = 10
 )
 
 func TestLogFile_timeRotation(t *testing.T) {
-	t.Parallel()
 	tempDir := testutil.TempDir(t, "LogWriterTime")
-	defer os.Remove(tempDir)
 	logFile := LogFile{
 		fileName: testFileName,
 		logPath:  tempDir,
 		duration: testDuration,
 	}
 	logFile.Write([]byte("Hello World"))
-	time.Sleep(2 * time.Second)
+	time.Sleep(3 * testDuration)
 	logFile.Write([]byte("Second File"))
 	want := 2
 	if got, _ := ioutil.ReadDir(tempDir); len(got) != want {
@@ -35,9 +32,7 @@ func TestLogFile_timeRotation(t *testing.T) {
 }
 
 func TestLogFile_openNew(t *testing.T) {
-	t.Parallel()
 	tempDir := testutil.TempDir(t, "LogWriterOpen")
-	defer os.Remove(tempDir)
 	logFile := LogFile{fileName: testFileName, logPath: tempDir, duration: testDuration}
 	if err := logFile.openNew(); err != nil {
 		t.Errorf("Expected open file %s, got an error (%s)", testFileName, err)
@@ -49,9 +44,7 @@ func TestLogFile_openNew(t *testing.T) {
 }
 
 func TestLogFile_byteRotation(t *testing.T) {
-	t.Parallel()
 	tempDir := testutil.TempDir(t, "LogWriterBytes")
-	defer os.Remove(tempDir)
 	logFile := LogFile{
 		fileName: testFileName,
 		logPath:  tempDir,
@@ -68,9 +61,7 @@ func TestLogFile_byteRotation(t *testing.T) {
 }
 
 func TestLogFile_deleteArchives(t *testing.T) {
-	t.Parallel()
 	tempDir := testutil.TempDir(t, "LogWriteDeleteArchives")
-	defer os.Remove(tempDir)
 	logFile := LogFile{
 		fileName: testFileName,
 		logPath:  tempDir,
@@ -105,9 +96,7 @@ func TestLogFile_deleteArchives(t *testing.T) {
 }
 
 func TestLogFile_deleteArchivesDisabled(t *testing.T) {
-	t.Parallel()
 	tempDir := testutil.TempDir(t, t.Name())
-	defer os.Remove(tempDir)
 	logFile := LogFile{
 		fileName: testFileName,
 		logPath:  tempDir,
@@ -127,9 +116,7 @@ func TestLogFile_deleteArchivesDisabled(t *testing.T) {
 }
 
 func TestLogFile_rotationDisabled(t *testing.T) {
-	t.Parallel()
 	tempDir := testutil.TempDir(t, t.Name())
-	defer os.Remove(tempDir)
 	logFile := LogFile{
 		fileName: testFileName,
 		logPath:  tempDir,

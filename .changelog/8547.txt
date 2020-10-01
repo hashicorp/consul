@@ -1,0 +1,3 @@
+```release-note:bug
+agent: ensure that we normalize bootstrapped config entries
+```

@@ -168,7 +168,21 @@ func TestCAWithKeyType(t testing.T, xc *structs.CARoot, keyType string, keyBits 
 	return testCA(t, xc, keyType, keyBits)
 }
 
-func testLeaf(t testing.T, service string, namespace string, root *structs.CARoot, keyType string, keyBits int) (string, string, error) {
+// testCertID is an interface to be implemented the various spiffe ID / CertURI types
+// It adds an addition CommonName method to the CertURI interface to prevent the need
+// for any type switching on the actual CertURI's concrete type in order to figure
+// out its common name
+type testCertID interface {
+	CommonName() string
+	CertURI
+}
+
+func testLeafWithID(t testing.T, spiffeId testCertID, root *structs.CARoot, keyType string, keyBits int, expiration time.Duration) (string, string, error) {
+
+	if expiration == 0 {
+		// this is 10 years
+		expiration = 10 * 365 * 24 * time.Hour
+	}
 	// Parse the CA cert and signing key from the root
 	cert := root.SigningCert
 	if cert == "" {
@@ -181,14 +195,6 @@ func testLeaf(t testing.T, service string, namespace string, root *structs.CARoo
 	caSigner, err := ParseSigner(root.SigningKey)
 	if err != nil {
 		return "", "", fmt.Errorf("error parsing signing key: %s", err)
-	}
-
-	// Build the SPIFFE ID
-	spiffeId := &SpiffeIDService{
-		Host:       fmt.Sprintf("%s.consul", TestClusterID),
-		Namespace:  namespace,
-		Datacenter: "dc1",
-		Service:    service,
 	}
 
 	// The serial number for the cert
@@ -211,7 +217,7 @@ func testLeaf(t testing.T, service string, namespace string, root *structs.CARoo
 	// Cert template for generation
 	template := x509.Certificate{
 		SerialNumber:          sn,
-		Subject:               pkix.Name{CommonName: ServiceCN(service, "default", TestClusterID)},
+		Subject:               pkix.Name{CommonName: spiffeId.CommonName()},
 		URIs:                  []*url.URL{spiffeId.URI()},
 		SignatureAlgorithm:    SigAlgoForKeyType(rootKeyType),
 		BasicConstraintsValid: true,
@@ -223,7 +229,7 @@ func testLeaf(t testing.T, service string, namespace string, root *structs.CARoo
 			x509.ExtKeyUsageClientAuth,
 			x509.ExtKeyUsageServerAuth,
 		},
-		NotAfter:       time.Now().AddDate(10, 0, 0),
+		NotAfter:       time.Now().Add(expiration),
 		NotBefore:      time.Now(),
 		AuthorityKeyId: testKeyID(t, caSigner.Public()),
 		SubjectKeyId:   testKeyID(t, pkSigner.Public()),
@@ -242,6 +248,29 @@ func testLeaf(t testing.T, service string, namespace string, root *structs.CARoo
 	}
 
 	return buf.String(), pkPEM, nil
+}
+
+func TestAgentLeaf(t testing.T, node string, datacenter string, root *structs.CARoot, expiration time.Duration) (string, string, error) {
+	// Build the SPIFFE ID
+	spiffeId := &SpiffeIDAgent{
+		Host:       fmt.Sprintf("%s.consul", TestClusterID),
+		Datacenter: datacenter,
+		Agent:      node,
+	}
+
+	return testLeafWithID(t, spiffeId, root, DefaultPrivateKeyType, DefaultPrivateKeyBits, expiration)
+}
+
+func testLeaf(t testing.T, service string, namespace string, root *structs.CARoot, keyType string, keyBits int) (string, string, error) {
+	// Build the SPIFFE ID
+	spiffeId := &SpiffeIDService{
+		Host:       fmt.Sprintf("%s.consul", TestClusterID),
+		Namespace:  namespace,
+		Datacenter: "dc1",
+		Service:    service,
+	}
+
+	return testLeafWithID(t, spiffeId, root, keyType, keyBits, 0)
 }
 
 // TestLeaf returns a valid leaf certificate and it's private key for the named

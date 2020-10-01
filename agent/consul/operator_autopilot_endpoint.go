@@ -10,7 +10,7 @@ import (
 
 // AutopilotGetConfiguration is used to retrieve the current Autopilot configuration.
 func (op *Operator) AutopilotGetConfiguration(args *structs.DCSpecificRequest, reply *autopilot.Config) error {
-	if done, err := op.srv.forward("Operator.AutopilotGetConfiguration", args, args, reply); done {
+	if done, err := op.srv.ForwardRPC("Operator.AutopilotGetConfiguration", args, args, reply); done {
 		return err
 	}
 
@@ -42,7 +42,7 @@ func (op *Operator) AutopilotGetConfiguration(args *structs.DCSpecificRequest, r
 
 // AutopilotSetConfiguration is used to set the current Autopilot configuration.
 func (op *Operator) AutopilotSetConfiguration(args *structs.AutopilotSetConfigRequest, reply *bool) error {
-	if done, err := op.srv.forward("Operator.AutopilotSetConfiguration", args, args, reply); done {
+	if done, err := op.srv.ForwardRPC("Operator.AutopilotSetConfiguration", args, args, reply); done {
 		return err
 	}
 
@@ -81,7 +81,7 @@ func (op *Operator) ServerHealth(args *structs.DCSpecificRequest, reply *autopil
 	// re-using a structure where we don't support all the options.
 	args.RequireConsistent = true
 	args.AllowStale = false
-	if done, err := op.srv.forward("Operator.ServerHealth", args, args, reply); done {
+	if done, err := op.srv.ForwardRPC("Operator.ServerHealth", args, args, reply); done {
 		return err
 	}
 

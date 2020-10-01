@@ -8,7 +8,7 @@ export default function ServiceDiscoveryAndHealthCheckingPage() {
     <UseCaseLayout
       title="Service Discovery and Health Checking"
       description="Discover, Register and Resolve services for application workloads across any cloud. Automatically add and remove services based on health checking."
-      guideLink="https://learn.hashicorp.com/consul/getting-started/services#update-services"
+      guideLink="https://learn.hashicorp.com/tutorials/consul/service-registration-health-checks"
     >
       <TextSplitWithImage
         textSplit={{
@@ -125,7 +125,7 @@ Judiths-MBP.lan.node.dc1.consul. 0 IN   TXT "consul-network-segment="
             {
               text: 'Learn More',
               url:
-                'https://learn.hashicorp.com/consul?track=datacenter-deploy#datacenter-deploy',
+                'https://learn.hashicorp.com/collections/consul/datacenter-deploy#datacenter-deploy',
               type: 'outbound',
             },
           ],
@@ -145,7 +145,7 @@ Judiths-MBP.lan.node.dc1.consul. 0 IN   TXT "consul-network-segment="
             links: [
               {
                 text: 'Read More',
-                url: 'https://www.consul.io/docs/enterprise/index.html',
+                url: '/docs/enterprise',
                 type: 'inbound',
               },
             ],

@@ -1,0 +1,57 @@
+<form class="filter-bar">
+  <FreetextFilter
+    @onsearch={{action onsearch}}
+    @value={{search}}
+    @placeholder="Search"
+  />
+  <div class="filters">
+    <PopoverSelect
+      @position="left"
+      @onchange={{action onfilter.type}}
+      @multiple={{true}}
+    as |components|>
+      <BlockSlot @name="selected">
+        <span>
+          Type
+        </span>
+      </BlockSlot>
+      <BlockSlot @name="options">
+{{#let components.Optgroup components.Option as |Optgroup Option|}}
+        <Option @value="global-management" @selected={{contains 'global-management' filter.types}}>Global Management</Option>
+        <Option @value="global" @selected={{contains 'global' filter.types}}>Global</Option>
+        <Option @value="local" @selected={{contains 'local' filter.types}}>Local</Option>
+{{/let}}
+      </BlockSlot>
+    </PopoverSelect>
+  </div>
+  <div class="sort">
+    <PopoverSelect
+      class="type-sort"
+      data-test-sort-control
+      @position="right"
+      @onchange={{action onsort}}
+      @multiple={{false}}
+    as |components|>
+      <BlockSlot @name="selected">
+        <span>
+          {{#let (from-entries (array
+                (array "CreateTime:desc" "Newest to oldest")
+                (array "CreateTime:asc" "Oldest to newest")
+              ))
+            as |selectable|
+          }}
+            {{get selectable sort}}
+          {{/let}}
+        </span>
+      </BlockSlot>
+      <BlockSlot @name="options">
+{{#let components.Optgroup components.Option as |Optgroup Option|}}
+        <Optgroup @label="Creation">
+          <Option @value="CreateTime:desc" @selected={{eq "CreateTime:desc" sort}}>Newest to oldest</Option>
+          <Option @value="CreateTime:asc" @selected={{eq "CreateTime:asc" sort}}>Oldest to newest</Option>
+        </Optgroup>
+{{/let}}
+      </BlockSlot>
+    </PopoverSelect>
+  </div>
+</form>

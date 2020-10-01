@@ -3,9 +3,10 @@ import { SLUG_KEY } from 'consul-ui/models/nspace';
 
 // namespaces aren't categorized by datacenter, therefore no dc
 export default Adapter.extend({
-  requestForQuery: function(request, { index }) {
+  requestForQuery: function(request, { index, uri }) {
     return request`
       GET /v1/namespaces
+      X-Request-ID: ${uri}
 
       ${{ index }}
     `;
@@ -65,7 +66,7 @@ export default Adapter.extend({
     `;
   },
   authorize: function(store, type, id, snapshot) {
-    return this.request(
+    return this.rpc(
       function(adapter, request, serialized, unserialized) {
         return adapter.requestForAuthorize(request, serialized, unserialized);
       },

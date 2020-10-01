@@ -69,15 +69,6 @@ table.has-actions tr > *:nth-last-child(5):first-child ~ * {
 }
 
 /*TODO: trs only live in tables, get rid of table */
-html.template-nspace.has-acls.template-list main table tr {
-  @extend %with-acls-nspaces-row;
-}
-html.template-nspace:not(.has-acls).template-list main table tr {
-  @extend %nspaces-row;
-}
-html.template-role.template-list main table tr {
-  @extend %roles-row;
-}
 html.template-policy.template-edit [role='dialog'] table tr,
 html.template-policy.template-edit main table tr,
 html.template-role.template-edit [role='dialog'] table tr,
@@ -98,23 +89,6 @@ html.template-node.template-show main table.sessions tr {
 }
 %tokens-minimal-row > *:last-child {
   width: calc(100% - 240px) !important;
-}
-
-%roles-row > *:nth-child(1),
-%roles-row > *:nth-child(2),
-%with-acls-nspaces-row > *:nth-child(1),
-%with-acls-nspaces-row > *:nth-child(2) {
-  width: calc(22% - 20px) !important;
-}
-%with-acls-nspaces-row > *:nth-child(3),
-%roles-row > *:nth-child(3) {
-  width: calc(56% - 20px) !important;
-}
-%nspaces-row > *:nth-child(1) {
-  width: 30%;
-}
-%nspaces-row > *:nth-child(2) {
-  width: calc(70% - 60px);
 }
 
 @media #{$--horizontal-session-list} {

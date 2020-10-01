@@ -13,10 +13,10 @@ import (
 	"github.com/shirou/gopsutil/internal/common"
 )
 
-var CPUTick = float64(100)
+var ClocksPerSec = float64(100)
 
 func init() {
-	getconf, err := exec.LookPath("/usr/bin/getconf")
+	getconf, err := exec.LookPath("getconf")
 	if err != nil {
 		return
 	}
@@ -25,7 +25,7 @@ func init() {
 	if err == nil {
 		i, err := strconv.ParseFloat(strings.TrimSpace(string(out)), 64)
 		if err == nil {
-			CPUTick = i
+			ClocksPerSec = i
 		}
 	}
 }
@@ -87,7 +87,7 @@ func finishCPUInfo(c *InfoStat) error {
 	lines, err = common.ReadLines(sysCPUPath(c.CPU, "cpufreq/cpuinfo_max_freq"))
 	// if we encounter errors below such as there are no cpuinfo_max_freq file,
 	// we just ignore. so let Mhz is 0.
-	if err != nil {
+	if err != nil || len(lines) == 0 {
 		return nil
 	}
 	value, err = strconv.ParseFloat(lines[0], 64)
@@ -250,35 +250,103 @@ func parseStatLine(line string) (*TimesStat, error) {
 
 	ct := &TimesStat{
 		CPU:     cpu,
-		User:    user / CPUTick,
-		Nice:    nice / CPUTick,
-		System:  system / CPUTick,
-		Idle:    idle / CPUTick,
-		Iowait:  iowait / CPUTick,
-		Irq:     irq / CPUTick,
-		Softirq: softirq / CPUTick,
+		User:    user / ClocksPerSec,
+		Nice:    nice / ClocksPerSec,
+		System:  system / ClocksPerSec,
+		Idle:    idle / ClocksPerSec,
+		Iowait:  iowait / ClocksPerSec,
+		Irq:     irq / ClocksPerSec,
+		Softirq: softirq / ClocksPerSec,
 	}
 	if len(fields) > 8 { // Linux >= 2.6.11
 		steal, err := strconv.ParseFloat(fields[8], 64)
 		if err != nil {
 			return nil, err
 		}
-		ct.Steal = steal / CPUTick
+		ct.Steal = steal / ClocksPerSec
 	}
 	if len(fields) > 9 { // Linux >= 2.6.24
 		guest, err := strconv.ParseFloat(fields[9], 64)
 		if err != nil {
 			return nil, err
 		}
-		ct.Guest = guest / CPUTick
+		ct.Guest = guest / ClocksPerSec
 	}
 	if len(fields) > 10 { // Linux >= 3.2.0
 		guestNice, err := strconv.ParseFloat(fields[10], 64)
 		if err != nil {
 			return nil, err
 		}
-		ct.GuestNice = guestNice / CPUTick
+		ct.GuestNice = guestNice / ClocksPerSec
 	}
 
 	return ct, nil
+}
+
+func CountsWithContext(ctx context.Context, logical bool) (int, error) {
+	if logical {
+		ret := 0
+		// https://github.com/giampaolo/psutil/blob/d01a9eaa35a8aadf6c519839e987a49d8be2d891/psutil/_pslinux.py#L599
+		procCpuinfo := common.HostProc("cpuinfo")
+		lines, err := common.ReadLines(procCpuinfo)
+		if err == nil {
+			for _, line := range lines {
+				line = strings.ToLower(line)
+				if strings.HasPrefix(line, "processor") {
+					ret++
+				}
+			}
+		}
+		if ret == 0 {
+			procStat := common.HostProc("stat")
+			lines, err = common.ReadLines(procStat)
+			if err != nil {
+				return 0, err
+			}
+			for _, line := range lines {
+				if len(line) >= 4 && strings.HasPrefix(line, "cpu") && '0' <= line[3] && line[3] <= '9' { // `^cpu\d` regexp matching
+					ret++
+				}
+			}
+		}
+		return ret, nil
+	}
+	// physical cores https://github.com/giampaolo/psutil/blob/d01a9eaa35a8aadf6c519839e987a49d8be2d891/psutil/_pslinux.py#L628
+	filename := common.HostProc("cpuinfo")
+	lines, err := common.ReadLines(filename)
+	if err != nil {
+		return 0, err
+	}
+	mapping := make(map[int]int)
+	currentInfo := make(map[string]int)
+	for _, line := range lines {
+		line = strings.ToLower(strings.TrimSpace(line))
+		if line == "" {
+			// new section
+			id, okID := currentInfo["physical id"]
+			cores, okCores := currentInfo["cpu cores"]
+			if okID && okCores {
+				mapping[id] = cores
+			}
+			currentInfo = make(map[string]int)
+			continue
+		}
+		fields := strings.Split(line, ":")
+		if len(fields) < 2 {
+			continue
+		}
+		fields[0] = strings.TrimSpace(fields[0])
+		if fields[0] == "physical id" || fields[0] == "cpu cores" {
+			val, err := strconv.Atoi(strings.TrimSpace(fields[1]))
+			if err != nil {
+				continue
+			}
+			currentInfo[fields[0]] = val
+		}
+	}
+	ret := 0
+	for _, v := range mapping {
+		ret += v
+	}
+	return ret, nil
 }

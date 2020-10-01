@@ -1,7 +1,6 @@
 package logout
 
 import (
-	"os"
 	"strings"
 	"testing"
 
@@ -10,7 +9,6 @@ import (
 	"github.com/hashicorp/consul/agent/consul/authmethod/testauth"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/acl"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/go-uuid"
 	"github.com/mitchellh/cli"
@@ -27,9 +25,6 @@ func TestLogout_noTabs(t *testing.T) {
 
 func TestLogoutCommand(t *testing.T) {
 	t.Parallel()
-
-	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
@@ -156,9 +151,6 @@ func TestLogoutCommand(t *testing.T) {
 
 func TestLogoutCommand_k8s(t *testing.T) {
 	t.Parallel()
-
-	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"

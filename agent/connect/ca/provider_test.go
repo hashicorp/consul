@@ -26,12 +26,13 @@ func TestStructs_CAConfiguration_MsgpackEncodeDecode(t *testing.T) {
 		"PrivateKeyBits":   int64(4096),
 	}
 	expectCommonBase := &structs.CommonCAProviderConfig{
-		LeafCertTTL:      30 * time.Hour,
-		SkipValidate:     true,
-		CSRMaxPerSecond:  5.25,
-		CSRMaxConcurrent: 55,
-		PrivateKeyType:   "rsa",
-		PrivateKeyBits:   4096,
+		LeafCertTTL:         30 * time.Hour,
+		IntermediateCertTTL: 90 * time.Hour,
+		SkipValidate:        true,
+		CSRMaxPerSecond:     5.25,
+		CSRMaxConcurrent:    55,
+		PrivateKeyType:      "rsa",
+		PrivateKeyBits:      4096,
 	}
 
 	cases := map[string]testcase{
@@ -60,7 +61,6 @@ func TestStructs_CAConfiguration_MsgpackEncodeDecode(t *testing.T) {
 				PrivateKey:             "key",
 				RootCert:               "cert",
 				RotationPeriod:         5 * time.Minute,
-				IntermediateCertTTL:    90 * time.Hour,
 				DisableCrossSigning:    true,
 			},
 			parseFunc: func(t *testing.T, raw map[string]interface{}) interface{} {
@@ -86,6 +86,7 @@ func TestStructs_CAConfiguration_MsgpackEncodeDecode(t *testing.T) {
 					"Token":               "token",
 					"RootPKIPath":         "root-pki/",
 					"IntermediatePKIPath": "im-pki/",
+					"IntermediateCertTTL": "90h",
 					"CAFile":              "ca-file",
 					"CAPath":              "ca-path",
 					"CertFile":            "cert-file",
@@ -126,8 +127,9 @@ func TestStructs_CAConfiguration_MsgpackEncodeDecode(t *testing.T) {
 					ModifyIndex: 99,
 				},
 				Config: map[string]interface{}{
-					"ExistingARN":  "arn://foo",
-					"DeleteOnExit": true,
+					"ExistingARN":         "arn://foo",
+					"DeleteOnExit":        true,
+					"IntermediateCertTTL": "90h",
 				},
 			},
 			expectConfig: &structs.AWSCAProviderConfig{

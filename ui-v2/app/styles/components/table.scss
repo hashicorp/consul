@@ -1,120 +1,49 @@
 %main-content table {
   @extend %table;
 }
-%table-actions > [type='checkbox'] {
+%table-actions {
   @extend %more-popover-menu;
-}
-%table-actions .confirmation-alert {
-  @extend %confirmation-alert;
+  overflow: visible;
 }
 %table-actions > [type='checkbox'] + label {
   position: absolute;
-  top: 8px;
-  right: 15px;
-}
-%table-actions .menu-panel:not(.above) {
-  top: 38px !important;
+  right: 5px;
 }
 
-/*TODO: Rename this to %app-view-brand-icon or similar */
-%with-external-source-icon {
-  background-repeat: no-repeat;
-  background-size: contain;
-  width: 18px;
-  height: 18px;
-
-  --kubernetes-icon: #{$kubernetes-logo-color-svg};
-  --terraform-icon: #{$terraform-logo-color-svg};
-  --nomad-icon: #{$nomad-logo-color-svg};
-  --consul-icon: #{$consul-logo-color-svg};
-  --aws-icon: #{$aws-logo-color-svg};
-}
-html.template-node.template-show #services td:first-child a span {
-  @extend %with-external-source-icon;
-  float: left;
-  margin-right: 10px;
-  margin-top: 2px;
-}
-/* This nudges the th in for the external source icons */
-html.template-node.template-show #services th:first-child {
-  text-indent: 28px;
-}
-
-td.folder::before {
-  @extend %with-folder-outline-mask, %as-pseudo;
-  background-color: $gray-300;
-  margin-top: 1px;
-  margin-right: 5px;
-}
-td.destination {
-  @extend %tbody-th;
-}
-td.intent-allow strong,
-td.intent-deny strong {
-  visibility: hidden;
-}
-td.intent-allow strong::before {
-  @extend %with-arrow-right-color-icon, %as-pseudo;
-  background-size: 24px;
-}
-td.intent-deny strong::before {
-  @extend %with-deny-color-icon, %as-pseudo;
-}
-table:not(.sessions) tbody tr {
-  cursor: pointer;
-}
-table:not(.sessions) td:first-child {
-  padding: 0;
-}
-table:not(.sessions) tbody tr:hover {
-  box-shadow: $decor-elevation-300;
-}
 table.consul-metadata-list tbody tr {
   cursor: default;
 }
 table.consul-metadata-list tbody tr:hover {
   box-shadow: none;
 }
-/* Header Tooltips/Icon*/
-th {
-  overflow: visible;
+
+%table th span::after {
+  @extend %with-info-circle-outline-mask, %as-pseudo;
+  color: $gray-500;
+  margin-left: 4px;
 }
-th span::after {
-  @extend %with-info-circle-outline-icon, %as-pseudo;
-  opacity: 0.6;
+%table tbody tr {
+  cursor: pointer;
 }
-th span {
-  @extend %with-tooltip;
-  margin-left: 2px;
+%table td:first-child {
+  padding: 0;
 }
-th span em {
-  width: 250px;
-  font-style: normal;
-  white-space: normal !important;
+%table tbody tr:hover {
+  box-shadow: $decor-elevation-300;
+}
+
+%table td.folder::before {
+  @extend %with-folder-outline-mask, %as-pseudo;
+  background-color: $gray-300;
+  margin-top: 1px;
+  margin-right: 5px;
 }
 /**/
 
-/* ideally these would be in route css files, but left here as they */
-/* accomplish the same thing (hide non-essential columns for tables) */
-@media #{$--lt-medium-table} {
-  /* Policy > Datacenters */
-  html.template-policy.template-list tr > :nth-child(2) {
-    display: none;
-  }
-}
 @media #{$--lt-wide-table} {
   /* hide actions on narrow screens, you can always click in do everything from there */
-  tr > .actions {
+  %table tr > .actions {
     display: none;
-  }
-  html.template-node.template-show #services tr > :last-child {
-    display: none;
-  }
-  html.template-node.template-show #lock-sessions tr > :not(:first-child):not(:last-child) {
-    display: none;
-  }
-  html.template-node.template-show #lock-sessions td:last-child {
-    padding: 0;
   }
   .consul-intention-list tr > :nth-last-child(2) {
     display: none;

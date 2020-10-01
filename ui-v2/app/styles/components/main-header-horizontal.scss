@@ -2,29 +2,6 @@
 [role='banner'] {
   @extend %main-header-horizontal;
 }
-%main-nav-horizontal .docs-link a::after {
-  @extend %with-docs-icon, %as-pseudo;
-}
-%main-nav-horizontal .learn-link a::after {
-  @extend %with-learn-icon, %as-pseudo;
-}
-%main-nav-horizontal .feedback-link a::after {
-  @extend %with-logo-github-monochrome-mask, %as-pseudo;
-}
 %main-header-horizontal::before {
   background-color: var(--swatch-brand-600, $black);
-}
-%main-nav-horizontal-action,
-%main-nav-horizontal-toggle-button {
-  color: var(--typo-brand-050, $black);
-}
-@media #{$--lt-horizontal-nav} {
-  %main-nav-horizontal-panel {
-    background-color: var(--swatch-brand-600, $black);
-  }
-}
-@media #{$--horizontal-nav} {
-  %main-nav-horizontal-action-active {
-    background-color: var(--swatch-brand-800, $black);
-  }
 }

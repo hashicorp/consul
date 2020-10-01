@@ -50,6 +50,7 @@ export default Adapter.extend({
         Description: serialized.Description,
         Policies: serialized.Policies,
         ServiceIdentities: serialized.ServiceIdentities,
+        NodeIdentities: serialized.NodeIdentities,
         ...Namespace(serialized.Namespace),
       }}
     `;
@@ -66,6 +67,7 @@ export default Adapter.extend({
         Description: serialized.Description,
         Policies: serialized.Policies,
         ServiceIdentities: serialized.ServiceIdentities,
+        NodeIdentities: serialized.NodeIdentities,
         ...Namespace(serialized.Namespace),
       }}
     `;

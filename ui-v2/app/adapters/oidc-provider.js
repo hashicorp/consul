@@ -12,9 +12,10 @@ if (env('CONSUL_NSPACES_ENABLED')) {
 }
 export default Adapter.extend({
   env: service('env'),
-  requestForQuery: function(request, { dc, ns, index }) {
+  requestForQuery: function(request, { dc, ns, index, uri }) {
     return request`
       GET /v1/internal/ui/oidc-auth-methods?${{ dc }}
+      X-Request-ID: ${uri}
 
       ${{
         index,
@@ -70,7 +71,7 @@ export default Adapter.extend({
     `;
   },
   authorize: function(store, type, id, snapshot) {
-    return this.request(
+    return this.rpc(
       function(adapter, request, serialized, unserialized) {
         return adapter.requestForAuthorize(request, serialized, unserialized);
       },
@@ -82,7 +83,7 @@ export default Adapter.extend({
     );
   },
   logout: function(store, type, id, snapshot) {
-    return this.request(
+    return this.rpc(
       function(adapter, request, serialized, unserialized) {
         return adapter.requestForLogout(request, serialized, unserialized);
       },

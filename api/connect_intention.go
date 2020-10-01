@@ -270,6 +270,39 @@ func (h *Connect) IntentionCheck(args *IntentionCheck, q *QueryOptions) (bool, *
 	return out.Allowed, qm, nil
 }
 
+// IntentionGetExact retrieves a single intention by its unique name instead of
+// its ID.
+func (h *Connect) IntentionGetExact(source, destination string, q *QueryOptions) (*Intention, *QueryMeta, error) {
+	r := h.c.newRequest("GET", "/v1/connect/intentions/exact")
+	r.setQueryOptions(q)
+	r.params.Set("source", source)
+	r.params.Set("destination", destination)
+	rtt, resp, err := h.c.doRequest(r)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer resp.Body.Close()
+
+	qm := &QueryMeta{}
+	parseQueryMeta(resp, qm)
+	qm.RequestTime = rtt
+
+	if resp.StatusCode == 404 {
+		return nil, qm, nil
+	} else if resp.StatusCode != 200 {
+		var buf bytes.Buffer
+		io.Copy(&buf, resp.Body)
+		return nil, nil, fmt.Errorf(
+			"Unexpected response %d: %s", resp.StatusCode, buf.String())
+	}
+
+	var out Intention
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, nil, err
+	}
+	return &out, qm, nil
+}
+
 // IntentionCreate will create a new intention. The ID in the given
 // structure must be empty and a generate ID will be returned on
 // success.

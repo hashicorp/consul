@@ -3,28 +3,35 @@ package xds
 import (
 	"errors"
 	"fmt"
+	"net"
 	"strings"
-
-	"github.com/gogo/protobuf/proto"
+	"time"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoyroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	envoymatcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/logging"
 )
 
 // routesFromSnapshot returns the xDS API representation of the "routes" in the
 // snapshot.
-func routesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, _ string) ([]proto.Message, error) {
+func (s *Server) routesFromSnapshot(cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	if cfgSnap == nil {
 		return nil, errors.New("nil config given")
 	}
 
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
-		return routesFromSnapshotConnectProxy(cfgSnap)
+		return routesForConnectProxy(cInfo, cfgSnap.Proxy.Upstreams, cfgSnap.ConnectProxy.DiscoveryChain)
 	case structs.ServiceKindIngressGateway:
-		return routesFromSnapshotIngressGateway(cfgSnap)
+		return routesForIngressGateway(cInfo, cfgSnap.IngressGateway.Upstreams, cfgSnap.IngressGateway.DiscoveryChain)
+	case structs.ServiceKindTerminatingGateway:
+		return s.routesFromSnapshotTerminatingGateway(cInfo, cfgSnap)
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
@@ -32,31 +39,32 @@ func routesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot, _ string) ([]proto.Mes
 
 // routesFromSnapshotConnectProxy returns the xDS API representation of the
 // "routes" in the snapshot.
-func routesFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
-	if cfgSnap == nil {
-		return nil, errors.New("nil config given")
-	}
+func routesForConnectProxy(
+	cInfo connectionInfo,
+	upstreams structs.Upstreams,
+	chains map[string]*structs.CompiledDiscoveryChain,
+) ([]proto.Message, error) {
 
 	var resources []proto.Message
-	for _, u := range cfgSnap.Proxy.Upstreams {
+	for _, u := range upstreams {
 		upstreamID := u.Identifier()
 
 		var chain *structs.CompiledDiscoveryChain
 		if u.DestinationType != structs.UpstreamDestTypePreparedQuery {
-			chain = cfgSnap.ConnectProxy.DiscoveryChain[upstreamID]
+			chain = chains[upstreamID]
 		}
 
 		if chain == nil || chain.IsDefault() {
 			// TODO(rb): make this do the old school stuff too
 		} else {
-			virtualHost, err := makeUpstreamRouteForDiscoveryChain(upstreamID, chain, []string{"*"})
+			virtualHost, err := makeUpstreamRouteForDiscoveryChain(cInfo, upstreamID, chain, []string{"*"})
 			if err != nil {
 				return nil, err
 			}
 
 			route := &envoy.RouteConfiguration{
 				Name:         upstreamID,
-				VirtualHosts: []envoyroute.VirtualHost{virtualHost},
+				VirtualHosts: []*envoyroute.VirtualHost{virtualHost},
 				// ValidateClusters defaults to true when defined statically and false
 				// when done via RDS. Re-set the sane value of true to prevent
 				// null-routing traffic.
@@ -70,15 +78,99 @@ func routesFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.M
 	return resources, nil
 }
 
-// routesFromSnapshotIngressGateway returns the xDS API representation of the
-// "routes" in the snapshot.
-func routesFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
+// routesFromSnapshotTerminatingGateway returns the xDS API representation of the "routes" in the snapshot.
+// For any HTTP service we will return a default route.
+func (s *Server) routesFromSnapshotTerminatingGateway(_ connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	if cfgSnap == nil {
 		return nil, errors.New("nil config given")
 	}
+	logger := s.Logger.Named(logging.TerminatingGateway)
+
+	var resources []proto.Message
+	for _, svc := range cfgSnap.TerminatingGateway.ValidServices() {
+		clusterName := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+		resolver, hasResolver := cfgSnap.TerminatingGateway.ServiceResolvers[svc]
+
+		svcConfig := cfgSnap.TerminatingGateway.ServiceConfigs[svc]
+
+		cfg, err := ParseProxyConfig(svcConfig.ProxyConfig)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse upstream config: %v", err)
+		}
+		if !structs.IsProtocolHTTPLike(cfg.Protocol) {
+			// Routes can only be defined for HTTP services
+			continue
+		}
+
+		if !hasResolver {
+			// Use a zero value resolver with no timeout and no subsets
+			resolver = &structs.ServiceResolverConfigEntry{}
+		}
+
+		var lb *structs.LoadBalancer
+		if resolver.LoadBalancer != nil {
+			lb = resolver.LoadBalancer
+		}
+		route, err := makeNamedDefaultRouteWithLB(clusterName, lb)
+		if err != nil {
+			logger.Error("failed to make route", "cluster", clusterName, "error", err)
+			continue
+		}
+		resources = append(resources, route)
+
+		// If there is a service-resolver for this service then also setup routes for each subset
+		for name := range resolver.Subsets {
+			clusterName = connect.ServiceSNI(svc.Name, name, svc.NamespaceOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
+			route, err := makeNamedDefaultRouteWithLB(clusterName, lb)
+			if err != nil {
+				logger.Error("failed to make route", "cluster", clusterName, "error", err)
+				continue
+			}
+			resources = append(resources, route)
+		}
+	}
+
+	return resources, nil
+}
+
+func makeNamedDefaultRouteWithLB(clusterName string, lb *structs.LoadBalancer) (*envoy.RouteConfiguration, error) {
+	action := makeRouteActionFromName(clusterName)
+
+	if err := injectLBToRouteAction(lb, action.Route); err != nil {
+		return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
+	}
+
+	return &envoy.RouteConfiguration{
+		Name: clusterName,
+		VirtualHosts: []*envoyroute.VirtualHost{
+			{
+				Name:    clusterName,
+				Domains: []string{"*"},
+				Routes: []*envoyroute.Route{
+					{
+						Match:  makeDefaultRouteMatch(),
+						Action: action,
+					},
+				},
+			},
+		},
+		// ValidateClusters defaults to true when defined statically and false
+		// when done via RDS. Re-set the sane value of true to prevent
+		// null-routing traffic.
+		ValidateClusters: makeBoolValue(true),
+	}, nil
+}
+
+// routesForIngressGateway returns the xDS API representation of the
+// "routes" in the snapshot.
+func routesForIngressGateway(
+	cInfo connectionInfo,
+	upstreams map[proxycfg.IngressListenerKey]structs.Upstreams,
+	chains map[string]*structs.CompiledDiscoveryChain,
+) ([]proto.Message, error) {
 
 	var result []proto.Message
-	for listenerKey, upstreams := range cfgSnap.IngressGateway.Upstreams {
+	for listenerKey, upstreams := range upstreams {
 		// Do not create any route configuration for TCP listeners
 		if listenerKey.Protocol == "tcp" {
 			continue
@@ -93,25 +185,13 @@ func routesFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto
 		}
 		for _, u := range upstreams {
 			upstreamID := u.Identifier()
-			chain := cfgSnap.IngressGateway.DiscoveryChain[upstreamID]
+			chain := chains[upstreamID]
 			if chain == nil {
 				continue
 			}
 
-			namespace := u.GetEnterpriseMeta().NamespaceOrDefault()
-			var domains []string
-			switch {
-			case len(u.IngressHosts) > 0:
-				// If a user has specified hosts, do not add the default
-				// "<service-name>.ingress.*" prefixes
-				domains = u.IngressHosts
-			case namespace != structs.IntentionDefaultNamespace:
-				domains = []string{fmt.Sprintf("%s.ingress.%s.*", chain.ServiceName, namespace)}
-			default:
-				domains = []string{fmt.Sprintf("%s.ingress.*", chain.ServiceName)}
-			}
-
-			virtualHost, err := makeUpstreamRouteForDiscoveryChain(upstreamID, chain, domains)
+			domains := generateUpstreamIngressDomains(listenerKey, u)
+			virtualHost, err := makeUpstreamRouteForDiscoveryChain(cInfo, upstreamID, chain, domains)
 			if err != nil {
 				return nil, err
 			}
@@ -124,24 +204,71 @@ func routesFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto
 	return result, nil
 }
 
+func generateUpstreamIngressDomains(listenerKey proxycfg.IngressListenerKey, u structs.Upstream) []string {
+	var domains []string
+	domainsSet := make(map[string]bool)
+
+	namespace := u.GetEnterpriseMeta().NamespaceOrDefault()
+	switch {
+	case len(u.IngressHosts) > 0:
+		// If a user has specified hosts, do not add the default
+		// "<service-name>.ingress.*" prefixes
+		domains = u.IngressHosts
+	case namespace != structs.IntentionDefaultNamespace:
+		domains = []string{fmt.Sprintf("%s.ingress.%s.*", u.DestinationName, namespace)}
+	default:
+		domains = []string{fmt.Sprintf("%s.ingress.*", u.DestinationName)}
+	}
+
+	for _, h := range domains {
+		domainsSet[h] = true
+	}
+
+	// Host headers may contain port numbers in them, so we need to make sure
+	// we match on the host with and without the port number. Well-known
+	// ports like HTTP/HTTPS are stripped from Host headers, but other ports
+	// will be in the header.
+	for _, h := range domains {
+		_, _, err := net.SplitHostPort(h)
+		// Error message from Go's net/ipsock.go
+		// We check to see if a port is not missing, and ignore the
+		// error from SplitHostPort otherwise, since we have previously
+		// validated the Host values and should trust the user's input.
+		if err == nil || !strings.Contains(err.Error(), "missing port in address") {
+			continue
+		}
+
+		domainWithPort := fmt.Sprintf("%s:%d", h, listenerKey.Port)
+
+		// Do not add a duplicate domain if a hostname with port is already in the
+		// set
+		if !domainsSet[domainWithPort] {
+			domains = append(domains, domainWithPort)
+		}
+	}
+
+	return domains
+}
+
 func makeUpstreamRouteForDiscoveryChain(
+	cInfo connectionInfo,
 	routeName string,
 	chain *structs.CompiledDiscoveryChain,
 	serviceDomains []string,
-) (envoyroute.VirtualHost, error) {
-	var routes []envoyroute.Route
+) (*envoyroute.VirtualHost, error) {
+	var routes []*envoyroute.Route
 
 	startNode := chain.Nodes[chain.StartNode]
 	if startNode == nil {
-		panic("missing first node in compiled discovery chain for: " + chain.ServiceName)
+		return nil, fmt.Errorf("missing first node in compiled discovery chain for: %s", chain.ServiceName)
 	}
 
 	switch startNode.Type {
 	case structs.DiscoveryGraphNodeTypeRouter:
-		routes = make([]envoyroute.Route, 0, len(startNode.Routes))
+		routes = make([]*envoyroute.Route, 0, len(startNode.Routes))
 
 		for _, discoveryRoute := range startNode.Routes {
-			routeMatch := makeRouteMatchForDiscoveryRoute(discoveryRoute, chain.Protocol)
+			routeMatch := makeRouteMatchForDiscoveryRoute(cInfo, discoveryRoute)
 
 			var (
 				routeAction *envoyroute.Route_Route
@@ -149,18 +276,32 @@ func makeUpstreamRouteForDiscoveryChain(
 			)
 
 			nextNode := chain.Nodes[discoveryRoute.NextNode]
+
+			var lb *structs.LoadBalancer
+			if nextNode.LoadBalancer != nil {
+				lb = nextNode.LoadBalancer
+			}
+
 			switch nextNode.Type {
 			case structs.DiscoveryGraphNodeTypeSplitter:
 				routeAction, err = makeRouteActionForSplitter(nextNode.Splits, chain)
 				if err != nil {
-					return envoyroute.VirtualHost{}, err
+					return nil, err
+				}
+
+				if err := injectLBToRouteAction(lb, routeAction.Route); err != nil {
+					return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
 				}
 
 			case structs.DiscoveryGraphNodeTypeResolver:
-				routeAction = makeRouteActionForSingleCluster(nextNode.Resolver.Target, chain)
+				routeAction = makeRouteActionForChainCluster(nextNode.Resolver.Target, chain)
+
+				if err := injectLBToRouteAction(lb, routeAction.Route); err != nil {
+					return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
+				}
 
 			default:
-				return envoyroute.VirtualHost{}, fmt.Errorf("unexpected graph node after route %q", nextNode.Type)
+				return nil, fmt.Errorf("unexpected graph node after route %q", nextNode.Type)
 			}
 
 			// TODO(rb): Better help handle the envoy case where you need (prefix=/foo/,rewrite=/) and (exact=/foo,rewrite=/) to do a full rewrite
@@ -172,7 +313,7 @@ func makeUpstreamRouteForDiscoveryChain(
 				}
 
 				if destination.RequestTimeout > 0 {
-					routeAction.Route.Timeout = &destination.RequestTimeout
+					routeAction.Route.Timeout = ptypes.DurationProto(destination.RequestTimeout)
 				}
 
 				if destination.HasRetryFeatures() {
@@ -198,7 +339,7 @@ func makeUpstreamRouteForDiscoveryChain(
 				}
 			}
 
-			routes = append(routes, envoyroute.Route{
+			routes = append(routes, &envoyroute.Route{
 				Match:  routeMatch,
 				Action: routeAction,
 			})
@@ -207,31 +348,47 @@ func makeUpstreamRouteForDiscoveryChain(
 	case structs.DiscoveryGraphNodeTypeSplitter:
 		routeAction, err := makeRouteActionForSplitter(startNode.Splits, chain)
 		if err != nil {
-			return envoyroute.VirtualHost{}, err
+			return nil, err
 		}
 
-		defaultRoute := envoyroute.Route{
+		var lb *structs.LoadBalancer
+		if startNode.LoadBalancer != nil {
+			lb = startNode.LoadBalancer
+		}
+		if err := injectLBToRouteAction(lb, routeAction.Route); err != nil {
+			return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
+		}
+
+		defaultRoute := &envoyroute.Route{
 			Match:  makeDefaultRouteMatch(),
 			Action: routeAction,
 		}
 
-		routes = []envoyroute.Route{defaultRoute}
+		routes = []*envoyroute.Route{defaultRoute}
 
 	case structs.DiscoveryGraphNodeTypeResolver:
-		routeAction := makeRouteActionForSingleCluster(startNode.Resolver.Target, chain)
+		routeAction := makeRouteActionForChainCluster(startNode.Resolver.Target, chain)
 
-		defaultRoute := envoyroute.Route{
+		var lb *structs.LoadBalancer
+		if startNode.LoadBalancer != nil {
+			lb = startNode.LoadBalancer
+		}
+		if err := injectLBToRouteAction(lb, routeAction.Route); err != nil {
+			return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
+		}
+
+		defaultRoute := &envoyroute.Route{
 			Match:  makeDefaultRouteMatch(),
 			Action: routeAction,
 		}
 
-		routes = []envoyroute.Route{defaultRoute}
+		routes = []*envoyroute.Route{defaultRoute}
 
 	default:
-		panic("unknown first node in discovery chain of type: " + startNode.Type)
+		return nil, fmt.Errorf("unknown first node in discovery chain of type: %s", startNode.Type)
 	}
 
-	host := envoyroute.VirtualHost{
+	host := &envoyroute.VirtualHost{
 		Name:    routeName,
 		Domains: serviceDomains,
 		Routes:  routes,
@@ -240,13 +397,13 @@ func makeUpstreamRouteForDiscoveryChain(
 	return host, nil
 }
 
-func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute, protocol string) envoyroute.RouteMatch {
+func makeRouteMatchForDiscoveryRoute(_ connectionInfo, discoveryRoute *structs.DiscoveryRoute) *envoyroute.RouteMatch {
 	match := discoveryRoute.Definition.Match
 	if match == nil || match.IsEmpty() {
 		return makeDefaultRouteMatch()
 	}
 
-	em := envoyroute.RouteMatch{}
+	em := &envoyroute.RouteMatch{}
 
 	switch {
 	case match.HTTP.PathExact != "":
@@ -258,8 +415,8 @@ func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute, pro
 			Prefix: match.HTTP.PathPrefix,
 		}
 	case match.HTTP.PathRegex != "":
-		em.PathSpecifier = &envoyroute.RouteMatch_Regex{
-			Regex: match.HTTP.PathRegex,
+		em.PathSpecifier = &envoyroute.RouteMatch_SafeRegex{
+			SafeRegex: makeEnvoyRegexMatch(match.HTTP.PathRegex),
 		}
 	default:
 		em.PathSpecifier = &envoyroute.RouteMatch_Prefix{
@@ -280,8 +437,8 @@ func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute, pro
 					ExactMatch: hdr.Exact,
 				}
 			case hdr.Regex != "":
-				eh.HeaderMatchSpecifier = &envoyroute.HeaderMatcher_RegexMatch{
-					RegexMatch: hdr.Regex,
+				eh.HeaderMatchSpecifier = &envoyroute.HeaderMatcher_SafeRegexMatch{
+					SafeRegexMatch: makeEnvoyRegexMatch(hdr.Regex),
 				}
 			case hdr.Prefix != "":
 				eh.HeaderMatchSpecifier = &envoyroute.HeaderMatcher_PrefixMatch{
@@ -312,10 +469,11 @@ func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute, pro
 
 		eh := &envoyroute.HeaderMatcher{
 			Name: ":method",
-			HeaderMatchSpecifier: &envoyroute.HeaderMatcher_RegexMatch{
-				RegexMatch: methodHeaderRegex,
+			HeaderMatchSpecifier: &envoyroute.HeaderMatcher_SafeRegexMatch{
+				SafeRegexMatch: makeEnvoyRegexMatch(methodHeaderRegex),
 			},
 		}
+
 		em.Headers = append(em.Headers, eh)
 	}
 
@@ -328,12 +486,25 @@ func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute, pro
 
 			switch {
 			case qm.Exact != "":
-				eq.Value = qm.Exact
+				eq.QueryParameterMatchSpecifier = &envoyroute.QueryParameterMatcher_StringMatch{
+					StringMatch: &envoymatcher.StringMatcher{
+						MatchPattern: &envoymatcher.StringMatcher_Exact{
+							Exact: qm.Exact,
+						},
+					},
+				}
 			case qm.Regex != "":
-				eq.Value = qm.Regex
-				eq.Regex = makeBoolValue(true)
+				eq.QueryParameterMatchSpecifier = &envoyroute.QueryParameterMatcher_StringMatch{
+					StringMatch: &envoymatcher.StringMatcher{
+						MatchPattern: &envoymatcher.StringMatcher_SafeRegex{
+							SafeRegex: makeEnvoyRegexMatch(qm.Regex),
+						},
+					},
+				}
 			case qm.Present:
-				eq.Value = ""
+				eq.QueryParameterMatchSpecifier = &envoyroute.QueryParameterMatcher_PresentMatch{
+					PresentMatch: true,
+				}
 			default:
 				continue // skip this impossible situation
 			}
@@ -345,8 +516,8 @@ func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute, pro
 	return em
 }
 
-func makeDefaultRouteMatch() envoyroute.RouteMatch {
-	return envoyroute.RouteMatch{
+func makeDefaultRouteMatch() *envoyroute.RouteMatch {
+	return &envoyroute.RouteMatch{
 		PathSpecifier: &envoyroute.RouteMatch_Prefix{
 			Prefix: "/",
 		},
@@ -358,11 +529,12 @@ func makeDefaultRouteMatch() envoyroute.RouteMatch {
 	}
 }
 
-func makeRouteActionForSingleCluster(targetID string, chain *structs.CompiledDiscoveryChain) *envoyroute.Route_Route {
+func makeRouteActionForChainCluster(targetID string, chain *structs.CompiledDiscoveryChain) *envoyroute.Route_Route {
 	target := chain.Targets[targetID]
+	return makeRouteActionFromName(CustomizeClusterName(target.Name, chain))
+}
 
-	clusterName := CustomizeClusterName(target.Name, chain)
-
+func makeRouteActionFromName(clusterName string) *envoyroute.Route_Route {
 	return &envoyroute.Route_Route{
 		Route: &envoyroute.RouteAction{
 			ClusterSpecifier: &envoyroute.RouteAction_Cluster{
@@ -406,4 +578,73 @@ func makeRouteActionForSplitter(splits []*structs.DiscoverySplit, chain *structs
 			},
 		},
 	}, nil
+}
+
+func injectLBToRouteAction(lb *structs.LoadBalancer, action *envoyroute.RouteAction) error {
+	if lb == nil || !lb.IsHashBased() {
+		return nil
+	}
+
+	result := make([]*envoyroute.RouteAction_HashPolicy, 0, len(lb.HashPolicies))
+	for _, policy := range lb.HashPolicies {
+		if policy.SourceIP {
+			result = append(result, &envoyroute.RouteAction_HashPolicy{
+				PolicySpecifier: &envoyroute.RouteAction_HashPolicy_ConnectionProperties_{
+					ConnectionProperties: &envoyroute.RouteAction_HashPolicy_ConnectionProperties{
+						SourceIp: true,
+					},
+				},
+				Terminal: policy.Terminal,
+			})
+
+			continue
+		}
+
+		switch policy.Field {
+		case structs.HashPolicyHeader:
+			result = append(result, &envoyroute.RouteAction_HashPolicy{
+				PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Header_{
+					Header: &envoyroute.RouteAction_HashPolicy_Header{
+						HeaderName: policy.FieldValue,
+					},
+				},
+				Terminal: policy.Terminal,
+			})
+		case structs.HashPolicyCookie:
+			cookie := envoyroute.RouteAction_HashPolicy_Cookie{
+				Name: policy.FieldValue,
+			}
+			if policy.CookieConfig != nil {
+				cookie.Path = policy.CookieConfig.Path
+
+				if policy.CookieConfig.TTL != 0*time.Second {
+					cookie.Ttl = ptypes.DurationProto(policy.CookieConfig.TTL)
+				}
+
+				// Envoy will generate a session cookie if the ttl is present and zero.
+				if policy.CookieConfig.Session {
+					cookie.Ttl = ptypes.DurationProto(0 * time.Second)
+				}
+			}
+			result = append(result, &envoyroute.RouteAction_HashPolicy{
+				PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Cookie_{
+					Cookie: &cookie,
+				},
+				Terminal: policy.Terminal,
+			})
+		case structs.HashPolicyQueryParam:
+			result = append(result, &envoyroute.RouteAction_HashPolicy{
+				PolicySpecifier: &envoyroute.RouteAction_HashPolicy_QueryParameter_{
+					QueryParameter: &envoyroute.RouteAction_HashPolicy_QueryParameter{
+						Name: policy.FieldValue,
+					},
+				},
+				Terminal: policy.Terminal,
+			})
+		default:
+			return fmt.Errorf("unsupported load balancer hash policy field: %v", policy.Field)
+		}
+	}
+	action.HashPolicy = result
+	return nil
 }

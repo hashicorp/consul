@@ -1,6 +1,6 @@
 import Component from '@ember/component';
 import { inject as service } from '@ember/service';
-import { set } from '@ember/object';
+import { set, get } from '@ember/object';
 import { schedule } from '@ember/runloop';
 
 /**
@@ -45,10 +45,11 @@ export default Component.extend({
     this._lazyListeners = this.dom.listeners();
     this.guid = this.dom.guid(this);
   },
-  willDestroy: function() {
+  willDestroyElement: function() {
     this.actions.close.apply(this);
     this._listeners.remove();
     this._lazyListeners.remove();
+    this._super(...arguments);
   },
 
   didInsertElement: function() {
@@ -72,20 +73,28 @@ export default Component.extend({
       this._lazyListeners.remove();
     }
     if (this.loading === 'eager' || this.isIntersecting) {
-      this.actions.open.bind(this)();
+      this.actions.open.apply(this, []);
     }
   },
   actions: {
     // keep this argumentless
     open: function() {
       // get a new source and replace the old one, cleaning up as we go
-      const source = replace(this, 'source', this.data.open(this.src, this), (prev, source) => {
-        // Makes sure any previous source (if different) is ALWAYS closed
-        this.data.close(prev, this);
-      });
+      const source = replace(
+        this,
+        'source',
+        this.data.open(this.src, this, this.open),
+        (prev, source) => {
+          // Makes sure any previous source (if different) is ALWAYS closed
+          this.data.close(prev, this);
+        }
+      );
       const error = err => {
         try {
-          this.onerror(err);
+          const error = get(err, 'error.errors.firstObject');
+          if (get(error || {}, 'status') !== '429') {
+            this.onerror(err);
+          }
           this.logger.execute(err);
         } catch (err) {
           this.logger.execute(err);
@@ -100,7 +109,9 @@ export default Component.extend({
             error(err);
           }
         },
-        error: e => error(e),
+        error: e => {
+          error(e);
+        },
       });
       replace(this, '_remove', remove);
       // dispatch the current data of the source if we have any

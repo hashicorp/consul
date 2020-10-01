@@ -140,7 +140,6 @@ func tokenSecretCacheID(token string) string {
 }
 
 type ACLResolverDelegate interface {
-	ACLsEnabled() bool
 	ACLDatacenter(legacy bool) string
 	UseLegacyACLs() bool
 	ResolveIdentityFromToken(token string) (bool, structs.ACLIdentity, error)
@@ -1196,7 +1195,7 @@ func (r *ACLResolver) ResolveTokenToIdentity(token string) (structs.ACLIdentity,
 
 func (r *ACLResolver) ACLsEnabled() bool {
 	// Whether we desire ACLs to be enabled according to configuration
-	if !r.delegate.ACLsEnabled() {
+	if !r.config.ACLsEnabled {
 		return false
 	}
 
@@ -2144,7 +2143,7 @@ func vetNodeTxnOp(op *structs.TxnNodeOp, rule acl.Authorizer) error {
 	var authzContext acl.AuthorizerContext
 	op.FillAuthzContext(&authzContext)
 
-	if rule != nil && rule.NodeWrite(op.Node.Node, &authzContext) != acl.Allow {
+	if rule.NodeWrite(op.Node.Node, &authzContext) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 

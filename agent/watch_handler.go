@@ -184,3 +184,59 @@ func makeHTTPWatchHandler(logger hclog.Logger, config *watch.HttpHandlerConfig) 
 	}
 	return fn
 }
+
+// TODO: return a fully constructed watch.Plan with a Plan.Handler, so that Exempt
+// can be ignored by the caller.
+func makeWatchPlan(logger hclog.Logger, params map[string]interface{}) (*watch.Plan, error) {
+	wp, err := watch.ParseExempt(params, []string{"handler", "args"})
+	if err != nil {
+		return nil, fmt.Errorf("Failed to parse watch (%#v): %v", params, err)
+	}
+
+	handler, hasHandler := wp.Exempt["handler"]
+	if hasHandler {
+		logger.Warn("The 'handler' field in watches has been deprecated " +
+			"and replaced with the 'args' field. See https://www.consul.io/docs/agent/watches.html")
+	}
+	if _, ok := handler.(string); hasHandler && !ok {
+		return nil, fmt.Errorf("Watch handler must be a string")
+	}
+
+	args, hasArgs := wp.Exempt["args"]
+	if hasArgs {
+		wp.Exempt["args"], err = parseWatchArgs(args)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if hasHandler && hasArgs || hasHandler && wp.HandlerType == "http" || hasArgs && wp.HandlerType == "http" {
+		return nil, fmt.Errorf("Only one watch handler allowed")
+	}
+	if !hasHandler && !hasArgs && wp.HandlerType != "http" {
+		return nil, fmt.Errorf("Must define a watch handler")
+	}
+	return wp, nil
+}
+
+func parseWatchArgs(args interface{}) ([]string, error) {
+	switch args := args.(type) {
+	case string:
+		return []string{args}, nil
+	case []string:
+		return args, nil
+	case []interface{}:
+		result := make([]string, 0, len(args))
+		for _, arg := range args {
+			v, ok := arg.(string)
+			if !ok {
+				return nil, fmt.Errorf("Watch args must be a list of strings")
+			}
+
+			result = append(result, v)
+		}
+		return result, nil
+	default:
+		return nil, fmt.Errorf("Watch args must be a list of strings")
+	}
+}

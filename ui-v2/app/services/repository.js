@@ -2,6 +2,7 @@ import Service, { inject as service } from '@ember/service';
 import { assert } from '@ember/debug';
 import { typeOf } from '@ember/utils';
 import { get } from '@ember/object';
+import { isChangeset } from 'validated-changeset';
 
 export default Service.extend({
   getModelName: function() {
@@ -15,9 +16,6 @@ export default Service.extend({
   },
   //
   store: service('store'),
-  shouldReconcile: function(method) {
-    return true;
-  },
   reconcile: function(meta = {}) {
     // unload anything older than our current sync date/time
     if (typeof meta.date !== 'undefined') {
@@ -32,7 +30,7 @@ export default Service.extend({
             }
           }
           const date = get(item, 'SyncTime');
-          if (typeof date !== 'undefined' && date != meta.date) {
+          if (!item.isDeleted && typeof date !== 'undefined' && date != meta.date) {
             this.store.unloadRecord(item);
           }
         }
@@ -49,6 +47,7 @@ export default Service.extend({
     };
     if (typeof configuration.cursor !== 'undefined') {
       query.index = configuration.cursor;
+      query.uri = configuration.uri;
     }
     return this.store.query(this.getModelName(), query);
   },
@@ -60,6 +59,7 @@ export default Service.extend({
     };
     if (typeof configuration.cursor !== 'undefined') {
       query.index = configuration.cursor;
+      query.uri = configuration.uri;
     }
     return this.store.queryRecord(this.getModelName(), query);
   },
@@ -68,6 +68,13 @@ export default Service.extend({
     return this.store.createRecord(this.getModelName(), obj);
   },
   persist: function(item) {
+    // workaround for saving changesets that contain fragments
+    // firstly commit the changes down onto the object if
+    // its a changeset, then save as a normal object
+    if (isChangeset(item)) {
+      item.execute();
+      item = item.data;
+    }
     return item.save();
   },
   remove: function(obj) {

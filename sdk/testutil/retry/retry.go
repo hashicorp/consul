@@ -23,6 +23,8 @@ import (
 
 // Failer is an interface compatible with testing.T.
 type Failer interface {
+	Helper()
+
 	// Log is called for the final test output
 	Log(args ...interface{})
 
@@ -116,6 +118,7 @@ func dedup(a []string) string {
 func run(r Retryer, t Failer, f func(r *R)) {
 	rr := &R{}
 	fail := func() {
+		t.Helper()
 		out := dedup(rr.output)
 		if out != "" {
 			t.Log(out)

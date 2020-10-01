@@ -9,8 +9,8 @@ module('Integration | Adapter | nspace', function(hooks) {
     const adapter = this.owner.lookup('adapter:nspace');
     const client = this.owner.lookup('service:client/http');
     const expected = `GET /v1/namespaces`;
-    const actual = adapter.requestForQuery(client.url, {});
-    assert.equal(actual, expected);
+    const actual = adapter.requestForQuery(client.requestParams.bind(client), {});
+    assert.equal(`${actual.method} ${actual.url}`, expected);
   });
   test('requestForQueryRecord returns the correct url/method', function(assert) {
     const adapter = this.owner.lookup('adapter:nspace');

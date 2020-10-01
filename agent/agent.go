@@ -2,7 +2,6 @@ package agent
 
 import (
 	"context"
-	"crypto/sha512"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -18,29 +17,26 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/consul/agent/dns"
+	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
-	"github.com/mitchellh/cli"
 
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/grpclog"
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/ae"
-	autoconf "github.com/hashicorp/consul/agent/auto-config"
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/local"
-	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/systemd"
-	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/api/watch"
@@ -51,11 +47,8 @@ import (
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
-	"github.com/shirou/gopsutil/host"
 	"golang.org/x/net/http2"
 )
 
@@ -70,9 +63,6 @@ const (
 	// Path to save local agent checks
 	checksDir     = "checks"
 	checkStateDir = "checks/state"
-
-	// Name of the file tokens will be persisted within
-	tokensPath = "acl-tokens.json"
 
 	// Default reasons for node/service maintenance mode
 	defaultNodeMaintReason = "Maintenance mode is enabled for this node, " +
@@ -143,7 +133,6 @@ type delegate interface {
 	ResolveTokenToIdentity(secretID string) (structs.ACLIdentity, error)
 	ResolveTokenAndDefaultMeta(secretID string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error)
 	RPC(method string, args interface{}, reply interface{}) error
-	ACLsEnabled() bool
 	UseLegacyACLs() bool
 	SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn structs.SnapshotReplyFn) error
 	Shutdown() error
@@ -164,25 +153,14 @@ type notifier interface {
 // mode, it runs a full Consul server. In client-only mode, it only forwards
 // requests to other Consul servers.
 type Agent struct {
-	autoConf *autoconf.AutoConfig
+	// TODO: remove fields that are already in BaseDeps
+	baseDeps BaseDeps
 
 	// config is the agent configuration.
 	config *config.RuntimeConfig
 
 	// Used for writing our logs
 	logger hclog.InterceptLogger
-
-	// LogOutput is a Writer which is used when creating dependencies that
-	// require logging. Note that this LogOutput is not used by the agent logger,
-	// so setting this field does not result in the agent logs being written to
-	// LogOutput.
-	// FIXME: refactor so that: dependencies accept an hclog.Logger,
-	// or LogOutput is part of RuntimeConfig, or change Agent.logger to be
-	// a new type with an Out() io.Writer method which returns this value.
-	LogOutput io.Writer
-
-	// In-memory sink used for collecting metrics
-	MemSink *metrics.InmemSink
 
 	// delegate is either a *consul.Server or *consul.Client
 	// depending on the configuration
@@ -273,10 +251,29 @@ type Agent struct {
 	// dnsServer provides the DNS API
 	dnsServers []*DNSServer
 
-	// httpServers provides the HTTP API on various endpoints
-	httpServers []*HTTPServer
+	// apiServers listening for connections. If any of these server goroutines
+	// fail, the agent will be shutdown.
+	apiServers *apiServers
+
+	// httpHandlers provides direct access to (one of) the HTTPHandlers started by
+	// this agent. This is used in tests to test HTTP endpoints without overhead
+	// of TCP connections etc.
+	//
+	// TODO: this is a temporary re-introduction after we removed a list of
+	// HTTPServers in favour of apiServers abstraction. Now that HTTPHandlers is
+	// stateful and has config reloading though it's not OK to just use a
+	// different instance of handlers in tests to the ones that the agent is wired
+	// up to since then config reloads won't actually affect the handlers under
+	// test while plumbing the external handlers in the TestAgent through bypasses
+	// testing that the agent itself is actually reloading the state correctly.
+	// Once we move `apiServers` to be a passed-in dependency for NewAgent, we
+	// should be able to remove this and have the Test Agent create the
+	// HTTPHandlers and pass them in removing the need to pull them back out
+	// again.
+	httpHandlers *HTTPHandlers
 
 	// wgServers is the wait group for all HTTP and DNS servers
+	// TODO: remove once dnsServers are handled by apiServers
 	wgServers sync.WaitGroup
 
 	// watchPlans tracks all the currently-running watch plans for the
@@ -306,90 +303,16 @@ type Agent struct {
 	// based on the current consul configuration.
 	tlsConfigurator *tlsutil.Configurator
 
-	// persistedTokensLock is used to synchronize access to the persisted token
-	// store within the data directory. This will prevent loading while writing as
-	// well as multiple concurrent writes.
-	persistedTokensLock sync.RWMutex
-
 	// httpConnLimiter is used to limit connections to the HTTP server by client
 	// IP.
 	httpConnLimiter connlimit.Limiter
 
-	// Connection Pool
-	connPool *pool.ConnPool
+	// configReloaders are subcomponents that need to be notified on a reload so
+	// they can update their internal state.
+	configReloaders []ConfigReloader
 
 	// enterpriseAgent embeds fields that we only access in consul-enterprise builds
 	enterpriseAgent
-}
-
-type agentOptions struct {
-	logger      hclog.InterceptLogger
-	builderOpts config.BuilderOpts
-	ui          cli.Ui
-	config      *config.RuntimeConfig
-	overrides   []config.Source
-	writers     []io.Writer
-}
-
-type AgentOption func(opt *agentOptions)
-
-// WithLogger is used to override any automatic logger creation
-// and provide one already built instead. This is mostly useful
-// for testing.
-func WithLogger(logger hclog.InterceptLogger) AgentOption {
-	return func(opt *agentOptions) {
-		opt.logger = logger
-	}
-}
-
-// WithBuilderOpts specifies the command line config.BuilderOpts to use that the agent
-// is being started with
-func WithBuilderOpts(builderOpts config.BuilderOpts) AgentOption {
-	return func(opt *agentOptions) {
-		opt.builderOpts = builderOpts
-	}
-}
-
-// WithCLI provides a cli.Ui instance to use when emitting configuration
-// warnings during the first configuration parsing.
-func WithCLI(ui cli.Ui) AgentOption {
-	return func(opt *agentOptions) {
-		opt.ui = ui
-	}
-}
-
-// WithLogWriter will add an additional log output to the logger that gets
-// configured after configuration parsing
-func WithLogWriter(writer io.Writer) AgentOption {
-	return func(opt *agentOptions) {
-		opt.writers = append(opt.writers, writer)
-	}
-}
-
-// WithOverrides is used to provide a config source to append to the tail sources
-// during config building. It is really only useful for testing to tune non-user
-// configurable tunables to make various tests converge more quickly than they
-// could otherwise.
-func WithOverrides(overrides ...config.Source) AgentOption {
-	return func(opt *agentOptions) {
-		opt.overrides = overrides
-	}
-}
-
-// WithConfig provides an already parsed configuration to the Agent
-// Deprecated: Should allow the agent to parse the configuration.
-func WithConfig(config *config.RuntimeConfig) AgentOption {
-	return func(opt *agentOptions) {
-		opt.config = config
-	}
-}
-
-func flattenAgentOptions(options []AgentOption) agentOptions {
-	var flat agentOptions
-	for _, opt := range options {
-		opt(&flat)
-	}
-	return flat
 }
 
 // New process the desired options and creates a new Agent.
@@ -407,10 +330,7 @@ func flattenAgentOptions(options []AgentOption) agentOptions {
 //   * setup the NodeID if one isn't provided in the configuration
 //   * create the AutoConfig object for future use in fully
 //     resolving the configuration
-func New(options ...AgentOption) (*Agent, error) {
-	flat := flattenAgentOptions(options)
-
-	// Create most of the agent
+func New(bd BaseDeps) (*Agent, error) {
 	a := Agent{
 		checkReapAfter:  make(map[structs.CheckID]time.Duration),
 		checkMonitors:   make(map[structs.CheckID]*checks.CheckMonitor),
@@ -426,115 +346,37 @@ func New(options ...AgentOption) (*Agent, error) {
 		retryJoinCh:     make(chan error),
 		shutdownCh:      make(chan struct{}),
 		endpoints:       make(map[string]string),
-		tokens:          new(token.Store),
-		logger:          flat.logger,
-	}
 
-	// parse the configuration and handle the error/warnings
-	config, warnings, err := autoconf.LoadConfig(flat.builderOpts, config.Source{}, flat.overrides...)
-	if err != nil {
-		return nil, err
-	}
-	for _, w := range warnings {
-		if a.logger != nil {
-			a.logger.Warn(w)
-		} else if flat.ui != nil {
-			flat.ui.Warn(w)
-		} else {
-			fmt.Fprint(os.Stderr, w)
-		}
-	}
-
-	// set the config in the agent, this is just the preliminary configuration as we haven't
-	// loaded any auto-config sources yet.
-	a.config = config
-
-	if flat.logger == nil {
-		logConf := &logging.Config{
-			LogLevel:          config.LogLevel,
-			LogJSON:           config.LogJSON,
-			Name:              logging.Agent,
-			EnableSyslog:      config.EnableSyslog,
-			SyslogFacility:    config.SyslogFacility,
-			LogFilePath:       config.LogFile,
-			LogRotateDuration: config.LogRotateDuration,
-			LogRotateBytes:    config.LogRotateBytes,
-			LogRotateMaxFiles: config.LogRotateMaxFiles,
-		}
-
-		logger, logOutput, err := logging.Setup(logConf, flat.writers)
-		if err != nil {
-			return nil, err
-		}
-
-		a.logger = logger
-		a.LogOutput = logOutput
-
-		grpclog.SetLoggerV2(logging.NewGRPCLogger(logConf, a.logger))
-	}
-
-	memSink, err := lib.InitTelemetry(config.Telemetry)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to initialize telemetry: %w", err)
-	}
-	a.MemSink = memSink
-
-	// TODO (autoconf) figure out how to let this setting be pushed down via autoconf
-	// right now it gets defaulted if unset so this check actually doesn't do much
-	// for a normal running agent.
-	if a.config.Datacenter == "" {
-		return nil, fmt.Errorf("Must configure a Datacenter")
-	}
-	if a.config.DataDir == "" && !a.config.DevMode {
-		return nil, fmt.Errorf("Must configure a DataDir")
-	}
-
-	tlsConfigurator, err := tlsutil.NewConfigurator(a.config.ToTLSUtilConfig(), a.logger)
-	if err != nil {
-		return nil, err
-	}
-	a.tlsConfigurator = tlsConfigurator
-
-	err = a.initializeConnectionPool()
-	if err != nil {
-		return nil, fmt.Errorf("Failed to initialize the connection pool: %w", err)
+		baseDeps:        bd,
+		tokens:          bd.Tokens,
+		logger:          bd.Logger,
+		tlsConfigurator: bd.TLSConfigurator,
+		config:          bd.RuntimeConfig,
+		cache:           bd.Cache,
 	}
 
 	a.serviceManager = NewServiceManager(&a)
 
-	if err := a.initializeACLs(); err != nil {
-		return nil, err
-	}
-
-	// Retrieve or generate the node ID before setting up the rest of the
-	// agent, which depends on it.
-	if err := a.setupNodeID(a.config); err != nil {
-		return nil, fmt.Errorf("Failed to setup node ID: %v", err)
-	}
-
-	acOpts := []autoconf.Option{
-		autoconf.WithDirectRPC(a.connPool),
-		autoconf.WithTLSConfigurator(a.tlsConfigurator),
-		autoconf.WithBuilderOpts(flat.builderOpts),
-		autoconf.WithLogger(a.logger),
-		autoconf.WithOverrides(flat.overrides...),
-	}
-	ac, err := autoconf.New(acOpts...)
+	// TODO: do this somewhere else, maybe move to newBaseDeps
+	var err error
+	a.aclMasterAuthorizer, err = initializeACLs(bd.RuntimeConfig.NodeName)
 	if err != nil {
 		return nil, err
 	}
 
-	a.autoConf = ac
+	// We used to do this in the Start method. However it doesn't need to go
+	// there any longer. Originally it did because we passed the agent
+	// delegate to some of the cache registrations. Now we just
+	// pass the agent itself so its safe to move here.
+	a.registerCache()
+
+	// TODO: why do we ignore failure to load persisted tokens?
+	_ = a.tokens.Load(bd.RuntimeConfig.ACLTokens, a.logger)
+
+	// TODO: pass in a fully populated apiServers into Agent.New
+	a.apiServers = NewAPIServers(a.logger)
 
 	return &a, nil
-}
-
-// GetLogger retrieves the agents logger
-// TODO make export the logger field and get rid of this method
-// This is here for now to simplify the work I am doing and make
-// reviewing the final PR easier.
-func (a *Agent) GetLogger() hclog.InterceptLogger {
-	return a.logger
 }
 
 // GetConfig retrieves the agents config
@@ -545,37 +387,6 @@ func (a *Agent) GetConfig() *config.RuntimeConfig {
 	a.stateLock.Lock()
 	defer a.stateLock.Unlock()
 	return a.config
-}
-
-func (a *Agent) initializeConnectionPool() error {
-	var rpcSrcAddr *net.TCPAddr
-	if !ipaddr.IsAny(a.config.RPCBindAddr) {
-		rpcSrcAddr = &net.TCPAddr{IP: a.config.RPCBindAddr.IP}
-	}
-
-	// Ensure we have a log output for the connection pool.
-	logOutput := a.LogOutput
-	if logOutput == nil {
-		logOutput = os.Stderr
-	}
-
-	pool := &pool.ConnPool{
-		Server:          a.config.ServerMode,
-		SrcAddr:         rpcSrcAddr,
-		LogOutput:       logOutput,
-		TLSConfigurator: a.tlsConfigurator,
-		Datacenter:      a.config.Datacenter,
-	}
-	if a.config.ServerMode {
-		pool.MaxTime = 2 * time.Minute
-		pool.MaxStreams = 64
-	} else {
-		pool.MaxTime = 127 * time.Second
-		pool.MaxStreams = 32
-	}
-
-	a.connPool = pool
-	return nil
 }
 
 // LocalConfig takes a config.RuntimeConfig and maps the fields to a local.Config
@@ -602,7 +413,7 @@ func (a *Agent) Start(ctx context.Context) error {
 
 	// This needs to be done early on as it will potentially alter the configuration
 	// and then how other bits are brought up
-	c, err := a.autoConf.InitialConfiguration(ctx)
+	c, err := a.baseDeps.AutoConfig.InitialConfiguration(ctx)
 	if err != nil {
 		return err
 	}
@@ -618,31 +429,6 @@ func (a *Agent) Start(ctx context.Context) error {
 		return fmt.Errorf("Failed to load TLS configurations after applying auto-config settings: %w", err)
 	}
 
-	if err := a.CheckSecurity(c); err != nil {
-		a.logger.Error("Security error while parsing configuration: %#v", err)
-		return err
-	}
-
-	// Warn if the node name is incompatible with DNS
-	if InvalidDnsRe.MatchString(a.config.NodeName) {
-		a.logger.Warn("Node name will not be discoverable "+
-			"via DNS due to invalid characters. Valid characters include "+
-			"all alpha-numerics and dashes.",
-			"node_name", a.config.NodeName,
-		)
-	} else if len(a.config.NodeName) > MaxDNSLabelLength {
-		a.logger.Warn("Node name will not be discoverable "+
-			"via DNS due to it being too long. Valid lengths are between "+
-			"1 and 63 bytes.",
-			"node_name", a.config.NodeName,
-		)
-	}
-
-	// load the tokens - this requires the logger to be setup
-	// which is why we can't do this in New
-	a.loadTokens(a.config)
-	a.loadEnterpriseTokens(a.config)
-
 	// create the local state
 	a.State = local.NewState(LocalConfig(c), a.logger, a.tokens)
 
@@ -650,13 +436,18 @@ func (a *Agent) Start(ctx context.Context) error {
 	// regular and on-demand state synchronizations (anti-entropy).
 	a.sync = ae.NewStateSyncer(a.State, c.AEInterval, a.shutdownCh, a.logger)
 
-	// create the cache
-	a.cache = cache.New(nil)
-
 	// create the config for the rpc server/client
-	consulCfg, err := a.consulConfig()
+	consulCfg, err := newConsulConfig(a.config, a.logger)
 	if err != nil {
 		return err
+	}
+
+	// Setup the user event callback
+	consulCfg.UserEventHandler = func(e serf.UserEvent) {
+		select {
+		case a.eventCh <- e:
+		case <-a.shutdownCh:
+		}
 	}
 
 	// ServerUp is used to inform that a new consul server is now
@@ -669,22 +460,15 @@ func (a *Agent) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to start Consul enterprise component: %v", err)
 	}
 
-	options := []consul.ConsulOption{
-		consul.WithLogger(a.logger),
-		consul.WithTokenStore(a.tokens),
-		consul.WithTLSConfigurator(a.tlsConfigurator),
-		consul.WithConnectionPool(a.connPool),
-	}
-
 	// Setup either the client or the server.
 	if c.ServerMode {
-		server, err := consul.NewServerWithOptions(consulCfg, options...)
+		server, err := consul.NewServer(consulCfg, a.baseDeps.Deps)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul server: %v", err)
 		}
 		a.delegate = server
 	} else {
-		client, err := consul.NewClientWithOptions(consulCfg, options...)
+		client, err := consul.NewClient(consulCfg, a.baseDeps.Deps)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul client: %v", err)
 		}
@@ -701,25 +485,9 @@ func (a *Agent) Start(ctx context.Context) error {
 	a.State.Delegate = a.delegate
 	a.State.TriggerSyncChanges = a.sync.SyncChanges.Trigger
 
-	// Register the cache. We do this much later so the delegate is
-	// populated from above.
-	a.registerCache()
-
-	if a.config.AutoEncryptTLS && !a.config.ServerMode {
-		reply, err := a.setupClientAutoEncrypt(ctx)
-		if err != nil {
-			return fmt.Errorf("AutoEncrypt failed: %s", err)
-		}
-		rootsReq, leafReq, err := a.setupClientAutoEncryptCache(reply)
-		if err != nil {
-			return fmt.Errorf("AutoEncrypt failed: %s", err)
-		}
-		if err = a.setupClientAutoEncryptWatching(rootsReq, leafReq); err != nil {
-			return fmt.Errorf("AutoEncrypt failed: %s", err)
-		}
-		a.logger.Info("automatically upgraded to TLS")
+	if err := a.baseDeps.AutoConfig.Start(&lib.StopChannelContext{StopCh: a.shutdownCh}); err != nil {
+		return fmt.Errorf("AutoConf failed to start certificate monitor: %w", err)
 	}
-
 	a.serviceManager.Start()
 
 	// Load checks/services/metadata.
@@ -731,6 +499,16 @@ func (a *Agent) Start(ctx context.Context) error {
 	}
 	if err := a.loadMetadata(c); err != nil {
 		return err
+	}
+
+	var intentionDefaultAllow bool
+	switch a.config.ACLDefaultPolicy {
+	case "allow":
+		intentionDefaultAllow = true
+	case "deny":
+		intentionDefaultAllow = false
+	default:
+		return fmt.Errorf("unexpected ACL default policy value of %q", a.config.ACLDefaultPolicy)
 	}
 
 	// Start the proxy config manager.
@@ -747,7 +525,8 @@ func (a *Agent) Start(ctx context.Context) error {
 			Domain:    a.config.DNSDomain,
 			AltDomain: a.config.DNSAltDomain,
 		},
-		TLSConfigurator: a.tlsConfigurator,
+		TLSConfigurator:       a.tlsConfigurator,
+		IntentionDefaultAllow: intentionDefaultAllow,
 	})
 	if err != nil {
 		return err
@@ -794,10 +573,7 @@ func (a *Agent) Start(ctx context.Context) error {
 
 	// Start HTTP and HTTPS servers.
 	for _, srv := range servers {
-		if err := a.serveHTTP(srv); err != nil {
-			return err
-		}
-		a.httpServers = append(a.httpServers, srv)
+		a.apiServers.Start(srv)
 	}
 
 	// Start gRPC server.
@@ -819,165 +595,10 @@ func (a *Agent) Start(ctx context.Context) error {
 	return nil
 }
 
-func (a *Agent) setupClientAutoEncrypt(ctx context.Context) (*structs.SignedResponse, error) {
-	client := a.delegate.(*consul.Client)
-
-	addrs := a.config.StartJoinAddrsLAN
-	disco, err := newDiscover()
-	if err != nil && len(addrs) == 0 {
-		return nil, err
-	}
-	addrs = append(addrs, retryJoinAddrs(disco, retryJoinSerfVariant, "LAN", a.config.RetryJoinLAN, a.logger)...)
-
-	reply, priv, err := client.RequestAutoEncryptCerts(ctx, addrs, a.config.ServerPort, a.tokens.AgentToken())
-	if err != nil {
-		return nil, err
-	}
-
-	connectCAPems := []string{}
-	for _, ca := range reply.ConnectCARoots.Roots {
-		connectCAPems = append(connectCAPems, ca.RootCert)
-	}
-	if err := a.tlsConfigurator.UpdateAutoEncrypt(reply.ManualCARoots, connectCAPems, reply.IssuedCert.CertPEM, priv, reply.VerifyServerHostname); err != nil {
-		return nil, err
-	}
-	return reply, nil
-
-}
-
-func (a *Agent) setupClientAutoEncryptCache(reply *structs.SignedResponse) (*structs.DCSpecificRequest, *cachetype.ConnectCALeafRequest, error) {
-	rootsReq := &structs.DCSpecificRequest{
-		Datacenter:   a.config.Datacenter,
-		QueryOptions: structs.QueryOptions{Token: a.tokens.AgentToken()},
-	}
-
-	// prepolutate roots cache
-	rootRes := cache.FetchResult{Value: &reply.ConnectCARoots, Index: reply.ConnectCARoots.QueryMeta.Index}
-	if err := a.cache.Prepopulate(cachetype.ConnectCARootName, rootRes, a.config.Datacenter, a.tokens.AgentToken(), rootsReq.CacheInfo().Key); err != nil {
-		return nil, nil, err
-	}
-
-	leafReq := &cachetype.ConnectCALeafRequest{
-		Datacenter: a.config.Datacenter,
-		Token:      a.tokens.AgentToken(),
-		Agent:      a.config.NodeName,
-		DNSSAN:     a.config.AutoEncryptDNSSAN,
-		IPSAN:      a.config.AutoEncryptIPSAN,
-	}
-
-	// prepolutate leaf cache
-	certRes := cache.FetchResult{Value: &reply.IssuedCert, Index: reply.ConnectCARoots.QueryMeta.Index}
-	if err := a.cache.Prepopulate(cachetype.ConnectCALeafName, certRes, a.config.Datacenter, a.tokens.AgentToken(), leafReq.Key()); err != nil {
-		return nil, nil, err
-	}
-	return rootsReq, leafReq, nil
-}
-
-func (a *Agent) setupClientAutoEncryptWatching(rootsReq *structs.DCSpecificRequest, leafReq *cachetype.ConnectCALeafRequest) error {
-	// setup watches
-	ch := make(chan cache.UpdateEvent, 10)
-	ctx, cancel := context.WithCancel(context.Background())
-
-	// Watch for root changes
-	err := a.cache.Notify(ctx, cachetype.ConnectCARootName, rootsReq, rootsWatchID, ch)
-	if err != nil {
-		cancel()
-		return err
-	}
-
-	// Watch the leaf cert
-	err = a.cache.Notify(ctx, cachetype.ConnectCALeafName, leafReq, leafWatchID, ch)
-	if err != nil {
-		cancel()
-		return err
-	}
-
-	// Setup actions in case the watches are firing.
-	go func() {
-		for {
-			select {
-			case <-a.shutdownCh:
-				cancel()
-				return
-			case <-ctx.Done():
-				return
-			case u := <-ch:
-				switch u.CorrelationID {
-				case rootsWatchID:
-					roots, ok := u.Result.(*structs.IndexedCARoots)
-					if !ok {
-						err := fmt.Errorf("invalid type for roots response: %T", u.Result)
-						a.logger.Error("watch error for correlation id",
-							"correlation_id", u.CorrelationID,
-							"error", err,
-						)
-						continue
-					}
-					pems := []string{}
-					for _, root := range roots.Roots {
-						pems = append(pems, root.RootCert)
-					}
-					a.tlsConfigurator.UpdateAutoEncryptCA(pems)
-				case leafWatchID:
-					leaf, ok := u.Result.(*structs.IssuedCert)
-					if !ok {
-						err := fmt.Errorf("invalid type for leaf response: %T", u.Result)
-						a.logger.Error("watch error for correlation id",
-							"correlation_id", u.CorrelationID,
-							"error", err,
-						)
-						continue
-					}
-					a.tlsConfigurator.UpdateAutoEncryptCert(leaf.CertPEM, leaf.PrivateKeyPEM)
-				}
-			}
-		}
-	}()
-
-	// Setup safety net in case the auto_encrypt cert doesn't get renewed
-	// in time. The agent would be stuck in that case because the watches
-	// never use the AutoEncrypt.Sign endpoint.
-	go func() {
-		// Check 10sec after cert expires. The agent cache
-		// should be handling the expiration and renew before
-		// it.
-		// If there is no cert, AutoEncryptCertNotAfter returns
-		// a value in the past which immediately triggers the
-		// renew, but this case shouldn't happen because at
-		// this point, auto_encrypt was just being setup
-		// successfully.
-		interval := a.tlsConfigurator.AutoEncryptCertNotAfter().Sub(time.Now().Add(10 * time.Second))
-		autoLogger := a.logger.Named(logging.AutoEncrypt)
-		for {
-			a.logger.Debug("setting up client certificate expiration check on interval", "interval", interval)
-			select {
-			case <-a.shutdownCh:
-				return
-			case <-time.After(interval):
-				// check auto encrypt client cert expiration
-				if a.tlsConfigurator.AutoEncryptCertExpired() {
-					autoLogger.Debug("client certificate expired.")
-					// Background because the context is mainly useful when the agent is first starting up.
-					reply, err := a.setupClientAutoEncrypt(context.Background())
-					if err != nil {
-						autoLogger.Error("client certificate expired, failed to renew", "error", err)
-						// in case of an error, try again in one minute
-						interval = time.Minute
-						continue
-					}
-					_, _, err = a.setupClientAutoEncryptCache(reply)
-					if err != nil {
-						autoLogger.Error("client certificate expired, failed to populate cache", "error", err)
-						// in case of an error, try again in one minute
-						interval = time.Minute
-						continue
-					}
-				}
-			}
-		}
-	}()
-
-	return nil
+// Failed returns a channel which is closed when the first server goroutine exits
+// with a non-nil error.
+func (a *Agent) Failed() <-chan struct{} {
+	return a.apiServers.failed
 }
 
 func (a *Agent) listenAndServeGRPC() error {
@@ -988,7 +609,6 @@ func (a *Agent) listenAndServeGRPC() error {
 	xdsServer := &xds.Server{
 		Logger:       a.logger,
 		CfgMgr:       a.proxyConfig,
-		Authz:        a,
 		ResolveToken: a.resolveToken,
 		CheckFetcher: a,
 		CfgFetcher:   a,
@@ -1113,14 +733,16 @@ func (a *Agent) startListeners(addrs []net.Addr) ([]net.Listener, error) {
 //
 // This approach should ultimately be refactored to the point where we just
 // start the server and any error should trigger a proper shutdown of the agent.
-func (a *Agent) listenHTTP() ([]*HTTPServer, error) {
+func (a *Agent) listenHTTP() ([]apiServer, error) {
 	var ln []net.Listener
-	var servers []*HTTPServer
+	var servers []apiServer
+
 	start := func(proto string, addrs []net.Addr) error {
 		listeners, err := a.startListeners(addrs)
 		if err != nil {
 			return err
 		}
+		ln = append(ln, listeners...)
 
 		for _, l := range listeners {
 			var tlscfg *tls.Config
@@ -1130,70 +752,87 @@ func (a *Agent) listenHTTP() ([]*HTTPServer, error) {
 				l = tls.NewListener(l, tlscfg)
 			}
 
-			srv := &HTTPServer{
-				Server: &http.Server{
-					Addr:      l.Addr().String(),
-					TLSConfig: tlscfg,
-				},
-				ln:       l,
+			srv := &HTTPHandlers{
 				agent:    a,
 				denylist: NewDenylist(a.config.HTTPBlockEndpoints),
-				proto:    proto,
 			}
-			srv.Server.Handler = srv.handler(a.config.EnableDebug)
+			a.configReloaders = append(a.configReloaders, srv.ReloadConfig)
+			a.httpHandlers = srv
+			httpServer := &http.Server{
+				Addr:      l.Addr().String(),
+				TLSConfig: tlscfg,
+				Handler:   srv.handler(a.config.EnableDebug),
+			}
 
 			// Load the connlimit helper into the server
-			connLimitFn := a.httpConnLimiter.HTTPConnStateFunc()
+			connLimitFn := a.httpConnLimiter.HTTPConnStateFuncWithDefault429Handler(10 * time.Millisecond)
 
 			if proto == "https" {
-				// Enforce TLS handshake timeout
-				srv.Server.ConnState = func(conn net.Conn, state http.ConnState) {
-					switch state {
-					case http.StateNew:
-						// Set deadline to prevent slow send before TLS handshake or first
-						// byte of request.
-						conn.SetReadDeadline(time.Now().Add(a.config.HTTPSHandshakeTimeout))
-					case http.StateActive:
-						// Clear read deadline. We should maybe set read timeouts more
-						// generally but that's a bigger task as some HTTP endpoints may
-						// stream large requests and responses (e.g. snapshot) so we can't
-						// set sensible blanket timeouts here.
-						conn.SetReadDeadline(time.Time{})
-					}
-					// Pass through to conn limit. This is OK because we didn't change
-					// state (i.e. Close conn).
-					connLimitFn(conn, state)
-				}
-
-				// This will enable upgrading connections to HTTP/2 as
-				// part of TLS negotiation.
-				err = http2.ConfigureServer(srv.Server, nil)
-				if err != nil {
+				if err := setupHTTPS(httpServer, connLimitFn, a.config.HTTPSHandshakeTimeout); err != nil {
 					return err
 				}
 			} else {
-				srv.Server.ConnState = connLimitFn
+				httpServer.ConnState = connLimitFn
 			}
 
-			ln = append(ln, l)
-			servers = append(servers, srv)
+			servers = append(servers, apiServer{
+				Protocol: proto,
+				Addr:     l.Addr(),
+				Shutdown: httpServer.Shutdown,
+				Run: func() error {
+					err := httpServer.Serve(l)
+					if err == nil || err == http.ErrServerClosed {
+						return nil
+					}
+					return fmt.Errorf("%s server %s failed: %w", proto, l.Addr(), err)
+				},
+			})
 		}
 		return nil
 	}
 
 	if err := start("http", a.config.HTTPAddrs); err != nil {
-		for _, l := range ln {
-			l.Close()
-		}
+		closeListeners(ln)
 		return nil, err
 	}
 	if err := start("https", a.config.HTTPSAddrs); err != nil {
-		for _, l := range ln {
-			l.Close()
-		}
+		closeListeners(ln)
 		return nil, err
 	}
 	return servers, nil
+}
+
+func closeListeners(lns []net.Listener) {
+	for _, l := range lns {
+		l.Close()
+	}
+}
+
+// setupHTTPS adds HTTP/2 support, ConnState, and a connection handshake timeout
+// to the http.Server.
+func setupHTTPS(server *http.Server, connState func(net.Conn, http.ConnState), timeout time.Duration) error {
+	// Enforce TLS handshake timeout
+	server.ConnState = func(conn net.Conn, state http.ConnState) {
+		switch state {
+		case http.StateNew:
+			// Set deadline to prevent slow send before TLS handshake or first
+			// byte of request.
+			conn.SetReadDeadline(time.Now().Add(timeout))
+		case http.StateActive:
+			// Clear read deadline. We should maybe set read timeouts more
+			// generally but that's a bigger task as some HTTP endpoints may
+			// stream large requests and responses (e.g. snapshot) so we can't
+			// set sensible blanket timeouts here.
+			conn.SetReadDeadline(time.Time{})
+		}
+		// Pass through to conn limit. This is OK because we didn't change
+		// state (i.e. Close conn).
+		connState(conn, state)
+	}
+
+	// This will enable upgrading connections to HTTP/2 as
+	// part of TLS negotiation.
+	return http2.ConfigureServer(server, nil)
 }
 
 // tcpKeepAliveListener sets TCP keep-alive timeouts on accepted
@@ -1228,43 +867,6 @@ func (a *Agent) listenSocket(path string) (net.Listener, error) {
 		return nil, fmt.Errorf("Failed setting up socket: %s", err)
 	}
 	return l, nil
-}
-
-func (a *Agent) serveHTTP(srv *HTTPServer) error {
-	// https://github.com/golang/go/issues/20239
-	//
-	// In go.8.1 there is a race between Serve and Shutdown. If
-	// Shutdown is called before the Serve go routine was scheduled then
-	// the Serve go routine never returns. This deadlocks the agent
-	// shutdown for some tests since it will wait forever.
-	notif := make(chan net.Addr)
-	a.wgServers.Add(1)
-	go func() {
-		defer a.wgServers.Done()
-		notif <- srv.ln.Addr()
-		err := srv.Serve(srv.ln)
-		if err != nil && err != http.ErrServerClosed {
-			a.logger.Error("error closing server", "error", err)
-		}
-	}()
-
-	select {
-	case addr := <-notif:
-		if srv.proto == "https" {
-			a.logger.Info("Started HTTPS server",
-				"address", addr.String(),
-				"network", addr.Network(),
-			)
-		} else {
-			a.logger.Info("Started HTTP server",
-				"address", addr.String(),
-				"network", addr.Network(),
-			)
-		}
-		return nil
-	case <-time.After(time.Second):
-		return fmt.Errorf("agent: timeout starting HTTP servers")
-	}
 }
 
 // stopAllWatches stops all the currently running watches
@@ -1310,44 +912,10 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 			}
 		}
 
-		// Parse the watches, excluding 'handler' and 'args'
-		wp, err := watch.ParseExempt(params, []string{"handler", "args"})
+		wp, err := makeWatchPlan(a.logger, params)
 		if err != nil {
-			return fmt.Errorf("Failed to parse watch (%#v): %v", params, err)
+			return err
 		}
-
-		// Get the handler and subprocess arguments
-		handler, hasHandler := wp.Exempt["handler"]
-		args, hasArgs := wp.Exempt["args"]
-		if hasHandler {
-			a.logger.Warn("The 'handler' field in watches has been deprecated " +
-				"and replaced with the 'args' field. See https://www.consul.io/docs/agent/watches.html")
-		}
-		if _, ok := handler.(string); hasHandler && !ok {
-			return fmt.Errorf("Watch handler must be a string")
-		}
-		if raw, ok := args.([]interface{}); hasArgs && ok {
-			var parsed []string
-			for _, arg := range raw {
-				v, ok := arg.(string)
-				if !ok {
-					return fmt.Errorf("Watch args must be a list of strings")
-				}
-
-				parsed = append(parsed, v)
-			}
-			wp.Exempt["args"] = parsed
-		} else if hasArgs && !ok {
-			return fmt.Errorf("Watch args must be a list of strings")
-		}
-		if hasHandler && hasArgs || hasHandler && wp.HandlerType == "http" || hasArgs && wp.HandlerType == "http" {
-			return fmt.Errorf("Only one watch handler allowed")
-		}
-		if !hasHandler && !hasArgs && wp.HandlerType != "http" {
-			return fmt.Errorf("Must define a watch handler")
-		}
-
-		// Store the watch plan
 		watchPlans = append(watchPlans, wp)
 	}
 
@@ -1369,7 +937,7 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 				httpConfig := wp.Exempt["http_handler_config"].(*watch.HttpHandlerConfig)
 				wp.Handler = makeHTTPWatchHandler(a.logger, httpConfig)
 			}
-			wp.LogOutput = a.LogOutput
+			wp.Logger = a.logger.Named("watch")
 
 			addr := config.Address
 			if config.Scheme == "https" {
@@ -1384,296 +952,259 @@ func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 	return nil
 }
 
-// consulConfig is used to return a consul configuration
-func (a *Agent) consulConfig() (*consul.Config, error) {
-	// Start with the provided config or default config
-	base := consul.DefaultConfig()
+// newConsulConfig translates a RuntimeConfig into a consul.Config.
+// TODO: move this function to a different file, maybe config.go
+func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*consul.Config, error) {
+	cfg := consul.DefaultConfig()
 
 	// This is set when the agent starts up
-	base.NodeID = a.config.NodeID
+	cfg.NodeID = runtimeCfg.NodeID
 
 	// Apply dev mode
-	base.DevMode = a.config.DevMode
+	cfg.DevMode = runtimeCfg.DevMode
 
-	// Override with our config
-	// todo(fs): these are now always set in the runtime config so we can simplify this
+	// Override with our runtimeCfg
+	// todo(fs): these are now always set in the runtime runtimeCfg so we can simplify this
 	// todo(fs): or is there a reason to keep it like that?
-	base.Datacenter = a.config.Datacenter
-	base.PrimaryDatacenter = a.config.PrimaryDatacenter
-	base.DataDir = a.config.DataDir
-	base.NodeName = a.config.NodeName
+	cfg.Datacenter = runtimeCfg.Datacenter
+	cfg.PrimaryDatacenter = runtimeCfg.PrimaryDatacenter
+	cfg.DataDir = runtimeCfg.DataDir
+	cfg.NodeName = runtimeCfg.NodeName
 
-	base.CoordinateUpdateBatchSize = a.config.ConsulCoordinateUpdateBatchSize
-	base.CoordinateUpdateMaxBatches = a.config.ConsulCoordinateUpdateMaxBatches
-	base.CoordinateUpdatePeriod = a.config.ConsulCoordinateUpdatePeriod
-	base.CheckOutputMaxSize = a.config.CheckOutputMaxSize
+	cfg.CoordinateUpdateBatchSize = runtimeCfg.ConsulCoordinateUpdateBatchSize
+	cfg.CoordinateUpdateMaxBatches = runtimeCfg.ConsulCoordinateUpdateMaxBatches
+	cfg.CoordinateUpdatePeriod = runtimeCfg.ConsulCoordinateUpdatePeriod
+	cfg.CheckOutputMaxSize = runtimeCfg.CheckOutputMaxSize
 
-	base.RaftConfig.HeartbeatTimeout = a.config.ConsulRaftHeartbeatTimeout
-	base.RaftConfig.LeaderLeaseTimeout = a.config.ConsulRaftLeaderLeaseTimeout
-	base.RaftConfig.ElectionTimeout = a.config.ConsulRaftElectionTimeout
+	cfg.RaftConfig.HeartbeatTimeout = runtimeCfg.ConsulRaftHeartbeatTimeout
+	cfg.RaftConfig.LeaderLeaseTimeout = runtimeCfg.ConsulRaftLeaderLeaseTimeout
+	cfg.RaftConfig.ElectionTimeout = runtimeCfg.ConsulRaftElectionTimeout
 
-	base.SerfLANConfig.MemberlistConfig.BindAddr = a.config.SerfBindAddrLAN.IP.String()
-	base.SerfLANConfig.MemberlistConfig.BindPort = a.config.SerfBindAddrLAN.Port
-	base.SerfLANConfig.MemberlistConfig.CIDRsAllowed = a.config.SerfAllowedCIDRsLAN
-	base.SerfWANConfig.MemberlistConfig.CIDRsAllowed = a.config.SerfAllowedCIDRsWAN
-	base.SerfLANConfig.MemberlistConfig.AdvertiseAddr = a.config.SerfAdvertiseAddrLAN.IP.String()
-	base.SerfLANConfig.MemberlistConfig.AdvertisePort = a.config.SerfAdvertiseAddrLAN.Port
-	base.SerfLANConfig.MemberlistConfig.GossipVerifyIncoming = a.config.EncryptVerifyIncoming
-	base.SerfLANConfig.MemberlistConfig.GossipVerifyOutgoing = a.config.EncryptVerifyOutgoing
-	base.SerfLANConfig.MemberlistConfig.GossipInterval = a.config.GossipLANGossipInterval
-	base.SerfLANConfig.MemberlistConfig.GossipNodes = a.config.GossipLANGossipNodes
-	base.SerfLANConfig.MemberlistConfig.ProbeInterval = a.config.GossipLANProbeInterval
-	base.SerfLANConfig.MemberlistConfig.ProbeTimeout = a.config.GossipLANProbeTimeout
-	base.SerfLANConfig.MemberlistConfig.SuspicionMult = a.config.GossipLANSuspicionMult
-	base.SerfLANConfig.MemberlistConfig.RetransmitMult = a.config.GossipLANRetransmitMult
-	if a.config.ReconnectTimeoutLAN != 0 {
-		base.SerfLANConfig.ReconnectTimeout = a.config.ReconnectTimeoutLAN
+	cfg.SerfLANConfig.MemberlistConfig.BindAddr = runtimeCfg.SerfBindAddrLAN.IP.String()
+	cfg.SerfLANConfig.MemberlistConfig.BindPort = runtimeCfg.SerfBindAddrLAN.Port
+	cfg.SerfLANConfig.MemberlistConfig.CIDRsAllowed = runtimeCfg.SerfAllowedCIDRsLAN
+	cfg.SerfWANConfig.MemberlistConfig.CIDRsAllowed = runtimeCfg.SerfAllowedCIDRsWAN
+	cfg.SerfLANConfig.MemberlistConfig.AdvertiseAddr = runtimeCfg.SerfAdvertiseAddrLAN.IP.String()
+	cfg.SerfLANConfig.MemberlistConfig.AdvertisePort = runtimeCfg.SerfAdvertiseAddrLAN.Port
+	cfg.SerfLANConfig.MemberlistConfig.GossipVerifyIncoming = runtimeCfg.EncryptVerifyIncoming
+	cfg.SerfLANConfig.MemberlistConfig.GossipVerifyOutgoing = runtimeCfg.EncryptVerifyOutgoing
+	cfg.SerfLANConfig.MemberlistConfig.GossipInterval = runtimeCfg.GossipLANGossipInterval
+	cfg.SerfLANConfig.MemberlistConfig.GossipNodes = runtimeCfg.GossipLANGossipNodes
+	cfg.SerfLANConfig.MemberlistConfig.ProbeInterval = runtimeCfg.GossipLANProbeInterval
+	cfg.SerfLANConfig.MemberlistConfig.ProbeTimeout = runtimeCfg.GossipLANProbeTimeout
+	cfg.SerfLANConfig.MemberlistConfig.SuspicionMult = runtimeCfg.GossipLANSuspicionMult
+	cfg.SerfLANConfig.MemberlistConfig.RetransmitMult = runtimeCfg.GossipLANRetransmitMult
+	if runtimeCfg.ReconnectTimeoutLAN != 0 {
+		cfg.SerfLANConfig.ReconnectTimeout = runtimeCfg.ReconnectTimeoutLAN
 	}
 
-	if a.config.SerfBindAddrWAN != nil {
-		base.SerfWANConfig.MemberlistConfig.BindAddr = a.config.SerfBindAddrWAN.IP.String()
-		base.SerfWANConfig.MemberlistConfig.BindPort = a.config.SerfBindAddrWAN.Port
-		base.SerfWANConfig.MemberlistConfig.AdvertiseAddr = a.config.SerfAdvertiseAddrWAN.IP.String()
-		base.SerfWANConfig.MemberlistConfig.AdvertisePort = a.config.SerfAdvertiseAddrWAN.Port
-		base.SerfWANConfig.MemberlistConfig.GossipVerifyIncoming = a.config.EncryptVerifyIncoming
-		base.SerfWANConfig.MemberlistConfig.GossipVerifyOutgoing = a.config.EncryptVerifyOutgoing
-		base.SerfWANConfig.MemberlistConfig.GossipInterval = a.config.GossipWANGossipInterval
-		base.SerfWANConfig.MemberlistConfig.GossipNodes = a.config.GossipWANGossipNodes
-		base.SerfWANConfig.MemberlistConfig.ProbeInterval = a.config.GossipWANProbeInterval
-		base.SerfWANConfig.MemberlistConfig.ProbeTimeout = a.config.GossipWANProbeTimeout
-		base.SerfWANConfig.MemberlistConfig.SuspicionMult = a.config.GossipWANSuspicionMult
-		base.SerfWANConfig.MemberlistConfig.RetransmitMult = a.config.GossipWANRetransmitMult
-		if a.config.ReconnectTimeoutWAN != 0 {
-			base.SerfWANConfig.ReconnectTimeout = a.config.ReconnectTimeoutWAN
+	if runtimeCfg.SerfBindAddrWAN != nil {
+		cfg.SerfWANConfig.MemberlistConfig.BindAddr = runtimeCfg.SerfBindAddrWAN.IP.String()
+		cfg.SerfWANConfig.MemberlistConfig.BindPort = runtimeCfg.SerfBindAddrWAN.Port
+		cfg.SerfWANConfig.MemberlistConfig.AdvertiseAddr = runtimeCfg.SerfAdvertiseAddrWAN.IP.String()
+		cfg.SerfWANConfig.MemberlistConfig.AdvertisePort = runtimeCfg.SerfAdvertiseAddrWAN.Port
+		cfg.SerfWANConfig.MemberlistConfig.GossipVerifyIncoming = runtimeCfg.EncryptVerifyIncoming
+		cfg.SerfWANConfig.MemberlistConfig.GossipVerifyOutgoing = runtimeCfg.EncryptVerifyOutgoing
+		cfg.SerfWANConfig.MemberlistConfig.GossipInterval = runtimeCfg.GossipWANGossipInterval
+		cfg.SerfWANConfig.MemberlistConfig.GossipNodes = runtimeCfg.GossipWANGossipNodes
+		cfg.SerfWANConfig.MemberlistConfig.ProbeInterval = runtimeCfg.GossipWANProbeInterval
+		cfg.SerfWANConfig.MemberlistConfig.ProbeTimeout = runtimeCfg.GossipWANProbeTimeout
+		cfg.SerfWANConfig.MemberlistConfig.SuspicionMult = runtimeCfg.GossipWANSuspicionMult
+		cfg.SerfWANConfig.MemberlistConfig.RetransmitMult = runtimeCfg.GossipWANRetransmitMult
+		if runtimeCfg.ReconnectTimeoutWAN != 0 {
+			cfg.SerfWANConfig.ReconnectTimeout = runtimeCfg.ReconnectTimeoutWAN
 		}
 	} else {
 		// Disable serf WAN federation
-		base.SerfWANConfig = nil
+		cfg.SerfWANConfig = nil
 	}
 
-	base.RPCAddr = a.config.RPCBindAddr
-	base.RPCAdvertise = a.config.RPCAdvertiseAddr
+	cfg.RPCAddr = runtimeCfg.RPCBindAddr
+	cfg.RPCAdvertise = runtimeCfg.RPCAdvertiseAddr
 
-	base.Segment = a.config.SegmentName
-	if len(a.config.Segments) > 0 {
-		segments, err := a.segmentConfig()
+	cfg.Segment = runtimeCfg.SegmentName
+	if len(runtimeCfg.Segments) > 0 {
+		segments, err := segmentConfig(runtimeCfg)
 		if err != nil {
 			return nil, err
 		}
-		base.Segments = segments
+		cfg.Segments = segments
 	}
-	if a.config.Bootstrap {
-		base.Bootstrap = true
+	if runtimeCfg.Bootstrap {
+		cfg.Bootstrap = true
 	}
-	if a.config.CheckOutputMaxSize > 0 {
-		base.CheckOutputMaxSize = a.config.CheckOutputMaxSize
+	if runtimeCfg.CheckOutputMaxSize > 0 {
+		cfg.CheckOutputMaxSize = runtimeCfg.CheckOutputMaxSize
 	}
-	if a.config.RejoinAfterLeave {
-		base.RejoinAfterLeave = true
+	if runtimeCfg.RejoinAfterLeave {
+		cfg.RejoinAfterLeave = true
 	}
-	if a.config.BootstrapExpect != 0 {
-		base.BootstrapExpect = a.config.BootstrapExpect
+	if runtimeCfg.BootstrapExpect != 0 {
+		cfg.BootstrapExpect = runtimeCfg.BootstrapExpect
 	}
-	if a.config.RPCProtocol > 0 {
-		base.ProtocolVersion = uint8(a.config.RPCProtocol)
+	if runtimeCfg.RPCProtocol > 0 {
+		cfg.ProtocolVersion = uint8(runtimeCfg.RPCProtocol)
 	}
-	if a.config.RaftProtocol != 0 {
-		base.RaftConfig.ProtocolVersion = raft.ProtocolVersion(a.config.RaftProtocol)
+	if runtimeCfg.RaftProtocol != 0 {
+		cfg.RaftConfig.ProtocolVersion = raft.ProtocolVersion(runtimeCfg.RaftProtocol)
 	}
-	if a.config.RaftSnapshotThreshold != 0 {
-		base.RaftConfig.SnapshotThreshold = uint64(a.config.RaftSnapshotThreshold)
+	if runtimeCfg.RaftSnapshotThreshold != 0 {
+		cfg.RaftConfig.SnapshotThreshold = uint64(runtimeCfg.RaftSnapshotThreshold)
 	}
-	if a.config.RaftSnapshotInterval != 0 {
-		base.RaftConfig.SnapshotInterval = a.config.RaftSnapshotInterval
+	if runtimeCfg.RaftSnapshotInterval != 0 {
+		cfg.RaftConfig.SnapshotInterval = runtimeCfg.RaftSnapshotInterval
 	}
-	if a.config.RaftTrailingLogs != 0 {
-		base.RaftConfig.TrailingLogs = uint64(a.config.RaftTrailingLogs)
+	if runtimeCfg.RaftTrailingLogs != 0 {
+		cfg.RaftConfig.TrailingLogs = uint64(runtimeCfg.RaftTrailingLogs)
 	}
-	if a.config.ACLMasterToken != "" {
-		base.ACLMasterToken = a.config.ACLMasterToken
+	if runtimeCfg.ACLMasterToken != "" {
+		cfg.ACLMasterToken = runtimeCfg.ACLMasterToken
 	}
-	if a.config.ACLDatacenter != "" {
-		base.ACLDatacenter = a.config.ACLDatacenter
+	if runtimeCfg.ACLDatacenter != "" {
+		cfg.ACLDatacenter = runtimeCfg.ACLDatacenter
 	}
-	if a.config.ACLTokenTTL != 0 {
-		base.ACLTokenTTL = a.config.ACLTokenTTL
+	if runtimeCfg.ACLTokenTTL != 0 {
+		cfg.ACLTokenTTL = runtimeCfg.ACLTokenTTL
 	}
-	if a.config.ACLPolicyTTL != 0 {
-		base.ACLPolicyTTL = a.config.ACLPolicyTTL
+	if runtimeCfg.ACLPolicyTTL != 0 {
+		cfg.ACLPolicyTTL = runtimeCfg.ACLPolicyTTL
 	}
-	if a.config.ACLRoleTTL != 0 {
-		base.ACLRoleTTL = a.config.ACLRoleTTL
+	if runtimeCfg.ACLRoleTTL != 0 {
+		cfg.ACLRoleTTL = runtimeCfg.ACLRoleTTL
 	}
-	if a.config.ACLDefaultPolicy != "" {
-		base.ACLDefaultPolicy = a.config.ACLDefaultPolicy
+	if runtimeCfg.ACLDefaultPolicy != "" {
+		cfg.ACLDefaultPolicy = runtimeCfg.ACLDefaultPolicy
 	}
-	if a.config.ACLDownPolicy != "" {
-		base.ACLDownPolicy = a.config.ACLDownPolicy
+	if runtimeCfg.ACLDownPolicy != "" {
+		cfg.ACLDownPolicy = runtimeCfg.ACLDownPolicy
 	}
-	base.ACLTokenReplication = a.config.ACLTokenReplication
-	base.ACLsEnabled = a.config.ACLsEnabled
-	if a.config.ACLEnableKeyListPolicy {
-		base.ACLEnableKeyListPolicy = a.config.ACLEnableKeyListPolicy
+	cfg.ACLTokenReplication = runtimeCfg.ACLTokenReplication
+	cfg.ACLsEnabled = runtimeCfg.ACLsEnabled
+	if runtimeCfg.ACLEnableKeyListPolicy {
+		cfg.ACLEnableKeyListPolicy = runtimeCfg.ACLEnableKeyListPolicy
 	}
-	if a.config.SessionTTLMin != 0 {
-		base.SessionTTLMin = a.config.SessionTTLMin
+	if runtimeCfg.SessionTTLMin != 0 {
+		cfg.SessionTTLMin = runtimeCfg.SessionTTLMin
 	}
-	if a.config.NonVotingServer {
-		base.NonVoter = a.config.NonVotingServer
+	if runtimeCfg.NonVotingServer {
+		cfg.NonVoter = runtimeCfg.NonVotingServer
 	}
 
 	// These are fully specified in the agent defaults, so we can simply
 	// copy them over.
-	base.AutopilotConfig.CleanupDeadServers = a.config.AutopilotCleanupDeadServers
-	base.AutopilotConfig.LastContactThreshold = a.config.AutopilotLastContactThreshold
-	base.AutopilotConfig.MaxTrailingLogs = uint64(a.config.AutopilotMaxTrailingLogs)
-	base.AutopilotConfig.MinQuorum = a.config.AutopilotMinQuorum
-	base.AutopilotConfig.ServerStabilizationTime = a.config.AutopilotServerStabilizationTime
-	base.AutopilotConfig.RedundancyZoneTag = a.config.AutopilotRedundancyZoneTag
-	base.AutopilotConfig.DisableUpgradeMigration = a.config.AutopilotDisableUpgradeMigration
-	base.AutopilotConfig.UpgradeVersionTag = a.config.AutopilotUpgradeVersionTag
+	cfg.AutopilotConfig.CleanupDeadServers = runtimeCfg.AutopilotCleanupDeadServers
+	cfg.AutopilotConfig.LastContactThreshold = runtimeCfg.AutopilotLastContactThreshold
+	cfg.AutopilotConfig.MaxTrailingLogs = uint64(runtimeCfg.AutopilotMaxTrailingLogs)
+	cfg.AutopilotConfig.MinQuorum = runtimeCfg.AutopilotMinQuorum
+	cfg.AutopilotConfig.ServerStabilizationTime = runtimeCfg.AutopilotServerStabilizationTime
+	cfg.AutopilotConfig.RedundancyZoneTag = runtimeCfg.AutopilotRedundancyZoneTag
+	cfg.AutopilotConfig.DisableUpgradeMigration = runtimeCfg.AutopilotDisableUpgradeMigration
+	cfg.AutopilotConfig.UpgradeVersionTag = runtimeCfg.AutopilotUpgradeVersionTag
 
 	// make sure the advertise address is always set
-	if base.RPCAdvertise == nil {
-		base.RPCAdvertise = base.RPCAddr
+	if cfg.RPCAdvertise == nil {
+		cfg.RPCAdvertise = cfg.RPCAddr
 	}
 
 	// Rate limiting for RPC calls.
-	if a.config.RPCRateLimit > 0 {
-		base.RPCRate = a.config.RPCRateLimit
+	if runtimeCfg.RPCRateLimit > 0 {
+		cfg.RPCRate = runtimeCfg.RPCRateLimit
 	}
-	if a.config.RPCMaxBurst > 0 {
-		base.RPCMaxBurst = a.config.RPCMaxBurst
+	if runtimeCfg.RPCMaxBurst > 0 {
+		cfg.RPCMaxBurst = runtimeCfg.RPCMaxBurst
 	}
 
 	// RPC timeouts/limits.
-	if a.config.RPCHandshakeTimeout > 0 {
-		base.RPCHandshakeTimeout = a.config.RPCHandshakeTimeout
+	if runtimeCfg.RPCHandshakeTimeout > 0 {
+		cfg.RPCHandshakeTimeout = runtimeCfg.RPCHandshakeTimeout
 	}
-	if a.config.RPCMaxConnsPerClient > 0 {
-		base.RPCMaxConnsPerClient = a.config.RPCMaxConnsPerClient
+	if runtimeCfg.RPCMaxConnsPerClient > 0 {
+		cfg.RPCMaxConnsPerClient = runtimeCfg.RPCMaxConnsPerClient
 	}
 
 	// RPC-related performance configs. We allow explicit zero value to disable so
 	// copy it whatever the value.
-	base.RPCHoldTimeout = a.config.RPCHoldTimeout
+	cfg.RPCHoldTimeout = runtimeCfg.RPCHoldTimeout
 
-	if a.config.LeaveDrainTime > 0 {
-		base.LeaveDrainTime = a.config.LeaveDrainTime
+	if runtimeCfg.LeaveDrainTime > 0 {
+		cfg.LeaveDrainTime = runtimeCfg.LeaveDrainTime
 	}
 
 	// set the src address for outgoing rpc connections
 	// Use port 0 so that outgoing connections use a random port.
-	if !ipaddr.IsAny(base.RPCAddr.IP) {
-		base.RPCSrcAddr = &net.TCPAddr{IP: base.RPCAddr.IP}
+	if !ipaddr.IsAny(cfg.RPCAddr.IP) {
+		cfg.RPCSrcAddr = &net.TCPAddr{IP: cfg.RPCAddr.IP}
 	}
 
 	// Format the build string
-	revision := a.config.Revision
+	revision := runtimeCfg.Revision
 	if len(revision) > 8 {
 		revision = revision[:8]
 	}
-	base.Build = fmt.Sprintf("%s%s:%s", a.config.Version, a.config.VersionPrerelease, revision)
+	cfg.Build = fmt.Sprintf("%s%s:%s", runtimeCfg.Version, runtimeCfg.VersionPrerelease, revision)
 
 	// Copy the TLS configuration
-	base.VerifyIncoming = a.config.VerifyIncoming || a.config.VerifyIncomingRPC
-	if a.config.CAPath != "" || a.config.CAFile != "" {
-		base.UseTLS = true
+	cfg.VerifyIncoming = runtimeCfg.VerifyIncoming || runtimeCfg.VerifyIncomingRPC
+	if runtimeCfg.CAPath != "" || runtimeCfg.CAFile != "" {
+		cfg.UseTLS = true
 	}
-	base.VerifyOutgoing = a.config.VerifyOutgoing
-	base.VerifyServerHostname = a.config.VerifyServerHostname
-	base.CAFile = a.config.CAFile
-	base.CAPath = a.config.CAPath
-	base.CertFile = a.config.CertFile
-	base.KeyFile = a.config.KeyFile
-	base.ServerName = a.config.ServerName
-	base.Domain = a.config.DNSDomain
-	base.TLSMinVersion = a.config.TLSMinVersion
-	base.TLSCipherSuites = a.config.TLSCipherSuites
-	base.TLSPreferServerCipherSuites = a.config.TLSPreferServerCipherSuites
-	base.DefaultQueryTime = a.config.DefaultQueryTime
-	base.MaxQueryTime = a.config.MaxQueryTime
+	cfg.VerifyOutgoing = runtimeCfg.VerifyOutgoing
+	cfg.VerifyServerHostname = runtimeCfg.VerifyServerHostname
+	cfg.CAFile = runtimeCfg.CAFile
+	cfg.CAPath = runtimeCfg.CAPath
+	cfg.CertFile = runtimeCfg.CertFile
+	cfg.KeyFile = runtimeCfg.KeyFile
+	cfg.ServerName = runtimeCfg.ServerName
+	cfg.Domain = runtimeCfg.DNSDomain
+	cfg.TLSMinVersion = runtimeCfg.TLSMinVersion
+	cfg.TLSCipherSuites = runtimeCfg.TLSCipherSuites
+	cfg.TLSPreferServerCipherSuites = runtimeCfg.TLSPreferServerCipherSuites
+	cfg.DefaultQueryTime = runtimeCfg.DefaultQueryTime
+	cfg.MaxQueryTime = runtimeCfg.MaxQueryTime
 
-	base.AutoEncryptAllowTLS = a.config.AutoEncryptAllowTLS
+	cfg.AutoEncryptAllowTLS = runtimeCfg.AutoEncryptAllowTLS
 
-	// Copy the Connect CA bootstrap config
-	if a.config.ConnectEnabled {
-		base.ConnectEnabled = true
-		base.ConnectMeshGatewayWANFederationEnabled = a.config.ConnectMeshGatewayWANFederationEnabled
+	// Copy the Connect CA bootstrap runtimeCfg
+	if runtimeCfg.ConnectEnabled {
+		cfg.ConnectEnabled = true
+		cfg.ConnectMeshGatewayWANFederationEnabled = runtimeCfg.ConnectMeshGatewayWANFederationEnabled
 
-		// Allow config to specify cluster_id provided it's a valid UUID. This is
-		// meant only for tests where a deterministic ID makes fixtures much simpler
-		// to work with but since it's only read on initial cluster bootstrap it's not
-		// that much of a liability in production. The worst a user could do is
-		// configure logically separate clusters with same ID by mistake but we can
-		// avoid documenting this is even an option.
-		if clusterID, ok := a.config.ConnectCAConfig["cluster_id"]; ok {
-			if cIDStr, ok := clusterID.(string); ok {
-				if _, err := uuid.ParseUUID(cIDStr); err == nil {
-					// Valid UUID configured, use that
-					base.CAConfig.ClusterID = cIDStr
-				}
-			}
-			if base.CAConfig.ClusterID == "" {
-				// If the tried to specify an ID but typoed it don't ignore as they will
-				// then bootstrap with a new ID and have to throw away the whole cluster
-				// and start again.
-				a.logger.Error("connect CA config cluster_id specified but " +
-					"is not a valid UUID, aborting startup")
-				return nil, fmt.Errorf("cluster_id was supplied but was not a valid UUID")
-			}
+		ca, err := runtimeCfg.ConnectCAConfiguration()
+		if err != nil {
+			return nil, err
 		}
 
-		if a.config.ConnectCAProvider != "" {
-			base.CAConfig.Provider = a.config.ConnectCAProvider
-		}
-
-		// Merge connect CA Config regardless of provider (since there are some
-		// common config options valid to all like leaf TTL).
-		for k, v := range a.config.ConnectCAConfig {
-			base.CAConfig.Config[k] = v
-		}
+		cfg.CAConfig = ca
 	}
 
-	// copy over auto config settings
-	base.AutoConfigEnabled = a.config.AutoConfig.Enabled
-	base.AutoConfigIntroToken = a.config.AutoConfig.IntroToken
-	base.AutoConfigIntroTokenFile = a.config.AutoConfig.IntroTokenFile
-	base.AutoConfigServerAddresses = a.config.AutoConfig.ServerAddresses
-	base.AutoConfigDNSSANs = a.config.AutoConfig.DNSSANs
-	base.AutoConfigIPSANs = a.config.AutoConfig.IPSANs
-	base.AutoConfigAuthzEnabled = a.config.AutoConfig.Authorizer.Enabled
-	base.AutoConfigAuthzAuthMethod = a.config.AutoConfig.Authorizer.AuthMethod
-	base.AutoConfigAuthzClaimAssertions = a.config.AutoConfig.Authorizer.ClaimAssertions
-	base.AutoConfigAuthzAllowReuse = a.config.AutoConfig.Authorizer.AllowReuse
-
-	// Setup the user event callback
-	base.UserEventHandler = func(e serf.UserEvent) {
-		select {
-		case a.eventCh <- e:
-		case <-a.shutdownCh:
-		}
-	}
-
-	// Setup the loggers
-	base.LogLevel = a.config.LogLevel
-	base.LogOutput = a.LogOutput
+	// copy over auto runtimeCfg settings
+	cfg.AutoConfigEnabled = runtimeCfg.AutoConfig.Enabled
+	cfg.AutoConfigIntroToken = runtimeCfg.AutoConfig.IntroToken
+	cfg.AutoConfigIntroTokenFile = runtimeCfg.AutoConfig.IntroTokenFile
+	cfg.AutoConfigServerAddresses = runtimeCfg.AutoConfig.ServerAddresses
+	cfg.AutoConfigDNSSANs = runtimeCfg.AutoConfig.DNSSANs
+	cfg.AutoConfigIPSANs = runtimeCfg.AutoConfig.IPSANs
+	cfg.AutoConfigAuthzEnabled = runtimeCfg.AutoConfig.Authorizer.Enabled
+	cfg.AutoConfigAuthzAuthMethod = runtimeCfg.AutoConfig.Authorizer.AuthMethod
+	cfg.AutoConfigAuthzClaimAssertions = runtimeCfg.AutoConfig.Authorizer.ClaimAssertions
+	cfg.AutoConfigAuthzAllowReuse = runtimeCfg.AutoConfig.Authorizer.AllowReuse
 
 	// This will set up the LAN keyring, as well as the WAN and any segments
 	// for servers.
-	if err := a.setupKeyrings(base); err != nil {
+	// TODO: move this closer to where the keyrings will be used.
+	if err := setupKeyrings(cfg, runtimeCfg, logger); err != nil {
 		return nil, fmt.Errorf("Failed to configure keyring: %v", err)
 	}
 
-	base.ConfigEntryBootstrap = a.config.ConfigEntryBootstrap
+	cfg.ConfigEntryBootstrap = runtimeCfg.ConfigEntryBootstrap
 
-	return a.enterpriseConsulConfig(base)
+	enterpriseConsulConfig(cfg, runtimeCfg)
+	return cfg, nil
 }
 
 // Setup the serf and memberlist config for any defined network segments.
-func (a *Agent) segmentConfig() ([]consul.NetworkSegment, error) {
+func segmentConfig(config *config.RuntimeConfig) ([]consul.NetworkSegment, error) {
 	var segments []consul.NetworkSegment
-	config := a.config
 
 	for _, s := range config.Segments {
 		serfConf := consul.DefaultConfig().SerfLANConfig
@@ -1697,7 +1228,7 @@ func (a *Agent) segmentConfig() ([]consul.NetworkSegment, error) {
 		if s.RPCListener {
 			rpcAddr = &net.TCPAddr{
 				IP:   s.Bind.IP,
-				Port: a.config.ServerPort,
+				Port: config.ServerPort,
 			}
 		}
 
@@ -1712,236 +1243,6 @@ func (a *Agent) segmentConfig() ([]consul.NetworkSegment, error) {
 	}
 
 	return segments, nil
-}
-
-// makeRandomID will generate a random UUID for a node.
-func (a *Agent) makeRandomID() (string, error) {
-	id, err := uuid.GenerateUUID()
-	if err != nil {
-		return "", err
-	}
-
-	a.logger.Debug("Using random ID as node ID", "id", id)
-	return id, nil
-}
-
-// makeNodeID will try to find a host-specific ID, or else will generate a
-// random ID. The returned ID will always be formatted as a GUID. We don't tell
-// the caller whether this ID is random or stable since the consequences are
-// high for us if this changes, so we will persist it either way. This will let
-// gopsutil change implementations without affecting in-place upgrades of nodes.
-func (a *Agent) makeNodeID() (string, error) {
-	// If they've disabled host-based IDs then just make a random one.
-	if a.config.DisableHostNodeID {
-		return a.makeRandomID()
-	}
-
-	// Try to get a stable ID associated with the host itself.
-	info, err := host.Info()
-	if err != nil {
-		a.logger.Debug("Couldn't get a unique ID from the host", "error", err)
-		return a.makeRandomID()
-	}
-
-	// Make sure the host ID parses as a UUID, since we don't have complete
-	// control over this process.
-	id := strings.ToLower(info.HostID)
-	if _, err := uuid.ParseUUID(id); err != nil {
-		a.logger.Debug("Unique ID from host isn't formatted as a UUID",
-			"id", id,
-			"error", err,
-		)
-		return a.makeRandomID()
-	}
-
-	// Hash the input to make it well distributed. The reported Host UUID may be
-	// similar across nodes if they are on a cloud provider or on motherboards
-	// created from the same batch.
-	buf := sha512.Sum512([]byte(id))
-	id = fmt.Sprintf("%08x-%04x-%04x-%04x-%12x",
-		buf[0:4],
-		buf[4:6],
-		buf[6:8],
-		buf[8:10],
-		buf[10:16])
-
-	a.logger.Debug("Using unique ID from host as node ID", "id", id)
-	return id, nil
-}
-
-// setupNodeID will pull the persisted node ID, if any, or create a random one
-// and persist it.
-func (a *Agent) setupNodeID(config *config.RuntimeConfig) error {
-	// If they've configured a node ID manually then just use that, as
-	// long as it's valid.
-	if config.NodeID != "" {
-		config.NodeID = types.NodeID(strings.ToLower(string(config.NodeID)))
-		if _, err := uuid.ParseUUID(string(config.NodeID)); err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	// For dev mode we have no filesystem access so just make one.
-	if a.config.DataDir == "" {
-		id, err := a.makeNodeID()
-		if err != nil {
-			return err
-		}
-
-		config.NodeID = types.NodeID(id)
-		return nil
-	}
-
-	// Load saved state, if any. Since a user could edit this, we also
-	// validate it.
-	fileID := filepath.Join(config.DataDir, "node-id")
-	if _, err := os.Stat(fileID); err == nil {
-		rawID, err := ioutil.ReadFile(fileID)
-		if err != nil {
-			return err
-		}
-
-		nodeID := strings.TrimSpace(string(rawID))
-		nodeID = strings.ToLower(nodeID)
-		if _, err := uuid.ParseUUID(nodeID); err != nil {
-			return err
-		}
-
-		config.NodeID = types.NodeID(nodeID)
-	}
-
-	// If we still don't have a valid node ID, make one.
-	if config.NodeID == "" {
-		id, err := a.makeNodeID()
-		if err != nil {
-			return err
-		}
-		if err := lib.EnsurePath(fileID, false); err != nil {
-			return err
-		}
-		if err := ioutil.WriteFile(fileID, []byte(id), 0600); err != nil {
-			return err
-		}
-
-		config.NodeID = types.NodeID(id)
-	}
-	return nil
-}
-
-// setupBaseKeyrings configures the LAN and WAN keyrings.
-func (a *Agent) setupBaseKeyrings(config *consul.Config) error {
-	// If the keyring file is disabled then just poke the provided key
-	// into the in-memory keyring.
-	federationEnabled := config.SerfWANConfig != nil
-	if a.config.DisableKeyringFile {
-		if a.config.EncryptKey == "" {
-			return nil
-		}
-
-		keys := []string{a.config.EncryptKey}
-		if err := loadKeyring(config.SerfLANConfig, keys); err != nil {
-			return err
-		}
-		if a.config.ServerMode && federationEnabled {
-			if err := loadKeyring(config.SerfWANConfig, keys); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-
-	// Otherwise, we need to deal with the keyring files.
-	fileLAN := filepath.Join(a.config.DataDir, SerfLANKeyring)
-	fileWAN := filepath.Join(a.config.DataDir, SerfWANKeyring)
-
-	var existingLANKeyring, existingWANKeyring bool
-	if a.config.EncryptKey == "" {
-		goto LOAD
-	}
-	if _, err := os.Stat(fileLAN); err != nil {
-		if err := initKeyring(fileLAN, a.config.EncryptKey); err != nil {
-			return err
-		}
-	} else {
-		existingLANKeyring = true
-	}
-	if a.config.ServerMode && federationEnabled {
-		if _, err := os.Stat(fileWAN); err != nil {
-			if err := initKeyring(fileWAN, a.config.EncryptKey); err != nil {
-				return err
-			}
-		} else {
-			existingWANKeyring = true
-		}
-	}
-
-LOAD:
-	if _, err := os.Stat(fileLAN); err == nil {
-		config.SerfLANConfig.KeyringFile = fileLAN
-	}
-	if err := loadKeyringFile(config.SerfLANConfig); err != nil {
-		return err
-	}
-	if a.config.ServerMode && federationEnabled {
-		if _, err := os.Stat(fileWAN); err == nil {
-			config.SerfWANConfig.KeyringFile = fileWAN
-		}
-		if err := loadKeyringFile(config.SerfWANConfig); err != nil {
-			return err
-		}
-	}
-
-	// Only perform the following checks if there was an encrypt_key
-	// provided in the configuration.
-	if a.config.EncryptKey != "" {
-		msg := " keyring doesn't include key provided with -encrypt, using keyring"
-		if existingLANKeyring &&
-			keyringIsMissingKey(
-				config.SerfLANConfig.MemberlistConfig.Keyring,
-				a.config.EncryptKey,
-			) {
-			a.logger.Warn(msg, "keyring", "LAN")
-		}
-		if existingWANKeyring &&
-			keyringIsMissingKey(
-				config.SerfWANConfig.MemberlistConfig.Keyring,
-				a.config.EncryptKey,
-			) {
-			a.logger.Warn(msg, "keyring", "WAN")
-		}
-	}
-
-	return nil
-}
-
-// setupKeyrings is used to initialize and load keyrings during agent startup.
-func (a *Agent) setupKeyrings(config *consul.Config) error {
-	// First set up the LAN and WAN keyrings.
-	if err := a.setupBaseKeyrings(config); err != nil {
-		return err
-	}
-
-	// If there's no LAN keyring then there's nothing else to set up for
-	// any segments.
-	lanKeyring := config.SerfLANConfig.MemberlistConfig.Keyring
-	if lanKeyring == nil {
-		return nil
-	}
-
-	// Copy the initial state of the LAN keyring into each segment config.
-	// Segments don't have their own keyring file, they rely on the LAN
-	// holding the state so things can't get out of sync.
-	k, pk := lanKeyring.GetKeys(), lanKeyring.GetPrimaryKey()
-	for _, segment := range config.Segments {
-		keyring, err := memberlist.NewKeyring(k, pk)
-		if err != nil {
-			return err
-		}
-		segment.SerfConfig.MemberlistConfig.Keyring = keyring
-	}
-	return nil
 }
 
 // registerEndpoint registers a handler for the consul RPC server
@@ -1993,6 +1294,10 @@ func (a *Agent) ShutdownAgent() error {
 	a.logger.Info("Requesting shutdown")
 	// Stop the watches to avoid any notification/state change during shutdown
 	a.stopAllWatches()
+
+	// this would be cancelled anyways (by the closing of the shutdown ch) but
+	// this should help them to be stopped more quickly
+	a.baseDeps.AutoConfig.Stop()
 
 	// Stop the service manager (must happen before we take the stateLock to avoid deadlock)
 	if a.serviceManager != nil {
@@ -2062,13 +1367,12 @@ func (a *Agent) ShutdownAgent() error {
 
 // ShutdownEndpoints terminates the HTTP and DNS servers. Should be
 // preceded by ShutdownAgent.
+// TODO: remove this method, move to ShutdownAgent
 func (a *Agent) ShutdownEndpoints() {
 	a.shutdownLock.Lock()
 	defer a.shutdownLock.Unlock()
 
-	if len(a.dnsServers) == 0 && len(a.httpServers) == 0 {
-		return
-	}
+	ctx := context.TODO()
 
 	for _, srv := range a.dnsServers {
 		if srv.Server != nil {
@@ -2082,27 +1386,11 @@ func (a *Agent) ShutdownEndpoints() {
 	}
 	a.dnsServers = nil
 
-	for _, srv := range a.httpServers {
-		a.logger.Info("Stopping server",
-			"protocol", strings.ToUpper(srv.proto),
-			"address", srv.ln.Addr().String(),
-			"network", srv.ln.Addr().Network(),
-		)
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-		defer cancel()
-		srv.Shutdown(ctx)
-		if ctx.Err() == context.DeadlineExceeded {
-			a.logger.Warn("Timeout stopping server",
-				"protocol", strings.ToUpper(srv.proto),
-				"address", srv.ln.Addr().String(),
-				"network", srv.ln.Addr().Network(),
-			)
-		}
-	}
-	a.httpServers = nil
-
+	a.apiServers.Shutdown(ctx)
 	a.logger.Info("Waiting for endpoints to shut down")
-	a.wgServers.Wait()
+	if err := a.apiServers.WaitForShutdown(); err != nil {
+		a.logger.Error(err.Error())
+	}
 	a.logger.Info("Endpoints down")
 }
 
@@ -2575,7 +1863,8 @@ func (a *Agent) AddServiceAndReplaceChecks(service *structs.NodeService, chkType
 		token:                 token,
 		replaceExistingChecks: true,
 		source:                source,
-	}, a.snapshotCheckState())
+		snap:                  a.snapshotCheckState(),
+	})
 }
 
 // AddService is used to add a service entry.
@@ -2594,12 +1883,13 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.Che
 		token:                 token,
 		replaceExistingChecks: false,
 		source:                source,
-	}, a.snapshotCheckState())
+		snap:                  a.snapshotCheckState(),
+	})
 }
 
 // addServiceLocked adds a service entry to the service manager if enabled, or directly
 // to the local state if it is not. This function assumes the state lock is already held.
-func (a *Agent) addServiceLocked(req *addServiceRequest, snap map[structs.CheckID]*structs.HealthCheck) error {
+func (a *Agent) addServiceLocked(req *addServiceRequest) error {
 	req.fixupForAddServiceLocked()
 
 	req.service.EnterpriseMeta.Normalize()
@@ -2617,7 +1907,7 @@ func (a *Agent) addServiceLocked(req *addServiceRequest, snap map[structs.CheckI
 	req.persistDefaults = nil
 	req.persistServiceConfig = false
 
-	return a.addServiceInternal(req, snap)
+	return a.addServiceInternal(req)
 }
 
 // addServiceRequest is the union of arguments for calling both
@@ -2642,6 +1932,7 @@ type addServiceRequest struct {
 	token                 string
 	replaceExistingChecks bool
 	source                configSource
+	snap                  map[structs.CheckID]*structs.HealthCheck
 }
 
 func (r *addServiceRequest) fixupForAddServiceLocked() {
@@ -2655,7 +1946,7 @@ func (r *addServiceRequest) fixupForAddServiceInternal() {
 }
 
 // addServiceInternal adds the given service and checks to the local state.
-func (a *Agent) addServiceInternal(req *addServiceRequest, snap map[structs.CheckID]*structs.HealthCheck) error {
+func (a *Agent) addServiceInternal(req *addServiceRequest) error {
 	req.fixupForAddServiceInternal()
 	var (
 		service               = req.service
@@ -2667,6 +1958,7 @@ func (a *Agent) addServiceInternal(req *addServiceRequest, snap map[structs.Chec
 		token                 = req.token
 		replaceExistingChecks = req.replaceExistingChecks
 		source                = req.source
+		snap                  = req.snap
 	)
 
 	// Pause the service syncs during modification
@@ -2770,7 +2062,7 @@ func (a *Agent) addServiceInternal(req *addServiceRequest, snap map[structs.Chec
 	}
 
 	for i := range checks {
-		if err := a.addCheck(checks[i], chkTypes[i], service, persist, token, source); err != nil {
+		if err := a.addCheck(checks[i], chkTypes[i], service, token, source); err != nil {
 			a.cleanupRegistration(cleanupServices, cleanupChecks)
 			return err
 		}
@@ -2858,13 +2150,13 @@ func (a *Agent) validateService(service *structs.NodeService, chkTypes []*struct
 	}
 
 	// Warn if the service name is incompatible with DNS
-	if InvalidDnsRe.MatchString(service.Service) {
+	if dns.InvalidNameRe.MatchString(service.Service) {
 		a.logger.Warn("Service name will not be discoverable "+
 			"via DNS due to invalid characters. Valid characters include "+
 			"all alpha-numerics and dashes.",
 			"service", service.Service,
 		)
-	} else if len(service.Service) > MaxDNSLabelLength {
+	} else if len(service.Service) > dns.MaxLabelLength {
 		a.logger.Warn("Service name will not be discoverable "+
 			"via DNS due to it being too long. Valid lengths are between "+
 			"1 and 63 bytes.",
@@ -2874,13 +2166,13 @@ func (a *Agent) validateService(service *structs.NodeService, chkTypes []*struct
 
 	// Warn if any tags are incompatible with DNS
 	for _, tag := range service.Tags {
-		if InvalidDnsRe.MatchString(tag) {
+		if dns.InvalidNameRe.MatchString(tag) {
 			a.logger.Debug("Service tag will not be discoverable "+
 				"via DNS due to invalid characters. Valid characters include "+
 				"all alpha-numerics and dashes.",
 				"tag", tag,
 			)
-		} else if len(tag) > MaxDNSLabelLength {
+		} else if len(tag) > dns.MaxLabelLength {
 			a.logger.Debug("Service tag will not be discoverable "+
 				"via DNS due to it being too long. Valid lengths are between "+
 				"1 and 63 bytes.",
@@ -3090,7 +2382,7 @@ func (a *Agent) addCheckLocked(check *structs.HealthCheck, chkType *structs.Chec
 		}
 	}()
 
-	err := a.addCheck(check, chkType, service, persist, token, source)
+	err := a.addCheck(check, chkType, service, token, source)
 	if err != nil {
 		a.State.RemoveCheck(cid)
 		return err
@@ -3110,7 +2402,7 @@ func (a *Agent) addCheckLocked(check *structs.HealthCheck, chkType *structs.Chec
 	return nil
 }
 
-func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType, service *structs.NodeService, persist bool, token string, source configSource) error {
+func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType, service *structs.NodeService, token string, source configSource) error {
 	if check.CheckID == "" {
 		return fmt.Errorf("CheckID missing")
 	}
@@ -3801,7 +3093,8 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 			token:                 service.Token,
 			replaceExistingChecks: false, // do default behavior
 			source:                ConfigSourceLocal,
-		}, snap)
+			snap:                  snap,
+		})
 		if err != nil {
 			return fmt.Errorf("Failed to register service %q: %v", service.Name, err)
 		}
@@ -3819,7 +3112,8 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 				token:                 sidecarToken,
 				replaceExistingChecks: false, // do default behavior
 				source:                ConfigSourceLocal,
-			}, snap)
+				snap:                  snap,
+			})
 			if err != nil {
 				return fmt.Errorf("Failed to register sidecar for service %q: %v", service.Name, err)
 			}
@@ -3911,7 +3205,8 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 				token:                 p.Token,
 				replaceExistingChecks: false, // do default behavior
 				source:                source,
-			}, snap)
+				snap:                  snap,
+			})
 			if err != nil {
 				return fmt.Errorf("failed adding service %q: %s", serviceID, err)
 			}
@@ -4054,105 +3349,6 @@ func (a *Agent) unloadChecks() error {
 	return nil
 }
 
-type persistedTokens struct {
-	Replication string `json:"replication,omitempty"`
-	AgentMaster string `json:"agent_master,omitempty"`
-	Default     string `json:"default,omitempty"`
-	Agent       string `json:"agent,omitempty"`
-}
-
-func (a *Agent) getPersistedTokens() (*persistedTokens, error) {
-	persistedTokens := &persistedTokens{}
-	if !a.config.ACLEnableTokenPersistence {
-		return persistedTokens, nil
-	}
-
-	a.persistedTokensLock.RLock()
-	defer a.persistedTokensLock.RUnlock()
-
-	tokensFullPath := filepath.Join(a.config.DataDir, tokensPath)
-
-	buf, err := ioutil.ReadFile(tokensFullPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			// non-existence is not an error we care about
-			return persistedTokens, nil
-		}
-		return persistedTokens, fmt.Errorf("failed reading tokens file %q: %s", tokensFullPath, err)
-	}
-
-	if err := json.Unmarshal(buf, persistedTokens); err != nil {
-		return persistedTokens, fmt.Errorf("failed to decode tokens file %q: %s", tokensFullPath, err)
-	}
-
-	return persistedTokens, nil
-}
-
-// CheckSecurity Performs security checks in Consul Configuration
-// It might return an error if configuration is considered too dangerous
-func (a *Agent) CheckSecurity(conf *config.RuntimeConfig) error {
-	if conf.EnableRemoteScriptChecks {
-		if !conf.ACLsEnabled {
-			if len(conf.AllowWriteHTTPFrom) == 0 {
-				err := fmt.Errorf("using enable-script-checks without ACLs and without allow_write_http_from is DANGEROUS, use enable-local-script-checks instead, see https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations/")
-				a.logger.Error("[SECURITY] issue", "error", err)
-				// TODO: return the error in future Consul versions
-			}
-		}
-	}
-	return nil
-}
-
-func (a *Agent) loadTokens(conf *config.RuntimeConfig) error {
-	persistedTokens, persistenceErr := a.getPersistedTokens()
-
-	if persistenceErr != nil {
-		a.logger.Warn("unable to load persisted tokens", "error", persistenceErr)
-	}
-
-	if persistedTokens.Default != "" {
-		a.tokens.UpdateUserToken(persistedTokens.Default, token.TokenSourceAPI)
-
-		if conf.ACLToken != "" {
-			a.logger.Warn("\"default\" token present in both the configuration and persisted token store, using the persisted token")
-		}
-	} else {
-		a.tokens.UpdateUserToken(conf.ACLToken, token.TokenSourceConfig)
-	}
-
-	if persistedTokens.Agent != "" {
-		a.tokens.UpdateAgentToken(persistedTokens.Agent, token.TokenSourceAPI)
-
-		if conf.ACLAgentToken != "" {
-			a.logger.Warn("\"agent\" token present in both the configuration and persisted token store, using the persisted token")
-		}
-	} else {
-		a.tokens.UpdateAgentToken(conf.ACLAgentToken, token.TokenSourceConfig)
-	}
-
-	if persistedTokens.AgentMaster != "" {
-		a.tokens.UpdateAgentMasterToken(persistedTokens.AgentMaster, token.TokenSourceAPI)
-
-		if conf.ACLAgentMasterToken != "" {
-			a.logger.Warn("\"agent_master\" token present in both the configuration and persisted token store, using the persisted token")
-		}
-	} else {
-		a.tokens.UpdateAgentMasterToken(conf.ACLAgentMasterToken, token.TokenSourceConfig)
-	}
-
-	if persistedTokens.Replication != "" {
-		a.tokens.UpdateReplicationToken(persistedTokens.Replication, token.TokenSourceAPI)
-
-		if conf.ACLReplicationToken != "" {
-			a.logger.Warn("\"replication\" token present in both the configuration and persisted token store, using the persisted token")
-		}
-	} else {
-		a.tokens.UpdateReplicationToken(conf.ACLReplicationToken, token.TokenSourceConfig)
-	}
-
-	return persistenceErr
-}
-
 // snapshotCheckState is used to snapshot the current state of the health
 // checks. This is done before we reload our checks, so that we can properly
 // restore into the same state.
@@ -4283,7 +3479,7 @@ func (a *Agent) loadLimits(conf *config.RuntimeConfig) {
 // all services, checks, tokens, metadata, dnsServer configs, etc.
 // It will also reload all ongoing watches.
 func (a *Agent) ReloadConfig() error {
-	newCfg, err := a.autoConf.ReadConfig()
+	newCfg, err := a.baseDeps.AutoConfig.ReadConfig()
 	if err != nil {
 		return err
 	}
@@ -4300,17 +3496,12 @@ func (a *Agent) ReloadConfig() error {
 // the configuration using CLI flags and on disk config, this just takes a
 // runtime configuration and applies it.
 func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
-	if err := a.CheckSecurity(newCfg); err != nil {
-		a.logger.Error("Security error while reloading configuration: %#v", err)
-		return err
-	}
-
 	// Change the log level and update it
-	if logging.ValidateLogLevel(newCfg.LogLevel) {
-		a.logger.SetLevel(logging.LevelFromString(newCfg.LogLevel))
+	if logging.ValidateLogLevel(newCfg.Logging.LogLevel) {
+		a.logger.SetLevel(logging.LevelFromString(newCfg.Logging.LogLevel))
 	} else {
-		a.logger.Warn("Invalid log level in new configuration", "level", newCfg.LogLevel)
-		newCfg.LogLevel = a.config.LogLevel
+		a.logger.Warn("Invalid log level in new configuration", "level", newCfg.Logging.LogLevel)
+		newCfg.Logging.LogLevel = a.config.Logging.LogLevel
 	}
 
 	// Bulk update the services and checks
@@ -4337,8 +3528,7 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 	// Reload tokens - should be done before all the other loading
 	// to ensure the correct tokens are available for attaching to
 	// the checks and service registrations.
-	a.loadTokens(newCfg)
-	a.loadEnterpriseTokens(newCfg)
+	a.tokens.Load(newCfg.ACLTokens, a.logger)
 
 	if err := a.tlsConfigurator.Update(newCfg.ToTLSUtilConfig()); err != nil {
 		return fmt.Errorf("Failed reloading tls configuration: %s", err)
@@ -4383,7 +3573,7 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 	}
 
 	// create the config for the rpc server/client
-	consulCfg, err := a.consulConfig()
+	consulCfg, err := newConsulConfig(a.config, a.logger)
 	if err != nil {
 		return err
 	}
@@ -4392,11 +3582,23 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 		return err
 	}
 
+	if a.cache.ReloadOptions(newCfg.Cache) {
+		a.logger.Info("Cache options have been updated")
+	} else {
+		a.logger.Debug("Cache options have not been modified")
+	}
+
 	// Update filtered metrics
 	metrics.UpdateFilter(newCfg.Telemetry.AllowedPrefixes,
 		newCfg.Telemetry.BlockedPrefixes)
 
 	a.State.SetDiscardCheckOutput(newCfg.DiscardCheckOutput)
+
+	for _, r := range a.configReloaders {
+		if err := r(newCfg); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -4413,7 +3615,8 @@ func (a *Agent) LocalBlockingQuery(alwaysBlock bool, hash string, wait time.Dura
 	// If we are not blocking we can skip tracking and allocating - nil WatchSet
 	// is still valid to call Add on and will just be a no op.
 	var ws memdb.WatchSet
-	var timeout *time.Timer
+	var ctx context.Context = &lib.StopChannelContext{StopCh: a.shutdownCh}
+	shouldBlock := false
 
 	if alwaysBlock || hash != "" {
 		if wait == 0 {
@@ -4424,7 +3627,11 @@ func (a *Agent) LocalBlockingQuery(alwaysBlock bool, hash string, wait time.Dura
 		}
 		// Apply a small amount of jitter to the request.
 		wait += lib.RandomStagger(wait / 16)
-		timeout = time.NewTimer(wait)
+		var cancel func()
+		ctx, cancel = context.WithDeadline(ctx, time.Now().Add(wait))
+		defer cancel()
+
+		shouldBlock = true
 	}
 
 	for {
@@ -4442,7 +3649,7 @@ func (a *Agent) LocalBlockingQuery(alwaysBlock bool, hash string, wait time.Dura
 		// WatchSet immediately returns false which would incorrectly cause this to
 		// loop and repeat again, however we rely on the invariant that ws == nil
 		// IFF timeout == nil in which case the Watch call is never invoked.
-		if timeout == nil || hash != curHash || ws.Watch(timeout.C) {
+		if !shouldBlock || hash != curHash || ws.WatchCtx(ctx) != nil {
 			return curHash, curResp, err
 		}
 		// Watch returned false indicating a change was detected, loop and repeat
@@ -4454,7 +3661,7 @@ func (a *Agent) LocalBlockingQuery(alwaysBlock bool, hash string, wait time.Dura
 		if syncPauseCh := a.SyncPausedCh(); syncPauseCh != nil {
 			select {
 			case <-syncPauseCh:
-			case <-timeout.C:
+			case <-ctx.Done():
 			}
 		}
 	}

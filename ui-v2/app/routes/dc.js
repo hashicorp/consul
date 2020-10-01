@@ -1,4 +1,4 @@
-import Route from '@ember/routing/route';
+import Route from 'consul-ui/routing/route';
 import { inject as service } from '@ember/service';
 import { hash, Promise } from 'rsvp';
 import { get } from '@ember/object';
@@ -63,6 +63,7 @@ export default Route.extend({
       });
   },
   setupController: function(controller, model) {
+    this._super(...arguments);
     // the model here is actually required for the entire application
     // but we need to wait until we are in this route so we know what the dc
     // and or nspace is if the below changes please revists the comments

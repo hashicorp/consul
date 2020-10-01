@@ -1,10 +1,13 @@
 package autoconf
 
 import (
+	"fmt"
 	"testing"
 
-	pbconfig "github.com/hashicorp/consul/agent/agentpb/config"
 	"github.com/hashicorp/consul/agent/config"
+	"github.com/hashicorp/consul/agent/structs"
+	pbconfig "github.com/hashicorp/consul/proto/pbconfig"
+	"github.com/hashicorp/consul/proto/pbconnect"
 	"github.com/stretchr/testify/require"
 )
 
@@ -16,7 +19,39 @@ func boolPointer(b bool) *bool {
 	return &b
 }
 
-func TestConfig_translateConfig(t *testing.T) {
+func translateCARootToProtobuf(in *structs.CARoot) (*pbconnect.CARoot, error) {
+	var out pbconnect.CARoot
+	if err := mapstructureTranslateToProtobuf(in, &out); err != nil {
+		return nil, fmt.Errorf("Failed to re-encode CA Roots: %w", err)
+	}
+	return &out, nil
+}
+
+func mustTranslateCARootToProtobuf(t *testing.T, in *structs.CARoot) *pbconnect.CARoot {
+	out, err := translateCARootToProtobuf(in)
+	require.NoError(t, err)
+	return out
+}
+
+func mustTranslateCARootsToStructs(t *testing.T, in *pbconnect.CARoots) *structs.IndexedCARoots {
+	out, err := translateCARootsToStructs(in)
+	require.NoError(t, err)
+	return out
+}
+
+func mustTranslateCARootsToProtobuf(t *testing.T, in *structs.IndexedCARoots) *pbconnect.CARoots {
+	out, err := translateCARootsToProtobuf(in)
+	require.NoError(t, err)
+	return out
+}
+
+func mustTranslateIssuedCertToProtobuf(t *testing.T, in *structs.IssuedCert) *pbconnect.IssuedCert {
+	out, err := translateIssuedCertToProtobuf(in)
+	require.NoError(t, err)
+	return out
+}
+
+func TestTranslateConfig(t *testing.T) {
 	original := pbconfig.Config{
 		Datacenter:        "abc",
 		PrimaryDatacenter: "def",
@@ -70,7 +105,7 @@ func TestConfig_translateConfig(t *testing.T) {
 		},
 	}
 
-	expected := &config.Config{
+	expected := config.Config{
 		Datacenter:                  stringPointer("abc"),
 		PrimaryDatacenter:           stringPointer("def"),
 		NodeName:                    stringPointer("ghi"),
@@ -94,7 +129,6 @@ func TestConfig_translateConfig(t *testing.T) {
 			EnableKeyListPolicy:    boolPointer(true),
 			DisabledTTL:            stringPointer("4s"),
 			EnableTokenPersistence: boolPointer(true),
-			MSPDisableBootstrap:    boolPointer(false),
 			Tokens: config.Tokens{
 				Master:      stringPointer("99e7e490-6baf-43fc-9010-78b6aa9a6813"),
 				Replication: stringPointer("51308d40-465c-4ac6-a636-7c0747edec89"),
@@ -117,6 +151,12 @@ func TestConfig_translateConfig(t *testing.T) {
 		},
 	}
 
-	actual := translateConfig(&original)
-	require.Equal(t, expected, actual)
+	translated := translateConfig(&original)
+	require.Equal(t, expected, translated)
+}
+
+func TestCArootsTranslation(t *testing.T) {
+	_, indexedRoots, _ := testCerts(t, "autoconf", "dc1")
+	protoRoots := mustTranslateCARootsToProtobuf(t, indexedRoots)
+	require.Equal(t, indexedRoots, mustTranslateCARootsToStructs(t, protoRoots))
 }

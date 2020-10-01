@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -16,11 +15,6 @@ import (
 	"github.com/hashicorp/go-uuid"
 )
 
-var (
-	// ErrQueryNotFound is returned if the query lookup failed.
-	ErrQueryNotFound = errors.New("Query not found")
-)
-
 // PreparedQuery manages the prepared query endpoint.
 type PreparedQuery struct {
 	srv    *Server
@@ -31,7 +25,7 @@ type PreparedQuery struct {
 // only be used for operations that modify the data. The ID of the session is
 // returned in the reply.
 func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string) (err error) {
-	if done, err := p.srv.forward("PreparedQuery.Apply", args, args, reply); done {
+	if done, err := p.srv.ForwardRPC("PreparedQuery.Apply", args, args, reply); done {
 		return err
 	}
 	defer metrics.MeasureSince([]string{"prepared-query", "apply"}, time.Now())
@@ -215,7 +209,7 @@ func parseDNS(dns *structs.QueryDNSOptions) error {
 // Get returns a single prepared query by ID.
 func (p *PreparedQuery) Get(args *structs.PreparedQuerySpecificRequest,
 	reply *structs.IndexedPreparedQueries) error {
-	if done, err := p.srv.forward("PreparedQuery.Get", args, args, reply); done {
+	if done, err := p.srv.ForwardRPC("PreparedQuery.Get", args, args, reply); done {
 		return err
 	}
 
@@ -228,7 +222,7 @@ func (p *PreparedQuery) Get(args *structs.PreparedQuerySpecificRequest,
 				return err
 			}
 			if query == nil {
-				return ErrQueryNotFound
+				return structs.ErrQueryNotFound
 			}
 
 			// If no prefix ACL applies to this query, then they are
@@ -259,7 +253,7 @@ func (p *PreparedQuery) Get(args *structs.PreparedQuerySpecificRequest,
 
 // List returns all the prepared queries.
 func (p *PreparedQuery) List(args *structs.DCSpecificRequest, reply *structs.IndexedPreparedQueries) error {
-	if done, err := p.srv.forward("PreparedQuery.List", args, args, reply); done {
+	if done, err := p.srv.ForwardRPC("PreparedQuery.List", args, args, reply); done {
 		return err
 	}
 
@@ -283,7 +277,7 @@ func (p *PreparedQuery) List(args *structs.DCSpecificRequest, reply *structs.Ind
 // will be executed here.
 func (p *PreparedQuery) Explain(args *structs.PreparedQueryExecuteRequest,
 	reply *structs.PreparedQueryExplainResponse) error {
-	if done, err := p.srv.forward("PreparedQuery.Explain", args, args, reply); done {
+	if done, err := p.srv.ForwardRPC("PreparedQuery.Explain", args, args, reply); done {
 		return err
 	}
 	defer metrics.MeasureSince([]string{"prepared-query", "explain"}, time.Now())
@@ -303,7 +297,7 @@ func (p *PreparedQuery) Explain(args *structs.PreparedQueryExecuteRequest,
 		return err
 	}
 	if query == nil {
-		return ErrQueryNotFound
+		return structs.ErrQueryNotFound
 	}
 
 	// Place the query into a list so we can run the standard ACL filter on
@@ -330,7 +324,7 @@ func (p *PreparedQuery) Explain(args *structs.PreparedQueryExecuteRequest,
 // part of a DNS lookup, or when executing prepared queries from the HTTP API.
 func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 	reply *structs.PreparedQueryExecuteResponse) error {
-	if done, err := p.srv.forward("PreparedQuery.Execute", args, args, reply); done {
+	if done, err := p.srv.ForwardRPC("PreparedQuery.Execute", args, args, reply); done {
 		return err
 	}
 	defer metrics.MeasureSince([]string{"prepared-query", "execute"}, time.Now())
@@ -350,7 +344,7 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 		return err
 	}
 	if query == nil {
-		return ErrQueryNotFound
+		return structs.ErrQueryNotFound
 	}
 
 	// Execute the query for the local DC.
@@ -465,7 +459,7 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 // We don't want things to fan out further than one level.
 func (p *PreparedQuery) ExecuteRemote(args *structs.PreparedQueryExecuteRemoteRequest,
 	reply *structs.PreparedQueryExecuteResponse) error {
-	if done, err := p.srv.forward("PreparedQuery.ExecuteRemote", args, args, reply); done {
+	if done, err := p.srv.ForwardRPC("PreparedQuery.ExecuteRemote", args, args, reply); done {
 		return err
 	}
 	defer metrics.MeasureSince([]string{"prepared-query", "execute_remote"}, time.Now())

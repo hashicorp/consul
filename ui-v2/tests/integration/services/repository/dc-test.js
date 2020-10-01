@@ -24,11 +24,7 @@ test('findAll returns the correct data for list endpoint', function(assert) {
       assert.deepEqual(
         actual,
         expected(function(payload) {
-          return payload.map(item => ({ Name: item })).sort(function(a, b) {
-            if (a.Name < b.Name) return -1;
-            if (a.Name > b.Name) return 1;
-            return 0;
-          });
+          return payload.map(item => ({ Name: item }));
         })
       );
     }

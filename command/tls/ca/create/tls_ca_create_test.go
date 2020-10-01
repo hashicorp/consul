@@ -24,7 +24,6 @@ func TestValidateCommand_noTabs(t *testing.T) {
 
 func TestCACreateCommand(t *testing.T) {
 	testDir := testutil.TempDir(t, "ca-create")
-	defer os.RemoveAll(testDir)
 
 	defer switchToTempDir(t, testDir)()
 

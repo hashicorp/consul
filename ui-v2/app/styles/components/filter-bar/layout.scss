@@ -5,33 +5,50 @@
   margin-top: 0 !important;
   margin-bottom: -12px;
 }
+%filter-bar .filters {
+  display: flex;
+  margin-right: 12px;
+}
+%filter-bar .filters > *:not(:last-child) {
+  margin-right: 6px;
+}
 %filter-bar + :not(.notice) {
   margin-top: 1.8em;
+}
+%filter-bar fieldset {
+  flex: 0 1 auto;
+  width: auto;
 }
 %filter-bar-reversed {
   flex-direction: row-reverse;
   padding: 4px;
   margin-bottom: 8px !important;
 }
-%filter-bar fieldset {
-  flex: 0 1 auto;
+%filter-bar-reversed fieldset {
+  min-width: 210px;
   width: auto;
-}
-%filter-bar fieldset:first-child:not(:last-child) {
-  flex: 1 1 auto;
 }
 %filter-bar-reversed fieldset:first-child:not(:last-child) {
   flex: 0 1 auto;
   margin-left: auto;
 }
-%filter-bar-reversed fieldset {
-  min-width: 210px;
-  width: auto;
-}
 %filter-bar-reversed > *:first-child {
   margin-left: 12px;
 }
+@media #{$--horizontal-filters} {
+  %filter-bar fieldset:first-child:not(:last-child) {
+    flex: 1 1 auto;
+    margin-right: 12px;
+  }
+}
 @media #{$--lt-horizontal-filters} {
+  %filter-bar {
+    flex-wrap: wrap;
+  }
+  %filter-bar fieldset {
+    flex: 0 1 100%;
+    margin-bottom: 8px;
+  }
   %filter-bar-reversed > *:first-child {
     margin-left: 0;
   }

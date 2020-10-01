@@ -8,21 +8,21 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/rand"
+	"net"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"testing"
 	"text/template"
 	"time"
 
 	metrics "github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-hclog"
 	uuid "github.com/hashicorp/go-uuid"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
@@ -38,9 +38,6 @@ import (
 func init() {
 	rand.Seed(time.Now().UnixNano()) // seed random number generator
 }
-
-// TempDir defines the base dir for temporary directories.
-var TempDir = os.TempDir()
 
 // TestAgent encapsulates an Agent with a default configuration and
 // startup procedure suitable for testing. It panics if there are errors
@@ -59,21 +56,15 @@ type TestAgent struct {
 	// when Shutdown() is called.
 	Config *config.RuntimeConfig
 
-	// returnPortsFn will put the ports claimed for the test back into the
-	// general freeport pool
-	returnPortsFn func()
-
 	// LogOutput is the sink for the logs. If nil, logs are written
 	// to os.Stderr.
 	LogOutput io.Writer
 
-	// DataDir is the data directory which is used when Config.DataDir
-	// is not set. It is created automatically and removed when
-	// Shutdown() is called.
+	// DataDir may be set to a directory which exists. If is it not set,
+	// TestAgent.Start will create one and set DataDir to the directory path.
+	// In all cases the agent will be configured to use this path as the data directory,
+	// and the directory will be removed once the test ends.
 	DataDir string
-
-	// Key is the optional encryption key for the LAN and WAN keyring.
-	Key string
 
 	// UseTLS, if true, will disable the HTTP port and enable the HTTPS
 	// one.
@@ -83,9 +74,8 @@ type TestAgent struct {
 	// It is valid after Start().
 	dns *DNSServer
 
-	// srv is a reference to the first started HTTP endpoint.
-	// It is valid after Start().
-	srv *HTTPServer
+	// srv is an HTTPHandlers that may be used to test http endpoints.
+	srv *HTTPHandlers
 
 	// overrides is an hcl config source to use to override otherwise
 	// non-user settable configurations
@@ -154,39 +144,18 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 		name = "TestAgent"
 	}
 
-	var cleanupTmpDir = func() {
-		// Clean out the data dir if we are responsible for it before we
-		// try again, since the old ports may have gotten written to
-		// the data dir, such as in the Raft configuration.
-		if a.DataDir != "" {
-			if err := os.RemoveAll(a.DataDir); err != nil {
-				fmt.Printf("%s Error resetting data dir: %s", name, err)
-			}
-		}
-	}
-
-	var hclDataDir string
 	if a.DataDir == "" {
-		dirname := "agent"
-		if name != "" {
-			dirname = name + "-agent"
-		}
-		dirname = strings.Replace(dirname, "/", "_", -1)
-		d, err := ioutil.TempDir(TempDir, dirname)
-		if err != nil {
-			return fmt.Errorf("Error creating data dir %s: %s", filepath.Join(TempDir, dirname), err)
-		}
-		// Convert windows style path to posix style path
-		// to avoid illegal char escape error when hcl
-		// parsing.
-		d = filepath.ToSlash(d)
-		hclDataDir = `data_dir = "` + d + `"`
-		a.DataDir = d
+		dirname := name + "-agent"
+		a.DataDir = testutil.TempDir(t, dirname)
 	}
+	// Convert windows style path to posix style path to avoid illegal char escape
+	// error when hcl parsing.
+	d := filepath.ToSlash(a.DataDir)
+	hclDataDir := fmt.Sprintf(`data_dir = "%s"`, d)
 
 	logOutput := a.LogOutput
 	if logOutput == nil {
-		logOutput = os.Stderr
+		logOutput = testutil.NewLogBuffer(t)
 	}
 
 	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
@@ -197,70 +166,42 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 	})
 
 	portsConfig, returnPortsFn := randomPortsSource(a.UseTLS)
-	a.returnPortsFn = returnPortsFn
+	t.Cleanup(returnPortsFn)
 
-	nodeID := NodeID()
-
-	opts := []AgentOption{
-		WithLogger(logger),
-		WithBuilderOpts(config.BuilderOpts{
-			HCL: []string{
-				TestConfigHCL(nodeID),
-				portsConfig,
-				a.HCL,
-				hclDataDir,
-			},
-		}),
-		WithOverrides(config.Source{
-			Name:   "test-overrides",
-			Format: "hcl",
-			Data:   a.Overrides},
+	// Create NodeID outside the closure, so that it does not change
+	testHCLConfig := TestConfigHCL(NodeID())
+	loader := func(source config.Source) (*config.RuntimeConfig, []string, error) {
+		opts := config.BuilderOpts{
+			HCL: []string{testHCLConfig, portsConfig, a.HCL, hclDataDir},
+		}
+		overrides := []config.Source{
+			config.FileSource{
+				Name:   "test-overrides",
+				Format: "hcl",
+				Data:   a.Overrides},
 			config.DefaultConsulSource(),
 			config.DevConsulSource(),
-		),
+		}
+		cfg, warnings, err := config.Load(opts, source, overrides...)
+		if cfg != nil {
+			cfg.Telemetry.Disable = true
+		}
+		return cfg, warnings, err
 	}
+	bd, err := NewBaseDeps(loader, logOutput)
+	require.NoError(t, err)
 
-	defer func() {
-		if err != nil && a.returnPortsFn != nil {
-			a.returnPortsFn()
-			a.returnPortsFn = nil
-		}
-	}()
+	bd.Logger = logger
+	bd.MetricsHandler = metrics.NewInmemSink(1*time.Second, time.Minute)
+	a.Config = bd.RuntimeConfig
 
-	// write the keyring
-	if a.Key != "" {
-		writeKey := func(key, filename string) error {
-			path := filepath.Join(a.DataDir, filename)
-			if err := initKeyring(path, key); err != nil {
-				cleanupTmpDir()
-				return fmt.Errorf("Error creating keyring %s: %s", path, err)
-			}
-			return nil
-		}
-		if err = writeKey(a.Key, SerfLANKeyring); err != nil {
-			cleanupTmpDir()
-			return err
-		}
-		if err = writeKey(a.Key, SerfWANKeyring); err != nil {
-			cleanupTmpDir()
-			return err
-		}
-	}
-
-	agent, err := New(opts...)
+	agent, err := New(bd)
 	if err != nil {
-		cleanupTmpDir()
 		return fmt.Errorf("Error creating agent: %s", err)
 	}
 
-	a.Config = agent.GetConfig()
-
-	agent.MemSink = metrics.NewInmemSink(1*time.Second, time.Minute)
-
 	id := string(a.Config.NodeID)
-
 	if err := agent.Start(context.Background()); err != nil {
-		cleanupTmpDir()
 		agent.ShutdownAgent()
 		agent.ShutdownEndpoints()
 
@@ -272,15 +213,15 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 	// Start the anti-entropy syncer
 	a.Agent.StartSync()
 
+	a.srv = a.Agent.httpHandlers
+
 	if err := a.waitForUp(); err != nil {
-		cleanupTmpDir()
 		a.Shutdown()
 		t.Logf("Error while waiting for test agent to start: %v", err)
 		return errwrap.Wrapf(name+": {{err}}", err)
 	}
 
 	a.dns = a.dnsServers[0]
-	a.srv = a.httpServers[0]
 	return nil
 }
 
@@ -293,7 +234,7 @@ func (a *TestAgent) waitForUp() error {
 	var retErr error
 	var out structs.IndexedNodes
 	for ; !time.Now().After(deadline); time.Sleep(timer.Wait) {
-		if len(a.httpServers) == 0 {
+		if len(a.apiServers.servers) == 0 {
 			retErr = fmt.Errorf("waiting for server")
 			continue // fail, try again
 		}
@@ -322,7 +263,7 @@ func (a *TestAgent) waitForUp() error {
 		} else {
 			req := httptest.NewRequest("GET", "/v1/agent/self", nil)
 			resp := httptest.NewRecorder()
-			_, err := a.httpServers[0].AgentSelf(resp, req)
+			_, err := a.srv.AgentSelf(resp, req)
 			if acl.IsErrPermissionDenied(err) || resp.Code == 403 {
 				// permission denied is enough to show that the client is
 				// connected to the servers as it would get a 503 if
@@ -356,14 +297,6 @@ func (a *TestAgent) Shutdown() error {
 		return nil
 	}
 
-	// Return ports last of all
-	defer func() {
-		if a.returnPortsFn != nil {
-			a.returnPortsFn()
-			a.returnPortsFn = nil
-		}
-	}()
-
 	// shutdown agent before endpoints
 	defer a.Agent.ShutdownEndpoints()
 	if err := a.Agent.ShutdownAgent(); err != nil {
@@ -381,10 +314,23 @@ func (a *TestAgent) DNSAddr() string {
 }
 
 func (a *TestAgent) HTTPAddr() string {
-	if a.srv == nil {
-		return ""
+	addr, err := firstAddr(a.Agent.apiServers, "http")
+	if err != nil {
+		// TODO: t.Fatal instead of panic
+		panic("no http server registered")
 	}
-	return a.srv.Addr
+	return addr.String()
+}
+
+// firstAddr is used by tests to look up the address for the first server which
+// matches the protocol
+func firstAddr(s *apiServers, protocol string) (net.Addr, error) {
+	for _, srv := range s.servers {
+		if srv.Protocol == protocol {
+			return srv.Addr, nil
+		}
+	}
+	return nil, fmt.Errorf("no server registered with protocol %v", protocol)
 }
 
 func (a *TestAgent) SegmentAddr(name string) string {
@@ -412,8 +358,11 @@ func (a *TestAgent) DNSDisableCompression(b bool) {
 	}
 }
 
+// FIXME: this should t.Fatal on error, not panic.
+// TODO: rename to newConsulConfig
+// TODO: remove TestAgent receiver, accept a.Agent.config as an arg
 func (a *TestAgent) consulConfig() *consul.Config {
-	c, err := a.Agent.consulConfig()
+	c, err := newConsulConfig(a.Agent.config, a.Agent.logger)
 	if err != nil {
 		panic(err)
 	}
@@ -465,7 +414,7 @@ func NodeID() string {
 // agent.
 func TestConfig(logger hclog.Logger, sources ...config.Source) *config.RuntimeConfig {
 	nodeID := NodeID()
-	testsrc := config.Source{
+	testsrc := config.FileSource{
 		Name:   "test",
 		Format: "hcl",
 		Data: `

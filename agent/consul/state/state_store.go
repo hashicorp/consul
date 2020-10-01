@@ -1,9 +1,12 @@
 package state
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"time"
 
+	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	memdb "github.com/hashicorp/go-memdb"
 )
@@ -79,7 +82,7 @@ var (
 	ErrMissingIntentionID = errors.New("Missing Intention ID")
 )
 
-const (
+var (
 	// watchLimit is used as a soft limit to cap how many watches we allow
 	// for a given blocking query. If this is exceeded, then we will use a
 	// higher-level watch that's less fine-grained.  Choosing the perfect
@@ -103,6 +106,10 @@ type Store struct {
 	// abandonCh is used to signal watchers that this state store has been
 	// abandoned (usually during a restore). This is only ever closed.
 	abandonCh chan struct{}
+
+	// TODO: refactor abondonCh to use a context so that both can use the same
+	// cancel mechanism.
+	stopEventPublisher func()
 
 	// kvsGraveyard manages tombstones for the key value store.
 	kvsGraveyard *Graveyard
@@ -153,15 +160,18 @@ func NewStateStore(gc *TombstoneGC) (*Store, error) {
 		return nil, fmt.Errorf("Failed setting up state store: %s", err)
 	}
 
-	// Create and return the state store.
+	ctx, cancel := context.WithCancel(context.TODO())
 	s := &Store{
-		schema:       schema,
-		abandonCh:    make(chan struct{}),
-		kvsGraveyard: NewGraveyard(gc),
-		lockDelay:    NewDelay(),
+		schema:             schema,
+		abandonCh:          make(chan struct{}),
+		kvsGraveyard:       NewGraveyard(gc),
+		lockDelay:          NewDelay(),
+		stopEventPublisher: cancel,
 	}
 	s.db = &changeTrackerDB{
-		db: db,
+		db:             db,
+		publisher:      stream.NewEventPublisher(ctx, newSnapshotHandlers(s), 10*time.Second),
+		processChanges: processDBChanges,
 	}
 	return s, nil
 }
@@ -234,6 +244,7 @@ func (s *Store) AbandonCh() <-chan struct{} {
 // Abandon is used to signal that the given state store has been abandoned.
 // Calling this more than one time will panic.
 func (s *Store) Abandon() {
+	s.stopEventPublisher()
 	close(s.abandonCh)
 }
 
@@ -247,11 +258,11 @@ func (s *Store) maxIndex(tables ...string) uint64 {
 
 // maxIndexTxn is a helper used to retrieve the highest known index
 // amongst a set of tables in the db.
-func maxIndexTxn(tx *txn, tables ...string) uint64 {
+func maxIndexTxn(tx ReadTxn, tables ...string) uint64 {
 	return maxIndexWatchTxn(tx, nil, tables...)
 }
 
-func maxIndexWatchTxn(tx *txn, ws memdb.WatchSet, tables ...string) uint64 {
+func maxIndexWatchTxn(tx ReadTxn, ws memdb.WatchSet, tables ...string) uint64 {
 	var lindex uint64
 	for _, table := range tables {
 		ch, ti, err := tx.FirstWatch("index", "id", table)

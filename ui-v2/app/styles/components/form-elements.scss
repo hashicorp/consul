@@ -13,6 +13,9 @@ label span {
 %main-content form {
   @extend %form;
 }
+span.label {
+  @extend %form-element-label;
+}
 %form table,
 %radio-group,
 %checkbox-group,
@@ -20,6 +23,7 @@ label span {
   @extend %form-row;
 }
 %radio-group label,
+%main-content .type-select,
 %main-content .type-password,
 %main-content .type-text {
   @extend %form-element;

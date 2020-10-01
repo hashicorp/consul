@@ -2,13 +2,11 @@ package tokenupdate
 
 import (
 	"encoding/json"
-	"os"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
@@ -26,9 +24,6 @@ func TestTokenUpdateCommand_noTabs(t *testing.T) {
 
 func TestTokenUpdateCommand(t *testing.T) {
 	t.Parallel()
-
-	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
@@ -198,9 +193,6 @@ func TestTokenUpdateCommand_JSON(t *testing.T) {
 	assert := assert.New(t)
 	// Alias because we need to access require package in Retry below
 	req := require.New(t)
-
-	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"

@@ -3,9 +3,13 @@
 {{#if item.Meta}}
   <ConsulMetadataList @items={{object-entries item.Meta}} />
 {{else}}
-  <p>
-    This node has no metadata.
-  </p>
+  <EmptyState>
+    <BlockSlot @name="body">
+      <p>
+        This node has no metadata.
+      </p>
+    </BlockSlot>
+  </EmptyState>
 {{/if}}
   </div>
 </div>

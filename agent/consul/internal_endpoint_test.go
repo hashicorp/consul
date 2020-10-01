@@ -34,7 +34,7 @@ func TestInternal_NodeInfo(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db",
 			Service: "db",
-			Tags:    []string{"master"},
+			Tags:    []string{"primary"},
 		},
 		Check: &structs.HealthCheck{
 			Name:      "db connect",
@@ -63,7 +63,7 @@ func TestInternal_NodeInfo(t *testing.T) {
 	if nodes[0].Node != "foo" {
 		t.Fatalf("Bad: %v", nodes[0])
 	}
-	if !stringslice.Contains(nodes[0].Services[0].Tags, "master") {
+	if !stringslice.Contains(nodes[0].Services[0].Tags, "primary") {
 		t.Fatalf("Bad: %v", nodes[0])
 	}
 	if nodes[0].Checks[0].Status != api.HealthPassing {
@@ -88,7 +88,7 @@ func TestInternal_NodeDump(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db",
 			Service: "db",
-			Tags:    []string{"master"},
+			Tags:    []string{"primary"},
 		},
 		Check: &structs.HealthCheck{
 			Name:      "db connect",
@@ -108,7 +108,7 @@ func TestInternal_NodeDump(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db",
 			Service: "db",
-			Tags:    []string{"slave"},
+			Tags:    []string{"replica"},
 		},
 		Check: &structs.HealthCheck{
 			Name:      "db connect",
@@ -138,7 +138,7 @@ func TestInternal_NodeDump(t *testing.T) {
 		switch node.Node {
 		case "foo":
 			foundFoo = true
-			if !stringslice.Contains(node.Services[0].Tags, "master") {
+			if !stringslice.Contains(node.Services[0].Tags, "primary") {
 				t.Fatalf("Bad: %v", nodes[0])
 			}
 			if node.Checks[0].Status != api.HealthPassing {
@@ -147,7 +147,7 @@ func TestInternal_NodeDump(t *testing.T) {
 
 		case "bar":
 			foundBar = true
-			if !stringslice.Contains(node.Services[0].Tags, "slave") {
+			if !stringslice.Contains(node.Services[0].Tags, "replica") {
 				t.Fatalf("Bad: %v", nodes[1])
 			}
 			if node.Checks[0].Status != api.HealthWarning {
@@ -180,7 +180,7 @@ func TestInternal_NodeDump_Filter(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db",
 			Service: "db",
-			Tags:    []string{"master"},
+			Tags:    []string{"primary"},
 		},
 		Check: &structs.HealthCheck{
 			Name:      "db connect",
@@ -198,7 +198,7 @@ func TestInternal_NodeDump_Filter(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db",
 			Service: "db",
-			Tags:    []string{"slave"},
+			Tags:    []string{"replica"},
 		},
 		Check: &structs.HealthCheck{
 			Name:      "db connect",
@@ -212,7 +212,7 @@ func TestInternal_NodeDump_Filter(t *testing.T) {
 	var out2 structs.IndexedNodeDump
 	req := structs.DCSpecificRequest{
 		Datacenter:   "dc1",
-		QueryOptions: structs.QueryOptions{Filter: "master in Services.Tags"},
+		QueryOptions: structs.QueryOptions{Filter: "primary in Services.Tags"},
 	}
 	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.NodeDump", &req, &out2))
 
@@ -568,35 +568,83 @@ func TestInternal_ServiceDump(t *testing.T) {
 	// prep the cluster with some data we can use in our filters
 	registerTestCatalogEntries(t, codec)
 
-	doRequest := func(t *testing.T, filter string) structs.CheckServiceNodes {
+	// Register a gateway config entry to ensure gateway-services is dumped
+	{
+		req := structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry: &structs.TerminatingGatewayConfigEntry{
+				Name: "terminating-gateway",
+				Kind: structs.TerminatingGateway,
+				Services: []structs.LinkedService{
+					{
+						Name: "api",
+					},
+					{
+						Name: "cache",
+					},
+				},
+			},
+		}
+		var configOutput bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &req, &configOutput))
+		require.True(t, configOutput)
+	}
+
+	doRequest := func(t *testing.T, filter string) structs.IndexedNodesWithGateways {
 		t.Helper()
 		args := structs.DCSpecificRequest{
 			Datacenter:   "dc1",
 			QueryOptions: structs.QueryOptions{Filter: filter},
 		}
 
-		var out structs.IndexedCheckServiceNodes
+		var out structs.IndexedNodesWithGateways
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.ServiceDump", &args, &out))
-		return out.Nodes
+
+		// The GatewayServices dump is currently cannot be bexpr filtered
+		// so the response should be the same in all subtests
+		expectedGW := structs.GatewayServices{
+			{
+				Service:     structs.NewServiceName("api", nil),
+				Gateway:     structs.NewServiceName("terminating-gateway", nil),
+				GatewayKind: structs.ServiceKindTerminatingGateway,
+			},
+			{
+				Service:     structs.NewServiceName("cache", nil),
+				Gateway:     structs.NewServiceName("terminating-gateway", nil),
+				GatewayKind: structs.ServiceKindTerminatingGateway,
+			},
+		}
+		assert.Len(t, out.Gateways, 2)
+		assert.Equal(t, expectedGW[0].Service, out.Gateways[0].Service)
+		assert.Equal(t, expectedGW[0].Gateway, out.Gateways[0].Gateway)
+		assert.Equal(t, expectedGW[0].GatewayKind, out.Gateways[0].GatewayKind)
+
+		assert.Equal(t, expectedGW[1].Service, out.Gateways[1].Service)
+		assert.Equal(t, expectedGW[1].Gateway, out.Gateways[1].Gateway)
+		assert.Equal(t, expectedGW[1].GatewayKind, out.Gateways[1].GatewayKind)
+
+		return out
 	}
 
 	// Run the tests against the test server
 	t.Run("No Filter", func(t *testing.T) {
 		nodes := doRequest(t, "")
 		// redis (3), web (3), critical (1), warning (1) and consul (1)
-		require.Len(t, nodes, 9)
+		require.Len(t, nodes.Nodes, 9)
+
 	})
 
 	t.Run("Filter Node foo and service version 1", func(t *testing.T) {
-		nodes := doRequest(t, "Node.Node == foo and Service.Meta.version == 1")
-		require.Len(t, nodes, 1)
-		require.Equal(t, "redis", nodes[0].Service.Service)
-		require.Equal(t, "redisV1", nodes[0].Service.ID)
+		resp := doRequest(t, "Node.Node == foo and Service.Meta.version == 1")
+		require.Len(t, resp.Nodes, 1)
+		require.Equal(t, "redis", resp.Nodes[0].Service.Service)
+		require.Equal(t, "redisV1", resp.Nodes[0].Service.ID)
 	})
 
 	t.Run("Filter service web", func(t *testing.T) {
-		nodes := doRequest(t, "Service.Service == web")
-		require.Len(t, nodes, 3)
+		resp := doRequest(t, "Service.Service == web")
+		require.Len(t, resp.Nodes, 3)
 	})
 }
 
@@ -622,7 +670,7 @@ func TestInternal_ServiceDump_Kind(t *testing.T) {
 			UseServiceKind: true,
 		}
 
-		var out structs.IndexedCheckServiceNodes
+		var out structs.IndexedNodesWithGateways
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.ServiceDump", &args, &out))
 		return out.Nodes
 	}
@@ -1328,4 +1376,232 @@ func TestInternal_GatewayServiceDump_Ingress_ACL(t *testing.T) {
 	require.Equal(t, nodes[0].Node.Node, "bar")
 	require.Equal(t, nodes[0].Service.Service, "db")
 	require.Equal(t, nodes[0].Checks[0].Status, api.HealthWarning)
+}
+
+func TestInternal_GatewayIntentions(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+
+	// Register terminating gateway and config entry linking it to postgres + redis
+	{
+		arg := structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				ID:      "terminating-gateway",
+				Service: "terminating-gateway",
+				Kind:    structs.ServiceKindTerminatingGateway,
+				Port:    443,
+			},
+			Check: &structs.HealthCheck{
+				Name:      "terminating connect",
+				Status:    api.HealthPassing,
+				ServiceID: "terminating-gateway",
+			},
+		}
+		var regOutput struct{}
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &regOutput))
+
+		args := &structs.TerminatingGatewayConfigEntry{
+			Name: "terminating-gateway",
+			Kind: structs.TerminatingGateway,
+			Services: []structs.LinkedService{
+				{
+					Name: "postgres",
+				},
+				{
+					Name:     "redis",
+					CAFile:   "/etc/certs/ca.pem",
+					CertFile: "/etc/certs/cert.pem",
+					KeyFile:  "/etc/certs/key.pem",
+				},
+			},
+		}
+
+		req := structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry:      args,
+		}
+		var configOutput bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &req, &configOutput))
+		require.True(t, configOutput)
+	}
+
+	// create some symmetric intentions to ensure we are only matching on destination
+	{
+		for _, v := range []string{"*", "mysql", "redis", "postgres"} {
+			req := structs.IntentionRequest{
+				Datacenter: "dc1",
+				Op:         structs.IntentionOpCreate,
+				Intention:  structs.TestIntention(t),
+			}
+			req.Intention.SourceName = "api"
+			req.Intention.DestinationName = v
+
+			var reply string
+			assert.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Apply", &req, &reply))
+
+			req = structs.IntentionRequest{
+				Datacenter: "dc1",
+				Op:         structs.IntentionOpCreate,
+				Intention:  structs.TestIntention(t),
+			}
+			req.Intention.SourceName = v
+			req.Intention.DestinationName = "api"
+			assert.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Apply", &req, &reply))
+		}
+	}
+
+	// Request intentions matching the gateway named "terminating-gateway"
+	req := structs.IntentionQueryRequest{
+		Datacenter: "dc1",
+		Match: &structs.IntentionQueryMatch{
+			Type: structs.IntentionMatchDestination,
+			Entries: []structs.IntentionMatchEntry{
+				{
+					Namespace: structs.IntentionDefaultNamespace,
+					Name:      "terminating-gateway",
+				},
+			},
+		},
+	}
+	var reply structs.IndexedIntentions
+	assert.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.GatewayIntentions", &req, &reply))
+	assert.Len(t, reply.Intentions, 3)
+
+	// Only intentions with linked services as a destination should be returned, and wildcard matches should be deduped
+	expected := []string{"postgres", "*", "redis"}
+	actual := []string{
+		reply.Intentions[0].DestinationName,
+		reply.Intentions[1].DestinationName,
+		reply.Intentions[2].DestinationName,
+	}
+	assert.ElementsMatch(t, expected, actual)
+}
+
+func TestInternal_GatewayIntentions_aclDeny(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, testServerACLConfig(nil))
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken(TestDefaultMasterToken))
+
+	// Register terminating gateway and config entry linking it to postgres + redis
+	{
+		arg := structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				ID:      "terminating-gateway",
+				Service: "terminating-gateway",
+				Kind:    structs.ServiceKindTerminatingGateway,
+				Port:    443,
+			},
+			Check: &structs.HealthCheck{
+				Name:      "terminating connect",
+				Status:    api.HealthPassing,
+				ServiceID: "terminating-gateway",
+			},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+		}
+		var regOutput struct{}
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &regOutput))
+
+		args := &structs.TerminatingGatewayConfigEntry{
+			Name: "terminating-gateway",
+			Kind: structs.TerminatingGateway,
+			Services: []structs.LinkedService{
+				{
+					Name: "postgres",
+				},
+				{
+					Name:     "redis",
+					CAFile:   "/etc/certs/ca.pem",
+					CertFile: "/etc/certs/cert.pem",
+					KeyFile:  "/etc/certs/key.pem",
+				},
+			},
+		}
+
+		req := structs.ConfigEntryRequest{
+			Op:           structs.ConfigEntryUpsert,
+			Datacenter:   "dc1",
+			Entry:        args,
+			WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+		}
+		var configOutput bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &req, &configOutput))
+		require.True(t, configOutput)
+	}
+
+	// create some symmetric intentions to ensure we are only matching on destination
+	{
+		for _, v := range []string{"*", "mysql", "redis", "postgres"} {
+			req := structs.IntentionRequest{
+				Datacenter:   "dc1",
+				Op:           structs.IntentionOpCreate,
+				Intention:    structs.TestIntention(t),
+				WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			}
+			req.Intention.SourceName = "api"
+			req.Intention.DestinationName = v
+
+			var reply string
+			assert.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Apply", &req, &reply))
+
+			req = structs.IntentionRequest{
+				Datacenter:   "dc1",
+				Op:           structs.IntentionOpCreate,
+				Intention:    structs.TestIntention(t),
+				WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+			}
+			req.Intention.SourceName = v
+			req.Intention.DestinationName = "api"
+			assert.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Apply", &req, &reply))
+		}
+	}
+
+	userToken, err := upsertTestTokenWithPolicyRules(codec, TestDefaultMasterToken, "dc1", `
+service_prefix "redis" { policy = "read" }
+service_prefix "terminating-gateway" { policy = "read" }
+`)
+	require.NoError(t, err)
+
+	// Request intentions matching the gateway named "terminating-gateway"
+	req := structs.IntentionQueryRequest{
+		Datacenter: "dc1",
+		Match: &structs.IntentionQueryMatch{
+			Type: structs.IntentionMatchDestination,
+			Entries: []structs.IntentionMatchEntry{
+				{
+					Namespace: structs.IntentionDefaultNamespace,
+					Name:      "terminating-gateway",
+				},
+			},
+		},
+		QueryOptions: structs.QueryOptions{Token: userToken.SecretID},
+	}
+	var reply structs.IndexedIntentions
+	assert.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.GatewayIntentions", &req, &reply))
+	assert.Len(t, reply.Intentions, 2)
+
+	// Only intentions for redis should be returned, due to ACLs
+	expected := []string{"*", "redis"}
+	actual := []string{
+		reply.Intentions[0].DestinationName,
+		reply.Intentions[1].DestinationName,
+	}
+	assert.ElementsMatch(t, expected, actual)
 }

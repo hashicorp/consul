@@ -248,6 +248,11 @@ type QueryOptions struct {
 	// Filter specifies the go-bexpr filter expression to be used for
 	// filtering the data prior to returning a response
 	Filter string
+
+	// AllowNotModifiedResponse indicates that if the MinIndex matches the
+	// QueryMeta.Index, the response can be left empty and QueryMeta.NotModified
+	// will be set to true to indicate the result of the query has not changed.
+	AllowNotModifiedResponse bool
 }
 
 // IsRead is always true for QueryOption.
@@ -304,7 +309,7 @@ func (w *WriteRequest) SetTokenSecret(s string) {
 // QueryMeta allows a query response to include potentially
 // useful metadata about a query
 type QueryMeta struct {
-	// This is the index associated with the read
+	// Index in the raft log of the latest item returned by the query.
 	Index uint64
 
 	// If AllowStale is used, this is time elapsed since
@@ -319,6 +324,12 @@ type QueryMeta struct {
 	// Having `discovery_max_stale` on the agent can affect whether
 	// the request was served by a leader.
 	ConsistencyLevel string
+
+	// NotModified is true when the Index of the query is the same value as the
+	// requested MinIndex. It indicates that the entity has not been modified.
+	// When NotModified is true, the response will not contain the result of
+	// the query.
+	NotModified bool
 }
 
 // RegisterRequest is used for the Catalog.Register endpoint
@@ -346,6 +357,7 @@ type RegisterRequest struct {
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 
 	WriteRequest
+	RaftIndex `bexpr:"-"`
 }
 
 func (r *RegisterRequest) RequestDatacenter() string {
@@ -1080,10 +1092,12 @@ func (t *ServiceConnect) UnmarshalJSON(data []byte) (err error) {
 	}{
 		Alias: (*Alias)(t),
 	}
+
 	if err = json.Unmarshal(data, &aux); err != nil {
 		return err
 	}
-	if t.SidecarService == nil {
+
+	if t.SidecarService == nil && aux != nil {
 		t.SidecarService = aux.SidecarServiceSnake
 	}
 	return nil
@@ -1799,8 +1813,16 @@ func (n *ServiceName) Matches(o *ServiceName) bool {
 	return true
 }
 
-func (si *ServiceName) ToServiceID() ServiceID {
-	return ServiceID{ID: si.Name, EnterpriseMeta: si.EnterpriseMeta}
+func (n *ServiceName) ToServiceID() ServiceID {
+	return ServiceID{ID: n.Name, EnterpriseMeta: n.EnterpriseMeta}
+}
+
+func (n *ServiceName) LessThan(other *ServiceName) bool {
+	if n.EnterpriseMeta.LessThan(&other.EnterpriseMeta) {
+		return true
+	}
+
+	return n.Name < other.Name
 }
 
 type ServiceList []ServiceName
@@ -1834,6 +1856,12 @@ type IndexedHealthChecks struct {
 
 type IndexedCheckServiceNodes struct {
 	Nodes CheckServiceNodes
+	QueryMeta
+}
+
+type IndexedNodesWithGateways struct {
+	Nodes    CheckServiceNodes
+	Gateways GatewayServices
 	QueryMeta
 }
 
@@ -2373,13 +2401,14 @@ func (r *KeyringRequest) RequestDatacenter() string {
 // KeyringResponse is a unified key response and can be used for install,
 // remove, use, as well as listing key queries.
 type KeyringResponse struct {
-	WAN        bool
-	Datacenter string
-	Segment    string
-	Messages   map[string]string `json:",omitempty"`
-	Keys       map[string]int
-	NumNodes   int
-	Error      string `json:",omitempty"`
+	WAN         bool
+	Datacenter  string
+	Segment     string
+	Messages    map[string]string `json:",omitempty"`
+	Keys        map[string]int
+	PrimaryKeys map[string]int
+	NumNodes    int
+	Error       string `json:",omitempty"`
 }
 
 // KeyringResponses holds multiple responses to keyring queries. Each

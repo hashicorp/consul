@@ -71,10 +71,6 @@ func (c *Client) ACLDatacenter(legacy bool) string {
 	return c.config.Datacenter
 }
 
-func (c *Client) ACLsEnabled() bool {
-	return c.config.ACLsEnabled
-}
-
 func (c *Client) ResolveIdentityFromToken(token string) (bool, structs.ACLIdentity, error) {
 	// clients do no local identity resolution at the moment
 	return false, nil, nil

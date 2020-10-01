@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/agentpb"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	pbacl "github.com/hashicorp/consul/proto/pbacl"
 	memdb "github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
@@ -4099,13 +4099,13 @@ func TestStateStore_resolveACLLinks(t *testing.T) {
 		tx := s.db.Txn(false)
 		defer tx.Abort()
 
-		links := []agentpb.ACLLink{
+		links := []pbacl.ACLLink{
 			{
 				Name: "foo",
 			},
 		}
 
-		_, err := s.resolveACLLinks(tx, links, func(*txn, string) (string, error) {
+		_, err := resolveACLLinks(tx, links, func(ReadTxn, string) (string, error) {
 			err := fmt.Errorf("Should not be attempting to resolve an empty id")
 			require.Fail(t, err.Error())
 			return "", err
@@ -4122,7 +4122,7 @@ func TestStateStore_resolveACLLinks(t *testing.T) {
 		tx := s.db.Txn(false)
 		defer tx.Abort()
 
-		links := []agentpb.ACLLink{
+		links := []pbacl.ACLLink{
 			{
 				ID: "b985e082-25d3-45a9-9dd8-fd1a41b83b0d",
 			},
@@ -4131,7 +4131,7 @@ func TestStateStore_resolveACLLinks(t *testing.T) {
 			},
 		}
 
-		numValid, err := s.resolveACLLinks(tx, links, func(_ *txn, linkID string) (string, error) {
+		numValid, err := resolveACLLinks(tx, links, func(_ ReadTxn, linkID string) (string, error) {
 			switch linkID {
 			case "e81887b4-836b-4053-a1fa-7e8305902be9":
 				return "foo", nil
@@ -4155,13 +4155,13 @@ func TestStateStore_resolveACLLinks(t *testing.T) {
 		tx := s.db.Txn(false)
 		defer tx.Abort()
 
-		links := []agentpb.ACLLink{
+		links := []pbacl.ACLLink{
 			{
 				ID: "b985e082-25d3-45a9-9dd8-fd1a41b83b0d",
 			},
 		}
 
-		numValid, err := s.resolveACLLinks(tx, links, func(_ *txn, linkID string) (string, error) {
+		numValid, err := resolveACLLinks(tx, links, func(_ ReadTxn, linkID string) (string, error) {
 			require.Equal(t, "b985e082-25d3-45a9-9dd8-fd1a41b83b0d", linkID)
 			return "", nil
 		})
@@ -4175,7 +4175,7 @@ func TestStateStore_resolveACLLinks(t *testing.T) {
 func TestStateStore_fixupACLLinks(t *testing.T) {
 	t.Parallel()
 
-	links := []agentpb.ACLLink{
+	links := []pbacl.ACLLink{
 		{
 			ID:   "40b57f86-97ea-40e4-a99a-c399cc81f4dd",
 			Name: "foo",
@@ -4201,7 +4201,7 @@ func TestStateStore_fixupACLLinks(t *testing.T) {
 		tx := s.db.Txn(false)
 		defer tx.Abort()
 
-		newLinks, cloned, err := s.fixupACLLinks(tx, links, func(_ *txn, linkID string) (string, error) {
+		newLinks, cloned, err := fixupACLLinks(tx, links, func(_ ReadTxn, linkID string) (string, error) {
 			switch linkID {
 			case "40b57f86-97ea-40e4-a99a-c399cc81f4dd":
 				return "foo", nil
@@ -4228,7 +4228,7 @@ func TestStateStore_fixupACLLinks(t *testing.T) {
 		tx := s.db.Txn(false)
 		defer tx.Abort()
 
-		newLinks, cloned, err := s.fixupACLLinks(tx, links, func(_ *txn, linkID string) (string, error) {
+		newLinks, cloned, err := fixupACLLinks(tx, links, func(_ ReadTxn, linkID string) (string, error) {
 			switch linkID {
 			case "40b57f86-97ea-40e4-a99a-c399cc81f4dd":
 				return "foo", nil
@@ -4260,7 +4260,7 @@ func TestStateStore_fixupACLLinks(t *testing.T) {
 		tx := s.db.Txn(false)
 		defer tx.Abort()
 
-		newLinks, cloned, err := s.fixupACLLinks(tx, links, func(_ *txn, linkID string) (string, error) {
+		newLinks, cloned, err := fixupACLLinks(tx, links, func(_ ReadTxn, linkID string) (string, error) {
 			switch linkID {
 			case "40b57f86-97ea-40e4-a99a-c399cc81f4dd":
 				return "foo", nil
@@ -4287,7 +4287,7 @@ func TestStateStore_fixupACLLinks(t *testing.T) {
 		tx := s.db.Txn(false)
 		defer tx.Abort()
 
-		_, _, err := s.fixupACLLinks(tx, links, func(*txn, string) (string, error) {
+		_, _, err := fixupACLLinks(tx, links, func(ReadTxn, string) (string, error) {
 			return "", fmt.Errorf("Resolver Error")
 		})
 

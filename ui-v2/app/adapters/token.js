@@ -53,6 +53,7 @@ export default Adapter.extend({
         Policies: serialized.Policies,
         Roles: serialized.Roles,
         ServiceIdentities: serialized.ServiceIdentities,
+        NodeIdentities: serialized.NodeIdentities,
         Local: serialized.Local,
         ...Namespace(serialized.Namespace),
       }}
@@ -84,6 +85,7 @@ export default Adapter.extend({
         Policies: serialized.Policies,
         Roles: serialized.Roles,
         ServiceIdentities: serialized.ServiceIdentities,
+        NodeIdentities: serialized.NodeIdentities,
         Local: serialized.Local,
         ...Namespace(serialized.Namespace),
       }}
@@ -128,7 +130,7 @@ export default Adapter.extend({
   // thing is its probably not the same shape as a 'Token',
   // plus we can't create Snapshots as they are private, see services/store.js
   self: function(store, type, id, unserialized) {
-    return this.request(
+    return this.rpc(
       function(adapter, request, serialized, data) {
         return adapter.requestForSelf(request, serialized, data);
       },
@@ -140,7 +142,7 @@ export default Adapter.extend({
     );
   },
   clone: function(store, type, id, snapshot) {
-    return this.request(
+    return this.rpc(
       function(adapter, request, serialized, data) {
         return adapter.requestForCloneRecord(request, serialized, data);
       },

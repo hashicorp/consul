@@ -1,12 +1,12 @@
 <ul data-test-proxy-upstreams>
 {{#each items as |item|}}
   <li>
-    <div>
+    <div class="header">
       <p data-test-destination-name>
         {{item.DestinationName}}
       </p>
     </div>
-    <div>
+    <div class="detail">
   {{#if (env 'CONSUL_NSPACES_ENABLED')}}
     {{#if (not-eq item.DestinationType 'prepared_query')}}
       <dl class="nspace">
@@ -35,11 +35,13 @@
     {{/if}}
     {{#if (gt item.LocalBindPort 0)}}
     {{#let (concat (or item.LocalBindAddress '127.0.0.1') ':' item.LocalBindPort) as |combinedAddress|}}
-      <dl class="port">
-        <CopyButton
-          @value={{combinedAddress}}
-          @name="Address"
-        />
+      <dl>
+        <dt>
+          <CopyButton
+            @value={{combinedAddress}}
+            @name="Address"
+          />
+        </dt>
         <dd>{{combinedAddress}}</dd>
       </dl>
     {{/let}}

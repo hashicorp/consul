@@ -1,11 +1,12 @@
-{{title item.Service.Service}}
-<EventSource @src={{item}} @onerror={{action "error"}} />
+<EventSource @src={{items}} @onerror={{action "error"}} />
 <EventSource @src={{chain}} />
 <EventSource @src={{intentions}} />
-<AppView @class="service show">
+<EventSource @src={{proxies}} />
+<EventSource @src={{gatewayServices}} />
+{{title item.Service.Service}}
+<AppView>
   <BlockSlot @name="notification" as |status type|>
     {{partial 'dc/services/notifications'}}
-    {{partial 'dc/intentions/notifications'}}
   </BlockSlot>
   <BlockSlot @name="breadcrumbs">
     <ol>
@@ -31,7 +32,7 @@
                 (hash label="Upstreams" href=(href-to "dc.services.show.upstreams") selected=(is-href "dc.services.show.upstreams"))
 '')
                 (hash label="Instances" href=(href-to "dc.services.show.instances") selected=(is-href "dc.services.show.instances"))
-(if (not item.Service.Kind)
+(if (not-eq item.Service.Kind 'terminating-gateway')
                 (hash label="Intentions" href=(href-to "dc.services.show.intentions") selected=(is-href "dc.services.show.intentions"))
 '')
 (if chain.Chain
@@ -50,6 +51,10 @@
     {{/if}}
   </BlockSlot>
   <BlockSlot @name="content">
-    {{outlet}}
+    <Outlet
+      @name={{routeName}}
+    as |o|>
+      {{outlet}}
+    </Outlet>
   </BlockSlot>
 </AppView>

@@ -1,0 +1,36 @@
+@import './skin';
+@import './layout';
+%list-row-200 {
+  @extend %list-row;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+%list-row-200 .detail {
+  grid-row-start: header !important;
+  grid-row-end: detail !important;
+  align-self: center !important;
+}
+%list-row-200 .popover-menu > [type="checkbox"] + label {
+  padding: 0;
+}
+%list-row-200 .popover-menu > [type="checkbox"] + label + div:not(.above) {
+  top: 30px;
+}
+%list-row-200 dd {
+  @extend %p2;
+}
+.consul-intention-permission-list > ul > li {
+  @extend %list-row-200;
+}
+.consul-intention-permission-list:not(.readonly) > ul > li {
+  @extend %with-composite-row-intent;
+}
+.consul-intention-permission-list strong {
+  @extend %pill-500;
+}
+.consul-intention-permission-list .intent-allow {
+  @extend %pill-allow;
+}
+.consul-intention-permission-list .intent-deny {
+  @extend %pill-deny;
+}

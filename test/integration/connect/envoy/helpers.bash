@@ -169,6 +169,22 @@ function get_envoy_listener_filters {
   echo "$output" | jq --raw-output "$QUERY"
 }
 
+function get_envoy_http_filters {
+  local HOSTPORT=$1
+  run retry_default curl -s -f $HOSTPORT/config_dump
+  [ "$status" -eq 0 ]
+  local ENVOY_VERSION=$(echo $output | jq --raw-output '.configs[0].bootstrap.node.metadata.envoy_version')
+  local QUERY=''
+  # from 1.13.0 on the config json looks slightly different
+  # 1.10.x, 1.11.x, 1.12.x are not affected
+  if [[ "$ENVOY_VERSION" =~ ^1\.1[012]\. ]]; then
+      QUERY='.configs[2].dynamic_active_listeners[].listener | "\(.name) \( .filter_chains[0].filters[] | select(.name == "envoy.http_connection_manager") | .config.http_filters | map(.name) | join(","))"'
+  else
+      QUERY='.configs[2].dynamic_listeners[].active_state.listener | "\(.name) \( .filter_chains[0].filters[] | select(.name == "envoy.http_connection_manager") | .config.http_filters | map(.name) | join(","))"'
+  fi
+  echo "$output" | jq --raw-output "$QUERY"
+}
+
 function get_envoy_cluster_config {
   local HOSTPORT=$1
   local CLUSTER_NAME=$2
@@ -529,12 +545,13 @@ function must_fail_tcp_connection {
 # to generate a 503 response since the upstreams have refused connection.
 function must_fail_http_connection {
   # Attempt to curl through upstream
-  run curl -s -i -d hello $1
+  run curl -s -i -d hello "$1"
 
   echo "OUTPUT $output"
 
+  local expect_response="${2:-403 Forbidden}"
   # Should fail request with 503
-  echo "$output" | grep '503 Service Unavailable'
+  echo "$output" | grep "${expect_response}"
 }
 
 function gen_envoy_bootstrap {
@@ -666,7 +683,13 @@ function get_upstream_fortio_name {
   local HOST=$1
   local PORT=$2
   local PREFIX=$3
-  run retry_default curl -v -s -f -H"Host: ${HOST}" "localhost:${PORT}${PREFIX}/debug?env=dump"
+  local DEBUG_HEADER_VALUE="${4:-""}"
+  local extra_args
+  if [[ -n "${DEBUG_HEADER_VALUE}" ]]; then
+      extra_args="-H x-test-debug:${DEBUG_HEADER_VALUE}"
+  fi
+  run retry_default curl -v -s -f -H"Host: ${HOST}" $extra_args \
+      "localhost:${PORT}${PREFIX}/debug?env=dump"
   [ "$status" == 0 ]
   echo "$output" | grep -E "^FORTIO_NAME="
 }
@@ -676,11 +699,29 @@ function assert_expected_fortio_name {
   local HOST=${2:-"localhost"}
   local PORT=${3:-5000}
   local URL_PREFIX=${4:-""}
+  local DEBUG_HEADER_VALUE="${5:-""}"
 
-  GOT=$(get_upstream_fortio_name ${HOST} ${PORT} ${URL_PREFIX})
+  GOT=$(get_upstream_fortio_name ${HOST} ${PORT} "${URL_PREFIX}" "${DEBUG_HEADER_VALUE}")
 
   if [ "$GOT" != "FORTIO_NAME=${EXPECT_NAME}" ]; then
     echo "expected name: $EXPECT_NAME, actual name: $GOT" 1>&2
+    return 1
+  fi
+}
+
+function assert_expected_fortio_name_pattern {
+  local EXPECT_NAME_PATTERN=$1
+  local HOST=${2:-"localhost"}
+  local PORT=${3:-5000}
+  local URL_PREFIX=${4:-""}
+  local DEBUG_HEADER_VALUE="${5:-""}"
+
+  GOT=$(get_upstream_fortio_name ${HOST} ${PORT} "${URL_PREFIX}" "${DEBUG_HEADER_VALUE}")
+
+  if [[ "$GOT" =~ $EXPECT_NAME_PATTERN ]]; then
+      :
+  else
+    echo "expected name pattern: $EXPECT_NAME_PATTERN, actual name: $GOT" 1>&2
     return 1
   fi
 }

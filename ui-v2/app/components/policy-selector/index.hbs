@@ -21,7 +21,7 @@
           <h2>New Policy</h2>
         </BlockSlot>
         <BlockSlot @name="body">
-          <PolicyForm @form={{form}} @dc={{dc}} @allowServiceIdentity={{allowServiceIdentity}} />
+          <PolicyForm @form={{form}} @nspace={{nspace}} @dc={{dc}} @allowServiceIdentity={{allowServiceIdentity}} />
         </BlockSlot>
         <BlockSlot @name="actions" as |close|>
           <button type="submit" {{action 'save' item items (queue (action close) (action 'reset'))}} disabled={{if (or item.isSaving item.isPristine item.isInvalid) 'disabled'}}>
@@ -50,35 +50,48 @@
       <BlockSlot @name="row">
         <td class={{policy/typeof item}}>
 {{#if item.ID }}
-<a href={{href-to 'dc.acls.policies.edit' item.ID}}>{{item.Name}}</a>
+          <a href={{href-to 'dc.acls.policies.edit' item.ID}}>{{item.Name}}</a>
 {{else}}
           <a name={{item.Name}}>{{item.Name}}</a>
 {{/if}}
         </td>
       </BlockSlot>
       <BlockSlot @name="details">
-          {{#if (eq item.template '')}}
-            <DataSource
-              @src={{concat '/' item.Namespace '/' dc '/policy/' item.ID}}
-              @onchange={{action (mut loadedItem) value="data"}}
-              @loading="lazy"
-            />
-          {{/if}}
+{{#if (eq item.template '')}}
+        <DataSource
+          @src={{concat '/' item.Namespace '/' dc '/policy/' item.ID}}
+          @onchange={{action (mut loadedItem) value="data"}}
+          @loading="lazy"
+        />
+{{/if}}
+{{#if (eq item.template 'node-identity')}}
+          <dl>
+            <dt>Datacenter:</dt>
+            <dd>
+              {{item.Datacenter}}
+            </dd>
+          </dl>
+{{else}}
           <dl>
             <dt>Datacenters:</dt>
             <dd>
               {{join ', ' (policy/datacenters (or loadedItem item))}}
             </dd>
           </dl>
+{{/if}}
           <label class="type-text">
             <span>Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
-            {{#if (eq item.template '')}}
-              <CodeEditor @syntax="hcl" @readonly={{true}} @value={{or loadedItem.Rules item.Rules}} />
-            {{else}}
-              <CodeEditor @syntax="hcl" @readonly={{true}}>
-                {{~component 'service-identity' name=item.Name~}}
-              </CodeEditor>
-            {{/if}}
+{{#if (eq item.template 'service-identity')}}
+            <CodeEditor @syntax="hcl" @readonly={{true}}>
+              {{~component 'service-identity' nspace=nspace name=item.Name~}}
+            </CodeEditor>
+{{else if (eq item.template 'node-identity')}}
+            <CodeEditor @syntax="hcl" @readonly={{true}}>
+              {{~component 'node-identity' name=item.Name~}}
+            </CodeEditor>
+{{else}}
+            <CodeEditor @syntax="hcl" @readonly={{true}} @value={{or loadedItem.Rules item.Rules}} />
+{{/if}}
           </label>
           <div>
             <ConfirmationDialog @message="Are you sure you want to remove this policy from this token?">

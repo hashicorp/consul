@@ -220,6 +220,6 @@ func init() {
 	Register("tls cert", func(ui cli.Ui) (cli.Command, error) { return tlscert.New(), nil })
 	Register("tls cert create", func(ui cli.Ui) (cli.Command, error) { return tlscertcreate.New(ui), nil })
 	Register("validate", func(ui cli.Ui) (cli.Command, error) { return validate.New(ui), nil })
-	Register("version", func(ui cli.Ui) (cli.Command, error) { return version.New(ui, verHuman), nil })
+	Register("version", func(ui cli.Ui) (cli.Command, error) { return version.New(ui), nil })
 	Register("watch", func(ui cli.Ui) (cli.Command, error) { return watch.New(ui, MakeShutdownCh()), nil })
 }

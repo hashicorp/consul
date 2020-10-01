@@ -28,12 +28,17 @@ export default function CommunityPage() {
           {
             header: 'Community Tools',
             body:
-              '[Download Community Tools](/downloads_tools). Please check out some of the awesome Consul tooling our amazing community has helped build.',
+              '[Download Community Tools](/docs/download-tools). Please check out some of the awesome Consul tooling our amazing community has helped build.',
           },
           {
             header: 'Training',
             body:
               'Paid [HashiCorp training courses](https://www.hashicorp.com/training) are also available in a city near you. Private training courses are also available.',
+          },
+          {
+            header: 'Certification',
+            body:
+              "Learn more about our [Cloud Engineer Certification program](https://www.hashicorp.com/certification/) and [HashiCorp's Networking Automation Certification ](https://www.hashicorp.com/certification/consul-associate/) exams.",
           },
         ]}
       />

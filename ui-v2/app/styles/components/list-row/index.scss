@@ -1,0 +1,8 @@
+@import './skin';
+@import './layout';
+%list-row-detail dl {
+  @extend %icon-definition;
+}
+%list-row-header > dl:first-child {
+  @extend %list-row-header-icon;
+}

@@ -37,7 +37,7 @@ export default function NetworkInfrastructureAutomationPage() {
           links: [
             {
               text: 'Read More',
-              url: 'https://www.consul.io/docs/partnerships/index.html',
+              url: '/docs/partnerships',
               type: 'inbound',
             },
           ],

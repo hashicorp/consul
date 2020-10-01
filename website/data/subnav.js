@@ -1,5 +1,5 @@
 export default [
-  { text: 'Overview', url: '/', type: 'inbound' },
+  { text: 'Overview', url: '/docs/intro' },
   {
     text: 'Use Cases',
     submenu: [
@@ -25,7 +25,7 @@ export default [
   },
   'divider',
   {
-    text: 'Learn',
+    text: 'Tutorials',
     url: 'https://learn.hashicorp.com/consul',
     type: 'outbound',
   },
@@ -38,6 +38,11 @@ export default [
     text: 'API',
     url: '/api-docs',
     type: 'inbound',
+  },
+  { 
+    text: 'CLI',
+    url: '/commands',
+    type: 'inbound,'
   },
   {
     text: 'Community',

@@ -111,8 +111,8 @@ func AddFlags(fs *flag.FlagSet, f *BuilderOpts) {
 	add(&f.Config.Ports.SerfWAN, "serf-wan-port", "Sets the Serf WAN port to listen on.")
 	add(&f.Config.ServerMode, "server", "Switches agent to server mode.")
 	add(&f.Config.EnableSyslog, "syslog", "Enables logging to syslog.")
-	add(&f.Config.UI, "ui", "Enables the built-in static web UI server.")
-	add(&f.Config.UIContentPath, "ui-content-path", "Sets the external UI path to a string. Defaults to: /ui/ ")
-	add(&f.Config.UIDir, "ui-dir", "Path to directory containing the web UI resources.")
+	add(&f.Config.UIConfig.Enabled, "ui", "Enables the built-in static web UI server.")
+	add(&f.Config.UIConfig.ContentPath, "ui-content-path", "Sets the external UI path to a string. Defaults to: /ui/ ")
+	add(&f.Config.UIConfig.Dir, "ui-dir", "Path to directory containing the web UI resources.")
 	add(&f.HCL, "hcl", "hcl config fragment. Can be specified multiple times.")
 }

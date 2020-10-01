@@ -1,18 +1,16 @@
-export default function(visitable, clickable, text, attribute, present, collection, popoverSort) {
+export default function(visitable, clickable, text, attribute, present, collection, popoverSelect) {
   const service = {
     name: text('[data-test-service-name]'),
     service: clickable('a'),
     externalSource: attribute('data-test-external-source', '[data-test-external-source]'),
     kind: attribute('data-test-kind', '[data-test-kind]'),
-    proxy: present('[data-test-proxy]'),
+    mesh: present('[data-test-mesh]'),
+    associatedServiceCount: present('[data-test-associated-service-count]'),
   };
   return {
     visit: visitable('/:dc/services'),
     services: collection('.consul-service-list > ul > li:not(:first-child)', service),
-    dcs: collection('[data-test-datacenter-picker]', {
-      name: clickable('a'),
-    }),
     home: clickable('[data-test-home]'),
-    sort: popoverSort,
+    sort: popoverSelect('[data-test-sort-control]'),
   };
 }

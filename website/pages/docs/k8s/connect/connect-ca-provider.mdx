@@ -1,0 +1,167 @@
+---
+layout: docs
+page_title: Configuring a Connect CA Provider
+sidebar_title: Configuring a Connect CA Provider
+description: Configuring a Connect CA Provider
+---
+
+# Configuring a Connect CA Provider
+
+~> NOTE: Instructions below should only be used for initially bootstrapping a cluster.
+To update the Connect CA provider on an existing cluster or to update any properties, such as tokens, of the CA provider,
+please use the [Update CA Configuration Endpoint](/api/connect/ca#update-ca-configuration).
+
+Consul has support for different certificate authority (CA) providers to be used with the Consul Service Mesh.
+Please see [Connect Certificate Management](/docs/connect/ca) for the information on the providers
+we currently support.
+
+Generally, to configure a provider via the Consul Helm chart, you need to follow three steps:
+
+1. Create a configuration file containing your provider information.
+1. Create a Kubernetes secret containing the configuration file.
+1. Reference the Kubernetes secret in the [`server.extraVolumes`](/docs/k8s/helm#v-server-extravolumes) value in the Helm chart.
+
+Below we will go over this process for configuring Vault as the Connect CA.
+However, other providers can be configured similarly by providing the appropriate `ca_config`
+and `ca_provider` values for the provider you're using.
+
+## Configuring Vault as a Connect CA
+
+### Primary Datacenter
+
+To configure Vault as a CA provider for Consul Connect,
+first, create a provider configuration JSON file.
+Please refer to [Vault as a Connect CA](/docs/connect/ca/vault) for the configuration options.
+You will need to provide a Vault token to the `token` property.
+Please refer to [these docs](/docs/connect/ca/vault#token) for the permissions that the token needs to have.
+To provide a CA, you first need to create a Kubernetes secret containing the CA.
+For example, you may create a secret with the Vault CA like so:
+
+```shell-session
+kubectl create secret generic vault-ca --from-file vault.ca=/path/to/your/vault/ca
+```
+
+And then reference it like this in the provider configuration:
+
+```shell-session
+$ cat vault-config.json
+{
+  "connect": [
+    {
+      "ca_config": [
+        {
+          "address": "https://vault:8200",
+          "intermediate_pki_path": "dc1/connect-intermediate",
+          "root_pki_path": "connect-root",
+          "token": "s.VgQvaXl8xGFO1RUxAPbPbsfN",
+          "ca_file": "/consul/userconfig/vault-ca/vault.ca"
+        }
+      ],
+      "ca_provider": "vault"
+    }
+  ]
+}
+```
+
+This example configuration file is pointing to a Vault instance running in the same Kubernetes cluster,
+which has been deployed with TLS enabled. Note that the `ca_file` is pointing to the file location
+based on the Kubernetes secret for the Vault CA that we have created before.
+We will provide that secret later in the Helm values for our Consul cluster.
+
+~> NOTE: If you have used Kubernetes CA to sign Vault's certificate,
+such as shown in [Standalone Server with TLS](https://www.vaultproject.io/docs/platform/k8s/helm/examples/standalone-tls),
+you don't need to create a Kubernetes secret with Vault's CA and can reference the CA directly
+by setting `ca_file` to `/var/run/secrets/kubernetes.io/serviceaccount/ca.crt`.
+
+Next, create a Kubernetes secret with this configuration file.
+
+```shell-session
+$ kubectl create secret generic vault-config --from-file=config=vault-config.json
+```
+
+We will provide this secret and the Vault CA secret, to the Consul server via the
+`server.extraVolumes` Helm value.
+
+```yaml
+# config.yaml
+global:
+  name: consul
+server:
+  extraVolumes:
+    - type: secret
+      name: vault-config
+      load: true
+      items:
+        - key: config
+          path: vault-config.json
+    - type: secret
+      name: vault-ca
+      load: false
+connectInject:
+  enabled: true
+```
+
+Finally, [install](/docs/k8s/installation/install#installing-consul) the Helm chart using the above config file:
+
+```shell-session
+$ helm install consul -f config.yaml hashicorp/consul
+```
+
+Verify that the CA provider is set correctly:
+
+```shell-session
+$ kubectl exec consul-server-0 -- curl -s http://localhost:8500/v1/connect/ca/configuration | jq .
+{
+  "Provider": "vault",
+  "Config": {
+    "Address": "https://vault:8200",
+    "CAFile": "/consul/userconfig/vault-server-tls/vault.ca",
+    "IntermediateCertTTL": "8760h",
+    "IntermediatePKIPath": "connect-intermediate",
+    "LeafCertTTL": "72h",
+    "RootPKIPath": "connect-root",
+    "RotationPeriod": "2160h",
+    "Token": "s.VgQvaXl8xGFO1RUxAPbPbsfN"
+  },
+  "State": null,
+  "ForceWithoutCrossSigning": false,
+  "CreateIndex": 5,
+  "ModifyIndex": 5
+}
+```
+
+### Secondary Datacenters
+
+To configure Vault as the Connect CA in secondary datacenters, you need to make sure that the Root CA is the same,
+but the intermediate is different for each datacenter. In the `connect` configuration for a secondary datacenter,
+you can specify a `intermediate_pki_path` that is, for example, prefixed with the datacenter
+for which this configuration is intended.
+You will similarly need to create a Vault token and a Kubernetes secret with
+Vault's CA in each secondary Kubernetes cluster.
+
+```json
+{
+  "connect": [
+    {
+      "ca_config": [
+        {
+          "address": "https://vault:8200",
+          "intermediate_pki_path": "dc2/connect-intermediate",
+          "root_pki_path": "connect-root",
+          "token": "s.VgQvaXl8xGFO1RUxAPbPbsfN",
+          "ca_file": "/consul/userconfig/vault-ca/vault.ca"
+        }
+      ],
+      "ca_provider": "vault"
+    }
+  ]
+}
+```
+
+Note that all secondary datacenters need to have access to the same Vault instance as the primary.
+
+### Rotating Vault Tokens
+
+Once the cluster is running, subsequent changes to the `ca_provider` config are **ignored**–even if `consul reload` is run or the servers are restarted.
+
+To update any settings under this key, you must use Consul's [Update CA Configuration](/api/connect/ca#update-ca-configuration) API or the [`consul connect ca set-config`](https://www.consul.io/docs/commands/connect/ca#set-config) command.

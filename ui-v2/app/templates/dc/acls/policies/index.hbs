@@ -3,134 +3,98 @@
 {{else}}
   {{title 'Access Controls'}}
 {{/if}}
-<AppView
-  @class="policy list"
-  @loading={{isLoading}}
-  @authorized={{isAuthorized}}
-  @enabled={{isEnabled}}
-  >
-  <BlockSlot @name="notification" as |status type|>
-    {{partial 'dc/acls/policies/notifications'}}
-  </BlockSlot>
-  <BlockSlot @name="header">
-    <h1>
-      Access Controls
-    </h1>
-  </BlockSlot>
-  <BlockSlot @name="nav">
-{{#if isAuthorized }}
-    {{partial 'dc/acls/nav'}}
-{{/if}}
-  </BlockSlot>
-  <BlockSlot @name="disabled">
-    {{partial 'dc/acls/disabled'}}
-  </BlockSlot>
-  <BlockSlot @name="authorization">
-    {{partial 'dc/acls/authorization'}}
-  </BlockSlot>
-  <BlockSlot @name="actions">
-      <a data-test-create href="{{href-to 'dc.acls.policies.create'}}" class="type-create">Create</a>
-  </BlockSlot>
-  <BlockSlot @name="content">
-{{#if (gt items.length 0) }}
-    <SearchBar
-      @value={{search}}
-      @onsearch={{action (mut search) value="target.value"}}
-    />
-{{/if}}
-    <ChangeableSet @dispatcher={{searchable 'policy' items}} @terms={{search}}>
-      <BlockSlot @name="set" as |filtered|>
-        <TabularCollection @items={{sort-by "CreateIndex:desc" "Name:asc" filtered}} as |item index|>
-          <BlockSlot @name="header">
-            <th>Name</th>
-            <th>Datacenters</th>
-            <th>Description</th>
-          </BlockSlot>
-          <BlockSlot @name="row">
-            <td data-test-policy="{{item.Name}}">
-              <a href={{href-to 'dc.acls.policies.edit' item.ID}} class={{if (eq (policy/typeof item) 'policy-management') 'is-management'}}>{{item.Name}}</a>
-            </td>
-            <td>
-              {{join ', ' (policy/datacenters item)}}
-            </td>
-            <td data-test-description>
-              <p>{{item.Description}}</p>
-            </td>
-          </BlockSlot>
-          <BlockSlot @name="actions" as |index change checked|>
-            <PopoverMenu @expanded={{if (eq checked index) true false}} @onchange={{action change index}} @keyboardAccess={{false}}>
-              <BlockSlot @name="trigger">
-                More
-              </BlockSlot>
-              <BlockSlot @name="menu" as |confirm send keypressClick|>
-{{#if (eq (policy/typeof item) 'policy-management')}}
-                <li role="none">
-                    <a role="menuitem" tabindex="-1" data-test-edit href={{href-to 'dc.acls.policies.edit' item.ID}}>View</a>
-                </li>
-{{else}}
+{{#let (hash
+  types=(if type (split type ',') undefined)
+  dcs=(if dc (split dc ',') undefined)
+) as |filters|}}
+  {{#let (or sortBy "Name:asc") as |sort|}}
+    <AppView
+      @authorized={{isAuthorized}}
+      @enabled={{isEnabled}}
+      >
+      <BlockSlot @name="notification" as |status type|>
+        {{partial 'dc/acls/policies/notifications'}}
+      </BlockSlot>
+      <BlockSlot @name="header">
+        <h1>
+          Access Controls
+        </h1>
+      </BlockSlot>
+      <BlockSlot @name="nav">
+    {{#if isAuthorized }}
+        {{partial 'dc/acls/nav'}}
+    {{/if}}
+      </BlockSlot>
+      <BlockSlot @name="disabled">
+        {{partial 'dc/acls/disabled'}}
+      </BlockSlot>
+      <BlockSlot @name="authorization">
+        {{partial 'dc/acls/authorization'}}
+      </BlockSlot>
+      <BlockSlot @name="actions">
+          <a data-test-create href="{{href-to 'dc.acls.policies.create'}}" class="type-create">Create</a>
+      </BlockSlot>
+      <BlockSlot @name="toolbar">
+      {{#if (gt items.length 0) }}
+        <ConsulPolicySearchBar
+          @search={{search}}
+          @onsearch={{action (mut search) value="target.value"}}
 
-                <li role="none">
-                    <a role="menuitem" tabindex="-1" data-test-edit href={{href-to 'dc.acls.policies.edit' item.ID}}>Edit</a>
-                </li>
-                <li role="none" class="dangerous">
-                  <label for={{confirm}} role="menuitem" tabindex="-1" onkeypress={{keypressClick}} data-test-delete>Delete</label>
-                  <div role="menu">
-                    <div class="confirmation-alert warning">
-                      <div>
-                        <header>
-                          Confirm Delete
-                        </header>
-                        <p>
-                          Are you sure you want to delete this policy?
-                        </p>
-                      </div>
-                      <ul>
-                        <li class="dangerous">
-                          <button tabindex="-1" type="button" class="type-delete" onclick={{action send 'delete' item}}>Delete</button>
-                        </li>
-                        <li>
-                          <label for={{confirm}}>Cancel</label>
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                </li>
-{{/if}}
+          @sort={{sort}}
+          @onsort={{action (mut sortBy) value="target.selected"}}
+
+          @filter={{filters}}
+          @onfilter={{hash
+            dc=(action (mut dc) value="target.selectedItems")
+            type=(action (mut type) value="target.selectedItems")
+          }}
+        />
+      {{/if}}
+      </BlockSlot>
+      <BlockSlot @name="content">
+{{#let (filter (filter-predicate 'policy' filters) items) as |filtered|}}
+  {{#let (sort-by (comparator 'policy' sort) filtered) as |sorted|}}
+        <ChangeableSet @dispatcher={{searchable 'policy' sorted}} @terms={{search}}>
+          <BlockSlot @name="set" as |searched|>
+            <ConsulPolicyList
+              @items={{searched}}
+              @ondelete={{action send 'delete'}}
+            />
+          </BlockSlot>
+          <BlockSlot @name="empty">
+            <EmptyState @allowLogin={{true}}>
+              <BlockSlot @name="header">
+                <h2>
+                  {{#if (gt items.length 0)}}
+                    No policies found
+                  {{else}}
+                    Welcome to Policies
+                  {{/if}}
+                </h2>
               </BlockSlot>
-            </PopoverMenu>
+              <BlockSlot @name="body">
+                <p>
+                  {{#if (gt items.length 0)}}
+                    No policies where found matching that search, or you may not have access to view the policies you are searching for.
+                  {{else}}
+                    There don't seem to be any policies, or you may not have access to view policies yet.
+                  {{/if}}
+                </p>
+              </BlockSlot>
+              <BlockSlot @name="actions">
+                <li class="docs-link">
+                  <a href="{{env 'CONSUL_DOCS_URL'}}/commands/acl/policy" rel="noopener noreferrer" target="_blank">Documentation on policies</a>
+                </li>
+                <li class="learn-link">
+                  <a href="{{env 'CONSUL_LEARN_URL'}}/consul/security-networking/managing-acl-policies" rel="noopener noreferrer" target="_blank">Read the guide</a>
+                </li>
+              </BlockSlot>
+            </EmptyState>
           </BlockSlot>
-        </TabularCollection>
+        </ChangeableSet>
+  {{/let}}
+{{/let}}
       </BlockSlot>
-      <BlockSlot @name="empty">
-        <EmptyState @allowLogin={{true}}>
-          <BlockSlot @name="header">
-            <h2>
-              {{#if (gt items.length 0)}}
-                No policies found
-              {{else}}
-                Welcome to Policies
-              {{/if}}
-            </h2>
-          </BlockSlot>
-          <BlockSlot @name="body">
-            <p>
-              {{#if (gt items.length 0)}}
-                No policies where found matching that search, or you may not have access to view the policies you are searching for.
-              {{else}}
-                There don't seem to be any policies, or you may not have access to view policies yet.
-              {{/if}}
-            </p>
-          </BlockSlot>
-          <BlockSlot @name="actions">
-            <li class="docs-link">
-              <a href="{{env 'CONSUL_DOCS_URL'}}/commands/acl/policy" rel="noopener noreferrer" target="_blank">Documentation on policies</a>
-            </li>
-            <li class="learn-link">
-              <a href="{{env 'CONSUL_LEARN_URL'}}/consul/security-networking/managing-acl-policies" rel="noopener noreferrer" target="_blank">Read the guide</a>
-            </li>
-          </BlockSlot>
-        </EmptyState>
-      </BlockSlot>
-    </ChangeableSet>
-  </BlockSlot>
-</AppView>
+    </AppView>
+  {{/let}}
+{{/let}}

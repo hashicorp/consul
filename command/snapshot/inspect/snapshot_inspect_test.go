@@ -66,8 +66,6 @@ func TestSnapshotInspectCommand(t *testing.T) {
 	client := a.Client()
 
 	dir := testutil.TempDir(t, "snapshot")
-	defer os.RemoveAll(dir)
-
 	file := filepath.Join(dir, "backup.tgz")
 
 	// Save a snapshot of the current Consul state

@@ -113,18 +113,18 @@ func TestStateStore_ensureNoNodeWithSimilarNameTxn(t *testing.T) {
 		Address: "2.3.4.5",
 	}
 	// Lets conflict with node1 (has an ID)
-	if err := s.ensureNoNodeWithSimilarNameTxn(tx, node, false); err == nil {
+	if err := ensureNoNodeWithSimilarNameTxn(tx, node, false); err == nil {
 		t.Fatalf("Should return an error since another name with similar name exists")
 	}
-	if err := s.ensureNoNodeWithSimilarNameTxn(tx, node, true); err == nil {
+	if err := ensureNoNodeWithSimilarNameTxn(tx, node, true); err == nil {
 		t.Fatalf("Should return an error since another name with similar name exists")
 	}
 	// Lets conflict with node without ID
 	node.Node = "NoDe2"
-	if err := s.ensureNoNodeWithSimilarNameTxn(tx, node, false); err == nil {
+	if err := ensureNoNodeWithSimilarNameTxn(tx, node, false); err == nil {
 		t.Fatalf("Should return an error since another name with similar name exists")
 	}
-	if err := s.ensureNoNodeWithSimilarNameTxn(tx, node, true); err != nil {
+	if err := ensureNoNodeWithSimilarNameTxn(tx, node, true); err != nil {
 		t.Fatalf("Should not clash with another similar node name without ID, err:=%q", err)
 	}
 
@@ -134,15 +134,15 @@ func TestStateStore_ensureNoNodeWithSimilarNameTxn(t *testing.T) {
 		Node:    "node1",
 		Address: "2.3.4.5",
 	}
-	if err := s.ensureNoNodeWithSimilarNameTxn(tx, newNode, false); err == nil {
+	if err := ensureNoNodeWithSimilarNameTxn(tx, newNode, false); err == nil {
 		t.Fatalf("Should return an error since the previous node is still healthy")
 	}
-	s.ensureCheckTxn(tx, 5, &structs.HealthCheck{
+	s.ensureCheckTxn(tx, 5, false, &structs.HealthCheck{
 		Node:    "node1",
 		CheckID: structs.SerfCheckID,
 		Status:  api.HealthCritical,
 	})
-	if err := s.ensureNoNodeWithSimilarNameTxn(tx, newNode, false); err != nil {
+	if err := ensureNoNodeWithSimilarNameTxn(tx, newNode, false); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -199,7 +199,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 		Address: "1.1.1.1",
 		Port:    8080,
 		Meta:    map[string]string{strings.Repeat("a", 129): "somevalue"},
-		Tags:    []string{"master"},
+		Tags:    []string{"primary"},
 	}
 	if err := s.EnsureRegistration(9, req); err == nil {
 		t.Fatalf("Service should not have been registered since Meta is invalid")
@@ -211,7 +211,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 		Service: "redis",
 		Address: "1.1.1.1",
 		Port:    8080,
-		Tags:    []string{"master"},
+		Tags:    []string{"primary"},
 		Weights: &structs.Weights{Passing: 1, Warning: 1},
 	}
 	if err := s.EnsureRegistration(2, req); err != nil {
@@ -226,7 +226,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 				Service:        "redis",
 				Address:        "1.1.1.1",
 				Port:           8080,
-				Tags:           []string{"master"},
+				Tags:           []string{"primary"},
 				Weights:        &structs.Weights{Passing: 1, Warning: 1},
 				RaftIndex:      structs.RaftIndex{CreateIndex: 2, ModifyIndex: 2},
 				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
@@ -321,7 +321,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 				Status:         "critical",
 				ServiceID:      "redis1",
 				ServiceName:    "redis",
-				ServiceTags:    []string{"master"},
+				ServiceTags:    []string{"primary"},
 				RaftIndex:      structs.RaftIndex{CreateIndex: 4, ModifyIndex: 4},
 				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
@@ -376,6 +376,10 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 		ID:      makeRandomNodeID(t),
 		Node:    "node1",
 		Address: "1.2.3.4",
+		RaftIndex: structs.RaftIndex{
+			CreateIndex: 1,
+			ModifyIndex: 1,
+		},
 	}
 	nodeID := string(req.ID)
 	nodeName := req.Node
@@ -414,6 +418,10 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 		Address: "1.1.1.1",
 		Port:    8080,
 		Weights: &structs.Weights{Passing: 1, Warning: 1},
+		RaftIndex: structs.RaftIndex{
+			CreateIndex: 2,
+			ModifyIndex: 2,
+		},
 	}
 	restore = s.Restore()
 	if err := restore.Registration(2, req); err != nil {
@@ -446,6 +454,10 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 		Node:    nodeName,
 		CheckID: "check1",
 		Name:    "check",
+		RaftIndex: structs.RaftIndex{
+			CreateIndex: 3,
+			ModifyIndex: 3,
+		},
 	}
 	restore = s.Restore()
 	if err := restore.Registration(3, req); err != nil {
@@ -483,6 +495,10 @@ func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
 			Node:    nodeName,
 			CheckID: "check2",
 			Name:    "check",
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 4,
+				ModifyIndex: 4,
+			},
 		},
 	}
 	restore = s.Restore()
@@ -527,7 +543,7 @@ func deprecatedEnsureNodeWithoutIDCanRegister(t *testing.T, s *Store, nodeName s
 		Node:    nodeName,
 		Address: "1.1.1.9",
 		Meta: map[string]string{
-			"version": string(txIdx),
+			"version": fmt.Sprint(txIdx),
 		},
 	}
 	if err := s.EnsureNode(txIdx, in); err != nil {
@@ -1552,7 +1568,7 @@ func TestStateStore_Services(t *testing.T) {
 	ns1 := &structs.NodeService{
 		ID:      "service1",
 		Service: "redis",
-		Tags:    []string{"prod", "master"},
+		Tags:    []string{"prod", "primary"},
 		Address: "1.1.1.1",
 		Port:    1111,
 	}
@@ -1564,7 +1580,7 @@ func TestStateStore_Services(t *testing.T) {
 	ns2 := &structs.NodeService{
 		ID:      "service3",
 		Service: "redis",
-		Tags:    []string{"prod", "slave"},
+		Tags:    []string{"prod", "replica"},
 		Address: "1.1.1.1",
 		Port:    1111,
 	}
@@ -1588,7 +1604,7 @@ func TestStateStore_Services(t *testing.T) {
 	// Verify the result. We sort the lists since the order is
 	// non-deterministic (it's built using a map internally).
 	expected := structs.Services{
-		"redis": []string{"prod", "master", "slave"},
+		"redis": []string{"prod", "primary", "replica"},
 		"dogs":  []string{},
 	}
 	sort.Strings(expected["redis"])
@@ -1611,12 +1627,14 @@ func TestStateStore_Services(t *testing.T) {
 func TestStateStore_ServicesByNodeMeta(t *testing.T) {
 	s := testStateStore(t)
 
-	// Listing with no results returns nil.
 	ws := memdb.NewWatchSet()
-	idx, res, err := s.ServicesByNodeMeta(ws, map[string]string{"somekey": "somevalue"}, nil)
-	if idx != 0 || len(res) != 0 || err != nil {
-		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
-	}
+
+	t.Run("Listing with no results returns nil", func(t *testing.T) {
+		idx, res, err := s.ServicesByNodeMeta(ws, map[string]string{"somekey": "somevalue"}, nil)
+		if idx != 0 || len(res) != 0 || err != nil {
+			t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
+		}
+	})
 
 	// Create some nodes and services in the state store.
 	node0 := &structs.Node{Node: "node0", Address: "127.0.0.1", Meta: map[string]string{"role": "client", "common": "1"}}
@@ -1630,7 +1648,7 @@ func TestStateStore_ServicesByNodeMeta(t *testing.T) {
 	ns1 := &structs.NodeService{
 		ID:      "service1",
 		Service: "redis",
-		Tags:    []string{"prod", "master"},
+		Tags:    []string{"prod", "primary"},
 		Address: "1.1.1.1",
 		Port:    1111,
 	}
@@ -1640,7 +1658,7 @@ func TestStateStore_ServicesByNodeMeta(t *testing.T) {
 	ns2 := &structs.NodeService{
 		ID:      "service1",
 		Service: "redis",
-		Tags:    []string{"prod", "slave"},
+		Tags:    []string{"prod", "replica"},
 		Address: "1.1.1.1",
 		Port:    1111,
 	}
@@ -1648,94 +1666,97 @@ func TestStateStore_ServicesByNodeMeta(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	if !watchFired(ws) {
-		t.Fatalf("bad")
+		t.Fatalf("expected the watch to be triggered by the queries")
 	}
 
-	// Filter the services by the first node's meta value.
 	ws = memdb.NewWatchSet()
-	_, res, err = s.ServicesByNodeMeta(ws, map[string]string{"role": "client"}, nil)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	expected := structs.Services{
-		"redis": []string{"master", "prod"},
-	}
-	sort.Strings(res["redis"])
-	if !reflect.DeepEqual(res, expected) {
-		t.Fatalf("bad: %v %v", res, expected)
-	}
 
-	// Get all services using the common meta value
-	_, res, err = s.ServicesByNodeMeta(ws, map[string]string{"common": "1"}, nil)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	expected = structs.Services{
-		"redis": []string{"master", "prod", "slave"},
-	}
-	sort.Strings(res["redis"])
-	if !reflect.DeepEqual(res, expected) {
-		t.Fatalf("bad: %v %v", res, expected)
-	}
+	t.Run("Filter the services by the first node's meta value", func(t *testing.T) {
+		_, res, err := s.ServicesByNodeMeta(ws, map[string]string{"role": "client"}, nil)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		expected := structs.Services{
+			"redis": []string{"primary", "prod"},
+		}
+		sort.Strings(res["redis"])
+		require.Equal(t, expected, res)
+	})
 
-	// Get an empty list for an invalid meta value
-	_, res, err = s.ServicesByNodeMeta(ws, map[string]string{"invalid": "nope"}, nil)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	expected = structs.Services{}
-	if !reflect.DeepEqual(res, expected) {
-		t.Fatalf("bad: %v %v", res, expected)
-	}
+	t.Run("Get all services using the common meta value", func(t *testing.T) {
+		_, res, err := s.ServicesByNodeMeta(ws, map[string]string{"common": "1"}, nil)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		expected := structs.Services{
+			"redis": []string{"primary", "prod", "replica"},
+		}
+		sort.Strings(res["redis"])
+		require.Equal(t, expected, res)
+	})
 
-	// Get the first node's service instance using multiple meta filters
-	_, res, err = s.ServicesByNodeMeta(ws, map[string]string{"role": "client", "common": "1"}, nil)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	expected = structs.Services{
-		"redis": []string{"master", "prod"},
-	}
-	sort.Strings(res["redis"])
-	if !reflect.DeepEqual(res, expected) {
-		t.Fatalf("bad: %v %v", res, expected)
-	}
+	t.Run("Get an empty list for an invalid meta value", func(t *testing.T) {
+		_, res, err := s.ServicesByNodeMeta(ws, map[string]string{"invalid": "nope"}, nil)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		expected := structs.Services{}
+		require.Equal(t, expected, res)
+	})
 
-	// Sanity check the watch before we proceed.
-	if watchFired(ws) {
-		t.Fatalf("bad")
-	}
+	t.Run("Get the first node's service instance using multiple meta filters", func(t *testing.T) {
+		_, res, err := s.ServicesByNodeMeta(ws, map[string]string{"role": "client", "common": "1"}, nil)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		expected := structs.Services{
+			"redis": []string{"primary", "prod"},
+		}
+		sort.Strings(res["redis"])
+		require.Equal(t, expected, res)
+	})
 
-	// Registering some unrelated node + service should not fire the watch.
-	testRegisterNode(t, s, 4, "nope")
-	testRegisterService(t, s, 5, "nope", "nope")
-	if watchFired(ws) {
-		t.Fatalf("bad")
-	}
+	t.Run("Registering some unrelated node + service should not fire the watch.", func(t *testing.T) {
+		testRegisterNode(t, s, 4, "nope")
+		testRegisterService(t, s, 5, "nope", "nope")
+		if watchFired(ws) {
+			t.Fatalf("expected the watch to timeout and not be triggered")
+		}
+	})
 
-	// Overwhelm the service tracking.
-	idx = 6
-	for i := 0; i < 2*watchLimit; i++ {
-		node := fmt.Sprintf("many%d", i)
-		testRegisterNodeWithMeta(t, s, idx, node, map[string]string{"common": "1"})
-		idx++
-		testRegisterService(t, s, idx, node, "nope")
-		idx++
-	}
+	t.Run("Uses watchLimit to limit the number of watches", func(t *testing.T) {
+		patchWatchLimit(t, 10)
 
-	// Now get a fresh watch, which will be forced to watch the whole
-	// service table.
-	ws = memdb.NewWatchSet()
-	_, _, err = s.ServicesByNodeMeta(ws, map[string]string{"common": "1"}, nil)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+		var idx uint64 = 6
+		for i := 0; i < watchLimit+2; i++ {
+			node := fmt.Sprintf("many%d", i)
+			testRegisterNodeWithMeta(t, s, idx, node, map[string]string{"common": "1"})
+			idx++
+			testRegisterService(t, s, idx, node, "nope")
+			idx++
+		}
 
-	// Registering some unrelated node + service should not fire the watch.
-	testRegisterService(t, s, idx, "nope", "more-nope")
-	if !watchFired(ws) {
-		t.Fatalf("bad")
-	}
+		// Now get a fresh watch, which will be forced to watch the whole
+		// service table.
+		ws := memdb.NewWatchSet()
+		_, _, err := s.ServicesByNodeMeta(ws, map[string]string{"common": "1"}, nil)
+		require.NoError(t, err)
+
+		testRegisterService(t, s, idx, "nope", "more-nope")
+		if !watchFired(ws) {
+			t.Fatalf("expected the watch to timeout and not be triggered")
+		}
+	})
+}
+
+// patchWatchLimit package variable. Not safe for concurrent use. Do not use
+// with t.Parallel.
+func patchWatchLimit(t *testing.T, limit int) {
+	oldLimit := watchLimit
+	watchLimit = limit
+	t.Cleanup(func() {
+		watchLimit = oldLimit
+	})
 }
 
 func TestStateStore_ServiceNodes(t *testing.T) {
@@ -1767,13 +1788,13 @@ func TestStateStore_ServiceNodes(t *testing.T) {
 	if err := s.EnsureService(13, "bar", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s.EnsureService(14, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"master"}, Address: "", Port: 8000}); err != nil {
+	if err := s.EnsureService(14, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"primary"}, Address: "", Port: 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s.EnsureService(15, "bar", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"slave"}, Address: "", Port: 8000}); err != nil {
+	if err := s.EnsureService(15, "bar", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"replica"}, Address: "", Port: 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s.EnsureService(16, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"slave"}, Address: "", Port: 8001}); err != nil {
+	if err := s.EnsureService(16, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"replica"}, Address: "", Port: 8001}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if !watchFired(ws) {
@@ -1801,7 +1822,7 @@ func TestStateStore_ServiceNodes(t *testing.T) {
 	if nodes[0].ServiceID != "db" {
 		t.Fatalf("bad: %v", nodes)
 	}
-	if !stringslice.Contains(nodes[0].ServiceTags, "slave") {
+	if !stringslice.Contains(nodes[0].ServiceTags, "replica") {
 		t.Fatalf("bad: %v", nodes)
 	}
 	if nodes[0].ServicePort != 8000 {
@@ -1816,7 +1837,7 @@ func TestStateStore_ServiceNodes(t *testing.T) {
 	if nodes[1].ServiceID != "db2" {
 		t.Fatalf("bad: %v", nodes)
 	}
-	if !stringslice.Contains(nodes[1].ServiceTags, "slave") {
+	if !stringslice.Contains(nodes[1].ServiceTags, "replica") {
 		t.Fatalf("bad: %v", nodes)
 	}
 	if nodes[1].ServicePort != 8001 {
@@ -1831,7 +1852,7 @@ func TestStateStore_ServiceNodes(t *testing.T) {
 	if nodes[2].ServiceID != "db" {
 		t.Fatalf("bad: %v", nodes)
 	}
-	if !stringslice.Contains(nodes[2].ServiceTags, "master") {
+	if !stringslice.Contains(nodes[2].ServiceTags, "primary") {
 		t.Fatalf("bad: %v", nodes)
 	}
 	if nodes[2].ServicePort != 8000 {
@@ -1854,7 +1875,8 @@ func TestStateStore_ServiceNodes(t *testing.T) {
 
 	// Overwhelm the node tracking.
 	idx = 19
-	for i := 0; i < 2*watchLimit; i++ {
+	patchWatchLimit(t, 10)
+	for i := 0; i < watchLimit+2; i++ {
 		node := fmt.Sprintf("many%d", i)
 		if err := s.EnsureNode(idx, &structs.Node{Node: node, Address: "127.0.0.1"}); err != nil {
 			t.Fatalf("err: %v", err)
@@ -1885,7 +1907,7 @@ func TestStateStore_ServiceTagNodes(t *testing.T) {
 
 	// Listing with no results returns an empty list.
 	ws := memdb.NewWatchSet()
-	idx, nodes, err := s.ServiceTagNodes(ws, "db", []string{"master"}, nil)
+	idx, nodes, err := s.ServiceTagNodes(ws, "db", []string{"primary"}, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1903,13 +1925,13 @@ func TestStateStore_ServiceTagNodes(t *testing.T) {
 	if err := s.EnsureNode(16, &structs.Node{Node: "bar", Address: "127.0.0.2"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s.EnsureService(17, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"master"}, Address: "", Port: 8000}); err != nil {
+	if err := s.EnsureService(17, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"primary"}, Address: "", Port: 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s.EnsureService(18, "foo", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"slave"}, Address: "", Port: 8001}); err != nil {
+	if err := s.EnsureService(18, "foo", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"replica"}, Address: "", Port: 8001}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s.EnsureService(19, "bar", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"slave"}, Address: "", Port: 8000}); err != nil {
+	if err := s.EnsureService(19, "bar", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"replica"}, Address: "", Port: 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if !watchFired(ws) {
@@ -1918,7 +1940,7 @@ func TestStateStore_ServiceTagNodes(t *testing.T) {
 
 	// Read everything back.
 	ws = memdb.NewWatchSet()
-	idx, nodes, err = s.ServiceTagNodes(ws, "db", []string{"master"}, nil)
+	idx, nodes, err = s.ServiceTagNodes(ws, "db", []string{"primary"}, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1934,7 +1956,7 @@ func TestStateStore_ServiceTagNodes(t *testing.T) {
 	if nodes[0].Address != "127.0.0.1" {
 		t.Fatalf("bad: %v", nodes)
 	}
-	if !stringslice.Contains(nodes[0].ServiceTags, "master") {
+	if !stringslice.Contains(nodes[0].ServiceTags, "primary") {
 		t.Fatalf("bad: %v", nodes)
 	}
 	if nodes[0].ServicePort != 8000 {
@@ -1947,7 +1969,7 @@ func TestStateStore_ServiceTagNodes(t *testing.T) {
 		t.Fatalf("bad")
 	}
 
-	// But removing a node with the "db:master" service should fire the watch.
+	// But removing a node with the "db:primary" service should fire the watch.
 	if err := s.DeleteNode(21, "foo"); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1967,25 +1989,25 @@ func TestStateStore_ServiceTagNodes_MultipleTags(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := s.EnsureService(17, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"master", "v2"}, Address: "", Port: 8000}); err != nil {
+	if err := s.EnsureService(17, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"primary", "v2"}, Address: "", Port: 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := s.EnsureService(18, "foo", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"slave", "v2", "dev"}, Address: "", Port: 8001}); err != nil {
+	if err := s.EnsureService(18, "foo", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"replica", "v2", "dev"}, Address: "", Port: 8001}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := s.EnsureService(19, "bar", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"slave", "v2"}, Address: "", Port: 8000}); err != nil {
+	if err := s.EnsureService(19, "bar", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"replica", "v2"}, Address: "", Port: 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	idx, nodes, err := s.ServiceTagNodes(nil, "db", []string{"master"}, nil)
+	idx, nodes, err := s.ServiceTagNodes(nil, "db", []string{"primary"}, nil)
 	require.NoError(t, err)
 	require.Equal(t, int(idx), 19)
 	require.Len(t, nodes, 1)
 	require.Equal(t, nodes[0].Node, "foo")
 	require.Equal(t, nodes[0].Address, "127.0.0.1")
-	require.Contains(t, nodes[0].ServiceTags, "master")
+	require.Contains(t, nodes[0].ServiceTags, "primary")
 	require.Equal(t, nodes[0].ServicePort, 8000)
 
 	idx, nodes, err = s.ServiceTagNodes(nil, "db", []string{"v2"}, nil)
@@ -1994,14 +2016,14 @@ func TestStateStore_ServiceTagNodes_MultipleTags(t *testing.T) {
 	require.Len(t, nodes, 3)
 
 	// Test filtering on multiple tags
-	idx, nodes, err = s.ServiceTagNodes(nil, "db", []string{"v2", "slave"}, nil)
+	idx, nodes, err = s.ServiceTagNodes(nil, "db", []string{"v2", "replica"}, nil)
 	require.NoError(t, err)
 	require.Equal(t, int(idx), 19)
 	require.Len(t, nodes, 2)
 	require.Contains(t, nodes[0].ServiceTags, "v2")
-	require.Contains(t, nodes[0].ServiceTags, "slave")
+	require.Contains(t, nodes[0].ServiceTags, "replica")
 	require.Contains(t, nodes[1].ServiceTags, "v2")
-	require.Contains(t, nodes[1].ServiceTags, "slave")
+	require.Contains(t, nodes[1].ServiceTags, "replica")
 
 	idx, nodes, err = s.ServiceTagNodes(nil, "db", []string{"dev"}, nil)
 	require.NoError(t, err)
@@ -2088,7 +2110,7 @@ func TestStateStore_ConnectServiceNodes(t *testing.T) {
 	assert.Nil(s.EnsureService(14, "foo", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
 	assert.Nil(s.EnsureService(15, "bar", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
 	assert.Nil(s.EnsureService(16, "bar", &structs.NodeService{ID: "native-db", Service: "db", Connect: structs.ServiceConnect{Native: true}}))
-	assert.Nil(s.EnsureService(17, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"slave"}, Address: "", Port: 8001}))
+	assert.Nil(s.EnsureService(17, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"replica"}, Address: "", Port: 8001}))
 	assert.True(watchFired(ws))
 
 	// Read everything back.
@@ -2623,7 +2645,8 @@ func TestStateStore_ServiceChecksByNodeMeta(t *testing.T) {
 	}
 
 	// Overwhelm the node tracking.
-	for i := 0; i < 2*watchLimit; i++ {
+	patchWatchLimit(t, 10)
+	for i := 0; i < watchLimit+2; i++ {
 		node := fmt.Sprintf("many%d", idx)
 		testRegisterNodeWithMeta(t, s, idx, node, map[string]string{"common": "1"})
 		idx++
@@ -2803,7 +2826,8 @@ func TestStateStore_ChecksInStateByNodeMeta(t *testing.T) {
 	}
 
 	// Overwhelm the node tracking.
-	for i := 0; i < 2*watchLimit; i++ {
+	patchWatchLimit(t, 10)
+	for i := 0; i < watchLimit+2; i++ {
 		node := fmt.Sprintf("many%d", idx)
 		testRegisterNodeWithMeta(t, s, idx, node, map[string]string{"common": "1"})
 		idx++
@@ -2908,7 +2932,7 @@ func ensureServiceVersion(t *testing.T, s *Store, ws memdb.WatchSet, serviceID s
 }
 
 // Ensure index exist, if expectedIndex = -1, ensure the index does not exists
-func ensureIndexForService(t *testing.T, s *Store, ws memdb.WatchSet, serviceName string, expectedIndex uint64) {
+func ensureIndexForService(t *testing.T, s *Store, serviceName string, expectedIndex uint64) {
 	t.Helper()
 	tx := s.db.Txn(false)
 	defer tx.Abort()
@@ -2993,10 +3017,10 @@ func TestStateStore_IndexIndependence(t *testing.T) {
 
 	s.DeleteCheck(15, "node2", types.CheckID("check_service_shared"), nil)
 	ensureServiceVersion(t, s, ws, "service_shared", 15, 2)
-	ensureIndexForService(t, s, ws, "service_shared", 15)
+	ensureIndexForService(t, s, "service_shared", 15)
 	s.DeleteService(16, "node2", "service_shared", nil)
 	ensureServiceVersion(t, s, ws, "service_shared", 16, 1)
-	ensureIndexForService(t, s, ws, "service_shared", 16)
+	ensureIndexForService(t, s, "service_shared", 16)
 	s.DeleteService(17, "node1", "service_shared", nil)
 	ensureServiceVersion(t, s, ws, "service_shared", 17, 0)
 
@@ -3007,7 +3031,7 @@ func TestStateStore_IndexIndependence(t *testing.T) {
 	ensureServiceVersion(t, s, ws, "service_shared", 17, 0)
 
 	// No index should exist anymore, it must have been garbage collected
-	ensureIndexForService(t, s, ws, "service_shared", 0)
+	ensureIndexForService(t, s, "service_shared", 0)
 	if !watchFired(ws) {
 		t.Fatalf("bad")
 	}
@@ -3538,7 +3562,7 @@ func TestStateStore_CheckConnectServiceNodes(t *testing.T) {
 	assert.Nil(s.EnsureService(13, "bar", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}))
 	assert.Nil(s.EnsureService(14, "foo", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
 	assert.Nil(s.EnsureService(15, "bar", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
-	assert.Nil(s.EnsureService(16, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"slave"}, Address: "", Port: 8001}))
+	assert.Nil(s.EnsureService(16, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"replica"}, Address: "", Port: 8001}))
 	assert.True(watchFired(ws))
 
 	// Register node checks
@@ -3694,7 +3718,7 @@ func BenchmarkCheckServiceNodes(b *testing.B) {
 	if err := s.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"}); err != nil {
 		b.Fatalf("err: %v", err)
 	}
-	if err := s.EnsureService(2, "foo", &structs.NodeService{ID: "db1", Service: "db", Tags: []string{"master"}, Address: "", Port: 8000}); err != nil {
+	if err := s.EnsureService(2, "foo", &structs.NodeService{ID: "db1", Service: "db", Tags: []string{"primary"}, Address: "", Port: 8000}); err != nil {
 		b.Fatalf("err: %v", err)
 	}
 	check := &structs.HealthCheck{
@@ -3729,7 +3753,7 @@ func TestStateStore_CheckServiceTagNodes(t *testing.T) {
 	if err := s.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s.EnsureService(2, "foo", &structs.NodeService{ID: "db1", Service: "db", Tags: []string{"master"}, Address: "", Port: 8000}); err != nil {
+	if err := s.EnsureService(2, "foo", &structs.NodeService{ID: "db1", Service: "db", Tags: []string{"primary"}, Address: "", Port: 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	check := &structs.HealthCheck{
@@ -3753,7 +3777,7 @@ func TestStateStore_CheckServiceTagNodes(t *testing.T) {
 	}
 
 	ws := memdb.NewWatchSet()
-	idx, nodes, err := s.CheckServiceTagNodes(ws, "db", []string{"master"}, nil)
+	idx, nodes, err := s.CheckServiceTagNodes(ws, "db", []string{"primary"}, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -4386,7 +4410,7 @@ func TestStateStore_ensureServiceCASTxn(t *testing.T) {
 
 	// attempt to update with a 0 index
 	tx := s.db.WriteTxnRestore()
-	err := s.ensureServiceCASTxn(tx, 3, "node1", &ns)
+	err := ensureServiceCASTxn(tx, 3, "node1", &ns)
 	require.Equal(t, err, errCASCompareFailed)
 	require.NoError(t, tx.Commit())
 
@@ -4401,7 +4425,7 @@ func TestStateStore_ensureServiceCASTxn(t *testing.T) {
 	ns.ModifyIndex = 99
 	// attempt to update with a non-matching index
 	tx = s.db.WriteTxnRestore()
-	err = s.ensureServiceCASTxn(tx, 4, "node1", &ns)
+	err = ensureServiceCASTxn(tx, 4, "node1", &ns)
 	require.Equal(t, err, errCASCompareFailed)
 	require.NoError(t, tx.Commit())
 
@@ -4416,7 +4440,7 @@ func TestStateStore_ensureServiceCASTxn(t *testing.T) {
 	ns.ModifyIndex = 2
 	// update with the matching modify index
 	tx = s.db.WriteTxnRestore()
-	err = s.ensureServiceCASTxn(tx, 7, "node1", &ns)
+	err = ensureServiceCASTxn(tx, 7, "node1", &ns)
 	require.NoError(t, err)
 	require.NoError(t, tx.Commit())
 
@@ -5677,4 +5701,416 @@ func setupIngressState(t *testing.T, s *Store) memdb.WatchSet {
 	assert.True(t, watchFired(ws))
 
 	return ws
+}
+
+func TestStateStore_DumpGatewayServices(t *testing.T) {
+	s := testStateStore(t)
+
+	// Listing with no results returns an empty list.
+	ws := memdb.NewWatchSet()
+	idx, nodes, err := s.DumpGatewayServices(ws)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(0))
+	assert.Len(t, nodes, 0)
+
+	// Create some nodes
+	assert.Nil(t, s.EnsureNode(10, &structs.Node{Node: "foo", Address: "127.0.0.1"}))
+	assert.Nil(t, s.EnsureNode(11, &structs.Node{Node: "bar", Address: "127.0.0.2"}))
+	assert.Nil(t, s.EnsureNode(12, &structs.Node{Node: "baz", Address: "127.0.0.2"}))
+
+	// Typical services and some consul services spread across two nodes
+	assert.Nil(t, s.EnsureService(13, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: nil, Address: "", Port: 5000}))
+	assert.Nil(t, s.EnsureService(15, "bar", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}))
+	assert.Nil(t, s.EnsureService(16, "bar", &structs.NodeService{ID: "consul", Service: "consul", Tags: nil}))
+	assert.Nil(t, s.EnsureService(17, "bar", &structs.NodeService{ID: "consul", Service: "consul", Tags: nil}))
+
+	ingressNS := &structs.NodeService{
+		Kind:    structs.ServiceKindIngressGateway,
+		ID:      "ingress",
+		Service: "ingress",
+		Port:    8443,
+	}
+	assert.Nil(t, s.EnsureService(18, "baz", ingressNS))
+
+	// Register a gateway
+	terminatingNS := &structs.NodeService{
+		Kind:    structs.ServiceKindTerminatingGateway,
+		ID:      "gateway",
+		Service: "gateway",
+		Port:    443,
+	}
+	assert.Nil(t, s.EnsureService(20, "baz", terminatingNS))
+
+	t.Run("add-tgw-config", func(t *testing.T) {
+		// Associate gateway with db and api
+		assert.Nil(t, s.EnsureConfigEntry(21, &structs.TerminatingGatewayConfigEntry{
+			Kind: "terminating-gateway",
+			Name: "gateway",
+			Services: []structs.LinkedService{
+				{
+					Name:     "api",
+					CAFile:   "api/ca.crt",
+					CertFile: "api/client.crt",
+					KeyFile:  "api/client.key",
+					SNI:      "my-domain",
+				},
+				{
+					Name: "db",
+				},
+				{
+					Name:     "*",
+					CAFile:   "ca.crt",
+					CertFile: "client.crt",
+					KeyFile:  "client.key",
+					SNI:      "my-alt-domain",
+				},
+			},
+		}, nil))
+		assert.True(t, watchFired(ws))
+
+		// Read everything back.
+		ws = memdb.NewWatchSet()
+		idx, out, err := s.DumpGatewayServices(ws)
+		assert.Nil(t, err)
+		assert.Equal(t, idx, uint64(21))
+		assert.Len(t, out, 2)
+
+		expect := structs.GatewayServices{
+			{
+				Service:     structs.NewServiceName("api", nil),
+				Gateway:     structs.NewServiceName("gateway", nil),
+				GatewayKind: structs.ServiceKindTerminatingGateway,
+				CAFile:      "api/ca.crt",
+				CertFile:    "api/client.crt",
+				KeyFile:     "api/client.key",
+				SNI:         "my-domain",
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 21,
+					ModifyIndex: 21,
+				},
+			},
+			{
+				Service:     structs.NewServiceName("db", nil),
+				Gateway:     structs.NewServiceName("gateway", nil),
+				GatewayKind: structs.ServiceKindTerminatingGateway,
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 21,
+					ModifyIndex: 21,
+				},
+			},
+		}
+		assert.Equal(t, expect, out)
+	})
+
+	t.Run("no-op", func(t *testing.T) {
+		// Check watch doesn't fire on same exact config
+		assert.Nil(t, s.EnsureConfigEntry(21, &structs.TerminatingGatewayConfigEntry{
+			Kind: "terminating-gateway",
+			Name: "gateway",
+			Services: []structs.LinkedService{
+				{
+					Name:     "api",
+					CAFile:   "api/ca.crt",
+					CertFile: "api/client.crt",
+					KeyFile:  "api/client.key",
+					SNI:      "my-domain",
+				},
+				{
+					Name: "db",
+				},
+				{
+					Name:     "*",
+					CAFile:   "ca.crt",
+					CertFile: "client.crt",
+					KeyFile:  "client.key",
+					SNI:      "my-alt-domain",
+				},
+			},
+		}, nil))
+		assert.False(t, watchFired(ws))
+
+		idx, out, err := s.DumpGatewayServices(ws)
+		assert.Nil(t, err)
+		assert.Equal(t, idx, uint64(21))
+		assert.Len(t, out, 2)
+
+		expect := structs.GatewayServices{
+			{
+				Service:     structs.NewServiceName("api", nil),
+				Gateway:     structs.NewServiceName("gateway", nil),
+				GatewayKind: structs.ServiceKindTerminatingGateway,
+				CAFile:      "api/ca.crt",
+				CertFile:    "api/client.crt",
+				KeyFile:     "api/client.key",
+				SNI:         "my-domain",
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 21,
+					ModifyIndex: 21,
+				},
+			},
+			{
+				Service:     structs.NewServiceName("db", nil),
+				Gateway:     structs.NewServiceName("gateway", nil),
+				GatewayKind: structs.ServiceKindTerminatingGateway,
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 21,
+					ModifyIndex: 21,
+				},
+			},
+		}
+		assert.Equal(t, expect, out)
+	})
+
+	// Add a service covered by wildcard
+	t.Run("add-wc-service", func(t *testing.T) {
+		assert.Nil(t, s.EnsureService(22, "bar", &structs.NodeService{ID: "redis", Service: "redis", Tags: nil, Address: "", Port: 6379}))
+		assert.True(t, watchFired(ws))
+
+		ws = memdb.NewWatchSet()
+		idx, out, err := s.DumpGatewayServices(ws)
+		assert.Nil(t, err)
+		assert.Equal(t, idx, uint64(22))
+		assert.Len(t, out, 3)
+
+		expect := structs.GatewayServices{
+			{
+				Service:     structs.NewServiceName("api", nil),
+				Gateway:     structs.NewServiceName("gateway", nil),
+				GatewayKind: structs.ServiceKindTerminatingGateway,
+				CAFile:      "api/ca.crt",
+				CertFile:    "api/client.crt",
+				KeyFile:     "api/client.key",
+				SNI:         "my-domain",
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 21,
+					ModifyIndex: 21,
+				},
+			},
+			{
+				Service:     structs.NewServiceName("db", nil),
+				Gateway:     structs.NewServiceName("gateway", nil),
+				GatewayKind: structs.ServiceKindTerminatingGateway,
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 21,
+					ModifyIndex: 21,
+				},
+			},
+			{
+				Service:      structs.NewServiceName("redis", nil),
+				Gateway:      structs.NewServiceName("gateway", nil),
+				GatewayKind:  structs.ServiceKindTerminatingGateway,
+				CAFile:       "ca.crt",
+				CertFile:     "client.crt",
+				KeyFile:      "client.key",
+				SNI:          "my-alt-domain",
+				FromWildcard: true,
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 22,
+					ModifyIndex: 22,
+				},
+			},
+		}
+		assert.Equal(t, expect, out)
+	})
+
+	// Delete a service covered by wildcard
+	t.Run("delete-wc-service", func(t *testing.T) {
+		assert.Nil(t, s.DeleteService(23, "bar", "redis", nil))
+		assert.True(t, watchFired(ws))
+
+		ws = memdb.NewWatchSet()
+		idx, out, err := s.DumpGatewayServices(ws)
+		assert.Nil(t, err)
+		assert.Equal(t, idx, uint64(23))
+		assert.Len(t, out, 2)
+
+		expect := structs.GatewayServices{
+			{
+				Service:     structs.NewServiceName("api", nil),
+				Gateway:     structs.NewServiceName("gateway", nil),
+				GatewayKind: structs.ServiceKindTerminatingGateway,
+				CAFile:      "api/ca.crt",
+				CertFile:    "api/client.crt",
+				KeyFile:     "api/client.key",
+				SNI:         "my-domain",
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 21,
+					ModifyIndex: 21,
+				},
+			},
+			{
+				Service:     structs.NewServiceName("db", nil),
+				Gateway:     structs.NewServiceName("gateway", nil),
+				GatewayKind: structs.ServiceKindTerminatingGateway,
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 21,
+					ModifyIndex: 21,
+				},
+			},
+		}
+		assert.Equal(t, expect, out)
+	})
+
+	t.Run("delete-config-entry-svc", func(t *testing.T) {
+		// Update the entry that only leaves one service
+		assert.Nil(t, s.EnsureConfigEntry(24, &structs.TerminatingGatewayConfigEntry{
+			Kind: "terminating-gateway",
+			Name: "gateway",
+			Services: []structs.LinkedService{
+				{
+					Name: "db",
+				},
+			},
+		}, nil))
+		assert.True(t, watchFired(ws))
+
+		idx, out, err := s.DumpGatewayServices(ws)
+		assert.Nil(t, err)
+		assert.Equal(t, idx, uint64(24))
+		assert.Len(t, out, 1)
+
+		// previously associated service (api) should not be present
+		expect := structs.GatewayServices{
+			{
+				Service:     structs.NewServiceName("db", nil),
+				Gateway:     structs.NewServiceName("gateway", nil),
+				GatewayKind: structs.ServiceKindTerminatingGateway,
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 24,
+					ModifyIndex: 24,
+				},
+			},
+		}
+		assert.Equal(t, expect, out)
+	})
+
+	t.Run("add-ingress-config", func(t *testing.T) {
+		svcDefault := &structs.ServiceConfigEntry{
+			Name:     "web",
+			Kind:     structs.ServiceDefaults,
+			Protocol: "http",
+		}
+		assert.NoError(t, s.EnsureConfigEntry(25, svcDefault, nil))
+
+		// Associate gateway with db and api
+		assert.Nil(t, s.EnsureConfigEntry(26, &structs.IngressGatewayConfigEntry{
+			Kind: "ingress-gateway",
+			Name: "ingress",
+			Listeners: []structs.IngressListener{
+				{
+					Port:     1111,
+					Protocol: "tcp",
+					Services: []structs.IngressService{
+						{
+							Name: "api",
+						},
+					},
+				},
+				{
+					Port:     2222,
+					Protocol: "http",
+					Services: []structs.IngressService{
+						{
+							Name:  "web",
+							Hosts: []string{"web.example.com"},
+						},
+					},
+				},
+			},
+		}, nil))
+		assert.True(t, watchFired(ws))
+
+		// Read everything back.
+		ws = memdb.NewWatchSet()
+		idx, out, err := s.DumpGatewayServices(ws)
+		assert.Nil(t, err)
+		assert.Equal(t, idx, uint64(26))
+		assert.Len(t, out, 3)
+
+		expect := structs.GatewayServices{
+			{
+				Service:     structs.NewServiceName("db", nil),
+				Gateway:     structs.NewServiceName("gateway", nil),
+				GatewayKind: structs.ServiceKindTerminatingGateway,
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 24,
+					ModifyIndex: 24,
+				},
+			},
+			{
+				Service:     structs.NewServiceName("api", nil),
+				Gateway:     structs.NewServiceName("ingress", nil),
+				GatewayKind: structs.ServiceKindIngressGateway,
+				Protocol:    "tcp",
+				Port:        1111,
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 26,
+					ModifyIndex: 26,
+				},
+			},
+			{
+				Service:     structs.NewServiceName("web", nil),
+				Gateway:     structs.NewServiceName("ingress", nil),
+				GatewayKind: structs.ServiceKindIngressGateway,
+				Protocol:    "http",
+				Port:        2222,
+				Hosts:       []string{"web.example.com"},
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 26,
+					ModifyIndex: 26,
+				},
+			},
+		}
+		assert.Equal(t, expect, out)
+	})
+
+	t.Run("delete-tgw-entry", func(t *testing.T) {
+		// Deleting the config entry should remove existing mappings
+		assert.Nil(t, s.DeleteConfigEntry(27, "terminating-gateway", "gateway", nil))
+		assert.True(t, watchFired(ws))
+
+		idx, out, err := s.DumpGatewayServices(ws)
+		assert.Nil(t, err)
+		assert.Equal(t, idx, uint64(27))
+		assert.Len(t, out, 2)
+
+		// Only ingress entries should remain
+		expect := structs.GatewayServices{
+			{
+				Service:     structs.NewServiceName("api", nil),
+				Gateway:     structs.NewServiceName("ingress", nil),
+				GatewayKind: structs.ServiceKindIngressGateway,
+				Protocol:    "tcp",
+				Port:        1111,
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 26,
+					ModifyIndex: 26,
+				},
+			},
+			{
+				Service:     structs.NewServiceName("web", nil),
+				Gateway:     structs.NewServiceName("ingress", nil),
+				GatewayKind: structs.ServiceKindIngressGateway,
+				Protocol:    "http",
+				Port:        2222,
+				Hosts:       []string{"web.example.com"},
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 26,
+					ModifyIndex: 26,
+				},
+			},
+		}
+		assert.Equal(t, expect, out)
+	})
+
+	t.Run("delete-ingress-entry", func(t *testing.T) {
+		// Deleting the config entry should remove existing mappings
+		assert.Nil(t, s.DeleteConfigEntry(28, "ingress-gateway", "ingress", nil))
+		assert.True(t, watchFired(ws))
+
+		idx, out, err := s.DumpGatewayServices(ws)
+		assert.Nil(t, err)
+		assert.Equal(t, idx, uint64(28))
+		assert.Len(t, out, 0)
+	})
 }

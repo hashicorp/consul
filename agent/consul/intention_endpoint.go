@@ -76,6 +76,10 @@ func (s *Intention) prepareApplyCreate(ident structs.ACLIdentity, authz acl.Auth
 
 	args.Intention.DefaultNamespaces(entMeta)
 
+	if err := s.validateEnterpriseIntention(args.Intention); err != nil {
+		return err
+	}
+
 	// Validate. We do not validate on delete since it is valid to only
 	// send an ID in that case.
 	// Set the precedence
@@ -135,11 +139,15 @@ func (s *Intention) prepareApplyUpdate(ident structs.ACLIdentity, authz acl.Auth
 
 	args.Intention.DefaultNamespaces(entMeta)
 
-	// Validate. We do not validate on delete since it is valid to only
-	// send an ID in that case.
+	if err := s.validateEnterpriseIntention(args.Intention); err != nil {
+		return err
+	}
+
 	// Set the precedence
 	args.Intention.UpdatePrecedence()
 
+	// Validate. We do not validate on delete since it is valid to only
+	// send an ID in that case.
 	if err := args.Intention.Validate(); err != nil {
 		return err
 	}
@@ -152,7 +160,7 @@ func (s *Intention) prepareApplyUpdate(ident structs.ACLIdentity, authz acl.Auth
 
 // prepareApplyDelete ensures that the intention specified by the ID in the request exists
 // and that the requester is authorized to delete it
-func (s *Intention) prepareApplyDelete(ident structs.ACLIdentity, authz acl.Authorizer, entMeta *structs.EnterpriseMeta, args *structs.IntentionRequest) error {
+func (s *Intention) prepareApplyDelete(ident structs.ACLIdentity, authz acl.Authorizer, args *structs.IntentionRequest) error {
 	// If this is not a create, then we have to verify the ID.
 	state := s.srv.fsm.State()
 	_, ixn, err := state.IntentionGet(nil, args.Intention.ID)
@@ -189,7 +197,7 @@ func (s *Intention) Apply(
 		args.Datacenter = s.srv.config.PrimaryDatacenter
 	}
 
-	if done, err := s.srv.forward("Intention.Apply", args, args, reply); done {
+	if done, err := s.srv.ForwardRPC("Intention.Apply", args, args, reply); done {
 		return err
 	}
 	defer metrics.MeasureSince([]string{"consul", "intention", "apply"}, time.Now())
@@ -217,7 +225,7 @@ func (s *Intention) Apply(
 			return err
 		}
 	case structs.IntentionOpDelete:
-		if err := s.prepareApplyDelete(ident, authz, &entMeta, args); err != nil {
+		if err := s.prepareApplyDelete(ident, authz, args); err != nil {
 			return err
 		}
 	default:
@@ -245,15 +253,48 @@ func (s *Intention) Get(
 	args *structs.IntentionQueryRequest,
 	reply *structs.IndexedIntentions) error {
 	// Forward if necessary
-	if done, err := s.srv.forward("Intention.Get", args, args, reply); done {
+	if done, err := s.srv.ForwardRPC("Intention.Get", args, args, reply); done {
 		return err
+	}
+
+	// Get the ACL token for the request for the checks below.
+	var entMeta structs.EnterpriseMeta
+	if _, err := s.srv.ResolveTokenAndDefaultMeta(args.Token, &entMeta, nil); err != nil {
+		return err
+	}
+
+	if args.Exact != nil {
+		// // Finish defaulting the namespace fields.
+		if args.Exact.SourceNS == "" {
+			args.Exact.SourceNS = entMeta.NamespaceOrDefault()
+		}
+		if err := s.srv.validateEnterpriseIntentionNamespace(args.Exact.SourceNS, true); err != nil {
+			return fmt.Errorf("Invalid SourceNS %q: %v", args.Exact.SourceNS, err)
+		}
+
+		if args.Exact.DestinationNS == "" {
+			args.Exact.DestinationNS = entMeta.NamespaceOrDefault()
+		}
+		if err := s.srv.validateEnterpriseIntentionNamespace(args.Exact.DestinationNS, true); err != nil {
+			return fmt.Errorf("Invalid DestinationNS %q: %v", args.Exact.DestinationNS, err)
+		}
 	}
 
 	return s.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, ixn, err := state.IntentionGet(ws, args.IntentionID)
+			var (
+				index uint64
+				ixn   *structs.Intention
+				err   error
+			)
+			if args.IntentionID != "" {
+				index, ixn, err = state.IntentionGet(ws, args.IntentionID)
+			} else if args.Exact != nil {
+				index, ixn, err = state.IntentionGetExact(ws, args.Exact)
+			}
+
 			if err != nil {
 				return err
 			}
@@ -287,7 +328,7 @@ func (s *Intention) List(
 	args *structs.DCSpecificRequest,
 	reply *structs.IndexedIntentions) error {
 	// Forward if necessary
-	if done, err := s.srv.forward("Intention.List", args, args, reply); done {
+	if done, err := s.srv.ForwardRPC("Intention.List", args, args, reply); done {
 		return err
 	}
 
@@ -296,10 +337,19 @@ func (s *Intention) List(
 		return err
 	}
 
+	var authzContext acl.AuthorizerContext
+	if _, err := s.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext); err != nil {
+		return err
+	}
+
+	if err := s.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
 	return s.srv.blockingQuery(
 		&args.QueryOptions, &reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, ixns, err := state.Intentions(ws)
+			index, ixns, err := state.Intentions(ws, &args.EnterpriseMeta)
 			if err != nil {
 				return err
 			}
@@ -329,17 +379,29 @@ func (s *Intention) Match(
 	args *structs.IntentionQueryRequest,
 	reply *structs.IndexedIntentionMatches) error {
 	// Forward if necessary
-	if done, err := s.srv.forward("Intention.Match", args, args, reply); done {
+	if done, err := s.srv.ForwardRPC("Intention.Match", args, args, reply); done {
 		return err
 	}
 
 	// Get the ACL token for the request for the checks below.
-	rule, err := s.srv.ResolveToken(args.Token)
+	var entMeta structs.EnterpriseMeta
+	authz, err := s.srv.ResolveTokenAndDefaultMeta(args.Token, &entMeta, nil)
 	if err != nil {
 		return err
 	}
 
-	if rule != nil {
+	// Finish defaulting the namespace fields.
+	for i := range args.Match.Entries {
+		if args.Match.Entries[i].Namespace == "" {
+			args.Match.Entries[i].Namespace = entMeta.NamespaceOrDefault()
+		}
+		if err := s.srv.validateEnterpriseIntentionNamespace(args.Match.Entries[i].Namespace, true); err != nil {
+			return fmt.Errorf("Invalid match entry namespace %q: %v",
+				args.Match.Entries[i].Namespace, err)
+		}
+	}
+
+	if authz != nil {
 		var authzContext acl.AuthorizerContext
 		// Go through each entry to ensure we have intention:read for the resource.
 
@@ -351,7 +413,7 @@ func (s *Intention) Match(
 		// matching, if you have it on the dest then perform a dest type match.
 		for _, entry := range args.Match.Entries {
 			entry.FillAuthzContext(&authzContext)
-			if prefix := entry.Name; prefix != "" && rule.IntentionRead(prefix, &authzContext) != acl.Allow {
+			if prefix := entry.Name; prefix != "" && authz.IntentionRead(prefix, &authzContext) != acl.Allow {
 				accessorID := s.aclAccessorID(args.Token)
 				// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
 				s.logger.Warn("Operation on intention prefix denied due to ACLs", "prefix", prefix, "accessorID", accessorID)
@@ -386,7 +448,7 @@ func (s *Intention) Check(
 	args *structs.IntentionQueryRequest,
 	reply *structs.IntentionQueryCheckResponse) error {
 	// Forward maybe
-	if done, err := s.srv.forward("Intention.Check", args, args, reply); done {
+	if done, err := s.srv.ForwardRPC("Intention.Check", args, args, reply); done {
 		return err
 	}
 
@@ -394,6 +456,28 @@ func (s *Intention) Check(
 	query := args.Check
 	if query == nil {
 		return errors.New("Check must be specified on args")
+	}
+
+	// Get the ACL token for the request for the checks below.
+	var entMeta structs.EnterpriseMeta
+	authz, err := s.srv.ResolveTokenAndDefaultMeta(args.Token, &entMeta, nil)
+	if err != nil {
+		return err
+	}
+
+	// Finish defaulting the namespace fields.
+	if query.SourceNS == "" {
+		query.SourceNS = entMeta.NamespaceOrDefault()
+	}
+	if query.DestinationNS == "" {
+		query.DestinationNS = entMeta.NamespaceOrDefault()
+	}
+
+	if err := s.srv.validateEnterpriseIntentionNamespace(query.SourceNS, false); err != nil {
+		return fmt.Errorf("Invalid source namespace %q: %v", query.SourceNS, err)
+	}
+	if err := s.srv.validateEnterpriseIntentionNamespace(query.DestinationNS, false); err != nil {
+		return fmt.Errorf("Invalid destination namespace %q: %v", query.DestinationNS, err)
 	}
 
 	// Build the URI
@@ -409,12 +493,6 @@ func (s *Intention) Check(
 		return fmt.Errorf("unsupported SourceType: %q", query.SourceType)
 	}
 
-	// Get the ACL token for the request for the checks below.
-	rule, err := s.srv.ResolveToken(args.Token)
-	if err != nil {
-		return err
-	}
-
 	// Perform the ACL check. For Check we only require ServiceRead and
 	// NOT IntentionRead because the Check API only returns pass/fail and
 	// returns no other information about the intentions used. We could check
@@ -424,7 +502,7 @@ func (s *Intention) Check(
 	if prefix, ok := query.GetACLPrefix(); ok {
 		var authzContext acl.AuthorizerContext
 		query.FillAuthzContext(&authzContext)
-		if rule != nil && rule.ServiceRead(prefix, &authzContext) != acl.Allow {
+		if authz != nil && authz.ServiceRead(prefix, &authzContext) != acl.Allow {
 			accessorID := s.aclAccessorID(args.Token)
 			// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
 			s.logger.Warn("test on intention denied due to ACLs", "prefix", prefix, "accessorID", accessorID)
@@ -470,14 +548,14 @@ func (s *Intention) Check(
 	// NOTE(mitchellh): This is the same behavior as the agent authorize
 	// endpoint. If this behavior is incorrect, we should also change it there
 	// which is much more important.
-	rule, err = s.srv.ResolveToken("")
+	authz, err = s.srv.ResolveToken("")
 	if err != nil {
 		return err
 	}
 
 	reply.Allowed = true
-	if rule != nil {
-		reply.Allowed = rule.IntentionDefaultAllow(nil) == acl.Allow
+	if authz != nil {
+		reply.Allowed = authz.IntentionDefaultAllow(nil) == acl.Allow
 	}
 
 	return nil
@@ -499,4 +577,14 @@ func (s *Intention) aclAccessorID(secretID string) string {
 		return ""
 	}
 	return ident.ID()
+}
+
+func (s *Intention) validateEnterpriseIntention(ixn *structs.Intention) error {
+	if err := s.srv.validateEnterpriseIntentionNamespace(ixn.SourceNS, true); err != nil {
+		return fmt.Errorf("Invalid source namespace %q: %v", ixn.SourceNS, err)
+	}
+	if err := s.srv.validateEnterpriseIntentionNamespace(ixn.DestinationNS, true); err != nil {
+		return fmt.Errorf("Invalid destination namespace %q: %v", ixn.DestinationNS, err)
+	}
+	return nil
 }

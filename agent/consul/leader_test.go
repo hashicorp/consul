@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/go-hclog"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
@@ -1283,24 +1284,37 @@ func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
 		}
 	}()
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.LogOutput = io.MultiWriter(pw, testutil.TestWriter(t))
-		c.Build = "1.6.0"
-		c.ConfigEntryBootstrap = []structs.ConfigEntry{
-			&structs.ServiceSplitterConfigEntry{
-				Kind: structs.ServiceSplitter,
-				Name: "web",
-				Splits: []structs.ServiceSplit{
-					{Weight: 100, Service: "web"},
-				},
+	_, config := testServerConfig(t)
+	config.Build = "1.6.0"
+	config.ConfigEntryBootstrap = []structs.ConfigEntry{
+		&structs.ServiceSplitterConfigEntry{
+			Kind: structs.ServiceSplitter,
+			Name: "web",
+			Splits: []structs.ServiceSplit{
+				{Weight: 100, Service: "web"},
 			},
-		}
-	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
+		},
+	}
 
-	result := <-ch
-	require.Empty(t, result)
+	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
+		Name:   config.NodeName,
+		Level:  hclog.Debug,
+		Output: io.MultiWriter(pw, testutil.NewLogBuffer(t)),
+	})
+
+	deps := newDefaultDeps(t, config)
+	deps.Logger = logger
+
+	srv, err := NewServer(config, deps)
+	require.NoError(t, err)
+	defer srv.Shutdown()
+
+	select {
+	case result := <-ch:
+		require.Empty(t, result)
+	case <-time.After(time.Second):
+		t.Fatal("timeout waiting for a result from tailing logs")
+	}
 }
 
 func TestLeader_ACLLegacyReplication(t *testing.T) {

@@ -12,7 +12,7 @@ import (
 const ConfigEntryNotFoundErr string = "Config entry not found"
 
 // Config switches on the different CRUD operations for config entries.
-func (s *HTTPServer) Config(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) Config(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	switch req.Method {
 	case "GET":
 		return s.configGet(resp, req)
@@ -27,7 +27,7 @@ func (s *HTTPServer) Config(resp http.ResponseWriter, req *http.Request) (interf
 
 // configGet gets either a specific config entry, or lists all config entries
 // of a kind if no name is provided.
-func (s *HTTPServer) configGet(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) configGet(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args structs.ConfigEntryQuery
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
@@ -74,7 +74,7 @@ func (s *HTTPServer) configGet(resp http.ResponseWriter, req *http.Request) (int
 }
 
 // configDelete deletes the given config entry.
-func (s *HTTPServer) configDelete(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) configDelete(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args structs.ConfigEntryRequest
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
@@ -108,7 +108,7 @@ func (s *HTTPServer) configDelete(resp http.ResponseWriter, req *http.Request) (
 }
 
 // ConfigCreate applies the given config entry update.
-func (s *HTTPServer) ConfigApply(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ConfigApply(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	args := structs.ConfigEntryRequest{
 		Op: structs.ConfigEntryUpsert,
 	}

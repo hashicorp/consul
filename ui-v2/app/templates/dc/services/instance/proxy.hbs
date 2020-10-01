@@ -1,18 +1,18 @@
 <div class="tab-section">
   <div role="tabpanel">
-  {{#if (gt proxy.Proxy.Upstreams.length 0)}}
+  {{#if (gt proxy.Service.Proxy.Upstreams.length 0)}}
     <section class="proxy-upstreams">
       <h3>Upstreams</h3>
-      <ConsulUpstreamInstanceList @items={{proxy.Proxy.Upstreams}} @dc={{dc}} @nspace={{nspace}} />
+      <ConsulUpstreamInstanceList @items={{proxy.Service.Proxy.Upstreams}} @dc={{dc}} @nspace={{nspace}} />
     </section>
   {{/if}}
-  {{#if (gt proxy.Proxy.Expose.Paths.length 0)}}
+  {{#if (gt proxy.Service.Proxy.Expose.Paths.length 0)}}
     <section class="proxy-exposed-paths">
       <h3>Exposed paths</h3>
       <p>
         The following list shows individual HTTP paths exposed through Envoy for external services like Prometheus. Read more about this in our documentation.
       </p>
-      <ConsulExposedPathList @items={{proxy.Proxy.Expose.Paths}} @address={{item.Address}} />
+      <ConsulExposedPathList @items={{proxy.Service.Proxy.Expose.Paths}} @address={{item.Address}} />
     </section>
   {{/if}}
   {{#if (or (gt proxy.ServiceChecks.length 0) (gt proxy.NodeChecks.length 0))}}

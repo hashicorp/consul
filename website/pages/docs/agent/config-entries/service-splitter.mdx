@@ -81,6 +81,10 @@ Splits = [
 
 - `Name` `(string: <required>)` - Set to the name of the service being configured.
 
+- `Namespace` `(string: "default")` <EnterpriseAlert inline /> - Specifies the namespace the config entry will apply to.
+
+- `Meta` `(map<string|string>: nil)` - Specifies arbitrary KV metadata pairs. Added in Consul 1.8.4.
+
 - `Splits` `(array<ServiceSplit>)` - Defines how much traffic to send to which
   set of service instances during a traffic split. The sum of weights across
   all splits must add up to 100.
@@ -102,7 +106,7 @@ Splits = [
 ## ACLs
 
 Configuration entries may be protected by
-[ACLs](https://learn.hashicorp.com/consul/security-networking/production-acls).
+[ACLs](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production).
 
 Reading a `service-splitter` config entry requires `service:read` on itself.
 

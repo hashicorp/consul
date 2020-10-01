@@ -30,12 +30,6 @@ function App({ Component, pageProps }) {
         siteName="Consul by HashiCorp"
         description="Consul is a service networking solution to automate network configurations, discover services, and enable secure connectivity across any cloud or runtime."
         image="https://www.consul.io/img/og-image.png"
-        stylesheet={[
-          {
-            href:
-              'https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700&display=swap',
-          },
-        ]}
         icon={[{ href: '/favicon.ico' }]}
         preload={[
           { href: '/fonts/klavika/medium.woff2', as: 'font' },

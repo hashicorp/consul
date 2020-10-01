@@ -18,6 +18,7 @@ export default RepositoryService.extend({
     };
     if (typeof configuration.cursor !== 'undefined') {
       query.index = configuration.cursor;
+      query.uri = configuration.uri;
     }
     return this.store.query(this.getModelName(), query);
   },
@@ -25,7 +26,10 @@ export default RepositoryService.extend({
     return this.findAllByDatacenter(dc, configuration).then(function(coordinates) {
       let results = {};
       if (get(coordinates, 'length') > 1) {
-        results = tomography(node, coordinates.map(item => get(item, 'data')));
+        results = tomography(
+          node,
+          coordinates.map(item => get(item, 'data'))
+        );
       }
       results.meta = get(coordinates, 'meta');
       return results;

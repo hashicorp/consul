@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/go-hclog"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -53,14 +54,16 @@ func (s *fauxSerf) NumNodes() int {
 func testManager() (m *Manager) {
 	logger := GetBufferedLogger()
 	shutdownCh := make(chan struct{})
-	m = New(logger, shutdownCh, &fauxSerf{numNodes: 16384}, &fauxConnPool{}, "")
+	m = New(logger, shutdownCh, &fauxSerf{numNodes: 16384}, &fauxConnPool{}, "", noopRebalancer)
 	return m
 }
+
+func noopRebalancer() {}
 
 func testManagerFailProb(failPct float64) (m *Manager) {
 	logger := GetBufferedLogger()
 	shutdownCh := make(chan struct{})
-	m = New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{failPct: failPct}, "")
+	m = New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{failPct: failPct}, "", noopRebalancer)
 	return m
 }
 
@@ -299,7 +302,7 @@ func TestManagerInternal_refreshServerRebalanceTimer(t *testing.T) {
 	shutdownCh := make(chan struct{})
 
 	for _, s := range clusters {
-		m := New(logger, shutdownCh, &fauxSerf{numNodes: s.numNodes}, &fauxConnPool{}, "")
+		m := New(logger, shutdownCh, &fauxSerf{numNodes: s.numNodes}, &fauxConnPool{}, "", noopRebalancer)
 		for i := 0; i < s.numServers; i++ {
 			nodeName := fmt.Sprintf("s%02d", i)
 			m.AddServer(&metadata.Server{Name: nodeName})
@@ -349,4 +352,54 @@ func TestManagerInternal_saveServerList(t *testing.T) {
 			t.Fatalf("Manager.saveServerList unsaved config overwrote original")
 		}
 	}()
+}
+
+func TestManager_healthyServer(t *testing.T) {
+	t.Run("checking itself", func(t *testing.T) {
+		m := testManager()
+		m.serverName = "s1"
+		server := metadata.Server{Name: m.serverName}
+		require.True(t, m.healthyServer(&server))
+	})
+	t.Run("checking another server with successful ping", func(t *testing.T) {
+		m := testManager()
+		server := metadata.Server{Name: "s1"}
+		require.True(t, m.healthyServer(&server))
+	})
+	t.Run("checking another server with failed ping", func(t *testing.T) {
+		m := testManagerFailProb(1)
+		server := metadata.Server{Name: "s1"}
+		require.False(t, m.healthyServer(&server))
+	})
+}
+
+func TestManager_Rebalance(t *testing.T) {
+	t.Run("single server cluster checking itself", func(t *testing.T) {
+		m := testManager()
+		m.serverName = "s1"
+		m.AddServer(&metadata.Server{Name: m.serverName})
+		m.RebalanceServers()
+		require.False(t, m.IsOffline())
+	})
+	t.Run("multi server cluster is unhealthy when pings always fail", func(t *testing.T) {
+		m := testManagerFailProb(1)
+		m.AddServer(&metadata.Server{Name: "s1"})
+		m.AddServer(&metadata.Server{Name: "s2"})
+		m.AddServer(&metadata.Server{Name: "s3"})
+		for i := 0; i < 100; i++ {
+			m.RebalanceServers()
+			require.True(t, m.IsOffline())
+		}
+	})
+	t.Run("multi server cluster checking itself remains healthy despite pings always fail", func(t *testing.T) {
+		m := testManagerFailProb(1)
+		m.serverName = "s1"
+		m.AddServer(&metadata.Server{Name: m.serverName})
+		m.AddServer(&metadata.Server{Name: "s2"})
+		m.AddServer(&metadata.Server{Name: "s3"})
+		for i := 0; i < 100; i++ {
+			m.RebalanceServers()
+			require.False(t, m.IsOffline())
+		}
+	})
 }

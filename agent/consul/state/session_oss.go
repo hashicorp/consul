@@ -35,7 +35,7 @@ func nodeChecksIndexer() *memdb.CompoundIndex {
 	}
 }
 
-func (s *Store) sessionDeleteWithSession(tx *txn, session *structs.Session, idx uint64) error {
+func sessionDeleteWithSession(tx *txn, session *structs.Session, idx uint64) error {
 	if err := tx.Delete("sessions", session); err != nil {
 		return fmt.Errorf("failed deleting session: %s", err)
 	}
@@ -48,7 +48,7 @@ func (s *Store) sessionDeleteWithSession(tx *txn, session *structs.Session, idx 
 	return nil
 }
 
-func (s *Store) insertSessionTxn(tx *txn, session *structs.Session, idx uint64, updateMax bool) error {
+func insertSessionTxn(tx *txn, session *structs.Session, idx uint64, updateMax bool) error {
 	if err := tx.Insert("sessions", session); err != nil {
 		return err
 	}
@@ -80,11 +80,11 @@ func (s *Store) insertSessionTxn(tx *txn, session *structs.Session, idx uint64, 
 	return nil
 }
 
-func (s *Store) allNodeSessionsTxn(tx *txn, node string) (structs.Sessions, error) {
-	return s.nodeSessionsTxn(tx, nil, node, nil)
+func allNodeSessionsTxn(tx *txn, node string) (structs.Sessions, error) {
+	return nodeSessionsTxn(tx, nil, node, nil)
 }
 
-func (s *Store) nodeSessionsTxn(tx *txn,
+func nodeSessionsTxn(tx *txn,
 	ws memdb.WatchSet, node string, entMeta *structs.EnterpriseMeta) (structs.Sessions, error) {
 
 	sessions, err := tx.Get("sessions", "node", node)
@@ -100,11 +100,11 @@ func (s *Store) nodeSessionsTxn(tx *txn,
 	return result, nil
 }
 
-func (s *Store) sessionMaxIndex(tx *txn, entMeta *structs.EnterpriseMeta) uint64 {
+func sessionMaxIndex(tx *txn, entMeta *structs.EnterpriseMeta) uint64 {
 	return maxIndexTxn(tx, "sessions")
 }
 
-func (s *Store) validateSessionChecksTxn(tx *txn, session *structs.Session) error {
+func validateSessionChecksTxn(tx *txn, session *structs.Session) error {
 	// Go over the session checks and ensure they exist.
 	for _, checkID := range session.CheckIDs() {
 		check, err := tx.First("checks", "id", session.Node, string(checkID))

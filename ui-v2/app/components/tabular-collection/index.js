@@ -69,7 +69,7 @@ export default CollectionComponent.extend(Slotted, {
   actions: {
     resize: function(e) {
       const $tbody = this.element;
-      const $appContent = this.dom.element('main > div');
+      const $appContent = this.dom.element('.app-view');
       if ($appContent) {
         const border = 1;
         const rect = $tbody.getBoundingClientRect();
