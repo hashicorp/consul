@@ -213,7 +213,7 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 	// Start the anti-entropy syncer
 	a.Agent.StartSync()
 
-	a.srv = &HTTPHandlers{agent: agent, denylist: NewDenylist(a.config.HTTPBlockEndpoints)}
+	a.srv = a.Agent.httpHandlers
 
 	if err := a.waitForUp(); err != nil {
 		a.Shutdown()

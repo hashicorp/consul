@@ -55,8 +55,6 @@ func (s *HTTPHandlers) rewordUnknownEnterpriseFieldError(err error) error {
 	return err
 }
 
-func (s *HTTPHandlers) addEnterpriseUIENVVars(_ map[string]interface{}) {}
-
 func parseACLAuthMethodEnterpriseMeta(req *http.Request, _ *structs.ACLAuthMethodEnterpriseMeta) error {
 	if methodNS := req.URL.Query().Get("authmethod-ns"); methodNS != "" {
 		return BadRequestError{Reason: "Invalid query parameter: \"authmethod-ns\" - Namespaces are a Consul Enterprise feature"}
