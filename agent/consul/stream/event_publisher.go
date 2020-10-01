@@ -36,7 +36,7 @@ type EventPublisher struct {
 	// publishCh is used to send messages from an active txn to a goroutine which
 	// publishes events, so that publishing can happen asynchronously from
 	// the Commit call in the FSM hot path.
-	publishCh chan changeEvents
+	publishCh chan []Event
 
 	snapshotHandlers SnapshotHandlers
 }
@@ -52,10 +52,6 @@ type subscriptions struct {
 	// reloaded.
 	// A subscription may be unsubscribed by using the pointer to the request.
 	byToken map[string]map[*SubscribeRequest]*Subscription
-}
-
-type changeEvents struct {
-	events []Event
 }
 
 // SnapshotHandlers is a mapping of Topic to a function which produces a snapshot
@@ -84,7 +80,7 @@ func NewEventPublisher(handlers SnapshotHandlers, snapCacheTTL time.Duration) *E
 		snapCacheTTL: snapCacheTTL,
 		topicBuffers: make(map[Topic]*eventBuffer),
 		snapCache:    make(map[Topic]map[string]*eventSnapshot),
-		publishCh:    make(chan changeEvents, 64),
+		publishCh:    make(chan []Event, 64),
 		subscriptions: &subscriptions{
 			byToken: make(map[string]map[*SubscribeRequest]*Subscription),
 		},
@@ -97,7 +93,7 @@ func NewEventPublisher(handlers SnapshotHandlers, snapCacheTTL time.Duration) *E
 // Publish events to all subscribers of the event Topic.
 func (e *EventPublisher) Publish(events []Event) {
 	if len(events) > 0 {
-		e.publishCh <- changeEvents{events: events}
+		e.publishCh <- events
 	}
 }
 
@@ -110,16 +106,16 @@ func (e *EventPublisher) Run(ctx context.Context) {
 			e.subscriptions.closeAll()
 			return
 		case update := <-e.publishCh:
-			e.sendEvents(update)
+			e.publishEvent(update)
 		}
 	}
 }
 
-// sendEvents sends the given events to any applicable topic listeners, as well
-// as any ACL update events to cause affected listeners to reset their stream.
-func (e *EventPublisher) sendEvents(update changeEvents) {
+// publishEvent appends the events to any applicable topic buffers. It handles
+// any closeSubscriptionPayload events by closing associated subscriptions.
+func (e *EventPublisher) publishEvent(events []Event) {
 	eventsByTopic := make(map[Topic][]Event)
-	for _, event := range update.events {
+	for _, event := range events {
 		if unsubEvent, ok := event.Payload.(closeSubscriptionPayload); ok {
 			e.subscriptions.closeSubscriptionsForTokens(unsubEvent.tokensSecretIDs)
 			continue
@@ -183,7 +179,6 @@ func (e *EventPublisher) Subscribe(req *SubscribeRequest) (*Subscription, error)
 	}
 	snap := newEventSnapshot()
 
-	// TODO: testcase for this case, especially the from-cache-splice case
 	// if the request has an Index the client view is stale and must be reset
 	// with a NewSnapshotToFollow event.
 	if req.Index > 0 {
