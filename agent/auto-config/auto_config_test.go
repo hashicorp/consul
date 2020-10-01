@@ -413,7 +413,7 @@ func TestInitialConfiguration_retries(t *testing.T) {
 	mcfg.Config.Loader = loader.Load
 
 	// reduce the retry wait times to make this test run faster
-	mcfg.Config.Waiter = retry.NewWaiter(2, 0, 1*time.Millisecond, nil)
+	mcfg.Config.Waiter = &retry.Waiter{MinFailures: 2, MaxWait: time.Millisecond}
 
 	indexedRoots, cert, extraCerts := mcfg.setupInitialTLS(t, "autoconf", "dc1", "secret")
 

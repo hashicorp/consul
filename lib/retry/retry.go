@@ -1,9 +1,9 @@
 package retry
 
 import (
+	"context"
+	"math/rand"
 	"time"
-
-	"github.com/hashicorp/consul/lib"
 )
 
 const (
@@ -11,153 +11,96 @@ const (
 	defaultMaxWait     = 2 * time.Minute
 )
 
-// Interface used for offloading jitter calculations from the RetryWaiter
-type Jitter interface {
-	AddJitter(baseTime time.Duration) time.Duration
-}
+// Jitter should return a new wait duration optionally with some time added or
+// removed to create some randomness in wait time.
+type Jitter func(baseTime time.Duration) time.Duration
 
-// Calculates a random jitter between 0 and up to a specific percentage of the baseTime
-type JitterRandomStagger struct {
-	// int64 because we are going to be doing math against an int64 to represent nanoseconds
-	percent int64
-}
-
-// Creates a new JitterRandomStagger
-func NewJitterRandomStagger(percent int) *JitterRandomStagger {
+// NewJitter returns a new random Jitter that is up to percent longer than the
+// original wait time.
+func NewJitter(percent int64) Jitter {
 	if percent < 0 {
 		percent = 0
 	}
 
-	return &JitterRandomStagger{
-		percent: int64(percent),
+	return func(baseTime time.Duration) time.Duration {
+		if percent == 0 {
+			return baseTime
+		}
+		max := (int64(baseTime) * percent) / 100
+		if max < 0 { // overflow
+			return baseTime
+		}
+		return baseTime + time.Duration(rand.Int63n(max))
 	}
 }
 
-// Implments the Jitter interface
-func (j *JitterRandomStagger) AddJitter(baseTime time.Duration) time.Duration {
-	if j.percent == 0 {
-		return baseTime
-	}
-
-	// time.Duration is actually a type alias for int64 which is why casting
-	// to the duration type and then dividing works
-	return baseTime + lib.RandomStagger((baseTime*time.Duration(j.percent))/100)
-}
-
-// RetryWaiter will record failed and successful operations and provide
-// a channel to wait on before a failed operation can be retried.
+// Waiter records the number of failures and performs exponential backoff when
+// when there are consecutive failures.
 type Waiter struct {
+	// MinFailures before exponential backoff starts. Any failures before
+	// MinFailures is reached will wait MinWait time.
 	MinFailures uint
-	MinWait     time.Duration
-	MaxWait     time.Duration
-	Jitter      Jitter
-	failures    uint
+	// MinWait time. Returned after the first failure.
+	MinWait time.Duration
+	// MaxWait time.
+	MaxWait time.Duration
+	// Jitter to add to each wait time.
+	Jitter Jitter
+	// Factor is the multiplier to use when calculating the delay. Defaults to
+	// 1 second.
+	Factor   time.Duration
+	failures uint
 }
 
-// Creates a new RetryWaiter
-func NewRetryWaiter(minFailures int, minWait, maxWait time.Duration, jitter Jitter) *Waiter {
-	if minFailures < 0 {
-		minFailures = defaultMinFailures
+// delay calculates the time to wait based on the number of failures
+func (w *Waiter) delay() time.Duration {
+	if w.failures <= w.MinFailures {
+		return w.MinWait
+	}
+	factor := w.Factor
+	if factor == 0 {
+		factor = time.Second
 	}
 
-	if maxWait <= 0 {
-		maxWait = defaultMaxWait
+	shift := w.failures - w.MinFailures - 1
+	waitTime := w.MaxWait
+	if shift < 31 {
+		waitTime = (1 << shift) * factor
 	}
-
-	if minWait <= 0 {
-		minWait = 0 * time.Nanosecond
+	if w.Jitter != nil {
+		waitTime = w.Jitter(waitTime)
 	}
-
-	return &Waiter{
-		MinFailures: uint(minFailures),
-		MinWait:     minWait,
-		MaxWait:     maxWait,
-		failures:    0,
-		Jitter:      jitter,
+	if w.MaxWait != 0 && waitTime > w.MaxWait {
+		return w.MaxWait
 	}
-}
-
-// calculates the necessary wait time before the
-// next operation should be allowed.
-func (rw *Waiter) calculateWait() time.Duration {
-	waitTime := rw.MinWait
-	if rw.failures > rw.MinFailures {
-		shift := rw.failures - rw.MinFailures - 1
-		waitTime = rw.MaxWait
-		if shift < 31 {
-			waitTime = (1 << shift) * time.Second
-		}
-		if waitTime > rw.MaxWait {
-			waitTime = rw.MaxWait
-		}
-
-		if rw.Jitter != nil {
-			waitTime = rw.Jitter.AddJitter(waitTime)
-		}
+	if waitTime < w.MinWait {
+		return w.MinWait
 	}
-
-	if waitTime < rw.MinWait {
-		waitTime = rw.MinWait
-	}
-
 	return waitTime
 }
 
-// calculates the waitTime and returns a chan
-// that will become selectable once that amount
-// of time has elapsed.
-func (rw *Waiter) wait() <-chan struct{} {
-	waitTime := rw.calculateWait()
-	ch := make(chan struct{})
-	if waitTime > 0 {
-		time.AfterFunc(waitTime, func() { close(ch) })
-	} else {
-		// if there should be 0 wait time then we ensure
-		// that the chan will be immediately selectable
-		close(ch)
+// Reset the failure count to 0.
+func (w *Waiter) Reset() {
+	w.failures = 0
+}
+
+// Failures returns the count of consecutive failures.
+func (w *Waiter) Failures() int {
+	return int(w.failures)
+}
+
+// Wait increase the number of failures by one, and then blocks until the context
+// is cancelled, or until the wait time is reached.
+// The wait time increases exponentially as the number of failures increases.
+// Wait will return ctx.Err() if the context is cancelled.
+func (w *Waiter) Wait(ctx context.Context) error {
+	w.failures++
+	timer := time.NewTimer(w.delay())
+	select {
+	case <-ctx.Done():
+		timer.Stop()
+		return ctx.Err()
+	case <-timer.C:
+		return nil
 	}
-	return ch
-}
-
-// Marks that an operation is successful which resets the failure count.
-// The chan that is returned will be immediately selectable
-func (rw *Waiter) Success() <-chan struct{} {
-	rw.Reset()
-	return rw.wait()
-}
-
-// Marks that an operation failed. The chan returned will be selectable
-// once the calculated retry wait amount of time has elapsed
-func (rw *Waiter) Failed() <-chan struct{} {
-	rw.failures += 1
-	ch := rw.wait()
-	return ch
-}
-
-// Resets the internal failure counter.
-func (rw *Waiter) Reset() {
-	rw.failures = 0
-}
-
-// Failures returns the current number of consecutive failures recorded.
-func (rw *Waiter) Failures() int {
-	return int(rw.failures)
-}
-
-// WaitIf is a convenice method to record whether the last
-// operation was a success or failure and return a chan that
-// will be selectablw when the next operation can be done.
-func (rw *Waiter) WaitIf(failure bool) <-chan struct{} {
-	if failure {
-		return rw.Failed()
-	}
-	return rw.Success()
-}
-
-// WaitIfErr is a convenience method to record whether the last
-// operation was a success or failure based on whether the err
-// is nil and then return a chan that will be selectable when
-// the next operation can be done.
-func (rw *Waiter) WaitIfErr(err error) <-chan struct{} {
-	return rw.WaitIf(err != nil)
 }
