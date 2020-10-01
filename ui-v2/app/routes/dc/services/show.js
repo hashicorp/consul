@@ -17,6 +17,7 @@ export default Route.extend({
         uri => uri`/${nspace}/${dc}/service-instances/for-service/${params.name}`
       ),
       urls: this.settings.findBySlug('urls'),
+      chain: null,
       proxies: [],
     })
       .then(model => {
