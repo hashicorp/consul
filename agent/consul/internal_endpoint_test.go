@@ -605,13 +605,13 @@ func TestInternal_ServiceDump(t *testing.T) {
 		// so the response should be the same in all subtests
 		expectedGW := structs.GatewayServices{
 			{
-				Service:     structs.ServiceName{Name: "api"},
-				Gateway:     structs.ServiceName{Name: "terminating-gateway"},
+				Service:     structs.NewServiceName("api", nil),
+				Gateway:     structs.NewServiceName("terminating-gateway", nil),
 				GatewayKind: structs.ServiceKindTerminatingGateway,
 			},
 			{
-				Service:     structs.ServiceName{Name: "cache"},
-				Gateway:     structs.ServiceName{Name: "terminating-gateway"},
+				Service:     structs.NewServiceName("cache", nil),
+				Gateway:     structs.NewServiceName("terminating-gateway", nil),
 				GatewayKind: structs.ServiceKindTerminatingGateway,
 			},
 		}
