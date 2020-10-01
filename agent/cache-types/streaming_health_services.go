@@ -8,6 +8,8 @@ import (
 	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 
+	"github.com/hashicorp/consul/agent/submatview"
+
 	"github.com/hashicorp/consul/lib/retry"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -24,13 +26,13 @@ const (
 // StreamingHealthServices supports fetching discovering service instances via the
 // catalog using the streaming gRPC endpoint.
 type StreamingHealthServices struct {
-	client StreamingClient
+	client submatview.StreamingClient
 	logger hclog.Logger
 }
 
 // NewStreamingHealthServices creates a cache-type for watching for service
 // health results via streaming updates.
-func NewStreamingHealthServices(client StreamingClient, logger hclog.Logger) *StreamingHealthServices {
+func NewStreamingHealthServices(client submatview.StreamingClient, logger hclog.Logger) *StreamingHealthServices {
 	return &StreamingHealthServices{
 		client: client,
 		logger: logger,
@@ -46,7 +48,7 @@ func (c *StreamingHealthServices) Fetch(opts cache.FetchOptions, req cache.Reque
 			"Internal cache failure: request wrong type: %T", req)
 	}
 
-	r := Request{
+	r := submatview.Request{
 		SubscribeRequest: pbsubscribe.SubscribeRequest{
 			Topic:      pbsubscribe.Topic_ServiceHealth,
 			Key:        reqReal.ServiceName,
@@ -69,9 +71,9 @@ func (c *StreamingHealthServices) Fetch(opts cache.FetchOptions, req cache.Reque
 	return view.Fetch(opts)
 }
 
-func (c *StreamingHealthServices) getMaterializedView(opts cache.FetchOptions, r Request) (*Materializer, error) {
+func (c *StreamingHealthServices) getMaterializedView(opts cache.FetchOptions, r submatview.Request) (*submatview.Materializer, error) {
 	if opts.LastResult != nil && opts.LastResult.State != nil {
-		return opts.LastResult.State.(*Materializer), nil
+		return opts.LastResult.State.(*submatview.Materializer), nil
 	}
 
 	state, err := newHealthViewState(r.Filter)
@@ -79,7 +81,7 @@ func (c *StreamingHealthServices) getMaterializedView(opts cache.FetchOptions, r
 		return nil, err
 	}
 	ctx, cancel := context.WithCancel(context.TODO())
-	view := NewMaterializer(ViewDeps{
+	view := submatview.NewMaterializer(submatview.ViewDeps{
 		State:  state,
 		Client: c.client,
 		Logger: c.logger,
@@ -93,7 +95,7 @@ func (c *StreamingHealthServices) getMaterializedView(opts cache.FetchOptions, r
 		Stop:    cancel,
 		Done:    ctx.Done(),
 	})
-	go view.run(ctx)
+	go view.Run(ctx)
 	return view, nil
 }
 
@@ -102,7 +104,7 @@ func (c *StreamingHealthServices) SupportsBlocking() bool {
 	return true
 }
 
-func newHealthViewState(filterExpr string) (View, error) {
+func newHealthViewState(filterExpr string) (submatview.View, error) {
 	s := &healthViewState{state: make(map[string]structs.CheckServiceNode)}
 
 	// We apply filtering to the raw CheckServiceNodes before we are done mutating
@@ -115,7 +117,7 @@ func newHealthViewState(filterExpr string) (View, error) {
 }
 
 // StreamingClient implements StreamingCacheType
-func (c *StreamingHealthServices) StreamingClient() StreamingClient {
+func (c *StreamingHealthServices) StreamingClient() submatview.StreamingClient {
 	return c.client
 }
 

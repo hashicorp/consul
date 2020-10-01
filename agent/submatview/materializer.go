@@ -1,4 +1,4 @@
-package cachetype
+package submatview
 
 import (
 	"context"
@@ -131,7 +131,7 @@ func (v *Materializer) Close() error {
 	return nil
 }
 
-func (v *Materializer) run(ctx context.Context) {
+func (v *Materializer) Run(ctx context.Context) {
 	if ctx.Err() != nil {
 		return
 	}

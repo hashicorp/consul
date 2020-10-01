@@ -107,7 +107,7 @@ func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
 	runStep(t, "reconnects and resumes after transient stream error", func(t *testing.T) {
 		// Use resetErr just because it's "temporary" this is a stand in for any
 		// network error that uses that same interface though.
-		client.QueueErr(resetErr("broken pipe"))
+		client.QueueErr(tempError("broken pipe"))
 
 		// After the error the view should re-subscribe with same index so will get
 		// a "resume stream".
@@ -200,6 +200,16 @@ func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
 		opts.MinIndex = result.Index
 		opts.LastResult = &result
 	})
+}
+
+type tempError string
+
+func (e tempError) Error() string {
+	return string(e)
+}
+
+func (e tempError) Temporary() bool {
+	return true
 }
 
 // requireResultsSame compares two IndexedCheckServiceNodes without requiring
