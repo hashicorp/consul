@@ -19,18 +19,6 @@ export default class TopologyMetrics extends Component {
       .join(',')}`;
   }
 
-  drawArrowToUpstream(dest) {
-    // The top/bottom points have the same X position
-    const x = dest.x - dest.width - 31;
-    const topY = dest.y + dest.height / 2 - 5;
-    const bottomY = dest.y + dest.height / 2 + 5;
-
-    const middleX = dest.x - dest.width - 21;
-    const middleY = dest.y + dest.height / 2;
-
-    return `${x} ${topY} ${middleX} ${middleY} ${x} ${bottomY}`;
-  }
-
   drawDownLines(items) {
     let calculations = [];
     items.forEach(item => {
@@ -74,13 +62,6 @@ export default class TopologyMetrics extends Component {
     return `M ${src.x} ${src.y} ${this.curve(...args)}`;
   }
 
-  drawMetricsCircle(src) {
-    return {
-      x: src.x + 20,
-      y: src.y + src.height / 4,
-    };
-  }
-
   drawUpLines(items) {
     let calculations = [];
     items.forEach(item => {
@@ -97,8 +78,6 @@ export default class TopologyMetrics extends Component {
       calculations.push({
         ...dimensions,
         line: this.drawLine(dest, src),
-        // Draws the arrow that goes from Metrics -> Upstream
-        arrow: this.drawArrowToUpstream(dimensions),
         id: item.id
           .split('-')
           .slice(1)
