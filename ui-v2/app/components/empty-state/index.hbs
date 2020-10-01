@@ -14,7 +14,7 @@
     <div>
       {{yield}}
       {{#if (and (env 'CONSUL_ACLS_ENABLED') allowLogin)}}
-        <label for="login-toggle">
+        <label for="login-toggle" data-test-empty-state-login>
           <DataSource
             @src="settings://consul:token"
             @onchange={{action (mut token) value="data"}}

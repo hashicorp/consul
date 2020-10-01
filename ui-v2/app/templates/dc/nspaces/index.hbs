@@ -1,7 +1,7 @@
 {{title 'Namespaces'}}
 {{#let (or sortBy "Name:asc") as |sort|}}
 <EventSource @src={{items}} />
-<AppView @class="nspace list" @loading={{isLoading}}>
+<AppView>
   <BlockSlot @name="notification" as |status type subject|>
     {{partial 'dc/nspaces/notifications'}}
   </BlockSlot>

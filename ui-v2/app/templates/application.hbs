@@ -10,7 +10,11 @@
     @nspace={{or nspace nspaces.firstObject}}
     @onchange={{action "reauthorize"}}
   >
-  {{outlet}}
+  <Outlet
+  @name="application"
+  as |o|>
+    {{outlet}}
+  </Outlet>
     <ConsulLoader class="view-loader" />
   </HashicorpConsul>
 {{/if}}

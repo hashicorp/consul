@@ -1,10 +1,10 @@
 /* instance detail dl text*/
-html.template-instance.template-show .app-view > header dl {
+html[data-route^='dc.services.instance'] .app-view > header dl {
   float: left;
   margin-top: 19px;
   margin-bottom: 23px;
   margin-right: 50px;
 }
-html.template-instance.template-show .app-view > header dt {
+html[data-route^='dc.services.instance'] .app-view > header dt {
   font-weight: $typo-weight-bold;
 }

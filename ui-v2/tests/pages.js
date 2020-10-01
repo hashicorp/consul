@@ -27,6 +27,7 @@ import authFormFactory from 'consul-ui/components/auth-form/pageobject';
 import freetextFilterFactory from 'consul-ui/components/freetext-filter/pageobject';
 
 import searchBarFactory from 'consul-ui/components/search-bar/pageobject';
+import emptyStateFactory from 'consul-ui/components/empty-state/pageobject';
 
 import policyFormFactory from 'consul-ui/components/policy-form/pageobject';
 import policySelectorFactory from 'consul-ui/components/policy-selector/pageobject';
@@ -89,6 +90,7 @@ const roleSelector = roleSelectorFactory(clickable, deletable, collection, alias
 
 const morePopoverMenu = morePopoverMenuFactory(clickable);
 const popoverSelect = popoverSelectFactory(clickable, collection);
+const emptyState = emptyStateFactory(isPresent);
 
 const consulIntentionList = consulIntentionListFactory(collection, clickable, attribute, deletable);
 const consulNspaceList = consulNspaceListFactory(
@@ -121,7 +123,7 @@ const consulPolicyList = consulPolicyListFactory(
   morePopoverMenu
 );
 
-const page = pageFactory(collection, clickable, attribute, is, authForm);
+const page = pageFactory(collection, clickable, attribute, is, authForm, emptyState);
 
 // pages
 const create = function(appView) {

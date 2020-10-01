@@ -1,4 +1,4 @@
-import Route from '@ember/routing/route';
+import Route from 'consul-ui/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 import { get } from '@ember/object';
@@ -33,11 +33,11 @@ export default Route.extend(WithTokenActions, {
         ),
       }),
       nspace: this.modelFor('nspace').nspace.substr(1),
-      isLoading: false,
       token: this.settings.findBySlug('token'),
     });
   },
   setupController: function(controller, model) {
+    this._super(...arguments);
     controller.setProperties(model);
   },
 });

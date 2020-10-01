@@ -4,7 +4,7 @@
 <EventSource @src={{proxies}} />
 <EventSource @src={{gatewayServices}} />
 {{title item.Service.Service}}
-<AppView @class="service show">
+<AppView>
   <BlockSlot @name="notification" as |status type|>
     {{partial 'dc/services/notifications'}}
   </BlockSlot>
@@ -51,6 +51,10 @@
     {{/if}}
   </BlockSlot>
   <BlockSlot @name="content">
-    {{outlet}}
+    <Outlet
+      @name={{routeName}}
+    as |o|>
+      {{outlet}}
+    </Outlet>
   </BlockSlot>
 </AppView>

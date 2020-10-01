@@ -1,40 +1,33 @@
-html.template-acl.template-list main td strong {
+html[data-route^='dc.acls.index'] main td strong {
   @extend %pill-500, %frame-gray-900;
   margin-right: 3px;
 }
-html.template-acl.template-list .filter-bar {
+html[data-route^='dc.acls.index'] .filter-bar {
   @extend %filter-bar-reversed;
 }
-html.template-acl.template-list .filter-bar [role='radiogroup'] {
+html[data-route^='dc.acls.index'] .filter-bar [role='radiogroup'] {
   @extend %expanded-single-select;
 }
 @media #{$--horizontal-tabs} {
-  .template-policy.template-list main header .actions,
-  .template-token.template-list main header .actions {
+  html[data-route^='dc.acls.policies.index'] main header .actions,
+  html[data-route^='dc.acls.policies.index'] main header .actions {
     position: relative;
     top: 42px;
   }
 }
 
 @media #{$--lt-wide-form} {
-  html.template-acl.template-edit main header .actions {
+  html[data-route^='dc.acls.edit'] main header .actions {
     float: none;
     display: flex;
     justify-content: space-between;
     margin-bottom: 1em;
   }
-  html.template-acl.template-edit main header .actions .with-feedback {
+  html[data-route^='dc.acls.edit'] main header .actions .with-feedback {
     position: absolute;
     right: 0;
   }
-  html.template-acl.template-edit main header .actions .with-confirmation {
+  html[data-route^='dc.acls.edit'] main header .actions .with-confirmation {
     margin-top: 0;
   }
-}
-[name='role[state]'],
-[name='role[state]'] + * {
-  display: none;
-}
-[name='role[state]']:checked + * {
-  display: block;
 }

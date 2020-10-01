@@ -4,7 +4,7 @@
   statuses=(if status (split status ',') undefined)
 ) as |filters|}}
 {{#let (or sortBy "Node:asc") as |sort|}}
-  <AppView @class="node list">
+  <AppView>
     <BlockSlot @name="header">
       <h1>
         Nodes <em>{{format-number items.length}} total</em>
