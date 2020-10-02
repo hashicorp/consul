@@ -2261,7 +2261,7 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 			patch: func(rt *RuntimeConfig) {
 				rt.DataDir = dataDir
 				rt.Telemetry.AllowedPrefixes = []string{"foo"}
-				rt.Telemetry.BlockedPrefixes = []string{"bar"}
+				rt.Telemetry.BlockedPrefixes = []string{"consul.api.http", "bar"}
 			},
 			warns: []string{`Filter rule must begin with either '+' or '-': "nix"`},
 		},
@@ -6686,7 +6686,7 @@ func TestFullConfig(t *testing.T) {
 			DogstatsdTags:                      []string{"3N81zSUB", "Xtj8AnXZ"},
 			FilterDefault:                      true,
 			AllowedPrefixes:                    []string{"oJotS8XJ"},
-			BlockedPrefixes:                    []string{"cazlEhGn"},
+			BlockedPrefixes:                    []string{"consul.api.http", "cazlEhGn"},
 			MetricsPrefix:                      "ftO6DySn",
 			PrometheusRetentionTime:            15 * time.Second,
 			StatsdAddr:                         "drce87cy",

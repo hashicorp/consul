@@ -184,12 +184,23 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 			parts = append(parts, part)
 		}
 
-		// Register the wrapper, which will close over the expensive-to-compute
-		// parts from above.
-		// TODO (kyhavlov): Convert this to utilize metric labels in a major release
+		// Tranform the pattern to a valid label by replacing the '/' by '_'.
+		// Omit the leading slash.
+		// Distinguish thing like /v1/query from /v1/query/<query_id> by having
+		// an extra underscore.
+		path_label := strings.Replace(pattern[1:], "/", "_", -1)
+
+		// Register the wrapper.
 		wrapper := func(resp http.ResponseWriter, req *http.Request) {
 			start := time.Now()
 			handler(resp, req)
+
+			// This new metric is disabled by default with the prefix_filter option.
+			// It will be enabled by default in a future version.
+			labels := []metrics.Label{{Name: "method", Value: req.Method}, {Name: "path", Value: path_label}}
+			metrics.MeasureSinceWithLabels([]string{"api", "http"}, start, labels)
+
+			// Duplicated information. Kept for backward compatibility.
 			key := append([]string{"http", req.Method}, parts...)
 			metrics.MeasureSince(key, start)
 		}
