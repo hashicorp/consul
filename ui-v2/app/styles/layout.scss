@@ -6,15 +6,18 @@ html[data-route$='.edit'] .app-view > header + div > *:first-child {
   margin-top: 1.8em;
 }
 /* most tabs have margin after the tab bar, unless the tab has a filter bar */
-%app-view-content [role='tabpanel'] > *:first-child:not(.filter-bar):not(table) {
+/* if it is a filter bar and the thing after the filter bar is a p then it also */
+/* needs a top margun :S */
+%app-view-content [role='tabpanel'] > *:first-child:not(.filter-bar):not(table),
+%app-view-content [role='tabpanel'] > .filter-bar + p {
   margin-top: 1.25em;
 }
 /* turn off top borders for things flush up to a filter bar */
 .consul-lock-session-list {
   margin-top: 0 !important;
 }
+html[data-route='dc.services.index'] .consul-service-list ul,
 .consul-nspace-list ul,
-.consul-service-list ul,
 .consul-service-instance-list ul,
 .consul-node-list ul,
 .consul-lock-session-list ul,
