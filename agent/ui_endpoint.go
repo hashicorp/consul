@@ -256,8 +256,8 @@ RPC:
 }
 
 // UIServiceTopology returns the list of upstreams and downstreams for a Connect enabled service.
-//   - Downstreams are services that may route to the input service.
-//   - Upstreams are the upstreams defined in the target service's proxy registrations
+//   - Downstreams are services that list the given service as an upstream
+//   - Upstreams are the upstreams defined in the given service's proxy registrations
 func (s *HTTPHandlers) UIServiceTopology(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Parse arguments
 	args := structs.ServiceSpecificRequest{}

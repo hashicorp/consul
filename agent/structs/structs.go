@@ -2411,11 +2411,11 @@ func (r *KeyringResponses) New() interface{} {
 	return new(KeyringResponses)
 }
 
+// UpstreamDownstream pairs come from individual proxy registrations, which can be updated independently.
 type UpstreamDownstream struct {
 	Upstream   ServiceName
 	Downstream ServiceName
 
-	// Upstream/Downstream pairs come from individual service registrations, and they can be updated individually.
 	// Refs stores the registrations that contain this pairing.
 	// When there are no remaining Refs, the UpstreamDownstream can be deleted.
 	//

@@ -2921,7 +2921,7 @@ func (s *Store) ServiceTopology(
 		sn     = structs.NewServiceName(service, entMeta)
 	)
 
-	idx, upstreamNames, err := s.upstreamsForServiceTxn(tx, ws, dc, sn)
+	idx, upstreamNames, err := upstreamsFromRegistrationTxn(tx, ws, sn)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -2984,48 +2984,6 @@ func (s *Store) combinedServiceNodesTxn(tx *txn, ws memdb.WatchSet, names []stru
 			maxIdx = idx
 		}
 		resp = append(resp, csn...)
-	}
-	return maxIdx, resp, nil
-}
-
-// upstreamsForServiceTxn will find all upstream services that the input could route traffic to.
-// There are two factors at play. Upstreams defined in a proxy registration, and the discovery chain for those upstreams.
-// TODO (freddy): Account for ingress gateways
-// TODO (freddy): Account for multi-dc upstreams
-func (s *Store) upstreamsForServiceTxn(tx ReadTxn, ws memdb.WatchSet, dc string, sn structs.ServiceName) (uint64, []structs.ServiceName, error) {
-	idx, upstreams, err := upstreamsFromRegistrationTxn(tx, ws, sn)
-	if err != nil {
-		return 0, nil, fmt.Errorf("failed to get registration upstreams for %q: %v", sn.String(), err)
-	}
-
-	var maxIdx uint64
-	if idx > maxIdx {
-		maxIdx = idx
-	}
-
-	var (
-		resp []structs.ServiceName
-		seen = make(map[structs.ServiceName]bool)
-	)
-	for _, u := range upstreams {
-		// Evaluate the targets from the upstream's discovery chain
-		idx, targets, err := s.discoveryChainTargetsTxn(tx, ws, dc, u.Name, &u.EnterpriseMeta)
-		if err != nil {
-			return 0, nil, fmt.Errorf("failed to get discovery chain targets for %q: %v", u.String(), err)
-		}
-		if idx > maxIdx {
-			maxIdx = idx
-		}
-		for _, t := range targets {
-			if !seen[t] {
-				resp = append(resp, t)
-				seen[t] = true
-			}
-		}
-		if len(targets) == 0 && !seen[u] {
-			resp = append(resp, u)
-			seen[u] = true
-		}
 	}
 	return maxIdx, resp, nil
 }
