@@ -28,7 +28,8 @@ func TestStore_IntegrationWithEventPublisher_ACLTokenUpdate(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	publisher := stream.NewEventPublisher(ctx, newTestSnapshotHandlers(s), 0)
+	publisher := stream.NewEventPublisher(newTestSnapshotHandlers(s), 0)
+	go publisher.Run(ctx)
 	s.db.publisher = publisher
 	sub, err := publisher.Subscribe(subscription)
 	require.NoError(err)
@@ -111,7 +112,8 @@ func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	publisher := stream.NewEventPublisher(ctx, newTestSnapshotHandlers(s), 0)
+	publisher := stream.NewEventPublisher(newTestSnapshotHandlers(s), 0)
+	go publisher.Run(ctx)
 	s.db.publisher = publisher
 	sub, err := publisher.Subscribe(subscription)
 	require.NoError(err)
@@ -227,7 +229,8 @@ func TestStore_IntegrationWithEventPublisher_ACLRoleUpdate(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	publisher := stream.NewEventPublisher(ctx, newTestSnapshotHandlers(s), 0)
+	publisher := stream.NewEventPublisher(newTestSnapshotHandlers(s), 0)
+	go publisher.Run(ctx)
 	s.db.publisher = publisher
 	sub, err := publisher.Subscribe(subscription)
 	require.NoError(err)
@@ -372,7 +375,13 @@ func assertReset(t *testing.T, eventCh <-chan nextResult, allowEOS bool) {
 	}
 }
 
-var topicService stream.Topic = topic("test-topic-service")
+type topic string
+
+func (t topic) String() string {
+	return string(t)
+}
+
+var topicService topic = "test-topic-service"
 
 func newTestSnapshotHandlers(s *Store) stream.SnapshotHandlers {
 	return stream.SnapshotHandlers{
@@ -427,7 +436,9 @@ func createTokenAndWaitForACLEventPublish(t *testing.T, s *Store) *structs.ACLTo
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	publisher := stream.NewEventPublisher(ctx, newTestSnapshotHandlers(s), 0)
+	publisher := stream.NewEventPublisher(newTestSnapshotHandlers(s), 0)
+	go publisher.Run(ctx)
+
 	s.db.publisher = publisher
 	sub, err := publisher.Subscribe(req)
 	require.NoError(t, err)

@@ -25,7 +25,9 @@ func TestEventPublisher_PublishChangesAndSubscribe_WithSnapshot(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	publisher := NewEventPublisher(ctx, newTestSnapshotHandlers(), 0)
+	publisher := NewEventPublisher(newTestSnapshotHandlers(), 0)
+	go publisher.Run(ctx)
+
 	sub, err := publisher.Subscribe(subscription)
 	require.NoError(t, err)
 	eventCh := consumeSubscription(ctx, sub)
@@ -123,7 +125,8 @@ func TestEventPublisher_ShutdownClosesSubscriptions(t *testing.T) {
 	handlers[intTopic(22)] = fn
 	handlers[intTopic(33)] = fn
 
-	publisher := NewEventPublisher(ctx, handlers, time.Second)
+	publisher := NewEventPublisher(handlers, time.Second)
+	go publisher.Run(ctx)
 
 	sub1, err := publisher.Subscribe(&SubscribeRequest{Topic: intTopic(22)})
 	require.NoError(t, err)

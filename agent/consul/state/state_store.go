@@ -168,12 +168,21 @@ func NewStateStore(gc *TombstoneGC) (*Store, error) {
 		lockDelay:          NewDelay(),
 		stopEventPublisher: cancel,
 	}
+	pub := stream.NewEventPublisher(newSnapshotHandlers(s), 10*time.Second)
 	s.db = &changeTrackerDB{
 		db:             db,
-		publisher:      stream.NewEventPublisher(ctx, newSnapshotHandlers(s), 10*time.Second),
+		publisher:      pub,
 		processChanges: processDBChanges,
 	}
+
+	go pub.Run(ctx)
 	return s, nil
+}
+
+// EventPublisher returns the stream.EventPublisher used by the Store to
+// publish events.
+func (s *Store) EventPublisher() *stream.EventPublisher {
+	return s.db.publisher
 }
 
 // Snapshot is used to create a point-in-time snapshot of the entire db.
