@@ -20,9 +20,11 @@ export default Adapter.extend({
       ${{ index }}
     `;
   },
-  requestForQueryLeader: function(request, { dc }) {
+  requestForQueryLeader: function(request, { dc, uri }) {
     return request`
       GET /v1/status/leader?${{ dc }}
+      X-Request-ID: ${uri}
+      Refresh: 30
     `;
   },
   queryLeader: function(store, type, id, snapshot) {

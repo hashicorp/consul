@@ -3,7 +3,6 @@ import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 
 export default Route.extend({
-  repo: service('repository/node'),
   data: service('data-source/service'),
   queryParams: {
     sortBy: 'sort',
@@ -17,7 +16,7 @@ export default Route.extend({
     const nspace = '*';
     return hash({
       items: this.data.source(uri => uri`/${nspace}/${dc}/nodes`),
-      leader: this.repo.findByLeader(dc),
+      leader: this.data.source(uri => uri`/${nspace}/${dc}/leader`),
     });
   },
   setupController: function(controller, model) {

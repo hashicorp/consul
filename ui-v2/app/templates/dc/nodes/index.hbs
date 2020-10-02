@@ -1,5 +1,6 @@
 {{title 'Nodes'}}
 <EventSource @src={{items}} />
+<EventSource @src={{leader}} />
 {{#let (hash
   statuses=(if status (split status ',') undefined)
 ) as |filters|}}
