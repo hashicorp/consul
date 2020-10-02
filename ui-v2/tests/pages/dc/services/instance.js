@@ -5,8 +5,7 @@ export default function(visitable, attribute, collection, text, tabs) {
       scope: '.title',
     }),
     tabs: tabs('tab', ['health-checks', 'proxy-info', 'addresses', 'tags-&-meta']),
-    serviceChecks: collection('[data-test-service-checks] li'),
-    nodeChecks: collection('[data-test-node-checks] li'),
+    checks: collection('[data-test-checks] li'),
     upstreams: collection('[data-test-proxy-upstreams] > li', {
       name: text('[data-test-destination-name]'),
     }),

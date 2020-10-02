@@ -47,11 +47,11 @@ Feature: dc / services / instances / show: Show Service Instance
           Status: critical
     ---
   Scenario: A Service instance has no Proxy
-    Given 1 proxy model from yaml	
-    ---	
-    - ServiceProxy:	
-        DestinationServiceName: service-1	
-        DestinationServiceID: ~	
+    Given 1 proxy model from yaml
+    ---
+    - ServiceProxy:
+        DestinationServiceName: service-1
+        DestinationServiceID: ~
     ---
     When I visit the instance page for yaml
     ---
@@ -65,8 +65,7 @@ Feature: dc / services / instances / show: Show Service Instance
 
     And I don't see upstreams on the tabs
     And I see healthChecksIsSelected on the tabs
-    And I see 3 of the serviceChecks object
-    And I see 3 of the nodeChecks object
+    And I see 6 of the checks object
 
     When I click tags&Meta on the tabs
     And I see tags&MetaIsSelected on the tabs
@@ -78,10 +77,10 @@ Feature: dc / services / instances / show: Show Service Instance
 
   Scenario: A Service instance warns when deregistered whilst blocking
     Given 1 proxy model from yaml
-    ---	
-    - ServiceProxy:	
-        DestinationServiceName: service-1	
-        DestinationServiceID: ~	
+    ---
+    - ServiceProxy:
+        DestinationServiceName: service-1
+        DestinationServiceID: ~
     ---
     Given settings from yaml
     ---
@@ -102,10 +101,10 @@ Feature: dc / services / instances / show: Show Service Instance
     And pause until I see the text "deregistered" in "[data-notification]"
   Scenario: A Service instance without a Proxy does not display Proxy Info tab
     Given 1 proxy model from yaml
-    ---	
-    - ServiceProxy:	
-        DestinationServiceName: service-1	
-        DestinationServiceID: ~	
+    ---
+    - ServiceProxy:
+        DestinationServiceName: service-1
+        DestinationServiceID: ~
     ---
     When I visit the instance page for yaml
     ---
