@@ -830,7 +830,6 @@ func ensureServiceTxn(tx *txn, idx uint64, node string, preserveIndexes bool, sv
 		return fmt.Errorf("failed updating gateway mapping: %s", err)
 	}
 	// Update upstream/downstream mappings if it's a connect service
-	// TODO (freddy) What to do about Connect native services that don't define upstreams?
 	if svc.Kind == structs.ServiceKindConnectProxy {
 		if err = updateMeshTopology(tx, idx, node, svc, existing); err != nil {
 			return fmt.Errorf("failed updating upstream/downstream association")
@@ -1541,7 +1540,7 @@ func (s *Store) deleteServiceTxn(tx *txn, idx uint64, nodeName, serviceID string
 		return err
 	}
 	if err := cleanupMeshTopology(tx, idx, svc); err != nil {
-		return fmt.Errorf("failed to clean up gateway-service associations for %q: %v", name.String(), err)
+		return fmt.Errorf("failed to clean up mesh-topology associations for %q: %v", name.String(), err)
 	}
 
 	if _, remainingService, err := firstWatchWithTxn(tx, "services", "service", svc.ServiceName, entMeta); err == nil {
@@ -2914,12 +2913,22 @@ func (s *Store) ServiceTopology(
 	dc, service string,
 	entMeta *structs.EnterpriseMeta,
 ) (uint64, *structs.ServiceTopology, error) {
+	tx := s.db.ReadTxn()
+	defer tx.Abort()
 
 	var (
 		maxIdx uint64
 		sn     = structs.NewServiceName(service, entMeta)
 	)
-	idx, upstreamNames, err := s.UpstreamsForService(ws, dc, sn)
+
+	idx, upstreamNames, err := s.upstreamsForServiceTxn(tx, ws, dc, sn)
+	if err != nil {
+		return 0, nil, err
+	}
+	if idx > maxIdx {
+		maxIdx = idx
+	}
+	idx, upstreams, err := s.combinedServiceNodesTxn(tx, ws, upstreamNames)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to get upstreams for %q: %v", sn.String(), err)
 	}
@@ -2927,29 +2936,14 @@ func (s *Store) ServiceTopology(
 		maxIdx = idx
 	}
 
-	var upstreams structs.CheckServiceNodes
-	for _, u := range upstreamNames {
-		// Collect both typical and connect endpoints, this allows aggregating check statuses across both
-		idx, csn, err := s.CheckServiceNodes(ws, u.Name, &u.EnterpriseMeta)
-		if err != nil {
-			return 0, nil, fmt.Errorf("failed to get upstream nodes for %q: %v", sn.String(), err)
-		}
-		if idx > maxIdx {
-			maxIdx = idx
-		}
-		upstreams = append(upstreams, csn...)
-
-		idx, csn, err = s.CheckConnectServiceNodes(ws, u.Name, &u.EnterpriseMeta)
-		if err != nil {
-			return 0, nil, fmt.Errorf("failed to get upstream connect nodes for %q: %v", sn.String(), err)
-		}
-		if idx > maxIdx {
-			maxIdx = idx
-		}
-		upstreams = append(upstreams, csn...)
+	idx, downstreamNames, err := s.downstreamsForServiceTxn(tx, ws, dc, sn)
+	if err != nil {
+		return 0, nil, err
 	}
-
-	idx, downstreamNames, err := s.DownstreamsForService(ws, dc, sn)
+	if idx > maxIdx {
+		maxIdx = idx
+	}
+	idx, downstreams, err := s.combinedServiceNodesTxn(tx, ws, downstreamNames)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to get downstreams for %q: %v", sn.String(), err)
 	}
@@ -2957,43 +2951,49 @@ func (s *Store) ServiceTopology(
 		maxIdx = idx
 	}
 
-	var downstreams structs.CheckServiceNodes
-	for _, u := range downstreamNames {
-		// Collect both typical and connect endpoints, this allows aggregating check statuses across both
-		idx, csn, err := s.CheckServiceNodes(ws, u.Name, &u.EnterpriseMeta)
-		if err != nil {
-			return 0, nil, fmt.Errorf("failed to get downstream nodes for %q: %v", sn.String(), err)
-		}
-		if idx > maxIdx {
-			maxIdx = idx
-		}
-		downstreams = append(downstreams, csn...)
-
-		idx, csn, err = s.CheckConnectServiceNodes(ws, u.Name, &u.EnterpriseMeta)
-		if err != nil {
-			return 0, nil, fmt.Errorf("failed to get downstream connect nodes for %q: %v", sn.String(), err)
-		}
-		if idx > maxIdx {
-			maxIdx = idx
-		}
-		downstreams = append(downstreams, csn...)
-	}
-
 	resp := &structs.ServiceTopology{
 		Upstreams:   upstreams,
 		Downstreams: downstreams,
 	}
-	return 0, resp, nil
+	return maxIdx, resp, nil
 }
 
-// UpstreamsForService will find all upstream services that the input could route traffic to.
+// combinedServiceNodesTxn returns typical and connect endpoints for a list of services.
+// This enabled aggregating checks statuses across both.
+func (s *Store) combinedServiceNodesTxn(tx *txn, ws memdb.WatchSet, names []structs.ServiceName) (uint64, structs.CheckServiceNodes, error) {
+	var (
+		maxIdx uint64
+		resp   structs.CheckServiceNodes
+	)
+	for _, u := range names {
+		// Collect typical then connect instances
+		idx, csn, err := checkServiceNodesTxn(tx, ws, u.Name, false, &u.EnterpriseMeta)
+		if err != nil {
+			return 0, nil, err
+		}
+		if idx > maxIdx {
+			maxIdx = idx
+		}
+		resp = append(resp, csn...)
+
+		idx, csn, err = checkServiceNodesTxn(tx, ws, u.Name, true, &u.EnterpriseMeta)
+		if err != nil {
+			return 0, nil, err
+		}
+		if idx > maxIdx {
+			maxIdx = idx
+		}
+		resp = append(resp, csn...)
+	}
+	return maxIdx, resp, nil
+}
+
+// upstreamsForServiceTxn will find all upstream services that the input could route traffic to.
 // There are two factors at play. Upstreams defined in a proxy registration, and the discovery chain for those upstreams.
 // TODO (freddy): Account for ingress gateways
-func (s *Store) UpstreamsForService(ws memdb.WatchSet, dc string, sn structs.ServiceName) (uint64, []structs.ServiceName, error) {
-	tx := s.db.ReadTxn()
-	defer tx.Abort()
-
-	idx, upstreams, err := upstreamsFromRegistration(ws, tx, sn)
+// TODO (freddy): Account for multi-dc upstreams
+func (s *Store) upstreamsForServiceTxn(tx ReadTxn, ws memdb.WatchSet, dc string, sn structs.ServiceName) (uint64, []structs.ServiceName, error) {
+	idx, upstreams, err := upstreamsFromRegistrationTxn(tx, ws, sn)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to get registration upstreams for %q: %v", sn.String(), err)
 	}
@@ -3009,7 +3009,7 @@ func (s *Store) UpstreamsForService(ws memdb.WatchSet, dc string, sn structs.Ser
 	)
 	for _, u := range upstreams {
 		// Evaluate the targets from the upstream's discovery chain
-		idx, targets, err := s.discoveryChainTargets(ws, dc, u.Name, &u.EnterpriseMeta)
+		idx, targets, err := s.discoveryChainTargetsTxn(tx, ws, dc, u.Name, &u.EnterpriseMeta)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed to get discovery chain targets for %q: %v", u.String(), err)
 		}
@@ -3030,15 +3030,12 @@ func (s *Store) UpstreamsForService(ws memdb.WatchSet, dc string, sn structs.Ser
 	return maxIdx, resp, nil
 }
 
-// DownstreamsForService will find all downstream services that could route traffic to the input service.
+// downstreamsForServiceTxn will find all downstream services that could route traffic to the input service.
 // There are two factors at play. Upstreams defined in a proxy registration, and the discovery chain for those upstreams.
 // TODO (freddy): Account for ingress gateways
-func (s *Store) DownstreamsForService(ws memdb.WatchSet, dc string, service structs.ServiceName) (uint64, []structs.ServiceName, error) {
-	tx := s.db.ReadTxn()
-	defer tx.Abort()
-
-	// First fetch services with discovery chains that list the input as a target
-	idx, sources, err := s.discoveryChainSources(ws, tx, dc, service)
+func (s *Store) downstreamsForServiceTxn(tx ReadTxn, ws memdb.WatchSet, dc string, service structs.ServiceName) (uint64, []structs.ServiceName, error) {
+	// First fetch services that have discovery chains that eventually route to the target service
+	idx, sources, err := s.discoveryChainSourcesTxn(tx, ws, dc, service)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to get sources for discovery chain target %q: %v", service.String(), err)
 	}
@@ -3053,8 +3050,8 @@ func (s *Store) DownstreamsForService(ws memdb.WatchSet, dc string, service stru
 		seen = make(map[structs.ServiceName]bool)
 	)
 	for _, s := range sources {
-		// We then follow these discovery chain sources one level down to the services defining them as an upstream.
-		idx, downstreams, err := downstreamsFromRegistration(ws, tx, s)
+		// We then follow these sources one level down to the services defining them as an upstream.
+		idx, downstreams, err := downstreamsFromRegistrationTxn(tx, ws, s)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed to get registration downstreams for %q: %v", s.String(), err)
 		}
@@ -3068,35 +3065,20 @@ func (s *Store) DownstreamsForService(ws memdb.WatchSet, dc string, service stru
 			}
 		}
 	}
-
-	// Also append services that directly listed the input as an upstream
-	idx, downstreams, err := downstreamsFromRegistration(ws, tx, service)
-	if err != nil {
-		return 0, nil, fmt.Errorf("failed to get downstreams for %q: %v", service.String(), err)
-	}
-	if idx > maxIdx {
-		maxIdx = idx
-	}
-	for _, d := range downstreams {
-		if !seen[d] {
-			resp = append(resp, d)
-			seen[d] = true
-		}
-	}
 	return maxIdx, resp, nil
 }
 
-// upstreamsFromRegistration returns the ServiceNames of the upstreams defined across instances of the input
-func upstreamsFromRegistration(ws memdb.WatchSet, tx ReadTxn, sn structs.ServiceName) (uint64, []structs.ServiceName, error) {
-	return linkedFromRegistration(ws, tx, sn, false)
+// upstreamsFromRegistrationTxn returns the ServiceNames of the upstreams defined across instances of the input
+func upstreamsFromRegistrationTxn(tx ReadTxn, ws memdb.WatchSet, sn structs.ServiceName) (uint64, []structs.ServiceName, error) {
+	return linkedFromRegistrationTxn(tx, ws, sn, false)
 }
 
-// downstreamsFromRegistration returns the ServiceNames of downstream services based on registrations across instances of the input
-func downstreamsFromRegistration(ws memdb.WatchSet, tx ReadTxn, sn structs.ServiceName) (uint64, []structs.ServiceName, error) {
-	return linkedFromRegistration(ws, tx, sn, true)
+// downstreamsFromRegistrationTxn returns the ServiceNames of downstream services based on registrations across instances of the input
+func downstreamsFromRegistrationTxn(tx ReadTxn, ws memdb.WatchSet, sn structs.ServiceName) (uint64, []structs.ServiceName, error) {
+	return linkedFromRegistrationTxn(tx, ws, sn, true)
 }
 
-func linkedFromRegistration(ws memdb.WatchSet, tx ReadTxn, service structs.ServiceName, downstreams bool) (uint64, []structs.ServiceName, error) {
+func linkedFromRegistrationTxn(tx ReadTxn, ws memdb.WatchSet, service structs.ServiceName, downstreams bool) (uint64, []structs.ServiceName, error) {
 	// To fetch upstreams we query services that have the input listed as a downstream
 	// To fetch downstreams we query services that have the input listed as an upstream
 	index := "downstream"
@@ -3177,7 +3159,7 @@ func updateMeshTopology(tx *txn, idx uint64, node string, svc *structs.NodeServi
 			if !ok {
 				return fmt.Errorf("unexpected topology type %T", rawCopy)
 			}
-			mapping.Refs[uid] = true
+			mapping.Refs[uid] = struct{}{}
 			mapping.ModifyIndex = idx
 
 			inserted[upstream] = true
@@ -3186,7 +3168,7 @@ func updateMeshTopology(tx *txn, idx uint64, node string, svc *structs.NodeServi
 			mapping = &structs.UpstreamDownstream{
 				Upstream:   upstream,
 				Downstream: downstream,
-				Refs:       map[string]bool{uid: true},
+				Refs:       map[string]struct{}{uid: {}},
 				RaftIndex: structs.RaftIndex{
 					CreateIndex: idx,
 					ModifyIndex: idx,

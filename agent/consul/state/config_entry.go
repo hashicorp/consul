@@ -374,17 +374,15 @@ var serviceGraphKinds = []string{
 }
 
 // discoveryChainTargets will return a list of services listed as a target for the input's discovery chain
-func (s *Store) discoveryChainTargets(ws memdb.WatchSet, dc, service string, entMeta *structs.EnterpriseMeta) (uint64, []structs.ServiceName, error) {
+func (s *Store) discoveryChainTargetsTxn(tx ReadTxn, ws memdb.WatchSet, dc, service string, entMeta *structs.EnterpriseMeta) (uint64, []structs.ServiceName, error) {
 	source := structs.NewServiceName(service, entMeta)
 	req := discoverychain.CompileRequest{
-		ServiceName:         source.Name,
-		EvaluateInNamespace: source.NamespaceOrDefault(),
-
-		// TODO(freddy) : Should these be anything other than the known DC?
+		ServiceName:          source.Name,
+		EvaluateInNamespace:  source.NamespaceOrDefault(),
 		EvaluateInDatacenter: dc,
 		UseInDatacenter:      dc,
 	}
-	idx, chain, err := s.ServiceDiscoveryChain(ws, source.Name, entMeta, req)
+	idx, chain, err := s.serviceDiscoveryChainTxn(tx, ws, source.Name, entMeta, req)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to fetch discovery chain for %q: %v", source.String(), err)
 	}
@@ -402,11 +400,11 @@ func (s *Store) discoveryChainTargets(ws memdb.WatchSet, dc, service string, ent
 	return idx, resp, nil
 }
 
-// discoveryChainSources will return a list of services whose discovery chains have the input service as a target
-func (s *Store) discoveryChainSources(ws memdb.WatchSet, tx ReadTxn, dc string, destination structs.ServiceName) (uint64, []structs.ServiceName, error) {
-	queue := []structs.ServiceName{destination}
+// discoveryChainSourcesTxn will return a list of services whose discovery chains have the given service as a target
+func (s *Store) discoveryChainSourcesTxn(tx ReadTxn, ws memdb.WatchSet, dc string, destination structs.ServiceName) (uint64, []structs.ServiceName, error) {
+	seenLink := map[structs.ServiceName]bool{destination: true}
 
-	seenLink := make(map[structs.ServiceName]bool)
+	queue := []structs.ServiceName{destination}
 	for len(queue) > 0 {
 		// The "link" index returns config entries that reference a service
 		iter, err := tx.Get(configTableName, "link", queue[0].ToServiceID())
@@ -428,22 +426,20 @@ func (s *Store) discoveryChainSources(ws memdb.WatchSet, tx ReadTxn, dc string, 
 	}
 
 	var (
-		maxIdx uint64
+		maxIdx uint64 = 1
 		resp   []structs.ServiceName
 	)
 
-	// Only return the services that directly target the destination
+	// Only return the services that target the destination anywhere in their discovery chains.
 	seenSource := make(map[structs.ServiceName]bool)
 	for sn := range seenLink {
 		req := discoverychain.CompileRequest{
-			ServiceName:         sn.Name,
-			EvaluateInNamespace: sn.NamespaceOrDefault(),
-
-			// TODO(freddy) : Should these be anything other than the known DC?
+			ServiceName:          sn.Name,
+			EvaluateInNamespace:  sn.NamespaceOrDefault(),
 			EvaluateInDatacenter: dc,
 			UseInDatacenter:      dc,
 		}
-		idx, chain, err := s.ServiceDiscoveryChain(ws, sn.Name, &sn.EnterpriseMeta, req)
+		idx, chain, err := s.serviceDiscoveryChainTxn(tx, ws, sn.Name, &sn.EnterpriseMeta, req)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed to fetch discovery chain for %q: %v", sn.String(), err)
 		}
@@ -657,8 +653,21 @@ func (s *Store) ServiceDiscoveryChain(
 	entMeta *structs.EnterpriseMeta,
 	req discoverychain.CompileRequest,
 ) (uint64, *structs.CompiledDiscoveryChain, error) {
+	tx := s.db.ReadTxn()
+	defer tx.Abort()
 
-	index, entries, err := s.readDiscoveryChainConfigEntries(ws, serviceName, nil, entMeta)
+	return s.serviceDiscoveryChainTxn(tx, ws, serviceName, entMeta, req)
+}
+
+func (s *Store) serviceDiscoveryChainTxn(
+	tx ReadTxn,
+	ws memdb.WatchSet,
+	serviceName string,
+	entMeta *structs.EnterpriseMeta,
+	req discoverychain.CompileRequest,
+) (uint64, *structs.CompiledDiscoveryChain, error) {
+
+	index, entries, err := readDiscoveryChainConfigEntriesTxn(tx, ws, serviceName, nil, entMeta)
 	if err != nil {
 		return 0, nil, err
 	}

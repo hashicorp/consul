@@ -6136,7 +6136,7 @@ func TestCatalog_catalogDownstreams_Watches(t *testing.T) {
 	// Watch should fire since the admin <-> web-proxy pairing was inserted into the topology table
 	ws := memdb.NewWatchSet()
 	tx := s.db.ReadTxn()
-	idx, names, err := downstreamsFromRegistration(ws, tx, admin)
+	idx, names, err := downstreamsFromRegistrationTxn(tx, ws, admin)
 	require.NoError(t, err)
 	assert.Zero(t, idx)
 	assert.Len(t, names, 0)
@@ -6165,7 +6165,7 @@ func TestCatalog_catalogDownstreams_Watches(t *testing.T) {
 
 	ws = memdb.NewWatchSet()
 	tx = s.db.ReadTxn()
-	idx, names, err = downstreamsFromRegistration(ws, tx, admin)
+	idx, names, err = downstreamsFromRegistrationTxn(tx, ws, admin)
 	require.NoError(t, err)
 
 	exp := expect{
@@ -6194,7 +6194,7 @@ func TestCatalog_catalogDownstreams_Watches(t *testing.T) {
 
 	ws = memdb.NewWatchSet()
 	tx = s.db.ReadTxn()
-	idx, _, err = downstreamsFromRegistration(ws, tx, admin)
+	idx, _, err = downstreamsFromRegistrationTxn(tx, ws, admin)
 	require.NoError(t, err)
 
 	exp = expect{
@@ -6207,7 +6207,7 @@ func TestCatalog_catalogDownstreams_Watches(t *testing.T) {
 	// Should still be able to get downstream for one of the other upstreams
 	ws = memdb.NewWatchSet()
 	tx = s.db.ReadTxn()
-	idx, names, err = downstreamsFromRegistration(ws, tx, cache)
+	idx, names, err = downstreamsFromRegistrationTxn(tx, ws, cache)
 	require.NoError(t, err)
 
 	exp = expect{
@@ -6225,7 +6225,7 @@ func TestCatalog_catalogDownstreams_Watches(t *testing.T) {
 
 	ws = memdb.NewWatchSet()
 	tx = s.db.ReadTxn()
-	idx, _, err = downstreamsFromRegistration(ws, tx, cache)
+	idx, _, err = downstreamsFromRegistrationTxn(tx, ws, cache)
 
 	require.NoError(t, err)
 
@@ -6354,7 +6354,7 @@ func TestCatalog_catalogDownstreams(t *testing.T) {
 			}
 
 			tx := s.db.ReadTxn()
-			idx, names, err := downstreamsFromRegistration(ws, tx, structs.NewServiceName("admin", structs.DefaultEnterpriseMeta()))
+			idx, names, err := downstreamsFromRegistrationTxn(tx, ws, structs.NewServiceName("admin", structs.DefaultEnterpriseMeta()))
 			require.NoError(t, err)
 
 			require.Equal(t, tc.expect.idx, idx)
@@ -6529,7 +6529,7 @@ func TestCatalog_upstreamsFromRegistration(t *testing.T) {
 			}
 
 			tx := s.db.ReadTxn()
-			idx, names, err := upstreamsFromRegistration(ws, tx, structs.NewServiceName("api", structs.DefaultEnterpriseMeta()))
+			idx, names, err := upstreamsFromRegistrationTxn(tx, ws, structs.NewServiceName("api", structs.DefaultEnterpriseMeta()))
 			require.NoError(t, err)
 
 			require.Equal(t, tc.expect.idx, idx)
@@ -6556,7 +6556,7 @@ func TestCatalog_upstreamsFromRegistration_Watches(t *testing.T) {
 
 	ws := memdb.NewWatchSet()
 	tx := s.db.ReadTxn()
-	idx, names, err := upstreamsFromRegistration(ws, tx, web)
+	idx, names, err := upstreamsFromRegistrationTxn(tx, ws, web)
 	require.NoError(t, err)
 	assert.Zero(t, idx)
 	assert.Len(t, names, 0)
@@ -6586,7 +6586,7 @@ func TestCatalog_upstreamsFromRegistration_Watches(t *testing.T) {
 
 	ws = memdb.NewWatchSet()
 	tx = s.db.ReadTxn()
-	idx, names, err = upstreamsFromRegistration(ws, tx, web)
+	idx, names, err = upstreamsFromRegistrationTxn(tx, ws, web)
 	require.NoError(t, err)
 
 	exp := expect{
@@ -6613,7 +6613,7 @@ func TestCatalog_upstreamsFromRegistration_Watches(t *testing.T) {
 
 	ws = memdb.NewWatchSet()
 	tx = s.db.ReadTxn()
-	idx, names, err = upstreamsFromRegistration(ws, tx, web)
+	idx, names, err = upstreamsFromRegistrationTxn(tx, ws, web)
 	require.NoError(t, err)
 
 	exp = expect{
@@ -6655,7 +6655,7 @@ func TestCatalog_upstreamsFromRegistration_Watches(t *testing.T) {
 
 	ws = memdb.NewWatchSet()
 	tx = s.db.ReadTxn()
-	idx, names, err = upstreamsFromRegistration(ws, tx, web)
+	idx, names, err = upstreamsFromRegistrationTxn(tx, ws, web)
 	require.NoError(t, err)
 
 	exp = expect{
@@ -6676,7 +6676,7 @@ func TestCatalog_upstreamsFromRegistration_Watches(t *testing.T) {
 
 	ws = memdb.NewWatchSet()
 	tx = s.db.ReadTxn()
-	idx, names, err = upstreamsFromRegistration(ws, tx, web)
+	idx, names, err = upstreamsFromRegistrationTxn(tx, ws, web)
 	require.NoError(t, err)
 
 	exp = expect{
@@ -6696,7 +6696,7 @@ func TestCatalog_upstreamsFromRegistration_Watches(t *testing.T) {
 
 	ws = memdb.NewWatchSet()
 	tx = s.db.ReadTxn()
-	idx, _, err = upstreamsFromRegistration(ws, tx, web)
+	idx, _, err = upstreamsFromRegistrationTxn(tx, ws, web)
 
 	require.NoError(t, err)
 
@@ -6860,9 +6860,12 @@ func TestCatalog_UpstreamsForService(t *testing.T) {
 				i++
 			}
 
+			tx := s.db.ReadTxn()
+			defer tx.Abort()
+
 			ws := memdb.NewWatchSet()
 			sn := structs.NewServiceName("api", structs.DefaultEnterpriseMeta())
-			idx, names, err := s.UpstreamsForService(ws, "dc1", sn)
+			idx, names, err := s.upstreamsForServiceTxn(tx, ws, "dc1", sn)
 			require.NoError(t, err)
 
 			require.Equal(t, tc.expect.idx, idx)
@@ -6957,9 +6960,9 @@ func TestCatalog_DownstreamsForService(t *testing.T) {
 			expect: expect{
 				idx: 4,
 				names: []structs.ServiceName{
-					// get web from old-admin routing to admin and web listing old-admin as an upstream
+					// get web from listing admin directly as an upstream
 					{Name: "web", EnterpriseMeta: *defaultMeta},
-					// get api from listing admin directly as an upstream
+					// get api from old-admin routing to admin and web listing old-admin as an upstream
 					{Name: "api", EnterpriseMeta: *defaultMeta},
 				},
 			},
@@ -6993,13 +6996,143 @@ func TestCatalog_DownstreamsForService(t *testing.T) {
 				i++
 			}
 
+			tx := s.db.ReadTxn()
+			defer tx.Abort()
+
 			ws := memdb.NewWatchSet()
 			sn := structs.NewServiceName("admin", structs.DefaultEnterpriseMeta())
-			idx, names, err := s.DownstreamsForService(ws, "dc1", sn)
+			idx, names, err := s.downstreamsForServiceTxn(tx, ws, "dc1", sn)
 			require.NoError(t, err)
 
 			require.Equal(t, tc.expect.idx, idx)
 			require.ElementsMatch(t, tc.expect.names, names)
 		})
 	}
+}
+
+func TestCatalog_DownstreamsForService_Updates(t *testing.T) {
+	var (
+		defaultMeta = structs.DefaultEnterpriseMeta()
+		target      = structs.NewServiceName("admin", defaultMeta)
+	)
+
+	s := testStateStore(t)
+	ca := &structs.CAConfiguration{
+		Provider: "consul",
+	}
+	err := s.CASetConfig(1, ca)
+	require.NoError(t, err)
+
+	require.NoError(t, s.EnsureNode(2, &structs.Node{
+		ID:   "c73b8fdf-4ef8-4e43-9aa2-59e85cc6a70c",
+		Node: "foo",
+	}))
+
+	// Register a service with our target as an upstream, and it should show up as a downstream
+	web := structs.NodeService{
+		Kind:    structs.ServiceKindConnectProxy,
+		ID:      "web-proxy",
+		Service: "web-proxy",
+		Address: "127.0.0.2",
+		Port:    443,
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "web",
+			Upstreams: structs.Upstreams{
+				structs.Upstream{
+					DestinationName: "db",
+				},
+				structs.Upstream{
+					DestinationName: "admin",
+				},
+			},
+		},
+		EnterpriseMeta: *defaultMeta,
+	}
+	require.NoError(t, s.EnsureService(3, "foo", &web))
+
+	ws := memdb.NewWatchSet()
+	tx := s.db.ReadTxn()
+	idx, names, err := s.downstreamsForServiceTxn(tx, ws, "dc1", target)
+	require.NoError(t, err)
+	tx.Abort()
+
+	expect := []structs.ServiceName{
+		{Name: "web", EnterpriseMeta: *defaultMeta},
+	}
+	require.Equal(t, uint64(3), idx)
+	require.ElementsMatch(t, expect, names)
+
+	// Register a service WITHOUT our target as an upstream, and the watch should not fire
+	api := structs.NodeService{
+		Kind:    structs.ServiceKindConnectProxy,
+		ID:      "api-proxy",
+		Service: "api-proxy",
+		Address: "127.0.0.1",
+		Port:    443,
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "api",
+			Upstreams: structs.Upstreams{
+				structs.Upstream{
+					DestinationName: "cache",
+				},
+				structs.Upstream{
+					DestinationName: "db",
+				},
+				structs.Upstream{
+					DestinationName: "old-admin",
+				},
+			},
+		},
+		EnterpriseMeta: *defaultMeta,
+	}
+	require.NoError(t, s.EnsureService(4, "foo", &api))
+	require.False(t, watchFired(ws))
+
+	// Update the routing so that api's upstream routes to our target and watches should fire
+	defaults := structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: structs.ProxyConfigGlobal,
+		Config: map[string]interface{}{
+			"protocol": "http",
+		},
+	}
+	require.NoError(t, defaults.Normalize())
+	require.NoError(t, s.EnsureConfigEntry(5, &defaults, nil))
+
+	router := structs.ServiceRouterConfigEntry{
+		Kind: structs.ServiceRouter,
+		Name: "old-admin",
+		Routes: []structs.ServiceRoute{
+			{
+				Match: &structs.ServiceRouteMatch{
+					HTTP: &structs.ServiceRouteHTTPMatch{
+						PathExact: "/v2",
+					},
+				},
+				Destination: &structs.ServiceRouteDestination{
+					Service: "admin",
+				},
+			},
+		},
+	}
+	require.NoError(t, router.Normalize())
+	require.NoError(t, s.EnsureConfigEntry(6, &router, nil))
+
+	// We updated a relevant config entry
+	require.True(t, watchFired(ws))
+
+	ws = memdb.NewWatchSet()
+	tx = s.db.ReadTxn()
+	idx, names, err = s.downstreamsForServiceTxn(tx, ws, "dc1", target)
+	require.NoError(t, err)
+	tx.Abort()
+
+	expect = []structs.ServiceName{
+		// get web from listing admin directly as an upstream
+		{Name: "web", EnterpriseMeta: *defaultMeta},
+		// get api from old-admin routing to admin and web listing old-admin as an upstream
+		{Name: "api", EnterpriseMeta: *defaultMeta},
+	}
+	require.Equal(t, uint64(6), idx)
+	require.ElementsMatch(t, expect, names)
 }

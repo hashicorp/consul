@@ -1457,14 +1457,24 @@ func TestSourcesForTarget(t *testing.T) {
 	defaultMeta := *structs.DefaultEnterpriseMeta()
 
 	type expect struct {
-		idx uint64
-		ids []structs.ServiceName
+		idx   uint64
+		names []structs.ServiceName
 	}
 	tt := []struct {
 		name    string
 		entries []structs.ConfigEntry
 		expect  expect
 	}{
+		{
+			name:    "no relevant config entries",
+			entries: []structs.ConfigEntry{},
+			expect: expect{
+				idx: 1,
+				names: []structs.ServiceName{
+					{Name: "sink", EnterpriseMeta: defaultMeta},
+				},
+			},
+		},
 		{
 			name: "from route match",
 			entries: []structs.ConfigEntry{
@@ -1494,8 +1504,9 @@ func TestSourcesForTarget(t *testing.T) {
 			},
 			expect: expect{
 				idx: 2,
-				ids: []structs.ServiceName{
+				names: []structs.ServiceName{
 					{Name: "web", EnterpriseMeta: defaultMeta},
+					{Name: "sink", EnterpriseMeta: defaultMeta},
 				},
 			},
 		},
@@ -1519,8 +1530,9 @@ func TestSourcesForTarget(t *testing.T) {
 			},
 			expect: expect{
 				idx: 2,
-				ids: []structs.ServiceName{
+				names: []structs.ServiceName{
 					{Name: "web", EnterpriseMeta: defaultMeta},
+					{Name: "sink", EnterpriseMeta: defaultMeta},
 				},
 			},
 		},
@@ -1547,8 +1559,9 @@ func TestSourcesForTarget(t *testing.T) {
 			},
 			expect: expect{
 				idx: 2,
-				ids: []structs.ServiceName{
+				names: []structs.ServiceName{
 					{Name: "web", EnterpriseMeta: defaultMeta},
+					{Name: "sink", EnterpriseMeta: defaultMeta},
 				},
 			},
 		},
@@ -1573,8 +1586,9 @@ func TestSourcesForTarget(t *testing.T) {
 			},
 			expect: expect{
 				idx: 2,
-				ids: []structs.ServiceName{
+				names: []structs.ServiceName{
 					{Name: "web", EnterpriseMeta: defaultMeta},
+					{Name: "sink", EnterpriseMeta: defaultMeta},
 				},
 			},
 		},
@@ -1614,9 +1628,10 @@ func TestSourcesForTarget(t *testing.T) {
 			},
 			expect: expect{
 				idx: 3,
-				ids: []structs.ServiceName{
+				names: []structs.ServiceName{
 					{Name: "source", EnterpriseMeta: defaultMeta},
 					{Name: "routed", EnterpriseMeta: defaultMeta},
+					{Name: "sink", EnterpriseMeta: defaultMeta},
 				},
 			},
 		},
@@ -1682,11 +1697,12 @@ func TestSourcesForTarget(t *testing.T) {
 			},
 			expect: expect{
 				idx: 6,
-				ids: []structs.ServiceName{
+				names: []structs.ServiceName{
 					{Name: "split", EnterpriseMeta: defaultMeta},
 					{Name: "failed-over", EnterpriseMeta: defaultMeta},
 					{Name: "redirected", EnterpriseMeta: defaultMeta},
 					{Name: "routed", EnterpriseMeta: defaultMeta},
+					{Name: "sink", EnterpriseMeta: defaultMeta},
 				},
 			},
 		},
@@ -1714,11 +1730,11 @@ func TestSourcesForTarget(t *testing.T) {
 			defer tx.Abort()
 
 			sn := structs.NewServiceName("sink", structs.DefaultEnterpriseMeta())
-			idx, ids, err := s.discoveryChainSources(ws, tx, "dc1", sn)
+			idx, names, err := s.discoveryChainSourcesTxn(tx, ws, "dc1", sn)
 			require.NoError(t, err)
 
 			require.Equal(t, tc.expect.idx, idx)
-			require.ElementsMatch(t, tc.expect.ids, ids)
+			require.ElementsMatch(t, tc.expect.names, names)
 		})
 	}
 }
@@ -1915,7 +1931,7 @@ func TestTargetsForSource(t *testing.T) {
 			tx := s.db.ReadTxn()
 			defer tx.Abort()
 
-			idx, ids, err := s.discoveryChainTargets(ws, "dc1", "web", nil)
+			idx, ids, err := s.discoveryChainTargetsTxn(tx, ws, "dc1", "web", nil)
 			require.NoError(t, err)
 
 			require.Equal(t, tc.expect.idx, idx)
