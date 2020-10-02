@@ -169,8 +169,8 @@ func newEventFromStreamEvents(req *pbsubscribe.SubscribeRequest, events []stream
 		case event.IsEndOfSnapshot():
 			e.Payload = &pbsubscribe.Event_EndOfSnapshot{EndOfSnapshot: true}
 			return e
-		case event.IsEndOfEmptySnapshot():
-			e.Payload = &pbsubscribe.Event_EndOfEmptySnapshot{EndOfEmptySnapshot: true}
+		case event.IsNewSnapshotToFollow():
+			e.Payload = &pbsubscribe.Event_NewSnapshotToFollow{NewSnapshotToFollow: true}
 			return e
 		}
 

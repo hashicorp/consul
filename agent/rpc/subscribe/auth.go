@@ -10,7 +10,7 @@ import (
 // event is allowed to be sent to this client or not.
 func enforceACL(authz acl.Authorizer, e stream.Event) acl.EnforcementDecision {
 	switch {
-	case e.IsEndOfSnapshot(), e.IsEndOfEmptySnapshot():
+	case e.IsEndOfSnapshot(), e.IsNewSnapshotToFollow():
 		return acl.Allow
 	}
 

@@ -59,10 +59,11 @@ func (l *eventLogger) Trace(e []stream.Event) {
 
 	first := e[0]
 	switch {
-	case first.IsEndOfSnapshot() || first.IsEndOfEmptySnapshot():
+	case first.IsEndOfSnapshot():
 		l.snapshotDone = true
 		l.logger.Trace("snapshot complete", "index", first.Index, "sent", l.count)
-
+	case first.IsNewSnapshotToFollow():
+		return
 	case l.snapshotDone:
 		l.logger.Trace("sending events", "index", first.Index, "sent", l.count, "batch_size", len(e))
 	}
