@@ -56,7 +56,7 @@ message ConnectProxyConfig {
 
     // Config is the arbitrary configuration data provided with the proxy
     // registration.
-    // mog: func-to=MapStringInterfaceToStructs func-from=NewMapStringInterfaceFromStructs
+    // mog: func-to=ProtobufTypesStructToMapStringInterface func-from=MapStringInterfaceToProtobufTypesStruct
     google.protobuf.Struct Config = 5 [(gogoproto.nullable) = true];
 
     // Upstreams describes any upstream dependencies the proxy instance should
@@ -111,7 +111,7 @@ message Upstream {
     // Config is an opaque config that is specific to the proxy process being run.
     // It can be used to pass arbitrary configuration for this specific upstream
     // to the proxy.
-    // mog: func-to=MapStringInterfaceToStructs func-from=NewMapStringInterfaceFromStructs
+    // mog: func-to=ProtobufTypesStructToMapStringInterface func-from=MapStringInterfaceToProtobufTypesStruct
     google.protobuf.Struct Config = 7 [(gogoproto.nullable) = true];
 
     // MeshGateway is the configuration for mesh gateway usage of this upstream
