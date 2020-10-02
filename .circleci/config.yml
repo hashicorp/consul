@@ -641,10 +641,12 @@ jobs:
       - attach_workspace:
           at: .
       - run:
-          name: commit agent/uiserver/bindata_assetfs.go if there are changes
+          name: commit agent/uiserver/bindata_assetfs.go if there are UI changes
           command: |
-            exit 0
-            if ! git diff --exit-code agent/uiserver/bindata_assetfs.go; then
+            # check if there are any changes in ui-v2/
+            # if there are, we commit the ui static asset file
+            # HEAD^! is shorthand for HEAD^..HEAD (parent of HEAD and HEAD)
+            if ! git diff --quiet --exit-code HEAD^! ui-v2/; then
               git config --local user.email "hashicorp-ci@users.noreply.github.com"
               git config --local user.name "hashicorp-ci"
 
@@ -653,7 +655,7 @@ jobs:
               git commit -m "auto-updated agent/uiserver/bindata_assetfs.go from commit ${short_sha}"
               git push origin master
             else
-              echo "no new static assets to publish"
+              echo "no UI changes so no static assets to publish"
             fi
       - run: *notify-slack-failure
 
