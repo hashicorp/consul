@@ -11,6 +11,7 @@
 # post-beta:
 pr/dependencies:
     - vendor/**/*
+    - go.*
 # pr/needs-rebase:
 # pr/needs-tests:
 theme/acls:
@@ -39,8 +40,6 @@ theme/dns:
 theme/envoy/xds:
     - agent/xds/**/*
 # theme/federation-usability:
-theme/go-modules:
-    - go.*
 theme/health-checks:
     - agent/health*
     - api/health*

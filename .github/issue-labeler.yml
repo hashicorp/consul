@@ -52,11 +52,11 @@ theme/mesh-gw:
     - 'mesh'
 # theme/operator-usability:
 theme/packaging:
-    - '(rpm|deb|repository|systemd|upstart|Upstart|SystemD)'
+    - '(nix|Nix|RPM|rpm|DEB|deb|repository|systemd|upstart|Upstart|SystemD|brew|homebrew|choco|chocolatey)'
 theme/performance:
     - '(performance|requests\sper\ssecond)'
 theme/service-metadata:
-    - 'meta-data'
+    - '(meta-data|meta)'
 theme/streaming:
     - '(stream|streaming)'
 theme/telemetry:
