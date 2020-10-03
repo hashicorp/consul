@@ -1,7 +1,7 @@
 package cachetype
 
 import (
-	fmt "fmt"
+	"fmt"
 
 	"github.com/hashicorp/consul/proto/pbcommon"
 	"github.com/hashicorp/consul/proto/pbservice"
@@ -17,10 +17,9 @@ func newEndOfSnapshotEvent(topic pbsubscribe.Topic, index uint64) *pbsubscribe.E
 	}
 }
 
-func newNewSnapshotToFollowEvent(topic pbsubscribe.Topic, index uint64) *pbsubscribe.Event {
+func newNewSnapshotToFollowEvent(topic pbsubscribe.Topic) *pbsubscribe.Event {
 	return &pbsubscribe.Event{
 		Topic:   topic,
-		Index:   index,
 		Payload: &pbsubscribe.Event_NewSnapshotToFollow{NewSnapshotToFollow: true},
 	}
 }
@@ -32,12 +31,12 @@ func newNewSnapshotToFollowEvent(topic pbsubscribe.Topic, index uint64) *pbsubsc
 // need that. nodeNum should be less than 64k to make the IP address look
 // realistic. Any other changes can be made on the returned event to avoid
 // adding too many options to callers.
-func newEventServiceHealthRegister(index uint64, nodeNum int, svc string) pbsubscribe.Event {
+func newEventServiceHealthRegister(index uint64, nodeNum int, svc string) *pbsubscribe.Event {
 	node := fmt.Sprintf("node%d", nodeNum)
 	nodeID := types.NodeID(fmt.Sprintf("11111111-2222-3333-4444-%012d", nodeNum))
 	addr := fmt.Sprintf("10.10.%d.%d", nodeNum/256, nodeNum%256)
 
-	return pbsubscribe.Event{
+	return &pbsubscribe.Event{
 		Topic: pbsubscribe.Topic_ServiceHealth,
 		Key:   svc,
 		Index: index,
@@ -114,10 +113,10 @@ func newEventServiceHealthRegister(index uint64, nodeNum int, svc string) pbsubs
 // need that. nodeNum should be less than 64k to make the IP address look
 // realistic. Any other changes can be made on the returned event to avoid
 // adding too many options to callers.
-func newEventServiceHealthDeregister(index uint64, nodeNum int, svc string) pbsubscribe.Event {
+func newEventServiceHealthDeregister(index uint64, nodeNum int, svc string) *pbsubscribe.Event {
 	node := fmt.Sprintf("node%d", nodeNum)
 
-	return pbsubscribe.Event{
+	return &pbsubscribe.Event{
 		Topic: pbsubscribe.Topic_ServiceHealth,
 		Key:   svc,
 		Index: index,
@@ -158,13 +157,13 @@ func newEventServiceHealthDeregister(index uint64, nodeNum int, svc string) pbsu
 	}
 }
 
-func newEventBatchWithEvents(first pbsubscribe.Event, evs ...pbsubscribe.Event) pbsubscribe.Event {
+func newEventBatchWithEvents(first *pbsubscribe.Event, evs ...*pbsubscribe.Event) *pbsubscribe.Event {
 	events := make([]*pbsubscribe.Event, len(evs)+1)
-	events[0] = &first
+	events[0] = first
 	for i := range evs {
-		events[i+1] = &evs[i]
+		events[i+1] = evs[i]
 	}
-	return pbsubscribe.Event{
+	return &pbsubscribe.Event{
 		Topic: first.Topic,
 		Index: first.Index,
 		Payload: &pbsubscribe.Event_EventBatch{

@@ -65,7 +65,6 @@ type Deps struct {
 	Logger  hclog.Logger
 	Waiter  *retry.Waiter
 	Request func(index uint64) pbsubscribe.SubscribeRequest
-	Stop    func()
 }
 
 // StreamClient provides a subscription to state change events.
@@ -94,37 +93,34 @@ func (m *Materializer) Run(ctx context.Context) {
 			return
 		}
 
-		m.lock.Lock()
-		// TODO: move this into a func
-		// If this is a temporary error and it's the first consecutive failure,
-		// retry to see if we can get a result without erroring back to clients.
-		// If it's non-temporary or a repeated failure return to clients while we
-		// retry to get back in a good state.
-		if _, ok := err.(temporary); !ok || m.retryWaiter.Failures() > 0 {
-			m.notifyUpdateLocked(err)
-		}
-		waitCh := m.retryWaiter.Failed()
 		failures := m.retryWaiter.Failures()
-		m.lock.Unlock()
+		if isNonTemporaryOrConsecutiveFailure(err, failures) {
+			m.lock.Lock()
+			m.notifyUpdateLocked(err)
+			m.lock.Unlock()
+		}
 
 		m.deps.Logger.Error("subscribe call failed",
 			"err", err,
 			"topic", req.Topic,
 			"key", req.Key,
-			"failure_count", failures)
+			"failure_count", failures+1)
 
-		select {
-		case <-ctx.Done():
+		if err := m.retryWaiter.Wait(ctx); err != nil {
 			return
-		case <-waitCh:
 		}
 	}
 }
 
-// temporary is a private interface as used by net and other std lib packages to
-// show error types represent temporary/recoverable errors.
-type temporary interface {
-	Temporary() bool
+// isNonTemporaryOrConsecutiveFailure returns true if the error is a temporary error
+// or if the failures > 0.
+func isNonTemporaryOrConsecutiveFailure(err error, failures int) bool {
+	// temporary is an interface used by net and other std lib packages to
+	// show error types represent temporary/recoverable errors.
+	_, ok := err.(interface {
+		Temporary() bool
+	})
+	return !ok || failures > 0
 }
 
 // runSubscription opens a new subscribe streaming call to the servers and runs

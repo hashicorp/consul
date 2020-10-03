@@ -18,15 +18,16 @@ import (
 	"container/heap"
 	"context"
 	"fmt"
-	io "io"
+	"io"
 	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/lib"
 	"golang.org/x/time/rate"
+
+	"github.com/hashicorp/consul/lib"
 )
 
 //go:generate mockery -all -inpkg

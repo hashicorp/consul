@@ -1,8 +1,16 @@
 package submatview
 
-import "github.com/hashicorp/consul/proto/pbsubscribe"
+import (
+	"github.com/hashicorp/consul/proto/pbsubscribe"
+)
 
-type eventHandler func(events *pbsubscribe.Event) (eventHandler, error)
+// eventHandler is a function which performs some operation on the received
+// events, then returns the eventHandler that should be used for the next set
+// of events.
+// If eventHandler fails to handle the events it may return an error. If an
+// error is returned the next eventHandler will be ignored.
+// eventHandler is used to implement a very simple finite-state machine.
+type eventHandler func(events *pbsubscribe.Event) (next eventHandler, err error)
 
 func (m *Materializer) initialHandler(index uint64) eventHandler {
 	if index == 0 {

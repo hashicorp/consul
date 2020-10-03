@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
 
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
@@ -12,6 +11,7 @@ import (
 // TestStreamingClient is a mock StreamingClient for testing that allows
 // for queueing up custom events to a subscriber.
 type TestStreamingClient struct {
+	pbsubscribe.StateChangeSubscription_SubscribeClient
 	events chan eventOrErr
 	ctx    context.Context
 }
@@ -57,15 +57,3 @@ func (t *TestStreamingClient) Recv() (*pbsubscribe.Event, error) {
 		return nil, t.ctx.Err()
 	}
 }
-
-func (t *TestStreamingClient) Header() (metadata.MD, error) { return nil, nil }
-
-func (t *TestStreamingClient) Trailer() metadata.MD { return nil }
-
-func (t *TestStreamingClient) CloseSend() error { return nil }
-
-func (t *TestStreamingClient) Context() context.Context { return nil }
-
-func (t *TestStreamingClient) SendMsg(m interface{}) error { return nil }
-
-func (t *TestStreamingClient) RecvMsg(m interface{}) error { return nil }

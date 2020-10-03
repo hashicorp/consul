@@ -80,10 +80,7 @@ func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
 		start := time.Now()
 		go func() {
 			time.Sleep(200 * time.Millisecond)
-
-			// Then a service registers
-			healthEv := newEventServiceHealthRegister(4, 1, "web")
-			client.QueueEvents(&healthEv)
+			client.QueueEvents(newEventServiceHealthRegister(4, 1, "web"))
 		}()
 
 		opts.Timeout = time.Second
@@ -103,14 +100,8 @@ func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
 		opts.LastResult = &result
 	})
 
-	runStep(t, "reconnects and resumes after transient stream error", func(t *testing.T) {
-		// Use resetErr just because it's "temporary" this is a stand in for any
-		// network error that uses that same interface though.
+	runStep(t, "reconnects and resumes after temporary error", func(t *testing.T) {
 		client.QueueErr(tempError("broken pipe"))
-
-		// After the error the view should re-subscribe with same index so will get
-		// a "resume stream".
-		client.QueueEvents(newNewSnapshotToFollowEvent(pbsubscribe.Topic_ServiceHealth, opts.MinIndex))
 
 		// Next fetch will continue to block until timeout and receive the same
 		// result.
@@ -129,8 +120,7 @@ func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
 		opts.LastResult = &result
 
 		// But an update should still be noticed due to reconnection
-		healthEv := newEventServiceHealthRegister(10, 2, "web")
-		client.QueueEvents(&healthEv)
+		client.QueueEvents(newEventServiceHealthRegister(10, 2, "web"))
 
 		start = time.Now()
 		opts.Timeout = time.Second
@@ -153,10 +143,6 @@ func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
 		go func() {
 			time.Sleep(200 * time.Millisecond)
 			client.QueueErr(errors.New("invalid request"))
-
-			// After the error the view should re-subscribe with same index so will get
-			// a "resume stream".
-			client.QueueEvents(newNewSnapshotToFollowEvent(pbsubscribe.Topic_ServiceHealth, opts.MinIndex))
 		}()
 
 		// Next fetch should return the error
@@ -182,8 +168,7 @@ func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
 		opts.LastResult = &result
 
 		// But an update should still be noticed due to reconnection
-		healthEv := newEventServiceHealthRegister(opts.MinIndex+5, 3, "web")
-		client.QueueEvents(&healthEv)
+		client.QueueEvents(newEventServiceHealthRegister(opts.MinIndex+5, 3, "web"))
 
 		opts.Timeout = time.Second
 		result, err = typ.Fetch(opts, req)
@@ -238,14 +223,13 @@ func TestStreamingHealthServices_FullSnapshot(t *testing.T) {
 	}}
 
 	// Create an initial snapshot of 3 instances on different nodes
-	makeReg := func(index uint64, nodeNum int) *pbsubscribe.Event {
-		e := newEventServiceHealthRegister(index, nodeNum, "web")
-		return &e
+	registerServiceWeb := func(index uint64, nodeNum int) *pbsubscribe.Event {
+		return newEventServiceHealthRegister(index, nodeNum, "web")
 	}
 	client.QueueEvents(
-		makeReg(5, 1),
-		makeReg(5, 2),
-		makeReg(5, 3),
+		registerServiceWeb(5, 1),
+		registerServiceWeb(5, 2),
+		registerServiceWeb(5, 3),
 		newEndOfSnapshotEvent(pbsubscribe.Topic_ServiceHealth, 5))
 
 	// This contains the view state so important we share it between calls.
@@ -288,8 +272,7 @@ func TestStreamingHealthServices_FullSnapshot(t *testing.T) {
 			time.Sleep(200 * time.Millisecond)
 
 			// Deregister instance on node1
-			healthEv := newEventServiceHealthDeregister(20, 1, "web")
-			client.QueueEvents(&healthEv)
+			client.QueueEvents(newEventServiceHealthDeregister(20, 1, "web"))
 		}()
 
 		opts.Timeout = time.Second
@@ -315,9 +298,9 @@ func TestStreamingHealthServices_FullSnapshot(t *testing.T) {
 		client.QueueErr(status.Error(codes.Aborted, "reset by server"))
 
 		client.QueueEvents(
-			makeReg(50, 3), // overlap existing node
-			makeReg(50, 4),
-			makeReg(50, 5),
+			registerServiceWeb(50, 3), // overlap existing node
+			registerServiceWeb(50, 4),
+			registerServiceWeb(50, 5),
 			newEndOfSnapshotEvent(pbsubscribe.Topic_ServiceHealth, 50))
 
 		// Make another blocking query with THE SAME index. It should immediately
@@ -336,6 +319,29 @@ func TestStreamingHealthServices_FullSnapshot(t *testing.T) {
 		opts.MinIndex = result.Index
 		opts.LastResult = &result
 	})
+
+	runStep(t, "reconnects and receives new snapshot when server state has changed", func(t *testing.T) {
+		client.QueueErr(tempError("temporary connection error"))
+
+		client.QueueEvents(
+			newNewSnapshotToFollowEvent(pbsubscribe.Topic_ServiceHealth),
+			registerServiceWeb(50, 3), // overlap existing node
+			registerServiceWeb(50, 4),
+			registerServiceWeb(50, 5),
+			newEndOfSnapshotEvent(pbsubscribe.Topic_ServiceHealth, 50))
+
+		start := time.Now()
+		opts.MinIndex = 49
+		opts.Timeout = time.Second
+		result, err := typ.Fetch(opts, req)
+		require.NoError(t, err)
+		elapsed := time.Since(start)
+		require.True(t, elapsed < time.Second,
+			"Fetch should have returned before the timeout")
+
+		require.Equal(t, uint64(50), result.Index)
+		require.Equal(t, []string{"node3", "node4", "node5"}, gatherNodes(result.Value))
+	})
 }
 
 func TestStreamingHealthServices_EventBatches(t *testing.T) {
@@ -351,7 +357,7 @@ func TestStreamingHealthServices_EventBatches(t *testing.T) {
 		newEventServiceHealthRegister(5, 2, "web"),
 		newEventServiceHealthRegister(5, 3, "web"))
 	client.QueueEvents(
-		&batchEv,
+		batchEv,
 		newEndOfSnapshotEvent(pbsubscribe.Topic_ServiceHealth, 5))
 
 	// This contains the view state so important we share it between calls.
@@ -394,7 +400,7 @@ func TestStreamingHealthServices_EventBatches(t *testing.T) {
 			// Register another
 			newEventServiceHealthRegister(20, 4, "web"),
 		)
-		client.QueueEvents(&batchEv)
+		client.QueueEvents(batchEv)
 		opts.Timeout = time.Second
 		result, err := typ.Fetch(opts, req)
 		require.NoError(t, err)
@@ -421,7 +427,7 @@ func TestStreamingHealthServices_Filtering(t *testing.T) {
 		newEventServiceHealthRegister(5, 2, "web"),
 		newEventServiceHealthRegister(5, 3, "web"))
 	client.QueueEvents(
-		&batchEv,
+		batchEv,
 		newEndOfSnapshotEvent(pbsubscribe.Topic_ServiceHealth, 5))
 
 	// This contains the view state so important we share it between calls.
@@ -451,8 +457,7 @@ func TestStreamingHealthServices_Filtering(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, uint64(5), result.Index)
-		require.ElementsMatch(t, []string{"node2"},
-			gatherNodes(result.Value))
+		require.Equal(t, []string{"node2"}, gatherNodes(result.Value))
 
 		opts.MinIndex = result.Index
 		opts.LastResult = &result
@@ -467,14 +472,13 @@ func TestStreamingHealthServices_Filtering(t *testing.T) {
 			// Register another
 			newEventServiceHealthRegister(20, 4, "web"),
 		)
-		client.QueueEvents(&batchEv)
+		client.QueueEvents(batchEv)
 		opts.Timeout = time.Second
 		result, err := typ.Fetch(opts, req)
 		require.NoError(t, err)
 
 		require.Equal(t, uint64(20), result.Index)
-		require.ElementsMatch(t, []string{"node2"},
-			gatherNodes(result.Value))
+		require.Equal(t, []string{"node2"}, gatherNodes(result.Value))
 
 		opts.MinIndex = result.Index
 		opts.LastResult = &result

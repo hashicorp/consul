@@ -8,12 +8,10 @@ import (
 	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 
-	"github.com/hashicorp/consul/agent/submatview"
-
-	"github.com/hashicorp/consul/lib/retry"
-
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/submatview"
+	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/consul/proto/pbservice"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
@@ -44,8 +42,7 @@ type MaterializerDeps struct {
 // Fetch implements cache.Type
 func (c *StreamingHealthServices) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	if opts.LastResult != nil && opts.LastResult.State != nil {
-		state := opts.LastResult.State.(*streamingHealthState)
-		return state.materializer.Fetch(state.done, opts)
+		return opts.LastResult.State.(*streamingHealthState).Fetch(opts)
 	}
 
 	srvReq := req.(*structs.ServiceSpecificRequest)
@@ -63,57 +60,64 @@ func (c *StreamingHealthServices) Fetch(opts cache.FetchOptions, req cache.Reque
 		return req
 	}
 
-	m, err := newMaterializer(c.deps, newReqFn, srvReq.Filter)
+	materializer, err := newMaterializer(c.deps, newReqFn, srvReq.Filter)
 	if err != nil {
 		return cache.FetchResult{}, err
 	}
 	ctx, cancel := context.WithCancel(context.TODO())
-	go m.Run(ctx)
+	go materializer.Run(ctx)
 
-	result, err := m.Fetch(ctx.Done(), opts)
-	result.State = &streamingHealthState{
-		materializer: m,
+	state := &streamingHealthState{
+		materializer: materializer,
 		done:         ctx.Done(),
 		cancel:       cancel,
 	}
-	return result, err
+	return state.Fetch(opts)
 }
 
 func newMaterializer(
-	d MaterializerDeps,
-	r func(uint64) pbsubscribe.SubscribeRequest,
+	deps MaterializerDeps,
+	newRequestFn func(uint64) pbsubscribe.SubscribeRequest,
 	filter string,
 ) (*submatview.Materializer, error) {
-	view, err := newHealthViewState(filter)
+	view, err := newHealthView(filter)
 	if err != nil {
 		return nil, err
 	}
 	return submatview.NewMaterializer(submatview.Deps{
 		View:   view,
-		Client: d.Client,
-		Logger: d.Logger,
+		Client: deps.Client,
+		Logger: deps.Logger,
 		Waiter: &retry.Waiter{
 			MinFailures: 1,
 			MinWait:     0,
 			MaxWait:     60 * time.Second,
 			Jitter:      retry.NewJitter(100),
 		},
-		Request: r,
+		Request: newRequestFn,
 	}), nil
 }
 
+// streamingHealthState wraps a Materializer to manage its lifecycle, and to
+// add itself to the FetchResult.State.
 type streamingHealthState struct {
 	materializer *submatview.Materializer
 	done         <-chan struct{}
 	cancel       func()
 }
 
-func (c *streamingHealthState) Close() error {
-	c.cancel()
+func (s *streamingHealthState) Close() error {
+	s.cancel()
 	return nil
 }
 
-func newHealthViewState(filterExpr string) (submatview.View, error) {
+func (s *streamingHealthState) Fetch(opts cache.FetchOptions) (cache.FetchResult, error) {
+	result, err := s.materializer.Fetch(s.done, opts)
+	result.State = s
+	return result, err
+}
+
+func newHealthView(filterExpr string) (*healthView, error) {
 	s := &healthView{state: make(map[string]structs.CheckServiceNode)}
 
 	// We apply filtering to the raw CheckServiceNodes before we are done mutating
@@ -131,8 +135,7 @@ func newHealthViewState(filterExpr string) (submatview.View, error) {
 // (IndexedCheckServiceNodes) and update it in place for each event - that
 // involves re-sorting each time etc. though.
 type healthView struct {
-	state map[string]structs.CheckServiceNode
-	// TODO: test case with filter
+	state  map[string]structs.CheckServiceNode
 	filter *bexpr.Filter
 }
 
@@ -155,7 +158,6 @@ func (s *healthView) Update(events []*pbsubscribe.Event) error {
 			delete(s.state, id)
 		}
 	}
-	// TODO: replace with a no-op filter instead of a conditional
 	if s.filter != nil {
 		filtered, err := s.filter.Execute(s.state)
 		if err != nil {
@@ -166,16 +168,17 @@ func (s *healthView) Update(events []*pbsubscribe.Event) error {
 	return nil
 }
 
-// Result implements View
+// Result returns the structs.IndexedCheckServiceNodes stored by this view.
 func (s *healthView) Result(index uint64) (interface{}, error) {
-	var result structs.IndexedCheckServiceNodes
-	// Avoid a nil slice if there are no results in the view
-	// TODO: why this ^
-	result.Nodes = structs.CheckServiceNodes{}
+	result := structs.IndexedCheckServiceNodes{
+		Nodes: make(structs.CheckServiceNodes, 0, len(s.state)),
+		QueryMeta: structs.QueryMeta{
+			Index: index,
+		},
+	}
 	for _, node := range s.state {
 		result.Nodes = append(result.Nodes, node)
 	}
-	result.Index = index
 	return &result, nil
 }
 
