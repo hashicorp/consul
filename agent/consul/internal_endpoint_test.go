@@ -1605,3 +1605,145 @@ service_prefix "terminating-gateway" { policy = "read" }
 	}
 	assert.ElementsMatch(t, expected, actual)
 }
+
+func TestInternal_ServiceTopology(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	// api and api-proxy on node foo - upstream: web
+	// web and web-proxy on node bar - upstream: redis
+	// web and web-proxy on node baz - upstream: redis
+	// redis and redis-proxy on node zip
+	registerTestTopologyEntries(t, codec, "")
+
+	t.Run("api", func(t *testing.T) {
+		args := structs.ServiceSpecificRequest{
+			Datacenter:  "dc1",
+			ServiceName: "api",
+		}
+		var out structs.IndexedServiceTopology
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
+		require.False(t, out.FilteredByACLs)
+
+		// bar/web, bar/web-proxy, baz/web, baz/web-proxy
+		require.Len(t, out.ServiceTopology.Upstreams, 4)
+		require.Len(t, out.ServiceTopology.Downstreams, 0)
+	})
+
+	t.Run("web", func(t *testing.T) {
+		args := structs.ServiceSpecificRequest{
+			Datacenter:  "dc1",
+			ServiceName: "web",
+		}
+		var out structs.IndexedServiceTopology
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
+		require.False(t, out.FilteredByACLs)
+
+		// foo/api, foo/api-proxy
+		require.Len(t, out.ServiceTopology.Upstreams, 2)
+
+		// zip/redis, zip/redis-proxy
+		require.Len(t, out.ServiceTopology.Downstreams, 2)
+	})
+
+	t.Run("redis", func(t *testing.T) {
+		args := structs.ServiceSpecificRequest{
+			Datacenter:  "dc1",
+			ServiceName: "redis",
+		}
+		var out structs.IndexedServiceTopology
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
+		require.False(t, out.FilteredByACLs)
+
+		require.Len(t, out.ServiceTopology.Upstreams, 0)
+
+		// bar/web, bar/web-proxy, baz/web, baz/web-proxy
+		require.Len(t, out.ServiceTopology.Downstreams, 4)
+	})
+}
+
+func TestInternal_ServiceTopology_ACL(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = TestDefaultMasterToken
+		c.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	// api and api-proxy on node foo - upstream: web
+	// web and web-proxy on node bar - upstream: redis
+	// web and web-proxy on node baz - upstream: redis
+	// redis and redis-proxy on node zip
+	registerTestTopologyEntries(t, codec, TestDefaultMasterToken)
+
+	// Token grants read to: foo/api, foo/api-proxy, bar/web, baz/web
+	userToken, err := upsertTestTokenWithPolicyRules(codec, TestDefaultMasterToken, "dc1", `
+node_prefix "" { policy = "read" }
+service_prefix "api" { policy = "read" }
+service "web" { policy = "read" }
+`)
+	require.NoError(t, err)
+
+	t.Run("api can't read web", func(t *testing.T) {
+		args := structs.ServiceSpecificRequest{
+			Datacenter:   "dc1",
+			ServiceName:  "api",
+			QueryOptions: structs.QueryOptions{Token: userToken.SecretID},
+		}
+		var out structs.IndexedServiceTopology
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
+
+		require.True(t, out.FilteredByACLs)
+
+		// The web-proxy upstream gets filtered out from both bar and baz
+		require.Len(t, out.ServiceTopology.Upstreams, 2)
+		require.Equal(t, "web", out.ServiceTopology.Upstreams[0].Service.Service)
+		require.Equal(t, "web", out.ServiceTopology.Upstreams[1].Service.Service)
+
+		require.Len(t, out.ServiceTopology.Downstreams, 0)
+	})
+
+	t.Run("web can't read redis", func(t *testing.T) {
+		args := structs.ServiceSpecificRequest{
+			Datacenter:   "dc1",
+			ServiceName:  "web",
+			QueryOptions: structs.QueryOptions{Token: userToken.SecretID},
+		}
+		var out structs.IndexedServiceTopology
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
+
+		require.True(t, out.FilteredByACLs)
+
+		// The redis upstream gets filtered out but the api and proxy downstream are returned
+		require.Len(t, out.ServiceTopology.Upstreams, 0)
+		require.Len(t, out.ServiceTopology.Downstreams, 2)
+	})
+
+	t.Run("redis can't read self", func(t *testing.T) {
+		args := structs.ServiceSpecificRequest{
+			Datacenter:   "dc1",
+			ServiceName:  "redis",
+			QueryOptions: structs.QueryOptions{Token: userToken.SecretID},
+		}
+		var out structs.IndexedServiceTopology
+		err := msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out)
+
+		// Can't read self, fails fast
+		require.True(t, acl.IsErrPermissionDenied(err))
+	})
+}
