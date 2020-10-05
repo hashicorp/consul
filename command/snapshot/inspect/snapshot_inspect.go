@@ -2,6 +2,7 @@ package inspect
 
 import (
 	"bytes"
+	"compress/gzip"
 	"flag"
 	"fmt"
 	"io"
@@ -11,9 +12,9 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/command/flags"
-	"github.com/hashicorp/consul/fsm"
 	"github.com/hashicorp/consul/snapshot"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/mitchellh/cli"
@@ -37,7 +38,7 @@ type cmd struct {
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	//TODO(schristoff): better flag info would be good
-	c.flags.BoolVar(&c.enhance, "verbose", false,
+	c.flags.BoolVar(&c.enhance, "enhance", false,
 		"Adds more info")
 	c.help = flags.Usage(help, c.flags)
 }
@@ -49,14 +50,17 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	var file string
-	//TODO (schristoff): How do other flags handle this? Find other flags that take in
-	//a file without a file flag and then have other flags.
 	args = c.flags.Args()
 	numArgs := len(args)
 
-	//Check to make sure we have at least one argument
-	if numArgs != 1 || numArgs != 2 {
-		c.UI.Error(fmt.Sprint("Expected at least one argument, got %d", numArgs))
+	switch len(args) {
+	case 0:
+		c.UI.Error("Missing FILE argument")
+		return 1
+	case 1:
+		file = args[0]
+	default:
+		c.UI.Error(fmt.Sprintf("Too many arguments (expected 1, got %d)", len(args)))
 		return 1
 	}
 
@@ -77,13 +81,26 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if c.enhance {
-		b, err := enhance(f)
+		if _, err := f.Seek(0, 0); err != nil {
+			c.UI.Error(fmt.Sprintf("Error resetting file for enhancement, got %s", err))
+		}
+		decomp, err := gzip.NewReader(f)
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("failed to decompress snapshot: %v", err))
+			return 1
+		}
+		defer decomp.Close()
+
+		stats, err := enhance(decomp)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error verifying snapshot: %s", err))
 			return 1
 		}
-		//TODO(schristoff): Will this make it so we can exit out here? Should we print
-		// the other stuff too?
+		b, err := c.readStats(stats)
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error reading snapshot stats: %s", err))
+			return 1
+		}
 		c.UI.Info(b.String())
 		return 0
 	}
@@ -126,7 +143,7 @@ func (r *countingReader) Read(p []byte) (n int, err error) {
 
 // enhance utilizes ReadSnapshot to create a summary
 // of each messageType in a snapshot
-func enhance(file io.Reader) error {
+func enhance(file io.Reader) (map[structs.MessageType]typeStats, error) {
 	stats := make(map[structs.MessageType]typeStats)
 	var offset int
 	offset = 0
@@ -150,35 +167,30 @@ func enhance(file io.Reader) error {
 		stats[msg] = s
 		return nil
 	}
-	return fsm.ReadSnapshot(cr, handler)
+	if err := fsm.ReadSnapshot(cr, handler); err != nil {
+		return nil, err
+	}
+	return stats, nil
+
 }
-
-type statSlice []typeStats
-
-func (s statSlice) Len() int { return len(s) }
-
-// TODO(schristoff) : do we need all this?
-// Less sorts by size descending
-func (s statSlice) Less(i, j int) bool { return s[i].Sum > s[j].Sum }
-func (s statSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
 func (c *cmd) readStats(stats map[structs.MessageType]typeStats) (bytes.Buffer, error) {
 	// Output stats in size-order
-	ss := make(statSlice, 0, len(stats))
+	ss := make([]typeStats, 0, len(stats))
 
 	for _, s := range stats {
 		ss = append(ss, s)
 	}
 
 	// Sort the stat slice
-	sort.Sort(ss)
+	sort.Slice(ss, func(i, j int) bool { return ss[i].Sum > ss[j].Sum })
 
 	var b bytes.Buffer
 	tw := tabwriter.NewWriter(&b, 0, 3, 6, ' ', 0)
 	for _, s := range ss {
 		fmt.Fprintf(tw, "Type\t%s\n", s.Name)
 		fmt.Fprintf(tw, "Count\t%d\n", s.Count)
-		fmt.Fprintf(tw, "Size\t%d\n", ByteSize(uint64(s.Sum)))
+		fmt.Fprintf(tw, "Size\t%s\n", ByteSize(uint64(s.Sum)))
 	}
 	if err := tw.Flush(); err != nil {
 		c.UI.Error(fmt.Sprintf("Error rendering snapshot info: %s", err))
@@ -189,14 +201,6 @@ func (c *cmd) readStats(stats map[structs.MessageType]typeStats) (bytes.Buffer, 
 
 }
 
-const (
-	BYTE = 1 << (10 * iota)
-	KILOBYTE
-	MEGABYTE
-	GIGABYTE
-	TERABYTE
-)
-
 // ByteSize returns a human-readable byte string of the form 10M, 12.5K, and so forth.  The following units are available:
 //	T: Terabyte
 //	G: Gigabyte
@@ -205,6 +209,15 @@ const (
 //	B: Byte
 // The unit that results in the smallest number greater than or equal to 1 is always chosen.
 // From https://github.com/cloudfoundry/bytefmt/blob/master/bytes.go
+
+const (
+	BYTE = 1 << (10 * iota)
+	KILOBYTE
+	MEGABYTE
+	GIGABYTE
+	TERABYTE
+)
+
 func ByteSize(bytes uint64) string {
 	unit := ""
 	value := float64(bytes)

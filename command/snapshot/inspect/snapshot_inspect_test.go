@@ -1,7 +1,9 @@
 package inspect
 
 import (
+	"flag"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,7 +12,28 @@ import (
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/require"
 )
+
+// update allows golden files to be updated based on the current output.
+var update = flag.Bool("update", false, "update golden files")
+
+// golden reads and optionally writes the expected data to the golden file,
+// returning the contents as a string.
+func golden(t *testing.T, name, got string) string {
+	t.Helper()
+
+	golden := filepath.Join("testdata", name+".golden")
+	if *update && got != "" {
+		err := ioutil.WriteFile(golden, []byte(got), 0644)
+		require.NoError(t, err)
+	}
+
+	expected, err := ioutil.ReadFile(golden)
+	require.NoError(t, err)
+
+	return string(expected)
+}
 
 func TestSnapshotInspectCommand_noTabs(t *testing.T) {
 	t.Parallel()
@@ -146,21 +169,13 @@ func TestSnapshotInspectEnhanceCommand(t *testing.T) {
 	// Inspect the snapshot
 	ui := cli.NewMockUi()
 	c := New(ui)
-	args := []string{file}
+	args := []string{"-enhance", file}
 
 	code := c.Run(args)
 	if code != 0 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
 
-	output := ui.OutputWriter.String()
-	for _, key := range []string{
-		"Type",
-		"Count",
-		"Size",
-	} {
-		if !strings.Contains(output, key) {
-			t.Fatalf("bad %#v, missing %q", output, key)
-		}
-	}
+	want := golden(t, t.Name(), ui.OutputWriter.String())
+	require.Equal(t, want, ui.OutputWriter.String())
 }

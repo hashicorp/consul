@@ -160,7 +160,7 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 	restore := stateNew.Restore()
 	defer restore.Abort()
 
-	handler := func(header *snapshotHeader, msg structs.MessageType, dec *codec.Decoder) error {
+	handler := func(header *SnapshotHeader, msg structs.MessageType, dec *codec.Decoder) error {
 		switch {
 		case msg == structs.ChunkingStateType:
 			chunkState := &raftchunking.State{
@@ -206,13 +206,15 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 
 // ReadSnapshot decodes each message type and utilizes the handler function to
 // process each message type individually
-func ReadSnapshot(r io.Reader, handler func(header *snapshotHeader, msg structs.MessageType, dec *codec.Decoder) error) error {
+func ReadSnapshot(r io.Reader, handler func(header *SnapshotHeader, msg structs.MessageType, dec *codec.Decoder) error) error {
 	// Create a decoder
 	dec := codec.NewDecoder(r, structs.MsgpackHandle)
 
 	// Read in the header
-	var header snapshotHeader
+	fmt.Println("line 214! ")
+	var header SnapshotHeader
 	if err := dec.Decode(&header); err != nil {
+		fmt.Println("Error inside 216 loop")
 		return err
 	}
 
