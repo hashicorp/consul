@@ -38,8 +38,8 @@
       {{@service.Service.Service}}
     </div>
     <div>
-    {{#if @grafanaLink}}
-      <a class="metrics-link" href={{@grafanaLink}} target="_blank" rel="noopener noreferrer">Open Grafana Dashboard</a>
+     {{#if @metricsHref}}
+      <a class="metrics-link" href={{@metricsHref}} target="_blank" rel="noopener noreferrer">Open metrics Dashboard</a>
     {{else}}
       <a class="settings-link" href={{href-to 'settings'}}>Configure metrics dashboard</a>
     {{/if}}

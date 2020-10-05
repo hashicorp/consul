@@ -6,7 +6,10 @@
       @upstreams={{topology.Upstreams}}
       @downstreams={{filter-by 'Datacenter' topology.Datacenter topology.Downstreams}}
       @dc={{topology.Datacenter}}
-      @grafanaLink={{urls.service}}
+      @metricsHref={{render-template urls.service (hash
+        Datacenter=dc
+        Service=(hash Name=item.Service.Service)
+      )}}
     />
   {{else}}
     <EmptyState>
