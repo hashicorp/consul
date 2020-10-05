@@ -18,7 +18,7 @@
     <div>
       {{@service.Service.Service}}
     </div>
-    <TopologyMetrics::Stats />
+    <TopologyMetrics::Stats @endpoint='summary-for-service' @item={{@service.Service.Service}} @protocol=''/>
     <div class="link">
      {{#if @metricsHref}}
       <a class="metrics-link" href={{@metricsHref}} target="_blank" rel="noopener noreferrer">Open metrics Dashboard</a>

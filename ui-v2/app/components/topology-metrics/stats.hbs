@@ -1,7 +1,12 @@
+<DataSource
+  @src={{uri nspace dc 'metrics' @endpoint @item @protocol}}
+  @onchange={{action (mut metrics) value="data"}}
+/>
+
 <div class="stats">
   <dl>
     <dt>
-      {{!-- {{stats.RPS}} --}}
+      {{!-- {{metrics.stats.RPS}} --}}
     </dt>
     <dd>
       RPS
@@ -9,7 +14,7 @@
   </dl>
   <dl>
     <dt>
-      {{!-- {{stats.ER}} --}}
+      {{!-- {{metrics.stats.ER}} --}}
     </dt>
     <dd>
       ER
@@ -17,7 +22,7 @@
   </dl>
   <dl>
     <dt>
-      {{!-- {{stats.MED}} --}}
+      {{!-- {{metrics.stats.MED}} --}}
     </dt>
     <dd>
       MED
@@ -25,7 +30,7 @@
   </dl>
     <dl>
     <dt>
-      {{!-- {{stats.P99}} --}}
+      {{!-- {{metrics.stats.P99}} --}}
     </dt>
     <dd>
       P99
