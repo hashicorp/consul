@@ -1132,6 +1132,8 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	// copy it whatever the value.
 	cfg.RPCHoldTimeout = runtimeCfg.RPCHoldTimeout
 
+	cfg.RPCConfig = runtimeCfg.RPCConfig
+
 	if runtimeCfg.LeaveDrainTime > 0 {
 		cfg.LeaveDrainTime = runtimeCfg.LeaveDrainTime
 	}

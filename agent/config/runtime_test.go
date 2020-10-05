@@ -18,15 +18,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
-	"github.com/stretchr/testify/require"
 )
 
 type configTest struct {
@@ -5113,6 +5115,7 @@ func TestFullConfig(t *testing.T) {
 			"retry_join_wan": [ "PFsR02Ye", "rJdQIhER" ],
 			"retry_max": 913,
 			"retry_max_wan": 23160,
+			"rpc": {"enable_streaming": true},
 			"segment": "BC2NhTDi",
 			"segments": [
 				{
@@ -5797,6 +5800,9 @@ func TestFullConfig(t *testing.T) {
 			retry_join_wan = [ "PFsR02Ye", "rJdQIhER" ]
 			retry_max = 913
 			retry_max_wan = 23160
+			rpc {
+				enable_streaming = true
+			}
 			segment = "BC2NhTDi"
 			segments = [
 				{
@@ -6552,6 +6558,7 @@ func TestFullConfig(t *testing.T) {
 		RetryJoinMaxAttemptsLAN: 913,
 		RetryJoinMaxAttemptsWAN: 23160,
 		RetryJoinWAN:            []string{"PFsR02Ye", "rJdQIhER"},
+		RPCConfig:               consul.RPCConfig{EnableStreaming: true},
 		SegmentName:             "BC2NhTDi",
 		Segments: []structs.NetworkSegment{
 			{
@@ -7461,6 +7468,9 @@ func TestSanitize(t *testing.T) {
 		"RPCMaxConnsPerClient": 0,
 		"RPCProtocol": 0,
 		"RPCRateLimit": 0,
+		"RPCConfig": {
+			"EnableStreaming": false
+		},
 		"RaftProtocol": 0,
 		"RaftSnapshotInterval": "0s",
 		"RaftSnapshotThreshold": 0,

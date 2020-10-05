@@ -16,6 +16,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-bexpr"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-sockaddr/template"
+	"github.com/hashicorp/memberlist"
+	"golang.org/x/time/rate"
+
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/connect/ca"
@@ -30,12 +37,6 @@ import (
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-bexpr"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/go-sockaddr/template"
-	"github.com/hashicorp/memberlist"
-	"golang.org/x/time/rate"
 )
 
 // Load will build the configuration including the extraHead source injected
@@ -1040,6 +1041,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		RPCMaxConnsPerClient:        b.intVal(c.Limits.RPCMaxConnsPerClient),
 		RPCProtocol:                 b.intVal(c.RPCProtocol),
 		RPCRateLimit:                rate.Limit(b.float64Val(c.Limits.RPCRate)),
+		RPCConfig:                   consul.RPCConfig{EnableStreaming: b.boolVal(c.RPC.EnableStreaming)},
 		RaftProtocol:                b.intVal(c.RaftProtocol),
 		RaftSnapshotThreshold:       b.intVal(c.RaftSnapshotThreshold),
 		RaftSnapshotInterval:        b.durationVal("raft_snapshot_interval", c.RaftSnapshotInterval),

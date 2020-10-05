@@ -617,7 +617,7 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 }
 
 func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler {
-	if !config.EnableGRPCServer {
+	if !config.RPCConfig.EnableStreaming {
 		return agentgrpc.NoOpHandler{Logger: deps.Logger}
 	}
 
