@@ -51,8 +51,10 @@
 }
 #upstream-container .card,
 #downstream-container .card {
-  padding: 12px;
+  display: flex;
+  flex-direction: column;
   p {
+    padding: 12px 12px 0 12px;
     font-size: 16px;
     font-weight: 600;
     margin-bottom: 0 !important;
@@ -75,6 +77,10 @@
       margin-top: 2px;
     }
   }
+  .details {
+    padding: 0 12px 12px 12px;
+  }
+
 }
 
 // Metrics Container
@@ -88,7 +94,7 @@
     font-size: 16px;
     font-weight: bold;
   }
-  div:nth-child(2) {
+  .link {
     padding: 18px;
     a::before {
       margin-right: 4px;
@@ -96,3 +102,15 @@
   }
 }
 
+
+// Stats Section
+.stats {
+  padding: 12px;
+  display: inline-flex;
+  dl {
+    margin-right: 8px;
+  }
+  dd {
+    color: $gray-400 !important;
+  }
+}
