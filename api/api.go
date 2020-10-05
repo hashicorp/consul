@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"mime"
 	"net"
 	"net/http"
 	"net/url"
@@ -892,6 +893,16 @@ func (c *Client) query(endpoint string, out interface{}, q *QueryOptions) (*Quer
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
 	qm.RequestTime = rtt
+
+	ct, _, _ := mime.ParseMediaType(resp.Header.Get("Content-Type"))
+	if resp.StatusCode >= 400 && ct == "text/plain" {
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return qm, err
+		}
+
+		return qm, fmt.Errorf("unexpected response: %s (%d)", string(body), resp.StatusCode)
+	}
 
 	if err := decodeBody(resp, out); err != nil {
 		return nil, err
