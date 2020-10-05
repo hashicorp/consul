@@ -129,7 +129,7 @@ func (m *Materializer) runSubscription(ctx context.Context, req pbsubscribe.Subs
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	m.handler = m.initialHandler(req.Index)
+	m.handler = initialHandler(req.Index)
 
 	s, err := m.deps.Client.Subscribe(ctx, &req)
 	if err != nil {
@@ -146,7 +146,7 @@ func (m *Materializer) runSubscription(ctx context.Context, req pbsubscribe.Subs
 			return err
 		}
 
-		m.handler, err = m.handler(event)
+		m.handler, err = m.handler(m, event)
 		if err != nil {
 			m.reset()
 			return err
