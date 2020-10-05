@@ -121,7 +121,7 @@
       disabled={{if (not this.headerForm.isDirty) 'disabled'}}
       onclick={{action this.headerForm.submit}}
     >
-      Add another header
+      Add{{#if (gt (get (changeset-get changeset 'HTTP.Header') 'length') 0)}} another{{/if}} header
     </button>
     <button
       type="button"
