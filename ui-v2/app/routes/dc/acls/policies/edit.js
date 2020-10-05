@@ -16,6 +16,7 @@ export default SingleRoute.extend(WithPolicyActions, {
       return hash({
         ...model,
         ...{
+          routeName: this.routeName,
           items: tokenRepo.findByPolicy(get(model.item, 'ID'), dc, nspace).catch(function(e) {
             switch (get(e, 'errors.firstObject.status')) {
               case '403':
@@ -30,6 +31,7 @@ export default SingleRoute.extend(WithPolicyActions, {
     });
   },
   setupController: function(controller, model) {
+    this._super(...arguments);
     controller.setProperties(model);
   },
 });

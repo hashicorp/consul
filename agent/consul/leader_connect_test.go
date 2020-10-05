@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"context"
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
@@ -99,8 +100,8 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 				err               error
 			)
 			retry.Run(t, func(r *retry.R) {
-				_, caRoot = s1.getCAProvider()
-				secondaryProvider, _ = s2.getCAProvider()
+				_, caRoot = getCAProviderWithLock(s1)
+				secondaryProvider, _ = getCAProviderWithLock(s2)
 				intermediatePEM, err = secondaryProvider.ActiveIntermediate()
 				require.NoError(r, err)
 
@@ -164,7 +165,7 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 
 func waitForActiveCARoot(t *testing.T, srv *Server, expect *structs.CARoot) {
 	retry.Run(t, func(r *retry.R) {
-		_, root := srv.getCAProvider()
+		_, root := getCAProviderWithLock(srv)
 		if root == nil {
 			r.Fatal("no root")
 		}
@@ -172,6 +173,12 @@ func waitForActiveCARoot(t *testing.T, srv *Server, expect *structs.CARoot) {
 			r.Fatalf("current active root is %s; waiting for %s", root.ID, expect.ID)
 		}
 	})
+}
+
+func getCAProviderWithLock(s *Server) (ca.Provider, *structs.CARoot) {
+	s.caProviderReconfigurationLock.Lock()
+	defer s.caProviderReconfigurationLock.Unlock()
+	return s.getCAProvider()
 }
 
 func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
@@ -226,7 +233,8 @@ func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 
 	// Get the original intermediate
-	secondaryProvider, _ := s2.getCAProvider()
+	// TODO: Wait for intermediate instead of wait for leader
+	secondaryProvider, _ := getCAProviderWithLock(s2)
 	intermediatePEM, err := secondaryProvider.ActiveIntermediate()
 	require.NoError(err)
 	cert, err := connect.ParseCert(intermediatePEM)
@@ -252,7 +260,7 @@ func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
 	// however, defaultQueryTime will be configurable and we con lower it
 	// so that it returns for sure.
 	retry.Run(t, func(r *retry.R) {
-		secondaryProvider, _ := s2.getCAProvider()
+		secondaryProvider, _ = getCAProviderWithLock(s2)
 		intermediatePEM, err = secondaryProvider.ActiveIntermediate()
 		r.Check(err)
 		cert, err := connect.ParseCert(intermediatePEM)
@@ -265,9 +273,9 @@ func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
 	})
 	require.NoError(err)
 
-	// Get the new root from dc1 and validate a chain of:
+	// Get the root from dc1 and validate a chain of:
 	// dc2 leaf -> dc2 intermediate -> dc1 root
-	_, caRoot := s1.getCAProvider()
+	_, caRoot := getCAProviderWithLock(s1)
 
 	// Have dc2 sign a leaf cert and make sure the chain is correct.
 	spiffeService := &connect.SpiffeIDService{
@@ -328,7 +336,7 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 
 	// Get the original intermediate
-	secondaryProvider, _ := s2.getCAProvider()
+	secondaryProvider, _ := getCAProviderWithLock(s2)
 	oldIntermediatePEM, err := secondaryProvider.ActiveIntermediate()
 	require.NoError(err)
 	require.NotEmpty(oldIntermediatePEM)
@@ -414,7 +422,7 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 
 	// Get the new root from dc1 and validate a chain of:
 	// dc2 leaf -> dc2 intermediate -> dc1 root
-	_, caRoot := s1.getCAProvider()
+	_, caRoot := getCAProviderWithLock(s1)
 
 	// Have dc2 sign a leaf cert and make sure the chain is correct.
 	spiffeService := &connect.SpiffeIDService{
@@ -523,7 +531,7 @@ func TestLeader_SecondaryCA_FixSigningKeyID_via_IntermediateRefresh(t *testing.T
 	// the CA provider anyway.
 	retry.Run(t, func(r *retry.R) {
 		// verify that the root is now corrected
-		provider, activeRoot := s2.getCAProvider()
+		provider, activeRoot := getCAProviderWithLock(s2)
 		require.NotNil(r, provider)
 		require.NotNil(r, activeRoot)
 
@@ -708,7 +716,7 @@ func TestLeader_SecondaryCA_UpgradeBeforePrimary(t *testing.T) {
 
 	// Wait for the secondary transition to happen and then verify the secondary DC
 	// has both roots present.
-	secondaryProvider, _ := s2.getCAProvider()
+	secondaryProvider, _ := getCAProviderWithLock(s2)
 	retry.Run(t, func(r *retry.R) {
 		state1 := s1.fsm.State()
 		_, roots1, err := state1.CARoots(nil)
@@ -729,7 +737,7 @@ func TestLeader_SecondaryCA_UpgradeBeforePrimary(t *testing.T) {
 		require.NotEmpty(r, inter, "should have valid intermediate")
 	})
 
-	_, caRoot := s1.getCAProvider()
+	_, caRoot := getCAProviderWithLock(s1)
 	intermediatePEM, err := secondaryProvider.ActiveIntermediate()
 	require.NoError(t, err)
 
@@ -1324,7 +1332,7 @@ func TestLeader_PersistIntermediateCAs(t *testing.T) {
 	}
 
 	// Get the active root before leader change.
-	_, root := s1.getCAProvider()
+	_, root := getCAProviderWithLock(s1)
 	require.Len(root.IntermediateCerts, 1)
 
 	// Force a leader change and make sure the root CA values are preserved.
@@ -1343,7 +1351,7 @@ func TestLeader_PersistIntermediateCAs(t *testing.T) {
 			r.Fatal("no leader")
 		}
 
-		_, newLeaderRoot := leader.getCAProvider()
+		_, newLeaderRoot := getCAProviderWithLock(leader)
 		if !reflect.DeepEqual(newLeaderRoot, root) {
 			r.Fatalf("got %v, want %v", newLeaderRoot, root)
 		}
@@ -1441,4 +1449,44 @@ func TestLeader_lessThanHalfTimePassed(t *testing.T) {
 	require.False(t, lessThanHalfTimePassed(now, now.Add(-10*time.Second), now.Add(10*time.Second)))
 
 	require.True(t, lessThanHalfTimePassed(now, now.Add(-10*time.Second), now.Add(20*time.Second)))
+}
+
+func TestLeader_retryLoopBackoffHandleSuccess(t *testing.T) {
+	type test struct {
+		desc     string
+		loopFn   func() error
+		abort    bool
+		timedOut bool
+	}
+	success := func() error {
+		return nil
+	}
+	failure := func() error {
+		return fmt.Errorf("test error")
+	}
+	tests := []test{
+		{"loop without error and no abortOnSuccess keeps running", success, false, true},
+		{"loop with error and no abortOnSuccess keeps running", failure, false, true},
+		{"loop without error and abortOnSuccess is stopped", success, true, false},
+		{"loop with error and abortOnSuccess keeps running", failure, true, true},
+	}
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.desc, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+			defer cancel()
+
+			retryLoopBackoffHandleSuccess(ctx, tc.loopFn, func(_ error) {}, tc.abort)
+			select {
+			case <-ctx.Done():
+				if !tc.timedOut {
+					t.Fatal("should not have timed out")
+				}
+			default:
+				if tc.timedOut {
+					t.Fatal("should have timed out")
+				}
+			}
+		})
+	}
 }

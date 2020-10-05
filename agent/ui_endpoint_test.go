@@ -8,10 +8,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -25,25 +25,26 @@ func TestUiIndex(t *testing.T) {
 	t.Parallel()
 	// Make a test dir to serve UI files
 	uiDir := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(uiDir)
 
 	// Make the server
 	a := NewTestAgent(t, `
-		ui_dir = "`+uiDir+`"
+		ui_config {
+			dir = "`+uiDir+`"
+		}
 	`)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	// Create file
-	path := filepath.Join(a.Config.UIDir, "my-file")
-	if err := ioutil.WriteFile(path, []byte("test"), 0777); err != nil {
+	path := filepath.Join(a.Config.UIConfig.Dir, "my-file")
+	if err := ioutil.WriteFile(path, []byte("test"), 0644); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Register node
+	// Request the custom file
 	req, _ := http.NewRequest("GET", "/ui/my-file", nil)
 	req.URL.Scheme = "http"
-	req.URL.Host = a.srv.Addr
+	req.URL.Host = a.HTTPAddr()
 
 	// Make the request
 	client := cleanhttp.DefaultClient()
@@ -155,10 +156,8 @@ func TestUiNodeInfo(t *testing.T) {
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/internal/ui/node/%s", a.Config.NodeName), nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.UINodeInfo(resp, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
+	require.NoError(t, err)
+	require.Equal(t, resp.Code, http.StatusOK)
 	assertIndex(t, resp)
 
 	// Should be 1 node for the server
@@ -300,6 +299,64 @@ func TestUiServices(t *testing.T) {
 		require.NoError(t, a.RPC("Catalog.Register", args, &out))
 	}
 
+	// Register a terminating gateway associated with api and cache
+	{
+		arg := structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				ID:      "terminating-gateway",
+				Service: "terminating-gateway",
+				Kind:    structs.ServiceKindTerminatingGateway,
+				Port:    443,
+			},
+		}
+		var regOutput struct{}
+		require.NoError(t, a.RPC("Catalog.Register", &arg, &regOutput))
+
+		args := &structs.TerminatingGatewayConfigEntry{
+			Name: "terminating-gateway",
+			Kind: structs.TerminatingGateway,
+			Services: []structs.LinkedService{
+				{
+					Name: "api",
+				},
+				{
+					Name: "cache",
+				},
+			},
+		}
+
+		req := structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry:      args,
+		}
+		var configOutput bool
+		require.NoError(t, a.RPC("ConfigEntry.Apply", &req, &configOutput))
+		require.True(t, configOutput)
+
+		// Web should not show up as ConnectedWithGateway since this one does not have any instances
+		args = &structs.TerminatingGatewayConfigEntry{
+			Name: "other-terminating-gateway",
+			Kind: structs.TerminatingGateway,
+			Services: []structs.LinkedService{
+				{
+					Name: "web",
+				},
+			},
+		}
+
+		req = structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry:      args,
+		}
+		require.NoError(t, a.RPC("ConfigEntry.Apply", &req, &configOutput))
+		require.True(t, configOutput)
+	}
+
 	t.Run("No Filter", func(t *testing.T) {
 		t.Parallel()
 		req, _ := http.NewRequest("GET", "/v1/internal/ui/services/dc1", nil)
@@ -310,36 +367,38 @@ func TestUiServices(t *testing.T) {
 
 		// Should be 2 nodes, and all the empty lists should be non-nil
 		summary := obj.([]*ServiceSummary)
-		require.Len(t, summary, 4)
+		require.Len(t, summary, 5)
 
 		// internal accounting that users don't see can be blown away
 		for _, sum := range summary {
 			sum.externalSourceSet = nil
-			sum.proxyForSet = nil
 		}
 
 		expected := []*ServiceSummary{
 			{
-				Kind:           structs.ServiceKindTypical,
-				Name:           "api",
-				Tags:           []string{"tag1", "tag2"},
-				Nodes:          []string{"foo"},
-				InstanceCount:  1,
-				ChecksPassing:  2,
-				ChecksWarning:  1,
-				ChecksCritical: 0,
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				Kind:                 structs.ServiceKindTypical,
+				Name:                 "api",
+				Tags:                 []string{"tag1", "tag2"},
+				Nodes:                []string{"foo"},
+				InstanceCount:        1,
+				ChecksPassing:        2,
+				ChecksWarning:        1,
+				ChecksCritical:       0,
+				ConnectedWithProxy:   true,
+				ConnectedWithGateway: true,
+				EnterpriseMeta:       *structs.DefaultEnterpriseMeta(),
 			},
 			{
-				Kind:           structs.ServiceKindTypical,
-				Name:           "cache",
-				Tags:           nil,
-				Nodes:          []string{"zip"},
-				InstanceCount:  1,
-				ChecksPassing:  0,
-				ChecksWarning:  0,
-				ChecksCritical: 0,
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				Kind:                 structs.ServiceKindTypical,
+				Name:                 "cache",
+				Tags:                 nil,
+				Nodes:                []string{"zip"},
+				InstanceCount:        1,
+				ChecksPassing:        0,
+				ChecksWarning:        0,
+				ChecksCritical:       0,
+				ConnectedWithGateway: true,
+				EnterpriseMeta:       *structs.DefaultEnterpriseMeta(),
 			},
 			{
 				Kind:            structs.ServiceKindConnectProxy,
@@ -347,7 +406,6 @@ func TestUiServices(t *testing.T) {
 				Tags:            nil,
 				Nodes:           []string{"bar", "foo"},
 				InstanceCount:   2,
-				ProxyFor:        []string{"api"},
 				ChecksPassing:   2,
 				ChecksWarning:   1,
 				ChecksCritical:  1,
@@ -365,7 +423,19 @@ func TestUiServices(t *testing.T) {
 				ChecksCritical: 0,
 				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
+			{
+				Kind:           structs.ServiceKindTerminatingGateway,
+				Name:           "terminating-gateway",
+				Tags:           nil,
+				Nodes:          []string{"foo"},
+				InstanceCount:  1,
+				ChecksPassing:  2,
+				ChecksWarning:  1,
+				GatewayConfig:  GatewayConfig{AssociatedServiceCount: 2},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			},
 		}
+
 		require.ElementsMatch(t, expected, summary)
 	})
 
@@ -384,20 +454,21 @@ func TestUiServices(t *testing.T) {
 		// internal accounting that users don't see can be blown away
 		for _, sum := range summary {
 			sum.externalSourceSet = nil
-			sum.proxyForSet = nil
 		}
 
 		expected := []*ServiceSummary{
 			{
-				Kind:           structs.ServiceKindTypical,
-				Name:           "api",
-				Tags:           []string{"tag1", "tag2"},
-				Nodes:          []string{"foo"},
-				InstanceCount:  1,
-				ChecksPassing:  2,
-				ChecksWarning:  1,
-				ChecksCritical: 0,
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				Kind:                 structs.ServiceKindTypical,
+				Name:                 "api",
+				Tags:                 []string{"tag1", "tag2"},
+				Nodes:                []string{"foo"},
+				InstanceCount:        1,
+				ChecksPassing:        2,
+				ChecksWarning:        1,
+				ChecksCritical:       0,
+				ConnectedWithProxy:   true,
+				ConnectedWithGateway: false,
+				EnterpriseMeta:       *structs.DefaultEnterpriseMeta(),
 			},
 			{
 				Kind:            structs.ServiceKindConnectProxy,
@@ -405,7 +476,6 @@ func TestUiServices(t *testing.T) {
 				Tags:            nil,
 				Nodes:           []string{"bar", "foo"},
 				InstanceCount:   2,
-				ProxyFor:        []string{"api"},
 				ChecksPassing:   2,
 				ChecksWarning:   1,
 				ChecksCritical:  1,
@@ -535,7 +605,7 @@ func TestUIGatewayServiceNodes_Terminating(t *testing.T) {
 func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
 	t.Parallel()
 
-	a := NewTestAgent(t, "")
+	a := NewTestAgent(t, `alt_domain = "alt.consul."`)
 	defer a.Shutdown()
 
 	// Register ingress gateway and a service that will be associated with it
@@ -593,6 +663,18 @@ func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
 		}
 		require.NoError(t, a.RPC("Catalog.Register", &arg, &regOutput))
 
+		// Set web protocol to http
+		svcDefaultsReq := structs.ConfigEntryRequest{
+			Datacenter: "dc1",
+			Entry: &structs.ServiceConfigEntry{
+				Name:     "web",
+				Protocol: "http",
+			},
+		}
+		var configOutput bool
+		require.NoError(t, a.RPC("ConfigEntry.Apply", &svcDefaultsReq, &configOutput))
+		require.True(t, configOutput)
+
 		// Register ingress-gateway config entry, linking it to db and redis (does not exist)
 		args := &structs.IngressGatewayConfigEntry{
 			Name: "ingress-gateway",
@@ -609,12 +691,125 @@ func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
 				},
 				{
 					Port:     8080,
-					Protocol: "tcp",
+					Protocol: "http",
 					Services: []structs.IngressService{
 						{
 							Name: "web",
 						},
 					},
+				},
+				{
+					Port:     8081,
+					Protocol: "http",
+					Services: []structs.IngressService{
+						{
+							Name:  "web",
+							Hosts: []string{"*.test.example.com"},
+						},
+					},
+				},
+			},
+		}
+
+		req := structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry:      args,
+		}
+		require.NoError(t, a.RPC("ConfigEntry.Apply", &req, &configOutput))
+		require.True(t, configOutput)
+	}
+
+	// Request
+	req, _ := http.NewRequest("GET", "/v1/internal/ui/gateway-services-nodes/ingress-gateway", nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.UIGatewayServicesNodes(resp, req)
+	assert.Nil(t, err)
+	assertIndex(t, resp)
+
+	// Construct expected addresses so that differences between OSS/Ent are handled by code
+	webDNS := serviceIngressDNSName("web", "dc1", "consul.", structs.DefaultEnterpriseMeta())
+	webDNSAlt := serviceIngressDNSName("web", "dc1", "alt.consul.", structs.DefaultEnterpriseMeta())
+	dbDNS := serviceIngressDNSName("db", "dc1", "consul.", structs.DefaultEnterpriseMeta())
+	dbDNSAlt := serviceIngressDNSName("db", "dc1", "alt.consul.", structs.DefaultEnterpriseMeta())
+
+	dump := obj.([]*ServiceSummary)
+	expect := []*ServiceSummary{
+		{
+			Name: "web",
+			GatewayConfig: GatewayConfig{
+				Addresses: []string{
+					fmt.Sprintf("%s:8080", webDNS),
+					fmt.Sprintf("%s:8080", webDNSAlt),
+					"*.test.example.com:8081",
+				},
+			},
+			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		},
+		{
+			Name:           "db",
+			Tags:           []string{"backup", "primary"},
+			Nodes:          []string{"bar", "baz"},
+			InstanceCount:  2,
+			ChecksPassing:  1,
+			ChecksWarning:  1,
+			ChecksCritical: 0,
+			GatewayConfig: GatewayConfig{
+				Addresses: []string{
+					fmt.Sprintf("%s:8888", dbDNS),
+					fmt.Sprintf("%s:8888", dbDNSAlt),
+				},
+			},
+			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+		},
+	}
+
+	// internal accounting that users don't see can be blown away
+	for _, sum := range dump {
+		sum.GatewayConfig.addressesSet = nil
+	}
+	assert.ElementsMatch(t, expect, dump)
+}
+
+func TestUIGatewayIntentions(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
+	// Register terminating gateway and config entry linking it to postgres + redis
+	{
+		arg := structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				ID:      "terminating-gateway",
+				Service: "terminating-gateway",
+				Kind:    structs.ServiceKindTerminatingGateway,
+				Port:    443,
+			},
+			Check: &structs.HealthCheck{
+				Name:      "terminating connect",
+				Status:    api.HealthPassing,
+				ServiceID: "terminating-gateway",
+			},
+		}
+		var regOutput struct{}
+		require.NoError(t, a.RPC("Catalog.Register", &arg, &regOutput))
+
+		args := &structs.TerminatingGatewayConfigEntry{
+			Name: "terminating-gateway",
+			Kind: structs.TerminatingGateway,
+			Services: []structs.LinkedService{
+				{
+					Name: "postgres",
+				},
+				{
+					Name:     "redis",
+					CAFile:   "/etc/certs/ca.pem",
+					CertFile: "/etc/certs/cert.pem",
+					KeyFile:  "/etc/certs/key.pem",
 				},
 			},
 		}
@@ -629,31 +824,57 @@ func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
 		require.True(t, configOutput)
 	}
 
-	// Request
-	req, _ := http.NewRequest("GET", "/v1/internal/ui/gateway-services-nodes/ingress-gateway", nil)
+	// create some symmetric intentions to ensure we are only matching on destination
+	{
+		for _, v := range []string{"*", "mysql", "redis", "postgres"} {
+			req := structs.IntentionRequest{
+				Datacenter: "dc1",
+				Op:         structs.IntentionOpCreate,
+				Intention:  structs.TestIntention(t),
+			}
+			req.Intention.SourceName = "api"
+			req.Intention.DestinationName = v
+
+			var reply string
+			assert.NoError(t, a.RPC("Intention.Apply", &req, &reply))
+
+			req = structs.IntentionRequest{
+				Datacenter: "dc1",
+				Op:         structs.IntentionOpCreate,
+				Intention:  structs.TestIntention(t),
+			}
+			req.Intention.SourceName = v
+			req.Intention.DestinationName = "api"
+			assert.NoError(t, a.RPC("Intention.Apply", &req, &reply))
+		}
+	}
+
+	// Request intentions matching the gateway named "terminating-gateway"
+	req, _ := http.NewRequest("GET", "/v1/internal/ui/gateway-intentions/terminating-gateway", nil)
 	resp := httptest.NewRecorder()
-	obj, err := a.srv.UIGatewayServicesNodes(resp, req)
+	obj, err := a.srv.UIGatewayIntentions(resp, req)
 	assert.Nil(t, err)
 	assertIndex(t, resp)
 
-	dump := obj.([]*ServiceSummary)
-	expect := []*ServiceSummary{
-		{
-			Name:           "web",
-			GatewayConfig:  GatewayConfig{ListenerPort: 8080},
-			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
-		},
-		{
-			Name:           "db",
-			Tags:           []string{"backup", "primary"},
-			Nodes:          []string{"bar", "baz"},
-			InstanceCount:  2,
-			ChecksPassing:  1,
-			ChecksWarning:  1,
-			ChecksCritical: 0,
-			GatewayConfig:  GatewayConfig{ListenerPort: 8888},
-			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
-		},
+	intentions := obj.(structs.Intentions)
+	assert.Len(t, intentions, 3)
+
+	// Only intentions with linked services as a destination should be returned, and wildcard matches should be deduped
+	expected := []string{"postgres", "*", "redis"}
+	actual := []string{
+		intentions[0].DestinationName,
+		intentions[1].DestinationName,
+		intentions[2].DestinationName,
 	}
-	assert.ElementsMatch(t, expect, dump)
+	assert.ElementsMatch(t, expected, actual)
+}
+
+func TestUIEndpoint_modifySummaryForGatewayService_UseRequestedDCInsteadOfConfigured(t *testing.T) {
+	dc := "dc2"
+	cfg := config.RuntimeConfig{Datacenter: "dc1", DNSDomain: "consul"}
+	sum := ServiceSummary{GatewayConfig: GatewayConfig{}}
+	gwsvc := structs.GatewayService{Service: structs.ServiceName{Name: "test"}, Port: 42}
+	modifySummaryForGatewayService(&cfg, dc, &sum, &gwsvc)
+	expected := serviceCanonicalDNSName("test", "ingress", "dc2", "consul", nil) + ":42"
+	require.Equal(t, expected, sum.GatewayConfig.Addresses[0])
 }

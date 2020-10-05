@@ -30,7 +30,6 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 	"golang.org/x/time/rate"
 
@@ -132,21 +131,14 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	config := DefaultConfig()
 
 	ports := freeport.MustTake(3)
-
-	returnPortsFn := func() {
-		// The method of plumbing this into the server shutdown hook doesn't
-		// cover all exit points, so we insulate this against multiple
-		// invocations and then it's safe to call it a bunch of times.
+	t.Cleanup(func() {
 		freeport.Return(ports)
-		config.NotifyShutdown = nil // self-erasing
-	}
-	config.NotifyShutdown = returnPortsFn
+	})
 
 	config.NodeName = uniqueNodeName(t.Name())
 	config.Bootstrap = true
 	config.Datacenter = "dc1"
 	config.DataDir = dir
-	config.LogOutput = testutil.TestWriter(t)
 
 	// bind the rpc server to a random port. config.RPCAdvertise will be
 	// set to the listen address unless it was set in the configuration.
@@ -155,7 +147,6 @@ func testServerConfig(t *testing.T) (string, *Config) {
 
 	nodeID, err := uuid.GenerateUUID()
 	if err != nil {
-		returnPortsFn()
 		t.Fatal(err)
 	}
 	config.NodeID = types.NodeID(nodeID)
@@ -212,9 +203,6 @@ func testServerConfig(t *testing.T) (string, *Config) {
 			"IntermediateCertTTL": "288h",
 		},
 	}
-
-	config.NotifyShutdown = returnPortsFn
-
 	return dir, config
 }
 
@@ -258,21 +246,19 @@ func testServerDCExpectNonVoter(t *testing.T, dc string, expect int) (string, *S
 
 func testServerWithConfig(t *testing.T, cb func(*Config)) (string, *Server) {
 	var dir string
-	var config *Config
 	var srv *Server
-	var err error
 
 	// Retry added to avoid cases where bind addr is already in use
 	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
+		var config *Config
 		dir, config = testServerConfig(t)
 		if cb != nil {
 			cb(config)
 		}
 
-		srv, err = newServer(config)
+		var err error
+		srv, err = newServer(t, config)
 		if err != nil {
-			config.NotifyShutdown()
-			os.RemoveAll(dir)
 			r.Fatalf("err: %v", err)
 		}
 	})
@@ -282,7 +268,6 @@ func testServerWithConfig(t *testing.T, cb func(*Config)) (string, *Server) {
 // cb is a function that can alter the test servers configuration prior to the server starting.
 func testACLServerWithConfig(t *testing.T, cb func(*Config), initReplicationToken bool) (string, *Server, rpc.ClientCodec) {
 	dir, srv := testServerWithConfig(t, testServerACLConfig(cb))
-	t.Cleanup(func() { os.RemoveAll(dir) })
 	t.Cleanup(func() { srv.Shutdown() })
 
 	if initReplicationToken {
@@ -295,7 +280,7 @@ func testACLServerWithConfig(t *testing.T, cb func(*Config), initReplicationToke
 	return dir, srv, codec
 }
 
-func newServer(c *Config) (*Server, error) {
+func newServer(t *testing.T, c *Config) (*Server, error) {
 	// chain server up notification
 	oldNotify := c.NotifyListen
 	up := make(chan struct{})
@@ -306,21 +291,7 @@ func newServer(c *Config) (*Server, error) {
 		}
 	}
 
-	// start server
-	w := c.LogOutput
-	if w == nil {
-		w = os.Stderr
-	}
-	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
-		Name:   c.NodeName,
-		Level:  hclog.Debug,
-		Output: w,
-	})
-	tlsConf, err := tlsutil.NewConfigurator(c.ToTLSUtilConfig(), logger)
-	if err != nil {
-		return nil, err
-	}
-	srv, err := NewServerLogger(c, logger, new(token.Store), tlsConf)
+	srv, err := NewServer(c, newDefaultDeps(t, c))
 	if err != nil {
 		return nil, err
 	}
@@ -345,8 +316,7 @@ func newServer(c *Config) (*Server, error) {
 func TestServer_StartStop(t *testing.T) {
 	t.Parallel()
 	// Start up a server and then stop it.
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
+	_, s1 := testServer(t)
 	if err := s1.Shutdown(); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -360,20 +330,18 @@ func TestServer_StartStop(t *testing.T) {
 func TestServer_fixupACLDatacenter(t *testing.T) {
 	t.Parallel()
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	_, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "aye"
 		c.PrimaryDatacenter = "aye"
 		c.ACLsEnabled = true
 	})
-	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+	_, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "bee"
 		c.PrimaryDatacenter = "aye"
 		c.ACLsEnabled = true
 	})
-	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
 
 	// Try to join
@@ -1084,28 +1052,26 @@ func TestServer_RPC(t *testing.T) {
 
 func TestServer_JoinLAN_TLS(t *testing.T) {
 	t.Parallel()
-	dir1, conf1 := testServerConfig(t)
+	_, conf1 := testServerConfig(t)
 	conf1.VerifyIncoming = true
 	conf1.VerifyOutgoing = true
 	configureTLS(conf1)
-	s1, err := newServer(conf1)
+	s1, err := newServer(t, conf1)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
-	dir2, conf2 := testServerConfig(t)
+	_, conf2 := testServerConfig(t)
 	conf2.Bootstrap = false
 	conf2.VerifyIncoming = true
 	conf2.VerifyOutgoing = true
 	configureTLS(conf2)
-	s2, err := newServer(conf2)
+	s2, err := newServer(t, conf2)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
 
 	// Try to join
@@ -1289,7 +1255,7 @@ func (r *fakeGlobalResp) New() interface{} {
 	return struct{}{}
 }
 
-func TestServer_globalRPCErrors(t *testing.T) {
+func TestServer_keyringRPCs(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServerDC(t, "dc1")
 	defer os.RemoveAll(dir1)
@@ -1301,7 +1267,7 @@ func TestServer_globalRPCErrors(t *testing.T) {
 	})
 
 	// Check that an error from a remote DC is returned
-	err := s1.globalRPC("Bad.Method", nil, &fakeGlobalResp{})
+	_, err := s1.keyringRPCs("Bad.Method", nil, []string{s1.config.Datacenter})
 	if err == nil {
 		t.Fatalf("should have errored")
 	}
@@ -1483,14 +1449,13 @@ func TestServer_Reload(t *testing.T) {
 
 func TestServer_RPC_RateLimit(t *testing.T) {
 	t.Parallel()
-	dir1, conf1 := testServerConfig(t)
+	_, conf1 := testServerConfig(t)
 	conf1.RPCRate = 2
 	conf1.RPCMaxBurst = 2
-	s1, err := NewServer(conf1)
+	s1, err := newServer(t, conf1)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -1504,19 +1469,17 @@ func TestServer_RPC_RateLimit(t *testing.T) {
 
 func TestServer_CALogging(t *testing.T) {
 	t.Parallel()
-	dir1, conf1 := testServerConfig(t)
+	_, conf1 := testServerConfig(t)
 
 	// Setup dummy logger to catch output
 	var buf bytes.Buffer
 	logger := testutil.LoggerWithOutput(t, &buf)
 
-	c, err := tlsutil.NewConfigurator(conf1.ToTLSUtilConfig(), logger)
+	deps := newDefaultDeps(t, conf1)
+	deps.Logger = logger
+
+	s1, err := NewServer(conf1, deps)
 	require.NoError(t, err)
-	s1, err := NewServerLogger(conf1, logger, new(token.Store), c)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
@@ -1533,4 +1496,98 @@ func TestServer_CALogging(t *testing.T) {
 	})
 
 	require.Contains(t, buf.String(), "consul CA provider configured")
+}
+
+func TestServer_DatacenterJoinAddresses(t *testing.T) {
+	conf := testClusterConfig{
+		Datacenter: "primary",
+		Servers:    3,
+	}
+
+	nodes := newTestCluster(t, &conf)
+
+	var expected []string
+	for _, srv := range nodes.Servers {
+		expected = append(expected, fmt.Sprintf("127.0.0.1:%d", srv.config.SerfLANConfig.MemberlistConfig.BindPort))
+	}
+
+	actual, err := nodes.Servers[0].DatacenterJoinAddresses("")
+	require.NoError(t, err)
+	require.ElementsMatch(t, expected, actual)
+}
+
+func TestServer_CreateACLToken(t *testing.T) {
+	_, srv, codec := testACLServerWithConfig(t, nil, false)
+
+	waitForLeaderEstablishment(t, srv)
+
+	r1, err := upsertTestRole(codec, TestDefaultMasterToken, "dc1")
+	require.NoError(t, err)
+
+	t.Run("predefined-ids", func(t *testing.T) {
+		accessor := "554cd3ab-5d4e-4d6e-952e-4e8b6c77bfb3"
+		secret := "ef453f31-ad58-4ec8-8bf8-342e99763026"
+		in := &structs.ACLToken{
+			AccessorID:  accessor,
+			SecretID:    secret,
+			Description: "test",
+			Policies: []structs.ACLTokenPolicyLink{
+				{
+					ID: structs.ACLPolicyGlobalManagementID,
+				},
+			},
+			NodeIdentities: []*structs.ACLNodeIdentity{
+				{
+					NodeName:   "foo",
+					Datacenter: "bar",
+				},
+			},
+			ServiceIdentities: []*structs.ACLServiceIdentity{
+				{
+					ServiceName: "web",
+				},
+			},
+			Roles: []structs.ACLTokenRoleLink{
+				{
+					ID: r1.ID,
+				},
+			},
+		}
+
+		out, err := srv.CreateACLToken(in)
+		require.NoError(t, err)
+		require.Equal(t, accessor, out.AccessorID)
+		require.Equal(t, secret, out.SecretID)
+		require.Equal(t, "test", out.Description)
+		require.NotZero(t, out.CreateTime)
+		require.Len(t, out.Policies, 1)
+		require.Len(t, out.Roles, 1)
+		require.Len(t, out.NodeIdentities, 1)
+		require.Len(t, out.ServiceIdentities, 1)
+		require.Equal(t, structs.ACLPolicyGlobalManagementID, out.Policies[0].ID)
+		require.Equal(t, "foo", out.NodeIdentities[0].NodeName)
+		require.Equal(t, "web", out.ServiceIdentities[0].ServiceName)
+		require.Equal(t, r1.ID, out.Roles[0].ID)
+	})
+
+	t.Run("autogen-ids", func(t *testing.T) {
+		in := &structs.ACLToken{
+			Description: "test",
+			NodeIdentities: []*structs.ACLNodeIdentity{
+				{
+					NodeName:   "foo",
+					Datacenter: "bar",
+				},
+			},
+		}
+
+		out, err := srv.CreateACLToken(in)
+		require.NoError(t, err)
+		require.NotEmpty(t, out.AccessorID)
+		require.NotEmpty(t, out.SecretID)
+		require.Equal(t, "test", out.Description)
+		require.NotZero(t, out.CreateTime)
+		require.Len(t, out.NodeIdentities, 1)
+		require.Equal(t, "foo", out.NodeIdentities[0].NodeName)
+	})
 }

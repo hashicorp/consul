@@ -1,0 +1,40 @@
+---
+layout: commands
+page_title: 'Commands: Join'
+sidebar_title: join
+description: >-
+  The `join` command tells a Consul agent to join an existing cluster. A new
+  Consul agent may join any node in the existing cluster. After joining with one
+  member, the gossip communication will propagate the updated membership state
+  across the cluster.
+---
+
+# Consul Join
+
+Command: `consul join`
+
+The `join` command tells a Consul agent to join an existing cluster.
+A new Consul agent may join any node in the existing cluster. After joining
+with one member, the gossip communication will propagate the updated membership
+state across the cluster.
+
+An agent which is already part of a cluster may join an agent in a different
+cluster, causing the two clusters to be merged into a single cluster.
+
+## Usage
+
+Usage: `consul join [options] address ...`
+
+You may call join with multiple addresses if you want to try to join
+multiple clusters. Consul will attempt to join all addresses, and the join
+command will fail only if Consul was unable to join with any.
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+#### Command Options
+
+- `-wan` - For agents running in server mode, the agent will attempt to join
+  other servers gossiping in a WAN cluster. This is used to form a bridge between
+  multiple datacenters.

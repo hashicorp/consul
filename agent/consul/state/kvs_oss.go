@@ -16,7 +16,7 @@ func kvsIndexer() *memdb.StringFieldIndex {
 	}
 }
 
-func (s *Store) insertKVTxn(tx *txn, entry *structs.DirEntry, updateMax bool) error {
+func insertKVTxn(tx *txn, entry *structs.DirEntry, updateMax bool) error {
 	if err := tx.Insert("kvs", entry); err != nil {
 		return err
 	}
@@ -33,7 +33,7 @@ func (s *Store) insertKVTxn(tx *txn, entry *structs.DirEntry, updateMax bool) er
 	return nil
 }
 
-func (s *Store) kvsListEntriesTxn(tx *txn, ws memdb.WatchSet, prefix string, entMeta *structs.EnterpriseMeta) (uint64, structs.DirEntries, error) {
+func kvsListEntriesTxn(tx *txn, ws memdb.WatchSet, prefix string, entMeta *structs.EnterpriseMeta) (uint64, structs.DirEntries, error) {
 	var ents structs.DirEntries
 	var lindex uint64
 
@@ -81,7 +81,7 @@ func kvsMaxIndex(tx *txn, entMeta *structs.EnterpriseMeta) uint64 {
 	return maxIndexTxn(tx, "kvs", "tombstones")
 }
 
-func (s *Store) kvsDeleteWithEntry(tx *txn, entry *structs.DirEntry, idx uint64) error {
+func kvsDeleteWithEntry(tx *txn, entry *structs.DirEntry, idx uint64) error {
 	// Delete the entry and update the index.
 	if err := tx.Delete("kvs", entry); err != nil {
 		return fmt.Errorf("failed deleting kvs entry: %s", err)

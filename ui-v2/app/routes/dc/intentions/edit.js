@@ -1,52 +1,25 @@
-import Route from '@ember/routing/route';
+import Route from 'consul-ui/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
-import { get } from '@ember/object';
 
-import WithIntentionActions from 'consul-ui/mixins/intention/with-actions';
-
-// TODO: This route and the create Route need merging somehow
-export default Route.extend(WithIntentionActions, {
+export default Route.extend({
   repo: service('repository/intention'),
-  servicesRepo: service('repository/service'),
-  nspacesRepo: service('repository/nspace/disabled'),
-  buildRouteInfoMetadata: function() {
-    return { history: this.history };
-  },
-  model: function(params, transition) {
-    const from = get(transition, 'from');
-    this.history = [];
-    if (from && get(from, 'name') === 'dc.services.show.intentions') {
-      this.history.push({
-        key: get(from, 'name'),
-        value: get(from, 'parent.params.name'),
-      });
-    }
-
+  model: function({ intention_id }, transition) {
     const dc = this.modelFor('dc').dc.Name;
-    // We load all of your services that you are able to see here
-    // as even if it doesn't exist in the namespace you are targetting
-    // you may want to add it after you've added the intention
     const nspace = '*';
     return hash({
-      isLoading: false,
-      item: this.repo.findBySlug(params.id, dc, nspace),
-      services: this.servicesRepo.findAllByDatacenter(dc, nspace),
-      nspaces: this.nspacesRepo.findAll(),
-      history: this.history,
-    }).then(function(model) {
-      return {
-        ...model,
-        ...{
-          services: [{ Name: '*' }].concat(
-            model.services.toArray().filter(item => get(item, 'Kind') !== 'connect-proxy')
-          ),
-          nspaces: [{ Name: '*' }].concat(model.nspaces.toArray()),
-        },
-      };
+      dc: dc,
+      nspace: nspace,
+      item:
+        typeof intention_id !== 'undefined'
+          ? this.repo.findBySlug(intention_id, dc, nspace)
+          : this.repo.create({
+              Datacenter: dc,
+            }),
     });
   },
   setupController: function(controller, model) {
+    this._super(...arguments);
     controller.setProperties(model);
   },
 });

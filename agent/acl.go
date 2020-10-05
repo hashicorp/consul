@@ -21,7 +21,7 @@ func (a *Agent) resolveToken(id string) (acl.Authorizer, error) {
 // The defaulted metadata is then used to fill in an acl.AuthorizationContext.
 func (a *Agent) resolveTokenAndDefaultMeta(id string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error) {
 	// ACLs are disabled
-	if !a.delegate.ACLsEnabled() {
+	if !a.config.ACLsEnabled {
 		return nil, nil
 	}
 
@@ -59,7 +59,7 @@ func (a *Agent) aclAccessorID(secretID string) string {
 	return ident.ID()
 }
 
-func (a *Agent) initializeACLs() error {
+func initializeACLs(nodeName string) (acl.Authorizer, error) {
 	// Build a policy for the agent master token.
 	// The builtin agent master policy allows reading any node information
 	// and allows writes to the agent with the node name of the running agent
@@ -69,7 +69,7 @@ func (a *Agent) initializeACLs() error {
 		PolicyRules: acl.PolicyRules{
 			Agents: []*acl.AgentRule{
 				{
-					Node:   a.config.NodeName,
+					Node:   nodeName,
 					Policy: acl.PolicyWrite,
 				},
 			},
@@ -81,12 +81,7 @@ func (a *Agent) initializeACLs() error {
 			},
 		},
 	}
-	master, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
-	if err != nil {
-		return err
-	}
-	a.aclMasterAuthorizer = master
-	return nil
+	return acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
 }
 
 // vetServiceRegister makes sure the service registration action is allowed by
@@ -110,14 +105,16 @@ func (a *Agent) vetServiceRegisterWithAuthorizer(authz acl.Authorizer, service *
 	service.FillAuthzContext(&authzContext)
 	// Vet the service itself.
 	if authz.ServiceWrite(service.Service, &authzContext) != acl.Allow {
-		return acl.ErrPermissionDenied
+		serviceName := service.CompoundServiceName()
+		return acl.PermissionDenied("Missing service:write on %s", serviceName.String())
 	}
 
 	// Vet any service that might be getting overwritten.
 	if existing := a.State.Service(service.CompoundServiceID()); existing != nil {
 		existing.FillAuthzContext(&authzContext)
 		if authz.ServiceWrite(existing.Service, &authzContext) != acl.Allow {
-			return acl.ErrPermissionDenied
+			serviceName := service.CompoundServiceName()
+			return acl.PermissionDenied("Missing service:write on %s", serviceName.String())
 		}
 	}
 
@@ -126,7 +123,7 @@ func (a *Agent) vetServiceRegisterWithAuthorizer(authz acl.Authorizer, service *
 	if service.Kind == structs.ServiceKindConnectProxy {
 		service.FillAuthzContext(&authzContext)
 		if authz.ServiceWrite(service.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
-			return acl.ErrPermissionDenied
+			return acl.PermissionDenied("Missing service:write on %s", service.Proxy.DestinationServiceName)
 		}
 	}
 
@@ -156,7 +153,8 @@ func (a *Agent) vetServiceUpdateWithAuthorizer(authz acl.Authorizer, serviceID s
 	if existing := a.State.Service(serviceID); existing != nil {
 		existing.FillAuthzContext(&authzContext)
 		if authz.ServiceWrite(existing.Service, &authzContext) != acl.Allow {
-			return acl.ErrPermissionDenied
+			serviceName := existing.CompoundServiceName()
+			return acl.PermissionDenied("Missing service:write on %s", serviceName.String())
 		}
 	} else {
 		return fmt.Errorf("Unknown service %q", serviceID)
@@ -234,11 +232,11 @@ func (a *Agent) vetCheckUpdateWithAuthorizer(authz acl.Authorizer, checkID struc
 	if existing := a.State.Check(checkID); existing != nil {
 		if len(existing.ServiceName) > 0 {
 			if authz.ServiceWrite(existing.ServiceName, &authzContext) != acl.Allow {
-				return acl.ErrPermissionDenied
+				return acl.PermissionDenied("Missing service:write on %s", existing.ServiceName)
 			}
 		} else {
 			if authz.NodeWrite(a.config.NodeName, &authzContext) != acl.Allow {
-				return acl.ErrPermissionDenied
+				return acl.PermissionDenied("Missing node:write on %s", a.config.NodeName)
 			}
 		}
 	} else {

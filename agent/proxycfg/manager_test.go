@@ -7,6 +7,7 @@ import (
 
 	"github.com/mitchellh/copystructure"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
@@ -220,6 +221,8 @@ func TestManager_BasicLifecycle(t *testing.T) {
 					},
 					PreparedQueryEndpoints: map[string]structs.CheckServiceNodes{},
 					WatchedServiceChecks:   map[structs.ServiceID][]structs.CheckType{},
+					Intentions:             TestIntentions().Matches[0],
+					IntentionsSet:          true,
 				},
 				Datacenter: "dc1",
 			},
@@ -268,6 +271,8 @@ func TestManager_BasicLifecycle(t *testing.T) {
 					},
 					PreparedQueryEndpoints: map[string]structs.CheckServiceNodes{},
 					WatchedServiceChecks:   map[structs.ServiceID][]structs.CheckType{},
+					Intentions:             TestIntentions().Matches[0],
+					IntentionsSet:          true,
 				},
 				Datacenter: "dc1",
 			},
@@ -285,7 +290,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 			// Setup initial values
 			types.roots.Set(rootsCacheKey, roots)
 			types.leaf.Set(leafCacheKey, leaf)
-			types.intentions.Set(intentionCacheKey, TestIntentions(t))
+			types.intentions.Set(intentionCacheKey, TestIntentions())
 			tt.setup(t, types)
 
 			expectSnapCopy, err := copystructure.Copy(tt.expectSnap)
@@ -294,9 +299,9 @@ func TestManager_BasicLifecycle(t *testing.T) {
 			webProxyCopy, err := copystructure.Copy(webProxy)
 			require.NoError(t, err)
 
-			testManager_BasicLifecycle(t, tt, types,
+			testManager_BasicLifecycle(t, types,
 				rootsCacheKey, leafCacheKey,
-				roots, leaf,
+				roots,
 				webProxyCopy.(*structs.NodeService),
 				expectSnapCopy.(*ConfigSnapshot),
 			)
@@ -313,11 +318,9 @@ type testcase_BasicLifecycle struct {
 
 func testManager_BasicLifecycle(
 	t *testing.T,
-	tt *testcase_BasicLifecycle,
 	types *TestCacheTypes,
 	rootsCacheKey, leafCacheKey string,
 	roots *structs.IndexedCARoots,
-	leaf *structs.IssuedCert,
 	webProxy *structs.NodeService,
 	expectSnap *ConfigSnapshot,
 ) {
@@ -335,7 +338,7 @@ func testManager_BasicLifecycle(
 	state.TriggerSyncChanges = func() {}
 
 	// Create manager
-	m, err := NewManager(ManagerConfig{c, state, source, DNSConfig{}, logger, nil})
+	m, err := NewManager(ManagerConfig{c, state, source, DNSConfig{}, logger, nil, false})
 	require.NoError(err)
 
 	// And run it
@@ -463,7 +466,7 @@ func TestManager_deliverLatest(t *testing.T) {
 	// None of these need to do anything to test this method just be valid
 	logger := testutil.Logger(t)
 	cfg := ManagerConfig{
-		Cache: cache.New(nil),
+		Cache: cache.New(cache.Options{EntryFetchRate: rate.Inf, EntryFetchMaxBurst: 2}),
 		State: local.NewState(local.Config{}, logger, &token.Store{}),
 		Source: &structs.QuerySource{
 			Node:       "node1",

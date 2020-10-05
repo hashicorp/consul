@@ -3,7 +3,7 @@
 {{else}}
   {{title 'Edit Namespace'}}
 {{/if}}
-<AppView @class="nspace edit" @loading={{isLoading}}>
+<AppView>
   <BlockSlot @name="notification" as |status type item error|>
     {{partial 'dc/nspaces/notifications'}}
   </BlockSlot>

@@ -4,7 +4,7 @@ import (
 	"container/list"
 	"crypto/tls"
 	"fmt"
-	"io"
+	"log"
 	"net"
 	"net/rpc"
 	"sync"
@@ -126,8 +126,9 @@ type ConnPool struct {
 	// SrcAddr is the source address for outgoing connections.
 	SrcAddr *net.TCPAddr
 
-	// LogOutput is used to control logging
-	LogOutput io.Writer
+	// Logger passed to yamux
+	// TODO: consider refactoring to accept a full yamux.Config instead of a logger
+	Logger *log.Logger
 
 	// The maximum time to keep a connection open
 	MaxTime time.Duration
@@ -308,18 +309,11 @@ func (p *ConnPool) DialTimeout(
 		)
 	}
 
-	return p.dial(
-		dc,
-		nodeName,
-		addr,
-		actualRPCType,
-		RPCTLS,
-	)
+	return p.dial(dc, addr, actualRPCType, RPCTLS)
 }
 
 func (p *ConnPool) dial(
 	dc string,
-	nodeName string,
 	addr net.Addr,
 	actualRPCType RPCType,
 	tlsRPCType RPCType,
@@ -461,9 +455,10 @@ func (p *ConnPool) getNewConn(dc string, nodeName string, addr net.Addr) (*Conn,
 		return nil, err
 	}
 
-	// Setup the logger
 	conf := yamux.DefaultConfig()
-	conf.LogOutput = p.LogOutput
+	// override the default because LogOutput conflicts with Logger.
+	conf.LogOutput = nil
+	conf.Logger = p.Logger
 
 	// Create a multiplexed session
 	session, err := yamux.Client(conn, conf)
@@ -560,8 +555,8 @@ func (p *ConnPool) RPC(
 	// secure or insecure variant depending on whether its an ongoing
 	// or first time config request. For now though this is fine until
 	// those ongoing requests are implemented.
-	if method == "AutoEncrypt.Sign" || method == "Cluster.AutoConfig" {
-		return p.rpcInsecure(dc, nodeName, addr, method, args, reply)
+	if method == "AutoEncrypt.Sign" || method == "AutoConfig.InitialConfiguration" {
+		return p.rpcInsecure(dc, addr, method, args, reply)
 	} else {
 		return p.rpc(dc, nodeName, addr, method, args, reply)
 	}
@@ -572,13 +567,13 @@ func (p *ConnPool) RPC(
 // transparent for the consumer. The pool cannot be used because
 // AutoEncrypt.Sign is a one-off call and it doesn't make sense to pool that
 // connection if it is not being reused.
-func (p *ConnPool) rpcInsecure(dc string, nodeName string, addr net.Addr, method string, args interface{}, reply interface{}) error {
+func (p *ConnPool) rpcInsecure(dc string, addr net.Addr, method string, args interface{}, reply interface{}) error {
 	if dc != p.Datacenter {
 		return fmt.Errorf("insecure dialing prohibited between datacenters")
 	}
 
 	var codec rpc.ClientCodec
-	conn, _, err := p.dial(dc, nodeName, addr, 0, RPCTLSInsecure)
+	conn, _, err := p.dial(dc, addr, 0, RPCTLSInsecure)
 	if err != nil {
 		return fmt.Errorf("rpcinsecure error establishing connection: %v", err)
 	}

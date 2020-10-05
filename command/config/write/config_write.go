@@ -85,16 +85,16 @@ func (c *cmd) Run(args []string) int {
 		written, _, err = entries.Set(entry, nil)
 	}
 	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error writing config entry %q / %q: %v", entry.GetKind(), entry.GetName(), err))
+		c.UI.Error(fmt.Sprintf("Error writing config entry %s/%s: %v", entry.GetKind(), entry.GetName(), err))
 		return 1
 	}
 
 	if !written {
-		c.UI.Error(fmt.Sprintf("Config entry %q / %q not updated", entry.GetKind(), entry.GetName()))
+		c.UI.Error(fmt.Sprintf("Config entry not updated: %s/%s", entry.GetKind(), entry.GetName()))
 		return 1
 	}
 
-	// TODO (mkeeler) should we output anything when successful
+	c.UI.Info(fmt.Sprintf("Config entry written: %s/%s", entry.GetKind(), entry.GetName()))
 	return 0
 }
 

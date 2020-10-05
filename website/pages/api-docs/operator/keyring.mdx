@@ -66,7 +66,10 @@ $ curl \
       "ZWTL+bgjHyQPhJRKcFe3ccirc2SFHmc/Nw67l8NQfdk=": 1,
       "WbL6oaTPom+7RG7Q/INbJWKy09OLar/Hf2SuOAdoQE4=": 1
     },
-    "NumNodes": 1
+    "PrimaryKeys": {
+      "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=": 1,
+    },
+    "NumNodes": 3
   },
   {
     "WAN": false,
@@ -77,7 +80,10 @@ $ curl \
       "ZWTL+bgjHyQPhJRKcFe3ccirc2SFHmc/Nw67l8NQfdk=": 1,
       "WbL6oaTPom+7RG7Q/INbJWKy09OLar/Hf2SuOAdoQE4=": 1
     },
-    "NumNodes": 1
+    "PrimaryKeys": {
+      "pUqJrVyVRj5jsiYEkM/tFQYfWyJIv4s3XkvDwy7Cu5s=": 1,
+    },
+    "NumNodes": 3
   }
 ]
 ```
@@ -90,6 +96,9 @@ $ curl \
 - `Segment` is the network segment the block refers to.
 
 - `Keys` is a map of each gossip key to the number of nodes it's currently
+  installed on.
+
+- `PrimaryKeys` is a map of each primary gossip key to the number of nodes it's currently
   installed on.
 
 - `NumNodes` is the total number of nodes in the datacenter.

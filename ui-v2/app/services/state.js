@@ -7,7 +7,7 @@ export default Service.extend({
   logger: service('logger'),
   // @xstate/fsm
   log: function(chart, state) {
-    this.logger.execute(`${chart.id} > ${state.value}`);
+    // this.logger.execute(`${chart.id} > ${state.value}`);
   },
   addGuards: function(chart, options) {
     this.guards(chart).forEach(function([path, name]) {

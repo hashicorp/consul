@@ -10,14 +10,11 @@
     @nspace={{or nspace nspaces.firstObject}}
     @onchange={{action "reauthorize"}}
   >
-{{#if (not loading)}}
-  {{outlet}}
-{{else}}
-    <AppView @class="loading show">
-      <BlockSlot @name="content">
-        <ConsulLoader />
-      </BlockSlot>
-    </AppView>
-{{/if}}
+  <Outlet
+  @name="application"
+  as |o|>
+    {{outlet}}
+  </Outlet>
+    <ConsulLoader class="view-loader" />
   </HashicorpConsul>
 {{/if}}

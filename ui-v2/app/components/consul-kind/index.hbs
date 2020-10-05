@@ -1,15 +1,10 @@
 {{#if item.Kind}}
   {{#let (titleize (humanize item.Kind)) as |Name|}}
-    {{#if (has-block)}}
-      {{yield
-        (component 'consul-kind' item=item withInfo=withInfo)
-      }}
-    {{else}}
     {{#if withInfo}}
         <dl class="tooltip-panel">
           <dt>
-            <span data-test-kind={{item.Kind}} class="consul-kind gateway">
-                <span>{{Name}}</span>
+            <span data-test-kind={{item.Kind}} class="consul-kind">
+              {{Name}}
             </span>
           </dt>
           <dd>
@@ -33,10 +28,11 @@
                       About Mesh gateways
                   {{/if}}
                 </li>
-          {{#let (from-entries
-            (array 'ingress-gateway' '/consul/developer-mesh/ingress-gateways')
-            (array 'terminating-gateway' '/consul/developer-mesh/understand-terminating-gateways')
-            (array 'mesh-gateway' '/consul/developer-mesh/connect-gateways')
+          {{#let (from-entries (array
+              (array 'ingress-gateway' '/consul/developer-mesh/ingress-gateways')
+              (array 'terminating-gateway' '/consul/developer-mesh/understand-terminating-gateways')
+              (array 'mesh-gateway' '/consul/developer-mesh/connect-gateways')
+            )
           ) as |link|}}
                 <li role="none" class="learn-link">
                   <a tabindex="-1" role="menuitem" href={{concat (env 'CONSUL_DOCS_LEARN_URL') (get link item.Kind)}} rel="noopener noreferrer" target="_blank">
@@ -44,10 +40,11 @@
                   </a>
                 </li>
           {{/let}}
-          {{#let (from-entries
-            (array 'ingress-gateway' '/connect/ingress_gateway.html')
-            (array 'terminating-gateway' '/connect/terminating_gateway.html')
-            (array 'mesh-gateway' '/connect/mesh_gateway.html')
+          {{#let (from-entries (array
+              (array 'ingress-gateway' '/connect/ingress-gateway')
+              (array 'terminating-gateway' '/connect/terminating-gateway')
+              (array 'mesh-gateway' '/connect/mesh-gateway')
+            )
           ) as |link|}}
                 <li role="none" class="docs-link">
                   <a tabindex="-1" role="menuitem" href={{concat (env 'CONSUL_DOCS_URL') (get link item.Kind)}} rel="noopener noreferrer" target="_blank">
@@ -84,10 +81,9 @@
           </dd>
         </dl>
       {{else}}
-          <span data-test-kind={{item.Kind}} class="consul-kind gateway">
-              <span>{{Name}}</span>
+          <span data-test-kind={{item.Kind}} class="consul-kind">
+            {{Name}}
           </span>
       {{/if}}
-    {{/if}}
   {{/let}}
 {{/if}}

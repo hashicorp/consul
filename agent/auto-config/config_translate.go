@@ -1,29 +1,37 @@
 package autoconf
 
 import (
-	pbconfig "github.com/hashicorp/consul/agent/agentpb/config"
+	"fmt"
+
 	"github.com/hashicorp/consul/agent/config"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto"
+	"github.com/hashicorp/consul/proto/pbautoconf"
+	"github.com/hashicorp/consul/proto/pbconfig"
+	"github.com/hashicorp/consul/proto/pbconnect"
+	"github.com/mitchellh/mapstructure"
 )
 
-// translateAgentConfig is meant to take in a agent/agentpb/config.Config type
+// translateAgentConfig is meant to take in a proto/pbconfig.Config type
 // and craft the corresponding agent/config.Config type. The need for this function
 // should eventually be removed with the protobuf and normal version converging.
 // In the meantime, its not desirable to have the flatter Config struct in protobufs
 // as in the long term we want a configuration with more nested groupings.
 //
-// Why is this function not in the agent/agentpb/config package? The answer, that
+// Why is this function not in the proto/pbconfig package? The answer, that
 // package cannot import the agent/config package without running into import cycles.
-func translateConfig(c *pbconfig.Config) *config.Config {
-	out := config.Config{
-		Datacenter:        &c.Datacenter,
-		PrimaryDatacenter: &c.PrimaryDatacenter,
-		NodeName:          &c.NodeName,
-		SegmentName:       &c.SegmentName,
+func translateConfig(c *pbconfig.Config) config.Config {
+	result := config.Config{
+		Datacenter:        stringPtrOrNil(c.Datacenter),
+		PrimaryDatacenter: stringPtrOrNil(c.PrimaryDatacenter),
+		NodeName:          stringPtrOrNil(c.NodeName),
+		// only output the SegmentName in the configuration if its non-empty
+		// this will avoid a warning later when parsing the persisted configuration
+		SegmentName: stringPtrOrNil(c.SegmentName),
 	}
 
-	// Translate Auto Encrypt settings
 	if a := c.AutoEncrypt; a != nil {
-		out.AutoEncrypt = config.AutoEncrypt{
+		result.AutoEncrypt = config.AutoEncrypt{
 			TLS:      &a.TLS,
 			DNSSAN:   a.DNSSAN,
 			IPSAN:    a.IPSAN,
@@ -31,25 +39,21 @@ func translateConfig(c *pbconfig.Config) *config.Config {
 		}
 	}
 
-	// Translate all the ACL settings
 	if a := c.ACL; a != nil {
-		out.ACL = config.ACL{
+		result.ACL = config.ACL{
 			Enabled:                &a.Enabled,
-			PolicyTTL:              &a.PolicyTTL,
-			RoleTTL:                &a.RoleTTL,
-			TokenTTL:               &a.TokenTTL,
-			DownPolicy:             &a.DownPolicy,
-			DefaultPolicy:          &a.DefaultPolicy,
+			PolicyTTL:              stringPtrOrNil(a.PolicyTTL),
+			RoleTTL:                stringPtrOrNil(a.RoleTTL),
+			TokenTTL:               stringPtrOrNil(a.TokenTTL),
+			DownPolicy:             stringPtrOrNil(a.DownPolicy),
+			DefaultPolicy:          stringPtrOrNil(a.DefaultPolicy),
 			EnableKeyListPolicy:    &a.EnableKeyListPolicy,
-			DisabledTTL:            &a.DisabledTTL,
+			DisabledTTL:            stringPtrOrNil(a.DisabledTTL),
 			EnableTokenPersistence: &a.EnableTokenPersistence,
-			MSPDisableBootstrap:    &a.MSPDisableBootstrap,
 		}
 
 		if t := c.ACL.Tokens; t != nil {
-			var tokens []config.ServiceProviderToken
-
-			// create the slice of msp tokens if any
+			tokens := make([]config.ServiceProviderToken, 0, len(t.ManagedServiceProvider))
 			for _, mspToken := range t.ManagedServiceProvider {
 				tokens = append(tokens, config.ServiceProviderToken{
 					AccessorID: &mspToken.AccessorID,
@@ -57,37 +61,133 @@ func translateConfig(c *pbconfig.Config) *config.Config {
 				})
 			}
 
-			out.ACL.Tokens = config.Tokens{
-				Master:                 &t.Master,
-				Replication:            &t.Replication,
-				AgentMaster:            &t.AgentMaster,
-				Default:                &t.Default,
-				Agent:                  &t.Agent,
+			result.ACL.Tokens = config.Tokens{
+				Master:                 stringPtrOrNil(t.Master),
+				Replication:            stringPtrOrNil(t.Replication),
+				AgentMaster:            stringPtrOrNil(t.AgentMaster),
+				Default:                stringPtrOrNil(t.Default),
+				Agent:                  stringPtrOrNil(t.Agent),
 				ManagedServiceProvider: tokens,
 			}
 		}
 	}
 
-	// Translate the Gossip settings
 	if g := c.Gossip; g != nil {
-		out.RetryJoinLAN = g.RetryJoinLAN
+		result.RetryJoinLAN = g.RetryJoinLAN
 
-		// Translate the Gossip Encryption settings
 		if e := c.Gossip.Encryption; e != nil {
-			out.EncryptKey = &e.Key
-			out.EncryptVerifyIncoming = &e.VerifyIncoming
-			out.EncryptVerifyOutgoing = &e.VerifyOutgoing
+			result.EncryptKey = stringPtrOrNil(e.Key)
+			result.EncryptVerifyIncoming = &e.VerifyIncoming
+			result.EncryptVerifyOutgoing = &e.VerifyOutgoing
 		}
 	}
 
-	// Translate the Generic TLS settings
 	if t := c.TLS; t != nil {
-		out.VerifyOutgoing = &t.VerifyOutgoing
-		out.VerifyServerHostname = &t.VerifyServerHostname
-		out.TLSMinVersion = &t.MinVersion
-		out.TLSCipherSuites = &t.CipherSuites
-		out.TLSPreferServerCipherSuites = &t.PreferServerCipherSuites
+		result.VerifyOutgoing = &t.VerifyOutgoing
+		result.VerifyServerHostname = &t.VerifyServerHostname
+		result.TLSMinVersion = stringPtrOrNil(t.MinVersion)
+		result.TLSCipherSuites = stringPtrOrNil(t.CipherSuites)
+		result.TLSPreferServerCipherSuites = &t.PreferServerCipherSuites
 	}
 
-	return &out
+	return result
+}
+
+func stringPtrOrNil(v string) *string {
+	if v == "" {
+		return nil
+	}
+	return &v
+}
+
+func extractSignedResponse(resp *pbautoconf.AutoConfigResponse) (*structs.SignedResponse, error) {
+	roots, err := translateCARootsToStructs(resp.CARoots)
+	if err != nil {
+		return nil, err
+	}
+
+	cert, err := translateIssuedCertToStructs(resp.Certificate)
+	if err != nil {
+		return nil, err
+	}
+
+	out := &structs.SignedResponse{
+		IssuedCert:     *cert,
+		ConnectCARoots: *roots,
+		ManualCARoots:  resp.ExtraCACertificates,
+	}
+
+	if resp.Config != nil && resp.Config.TLS != nil {
+		out.VerifyServerHostname = resp.Config.TLS.VerifyServerHostname
+	}
+
+	return out, err
+}
+
+// translateCARootsToStructs will create a structs.IndexedCARoots object from the corresponding
+// protobuf struct. Those structs are intended to be identical so the conversion just uses
+// mapstructure to go from one to the other.
+func translateCARootsToStructs(in *pbconnect.CARoots) (*structs.IndexedCARoots, error) {
+	var out structs.IndexedCARoots
+	if err := mapstructureTranslateToStructs(in, &out); err != nil {
+		return nil, fmt.Errorf("Failed to re-encode CA Roots: %w", err)
+	}
+
+	return &out, nil
+}
+
+// translateIssuedCertToStructs will create a structs.IssuedCert object from the corresponding
+// protobuf struct. Those structs are intended to be identical so the conversion just uses
+// mapstructure to go from one to the other.
+func translateIssuedCertToStructs(in *pbconnect.IssuedCert) (*structs.IssuedCert, error) {
+	var out structs.IssuedCert
+	if err := mapstructureTranslateToStructs(in, &out); err != nil {
+		return nil, fmt.Errorf("Failed to re-encode CA Roots: %w", err)
+	}
+
+	return &out, nil
+}
+
+func mapstructureTranslateToStructs(in interface{}, out interface{}) error {
+	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		DecodeHook: proto.HookPBTimestampToTime,
+		Result:     out,
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return decoder.Decode(in)
+}
+
+func translateCARootsToProtobuf(in *structs.IndexedCARoots) (*pbconnect.CARoots, error) {
+	var out pbconnect.CARoots
+	if err := mapstructureTranslateToProtobuf(in, &out); err != nil {
+		return nil, fmt.Errorf("Failed to re-encode CA Roots: %w", err)
+	}
+
+	return &out, nil
+}
+
+func translateIssuedCertToProtobuf(in *structs.IssuedCert) (*pbconnect.IssuedCert, error) {
+	var out pbconnect.IssuedCert
+	if err := mapstructureTranslateToProtobuf(in, &out); err != nil {
+		return nil, fmt.Errorf("Failed to re-encode CA Roots: %w", err)
+	}
+
+	return &out, nil
+}
+
+func mapstructureTranslateToProtobuf(in interface{}, out interface{}) error {
+	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		DecodeHook: proto.HookTimeToPBTimestamp,
+		Result:     out,
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return decoder.Decode(in)
 }

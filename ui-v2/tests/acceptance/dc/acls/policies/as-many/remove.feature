@@ -5,6 +5,7 @@ Feature: dc / acls / policies / as many / remove: Remove
     And 1 [Model] model from yaml
     ---
       ServiceIdentities: ~
+      NodeIdentities: ~
       Policies:
         - Name: Policy
           ID: 00000000-0000-0000-0000-000000000001

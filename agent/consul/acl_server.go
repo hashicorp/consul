@@ -147,10 +147,10 @@ func (s *Server) LocalTokensEnabled() bool {
 	}
 
 	if !s.config.ACLTokenReplication || s.tokens.ReplicationToken() == "" {
+		// token replication is off so local tokens are disabled
 		return false
 	}
 
-	// token replication is off so local tokens are disabled
 	return true
 }
 
@@ -165,10 +165,6 @@ func (s *Server) ACLDatacenter(legacy bool) string {
 	// When no ACL DC is set then it is assumed that this DC
 	// is the primary DC
 	return s.config.Datacenter
-}
-
-func (s *Server) ACLsEnabled() bool {
-	return s.config.ACLsEnabled
 }
 
 // ResolveIdentityFromToken retrieves a token's full identity given its secretID.

@@ -39,7 +39,7 @@ export default function MultiPlatformServiceMeshPage() {
             {
               text: 'Learn More',
               url:
-                'https://learn.hashicorp.com/consul/security-networking/certificates',
+                'https://learn.hashicorp.com/tutorials/consul/service-mesh-with-envoy-proxy',
               type: 'outbound',
             },
           ],
@@ -59,7 +59,7 @@ export default function MultiPlatformServiceMeshPage() {
             {
               text: 'Learn More',
               url:
-                'https://www.consul.io/docs/connect/l7-traffic-management.html',
+                'https://learn.hashicorp.com/tutorials/consul/service-mesh-features',
               type: 'outbound',
             },
           ],
@@ -91,7 +91,7 @@ Splits = [
           links: [
             {
               text: 'Learn More',
-              url: 'https://www.consul.io/docs/platform/k8s/run.html',
+              url: '/docs/k8s/installation/install',
               type: 'inbound',
             },
           ],
@@ -147,7 +147,7 @@ Splits = [
             links: [
               {
                 text: 'Learn More',
-                url: 'https://www.consul.io/docs/enterprise/index.html',
+                url: '/docs/enterprise',
                 type: 'inbound',
               },
             ],

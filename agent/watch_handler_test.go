@@ -10,10 +10,11 @@ import (
 
 	"github.com/hashicorp/consul/api/watch"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/go-hclog"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMakeWatchHandler(t *testing.T) {
-	t.Parallel()
 	defer os.Remove("handler_out")
 	defer os.Remove("handler_index_out")
 	script := "bash -c 'echo $CONSUL_INDEX >> handler_index_out && cat >> handler_out'"
@@ -36,7 +37,6 @@ func TestMakeWatchHandler(t *testing.T) {
 }
 
 func TestMakeHTTPWatchHandler(t *testing.T) {
-	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		idx := r.Header.Get("X-Consul-Index")
 		if idx != "100" {
@@ -64,4 +64,114 @@ func TestMakeHTTPWatchHandler(t *testing.T) {
 	}
 	handler := makeHTTPWatchHandler(testutil.Logger(t), &config)
 	handler(100, []string{"foo", "bar", "baz"})
+}
+
+type raw map[string]interface{}
+
+func TestMakeWatchPlan(t *testing.T) {
+	type testCase struct {
+		name        string
+		params      map[string]interface{}
+		expected    func(t *testing.T, plan *watch.Plan)
+		expectedErr string
+	}
+	fn := func(t *testing.T, tc testCase) {
+		plan, err := makeWatchPlan(hclog.New(nil), tc.params)
+		if tc.expectedErr != "" {
+			require.Error(t, err)
+			require.Contains(t, err.Error(), tc.expectedErr)
+			return
+		}
+		require.NoError(t, err)
+		tc.expected(t, plan)
+	}
+	var testCases = []testCase{
+		{
+			name: "handler_type script, with deprecated handler field",
+			params: raw{
+				"type":         "key",
+				"key":          "foo",
+				"handler_type": "script",
+				"handler":      "./script.sh",
+			},
+			expected: func(t *testing.T, plan *watch.Plan) {
+				require.Equal(t, plan.HandlerType, "script")
+				require.Equal(t, plan.Exempt["handler"], "./script.sh")
+			},
+		},
+		{
+			name: "handler_type script, with single arg",
+			params: raw{
+				"type":         "key",
+				"key":          "foo",
+				"handler_type": "script",
+				"args":         "./script.sh",
+			},
+			expected: func(t *testing.T, plan *watch.Plan) {
+				require.Equal(t, plan.HandlerType, "script")
+				require.Equal(t, plan.Exempt["args"], []string{"./script.sh"})
+			},
+		},
+		{
+			name: "handler_type script, with multiple args from slice of interface",
+			params: raw{
+				"type":         "key",
+				"key":          "foo",
+				"handler_type": "script",
+				"args":         []interface{}{"./script.sh", "arg1"},
+			},
+			expected: func(t *testing.T, plan *watch.Plan) {
+				require.Equal(t, plan.HandlerType, "script")
+				require.Equal(t, plan.Exempt["args"], []string{"./script.sh", "arg1"})
+			},
+		},
+		{
+			name: "handler_type script, with multiple args from slice of strings",
+			params: raw{
+				"type":         "key",
+				"key":          "foo",
+				"handler_type": "script",
+				"args":         []string{"./script.sh", "arg1"},
+			},
+			expected: func(t *testing.T, plan *watch.Plan) {
+				require.Equal(t, plan.HandlerType, "script")
+				require.Equal(t, plan.Exempt["args"], []string{"./script.sh", "arg1"})
+			},
+		},
+		{
+			name: "handler_type script, with not string args",
+			params: raw{
+				"type":         "key",
+				"key":          "foo",
+				"handler_type": "script",
+				"args":         []interface{}{"./script.sh", true},
+			},
+			expectedErr: "Watch args must be a list of strings",
+		},
+		{
+			name: "conflicting handler",
+			params: raw{
+				"type":         "key",
+				"key":          "foo",
+				"handler_type": "script",
+				"handler":      "./script.sh",
+				"args":         []interface{}{"arg1"},
+			},
+			expectedErr: "Only one watch handler allowed",
+		},
+		{
+			name: "no handler_type",
+			params: raw{
+				"type": "key",
+				"key":  "foo",
+			},
+			expectedErr: "Must define a watch handler",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			fn(t, tc)
+		})
+	}
 }

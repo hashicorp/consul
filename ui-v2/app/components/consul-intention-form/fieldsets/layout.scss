@@ -1,0 +1,27 @@
+.consul-intention-fieldsets {
+  [role='radiogroup'] {
+    overflow: visible !important;
+    display: grid;
+    grid-gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(270px, auto));
+  }
+  .radio-card {
+    @extend %radio-card-with-icon;
+  }
+  .radio-card header > * {
+    display: inline;
+  }
+  .value-allow > :last-child::before {
+    @extend %with-arrow-right-color-icon, %as-pseudo;
+  }
+  .value-deny > :last-child::before {
+    @extend %with-deny-color-icon, %as-pseudo;
+  }
+  .permissions > button {
+    @extend %anchor;
+    float: right;
+  }
+}
+.consul-intention-permission-modal [role="dialog"] > div > div {
+  width: 100%;
+}

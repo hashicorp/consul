@@ -16,9 +16,4 @@ export default Adapter.extend({
       [DATACENTER_QUERY_PARAM]: dc,
     };
   },
-  // TODO: Deprecated, remove `request` usage from everywhere and replace with
-  // `HTTPAdapter.rpc`
-  request: function(req, resp, obj, modelName) {
-    return this.rpc(...arguments);
-  },
 });

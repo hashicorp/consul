@@ -28,4 +28,4 @@ Feature: dc / services / error
     # When running through namespaces as the dc menu says 'Error'
     # which is still kind of ok
     When I click dc on the navigation
-    And I see 2 datacenter models
+    And I see 2 datacenter models on the navigation component

@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 )
@@ -16,31 +17,34 @@ import (
 const metaExternalSource = "external-source"
 
 type GatewayConfig struct {
-	ListenerPort int
+	AssociatedServiceCount int      `json:",omitempty"`
+	Addresses              []string `json:",omitempty"`
+	// internal to track uniqueness
+	addressesSet map[string]struct{}
 }
 
 // ServiceSummary is used to summarize a service
 type ServiceSummary struct {
-	Kind              structs.ServiceKind `json:",omitempty"`
-	Name              string
-	Tags              []string
-	Nodes             []string
-	InstanceCount     int
-	ProxyFor          []string            `json:",omitempty"`
-	proxyForSet       map[string]struct{} // internal to track uniqueness
-	ChecksPassing     int
-	ChecksWarning     int
-	ChecksCritical    int
-	ExternalSources   []string
-	externalSourceSet map[string]struct{} // internal to track uniqueness
-	GatewayConfig     GatewayConfig       `json:",omitempty"`
+	Kind                 structs.ServiceKind `json:",omitempty"`
+	Name                 string
+	Tags                 []string
+	Nodes                []string
+	InstanceCount        int
+	ChecksPassing        int
+	ChecksWarning        int
+	ChecksCritical       int
+	ExternalSources      []string
+	externalSourceSet    map[string]struct{} // internal to track uniqueness
+	GatewayConfig        GatewayConfig       `json:",omitempty"`
+	ConnectedWithProxy   bool
+	ConnectedWithGateway bool
 
 	structs.EnterpriseMeta
 }
 
 // UINodes is used to list the nodes in a given datacenter. We return a
 // NodeDump which provides overview information for all the nodes
-func (s *HTTPServer) UINodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) UINodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Parse arguments
 	args := structs.DCSpecificRequest{}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
@@ -83,7 +87,7 @@ RPC:
 
 // UINodeInfo is used to get info on a single node in a given datacenter. We return a
 // NodeInfo which provides overview information for the node
-func (s *HTTPServer) UINodeInfo(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) UINodeInfo(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Parse arguments
 	args := structs.NodeSpecificRequest{}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
@@ -133,7 +137,7 @@ RPC:
 
 // UIServices is used to list the services in a given datacenter. We return a
 // ServiceSummary which provides overview information for the service
-func (s *HTTPServer) UIServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) UIServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Parse arguments
 	args := structs.ServiceDumpRequest{}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
@@ -147,7 +151,7 @@ func (s *HTTPServer) UIServices(resp http.ResponseWriter, req *http.Request) (in
 	s.parseFilter(req, &args.Filter)
 
 	// Make the RPC request
-	var out structs.IndexedCheckServiceNodes
+	var out structs.IndexedNodesWithGateways
 	defer setMeta(resp, &out.QueryMeta)
 RPC:
 	if err := s.agent.RPC("Internal.ServiceDump", &args, &out); err != nil {
@@ -161,11 +165,11 @@ RPC:
 
 	// Generate the summary
 	// TODO (gateways) (freddy) Have Internal.ServiceDump return ServiceDump instead. Need to add bexpr filtering for type.
-	return summarizeServices(out.Nodes.ToServiceDump()), nil
+	return summarizeServices(out.Nodes.ToServiceDump(), out.Gateways, s.agent.config, args.Datacenter), nil
 }
 
 // UIGatewayServices is used to query all the nodes for services associated with a gateway along with their gateway config
-func (s *HTTPServer) UIGatewayServicesNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) UIGatewayServicesNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Parse arguments
 	args := structs.ServiceSpecificRequest{}
 	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
@@ -195,18 +199,24 @@ RPC:
 		}
 		return nil, err
 	}
-	return summarizeServices(out.Dump), nil
+
+	return summarizeServices(out.Dump, nil, s.agent.config, args.Datacenter), nil
 }
 
-func summarizeServices(dump structs.ServiceDump) []*ServiceSummary {
+// TODO (freddy): Refactor to split up for the two use cases
+func summarizeServices(dump structs.ServiceDump, gateways structs.GatewayServices, cfg *config.RuntimeConfig, dc string) []*ServiceSummary {
 	// Collect the summary information
-	var services []structs.ServiceID
-	summary := make(map[structs.ServiceID]*ServiceSummary)
-	getService := func(service structs.ServiceID) *ServiceSummary {
+	var services []structs.ServiceName
+	summary := make(map[structs.ServiceName]*ServiceSummary)
+
+	linkedGateways := make(map[structs.ServiceName][]structs.ServiceName)
+	hasProxy := make(map[structs.ServiceName]bool)
+
+	getService := func(service structs.ServiceName) *ServiceSummary {
 		serv, ok := summary[service]
 		if !ok {
 			serv = &ServiceSummary{
-				Name:           service.ID,
+				Name:           service.Name,
 				EnterpriseMeta: service.EnterpriseMeta,
 				// the other code will increment this unconditionally so we
 				// shouldn't initialize it to 1
@@ -218,17 +228,27 @@ func summarizeServices(dump structs.ServiceDump) []*ServiceSummary {
 		return serv
 	}
 
+	// Collect the list of services linked to each gateway up front
+	// THis also allows tracking whether a service name is associated with a gateway
+	gsCount := make(map[structs.ServiceName]int)
+
+	for _, gs := range gateways {
+		gsCount[gs.Gateway] += 1
+		linkedGateways[gs.Service] = append(linkedGateways[gs.Service], gs.Gateway)
+	}
+
 	for _, csn := range dump {
 		if csn.GatewayService != nil {
-			sum := getService(csn.GatewayService.Service.ToServiceID())
-			sum.GatewayConfig.ListenerPort = csn.GatewayService.Port
+			gwsvc := csn.GatewayService
+			sum := getService(gwsvc.Service)
+			modifySummaryForGatewayService(cfg, dc, sum, gwsvc)
 		}
 
 		// Will happen in cases where we only have the GatewayServices mapping
 		if csn.Service == nil {
 			continue
 		}
-		sid := structs.NewServiceID(csn.Service.Service, &csn.Service.EnterpriseMeta)
+		sid := structs.NewServiceName(csn.Service.Service, &csn.Service.EnterpriseMeta)
 		sum := getService(sid)
 
 		svc := csn.Service
@@ -236,13 +256,7 @@ func summarizeServices(dump structs.ServiceDump) []*ServiceSummary {
 		sum.Kind = svc.Kind
 		sum.InstanceCount += 1
 		if svc.Kind == structs.ServiceKindConnectProxy {
-			if _, ok := sum.proxyForSet[svc.Proxy.DestinationServiceName]; !ok {
-				if sum.proxyForSet == nil {
-					sum.proxyForSet = make(map[string]struct{})
-				}
-				sum.proxyForSet[svc.Proxy.DestinationServiceName] = struct{}{}
-				sum.ProxyFor = append(sum.ProxyFor, svc.Proxy.DestinationServiceName)
-			}
+			hasProxy[structs.NewServiceName(svc.Proxy.DestinationServiceName, &svc.EnterpriseMeta)] = true
 		}
 		for _, tag := range svc.Tags {
 			found := false
@@ -289,13 +303,101 @@ func summarizeServices(dump structs.ServiceDump) []*ServiceSummary {
 	sort.Slice(services, func(i, j int) bool {
 		return services[i].LessThan(&services[j])
 	})
+
 	output := make([]*ServiceSummary, len(summary))
 	for idx, service := range services {
-		// Sort the nodes and tags
 		sum := summary[service]
+		if hasProxy[service] {
+			sum.ConnectedWithProxy = true
+		}
+
+		// Verify that at least one of the gateways linked by config entry has an instance registered in the catalog
+		for _, gw := range linkedGateways[service] {
+			if s := summary[gw]; s != nil && s.InstanceCount > 0 {
+				sum.ConnectedWithGateway = true
+			}
+		}
+		sum.GatewayConfig.AssociatedServiceCount = gsCount[service]
+
+		// Sort the nodes and tags
 		sort.Strings(sum.Nodes)
 		sort.Strings(sum.Tags)
 		output[idx] = sum
 	}
 	return output
+}
+
+func modifySummaryForGatewayService(
+	cfg *config.RuntimeConfig,
+	datacenter string,
+	sum *ServiceSummary,
+	gwsvc *structs.GatewayService,
+) {
+	var dnsAddresses []string
+	for _, domain := range []string{cfg.DNSDomain, cfg.DNSAltDomain} {
+		// If the domain is empty, do not use it to construct a valid DNS
+		// address
+		if domain == "" {
+			continue
+		}
+		dnsAddresses = append(dnsAddresses, serviceIngressDNSName(
+			gwsvc.Service.Name,
+			datacenter,
+			domain,
+			&gwsvc.Service.EnterpriseMeta,
+		))
+	}
+
+	for _, addr := range gwsvc.Addresses(dnsAddresses) {
+		// check for duplicates, a service will have a ServiceInfo struct for
+		// every instance that is registered.
+		if _, ok := sum.GatewayConfig.addressesSet[addr]; !ok {
+			if sum.GatewayConfig.addressesSet == nil {
+				sum.GatewayConfig.addressesSet = make(map[string]struct{})
+			}
+			sum.GatewayConfig.addressesSet[addr] = struct{}{}
+			sum.GatewayConfig.Addresses = append(
+				sum.GatewayConfig.Addresses, addr,
+			)
+		}
+	}
+}
+
+// GET /v1/internal/ui/gateway-intentions/:gateway
+func (s *HTTPHandlers) UIGatewayIntentions(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	var args structs.IntentionQueryRequest
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
+	var entMeta structs.EnterpriseMeta
+	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
+		return nil, err
+	}
+
+	// Pull out the service name
+	name := strings.TrimPrefix(req.URL.Path, "/v1/internal/ui/gateway-intentions/")
+	if name == "" {
+		resp.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(resp, "Missing gateway name")
+		return nil, nil
+	}
+	args.Match = &structs.IntentionQueryMatch{
+		Type: structs.IntentionMatchDestination,
+		Entries: []structs.IntentionMatchEntry{
+			{
+				Namespace: entMeta.NamespaceOrEmpty(),
+				Name:      name,
+			},
+		},
+	}
+
+	var reply structs.IndexedIntentions
+
+	defer setMeta(resp, &reply.QueryMeta)
+	if err := s.agent.RPC("Internal.GatewayIntentions", args, &reply); err != nil {
+		return nil, err
+	}
+
+	return reply.Intentions, nil
 }

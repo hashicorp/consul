@@ -1,18 +1,21 @@
 import { helper } from '@ember/component/helper';
 
-export default helper(function routeMatch([params] /*, hash*/) {
-  const keys = Object.keys(params);
-  switch (true) {
-    case keys.includes('Present'):
-      return `${params.Invert ? `NOT ` : ``}present`;
-    case keys.includes('Exact'):
-      return `${params.Invert ? `NOT ` : ``}exactly matching "${params.Exact}"`;
-    case keys.includes('Prefix'):
-      return `${params.Invert ? `NOT ` : ``}prefixed by "${params.Prefix}"`;
-    case keys.includes('Suffix'):
-      return `${params.Invert ? `NOT ` : ``}suffixed by "${params.Suffix}"`;
-    case keys.includes('Regex'):
-      return `${params.Invert ? `NOT ` : ``}matching the regex "${params.Regex}"`;
+export default helper(function routeMatch([item], hash) {
+  const prop = ['Present', 'Exact', 'Prefix', 'Suffix', 'Regex'].find(
+    prop => typeof item[prop] !== 'undefined'
+  );
+
+  switch (prop) {
+    case 'Present':
+      return `${item.Invert ? `NOT ` : ``}present`;
+    case 'Exact':
+      return `${item.Invert ? `NOT ` : ``}exactly matching "${item.Exact}"`;
+    case 'Prefix':
+      return `${item.Invert ? `NOT ` : ``}prefixed by "${item.Prefix}"`;
+    case 'Suffix':
+      return `${item.Invert ? `NOT ` : ``}suffixed by "${item.Suffix}"`;
+    case 'Regex':
+      return `${item.Invert ? `NOT ` : ``}matching the regex "${item.Regex}"`;
   }
   return '';
 });

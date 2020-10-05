@@ -32,8 +32,7 @@ type CheckAlias struct {
 	stop     bool
 	stopCh   chan struct{}
 	stopLock sync.Mutex
-
-	stopWg sync.WaitGroup
+	stopWg   sync.WaitGroup
 
 	structs.EnterpriseMeta
 }
@@ -55,6 +54,7 @@ func (c *CheckAlias) Start() {
 	defer c.stopLock.Unlock()
 	c.stop = false
 	c.stopCh = make(chan struct{})
+	c.stopWg.Add(1)
 	go c.run(c.stopCh)
 }
 
@@ -76,7 +76,6 @@ func (c *CheckAlias) Stop() {
 
 // run is invoked in a goroutine until Stop() is called.
 func (c *CheckAlias) run(stopCh chan struct{}) {
-	c.stopWg.Add(1)
 	defer c.stopWg.Done()
 
 	// If we have a specific node set, then use a blocking query

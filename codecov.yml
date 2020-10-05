@@ -35,7 +35,10 @@ flags:
   ui:
     paths: /ui-v2/
 
+github_checks:
+  annotations: false
+
 ignore:
-  - "agent/bindata_assetfs.go"
+  - "agent/uiserver/bindata_assetfs.go"
   - "vendor/**/*"
   - "**/*.pb.go"

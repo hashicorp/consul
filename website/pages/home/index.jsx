@@ -1,10 +1,12 @@
 import UseCases from '@hashicorp/react-use-cases'
 import BasicHero from '../../components/basic-hero'
 import ConsulEnterpriseComparison from '../../components/enterprise-comparison/consul'
+import CloudOfferingsList from '../../components/cloud-offerings-list'
 import PrefooterCTA from '../../components/prefooter-cta'
 import LearnCallout from '../../components/learn-callout'
 import CaseStudyCarousel from '../../components/case-study-carousel'
 import ProductFeaturesList from '@hashicorp/react-product-features-list'
+import MiniCTA from '../../components/mini-cta'
 
 export default function HomePage() {
   return (
@@ -25,9 +27,9 @@ export default function HomePage() {
             type: 'download',
           },
           {
-            text: 'Try HashiCorp Consul Service on Azure',
-            url: 'https://learn.hashicorp.com/consul/hcs-azure/deploy',
-            type: 'outbound',
+            text: 'Learn more about Consul cloud offerings',
+            url: '/#cloud-offerings',
+            type: 'inbound',
           },
         ]}
         backgroundImage
@@ -71,6 +73,29 @@ export default function HomePage() {
             content:
               'Consul offers support for and integrations with many popular DevOps and Networking tools.',
             icon: require('./img/why-consul/world.svg'),
+          },
+        ]}
+      />
+
+      <LearnCallout
+        headline="Get hands-on experience with Consul"
+        brand="consul"
+        items={[
+          {
+            title: 'Deploy Consul Service Mesh on Kubernetes',
+            category: 'Step-by-Step Tutorial',
+            time: '10 mins',
+            link:
+              'https://learn.hashicorp.com/tutorials/consul/service-mesh-deploy',
+            image: require('./img/learn/getting-started.svg?url'),
+          },
+          {
+            title: 'Observe Layer 7 Traffic',
+            category: 'Step-by-Step Tutorial',
+            time: '15 mins',
+            link:
+              'https://learn.hashicorp.com/tutorials/consul/service-mesh-features',
+            image: require('./img/learn/kubernetes.svg?url'),
           },
         ]}
       />
@@ -139,6 +164,15 @@ export default function HomePage() {
           ],
         }}
       />
+      <MiniCTA
+        title="Are you using Consul in production?"
+        link={{
+          text: 'Share your success story and receive special Consul swag.',
+          url:
+            'https://docs.google.com/forms/d/1B-4XlRndv2hX9G4Gt2dMnJBqilctrrof7dfpyQ1EVIg/edit',
+          type: 'outbound',
+        }}
+      />
 
       <div className="use-cases g-grid-container">
         <h2 className="g-type-display-2">Use Cases</h2>
@@ -187,28 +221,41 @@ export default function HomePage() {
         />
       </div>
 
-      <LearnCallout
-        headline="Learn the latest Consul skills"
-        brand="consul"
-        items={[
-          {
-            title: 'Getting Started',
-            category: 'Step-by-Step Guides',
-            time: '48 mins',
-            link:
-              'https://learn.hashicorp.com/consul?track=getting-started#getting-started',
-            image: require('./img/learn/getting-started.svg?url'),
-          },
-          {
-            title: 'Run Consul on Kubernetes',
-            category: 'Step-by-Step Guides',
-            time: '142 mins',
-            link:
-              'https://learn.hashicorp.com/consul?track=kubernetes#kubernetes',
-            image: require('./img/learn/kubernetes.svg?url'),
-          },
-        ]}
-      />
+      <section
+        id="cloud-offerings"
+        className="cloud-offerings g-grid-container"
+      >
+        <h2 className="g-type-display-2">
+          Learn more about Consul cloud offerings
+        </h2>
+        <CloudOfferingsList
+          offerings={[
+            {
+              image: require('./img/cloud/hcs.jpg?url'),
+              eyebrow: 'General Availability',
+              title: 'HashiCorp Consul Service on Azure',
+              description: 'Native Azure Experience',
+              link: {
+                text: 'Get Started',
+                url: 'https://learn.hashicorp.com/consul/hcs-azure/deploy',
+                type: 'outbound',
+              },
+            },
+            {
+              image: require('./img/cloud/hcp.jpg?url'),
+              eyebrow: 'Private Beta',
+              title: 'HCP Consul on AWS',
+              description: 'HashiCorp Cloud Platform',
+              link: {
+                text: 'Request Access',
+                url: 'https://www.hashicorp.com/cloud-platform/request-access/',
+                type: 'outbound',
+              },
+            },
+          ]}
+        />
+      </section>
+
       <ConsulEnterpriseComparison />
       <PrefooterCTA />
     </div>

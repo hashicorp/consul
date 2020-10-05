@@ -8,7 +8,7 @@ export default (submitable, cancelable, radiogroup, text) => (
     prefix: 'policy',
     ...submitable(),
     ...cancelable(),
-    ...radiogroup('template', ['', 'service-identity'], 'policy'),
+    ...radiogroup('template', ['', 'service-identity', 'node-identity'], 'policy'),
     rules: {
       error: text('[data-test-rules] strong'),
     },

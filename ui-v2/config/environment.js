@@ -11,6 +11,9 @@ module.exports = function(environment, $ = process.env) {
     // torii provider. We provide this object here to
     // prevent ember from giving a log message when starting ember up
     torii: {},
+    'ember-cli-app-version': {
+      version: 'consul-ui',
+    },
     EmberENV: {
       FEATURES: {
         // Here you can enable experimental features on an ember canary build
@@ -45,16 +48,6 @@ module.exports = function(environment, $ = process.env) {
         .split('-')
         .shift();
     })(process.env.CONSUL_COPYRIGHT_YEAR),
-    CONSUL_GIT_SHA: (function(val) {
-      if (val) {
-        return val;
-      }
-
-      return require('child_process')
-        .execSync('git rev-parse --short HEAD')
-        .toString()
-        .trim();
-    })(process.env.CONSUL_GIT_SHA),
     CONSUL_VERSION: (function(val) {
       if (val) {
         return val;
@@ -127,13 +120,18 @@ module.exports = function(environment, $ = process.env) {
       });
       break;
     case environment === 'production':
-      // Make sure all templated variables check for existence first
-      // before outputting them, this means they all should be conditionals
       ENV = Object.assign({}, ENV, {
-        CONSUL_ACLS_ENABLED: '{{ if .ACLsEnabled }}{{.ACLsEnabled}}{{ else }}false{{ end }}',
-        CONSUL_SSO_ENABLED: '{{ if .SSOEnabled }}{{.SSOEnabled}}{{ else }}false{{ end }}',
-        CONSUL_NSPACES_ENABLED:
-          '{{ if .NamespacesEnabled }}{{.NamespacesEnabled}}{{ else }}false{{ end }}',
+        // These values are placeholders that are replaced when Consul renders
+        // the index.html based on runtime config. They can't use Go template
+        // syntax since this object ends up JSON and URLencoded in an HTML meta
+        // tag which obscured the Go template tag syntax.
+        //
+        // __RUNTIME_BOOL_Xxxx__ will be replaced with either "true" or "false"
+        // depending on whether the named variable is true or valse in the data
+        // returned from `uiTemplateDataFromConfig`.
+        CONSUL_ACLS_ENABLED: '__RUNTIME_BOOL_ACLsEnabled__',
+        CONSUL_SSO_ENABLED: '__RUNTIME_BOOL_SSOEnabled__',
+        CONSUL_NSPACES_ENABLED: '__RUNTIME_BOOL_NSpacesEnabled__',
       });
       break;
   }

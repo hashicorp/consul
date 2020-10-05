@@ -1,7 +1,8 @@
-export default function(visitable, creatable, intentions, filter) {
+export default function(visitable, creatable, clickable, intentions, popoverSelect) {
   return creatable({
     visit: visitable('/:dc/intentions'),
     intentions: intentions(),
-    filter: filter('[data-test-intention-filter]'),
+    sort: popoverSelect('[data-test-sort-control]'),
+    create: clickable('[data-test-create]'),
   });
 }

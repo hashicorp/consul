@@ -401,7 +401,6 @@ func TestAutopilot_PromoteNonVoter(t *testing.T) {
 
 func TestAutopilot_MinQuorum(t *testing.T) {
 	dc := "dc1"
-	closeMap := make(map[string]chan struct{})
 	conf := func(c *Config) {
 		c.Datacenter = dc
 		c.Bootstrap = false
@@ -409,13 +408,6 @@ func TestAutopilot_MinQuorum(t *testing.T) {
 		c.AutopilotConfig.MinQuorum = 3
 		c.RaftConfig.ProtocolVersion = raft.ProtocolVersion(2)
 		c.AutopilotInterval = 100 * time.Millisecond
-		//Let us know when a server is actually gone
-		ch := make(chan struct{})
-		c.NotifyShutdown = func() {
-			t.Logf("%v is shutdown", c.NodeName)
-			close(ch)
-		}
-		closeMap[c.NodeName] = ch
 	}
 	dir1, s1 := testServerWithConfig(t, conf)
 	defer os.RemoveAll(dir1)
@@ -463,8 +455,7 @@ func TestAutopilot_MinQuorum(t *testing.T) {
 	if dead == nil {
 		t.Fatalf("no members set")
 	}
-	dead.Shutdown()
-	<-closeMap[dead.config.NodeName]
+	require.NoError(t, dead.Shutdown())
 	retry.Run(t, func(r *retry.R) {
 		leader := findStatus(true)
 		if leader == nil {
@@ -480,10 +471,7 @@ func TestAutopilot_MinQuorum(t *testing.T) {
 	delete(servers, dead.config.NodeName)
 	//Autopilot should not take this one into left
 	dead = findStatus(false)
-	if err := dead.Shutdown(); err != nil {
-		t.Fatalf("could not shut down %s, error %v", dead.config.NodeName, err)
-	}
-	<-closeMap[dead.config.NodeName]
+	require.NoError(t, dead.Shutdown())
 
 	retry.Run(t, func(r *retry.R) {
 		leader := findStatus(true)
@@ -496,5 +484,4 @@ func TestAutopilot_MinQuorum(t *testing.T) {
 			}
 		}
 	})
-
 }

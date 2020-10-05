@@ -98,6 +98,8 @@ type Manager struct {
 	// client.ConnPool.
 	connPoolPinger Pinger
 
+	rebalancer Rebalancer
+
 	// serverName has the name of the managers's server. This is used to
 	// short-circuit pinging to itself.
 	serverName string
@@ -254,6 +256,9 @@ func (m *Manager) CheckServers(fn func(srv *metadata.Server) bool) {
 // getServerList is a convenience method which hides the locking semantics
 // of atomic.Value from the caller.
 func (m *Manager) getServerList() serverList {
+	if m == nil {
+		return serverList{}
+	}
 	return m.listValue.Load().(serverList)
 }
 
@@ -264,7 +269,7 @@ func (m *Manager) saveServerList(l serverList) {
 }
 
 // New is the only way to safely create a new Manager struct.
-func New(logger hclog.Logger, shutdownCh chan struct{}, clusterInfo ManagerSerfCluster, connPoolPinger Pinger, serverName string) (m *Manager) {
+func New(logger hclog.Logger, shutdownCh chan struct{}, clusterInfo ManagerSerfCluster, connPoolPinger Pinger, serverName string, rb Rebalancer) (m *Manager) {
 	if logger == nil {
 		logger = hclog.New(&hclog.LoggerOptions{})
 	}
@@ -275,6 +280,7 @@ func New(logger hclog.Logger, shutdownCh chan struct{}, clusterInfo ManagerSerfC
 	m.connPoolPinger = connPoolPinger // can't pass *consul.ConnPool: import cycle
 	m.rebalanceTimer = time.NewTimer(clientRPCMinReuseDuration)
 	m.shutdownCh = shutdownCh
+	m.rebalancer = rb
 	m.serverName = serverName
 	atomic.StoreInt32(&m.offline, 1)
 
@@ -321,6 +327,25 @@ func (m *Manager) NumServers() int {
 	return len(l.servers)
 }
 
+func (m *Manager) healthyServer(server *metadata.Server) bool {
+	// Check to see if the manager is trying to ping itself. This
+	// is a small optimization to avoid performing an unnecessary
+	// RPC call.
+	// If this is true, we know there are healthy servers for this
+	// manager and we don't need to continue.
+	if m.serverName != "" && server.Name == m.serverName {
+		return true
+	}
+	if ok, err := m.connPoolPinger.Ping(server.Datacenter, server.ShortName, server.Addr); !ok {
+		m.logger.Debug("pinging server failed",
+			"server", server.String(),
+			"error", err,
+		)
+		return false
+	}
+	return true
+}
+
 // RebalanceServers shuffles the list of servers on this metadata.  The server
 // at the front of the list is selected for the next RPC.  RPC calls that
 // fail for a particular server are rotated to the end of the list.  This
@@ -345,24 +370,12 @@ func (m *Manager) RebalanceServers() {
 	// this loop mutates the server list in-place.
 	var foundHealthyServer bool
 	for i := 0; i < len(l.servers); i++ {
-		// Always test the first server.  Failed servers are cycled
+		// Always test the first server. Failed servers are cycled
 		// while Serf detects the node has failed.
-		srv := l.servers[0]
-
-		// check to see if the manager is trying to ping itself,
-		// continue if that is the case.
-		if m.serverName != "" && srv.Name == m.serverName {
-			continue
-		}
-		ok, err := m.connPoolPinger.Ping(srv.Datacenter, srv.ShortName, srv.Addr)
-		if ok {
+		if m.healthyServer(l.servers[0]) {
 			foundHealthyServer = true
 			break
 		}
-		m.logger.Debug("pinging server failed",
-			"server", srv.String(),
-			"error", err,
-		)
 		l.servers = l.cycleServer()
 	}
 
@@ -519,6 +532,7 @@ func (m *Manager) Start() {
 	for {
 		select {
 		case <-m.rebalanceTimer.C:
+			m.rebalancer()
 			m.RebalanceServers()
 			m.refreshServerRebalanceTimer()
 

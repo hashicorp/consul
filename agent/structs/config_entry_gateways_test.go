@@ -77,14 +77,93 @@ func TestIngressConfigEntry_Normalize(t *testing.T) {
 		},
 	}
 
-	for _, test := range cases {
-		// We explicitly copy the variable for the range statement so that can run
-		// tests in parallel.
-		tc := test
+	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			err := tc.entry.Normalize()
 			require.NoError(t, err)
 			require.Equal(t, tc.expected, tc.entry)
+		})
+	}
+}
+
+func TestIngressConfigEntry_ListRelatedServices(t *testing.T) {
+	type testcase struct {
+		entry          IngressGatewayConfigEntry
+		expectServices []ServiceID
+	}
+
+	cases := map[string]testcase{
+		"one exact": {
+			entry: IngressGatewayConfigEntry{
+				Kind: IngressGateway,
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "tcp",
+						Services: []IngressService{
+							{Name: "web"},
+						},
+					},
+				},
+			},
+			expectServices: []ServiceID{NewServiceID("web", nil)},
+		},
+		"one wild": {
+			entry: IngressGatewayConfigEntry{
+				Kind: IngressGateway,
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "tcp",
+						Services: []IngressService{
+							{Name: "*"},
+						},
+					},
+				},
+			},
+			expectServices: nil,
+		},
+		"kitchen sink": {
+			entry: IngressGatewayConfigEntry{
+				Kind: IngressGateway,
+				Name: "ingress-web",
+				Listeners: []IngressListener{
+					{
+						Port:     1111,
+						Protocol: "tcp",
+						Services: []IngressService{
+							{Name: "api"},
+							{Name: "web"},
+						},
+					},
+					{
+						Port:     2222,
+						Protocol: "tcp",
+						Services: []IngressService{
+							{Name: "web"},
+							{Name: "*"},
+							{Name: "db"},
+							{Name: "blah"},
+						},
+					},
+				},
+			},
+			expectServices: []ServiceID{
+				NewServiceID("api", nil),
+				NewServiceID("blah", nil),
+				NewServiceID("db", nil),
+				NewServiceID("web", nil),
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			got := tc.entry.ListRelatedServices()
+			require.Equal(t, tc.expectServices, got)
 		})
 	}
 }
@@ -247,7 +326,7 @@ func TestIngressConfigEntry_Validate(t *testing.T) {
 					},
 				},
 			},
-			expectErr: "Protocol must be either 'http' or 'tcp', 'asdf' is an unsupported protocol.",
+			expectErr: "protocol must be 'tcp', 'http', 'http2', or 'grpc'. 'asdf' is an unsupported protocol",
 		},
 		{
 			name: "hosts cannot be set on a tcp listener",
@@ -436,10 +515,7 @@ func TestIngressConfigEntry_Validate(t *testing.T) {
 		},
 	}
 
-	for _, test := range cases {
-		// We explicitly copy the variable for the range statement so that can run
-		// tests in parallel.
-		tc := test
+	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			err := tc.entry.Validate()
 			if tc.expectErr != "" {
@@ -546,10 +622,7 @@ func TestTerminatingConfigEntry_Validate(t *testing.T) {
 		},
 	}
 
-	for _, test := range cases {
-		// We explicitly copy the variable for the range statement so that can run
-		// tests in parallel.
-		tc := test
+	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 
 			err := tc.entry.Validate()
@@ -559,6 +632,61 @@ func TestTerminatingConfigEntry_Validate(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 			}
+		})
+	}
+}
+
+func TestGatewayService_Addresses(t *testing.T) {
+	cases := []struct {
+		name     string
+		input    GatewayService
+		argument []string
+		expected []string
+	}{
+		{
+			name:     "port is zero",
+			input:    GatewayService{},
+			expected: nil,
+		},
+		{
+			name: "no hosts with empty array",
+			input: GatewayService{
+				Port: 8080,
+			},
+			expected: nil,
+		},
+		{
+			name: "no hosts with default",
+			input: GatewayService{
+				Port: 8080,
+			},
+			argument: []string{
+				"service.ingress.dc.domain",
+				"service.ingress.dc.alt.domain",
+			},
+			expected: []string{
+				"service.ingress.dc.domain:8080",
+				"service.ingress.dc.alt.domain:8080",
+			},
+		},
+		{
+			name: "user-defined hosts",
+			input: GatewayService{
+				Port:  8080,
+				Hosts: []string{"*.test.example.com", "other.example.com"},
+			},
+			argument: []string{
+				"service.ingress.dc.domain",
+				"service.ingress.alt.domain",
+			},
+			expected: []string{"*.test.example.com:8080", "other.example.com:8080"},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			addresses := tc.input.Addresses(tc.argument)
+			require.ElementsMatch(t, tc.expected, addresses)
 		})
 	}
 }

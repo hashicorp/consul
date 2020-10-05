@@ -83,7 +83,7 @@ func (c *MeshGatewayConfig) ToAPI() api.MeshGatewayConfig {
 type ConnectProxyConfig struct {
 	// DestinationServiceName is required and is the name of the service to accept
 	// traffic for.
-	DestinationServiceName string `json:",omitempty"`
+	DestinationServiceName string `json:",omitempty" alias:"destination_service_name"`
 
 	// DestinationServiceID is optional and should only be specified for
 	// "side-car" style proxies where the proxy is in front of just a single
@@ -91,19 +91,19 @@ type ConnectProxyConfig struct {
 	// being represented which must be registered to the same agent. It's valid to
 	// provide a service ID that does not yet exist to avoid timing issues when
 	// bootstrapping a service with a proxy.
-	DestinationServiceID string `json:",omitempty"`
+	DestinationServiceID string `json:",omitempty" alias:"destination_service_id"`
 
 	// LocalServiceAddress is the address of the local service instance. It is
 	// optional and should only be specified for "side-car" style proxies. It will
 	// default to 127.0.0.1 if the proxy is a "side-car" (DestinationServiceID is
 	// set) but otherwise will be ignored.
-	LocalServiceAddress string `json:",omitempty"`
+	LocalServiceAddress string `json:",omitempty" alias:"local_service_address"`
 
 	// LocalServicePort is the port of the local service instance. It is optional
 	// and should only be specified for "side-car" style proxies. It will default
 	// to the registered port for the instance if the proxy is a "side-car"
 	// (DestinationServiceID is set) but otherwise will be ignored.
-	LocalServicePort int `json:",omitempty"`
+	LocalServicePort int `json:",omitempty" alias:"local_service_port"`
 
 	// Config is the arbitrary configuration data provided with the proxy
 	// registration.
@@ -123,10 +123,11 @@ type ConnectProxyConfig struct {
 func (t *ConnectProxyConfig) UnmarshalJSON(data []byte) (err error) {
 	type Alias ConnectProxyConfig
 	aux := &struct {
-		DestinationServiceNameSnake string `json:"destination_service_name"`
-		DestinationServiceIDSnake   string `json:"destination_service_id"`
-		LocalServiceAddressSnake    string `json:"local_service_address"`
-		LocalServicePortSnake       int    `json:"local_service_port"`
+		DestinationServiceNameSnake string            `json:"destination_service_name"`
+		DestinationServiceIDSnake   string            `json:"destination_service_id"`
+		LocalServiceAddressSnake    string            `json:"local_service_address"`
+		LocalServicePortSnake       int               `json:"local_service_port"`
+		MeshGatewaySnake            MeshGatewayConfig `json:"mesh_gateway"`
 
 		*Alias
 	}{
@@ -146,6 +147,9 @@ func (t *ConnectProxyConfig) UnmarshalJSON(data []byte) (err error) {
 	}
 	if t.LocalServicePort == 0 {
 		t.LocalServicePort = aux.LocalServicePortSnake
+	}
+	if t.MeshGateway.Mode == "" {
+		t.MeshGateway.Mode = aux.MeshGatewaySnake.Mode
 	}
 
 	return nil
@@ -223,9 +227,9 @@ type Upstream struct {
 	// DestinationType would be better as an int constant but even with custom
 	// JSON marshallers it causes havoc with all the mapstructure mangling we do
 	// on service definitions in various places.
-	DestinationType      string
-	DestinationNamespace string `json:",omitempty"`
-	DestinationName      string
+	DestinationType      string `alias:"destination_type"`
+	DestinationNamespace string `json:",omitempty" alias:"destination_namespace"`
+	DestinationName      string `alias:"destination_name"`
 
 	// Datacenter that the service discovery request should be run against. Note
 	// for prepared queries, the actual results might be from a different
@@ -234,19 +238,19 @@ type Upstream struct {
 
 	// LocalBindAddress is the ip address a side-car proxy should listen on for
 	// traffic destined for this upstream service. Default if empty is 127.0.0.1.
-	LocalBindAddress string `json:",omitempty"`
+	LocalBindAddress string `json:",omitempty" alias:"local_bind_address"`
 
 	// LocalBindPort is the ip address a side-car proxy should listen on for traffic
 	// destined for this upstream service. Required.
-	LocalBindPort int
+	LocalBindPort int `alias:"local_bind_port"`
 
 	// Config is an opaque config that is specific to the proxy process being run.
 	// It can be used to pass arbitrary configuration for this specific upstream
 	// to the proxy.
-	Config map[string]interface{} `bexpr:"-"`
+	Config map[string]interface{} `json:",omitempty" bexpr:"-"`
 
 	// MeshGateway is the configuration for mesh gateway usage of this upstream
-	MeshGateway MeshGatewayConfig `json:",omitempty"`
+	MeshGateway MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway"`
 
 	// IngressHosts are a list of hosts that should route to this upstream from
 	// an ingress gateway. This cannot and should not be set by a user, it is
@@ -260,8 +264,11 @@ func (t *Upstream) UnmarshalJSON(data []byte) (err error) {
 		DestinationTypeSnake      string `json:"destination_type"`
 		DestinationNamespaceSnake string `json:"destination_namespace"`
 		DestinationNameSnake      string `json:"destination_name"`
-		LocalBindPortSnake        int    `json:"local_bind_port"`
-		LocalBindAddressSnake     string `json:"local_bind_address"`
+
+		LocalBindAddressSnake string `json:"local_bind_address"`
+		LocalBindPortSnake    int    `json:"local_bind_port"`
+
+		MeshGatewaySnake MeshGatewayConfig `json:"mesh_gateway"`
 
 		*Alias
 	}{
@@ -279,11 +286,14 @@ func (t *Upstream) UnmarshalJSON(data []byte) (err error) {
 	if t.DestinationName == "" {
 		t.DestinationName = aux.DestinationNameSnake
 	}
+	if t.LocalBindAddress == "" {
+		t.LocalBindAddress = aux.LocalBindAddressSnake
+	}
 	if t.LocalBindPort == 0 {
 		t.LocalBindPort = aux.LocalBindPortSnake
 	}
-	if t.LocalBindAddress == "" {
-		t.LocalBindAddress = aux.LocalBindAddressSnake
+	if t.MeshGateway.Mode == "" {
+		t.MeshGateway.Mode = aux.MeshGatewaySnake.Mode
 	}
 
 	return nil
@@ -412,7 +422,7 @@ type ExposePath struct {
 	// ListenerPort defines the port of the proxy's listener for exposed paths.
 	ListenerPort int `json:",omitempty" alias:"listener_port"`
 
-	// ExposePath is the path to expose through the proxy, ie. "/metrics."
+	// Path is the path to expose through the proxy, ie. "/metrics."
 	Path string `json:",omitempty"`
 
 	// LocalPathPort is the port that the service is listening on for the given path.
@@ -423,14 +433,15 @@ type ExposePath struct {
 	Protocol string `json:",omitempty"`
 
 	// ParsedFromCheck is set if this path was parsed from a registered check
-	ParsedFromCheck bool
+	ParsedFromCheck bool `json:",omitempty" alias:"parsed_from_check"`
 }
 
 func (t *ExposePath) UnmarshalJSON(data []byte) (err error) {
 	type Alias ExposePath
 	aux := &struct {
-		LocalPathPortSnake int `json:"local_path_port"`
-		ListenerPortSnake  int `json:"listener_port"`
+		ListenerPortSnake    int  `json:"listener_port"`
+		LocalPathPortSnake   int  `json:"local_path_port"`
+		ParsedFromCheckSnake bool `json:"parsed_from_check"`
 
 		*Alias
 	}{
@@ -444,6 +455,9 @@ func (t *ExposePath) UnmarshalJSON(data []byte) (err error) {
 	}
 	if t.ListenerPort == 0 {
 		t.ListenerPort = aux.ListenerPortSnake
+	}
+	if aux.ParsedFromCheckSnake {
+		t.ParsedFromCheck = true
 	}
 
 	return nil

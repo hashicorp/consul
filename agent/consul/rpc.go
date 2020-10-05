@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/binary"
 	"errors"
@@ -187,6 +188,9 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 		conn = tls.Server(conn, s.tlsConfigurator.IncomingInsecureRPCConfig())
 		s.handleInsecureConn(conn)
 
+	case pool.RPCGRPC:
+		s.grpcHandler.Handle(conn)
+
 	default:
 		if !s.handleEnterpriseRPCConn(typ, conn, isTLS) {
 			s.rpcLogger().Error("unrecognized RPC byte",
@@ -253,6 +257,9 @@ func (s *Server) handleNativeTLS(conn net.Conn) {
 	case pool.ALPN_RPCSnapshot:
 		s.handleSnapshotConn(tlsConn)
 
+	case pool.ALPN_RPCGRPC:
+		s.grpcHandler.Handle(conn)
+
 	case pool.ALPN_WANGossipPacket:
 		if err := s.handleALPN_WANGossipPacketStream(tlsConn); err != nil && err != io.EOF {
 			s.rpcLogger().Error(
@@ -294,7 +301,10 @@ func (s *Server) handleNativeTLS(conn net.Conn) {
 func (s *Server) handleMultiplexV2(conn net.Conn) {
 	defer conn.Close()
 	conf := yamux.DefaultConfig()
-	conf.LogOutput = s.config.LogOutput
+	// override the default because LogOutput conflicts with Logger
+	conf.LogOutput = nil
+	// TODO: should this be created once and cached?
+	conf.Logger = s.logger.StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true})
 	server, _ := yamux.Server(conn, conf)
 	for {
 		sub, err := server.Accept()
@@ -498,9 +508,9 @@ func canRetry(args interface{}, err error) bool {
 	return false
 }
 
-// forward is used to forward to a remote DC or to forward to the local leader
+// ForwardRPC is used to forward an RPC request to a remote DC or to the local leader
 // Returns a bool of if forwarding was performed, as well as any error
-func (s *Server) forward(method string, info structs.RPCInfo, args interface{}, reply interface{}) (bool, error) {
+func (s *Server) ForwardRPC(method string, info structs.RPCInfo, args interface{}, reply interface{}) (bool, error) {
 	var firstCheck time.Time
 
 	// Handle DC forwarding
@@ -631,22 +641,17 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 	return nil
 }
 
-// globalRPC is used to forward an RPC request to one server in each datacenter.
-// This will only error for RPC-related errors. Otherwise, application-level
-// errors can be sent in the response objects.
-func (s *Server) globalRPC(method string, args interface{},
-	reply structs.CompoundResponse) error {
+// keyringRPCs is used to forward an RPC request to a server in each dc. This
+// will only error for RPC-related errors. Otherwise, application-level errors
+// can be sent in the response objects.
+func (s *Server) keyringRPCs(method string, args interface{}, dcs []string) (*structs.KeyringResponses, error) {
 
-	// Make a new request into each datacenter
-	dcs := s.router.GetDatacenters()
-
-	replies, total := 0, len(dcs)
-	errorCh := make(chan error, total)
-	respCh := make(chan interface{}, total)
+	errorCh := make(chan error, len(dcs))
+	respCh := make(chan *structs.KeyringResponses, len(dcs))
 
 	for _, dc := range dcs {
 		go func(dc string) {
-			rr := reply.New()
+			rr := &structs.KeyringResponses{}
 			if err := s.forwardDC(method, dc, args, &rr); err != nil {
 				errorCh <- err
 				return
@@ -655,16 +660,16 @@ func (s *Server) globalRPC(method string, args interface{},
 		}(dc)
 	}
 
-	for replies < total {
+	responses := &structs.KeyringResponses{}
+	for i := 0; i < len(dcs); i++ {
 		select {
 		case err := <-errorCh:
-			return err
+			return nil, err
 		case rr := <-respCh:
-			reply.Add(rr)
-			replies++
+			responses.Add(rr)
 		}
 	}
-	return nil
+	return responses, nil
 }
 
 type raftEncoder func(structs.MessageType, interface{}) ([]byte, error)
@@ -752,7 +757,9 @@ type queryFn func(memdb.WatchSet, *state.Store) error
 
 // blockingQuery is used to process a potentially blocking query operation.
 func (s *Server) blockingQuery(queryOpts structs.QueryOptionsCompat, queryMeta structs.QueryMetaCompat, fn queryFn) error {
-	var timeout *time.Timer
+	var cancel func()
+	var ctx context.Context = &lib.StopChannelContext{StopCh: s.shutdownCh}
+
 	var queriesBlocking uint64
 	var queryTimeout time.Duration
 
@@ -776,9 +783,9 @@ func (s *Server) blockingQuery(queryOpts structs.QueryOptionsCompat, queryMeta s
 	// Apply a small amount of jitter to the request.
 	queryTimeout += lib.RandomStagger(queryTimeout / jitterFraction)
 
-	// Setup a query timeout.
-	timeout = time.NewTimer(queryTimeout)
-	defer timeout.Stop()
+	// wrap the base context with a deadline
+	ctx, cancel = context.WithDeadline(ctx, time.Now().Add(queryTimeout))
+	defer cancel()
 
 	// instrument blockingQueries
 	// atomic inc our server's count of in-flight blockingQueries and store the new value
@@ -833,7 +840,9 @@ RUN_QUERY:
 	}
 	// block up to the timeout if we don't see anything fresh.
 	if err == nil && minQueryIndex > 0 && queryMeta.GetIndex() <= minQueryIndex {
-		if expired := ws.Watch(timeout.C); !expired {
+		if err := ws.WatchCtx(ctx); err == nil {
+			// a non-nil error only occurs when the context is cancelled
+
 			// If a restore may have woken us up then bail out from
 			// the query immediately. This is slightly race-ey since
 			// this might have been interrupted for other reasons,

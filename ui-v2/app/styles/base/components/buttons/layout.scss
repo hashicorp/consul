@@ -54,3 +54,14 @@
   position: relative;
   height: 100%;
 }
+%split-button::after {
+  margin-left: 16px;
+}
+%split-button::before {
+  @extend %as-pseudo;
+  height: 16px;
+}
+%sort-button {
+  @extend %button;
+  height: 35px !important;
+}

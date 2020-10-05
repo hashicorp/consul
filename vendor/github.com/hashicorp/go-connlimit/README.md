@@ -11,7 +11,7 @@ the resources that can be consumed by a single client.
 
 ### TCP Server
 
-```
+```go
 // During server setup:
 s.limiter = NewLimiter(Config{
   MaxConnsPerClientIP: 10,
@@ -19,7 +19,7 @@ s.limiter = NewLimiter(Config{
 
 ```
 
-```
+```go
 // handleConn is called in its own goroutine for each net.Conn accepted by
 // a net.Listener.
 func (s *Server) handleConn(conn net.Conn) {
@@ -53,7 +53,7 @@ func (s *Server) handleConn(conn net.Conn) {
 
 ### HTTP Server
 
-```
+```go
 lim := NewLimiter(Config{
   MaxConnsPerClientIP: 10,
 })

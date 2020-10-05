@@ -394,7 +394,7 @@ func (m *mock) SyncChanges() error {
 func testSyncer(t *testing.T) *StateSyncer {
 	logger := hclog.New(&hclog.LoggerOptions{
 		Level:  0,
-		Output: testutil.TestWriter(t),
+		Output: testutil.NewLogBuffer(t),
 	})
 
 	l := NewStateSyncer(nil, time.Second, nil, logger)

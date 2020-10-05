@@ -1,10 +1,6 @@
 .g-learn-callout {
   padding-top: 88px;
   padding-bottom: 88px;
-  background-image: url(/img/nomad-panel-learn.svg);
-  background-size: contain;
-  background-position: bottom right;
-  background-repeat: no-repeat;
 
   @media (max-width: 768px) {
     padding-top: 64px;

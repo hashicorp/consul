@@ -164,3 +164,11 @@ type NeedsLogger interface {
 	// SetLogger will pass a configured Logger to the provider.
 	SetLogger(logger hclog.Logger)
 }
+
+// NeedsStop is an optional interface that allows a CA to define a function
+// to be called when the CA instance is no longer in use. This is different
+// from Cleanup(), as only the local provider instance is being shut down
+// such as in the case of a leader change.
+type NeedsStop interface {
+	Stop()
+}

@@ -8,8 +8,6 @@
   {{title 'Access Controls'}}
 {{/if}}
 <AppView
-  @class={{concat "role " (if isAuthorized "edit" "list")}}
-  @loading={{isLoading}}
   @authorized={{isAuthorized}}
   @enabled={{isEnabled}}
   >

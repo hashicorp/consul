@@ -31,6 +31,10 @@ type KeyResponse struct {
 	// Keys is a mapping of the base64-encoded value of the key bytes to the
 	// number of nodes that have the key installed.
 	Keys map[string]int
+
+	// PrimaryKeys is a mapping of the base64-encoded value of the primary
+	// key bytes to the number of nodes that have the key installed.
+	PrimaryKeys map[string]int
 }
 
 // KeyRequestOptions is used to contain optional parameters for a keyring operation
@@ -76,12 +80,10 @@ func (k *KeyManager) streamKeyResp(resp *KeyResponse, ch <-chan NodeResponse) {
 		// Currently only used for key list queries, this adds keys to a counter
 		// and increments them for each node response which contains them.
 		for _, key := range nodeResponse.Keys {
-			if _, ok := resp.Keys[key]; !ok {
-				resp.Keys[key] = 1
-			} else {
-				resp.Keys[key]++
-			}
+			resp.Keys[key]++
 		}
+
+		resp.PrimaryKeys[nodeResponse.PrimaryKey]++
 
 	NEXT:
 		// Return early if all nodes have responded. This allows us to avoid
@@ -97,8 +99,9 @@ func (k *KeyManager) streamKeyResp(resp *KeyResponse, ch <-chan NodeResponse) {
 // KeyResponse for uniform response handling.
 func (k *KeyManager) handleKeyRequest(key, query string, opts *KeyRequestOptions) (*KeyResponse, error) {
 	resp := &KeyResponse{
-		Messages: make(map[string]string),
-		Keys:     make(map[string]int),
+		Messages:    make(map[string]string),
+		Keys:        make(map[string]int),
+		PrimaryKeys: make(map[string]int),
 	}
 	qName := internalQueryName(query)
 

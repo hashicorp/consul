@@ -6,6 +6,7 @@ Feature: dc / acls / policies / as many / add new: Add new policy
     ---
       Policies: ~
       ServiceIdentities: ~
+      NodeIdentities: ~
     ---
     When I visit the [Model] page for yaml
     ---
@@ -52,7 +53,6 @@ Feature: dc / acls / policies / as many / add new: Add new policy
     Then I fill in the policies.form with yaml
     ---
       Name: New-Service-Identity
-      Description: New Service Identity Description
     ---
     And I click serviceIdentity on the policies.form
     And I click submit on the policies.form
@@ -63,6 +63,31 @@ Feature: dc / acls / policies / as many / add new: Add new policy
         Namespace: @namespace
         ServiceIdentities:
           - ServiceName: New-Service-Identity
+    ---
+    Then the url should be /datacenter/acls/[Model]s
+    And "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "success" class
+  Where:
+    -------------
+    | Model     |
+    | token     |
+    | role      |
+    -------------
+  Scenario: Adding a new node identity as a child of [Model]
+    Then I fill in the policies.form with yaml
+    ---
+      Name: New-Node-Identity
+    ---
+    And I click nodeIdentity on the policies.form
+    And I click submit on the policies.form
+    And I submit
+    Then a PUT request was made to "/v1/acl/[Model]/key?dc=datacenter" from yaml
+    ---
+      body:
+        Namespace: @namespace
+        NodeIdentities:
+          - NodeName: New-Node-Identity
+            Datacenter: datacenter
     ---
     Then the url should be /datacenter/acls/[Model]s
     And "[data-notification]" has the "notification-update" class
@@ -103,6 +128,18 @@ Feature: dc / acls / policies / as many / add new: Add new policy
     -------------
   Scenario: Try to edit the Service Identity using the code editor
     And I click serviceIdentity on the policies.form
+    Then I can't fill in the policies.form with yaml
+    ---
+      Rules: key {}
+    ---
+  Where:
+    -------------
+    | Model     |
+    | token     |
+    | role      |
+    -------------
+  Scenario: Try to edit the Node Identity using the code editor
+    And I click nodeIdentity on the policies.form
     Then I can't fill in the policies.form with yaml
     ---
       Rules: key {}

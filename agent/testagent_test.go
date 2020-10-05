@@ -13,7 +13,7 @@ func TestDefaultConfig(t *testing.T) {
 		t.Run("", func(t *testing.T) {
 			t.Parallel()
 			var c config.Config
-			data := config.DefaultSource().Data
+			data := config.DefaultSource().(config.FileSource).Data
 			hcl.Decode(&c, data)
 			hcl.Decode(&c, data)
 			hcl.Decode(&c, data)

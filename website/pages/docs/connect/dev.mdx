@@ -39,7 +39,7 @@ $ consul connect proxy \
 This works because the source `-service` does not need to be registered
 in the local Consul catalog. However, to retrieve a valid identifying
 certificate, the ACL token must have `service:write` permissions. This
-can be used as a sort of "virtual service" to represent people, too. In
+can be used as a sort of "debug service" to represent people, too. In
 the example above, the proxy is identifying as `operator-mitchellh`.
 
 With the proxy running, we can now use `psql` like normal:

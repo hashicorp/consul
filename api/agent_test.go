@@ -85,7 +85,6 @@ func TestAPI_AgentReload(t *testing.T) {
 
 	// Create our initial empty config file, to be overwritten later
 	cfgDir := testutil.TempDir(t, "consul-config")
-	defer os.RemoveAll(cfgDir)
 
 	cfgFilePath := filepath.Join(cfgDir, "reload.json")
 	configFile, err := os.Create(cfgFilePath)
@@ -1798,4 +1797,92 @@ func TestAgentService_ExposeChecks(t *testing.T) {
 	require.Len(t, svc.Proxy.Expose.Paths, 1)
 	require.True(t, svc.Proxy.Expose.Checks)
 	require.Equal(t, path, svc.Proxy.Expose.Paths[0])
+}
+
+func TestMemberACLMode(t *testing.T) {
+	type testCase struct {
+		tagValue     string
+		expectedMode MemberACLMode
+	}
+
+	cases := map[string]testCase{
+		"disabled": {
+			tagValue:     "0",
+			expectedMode: ACLModeDisabled,
+		},
+		"enabled": {
+			tagValue:     "1",
+			expectedMode: ACLModeEnabled,
+		},
+		"legacy": {
+			tagValue:     "2",
+			expectedMode: ACLModeLegacy,
+		},
+		"unknown-3": {
+			tagValue:     "3",
+			expectedMode: ACLModeUnknown,
+		},
+		"unknown-other": {
+			tagValue:     "77",
+			expectedMode: ACLModeUnknown,
+		},
+		"unknown-not-present": {
+			tagValue:     "",
+			expectedMode: ACLModeUnknown,
+		},
+	}
+
+	for name, tcase := range cases {
+		t.Run(name, func(t *testing.T) {
+			tags := map[string]string{}
+
+			if tcase.tagValue != "" {
+				tags[MemberTagKeyACLMode] = tcase.tagValue
+			}
+
+			m := AgentMember{
+				Tags: tags,
+			}
+
+			require.Equal(t, tcase.expectedMode, m.ACLMode())
+		})
+	}
+}
+
+func TestMemberIsConsulServer(t *testing.T) {
+	type testCase struct {
+		tagValue string
+		isServer bool
+	}
+
+	cases := map[string]testCase{
+		"not-present": {
+			tagValue: "",
+			isServer: false,
+		},
+		"server": {
+			tagValue: MemberTagValueRoleServer,
+			isServer: true,
+		},
+		"client": {
+			tagValue: "client",
+			isServer: false,
+		},
+	}
+
+	for name, tcase := range cases {
+		t.Run(name, func(t *testing.T) {
+			tags := map[string]string{}
+
+			if tcase.tagValue != "" {
+				tags[MemberTagKeyRole] = tcase.tagValue
+			}
+
+			m := AgentMember{
+				Tags: tags,
+			}
+
+			require.Equal(t, tcase.isServer, m.IsConsulServer())
+		})
+	}
 }

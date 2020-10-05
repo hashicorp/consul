@@ -1,4 +1,4 @@
-export default (clickable, attribute, is, authForm) => scope => {
+export default (collection, clickable, attribute, is, authForm, emptyState) => scope => {
   const page = {
     navigation: [
       'services',
@@ -34,6 +34,7 @@ export default (clickable, attribute, is, authForm) => scope => {
     authdialog: {
       form: authForm(),
     },
+    emptystate: emptyState(),
     // TODO: errors aren't strictly part of this component
     error: {
       status: attribute('data-test-status', '[data-test-status]'),
@@ -47,5 +48,8 @@ export default (clickable, attribute, is, authForm) => scope => {
     ':checked',
     '[data-test-nspace-menu] > input[type="checkbox"]'
   );
+  page.navigation.dcs = collection('[data-test-datacenter-picker]', {
+    name: clickable('a'),
+  });
   return page;
 };

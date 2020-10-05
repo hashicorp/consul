@@ -1,27 +1,8 @@
-import Route from '@ember/routing/route';
-import { inject as service } from '@ember/service';
-import WithIntentionActions from 'consul-ui/mixins/intention/with-actions';
+import Route from 'consul-ui/routing/route';
 
-export default Route.extend(WithIntentionActions, {
-  queryParams: {
-    search: {
-      as: 'filter',
-      replace: true,
-    },
-  },
-  repo: service('repository/intention'),
-  model: function() {
-    const parent = this.routeName
-      .split('.')
-      .slice(0, -1)
-      .join('.');
-    return this.modelFor(parent);
-  },
+export default Route.extend({
   setupController: function(controller, model) {
+    this._super(...arguments);
     controller.setProperties(model);
-  },
-  // Overwrite default afterDelete action to just refresh
-  afterDelete: function() {
-    return this.refresh();
   },
 });

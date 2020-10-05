@@ -3,7 +3,6 @@ package policyupdate
 import (
 	"encoding/json"
 	"io/ioutil"
-	"os"
 	"strings"
 	"testing"
 
@@ -28,7 +27,6 @@ func TestPolicyUpdateCommand(t *testing.T) {
 	assert := assert.New(t)
 
 	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
@@ -76,7 +74,6 @@ func TestPolicyUpdateCommand_JSON(t *testing.T) {
 	assert := assert.New(t)
 
 	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"

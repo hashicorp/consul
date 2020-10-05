@@ -15,6 +15,7 @@
 | --- | --- | --- | --- |
 | `src` | `String` | | The source to subscribe to updates to, this should map to a string based URI |
 | `loading` | `String` | eager | Allows the browser to defer loading offscreen DataSources (`eager\|lazy`). Setting to `lazy` only loads the data when the DataSource is visible in the DOM (inc. `display: none\|block;`) |
+| `open` | `Boolean` | false | Force the DataSource to open, used to force non-blocking data to refresh (has no effect for blocking data) |
 | `onchange` | `Function` |  | The action to fire when the data changes. Emits an Event-like object with a `data` property containing the data. |
 | `onerror` | `Function` |  | The action to fire when an error occurs. Emits ErrorEvent object with an `error` property containing the Error. |
 

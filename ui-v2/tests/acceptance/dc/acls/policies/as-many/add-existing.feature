@@ -6,6 +6,7 @@ Feature: dc / acls / policies / as many / add existing: Add existing policy
     ---
       Policies: ~
       ServiceIdentities: ~
+      NodeIdentities: ~
     ---
     And 2 policy models from yaml
     ---

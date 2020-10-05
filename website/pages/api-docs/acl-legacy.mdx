@@ -12,8 +12,8 @@ the new ACL [Token](/docs/api/acl-token) and [Policy](/docs/api/acl-policy) APIs
 
 # ACL HTTP API
 
-These `/acl` endpoints create, update, destroy, and query ACL tokens in Consul. For more information about ACLs, please see the
-[ACL Guide](https://learn.hashicorp.com/consul/security-networking/production-acls).
+These `/acl` endpoints create, update, destroy, and query ACL tokens in Consul. For more information about ACLs, please check the
+[ACL tutorial](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production).
 
 ## Bootstrap ACLs
 
@@ -62,8 +62,8 @@ a 403 means that the cluster has already been bootstrapped, at which point you s
 consider the cluster in a potentially compromised state.
 
 The returned token will be a management token which can be used to further configure the
-ACL system. Please see the
-[ACL Guide](https://learn.hashicorp.com/consul/security-networking/production-acls) for more details.
+ACL system. Please check the
+[ACL tutorial](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production) for more details.
 
 ## Create ACL Token
 
@@ -94,7 +94,7 @@ The table below shows this endpoint's support for
   are: `client` and `management`.
 
 - `Rules` `(string: "")` - Specifies rules for this ACL token. The format of the
-  `Rules` property is documented in the [ACL Guide](https://learn.hashicorp.com/consul/security-networking/production-acls).
+  `Rules` property is documented in the [ACL tutorial](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production).
 
 ### Sample Payload
 
@@ -348,7 +348,7 @@ This endpoint returns the status of the ACL replication process in the
 datacenter. This is intended to be used by operators, or by automation checking
 the health of ACL replication.
 
-Please see the [ACL Replication Guide](https://learn.hashicorp.com/consul/day-2-operations/acl-replication) for more details.
+Please check the [ACL Replication tutorial](https://learn.hashicorp.com/tutorials/consul/access-control-replication-multiple-datacenters)
 for more details.
 
 | Method | Path               | Produces           |

@@ -1,0 +1,3 @@
+```release-note:improvement
+version: The `version` CLI subcommand was altered to always show the git revision the binary was built from on the second line of output. Additionally the command gained a `-format` flag with the option now of outputting the version information in JSON form. **NOTE** This change has the potential to break any parsing done by users of the `version` commands output. In many cases nothing will need to be done but it is possible depending on how the output is parsed.
+```

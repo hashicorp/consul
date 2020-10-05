@@ -32,7 +32,7 @@ func TestKVDeleteCommand_Validation(t *testing.T) {
 		},
 		"-cas no -modify-index": {
 			[]string{"-cas", "foo"},
-			"Must specify -modify-index",
+			"Cannot delete a key that does not exist",
 		},
 		"-modify-index no -cas": {
 			[]string{"-modify-index", "2", "foo"},

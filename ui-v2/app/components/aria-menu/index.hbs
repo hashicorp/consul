@@ -1,8 +1,10 @@
 {{yield
   (action 'change')
   (action 'keypress')
-  (concat 'component-aria-menu-trigger-' guid)
-  (concat 'component-aria-menu-menu-' guid)
-  (if expanded 'true' undefined)
   (action 'keypressClick')
+  (hash
+    labelledBy=(concat 'component-aria-menu-trigger-' guid)
+    controls=(concat 'component-aria-menu-menu-' guid)
+    expanded=(if expanded 'true' undefined)
+  )
 }}

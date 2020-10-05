@@ -16,14 +16,13 @@ GOARCH?=$(shell go env GOARCH)
 GOPATH=$(shell go env GOPATH)
 MAIN_GOPATH=$(shell go env GOPATH | cut -d: -f1)
 
-ASSETFS_PATH?=agent/bindata_assetfs.go
+ASSETFS_PATH?=agent/uiserver/bindata_assetfs.go
 # Get the git commit
 GIT_COMMIT?=$(shell git rev-parse --short HEAD)
 GIT_COMMIT_YEAR?=$(shell git show -s --format=%cd --date=format:%Y HEAD)
 GIT_DIRTY?=$(shell test -n "`git status --porcelain`" && echo "+CHANGES" || true)
-GIT_DESCRIBE?=$(shell git describe --tags --always --match "v*")
 GIT_IMPORT=github.com/hashicorp/consul/version
-GOLDFLAGS=-X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY) -X $(GIT_IMPORT).GitDescribe=$(GIT_DESCRIBE)
+GOLDFLAGS=-X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT)$(GIT_DIRTY)
 
 PROTOFILES?=$(shell find . -name '*.proto' | grep -v 'vendor/')
 PROTOGOFILES=$(PROTOFILES:.proto=.pb.go)
@@ -124,7 +123,6 @@ export BUILD_CONTAINER_NAME
 export GIT_COMMIT
 export GIT_COMMIT_YEAR
 export GIT_DIRTY
-export GIT_DESCRIBE
 export GOTAGS
 export GOLDFLAGS
 
@@ -282,7 +280,6 @@ test-docker: linux go-build-image
 		-e 'GIT_COMMIT=$(GIT_COMMIT)' \
 		-e 'GIT_COMMIT_YEAR=$(GIT_COMMIT_YEAR)' \
 		-e 'GIT_DIRTY=$(GIT_DIRTY)' \
-		-e 'GIT_DESCRIBE=$(GIT_DESCRIBE)' \
 		$(TEST_PARALLELIZATION) \
 		$(TEST_DOCKER_RESOURCE_CONSTRAINTS) \
 		$(TEST_MODCACHE_VOL) \
@@ -309,7 +306,7 @@ lint:
 # also run as part of the release build script when it verifies that there are no
 # changes to the UI assets that aren't checked in.
 static-assets:
-	@go-bindata-assetfs -pkg agent -prefix pkg -o $(ASSETFS_PATH) ./pkg/web_ui/...
+	@go-bindata-assetfs -modtime 1 -pkg uiserver -prefix pkg -o $(ASSETFS_PATH) ./pkg/web_ui/...
 	@go fmt $(ASSETFS_PATH)
 
 
@@ -366,14 +363,6 @@ else
 	@go test -v ./agent/connect/ca
 endif
 
-proto-delete:
-	@echo "Removing $(PROTOGOFILES)"
-	-@rm $(PROTOGOFILES)
-	@echo "Removing $(PROTOGOBINFILES)"
-	-@rm $(PROTOGOBINFILES)
-
-proto-rebuild: proto-delete proto
-
 proto: $(PROTOGOFILES) $(PROTOGOBINFILES)
 	@echo "Generated all protobuf Go files"
 
@@ -381,7 +370,13 @@ proto: $(PROTOGOFILES) $(PROTOGOBINFILES)
 %.pb.go %.pb.binary.go: %.proto
 	@$(SHELL) $(CURDIR)/build-support/scripts/proto-gen.sh --grpc --import-replace "$<"
 
+.PHONY: module-versions
+# Print a list of modules which can be updated.
+# Columns are: module current_version date_of_current_version latest_version
+module-versions:
+	@go list -m -u -f '{{if .Update}} {{printf "%-50v %-40s" .Path .Version}} {{with .Time}} {{ .Format "2006-01-02" -}} {{else}} {{printf "%9s" ""}} {{end}}   {{ .Update.Version}} {{end}}' all
+
 
 .PHONY: all ci bin dev dist cov test test-flake test-internal cover lint ui static-assets tools
 .PHONY: docker-images go-build-image ui-build-image static-assets-docker consul-docker ui-docker
-.PHONY: version proto proto-rebuild proto-delete test-envoy-integ
+.PHONY: version proto test-envoy-integ

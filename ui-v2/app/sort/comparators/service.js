@@ -11,21 +11,21 @@ export default () => key => {
         b = serviceB;
       }
       switch (true) {
-        case a.ChecksCritical > b.ChecksCritical:
+        case a.MeshChecksCritical > b.MeshChecksCritical:
           return 1;
-        case a.ChecksCritical < b.ChecksCritical:
+        case a.MeshChecksCritical < b.MeshChecksCritical:
           return -1;
         default:
           switch (true) {
-            case a.ChecksWarning > b.ChecksWarning:
+            case a.MeshChecksWarning > b.MeshChecksWarning:
               return 1;
-            case a.ChecksWarning < b.ChecksWarning:
+            case a.MeshChecksWarning < b.MeshChecksWarning:
               return -1;
             default:
               switch (true) {
-                case a.ChecksPassing < b.ChecksPassing:
+                case a.MeshChecksPassing < b.MeshChecksPassing:
                   return 1;
-                case a.ChecksPassing > b.ChecksPassing:
+                case a.MeshChecksPassing > b.MeshChecksPassing:
                   return -1;
               }
           }

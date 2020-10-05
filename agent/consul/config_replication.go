@@ -79,7 +79,8 @@ func (s *Server) reconcileLocalConfig(ctx context.Context, configs []structs.Con
 		if err != nil {
 			return false, fmt.Errorf("Failed to apply config %s: %v", op, err)
 		}
-		if respErr, ok := resp.(error); ok && err != nil {
+
+		if respErr, ok := resp.(error); ok {
 			return false, fmt.Errorf("Failed to apply config %s: %v", op, respErr)
 		}
 

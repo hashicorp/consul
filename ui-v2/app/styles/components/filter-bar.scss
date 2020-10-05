@@ -1,13 +1,14 @@
 @import './filter-bar/index';
-@import './expanded-single-select/index';
 .filter-bar {
   @extend %filter-bar;
 }
-%filter-bar:not(.with-sort) {
-  @extend %filter-bar-reversed;
+%filter-bar .popover-select {
+  height: 35px;
+  position: relative;
+  z-index: 3;
 }
-%filter-bar [role='radiogroup'] {
-  @extend %expanded-single-select;
+%filter-bar [role='menuitem'] {
+  justify-content: normal !important;
 }
 %filter-bar span::before {
   margin-right: 9px;
@@ -15,18 +16,7 @@
   margin-left: -2px;
 }
 
-%filter-bar .value-passing span::before {
-  @extend %with-check-circle-fill-icon, %as-pseudo;
-}
-%filter-bar .value-warning span::before {
-  @extend %with-alert-triangle-icon, %as-pseudo;
-}
-%filter-bar .value-critical span::before {
-  @extend %with-cancel-square-fill-icon, %as-pseudo;
-}
-%filter-bar .value-allow span::before {
-  @extend %with-arrow-right-icon, %as-pseudo;
-}
-%filter-bar .value-deny span::before {
-  @extend %with-deny-icon, %as-pseudo;
+%filter-bar .popover-menu > [type='checkbox']:checked + label button {
+  color: $blue-500;
+  background-color: $gray-100;
 }

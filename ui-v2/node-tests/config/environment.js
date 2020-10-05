@@ -9,9 +9,9 @@ test(
       {
         environment: 'production',
         CONSUL_BINARY_TYPE: 'oss',
-        CONSUL_ACLS_ENABLED: '{{ if .ACLsEnabled }}{{.ACLsEnabled}}{{ else }}false{{ end }}',
-        CONSUL_SSO_ENABLED: '{{ if .SSOEnabled }}{{.SSOEnabled}}{{ else }}false{{ end }}',
-        CONSUL_NSPACES_ENABLED: '{{ if .NamespacesEnabled }}{{.NamespacesEnabled}}{{ else }}false{{ end }}',
+        CONSUL_ACLS_ENABLED: false,
+        CONSUL_SSO_ENABLED: false,
+        CONSUL_NSPACES_ENABLED: false,
       },
       {
         environment: 'test',

@@ -13,29 +13,27 @@ module('Integration | Adapter | role', function(hooks) {
     test(`requestForQuery returns the correct url/method when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:role');
       const client = this.owner.lookup('service:client/http');
-      const expected = `GET /v1/acl/roles?dc=${dc}`;
-      let actual = adapter.requestForQuery(client.url, {
+      const expected = `GET /v1/acl/roles?dc=${dc}${
+        shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
+      }`;
+      let actual = adapter.requestForQuery(client.requestParams.bind(client), {
         dc: dc,
         ns: nspace,
       });
-      actual = actual.split('\n');
-      assert.equal(actual.shift().trim(), expected);
-      actual = actual.join('\n').trim();
-      assert.equal(actual, `${shouldHaveNspace(nspace) ? `ns=${nspace}` : ``}`);
+      assert.equal(`${actual.method} ${actual.url}`, expected);
     });
     test(`requestForQueryRecord returns the correct url/method when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:role');
       const client = this.owner.lookup('service:client/http');
-      const expected = `GET /v1/acl/role/${id}?dc=${dc}`;
-      let actual = adapter.requestForQueryRecord(client.url, {
+      const expected = `GET /v1/acl/role/${id}?dc=${dc}${
+        shouldHaveNspace(nspace) ? `&ns=${nspace}` : ``
+      }`;
+      let actual = adapter.requestForQueryRecord(client.requestParams.bind(client), {
         dc: dc,
         id: id,
         ns: nspace,
       });
-      actual = actual.split('\n');
-      assert.equal(actual.shift().trim(), expected);
-      actual = actual.join('\n').trim();
-      assert.equal(actual, `${shouldHaveNspace(nspace) ? `ns=${nspace}` : ``}`);
+      assert.equal(`${actual.method} ${actual.url}`, expected);
     });
     test(`requestForCreateRecord returns the correct url/method when nspace is ${nspace}`, function(assert) {
       const adapter = this.owner.lookup('adapter:role');

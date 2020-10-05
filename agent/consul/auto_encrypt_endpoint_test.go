@@ -89,7 +89,7 @@ func TestAutoEncryptSign(t *testing.T) {
 			}
 
 			cfg := test.Config
-			cfg.AutoEncryptTLS = true
+			cfg.AutoTLS = true
 			cfg.Domain = "consul"
 			codec, err := insecureRPCClient(s, cfg)
 			if test.ConnError {

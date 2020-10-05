@@ -16,6 +16,11 @@ Feature: dc / intentions / filtered-select: Intention Service Select Dropdowns
     - Name: service-3
       Kind: connect-proxy
     ---
+    And 1 intention model from yaml
+    ---
+    SourceName: 'service-0'
+    DestinationName: 'service-1'
+    ---
     When I visit the intention page for yaml
     ---
       dc: datacenter
@@ -30,7 +35,7 @@ Feature: dc / intentions / filtered-select: Intention Service Select Dropdowns
       ---------------
       | Name        |
       | source      |
-      | destination |
+      #| destination |
       ---------------
   Scenario: Opening the [Name] dropdown with 2 services with the same name from different nspaces
     Given 1 datacenter model with the value "datacenter"
@@ -41,6 +46,11 @@ Feature: dc / intentions / filtered-select: Intention Service Select Dropdowns
     - Name: service-0
       Namespace: nspace
       Kind: ~
+    ---
+    And 1 intention model from yaml
+    ---
+    SourceName: 'service-0'
+    DestinationName: 'service-0'
     ---
     When I visit the intention page for yaml
     ---
@@ -55,5 +65,5 @@ Feature: dc / intentions / filtered-select: Intention Service Select Dropdowns
       ---------------
       | Name        |
       | source      |
-      | destination |
+      #| destination |
       ---------------

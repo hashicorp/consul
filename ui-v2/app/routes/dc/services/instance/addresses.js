@@ -1,4 +1,4 @@
-import Route from '@ember/routing/route';
+import Route from 'consul-ui/routing/route';
 import { get } from '@ember/object';
 
 export default Route.extend({
@@ -10,7 +10,7 @@ export default Route.extend({
     return this.modelFor(parent);
   },
   afterModel: function(model, transition) {
-    if (get(model, 'item.Kind') !== 'mesh-gateway') {
+    if (get(model, 'item.Service.Kind') !== 'mesh-gateway') {
       const parent = this.routeName
         .split('.')
         .slice(0, -1)
@@ -19,6 +19,7 @@ export default Route.extend({
     }
   },
   setupController: function(controller, model) {
+    this._super(...arguments);
     controller.setProperties(model);
   },
 });

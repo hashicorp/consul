@@ -403,6 +403,20 @@ so this endpoint may be used to filter only the Connect-capable endpoints.
 Parameters and response format are the same as
 [`/health/service/:service`](/api/health#list-nodes-for-service).
 
+## List Nodes for Ingress Gateways Associated to a Service
+
+-> **1.8.0+:** This API is available in Consul versions 1.8.0 and later.
+
+This endpoint returns the nodes providing a [ingress
+gateway](/docs/connect/ingress-gateway) for a service in a given datacenter.
+
+| Method | Path                       | Produces           |
+| ------ | -------------------------- | ------------------ |
+| `GET`  | `/health/ingress/:service` | `application/json` |
+
+Parameters and response format are the same as
+[`/health/service/:service`](/api/health#list-nodes-for-service).
+
 ## List Checks in State
 
 This endpoint returns the checks in the state provided on the path.

@@ -20,14 +20,11 @@ Feature: dc / nodes / empty-ids: Hedge for if nodes come in over the API with no
       dc: dc-1
     ---
     Then the url should be /dc-1/nodes
-    Then I see name on the nodes like yaml
+    Then I see name on the nodes vertically like yaml
     ---
       - name-1
       - name-2
       - name-3
       - name-4
       - name-5
-
-@ignore
-  Scenario: Visually comparing
-    Then the ".unhealthy" element should look like the "/node_modules/@hashicorp/consul-testing-extras/fixtures/dc/nodes/empty-ids.png" image
+    ---

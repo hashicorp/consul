@@ -50,7 +50,7 @@ const caChangeJitterWindow = 30 * time.Second
 // ConnectCALeaf supports fetching and generating Connect leaf
 // certificates.
 type ConnectCALeaf struct {
-	RegisterOptionsBlockingRefresh
+	RegisterOptionsBlockingNoRefresh
 	caIndex uint64 // Current index for CA roots
 
 	// rootWatchMu protects access to the rootWatchSubscribers map and
@@ -119,6 +119,15 @@ type fetchState struct {
 	// use this to choose a new window for the next retry. See comment on
 	// caChangeJitterWindow above for more.
 	consecutiveRateLimitErrs int
+}
+
+func ConnectCALeafSuccess(authorityKeyID string) interface{} {
+	return fetchState{
+		authorityKeyID:           authorityKeyID,
+		forceExpireAfter:         time.Time{},
+		consecutiveRateLimitErrs: 0,
+		activeRootRotationStart:  time.Time{},
+	}
 }
 
 // fetchStart is called on each fetch that is about to block and wait for
@@ -532,7 +541,7 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 		}
 		commonName = connect.AgentCN(req.Agent, roots.TrustDomain)
 		dnsNames = append([]string{"localhost"}, req.DNSSAN...)
-		ipAddresses = append([]net.IP{net.ParseIP("127.0.0.1"), net.ParseIP("::")}, req.IPSAN...)
+		ipAddresses = append([]net.IP{net.ParseIP("127.0.0.1"), net.ParseIP("::1")}, req.IPSAN...)
 	} else {
 		return result, errors.New("URI must be either service or agent")
 	}

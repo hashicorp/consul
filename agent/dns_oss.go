@@ -26,6 +26,6 @@ func (d *DNSServer) parseDatacenterAndEnterpriseMeta(labels []string, _ *dnsConf
 	return false
 }
 
-func serviceCanonicalDNSName(name, datacenter, domain string, _ *structs.EnterpriseMeta) string {
-	return fmt.Sprintf("%s.service.%s.%s", name, datacenter, domain)
+func serviceCanonicalDNSName(name, kind, datacenter, domain string, _ *structs.EnterpriseMeta) string {
+	return fmt.Sprintf("%s.%s.%s.%s", name, kind, datacenter, domain)
 }

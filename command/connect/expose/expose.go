@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/intention/create"
-	"github.com/hashicorp/consul/command/intention/finder"
 	"github.com/mitchellh/cli"
 )
 
@@ -183,8 +182,7 @@ func (c *cmd) Run(args []string) int {
 	c.UI.Output(fmt.Sprintf("Successfully updated config entry for ingress service %q", gateway))
 
 	// Check for an existing intention.
-	ixnFinder := finder.Finder{Client: client}
-	existing, err := ixnFinder.Find(c.ingressGateway, c.service)
+	existing, _, err := client.Connect().IntentionGetExact(c.ingressGateway, c.service, nil)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error looking up existing intention: %s", err))
 		return 1

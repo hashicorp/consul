@@ -1,4 +1,4 @@
-import Route from '@ember/routing/route';
+import Route from 'consul-ui/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 
@@ -14,7 +14,6 @@ export default Route.extend(WithNspaceActions, {
     const create = this.isCreate(...arguments);
     const dc = this.modelFor('dc').dc.Name;
     return hash({
-      isLoading: false,
       create: create,
       dc: dc,
       item: create
@@ -30,6 +29,7 @@ export default Route.extend(WithNspaceActions, {
     });
   },
   setupController: function(controller, model) {
+    this._super(...arguments);
     controller.setProperties(model);
   },
 });

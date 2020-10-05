@@ -18,7 +18,17 @@ func (r RegisterOptionsBlockingRefresh) RegisterOptions() cache.RegisterOptions 
 		Refresh:          true,
 		SupportsBlocking: true,
 		RefreshTimer:     0 * time.Second,
-		RefreshTimeout:   10 * time.Minute,
+		QueryTimeout:     10 * time.Minute,
+	}
+}
+
+type RegisterOptionsBlockingNoRefresh struct{}
+
+func (r RegisterOptionsBlockingNoRefresh) RegisterOptions() cache.RegisterOptions {
+	return cache.RegisterOptions{
+		Refresh:          false,
+		SupportsBlocking: true,
+		QueryTimeout:     10 * time.Minute,
 	}
 }
 

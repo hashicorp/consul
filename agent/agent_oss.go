@@ -23,18 +23,13 @@ func (a *Agent) initEnterprise(consulCfg *consul.Config) error {
 	return nil
 }
 
-// loadEnterpriseTokens is a noop stub for the func defined agent_ent.go
-func (a *Agent) loadEnterpriseTokens(conf *config.RuntimeConfig) {
-}
-
 // reloadEnterprise is a noop stub for the func defined agent_ent.go
 func (a *Agent) reloadEnterprise(conf *config.RuntimeConfig) error {
 	return nil
 }
 
 // enterpriseConsulConfig is a noop stub for the func defined in agent_ent.go
-func (a *Agent) enterpriseConsulConfig(base *consul.Config) (*consul.Config, error) {
-	return base, nil
+func enterpriseConsulConfig(_ *consul.Config, _ *config.RuntimeConfig) {
 }
 
 // WriteEvent is a noop stub for the func defined agent_ent.go

@@ -46,6 +46,8 @@ Config {
 
 - `Namespace` `(string: "default")` <EnterpriseAlert inline /> - Specifies the namespace the config entry will apply to.
 
+- `Meta` `(map<string|string>: nil)` - Specifies arbitrary KV metadata pairs. Added in Consul 1.8.4.
+
 - `Config` `(map[string]arbitrary)` - An arbitrary map of configuration values used by Connect proxies.
   The available configurations depend on the Connect proxy you use. Any values
   that your proxy allows can be configured globally here. To
@@ -85,7 +87,7 @@ Config {
 ## ACLs
 
 Configuration entries may be protected by
-[ACLs](https://learn.hashicorp.com/consul/security-networking/production-acls).
+[ACLs](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production).
 
 Reading a `proxy-defaults` config entry requires no specific privileges.
 

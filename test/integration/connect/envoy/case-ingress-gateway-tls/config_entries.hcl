@@ -1,5 +1,3 @@
-enable_central_service_config = true
-
 config_entries {
   bootstrap = [
     {
@@ -19,11 +17,20 @@ config_entries {
 
       listeners = [
         {
-          port = 9999
+          port     = 9998
           protocol = "http"
           services = [
             {
               name = "s1"
+            }
+          ]
+        },
+        {
+          port     = 9999
+          protocol = "http"
+          services = [
+            {
+              name  = "s1"
               hosts = ["test.example.com"]
             }
           ]

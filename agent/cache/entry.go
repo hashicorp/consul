@@ -3,6 +3,8 @@ package cache
 import (
 	"container/heap"
 	"time"
+
+	"golang.org/x/time/rate"
 )
 
 // cacheEntry stores a single cache entry.
@@ -41,6 +43,8 @@ type cacheEntry struct {
 	// background request has be blocking for at least 5 seconds, which ever
 	// happens first.
 	RefreshLostContact time.Time
+	// FetchRateLimiter limits the rate at which fetch is called for this entry.
+	FetchRateLimiter *rate.Limiter
 }
 
 // cacheEntryExpiry contains the expiration information for a cache

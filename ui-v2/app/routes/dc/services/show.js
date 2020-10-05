@@ -1,50 +1,53 @@
-import Route from '@ember/routing/route';
+import Route from 'consul-ui/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 import { get } from '@ember/object';
 
 export default Route.extend({
-  repo: service('repository/service'),
-  intentionRepo: service('repository/intention'),
-  chainRepo: service('repository/discovery-chain'),
-  proxyRepo: service('repository/proxy'),
+  data: service('data-source/service'),
   settings: service('settings'),
   model: function(params, transition = {}) {
     const dc = this.modelFor('dc').dc.Name;
     const nspace = this.modelFor('nspace').nspace.substr(1);
     return hash({
+      slug: params.name,
       dc: dc,
-      nspace: nspace || 'default',
-      item: this.repo.findBySlug(params.name, dc, nspace),
+      nspace: nspace,
+      items: this.data.source(
+        uri => uri`/${nspace}/${dc}/service-instances/for-service/${params.name}`
+      ),
       urls: this.settings.findBySlug('urls'),
+      chain: null,
       proxies: [],
     })
       .then(model => {
         return ['connect-proxy', 'mesh-gateway', 'ingress-gateway', 'terminating-gateway'].includes(
-          get(model, 'item.Service.Kind')
+          get(model, 'items.firstObject.Service.Kind')
         )
           ? model
           : hash({
-              intentions: this.intentionRepo
-                .findByService(params.name, dc, nspace)
-                .catch(function() {
-                  return null;
-                }),
-              chain: this.chainRepo.findBySlug(params.name, dc, nspace),
-              proxies: this.proxyRepo.findAllBySlug(params.name, dc, nspace),
               ...model,
+              chain: this.data.source(uri => uri`/${nspace}/${dc}/discovery-chain/${params.name}`),
+              proxies: this.data.source(
+                uri => uri`/${nspace}/${dc}/proxies/for-service/${params.name}`
+              ),
             });
       })
       .then(model => {
-        return ['ingress-gateway', 'terminating-gateway'].includes(get(model, 'item.Service.Kind'))
+        return ['ingress-gateway', 'terminating-gateway'].includes(
+          get(model, 'items.firstObject.Service.Kind')
+        )
           ? hash({
-              gatewayServices: this.repo.findGatewayBySlug(params.name, dc, nspace),
               ...model,
+              gatewayServices: this.data.source(
+                uri => uri`/${nspace}/${dc}/gateways/for-service/${params.name}`
+              ),
             })
           : model;
       });
   },
   setupController: function(controller, model) {
+    this._super(...arguments);
     controller.setProperties(model);
   },
 });

@@ -22,7 +22,7 @@ Feature: login-errors: Login Errors
       dc: dc-1
     ---
     Then the url should be /dc-1/acls/tokens
-    Then ".app-view" has the "unauthorized" class
+    Then I see login on the emptystate
   @notNamespaceable
   Scenario: I get a 500 error from acl/token/self that is the specific legacy one
     Given 1 datacenter model with the value "dc-1"
@@ -42,7 +42,7 @@ Feature: login-errors: Login Errors
       dc: dc-1
     ---
     Then the url should be /dc-1/acls/tokens
-    Then ".app-view" has the "unauthorized" class
+    Then I see login on the emptystate
     And I click login on the navigation
     And I fill in the auth form with yaml
     ---

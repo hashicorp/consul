@@ -230,7 +230,7 @@ Usage: consul tls cert create [options]
   ==> Using consul-agent-ca.pem and consul-agent-ca-key.pem
   ==> Saved dc1-server-consul-0.pem
   ==> Saved dc1-server-consul-0-key.pem
-  $ consul tls cert -client
+  $ consul tls cert create -client
   ==> Using consul-agent-ca.pem and consul-agent-ca-key.pem
   ==> Saved dc1-client-consul-0.pem
   ==> Saved dc1-client-consul-0-key.pem

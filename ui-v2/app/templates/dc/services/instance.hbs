@@ -1,19 +1,20 @@
-{{title item.ID}}
+{{title item.Service.ID}}
 <EventSource @src={{item}} @onerror={{action "error"}} />
 <EventSource @src={{proxy}} />
-<AppView @class="instance show">
+<EventSource @src={{proxyMeta}} />
+<AppView>
     <BlockSlot @name="notification" as |status type|>
       {{partial 'dc/services/notifications'}}
     </BlockSlot>
     <BlockSlot @name="breadcrumbs">
         <ol>
             <li><a data-test-back href={{href-to 'dc.services'}}>All Services</a></li>
-            <li><a data-test-back href={{href-to 'dc.services.show'}}>Service ({{item.Service}})</a></li>
+            <li><a data-test-back href={{href-to 'dc.services.show'}}>Service ({{item.Service.Service}})</a></li>
         </ol>
     </BlockSlot>
     <BlockSlot @name="header">
       <h1>
-        {{ item.ID }}
+        {{ item.Service.ID }}
       </h1>
       <ConsulExternalSource @item={{item}} />
       <ConsulKind @item={{item}} @withInfo={{true}} />
@@ -21,7 +22,7 @@
     <BlockSlot @name="nav">
       <dl>
         <dt>Service Name</dt>
-        <dd><a href="{{href-to 'dc.services.show' item.Service}}">{{item.Service}}</a></dd>
+        <dd><a href="{{href-to 'dc.services.show' item.Service.Service}}">{{item.Service.Service}}</a></dd>
       </dl>
       <dl>
         <dt>Node Name</dt>
@@ -29,7 +30,7 @@
       </dl>
     </BlockSlot>
     <BlockSlot @name="actions">
-      {{#let (or item.Address item.Node.Address) as |address|}}
+      {{#let (or item.Service.Address item.Node.Address) as |address|}}
         <CopyButton @value={{address}} @name="Address">{{address}}</CopyButton>
       {{/let}}
     </BlockSlot>
@@ -39,7 +40,7 @@
               (array
                       (hash label="Health Checks" href=(href-to "dc.services.instance.healthchecks") selected=(is-href "dc.services.instance.healthchecks"))
 (if
-  (eq item.Kind 'mesh-gateway')
+  (eq item.Service.Kind 'mesh-gateway')
                       (hash label="Addresses" href=(href-to "dc.services.instance.addresses") selected=(is-href "dc.services.instance.addresses")) ""
 )
 (if proxy
@@ -49,6 +50,10 @@
                       (hash label="Tags & Meta" href=(href-to "dc.services.instance.metadata") selected=(is-href "dc.services.instance.metadata"))
               )
         }}/>
+      <Outlet
+        @name={{routeName}}
+      as |o|>
         {{outlet}}
+      </Outlet>
     </BlockSlot>
 </AppView>

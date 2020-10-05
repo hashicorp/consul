@@ -35,7 +35,7 @@ func TestCatalog_Register(t *testing.T) {
 		Address:    "127.0.0.1",
 		Service: &structs.NodeService{
 			Service: "db",
-			Tags:    []string{"master"},
+			Tags:    []string{"primary"},
 			Port:    8000,
 		},
 		Check: &structs.HealthCheck{
@@ -135,7 +135,7 @@ func TestCatalog_Register_NodeID(t *testing.T) {
 		Address:    "127.0.0.1",
 		Service: &structs.NodeService{
 			Service: "db",
-			Tags:    []string{"master"},
+			Tags:    []string{"primary"},
 			Port:    8000,
 		},
 		Check: &structs.HealthCheck{
@@ -199,7 +199,7 @@ node "foo" {
 		Address:    "127.0.0.1",
 		Service: &structs.NodeService{
 			Service: "db",
-			Tags:    []string{"master"},
+			Tags:    []string{"primary"},
 			Port:    8000,
 		},
 		WriteRequest: structs.WriteRequest{Token: id},
@@ -285,7 +285,7 @@ func TestCatalog_Register_ForwardLeader(t *testing.T) {
 		Address:    "127.0.0.1",
 		Service: &structs.NodeService{
 			Service: "db",
-			Tags:    []string{"master"},
+			Tags:    []string{"primary"},
 			Port:    8000,
 		},
 	}
@@ -318,7 +318,7 @@ func TestCatalog_Register_ForwardDC(t *testing.T) {
 		Address:    "127.0.0.1",
 		Service: &structs.NodeService{
 			Service: "db",
-			Tags:    []string{"master"},
+			Tags:    []string{"primary"},
 			Port:    8000,
 		},
 	}
@@ -783,6 +783,21 @@ func TestCatalog_ListNodes(t *testing.T) {
 	if out.Nodes[0].Address != "127.0.0.1" {
 		t.Fatalf("bad: %v", out)
 	}
+	require.False(t, out.QueryMeta.NotModified)
+
+	t.Run("with option AllowNotModifiedResponse", func(t *testing.T) {
+		args.QueryOptions = structs.QueryOptions{
+			MinQueryIndex:            out.QueryMeta.Index,
+			MaxQueryTime:             20 * time.Millisecond,
+			AllowNotModifiedResponse: true,
+		}
+		err := msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
+		require.NoError(t, err)
+
+		require.Equal(t, out.Index, out.QueryMeta.Index)
+		require.Len(t, out.Nodes, 0)
+		require.True(t, out.QueryMeta.NotModified, "NotModified should be true")
+	})
 }
 
 func TestCatalog_ListNodes_NodeMetaFilter(t *testing.T) {
@@ -1322,6 +1337,21 @@ func TestCatalog_ListServices(t *testing.T) {
 	if out.Services["db"][0] != "primary" {
 		t.Fatalf("bad: %v", out)
 	}
+	require.False(t, out.QueryMeta.NotModified)
+
+	t.Run("with option AllowNotModifiedResponse", func(t *testing.T) {
+		args.QueryOptions = structs.QueryOptions{
+			MinQueryIndex:            out.QueryMeta.Index,
+			MaxQueryTime:             20 * time.Millisecond,
+			AllowNotModifiedResponse: true,
+		}
+		err := msgpackrpc.CallWithCodec(codec, "Catalog.ListServices", &args, &out)
+		require.NoError(t, err)
+
+		require.Equal(t, out.Index, out.QueryMeta.Index)
+		require.Len(t, out.Services, 0)
+		require.True(t, out.QueryMeta.NotModified, "NotModified should be true")
+	})
 }
 
 func TestCatalog_ListServices_NodeMetaFilter(t *testing.T) {
@@ -1585,7 +1615,7 @@ func TestCatalog_ListServiceNodes(t *testing.T) {
 	args := structs.ServiceSpecificRequest{
 		Datacenter:  "dc1",
 		ServiceName: "db",
-		ServiceTags: []string{"slave"},
+		ServiceTags: []string{"replica"},
 		TagFilter:   false,
 	}
 	var out structs.IndexedServiceNodes

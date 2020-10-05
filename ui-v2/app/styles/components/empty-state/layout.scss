@@ -40,3 +40,7 @@
 %empty-state-anchor::before {
   margin-top: -1px;
 }
+%empty-state > div:only-child {
+  padding: 50px 0 10px 0;
+  text-align: center;
+}
