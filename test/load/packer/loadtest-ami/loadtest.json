@@ -1,7 +1,7 @@
 {
   "min_packer_version": "1.5.4",
   "variables": {
-    "aws_region": "{{env `AWS_REGION`}}"
+    "aws_region": "{{env `AWS_DEFAULT_REGION`}}"
   },
   "builders": [{
     "name": "ubuntu18-ami",
