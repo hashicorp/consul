@@ -78,8 +78,8 @@ func NewMaterializer(deps Deps) *Materializer {
 		deps:        deps,
 		view:        deps.View,
 		retryWaiter: deps.Waiter,
+		updateCh:    make(chan struct{}),
 	}
-	v.reset()
 	return v
 }
 
@@ -112,8 +112,8 @@ func (m *Materializer) Run(ctx context.Context) {
 	}
 }
 
-// isNonTemporaryOrConsecutiveFailure returns true if the error is a temporary error
-// or if the failures > 0.
+// isNonTemporaryOrConsecutiveFailure returns true if the error is not a
+// temporary error or if failures > 0.
 func isNonTemporaryOrConsecutiveFailure(err error, failures int) bool {
 	// temporary is an interface used by net and other std lib packages to
 	// show error types represent temporary/recoverable errors.
@@ -181,7 +181,6 @@ func (m *Materializer) reset() {
 
 	m.view.Reset()
 	m.index = 0
-	m.notifyUpdateLocked(nil)
 	m.retryWaiter.Reset()
 }
 
@@ -202,9 +201,7 @@ func (m *Materializer) updateView(events []*pbsubscribe.Event, index uint64) err
 // one. It must be called while holding the s.lock lock.
 func (m *Materializer) notifyUpdateLocked(err error) {
 	m.err = err
-	if m.updateCh != nil {
-		close(m.updateCh)
-	}
+	close(m.updateCh)
 	m.updateCh = make(chan struct{})
 }
 
