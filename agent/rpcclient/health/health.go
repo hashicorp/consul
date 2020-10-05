@@ -4,13 +4,13 @@ import (
 	"context"
 
 	"github.com/hashicorp/consul/agent/cache"
-	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
 type Client struct {
-	NetRPC NetRPC
-	Cache  CacheGetter
+	NetRPC    NetRPC
+	Cache     CacheGetter
+	CacheName string
 }
 
 type NetRPC interface {
@@ -51,7 +51,7 @@ func (c *Client) getServiceNodes(
 		return out, cache.ResultMeta{}, err
 	}
 
-	raw, md, err := c.Cache.Get(ctx, cachetype.HealthServicesName, &req)
+	raw, md, err := c.Cache.Get(ctx, c.CacheName, &req)
 	if err != nil {
 		return out, md, err
 	}

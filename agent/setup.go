@@ -7,8 +7,12 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
+	"google.golang.org/grpc/grpclog"
+
 	autoconf "github.com/hashicorp/consul/agent/auto-config"
 	"github.com/hashicorp/consul/agent/cache"
+	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/grpc"
@@ -19,9 +23,8 @@ import (
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/consul/tlsutil"
-	"github.com/hashicorp/go-hclog"
-	"google.golang.org/grpc/grpclog"
 )
 
 // TODO: BaseDeps should be renamed in the future once more of Agent.Start
@@ -84,7 +87,6 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 	d.Cache = cache.New(cfg.Cache)
 	d.ConnPool = newConnPool(cfg, d.Logger, d.TLSConfigurator)
 
-	// TODO(streaming): setConfig.Scheme name for tests
 	builder := resolver.NewServerResolverBuilder(resolver.Config{})
 	resolver.RegisterWithGRPC(builder)
 	d.GRPCConnPool = grpc.NewClientConnPool(builder, grpc.TLSWrapper(d.TLSConfigurator.OutgoingRPCWrapper()))
@@ -105,7 +107,31 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 		return d, err
 	}
 
+	if err := registerCacheTypes(d); err != nil {
+		return d, err
+	}
+
 	return d, nil
+}
+
+// registerCacheTypes on bd.Cache.
+//
+// Note: most cache types are still registered in Agent.registerCache. This
+// function is for registering newer cache-types which no longer have a dependency
+// on Agent.
+func registerCacheTypes(bd BaseDeps) error {
+	if bd.RuntimeConfig.CacheUseStreamingBackend {
+		conn, err := bd.GRPCConnPool.ClientConn(bd.RuntimeConfig.Datacenter)
+		if err != nil {
+			return err
+		}
+		matDeps := cachetype.MaterializerDeps{
+			Client: pbsubscribe.NewStateChangeSubscriptionClient(conn),
+			Logger: bd.Logger,
+		}
+		bd.Cache.RegisterType(cachetype.StreamingHealthServicesName, cachetype.NewStreamingHealthServices(matDeps))
+	}
+	return nil
 }
 
 func newConnPool(config *config.RuntimeConfig, logger hclog.Logger, tls *tlsutil.Configurator) *pool.ConnPool {

@@ -97,12 +97,15 @@ func (l LiteralSource) Parse() (Config, mapstructure.Metadata, error) {
 	return l.Config, mapstructure.Metadata{}, nil
 }
 
-// Cache is the tunning configuration for cache, values are optional
+// Cache configuration for the agent/cache.
 type Cache struct {
 	// EntryFetchMaxBurst max burst size of RateLimit for a single cache entry
 	EntryFetchMaxBurst *int `json:"entry_fetch_max_burst,omitempty" hcl:"entry_fetch_max_burst" mapstructure:"entry_fetch_max_burst"`
 	// EntryFetchRate represents the max calls/sec for a single cache entry
 	EntryFetchRate *float64 `json:"entry_fetch_rate,omitempty" hcl:"entry_fetch_rate" mapstructure:"entry_fetch_rate"`
+	// UseStreamingBackend instead of blocking queries to populate the cache.
+	// Only supported by some cache types.
+	UseStreamingBackend *bool `json:"use_streaming_backend" hcl:"use_streaming_backend" mapstructure:"use_streaming_backend"`
 }
 
 // Config defines the format of a configuration file in either JSON or

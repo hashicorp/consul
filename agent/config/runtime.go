@@ -937,6 +937,8 @@ type RuntimeConfig struct {
 
 	RPCConfig consul.RPCConfig
 
+	CacheUseStreamingBackend bool
+
 	// RaftProtocol sets the Raft protocol version to use on this server.
 	// Defaults to 3.
 	//

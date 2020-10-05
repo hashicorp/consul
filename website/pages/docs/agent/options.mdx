@@ -1128,14 +1128,14 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   </Tab>
   </Tabs>
 
-- `cache` Cache configuration of agent. The configurable values are the following:
+- `cache` configuration for client agents. The configurable values are the following:
 
-  - `entry_fetch_max_burst`: The size of the token bucket used to recharge the rate-limit per
+  - `entry_fetch_max_burst` The size of the token bucket used to recharge the rate-limit per
     cache entry. The default value is 2 and means that when cache has not been updated
     for a long time, 2 successive queries can be made as long as the rate-limit is not
     reached.
 
-  - `entry_fetch_rate`: configures the rate-limit at which the cache may refresh a single
+  - `entry_fetch_rate` configures the rate-limit at which the cache may refresh a single
     entry. On a cluster with many changes/s, watching changes in the cache might put high
     pressure on the servers. This ensures the number of requests for a single cache entry
     will never go beyond this limit, even when a given service changes every 1/100s.
@@ -1145,6 +1145,13 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     1 means 1 query per second, 0.1 mean 1 request every 10s maximum.
     The default value is "No limit" and should be tuned on large
     clusters to avoid performing too many RPCs on entries changing a lot.
+
+  - `use_streaming_backend` when enabled Consul client agents will use streaming rpc to
+    populate the cache, instead of the traditional blocking queries. All servers must
+    have [`rpc.enable_streaming`](#rpc_enable_streaming) enabled before any client can enable `use_streaming_backend`.
+    At least one of [`dns.use_cache`](#dns_use_cache) or
+    [`http_config.use_cache`](#http_config_use_cache) must be enabled, otherwise
+    this setting has no effect.
 
 - `ca_file` This provides a file path to a PEM-encoded certificate
   authority. The certificate authority is used to check the authenticity of client
@@ -1618,7 +1625,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
   - `allow_write_http_from` This object is a list of networks in CIDR notation (eg "127.0.0.0/8") that are allowed to call the agent write endpoints. It defaults to an empty list, which means all networks are allowed. This is used to make the agent read-only, except for select ip ranges. - To block write calls from anywhere, use `[ "255.255.255.255/32" ]`. - To only allow write calls from localhost, use `[ "127.0.0.0/8" ]` - To only allow specific IPs, use `[ "10.0.0.1/32", "10.0.0.2/32" ]`
 
-  - `use_cache` Defaults to true. If disabled, the agent won't be using [agent caching](/api/features/caching) to answer the request. Even when the url parameter is provided.
+  - `use_cache` ((#http_config_use_cache)) Defaults to true. If disabled, the agent won't be using [agent caching](/api/features/caching) to answer the request. Even when the url parameter is provided.
 
 - `leave_on_terminate` If enabled, when the agent receives a TERM signal, it will send a `Leave` message to the rest of the cluster and gracefully leave. The default behavior for this feature varies based on whether or not the agent is running as a client or a server (prior to Consul 0.7 the default value was unconditionally set to `false`). On agents in client-mode, this defaults to `true` and for agents in server-mode, this defaults to `false`.
 
@@ -1633,11 +1640,6 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   - `rpc_max_conns_per_client` - Configures a limit of how many concurrent TCP connections a single source IP address is allowed to open to a single server. It affects both clients connections and other server connections. In general Consul clients multiplex many RPC calls over a single TCP connection so this can typically be kept low. It needs to be more than one though since servers open at least one additional connection for raft RPC, possibly more for WAN federation when using network areas, and snapshot requests from clients run over a separate TCP conn. A reasonably low limit significantly reduces the ability of an unauthenticated attacker to consume unbounded resources by holding open many connections. You may need to increase this if WAN federated servers connect via proxies or NAT gateways or similar causing many legitimate connections from a single source IP. Default value is `100` which is designed to be extremely conservative to limit issues with certain deployment patterns. Most deployments can probably reduce this safely. 100 connections on modern server hardware should not cause a significant impact on resource usage from an unauthenticated attacker though.
   - `rpc_rate` - Configures the RPC rate limiter on Consul _clients_ by setting the maximum request rate that this agent is allowed to make for RPC requests to Consul servers, in requests per second. Defaults to infinite, which disables rate limiting.
   - `rpc_max_burst` - The size of the token bucket used to recharge the RPC rate limiter on Consul _clients_. Defaults to 1000 tokens, and each token is good for a single RPC call to a Consul server. See https://en.wikipedia.org/wiki/Token_bucket for more details about how token bucket rate limiters operate.
-
-  - `rpc.enable_streaming` - Enable the gRPC subscribe endpoint on a Consul Server. All
-    Servers in all connected datacenters must have this enabled before any client can use
-    streaming.
-
   - `kv_max_value_size` - **(Advanced)** Configures the maximum number of bytes for a kv request body to the [`/v1/kv`](/api/kv) endpoint. This limit defaults to [raft's](https://github.com/hashicorp/raft) suggested max size (512KB). **Note that tuning these improperly can cause Consul to fail in unexpected ways**, it may potentially affect leadership stability and prevent timely heartbeat signals by increasing RPC IO duration. This option affects the txn endpoint too, but Consul 1.7.2 introduced `txn_max_req_len` which is the preferred way to set the limit for the txn endpoint. If both limits are set, the higher one takes precedence.
   - `txn_max_req_len` - **(Advanced)** Configures the maximum number of bytes for a transaction request body to the [`/v1/txn`](/api/txn) endpoint. This limit defaults to [raft's](https://github.com/hashicorp/raft) suggested max size (512KB). **Note that tuning these improperly can cause Consul to fail in unexpected ways**, it may potentially affect leadership stability and prevent timely heartbeat signals by increasing RPC IO duration.
 
@@ -1819,6 +1821,12 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 - `retry_join_wan` Equivalent to the [`-retry-join-wan` command-line flag](#_retry_join_wan). Takes a list of addresses to attempt joining to WAN every [`retry_interval_wan`](#_retry_interval_wan) until at least one join works.
 
 - `retry_interval_wan` Equivalent to the [`-retry-interval-wan` command-line flag](#_retry_interval_wan).
+
+- `rpc` configuration for Consul servers.
+
+  - `enable_streaming` ((#rpc_enable_streaming)) enables the gRPC subscribe endpoint on a Consul Server. All
+    servers in all federated datacenters must have this enabled before any client can use
+    [`cache.use_streaming_backend`](#use_streaming_backend). This setting will default to true in a future release of Consul.
 
 - `segment` <EnterpriseAlert inline /> - Equivalent to the [`-segment` command-line flag](#_segment).
 
