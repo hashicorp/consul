@@ -12,7 +12,7 @@
       </span>
     </div>
   {{#each @downstreams as |downstream|}}
-    <div id="downstreamCard-{{downstream.Namespace}}{{downstream.Name}}" class="card">
+    <div class="card">
       <p>
         {{downstream.Name}}
       </p>
@@ -81,7 +81,7 @@
     <div id="upstream-container">
       <p>{{dc}}</p>
       {{#each upstreams as |upstream|}}
-      <div id="upstreamCard-{{upstream.Namespace}}{{upstream.Name}}" class="card">
+      <div class="card">
         <p>
           {{upstream.Name}}
         </p>
