@@ -19,19 +19,22 @@ export default Route.extend({
       urls: this.settings.findBySlug('urls'),
       chain: null,
       proxies: [],
-    }).then(model => {
-      return ['connect-proxy', 'mesh-gateway', 'ingress-gateway', 'terminating-gateway'].includes(
-        get(model, 'items.firstObject.Service.Kind')
-      )
-        ? model
-        : hash({
-            ...model,
-            chain: this.data.source(uri => uri`/${nspace}/${dc}/discovery-chain/${params.name}`),
-            proxies: this.data.source(
-              uri => uri`/${nspace}/${dc}/proxies/for-service/${params.name}`
-            ),
-          });
-    }).then(model => {
+      topology: null,
+    })
+      .then(model => {
+        return ['connect-proxy', 'mesh-gateway', 'ingress-gateway', 'terminating-gateway'].includes(
+          get(model, 'items.firstObject.Service.Kind')
+        )
+          ? model
+          : hash({
+              ...model,
+              chain: this.data.source(uri => uri`/${nspace}/${dc}/discovery-chain/${params.name}`),
+              proxies: this.data.source(
+                uri => uri`/${nspace}/${dc}/proxies/for-service/${params.name}`
+              ),
+            });
+      })
+      .then(model => {
         return ['mesh-gateway', 'terminating-gateway'].includes(
           get(model, 'items.firstObject.Service.Kind')
         )
