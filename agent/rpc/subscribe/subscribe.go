@@ -67,7 +67,7 @@ func (h *Server) Subscribe(req *pbsubscribe.SubscribeRequest, serverStream pbsub
 
 	elog := &eventLogger{logger: logger}
 	for {
-		events, err := sub.Next(ctx)
+		event, err := sub.Next(ctx)
 		switch {
 		case errors.Is(err, stream.ErrSubscriptionClosed):
 			logger.Trace("subscription reset by server")
@@ -76,13 +76,14 @@ func (h *Server) Subscribe(req *pbsubscribe.SubscribeRequest, serverStream pbsub
 			return err
 		}
 
-		events = filterStreamEvents(authz, events)
-		if len(events) == 0 {
+		var ok bool
+		event, ok = filterByAuth(authz, event)
+		if !ok {
 			continue
 		}
 
-		elog.Trace(events)
-		e := newEventFromStreamEvents(req, events)
+		elog.Trace(event)
+		e := newEventFromStreamEvent(req, event)
 		if err := serverStream.Send(e); err != nil {
 			return err
 		}
@@ -126,68 +127,44 @@ func forwardToDC(
 	}
 }
 
-// filterStreamEvents to only those allowed by the acl token.
-func filterStreamEvents(authz acl.Authorizer, events []stream.Event) []stream.Event {
+// filterByAuth to only those Events allowed by the acl token.
+func filterByAuth(authz acl.Authorizer, event stream.Event) (stream.Event, bool) {
 	// authz will be nil when ACLs are disabled
-	if authz == nil || len(events) == 0 {
-		return events
+	if authz == nil {
+		return event, true
 	}
-
-	// Fast path for the common case of only 1 event since we can avoid slice
-	// allocation in the hot path of every single update event delivered in vast
-	// majority of cases with this. Note that this is called _per event/item_ when
-	// sending snapshots which is a lot worse than being called once on regular
-	// result.
-	if len(events) == 1 {
-		if enforceACL(authz, events[0]) == acl.Allow {
-			return events
-		}
-		return nil
+	fn := func(e stream.Event) bool {
+		return enforceACL(authz, e) == acl.Allow
 	}
-
-	var filtered []stream.Event
-	for idx := range events {
-		event := events[idx]
-		if enforceACL(authz, event) == acl.Allow {
-			filtered = append(filtered, event)
-		}
-	}
-	return filtered
+	return event.Filter(fn)
 }
 
-func newEventFromStreamEvents(req *pbsubscribe.SubscribeRequest, events []stream.Event) *pbsubscribe.Event {
+func newEventFromStreamEvent(req *pbsubscribe.SubscribeRequest, event stream.Event) *pbsubscribe.Event {
 	e := &pbsubscribe.Event{
 		Topic: req.Topic,
 		Key:   req.Key,
-		Index: events[0].Index,
+		Index: event.Index,
 	}
-
-	if len(events) == 1 {
-		event := events[0]
-		// TODO: refactor so these are only checked once, instead of 3 times.
-		switch {
-		case event.IsEndOfSnapshot():
-			e.Payload = &pbsubscribe.Event_EndOfSnapshot{EndOfSnapshot: true}
-			return e
-		case event.IsNewSnapshotToFollow():
-			e.Payload = &pbsubscribe.Event_NewSnapshotToFollow{NewSnapshotToFollow: true}
-			return e
-		}
-
-		setPayload(e, event.Payload)
+	switch {
+	case event.IsEndOfSnapshot():
+		e.Payload = &pbsubscribe.Event_EndOfSnapshot{EndOfSnapshot: true}
+		return e
+	case event.IsNewSnapshotToFollow():
+		e.Payload = &pbsubscribe.Event_NewSnapshotToFollow{NewSnapshotToFollow: true}
 		return e
 	}
-
-	e.Payload = &pbsubscribe.Event_EventBatch{
-		EventBatch: &pbsubscribe.EventBatch{
-			Events: batchEventsFromEventSlice(events),
-		},
-	}
+	setPayload(e, event.Payload)
 	return e
 }
 
 func setPayload(e *pbsubscribe.Event, payload interface{}) {
 	switch p := payload.(type) {
+	case []stream.Event:
+		e.Payload = &pbsubscribe.Event_EventBatch{
+			EventBatch: &pbsubscribe.EventBatch{
+				Events: batchEventsFromEventSlice(p),
+			},
+		}
 	case state.EventPayloadCheckServiceNode:
 		e.Payload = &pbsubscribe.Event_ServiceHealth{
 			ServiceHealth: &pbsubscribe.ServiceHealthUpdate{

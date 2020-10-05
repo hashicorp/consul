@@ -5,10 +5,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/stretchr/testify/require"
 )
 
 func TestStore_IntegrationWithEventPublisher_ACLTokenUpdate(t *testing.T) {
@@ -294,8 +295,8 @@ func TestStore_IntegrationWithEventPublisher_ACLRoleUpdate(t *testing.T) {
 }
 
 type nextResult struct {
-	Events []stream.Event
-	Err    error
+	Event stream.Event
+	Err   error
 }
 
 func testRunSub(sub *stream.Subscription) <-chan nextResult {
@@ -304,8 +305,8 @@ func testRunSub(sub *stream.Subscription) <-chan nextResult {
 		for {
 			es, err := sub.Next(context.TODO())
 			eventCh <- nextResult{
-				Events: es,
-				Err:    err,
+				Event: es,
+				Err:   err,
 			}
 			if err != nil {
 				return
@@ -320,8 +321,8 @@ func assertNoEvent(t *testing.T, eventCh <-chan nextResult) {
 	select {
 	case next := <-eventCh:
 		require.NoError(t, next.Err)
-		require.Len(t, next.Events, 1)
-		t.Fatalf("got unwanted event: %#v", next.Events[0].Payload)
+		require.Len(t, next.Event, 1)
+		t.Fatalf("got unwanted event: %#v", next.Event.Payload)
 	case <-time.After(100 * time.Millisecond):
 	}
 }
@@ -331,8 +332,7 @@ func assertEvent(t *testing.T, eventCh <-chan nextResult) *stream.Event {
 	select {
 	case next := <-eventCh:
 		require.NoError(t, next.Err)
-		require.Len(t, next.Events, 1)
-		return &next.Events[0]
+		return &next.Event
 	case <-time.After(100 * time.Millisecond):
 		t.Fatalf("no event after 100ms")
 	}
@@ -362,7 +362,7 @@ func assertReset(t *testing.T, eventCh <-chan nextResult, allowEOS bool) {
 		select {
 		case next := <-eventCh:
 			if allowEOS {
-				if next.Err == nil && len(next.Events) == 1 && next.Events[0].IsEndOfSnapshot() {
+				if next.Err == nil && next.Event.IsEndOfSnapshot() {
 					continue
 				}
 			}

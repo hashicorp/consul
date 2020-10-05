@@ -32,13 +32,11 @@ func TestEventPublisher_SubscribeWithIndex0(t *testing.T) {
 	require.NoError(t, err)
 	eventCh := runSubscription(ctx, sub)
 
-	next := getNextEvents(t, eventCh)
-	expected := []Event{testSnapshotEvent}
-	require.Equal(t, expected, next)
+	next := getNextEvent(t, eventCh)
+	require.Equal(t, testSnapshotEvent, next)
 
-	next = getNextEvents(t, eventCh)
-	require.Len(t, next, 1)
-	require.True(t, next[0].IsEndOfSnapshot())
+	next = getNextEvent(t, eventCh)
+	require.True(t, next.IsEndOfSnapshot())
 
 	assertNoResult(t, eventCh)
 
@@ -50,8 +48,8 @@ func TestEventPublisher_SubscribeWithIndex0(t *testing.T) {
 	publisher.Publish(events)
 
 	// Subscriber should see the published event
-	next = getNextEvents(t, eventCh)
-	expected = []Event{{Payload: "the-published-event-payload", Key: "sub-key", Topic: testTopic}}
+	next = getNextEvent(t, eventCh)
+	expected := Event{Payload: "the-published-event-payload", Key: "sub-key", Topic: testTopic}
 	require.Equal(t, expected, next)
 }
 
@@ -80,8 +78,8 @@ func runSubscription(ctx context.Context, sub *Subscription) <-chan eventOrErr {
 		for {
 			es, err := sub.Next(ctx)
 			eventCh <- eventOrErr{
-				Events: es,
-				Err:    err,
+				Event: es,
+				Err:   err,
 			}
 			if err != nil {
 				return
@@ -92,19 +90,19 @@ func runSubscription(ctx context.Context, sub *Subscription) <-chan eventOrErr {
 }
 
 type eventOrErr struct {
-	Events []Event
-	Err    error
+	Event Event
+	Err   error
 }
 
-func getNextEvents(t *testing.T, eventCh <-chan eventOrErr) []Event {
+func getNextEvent(t *testing.T, eventCh <-chan eventOrErr) Event {
 	t.Helper()
 	select {
 	case next := <-eventCh:
 		require.NoError(t, next.Err)
-		return next.Events
+		return next.Event
 	case <-time.After(100 * time.Millisecond):
 		t.Fatalf("timeout waiting for event from subscription")
-		return nil
+		return Event{}
 	}
 }
 
@@ -113,8 +111,7 @@ func assertNoResult(t *testing.T, eventCh <-chan eventOrErr) {
 	select {
 	case next := <-eventCh:
 		require.NoError(t, next.Err)
-		require.Len(t, next.Events, 1)
-		t.Fatalf("received unexpected event: %#v", next.Events[0].Payload)
+		t.Fatalf("received unexpected event: %#v", next.Event.Payload)
 	case <-time.After(25 * time.Millisecond):
 	}
 }
@@ -152,11 +149,11 @@ func TestEventPublisher_ShutdownClosesSubscriptions(t *testing.T) {
 
 func consumeSub(ctx context.Context, sub *Subscription) error {
 	for {
-		events, err := sub.Next(ctx)
+		event, err := sub.Next(ctx)
 		switch {
 		case err != nil:
 			return err
-		case len(events) == 1 && events[0].IsEndOfSnapshot():
+		case event.IsEndOfSnapshot():
 			continue
 		}
 	}
@@ -183,28 +180,25 @@ func TestEventPublisher_SubscribeWithIndex0_FromCache(t *testing.T) {
 	require.NoError(t, err)
 
 	eventCh := runSubscription(ctx, sub)
-	next := getNextEvents(t, eventCh)
-	expected := []Event{testSnapshotEvent}
-	require.Equal(t, expected, next)
+	next := getNextEvent(t, eventCh)
+	require.Equal(t, testSnapshotEvent, next)
 
-	next = getNextEvents(t, eventCh)
-	require.Len(t, next, 1)
-	require.True(t, next[0].IsEndOfSnapshot())
+	next = getNextEvent(t, eventCh)
+	require.True(t, next.IsEndOfSnapshot())
 
 	// Now subscriber should block waiting for updates
 	assertNoResult(t, eventCh)
 
-	events := []Event{{
+	expected := Event{
 		Topic:   testTopic,
 		Key:     "sub-key",
 		Payload: "the-published-event-payload",
 		Index:   3,
-	}}
-	publisher.Publish(events)
+	}
+	publisher.Publish([]Event{expected})
 
 	// Subscriber should see the published event
-	next = getNextEvents(t, eventCh)
-	expected = []Event{events[0]}
+	next = getNextEvent(t, eventCh)
 	require.Equal(t, expected, next)
 }
 
@@ -228,14 +222,12 @@ func TestEventPublisher_SubscribeWithIndexNotZero_CanResume(t *testing.T) {
 
 		eventCh := runSubscription(ctx, sub)
 
-		next := getNextEvents(t, eventCh)
-		expected := []Event{testSnapshotEvent}
-		require.Equal(t, expected, next)
+		next := getNextEvent(t, eventCh)
+		require.Equal(t, testSnapshotEvent, next)
 
-		next = getNextEvents(t, eventCh)
-		require.Len(t, next, 1)
-		require.True(t, next[0].IsEndOfSnapshot())
-		require.Equal(t, uint64(1), next[0].Index)
+		next = getNextEvent(t, eventCh)
+		require.True(t, next.IsEndOfSnapshot())
+		require.Equal(t, uint64(1), next.Index)
 	})
 
 	runStep(t, "resume the subscription", func(t *testing.T) {
@@ -255,8 +247,8 @@ func TestEventPublisher_SubscribeWithIndexNotZero_CanResume(t *testing.T) {
 		}
 		publisher.publishEvent([]Event{expected})
 
-		next := getNextEvents(t, eventCh)
-		require.Equal(t, []Event{expected}, next)
+		next := getNextEvent(t, eventCh)
+		require.Equal(t, expected, next)
 	})
 }
 
@@ -280,14 +272,12 @@ func TestEventPublisher_SubscribeWithIndexNotZero_NewSnapshot(t *testing.T) {
 
 		eventCh := runSubscription(ctx, sub)
 
-		next := getNextEvents(t, eventCh)
-		expected := []Event{testSnapshotEvent}
-		require.Equal(t, expected, next)
+		next := getNextEvent(t, eventCh)
+		require.Equal(t, testSnapshotEvent, next)
 
-		next = getNextEvents(t, eventCh)
-		require.Len(t, next, 1)
-		require.True(t, next[0].IsEndOfSnapshot())
-		require.Equal(t, uint64(1), next[0].Index)
+		next = getNextEvent(t, eventCh)
+		require.True(t, next.IsEndOfSnapshot())
+		require.Equal(t, uint64(1), next.Index)
 	})
 
 	nextEvent := Event{
@@ -308,14 +298,14 @@ func TestEventPublisher_SubscribeWithIndexNotZero_NewSnapshot(t *testing.T) {
 		require.NoError(t, err)
 
 		eventCh := runSubscription(ctx, sub)
-		next := getNextEvents(t, eventCh)
-		require.True(t, next[0].IsNewSnapshotToFollow(), next)
+		next := getNextEvent(t, eventCh)
+		require.True(t, next.IsNewSnapshotToFollow(), next)
 
-		next = getNextEvents(t, eventCh)
-		require.Equal(t, testSnapshotEvent, next[0])
+		next = getNextEvent(t, eventCh)
+		require.Equal(t, testSnapshotEvent, next)
 
-		next = getNextEvents(t, eventCh)
-		require.True(t, next[0].IsEndOfSnapshot())
+		next = getNextEvent(t, eventCh)
+		require.True(t, next.IsEndOfSnapshot())
 	})
 }
 
@@ -339,14 +329,12 @@ func TestEventPublisher_SubscribeWithIndexNotZero_NewSnapshotFromCache(t *testin
 
 		eventCh := runSubscription(ctx, sub)
 
-		next := getNextEvents(t, eventCh)
-		expected := []Event{testSnapshotEvent}
-		require.Equal(t, expected, next)
+		next := getNextEvent(t, eventCh)
+		require.Equal(t, testSnapshotEvent, next)
 
-		next = getNextEvents(t, eventCh)
-		require.Len(t, next, 1)
-		require.True(t, next[0].IsEndOfSnapshot())
-		require.Equal(t, uint64(1), next[0].Index)
+		next = getNextEvent(t, eventCh)
+		require.True(t, next.IsEndOfSnapshot())
+		require.Equal(t, uint64(1), next.Index)
 	})
 
 	nextEvent := Event{
@@ -371,17 +359,17 @@ func TestEventPublisher_SubscribeWithIndexNotZero_NewSnapshotFromCache(t *testin
 		require.NoError(t, err)
 
 		eventCh := runSubscription(ctx, sub)
-		next := getNextEvents(t, eventCh)
-		require.True(t, next[0].IsNewSnapshotToFollow(), next)
+		next := getNextEvent(t, eventCh)
+		require.True(t, next.IsNewSnapshotToFollow(), next)
 
-		next = getNextEvents(t, eventCh)
-		require.Equal(t, testSnapshotEvent, next[0])
+		next = getNextEvent(t, eventCh)
+		require.Equal(t, testSnapshotEvent, next)
 
-		next = getNextEvents(t, eventCh)
-		require.True(t, next[0].IsEndOfSnapshot())
+		next = getNextEvent(t, eventCh)
+		require.True(t, next.IsEndOfSnapshot())
 
-		next = getNextEvents(t, eventCh)
-		require.Equal(t, nextEvent, next[0])
+		next = getNextEvent(t, eventCh)
+		require.Equal(t, nextEvent, next)
 	})
 }
 

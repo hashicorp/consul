@@ -65,59 +65,56 @@ func newSubscription(req SubscribeRequest, item *bufferItem, unsub func()) *Subs
 	}
 }
 
-// Next returns the next set of events to deliver. It must only be called from a
+// Next returns the next Event to deliver. It must only be called from a
 // single goroutine concurrently as it mutates the Subscription.
-func (s *Subscription) Next(ctx context.Context) ([]Event, error) {
+func (s *Subscription) Next(ctx context.Context) (Event, error) {
 	if atomic.LoadUint32(&s.state) == subscriptionStateClosed {
-		return nil, ErrSubscriptionClosed
+		return Event{}, ErrSubscriptionClosed
 	}
 
 	for {
 		next, err := s.currentItem.Next(ctx, s.forceClosed)
 		switch {
 		case err != nil && atomic.LoadUint32(&s.state) == subscriptionStateClosed:
-			return nil, ErrSubscriptionClosed
+			return Event{}, ErrSubscriptionClosed
 		case err != nil:
-			return nil, err
+			return Event{}, err
 		}
 		s.currentItem = next
-
-		events := filter(s.req.Key, next.Events)
-		if len(events) == 0 {
+		if len(next.Events) == 0 {
 			continue
 		}
-		return events, nil
+		event, ok := filterByKey(s.req, next.Events)
+		if !ok {
+			continue
+		}
+		return event, nil
 	}
 }
 
-// filter events to only those that match the key exactly.
-func filter(key string, events []Event) []Event {
-	if key == "" || len(events) == 0 {
-		return events
+func newEventFromBatch(req SubscribeRequest, events []Event) Event {
+	first := events[0]
+	if len(events) == 1 {
+		return first
+	}
+	return Event{
+		Topic:   req.Topic,
+		Key:     req.Key,
+		Index:   first.Index,
+		Payload: events,
+	}
+}
+
+func filterByKey(req SubscribeRequest, events []Event) (Event, bool) {
+	event := newEventFromBatch(req, events)
+	if req.Key == "" {
+		return event, true
 	}
 
-	var count int
-	for _, e := range events {
-		if key == e.Key {
-			count++
-		}
+	fn := func(e Event) bool {
+		return req.Key == e.Key
 	}
-
-	// Only allocate a new slice if some events need to be filtered out
-	switch count {
-	case 0:
-		return nil
-	case len(events):
-		return events
-	}
-
-	result := make([]Event, 0, count)
-	for _, e := range events {
-		if key == e.Key {
-			result = append(result, e)
-		}
-	}
-	return result
+	return event.Filter(fn)
 }
 
 // Close the subscription. Subscribers will receive an error when they call Next,
