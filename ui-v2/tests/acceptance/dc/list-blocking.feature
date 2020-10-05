@@ -34,6 +34,7 @@ Feature: dc / list-blocking
       dc: dc-1
       service: service
     ---
+    And I click instances on the tabs
     Then the url should be /dc-1/[Url]
     And pause until I see 3 [Model] models
     And an external edit results in 5 [Model] models
