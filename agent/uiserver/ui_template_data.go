@@ -51,5 +51,13 @@ func uiTemplateDataFromConfig(cfg *config.RuntimeConfig) (map[string]interface{}
 	// account for in the source...
 	d["UIConfigJSON"] = url.PathEscape(string(bs))
 
+	// Also inject additional provider scripts if needed, otherwise strip the
+	// comment.
+	if len(cfg.UIConfig.MetricsProviderFiles) > 0 {
+		d["ExtraScripts"] = []string{
+			cfg.UIConfig.ContentPath + compiledProviderJSPath,
+		}
+	}
+
 	return d, err
 }
