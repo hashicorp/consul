@@ -67,8 +67,7 @@
       </defs>
     {{#each this.downLines as |svg| }}
       <path
-        id={{concat 'downstreamLine-' svg.id}}
-        d={{svg.line}}
+        d={{svg-curve svg.dest src=svg.src}}
         marker-start="url(#dot)"
         marker-end="url(#arrow)"
       />
@@ -77,7 +76,7 @@
   {{/if}}
   </div>
 {{#if (gt @upstreams.length 0)}}
-  <div id="upstreams-column">
+  <div id="upstream-column">
   {{#each-in (group-by "Datacenter" @upstreams) as |dc upstreams|}}
     <div id="upstream-container">
       <p>{{dc}}</p>
@@ -152,8 +151,7 @@
       </defs>
     {{#each this.upLines as |svg| }}
       <path
-        id={{concat 'upstreamLine-' svg.id}}
-        class="line-fill" d={{svg.line}}
+        d={{svg-curve svg.dest src=svg.src}}
         marker-start="url(#dot)"
         marker-end="url(#arrow)"
       />
