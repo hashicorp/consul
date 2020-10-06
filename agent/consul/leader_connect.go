@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"reflect"
@@ -25,10 +24,6 @@ const (
 	// retryBucketSize is the maximum number of stored rate limit attempts for looped
 	// blocking query operations.
 	retryBucketSize = 5
-
-	// maxIntentionTxnSize is the maximum size (in bytes) of a transaction used during
-	// Intention replication.
-	maxIntentionTxnSize = raftWarnSize / 4
 )
 
 var (
@@ -553,24 +548,26 @@ func (s *Server) generateCASignRequest(csr string) *structs.CASignRequest {
 }
 
 // startConnectLeader starts multi-dc connect leader routines.
-func (s *Server) startConnectLeader() {
+func (s *Server) startConnectLeader() error {
+	if !s.config.ConnectEnabled {
+		return nil
+	}
+
 	// Start the Connect secondary DC actions if enabled.
-	if s.config.ConnectEnabled && s.config.Datacenter != s.config.PrimaryDatacenter {
+	if s.config.Datacenter != s.config.PrimaryDatacenter {
 		s.leaderRoutineManager.Start(secondaryCARootWatchRoutineName, s.secondaryCARootWatch)
-		s.leaderRoutineManager.Start(intentionReplicationRoutineName, s.replicateIntentions)
 		s.leaderRoutineManager.Start(secondaryCertRenewWatchRoutineName, s.secondaryIntermediateCertRenewalWatch)
-		s.startConnectLeaderEnterprise()
 	}
 
 	s.leaderRoutineManager.Start(caRootPruningRoutineName, s.runCARootPruning)
+	return s.startIntentionConfigEntryMigration()
 }
 
 // stopConnectLeader stops connect specific leader functions.
 func (s *Server) stopConnectLeader() {
+	s.leaderRoutineManager.Stop(intentionMigrationRoutineName)
 	s.leaderRoutineManager.Stop(secondaryCARootWatchRoutineName)
-	s.leaderRoutineManager.Stop(intentionReplicationRoutineName)
 	s.leaderRoutineManager.Stop(caRootPruningRoutineName)
-	s.stopConnectLeaderEnterprise()
 
 	// If the provider implements NeedsStop, we call Stop to perform any shutdown actions.
 	s.caProviderReconfigurationLock.Lock()
@@ -782,66 +779,6 @@ func (s *Server) secondaryCARootWatch(ctx context.Context) error {
 	return nil
 }
 
-// replicateIntentions executes a blocking query to the primary datacenter to replicate
-// the intentions there to the local state.
-func (s *Server) replicateIntentions(ctx context.Context) error {
-	connectLogger := s.loggers.Named(logging.Connect)
-	args := structs.DCSpecificRequest{
-		Datacenter: s.config.PrimaryDatacenter,
-	}
-
-	connectLogger.Debug("starting Connect intention replication from primary datacenter", "primary", s.config.PrimaryDatacenter)
-
-	retryLoopBackoff(ctx, func() error {
-		// Always use the latest replication token value in case it changed while looping.
-		args.QueryOptions.Token = s.tokens.ReplicationToken()
-
-		var remote structs.IndexedIntentions
-		if err := s.forwardDC("Intention.List", s.config.PrimaryDatacenter, &args, &remote); err != nil {
-			return err
-		}
-
-		_, local, err := s.fsm.State().Intentions(nil, s.replicationEnterpriseMeta())
-		if err != nil {
-			return err
-		}
-
-		// Compute the diff between the remote and local intentions.
-		deletes, updates := diffIntentions(local, remote.Intentions)
-		txnOpSets := batchIntentionUpdates(deletes, updates)
-
-		// Apply batched updates to the state store.
-		for _, ops := range txnOpSets {
-			txnReq := structs.TxnRequest{Ops: ops}
-
-			resp, err := s.raftApply(structs.TxnRequestType, &txnReq)
-			if err != nil {
-				return err
-			}
-			if respErr, ok := resp.(error); ok {
-				return respErr
-			}
-
-			if txnResp, ok := resp.(structs.TxnResponse); ok {
-				if len(txnResp.Errors) > 0 {
-					return txnResp.Error()
-				}
-			} else {
-				return fmt.Errorf("unexpected return type %T", resp)
-			}
-		}
-
-		args.QueryOptions.MinQueryIndex = nextIndexVal(args.QueryOptions.MinQueryIndex, remote.QueryMeta.Index)
-		return nil
-	}, func(err error) {
-		connectLogger.Error("error replicating intentions",
-			"routine", intentionReplicationRoutineName,
-			"error", err,
-		)
-	})
-	return nil
-}
-
 // retryLoopBackoff loops a given function indefinitely, backing off exponentially
 // upon errors up to a maximum of maxRetryBackoff seconds.
 func retryLoopBackoff(ctx context.Context, loopFn func() error, errFn func(error)) {
@@ -886,79 +823,6 @@ func retryLoopBackoffHandleSuccess(ctx context.Context, loopFn func() error, err
 		// Reset the failed attempts after a successful run.
 		failedAttempts = 0
 	}
-}
-
-// diffIntentions computes the difference between the local and remote intentions
-// and returns lists of deletes and updates.
-func diffIntentions(local, remote structs.Intentions) (structs.Intentions, structs.Intentions) {
-	localIdx := make(map[string][]byte, len(local))
-	remoteIdx := make(map[string]struct{}, len(remote))
-
-	var deletes structs.Intentions
-	var updates structs.Intentions
-
-	for _, intention := range local {
-		localIdx[intention.ID] = intention.Hash
-	}
-	for _, intention := range remote {
-		remoteIdx[intention.ID] = struct{}{}
-	}
-
-	for _, intention := range local {
-		if _, ok := remoteIdx[intention.ID]; !ok {
-			deletes = append(deletes, intention)
-		}
-	}
-
-	for _, intention := range remote {
-		existingHash, ok := localIdx[intention.ID]
-		if !ok {
-			updates = append(updates, intention)
-		} else if bytes.Compare(existingHash, intention.Hash) != 0 {
-			updates = append(updates, intention)
-		}
-	}
-
-	return deletes, updates
-}
-
-// batchIntentionUpdates breaks up the given updates into sets of TxnOps based
-// on the estimated size of the operations.
-func batchIntentionUpdates(deletes, updates structs.Intentions) []structs.TxnOps {
-	var txnOps structs.TxnOps
-	for _, delete := range deletes {
-		deleteOp := &structs.TxnIntentionOp{
-			Op:        structs.IntentionOpDelete,
-			Intention: delete,
-		}
-		txnOps = append(txnOps, &structs.TxnOp{Intention: deleteOp})
-	}
-
-	for _, update := range updates {
-		updateOp := &structs.TxnIntentionOp{
-			Op:        structs.IntentionOpUpdate,
-			Intention: update,
-		}
-		txnOps = append(txnOps, &structs.TxnOp{Intention: updateOp})
-	}
-
-	// Divide the operations into chunks according to maxIntentionTxnSize.
-	var batchedOps []structs.TxnOps
-	for batchStart := 0; batchStart < len(txnOps); {
-		// inner loop finds the last element to include in this batch.
-		batchSize := 0
-		batchEnd := batchStart
-		for ; batchEnd < len(txnOps) && batchSize < maxIntentionTxnSize; batchEnd += 1 {
-			batchSize += txnOps[batchEnd].Intention.Intention.EstimateSize()
-		}
-
-		batchedOps = append(batchedOps, txnOps[batchStart:batchEnd])
-
-		// txnOps[batchEnd] wasn't included as the slicing doesn't include the element at the stop index
-		batchStart = batchEnd
-	}
-
-	return batchedOps
 }
 
 // nextIndexVal computes the next index value to query for, resetting to zero

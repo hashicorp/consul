@@ -1,12 +1,14 @@
 package consul
 
 import (
+	"fmt"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/sdk/testutil"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/require"
 )
@@ -15,7 +17,6 @@ import (
 func TestIntentionApply_new(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -44,8 +45,8 @@ func TestIntentionApply_new(t *testing.T) {
 	now := time.Now()
 
 	// Create
-	require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
-	require.NotEmpty(reply)
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
+	require.NotEmpty(t, reply)
 
 	// Read
 	ixn.Intention.ID = reply
@@ -55,20 +56,44 @@ func TestIntentionApply_new(t *testing.T) {
 			IntentionID: ixn.Intention.ID,
 		}
 		var resp structs.IndexedIntentions
-		require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp))
-		require.Len(resp.Intentions, 1)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp))
+		require.Len(t, resp.Intentions, 1)
 		actual := resp.Intentions[0]
-		require.Equal(resp.Index, actual.ModifyIndex)
-		require.WithinDuration(now, actual.CreatedAt, 5*time.Second)
-		require.WithinDuration(now, actual.UpdatedAt, 5*time.Second)
+		require.Equal(t, resp.Index, actual.ModifyIndex)
+		require.WithinDuration(t, now, actual.CreatedAt, 5*time.Second)
+		require.WithinDuration(t, now, actual.UpdatedAt, 5*time.Second)
 
 		actual.CreateIndex, actual.ModifyIndex = 0, 0
 		actual.CreatedAt = ixn.Intention.CreatedAt
 		actual.UpdatedAt = ixn.Intention.UpdatedAt
 		actual.Hash = ixn.Intention.Hash
+		//nolint:staticcheck
 		ixn.Intention.UpdatePrecedence()
-		require.Equal(ixn.Intention, actual)
+		require.Equal(t, ixn.Intention, actual)
 	}
+
+	// Rename should fail
+	t.Run("renaming the destination should fail", func(t *testing.T) {
+		// Setup a basic record to create
+		ixn2 := structs.IntentionRequest{
+			Datacenter: "dc1",
+			Op:         structs.IntentionOpUpdate,
+			Intention: &structs.Intention{
+				ID:              ixn.Intention.ID,
+				SourceNS:        structs.IntentionDefaultNamespace,
+				SourceName:      "test",
+				DestinationNS:   structs.IntentionDefaultNamespace,
+				DestinationName: "test-updated",
+				Action:          structs.IntentionActionAllow,
+				SourceType:      structs.IntentionSourceConsul,
+				Meta:            map[string]string{},
+			},
+		}
+
+		var reply string
+		err := msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn2, &reply)
+		testutil.RequireErrorContains(t, err, "Cannot modify DestinationNS or DestinationName for an intention once it exists.")
+	})
 }
 
 // Test the source type defaults
@@ -151,7 +176,6 @@ func TestIntentionApply_createWithID(t *testing.T) {
 func TestIntentionApply_updateGood(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -177,8 +201,8 @@ func TestIntentionApply_updateGood(t *testing.T) {
 	var reply string
 
 	// Create
-	require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
-	require.NotEmpty(reply)
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
+	require.NotEmpty(t, reply)
 
 	// Read CreatedAt
 	var createdAt time.Time
@@ -189,8 +213,8 @@ func TestIntentionApply_updateGood(t *testing.T) {
 			IntentionID: ixn.Intention.ID,
 		}
 		var resp structs.IndexedIntentions
-		require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp))
-		require.Len(resp.Intentions, 1)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp))
+		require.Len(t, resp.Intentions, 1)
 		actual := resp.Intentions[0]
 		createdAt = actual.CreatedAt
 	}
@@ -201,8 +225,8 @@ func TestIntentionApply_updateGood(t *testing.T) {
 	// Update
 	ixn.Op = structs.IntentionOpUpdate
 	ixn.Intention.ID = reply
-	ixn.Intention.SourceName = "*"
-	require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
+	ixn.Intention.Description = "updated"
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
 
 	// Read
 	ixn.Intention.ID = reply
@@ -212,18 +236,19 @@ func TestIntentionApply_updateGood(t *testing.T) {
 			IntentionID: ixn.Intention.ID,
 		}
 		var resp structs.IndexedIntentions
-		require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp))
-		require.Len(resp.Intentions, 1)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp))
+		require.Len(t, resp.Intentions, 1)
 		actual := resp.Intentions[0]
-		require.Equal(createdAt, actual.CreatedAt)
-		require.WithinDuration(time.Now(), actual.UpdatedAt, 5*time.Second)
+		require.Equal(t, createdAt, actual.CreatedAt)
+		require.WithinDuration(t, time.Now(), actual.UpdatedAt, 5*time.Second)
 
 		actual.CreateIndex, actual.ModifyIndex = 0, 0
 		actual.CreatedAt = ixn.Intention.CreatedAt
 		actual.UpdatedAt = ixn.Intention.UpdatedAt
 		actual.Hash = ixn.Intention.Hash
+		//nolint:staticcheck
 		ixn.Intention.UpdatePrecedence()
-		require.Equal(ixn.Intention, actual)
+		require.Equal(t, ixn.Intention, actual)
 	}
 }
 
@@ -305,6 +330,424 @@ func TestIntentionApply_deleteGood(t *testing.T) {
 	}
 }
 
+func TestIntentionApply_WithoutIDs(t *testing.T) {
+	t.Parallel()
+
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	waitForLeaderEstablishment(t, s1)
+
+	defaultEntMeta := structs.DefaultEnterpriseMeta()
+
+	opApply := func(req *structs.IntentionRequest) error {
+		req.Datacenter = "dc1"
+		var ignored string
+		return msgpackrpc.CallWithCodec(codec, "Intention.Apply", &req, &ignored)
+	}
+
+	opGet := func(req *structs.IntentionQueryRequest) (*structs.IndexedIntentions, error) {
+		req.Datacenter = "dc1"
+		var resp structs.IndexedIntentions
+		if err := msgpackrpc.CallWithCodec(codec, "Intention.Get", req, &resp); err != nil {
+			return nil, err
+		}
+		return &resp, nil
+	}
+
+	opList := func() (*structs.IndexedIntentions, error) {
+		req := &structs.IntentionListRequest{
+			Datacenter:     "dc1",
+			EnterpriseMeta: *structs.WildcardEnterpriseMeta(),
+		}
+		var resp structs.IndexedIntentions
+		if err := msgpackrpc.CallWithCodec(codec, "Intention.List", req, &resp); err != nil {
+			return nil, err
+		}
+		return &resp, nil
+	}
+
+	configEntryUpsert := func(entry *structs.ServiceIntentionsConfigEntry) error {
+		req := &structs.ConfigEntryRequest{
+			Datacenter: "dc1",
+			Op:         structs.ConfigEntryUpsert,
+			Entry:      entry,
+		}
+		var ignored bool
+		return msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", req, &ignored)
+	}
+
+	getConfigEntry := func(kind, name string) (*structs.ServiceIntentionsConfigEntry, error) {
+		state := s1.fsm.State()
+		_, entry, err := state.ConfigEntry(nil, kind, name, defaultEntMeta)
+		if err != nil {
+			return nil, err
+		}
+
+		ixn, ok := entry.(*structs.ServiceIntentionsConfigEntry)
+		if !ok {
+			return nil, fmt.Errorf("unexpected type: %T", entry)
+		}
+		return ixn, nil
+	}
+
+	// Setup a basic record to create
+	require.NoError(t, opApply(&structs.IntentionRequest{
+		Op: structs.IntentionOpUpsert,
+		Intention: &structs.Intention{
+			SourceName:      "test",
+			DestinationName: "test",
+			Action:          structs.IntentionActionAllow,
+			Description:     "original",
+		},
+	}))
+
+	// Read it back.
+	{
+		resp, err := opGet(&structs.IntentionQueryRequest{
+			Exact: &structs.IntentionQueryExact{
+				SourceName:      "test",
+				DestinationName: "test",
+			},
+		})
+		require.NoError(t, err)
+
+		require.Len(t, resp.Intentions, 1)
+		got := resp.Intentions[0]
+		require.Equal(t, "original", got.Description)
+
+		// Verify it is in the new-style.
+		require.Empty(t, got.ID)
+		require.True(t, got.CreatedAt.IsZero())
+		require.True(t, got.UpdatedAt.IsZero())
+	}
+
+	// Double check that there's only 1.
+	{
+		resp, err := opList()
+		require.NoError(t, err)
+		require.Len(t, resp.Intentions, 1)
+	}
+
+	// Verify the config entry structure is expected.
+	{
+		entry, err := getConfigEntry(structs.ServiceIntentions, "test")
+		require.NoError(t, err)
+		require.NotNil(t, entry)
+
+		expect := &structs.ServiceIntentionsConfigEntry{
+			Kind:           structs.ServiceIntentions,
+			Name:           "test",
+			EnterpriseMeta: *defaultEntMeta,
+			Sources: []*structs.SourceIntention{
+				{
+					Name:           "test",
+					EnterpriseMeta: *defaultEntMeta,
+					Action:         structs.IntentionActionAllow,
+					Description:    "original",
+					Precedence:     9,
+					Type:           structs.IntentionSourceConsul,
+				},
+			},
+			RaftIndex: entry.RaftIndex,
+		}
+
+		require.Equal(t, expect, entry)
+	}
+
+	// Update in place.
+	require.NoError(t, opApply(&structs.IntentionRequest{
+		Op: structs.IntentionOpUpsert,
+		Intention: &structs.Intention{
+			SourceName:      "test",
+			DestinationName: "test",
+			Action:          structs.IntentionActionAllow,
+			Description:     "updated",
+		},
+	}))
+
+	// Read it back.
+	{
+		resp, err := opGet(&structs.IntentionQueryRequest{
+			Exact: &structs.IntentionQueryExact{
+				SourceName:      "test",
+				DestinationName: "test",
+			},
+		})
+		require.NoError(t, err)
+
+		require.Len(t, resp.Intentions, 1)
+		got := resp.Intentions[0]
+		require.Equal(t, "updated", got.Description)
+
+		// Verify it is in the new-style.
+		require.Empty(t, got.ID)
+		require.True(t, got.CreatedAt.IsZero())
+		require.True(t, got.UpdatedAt.IsZero())
+	}
+
+	// Double check that there's only 1.
+	{
+		resp, err := opList()
+		require.NoError(t, err)
+		require.Len(t, resp.Intentions, 1)
+	}
+
+	// Create a second one sharing the same destination
+	require.NoError(t, opApply(&structs.IntentionRequest{
+		Op: structs.IntentionOpUpsert,
+		Intention: &structs.Intention{
+			SourceName:      "assay",
+			DestinationName: "test",
+			Action:          structs.IntentionActionDeny,
+			Description:     "original-2",
+		},
+	}))
+
+	// Read it back.
+	{
+		resp, err := opGet(&structs.IntentionQueryRequest{
+			Exact: &structs.IntentionQueryExact{
+				SourceName:      "assay",
+				DestinationName: "test",
+			},
+		})
+		require.NoError(t, err)
+
+		require.Len(t, resp.Intentions, 1)
+		got := resp.Intentions[0]
+		require.Equal(t, "original-2", got.Description)
+
+		// Verify it is in the new-style.
+		require.Empty(t, got.ID)
+		require.True(t, got.CreatedAt.IsZero())
+		require.True(t, got.UpdatedAt.IsZero())
+	}
+
+	// Double check that there's 2 now.
+	{
+		resp, err := opList()
+		require.NoError(t, err)
+		require.Len(t, resp.Intentions, 2)
+	}
+
+	// Verify the config entry structure is expected.
+	{
+		entry, err := getConfigEntry(structs.ServiceIntentions, "test")
+		require.NoError(t, err)
+		require.NotNil(t, entry)
+
+		expect := &structs.ServiceIntentionsConfigEntry{
+			Kind:           structs.ServiceIntentions,
+			Name:           "test",
+			EnterpriseMeta: *defaultEntMeta,
+			Sources: []*structs.SourceIntention{
+				{
+					Name:           "test",
+					EnterpriseMeta: *defaultEntMeta,
+					Action:         structs.IntentionActionAllow,
+					Description:    "updated",
+					Precedence:     9,
+					Type:           structs.IntentionSourceConsul,
+				},
+				{
+					Name:           "assay",
+					EnterpriseMeta: *defaultEntMeta,
+					Action:         structs.IntentionActionDeny,
+					Description:    "original-2",
+					Precedence:     9,
+					Type:           structs.IntentionSourceConsul,
+				},
+			},
+			RaftIndex: entry.RaftIndex,
+		}
+
+		require.Equal(t, expect, entry)
+	}
+
+	// Delete the original
+	require.NoError(t, opApply(&structs.IntentionRequest{
+		Op: structs.IntentionOpDelete,
+		Intention: &structs.Intention{
+			SourceName:      "test",
+			DestinationName: "test",
+		},
+	}))
+
+	// Read it back (not found)
+	{
+		_, err := opGet(&structs.IntentionQueryRequest{
+			Exact: &structs.IntentionQueryExact{
+				SourceName:      "test",
+				DestinationName: "test",
+			},
+		})
+		testutil.RequireErrorContains(t, err, ErrIntentionNotFound.Error())
+	}
+
+	// Double check that there's 1 again.
+	{
+		resp, err := opList()
+		require.NoError(t, err)
+		require.Len(t, resp.Intentions, 1)
+	}
+
+	// Verify the config entry structure is expected.
+	{
+		entry, err := getConfigEntry(structs.ServiceIntentions, "test")
+		require.NoError(t, err)
+		require.NotNil(t, entry)
+
+		expect := &structs.ServiceIntentionsConfigEntry{
+			Kind:           structs.ServiceIntentions,
+			Name:           "test",
+			EnterpriseMeta: *defaultEntMeta,
+			Sources: []*structs.SourceIntention{
+				{
+					Name:           "assay",
+					EnterpriseMeta: *defaultEntMeta,
+					Action:         structs.IntentionActionDeny,
+					Description:    "original-2",
+					Precedence:     9,
+					Type:           structs.IntentionSourceConsul,
+				},
+			},
+			RaftIndex: entry.RaftIndex,
+		}
+
+		require.Equal(t, expect, entry)
+	}
+
+	// Set metadata on the config entry directly.
+	{
+		require.NoError(t, configEntryUpsert(&structs.ServiceIntentionsConfigEntry{
+			Kind:           structs.ServiceIntentions,
+			Name:           "test",
+			EnterpriseMeta: *defaultEntMeta,
+			Meta: map[string]string{
+				"foo": "bar",
+				"zim": "gir",
+			},
+			Sources: []*structs.SourceIntention{
+				{
+					Name:           "assay",
+					EnterpriseMeta: *defaultEntMeta,
+					Action:         structs.IntentionActionDeny,
+					Description:    "original-2",
+					Precedence:     9,
+					Type:           structs.IntentionSourceConsul,
+				},
+			},
+		}))
+	}
+
+	// Attempt to create a new intention and set the metadata.
+	{
+		err := opApply(&structs.IntentionRequest{
+			Op: structs.IntentionOpUpsert,
+			Intention: &structs.Intention{
+				SourceName:      "foo",
+				DestinationName: "bar",
+				Action:          structs.IntentionActionDeny,
+				Meta:            map[string]string{"horseshoe": "crab"},
+			},
+		})
+		testutil.RequireErrorContains(t, err, "Meta must not be specified")
+	}
+
+	// Attempt to update an intention and change the metadata.
+	{
+		err := opApply(&structs.IntentionRequest{
+			Op: structs.IntentionOpUpsert,
+			Intention: &structs.Intention{
+				SourceName:      "assay",
+				DestinationName: "test",
+				Action:          structs.IntentionActionDeny,
+				Description:     "original-3",
+				Meta:            map[string]string{"horseshoe": "crab"},
+			},
+		})
+		testutil.RequireErrorContains(t, err, "Meta must not be specified, or should be unchanged during an update.")
+	}
+
+	// Try again with the same metadata.
+	require.NoError(t, opApply(&structs.IntentionRequest{
+		Op: structs.IntentionOpUpsert,
+		Intention: &structs.Intention{
+			SourceName:      "assay",
+			DestinationName: "test",
+			Action:          structs.IntentionActionDeny,
+			Description:     "original-3",
+			Meta: map[string]string{
+				"foo": "bar",
+				"zim": "gir",
+			},
+		},
+	}))
+
+	// Read it back.
+	{
+		resp, err := opGet(&structs.IntentionQueryRequest{
+			Exact: &structs.IntentionQueryExact{
+				SourceName:      "assay",
+				DestinationName: "test",
+			},
+		})
+		require.NoError(t, err)
+
+		require.Len(t, resp.Intentions, 1)
+		got := resp.Intentions[0]
+		require.Equal(t, "original-3", got.Description)
+		require.Equal(t, map[string]string{
+			"foo": "bar",
+			"zim": "gir",
+		}, got.Meta)
+
+		// Verify it is in the new-style.
+		require.Empty(t, got.ID)
+		require.True(t, got.CreatedAt.IsZero())
+		require.True(t, got.UpdatedAt.IsZero())
+	}
+
+	// Try again with NO metadata.
+	require.NoError(t, opApply(&structs.IntentionRequest{
+		Op: structs.IntentionOpUpsert,
+		Intention: &structs.Intention{
+			SourceName:      "assay",
+			DestinationName: "test",
+			Action:          structs.IntentionActionDeny,
+			Description:     "original-4",
+		},
+	}))
+
+	// Read it back.
+	{
+		resp, err := opGet(&structs.IntentionQueryRequest{
+			Exact: &structs.IntentionQueryExact{
+				SourceName:      "assay",
+				DestinationName: "test",
+			},
+		})
+		require.NoError(t, err)
+
+		require.Len(t, resp.Intentions, 1)
+		got := resp.Intentions[0]
+		require.Equal(t, "original-4", got.Description)
+		require.Equal(t, map[string]string{
+			"foo": "bar",
+			"zim": "gir",
+		}, got.Meta)
+
+		// Verify it is in the new-style.
+		require.Empty(t, got.ID)
+		require.True(t, got.CreatedAt.IsZero())
+		require.True(t, got.UpdatedAt.IsZero())
+	}
+}
+
 // Test apply with a deny ACL
 func TestIntentionApply_aclDeny(t *testing.T) {
 	t.Parallel()
@@ -380,6 +823,7 @@ service "foo" {
 		actual.CreatedAt = ixn.Intention.CreatedAt
 		actual.UpdatedAt = ixn.Intention.UpdatedAt
 		actual.Hash = ixn.Intention.Hash
+		//nolint:staticcheck
 		ixn.Intention.UpdatePrecedence()
 		require.Equal(ixn.Intention, actual)
 	}
@@ -406,7 +850,7 @@ func TestIntention_WildcardACLEnforcement(t *testing.T) {
 	denyToken, err := upsertTestTokenWithPolicyRules(codec, TestDefaultMasterToken, "dc1", `service_prefix "" { policy = "deny" intentions = "deny" }`)
 	require.NoError(t, err)
 
-	doIntentionCreate := func(t *testing.T, token string, deny bool) string {
+	doIntentionCreate := func(t *testing.T, token string, dest string, deny bool) string {
 		t.Helper()
 		ixn := structs.IntentionRequest{
 			Datacenter: "dc1",
@@ -415,7 +859,7 @@ func TestIntention_WildcardACLEnforcement(t *testing.T) {
 				SourceNS:        "default",
 				SourceName:      "*",
 				DestinationNS:   "default",
-				DestinationName: "*",
+				DestinationName: dest,
 				Action:          structs.IntentionActionAllow,
 				SourceType:      structs.IntentionSourceConsul,
 			},
@@ -437,7 +881,7 @@ func TestIntention_WildcardACLEnforcement(t *testing.T) {
 	t.Run("deny-write-for-read-token", func(t *testing.T) {
 		// This tests ensures that tokens with only read access to all intentions
 		// cannot create a wildcard intention
-		doIntentionCreate(t, readToken.SecretID, true)
+		doIntentionCreate(t, readToken.SecretID, "*", true)
 	})
 
 	t.Run("deny-write-for-exact-wildcard-rule", func(t *testing.T) {
@@ -446,7 +890,7 @@ func TestIntention_WildcardACLEnforcement(t *testing.T) {
 		//    intentions = "write"
 		// }
 		// will not actually allow creating an intention with a wildcard service name
-		doIntentionCreate(t, exactToken.SecretID, true)
+		doIntentionCreate(t, exactToken.SecretID, "*", true)
 	})
 
 	t.Run("deny-write-for-prefix-wildcard-rule", func(t *testing.T) {
@@ -455,14 +899,14 @@ func TestIntention_WildcardACLEnforcement(t *testing.T) {
 		//    intentions = "write"
 		// }
 		// will not actually allow creating an intention with a wildcard service name
-		doIntentionCreate(t, wildcardPrefixToken.SecretID, true)
+		doIntentionCreate(t, wildcardPrefixToken.SecretID, "*", true)
 	})
 
 	var intentionID string
 	allowWriteOk := t.Run("allow-write", func(t *testing.T) {
 		// tests that a token with all the required privileges can create
 		// intentions with a wildcard destination
-		intentionID = doIntentionCreate(t, writeToken.SecretID, false)
+		intentionID = doIntentionCreate(t, writeToken.SecretID, "*", false)
 	})
 
 	requireAllowWrite := func(t *testing.T) {
@@ -522,7 +966,7 @@ func TestIntention_WildcardACLEnforcement(t *testing.T) {
 	doIntentionList := func(t *testing.T, token string, deny bool) {
 		t.Helper()
 		requireAllowWrite(t)
-		req := &structs.DCSpecificRequest{
+		req := &structs.IntentionListRequest{
 			Datacenter:   "dc1",
 			QueryOptions: structs.QueryOptions{Token: token},
 		}
@@ -609,7 +1053,11 @@ func TestIntention_WildcardACLEnforcement(t *testing.T) {
 		doIntentionMatch(t, denyToken.SecretID, true)
 	})
 
-	doIntentionUpdate := func(t *testing.T, token string, dest string, deny bool) {
+	// Since we can't rename the destination, create a new intention for the rest of this test.
+	wildIntentionID := intentionID
+	fooIntentionID := doIntentionCreate(t, writeToken.SecretID, "foo", false)
+
+	doIntentionUpdate := func(t *testing.T, token string, intentionID, dest, description string, deny bool) {
 		t.Helper()
 		requireAllowWrite(t)
 		ixn := structs.IntentionRequest{
@@ -621,6 +1069,7 @@ func TestIntention_WildcardACLEnforcement(t *testing.T) {
 				SourceName:      "*",
 				DestinationNS:   "default",
 				DestinationName: dest,
+				Description:     description,
 				Action:          structs.IntentionActionAllow,
 				SourceType:      structs.IntentionSourceConsul,
 			},
@@ -637,19 +1086,16 @@ func TestIntention_WildcardACLEnforcement(t *testing.T) {
 	}
 
 	t.Run("deny-update-for-foo-token", func(t *testing.T) {
-		doIntentionUpdate(t, fooToken.SecretID, "foo", true)
+		doIntentionUpdate(t, fooToken.SecretID, wildIntentionID, "*", "wild-desc", true)
 	})
 
 	t.Run("allow-update-for-prefix-token", func(t *testing.T) {
-		// this tests that regardless of going from a wildcard intention
-		// to a non-wildcard or the opposite direction that the permissions
-		// are checked correctly. This also happens to leave the intention
-		// in a state ready for verifying similar things with deletion
-		doIntentionUpdate(t, writeToken.SecretID, "foo", false)
-		doIntentionUpdate(t, writeToken.SecretID, "*", false)
+		// This tests that the prefix token can edit wildcard intentions and regular intentions.
+		doIntentionUpdate(t, writeToken.SecretID, fooIntentionID, "foo", "foo-desc-two", false)
+		doIntentionUpdate(t, writeToken.SecretID, wildIntentionID, "*", "wild-desc-two", false)
 	})
 
-	doIntentionDelete := func(t *testing.T, token string, deny bool) {
+	doIntentionDelete := func(t *testing.T, token string, intentionID string, deny bool) {
 		t.Helper()
 		requireAllowWrite(t)
 		ixn := structs.IntentionRequest{
@@ -671,7 +1117,7 @@ func TestIntention_WildcardACLEnforcement(t *testing.T) {
 	}
 
 	t.Run("deny-delete-for-read-token", func(t *testing.T) {
-		doIntentionDelete(t, readToken.SecretID, true)
+		doIntentionDelete(t, readToken.SecretID, fooIntentionID, true)
 	})
 
 	t.Run("deny-delete-for-exact-wildcard-rule", func(t *testing.T) {
@@ -680,7 +1126,7 @@ func TestIntention_WildcardACLEnforcement(t *testing.T) {
 		//    intentions = "write"
 		// }
 		// will not actually allow deleting an intention with a wildcard service name
-		doIntentionDelete(t, exactToken.SecretID, true)
+		doIntentionDelete(t, exactToken.SecretID, fooIntentionID, true)
 	})
 
 	t.Run("deny-delete-for-prefix-wildcard-rule", func(t *testing.T) {
@@ -689,13 +1135,13 @@ func TestIntention_WildcardACLEnforcement(t *testing.T) {
 		//    intentions = "write"
 		// }
 		// will not actually allow creating an intention with a wildcard service name
-		doIntentionDelete(t, wildcardPrefixToken.SecretID, true)
+		doIntentionDelete(t, wildcardPrefixToken.SecretID, fooIntentionID, true)
 	})
 
 	t.Run("allow-delete", func(t *testing.T) {
 		// tests that a token with all the required privileges can delete
 		// intentions with a wildcard destination
-		doIntentionDelete(t, writeToken.SecretID, false)
+		doIntentionDelete(t, writeToken.SecretID, fooIntentionID, false)
 	})
 }
 
@@ -1056,7 +1502,7 @@ func TestIntentionList(t *testing.T) {
 
 	// Test with no intentions inserted yet
 	{
-		req := &structs.DCSpecificRequest{
+		req := &structs.IntentionListRequest{
 			Datacenter: "dc1",
 		}
 		var resp structs.IndexedIntentions
@@ -1101,7 +1547,7 @@ func TestIntentionList_acl(t *testing.T) {
 
 	// Test with no token
 	t.Run("no-token", func(t *testing.T) {
-		req := &structs.DCSpecificRequest{
+		req := &structs.IntentionListRequest{
 			Datacenter: "dc1",
 		}
 		var resp structs.IndexedIntentions
@@ -1111,7 +1557,7 @@ func TestIntentionList_acl(t *testing.T) {
 
 	// Test with management token
 	t.Run("master-token", func(t *testing.T) {
-		req := &structs.DCSpecificRequest{
+		req := &structs.IntentionListRequest{
 			Datacenter:   "dc1",
 			QueryOptions: structs.QueryOptions{Token: TestDefaultMasterToken},
 		}
@@ -1122,7 +1568,7 @@ func TestIntentionList_acl(t *testing.T) {
 
 	// Test with user token
 	t.Run("user-token", func(t *testing.T) {
-		req := &structs.DCSpecificRequest{
+		req := &structs.IntentionListRequest{
 			Datacenter:   "dc1",
 			QueryOptions: structs.QueryOptions{Token: token.SecretID},
 		}
@@ -1132,7 +1578,7 @@ func TestIntentionList_acl(t *testing.T) {
 	})
 
 	t.Run("filtered", func(t *testing.T) {
-		req := &structs.DCSpecificRequest{
+		req := &structs.IntentionListRequest{
 			Datacenter: "dc1",
 			QueryOptions: structs.QueryOptions{
 				Token:  TestDefaultMasterToken,
@@ -1510,5 +1956,46 @@ func TestIntentionCheck_match(t *testing.T) {
 		var resp structs.IntentionQueryCheckResponse
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Intention.Check", req, &resp))
 		require.False(t, resp.Allowed)
+	}
+}
+
+func TestEqualStringMaps(t *testing.T) {
+	m1 := map[string]string{
+		"foo": "a",
+	}
+	m2 := map[string]string{
+		"foo": "a",
+		"bar": "b",
+	}
+	var m3 map[string]string
+
+	m4 := map[string]string{
+		"dog": "",
+	}
+
+	m5 := map[string]string{
+		"cat": "",
+	}
+
+	tests := []struct {
+		a      map[string]string
+		b      map[string]string
+		result bool
+	}{
+		{m1, m1, true},
+		{m2, m2, true},
+		{m1, m2, false},
+		{m2, m1, false},
+		{m2, m2, true},
+		{m3, m1, false},
+		{m3, m3, true},
+		{m4, m5, false},
+	}
+
+	for i, test := range tests {
+		actual := equalStringMaps(test.a, test.b)
+		if actual != test.result {
+			t.Fatalf("case %d, expected %v, got %v", i, test.result, actual)
+		}
 	}
 }

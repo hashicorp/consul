@@ -620,7 +620,7 @@ func TestUIGatewayServiceNodes_Terminating(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/v1/internal/ui/gateway-services-nodes/terminating-gateway", nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.UIGatewayServicesNodes(resp, req)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assertIndex(t, resp)
 
 	summary := obj.([]*ServiceSummary)
@@ -648,7 +648,7 @@ func TestUIGatewayServiceNodes_Terminating(t *testing.T) {
 			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 		},
 	}
-	assert.ElementsMatch(t, expect, summary)
+	require.ElementsMatch(t, expect, summary)
 }
 
 func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
@@ -773,7 +773,7 @@ func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/v1/internal/ui/gateway-services-nodes/ingress-gateway", nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.UIGatewayServicesNodes(resp, req)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assertIndex(t, resp)
 
 	// Construct expected addresses so that differences between OSS/Ent are handled by code
@@ -819,7 +819,7 @@ func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
 		sum.GatewayConfig.addressesSet = nil
 		sum.checks = nil
 	}
-	assert.ElementsMatch(t, expect, dump)
+	require.ElementsMatch(t, expect, dump)
 }
 
 func TestUIGatewayIntentions(t *testing.T) {
@@ -887,7 +887,7 @@ func TestUIGatewayIntentions(t *testing.T) {
 			req.Intention.DestinationName = v
 
 			var reply string
-			assert.NoError(t, a.RPC("Intention.Apply", &req, &reply))
+			require.NoError(t, a.RPC("Intention.Apply", &req, &reply))
 
 			req = structs.IntentionRequest{
 				Datacenter: "dc1",
@@ -896,7 +896,7 @@ func TestUIGatewayIntentions(t *testing.T) {
 			}
 			req.Intention.SourceName = v
 			req.Intention.DestinationName = "api"
-			assert.NoError(t, a.RPC("Intention.Apply", &req, &reply))
+			require.NoError(t, a.RPC("Intention.Apply", &req, &reply))
 		}
 	}
 
@@ -904,11 +904,11 @@ func TestUIGatewayIntentions(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/v1/internal/ui/gateway-intentions/terminating-gateway", nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.UIGatewayIntentions(resp, req)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assertIndex(t, resp)
 
 	intentions := obj.(structs.Intentions)
-	assert.Len(t, intentions, 3)
+	require.Len(t, intentions, 3)
 
 	// Only intentions with linked services as a destination should be returned, and wildcard matches should be deduped
 	expected := []string{"postgres", "*", "redis"}
@@ -917,7 +917,7 @@ func TestUIGatewayIntentions(t *testing.T) {
 		intentions[1].DestinationName,
 		intentions[2].DestinationName,
 	}
-	assert.ElementsMatch(t, expected, actual)
+	require.ElementsMatch(t, expected, actual)
 }
 
 func TestUIEndpoint_modifySummaryForGatewayService_UseRequestedDCInsteadOfConfigured(t *testing.T) {

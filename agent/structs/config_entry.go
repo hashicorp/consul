@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
@@ -23,11 +24,23 @@ const (
 	ServiceResolver    string = "service-resolver"
 	IngressGateway     string = "ingress-gateway"
 	TerminatingGateway string = "terminating-gateway"
+	ServiceIntentions  string = "service-intentions"
 
 	ProxyConfigGlobal string = "global"
 
 	DefaultServiceProtocol = "tcp"
 )
+
+var AllConfigEntryKinds = []string{
+	ServiceDefaults,
+	ProxyDefaults,
+	ServiceRouter,
+	ServiceSplitter,
+	ServiceResolver,
+	IngressGateway,
+	TerminatingGateway,
+	ServiceIntentions,
+}
 
 // ConfigEntry is the interface for centralized configuration stored in Raft.
 // Currently only service-defaults and proxy-defaults are supported.
@@ -47,6 +60,19 @@ type ConfigEntry interface {
 	GetMeta() map[string]string
 	GetEnterpriseMeta() *EnterpriseMeta
 	GetRaftIndex() *RaftIndex
+}
+
+// UpdatableConfigEntry is the optional interface implemented by a ConfigEntry
+// if it wants more control over how the update part of upsert works
+// differently than a straight create. By default without this implementation
+// all upsert operations are replacements.
+type UpdatableConfigEntry interface {
+	// UpdateOver is called from the state machine when an identically named
+	// config entry already exists. This lets the config entry optionally
+	// choose to use existing information from a config entry (such as
+	// CreateTime) to slightly adjust how the update actually happens.
+	UpdateOver(prev ConfigEntry) error
+	ConfigEntry
 }
 
 // ServiceConfiguration is the top-level struct for the configuration of a service
@@ -311,6 +337,7 @@ func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
 			decode.HookWeakDecodeFromSlice,
 			decode.HookTranslateKeys,
 			mapstructure.StringToTimeDurationHookFunc(),
+			mapstructure.StringToTimeHookFunc(time.RFC3339),
 		),
 		Metadata:         &md,
 		Result:           &entry,
@@ -421,6 +448,8 @@ func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &IngressGatewayConfigEntry{Name: name}, nil
 	case TerminatingGateway:
 		return &TerminatingGatewayConfigEntry{Name: name}, nil
+	case ServiceIntentions:
+		return &ServiceIntentionsConfigEntry{Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}
@@ -433,6 +462,8 @@ func ValidateConfigEntryKind(kind string) bool {
 	case ServiceRouter, ServiceSplitter, ServiceResolver:
 		return true
 	case IngressGateway, TerminatingGateway:
+		return true
+	case ServiceIntentions:
 		return true
 	default:
 		return false
@@ -477,6 +508,26 @@ func (r *ConfigEntryQuery) CacheInfo() cache.RequestInfo {
 	}
 
 	return info
+}
+
+// ConfigEntryListAllRequest is used when requesting to list all config entries
+// of a set of kinds.
+type ConfigEntryListAllRequest struct {
+	// Kinds should always be set. For backwards compatibility with versions
+	// prior to 1.9.0, if this is omitted or left empty it is assumed to mean
+	// the subset of config entry kinds that were present in 1.8.0:
+	//
+	// proxy-defaults, service-defaults, service-resolver, service-splitter,
+	// service-router, terminating-gateway, and ingress-gateway.
+	Kinds      []string
+	Datacenter string
+
+	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	QueryOptions
+}
+
+func (r *ConfigEntryListAllRequest) RequestDatacenter() string {
+	return r.Datacenter
 }
 
 // ServiceConfigRequest is used when requesting the resolved configuration

@@ -76,7 +76,7 @@ func init() {
 	registerEndpoint("/v1/connect/intentions", []string{"GET", "POST"}, (*HTTPHandlers).IntentionEndpoint)
 	registerEndpoint("/v1/connect/intentions/match", []string{"GET"}, (*HTTPHandlers).IntentionMatch)
 	registerEndpoint("/v1/connect/intentions/check", []string{"GET"}, (*HTTPHandlers).IntentionCheck)
-	registerEndpoint("/v1/connect/intentions/exact", []string{"GET"}, (*HTTPHandlers).IntentionGetExact)
+	registerEndpoint("/v1/connect/intentions/exact", []string{"GET", "PUT", "DELETE"}, (*HTTPHandlers).IntentionExact)
 	registerEndpoint("/v1/connect/intentions/", []string{"GET", "PUT", "DELETE"}, (*HTTPHandlers).IntentionSpecific)
 	registerEndpoint("/v1/coordinate/datacenters", []string{"GET"}, (*HTTPHandlers).CoordinateDatacenters)
 	registerEndpoint("/v1/coordinate/nodes", []string{"GET"}, (*HTTPHandlers).CoordinateNodes)

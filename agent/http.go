@@ -609,6 +609,7 @@ func decodeBodyDeprecated(req *http.Request, out interface{}, cb func(interface{
 	decodeConf := &mapstructure.DecoderConfig{
 		DecodeHook: mapstructure.ComposeDecodeHookFunc(
 			mapstructure.StringToTimeDurationHookFunc(),
+			mapstructure.StringToTimeHookFunc(time.RFC3339),
 			stringToReadableDurationFunc(),
 		),
 		Result: &out,

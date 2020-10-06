@@ -18,6 +18,7 @@ func TestMakeRBACNetworkFilter(t *testing.T) {
 		ixn.SourceName = src
 		ixn.DestinationName = dst
 		ixn.Action = action
+		//nolint:staticcheck
 		ixn.UpdatePrecedence()
 		return ixn
 	}
@@ -117,6 +118,7 @@ func TestRemoveSameSourceIntentions(t *testing.T) {
 		ixn := structs.TestIntention(t)
 		ixn.SourceName = src
 		ixn.DestinationName = dst
+		//nolint:staticcheck
 		ixn.UpdatePrecedence()
 		return ixn
 	}

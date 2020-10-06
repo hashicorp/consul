@@ -1230,6 +1230,7 @@ func TestFSM_Intention_CRUD(t *testing.T) {
 		Intention:  structs.TestIntention(t),
 	}
 	ixn.Intention.ID = generateUUID()
+	//nolint:staticcheck
 	ixn.Intention.UpdatePrecedence()
 
 	{
@@ -1240,7 +1241,7 @@ func TestFSM_Intention_CRUD(t *testing.T) {
 
 	// Verify it's in the state store.
 	{
-		_, actual, err := fsm.state.IntentionGet(nil, ixn.Intention.ID)
+		_, _, actual, err := fsm.state.IntentionGet(nil, ixn.Intention.ID)
 		assert.Nil(err)
 
 		actual.CreateIndex, actual.ModifyIndex = 0, 0
@@ -1260,7 +1261,7 @@ func TestFSM_Intention_CRUD(t *testing.T) {
 
 	// Verify the update.
 	{
-		_, actual, err := fsm.state.IntentionGet(nil, ixn.Intention.ID)
+		_, _, actual, err := fsm.state.IntentionGet(nil, ixn.Intention.ID)
 		assert.Nil(err)
 
 		actual.CreateIndex, actual.ModifyIndex = 0, 0
@@ -1279,7 +1280,7 @@ func TestFSM_Intention_CRUD(t *testing.T) {
 
 	// Make sure it's gone.
 	{
-		_, actual, err := fsm.state.IntentionGet(nil, ixn.Intention.ID)
+		_, _, actual, err := fsm.state.IntentionGet(nil, ixn.Intention.ID)
 		assert.Nil(err)
 		assert.Nil(actual)
 	}
