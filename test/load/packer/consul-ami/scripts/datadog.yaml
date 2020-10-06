@@ -1,0 +1,37 @@
+#########################
+## Basic Configuration ##
+#########################
+
+## @param api_key - string - required
+## The Datadog API key to associate your Agent's data with your organization.
+## Create a new API key here: https://app.datadoghq.com/account/settings
+#
+tags:
+api_key:
+logs_enabled: true
+dogstatsd_mapper_profiles:
+ - name: consul
+   prefix: "consul."
+   mappings:
+     - match: 'consul\.http\.([a-zA-Z]+)\.(.*)'
+       match_type: "regex"
+       name: "consul.http.request"
+       tags:
+         http_method: "$1"
+         path: "$2"
+     - match: 'consul\.raft\.replication\.appendEntries\.logs\.([0-9a-f-]+)'
+       match_type: "regex"
+       name: "consul.raft.replication.appendEntries.logs"
+       tags:
+         consul_node_id: "$1"
+     - match: 'consul\.raft\.replication\.appendEntries\.rpc\.([0-9a-f-]+)'
+       match_type: "regex"
+       name: "consul.raft.replication.appendEntries.rpc"
+       tags:
+         consul_node_id: "$1"
+     - match: 'consul\.raft\.replication\.heartbeat\.([0-9a-f-]+)'
+       match_type: "regex"
+       name: "consul.raft.replication.heartbeat"
+       tags:
+         consul_node_id: "$1"
+
