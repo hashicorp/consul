@@ -91,6 +91,7 @@
     "ember-collection": "^1.0.0-alpha.9",
     "ember-composable-helpers": "~4.0.0",
     "ember-computed-style": "^0.3.0",
+    "ember-d3": "^0.5.1",
     "ember-data": "~3.20.4",
     "ember-data-model-fragments": "5.0.0-beta.0",
     "ember-exam": "^4.0.0",
@@ -148,5 +149,6 @@
       "lib/commands",
       "lib/startup"
     ]
-  }
+  },
+  "dependencies": {}
 }

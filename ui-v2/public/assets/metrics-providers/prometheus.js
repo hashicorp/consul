@@ -54,6 +54,12 @@
       var series = []
       var labels = []
 
+      // Set the start and end range here so that all queries end up with
+      // identical time axes. Later we might accept these as options.
+      var now = (new Date()).getTime()/1000;
+      options.start = now - (15*60);
+      options.end = now;
+
       if (this.hasL7Metrics(protocol)) {
         series.push(this.fetchRequestRateSeries(serviceName, options))
         labels.push("Requests per second")
@@ -592,12 +598,10 @@
     },
 
     fetchSeries: function(promql, options) {
-      var now = (new Date()).getTime()/1000;
-      var startT = now - (15*60);
       var params = {
         query: promql,
-        start: startT,
-        end: now,
+        start: options.start,
+        end: options.end,
         step: "10s",
         timeout: "8s"
       }

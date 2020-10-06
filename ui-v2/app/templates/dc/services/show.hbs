@@ -22,10 +22,7 @@
       <ConsulKind @item={{item.Service}} @withInfo={{true}} />
   </BlockSlot>
   <BlockSlot @name="nav">
-  <DataSource
-    @src={{uri nspace dc 'metrics' 'summary-for-service' item.Service.Service 'tcp'}}
-    @onchange={{action (mut metrics) value="data"}}
-  />
+  <ServiceSparklines @service=item.Service.Service />
   <!--
   <DataSource
     @src={{uri nspace dc 'metrics' 'upstream-summary-for-service' item.Service.Service}}
