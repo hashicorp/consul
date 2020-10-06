@@ -1917,8 +1917,8 @@ func TestParseConfigEntry(t *testing.T) {
 				kind = "service-intentions"
 				name = "web"
 				meta {
-					"foo" = "bar"
-					"gir" = "zim"
+				  "foo" = "bar"
+				  "gir" = "zim"
 				}
 				sources = [
 				  {
@@ -1931,6 +1931,57 @@ func TestParseConfigEntry(t *testing.T) {
 					name        = "bar"
 					action      = "allow"
 					description = "bar desc"
+				  },
+				  {
+					name = "l7"
+					permissions = [
+					  {
+						action = "deny"
+						http {
+						  path_exact = "/admin"
+						  header = [
+							{
+							  name    = "hdr-present"
+							  present = true
+							},
+							{
+							  name  = "hdr-exact"
+							  exact = "exact"
+							},
+							{
+							  name   = "hdr-prefix"
+							  prefix = "prefix"
+							},
+							{
+							  name   = "hdr-suffix"
+							  suffix = "suffix"
+							},
+							{
+							  name  = "hdr-regex"
+							  regex = "regex"
+							},
+							{
+							  name    = "hdr-absent"
+							  present = true
+							  invert  = true
+							}
+						  ]
+						}
+					  },
+					  {
+						action = "allow"
+						http {
+						  path_prefix = "/v3/"
+						}
+					  },
+					  {
+						action = "allow"
+						http {
+						  path_regex = "/v[12]/.*"
+						  methods    = ["GET", "POST"]
+						}
+					  }
+					]
 				  }
 				]
 				sources {
@@ -1957,6 +2008,57 @@ func TestParseConfigEntry(t *testing.T) {
 					Name        = "bar"
 					Action      = "allow"
 					Description = "bar desc"
+				  },
+				  {
+					Name = "l7"
+					Permissions = [
+					  {
+						Action = "deny"
+						HTTP {
+						  PathExact = "/admin"
+						  Header = [
+							{
+							  Name    = "hdr-present"
+							  Present = true
+							},
+							{
+							  Name  = "hdr-exact"
+							  Exact = "exact"
+							},
+							{
+							  Name   = "hdr-prefix"
+							  Prefix = "prefix"
+							},
+							{
+							  Name   = "hdr-suffix"
+							  Suffix = "suffix"
+							},
+							{
+							  Name  = "hdr-regex"
+							  Regex = "regex"
+							},
+							{
+							  Name    = "hdr-absent"
+							  Present = true
+							  Invert  = true
+							}
+						  ]
+						}
+					  },
+					  {
+						Action = "allow"
+						HTTP {
+						  PathPrefix = "/v3/"
+						}
+					  },
+					  {
+						Action = "allow"
+						HTTP {
+						  PathRegex = "/v[12]/.*"
+						  Methods   = ["GET", "POST"]
+						}
+					  }
+					]
 				  }
 				]
 				Sources {
@@ -1969,7 +2071,7 @@ func TestParseConfigEntry(t *testing.T) {
 			{
 				"kind": "service-intentions",
 				"name": "web",
-				"meta" : {
+				"meta": {
 					"foo": "bar",
 					"gir": "zim"
 				},
@@ -1984,6 +2086,60 @@ func TestParseConfigEntry(t *testing.T) {
 						"name": "bar",
 						"action": "allow",
 						"description": "bar desc"
+					},
+					{
+						"name": "l7",
+						"permissions": [
+							{
+								"action": "deny",
+								"http": {
+									"path_exact": "/admin",
+									"header": [
+										{
+											"name": "hdr-present",
+											"present": true
+										},
+										{
+											"name": "hdr-exact",
+											"exact": "exact"
+										},
+										{
+											"name": "hdr-prefix",
+											"prefix": "prefix"
+										},
+										{
+											"name": "hdr-suffix",
+											"suffix": "suffix"
+										},
+										{
+											"name": "hdr-regex",
+											"regex": "regex"
+										},
+										{
+											"name": "hdr-absent",
+											"present": true,
+											"invert": true
+										}
+									]
+								}
+							},
+							{
+								"action": "allow",
+								"http": {
+									"path_prefix": "/v3/"
+								}
+							},
+							{
+								"action": "allow",
+								"http": {
+									"path_regex": "/v[12]/.*",
+									"methods": [
+										"GET",
+										"POST"
+									]
+								}
+							}
+						]
 					},
 					{
 						"name": "*",
@@ -2014,6 +2170,60 @@ func TestParseConfigEntry(t *testing.T) {
 						"Description": "bar desc"
 					},
 					{
+						"Name": "l7",
+						"Permissions": [
+							{
+								"Action": "deny",
+								"HTTP": {
+									"PathExact": "/admin",
+									"Header": [
+										{
+											"Name": "hdr-present",
+											"Present": true
+										},
+										{
+											"Name": "hdr-exact",
+											"Exact": "exact"
+										},
+										{
+											"Name": "hdr-prefix",
+											"Prefix": "prefix"
+										},
+										{
+											"Name": "hdr-suffix",
+											"Suffix": "suffix"
+										},
+										{
+											"Name": "hdr-regex",
+											"Regex": "regex"
+										},
+										{
+											"Name": "hdr-absent",
+											"Present": true,
+											"Invert": true
+										}
+									]
+								}
+							},
+							{
+								"Action": "allow",
+								"HTTP": {
+									"PathPrefix": "/v3/"
+								}
+							},
+							{
+								"Action": "allow",
+								"HTTP": {
+									"PathRegex": "/v[12]/.*",
+									"Methods": [
+										"GET",
+										"POST"
+									]
+								}
+							}
+						]
+					},
+					{
 						"Name": "*",
 						"Action": "deny",
 						"Description": "wild desc"
@@ -2039,6 +2249,57 @@ func TestParseConfigEntry(t *testing.T) {
 						Name:        "bar",
 						Action:      "allow",
 						Description: "bar desc",
+					},
+					{
+						Name: "l7",
+						Permissions: []*api.IntentionPermission{
+							{
+								Action: "deny",
+								HTTP: &api.IntentionHTTPPermission{
+									PathExact: "/admin",
+									Header: []api.IntentionHTTPHeaderPermission{
+										{
+											Name:    "hdr-present",
+											Present: true,
+										},
+										{
+											Name:  "hdr-exact",
+											Exact: "exact",
+										},
+										{
+											Name:   "hdr-prefix",
+											Prefix: "prefix",
+										},
+										{
+											Name:   "hdr-suffix",
+											Suffix: "suffix",
+										},
+										{
+											Name:  "hdr-regex",
+											Regex: "regex",
+										},
+										{
+											Name:    "hdr-absent",
+											Present: true,
+											Invert:  true,
+										},
+									},
+								},
+							},
+							{
+								Action: "allow",
+								HTTP: &api.IntentionHTTPPermission{
+									PathPrefix: "/v3/",
+								},
+							},
+							{
+								Action: "allow",
+								HTTP: &api.IntentionHTTPPermission{
+									PathRegex: "/v[12]/.*",
+									Methods:   []string{"GET", "POST"},
+								},
+							},
+						},
 					},
 					{
 						Name:        "*",

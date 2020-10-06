@@ -1,8 +1,7 @@
 {
-  "name": "envoy.filters.network.rbac",
+  "name": "envoy.filters.http.rbac",
   "config": {
       "rules": {
-            "action": "DENY",
             "policies": {
                   "consul-intentions-layer4": {
                         "permissions": [
@@ -25,7 +24,6 @@
                             ]
                       }
                 }
-          },
-      "stat_prefix": "connect_authz"
+          }
     }
 }

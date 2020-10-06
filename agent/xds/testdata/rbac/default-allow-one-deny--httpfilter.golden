@@ -1,5 +1,5 @@
 {
-  "name": "envoy.filters.network.rbac",
+  "name": "envoy.filters.http.rbac",
   "config": {
       "rules": {
             "action": "DENY",
@@ -25,7 +25,6 @@
                             ]
                       }
                 }
-          },
-      "stat_prefix": "connect_authz"
+          }
     }
 }

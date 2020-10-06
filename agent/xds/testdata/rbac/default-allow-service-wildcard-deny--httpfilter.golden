@@ -1,5 +1,5 @@
 {
-  "name": "envoy.filters.network.rbac",
+  "name": "envoy.filters.http.rbac",
   "config": {
       "rules": {
             "action": "DENY",
@@ -17,7 +17,7 @@
                                                 "safe_regex": {
                                                       "google_re2": {
                                                           },
-                                                      "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/web$"
+                                                      "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/[^/]+$"
                                                     }
                                               }
                                         }
@@ -25,7 +25,6 @@
                             ]
                       }
                 }
-          },
-      "stat_prefix": "connect_authz"
+          }
     }
 }

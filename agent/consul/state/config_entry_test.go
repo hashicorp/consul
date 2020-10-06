@@ -2038,3 +2038,235 @@ func TestTargetsForSource(t *testing.T) {
 		})
 	}
 }
+
+func TestStore_ValidateServiceIntentionsErrorOnIncompatibleProtocols(t *testing.T) {
+	l7perms := []*structs.IntentionPermission{
+		{
+			Action: structs.IntentionActionAllow,
+			HTTP: &structs.IntentionHTTPPermission{
+				PathPrefix: "/v2/",
+			},
+		},
+	}
+
+	serviceDefaults := func(service, protocol string) *structs.ServiceConfigEntry {
+		return &structs.ServiceConfigEntry{
+			Kind:     structs.ServiceDefaults,
+			Name:     service,
+			Protocol: protocol,
+		}
+	}
+
+	proxyDefaults := func(protocol string) *structs.ProxyConfigEntry {
+		return &structs.ProxyConfigEntry{
+			Kind: structs.ProxyDefaults,
+			Name: structs.ProxyConfigGlobal,
+			Config: map[string]interface{}{
+				"protocol": protocol,
+			},
+		}
+	}
+
+	type operation struct {
+		entry    structs.ConfigEntry
+		deletion bool
+	}
+
+	type testcase struct {
+		ops           []operation
+		expectLastErr string
+	}
+
+	cases := map[string]testcase{
+		"L4 intention cannot upgrade to L7 when tcp": {
+			ops: []operation{
+				{ // set the target service as tcp
+					entry: serviceDefaults("api", "tcp"),
+				},
+				{ // create an L4 intention
+					entry: &structs.ServiceIntentionsConfigEntry{
+						Kind: structs.ServiceIntentions,
+						Name: "api",
+						Sources: []*structs.SourceIntention{
+							{Name: "web", Action: structs.IntentionActionAllow},
+						},
+					},
+				},
+				{ // Should fail if converted to L7
+					entry: &structs.ServiceIntentionsConfigEntry{
+						Kind: structs.ServiceIntentions,
+						Name: "api",
+						Sources: []*structs.SourceIntention{
+							{Name: "web", Permissions: l7perms},
+						},
+					},
+				},
+			},
+			expectLastErr: `has protocol "tcp"`,
+		},
+		"L4 intention can upgrade to L7 when made http via service-defaults": {
+			ops: []operation{
+				{ // set the target service as tcp
+					entry: serviceDefaults("api", "tcp"),
+				},
+				{ // create an L4 intention
+					entry: &structs.ServiceIntentionsConfigEntry{
+						Kind: structs.ServiceIntentions,
+						Name: "api",
+						Sources: []*structs.SourceIntention{
+							{Name: "web", Action: structs.IntentionActionAllow},
+						},
+					},
+				},
+				{ // set the target service as http
+					entry: serviceDefaults("api", "http"),
+				},
+				{ // Should succeed if converted to L7
+					entry: &structs.ServiceIntentionsConfigEntry{
+						Kind: structs.ServiceIntentions,
+						Name: "api",
+						Sources: []*structs.SourceIntention{
+							{Name: "web", Permissions: l7perms},
+						},
+					},
+				},
+			},
+		},
+		"L4 intention can upgrade to L7 when made http via proxy-defaults": {
+			ops: []operation{
+				{ // set the target service as tcp
+					entry: proxyDefaults("tcp"),
+				},
+				{ // create an L4 intention
+					entry: &structs.ServiceIntentionsConfigEntry{
+						Kind: structs.ServiceIntentions,
+						Name: "api",
+						Sources: []*structs.SourceIntention{
+							{Name: "web", Action: structs.IntentionActionAllow},
+						},
+					},
+				},
+				{ // set the target service as http
+					entry: proxyDefaults("http"),
+				},
+				{ // Should succeed if converted to L7
+					entry: &structs.ServiceIntentionsConfigEntry{
+						Kind: structs.ServiceIntentions,
+						Name: "api",
+						Sources: []*structs.SourceIntention{
+							{Name: "web", Permissions: l7perms},
+						},
+					},
+				},
+			},
+		},
+		"L7 intention cannot have protocol downgraded to tcp via modification via service-defaults": {
+			ops: []operation{
+				{ // set the target service as http
+					entry: serviceDefaults("api", "http"),
+				},
+				{ // create an L7 intention
+					entry: &structs.ServiceIntentionsConfigEntry{
+						Kind: structs.ServiceIntentions,
+						Name: "api",
+						Sources: []*structs.SourceIntention{
+							{Name: "web", Permissions: l7perms},
+						},
+					},
+				},
+				{ // setting the target service as tcp should fail
+					entry: serviceDefaults("api", "tcp"),
+				},
+			},
+			expectLastErr: `has protocol "tcp"`,
+		},
+		"L7 intention cannot have protocol downgraded to tcp via modification via proxy-defaults": {
+			ops: []operation{
+				{ // set the target service as http
+					entry: proxyDefaults("http"),
+				},
+				{ // create an L7 intention
+					entry: &structs.ServiceIntentionsConfigEntry{
+						Kind: structs.ServiceIntentions,
+						Name: "api",
+						Sources: []*structs.SourceIntention{
+							{Name: "web", Permissions: l7perms},
+						},
+					},
+				},
+				{ // setting the target service as tcp should fail
+					entry: proxyDefaults("tcp"),
+				},
+			},
+			expectLastErr: `has protocol "tcp"`,
+		},
+		"L7 intention cannot have protocol downgraded to tcp via deletion of service-defaults": {
+			ops: []operation{
+				{ // set the target service as http
+					entry: serviceDefaults("api", "http"),
+				},
+				{ // create an L7 intention
+					entry: &structs.ServiceIntentionsConfigEntry{
+						Kind: structs.ServiceIntentions,
+						Name: "api",
+						Sources: []*structs.SourceIntention{
+							{Name: "web", Permissions: l7perms},
+						},
+					},
+				},
+				{ // setting the target service as tcp should fail
+					entry:    serviceDefaults("api", "tcp"),
+					deletion: true,
+				},
+			},
+			expectLastErr: `has protocol "tcp"`,
+		},
+		"L7 intention cannot have protocol downgraded to tcp via deletion of proxy-defaults": {
+			ops: []operation{
+				{ // set the target service as http
+					entry: proxyDefaults("http"),
+				},
+				{ // create an L7 intention
+					entry: &structs.ServiceIntentionsConfigEntry{
+						Kind: structs.ServiceIntentions,
+						Name: "api",
+						Sources: []*structs.SourceIntention{
+							{Name: "web", Permissions: l7perms},
+						},
+					},
+				},
+				{ // setting the target service as tcp should fail
+					entry:    proxyDefaults("tcp"),
+					deletion: true,
+				},
+			},
+			expectLastErr: `has protocol "tcp"`,
+		},
+	}
+
+	for name, tc := range cases {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			s := testStateStore(t)
+
+			var nextIndex = uint64(1)
+
+			for i, op := range tc.ops {
+				isLast := (i == len(tc.ops)-1)
+
+				var err error
+				if op.deletion {
+					err = s.DeleteConfigEntry(nextIndex, op.entry.GetKind(), op.entry.GetName(), nil)
+				} else {
+					err = s.EnsureConfigEntry(nextIndex, op.entry, nil)
+				}
+
+				if isLast && tc.expectLastErr != "" {
+					testutil.RequireErrorContains(t, err, `has protocol "tcp"`)
+				} else {
+					require.NoError(t, err)
+				}
+			}
+		})
+	}
+}

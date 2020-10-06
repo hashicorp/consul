@@ -85,6 +85,28 @@ func TestIntentionDelete(t *testing.T) {
 	}, nil)
 	require.NoError(t, err)
 
+	// Ensure "api" is L7
+	_, _, err = client.ConfigEntries().Set(&api.ServiceConfigEntry{
+		Kind:     api.ServiceDefaults,
+		Name:     "api",
+		Protocol: "http",
+	}, nil)
+	require.NoError(t, err)
+
+	_, err = client.Connect().IntentionUpsert(&api.Intention{
+		SourceName:      "web",
+		DestinationName: "api",
+		Permissions: []*api.IntentionPermission{
+			{
+				Action: api.IntentionActionAllow,
+				HTTP: &api.IntentionHTTPPermission{
+					PathExact: "/foo",
+				},
+			},
+		},
+	}, nil)
+	require.NoError(t, err)
+
 	t.Run("l4 intention", func(t *testing.T) {
 		t.Run("one arg", func(t *testing.T) {
 			ui := cli.NewMockUi()
@@ -104,6 +126,20 @@ func TestIntentionDelete(t *testing.T) {
 			args := []string{
 				"-http-addr=" + a.HTTPAddr(),
 				"web", "queue",
+			}
+			require.Equal(t, 0, c.Run(args), ui.ErrorWriter.String())
+			require.Contains(t, ui.OutputWriter.String(), "deleted")
+		})
+	})
+
+	t.Run("l7 intention", func(t *testing.T) {
+		t.Run("two args", func(t *testing.T) {
+			ui := cli.NewMockUi()
+			c := New(ui)
+
+			args := []string{
+				"-http-addr=" + a.HTTPAddr(),
+				"web", "api",
 			}
 			require.Equal(t, 0, c.Run(args), ui.ErrorWriter.String())
 			require.Contains(t, ui.OutputWriter.String(), "deleted")

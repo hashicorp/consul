@@ -900,6 +900,168 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "service-intentions: kitchen sink",
+			body: `
+			{
+				"Kind": "service-intentions",
+				"Name": "web",
+				"Meta" : {
+					"foo": "bar",
+					"gir": "zim"
+				},
+				"Sources": [
+					{
+						"Name": "foo",
+						"Action": "deny",
+						"Type": "consul",
+						"Description": "foo desc"
+					},
+					{
+						"Name": "bar",
+						"Action": "allow",
+						"Description": "bar desc"
+					},
+					{
+						"Name": "l7",
+						"Permissions": [
+							{
+								"Action": "deny",
+								"HTTP": {
+									"PathExact": "/admin",
+									"Header": [
+										{
+											"Name": "hdr-present",
+											"Present": true
+										},
+										{
+											"Name": "hdr-exact",
+											"Exact": "exact"
+										},
+										{
+											"Name": "hdr-prefix",
+											"Prefix": "prefix"
+										},
+										{
+											"Name": "hdr-suffix",
+											"Suffix": "suffix"
+										},
+										{
+											"Name": "hdr-regex",
+											"Regex": "regex"
+										},
+										{
+											"Name": "hdr-absent",
+											"Present": true,
+											"Invert": true
+										}
+									]
+								}
+							},
+							{
+								"Action": "allow",
+								"HTTP": {
+									"PathPrefix": "/v3/"
+								}
+							},
+							{
+								"Action": "allow",
+								"HTTP": {
+									"PathRegex": "/v[12]/.*",
+									"Methods": [
+										"GET",
+										"POST"
+									]
+								}
+							}
+						]
+					},
+					{
+						"Name": "*",
+						"Action": "deny",
+						"Description": "wild desc"
+					}
+				]
+			}
+			`,
+			expect: &ServiceIntentionsConfigEntry{
+				Kind: "service-intentions",
+				Name: "web",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
+				Sources: []*SourceIntention{
+					{
+						Name:        "foo",
+						Action:      "deny",
+						Type:        "consul",
+						Description: "foo desc",
+					},
+					{
+						Name:        "bar",
+						Action:      "allow",
+						Description: "bar desc",
+					},
+					{
+						Name: "l7",
+						Permissions: []*IntentionPermission{
+							{
+								Action: "deny",
+								HTTP: &IntentionHTTPPermission{
+									PathExact: "/admin",
+									Header: []IntentionHTTPHeaderPermission{
+										{
+											Name:    "hdr-present",
+											Present: true,
+										},
+										{
+											Name:  "hdr-exact",
+											Exact: "exact",
+										},
+										{
+											Name:   "hdr-prefix",
+											Prefix: "prefix",
+										},
+										{
+											Name:   "hdr-suffix",
+											Suffix: "suffix",
+										},
+										{
+											Name:  "hdr-regex",
+											Regex: "regex",
+										},
+										{
+											Name:    "hdr-absent",
+											Present: true,
+											Invert:  true,
+										},
+									},
+								},
+							},
+							{
+								Action: "allow",
+								HTTP: &IntentionHTTPPermission{
+									PathPrefix: "/v3/",
+								},
+							},
+							{
+								Action: "allow",
+								HTTP: &IntentionHTTPPermission{
+									PathRegex: "/v[12]/.*",
+									Methods:   []string{"GET", "POST"},
+								},
+							},
+						},
+					},
+					{
+						Name:        "*",
+						Action:      "deny",
+						Description: "wild desc",
+					},
+				},
+			},
+		},
 	} {
 		tc := tc
 

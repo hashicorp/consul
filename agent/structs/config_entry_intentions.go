@@ -72,6 +72,7 @@ func (e *ServiceIntentionsConfigEntry) ToIntention(src *SourceIntention) *Intent
 		SourceName:      src.Name,
 		SourceType:      src.Type,
 		Action:          src.Action,
+		Permissions:     src.Permissions,
 		Meta:            meta,
 		Precedence:      src.Precedence,
 		DestinationNS:   e.NamespaceOrDefault(),
@@ -135,7 +136,27 @@ type SourceIntention struct {
 	// Action is whether this is an allowlist or denylist intention.
 	//
 	// formerly Intention.Action
-	Action IntentionAction
+	//
+	// NOTE: this is mutually exclusive with the Permissions field.
+	Action IntentionAction `json:",omitempty"`
+
+	// Permissions is the list of additional L7 attributes that extend the
+	// intention definition.
+	//
+	// Permissions are interpreted in the order represented in the slice. In
+	// default-deny mode, deny permissions are logically subtracted from all
+	// following allow permissions. Multiple allow permissions are then ORed
+	// together.
+	//
+	// For example:
+	//   ["deny /v2/admin", "allow /v2/*", "allow GET /healthz"]
+	//
+	// Is logically interpreted as:
+	//   allow: [
+	//     "(/v2/*) AND NOT (/v2/admin)",
+	//     "(GET /healthz) AND NOT (/v2/admin)"
+	//   ]
+	Permissions []*IntentionPermission `json:",omitempty"`
 
 	// Precedence is the order that the intention will be applied, with
 	// larger numbers being applied first. This is a read-only field, on
@@ -182,6 +203,65 @@ type SourceIntention struct {
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }
 
+type IntentionPermission struct {
+	Action IntentionAction // required: allow|deny
+
+	HTTP *IntentionHTTPPermission `json:",omitempty"`
+
+	// If we have non-http match criteria for other protocols
+	// in the future (gRPC, redis, etc) they can go here.
+
+	// Support for edge-decoded JWTs would likely be configured
+	// in a new top level section here.
+
+	// If we ever add Sentinel support, this is one place we may
+	// wish to add it.
+}
+
+func (p *IntentionPermission) Clone() *IntentionPermission {
+	p2 := *p
+	if p.HTTP != nil {
+		p2.HTTP = p.HTTP.Clone()
+	}
+	return &p2
+}
+
+type IntentionHTTPPermission struct {
+	// PathExact, PathPrefix, and PathRegex are mutually exclusive.
+	PathExact  string `json:",omitempty" alias:"path_exact"`
+	PathPrefix string `json:",omitempty" alias:"path_prefix"`
+	PathRegex  string `json:",omitempty" alias:"path_regex"`
+
+	Header []IntentionHTTPHeaderPermission `json:",omitempty"`
+
+	Methods []string `json:",omitempty"`
+}
+
+func (p *IntentionHTTPPermission) Clone() *IntentionHTTPPermission {
+	p2 := *p
+
+	if len(p.Header) > 0 {
+		p2.Header = make([]IntentionHTTPHeaderPermission, 0, len(p.Header))
+		for _, hdr := range p.Header {
+			p2.Header = append(p2.Header, hdr)
+		}
+	}
+
+	p2.Methods = cloneStringSlice(p.Methods)
+
+	return &p2
+}
+
+type IntentionHTTPHeaderPermission struct {
+	Name    string
+	Present bool   `json:",omitempty"`
+	Exact   string `json:",omitempty"`
+	Prefix  string `json:",omitempty"`
+	Suffix  string `json:",omitempty"`
+	Regex   string `json:",omitempty"`
+	Invert  bool   `json:",omitempty"`
+}
+
 func cloneStringStringMap(m map[string]string) map[string]string {
 	if m == nil {
 		return nil
@@ -201,6 +281,13 @@ func (x *SourceIntention) Clone() *SourceIntention {
 	x2 := *x
 
 	x2.LegacyMeta = cloneStringStringMap(x.LegacyMeta)
+
+	if len(x.Permissions) > 0 {
+		x2.Permissions = make([]*IntentionPermission, 0, len(x.Permissions))
+		for _, perm := range x.Permissions {
+			x2.Permissions = append(x2.Permissions, perm.Clone())
+		}
+	}
 
 	return &x2
 }
@@ -303,6 +390,16 @@ func (e *ServiceIntentionsConfigEntry) normalize(legacyWrite bool) error {
 			src.LegacyCreateTime = nil
 			src.LegacyUpdateTime = nil
 		}
+
+		for _, perm := range src.Permissions {
+			if perm.HTTP == nil {
+				continue
+			}
+
+			for j := 0; j < len(perm.HTTP.Methods); j++ {
+				perm.HTTP.Methods[j] = strings.ToUpper(perm.HTTP.Methods[j])
+			}
+		}
 	}
 
 	// The source intentions closer to the head of the list have higher
@@ -370,6 +467,20 @@ func (e *ServiceIntentionsConfigEntry) LegacyValidate() error {
 	return e.validate(true)
 }
 
+func (e *ServiceIntentionsConfigEntry) HasWildcardDestination() bool {
+	dstNS := e.EnterpriseMeta.NamespaceOrDefault()
+	return dstNS == WildcardSpecifier || e.Name == WildcardSpecifier
+}
+
+func (e *ServiceIntentionsConfigEntry) HasAnyPermissions() bool {
+	for _, src := range e.Sources {
+		if len(src.Permissions) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
 func (e *ServiceIntentionsConfigEntry) validate(legacyWrite bool) error {
 	if e.Name == "" {
 		return fmt.Errorf("Name is required")
@@ -378,6 +489,8 @@ func (e *ServiceIntentionsConfigEntry) validate(legacyWrite bool) error {
 	if err := validateIntentionWildcards(e.Name, &e.EnterpriseMeta); err != nil {
 		return err
 	}
+
+	destIsWild := e.HasWildcardDestination()
 
 	if legacyWrite {
 		if len(e.Meta) > 0 {
@@ -445,16 +558,114 @@ func (e *ServiceIntentionsConfigEntry) validate(legacyWrite bool) error {
 			}
 		}
 
-		switch src.Action {
-		case IntentionActionAllow, IntentionActionDeny:
-		default:
-			return fmt.Errorf("Sources[%d].Action must be set to 'allow' or 'deny'", i)
+		if legacyWrite || len(src.Permissions) == 0 {
+			switch src.Action {
+			case IntentionActionAllow, IntentionActionDeny:
+			default:
+				return fmt.Errorf("Sources[%d].Action must be set to 'allow' or 'deny'", i)
+			}
+		}
+
+		if len(src.Permissions) > 0 && src.Action != "" {
+			return fmt.Errorf("Sources[%d].Action must be omitted if Permissions are specified", i)
+		}
+
+		if destIsWild && len(src.Permissions) > 0 {
+			return fmt.Errorf("Sources[%d].Permissions cannot be specified on intentions with wildcarded destinations", i)
 		}
 
 		switch src.Type {
 		case IntentionSourceConsul:
 		default:
 			return fmt.Errorf("Sources[%d].Type must be set to 'consul'", i)
+		}
+
+		for j, perm := range src.Permissions {
+			switch perm.Action {
+			case IntentionActionAllow, IntentionActionDeny:
+			default:
+				return fmt.Errorf("Sources[%d].Permissions[%d].Action must be set to 'allow' or 'deny'", i, j)
+			}
+
+			errorPrefix := "Sources[%d].Permissions[%d].HTTP"
+			if perm.HTTP == nil {
+				return fmt.Errorf(errorPrefix+" is required", i, j)
+			}
+
+			pathParts := 0
+			if perm.HTTP.PathExact != "" {
+				pathParts++
+				if !strings.HasPrefix(perm.HTTP.PathExact, "/") {
+					return fmt.Errorf(
+						errorPrefix+".PathExact doesn't start with '/': %q",
+						i, j, perm.HTTP.PathExact,
+					)
+				}
+			}
+			if perm.HTTP.PathPrefix != "" {
+				pathParts++
+				if !strings.HasPrefix(perm.HTTP.PathPrefix, "/") {
+					return fmt.Errorf(
+						errorPrefix+".PathPrefix doesn't start with '/': %q",
+						i, j, perm.HTTP.PathPrefix,
+					)
+				}
+			}
+			if perm.HTTP.PathRegex != "" {
+				pathParts++
+			}
+			if pathParts > 1 {
+				return fmt.Errorf(
+					errorPrefix+" should only contain at most one of PathExact, PathPrefix, or PathRegex",
+					i, j,
+				)
+			}
+
+			permParts := pathParts
+
+			for k, hdr := range perm.HTTP.Header {
+				if hdr.Name == "" {
+					return fmt.Errorf(errorPrefix+".Header[%d] missing required Name field", i, j, k)
+				}
+				hdrParts := 0
+				if hdr.Present {
+					hdrParts++
+				}
+				if hdr.Exact != "" {
+					hdrParts++
+				}
+				if hdr.Regex != "" {
+					hdrParts++
+				}
+				if hdr.Prefix != "" {
+					hdrParts++
+				}
+				if hdr.Suffix != "" {
+					hdrParts++
+				}
+				if hdrParts != 1 {
+					return fmt.Errorf(errorPrefix+".Header[%d] should only contain one of Present, Exact, Prefix, Suffix, or Regex", i, j, k)
+				}
+				permParts++
+			}
+
+			if len(perm.HTTP.Methods) > 0 {
+				found := make(map[string]struct{})
+				for _, m := range perm.HTTP.Methods {
+					if !isValidHTTPMethod(m) {
+						return fmt.Errorf(errorPrefix+".Methods contains an invalid method %q", i, j, m)
+					}
+					if _, ok := found[m]; ok {
+						return fmt.Errorf(errorPrefix+".Methods contains %q more than once", i, j, m)
+					}
+					found[m] = struct{}{}
+				}
+				permParts++
+			}
+
+			if permParts == 0 {
+				return fmt.Errorf(errorPrefix+" should not be empty", i, j)
+			}
 		}
 
 		serviceName := src.SourceServiceName()
@@ -521,7 +732,7 @@ func MigrateIntentions(ixns Intentions) []*ServiceIntentionsConfigEntry {
 	}
 	collated := make(map[ServiceName]*ServiceIntentionsConfigEntry)
 	for _, ixn := range ixns {
-		thisEntry := ixn.ToConfigEntry()
+		thisEntry := ixn.ToConfigEntry(true)
 		sn := thisEntry.DestinationServiceName()
 
 		if entry, ok := collated[sn]; ok {

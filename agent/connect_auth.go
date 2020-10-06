@@ -11,9 +11,14 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
+// TODO(rb/intentions): this should move back into the agent endpoint since
+// there is no ext_authz implementation anymore.
+//
 // ConnectAuthorize implements the core authorization logic for Connect. It's in
 // a separate agent method here because we need to re-use this both in our own
 // HTTP API authz endpoint and in the gRPX xDS/ext_authz API for envoy.
+//
+// NOTE: This treats any L7 intentions as DENY.
 //
 // The ACL token and the auth request are provided and the auth decision (true
 // means authorized) and reason string are returned.
@@ -97,12 +102,26 @@ func (a *Agent) ConnectAuthorize(token string,
 		return returnErr(fmt.Errorf("Internal error loading matches"))
 	}
 
-	// Test the authorization for each match
+	// Figure out which source matches this request.
+	var ixnMatch *structs.Intention
 	for _, ixn := range reply.Matches[0] {
-		if auth, ok := uriService.Authorize(ixn); ok {
-			reason = fmt.Sprintf("Matched intention: %s", ixn.String())
+		if _, ok := uriService.Authorize(ixn); ok {
+			ixnMatch = ixn
+			break
+		}
+	}
+
+	if ixnMatch != nil {
+		if len(ixnMatch.Permissions) == 0 {
+			// This is an L4 intention.
+			reason = fmt.Sprintf("Matched L4 intention: %s", ixnMatch.String())
+			auth := ixnMatch.Action == structs.IntentionActionAllow
 			return auth, reason, &meta, nil
 		}
+
+		// This is an L7 intention, so DENY.
+		reason = fmt.Sprintf("Matched L7 intention: %s", ixnMatch.String())
+		return false, reason, &meta, nil
 	}
 
 	// No match, we need to determine the default behavior. We do this by
