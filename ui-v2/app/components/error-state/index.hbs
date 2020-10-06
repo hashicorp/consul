@@ -1,5 +1,8 @@
 {{#if (not-eq error.status "403")}}
-  <EmptyState class={{concat "status-" error.status}}>
+  <EmptyState
+    class={{concat "status-" error.status}}
+    @allowLogin={{@allowLogin}}
+  >
     <BlockSlot @name="header">
       <h2>{{or error.message "Consul returned an error"}}</h2>
     </BlockSlot>
@@ -23,7 +26,10 @@
     </BlockSlot>
   </EmptyState>
 {{else}}
-  <EmptyState class="status-403">
+  <EmptyState
+    class="status-403"
+    @allowLogin={{@allowLogin}}
+  >
     <BlockSlot @name="header">
       <h2 data-test-status={{error.status}}>You are not authorized</h2>
     </BlockSlot>

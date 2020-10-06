@@ -101,9 +101,12 @@
           </BlockSlot>
         </EmptyState>
       {{else if (not authorized)}}
-        <ErrorState @error={{hash
-          status='403'
-        }} />
+        <ErrorState
+          @error={{hash
+            status='403'
+          }}
+          @allowLogin={{true}}
+        />
       {{else}}
         <YieldSlot @name="content">{{yield}}</YieldSlot>
       {{/if}}
