@@ -39,7 +39,13 @@ type MaterializerDeps struct {
 	Logger hclog.Logger
 }
 
-// Fetch implements cache.Type
+// Fetch service health from the materialized view. If no materialized view
+// exists, create one and start it running in a goroutine. The goroutine will
+// exit when the cache entry storing the result is expired, the cache will call
+// Close on the result.State.
+//
+// Fetch implements part of the cache.Type interface, and assumes that the
+// caller ensures that only a single call to Fetch is running at any time.
 func (c *StreamingHealthServices) Fetch(opts cache.FetchOptions, req cache.Request) (cache.FetchResult, error) {
 	if opts.LastResult != nil && opts.LastResult.State != nil {
 		return opts.LastResult.State.(*streamingHealthState).Fetch(opts)
@@ -53,6 +59,7 @@ func (c *StreamingHealthServices) Fetch(opts cache.FetchOptions, req cache.Reque
 			Token:      srvReq.Token,
 			Datacenter: srvReq.Datacenter,
 			Index:      index,
+			// TODO(streaming): set Namespace from srvReq.EnterpriseMeta.Namespace
 		}
 		if srvReq.Connect {
 			req.Topic = pbsubscribe.Topic_ServiceHealthConnect

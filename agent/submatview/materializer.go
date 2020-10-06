@@ -117,10 +117,10 @@ func (m *Materializer) Run(ctx context.Context) {
 func isNonTemporaryOrConsecutiveFailure(err error, failures int) bool {
 	// temporary is an interface used by net and other std lib packages to
 	// show error types represent temporary/recoverable errors.
-	_, ok := err.(interface {
+	temp, ok := err.(interface {
 		Temporary() bool
 	})
-	return !ok || failures > 0
+	return !ok || !temp.Temporary() || failures > 0
 }
 
 // runSubscription opens a new subscribe streaming call to the servers and runs

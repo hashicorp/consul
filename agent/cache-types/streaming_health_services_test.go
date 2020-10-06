@@ -486,6 +486,7 @@ func TestStreamingHealthServices_Filtering(t *testing.T) {
 }
 
 func runStep(t *testing.T, name string, fn func(t *testing.T)) {
+	t.Helper()
 	if !t.Run(name, fn) {
 		t.FailNow()
 	}
