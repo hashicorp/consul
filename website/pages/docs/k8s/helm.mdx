@@ -205,6 +205,10 @@ and consider if they're appropriate for your deployment.
           cpu: '20m'
       ```
 
+  - `openshift` ((#v-global-openshift)) - Configuration for running this Helm chart on the Red Hat OpenShift platform. This Helm chart currently supports OpenShift v4.x+.
+
+    - `enabled` ((#v-global-openshift-enabled)) (`boolean: false`) - If true, the Helm chart will create necessary configuration for running its components on OpenShift.
+
 - `server` ((#v-server)) - Values that configure running a Consul server within Kubernetes.
 
   - `enabled` ((#v-server-enabled)) (`boolean: global.enabled`) - If true, the chart will install all
@@ -573,11 +577,17 @@ and consider if they're appropriate for your deployment.
     clients). This can then be used to [configure kube-dns](/docs/k8s/dns).
     The Helm chart _does not_ automatically configure kube-dns.
 
+  - `type` ((#v-dns-type)) (`string: ClusterIP`) - Type can be used to control the type of service created.
+    For example, setting this to "LoadBalancer" will create an external load balancer (for supported K8S installations).
+
   - `clusterIP` ((#v-dns-clusterip)) (`string: null`) - If defined, this value configures the cluster
     IP of the DNS service.
 
   - `annotations` ((#v-dns-annotations)) (`string: null`) - Extra annotations to attach to the DNS
     service. This should be a multi-line string of annotations to apply to the DNS service.
+
+  - `additionalSpec` ((#v-dns-additionalspec)) (`string: null`) - Additional ServiceSpec values.
+     This should be a multi-line string mapping directly to a Kubernetes ServiceSpec object.
 
 - `syncCatalog` ((#v-synccatalog)) - Values that configure the [service sync](/docs/k8s/service-sync) process.
 
@@ -661,8 +671,14 @@ and consider if they're appropriate for your deployment.
 
   - `affinity` ((#v-synccatalog-affinity)) (`string: null`) - Affinity setting for sync catalog pods. This should be a multi-line string matching the affinity object.
 
+  - `priorityClassName` ((#v-synccatalog-priorityclassname)) (`string: ""`) - Priority class name setting for sync catalog pods.
+
   - `tolerations` ((#v-synccatalog-tolerations)) (`string: null`) - Tolerations setting for sync catalog pods.
       This should be a multi-line string matching the Toleration array in a PodSpec.
+
+  - `consulNodeName` ((#v-synccatalog-consulnodename)) (`string: "k8s-sync"`) - Defines the Consul synthetic node that all services will be registered to.
+     NOTE: Changing the node name and upgrading the Helm chart will leave all of the previously sync'd services registered with Consul and
+     register them again under the new Consul node name. The out-of-date registrations will need to be explicitly removed.
 
   - `resources` ((#v-synccatalog-resources)) (`map`) - Resource settings for sync catalog pods. See values file for defaults.
 
@@ -793,6 +809,8 @@ and consider if they're appropriate for your deployment.
 
   - `tolerations` ((#v-connectinject-tolerations)) (`string: null`) - Tolerations setting for Connect injector pods.
     This should be a multi-line string matching the Toleration array in a PodSpec.
+
+  - `priorityClassName` ((#v-connectinject-priorityclassname)) (`string: ""`) - Priority class name setting for Connect injector pods.
 
   - `aclBindingRuleSelector` ((#v-connectinject-aclbindingruleselector)) (`string: "serviceaccount.name!=default"`) - A [selector](/docs/acl/auth-methods#binding-rules)
     for restricting automatic injection to only matching services based on their
