@@ -114,7 +114,7 @@ func (e *ServiceRouterConfigEntry) Normalize() error {
 		}
 
 		if route.Destination != nil && route.Destination.Namespace == "" {
-			route.Destination.Namespace = e.EnterpriseMeta.NamespaceOrDefault()
+			route.Destination.Namespace = e.EnterpriseMeta.NamespaceOrEmpty()
 		}
 	}
 
