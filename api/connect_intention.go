@@ -34,7 +34,14 @@ type Intention struct {
 	SourceType IntentionSourceType
 
 	// Action is whether this is an allowlist or denylist intention.
-	Action IntentionAction
+	Action IntentionAction `json:",omitempty"`
+
+	// Permissions is the list of additional L7 attributes that extend the
+	// intention definition.
+	//
+	// NOTE: This field is not editable unless editing the underlying
+	// service-intentions config entry directly.
+	Permissions []*IntentionPermission `json:",omitempty"`
 
 	// DefaultAddr is not used.
 	// Deprecated: DefaultAddr is not used and may be removed in a future version.
@@ -69,10 +76,20 @@ type Intention struct {
 
 // String returns human-friendly output describing ths intention.
 func (i *Intention) String() string {
+	var detail string
+	switch n := len(i.Permissions); n {
+	case 0:
+		detail = string(i.Action)
+	case 1:
+		detail = "1 permission"
+	default:
+		detail = fmt.Sprintf("%d permissions", len(i.Permissions))
+	}
+
 	return fmt.Sprintf("%s => %s (%s)",
 		i.SourceString(),
 		i.DestinationString(),
-		i.Action)
+		detail)
 }
 
 // SourceString returns the namespace/name format for the source, or

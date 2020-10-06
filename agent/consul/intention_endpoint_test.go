@@ -343,6 +343,22 @@ func TestIntentionApply_WithoutIDs(t *testing.T) {
 
 	defaultEntMeta := structs.DefaultEnterpriseMeta()
 
+	// Force "test" to be L7-capable.
+	{
+		args := structs.ConfigEntryRequest{
+			Datacenter: "dc1",
+			Entry: &structs.ServiceConfigEntry{
+				Kind:     structs.ServiceDefaults,
+				Name:     "test",
+				Protocol: "http",
+			},
+		}
+
+		var out bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &args, &out))
+		require.True(t, out)
+	}
+
 	opApply := func(req *structs.IntentionRequest) error {
 		req.Datacenter = "dc1"
 		var ignored string
@@ -419,6 +435,10 @@ func TestIntentionApply_WithoutIDs(t *testing.T) {
 		got := resp.Intentions[0]
 		require.Equal(t, "original", got.Description)
 
+		// L4
+		require.Equal(t, structs.IntentionActionAllow, got.Action)
+		require.Empty(t, got.Permissions)
+
 		// Verify it is in the new-style.
 		require.Empty(t, got.ID)
 		require.True(t, got.CreatedAt.IsZero())
@@ -483,6 +503,10 @@ func TestIntentionApply_WithoutIDs(t *testing.T) {
 		got := resp.Intentions[0]
 		require.Equal(t, "updated", got.Description)
 
+		// L4
+		require.Equal(t, structs.IntentionActionAllow, got.Action)
+		require.Empty(t, got.Permissions)
+
 		// Verify it is in the new-style.
 		require.Empty(t, got.ID)
 		require.True(t, got.CreatedAt.IsZero())
@@ -502,8 +526,15 @@ func TestIntentionApply_WithoutIDs(t *testing.T) {
 		Intention: &structs.Intention{
 			SourceName:      "assay",
 			DestinationName: "test",
-			Action:          structs.IntentionActionDeny,
 			Description:     "original-2",
+			Permissions: []*structs.IntentionPermission{
+				{
+					Action: structs.IntentionActionAllow,
+					HTTP: &structs.IntentionHTTPPermission{
+						PathExact: "/foo",
+					},
+				},
+			},
 		},
 	}))
 
@@ -520,6 +551,17 @@ func TestIntentionApply_WithoutIDs(t *testing.T) {
 		require.Len(t, resp.Intentions, 1)
 		got := resp.Intentions[0]
 		require.Equal(t, "original-2", got.Description)
+
+		// L7
+		require.Empty(t, got.Action)
+		require.Equal(t, []*structs.IntentionPermission{
+			{
+				Action: structs.IntentionActionAllow,
+				HTTP: &structs.IntentionHTTPPermission{
+					PathExact: "/foo",
+				},
+			},
+		}, got.Permissions)
 
 		// Verify it is in the new-style.
 		require.Empty(t, got.ID)
@@ -556,10 +598,17 @@ func TestIntentionApply_WithoutIDs(t *testing.T) {
 				{
 					Name:           "assay",
 					EnterpriseMeta: *defaultEntMeta,
-					Action:         structs.IntentionActionDeny,
 					Description:    "original-2",
 					Precedence:     9,
 					Type:           structs.IntentionSourceConsul,
+					Permissions: []*structs.IntentionPermission{
+						{
+							Action: structs.IntentionActionAllow,
+							HTTP: &structs.IntentionHTTPPermission{
+								PathExact: "/foo",
+							},
+						},
+					},
 				},
 			},
 			RaftIndex: entry.RaftIndex,
@@ -609,10 +658,17 @@ func TestIntentionApply_WithoutIDs(t *testing.T) {
 				{
 					Name:           "assay",
 					EnterpriseMeta: *defaultEntMeta,
-					Action:         structs.IntentionActionDeny,
 					Description:    "original-2",
 					Precedence:     9,
 					Type:           structs.IntentionSourceConsul,
+					Permissions: []*structs.IntentionPermission{
+						{
+							Action: structs.IntentionActionAllow,
+							HTTP: &structs.IntentionHTTPPermission{
+								PathExact: "/foo",
+							},
+						},
+					},
 				},
 			},
 			RaftIndex: entry.RaftIndex,

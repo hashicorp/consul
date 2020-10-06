@@ -973,6 +973,57 @@ func TestDecodeConfigEntry(t *testing.T) {
 					name        = "bar"
 					action      = "allow"
 					description = "bar desc"
+				  },
+				  {
+					name = "l7"
+					permissions = [
+					  {
+						action = "deny"
+						http {
+						  path_exact = "/admin"
+						  header = [
+							{
+							  name    = "hdr-present"
+							  present = true
+							},
+							{
+							  name  = "hdr-exact"
+							  exact = "exact"
+							},
+							{
+							  name   = "hdr-prefix"
+							  prefix = "prefix"
+							},
+							{
+							  name   = "hdr-suffix"
+							  suffix = "suffix"
+							},
+							{
+							  name  = "hdr-regex"
+							  regex = "regex"
+							},
+							{
+							  name    = "hdr-absent"
+							  present = true
+							  invert  = true
+							}
+						  ]
+						}
+					  },
+					  {
+						action = "allow"
+						http {
+						  path_prefix = "/v3/"
+						}
+					  },
+					  {
+						action = "allow"
+						http {
+						  path_regex = "/v[12]/.*"
+						  methods    = ["GET", "POST"]
+						}
+					  }
+					]
 				  }
 				]
 				sources {
@@ -999,6 +1050,57 @@ func TestDecodeConfigEntry(t *testing.T) {
 					Name        = "bar"
 					Action      = "allow"
 					Description = "bar desc"
+				  },
+				  {
+					Name = "l7"
+					Permissions = [
+					  {
+						Action = "deny"
+						HTTP {
+						  PathExact = "/admin"
+						  Header = [
+							{
+							  Name    = "hdr-present"
+							  Present = true
+							},
+							{
+							  Name  = "hdr-exact"
+							  Exact = "exact"
+							},
+							{
+							  Name   = "hdr-prefix"
+							  Prefix = "prefix"
+							},
+							{
+							  Name   = "hdr-suffix"
+							  Suffix = "suffix"
+							},
+							{
+							  Name  = "hdr-regex"
+							  Regex = "regex"
+							},
+							{
+							  Name    = "hdr-absent"
+							  Present = true
+							  Invert  = true
+							}
+						  ]
+						}
+					  },
+					  {
+						Action = "allow"
+						HTTP {
+						  PathPrefix = "/v3/"
+						}
+					  },
+					  {
+						Action = "allow"
+						HTTP {
+						  PathRegex = "/v[12]/.*"
+						  Methods   = ["GET", "POST"]
+						}
+					  }
+					]
 				  }
 				]
 				Sources {
@@ -1025,6 +1127,57 @@ func TestDecodeConfigEntry(t *testing.T) {
 						Name:        "bar",
 						Action:      "allow",
 						Description: "bar desc",
+					},
+					{
+						Name: "l7",
+						Permissions: []*IntentionPermission{
+							{
+								Action: "deny",
+								HTTP: &IntentionHTTPPermission{
+									PathExact: "/admin",
+									Header: []IntentionHTTPHeaderPermission{
+										{
+											Name:    "hdr-present",
+											Present: true,
+										},
+										{
+											Name:  "hdr-exact",
+											Exact: "exact",
+										},
+										{
+											Name:   "hdr-prefix",
+											Prefix: "prefix",
+										},
+										{
+											Name:   "hdr-suffix",
+											Suffix: "suffix",
+										},
+										{
+											Name:  "hdr-regex",
+											Regex: "regex",
+										},
+										{
+											Name:    "hdr-absent",
+											Present: true,
+											Invert:  true,
+										},
+									},
+								},
+							},
+							{
+								Action: "allow",
+								HTTP: &IntentionHTTPPermission{
+									PathPrefix: "/v3/",
+								},
+							},
+							{
+								Action: "allow",
+								HTTP: &IntentionHTTPPermission{
+									PathRegex: "/v[12]/.*",
+									Methods:   []string{"GET", "POST"},
+								},
+							},
+						},
 					},
 					{
 						Name:        "*",

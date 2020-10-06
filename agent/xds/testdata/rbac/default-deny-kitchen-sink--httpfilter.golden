@@ -1,5 +1,5 @@
 {
-  "name": "envoy.filters.network.rbac",
+  "name": "envoy.filters.http.rbac",
   "config": {
       "rules": {
             "policies": {
@@ -91,7 +91,6 @@
                             ]
                       }
                 }
-          },
-      "stat_prefix": "connect_authz"
+          }
     }
 }

@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestMakeRBACNetworkFilter(t *testing.T) {
+func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 	testIntention := func(t *testing.T, src, dst string, action structs.IntentionAction) *structs.Intention {
 		t.Helper()
 		ixn := structs.TestIntention(t)
@@ -24,6 +24,11 @@ func TestMakeRBACNetworkFilter(t *testing.T) {
 	}
 	testSourceIntention := func(src string, action structs.IntentionAction) *structs.Intention {
 		return testIntention(t, src, "api", action)
+	}
+	testSourcePermIntention := func(src string, perms ...*structs.IntentionPermission) *structs.Intention {
+		ixn := testIntention(t, src, "api", "")
+		ixn.Permissions = perms
+		return ixn
 	}
 	sorted := func(ixns ...*structs.Intention) structs.Intentions {
 		sort.SliceStable(ixns, func(i, j int) bool {
@@ -97,17 +102,163 @@ func TestMakeRBACNetworkFilter(t *testing.T) {
 				testSourceIntention("*", structs.IntentionActionDeny),
 			),
 		},
+		"default-deny-two-path-deny-and-path-allow": {
+			intentionDefaultAllow: false,
+			intentions: sorted(
+				testSourcePermIntention("web",
+					&structs.IntentionPermission{
+						Action: structs.IntentionActionDeny,
+						HTTP: &structs.IntentionHTTPPermission{
+							PathExact: "/v1/secret",
+						},
+					},
+					&structs.IntentionPermission{
+						Action: structs.IntentionActionDeny,
+						HTTP: &structs.IntentionHTTPPermission{
+							PathExact: "/v1/admin",
+						},
+					},
+					&structs.IntentionPermission{
+						Action: structs.IntentionActionAllow,
+						HTTP: &structs.IntentionHTTPPermission{
+							PathPrefix: "/",
+						},
+					},
+				),
+			),
+		},
+		"default-allow-two-path-deny-and-path-allow": {
+			intentionDefaultAllow: true,
+			intentions: sorted(
+				testSourcePermIntention("web",
+					&structs.IntentionPermission{
+						Action: structs.IntentionActionDeny,
+						HTTP: &structs.IntentionHTTPPermission{
+							PathExact: "/v1/secret",
+						},
+					},
+					&structs.IntentionPermission{
+						Action: structs.IntentionActionDeny,
+						HTTP: &structs.IntentionHTTPPermission{
+							PathExact: "/v1/admin",
+						},
+					},
+					&structs.IntentionPermission{
+						Action: structs.IntentionActionAllow,
+						HTTP: &structs.IntentionHTTPPermission{
+							PathPrefix: "/",
+						},
+					},
+				),
+			),
+		},
+		"default-deny-single-intention-with-kitchen-sink-perms": {
+			intentionDefaultAllow: false,
+			intentions: sorted(
+				testSourcePermIntention("web",
+					&structs.IntentionPermission{
+						Action: structs.IntentionActionDeny,
+						HTTP: &structs.IntentionHTTPPermission{
+							PathExact: "/v1/secret",
+						},
+					},
+					&structs.IntentionPermission{
+						Action: structs.IntentionActionAllow,
+						HTTP: &structs.IntentionHTTPPermission{
+							PathPrefix: "/v1",
+						},
+					},
+					&structs.IntentionPermission{
+						Action: structs.IntentionActionAllow,
+						HTTP: &structs.IntentionHTTPPermission{
+							PathRegex: "/v[123]",
+							Methods:   []string{"GET", "HEAD", "OPTIONS"},
+						},
+					},
+					&structs.IntentionPermission{
+						Action: structs.IntentionActionAllow,
+						HTTP: &structs.IntentionHTTPPermission{
+							Header: []structs.IntentionHTTPHeaderPermission{
+								{Name: "x-foo", Present: true},
+								{Name: "x-bar", Exact: "xyz"},
+								{Name: "x-dib", Prefix: "gaz"},
+								{Name: "x-gir", Suffix: "zim"},
+								{Name: "x-zim", Regex: "gi[rR]"},
+								{Name: "z-foo", Present: true, Invert: true},
+								{Name: "z-bar", Exact: "xyz", Invert: true},
+								{Name: "z-dib", Prefix: "gaz", Invert: true},
+								{Name: "z-gir", Suffix: "zim", Invert: true},
+								{Name: "z-zim", Regex: "gi[rR]", Invert: true},
+							},
+						},
+					},
+				),
+			),
+		},
+		"default-allow-single-intention-with-kitchen-sink-perms": {
+			intentionDefaultAllow: true,
+			intentions: sorted(
+				testSourcePermIntention("web",
+					&structs.IntentionPermission{
+						Action: structs.IntentionActionAllow,
+						HTTP: &structs.IntentionHTTPPermission{
+							PathExact: "/v1/secret",
+						},
+					},
+					&structs.IntentionPermission{
+						Action: structs.IntentionActionDeny,
+						HTTP: &structs.IntentionHTTPPermission{
+							PathPrefix: "/v1",
+						},
+					},
+					&structs.IntentionPermission{
+						Action: structs.IntentionActionDeny,
+						HTTP: &structs.IntentionHTTPPermission{
+							PathRegex: "/v[123]",
+							Methods:   []string{"GET", "HEAD", "OPTIONS"},
+						},
+					},
+					&structs.IntentionPermission{
+						Action: structs.IntentionActionDeny,
+						HTTP: &structs.IntentionHTTPPermission{
+							Header: []structs.IntentionHTTPHeaderPermission{
+								{Name: "x-foo", Present: true},
+								{Name: "x-bar", Exact: "xyz"},
+								{Name: "x-dib", Prefix: "gaz"},
+								{Name: "x-gir", Suffix: "zim"},
+								{Name: "x-zim", Regex: "gi[rR]"},
+								{Name: "z-foo", Present: true, Invert: true},
+								{Name: "z-bar", Exact: "xyz", Invert: true},
+								{Name: "z-dib", Prefix: "gaz", Invert: true},
+								{Name: "z-gir", Suffix: "zim", Invert: true},
+								{Name: "z-zim", Regex: "gi[rR]", Invert: true},
+							},
+						},
+					},
+				),
+			),
+		},
 	}
 
 	for name, tt := range tests {
 		tt := tt
 		t.Run(name, func(t *testing.T) {
-			filter, err := makeRBACNetworkFilter(tt.intentions, tt.intentionDefaultAllow)
-			require.NoError(t, err)
+			t.Run("network filter", func(t *testing.T) {
+				filter, err := makeRBACNetworkFilter(tt.intentions, tt.intentionDefaultAllow)
+				require.NoError(t, err)
 
-			gotJSON := protoToJSON(t, filter)
+				gotJSON := protoToJSON(t, filter)
 
-			require.JSONEq(t, golden(t, filepath.Join("rbac", name), "", gotJSON), gotJSON)
+				require.JSONEq(t, golden(t, filepath.Join("rbac", name), "", gotJSON), gotJSON)
+			})
+			t.Run("http filter", func(t *testing.T) {
+				filter, err := makeRBACHTTPFilter(tt.intentions, tt.intentionDefaultAllow)
+				require.NoError(t, err)
+
+				gotJSON := protoToJSON(t, filter)
+
+				require.JSONEq(t, golden(t, filepath.Join("rbac", name+"--httpfilter"), "", gotJSON), gotJSON)
+			})
 		})
 	}
 }

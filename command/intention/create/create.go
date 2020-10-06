@@ -177,22 +177,34 @@ func (c *cmd) ixnsFromArgs(args []string) ([]*api.Intention, error) {
 func (c *cmd) ixnsFromFiles(args []string) ([]*api.Intention, error) {
 	var result []*api.Intention
 	for _, path := range args {
-		f, err := os.Open(path)
+		ixn, err := c.ixnFromFile(path)
 		if err != nil {
 			return nil, err
 		}
 
-		var ixn api.Intention
-		err = json.NewDecoder(f).Decode(&ixn)
-		f.Close()
-		if err != nil {
-			return nil, err
-		}
-
-		result = append(result, &ixn)
+		result = append(result, ixn)
 	}
 
 	return result, nil
+}
+
+func (c *cmd) ixnFromFile(path string) (*api.Intention, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	var ixn api.Intention
+	if err := json.NewDecoder(f).Decode(&ixn); err != nil {
+		return nil, err
+	}
+
+	if len(ixn.Permissions) > 0 {
+		return nil, fmt.Errorf("cannot create L7 intention from file %q using this CLI; use 'consul config write' instead", path)
+	}
+
+	return &ixn, nil
 }
 
 // ixnAction returns the api.IntentionAction based on the flag set.

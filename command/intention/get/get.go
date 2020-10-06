@@ -1,6 +1,7 @@
 package get
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -60,7 +61,9 @@ func (c *cmd) Run(args []string) int {
 	data := []string{
 		fmt.Sprintf("Source:\x1f%s", ixn.SourceString()),
 		fmt.Sprintf("Destination:\x1f%s", ixn.DestinationString()),
-		fmt.Sprintf("Action:\x1f%s", ixn.Action),
+	}
+	if ixn.Action != "" {
+		data = append(data, fmt.Sprintf("Action:\x1f%s", ixn.Action))
 	}
 	if ixn.ID != "" {
 		data = append(data, fmt.Sprintf("ID:\x1f%s", ixn.ID))
@@ -84,6 +87,14 @@ func (c *cmd) Run(args []string) int {
 
 	c.UI.Output(columnize.Format(data, &columnize.Config{Delim: string([]byte{0x1f})}))
 
+	if len(ixn.Permissions) > 0 {
+		b, err := json.MarshalIndent(ixn.Permissions, "", "  ")
+		if err != nil {
+			c.UI.Error(err.Error())
+			return 1
+		}
+		c.UI.Output("Permissions:\n" + string(b))
+	}
 	return 0
 }
 

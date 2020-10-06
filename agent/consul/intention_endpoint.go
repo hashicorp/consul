@@ -288,10 +288,10 @@ func (s *Intention) Apply(
 		}
 
 		if prevEntry == nil {
-			upsertEntry = args.Intention.ToConfigEntry()
+			upsertEntry = args.Intention.ToConfigEntry(true)
 		} else {
 			upsertEntry = prevEntry.Clone()
-			upsertEntry.Sources = append(upsertEntry.Sources, args.Intention.ToSourceIntention())
+			upsertEntry.Sources = append(upsertEntry.Sources, args.Intention.ToSourceIntention(true))
 		}
 
 	case structs.IntentionOpUpdate:
@@ -306,7 +306,7 @@ func (s *Intention) Apply(
 		upsertEntry = prevEntry.Clone()
 		for i, src := range upsertEntry.Sources {
 			if src.LegacyID == args.Intention.ID {
-				upsertEntry.Sources[i] = args.Intention.ToSourceIntention()
+				upsertEntry.Sources[i] = args.Intention.ToSourceIntention(true)
 				break
 			}
 		}
@@ -339,7 +339,7 @@ func (s *Intention) Apply(
 				return fmt.Errorf("Meta must not be specified")
 			}
 
-			upsertEntry = args.Intention.ToConfigEntry()
+			upsertEntry = args.Intention.ToConfigEntry(false)
 		} else {
 			upsertEntry = prevEntry.Clone()
 
@@ -363,13 +363,13 @@ func (s *Intention) Apply(
 			found := false
 			for i, src := range upsertEntry.Sources {
 				if src.SourceServiceName() == sn {
-					upsertEntry.Sources[i] = args.Intention.ToSourceIntention()
+					upsertEntry.Sources[i] = args.Intention.ToSourceIntention(false)
 					found = true
 					break
 				}
 			}
 			if !found {
-				upsertEntry.Sources = append(upsertEntry.Sources, args.Intention.ToSourceIntention())
+				upsertEntry.Sources = append(upsertEntry.Sources, args.Intention.ToSourceIntention(false))
 			}
 		}
 
@@ -712,6 +712,8 @@ func (s *Intention) Match(
 // Check tests a source/destination and returns whether it would be allowed
 // or denied based on the current ACL configuration.
 //
+// NOTE: This endpoint treats any L7 intentions as DENY.
+//
 // Note: Whenever the logic for this method is changed, you should take
 // a look at the agent authorize endpoint (agent/agent_endpoint.go) since
 // the logic there is similar.
@@ -802,13 +804,29 @@ func (s *Intention) Check(
 		return errors.New("internal error loading matches")
 	}
 
-	// Check the authorization for each match
+	// Figure out which source matches this request.
+	var ixnMatch *structs.Intention
 	for _, ixn := range matches[0] {
-		if auth, ok := uri.Authorize(ixn); ok {
-			reply.Allowed = auth
-			return nil
+		if _, ok := uri.Authorize(ixn); ok {
+			ixnMatch = ixn
+			break
 		}
 	}
+
+	if ixnMatch != nil {
+		if len(ixnMatch.Permissions) == 0 {
+			// This is an L4 intention.
+			reply.Allowed = ixnMatch.Action == structs.IntentionActionAllow
+			return nil
+		}
+
+		// This is an L7 intention, so DENY.
+		reply.Allowed = false
+		return nil
+	}
+
+	// Note: the default intention policy is like an intention with a
+	// wildcarded destination in that it is limited to L4-only.
 
 	// No match, we need to determine the default behavior. We do this by
 	// specifying the anonymous token token, which will get that behavior.
