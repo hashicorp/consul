@@ -20,22 +20,22 @@ type Event struct {
 }
 
 // IsEndOfSnapshot returns true if this is a framing event that indicates the
-// snapshot has completed. Future events from Subscription.Next will be
-// change events.
+// snapshot has completed. Subsequent events from Subscription.Next will be
+// streamed as they occur.
 func (e Event) IsEndOfSnapshot() bool {
 	return e.Payload == endOfSnapshot{}
 }
 
-// IsEndOfEmptySnapshot returns true if this is a framing event that indicates
-// there is no snapshot. Future events from Subscription.Next will be
-// change events.
-func (e Event) IsEndOfEmptySnapshot() bool {
-	return e.Payload == endOfEmptySnapshot{}
+// IsNewSnapshotToFollow returns true if this is a framing event that indicates
+// that the clients view is stale, and must be reset. Subsequent events from
+// Subscription.Next will be a new snapshot, followed by an EndOfSnapshot event.
+func (e Event) IsNewSnapshotToFollow() bool {
+	return e.Payload == newSnapshotToFollow{}
 }
 
 type endOfSnapshot struct{}
 
-type endOfEmptySnapshot struct{}
+type newSnapshotToFollow struct{}
 
 type closeSubscriptionPayload struct {
 	tokensSecretIDs []string

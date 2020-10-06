@@ -28,7 +28,7 @@ type Subscription struct {
 	state uint32
 
 	// req is the requests that we are responding to
-	req *SubscribeRequest
+	req SubscribeRequest
 
 	// currentItem stores the current snapshot or topic buffer item we are on. It
 	// is mutated by calls to Next.
@@ -56,7 +56,7 @@ type SubscribeRequest struct {
 
 // newSubscription return a new subscription. The caller is responsible for
 // calling Unsubscribe when it is done with the subscription, to free resources.
-func newSubscription(req *SubscribeRequest, item *bufferItem, unsub func()) *Subscription {
+func newSubscription(req SubscribeRequest, item *bufferItem, unsub func()) *Subscription {
 	return &Subscription{
 		forceClosed: make(chan struct{}),
 		req:         req,

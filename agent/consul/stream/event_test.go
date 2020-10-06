@@ -11,7 +11,7 @@ func TestEvent_IsEndOfSnapshot(t *testing.T) {
 	require.True(t, e.IsEndOfSnapshot())
 
 	t.Run("not EndOfSnapshot", func(t *testing.T) {
-		e := Event{Payload: endOfEmptySnapshot{}}
+		e := Event{Payload: newSnapshotToFollow{}}
 		require.False(t, e.IsEndOfSnapshot())
 	})
 }

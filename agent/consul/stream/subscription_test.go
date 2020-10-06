@@ -23,8 +23,7 @@ func TestSubscription(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// Create a subscription
-	req := &SubscribeRequest{
+	req := SubscribeRequest{
 		Topic: testTopic,
 		Key:   "test",
 	}
@@ -103,8 +102,7 @@ func TestSubscription_Close(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// Create a subscription
-	req := &SubscribeRequest{
+	req := SubscribeRequest{
 		Topic: testTopic,
 		Key:   "test",
 	}
