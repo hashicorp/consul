@@ -51,9 +51,13 @@ export default Store.extend({
   // TODO: This one is only for nodes, should fail nicely if you call it
   // for anything other than nodes for good DX
   queryLeader: function(modelName, query) {
-    // TODO: no normalization, type it properly for the moment
     const adapter = this.adapterFor(modelName);
-    return adapter.queryLeader(this, { modelName: modelName }, null, query);
+    const serializer = this.serializerFor(modelName);
+    const modelClass = { modelName: modelName };
+    return adapter.queryLeader(this, modelClass, null, query).then(payload => {
+      payload.meta = serializer.normalizeMeta(this, modelClass, payload, null, 'leader');
+      return payload;
+    });
   },
   // TODO: This one is only for nspaces and OIDC, should fail nicely if you call it
   // for anything other than nspaces/OIDC for good DX

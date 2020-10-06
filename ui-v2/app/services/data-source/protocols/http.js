@@ -5,6 +5,7 @@ export default Service.extend({
   datacenters: service('repository/dc'),
   nodes: service('repository/node'),
   node: service('repository/node'),
+  leader: service('repository/node'),
   gateways: service('repository/service'),
   services: service('repository/service'),
   service: service('repository/service'),
@@ -57,6 +58,9 @@ export default Service.extend({
       case 'roles':
       case 'policies':
         find = configuration => repo.findAllByDatacenter(dc, nspace, configuration);
+        break;
+      case 'leader':
+        find = configuration => repo.findLeader(dc, configuration);
         break;
       case 'intentions':
         [method, ...slug] = rest;
