@@ -29,6 +29,8 @@ theme/connect:
     - '(Connect|connect|service\smesh|mesh|proxy|gateway)'
 theme/consul-nomad:
     - '(nomad|Nomad)'
+theme/consul-terraform-sync:
+    - '(nia|NIA|Network\sInfrastructure\sAutomation)'
 theme/consul-vault:
     - '(vault|Vault)'
 # theme/contributing:
