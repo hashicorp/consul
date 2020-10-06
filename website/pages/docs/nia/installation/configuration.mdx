@@ -52,7 +52,7 @@ provider "myprovider" {
 }
 ```
 
-## Consul-Terraform-Sync
+## Global Config Options
 
 Top level options are reserved for configuring Consul-Terraform-Sync.
 
@@ -74,7 +74,7 @@ buffer_period {
 * `buffer_period` - Configures the default buffer period for all [tasks](#task) to dampen the affects of flapping services to downstream network devices. It defines the minimum and maximum amount of time to wait for the cluster to reach a consistent state and accumulate changes before triggering task executions. The default is enabled to reduce the number of times downstream infrastructure is updated within a short period of time. This is useful to enable in systems that have a lot of flapping.
   * `enabled` - `(bool: true)` Enable or disable buffer periods globally. Specifying `min` will also enable it.
   * `min` - `(string: 5s)` The minimum period of time to wait after changes are detected before triggering related tasks.
-  * `max` - `(string: 20s)` The maximum period of time to wait after changes are detected before triggering related tasks.
+  * `max` - `(string: 20s)` The maximum period of time to wait after changes are detected before triggering related tasks. If `min` is set, the default period for `max` is 4 times the value of `min`.
 
 ## Consul
 
@@ -162,7 +162,7 @@ task {
   ]
   ```
 * `version` - `(string: <none>)` The version of the provided source the task will use. For the [Terraform driver](#terraform-driver), this is the module version. The latest version will be used as the default if omitted.
-* `buffer_period` - Configures the buffer period for the task to dampen the affects of flapping services to downstream network devices. It defines the minimum and maximum amount of time to wait for the cluster to reach a consistent state and accumulate changes before triggering task execution. The default is inherited from the top level [`buffer_period` block](#consul-terraform-sync). If configured, these values will take precedence over the global buffer period. This is useful to enable for a task that is dependent on services that have a lot of flapping.
+* `buffer_period` - Configures the buffer period for the task to dampen the affects of flapping services to downstream network devices. It defines the minimum and maximum amount of time to wait for the cluster to reach a consistent state and accumulate changes before triggering task execution. The default is inherited from the top level [`buffer_period` block](#global-config-options). If configured, these values will take precedence over the global buffer period. This is useful to enable for a task that is dependent on services that have a lot of flapping.
   * `enabled` - `(bool: false)` Enable or disable buffer periods for this task. Specifying `min` will also enable it.
   * `min` - `(string: 5s)` The minimum period of time to wait after changes are detected before triggering related tasks.
   * `max` - `(string: 20s)` The maximum period of time to wait after changes are detected before triggering related tasks. If `min` is set, the default period for `max` is 4 times the value of `min`.
