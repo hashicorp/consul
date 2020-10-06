@@ -12,41 +12,65 @@ export default class TopologyMetrics extends Component {
 
   // =methods
   drawDownLines(items) {
-    return items.map(item => {
-      const dimensions = item.getBoundingClientRect();
-      const dest = {
-        x: this.centerDimensions.x,
-        y: this.centerDimensions.y + this.centerDimensions.height / 4,
-      };
-      const src = {
-        x: dimensions.x + dimensions.width,
-        y: dimensions.y + dimensions.height / 2,
-      };
+    let order = [null, 'allow', 'deny'];
 
-      return {
-        dest: dest,
-        src: src,
-      };
-    });
+    return items
+      .map(item => {
+        const dimensions = item.getBoundingClientRect();
+        const dest = {
+          x: this.centerDimensions.x,
+          y: this.centerDimensions.y + this.centerDimensions.height / 4,
+        };
+        const src = {
+          x: dimensions.x + dimensions.width,
+          y: dimensions.y + dimensions.height / 2,
+        };
+
+        return {
+          id: item.id,
+          permission: item.getAttribute('data-permission'),
+          dest: dest,
+          src: src,
+        };
+      })
+      .sort((a, b) => {
+        if (a.permission === b.permission) {
+          return 0;
+        }
+
+        return order.indexOf(a.permission) - order.indexOf(b.permission);
+      });
   }
 
   drawUpLines(items) {
-    return items.map(item => {
-      const dimensions = item.getBoundingClientRect();
-      const dest = {
-        x: dimensions.x - dimensions.width - 26,
-        y: dimensions.y + dimensions.height / 2,
-      };
-      const src = {
-        x: this.centerDimensions.x + 20,
-        y: this.centerDimensions.y + this.centerDimensions.height / 4,
-      };
+    let order = [null, 'allow', 'deny'];
 
-      return {
-        dest: dest,
-        src: src,
-      };
-    });
+    return items
+      .map(item => {
+        const dimensions = item.getBoundingClientRect();
+        const dest = {
+          x: dimensions.x - dimensions.width - 26,
+          y: dimensions.y + dimensions.height / 2,
+        };
+        const src = {
+          x: this.centerDimensions.x + 20,
+          y: this.centerDimensions.y + this.centerDimensions.height / 4,
+        };
+
+        return {
+          id: item.id,
+          permission: item.getAttribute('data-permission'),
+          dest: dest,
+          src: src,
+        };
+      })
+      .sort((a, b) => {
+        if (a.permission === b.permission) {
+          return 0;
+        }
+
+        return order.indexOf(a.permission) - order.indexOf(b.permission);
+      });
   }
 
   // =actions

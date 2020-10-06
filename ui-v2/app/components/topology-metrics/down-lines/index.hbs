@@ -1,0 +1,61 @@
+{{on-window 'resize' (action this.getIconPositions)}}
+
+{{#if (gt @lines.length 0)}}
+  <svg
+    {{did-insert this.getIconPositions}}
+    viewBox={{concat @view.x ' ' @view.y ' ' @view.width ' ' @view.height}}
+    preserveAspectRatio="none"
+  >
+    <defs>
+      <marker id="allow-dot" viewBox="-2 -2 15 15" refX="6" refY="6" markerWidth="6" markerHeight="6">
+        <circle
+          cx="6"
+          cy="6"
+          r="6"
+        />
+      </marker>
+      <marker id="allow-arrow" viewBox="-1 -1 12 12" refX="5" refY="5"
+          markerWidth="6" markerHeight="6"
+          orient="auto-start-reverse">
+        <polygon points="0 0 10 5 0 10" />
+      </marker>
+      <marker id="deny-dot" viewBox="-2 -2 15 15" refX="6" refY="6" markerWidth="6" markerHeight="6">
+        <circle
+          cx="6"
+          cy="6"
+          r="6"
+        />
+      </marker>
+      <marker id="deny-arrow" viewBox="-1 -1 12 12" refX="5" refY="5"
+          markerWidth="6" markerHeight="6"
+          orient="auto-start-reverse">
+        <polygon points="0 0 10 5 0 10" />
+      </marker>
+    </defs>
+{{#each @lines as |line|}}
+  {{#if (eq line.permission 'deny')}}
+    <path
+      id={{line.id}}
+      d={{svg-curve line.dest src=line.src}}
+      marker-start="url(#deny-dot)"
+      marker-end="url(#deny-arrow)"
+      data-permission={{line.permission}}
+    />
+  {{else}}
+     <path
+      id={{line.id}}
+      d={{svg-curve line.dest src=line.src}}
+      marker-start="url(#allow-dot)"
+      marker-end="url(#allow-arrow)"
+      data-permission={{line.permission}}
+    />
+  {{/if}}
+{{/each}}
+  </svg>
+{{/if}}
+
+<TopologyMetrics::Icon
+  @positions={{this.iconPositions}}
+  @items={{@items}}
+/>
+
