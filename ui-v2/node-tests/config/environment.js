@@ -9,9 +9,9 @@ test(
       {
         environment: 'production',
         CONSUL_BINARY_TYPE: 'oss',
-        CONSUL_ACLS_ENABLED: false,
-        CONSUL_SSO_ENABLED: false,
-        CONSUL_NSPACES_ENABLED: false,
+        CONSUL_ACLS_ENABLED: '__RUNTIME_BOOL_ACLsEnabled__',
+        CONSUL_SSO_ENABLED: '__RUNTIME_BOOL_SSOEnabled__',
+        CONSUL_NSPACES_ENABLED: '__RUNTIME_BOOL_NSpacesEnabled__',
       },
       {
         environment: 'test',
