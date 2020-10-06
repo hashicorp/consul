@@ -335,3 +335,4 @@ Usage: consul acl auth-method update -name NAME [options]
                             -kubernetes-host "https://new-apiserver.example.com:8443" \
                             -kubernetes-ca-cert @/path/to/new-kube.ca.crt \
                             -kubernetes-service-account-jwt "NEW_JWT_CONTENTS"
+`
