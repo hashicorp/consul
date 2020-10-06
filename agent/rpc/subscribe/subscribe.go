@@ -35,6 +35,8 @@ type Logger interface {
 var _ pbsubscribe.StateChangeSubscriptionServer = (*Server)(nil)
 
 type Backend interface {
+	// TODO(streaming): Use ResolveTokenAndDefaultMeta instead once SubscribeRequest
+	// has an EnterpriseMeta.
 	ResolveToken(token string) (acl.Authorizer, error)
 	Forward(dc string, f func(*grpc.ClientConn) error) (handled bool, err error)
 	Subscribe(req *stream.SubscribeRequest) (*stream.Subscription, error)
@@ -51,7 +53,6 @@ func (h *Server) Subscribe(req *pbsubscribe.SubscribeRequest, serverStream pbsub
 	defer logger.Trace("subscription closed")
 
 	// Resolve the token and create the ACL filter.
-	// TODO(streaming): handle token expiry gracefully...
 	authz, err := h.Backend.ResolveToken(req.Token)
 	if err != nil {
 		return err
@@ -64,7 +65,6 @@ func (h *Server) Subscribe(req *pbsubscribe.SubscribeRequest, serverStream pbsub
 	defer sub.Unsubscribe()
 
 	ctx := serverStream.Context()
-
 	elog := &eventLogger{logger: logger}
 	for {
 		events, err := sub.Next(ctx)
