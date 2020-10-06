@@ -32,6 +32,7 @@ func init() {
 	registerRestorer(structs.ACLBindingRuleSetRequestType, restoreBindingRule)
 	registerRestorer(structs.ACLAuthMethodSetRequestType, restoreAuthMethod)
 	registerRestorer(structs.FederationStateRequestType, restoreFederationState)
+	registerRestorer(structs.SystemMetadataRequestType, restoreSystemMetadata)
 }
 
 func persistOSS(s *snapshot, sink raft.SnapshotSink, encoder *codec.Encoder) error {
@@ -72,6 +73,9 @@ func persistOSS(s *snapshot, sink raft.SnapshotSink, encoder *codec.Encoder) err
 		return err
 	}
 	if err := s.persistFederationStates(sink, encoder); err != nil {
+		return err
+	}
+	if err := s.persistSystemMetadata(sink, encoder); err != nil {
 		return err
 	}
 	if err := s.persistIndex(sink, encoder); err != nil {
@@ -464,6 +468,23 @@ func (s *snapshot) persistFederationStates(sink raft.SnapshotSink, encoder *code
 	return nil
 }
 
+func (s *snapshot) persistSystemMetadata(sink raft.SnapshotSink, encoder *codec.Encoder) error {
+	entries, err := s.state.SystemMetadataEntries()
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range entries {
+		if _, err := sink.Write([]byte{byte(structs.SystemMetadataRequestType)}); err != nil {
+			return err
+		}
+		if err := encoder.Encode(entry); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (s *snapshot) persistIndex(sink raft.SnapshotSink, encoder *codec.Encoder) error {
 	// Get all the indexes
 	iter, err := s.state.Indexes()
@@ -711,4 +732,12 @@ func restoreFederationState(header *snapshotHeader, restore *state.Restore, deco
 		return err
 	}
 	return restore.FederationState(req.State)
+}
+
+func restoreSystemMetadata(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+	var req structs.SystemMetadataEntry
+	if err := decoder.Decode(&req); err != nil {
+		return err
+	}
+	return restore.SystemMetadataEntry(&req)
 }

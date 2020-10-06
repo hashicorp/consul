@@ -399,6 +399,12 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		ServiceID: "web",
 	}))
 
+	// system metadata
+	systemMetadataEntry := &structs.SystemMetadataEntry{
+		Key: "key1", Value: "val1",
+	}
+	require.NoError(t, fsm.state.SystemMetadataSet(25, systemMetadataEntry))
+
 	// Snapshot
 	snap, err := fsm.Snapshot()
 	require.NoError(t, err)
@@ -659,6 +665,12 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, len(nodes), nodeCount)
 	require.NotZero(t, idx)
+
+	// Verify system metadata is restored.
+	_, systemMetadataLoaded, err := fsm2.state.SystemMetadataList(nil)
+	require.NoError(t, err)
+	require.Len(t, systemMetadataLoaded, 1)
+	require.Equal(t, systemMetadataEntry, systemMetadataLoaded[0])
 
 	// Snapshot
 	snap, err = fsm2.Snapshot()
