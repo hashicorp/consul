@@ -659,6 +659,21 @@ jobs:
             fi
       - run: *notify-slack-failure
 
+  # run node tests
+  node-tests:
+    docker:
+      - image: *EMBER_IMAGE
+    steps:
+      - checkout
+      - restore_cache:
+          key: *YARN_CACHE_KEY
+      - attach_workspace:
+          at: ui-v2
+      - run:
+          working_directory: ui-v2
+          command: make test-node
+      - run: *notify-slack-failure
+
   # run ember frontend tests
   ember-test-oss:
     docker:
@@ -930,6 +945,9 @@ workflows:
                 - master
                 - ui-staging
                 - /^ui\/.*/
+      - node-tests:
+          requires:
+            - frontend-cache
       - ember-build-oss:
           requires:
             - frontend-cache
