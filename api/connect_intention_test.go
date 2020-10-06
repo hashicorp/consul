@@ -9,7 +9,6 @@ import (
 func TestAPI_ConnectIntentionCreateListGetUpdateDelete(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	c, s := makeClient(t)
 	defer s.Stop()
 
@@ -18,13 +17,13 @@ func TestAPI_ConnectIntentionCreateListGetUpdateDelete(t *testing.T) {
 	// Create
 	ixn := testIntention()
 	id, _, err := connect.IntentionCreate(ixn, nil)
-	require.Nil(err)
-	require.NotEmpty(id)
+	require.Nil(t, err)
+	require.NotEmpty(t, id)
 
 	// List it
 	list, _, err := connect.Intentions(nil)
-	require.Nil(err)
-	require.Len(list, 1)
+	require.Nil(t, err)
+	require.Len(t, list, 1)
 
 	actual := list[0]
 	ixn.ID = id
@@ -33,40 +32,39 @@ func TestAPI_ConnectIntentionCreateListGetUpdateDelete(t *testing.T) {
 	ixn.CreateIndex = actual.CreateIndex
 	ixn.ModifyIndex = actual.ModifyIndex
 	ixn.Hash = actual.Hash
-	require.Equal(ixn, actual)
+	require.Equal(t, ixn, actual)
 
 	// Get it
 	actual, _, err = connect.IntentionGet(id, nil)
-	require.Nil(err)
-	require.Equal(ixn, actual)
+	require.Nil(t, err)
+	require.Equal(t, ixn, actual)
 
 	// Update it
 	ixn.SourceName = ixn.SourceName + "-different"
 	_, err = connect.IntentionUpdate(ixn, nil)
-	require.NoError(err)
+	require.NoError(t, err)
 
 	// Get it
 	actual, _, err = connect.IntentionGet(id, nil)
-	require.NoError(err)
+	require.NoError(t, err)
 	ixn.UpdatedAt = actual.UpdatedAt
 	ixn.ModifyIndex = actual.ModifyIndex
 	ixn.Hash = actual.Hash
-	require.Equal(ixn, actual)
+	require.Equal(t, ixn, actual)
 
 	// Delete it
 	_, err = connect.IntentionDelete(id, nil)
-	require.Nil(err)
+	require.Nil(t, err)
 
 	// Get it (should be gone)
 	actual, _, err = connect.IntentionGet(id, nil)
-	require.Nil(err)
-	require.Nil(actual)
+	require.Nil(t, err)
+	require.Nil(t, actual)
 }
 
 func TestAPI_ConnectIntentionGet_invalidId(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	c, s := makeClient(t)
 	defer s.Stop()
 
@@ -74,15 +72,14 @@ func TestAPI_ConnectIntentionGet_invalidId(t *testing.T) {
 
 	// Get it
 	actual, _, err := connect.IntentionGet("hello", nil)
-	require.Nil(actual)
-	require.Error(err)
-	require.Contains(err.Error(), "UUID") // verify it contains the message
+	require.Nil(t, actual)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "UUID") // verify it contains the message
 }
 
 func TestAPI_ConnectIntentionMatch(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	c, s := makeClient(t)
 	defer s.Stop()
 
@@ -101,8 +98,8 @@ func TestAPI_ConnectIntentionMatch(t *testing.T) {
 			ixn.DestinationNS = v[0]
 			ixn.DestinationName = v[1]
 			id, _, err := connect.IntentionCreate(ixn, nil)
-			require.Nil(err)
-			require.NotEmpty(id)
+			require.Nil(t, err)
+			require.NotEmpty(t, id)
 		}
 	}
 
@@ -111,8 +108,8 @@ func TestAPI_ConnectIntentionMatch(t *testing.T) {
 		By:    IntentionMatchDestination,
 		Names: []string{"bar"},
 	}, nil)
-	require.Nil(err)
-	require.Len(result, 1)
+	require.Nil(t, err)
+	require.Len(t, result, 1)
 
 	var actual [][]string
 	expected := [][]string{
@@ -123,13 +120,12 @@ func TestAPI_ConnectIntentionMatch(t *testing.T) {
 		actual = append(actual, []string{ixn.DestinationNS, ixn.DestinationName})
 	}
 
-	require.Equal(expected, actual)
+	require.Equal(t, expected, actual)
 }
 
 func TestAPI_ConnectIntentionCheck(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	c, s := makeClient(t)
 	defer s.Stop()
 
@@ -150,8 +146,8 @@ func TestAPI_ConnectIntentionCheck(t *testing.T) {
 			ixn.DestinationName = v[3]
 			ixn.Action = IntentionAction(v[4])
 			id, _, err := connect.IntentionCreate(ixn, nil)
-			require.Nil(err)
-			require.NotEmpty(id)
+			require.Nil(t, err)
+			require.NotEmpty(t, id)
 		}
 	}
 
@@ -161,8 +157,8 @@ func TestAPI_ConnectIntentionCheck(t *testing.T) {
 			Source:      "default/qux",
 			Destination: "default/bar",
 		}, nil)
-		require.NoError(err)
-		require.False(result)
+		require.NoError(t, err)
+		require.False(t, result)
 	}
 
 	// Match the allow rule
@@ -171,8 +167,8 @@ func TestAPI_ConnectIntentionCheck(t *testing.T) {
 			Source:      "default/foo",
 			Destination: "default/bar",
 		}, nil)
-		require.NoError(err)
-		require.True(result)
+		require.NoError(t, err)
+		require.True(t, result)
 	}
 }
 
@@ -185,6 +181,5 @@ func testIntention() *Intention {
 		Precedence:      9,
 		Action:          IntentionActionAllow,
 		SourceType:      IntentionSourceConsul,
-		Meta:            map[string]string{},
 	}
 }

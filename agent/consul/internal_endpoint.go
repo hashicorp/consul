@@ -88,7 +88,7 @@ func (m *Internal) NodeDump(args *structs.DCSpecificRequest,
 		})
 }
 
-func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.IndexedCheckServiceNodes) error {
+func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.IndexedNodesWithGateways) error {
 	if done, err := m.srv.ForwardRPC("Internal.ServiceDump", args, args, reply); done {
 		return err
 	}
@@ -107,13 +107,30 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, nodes, err := state.ServiceDump(ws, args.ServiceKind, args.UseServiceKind, &args.EnterpriseMeta)
+			// Get, store, and filter nodes
+			maxIdx, nodes, err := state.ServiceDump(ws, args.ServiceKind, args.UseServiceKind, &args.EnterpriseMeta)
 			if err != nil {
 				return err
 			}
+			reply.Nodes = nodes
 
-			reply.Index, reply.Nodes = index, nodes
-			if err := m.srv.filterACL(args.Token, reply); err != nil {
+			if err := m.srv.filterACL(args.Token, &reply.Nodes); err != nil {
+				return err
+			}
+
+			// Get, store, and filter gateway services
+			idx, gatewayServices, err := state.DumpGatewayServices(ws)
+			if err != nil {
+				return err
+			}
+			reply.Gateways = gatewayServices
+
+			if idx > maxIdx {
+				maxIdx = idx
+			}
+			reply.Index = maxIdx
+
+			if err := m.srv.filterACL(args.Token, &reply.Gateways); err != nil {
 				return err
 			}
 
@@ -123,6 +140,45 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 			}
 
 			reply.Nodes = raw.(structs.CheckServiceNodes)
+			return nil
+		})
+}
+
+func (m *Internal) ServiceTopology(args *structs.ServiceSpecificRequest, reply *structs.IndexedServiceTopology) error {
+	if done, err := m.srv.ForwardRPC("Internal.ServiceTopology", args, args, reply); done {
+		return err
+	}
+	if args.ServiceName == "" {
+		return fmt.Errorf("Must provide a service name")
+	}
+
+	var authzContext acl.AuthorizerContext
+	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
+	if err != nil {
+		return err
+	}
+	if err := m.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+	if authz != nil && authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
+		return acl.ErrPermissionDenied
+	}
+
+	return m.srv.blockingQuery(
+		&args.QueryOptions,
+		&reply.QueryMeta,
+		func(ws memdb.WatchSet, state *state.Store) error {
+			index, topology, err := state.ServiceTopology(ws, args.Datacenter, args.ServiceName, &args.EnterpriseMeta)
+			if err != nil {
+				return err
+			}
+
+			reply.Index = index
+			reply.ServiceTopology = topology
+
+			if err := m.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
 			return nil
 		})
 }

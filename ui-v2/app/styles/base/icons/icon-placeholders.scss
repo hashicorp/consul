@@ -808,6 +808,16 @@
   mask-image: $learn-svg;
 }
 
+%with-layers-icon {
+  @extend %with-icon;
+  background-image: $layers-svg;
+}
+%with-layers-mask {
+  @extend %with-mask;
+  -webkit-mask-image: $layers-svg;
+  mask-image: $layers-svg;
+}
+
 %with-link-icon {
   @extend %with-icon;
   background-image: $link-svg;
@@ -1154,6 +1164,16 @@
   @extend %with-mask;
   -webkit-mask-image: $menu-svg;
   mask-image: $menu-svg;
+}
+
+%with-mesh-icon {
+  @extend %with-icon;
+  background-image: $mesh-svg;
+}
+%with-mesh-mask {
+  @extend %with-mask;
+  -webkit-mask-image: $mesh-svg;
+  mask-image: $mesh-svg;
 }
 
 %with-message-icon {

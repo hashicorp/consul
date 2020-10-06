@@ -45,6 +45,16 @@ Consul is A, and version B is released.
    by running `consul members` to make sure all members have the latest
    build and highest protocol version.
 
+## Large Version Jumps
+
+Operating a Consul datacenter that is multiple major versions behind the current major
+version can increase the risk incurred during upgrades. We encourage our users to
+remain no more than two major versions behind (i.e., if 1.8.x is the current release,
+do not use versions older than 1.6.x). If you find yourself in a situation where you
+are many major versions behind, and need to upgrade, please review our
+[Upgrade Instructions page](/docs/upgrading/instructions) for information on
+how to perform those upgrades.
+
 ## Backward Incompatible Upgrades
 
 In some cases, a backwards incompatible update may be released. This has not

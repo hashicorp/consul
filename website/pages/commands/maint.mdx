@@ -30,11 +30,13 @@ Usage: `consul maint [options]`
 
 #### Command Options
 
-- `-enable` - Enable maintenance mode on all services on a node. If
-  combined with the `-service` flag, we operate on a specific service ID.
+- `-enable` - Enable node-wide maintenance mode flag. If combined with the
+  `-service` flag, we operate on a specific service ID instead. Node and
+  service maintenance flags are independent.
 
-- `-disable` - Disable maintenance mode on all services on a node. If
-  combined with the `-service` flag, we operate on a specific service ID.
+- `-disable` - Disable the node-wide maintenance flag. If combined with the
+  `-service` flag, we operate on a specific service ID instead. Node and
+   service maintenance flags are independent.
 
 - `-reason` - An optional reason for placing the service into
   maintenance mode. If provided, this reason will be visible in the newly-

@@ -2,6 +2,7 @@ import Service, { inject as service } from '@ember/service';
 import { assert } from '@ember/debug';
 import { typeOf } from '@ember/utils';
 import { get } from '@ember/object';
+import { isChangeset } from 'validated-changeset';
 
 export default Service.extend({
   getModelName: function() {
@@ -67,6 +68,13 @@ export default Service.extend({
     return this.store.createRecord(this.getModelName(), obj);
   },
   persist: function(item) {
+    // workaround for saving changesets that contain fragments
+    // firstly commit the changes down onto the object if
+    // its a changeset, then save as a normal object
+    if (isChangeset(item)) {
+      item.execute();
+      item = item.data;
+    }
     return item.save();
   },
   remove: function(obj) {

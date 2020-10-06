@@ -13,6 +13,9 @@ import (
 	metrics "github.com/armon/go-metrics"
 	radix "github.com/armon/go-radix"
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
+	"github.com/hashicorp/go-hclog"
+	"github.com/miekg/dns"
+
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/config"
 	agentdns "github.com/hashicorp/consul/agent/dns"
@@ -21,8 +24,6 @@ import (
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/go-hclog"
-	"github.com/miekg/dns"
 )
 
 const (
@@ -1159,49 +1160,18 @@ func (d *DNSServer) lookupServiceNodes(cfg *dnsConfig, lookup serviceLookup) (st
 		ServiceTags: []string{lookup.Tag},
 		TagFilter:   lookup.Tag != "",
 		QueryOptions: structs.QueryOptions{
-			Token:      d.agent.tokens.UserToken(),
-			AllowStale: cfg.AllowStale,
-			MaxAge:     cfg.CacheMaxAge,
+			Token:            d.agent.tokens.UserToken(),
+			AllowStale:       cfg.AllowStale,
+			MaxAge:           cfg.CacheMaxAge,
+			UseCache:         cfg.UseCache,
+			MaxStaleDuration: cfg.MaxStale,
 		},
 		EnterpriseMeta: lookup.EnterpriseMeta,
 	}
 
-	var out structs.IndexedCheckServiceNodes
-
-	if cfg.UseCache {
-		raw, m, err := d.agent.cache.Get(context.TODO(), cachetype.HealthServicesName, &args)
-		if err != nil {
-			return out, err
-		}
-		reply, ok := raw.(*structs.IndexedCheckServiceNodes)
-		if !ok {
-			// This should never happen, but we want to protect against panics
-			return out, fmt.Errorf("internal error: response type not correct")
-		}
-		d.logger.Trace("cache results for service",
-			"cache_hit", m.Hit,
-			"service", lookup.Service,
-		)
-
-		out = *reply
-	} else {
-		if err := d.agent.RPC("Health.ServiceNodes", &args, &out); err != nil {
-			return out, err
-		}
-	}
-
-	if args.AllowStale && out.LastContact > staleCounterThreshold {
-		metrics.IncrCounter([]string{"dns", "stale_queries"}, 1)
-	}
-
-	// redo the request the response was too stale
-	if args.AllowStale && out.LastContact > cfg.MaxStale {
-		args.AllowStale = false
-		d.logger.Warn("Query results too stale, re-requesting")
-
-		if err := d.agent.RPC("Health.ServiceNodes", &args, &out); err != nil {
-			return structs.IndexedCheckServiceNodes{}, err
-		}
+	out, _, err := d.agent.rpcClientHealth.ServiceNodes(context.TODO(), args)
+	if err != nil {
+		return out, err
 	}
 
 	// Filter out any service nodes due to health checks

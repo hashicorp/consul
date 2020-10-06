@@ -6,8 +6,6 @@
 
 {{#let (or sortBy "Name:asc") as |sort|}}
 <AppView
-  @class="role list"
-  @loading={{isLoading}}
   @authorized={{isAuthorized}}
   @enabled={{isEnabled}}
   >
@@ -23,12 +21,6 @@
 {{#if isAuthorized }}
     {{partial 'dc/acls/nav'}}
 {{/if}}
-  </BlockSlot>
-  <BlockSlot @name="disabled">
-    {{partial 'dc/acls/disabled'}}
-  </BlockSlot>
-  <BlockSlot @name="authorization">
-    {{partial 'dc/acls/authorization'}}
   </BlockSlot>
   <BlockSlot @name="actions">
     <a data-test-create href="{{href-to 'dc.acls.roles.create'}}" class="type-create">Create</a>

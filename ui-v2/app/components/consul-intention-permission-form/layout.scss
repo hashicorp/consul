@@ -1,0 +1,22 @@
+.consul-intention-permission-form {
+  h2 {
+    padding-top: 1.4em;
+    margin-top: .2em;
+    margin-bottom: .6em;
+  }
+  .consul-intention-permission-header-form {
+    margin-top: 10px;
+  }
+  fieldset:nth-child(2) > div,
+  .consul-intention-permission-header-form fieldset > div {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    grid-gap: 12px;
+  }
+  fieldset:nth-child(2) > div label:last-child {
+    grid-column: span 2;
+  }
+  .ember-basic-dropdown-trigger {
+    padding: 5px;
+  }
+}

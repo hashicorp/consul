@@ -5,6 +5,7 @@ export default Service.extend({
   datacenters: service('repository/dc'),
   nodes: service('repository/node'),
   node: service('repository/node'),
+  leader: service('repository/node'),
   gateways: service('repository/service'),
   services: service('repository/service'),
   service: service('repository/service'),
@@ -13,6 +14,7 @@ export default Service.extend({
   proxies: service('repository/proxy'),
   ['proxy-instance']: service('repository/proxy'),
   ['discovery-chain']: service('repository/discovery-chain'),
+  ['topology']: service('repository/topology'),
   coordinates: service('repository/coordinate'),
   sessions: service('repository/session'),
   namespaces: service('repository/nspace'),
@@ -57,6 +59,9 @@ export default Service.extend({
       case 'policies':
         find = configuration => repo.findAllByDatacenter(dc, nspace, configuration);
         break;
+      case 'leader':
+        find = configuration => repo.findLeader(dc, configuration);
+        break;
       case 'intentions':
         [method, ...slug] = rest;
         switch (method) {
@@ -97,6 +102,14 @@ export default Service.extend({
         switch (method) {
           case 'for-service':
             find = configuration => repo.findGatewayBySlug(slug, dc, nspace, configuration);
+            break;
+        }
+        break;
+      case 'topology':
+        [method, slug] = rest;
+        switch (method) {
+          case 'for-service':
+            find = configuration => repo.findBySlug(slug, dc, nspace, configuration);
             break;
         }
         break;

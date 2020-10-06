@@ -1,0 +1,135 @@
+<div
+  ...attributes
+  class="consul-intention-permission-form"
+>
+  {{yield (hash
+    submit=(action 'submit' changeset)
+    reset=(action 'reset' changeset)
+
+    isDirty=(and changeset.isValid)
+    changeset=changeset
+  )}}
+
+  <fieldset>
+    <span class="label">
+      Should this permission allow the source connect to the destination?
+    </span>
+    <div role="radiogroup" class={{if changeset.error.Action ' has-error'}}>
+      {{#each intents as |intent|}}
+        <label>
+          <span>{{capitalize intent}}</span>
+          <input
+            type="radio"
+            name="Action"
+            value={{intent}}
+            checked={{if (eq changeset.Action intent) 'checked'}}
+            onchange={{action (changeset-set changeset 'Action') value="target.value"}}
+          />
+        </label>
+      {{/each}}
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <header>
+      <h2>Path</h2>
+    </header>
+    <div>
+      <label class="type-select">
+        <span>Path Type</span>
+        <PowerSelect
+          @options={{pathTypes}}
+          @selected={{pathType}}
+          @onChange={{action 'change' 'HTTP.PathType' changeset}} as |Type|>
+            {{get pathLabels Type}}
+        </PowerSelect>
+      </label>
+{{#if shouldShowPathField}}
+      <label class="type-text{{if changeset.error.HTTP.Path ' has-error'}}">
+        <span>{{get pathLabels pathType}}</span>
+        <input
+          type="text"
+          name="Path"
+          value={{changeset-get changeset 'HTTP.Path'}}
+          oninput={{action 'change' 'HTTP.Path' changeset}}
+        />
+        {{#if changeset.error.HTTP.Path}}
+          <strong>
+            {{#if (eq (changeset-get changeset 'HTTP.PathType') 'PathRegex')}}
+              Path Regex should not be blank
+            {{else}}
+              Path should begin with a '/'
+            {{/if}}
+          </strong>
+        {{/if}}
+      </label>
+{{/if}}
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <h2>Methods</h2>
+    <div class="type-toggle">
+      <span>All methods are applied by default unless specified</span>
+      <label class="type-checkbox">
+        <input
+          type="checkbox"
+          name="{{name}}[allMethods]"
+          checked={{if allMethods 'checked'}}
+          onchange={{action 'change' 'allMethods' changeset}}
+        />
+        <span>All methods</span>
+      </label>
+    </div>
+
+{{#if shouldShowMethods}}
+    <div class="checkbox-group" role="group">
+      {{#each methods as |method|}}
+        <label class="type-checkbox">
+          <input
+            type="checkbox"
+            name="method"
+            value={{method}}
+            checked={{if (contains method changeset.HTTP.Methods) 'checked'}}
+            onchange={{action 'change' 'method' changeset}}
+          />
+          <span>{{method}}</span>
+        </label>
+      {{/each}}
+    </div>
+{{/if}}
+  </fieldset>
+
+  <fieldset>
+    <h2>Headers</h2>
+    <ConsulIntentionPermissionHeaderList
+      @items={{changeset-get changeset 'HTTP.Header'}}
+      @ondelete={{action 'delete' 'HTTP.Header' changeset}}
+    as |headerList|>
+
+    </ConsulIntentionPermissionHeaderList>
+
+    <ConsulIntentionPermissionHeaderForm
+      @onsubmit={{action 'add' 'HTTP.Header' changeset}}
+    as |headerForm|>
+      <Ref @target={{this}} @name="headerForm" @value={{headerForm}} />
+    </ConsulIntentionPermissionHeaderForm>
+
+    <button
+      type="button"
+      class="type-submit"
+      disabled={{if (not this.headerForm.isDirty) 'disabled'}}
+      onclick={{action this.headerForm.submit}}
+    >
+      Add another header
+    </button>
+    <button
+      type="button"
+      class="type-cancel"
+      onclick={{action this.headerForm.reset}}
+    >
+      Cancel
+    </button>
+
+  </fieldset>
+</div>

@@ -9,50 +9,45 @@ package stream
 // collected automatically by Go's runtime. This simplifies snapshot and buffer
 // management dramatically.
 type eventSnapshot struct {
-	// Head is the first item in the buffer containing the snapshot. Once the
-	// snapshot is complete, subsequent BufferItems are appended to snapBuffer,
-	// so that subscribers receive all the events from the same buffer.
-	Head *bufferItem
+	// First item in the buffer. Used as the Head of a subscription, or to
+	// splice this snapshot onto another one.
+	First *bufferItem
 
-	// snapBuffer is the Head of the snapshot buffer the fn should write to.
-	snapBuffer *eventBuffer
+	// buffer is the Head of the snapshot buffer the fn should write to.
+	buffer *eventBuffer
 }
 
-// newEventSnapshot creates a snapshot buffer based on the subscription request.
-// The current buffer head for the topic requested is passed so that once the
-// snapshot is complete and has been delivered into the buffer, any events
-// published during snapshotting can be immediately appended and won't be
-// missed. Once the snapshot is delivered the topic buffer is spliced onto the
-// snapshot buffer so that subscribers will naturally follow from the snapshot
-// to wait for any subsequent updates.
-func newEventSnapshot(req *SubscribeRequest, topicBufferHead *bufferItem, fn SnapshotFunc) *eventSnapshot {
-	buf := newEventBuffer()
-	s := &eventSnapshot{
-		Head:       buf.Head(),
-		snapBuffer: buf,
+// newEventSnapshot creates an empty snapshot buffer.
+func newEventSnapshot() *eventSnapshot {
+	snapBuffer := newEventBuffer()
+	return &eventSnapshot{
+		First:  snapBuffer.Head(),
+		buffer: snapBuffer,
 	}
-
-	go func() {
-		idx, err := fn(*req, s.snapBuffer)
-		if err != nil {
-			s.snapBuffer.AppendItem(&bufferItem{Err: err})
-			return
-		}
-		// We wrote the snapshot events to the buffer, send the "end of snapshot" event
-		s.snapBuffer.Append([]Event{{
-			Topic:   req.Topic,
-			Key:     req.Key,
-			Index:   idx,
-			Payload: endOfSnapshot{},
-		}})
-		s.spliceFromTopicBuffer(topicBufferHead, idx)
-	}()
-	return s
 }
 
+// appendAndSlice populates the snapshot buffer by calling the SnapshotFunc,
+// then adding an endOfSnapshot framing event, and finally by splicing in
+// events from the topicBuffer.
+func (s *eventSnapshot) appendAndSplice(req SubscribeRequest, fn SnapshotFunc, topicBufferHead *bufferItem) {
+	idx, err := fn(req, s.buffer)
+	if err != nil {
+		s.buffer.AppendItem(&bufferItem{Err: err})
+		return
+	}
+	s.buffer.Append([]Event{{
+		Topic:   req.Topic,
+		Key:     req.Key,
+		Index:   idx,
+		Payload: endOfSnapshot{},
+	}})
+	s.spliceFromTopicBuffer(topicBufferHead, idx)
+}
+
+// spliceFromTopicBuffer traverses the topicBuffer looking for the last item
+// in the buffer, or the first item where the index is greater than idx. Once
+// the item is found it is appended to the snapshot buffer.
 func (s *eventSnapshot) spliceFromTopicBuffer(topicBufferHead *bufferItem, idx uint64) {
-	// Now splice on the topic buffer. We need to iterate through the buffer to
-	// find the first event after the current snapshot.
 	item := topicBufferHead
 	for {
 		next := item.NextNoBlock()
@@ -62,7 +57,7 @@ func (s *eventSnapshot) spliceFromTopicBuffer(topicBufferHead *bufferItem, idx u
 			// the snapshot completed). We don't want any of the events (if any) in
 			// the snapshot buffer as they came before the snapshot but we do need to
 			// wait for the next update.
-			s.snapBuffer.AppendItem(item.NextLink())
+			s.buffer.AppendItem(item.NextLink())
 			return
 
 		case next.Err != nil:
@@ -71,14 +66,14 @@ func (s *eventSnapshot) spliceFromTopicBuffer(topicBufferHead *bufferItem, idx u
 			// buffer which does not contain a snapshot.
 			// Handle this case anyway in case errors can come from other places
 			// in the future.
-			s.snapBuffer.AppendItem(next)
+			s.buffer.AppendItem(next)
 			return
 
 		case len(next.Events) > 0 && next.Events[0].Index > idx:
 			// We've found an update in the topic buffer that happened after our
 			// snapshot was taken, splice it into the snapshot buffer so subscribers
 			// can continue to read this and others after it.
-			s.snapBuffer.AppendItem(next)
+			s.buffer.AppendItem(next)
 			return
 		}
 
@@ -93,6 +88,6 @@ func (s *eventSnapshot) spliceFromTopicBuffer(topicBufferHead *bufferItem, idx u
 func (s *eventSnapshot) err() error {
 	// Fetch the head of the buffer, this is atomic. If the snapshot func errored
 	// then the last event will be an error.
-	head := s.snapBuffer.Head()
+	head := s.buffer.Head()
 	return head.Err
 }

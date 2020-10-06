@@ -70,7 +70,7 @@ const parseBody = function(strs, ...values) {
   return [body, ...values];
 };
 
-const CLIENT_HEADERS = [CACHE_CONTROL, 'X-Request-ID', 'X-Range'];
+const CLIENT_HEADERS = [CACHE_CONTROL, 'X-Request-ID', 'X-Range', 'Refresh'];
 export default Service.extend({
   dom: service('dom'),
   connections: service('client/connections'),

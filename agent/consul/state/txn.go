@@ -126,13 +126,19 @@ func txnSession(tx *txn, idx uint64, op *structs.TxnSessionOp) error {
 	return nil
 }
 
-// txnIntention handles all Intention-related operations.
-func txnIntention(tx *txn, idx uint64, op *structs.TxnIntentionOp) error {
+// txnLegacyIntention handles all Intention-related operations.
+//
+// Deprecated: see TxnOp.Intention description
+func txnLegacyIntention(tx *txn, idx uint64, op *structs.TxnIntentionOp) error {
 	switch op.Op {
 	case structs.IntentionOpCreate, structs.IntentionOpUpdate:
-		return intentionSetTxn(tx, idx, op.Intention)
+		return legacyIntentionSetTxn(tx, idx, op.Intention)
 	case structs.IntentionOpDelete:
-		return intentionDeleteTxn(tx, idx, op.Intention.ID)
+		return legacyIntentionDeleteTxn(tx, idx, op.Intention.ID)
+	case structs.IntentionOpDeleteAll:
+		fallthrough // deliberately not available via this api
+	case structs.IntentionOpUpsert:
+		fallthrough // deliberately not available via this api
 	default:
 		return fmt.Errorf("unknown Intention op %q", op.Op)
 	}
@@ -343,8 +349,6 @@ func (s *Store) txnDispatch(tx *txn, idx uint64, ops structs.TxnOps) (structs.Tx
 		switch {
 		case op.KV != nil:
 			ret, err = s.txnKVS(tx, idx, op.KV)
-		case op.Intention != nil:
-			err = txnIntention(tx, idx, op.Intention)
 		case op.Node != nil:
 			ret, err = s.txnNode(tx, idx, op.Node)
 		case op.Service != nil:
@@ -353,6 +357,10 @@ func (s *Store) txnDispatch(tx *txn, idx uint64, ops structs.TxnOps) (structs.Tx
 			ret, err = s.txnCheck(tx, idx, op.Check)
 		case op.Session != nil:
 			err = txnSession(tx, idx, op.Session)
+		case op.Intention != nil:
+			// NOTE: this branch is deprecated and exists for backwards
+			// compatibility with pre-1.9.0 raft logs and during upgrades.
+			err = txnLegacyIntention(tx, idx, op.Intention)
 		default:
 			err = fmt.Errorf("no operation specified")
 		}

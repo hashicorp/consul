@@ -7,18 +7,19 @@ import (
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
 )
 
-func TestCommand_noTabs(t *testing.T) {
+func TestIntentionCreate_noTabs(t *testing.T) {
 	t.Parallel()
 	if strings.ContainsRune(New(nil).Help(), '\t') {
 		t.Fatal("help has tabs")
 	}
 }
 
-func TestCommand_Validation(t *testing.T) {
+func TestIntentionCreate_Validation(t *testing.T) {
 	t.Parallel()
 
 	ui := cli.NewMockUi()
@@ -55,13 +56,15 @@ func TestCommand_Validation(t *testing.T) {
 	}
 }
 
-func TestCommand(t *testing.T) {
+func TestIntentionCreate(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
+
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
 	c := New(ui)
@@ -80,13 +83,15 @@ func TestCommand(t *testing.T) {
 	require.Equal(api.IntentionActionAllow, ixns[0].Action)
 }
 
-func TestCommand_deny(t *testing.T) {
+func TestIntentionCreate_deny(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
+
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
 	c := New(ui)
@@ -106,13 +111,15 @@ func TestCommand_deny(t *testing.T) {
 	require.Equal(api.IntentionActionDeny, ixns[0].Action)
 }
 
-func TestCommand_meta(t *testing.T) {
+func TestIntentionCreate_meta(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
+
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
 	c := New(ui)
@@ -132,13 +139,15 @@ func TestCommand_meta(t *testing.T) {
 	require.Equal(map[string]string{"hello": "world"}, ixns[0].Meta)
 }
 
-func TestCommand_File(t *testing.T) {
+func TestIntentionCreate_File(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
+
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
 	c := New(ui)
@@ -165,12 +174,14 @@ func TestCommand_File(t *testing.T) {
 	require.Equal(api.IntentionActionAllow, ixns[0].Action)
 }
 
-func TestCommand_FileNoExist(t *testing.T) {
+func TestIntentionCreate_FileNoExist(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
+
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
 	c := New(ui)
@@ -185,13 +196,15 @@ func TestCommand_FileNoExist(t *testing.T) {
 	require.Contains(ui.ErrorWriter.String(), "no such file")
 }
 
-func TestCommand_replace(t *testing.T) {
+func TestIntentionCreate_replace(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
+
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Create the first
 	{
@@ -223,7 +236,7 @@ func TestCommand_replace(t *testing.T) {
 			"foo", "bar",
 		}
 		require.Equal(1, c.Run(args), ui.ErrorWriter.String())
-		require.Contains(ui.ErrorWriter.String(), "duplicate")
+		require.Contains(ui.ErrorWriter.String(), "more than once")
 	}
 
 	// Replace it

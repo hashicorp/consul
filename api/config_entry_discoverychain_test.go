@@ -32,6 +32,9 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 		require.NotNil(t, qm)
 		require.NotEqual(t, 0, qm.RequestTime)
 
+		// generic verification
+		require.Equal(t, testEntry.Meta, entry.GetMeta())
+
 		// verify it
 		readResolver, ok := entry.(*ServiceResolverConfigEntry)
 		require.True(t, ok)
@@ -61,6 +64,9 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 		require.NotNil(t, qm)
 		require.NotEqual(t, 0, qm.RequestTime)
 
+		// generic verification
+		require.Equal(t, testEntry.Meta, entry.GetMeta())
+
 		// verify it
 		readSplitter, ok := entry.(*ServiceSplitterConfigEntry)
 		require.True(t, ok)
@@ -89,6 +95,9 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, qm)
 		require.NotEqual(t, 0, qm.RequestTime)
+
+		// generic verification
+		require.Equal(t, testEntry.Meta, entry.GetMeta())
 
 		// verify it
 		readRouter, ok := entry.(*ServiceRouterConfigEntry)
@@ -150,6 +159,10 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 					},
 				},
 				ConnectTimeout: 5 * time.Second,
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
 			},
 			verify: verifyResolver,
 		},
@@ -187,6 +200,10 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 						Namespace: defaultNamespace,
 					},
 				},
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
 			},
 			verify: verifySplitter,
 		},
@@ -220,6 +237,10 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 							RetryOnStatusCodes:    []uint32{500, 503, 401},
 						},
 					},
+				},
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
 				},
 			},
 			verify: verifyRouter,

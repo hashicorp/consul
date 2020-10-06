@@ -1,14 +1,5 @@
-import Route from '@ember/routing/route';
+import Route from './services';
 
 export default Route.extend({
-  model: function() {
-    const parent = this.routeName
-      .split('.')
-      .slice(0, -1)
-      .join('.');
-    return this.modelFor(parent);
-  },
-  setupController: function(controller, model) {
-    controller.setProperties(model);
-  },
+  templateName: 'dc/services/show/upstreams',
 });

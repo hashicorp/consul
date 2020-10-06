@@ -84,8 +84,8 @@
 /docs/internals/consensus.html                       /docs/architecture/consensus                      301!
 /docs/internals/gossip                               /docs/architecture/gossip                         301!
 /docs/internals/gossip.html                          /docs/architecture/gossip                         301!
-/docs/internals/jepsen                               /docs/internals/jepsen                            301!
-/docs/internals/jepsen.html                          /docs/internals/jepsen                            301!
+/docs/internals/jepsen                               /docs/architecture/jepsen                         301!
+/docs/internals/jepsen.html                          /docs/architecture/jepsen                         301!
 /docs/internals/coordinates                          /docs/architecture/coordinates                    301!
 /docs/internals/coordinates.html                     /docs/architecture/coordinates                    301!
 /docs/glossary                                       /docs/install/glossary                            301!

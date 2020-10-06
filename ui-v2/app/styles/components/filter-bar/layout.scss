@@ -2,8 +2,6 @@
   display: flex;
   justify-content: space-between;
   padding: 4px 8px;
-  margin-top: 0 !important;
-  margin-bottom: -12px;
 }
 %filter-bar .filters {
   display: flex;
@@ -11,9 +9,6 @@
 }
 %filter-bar .filters > *:not(:last-child) {
   margin-right: 6px;
-}
-%filter-bar + :not(.notice) {
-  margin-top: 1.8em;
 }
 %filter-bar fieldset {
   flex: 0 1 auto;

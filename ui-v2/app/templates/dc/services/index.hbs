@@ -6,7 +6,7 @@
   sources=(if source (split source ',') undefined)
 ) as |filters|}}
   {{#let (or sortBy "Name:asc") as |sort|}}
-    <AppView @class="service list">
+    <AppView>
       <BlockSlot @name="notification" as |status type|>
         {{partial 'dc/services/notifications'}}
       </BlockSlot>

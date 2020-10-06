@@ -1,0 +1,108 @@
+.topology-container {
+  color: $gray-700;
+}
+
+// Columns/Containers & Lines
+#downstream-container,
+#metrics-container,
+#upstream-container {
+  border: 1px solid $gray-200;
+  border-radius: $decor-radius-100;
+}
+#downstream-container,
+#upstream-container {
+  background-color: $gray-100;
+}
+#downstream-container div:first-child {
+  display: inline-flex;
+  span::before {
+    @extend %with-info-circle-outline-mask, %as-pseudo;
+    background-color: $gray-500;
+  }
+}
+#upstream-container .card,
+#downstream-container .card {
+  background-color: $white;
+  border-radius: $decor-radius-100;
+  border: 1px solid $gray-200;
+  div {
+    dd {
+      color: $gray-700;
+    }
+    .nspace dt::before {
+      @extend %with-folder-outline-mask, %as-pseudo;
+    }
+    .health dt::before {
+      @extend %with-help-circle-outline-mask, %as-pseudo;
+    }
+    .nspace dt::before {
+      @extend %with-folder-outline-mask, %as-pseudo;
+    }
+    .health dt::before {
+      @extend %with-help-circle-outline-mask, %as-pseudo;
+    }
+    .nspace dt::before,
+    .health dt::before {
+      background-color: $gray-500;
+    }
+    .passing::before {
+      @extend %with-check-circle-fill-color-mask, %as-pseudo;
+      background-color: $green-500;
+    }
+    .warning::before {
+      @extend %with-alert-triangle-color-mask, %as-pseudo;
+      background-color: $orange-500;
+    }
+    .critical::before {
+      @extend %with-cancel-square-fill-color-mask, %as-pseudo;
+      background-color: $red-500;
+    }
+  }
+}
+
+// Metrics Container
+#metrics-container {
+  div:first-child {
+    background-color: $white;
+  }
+  div:nth-child(2) {
+    background-color: $gray-100;
+    a {
+      color: $gray-700;
+    }
+    a::before {
+      background-color: $gray-500;
+    }
+    a:hover {
+      color: $color-action;
+    }
+    .metrics-link::before {
+      @extend %with-exit-mask, %as-pseudo;
+    }
+    .settings-link::before {
+      @extend %with-docs-mask, %as-pseudo;
+    }
+  }
+}
+
+// SVG Line styling
+#downstream-lines svg,
+#upstream-lines svg {
+  path {
+    fill: $transparent;
+  }
+  circle {
+    fill: $white;
+  }
+  polygon {
+    fill: $gray-300;
+    stroke-linejoin: round;
+  }
+  path,
+  circle,
+  polygon {
+    stroke: $gray-300;
+    stroke-width: 2;
+  }
+
+}

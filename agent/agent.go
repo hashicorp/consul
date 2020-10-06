@@ -17,29 +17,30 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/consul/agent/dns"
-	"github.com/hashicorp/consul/agent/router"
-	"github.com/hashicorp/consul/agent/token"
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
-
+	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/raft"
+	"github.com/hashicorp/serf/serf"
+	"golang.org/x/net/http2"
 	"google.golang.org/grpc"
 
-	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/ae"
-	autoconf "github.com/hashicorp/consul/agent/auto-config"
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/local"
-	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/proxycfg"
+	"github.com/hashicorp/consul/agent/rpcclient/health"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/systemd"
+	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/api/watch"
@@ -49,10 +50,6 @@ import (
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/raft"
-	"github.com/hashicorp/serf/serf"
-	"golang.org/x/net/http2"
 )
 
 const (
@@ -156,16 +153,14 @@ type notifier interface {
 // mode, it runs a full Consul server. In client-only mode, it only forwards
 // requests to other Consul servers.
 type Agent struct {
-	autoConf *autoconf.AutoConfig
+	// TODO: remove fields that are already in BaseDeps
+	baseDeps BaseDeps
 
 	// config is the agent configuration.
 	config *config.RuntimeConfig
 
 	// Used for writing our logs
 	logger hclog.InterceptLogger
-
-	// In-memory sink used for collecting metrics
-	MemSink MetricsHandler
 
 	// delegate is either a *consul.Server or *consul.Client
 	// depending on the configuration
@@ -260,6 +255,23 @@ type Agent struct {
 	// fail, the agent will be shutdown.
 	apiServers *apiServers
 
+	// httpHandlers provides direct access to (one of) the HTTPHandlers started by
+	// this agent. This is used in tests to test HTTP endpoints without overhead
+	// of TCP connections etc.
+	//
+	// TODO: this is a temporary re-introduction after we removed a list of
+	// HTTPServers in favour of apiServers abstraction. Now that HTTPHandlers is
+	// stateful and has config reloading though it's not OK to just use a
+	// different instance of handlers in tests to the ones that the agent is wired
+	// up to since then config reloads won't actually affect the handlers under
+	// test while plumbing the external handlers in the TestAgent through bypasses
+	// testing that the agent itself is actually reloading the state correctly.
+	// Once we move `apiServers` to be a passed-in dependency for NewAgent, we
+	// should be able to remove this and have the Test Agent create the
+	// HTTPHandlers and pass them in removing the need to pull them back out
+	// again.
+	httpHandlers *HTTPHandlers
+
 	// wgServers is the wait group for all HTTP and DNS servers
 	// TODO: remove once dnsServers are handled by apiServers
 	wgServers sync.WaitGroup
@@ -295,11 +307,13 @@ type Agent struct {
 	// IP.
 	httpConnLimiter connlimit.Limiter
 
-	// Connection Pool
-	connPool *pool.ConnPool
+	// configReloaders are subcomponents that need to be notified on a reload so
+	// they can update their internal state.
+	configReloaders []ConfigReloader
 
-	// Shared RPC Router
-	router *router.Router
+	// TODO: pass directly to HTTPHandlers and DNSServer once those are passed
+	// into Agent, which will allow us to remove this field.
+	rpcClientHealth *health.Client
 
 	// enterpriseAgent embeds fields that we only access in consul-enterprise builds
 	enterpriseAgent
@@ -337,17 +351,15 @@ func New(bd BaseDeps) (*Agent, error) {
 		shutdownCh:      make(chan struct{}),
 		endpoints:       make(map[string]string),
 
-		// TODO: store the BaseDeps instead of copying them over to Agent
+		baseDeps:        bd,
 		tokens:          bd.Tokens,
 		logger:          bd.Logger,
 		tlsConfigurator: bd.TLSConfigurator,
 		config:          bd.RuntimeConfig,
 		cache:           bd.Cache,
-		MemSink:         bd.MetricsHandler,
-		connPool:        bd.ConnPool,
-		autoConf:        bd.AutoConfig,
-		router:          bd.Router,
 	}
+
+	a.rpcClientHealth = &health.Client{Cache: bd.Cache, NetRPC: &a}
 
 	a.serviceManager = NewServiceManager(&a)
 
@@ -407,7 +419,7 @@ func (a *Agent) Start(ctx context.Context) error {
 
 	// This needs to be done early on as it will potentially alter the configuration
 	// and then how other bits are brought up
-	c, err := a.autoConf.InitialConfiguration(ctx)
+	c, err := a.baseDeps.AutoConfig.InitialConfiguration(ctx)
 	if err != nil {
 		return err
 	}
@@ -454,23 +466,15 @@ func (a *Agent) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to start Consul enterprise component: %v", err)
 	}
 
-	options := []consul.ConsulOption{
-		consul.WithLogger(a.logger),
-		consul.WithTokenStore(a.tokens),
-		consul.WithTLSConfigurator(a.tlsConfigurator),
-		consul.WithConnectionPool(a.connPool),
-		consul.WithRouter(a.router),
-	}
-
 	// Setup either the client or the server.
 	if c.ServerMode {
-		server, err := consul.NewServer(consulCfg, options...)
+		server, err := consul.NewServer(consulCfg, a.baseDeps.Deps)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul server: %v", err)
 		}
 		a.delegate = server
 	} else {
-		client, err := consul.NewClient(consulCfg, options...)
+		client, err := consul.NewClient(consulCfg, a.baseDeps.Deps)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul client: %v", err)
 		}
@@ -487,7 +491,7 @@ func (a *Agent) Start(ctx context.Context) error {
 	a.State.Delegate = a.delegate
 	a.State.TriggerSyncChanges = a.sync.SyncChanges.Trigger
 
-	if err := a.autoConf.Start(&lib.StopChannelContext{StopCh: a.shutdownCh}); err != nil {
+	if err := a.baseDeps.AutoConfig.Start(&lib.StopChannelContext{StopCh: a.shutdownCh}); err != nil {
 		return fmt.Errorf("AutoConf failed to start certificate monitor: %w", err)
 	}
 	a.serviceManager.Start()
@@ -754,10 +758,12 @@ func (a *Agent) listenHTTP() ([]apiServer, error) {
 				l = tls.NewListener(l, tlscfg)
 			}
 
-			srv := &HTTPServer{
+			srv := &HTTPHandlers{
 				agent:    a,
 				denylist: NewDenylist(a.config.HTTPBlockEndpoints),
 			}
+			a.configReloaders = append(a.configReloaders, srv.ReloadConfig)
+			a.httpHandlers = srv
 			httpServer := &http.Server{
 				Addr:      l.Addr().String(),
 				TLSConfig: tlscfg,
@@ -1297,7 +1303,7 @@ func (a *Agent) ShutdownAgent() error {
 
 	// this would be cancelled anyways (by the closing of the shutdown ch) but
 	// this should help them to be stopped more quickly
-	a.autoConf.Stop()
+	a.baseDeps.AutoConfig.Stop()
 
 	// Stop the service manager (must happen before we take the stateLock to avoid deadlock)
 	if a.serviceManager != nil {
@@ -1863,7 +1869,8 @@ func (a *Agent) AddServiceAndReplaceChecks(service *structs.NodeService, chkType
 		token:                 token,
 		replaceExistingChecks: true,
 		source:                source,
-	}, a.snapshotCheckState())
+		snap:                  a.snapshotCheckState(),
+	})
 }
 
 // AddService is used to add a service entry.
@@ -1882,12 +1889,13 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.Che
 		token:                 token,
 		replaceExistingChecks: false,
 		source:                source,
-	}, a.snapshotCheckState())
+		snap:                  a.snapshotCheckState(),
+	})
 }
 
 // addServiceLocked adds a service entry to the service manager if enabled, or directly
 // to the local state if it is not. This function assumes the state lock is already held.
-func (a *Agent) addServiceLocked(req *addServiceRequest, snap map[structs.CheckID]*structs.HealthCheck) error {
+func (a *Agent) addServiceLocked(req *addServiceRequest) error {
 	req.fixupForAddServiceLocked()
 
 	req.service.EnterpriseMeta.Normalize()
@@ -1905,7 +1913,7 @@ func (a *Agent) addServiceLocked(req *addServiceRequest, snap map[structs.CheckI
 	req.persistDefaults = nil
 	req.persistServiceConfig = false
 
-	return a.addServiceInternal(req, snap)
+	return a.addServiceInternal(req)
 }
 
 // addServiceRequest is the union of arguments for calling both
@@ -1930,6 +1938,7 @@ type addServiceRequest struct {
 	token                 string
 	replaceExistingChecks bool
 	source                configSource
+	snap                  map[structs.CheckID]*structs.HealthCheck
 }
 
 func (r *addServiceRequest) fixupForAddServiceLocked() {
@@ -1943,7 +1952,7 @@ func (r *addServiceRequest) fixupForAddServiceInternal() {
 }
 
 // addServiceInternal adds the given service and checks to the local state.
-func (a *Agent) addServiceInternal(req *addServiceRequest, snap map[structs.CheckID]*structs.HealthCheck) error {
+func (a *Agent) addServiceInternal(req *addServiceRequest) error {
 	req.fixupForAddServiceInternal()
 	var (
 		service               = req.service
@@ -1955,6 +1964,7 @@ func (a *Agent) addServiceInternal(req *addServiceRequest, snap map[structs.Chec
 		token                 = req.token
 		replaceExistingChecks = req.replaceExistingChecks
 		source                = req.source
+		snap                  = req.snap
 	)
 
 	// Pause the service syncs during modification
@@ -3089,7 +3099,8 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 			token:                 service.Token,
 			replaceExistingChecks: false, // do default behavior
 			source:                ConfigSourceLocal,
-		}, snap)
+			snap:                  snap,
+		})
 		if err != nil {
 			return fmt.Errorf("Failed to register service %q: %v", service.Name, err)
 		}
@@ -3107,7 +3118,8 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 				token:                 sidecarToken,
 				replaceExistingChecks: false, // do default behavior
 				source:                ConfigSourceLocal,
-			}, snap)
+				snap:                  snap,
+			})
 			if err != nil {
 				return fmt.Errorf("Failed to register sidecar for service %q: %v", service.Name, err)
 			}
@@ -3199,7 +3211,8 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 				token:                 p.Token,
 				replaceExistingChecks: false, // do default behavior
 				source:                source,
-			}, snap)
+				snap:                  snap,
+			})
 			if err != nil {
 				return fmt.Errorf("failed adding service %q: %s", serviceID, err)
 			}
@@ -3472,7 +3485,7 @@ func (a *Agent) loadLimits(conf *config.RuntimeConfig) {
 // all services, checks, tokens, metadata, dnsServer configs, etc.
 // It will also reload all ongoing watches.
 func (a *Agent) ReloadConfig() error {
-	newCfg, err := a.autoConf.ReadConfig()
+	newCfg, err := a.baseDeps.AutoConfig.ReadConfig()
 	if err != nil {
 		return err
 	}
@@ -3586,6 +3599,12 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 		newCfg.Telemetry.BlockedPrefixes)
 
 	a.State.SetDiscardCheckOutput(newCfg.DiscardCheckOutput)
+
+	for _, r := range a.configReloaders {
+		if err := r(newCfg); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }

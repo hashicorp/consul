@@ -1,4 +1,4 @@
-import Route from '@ember/routing/route';
+import Route from 'consul-ui/routing/route';
 import { assert } from '@ember/debug';
 import { Promise, hash } from 'rsvp';
 export default Route.extend({
@@ -16,7 +16,6 @@ export default Route.extend({
     const nspace = this.modelFor('nspace').nspace.substr(1);
     const create = this.isCreate(...arguments);
     return hash({
-      isLoading: false,
       dc: dc,
       nspace: nspace,
       create: create,

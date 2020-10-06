@@ -10,3 +10,9 @@ html.template-with-modal {
 %modal-dialog table {
   min-height: 149px;
 }
+// TODO: float right here is too specific, this is currently used just for the role/policy selectors
+label.type-dialog {
+  @extend %anchor;
+  cursor: pointer;
+  float: right;
+}

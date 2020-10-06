@@ -26,7 +26,6 @@ Feature: page-navigation
     | nodes      | /dc-1/nodes       | /v1/internal/ui/nodes?dc=dc-1                    |
     | kvs        | /dc-1/kv          | /v1/kv/?keys&dc=dc-1&separator=%2F&ns=@namespace |
     | acls       | /dc-1/acls/tokens | /v1/acl/tokens?dc=dc-1&ns=@namespace             |
-    | intentions | /dc-1/intentions  | /v1/connect/intentions?dc=dc-1                   |
     # | settings   | /settings         | /v1/catalog/datacenters                         |
     -------------------------------------------------------------------------------------
   Scenario: Clicking a [Item] in the [Model] listing and back again
@@ -42,7 +41,7 @@ Feature: page-navigation
   Where:
     -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     | Item      | Model      | URL                                                      | Endpoint                                                                    | Back                |
-    | service   | services   | /dc-1/services/service-0/instances                       | /v1/discovery-chain/service-0?dc=dc-1&ns=@namespace                         | /dc-1/services      |
+    | service   | services   | /dc-1/services/service-0/topology                       | /v1/discovery-chain/service-0?dc=dc-1&ns=@namespace                         | /dc-1/services      |
     | kv        | kvs        | /dc-1/kv/0-key-value/edit                                | /v1/session/info/ee52203d-989f-4f7a-ab5a-2bef004164ca?dc=dc-1&ns=@namespace | /dc-1/kv            |
     # | acl       | acls       | /dc-1/acls/anonymous                                     | /v1/acl/info/anonymous?dc=dc-1                                             | /dc-1/acls         |
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -59,7 +58,6 @@ Feature: page-navigation
       - /v1/namespaces
       - /v1/internal/ui/node/node-0?dc=dc-1
       - /v1/coordinate/nodes?dc=dc-1
-      - /v1/session/node/node-0?dc=dc-1&ns=@namespace
     ---
   Scenario: The kv detail page calls the correct API endpoints
     When I visit the kv page for yaml
@@ -87,20 +85,6 @@ Feature: page-navigation
       - /v1/namespaces
       - /v1/acl/policies?dc=dc-1&ns=@namespace
     ---
-  Scenario: The intention detail page calls the correct API endpoints
-    When I visit the intention page for yaml
-    ---
-      dc: dc-1
-      intention: intention
-    ---
-    Then the url should be /dc-1/intentions/intention
-    Then the last GET requests included from yaml
-    ---
-      - /v1/catalog/datacenters
-      - /v1/namespaces
-      - /v1/connect/intentions/intention?dc=dc-1
-      - /v1/internal/ui/services?dc=dc-1&ns=*
-    ---
 
   Scenario: Clicking a [Item] in the [Model] listing and cancelling
     When I visit the [Model] page for yaml
@@ -116,7 +100,6 @@ Feature: page-navigation
     | Item      | Model      | URL                                                      | Back             |
     | kv        | kvs        | /dc-1/kv/0-key-value/edit                           | /dc-1/kv         |
     # | acl       | acls       | /dc-1/acls/anonymous                                     | /dc-1/acls       |
-    # | intention | intentions | /dc-1/intentions/ee52203d-989f-4f7a-ab5a-2bef004164ca    | /dc-1/intentions |
     --------------------------------------------------------------------------------------------------------
 @ignore
   Scenario: Clicking items in the listings, without depending on the salt ^

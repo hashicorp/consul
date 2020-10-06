@@ -247,6 +247,10 @@ export default [
     content: [
       'partnerships',
       {
+        title: 'Vault Integration',
+        href: '/docs/connect/ca/vault',
+      },
+      {
         title: 'Ambassador Integration',
         href: '/docs/k8s/connect/ambassador',
       },
@@ -259,7 +263,19 @@ export default [
   'download-tools',
   {
     category: 'upgrading',
-    content: ['compatibility', 'upgrade-specific'],
+    content: [
+      'compatibility',
+      'upgrade-specific',
+      {
+        category: 'instructions',
+        content: [
+          'general-process',
+          'upgrade-to-1-2-x',
+          'upgrade-to-1-6-x',
+          'upgrade-to-1-8-x',
+        ],
+      },
+    ],
   },
   {
     category: 'troubleshoot',

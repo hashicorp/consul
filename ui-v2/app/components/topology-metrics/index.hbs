@@ -1,0 +1,162 @@
+{{on-window 'resize' (action this.calculate)}}
+
+<div {{did-insert (action this.calculate)}} {{did-update (action this.calculate) @upstreams @downstreams}} class="topology-container">
+{{#if (gt @downstreams.length 0)}}
+  <div id="downstream-container">
+    <div>
+      <p>{{@dc}}</p>
+      <span>
+        <Tooltip>
+          Only showing downstreams within the current datacenter for {{@service.Service.Service}}.
+        </Tooltip>
+      </span>
+    </div>
+  {{#each @downstreams as |downstream|}}
+    <div class="card">
+      <p>
+        {{downstream.Name}}
+      </p>
+      <div class="detail">
+    {{#let (service/health-percentage downstream) as |percentage|}}
+      {{#if (not-eq percentage.passing 0)}}
+        <span class="passing">{{percentage.passing}}%</span>
+      {{/if}}
+      {{#if (not-eq percentage.warning 0)}}
+        <span class="warning">{{percentage.warning}}%</span>
+      {{/if}}
+      {{#if (not-eq percentage.critical 0)}}
+        <span class="critical">{{percentage.critical}}%</span>
+      {{/if}}
+    {{/let}}
+      </div>
+    </div>
+  {{/each}}
+  </div>
+{{/if}}
+  <div id="metrics-container">
+    <div>
+      {{@service.Service.Service}}
+    </div>
+    <div>
+     {{#if @metricsHref}}
+      <a class="metrics-link" href={{@metricsHref}} target="_blank" rel="noopener noreferrer">Open metrics Dashboard</a>
+    {{else}}
+      <a class="settings-link" href={{href-to 'settings'}}>Configure metrics dashboard</a>
+    {{/if}}
+    </div>
+  </div>
+  <div id="downstream-lines">
+  {{#if (gt this.downLines.length 0)}}
+    <svg
+      viewBox={{concat downView.x ' ' downView.y ' ' downView.width ' ' downView.height}}
+      preserveAspectRatio="none"
+    >
+      <defs>
+        <marker id="dot" viewBox="-2 -2 15 15" refX="6" refY="6" markerWidth="6" markerHeight="6">
+          <circle
+            cx="6"
+            cy="6"
+            r="6"
+          />
+        </marker>
+        <marker id="arrow" viewBox="-1 -1 12 12" refX="5" refY="5"
+            markerWidth="6" markerHeight="6"
+            orient="auto-start-reverse">
+          <polygon points="0 0 10 5 0 10" />
+        </marker>
+      </defs>
+    {{#each this.downLines as |svg| }}
+      <path
+        d={{svg-curve svg.dest src=svg.src}}
+        marker-start="url(#dot)"
+        marker-end="url(#arrow)"
+      />
+    {{/each}}
+    </svg>
+  {{/if}}
+  </div>
+{{#if (gt @upstreams.length 0)}}
+  <div id="upstream-column">
+  {{#each-in (group-by "Datacenter" @upstreams) as |dc upstreams|}}
+    <div id="upstream-container">
+      <p>{{dc}}</p>
+      {{#each upstreams as |upstream|}}
+      <div class="card">
+        <p>
+          {{upstream.Name}}
+        </p>
+        <div class="detail">
+        {{#if (and nspace (env 'CONSUL_NSPACES_ENABLED'))}}
+          <dl class="nspace">
+            <dt>
+              <Tooltip>
+                  Namespace
+              </Tooltip>
+            </dt>
+            <dd>
+              {{upstream.Namespace}}
+            </dd>
+          </dl>
+        {{/if}}
+      {{#if (eq upstream.Datacenter @dc)}}
+      {{#let (service/health-percentage upstream) as |percentage|}}
+        {{#if (not-eq percentage.passing 0)}}
+          <span class="passing">{{percentage.passing}}%</span>
+        {{/if}}
+        {{#if (not-eq percentage.warning 0)}}
+          <span class="warning">{{percentage.warning}}%</span>
+        {{/if}}
+        {{#if (not-eq percentage.critical 0)}}
+          <span class="critical">{{percentage.critical}}%</span>
+        {{/if}}
+      {{/let}}
+      {{else}}
+          <dl class="health">
+            <dt>
+              <Tooltip>
+                  We are unable to determine the health status of services in remote datacenters.
+              </Tooltip>
+            </dt>
+            <dd>
+              Health
+            </dd>
+          </dl>
+      {{/if}}
+        </div>
+      </div>
+    {{/each}}
+    </div>
+  {{/each-in}}
+  </div>
+{{/if}}
+  <div id="upstream-lines">
+  {{#if (gt this.upLines.length 0)}}
+    <svg
+      viewBox={{concat this.centerDimensions.x ' ' upView.y ' ' upView.width ' ' upView.height}}
+      preserveAspectRatio="none"
+    >
+      <defs>
+        <marker id="dot" viewBox="-2 -2 15 15" refX="6" refY="6" markerWidth="6" markerHeight="6">
+          <circle
+            cx="6"
+            cy="6"
+            r="6"
+          />
+        </marker>
+        <marker id="arrow" viewBox="-1 -1 12 12" refX="5" refY="5"
+            markerWidth="6" markerHeight="6"
+            orient="auto-start-reverse">
+          <polygon points="0 0 10 5 0 10" />
+        </marker>
+      </defs>
+    {{#each this.upLines as |svg| }}
+      <path
+        d={{svg-curve svg.dest src=svg.src}}
+        marker-start="url(#dot)"
+        marker-end="url(#arrow)"
+      />
+    {{/each}}
+    </svg>
+  {{/if}}
+  </div>
+</div>

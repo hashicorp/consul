@@ -1,16 +1,16 @@
-%tooltip-panel {
-  margin: 0 !important;
-}
-%tooltip-panel dd > div {
-  top: auto !important;
-  overflow: visible;
-}
+%tooltip-panel,
 %tooltip-panel dt {
-  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+}
+%tooltip-panel dd > div.menu-panel {
+  top: auto;
+  overflow: visible;
 }
 %tooltip-panel dd {
   display: none;
   position: relative;
+  z-index: 1;
   padding-top: 10px;
   margin-bottom: -10px;
 }

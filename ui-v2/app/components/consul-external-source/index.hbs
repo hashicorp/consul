@@ -1,19 +1,17 @@
 {{#if item}}
-  {{#let (if _externalSource _externalSource (service/external-source item)) as |externalSource|}}
+  {{#let (service/external-source item) as |externalSource|}}
     {{#if externalSource}}
-      {{#if (has-block)}}
-        {{yield
-          (component 'consul-external-source' item=item _externalSource=externalSource)
-        }}
-      {{else}}
-        <span data-test-external-source={{externalSource}} class="consul-external-source {{externalSource}}">
+      <span data-test-external-source={{externalSource}} class="consul-external-source {{externalSource}}">
+        {{#if label}}
+          {{label}}
+        {{else}}
           {{#if (eq externalSource 'aws')}}
-            <span>Registered via {{uppercase externalSource}}</span>
+            Registered via {{uppercase externalSource}}
           {{else}}
-            <span>Registered via {{capitalize externalSource}}</span>
+            Registered via {{capitalize externalSource}}
           {{/if}}
-        </span>
-      {{/if}}
+        {{/if}}
+      </span>
     {{/if}}
   {{/let}}
 {{/if}}

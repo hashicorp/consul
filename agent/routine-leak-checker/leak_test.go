@@ -77,7 +77,6 @@ func setupPrimaryServer(t *testing.T) *agent.TestAgent {
 	   server = true
 		datacenter = "primary"
 		primary_datacenter = "primary"
-		enable_central_service_config = true
 		
 		connect {
 			enabled = true

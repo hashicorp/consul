@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/consul/types"
 	"github.com/stretchr/testify/require"
 )
@@ -1137,7 +1138,7 @@ func evConnectNative(e *stream.Event) error {
 // depending on which topic they are published to and they determin this from
 // the event.
 func evConnectTopic(e *stream.Event) error {
-	e.Topic = TopicServiceHealthConnect
+	e.Topic = topicServiceHealthConnect
 	return nil
 }
 
@@ -1171,7 +1172,7 @@ func evSidecar(e *stream.Event) error {
 
 	// Update event key to be the proxy service name, but only if this is not
 	// already in the connect topic
-	if e.Topic != TopicServiceHealthConnect {
+	if e.Topic != topicServiceHealthConnect {
 		e.Key = csn.Service.Service
 	}
 	return nil
@@ -1261,7 +1262,7 @@ func evRenameService(e *stream.Event) error {
 	csn.Service.Proxy.DestinationServiceName += "_changed"
 
 	// If this is the connect topic we need to change the key too
-	if e.Topic == TopicServiceHealthConnect {
+	if e.Topic == topicServiceHealthConnect {
 		e.Key += "_changed"
 	}
 	return nil
@@ -1391,12 +1392,12 @@ func newTestEventServiceHealthRegister(index uint64, nodeNum int, svc string) st
 	addr := fmt.Sprintf("10.10.%d.%d", nodeNum/256, nodeNum%256)
 
 	return stream.Event{
-		Topic: TopicServiceHealth,
+		Topic: topicServiceHealth,
 		Key:   svc,
 		Index: index,
-		Payload: eventPayload{
-			Op: OpCreate,
-			Obj: &structs.CheckServiceNode{
+		Payload: EventPayloadCheckServiceNode{
+			Op: pbsubscribe.CatalogOp_Register,
+			Value: &structs.CheckServiceNode{
 				Node: &structs.Node{
 					ID:         nodeID,
 					Node:       node,
@@ -1459,12 +1460,12 @@ func newTestEventServiceHealthRegister(index uint64, nodeNum int, svc string) st
 // adding too many options to callers.
 func newTestEventServiceHealthDeregister(index uint64, nodeNum int, svc string) stream.Event {
 	return stream.Event{
-		Topic: TopicServiceHealth,
+		Topic: topicServiceHealth,
 		Key:   svc,
 		Index: index,
-		Payload: eventPayload{
-			Op: OpDelete,
-			Obj: &structs.CheckServiceNode{
+		Payload: EventPayloadCheckServiceNode{
+			Op: pbsubscribe.CatalogOp_Deregister,
+			Value: &structs.CheckServiceNode{
 				Node: &structs.Node{
 					Node: fmt.Sprintf("node%d", nodeNum),
 				},

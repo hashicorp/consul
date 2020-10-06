@@ -477,7 +477,7 @@ function build_release {
       
       if is_set "${do_tag}"
       then
-         git add "${sdir}/agent/bindata_assetfs.go"
+         git add "${sdir}/agent/uiserver/bindata_assetfs.go"
          if test $? -ne 0
          then
             err "ERROR: Failed to git add the assetfs file" 

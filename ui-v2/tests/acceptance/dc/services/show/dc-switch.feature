@@ -19,9 +19,8 @@ Feature: dc / services / show / dc-switch : Switching Datacenters
       dc: dc-1
       service: consul
     ---
-    Then the url should be /dc-1/services/consul/instances
-    And I see instancesUrl on the tabs contains "/dc-1/services/consul/instances"
+
+    Then the url should be /dc-1/services/consul/topology
     When I click dc on the navigation
     And I click dcs.1.name on the navigation
-    Then the url should be /dc-2/services/consul/instances
-    And I see instancesUrl on the tabs contains "/dc-2/services/consul/instances"
+    Then the url should be /dc-2/services/consul/topology

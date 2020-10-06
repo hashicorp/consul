@@ -63,12 +63,6 @@ export default Component.extend({
         DestinationNS: destination,
       });
     },
-    createNewLabel: function(template, term) {
-      return template.replace(/{{term}}/g, term);
-    },
-    isUnique: function(items, term) {
-      return !items.findBy('Name', term);
-    },
     change: function(e, form, item) {
       const target = e.target;
 

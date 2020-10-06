@@ -1,4 +1,4 @@
-import Route from '@ember/routing/route';
+import Route from 'consul-ui/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 
@@ -16,11 +16,11 @@ export default Route.extend({
       return hash({
         ...model,
         tomography: this.data.source(uri => uri`/${nspace}/${dc}/coordinates/for-node/${name}`),
-        sessions: this.data.source(uri => uri`/${nspace}/${dc}/sessions/for-node/${name}`),
       });
     });
   },
   setupController: function(controller, model) {
+    this._super(...arguments);
     controller.setProperties(model);
   },
 });

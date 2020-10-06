@@ -4,7 +4,8 @@ export default function(visitable, clickable, text, attribute, present, collecti
     service: clickable('a'),
     externalSource: attribute('data-test-external-source', '[data-test-external-source]'),
     kind: attribute('data-test-kind', '[data-test-kind]'),
-    proxy: present('[data-test-proxy]'),
+    mesh: present('[data-test-mesh]'),
+    associatedServiceCount: present('[data-test-associated-service-count]'),
   };
   return {
     visit: visitable('/:dc/services'),

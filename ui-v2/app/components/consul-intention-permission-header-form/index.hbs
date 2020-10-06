@@ -1,0 +1,57 @@
+<div
+  ...attributes
+  class="consul-intention-permission-header-form"
+>
+  {{yield (hash
+    submit=(action 'submit' changeset)
+    reset=(action 'reset' changeset)
+
+    isDirty=(and changeset.isValid changeset.isDirty)
+    changeset=changeset
+  )}}
+
+  <fieldset>
+    <div>
+
+      <label class="type-select">
+        <span>Header Type</span>
+        <div>
+          <PowerSelect
+            @options={{headerTypes}}
+            @selected={{headerType}}
+            @onChange={{action 'change' 'HeaderType' changeset}} as |Type|>
+              {{get headerLabels Type}}
+          </PowerSelect>
+        </div>
+      </label>
+      <label class="type-text{{if changeset.error.Name ' has-error'}}">
+        <span>Header name</span>
+        <input
+          type="text"
+          name={{concat name '[Name]'}}
+          value={{changeset-get changeset 'Name'}}
+          oninput={{action 'change' 'Name' changeset}}
+        />
+        {{#if changeset.error.Name}}
+          <strong>{{changeset.error.Name.validation}}</strong>
+        {{/if}}
+      </label>
+
+  {{#if shouldShowValueField}}
+      <label class="type-text{{if changeset.error.Value ' has-error'}}">
+        <span>Header {{lowercase (get headerLabels headerType)}}</span>
+        <input
+          type="text"
+          name="Value"
+          value={{changeset-get changeset 'Value'}}
+          oninput={{action 'change' 'Value' changeset}}
+        />
+        {{#if changeset.error.Value}}
+          <strong>{{changeset.error.Value.validation}}</strong>
+        {{/if}}
+      </label>
+  {{/if}}
+
+    </div>
+  </fieldset>
+</div>

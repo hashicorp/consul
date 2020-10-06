@@ -36,7 +36,7 @@ type EventPublisher struct {
 	// publishCh is used to send messages from an active txn to a goroutine which
 	// publishes events, so that publishing can happen asynchronously from
 	// the Commit call in the FSM hot path.
-	publishCh chan changeEvents
+	publishCh chan []Event
 
 	snapshotHandlers SnapshotHandlers
 }
@@ -52,10 +52,6 @@ type subscriptions struct {
 	// reloaded.
 	// A subscription may be unsubscribed by using the pointer to the request.
 	byToken map[string]map[*SubscribeRequest]*Subscription
-}
-
-type changeEvents struct {
-	events []Event
 }
 
 // SnapshotHandlers is a mapping of Topic to a function which produces a snapshot
@@ -79,19 +75,17 @@ type SnapshotAppender interface {
 // A goroutine is run in the background to publish events to all subscribes.
 // Cancelling the context will shutdown the goroutine, to free resources,
 // and stop all publishing.
-func NewEventPublisher(ctx context.Context, handlers SnapshotHandlers, snapCacheTTL time.Duration) *EventPublisher {
+func NewEventPublisher(handlers SnapshotHandlers, snapCacheTTL time.Duration) *EventPublisher {
 	e := &EventPublisher{
 		snapCacheTTL: snapCacheTTL,
 		topicBuffers: make(map[Topic]*eventBuffer),
 		snapCache:    make(map[Topic]map[string]*eventSnapshot),
-		publishCh:    make(chan changeEvents, 64),
+		publishCh:    make(chan []Event, 64),
 		subscriptions: &subscriptions{
 			byToken: make(map[string]map[*SubscribeRequest]*Subscription),
 		},
 		snapshotHandlers: handlers,
 	}
-
-	go e.handleUpdates(ctx)
 
 	return e
 }
@@ -99,27 +93,29 @@ func NewEventPublisher(ctx context.Context, handlers SnapshotHandlers, snapCache
 // Publish events to all subscribers of the event Topic.
 func (e *EventPublisher) Publish(events []Event) {
 	if len(events) > 0 {
-		e.publishCh <- changeEvents{events: events}
+		e.publishCh <- events
 	}
 }
 
-func (e *EventPublisher) handleUpdates(ctx context.Context) {
+// Run the event publisher until ctx is cancelled. Run should be called from a
+// goroutine to forward events from Publish to all the appropriate subscribers.
+func (e *EventPublisher) Run(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
 			e.subscriptions.closeAll()
 			return
 		case update := <-e.publishCh:
-			e.sendEvents(update)
+			e.publishEvent(update)
 		}
 	}
 }
 
-// sendEvents sends the given events to any applicable topic listeners, as well
-// as any ACL update events to cause affected listeners to reset their stream.
-func (e *EventPublisher) sendEvents(update changeEvents) {
+// publishEvent appends the events to any applicable topic buffers. It handles
+// any closeSubscriptionPayload events by closing associated subscriptions.
+func (e *EventPublisher) publishEvent(events []Event) {
 	eventsByTopic := make(map[Topic][]Event)
-	for _, event := range update.events {
+	for _, event := range events {
 		if unsubEvent, ok := event.Payload.(closeSubscriptionPayload); ok {
 			e.subscriptions.closeSubscriptionsForTokens(unsubEvent.tokensSecretIDs)
 			continue
@@ -157,8 +153,7 @@ func (e *EventPublisher) getTopicBuffer(topic Topic) *eventBuffer {
 // When the caller is finished with the subscription for any reason, it must
 // call Subscription.Unsubscribe to free ACL tracking resources.
 func (e *EventPublisher) Subscribe(req *SubscribeRequest) (*Subscription, error) {
-	// Ensure we know how to make a snapshot for this topic
-	_, ok := e.snapshotHandlers[req.Topic]
+	handler, ok := e.snapshotHandlers[req.Topic]
 	if !ok || req.Topic == nil {
 		return nil, fmt.Errorf("unknown topic %v", req.Topic)
 	}
@@ -166,47 +161,47 @@ func (e *EventPublisher) Subscribe(req *SubscribeRequest) (*Subscription, error)
 	e.lock.Lock()
 	defer e.lock.Unlock()
 
-	// Ensure there is a topic buffer for that topic so we start capturing any
-	// future published events.
-	buf := e.getTopicBuffer(req.Topic)
+	topicHead := e.getTopicBuffer(req.Topic).Head()
 
-	// See if we need a snapshot
-	topicHead := buf.Head()
-	var sub *Subscription
-	if req.Index > 0 && len(topicHead.Events) > 0 && topicHead.Events[0].Index == req.Index {
-		// No need for a snapshot, send the "end of empty snapshot" message to signal to
-		// client its cache is still good, then follow along from here in the topic.
+	// If the client view is fresh, resume the stream.
+	if req.Index > 0 && topicHead.HasEventIndex(req.Index) {
 		buf := newEventBuffer()
-
-		// Store the head of that buffer before we append to it to give as the
-		// starting point for the subscription.
-		subHead := buf.Head()
-
-		buf.Append([]Event{{
-			Index:   req.Index,
-			Topic:   req.Topic,
-			Key:     req.Key,
-			Payload: endOfEmptySnapshot{},
-		}})
-
-		// Now splice the rest of the topic buffer on so the subscription will
-		// continue to see future updates in the topic buffer.
+		subscriptionHead := buf.Head()
+		// splice the rest of the topic buffer onto the subscription buffer so
+		// the subscription will receive new events.
 		buf.AppendItem(topicHead.NextLink())
-
-		sub = newSubscription(req, subHead, e.subscriptions.unsubscribe(req))
-	} else {
-		snap, err := e.getSnapshotLocked(req, topicHead)
-		if err != nil {
-			return nil, err
-		}
-		sub = newSubscription(req, snap.Head, e.subscriptions.unsubscribe(req))
+		return e.subscriptions.add(req, subscriptionHead), nil
 	}
 
-	e.subscriptions.add(req, sub)
-	return sub, nil
+	snapFromCache := e.getCachedSnapshotLocked(req)
+	if req.Index == 0 && snapFromCache != nil {
+		return e.subscriptions.add(req, snapFromCache.First), nil
+	}
+	snap := newEventSnapshot()
+
+	// if the request has an Index the client view is stale and must be reset
+	// with a NewSnapshotToFollow event.
+	if req.Index > 0 {
+		snap.buffer.Append([]Event{{
+			Topic:   req.Topic,
+			Key:     req.Key,
+			Payload: newSnapshotToFollow{},
+		}})
+
+		if snapFromCache != nil {
+			snap.buffer.AppendItem(snapFromCache.First)
+			return e.subscriptions.add(req, snap.First), nil
+		}
+	}
+
+	snap.appendAndSplice(*req, handler, topicHead)
+	e.setCachedSnapshotLocked(req, snap)
+	return e.subscriptions.add(req, snap.First), nil
 }
 
-func (s *subscriptions) add(req *SubscribeRequest, sub *Subscription) {
+func (s *subscriptions) add(req *SubscribeRequest, head *bufferItem) *Subscription {
+	sub := newSubscription(*req, head, s.unsubscribe(req))
+
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -216,6 +211,7 @@ func (s *subscriptions) add(req *SubscribeRequest, sub *Subscription) {
 		s.byToken[req.Token] = subsByToken
 	}
 	subsByToken[req] = sub
+	return sub
 }
 
 func (s *subscriptions) closeSubscriptionsForTokens(tokenSecretIDs []string) {
@@ -263,7 +259,8 @@ func (s *subscriptions) closeAll() {
 	}
 }
 
-func (e *EventPublisher) getSnapshotLocked(req *SubscribeRequest, topicHead *bufferItem) (*eventSnapshot, error) {
+// EventPublisher.lock must be held to call this method.
+func (e *EventPublisher) getCachedSnapshotLocked(req *SubscribeRequest) *eventSnapshot {
 	topicSnaps, ok := e.snapCache[req.Topic]
 	if !ok {
 		topicSnaps = make(map[string]*eventSnapshot)
@@ -272,25 +269,22 @@ func (e *EventPublisher) getSnapshotLocked(req *SubscribeRequest, topicHead *buf
 
 	snap, ok := topicSnaps[req.Key]
 	if ok && snap.err() == nil {
-		return snap, nil
+		return snap
 	}
+	return nil
+}
 
-	handler, ok := e.snapshotHandlers[req.Topic]
-	if !ok {
-		return nil, fmt.Errorf("unknown topic %v", req.Topic)
+// EventPublisher.lock must be held to call this method.
+func (e *EventPublisher) setCachedSnapshotLocked(req *SubscribeRequest, snap *eventSnapshot) {
+	if e.snapCacheTTL == 0 {
+		return
 	}
+	e.snapCache[req.Topic][req.Key] = snap
 
-	snap = newEventSnapshot(req, topicHead, handler)
-	if e.snapCacheTTL > 0 {
-		topicSnaps[req.Key] = snap
-
-		// Trigger a clearout after TTL
-		time.AfterFunc(e.snapCacheTTL, func() {
-			e.lock.Lock()
-			defer e.lock.Unlock()
-			delete(topicSnaps, req.Key)
-		})
-	}
-
-	return snap, nil
+	// Setup a cache eviction
+	time.AfterFunc(e.snapCacheTTL, func() {
+		e.lock.Lock()
+		defer e.lock.Unlock()
+		delete(e.snapCache[req.Topic], req.Key)
+	})
 }

@@ -94,6 +94,7 @@ Feature: dc / services / show: Show Service
       dc: dc1
       service: service-0
     ---
+    And I click instances on the tabs
     Then I see address on the instances like yaml
     ---
       - "1.1.1.1:8080"

@@ -2,9 +2,8 @@
 layout: commands
 page_title: 'Commands: Connect Proxy'
 sidebar_title: envoy
-description: >
-  The connect proxy subcommand is used to run the built-in mTLS proxy for
-  Connect.
+description:
+  The connect proxy subcommand is used to run the Envoy proxy for Connect.
 ---
 
 # Consul Connect Envoy
@@ -15,7 +14,7 @@ The connect Envoy command is used to generate a bootstrap configuration for
 [Envoy proxy](https://envoyproxy.io) for use with [Consul
 Connect](/docs/connect/).
 
-The default behaviour is to generate the necessary bootstrap configuration for
+The default behavior is to generate the necessary bootstrap configuration for
 Envoy based on the environment variables and options provided and by talking to
 the local Consul agent. It `exec`s an external Envoy binary with that
 configuration leaving the Envoy process running in the foreground. An error is
@@ -78,6 +77,12 @@ proxy configuration needed.
 - `-envoy-version` - The version of envoy that is being started. Default is
   `1.15.0`. This is required so that the correct configuration can be generated.
 
+- `-no-central-config` - By default the proxy's bootstrap configuration can be
+    customized centrally. This requires that the command run on the same agent
+    as the proxy will and that the agent is reachable when the command is run.
+    In cases where either assumption is violated this flag will prevent the
+    command attempting to resolve config from the local agent.
+
 - `-- [pass-through options]` - Any options given after a double dash are passed
   directly through to the `envoy` invocation. See [Envoy's
   documentation](https://www.envoyproxy.io/docs) for more details. The command
@@ -116,6 +121,17 @@ proxy configuration needed.
   `-register`. This takes the form of `<ip address>:<port>` but also supports go-sockaddr
   templates.
 
+- `-admin-access-log-path` The path to write the access log for the administration
+  server. If no access log is desired specify `/dev/null`. By default it will
+  use `/dev/null`.
+
+- `-bind-address` - The bind address to use instead of the default binding rules
+  given as `<name>=<ip>:<port>` pairs. This flag may be specified multiple times
+  to add multiple bind addresses.
+
+- `-expose-servers` - Expose the servers for WAN federation via this mesh
+  gateway.
+
 - `-wan-address` - The address to advertise for services within remote datacenters
   to use to reach the gateway instance. This flag is used in combination with
   `-register`. This takes the form of `<ip address>:<port>` but also supports go-sockaddr
@@ -126,6 +142,10 @@ proxy configuration needed.
 
 - `-deregister-after-critical` - The amount of time the gateway services health check can
   be failing before being deregistered. This flag is used in combination with `-register`
+
+#### Enterprise Options
+
+@include 'http_api_namespace_options.mdx'
 
 ## Examples
 

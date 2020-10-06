@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/command/flags"
-	"github.com/hashicorp/consul/command/intention/finder"
+	"github.com/hashicorp/consul/command/intention"
 	"github.com/mitchellh/cli"
 	"github.com/ryanuber/columnize"
 )
@@ -50,17 +50,9 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	// Get the intention ID to load
-	id, err := finder.IDFromArgs(client, c.flags.Args())
+	ixn, err := intention.GetFromArgs(client, c.flags.Args())
 	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error: %s", err))
-		return 1
-	}
-
-	// Read the intention
-	ixn, _, err := client.Connect().IntentionGet(id, nil)
-	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error reading the intention: %s", err))
+		c.UI.Error(err.Error())
 		return 1
 	}
 
@@ -69,7 +61,9 @@ func (c *cmd) Run(args []string) int {
 		fmt.Sprintf("Source:\x1f%s", ixn.SourceString()),
 		fmt.Sprintf("Destination:\x1f%s", ixn.DestinationString()),
 		fmt.Sprintf("Action:\x1f%s", ixn.Action),
-		fmt.Sprintf("ID:\x1f%s", ixn.ID),
+	}
+	if ixn.ID != "" {
+		data = append(data, fmt.Sprintf("ID:\x1f%s", ixn.ID))
 	}
 	if v := ixn.Description; v != "" {
 		data = append(data, fmt.Sprintf("Description:\x1f%s", v))
@@ -89,6 +83,7 @@ func (c *cmd) Run(args []string) int {
 	)
 
 	c.UI.Output(columnize.Format(data, &columnize.Config{Delim: string([]byte{0x1f})}))
+
 	return 0
 }
 

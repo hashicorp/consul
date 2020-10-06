@@ -16,34 +16,56 @@ import (
 // to extract this.
 const metaExternalSource = "external-source"
 
-type GatewayConfig struct {
-	Addresses []string `json:",omitempty"`
-	// internal to track uniqueness
-	addressesSet map[string]struct{}
-}
-
 // ServiceSummary is used to summarize a service
 type ServiceSummary struct {
 	Kind              structs.ServiceKind `json:",omitempty"`
 	Name              string
+	Datacenter        string
 	Tags              []string
 	Nodes             []string
+	ExternalSources   []string
+	externalSourceSet map[string]struct{} // internal to track uniqueness
+	checks            map[string]*structs.HealthCheck
 	InstanceCount     int
-	ProxyFor          []string            `json:",omitempty"`
-	proxyForSet       map[string]struct{} // internal to track uniqueness
 	ChecksPassing     int
 	ChecksWarning     int
 	ChecksCritical    int
-	ExternalSources   []string
-	externalSourceSet map[string]struct{} // internal to track uniqueness
-	GatewayConfig     GatewayConfig       `json:",omitempty"`
+	GatewayConfig     GatewayConfig
 
 	structs.EnterpriseMeta
 }
 
+func (s *ServiceSummary) LessThan(other *ServiceSummary) bool {
+	if s.EnterpriseMeta.LessThan(&other.EnterpriseMeta) {
+		return true
+	}
+	return s.Name < other.Name
+}
+
+type ServiceListingSummary struct {
+	ServiceSummary
+
+	ConnectedWithProxy   bool
+	ConnectedWithGateway bool
+}
+
+type GatewayConfig struct {
+	AssociatedServiceCount int      `json:",omitempty"`
+	Addresses              []string `json:",omitempty"`
+
+	// internal to track uniqueness
+	addressesSet map[string]struct{}
+}
+
+type ServiceTopology struct {
+	Upstreams      []*ServiceSummary
+	Downstreams    []*ServiceSummary
+	FilteredByACLs bool
+}
+
 // UINodes is used to list the nodes in a given datacenter. We return a
 // NodeDump which provides overview information for all the nodes
-func (s *HTTPServer) UINodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) UINodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Parse arguments
 	args := structs.DCSpecificRequest{}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
@@ -86,7 +108,7 @@ RPC:
 
 // UINodeInfo is used to get info on a single node in a given datacenter. We return a
 // NodeInfo which provides overview information for the node
-func (s *HTTPServer) UINodeInfo(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) UINodeInfo(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Parse arguments
 	args := structs.NodeSpecificRequest{}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
@@ -136,7 +158,7 @@ RPC:
 
 // UIServices is used to list the services in a given datacenter. We return a
 // ServiceSummary which provides overview information for the service
-func (s *HTTPServer) UIServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) UIServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Parse arguments
 	args := structs.ServiceDumpRequest{}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
@@ -150,7 +172,7 @@ func (s *HTTPServer) UIServices(resp http.ResponseWriter, req *http.Request) (in
 	s.parseFilter(req, &args.Filter)
 
 	// Make the RPC request
-	var out structs.IndexedCheckServiceNodes
+	var out structs.IndexedNodesWithGateways
 	defer setMeta(resp, &out.QueryMeta)
 RPC:
 	if err := s.agent.RPC("Internal.ServiceDump", &args, &out); err != nil {
@@ -162,13 +184,43 @@ RPC:
 		return nil, err
 	}
 
-	// Generate the summary
-	// TODO (gateways) (freddy) Have Internal.ServiceDump return ServiceDump instead. Need to add bexpr filtering for type.
-	return summarizeServices(out.Nodes.ToServiceDump(), s.agent.config), nil
+	// Store the names of the gateways associated with each service
+	var (
+		serviceGateways   = make(map[structs.ServiceName][]structs.ServiceName)
+		numLinkedServices = make(map[structs.ServiceName]int)
+	)
+	for _, gs := range out.Gateways {
+		serviceGateways[gs.Service] = append(serviceGateways[gs.Service], gs.Gateway)
+		numLinkedServices[gs.Gateway] += 1
+	}
+
+	summaries, hasProxy := summarizeServices(out.Nodes.ToServiceDump(), nil, "")
+	sorted := prepSummaryOutput(summaries, false)
+
+	var result []*ServiceListingSummary
+	for _, svc := range sorted {
+		sum := ServiceListingSummary{ServiceSummary: *svc}
+
+		sn := structs.NewServiceName(svc.Name, &svc.EnterpriseMeta)
+		if hasProxy[sn] {
+			sum.ConnectedWithProxy = true
+		}
+
+		// Verify that at least one of the gateways linked by config entry has an instance registered in the catalog
+		for _, gw := range serviceGateways[sn] {
+			if s := summaries[gw]; s != nil && sum.InstanceCount > 0 {
+				sum.ConnectedWithGateway = true
+			}
+		}
+		sum.GatewayConfig.AssociatedServiceCount = numLinkedServices[sn]
+
+		result = append(result, &sum)
+	}
+	return result, nil
 }
 
 // UIGatewayServices is used to query all the nodes for services associated with a gateway along with their gateway config
-func (s *HTTPServer) UIGatewayServicesNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) UIGatewayServicesNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Parse arguments
 	args := structs.ServiceSpecificRequest{}
 	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
@@ -199,54 +251,106 @@ RPC:
 		return nil, err
 	}
 
-	return summarizeServices(out.Dump, s.agent.config), nil
+	summaries, _ := summarizeServices(out.Dump, s.agent.config, args.Datacenter)
+	return prepSummaryOutput(summaries, false), nil
 }
 
-func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig) []*ServiceSummary {
-	// Collect the summary information
-	var services []structs.ServiceID
-	summary := make(map[structs.ServiceID]*ServiceSummary)
-	getService := func(service structs.ServiceID) *ServiceSummary {
+// UIServiceTopology returns the list of upstreams and downstreams for a Connect enabled service.
+//   - Downstreams are services that list the given service as an upstream
+//   - Upstreams are the upstreams defined in the given service's proxy registrations
+func (s *HTTPHandlers) UIServiceTopology(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Parse arguments
+	args := structs.ServiceSpecificRequest{}
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
+
+	args.ServiceName = strings.TrimPrefix(req.URL.Path, "/v1/internal/ui/service-topology/")
+	if args.ServiceName == "" {
+		resp.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(resp, "Missing service name")
+		return nil, nil
+	}
+
+	// Make the RPC request
+	var out structs.IndexedServiceTopology
+	defer setMeta(resp, &out.QueryMeta)
+RPC:
+	if err := s.agent.RPC("Internal.ServiceTopology", &args, &out); err != nil {
+		// Retry the request allowing stale data if no leader
+		if strings.Contains(err.Error(), structs.ErrNoLeader.Error()) && !args.AllowStale {
+			args.AllowStale = true
+			goto RPC
+		}
+		return nil, err
+	}
+
+	upstreams, _ := summarizeServices(out.ServiceTopology.Upstreams.ToServiceDump(), nil, "")
+	downstreams, _ := summarizeServices(out.ServiceTopology.Downstreams.ToServiceDump(), nil, "")
+
+	sum := ServiceTopology{
+		Upstreams:      prepSummaryOutput(upstreams, true),
+		Downstreams:    prepSummaryOutput(downstreams, true),
+		FilteredByACLs: out.FilteredByACLs,
+	}
+	return sum, nil
+}
+
+func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig, dc string) (map[structs.ServiceName]*ServiceSummary, map[structs.ServiceName]bool) {
+	var (
+		summary  = make(map[structs.ServiceName]*ServiceSummary)
+		hasProxy = make(map[structs.ServiceName]bool)
+	)
+
+	getService := func(service structs.ServiceName) *ServiceSummary {
 		serv, ok := summary[service]
 		if !ok {
 			serv = &ServiceSummary{
-				Name:           service.ID,
+				Name:           service.Name,
 				EnterpriseMeta: service.EnterpriseMeta,
 				// the other code will increment this unconditionally so we
 				// shouldn't initialize it to 1
 				InstanceCount: 0,
 			}
 			summary[service] = serv
-			services = append(services, service)
 		}
 		return serv
 	}
 
 	for _, csn := range dump {
-		if csn.GatewayService != nil {
+		if cfg != nil && csn.GatewayService != nil {
 			gwsvc := csn.GatewayService
-			sum := getService(gwsvc.Service.ToServiceID())
-			modifySummaryForGatewayService(cfg, sum, gwsvc)
+			sum := getService(gwsvc.Service)
+			modifySummaryForGatewayService(cfg, dc, sum, gwsvc)
 		}
 
 		// Will happen in cases where we only have the GatewayServices mapping
 		if csn.Service == nil {
 			continue
 		}
-		sid := structs.NewServiceID(csn.Service.Service, &csn.Service.EnterpriseMeta)
-		sum := getService(sid)
+		sn := structs.NewServiceName(csn.Service.Service, &csn.Service.EnterpriseMeta)
+		sum := getService(sn)
 
 		svc := csn.Service
 		sum.Nodes = append(sum.Nodes, csn.Node.Node)
 		sum.Kind = svc.Kind
+		sum.Datacenter = csn.Node.Datacenter
 		sum.InstanceCount += 1
 		if svc.Kind == structs.ServiceKindConnectProxy {
-			if _, ok := sum.proxyForSet[svc.Proxy.DestinationServiceName]; !ok {
-				if sum.proxyForSet == nil {
-					sum.proxyForSet = make(map[string]struct{})
+			sn := structs.NewServiceName(svc.Proxy.DestinationServiceName, &svc.EnterpriseMeta)
+			hasProxy[sn] = true
+
+			destination := getService(sn)
+			for _, check := range csn.Checks {
+				cid := structs.NewCheckID(check.CheckID, &check.EnterpriseMeta)
+				uid := structs.UniqueID(csn.Node.Node, cid.String())
+				if destination.checks == nil {
+					destination.checks = make(map[string]*structs.HealthCheck)
 				}
-				sum.proxyForSet[svc.Proxy.DestinationServiceName] = struct{}{}
-				sum.ProxyFor = append(sum.ProxyFor, svc.Proxy.DestinationServiceName)
+				destination.checks[uid] = check
 			}
 		}
 		for _, tag := range svc.Tags {
@@ -257,7 +361,6 @@ func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig) []*S
 					break
 				}
 			}
-
 			if !found {
 				sum.Tags = append(sum.Tags, tag)
 			}
@@ -279,7 +382,28 @@ func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig) []*S
 		}
 
 		for _, check := range csn.Checks {
-			switch check.Status {
+			cid := structs.NewCheckID(check.CheckID, &check.EnterpriseMeta)
+			uid := structs.UniqueID(csn.Node.Node, cid.String())
+			if sum.checks == nil {
+				sum.checks = make(map[string]*structs.HealthCheck)
+			}
+			sum.checks[uid] = check
+		}
+	}
+
+	return summary, hasProxy
+}
+
+func prepSummaryOutput(summaries map[structs.ServiceName]*ServiceSummary, excludeSidecars bool) []*ServiceSummary {
+	var resp []*ServiceSummary
+
+	// Collect and sort resp for display
+	for _, sum := range summaries {
+		sort.Strings(sum.Nodes)
+		sort.Strings(sum.Tags)
+
+		for _, chk := range sum.checks {
+			switch chk.Status {
 			case api.HealthPassing:
 				sum.ChecksPassing++
 			case api.HealthWarning:
@@ -288,25 +412,20 @@ func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig) []*S
 				sum.ChecksCritical++
 			}
 		}
+		if excludeSidecars && sum.Kind != structs.ServiceKindTypical {
+			continue
+		}
+		resp = append(resp, sum)
 	}
-
-	// Return the services in sorted order
-	sort.Slice(services, func(i, j int) bool {
-		return services[i].LessThan(&services[j])
+	sort.Slice(resp, func(i, j int) bool {
+		return resp[i].LessThan(resp[j])
 	})
-	output := make([]*ServiceSummary, len(summary))
-	for idx, service := range services {
-		// Sort the nodes and tags
-		sum := summary[service]
-		sort.Strings(sum.Nodes)
-		sort.Strings(sum.Tags)
-		output[idx] = sum
-	}
-	return output
+	return resp
 }
 
 func modifySummaryForGatewayService(
 	cfg *config.RuntimeConfig,
+	datacenter string,
 	sum *ServiceSummary,
 	gwsvc *structs.GatewayService,
 ) {
@@ -319,7 +438,7 @@ func modifySummaryForGatewayService(
 		}
 		dnsAddresses = append(dnsAddresses, serviceIngressDNSName(
 			gwsvc.Service.Name,
-			cfg.Datacenter,
+			datacenter,
 			domain,
 			&gwsvc.Service.EnterpriseMeta,
 		))
@@ -341,7 +460,7 @@ func modifySummaryForGatewayService(
 }
 
 // GET /v1/internal/ui/gateway-intentions/:gateway
-func (s *HTTPServer) UIGatewayIntentions(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) UIGatewayIntentions(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args structs.IntentionQueryRequest
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil

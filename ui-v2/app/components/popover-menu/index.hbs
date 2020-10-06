@@ -36,6 +36,7 @@ as |components|}}
       </ToggleButton>
 
       <MenuPanel @position={{position}} id={{aria.controls}} aria-labelledby={{aria.labelledBy}} aria-expanded={{aria.expanded}} as |menu|>
+        <Ref @target={{this}} @name="menu" @value={{menu}} />
         <BlockSlot @name="controls">
           <input type="checkbox" id={{concat 'popover-menu-' guid '-'}} />
         {{#each submenus as |sub|}}

@@ -1,8 +1,10 @@
 package state
 
 import (
+	"errors"
 	"fmt"
 
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
@@ -142,8 +144,8 @@ func (s *Store) ConfigEntriesByKind(ws memdb.WatchSet, kind string, entMeta *str
 }
 
 func configEntriesByKindTxn(tx ReadTxn, ws memdb.WatchSet, kind string, entMeta *structs.EnterpriseMeta) (uint64, []structs.ConfigEntry, error) {
-	// Get the index
-	idx := maxIndexTxn(tx, configTableName)
+	// Get the index and watch for updates
+	idx := maxIndexWatchTxn(tx, ws, configTableName)
 
 	// Lookup by kind, or all if kind is empty
 	var iter memdb.ResultIterator
@@ -189,7 +191,13 @@ func ensureConfigEntryTxn(tx *txn, idx uint64, conf structs.ConfigEntry, entMeta
 	if existing != nil {
 		existingIdx := existing.(structs.ConfigEntry).GetRaftIndex()
 		raftIndex.CreateIndex = existingIdx.CreateIndex
-		raftIndex.ModifyIndex = existingIdx.ModifyIndex
+
+		// Handle optional upsert logic.
+		if updatableConf, ok := conf.(structs.UpdatableConfigEntry); ok {
+			if err := updatableConf.UpdateOver(existing.(structs.ConfigEntry)); err != nil {
+				return err
+			}
+		}
 	} else {
 		raftIndex.CreateIndex = idx
 	}
@@ -273,7 +281,7 @@ func (s *Store) DeleteConfigEntry(idx uint64, kind, name string, entMeta *struct
 
 	// Delete the config entry from the DB and update the index.
 	if err := tx.Delete(configTableName, existing); err != nil {
-		return fmt.Errorf("failed removing check: %s", err)
+		return fmt.Errorf("failed removing config entry: %s", err)
 	}
 	if err := tx.Insert("index", &IndexEntry{configTableName, idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
@@ -319,7 +327,6 @@ func validateProposedConfigEntryInGraph(
 	next structs.ConfigEntry,
 	entMeta *structs.EnterpriseMeta,
 ) error {
-
 	validateAllChains := false
 
 	switch kind {
@@ -342,6 +349,10 @@ func validateProposedConfigEntryInGraph(
 		if err != nil {
 			return err
 		}
+	case structs.ServiceIntentions:
+		// TODO(rb): should this validate protocols?
+		return nil
+
 	default:
 		return fmt.Errorf("unhandled kind %q during validation of %q", kind, name)
 	}
@@ -369,6 +380,96 @@ var serviceGraphKinds = []string{
 	structs.ServiceRouter,
 	structs.ServiceSplitter,
 	structs.ServiceResolver,
+}
+
+// discoveryChainTargets will return a list of services listed as a target for the input's discovery chain
+func (s *Store) discoveryChainTargetsTxn(tx ReadTxn, ws memdb.WatchSet, dc, service string, entMeta *structs.EnterpriseMeta) (uint64, []structs.ServiceName, error) {
+	source := structs.NewServiceName(service, entMeta)
+	req := discoverychain.CompileRequest{
+		ServiceName:          source.Name,
+		EvaluateInNamespace:  source.NamespaceOrDefault(),
+		EvaluateInDatacenter: dc,
+		UseInDatacenter:      dc,
+	}
+	idx, chain, err := s.serviceDiscoveryChainTxn(tx, ws, source.Name, entMeta, req)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to fetch discovery chain for %q: %v", source.String(), err)
+	}
+
+	var resp []structs.ServiceName
+	for _, t := range chain.Targets {
+		em := structs.EnterpriseMetaInitializer(t.Namespace)
+		target := structs.NewServiceName(t.Service, &em)
+
+		// TODO (freddy): Allow upstream DC and encode in response
+		if t.Datacenter == dc {
+			resp = append(resp, target)
+		}
+	}
+	return idx, resp, nil
+}
+
+// discoveryChainSourcesTxn will return a list of services whose discovery chains have the given service as a target
+func (s *Store) discoveryChainSourcesTxn(tx ReadTxn, ws memdb.WatchSet, dc string, destination structs.ServiceName) (uint64, []structs.ServiceName, error) {
+	seenLink := map[structs.ServiceName]bool{destination: true}
+
+	queue := []structs.ServiceName{destination}
+	for len(queue) > 0 {
+		// The "link" index returns config entries that reference a service
+		iter, err := tx.Get(configTableName, "link", queue[0].ToServiceID())
+		if err != nil {
+			return 0, nil, err
+		}
+		ws.Add(iter.WatchCh())
+
+		for raw := iter.Next(); raw != nil; raw = iter.Next() {
+			entry := raw.(structs.ConfigEntry)
+
+			sn := structs.NewServiceName(entry.GetName(), entry.GetEnterpriseMeta())
+			if !seenLink[sn] {
+				seenLink[sn] = true
+				queue = append(queue, sn)
+			}
+		}
+		queue = queue[1:]
+	}
+
+	var (
+		maxIdx uint64 = 1
+		resp   []structs.ServiceName
+	)
+
+	// Only return the services that target the destination anywhere in their discovery chains.
+	seenSource := make(map[structs.ServiceName]bool)
+	for sn := range seenLink {
+		req := discoverychain.CompileRequest{
+			ServiceName:          sn.Name,
+			EvaluateInNamespace:  sn.NamespaceOrDefault(),
+			EvaluateInDatacenter: dc,
+			UseInDatacenter:      dc,
+		}
+		idx, chain, err := s.serviceDiscoveryChainTxn(tx, ws, sn.Name, &sn.EnterpriseMeta, req)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to fetch discovery chain for %q: %v", sn.String(), err)
+		}
+
+		for _, t := range chain.Targets {
+			em := structs.EnterpriseMetaInitializer(t.Namespace)
+			candidate := structs.NewServiceName(t.Service, &em)
+
+			if !candidate.Matches(&destination) {
+				continue
+			}
+			if idx > maxIdx {
+				maxIdx = idx
+			}
+			if !seenSource[sn] {
+				seenSource[sn] = true
+				resp = append(resp, sn)
+			}
+		}
+	}
+	return maxIdx, resp, nil
 }
 
 func validateProposedConfigEntryInServiceGraph(
@@ -553,6 +654,57 @@ func testCompileDiscoveryChain(
 	}
 
 	return chain.Protocol, chain.Nodes[chain.StartNode], nil
+}
+
+func (s *Store) ServiceDiscoveryChain(
+	ws memdb.WatchSet,
+	serviceName string,
+	entMeta *structs.EnterpriseMeta,
+	req discoverychain.CompileRequest,
+) (uint64, *structs.CompiledDiscoveryChain, error) {
+	tx := s.db.ReadTxn()
+	defer tx.Abort()
+
+	return s.serviceDiscoveryChainTxn(tx, ws, serviceName, entMeta, req)
+}
+
+func (s *Store) serviceDiscoveryChainTxn(
+	tx ReadTxn,
+	ws memdb.WatchSet,
+	serviceName string,
+	entMeta *structs.EnterpriseMeta,
+	req discoverychain.CompileRequest,
+) (uint64, *structs.CompiledDiscoveryChain, error) {
+
+	index, entries, err := readDiscoveryChainConfigEntriesTxn(tx, ws, serviceName, nil, entMeta)
+	if err != nil {
+		return 0, nil, err
+	}
+	req.Entries = entries
+
+	_, config, err := s.CAConfig(ws)
+	if err != nil {
+		return 0, nil, err
+	} else if config == nil {
+		return 0, nil, errors.New("no cluster ca config setup")
+	}
+
+	// Build TrustDomain based on the ClusterID stored.
+	signingID := connect.SpiffeIDSigningForCluster(config)
+	if signingID == nil {
+		// If CA is bootstrapped at all then this should never happen but be
+		// defensive.
+		return 0, nil, errors.New("no cluster trust domain setup")
+	}
+	req.EvaluateInTrustDomain = signingID.Host()
+
+	// Then we compile it into something useful.
+	chain, err := discoverychain.Compile(req)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to compile discovery chain: %v", err)
+	}
+
+	return index, chain, nil
 }
 
 // ReadDiscoveryChainConfigEntries will query for the full discovery chain for
@@ -898,6 +1050,31 @@ func getResolverConfigEntryTxn(
 		return 0, nil, fmt.Errorf("invalid service config type %T", entry)
 	}
 	return idx, resolver, nil
+}
+
+// getServiceIntentionsConfigEntryTxn is a convenience method for fetching a
+// service-intentions kind of config entry.
+//
+// If an override is returned the index returned will be 0.
+func getServiceIntentionsConfigEntryTxn(
+	tx ReadTxn,
+	ws memdb.WatchSet,
+	name string,
+	overrides map[structs.ConfigEntryKindName]structs.ConfigEntry,
+	entMeta *structs.EnterpriseMeta,
+) (uint64, *structs.ServiceIntentionsConfigEntry, error) {
+	idx, entry, err := configEntryWithOverridesTxn(tx, ws, structs.ServiceIntentions, name, overrides, entMeta)
+	if err != nil {
+		return 0, nil, err
+	} else if entry == nil {
+		return idx, nil, nil
+	}
+
+	ixn, ok := entry.(*structs.ServiceIntentionsConfigEntry)
+	if !ok {
+		return 0, nil, fmt.Errorf("invalid service config type %T", entry)
+	}
+	return idx, ixn, nil
 }
 
 func configEntryWithOverridesTxn(

@@ -35,7 +35,7 @@ Feature: dc / intentions / filtered-select: Intention Service Select Dropdowns
       ---------------
       | Name        |
       | source      |
-      | destination |
+      #| destination |
       ---------------
   Scenario: Opening the [Name] dropdown with 2 services with the same name from different nspaces
     Given 1 datacenter model with the value "datacenter"
@@ -65,5 +65,5 @@ Feature: dc / intentions / filtered-select: Intention Service Select Dropdowns
       ---------------
       | Name        |
       | source      |
-      | destination |
+      #| destination |
       ---------------

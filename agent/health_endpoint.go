@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 )
@@ -18,7 +17,7 @@ const (
 	ingressHealth = "ingress"
 )
 
-func (s *HTTPServer) HealthChecksInState(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) HealthChecksInState(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Set default DC
 	args := structs.ChecksInStateRequest{}
 	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
@@ -66,7 +65,7 @@ RETRY_ONCE:
 	return out.HealthChecks, nil
 }
 
-func (s *HTTPServer) HealthNodeChecks(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) HealthNodeChecks(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Set default DC
 	args := structs.NodeSpecificRequest{}
 	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
@@ -112,7 +111,7 @@ RETRY_ONCE:
 	return out.HealthChecks, nil
 }
 
-func (s *HTTPServer) HealthServiceChecks(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) HealthServiceChecks(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Set default DC
 	args := structs.ServiceSpecificRequest{}
 	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
@@ -162,24 +161,24 @@ RETRY_ONCE:
 
 // HealthIngressServiceNodes should return "all the healthy ingress gateway instances
 // that I can use to access this connect-enabled service without mTLS".
-func (s *HTTPServer) HealthIngressServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) HealthIngressServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	return s.healthServiceNodes(resp, req, ingressHealth)
 }
 
 // HealthConnectServiceNodes should return "all healthy connect-enabled
 // endpoints (e.g. could be side car proxies or native instances) for this
 // service so I can connect with mTLS".
-func (s *HTTPServer) HealthConnectServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) HealthConnectServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	return s.healthServiceNodes(resp, req, connectHealth)
 }
 
 // HealthServiceNodes should return "all the healthy instances of this service
 // registered so I can connect directly to them".
-func (s *HTTPServer) HealthServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) HealthServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	return s.healthServiceNodes(resp, req, serviceHealth)
 }
 
-func (s *HTTPServer) healthServiceNodes(resp http.ResponseWriter, req *http.Request, healthType string) (interface{}, error) {
+func (s *HTTPHandlers) healthServiceNodes(resp http.ResponseWriter, req *http.Request, healthType string) (interface{}, error) {
 	// Set default DC
 	args := structs.ServiceSpecificRequest{}
 	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
@@ -220,35 +219,21 @@ func (s *HTTPServer) healthServiceNodes(resp http.ResponseWriter, req *http.Requ
 		return nil, nil
 	}
 
-	// Make the RPC request
-	var out structs.IndexedCheckServiceNodes
-	defer setMeta(resp, &out.QueryMeta)
+	// TODO: handle this for all endpoints in parseConsistency
+	args.QueryOptions.UseCache = s.agent.config.HTTPUseCache && args.QueryOptions.UseCache
 
-	if s.agent.config.HTTPUseCache && args.QueryOptions.UseCache {
-		raw, m, err := s.agent.cache.Get(req.Context(), cachetype.HealthServicesName, &args)
-		if err != nil {
-			return nil, err
-		}
-		defer setCacheMeta(resp, &m)
-		reply, ok := raw.(*structs.IndexedCheckServiceNodes)
-		if !ok {
-			// This should never happen, but we want to protect against panics
-			return nil, fmt.Errorf("internal error: response type not correct")
-		}
-		out = *reply
-	} else {
-	RETRY_ONCE:
-		if err := s.agent.RPC("Health.ServiceNodes", &args, &out); err != nil {
-			return nil, err
-		}
-		if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
-			args.AllowStale = false
-			args.MaxStaleDuration = 0
-			goto RETRY_ONCE
-		}
+	out, md, err := s.agent.rpcClientHealth.ServiceNodes(req.Context(), args)
+	if err != nil {
+		return nil, err
 	}
+
+	if args.QueryOptions.UseCache {
+		setCacheMeta(resp, &md)
+	}
+	setMeta(resp, &out.QueryMeta)
 	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
 
+	// FIXME: argument parsing should be done before performing the rpc
 	// Filter to only passing if specified
 	filter, err := getBoolQueryParam(params, api.HealthPassing)
 	if err != nil {
@@ -257,6 +242,7 @@ func (s *HTTPServer) healthServiceNodes(resp http.ResponseWriter, req *http.Requ
 		return nil, nil
 	}
 
+	// FIXME: remove filterNonPassing, replace with nodes.Filter, which is used by DNSServer
 	if filter {
 		out.Nodes = filterNonPassing(out.Nodes)
 	}

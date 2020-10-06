@@ -69,6 +69,7 @@ BUGFIXES:
 * auto_encrypt: Fixed an issue where auto encrypt certificate signing wasn't using the connect signing rate limiter. [[GH-8211](https://github.com/hashicorp/consul/pull/8211)]
 * auto_encrypt: Fixed several issues around retrieving the first TLS certificate where it would have the wrong CN and SANs. This was being masked by a second bug (also fixed) causing that certificate to immediately be discarded with a second certificate request being made afterwards. [[GH-8211](https://github.com/hashicorp/consul/pull/8211)]
 * auto_encrypt: Fixed an issue that caused auto encrypt certificates to not be updated properly if the agents token was changed and the old token was deleted. [[GH-8311](https://github.com/hashicorp/consul/pull/8311)]
+* autopilot: **(Consul Enterprise only)** Fixed an issue where using autopilot with redundancy zones wouldn't demote extra voters in a zone to match the "one voter per zone" desired state when rebalancing.
 * connect: fix crash that would result if a mesh or terminating gateway's upstream has a hostname as an address and no healthy service instances available. [[GH-8158](https://github.com/hashicorp/consul/issues/8158)]
 * connect: Fixed issue where specifying a prometheus bind address would cause ingress gateways to fail to start up [[GH-8371]](https://github.com/hashicorp/consul/pull/8371)
 * gossip: Avoid issue where two unique leave events for the same node could lead to infinite rebroadcast storms [[GH-8343](https://github.com/hashicorp/consul/issues/8343)]

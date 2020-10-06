@@ -68,6 +68,7 @@ const (
 	ACLAuthMethodDeleteRequestType              = 28
 	ChunkingStateType                           = 29
 	FederationStateRequestType                  = 30
+	SystemMetadataRequestType                   = 31
 )
 
 const (
@@ -1031,6 +1032,14 @@ func (ns *NodeService) CompoundServiceName() ServiceName {
 	}
 }
 
+// UniqueID is a unique identifier for a service instance within a datacenter by encoding:
+// node/namespace/service_id
+//
+// Note: We do not have strict character restrictions in all node names, so this should NOT be split on / to retrieve components.
+func UniqueID(node string, compoundID string) string {
+	return fmt.Sprintf("%s/%s", node, compoundID)
+}
+
 // ServiceConnect are the shared Connect settings between all service
 // definitions from the agent to the state store.
 type ServiceConnect struct {
@@ -1777,8 +1786,16 @@ func (n *ServiceName) Matches(o *ServiceName) bool {
 	return true
 }
 
-func (si *ServiceName) ToServiceID() ServiceID {
-	return ServiceID{ID: si.Name, EnterpriseMeta: si.EnterpriseMeta}
+func (n *ServiceName) ToServiceID() ServiceID {
+	return ServiceID{ID: n.Name, EnterpriseMeta: n.EnterpriseMeta}
+}
+
+func (n *ServiceName) LessThan(other *ServiceName) bool {
+	if n.EnterpriseMeta.LessThan(&other.EnterpriseMeta) {
+		return true
+	}
+
+	return n.Name < other.Name
 }
 
 type ServiceList []ServiceName
@@ -1815,6 +1832,12 @@ type IndexedCheckServiceNodes struct {
 	QueryMeta
 }
 
+type IndexedNodesWithGateways struct {
+	Nodes    CheckServiceNodes
+	Gateways GatewayServices
+	QueryMeta
+}
+
 type DatacenterIndexedCheckServiceNodes struct {
 	DatacenterNodes map[string]CheckServiceNodes
 	QueryMeta
@@ -1833,6 +1856,17 @@ type IndexedServiceDump struct {
 type IndexedGatewayServices struct {
 	Services GatewayServices
 	QueryMeta
+}
+
+type IndexedServiceTopology struct {
+	ServiceTopology *ServiceTopology
+	FilteredByACLs  bool
+	QueryMeta
+}
+
+type ServiceTopology struct {
+	Upstreams   CheckServiceNodes
+	Downstreams CheckServiceNodes
 }
 
 // IndexedConfigEntries has its own encoding logic which differs from
@@ -2376,4 +2410,19 @@ func (r *KeyringResponses) Add(v interface{}) {
 
 func (r *KeyringResponses) New() interface{} {
 	return new(KeyringResponses)
+}
+
+// UpstreamDownstream pairs come from individual proxy registrations, which can be updated independently.
+type UpstreamDownstream struct {
+	Upstream   ServiceName
+	Downstream ServiceName
+
+	// Refs stores the registrations that contain this pairing.
+	// When there are no remaining Refs, the UpstreamDownstream can be deleted.
+	//
+	// Note: This map must be treated as immutable when accessed in MemDB.
+	//       The entire UpstreamDownstream structure must be deep copied on updates.
+	Refs map[string]struct{}
+
+	RaftIndex
 }

@@ -16,6 +16,24 @@ function status {
     tput sgr0
 }
 
+# Returns the latest GitHub "backport/*" label
+function get_latest_backport_label {
+    local resp
+    local ret
+    local latest_backport_label
+
+    resp=$(curl -f -s -H "Authorization: token ${GITHUB_TOKEN}" "https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/labels")
+    ret="$?"
+    if [[ "$ret" -ne 0 ]]; then
+        status "The GitHub API returned $ret which means it was probably rate limited."
+        exit $ret
+    fi
+
+    latest_backport_label=$(echo "$resp" | jq -r '.[] | select(.name | startswith("backport/")) | .name' | sort -rV | head -n1)
+    echo "$latest_backport_label"
+    return 0
+}
+
 # This function will do the cherry-picking of a commit on a branch
 # Exit 1 if cherry-picking fails
 function cherry_pick_with_slack_notification {
@@ -110,10 +128,13 @@ if [[ "$count" -eq 0 ]]; then
     exit 0
 fi
 
+# save PR number
+pr_number=$(echo "$resp" | jq '.items[].number')
+
 # If the API returned a non-zero count, we have found a PR with that commit so we find
 # the labels from the PR
 
-# sorts the labels from a PR via version sort
+# Sorts the labels from a PR via version sort
 labels=$(echo "$resp" | jq --raw-output '.items[].labels[] | .name' | sort -rV)
 ret="$?"
 pr_url=$(echo "$resp" | jq --raw-output '.items[].pull_request.html_url')
@@ -122,6 +143,18 @@ if [[ "$ret" -ne 0 ]]; then
     # This can be a valid error but usually this means we do not have any labels so it doesn't signal
     # cherry-picking is possible. Exit 0 for now unless we run into cases where these failures are important.
     exit 0
+fi
+
+# Attach label for latest release branch if 'docs-cherrypick' is present. Will noop if already applied.
+latest_backport_label=$(get_latest_backport_label)
+status "latest backport label is $latest_backport_label"
+if echo "$resp" | jq -e '.items[].labels[] | select(.name | contains("docs-cherrypick"))'; then
+    labels=$(curl -f -s -H "Authorization: token ${GITHUB_TOKEN}" -X POST -d "{\"labels\":[\"$latest_backport_label\"]}" "https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/issues/${pr_number}/labels" | jq --raw-output '.[].name' | sort -rV)
+    ret="$?"
+    if [[ "$ret" -ne 0 ]]; then
+        status "Error applying $latest_backport_label to $pr_url"
+        exit $ret
+    fi
 fi
 
 backport_failures=0

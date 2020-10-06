@@ -1,19 +1,19 @@
 @import './layout';
 @import './skin';
+%composite-row {
+  @extend %list-row;
+}
+%composite-row > .header {
+  @extend %composite-row-header, %list-row-header;
+}
+%composite-row > .detail {
+  @extend %composite-row-detail, %list-row-detail;
+}
+%composite-row > .actions {
+  @extend %composite-row-actions;
+}
 %with-composite-row-intent:hover,
 %with-composite-row-intent:focus,
 %with-composite-row-intent:active {
-  @extend %composite-row-intent;
-}
-%composite-row > :first-child {
-  @extend %composite-row-header;
-}
-%composite-row-header > dl:first-child {
-  @extend %composite-row-icon;
-}
-%composite-row > :nth-child(2) {
-  @extend %composite-row-detail;
-}
-%composite-row > :nth-child(3) {
-  @extend %composite-row-actions;
+  @extend %list-row-intent;
 }

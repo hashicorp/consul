@@ -1,4 +1,3 @@
-// import Route from '@ember/routing/route';
 import Route from './index';
 
 export default Route.extend({

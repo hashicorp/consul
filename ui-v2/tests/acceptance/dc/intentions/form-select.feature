@@ -19,5 +19,5 @@ Feature: dc / intentions / form-select: Intention Service Select Dropdowns
       ---------------
       | Name        |
       | source      |
-      | destination |
+      # | destination |
       ---------------

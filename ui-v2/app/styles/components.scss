@@ -3,6 +3,10 @@
 /**/
 
 @import './components/card/index';
+@import './components/list-row/index';
+@import './components/expanded-single-select/index';
+
+@import './components/icon-definition';
 @import './components/form-elements';
 @import './components/breadcrumbs';
 @import './components/anchors';
@@ -38,6 +42,7 @@
 @import './components/more-popover-menu';
 @import './components/confirmation-alert';
 @import './components/definition-table';
+@import './components/radio-card';
 
 /**/
 
@@ -47,3 +52,19 @@
 @import './components/main-nav-horizontal';
 @import './components/app-view';
 @import './components/footer';
+
+/**/
+
+/**
+ * Migration: We are migrating our consul-* styles to use colocated styles
+ * consul-* component styles should be moved or added under here
+ * when convienient
+ **/
+
+@import 'consul-ui/components/consul-intention-list';
+@import 'consul-ui/components/consul-intention-form/fieldsets';
+@import 'consul-ui/components/consul-intention-permission-list';
+@import 'consul-ui/components/consul-intention-permission-form';
+@import 'consul-ui/components/consul-intention-permission-header-list';
+@import 'consul-ui/components/role-selector';
+@import 'consul-ui/components/topology-metrics';

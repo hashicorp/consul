@@ -1,4 +1,5 @@
-<div id="services" class="tab-section">
+<EventSource @src={{gatewayServices}} />
+<div class="tab-section">
   <div role="tabpanel">
 {{#let (hash
   instances=(if instance (split instance ',') undefined)
