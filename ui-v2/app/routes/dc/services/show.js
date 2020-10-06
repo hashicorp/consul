@@ -29,6 +29,10 @@ export default Route.extend({
           : hash({
               ...model,
               chain: this.data.source(uri => uri`/${nspace}/${dc}/discovery-chain/${params.name}`),
+              // Whilst `proxies` isn't used anywhere in the show templates
+              // it provides a relationship of ProxyInstance on the ServiceInstance
+              // which can respond at a completely different blocking rate to
+              // the ServiceInstance itself
               proxies: this.data.source(
                 uri => uri`/${nspace}/${dc}/proxies/for-service/${params.name}`
               ),
