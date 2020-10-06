@@ -230,6 +230,7 @@ export default [
     name: 'Integrations',
     content: [
       'partnerships',
+      'nia-integration',
       {
         title: 'Ambassador Integration',
         href: '/docs/k8s/connect/ambassador',
