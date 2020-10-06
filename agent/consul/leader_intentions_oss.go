@@ -33,7 +33,6 @@ func migrateIntentionsToConfigEntries(ixns structs.Intentions) []*structs.Servic
 	var (
 		retained    = make(map[intentionName]struct{})
 		tryUpgrades = make(map[intentionName]*structs.Intention)
-		removeIDs   []string
 		output      structs.Intentions
 	)
 	for _, ixn := range ixns {
@@ -71,17 +70,14 @@ func migrateIntentionsToConfigEntries(ixns structs.Intentions) []*structs.Servic
 				updated.DestinationNS, updated.DestinationName,
 			}
 			tryUpgrades[name] = updated
-		} else {
-			removeIDs = append(removeIDs, ixn.ID)
 		}
 	}
 
 	for name, updated := range tryUpgrades {
-		if _, collision := retained[name]; collision {
-			// The update we wanted to do would collide with an existing intention
-			// so delete our original wildcard intention instead.
-			removeIDs = append(removeIDs, updated.ID)
-		} else {
+		// Check to see if the update we wanted to do would collide with an
+		// existing intention. If so, we delete our original wildcard intention
+		// via simply omitting it from migration.
+		if _, collision := retained[name]; !collision {
 			output = append(output, updated)
 		}
 	}
