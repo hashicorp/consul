@@ -4,13 +4,13 @@ import { uuidv4 } from "https://jslib.k6.io/k6-utils/1.0.0/index.js";
 
 export default function() {
 
-  var key = uuidv4();
+  const key = uuidv4();
   const ipaddress = `http://${__ENV.LB_ENDPOINT}:8500`;
   const uri = '/v1/kv/';
   const value = { data: uuidv4() };
   const address = `${ipaddress + uri + key}`
 
-  let res = http.put(address, JSON.stringify(value));
+  const res = http.put(address, JSON.stringify(value));
 
   console.log(JSON.parse(res.body));
 }
