@@ -154,17 +154,18 @@ func (s *healthView) Update(events []*pbsubscribe.Event) error {
 			return fmt.Errorf("unexpected event type for service health view: %T",
 				event.GetPayload())
 		}
-		node := serviceHealth.CheckServiceNode
-		id := fmt.Sprintf("%s/%s", node.Node.Node, node.Service.ID)
 
+		id := serviceHealth.CheckServiceNode.UniqueID()
 		switch serviceHealth.Op {
 		case pbsubscribe.CatalogOp_Register:
-			checkServiceNode := pbservice.CheckServiceNodeToStructs(serviceHealth.CheckServiceNode)
-			s.state[id] = *checkServiceNode
+			csn := pbservice.CheckServiceNodeToStructs(serviceHealth.CheckServiceNode)
+			s.state[id] = *csn
 		case pbsubscribe.CatalogOp_Deregister:
 			delete(s.state, id)
 		}
 	}
+	// TODO(streaming): should this filter be applied to only the new CheckServiceNode
+	// instead of the full map, which should already be filtered.
 	if s.filter != nil {
 		filtered, err := s.filter.Execute(s.state)
 		if err != nil {
