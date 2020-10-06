@@ -5,3 +5,4 @@ instances:
       self_leader_check: true
       network_latency_checks: true
       catalog_checks: true
+      
