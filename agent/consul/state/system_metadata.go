@@ -58,14 +58,12 @@ func (s *Restore) SystemMetadataEntry(entry *structs.SystemMetadataEntry) error 
 }
 
 // SystemMetadataSet is called to do an upsert of a set of system metadata entries.
-func (s *Store) SystemMetadataSet(idx uint64, entries []*structs.SystemMetadataEntry) error {
+func (s *Store) SystemMetadataSet(idx uint64, entry *structs.SystemMetadataEntry) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
-	for _, entry := range entries {
-		if err := systemMetadataSetTxn(tx, idx, entry); err != nil {
-			return err
-		}
+	if err := systemMetadataSetTxn(tx, idx, entry); err != nil {
+		return err
 	}
 
 	return tx.Commit()
@@ -163,14 +161,12 @@ func systemMetadataListTxn(tx ReadTxn, ws memdb.WatchSet) (uint64, []*structs.Sy
 	return idx, results, nil
 }
 
-func (s *Store) SystemMetadataDelete(idx uint64, entries []*structs.SystemMetadataEntry) error {
+func (s *Store) SystemMetadataDelete(idx uint64, entry *structs.SystemMetadataEntry) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
-	for _, entry := range entries {
-		if err := systemMetadataDeleteTxn(tx, idx, entry.Key); err != nil {
-			return err
-		}
+	if err := systemMetadataDeleteTxn(tx, idx, entry.Key); err != nil {
+		return err
 	}
 
 	return tx.Commit()

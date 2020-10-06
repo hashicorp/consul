@@ -36,11 +36,20 @@ func TestStore_SystemMetadata(t *testing.T) {
 
 	checkListAndGet(t, map[string]string{})
 
+	var nextIndex uint64
+
 	// Create 3 keys
-	require.NoError(t, s.SystemMetadataSet(1, []*structs.SystemMetadataEntry{
-		{Key: "key1", Value: "val1"},
-		{Key: "key2", Value: "val2"},
-		{Key: "key3"},
+	nextIndex++
+	require.NoError(t, s.SystemMetadataSet(nextIndex, &structs.SystemMetadataEntry{
+		Key: "key1", Value: "val1",
+	}))
+	nextIndex++
+	require.NoError(t, s.SystemMetadataSet(nextIndex, &structs.SystemMetadataEntry{
+		Key: "key2", Value: "val2",
+	}))
+	nextIndex++
+	require.NoError(t, s.SystemMetadataSet(nextIndex, &structs.SystemMetadataEntry{
+		Key: "key3",
 	}))
 
 	checkListAndGet(t, map[string]string{
@@ -55,9 +64,13 @@ func TestStore_SystemMetadata(t *testing.T) {
 	require.Nil(t, entry)
 
 	// Delete one that exists and one that does not
-	require.NoError(t, s.SystemMetadataDelete(2, []*structs.SystemMetadataEntry{
-		{Key: "key2"},
-		{Key: "key4"},
+	nextIndex++
+	require.NoError(t, s.SystemMetadataDelete(nextIndex, &structs.SystemMetadataEntry{
+		Key: "key2",
+	}))
+	nextIndex++
+	require.NoError(t, s.SystemMetadataDelete(nextIndex, &structs.SystemMetadataEntry{
+		Key: "key4",
 	}))
 
 	checkListAndGet(t, map[string]string{
@@ -66,9 +79,12 @@ func TestStore_SystemMetadata(t *testing.T) {
 	})
 
 	// Update one that exists and add another one.
-	require.NoError(t, s.SystemMetadataSet(1, []*structs.SystemMetadataEntry{
-		{Key: "key3", Value: "val3"},
-		{Key: "key4", Value: "val4"},
+	nextIndex++
+	require.NoError(t, s.SystemMetadataSet(nextIndex, &structs.SystemMetadataEntry{
+		Key: "key3", Value: "val3",
+	}))
+	require.NoError(t, s.SystemMetadataSet(nextIndex, &structs.SystemMetadataEntry{
+		Key: "key4", Value: "val4",
 	}))
 
 	checkListAndGet(t, map[string]string{

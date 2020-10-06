@@ -16,8 +16,8 @@ type SystemMetadataRequest struct {
 	// Op is the type of operation being requested.
 	Op SystemMetadataOp
 
-	// Entries is the set of keys to modify.
-	Entries []*SystemMetadataEntry
+	// Entry is the key to modify.
+	Entry *SystemMetadataEntry
 
 	// WriteRequest is a common struct containing ACL tokens and other
 	// write-related common elements for requests.
