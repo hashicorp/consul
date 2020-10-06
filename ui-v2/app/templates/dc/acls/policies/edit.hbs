@@ -14,12 +14,6 @@
     <BlockSlot @name="notification" as |status type item error|>
       {{partial 'dc/acls/policies/notifications'}}
     </BlockSlot>
-    <BlockSlot @name="disabled">
-      {{partial 'dc/acls/disabled'}}
-    </BlockSlot>
-    <BlockSlot @name="authorization">
-      {{partial 'dc/acls/authorization'}}
-    </BlockSlot>
     <BlockSlot @name="breadcrumbs">
         <ol>
             <li><a data-test-back href={{href-to 'dc.acls.policies'}}>All Policies</a></li>
