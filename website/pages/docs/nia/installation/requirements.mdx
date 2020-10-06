@@ -1,0 +1,47 @@
+---
+layout: docs
+page_title: Requirements
+sidebar_title: Requirements
+description: >-
+  Consul-Terraform-Sync requires a Terraform Provider, a Terraform Module and a running Consul Cluster outside of the consul-terraform-sync daemon.
+---
+
+# Prerequisites Needed to Run Consul-Terraform-Sync
+
+Consul-Terraform-Sync requires a Terraform Provider, a Terraform Module and a running Consul Cluster outside of the consul-terraform-sync daemon. Practitioners can add support for their network infrastructure through Terraform providers. Once network infrastructure support exists, practitioners can add network integrations in the form of Terraform modules.
+
+## Network Infrastructure (using a Terraform Provider)
+
+Consul-Terraform-Sync integrations for the Terraform driver utilizes Terraform providers as plugins to interface with specific network infrastructure platforms. The Terraform driver of Consul-Terraform-Sync inherits the expansive collection of Terraform providers to integrate with, and with release of [Terraform 0.13](https://www.hashicorp.com/blog/announcing-hashicorp-terraform-0-13/), this extends to include providers written by the community too ([provider source](https://www.hashicorp.com/blog/adding-provider-source-to-hashicorp-terraform/)).
+
+### Finding and Using Terraform Providers
+
+To find providers for the infrastructure platforms you use, browse the providers section of the [Terraform Registry](https://registry.terraform.io/browse/providers).
+
+### How to Create a Provider
+
+If there is no existing Terraform provider, a new Terraform provider can be [created](https://learn.hashicorp.com/tutorials/terraform/provider-setup) and [published](https://www.terraform.io/docs/registry/providers/publishing.html). The provider can then be used within a network integration task by authoring a compatible Terraform module.
+
+## Network Integration (using a Terraform Module)
+
+Working with a Terraform provider, you can write an integration task for Consul-Terraform-Sync by creating a Terraform module that is compatible with the Terraform driver.
+
+### Using Terraform Modules
+
+The modules listed below are availabe to use and are comptabible with consul-terraform-sync.
+
+#### A10
+
+#### Checkpoint
+
+#### Cisco ACI
+
+#### F5
+
+#### Palo Alto Networks
+
+### How to Create a Terraform Module
+
+You can read more on how to [create a module](https://www.terraform.io/docs/modules/index.html) or work through a [tutorial to build a module](https://learn.hashicorp.com/tutorials/terraform/module-create). Consul-Terraform-Sync is designed to integrate with any module that satisfies the specifications in the following section.
+
+## Run a Consul Cluster
