@@ -20,7 +20,7 @@ func init() {
 	registerRestorer(structs.CoordinateBatchUpdateType, restoreCoordinates)
 	registerRestorer(structs.PreparedQueryRequestType, restorePreparedQuery)
 	registerRestorer(structs.AutopilotRequestType, restoreAutopilot)
-	registerRestorer(structs.IntentionRequestType, restoreIntention)
+	registerRestorer(structs.IntentionRequestType, restoreLegacyIntention)
 	registerRestorer(structs.ConnectCARequestType, restoreConnectCA)
 	registerRestorer(structs.ConnectCAProviderStateType, restoreConnectCAProviderState)
 	registerRestorer(structs.ConnectCAConfigType, restoreConnectCAConfig)
@@ -57,7 +57,7 @@ func persistOSS(s *snapshot, sink raft.SnapshotSink, encoder *codec.Encoder) err
 	if err := s.persistAutopilot(sink, encoder); err != nil {
 		return err
 	}
-	if err := s.persistIntentions(sink, encoder); err != nil {
+	if err := s.persistLegacyIntentions(sink, encoder); err != nil {
 		return err
 	}
 	if err := s.persistConnectCA(sink, encoder); err != nil {
@@ -402,9 +402,10 @@ func (s *snapshot) persistConnectCAProviderState(sink raft.SnapshotSink,
 	return nil
 }
 
-func (s *snapshot) persistIntentions(sink raft.SnapshotSink,
+func (s *snapshot) persistLegacyIntentions(sink raft.SnapshotSink,
 	encoder *codec.Encoder) error {
-	ixns, err := s.state.Intentions()
+	//nolint:staticcheck
+	ixns, err := s.state.LegacyIntentions()
 	if err != nil {
 		return err
 	}
@@ -614,12 +615,13 @@ func restoreAutopilot(header *snapshotHeader, restore *state.Restore, decoder *c
 	return nil
 }
 
-func restoreIntention(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+func restoreLegacyIntention(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
 	var req structs.Intention
 	if err := decoder.Decode(&req); err != nil {
 		return err
 	}
-	if err := restore.Intention(&req); err != nil {
+	//nolint:staticcheck
+	if err := restore.LegacyIntention(&req); err != nil {
 		return err
 	}
 	return nil

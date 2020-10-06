@@ -144,8 +144,8 @@ func (s *Store) ConfigEntriesByKind(ws memdb.WatchSet, kind string, entMeta *str
 }
 
 func configEntriesByKindTxn(tx ReadTxn, ws memdb.WatchSet, kind string, entMeta *structs.EnterpriseMeta) (uint64, []structs.ConfigEntry, error) {
-	// Get the index
-	idx := maxIndexTxn(tx, configTableName)
+	// Get the index and watch for updates
+	idx := maxIndexWatchTxn(tx, ws, configTableName)
 
 	// Lookup by kind, or all if kind is empty
 	var iter memdb.ResultIterator
@@ -191,7 +191,13 @@ func ensureConfigEntryTxn(tx *txn, idx uint64, conf structs.ConfigEntry, entMeta
 	if existing != nil {
 		existingIdx := existing.(structs.ConfigEntry).GetRaftIndex()
 		raftIndex.CreateIndex = existingIdx.CreateIndex
-		raftIndex.ModifyIndex = existingIdx.ModifyIndex
+
+		// Handle optional upsert logic.
+		if updatableConf, ok := conf.(structs.UpdatableConfigEntry); ok {
+			if err := updatableConf.UpdateOver(existing.(structs.ConfigEntry)); err != nil {
+				return err
+			}
+		}
 	} else {
 		raftIndex.CreateIndex = idx
 	}
@@ -275,7 +281,7 @@ func (s *Store) DeleteConfigEntry(idx uint64, kind, name string, entMeta *struct
 
 	// Delete the config entry from the DB and update the index.
 	if err := tx.Delete(configTableName, existing); err != nil {
-		return fmt.Errorf("failed removing check: %s", err)
+		return fmt.Errorf("failed removing config entry: %s", err)
 	}
 	if err := tx.Insert("index", &IndexEntry{configTableName, idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
@@ -321,7 +327,6 @@ func validateProposedConfigEntryInGraph(
 	next structs.ConfigEntry,
 	entMeta *structs.EnterpriseMeta,
 ) error {
-
 	validateAllChains := false
 
 	switch kind {
@@ -344,6 +349,10 @@ func validateProposedConfigEntryInGraph(
 		if err != nil {
 			return err
 		}
+	case structs.ServiceIntentions:
+		// TODO(rb): should this validate protocols?
+		return nil
+
 	default:
 		return fmt.Errorf("unhandled kind %q during validation of %q", kind, name)
 	}
@@ -1041,6 +1050,31 @@ func getResolverConfigEntryTxn(
 		return 0, nil, fmt.Errorf("invalid service config type %T", entry)
 	}
 	return idx, resolver, nil
+}
+
+// getServiceIntentionsConfigEntryTxn is a convenience method for fetching a
+// service-intentions kind of config entry.
+//
+// If an override is returned the index returned will be 0.
+func getServiceIntentionsConfigEntryTxn(
+	tx ReadTxn,
+	ws memdb.WatchSet,
+	name string,
+	overrides map[structs.ConfigEntryKindName]structs.ConfigEntry,
+	entMeta *structs.EnterpriseMeta,
+) (uint64, *structs.ServiceIntentionsConfigEntry, error) {
+	idx, entry, err := configEntryWithOverridesTxn(tx, ws, structs.ServiceIntentions, name, overrides, entMeta)
+	if err != nil {
+		return 0, nil, err
+	} else if entry == nil {
+		return idx, nil, nil
+	}
+
+	ixn, ok := entry.(*structs.ServiceIntentionsConfigEntry)
+	if !ok {
+		return 0, nil, fmt.Errorf("invalid service config type %T", entry)
+	}
+	return idx, ixn, nil
 }
 
 func configEntryWithOverridesTxn(

@@ -100,7 +100,7 @@ const (
 	federationStateReplicationRoutineName = "federation state replication"
 	federationStateAntiEntropyRoutineName = "federation state anti-entropy"
 	federationStatePruningRoutineName     = "federation state pruning"
-	intentionReplicationRoutineName       = "intention replication"
+	intentionMigrationRoutineName         = "intention config entry migration"
 	secondaryCARootWatchRoutineName       = "secondary CA roots watch"
 	secondaryCertRenewWatchRoutineName    = "secondary cert renew watch"
 )
@@ -300,6 +300,12 @@ type Server struct {
 	// State for whether this datacenter is acting as a secondary CA.
 	actingSecondaryCA   bool
 	actingSecondaryLock sync.RWMutex
+
+	// dcSupportsIntentionsAsConfigEntries is used to determine whether we can
+	// migrate old intentions into service-intentions config entries. All
+	// servers in the local DC must be on a version of Consul supporting
+	// service-intentions before this will get enabled.
+	dcSupportsIntentionsAsConfigEntries int32
 
 	// Manager to handle starting/stopping go routines when establishing/revoking raft leadership
 	leaderRoutineManager *LeaderRoutineManager
@@ -1423,10 +1429,6 @@ func (s *Server) resetConsistentReadReady() {
 // Returns true if this server is ready to serve consistent reads
 func (s *Server) isReadyForConsistentReads() bool {
 	return atomic.LoadInt32(&s.readyForConsistentReads) == 1
-}
-
-func (s *Server) intentionReplicationEnabled() bool {
-	return s.config.ConnectEnabled && s.config.Datacenter != s.config.PrimaryDatacenter
 }
 
 // CreateACLToken will create an ACL token from the given template

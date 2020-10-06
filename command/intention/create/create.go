@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
@@ -111,6 +110,7 @@ func (c *cmd) Run(args []string) int {
 				// We set the ID of our intention so we overwrite it
 				ixn.ID = oldIxn.ID
 
+				//nolint:staticcheck
 				if _, err := client.Connect().IntentionUpdate(ixn, nil); err != nil {
 					c.UI.Error(fmt.Sprintf(
 						"Error replacing intention with source %q "+
@@ -126,6 +126,7 @@ func (c *cmd) Run(args []string) int {
 			}
 		}
 
+		//nolint:staticcheck
 		_, _, err := client.Connect().IntentionCreate(ixn, nil)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error creating intention %q: %s", ixn, err))
@@ -136,27 +137,6 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	return 0
-}
-
-// ParseIntentionTarget parses a target of the form <namespace>/<name> and returns
-// the two distinct parts. In some cases the namespace may be elided and this function
-// will return the empty string for the namespace then.
-func ParseIntentionTarget(input string) (name string, namespace string, err error) {
-	// Get the index to the '/'. If it doesn't exist, we have just a name
-	// so just set that and return.
-	idx := strings.IndexByte(input, '/')
-	if idx == -1 {
-		// let the agent do token based defaulting of the namespace
-		return input, "", nil
-	}
-
-	namespace = input[:idx]
-	name = input[idx+1:]
-	if strings.IndexByte(name, '/') != -1 {
-		return "", "", fmt.Errorf("target can contain at most one '/'")
-	}
-
-	return name, namespace, nil
 }
 
 // ixnsFromArgs returns the set of intentions to create based on the arguments
@@ -173,12 +153,12 @@ func (c *cmd) ixnsFromArgs(args []string) ([]*api.Intention, error) {
 		return nil, fmt.Errorf("Must specify two arguments: source and destination")
 	}
 
-	srcName, srcNamespace, err := ParseIntentionTarget(args[0])
+	srcName, srcNamespace, err := intention.ParseIntentionTarget(args[0])
 	if err != nil {
 		return nil, fmt.Errorf("Invalid intention source: %v", err)
 	}
 
-	dstName, dstNamespace, err := ParseIntentionTarget(args[1])
+	dstName, dstNamespace, err := intention.ParseIntentionTarget(args[1])
 	if err != nil {
 		return nil, fmt.Errorf("Invalid intention destination: %v", err)
 	}

@@ -293,9 +293,15 @@ func (c *FSM) applyIntentionOperation(buf []byte, index uint64) interface{} {
 		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
 	switch req.Op {
 	case structs.IntentionOpCreate, structs.IntentionOpUpdate:
-		return c.state.IntentionSet(index, req.Intention)
+		//nolint:staticcheck
+		return c.state.LegacyIntentionSet(index, req.Intention)
 	case structs.IntentionOpDelete:
-		return c.state.IntentionDelete(index, req.Intention.ID)
+		//nolint:staticcheck
+		return c.state.LegacyIntentionDelete(index, req.Intention.ID)
+	case structs.IntentionOpDeleteAll:
+		return c.state.LegacyIntentionDeleteAll(index)
+	case structs.IntentionOpUpsert:
+		fallthrough // unsupported
 	default:
 		c.logger.Warn("Invalid Intention operation", "operation", req.Op)
 		return fmt.Errorf("Invalid Intention operation '%s'", req.Op)

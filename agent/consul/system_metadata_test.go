@@ -14,7 +14,11 @@ func TestLeader_SystemMetadata_CRUD(t *testing.T) {
 	// doesn't have an exposed RPC. We're just testing the full round trip of
 	// raft+fsm For now,
 
-	dir1, srv := testServerWithConfig(t, nil)
+	dir1, srv := testServerWithConfig(t, func(c *Config) {
+		// We disable connect here so we skip inserting intention-migration
+		// related system metadata in the background.
+		c.ConnectEnabled = false
+	})
 	defer os.RemoveAll(dir1)
 	defer srv.Shutdown()
 	codec := rpcClient(t, srv)
@@ -30,9 +34,9 @@ func TestLeader_SystemMetadata_CRUD(t *testing.T) {
 	require.Len(t, entries, 0)
 
 	// Create 3
-	require.NoError(t, setSystemMetadataKey(srv, "key1", "val1"))
-	require.NoError(t, setSystemMetadataKey(srv, "key2", "val2"))
-	require.NoError(t, setSystemMetadataKey(srv, "key3", ""))
+	require.NoError(t, srv.setSystemMetadataKey("key1", "val1"))
+	require.NoError(t, srv.setSystemMetadataKey("key2", "val2"))
+	require.NoError(t, srv.setSystemMetadataKey("key3", ""))
 
 	mapify := func(entries []*structs.SystemMetadataEntry) map[string]string {
 		m := make(map[string]string)
@@ -53,8 +57,8 @@ func TestLeader_SystemMetadata_CRUD(t *testing.T) {
 	}, mapify(entries))
 
 	// Update one and delete one.
-	require.NoError(t, setSystemMetadataKey(srv, "key3", "val3"))
-	require.NoError(t, deleteSystemMetadataKey(srv, "key1"))
+	require.NoError(t, srv.setSystemMetadataKey("key3", "val3"))
+	require.NoError(t, srv.deleteSystemMetadataKey("key1"))
 
 	_, entries, err = state.SystemMetadataList(nil)
 	require.NoError(t, err)
@@ -64,45 +68,4 @@ func TestLeader_SystemMetadata_CRUD(t *testing.T) {
 		"key2": "val2",
 		"key3": "val3",
 	}, mapify(entries))
-}
-
-// Note when this behavior is actually used, consider promoting these 2
-// functions out of test code.
-
-func setSystemMetadataKey(s *Server, key, val string) error {
-	args := &structs.SystemMetadataRequest{
-		Op: structs.SystemMetadataUpsert,
-		Entry: &structs.SystemMetadataEntry{
-			Key: key, Value: val,
-		},
-	}
-
-	resp, err := s.raftApply(structs.SystemMetadataRequestType, args)
-	if err != nil {
-		return err
-	}
-	if respErr, ok := resp.(error); ok {
-		return respErr
-	}
-
-	return nil
-}
-
-func deleteSystemMetadataKey(s *Server, key string) error {
-	args := &structs.SystemMetadataRequest{
-		Op: structs.SystemMetadataDelete,
-		Entry: &structs.SystemMetadataEntry{
-			Key: key,
-		},
-	}
-
-	resp, err := s.raftApply(structs.SystemMetadataRequestType, args)
-	if err != nil {
-		return err
-	}
-	if respErr, ok := resp.(error); ok {
-		return respErr
-	}
-
-	return nil
 }

@@ -6,18 +6,19 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
 )
 
-func TestCommand_noTabs(t *testing.T) {
+func TestIntentionCheck_noTabs(t *testing.T) {
 	t.Parallel()
 	if strings.ContainsRune(New(nil).Help(), '\t') {
 		t.Fatal("help has tabs")
 	}
 }
 
-func TestCommand_Validation(t *testing.T) {
+func TestIntentionCheck_Validation(t *testing.T) {
 	t.Parallel()
 
 	ui := cli.NewMockUi()
@@ -64,7 +65,7 @@ func TestCommand_Validation(t *testing.T) {
 	}
 }
 
-func TestCommand(t *testing.T) {
+func TestIntentionCheck(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
@@ -72,8 +73,11 @@ func TestCommand(t *testing.T) {
 	defer a.Shutdown()
 	client := a.Client()
 
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
 	// Create the intention
 	{
+		//nolint:staticcheck
 		_, _, err := client.Connect().IntentionCreate(&api.Intention{
 			SourceName:      "web",
 			DestinationName: "db",

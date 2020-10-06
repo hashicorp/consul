@@ -5,283 +5,612 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/go-memdb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestStore_IntentionGet_none(t *testing.T) {
-	assert := assert.New(t)
-	s := testStateStore(t)
+func testBothIntentionFormats(t *testing.T, f func(t *testing.T, s *Store, legacy bool)) {
+	t.Helper()
 
-	// Querying with no results returns nil.
-	ws := memdb.NewWatchSet()
-	idx, res, err := s.IntentionGet(ws, testUUID())
-	assert.Equal(uint64(1), idx)
-	assert.Nil(res)
-	assert.Nil(err)
+	// Within the body of the callback, only use Legacy CRUD functions to edit
+	// data (pivoting on the legacy flag), and exclusively use the generic
+	// functions that flip-flop between tables to read it.
+
+	t.Run("legacy", func(t *testing.T) {
+		// NOTE: This one tests that the old state machine functions still do
+		// what we expect. No newly initiated user edits should go through
+		// these paths, just lingering raft log entries from before the upgrade
+		// to 1.9.0.
+		s := testStateStore(t)
+		f(t, s, true)
+	})
+
+	t.Run("config-entries", func(t *testing.T) {
+		s := testConfigStateStore(t)
+		f(t, s, false)
+	})
+}
+
+func TestStore_IntentionGet_none(t *testing.T) {
+	testBothIntentionFormats(t, func(t *testing.T, s *Store, legacy bool) {
+		assert := assert.New(t)
+
+		// Querying with no results returns nil.
+		ws := memdb.NewWatchSet()
+		idx, _, res, err := s.IntentionGet(ws, testUUID())
+		assert.Equal(uint64(1), idx)
+		assert.Nil(res)
+		assert.Nil(err)
+	})
 }
 
 func TestStore_IntentionSetGet_basic(t *testing.T) {
-	assert := assert.New(t)
-	s := testStateStore(t)
+	testBothIntentionFormats(t, func(t *testing.T, s *Store, legacy bool) {
+		lastIndex := uint64(1)
 
-	// Call Get to populate the watch set
-	ws := memdb.NewWatchSet()
-	_, _, err := s.IntentionGet(ws, testUUID())
-	assert.Nil(err)
+		// Call Get to populate the watch set
+		ws := memdb.NewWatchSet()
+		_, _, _, err := s.IntentionGet(ws, testUUID())
+		require.Nil(t, err)
 
-	// Build a valid intention
-	ixn := &structs.Intention{
-		ID:              testUUID(),
-		SourceNS:        "default",
-		SourceName:      "*",
-		DestinationNS:   "default",
-		DestinationName: "web",
-		Meta:            map[string]string{},
-	}
+		// Build a valid intention
+		var (
+			legacyIxn   *structs.Intention
+			configEntry *structs.ServiceIntentionsConfigEntry
 
-	// Inserting a with empty ID is disallowed.
-	assert.NoError(s.IntentionSet(1, ixn))
+			expected *structs.Intention
+		)
+		if legacy {
+			legacyIxn = &structs.Intention{
+				ID:              testUUID(),
+				SourceNS:        "default",
+				SourceName:      "*",
+				DestinationNS:   "default",
+				DestinationName: "web",
+				Meta:            map[string]string{},
+			}
 
-	// Make sure the index got updated.
-	assert.Equal(uint64(1), s.maxIndex(intentionsTableName))
-	assert.True(watchFired(ws), "watch fired")
+			// Inserting a with empty ID is disallowed.
+			lastIndex++
+			require.NoError(t, s.LegacyIntentionSet(lastIndex, legacyIxn))
 
-	// Read it back out and verify it.
-	expected := &structs.Intention{
-		ID:              ixn.ID,
-		SourceNS:        "default",
-		SourceName:      "*",
-		DestinationNS:   "default",
-		DestinationName: "web",
-		Meta:            map[string]string{},
-		RaftIndex: structs.RaftIndex{
-			CreateIndex: 1,
-			ModifyIndex: 1,
-		},
-	}
-	expected.UpdatePrecedence()
+			// Make sure the right index got updated.
+			require.Equal(t, lastIndex, s.maxIndex(intentionsTableName))
+			require.Equal(t, uint64(0), s.maxIndex(configTableName))
 
-	ws = memdb.NewWatchSet()
-	idx, actual, err := s.IntentionGet(ws, ixn.ID)
-	assert.NoError(err)
-	assert.Equal(expected.CreateIndex, idx)
-	assert.Equal(expected, actual)
+			expected = &structs.Intention{
+				ID:              legacyIxn.ID,
+				SourceNS:        "default",
+				SourceName:      "*",
+				DestinationNS:   "default",
+				DestinationName: "web",
+				Meta:            map[string]string{},
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: lastIndex,
+					ModifyIndex: lastIndex,
+				},
+			}
+			//nolint:staticcheck
+			expected.UpdatePrecedence()
+		} else {
+			srcID := testUUID()
+			configEntry = &structs.ServiceIntentionsConfigEntry{
+				Kind: structs.ServiceIntentions,
+				Name: "web",
+				Sources: []*structs.SourceIntention{
+					{
+						LegacyID:   srcID,
+						Name:       "*",
+						Action:     structs.IntentionActionAllow,
+						LegacyMeta: map[string]string{},
+					},
+				},
+			}
 
-	// Change a value and test updating
-	ixn.SourceNS = "foo"
-	assert.NoError(s.IntentionSet(2, ixn))
+			lastIndex++
+			require.NoError(t, configEntry.LegacyNormalize())
+			require.NoError(t, configEntry.LegacyValidate())
+			require.NoError(t, s.EnsureConfigEntry(lastIndex, configEntry.Clone(), nil))
 
-	// Change a value that isn't in the unique 4 tuple and check we don't
-	// incorrectly consider this a duplicate when updating.
-	ixn.Action = structs.IntentionActionDeny
-	assert.NoError(s.IntentionSet(2, ixn))
+			// Make sure the config entry index got updated instead of the old intentions one
+			require.Equal(t, lastIndex, s.maxIndex(configTableName))
+			require.Equal(t, uint64(0), s.maxIndex(intentionsTableName))
 
-	// Make sure the index got updated.
-	assert.Equal(uint64(2), s.maxIndex(intentionsTableName))
-	assert.True(watchFired(ws), "watch fired")
+			expected = &structs.Intention{
+				ID:              srcID,
+				SourceNS:        "default",
+				SourceName:      "*",
+				SourceType:      structs.IntentionSourceConsul,
+				DestinationNS:   "default",
+				DestinationName: "web",
+				Meta:            map[string]string{},
+				Action:          structs.IntentionActionAllow,
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: lastIndex,
+					ModifyIndex: lastIndex,
+				},
+				CreatedAt: *configEntry.Sources[0].LegacyCreateTime,
+				UpdatedAt: *configEntry.Sources[0].LegacyUpdateTime,
+			}
+			//nolint:staticcheck
+			expected.UpdatePrecedence()
+			//nolint:staticcheck
+			expected.SetHash()
+		}
+		require.True(t, watchFired(ws), "watch fired")
 
-	// Read it back and verify the data was updated
-	expected.SourceNS = ixn.SourceNS
-	expected.Action = structs.IntentionActionDeny
-	expected.ModifyIndex = 2
-	ws = memdb.NewWatchSet()
-	idx, actual, err = s.IntentionGet(ws, ixn.ID)
-	assert.NoError(err)
-	assert.Equal(expected.ModifyIndex, idx)
-	assert.Equal(expected, actual)
+		// Read it back out and verify it.
+		ws = memdb.NewWatchSet()
+		idx, _, actual, err := s.IntentionGet(ws, expected.ID)
+		require.NoError(t, err)
+		require.Equal(t, expected.CreateIndex, idx)
+		require.Equal(t, expected, actual)
 
-	// Attempt to insert another intention with duplicate 4-tuple
-	ixn = &structs.Intention{
-		ID:              testUUID(),
-		SourceNS:        "default",
-		SourceName:      "*",
-		DestinationNS:   "default",
-		DestinationName: "web",
-		Meta:            map[string]string{},
-	}
+		if legacy {
+			// Change a value and test updating
+			legacyIxn.SourceNS = "foo"
+			lastIndex++
+			require.NoError(t, s.LegacyIntentionSet(lastIndex, legacyIxn))
 
-	// Duplicate 4-tuple should cause an error
-	ws = memdb.NewWatchSet()
-	assert.Error(s.IntentionSet(3, ixn))
+			// Change a value that isn't in the unique 4 tuple and check we don't
+			// incorrectly consider this a duplicate when updating.
+			legacyIxn.Action = structs.IntentionActionDeny
+			lastIndex++
+			require.NoError(t, s.LegacyIntentionSet(lastIndex, legacyIxn))
 
-	// Make sure the index did NOT get updated.
-	assert.Equal(uint64(2), s.maxIndex(intentionsTableName))
-	assert.False(watchFired(ws), "watch not fired")
+			// Make sure the index got updated.
+			require.Equal(t, lastIndex, s.maxIndex(intentionsTableName))
+			require.Equal(t, uint64(0), s.maxIndex(configTableName))
+
+			expected.SourceNS = legacyIxn.SourceNS
+			expected.Action = structs.IntentionActionDeny
+			expected.ModifyIndex = lastIndex
+
+		} else {
+			// Change a value and test updating
+			configEntry.Sources[0].Description = "test-desc1"
+			lastIndex++
+			require.NoError(t, configEntry.LegacyNormalize())
+			require.NoError(t, configEntry.LegacyValidate())
+			require.NoError(t, s.EnsureConfigEntry(lastIndex, configEntry.Clone(), nil))
+
+			// Change a value that isn't in the unique 4 tuple and check we don't
+			// incorrectly consider this a duplicate when updating.
+			configEntry.Sources[0].Action = structs.IntentionActionDeny
+			lastIndex++
+			require.NoError(t, configEntry.LegacyNormalize())
+			require.NoError(t, configEntry.LegacyValidate())
+			require.NoError(t, s.EnsureConfigEntry(lastIndex, configEntry.Clone(), nil))
+
+			// Make sure the config entry index got updated instead of the old intentions one
+			require.Equal(t, lastIndex, s.maxIndex(configTableName))
+			require.Equal(t, uint64(0), s.maxIndex(intentionsTableName))
+
+			expected.Description = configEntry.Sources[0].Description
+			expected.Action = structs.IntentionActionDeny
+			expected.UpdatedAt = *configEntry.Sources[0].LegacyUpdateTime
+			expected.ModifyIndex = lastIndex
+			//nolint:staticcheck
+			expected.UpdatePrecedence()
+			//nolint:staticcheck
+			expected.SetHash()
+		}
+		require.True(t, watchFired(ws), "watch fired")
+
+		// Read it back and verify the data was updated
+		ws = memdb.NewWatchSet()
+		idx, _, actual, err = s.IntentionGet(ws, expected.ID)
+		require.NoError(t, err)
+		require.Equal(t, expected.ModifyIndex, idx)
+		require.Equal(t, expected, actual)
+
+		if legacy {
+			// Attempt to insert another intention with duplicate 4-tuple
+			legacyIxn = &structs.Intention{
+				ID:              testUUID(),
+				SourceNS:        "default",
+				SourceName:      "*",
+				DestinationNS:   "default",
+				DestinationName: "web",
+				Meta:            map[string]string{},
+			}
+
+			// Duplicate 4-tuple should cause an error
+			ws = memdb.NewWatchSet()
+			lastIndex++
+			require.Error(t, s.LegacyIntentionSet(lastIndex, legacyIxn))
+
+			// Make sure the index did NOT get updated.
+			require.Equal(t, lastIndex-1, s.maxIndex(intentionsTableName))
+			require.Equal(t, uint64(0), s.maxIndex(configTableName))
+			require.False(t, watchFired(ws), "watch not fired")
+		}
+	})
 }
 
-func TestStore_IntentionSet_emptyId(t *testing.T) {
-	assert := assert.New(t)
+func TestStore_LegacyIntentionSet_failsAfterUpgrade(t *testing.T) {
+	// note: special case test doesn't need variants
+	s := testConfigStateStore(t)
+
+	ixn := structs.Intention{
+		ID:              testUUID(),
+		SourceNS:        "default",
+		SourceName:      "*",
+		DestinationNS:   "default",
+		DestinationName: "web",
+		Action:          structs.IntentionActionAllow,
+		Meta:            map[string]string{},
+	}
+
+	err := s.LegacyIntentionSet(1, &ixn)
+	testutil.RequireErrorContains(t, err, ErrLegacyIntentionsAreDisabled.Error())
+}
+
+func TestStore_LegacyIntentionDelete_failsAfterUpgrade(t *testing.T) {
+	// note: special case test doesn't need variants
+	s := testConfigStateStore(t)
+
+	err := s.LegacyIntentionDelete(1, testUUID())
+	testutil.RequireErrorContains(t, err, ErrLegacyIntentionsAreDisabled.Error())
+}
+
+func TestStore_LegacyIntentionSet_emptyId(t *testing.T) {
+	// note: irrelevant test for config entries variant
 	s := testStateStore(t)
 
 	ws := memdb.NewWatchSet()
-	_, _, err := s.IntentionGet(ws, testUUID())
-	assert.NoError(err)
+	_, _, _, err := s.IntentionGet(ws, testUUID())
+	require.NoError(t, err)
 
 	// Inserting a with empty ID is disallowed.
-	err = s.IntentionSet(1, &structs.Intention{})
-	assert.Error(err)
-	assert.Contains(err.Error(), ErrMissingIntentionID.Error())
+	err = s.LegacyIntentionSet(1, &structs.Intention{})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), ErrMissingIntentionID.Error())
 
 	// Index is not updated if nothing is saved.
-	assert.Equal(s.maxIndex(intentionsTableName), uint64(0))
-	assert.False(watchFired(ws), "watch fired")
+	require.Equal(t, s.maxIndex(intentionsTableName), uint64(0))
+	require.Equal(t, uint64(0), s.maxIndex(configTableName))
+
+	require.False(t, watchFired(ws), "watch fired")
 }
 
 func TestStore_IntentionSet_updateCreatedAt(t *testing.T) {
-	assert := assert.New(t)
-	s := testStateStore(t)
+	testBothIntentionFormats(t, func(t *testing.T, s *Store, legacy bool) {
+		// Build a valid intention
+		var (
+			id         = testUUID()
+			createTime time.Time
+		)
 
-	// Build a valid intention
-	now := time.Now()
-	ixn := structs.Intention{
-		ID:        testUUID(),
-		CreatedAt: now,
-	}
+		if legacy {
+			ixn := structs.Intention{
+				ID:        id,
+				CreatedAt: time.Now().UTC(),
+			}
 
-	// Insert
-	assert.NoError(s.IntentionSet(1, &ixn))
+			// Insert
+			require.NoError(t, s.LegacyIntentionSet(1, &ixn))
 
-	// Change a value and test updating
-	ixnUpdate := ixn
-	ixnUpdate.CreatedAt = now.Add(10 * time.Second)
-	assert.NoError(s.IntentionSet(2, &ixnUpdate))
+			createTime = ixn.CreatedAt
 
-	// Read it back and verify
-	_, actual, err := s.IntentionGet(nil, ixn.ID)
-	assert.NoError(err)
-	assert.Equal(now, actual.CreatedAt)
+			// Change a value and test updating
+			ixnUpdate := ixn
+			ixnUpdate.CreatedAt = createTime.Add(10 * time.Second)
+			require.NoError(t, s.LegacyIntentionSet(2, &ixnUpdate))
+
+			id = ixn.ID
+
+		} else {
+			conf := &structs.ServiceIntentionsConfigEntry{
+				Kind: structs.ServiceIntentions,
+				Name: "web",
+				Sources: []*structs.SourceIntention{
+					{
+						LegacyID:   id,
+						Name:       "*",
+						Action:     structs.IntentionActionAllow,
+						LegacyMeta: map[string]string{},
+					},
+				},
+			}
+
+			require.NoError(t, conf.LegacyNormalize())
+			require.NoError(t, conf.LegacyValidate())
+			require.NoError(t, s.EnsureConfigEntry(1, conf.Clone(), nil))
+
+			createTime = *conf.Sources[0].LegacyCreateTime
+		}
+
+		// Read it back and verify
+		_, _, actual, err := s.IntentionGet(nil, id)
+		require.NoError(t, err)
+		require.NotNil(t, actual)
+		require.Equal(t, createTime, actual.CreatedAt)
+	})
 }
 
 func TestStore_IntentionSet_metaNil(t *testing.T) {
-	assert := assert.New(t)
-	s := testStateStore(t)
+	testBothIntentionFormats(t, func(t *testing.T, s *Store, legacy bool) {
+		id := testUUID()
+		if legacy {
+			// Build a valid intention
+			ixn := &structs.Intention{
+				ID: id,
+			}
 
-	// Build a valid intention
-	ixn := structs.Intention{
-		ID: testUUID(),
-	}
+			// Insert
+			require.NoError(t, s.LegacyIntentionSet(1, ixn))
+		} else {
+			// Build a valid intention
+			conf := &structs.ServiceIntentionsConfigEntry{
+				Kind: structs.ServiceIntentions,
+				Name: "web",
+				Sources: []*structs.SourceIntention{
+					{
+						LegacyID: id,
+						Name:     "*",
+						Action:   structs.IntentionActionAllow,
+					},
+				},
+			}
 
-	// Insert
-	assert.NoError(s.IntentionSet(1, &ixn))
+			// Insert
+			require.NoError(t, conf.LegacyNormalize())
+			require.NoError(t, conf.LegacyValidate())
+			require.NoError(t, s.EnsureConfigEntry(1, conf.Clone(), nil))
+		}
 
-	// Read it back and verify
-	_, actual, err := s.IntentionGet(nil, ixn.ID)
-	assert.NoError(err)
-	assert.NotNil(actual.Meta)
+		// Read it back and verify
+		_, _, actual, err := s.IntentionGet(nil, id)
+		require.NoError(t, err)
+		require.NotNil(t, actual.Meta)
+	})
 }
 
 func TestStore_IntentionSet_metaSet(t *testing.T) {
-	assert := assert.New(t)
-	s := testStateStore(t)
+	testBothIntentionFormats(t, func(t *testing.T, s *Store, legacy bool) {
+		var (
+			id         = testUUID()
+			expectMeta = map[string]string{"foo": "bar"}
+		)
+		if legacy {
+			// Build a valid intention
+			ixn := structs.Intention{
+				ID:   id,
+				Meta: expectMeta,
+			}
 
-	// Build a valid intention
-	ixn := structs.Intention{
-		ID:   testUUID(),
-		Meta: map[string]string{"foo": "bar"},
-	}
+			// Insert
+			require.NoError(t, s.LegacyIntentionSet(1, &ixn))
 
-	// Insert
-	assert.NoError(s.IntentionSet(1, &ixn))
+		} else {
+			// Build a valid intention
+			conf := &structs.ServiceIntentionsConfigEntry{
+				Kind: structs.ServiceIntentions,
+				Name: "web",
+				Sources: []*structs.SourceIntention{
+					{
+						LegacyID:   id,
+						Name:       "*",
+						Action:     structs.IntentionActionAllow,
+						LegacyMeta: expectMeta,
+					},
+				},
+			}
 
-	// Read it back and verify
-	_, actual, err := s.IntentionGet(nil, ixn.ID)
-	assert.NoError(err)
-	assert.Equal(ixn.Meta, actual.Meta)
+			// Insert
+			require.NoError(t, conf.LegacyNormalize())
+			require.NoError(t, conf.LegacyValidate())
+			require.NoError(t, s.EnsureConfigEntry(1, conf.Clone(), nil))
+		}
+
+		// Read it back and verify
+		_, _, actual, err := s.IntentionGet(nil, id)
+		require.NoError(t, err)
+		require.Equal(t, expectMeta, actual.Meta)
+	})
 }
 
 func TestStore_IntentionDelete(t *testing.T) {
-	assert := assert.New(t)
-	s := testStateStore(t)
+	testBothIntentionFormats(t, func(t *testing.T, s *Store, legacy bool) {
+		lastIndex := uint64(1)
 
-	// Call Get to populate the watch set
-	ws := memdb.NewWatchSet()
-	_, _, err := s.IntentionGet(ws, testUUID())
-	assert.NoError(err)
+		// Call Get to populate the watch set
+		ws := memdb.NewWatchSet()
+		_, _, _, err := s.IntentionGet(ws, testUUID())
+		require.NoError(t, err)
 
-	// Create
-	ixn := &structs.Intention{ID: testUUID()}
-	assert.NoError(s.IntentionSet(1, ixn))
+		id := testUUID()
+		// Create
+		if legacy {
+			ixn := &structs.Intention{
+				ID: id,
+			}
+			lastIndex++
+			require.NoError(t, s.LegacyIntentionSet(lastIndex, ixn))
 
-	// Make sure the index got updated.
-	assert.Equal(s.maxIndex(intentionsTableName), uint64(1))
-	assert.True(watchFired(ws), "watch fired")
+			// Make sure the index got updated.
+			require.Equal(t, s.maxIndex(intentionsTableName), lastIndex)
+			require.Equal(t, uint64(0), s.maxIndex(configTableName))
+		} else {
+			conf := &structs.ServiceIntentionsConfigEntry{
+				Kind: structs.ServiceIntentions,
+				Name: "web",
+				Sources: []*structs.SourceIntention{
+					{
+						LegacyID: id,
+						Name:     "*",
+						Action:   structs.IntentionActionAllow,
+					},
+				},
+			}
 
-	// Delete
-	assert.NoError(s.IntentionDelete(2, ixn.ID))
+			// Insert
+			require.NoError(t, conf.LegacyNormalize())
+			require.NoError(t, conf.LegacyValidate())
+			require.NoError(t, s.EnsureConfigEntry(1, conf.Clone(), nil))
 
-	// Make sure the index got updated.
-	assert.Equal(s.maxIndex(intentionsTableName), uint64(2))
-	assert.True(watchFired(ws), "watch fired")
+			// Make sure the index got updated.
+			require.Equal(t, s.maxIndex(configTableName), lastIndex)
+			require.Equal(t, uint64(0), s.maxIndex(intentionsTableName))
+		}
+		require.True(t, watchFired(ws), "watch fired")
 
-	// Sanity check to make sure it's not there.
-	idx, actual, err := s.IntentionGet(nil, ixn.ID)
-	assert.NoError(err)
-	assert.Equal(idx, uint64(2))
-	assert.Nil(actual)
+		// Sanity check to make sure it's there.
+		idx, _, actual, err := s.IntentionGet(nil, id)
+		require.NoError(t, err)
+		require.Equal(t, idx, lastIndex)
+		require.NotNil(t, actual)
+
+		// Delete
+		if legacy {
+			lastIndex++
+			require.NoError(t, s.LegacyIntentionDelete(lastIndex, id))
+
+			// Make sure the index got updated.
+			require.Equal(t, s.maxIndex(intentionsTableName), lastIndex)
+			require.Equal(t, uint64(0), s.maxIndex(configTableName))
+		} else {
+			lastIndex++
+			require.NoError(t, s.DeleteConfigEntry(lastIndex, structs.ServiceIntentions, "web", nil))
+
+			// Make sure the index got updated.
+			require.Equal(t, s.maxIndex(configTableName), lastIndex)
+			require.Equal(t, uint64(0), s.maxIndex(intentionsTableName))
+		}
+		require.True(t, watchFired(ws), "watch fired")
+
+		// Sanity check to make sure it's not there.
+		idx, _, actual, err = s.IntentionGet(nil, id)
+		require.NoError(t, err)
+		require.Equal(t, idx, lastIndex)
+		require.Nil(t, actual)
+	})
 }
 
 func TestStore_IntentionsList(t *testing.T) {
-	s := testStateStore(t)
-
-	entMeta := structs.WildcardEnterpriseMeta()
-
-	// Querying with no results returns nil.
-	ws := memdb.NewWatchSet()
-	idx, res, err := s.Intentions(ws, entMeta)
-	require.NoError(t, err)
-	require.Nil(t, res)
-	require.Equal(t, uint64(1), idx)
-
-	testIntention := func(srcNS, src, dstNS, dst string) *structs.Intention {
-		id := testUUID()
-		return &structs.Intention{
-			ID:              id,
-			SourceNS:        srcNS,
-			SourceName:      src,
-			DestinationNS:   dstNS,
-			DestinationName: dst,
-			Meta:            map[string]string{},
+	testBothIntentionFormats(t, func(t *testing.T, s *Store, legacy bool) {
+		lastIndex := uint64(0)
+		if legacy {
+			lastIndex = 1 // minor state machine implementation difference
 		}
-	}
 
-	cmpIntention := func(ixn *structs.Intention, id string, index uint64) *structs.Intention {
-		ixn.ID = id
-		ixn.CreateIndex = index
-		ixn.ModifyIndex = index
-		ixn.UpdatePrecedence() // to match what is returned...
-		return ixn
-	}
+		entMeta := structs.WildcardEnterpriseMeta()
 
-	// Create some intentions
-	ixns := structs.Intentions{
-		testIntention("default", "foo", "default", "bar"),
-		testIntention("default", "foo", "default", "*"),
-		testIntention("*", "*", "default", "*"),
-		testIntention("default", "*", "*", "*"),
-		testIntention("*", "*", "*", "*"),
-	}
+		// Querying with no results returns nil.
+		ws := memdb.NewWatchSet()
+		idx, res, fromConfig, err := s.Intentions(ws, entMeta)
+		require.NoError(t, err)
+		require.Equal(t, !legacy, fromConfig)
+		require.Nil(t, res)
+		require.Equal(t, lastIndex, idx)
 
-	// Create
-	for i, ixn := range ixns {
-		require.NoError(t, s.IntentionSet(uint64(1+i), ixn))
-	}
-	require.True(t, watchFired(ws), "watch fired")
+		testIntention := func(src, dst string) *structs.Intention {
+			return &structs.Intention{
+				ID:              testUUID(),
+				SourceNS:        "default",
+				SourceName:      src,
+				DestinationNS:   "default",
+				DestinationName: dst,
+				SourceType:      structs.IntentionSourceConsul,
+				Action:          structs.IntentionActionAllow,
+				Meta:            map[string]string{},
+			}
+		}
 
-	// Read it back and verify.
-	expected := structs.Intentions{
-		cmpIntention(testIntention("default", "foo", "default", "bar"), ixns[0].ID, 1),
-		cmpIntention(testIntention("default", "foo", "default", "*"), ixns[1].ID, 2),
-		cmpIntention(testIntention("*", "*", "default", "*"), ixns[2].ID, 3),
-		cmpIntention(testIntention("default", "*", "*", "*"), ixns[3].ID, 4),
-		cmpIntention(testIntention("*", "*", "*", "*"), ixns[4].ID, 5),
-	}
+		testConfigEntry := func(dst string, srcs ...string) *structs.ServiceIntentionsConfigEntry {
+			conf := &structs.ServiceIntentionsConfigEntry{
+				Kind: structs.ServiceIntentions,
+				Name: dst,
+			}
+			id := testUUID()
+			for _, src := range srcs {
+				conf.Sources = append(conf.Sources, &structs.SourceIntention{
+					LegacyID: id,
+					Name:     src,
+					Action:   structs.IntentionActionAllow,
+				})
+			}
+			return conf
+		}
 
-	idx, actual, err := s.Intentions(nil, entMeta)
-	require.NoError(t, err)
-	require.Equal(t, idx, uint64(5))
-	require.ElementsMatch(t, expected, actual)
+		cmpIntention := func(ixn *structs.Intention, id string) *structs.Intention {
+			ixn.ID = id
+			//nolint:staticcheck
+			ixn.UpdatePrecedence()
+			return ixn
+		}
+
+		clearIrrelevantFields := func(ixns []*structs.Intention) {
+			// Clear fields irrelevant for comparison.
+			for _, ixn := range ixns {
+				ixn.Hash = nil
+				ixn.CreateIndex = 0
+				ixn.ModifyIndex = 0
+				ixn.CreatedAt = time.Time{}
+				ixn.UpdatedAt = time.Time{}
+			}
+		}
+
+		var (
+			expectIDs []string
+		)
+
+		// Create some intentions
+		if legacy {
+			ixns := structs.Intentions{
+				testIntention("foo", "bar"),
+				testIntention("*", "bar"),
+				testIntention("foo", "*"),
+				testIntention("*", "*"),
+			}
+
+			for _, ixn := range ixns {
+				expectIDs = append(expectIDs, ixn.ID)
+				lastIndex++
+				require.NoError(t, s.LegacyIntentionSet(lastIndex, ixn))
+			}
+
+		} else {
+			confs := []*structs.ServiceIntentionsConfigEntry{
+				testConfigEntry("bar", "foo", "*"),
+				testConfigEntry("*", "foo", "*"),
+			}
+
+			for _, conf := range confs {
+				require.NoError(t, conf.LegacyNormalize())
+				require.NoError(t, conf.LegacyValidate())
+				lastIndex++
+				require.NoError(t, s.EnsureConfigEntry(lastIndex, conf, nil))
+			}
+
+			expectIDs = []string{
+				confs[0].Sources[0].LegacyID, // foo->bar
+				confs[0].Sources[1].LegacyID, // *->bar
+				confs[1].Sources[0].LegacyID, // foo->*
+				confs[1].Sources[1].LegacyID, // *->*
+			}
+		}
+		require.True(t, watchFired(ws), "watch fired")
+
+		// Read it back and verify.
+		expected := structs.Intentions{
+			cmpIntention(testIntention("foo", "bar"), expectIDs[0]),
+			cmpIntention(testIntention("*", "bar"), expectIDs[1]),
+			cmpIntention(testIntention("foo", "*"), expectIDs[2]),
+			cmpIntention(testIntention("*", "*"), expectIDs[3]),
+		}
+
+		idx, actual, fromConfig, err := s.Intentions(nil, entMeta)
+		require.NoError(t, err)
+		require.Equal(t, !legacy, fromConfig)
+		require.Equal(t, lastIndex, idx)
+
+		clearIrrelevantFields(actual)
+		require.Equal(t, expected, actual)
+	})
 }
 
 // Test the matrix of match logic.
@@ -298,73 +627,62 @@ func TestStore_IntentionMatch_table(t *testing.T) {
 
 	cases := []testCase{
 		{
-			"single exact namespace/name",
+			"single exact name",
 			[][]string{
-				{"foo", "*"},
-				{"foo", "bar"},
-				{"foo", "baz"}, // shouldn't match
-				{"bar", "bar"}, // shouldn't match
-				{"bar", "*"},   // shouldn't match
-				{"*", "*"},
+				{"bar", "example"},
+				{"baz", "example"}, // shouldn't match
+				{"*", "example"},
 			},
 			[][]string{
-				{"foo", "bar"},
+				{"bar"},
 			},
 			[][][]string{
 				{
-					{"foo", "bar"},
-					{"foo", "*"},
-					{"*", "*"},
+					{"bar", "example"},
+					{"*", "example"},
+				},
+			},
+		},
+		{
+			"multiple exact name",
+			[][]string{
+				{"bar", "example"},
+				{"baz", "example"}, // shouldn't match
+				{"*", "example"},
+			},
+			[][]string{
+				{"bar"},
+				{"baz"},
+			},
+			[][][]string{
+				{
+					{"bar", "example"},
+					{"*", "example"},
+				},
+				{
+					{"baz", "example"},
+					{"*", "example"},
 				},
 			},
 		},
 
 		{
-			"multiple exact namespace/name",
+			"single exact name with duplicate destinations",
 			[][]string{
-				{"foo", "*"},
-				{"foo", "bar"},
-				{"foo", "baz"}, // shouldn't match
-				{"bar", "bar"},
-				{"bar", "*"},
-			},
-			[][]string{
-				{"foo", "bar"},
-				{"bar", "bar"},
-			},
-			[][][]string{
-				{
-					{"foo", "bar"},
-					{"foo", "*"},
-				},
-				{
-					{"bar", "bar"},
-					{"bar", "*"},
-				},
-			},
-		},
-
-		{
-			"single exact namespace/name with duplicate destinations",
-			[][]string{
-				// 4-tuple specifies src and destination to test duplicate destinations
+				// 2-tuple specifies src and destination to test duplicate destinations
 				// with different sources. We flip them around to test in both
 				// directions. The first pair are the ones searched on in both cases so
 				// the duplicates need to be there.
-				{"foo", "bar", "foo", "*"},
-				{"foo", "bar", "bar", "*"},
-				{"*", "*", "*", "*"},
+				{"bar", "*"},
+				{"*", "*"},
 			},
 			[][]string{
-				{"foo", "bar"},
+				{"bar"},
 			},
 			[][][]string{
 				{
-					// Note the first two have the same precedence so we rely on arbitrary
-					// lexicographical tie-break behavior.
-					{"foo", "bar", "bar", "*"},
-					{"foo", "bar", "foo", "*"},
-					{"*", "*", "*", "*"},
+					{"bar", "*"},
+					{"*", "*"},
 				},
 			},
 		},
@@ -373,233 +691,301 @@ func TestStore_IntentionMatch_table(t *testing.T) {
 	// testRunner implements the test for a single case, but can be
 	// parameterized to run for both source and destination so we can
 	// test both cases.
-	testRunner := func(t *testing.T, tc testCase, typ structs.IntentionMatchType) {
+	testRunner := func(t *testing.T, s *Store, legacy bool, tc testCase, typ structs.IntentionMatchType) {
+		lastIndex := uint64(0)
+		if legacy {
+			lastIndex = 1 // minor state machine implementation difference
+		}
+
 		// Insert the set
-		assert := assert.New(t)
-		s := testStateStore(t)
-		var idx uint64 = 1
+		var ixns []*structs.Intention
 		for _, v := range tc.Insert {
-			ixn := &structs.Intention{ID: testUUID()}
+			if len(v) != 2 {
+				panic("invalid input")
+			}
+			ixn := &structs.Intention{
+				ID:     testUUID(),
+				Action: structs.IntentionActionAllow,
+			}
 			switch typ {
 			case structs.IntentionMatchDestination:
-				ixn.DestinationNS = v[0]
-				ixn.DestinationName = v[1]
-				if len(v) == 4 {
-					ixn.SourceNS = v[2]
-					ixn.SourceName = v[3]
-				}
-			case structs.IntentionMatchSource:
-				ixn.SourceNS = v[0]
+				ixn.DestinationNS = "default"
+				ixn.DestinationName = v[0]
+				ixn.SourceNS = "default"
 				ixn.SourceName = v[1]
-				if len(v) == 4 {
-					ixn.DestinationNS = v[2]
-					ixn.DestinationName = v[3]
-				}
+			case structs.IntentionMatchSource:
+				ixn.SourceNS = "default"
+				ixn.SourceName = v[0]
+				ixn.DestinationNS = "default"
+				ixn.DestinationName = v[1]
+			default:
+				panic("unexpected")
 			}
+			ixns = append(ixns, ixn)
+		}
 
-			assert.NoError(s.IntentionSet(idx, ixn))
-
-			idx++
+		if legacy {
+			for _, ixn := range ixns {
+				lastIndex++
+				require.NoError(t, s.LegacyIntentionSet(lastIndex, ixn))
+			}
+		} else {
+			entries := structs.MigrateIntentions(ixns)
+			for _, conf := range entries {
+				require.NoError(t, conf.LegacyNormalize())
+				require.NoError(t, conf.LegacyValidate())
+				lastIndex++
+				require.NoError(t, s.EnsureConfigEntry(lastIndex, conf, &conf.EnterpriseMeta))
+			}
 		}
 
 		// Build the arguments
 		args := &structs.IntentionQueryMatch{Type: typ}
 		for _, q := range tc.Query {
+			if len(q) != 1 {
+				panic("wrong length")
+			}
 			args.Entries = append(args.Entries, structs.IntentionMatchEntry{
-				Namespace: q[0],
-				Name:      q[1],
+				Namespace: "default",
+				Name:      q[0],
 			})
 		}
 
 		// Match
 		_, matches, err := s.IntentionMatch(nil, args)
-		assert.NoError(err)
+		require.NoError(t, err)
 
 		// Should have equal lengths
 		require.Len(t, matches, len(tc.Expected))
 
 		// Verify matches
 		for i, expected := range tc.Expected {
+			for _, exp := range expected {
+				if len(exp) != 2 {
+					panic("invalid input")
+				}
+			}
 			var actual [][]string
 			for _, ixn := range matches[i] {
 				switch typ {
 				case structs.IntentionMatchDestination:
-					if len(expected) > 1 && len(expected[0]) == 4 {
-						actual = append(actual, []string{
-							ixn.DestinationNS,
-							ixn.DestinationName,
-							ixn.SourceNS,
-							ixn.SourceName,
-						})
-					} else {
-						actual = append(actual, []string{ixn.DestinationNS, ixn.DestinationName})
-					}
+					actual = append(actual, []string{
+						ixn.DestinationName,
+						ixn.SourceName,
+					})
 				case structs.IntentionMatchSource:
-					if len(expected) > 1 && len(expected[0]) == 4 {
-						actual = append(actual, []string{
-							ixn.SourceNS,
-							ixn.SourceName,
-							ixn.DestinationNS,
-							ixn.DestinationName,
-						})
-					} else {
-						actual = append(actual, []string{ixn.SourceNS, ixn.SourceName})
-					}
+					actual = append(actual, []string{
+						ixn.SourceName,
+						ixn.DestinationName,
+					})
+				default:
+					panic("unexpected")
 				}
 			}
 
-			assert.Equal(expected, actual)
+			require.Equal(t, expected, actual)
 		}
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.Name+" (destination)", func(t *testing.T) {
-			testRunner(t, tc, structs.IntentionMatchDestination)
+			testBothIntentionFormats(t, func(t *testing.T, s *Store, legacy bool) {
+				testRunner(t, s, legacy, tc, structs.IntentionMatchDestination)
+			})
 		})
 
 		t.Run(tc.Name+" (source)", func(t *testing.T) {
-			testRunner(t, tc, structs.IntentionMatchSource)
+			testBothIntentionFormats(t, func(t *testing.T, s *Store, legacy bool) {
+				testRunner(t, s, legacy, tc, structs.IntentionMatchSource)
+			})
 		})
 	}
 }
 
-// Equivalent to TestStore_IntentionMatch_table but for IntentionMatchOne which matches a single service
+// Equivalent to TestStore_IntentionMatch_table but for IntentionMatchOne which
+// matches a single service
 func TestStore_IntentionMatchOne_table(t *testing.T) {
 	type testCase struct {
 		Name     string
-		Insert   [][]string // List of intentions to insert
-		Query    []string   // List of intentions to match
-		Expected [][]string // List of matches, where each match is a list of intentions
+		Insert   [][]string   // List of intentions to insert
+		Query    []string     // List of intentions to match
+		Expected [][][]string // List of matches, where each match is a list of intentions
 	}
 
 	cases := []testCase{
 		{
-			"single exact namespace/name",
+			"stress test the intention-source index on config entries",
 			[][]string{
-				{"foo", "*"},
 				{"foo", "bar"},
-				{"foo", "baz"}, // shouldn't match
-				{"bar", "bar"}, // shouldn't match
-				{"bar", "*"},   // shouldn't match
-				{"*", "*"},
+				{"foo", "baz"},
+				{"foo", "zab"},
+				{"oof", "bar"},
+				{"oof", "baz"},
+				{"oof", "zab"},
 			},
 			[]string{
-				"foo", "bar",
+				"foo",
+				"oof",
 			},
-			[][]string{
-				{"foo", "bar"},
-				{"foo", "*"},
-				{"*", "*"},
+			[][][]string{
+				{
+					{"foo", "bar"},
+					{"foo", "baz"},
+					{"foo", "zab"},
+				},
+				{
+					{"oof", "bar"},
+					{"oof", "baz"},
+					{"oof", "zab"},
+				},
 			},
 		},
 		{
-			"single exact namespace/name with duplicate destinations",
+			"single exact name",
 			[][]string{
-				// 4-tuple specifies src and destination to test duplicate destinations
+				{"bar", "example"},
+				{"baz", "example"}, // shouldn't match
+				{"*", "example"},
+			},
+			[]string{
+				"bar",
+			},
+			[][][]string{
+				{
+					{"bar", "example"},
+					{"*", "example"},
+				},
+			},
+		},
+		{
+			"single exact name with duplicate destinations",
+			[][]string{
+				// 2-tuple specifies src and destination to test duplicate destinations
 				// with different sources. We flip them around to test in both
 				// directions. The first pair are the ones searched on in both cases so
 				// the duplicates need to be there.
-				{"foo", "bar", "foo", "*"},
-				{"foo", "bar", "bar", "*"},
-				{"*", "*", "*", "*"},
+				{"bar", "*"},
+				{"*", "*"},
 			},
 			[]string{
-				"foo", "bar",
+				"bar",
 			},
-			[][]string{
-				// Note the first two have the same precedence so we rely on arbitrary
-				// lexicographical tie-break behavior.
-				{"foo", "bar", "bar", "*"},
-				{"foo", "bar", "foo", "*"},
-				{"*", "*", "*", "*"},
+			[][][]string{
+				{
+					{"bar", "*"},
+					{"*", "*"},
+				},
 			},
 		},
 	}
 
-	testRunner := func(t *testing.T, tc testCase, typ structs.IntentionMatchType) {
+	testRunner := func(t *testing.T, s *Store, legacy bool, tc testCase, typ structs.IntentionMatchType) {
+		lastIndex := uint64(0)
+		if legacy {
+			lastIndex = 1 // minor state machine implementation difference
+		}
+
 		// Insert the set
-		assert := assert.New(t)
-		s := testStateStore(t)
-		var idx uint64 = 1
+		var ixns []*structs.Intention
 		for _, v := range tc.Insert {
-			ixn := &structs.Intention{ID: testUUID()}
+			if len(v) != 2 {
+				panic("invalid input")
+			}
+			ixn := &structs.Intention{
+				ID:     testUUID(),
+				Action: structs.IntentionActionAllow,
+			}
 			switch typ {
-			case structs.IntentionMatchDestination:
-				ixn.DestinationNS = v[0]
+			case structs.IntentionMatchSource:
+				ixn.SourceNS = "default"
+				ixn.SourceName = v[0]
+				ixn.DestinationNS = "default"
 				ixn.DestinationName = v[1]
-				if len(v) == 4 {
-					ixn.SourceNS = v[2]
-					ixn.SourceName = v[3]
-				}
-			case structs.IntentionMatchSource:
-				ixn.SourceNS = v[0]
-				ixn.SourceName = v[1]
-				if len(v) == 4 {
-					ixn.DestinationNS = v[2]
-					ixn.DestinationName = v[3]
-				}
-			}
-
-			assert.NoError(s.IntentionSet(idx, ixn))
-
-			idx++
-		}
-
-		// Build the arguments and match
-		entry := structs.IntentionMatchEntry{
-			Namespace: tc.Query[0],
-			Name:      tc.Query[1],
-		}
-		_, matches, err := s.IntentionMatchOne(nil, entry, typ)
-		assert.NoError(err)
-
-		// Should have equal lengths
-		require.Len(t, matches, len(tc.Expected))
-
-		// Verify matches
-		var actual [][]string
-		for _, ixn := range matches {
-			switch typ {
 			case structs.IntentionMatchDestination:
-				if len(tc.Expected) > 1 && len(tc.Expected[0]) == 4 {
-					actual = append(actual, []string{
-						ixn.DestinationNS,
-						ixn.DestinationName,
-						ixn.SourceNS,
-						ixn.SourceName,
-					})
-				} else {
-					actual = append(actual, []string{ixn.DestinationNS, ixn.DestinationName})
-				}
-			case structs.IntentionMatchSource:
-				if len(tc.Expected) > 1 && len(tc.Expected[0]) == 4 {
-					actual = append(actual, []string{
-						ixn.SourceNS,
-						ixn.SourceName,
-						ixn.DestinationNS,
-						ixn.DestinationName,
-					})
-				} else {
-					actual = append(actual, []string{ixn.SourceNS, ixn.SourceName})
-				}
+				ixn.DestinationNS = "default"
+				ixn.DestinationName = v[0]
+				ixn.SourceNS = "default"
+				ixn.SourceName = v[1]
+			default:
+				panic("unexpected")
+			}
+			ixns = append(ixns, ixn)
+		}
+
+		if legacy {
+			for _, ixn := range ixns {
+				lastIndex++
+				require.NoError(t, s.LegacyIntentionSet(lastIndex, ixn))
+			}
+		} else {
+			entries := structs.MigrateIntentions(ixns)
+			for _, conf := range entries {
+				require.NoError(t, conf.LegacyNormalize())
+				require.NoError(t, conf.LegacyValidate())
+				lastIndex++
+				require.NoError(t, s.EnsureConfigEntry(lastIndex, conf, &conf.EnterpriseMeta))
 			}
 		}
-		assert.Equal(tc.Expected, actual)
+
+		if len(tc.Expected) != len(tc.Query) {
+			panic("invalid input")
+		}
+
+		for i, query := range tc.Query {
+			expected := tc.Expected[i]
+			for _, exp := range expected {
+				if len(exp) != 2 {
+					panic("invalid input")
+				}
+			}
+
+			t.Run("query: "+query, func(t *testing.T) {
+				// Build the arguments and match
+				entry := structs.IntentionMatchEntry{
+					Namespace: "default",
+					Name:      query,
+				}
+				_, matches, err := s.IntentionMatchOne(nil, entry, typ)
+				require.NoError(t, err)
+
+				// Verify matches
+				var actual [][]string
+				for _, ixn := range matches {
+					switch typ {
+					case structs.IntentionMatchDestination:
+						actual = append(actual, []string{
+							ixn.DestinationName,
+							ixn.SourceName,
+						})
+					case structs.IntentionMatchSource:
+						actual = append(actual, []string{
+							ixn.SourceName,
+							ixn.DestinationName,
+						})
+					}
+				}
+				require.Equal(t, expected, actual)
+			})
+		}
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.Name+" (destination)", func(t *testing.T) {
-			testRunner(t, tc, structs.IntentionMatchDestination)
+			testBothIntentionFormats(t, func(t *testing.T, s *Store, legacy bool) {
+				testRunner(t, s, legacy, tc, structs.IntentionMatchDestination)
+			})
 		})
 
 		t.Run(tc.Name+" (source)", func(t *testing.T) {
-			testRunner(t, tc, structs.IntentionMatchSource)
+			testBothIntentionFormats(t, func(t *testing.T, s *Store, legacy bool) {
+				testRunner(t, s, legacy, tc, structs.IntentionMatchSource)
+			})
 		})
 	}
 }
 
-func TestStore_Intention_Snapshot_Restore(t *testing.T) {
-	assert := assert.New(t)
+func TestStore_LegacyIntention_Snapshot_Restore(t *testing.T) {
+	// note: irrelevant test for config entries variant
 	s := testStateStore(t)
 
 	// Create some intentions.
@@ -624,7 +1010,7 @@ func TestStore_Intention_Snapshot_Restore(t *testing.T) {
 
 	// Now create
 	for i, ixn := range ixns {
-		assert.NoError(s.IntentionSet(uint64(4+i), ixn))
+		require.NoError(t, s.LegacyIntentionSet(uint64(4+i), ixn))
 	}
 
 	// Snapshot the queries.
@@ -632,10 +1018,10 @@ func TestStore_Intention_Snapshot_Restore(t *testing.T) {
 	defer snap.Close()
 
 	// Alter the real state store.
-	assert.NoError(s.IntentionDelete(7, ixns[0].ID))
+	require.NoError(t, s.LegacyIntentionDelete(7, ixns[0].ID))
 
 	// Verify the snapshot.
-	assert.Equal(snap.LastIndex(), uint64(6))
+	require.Equal(t, snap.LastIndex(), uint64(6))
 
 	// Expect them sorted in insertion order
 	expected := structs.Intentions{
@@ -668,18 +1054,19 @@ func TestStore_Intention_Snapshot_Restore(t *testing.T) {
 		},
 	}
 	for i := range expected {
+		//nolint:staticcheck
 		expected[i].UpdatePrecedence() // to match what is returned...
 	}
-	dump, err := snap.Intentions()
-	assert.NoError(err)
-	assert.Equal(expected, dump)
+	dump, err := snap.LegacyIntentions()
+	require.NoError(t, err)
+	require.Equal(t, expected, dump)
 
 	// Restore the values into a new state store.
 	func() {
 		s := testStateStore(t)
 		restore := s.Restore()
 		for _, ixn := range dump {
-			assert.NoError(restore.Intention(ixn))
+			require.NoError(t, restore.LegacyIntention(ixn))
 		}
 		restore.Commit()
 
@@ -688,9 +1075,23 @@ func TestStore_Intention_Snapshot_Restore(t *testing.T) {
 		// to rearrange the expected slice some.
 		expected[0], expected[1], expected[2] = expected[1], expected[2], expected[0]
 		entMeta := structs.WildcardEnterpriseMeta()
-		idx, actual, err := s.Intentions(nil, entMeta)
-		assert.NoError(err)
-		assert.Equal(idx, uint64(6))
-		assert.Equal(expected, actual)
+		idx, actual, fromConfig, err := s.Intentions(nil, entMeta)
+		require.NoError(t, err)
+		require.Equal(t, idx, uint64(6))
+		require.False(t, fromConfig)
+		require.Equal(t, expected, actual)
 	}()
+}
+
+func disableLegacyIntentions(s *Store) error {
+	return s.SystemMetadataSet(1, &structs.SystemMetadataEntry{
+		Key:   structs.SystemMetadataIntentionFormatKey,
+		Value: structs.SystemMetadataIntentionFormatConfigValue,
+	})
+}
+
+func testConfigStateStore(t *testing.T) *Store {
+	s := testStateStore(t)
+	disableLegacyIntentions(s)
+	return s
 }

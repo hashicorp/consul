@@ -3,42 +3,18 @@
 package consul
 
 import (
-	"context"
-	"fmt"
 	"strings"
-	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-const intentionUpgradeCleanupRoutineName = "intention cleanup"
-
-func (s *Server) startConnectLeaderEnterprise() {
-	if s.config.PrimaryDatacenter != s.config.Datacenter {
-		// intention cleanup should only run in the primary
-		return
-	}
-	s.leaderRoutineManager.Start(intentionUpgradeCleanupRoutineName, s.runIntentionUpgradeCleanup)
-}
-
-func (s *Server) stopConnectLeaderEnterprise() {
-	// will be a no-op when not started
-	s.leaderRoutineManager.Stop(intentionUpgradeCleanupRoutineName)
-}
-
-func (s *Server) runIntentionUpgradeCleanup(ctx context.Context) error {
-	// TODO(rb): handle retry?
-
+func migrateIntentionsToConfigEntries(ixns structs.Intentions) []*structs.ServiceIntentionsConfigEntry {
 	// Remove any intention in OSS that happened to have used a non-default
 	// namespace.
 	//
 	// The one exception is that if we find wildcards namespaces we "upgrade"
 	// them to "default" if there isn't already an existing intention.
-	_, ixns, err := s.fsm.State().Intentions(nil, structs.WildcardEnterpriseMeta())
-	if err != nil {
-		return fmt.Errorf("failed to list intentions: %v", err)
-	}
-
+	//
 	// default/<foo> => default/<foo> || OK
 	// default/*     => default/<foo> || OK
 	// */*           => default/<foo> || becomes: default/*     => default/<foo>
@@ -57,7 +33,7 @@ func (s *Server) runIntentionUpgradeCleanup(ctx context.Context) error {
 	var (
 		retained    = make(map[intentionName]struct{})
 		tryUpgrades = make(map[intentionName]*structs.Intention)
-		removeIDs   []string
+		output      structs.Intentions
 	)
 	for _, ixn := range ixns {
 		srcNS := strings.ToLower(ixn.SourceNS)
@@ -75,6 +51,7 @@ func (s *Server) runIntentionUpgradeCleanup(ctx context.Context) error {
 				dstNS, ixn.DestinationName,
 			}
 			retained[name] = struct{}{}
+			output = append(output, ixn)
 			continue // a-ok for OSS
 		}
 
@@ -88,54 +65,22 @@ func (s *Server) runIntentionUpgradeCleanup(ctx context.Context) error {
 				updated.DestinationNS = structs.IntentionDefaultNamespace
 			}
 
-			// Run parts of the checks in Intention.prepareApplyUpdate.
-
-			// We always update the updatedat field.
-			updated.UpdatedAt = time.Now().UTC()
-
-			// Set the precedence
-			updated.UpdatePrecedence()
-
-			// make sure we set the hash prior to raft application
-			updated.SetHash()
-
 			name := intentionName{
 				updated.SourceNS, updated.SourceName,
 				updated.DestinationNS, updated.DestinationName,
 			}
 			tryUpgrades[name] = updated
-		} else {
-			removeIDs = append(removeIDs, ixn.ID)
 		}
 	}
 
 	for name, updated := range tryUpgrades {
-		if _, collision := retained[name]; collision {
-			// The update we wanted to do would collide with an existing intention
-			// so delete our original wildcard intention instead.
-			removeIDs = append(removeIDs, updated.ID)
-		} else {
-			req := structs.IntentionRequest{
-				Op:        structs.IntentionOpUpdate,
-				Intention: updated,
-			}
-			if _, err := s.raftApply(structs.IntentionRequestType, &req); err != nil {
-				return fmt.Errorf("failed to remove wildcard namespaces from intention %q: %v", updated.ID, err)
-			}
+		// Check to see if the update we wanted to do would collide with an
+		// existing intention. If so, we delete our original wildcard intention
+		// via simply omitting it from migration.
+		if _, collision := retained[name]; !collision {
+			output = append(output, updated)
 		}
 	}
 
-	for _, id := range removeIDs {
-		req := structs.IntentionRequest{
-			Op: structs.IntentionOpDelete,
-			Intention: &structs.Intention{
-				ID: id,
-			},
-		}
-		if _, err := s.raftApply(structs.IntentionRequestType, &req); err != nil {
-			return fmt.Errorf("failed to remove intention with invalid namespace %q: %v", id, err)
-		}
-	}
-
-	return nil // transition complete
+	return structs.MigrateIntentions(output)
 }

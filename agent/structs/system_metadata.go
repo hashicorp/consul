@@ -24,6 +24,12 @@ type SystemMetadataRequest struct {
 	WriteRequest
 }
 
+const (
+	SystemMetadataIntentionFormatKey         = "intention-format"
+	SystemMetadataIntentionFormatConfigValue = "config-entry"
+	SystemMetadataIntentionFormatLegacyValue = "legacy"
+)
+
 type SystemMetadataEntry struct {
 	Key   string
 	Value string `json:",omitempty"`

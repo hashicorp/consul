@@ -3,63 +3,20 @@
 package consul
 
 import (
-	"context"
-	"os"
+	"sort"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
-	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/stretchr/testify/require"
 )
 
-func TestLeader_OSS_IntentionUpgradeCleanup(t *testing.T) {
-	t.Parallel()
-
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.Datacenter = "dc1"
-		c.ACLDatacenter = "dc1"
-		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
-		// set the build to ensure all the version checks pass and enable all the connect features that operate cross-dc
-		c.Build = "1.6.0"
-	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	codec := rpcClient(t, s1)
-	defer codec.Close()
-
-	waitForLeaderEstablishment(t, s1)
-
-	s1.tokens.UpdateAgentToken("root", tokenStore.TokenSourceConfig)
-
-	lastIndex := uint64(0)
-	nextIndex := func() uint64 {
-		lastIndex++
-		return lastIndex
-	}
-
-	wildEntMeta := structs.WildcardEnterpriseMeta()
-
-	resetIntentions := func(t *testing.T) {
+func TestMigrateIntentionsToConfigEntries(t *testing.T) {
+	compare := func(t *testing.T, got structs.Intentions, expect [][]string) {
 		t.Helper()
-		_, ixns, err := s1.fsm.State().Intentions(nil, wildEntMeta)
-		require.NoError(t, err)
-
-		for _, ixn := range ixns {
-			require.NoError(t, s1.fsm.State().IntentionDelete(nextIndex(), ixn.ID))
-		}
-	}
-
-	compare := func(t *testing.T, expect [][]string) {
-		t.Helper()
-
-		_, ixns, err := s1.fsm.State().Intentions(nil, wildEntMeta)
-		require.NoError(t, err)
 
 		var actual [][]string
-		for _, ixn := range ixns {
+		for _, ixn := range got {
 			actual = append(actual, []string{
 				ixn.SourceNS,
 				ixn.SourceName,
@@ -151,9 +108,9 @@ func TestLeader_OSS_IntentionUpgradeCleanup(t *testing.T) {
 	for name, tc := range cases {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
-			resetIntentions(t)
 
 			// Do something super evil and directly reach into the FSM to seed it with "bad" data.
+			var ixns structs.Intentions
 			for _, elem := range tc.insert {
 				require.Len(t, elem, 4)
 				ixn := structs.TestIntention(t)
@@ -164,17 +121,23 @@ func TestLeader_OSS_IntentionUpgradeCleanup(t *testing.T) {
 				ixn.DestinationName = elem[3]
 				ixn.CreatedAt = time.Now().UTC()
 				ixn.UpdatedAt = ixn.CreatedAt
-				require.NoError(t, s1.fsm.State().IntentionSet(nextIndex(), ixn))
+
+				ixns = append(ixns, ixn)
 			}
 
 			// Sleep a bit so that the UpdatedAt field will definitely be different
 			time.Sleep(1 * time.Millisecond)
 
-			// TODO: figure out how to test this properly during leader startup
+			got := migrateIntentionsToConfigEntries(ixns)
 
-			require.NoError(t, s1.runIntentionUpgradeCleanup(context.Background()))
+			// Convert them back to the line-item version.
+			var gotIxns structs.Intentions
+			for _, entry := range got {
+				gotIxns = append(gotIxns, entry.ToIntentions()...)
+			}
+			sort.Sort(structs.IntentionPrecedenceSorter(gotIxns))
 
-			compare(t, tc.expect)
+			compare(t, gotIxns, tc.expect)
 		})
 	}
 }

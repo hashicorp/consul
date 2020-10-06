@@ -5,13 +5,14 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/sdk/testutil"
 	memdb "github.com/hashicorp/go-memdb"
 	"github.com/stretchr/testify/require"
 )
 
 func TestStore_ConfigEntry(t *testing.T) {
 	require := require.New(t)
-	s := testStateStore(t)
+	s := testConfigStateStore(t)
 
 	expected := &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
@@ -75,7 +76,7 @@ func TestStore_ConfigEntry(t *testing.T) {
 
 func TestStore_ConfigEntryCAS(t *testing.T) {
 	require := require.New(t)
-	s := testStateStore(t)
+	s := testConfigStateStore(t)
 
 	expected := &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
@@ -123,9 +124,105 @@ func TestStore_ConfigEntryCAS(t *testing.T) {
 	require.Equal(updated, config)
 }
 
+func TestStore_ConfigEntry_UpdateOver(t *testing.T) {
+	// This test uses ServiceIntentions because they are the only
+	// kind that implements UpdateOver() at this time.
+
+	s := testConfigStateStore(t)
+
+	var (
+		idA = testUUID()
+		idB = testUUID()
+
+		loc   = time.FixedZone("UTC-8", -8*60*60)
+		timeA = time.Date(1955, 11, 5, 6, 15, 0, 0, loc)
+		timeB = time.Date(1985, 10, 26, 1, 35, 0, 0, loc)
+	)
+	require.NotEqual(t, idA, idB)
+
+	initial := &structs.ServiceIntentionsConfigEntry{
+		Kind: structs.ServiceIntentions,
+		Name: "api",
+		Sources: []*structs.SourceIntention{
+			{
+				LegacyID:         idA,
+				Name:             "web",
+				Action:           structs.IntentionActionAllow,
+				LegacyCreateTime: &timeA,
+				LegacyUpdateTime: &timeA,
+			},
+		},
+	}
+
+	// Create
+	nextIndex := uint64(1)
+	require.NoError(t, s.EnsureConfigEntry(nextIndex, initial.Clone(), nil))
+
+	idx, raw, err := s.ConfigEntry(nil, structs.ServiceIntentions, "api", nil)
+	require.NoError(t, err)
+	require.Equal(t, nextIndex, idx)
+
+	got, ok := raw.(*structs.ServiceIntentionsConfigEntry)
+	require.True(t, ok)
+	initial.RaftIndex = got.RaftIndex
+	require.Equal(t, initial, got)
+
+	t.Run("update and fail change legacyID", func(t *testing.T) {
+		// Update
+		updated := &structs.ServiceIntentionsConfigEntry{
+			Kind: structs.ServiceIntentions,
+			Name: "api",
+			Sources: []*structs.SourceIntention{
+				{
+					LegacyID:         idB,
+					Name:             "web",
+					Action:           structs.IntentionActionDeny,
+					LegacyCreateTime: &timeB,
+					LegacyUpdateTime: &timeB,
+				},
+			},
+		}
+
+		nextIndex++
+		err := s.EnsureConfigEntry(nextIndex, updated.Clone(), nil)
+		testutil.RequireErrorContains(t, err, "cannot set this field to a different value")
+	})
+
+	t.Run("update and do not update create time", func(t *testing.T) {
+		// Update
+		updated := &structs.ServiceIntentionsConfigEntry{
+			Kind: structs.ServiceIntentions,
+			Name: "api",
+			Sources: []*structs.SourceIntention{
+				{
+					LegacyID:         idA,
+					Name:             "web",
+					Action:           structs.IntentionActionDeny,
+					LegacyCreateTime: &timeB,
+					LegacyUpdateTime: &timeB,
+				},
+			},
+		}
+
+		nextIndex++
+		require.NoError(t, s.EnsureConfigEntry(nextIndex, updated.Clone(), nil))
+
+		// check
+		idx, raw, err = s.ConfigEntry(nil, structs.ServiceIntentions, "api", nil)
+		require.NoError(t, err)
+		require.Equal(t, nextIndex, idx)
+
+		got, ok = raw.(*structs.ServiceIntentionsConfigEntry)
+		require.True(t, ok)
+		updated.RaftIndex = got.RaftIndex
+		updated.Sources[0].LegacyCreateTime = &timeA // UpdateOver will not replace this
+		require.Equal(t, updated, got)
+	})
+}
+
 func TestStore_ConfigEntries(t *testing.T) {
 	require := require.New(t)
-	s := testStateStore(t)
+	s := testConfigStateStore(t)
 
 	// Create some config entries.
 	entry1 := &structs.ProxyConfigEntry{
@@ -837,7 +934,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 		tc := tc
 
 		t.Run(name, func(t *testing.T) {
-			s := testStateStore(t)
+			s := testConfigStateStore(t)
 			for _, entry := range tc.entries {
 				require.NoError(t, entry.Normalize())
 				require.NoError(t, s.EnsureConfigEntry(0, entry, nil))
@@ -1146,7 +1243,7 @@ func TestStore_ReadDiscoveryChainConfigEntries_Overrides(t *testing.T) {
 		tc := tc
 
 		t.Run(tc.name, func(t *testing.T) {
-			s := testStateStore(t)
+			s := testConfigStateStore(t)
 			for _, entry := range tc.entries {
 				require.NoError(t, s.EnsureConfigEntry(0, entry, nil))
 			}
@@ -1212,7 +1309,7 @@ func entrySetToKindNames(entrySet *structs.DiscoveryChainConfigEntries) []struct
 }
 
 func TestStore_ReadDiscoveryChainConfigEntries_SubsetSplit(t *testing.T) {
-	s := testStateStore(t)
+	s := testConfigStateStore(t)
 
 	entries := []structs.ConfigEntry{
 		&structs.ServiceConfigEntry{
@@ -1255,8 +1352,10 @@ func TestStore_ReadDiscoveryChainConfigEntries_SubsetSplit(t *testing.T) {
 	require.Len(t, entrySet.Services, 1)
 }
 
+// TODO(rb): add ServiceIntentions tests
+
 func TestStore_ValidateGatewayNamesCannotBeShared(t *testing.T) {
-	s := testStateStore(t)
+	s := testConfigStateStore(t)
 
 	ingress := &structs.IngressGatewayConfigEntry{
 		Kind: structs.IngressGateway,
@@ -1306,7 +1405,7 @@ func TestStore_ValidateIngressGatewayErrorOnMismatchedProtocols(t *testing.T) {
 	}
 
 	t.Run("http ingress fails with http upstream later changed to tcp", func(t *testing.T) {
-		s := testStateStore(t)
+		s := testConfigStateStore(t)
 
 		// First set the target service as http
 		expected := &structs.ServiceConfigEntry{
@@ -1340,7 +1439,7 @@ func TestStore_ValidateIngressGatewayErrorOnMismatchedProtocols(t *testing.T) {
 	})
 
 	t.Run("tcp ingress ok with tcp upstream (defaulted) later changed to http", func(t *testing.T) {
-		s := testStateStore(t)
+		s := testConfigStateStore(t)
 
 		// First configure tcp ingress to route to a defaulted tcp service
 		require.NoError(t, s.EnsureConfigEntry(0, newIngress("tcp", "web"), nil))
@@ -1355,7 +1454,7 @@ func TestStore_ValidateIngressGatewayErrorOnMismatchedProtocols(t *testing.T) {
 	})
 
 	t.Run("tcp ingress fails with tcp upstream (defaulted) later changed to http", func(t *testing.T) {
-		s := testStateStore(t)
+		s := testConfigStateStore(t)
 
 		// First configure tcp ingress to route to a defaulted tcp service
 		require.NoError(t, s.EnsureConfigEntry(0, newIngress("tcp", "web"), nil))
@@ -1395,14 +1494,14 @@ func TestStore_ValidateIngressGatewayErrorOnMismatchedProtocols(t *testing.T) {
 	})
 
 	t.Run("http ingress fails with tcp upstream (defaulted)", func(t *testing.T) {
-		s := testStateStore(t)
+		s := testConfigStateStore(t)
 		err := s.EnsureConfigEntry(0, newIngress("http", "web"), nil)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), `has protocol "tcp"`)
 	})
 
 	t.Run("http ingress fails with http2 upstream (via proxy-defaults)", func(t *testing.T) {
-		s := testStateStore(t)
+		s := testConfigStateStore(t)
 		expected := &structs.ProxyConfigEntry{
 			Kind: structs.ProxyDefaults,
 			Name: "global",
@@ -1418,7 +1517,7 @@ func TestStore_ValidateIngressGatewayErrorOnMismatchedProtocols(t *testing.T) {
 	})
 
 	t.Run("http ingress fails with grpc upstream (via service-defaults)", func(t *testing.T) {
-		s := testStateStore(t)
+		s := testConfigStateStore(t)
 		expected := &structs.ServiceConfigEntry{
 			Kind:     structs.ServiceDefaults,
 			Name:     "web",
@@ -1431,7 +1530,7 @@ func TestStore_ValidateIngressGatewayErrorOnMismatchedProtocols(t *testing.T) {
 	})
 
 	t.Run("http ingress ok with http upstream (via service-defaults)", func(t *testing.T) {
-		s := testStateStore(t)
+		s := testConfigStateStore(t)
 		expected := &structs.ServiceConfigEntry{
 			Kind:     structs.ServiceDefaults,
 			Name:     "web",
@@ -1442,12 +1541,12 @@ func TestStore_ValidateIngressGatewayErrorOnMismatchedProtocols(t *testing.T) {
 	})
 
 	t.Run("http ingress ignores wildcard specifier", func(t *testing.T) {
-		s := testStateStore(t)
+		s := testConfigStateStore(t)
 		require.NoError(t, s.EnsureConfigEntry(4, newIngress("http", "*"), nil))
 	})
 
 	t.Run("deleting ingress config entry ok", func(t *testing.T) {
-		s := testStateStore(t)
+		s := testConfigStateStore(t)
 		require.NoError(t, s.EnsureConfigEntry(1, newIngress("tcp", "web"), nil))
 		require.NoError(t, s.DeleteConfigEntry(5, structs.IngressGateway, "gateway", nil))
 	})

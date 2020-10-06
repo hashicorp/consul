@@ -7,72 +7,89 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestIntentionsList_empty(t *testing.T) {
+func TestIntentionList(t *testing.T) {
 	t.Parallel()
 
-	assert := assert.New(t)
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
-	// Make sure an empty list is non-nil.
-	req, _ := http.NewRequest("GET", "/v1/connect/intentions", nil)
-	resp := httptest.NewRecorder()
-	obj, err := a.srv.IntentionList(resp, req)
-	assert.Nil(err)
+	t.Run("empty", func(t *testing.T) {
+		// Make sure an empty list is non-nil.
+		req, _ := http.NewRequest("GET", "/v1/connect/intentions", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.IntentionList(resp, req)
+		require.NoError(t, err)
 
-	value := obj.(structs.Intentions)
-	assert.NotNil(value)
-	assert.Len(value, 0)
-}
+		value := obj.(structs.Intentions)
+		require.NotNil(t, value)
+		require.Len(t, value, 0)
+	})
 
-func TestIntentionsList_values(t *testing.T) {
-	t.Parallel()
+	t.Run("values", func(t *testing.T) {
+		// Create some intentions, note we create the lowest precedence first to test
+		// sorting.
+		//
+		// Also create one non-legacy one using a different destination.
+		var ids []string
+		for _, v := range []string{"*", "foo", "bar", "zim"} {
+			req := structs.IntentionRequest{
+				Datacenter: "dc1",
+				Op:         structs.IntentionOpCreate,
+				Intention:  structs.TestIntention(t),
+			}
+			req.Intention.SourceName = v
 
-	assert := assert.New(t)
-	a := NewTestAgent(t, "")
-	defer a.Shutdown()
+			if v == "zim" {
+				req.Op = structs.IntentionOpUpsert // non-legacy
+				req.Intention.DestinationName = "gir"
+			}
 
-	// Create some intentions, note we create the lowest precedence first to test
-	// sorting.
-	for _, v := range []string{"*", "foo", "bar"} {
-		req := structs.IntentionRequest{
-			Datacenter: "dc1",
-			Op:         structs.IntentionOpCreate,
-			Intention:  structs.TestIntention(t),
+			var reply string
+			require.NoError(t, a.RPC("Intention.Apply", &req, &reply))
+			ids = append(ids, reply)
 		}
-		req.Intention.SourceName = v
 
-		var reply string
-		assert.Nil(a.RPC("Intention.Apply", &req, &reply))
-	}
+		// Request
+		req, err := http.NewRequest("GET", "/v1/connect/intentions", nil)
+		require.NoError(t, err)
 
-	// Request
-	req, _ := http.NewRequest("GET", "/v1/connect/intentions", nil)
-	resp := httptest.NewRecorder()
-	obj, err := a.srv.IntentionList(resp, req)
-	assert.NoError(err)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.IntentionList(resp, req)
+		require.NoError(t, err)
 
-	value := obj.(structs.Intentions)
-	assert.Len(value, 3)
+		value := obj.(structs.Intentions)
+		require.Len(t, value, 4)
 
-	expected := []string{"bar", "foo", "*"}
-	actual := []string{
-		value[0].SourceName,
-		value[1].SourceName,
-		value[2].SourceName,
-	}
-	assert.Equal(expected, actual)
+		require.Equal(t, []string{"bar->db", "foo->db", "zim->gir", "*->db"},
+			[]string{
+				value[0].SourceName + "->" + value[0].DestinationName,
+				value[1].SourceName + "->" + value[1].DestinationName,
+				value[2].SourceName + "->" + value[2].DestinationName,
+				value[3].SourceName + "->" + value[3].DestinationName,
+			})
+		require.Equal(t, []string{ids[2], ids[1], "", ids[0]},
+			[]string{
+				value[0].ID,
+				value[1].ID,
+				value[2].ID,
+				value[3].ID,
+			})
+	})
 }
 
-func TestIntentionsMatch_basic(t *testing.T) {
+func TestIntentionMatch(t *testing.T) {
 	t.Parallel()
 
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Create some intentions
 	{
@@ -93,95 +110,82 @@ func TestIntentionsMatch_basic(t *testing.T) {
 			ixn.Intention.DestinationNS = v[2]
 			ixn.Intention.DestinationName = v[3]
 
+			if ixn.Intention.DestinationName == "baz" {
+				// make the "baz" destination be non-legacy
+				ixn.Op = structs.IntentionOpUpsert
+			}
+
 			// Create
 			var reply string
-			require.Nil(t, a.RPC("Intention.Apply", &ixn, &reply))
+			require.NoError(t, a.RPC("Intention.Apply", &ixn, &reply))
 		}
 	}
 
-	// Request
-	req, _ := http.NewRequest("GET",
-		"/v1/connect/intentions/match?by=destination&name=bar", nil)
-	resp := httptest.NewRecorder()
-	obj, err := a.srv.IntentionMatch(resp, req)
-	require.Nil(t, err)
+	t.Run("no by", func(t *testing.T) {
+		req, err := http.NewRequest("GET", "/v1/connect/intentions/match?name=foo/bar", nil)
+		require.NoError(t, err)
 
-	value := obj.(map[string]structs.Intentions)
-	require.Len(t, value, 1)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.IntentionMatch(resp, req)
+		testutil.RequireErrorContains(t, err, "by")
+		require.Nil(t, obj)
+	})
 
-	var actual [][]string
-	expected := [][]string{
-		{"default", "*", "default", "bar"},
-		{"default", "*", "default", "*"},
-	}
-	for _, ixn := range value["bar"] {
-		actual = append(actual, []string{
-			ixn.SourceNS,
-			ixn.SourceName,
-			ixn.DestinationNS,
-			ixn.DestinationName,
-		})
-	}
+	t.Run("by invalid", func(t *testing.T) {
+		req, err := http.NewRequest("GET", "/v1/connect/intentions/match?by=datacenter", nil)
+		require.NoError(t, err)
 
-	require.Equal(t, expected, actual)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.IntentionMatch(resp, req)
+		testutil.RequireErrorContains(t, err, "'by' parameter")
+		require.Nil(t, obj)
+	})
+
+	t.Run("no name", func(t *testing.T) {
+		req, err := http.NewRequest("GET", "/v1/connect/intentions/match?by=source", nil)
+		require.NoError(t, err)
+
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.IntentionMatch(resp, req)
+		testutil.RequireErrorContains(t, err, "'name' not set")
+		require.Nil(t, obj)
+	})
+
+	t.Run("success", func(t *testing.T) {
+		req, err := http.NewRequest("GET", "/v1/connect/intentions/match?by=destination&name=bar", nil)
+		require.NoError(t, err)
+
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.IntentionMatch(resp, req)
+		require.NoError(t, err)
+
+		value := obj.(map[string]structs.Intentions)
+		require.Len(t, value, 1)
+
+		var actual [][]string
+		expected := [][]string{
+			{"default", "*", "default", "bar"},
+			{"default", "*", "default", "*"},
+		}
+		for _, ixn := range value["bar"] {
+			actual = append(actual, []string{
+				ixn.SourceNS,
+				ixn.SourceName,
+				ixn.DestinationNS,
+				ixn.DestinationName,
+			})
+		}
+
+		require.Equal(t, expected, actual)
+	})
 }
 
-func TestIntentionsMatch_noBy(t *testing.T) {
-	t.Parallel()
-
-	assert := assert.New(t)
-	a := NewTestAgent(t, "")
-	defer a.Shutdown()
-
-	// Request
-	req, _ := http.NewRequest("GET",
-		"/v1/connect/intentions/match?name=foo/bar", nil)
-	resp := httptest.NewRecorder()
-	obj, err := a.srv.IntentionMatch(resp, req)
-	assert.NotNil(err)
-	assert.Contains(err.Error(), "by")
-	assert.Nil(obj)
-}
-
-func TestIntentionsMatch_byInvalid(t *testing.T) {
-	t.Parallel()
-
-	assert := assert.New(t)
-	a := NewTestAgent(t, "")
-	defer a.Shutdown()
-
-	// Request
-	req, _ := http.NewRequest("GET",
-		"/v1/connect/intentions/match?by=datacenter", nil)
-	resp := httptest.NewRecorder()
-	obj, err := a.srv.IntentionMatch(resp, req)
-	assert.NotNil(err)
-	assert.Contains(err.Error(), "'by' parameter")
-	assert.Nil(obj)
-}
-
-func TestIntentionsMatch_noName(t *testing.T) {
-	t.Parallel()
-
-	assert := assert.New(t)
-	a := NewTestAgent(t, "")
-	defer a.Shutdown()
-
-	// Request
-	req, _ := http.NewRequest("GET",
-		"/v1/connect/intentions/match?by=source", nil)
-	resp := httptest.NewRecorder()
-	obj, err := a.srv.IntentionMatch(resp, req)
-	assert.NotNil(err)
-	assert.Contains(err.Error(), "'name' not set")
-	assert.Nil(obj)
-}
-
-func TestIntentionsCheck_basic(t *testing.T) {
+func TestIntentionCheck(t *testing.T) {
 	t.Parallel()
 
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Create some intentions
 	{
@@ -202,120 +206,225 @@ func TestIntentionsCheck_basic(t *testing.T) {
 			ixn.Intention.DestinationName = v[3]
 			ixn.Intention.Action = structs.IntentionActionDeny
 
+			if ixn.Intention.DestinationName == "baz" {
+				// make the "baz" destination be non-legacy
+				ixn.Op = structs.IntentionOpUpsert
+			}
+
 			// Create
 			var reply string
 			require.NoError(t, a.RPC("Intention.Apply", &ixn, &reply))
 		}
 	}
 
-	// Request matching intention
-	{
-		req, _ := http.NewRequest("GET",
-			"/v1/connect/intentions/test?source=bar&destination=baz", nil)
+	t.Run("no source", func(t *testing.T) {
+		req, err := http.NewRequest("GET", "/v1/connect/intentions/test?destination=B", nil)
+		require.NoError(t, err)
+
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.IntentionCheck(resp, req)
+		testutil.RequireErrorContains(t, err, "'source' not set")
+		require.Nil(t, obj)
+	})
+
+	t.Run("no destination", func(t *testing.T) {
+		req, err := http.NewRequest("GET", "/v1/connect/intentions/test?source=B", nil)
+		require.NoError(t, err)
+
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.IntentionCheck(resp, req)
+		testutil.RequireErrorContains(t, err, "'destination' not set")
+		require.Nil(t, obj)
+	})
+
+	t.Run("success - matching intention", func(t *testing.T) {
+		req, err := http.NewRequest("GET", "/v1/connect/intentions/test?source=bar&destination=baz", nil)
+		require.NoError(t, err)
+
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.IntentionCheck(resp, req)
 		require.NoError(t, err)
 		value := obj.(*structs.IntentionQueryCheckResponse)
 		require.False(t, value.Allowed)
-	}
+	})
 
-	// Request non-matching intention
-	{
-		req, _ := http.NewRequest("GET",
-			"/v1/connect/intentions/test?source=bar&destination=qux", nil)
+	t.Run("success - non-matching intention", func(t *testing.T) {
+		req, err := http.NewRequest("GET", "/v1/connect/intentions/test?source=bar&destination=qux", nil)
+		require.NoError(t, err)
+
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.IntentionCheck(resp, req)
 		require.NoError(t, err)
 		value := obj.(*structs.IntentionQueryCheckResponse)
 		require.True(t, value.Allowed)
-	}
+	})
 }
 
-func TestIntentionsCheck_noSource(t *testing.T) {
+func TestIntentionPutExact(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
-	// Request
-	req, _ := http.NewRequest("GET",
-		"/v1/connect/intentions/test?destination=B", nil)
-	resp := httptest.NewRecorder()
-	obj, err := a.srv.IntentionCheck(resp, req)
-	require.NotNil(err)
-	require.Contains(err.Error(), "'source' not set")
-	require.Nil(obj)
-}
+	t.Run("no body", func(t *testing.T) {
+		// Create with no body
+		req, err := http.NewRequest("PUT", "/v1/connect/intentions", nil)
+		require.NoError(t, err)
 
-func TestIntentionsCheck_noDestination(t *testing.T) {
-	t.Parallel()
+		resp := httptest.NewRecorder()
+		_, err = a.srv.IntentionExact(resp, req)
+		require.Error(t, err)
+	})
 
-	require := require.New(t)
-	a := NewTestAgent(t, "")
-	defer a.Shutdown()
+	t.Run("source is required", func(t *testing.T) {
+		ixn := structs.TestIntention(t)
+		ixn.SourceName = "foo"
+		req, err := http.NewRequest("PUT", "/v1/connect/intentions?source=&destination=db", jsonReader(ixn))
+		require.NoError(t, err)
 
-	// Request
-	req, _ := http.NewRequest("GET",
-		"/v1/connect/intentions/test?source=B", nil)
-	resp := httptest.NewRecorder()
-	obj, err := a.srv.IntentionCheck(resp, req)
-	require.NotNil(err)
-	require.Contains(err.Error(), "'destination' not set")
-	require.Nil(obj)
-}
+		resp := httptest.NewRecorder()
+		_, err = a.srv.IntentionExact(resp, req)
+		require.Error(t, err)
+	})
 
-func TestIntentionsCreate_good(t *testing.T) {
-	t.Parallel()
+	t.Run("destination is required", func(t *testing.T) {
+		ixn := structs.TestIntention(t)
+		ixn.SourceName = "foo"
+		req, err := http.NewRequest("PUT", "/v1/connect/intentions?source=foo&destination=", jsonReader(ixn))
+		require.NoError(t, err)
 
-	assert := assert.New(t)
-	a := NewTestAgent(t, "")
-	defer a.Shutdown()
+		resp := httptest.NewRecorder()
+		_, err = a.srv.IntentionExact(resp, req)
+		require.Error(t, err)
+	})
 
-	// Make sure an empty list is non-nil.
-	args := structs.TestIntention(t)
-	args.SourceName = "foo"
-	req, _ := http.NewRequest("POST", "/v1/connect/intentions", jsonReader(args))
-	resp := httptest.NewRecorder()
-	obj, err := a.srv.IntentionCreate(resp, req)
-	assert.Nil(err)
+	t.Run("success", func(t *testing.T) {
+		ixn := structs.TestIntention(t)
+		ixn.SourceName = "foo"
+		req, err := http.NewRequest("PUT", "/v1/connect/intentions?source=foo&destination=db", jsonReader(ixn))
+		require.NoError(t, err)
 
-	value := obj.(intentionCreateResponse)
-	assert.NotEqual("", value.ID)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.IntentionExact(resp, req)
+		require.NoError(t, err)
+		require.True(t, obj.(bool))
 
-	// Read the value
-	{
-		req := &structs.IntentionQueryRequest{
-			Datacenter:  "dc1",
-			IntentionID: value.ID,
+		// Read the value
+		{
+			req := &structs.IntentionQueryRequest{
+				Datacenter: "dc1",
+				Exact:      ixn.ToExact(),
+			}
+
+			var resp structs.IndexedIntentions
+			require.NoError(t, a.RPC("Intention.Get", req, &resp))
+			require.Len(t, resp.Intentions, 1)
+			actual := resp.Intentions[0]
+			require.Equal(t, "foo", actual.SourceName)
+			require.Empty(t, actual.ID) // new style
 		}
-		var resp structs.IndexedIntentions
-		assert.Nil(a.RPC("Intention.Get", req, &resp))
-		assert.Len(resp.Intentions, 1)
-		actual := resp.Intentions[0]
-		assert.Equal("foo", actual.SourceName)
+	})
+}
+
+func TestIntentionCreate(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	t.Run("no body", func(t *testing.T) {
+		// Create with no body
+		req, _ := http.NewRequest("POST", "/v1/connect/intentions", nil)
+		resp := httptest.NewRecorder()
+		_, err := a.srv.IntentionCreate(resp, req)
+		require.Error(t, err)
+	})
+
+	t.Run("success", func(t *testing.T) {
+		// Make sure an empty list is non-nil.
+		args := structs.TestIntention(t)
+		args.SourceName = "foo"
+		req, _ := http.NewRequest("POST", "/v1/connect/intentions", jsonReader(args))
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.IntentionCreate(resp, req)
+		require.NoError(t, err)
+
+		value := obj.(intentionCreateResponse)
+		require.NotEmpty(t, value.ID)
+
+		// Read the value
+		{
+			req := &structs.IntentionQueryRequest{
+				Datacenter:  "dc1",
+				IntentionID: value.ID,
+			}
+			var resp structs.IndexedIntentions
+			require.NoError(t, a.RPC("Intention.Get", req, &resp))
+			require.Len(t, resp.Intentions, 1)
+			actual := resp.Intentions[0]
+			require.Equal(t, "foo", actual.SourceName)
+		}
+	})
+}
+
+func TestIntentionSpecificGet(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	ixn := structs.TestIntention(t)
+
+	// Create an intention directly
+	var reply string
+	{
+		req := structs.IntentionRequest{
+			Datacenter: "dc1",
+			Op:         structs.IntentionOpCreate,
+			Intention:  ixn,
+		}
+		require.NoError(t, a.RPC("Intention.Apply", &req, &reply))
 	}
+
+	t.Run("invalid id", func(t *testing.T) {
+		// Read intention with bad ID
+		req, _ := http.NewRequest("GET", "/v1/connect/intentions/hello", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.IntentionSpecific(resp, req)
+		require.Nil(t, obj)
+		require.Error(t, err)
+		require.IsType(t, BadRequestError{}, err)
+		require.Contains(t, err.Error(), "UUID")
+	})
+
+	t.Run("success", func(t *testing.T) {
+		// Get the value
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/connect/intentions/%s", reply), nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.IntentionSpecific(resp, req)
+		require.NoError(t, err)
+
+		value := obj.(*structs.Intention)
+		require.Equal(t, reply, value.ID)
+
+		ixn.ID = value.ID
+		ixn.Precedence = value.Precedence
+		ixn.RaftIndex = value.RaftIndex
+		ixn.Hash = value.Hash
+		ixn.CreatedAt, ixn.UpdatedAt = value.CreatedAt, value.UpdatedAt
+		require.Equal(t, ixn, value)
+	})
 }
 
-func TestIntentionsCreate_noBody(t *testing.T) {
+func TestIntentionSpecificUpdate(t *testing.T) {
 	t.Parallel()
 
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
-
-	// Create with no body
-	req, _ := http.NewRequest("POST", "/v1/connect/intentions", nil)
-	resp := httptest.NewRecorder()
-	_, err := a.srv.IntentionCreate(resp, req)
-	require.Error(t, err)
-}
-
-func TestIntentionsSpecificGet_good(t *testing.T) {
-	t.Parallel()
-
-	assert := assert.New(t)
-	a := NewTestAgent(t, "")
-	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// The intention
 	ixn := structs.TestIntention(t)
@@ -328,60 +437,7 @@ func TestIntentionsSpecificGet_good(t *testing.T) {
 			Op:         structs.IntentionOpCreate,
 			Intention:  ixn,
 		}
-		assert.Nil(a.RPC("Intention.Apply", &req, &reply))
-	}
-
-	// Get the value
-	req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/connect/intentions/%s", reply), nil)
-	resp := httptest.NewRecorder()
-	obj, err := a.srv.IntentionSpecific(resp, req)
-	assert.Nil(err)
-
-	value := obj.(*structs.Intention)
-	assert.Equal(reply, value.ID)
-
-	ixn.ID = value.ID
-	ixn.RaftIndex = value.RaftIndex
-	ixn.CreatedAt, ixn.UpdatedAt = value.CreatedAt, value.UpdatedAt
-	assert.Equal(ixn, value)
-}
-
-func TestIntentionsSpecificGet_invalidId(t *testing.T) {
-	t.Parallel()
-
-	require := require.New(t)
-	a := NewTestAgent(t, "")
-	defer a.Shutdown()
-
-	// Read intention with bad ID
-	req, _ := http.NewRequest("GET", "/v1/connect/intentions/hello", nil)
-	resp := httptest.NewRecorder()
-	obj, err := a.srv.IntentionSpecific(resp, req)
-	require.Nil(obj)
-	require.Error(err)
-	require.IsType(BadRequestError{}, err)
-	require.Contains(err.Error(), "UUID")
-}
-
-func TestIntentionsSpecificUpdate_good(t *testing.T) {
-	t.Parallel()
-
-	assert := assert.New(t)
-	a := NewTestAgent(t, "")
-	defer a.Shutdown()
-
-	// The intention
-	ixn := structs.TestIntention(t)
-
-	// Create an intention directly
-	var reply string
-	{
-		req := structs.IntentionRequest{
-			Datacenter: "dc1",
-			Op:         structs.IntentionOpCreate,
-			Intention:  ixn,
-		}
-		assert.Nil(a.RPC("Intention.Apply", &req, &reply))
+		require.NoError(t, a.RPC("Intention.Apply", &req, &reply))
 	}
 
 	// Update the intention
@@ -390,10 +446,10 @@ func TestIntentionsSpecificUpdate_good(t *testing.T) {
 	req, _ := http.NewRequest("PUT", fmt.Sprintf("/v1/connect/intentions/%s", reply), jsonReader(ixn))
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.IntentionSpecific(resp, req)
-	assert.Nil(err)
+	require.NoError(t, err)
 
 	value := obj.(intentionCreateResponse)
-	assert.Equal(reply, value.ID)
+	require.Equal(t, reply, value.ID)
 
 	// Read the value
 	{
@@ -402,19 +458,99 @@ func TestIntentionsSpecificUpdate_good(t *testing.T) {
 			IntentionID: reply,
 		}
 		var resp structs.IndexedIntentions
-		assert.Nil(a.RPC("Intention.Get", req, &resp))
-		assert.Len(resp.Intentions, 1)
+		require.NoError(t, a.RPC("Intention.Get", req, &resp))
+		require.Len(t, resp.Intentions, 1)
 		actual := resp.Intentions[0]
-		assert.Equal("bar", actual.SourceName)
+		require.Equal(t, "bar", actual.SourceName)
 	}
 }
 
-func TestIntentionsSpecificDelete_good(t *testing.T) {
+func TestIntentionDeleteExact(t *testing.T) {
 	t.Parallel()
 
-	assert := assert.New(t)
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	ixn := structs.TestIntention(t)
+	ixn.SourceName = "foo"
+
+	exact := ixn.ToExact()
+
+	// Create an intention directly
+	{
+		req := structs.IntentionRequest{
+			Datacenter: "dc1",
+			Op:         structs.IntentionOpUpsert,
+			Intention:  ixn,
+		}
+		var ignored string
+		require.NoError(t, a.RPC("Intention.Apply", &req, &ignored))
+	}
+
+	// Sanity check that the intention exists
+	{
+		req := &structs.IntentionQueryRequest{
+			Datacenter: "dc1",
+			Exact:      exact,
+		}
+		var resp structs.IndexedIntentions
+		require.NoError(t, a.RPC("Intention.Get", req, &resp))
+		require.Len(t, resp.Intentions, 1)
+		actual := resp.Intentions[0]
+		require.Equal(t, "foo", actual.SourceName)
+		require.Empty(t, actual.ID) // new style
+	}
+
+	t.Run("source is required", func(t *testing.T) {
+		// Delete the intention
+		req, err := http.NewRequest("DELETE", "/v1/connect/intentions/exact?source=&destination=db", nil)
+		require.NoError(t, err)
+
+		resp := httptest.NewRecorder()
+		_, err = a.srv.IntentionExact(resp, req)
+		require.Error(t, err)
+	})
+
+	t.Run("destination is required", func(t *testing.T) {
+		// Delete the intention
+		req, err := http.NewRequest("DELETE", "/v1/connect/intentions/exact?source=foo&destination=", nil)
+		require.NoError(t, err)
+
+		resp := httptest.NewRecorder()
+		_, err = a.srv.IntentionExact(resp, req)
+		require.Error(t, err)
+	})
+
+	t.Run("success", func(t *testing.T) {
+		// Delete the intention
+		req, err := http.NewRequest("DELETE", "/v1/connect/intentions/exact?source=foo&destination=db", nil)
+		require.NoError(t, err)
+
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.IntentionExact(resp, req)
+		require.NoError(t, err)
+		require.Equal(t, true, obj)
+
+		// Verify the intention is gone
+		{
+			req := &structs.IntentionQueryRequest{
+				Datacenter: "dc1",
+				Exact:      exact,
+			}
+			var resp structs.IndexedIntentions
+			err := a.RPC("Intention.Get", req, &resp)
+			testutil.RequireErrorContains(t, err, "not found")
+		}
+	})
+}
+
+func TestIntentionSpecificDelete(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// The intention
 	ixn := structs.TestIntention(t)
@@ -428,7 +564,7 @@ func TestIntentionsSpecificDelete_good(t *testing.T) {
 			Op:         structs.IntentionOpCreate,
 			Intention:  ixn,
 		}
-		assert.Nil(a.RPC("Intention.Apply", &req, &reply))
+		require.NoError(t, a.RPC("Intention.Apply", &req, &reply))
 	}
 
 	// Sanity check that the intention exists
@@ -438,18 +574,18 @@ func TestIntentionsSpecificDelete_good(t *testing.T) {
 			IntentionID: reply,
 		}
 		var resp structs.IndexedIntentions
-		assert.Nil(a.RPC("Intention.Get", req, &resp))
-		assert.Len(resp.Intentions, 1)
+		require.NoError(t, a.RPC("Intention.Get", req, &resp))
+		require.Len(t, resp.Intentions, 1)
 		actual := resp.Intentions[0]
-		assert.Equal("foo", actual.SourceName)
+		require.Equal(t, "foo", actual.SourceName)
 	}
 
 	// Delete the intention
 	req, _ := http.NewRequest("DELETE", fmt.Sprintf("/v1/connect/intentions/%s", reply), nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.IntentionSpecific(resp, req)
-	assert.Nil(err)
-	assert.Equal(true, obj)
+	require.NoError(t, err)
+	require.Equal(t, true, obj)
 
 	// Verify the intention is gone
 	{
@@ -459,50 +595,50 @@ func TestIntentionsSpecificDelete_good(t *testing.T) {
 		}
 		var resp structs.IndexedIntentions
 		err := a.RPC("Intention.Get", req, &resp)
-		assert.NotNil(err)
-		assert.Contains(err.Error(), "not found")
+		testutil.RequireErrorContains(t, err, "not found")
 	}
 }
 
-func TestParseIntentionMatchEntry(t *testing.T) {
+func TestParseIntentionStringComponent(t *testing.T) {
 	cases := []struct {
-		Input    string
-		Expected structs.IntentionMatchEntry
-		Err      bool
+		Input                    string
+		ExpectedNS, ExpectedName string
+		Err                      bool
 	}{
 		{
 			"foo",
-			structs.IntentionMatchEntry{
-				Name: "foo",
-			},
+			"", "foo",
 			false,
 		},
 		{
 			"foo/bar",
-			structs.IntentionMatchEntry{
-				Namespace: "foo",
-				Name:      "bar",
-			},
+			"foo", "bar",
+			false,
+		},
+		{
+			"/bar",
+			"", "bar",
 			false,
 		},
 		{
 			"foo/bar/baz",
-			structs.IntentionMatchEntry{},
+			"", "",
 			true,
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.Input, func(t *testing.T) {
-			assert := assert.New(t)
 			var entMeta structs.EnterpriseMeta
-			actual, err := parseIntentionMatchEntry(tc.Input, &entMeta)
-			assert.Equal(err != nil, tc.Err, err)
-			if err != nil {
-				return
-			}
+			ns, name, err := parseIntentionStringComponent(tc.Input, &entMeta)
+			if tc.Err {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
 
-			assert.Equal(tc.Expected, actual)
+				assert.Equal(t, tc.ExpectedNS, ns)
+				assert.Equal(t, tc.ExpectedName, name)
+			}
 		})
 	}
 }
