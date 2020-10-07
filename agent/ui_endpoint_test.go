@@ -828,6 +828,7 @@ func TestUIGatewayIntentions(t *testing.T) {
 
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Register terminating gateway and config entry linking it to postgres + redis
 	{
