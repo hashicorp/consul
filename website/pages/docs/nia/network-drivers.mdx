@@ -47,7 +47,7 @@ The following files of the root module are generated for each task. An [example 
 * `terraform.tfvars` - The variable definitions file is where the services input variable is assigned values from the Consul Catalog. It is periodically updated to reflect the current state of the configured set of services for the task.
 * `terraform.tfvars.tmpl` - The template file is used by Consul-Terraform-Sync to template service information from the Consul Catalog by using the HashiCorp configuration and templating library ([hashicorp/hcat](https://github.com/hashicorp/hcat)).
 
--> **Note:** Generated template and Terraform configuration files are critical to the automation of tasks. Any manual changes to the files may not be preserved and could be clobbered by a subsequent update.
+-> **Note:** Generated template and Terraform configuration files are crucial to the automation of tasks. Any manual changes to the files may not be preserved and could be clobbered by a subsequent update.
 
 ### Compatible Terraform Modules
 
