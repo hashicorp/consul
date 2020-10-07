@@ -34,12 +34,15 @@
   {{/if}}
     <dl>
       <dt>
+        <span>Address</span>
+      </dt>
+      <dd>
         <CopyButton
           @value={{item.Address}}
           @name="Address"
         />
-      </dt>
-      <dd>{{item.Address}}</dd>
+        {{item.Address}}
+      </dd>
     </dl>
   </BlockSlot>
 </ListCollection>
