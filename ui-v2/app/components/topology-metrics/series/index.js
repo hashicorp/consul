@@ -146,9 +146,6 @@ export default Component.extend({
       .select(".sparkline-time")
         .text(niceTimeWithSeconds(mouseTime));
 
-        console.log(niceTimeWithSeconds(mouseTime), mouseTime);
-
-
     tipVals.nodes().forEach((n, i) => {
       let val = stackData[i][tipIdx][1];
       select(n)
