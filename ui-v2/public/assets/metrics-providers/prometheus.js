@@ -64,7 +64,7 @@
         series.push(this.fetchRequestRateSeries(serviceName, options))
         labels.push("Requests per second")
         series.push(this.fetchErrorRateSeries(serviceName, options))
-        labels.push("Error rate")
+        labels.push("Errors per second")
       } else {
         // Fallback to just L4 metrics.
         series.push(this.fetchServiceRxSeries(serviceName, options))
@@ -294,24 +294,13 @@
 
     fetchErrorRateSeries: function(serviceName, options){
       // 100 * to get a result in percent
-      var q = `100 * (`+
-        // Sum the rates for all inbound requests to the service's public
-        // listener that were 5xx (errors).
-        `sum(`+
+      var q = `sum(`+
           `irate(envoy_listener_http_downstream_rq_xx{`+
             `local_cluster="${serviceName}",`+
             `envoy_http_conn_manager_prefix="public_listener_http",`+
             `envoy_response_code_class="5"}[10m]`+
           `)`+
-        `)`+
-      // Divided by the total request rate (sum over all response code classes)
-      `/`+
-      `sum(`+
-        `irate(envoy_listener_http_downstream_rq_xx{`+
-          `local_cluster="${serviceName}",`+
-          `envoy_http_conn_manager_prefix="public_listener_http"}[10m]`+
-        `)`+
-      `)`
+        `)`;
       return this.fetchSeries(q, options).then(this.reformatSeries, function(xhr){
         // Failure. log to console and return an blank result for now.
         console.log("ERROR: failed to fetch errorRate", xhr.responseText)
