@@ -14,8 +14,8 @@
       changeset=changeset
     )}}
 
-    <group.Fieldset>
-
+    <fieldset>
+      <div>
         <group.Element
           @name="HeaderType"
           @type="select"
@@ -28,6 +28,7 @@
               {{get headerLabels Type}}
           </PowerSelect>
         </group.Element>
+
 
         <group.Element
           @name="Name"
@@ -63,7 +64,7 @@
         </group.Element>
   {{/if}}
 
-    </group.Fieldset>
-
+      </div>
+    </fieldset>
   </FormGroup>
 </div>

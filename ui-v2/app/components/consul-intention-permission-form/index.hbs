@@ -101,18 +101,16 @@ as |group|>
 {{#if shouldShowMethods}}
     <div class="checkbox-group" role="group">
       {{#each methods as |method|}}
-        <group.Element
-          @name="method"
-        as |el|>
-          <el.Checkbox
-            @value={{method}}
+        <label class="type-checkbox">
+          <input
+            type="checkbox"
+            name="method"
+            value={{method}}
             checked={{if (contains method changeset.HTTP.Methods) 'checked'}}
             onchange={{action 'change' 'method' changeset}}
           />
-          <el.Label>
-            {{method}}
-          </el.Label>
-        </group.Element>
+          <span>{{method}}</span>
+        </label>
       {{/each}}
     </div>
 {{/if}}
