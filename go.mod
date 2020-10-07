@@ -39,8 +39,7 @@ require (
 	github.com/hashicorp/go-connlimit v0.3.0
 	github.com/hashicorp/go-discover v0.0.0-20200501174627-ad1e96bde088
 	github.com/hashicorp/go-hclog v0.12.0
-	github.com/hashicorp/go-immutable-radix v1.2.0 // indirect
-	github.com/hashicorp/go-memdb v1.1.0
+	github.com/hashicorp/go-memdb v1.3.0
 	github.com/hashicorp/go-msgpack v0.5.5
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/hashicorp/go-raftchunking v0.6.1
