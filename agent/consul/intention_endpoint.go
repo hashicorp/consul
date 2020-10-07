@@ -783,48 +783,6 @@ func (s *Intention) Check(
 		}
 	}
 
-	// Get the matches for this destination
-	state := s.srv.fsm.State()
-	_, matches, err := state.IntentionMatch(nil, &structs.IntentionQueryMatch{
-		Type: structs.IntentionMatchDestination,
-		Entries: []structs.IntentionMatchEntry{
-			{
-				Namespace: query.DestinationNS,
-				Name:      query.DestinationName,
-			},
-		},
-	})
-	if err != nil {
-		return err
-	}
-	if len(matches) != 1 {
-		// This should never happen since the documented behavior of the
-		// Match call is that it'll always return exactly the number of results
-		// as entries passed in. But we guard against misbehavior.
-		return errors.New("internal error loading matches")
-	}
-
-	// Figure out which source matches this request.
-	var ixnMatch *structs.Intention
-	for _, ixn := range matches[0] {
-		if _, ok := uri.Authorize(ixn); ok {
-			ixnMatch = ixn
-			break
-		}
-	}
-
-	if ixnMatch != nil {
-		if len(ixnMatch.Permissions) == 0 {
-			// This is an L4 intention.
-			reply.Allowed = ixnMatch.Action == structs.IntentionActionAllow
-			return nil
-		}
-
-		// This is an L7 intention, so DENY.
-		reply.Allowed = false
-		return nil
-	}
-
 	// Note: the default intention policy is like an intention with a
 	// wildcarded destination in that it is limited to L4-only.
 
@@ -841,11 +799,18 @@ func (s *Intention) Check(
 	if err != nil {
 		return err
 	}
-
-	reply.Allowed = true
+	defaultDecision := acl.Allow
 	if authz != nil {
-		reply.Allowed = authz.IntentionDefaultAllow(nil) == acl.Allow
+		defaultDecision = authz.IntentionDefaultAllow(nil)
 	}
+
+	state := s.srv.fsm.State()
+	decision, err := state.IntentionDecision(uri, query.DestinationName, query.DestinationNS, defaultDecision)
+	if err != nil {
+		return fmt.Errorf("failed to get intention decision from (%s/%s) to (%s/%s): %v",
+			query.SourceNS, query.SourceName, query.DestinationNS, query.DestinationName, err)
+	}
+	reply.Allowed = decision.Allowed
 
 	return nil
 }

@@ -1,6 +1,8 @@
 package state
 
 import (
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/connect"
 	"testing"
 	"time"
 
@@ -1081,6 +1083,124 @@ func TestStore_LegacyIntention_Snapshot_Restore(t *testing.T) {
 		require.False(t, fromConfig)
 		require.Equal(t, expected, actual)
 	}()
+}
+
+func TestStore_IntentionDecision(t *testing.T) {
+	// web to redis allowed and with permissions
+	// api to redis denied and without perms (so redis has multiple matches as destination)
+	// api to web without permissions and with meta
+	entries := []structs.ConfigEntry{
+		&structs.ProxyConfigEntry{
+			Kind: structs.ProxyDefaults,
+			Name: structs.ProxyConfigGlobal,
+			Config: map[string]interface{}{
+				"protocol": "http",
+			},
+		},
+		&structs.ServiceIntentionsConfigEntry{
+			Kind: structs.ServiceIntentions,
+			Name: "redis",
+			Sources: []*structs.SourceIntention{
+				{
+					Name: "web",
+					Permissions: []*structs.IntentionPermission{
+						{
+							Action: structs.IntentionActionAllow,
+							HTTP: &structs.IntentionHTTPPermission{
+								Methods: []string{"GET"},
+							},
+						},
+					},
+				},
+				{
+					Name:   "api",
+					Action: structs.IntentionActionDeny,
+				},
+			},
+		},
+		&structs.ServiceIntentionsConfigEntry{
+			Kind: structs.ServiceIntentions,
+			Name: "web",
+			Meta: map[string]string{structs.MetaExternalSource: "nomad"},
+			Sources: []*structs.SourceIntention{
+				{
+					Name:   "api",
+					Action: structs.IntentionActionAllow,
+				},
+			},
+		},
+	}
+
+	s := testStateStore(t)
+	for _, entry := range entries {
+		require.NoError(t, s.EnsureConfigEntry(1, entry, nil))
+	}
+	require.NoError(t, s.SystemMetadataSet(2, &structs.SystemMetadataEntry{
+		Key:   structs.SystemMetadataIntentionFormatKey,
+		Value: structs.SystemMetadataIntentionFormatConfigValue,
+	}))
+
+	tt := []struct {
+		name            string
+		src             string
+		dst             string
+		defaultDecision acl.EnforcementDecision
+		expect          structs.IntentionDecisionSummary
+	}{
+		{
+			name:            "no matching intention and default deny",
+			src:             "does-not-exist",
+			dst:             "ditto",
+			defaultDecision: acl.Deny,
+			expect:          structs.IntentionDecisionSummary{Allowed: false},
+		},
+		{
+			name:            "no matching intention and default allow",
+			src:             "does-not-exist",
+			dst:             "ditto",
+			defaultDecision: acl.Allow,
+			expect:          structs.IntentionDecisionSummary{Allowed: true},
+		},
+		{
+			name: "denied with permissions",
+			src:  "web",
+			dst:  "redis",
+			expect: structs.IntentionDecisionSummary{
+				Allowed:          false,
+				HasL7Permissions: true,
+			},
+		},
+		{
+			name: "denied without permissions",
+			src:  "api",
+			dst:  "redis",
+			expect: structs.IntentionDecisionSummary{
+				Allowed:          false,
+				HasL7Permissions: false,
+			},
+		},
+		{
+			name: "allowed from external source",
+			src:  "api",
+			dst:  "web",
+			expect: structs.IntentionDecisionSummary{
+				Allowed:          true,
+				HasL7Permissions: false,
+				ExternalSource:   "nomad",
+			},
+		},
+	}
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			uri := connect.SpiffeIDService{
+				Service:   tc.src,
+				Namespace: structs.IntentionDefaultNamespace,
+			}
+			decision, err := s.IntentionDecision(&uri, tc.dst, structs.IntentionDefaultNamespace, tc.defaultDecision)
+			require.NoError(t, err)
+			require.Equal(t, tc.expect, decision)
+		})
+	}
 }
 
 func disableLegacyIntentions(s *Store) error {
