@@ -2,7 +2,7 @@ import Component from '@glimmer/component';
 import { tracked } from '@glimmer/tracking';
 import { action } from '@ember/object';
 
-export default class TopoloyMetricsLines extends Component {
+export default class TopoloyMetricsDownLines extends Component {
   @tracked iconPositions;
 
   @action
