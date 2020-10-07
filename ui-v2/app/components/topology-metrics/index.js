@@ -12,15 +12,15 @@ export default class TopologyMetrics extends Component {
 
   // =methods
   drawDownLines(items) {
-    let order = [null, 'allow', 'deny'];
+    const order = [null, 'allow', 'deny'];
+    const dest = {
+      x: this.centerDimensions.x,
+      y: this.centerDimensions.y + this.centerDimensions.height / 4,
+    };
 
     return items
       .map(item => {
         const dimensions = item.getBoundingClientRect();
-        const dest = {
-          x: this.centerDimensions.x,
-          y: this.centerDimensions.y + this.centerDimensions.height / 4,
-        };
         const src = {
           x: dimensions.x + dimensions.width,
           y: dimensions.y + dimensions.height / 2,
@@ -34,16 +34,16 @@ export default class TopologyMetrics extends Component {
         };
       })
       .sort((a, b) => {
-        if (a.permission === b.permission) {
-          return 0;
-        }
-
         return order.indexOf(a.permission) - order.indexOf(b.permission);
       });
   }
 
   drawUpLines(items) {
-    let order = [null, 'allow', 'deny'];
+    const order = [null, 'allow', 'deny'];
+    const src = {
+      x: this.centerDimensions.x + 20,
+      y: this.centerDimensions.y + this.centerDimensions.height / 4,
+    };
 
     return items
       .map(item => {
@@ -51,10 +51,6 @@ export default class TopologyMetrics extends Component {
         const dest = {
           x: dimensions.x - dimensions.width - 26,
           y: dimensions.y + dimensions.height / 2,
-        };
-        const src = {
-          x: this.centerDimensions.x + 20,
-          y: this.centerDimensions.y + this.centerDimensions.height / 4,
         };
 
         return {
@@ -65,10 +61,6 @@ export default class TopologyMetrics extends Component {
         };
       })
       .sort((a, b) => {
-        if (a.permission === b.permission) {
-          return 0;
-        }
-
         return order.indexOf(a.permission) - order.indexOf(b.permission);
       });
   }
