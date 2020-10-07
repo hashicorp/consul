@@ -648,7 +648,9 @@
   function shortNumStr(n) {
     if (n < 1e3) {
       if (Number.isInteger(n)) return ""+n
-      return n.toPrecision(2)
+      // Go to 3 significant figures but wrap it in Number to avoid scientific
+      // notation lie 2.3e+2 for 230.
+      return Number(n.toPrecision(3))
     }
     if (n >= 1e3 && n < 1e6) return +(n / 1e3).toFixed(1) + "k";
     if (n >= 1e6 && n < 1e9) return +(n / 1e6).toFixed(1) + "m";

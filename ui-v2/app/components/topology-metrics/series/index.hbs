@@ -1,0 +1,14 @@
+<DataSource
+  @src={{uri nspace dc 'metrics' 'summary-for-service' @service @protocol}}
+  @onchange={{action 'change'}} />
+
+
+<div class="sparkline-wrapper">
+  <div class="tooltip">
+    <div class="sparkline-time">Timestamp</div>
+  </div>
+  {{!-- TODO: fix loading state --}}
+  <div class="sparkline-loader">Loading...</div>
+  <svg class="sparkline"></svg>
+</div>
+
