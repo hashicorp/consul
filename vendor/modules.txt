@@ -174,6 +174,8 @@ github.com/google/go-querystring/query
 github.com/google/gofuzz
 # github.com/google/tcpproxy v0.0.0-20180808230851-dfa16c61dad2
 github.com/google/tcpproxy
+# github.com/googleapis/gax-go/v2 v2.0.5
+github.com/googleapis/gax-go/v2
 # github.com/googleapis/gnostic v0.2.0
 github.com/googleapis/gnostic/OpenAPIv2
 github.com/googleapis/gnostic/compiler
@@ -378,7 +380,7 @@ github.com/ryanuber/columnize
 github.com/ryanuber/go-glob
 # github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529
 github.com/sean-/seed
-# github.com/shirou/gopsutil v0.0.0-20181107111621-48177ef5f880
+# github.com/shirou/gopsutil v2.20.9+incompatible
 github.com/shirou/gopsutil/cpu
 github.com/shirou/gopsutil/disk
 github.com/shirou/gopsutil/host
@@ -386,8 +388,6 @@ github.com/shirou/gopsutil/internal/common
 github.com/shirou/gopsutil/mem
 github.com/shirou/gopsutil/net
 github.com/shirou/gopsutil/process
-# github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4
-github.com/shirou/w32
 # github.com/sirupsen/logrus v1.4.2
 github.com/sirupsen/logrus
 # github.com/softlayer/softlayer-go v0.0.0-20180806151055-260589d94c7d
@@ -469,7 +469,7 @@ golang.org/x/crypto/ssh/terminal
 # golang.org/x/lint v0.0.0-20190930215403-16217165b5de
 golang.org/x/lint
 golang.org/x/lint/golint
-# golang.org/x/net v0.0.0-20191004110552-13f9640d40b9
+# golang.org/x/net v0.0.0-20200226121028-0de0cce0169b
 golang.org/x/net/bpf
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
@@ -492,15 +492,16 @@ golang.org/x/oauth2/google
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
+# golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 golang.org/x/sync/errgroup
 golang.org/x/sync/singleflight
-# golang.org/x/sys v0.0.0-20200223170610-d5e6a3e2c0ae
+# golang.org/x/sys v0.0.0-20201007082116-8445cc04cbdf
 golang.org/x/sys/cpu
+golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/svc
-# golang.org/x/text v0.3.2
+# golang.org/x/text v0.3.3
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
 golang.org/x/text/encoding/internal
@@ -509,13 +510,13 @@ golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-# golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1
+# golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 golang.org/x/time/rate
-# golang.org/x/tools v0.0.0-20191108193012-7d206e10da11
+# golang.org/x/tools v0.0.0-20200513154647-78b527d18275
 golang.org/x/tools/go/ast/astutil
 golang.org/x/tools/go/gcexportdata
 golang.org/x/tools/go/internal/gcimporter
-# google.golang.org/api v0.7.0
+# google.golang.org/api v0.9.0
 google.golang.org/api/compute/v1
 google.golang.org/api/gensupport
 google.golang.org/api/googleapi

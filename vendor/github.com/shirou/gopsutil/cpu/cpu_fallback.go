@@ -1,9 +1,10 @@
-// +build !darwin,!linux,!freebsd,!openbsd,!solaris,!windows
+// +build !darwin,!linux,!freebsd,!openbsd,!solaris,!windows,!dragonfly
 
 package cpu
 
 import (
 	"context"
+	"runtime"
 
 	"github.com/shirou/gopsutil/internal/common"
 )
@@ -22,4 +23,8 @@ func Info() ([]InfoStat, error) {
 
 func InfoWithContext(ctx context.Context) ([]InfoStat, error) {
 	return []InfoStat{}, common.ErrNotImplementedError
+}
+
+func CountsWithContext(ctx context.Context, logical bool) (int, error) {
+	return runtime.NumCPU(), nil
 }
