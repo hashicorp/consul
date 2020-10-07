@@ -211,10 +211,8 @@ func ReadSnapshot(r io.Reader, handler func(header *SnapshotHeader, msg structs.
 	dec := codec.NewDecoder(r, structs.MsgpackHandle)
 
 	// Read in the header
-	fmt.Println("line 214! ")
 	var header SnapshotHeader
 	if err := dec.Decode(&header); err != nil {
-		fmt.Println("Error inside 216 loop")
 		return err
 	}
 

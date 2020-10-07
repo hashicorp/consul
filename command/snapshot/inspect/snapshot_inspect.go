@@ -86,11 +86,13 @@ func (c *cmd) Run(args []string) int {
 		}
 		decomp, err := gzip.NewReader(f)
 		if err != nil {
+			fmt.Errorf("failed to decompress snapshot: %v", err)
+		}
+		defer decomp.Close()
+		if err != nil {
 			c.UI.Error(fmt.Sprintf("failed to decompress snapshot: %v", err))
 			return 1
 		}
-		defer decomp.Close()
-
 		stats, err := enhance(decomp)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error verifying snapshot: %s", err))
