@@ -1,12 +1,12 @@
 {{#each @items as |item|}}
 {{#let (find-by 'id' (concat item.Namespace item.Name) @positions) as |style|}}
-  {{#if (eq item.Intention.Action 'deny')}}
+  {{#if (and (not item.Intention.Allowed) (not item.Intention.HasL7Permissions))}}
     <span class="deny" style={{{ concat 'top:' style.y 'px;left:' style.x 'px;'}}}>
       <Tooltip>
         An intention is set to 'deny' that prohibits these services from connecting.
       </Tooltip>
     </span>
-  {{else if (not item.Intention.Action)}}
+  {{else if item.Intention.HasL7Permissions}}
   <span class="L7" style={{{ concat 'top:' style.y 'px;left:' style.x 'px;'}}}>
     <Tooltip>
       The intention between these services has Layer 7 permissions, so certain requests may or may not be permitted.
