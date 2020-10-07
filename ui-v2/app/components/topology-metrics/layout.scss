@@ -102,23 +102,3 @@
   }
 }
 
-
-// Stats Section
-.stats {
-  padding: 12px;
-  display: flex;
-  flex-flow: row nowrap;
-  justify-content: space-between;
-  align-items: stretch;
-  dl {
-    display:flex;
-  }
-  dt {
-    margin-right: 5px;
-    line-height: 1.5em !important;
-  }
-  dd {
-    color: $gray-400 !important;
-    margin-right: 10px;
-  }
-}
