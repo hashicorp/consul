@@ -10,6 +10,11 @@ Command: `consul intention delete`
 
 The `intention delete` command deletes a matching intention.
 
+-> **Deprecated** - The one argument form of this command is deprecated in
+Consul 1.9.0. Intentions no longer need IDs when represented as
+[`service-intentions`](/docs/agent/config-entries/service-intentions) config
+entries.
+
 ## Usage
 
 Usage:
@@ -17,7 +22,7 @@ Usage:
 - `consul intention delete [options] SRC DST`
 - `consul intention delete [options] ID`
 
-`SRC` and `DST` can both take [several forms](/docs/commands/intention#source-and-destination-naming).
+`SRC` and `DST` can both take [several forms](/commands/intention#source-and-destination-naming).
 
 #### API Options
 

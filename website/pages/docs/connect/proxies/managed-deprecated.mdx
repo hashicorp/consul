@@ -2,7 +2,7 @@
 layout: docs
 page_title: Connect - Deprecated Managed Proxies
 description: |-
-  Consul 1.2 launched it's Connect Beta period with a feature named Managed
+  Consul 1.2 launched its Connect Beta period with a feature named Managed
   Proxies which are now deprecated. This page describes how they worked and why
   they are no longer supported.
 ---
@@ -89,7 +89,7 @@ from the agent so if the agent crashes or is restarted for an upgrade, the
 managed proxy instances will _not_ be stopped.
 
 Note that this behaviour while desirable in production might leave proxy
-processes running indefinitely if you manually stop the agent and clear it's
+processes running indefinitely if you manually stop the agent and clear its
 data dir during testing.
 
 To terminate a managed proxy cleanly you need to deregister the service that
@@ -269,7 +269,7 @@ Managed proxies have both stdout and stderr captured in log files in the agent's
 `data_dir`. They can be found in
 `<data_dir>/proxy/logs/<proxy_service_id>-std{err,out}.log`.
 
-The built-in proxy will inherit it's log level from the agent so if the agent is
+The built-in proxy will inherit its log level from the agent so if the agent is
 configured with `log_level = DEBUG`, a proxy it starts will also output `DEBUG`
 level logs showing service discovery, certificate and authorization information.
 

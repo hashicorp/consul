@@ -13,19 +13,19 @@ optionally exposing a gRPC service on the local agent that serves [Envoy's xDS
 configuration
 API](https://www.envoyproxy.io/docs/envoy/latest/api-docs/xds_protocol).
 
-Consul can configure Envoy sidecars to proxy http/1.1, http2 or gRPC traffic at
+Consul can configure Envoy sidecars to proxy http/1.1, http2, or gRPC traffic at
 L7 or any other tcp-based protocol at L4. Prior to Consul 1.5.0 Envoy proxies
 could only proxy tcp at L4.
 
 Configuration of some [L7 features](/docs/connect/l7-traffic-management)
-is possible via [configuration entries](/docs/agent/config_entries). If
+is possible via [configuration entries](/docs/agent/config-entries). If
 you wish to use an Envoy feature not currently exposed through these config
 entries as an interim solution, you can add [custom Envoy
 configuration](#advanced-configuration) in the [proxy service
 definition](/docs/connect/registration/service-registration) allowing you
 to use the more powerful features of Envoy.
 
-~> **Note:** When using Envoy with Consul and not using the [`consul connect envoy` command](/docs/commands/connect/envoy)
+~> **Note:** When using Envoy with Consul and not using the [`consul connect envoy` command](/commands/connect/envoy)
 Envoy must be run with the `--max-obj-name-len` option set to `256` or greater for Envoy versions prior to 1.11.0.
 
 ## Supported Versions
@@ -33,22 +33,27 @@ Envoy must be run with the `--max-obj-name-len` option set to `256` or greater f
 Consul's Envoy support was added in version 1.3.0. The following table shows
 compatible Envoy versions.
 
-| Consul Version      | Compatible Envoy Versions        |
-| ------------------- | -------------------------------- |
-| 1.9.x               | 1.15.0, 1.14.4, 1.13.4, 1.12.6   |
-| 1.8.x               | 1.14.4, 1.13.4, 1.12.6, 1.11.2   |
-| 1.7.x               | 1.13.1, 1.12.3, 1.11.2, 1.10.0\* |
-| 1.5.2, 1.5.3, 1.6.x | 1.11.1, 1.10.0, 1.9.1, 1.8.0†    |
-| 1.5.0, 1.5.1        | 1.9.1, 1.8.0†                    |
-| 1.3.x, 1.4.x        | 1.9.1, 1.8.0†, 1.7.0†            |
+| Consul Version      | Compatible Envoy Versions         |
+| ------------------- | --------------------------------- |
+| 1.9.x               | 1.15.0, 1.14.4‡, 1.13.4‡, 1.12.6‡ |
+| 1.8.x               | 1.14.4, 1.13.4, 1.12.6, 1.11.2    |
+| 1.7.x               | 1.13.1, 1.12.3, 1.11.2, 1.10.0\*  |
+| 1.6.x, 1.5.3, 1.5.2 | 1.11.1, 1.10.0, 1.9.1, 1.8.0†     |
+| 1.5.1, 1.5.0        | 1.9.1, 1.8.0†                     |
+| 1.4.x, 1.3.x        | 1.9.1, 1.8.0†, 1.7.0†             |
 
-~> † Envoy versions lower than 1.9.1 are vulnerable to
+~> ‡ To ensure that intention enforcement is updated as quickly as possible
+after any changes, it is advised to run Consul 1.9.0 with Envoy 1.15.0+ due to a
+[listener update improvement](https://github.com/envoyproxy/envoy/pull/10662).<br/><br/>
+† Envoy versions lower than 1.9.1 are vulnerable to
 [CVE-2019-9900](https://github.com/envoyproxy/envoy/issues/6434) and
 [CVE-2019-9901](https://github.com/envoyproxy/envoy/issues/6435). Both are
 related to HTTP request parsing and so only affect Consul Connect users if they
-have configured HTTP routing rules via the ["escape
-hatch"](#escape-hatch-overrides). Still, we recommend that you use the most
-recent supported Envoy for your Consul version where possible.<br/><br/>\* Envoy 1.10.0 requires setting [`-envoy-version`](/docs/commands/connect/envoy#envoy-version) in the `consul connect envoy` command. This was introduced in Consul 1.7.0.
+have configured HTTP routing rules. Still, we recommend that you use the most
+recent supported Envoy for your Consul version where possible.<br/><br/>
+\* Envoy 1.10.0 requires setting
+[`-envoy-version`](/commands/connect/envoy#envoy-version) in the `consul
+connect envoy` command. This was introduced in Consul 1.7.0.
 
 ## Getting Started
 
@@ -62,14 +67,15 @@ configuration_ and dynamic configuration that is discovered from a "management
 server", in this case Consul.
 
 The bootstrap configuration at a minimum needs to configure the proxy with an
-identity (node id) and the location of it's local Consul agent from which it
-discovers all of it's dynamic configuration. See [Bootstrap
+identity (node id) and the location of its local Consul agent from which it
+discovers all of its dynamic configuration. See [Bootstrap
 Configuration](#bootstrap-configuration) for more details.
 
 The dynamic configuration Consul Connect provides to each Envoy instance includes:
 
 - TLS certificates and keys to enable mutual authentication and keep certificates
   rotating.
+- [Intentions] to enforce service-to-service authorization rules.
 - Service-discovery results for upstreams to enable each sidecar proxy to load-balance
   outgoing connections.
 - L7 configuration including timeouts and protocol-specific options.
@@ -87,11 +93,21 @@ users to provide low-level raw Envoy config syntax for some sub-components in ea
 Envoy instance. This allows operators to have full control over and
 responsibility for correctly configuring Envoy and ensuring version support etc.
 
+## Intention Enforcement
+
+[Intentions] are enforced using Envoy's RBAC filters. Depending upon the
+configured [protocol] of the proxied service these are either enforced
+per-connection (L4) using a network filter or per-request (L7) using an HTTP
+filter.
+
+-> **Note:** Prior to Consul 1.9.0 intentions were exclusively enforced
+per-connection (L4) using an `ext_authz` network filter.
+
 ## Bootstrap Configuration
 
 Envoy requires an initial bootstrap configuration file. The easiest way to
 create this is using the [`consul connect envoy`
-command](/docs/commands/connect/envoy). The command can either output the
+command](/commands/connect/envoy). The command can either output the
 bootstrap configuration directly to stdout or can generate it and then `exec`
 the Envoy binary as a convenience wrapper.
 
@@ -179,7 +195,7 @@ definition](/docs/connect/registration/service-registration) that is
 actually registered.
 
 To learn about other options that can be configured centrally see the
-[Configuration Entries](/docs/agent/config_entries) docs.
+[Configuration Entries](/docs/agent/config-entries) docs.
 
 ### Proxy Config Options
 
@@ -461,12 +477,12 @@ definition](/docs/connect/registration/service-registration) or
   is used in place of [the default
   template](https://github.com/hashicorp/consul/blob/b64bda880843afaaf44591c3200f921626716849/command/connect/envoy/bootstrap_tpl.go#L87)
   when generating bootstrap via [`consul connect envoy`
-  command](/docs/commands/connect/envoy). The variables that are available
+  command](/commands/connect/envoy). The variables that are available
   to be interpolated are [documented
   here](https://github.com/hashicorp/consul/blob/b64bda880843afaaf44591c3200f921626716849/command/connect/envoy/bootstrap_tpl.go#L5).
   This offers complete control of the proxy's bootstrap although major
   deviations from the default template may break Consul's ability to correctly
-  manage the proxy or enforce it's security model.
+  manage the proxy or enforce its security model.
 - `envoy_public_listener_json` - Specifies a complete
   [Listener](https://www.envoyproxy.io/docs/envoy/v1.10.0/api-v2/api/v2/lds.proto)
   to be delivered in place of the main public listener that the proxy used to
@@ -510,3 +526,7 @@ warning.
   to be delivered in place of the discovered upstream cluster. This allows
   customization of timeouts, circuit breaking, rate limits, load balancing
   strategy etc.
+
+[protocol]: /docs/agent/config-entries/service-defaults#protocol
+[intentions]: /docs/connect/intentions
+[Intentions]: /docs/connect/intentions

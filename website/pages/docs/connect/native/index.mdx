@@ -35,7 +35,8 @@ to integrate with Connect.
 The primary work involved in natively integrating with Connect is
 [acquiring the proper TLS certificate](/api/agent/connect#service-leaf-certificate),
 [verifying TLS certificates](/api/agent/connect#certificate-authority-ca-roots),
-and [authorizing inbound connections](/api/agent/connect#authorize).
+and [authorizing inbound connections or requests](/api/connect/intentions#list-matching-intentions).
+
 All of this is done using the Consul HTTP APIs linked above.
 
 An overview of the sequence is shown below. The diagram and the following
@@ -43,6 +44,9 @@ details may seem complex, but this is a _regular mutual TLS connection_ with
 an API call to verify the incoming client certificate.
 
 ![Native Integration Overview](/img/connect-native-overview.png)
+
+-> **Note:** This diagram depicts the simpler networking layer 4 (e.g. TCP) [integration
+mechanism](/api/agent/connect#authorize).
 
 Details on the steps are below:
 
@@ -61,20 +65,32 @@ Details on the steps are below:
   a Connect-based connection and there are no further steps!
 
 - **Authorization** - As a server accepting connections, verify the client
-  certificate against the
-  [public CA roots](/api/agent/connect#certificate-authority-ca-roots).
-  After verifying the certificate, parse some basic fields from it and call
-  the [authorizing API](/api/agent/connect#authorize) against the local
-  agent. If this returns successfully, complete the TLS handshake and establish
-  the connection. If authorization fails, close the connection.
+  certificate against the [public CA
+  roots](/api/agent/connect#certificate-authority-ca-roots). After verifying
+  the certificate, parse some basic fields from it and use those to determine
+  if the connection should be allowed. How this is done is dependent on
+  the level of integration desired:
 
--> **A note on performance:** The only API call in the connection path is
-the [authorization API](/api/agent/connect#authorize). The other API
-calls to acquire the leaf certificate and CA roots are expected to be done
-out of band and reused. The authorize API call should be called against the
-local Consul agent. The agent uses locally cached
-data to authorize the connection and typically responds in microseconds.
-Therefore, the impact to the TLS handshake is typically microseconds.
+  - **Simple integration (TCP-only)** - Call the [authorizing
+    API](/api/agent/connect#authorize) against the local agent. If this returns
+    successfully, complete the TLS handshake and establish the connection. If
+    authorization fails, close the connection.
+
+    -> **NOTE:** This API call is expected to be called in the connection path,
+    so if the local Consul agent is down or unresponsive it will effect the
+    success rate of new connections. The agent uses locally cached data to
+    authorize the connection and typically responds in microseconds. Therefore,
+    the impact to the TLS handshake is typically microseconds.
+
+  - **Complete integration** - Like how the calls to acquire the leaf
+    certificate and CA roots are expected to be done out of band and reused, so
+    should the [intention match
+    API](/api/connect/intentions#list-matching-intentions). With all of the
+    relevant intentions cached for the destination, all enforcement operations
+    can be done entirely by the service without calling any Consul APIs in the
+    connection or request path. If the service is networking layer 7 (e.g.
+    HTTP) aware it can safely enforce intentions per _request_ instead of the
+    coarser per _connection_ model.
 
 ## Updating Certificates and Certificate Roots
 

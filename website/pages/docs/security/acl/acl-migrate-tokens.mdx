@@ -84,7 +84,7 @@ have.
 The simplest and most automatic strategy is to create one new policy for every
 existing token. This is easy to automate, but may result in a lot of policies
 with exactly the same rules and with non-human-readable names which will make
-managing policies harder. This approach can be accomplished using the [`consul acl policy create`](/docs/commands/acl/policy/create) command with
+managing policies harder. This approach can be accomplished using the [`consul acl policy create`](/commands/acl/policy/create) command with
 `-from-token` option.
 
 | Pros                     | Cons                                        |
@@ -113,7 +113,7 @@ semantics of the old ACL system.
 
 To assist with this approach, there is a CLI tool and corresponding API that can
 translate a legacy ACL token's rules into a new ACL policy that is exactly
-equivalent. See [`consul acl translate-rules`](/docs/commands/acl/translate-rules).
+equivalent. See [`consul acl translate-rules`](/commands/acl/translate-rules).
 
 | Pros                                              | Cons                                                               |
 | ------------------------------------------------- | ------------------------------------------------------------------ |
@@ -129,7 +129,7 @@ needed for a legacy token, you can update the token via the CLI or API to use
 those policies.
 
 After updating, the token is no longer considered "legacy" and will have all the
-properties of a new token, however it keeps it's `SecretID` (the secret part of
+properties of a new token, however it keeps its `SecretID` (the secret part of
 the token used in API calls) so clients already using that token will continue
 to work. It is assumed that the policies you attach continue to grant the
 necessary access for existing clients; this is up to the operator to ensure.
@@ -142,7 +142,7 @@ endpoint. Specifically, ensure that the `Rules` field is omitted or empty. Empty
 
 #### Update via CLI
 
-Use the [`consul acl token update`](/docs/commands/acl/token/update)
+Use the [`consul acl token update`](/commands/acl/token/update)
 command to update the token. Specifically you need to use `-upgrade-legacy`
 which will ensure that legacy rules are removed as well as the new policies
 added.

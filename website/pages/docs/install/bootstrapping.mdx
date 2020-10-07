@@ -93,10 +93,10 @@ Since a join operation is symmetric, it does not matter which node initiates it.
 
 ### Verifying the Cluster and Connect the Clients
 
-As a sanity check, the [`consul info`](/docs/commands/info) command
+As a sanity check, the [`consul info`](/commands/info) command
 is a useful tool. It can be used to verify the `raft.num_peers`
 and to view the latest log index under `raft.last_log_index`. When
-running [`consul info`](/docs/commands/info) on the followers, you
+running [`consul info`](/commands/info) on the followers, you
 should see `raft.last_log_index` converge to the same value once the
 leader begins replication. That value represents the last log entry that
 has been stored on disk.

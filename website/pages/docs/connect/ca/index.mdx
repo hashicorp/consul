@@ -50,7 +50,7 @@ Root certificates can be queried with the
 With this endpoint, you can see the list of currently trusted root certificates.
 When a cluster first initializes, this will only list one trusted root. Multiple
 roots may appear as part of
-[rotation](#).
+[rotation](#root-certificate-rotation).
 
 ```shell-session
 $ curl http://localhost:8500/v1/connect/ca/roots
