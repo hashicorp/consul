@@ -22,19 +22,6 @@
       <ConsulKind @item={{item.Service}} @withInfo={{true}} />
   </BlockSlot>
   <BlockSlot @name="nav">
-  <ServiceSparklines @service=item.Service.Service />
-  <!--
-  <DataSource
-    @src={{uri nspace dc 'metrics' 'upstream-summary-for-service' item.Service.Service}}
-    @onchange={{action (mut up_metrics) value="data"}}
-  />
-  <DataSource
-    @src={{uri nspace dc 'metrics' 'downstream-summary-for-service' item.Service.Service}}
-    @onchange={{action (mut down_metrics) value="data"}}
-  />-->
-  {{#each metrics.stats as |stat| }}
-    <div><b>{{stat.label}}:</b> {{stat.value}}</div>
-  {{/each}}
   {{#if (not-eq item.Service.Kind 'mesh-gateway')}}
     <TabNav @items={{
       compact

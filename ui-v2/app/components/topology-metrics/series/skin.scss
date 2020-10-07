@@ -1,0 +1,53 @@
+#metrics-container div .sparkline-wrapper {
+  svg path {
+    stroke-width: 0;
+  }
+
+  .tooltip {
+    padding: 5px 10px 10px 10px;
+    font-size: 0.875em;
+    line-height: 1.5em;
+    font-weight: normal;
+    border: 1px solid #BAC1CC;
+    background: #fff;
+    border-radius: 2px;
+    box-sizing: border-box;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.05), 0px 4px 4px rgba(0, 0, 0, 0.1);
+
+    .sparkline-time {
+      padding: 0;
+      font-weight: bold;
+      font-size: 14px;
+      color: #000;
+      margin-bottom: 5px;
+    }
+
+    .sparkline-tt-legend {
+      border: 0;
+    }
+  
+    .sparkline-tt-legend-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+      margin: 0 5px 0 0;
+      padding: 0;
+    }
+  }
+
+  div.tooltip:before{
+    content:'';
+    display:block;
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    left: 15px;
+    bottom: -7px;
+    border: 1px solid #BAC1CC;
+    border-top: 0;
+    border-left: 0;
+    background: #fff;
+    transform: rotate(45deg);
+  }
+}
+
