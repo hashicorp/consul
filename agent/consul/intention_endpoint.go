@@ -787,7 +787,7 @@ func (s *Intention) Check(
 	// wildcarded destination in that it is limited to L4-only.
 
 	// No match, we need to determine the default behavior. We do this by
-	// specifying the anonymous token token, which will get that behavior.
+	// fetching the default intention behavior from the resolved authorizer.
 	// The default behavior if ACLs are disabled is to allow connections
 	// to mimic the behavior of Consul itself: everything is allowed if
 	// ACLs are disabled.
