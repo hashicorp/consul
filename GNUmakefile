@@ -384,7 +384,7 @@ test-envoy-integ: $(ENVOY_INTEG_DEPS)
 test-vault-ca-provider:
 ifeq ("$(CIRCLECI)","true")
 # Run in CI
-	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report.xml" -- $(CURDIR)/agent/connect/ca/* -run 'TestVault(CA)?Provider'
+	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report.xml" -- -cover -coverprofile=coverage.txt $(CURDIR)/agent/connect/ca/* -run 'TestVault(CA)?Provider'
 else
 # Run locally
 	@echo "Running /agent/connect/ca TestVault(CA)?Provider tests in verbose mode"

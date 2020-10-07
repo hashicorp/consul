@@ -683,6 +683,7 @@ jobs:
       - run: make test-vault-ca-provider
       - store_test_results:
           path: *TEST_RESULTS_DIR
+      - run: *codecov_upload
 
 workflows:
   version: 2
