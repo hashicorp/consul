@@ -6,24 +6,24 @@ description: >-
   Consul-Terraform-Sync Architecture
 ---
 
-# Consul Terraform Sync Architecture
+# Consul-Terraform-Sync Architecture
 
-Consul Terraform Sync is a service-oriented tool for managing
+Consul-Terraform-Sync is a service-oriented tool for managing
 network infrastructure near real-time. Consul-Terraform-Sync runs as a daemon
 and integrates the network topology maintained by your Consul cluster with your
 network infrastructure to dynamically secure and connect services.
 
 ## 10,000 Foot View
 
-[![Consul Terraform Sync Architecture](/img/nia-highlevel-diagram.png)](/img/nia-highlevel-diagram.png)
+[![Consul-Terraform-Sync Architecture](/img/nia-highlevel-diagram.png)](/img/nia-highlevel-diagram.png)
 
-The diagram shows Consul Terraform Sync monitoring the Consul service catalog
+The diagram shows Consul-Terraform-Sync monitoring the Consul service catalog
 for updates and utilizing Terraform to update the state of the infrastructure.
 
 There are two principal aspects of Sync to know about corresponding to the
 lines to Consul and Terraform in the diagram above. The line to Consul
-represents the Watches monitoring the state of Consul's service catalog (and
-possibly KV store)while the line to Terraform represents Tasks being run to
+represents the Watchers monitoring the state of Consul's service catalog (and
+possibly KV store) while the line to Terraform represents Tasks being run to
 update the infrastructure.
 
 ## Watcher and Views
