@@ -3,7 +3,7 @@ const path = require('path')
 
 module.exports = withHashicorp({
   defaultLayout: true,
-  transpileModules: ['is-absolute-url', '@hashicorp/react-hashi-stack-menu'],
+  transpileModules: ['is-absolute-url', '@hashicorp/react-.*'],
   mdx: { resolveIncludes: path.join(__dirname, 'pages/partials') },
 })({
   svgo: { plugins: [{ removeViewBox: false }] },
