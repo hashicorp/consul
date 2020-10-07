@@ -140,22 +140,7 @@ func Accept4(fd, flags int) (nfd int, sa Sockaddr, err error) {
 	return
 }
 
-const ImplementsGetwd = true
-
 //sys	Getcwd(buf []byte) (n int, err error) = SYS___GETCWD
-
-func Getwd() (string, error) {
-	var buf [PathMax]byte
-	_, err := Getcwd(buf[0:])
-	if err != nil {
-		return "", err
-	}
-	n := clen(buf[:])
-	if n < 1 {
-		return "", EINVAL
-	}
-	return string(buf[:n]), nil
-}
 
 func Getfsstat(buf []Statfs_t, flags int) (n int, err error) {
 	var (
@@ -519,10 +504,6 @@ func PtraceDetach(pid int) (err error) {
 
 func PtraceGetFpRegs(pid int, fpregsout *FpReg) (err error) {
 	return ptrace(PTRACE_GETFPREGS, pid, uintptr(unsafe.Pointer(fpregsout)), 0)
-}
-
-func PtraceGetFsBase(pid int, fsbase *int64) (err error) {
-	return ptrace(PTRACE_GETFSBASE, pid, uintptr(unsafe.Pointer(fsbase)), 0)
 }
 
 func PtraceGetRegs(pid int, regsout *Reg) (err error) {

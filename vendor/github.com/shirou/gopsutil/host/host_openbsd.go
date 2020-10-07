@@ -8,15 +8,12 @@ import (
 	"encoding/binary"
 	"io/ioutil"
 	"os"
-	"os/exec"
-	"runtime"
-	"strconv"
 	"strings"
-	"time"
 	"unsafe"
 
 	"github.com/shirou/gopsutil/internal/common"
 	"github.com/shirou/gopsutil/process"
+	"golang.org/x/sys/unix"
 )
 
 const (
@@ -25,117 +22,37 @@ const (
 	UTHostSize = 16
 )
 
-func Info() (*InfoStat, error) {
-	return InfoWithContext(context.Background())
+func HostIDWithContext(ctx context.Context) (string, error) {
+	return "", common.ErrNotImplementedError
 }
 
-func InfoWithContext(ctx context.Context) (*InfoStat, error) {
-	ret := &InfoStat{
-		OS:             runtime.GOOS,
-		PlatformFamily: "openbsd",
-	}
-
-	hostname, err := os.Hostname()
-	if err == nil {
-		ret.Hostname = hostname
-	}
-
-	platform, family, version, err := PlatformInformation()
-	if err == nil {
-		ret.Platform = platform
-		ret.PlatformFamily = family
-		ret.PlatformVersion = version
-	}
-	system, role, err := Virtualization()
-	if err == nil {
-		ret.VirtualizationSystem = system
-		ret.VirtualizationRole = role
-	}
-
-	procs, err := process.Pids()
-	if err == nil {
-		ret.Procs = uint64(len(procs))
-	}
-
-	boot, err := BootTime()
-	if err == nil {
-		ret.BootTime = boot
-		ret.Uptime = uptime(boot)
-	}
-
-	return ret, nil
-}
-
-func BootTime() (uint64, error) {
-	return BootTimeWithContext(context.Background())
-}
-
-func BootTimeWithContext(ctx context.Context) (uint64, error) {
-	val, err := common.DoSysctrl("kern.boottime")
+func numProcs(ctx context.Context) (uint64, error) {
+	procs, err := process.PidsWithContext(ctx)
 	if err != nil {
 		return 0, err
 	}
-
-	boottime, err := strconv.ParseUint(val[0], 10, 64)
-	if err != nil {
-		return 0, err
-	}
-
-	return boottime, nil
-}
-
-func uptime(boot uint64) uint64 {
-	return uint64(time.Now().Unix()) - boot
-}
-
-func Uptime() (uint64, error) {
-	return UptimeWithContext(context.Background())
-}
-
-func UptimeWithContext(ctx context.Context) (uint64, error) {
-	boot, err := BootTime()
-	if err != nil {
-		return 0, err
-	}
-	return uptime(boot), nil
-}
-
-func PlatformInformation() (string, string, string, error) {
-	return PlatformInformationWithContext(context.Background())
+	return uint64(len(procs)), nil
 }
 
 func PlatformInformationWithContext(ctx context.Context) (string, string, string, error) {
 	platform := ""
 	family := ""
 	version := ""
-	uname, err := exec.LookPath("uname")
-	if err != nil {
-		return "", "", "", err
-	}
 
-	out, err := invoke.CommandWithContext(ctx, uname, "-s")
+	p, err := unix.Sysctl("kern.ostype")
 	if err == nil {
-		platform = strings.ToLower(strings.TrimSpace(string(out)))
+		platform = strings.ToLower(p)
 	}
-
-	out, err = invoke.CommandWithContext(ctx, uname, "-r")
+	v, err := unix.Sysctl("kern.osrelease")
 	if err == nil {
-		version = strings.ToLower(strings.TrimSpace(string(out)))
+		version = strings.ToLower(v)
 	}
 
 	return platform, family, version, nil
 }
 
-func Virtualization() (string, string, error) {
-	return VirtualizationWithContext(context.Background())
-}
-
 func VirtualizationWithContext(ctx context.Context) (string, string, error) {
 	return "", "", common.ErrNotImplementedError
-}
-
-func Users() ([]UserStat, error) {
-	return UsersWithContext(context.Background())
 }
 
 func UsersWithContext(ctx context.Context) ([]UserStat, error) {
@@ -177,19 +94,11 @@ func UsersWithContext(ctx context.Context) ([]UserStat, error) {
 	return ret, nil
 }
 
-func SensorsTemperatures() ([]TemperatureStat, error) {
-	return SensorsTemperaturesWithContext(context.Background())
-}
-
 func SensorsTemperaturesWithContext(ctx context.Context) ([]TemperatureStat, error) {
 	return []TemperatureStat{}, common.ErrNotImplementedError
 }
 
-func KernelVersion() (string, error) {
-	return KernelVersionWithContext(context.Background())
-}
-
 func KernelVersionWithContext(ctx context.Context) (string, error) {
-	_, _, version, err := PlatformInformation()
+	_, _, version, err := PlatformInformationWithContext(ctx)
 	return version, err
 }

@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"reflect"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"unsafe"
@@ -25,7 +26,7 @@ var cpuTimesSize int
 var emptyTimes cpuTimes
 
 func init() {
-	getconf, err := exec.LookPath("/usr/bin/getconf")
+	getconf, err := exec.LookPath("getconf")
 	if err != nil {
 		return
 	}
@@ -165,4 +166,8 @@ func parseDmesgBoot(fileName string) (InfoStat, int, error) {
 	}
 
 	return c, cpuNum, nil
+}
+
+func CountsWithContext(ctx context.Context, logical bool) (int, error) {
+	return runtime.NumCPU(), nil
 }
