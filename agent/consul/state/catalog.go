@@ -3,6 +3,8 @@ package state
 import (
 	"errors"
 	"fmt"
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/connect"
 	"reflect"
 	"strings"
 

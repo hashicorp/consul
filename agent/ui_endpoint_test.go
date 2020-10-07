@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
 	"github.com/stretchr/testify/assert"
@@ -940,7 +941,7 @@ func TestUIServiceTopology(t *testing.T) {
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
-	// Register api -> web -> redis
+	// Register ingress -> api -> web -> redis
 	{
 		registrations := map[string]*structs.RegisterRequest{
 			"Node edge": {
