@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -135,19 +136,44 @@ func (s *HTTPHandlers) IntentionMatch(resp http.ResponseWriter, req *http.Reques
 		}
 	}
 
-	var reply structs.IndexedIntentionMatches
-	if err := s.agent.RPC("Intention.Match", args, &reply); err != nil {
-		return nil, err
+	// Make the RPC request
+	var out structs.IndexedIntentionMatches
+	defer setMeta(resp, &out.QueryMeta)
+
+	if s.agent.config.HTTPUseCache && args.QueryOptions.UseCache {
+		raw, m, err := s.agent.cache.Get(req.Context(), cachetype.IntentionMatchName, args)
+		if err != nil {
+			return nil, err
+		}
+		defer setCacheMeta(resp, &m)
+
+		reply, ok := raw.(*structs.IndexedIntentionMatches)
+		if !ok {
+			// This should never happen, but we want to protect against panics
+			return nil, fmt.Errorf("internal error: response type not correct")
+		}
+		out = *reply
+	} else {
+	RETRY_ONCE:
+		if err := s.agent.RPC("Intention.Match", args, &out); err != nil {
+			return nil, err
+		}
+		if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
+			args.AllowStale = false
+			args.MaxStaleDuration = 0
+			goto RETRY_ONCE
+		}
 	}
+	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
 
 	// We must have an identical count of matches
-	if len(reply.Matches) != len(names) {
+	if len(out.Matches) != len(names) {
 		return nil, fmt.Errorf("internal error: match response count didn't match input count")
 	}
 
 	// Use empty list instead of nil.
 	response := make(map[string]structs.Intentions)
-	for i, ixns := range reply.Matches {
+	for i, ixns := range out.Matches {
 		response[names[i]] = ixns
 	}
 

@@ -178,6 +178,46 @@ func TestIntentionMatch(t *testing.T) {
 
 		require.Equal(t, expected, actual)
 	})
+
+	t.Run("success with cache", func(t *testing.T) {
+		// First request is a MISS, but it primes the cache for the second attempt
+		for i := 0; i < 2; i++ {
+			req, err := http.NewRequest("GET", "/v1/connect/intentions/match?by=destination&name=bar&cached", nil)
+			require.NoError(t, err)
+
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.IntentionMatch(resp, req)
+			require.NoError(t, err)
+
+			// The GET request primes the cache so the POST is a hit.
+			if i == 0 {
+				// Should be a cache miss
+				require.Equal(t, "MISS", resp.Header().Get("X-Cache"))
+			} else {
+				// Should be a cache HIT now!
+				require.Equal(t, "HIT", resp.Header().Get("X-Cache"))
+			}
+
+			value := obj.(map[string]structs.Intentions)
+			require.Len(t, value, 1)
+
+			var actual [][]string
+			expected := [][]string{
+				{"default", "*", "default", "bar"},
+				{"default", "*", "default", "*"},
+			}
+			for _, ixn := range value["bar"] {
+				actual = append(actual, []string{
+					ixn.SourceNS,
+					ixn.SourceName,
+					ixn.DestinationNS,
+					ixn.DestinationName,
+				})
+			}
+
+			require.Equal(t, expected, actual)
+		}
+	})
 }
 
 func TestIntentionCheck(t *testing.T) {
