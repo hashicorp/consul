@@ -2,7 +2,6 @@ package consul
 
 import (
 	"encoding/base64"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"os"
 	"strings"
 	"testing"
@@ -11,6 +10,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib/stringslice"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
@@ -1646,9 +1646,9 @@ func TestInternal_ServiceTopology(t *testing.T) {
 
 			expectUp := map[string]structs.IntentionDecisionSummary{
 				web.String(): {
-					Allowed:          false,
-					HasL7Permissions: false,
-					ExternalSource:   "nomad",
+					Allowed:        false,
+					HasPermissions: false,
+					ExternalSource: "nomad",
 				},
 			}
 			require.Equal(r, expectUp, out.ServiceTopology.UpstreamDecisions)
@@ -1670,9 +1670,9 @@ func TestInternal_ServiceTopology(t *testing.T) {
 
 			expectDown := map[string]structs.IntentionDecisionSummary{
 				api.String(): {
-					Allowed:          false,
-					HasL7Permissions: false,
-					ExternalSource:   "nomad",
+					Allowed:        false,
+					HasPermissions: false,
+					ExternalSource: "nomad",
 				},
 			}
 			require.Equal(r, expectDown, out.ServiceTopology.DownstreamDecisions)
@@ -1682,8 +1682,8 @@ func TestInternal_ServiceTopology(t *testing.T) {
 
 			expectUp := map[string]structs.IntentionDecisionSummary{
 				redis.String(): {
-					Allowed:          false,
-					HasL7Permissions: true,
+					Allowed:        false,
+					HasPermissions: true,
 				},
 			}
 			require.Equal(r, expectUp, out.ServiceTopology.UpstreamDecisions)
@@ -1707,8 +1707,8 @@ func TestInternal_ServiceTopology(t *testing.T) {
 
 			expectDown := map[string]structs.IntentionDecisionSummary{
 				web.String(): {
-					Allowed:          false,
-					HasL7Permissions: true,
+					Allowed:        false,
+					HasPermissions: true,
 				},
 			}
 			require.Equal(r, expectDown, out.ServiceTopology.DownstreamDecisions)

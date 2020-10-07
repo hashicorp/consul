@@ -168,10 +168,6 @@ func (m *Internal) ServiceTopology(args *structs.ServiceSpecificRequest, reply *
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			authz, err := m.srv.ResolveToken("")
-			if err != nil {
-				return err
-			}
 			defaultAllow := acl.Allow
 			if authz != nil {
 				defaultAllow = authz.IntentionDefaultAllow(nil)

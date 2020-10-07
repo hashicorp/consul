@@ -795,10 +795,6 @@ func (s *Intention) Check(
 	// NOTE(mitchellh): This is the same behavior as the agent authorize
 	// endpoint. If this behavior is incorrect, we should also change it there
 	// which is much more important.
-	authz, err = s.srv.ResolveToken("")
-	if err != nil {
-		return err
-	}
 	defaultDecision := acl.Allow
 	if authz != nil {
 		defaultDecision = authz.IntentionDefaultAllow(nil)

@@ -3,10 +3,10 @@ package state
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/connect"
 	"sort"
 
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
 )
@@ -496,7 +496,7 @@ func (s *Store) IntentionDecision(
 		// If there are L7 permissions, DENY.
 		// We are only evaluating source and destination, not the request that will be sent.
 		resp.Allowed = false
-		resp.HasL7Permissions = true
+		resp.HasPermissions = true
 	}
 	resp.ExternalSource = ixnMatch.Meta[structs.MetaExternalSource]
 

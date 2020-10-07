@@ -1,11 +1,11 @@
 package state
 
 import (
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/connect"
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/go-memdb"
@@ -1085,6 +1085,9 @@ func TestStore_LegacyIntention_Snapshot_Restore(t *testing.T) {
 	}()
 }
 
+// Note: This test does not have an equivalent with legacy intentions as an input.
+// That's because the config vs legacy split is handled by store.IntentionMatch
+// which has its own tests
 func TestStore_IntentionDecision(t *testing.T) {
 	// web to redis allowed and with permissions
 	// api to redis denied and without perms (so redis has multiple matches as destination)
@@ -1131,14 +1134,10 @@ func TestStore_IntentionDecision(t *testing.T) {
 		},
 	}
 
-	s := testStateStore(t)
+	s := testConfigStateStore(t)
 	for _, entry := range entries {
 		require.NoError(t, s.EnsureConfigEntry(1, entry, nil))
 	}
-	require.NoError(t, s.SystemMetadataSet(2, &structs.SystemMetadataEntry{
-		Key:   structs.SystemMetadataIntentionFormatKey,
-		Value: structs.SystemMetadataIntentionFormatConfigValue,
-	}))
 
 	tt := []struct {
 		name            string
@@ -1166,8 +1165,8 @@ func TestStore_IntentionDecision(t *testing.T) {
 			src:  "web",
 			dst:  "redis",
 			expect: structs.IntentionDecisionSummary{
-				Allowed:          false,
-				HasL7Permissions: true,
+				Allowed:        false,
+				HasPermissions: true,
 			},
 		},
 		{
@@ -1175,8 +1174,8 @@ func TestStore_IntentionDecision(t *testing.T) {
 			src:  "api",
 			dst:  "redis",
 			expect: structs.IntentionDecisionSummary{
-				Allowed:          false,
-				HasL7Permissions: false,
+				Allowed:        false,
+				HasPermissions: false,
 			},
 		},
 		{
@@ -1184,9 +1183,9 @@ func TestStore_IntentionDecision(t *testing.T) {
 			src:  "api",
 			dst:  "web",
 			expect: structs.IntentionDecisionSummary{
-				Allowed:          true,
-				HasL7Permissions: false,
-				ExternalSource:   "nomad",
+				Allowed:        true,
+				HasPermissions: false,
+				ExternalSource: "nomad",
 			},
 		},
 	}
