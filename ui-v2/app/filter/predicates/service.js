@@ -6,8 +6,8 @@ export default () => ({ instances = [], sources = [], statuses = [], types = [] 
     'terminating-gateway',
     'mesh-gateway',
     'service',
-    'mesh-enabled',
-    'mesh-disabled',
+    'in-mesh',
+    'not-in-mesh',
   ].reduce((prev, item) => {
     prev[item] = types.includes(item);
     return prev;
@@ -48,11 +48,15 @@ export default () => ({ instances = [], sources = [], statuses = [], types = [] 
       if (typeIncludes['service'] && typeof item.Kind === 'undefined') {
         return true;
       }
-      if (typeIncludes['mesh-enabled'] && typeof item.Proxy !== 'undefined') {
-        return true;
+      if (typeIncludes['in-mesh']) {
+        if (item.InMesh) {
+          return true;
+        }
       }
-      if (typeIncludes['mesh-disabled'] && typeof item.Proxy === 'undefined') {
-        return true;
+      if (typeIncludes['not-in-mesh']) {
+        if (!item.InMesh) {
+          return true;
+        }
       }
       return false;
     }
