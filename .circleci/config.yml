@@ -814,6 +814,7 @@ jobs:
             make test-connect-ca-providers
       - store_test_results:
           path: *TEST_RESULTS_DIR
+      - run: *codecov_upload
       - run: *notify-slack-failure
 
   # only runs on master: checks latest commit to see if the PR associated has a backport/* or docs* label to cherry-pick
