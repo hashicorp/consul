@@ -7,7 +7,7 @@ export default RepositoryService.extend({
   findByService: function(slug, dc, nspace, configuration = {}) {
     const query = {
       dc: dc,
-      nspace: nspace,
+      ns: nspace,
       id: slug,
     };
     if (typeof configuration.cursor !== 'undefined') {
