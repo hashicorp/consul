@@ -1,0 +1,6 @@
+```release-note:feature
+connect: support defining intentions using layer 7 criteria
+```
+```release-note:breaking-change
+xds: Drop support for Envoy versions 1.12.0, 1.12.1, 1.12.2, and 1.13.0, due to a lack of support for url_path in RBAC.
+```

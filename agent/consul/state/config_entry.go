@@ -324,7 +324,7 @@ func insertConfigEntryWithTxn(tx *txn, idx uint64, conf structs.ConfigEntry) err
 func validateProposedConfigEntryInGraph(
 	tx ReadTxn,
 	kind, name string,
-	next structs.ConfigEntry,
+	proposedEntry structs.ConfigEntry,
 	entMeta *structs.EnterpriseMeta,
 ) error {
 	validateAllChains := false
@@ -350,14 +350,11 @@ func validateProposedConfigEntryInGraph(
 			return err
 		}
 	case structs.ServiceIntentions:
-		// TODO(rb): should this validate protocols?
-		return nil
-
 	default:
 		return fmt.Errorf("unhandled kind %q during validation of %q", kind, name)
 	}
 
-	return validateProposedConfigEntryInServiceGraph(tx, kind, name, next, validateAllChains, entMeta)
+	return validateProposedConfigEntryInServiceGraph(tx, kind, name, proposedEntry, validateAllChains, entMeta)
 }
 
 func checkGatewayClash(
@@ -475,7 +472,7 @@ func (s *Store) discoveryChainSourcesTxn(tx ReadTxn, ws memdb.WatchSet, dc strin
 func validateProposedConfigEntryInServiceGraph(
 	tx ReadTxn,
 	kind, name string,
-	next structs.ConfigEntry,
+	proposedEntry structs.ConfigEntry,
 	validateAllChains bool,
 	entMeta *structs.EnterpriseMeta,
 ) error {
@@ -484,6 +481,7 @@ func validateProposedConfigEntryInServiceGraph(
 	var (
 		checkChains                  = make(map[structs.ServiceID]struct{})
 		checkIngress                 []*structs.IngressGatewayConfigEntry
+		checkIntentions              []*structs.ServiceIntentionsConfigEntry
 		enforceIngressProtocolsMatch bool
 	)
 
@@ -503,11 +501,11 @@ func validateProposedConfigEntryInServiceGraph(
 			}
 		}
 
-		_, entries, err := configEntriesByKindTxn(tx, nil, structs.IngressGateway, structs.WildcardEnterpriseMeta())
+		_, ingressEntries, err := configEntriesByKindTxn(tx, nil, structs.IngressGateway, structs.WildcardEnterpriseMeta())
 		if err != nil {
 			return err
 		}
-		for _, entry := range entries {
+		for _, entry := range ingressEntries {
 			ingress, ok := entry.(*structs.IngressGatewayConfigEntry)
 			if !ok {
 				return fmt.Errorf("type %T is not an ingress gateway config entry", entry)
@@ -515,17 +513,43 @@ func validateProposedConfigEntryInServiceGraph(
 			checkIngress = append(checkIngress, ingress)
 		}
 
+		_, ixnEntries, err := configEntriesByKindTxn(tx, nil, structs.ServiceIntentions, structs.WildcardEnterpriseMeta())
+		if err != nil {
+			return err
+		}
+		for _, entry := range ixnEntries {
+			ixn, ok := entry.(*structs.ServiceIntentionsConfigEntry)
+			if !ok {
+				return fmt.Errorf("type %T is not a service intentions config entry", entry)
+			}
+			checkIntentions = append(checkIntentions, ixn)
+		}
+
+	} else if kind == structs.ServiceIntentions {
+		// Check that the protocols match.
+
+		// This is the case for deleting a config entry
+		if proposedEntry == nil {
+			return nil
+		}
+
+		ixn, ok := proposedEntry.(*structs.ServiceIntentionsConfigEntry)
+		if !ok {
+			return fmt.Errorf("type %T is not a service intentions config entry", proposedEntry)
+		}
+		checkIntentions = append(checkIntentions, ixn)
+
 	} else if kind == structs.IngressGateway {
 		// Checking an ingress pointing to multiple chains.
 
 		// This is the case for deleting a config entry
-		if next == nil {
+		if proposedEntry == nil {
 			return nil
 		}
 
-		ingress, ok := next.(*structs.IngressGatewayConfigEntry)
+		ingress, ok := proposedEntry.(*structs.IngressGatewayConfigEntry)
 		if !ok {
-			return fmt.Errorf("type %T is not an ingress gateway config entry", next)
+			return fmt.Errorf("type %T is not an ingress gateway config entry", proposedEntry)
 		}
 		checkIngress = append(checkIngress, ingress)
 
@@ -535,6 +559,28 @@ func validateProposedConfigEntryInServiceGraph(
 
 	} else {
 		// Must be a single chain.
+
+		// Check to see if we should ensure L7 intentions have an L7 protocol.
+		_, ixn, err := getServiceIntentionsConfigEntryTxn(
+			tx, nil, name, nil, entMeta,
+		)
+		if err != nil {
+			return err
+		} else if ixn != nil {
+			checkIntentions = append(checkIntentions, ixn)
+		}
+
+		_, ixnEntries, err := configEntriesByKindTxn(tx, nil, structs.ServiceIntentions, structs.WildcardEnterpriseMeta())
+		if err != nil {
+			return err
+		}
+		for _, entry := range ixnEntries {
+			ixn, ok := entry.(*structs.ServiceIntentionsConfigEntry)
+			if !ok {
+				return fmt.Errorf("type %T is not a service intentions config entry", entry)
+			}
+			checkIntentions = append(checkIntentions, ixn)
+		}
 
 		sid := structs.NewServiceID(name, entMeta)
 		checkChains[sid] = struct{}{}
@@ -559,16 +605,20 @@ func validateProposedConfigEntryInServiceGraph(
 		}
 	}
 
-	// Ensure if any ingress is affected that we fetch all of the chains needed
-	// to fully validate that ingress.
+	// Ensure if any ingress or intention is affected that we fetch all of the
+	// chains needed to fully validate them.
 	for _, ingress := range checkIngress {
 		for _, svcID := range ingress.ListRelatedServices() {
 			checkChains[svcID] = struct{}{}
 		}
 	}
+	for _, ixn := range checkIntentions {
+		sn := ixn.DestinationServiceName()
+		checkChains[sn.ToServiceID()] = struct{}{}
+	}
 
 	overrides := map[structs.ConfigEntryKindName]structs.ConfigEntry{
-		structs.NewConfigEntryKindName(kind, name, entMeta): next,
+		structs.NewConfigEntryKindName(kind, name, entMeta): proposedEntry,
 	}
 
 	var (
@@ -616,6 +666,25 @@ func validateProposedConfigEntryInServiceGraph(
 					}
 				}
 			}
+		}
+	}
+
+	// Now validate that intentions with L7 permissions reference HTTP services
+	for _, e := range checkIntentions {
+		// We only have to double check things that try to use permissions
+		if e.HasWildcardDestination() || !e.HasAnyPermissions() {
+			continue
+		}
+		sn := e.DestinationServiceName()
+		svcID := sn.ToServiceID()
+
+		svcProto := svcProtocols[svcID]
+		if !structs.IsProtocolHTTPLike(svcProto) {
+			return fmt.Errorf(
+				"service %q has protocol %q, which is incompatible with L7 intentions permissions",
+				svcID.String(),
+				svcProto,
+			)
 		}
 	}
 

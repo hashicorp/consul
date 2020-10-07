@@ -55,7 +55,14 @@ type Intention struct {
 	SourceType IntentionSourceType
 
 	// Action is whether this is an allowlist or denylist intention.
-	Action IntentionAction
+	Action IntentionAction `json:",omitempty"`
+
+	// Permissions is the list of additional L7 attributes that extend the
+	// intention definition.
+	//
+	// NOTE: This field is not editable unless editing the underlying
+	// service-intentions config entry directly.
+	Permissions []*IntentionPermission `bexpr:"-" json:",omitempty"`
 
 	// DefaultAddr is not used.
 	// Deprecated: DefaultAddr is not used and may be removed in a future version.
@@ -77,10 +84,11 @@ type Intention struct {
 	// or modified.
 	CreatedAt, UpdatedAt time.Time `mapstructure:"-" bexpr:"-"`
 
-	// Hash of the contents of the intention
+	// Hash of the contents of the intention. This is only necessary for legacy
+	// intention replication purposes.
 	//
-	// This is needed mainly for replication purposes. When replicating from
-	// one DC to another keeping the content Hash will allow us to detect
+	// This is needed mainly for legacy replication purposes. When replicating
+	// from one DC to another keeping the content Hash will allow us to detect
 	// content changes more efficiently than checking every single field
 	Hash []byte `bexpr:"-" json:",omitempty"`
 
@@ -89,6 +97,12 @@ type Intention struct {
 
 func (t *Intention) Clone() *Intention {
 	t2 := *t
+	if len(t.Permissions) > 0 {
+		t2.Permissions = make([]*IntentionPermission, 0, len(t.Permissions))
+		for _, perm := range t.Permissions {
+			t2.Permissions = append(t2.Permissions, perm.Clone())
+		}
+	}
 	t2.Meta = cloneStringStringMap(t.Meta)
 	t2.Hash = nil
 	return &t2
@@ -267,6 +281,11 @@ func (x *Intention) Validate() error {
 			"Action must be set to 'allow' or 'deny'"))
 	}
 
+	if len(x.Permissions) > 0 {
+		result = multierror.Append(result, fmt.Errorf(
+			"Permissions must not be set when using the legacy APIs"))
+	}
+
 	switch x.SourceType {
 	case IntentionSourceConsul:
 	default:
@@ -365,11 +384,25 @@ func (x *Intention) countExact(ns, n string) int {
 
 // String returns a human-friendly string for this intention.
 func (x *Intention) String() string {
-	return fmt.Sprintf("%s %s/%s => %s/%s (ID: %s, Precedence: %d)",
-		strings.ToUpper(string(x.Action)),
+	var idPart string
+	if x.ID != "" {
+		idPart = "ID: " + x.ID + ", "
+	}
+
+	var detailPart string
+	if len(x.Permissions) > 0 {
+		detailPart = fmt.Sprintf("Permissions: %d", len(x.Permissions))
+	} else {
+		detailPart = "Action: " + strings.ToUpper(string(x.Action))
+	}
+
+	return fmt.Sprintf("%s/%s => %s/%s (%sPrecedence: %d, %s)",
 		x.SourceNS, x.SourceName,
 		x.DestinationNS, x.DestinationName,
-		x.ID, x.Precedence)
+		idPart,
+		x.Precedence,
+		detailPart,
+	)
 }
 
 // LegacyEstimateSize returns an estimate (in bytes) of the size of this structure when encoded.
@@ -397,21 +430,22 @@ func (x *Intention) DestinationServiceName() ServiceName {
 
 // NOTE this is just used to manipulate user-provided data before an insert
 // The RPC execution will do Normalize + Validate for us.
-func (x *Intention) ToConfigEntry() *ServiceIntentionsConfigEntry {
+func (x *Intention) ToConfigEntry(legacy bool) *ServiceIntentionsConfigEntry {
 	return &ServiceIntentionsConfigEntry{
 		Kind:           ServiceIntentions,
 		Name:           x.DestinationName,
 		EnterpriseMeta: *x.DestinationEnterpriseMeta(),
-		Sources:        []*SourceIntention{x.ToSourceIntention()},
+		Sources:        []*SourceIntention{x.ToSourceIntention(legacy)},
 	}
 }
 
-func (x *Intention) ToSourceIntention() *SourceIntention {
-	return &SourceIntention{
+func (x *Intention) ToSourceIntention(legacy bool) *SourceIntention {
+	src := &SourceIntention{
 		Name:             x.SourceName,
 		EnterpriseMeta:   *x.SourceEnterpriseMeta(),
 		Action:           x.Action,
-		Precedence:       0, // Ignore, let it be computed.
+		Permissions:      nil, // explicitly not symmetric with the old APIs
+		Precedence:       0,   // Ignore, let it be computed.
 		LegacyID:         x.ID,
 		Type:             x.SourceType,
 		Description:      x.Description,
@@ -419,6 +453,10 @@ func (x *Intention) ToSourceIntention() *SourceIntention {
 		LegacyCreateTime: nil, // Ignore
 		LegacyUpdateTime: nil, // Ignore
 	}
+	if !legacy {
+		src.Permissions = x.Permissions
+	}
+	return src
 }
 
 // IntentionAction is the action that the intention represents. This

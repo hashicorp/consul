@@ -383,6 +383,16 @@ func (s *Server) replicateLegacyIntentionsOnce(ctx context.Context, lastFetchInd
 		return 0, false, err
 	}
 
+	// Do a quick sanity check that somehow Permissions didn't slip through.
+	// This shouldn't be necessary, but one extra check isn't going to hurt
+	// anything.
+	for _, ixn := range local {
+		if len(ixn.Permissions) > 0 {
+			// Assume that the data origin has switched to config entries.
+			return 0, true, nil
+		}
+	}
+
 	// Compute the diff between the remote and local intentions.
 	deletes, updates := diffIntentions(local, remote.Intentions)
 	txnOpSets := batchLegacyIntentionUpdates(deletes, updates)

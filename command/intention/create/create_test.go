@@ -174,6 +174,47 @@ func TestIntentionCreate_File(t *testing.T) {
 	require.Equal(api.IntentionActionAllow, ixns[0].Action)
 }
 
+func TestIntentionCreate_File_L7_fails(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	a := agent.NewTestAgent(t, ``)
+	defer a.Shutdown()
+
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	ui := cli.NewMockUi()
+	c := New(ui)
+
+	contents := `
+{
+  "SourceName": "foo",
+  "DestinationName": "bar",
+  "Permissions": [
+    {
+      "Action": "allow",
+      "HTTP": {
+        "PathExact": "/foo"
+      }
+    }
+  ]
+}
+	`
+	f := testutil.TempFile(t, "intention-create-command-file")
+	if _, err := f.WriteString(contents); err != nil {
+		t.Fatalf("err: %#v", err)
+	}
+
+	args := []string{
+		"-http-addr=" + a.HTTPAddr(),
+		"-file",
+		f.Name(),
+	}
+
+	require.Equal(1, c.Run(args), ui.ErrorWriter.String())
+	require.Contains(ui.ErrorWriter.String(), "cannot create L7 intention from file")
+}
+
 func TestIntentionCreate_FileNoExist(t *testing.T) {
 	t.Parallel()
 

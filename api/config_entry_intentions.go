@@ -17,8 +17,9 @@ type ServiceIntentionsConfigEntry struct {
 
 type SourceIntention struct {
 	Name        string
-	Namespace   string `json:",omitempty"`
-	Action      IntentionAction
+	Namespace   string                 `json:",omitempty"`
+	Action      IntentionAction        `json:",omitempty"`
+	Permissions []*IntentionPermission `json:",omitempty"`
 	Precedence  int
 	Type        IntentionSourceType
 	Description string `json:",omitempty"`
@@ -51,4 +52,29 @@ func (e *ServiceIntentionsConfigEntry) GetCreateIndex() uint64 {
 
 func (e *ServiceIntentionsConfigEntry) GetModifyIndex() uint64 {
 	return e.ModifyIndex
+}
+
+type IntentionPermission struct {
+	Action IntentionAction
+	HTTP   *IntentionHTTPPermission `json:",omitempty"`
+}
+
+type IntentionHTTPPermission struct {
+	PathExact  string `json:",omitempty" alias:"path_exact"`
+	PathPrefix string `json:",omitempty" alias:"path_prefix"`
+	PathRegex  string `json:",omitempty" alias:"path_regex"`
+
+	Header []IntentionHTTPHeaderPermission `json:",omitempty"`
+
+	Methods []string `json:",omitempty"`
+}
+
+type IntentionHTTPHeaderPermission struct {
+	Name    string
+	Present bool   `json:",omitempty"`
+	Exact   string `json:",omitempty"`
+	Prefix  string `json:",omitempty"`
+	Suffix  string `json:",omitempty"`
+	Regex   string `json:",omitempty"`
+	Invert  bool   `json:",omitempty"`
 }
