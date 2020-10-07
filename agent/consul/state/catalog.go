@@ -2542,8 +2542,13 @@ func updateGatewayServices(tx *txn, idx uint64, conf structs.ConfigEntry, entMet
 	}
 
 	// Delete all associated with gateway first, to avoid keeping mappings that were removed
-	if _, err := tx.DeleteAll(gatewayServicesTableName, "gateway", structs.NewServiceName(conf.GetName(), entMeta)); err != nil {
+	sn := structs.NewServiceName(conf.GetName(), entMeta)
+
+	if _, err := tx.DeleteAll(gatewayServicesTableName, "gateway", sn); err != nil {
 		return fmt.Errorf("failed to truncate gateway services table: %v", err)
+	}
+	if err := truncateGatewayServiceTopologyMappings(tx, idx, sn, conf.GetKind()); err != nil {
+		return fmt.Errorf("failed to truncate mesh topology for gateway: %v", err)
 	}
 
 	for _, svc := range gatewayServices {
@@ -2734,6 +2739,10 @@ func updateGatewayService(tx *txn, idx uint64, mapping *structs.GatewayService) 
 	if err := indexUpdateMaxTxn(tx, idx, gatewayServicesTableName); err != nil {
 		return fmt.Errorf("failed updating gateway-services index: %v", err)
 	}
+
+	if err := insertGatewayServiceTopologyMapping(tx, idx, mapping); err != nil {
+		return fmt.Errorf("failed to reconcile mesh topology for gateway: %v", err)
+	}
 	return nil
 }
 
@@ -2784,6 +2793,9 @@ func cleanupGatewayWildcards(tx *txn, idx uint64, svc *structs.ServiceNode) erro
 				}
 				if err := indexUpdateMaxTxn(tx, idx, gatewayServicesTableName); err != nil {
 					return fmt.Errorf("failed updating gateway-services index: %v", err)
+				}
+				if err := deleteGatewayServiceTopologyMapping(tx, idx, gs); err != nil {
+					return fmt.Errorf("failed to reconcile mesh topology for gateway: %v", err)
 				}
 			}
 		}
@@ -3227,5 +3239,58 @@ func cleanupMeshTopology(tx *txn, idx uint64, service *structs.ServiceNode) erro
 			}
 		}
 	}
+	return nil
+}
+
+func insertGatewayServiceTopologyMapping(tx *txn, idx uint64, gs *structs.GatewayService) error {
+	// Only ingress gateways are standalone items in the mesh topology viz
+	if gs.GatewayKind != structs.ServiceKindIngressGateway || gs.Service.Name == structs.WildcardSpecifier {
+		return nil
+	}
+
+	mapping := structs.UpstreamDownstream{
+		Upstream:   gs.Service,
+		Downstream: gs.Gateway,
+		RaftIndex:  gs.RaftIndex,
+	}
+	if err := tx.Insert(topologyTableName, &mapping); err != nil {
+		return fmt.Errorf("failed inserting %s mapping: %s", topologyTableName, err)
+	}
+	if err := indexUpdateMaxTxn(tx, idx, topologyTableName); err != nil {
+		return fmt.Errorf("failed updating %s index: %v", topologyTableName, err)
+	}
+
+	return nil
+}
+
+func deleteGatewayServiceTopologyMapping(tx *txn, idx uint64, gs *structs.GatewayService) error {
+	// Only ingress gateways are standalone items in the mesh topology viz
+	if gs.GatewayKind != structs.ServiceKindIngressGateway {
+		return nil
+	}
+
+	if _, err := tx.DeleteAll(topologyTableName, "id", gs.Service, gs.Gateway); err != nil {
+		return fmt.Errorf("failed to truncate %s table: %v", topologyTableName, err)
+	}
+	if err := indexUpdateMaxTxn(tx, idx, topologyTableName); err != nil {
+		return fmt.Errorf("failed updating %s index: %v", topologyTableName, err)
+	}
+
+	return nil
+}
+
+func truncateGatewayServiceTopologyMappings(tx *txn, idx uint64, gateway structs.ServiceName, kind string) error {
+	// Only ingress gateways are standalone items in the mesh topology viz
+	if kind != string(structs.ServiceKindIngressGateway) {
+		return nil
+	}
+
+	if _, err := tx.DeleteAll(topologyTableName, "downstream", gateway); err != nil {
+		return fmt.Errorf("failed to truncate %s table: %v", topologyTableName, err)
+	}
+	if err := indexUpdateMaxTxn(tx, idx, topologyTableName); err != nil {
+		return fmt.Errorf("failed updating %s index: %v", topologyTableName, err)
+	}
+
 	return nil
 }

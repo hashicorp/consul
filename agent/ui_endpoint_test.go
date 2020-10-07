@@ -940,6 +940,31 @@ func TestUIServiceTopology(t *testing.T) {
 	// Register api -> web -> redis
 	{
 		registrations := map[string]*structs.RegisterRequest{
+			"Node edge": {
+				Datacenter: "dc1",
+				Node:       "edge",
+				Address:    "127.0.0.20",
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:    "edge",
+						CheckID: "edge:alive",
+						Name:    "edge-liveness",
+						Status:  api.HealthPassing,
+					},
+				},
+			},
+			"Ingress gateway on edge": {
+				Datacenter:     "dc1",
+				Node:           "edge",
+				SkipNodeUpdate: true,
+				Service: &structs.NodeService{
+					Kind:    structs.ServiceKindIngressGateway,
+					ID:      "ingress",
+					Service: "ingress",
+					Port:    443,
+					Address: "198.18.1.20",
+				},
+			},
 			"Node foo": {
 				Datacenter: "dc1",
 				Node:       "foo",
@@ -1205,7 +1230,8 @@ func TestUIServiceTopology(t *testing.T) {
 		}
 	}
 
-	// Add intentions: deny all, web -> redis with L7 perms, but omit intention for api -> web
+	// Add intentions: deny all, ingress -> api, web -> redis with L7 perms, but omit intention for api -> web
+	// Add ingress config: ingress -> api
 	{
 		entries := []structs.ConfigEntryRequest{
 			{
@@ -1252,12 +1278,83 @@ func TestUIServiceTopology(t *testing.T) {
 					},
 				},
 			},
+			{
+				Datacenter: "dc1",
+				Entry: &structs.ServiceIntentionsConfigEntry{
+					Kind: structs.ServiceIntentions,
+					Name: "api",
+					Sources: []*structs.SourceIntention{
+						{
+							Name:   "ingress",
+							Action: structs.IntentionActionAllow,
+						},
+					},
+				},
+			},
+			{
+				Datacenter: "dc1",
+				Entry: &structs.IngressGatewayConfigEntry{
+					Kind: "ingress-gateway",
+					Name: "ingress",
+					Listeners: []structs.IngressListener{
+						{
+							Port:     1111,
+							Protocol: "http",
+							Services: []structs.IngressService{
+								{
+									Name:           "api",
+									EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+								},
+							},
+						},
+					},
+				},
+			},
 		}
 		for _, req := range entries {
 			out := false
 			require.NoError(t, a.RPC("ConfigEntry.Apply", &req, &out))
 		}
 	}
+
+	t.Run("ingress", func(t *testing.T) {
+		retry.Run(t, func(r *retry.R) {
+			// Request topology for ingress
+			req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/ingress", nil)
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.UIServiceTopology(resp, req)
+			assert.Nil(r, err)
+			require.NoError(r, checkIndex(resp))
+
+			expect := ServiceTopology{
+				Upstreams: []*ServiceTopologySummary{
+					{
+						ServiceSummary: ServiceSummary{
+							Name:           "api",
+							Datacenter:     "dc1",
+							Nodes:          []string{"foo"},
+							InstanceCount:  1,
+							ChecksPassing:  3,
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+						Intention: structs.IntentionDecisionSummary{
+							Allowed:          true,
+							HasL7Permissions: false,
+						},
+					},
+				},
+				FilteredByACLs: false,
+			}
+			result := obj.(ServiceTopology)
+
+			// Internal accounting that is not returned in JSON response
+			for _, u := range result.Upstreams {
+				u.externalSourceSet = nil
+				u.checks = nil
+			}
+			require.Equal(r, expect, result)
+		})
+	})
 
 	t.Run("api", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
@@ -1269,6 +1366,23 @@ func TestUIServiceTopology(t *testing.T) {
 			require.NoError(r, checkIndex(resp))
 
 			expect := ServiceTopology{
+				Downstreams: []*ServiceTopologySummary{
+					{
+						ServiceSummary: ServiceSummary{
+							Name:           "ingress",
+							Kind:           structs.ServiceKindIngressGateway,
+							Datacenter:     "dc1",
+							Nodes:          []string{"edge"},
+							InstanceCount:  1,
+							ChecksPassing:  1,
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+						Intention: structs.IntentionDecisionSummary{
+							Allowed:          true,
+							HasL7Permissions: false,
+						},
+					},
+				},
 				Upstreams: []*ServiceTopologySummary{
 					{
 						ServiceSummary: ServiceSummary{
@@ -1296,6 +1410,10 @@ func TestUIServiceTopology(t *testing.T) {
 			for _, u := range result.Upstreams {
 				u.externalSourceSet = nil
 				u.checks = nil
+			}
+			for _, d := range result.Downstreams {
+				d.externalSourceSet = nil
+				d.checks = nil
 			}
 			require.Equal(r, expect, result)
 		})
