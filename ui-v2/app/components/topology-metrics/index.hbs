@@ -13,7 +13,7 @@
     </div>
   {{#each @downstreams as |downstream|}}
     <div class="card"
-      data-permission="{{downstream.Intention.Action}}"
+      data-permission={{service/intention-permissions downstream}}
       id="{{downstream.Namespace}}{{downstream.Name}}"
     >
       <p>
@@ -76,7 +76,7 @@
       <p>{{dc}}</p>
       {{#each upstreams as |upstream|}}
       <div class="card"
-        data-permission="{{upstream.Intention.Action}}"
+        data-permission={{service/intention-permissions upstream}}
         id="{{upstream.Namespace}}{{upstream.Name}}"
       >
         <p>

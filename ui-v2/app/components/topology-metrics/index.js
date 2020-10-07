@@ -12,7 +12,7 @@ export default class TopologyMetrics extends Component {
 
   // =methods
   drawDownLines(items) {
-    const order = [null, 'allow', 'deny'];
+    const order = ['allow', 'deny'];
     const dest = {
       x: this.centerDimensions.x,
       y: this.centerDimensions.y + this.centerDimensions.height / 4,
@@ -39,7 +39,7 @@ export default class TopologyMetrics extends Component {
   }
 
   drawUpLines(items) {
-    const order = [null, 'allow', 'deny'];
+    const order = ['allow', 'deny'];
     const src = {
       x: this.centerDimensions.x + 20,
       y: this.centerDimensions.y + this.centerDimensions.height / 4,
