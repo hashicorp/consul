@@ -1,0 +1,3 @@
+```release-note:improvement
+command: remove conditional envoy bootstrap generation for versions <=1.10.0 since those are not supported
+```
