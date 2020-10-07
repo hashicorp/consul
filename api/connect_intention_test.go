@@ -12,6 +12,8 @@ func TestAPI_ConnectIntentionCreateListGetUpdateDelete(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
+	s.WaitForServiceIntentions(t)
+
 	connect := c.Connect()
 
 	// Create
@@ -68,6 +70,8 @@ func TestAPI_ConnectIntentionGet_invalidId(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
+	s.WaitForServiceIntentions(t)
+
 	connect := c.Connect()
 
 	// Get it
@@ -82,6 +86,8 @@ func TestAPI_ConnectIntentionMatch(t *testing.T) {
 
 	c, s := makeClient(t)
 	defer s.Stop()
+
+	s.WaitForServiceIntentions(t)
 
 	connect := c.Connect()
 
@@ -128,6 +134,8 @@ func TestAPI_ConnectIntentionCheck(t *testing.T) {
 
 	c, s := makeClient(t)
 	defer s.Stop()
+
+	s.WaitForServiceIntentions(t)
 
 	connect := c.Connect()
 
