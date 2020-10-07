@@ -11,7 +11,7 @@ import { max, extent, bisector } from "d3-array";
 dayjs.extend(Calendar);
 
 function niceTimeWithSeconds(d) {
-  return dayjs().calendar(null, {
+  return dayjs(d).calendar(null, {
       sameDay: '[Today at] h:mm:ss A',
       lastDay: '[Yesterday at] h:mm:ss A',
       lastWeek: '[Last] dddd at h:mm:ss A',
@@ -146,6 +146,9 @@ export default Component.extend({
       .select(".sparkline-time")
         .text(niceTimeWithSeconds(mouseTime));
 
+        console.log(niceTimeWithSeconds(mouseTime), mouseTime);
+
+
     tipVals.nodes().forEach((n, i) => {
       let val = stackData[i][tipIdx][1];
       select(n)
@@ -160,8 +163,6 @@ export default Component.extend({
         // fallthrough
       case 'Data rate transmitted':
         return dataRateStr(val);
-      case 'Error rate':
-        return shortNumStr(val)+"%";
       default:
         return shortNumStr(val);
     }
