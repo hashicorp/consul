@@ -3,15 +3,17 @@ package grpc
 import (
 	"context"
 	"net"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/agent/grpc/internal/testservice"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
+
+	"github.com/hashicorp/consul/agent/grpc/internal/testservice"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 func noopRegister(*grpc.Server) {}
@@ -57,15 +59,18 @@ func TestHandler_EmitsStats(t *testing.T) {
 	require.NoError(t, err)
 
 	cancel()
+	conn.Close()
+	handler.srv.GracefulStop()
 	// Wait for the server to stop so that active_streams is predictable.
-	retry.RunWith(fastRetry, t, func(r *retry.R) {
-		expectedGauge := []metricCall{
-			{key: []string{"testing", "grpc", "server", "active_conns"}, val: 1},
-			{key: []string{"testing", "grpc", "server", "active_streams"}, val: 1},
-			{key: []string{"testing", "grpc", "server", "active_streams"}, val: 0},
-		}
-		require.Equal(r, expectedGauge, sink.gaugeCalls)
-	})
+	require.NoError(t, g.Wait())
+
+	expectedGauge := []metricCall{
+		{key: []string{"testing", "grpc", "server", "active_conns"}, val: 1},
+		{key: []string{"testing", "grpc", "server", "active_streams"}, val: 1},
+		{key: []string{"testing", "grpc", "server", "active_conns"}, val: 0},
+		{key: []string{"testing", "grpc", "server", "active_streams"}, val: 0},
+	}
+	require.Equal(t, expectedGauge, sink.gaugeCalls)
 
 	expectedCounter := []metricCall{
 		{key: []string{"testing", "grpc", "server", "request"}, val: 1},
@@ -96,17 +101,22 @@ func patchGlobalMetrics(t *testing.T) *fakeMetricsSink {
 }
 
 type fakeMetricsSink struct {
+	lock sync.Mutex
 	metrics.BlackholeSink
 	gaugeCalls       []metricCall
 	incrCounterCalls []metricCall
 }
 
 func (f *fakeMetricsSink) SetGaugeWithLabels(key []string, val float32, labels []metrics.Label) {
+	f.lock.Lock()
 	f.gaugeCalls = append(f.gaugeCalls, metricCall{key: key, val: val, labels: labels})
+	f.lock.Unlock()
 }
 
 func (f *fakeMetricsSink) IncrCounterWithLabels(key []string, val float32, labels []metrics.Label) {
+	f.lock.Lock()
 	f.incrCounterCalls = append(f.incrCounterCalls, metricCall{key: key, val: val, labels: labels})
+	f.lock.Unlock()
 }
 
 type metricCall struct {
