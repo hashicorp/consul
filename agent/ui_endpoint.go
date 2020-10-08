@@ -64,6 +64,7 @@ type ServiceTopologySummary struct {
 }
 
 type ServiceTopology struct {
+	Protocol       string
 	Upstreams      []*ServiceTopologySummary
 	Downstreams    []*ServiceTopologySummary
 	FilteredByACLs bool
@@ -324,6 +325,7 @@ RPC:
 	}
 
 	topo := ServiceTopology{
+		Protocol:       out.ServiceTopology.Protocol,
 		Upstreams:      upstreamResp,
 		Downstreams:    downstreamResp,
 		FilteredByACLs: out.FilteredByACLs,

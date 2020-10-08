@@ -3,8 +3,6 @@ package state
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/connect"
 	"reflect"
 	"strings"
 
@@ -2937,6 +2935,13 @@ func (s *Store) ServiceTopology(
 		maxIdx uint64
 		sn     = structs.NewServiceName(service, entMeta)
 	)
+	idx, protocol, err := protocolForService(tx, ws, sn)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to fetch protocol for service %s", sn.String())
+	}
+	if idx > maxIdx {
+		maxIdx = idx
+	}
 
 	idx, upstreamNames, err := upstreamsFromRegistrationTxn(tx, ws, sn)
 	if err != nil {
@@ -3000,6 +3005,7 @@ func (s *Store) ServiceTopology(
 	}
 
 	resp := &structs.ServiceTopology{
+		Protocol:            protocol,
 		Upstreams:           upstreams,
 		Downstreams:         downstreams,
 		UpstreamDecisions:   upstreamDecisions,
