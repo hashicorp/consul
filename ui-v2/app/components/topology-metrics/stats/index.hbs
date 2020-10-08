@@ -4,7 +4,7 @@
 />
 
 <div class="stats">
-  {{#if stats }}
+  {{#if hasLoaded }}
     {{#each stats as |stat|}}
     <dl>
       <dt>
@@ -15,8 +15,10 @@
       </dd>
       <Tooltip>{{{stat.desc}}}</Tooltip>
     </dl>
+    {{else}}
+      <span>No Metrics Available</span>
     {{/each}}
   {{else}}
-    <span>Loading Metrics</span>
+    <span class="loader">Loading Metrics</span>
   {{/if}}
 </div>

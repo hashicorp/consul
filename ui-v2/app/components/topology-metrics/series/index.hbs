@@ -2,13 +2,14 @@
   @src={{uri nspace dc 'metrics' 'summary-for-service' @service @protocol}}
   @onchange={{action 'change'}} />
 
+{{on-window 'resize' (action 'redraw')}}
 
 <div class="sparkline-wrapper">
   <div class="tooltip">
     <div class="sparkline-time">Timestamp</div>
   </div>
   {{!-- TODO: fix loading state --}}
-  <div class="sparkline-loader">Loading...</div>
+  <div class="sparkline-loader"><span>Loading Metrics</span></div>
   <svg class="sparkline"></svg>
 </div>
 

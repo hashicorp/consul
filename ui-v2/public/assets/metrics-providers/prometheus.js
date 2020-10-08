@@ -509,7 +509,7 @@
       return this.fetchStat(this.groupQueryTCP(type, q),
         "RX",
         `<b>${subject}</b> received bits per second averaged over the last 15 minutes`,
-        dataRateStr,
+        shortNumStr,
         this.groupBy(type)
         )
     },
@@ -523,7 +523,7 @@
       return this.fetchStat(this.groupQueryTCP(type, q),
         "TX",
         `<b>${subject}</b> transmitted bits per second averaged over the last 15 minutes`,
-        dataRateStr,
+        shortNumStr,
         this.groupBy(type)
         )
     },
@@ -637,18 +637,23 @@
   function shortNumStr(n) {
     if (n < 1e3) {
       if (Number.isInteger(n)) return ""+n
-      // Go to 3 significant figures but wrap it in Number to avoid scientific
-      // notation lie 2.3e+2 for 230.
-      return Number(n.toPrecision(3))
+      if (n >= 100) {
+        // Go to 3 significant figures but wrap it in Number to avoid scientific
+        // notation lie 2.3e+2 for 230.
+        return Number(n.toPrecision(3))
+      } if (n < 1) {
+        // Very small numbers show with limited precision to prevent long string
+        // of 0.000000.
+        return Number(n.toFixed(2));
+      } else {
+        // Two sig figs is enough below this
+        return Number(n.toPrecision(2));
+      }
     }
-    if (n >= 1e3 && n < 1e6) return +(n / 1e3).toFixed(1) + "k";
-    if (n >= 1e6 && n < 1e9) return +(n / 1e6).toFixed(1) + "m";
-    if (n >= 1e9 && n < 1e12) return +(n / 1e9).toFixed(1) + "b";
-    if (n >= 1e12) return +(n / 1e12).toFixed(1) + "t";
-  }
-
-  function dataRateStr(n) {
-    return shortNumStr(n) + "bps";
+    if (n >= 1e3 && n < 1e6) return +(n / 1e3).toPrecision(3) + "k";
+    if (n >= 1e6 && n < 1e9) return +(n / 1e6).toPrecision(3) + "m";
+    if (n >= 1e9 && n < 1e12) return +(n / 1e9).toPrecision(3) + "b";
+    if (n >= 1e12) return +(n / 1e12).toFixed(0) + "t";
   }
 
   function shortTimeStr(n) {
