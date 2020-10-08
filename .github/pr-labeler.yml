@@ -71,8 +71,6 @@ type/ci:
 # type/crash:
 type/docs:
     - website/**/*
-type/docs-cherrypick:
-    - website/**/*
 # type/enhancement:
 # type/good-first-issue:
 # type/question:
