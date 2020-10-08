@@ -35,12 +35,12 @@ type Self struct {
 	DebugConfig map[string]interface{}
 	Coord       *coordinate.Coordinate
 	Member      serf.Member
-	Stats       map[string]interface{}
+	Stats       map[string]map[string]string
 	Meta        map[string]string
 	XDS         *xdsSelf `json:"xDS,omitempty"`
 }
 
-type Self2 struct {
+type SelfFormatted struct {
 	Config      interface{}
 	DebugConfig map[string]interface{}
 	Coord       *coordinate.Coordinate
@@ -88,17 +88,6 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 			},
 		}
 	}
-	if formatOn == true {
-		// do correct JSON
-		fmt.Sprintln("got Query")
-	} else {
-		// do current JSON
-	}
-
-	test := formatJSON(reflect.ValueOf(s.agent.Stats())).Interface().(map[string]interface{})
-
-	//test := s.agent.config.Sanitized()
-	fmt.Sprintf("%v", test)
 
 	config := struct {
 		Datacenter string
@@ -115,47 +104,57 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 		Server:     s.agent.config.ServerMode,
 		Version:    s.agent.config.Version,
 	}
+
+	if formatOn == true {
+		stats := typeFormat(reflect.ValueOf(s.agent.Stats())).Interface().(map[string]interface{})
+		return SelfFormatted{
+			Config:      config,
+			DebugConfig: s.agent.config.Sanitized(),
+			Coord:       cs[s.agent.config.SegmentName],
+			Member:      s.agent.LocalMember(),
+			Stats:       stats,
+			Meta:        s.agent.State.Metadata(),
+			XDS:         xds,
+		}, nil
+	}
+
 	return Self{
 		Config:      config,
 		DebugConfig: s.agent.config.Sanitized(),
 		Coord:       cs[s.agent.config.SegmentName],
 		Member:      s.agent.LocalMember(),
-		Stats:       test,
+		Stats:       s.agent.Stats(),
 		Meta:        s.agent.State.Metadata(),
 		XDS:         xds,
 	}, nil
 }
 
-func formatJSON(value reflect.Value) reflect.Value {
+// typeFormat returns a correctly typed version of the parameter.
+func typeFormat(value reflect.Value) reflect.Value {
 	typ := value.Type()
 	switch {
-	// Check if value is a map
 	case typ.Kind() == reflect.Map:
 		m := map[string]interface{}{}
 		for _, k := range value.MapKeys() {
 			mapKey := k.String()
-			// format the map value and put it in the map
-			m[mapKey] = formatJSON(value.MapIndex(k)).Interface()
+			m[mapKey] = typeFormat(value.MapIndex(k)).Interface()
 		}
 		return reflect.ValueOf(m)
-	// Check if value is a String
+
 	case typ.Kind() == reflect.String:
-		// Try to convert to int
-		i, ierr := strconv.Atoi(fmt.Sprintf("%v", value))
-		if ierr == nil {
-			// return the integer if conversion succeded
+		if i, err := strconv.Atoi(fmt.Sprintf("%v", value)); err == nil {
 			return reflect.ValueOf(i)
 		}
-		// Try to convert to bool
-		b, berr := strconv.ParseBool(fmt.Sprintf("%v", value))
-		if berr == nil {
-			// return the boolean if conversion succeded
-			return reflect.ValueOf(b)
+
+		if f, err := strconv.ParseFloat(fmt.Sprintf("%v", value), 64); err == nil {
+			return reflect.ValueOf(f)
 		}
 
-		// default case assume string
-		return reflect.ValueOf(fmt.Sprintf("%v", value))
+		if b, err := strconv.ParseBool(fmt.Sprintf("%v", value)); err == nil {
+			return reflect.ValueOf(b)
+		}
 	}
+
 	return value
 }
 
