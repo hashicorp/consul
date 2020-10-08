@@ -3,6 +3,7 @@ package agent
 import (
 	"fmt"
 	"net/http"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -72,6 +73,10 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 		}
 	}
 
+	test := formatJSON(reflect.ValueOf(s.agent.Stats())).Interface().(map[string]interface{})
+
+	fmt.Sprintf("%v", test)
+
 	config := struct {
 		Datacenter string
 		NodeName   string
@@ -96,6 +101,30 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 		Meta:        s.agent.State.Metadata(),
 		XDS:         xds,
 	}, nil
+}
+
+func formatJSON(value reflect.Value) reflect.Value {
+	typ := value.Type()
+	switch {
+	case typ.Kind() == reflect.Map:
+		m := map[string]interface{}{}
+		for _, k := range value.MapKeys() {
+			mapKey := k.String()
+			m[mapKey] = formatJSON(value.MapIndex(k)).Interface()
+		}
+		return reflect.ValueOf(m)
+	case typ.Kind() == reflect.String:
+		b, berr := strconv.ParseBool(fmt.Sprintf("%v", value))
+		if berr == nil {
+			return reflect.ValueOf(b)
+		}
+		i, ierr := strconv.Atoi(fmt.Sprintf("%v", value))
+		if ierr == nil {
+			return reflect.ValueOf(i)
+		}
+		return reflect.ValueOf(fmt.Sprintf("%v", value))
+	}
+	return value
 }
 
 // acceptsOpenMetricsMimeType returns true if mime type is Prometheus-compatible
