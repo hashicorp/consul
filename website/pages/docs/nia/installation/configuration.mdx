@@ -227,7 +227,7 @@ task {
 
 ### Multiple Provider Configurations
 
-Consul-Terraform-Sync supports the [Terraform feature to define multiple configurations](https://www.terraform.io/docs/configuration/providers.html#alias-multiple-provider-configurations) for the same provider by utilizing the `alias` meta-argument. Define multiple provider blocks with the same provider name and set the `alias` to a unique value across a given provider. Select which provider configuration to use for a task by specifying the configuration with the provider name and alias (`<name>.<alias>`) within the list of providers in the [`task.provider`](#task) parameter.
+Consul-Terraform-Sync supports the [Terraform feature to define multiple configurations](https://www.terraform.io/docs/configuration/providers.html#alias-multiple-provider-configurations) for the same provider by utilizing the `alias` meta-argument. Define multiple provider blocks with the same provider name and set the `alias` to a unique value across a given provider. Select which provider configuration to use for a task by specifying the configuration with the provider name and alias (`<name>.<alias>`) within the list of providers in the [`task.provider`](#task) parameter. A task can use multiple providers, but only one provider instance of a provider is allowed per task.
 
 The example Consul-Terraform-Sync configuration below defines two similar tasks executing the same module with different instances of the Vault provider.
 
