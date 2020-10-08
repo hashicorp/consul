@@ -17,7 +17,7 @@
         {{downstream.Name}}
       </p>
       <div class="detail">
-      {{#if (and nspace (env 'CONSUL_NSPACES_ENABLED'))}}
+      {{#if (env 'CONSUL_NSPACES_ENABLED')}}
         <dl class="nspace">
           <dt>
             <Tooltip>
@@ -98,7 +98,7 @@
           {{upstream.Name}}
         </p>
         <div class="detail">
-        {{#if (and nspace (env 'CONSUL_NSPACES_ENABLED'))}}
+        {{#if (env 'CONSUL_NSPACES_ENABLED')}}
           <dl class="nspace">
             <dt>
               <Tooltip>
