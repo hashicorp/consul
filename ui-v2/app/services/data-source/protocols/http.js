@@ -48,13 +48,12 @@ export default Service.extend({
       }
       return event;
     };
-    let method, slug, more;
+    let method, slug, more, protocol;
     switch (model) {
       case 'metrics':
         [method, slug, ...more] = rest;
         switch (method) {
           case 'summary-for-service':
-            let protocol;
             [protocol, ...more] = more;
             find = configuration => repo.findServiceSummary(protocol, slug, dc, nspace, configuration);
             break;
