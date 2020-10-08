@@ -19,6 +19,51 @@ type Event struct {
 	Payload interface{}
 }
 
+// Len returns the number of events contained within this event. If the Payload
+// is a []Event, the length of that slice is returned. Otherwise 1 is returned.
+func (e Event) Len() int {
+	if batch, ok := e.Payload.([]Event); ok {
+		return len(batch)
+	}
+	return 1
+}
+
+// Filter returns an Event filtered to only those Events where f returns true.
+// If the second return value is false, every Event was removed by the filter.
+func (e Event) Filter(f func(Event) bool) (Event, bool) {
+	batch, ok := e.Payload.([]Event)
+	if !ok {
+		return e, f(e)
+	}
+
+	// To avoid extra allocations, iterate over the list of events first and
+	// get a count of the total desired size. This trades off some extra cpu
+	// time in the worse case (when not all items match the filter), for
+	// fewer memory allocations.
+	var size int
+	for idx := range batch {
+		if f(batch[idx]) {
+			size++
+		}
+	}
+	if len(batch) == size || size == 0 {
+		return e, size != 0
+	}
+
+	filtered := make([]Event, 0, size)
+	for idx := range batch {
+		event := batch[idx]
+		if f(event) {
+			filtered = append(filtered, event)
+		}
+	}
+	if len(filtered) == 0 {
+		return e, false
+	}
+	e.Payload = filtered
+	return e, true
+}
+
 // IsEndOfSnapshot returns true if this is a framing event that indicates the
 // snapshot has completed. Subsequent events from Subscription.Next will be
 // streamed as they occur.
