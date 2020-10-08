@@ -458,6 +458,11 @@ type Config struct {
 	// disable a background routine.
 	DisableFederationStateAntiEntropy bool
 
+	// OverrideInitialSerfTags solely exists for use in unit tests to ensure
+	// that a serf tag is initially set to a known value, rather than the
+	// default to test some consul upgrade scenarios with fewer races.
+	OverrideInitialSerfTags func(tags map[string]string)
+
 	// CAConfig is used to apply the initial Connect CA configuration when
 	// bootstrapping.
 	CAConfig *structs.CAConfiguration

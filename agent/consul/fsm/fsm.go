@@ -42,7 +42,6 @@ func registerCommand(msg structs.MessageType, fn unboundCommand) {
 // this outside the Server to avoid exposing this outside the package.
 type FSM struct {
 	logger hclog.Logger
-	path   string
 
 	// apply is built off the commands global and is used to route apply
 	// operations to their appropriate handlers.

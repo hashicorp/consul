@@ -6,7 +6,7 @@ import { get } from '@ember/object';
 export default Route.extend({
   data: service('data-source/service'),
   settings: service('settings'),
-  model: function(params, transition = {}) {
+  model: function(params, transition) {
     const dc = this.modelFor('dc').dc.Name;
     const nspace = this.modelFor('nspace').nspace.substr(1);
     return hash({
@@ -19,6 +19,7 @@ export default Route.extend({
       urls: this.settings.findBySlug('urls'),
       chain: null,
       proxies: [],
+      topology: null,
     })
       .then(model => {
         return ['connect-proxy', 'mesh-gateway', 'ingress-gateway', 'terminating-gateway'].includes(
@@ -28,22 +29,26 @@ export default Route.extend({
           : hash({
               ...model,
               chain: this.data.source(uri => uri`/${nspace}/${dc}/discovery-chain/${params.name}`),
+              // Whilst `proxies` isn't used anywhere in the show templates
+              // it provides a relationship of ProxyInstance on the ServiceInstance
+              // which can respond at a completely different blocking rate to
+              // the ServiceInstance itself
               proxies: this.data.source(
                 uri => uri`/${nspace}/${dc}/proxies/for-service/${params.name}`
               ),
             });
       })
       .then(model => {
-        return ['ingress-gateway', 'terminating-gateway'].includes(
+        return ['mesh-gateway', 'terminating-gateway'].includes(
           get(model, 'items.firstObject.Service.Kind')
         )
-          ? hash({
+          ? model
+          : hash({
               ...model,
-              gatewayServices: this.data.source(
-                uri => uri`/${nspace}/${dc}/gateways/for-service/${params.name}`
+              topology: this.data.source(
+                uri => uri`/${nspace}/${dc}/topology/for-service/${params.name}`
               ),
-            })
-          : model;
+            });
       });
   },
   setupController: function(controller, model) {

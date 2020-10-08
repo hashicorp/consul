@@ -5,10 +5,13 @@ export default RepositoryService.extend({
   getModelName: function() {
     return modelName;
   },
-  findByLeader: function(dc) {
+  findLeader: function(dc, configuration = {}) {
     const query = {
       dc: dc,
     };
+    if (typeof configuration.refresh !== 'undefined') {
+      query.uri = configuration.uri;
+    }
     return this.store.queryLeader(this.getModelName(), query);
   },
 });

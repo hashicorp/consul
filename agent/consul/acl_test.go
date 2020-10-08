@@ -2766,6 +2766,166 @@ node "node1" {
 	}
 }
 
+func TestACL_filterServiceTopology(t *testing.T) {
+	t.Parallel()
+	// Create some nodes.
+	fill := func() structs.ServiceTopology {
+		return structs.ServiceTopology{
+			Upstreams: structs.CheckServiceNodes{
+				structs.CheckServiceNode{
+					Node: &structs.Node{
+						Node: "node1",
+					},
+					Service: &structs.NodeService{
+						ID:      "foo",
+						Service: "foo",
+					},
+					Checks: structs.HealthChecks{
+						&structs.HealthCheck{
+							Node:        "node1",
+							CheckID:     "check1",
+							ServiceName: "foo",
+						},
+					},
+				},
+			},
+			Downstreams: structs.CheckServiceNodes{
+				structs.CheckServiceNode{
+					Node: &structs.Node{
+						Node: "node2",
+					},
+					Service: &structs.NodeService{
+						ID:      "bar",
+						Service: "bar",
+					},
+					Checks: structs.HealthChecks{
+						&structs.HealthCheck{
+							Node:        "node2",
+							CheckID:     "check1",
+							ServiceName: "bar",
+						},
+					},
+				},
+			},
+		}
+	}
+	original := fill()
+
+	t.Run("allow all without permissions", func(t *testing.T) {
+		topo := fill()
+		f := newACLFilter(acl.AllowAll(), nil)
+
+		filtered := f.filterServiceTopology(&topo)
+		if filtered {
+			t.Fatalf("should not have been filtered")
+		}
+		assert.Equal(t, original, topo)
+	})
+
+	t.Run("deny all without permissions", func(t *testing.T) {
+		topo := fill()
+		f := newACLFilter(acl.DenyAll(), nil)
+
+		filtered := f.filterServiceTopology(&topo)
+		if !filtered {
+			t.Fatalf("should have been marked as filtered")
+		}
+		assert.Len(t, topo.Upstreams, 0)
+		assert.Len(t, topo.Upstreams, 0)
+	})
+
+	t.Run("only upstream permissions", func(t *testing.T) {
+		rules := `
+node "node1" {
+  policy = "read"
+}
+service "foo" {
+  policy = "read"
+}`
+		policy, err := acl.NewPolicyFromSource("", 0, rules, acl.SyntaxLegacy, nil, nil)
+		if err != nil {
+			t.Fatalf("err %v", err)
+		}
+		perms, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		topo := fill()
+		f := newACLFilter(perms, nil)
+
+		filtered := f.filterServiceTopology(&topo)
+		if !filtered {
+			t.Fatalf("should have been marked as filtered")
+		}
+		assert.Equal(t, original.Upstreams, topo.Upstreams)
+		assert.Len(t, topo.Downstreams, 0)
+	})
+
+	t.Run("only downstream permissions", func(t *testing.T) {
+		rules := `
+node "node2" {
+  policy = "read"
+}
+service "bar" {
+  policy = "read"
+}`
+		policy, err := acl.NewPolicyFromSource("", 0, rules, acl.SyntaxLegacy, nil, nil)
+		if err != nil {
+			t.Fatalf("err %v", err)
+		}
+		perms, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		topo := fill()
+		f := newACLFilter(perms, nil)
+
+		filtered := f.filterServiceTopology(&topo)
+		if !filtered {
+			t.Fatalf("should have been marked as filtered")
+		}
+		assert.Equal(t, original.Downstreams, topo.Downstreams)
+		assert.Len(t, topo.Upstreams, 0)
+	})
+
+	t.Run("upstream and downstream permissions", func(t *testing.T) {
+		rules := `
+node "node1" {
+  policy = "read"
+}
+service "foo" {
+  policy = "read"
+}
+node "node2" {
+  policy = "read"
+}
+service "bar" {
+  policy = "read"
+}`
+		policy, err := acl.NewPolicyFromSource("", 0, rules, acl.SyntaxLegacy, nil, nil)
+		if err != nil {
+			t.Fatalf("err %v", err)
+		}
+		perms, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		topo := fill()
+		f := newACLFilter(perms, nil)
+
+		filtered := f.filterServiceTopology(&topo)
+		if filtered {
+			t.Fatalf("should not have been filtered")
+		}
+
+		original := fill()
+		assert.Equal(t, original, topo)
+	})
+}
+
 func TestACL_filterCoordinates(t *testing.T) {
 	t.Parallel()
 	// Create some coordinates.

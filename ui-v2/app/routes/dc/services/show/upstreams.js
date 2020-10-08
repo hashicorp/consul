@@ -1,15 +1,5 @@
-import Route from 'consul-ui/routing/route';
+import Route from './services';
 
 export default Route.extend({
-  model: function() {
-    const parent = this.routeName
-      .split('.')
-      .slice(0, -1)
-      .join('.');
-    return this.modelFor(parent);
-  },
-  setupController: function(controller, model) {
-    this._super(...arguments);
-    controller.setProperties(model);
-  },
+  templateName: 'dc/services/show/upstreams',
 });

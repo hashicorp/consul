@@ -359,3 +359,97 @@ func TestIntention_SetHash(t *testing.T) {
 	}
 	require.Equal(t, expected, i.Hash)
 }
+
+func TestIntention_String(t *testing.T) {
+	type testcase struct {
+		ixn    *Intention
+		expect string
+	}
+
+	testID := generateUUID()
+
+	cases := map[string]testcase{
+		"legacy allow": {
+			&Intention{
+				ID:              testID,
+				SourceName:      "foo",
+				DestinationName: "bar",
+				Action:          IntentionActionAllow,
+			},
+			`default/foo => default/bar (ID: ` + testID + `, Precedence: 9, Action: ALLOW)`,
+		},
+		"legacy deny": {
+			&Intention{
+				ID:              testID,
+				SourceName:      "foo",
+				DestinationName: "bar",
+				Action:          IntentionActionDeny,
+			},
+			`default/foo => default/bar (ID: ` + testID + `, Precedence: 9, Action: DENY)`,
+		},
+		"L4 allow": {
+			&Intention{
+				SourceName:      "foo",
+				DestinationName: "bar",
+				Action:          IntentionActionAllow,
+			},
+			`default/foo => default/bar (Precedence: 9, Action: ALLOW)`,
+		},
+		"L4 deny": {
+			&Intention{
+				SourceName:      "foo",
+				DestinationName: "bar",
+				Action:          IntentionActionDeny,
+			},
+			`default/foo => default/bar (Precedence: 9, Action: DENY)`,
+		},
+		"L7 one perm": {
+			&Intention{
+				SourceName:      "foo",
+				DestinationName: "bar",
+				Permissions: []*IntentionPermission{
+					{
+						Action: IntentionActionAllow,
+						HTTP: &IntentionHTTPPermission{
+							PathPrefix: "/foo",
+						},
+					},
+				},
+			},
+			`default/foo => default/bar (Precedence: 9, Permissions: 1)`,
+		},
+		"L7 two perms": {
+			&Intention{
+				SourceName:      "foo",
+				DestinationName: "bar",
+				Permissions: []*IntentionPermission{
+					{
+						Action: IntentionActionDeny,
+						HTTP: &IntentionHTTPPermission{
+							PathExact: "/foo/admin",
+						},
+					},
+					{
+						Action: IntentionActionAllow,
+						HTTP: &IntentionHTTPPermission{
+							PathPrefix: "/foo",
+						},
+					},
+				},
+			},
+			`default/foo => default/bar (Precedence: 9, Permissions: 2)`,
+		},
+	}
+
+	for name, tc := range cases {
+		tc := tc
+		// Add a bunch of required fields.
+		tc.ixn.DefaultNamespaces(DefaultEnterpriseMeta())
+		tc.ixn.UpdatePrecedence()
+
+		t.Run(name, func(t *testing.T) {
+			got := tc.ixn.String()
+			require.Equal(t, tc.expect, got)
+		})
+	}
+}

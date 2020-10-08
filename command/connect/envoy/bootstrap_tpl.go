@@ -200,7 +200,6 @@ const bootstrapTemplate = `{
         }
       }
     }
-  {{- if ne .EnvoyVersion "1.10.0"}}
   },
   "layered_runtime":{
     "layers": [
@@ -213,7 +212,6 @@ const bootstrapTemplate = `{
         }
       }
     ]
-  {{- end }}
   }
 }
 `

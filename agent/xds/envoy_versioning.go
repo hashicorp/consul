@@ -12,7 +12,36 @@ var (
 	// minSupportedVersion is the oldest mainline version we support. This should always be
 	// the zero'th point release of the last element of proxysupport.EnvoyVersions.
 	minSupportedVersion = version.Must(version.NewVersion("1.12.0"))
+
+	specificUnsupportedVersions = []unsupportedVersion{
+		{
+			Version:   version.Must(version.NewVersion("1.12.0")),
+			UpgradeTo: "1.12.3+",
+			Why:       "does not support RBAC rules using url_path",
+		},
+		{
+			Version:   version.Must(version.NewVersion("1.12.1")),
+			UpgradeTo: "1.12.3+",
+			Why:       "does not support RBAC rules using url_path",
+		},
+		{
+			Version:   version.Must(version.NewVersion("1.12.2")),
+			UpgradeTo: "1.12.3+",
+			Why:       "does not support RBAC rules using url_path",
+		},
+		{
+			Version:   version.Must(version.NewVersion("1.13.0")),
+			UpgradeTo: "1.13.1+",
+			Why:       "does not support RBAC rules using url_path",
+		},
+	}
 )
+
+type unsupportedVersion struct {
+	Version   *version.Version
+	UpgradeTo string
+	Why       string
+}
 
 type supportedProxyFeatures struct {
 	// add version dependent feature flags here
@@ -37,6 +66,18 @@ func determineSupportedProxyFeaturesFromVersion(version *version.Version) (suppo
 
 	if version.LessThan(minSupportedVersion) {
 		return supportedProxyFeatures{}, fmt.Errorf("Envoy %s is too old and is not supported by Consul", version)
+	}
+
+	for _, uv := range specificUnsupportedVersions {
+		if version.Equal(uv.Version) {
+			return supportedProxyFeatures{}, fmt.Errorf(
+				"Envoy %s is too old of a point release and is not supported by Consul because it %s. "+
+					"Please upgrade to version %s.",
+				version,
+				uv.Why,
+				uv.UpgradeTo,
+			)
+		}
 	}
 
 	return supportedProxyFeatures{}, nil

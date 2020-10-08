@@ -2,5 +2,15 @@
   h2 {
     border-top: 1px solid $blue-500;
   }
+  button.type-submit {
+    @extend %frame-blue-300;
+  }
+  button.type-submit:hover:not(:disabled),
+  button.type-submit:focus:not(:disabled) {
+    @extend %frame-blue-500;
+  }
+  button.type-submit:disabled {
+    @extend %frame-blue-200;
+  }
 }
 

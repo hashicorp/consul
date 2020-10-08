@@ -8,13 +8,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestEncodeDecode(t *testing.T) {
@@ -1152,7 +1154,7 @@ func TestStructs_HealthCheck_Clone(t *testing.T) {
 	}
 }
 
-func TestStructs_CheckServiceNodes_Shuffle(t *testing.T) {
+func TestCheckServiceNodes_Shuffle(t *testing.T) {
 	// Make a huge list of nodes.
 	var nodes CheckServiceNodes
 	for i := 0; i < 100; i++ {
@@ -1185,7 +1187,7 @@ func TestStructs_CheckServiceNodes_Shuffle(t *testing.T) {
 	}
 }
 
-func TestStructs_CheckServiceNodes_Filter(t *testing.T) {
+func TestCheckServiceNodes_Filter(t *testing.T) {
 	nodes := CheckServiceNodes{
 		CheckServiceNode{
 			Node: &Node{
@@ -1286,6 +1288,79 @@ func TestStructs_CheckServiceNodes_Filter(t *testing.T) {
 			t.Fatalf("bad: %v", filtered)
 		}
 	}
+}
+
+func TestCheckServiceNodes_CanRead(t *testing.T) {
+	type testCase struct {
+		name     string
+		csn      CheckServiceNode
+		authz    acl.Authorizer
+		expected acl.EnforcementDecision
+	}
+
+	fn := func(t *testing.T, tc testCase) {
+		actual := tc.csn.CanRead(tc.authz)
+		require.Equal(t, tc.expected, actual)
+	}
+
+	var testCases = []testCase{
+		{
+			name:     "empty",
+			expected: acl.Deny,
+		},
+		{
+			name: "node read not authorized",
+			csn: CheckServiceNode{
+				Node:    &Node{Node: "name"},
+				Service: &NodeService{Service: "service-name"},
+			},
+			authz:    aclAuthorizerCheckServiceNode{allowService: true},
+			expected: acl.Deny,
+		},
+		{
+			name: "service read not authorized",
+			csn: CheckServiceNode{
+				Node:    &Node{Node: "name"},
+				Service: &NodeService{Service: "service-name"},
+			},
+			authz:    aclAuthorizerCheckServiceNode{allowNode: true},
+			expected: acl.Deny,
+		},
+		{
+			name: "read authorized",
+			csn: CheckServiceNode{
+				Node:    &Node{Node: "name"},
+				Service: &NodeService{Service: "service-name"},
+			},
+			authz:    acl.AllowAll(),
+			expected: acl.Allow,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			fn(t, tc)
+		})
+	}
+}
+
+type aclAuthorizerCheckServiceNode struct {
+	acl.Authorizer
+	allowNode    bool
+	allowService bool
+}
+
+func (a aclAuthorizerCheckServiceNode) ServiceRead(string, *acl.AuthorizerContext) acl.EnforcementDecision {
+	if a.allowService {
+		return acl.Allow
+	}
+	return acl.Deny
+}
+
+func (a aclAuthorizerCheckServiceNode) NodeRead(string, *acl.AuthorizerContext) acl.EnforcementDecision {
+	if a.allowNode {
+		return acl.Allow
+	}
+	return acl.Deny
 }
 
 func TestStructs_DirEntry_Clone(t *testing.T) {

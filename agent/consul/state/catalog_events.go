@@ -1,47 +1,44 @@
 package state
 
 import (
+	memdb "github.com/hashicorp/go-memdb"
+
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
-	memdb "github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
-type changeOp int
-
-const (
-	OpDelete changeOp = iota
-	OpCreate
-	OpUpdate
-)
-
-type eventPayload struct {
-	Op  changeOp
-	Obj interface{}
+// EventPayloadCheckServiceNode is used as the Payload for a stream.Event to
+// indicates changes to a CheckServiceNode for service health.
+type EventPayloadCheckServiceNode struct {
+	Op    pbsubscribe.CatalogOp
+	Value *structs.CheckServiceNode
 }
 
 // serviceHealthSnapshot returns a stream.SnapshotFunc that provides a snapshot
 // of stream.Events that describe the current state of a service health query.
 //
 // TODO: no tests for this yet
-func serviceHealthSnapshot(s *Store, topic topic) stream.SnapshotFunc {
+func serviceHealthSnapshot(s *Store, topic stream.Topic) stream.SnapshotFunc {
 	return func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (index uint64, err error) {
 		tx := s.db.Txn(false)
 		defer tx.Abort()
 
-		connect := topic == TopicServiceHealthConnect
+		connect := topic == topicServiceHealthConnect
 		// TODO(namespace-streaming): plumb entMeta through from SubscribeRequest
 		idx, nodes, err := checkServiceNodesTxn(tx, nil, req.Key, connect, nil)
 		if err != nil {
 			return 0, err
 		}
 
-		for _, n := range nodes {
+		for i := range nodes {
+			n := nodes[i]
 			event := stream.Event{
 				Index: idx,
 				Topic: topic,
-				Payload: eventPayload{
-					Op:  OpCreate,
-					Obj: &n,
+				Payload: EventPayloadCheckServiceNode{
+					Op:    pbsubscribe.CatalogOp_Register,
+					Value: &n,
 				},
 			}
 
@@ -254,7 +251,7 @@ func isConnectProxyDestinationServiceChange(idx uint64, before, after *structs.S
 	}
 
 	e := newServiceHealthEventDeregister(idx, before)
-	e.Topic = TopicServiceHealthConnect
+	e.Topic = topicServiceHealthConnect
 	e.Key = getPayloadCheckServiceNode(e.Payload).Service.Proxy.DestinationServiceName
 	return e, true
 }
@@ -290,7 +287,7 @@ func changeTypeFromChange(change memdb.Change) changeType {
 func serviceHealthToConnectEvents(events ...stream.Event) []stream.Event {
 	var result []stream.Event
 	for _, event := range events {
-		if event.Topic != TopicServiceHealth {
+		if event.Topic != topicServiceHealth {
 			// Skip non-health or any events already emitted to Connect topic
 			continue
 		}
@@ -300,7 +297,7 @@ func serviceHealthToConnectEvents(events ...stream.Event) []stream.Event {
 		}
 
 		connectEvent := event
-		connectEvent.Topic = TopicServiceHealthConnect
+		connectEvent.Topic = topicServiceHealthConnect
 
 		switch {
 		case node.Service.Connect.Native:
@@ -320,15 +317,11 @@ func serviceHealthToConnectEvents(events ...stream.Event) []stream.Event {
 }
 
 func getPayloadCheckServiceNode(payload interface{}) *structs.CheckServiceNode {
-	ep, ok := payload.(eventPayload)
+	ep, ok := payload.(EventPayloadCheckServiceNode)
 	if !ok {
 		return nil
 	}
-	csn, ok := ep.Obj.(*structs.CheckServiceNode)
-	if !ok {
-		return nil
-	}
-	return csn
+	return ep.Value
 }
 
 // newServiceHealthEventsForNode returns health events for all services on the
@@ -437,12 +430,12 @@ func newServiceHealthEventRegister(
 		Checks:  checks,
 	}
 	return stream.Event{
-		Topic: TopicServiceHealth,
+		Topic: topicServiceHealth,
 		Key:   sn.ServiceName,
 		Index: idx,
-		Payload: eventPayload{
-			Op:  OpCreate,
-			Obj: csn,
+		Payload: EventPayloadCheckServiceNode{
+			Op:    pbsubscribe.CatalogOp_Register,
+			Value: csn,
 		},
 	}
 }
@@ -464,12 +457,12 @@ func newServiceHealthEventDeregister(idx uint64, sn *structs.ServiceNode) stream
 	}
 
 	return stream.Event{
-		Topic: TopicServiceHealth,
+		Topic: topicServiceHealth,
 		Key:   sn.ServiceName,
 		Index: idx,
-		Payload: eventPayload{
-			Op:  OpDelete,
-			Obj: csn,
+		Payload: EventPayloadCheckServiceNode{
+			Op:    pbsubscribe.CatalogOp_Deregister,
+			Value: csn,
 		},
 	}
 }

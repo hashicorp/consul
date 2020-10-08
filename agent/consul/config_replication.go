@@ -100,8 +100,9 @@ func (s *Server) reconcileLocalConfig(ctx context.Context, configs []structs.Con
 func (s *Server) fetchConfigEntries(lastRemoteIndex uint64) (*structs.IndexedGenericConfigEntries, error) {
 	defer metrics.MeasureSince([]string{"leader", "replication", "config-entries", "fetch"}, time.Now())
 
-	req := structs.DCSpecificRequest{
+	req := structs.ConfigEntryListAllRequest{
 		Datacenter: s.config.PrimaryDatacenter,
+		Kinds:      structs.AllConfigEntryKinds,
 		QueryOptions: structs.QueryOptions{
 			AllowStale:    true,
 			MinQueryIndex: lastRemoteIndex,

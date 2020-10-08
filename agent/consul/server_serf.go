@@ -77,6 +77,9 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	// feature flag: advertise support for federation states
 	conf.Tags["ft_fs"] = "1"
 
+	// feature flag: advertise support for service-intentions
+	conf.Tags["ft_si"] = "1"
+
 	var subLoggerName string
 	if wan {
 		subLoggerName = logging.WAN
@@ -166,6 +169,10 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	}
 
 	s.addEnterpriseSerfTags(conf.Tags)
+
+	if s.config.OverrideInitialSerfTags != nil {
+		s.config.OverrideInitialSerfTags(conf.Tags)
+	}
 
 	return serf.Create(conf)
 }

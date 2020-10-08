@@ -36,9 +36,9 @@ module('Integration | Adapter | node', function(hooks) {
     const adapter = this.owner.lookup('adapter:node');
     const client = this.owner.lookup('service:client/http');
     const expected = `GET /v1/status/leader?dc=${dc}`;
-    const actual = adapter.requestForQueryLeader(client.url, {
+    const actual = adapter.requestForQueryLeader(client.requestParams.bind(client), {
       dc: dc,
     });
-    assert.equal(actual, expected);
+    assert.equal(`${actual.method} ${actual.url}`, expected);
   });
 });

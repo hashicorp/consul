@@ -30,3 +30,23 @@
 %list-row-detail > span {
   margin-right: 18px;
 }
+%list-row-200 {
+  @extend %list-row;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+%list-row-200 .detail {
+  grid-row-start: header !important;
+  grid-row-end: detail !important;
+  align-self: center !important;
+  padding: 5px 0;
+}
+%list-row-200 .popover-menu > [type='checkbox'] + label {
+  padding: 0;
+}
+%list-row-200 .popover-menu > [type='checkbox'] + label + div:not(.above) {
+  top: 30px;
+}
+%list-row-200 dd {
+  @extend %p2;
+}

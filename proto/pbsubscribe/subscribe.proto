@@ -13,18 +13,24 @@ import "proto/pbservice/node.proto";
 // state change events. Events are streamed as they happen.
 service StateChangeSubscription {
     // Subscribe to a topic to receive events when there are changes to the topic.
-    // TODO: document how to handle framing events
     //
+    // If SubscribeRequest.Index is 0 the event stream will start with one or
+    // more snapshot events, followed by an EndOfSnapshot event. Subsequent
+    // events will be a live stream of events as they happen.
     //
-    // Subscribe may return an ABORTED status error to indicate the client must
-    // re-start the Subscribe call.
+    // If SubscribeRequest.Index is > 0 it is assumed the client already has a
+    // snapshot, and is trying to resume a stream that was disconnected. The
+    // client will either receive a NewSnapshotToFollow event, indicating the
+    // client view is stale and it must reset its view and prepare for a new
+    // snapshot. Or, if no NewSnapshotToFollow event is received, the client
+    // view is still fresh, and all events will be the live stream.
+    //
+    // Subscribe may return a gRPC status error with codes.ABORTED to indicate
+    // the client view is now stale due to a change on the server. The client
+    // must reset its view and issue a new Subscribe call to restart the stream.
     // This error is used when the server can no longer correctly maintain the
-    // stream, for example because the ACL permissions for the token changed
-    // and the server doesn't know which previously delivered events should
-    // now not be visible. Clients when receiving this must reset their
-    // local copy of the state to empty and start over from index 0 to get a
-    // valid snapshot again. Servers may also send this if their state store
-    // is restored from a snapshot.
+    // stream, for example because the ACL permissions for the token changed, or
+    // because the server state was restored from a snapshot.
     rpc Subscribe(SubscribeRequest) returns (stream Event) {}
 }
 
@@ -92,11 +98,11 @@ message Event {
         // ended. Subsequent Events delivered will be mutations to that result.
         bool EndOfSnapshot = 5;
 
-        // EndOfEmptySnapshot indicates that the client is still up-to-date.
-        // The snapshot has ended, and was empty. The rest of the stream will be
-        // individual update events. It distinguishes between "up to date, no snapshot"
-        // and "snapshot contains zero events but you should reset any old state to be blank".
-        bool EndOfEmptySnapshot = 6;
+        // NewSnapshotToFollow indicates that the client view is stale. The client
+        // must reset its view before handing any more events. Subsequent events
+        // in the stream will be for a new snapshot until an EndOfSnapshot event
+        // is received.
+        bool NewSnapshotToFollow = 6;
 
         // EventBatch is a set of events. This is typically used as the payload
         // type where multiple events are emitted in a single topic and raft

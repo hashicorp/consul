@@ -6,7 +6,6 @@ import (
 	"io"
 
 	"github.com/hashicorp/consul/command/flags"
-	"github.com/hashicorp/consul/command/intention/finder"
 	"github.com/mitchellh/cli"
 )
 
@@ -47,17 +46,25 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	// Get the intention ID to load
-	id, err := finder.IDFromArgs(client, c.flags.Args())
-	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error: %s", err))
+	switch args := c.flags.Args(); len(args) {
+	case 1:
+		// old-style
+		id := args[0]
+		//nolint:staticcheck
+		_, err = client.Connect().IntentionDelete(id, nil)
+
+	case 2:
+		// new-style
+		source, destination := args[0], args[1]
+		_, err = client.Connect().IntentionDeleteExact(source, destination, nil)
+
+	default:
+		c.UI.Error("command requires exactly 1 or 2 arguments")
 		return 1
 	}
 
-	// Read the intention
-	_, err = client.Connect().IntentionDelete(id, nil)
 	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error reading the intention: %s", err))
+		c.UI.Error(fmt.Sprintf("Error deleting the intention: %s", err))
 		return 1
 	}
 

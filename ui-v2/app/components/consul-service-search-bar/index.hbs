@@ -44,8 +44,8 @@
           <Option @value="mesh-gateway" @selected={{contains 'mesh-gateway' filter.types}}>Mesh Gateway</Option>
         </Optgroup>
         <Optgroup @label="Mesh">
-          <Option @value="mesh-enabled" @selected={{contains 'mesh-enabled' filter.types}}>In service mesh</Option>
-          <Option @value="mesh-disabled" @selected={{contains 'mesh-disabled' filter.types}}>Not in service mesh</Option>
+          <Option @value="in-mesh" @selected={{contains 'in-mesh' filter.types}}>In service mesh</Option>
+          <Option @value="not-in-mesh" @selected={{contains 'not-in-mesh' filter.types}}>Not in service mesh</Option>
         </Optgroup>
 {{/let}}
       </BlockSlot>

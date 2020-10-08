@@ -7,13 +7,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/proto/pbautoconf"
-	"github.com/hashicorp/go-hclog"
 )
 
 // AutoConfig is all the state necessary for being able to parse a configuration
@@ -24,7 +25,7 @@ type AutoConfig struct {
 	acConfig           Config
 	logger             hclog.Logger
 	cache              Cache
-	waiter             *lib.RetryWaiter
+	waiter             *retry.Waiter
 	config             *config.RuntimeConfig
 	autoConfigResponse *pbautoconf.AutoConfigResponse
 	autoConfigSource   config.Source
@@ -84,7 +85,11 @@ func New(config Config) (*AutoConfig, error) {
 	}
 
 	if config.Waiter == nil {
-		config.Waiter = lib.NewRetryWaiter(1, 0, 10*time.Minute, lib.NewJitterRandomStagger(25))
+		config.Waiter = &retry.Waiter{
+			MinFailures: 1,
+			MaxWait:     10 * time.Minute,
+			Jitter:      retry.NewJitter(25),
+		}
 	}
 
 	return &AutoConfig{
@@ -305,23 +310,21 @@ func (ac *AutoConfig) getInitialConfiguration(ctx context.Context) (*pbautoconf.
 		return nil, err
 	}
 
-	// this resets the failures so that we will perform immediate request
-	wait := ac.acConfig.Waiter.Success()
+	ac.acConfig.Waiter.Reset()
 	for {
-		select {
-		case <-wait:
-			if resp, err := ac.getInitialConfigurationOnce(ctx, csr, key); err == nil && resp != nil {
-				return resp, nil
-			} else if err != nil {
-				ac.logger.Error(err.Error())
-			} else {
-				ac.logger.Error("No error returned when fetching configuration from the servers but no response was either")
-			}
+		resp, err := ac.getInitialConfigurationOnce(ctx, csr, key)
+		switch {
+		case err == nil && resp != nil:
+			return resp, nil
+		case err != nil:
+			ac.logger.Error(err.Error())
+		default:
+			ac.logger.Error("No error returned when fetching configuration from the servers but no response was either")
+		}
 
-			wait = ac.acConfig.Waiter.Failed()
-		case <-ctx.Done():
-			ac.logger.Info("interrupted during initial auto configuration", "err", ctx.Err())
-			return nil, ctx.Err()
+		if err := ac.acConfig.Waiter.Wait(ctx); err != nil {
+			ac.logger.Info("interrupted during initial auto configuration", "err", err)
+			return nil, err
 		}
 	}
 }

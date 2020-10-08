@@ -1,7 +1,7 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
-module.exports = function(environment, $ = process.env) {
+module.exports = function (environment, $ = process.env) {
   let ENV = {
     modulePrefix: 'consul-ui',
     environment,
@@ -11,9 +11,6 @@ module.exports = function(environment, $ = process.env) {
     // torii provider. We provide this object here to
     // prevent ember from giving a log message when starting ember up
     torii: {},
-    'ember-cli-app-version': {
-      version: 'consul-ui',
-    },
     EmberENV: {
       FEATURES: {
         // Here you can enable experimental features on an ember canary build
@@ -37,7 +34,7 @@ module.exports = function(environment, $ = process.env) {
     CONSUL_UI_DISABLE_REALTIME: typeof process.env.CONSUL_UI_DISABLE_REALTIME !== 'undefined',
     CONSUL_UI_DISABLE_ANCHOR_SELECTION:
       typeof process.env.CONSUL_UI_DISABLE_ANCHOR_SELECTION !== 'undefined',
-    CONSUL_COPYRIGHT_YEAR: (function(val) {
+    CONSUL_COPYRIGHT_YEAR: (function (val) {
       if (val) {
         return val;
       }
@@ -48,7 +45,17 @@ module.exports = function(environment, $ = process.env) {
         .split('-')
         .shift();
     })(process.env.CONSUL_COPYRIGHT_YEAR),
-    CONSUL_VERSION: (function(val) {
+    CONSUL_GIT_SHA: (function (val) {
+      if (val) {
+        return val;
+      }
+
+      return require('child_process')
+        .execSync('git rev-parse --short HEAD')
+        .toString()
+        .trim();
+    })(process.env.CONSUL_GIT_SHA),
+    CONSUL_VERSION: (function (val) {
       if (val) {
         return val;
       }
@@ -57,7 +64,7 @@ module.exports = function(environment, $ = process.env) {
       const contents = fs.readFileSync(version_go).toString();
       return contents
         .split('\n')
-        .find(function(item, i, arr) {
+        .find(function (item, i, arr) {
           return item.indexOf('Version =') !== -1;
         })
         .trim()

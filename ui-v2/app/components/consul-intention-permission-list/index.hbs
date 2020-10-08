@@ -3,7 +3,6 @@
   class="consul-intention-permission-list{{if (not onclick) ' readonly'}}"
   @scroll="native"
   @items={{items}}
-  @cellHeight={{42}}
 as |item|>
   <BlockSlot @name="details">
     <div onclick={{action (optional onclick) item}}>

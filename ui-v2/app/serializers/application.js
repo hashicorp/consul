@@ -107,10 +107,6 @@ export default Serializer.extend({
   // say `normalizeQueryResponse`
   // TODO: consider creating a method for each one of the `normalize...Response` family
   normalizeResponse: function(store, modelClass, payload, id, requestType) {
-    // Pick the meta/headers back off the payload and cleanup
-    // before we go through serializing
-    const headers = payload[HTTP_HEADERS_SYMBOL] || {};
-    delete payload[HTTP_HEADERS_SYMBOL];
     const normalizedPayload = this.normalizePayload(payload, id, requestType);
     // put the meta onto the response, here this is ok
     // as JSON-API allows this and our specific data is now in
@@ -119,7 +115,7 @@ export default Serializer.extend({
     // (which was the reason for the Symbol-like property earlier)
     // use a method modelled on ember-data methods so we have the opportunity to
     // do this on a per-model level
-    const meta = this.normalizeMeta(store, modelClass, headers, normalizedPayload, id, requestType);
+    const meta = this.normalizeMeta(store, modelClass, normalizedPayload, id, requestType);
     if (requestType !== 'query') {
       normalizedPayload.meta = meta;
     }
@@ -148,7 +144,10 @@ export default Serializer.extend({
   timestamp: function() {
     return new Date().getTime();
   },
-  normalizeMeta: function(store, modelClass, headers, payload, id, requestType) {
+  normalizeMeta: function(store, modelClass, payload, id, requestType) {
+    // Pick the meta/headers back off the payload and cleanup
+    const headers = payload[HTTP_HEADERS_SYMBOL] || {};
+    delete payload[HTTP_HEADERS_SYMBOL];
     const meta = {
       cacheControl: headers[HTTP_HEADERS_CACHE_CONTROL.toLowerCase()],
       cursor: headers[HTTP_HEADERS_INDEX.toLowerCase()],
@@ -157,6 +156,9 @@ export default Serializer.extend({
     };
     if (typeof headers['x-range'] !== 'undefined') {
       meta.range = headers['x-range'];
+    }
+    if (typeof headers['refresh'] !== 'undefined') {
+      meta.interval = headers['refresh'] * 1000;
     }
     if (requestType === 'query') {
       meta.date = this.timestamp();

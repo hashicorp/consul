@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
@@ -137,6 +138,7 @@ func newDecodeConfigEntry(raw map[string]interface{}) (api.ConfigEntry, error) {
 			decode.HookWeakDecodeFromSlice,
 			decode.HookTranslateKeys,
 			mapstructure.StringToTimeDurationHookFunc(),
+			mapstructure.StringToTimeHookFunc(time.RFC3339),
 		),
 		Metadata:         &md,
 		Result:           &entry,

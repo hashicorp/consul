@@ -39,6 +39,7 @@ type configTest struct {
 	privatev4      func() ([]*net.IPAddr, error)
 	publicv6       func() ([]*net.IPAddr, error)
 	patch          func(rt *RuntimeConfig)
+	patchActual    func(rt *RuntimeConfig)
 	err            string
 	warns          []string
 	hostname       func() (string, error)
@@ -2261,7 +2262,7 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 			patch: func(rt *RuntimeConfig) {
 				rt.DataDir = dataDir
 				rt.Telemetry.AllowedPrefixes = []string{"foo"}
-				rt.Telemetry.BlockedPrefixes = []string{"bar"}
+				rt.Telemetry.BlockedPrefixes = []string{"consul.api.http", "bar"}
 			},
 			warns: []string{`Filter rule must begin with either '+' or '-': "nix"`},
 		},
@@ -3814,6 +3815,192 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 		},
 		// TODO(rb): add in missing tests for ingress-gateway (snake + camel)
 		// TODO(rb): add in missing tests for terminating-gateway (snake + camel)
+		{
+			desc: "ConfigEntry bootstrap service-intentions (snake-case)",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"config_entries": {
+					"bootstrap": [
+						{
+							"kind": "service-intentions",
+							"name": "web",
+							"meta" : {
+								"foo": "bar",
+								"gir": "zim"
+							},
+							"sources": [
+								{
+									"name": "foo",
+									"action": "deny",
+									"type": "consul",
+									"description": "foo desc"
+								},
+								{
+									"name": "bar",
+									"action": "allow",
+									"description": "bar desc"
+								},
+								{
+									"name": "*",
+									"action": "deny",
+									"description": "wild desc"
+								}
+							]
+						}
+					]
+				}
+			}`,
+			},
+			hcl: []string{`
+				config_entries {
+				  bootstrap {
+					kind = "service-intentions"
+					name = "web"
+					meta {
+						"foo" = "bar"
+						"gir" = "zim"
+					}
+					sources = [
+					  {
+						name        = "foo"
+						action      = "deny"
+						type        = "consul"
+						description = "foo desc"
+					  },
+					  {
+						name        = "bar"
+						action      = "allow"
+						description = "bar desc"
+					  }
+					]
+					sources {
+					  name        = "*"
+					  action      = "deny"
+					  description = "wild desc"
+					}
+				  }
+				}
+			`,
+			},
+			patchActual: func(rt *RuntimeConfig) {
+				// Wipe the time tracking fields to make comparison easier.
+				for _, raw := range rt.ConfigEntryBootstrap {
+					if entry, ok := raw.(*structs.ServiceIntentionsConfigEntry); ok {
+						for _, src := range entry.Sources {
+							src.LegacyCreateTime = nil
+							src.LegacyUpdateTime = nil
+						}
+					}
+				}
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.ConfigEntryBootstrap = []structs.ConfigEntry{
+					&structs.ServiceIntentionsConfigEntry{
+						Kind: "service-intentions",
+						Name: "web",
+						Meta: map[string]string{
+							"foo": "bar",
+							"gir": "zim",
+						},
+						EnterpriseMeta: *defaultEntMeta,
+						Sources: []*structs.SourceIntention{
+							{
+								Name:           "foo",
+								Action:         "deny",
+								Type:           "consul",
+								Description:    "foo desc",
+								Precedence:     9,
+								EnterpriseMeta: *defaultEntMeta,
+							},
+							{
+								Name:           "bar",
+								Action:         "allow",
+								Type:           "consul",
+								Description:    "bar desc",
+								Precedence:     9,
+								EnterpriseMeta: *defaultEntMeta,
+							},
+							{
+								Name:           "*",
+								Action:         "deny",
+								Type:           "consul",
+								Description:    "wild desc",
+								Precedence:     8,
+								EnterpriseMeta: *defaultEntMeta,
+							},
+						},
+					},
+				}
+			},
+		},
+		{
+			desc: "ConfigEntry bootstrap service-intentions wildcard destination (snake-case)",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"config_entries": {
+					"bootstrap": [
+						{
+							"kind": "service-intentions",
+							"name": "*",
+							"sources": [
+								{
+									"name": "foo",
+									"action": "deny",
+									"precedence": 6
+								}
+							]
+						}
+					]
+				}
+			}`,
+			},
+			hcl: []string{`
+				config_entries {
+				  bootstrap {
+					kind = "service-intentions"
+					name = "*"
+					sources {
+					  name   = "foo"
+					  action = "deny"
+					  # should be parsed, but we'll ignore it later
+					  precedence = 6
+					}
+				  }
+				}
+			`,
+			},
+			patchActual: func(rt *RuntimeConfig) {
+				// Wipe the time tracking fields to make comparison easier.
+				for _, raw := range rt.ConfigEntryBootstrap {
+					if entry, ok := raw.(*structs.ServiceIntentionsConfigEntry); ok {
+						for _, src := range entry.Sources {
+							src.LegacyCreateTime = nil
+							src.LegacyUpdateTime = nil
+						}
+					}
+				}
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.ConfigEntryBootstrap = []structs.ConfigEntry{
+					&structs.ServiceIntentionsConfigEntry{
+						Kind:           "service-intentions",
+						Name:           "*",
+						EnterpriseMeta: *defaultEntMeta,
+						Sources: []*structs.SourceIntention{
+							{
+								Name:           "foo",
+								Action:         "deny",
+								Type:           "consul",
+								Precedence:     6,
+								EnterpriseMeta: *defaultEntMeta,
+							},
+						},
+					},
+				}
+			},
+		},
 
 		///////////////////////////////////
 		// Defaults sanity checks
@@ -4557,6 +4744,9 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 				require.Equal(t, actual.DataDir, actual.ACLTokens.DataDir)
 				expected.ACLTokens.DataDir = actual.ACLTokens.DataDir
 
+				if tt.patchActual != nil {
+					tt.patchActual(&actual)
+				}
 				require.Equal(t, expected, actual)
 			})
 		}
@@ -6686,7 +6876,7 @@ func TestFullConfig(t *testing.T) {
 			DogstatsdTags:                      []string{"3N81zSUB", "Xtj8AnXZ"},
 			FilterDefault:                      true,
 			AllowedPrefixes:                    []string{"oJotS8XJ"},
-			BlockedPrefixes:                    []string{"cazlEhGn"},
+			BlockedPrefixes:                    []string{"consul.api.http", "cazlEhGn"},
 			MetricsPrefix:                      "ftO6DySn",
 			PrometheusRetentionTime:            15 * time.Second,
 			StatsdAddr:                         "drce87cy",

@@ -25,6 +25,9 @@ export const routes = {
             _options: { path: '/create' },
           },
         },
+        topology: {
+          _options: { path: '/topology' },
+        },
         services: {
           _options: { path: '/services' },
         },

@@ -1,2 +1,11 @@
-%consul-intention-fieldsets {
+.consul-intention-fieldsets {
+  .value-allow > :last-child::before {
+    @extend %with-arrow-right-color-icon, %as-pseudo;
+  }
+  .value-deny > :last-child::before {
+    @extend %with-deny-color-icon, %as-pseudo;
+  }
+  .value- > :last-child::before {
+    @extend %with-layers-mask, %as-pseudo;
+  }
 }

@@ -17,8 +17,9 @@ export default Service.extend({
       return maybeCall(deleteCursor, ifNotBlocking(this.settings))().then(() => {
         return find(configuration)
           .then(maybeCall(close, ifNotBlocking(this.settings)))
-          .then(function(res) {
-            if (typeof get(res || {}, 'meta.cursor') === 'undefined') {
+          .then(function(res = {}) {
+            const meta = get(res, 'meta') || {};
+            if (typeof meta.cursor === 'undefined' && typeof meta.interval === 'undefined') {
               close();
             }
             return res;

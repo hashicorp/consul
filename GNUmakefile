@@ -306,7 +306,7 @@ lint:
 # also run as part of the release build script when it verifies that there are no
 # changes to the UI assets that aren't checked in.
 static-assets:
-	@go-bindata-assetfs -modtime 1 -pkg uiserver -prefix pkg -o $(ASSETFS_PATH) ./pkg/web_ui/...
+	@go-bindata-assetfs -pkg uiserver -prefix pkg -o $(ASSETFS_PATH) ./pkg/web_ui/...
 	@go fmt $(ASSETFS_PATH)
 
 
@@ -356,7 +356,7 @@ test-envoy-integ: $(ENVOY_INTEG_DEPS)
 test-connect-ca-providers:
 ifeq ("$(CIRCLECI)","true")
 # Run in CI
-	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report.xml" -- ./agent/connect/ca
+	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report.xml" -- -cover -coverprofile=coverage.txt ./agent/connect/ca
 else
 # Run locally
 	@echo "Running /agent/connect/ca tests in verbose mode"
