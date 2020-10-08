@@ -82,9 +82,9 @@ var requestTypeStrings = map[MessageType]string{
 	4:  "ACL", // DEPRECATED (ACL-Legacy-Compat)
 	5:  "Tombstone",
 	6:  "CoordinateBatchUpdate",
-	7:  "PreparedQueryRequest",
-	8:  "TxnRequest",
-	9:  "AutopilotRequest",
+	7:  "PreparedQuery",
+	8:  "Txn",
+	9:  "Autopilot",
 	10: "Area",
 	11: "ACLBootstrap",
 	12: "Intention",
