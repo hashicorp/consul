@@ -195,14 +195,15 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 			start := time.Now()
 			handler(resp, req)
 
-			// This new metric is disabled by default with the prefix_filter option.
-			// It will be enabled by default in a future version.
 			labels := []metrics.Label{{Name: "method", Value: req.Method}, {Name: "path", Value: path_label}}
 			metrics.MeasureSinceWithLabels([]string{"api", "http"}, start, labels)
 
-			// Duplicated information. Kept for backward compatibility.
-			key := append([]string{"http", req.Method}, parts...)
-			metrics.MeasureSince(key, start)
+			// DEPRECATED Emit pre-1.9 metric as `consul.http...` to maintain backwards compatibility. Enabled by
+			// default. Users may set `telemetry { disable_compat_1.9 = true }`
+			if !s.agent.config.Telemetry.DisableCompatOneNine {
+				key := append([]string{"http", req.Method}, parts...)
+				metrics.MeasureSince(key, start)
+			}
 		}
 
 		var gzipHandler http.Handler

@@ -592,6 +592,12 @@ func (a *Agent) Start(ctx context.Context) error {
 		go a.retryJoinWAN()
 	}
 
+	// DEPRECATED: Warn users if they're emitting deprecated metrics. Remove this warning and the flagged metrics in a
+	// future release of Consul.
+	if !a.config.Telemetry.DisableCompatOneNine {
+		a.logger.Warn("DEPRECATED Backwards compatibility with pre-1.9 metrics enabled. These metrics will be removed in a future version of Consul. Set `telemetry { disable_compat_1.9 = true }` to disable them.")
+	}
+
 	return nil
 }
 
@@ -3488,6 +3494,12 @@ func (a *Agent) ReloadConfig() error {
 	// changed while running anyways but this prevents
 	// breaking some existing behavior.
 	newCfg.NodeID = a.config.NodeID
+
+	// DEPRECATED: Warn users on reload if they're emitting deprecated metrics. Remove this warning and the flagged
+	// metrics in a future release of Consul.
+	if !a.config.Telemetry.DisableCompatOneNine {
+		a.logger.Warn("DEPRECATED Backwards compatibility with pre-1.9 metrics enabled. These metrics will be removed in a future version of Consul. Set `telemetry { disable_compat_1.9 = true }` to disable them.")
+	}
 
 	return a.reloadConfigInternal(newCfg)
 }

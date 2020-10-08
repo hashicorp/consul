@@ -132,6 +132,11 @@ type TelemetryConfig struct {
 	// hcl: telemetry { circonus_submission_url = string }
 	CirconusSubmissionURL string `json:"circonus_submission_url,omitempty" mapstructure:"circonus_submission_url"`
 
+	// DisableCompatOneNine is a flag to stop emitting metrics that have been deprecated in version 1.9.
+	//
+	// hcl: telemetry { disable_compat_1.9 = (true|false) }
+	DisableCompatOneNine bool `json:"disable_compat_1.9,omitempty" mapstructure:"disable_compat_1.9"`
+
 	// DisableHostname will disable hostname prefixing for all metrics.
 	//
 	// hcl: telemetry { disable_hostname = (true|false)

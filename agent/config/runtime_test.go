@@ -5227,7 +5227,8 @@ func TestFullConfig(t *testing.T) {
 				"metrics_prefix": "ftO6DySn",
 				"prometheus_retention_time": "15s",
 				"statsd_address": "drce87cy",
-				"statsite_address": "HpFwKB8R"
+				"statsite_address": "HpFwKB8R",
+				"disable_compat_1.9": true
 			},
 			"tls_cipher_suites": "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
 			"tls_min_version": "pAOWafkR",
@@ -5911,6 +5912,7 @@ func TestFullConfig(t *testing.T) {
 				prometheus_retention_time = "15s"
 				statsd_address = "drce87cy"
 				statsite_address = "HpFwKB8R"
+				disable_compat_1.9 = true
 			}
 			tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
 			tls_min_version = "pAOWafkR"
@@ -6681,6 +6683,7 @@ func TestFullConfig(t *testing.T) {
 			CirconusCheckTags:                  "prvO4uBl",
 			CirconusSubmissionInterval:         "DolzaflP",
 			CirconusSubmissionURL:              "gTcbS93G",
+			DisableCompatOneNine:               true,
 			DisableHostname:                    true,
 			DogstatsdAddr:                      "0wSndumK",
 			DogstatsdTags:                      []string{"3N81zSUB", "Xtj8AnXZ"},
@@ -7379,6 +7382,7 @@ func TestSanitize(t *testing.T) {
 			"CirconusSubmissionInterval": "",
 			"CirconusSubmissionURL": "",
 			"Disable": false,
+			"DisableCompatOneNine": false,
 			"DisableHostname": false,
 			"DogstatsdAddr": "",
 			"DogstatsdTags": [],
