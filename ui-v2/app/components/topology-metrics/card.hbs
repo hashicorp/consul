@@ -1,5 +1,9 @@
 {{#each @items as |item|}}
-<div class="card">
+<div
+  class="card"
+  data-permission={{service/intention-permissions item}}
+  id="{{item.Namespace}}{{item.Name}}"
+>
   <p>
     {{item.Name}}
   </p>
