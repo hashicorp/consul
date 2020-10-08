@@ -12,8 +12,6 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/hashicorp/consul/sdk/testutil/retry"
-
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
