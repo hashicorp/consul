@@ -125,13 +125,9 @@ func (a *Agent) ConnectAuthorize(token string,
 	}
 
 	// No match, we need to determine the default behavior. We do this by
-	// specifying the anonymous token, which will get the default behavior. The
+	// fetching the default intention behavior from the resolved authorizer. The
 	// default behavior if ACLs are disabled is to allow connections to mimic the
 	// behavior of Consul itself: everything is allowed if ACLs are disabled.
-	authz, err = a.resolveToken("")
-	if err != nil {
-		return returnErr(err)
-	}
 	if authz == nil {
 		// ACLs not enabled at all, the default is allow all.
 		return true, "ACLs disabled, access is allowed by default", &meta, nil

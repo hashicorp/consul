@@ -11,11 +11,6 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
-// metaExternalSource is the key name for the service instance meta that
-// defines the external syncing source. This is used by the UI APIs below
-// to extract this.
-const metaExternalSource = "external-source"
-
 // ServiceSummary is used to summarize a service
 type ServiceSummary struct {
 	Kind              structs.ServiceKind `json:",omitempty"`
@@ -42,13 +37,6 @@ func (s *ServiceSummary) LessThan(other *ServiceSummary) bool {
 	return s.Name < other.Name
 }
 
-type ServiceListingSummary struct {
-	ServiceSummary
-
-	ConnectedWithProxy   bool
-	ConnectedWithGateway bool
-}
-
 type GatewayConfig struct {
 	AssociatedServiceCount int      `json:",omitempty"`
 	Addresses              []string `json:",omitempty"`
@@ -57,9 +45,22 @@ type GatewayConfig struct {
 	addressesSet map[string]struct{}
 }
 
+type ServiceListingSummary struct {
+	ServiceSummary
+
+	ConnectedWithProxy   bool
+	ConnectedWithGateway bool
+}
+
+type ServiceTopologySummary struct {
+	ServiceSummary
+
+	Intention structs.IntentionDecisionSummary
+}
+
 type ServiceTopology struct {
-	Upstreams      []*ServiceSummary
-	Downstreams    []*ServiceSummary
+	Upstreams      []*ServiceTopologySummary
+	Downstreams    []*ServiceTopologySummary
 	FilteredByACLs bool
 }
 
@@ -291,12 +292,38 @@ RPC:
 	upstreams, _ := summarizeServices(out.ServiceTopology.Upstreams.ToServiceDump(), nil, "")
 	downstreams, _ := summarizeServices(out.ServiceTopology.Downstreams.ToServiceDump(), nil, "")
 
-	sum := ServiceTopology{
-		Upstreams:      prepSummaryOutput(upstreams, true),
-		Downstreams:    prepSummaryOutput(downstreams, true),
+	var (
+		upstreamResp   []*ServiceTopologySummary
+		downstreamResp []*ServiceTopologySummary
+	)
+
+	// Sort and attach intention data for upstreams and downstreams
+	sortedUpstreams := prepSummaryOutput(upstreams, true)
+	for _, svc := range sortedUpstreams {
+		sn := structs.NewServiceName(svc.Name, &svc.EnterpriseMeta)
+		sum := ServiceTopologySummary{
+			ServiceSummary: *svc,
+			Intention:      out.ServiceTopology.UpstreamDecisions[sn.String()],
+		}
+		upstreamResp = append(upstreamResp, &sum)
+	}
+
+	sortedDownstreams := prepSummaryOutput(downstreams, true)
+	for _, svc := range sortedDownstreams {
+		sn := structs.NewServiceName(svc.Name, &svc.EnterpriseMeta)
+		sum := ServiceTopologySummary{
+			ServiceSummary: *svc,
+			Intention:      out.ServiceTopology.DownstreamDecisions[sn.String()],
+		}
+		downstreamResp = append(downstreamResp, &sum)
+	}
+
+	topo := ServiceTopology{
+		Upstreams:      upstreamResp,
+		Downstreams:    downstreamResp,
 		FilteredByACLs: out.FilteredByACLs,
 	}
-	return sum, nil
+	return topo, nil
 }
 
 func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig, dc string) (map[structs.ServiceName]*ServiceSummary, map[structs.ServiceName]bool) {
@@ -370,8 +397,8 @@ func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig, dc s
 		// sources. We only want to add unique sources so there is extra
 		// accounting here with an unexported field to maintain the set
 		// of sources.
-		if len(svc.Meta) > 0 && svc.Meta[metaExternalSource] != "" {
-			source := svc.Meta[metaExternalSource]
+		if len(svc.Meta) > 0 && svc.Meta[structs.MetaExternalSource] != "" {
+			source := svc.Meta[structs.MetaExternalSource]
 			if sum.externalSourceSet == nil {
 				sum.externalSourceSet = make(map[string]struct{})
 			}

@@ -168,7 +168,12 @@ func (m *Internal) ServiceTopology(args *structs.ServiceSpecificRequest, reply *
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, topology, err := state.ServiceTopology(ws, args.Datacenter, args.ServiceName, &args.EnterpriseMeta)
+			defaultAllow := acl.Allow
+			if authz != nil {
+				defaultAllow = authz.IntentionDefaultAllow(nil)
+			}
+
+			index, topology, err := state.ServiceTopology(ws, args.Datacenter, args.ServiceName, defaultAllow, &args.EnterpriseMeta)
 			if err != nil {
 				return err
 			}

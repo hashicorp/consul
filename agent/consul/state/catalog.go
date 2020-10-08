@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
@@ -2911,6 +2913,7 @@ func checkProtocolMatch(tx ReadTxn, ws memdb.WatchSet, svc *structs.GatewayServi
 func (s *Store) ServiceTopology(
 	ws memdb.WatchSet,
 	dc, service string,
+	defaultAllow acl.EnforcementDecision,
 	entMeta *structs.EnterpriseMeta,
 ) (uint64, *structs.ServiceTopology, error) {
 	tx := s.db.ReadTxn()
@@ -2936,6 +2939,22 @@ func (s *Store) ServiceTopology(
 		maxIdx = idx
 	}
 
+	upstreamDecisions := make(map[string]structs.IntentionDecisionSummary)
+
+	// The given service is the source relative to upstreams
+	sourceURI := connect.SpiffeIDService{
+		Namespace: entMeta.NamespaceOrDefault(),
+		Service:   service,
+	}
+	for _, un := range upstreamNames {
+		decision, err := s.IntentionDecision(&sourceURI, un.Name, un.NamespaceOrDefault(), defaultAllow)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to get intention decision from (%s/%s) to (%s/%s): %v",
+				sourceURI.Namespace, sourceURI.Service, un.Name, un.NamespaceOrDefault(), err)
+		}
+		upstreamDecisions[un.String()] = decision
+	}
+
 	idx, downstreamNames, err := s.downstreamsForServiceTxn(tx, ws, dc, sn)
 	if err != nil {
 		return 0, nil, err
@@ -2951,9 +2970,26 @@ func (s *Store) ServiceTopology(
 		maxIdx = idx
 	}
 
+	downstreamDecisions := make(map[string]structs.IntentionDecisionSummary)
+	for _, dn := range downstreamNames {
+		// Downstreams are the source relative to the given service
+		sourceURI := connect.SpiffeIDService{
+			Namespace: dn.NamespaceOrDefault(),
+			Service:   dn.Name,
+		}
+		decision, err := s.IntentionDecision(&sourceURI, service, entMeta.NamespaceOrDefault(), defaultAllow)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to get intention decision from (%s/%s) to (%s/%s): %v",
+				sourceURI.Namespace, sourceURI.Service, service, dn.NamespaceOrDefault(), err)
+		}
+		downstreamDecisions[dn.String()] = decision
+	}
+
 	resp := &structs.ServiceTopology{
-		Upstreams:   upstreams,
-		Downstreams: downstreams,
+		Upstreams:           upstreams,
+		Downstreams:         downstreams,
+		UpstreamDecisions:   upstreamDecisions,
+		DownstreamDecisions: downstreamDecisions,
 	}
 	return maxIdx, resp, nil
 }

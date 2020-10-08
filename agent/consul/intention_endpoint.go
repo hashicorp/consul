@@ -783,53 +783,11 @@ func (s *Intention) Check(
 		}
 	}
 
-	// Get the matches for this destination
-	state := s.srv.fsm.State()
-	_, matches, err := state.IntentionMatch(nil, &structs.IntentionQueryMatch{
-		Type: structs.IntentionMatchDestination,
-		Entries: []structs.IntentionMatchEntry{
-			{
-				Namespace: query.DestinationNS,
-				Name:      query.DestinationName,
-			},
-		},
-	})
-	if err != nil {
-		return err
-	}
-	if len(matches) != 1 {
-		// This should never happen since the documented behavior of the
-		// Match call is that it'll always return exactly the number of results
-		// as entries passed in. But we guard against misbehavior.
-		return errors.New("internal error loading matches")
-	}
-
-	// Figure out which source matches this request.
-	var ixnMatch *structs.Intention
-	for _, ixn := range matches[0] {
-		if _, ok := uri.Authorize(ixn); ok {
-			ixnMatch = ixn
-			break
-		}
-	}
-
-	if ixnMatch != nil {
-		if len(ixnMatch.Permissions) == 0 {
-			// This is an L4 intention.
-			reply.Allowed = ixnMatch.Action == structs.IntentionActionAllow
-			return nil
-		}
-
-		// This is an L7 intention, so DENY.
-		reply.Allowed = false
-		return nil
-	}
-
 	// Note: the default intention policy is like an intention with a
 	// wildcarded destination in that it is limited to L4-only.
 
 	// No match, we need to determine the default behavior. We do this by
-	// specifying the anonymous token token, which will get that behavior.
+	// fetching the default intention behavior from the resolved authorizer.
 	// The default behavior if ACLs are disabled is to allow connections
 	// to mimic the behavior of Consul itself: everything is allowed if
 	// ACLs are disabled.
@@ -837,15 +795,18 @@ func (s *Intention) Check(
 	// NOTE(mitchellh): This is the same behavior as the agent authorize
 	// endpoint. If this behavior is incorrect, we should also change it there
 	// which is much more important.
-	authz, err = s.srv.ResolveToken("")
-	if err != nil {
-		return err
+	defaultDecision := acl.Allow
+	if authz != nil {
+		defaultDecision = authz.IntentionDefaultAllow(nil)
 	}
 
-	reply.Allowed = true
-	if authz != nil {
-		reply.Allowed = authz.IntentionDefaultAllow(nil) == acl.Allow
+	state := s.srv.fsm.State()
+	decision, err := state.IntentionDecision(uri, query.DestinationName, query.DestinationNS, defaultDecision)
+	if err != nil {
+		return fmt.Errorf("failed to get intention decision from (%s/%s) to (%s/%s): %v",
+			query.SourceNS, query.SourceName, query.DestinationNS, query.DestinationName, err)
 	}
+	reply.Allowed = decision.Allowed
 
 	return nil
 }

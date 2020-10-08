@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
 )
@@ -445,6 +447,60 @@ func (s *Store) LegacyIntentionDeleteAll(idx uint64) error {
 	}
 
 	return tx.Commit()
+}
+
+// IntentionDecision returns whether a connection should be allowed from a source URI to some destination
+// It returns true or false for the enforcement, and also a boolean for whether
+func (s *Store) IntentionDecision(
+	srcURI connect.CertURI, dstName, dstNS string, defaultDecision acl.EnforcementDecision,
+) (structs.IntentionDecisionSummary, error) {
+
+	_, matches, err := s.IntentionMatch(nil, &structs.IntentionQueryMatch{
+		Type: structs.IntentionMatchDestination,
+		Entries: []structs.IntentionMatchEntry{
+			{
+				Namespace: dstNS,
+				Name:      dstName,
+			},
+		},
+	})
+	if err != nil {
+		return structs.IntentionDecisionSummary{}, err
+	}
+	if len(matches) != 1 {
+		// This should never happen since the documented behavior of the
+		// Match call is that it'll always return exactly the number of results
+		// as entries passed in. But we guard against misbehavior.
+		return structs.IntentionDecisionSummary{}, errors.New("internal error loading matches")
+	}
+
+	// Figure out which source matches this request.
+	var ixnMatch *structs.Intention
+	for _, ixn := range matches[0] {
+		if _, ok := srcURI.Authorize(ixn); ok {
+			ixnMatch = ixn
+			break
+		}
+	}
+
+	var resp structs.IntentionDecisionSummary
+	if ixnMatch == nil {
+		// No intention found, fall back to default
+		resp.Allowed = defaultDecision == acl.Allow
+		return resp, nil
+	}
+
+	// Intention found, combine action + permissions
+	resp.Allowed = ixnMatch.Action == structs.IntentionActionAllow
+	if len(ixnMatch.Permissions) > 0 {
+		// If there are L7 permissions, DENY.
+		// We are only evaluating source and destination, not the request that will be sent.
+		resp.Allowed = false
+		resp.HasPermissions = true
+	}
+	resp.ExternalSource = ixnMatch.Meta[structs.MetaExternalSource]
+
+	return resp, nil
 }
 
 // IntentionMatch returns the list of intentions that match the namespace and

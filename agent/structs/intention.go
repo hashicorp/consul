@@ -641,6 +641,17 @@ type IntentionQueryCheckResponse struct {
 	Allowed bool
 }
 
+// IntentionDecisionSummary contains a summary of a set of intentions between two services
+// Currently contains:
+// - Whether all actions are allowed
+// - Whether the matching intention has L7 permissions attached
+// - Whether the intention is managed by an external source like k8s,
+type IntentionDecisionSummary struct {
+	Allowed        bool
+	HasPermissions bool
+	ExternalSource string
+}
+
 // IntentionQueryExact holds the parameters for performing a lookup of an
 // intention by its unique name instead of its ID.
 type IntentionQueryExact struct {

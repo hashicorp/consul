@@ -3,6 +3,7 @@ package agent
 import (
 	"bytes"
 	"fmt"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -246,7 +247,7 @@ func TestUiServices(t *testing.T) {
 				Service: "api-proxy",
 				ID:      "api-proxy-1",
 				Tags:    []string{},
-				Meta:    map[string]string{metaExternalSource: "k8s"},
+				Meta:    map[string]string{structs.MetaExternalSource: "k8s"},
 				Port:    1234,
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "api",
@@ -272,7 +273,7 @@ func TestUiServices(t *testing.T) {
 				Service: "web",
 				ID:      "web-1",
 				Tags:    []string{},
-				Meta:    map[string]string{metaExternalSource: "k8s"},
+				Meta:    map[string]string{structs.MetaExternalSource: "k8s"},
 				Port:    1234,
 			},
 			Checks: []*structs.HealthCheck{
@@ -936,7 +937,7 @@ func TestUIServiceTopology(t *testing.T) {
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
-	// Register terminating gateway and config entry linking it to postgres + redis
+	// Register api -> web -> redis
 	{
 		registrations := map[string]*structs.RegisterRequest{
 			"Node foo": {
@@ -1204,115 +1205,201 @@ func TestUIServiceTopology(t *testing.T) {
 		}
 	}
 
-	t.Run("api", func(t *testing.T) {
-		// Request topology for api
-		req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/api", nil)
-		resp := httptest.NewRecorder()
-		obj, err := a.srv.UIServiceTopology(resp, req)
-		assert.Nil(t, err)
-		assertIndex(t, resp)
-
-		expect := ServiceTopology{
-			Upstreams: []*ServiceSummary{
-				{
-					Name:           "web",
-					Datacenter:     "dc1",
-					Nodes:          []string{"bar", "baz"},
-					InstanceCount:  2,
-					ChecksPassing:  3,
-					ChecksWarning:  1,
-					ChecksCritical: 2,
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+	// Add intentions: deny all, web -> redis with L7 perms, but omit intention for api -> web
+	{
+		entries := []structs.ConfigEntryRequest{
+			{
+				Datacenter: "dc1",
+				Entry: &structs.ProxyConfigEntry{
+					Kind: structs.ProxyDefaults,
+					Name: structs.ProxyConfigGlobal,
+					Config: map[string]interface{}{
+						"protocol": "http",
+					},
 				},
 			},
-			FilteredByACLs: false,
+			{
+				Datacenter: "dc1",
+				Entry: &structs.ServiceIntentionsConfigEntry{
+					Kind: structs.ServiceIntentions,
+					Name: "redis",
+					Sources: []*structs.SourceIntention{
+						{
+							Name: "web",
+							Permissions: []*structs.IntentionPermission{
+								{
+									Action: structs.IntentionActionAllow,
+									HTTP: &structs.IntentionHTTPPermission{
+										Methods: []string{"GET"},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			{
+				Datacenter: "dc1",
+				Entry: &structs.ServiceIntentionsConfigEntry{
+					Kind: structs.ServiceIntentions,
+					Name: "*",
+					Meta: map[string]string{structs.MetaExternalSource: "nomad"},
+					Sources: []*structs.SourceIntention{
+						{
+							Name:   "*",
+							Action: structs.IntentionActionDeny,
+						},
+					},
+				},
+			},
 		}
-		result := obj.(ServiceTopology)
+		for _, req := range entries {
+			out := false
+			require.NoError(t, a.RPC("ConfigEntry.Apply", &req, &out))
+		}
+	}
 
-		// Internal accounting that is not returned in JSON response
-		for _, u := range result.Upstreams {
-			u.externalSourceSet = nil
-			u.checks = nil
-		}
-		require.Equal(t, expect, result)
+	t.Run("api", func(t *testing.T) {
+		retry.Run(t, func(r *retry.R) {
+			// Request topology for api
+			req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/api", nil)
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.UIServiceTopology(resp, req)
+			assert.Nil(r, err)
+			require.NoError(r, checkIndex(resp))
+
+			expect := ServiceTopology{
+				Upstreams: []*ServiceTopologySummary{
+					{
+						ServiceSummary: ServiceSummary{
+							Name:           "web",
+							Datacenter:     "dc1",
+							Nodes:          []string{"bar", "baz"},
+							InstanceCount:  2,
+							ChecksPassing:  3,
+							ChecksWarning:  1,
+							ChecksCritical: 2,
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+						Intention: structs.IntentionDecisionSummary{
+							Allowed:        false,
+							HasPermissions: false,
+							ExternalSource: "nomad",
+						},
+					},
+				},
+				FilteredByACLs: false,
+			}
+			result := obj.(ServiceTopology)
+
+			// Internal accounting that is not returned in JSON response
+			for _, u := range result.Upstreams {
+				u.externalSourceSet = nil
+				u.checks = nil
+			}
+			require.Equal(r, expect, result)
+		})
 	})
 
 	t.Run("web", func(t *testing.T) {
-		// Request topology for web
-		req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/web", nil)
-		resp := httptest.NewRecorder()
-		obj, err := a.srv.UIServiceTopology(resp, req)
-		assert.Nil(t, err)
-		assertIndex(t, resp)
+		retry.Run(t, func(r *retry.R) {
+			// Request topology for web
+			req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/web", nil)
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.UIServiceTopology(resp, req)
+			assert.Nil(r, err)
+			require.NoError(r, checkIndex(resp))
 
-		expect := ServiceTopology{
-			Upstreams: []*ServiceSummary{
-				{
-					Name:           "redis",
-					Datacenter:     "dc1",
-					Nodes:          []string{"zip"},
-					InstanceCount:  1,
-					ChecksPassing:  2,
-					ChecksCritical: 1,
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			expect := ServiceTopology{
+				Upstreams: []*ServiceTopologySummary{
+					{
+						ServiceSummary: ServiceSummary{
+							Name:           "redis",
+							Datacenter:     "dc1",
+							Nodes:          []string{"zip"},
+							InstanceCount:  1,
+							ChecksPassing:  2,
+							ChecksCritical: 1,
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+						Intention: structs.IntentionDecisionSummary{
+							Allowed:        false,
+							HasPermissions: true,
+						},
+					},
 				},
-			},
-			Downstreams: []*ServiceSummary{
-				{
-					Name:           "api",
-					Datacenter:     "dc1",
-					Nodes:          []string{"foo"},
-					InstanceCount:  1,
-					ChecksPassing:  3,
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				Downstreams: []*ServiceTopologySummary{
+					{
+						ServiceSummary: ServiceSummary{
+							Name:           "api",
+							Datacenter:     "dc1",
+							Nodes:          []string{"foo"},
+							InstanceCount:  1,
+							ChecksPassing:  3,
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+						Intention: structs.IntentionDecisionSummary{
+							Allowed:        false,
+							HasPermissions: false,
+							ExternalSource: "nomad",
+						},
+					},
 				},
-			},
-			FilteredByACLs: false,
-		}
-		result := obj.(ServiceTopology)
+				FilteredByACLs: false,
+			}
+			result := obj.(ServiceTopology)
 
-		// Internal accounting that is not returned in JSON response
-		for _, u := range result.Upstreams {
-			u.externalSourceSet = nil
-			u.checks = nil
-		}
-		for _, d := range result.Downstreams {
-			d.externalSourceSet = nil
-			d.checks = nil
-		}
-		require.Equal(t, expect, result)
+			// Internal accounting that is not returned in JSON response
+			for _, u := range result.Upstreams {
+				u.externalSourceSet = nil
+				u.checks = nil
+			}
+			for _, d := range result.Downstreams {
+				d.externalSourceSet = nil
+				d.checks = nil
+			}
+			require.Equal(r, expect, result)
+		})
 	})
 
 	t.Run("redis", func(t *testing.T) {
-		// Request topology for redis
-		req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/redis", nil)
-		resp := httptest.NewRecorder()
-		obj, err := a.srv.UIServiceTopology(resp, req)
-		assert.Nil(t, err)
-		assertIndex(t, resp)
+		retry.Run(t, func(r *retry.R) {
+			// Request topology for redis
+			req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/redis", nil)
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.UIServiceTopology(resp, req)
+			assert.Nil(r, err)
+			require.NoError(r, checkIndex(resp))
 
-		expect := ServiceTopology{
-			Downstreams: []*ServiceSummary{
-				{
-					Name:           "web",
-					Datacenter:     "dc1",
-					Nodes:          []string{"bar", "baz"},
-					InstanceCount:  2,
-					ChecksPassing:  3,
-					ChecksWarning:  1,
-					ChecksCritical: 2,
-					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			expect := ServiceTopology{
+				Downstreams: []*ServiceTopologySummary{
+					{
+						ServiceSummary: ServiceSummary{
+							Name:           "web",
+							Datacenter:     "dc1",
+							Nodes:          []string{"bar", "baz"},
+							InstanceCount:  2,
+							ChecksPassing:  3,
+							ChecksWarning:  1,
+							ChecksCritical: 2,
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+						Intention: structs.IntentionDecisionSummary{
+							Allowed:        false,
+							HasPermissions: true,
+						},
+					},
 				},
-			},
-			FilteredByACLs: false,
-		}
-		result := obj.(ServiceTopology)
+				FilteredByACLs: false,
+			}
+			result := obj.(ServiceTopology)
 
-		// Internal accounting that is not returned in JSON response
-		for _, d := range result.Downstreams {
-			d.externalSourceSet = nil
-			d.checks = nil
-		}
-		require.Equal(t, expect, result)
+			// Internal accounting that is not returned in JSON response
+			for _, d := range result.Downstreams {
+				d.externalSourceSet = nil
+				d.checks = nil
+			}
+			require.Equal(r, expect, result)
+		})
 	})
 }

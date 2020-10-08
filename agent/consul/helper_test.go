@@ -844,4 +844,59 @@ func registerTestTopologyEntries(t *testing.T, codec rpc.ClientCodec, token stri
 		},
 	}
 	registerTestCatalogEntriesMap(t, codec, registrations)
+
+	// Add intentions: deny all, web -> redis with L7 perms, but omit intention for api -> web
+	entries := []structs.ConfigEntryRequest{
+		{
+			Datacenter: "dc1",
+			Entry: &structs.ProxyConfigEntry{
+				Kind: structs.ProxyDefaults,
+				Name: structs.ProxyConfigGlobal,
+				Config: map[string]interface{}{
+					"protocol": "http",
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		{
+			Datacenter: "dc1",
+			Entry: &structs.ServiceIntentionsConfigEntry{
+				Kind: structs.ServiceIntentions,
+				Name: "redis",
+				Sources: []*structs.SourceIntention{
+					{
+						Name: "web",
+						Permissions: []*structs.IntentionPermission{
+							{
+								Action: structs.IntentionActionAllow,
+								HTTP: &structs.IntentionHTTPPermission{
+									Methods: []string{"GET"},
+								},
+							},
+						},
+					},
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		{
+			Datacenter: "dc1",
+			Entry: &structs.ServiceIntentionsConfigEntry{
+				Kind: structs.ServiceIntentions,
+				Name: "*",
+				Meta: map[string]string{structs.MetaExternalSource: "nomad"},
+				Sources: []*structs.SourceIntention{
+					{
+						Name:   "*",
+						Action: structs.IntentionActionDeny,
+					},
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+	}
+	for _, req := range entries {
+		var out bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &req, &out))
+	}
 }

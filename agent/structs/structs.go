@@ -104,6 +104,9 @@ const (
 	// mesh gateway is usable for wan federation.
 	MetaWANFederationKey = "consul-wan-federation"
 
+	// MetaExternalSource is the metadata key used when a resource is managed by a source outside Consul like nomad/k8s
+	MetaExternalSource = "external-source"
+
 	// MaxLockDelay provides a maximum LockDelay value for
 	// a session. Any value above this will not be respected.
 	MaxLockDelay = 60 * time.Second
@@ -1867,6 +1870,9 @@ type IndexedServiceTopology struct {
 type ServiceTopology struct {
 	Upstreams   CheckServiceNodes
 	Downstreams CheckServiceNodes
+
+	UpstreamDecisions   map[string]IntentionDecisionSummary
+	DownstreamDecisions map[string]IntentionDecisionSummary
 }
 
 // IndexedConfigEntries has its own encoding logic which differs from
