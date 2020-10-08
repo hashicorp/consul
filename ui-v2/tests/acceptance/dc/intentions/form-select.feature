@@ -8,9 +8,8 @@ Feature: dc / intentions / form-select: Intention Service Select Dropdowns
     When I visit the intention page for yaml
     ---
       dc: datacenter
-      intention: intention
     ---
-    Then the url should be /datacenter/intentions/intention
+    Then the url should be /datacenter/intentions/create
     And I click "[data-test-[Name]-element] .ember-power-select-trigger"
     And I type "something" into ".ember-power-select-search-input"
     And I click ".ember-power-select-option:first-child"
@@ -19,5 +18,5 @@ Feature: dc / intentions / form-select: Intention Service Select Dropdowns
       ---------------
       | Name        |
       | source      |
-      # | destination |
+      | destination |
       ---------------

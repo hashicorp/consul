@@ -107,6 +107,18 @@
   border-color: $green-800;
   color: $white;
 }
+%frame-blue-200 {
+  @extend %frame-border-000;
+  background-color: $white;
+  border-color: $blue-300;
+  color: $blue-300;
+}
+%frame-blue-300 {
+  @extend %frame-border-000;
+  background-color: $white;
+  border-color: $blue-500;
+  color: $blue-500;
+}
 %frame-blue-500 {
   @extend %frame-border-000;
   background-color: $blue-050;
