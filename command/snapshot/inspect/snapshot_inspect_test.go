@@ -1,6 +1,7 @@
 package inspect
 
 import (
+	"flag"
 	"io"
 	"io/ioutil"
 	"os"
@@ -15,7 +16,7 @@ import (
 )
 
 // update allows golden files to be updated based on the current output.
-// var update = flag.Bool("update", false, "update golden files")
+var update = flag.Bool("update", false, "update golden files")
 
 // golden reads and optionally writes the expected data to the golden file,
 // returning the contents as a string.
@@ -23,7 +24,7 @@ func golden(t *testing.T, name, got string) string {
 	t.Helper()
 
 	golden := filepath.Join("testdata", name+".golden")
-	if got == "" {
+	if *update && got != "" {
 		err := ioutil.WriteFile(golden, []byte(got), 0644)
 		require.NoError(t, err)
 	}
@@ -172,6 +173,8 @@ func TestSnapshotInspectEnhanceCommand(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
+	// Set golden file to update
+	*update = true
 	want := golden(t, t.Name(), ui.OutputWriter.String())
 	require.Equal(t, want, ui.OutputWriter.String())
 }

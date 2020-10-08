@@ -1,0 +1,25 @@
+Type       Register
+Count      3
+Size       1.8KB
+Type       ConnectCA
+Count      1
+Size       1.2KB
+Type       ConnectCAProviderState
+Count      1
+Size       1.1KB
+Type       Index
+Count      9
+Size       255B
+Type       ConnectCAConfig
+Count      1
+Size       247B
+Type       AutopilotRequest
+Count      1
+Size       199B
+Type       FederationState
+Count      1
+Size       139B
+Type       ChunkingState
+Count      1
+Size       12B
+

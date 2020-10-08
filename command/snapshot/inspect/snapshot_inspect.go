@@ -134,8 +134,8 @@ func (r *countingReader) Read(p []byte) (n int, err error) {
 	return n, err
 }
 
-// enhance utilizes ReadSnapshot to create a summary
-// of each messageType in a snapshot
+// enhance utilizes ReadSnapshot to populate the struct with
+// all of the snapshot's itemized data
 func enhance(file io.Reader) (map[structs.MessageType]typeStats, error) {
 	stats := make(map[structs.MessageType]typeStats)
 	var offset int
@@ -167,6 +167,8 @@ func enhance(file io.Reader) (map[structs.MessageType]typeStats, error) {
 
 }
 
+// readStats takes the information generated from enhance and creates human
+// readable output from it
 func (c *cmd) readStats(stats map[structs.MessageType]typeStats) (bytes.Buffer, error) {
 	// Output stats in size-order
 	ss := make([]typeStats, 0, len(stats))
@@ -179,6 +181,8 @@ func (c *cmd) readStats(stats map[structs.MessageType]typeStats) (bytes.Buffer, 
 	sort.Slice(ss, func(i, j int) bool { return ss[i].Sum > ss[j].Sum })
 
 	var b bytes.Buffer
+
+	// For each different type generate new output
 	tw := tabwriter.NewWriter(&b, 0, 3, 6, ' ', 0)
 	for _, s := range ss {
 		fmt.Fprintf(tw, "Type\t%s\n", s.Name)
