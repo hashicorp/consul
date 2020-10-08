@@ -3,18 +3,60 @@ layout: docs
 page_title: Requirements
 sidebar_title: Requirements
 description: >-
-  Consul-Terraform-Sync requires a Terraform Provider, a Terraform Module and a running Consul Cluster outside of the consul-terraform-sync daemon.
+  Consul-Terraform-Sync requires a Terraform Provider, a Terraform Module, and a running Consul cluster outside of the consul-terraform-sync daemon.
 ---
 
 # Prerequisites Needed to Run Consul-Terraform-Sync
 
-Consul-Terraform-Sync requires a Terraform Provider, a Terraform Module and a running Consul Cluster outside of the consul-terraform-sync daemon. Practitioners can add support for their network infrastructure through Terraform providers. Once network infrastructure support exists, practitioners can add network integrations in the form of Terraform modules.
+Consul-Terraform-Sync requires a Terraform Provider, a Terraform Module, and a running Consul cluster outside of the consul-terraform-sync daemon. Practitioners can add support for their network infrastructure through Terraform providers. Once network infrastructure support exists, practitioners can add network integrations in the form of Terraform modules.
+
 
 ## Run a Consul Cluster
 
+Below are several steps towards a minimum Consul setup required for running Consul-Terraform-Sync.
+
+### Install Consul
+
+Consul-Terraform-Sync is a daemon that runs alongside Consul, similar to other Consul ecosystem tools like Consul Template. Consul-Terraform-Sync is not included with the Consul binary and needs to be installed separately.
+
+To install a local Consul agent, refer to the [Getting Started: Install Consul Tutorial](https://learn.hashicorp.com/tutorials/consul/get-started-install).
+
+### Run an Agent
+
+The Consul agent must be running in order to dynamically update network devices. To run the local Consul agent, you can run Consul in development mode which can be started with `consul agent -dev` for simplicity. For more details on running Consul agent, refer to the [Getting Started: Run the Consul Agent Tutorial](https://learn.hashicorp.com/tutorials/consul/get-started-agent?in=consul/getting-started).
+
+### Register Services
+
+Consul-Terraform-Sync monitors Consul catalog for service changes which lead to downstream changes to your network devices. Without services, your Consul-Terraform-Sync daemon will be operational but idle. You can register services with your Consul agent either by loading a service definition or by HTTP API request.
+
+If you are running Consul in development mode, below is an example of registering a service by HTTP API request:
+
+```shell-session
+$ echo '{
+    "ID": "web",
+    "Name": "web",
+    "Address": "10.10.10.10",
+    "Port": 8000
+}' > payload.json
+
+$ curl --request PUT --data @payload.json http://localhost:8500/v1/agent/service/register
+```
+
+The above example registers a service named "web" with your Consul agent. This represents a non-existent web service running at 10.10.10.10:8000. Your web service is now available for Consul-Terraform-Sync to consume. In Consul-Terraform-Sync, you can optionally configure the web service with a [service block](/docs/nia/installation/configuration#service) if it has any non-default values. You can also have Consul-Terraform-Sync monitor the web service to execute a task and update network device(s) by configuring "web" in [`task.services`](/docs/nia/installation/configuration#services) of a task block.
+
+For more details on registering a service by HTTP API request, refer to the [register service API docs](https://www.consul.io/api-docs/agent/service#register-service).
+
+For more details on registering a service by loading a service definition, refer to the [Getting Started: Register a Service with Consul Service Discovery Tutorial](https://learn.hashicorp.com/tutorials/consul/get-started-service-discovery?in=consul/getting-started).
+
+### Run a Cluster
+
+The previous steps of installing and running a single Consul agent then registering a single service is sufficient to meaningfully start running Consul-Terraform-Sync.
+
+If you would like to run a Consul cluster rather than a single agent, refer to [Getting Started: Create a Local Consul Datacenter](https://learn.hashicorp.com/tutorials/consul/get-started-create-datacenter?in=consul/getting-started). This will walk you through the steps of running multiple Consul agents and then joining them together into a cluster.
+
 ## Network Infrastructure (using a Terraform Provider)
 
-Consul-Terraform-Sync integrations for the Terraform driver utilizes Terraform providers as plugins to interface with specific network infrastructure platforms. The Terraform driver of Consul-Terraform-Sync inherits the expansive collection of Terraform providers to integrate with, and with release of [Terraform 0.13](https://www.hashicorp.com/blog/announcing-hashicorp-terraform-0-13/), this extends to include providers written by the community too ([provider source](https://www.hashicorp.com/blog/adding-provider-source-to-hashicorp-terraform/)).
+Consul-Terraform-Sync integrations for the Terraform driver utilizes Terraform providers as plugins to interface with specific network infrastructure platforms. The Terraform driver of Consul-Terraform-Sync inherits the expansive collection of Terraform providers to integrate with, and with release of [Terraform 0.13](https://www.hashicorp.com/blog/announcing-hashicorp-terraform-0-13/), this extends to include providers written by the community too by using [provider source](https://www.hashicorp.com/blog/adding-provider-source-to-hashicorp-terraform/).
 
 ### Finding and Using Terraform Providers
 
@@ -30,7 +72,7 @@ Working with a Terraform provider, you can write an integration task for Consul-
 
 ### Using Terraform Modules
 
-The modules listed below are availabe to use and are comptabible with consul-terraform-sync.
+The modules listed below are availabe to use and are compatible with Consul-Terraform-Sync.
 
 #### A10
 
@@ -41,6 +83,7 @@ The modules listed below are availabe to use and are comptabible with consul-ter
 #### F5
 
 #### Palo Alto Networks
+ - Dynamic Address Group (DAG) Tags: [Terraform Registry](https://registry.terraform.io/modules/devarshishah3/dag-nia/panos) / [GitHub](https://github.com/devarshishah3/terraform-panos-ag-dag-nia)
 
 ### How to Create a Compatible Terraform Module
 
