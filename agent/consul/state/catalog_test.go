@@ -6708,6 +6708,218 @@ func TestCatalog_upstreamsFromRegistration_Watches(t *testing.T) {
 	require.Empty(t, exp.names)
 }
 
+func TestCatalog_upstreamsFromRegistration_Ingress(t *testing.T) {
+	type expect struct {
+		idx   uint64
+		names []structs.ServiceName
+	}
+
+	s := testStateStore(t)
+
+	require.NoError(t, s.EnsureNode(0, &structs.Node{
+		ID:   "c73b8fdf-4ef8-4e43-9aa2-59e85cc6a70c",
+		Node: "foo",
+	}))
+	require.NoError(t, s.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: structs.ProxyConfigGlobal,
+		Config: map[string]interface{}{
+			"protocol": "http",
+		},
+	}, nil))
+
+	defaultMeta := structs.DefaultEnterpriseMeta()
+	ingress := structs.NewServiceName("ingress", defaultMeta)
+
+	ws := memdb.NewWatchSet()
+	tx := s.db.ReadTxn()
+	idx, names, err := upstreamsFromRegistrationTxn(tx, ws, ingress)
+	require.NoError(t, err)
+	assert.Zero(t, idx)
+	assert.Len(t, names, 0)
+
+	// Watch should fire since the ingress -> [web, api] mappings were inserted into the topology table
+	require.NoError(t, s.EnsureConfigEntry(2, &structs.IngressGatewayConfigEntry{
+		Kind: "ingress-gateway",
+		Name: "ingress",
+		Listeners: []structs.IngressListener{
+			{
+				Port:     1111,
+				Protocol: "http",
+				Services: []structs.IngressService{
+					{
+						Name:           "api",
+						EnterpriseMeta: *defaultMeta,
+					},
+					{
+						Name:           "web",
+						EnterpriseMeta: *defaultMeta,
+					},
+				},
+			},
+		},
+	}, nil))
+	assert.True(t, watchFired(ws))
+
+	ws = memdb.NewWatchSet()
+	tx = s.db.ReadTxn()
+
+	idx, names, err = upstreamsFromRegistrationTxn(tx, ws, ingress)
+	require.NoError(t, err)
+
+	exp := expect{
+		idx: 2,
+		names: []structs.ServiceName{
+			{Name: "api", EnterpriseMeta: *defaultMeta},
+			{Name: "web", EnterpriseMeta: *defaultMeta},
+		},
+	}
+	require.Equal(t, exp.idx, idx)
+	require.ElementsMatch(t, exp.names, names)
+
+	// Now delete a gateway service and topology table should be updated
+	require.NoError(t, s.EnsureConfigEntry(3, &structs.IngressGatewayConfigEntry{
+		Kind: "ingress-gateway",
+		Name: "ingress",
+		Listeners: []structs.IngressListener{
+			{
+				Port:     1111,
+				Protocol: "http",
+				Services: []structs.IngressService{
+					{
+						Name:           "api",
+						EnterpriseMeta: *defaultMeta,
+					},
+				},
+			},
+		},
+	}, nil))
+	assert.True(t, watchFired(ws))
+
+	ws = memdb.NewWatchSet()
+	tx = s.db.ReadTxn()
+	idx, names, err = upstreamsFromRegistrationTxn(tx, ws, ingress)
+	require.NoError(t, err)
+
+	exp = expect{
+		// Expect index where the upstream was replaced
+		idx: 3,
+		names: []structs.ServiceName{
+			{Name: "api", EnterpriseMeta: *defaultMeta},
+		},
+	}
+	require.Equal(t, exp.idx, idx)
+	require.ElementsMatch(t, exp.names, names)
+
+	// Now replace api with a wildcard and no services should be returned because none are registered
+	require.NoError(t, s.EnsureConfigEntry(4, &structs.IngressGatewayConfigEntry{
+		Kind: "ingress-gateway",
+		Name: "ingress",
+		Listeners: []structs.IngressListener{
+			{
+				Port:     1111,
+				Protocol: "http",
+				Services: []structs.IngressService{
+					{
+						Name:           "*",
+						EnterpriseMeta: *defaultMeta,
+					},
+				},
+			},
+		},
+	}, nil))
+	assert.True(t, watchFired(ws))
+
+	ws = memdb.NewWatchSet()
+	tx = s.db.ReadTxn()
+	idx, names, err = upstreamsFromRegistrationTxn(tx, ws, ingress)
+	require.NoError(t, err)
+	require.Equal(t, uint64(4), idx)
+	require.Len(t, names, 0)
+
+	// Adding a service will be covered by the ingress wildcard and added to the topology
+	svc := structs.NodeService{
+		ID:             "db",
+		Service:        "db",
+		Address:        "127.0.0.3",
+		Port:           443,
+		EnterpriseMeta: *defaultMeta,
+	}
+	require.NoError(t, s.EnsureService(5, "foo", &svc))
+	assert.True(t, watchFired(ws))
+
+	ws = memdb.NewWatchSet()
+	tx = s.db.ReadTxn()
+	idx, names, err = upstreamsFromRegistrationTxn(tx, ws, ingress)
+	require.NoError(t, err)
+
+	exp = expect{
+		// Expect index where the upstream was replaced
+		idx: 5,
+		names: []structs.ServiceName{
+			{Name: "db", EnterpriseMeta: *defaultMeta},
+		},
+	}
+	require.Equal(t, exp.idx, idx)
+	require.ElementsMatch(t, exp.names, names)
+
+	// Deleting a service covered by a wildcard should delete its mapping
+	require.NoError(t, s.DeleteService(6, "foo", svc.ID, &svc.EnterpriseMeta))
+	assert.True(t, watchFired(ws))
+
+	ws = memdb.NewWatchSet()
+	tx = s.db.ReadTxn()
+	idx, names, err = upstreamsFromRegistrationTxn(tx, ws, ingress)
+	require.NoError(t, err)
+	require.Equal(t, uint64(6), idx)
+	require.Len(t, names, 0)
+
+	// Now add a service again, to test the effect of deleting the config entry itself
+	require.NoError(t, s.EnsureConfigEntry(7, &structs.IngressGatewayConfigEntry{
+		Kind: "ingress-gateway",
+		Name: "ingress",
+		Listeners: []structs.IngressListener{
+			{
+				Port:     1111,
+				Protocol: "http",
+				Services: []structs.IngressService{
+					{
+						Name:           "api",
+						EnterpriseMeta: *defaultMeta,
+					},
+				},
+			},
+		},
+	}, nil))
+	assert.True(t, watchFired(ws))
+
+	ws = memdb.NewWatchSet()
+	tx = s.db.ReadTxn()
+	idx, names, err = upstreamsFromRegistrationTxn(tx, ws, ingress)
+	require.NoError(t, err)
+
+	exp = expect{
+		// Expect index where the upstream was replaced
+		idx: 7,
+		names: []structs.ServiceName{
+			{Name: "api", EnterpriseMeta: *defaultMeta},
+		},
+	}
+	require.Equal(t, exp.idx, idx)
+	require.ElementsMatch(t, exp.names, names)
+
+	// Deleting the config entry should remove the mapping
+	require.NoError(t, s.DeleteConfigEntry(8, "ingress-gateway", "ingress", defaultMeta))
+	assert.True(t, watchFired(ws))
+
+	ws = memdb.NewWatchSet()
+	tx = s.db.ReadTxn()
+	idx, names, err = upstreamsFromRegistrationTxn(tx, ws, ingress)
+	require.NoError(t, err)
+	require.Equal(t, uint64(8), idx)
+	require.Len(t, names, 0)
+}
+
 func TestCatalog_DownstreamsForService(t *testing.T) {
 	defaultMeta := structs.DefaultEnterpriseMeta()
 

@@ -265,12 +265,23 @@ func (s *Store) DeleteConfigEntry(idx uint64, kind, name string, entMeta *struct
 
 	// If the config entry is for terminating or ingress gateways we delete entries from the memdb table
 	// that associates gateways <-> services.
+	sn := structs.NewServiceName(name, entMeta)
+
 	if kind == structs.TerminatingGateway || kind == structs.IngressGateway {
-		if _, err := tx.DeleteAll(gatewayServicesTableName, "gateway", structs.NewServiceName(name, entMeta)); err != nil {
+		if _, err := tx.DeleteAll(gatewayServicesTableName, "gateway", sn); err != nil {
 			return fmt.Errorf("failed to truncate gateway services table: %v", err)
 		}
 		if err := indexUpdateMaxTxn(tx, idx, gatewayServicesTableName); err != nil {
 			return fmt.Errorf("failed updating gateway-services index: %v", err)
+		}
+	}
+	// Also clean up associations in the mesh topology table for ingress gateways
+	if kind == structs.IngressGateway {
+		if _, err := tx.DeleteAll(topologyTableName, "downstream", sn); err != nil {
+			return fmt.Errorf("failed to truncate %s table: %v", topologyTableName, err)
+		}
+		if err := indexUpdateMaxTxn(tx, idx, topologyTableName); err != nil {
+			return fmt.Errorf("failed updating %s index: %v", topologyTableName, err)
 		}
 	}
 
