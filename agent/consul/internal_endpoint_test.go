@@ -1639,7 +1639,7 @@ func TestInternal_ServiceTopology(t *testing.T) {
 			var out structs.IndexedServiceTopology
 			require.NoError(r, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
 			require.False(r, out.FilteredByACLs)
-			require.Equal(r, "http", out.ServiceTopology.Protocol)
+			require.Equal(r, "http", out.ServiceTopology.MetricsProtocol)
 
 			// bar/web, bar/web-proxy, baz/web, baz/web-proxy
 			require.Len(r, out.ServiceTopology.Upstreams, 4)
@@ -1665,7 +1665,7 @@ func TestInternal_ServiceTopology(t *testing.T) {
 			var out structs.IndexedServiceTopology
 			require.NoError(r, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
 			require.False(r, out.FilteredByACLs)
-			require.Equal(r, "http", out.ServiceTopology.Protocol)
+			require.Equal(r, "http", out.ServiceTopology.MetricsProtocol)
 
 			// foo/api, foo/api-proxy
 			require.Len(r, out.ServiceTopology.Downstreams, 2)
@@ -1701,7 +1701,7 @@ func TestInternal_ServiceTopology(t *testing.T) {
 			var out structs.IndexedServiceTopology
 			require.NoError(r, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
 			require.False(r, out.FilteredByACLs)
-			require.Equal(r, "http", out.ServiceTopology.Protocol)
+			require.Equal(r, "http", out.ServiceTopology.MetricsProtocol)
 
 			require.Len(r, out.ServiceTopology.Upstreams, 0)
 
@@ -1759,7 +1759,7 @@ service "web" { policy = "read" }
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
 
 		require.True(t, out.FilteredByACLs)
-		require.Equal(t, "http", out.ServiceTopology.Protocol)
+		require.Equal(t, "http", out.ServiceTopology.MetricsProtocol)
 
 		// The web-proxy upstream gets filtered out from both bar and baz
 		require.Len(t, out.ServiceTopology.Upstreams, 2)
@@ -1779,7 +1779,7 @@ service "web" { policy = "read" }
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
 
 		require.True(t, out.FilteredByACLs)
-		require.Equal(t, "http", out.ServiceTopology.Protocol)
+		require.Equal(t, "http", out.ServiceTopology.MetricsProtocol)
 
 		// The redis upstream gets filtered out but the api and proxy downstream are returned
 		require.Len(t, out.ServiceTopology.Upstreams, 0)

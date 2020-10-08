@@ -173,7 +173,7 @@ func (m *Internal) ServiceTopology(args *structs.ServiceSpecificRequest, reply *
 				defaultAllow = authz.IntentionDefaultAllow(nil)
 			}
 
-			index, topology, err := state.ServiceTopology(ws, args.Datacenter, args.ServiceName, defaultAllow, &args.EnterpriseMeta)
+			index, topology, err := state.ServiceTopology(ws, args.Datacenter, args.ServiceName, args.ServiceKind, defaultAllow, &args.EnterpriseMeta)
 			if err != nil {
 				return err
 			}

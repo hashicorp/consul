@@ -282,6 +282,14 @@ func (s *HTTPHandlers) UIServiceTopology(resp http.ResponseWriter, req *http.Req
 		return nil, nil
 	}
 
+	kind, ok := req.URL.Query()["kind"]
+	if !ok {
+		resp.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(resp, "Missing service kind")
+		return nil, nil
+	}
+	args.ServiceKind = structs.ServiceKind(kind[0])
+
 	// Make the RPC request
 	var out structs.IndexedServiceTopology
 	defer setMeta(resp, &out.QueryMeta)
@@ -325,7 +333,7 @@ RPC:
 	}
 
 	topo := ServiceTopology{
-		Protocol:       out.ServiceTopology.Protocol,
+		Protocol:       out.ServiceTopology.MetricsProtocol,
 		Upstreams:      upstreamResp,
 		Downstreams:    downstreamResp,
 		FilteredByACLs: out.FilteredByACLs,

@@ -2907,6 +2907,36 @@ func serviceGatewayNodes(tx *txn, ws memdb.WatchSet, service string, kind struct
 	return maxIdx, ret, nil
 }
 
+// metricsProtocolForIngressGateway determines the protocol that should be used when fetching metrics for an ingress gateway
+// Since ingress gateways may have listeners with different protocols, favor capturing all traffic by only returning HTTP
+// when all listeners are HTTP-like.
+func metricsProtocolForIngressGateway(tx ReadTxn, ws memdb.WatchSet, sn structs.ServiceName) (uint64, string, error) {
+	idx, conf, err := configEntryTxn(tx, ws, structs.IngressGateway, sn.Name, &sn.EnterpriseMeta)
+	if err != nil {
+		return 0, "", fmt.Errorf("failed to get ingress-gateway config entry for %q: %v", sn.String(), err)
+	}
+	if conf == nil {
+		return 0, "", nil
+	}
+	entry, ok := conf.(*structs.IngressGatewayConfigEntry)
+	if !ok {
+		return 0, "", fmt.Errorf("unexpected config entry type: %T", conf)
+	}
+	counts := make(map[string]int)
+	for _, l := range entry.Listeners {
+		if structs.IsProtocolHTTPLike(l.Protocol) {
+			counts["http"] += 1
+		} else {
+			counts["tcp"] += 1
+		}
+	}
+	protocol := "tcp"
+	if counts["tcp"] == 0 && counts["http"] > 0 {
+		protocol = "http"
+	}
+	return idx, protocol, nil
+}
+
 // checkProtocolMatch filters out any GatewayService entries added from a wildcard with a protocol
 // that doesn't match the one configured in their discovery chain.
 func checkProtocolMatch(tx ReadTxn, ws memdb.WatchSet, svc *structs.GatewayService) (uint64, bool, error) {
@@ -2925,6 +2955,7 @@ func checkProtocolMatch(tx ReadTxn, ws memdb.WatchSet, svc *structs.GatewayServi
 func (s *Store) ServiceTopology(
 	ws memdb.WatchSet,
 	dc, service string,
+	kind structs.ServiceKind,
 	defaultAllow acl.EnforcementDecision,
 	entMeta *structs.EnterpriseMeta,
 ) (uint64, *structs.ServiceTopology, error) {
@@ -2932,15 +2963,25 @@ func (s *Store) ServiceTopology(
 	defer tx.Abort()
 
 	var (
-		maxIdx uint64
-		sn     = structs.NewServiceName(service, entMeta)
+		maxIdx   uint64
+		protocol string
+		err      error
+
+		sn = structs.NewServiceName(service, entMeta)
 	)
-	idx, protocol, err := protocolForService(tx, ws, sn)
-	if err != nil {
-		return 0, nil, fmt.Errorf("failed to fetch protocol for service %s", sn.String())
-	}
-	if idx > maxIdx {
-		maxIdx = idx
+
+	switch kind {
+	case structs.ServiceKindIngressGateway:
+		maxIdx, protocol, err = metricsProtocolForIngressGateway(tx, ws, sn)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to fetch protocol for service %s", sn.String())
+		}
+
+	default:
+		maxIdx, protocol, err = protocolForService(tx, ws, sn)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to fetch protocol for service %s", sn.String())
+		}
 	}
 
 	idx, upstreamNames, err := upstreamsFromRegistrationTxn(tx, ws, sn)
@@ -3005,7 +3046,7 @@ func (s *Store) ServiceTopology(
 	}
 
 	resp := &structs.ServiceTopology{
-		Protocol:            protocol,
+		MetricsProtocol:     protocol,
 		Upstreams:           upstreams,
 		Downstreams:         downstreams,
 		UpstreamDecisions:   upstreamDecisions,
