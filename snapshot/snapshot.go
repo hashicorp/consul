@@ -160,13 +160,12 @@ func concludeGzipRead(decomp *gzip.Reader) error {
 	return nil
 }
 
-// Restore takes the snapshot from the reader and attempts to apply it to the
-// given Raft instance.
-func Restore(logger hclog.Logger, in io.Reader, r *raft.Raft) error {
+// Read a snapshot into a temporary file. The caller is responsible for removing the file.
+func Read(logger hclog.Logger, in io.Reader) (*os.File, *raft.SnapshotMeta, error) {
 	// Wrap the reader in a gzip decompressor.
 	decomp, err := gzip.NewReader(in)
 	if err != nil {
-		return fmt.Errorf("failed to decompress snapshot: %v", err)
+		return nil, nil, fmt.Errorf("failed to decompress snapshot: %v", err)
 	}
 	defer func() {
 		if err := decomp.Close(); err != nil {
@@ -178,9 +177,37 @@ func Restore(logger hclog.Logger, in io.Reader, r *raft.Raft) error {
 	// we can avoid buffering in memory.
 	snap, err := ioutil.TempFile("", "snapshot")
 	if err != nil {
-		return fmt.Errorf("failed to create temp snapshot file: %v", err)
+		return nil, nil, fmt.Errorf("failed to create temp snapshot file: %v", err)
 	}
+
+	// Read the archive.
+	var metadata raft.SnapshotMeta
+	if err := read(decomp, &metadata, snap); err != nil {
+		return nil, nil, fmt.Errorf("failed to read snapshot file: %v", err)
+	}
+
+	if err := concludeGzipRead(decomp); err != nil {
+		return nil, nil, err
+	}
+
+	// Sync and rewind the file so it's ready to be read again.
+	if err := snap.Sync(); err != nil {
+		return nil, nil, fmt.Errorf("failed to sync temp snapshot: %v", err)
+	}
+	if _, err := snap.Seek(0, 0); err != nil {
+		return nil, nil, fmt.Errorf("failed to rewind temp snapshot: %v", err)
+	}
+	return snap, &metadata, nil
+}
+
+// Restore takes the snapshot from the reader and attempts to apply it to the
+// given Raft instance.
+func Restore(logger hclog.Logger, in io.Reader, r *raft.Raft) error {
+	snap, metadata, err := Read(logger, in)
 	defer func() {
+		if snap == nil {
+			return
+		}
 		if err := snap.Close(); err != nil {
 			logger.Error("Failed to close temp snapshot", "error", err)
 		}
@@ -188,27 +215,12 @@ func Restore(logger hclog.Logger, in io.Reader, r *raft.Raft) error {
 			logger.Error("Failed to clean up temp snapshot", "error", err)
 		}
 	}()
-
-	// Read the archive.
-	var metadata raft.SnapshotMeta
-	if err := read(decomp, &metadata, snap); err != nil {
-		return fmt.Errorf("failed to read snapshot file: %v", err)
-	}
-
-	if err := concludeGzipRead(decomp); err != nil {
+	if err != nil {
 		return err
 	}
 
-	// Sync and rewind the file so it's ready to be read again.
-	if err := snap.Sync(); err != nil {
-		return fmt.Errorf("failed to sync temp snapshot: %v", err)
-	}
-	if _, err := snap.Seek(0, 0); err != nil {
-		return fmt.Errorf("failed to rewind temp snapshot: %v", err)
-	}
-
 	// Feed the snapshot into Raft.
-	if err := r.Restore(&metadata, snap, 0); err != nil {
+	if err := r.Restore(metadata, snap, 0); err != nil {
 		return fmt.Errorf("Raft error when restoring snapshot: %v", err)
 	}
 

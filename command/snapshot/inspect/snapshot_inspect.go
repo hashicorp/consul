@@ -2,7 +2,6 @@ package inspect
 
 import (
 	"bytes"
-	"compress/gzip"
 	"flag"
 	"fmt"
 	"io"
@@ -72,28 +71,13 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error(fmt.Sprintf("Error opening snapshot file: %s", err))
 		return 1
 	}
-	defer f.Close()
-
-	meta, err := snapshot.Verify(f)
-	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error verifying snapshot: %s", err))
-		return 1
-	}
 
 	if c.enhance {
-		if _, err := f.Seek(0, 0); err != nil {
-			c.UI.Error(fmt.Sprintf("Error resetting file for enhancement, got %s", err))
-		}
-		decomp, err := gzip.NewReader(f)
+		file, _, err := snapshot.Read(nil, f)
 		if err != nil {
-			fmt.Errorf("failed to decompress snapshot: %v", err)
+			c.UI.Error(fmt.Sprintf("Error reading snapshot: %s", err))
 		}
-		defer decomp.Close()
-		if err != nil {
-			c.UI.Error(fmt.Sprintf("failed to decompress snapshot: %v", err))
-			return 1
-		}
-		stats, err := enhance(decomp)
+		stats, err := enhance(file)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error verifying snapshot: %s", err))
 			return 1
@@ -106,6 +90,13 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Info(b.String())
 		return 0
 	}
+
+	_, meta, err := snapshot.Read(nil, f)
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error verifying snapshot: %s", err))
+		return 1
+	}
+
 	var b bytes.Buffer
 	tw := tabwriter.NewWriter(&b, 0, 2, 6, ' ', 0)
 	fmt.Fprintf(tw, "ID\t%s\n", meta.ID)
@@ -148,8 +139,8 @@ func (r *countingReader) Read(p []byte) (n int, err error) {
 func enhance(file io.Reader) (map[structs.MessageType]typeStats, error) {
 	stats := make(map[structs.MessageType]typeStats)
 	var offset int
-	offset = 0
 	cr := &countingReader{wrappedReader: file}
+	offset = 0
 	handler := func(header *fsm.SnapshotHeader, msg structs.MessageType, dec *codec.Decoder) error {
 		name := structs.MessageType.String(msg)
 		s := stats[msg]
