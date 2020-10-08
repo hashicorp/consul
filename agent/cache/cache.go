@@ -18,14 +18,16 @@ import (
 	"container/heap"
 	"context"
 	"fmt"
+	"io"
 	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/lib"
 	"golang.org/x/time/rate"
+
+	"github.com/hashicorp/consul/lib"
 )
 
 //go:generate mockery -all -inpkg
@@ -772,6 +774,12 @@ func (c *Cache) runExpiryLoop() {
 
 		case <-expiryCh:
 			c.entriesLock.Lock()
+
+			// Perform cleanup operations on the entry's state, if applicable.
+			state := c.entries[entry.Key].State
+			if closer, ok := state.(io.Closer); ok {
+				closer.Close()
+			}
 
 			// Entry expired! Remove it.
 			delete(c.entries, entry.Key)

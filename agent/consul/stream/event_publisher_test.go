@@ -374,6 +374,7 @@ func TestEventPublisher_SubscribeWithIndexNotZero_NewSnapshotFromCache(t *testin
 }
 
 func runStep(t *testing.T, name string, fn func(t *testing.T)) {
+	t.Helper()
 	if !t.Run(name, fn) {
 		t.FailNow()
 	}

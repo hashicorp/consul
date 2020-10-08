@@ -61,6 +61,7 @@ type SnapshotHandlers map[Topic]SnapshotFunc
 
 // SnapshotFunc builds a snapshot for the subscription request, and appends the
 // events to the Snapshot using SnapshotAppender.
+// If err is not nil the SnapshotFunc must return a non-zero index.
 type SnapshotFunc func(SubscribeRequest, SnapshotAppender) (index uint64, err error)
 
 // SnapshotAppender appends groups of events to create a Snapshot of state.
