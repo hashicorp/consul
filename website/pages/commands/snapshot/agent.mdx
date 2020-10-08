@@ -282,6 +282,9 @@ From Consul Enterprise version `1.5.0` onwards, you can store snapshots in Azure
 - `-azure-blob-container-name` - Container to use. Required for Azure blob storage, and setting this
   disables local storage.
 
+* `-azure-blob-environment` - Environment to use. Defaults to AZUREPUBLICCLOUD. Other valid environments 
+  are AZURECHINACLOUD, AZUREGERMANCLOUD and AZUREUSGOVERNMENTCLOUD. Introduced in Consul 1.7.3.
+
 #### Google Cloud Storage options
 
 From Consul Enterprise version `1.6.1` onwards, you can store snapshots in Google Cloud Storage. Authentication relies on automatic discovery through the sdk as described [here](https://cloud.google.com/docs/authentication/production):
