@@ -17,6 +17,18 @@
         {{downstream.Name}}
       </p>
       <div class="detail">
+      {{#if (env 'CONSUL_NSPACES_ENABLED')}}
+        <dl class="nspace">
+          <dt>
+            <Tooltip>
+                Namespace
+            </Tooltip>
+          </dt>
+          <dd>
+            {{downstream.Namespace}}
+          </dd>
+        </dl>
+      {{/if}}
     {{#let (service/health-percentage downstream) as |percentage|}}
       {{#if (not-eq percentage.passing 0)}}
         <span class="passing">{{percentage.passing}}%</span>
@@ -86,7 +98,7 @@
           {{upstream.Name}}
         </p>
         <div class="detail">
-        {{#if (and nspace (env 'CONSUL_NSPACES_ENABLED'))}}
+        {{#if (env 'CONSUL_NSPACES_ENABLED')}}
           <dl class="nspace">
             <dt>
               <Tooltip>
