@@ -936,6 +936,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 			CirconusCheckTags:                  b.stringVal(c.Telemetry.CirconusCheckTags),
 			CirconusSubmissionInterval:         b.stringVal(c.Telemetry.CirconusSubmissionInterval),
 			CirconusSubmissionURL:              b.stringVal(c.Telemetry.CirconusSubmissionURL),
+			DisableCompatOneNine:               b.boolVal(c.Telemetry.DisableCompatOneNine),
 			DisableHostname:                    b.boolVal(c.Telemetry.DisableHostname),
 			DogstatsdAddr:                      b.stringVal(c.Telemetry.DogstatsdAddr),
 			DogstatsdTags:                      c.Telemetry.DogstatsdTags,
