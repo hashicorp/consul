@@ -46,7 +46,7 @@
 {{/if}}
     <ConsulKind @item={{item}} />
     <ConsulExternalSource @item={{item}} />
-  {{#if (not-eq item.InstanceCount 0)}}
+  {{#if (and (not-eq item.InstanceCount 0) (and (not-eq item.Kind 'terminating-gateway') (not-eq item.Kind 'ingress-gateway'))) }}
     <span>
       {{format-number item.InstanceCount}} {{pluralize item.InstanceCount 'Instance' without-count=true}}
     </span>

@@ -16,6 +16,7 @@ export default Model.extend({
   InstanceCount: attr('number'),
   ConnectedWithGateway: attr(),
   ConnectedWithProxy: attr(),
+  Proxy: attr(),
   GatewayConfig: attr(),
   Kind: attr('string'),
   ExternalSources: attr(),
