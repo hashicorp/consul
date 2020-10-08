@@ -19,7 +19,7 @@ const (
 
 // ErrSubscriptionClosed is a error signalling the subscription has been
 // closed. The client should Unsubscribe, then re-Subscribe.
-var ErrSubscriptionClosed = errors.New("subscription closed by server, client should resubscribe")
+var ErrSubscriptionClosed = errors.New("subscription closed by server, client must reset state and resubscribe")
 
 // Subscription provides events on a Topic. Events may be filtered by Key.
 // Events are returned by Next(), and may start with a Snapshot of events.

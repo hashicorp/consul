@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/grpc"
 )
 
 type testServer struct {
@@ -28,9 +29,9 @@ func (s testServer) Metadata() *metadata.Server {
 
 func newTestServer(t *testing.T, name string, dc string) testServer {
 	addr := &net.IPAddr{IP: net.ParseIP("127.0.0.1")}
-	handler := NewHandler(addr)
-
-	testservice.RegisterSimpleServer(handler.srv, &simple{name: name, dc: dc})
+	handler := NewHandler(addr, func(server *grpc.Server) {
+		testservice.RegisterSimpleServer(server, &simple{name: name, dc: dc})
+	})
 
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)

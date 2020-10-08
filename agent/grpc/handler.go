@@ -11,15 +11,16 @@ import (
 )
 
 // NewHandler returns a gRPC server that accepts connections from Handle(conn).
-func NewHandler(addr net.Addr) *Handler {
+// The register function will be called with the grpc.Server to register
+// gRPC services with the server.
+func NewHandler(addr net.Addr, register func(server *grpc.Server)) *Handler {
 	// We don't need to pass tls.Config to the server since it's multiplexed
 	// behind the RPC listener, which already has TLS configured.
 	srv := grpc.NewServer(
 		grpc.StatsHandler(newStatsHandler()),
 		grpc.StreamInterceptor((&activeStreamCounter{}).Intercept),
 	)
-
-	// TODO(streaming): add gRPC services to srv here
+	register(srv)
 
 	lis := &chanListener{addr: addr, conns: make(chan net.Conn)}
 	return &Handler{srv: srv, listener: lis}
