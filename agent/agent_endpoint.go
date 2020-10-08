@@ -117,22 +117,31 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 func formatJSON(value reflect.Value) reflect.Value {
 	typ := value.Type()
 	switch {
+	// Check if value is a map
 	case typ.Kind() == reflect.Map:
 		m := map[string]interface{}{}
 		for _, k := range value.MapKeys() {
 			mapKey := k.String()
+			// format the map value and put it in the map
 			m[mapKey] = formatJSON(value.MapIndex(k)).Interface()
 		}
 		return reflect.ValueOf(m)
+	// Check if value is a String
 	case typ.Kind() == reflect.String:
+		// Try to convert to int
 		i, ierr := strconv.Atoi(fmt.Sprintf("%v", value))
 		if ierr == nil {
+			// return the integer if conversion succeded
 			return reflect.ValueOf(i)
 		}
+		// Try to convert to bool
 		b, berr := strconv.ParseBool(fmt.Sprintf("%v", value))
 		if berr == nil {
+			// return the boolean if conversion succeded
 			return reflect.ValueOf(b)
 		}
+
+		// default case assume string
 		return reflect.ValueOf(fmt.Sprintf("%v", value))
 	}
 	return value
