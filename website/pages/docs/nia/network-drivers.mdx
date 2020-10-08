@@ -53,4 +53,72 @@ The following files of the root module are generated for each task. An [example 
 
 ### Compatible Terraform Modules
 
+-> **Note:** Consul-Terraform-Sync is currently in Technology Preview. Specifications in this section may change going into Beta release.
+
+Compatible modules for Consul-Terraform-Sync follow the [standard module](https://www.terraform.io/docs/modules/index.html#standard-module-structure) structure. Modules can use syntax supported by Terraform version 0.13 and newer. There are **2 required elements for compatibility:**
+
+1. **Root module** - Terraform has one requirement for files in the root directory of the repository to function as the primary entrypoint for the module. It should encapsulate the core logic to be used by Consul-Terraform-Sync for task automation. main.tf is the recommended filename for the main file where resources are created. This root module can effectively be executed outside of Consul-Terraform-Sync environment.
+2. **`services` input variable** - Consul-Terraform-Sync requires all modules to have the following input variable declared within the root module. The declaration of the `services` variable can be included at the top of the suggested `variables.tf` file where other input variables are commonly declared. This variable functions as the response object from the Consul catalog API and surfaces network information to be consumed by the module. It is structured as a map of objects.
+
+```hcl
+variable "services" {
+  description = "Consul services monitored by Consul-Terraform-Sync"
+  type = map(
+    object({
+      id        = string
+      name      = string
+      address   = string
+      port      = number
+      meta      = map(string)
+      tags      = list(string)
+      namespace = string
+      status    = string
+
+      node                  = string
+      node_id               = string
+      node_address          = string
+      node_datacenter       = string
+      node_tagged_addresses = map(string)
+      node_meta             = map(string)
+    })
+  )
+}
+```
+
+Keys of the `services` map are unique identifiers of the service across Consul agents and datacenters. Keys follow the format `service-id.node.datacenter` (or `service-id.node.namespace.datacenter` for Consul Enterprise).
+
+| Attribute | Description |
+| -- | -- |
+| `id` | A unique Consul ID for this service. This is unique per Consul agent. |
+| `name` | The logical name of the service. Many service instances may share the same logical service name. |
+| `address` | IP address of the service host -- if empty, node address should be used. |
+| `port` | Port number of the service |
+| `meta` | List of user-defined metadata key/value pairs for the service |
+| `tags` | List of tags for the service |
+| `namespace` | Consul Enterprise namespace of the service instance |
+| `status` | Representative status for the service instance based on an aggregate of the list of health checks |
+| `node` | Name of the Consul node on which the service is registered |
+| `node_id` | ID of the node on which the service is registered. |
+| `node_address` | The IP address of the Consul node on which the service is registered. |
+| `node_datacenter` | Datacenter of the Consul node on which the service is registered. |
+| `node_tagged_addresses` | List of explicit LAN and WAN IP addresses for the agent |
+| `node_meta` | List of user-defined metadata key/value pairs for the node |
+
+Terraform variables when passed as module arguments can be [lossy for object types](https://www.terraform.io/docs/configuration/types.html#conversion-of-complex-types). This allows Consul-Terraform-Sync to declare the full variable with every object attribute in the generated root module, and pass the variable to a child module that contains a subset of these attributes for its variable declaration. Modules compatible with Consul-Terraform-Sync may simplify the services variable within the module by omitting unused attributes. For example, the following services variable has 4 attributes with the rest omittied.
+
+```hcl
+variable "services" {
+  description = "Consul services monitored by Consul-Terraform-Sync"
+  type = map(
+    object({
+      id           = string
+      name         = string
+      node_address = string
+      port         = number
+      status       = string
+    })
+  )
+}
+```
+
 ### Module Input Variables
