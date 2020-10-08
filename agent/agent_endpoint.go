@@ -35,7 +35,17 @@ type Self struct {
 	DebugConfig map[string]interface{}
 	Coord       *coordinate.Coordinate
 	Member      serf.Member
-	Stats       map[string]map[string]string
+	Stats       map[string]interface{}
+	Meta        map[string]string
+	XDS         *xdsSelf `json:"xDS,omitempty"`
+}
+
+type Self2 struct {
+	Config      interface{}
+	DebugConfig map[string]interface{}
+	Coord       *coordinate.Coordinate
+	Member      serf.Member
+	Stats       map[string]interface{}
 	Meta        map[string]string
 	XDS         *xdsSelf `json:"xDS,omitempty"`
 }
@@ -75,6 +85,7 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 
 	test := formatJSON(reflect.ValueOf(s.agent.Stats())).Interface().(map[string]interface{})
 
+	//test := s.agent.config.Sanitized()
 	fmt.Sprintf("%v", test)
 
 	config := struct {
@@ -97,7 +108,7 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 		DebugConfig: s.agent.config.Sanitized(),
 		Coord:       cs[s.agent.config.SegmentName],
 		Member:      s.agent.LocalMember(),
-		Stats:       s.agent.Stats(),
+		Stats:       test,
 		Meta:        s.agent.State.Metadata(),
 		XDS:         xds,
 	}, nil
@@ -114,13 +125,13 @@ func formatJSON(value reflect.Value) reflect.Value {
 		}
 		return reflect.ValueOf(m)
 	case typ.Kind() == reflect.String:
-		b, berr := strconv.ParseBool(fmt.Sprintf("%v", value))
-		if berr == nil {
-			return reflect.ValueOf(b)
-		}
 		i, ierr := strconv.Atoi(fmt.Sprintf("%v", value))
 		if ierr == nil {
 			return reflect.ValueOf(i)
+		}
+		b, berr := strconv.ParseBool(fmt.Sprintf("%v", value))
+		if berr == nil {
+			return reflect.ValueOf(b)
 		}
 		return reflect.ValueOf(fmt.Sprintf("%v", value))
 	}
