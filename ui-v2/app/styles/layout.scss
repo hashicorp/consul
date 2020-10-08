@@ -53,6 +53,7 @@ html:not(.has-nspaces) [class*='nspace-'] {
 }
 main {
   @extend %with-sticky-footer-content;
+  position: relative;
 }
 main,
 #wrapper > footer {
