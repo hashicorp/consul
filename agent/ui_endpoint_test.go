@@ -1339,8 +1339,8 @@ func TestUIServiceTopology(t *testing.T) {
 							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 						},
 						Intention: structs.IntentionDecisionSummary{
-							Allowed:          true,
-							HasL7Permissions: false,
+							Allowed:        true,
+							HasPermissions: false,
 						},
 					},
 				},
@@ -1379,8 +1379,8 @@ func TestUIServiceTopology(t *testing.T) {
 							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 						},
 						Intention: structs.IntentionDecisionSummary{
-							Allowed:          true,
-							HasL7Permissions: false,
+							Allowed:        true,
+							HasPermissions: false,
 						},
 					},
 				},
