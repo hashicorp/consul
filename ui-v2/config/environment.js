@@ -138,7 +138,7 @@ module.exports = function (environment, $ = process.env) {
         // returned from `uiTemplateDataFromConfig`.
         CONSUL_ACLS_ENABLED: '__RUNTIME_BOOL_ACLsEnabled__',
         CONSUL_SSO_ENABLED: '__RUNTIME_BOOL_SSOEnabled__',
-        CONSUL_NSPACES_ENABLED: '__RUNTIME_BOOL_NSpacesEnabled__',
+        CONSUL_NSPACES_ENABLED: '__RUNTIME_BOOL_NamespacesEnabled__',
       });
       break;
   }
