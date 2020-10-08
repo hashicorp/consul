@@ -672,7 +672,7 @@
     return days.toFixed(1) + "d"
   }
 
-
+  /* global consul:writable */
   consul.registerMetricsProvider("prometheus", prometheusProvider)
 
 }());
