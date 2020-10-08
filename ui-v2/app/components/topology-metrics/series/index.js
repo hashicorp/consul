@@ -186,7 +186,10 @@ export default Component.extend({
       .text(niceTimeWithSeconds(mouseTime));
 
     tipVals.nodes().forEach((n, i) => {
-      let val = stackData[i][tipIdx][1] - stackData[i][tipIdx][0];
+      let tipData = stackData[i][tipIdx];
+      if (!tipData) return;
+
+      let val = tipData[1] - tipData[0];
       select(n).text(this.formatTooltip(keys[i], val));
     });
     cursor.attr('x', mouseX);
