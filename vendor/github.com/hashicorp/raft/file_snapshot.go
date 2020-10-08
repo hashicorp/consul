@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/go-hclog"
 	"hash"
 	"hash/crc64"
 	"io"
@@ -16,6 +15,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	hclog "github.com/hashicorp/go-hclog"
 )
 
 const (
@@ -32,6 +33,10 @@ type FileSnapshotStore struct {
 	path   string
 	retain int
 	logger hclog.Logger
+
+	// noSync, if true, skips crash-safe file fsync api calls.
+	// It's a private field, only used in testing
+	noSync bool
 }
 
 type snapMetaSlice []*fileSnapshotMeta
@@ -43,6 +48,8 @@ type FileSnapshotSink struct {
 	dir       string
 	parentDir string
 	meta      fileSnapshotMeta
+
+	noSync bool
 
 	stateFile *os.File
 	stateHash hash.Hash64
@@ -172,6 +179,7 @@ func (f *FileSnapshotStore) Create(version SnapshotVersion, index, term uint64,
 		logger:    f.logger,
 		dir:       path,
 		parentDir: f.path,
+		noSync:    f.noSync,
 		meta: fileSnapshotMeta{
 			SnapshotMeta: SnapshotMeta{
 				Version:            version,
@@ -414,7 +422,7 @@ func (s *FileSnapshotSink) Close() error {
 		return err
 	}
 
-	if runtime.GOOS != "windows" { // skipping fsync for directory entry edits on Windows, only needed for *nix style file systems
+	if !s.noSync && runtime.GOOS != "windows" { // skipping fsync for directory entry edits on Windows, only needed for *nix style file systems
 		parentFH, err := os.Open(s.parentDir)
 		defer parentFH.Close()
 		if err != nil {
@@ -462,8 +470,10 @@ func (s *FileSnapshotSink) finalize() error {
 	}
 
 	// Sync to force fsync to disk
-	if err := s.stateFile.Sync(); err != nil {
-		return err
+	if !s.noSync {
+		if err := s.stateFile.Sync(); err != nil {
+			return err
+		}
 	}
 
 	// Get the file size
@@ -510,8 +520,10 @@ func (s *FileSnapshotSink) writeMeta() error {
 		return err
 	}
 
-	if err = fh.Sync(); err != nil {
-		return err
+	if !s.noSync {
+		if err = fh.Sync(); err != nil {
+			return err
+		}
 	}
 
 	return nil

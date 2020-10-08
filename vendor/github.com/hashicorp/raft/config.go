@@ -178,10 +178,6 @@ type Config struct {
 	// step down as leader.
 	LeaderLeaseTimeout time.Duration
 
-	// StartAsLeader forces Raft to start in the leader state. This should
-	// never be used except for testing purposes, as it can cause a split-brain.
-	StartAsLeader bool
-
 	// The unique ID for this server across all time. When running with
 	// ProtocolVersion < 3, you must set this to be the same as the network
 	// address of your transport.
