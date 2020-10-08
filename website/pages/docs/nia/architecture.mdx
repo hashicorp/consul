@@ -32,7 +32,7 @@ Consul-Terraform-Sync monitors Consul for updates utilizing Consul's [Blocking
 Queries](/api-docs/features/blocking) whenever supported, falling back on
 polling when not. The watcher maintains a separate thread (known internally as
 a view) for each value monitored, running any tasks that depend on that watched
-value whenever it's updated. Say, for examplek, running a task to update a
+value whenever it's updated. Say, for example, running a task to update a
 proxy when an instance goes unhealthy.
 
 ## Tasks
