@@ -12,7 +12,10 @@
       </span>
     </div>
   {{#each @downstreams as |downstream|}}
-    <div class="card">
+    <div class="card"
+      data-permission={{service/intention-permissions downstream}}
+      id="{{downstream.Namespace}}{{downstream.Name}}"
+    >
       <p>
         {{downstream.Name}}
       </p>
@@ -58,34 +61,13 @@
     </div>
   </div>
   <div id="downstream-lines">
-  {{#if (gt this.downLines.length 0)}}
-    <svg
-      viewBox={{concat downView.x ' ' downView.y ' ' downView.width ' ' downView.height}}
-      preserveAspectRatio="none"
-    >
-      <defs>
-        <marker id="dot" viewBox="-2 -2 15 15" refX="6" refY="6" markerWidth="6" markerHeight="6">
-          <circle
-            cx="6"
-            cy="6"
-            r="6"
-          />
-        </marker>
-        <marker id="arrow" viewBox="-1 -1 12 12" refX="5" refY="5"
-            markerWidth="6" markerHeight="6"
-            orient="auto-start-reverse">
-          <polygon points="0 0 10 5 0 10" />
-        </marker>
-      </defs>
-    {{#each this.downLines as |svg| }}
-      <path
-        d={{svg-curve svg.dest src=svg.src}}
-        marker-start="url(#dot)"
-        marker-end="url(#arrow)"
-      />
-    {{/each}}
-    </svg>
-  {{/if}}
+    <TopologyMetrics::DownLines
+      @type='downstream'
+      @view={{this.downView}}
+      @center={{this.centerDimensions}}
+      @lines={{this.downLines}}
+      @items={{@downstreams}}
+     />
   </div>
 {{#if (gt @upstreams.length 0)}}
   <div id="upstream-column">
@@ -93,7 +75,10 @@
     <div id="upstream-container">
       <p>{{dc}}</p>
       {{#each upstreams as |upstream|}}
-      <div class="card">
+      <div class="card"
+        data-permission={{service/intention-permissions upstream}}
+        id="{{upstream.Namespace}}{{upstream.Name}}"
+      >
         <p>
           {{upstream.Name}}
         </p>
@@ -142,33 +127,12 @@
   </div>
 {{/if}}
   <div id="upstream-lines">
-  {{#if (gt this.upLines.length 0)}}
-    <svg
-      viewBox={{concat this.centerDimensions.x ' ' upView.y ' ' upView.width ' ' upView.height}}
-      preserveAspectRatio="none"
-    >
-      <defs>
-        <marker id="dot" viewBox="-2 -2 15 15" refX="6" refY="6" markerWidth="6" markerHeight="6">
-          <circle
-            cx="6"
-            cy="6"
-            r="6"
-          />
-        </marker>
-        <marker id="arrow" viewBox="-1 -1 12 12" refX="5" refY="5"
-            markerWidth="6" markerHeight="6"
-            orient="auto-start-reverse">
-          <polygon points="0 0 10 5 0 10" />
-        </marker>
-      </defs>
-    {{#each this.upLines as |svg| }}
-      <path
-        d={{svg-curve svg.dest src=svg.src}}
-        marker-start="url(#dot)"
-        marker-end="url(#arrow)"
-      />
-    {{/each}}
-    </svg>
-  {{/if}}
+    <TopologyMetrics::UpLines
+      @type='upstream'
+      @view={{this.upView}}
+      @center={{this.centerDimensions}}
+      @lines={{this.upLines}}
+      @items={{@upstreams}}
+     />
   </div>
 </div>
