@@ -6,7 +6,6 @@ option go_package = "github.com/hashicorp/consul/proto/pbservice";
 
 import "google/protobuf/duration.proto";
 import "proto/pbcommon/common.proto";
-import "proto/pbcommon/common_oss.proto";
 
 // This fake import path is replaced by the build script with a versioned path
 import "gogoproto/gogo.proto";

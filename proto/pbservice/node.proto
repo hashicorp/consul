@@ -5,7 +5,6 @@ package pbservice;
 option go_package = "github.com/hashicorp/consul/proto/pbservice";
 
 import "proto/pbcommon/common.proto";
-import "proto/pbcommon/common_oss.proto";
 import "proto/pbservice/healthcheck.proto";
 import "proto/pbservice/service.proto";
 
