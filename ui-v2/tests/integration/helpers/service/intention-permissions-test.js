@@ -11,7 +11,7 @@ module('Integration | Helper | service/intention-permissions', function(hooks) {
     this.set('inputValue', {
       Intention: {
         Allowed: false,
-        HasL7Permissions: true,
+        HasPermissions: true,
       },
     });
 

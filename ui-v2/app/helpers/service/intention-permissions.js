@@ -1,13 +1,13 @@
 import { helper } from '@ember/component/helper';
 
 export default helper(function serviceIntentionPermissions([params] /*, hash*/) {
-  const L7Permissions = params.Intention.HasL7Permissions;
-  const permission = params.Intention.Allowed;
+  const hasPermissions = params.Intention.HasPermissions;
+  const allowed = params.Intention.Allowed;
 
   switch (true) {
-    case L7Permissions:
+    case hasPermissions:
       return 'allow';
-    case !permission && !L7Permissions:
+    case !allowed && !hasPermissions:
       return 'deny';
     default:
       return 'allow';
