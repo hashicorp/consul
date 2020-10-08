@@ -51,7 +51,7 @@ type configTest struct {
 // should check one option at a time if possible and should use generic
 // values, e.g. 'a' or 1 instead of 'servicex' or 3306.
 
-func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
+func TestBuilder_BuildAndValidate_ConfigFlagsAndEdgecases(t *testing.T) {
 	dataDir := testutil.TempDir(t, "consul")
 
 	defaultEntMeta := structs.DefaultEnterpriseMeta()
@@ -4438,7 +4438,6 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 				rt.CertFile = "foo"
 			},
 		},
-
 		// UI Config tests
 		{
 			desc: "ui config deprecated",
@@ -4600,6 +4599,23 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 			}
 			`},
 			err: `ui_config.dashboard_url_templates values must be a valid http or https URL.`,
+		},
+
+		// Per node reconnect timeout test
+		{
+			desc: "server and advertised reconnect timeout error",
+			args: []string{
+				`-data-dir=` + dataDir,
+				`-server`,
+			},
+			hcl: []string{`
+				advertise_reconnect_timeout = "5s"
+			`},
+			json: []string{`
+			{
+				"advertise_reconnect_timeout": "5s"
+			}`},
+			err: "advertise_reconnect_timeout can only be used on a client",
 		},
 	}
 
@@ -4834,6 +4850,7 @@ func TestFullConfig(t *testing.T) {
 			},
 			"advertise_addr": "17.99.29.16",
 			"advertise_addr_wan": "78.63.37.19",
+			"advertise_reconnect_timeout": "0s",
 			"audit": {
 				"enabled": false
 			},
@@ -5515,6 +5532,7 @@ func TestFullConfig(t *testing.T) {
 			}
 			advertise_addr = "17.99.29.16"
 			advertise_addr_wan = "78.63.37.19"
+			advertise_reconnect_timeout = "0s"
 			audit = {
 				enabled = false
 			}
@@ -6295,6 +6313,7 @@ func TestFullConfig(t *testing.T) {
 		ACLTokenReplication:              true,
 		AdvertiseAddrLAN:                 ipAddr("17.99.29.16"),
 		AdvertiseAddrWAN:                 ipAddr("78.63.37.19"),
+		AdvertiseReconnectTimeout:        0 * time.Second,
 		AutopilotCleanupDeadServers:      true,
 		AutopilotDisableUpgradeMigration: true,
 		AutopilotLastContactThreshold:    12705 * time.Second,
@@ -7278,6 +7297,7 @@ func TestSanitize(t *testing.T) {
 		"AEInterval": "0s",
 		"AdvertiseAddrLAN": "",
 		"AdvertiseAddrWAN": "",
+		"AdvertiseReconnectTimeout": "0s",
 		"AutopilotCleanupDeadServers": false,
 		"AutopilotDisableUpgradeMigration": false,
 		"AutopilotLastContactThreshold": "0s",

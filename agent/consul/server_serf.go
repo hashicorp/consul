@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	libserf "github.com/hashicorp/consul/lib/serf"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/memberlist"
@@ -167,6 +168,8 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	if err := lib.EnsurePath(conf.SnapshotPath, false); err != nil {
 		return nil, err
 	}
+
+	conf.ReconnectTimeoutOverride = libserf.NewReconnectOverride(s.logger)
 
 	s.addEnterpriseSerfTags(conf.Tags)
 

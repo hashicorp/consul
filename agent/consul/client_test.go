@@ -747,3 +747,34 @@ func TestClient_Reload(t *testing.T) {
 	require.Equal(t, rate.Limit(1000), limiter.Limit())
 	require.Equal(t, 10000, limiter.Burst())
 }
+
+func TestClient_ShortReconnectTimeout(t *testing.T) {
+	cluster := newTestCluster(t, &testClusterConfig{
+		Datacenter: "dc1",
+		Servers:    1,
+		Clients:    2,
+		ServerConf: func(c *Config) {
+			c.SerfLANConfig.ReapInterval = 50 * time.Millisecond
+		},
+		ClientConf: func(c *Config) {
+			c.SerfLANConfig.ReapInterval = 50 * time.Millisecond
+			c.AdvertiseReconnectTimeout = 100 * time.Millisecond
+		},
+	})
+
+	// shutdown the client
+	cluster.Clients[1].Shutdown()
+
+	// Now wait for it to be reaped. We set the advertised reconnect
+	// timeout to 100ms so we are going to check every 50 ms and allow
+	// up to 10x the time in the case of slow CI.
+	require.Eventually(t,
+		func() bool {
+			return len(cluster.Servers[0].LANMembers()) == 2 &&
+				len(cluster.Clients[0].LANMembers()) == 2
+
+		},
+		time.Second,
+		50*time.Millisecond,
+		"The client node was not reaped within the alotted time")
+}

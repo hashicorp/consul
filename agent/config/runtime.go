@@ -980,6 +980,13 @@ type RuntimeConfig struct {
 	// hcl: reconnect_timeout = "duration"
 	ReconnectTimeoutWAN time.Duration
 
+	// AdvertiseReconnectTimeout specifies the amount of time other agents should
+	// wait for us to reconnect before deciding we are permanently gone. This
+	// should only be set for client agents that are run in a stateless or
+	// ephemeral manner in order to realize their deletion sooner than we
+	// would otherwise.
+	AdvertiseReconnectTimeout time.Duration
+
 	// RejoinAfterLeave controls our interaction with the cluster after leave.
 	// When set to false (default), a leave causes Consul to not rejoin
 	// the cluster until an explicit join is received. If this is set to

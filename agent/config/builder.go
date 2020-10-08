@@ -949,11 +949,12 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		},
 
 		// Agent
-		AdvertiseAddrLAN: advertiseAddrLAN,
-		AdvertiseAddrWAN: advertiseAddrWAN,
-		BindAddr:         bindAddr,
-		Bootstrap:        b.boolVal(c.Bootstrap),
-		BootstrapExpect:  b.intVal(c.BootstrapExpect),
+		AdvertiseAddrLAN:          advertiseAddrLAN,
+		AdvertiseAddrWAN:          advertiseAddrWAN,
+		AdvertiseReconnectTimeout: b.durationVal("advertise_reconnect_timeout", c.AdvertiseReconnectTimeout),
+		BindAddr:                  bindAddr,
+		Bootstrap:                 b.boolVal(c.Bootstrap),
+		BootstrapExpect:           b.intVal(c.BootstrapExpect),
 		Cache: cache.Options{
 			EntryFetchRate: rate.Limit(
 				b.float64ValWithDefault(c.Cache.EntryFetchRate, float64(cache.DefaultEntryFetchRate)),
@@ -1387,6 +1388,10 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	}
 	if !rt.ServerMode && rt.AutoEncryptAllowTLS {
 		return fmt.Errorf("auto_encrypt.allow_tls can only be used on a server.")
+	}
+
+	if rt.ServerMode && rt.AdvertiseReconnectTimeout != 0 {
+		return fmt.Errorf("advertise_reconnect_timeout can only be used on a client")
 	}
 
 	// ----------------------------------------------------------------
