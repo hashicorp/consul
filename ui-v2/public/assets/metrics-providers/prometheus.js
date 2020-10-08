@@ -652,7 +652,7 @@
     }
     if (n >= 1e3 && n < 1e6) return +(n / 1e3).toPrecision(3) + "k";
     if (n >= 1e6 && n < 1e9) return +(n / 1e6).toPrecision(3) + "m";
-    if (n >= 1e9 && n < 1e12) return +(n / 1e9).toPrecision(3) + "b";
+    if (n >= 1e9 && n < 1e12) return +(n / 1e9).toPrecision(3) + "g";
     if (n >= 1e12) return +(n / 1e12).toFixed(0) + "t";
   }
 
