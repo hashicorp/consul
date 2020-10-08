@@ -1386,7 +1386,7 @@ func TestUIServiceTopology(t *testing.T) {
 			require.NoError(r, checkIndex(resp))
 
 			expect := ServiceTopology{
-				Protocol: "http",
+				Protocol: "tcp",
 				Downstreams: []*ServiceTopologySummary{
 					{
 						ServiceSummary: ServiceSummary{
