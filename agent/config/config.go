@@ -634,6 +634,7 @@ type DNS struct {
 	MaxStale           *string           `mapstructure:"max_stale"`
 	NodeTTL            *string           `mapstructure:"node_ttl"`
 	OnlyPassing        *bool             `mapstructure:"only_passing"`
+	RecursorStrategy   *string           `mapstructure:"recursor_strategy"`
 	RecursorTimeout    *string           `mapstructure:"recursor_timeout"`
 	ServiceTTL         map[string]string `mapstructure:"service_ttl"`
 	UDPAnswerLimit     *int              `mapstructure:"udp_answer_limit"`

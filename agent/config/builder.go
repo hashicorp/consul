@@ -910,6 +910,7 @@ func (b *builder) Build() (rt RuntimeConfig, err error) {
 		DNSNodeTTL:            b.durationVal("dns_config.node_ttl", c.DNS.NodeTTL),
 		DNSOnlyPassing:        boolVal(c.DNS.OnlyPassing),
 		DNSPort:               dnsPort,
+		DNSRecursorStrategy:   stringValWithDefault(c.DNS.RecursorStrategy, "sequential"),
 		DNSRecursorTimeout:    b.durationVal("recursor_timeout", c.DNS.RecursorTimeout),
 		DNSRecursors:          dnsRecursors,
 		DNSServiceTTL:         dnsServiceTTL,
@@ -1284,6 +1285,9 @@ func (b *builder) Validate(rt RuntimeConfig) error {
 		if ipaddr.IsAny(a) {
 			return fmt.Errorf("DNS recursor address cannot be 0.0.0.0, :: or [::]")
 		}
+	}
+	if !isValidRecursorStrategy(rt.DNSRecursorStrategy) {
+		return fmt.Errorf("dns_config.recursor_strategy must be either %q or %q", "random", "sequential")
 	}
 	if !isValidAltDomain(rt.DNSAltDomain, rt.Datacenter) {
 		return fmt.Errorf("alt_domain cannot start with {service,connect,node,query,addr,%s}", rt.Datacenter)
@@ -2403,6 +2407,18 @@ func isValidAltDomain(domain, datacenter string) bool {
 		),
 	)
 	return !reAltDomain.MatchString(domain)
+}
+
+// isValidRecursorStrategy returns true if the given resolution strategy matches
+// one of the supported modes
+func isValidRecursorStrategy(strategy string) bool {
+	for _, s := range []string{"random", "sequential"} {
+		if strategy == s {
+			return true
+		}
+	}
+
+	return false
 }
 
 // UIPathBuilder checks to see if there was a path set

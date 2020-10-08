@@ -270,6 +270,15 @@ type RuntimeConfig struct {
 	// hcl: dns_config { only_passing = (true|false) }
 	DNSOnlyPassing bool
 
+	// DNSRecursorStrategy controls the order in which DNS recursors are queried.
+	// 'sequential' queries recursors in the order they are listed under `recursors`.
+	// 'random' causes random selection of recursors which has the effect of
+	// spreading the query load among all listed servers, rather than having
+	// client agents try the first server in the list every time.
+	//
+	// hcl: dns_config { recursor_strategy = "(random|sequential)" }
+	DNSRecursorStrategy string
+
 	// DNSRecursorTimeout specifies the timeout in seconds
 	// for Consul's internal dns client used for recursion.
 	// This value is used for the connection, read and write timeout.
