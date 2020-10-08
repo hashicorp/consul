@@ -7182,3 +7182,182 @@ func TestCatalog_DownstreamsForService_Updates(t *testing.T) {
 	require.Equal(t, uint64(6), idx)
 	require.ElementsMatch(t, expect, names)
 }
+
+func TestProtocolForIngressGateway(t *testing.T) {
+	tt := []struct {
+		name    string
+		idx     uint64
+		entries []structs.ConfigEntry
+		expect  string
+	}{
+		{
+			name: "all http like",
+			idx:  uint64(5),
+			entries: []structs.ConfigEntry{
+				&structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "h1-svc",
+					Protocol: "http",
+				},
+				&structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "h2-svc",
+					Protocol: "http2",
+				},
+				&structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "g-svc",
+					Protocol: "grpc",
+				},
+				&structs.IngressGatewayConfigEntry{
+					Kind: structs.IngressGateway,
+					Name: "ingress",
+					Listeners: []structs.IngressListener{
+						{
+							Port:     1111,
+							Protocol: "http",
+							Services: []structs.IngressService{
+								{
+									Name: "h1-svc",
+								},
+							},
+						},
+						{
+							Port:     2222,
+							Protocol: "http2",
+							Services: []structs.IngressService{
+								{
+									Name: "h2-svc",
+								},
+							},
+						},
+						{
+							Port:     3333,
+							Protocol: "grpc",
+							Services: []structs.IngressService{
+								{
+									Name: "g-svc",
+								},
+							},
+						},
+					},
+				},
+			},
+			expect: "http",
+		},
+		{
+			name: "all tcp",
+			idx:  uint64(6),
+			entries: []structs.ConfigEntry{
+				&structs.IngressGatewayConfigEntry{
+					Kind: structs.IngressGateway,
+					Name: "ingress",
+					Listeners: []structs.IngressListener{
+						{
+							Port:     1111,
+							Protocol: "tcp",
+							Services: []structs.IngressService{
+								{
+									Name: "zip",
+								},
+							},
+						},
+						{
+							Port:     2222,
+							Protocol: "tcp",
+							Services: []structs.IngressService{
+								{
+									Name: "zop",
+								},
+							},
+						},
+						{
+							Port:     3333,
+							Protocol: "tcp",
+							Services: []structs.IngressService{
+								{
+									Name: "zap",
+								},
+							},
+						},
+					},
+				},
+			},
+			expect: "tcp",
+		},
+		{
+			name: "mix of both",
+			idx:  uint64(7),
+			entries: []structs.ConfigEntry{
+				&structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "h1-svc",
+					Protocol: "http",
+				},
+				&structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "g-svc",
+					Protocol: "grpc",
+				},
+				&structs.IngressGatewayConfigEntry{
+					Kind: structs.IngressGateway,
+					Name: "ingress",
+					Listeners: []structs.IngressListener{
+						{
+							Port:     1111,
+							Protocol: "http",
+							Services: []structs.IngressService{
+								{
+									Name: "h1-svc",
+								},
+							},
+						},
+						{
+							Port:     2222,
+							Protocol: "tcp",
+							Services: []structs.IngressService{
+								{
+									Name: "zop",
+								},
+							},
+						},
+						{
+							Port:     3333,
+							Protocol: "grpc",
+							Services: []structs.IngressService{
+								{
+									Name: "g-svc",
+								},
+							},
+						},
+					},
+				},
+			},
+			expect: "tcp",
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			s := testStateStore(t)
+
+			for _, entry := range tc.entries {
+				require.NoError(t, entry.Normalize())
+				require.NoError(t, entry.Validate())
+
+				require.NoError(t, s.EnsureConfigEntry(tc.idx, entry, structs.DefaultEnterpriseMeta()))
+			}
+
+			tx := s.db.ReadTxn()
+			defer tx.Abort()
+
+			ws := memdb.NewWatchSet()
+			sn := structs.NewServiceName("ingress", structs.DefaultEnterpriseMeta())
+
+			idx, protocol, err := metricsProtocolForIngressGateway(tx, ws, sn)
+			require.NoError(t, err)
+			require.Equal(t, tc.idx, idx)
+			require.Equal(t, tc.expect, protocol)
+		})
+	}
+}

@@ -519,6 +519,7 @@ type ServiceSpecificRequest struct {
 	Datacenter      string
 	NodeMetaFilters map[string]string
 	ServiceName     string
+	ServiceKind     ServiceKind
 	// DEPRECATED (singular-service-tag) - remove this when backwards RPC compat
 	// with 1.2.x is not required.
 	ServiceTag     string
@@ -1893,6 +1894,9 @@ type ServiceTopology struct {
 
 	UpstreamDecisions   map[string]IntentionDecisionSummary
 	DownstreamDecisions map[string]IntentionDecisionSummary
+
+	// MetricsProtocol is the protocol of the service being queried
+	MetricsProtocol string
 }
 
 // IndexedConfigEntries has its own encoding logic which differs from

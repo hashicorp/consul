@@ -12,12 +12,11 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/hashicorp/consul/sdk/testutil/retry"
-
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
 	"github.com/stretchr/testify/assert"
@@ -940,7 +939,7 @@ func TestUIServiceTopology(t *testing.T) {
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
-	// Register api -> web -> redis
+	// Register ingress -> api -> web -> redis
 	{
 		registrations := map[string]*structs.RegisterRequest{
 			"Node edge": {
@@ -1249,6 +1248,14 @@ func TestUIServiceTopology(t *testing.T) {
 			},
 			{
 				Datacenter: "dc1",
+				Entry: &structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "api",
+					Protocol: "tcp",
+				},
+			},
+			{
+				Datacenter: "dc1",
 				Entry: &structs.ServiceIntentionsConfigEntry{
 					Kind: structs.ServiceIntentions,
 					Name: "redis",
@@ -1302,7 +1309,7 @@ func TestUIServiceTopology(t *testing.T) {
 					Listeners: []structs.IngressListener{
 						{
 							Port:     1111,
-							Protocol: "http",
+							Protocol: "tcp",
 							Services: []structs.IngressService{
 								{
 									Name:           "api",
@@ -1320,16 +1327,35 @@ func TestUIServiceTopology(t *testing.T) {
 		}
 	}
 
+	t.Run("request without kind", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/ingress", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.UIServiceTopology(resp, req)
+		require.Nil(t, err)
+		require.Nil(t, obj)
+		require.Equal(t, "Missing service kind", resp.Body.String())
+	})
+
+	t.Run("request with unsupported kind", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/ingress?kind=not-a-kind", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.UIServiceTopology(resp, req)
+		require.Nil(t, err)
+		require.Nil(t, obj)
+		require.Equal(t, `Unsupported service kind "not-a-kind"`, resp.Body.String())
+	})
+
 	t.Run("ingress", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
 			// Request topology for ingress
-			req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/ingress", nil)
+			req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/ingress?kind=ingress-gateway", nil)
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.UIServiceTopology(resp, req)
 			assert.Nil(r, err)
 			require.NoError(r, checkIndex(resp))
 
 			expect := ServiceTopology{
+				Protocol: "tcp",
 				Upstreams: []*ServiceTopologySummary{
 					{
 						ServiceSummary: ServiceSummary{
@@ -1362,13 +1388,14 @@ func TestUIServiceTopology(t *testing.T) {
 	t.Run("api", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
 			// Request topology for api
-			req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/api", nil)
+			req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/api?kind=", nil)
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.UIServiceTopology(resp, req)
 			assert.Nil(r, err)
 			require.NoError(r, checkIndex(resp))
 
 			expect := ServiceTopology{
+				Protocol: "tcp",
 				Downstreams: []*ServiceTopologySummary{
 					{
 						ServiceSummary: ServiceSummary{
@@ -1425,13 +1452,14 @@ func TestUIServiceTopology(t *testing.T) {
 	t.Run("web", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
 			// Request topology for web
-			req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/web", nil)
+			req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/web?kind=", nil)
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.UIServiceTopology(resp, req)
 			assert.Nil(r, err)
 			require.NoError(r, checkIndex(resp))
 
 			expect := ServiceTopology{
+				Protocol: "http",
 				Upstreams: []*ServiceTopologySummary{
 					{
 						ServiceSummary: ServiceSummary{
@@ -1486,13 +1514,14 @@ func TestUIServiceTopology(t *testing.T) {
 	t.Run("redis", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
 			// Request topology for redis
-			req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/redis", nil)
+			req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/redis?kind=", nil)
 			resp := httptest.NewRecorder()
 			obj, err := a.srv.UIServiceTopology(resp, req)
 			assert.Nil(r, err)
 			require.NoError(r, checkIndex(resp))
 
 			expect := ServiceTopology{
+				Protocol: "http",
 				Downstreams: []*ServiceTopologySummary{
 					{
 						ServiceSummary: ServiceSummary{
