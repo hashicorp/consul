@@ -18,7 +18,7 @@
     @extend %with-deny-color-icon, %as-pseudo;
   }
   .permissions > button {
-    @extend %anchor;
+    @extend %anchor, %p2;
     float: right;
   }
 }
