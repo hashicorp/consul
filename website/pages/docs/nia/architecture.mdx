@@ -23,7 +23,7 @@ for updates and utilizing Terraform to update the state of the infrastructure.
 There are two principal aspects of Sync to know about corresponding to the
 lines to Consul and Terraform in the diagram above. The line to Consul
 represents the Watchers monitoring the state of Consul's service catalog (and
-possibly KV store) while the line to Terraform represents Tasks being run to
+possibly KV store) while the line to Terraform represents tasks being run to
 update the infrastructure.
 
 ## Watcher and Views
@@ -31,8 +31,9 @@ update the infrastructure.
 Consul-Terraform-Sync monitors Consul for updates utilizing Consul's [Blocking
 Queries](/api-docs/features/blocking) whenever supported, falling back on
 polling when not. The watcher maintains a separate thread (known internally as
-a view) for each value monitored, running any Tasks that depend on that watched
-value whenever it's updated.
+a view) for each value monitored, running any tasks that depend on that watched
+value whenever it's updated. Say, for examplek, running a task to update a
+proxy when an instance goes unhealthy.
 
 ## Tasks
 
@@ -48,4 +49,4 @@ discovered IP addresses for a set of Consul services.
 A driver encapsulates the resources required to communicate the updates to the
 network infrastructure. Terraform is the initial supported driver. It comes
 with a set of providers that enables supporting supporting a wide variety of
-infrastructure applications with little customization.
+infrastructure applications.
