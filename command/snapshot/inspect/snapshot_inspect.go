@@ -190,7 +190,7 @@ func (c *cmd) readStats(stats map[structs.MessageType]typeStats, offset int) (by
 		fmt.Fprintf(tw, "\n %s\t%d\t%s\t", s.Name, s.Count, ByteSize(uint64(s.Sum)))
 	}
 	fmt.Fprintf(tw, "\n %s\t%s\t%s\t", "----", "----", "----")
-	fmt.Fprintln(tw, "\n Total\t\t", ByteSize(uint64(offset)))
+	fmt.Fprintf(tw, "\n Total\t\t%s\t", ByteSize(uint64(offset)))
 
 	if err := tw.Flush(); err != nil {
 		c.UI.Error(fmt.Sprintf("Error rendering snapshot info: %s", err))
