@@ -570,6 +570,9 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 	// double slashes etc.
 	u.Path = path.Clean(u.Path)
 
+	// Pass the query params from the original request
+	u.RawQuery = req.URL.Query().Encode()
+
 	// Validate that the full BaseURL is still a prefix - if there was a path
 	// prefix on the BaseURL but an attacker tried to circumvent it with path
 	// traversal then the Clean above would have resolve the /../ components back
@@ -593,6 +596,8 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 	for _, h := range cfg.AddHeaders {
 		req.Header.Set(h.Name, h.Value)
 	}
+
+	log.Debug("proxying request to", u.String())
 
 	proxy := httputil.ReverseProxy{
 		Director: func(r *http.Request) {
