@@ -36,9 +36,9 @@ type cmd struct {
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
-	//TODO(schristoff): better flag info would be good
 	c.flags.BoolVar(&c.enhance, "enhance", false,
-		"Adds more info")
+		"enhance allows for more detailed information of the snapshot"+
+			"such as message type, count, and size.")
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -77,12 +77,12 @@ func (c *cmd) Run(args []string) int {
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error reading snapshot: %s", err))
 		}
-		stats, err := enhance(file)
+		stats, offset, err := enhance(file)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error verifying snapshot: %s", err))
 			return 1
 		}
-		b, err := c.readStats(stats)
+		b, err := c.readStats(stats, offset)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error reading snapshot stats: %s", err))
 			return 1
@@ -136,7 +136,7 @@ func (r *countingReader) Read(p []byte) (n int, err error) {
 
 // enhance utilizes ReadSnapshot to populate the struct with
 // all of the snapshot's itemized data
-func enhance(file io.Reader) (map[structs.MessageType]typeStats, error) {
+func enhance(file io.Reader) (map[structs.MessageType]typeStats, int, error) {
 	stats := make(map[structs.MessageType]typeStats)
 	var offset int
 	cr := &countingReader{wrappedReader: file}
@@ -161,15 +161,15 @@ func enhance(file io.Reader) (map[structs.MessageType]typeStats, error) {
 		return nil
 	}
 	if err := fsm.ReadSnapshot(cr, handler); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return stats, nil
+	return stats, offset, nil
 
 }
 
 // readStats takes the information generated from enhance and creates human
 // readable output from it
-func (c *cmd) readStats(stats map[structs.MessageType]typeStats) (bytes.Buffer, error) {
+func (c *cmd) readStats(stats map[structs.MessageType]typeStats, offset int) (bytes.Buffer, error) {
 	// Output stats in size-order
 	ss := make([]typeStats, 0, len(stats))
 
@@ -182,13 +182,16 @@ func (c *cmd) readStats(stats map[structs.MessageType]typeStats) (bytes.Buffer, 
 
 	var b bytes.Buffer
 
+	tw := tabwriter.NewWriter(&b, 8, 8, 6, ' ', 0)
+	fmt.Fprintln(tw, "\n Type\tCount\tSize\t")
+	fmt.Fprintf(tw, " %s\t%s\t%s\t", "----", "----", "----")
 	// For each different type generate new output
-	tw := tabwriter.NewWriter(&b, 0, 3, 6, ' ', 0)
 	for _, s := range ss {
-		fmt.Fprintf(tw, "Type\t%s\n", s.Name)
-		fmt.Fprintf(tw, "Count\t%d\n", s.Count)
-		fmt.Fprintf(tw, "Size\t%s\n", ByteSize(uint64(s.Sum)))
+		fmt.Fprintf(tw, "\n %s\t%d\t%s\t", s.Name, s.Count, ByteSize(uint64(s.Sum)))
 	}
+	fmt.Fprintf(tw, "\n %s\t%s\t%s\t", "----", "----", "----")
+	fmt.Fprintln(tw, "\n Total\t\t", ByteSize(uint64(offset)))
+
 	if err := tw.Flush(); err != nil {
 		c.UI.Error(fmt.Sprintf("Error rendering snapshot info: %s", err))
 		return b, err
@@ -260,6 +263,9 @@ Usage: consul snapshot inspect [options] FILE
   To inspect the file "backup.snap":
 
     $ consul snapshot inspect backup.snap
-
+  
+  -enhance    enhance allows for more detailed information of the snapshot
+  such as message type, count, and size.
+  
   For a full list of options and examples, please see the Consul documentation.
 `

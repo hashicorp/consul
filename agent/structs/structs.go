@@ -106,6 +106,7 @@ var requestTypeStrings = map[MessageType]string{
 	28: "ACLAuthMethodDelete",
 	29: "ChunkingState",
 	30: "FederationState",
+	31: "SystemMetadata",
 }
 
 const (
@@ -2474,13 +2475,15 @@ func (r *KeyringResponses) New() interface{} {
 	return new(KeyringResponses)
 }
 
+// String converts message type int to string
 func (m MessageType) String() string {
 	s, ok := requestTypeStrings[m]
 	if ok {
 		return s
 	}
 	return "Unknown(" + strconv.Itoa(int(m)) + ")"
-  
+}
+
 // UpstreamDownstream pairs come from individual proxy registrations, which can be updated independently.
 type UpstreamDownstream struct {
 	Upstream   ServiceName

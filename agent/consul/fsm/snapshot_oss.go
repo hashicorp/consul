@@ -615,8 +615,7 @@ func restoreAutopilot(header *SnapshotHeader, restore *state.Restore, decoder *c
 	return nil
 }
 
-
-func restoreLegacyIntention(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+func restoreLegacyIntention(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
 	var req structs.Intention
 	if err := decoder.Decode(&req); err != nil {
 		return err
@@ -737,7 +736,7 @@ func restoreFederationState(header *SnapshotHeader, restore *state.Restore, deco
 	return restore.FederationState(req.State)
 }
 
-func restoreSystemMetadata(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+func restoreSystemMetadata(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
 	var req structs.SystemMetadataEntry
 	if err := decoder.Decode(&req); err != nil {
 		return err
