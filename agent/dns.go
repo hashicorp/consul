@@ -48,6 +48,11 @@ type dnsSOAConfig struct {
 	Minttl  uint32 // 0
 }
 
+type dnsRecursors struct {
+	Addrs           []string
+	RoundRobinIndex uint32
+}
+
 type dnsConfig struct {
 	AllowStale      bool
 	Datacenter      string
@@ -59,7 +64,8 @@ type dnsConfig struct {
 	NodeTTL         time.Duration
 	OnlyPassing     bool
 	RecursorTimeout time.Duration
-	Recursors       []string
+	RecursorRotate  bool
+	Recursors       dnsRecursors
 	SegmentName     string
 	UDPAnswerLimit  int
 	ARecordLimit    int
@@ -135,6 +141,7 @@ func GetDNSConfig(conf *config.RuntimeConfig) (*dnsConfig, error) {
 		NodeTTL:            conf.DNSNodeTTL,
 		OnlyPassing:        conf.DNSOnlyPassing,
 		RecursorTimeout:    conf.DNSRecursorTimeout,
+		RecursorRotate:     conf.DNSRecursorRotate,
 		SegmentName:        conf.SegmentName,
 		UDPAnswerLimit:     conf.DNSUDPAnswerLimit,
 		NodeMetaTXT:        conf.DNSNodeMetaTXT,
@@ -168,7 +175,7 @@ func GetDNSConfig(conf *config.RuntimeConfig) (*dnsConfig, error) {
 		if err != nil {
 			return nil, fmt.Errorf("Invalid recursor address: %v", err)
 		}
-		cfg.Recursors = append(cfg.Recursors, ra)
+		cfg.Recursors.Addrs = append(cfg.Recursors.Addrs, ra)
 	}
 
 	return cfg, nil
@@ -223,7 +230,7 @@ func (d *DNSServer) ListenAndServe(network, addr string, notif func()) error {
 
 // toggleRecursorHandlerFromConfig enables or disables the recursor handler based on config idempotently
 func (d *DNSServer) toggleRecursorHandlerFromConfig(cfg *dnsConfig) {
-	shouldEnable := len(cfg.Recursors) > 0
+	shouldEnable := len(cfg.Recursors.Addrs) > 0
 
 	if shouldEnable && atomic.CompareAndSwapUint32(&d.recursorEnabled, 0, 1) {
 		d.mux.HandleFunc(".", d.handleRecurse)
@@ -342,7 +349,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 	m.SetReply(req)
 	m.Compress = !cfg.DisableCompression
 	m.Authoritative = true
-	m.RecursionAvailable = (len(cfg.Recursors) > 0)
+	m.RecursionAvailable = (len(cfg.Recursors.Addrs) > 0)
 
 	// Only add the SOA if requested
 	if req.Question[0].Qtype == dns.TypeSOA {
@@ -452,7 +459,7 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 	m.SetReply(req)
 	m.Compress = !cfg.DisableCompression
 	m.Authoritative = true
-	m.RecursionAvailable = (len(cfg.Recursors) > 0)
+	m.RecursionAvailable = (len(cfg.Recursors.Addrs) > 0)
 
 	ecsGlobal := true
 
@@ -1812,7 +1819,11 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 	var r *dns.Msg
 	var rtt time.Duration
 	var err error
-	for _, recursor := range cfg.Recursors {
+	var start = int(cfg.Recursors.RoundRobinIndex)
+	if cfg.RecursorRotate {
+		cfg.Recursors.RoundRobinIndex += 1
+	}
+	for _, recursor := range append(cfg.Recursors.Addrs[start:], cfg.Recursors.Addrs[:start]...) {
 		r, rtt, err = c.Exchange(req, recursor)
 		// Check if the response is valid and has the desired Response code
 		if r != nil && (r.Rcode != dns.RcodeSuccess && r.Rcode != dns.RcodeNameError) {
@@ -1883,7 +1894,7 @@ func (d *DNSServer) resolveCNAME(cfg *dnsConfig, name string, maxRecursionLevel 
 	}
 
 	// Do nothing if we don't have a recursor
-	if len(cfg.Recursors) == 0 {
+	if len(cfg.Recursors.Addrs) == 0 {
 		return nil
 	}
 
@@ -1896,7 +1907,11 @@ func (d *DNSServer) resolveCNAME(cfg *dnsConfig, name string, maxRecursionLevel 
 	var r *dns.Msg
 	var rtt time.Duration
 	var err error
-	for _, recursor := range cfg.Recursors {
+	var start = int(cfg.Recursors.RoundRobinIndex)
+	if cfg.RecursorRotate {
+		cfg.Recursors.RoundRobinIndex += 1
+	}
+	for _, recursor := range append(cfg.Recursors.Addrs[start:], cfg.Recursors.Addrs[:start]...) {
 		r, rtt, err = c.Exchange(m, recursor)
 		if err == nil {
 			d.logger.Debug("cname recurse RTT for name",

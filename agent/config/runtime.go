@@ -275,6 +275,13 @@ type RuntimeConfig struct {
 	// hcl: dns_config { recursor_timeout = "duration" }
 	DNSRecursorTimeout time.Duration
 
+	// DNSRecursorRotate causes round-robin selection of recursors.
+	// This has the effect of spreading the query load among all listed servers,
+	// rather than having all clients try the first listed server first every time.
+	//
+	// hcl: dns_config { recursor_rotate = (true|false) }
+	DNSRecursorRotate bool
+
 	// DNSServiceTTL provides the TTL value for a service
 	// query for given service. The "*" wildcard can be used
 	// to set a default for all services.

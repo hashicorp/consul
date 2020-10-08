@@ -5029,6 +5029,7 @@ func TestFullConfig(t *testing.T) {
 				"node_ttl": "7084s",
 				"only_passing": true,
 				"recursor_timeout": "4427s",
+				"recursor_rotate": true,
 				"service_ttl": {
 					"*": "32030s"
 				},
@@ -5711,6 +5712,7 @@ func TestFullConfig(t *testing.T) {
 				node_ttl = "7084s"
 				only_passing = true
 				recursor_timeout = "4427s"
+				recursor_rotate = true
 				service_ttl = {
 					"*" = "32030s"
 				}
@@ -6472,6 +6474,7 @@ func TestFullConfig(t *testing.T) {
 		DNSOnlyPassing:                         true,
 		DNSPort:                                7001,
 		DNSRecursorTimeout:                     4427 * time.Second,
+		DNSRecursorRotate:                      true,
 		DNSRecursors:                           []string{"63.38.39.58", "92.49.18.18"},
 		DNSSOA:                                 RuntimeSOAConfig{Refresh: 3600, Retry: 600, Expire: 86400, Minttl: 0},
 		DNSServiceTTL:                          map[string]time.Duration{"*": 32030 * time.Second},
@@ -7378,6 +7381,7 @@ func TestSanitize(t *testing.T) {
 		"DNSOnlyPassing": false,
 		"DNSPort": 0,
 		"DNSRecursorTimeout": "0s",
+		"DNSRecursorRotate": false,
 		"DNSRecursors": [],
 		"DNSServiceTTL": {},
 		"DNSSOA": {
