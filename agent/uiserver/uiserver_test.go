@@ -21,6 +21,7 @@ func TestUIServerIndex(t *testing.T) {
 		name            string
 		cfg             *config.RuntimeConfig
 		path            string
+		tx              UIDataTransform
 		wantStatus      int
 		wantContains    []string
 		wantNotContains []string
@@ -51,12 +52,20 @@ func TestUIServerIndex(t *testing.T) {
 			name: "injecting metrics vars",
 			cfg: basicUIEnabledConfig(
 				withMetricsProvider("foo"),
-				withMetricsProviderOptions(`{"bar":1}`),
+				withMetricsProviderOptions(`{"a-very-unlikely-string":1}`),
 			),
 			path:       "/",
 			wantStatus: http.StatusOK,
 			wantContains: []string{
 				"<!-- CONSUL_VERSION:",
+			},
+			wantNotContains: []string{
+				// This is a quick check to be sure that we actually URL encoded the
+				// JSON ui settings too. The assertions below could pass just fine even
+				// if we got that wrong because the decode would be a no-op if it wasn't
+				// URL encoded. But this just ensures that we don't see the raw values
+				// in the output because the quotes should be encoded.
+				`"a-very-unlikely-string"`,
 			},
 			wantEnv: map[string]interface{}{
 				"CONSUL_ACLS_ENABLED": false,
@@ -64,7 +73,7 @@ func TestUIServerIndex(t *testing.T) {
 			wantUICfgJSON: `{
 				"metrics_provider":         "foo",
 				"metrics_provider_options": {
-					"bar":1
+					"a-very-unlikely-string":1
 				},
 				"metrics_proxy_enabled": false,
 				"dashboard_url_templates": null
@@ -79,6 +88,31 @@ func TestUIServerIndex(t *testing.T) {
 			wantEnv: map[string]interface{}{
 				"CONSUL_ACLS_ENABLED": true,
 			},
+		},
+		{
+			name: "external transformation",
+			cfg: basicUIEnabledConfig(
+				withMetricsProvider("foo"),
+			),
+			path: "/",
+			tx: func(cfg *config.RuntimeConfig, data map[string]interface{}) error {
+				data["SSOEnabled"] = true
+				o := data["UIConfig"].(map[string]interface{})
+				o["metrics_provider"] = "bar"
+				return nil
+			},
+			wantStatus: http.StatusOK,
+			wantContains: []string{
+				"<!-- CONSUL_VERSION:",
+			},
+			wantEnv: map[string]interface{}{
+				"CONSUL_SSO_ENABLED": true,
+			},
+			wantUICfgJSON: `{
+				"metrics_provider": "bar",
+				"metrics_proxy_enabled": false,
+				"dashboard_url_templates": null
+			}`,
 		},
 		{
 			name: "serving metrics provider js",
@@ -98,7 +132,7 @@ func TestUIServerIndex(t *testing.T) {
 	for _, tc := range cases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			h := NewHandler(tc.cfg, testutil.Logger(t))
+			h := NewHandler(tc.cfg, testutil.Logger(t), tc.tx)
 
 			req := httptest.NewRequest("GET", tc.path, nil)
 			rec := httptest.NewRecorder()
@@ -205,7 +239,7 @@ func withMetricsProviderOptions(jsonStr string) cfgFunc {
 // beyond the first request. The initial implementation did not as it shared an
 // bytes.Reader between callers.
 func TestMultipleIndexRequests(t *testing.T) {
-	h := NewHandler(basicUIEnabledConfig(), testutil.Logger(t))
+	h := NewHandler(basicUIEnabledConfig(), testutil.Logger(t), nil)
 
 	for i := 0; i < 3; i++ {
 		req := httptest.NewRequest("GET", "/", nil)
@@ -220,7 +254,7 @@ func TestMultipleIndexRequests(t *testing.T) {
 }
 
 func TestReload(t *testing.T) {
-	h := NewHandler(basicUIEnabledConfig(), testutil.Logger(t))
+	h := NewHandler(basicUIEnabledConfig(), testutil.Logger(t), nil)
 
 	{
 		req := httptest.NewRequest("GET", "/", nil)
@@ -261,7 +295,7 @@ func TestCustomDir(t *testing.T) {
 
 	cfg := basicUIEnabledConfig()
 	cfg.UIConfig.Dir = uiDir
-	h := NewHandler(cfg, testutil.Logger(t))
+	h := NewHandler(cfg, testutil.Logger(t), nil)
 
 	req := httptest.NewRequest("GET", "/test-file", nil)
 	rec := httptest.NewRecorder()
@@ -277,7 +311,7 @@ func TestCompiledJS(t *testing.T) {
 		withMetricsProvider("foo"),
 		withMetricsProviderFiles("testdata/foo.js", "testdata/bar.js"),
 	)
-	h := NewHandler(cfg, testutil.Logger(t))
+	h := NewHandler(cfg, testutil.Logger(t), nil)
 
 	paths := []string{
 		"/" + compiledProviderJSPath,

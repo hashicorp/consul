@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/uiserver"
 )
 
 func (s *HTTPHandlers) parseEntMeta(req *http.Request, entMeta *structs.EnterpriseMeta) error {
@@ -66,4 +67,10 @@ func parseACLAuthMethodEnterpriseMeta(req *http.Request, _ *structs.ACLAuthMetho
 // enterpriseHandler is a noop for the enterprise implementation. we pass the original back
 func (s *HTTPHandlers) enterpriseHandler(next http.Handler) http.Handler {
 	return next
+}
+
+// uiTemplateDataTransform returns an optional uiserver.UIDataTransform to allow
+// altering UI data in enterprise.
+func (s *HTTPHandlers) uiTemplateDataTransform() uiserver.UIDataTransform {
+	return nil
 }

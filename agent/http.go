@@ -276,7 +276,11 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 	if s.IsUIEnabled() {
 		// Note that we _don't_ support reloading ui_config.{enabled, content_dir,
 		// content_path} since this only runs at initial startup.
-		uiHandler := uiserver.NewHandler(s.agent.config, s.agent.logger.Named(logging.HTTP))
+		uiHandler := uiserver.NewHandler(
+			s.agent.config,
+			s.agent.logger.Named(logging.HTTP),
+			s.uiTemplateDataTransform(),
+		)
 		s.configReloaders = append(s.configReloaders, uiHandler.ReloadConfig)
 
 		// Wrap it to add the headers specified by the http_config.response_headers
