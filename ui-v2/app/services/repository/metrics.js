@@ -2,13 +2,11 @@ import RepositoryService from 'consul-ui/services/repository';
 import { inject as service } from '@ember/service';
 import { env } from 'consul-ui/env';
 
-// meta is used by DataSource to configure polling. The cursor is fake since we
-// aren't really doing blocking queries. The pollInterval controls how long
-// between each poll to the metrics provider.
-// TODO - make this configurable in the UI settings.
+// meta is used by DataSource to configure polling. The interval controls how
+// long between each poll to the metrics provider. TODO - make this configurable
+// in the UI settings.
 const meta = {
-  cursor: 1,
-  pollInterval: env('CONSUL_METRICS_POLL_INTERVAL', 10000),
+  interval: env('CONSUL_METRICS_POLL_INTERVAL', 10000),
 }
 
 export default RepositoryService.extend({
