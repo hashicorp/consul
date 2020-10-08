@@ -201,11 +201,11 @@ func (c *cmd) readStats(stats map[structs.MessageType]typeStats, offset int) (by
 
 }
 
-// ByteSize returns a human-readable byte string of the form 10M, 12.5K, and so forth.  The following units are available:
-//	T: Terabyte
-//	G: Gigabyte
-//	M: Megabyte
-//	K: Kilobyte
+// ByteSize returns a human-readable byte string of the form 10MB, 12.5KB, and so forth.  The following units are available:
+//	TB: Terabyte
+//	GB: Gigabyte
+//	MB: Megabyte
+//	KB: Kilobyte
 //	B: Byte
 // The unit that results in the smallest number greater than or equal to 1 is always chosen.
 // From https://github.com/cloudfoundry/bytefmt/blob/master/bytes.go
