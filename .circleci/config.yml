@@ -243,8 +243,9 @@ jobs:
               --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- \
               -tags="$GOTAGS" -p 2 \
               -race -gcflags=all=-d=checkptr=0 \
-              ./agent/{ae,cache,checks,config,pool,proxycfg,router} \
-              ./agent/consul/{authmethod/...,autopilot,fsm,state,stream} \
+              ./agent/{ae,cache,cache-types,checks,config,pool,proxycfg,router}/... \
+              ./agent/consul/{authmethod,autopilot,fsm,state,stream}/... \
+              ./agent/{grpc,rpc,rpcclient,submatview}/... \
               ./snapshot
 
       - store_test_results:
