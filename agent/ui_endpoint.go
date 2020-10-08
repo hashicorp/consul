@@ -290,6 +290,15 @@ func (s *HTTPHandlers) UIServiceTopology(resp http.ResponseWriter, req *http.Req
 	}
 	args.ServiceKind = structs.ServiceKind(kind[0])
 
+	switch args.ServiceKind {
+	case structs.ServiceKindTypical, structs.ServiceKindIngressGateway:
+		// allowed
+	default:
+		resp.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(resp, "Unsupported service kind %q", args.ServiceKind)
+		return nil, nil
+	}
+
 	// Make the RPC request
 	var out structs.IndexedServiceTopology
 	defer setMeta(resp, &out.QueryMeta)

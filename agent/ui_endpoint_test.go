@@ -1336,6 +1336,15 @@ func TestUIServiceTopology(t *testing.T) {
 		require.Equal(t, "Missing service kind", resp.Body.String())
 	})
 
+	t.Run("request with unsupported kind", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/ingress?kind=not-a-kind", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.UIServiceTopology(resp, req)
+		require.Nil(t, err)
+		require.Nil(t, obj)
+		require.Equal(t, `Unsupported service kind "not-a-kind"`, resp.Body.String())
+	})
+
 	t.Run("ingress", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
 			// Request topology for ingress

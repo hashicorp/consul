@@ -2974,14 +2974,17 @@ func (s *Store) ServiceTopology(
 	case structs.ServiceKindIngressGateway:
 		maxIdx, protocol, err = metricsProtocolForIngressGateway(tx, ws, sn)
 		if err != nil {
-			return 0, nil, fmt.Errorf("failed to fetch protocol for service %s", sn.String())
+			return 0, nil, fmt.Errorf("failed to fetch protocol for service %s: %v", sn.String(), err)
+		}
+
+	case structs.ServiceKindTypical:
+		maxIdx, protocol, err = protocolForService(tx, ws, sn)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to fetch protocol for service %s: %v", sn.String(), err)
 		}
 
 	default:
-		maxIdx, protocol, err = protocolForService(tx, ws, sn)
-		if err != nil {
-			return 0, nil, fmt.Errorf("failed to fetch protocol for service %s", sn.String())
-		}
+		return 0, nil, fmt.Errorf("unsupported kind %q", kind)
 	}
 
 	idx, upstreamNames, err := upstreamsFromRegistrationTxn(tx, ws, sn)
