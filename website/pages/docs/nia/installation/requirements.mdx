@@ -118,7 +118,11 @@ variable "services" {
 
 #### Module Input Variables
 
-In addition to the required `services` input variable, Consul-Terraform-Sync supports all input variables exposed by the module. Terraform is an explicit configuration language and requires variables to be declared, typed, and passed explicitly through as module arguments. Consul-Terraform-Sync abstracts this by creating intermediate variables at the root level from values intended for the module. Value assignments are parsed to interpolate the corresponding variable declaration and are written to the appropriate Terraform files. A few assumptions are made for the intermediate variables: the variables users provide Consul-Terraform-Sync are declared and supported by the module, matching name and type.
+In addition to the required `services` input variable, Consul-Terraform-Sync supports all input variables exposed by the module.
+
+Network infrastructure differs vastly across teams and organizations, and the automation needs of practitioners are unique based on their existing setup. Identify areas in the module where practitioners could tailor the automation to fit their infrastructure. Declare [input variables](https://www.terraform.io/docs/configuration/variables.html) and insert the use of variables throughout module resources to expose these options to practitioners. Include descriptions to capture what the variables are and how they are used, and specify [custom validation rules for variables](https://www.terraform.io/docs/configuration/variables.html#custom-validation-rules) to provide context to users the expected format and conditions for the variables. Set reasonable default values for variables that are optional, and omit default values for variables that are required module arguments.
+
+Terraform is an explicit configuration language and requires variables to be declared, typed, and passed explicitly through as module arguments. Consul-Terraform-Sync abstracts this by creating intermediate variables at the root level from values intended for the module. Value assignments are parsed to interpolate the corresponding variable declaration and are written to the appropriate Terraform files. A few assumptions are made for the intermediate variables: the variables users provide Consul-Terraform-Sync are declared and supported by the module, matching name and type.
 
 #### Module Guidelines
 
@@ -135,10 +139,6 @@ Consider authoring modules with low complexity to reduce the run time for Terraf
 ##### Providers
 
 Provider configurations belong in the root module of a Terraform configuration and should not be included within the authored module for network integrations. End users will configure the providers through Consul-Terraform-Sync, and Consul-Terraform-Sync will then translate provider configuration to the generated root module appropriately.
-
-##### Input Variables
-
-Network infrastructure differs vastly across teams and organizations, and the automation needs of practitioners are unique based on their existing setup. Identify areas in the module where practitioners could tailor the automation to fit their infrastructure. Declare [input variables](https://www.terraform.io/docs/configuration/variables.html) and insert the use of variables throughout module resources to expose these options to practitioners. Include descriptions to capture what the variables are and how they are used, and specify [custom validation rules for variables](https://www.terraform.io/docs/configuration/variables.html#custom-validation-rules) to provide context to users the expected format and conditions for the variables. Set reasonable default values for variables that are optional, and omit default values for variables that are required module arguments.
 
 ##### Documentation
 
