@@ -333,6 +333,6 @@ Usage: consul acl auth-method update -name NAME [options]
     $ consul acl auth-method update -name "my-k8s" \
                             -description "new description" \
                             -kubernetes-host "https://new-apiserver.example.com:8443" \
-                            -kubernetes-ca-file /path/to/new-kube.ca.crt \
+                            -kubernetes-ca-cert @/path/to/new-kube.ca.crt \
                             -kubernetes-service-account-jwt "NEW_JWT_CONTENTS"
 `
