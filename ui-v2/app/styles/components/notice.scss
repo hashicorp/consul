@@ -17,6 +17,9 @@
   @extend %with-cancel-square-fill-color-icon;
 }
 /**/
+.notice.success {
+  @extend %notice-success;
+}
 .notice.warning {
   @extend %notice-warning;
 }

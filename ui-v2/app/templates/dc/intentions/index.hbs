@@ -42,10 +42,14 @@
       {{#let (sort-by (comparator 'intention' sort) filtered) as |sorted|}}
             <ChangeableSet @dispatcher={{searchable 'intention' sorted}} @terms={{search}}>
               <BlockSlot @name="content" as |searched|>
-                <ConsulIntentionList
+                <Consul::Intention::List
                   @items={{searched}}
                   @ondelete={{refresh-route}}
-                  >
+                >
+                  <:idle as |list|>
+                    <list.Table />
+                  </:idle>
+                  <:empty as |list|>
                     <EmptyState @allowLogin={{true}}>
                       <BlockSlot @name="header">
                         <h2>
@@ -74,7 +78,8 @@
                         </li>
                       </BlockSlot>
                     </EmptyState>
-                </ConsulIntentionList>
+                  </:empty>
+                </Consul::Intention::List>
               </BlockSlot>
             </ChangeableSet>
       {{/let}}
