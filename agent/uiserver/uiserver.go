@@ -2,9 +2,11 @@ package uiserver
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"regexp"
@@ -29,8 +31,9 @@ type Handler struct {
 	// state is a reloadableState struct accessed through an atomic value to make
 	// it safe to reload at run time. Each call to ServeHTTP will see the latest
 	// version of the state without internal locking needed.
-	state  atomic.Value
-	logger hclog.Logger
+	state     atomic.Value
+	logger    hclog.Logger
+	transform UIDataTransform
 }
 
 // reloadableState encapsulates all the state that might be modified during
@@ -41,12 +44,23 @@ type reloadableState struct {
 	err error
 }
 
+// UIDataTransform is an optional dependency that allows the agent to add
+// additional data into the UI index as needed. For example we use this to
+// inject enterprise-only feature flags into the template without making this
+// package inherently dependent on Enterprise-only code.
+//
+// It is passed the current RuntimeConfig being applied and a map containing the
+// current data that will be passed to the template. It should be modified
+// directly to inject additional context.
+type UIDataTransform func(cfg *config.RuntimeConfig, data map[string]interface{}) error
+
 // NewHandler returns a Handler that can be used to serve UI http requests. It
 // accepts a full agent config since properties like ACLs being enabled affect
 // the UI so we need more than just UIConfig parts.
-func NewHandler(agentCfg *config.RuntimeConfig, logger hclog.Logger) *Handler {
+func NewHandler(agentCfg *config.RuntimeConfig, logger hclog.Logger, transform UIDataTransform) *Handler {
 	h := &Handler{
-		logger: logger.Named(logging.UIServer),
+		logger:    logger.Named(logging.UIServer),
+		transform: transform,
 	}
 	// Don't return the error since this is likely the result of a
 	// misconfiguration and reloading config could fix it. Instead we'll capture
@@ -101,7 +115,7 @@ func (h *Handler) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	}
 
 	// Render a new index.html with the new config values ready to serve.
-	buf, info, err := renderIndex(newCfg, fs)
+	buf, info, err := h.renderIndex(newCfg, fs)
 	if _, ok := err.(*os.PathError); ok && newCfg.UIConfig.Dir != "" {
 		// A Path error indicates that there is no index.html. This could happen if
 		// the user configured their own UI dir and is serving something that is not
@@ -200,7 +214,7 @@ func concatFile(buf *bytes.Buffer, file string) error {
 	return nil
 }
 
-func renderIndex(cfg *config.RuntimeConfig, fs http.FileSystem) ([]byte, os.FileInfo, error) {
+func (h *Handler) renderIndex(cfg *config.RuntimeConfig, fs http.FileSystem) ([]byte, os.FileInfo, error) {
 	// Open the original index.html
 	f, err := fs.Open("/index.html")
 	if err != nil {
@@ -210,17 +224,24 @@ func renderIndex(cfg *config.RuntimeConfig, fs http.FileSystem) ([]byte, os.File
 
 	content, err := ioutil.ReadAll(f)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed reading index.html: %s", err)
+		return nil, nil, fmt.Errorf("failed reading index.html: %w", err)
 	}
 	info, err := f.Stat()
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed reading metadata for index.html: %s", err)
+		return nil, nil, fmt.Errorf("failed reading metadata for index.html: %w", err)
 	}
 
 	// Create template data from the current config.
 	tplData, err := uiTemplateDataFromConfig(cfg)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed loading UI config for template: %s", err)
+		return nil, nil, fmt.Errorf("failed loading UI config for template: %w", err)
+	}
+
+	// Allow caller to apply additional data transformations if needed.
+	if h.transform != nil {
+		if err := h.transform(cfg, tplData); err != nil {
+			return nil, nil, fmt.Errorf("failed running transform: %w", err)
+		}
 	}
 
 	// Sadly we can't perform all the replacements we need with Go template
@@ -241,16 +262,24 @@ func renderIndex(cfg *config.RuntimeConfig, fs http.FileSystem) ([]byte, os.File
 		return "false"
 	}))
 
-	tpl, err := template.New("index").Parse(string(content))
+	tpl, err := template.New("index").Funcs(template.FuncMap{
+		"jsonEncodeAndEscape": func(data map[string]interface{}) (string, error) {
+			bs, err := json.Marshal(data)
+			if err != nil {
+				return "", fmt.Errorf("failed jsonEncodeAndEscape: %w", err)
+			}
+			return url.PathEscape(string(bs)), nil
+		},
+	}).Parse(string(content))
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed parsing index.html template: %s", err)
+		return nil, nil, fmt.Errorf("failed parsing index.html template: %w", err)
 	}
 
 	var buf bytes.Buffer
 
 	err = tpl.Execute(&buf, tplData)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to render index.html: %s", err)
+		return nil, nil, fmt.Errorf("failed to render index.html: %w", err)
 	}
 
 	return buf.Bytes(), info, nil

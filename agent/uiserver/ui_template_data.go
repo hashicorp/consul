@@ -2,14 +2,12 @@ package uiserver
 
 import (
 	"encoding/json"
-	"fmt"
-	"net/url"
 
 	"github.com/hashicorp/consul/agent/config"
 )
 
-// uiTemplateDataFromConfig returns the set of variables that should be injected
-// into the UI's Env based on the given runtime UI config.
+// uiTemplateDataFromConfig returns the base set of variables that should be
+// injected into the UI's Env based on the given runtime UI config.
 func uiTemplateDataFromConfig(cfg *config.RuntimeConfig) (map[string]interface{}, error) {
 
 	uiCfg := map[string]interface{}{
@@ -32,24 +30,8 @@ func uiTemplateDataFromConfig(cfg *config.RuntimeConfig) (map[string]interface{}
 	d := map[string]interface{}{
 		"ContentPath": cfg.UIConfig.ContentPath,
 		"ACLsEnabled": cfg.ACLsEnabled,
+		"UIConfig":    uiCfg,
 	}
-
-	err := uiTemplateDataFromConfigEnterprise(cfg, d, uiCfg)
-	if err != nil {
-		return nil, err
-	}
-
-	// Render uiCfg down to JSON ready to inject into the template
-	bs, err := json.Marshal(uiCfg)
-	if err != nil {
-		return nil, fmt.Errorf("failed marshalling UI Env JSON: %s", err)
-	}
-	// Need to also URLEncode it as it is passed through a META tag value. Path
-	// variant is correct to avoid converting spaces to "+". Note we don't just
-	// use html/template because it strips comments and uses a different encoding
-	// for this param than Ember which is OK but just one more weird thing to
-	// account for in the source...
-	d["UIConfigJSON"] = url.PathEscape(string(bs))
 
 	// Also inject additional provider scripts if needed, otherwise strip the
 	// comment.
@@ -59,5 +41,5 @@ func uiTemplateDataFromConfig(cfg *config.RuntimeConfig) (map[string]interface{}
 		}
 	}
 
-	return d, err
+	return d, nil
 }
