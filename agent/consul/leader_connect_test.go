@@ -180,7 +180,9 @@ func getCAProviderWithLock(s *Server) (ca.Provider, *structs.CARoot) {
 	return s.getCAProvider()
 }
 
-func TestLeader_PrimaryCA_IntermediateRenew(t *testing.T) {
+func TestLeader_Vault_PrimaryCA_IntermediateRenew(t *testing.T) {
+	ca.SkipIfVaultNotPresent(t)
+
 	// no parallel execution because we change globals
 	origInterval := structs.IntermediateCertRenewInterval
 	origMinTTL := structs.MinLeafCertTTL
@@ -240,7 +242,7 @@ func TestLeader_PrimaryCA_IntermediateRenew(t *testing.T) {
 	provider, _ := getCAProviderWithLock(s1)
 	intermediatePEM, err := provider.ActiveIntermediate()
 	require.NoError(err)
-	cert, err := connect.ParseCert(intermediatePEM)
+	_, err = connect.ParseCert(intermediatePEM)
 	require.NoError(err)
 
 	// Wait for dc1's intermediate to be refreshed.
@@ -277,7 +279,7 @@ func TestLeader_PrimaryCA_IntermediateRenew(t *testing.T) {
 	leafPEM, err := provider.Sign(leafCsr)
 	require.NoError(err)
 
-	cert, err = connect.ParseCert(leafPEM)
+	cert, err := connect.ParseCert(leafPEM)
 	require.NoError(err)
 
 	// Check that the leaf signed by the new intermediate can be verified using the

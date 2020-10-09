@@ -83,6 +83,22 @@ func TestConsulProvider(t testing.T, d ConsulProviderStateDelegate) *ConsulProvi
 	return provider
 }
 
+// SkipIfVaultNotPresent skips the test if the vault binary is not in PATH.
+//
+// These tests may be skipped in CI. They are run as part of a separate
+// integration test suite.
+func SkipIfVaultNotPresent(t testing.T) {
+	vaultBinaryName := os.Getenv("VAULT_BINARY_NAME")
+	if vaultBinaryName == "" {
+		vaultBinaryName = "vault"
+	}
+
+	path, err := exec.LookPath(vaultBinaryName)
+	if err != nil || path == "" {
+		t.Skipf("%q not found on $PATH - download and install to run this test", vaultBinaryName)
+	}
+}
+
 func NewTestVaultServer(t testing.T) *TestVaultServer {
 	testVault, err := runTestVault(t)
 	if err != nil {

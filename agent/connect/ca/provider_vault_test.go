@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"os"
-	"os/exec"
 	"testing"
 	"time"
 
@@ -40,7 +38,7 @@ func TestVaultCAProvider_VaultTLSConfig(t *testing.T) {
 func TestVaultCAProvider_SecondaryActiveIntermediate(t *testing.T) {
 	t.Parallel()
 
-	skipIfVaultNotPresent(t)
+	SkipIfVaultNotPresent(t)
 
 	provider, testVault := testVaultProviderWithConfig(t, false, nil)
 	defer testVault.Stop()
@@ -53,7 +51,7 @@ func TestVaultCAProvider_SecondaryActiveIntermediate(t *testing.T) {
 
 func TestVaultCAProvider_RenewToken(t *testing.T) {
 	t.Parallel()
-	skipIfVaultNotPresent(t)
+	SkipIfVaultNotPresent(t)
 
 	testVault, err := runTestVault(t)
 	require.NoError(t, err)
@@ -90,7 +88,7 @@ func TestVaultCAProvider_RenewToken(t *testing.T) {
 func TestVaultCAProvider_Bootstrap(t *testing.T) {
 	t.Parallel()
 
-	skipIfVaultNotPresent(t)
+	SkipIfVaultNotPresent(t)
 
 	provider, testVault := testVaultProvider(t)
 	defer testVault.Stop()
@@ -151,7 +149,7 @@ func assertCorrectKeyType(t *testing.T, want, certPEM string) {
 func TestVaultCAProvider_SignLeaf(t *testing.T) {
 	t.Parallel()
 
-	skipIfVaultNotPresent(t)
+	SkipIfVaultNotPresent(t)
 
 	for _, tc := range KeyTestCases {
 		tc := tc
@@ -235,7 +233,7 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 	t.Parallel()
 
-	skipIfVaultNotPresent(t)
+	SkipIfVaultNotPresent(t)
 
 	tests := CASigningKeyTypeCases()
 
@@ -290,7 +288,7 @@ func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 func TestVaultProvider_SignIntermediate(t *testing.T) {
 	t.Parallel()
 
-	skipIfVaultNotPresent(t)
+	SkipIfVaultNotPresent(t)
 
 	tests := CASigningKeyTypeCases()
 
@@ -319,7 +317,7 @@ func TestVaultProvider_SignIntermediate(t *testing.T) {
 func TestVaultProvider_SignIntermediateConsul(t *testing.T) {
 	t.Parallel()
 
-	skipIfVaultNotPresent(t)
+	SkipIfVaultNotPresent(t)
 
 	// primary = Vault, secondary = Consul
 	t.Run("pri=vault,sec=consul", func(t *testing.T) {
@@ -440,20 +438,4 @@ func createVaultProvider(t *testing.T, isPrimary bool, addr, token string, rawCo
 	}
 
 	return provider, nil
-}
-
-// skipIfVaultNotPresent skips the test if the vault binary is not in PATH.
-//
-// These tests may be skipped in CI. They are run as part of a separate
-// integration test suite.
-func skipIfVaultNotPresent(t *testing.T) {
-	vaultBinaryName := os.Getenv("VAULT_BINARY_NAME")
-	if vaultBinaryName == "" {
-		vaultBinaryName = "vault"
-	}
-
-	path, err := exec.LookPath(vaultBinaryName)
-	if err != nil || path == "" {
-		t.Skipf("%q not found on $PATH - download and install to run this test", vaultBinaryName)
-	}
 }

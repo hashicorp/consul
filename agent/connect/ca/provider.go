@@ -20,7 +20,7 @@ var ErrRateLimited = errors.New("operation rate limited by CA provider")
 // intermediate cert in the primary datacenter as well as the secondary. This is used
 // when determining whether to run the intermediate renewal routine in the primary.
 var PrimaryIntermediateProviders = map[string]struct{}{
-	"vault": struct{}{},
+	"vault": {},
 }
 
 // ProviderConfig encapsulates all the data Consul passes to `Configure` on a
