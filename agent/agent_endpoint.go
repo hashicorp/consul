@@ -66,6 +66,7 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 		return nil, acl.ErrPermissionDenied
 	}
 
+	// Check if correct type formatting is requested.
 	keys, ok := req.URL.Query()["format"]
 	formatOn := false
 	if ok && keys[0] == "true" {
