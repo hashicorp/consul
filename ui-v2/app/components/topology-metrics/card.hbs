@@ -1,6 +1,6 @@
 {{#each @items as |item|}}
-<div
-  class="card"
+<a class="card"
+  href={{href-to "dc.services.show.index" item.Name}}
   data-permission={{service/intention-permissions item}}
   id="{{item.Namespace}}{{item.Name}}"
 >
@@ -52,5 +52,5 @@
       <TopologyMetrics::Stats @endpoint='downstream-summary-for-service' @service={{@service}} @item={{item.Name}} />
     {{/if}}
   {{/if}}
-</div>
+</a>
 {{/each}}
