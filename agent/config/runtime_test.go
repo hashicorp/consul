@@ -7637,11 +7637,11 @@ func TestSanitize(t *testing.T) {
 				"Enabled": false,
 				"AllowReuse": false,
 				"AuthMethod": {
-					"ACLAuthMethodEnterpriseFields": {},
+					"ACLAuthMethodEnterpriseFields": ` + authMethodEntFields + `,
 					"Config": {},
 					"Description": "",
 					"DisplayName": "",
-					"EnterpriseMeta": {},
+					"EnterpriseMeta": ` + entMetaJSON + `,
 					"MaxTokenTTL": "0s",
 					"Name": "",
 					"RaftIndex": {
