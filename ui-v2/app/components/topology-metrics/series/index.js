@@ -1,25 +1,12 @@
 import Component from '@ember/component';
 import dayjs from 'dayjs';
 import Calendar from 'dayjs/plugin/calendar';
-import { env } from 'consul-ui/env';
 
 import { select, event, mouse } from 'd3-selection';
 import { scaleLinear, scaleTime, scaleOrdinal } from 'd3-scale';
 import { schemeTableau10 } from 'd3-scale-chromatic';
 import { area, stack, stackOrderReverse } from 'd3-shape';
 import { max, extent, bisector } from 'd3-array';
-
-// CONSUL_METRICS_LATENCY_MAX is a fake delay (in milliseconds) we can set in
-// cookies to simulate metrics requests taking a while to see loading state.
-// It's the maximum time to wait and we'll randomly pick a time between tha and
-// half of it if set.
-function fakeMetricsLatency() {
-  const fakeLatencyMax = env('CONSUL_METRICS_LATENCY_MAX', 0);
-  if (fakeLatencyMax == 0) {
-    return 0;
-  }
-  return Math.random() * (fakeLatencyMax / 2) + fakeLatencyMax / 2;
-}
 
 dayjs.extend(Calendar);
 
@@ -41,10 +28,8 @@ export default Component.extend({
     },
     change: function(evt) {
       this.data = evt.data;
-      setTimeout(() => {
-        this.element.querySelector('.sparkline-loader').style.display = 'none';
-        this.drawGraphs();
-      }, fakeMetricsLatency());
+      this.element.querySelector('.sparkline-loader').style.display = 'none';
+      this.drawGraphs();
     },
   },
 
@@ -53,13 +38,10 @@ export default Component.extend({
       return;
     }
 
-    let svg = select(this.element.querySelector('svg.sparkline'));
+    let svg = (this.svg = select(this.element.querySelector('svg.sparkline')));
+    svg.on('mouseover mousemove mouseout', null);
     svg.selectAll('path').remove();
     svg.selectAll('rect').remove();
-
-    let bb = svg.node().getBoundingClientRect();
-    let w = bb.width;
-    let h = bb.height;
 
     if (!this.data.series) {
       // Put the graph in an error state that might get fixed if metrics show up
@@ -69,6 +51,10 @@ export default Component.extend({
       loader.style.display = 'block';
       return;
     }
+
+    let bb = svg.node().getBoundingClientRect();
+    let w = bb.width;
+    let h = bb.height;
 
     // Fill the timestamps for x axis.
     let data = this.data.series[0].data.map(d => {
@@ -167,7 +153,12 @@ export default Component.extend({
         cursor.style('visibility', 'hidden');
       });
   },
-
+  willDestroyElement: function() {
+    this._super(...arguments);
+    if (typeof this.svg !== 'undefined') {
+      this.svg.on('mouseover mousemove mouseout', null);
+    }
+  },
   updateTooltip: function(event, data, stackData, keys, x, tooltip, tipVals, cursor) {
     let [mouseX] = mouse(event.currentTarget);
     cursor.attr('x', mouseX);
