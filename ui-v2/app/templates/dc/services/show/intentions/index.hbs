@@ -31,19 +31,33 @@
   {{#let (sort-by (comparator 'intention' sort) filtered) as |sorted|}}
             <ChangeableSet @dispatcher={{searchable 'intention' sorted}} @terms={{search}}>
               <BlockSlot @name="content" as |searched|>
-                <ConsulIntentionList
+
+                <Consul::Intention::List
                   @items={{searched}}
                   @ondelete={{refresh-route}}
                   @routeName="dc.services.show.intentions.edit"
-                  >
-                  <EmptyState>
-                    <BlockSlot @name="body">
-                      <p>
-                          There are no intentions {{if (gt items.length 0) 'found '}} for this service.
-                      </p>
-                    </BlockSlot>
-                  </EmptyState>
-                </ConsulIntentionList>
+                >
+                  <:idle as |list|>
+                    {{#if (eq searched.length 1)}}
+                      {{#let searched.firstObject as |item|}}
+                        {{#if (eq search item.SourceName)}}
+                          <list.Check @item={{item}} />
+                        {{/if}}
+                      {{/let}}
+                    {{/if}}
+                    <list.Table />
+                  </:idle>
+                  <:empty as |list|>
+                    <EmptyState>
+                      <BlockSlot @name="body">
+                        <p>
+                            There are no intentions {{if (gt items.length 0) 'found '}} for this service.
+                        </p>
+                      </BlockSlot>
+                    </EmptyState>
+                  </:empty>
+                </Consul::Intention::List>
+
               </BlockSlot>
             </ChangeableSet>
   {{/let}}

@@ -1,0 +1,27 @@
+<div
+  class="consul-intention-list"
+  ...attributes
+>
+  <DataWriter
+    @sink={{concat '/' @dc '/' @nspace '/intention/'}}
+    @type="intention"
+    @ondelete={{action @ondelete}}
+  as |writer|>
+    <BlockSlot @name="content">
+
+{{#let (hash
+  Check=(component 'consul/intention/list/check')
+  Table=(component 'consul/intention/list/table' delete=writer.delete items=@items)
+) as |api|}}
+
+  {{#if (gt @items.length 0)}}
+    {{yield api to="idle"}}
+  {{else}}
+    {{yield api to="empty"}}
+  {{/if}}
+
+{{/let}}
+
+    </BlockSlot>
+  </DataWriter>
+</div>

@@ -6115,6 +6115,15 @@ ember-modifier-manager-polyfill@^1.1.0:
     ember-cli-version-checker "^2.1.2"
     ember-compatibility-helpers "^1.2.0"
 
+ember-named-blocks-polyfill@^0.2.3:
+  version "0.2.3"
+  resolved "https://registry.yarnpkg.com/ember-named-blocks-polyfill/-/ember-named-blocks-polyfill-0.2.3.tgz#05fb3b40cff98a0d30e8c3b1e3d2155951007d84"
+  integrity sha512-RrhkgWmfte2lRuOmRWWa7sS2Eo6W3O0VybK0iPhhnLvk7VtUSOmFxuDlhAtEaJ0lBieISrNcmSIZRnmgca/HcA==
+  dependencies:
+    ember-cli-babel "^7.19.0"
+    ember-cli-htmlbars "^4.3.1"
+    ember-cli-version-checker "^5.1.1"
+
 ember-native-dom-helpers@^0.6.3:
   version "0.6.3"
   resolved "https://registry.yarnpkg.com/ember-native-dom-helpers/-/ember-native-dom-helpers-0.6.3.tgz#31c88b6eb8e1bb99ee594d19de8f0270d1d5eb35"
