@@ -39,6 +39,7 @@ type configTest struct {
 	privatev4      func() ([]*net.IPAddr, error)
 	publicv6       func() ([]*net.IPAddr, error)
 	patch          func(rt *RuntimeConfig)
+	patchActual    func(rt *RuntimeConfig)
 	err            string
 	warns          []string
 	hostname       func() (string, error)
@@ -50,7 +51,7 @@ type configTest struct {
 // should check one option at a time if possible and should use generic
 // values, e.g. 'a' or 1 instead of 'servicex' or 3306.
 
-func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
+func TestBuilder_BuildAndValidate_ConfigFlagsAndEdgecases(t *testing.T) {
 	dataDir := testutil.TempDir(t, "consul")
 
 	defaultEntMeta := structs.DefaultEnterpriseMeta()
@@ -290,7 +291,7 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 				rt.DisableAnonymousSignature = true
 				rt.DisableKeyringFile = true
 				rt.EnableDebug = true
-				rt.EnableUI = true
+				rt.UIConfig.Enabled = true
 				rt.LeaveOnTerm = false
 				rt.Logging.LogLevel = "DEBUG"
 				rt.RPCAdvertiseAddr = tcpAddr("127.0.0.1:8300")
@@ -850,7 +851,7 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
-				rt.EnableUI = true
+				rt.UIConfig.Enabled = true
 				rt.DataDir = dataDir
 			},
 		},
@@ -861,7 +862,7 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
-				rt.UIDir = "a"
+				rt.UIConfig.Dir = "a"
 				rt.DataDir = dataDir
 			},
 		},
@@ -873,7 +874,7 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 			},
 
 			patch: func(rt *RuntimeConfig) {
-				rt.UIContentPath = "/a/b/"
+				rt.UIConfig.ContentPath = "/a/b/"
 				rt.DataDir = dataDir
 			},
 		},
@@ -1712,7 +1713,7 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 			},
 			json:  []string{`{ "acl_datacenter": "%" }`},
 			hcl:   []string{`acl_datacenter = "%"`},
-			err:   `acl_datacenter cannot be "%". Please use only [a-z0-9-_]`,
+			err:   `acl_datacenter can only contain lowercase alphanumeric, - or _ characters.`,
 			warns: []string{`The 'acl_datacenter' field is deprecated. Use the 'primary_datacenter' field instead.`},
 		},
 		{
@@ -1881,7 +1882,7 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 			args: []string{`-data-dir=` + dataDir},
 			json: []string{`{ "datacenter": "%" }`},
 			hcl:  []string{`datacenter = "%"`},
-			err:  `datacenter cannot be "%". Please use only [a-z0-9-_]`,
+			err:  `datacenter can only contain lowercase alphanumeric, - or _ characters.`,
 		},
 		{
 			desc: "dns does not allow socket",
@@ -1894,16 +1895,16 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 			err:  "DNS address cannot be a unix socket",
 		},
 		{
-			desc: "ui and ui_dir",
+			desc: "ui enabled and dir specified",
 			args: []string{
 				`-datacenter=a`,
 				`-data-dir=` + dataDir,
 			},
-			json: []string{`{ "ui": true, "ui_dir": "a" }`},
-			hcl:  []string{`ui = true ui_dir = "a"`},
-			err: "Both the ui and ui-dir flags were specified, please provide only one.\n" +
-				"If trying to use your own web UI resources, use the ui-dir flag.\n" +
-				"The web UI is included in the binary so use ui to enable it",
+			json: []string{`{ "ui_config": { "enabled": true, "dir": "a" } }`},
+			hcl:  []string{`ui_config { enabled = true dir = "a"}`},
+			err: "Both the ui_config.enabled and ui_config.dir (or -ui and -ui-dir) were specified, please provide only one.\n" +
+				"If trying to use your own web UI resources, use ui_config.dir or the -ui-dir flag.\n" +
+				"The web UI is included in the binary so use ui_config.enabled or the -ui flag to enable it",
 		},
 
 		// test ANY address failures
@@ -3814,6 +3815,192 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 		},
 		// TODO(rb): add in missing tests for ingress-gateway (snake + camel)
 		// TODO(rb): add in missing tests for terminating-gateway (snake + camel)
+		{
+			desc: "ConfigEntry bootstrap service-intentions (snake-case)",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"config_entries": {
+					"bootstrap": [
+						{
+							"kind": "service-intentions",
+							"name": "web",
+							"meta" : {
+								"foo": "bar",
+								"gir": "zim"
+							},
+							"sources": [
+								{
+									"name": "foo",
+									"action": "deny",
+									"type": "consul",
+									"description": "foo desc"
+								},
+								{
+									"name": "bar",
+									"action": "allow",
+									"description": "bar desc"
+								},
+								{
+									"name": "*",
+									"action": "deny",
+									"description": "wild desc"
+								}
+							]
+						}
+					]
+				}
+			}`,
+			},
+			hcl: []string{`
+				config_entries {
+				  bootstrap {
+					kind = "service-intentions"
+					name = "web"
+					meta {
+						"foo" = "bar"
+						"gir" = "zim"
+					}
+					sources = [
+					  {
+						name        = "foo"
+						action      = "deny"
+						type        = "consul"
+						description = "foo desc"
+					  },
+					  {
+						name        = "bar"
+						action      = "allow"
+						description = "bar desc"
+					  }
+					]
+					sources {
+					  name        = "*"
+					  action      = "deny"
+					  description = "wild desc"
+					}
+				  }
+				}
+			`,
+			},
+			patchActual: func(rt *RuntimeConfig) {
+				// Wipe the time tracking fields to make comparison easier.
+				for _, raw := range rt.ConfigEntryBootstrap {
+					if entry, ok := raw.(*structs.ServiceIntentionsConfigEntry); ok {
+						for _, src := range entry.Sources {
+							src.LegacyCreateTime = nil
+							src.LegacyUpdateTime = nil
+						}
+					}
+				}
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.ConfigEntryBootstrap = []structs.ConfigEntry{
+					&structs.ServiceIntentionsConfigEntry{
+						Kind: "service-intentions",
+						Name: "web",
+						Meta: map[string]string{
+							"foo": "bar",
+							"gir": "zim",
+						},
+						EnterpriseMeta: *defaultEntMeta,
+						Sources: []*structs.SourceIntention{
+							{
+								Name:           "foo",
+								Action:         "deny",
+								Type:           "consul",
+								Description:    "foo desc",
+								Precedence:     9,
+								EnterpriseMeta: *defaultEntMeta,
+							},
+							{
+								Name:           "bar",
+								Action:         "allow",
+								Type:           "consul",
+								Description:    "bar desc",
+								Precedence:     9,
+								EnterpriseMeta: *defaultEntMeta,
+							},
+							{
+								Name:           "*",
+								Action:         "deny",
+								Type:           "consul",
+								Description:    "wild desc",
+								Precedence:     8,
+								EnterpriseMeta: *defaultEntMeta,
+							},
+						},
+					},
+				}
+			},
+		},
+		{
+			desc: "ConfigEntry bootstrap service-intentions wildcard destination (snake-case)",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"config_entries": {
+					"bootstrap": [
+						{
+							"kind": "service-intentions",
+							"name": "*",
+							"sources": [
+								{
+									"name": "foo",
+									"action": "deny",
+									"precedence": 6
+								}
+							]
+						}
+					]
+				}
+			}`,
+			},
+			hcl: []string{`
+				config_entries {
+				  bootstrap {
+					kind = "service-intentions"
+					name = "*"
+					sources {
+					  name   = "foo"
+					  action = "deny"
+					  # should be parsed, but we'll ignore it later
+					  precedence = 6
+					}
+				  }
+				}
+			`,
+			},
+			patchActual: func(rt *RuntimeConfig) {
+				// Wipe the time tracking fields to make comparison easier.
+				for _, raw := range rt.ConfigEntryBootstrap {
+					if entry, ok := raw.(*structs.ServiceIntentionsConfigEntry); ok {
+						for _, src := range entry.Sources {
+							src.LegacyCreateTime = nil
+							src.LegacyUpdateTime = nil
+						}
+					}
+				}
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.ConfigEntryBootstrap = []structs.ConfigEntry{
+					&structs.ServiceIntentionsConfigEntry{
+						Kind:           "service-intentions",
+						Name:           "*",
+						EnterpriseMeta: *defaultEntMeta,
+						Sources: []*structs.SourceIntention{
+							{
+								Name:           "foo",
+								Action:         "deny",
+								Type:           "consul",
+								Precedence:     6,
+								EnterpriseMeta: *defaultEntMeta,
+							},
+						},
+					},
+				}
+			},
+		},
 
 		///////////////////////////////////
 		// Defaults sanity checks
@@ -4251,6 +4438,185 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 				rt.CertFile = "foo"
 			},
 		},
+		// UI Config tests
+		{
+			desc: "ui config deprecated",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"ui": true,
+				"ui_content_path": "/bar"
+			}`},
+			hcl: []string{`
+			ui = true
+			ui_content_path = "/bar"
+			`},
+			warns: []string{
+				`The 'ui' field is deprecated. Use the 'ui_config.enabled' field instead.`,
+				`The 'ui_content_path' field is deprecated. Use the 'ui_config.content_path' field instead.`,
+			},
+			patch: func(rt *RuntimeConfig) {
+				// Should still work!
+				rt.UIConfig.Enabled = true
+				rt.UIConfig.ContentPath = "/bar/"
+				rt.DataDir = dataDir
+			},
+		},
+		{
+			desc: "ui-dir config deprecated",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"ui_dir": "/bar"
+			}`},
+			hcl: []string{`
+			ui_dir = "/bar"
+			`},
+			warns: []string{
+				`The 'ui_dir' field is deprecated. Use the 'ui_config.dir' field instead.`,
+			},
+			patch: func(rt *RuntimeConfig) {
+				// Should still work!
+				rt.UIConfig.Dir = "/bar"
+				rt.DataDir = dataDir
+			},
+		},
+		{
+			desc: "metrics_provider constraint",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"ui_config": {
+					"metrics_provider": "((((lisp 4 life))))"
+				}
+			}`},
+			hcl: []string{`
+			ui_config {
+				metrics_provider = "((((lisp 4 life))))"
+			}
+			`},
+			err: `ui_config.metrics_provider can only contain lowercase alphanumeric, - or _ characters.`,
+		},
+		{
+			desc: "metrics_provider_options_json invalid JSON",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"ui_config": {
+					"metrics_provider_options_json": "not valid JSON"
+				}
+			}`},
+			hcl: []string{`
+			ui_config {
+				metrics_provider_options_json = "not valid JSON"
+			}
+			`},
+			err: `ui_config.metrics_provider_options_json must be empty or a string containing a valid JSON object.`,
+		},
+		{
+			desc: "metrics_provider_options_json not an object",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"ui_config": {
+					"metrics_provider_options_json": "1.0"
+				}
+			}`},
+			hcl: []string{`
+			ui_config {
+				metrics_provider_options_json = "1.0"
+			}
+			`},
+			err: `ui_config.metrics_provider_options_json must be empty or a string containing a valid JSON object.`,
+		},
+		{
+			desc: "metrics_proxy.base_url valid",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"ui_config": {
+					"metrics_proxy": {
+						"base_url": "___"
+					}
+				}
+			}`},
+			hcl: []string{`
+			ui_config {
+				metrics_proxy {
+					base_url = "___"
+				}
+			}
+			`},
+			err: `ui_config.metrics_proxy.base_url must be a valid http or https URL.`,
+		},
+		{
+			desc: "metrics_proxy.base_url http(s)",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"ui_config": {
+					"metrics_proxy": {
+						"base_url": "localhost:1234"
+					}
+				}
+			}`},
+			hcl: []string{`
+			ui_config {
+				metrics_proxy {
+					base_url = "localhost:1234"
+				}
+			}
+			`},
+			err: `ui_config.metrics_proxy.base_url must be a valid http or https URL.`,
+		},
+		{
+			desc: "dashboard_url_templates key format",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"ui_config": {
+					"dashboard_url_templates": {
+						"(*&ASDOUISD)": "localhost:1234"
+					}
+				}
+			}`},
+			hcl: []string{`
+			ui_config {
+				dashboard_url_templates {
+					"(*&ASDOUISD)" = "localhost:1234"
+				}
+			}
+			`},
+			err: `ui_config.dashboard_url_templates key names can only contain lowercase alphanumeric, - or _ characters.`,
+		},
+		{
+			desc: "dashboard_url_templates value format",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"ui_config": {
+					"dashboard_url_templates": {
+						"services": "localhost:1234"
+					}
+				}
+			}`},
+			hcl: []string{`
+			ui_config {
+				dashboard_url_templates {
+					services = "localhost:1234"
+				}
+			}
+			`},
+			err: `ui_config.dashboard_url_templates values must be a valid http or https URL.`,
+		},
+
+		// Per node reconnect timeout test
+		{
+			desc: "server and advertised reconnect timeout error",
+			args: []string{
+				`-data-dir=` + dataDir,
+				`-server`,
+			},
+			hcl: []string{`
+				advertise_reconnect_timeout = "5s"
+			`},
+			json: []string{`
+			{
+				"advertise_reconnect_timeout": "5s"
+			}`},
+			err: "advertise_reconnect_timeout can only be used on a client",
+		},
 	}
 
 	testConfig(t, tests, dataDir)
@@ -4394,6 +4760,9 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 				require.Equal(t, actual.DataDir, actual.ACLTokens.DataDir)
 				expected.ACLTokens.DataDir = actual.ACLTokens.DataDir
 
+				if tt.patchActual != nil {
+					tt.patchActual(&actual)
+				}
 				require.Equal(t, expected, actual)
 			})
 		}
@@ -4481,6 +4850,7 @@ func TestFullConfig(t *testing.T) {
 			},
 			"advertise_addr": "17.99.29.16",
 			"advertise_addr_wan": "78.63.37.19",
+			"advertise_reconnect_timeout": "0s",
 			"audit": {
 				"enabled": false
 			},
@@ -4686,7 +5056,7 @@ func TestFullConfig(t *testing.T) {
 			},
 			"enable_acl_replication": true,
 			"enable_agent_tls_for_checks": true,
-			"enable_central_service_config": true,
+			"enable_central_service_config": false,
 			"enable_debug": true,
 			"enable_script_checks": true,
 			"enable_local_script_checks": true,
@@ -5064,15 +5434,33 @@ func TestFullConfig(t *testing.T) {
 				"metrics_prefix": "ftO6DySn",
 				"prometheus_retention_time": "15s",
 				"statsd_address": "drce87cy",
-				"statsite_address": "HpFwKB8R"
+				"statsite_address": "HpFwKB8R",
+				"disable_compat_1.9": true
 			},
 			"tls_cipher_suites": "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
 			"tls_min_version": "pAOWafkR",
 			"tls_prefer_server_cipher_suites": true,
 			"translate_wan_addrs": true,
-			"ui": true,
-			"ui_dir": "11IFzAUn",
-			"ui_content_path": "consul",
+			"ui_config": {
+				"enabled": true,
+				"dir": "pVncV4Ey",
+				"content_path": "qp1WRhYH",
+				"metrics_provider": "sgnaoa_lower_case",
+				"metrics_provider_files": ["sgnaMFoa", "dicnwkTH"],
+				"metrics_provider_options_json": "{\"DIbVQadX\": 1}",
+				"metrics_proxy": {
+					"base_url": "http://foo.bar",
+					"add_headers": [
+						{
+							"name": "p3nynwc9",
+							"value": "TYBgnN2F"
+						}
+					]
+				},
+				"dashboard_url_templates": {
+					"u2eziu2n_lower_case": "http://lkjasd.otr"
+				}
+			},
 			"unix_sockets": {
 				"group": "8pFodrV8",
 				"mode": "E8sAwOv4",
@@ -5145,6 +5533,7 @@ func TestFullConfig(t *testing.T) {
 			}
 			advertise_addr = "17.99.29.16"
 			advertise_addr_wan = "78.63.37.19"
+			advertise_reconnect_timeout = "0s"
 			audit = {
 				enabled = false
 			}
@@ -5351,7 +5740,7 @@ func TestFullConfig(t *testing.T) {
 			}
 			enable_acl_replication = true
 			enable_agent_tls_for_checks = true
-			enable_central_service_config = true
+			enable_central_service_config = false
 			enable_debug = true
 			enable_script_checks = true
 			enable_local_script_checks = true
@@ -5731,14 +6120,32 @@ func TestFullConfig(t *testing.T) {
 				prometheus_retention_time = "15s"
 				statsd_address = "drce87cy"
 				statsite_address = "HpFwKB8R"
+				disable_compat_1.9 = true
 			}
 			tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
 			tls_min_version = "pAOWafkR"
 			tls_prefer_server_cipher_suites = true
 			translate_wan_addrs = true
-			ui = true
-			ui_dir = "11IFzAUn"
-			ui_content_path = "consul"
+			ui_config {
+				enabled = true
+				dir = "pVncV4Ey"
+				content_path = "qp1WRhYH"
+				metrics_provider = "sgnaoa_lower_case"
+				metrics_provider_files = ["sgnaMFoa", "dicnwkTH"]
+				metrics_provider_options_json = "{\"DIbVQadX\": 1}"
+				metrics_proxy {
+					base_url = "http://foo.bar"
+					add_headers = [
+						{
+							name = "p3nynwc9"
+							value = "TYBgnN2F"
+						}
+					]
+				}
+			 	dashboard_url_templates {
+					u2eziu2n_lower_case = "http://lkjasd.otr"
+				}
+			}
 			unix_sockets = {
 				group = "8pFodrV8"
 				mode = "E8sAwOv4"
@@ -5908,6 +6315,7 @@ func TestFullConfig(t *testing.T) {
 		ACLTokenReplication:              true,
 		AdvertiseAddrLAN:                 ipAddr("17.99.29.16"),
 		AdvertiseAddrWAN:                 ipAddr("78.63.37.19"),
+		AdvertiseReconnectTimeout:        0 * time.Second,
 		AutopilotCleanupDeadServers:      true,
 		AutopilotDisableUpgradeMigration: true,
 		AutopilotLastContactThreshold:    12705 * time.Second,
@@ -6106,11 +6514,10 @@ func TestFullConfig(t *testing.T) {
 		DiscardCheckOutput:                     true,
 		DiscoveryMaxStale:                      5 * time.Second,
 		EnableAgentTLSForChecks:                true,
-		EnableCentralServiceConfig:             true,
+		EnableCentralServiceConfig:             false,
 		EnableDebug:                            true,
 		EnableRemoteScriptChecks:               true,
 		EnableLocalScriptChecks:                true,
-		EnableUI:                               true,
 		EncryptKey:                             "A4wELWqH",
 		EncryptVerifyIncoming:                  true,
 		EncryptVerifyOutgoing:                  true,
@@ -6485,6 +6892,7 @@ func TestFullConfig(t *testing.T) {
 			CirconusCheckTags:                  "prvO4uBl",
 			CirconusSubmissionInterval:         "DolzaflP",
 			CirconusSubmissionURL:              "gTcbS93G",
+			DisableCompatOneNine:               true,
 			DisableHostname:                    true,
 			DogstatsdAddr:                      "0wSndumK",
 			DogstatsdTags:                      []string{"3N81zSUB", "Xtj8AnXZ"},
@@ -6507,10 +6915,26 @@ func TestFullConfig(t *testing.T) {
 			"wan":      "78.63.37.19",
 			"wan_ipv4": "78.63.37.19",
 		},
-		TranslateWANAddrs:    true,
-		TxnMaxReqLen:         5678000000000000,
-		UIContentPath:        "/consul/",
-		UIDir:                "11IFzAUn",
+		TranslateWANAddrs: true,
+		TxnMaxReqLen:      5678000000000000,
+		UIConfig: UIConfig{
+			Enabled:                    true,
+			Dir:                        "pVncV4Ey",
+			ContentPath:                "/qp1WRhYH/", // slashes are added in parsing
+			MetricsProvider:            "sgnaoa_lower_case",
+			MetricsProviderFiles:       []string{"sgnaMFoa", "dicnwkTH"},
+			MetricsProviderOptionsJSON: "{\"DIbVQadX\": 1}",
+			MetricsProxy: UIMetricsProxy{
+				BaseURL: "http://foo.bar",
+				AddHeaders: []UIMetricsProxyAddHeader{
+					{
+						Name:  "p3nynwc9",
+						Value: "TYBgnN2F",
+					},
+				},
+			},
+			DashboardURLTemplates: map[string]string{"u2eziu2n_lower_case": "http://lkjasd.otr"},
+		},
 		UnixSocketUser:       "E0nB1DwA",
 		UnixSocketGroup:      "8pFodrV8",
 		UnixSocketMode:       "E8sAwOv4",
@@ -6589,7 +7013,7 @@ func TestFullConfig(t *testing.T) {
 			// we are patching a handful of safe fields to make validation pass.
 			rt.Bootstrap = false
 			rt.DevMode = false
-			rt.EnableUI = false
+			rt.UIConfig.Enabled = false
 			rt.SegmentName = ""
 			rt.Segments = nil
 
@@ -6599,7 +7023,7 @@ func TestFullConfig(t *testing.T) {
 			}
 
 			// check the warnings
-			require.ElementsMatch(t, warns, b.Warnings, "Warnings: %v", b.Warnings)
+			require.ElementsMatch(t, warns, b.Warnings, "Warnings: %#v", b.Warnings)
 		})
 	}
 }
@@ -6876,6 +7300,7 @@ func TestSanitize(t *testing.T) {
 		"AEInterval": "0s",
 		"AdvertiseAddrLAN": "",
 		"AdvertiseAddrWAN": "",
+		"AdvertiseReconnectTimeout": "0s",
 		"AutopilotCleanupDeadServers": false,
 		"AutopilotDisableUpgradeMigration": false,
 		"AutopilotLastContactThreshold": "0s",
@@ -7005,7 +7430,6 @@ func TestSanitize(t *testing.T) {
 		"EnableCentralServiceConfig": false,
 		"EnableLocalScriptChecks": false,
 		"EnableRemoteScriptChecks": false,
-		"EnableUI": false,
 		"EncryptKey": "hidden",
 		"EncryptVerifyIncoming": false,
 		"EncryptVerifyOutgoing": false,
@@ -7168,6 +7592,7 @@ func TestSanitize(t *testing.T) {
 			"CirconusSubmissionInterval": "",
 			"CirconusSubmissionURL": "",
 			"Disable": false,
+			"DisableCompatOneNine": false,
 			"DisableHostname": false,
 			"DogstatsdAddr": "",
 			"DogstatsdTags": [],
@@ -7179,8 +7604,19 @@ func TestSanitize(t *testing.T) {
 		},
 		"TranslateWANAddrs": false,
 		"TxnMaxReqLen": 5678000000000000,
-		"UIDir": "",
-		"UIContentPath": "",
+		"UIConfig": {
+			"ContentPath": "",
+			"Dir": "",
+			"Enabled": false,
+			"MetricsProvider": "",
+			"MetricsProviderFiles": [],
+			"MetricsProviderOptionsJSON": "",
+			"MetricsProxy": {
+				"AddHeaders": [],
+				"BaseURL": ""
+			},
+			"DashboardURLTemplates": {}
+		},
 		"UnixSocketGroup": "",
 		"UnixSocketMode": "",
 		"UnixSocketUser": "",

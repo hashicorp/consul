@@ -290,6 +290,7 @@ WAIT:
 // previously inflight transactions have been committed and that our
 // state is up-to-date.
 func (s *Server) establishLeadership() error {
+	start := time.Now()
 	// check for the upgrade here - this helps us transition to new ACLs much
 	// quicker if this is a new cluster or this is a test agent
 	if canUpgrade := s.canUpgradeToNewACLs(true); canUpgrade {
@@ -326,11 +327,6 @@ func (s *Server) establishLeadership() error {
 		return err
 	}
 
-	// attempt to bootstrap config entries
-	if err := s.bootstrapConfigEntries(s.config.ConfigEntryBootstrap); err != nil {
-		return err
-	}
-
 	s.getOrCreateAutopilotConfig()
 	s.autopilot.Start()
 
@@ -345,9 +341,20 @@ func (s *Server) establishLeadership() error {
 
 	s.startFederationStateAntiEntropy()
 
-	s.startConnectLeader()
+	if err := s.startConnectLeader(); err != nil {
+		return err
+	}
+
+	// Attempt to bootstrap config entries. We wait until after starting the
+	// Connect leader tasks so we hopefully have transitioned to supporting
+	// service-intentions.
+	if err := s.bootstrapConfigEntries(s.config.ConfigEntryBootstrap); err != nil {
+		return err
+	}
 
 	s.setConsistentReadReady()
+
+	s.logger.Debug("successfully established leadership", "duration", time.Since(start))
 	return nil
 }
 
@@ -1017,6 +1024,23 @@ func (s *Server) bootstrapConfigEntries(entries []structs.ConfigEntry) error {
 	}
 
 	state := s.fsm.State()
+
+	// Do a quick preflight check to see if someone is trying to upgrade from
+	// an older pre-1.9.0 version of consul with intentions AND are trying to
+	// bootstrap a service-intentions config entry at the same time.
+	usingConfigEntries, err := s.fsm.State().AreIntentionsInConfigEntries()
+	if err != nil {
+		return fmt.Errorf("Failed to determine if we are migrating intentions yet: %v", err)
+	}
+	if !usingConfigEntries {
+		for _, entry := range entries {
+			if entry.GetKind() == structs.ServiceIntentions {
+				return fmt.Errorf("Refusing to apply configuration entry %q / %q because intentions are still being migrated to config entries: %v",
+					entry.GetKind(), entry.GetName(), err)
+			}
+		}
+	}
+
 	for _, entry := range entries {
 		// avoid a round trip through Raft if we know the CAS is going to fail
 		_, existing, err := state.ConfigEntry(nil, entry.GetKind(), entry.GetName(), entry.GetEnterpriseMeta())
@@ -1544,7 +1568,7 @@ func (s *Server) DatacenterSupportsFederationStates() bool {
 		found:     false,
 	}
 
-	// check if they are supported in the primary dc
+	// if we are in a secondary, check if they are supported in the primary dc
 	if s.config.PrimaryDatacenter != s.config.Datacenter {
 		s.router.CheckServers(s.config.PrimaryDatacenter, state.update)
 
@@ -1589,6 +1613,71 @@ func (s *serversFederationStatesInfo) update(srv *metadata.Server) bool {
 	}
 
 	// mark that at least one server does not support federation states
+	s.supported = false
+
+	// prevent continuing server evaluation
+	return false
+}
+
+func (s *Server) setDatacenterSupportsIntentionsAsConfigEntries() {
+	atomic.StoreInt32(&s.dcSupportsIntentionsAsConfigEntries, 1)
+}
+
+func (s *Server) DatacenterSupportsIntentionsAsConfigEntries() bool {
+	if atomic.LoadInt32(&s.dcSupportsIntentionsAsConfigEntries) != 0 {
+		return true
+	}
+
+	state := serversIntentionsAsConfigEntriesInfo{
+		supported: true,
+		found:     false,
+	}
+
+	// if we are in a secondary, check if they are supported in the primary dc
+	if s.config.PrimaryDatacenter != s.config.Datacenter {
+		s.router.CheckServers(s.config.PrimaryDatacenter, state.update)
+
+		if !state.supported || !state.found {
+			s.logger.Debug("intentions have not been migrated to config entries in the primary dc yet")
+			return false
+		}
+	}
+
+	// check the servers in the local DC
+	s.router.CheckServers(s.config.Datacenter, state.update)
+
+	if state.supported && state.found {
+		s.setDatacenterSupportsIntentionsAsConfigEntries()
+		return true
+	}
+
+	s.logger.Debug("intentions cannot be migrated to config entries in this datacenter", "datacenter", s.config.Datacenter)
+	return false
+}
+
+type serversIntentionsAsConfigEntriesInfo struct {
+	// supported indicates whether every processed server supports intentions as config entries
+	supported bool
+
+	// found indicates that at least one server was processed
+	found bool
+}
+
+func (s *serversIntentionsAsConfigEntriesInfo) update(srv *metadata.Server) bool {
+	if srv.Status != serf.StatusAlive && srv.Status != serf.StatusFailed {
+		// they are left or something so regardless we treat these servers as meeting
+		// the version requirement
+		return true
+	}
+
+	// mark that we processed at least one server
+	s.found = true
+
+	if supported, ok := srv.FeatureFlags["si"]; ok && supported == 1 {
+		return true
+	}
+
+	// mark that at least one server does not support service-intentions
 	s.supported = false
 
 	// prevent continuing server evaluation

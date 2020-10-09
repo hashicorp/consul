@@ -1,34 +1,69 @@
-{{on-window 'resize' (action "resize") }}
-{{yield}}
-<EmberNativeScrollable
-  @tagName="ul"
-  @content-size={{_contentSize}}
-  @scroll-left={{_scrollLeft}}
-  @scroll-top={{_scrollTop}}
-  @scrollChange={{action "scrollChange"}}
-  @clientSizeChange={{action "clientSizeChange"}}
+<div
+  class="list-collection list-collection-scroll-{{scroll}}"
+  style={{{style}}}
+  id={{guid}}
+  ...attributes
 >
-    <li></li>
-  {{~#each _cells as |cell|~}}
-    <li
-      data-test-list-row
-      onclick={{action 'click'}} style={{{cell.style}}}
-      class={{if
-            (compute (action (or linkable (noop)) cell.item))
-            'linkable'
-      }}
-    >
-      <YieldSlot @name="header"><div class="header">{{yield cell.item cell.index}}</div></YieldSlot>
-      <YieldSlot @name="details"><div class="detail">{{yield cell.item cell.index}}</div></YieldSlot>
-      <YieldSlot @name="actions"
-        @params={{
-          block-params (component 'more-popover-menu' expanded=(if (eq checked cell.index) true false) onchange=(action "change" cell.index))
+{{yield}}
+{{#if (eq scroll 'virtual')}}
+  {{on-window 'resize' (action "resize") }}
+  <EmberNativeScrollable
+    @tagName="ul"
+    @content-size={{_contentSize}}
+    @scroll-left={{_scrollLeft}}
+    @scroll-top={{_scrollTop}}
+    @scrollChange={{action "scrollChange"}}
+    @clientSizeChange={{action "clientSizeChange"}}
+  >
+      <li></li>
+    {{~#each _cells as |cell|~}}
+      <li
+        data-test-list-row
+        onclick={{action 'click'}} style={{{cell.style}}}
+        class={{if
+              (compute (action (or linkable (noop)) cell.item))
+              'linkable'
         }}
       >
-        <div class="actions">
-          {{yield cell.item cell.index}}
-        </div>
-      </YieldSlot>
-    </li>
-  {{~/each~}}
-</EmberNativeScrollable>
+        <YieldSlot @name="header"><div class="header">{{yield cell.item cell.index}}</div></YieldSlot>
+        <YieldSlot @name="details"><div class="detail">{{yield cell.item cell.index}}</div></YieldSlot>
+        <YieldSlot @name="actions"
+          @params={{
+            block-params (component 'more-popover-menu' expanded=(if (eq checked cell.index) true false) onchange=(action "change" cell.index))
+          }}
+        >
+          <div class="actions">
+            {{yield cell.item cell.index}}
+          </div>
+        </YieldSlot>
+      </li>
+    {{~/each~}}
+  </EmberNativeScrollable>
+{{else}}
+  <ul>
+    <li style="display: none;"></li>
+    {{~#each items as |item index|~}}
+      <li
+        data-test-list-row
+        onclick={{action 'click'}}
+        class={{if
+          (compute (action (or linkable (noop)) item))
+          'linkable'
+        }}
+      >
+        <YieldSlot @name="header"><div class="header">{{yield item index}}</div></YieldSlot>
+        <YieldSlot @name="details"><div class="detail">{{yield item index}}</div></YieldSlot>
+        <YieldSlot @name="actions"
+          @params={{
+            block-params (component 'more-popover-menu' onchange=(action "change" index))
+          }}
+        >
+          <div class="actions">
+            {{yield item index}}
+          </div>
+        </YieldSlot>
+      </li>
+    {{~/each~}}
+  </ul>
+{{/if}}
+</div>

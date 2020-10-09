@@ -18,24 +18,6 @@ import (
 	"time"
 
 	metrics "github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/acl"
-	ca "github.com/hashicorp/consul/agent/connect/ca"
-	"github.com/hashicorp/consul/agent/consul/authmethod"
-	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
-	"github.com/hashicorp/consul/agent/consul/autopilot"
-	"github.com/hashicorp/consul/agent/consul/fsm"
-	"github.com/hashicorp/consul/agent/consul/state"
-	"github.com/hashicorp/consul/agent/consul/usagemetrics"
-	"github.com/hashicorp/consul/agent/grpc"
-	"github.com/hashicorp/consul/agent/metadata"
-	"github.com/hashicorp/consul/agent/pool"
-	"github.com/hashicorp/consul/agent/router"
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/tlsutil"
-	"github.com/hashicorp/consul/types"
 	connlimit "github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -44,6 +26,28 @@ import (
 	raftboltdb "github.com/hashicorp/raft-boltdb"
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/time/rate"
+	"google.golang.org/grpc"
+
+	"github.com/hashicorp/consul/acl"
+	ca "github.com/hashicorp/consul/agent/connect/ca"
+	"github.com/hashicorp/consul/agent/consul/authmethod"
+	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
+	"github.com/hashicorp/consul/agent/consul/autopilot"
+	"github.com/hashicorp/consul/agent/consul/fsm"
+	"github.com/hashicorp/consul/agent/consul/state"
+	"github.com/hashicorp/consul/agent/consul/usagemetrics"
+	agentgrpc "github.com/hashicorp/consul/agent/grpc"
+	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/consul/agent/pool"
+	"github.com/hashicorp/consul/agent/router"
+	"github.com/hashicorp/consul/agent/rpc/subscribe"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
+	"github.com/hashicorp/consul/tlsutil"
+	"github.com/hashicorp/consul/types"
 )
 
 // These are the protocol versions that Consul can _understand_. These are
@@ -100,7 +104,7 @@ const (
 	federationStateReplicationRoutineName = "federation state replication"
 	federationStateAntiEntropyRoutineName = "federation state anti-entropy"
 	federationStatePruningRoutineName     = "federation state pruning"
-	intentionReplicationRoutineName       = "intention replication"
+	intentionMigrationRoutineName         = "intention config entry migration"
 	secondaryCARootWatchRoutineName       = "secondary CA roots watch"
 	intermediateCertRenewWatchRoutineName = "intermediate cert renew watch"
 )
@@ -300,6 +304,12 @@ type Server struct {
 	// State for whether this datacenter is acting as a secondary CA.
 	actingSecondaryCA   bool
 	actingSecondaryLock sync.RWMutex
+
+	// dcSupportsIntentionsAsConfigEntries is used to determine whether we can
+	// migrate old intentions into service-intentions config entries. All
+	// servers in the local DC must be on a version of Consul supporting
+	// service-intentions before this will get enabled.
+	dcSupportsIntentionsAsConfigEntries int32
 
 	// Manager to handle starting/stopping go routines when establishing/revoking raft leadership
 	leaderRoutineManager *LeaderRoutineManager
@@ -577,7 +587,7 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 	}
 	go reporter.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
-	s.grpcHandler = newGRPCHandlerFromConfig(logger, config)
+	s.grpcHandler = newGRPCHandlerFromConfig(flat, config, s)
 
 	// Initialize Autopilot. This must happen before starting leadership monitoring
 	// as establishing leadership could attempt to use autopilot and cause a panic.
@@ -606,12 +616,17 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 	return s, nil
 }
 
-func newGRPCHandlerFromConfig(logger hclog.Logger, config *Config) connHandler {
+func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler {
 	if !config.EnableGRPCServer {
-		return grpc.NoOpHandler{Logger: logger}
+		return agentgrpc.NoOpHandler{Logger: deps.Logger}
 	}
 
-	return grpc.NewHandler(config.RPCAddr)
+	register := func(srv *grpc.Server) {
+		pbsubscribe.RegisterStateChangeSubscriptionServer(srv, subscribe.NewServer(
+			&subscribeBackend{srv: s, connPool: deps.GRPCConnPool},
+			deps.Logger.Named("grpc-api.subscription")))
+	}
+	return agentgrpc.NewHandler(config.RPCAddr, register)
 }
 
 func (s *Server) connectCARootsMonitor(ctx context.Context) {
@@ -912,6 +927,10 @@ func (s *Server) Shutdown() error {
 
 	if s.serfLAN != nil {
 		s.serfLAN.Shutdown()
+	}
+
+	for _, segment := range s.segmentLAN {
+		segment.Shutdown()
 	}
 
 	if s.serfWAN != nil {
@@ -1419,10 +1438,6 @@ func (s *Server) resetConsistentReadReady() {
 // Returns true if this server is ready to serve consistent reads
 func (s *Server) isReadyForConsistentReads() bool {
 	return atomic.LoadInt32(&s.readyForConsistentReads) == 1
-}
-
-func (s *Server) intentionReplicationEnabled() bool {
-	return s.config.ConnectEnabled && s.config.Datacenter != s.config.PrimaryDatacenter
 }
 
 // CreateACLToken will create an ACL token from the given template

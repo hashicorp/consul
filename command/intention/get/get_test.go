@@ -6,18 +6,21 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
 )
 
-func TestCommand_noTabs(t *testing.T) {
+// TODO(intentions): add test for viewing permissions and ID-less
+
+func TestIntentionGet_noTabs(t *testing.T) {
 	t.Parallel()
 	if strings.ContainsRune(New(nil).Help(), '\t') {
 		t.Fatal("help has tabs")
 	}
 }
 
-func TestCommand_Validation(t *testing.T) {
+func TestIntentionGet_Validation(t *testing.T) {
 	t.Parallel()
 
 	ui := cli.NewMockUi()
@@ -59,7 +62,7 @@ func TestCommand_Validation(t *testing.T) {
 	}
 }
 
-func TestCommand_id(t *testing.T) {
+func TestIntentionGet_id(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
@@ -67,10 +70,13 @@ func TestCommand_id(t *testing.T) {
 	defer a.Shutdown()
 	client := a.Client()
 
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
 	// Create the intention
 	var id string
 	{
 		var err error
+		//nolint:staticcheck
 		id, _, err = client.Connect().IntentionCreate(&api.Intention{
 			SourceName:      "web",
 			DestinationName: "db",
@@ -91,7 +97,7 @@ func TestCommand_id(t *testing.T) {
 	require.Contains(ui.OutputWriter.String(), id)
 }
 
-func TestCommand_srcDst(t *testing.T) {
+func TestIntentionGet_srcDst(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
@@ -99,10 +105,13 @@ func TestCommand_srcDst(t *testing.T) {
 	defer a.Shutdown()
 	client := a.Client()
 
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
 	// Create the intention
 	var id string
 	{
 		var err error
+		//nolint:staticcheck
 		id, _, err = client.Connect().IntentionCreate(&api.Intention{
 			SourceName:      "web",
 			DestinationName: "db",
@@ -123,7 +132,7 @@ func TestCommand_srcDst(t *testing.T) {
 	require.Contains(ui.OutputWriter.String(), id)
 }
 
-func TestCommand_verticalBar(t *testing.T) {
+func TestIntentionGet_verticalBar(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
@@ -131,12 +140,15 @@ func TestCommand_verticalBar(t *testing.T) {
 	defer a.Shutdown()
 	client := a.Client()
 
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
 	sourceName := "source|name|with|bars"
 
 	// Create the intention
 	var id string
 	{
 		var err error
+		//nolint:staticcheck
 		id, _, err = client.Connect().IntentionCreate(&api.Intention{
 			SourceName:      sourceName,
 			DestinationName: "db",

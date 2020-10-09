@@ -1,4 +1,4 @@
-import Route from '@ember/routing/route';
+import Route from 'consul-ui/routing/route';
 
 export default Route.extend({
   redirect: function(model, transition) {

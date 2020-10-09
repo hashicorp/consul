@@ -32,7 +32,10 @@
   role="menuitem"
   aria-selected={{if selected 'true'}}
   tabindex="-1"
-  onclick={{action (or this.onclick (noop))}}>
+  onclick={{queue
+    (action (or this.onclick (noop)))
+    (action (if this.close menu.clickTrigger (noop)))
+  }}>
     <YieldSlot @name="label">
       {{yield}}
     </YieldSlot>

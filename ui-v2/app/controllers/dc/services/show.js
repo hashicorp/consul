@@ -18,13 +18,18 @@ export default Controller.extend({
             action: 'update',
           });
         }
-        [e.target, this.intentions, this.chain, this.proxies, this.gatewayServices].forEach(
-          function(item) {
-            if (item && typeof item.close === 'function') {
-              item.close();
-            }
+        [
+          e.target,
+          this.intentions,
+          this.chain,
+          this.proxies,
+          this.gatewayServices,
+          this.topology,
+        ].forEach(function(item) {
+          if (item && typeof item.close === 'function') {
+            item.close();
           }
-        );
+        });
       }
     },
   },

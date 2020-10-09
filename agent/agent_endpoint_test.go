@@ -2694,7 +2694,7 @@ func TestAgent_UpdateCheck_ACLDeny(t *testing.T) {
 func TestAgent_RegisterService(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService(t, "")
+		testAgent_RegisterService(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -2780,7 +2780,7 @@ func testAgent_RegisterService(t *testing.T, extraHCL string) {
 func TestAgent_RegisterService_ReRegister(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_ReRegister(t, "")
+		testAgent_RegisterService_ReRegister(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -2856,7 +2856,7 @@ func testAgent_RegisterService_ReRegister(t *testing.T, extraHCL string) {
 func TestAgent_RegisterService_ReRegister_ReplaceExistingChecks(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_ReRegister_ReplaceExistingChecks(t, "")
+		testAgent_RegisterService_ReRegister_ReplaceExistingChecks(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -2931,7 +2931,7 @@ func testAgent_RegisterService_ReRegister_ReplaceExistingChecks(t *testing.T, ex
 func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_ACLDeny(t, "")
+		testAgent_RegisterService_ACLDeny(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -3147,7 +3147,7 @@ func testAgent_RegisterService_TranslateKeys(t *testing.T, extraHCL string) {
 func TestAgent_RegisterService_ACLDeny(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_ACLDeny(t, "")
+		testAgent_RegisterService_ACLDeny(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -3197,7 +3197,7 @@ func testAgent_RegisterService_ACLDeny(t *testing.T, extraHCL string) {
 func TestAgent_RegisterService_InvalidAddress(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_UnmanagedConnectProxy(t, "")
+		testAgent_RegisterService_InvalidAddress(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -3241,7 +3241,7 @@ func testAgent_RegisterService_InvalidAddress(t *testing.T, extraHCL string) {
 func TestAgent_RegisterService_UnmanagedConnectProxy(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_UnmanagedConnectProxy(t, "")
+		testAgent_RegisterService_UnmanagedConnectProxy(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -3375,7 +3375,7 @@ func testCreatePolicy(t *testing.T, a *TestAgent, name, rules string) string {
 func TestAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterServiceDeregisterService_Sidecar(t, "")
+		testAgent_RegisterServiceDeregisterService_Sidecar(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -3871,7 +3871,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 func TestAgent_RegisterService_UnmanagedConnectProxyInvalid(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_UnmanagedConnectProxyInvalid(t, "")
+		testAgent_RegisterService_UnmanagedConnectProxyInvalid(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -3914,7 +3914,7 @@ func testAgent_RegisterService_UnmanagedConnectProxyInvalid(t *testing.T, extraH
 func TestAgent_RegisterService_ConnectNative(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_ConnectNative(t, "")
+		testAgent_RegisterService_ConnectNative(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -3959,7 +3959,7 @@ func testAgent_RegisterService_ConnectNative(t *testing.T, extraHCL string) {
 func TestAgent_RegisterService_ScriptCheck_ExecDisable(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_ScriptCheck_ExecDisable(t, "")
+		testAgent_RegisterService_ScriptCheck_ExecDisable(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -4005,7 +4005,7 @@ func testAgent_RegisterService_ScriptCheck_ExecDisable(t *testing.T, extraHCL st
 func TestAgent_RegisterService_ScriptCheck_ExecRemoteDisable(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_ScriptCheck_ExecRemoteDisable(t, "")
+		testAgent_RegisterService_ScriptCheck_ExecRemoteDisable(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()

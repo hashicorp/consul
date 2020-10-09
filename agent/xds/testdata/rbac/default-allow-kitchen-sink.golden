@@ -4,7 +4,7 @@
       "rules": {
             "action": "DENY",
             "policies": {
-                  "consul-intentions": {
+                  "consul-intentions-layer4": {
                         "permissions": [
                               {
                                     "any": true
@@ -17,7 +17,7 @@
                                                 "safe_regex": {
                                                       "google_re2": {
                                                           },
-                                                      "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/web$"
+                                                      "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/cron$"
                                                     }
                                               }
                                         }
@@ -28,7 +28,7 @@
                                                 "safe_regex": {
                                                       "google_re2": {
                                                           },
-                                                      "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/cron$"
+                                                      "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/web$"
                                                     }
                                               }
                                         }
@@ -54,7 +54,33 @@
                                                                         "safe_regex": {
                                                                               "google_re2": {
                                                                                   },
+                                                                              "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/web$"
+                                                                            }
+                                                                      }
+                                                                }
+                                                          }
+                                                    },
+                                                {
+                                                      "not_id": {
+                                                            "authenticated": {
+                                                                  "principal_name": {
+                                                                        "safe_regex": {
+                                                                              "google_re2": {
+                                                                                  },
                                                                               "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/unsafe$"
+                                                                            }
+                                                                      }
+                                                                }
+                                                          }
+                                                    },
+                                                {
+                                                      "not_id": {
+                                                            "authenticated": {
+                                                                  "principal_name": {
+                                                                        "safe_regex": {
+                                                                              "google_re2": {
+                                                                                  },
+                                                                              "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/cron$"
                                                                             }
                                                                       }
                                                                 }

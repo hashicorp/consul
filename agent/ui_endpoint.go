@@ -3,43 +3,71 @@ package agent
 import (
 	"fmt"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
+	"path"
 	"sort"
 	"strings"
 
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-hclog"
 )
 
-// metaExternalSource is the key name for the service instance meta that
-// defines the external syncing source. This is used by the UI APIs below
-// to extract this.
-const metaExternalSource = "external-source"
+// ServiceSummary is used to summarize a service
+type ServiceSummary struct {
+	Kind              structs.ServiceKind `json:",omitempty"`
+	Name              string
+	Datacenter        string
+	Tags              []string
+	Nodes             []string
+	ExternalSources   []string
+	externalSourceSet map[string]struct{} // internal to track uniqueness
+	checks            map[string]*structs.HealthCheck
+	InstanceCount     int
+	ChecksPassing     int
+	ChecksWarning     int
+	ChecksCritical    int
+	GatewayConfig     GatewayConfig
+
+	structs.EnterpriseMeta
+}
+
+func (s *ServiceSummary) LessThan(other *ServiceSummary) bool {
+	if s.EnterpriseMeta.LessThan(&other.EnterpriseMeta) {
+		return true
+	}
+	return s.Name < other.Name
+}
 
 type GatewayConfig struct {
 	AssociatedServiceCount int      `json:",omitempty"`
 	Addresses              []string `json:",omitempty"`
+
 	// internal to track uniqueness
 	addressesSet map[string]struct{}
 }
 
-// ServiceSummary is used to summarize a service
-type ServiceSummary struct {
-	Kind                 structs.ServiceKind `json:",omitempty"`
-	Name                 string
-	Tags                 []string
-	Nodes                []string
-	InstanceCount        int
-	ChecksPassing        int
-	ChecksWarning        int
-	ChecksCritical       int
-	ExternalSources      []string
-	externalSourceSet    map[string]struct{} // internal to track uniqueness
-	GatewayConfig        GatewayConfig       `json:",omitempty"`
+type ServiceListingSummary struct {
+	ServiceSummary
+
 	ConnectedWithProxy   bool
 	ConnectedWithGateway bool
+}
 
-	structs.EnterpriseMeta
+type ServiceTopologySummary struct {
+	ServiceSummary
+
+	Intention structs.IntentionDecisionSummary
+}
+
+type ServiceTopology struct {
+	Protocol       string
+	Upstreams      []*ServiceTopologySummary
+	Downstreams    []*ServiceTopologySummary
+	FilteredByACLs bool
 }
 
 // UINodes is used to list the nodes in a given datacenter. We return a
@@ -163,9 +191,39 @@ RPC:
 		return nil, err
 	}
 
-	// Generate the summary
-	// TODO (gateways) (freddy) Have Internal.ServiceDump return ServiceDump instead. Need to add bexpr filtering for type.
-	return summarizeServices(out.Nodes.ToServiceDump(), out.Gateways, s.agent.config, args.Datacenter), nil
+	// Store the names of the gateways associated with each service
+	var (
+		serviceGateways   = make(map[structs.ServiceName][]structs.ServiceName)
+		numLinkedServices = make(map[structs.ServiceName]int)
+	)
+	for _, gs := range out.Gateways {
+		serviceGateways[gs.Service] = append(serviceGateways[gs.Service], gs.Gateway)
+		numLinkedServices[gs.Gateway] += 1
+	}
+
+	summaries, hasProxy := summarizeServices(out.Nodes.ToServiceDump(), nil, "")
+	sorted := prepSummaryOutput(summaries, false)
+
+	var result []*ServiceListingSummary
+	for _, svc := range sorted {
+		sum := ServiceListingSummary{ServiceSummary: *svc}
+
+		sn := structs.NewServiceName(svc.Name, &svc.EnterpriseMeta)
+		if hasProxy[sn] {
+			sum.ConnectedWithProxy = true
+		}
+
+		// Verify that at least one of the gateways linked by config entry has an instance registered in the catalog
+		for _, gw := range serviceGateways[sn] {
+			if s := summaries[gw]; s != nil && sum.InstanceCount > 0 {
+				sum.ConnectedWithGateway = true
+			}
+		}
+		sum.GatewayConfig.AssociatedServiceCount = numLinkedServices[sn]
+
+		result = append(result, &sum)
+	}
+	return result, nil
 }
 
 // UIGatewayServices is used to query all the nodes for services associated with a gateway along with their gateway config
@@ -200,17 +258,103 @@ RPC:
 		return nil, err
 	}
 
-	return summarizeServices(out.Dump, nil, s.agent.config, args.Datacenter), nil
+	summaries, _ := summarizeServices(out.Dump, s.agent.config, args.Datacenter)
+	return prepSummaryOutput(summaries, false), nil
 }
 
-// TODO (freddy): Refactor to split up for the two use cases
-func summarizeServices(dump structs.ServiceDump, gateways structs.GatewayServices, cfg *config.RuntimeConfig, dc string) []*ServiceSummary {
-	// Collect the summary information
-	var services []structs.ServiceName
-	summary := make(map[structs.ServiceName]*ServiceSummary)
+// UIServiceTopology returns the list of upstreams and downstreams for a Connect enabled service.
+//   - Downstreams are services that list the given service as an upstream
+//   - Upstreams are the upstreams defined in the given service's proxy registrations
+func (s *HTTPHandlers) UIServiceTopology(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Parse arguments
+	args := structs.ServiceSpecificRequest{}
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
 
-	linkedGateways := make(map[structs.ServiceName][]structs.ServiceName)
-	hasProxy := make(map[structs.ServiceName]bool)
+	args.ServiceName = strings.TrimPrefix(req.URL.Path, "/v1/internal/ui/service-topology/")
+	if args.ServiceName == "" {
+		resp.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(resp, "Missing service name")
+		return nil, nil
+	}
+
+	kind, ok := req.URL.Query()["kind"]
+	if !ok {
+		resp.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(resp, "Missing service kind")
+		return nil, nil
+	}
+	args.ServiceKind = structs.ServiceKind(kind[0])
+
+	switch args.ServiceKind {
+	case structs.ServiceKindTypical, structs.ServiceKindIngressGateway:
+		// allowed
+	default:
+		resp.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(resp, "Unsupported service kind %q", args.ServiceKind)
+		return nil, nil
+	}
+
+	// Make the RPC request
+	var out structs.IndexedServiceTopology
+	defer setMeta(resp, &out.QueryMeta)
+RPC:
+	if err := s.agent.RPC("Internal.ServiceTopology", &args, &out); err != nil {
+		// Retry the request allowing stale data if no leader
+		if strings.Contains(err.Error(), structs.ErrNoLeader.Error()) && !args.AllowStale {
+			args.AllowStale = true
+			goto RPC
+		}
+		return nil, err
+	}
+
+	upstreams, _ := summarizeServices(out.ServiceTopology.Upstreams.ToServiceDump(), nil, "")
+	downstreams, _ := summarizeServices(out.ServiceTopology.Downstreams.ToServiceDump(), nil, "")
+
+	var (
+		upstreamResp   []*ServiceTopologySummary
+		downstreamResp []*ServiceTopologySummary
+	)
+
+	// Sort and attach intention data for upstreams and downstreams
+	sortedUpstreams := prepSummaryOutput(upstreams, true)
+	for _, svc := range sortedUpstreams {
+		sn := structs.NewServiceName(svc.Name, &svc.EnterpriseMeta)
+		sum := ServiceTopologySummary{
+			ServiceSummary: *svc,
+			Intention:      out.ServiceTopology.UpstreamDecisions[sn.String()],
+		}
+		upstreamResp = append(upstreamResp, &sum)
+	}
+
+	sortedDownstreams := prepSummaryOutput(downstreams, true)
+	for _, svc := range sortedDownstreams {
+		sn := structs.NewServiceName(svc.Name, &svc.EnterpriseMeta)
+		sum := ServiceTopologySummary{
+			ServiceSummary: *svc,
+			Intention:      out.ServiceTopology.DownstreamDecisions[sn.String()],
+		}
+		downstreamResp = append(downstreamResp, &sum)
+	}
+
+	topo := ServiceTopology{
+		Protocol:       out.ServiceTopology.MetricsProtocol,
+		Upstreams:      upstreamResp,
+		Downstreams:    downstreamResp,
+		FilteredByACLs: out.FilteredByACLs,
+	}
+	return topo, nil
+}
+
+func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig, dc string) (map[structs.ServiceName]*ServiceSummary, map[structs.ServiceName]bool) {
+	var (
+		summary  = make(map[structs.ServiceName]*ServiceSummary)
+		hasProxy = make(map[structs.ServiceName]bool)
+	)
 
 	getService := func(service structs.ServiceName) *ServiceSummary {
 		serv, ok := summary[service]
@@ -223,22 +367,12 @@ func summarizeServices(dump structs.ServiceDump, gateways structs.GatewayService
 				InstanceCount: 0,
 			}
 			summary[service] = serv
-			services = append(services, service)
 		}
 		return serv
 	}
 
-	// Collect the list of services linked to each gateway up front
-	// THis also allows tracking whether a service name is associated with a gateway
-	gsCount := make(map[structs.ServiceName]int)
-
-	for _, gs := range gateways {
-		gsCount[gs.Gateway] += 1
-		linkedGateways[gs.Service] = append(linkedGateways[gs.Service], gs.Gateway)
-	}
-
 	for _, csn := range dump {
-		if csn.GatewayService != nil {
+		if cfg != nil && csn.GatewayService != nil {
 			gwsvc := csn.GatewayService
 			sum := getService(gwsvc.Service)
 			modifySummaryForGatewayService(cfg, dc, sum, gwsvc)
@@ -248,15 +382,27 @@ func summarizeServices(dump structs.ServiceDump, gateways structs.GatewayService
 		if csn.Service == nil {
 			continue
 		}
-		sid := structs.NewServiceName(csn.Service.Service, &csn.Service.EnterpriseMeta)
-		sum := getService(sid)
+		sn := structs.NewServiceName(csn.Service.Service, &csn.Service.EnterpriseMeta)
+		sum := getService(sn)
 
 		svc := csn.Service
 		sum.Nodes = append(sum.Nodes, csn.Node.Node)
 		sum.Kind = svc.Kind
+		sum.Datacenter = csn.Node.Datacenter
 		sum.InstanceCount += 1
 		if svc.Kind == structs.ServiceKindConnectProxy {
-			hasProxy[structs.NewServiceName(svc.Proxy.DestinationServiceName, &svc.EnterpriseMeta)] = true
+			sn := structs.NewServiceName(svc.Proxy.DestinationServiceName, &svc.EnterpriseMeta)
+			hasProxy[sn] = true
+
+			destination := getService(sn)
+			for _, check := range csn.Checks {
+				cid := structs.NewCheckID(check.CheckID, &check.EnterpriseMeta)
+				uid := structs.UniqueID(csn.Node.Node, cid.String())
+				if destination.checks == nil {
+					destination.checks = make(map[string]*structs.HealthCheck)
+				}
+				destination.checks[uid] = check
+			}
 		}
 		for _, tag := range svc.Tags {
 			found := false
@@ -266,7 +412,6 @@ func summarizeServices(dump structs.ServiceDump, gateways structs.GatewayService
 					break
 				}
 			}
-
 			if !found {
 				sum.Tags = append(sum.Tags, tag)
 			}
@@ -276,8 +421,8 @@ func summarizeServices(dump structs.ServiceDump, gateways structs.GatewayService
 		// sources. We only want to add unique sources so there is extra
 		// accounting here with an unexported field to maintain the set
 		// of sources.
-		if len(svc.Meta) > 0 && svc.Meta[metaExternalSource] != "" {
-			source := svc.Meta[metaExternalSource]
+		if len(svc.Meta) > 0 && svc.Meta[structs.MetaExternalSource] != "" {
+			source := svc.Meta[structs.MetaExternalSource]
 			if sum.externalSourceSet == nil {
 				sum.externalSourceSet = make(map[string]struct{})
 			}
@@ -288,7 +433,28 @@ func summarizeServices(dump structs.ServiceDump, gateways structs.GatewayService
 		}
 
 		for _, check := range csn.Checks {
-			switch check.Status {
+			cid := structs.NewCheckID(check.CheckID, &check.EnterpriseMeta)
+			uid := structs.UniqueID(csn.Node.Node, cid.String())
+			if sum.checks == nil {
+				sum.checks = make(map[string]*structs.HealthCheck)
+			}
+			sum.checks[uid] = check
+		}
+	}
+
+	return summary, hasProxy
+}
+
+func prepSummaryOutput(summaries map[structs.ServiceName]*ServiceSummary, excludeSidecars bool) []*ServiceSummary {
+	var resp []*ServiceSummary
+
+	// Collect and sort resp for display
+	for _, sum := range summaries {
+		sort.Strings(sum.Nodes)
+		sort.Strings(sum.Tags)
+
+		for _, chk := range sum.checks {
+			switch chk.Status {
 			case api.HealthPassing:
 				sum.ChecksPassing++
 			case api.HealthWarning:
@@ -297,34 +463,15 @@ func summarizeServices(dump structs.ServiceDump, gateways structs.GatewayService
 				sum.ChecksCritical++
 			}
 		}
+		if excludeSidecars && sum.Kind != structs.ServiceKindTypical && sum.Kind != structs.ServiceKindIngressGateway {
+			continue
+		}
+		resp = append(resp, sum)
 	}
-
-	// Return the services in sorted order
-	sort.Slice(services, func(i, j int) bool {
-		return services[i].LessThan(&services[j])
+	sort.Slice(resp, func(i, j int) bool {
+		return resp[i].LessThan(resp[j])
 	})
-
-	output := make([]*ServiceSummary, len(summary))
-	for idx, service := range services {
-		sum := summary[service]
-		if hasProxy[service] {
-			sum.ConnectedWithProxy = true
-		}
-
-		// Verify that at least one of the gateways linked by config entry has an instance registered in the catalog
-		for _, gw := range linkedGateways[service] {
-			if s := summary[gw]; s != nil && s.InstanceCount > 0 {
-				sum.ConnectedWithGateway = true
-			}
-		}
-		sum.GatewayConfig.AssociatedServiceCount = gsCount[service]
-
-		// Sort the nodes and tags
-		sort.Strings(sum.Nodes)
-		sort.Strings(sum.Tags)
-		output[idx] = sum
-	}
-	return output
+	return resp
 }
 
 func modifySummaryForGatewayService(
@@ -400,4 +547,81 @@ func (s *HTTPHandlers) UIGatewayIntentions(resp http.ResponseWriter, req *http.R
 	}
 
 	return reply.Intentions, nil
+}
+
+// UIMetricsProxy handles the /v1/internal/ui/metrics-proxy/ endpoint which, if
+// configured, provides a simple read-only HTTP proxy to a single metrics
+// backend to expose it to the UI.
+func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Check the UI was enabled at agent startup (note this is not reloadable
+	// currently).
+	if !s.IsUIEnabled() {
+		return nil, NotFoundError{Reason: "UI is not enabled"}
+	}
+
+	// Load reloadable proxy config
+	cfg, ok := s.metricsProxyCfg.Load().(config.UIMetricsProxy)
+	if !ok || cfg.BaseURL == "" {
+		// Proxy not configured
+		return nil, NotFoundError{Reason: "Metrics proxy is not enabled"}
+	}
+
+	log := s.agent.logger.Named(logging.UIMetricsProxy)
+
+	// Construct the new URL from the path and the base path. Note we do this here
+	// not in the Director function below because we can handle any errors cleanly
+	// here.
+
+	// Replace prefix in the path
+	subPath := strings.TrimPrefix(req.URL.Path, "/v1/internal/ui/metrics-proxy")
+
+	// Append that to the BaseURL (which might contain a path prefix component)
+	newURL := cfg.BaseURL + subPath
+
+	// Parse it into a new URL
+	u, err := url.Parse(newURL)
+	if err != nil {
+		log.Error("couldn't parse target URL", "base_url", cfg.BaseURL, "path", subPath)
+		return nil, BadRequestError{Reason: "Invalid path."}
+	}
+
+	// Clean the new URL path to prevent path traversal attacks and remove any
+	// double slashes etc.
+	u.Path = path.Clean(u.Path)
+
+	// Validate that the full BaseURL is still a prefix - if there was a path
+	// prefix on the BaseURL but an attacker tried to circumvent it with path
+	// traversal then the Clean above would have resolve the /../ components back
+	// to the actual path which means part of the prefix will now be missing.
+	//
+	// Note that in practice this is not currently possible since any /../ in the
+	// path would have already been resolved by the API server mux and so not even
+	// hit this handler. Any /../ that are far enough into the path to hit this
+	// handler, can't backtrack far enough to eat into the BaseURL either. But we
+	// leave this in anyway in case something changes in the future.
+	if !strings.HasPrefix(u.String(), cfg.BaseURL) {
+		log.Error("target URL escaped from base path",
+			"base_url", cfg.BaseURL,
+			"path", subPath,
+			"target_url", u.String(),
+		)
+		return nil, BadRequestError{Reason: "Invalid path."}
+	}
+
+	// Add any configured headers
+	for _, h := range cfg.AddHeaders {
+		req.Header.Set(h.Name, h.Value)
+	}
+
+	proxy := httputil.ReverseProxy{
+		Director: func(r *http.Request) {
+			r.URL = u
+		},
+		ErrorLog: log.StandardLogger(&hclog.StandardLoggerOptions{
+			InferLevels: true,
+		}),
+	}
+
+	proxy.ServeHTTP(resp, req)
+	return nil, nil
 }

@@ -16,17 +16,11 @@ Feature: dc / intentions / filtered-select: Intention Service Select Dropdowns
     - Name: service-3
       Kind: connect-proxy
     ---
-    And 1 intention model from yaml
-    ---
-    SourceName: 'service-0'
-    DestinationName: 'service-1'
-    ---
     When I visit the intention page for yaml
     ---
       dc: datacenter
-      intention: intention
     ---
-    Then the url should be /datacenter/intentions/intention
+    Then the url should be /datacenter/intentions/create
     And I click "[data-test-[Name]-element] .ember-power-select-trigger"
     Then I see the text "* (All Services)" in ".ember-power-select-option:nth-last-child(3)"
     Then I see the text "service-0" in ".ember-power-select-option:nth-last-child(2)"
@@ -35,7 +29,7 @@ Feature: dc / intentions / filtered-select: Intention Service Select Dropdowns
       ---------------
       | Name        |
       | source      |
-      #| destination |
+      | destination |
       ---------------
   Scenario: Opening the [Name] dropdown with 2 services with the same name from different nspaces
     Given 1 datacenter model with the value "datacenter"
@@ -47,17 +41,11 @@ Feature: dc / intentions / filtered-select: Intention Service Select Dropdowns
       Namespace: nspace
       Kind: ~
     ---
-    And 1 intention model from yaml
-    ---
-    SourceName: 'service-0'
-    DestinationName: 'service-0'
-    ---
     When I visit the intention page for yaml
     ---
       dc: datacenter
-      intention: intention
     ---
-    Then the url should be /datacenter/intentions/intention
+    Then the url should be /datacenter/intentions/create
     And I click "[data-test-[Name]-element] .ember-power-select-trigger"
     Then I see the text "* (All Services)" in ".ember-power-select-option:nth-last-child(2)"
     Then I see the text "service-0" in ".ember-power-select-option:last-child"
@@ -65,5 +53,5 @@ Feature: dc / intentions / filtered-select: Intention Service Select Dropdowns
       ---------------
       | Name        |
       | source      |
-      #| destination |
+      | destination |
       ---------------

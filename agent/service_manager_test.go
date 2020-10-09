@@ -17,7 +17,7 @@ import (
 func TestServiceManager_RegisterService(t *testing.T) {
 	require := require.New(t)
 
-	a := NewTestAgent(t, "enable_central_service_config = true")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -64,7 +64,7 @@ func TestServiceManager_RegisterService(t *testing.T) {
 func TestServiceManager_RegisterSidecar(t *testing.T) {
 	require := require.New(t)
 
-	a := NewTestAgent(t, "enable_central_service_config = true")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -151,7 +151,7 @@ func TestServiceManager_RegisterSidecar(t *testing.T) {
 func TestServiceManager_RegisterMeshGateway(t *testing.T) {
 	require := require.New(t)
 
-	a := NewTestAgent(t, "enable_central_service_config = true")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -207,7 +207,7 @@ func TestServiceManager_RegisterMeshGateway(t *testing.T) {
 func TestServiceManager_RegisterTerminatingGateway(t *testing.T) {
 	require := require.New(t)
 
-	a := NewTestAgent(t, "enable_central_service_config = true")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -268,7 +268,7 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 	require := require.New(t)
 
 	// Launch a server to manage the config entries.
-	serverAgent := NewTestAgent(t, `enable_central_service_config = true`)
+	serverAgent := NewTestAgent(t, "")
 	defer serverAgent.Shutdown()
 	testrpc.WaitForLeader(t, serverAgent.RPC, "dc1")
 
@@ -293,7 +293,6 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 
 	// Now launch a single client agent
 	cfg := `
-	    enable_central_service_config = true
 		server = false
 		bootstrap = false
 	`
@@ -481,7 +480,7 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 	t.Parallel()
 
 	// Launch a server to manage the config entries.
-	serverAgent := NewTestAgent(t, `enable_central_service_config = true`)
+	serverAgent := NewTestAgent(t, "")
 	defer serverAgent.Shutdown()
 	testrpc.WaitForLeader(t, serverAgent.RPC, "dc1")
 
@@ -526,7 +525,6 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 	`
 
 	cfg := `
-	    enable_central_service_config = true
 		server = false
 		bootstrap = false
 	` + serviceSnippet

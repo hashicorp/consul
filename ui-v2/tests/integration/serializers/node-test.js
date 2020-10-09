@@ -80,6 +80,10 @@ module('Integration | Serializer | node', function(hooks) {
       const expected = {
         Address: '211.245.86.75',
         Port: '8500',
+        [META]: {
+          [DC.toLowerCase()]: dc,
+          [NSPACE.toLowerCase()]: nspace,
+        },
       };
       const actual = serializer.respondForQueryLeader(
         function(cb) {

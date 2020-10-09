@@ -13,7 +13,7 @@ label span {
 %main-content form {
   @extend %form;
 }
-%form span.label {
+span.label {
   @extend %form-element-label;
 }
 %form table,

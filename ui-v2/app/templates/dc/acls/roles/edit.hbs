@@ -8,19 +8,11 @@
   {{title 'Access Controls'}}
 {{/if}}
 <AppView
-  @class={{concat "role " (if isAuthorized "edit" "list")}}
-  @loading={{isLoading}}
   @authorized={{isAuthorized}}
   @enabled={{isEnabled}}
   >
     <BlockSlot @name="notification" as |status type item error|>
       {{partial 'dc/acls/roles/notifications'}}
-    </BlockSlot>
-    <BlockSlot @name="disabled">
-      {{partial 'dc/acls/disabled'}}
-    </BlockSlot>
-    <BlockSlot @name="authorization">
-      {{partial 'dc/acls/authorization'}}
     </BlockSlot>
     <BlockSlot @name="breadcrumbs">
         <ol>

@@ -44,7 +44,7 @@ const throttle = function(configuration, prev, current) {
     return new Promise(function(resolve, reject) {
       setTimeout(function() {
         resolve(obj);
-      }, pause);
+      }, configuration.interval || pause);
     });
   };
 };
@@ -104,6 +104,7 @@ export default function(EventSource, backoff = createErrorBackoff()) {
               // along with cursor validation
               configuration.cursor = validateCursor(meta.cursor, configuration.cursor);
               configuration.cacheControl = meta.cacheControl;
+              configuration.interval = meta.interval;
             }
             if ((configuration.cacheControl || '').indexOf('no-store') === -1) {
               this.currentEvent = event;

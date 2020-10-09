@@ -17,15 +17,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/consul/agent/dns"
-	"github.com/hashicorp/consul/agent/token"
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
-
+	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/raft"
+	"github.com/hashicorp/serf/serf"
+	"golang.org/x/net/http2"
 	"google.golang.org/grpc"
 
-	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/ae"
 	"github.com/hashicorp/consul/agent/cache"
@@ -33,10 +34,13 @@ import (
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/proxycfg"
+	"github.com/hashicorp/consul/agent/rpcclient/health"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/systemd"
+	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/api/watch"
@@ -46,10 +50,6 @@ import (
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/raft"
-	"github.com/hashicorp/serf/serf"
-	"golang.org/x/net/http2"
 )
 
 const (
@@ -255,6 +255,23 @@ type Agent struct {
 	// fail, the agent will be shutdown.
 	apiServers *apiServers
 
+	// httpHandlers provides direct access to (one of) the HTTPHandlers started by
+	// this agent. This is used in tests to test HTTP endpoints without overhead
+	// of TCP connections etc.
+	//
+	// TODO: this is a temporary re-introduction after we removed a list of
+	// HTTPServers in favour of apiServers abstraction. Now that HTTPHandlers is
+	// stateful and has config reloading though it's not OK to just use a
+	// different instance of handlers in tests to the ones that the agent is wired
+	// up to since then config reloads won't actually affect the handlers under
+	// test while plumbing the external handlers in the TestAgent through bypasses
+	// testing that the agent itself is actually reloading the state correctly.
+	// Once we move `apiServers` to be a passed-in dependency for NewAgent, we
+	// should be able to remove this and have the Test Agent create the
+	// HTTPHandlers and pass them in removing the need to pull them back out
+	// again.
+	httpHandlers *HTTPHandlers
+
 	// wgServers is the wait group for all HTTP and DNS servers
 	// TODO: remove once dnsServers are handled by apiServers
 	wgServers sync.WaitGroup
@@ -289,6 +306,14 @@ type Agent struct {
 	// httpConnLimiter is used to limit connections to the HTTP server by client
 	// IP.
 	httpConnLimiter connlimit.Limiter
+
+	// configReloaders are subcomponents that need to be notified on a reload so
+	// they can update their internal state.
+	configReloaders []ConfigReloader
+
+	// TODO: pass directly to HTTPHandlers and DNSServer once those are passed
+	// into Agent, which will allow us to remove this field.
+	rpcClientHealth *health.Client
 
 	// enterpriseAgent embeds fields that we only access in consul-enterprise builds
 	enterpriseAgent
@@ -333,6 +358,8 @@ func New(bd BaseDeps) (*Agent, error) {
 		config:          bd.RuntimeConfig,
 		cache:           bd.Cache,
 	}
+
+	a.rpcClientHealth = &health.Client{Cache: bd.Cache, NetRPC: &a}
 
 	a.serviceManager = NewServiceManager(&a)
 
@@ -571,6 +598,12 @@ func (a *Agent) Start(ctx context.Context) error {
 		go a.retryJoinWAN()
 	}
 
+	// DEPRECATED: Warn users if they're emitting deprecated metrics. Remove this warning and the flagged metrics in a
+	// future release of Consul.
+	if !a.config.Telemetry.DisableCompatOneNine {
+		a.logger.Warn("DEPRECATED Backwards compatibility with pre-1.9 metrics enabled. These metrics will be removed in a future version of Consul. Set `telemetry { disable_compat_1.9 = true }` to disable them.")
+	}
+
 	return nil
 }
 
@@ -735,6 +768,8 @@ func (a *Agent) listenHTTP() ([]apiServer, error) {
 				agent:    a,
 				denylist: NewDenylist(a.config.HTTPBlockEndpoints),
 			}
+			a.configReloaders = append(a.configReloaders, srv.ReloadConfig)
+			a.httpHandlers = srv
 			httpServer := &http.Server{
 				Addr:      l.Addr().String(),
 				TLSConfig: tlscfg,
@@ -995,6 +1030,8 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 		// Disable serf WAN federation
 		cfg.SerfWANConfig = nil
 	}
+
+	cfg.AdvertiseReconnectTimeout = runtimeCfg.AdvertiseReconnectTimeout
 
 	cfg.RPCAddr = runtimeCfg.RPCBindAddr
 	cfg.RPCAdvertise = runtimeCfg.RPCAdvertiseAddr
@@ -3466,6 +3503,12 @@ func (a *Agent) ReloadConfig() error {
 	// breaking some existing behavior.
 	newCfg.NodeID = a.config.NodeID
 
+	// DEPRECATED: Warn users on reload if they're emitting deprecated metrics. Remove this warning and the flagged
+	// metrics in a future release of Consul.
+	if !a.config.Telemetry.DisableCompatOneNine {
+		a.logger.Warn("DEPRECATED Backwards compatibility with pre-1.9 metrics enabled. These metrics will be removed in a future version of Consul. Set `telemetry { disable_compat_1.9 = true }` to disable them.")
+	}
+
 	return a.reloadConfigInternal(newCfg)
 }
 
@@ -3570,6 +3613,12 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 		newCfg.Telemetry.BlockedPrefixes)
 
 	a.State.SetDiscardCheckOutput(newCfg.DiscardCheckOutput)
+
+	for _, r := range a.configReloaders {
+		if err := r(newCfg); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }

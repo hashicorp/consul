@@ -6,18 +6,19 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
 )
 
-func TestCommand_noTabs(t *testing.T) {
+func TestIntentionMatch_noTabs(t *testing.T) {
 	t.Parallel()
 	if strings.ContainsRune(New(nil).Help(), '\t') {
 		t.Fatal("help has tabs")
 	}
 }
 
-func TestCommand_Validation(t *testing.T) {
+func TestIntentionMatch_Validation(t *testing.T) {
 	t.Parallel()
 
 	ui := cli.NewMockUi()
@@ -64,13 +65,15 @@ func TestCommand_Validation(t *testing.T) {
 	}
 }
 
-func TestCommand_matchDst(t *testing.T) {
+func TestIntentionMatch_matchDst(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
+
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Create some intentions
 	{
@@ -81,6 +84,7 @@ func TestCommand_matchDst(t *testing.T) {
 		}
 
 		for _, v := range insert {
+			//nolint:staticcheck
 			id, _, err := client.Connect().IntentionCreate(&api.Intention{
 				SourceName:      v[0],
 				DestinationName: v[1],
@@ -107,13 +111,15 @@ func TestCommand_matchDst(t *testing.T) {
 	}
 }
 
-func TestCommand_matchSource(t *testing.T) {
+func TestIntentionMatch_matchSource(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
+
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Create some intentions
 	{
@@ -124,6 +130,7 @@ func TestCommand_matchSource(t *testing.T) {
 		}
 
 		for _, v := range insert {
+			//nolint:staticcheck
 			id, _, err := client.Connect().IntentionCreate(&api.Intention{
 				SourceName:      v[0],
 				DestinationName: v[1],

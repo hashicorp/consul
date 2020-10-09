@@ -21,6 +21,7 @@
   {{/if}}
     </BlockSlot>
     <BlockSlot @name="actions" as |Actions|>
+{{#if (not item.DeletedAt)}}
       <Actions as |Action|>
         <Action data-test-edit-action @href={{href-to 'dc.nspaces.edit' item.Name}}>
           <BlockSlot @name="label">
@@ -50,6 +51,7 @@
         </Action>
       {{/if}}
       </Actions>
+{{/if}}
     </BlockSlot>
 </ListCollection>
 {{/if}}

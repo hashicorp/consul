@@ -422,7 +422,7 @@ jobs:
           at: bin/
       - run:
           name: package binary
-          command: tar -czf consul.tar.gz -C bin/ .
+          command: tar -czf consul.tar.gz -C bin/ consul
       - run:
           name: Upload to s3
           command: |
@@ -626,7 +626,52 @@ jobs:
       - persist_to_workspace:
           root: .
           paths:
-            - ./agent/bindata_assetfs.go
+            - ./agent/uiserver/bindata_assetfs.go
+      - run: *notify-slack-failure
+
+  # commits static assets to git
+  publish-static-assets:
+    docker:
+      - image: *GOLANG_IMAGE
+    steps:
+      - checkout
+      - add_ssh_keys: # needs a key to push updated static asset commit back to github
+          fingerprints:
+            - "c9:04:b7:85:bf:0e:ce:93:5f:b8:0e:68:8e:16:f3:71"
+      - attach_workspace:
+          at: .
+      - run:
+          name: commit agent/uiserver/bindata_assetfs.go if there are UI changes
+          command: |
+            # check if there are any changes in ui-v2/
+            # if there are, we commit the ui static asset file
+            # HEAD^! is shorthand for HEAD^..HEAD (parent of HEAD and HEAD)
+            if ! git diff --quiet --exit-code HEAD^! ui-v2/; then
+              git config --local user.email "hashicorp-ci@users.noreply.github.com"
+              git config --local user.name "hashicorp-ci"
+
+              short_sha=$(git rev-parse --short HEAD)
+              git add agent/uiserver/bindata_assetfs.go
+              git commit -m "auto-updated agent/uiserver/bindata_assetfs.go from commit ${short_sha}"
+              git push origin master
+            else
+              echo "no UI changes so no static assets to publish"
+            fi
+      - run: *notify-slack-failure
+
+  # run node tests
+  node-tests:
+    docker:
+      - image: *EMBER_IMAGE
+    steps:
+      - checkout
+      - restore_cache:
+          key: *YARN_CACHE_KEY
+      - attach_workspace:
+          at: ui-v2
+      - run:
+          working_directory: ui-v2
+          command: make test-node
       - run: *notify-slack-failure
 
   # run ember frontend tests
@@ -769,6 +814,7 @@ jobs:
             make test-connect-ca-providers
       - store_test_results:
           path: *TEST_RESULTS_DIR
+      - run: *codecov_upload
       - run: *notify-slack-failure
 
   # only runs on master: checks latest commit to see if the PR associated has a backport/* or docs* label to cherry-pick
@@ -806,7 +852,6 @@ workflows:
           requires: [dev-build]
       - go-test-race: *filter-ignore-non-go-branches
       - go-test-sdk: *filter-ignore-non-go-branches
-
   build-distros:
     jobs:
       - check-vendor: *filter-ignore-non-go-branches
@@ -828,6 +873,13 @@ workflows:
       - build-static-assets:
           requires:
             - ember-build-prod
+      - publish-static-assets:
+          filters:
+            branches:
+              only:
+                - master
+          requires:
+            - build-static-assets
       - dev-build:
           requires:
             - build-static-assets
@@ -871,7 +923,6 @@ workflows:
       - envoy-integration-test-1.15.0:
           requires:
             - dev-build
-
   website:
     jobs:
       - build-website-docker-image:
@@ -880,7 +931,6 @@ workflows:
             branches:
               only:
                 - master
-
       - algolia-index:
           context: consul-docs
           filters:
@@ -896,6 +946,9 @@ workflows:
                 - master
                 - ui-staging
                 - /^ui\/.*/
+      - node-tests:
+          requires:
+            - frontend-cache
       - ember-build-oss:
           requires:
             - frontend-cache

@@ -21,14 +21,14 @@
       <ConsulInstanceChecks @type="node" @items={{reject-by 'ServiceID' '' item.Checks}} />
     {{/if}}
 {{#if item.ProxyInstance}}
-      <dl class="proxy">
+      <dl class="mesh">
         <dt>
           <Tooltip>
-            Proxy
+            This service uses a proxy for the Consul service mesh
           </Tooltip>
         </dt>
-        <dd data-test-proxy>
-          connected with proxy
+        <dd data-test-mesh>
+          in service mesh with proxy
         </dd>
       </dl>
 {{/if}}

@@ -1,3 +1,4 @@
+import { set, get } from '@ember/object';
 import RepositoryService from 'consul-ui/services/repository';
 import { PRIMARY_KEY } from 'consul-ui/models/intention';
 const modelName = 'intention';
@@ -13,6 +14,19 @@ export default RepositoryService.extend({
     return this._super({
       Action: 'allow',
       ...obj,
+    });
+  },
+  persist: function(obj) {
+    return this._super(...arguments).then(res => {
+      // if Action is set it means we are an l4 type intention
+      // we don't delete these at a UI level incase the user
+      // would like to switch backwards and forwards between
+      // allow/deny/l7 in the forms, but once its been saved
+      // to the backend we then delete them
+      if (get(res, 'Action.length')) {
+        set(res, 'Permissions', []);
+      }
+      return res;
     });
   },
   findByService: function(slug, dc, nspace, configuration = {}) {

@@ -8,6 +8,7 @@ export default Adapter.extend({
     return request`
       GET /v1/catalog/connect/${id}?${{ dc }}
       X-Request-ID: ${uri}
+      X-Range: ${id}
 
       ${{
         ...this.formatNspace(ns),

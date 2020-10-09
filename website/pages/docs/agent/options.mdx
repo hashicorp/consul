@@ -834,6 +834,11 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
 - `advertise_addr_wan_ipv6` This was added together with [`advertise_addr_wan_ipv4`](#advertise_addr_wan_ipv4) to support dual stack IPv4/IPv6 environments. Using this, both IPv4 and IPv6 addresses can be specified and requested during eg service discovery.
 
+- `advertise_reconnect_timeout` This is a per-agent setting of the [`reconnect_timeout`](#reconnect_timeout) parameter. 
+  This agent will advertise to all other nodes in the cluster that after this timeout, the node may be completely 
+  removed from the cluster. This may only be set on client agents and if unset then other nodes will use the main
+  `reconnect_timeout` setting when determing when this node may be removed from the cluster.
+
 - `serf_lan` ((#serf_lan_bind)) Equivalent to the [`-serf-lan-bind` command-line flag](#_serf_lan_bind).
 
 - `serf_lan_allowed_cidrs` ((#serf_lan_allowed_cidrs)) Equivalent to the [`-serf-lan-allowed-cidrs` command-line flag](#_serf_lan_allowed_cidrs).
@@ -1464,6 +1469,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
 - `enable_central_service_config` When set, the Consul agent will look for any centralized service
   configurations that match a registering service instance. If it finds any, the agent will merge the centralized defaults with the service instance configuration. This allows for things like service protocol or proxy configuration to be defined centrally and inherited by any affected service registrations.
+  This defaults to `false` in versions of Consul prior to 1.9.0, and defaults to `true` in Consul 1.9.0 and later.
 
 - `enable_debug` When set, enables some additional debugging features. Currently, this is only used to
   access runtime profiling HTTP endpoints, which are available with an `operator:read` ACL regardless of the value of `enable_debug`.

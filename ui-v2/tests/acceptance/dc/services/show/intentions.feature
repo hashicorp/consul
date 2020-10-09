@@ -15,6 +15,11 @@ Feature: dc / services / show / intentions: Intentions per service
     - ID: 755b72bd-f5ab-4c92-90cc-bed0e7d8e9f0
       Action: allow
       Meta: ~
+      SourceNS: default
+      SourceName: name
+      DestinationNS: default
+      DestinationName: destination
+
     - ID: 755b72bd-f5ab-4c92-90cc-bed0e7d8e9f1
       Action: deny
       Meta: ~
@@ -37,6 +42,6 @@ Feature: dc / services / show / intentions: Intentions per service
     And I click actions on the intentions
     And I click delete on the intentions
     And I click confirmDelete on the intentions
-    Then a DELETE request was made to "/v1/connect/intentions/755b72bd-f5ab-4c92-90cc-bed0e7d8e9f0?dc=dc1"
+    Then a DELETE request was made to "/v1/connect/intentions/exact?source=default%2Fname&destination=default%2Fdestination&dc=dc1"
     And "[data-notification]" has the "notification-delete" class
     And "[data-notification]" has the "success" class

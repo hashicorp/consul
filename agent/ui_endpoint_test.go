@@ -9,12 +9,14 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"path/filepath"
+	"sync/atomic"
 	"testing"
 
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
 	"github.com/stretchr/testify/assert"
@@ -28,18 +30,20 @@ func TestUiIndex(t *testing.T) {
 
 	// Make the server
 	a := NewTestAgent(t, `
-		ui_dir = "`+uiDir+`"
+		ui_config {
+			dir = "`+uiDir+`"
+		}
 	`)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	// Create file
-	path := filepath.Join(a.Config.UIDir, "my-file")
-	if err := ioutil.WriteFile(path, []byte("test"), 0777); err != nil {
+	path := filepath.Join(a.Config.UIConfig.Dir, "my-file")
+	if err := ioutil.WriteFile(path, []byte("test"), 0644); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Register node
+	// Request the custom file
 	req, _ := http.NewRequest("GET", "/ui/my-file", nil)
 	req.URL.Scheme = "http"
 	req.URL.Host = a.HTTPAddr()
@@ -221,6 +225,7 @@ func TestUiServices(t *testing.T) {
 			Service: &structs.NodeService{
 				Kind:    structs.ServiceKindTypical,
 				Service: "api",
+				ID:      "api-1",
 				Tags:    []string{"tag1", "tag2"},
 			},
 			Checks: structs.HealthChecks{
@@ -228,20 +233,22 @@ func TestUiServices(t *testing.T) {
 					Node:        "foo",
 					Name:        "api svc check",
 					ServiceName: "api",
+					ServiceID:   "api-1",
 					Status:      api.HealthWarning,
 				},
 			},
 		},
-		// register web svc on node foo
+		// register api-proxy svc on node foo
 		{
 			Datacenter:     "dc1",
 			Node:           "foo",
 			SkipNodeUpdate: true,
 			Service: &structs.NodeService{
 				Kind:    structs.ServiceKindConnectProxy,
-				Service: "web",
+				Service: "api-proxy",
+				ID:      "api-proxy-1",
 				Tags:    []string{},
-				Meta:    map[string]string{metaExternalSource: "k8s"},
+				Meta:    map[string]string{structs.MetaExternalSource: "k8s"},
 				Port:    1234,
 				Proxy: structs.ConnectProxyConfig{
 					DestinationServiceName: "api",
@@ -250,8 +257,9 @@ func TestUiServices(t *testing.T) {
 			Checks: structs.HealthChecks{
 				&structs.HealthCheck{
 					Node:        "foo",
-					Name:        "web svc check",
-					ServiceName: "web",
+					Name:        "api proxy listening",
+					ServiceName: "api-proxy",
+					ServiceID:   "api-proxy-1",
 					Status:      api.HealthPassing,
 				},
 			},
@@ -262,14 +270,12 @@ func TestUiServices(t *testing.T) {
 			Node:       "bar",
 			Address:    "127.0.0.2",
 			Service: &structs.NodeService{
-				Kind:    structs.ServiceKindConnectProxy,
+				Kind:    structs.ServiceKindTypical,
 				Service: "web",
+				ID:      "web-1",
 				Tags:    []string{},
-				Meta:    map[string]string{metaExternalSource: "k8s"},
+				Meta:    map[string]string{structs.MetaExternalSource: "k8s"},
 				Port:    1234,
-				Proxy: structs.ConnectProxyConfig{
-					DestinationServiceName: "api",
-				},
 			},
 			Checks: []*structs.HealthCheck{
 				{
@@ -277,6 +283,7 @@ func TestUiServices(t *testing.T) {
 					Name:        "web svc check",
 					Status:      api.HealthCritical,
 					ServiceName: "web",
+					ServiceID:   "web-1",
 				},
 			},
 		},
@@ -364,76 +371,107 @@ func TestUiServices(t *testing.T) {
 		assertIndex(t, resp)
 
 		// Should be 2 nodes, and all the empty lists should be non-nil
-		summary := obj.([]*ServiceSummary)
-		require.Len(t, summary, 5)
+		summary := obj.([]*ServiceListingSummary)
+		require.Len(t, summary, 6)
 
 		// internal accounting that users don't see can be blown away
 		for _, sum := range summary {
 			sum.externalSourceSet = nil
+			sum.checks = nil
 		}
 
-		expected := []*ServiceSummary{
+		expected := []*ServiceListingSummary{
 			{
-				Kind:                 structs.ServiceKindTypical,
-				Name:                 "api",
-				Tags:                 []string{"tag1", "tag2"},
-				Nodes:                []string{"foo"},
-				InstanceCount:        1,
-				ChecksPassing:        2,
-				ChecksWarning:        1,
-				ChecksCritical:       0,
+				ServiceSummary: ServiceSummary{
+					Kind:           structs.ServiceKindTypical,
+					Name:           "api",
+					Datacenter:     "dc1",
+					Tags:           []string{"tag1", "tag2"},
+					Nodes:          []string{"foo"},
+					InstanceCount:  1,
+					ChecksPassing:  2,
+					ChecksWarning:  1,
+					ChecksCritical: 0,
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				},
 				ConnectedWithProxy:   true,
 				ConnectedWithGateway: true,
-				EnterpriseMeta:       *structs.DefaultEnterpriseMeta(),
 			},
 			{
-				Kind:                 structs.ServiceKindTypical,
-				Name:                 "cache",
-				Tags:                 nil,
-				Nodes:                []string{"zip"},
-				InstanceCount:        1,
-				ChecksPassing:        0,
-				ChecksWarning:        0,
-				ChecksCritical:       0,
+				ServiceSummary: ServiceSummary{
+					Kind:            structs.ServiceKindConnectProxy,
+					Name:            "api-proxy",
+					Datacenter:      "dc1",
+					Tags:            nil,
+					Nodes:           []string{"foo"},
+					InstanceCount:   1,
+					ChecksPassing:   2,
+					ChecksWarning:   0,
+					ChecksCritical:  0,
+					ExternalSources: []string{"k8s"},
+					EnterpriseMeta:  *structs.DefaultEnterpriseMeta(),
+				},
+			},
+			{
+				ServiceSummary: ServiceSummary{
+					Kind:           structs.ServiceKindTypical,
+					Name:           "cache",
+					Datacenter:     "dc1",
+					Tags:           nil,
+					Nodes:          []string{"zip"},
+					InstanceCount:  1,
+					ChecksPassing:  0,
+					ChecksWarning:  0,
+					ChecksCritical: 0,
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				},
 				ConnectedWithGateway: true,
-				EnterpriseMeta:       *structs.DefaultEnterpriseMeta(),
 			},
 			{
-				Kind:            structs.ServiceKindConnectProxy,
-				Name:            "web",
-				Tags:            nil,
-				Nodes:           []string{"bar", "foo"},
-				InstanceCount:   2,
-				ChecksPassing:   2,
-				ChecksWarning:   1,
-				ChecksCritical:  1,
-				ExternalSources: []string{"k8s"},
-				EnterpriseMeta:  *structs.DefaultEnterpriseMeta(),
+				ServiceSummary: ServiceSummary{
+					Kind:           structs.ServiceKindTypical,
+					Name:           "consul",
+					Datacenter:     "dc1",
+					Tags:           nil,
+					Nodes:          []string{a.Config.NodeName},
+					InstanceCount:  1,
+					ChecksPassing:  1,
+					ChecksWarning:  0,
+					ChecksCritical: 0,
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				},
 			},
 			{
-				Kind:           structs.ServiceKindTypical,
-				Name:           "consul",
-				Tags:           nil,
-				Nodes:          []string{a.Config.NodeName},
-				InstanceCount:  1,
-				ChecksPassing:  1,
-				ChecksWarning:  0,
-				ChecksCritical: 0,
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				ServiceSummary: ServiceSummary{
+					Kind:           structs.ServiceKindTerminatingGateway,
+					Name:           "terminating-gateway",
+					Datacenter:     "dc1",
+					Tags:           nil,
+					Nodes:          []string{"foo"},
+					InstanceCount:  1,
+					ChecksPassing:  1,
+					ChecksWarning:  0,
+					ChecksCritical: 0,
+					GatewayConfig:  GatewayConfig{AssociatedServiceCount: 2},
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				},
 			},
 			{
-				Kind:           structs.ServiceKindTerminatingGateway,
-				Name:           "terminating-gateway",
-				Tags:           nil,
-				Nodes:          []string{"foo"},
-				InstanceCount:  1,
-				ChecksPassing:  2,
-				ChecksWarning:  1,
-				GatewayConfig:  GatewayConfig{AssociatedServiceCount: 2},
-				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				ServiceSummary: ServiceSummary{
+					Kind:            structs.ServiceKindTypical,
+					Name:            "web",
+					Datacenter:      "dc1",
+					Tags:            nil,
+					Nodes:           []string{"bar"},
+					InstanceCount:   1,
+					ChecksPassing:   0,
+					ChecksWarning:   0,
+					ChecksCritical:  1,
+					ExternalSources: []string{"k8s"},
+					EnterpriseMeta:  *structs.DefaultEnterpriseMeta(),
+				},
 			},
 		}
-
 		require.ElementsMatch(t, expected, summary)
 	})
 
@@ -446,39 +484,46 @@ func TestUiServices(t *testing.T) {
 		assertIndex(t, resp)
 
 		// Should be 2 nodes, and all the empty lists should be non-nil
-		summary := obj.([]*ServiceSummary)
+		summary := obj.([]*ServiceListingSummary)
 		require.Len(t, summary, 2)
 
 		// internal accounting that users don't see can be blown away
 		for _, sum := range summary {
 			sum.externalSourceSet = nil
+			sum.checks = nil
 		}
 
-		expected := []*ServiceSummary{
+		expected := []*ServiceListingSummary{
 			{
-				Kind:                 structs.ServiceKindTypical,
-				Name:                 "api",
-				Tags:                 []string{"tag1", "tag2"},
-				Nodes:                []string{"foo"},
-				InstanceCount:        1,
-				ChecksPassing:        2,
-				ChecksWarning:        1,
-				ChecksCritical:       0,
-				ConnectedWithProxy:   true,
+				ServiceSummary: ServiceSummary{
+					Kind:           structs.ServiceKindTypical,
+					Name:           "api",
+					Datacenter:     "dc1",
+					Tags:           []string{"tag1", "tag2"},
+					Nodes:          []string{"foo"},
+					InstanceCount:  1,
+					ChecksPassing:  1,
+					ChecksWarning:  1,
+					ChecksCritical: 0,
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				},
+				ConnectedWithProxy:   false,
 				ConnectedWithGateway: false,
-				EnterpriseMeta:       *structs.DefaultEnterpriseMeta(),
 			},
 			{
-				Kind:            structs.ServiceKindConnectProxy,
-				Name:            "web",
-				Tags:            nil,
-				Nodes:           []string{"bar", "foo"},
-				InstanceCount:   2,
-				ChecksPassing:   2,
-				ChecksWarning:   1,
-				ChecksCritical:  1,
-				ExternalSources: []string{"k8s"},
-				EnterpriseMeta:  *structs.DefaultEnterpriseMeta(),
+				ServiceSummary: ServiceSummary{
+					Kind:            structs.ServiceKindTypical,
+					Name:            "web",
+					Datacenter:      "dc1",
+					Tags:            nil,
+					Nodes:           []string{"bar"},
+					InstanceCount:   1,
+					ChecksPassing:   0,
+					ChecksWarning:   0,
+					ChecksCritical:  1,
+					ExternalSources: []string{"k8s"},
+					EnterpriseMeta:  *structs.DefaultEnterpriseMeta(),
+				},
 			},
 		}
 		require.ElementsMatch(t, expected, summary)
@@ -577,10 +622,17 @@ func TestUIGatewayServiceNodes_Terminating(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/v1/internal/ui/gateway-services-nodes/terminating-gateway", nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.UIGatewayServicesNodes(resp, req)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assertIndex(t, resp)
 
-	dump := obj.([]*ServiceSummary)
+	summary := obj.([]*ServiceSummary)
+
+	// internal accounting that users don't see can be blown away
+	for _, sum := range summary {
+		sum.externalSourceSet = nil
+		sum.checks = nil
+	}
+
 	expect := []*ServiceSummary{
 		{
 			Name:           "redis",
@@ -588,6 +640,7 @@ func TestUIGatewayServiceNodes_Terminating(t *testing.T) {
 		},
 		{
 			Name:           "db",
+			Datacenter:     "dc1",
 			Tags:           []string{"backup", "primary"},
 			Nodes:          []string{"bar", "baz"},
 			InstanceCount:  2,
@@ -597,7 +650,7 @@ func TestUIGatewayServiceNodes_Terminating(t *testing.T) {
 			EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 		},
 	}
-	assert.ElementsMatch(t, expect, dump)
+	require.ElementsMatch(t, expect, summary)
 }
 
 func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
@@ -722,7 +775,7 @@ func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/v1/internal/ui/gateway-services-nodes/ingress-gateway", nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.UIGatewayServicesNodes(resp, req)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assertIndex(t, resp)
 
 	// Construct expected addresses so that differences between OSS/Ent are handled by code
@@ -746,6 +799,7 @@ func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
 		},
 		{
 			Name:           "db",
+			Datacenter:     "dc1",
 			Tags:           []string{"backup", "primary"},
 			Nodes:          []string{"bar", "baz"},
 			InstanceCount:  2,
@@ -765,8 +819,9 @@ func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
 	// internal accounting that users don't see can be blown away
 	for _, sum := range dump {
 		sum.GatewayConfig.addressesSet = nil
+		sum.checks = nil
 	}
-	assert.ElementsMatch(t, expect, dump)
+	require.ElementsMatch(t, expect, dump)
 }
 
 func TestUIGatewayIntentions(t *testing.T) {
@@ -774,6 +829,7 @@ func TestUIGatewayIntentions(t *testing.T) {
 
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
+	testrpc.WaitForServiceIntentions(t, a.RPC, "dc1")
 
 	// Register terminating gateway and config entry linking it to postgres + redis
 	{
@@ -834,7 +890,7 @@ func TestUIGatewayIntentions(t *testing.T) {
 			req.Intention.DestinationName = v
 
 			var reply string
-			assert.NoError(t, a.RPC("Intention.Apply", &req, &reply))
+			require.NoError(t, a.RPC("Intention.Apply", &req, &reply))
 
 			req = structs.IntentionRequest{
 				Datacenter: "dc1",
@@ -843,7 +899,7 @@ func TestUIGatewayIntentions(t *testing.T) {
 			}
 			req.Intention.SourceName = v
 			req.Intention.DestinationName = "api"
-			assert.NoError(t, a.RPC("Intention.Apply", &req, &reply))
+			require.NoError(t, a.RPC("Intention.Apply", &req, &reply))
 		}
 	}
 
@@ -851,11 +907,11 @@ func TestUIGatewayIntentions(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/v1/internal/ui/gateway-intentions/terminating-gateway", nil)
 	resp := httptest.NewRecorder()
 	obj, err := a.srv.UIGatewayIntentions(resp, req)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assertIndex(t, resp)
 
 	intentions := obj.(structs.Intentions)
-	assert.Len(t, intentions, 3)
+	require.Len(t, intentions, 3)
 
 	// Only intentions with linked services as a destination should be returned, and wildcard matches should be deduped
 	expected := []string{"postgres", "*", "redis"}
@@ -864,7 +920,7 @@ func TestUIGatewayIntentions(t *testing.T) {
 		intentions[1].DestinationName,
 		intentions[2].DestinationName,
 	}
-	assert.ElementsMatch(t, expected, actual)
+	require.ElementsMatch(t, expected, actual)
 }
 
 func TestUIEndpoint_modifySummaryForGatewayService_UseRequestedDCInsteadOfConfigured(t *testing.T) {
@@ -875,4 +931,794 @@ func TestUIEndpoint_modifySummaryForGatewayService_UseRequestedDCInsteadOfConfig
 	modifySummaryForGatewayService(&cfg, dc, &sum, &gwsvc)
 	expected := serviceCanonicalDNSName("test", "ingress", "dc2", "consul", nil) + ":42"
 	require.Equal(t, expected, sum.GatewayConfig.Addresses[0])
+}
+
+func TestUIServiceTopology(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
+	// Register ingress -> api -> web -> redis
+	{
+		registrations := map[string]*structs.RegisterRequest{
+			"Node edge": {
+				Datacenter: "dc1",
+				Node:       "edge",
+				Address:    "127.0.0.20",
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:    "edge",
+						CheckID: "edge:alive",
+						Name:    "edge-liveness",
+						Status:  api.HealthPassing,
+					},
+				},
+			},
+			"Ingress gateway on edge": {
+				Datacenter:     "dc1",
+				Node:           "edge",
+				SkipNodeUpdate: true,
+				Service: &structs.NodeService{
+					Kind:    structs.ServiceKindIngressGateway,
+					ID:      "ingress",
+					Service: "ingress",
+					Port:    443,
+					Address: "198.18.1.20",
+				},
+			},
+			"Node foo": {
+				Datacenter: "dc1",
+				Node:       "foo",
+				Address:    "127.0.0.2",
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:    "foo",
+						CheckID: "foo:alive",
+						Name:    "foo-liveness",
+						Status:  api.HealthPassing,
+					},
+				},
+			},
+			"Service api on foo": {
+				Datacenter:     "dc1",
+				Node:           "foo",
+				SkipNodeUpdate: true,
+				Service: &structs.NodeService{
+					Kind:    structs.ServiceKindTypical,
+					ID:      "api",
+					Service: "api",
+					Port:    9090,
+					Address: "198.18.1.2",
+				},
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:        "foo",
+						CheckID:     "foo:api",
+						Name:        "api-liveness",
+						Status:      api.HealthPassing,
+						ServiceID:   "api",
+						ServiceName: "api",
+					},
+				},
+			},
+			"Service api-proxy": {
+				Datacenter:     "dc1",
+				Node:           "foo",
+				SkipNodeUpdate: true,
+				Service: &structs.NodeService{
+					Kind:    structs.ServiceKindConnectProxy,
+					ID:      "api-proxy",
+					Service: "api-proxy",
+					Port:    8443,
+					Address: "198.18.1.2",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "api",
+						Upstreams: structs.Upstreams{
+							{
+								DestinationName: "web",
+								LocalBindPort:   8080,
+							},
+						},
+					},
+				},
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:        "foo",
+						CheckID:     "foo:api-proxy",
+						Name:        "api proxy listening",
+						Status:      api.HealthPassing,
+						ServiceID:   "api-proxy",
+						ServiceName: "api-proxy",
+					},
+				},
+			},
+			"Node bar": {
+				Datacenter: "dc1",
+				Node:       "bar",
+				Address:    "127.0.0.3",
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:    "bar",
+						CheckID: "bar:alive",
+						Name:    "bar-liveness",
+						Status:  api.HealthPassing,
+					},
+				},
+			},
+			"Service web on bar": {
+				Datacenter:     "dc1",
+				Node:           "bar",
+				SkipNodeUpdate: true,
+				Service: &structs.NodeService{
+					Kind:    structs.ServiceKindTypical,
+					ID:      "web",
+					Service: "web",
+					Port:    80,
+					Address: "198.18.1.20",
+				},
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:        "bar",
+						CheckID:     "bar:web",
+						Name:        "web-liveness",
+						Status:      api.HealthWarning,
+						ServiceID:   "web",
+						ServiceName: "web",
+					},
+				},
+			},
+			"Service web-proxy on bar": {
+				Datacenter:     "dc1",
+				Node:           "bar",
+				SkipNodeUpdate: true,
+				Service: &structs.NodeService{
+					Kind:    structs.ServiceKindConnectProxy,
+					ID:      "web-proxy",
+					Service: "web-proxy",
+					Port:    8443,
+					Address: "198.18.1.20",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "web",
+						Upstreams: structs.Upstreams{
+							{
+								DestinationName: "redis",
+								LocalBindPort:   123,
+							},
+						},
+					},
+				},
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:        "bar",
+						CheckID:     "bar:web-proxy",
+						Name:        "web proxy listening",
+						Status:      api.HealthCritical,
+						ServiceID:   "web-proxy",
+						ServiceName: "web-proxy",
+					},
+				},
+			},
+			"Node baz": {
+				Datacenter: "dc1",
+				Node:       "baz",
+				Address:    "127.0.0.4",
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:    "baz",
+						CheckID: "baz:alive",
+						Name:    "baz-liveness",
+						Status:  api.HealthPassing,
+					},
+				},
+			},
+			"Service web on baz": {
+				Datacenter:     "dc1",
+				Node:           "baz",
+				SkipNodeUpdate: true,
+				Service: &structs.NodeService{
+					Kind:    structs.ServiceKindTypical,
+					ID:      "web",
+					Service: "web",
+					Port:    80,
+					Address: "198.18.1.40",
+				},
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:        "baz",
+						CheckID:     "baz:web",
+						Name:        "web-liveness",
+						Status:      api.HealthPassing,
+						ServiceID:   "web",
+						ServiceName: "web",
+					},
+				},
+			},
+			"Service web-proxy on baz": {
+				Datacenter:     "dc1",
+				Node:           "baz",
+				SkipNodeUpdate: true,
+				Service: &structs.NodeService{
+					Kind:    structs.ServiceKindConnectProxy,
+					ID:      "web-proxy",
+					Service: "web-proxy",
+					Port:    8443,
+					Address: "198.18.1.40",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "web",
+						Upstreams: structs.Upstreams{
+							{
+								DestinationName: "redis",
+								LocalBindPort:   123,
+							},
+						},
+					},
+				},
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:        "baz",
+						CheckID:     "baz:web-proxy",
+						Name:        "web proxy listening",
+						Status:      api.HealthCritical,
+						ServiceID:   "web-proxy",
+						ServiceName: "web-proxy",
+					},
+				},
+			},
+			"Node zip": {
+				Datacenter: "dc1",
+				Node:       "zip",
+				Address:    "127.0.0.5",
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:    "zip",
+						CheckID: "zip:alive",
+						Name:    "zip-liveness",
+						Status:  api.HealthPassing,
+					},
+				},
+			},
+			"Service redis on zip": {
+				Datacenter:     "dc1",
+				Node:           "zip",
+				SkipNodeUpdate: true,
+				Service: &structs.NodeService{
+					Kind:    structs.ServiceKindTypical,
+					ID:      "redis",
+					Service: "redis",
+					Port:    6379,
+					Address: "198.18.1.60",
+				},
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:        "zip",
+						CheckID:     "zip:redis",
+						Name:        "redis-liveness",
+						Status:      api.HealthPassing,
+						ServiceID:   "redis",
+						ServiceName: "redis",
+					},
+				},
+			},
+			"Service redis-proxy on zip": {
+				Datacenter:     "dc1",
+				Node:           "zip",
+				SkipNodeUpdate: true,
+				Service: &structs.NodeService{
+					Kind:    structs.ServiceKindConnectProxy,
+					ID:      "redis-proxy",
+					Service: "redis-proxy",
+					Port:    8443,
+					Address: "198.18.1.60",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "redis",
+					},
+				},
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:        "zip",
+						CheckID:     "zip:redis-proxy",
+						Name:        "redis proxy listening",
+						Status:      api.HealthCritical,
+						ServiceID:   "redis-proxy",
+						ServiceName: "redis-proxy",
+					},
+				},
+			},
+		}
+		for _, args := range registrations {
+			var out struct{}
+			require.NoError(t, a.RPC("Catalog.Register", args, &out))
+		}
+	}
+
+	// Add intentions: deny all, ingress -> api, web -> redis with L7 perms, but omit intention for api -> web
+	// Add ingress config: ingress -> api
+	{
+		entries := []structs.ConfigEntryRequest{
+			{
+				Datacenter: "dc1",
+				Entry: &structs.ProxyConfigEntry{
+					Kind: structs.ProxyDefaults,
+					Name: structs.ProxyConfigGlobal,
+					Config: map[string]interface{}{
+						"protocol": "http",
+					},
+				},
+			},
+			{
+				Datacenter: "dc1",
+				Entry: &structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "api",
+					Protocol: "tcp",
+				},
+			},
+			{
+				Datacenter: "dc1",
+				Entry: &structs.ServiceIntentionsConfigEntry{
+					Kind: structs.ServiceIntentions,
+					Name: "redis",
+					Sources: []*structs.SourceIntention{
+						{
+							Name: "web",
+							Permissions: []*structs.IntentionPermission{
+								{
+									Action: structs.IntentionActionAllow,
+									HTTP: &structs.IntentionHTTPPermission{
+										Methods: []string{"GET"},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			{
+				Datacenter: "dc1",
+				Entry: &structs.ServiceIntentionsConfigEntry{
+					Kind: structs.ServiceIntentions,
+					Name: "*",
+					Meta: map[string]string{structs.MetaExternalSource: "nomad"},
+					Sources: []*structs.SourceIntention{
+						{
+							Name:   "*",
+							Action: structs.IntentionActionDeny,
+						},
+					},
+				},
+			},
+			{
+				Datacenter: "dc1",
+				Entry: &structs.ServiceIntentionsConfigEntry{
+					Kind: structs.ServiceIntentions,
+					Name: "api",
+					Sources: []*structs.SourceIntention{
+						{
+							Name:   "ingress",
+							Action: structs.IntentionActionAllow,
+						},
+					},
+				},
+			},
+			{
+				Datacenter: "dc1",
+				Entry: &structs.IngressGatewayConfigEntry{
+					Kind: "ingress-gateway",
+					Name: "ingress",
+					Listeners: []structs.IngressListener{
+						{
+							Port:     1111,
+							Protocol: "tcp",
+							Services: []structs.IngressService{
+								{
+									Name:           "api",
+									EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+		for _, req := range entries {
+			out := false
+			require.NoError(t, a.RPC("ConfigEntry.Apply", &req, &out))
+		}
+	}
+
+	t.Run("request without kind", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/ingress", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.UIServiceTopology(resp, req)
+		require.Nil(t, err)
+		require.Nil(t, obj)
+		require.Equal(t, "Missing service kind", resp.Body.String())
+	})
+
+	t.Run("request with unsupported kind", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/ingress?kind=not-a-kind", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.UIServiceTopology(resp, req)
+		require.Nil(t, err)
+		require.Nil(t, obj)
+		require.Equal(t, `Unsupported service kind "not-a-kind"`, resp.Body.String())
+	})
+
+	t.Run("ingress", func(t *testing.T) {
+		retry.Run(t, func(r *retry.R) {
+			// Request topology for ingress
+			req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/ingress?kind=ingress-gateway", nil)
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.UIServiceTopology(resp, req)
+			assert.Nil(r, err)
+			require.NoError(r, checkIndex(resp))
+
+			expect := ServiceTopology{
+				Protocol: "tcp",
+				Upstreams: []*ServiceTopologySummary{
+					{
+						ServiceSummary: ServiceSummary{
+							Name:           "api",
+							Datacenter:     "dc1",
+							Nodes:          []string{"foo"},
+							InstanceCount:  1,
+							ChecksPassing:  3,
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+						Intention: structs.IntentionDecisionSummary{
+							Allowed:        true,
+							HasPermissions: false,
+						},
+					},
+				},
+				FilteredByACLs: false,
+			}
+			result := obj.(ServiceTopology)
+
+			// Internal accounting that is not returned in JSON response
+			for _, u := range result.Upstreams {
+				u.externalSourceSet = nil
+				u.checks = nil
+			}
+			require.Equal(r, expect, result)
+		})
+	})
+
+	t.Run("api", func(t *testing.T) {
+		retry.Run(t, func(r *retry.R) {
+			// Request topology for api
+			req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/api?kind=", nil)
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.UIServiceTopology(resp, req)
+			assert.Nil(r, err)
+			require.NoError(r, checkIndex(resp))
+
+			expect := ServiceTopology{
+				Protocol: "tcp",
+				Downstreams: []*ServiceTopologySummary{
+					{
+						ServiceSummary: ServiceSummary{
+							Name:           "ingress",
+							Kind:           structs.ServiceKindIngressGateway,
+							Datacenter:     "dc1",
+							Nodes:          []string{"edge"},
+							InstanceCount:  1,
+							ChecksPassing:  1,
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+						Intention: structs.IntentionDecisionSummary{
+							Allowed:        true,
+							HasPermissions: false,
+						},
+					},
+				},
+				Upstreams: []*ServiceTopologySummary{
+					{
+						ServiceSummary: ServiceSummary{
+							Name:           "web",
+							Datacenter:     "dc1",
+							Nodes:          []string{"bar", "baz"},
+							InstanceCount:  2,
+							ChecksPassing:  3,
+							ChecksWarning:  1,
+							ChecksCritical: 2,
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+						Intention: structs.IntentionDecisionSummary{
+							Allowed:        false,
+							HasPermissions: false,
+							ExternalSource: "nomad",
+						},
+					},
+				},
+				FilteredByACLs: false,
+			}
+			result := obj.(ServiceTopology)
+
+			// Internal accounting that is not returned in JSON response
+			for _, u := range result.Upstreams {
+				u.externalSourceSet = nil
+				u.checks = nil
+			}
+			for _, d := range result.Downstreams {
+				d.externalSourceSet = nil
+				d.checks = nil
+			}
+			require.Equal(r, expect, result)
+		})
+	})
+
+	t.Run("web", func(t *testing.T) {
+		retry.Run(t, func(r *retry.R) {
+			// Request topology for web
+			req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/web?kind=", nil)
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.UIServiceTopology(resp, req)
+			assert.Nil(r, err)
+			require.NoError(r, checkIndex(resp))
+
+			expect := ServiceTopology{
+				Protocol: "http",
+				Upstreams: []*ServiceTopologySummary{
+					{
+						ServiceSummary: ServiceSummary{
+							Name:           "redis",
+							Datacenter:     "dc1",
+							Nodes:          []string{"zip"},
+							InstanceCount:  1,
+							ChecksPassing:  2,
+							ChecksCritical: 1,
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+						Intention: structs.IntentionDecisionSummary{
+							Allowed:        false,
+							HasPermissions: true,
+						},
+					},
+				},
+				Downstreams: []*ServiceTopologySummary{
+					{
+						ServiceSummary: ServiceSummary{
+							Name:           "api",
+							Datacenter:     "dc1",
+							Nodes:          []string{"foo"},
+							InstanceCount:  1,
+							ChecksPassing:  3,
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+						Intention: structs.IntentionDecisionSummary{
+							Allowed:        false,
+							HasPermissions: false,
+							ExternalSource: "nomad",
+						},
+					},
+				},
+				FilteredByACLs: false,
+			}
+			result := obj.(ServiceTopology)
+
+			// Internal accounting that is not returned in JSON response
+			for _, u := range result.Upstreams {
+				u.externalSourceSet = nil
+				u.checks = nil
+			}
+			for _, d := range result.Downstreams {
+				d.externalSourceSet = nil
+				d.checks = nil
+			}
+			require.Equal(r, expect, result)
+		})
+	})
+
+	t.Run("redis", func(t *testing.T) {
+		retry.Run(t, func(r *retry.R) {
+			// Request topology for redis
+			req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/redis?kind=", nil)
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.UIServiceTopology(resp, req)
+			assert.Nil(r, err)
+			require.NoError(r, checkIndex(resp))
+
+			expect := ServiceTopology{
+				Protocol: "http",
+				Downstreams: []*ServiceTopologySummary{
+					{
+						ServiceSummary: ServiceSummary{
+							Name:           "web",
+							Datacenter:     "dc1",
+							Nodes:          []string{"bar", "baz"},
+							InstanceCount:  2,
+							ChecksPassing:  3,
+							ChecksWarning:  1,
+							ChecksCritical: 2,
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+						Intention: structs.IntentionDecisionSummary{
+							Allowed:        false,
+							HasPermissions: true,
+						},
+					},
+				},
+				FilteredByACLs: false,
+			}
+			result := obj.(ServiceTopology)
+
+			// Internal accounting that is not returned in JSON response
+			for _, d := range result.Downstreams {
+				d.externalSourceSet = nil
+				d.checks = nil
+			}
+			require.Equal(r, expect, result)
+		})
+	})
+}
+
+func TestUIEndpoint_MetricsProxy(t *testing.T) {
+	t.Parallel()
+
+	var lastHeadersSent atomic.Value
+
+	backendH := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		lastHeadersSent.Store(r.Header)
+		if r.URL.Path == "/some/prefix/ok" {
+			w.Header().Set("X-Random-Header", "Foo")
+			w.Write([]byte("OK"))
+			return
+		}
+		if r.URL.Path == "/.passwd" {
+			w.Write([]byte("SECRETS!"))
+			return
+		}
+		http.Error(w, "not found on backend", http.StatusNotFound)
+	})
+
+	backend := httptest.NewServer(backendH)
+	defer backend.Close()
+
+	backendURL := backend.URL + "/some/prefix"
+
+	// Share one agent for all these test cases. This has a few nice side-effects:
+	//  1. it's cheaper
+	//  2. it implicitly tests that config reloading works between cases
+	//
+	// Note we can't test the case where UI is disabled though as that's not
+	// reloadable so we'll do that in a separate test below rather than have many
+	// new tests all with a new agent. response headers also aren't reloadable
+	// currently due to the way we wrap API endpoints at startup.
+	a := NewTestAgent(t, `
+		ui_config {
+			enabled = true
+		}
+		http_config {
+			response_headers {
+				"Access-Control-Allow-Origin" = "*"
+			}
+		}
+	`)
+	defer a.Shutdown()
+
+	endpointPath := "/v1/internal/ui/metrics-proxy"
+
+	cases := []struct {
+		name            string
+		config          config.UIMetricsProxy
+		path            string
+		wantCode        int
+		wantContains    string
+		wantHeaders     map[string]string
+		wantHeadersSent map[string]string
+	}{
+		{
+			name:     "disabled",
+			config:   config.UIMetricsProxy{},
+			path:     endpointPath + "/ok",
+			wantCode: http.StatusNotFound,
+		},
+		{
+			name: "basic proxying",
+			config: config.UIMetricsProxy{
+				BaseURL: backendURL,
+			},
+			path:         endpointPath + "/ok",
+			wantCode:     http.StatusOK,
+			wantContains: "OK",
+			wantHeaders: map[string]string{
+				"X-Random-Header": "Foo",
+			},
+		},
+		{
+			name: "404 on backend",
+			config: config.UIMetricsProxy{
+				BaseURL: backendURL,
+			},
+			path:         endpointPath + "/random-path",
+			wantCode:     http.StatusNotFound,
+			wantContains: "not found on backend",
+		},
+		{
+			// Note that this case actually doesn't exercise our validation logic at
+			// all since the top level API mux resolves this to /v1/internal/.passwd
+			// and it never hits our handler at all. I left it in though as this
+			// wasn't obvious and it's worth knowing if we change something in our mux
+			// that might affect path traversal opportunity here. In fact this makes
+			// our path traversal handling somewhat redundant because any traversal
+			// that goes "back" far enough to traverse up from the BaseURL of the
+			// proxy target will in fact miss our handler entirely. It's still better
+			// to be safe than sorry though.
+			name: "path traversal should fail - api mux",
+			config: config.UIMetricsProxy{
+				BaseURL: backendURL,
+			},
+			path:         endpointPath + "/../../.passwd",
+			wantCode:     http.StatusMovedPermanently,
+			wantContains: "Moved Permanently",
+		},
+		{
+			name: "adding auth header",
+			config: config.UIMetricsProxy{
+				BaseURL: backendURL,
+				AddHeaders: []config.UIMetricsProxyAddHeader{
+					{
+						Name:  "Authorization",
+						Value: "SECRET_KEY",
+					},
+					{
+						Name:  "X-Some-Other-Header",
+						Value: "foo",
+					},
+				},
+			},
+			path:         endpointPath + "/ok",
+			wantCode:     http.StatusOK,
+			wantContains: "OK",
+			wantHeaders: map[string]string{
+				"X-Random-Header": "Foo",
+			},
+			wantHeadersSent: map[string]string{
+				"X-Some-Other-Header": "foo",
+				"Authorization":       "SECRET_KEY",
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			// Reload the agent config with the desired UI config by making a copy and
+			// using internal reload.
+			cfg := *a.Agent.config
+
+			// Modify the UIConfig part (this is a copy remember and that struct is
+			// not a pointer)
+			cfg.UIConfig.MetricsProxy = tc.config
+
+			require.NoError(t, a.Agent.reloadConfigInternal(&cfg))
+
+			// Now fetch the API handler to run requests against
+			h := a.srv.handler(true)
+
+			req := httptest.NewRequest("GET", tc.path, nil)
+			rec := httptest.NewRecorder()
+
+			h.ServeHTTP(rec, req)
+
+			require.Equal(t, tc.wantCode, rec.Code,
+				"Wrong status code. Body = %s", rec.Body.String())
+			require.Contains(t, rec.Body.String(), tc.wantContains)
+			for k, v := range tc.wantHeaders {
+				// Headers are a slice of values, just assert that one of the values is
+				// the one we want.
+				require.Contains(t, rec.Result().Header[k], v)
+			}
+			if len(tc.wantHeadersSent) > 0 {
+				headersSent, ok := lastHeadersSent.Load().(http.Header)
+				require.True(t, ok, "backend not called")
+				for k, v := range tc.wantHeadersSent {
+					require.Contains(t, headersSent[k], v,
+						"header %s doesn't have the right value set", k)
+				}
+			}
+		})
+	}
 }

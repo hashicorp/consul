@@ -3,7 +3,12 @@
   class="radio-card{{if checked ' checked'}}"
 >
   <div>
-    <input type="radio" name={{name}} value={{value}} checked={{checked}} onchange={{action onchange}} />
+    {{! workaround FF/Ember problem where you cannnot set a value to be value="" (empty)}}
+    {{#if (gt value.length 0) }}
+      <input type="radio" name={{name}} value={{value}} checked={{checked}} onchange={{action onchange}} />
+    {{else}}
+      <input type="radio" name={{name}} value="" checked={{checked}} onchange={{action onchange}} />
+    {{/if}}
   </div>
   <div>
     {{yield}}

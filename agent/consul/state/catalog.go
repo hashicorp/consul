@@ -6,17 +6,21 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
 	memdb "github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
+	"github.com/mitchellh/copystructure"
 )
 
 const (
 	servicesTableName        = "services"
 	gatewayServicesTableName = "gateway-services"
+	topologyTableName        = "mesh-topology"
 
 	// serviceLastExtinctionIndexName keeps track of the last raft index when the last instance
 	// of any service was unregistered. This is used by blocking queries on missing services.
@@ -103,6 +107,47 @@ func gatewayServicesTableNameSchema() *memdb.TableSchema {
 	}
 }
 
+// topologyTableNameSchema returns a new table schema used to store information
+// relating upstream and downstream services
+func topologyTableNameSchema() *memdb.TableSchema {
+	return &memdb.TableSchema{
+		Name: topologyTableName,
+		Indexes: map[string]*memdb.IndexSchema{
+			"id": {
+				Name:         "id",
+				AllowMissing: false,
+				Unique:       true,
+				Indexer: &memdb.CompoundIndex{
+					Indexes: []memdb.Indexer{
+						&ServiceNameIndex{
+							Field: "Upstream",
+						},
+						&ServiceNameIndex{
+							Field: "Downstream",
+						},
+					},
+				},
+			},
+			"upstream": {
+				Name:         "upstream",
+				AllowMissing: true,
+				Unique:       false,
+				Indexer: &ServiceNameIndex{
+					Field: "Upstream",
+				},
+			},
+			"downstream": {
+				Name:         "downstream",
+				AllowMissing: false,
+				Unique:       false,
+				Indexer: &ServiceNameIndex{
+					Field: "Downstream",
+				},
+			},
+		},
+	}
+}
+
 type ServiceNameIndex struct {
 	Field string
 }
@@ -164,6 +209,7 @@ func init() {
 	registerSchema(servicesTableSchema)
 	registerSchema(checksTableSchema)
 	registerSchema(gatewayServicesTableNameSchema)
+	registerSchema(topologyTableNameSchema)
 }
 
 const (
@@ -782,9 +828,14 @@ func ensureServiceTxn(tx *txn, idx uint64, node string, preserveIndexes bool, sv
 	}
 
 	// Check if this service is covered by a gateway's wildcard specifier
-	err = checkGatewayWildcardsAndUpdate(tx, idx, svc)
-	if err != nil {
+	if err = checkGatewayWildcardsAndUpdate(tx, idx, svc); err != nil {
 		return fmt.Errorf("failed updating gateway mapping: %s", err)
+	}
+	// Update upstream/downstream mappings if it's a connect service
+	if svc.Kind == structs.ServiceKindConnectProxy {
+		if err = updateMeshTopology(tx, idx, node, svc, existing); err != nil {
+			return fmt.Errorf("failed updating upstream/downstream association")
+		}
 	}
 
 	// Create the service node entry and populate the indexes. Note that
@@ -1485,8 +1536,13 @@ func (s *Store) deleteServiceTxn(tx *txn, idx uint64, nodeName, serviceID string
 	}
 
 	svc := service.(*structs.ServiceNode)
+	name := svc.CompoundServiceName()
+
 	if err := catalogUpdateServiceKindIndexes(tx, svc.ServiceKind, idx, &svc.EnterpriseMeta); err != nil {
 		return err
+	}
+	if err := cleanupMeshTopology(tx, idx, svc); err != nil {
+		return fmt.Errorf("failed to clean up mesh-topology associations for %q: %v", name.String(), err)
 	}
 
 	if _, remainingService, err := firstWatchWithTxn(tx, "services", "service", svc.ServiceName, entMeta); err == nil {
@@ -1508,26 +1564,8 @@ func (s *Store) deleteServiceTxn(tx *txn, idx uint64, nodeName, serviceID string
 			if err := catalogUpdateServiceExtinctionIndex(tx, idx, entMeta); err != nil {
 				return err
 			}
-
-			// Clean up association between service name and gateways if needed
-			gateways, err := serviceGateways(tx, svc.ServiceName, &svc.EnterpriseMeta)
-			if err != nil {
-				return fmt.Errorf("failed gateway lookup for %q: %s", svc.ServiceName, err)
-			}
-			for mapping := gateways.Next(); mapping != nil; mapping = gateways.Next() {
-				if gs, ok := mapping.(*structs.GatewayService); ok && gs != nil {
-					// Only delete if association was created by a wildcard specifier.
-					// Otherwise the service was specified in the config entry, and the association should be maintained
-					// for when the service is re-registered
-					if gs.FromWildcard {
-						if err := tx.Delete(gatewayServicesTableName, gs); err != nil {
-							return fmt.Errorf("failed to truncate gateway services table: %v", err)
-						}
-						if err := indexUpdateMaxTxn(tx, idx, gatewayServicesTableName); err != nil {
-							return fmt.Errorf("failed updating gateway-services index: %v", err)
-						}
-					}
-				}
+			if err := cleanupGatewayWildcards(tx, idx, svc); err != nil {
+				return fmt.Errorf("failed to clean up gateway-service associations for %q: %v", name.String(), err)
 			}
 		}
 	} else {
@@ -1978,6 +2016,33 @@ func (s *Store) deleteCheckTxn(tx *txn, idx uint64, node string, checkID types.C
 	}
 
 	return nil
+}
+
+// CombinedCheckServiceNodes is used to query all nodes and checks for both typical and Connect endpoints of a service
+func (s *Store) CombinedCheckServiceNodes(ws memdb.WatchSet, service structs.ServiceName) (uint64, structs.CheckServiceNodes, error) {
+	var (
+		resp   structs.CheckServiceNodes
+		maxIdx uint64
+	)
+	idx, csn, err := s.CheckServiceNodes(ws, service.Name, &service.EnterpriseMeta)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to get downstream nodes for %q: %v", service, err)
+	}
+	if idx > maxIdx {
+		maxIdx = idx
+	}
+	resp = append(resp, csn...)
+
+	idx, csn, err = s.CheckConnectServiceNodes(ws, service.Name, &service.EnterpriseMeta)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to get downstream connect nodes for %q: %v", service, err)
+	}
+	if idx > maxIdx {
+		maxIdx = idx
+	}
+	resp = append(resp, csn...)
+
+	return maxIdx, resp, nil
 }
 
 // CheckServiceNodes is used to query all nodes and checks for a given service.
@@ -2477,8 +2542,13 @@ func updateGatewayServices(tx *txn, idx uint64, conf structs.ConfigEntry, entMet
 	}
 
 	// Delete all associated with gateway first, to avoid keeping mappings that were removed
-	if _, err := tx.DeleteAll(gatewayServicesTableName, "gateway", structs.NewServiceName(conf.GetName(), entMeta)); err != nil {
+	sn := structs.NewServiceName(conf.GetName(), entMeta)
+
+	if _, err := tx.DeleteAll(gatewayServicesTableName, "gateway", sn); err != nil {
 		return fmt.Errorf("failed to truncate gateway services table: %v", err)
+	}
+	if err := truncateGatewayServiceTopologyMappings(tx, idx, sn, conf.GetKind()); err != nil {
+		return fmt.Errorf("failed to truncate mesh topology for gateway: %v", err)
 	}
 
 	for _, svc := range gatewayServices {
@@ -2669,6 +2739,10 @@ func updateGatewayService(tx *txn, idx uint64, mapping *structs.GatewayService) 
 	if err := indexUpdateMaxTxn(tx, idx, gatewayServicesTableName); err != nil {
 		return fmt.Errorf("failed updating gateway-services index: %v", err)
 	}
+
+	if err := insertGatewayServiceTopologyMapping(tx, idx, mapping); err != nil {
+		return fmt.Errorf("failed to reconcile mesh topology for gateway: %v", err)
+	}
 	return nil
 }
 
@@ -2696,6 +2770,33 @@ func checkGatewayWildcardsAndUpdate(tx *txn, idx uint64, svc *structs.NodeServic
 
 			if err = updateGatewayService(tx, idx, gatewaySvc); err != nil {
 				return fmt.Errorf("Failed to associate service %q with gateway %q", gatewaySvc.Service.String(), gatewaySvc.Gateway.String())
+			}
+		}
+	}
+	return nil
+}
+
+func cleanupGatewayWildcards(tx *txn, idx uint64, svc *structs.ServiceNode) error {
+	// Clean up association between service name and gateways if needed
+	gateways, err := serviceGateways(tx, svc.ServiceName, &svc.EnterpriseMeta)
+	if err != nil {
+		return fmt.Errorf("failed gateway lookup for %q: %s", svc.ServiceName, err)
+	}
+	for mapping := gateways.Next(); mapping != nil; mapping = gateways.Next() {
+		if gs, ok := mapping.(*structs.GatewayService); ok && gs != nil {
+			// Only delete if association was created by a wildcard specifier.
+			// Otherwise the service was specified in the config entry, and the association should be maintained
+			// for when the service is re-registered
+			if gs.FromWildcard {
+				if err := tx.Delete(gatewayServicesTableName, gs); err != nil {
+					return fmt.Errorf("failed to truncate gateway services table: %v", err)
+				}
+				if err := indexUpdateMaxTxn(tx, idx, gatewayServicesTableName); err != nil {
+					return fmt.Errorf("failed updating gateway-services index: %v", err)
+				}
+				if err := deleteGatewayServiceTopologyMapping(tx, idx, gs); err != nil {
+					return fmt.Errorf("failed to reconcile mesh topology for gateway: %v", err)
+				}
 			}
 		}
 	}
@@ -2806,6 +2907,36 @@ func serviceGatewayNodes(tx *txn, ws memdb.WatchSet, service string, kind struct
 	return maxIdx, ret, nil
 }
 
+// metricsProtocolForIngressGateway determines the protocol that should be used when fetching metrics for an ingress gateway
+// Since ingress gateways may have listeners with different protocols, favor capturing all traffic by only returning HTTP
+// when all listeners are HTTP-like.
+func metricsProtocolForIngressGateway(tx ReadTxn, ws memdb.WatchSet, sn structs.ServiceName) (uint64, string, error) {
+	idx, conf, err := configEntryTxn(tx, ws, structs.IngressGateway, sn.Name, &sn.EnterpriseMeta)
+	if err != nil {
+		return 0, "", fmt.Errorf("failed to get ingress-gateway config entry for %q: %v", sn.String(), err)
+	}
+	if conf == nil {
+		return 0, "", nil
+	}
+	entry, ok := conf.(*structs.IngressGatewayConfigEntry)
+	if !ok {
+		return 0, "", fmt.Errorf("unexpected config entry type: %T", conf)
+	}
+	counts := make(map[string]int)
+	for _, l := range entry.Listeners {
+		if structs.IsProtocolHTTPLike(l.Protocol) {
+			counts["http"] += 1
+		} else {
+			counts["tcp"] += 1
+		}
+	}
+	protocol := "tcp"
+	if counts["tcp"] == 0 && counts["http"] > 0 {
+		protocol = "http"
+	}
+	return idx, protocol, nil
+}
+
 // checkProtocolMatch filters out any GatewayService entries added from a wildcard with a protocol
 // that doesn't match the one configured in their discovery chain.
 func checkProtocolMatch(tx ReadTxn, ws memdb.WatchSet, svc *structs.GatewayService) (uint64, bool, error) {
@@ -2819,4 +2950,399 @@ func checkProtocolMatch(tx ReadTxn, ws memdb.WatchSet, svc *structs.GatewayServi
 	}
 
 	return idx, svc.Protocol == protocol, nil
+}
+
+func (s *Store) ServiceTopology(
+	ws memdb.WatchSet,
+	dc, service string,
+	kind structs.ServiceKind,
+	defaultAllow acl.EnforcementDecision,
+	entMeta *structs.EnterpriseMeta,
+) (uint64, *structs.ServiceTopology, error) {
+	tx := s.db.ReadTxn()
+	defer tx.Abort()
+
+	var (
+		maxIdx   uint64
+		protocol string
+		err      error
+
+		sn = structs.NewServiceName(service, entMeta)
+	)
+
+	switch kind {
+	case structs.ServiceKindIngressGateway:
+		maxIdx, protocol, err = metricsProtocolForIngressGateway(tx, ws, sn)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to fetch protocol for service %s: %v", sn.String(), err)
+		}
+
+	case structs.ServiceKindTypical:
+		maxIdx, protocol, err = protocolForService(tx, ws, sn)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to fetch protocol for service %s: %v", sn.String(), err)
+		}
+
+	default:
+		return 0, nil, fmt.Errorf("unsupported kind %q", kind)
+	}
+
+	idx, upstreamNames, err := upstreamsFromRegistrationTxn(tx, ws, sn)
+	if err != nil {
+		return 0, nil, err
+	}
+	if idx > maxIdx {
+		maxIdx = idx
+	}
+	idx, upstreams, err := s.combinedServiceNodesTxn(tx, ws, upstreamNames)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to get upstreams for %q: %v", sn.String(), err)
+	}
+	if idx > maxIdx {
+		maxIdx = idx
+	}
+
+	upstreamDecisions := make(map[string]structs.IntentionDecisionSummary)
+
+	// The given service is the source relative to upstreams
+	sourceURI := connect.SpiffeIDService{
+		Namespace: entMeta.NamespaceOrDefault(),
+		Service:   service,
+	}
+	for _, un := range upstreamNames {
+		decision, err := s.IntentionDecision(&sourceURI, un.Name, un.NamespaceOrDefault(), defaultAllow)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to get intention decision from (%s/%s) to (%s/%s): %v",
+				sourceURI.Namespace, sourceURI.Service, un.Name, un.NamespaceOrDefault(), err)
+		}
+		upstreamDecisions[un.String()] = decision
+	}
+
+	idx, downstreamNames, err := s.downstreamsForServiceTxn(tx, ws, dc, sn)
+	if err != nil {
+		return 0, nil, err
+	}
+	if idx > maxIdx {
+		maxIdx = idx
+	}
+	idx, downstreams, err := s.combinedServiceNodesTxn(tx, ws, downstreamNames)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to get downstreams for %q: %v", sn.String(), err)
+	}
+	if idx > maxIdx {
+		maxIdx = idx
+	}
+
+	downstreamDecisions := make(map[string]structs.IntentionDecisionSummary)
+	for _, dn := range downstreamNames {
+		// Downstreams are the source relative to the given service
+		sourceURI := connect.SpiffeIDService{
+			Namespace: dn.NamespaceOrDefault(),
+			Service:   dn.Name,
+		}
+		decision, err := s.IntentionDecision(&sourceURI, service, entMeta.NamespaceOrDefault(), defaultAllow)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to get intention decision from (%s/%s) to (%s/%s): %v",
+				sourceURI.Namespace, sourceURI.Service, service, dn.NamespaceOrDefault(), err)
+		}
+		downstreamDecisions[dn.String()] = decision
+	}
+
+	resp := &structs.ServiceTopology{
+		MetricsProtocol:     protocol,
+		Upstreams:           upstreams,
+		Downstreams:         downstreams,
+		UpstreamDecisions:   upstreamDecisions,
+		DownstreamDecisions: downstreamDecisions,
+	}
+	return maxIdx, resp, nil
+}
+
+// combinedServiceNodesTxn returns typical and connect endpoints for a list of services.
+// This enabled aggregating checks statuses across both.
+func (s *Store) combinedServiceNodesTxn(tx *txn, ws memdb.WatchSet, names []structs.ServiceName) (uint64, structs.CheckServiceNodes, error) {
+	var (
+		maxIdx uint64
+		resp   structs.CheckServiceNodes
+	)
+	for _, u := range names {
+		// Collect typical then connect instances
+		idx, csn, err := checkServiceNodesTxn(tx, ws, u.Name, false, &u.EnterpriseMeta)
+		if err != nil {
+			return 0, nil, err
+		}
+		if idx > maxIdx {
+			maxIdx = idx
+		}
+		resp = append(resp, csn...)
+
+		idx, csn, err = checkServiceNodesTxn(tx, ws, u.Name, true, &u.EnterpriseMeta)
+		if err != nil {
+			return 0, nil, err
+		}
+		if idx > maxIdx {
+			maxIdx = idx
+		}
+		resp = append(resp, csn...)
+	}
+	return maxIdx, resp, nil
+}
+
+// downstreamsForServiceTxn will find all downstream services that could route traffic to the input service.
+// There are two factors at play. Upstreams defined in a proxy registration, and the discovery chain for those upstreams.
+// TODO (freddy): Account for ingress gateways
+func (s *Store) downstreamsForServiceTxn(tx ReadTxn, ws memdb.WatchSet, dc string, service structs.ServiceName) (uint64, []structs.ServiceName, error) {
+	// First fetch services that have discovery chains that eventually route to the target service
+	idx, sources, err := s.discoveryChainSourcesTxn(tx, ws, dc, service)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to get sources for discovery chain target %q: %v", service.String(), err)
+	}
+
+	var maxIdx uint64
+	if idx > maxIdx {
+		maxIdx = idx
+	}
+
+	var (
+		resp []structs.ServiceName
+		seen = make(map[structs.ServiceName]bool)
+	)
+	for _, s := range sources {
+		// We then follow these sources one level down to the services defining them as an upstream.
+		idx, downstreams, err := downstreamsFromRegistrationTxn(tx, ws, s)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to get registration downstreams for %q: %v", s.String(), err)
+		}
+		if idx > maxIdx {
+			maxIdx = idx
+		}
+		for _, d := range downstreams {
+			if !seen[d] {
+				resp = append(resp, d)
+				seen[d] = true
+			}
+		}
+	}
+	return maxIdx, resp, nil
+}
+
+// upstreamsFromRegistrationTxn returns the ServiceNames of the upstreams defined across instances of the input
+func upstreamsFromRegistrationTxn(tx ReadTxn, ws memdb.WatchSet, sn structs.ServiceName) (uint64, []structs.ServiceName, error) {
+	return linkedFromRegistrationTxn(tx, ws, sn, false)
+}
+
+// downstreamsFromRegistrationTxn returns the ServiceNames of downstream services based on registrations across instances of the input
+func downstreamsFromRegistrationTxn(tx ReadTxn, ws memdb.WatchSet, sn structs.ServiceName) (uint64, []structs.ServiceName, error) {
+	return linkedFromRegistrationTxn(tx, ws, sn, true)
+}
+
+func linkedFromRegistrationTxn(tx ReadTxn, ws memdb.WatchSet, service structs.ServiceName, downstreams bool) (uint64, []structs.ServiceName, error) {
+	// To fetch upstreams we query services that have the input listed as a downstream
+	// To fetch downstreams we query services that have the input listed as an upstream
+	index := "downstream"
+	if downstreams {
+		index = "upstream"
+	}
+
+	iter, err := tx.Get(topologyTableName, index, service)
+	if err != nil {
+		return 0, nil, fmt.Errorf("%q lookup failed: %v", topologyTableName, err)
+	}
+	ws.Add(iter.WatchCh())
+
+	var (
+		idx  uint64
+		resp []structs.ServiceName
+	)
+	for raw := iter.Next(); raw != nil; raw = iter.Next() {
+		entry := raw.(*structs.UpstreamDownstream)
+		if entry.ModifyIndex > idx {
+			idx = entry.ModifyIndex
+		}
+
+		linked := entry.Upstream
+		if downstreams {
+			linked = entry.Downstream
+		}
+		resp = append(resp, linked)
+	}
+
+	// TODO (freddy) This needs a tombstone to avoid the index sliding back on mapping deletion
+	//  Using the table index here means that blocking queries will wake up more often than they should
+	tableIdx := maxIndexTxn(tx, topologyTableName)
+	if tableIdx > idx {
+		idx = tableIdx
+	}
+	return idx, resp, nil
+}
+
+// updateMeshTopology creates associations between the input service and its upstreams in the topology table
+func updateMeshTopology(tx *txn, idx uint64, node string, svc *structs.NodeService, existing interface{}) error {
+	oldUpstreams := make(map[structs.ServiceName]bool)
+	if e, ok := existing.(*structs.ServiceNode); ok {
+		for _, u := range e.ServiceProxy.Upstreams {
+			upstreamMeta := structs.EnterpriseMetaInitializer(u.DestinationNamespace)
+			sn := structs.NewServiceName(u.DestinationName, &upstreamMeta)
+
+			oldUpstreams[sn] = true
+		}
+	}
+
+	// Despite the name "destination", this service name is downstream of the proxy
+	downstream := structs.NewServiceName(svc.Proxy.DestinationServiceName, &svc.EnterpriseMeta)
+	inserted := make(map[structs.ServiceName]bool)
+	for _, u := range svc.Proxy.Upstreams {
+		if u.DestinationType == structs.UpstreamDestTypePreparedQuery {
+			continue
+		}
+
+		// TODO (freddy): Account for upstream datacenter
+		upstreamMeta := structs.EnterpriseMetaInitializer(u.DestinationNamespace)
+		upstream := structs.NewServiceName(u.DestinationName, &upstreamMeta)
+
+		obj, err := tx.First(topologyTableName, "id", upstream, downstream)
+		if err != nil {
+			return fmt.Errorf("%q lookup failed: %v", topologyTableName, err)
+		}
+		sid := svc.CompoundServiceID()
+		uid := structs.UniqueID(node, sid.String())
+
+		var mapping *structs.UpstreamDownstream
+		if existing, ok := obj.(*structs.UpstreamDownstream); ok {
+			rawCopy, err := copystructure.Copy(existing)
+			if err != nil {
+				return fmt.Errorf("failed to copy existing topology mapping: %v", err)
+			}
+			mapping, ok = rawCopy.(*structs.UpstreamDownstream)
+			if !ok {
+				return fmt.Errorf("unexpected topology type %T", rawCopy)
+			}
+			mapping.Refs[uid] = struct{}{}
+			mapping.ModifyIndex = idx
+
+			inserted[upstream] = true
+		}
+		if mapping == nil {
+			mapping = &structs.UpstreamDownstream{
+				Upstream:   upstream,
+				Downstream: downstream,
+				Refs:       map[string]struct{}{uid: {}},
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: idx,
+					ModifyIndex: idx,
+				},
+			}
+		}
+		if err := tx.Insert(topologyTableName, mapping); err != nil {
+			return fmt.Errorf("failed inserting %s mapping: %s", topologyTableName, err)
+		}
+		if err := indexUpdateMaxTxn(tx, idx, topologyTableName); err != nil {
+			return fmt.Errorf("failed updating %s index: %v", topologyTableName, err)
+		}
+		inserted[upstream] = true
+	}
+
+	for u := range oldUpstreams {
+		if !inserted[u] {
+			if _, err := tx.DeleteAll(topologyTableName, "id", u, downstream); err != nil {
+				return fmt.Errorf("failed to truncate %s table: %v", topologyTableName, err)
+			}
+			if err := indexUpdateMaxTxn(tx, idx, topologyTableName); err != nil {
+				return fmt.Errorf("failed updating %s index: %v", topologyTableName, err)
+			}
+		}
+	}
+	return nil
+}
+
+// cleanupMeshTopology removes a service from the mesh topology table
+// This is only safe to call when there are no more known instances of this proxy
+func cleanupMeshTopology(tx *txn, idx uint64, service *structs.ServiceNode) error {
+	if service.ServiceKind != structs.ServiceKindConnectProxy {
+		return nil
+	}
+	sn := structs.NewServiceName(service.ServiceProxy.DestinationServiceName, &service.EnterpriseMeta)
+
+	sid := service.CompoundServiceID()
+	uid := structs.UniqueID(service.Node, sid.String())
+
+	iter, err := tx.Get(topologyTableName, "downstream", sn)
+	if err != nil {
+		return fmt.Errorf("%q lookup failed: %v", topologyTableName, err)
+	}
+	for raw := iter.Next(); raw != nil; raw = iter.Next() {
+		entry := raw.(*structs.UpstreamDownstream)
+		rawCopy, err := copystructure.Copy(entry)
+		if err != nil {
+			return fmt.Errorf("failed to copy existing topology mapping: %v", err)
+		}
+		copy, ok := rawCopy.(*structs.UpstreamDownstream)
+		if !ok {
+			return fmt.Errorf("unexpected topology type %T", rawCopy)
+		}
+		delete(copy.Refs, uid)
+
+		if len(copy.Refs) == 0 {
+			if err := tx.Delete(topologyTableName, entry); err != nil {
+				return fmt.Errorf("failed to truncate %s table: %v", topologyTableName, err)
+			}
+			if err := indexUpdateMaxTxn(tx, idx, topologyTableName); err != nil {
+				return fmt.Errorf("failed updating %s index: %v", topologyTableName, err)
+			}
+		}
+	}
+	return nil
+}
+
+func insertGatewayServiceTopologyMapping(tx *txn, idx uint64, gs *structs.GatewayService) error {
+	// Only ingress gateways are standalone items in the mesh topology viz
+	if gs.GatewayKind != structs.ServiceKindIngressGateway || gs.Service.Name == structs.WildcardSpecifier {
+		return nil
+	}
+
+	mapping := structs.UpstreamDownstream{
+		Upstream:   gs.Service,
+		Downstream: gs.Gateway,
+		RaftIndex:  gs.RaftIndex,
+	}
+	if err := tx.Insert(topologyTableName, &mapping); err != nil {
+		return fmt.Errorf("failed inserting %s mapping: %s", topologyTableName, err)
+	}
+	if err := indexUpdateMaxTxn(tx, idx, topologyTableName); err != nil {
+		return fmt.Errorf("failed updating %s index: %v", topologyTableName, err)
+	}
+
+	return nil
+}
+
+func deleteGatewayServiceTopologyMapping(tx *txn, idx uint64, gs *structs.GatewayService) error {
+	// Only ingress gateways are standalone items in the mesh topology viz
+	if gs.GatewayKind != structs.ServiceKindIngressGateway {
+		return nil
+	}
+
+	if _, err := tx.DeleteAll(topologyTableName, "id", gs.Service, gs.Gateway); err != nil {
+		return fmt.Errorf("failed to truncate %s table: %v", topologyTableName, err)
+	}
+	if err := indexUpdateMaxTxn(tx, idx, topologyTableName); err != nil {
+		return fmt.Errorf("failed updating %s index: %v", topologyTableName, err)
+	}
+
+	return nil
+}
+
+func truncateGatewayServiceTopologyMappings(tx *txn, idx uint64, gateway structs.ServiceName, kind string) error {
+	// Only ingress gateways are standalone items in the mesh topology viz
+	if kind != string(structs.ServiceKindIngressGateway) {
+		return nil
+	}
+
+	if _, err := tx.DeleteAll(topologyTableName, "downstream", gateway); err != nil {
+		return fmt.Errorf("failed to truncate %s table: %v", topologyTableName, err)
+	}
+	if err := indexUpdateMaxTxn(tx, idx, topologyTableName); err != nil {
+		return fmt.Errorf("failed updating %s index: %v", topologyTableName, err)
+	}
+
+	return nil
 }

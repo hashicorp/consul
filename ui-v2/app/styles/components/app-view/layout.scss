@@ -1,7 +1,4 @@
 /* layout */
-%app-view {
-  position: relative;
-}
 %app-view-title {
   display: flex;
   align-items: center;
@@ -18,10 +15,7 @@
 %app-view {
   margin-top: 50px;
 }
-/* give anything after the header a bit of room */
-%app-view-header + div > *:first-child {
-  margin-top: 1.8em;
-}
+
 %app-view-title {
   padding-bottom: 0.2em;
 }
@@ -39,9 +33,6 @@
 %app-view-content h2 {
   padding-bottom: 0.2em;
   margin-bottom: 0.5em;
-}
-%app-view-error > div {
-  padding: 1px 0 30px 0;
 }
 %app-view-content-empty {
   margin-top: 0 !important;

@@ -16,7 +16,7 @@ GOARCH?=$(shell go env GOARCH)
 GOPATH=$(shell go env GOPATH)
 MAIN_GOPATH=$(shell go env GOPATH | cut -d: -f1)
 
-ASSETFS_PATH?=agent/bindata_assetfs.go
+ASSETFS_PATH?=agent/uiserver/bindata_assetfs.go
 # Get the git commit
 GIT_COMMIT?=$(shell git rev-parse --short HEAD)
 GIT_COMMIT_YEAR?=$(shell git show -s --format=%cd --date=format:%Y HEAD)
@@ -306,7 +306,7 @@ lint:
 # also run as part of the release build script when it verifies that there are no
 # changes to the UI assets that aren't checked in.
 static-assets:
-	@go-bindata-assetfs -pkg agent -prefix pkg -o $(ASSETFS_PATH) ./pkg/web_ui/...
+	@go-bindata-assetfs -pkg uiserver -prefix pkg -o $(ASSETFS_PATH) ./pkg/web_ui/...
 	@go fmt $(ASSETFS_PATH)
 
 
@@ -356,7 +356,7 @@ test-envoy-integ: $(ENVOY_INTEG_DEPS)
 test-connect-ca-providers:
 ifeq ("$(CIRCLECI)","true")
 # Run in CI
-	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report.xml" -- ./agent/connect/ca
+	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report.xml" -- -cover -coverprofile=coverage.txt ./agent/connect/ca
 else
 # Run locally
 	@echo "Running /agent/connect/ca tests in verbose mode"

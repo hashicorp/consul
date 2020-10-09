@@ -14,11 +14,12 @@ export default Model.extend({
     },
   }),
   InstanceCount: attr('number'),
+  ConnectedWithGateway: attr(),
+  ConnectedWithProxy: attr(),
   Proxy: attr(),
-  ProxyFor: attr(),
+  GatewayConfig: attr(),
   Kind: attr('string'),
   ExternalSources: attr(),
-  GatewayConfig: attr(),
   Meta: attr(),
   Address: attr('string'),
   TaggedAddresses: attr(),
@@ -39,6 +40,12 @@ export default Model.extend({
   SyncTime: attr('number'),
   meta: attr(),
   /* Mesh properties involve both the service and the associated proxy */
+  MeshEnabled: computed('ConnectedWithProxy', 'ConnectedWithGateway', function() {
+    return this.ConnectedWithProxy || this.ConnectedWithGateway;
+  }),
+  InMesh: computed('Kind', function() {
+    return this.MeshEnabled || (this.Kind || '').length > 0;
+  }),
   MeshStatus: computed('MeshChecksPassing', 'MeshChecksWarning', 'MeshChecksCritical', function() {
     switch (true) {
       case this.MeshChecksCritical !== 0:

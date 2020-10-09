@@ -554,6 +554,73 @@ function must_fail_http_connection {
   echo "$output" | grep "${expect_response}"
 }
 
+# must_pass_http_request allows you to craft a specific http request to assert
+# that envoy will NOT reject the request. Primarily of use for testing L7
+# intentions.
+function must_pass_http_request {
+  local METHOD=$1
+  local URL=$2
+  local DEBUG_HEADER_VALUE="${3:-""}"
+
+  local extra_args
+  if [[ -n "${DEBUG_HEADER_VALUE}" ]]; then
+    extra_args="-H x-test-debug:${DEBUG_HEADER_VALUE}"
+  fi
+  case "$METHOD" in
+    GET)
+      ;;
+    DELETE)
+      extra_args="$extra_args -X${METHOD}"
+      ;;
+    PUT|POST)
+      extra_args="$extra_args -d'{}' -X${METHOD}"
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+
+  run retry_default curl -v -s -f $extra_args "$URL"
+  [ "$status" == 0 ]
+}
+
+# must_fail_http_request allows you to craft a specific http request to assert
+# that envoy will reject the request. Primarily of use for testing L7
+# intentions.
+function must_fail_http_request {
+  local METHOD=$1
+  local URL=$2
+  local DEBUG_HEADER_VALUE="${3:-""}"
+
+  local extra_args
+  if [[ -n "${DEBUG_HEADER_VALUE}" ]]; then
+      extra_args="-H x-test-debug:${DEBUG_HEADER_VALUE}"
+  fi
+  case "$METHOD" in
+    HEAD)
+      extra_args="$extra_args -I"
+      ;;
+    GET)
+      ;;
+    DELETE)
+      extra_args="$extra_args -X${METHOD}"
+      ;;
+    PUT|POST)
+      extra_args="$extra_args -d'{}' -X${METHOD}"
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+
+  # Attempt to curl through upstream
+  run retry_default curl -s -i $extra_args "$URL"
+
+  echo "OUTPUT $output"
+
+  echo "$output" | grep "403 Forbidden"
+}
+
 function gen_envoy_bootstrap {
   SERVICE=$1
   ADMIN_PORT=$2

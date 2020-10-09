@@ -1,0 +1,3 @@
+```release-note:improvement
+agent: allow the /v1/connect/intentions/match endpoint to use the agent cache
+```

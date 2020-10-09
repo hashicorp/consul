@@ -216,3 +216,9 @@ func (i *bufferItem) NextLink() *bufferItem {
 	}
 	return next
 }
+
+// HasEventIndex returns true if index matches the Event.Index of this item. Returns
+// false if there are no events stored in the item, or the index does not match.
+func (i *bufferItem) HasEventIndex(index uint64) bool {
+	return len(i.Events) > 0 && i.Events[0].Index == index
+}

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -797,6 +798,26 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		return RuntimeConfig{}, fmt.Errorf("serf_wan_allowed_cidrs: %s", err)
 	}
 
+	// Handle Deprecated UI config fields
+	if c.UI != nil {
+		b.warn("The 'ui' field is deprecated. Use the 'ui_config.enabled' field instead.")
+		if c.UIConfig.Enabled == nil {
+			c.UIConfig.Enabled = c.UI
+		}
+	}
+	if c.UIDir != nil {
+		b.warn("The 'ui_dir' field is deprecated. Use the 'ui_config.dir' field instead.")
+		if c.UIConfig.Dir == nil {
+			c.UIConfig.Dir = c.UIDir
+		}
+	}
+	if c.UIContentPath != nil {
+		b.warn("The 'ui_content_path' field is deprecated. Use the 'ui_config.content_path' field instead.")
+		if c.UIConfig.ContentPath == nil {
+			c.UIConfig.ContentPath = c.UIContentPath
+		}
+	}
+
 	// ----------------------------------------------------------------
 	// build runtime config
 	//
@@ -915,6 +936,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 			CirconusCheckTags:                  b.stringVal(c.Telemetry.CirconusCheckTags),
 			CirconusSubmissionInterval:         b.stringVal(c.Telemetry.CirconusSubmissionInterval),
 			CirconusSubmissionURL:              b.stringVal(c.Telemetry.CirconusSubmissionURL),
+			DisableCompatOneNine:               b.boolVal(c.Telemetry.DisableCompatOneNine),
 			DisableHostname:                    b.boolVal(c.Telemetry.DisableHostname),
 			DogstatsdAddr:                      b.stringVal(c.Telemetry.DogstatsdAddr),
 			DogstatsdTags:                      c.Telemetry.DogstatsdTags,
@@ -928,11 +950,12 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		},
 
 		// Agent
-		AdvertiseAddrLAN: advertiseAddrLAN,
-		AdvertiseAddrWAN: advertiseAddrWAN,
-		BindAddr:         bindAddr,
-		Bootstrap:        b.boolVal(c.Bootstrap),
-		BootstrapExpect:  b.intVal(c.BootstrapExpect),
+		AdvertiseAddrLAN:          advertiseAddrLAN,
+		AdvertiseAddrWAN:          advertiseAddrWAN,
+		AdvertiseReconnectTimeout: b.durationVal("advertise_reconnect_timeout", c.AdvertiseReconnectTimeout),
+		BindAddr:                  bindAddr,
+		Bootstrap:                 b.boolVal(c.Bootstrap),
+		BootstrapExpect:           b.intVal(c.BootstrapExpect),
 		Cache: cache.Options{
 			EntryFetchRate: rate.Limit(
 				b.float64ValWithDefault(c.Cache.EntryFetchRate, float64(cache.DefaultEntryFetchRate)),
@@ -981,19 +1004,17 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		EnableDebug:                            b.boolVal(c.EnableDebug),
 		EnableRemoteScriptChecks:               enableRemoteScriptChecks,
 		EnableLocalScriptChecks:                enableLocalScriptChecks,
-
-		EnableUI:              b.boolVal(c.UI),
-		EncryptKey:            b.stringVal(c.EncryptKey),
-		EncryptVerifyIncoming: b.boolVal(c.EncryptVerifyIncoming),
-		EncryptVerifyOutgoing: b.boolVal(c.EncryptVerifyOutgoing),
-		GRPCPort:              grpcPort,
-		GRPCAddrs:             grpcAddrs,
-		HTTPMaxConnsPerClient: b.intVal(c.Limits.HTTPMaxConnsPerClient),
-		HTTPSHandshakeTimeout: b.durationVal("limits.https_handshake_timeout", c.Limits.HTTPSHandshakeTimeout),
-		KeyFile:               b.stringVal(c.KeyFile),
-		KVMaxValueSize:        b.uint64Val(c.Limits.KVMaxValueSize),
-		LeaveDrainTime:        b.durationVal("performance.leave_drain_time", c.Performance.LeaveDrainTime),
-		LeaveOnTerm:           leaveOnTerm,
+		EncryptKey:                             b.stringVal(c.EncryptKey),
+		EncryptVerifyIncoming:                  b.boolVal(c.EncryptVerifyIncoming),
+		EncryptVerifyOutgoing:                  b.boolVal(c.EncryptVerifyOutgoing),
+		GRPCPort:                               grpcPort,
+		GRPCAddrs:                              grpcAddrs,
+		HTTPMaxConnsPerClient:                  b.intVal(c.Limits.HTTPMaxConnsPerClient),
+		HTTPSHandshakeTimeout:                  b.durationVal("limits.https_handshake_timeout", c.Limits.HTTPSHandshakeTimeout),
+		KeyFile:                                b.stringVal(c.KeyFile),
+		KVMaxValueSize:                         b.uint64Val(c.Limits.KVMaxValueSize),
+		LeaveDrainTime:                         b.durationVal("performance.leave_drain_time", c.Performance.LeaveDrainTime),
+		LeaveOnTerm:                            leaveOnTerm,
 		Logging: logging.Config{
 			LogLevel:          b.stringVal(c.LogLevel),
 			LogJSON:           b.boolVal(c.LogJSON),
@@ -1058,8 +1079,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		TaggedAddresses:             c.TaggedAddresses,
 		TranslateWANAddrs:           b.boolVal(c.TranslateWANAddrs),
 		TxnMaxReqLen:                b.uint64Val(c.Limits.TxnMaxReqLen),
-		UIDir:                       b.stringVal(c.UIDir),
-		UIContentPath:               UIPathBuilder(b.stringVal(c.UIContentPath)),
+		UIConfig:                    b.uiConfigVal(c.UIConfig),
 		UnixSocketGroup:             b.stringVal(c.UnixSocket.Group),
 		UnixSocketMode:              b.stringVal(c.UnixSocket.Mode),
 		UnixSocketUser:              b.stringVal(c.UnixSocket.User),
@@ -1091,10 +1111,26 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	return rt, nil
 }
 
+// reBasicName validates that a field contains only lower case alphanumerics,
+// underscore and dash and is non-empty.
+var reBasicName = regexp.MustCompile("^[a-z0-9_-]+$")
+
+func validateBasicName(field, value string, allowEmpty bool) error {
+	if value == "" {
+		if allowEmpty {
+			return nil
+		}
+		return fmt.Errorf("%s cannot be empty", field)
+	}
+	if !reBasicName.MatchString(value) {
+		return fmt.Errorf("%s can only contain lowercase alphanumeric, - or _ characters."+
+			" received: %q", field, value)
+	}
+	return nil
+}
+
 // Validate performs semantic validation of the runtime configuration.
 func (b *Builder) Validate(rt RuntimeConfig) error {
-	// reDatacenter defines a regexp for a valid datacenter name
-	var reDatacenter = regexp.MustCompile("^[a-z0-9_-]+$")
 
 	// validContentPath defines a regexp for a valid content path name.
 	var validContentPath = regexp.MustCompile(`^[A-Za-z0-9/_-]+$`)
@@ -1103,22 +1139,53 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	// check required params we cannot recover from first
 	//
 
-	if rt.Datacenter == "" {
-		return fmt.Errorf("datacenter cannot be empty")
-	}
-	if !reDatacenter.MatchString(rt.Datacenter) {
-		return fmt.Errorf("datacenter cannot be %q. Please use only [a-z0-9-_]", rt.Datacenter)
+	if err := validateBasicName("datacenter", rt.Datacenter, false); err != nil {
+		return err
 	}
 	if rt.DataDir == "" && !rt.DevMode {
 		return fmt.Errorf("data_dir cannot be empty")
 	}
 
-	if !validContentPath.MatchString(rt.UIContentPath) {
-		return fmt.Errorf("ui-content-path can only contain alphanumeric, -, _, or /. received: %s", rt.UIContentPath)
+	if !validContentPath.MatchString(rt.UIConfig.ContentPath) {
+		return fmt.Errorf("ui-content-path can only contain alphanumeric, -, _, or /. received: %q", rt.UIConfig.ContentPath)
 	}
 
-	if hasVersion.MatchString(rt.UIContentPath) {
-		return fmt.Errorf("ui-content-path cannot have 'v[0-9]'. received: %s", rt.UIContentPath)
+	if hasVersion.MatchString(rt.UIConfig.ContentPath) {
+		return fmt.Errorf("ui-content-path cannot have 'v[0-9]'. received: %q", rt.UIConfig.ContentPath)
+	}
+
+	if err := validateBasicName("ui_config.metrics_provider", rt.UIConfig.MetricsProvider, true); err != nil {
+		return err
+	}
+	if rt.UIConfig.MetricsProviderOptionsJSON != "" {
+		// Attempt to parse the JSON to ensure it's valid, parsing into a map
+		// ensures we get an object.
+		var dummyMap map[string]interface{}
+		err := json.Unmarshal([]byte(rt.UIConfig.MetricsProviderOptionsJSON), &dummyMap)
+		if err != nil {
+			return fmt.Errorf("ui_config.metrics_provider_options_json must be empty "+
+				"or a string containing a valid JSON object. received: %q",
+				rt.UIConfig.MetricsProviderOptionsJSON)
+		}
+	}
+	if rt.UIConfig.MetricsProxy.BaseURL != "" {
+		u, err := url.Parse(rt.UIConfig.MetricsProxy.BaseURL)
+		if err != nil || !(u.Scheme == "http" || u.Scheme == "https") {
+			return fmt.Errorf("ui_config.metrics_proxy.base_url must be a valid http"+
+				" or https URL. received: %q",
+				rt.UIConfig.MetricsProxy.BaseURL)
+		}
+	}
+	for k, v := range rt.UIConfig.DashboardURLTemplates {
+		if err := validateBasicName("ui_config.dashboard_url_templates key names", k, false); err != nil {
+			return err
+		}
+		u, err := url.Parse(v)
+		if err != nil || !(u.Scheme == "http" || u.Scheme == "https") {
+			return fmt.Errorf("ui_config.dashboard_url_templates values must be a"+
+				" valid http or https URL. received: %q",
+				rt.UIConfig.MetricsProxy.BaseURL)
+		}
 	}
 
 	if !rt.DevMode {
@@ -1190,15 +1257,15 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	if rt.AutopilotMaxTrailingLogs < 0 {
 		return fmt.Errorf("autopilot.max_trailing_logs cannot be %d. Must be greater than or equal to zero", rt.AutopilotMaxTrailingLogs)
 	}
-	if rt.ACLDatacenter != "" && !reDatacenter.MatchString(rt.ACLDatacenter) {
-		return fmt.Errorf("acl_datacenter cannot be %q. Please use only [a-z0-9-_]", rt.ACLDatacenter)
+	if err := validateBasicName("acl_datacenter", rt.ACLDatacenter, true); err != nil {
+		return err
 	}
 	// In DevMode, UI is enabled by default, so to enable rt.UIDir, don't perform this check
-	if !rt.DevMode && rt.EnableUI && rt.UIDir != "" {
+	if !rt.DevMode && rt.UIConfig.Enabled && rt.UIConfig.Dir != "" {
 		return fmt.Errorf(
-			"Both the ui and ui-dir flags were specified, please provide only one.\n" +
-				"If trying to use your own web UI resources, use the ui-dir flag.\n" +
-				"The web UI is included in the binary so use ui to enable it")
+			"Both the ui_config.enabled and ui_config.dir (or -ui and -ui-dir) were specified, please provide only one.\n" +
+				"If trying to use your own web UI resources, use ui_config.dir or the -ui-dir flag.\n" +
+				"The web UI is included in the binary so use ui_config.enabled or the -ui flag to enable it")
 	}
 	if rt.DNSUDPAnswerLimit < 0 {
 		return fmt.Errorf("dns_config.udp_answer_limit cannot be %d. Must be greater than or equal to zero", rt.DNSUDPAnswerLimit)
@@ -1322,6 +1389,10 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	}
 	if !rt.ServerMode && rt.AutoEncryptAllowTLS {
 		return fmt.Errorf("auto_encrypt.allow_tls can only be used on a server.")
+	}
+
+	if rt.ServerMode && rt.AdvertiseReconnectTimeout != 0 {
+		return fmt.Errorf("advertise_reconnect_timeout can only be used on a client")
 	}
 
 	// ----------------------------------------------------------------
@@ -1644,6 +1715,35 @@ func (b *Builder) serviceConnectVal(v *ServiceConnect) *structs.ServiceConnect {
 	return &structs.ServiceConnect{
 		Native:         b.boolVal(v.Native),
 		SidecarService: sidecar,
+	}
+}
+
+func (b *Builder) uiConfigVal(v RawUIConfig) UIConfig {
+	return UIConfig{
+		Enabled:                    b.boolVal(v.Enabled),
+		Dir:                        b.stringVal(v.Dir),
+		ContentPath:                UIPathBuilder(b.stringVal(v.ContentPath)),
+		MetricsProvider:            b.stringVal(v.MetricsProvider),
+		MetricsProviderFiles:       v.MetricsProviderFiles,
+		MetricsProviderOptionsJSON: b.stringVal(v.MetricsProviderOptionsJSON),
+		MetricsProxy:               b.uiMetricsProxyVal(v.MetricsProxy),
+		DashboardURLTemplates:      v.DashboardURLTemplates,
+	}
+}
+
+func (b *Builder) uiMetricsProxyVal(v RawUIMetricsProxy) UIMetricsProxy {
+	var hdrs []UIMetricsProxyAddHeader
+
+	for _, hdr := range v.AddHeaders {
+		hdrs = append(hdrs, UIMetricsProxyAddHeader{
+			Name:  b.stringVal(hdr.Name),
+			Value: b.stringVal(hdr.Value),
+		})
+	}
+
+	return UIMetricsProxy{
+		BaseURL:    b.stringVal(v.BaseURL),
+		AddHeaders: hdrs,
 	}
 }
 

@@ -87,9 +87,8 @@ func TestEventSnapshot(t *testing.T) {
 				tb.Append([]Event{newDefaultHealthEvent(index, 10000+i)})
 			}
 
-			// Create eventSnapshot, (will call snFn in another goroutine). The
-			// Request is ignored by the snapFunc so doesn't matter for now.
-			es := newEventSnapshot(&SubscribeRequest{}, tbHead, snFn)
+			es := newEventSnapshot()
+			es.appendAndSplice(SubscribeRequest{}, snFn, tbHead)
 
 			// Deliver any post-snapshot events simulating updates that occur
 			// logically after snapshot. It doesn't matter that these might actually
@@ -112,7 +111,7 @@ func TestEventSnapshot(t *testing.T) {
 			snapIDs := make([]string, 0, tc.snapshotSize)
 			updateIDs := make([]string, 0, tc.updatesAfterSnap)
 			snapDone := false
-			curItem := es.Head
+			curItem := es.First
 			var err error
 		RECV:
 			for {

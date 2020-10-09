@@ -33,7 +33,7 @@ Feature: dc / intentions / create: Intention Create
     # Specifically set deny
     And I click "[value=deny]"
     And I submit
-    Then a POST request was made to "/v1/connect/intentions?dc=datacenter" from yaml
+    Then a PUT request was made to "/v1/connect/intentions/exact?source=default%2Fweb&destination=default%2Fdb&dc=datacenter" from yaml
     ---
       body:
         SourceName: web
