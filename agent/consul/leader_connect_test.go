@@ -193,6 +193,7 @@ func TestLeader_Vault_PrimaryCA_IntermediateRenew(t *testing.T) {
 		ca.CertificateTimeDriftBuffer = origDriftBuffer
 	}()
 
+	// Vault backdates certs by 30s by default.
 	ca.CertificateTimeDriftBuffer = 30 * time.Second
 	structs.IntermediateCertRenewInterval = time.Millisecond
 	structs.MinLeafCertTTL = time.Second
@@ -215,10 +216,6 @@ func TestLeader_Vault_PrimaryCA_IntermediateRenew(t *testing.T) {
 				// The retry loop only retries for 7sec max and
 				// the ttl needs to be below so that it
 				// triggers definitely.
-				// Since certs are created so that they are
-				// valid from 1minute in the past, we need to
-				// account for that, otherwise it will be
-				// expired immediately.
 				"IntermediateCertTTL": "5s",
 			},
 		}
@@ -228,7 +225,7 @@ func TestLeader_Vault_PrimaryCA_IntermediateRenew(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	// Capture the current root
+	// Capture the current root.
 	var originalRoot *structs.CARoot
 	{
 		rootList, activeRoot, err := getTestRoots(s1, "dc1")
@@ -237,7 +234,7 @@ func TestLeader_Vault_PrimaryCA_IntermediateRenew(t *testing.T) {
 		originalRoot = activeRoot
 	}
 
-	// Get the original intermediate
+	// Get the original intermediate.
 	waitForActiveCARoot(t, s1, originalRoot)
 	provider, _ := getCAProviderWithLock(s1)
 	intermediatePEM, err := provider.ActiveIntermediate()
