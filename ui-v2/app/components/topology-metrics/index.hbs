@@ -11,15 +11,22 @@
         </Tooltip>
       </span>
     </div>
-    <TopologyMetrics::Card @items={{@downstreams}} @service={{@service.Service.Service}} @dc={{@dc}} />
+    <TopologyMetrics::Card
+      @items={{@downstreams}}
+      @service={{@service.Service.Service}}
+      @dc={{@dc}}
+      @hasMetricsProvider={{this.hasMetricsProvider}}
+    />
   </div>
 {{/if}}
   <div id="metrics-container">
     <div>
       {{@service.Service.Service}}
     </div>
-    <TopologyMetrics::Series @service={{@service.Service.Service}} @protocol={{@protocol}} />
-    <TopologyMetrics::Stats @endpoint='summary-for-service' @service={{@service.Service.Service}} @protocol={{@protocol}} />
+    {{#if this.hasMetricsProvider }}
+      <TopologyMetrics::Series @service={{@service.Service.Service}} @protocol={{@protocol}} />
+      <TopologyMetrics::Stats @endpoint='summary-for-service' @service={{@service.Service.Service}} @protocol={{@protocol}} />
+    {{/if}}
     <div class="link">
      {{#if @metricsHref}}
       <a class="metrics-link" href={{@metricsHref}} target="_blank" rel="noopener noreferrer">Open metrics Dashboard</a>
@@ -42,7 +49,13 @@
   {{#each-in (group-by "Datacenter" @upstreams) as |dc upstreams|}}
     <div id="upstream-container">
       <p>{{dc}}</p>
-      <TopologyMetrics::Card @items={{upstreams}} @service={{@service.Service.Service}} @dc={{@dc}} @type='upstream' />
+      <TopologyMetrics::Card
+        @items={{upstreams}}
+        @service={{@service.Service.Service}}
+        @dc={{@dc}}
+        @type='upstream'
+        @hasMetricsProvider={{this.hasMetricsProvider}}
+      />
     </div>
   {{/each-in}}
   </div>

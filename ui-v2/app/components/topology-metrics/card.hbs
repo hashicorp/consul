@@ -45,10 +45,12 @@
     </dl>
 {{/if}}
   </div>
-  {{#if (eq @type 'upstream')}}
-    <TopologyMetrics::Stats @endpoint='upstream-summary-for-service' @service={{@service}} @item={{item.Name}} />
-  {{else}}
-    <TopologyMetrics::Stats @endpoint='downstream-summary-for-service' @service={{@service}} @item={{item.Name}} />
+  {{#if @hasMetricsProvider }}
+    {{#if (eq @type 'upstream')}}
+      <TopologyMetrics::Stats @endpoint='upstream-summary-for-service' @service={{@service}} @item={{item.Name}} />
+    {{else}}
+      <TopologyMetrics::Stats @endpoint='downstream-summary-for-service' @service={{@service}} @item={{item.Name}} />
+    {{/if}}
   {{/if}}
 </div>
 {{/each}}
