@@ -1,25 +1,20 @@
-Type       Register
-Count      3
-Size       1.8KB
-Type       ConnectCA
-Count      1
-Size       1.2KB
-Type       ConnectCAProviderState
-Count      1
-Size       1.1KB
-Type       Index
-Count      9
-Size       255B
-Type       ConnectCAConfig
-Count      1
-Size       247B
-Type       AutopilotRequest
-Count      1
-Size       199B
-Type       FederationState
-Count      1
-Size       139B
-Type       ChunkingState
-Count      1
-Size       12B
+ID           2-13-1602218990073
+Size         5303
+Index        13
+Term         2
+Version      1
 
+
+ Type                        Count      Size       
+ ----                        ----       ----       
+ Register                    3          1.8KB      
+ ConnectCA                   1          1.2KB      
+ ConnectCAProviderState      1          1.1KB      
+ Index                       12         344B       
+ ConnectCAConfig             1          247B       
+ Autopilot                   1          199B       
+ FederationState             1          139B       
+ SystemMetadata              1          68B        
+ ChunkingState               1          12B        
+ ----                        ----       ----       
+ Total                                  5.2KB

@@ -140,10 +140,24 @@ func TestSnapshotInspectEnhanceCommand(t *testing.T) {
 	defer a.Shutdown()
 	client := a.Client()
 
+	dir := testutil.TempDir(t, "snapshot")
+	defer os.RemoveAll(dir)
+	file := filepath.Join(dir, "backup.tgz")
+	// Save a snapshot of the current Consul state
+	f, err := os.Create(file)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
 	snap, _, err := client.Snapshot().Save(nil)
 	require.NoError(t, err)
 	defer snap.Close()
-
+	if _, err := io.Copy(f, snap); err != nil {
+		f.Close()
+		t.Fatalf("err: %v", err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatalf("err: %v", err)
+	}
 	// Inspect the snapshot
 	ui := cli.NewMockUi()
 	c := New(ui)
@@ -153,8 +167,7 @@ func TestSnapshotInspectEnhanceCommand(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
-	// Set golden file to update
-	*update = true
+
 	want := golden(t, t.Name(), ui.OutputWriter.String())
 	require.Equal(t, want, ui.OutputWriter.String())
 }

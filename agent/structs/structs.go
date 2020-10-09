@@ -72,6 +72,9 @@ const (
 	SystemMetadataRequestType                   = 31
 )
 
+// if a new request type is added above it must be
+// added to the map below
+
 // requestTypeStrings is used for snapshot enhance
 // any new request types added must be placed here
 var requestTypeStrings = map[MessageType]string{
