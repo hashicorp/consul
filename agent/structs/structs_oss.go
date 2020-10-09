@@ -131,6 +131,10 @@ func (_ *HealthCheck) Validate() error {
 	return nil
 }
 
+func enterpriseRequestType(m MessageType) (string, bool) {
+	return "", false
+}
+
 // CheckIDs returns the IDs for all checks associated with a session, regardless of type
 func (s *Session) CheckIDs() []types.CheckID {
 	// Merge all check IDs into a single slice, since they will be handled the same way

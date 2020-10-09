@@ -72,6 +72,46 @@ const (
 	SystemMetadataRequestType                   = 31
 )
 
+// if a new request type is added above it must be
+// added to the map below
+
+// requestTypeStrings is used for snapshot enhance
+// any new request types added must be placed here
+var requestTypeStrings = map[MessageType]string{
+	RegisterRequestType:             "Register",
+	DeregisterRequestType:           "Deregister",
+	KVSRequestType:                  "KVS",
+	SessionRequestType:              "Session",
+	ACLRequestType:                  "ACL", // DEPRECATED (ACL-Legacy-Compat)
+	TombstoneRequestType:            "Tombstone",
+	CoordinateBatchUpdateType:       "CoordinateBatchUpdate",
+	PreparedQueryRequestType:        "PreparedQuery",
+	TxnRequestType:                  "Txn",
+	AutopilotRequestType:            "Autopilot",
+	AreaRequestType:                 "Area",
+	ACLBootstrapRequestType:         "ACLBootstrap",
+	IntentionRequestType:            "Intention",
+	ConnectCARequestType:            "ConnectCA",
+	ConnectCAProviderStateType:      "ConnectCAProviderState",
+	ConnectCAConfigType:             "ConnectCAConfig", // FSM snapshots only.
+	IndexRequestType:                "Index",           // FSM snapshots only.
+	ACLTokenSetRequestType:          "ACLToken",
+	ACLTokenDeleteRequestType:       "ACLTokenDelete",
+	ACLPolicySetRequestType:         "ACLPolicy",
+	ACLPolicyDeleteRequestType:      "ACLPolicyDelete",
+	ConnectCALeafRequestType:        "ConnectCALeaf",
+	ConfigEntryRequestType:          "ConfigEntry",
+	ACLRoleSetRequestType:           "ACLRole",
+	ACLRoleDeleteRequestType:        "ACLRoleDelete",
+	ACLBindingRuleSetRequestType:    "ACLBindingRule",
+	ACLBindingRuleDeleteRequestType: "ACLBindingRuleDelete",
+	ACLAuthMethodSetRequestType:     "ACLAuthMethod",
+	ACLAuthMethodDeleteRequestType:  "ACLAuthMethodDelete",
+	ChunkingStateType:               "ChunkingState",
+	FederationStateRequestType:      "FederationState",
+	SystemMetadataRequestType:       "SystemMetadata",
+}
+
 const (
 	// IgnoreUnknownTypeFlag is set along with a MessageType
 	// to indicate that the message type can be safely ignored
@@ -2440,6 +2480,21 @@ func (r *KeyringResponses) Add(v interface{}) {
 
 func (r *KeyringResponses) New() interface{} {
 	return new(KeyringResponses)
+}
+
+// String converts message type int to string
+func (m MessageType) String() string {
+	s, ok := requestTypeStrings[m]
+	if ok {
+		return s
+	}
+
+	s, ok = enterpriseRequestType(m)
+	if ok {
+		return s
+	}
+	return "Unknown(" + strconv.Itoa(int(m)) + ")"
+
 }
 
 // UpstreamDownstream pairs come from individual proxy registrations, which can be updated independently.
