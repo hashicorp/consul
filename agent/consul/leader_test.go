@@ -334,7 +334,7 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 	versionToExpect := "19.7.9"
 
 	retry.Run(t, func(r *retry.R) {
-		member.Tags["non_voter"] = "true"
+		member.Tags["nonvoter"] = "1"
 		member.Tags["build"] = versionToExpect
 		err := s1.handleAliveMember(member)
 		if err != nil {
@@ -348,7 +348,7 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 			r.Fatal("client not registered")
 		}
 		if service.Meta["non_voter"] != "true" {
-			r.Fatalf("Expected to be non_voter == false, was: %s", service.Meta["non_voter"])
+			r.Fatalf("Expected to be non_voter == true, was: %s", service.Meta["non_voter"])
 		}
 		newVersion := service.Meta["version"]
 		if newVersion != versionToExpect {
