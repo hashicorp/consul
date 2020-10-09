@@ -7,18 +7,19 @@ moduleFor('service:repository/topology', 'Integration | Repository | topology', 
 });
 const dc = 'dc-1';
 const id = 'slug';
+const kind = '';
 test('findBySlug returns the correct data for item endpoint', function(assert) {
   return repo(
     'Service',
     'findBySlug',
     this.subject(),
     function retrieveStub(stub) {
-      return stub(`/v1/internal/ui/service-topology/${id}?dc=${dc}`, {
+      return stub(`/v1/internal/ui/service-topology/${id}?dc=${dc}&${kind}`, {
         CONSUL_DISCOVERY_CHAIN_COUNT: 1,
       });
     },
     function performTest(service) {
-      return service.findBySlug(id, dc);
+      return service.findBySlug(id, kind, dc);
     },
     function performAssertion(actual, expected) {
       const result = expected(function(payload) {

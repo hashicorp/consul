@@ -39,6 +39,10 @@ export default Route.extend({
             });
       })
       .then(model => {
+        let kind = get(model, 'items.firstObject.Service.Kind');
+        if (typeof kind === 'undefined') {
+          kind = '';
+        }
         return ['mesh-gateway', 'terminating-gateway'].includes(
           get(model, 'items.firstObject.Service.Kind')
         )
@@ -46,7 +50,7 @@ export default Route.extend({
           : hash({
               ...model,
               topology: this.data.source(
-                uri => uri`/${nspace}/${dc}/topology/for-service/${params.name}`
+                uri => uri`/${nspace}/${dc}/topology/${params.name}/${kind}`
               ),
             });
       });
