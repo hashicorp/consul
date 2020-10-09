@@ -1,6 +1,6 @@
 # HIL
 
-[![GoDoc](https://godoc.org/github.com/hashicorp/hil?status.png)](https://godoc.org/github.com/hashicorp/hil) [![Build Status](https://travis-ci.org/hashicorp/hil.svg?branch=master)](https://travis-ci.org/hashicorp/hil)
+[![GoDoc](https://godoc.org/github.com/hashicorp/hil?status.png)](https://godoc.org/github.com/hashicorp/hil) [![Build Status](https://circleci.com/gh/hashicorp/hil/tree/master.svg?style=svg)](https://circleci.com/gh/hashicorp/hil/tree/master)
 
 HIL (HashiCorp Interpolation Language) is a lightweight embedded language used
 primarily for configuration interpolation. The goal of HIL is to make a simple
@@ -43,7 +43,7 @@ better tested for general purpose use.
 ## Syntax
 
 For a complete grammar, please see the parser itself. A high-level overview
-of the syntax and grammer is listed here.
+of the syntax and grammar is listed here.
 
 Code begins within `${` and `}`. Outside of this, text is treated
 literally. For example, `foo` is a valid HIL program that is just the

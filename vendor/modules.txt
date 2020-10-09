@@ -204,7 +204,7 @@ github.com/gophercloud/gophercloud/pagination
 github.com/hashicorp/errwrap
 # github.com/hashicorp/go-bexpr v0.1.2
 github.com/hashicorp/go-bexpr
-# github.com/hashicorp/go-checkpoint v0.0.0-20171009173528-1545e56e46de
+# github.com/hashicorp/go-checkpoint v0.5.0
 github.com/hashicorp/go-checkpoint
 # github.com/hashicorp/go-cleanhttp v0.5.1
 github.com/hashicorp/go-cleanhttp
@@ -229,9 +229,9 @@ github.com/hashicorp/go-discover/provider/triton
 github.com/hashicorp/go-discover/provider/vsphere
 # github.com/hashicorp/go-hclog v0.12.0
 github.com/hashicorp/go-hclog
-# github.com/hashicorp/go-immutable-radix v1.2.0
+# github.com/hashicorp/go-immutable-radix v1.3.0
 github.com/hashicorp/go-immutable-radix
-# github.com/hashicorp/go-memdb v1.1.0
+# github.com/hashicorp/go-memdb v1.3.0
 github.com/hashicorp/go-memdb
 # github.com/hashicorp/go-msgpack v0.5.5
 github.com/hashicorp/go-msgpack/codec
@@ -251,7 +251,7 @@ github.com/hashicorp/go-sockaddr/template
 github.com/hashicorp/go-syslog
 # github.com/hashicorp/go-uuid v1.0.2
 github.com/hashicorp/go-uuid
-# github.com/hashicorp/go-version v1.2.0
+# github.com/hashicorp/go-version v1.2.1
 github.com/hashicorp/go-version
 # github.com/hashicorp/golang-lru v0.5.4
 github.com/hashicorp/golang-lru
@@ -267,10 +267,12 @@ github.com/hashicorp/hcl/hcl/token
 github.com/hashicorp/hcl/json/parser
 github.com/hashicorp/hcl/json/scanner
 github.com/hashicorp/hcl/json/token
-# github.com/hashicorp/hil v0.0.0-20160711231837-1e86c6b523c5
+# github.com/hashicorp/hil v0.0.0-20200423225030-a18a1cd20038
 github.com/hashicorp/hil
 github.com/hashicorp/hil/ast
-# github.com/hashicorp/mdns v1.0.1
+github.com/hashicorp/hil/parser
+github.com/hashicorp/hil/scanner
+# github.com/hashicorp/mdns v1.0.3
 github.com/hashicorp/mdns
 # github.com/hashicorp/memberlist v0.2.2
 github.com/hashicorp/memberlist
@@ -294,7 +296,7 @@ github.com/hashicorp/vault/sdk/helper/parseutil
 github.com/hashicorp/vault/sdk/helper/strutil
 # github.com/hashicorp/vic v1.5.1-0.20190403131502-bbfe86ec9443
 github.com/hashicorp/vic/pkg/vsphere/tags
-# github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d
+# github.com/hashicorp/yamux v0.0.0-20200609203250-aecfd211c9ce
 github.com/hashicorp/yamux
 # github.com/imdario/mergo v0.3.6
 github.com/imdario/mergo
@@ -314,13 +316,13 @@ github.com/konsorten/go-windows-terminal-sequences
 github.com/kr/text
 # github.com/linode/linodego v0.7.1
 github.com/linode/linodego
-# github.com/mattn/go-colorable v0.1.6
+# github.com/mattn/go-colorable v0.1.7
 github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.12
 github.com/mattn/go-isatty
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
 github.com/matttproud/golang_protobuf_extensions/pbutil
-# github.com/miekg/dns v1.1.26
+# github.com/miekg/dns v1.1.31
 github.com/miekg/dns
 # github.com/mitchellh/cli v1.1.0
 github.com/mitchellh/cli
@@ -457,7 +459,7 @@ go.opencensus.io/trace/tracestate
 # go.uber.org/goleak v1.0.0
 go.uber.org/goleak
 go.uber.org/goleak/internal/stack
-# golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
+# golang.org/x/crypto v0.0.0-20200930160638-afb6bcd081ae
 golang.org/x/crypto/blake2b
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/chacha20
@@ -476,7 +478,7 @@ golang.org/x/crypto/ssh/terminal
 # golang.org/x/lint v0.0.0-20190930215403-16217165b5de
 golang.org/x/lint
 golang.org/x/lint/golint
-# golang.org/x/net v0.0.0-20200904194848-62affa334b73
+# golang.org/x/net v0.0.0-20200930145003-4acb6c075d10
 golang.org/x/net/bpf
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
