@@ -315,7 +315,7 @@
     },
 
     fetchServiceRxSeries: function(serviceName, options){
-      var q = `sum(irate(envoy_tcp_downstream_cx_rx_bytes_total{local_cluster="${serviceName}", envoy_tcp_prefix="public_listener_tcp"}[10m]))`
+      var q = `8 * sum(irate(envoy_tcp_downstream_cx_rx_bytes_total{local_cluster="${serviceName}", envoy_tcp_prefix="public_listener_tcp"}[10m]))`
       return this.fetchSeries(q, options).then(this.reformatSeries, function(xhr){
         // Failure. log to console and return an blank result for now.
         console.log("ERROR: failed to fetch rx data rate", xhr.responseText)
@@ -324,7 +324,7 @@
     },
 
     fetchServiceTxSeries: function(serviceName, options){
-      var q = `sum(irate(envoy_tcp_downstream_cx_tx_bytes_total{local_cluster="${serviceName}", envoy_tcp_prefix="public_listener_tcp"}[10m]))`
+      var q = `8 * sum(irate(envoy_tcp_downstream_cx_tx_bytes_total{local_cluster="${serviceName}", envoy_tcp_prefix="public_listener_tcp"}[10m]))`
       return this.fetchSeries(q, options).then(this.reformatSeries, function(xhr){
         // Failure. log to console and return an blank result for now.
         console.log("ERROR: failed to fetch tx data rate", xhr.responseText)
