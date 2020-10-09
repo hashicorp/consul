@@ -8,6 +8,8 @@ description: >-
 
 # Consul-Terraform-Sync Architecture
 
+@include 'nia-tech-preview-note.mdx'
+
 Consul-Terraform-Sync is a service-oriented tool for managing
 network infrastructure near real-time. Consul-Terraform-Sync runs as a daemon
 and integrates the network topology maintained by your Consul cluster with your
@@ -50,3 +52,4 @@ A driver encapsulates the resources required to communicate the updates to the
 network infrastructure. Terraform is the initial supported driver. It comes
 with a set of providers that [enables supporting](/docs/nia/installation/requirements#how-to-create-a-compatible-terraform-module) a wide variety of
 infrastructure applications.
+

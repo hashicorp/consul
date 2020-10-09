@@ -8,6 +8,8 @@ description: >-
 
 # Consul-Terraform-Sync Command (CLI)
 
+@include 'nia-tech-preview-note.mdx'
+
 Consul-Terraform-Sync is controlled via an easy to use command-line interface (CLI). Consul-Terraform-Sync is only a single command-line application: `consul-terraform-sync`.
 
 Since there is no default configuration to run Consul-Terraform-Sync in a meaningful way, setting a configuration flag `-config-file` or `-config-dir` is required. For example:
@@ -37,3 +39,4 @@ Flag: `-once`
 Behavior: Consul-Terraform-Sync will run all tasks once with buffer periods disabled and exit. On encountering an error before completing, Consul-Terraform-Sync will exit with a non-zero status.
 
 Usage: Intended to be run before daemon-mode in order to confirm configuration is accurate and tasks update network infrastructure as expected.
+

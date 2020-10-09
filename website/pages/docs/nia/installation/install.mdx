@@ -8,7 +8,10 @@ description: >-
 
 # Install Consul-Terraform-Sync
 
-## Installing Consul-Terraform-Sync
+@include 'nia-tech-preview-note.mdx'
+
+Consul-Terraform-Sync is a daemon that runs alongside Consul, similar to other Consul ecosystem tools like Consul Template. Consul-Terraform-Sync is not included with the Consul binary and will need to be installed separately. First, we recommend installing Consul. For simplicity, we are using a local Consul agent in development mode which can be started with `consul agent -dev`. To quickly set up a local Consul agent, refer to the getting started [guide](https://learn.hashicorp.com/tutorials/consul/get-started-install). The Consul agent must be running to dynamically update network devices.
+
 
 To install Consul-Terraform-Sync, find the [appropriate package](https://releases.hashicorp.com/consul-terraform-sync/) for your system and download it as a zip archive. Unzip the package to extract the binary named consul-terraform-sync. Move the consul-terraform-sync binary to a location available on your PATH.
 
