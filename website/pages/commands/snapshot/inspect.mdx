@@ -41,11 +41,6 @@ Size         667
 Index        5
 Term         2
 Version      1
-```
-
-To enhance a snapshot inespection from "backup.snap":
-```shell-session
-$ consul snapshot inspect -enhance backup.snap
 
  Type                        Count      Size
  ----                        ----       ----
@@ -64,7 +59,3 @@ $ consul snapshot inspect -enhance backup.snap
 
 Please see the [HTTP API](/api/snapshot) documentation for
 more details about snapshot internals.
-
-#### Command Options
-
-- `-enhance` - Optional, enhances output to show snapshot data type, size, and count.

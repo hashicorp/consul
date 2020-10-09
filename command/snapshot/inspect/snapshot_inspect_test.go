@@ -89,58 +89,6 @@ func TestSnapshotInspectCommand(t *testing.T) {
 	client := a.Client()
 
 	dir := testutil.TempDir(t, "snapshot")
-	file := filepath.Join(dir, "backup.tgz")
-
-	// Save a snapshot of the current Consul state
-	f, err := os.Create(file)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	snap, _, err := client.Snapshot().Save(nil)
-	if err != nil {
-		f.Close()
-		t.Fatalf("err: %v", err)
-	}
-	if _, err := io.Copy(f, snap); err != nil {
-		f.Close()
-		t.Fatalf("err: %v", err)
-	}
-	if err := f.Close(); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Inspect the snapshot
-	ui := cli.NewMockUi()
-	c := New(ui)
-	args := []string{file}
-
-	code := c.Run(args)
-	if code != 0 {
-		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
-	}
-
-	output := ui.OutputWriter.String()
-	for _, key := range []string{
-		"ID",
-		"Size",
-		"Index",
-		"Term",
-		"Version",
-	} {
-		if !strings.Contains(output, key) {
-			t.Fatalf("bad %#v, missing %q", output, key)
-		}
-	}
-}
-
-func TestSnapshotInspectEnhanceCommand(t *testing.T) {
-	t.Parallel()
-	a := agent.NewTestAgent(t, ``)
-	defer a.Shutdown()
-	client := a.Client()
-
-	dir := testutil.TempDir(t, "snapshot")
 	defer os.RemoveAll(dir)
 	file := filepath.Join(dir, "backup.tgz")
 	// Save a snapshot of the current Consul state
@@ -161,7 +109,7 @@ func TestSnapshotInspectEnhanceCommand(t *testing.T) {
 	// Inspect the snapshot
 	ui := cli.NewMockUi()
 	c := New(ui)
-	args := []string{"-enhance", file}
+	args := []string{file}
 
 	code := c.Run(args)
 	if code != 0 {
