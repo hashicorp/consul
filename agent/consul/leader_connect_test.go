@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/connect"
-	ca "github.com/hashicorp/consul/agent/connect/ca"
+	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -178,6 +178,119 @@ func getCAProviderWithLock(s *Server) (ca.Provider, *structs.CARoot) {
 	s.caProviderReconfigurationLock.Lock()
 	defer s.caProviderReconfigurationLock.Unlock()
 	return s.getCAProvider()
+}
+
+func TestLeader_Vault_PrimaryCA_IntermediateRenew(t *testing.T) {
+	ca.SkipIfVaultNotPresent(t)
+
+	// no parallel execution because we change globals
+	origInterval := structs.IntermediateCertRenewInterval
+	origMinTTL := structs.MinLeafCertTTL
+	origDriftBuffer := ca.CertificateTimeDriftBuffer
+	defer func() {
+		structs.IntermediateCertRenewInterval = origInterval
+		structs.MinLeafCertTTL = origMinTTL
+		ca.CertificateTimeDriftBuffer = origDriftBuffer
+	}()
+
+	// Vault backdates certs by 30s by default.
+	ca.CertificateTimeDriftBuffer = 30 * time.Second
+	structs.IntermediateCertRenewInterval = time.Millisecond
+	structs.MinLeafCertTTL = time.Second
+	require := require.New(t)
+
+	testVault := ca.NewTestVaultServer(t)
+	defer testVault.Stop()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Build = "1.6.0"
+		c.PrimaryDatacenter = "dc1"
+		c.CAConfig = &structs.CAConfiguration{
+			Provider: "vault",
+			Config: map[string]interface{}{
+				"Address":             testVault.Addr,
+				"Token":               testVault.RootToken,
+				"RootPKIPath":         "pki-root/",
+				"IntermediatePKIPath": "pki-intermediate/",
+				"LeafCertTTL":         "1s",
+				// The retry loop only retries for 7sec max and
+				// the ttl needs to be below so that it
+				// triggers definitely.
+				"IntermediateCertTTL": "5s",
+			},
+		}
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Capture the current root.
+	var originalRoot *structs.CARoot
+	{
+		rootList, activeRoot, err := getTestRoots(s1, "dc1")
+		require.NoError(err)
+		require.Len(rootList.Roots, 1)
+		originalRoot = activeRoot
+	}
+
+	// Get the original intermediate.
+	waitForActiveCARoot(t, s1, originalRoot)
+	provider, _ := getCAProviderWithLock(s1)
+	intermediatePEM, err := provider.ActiveIntermediate()
+	require.NoError(err)
+	_, err = connect.ParseCert(intermediatePEM)
+	require.NoError(err)
+
+	// Wait for dc1's intermediate to be refreshed.
+	// It is possible that test fails when the blocking query doesn't return.
+	retry.Run(t, func(r *retry.R) {
+		provider, _ = getCAProviderWithLock(s1)
+		newIntermediatePEM, err := provider.ActiveIntermediate()
+		r.Check(err)
+		_, err = connect.ParseCert(intermediatePEM)
+		r.Check(err)
+		if newIntermediatePEM == intermediatePEM {
+			r.Fatal("not a renewed intermediate")
+		}
+		intermediatePEM = newIntermediatePEM
+	})
+	require.NoError(err)
+
+	// Get the root from dc1 and validate a chain of:
+	// dc1 leaf -> dc1 intermediate -> dc1 root
+	provider, caRoot := getCAProviderWithLock(s1)
+
+	// Have the new intermediate sign a leaf cert and make sure the chain is correct.
+	spiffeService := &connect.SpiffeIDService{
+		Host:       "node1",
+		Namespace:  "default",
+		Datacenter: "dc1",
+		Service:    "foo",
+	}
+	raw, _ := connect.TestCSR(t, spiffeService)
+
+	leafCsr, err := connect.ParseCSR(raw)
+	require.NoError(err)
+
+	leafPEM, err := provider.Sign(leafCsr)
+	require.NoError(err)
+
+	cert, err := connect.ParseCert(leafPEM)
+	require.NoError(err)
+
+	// Check that the leaf signed by the new intermediate can be verified using the
+	// returned cert chain (signed intermediate + remote root).
+	intermediatePool := x509.NewCertPool()
+	intermediatePool.AppendCertsFromPEM([]byte(intermediatePEM))
+	rootPool := x509.NewCertPool()
+	rootPool.AppendCertsFromPEM([]byte(caRoot.RootCert))
+
+	_, err = cert.Verify(x509.VerifyOptions{
+		Intermediates: intermediatePool,
+		Roots:         rootPool,
+	})
+	require.NoError(err)
 }
 
 func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {

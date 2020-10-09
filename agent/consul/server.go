@@ -106,7 +106,7 @@ const (
 	federationStatePruningRoutineName     = "federation state pruning"
 	intentionMigrationRoutineName         = "intention config entry migration"
 	secondaryCARootWatchRoutineName       = "secondary CA roots watch"
-	secondaryCertRenewWatchRoutineName    = "secondary cert renew watch"
+	intermediateCertRenewWatchRoutineName = "intermediate cert renew watch"
 )
 
 var (
