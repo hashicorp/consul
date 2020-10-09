@@ -163,6 +163,22 @@ export default [
       'helm',
     ],
   },
+
+  {
+    category: 'nia',
+    content: [
+      {
+        category: 'installation',
+        name: 'Get Started',
+        content: ['install', 'requirements', 'configuration', 'run'],
+      },
+      'architecture',
+      'cli',
+      'tasks',
+      'network-drivers',
+    ],
+  },
+
   {
     category: 'dynamic-app-config',
     name: 'Dynamic App Configuration',

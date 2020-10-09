@@ -32,6 +32,8 @@ theme/connect:
     - connect/**/*
     - agent/connect/**/*
 # theme/consul-nomad:
+theme/consul-terraform-sync:
+    - website/pages/docs/nia/**/*
 # theme/consul-vault:
 theme/contributing:
     - .github/**/*
