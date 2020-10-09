@@ -1,0 +1,23 @@
+---
+layout: docs
+page_title: Run Consul-Terraform-Sync
+sidebar_title: Run Consul-Terraform-Sync
+description: >-
+  Consul-Terraform-Sync requires a Terraform Provider, a Terraform Module and a running Consul Cluster outside of the consul-terraform-sync daemon.
+---
+
+# Run Consul-Terraform-Sync
+
+1. Move the `consul-terraform-sync` binary to a location available on your `PATH`.
+
+```
+$ mv ~/Downloads/consul-terraform-sync /usr/local/bin/consul-terraform-sync
+```
+
+2. Create the config.hcl file, all the options are available [here](https://github.com/hashicorp/consul-terraform-sync/blob/master/docs/config.md#consul-terraform-sync).
+
+3. Run consul-terraform-sync.
+
+```
+./consul-terraform-sync -config-file <config.hcl>
+```
