@@ -593,6 +593,7 @@ func (s *Server) startConnectLeader() error {
 func (s *Server) stopConnectLeader() {
 	s.leaderRoutineManager.Stop(intentionMigrationRoutineName)
 	s.leaderRoutineManager.Stop(secondaryCARootWatchRoutineName)
+	s.leaderRoutineManager.Stop(intermediateCertRenewWatchRoutineName)
 	s.leaderRoutineManager.Stop(caRootPruningRoutineName)
 
 	// If the provider implements NeedsStop, we call Stop to perform any shutdown actions.
