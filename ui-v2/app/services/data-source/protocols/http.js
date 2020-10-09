@@ -105,14 +105,6 @@ export default Service.extend({
             break;
         }
         break;
-      case 'topology':
-        [method, slug] = rest;
-        switch (method) {
-          case 'for-service':
-            find = configuration => repo.findBySlug(slug, dc, nspace, configuration);
-            break;
-        }
-        break;
       case 'sessions':
         [method, ...slug] = rest;
         switch (method) {
@@ -137,6 +129,10 @@ export default Service.extend({
         // id, node, service
         find = configuration =>
           repo.findInstanceBySlug(rest[0], rest[1], rest[2], dc, nspace, configuration);
+        break;
+      case 'topology':
+        // id, service kind
+        find = configuration => repo.findBySlug(rest[0], rest[1], dc, nspace, configuration);
         break;
       case 'policy':
       case 'kv':
