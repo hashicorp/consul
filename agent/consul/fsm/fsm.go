@@ -233,5 +233,4 @@ func ReadSnapshot(r io.Reader, handler func(header *SnapshotHeader, msg structs.
 			return err
 		}
 	}
-	return nil
 }

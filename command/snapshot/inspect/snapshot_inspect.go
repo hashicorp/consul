@@ -57,8 +57,6 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	// Set the last* argument to the file name
-	file = args[0]
 	// Open the file.
 	f, err := os.Open(file)
 	if err != nil {
