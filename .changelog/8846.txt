@@ -1,0 +1,3 @@
+```release-note:improvement
+ui: Upstream and downstream services in the topology tab will show a visual indication if a deny intention or intention with L7 policies is configured.
+```
