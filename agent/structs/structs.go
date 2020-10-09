@@ -78,38 +78,38 @@ const (
 // requestTypeStrings is used for snapshot enhance
 // any new request types added must be placed here
 var requestTypeStrings = map[MessageType]string{
-	0:  "Register",
-	1:  "Deregister",
-	2:  "KVS",
-	3:  "Session",
-	4:  "ACL", // DEPRECATED (ACL-Legacy-Compat)
-	5:  "Tombstone",
-	6:  "CoordinateBatchUpdate",
-	7:  "PreparedQuery",
-	8:  "Txn",
-	9:  "Autopilot",
-	10: "Area",
-	11: "ACLBootstrap",
-	12: "Intention",
-	13: "ConnectCA",
-	14: "ConnectCAProviderState",
-	15: "ConnectCAConfig", // FSM snapshots only.
-	16: "Index",           // FSM snapshots only.
-	17: "ACLToken",
-	18: "ACLTokenDelete",
-	19: "ACLPolicy",
-	20: "ACLPolicyDelete",
-	21: "ConnectCALeaf",
-	22: "ConfigEntry",
-	23: "ACLRole",
-	24: "ACLRoleDelete",
-	25: "ACLBindingRule",
-	26: "ACLBindingRuleDelete",
-	27: "ACLAuthMethod",
-	28: "ACLAuthMethodDelete",
-	29: "ChunkingState",
-	30: "FederationState",
-	31: "SystemMetadata",
+	RegisterRequestType:             "Register",
+	DeregisterRequestType:           "Deregister",
+	KVSRequestType:                  "KVS",
+	SessionRequestType:              "Session",
+	ACLRequestType:                  "ACL", // DEPRECATED (ACL-Legacy-Compat)
+	TombstoneRequestType:            "Tombstone",
+	CoordinateBatchUpdateType:       "CoordinateBatchUpdate",
+	PreparedQueryRequestType:        "PreparedQuery",
+	TxnRequestType:                  "Txn",
+	AutopilotRequestType:            "Autopilot",
+	AreaRequestType:                 "Area",
+	ACLBootstrapRequestType:         "ACLBootstrap",
+	IntentionRequestType:            "Intention",
+	ConnectCARequestType:            "ConnectCA",
+	ConnectCAProviderStateType:      "ConnectCAProviderState",
+	ConnectCAConfigType:             "ConnectCAConfig", // FSM snapshots only.
+	IndexRequestType:                "Index",           // FSM snapshots only.
+	ACLTokenSetRequestType:          "ACLToken",
+	ACLTokenDeleteRequestType:       "ACLTokenDelete",
+	ACLPolicySetRequestType:         "ACLPolicy",
+	ACLPolicyDeleteRequestType:      "ACLPolicyDelete",
+	ConnectCALeafRequestType:        "ConnectCALeaf",
+	ConfigEntryRequestType:          "ConfigEntry",
+	ACLRoleSetRequestType:           "ACLRole",
+	ACLRoleDeleteRequestType:        "ACLRoleDelete",
+	ACLBindingRuleSetRequestType:    "ACLBindingRule",
+	ACLBindingRuleDeleteRequestType: "ACLBindingRuleDelete",
+	ACLAuthMethodSetRequestType:     "ACLAuthMethod",
+	ACLAuthMethodDeleteRequestType:  "ACLAuthMethodDelete",
+	ChunkingStateType:               "ChunkingState",
+	FederationStateRequestType:      "FederationState",
+	SystemMetadataRequestType:       "SystemMetadata",
 }
 
 const (
@@ -2484,8 +2484,15 @@ func (m MessageType) String() string {
 	if ok {
 		return s
 	}
+
+	s, ok := enterpriseRequestType()
+	if ok {
+		return s
+	}
 	return "Unknown(" + strconv.Itoa(int(m)) + ")"
+
 }
+
 
 // UpstreamDownstream pairs come from individual proxy registrations, which can be updated independently.
 type UpstreamDownstream struct {
