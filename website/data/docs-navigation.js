@@ -154,6 +154,7 @@ export default [
         ],
       },
       'service-sync',
+      'crds',
       'dns',
       {
         category: 'upgrade',
