@@ -831,6 +831,21 @@ jobs:
       - run: .circleci/scripts/cherry-picker.sh
       - run: *notify-slack-failure
 
+trigger-oss-merge:
+  docker:
+    - image: alpine:3.11
+  steps:
+    - run: apk add --no-cache --no-progress curl jq
+    - run:
+        name: trigger oss merge
+        command: |
+          curl -s -X POST \
+                  --header "Circle-Token: ${CIRCLECI_API_TOKEN}" \
+                  --header "Content-Type: application/json" \
+                  -d '{"build_parameters": {"CIRCLE_JOB": "oss-merge"}}' \
+                  "https://circleci.com/api/v1.1/project/github/hashicorp/consul-enterprise/tree/${CIRCLE_BRANCH}" | jq -r '.build_url'
+    - run: *notify-slack-failure
+
 workflows:
   version: 2
   go-tests:
@@ -965,8 +980,15 @@ workflows:
       - ember-coverage:
           requires:
             - ember-build-ent
-  cherry-pick:
+  workflow-automation:
     jobs:
+      - trigger-oss-merge:
+          context: team-consul
+          filters:
+            branches:
+              only:
+                - master
+                - /release\/\d+\.\d+\.x$/
       - cherry-picker:
           context: team-consul
           filters:
