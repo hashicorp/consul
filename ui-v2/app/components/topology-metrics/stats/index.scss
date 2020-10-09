@@ -6,6 +6,7 @@
   align-items: stretch;
   width: 100%;
   height: 46px;
+  overflow: hidden;
   dl {
     display:flex;
     margin-bottom: 50px; // pushes wrapped metrics well out of the bounding box to hide them.
