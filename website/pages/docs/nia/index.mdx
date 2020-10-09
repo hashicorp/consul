@@ -8,6 +8,8 @@ description: >-
 
 # Network Infrastructure Automation <sup>Tech Preview</sup>
 
+@include 'nia-tech-preview-note.mdx'
+
 Network Infrastructure Automation (NIA) enables dynamic updates to network infrastructure devices triggered by service changes. Consul-Terraform-Sync utilizes Consul as a data source that contains networking information about services and monitors those services. Terraform is used as the underlying automation tool and leverages the Terraform provider ecosystem to drive relevant changes to the network infrastructure.
 
 Consul-Terraform-Sync executes one or more automation tasks with the most recent service variable values from the Consul service catalog. Each task consists of a runbook automation written as a Consul-Terraform-Sync compatible Terraform module using resources and data sources for the underlying network infrastructure. The `consul-terraform-sync` daemon runs on the same node as a Consul agent.
