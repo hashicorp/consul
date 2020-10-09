@@ -221,7 +221,7 @@ func ReadSnapshot(r io.Reader, handler func(header *SnapshotHeader, msg structs.
 		// Read the message type
 		_, err := r.Read(msgType)
 		if err == io.EOF {
-			break
+			return nil
 		} else if err != nil {
 			return err
 		}
