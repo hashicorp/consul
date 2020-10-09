@@ -4,8 +4,9 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/hashicorp/consul/agent/cache"
 	"github.com/mitchellh/go-testing-interface"
+
+	"github.com/hashicorp/consul/agent/cache"
 )
 
 // TestRPC returns a mock implementation of the RPC interface.
@@ -23,7 +24,8 @@ func TestFetchCh(
 	t testing.T,
 	typ cache.Type,
 	opts cache.FetchOptions,
-	req cache.Request) <-chan interface{} {
+	req cache.Request,
+) <-chan interface{} {
 	resultCh := make(chan interface{})
 	go func() {
 		result, err := typ.Fetch(opts, req)
