@@ -43,7 +43,20 @@ export default Component.extend({
     svg.selectAll('path').remove();
     svg.selectAll('rect').remove();
 
-    if (!this.data.series) {
+    let bb = svg.node().getBoundingClientRect();
+    let w = bb.width;
+    let h = bb.height;
+
+    // To be safe, filter any series that actually have no data points. This can
+    // happen thanks to our current provider contract allowing empty arrays for
+    // series data if there is no value.
+    //
+    // TODO(banks): switch series provider data to be a single array with series
+    // values as properties as we need below to enforce sensible alignment of
+    // timestamps and explicit summing expectations.
+    let series = ((this.data || {}).series || []).filter(s => s.data.length > 0);
+
+    if (series.length == 0) {
       // Put the graph in an error state that might get fixed if metrics show up
       // on next poll.
       let loader = this.element.querySelector('.sparkline-loader');
@@ -52,26 +65,22 @@ export default Component.extend({
       return;
     }
 
-    let bb = svg.node().getBoundingClientRect();
-    let w = bb.width;
-    let h = bb.height;
-
     // Fill the timestamps for x axis.
-    let data = this.data.series[0].data.map(d => {
+    let data = series[0].data.map(d => {
       return { time: d[0] };
     });
     let keys = [];
     // Initialize zeros
     let summed = this.data.series[0].data.map(d => 0);
 
-    for (var i = 0; i < this.data.series.length; i++) {
-      let series = this.data.series[i];
+    for (var i = 0; i < series.length; i++) {
+      let s = series[i];
       // Attach the value as a new field to the data grid.
-      series.data.map((d, idx) => {
-        data[idx][series.label] = d[1];
+      s.data.map((d, idx) => {
+        data[idx][s.label] = d[1];
         summed[idx] += d[1];
       });
-      keys.push(series.label);
+      keys.push(s.label);
     }
 
     let st = stack()

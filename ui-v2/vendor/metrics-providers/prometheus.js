@@ -277,6 +277,11 @@
     },
 
     reformatSeries: function(response) {
+      // Handle empty results from prometheus.
+      if (!response || !response.data || !response.data.result
+        || response.data.result.length < 1) {
+        return [];
+      }
       // Reformat the prometheus data to be the format we want which is
       // essentially the same but with Date objects instead of unix timestamps.
       return response.data.result[0].values.map(function(val){
