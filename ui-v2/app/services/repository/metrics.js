@@ -6,7 +6,7 @@ import { env } from 'consul-ui/env';
 // long between each poll to the metrics provider. TODO - make this configurable
 // in the UI settings.
 const meta = {
-  interval: env('CONSUL_METRICS_POLL_INTERVAL', 10000),
+  interval: env('CONSUL_METRICS_POLL_INTERVAL') || 10000,
 };
 
 export default RepositoryService.extend({
