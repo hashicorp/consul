@@ -1927,6 +1927,9 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     be used based on **where** this particular instance is running (e.g. a specific
     geo location or datacenter, dc:sfo). By default, this is left blank and not used.
 
+  - `disable_compat_1.9` ((#telemetry-disable_compat_1.9))
+    This allows users to disable metrics deprecated in 1.9 so they are no longer emitted, saving on performance and storage in large deployments. Defaults to false.
+
   - `disable_hostname` ((#telemetry-disable_hostname))
     This controls whether or not to prepend runtime telemetry with the machine's
     hostname, defaults to false.
