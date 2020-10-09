@@ -18,15 +18,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
-	"github.com/stretchr/testify/require"
 )
 
 type configTest struct {
@@ -4893,7 +4895,8 @@ func TestFullConfig(t *testing.T) {
 			"bootstrap_expect": 53,
 			"cache": {
 				"entry_fetch_max_burst": 42,
-				"entry_fetch_rate": 0.334
+				"entry_fetch_rate": 0.334,
+				"use_streaming_backend": true
 			},
 			"ca_file": "erA7T0PM",
 			"ca_path": "mQEN1Mfp",
@@ -5130,6 +5133,7 @@ func TestFullConfig(t *testing.T) {
 			"retry_join_wan": [ "PFsR02Ye", "rJdQIhER" ],
 			"retry_max": 913,
 			"retry_max_wan": 23160,
+			"rpc": {"enable_streaming": true},
 			"segment": "BC2NhTDi",
 			"segments": [
 				{
@@ -5577,6 +5581,7 @@ func TestFullConfig(t *testing.T) {
 			cache = {
 				entry_fetch_max_burst = 42
 				entry_fetch_rate = 0.334
+				use_streaming_backend = true
 			},
 			ca_file = "erA7T0PM"
 			ca_path = "mQEN1Mfp"
@@ -5816,6 +5821,9 @@ func TestFullConfig(t *testing.T) {
 			retry_join_wan = [ "PFsR02Ye", "rJdQIhER" ]
 			retry_max = 913
 			retry_max_wan = 23160
+			rpc {
+				enable_streaming = true
+			}
 			segment = "BC2NhTDi"
 			segments = [
 				{
@@ -6573,6 +6581,7 @@ func TestFullConfig(t *testing.T) {
 		RetryJoinMaxAttemptsLAN: 913,
 		RetryJoinMaxAttemptsWAN: 23160,
 		RetryJoinWAN:            []string{"PFsR02Ye", "rJdQIhER"},
+		RPCConfig:               consul.RPCConfig{EnableStreaming: true},
 		SegmentName:             "BC2NhTDi",
 		Segments: []structs.NetworkSegment{
 			{
@@ -6868,16 +6877,17 @@ func TestFullConfig(t *testing.T) {
 				},
 			},
 		},
-		SerfAdvertiseAddrLAN: tcpAddr("17.99.29.16:8301"),
-		SerfAdvertiseAddrWAN: tcpAddr("78.63.37.19:8302"),
-		SerfBindAddrLAN:      tcpAddr("99.43.63.15:8301"),
-		SerfBindAddrWAN:      tcpAddr("67.88.33.19:8302"),
-		SerfAllowedCIDRsLAN:  []net.IPNet{},
-		SerfAllowedCIDRsWAN:  []net.IPNet{},
-		SessionTTLMin:        26627 * time.Second,
-		SkipLeaveOnInt:       true,
-		StartJoinAddrsLAN:    []string{"LR3hGDoG", "MwVpZ4Up"},
-		StartJoinAddrsWAN:    []string{"EbFSc3nA", "kwXTh623"},
+		CacheUseStreamingBackend: true,
+		SerfAdvertiseAddrLAN:     tcpAddr("17.99.29.16:8301"),
+		SerfAdvertiseAddrWAN:     tcpAddr("78.63.37.19:8302"),
+		SerfBindAddrLAN:          tcpAddr("99.43.63.15:8301"),
+		SerfBindAddrWAN:          tcpAddr("67.88.33.19:8302"),
+		SerfAllowedCIDRsLAN:      []net.IPNet{},
+		SerfAllowedCIDRsWAN:      []net.IPNet{},
+		SessionTTLMin:            26627 * time.Second,
+		SkipLeaveOnInt:           true,
+		StartJoinAddrsLAN:        []string{"LR3hGDoG", "MwVpZ4Up"},
+		StartJoinAddrsWAN:        []string{"EbFSc3nA", "kwXTh623"},
 		Telemetry: lib.TelemetryConfig{
 			CirconusAPIApp:                     "p4QOTe9j",
 			CirconusAPIToken:                   "E3j35V23",
@@ -7484,6 +7494,9 @@ func TestSanitize(t *testing.T) {
 		"RPCMaxConnsPerClient": 0,
 		"RPCProtocol": 0,
 		"RPCRateLimit": 0,
+		"RPCConfig": {
+			"EnableStreaming": false
+		},
 		"RaftProtocol": 0,
 		"RaftSnapshotInterval": "0s",
 		"RaftSnapshotThreshold": 0,
@@ -7514,6 +7527,7 @@ func TestSanitize(t *testing.T) {
 		"SerfBindAddrWAN": "",
 		"SerfPortLAN": 0,
 		"SerfPortWAN": 0,
+		"CacheUseStreamingBackend": false,
 		"ServerMode": false,
 		"ServerName": "",
 		"ServerPort": 0,

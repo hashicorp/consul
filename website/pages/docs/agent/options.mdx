@@ -1133,14 +1133,14 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   </Tab>
   </Tabs>
 
-- `cache` Cache configuration of agent. The configurable values are the following:
+- `cache` configuration for client agents. The configurable values are the following:
 
-  - `entry_fetch_max_burst`: The size of the token bucket used to recharge the rate-limit per
+  - `entry_fetch_max_burst` The size of the token bucket used to recharge the rate-limit per
     cache entry. The default value is 2 and means that when cache has not been updated
     for a long time, 2 successive queries can be made as long as the rate-limit is not
     reached.
 
-  - `entry_fetch_rate`: configures the rate-limit at which the cache may refresh a single
+  - `entry_fetch_rate` configures the rate-limit at which the cache may refresh a single
     entry. On a cluster with many changes/s, watching changes in the cache might put high
     pressure on the servers. This ensures the number of requests for a single cache entry
     will never go beyond this limit, even when a given service changes every 1/100s.
@@ -1150,6 +1150,13 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     1 means 1 query per second, 0.1 mean 1 request every 10s maximum.
     The default value is "No limit" and should be tuned on large
     clusters to avoid performing too many RPCs on entries changing a lot.
+
+  - `use_streaming_backend` when enabled Consul client agents will use streaming rpc to
+    populate the cache, instead of the traditional blocking queries. All servers must
+    have [`rpc.enable_streaming`](#rpc_enable_streaming) enabled before any client can enable `use_streaming_backend`.
+    At least one of [`dns.use_cache`](#dns_use_cache) or
+    [`http_config.use_cache`](#http_config_use_cache) must be enabled, otherwise
+    this setting has no effect.
 
 - `ca_file` This provides a file path to a PEM-encoded certificate
   authority. The certificate authority is used to check the authenticity of client
@@ -1623,7 +1630,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
   - `allow_write_http_from` This object is a list of networks in CIDR notation (eg "127.0.0.0/8") that are allowed to call the agent write endpoints. It defaults to an empty list, which means all networks are allowed. This is used to make the agent read-only, except for select ip ranges. - To block write calls from anywhere, use `[ "255.255.255.255/32" ]`. - To only allow write calls from localhost, use `[ "127.0.0.0/8" ]` - To only allow specific IPs, use `[ "10.0.0.1/32", "10.0.0.2/32" ]`
 
-  - `use_cache` Defaults to true. If disabled, the agent won't be using [agent caching](/api/features/caching) to answer the request. Even when the url parameter is provided.
+  - `use_cache` ((#http_config_use_cache)) Defaults to true. If disabled, the agent won't be using [agent caching](/api/features/caching) to answer the request. Even when the url parameter is provided.
 
 - `leave_on_terminate` If enabled, when the agent receives a TERM signal, it will send a `Leave` message to the rest of the cluster and gracefully leave. The default behavior for this feature varies based on whether or not the agent is running as a client or a server (prior to Consul 0.7 the default value was unconditionally set to `false`). On agents in client-mode, this defaults to `true` and for agents in server-mode, this defaults to `false`.
 
@@ -1819,6 +1826,12 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 - `retry_join_wan` Equivalent to the [`-retry-join-wan` command-line flag](#_retry_join_wan). Takes a list of addresses to attempt joining to WAN every [`retry_interval_wan`](#_retry_interval_wan) until at least one join works.
 
 - `retry_interval_wan` Equivalent to the [`-retry-interval-wan` command-line flag](#_retry_interval_wan).
+
+- `rpc` configuration for Consul servers.
+
+  - `enable_streaming` ((#rpc_enable_streaming)) enables the gRPC subscribe endpoint on a Consul Server. All
+    servers in all federated datacenters must have this enabled before any client can use
+    [`cache.use_streaming_backend`](#use_streaming_backend). This setting will default to true in a future release of Consul.
 
 - `segment` <EnterpriseAlert inline /> - Equivalent to the [`-segment` command-line flag](#_segment).
 

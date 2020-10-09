@@ -28,6 +28,19 @@ type StreamingHealthServices struct {
 	deps MaterializerDeps
 }
 
+// RegisterOptions returns options with a much shorter LastGetTTL than the default.
+// Unlike other cache-types, StreamingHealthServices runs a materialized view in
+// the background which will receive streamed events from a server. If the cache
+// is not being used, that stream uses memory on the server and network transfer
+// between the client and the server.
+// The materialize view and the stream are stopped when the cache entry expires,
+// so using a shorter TTL ensures the cache entry expires sooner.
+func (c *StreamingHealthServices) RegisterOptions() cache.RegisterOptions {
+	opts := c.RegisterOptionsBlockingRefresh.RegisterOptions()
+	opts.LastGetTTL = 10 * time.Minute
+	return opts
+}
+
 // NewStreamingHealthServices creates a cache-type for watching for service
 // health results via streaming updates.
 func NewStreamingHealthServices(deps MaterializerDeps) *StreamingHealthServices {

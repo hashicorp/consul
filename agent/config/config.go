@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/hashicorp/consul/lib/decode"
 	"github.com/hashicorp/hcl"
 	"github.com/mitchellh/mapstructure"
+
+	"github.com/hashicorp/consul/lib/decode"
 )
 
 const (
@@ -96,12 +97,15 @@ func (l LiteralSource) Parse() (Config, mapstructure.Metadata, error) {
 	return l.Config, mapstructure.Metadata{}, nil
 }
 
-// Cache is the tunning configuration for cache, values are optional
+// Cache configuration for the agent/cache.
 type Cache struct {
 	// EntryFetchMaxBurst max burst size of RateLimit for a single cache entry
 	EntryFetchMaxBurst *int `json:"entry_fetch_max_burst,omitempty" hcl:"entry_fetch_max_burst" mapstructure:"entry_fetch_max_burst"`
 	// EntryFetchRate represents the max calls/sec for a single cache entry
 	EntryFetchRate *float64 `json:"entry_fetch_rate,omitempty" hcl:"entry_fetch_rate" mapstructure:"entry_fetch_rate"`
+	// UseStreamingBackend instead of blocking queries to populate the cache.
+	// Only supported by some cache types.
+	UseStreamingBackend *bool `json:"use_streaming_backend" hcl:"use_streaming_backend" mapstructure:"use_streaming_backend"`
 }
 
 // Config defines the format of a configuration file in either JSON or
@@ -257,6 +261,8 @@ type Config struct {
 	VerifyOutgoing       *bool                    `json:"verify_outgoing,omitempty" hcl:"verify_outgoing" mapstructure:"verify_outgoing"`
 	VerifyServerHostname *bool                    `json:"verify_server_hostname,omitempty" hcl:"verify_server_hostname" mapstructure:"verify_server_hostname"`
 	Watches              []map[string]interface{} `json:"watches,omitempty" hcl:"watches" mapstructure:"watches"`
+
+	RPC RPC `mapstructure:"rpc"`
 
 	// This isn't used by Consul but we've documented a feature where users
 	// can deploy their snapshot agent configs alongside their Consul configs
@@ -797,4 +803,8 @@ type RawUIMetricsProxy struct {
 type RawUIMetricsProxyAddHeader struct {
 	Name  *string `json:"name,omitempty" hcl:"name" mapstructure:"name"`
 	Value *string `json:"value,omitempty" hcl:"value" mapstructure:"value"`
+}
+
+type RPC struct {
+	EnableStreaming *bool `json:"enable_streaming" hcl:"enable_streaming" mapstructure:"enable_streaming"`
 }

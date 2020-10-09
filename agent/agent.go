@@ -359,7 +359,11 @@ func New(bd BaseDeps) (*Agent, error) {
 		cache:           bd.Cache,
 	}
 
-	a.rpcClientHealth = &health.Client{Cache: bd.Cache, NetRPC: &a}
+	cacheName := cachetype.HealthServicesName
+	if bd.RuntimeConfig.CacheUseStreamingBackend {
+		cacheName = cachetype.StreamingHealthServicesName
+	}
+	a.rpcClientHealth = &health.Client{Cache: bd.Cache, NetRPC: &a, CacheName: cacheName}
 
 	a.serviceManager = NewServiceManager(&a)
 
@@ -1139,6 +1143,8 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	// RPC-related performance configs. We allow explicit zero value to disable so
 	// copy it whatever the value.
 	cfg.RPCHoldTimeout = runtimeCfg.RPCHoldTimeout
+
+	cfg.RPCConfig = runtimeCfg.RPCConfig
 
 	if runtimeCfg.LeaveDrainTime > 0 {
 		cfg.LeaveDrainTime = runtimeCfg.LeaveDrainTime
@@ -3687,10 +3693,11 @@ func (a *Agent) LocalBlockingQuery(alwaysBlock bool, hash string, wait time.Dura
 	}
 }
 
-// registerCache configures the cache and registers all the supported
-// types onto the cache. This is NOT safe to call multiple times so
-// care should be taken to call this exactly once after the cache
-// field has been initialized.
+// registerCache types on a.cache.
+// This function may only be called once from New.
+//
+// Note: this function no longer registered all cache-types. Newer cache-types
+// that do not depend on Agent are registered from registerCacheTypes.
 func (a *Agent) registerCache() {
 	// Note that you should register the _agent_ as the RPC implementation and not
 	// the a.delegate directly, otherwise tests that rely on overriding RPC
