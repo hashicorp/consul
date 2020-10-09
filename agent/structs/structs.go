@@ -2485,14 +2485,13 @@ func (m MessageType) String() string {
 		return s
 	}
 
-	s, ok := enterpriseRequestType()
+	s, ok = enterpriseRequestType()
 	if ok {
 		return s
 	}
 	return "Unknown(" + strconv.Itoa(int(m)) + ")"
 
 }
-
 
 // UpstreamDownstream pairs come from individual proxy registrations, which can be updated independently.
 type UpstreamDownstream struct {
