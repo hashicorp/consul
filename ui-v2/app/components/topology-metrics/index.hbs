@@ -11,48 +11,23 @@
         </Tooltip>
       </span>
     </div>
-  {{#each @downstreams as |downstream|}}
-    <div class="card"
-      data-permission={{service/intention-permissions downstream}}
-      id="{{downstream.Namespace}}{{downstream.Name}}"
-    >
-      <p>
-        {{downstream.Name}}
-      </p>
-      <div class="detail">
-      {{#if (env 'CONSUL_NSPACES_ENABLED')}}
-        <dl class="nspace">
-          <dt>
-            <Tooltip>
-                Namespace
-            </Tooltip>
-          </dt>
-          <dd>
-            {{downstream.Namespace}}
-          </dd>
-        </dl>
-      {{/if}}
-    {{#let (service/health-percentage downstream) as |percentage|}}
-      {{#if (not-eq percentage.passing 0)}}
-        <span class="passing">{{percentage.passing}}%</span>
-      {{/if}}
-      {{#if (not-eq percentage.warning 0)}}
-        <span class="warning">{{percentage.warning}}%</span>
-      {{/if}}
-      {{#if (not-eq percentage.critical 0)}}
-        <span class="critical">{{percentage.critical}}%</span>
-      {{/if}}
-    {{/let}}
-      </div>
-    </div>
-  {{/each}}
+    <TopologyMetrics::Card
+      @items={{@downstreams}}
+      @service={{@service.Service.Service}}
+      @dc={{@dc}}
+      @hasMetricsProvider={{this.hasMetricsProvider}}
+    />
   </div>
 {{/if}}
   <div id="metrics-container">
     <div>
       {{@service.Service.Service}}
     </div>
-    <div>
+    {{#if this.hasMetricsProvider }}
+      <TopologyMetrics::Series @service={{@service.Service.Service}} @protocol={{@protocol}} />
+      <TopologyMetrics::Stats @endpoint='summary-for-service' @service={{@service.Service.Service}} @protocol={{@protocol}} />
+    {{/if}}
+    <div class="link">
      {{#if @metricsHref}}
       <a class="metrics-link" href={{@metricsHref}} target="_blank" rel="noopener noreferrer">Open metrics Dashboard</a>
     {{else}}
@@ -74,54 +49,13 @@
   {{#each-in (group-by "Datacenter" @upstreams) as |dc upstreams|}}
     <div id="upstream-container">
       <p>{{dc}}</p>
-      {{#each upstreams as |upstream|}}
-      <div class="card"
-        data-permission={{service/intention-permissions upstream}}
-        id="{{upstream.Namespace}}{{upstream.Name}}"
-      >
-        <p>
-          {{upstream.Name}}
-        </p>
-        <div class="detail">
-        {{#if (env 'CONSUL_NSPACES_ENABLED')}}
-          <dl class="nspace">
-            <dt>
-              <Tooltip>
-                  Namespace
-              </Tooltip>
-            </dt>
-            <dd>
-              {{upstream.Namespace}}
-            </dd>
-          </dl>
-        {{/if}}
-      {{#if (eq upstream.Datacenter @dc)}}
-      {{#let (service/health-percentage upstream) as |percentage|}}
-        {{#if (not-eq percentage.passing 0)}}
-          <span class="passing">{{percentage.passing}}%</span>
-        {{/if}}
-        {{#if (not-eq percentage.warning 0)}}
-          <span class="warning">{{percentage.warning}}%</span>
-        {{/if}}
-        {{#if (not-eq percentage.critical 0)}}
-          <span class="critical">{{percentage.critical}}%</span>
-        {{/if}}
-      {{/let}}
-      {{else}}
-          <dl class="health">
-            <dt>
-              <Tooltip>
-                  We are unable to determine the health status of services in remote datacenters.
-              </Tooltip>
-            </dt>
-            <dd>
-              Health
-            </dd>
-          </dl>
-      {{/if}}
-        </div>
-      </div>
-    {{/each}}
+      <TopologyMetrics::Card
+        @items={{upstreams}}
+        @service={{@service.Service.Service}}
+        @dc={{@dc}}
+        @type='upstream'
+        @hasMetricsProvider={{this.hasMetricsProvider}}
+      />
     </div>
   {{/each-in}}
   </div>

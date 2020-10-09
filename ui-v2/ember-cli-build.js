@@ -119,6 +119,13 @@ module.exports = function(defaults) {
   app.import('node_modules/codemirror/mode/yaml/yaml.js', {
     outputFile: 'assets/codemirror/mode/yaml/yaml.js',
   });
+  // metrics-providers
+  app.import('vendor/metrics-providers/consul.js', {
+    outputFile: 'assets/metrics-providers/consul.js',
+  });
+  app.import('vendor/metrics-providers/prometheus.js', {
+    outputFile: 'assets/metrics-providers/prometheus.js',
+  });
   let tree = app.toTree();
   return tree;
 };

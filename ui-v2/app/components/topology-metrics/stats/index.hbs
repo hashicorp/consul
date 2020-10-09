@@ -1,0 +1,24 @@
+<DataSource
+  @src={{uri nspace dc 'metrics' @endpoint @service @protocol}}
+  @onchange={{action 'statsUpdate'}}
+/>
+
+<div class="stats">
+  {{#if hasLoaded }}
+    {{#each stats as |stat|}}
+    <dl>
+      <dt>
+        {{stat.value}}
+      </dt>
+      <dd>
+        {{stat.label}}
+      </dd>
+      <Tooltip>{{{stat.desc}}}</Tooltip>
+    </dl>
+    {{else}}
+      <span>No Metrics Available</span>
+    {{/each}}
+  {{else}}
+    <span class="loader">Loading Metrics</span>
+  {{/if}}
+</div>

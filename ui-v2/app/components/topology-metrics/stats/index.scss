@@ -1,0 +1,28 @@
+.stats {
+  padding: 12px;
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: space-between;
+  align-items: stretch;
+  width: 100%;
+  overflow: hidden;
+  height: 46px;
+  dl {
+    display:flex;
+    margin-bottom: 50px; // pushes wrapped metrics well out of the bounding box to hide them.
+  }
+  dt {
+    margin-right: 5px;
+    line-height: 1.5em !important;
+  }
+  dd {
+    color: $gray-400 !important;
+  }
+  span {
+    margin: 0 auto !important;
+    color: $gray-500;
+  }
+  span.loader::after {
+    @extend %with-loading-icon, %as-pseudo;
+  }
+}

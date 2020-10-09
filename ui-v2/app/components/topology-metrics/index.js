@@ -1,14 +1,23 @@
 import Component from '@glimmer/component';
 import { tracked } from '@glimmer/tracking';
 import { action } from '@ember/object';
+import { inject as service } from '@ember/service';
 
 export default class TopologyMetrics extends Component {
+  @service('ui-config') cfg;
+
   // =attributes
   @tracked centerDimensions;
   @tracked downView;
   @tracked downLines = [];
   @tracked upView;
   @tracked upLines = [];
+  @tracked hasMetricsProvider = false;
+
+  constructor(owner, args) {
+    super(owner, args);
+    this.hasMetricsProvider = !!this.cfg.get().metrics_provider
+  }
 
   // =methods
   drawDownLines(items) {

@@ -11,6 +11,7 @@ export default Model.extend({
   Namespace: attr('string'),
   Upstreams: attr(),
   Downstreams: attr(),
+  Protocol: attr(),
   meta: attr(),
   Exists: computed(function() {
     return true;

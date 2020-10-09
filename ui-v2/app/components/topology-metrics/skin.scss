@@ -58,6 +58,9 @@
       background-color: $red-500;
     }
   }
+  div:nth-child(3) {
+    border-top: 1px solid $gray-200;
+  }
 }
 
 // Metrics Container
@@ -65,7 +68,7 @@
   div:first-child {
     background-color: $white;
   }
-  div:nth-child(2) {
+  .link {
     background-color: $gray-100;
     a {
       color: $gray-700;
@@ -82,6 +85,9 @@
     .settings-link::before {
       @extend %with-docs-mask, %as-pseudo;
     }
+  }
+  div:nth-child(3) {
+    border-top: 1px solid $gray-200;
   }
 }
 
