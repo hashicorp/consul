@@ -10,14 +10,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 func TestCalculateSoftExpire(t *testing.T) {
@@ -147,6 +147,9 @@ func TestCalculateSoftExpire(t *testing.T) {
 // Test that after an initial signing, new CA roots (new ID) will
 // trigger a blocking query to execute.
 func TestConnectCALeaf_changingRoots(t *testing.T) {
+	if testingRace {
+		t.Skip("fails with -race because caRoot.Active is modified concurrently")
+	}
 	t.Parallel()
 
 	require := require.New(t)
@@ -693,6 +696,9 @@ func TestConnectCALeaf_CSRRateLimiting(t *testing.T) {
 // This test runs multiple concurrent callers watching different leaf certs and
 // tries to ensure that the background root watch activity behaves correctly.
 func TestConnectCALeaf_watchRootsDedupingMultipleCallers(t *testing.T) {
+	if testingRace {
+		t.Skip("fails with -race because caRoot.Active is modified concurrently")
+	}
 	t.Parallel()
 
 	rpc := TestRPC(t)
