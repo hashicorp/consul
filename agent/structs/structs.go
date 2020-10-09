@@ -2485,7 +2485,7 @@ func (m MessageType) String() string {
 		return s
 	}
 
-	s, ok = enterpriseRequestType()
+	s, ok = enterpriseRequestType(m)
 	if ok {
 		return s
 	}

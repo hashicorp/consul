@@ -131,7 +131,7 @@ func (_ *HealthCheck) Validate() error {
 	return nil
 }
 
-func enterpriseRequestType() (string, bool) {
+func enterpriseRequestType(m MessageType) (string, bool) {
 	return "", false
 }
 

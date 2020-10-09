@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/snapshot"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/raft"
 	"github.com/mitchellh/cli"
@@ -65,7 +66,7 @@ func (c *cmd) Run(args []string) int {
 	}
 	defer f.Close()
 
-	readFile, meta, err := snapshot.Read(nil, f)
+	readFile, meta, err := snapshot.Read(hclog.New(nil), f)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error reading snapshot: %s", err))
 	}
