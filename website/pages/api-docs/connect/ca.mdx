@@ -31,6 +31,13 @@ The table below shows this endpoint's support for
 | ---------------- | ----------------- | ------------- | ------------ |
 | `YES`            | `all`             | `none`        | `none`       |
 
+### Parameters
+
+- `pem` `(boolean: false)` - Specifies that the return body should be a PEM encoded
+  certificate chain suitable for use by applications needing to trust Connect CA
+  signed certificates. The Content-Type will be set to `application/pem-certificate-chain`
+  to indicate the format of the response.
+
 ### Sample Request
 
 ```shell-session
@@ -63,6 +70,39 @@ $ curl \
     }
   ]
 }
+```
+
+### Sample PEM Encoded Response
+
+```
+-----BEGIN CERTIFICATE-----
+MIICDzCCAbWgAwIBAgIBCDAKBggqhkjOPQQDAjAxMS8wLQYDVQQDEyZwcmktMWNq
+OHphbW0uY29uc3VsLmNhLjA3OTMzYTEzLmNvbnN1bDAeFw0yMDEwMDgxOTQ4MzZa
+Fw0zMDEwMDgxOTQ4MzZaMDExLzAtBgNVBAMTJnByaS0xY2o4emFtbS5jb25zdWwu
+Y2EuMDc5MzNhMTMuY29uc3VsMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDCkT
+IIxSDhA3XCKIuDcj4s9IVjf0NQT6QHPAzFBb964/4fTtX/J8x2n6A1lOXowFIWtx
+GvAD/IJF74zn5ZA/wqOBvTCBujAOBgNVHQ8BAf8EBAMCAYYwDwYDVR0TAQH/BAUw
+AwEB/zApBgNVHQ4EIgQguPlAkrIkOnLr9+8DZ4afZWrYZUd2LB6nMJP72jDVxmcw
+KwYDVR0jBCQwIoAguPlAkrIkOnLr9+8DZ4afZWrYZUd2LB6nMJP72jDVxmcwPwYD
+VR0RBDgwNoY0c3BpZmZlOi8vMDc5MzNhMTMtYTYyYi1iZTkwLTQ0ZjEtZGVkOWE2
+NjczNzZlLmNvbnN1bDAKBggqhkjOPQQDAgNIADBFAiEA0ExkvLESG1I1TMFVronr
+2fjoORukgzBgRMbWAEC2DJ0CIACsxeFS6tprHiRv4cEa2Md75h1iIisb2V2U7dvY
+Z7Rr
+-----END CERTIFICATE-----
+-----BEGIN CERTIFICATE-----
+MIICEzCCAbigAwIBAgIBCTAKBggqhkjOPQQDAjAxMS8wLQYDVQQDEyZwcmktMWNq
+OHphbW0uY29uc3VsLmNhLjA3OTMzYTEzLmNvbnN1bDAeFw0yMDEwMDgxOTQ3Mzda
+Fw0yMTEwMDgxOTQ3MzdaMDExLzAtBgNVBAMTJnNlYy0xbmIxMHZ0by5jb25zdWwu
+Y2EuMDc5MzNhMTMuY29uc3VsMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE9zWs
+UxEYvLZUySoflz6e+HqLcaXM8heNRRkAiLiGkmn6nan6olnnrVBLyHAfHaHWJQ9W
+wI8HwSZf0g4Ms16LWKOBwDCBvTAOBgNVHQ8BAf8EBAMCAYYwEgYDVR0TAQH/BAgw
+BgEB/wIBADApBgNVHQ4EIgQg+csK9Sg6odIfLLk3aiRY2OB4O0DiOa1XRTVdOVDE
+t6QwKwYDVR0jBCQwIoAguPlAkrIkOnLr9+8DZ4afZWrYZUd2LB6nMJP72jDVxmcw
+PwYDVR0RBDgwNoY0c3BpZmZlOi8vMDc5MzNhMTMtYTYyYi1iZTkwLTQ0ZjEtZGVk
+OWE2NjczNzZlLmNvbnN1bDAKBggqhkjOPQQDAgNJADBGAiEAqJ60KJepAP4Xe4Ak
+5UYB1huu/B8Lyz5yEYUpUplgdD4CIQCrrkoXoD4SGJ4HaIjy6a5eNf3YkhLpmbXO
+6DL6FXVa1Q==
+-----END CERTIFICATE-----
 ```
 
 ## Get CA Configuration
