@@ -80,7 +80,7 @@ func TestSnapshotInspectCommand_Validation(t *testing.T) {
 
 func TestSnapshotInspectCommand(t *testing.T) {
 
-	filepath := ("./testdata/backup.snap")
+	filepath := "./testdata/backup.snap"
 
 	// Inspect the snapshot
 	ui := cli.NewMockUi()

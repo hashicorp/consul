@@ -70,7 +70,16 @@ func (c *cmd) Run(args []string) int {
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error reading snapshot: %s", err))
 	}
-	stats, offset, err := enhance(readFile)
+	defer func() {
+		if err := readFile.Close(); err != nil {
+			c.UI.Error(fmt.Sprintf("Failed to close temp snapshot: %v", err))
+		}
+		if err := os.Remove(readFile.Name()); err != nil {
+			c.UI.Error(fmt.Sprintf("Failed to clean up temp snapshot: %v", err))
+		}
+	}()
+
+	stats, totalSize, err := enhance(readFile)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error extracting snapshot data: %s", err))
 		return 1
@@ -83,9 +92,9 @@ func (c *cmd) Run(args []string) int {
 	c.UI.Info(legacy.String())
 
 	// Outputs the more detailed snapshot information
-	enhanced, err := c.readStats(stats, offset)
+	enhanced, err := c.readStats(stats, totalSize)
 	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error reading snapshot stats: %s", err))
+		c.UI.Error(fmt.Sprintf("Error outputting enhanced snapshot data: %s", err))
 		return 1
 	}
 	c.UI.Info(enhanced.String())
@@ -104,7 +113,6 @@ func (c *cmd) legacyStats(meta *raft.SnapshotMeta) (bytes.Buffer, error) {
 	fmt.Fprintf(tw, "Term\t%d\n", meta.Term)
 	fmt.Fprintf(tw, "Version\t%d\n", meta.Version)
 	if err := tw.Flush(); err != nil {
-		c.UI.Error(fmt.Sprintf("Error rendering snapshot info: %s", err))
 		return b, err
 	}
 	return b, nil
@@ -135,9 +143,8 @@ func (r *countingReader) Read(p []byte) (n int, err error) {
 // all of the snapshot's itemized data
 func enhance(file io.Reader) (map[structs.MessageType]typeStats, int, error) {
 	stats := make(map[structs.MessageType]typeStats)
-	var offset int
 	cr := &countingReader{wrappedReader: file}
-	offset = 0
+	totalSize := 0
 	handler := func(header *fsm.SnapshotHeader, msg structs.MessageType, dec *codec.Decoder) error {
 		name := structs.MessageType.String(msg)
 		s := stats[msg]
@@ -150,23 +157,23 @@ func enhance(file io.Reader) (map[structs.MessageType]typeStats, int, error) {
 			return fmt.Errorf("failed to decode msg type %v, error %v", name, err)
 		}
 
-		size := cr.read - offset
+		size := cr.read - totalSize
 		s.Sum += size
 		s.Count++
-		offset = cr.read
+		totalSize = cr.read
 		stats[msg] = s
 		return nil
 	}
 	if err := fsm.ReadSnapshot(cr, handler); err != nil {
 		return nil, 0, err
 	}
-	return stats, offset, nil
+	return stats, totalSize, nil
 
 }
 
 // readStats takes the information generated from enhance and creates human
 // readable output from it
-func (c *cmd) readStats(stats map[structs.MessageType]typeStats, offset int) (bytes.Buffer, error) {
+func (c *cmd) readStats(stats map[structs.MessageType]typeStats, totalSize int) (bytes.Buffer, error) {
 	// Output stats in size-order
 	ss := make([]typeStats, 0, len(stats))
 
@@ -187,7 +194,7 @@ func (c *cmd) readStats(stats map[structs.MessageType]typeStats, offset int) (by
 		fmt.Fprintf(tw, "\n %s\t%d\t%s\t", s.Name, s.Count, ByteSize(uint64(s.Sum)))
 	}
 	fmt.Fprintf(tw, "\n %s\t%s\t%s\t", "----", "----", "----")
-	fmt.Fprintf(tw, "\n Total\t\t%s\t", ByteSize(uint64(offset)))
+	fmt.Fprintf(tw, "\n Total\t\t%s\t", ByteSize(uint64(totalSize)))
 
 	if err := tw.Flush(); err != nil {
 		c.UI.Error(fmt.Sprintf("Error rendering snapshot info: %s", err))
