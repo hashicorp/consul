@@ -2,15 +2,11 @@ package inspect
 
 import (
 	"flag"
-	"io"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/agent"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
 )
@@ -83,33 +79,13 @@ func TestSnapshotInspectCommand_Validation(t *testing.T) {
 }
 
 func TestSnapshotInspectCommand(t *testing.T) {
-	t.Parallel()
-	a := agent.NewTestAgent(t, ``)
-	defer a.Shutdown()
-	client := a.Client()
 
-	dir := testutil.TempDir(t, "snapshot")
-	defer os.RemoveAll(dir)
-	file := filepath.Join(dir, "backup.tgz")
-	// Save a snapshot of the current Consul state
-	f, err := os.Create(file)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	snap, _, err := client.Snapshot().Save(nil)
-	require.NoError(t, err)
-	defer snap.Close()
-	if _, err := io.Copy(f, snap); err != nil {
-		f.Close()
-		t.Fatalf("err: %v", err)
-	}
-	if err := f.Close(); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	filepath := ("./testdata/backup.snap")
+
 	// Inspect the snapshot
 	ui := cli.NewMockUi()
 	c := New(ui)
-	args := []string{file}
+	args := []string{filepath}
 
 	code := c.Run(args)
 	if code != 0 {
