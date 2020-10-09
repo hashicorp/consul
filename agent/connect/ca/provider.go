@@ -16,6 +16,13 @@ import (
 // on servers and CA provider.
 var ErrRateLimited = errors.New("operation rate limited by CA provider")
 
+// PrimaryIntermediateProviders is a list of CA providers that make use use of an
+// intermediate cert in the primary datacenter as well as the secondary. This is used
+// when determining whether to run the intermediate renewal routine in the primary.
+var PrimaryIntermediateProviders = map[string]struct{}{
+	"vault": {},
+}
+
 // ProviderConfig encapsulates all the data Consul passes to `Configure` on a
 // new provider instance. The provider must treat this as read-only and make
 // copies of any map or slice if it might modify them internally.

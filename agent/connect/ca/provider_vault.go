@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
@@ -384,6 +385,7 @@ func (v *VaultProvider) GenerateIntermediate() (string, error) {
 		"csr":            csr,
 		"use_csr_values": true,
 		"format":         "pem_bundle",
+		"ttl":            v.config.IntermediateCertTTL.String(),
 	})
 	if err != nil {
 		return "", err
@@ -456,6 +458,7 @@ func (v *VaultProvider) SignIntermediate(csr *x509.CertificateRequest) (string, 
 		"use_csr_values":  true,
 		"format":          "pem_bundle",
 		"max_path_length": 0,
+		"ttl":             v.config.IntermediateCertTTL.String(),
 	})
 	if err != nil {
 		return "", err
@@ -475,8 +478,20 @@ func (v *VaultProvider) SignIntermediate(csr *x509.CertificateRequest) (string, 
 // CrossSignCA takes a CA certificate and cross-signs it to form a trust chain
 // back to our active root.
 func (v *VaultProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
+	rootPEM, err := v.ActiveRoot()
+	if err != nil {
+		return "", err
+	}
+	rootCert, err := connect.ParseCert(rootPEM)
+	if err != nil {
+		return "", fmt.Errorf("error parsing root cert: %v", err)
+	}
+	if rootCert.NotAfter.Before(time.Now()) {
+		return "", fmt.Errorf("root certificate is expired")
+	}
+
 	var pemBuf bytes.Buffer
-	err := pem.Encode(&pemBuf, &pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})
+	err = pem.Encode(&pemBuf, &pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})
 	if err != nil {
 		return "", err
 	}

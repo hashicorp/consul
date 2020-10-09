@@ -21,14 +21,13 @@ import (
 	"github.com/hashicorp/go-hclog"
 )
 
-const (
-
+var (
 	// NotBefore will be CertificateTimeDriftBuffer in the past to account for
 	// time drift between different servers.
 	CertificateTimeDriftBuffer = time.Minute
-)
 
-var ErrNotInitialized = errors.New("provider not initialized")
+	ErrNotInitialized = errors.New("provider not initialized")
+)
 
 type ConsulProvider struct {
 	Delegate ConsulProviderStateDelegate

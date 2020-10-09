@@ -357,6 +357,8 @@ test-connect-ca-providers:
 ifeq ("$(CIRCLECI)","true")
 # Run in CI
 	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report.xml" -- -cover -coverprofile=coverage.txt ./agent/connect/ca
+# Run leader tests that require Vault
+	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report-leader.xml" -- -cover -coverprofile=coverage-leader.txt -run TestLeader_Vault_ ./agent/consul
 else
 # Run locally
 	@echo "Running /agent/connect/ca tests in verbose mode"
