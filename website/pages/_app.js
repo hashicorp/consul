@@ -8,7 +8,7 @@ import { ErrorBoundary } from '@hashicorp/nextjs-scripts/lib/bugsnag'
 import createConsentManager from '@hashicorp/nextjs-scripts/lib/consent-manager'
 import useAnchorLinkAnalytics from '@hashicorp/nextjs-scripts/lib/anchor-link-analytics'
 import HashiHead from '@hashicorp/react-head'
-import MegaNav from '@hashicorp/react-mega-nav'
+import HashiStackMenu from '@hashicorp/react-hashi-stack-menu'
 import AlertBanner from '@hashicorp/react-alert-banner'
 import Footer from '../components/footer'
 import ProductSubnav from '../components/subnav'
@@ -53,7 +53,7 @@ function App({ Component, pageProps }) {
       {ALERT_BANNER_ACTIVE && (
         <AlertBanner {...alertBannerData} theme="consul" />
       )}
-      <MegaNav product="Consul" />
+      <HashiStackMenu />
       <ProductSubnav />
       <div className="content">
         <Component {...pageProps} />
