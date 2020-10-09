@@ -37,7 +37,7 @@ Usage: consul acl auth-method <subcommand> [options] [args]
                             -name "my-k8s" \
                             -description "This is an example kube auth method" \
                             -kubernetes-host "https://apiserver.example.com:8443" \
-                            -kubernetes-ca-file /path/to/kube.ca.crt \
+                            -kubernetes-ca-cert @/path/to/kube.ca.crt \
                             -kubernetes-service-account-jwt "JWT_CONTENTS"
 
   List all auth methods:
@@ -49,7 +49,7 @@ Usage: consul acl auth-method <subcommand> [options] [args]
     $ consul acl auth-method update -name "my-k8s" \
                             -description "new description" \
                             -kubernetes-host "https://new-apiserver.example.com:8443" \
-                            -kubernetes-ca-file /path/to/new-kube.ca.crt \
+                            -kubernetes-ca-cert @/path/to/new-kube.ca.crt \
                             -kubernetes-service-account-jwt "NEW_JWT_CONTENTS"
 
   Read an auth method:
