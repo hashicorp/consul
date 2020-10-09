@@ -1566,6 +1566,10 @@ func TestUIEndpoint_MetricsProxy(t *testing.T) {
 			w.Write([]byte("OK"))
 			return
 		}
+		if r.URL.Path == "/some/prefix/query-echo" {
+			w.Write([]byte("RawQuery: " + r.URL.RawQuery))
+			return
+		}
 		if r.URL.Path == "/.passwd" {
 			w.Write([]byte("SECRETS!"))
 			return
@@ -1679,6 +1683,16 @@ func TestUIEndpoint_MetricsProxy(t *testing.T) {
 				"X-Some-Other-Header": "foo",
 				"Authorization":       "SECRET_KEY",
 			},
+		},
+		{
+			name: "passes through query params",
+			config: config.UIMetricsProxy{
+				BaseURL: backendURL,
+			},
+			// encoded=test[0]&&test[1]==!@£$%^
+			path:         endpointPath + "/query-echo?foo=bar&encoded=test%5B0%5D%26%26test%5B1%5D%3D%3D%21%40%C2%A3%24%25%5E",
+			wantCode:     http.StatusOK,
+			wantContains: "RawQuery: foo=bar&encoded=test%5B0%5D%26%26test%5B1%5D%3D%3D%21%40%C2%A3%24%25%5E",
 		},
 	}
 
