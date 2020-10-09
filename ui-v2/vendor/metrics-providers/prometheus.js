@@ -1,3 +1,4 @@
+/*eslint no-console: "off"*/
 (function () {
   var prometheusProvider = {
     options: {},
@@ -673,6 +674,6 @@
   }
 
   /* global consul:writable */
-  consul.registerMetricsProvider("prometheus", prometheusProvider)
+  window.consul.registerMetricsProvider("prometheus", prometheusProvider)
 
 }());

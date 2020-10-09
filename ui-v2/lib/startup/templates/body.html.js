@@ -41,6 +41,7 @@ module.exports = ({ appName, environment, rootURL, config }) => `
       }
     };
   </script>
+  <script src="${rootURL}assets/metrics-providers/consul.js"></script>
   <script src="${rootURL}assets/metrics-providers/prometheus.js"></script>
   ${
     environment === 'production'
