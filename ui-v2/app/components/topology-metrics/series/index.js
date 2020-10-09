@@ -204,7 +204,7 @@ export default Component.extend({
   },
 });
 
-// Duplicated in assets/metrics-providers/prometheus.js since we want that to
+// Duplicated in vendor/metrics-providers/prometheus.js since we want that to
 // remain a standalone example of a provider that could be loaded externally.
 function shortNumStr(n) {
   if (n < 1e3) {
