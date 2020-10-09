@@ -53,8 +53,9 @@
 }
 #upstream-container .card,
 #downstream-container .card {
-  display: flex;
-  flex-direction: column;
+  display: block;
+  color: $gray-700;
+  overflow: hidden;
   p {
     padding: 12px 12px 0 12px;
     font-size: 16px;
