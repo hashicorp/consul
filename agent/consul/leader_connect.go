@@ -116,7 +116,7 @@ func (s *Server) createCAProvider(conf *structs.CAConfiguration) (ca.Provider, e
 	case structs.ConsulCAProvider:
 		p = &ca.ConsulProvider{Delegate: &consulCADelegate{s}}
 	case structs.VaultCAProvider:
-		p = &ca.VaultProvider{}
+		p = ca.NewVaultProvider()
 	case structs.AWSCAProvider:
 		p = &ca.AWSProvider{}
 	default:
@@ -569,6 +569,16 @@ func (s *Server) stopConnectLeader() {
 	s.leaderRoutineManager.Stop(secondaryCARootWatchRoutineName)
 	s.leaderRoutineManager.Stop(intentionReplicationRoutineName)
 	s.leaderRoutineManager.Stop(caRootPruningRoutineName)
+
+	// If the provider implements NeedsStop, we call Stop to perform any shutdown actions.
+	s.caProviderReconfigurationLock.Lock()
+	defer s.caProviderReconfigurationLock.Unlock()
+	provider, _ := s.getCAProvider()
+	if provider != nil {
+		if needsStop, ok := provider.(ca.NeedsStop); ok {
+			needsStop.Stop()
+		}
+	}
 }
 
 func (s *Server) runCARootPruning(ctx context.Context) error {
