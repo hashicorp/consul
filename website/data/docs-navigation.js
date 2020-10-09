@@ -230,6 +230,7 @@ export default [
     name: 'Integrations',
     content: [
       'partnerships',
+      'nia-integration',
       {
         title: 'Vault Integration',
         href: '/docs/connect/ca/vault',
