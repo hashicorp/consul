@@ -1,0 +1,30 @@
+---
+layout: docs
+page_title: Tasks
+sidebar_title: Tasks
+description: >-
+  Consul-Terraform-Sync Tasks
+---
+
+# Tasks
+
+A task is the translation of dynamic service information from the Consul Catalog into network infrastructure changes downstream. Consul-Terraform-Sync carries out automation for executing tasks using network drivers. For a Terraform driver, the scope of a task is a Terraform module.
+
+Below is an example task configuration:
+
+```hcl
+task {
+  name = "frontend-firewall-policies"
+  description = "Add firewall policy rules for frontend services"
+  providers = ["fake-firewall", "null"]
+  services = ["web", "image"]
+  source = "example/firewall-policy/module"
+  version = "1.0.0"
+}
+```
+
+In the example task above, the "fake-firewall" and "null" providers, listed in the `providers` field, are used. These providers themselves should be configured in their own separate [provider blocks](/docs/nia/installation/configuration#provider). These providers are used in the Terraform module "example/firewll-policy/module", configured in the `source` field, to create, update, and destroy resources. This module may do something like use the providers to create and destroy firewall policy objects based on IP addresses. The IP addresses come from the "web" and "image" service instances configured in the `services` field. This service-level information is retrieved by Consul-Terraform-Sync which watches Consul catalog for changes.
+
+See [task configuration](/docs/nia/installation/configuration#task) for more details on how to configure a task.
+
+Consul-Terraform-Sync automatically generates any files needed to execute the network driver for each task. See [network drivers](/docs/nia/network-drivers) for more details on the files generated for the Terraform driver.

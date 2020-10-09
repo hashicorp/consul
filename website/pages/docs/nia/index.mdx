@@ -1,0 +1,33 @@
+---
+layout: docs
+page_title: Network Infrastructure Automation <sup>Tech Preview</sup>
+sidebar_title: Network Infrastructure Automation <sup>Tech Preview</sup>
+description: >-
+  Network Infrastructure Automation (NIA) is the concept of dynamically updating infrastructure devices triggered by service changes. Consul-Terraform-Sync is a tool that performs NIA and utilizes Consul as a data source that contains networking information about services and monitors those services. Terraform is used as the underlying automation tool and leverages the Terraform provider ecosystem to drive relevant changes to the network infrastructure.
+---
+
+# Network Infrastructure Automation <sup>Tech Preview</sup>
+
+Network Infrastructure Automation (NIA) enables dynamic updates to network infrastructure devices triggered by service changes. Consul-Terraform-Sync utilizes Consul as a data source that contains networking information about services and monitors those services. Terraform is used as the underlying automation tool and leverages the Terraform provider ecosystem to drive relevant changes to the network infrastructure.
+
+Consul-Terraform-Sync executes one or more automation tasks with the most recent service variable values from the Consul service catalog. Each task consists of a runbook automation written as a Consul-Terraform-Sync compatible Terraform module using resources and data sources for the underlying network infrastructure. The `consul-terraform-sync` daemon runs on the same node as a Consul agent.
+
+## Use Cases
+
+**Application teams must wait for manual changes in the network to release, scale up/down and re-deploy their applications.** This creates a bottleneck, especially in frequent workflows related to scaling up/down the application, breaking the DevOps goal of self-service enablement. Consul-Terraform-Sync automates this process, thus decreasing the possibility of human error in manually editing configuration files, as well as decreasing the overall time taken to push out configuration changes.
+
+**Networking and security teams cannot scale processes to the speed and changes needed.** Manual approaches don't scale well, causing backlogs in network and security teams. Even in organizations that have some amount of automation (such as scripting), there is a need for an accurate, real-time source of data to trigger and drive their network automation workflows. Consul-Terraform-Sync runs in near real-time to keep up with the rate of change.
+
+## Glossary
+
+**Consul-Terraform-Sync** - GitHub repo and binary/CLI name for the project that is used to perform Network Infrastructure Automation.
+
+**Network Drivers** - Network drivers are used by Consul-Terraform-Sync to execute and update network infrastructure. Drivers transform Consul service level information into downstream changes by understanding and abstracting API and resource details tied to specific network infrastructure.
+
+**Network Infrastructure Automation (NIA)** - Enables dynamic updates to network infrastructure devices triggered by service changes.
+
+**Tasks** - A task is the translation of dynamic service information from the Consul Catalog into network infrastructure changes downstream.
+
+**Terraform Module** - A [Terraform module](https://www.terraform.io/docs/configuration/modules.html) is a container for multiple Terraform resources that are used together.
+
+**Terraform Provider** - A [Terraform provider](https://www.terraform.io/docs/providers/index.html) is responsible for understanding API interactions and exposing resources for an infrastructure type.
