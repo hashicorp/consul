@@ -516,6 +516,7 @@ func (s *Server) persistNewRoot(provider ca.Provider, newActiveRoot *structs.CAR
 // which means it must never take that lock itself or call anything that does.
 func (s *Server) getIntermediateCAPrimary(provider ca.Provider, newActiveRoot *structs.CARoot) error {
 	connectLogger := s.loggers.Named(logging.Connect)
+	// Generate and sign an intermediate cert using the root CA.
 	intermediatePEM, err := provider.GenerateIntermediate()
 	if err != nil {
 		return fmt.Errorf("error generating new intermediate cert: %v", err)
@@ -531,7 +532,7 @@ func (s *Server) getIntermediateCAPrimary(provider ca.Provider, newActiveRoot *s
 	newActiveRoot.IntermediateCerts = append(newActiveRoot.IntermediateCerts, intermediatePEM)
 	newActiveRoot.SigningKeyID = connect.EncodeSigningKeyID(intermediateCert.SubjectKeyId)
 
-	connectLogger.Info("generated new intermediate certificate in primary datacenter")
+	connectLogger.Info("generated new intermediate certificate for primary datacenter")
 	return nil
 }
 
@@ -738,7 +739,6 @@ func (s *Server) intermediateCertRenewalWatch(ctx context.Context) error {
 
 				if lessThanHalfTimePassed(time.Now(), intermediateCert.NotBefore.Add(ca.CertificateTimeDriftBuffer),
 					intermediateCert.NotAfter) {
-					//connectLogger.Info("checked time passed", intermediateCert.NotBefore.Add(ca.CertificateTimeDriftBuffer), intermediateCert.NotAfter)
 					return nil
 				}
 

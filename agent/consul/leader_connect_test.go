@@ -185,11 +185,14 @@ func TestLeader_PrimaryCA_IntermediateRenew(t *testing.T) {
 	// no parallel execution because we change globals
 	origInterval := structs.IntermediateCertRenewInterval
 	origMinTTL := structs.MinLeafCertTTL
+	origDriftBuffer := ca.CertificateTimeDriftBuffer
 	defer func() {
 		structs.IntermediateCertRenewInterval = origInterval
 		structs.MinLeafCertTTL = origMinTTL
+		ca.CertificateTimeDriftBuffer = origDriftBuffer
 	}()
 
+	ca.CertificateTimeDriftBuffer = 30 * time.Second
 	structs.IntermediateCertRenewInterval = time.Millisecond
 	structs.MinLeafCertTTL = time.Second
 	require := require.New(t)
@@ -207,7 +210,7 @@ func TestLeader_PrimaryCA_IntermediateRenew(t *testing.T) {
 				"Token":               testVault.RootToken,
 				"RootPKIPath":         "pki-root/",
 				"IntermediatePKIPath": "pki-intermediate/",
-				"LeafCertTTL":         "5s",
+				"LeafCertTTL":         "1s",
 				// The retry loop only retries for 7sec max and
 				// the ttl needs to be below so that it
 				// triggers definitely.
@@ -215,7 +218,7 @@ func TestLeader_PrimaryCA_IntermediateRenew(t *testing.T) {
 				// valid from 1minute in the past, we need to
 				// account for that, otherwise it will be
 				// expired immediately.
-				"IntermediateCertTTL": "15s",
+				"IntermediateCertTTL": "5s",
 			},
 		}
 	})
