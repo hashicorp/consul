@@ -55,7 +55,8 @@ export default Service.extend({
         switch (method) {
           case 'summary-for-service':
             [protocol, ...more] = more;
-            find = configuration => repo.findServiceSummary(protocol, slug, dc, nspace, configuration);
+            find = configuration =>
+              repo.findServiceSummary(protocol, slug, dc, nspace, configuration);
             break;
           case 'upstream-summary-for-service':
             find = configuration => repo.findUpstreamSummary(slug, dc, nspace, configuration);

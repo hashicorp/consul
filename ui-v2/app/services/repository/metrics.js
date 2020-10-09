@@ -7,15 +7,14 @@ import { env } from 'consul-ui/env';
 // in the UI settings.
 const meta = {
   interval: env('CONSUL_METRICS_POLL_INTERVAL', 10000),
-}
+};
 
 export default RepositoryService.extend({
-
   cfg: service('ui-config'),
 
-  init: function(){
+  init: function() {
     this._super(...arguments);
-    const uiCfg = this.cfg.get()
+    const uiCfg = this.cfg.get();
     // Inject whether or not the proxy is enabled as an option into the opaque
     // JSON options the user provided.
     const opts = uiCfg.metrics_provider_options || {};
@@ -29,29 +28,28 @@ export default RepositoryService.extend({
     const promises = [
       // TODO: support namespaces in providers
       this.provider.serviceRecentSummarySeries(slug, protocol, {}),
-      this.provider.serviceRecentSummaryStats(slug, protocol, {})
+      this.provider.serviceRecentSummaryStats(slug, protocol, {}),
     ];
-    return Promise.all(promises).then(function(results){
+    return Promise.all(promises).then(function(results) {
       return {
         meta: meta,
         series: results[0].series,
-        stats: results[1].stats
-      }
-    })
+        stats: results[1].stats,
+      };
+    });
   },
 
   findUpstreamSummary: function(slug, dc, nspace, configuration = {}) {
-    return this.provider.upstreamRecentSummaryStats(slug, {}).then(function(result){
+    return this.provider.upstreamRecentSummaryStats(slug, {}).then(function(result) {
       result.meta = meta;
       return result;
-    })
+    });
   },
 
   findDownstreamSummary: function(slug, dc, nspace, configuration = {}) {
-    return this.provider.downstreamRecentSummaryStats(slug, {}).then(function(result){
+    return this.provider.downstreamRecentSummaryStats(slug, {}).then(function(result) {
       result.meta = meta;
       return result;
-    })
-  }
-
+    });
+  },
 });

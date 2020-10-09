@@ -1,8 +1,9 @@
 module.exports = ({ appName, environment, rootURL, config }) => `
   <!-- CONSUL_VERSION: ${config.CONSUL_VERSION} -->
   <meta name="consul-ui/ui_config" content="${
-    environment === 'production' ? `{{ jsonEncodeAndEscape .UIConfig }}` :
-      escape(`{"metrics_provider":"prometheus","metrics_proxy_enabled":true}`)
+    environment === 'production'
+      ? `{{ jsonEncodeAndEscape .UIConfig }}`
+      : escape(`{"metrics_provider":"prometheus","metrics_proxy_enabled":true}`)
   }" />
 
   <link rel="icon" type="image/png" href="${rootURL}assets/favicon-32x32.png" sizes="32x32">

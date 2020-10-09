@@ -1,13 +1,12 @@
 export function initialize(application) {
-
   // Current interface is these three methods.
   const requiredMethods = [
     'init',
     'serviceRecentSummarySeries',
     'serviceRecentSummaryStats',
     'upstreamRecentSummaryStats',
-    'downstreamRecentSummaryStats'
-  ]
+    'downstreamRecentSummaryStats',
+  ];
 
   // This is a bit gross but we want to support simple extensibility by
   // including JS in the browser without forcing operators to setup a whole
@@ -22,8 +21,8 @@ export function initialize(application) {
     registerMetricsProvider(name, provider) {
       // Basic check that it matches the type we expect
       for (var m of requiredMethods) {
-        if (typeof provider[m] !== "function") {
-          throw new Error(`Can't register metrics provider '${name}': missing ${m} method.`)
+        if (typeof provider[m] !== 'function') {
+          throw new Error(`Can't register metrics provider '${name}': missing ${m} method.`);
         }
       }
       this.registry[name] = provider;
@@ -38,17 +37,15 @@ export function initialize(application) {
       }
 
       this.providers[name] = Object.create(this.registry[name]);
-      this.providers[name].init(options)
+      this.providers[name].init(options);
 
       return this.providers[name];
     }
   }
 
-  window.consul = new Consul
+  window.consul = new Consul();
 }
 
 export default {
   initialize,
 };
-
-

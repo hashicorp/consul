@@ -42,6 +42,10 @@ module.exports = ({ appName, environment, rootURL, config }) => `
     };
   </script>
   <script src="${rootURL}assets/metrics-providers/prometheus.js"></script>
-  ${environment === 'production' ? `{{ range .ExtraScripts }} <script src="{{.}}"></script> {{ end }}` : ``}
+  ${
+    environment === 'production'
+      ? `{{ range .ExtraScripts }} <script src="{{.}}"></script> {{ end }}`
+      : ``
+  }
   ${environment === 'test' ? `<script src="${rootURL}assets/tests.js"></script>` : ``}
 `;
