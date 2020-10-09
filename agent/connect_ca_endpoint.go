@@ -20,7 +20,7 @@ func (s *HTTPHandlers) ConnectCARoots(resp http.ResponseWriter, req *http.Reques
 	if pemParam := req.URL.Query().Get("pem"); pemParam != "" {
 		val, err := strconv.ParseBool(pemParam)
 		if err != nil {
-			return nil, BadRequestError{Reason: "The 'pem' query paramter must be a boolean value"}
+			return nil, BadRequestError{Reason: "The 'pem' query parameter must be a boolean value"}
 		}
 		pemResponse = val
 	}
