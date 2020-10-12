@@ -64,21 +64,8 @@ export default function MultiPlatformServiceMeshPage() {
             },
           ],
         }}
-        codeBlock={{
-          language: 'hcl',
-          code: `Kind = "service-splitter"
-Name = "billing-api"
-
-Splits = [
-  {
-    Weight        = 10
-    ServiceSubset = "v2"
-  },
-  {
-    Weight        = 90
-    ServiceSubset = "v1"
-  },
-]`,
+        image={{
+          url: require('./img/website-app-aware-intentions.png?url')
         }}
       />
 
@@ -97,7 +84,7 @@ Splits = [
           ],
         }}
         image={{
-          url: require('./img/kubernetes.svg?url'),
+          url: require('./img/IntegrateAndExtend.svg?url'),
         }}
       />
 
@@ -129,11 +116,19 @@ Splits = [
         textSplit={{
           heading: 'Improved Observability',
           content:
-            'Centrally managed service observability at Layer 7 including detailed metrics on all service-to-service communication such as connections, bytes transferred, retries, timeouts, open circuits, and request rates, response codes.',
+            'Gain insight into service health and performance metrics with a built-in visualization directly in the Consul UI or by exporting metrics to a third-party solution.',
           textSide: 'right',
+          links: [
+            {
+              text: 'Learn More',
+              url:
+                '/docs/agent/options#ui_config_metrics_provider',
+              type: 'outbound',
+            },
+          ],
         }}
         image={{
-          url: require('./img/observability.svg?url'),
+          url: require('./img/website-mesh-viz.png?url'),
         }}
       />
 
