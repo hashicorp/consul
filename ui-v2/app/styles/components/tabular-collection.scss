@@ -69,14 +69,11 @@ table.has-actions tr > *:nth-last-child(5):first-child ~ * {
 }
 
 /*TODO: trs only live in tables, get rid of table */
-html.template-policy.template-edit [role='dialog'] table tr,
-html.template-policy.template-edit main table tr,
-html.template-role.template-edit [role='dialog'] table tr,
-html.template-role.template-edit main table.token-list tr {
+html[data-route^='dc.acls.policies.edit'] [role='dialog'] table tr,
+html[data-route^='dc.acls.policies.edit'] table tr,
+html[data-route^='dc.acls.roles.edit'] [role='dialog'] table tr,
+html[data-route^='dc.acls.roles.edit'] main table.token-list tr {
   @extend %tokens-minimal-row;
-}
-html.template-node.template-show main table.sessions tr {
-  @extend %node-sessions-row;
 }
 // this will get auto calculated later in tabular-collection.js
 // keeping this here for reference
@@ -89,35 +86,4 @@ html.template-node.template-show main table.sessions tr {
 }
 %tokens-minimal-row > *:last-child {
   width: calc(100% - 240px) !important;
-}
-
-@media #{$--horizontal-session-list} {
-  %node-sessions-row > * {
-    // (100% / 7) - (300px / 6) - (120px / 6)
-    width: calc(14.2857% - 50px - 20px);
-  }
-  %node-sessions-row > *:nth-child(2) {
-    width: 300px;
-  }
-  %node-sessions-row > *:nth-last-child(1) {
-    width: 120px;
-  }
-}
-@media #{$--lt-horizontal-session-list} {
-  %node-sessions-row > * {
-    // (100% / 2) - (300px / 2) - (120px / 2)
-    width: calc(50% - 150px - 60px);
-  }
-  %node-sessions-row > *:nth-child(2) {
-    width: 300px;
-  }
-  %node-sessions-row > *:nth-last-child(1) {
-    width: 120px;
-  }
-  %node-sessions-row > *:nth-child(3),
-  %node-sessions-row > *:nth-child(4),
-  %node-sessions-row > *:nth-child(5),
-  %node-sessions-row > *:nth-child(6) {
-    display: none;
-  }
 }
