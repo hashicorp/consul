@@ -1,5 +1,62 @@
 ## UNRELEASED
 
+## 1.9.0-beta1 (October 12, 2020)
+
+BREAKING CHANGES:
+
+* agent: The `enable_central_service_config` option now defaults to true. [[GH-8746](https://github.com/hashicorp/consul/issues/8746)]
+* connect: intention destinations can no longer be renamed [[GH-8834](https://github.com/hashicorp/consul/issues/8834)]
+* xds: Drop support for Envoy versions 1.12.0, 1.12.1, 1.12.2, and 1.13.0, due to a lack of support for url_path in RBAC. [[GH-8839](https://github.com/hashicorp/consul/issues/8839)]
+
+FEATURES:
+
+* agent: Allow client agents to be configured with an advertised reconnect timeout to control how long until the nodes are reaped by others in the cluster. [[GH-8781](https://github.com/hashicorp/consul/issues/8781)]
+* agent: moved ui config options to a new `ui_config` stanza in agent configuration and added new options to display service metrics in the UI. [[GH-8694](https://github.com/hashicorp/consul/issues/8694)]
+* cli: update `snapshot inspect` command to provide more detailed snapshot data [[GH-8787](https://github.com/hashicorp/consul/issues/8787)]
+* connect: intentions are now managed as a new config entry kind "service-intentions" [[GH-8834](https://github.com/hashicorp/consul/issues/8834)]
+* connect: support defining intentions using layer 7 criteria [[GH-8839](https://github.com/hashicorp/consul/issues/8839)]
+* server: create new memdb table for storing system metadata [[GH-8703](https://github.com/hashicorp/consul/issues/8703)]
+* telemetry: track node and service counts and emit them as metrics [[GH-8603](https://github.com/hashicorp/consul/issues/8603)]
+* ui: If Prometheus is being used for monitoring the sidecars, the topology view can be configured to display overview metrics for the services. [[GH-8858](https://github.com/hashicorp/consul/issues/8858)]
+* ui: Services using Connect with Envoy sidecars have a topology tab in the UI showing their upstream and downstream services. [[GH-8788](https://github.com/hashicorp/consul/issues/8788)]
+* xds: use envoy's rbac filter to handle intentions entirely within envoy [[GH-8569](https://github.com/hashicorp/consul/issues/8569)]
+
+IMPROVEMENTS:
+
+* agent: Return HTTP 429 when connections per clients limit (`limits.http_max_conns_per_client`) has been reached [GH-7527](https://github.com/hashicorp/consul/issues/7527). [[GH-8221](https://github.com/hashicorp/consul/issues/8221)]
+* agent: add config flag `telemetry { disable_compat_1.9 = (true|false) }` to disable deprecated metrics in 1.9 [[GH-8877](https://github.com/hashicorp/consul/issues/8877)]
+* agent: add counter `consul.api.http` with labels for each HTTP path and method. This is intended to replace `consul.http...` [[GH-8877](https://github.com/hashicorp/consul/issues/8877)]
+* agent: allow the /v1/connect/intentions/match endpoint to use the agent cache [[GH-8875](https://github.com/hashicorp/consul/issues/8875)]
+* api: The `v1/connect/ca/roots` endpoint now accepts a `pem=true` query parameter and will return a PEM encoded certificate chain of
+     all the certificates that would normally be in the JSON version of the response. [[GH-8774](https://github.com/hashicorp/consul/issues/8774)]
+* api: support GetMeta() and GetNamespace() on all config entry kinds [[GH-8764](https://github.com/hashicorp/consul/issues/8764)]
+* checks: add health status to the failure message when gRPC healthchecks fail. [[GH-8726](https://github.com/hashicorp/consul/issues/8726)]
+* command: remove conditional envoy bootstrap generation for versions <=1.10.0 since those are not supported [[GH-8855](https://github.com/hashicorp/consul/issues/8855)]
+* connect: The Vault provider will now automatically renew the lease of the token used, if supported. [[GH-8560](https://github.com/hashicorp/consul/issues/8560)]
+* connect: add support for specifying load balancing policy in service-resolver [[GH-8585](https://github.com/hashicorp/consul/issues/8585)]
+* deps: Update raft to v1.2.0 to prevent non-voters from becoming eligible for leader elections and adding peer id as metric label to reduce cardinality in metric names [[GH-8822](https://github.com/hashicorp/consul/issues/8822)]
+* server: **(Consul Enterprise only)** ensure that we also shutdown network segment serf instances on server shutdown [[GH-8786](https://github.com/hashicorp/consul/issues/8786)]
+* server: make sure that the various replication loggers use consistent logging [[GH-8745](https://github.com/hashicorp/consul/issues/8745)]
+* snapshot agent: Deregister critical snapshotting TTL check if leadership is transferred.
+* ui: Upstream and downstream services in the topology tab will show a visual indication if a deny intention or intention with L7 policies is configured. [[GH-8846](https://github.com/hashicorp/consul/issues/8846)]
+
+DEPRECATIONS:
+
+* agent: The measurements in all of the `consul.http...` prefixed metrics have been migrated to `consul.api.http`. `consul.http...` prefixed metrics will be removed in a future version of Consul. [[GH-8877](https://github.com/hashicorp/consul/issues/8877)]
+* agent: `ui`, `ui_dir` and `ui_content_path` are now deprecated for use in agent configuration files. Use `ui_config.{enable, dir, content_path}` instead. The command arguments `-ui`, `-ui-dir`, and `-ui-content-path` remain supported. [[GH-8694](https://github.com/hashicorp/consul/issues/8694)]
+
+BUG FIXES:
+
+* agent: make the json/hcl decoding of ConnectProxyConfig fully work with CamelCase and snake_case [[GH-8741](https://github.com/hashicorp/consul/issues/8741)]
+* agent: when enable_central_service_config is enabled ensure agent reload doesn't revert check state to critical [[GH-8747](https://github.com/hashicorp/consul/issues/8747)]
+* connect: Fixed an issue where the Vault intermediate was not renewed in the primary datacenter. [[GH-8784](https://github.com/hashicorp/consul/issues/8784)]
+* connect: fix Vault provider not respecting IntermediateCertTTL [[GH-8646](https://github.com/hashicorp/consul/issues/8646)]
+* connect: use stronger validation that ingress gateways have compatible protocols defined for their upstreams [[GH-8470](https://github.com/hashicorp/consul/issues/8470)]
+* fixed a bug that caused logs to be flooded with `[WARN] agent.router: Non-server in server-only area` [[GH-8685](https://github.com/hashicorp/consul/issues/8685)]
+* license: (Enterprise only) Fixed an issue where the UI would see Namespaces and SSO as licensed when they were not.
+* raft: (Enterprise only) properly update consul server meta non_voter for non-voting Enterprise Consul servers [[GH-8731](https://github.com/hashicorp/consul/issues/8731)]
+* ui: show correct datacenter for gateways [[GH-8704](https://github.com/hashicorp/consul/issues/8704)]
+
 ## 1.8.4 (September 11, 2020)
 
 FEATURES:
