@@ -15,7 +15,7 @@
   position: relative;
 }
 %list-collection-scroll-virtual > ul {
-  overflow-x: hidden;
+  overflow-x: hidden !important;
 }
 %list-collection > ul > li:nth-child(2) .with-feedback p {
   bottom: auto;

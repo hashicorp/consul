@@ -7,8 +7,7 @@ a.type-create {
 // some of this and just use not(aria-haspopup)
 button[type='reset'],
 header .actions button[type='button']:not(.copy-btn),
-button.type-cancel,
-html.template-error div > a {
+button.type-cancel {
   @extend %secondary-button;
 }
 .with-confirmation .type-delete,

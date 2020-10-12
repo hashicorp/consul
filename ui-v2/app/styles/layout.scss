@@ -64,7 +64,7 @@ html[data-route$='.edit'] main {
 }
 
 @media #{$--lt-spacious-page-header} {
-  html.template-list:not(.template-kv) main {
+  html[data-route$='.index']:not([data-route^='dc.kv']) .app-view {
     margin-top: 10px;
   }
 }
