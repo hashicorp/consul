@@ -2,19 +2,10 @@
 
 BREAKING CHANGES:
 
-* agent: The `enable_central_service_config` option now defaults to true.Error executing templates: template: note.tmpl:2:14: executing "note" at <not>: wrong number of args for not: want 1 got 3
-22:33:07 mikemorris:~/Projects/consul (release/1.9.0-beta1) nvim .changelog/note.tmpl
-22:36:24 mikemorris:~/Projects/consul (release/1.9.0-beta1) changelog-build -last-release ${LAST_RELEASE_GIT_TAG} -entries-dir .changelog/ -changelog-template .changelog/changelog.tmpl -note-template .changelog/note.tmpl -this-release $(git rev-parse HEAD)
-BREAKING CHANGES:
-
-* agent: The `enable_central_service_config` option now defaults to true.Error executing templates: template: note.tmpl:2:24: executing "note" at <stringHasPrefix>: wrong number of args for stringHasPrefix: want 2 got 0
-22:36:48 mikemorris:~/Projects/consul (release/1.9.0-beta1) nvim .changelog/note.tmpl
-22:43:50 mikemorris:~/Projects/consul (release/1.9.0-beta1) changelog-build -last-release ${LAST_RELEASE_GIT_TAG} -entries-dir .changelog/ -changelog-template .changelog/changelog.tmpl -note-template .changelog/note.tmpl -this-release $(git rev-parse HEAD)
-BREAKING CHANGES:
-
 * agent: The `enable_central_service_config` option now defaults to true. [[GH-8746](https://github.com/hashicorp/consul/issues/8746)]
 * connect: intention destinations can no longer be renamed [[GH-8834](https://github.com/hashicorp/consul/issues/8834)]
 * xds: Drop support for Envoy versions 1.12.0, 1.12.1, 1.12.2, and 1.13.0, due to a lack of support for url_path in RBAC. [[GH-8839](https://github.com/hashicorp/consul/issues/8839)]
+
 FEATURES:
 
 * agent: Allow client agents to be configured with an advertised reconnect timeout to control how long until the nodes are reaped by others in the cluster. [[GH-8781](https://github.com/hashicorp/consul/issues/8781)]
