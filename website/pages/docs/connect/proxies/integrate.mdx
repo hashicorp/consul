@@ -35,9 +35,22 @@ For inbound connections, the proxy must accept TLS connections on some port.
 The certificate served should be obtained from the [`/v1/agent/connect/ca/leaf/`]
 API endpoint. The client certificate should be validated against the root certificates
 provided by the [`/v1/agent/connect/ca/roots`] endpoint. After validating the
-client certificate from the caller, the proxy must call the
-[`/v1/agent/connect/authorize`](/api/agent/connect) endpoint to
-authorize the connection.
+client certificate from the caller, the proxy must authorize the connection.
+
+Connection authorization can be performed one of two ways. The first is by
+calling the [`/v1/agent/connect/authorize`](/api/agent/connect) endpoint.
+
+~> **Note:** This endpoint is only suited for networking
+layer 4 (e.g. TCP) integration. The endpoint will always treat intentions with
+Permissions defined (i.e., layer 7 criteria) as deny intentions during evaluation.
+
+Alternatively, proxies may listing intentions that match the destination by
+querying the [intention match API](/api/connect/intentions#list-matching-intentions)
+endpoint, and represent them in the native configuration of the proxy itself
+(such as RBAC for Envoy). For performance and reliability reasons this is the
+desirable method for implementing intention enforcement. These cached intentions
+can then be consulted for each incoming connection to determine if the should be
+accepted or rejected.
 
 All of these API endpoints operate on agent-local data that is updated
 in the background. The leaf and roots should be updated in the background
@@ -65,12 +78,6 @@ transport layer. Authorization is performed on a per-connection basis (i.e. at
 layer 4), not per-request. This means in the case of HTTP a single TCP session
 will be authorized, and multiple HTTP requests may utilize the same underlying
 connection.
-
-Connect is designed for the Consul agent to locally handle authorization calls.
-Intention rules are not designed to be pre-populated in underlying proxies, even
-though the proxy may support pushing RBAC rules into its configuration, because
-our long-term plan is to integrate sophisticated policies (like user-defined
-Sentinel policies) which cannot be represented as allow/deny lists.
 
 -> **Note:** Features like (local) rate limiting or max connections are
 configurations that we expect to push into proxies and have them enforce
@@ -183,7 +190,7 @@ We expect config here to evolve reasonably rapidly. While we do not intend to
 make backwards incompatible API changes, there are likely to be new configurations
 and features added regularly. Some proxies may not be able to support all
 features or may have differing semantics with the way they support them. We
-intend to find a suitable format to document the behaviour differences between
+intend to find a suitable format to document the behavior differences between
 proxy implementations as they mature.
 
 ## Sidecar instantiation
