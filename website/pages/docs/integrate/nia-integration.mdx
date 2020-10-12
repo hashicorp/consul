@@ -17,7 +17,7 @@ Consul-Terraform-Sync executes one or more automation tasks with an appropriate 
 
 [![NIA Architecture](/img/nia-highlevel-diagram.png)](/img/nia-highlevel-diagram.png)
 
--> Please note that the above indicated solution is a “push” based method and is not the only way to integrate network devices with Consul and drive Network Infrastructure Automation Integration. If your preferred method is to directly integrate with Consul without using Terraform, then please use [Consul Integration Program](/docs/integrate/partnerships).
+-> Please note that the above indicated solution is a “push” based method and is not the only way to integrate network devices with Consul and drive Network Infrastructure Automation Integration. If your preferred method is to directly integrate with Consul without using Terraform, then please use [Consul Integration Program](/docs/integrate/partnerships) or reach out to us directly at nia-integration-dev@hashicorp.com.
 
 ## NIA Program Steps
 
@@ -45,13 +45,13 @@ Consul-Terraform-Sync compatible Terraform module development process is fairly 
 - Consul [documentation](/docs)
 - Consul-Terraform-Sync use case [documentation](/use-cases/network-infrastructure-automation)
 - Writing Consul-Terraform-Sync compatible Terraform modules [guide](/docs/nia/installation/requirements#how-to-create-a-compatible-terraform-module)
-- Example [module](https://registry.terraform.io/modules/findkim/ngfw/panos/0.0.1-beta3) for reference
+- Example [module](https://registry.terraform.io/modules/PaloAltoNetworks/dag-nia/panos/latest) for reference
 - Publishing to the Terraform Registry [guidelines](https://www.terraform.io/docs/registry/modules/publish.html)
 
 ### 3. Develop & Test
 
 Terraform modules are written in HashiCorp Configuration Language (HCL). Writing [Terraform modules](https://www.terraform.io/docs/modules/index.html) or a [tutorial to build a module](https://learn.hashicorp.com/tutorials/terraform/module-create) are good resources to begin writing a new module.
-Consul-Terraform-Sync compatible modules follow the [standard module structure](https://www.terraform.io/docs/modules/index.html#standard-module-structure). Modules can use syntax supported by Terraform version 0.13, or higher. Consul-Terraform-Sync is designed to integrate with any module that satisfies these [specifications](/docs/nia/installation/requirements#how-to-create-a-compatible-terraform-module). The guide will give you an introduction of the code structure and the basics of authoring a module for Terraform. Additionally developers are encouraged to use the [PAN-OS NGFW](https://github.com/devarshishah3/terraform-panos-dag-nia) module as an implementation reference.
+Consul-Terraform-Sync compatible modules follow the [standard module structure](https://www.terraform.io/docs/modules/index.html#standard-module-structure). Modules can use syntax supported by Terraform version 0.13, or higher. Consul-Terraform-Sync is designed to integrate with any module that satisfies these [specifications](/docs/nia/installation/requirements#how-to-create-a-compatible-terraform-module). The guide will give you an introduction of the code structure and the basics of authoring a plugin that Terraform can interact with.
 
 It is recommended that partners develop modules that cater to specific workflows on an individual platform in their product portfolio rather than having overarching modules that try to cover multiple workflows across different platforms. This is to keep the automation modular and adoptable by a broad set of users with varying network infrastructure topologies. Partners are encouraged to test the functionality of the modules against their supported platforms.
 
