@@ -1,0 +1,3 @@
+```release-note:bug
+connect: fix connect sidecars registered via the API not being automatically deregistered with their parent service after an agent restart by persisting the LocallyRegisteredAsSidecar property.
+```
