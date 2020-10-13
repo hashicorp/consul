@@ -1,6 +1,5 @@
 import UseCaseLayout from '../../layouts/use-cases'
 import TextSplitWithImage from '@hashicorp/react-text-split-with-image'
-import TextSplitWithCode from '@hashicorp/react-text-split-with-code'
 
 export default function MultiPlatformServiceMeshPage() {
   return (
@@ -49,7 +48,7 @@ export default function MultiPlatformServiceMeshPage() {
         }}
       />
 
-      <TextSplitWithCode
+      <TextSplitWithImage
         textSplit={{
           heading: 'Layer 7 Traffic Management',
           content:
@@ -65,7 +64,7 @@ export default function MultiPlatformServiceMeshPage() {
           ],
         }}
         image={{
-          url: require('./img/website-app-aware-intentions.png?url')
+          url: require('./img/website-app-aware-intentions.png?url'),
         }}
       />
 
@@ -121,8 +120,7 @@ export default function MultiPlatformServiceMeshPage() {
           links: [
             {
               text: 'Learn More',
-              url:
-                '/docs/agent/options#ui_config_metrics_provider',
+              url: '/docs/agent/options#ui_config_metrics_provider',
               type: 'outbound',
             },
           ],
