@@ -10,9 +10,5 @@
     We use a nested in /components folder structure:
     /components/component-name/index.{hbs,js}
   */
-  "componentStructure": "nested",
-  /**
-    We currently use classic components
-  */
-  "componentClass": "@ember/component"
+  "componentStructure": "nested"
 }
