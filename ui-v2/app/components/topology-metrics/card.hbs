@@ -46,11 +46,15 @@
 {{/if}}
   </div>
   {{#if @hasMetricsProvider }}
-    {{#if (eq @type 'upstream')}}
-      <TopologyMetrics::Stats @endpoint='upstream-summary-for-service' @service={{@service}} @item={{item.Name}} />
-    {{else}}
-      <TopologyMetrics::Stats @endpoint='downstream-summary-for-service' @service={{@service}} @item={{item.Name}} />
-    {{/if}}
+    <DataSource
+      @src={{uri @nspace @dc 'metrics' (concat @type '-summary-for-service') @service @protocol}}
+      @onchange={{action (mut this.stats) value="data.stats"}}
+      @onerror={{action (mut this.error) value="error"}}
+    />
+    <TopologyMetrics::Stats
+      @data={{take 4 (or (get this.stats item.Name) array)}}
+      @error={{this.error}}
+    />
   {{/if}}
 </a>
 {{/each}}

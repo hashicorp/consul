@@ -26,8 +26,8 @@ export default Component.extend({
     redraw: function(evt) {
       this.drawGraphs();
     },
-    change: function(evt) {
-      this.data = evt.data;
+    change: function($el, [data]) {
+      this.data = data;
       this.element.querySelector('.sparkline-loader').style.display = 'none';
       this.drawGraphs();
     },

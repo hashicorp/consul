@@ -12,6 +12,7 @@
       </span>
     </div>
     <TopologyMetrics::Card
+      @type='downstream'
       @items={{@downstreams}}
       @service={{@service.Service.Service}}
       @dc={{@dc}}
@@ -24,8 +25,26 @@
       {{@service.Service.Service}}
     </div>
     {{#if this.hasMetricsProvider }}
-      <TopologyMetrics::Series @service={{@service.Service.Service}} @protocol={{@protocol}} />
-      <TopologyMetrics::Stats @endpoint='summary-for-service' @service={{@service.Service.Service}} @protocol={{@protocol}} />
+      <DataSource
+        @src={{uri @nspace @dc 'metrics' 'summary-for-service' @service.Service.Service @protocol}}
+        @onchange={{action (mut this.series) value="data"}}
+        @onerror={{action (mut this.seriesError) value="error"}}
+      />
+      <TopologyMetrics::Series
+        @data={{this.series}}
+        @error={{this.seriesError}}
+        @service={{@service.Service.Service}}
+        @protocol={{@protocol}}
+      />
+      <DataSource
+        @src={{uri @nspace @dc 'metrics' 'summary-for-service' @service @protocol}}
+        @onchange={{action (mut this.stats) value="data.stats"}}
+        @onerror={{action (mut this.error) value="error"}}
+      />
+      <TopologyMetrics::Stats
+        @data={{this.stats}}
+        @error={{this.error}}
+      />
     {{/if}}
     <div class="link">
      {{#if @metricsHref}}
@@ -50,10 +69,10 @@
     <div id="upstream-container">
       <p>{{dc}}</p>
       <TopologyMetrics::Card
+        @type='upstream'
         @items={{upstreams}}
         @service={{@service.Service.Service}}
         @dc={{@dc}}
-        @type='upstream'
         @hasMetricsProvider={{this.hasMetricsProvider}}
       />
     </div>

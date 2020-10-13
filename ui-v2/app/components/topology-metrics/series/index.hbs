@@ -1,12 +1,6 @@
-<DataSource
-  @src={{uri nspace dc 'metrics' 'summary-for-service' @service @protocol}}
-  @onchange={{action 'change'}}
-  @onerror={{action (mut error) value="error"}}
-/>
-
 {{#if (not error)}}
   {{on-window 'resize' (action 'redraw')}}
-  <div class="sparkline-wrapper">
+  <div class="sparkline-wrapper" {{did-update (action "change") @data}}>
     <div class="tooltip">
       <div class="sparkline-time">Timestamp</div>
     </div>
