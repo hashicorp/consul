@@ -74,23 +74,16 @@
         labels.push('Data rate transmitted');
       }
 
-      var all = Promise.allSettled(series).then(function(results) {
-        var data = { series: [] };
-        for (var i = 0; i < series.length; i++) {
-          if (results[i].value) {
-            data.series.push({
-              label: labels[i],
-              data: results[i].value,
-            });
-          } else if (results[i].reason) {
-            console.log('ERROR processing series', labels[i], results[i].reason);
-          }
-        }
-        return data;
-      });
-
       // Fetch the metrics async, and return a promise to the result.
-      return all;
+      // Filter out empty values and add labels
+      return Promise.all(series).then(results => {
+        return {
+          series: results.filter(Boolean).map((result, i) => ({
+            label: labels[i],
+            data: result,
+          }))
+        }
+      });
     },
 
     /**
@@ -228,49 +221,35 @@
     },
 
     fetchStats: function(statsPromises) {
-      var all = Promise.allSettled(statsPromises).then(function(results) {
-        var data = {
-          stats: [],
-        };
-        // Add all non-empty stats
-        for (var i = 0; i < statsPromises.length; i++) {
-          if (results[i].value) {
-            data.stats.push(results[i].value);
-          } else if (results[i].reason) {
-            console.log('ERROR processing stat', results[i].reason);
-          }
-        }
-        return data;
-      });
-
       // Fetch the metrics async, and return a promise to the result.
-      return all;
+      return Promise.all(statsPromises).then(results => {
+        // Add all non-empty stats
+        return {
+          stats: results.filter(Boolean),
+        }
+      });
     },
 
     fetchStatsGrouped: function(statsPromises) {
-      var all = Promise.allSettled(statsPromises).then(function(results) {
-        var data = {
-          stats: {},
-        };
-        // Add all non-empty stats
-        for (var i = 0; i < statsPromises.length; i++) {
-          if (results[i].value) {
-            for (var group in results[i].value) {
-              if (!results[i].value.hasOwnProperty(group)) continue;
-              if (!data.stats[group]) {
-                data.stats[group] = [];
-              }
-              data.stats[group].push(results[i].value[group]);
-            }
-          } else if (results[i].reason) {
-            console.log('ERROR processing stat', results[i].reason);
-          }
-        }
-        return data;
-      });
-
       // Fetch the metrics async, and return a promise to the result.
-      return all;
+      return Promise.all(statsPromises).then(results => {
+        // Add all non-empty stats
+        return {
+          stats: results.filter(Boolean).reduce(
+            (prev, result) => {
+              // group the results by property
+              Object.keys(result).forEach(prop => {
+                if(typeof prev[prop] === 'undefined') {
+                  prev[prop] = [];
+                }
+                prev[prop].push(result[prop])
+              })
+              return prev;
+            },
+            {}
+          ),
+        };
+      });
     },
 
     reformatSeries: function(response) {
@@ -287,11 +266,7 @@
 
     fetchRequestRateSeries: function(serviceName, options) {
       var q = `sum(irate(envoy_listener_http_downstream_rq_xx{local_cluster="${serviceName}",envoy_http_conn_manager_prefix="public_listener_http"}[10m]))`;
-      return this.fetchSeries(q, options).then(this.reformatSeries, function(xhr) {
-        // Failure. log to console and return an blank result for now.
-        console.log('ERROR: failed to fetch requestRate', xhr.responseText);
-        return [];
-      });
+      return this.fetchSeries(q, options).then(this.reformatSeries);
     },
 
     fetchErrorRateSeries: function(serviceName, options) {
@@ -304,29 +279,17 @@
         `envoy_response_code_class="5"}[10m]` +
         `)` +
         `)`;
-      return this.fetchSeries(q, options).then(this.reformatSeries, function(xhr) {
-        // Failure. log to console and return an blank result for now.
-        console.log('ERROR: failed to fetch errorRate', xhr.responseText);
-        return [];
-      });
+      return this.fetchSeries(q, options).then(this.reformatSeries);
     },
 
     fetchServiceRxSeries: function(serviceName, options) {
       var q = `8 * sum(irate(envoy_tcp_downstream_cx_rx_bytes_total{local_cluster="${serviceName}", envoy_tcp_prefix="public_listener_tcp"}[10m]))`;
-      return this.fetchSeries(q, options).then(this.reformatSeries, function(xhr) {
-        // Failure. log to console and return an blank result for now.
-        console.log('ERROR: failed to fetch rx data rate', xhr.responseText);
-        return [];
-      });
+      return this.fetchSeries(q, options).then(this.reformatSeries);
     },
 
     fetchServiceTxSeries: function(serviceName, options) {
       var q = `8 * sum(irate(envoy_tcp_downstream_cx_tx_bytes_total{local_cluster="${serviceName}", envoy_tcp_prefix="public_listener_tcp"}[10m]))`;
-      return this.fetchSeries(q, options).then(this.reformatSeries, function(xhr) {
-        // Failure. log to console and return an blank result for now.
-        console.log('ERROR: failed to fetch tx data rate', xhr.responseText);
-        return [];
-      });
+      return this.fetchSeries(q, options).then(this.reformatSeries);
     },
 
     makeSubject: function(serviceName, type) {
@@ -618,12 +581,14 @@
         xhr.onreadystatechange = function() {
           if (xhr.readyState !== 4) return;
 
-          if (xhr.status == 200) {
+          if (xhr.status === 200) {
             // Attempt to parse response as JSON and return the object
             var o = JSON.parse(xhr.responseText);
             resolve(o);
           }
-          reject(xhr);
+          const e = new Error(xhr.statusText);
+          e.statusCode = xhr.status;
+          reject(e);
         };
 
         var url = self.baseURL() + path;
