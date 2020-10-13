@@ -202,6 +202,7 @@ type Config struct {
 	LogRotateDuration                *string             `json:"log_rotate_duration,omitempty" hcl:"log_rotate_duration" mapstructure:"log_rotate_duration"`
 	LogRotateBytes                   *int                `json:"log_rotate_bytes,omitempty" hcl:"log_rotate_bytes" mapstructure:"log_rotate_bytes"`
 	LogRotateMaxFiles                *int                `json:"log_rotate_max_files,omitempty" hcl:"log_rotate_max_files" mapstructure:"log_rotate_max_files"`
+	LogColor                         *string             `json:"log_color" hcl:"log_color" mapstructure:"log_color"`
 	MaxQueryTime                     *string             `json:"max_query_time,omitempty" hcl:"max_query_time" mapstructure:"max_query_time"`
 	NodeID                           *string             `json:"node_id,omitempty" hcl:"node_id" mapstructure:"node_id"`
 	NodeMeta                         map[string]string   `json:"node_meta,omitempty" hcl:"node_meta" mapstructure:"node_meta"`

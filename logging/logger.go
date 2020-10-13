@@ -27,17 +27,20 @@ type Config struct {
 	// SyslogFacility is the destination for syslog forwarding.
 	SyslogFacility string
 
-	//LogFilePath is the path to write the logs to the user specified file.
+	// LogFilePath is the path to write the logs to the user specified file.
 	LogFilePath string
 
-	//LogRotateDuration is the user specified time to rotate logs
+	// LogRotateDuration is the user specified time to rotate logs
 	LogRotateDuration time.Duration
 
-	//LogRotateBytes is the user specified byte limit to rotate logs
+	// LogRotateBytes is the user specified byte limit to rotate logs
 	LogRotateBytes int
 
-	//LogRotateMaxFiles is the maximum number of past archived log files to keep
+	// LogRotateMaxFiles is the maximum number of past archived log files to keep
 	LogRotateMaxFiles int
+
+	// Color enables colored output of the log level label in the logs.
+	Color ColorOption
 }
 
 const (
@@ -62,7 +65,7 @@ func Setup(config Config, out io.Writer) (hclog.InterceptLogger, error) {
 			allowedLogLevels)
 	}
 
-	writers := []io.Writer{out}
+	writers := []io.Writer{newColorWriter(out, config.Color)}
 
 	if config.EnableSyslog {
 		retries := 12
