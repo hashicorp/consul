@@ -33,7 +33,7 @@ task {
   version = "1.0.0"
   providers = ["myprovider"]
   services = ["web", "api"]
-  wait {
+  buffer_period {
     min = "10s"
   }
 }
