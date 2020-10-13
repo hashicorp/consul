@@ -6,6 +6,7 @@
       @protocol={{topology.Protocol}}
       @upstreams={{topology.Upstreams}}
       @downstreams={{filter-by 'Datacenter' topology.Datacenter topology.Downstreams}}
+      @nspace={{nspace}}
       @dc={{topology.Datacenter}}
       @metricsHref={{render-template urls.service (hash
         Datacenter=dc
