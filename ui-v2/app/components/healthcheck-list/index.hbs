@@ -1,6 +1,9 @@
-<div ...attributes>
+<div
+  class="healthcheck-list"
+  ...attributes
+>
   <ul>
-{{#each items as |item| }}
+{{#each @items as |item| }}
     <li class={{concat 'healthcheck-output ' item.Status}}>
       <div>
         <header>

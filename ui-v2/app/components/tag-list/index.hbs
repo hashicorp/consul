@@ -1,7 +1,7 @@
-{{#if (gt item.Tags.length 0)}}
+{{#if (gt @item.Tags.length 0)}}
   {{#if (has-block)}}
     {{yield
-      (component 'tag-list' item=item)
+      (component 'tag-list' item=@item)
     }}
   {{else}}
     <dl class="tag-list">
@@ -11,7 +11,7 @@
         </Tooltip>
       </dt>
       <dd data-test-tags>
-        {{#each item.Tags as |item|}}
+        {{#each @item.Tags as |item|}}
           <span>{{item}}</span>
         {{/each}}
       </dd>
