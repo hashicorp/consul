@@ -27,6 +27,12 @@ and `ca_provider` values for the provider you're using.
 
 ## Configuring Vault as a Connect CA
 
+-> **NOTE:** If using Vault as your Connect CA, it's highly recommended to run a Consul version >= 1.8.5 that supports
+token auto-renewal. With this feature, if the Vault token is [renewable](https://www.vaultproject.io/api-docs/auth/token#renewable)
+then Consul will automatically renew the token periodically. Without this feature, you
+will need to [manually rotate](#manually-rotating-vault-tokens) the Vault
+token before it expires.
+
 ### Primary Datacenter
 
 To configure Vault as a CA provider for Consul Connect,
@@ -34,6 +40,8 @@ first, create a provider configuration JSON file.
 Please refer to [Vault as a Connect CA](/docs/connect/ca/vault) for the configuration options.
 You will need to provide a Vault token to the `token` property.
 Please refer to [these docs](/docs/connect/ca/vault#token) for the permissions that the token needs to have.
+This token should be [renewable](https://www.vaultproject.io/api-docs/auth/token#renewable).
+
 To provide a CA, you first need to create a Kubernetes secret containing the CA.
 For example, you may create a secret with the Vault CA like so:
 
@@ -160,8 +168,18 @@ Vault's CA in each secondary Kubernetes cluster.
 
 Note that all secondary datacenters need to have access to the same Vault instance as the primary.
 
-### Rotating Vault Tokens
+### Manually Rotating Vault Tokens
+
+If running Consul < 1.8.5 or using a Vault token that is not [renewable](https://www.vaultproject.io/api-docs/auth/token#renewable)
+then you will need to manually renew or rotate the Vault token before it expires.
+
+#### Rotating Vault Token
 
 Once the cluster is running, subsequent changes to the `ca_provider` config are **ignored**–even if `consul reload` is run or the servers are restarted.
 
 To update any settings under this key, you must use Consul's [Update CA Configuration](/api/connect/ca#update-ca-configuration) API or the [`consul connect ca set-config`](https://www.consul.io/docs/commands/connect/ca#set-config) command.
+
+#### Renewing Vault Token
+
+To renew the Vault token, use the [`vault token renew`](https://www.vaultproject.io/docs/commands/token/renew) CLI command
+or API.
