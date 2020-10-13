@@ -124,24 +124,7 @@ variable "services" {
 }
 ```
 
-Keys of the `services` map are unique identifiers of the service across Consul agents and data centers. Keys follow the format `service-id.node.datacenter` (or `service-id.node.namespace.datacenter` for Consul Enterprise).
-
-| Attribute | Description |
-| -- | -- |
-| `id` | A unique Consul ID for this service. This is unique per Consul agent. |
-| `name` | The logical name of the service. Many service instances may share the same logical service name. |
-| `address` | IP address of the service host -- if empty, node address should be used. |
-| `port` | Port number of the service |
-| `meta` | List of user-defined metadata key/value pairs for the service |
-| `tags` | List of tags for the service |
-| `namespace` | Consul Enterprise namespace of the service instance |
-| `status` | Representative status for the service instance based on an aggregate of the list of health checks |
-| `node` | Name of the Consul node on which the service is registered |
-| `node_id` | ID of the node on which the service is registered. |
-| `node_address` | The IP address of the Consul node on which the service is registered. |
-| `node_datacenter` | Data center of the Consul node on which the service is registered. |
-| `node_tagged_addresses` | List of explicit LAN and WAN IP addresses for the agent |
-| `node_meta` | List of user-defined metadata key/value pairs for the node |
+Keys of the `services` map are unique identifiers of the service across Consul agents and data centers. Keys follow the format `service-id.node.datacenter` (or `service-id.node.namespace.datacenter` for Consul Enterprise). A complete list of attributes available for the `services` variable is included in the [documentation for Consul-Terraform-Sync tasks](/docs/nia/tasks#task-execution).
 
 Terraform variables when passed as module arguments can be [lossy for object types](https://www.terraform.io/docs/configuration/types.html#conversion-of-complex-types). This allows Consul-Terraform-Sync to declare the full variable with every object attribute in the generated root module, and pass the variable to a child module that contains a subset of these attributes for its variable declaration. Modules compatible with Consul-Terraform-Sync may simplify the services variable within the module by omitting unused attributes. For example, the following services variable has 4 attributes with the rest omitted.
 
