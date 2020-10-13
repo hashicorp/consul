@@ -37,8 +37,7 @@ export default function NetworkInfrastructureAutomationPage() {
           links: [
             {
               text: 'Learn More',
-              url:
-                '/docs/nia',
+              url: '/docs/nia',
               type: 'outbound',
             },
           ],
@@ -77,7 +76,7 @@ export default function NetworkInfrastructureAutomationPage() {
           links: [
             {
               text: 'Read More',
-              url: '/docs/nia-integrations',
+              url: '/docs/integrate/nia-integration',
               type: 'inbound',
             },
           ],
@@ -118,7 +117,7 @@ export default function NetworkInfrastructureAutomationPage() {
               {
                 text: 'Learn More',
                 url:
-                  '/docs/nia',
+                  'https://learn.hashicorp.com/tutorials/consul/recovery-outage?in=consul/datacenter-operations',
                 type: 'outbound',
               },
             ],
