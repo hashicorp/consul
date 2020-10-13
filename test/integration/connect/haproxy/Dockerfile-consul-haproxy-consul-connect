@@ -1,0 +1,8 @@
+# Note this arg has to be before the first FROM
+ARG HAPROXY_CONSUL_CONNECT_VERSION
+
+FROM consul-dev as consul
+
+FROM haproxytech/haproxy-consul-connect:${HAPROXY_CONSUL_CONNECT_VERSION}
+
+COPY --from=consul /bin/consul /bin/consul

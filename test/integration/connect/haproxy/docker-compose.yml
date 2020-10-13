@@ -191,20 +191,15 @@ services:
   s1-sidecar-proxy:
     depends_on:
       - consul-primary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
+    image: "haproxytech/haproxy-consul-connect:${HAPROXY_CONSUL_CONNECT_VERSION}"
     command:
-     - "envoy"
-     - "-c"
-     - "/workdir/primary/envoy/s1-bootstrap.json"
-     - "-l"
-     - "debug"
-     # Hot restart breaks since both envoys seem to interact with each other
-     # despite separate containers that don't share IPC namespace. Not quite
-     # sure how this happens but may be due to unix socket being in some shared
-     # location?
-     - "--disable-hot-restart"
-     - "--drain-time-s"
-     - "1"
+      - "haproxy-connect"
+      - "-sidecar-for"
+      - "s1" 
+      - "-dataplane"
+      - "/usr/local/bin/dataplaneapi"
+      - "-haproxy"
+      - "/usr/local/sbin/haproxy"
     volumes:
       - *workdir-volume
     network_mode: service:consul-primary
@@ -212,20 +207,16 @@ services:
   s2-sidecar-proxy:
     depends_on:
       - consul-primary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
+    image: "haproxytech/haproxy-consul-connect:${HAPROXY_CONSUL_CONNECT_VERSION}"
     command:
-     - "envoy"
-     - "-c"
-     - "/workdir/primary/envoy/s2-bootstrap.json"
-     - "-l"
-     - "debug"
-     # Hot restart breaks since both envoys seem to interact with each other
-     # despite separate containers that don't share IPC namespace. Not quite
-     # sure how this happens but may be due to unix socket being in some shared
-     # location?
-     - "--disable-hot-restart"
-     - "--drain-time-s"
-     - "1"
+    command:
+      - "haproxy-connect"
+      - "-sidecar-for"
+      - "s2" 
+      - "-dataplane"
+      - "/usr/local/bin/dataplaneapi"
+      - "-haproxy"
+      - "/usr/local/sbin/haproxy"
     volumes:
       - *workdir-volume
     network_mode: service:consul-primary
@@ -233,20 +224,20 @@ services:
   s2-v1-sidecar-proxy:
     depends_on:
       - consul-primary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
-    command:
-     - "envoy"
-     - "-c"
-     - "/workdir/primary/envoy/s2-v1-bootstrap.json"
-     - "-l"
-     - "debug"
-     # Hot restart breaks since both envoys seem to interact with each other
-     # despite separate containers that don't share IPC namespace. Not quite
-     # sure how this happens but may be due to unix socket being in some shared
-     # location?
-     - "--disable-hot-restart"
-     - "--drain-time-s"
-     - "1"
+    image: "haproxytech/haproxy-consul-connect:${HAPROXY_CONSUL_CONNECT_VERSION}"
+    #    command:
+    #     - "envoy"
+    #     - "-c"
+    #     - "/workdir/primary/envoy/s2-v1-bootstrap.json"
+    #     - "-l"
+    #     - "debug"
+    #     # Hot restart breaks since both envoys seem to interact with each other
+    #     # despite separate containers that don't share IPC namespace. Not quite
+    #     # sure how this happens but may be due to unix socket being in some shared
+    #     # location?
+    #     - "--disable-hot-restart"
+    #     - "--drain-time-s"
+    #     - "1"
     volumes:
       - *workdir-volume
     network_mode: service:consul-primary
@@ -254,20 +245,20 @@ services:
   s2-v2-sidecar-proxy:
     depends_on:
       - consul-primary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
-    command:
-     - "envoy"
-     - "-c"
-     - "/workdir/primary/envoy/s2-v2-bootstrap.json"
-     - "-l"
-     - "debug"
-     # Hot restart breaks since both envoys seem to interact with each other
-     # despite separate containers that don't share IPC namespace. Not quite
-     # sure how this happens but may be due to unix socket being in some shared
-     # location?
-     - "--disable-hot-restart"
-     - "--drain-time-s"
-     - "1"
+    image: "haproxytech/haproxy-consul-connect:${HAPROXY_CONSUL_CONNECT_VERSION}"
+    #    command:
+    #     - "envoy"
+    #     - "-c"
+    #     - "/workdir/primary/envoy/s2-v2-bootstrap.json"
+    #     - "-l"
+    #     - "debug"
+    #     # Hot restart breaks since both envoys seem to interact with each other
+    #     # despite separate containers that don't share IPC namespace. Not quite
+    #     # sure how this happens but may be due to unix socket being in some shared
+    #     # location?
+    #     - "--disable-hot-restart"
+    #     - "--drain-time-s"
+    #     - "1"
     volumes:
       - *workdir-volume
     network_mode: service:consul-primary
@@ -275,20 +266,20 @@ services:
   s3-sidecar-proxy:
     depends_on:
       - consul-primary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
-    command:
-     - "envoy"
-     - "-c"
-     - "/workdir/primary/envoy/s3-bootstrap.json"
-     - "-l"
-     - "debug"
-     # Hot restart breaks since both envoys seem to interact with each other
-     # despite separate containers that don't share IPC namespace. Not quite
-     # sure how this happens but may be due to unix socket being in some shared
-     # location?
-     - "--disable-hot-restart"
-     - "--drain-time-s"
-     - "1"
+    image: "haproxytech/haproxy-consul-connect:${HAPROXY_CONSUL_CONNECT_VERSION}"
+    #    command:
+    #     - "envoy"
+    #     - "-c"
+    #     - "/workdir/primary/envoy/s3-bootstrap.json"
+    #     - "-l"
+    #     - "debug"
+    #     # Hot restart breaks since both envoys seem to interact with each other
+    #     # despite separate containers that don't share IPC namespace. Not quite
+    #     # sure how this happens but may be due to unix socket being in some shared
+    #     # location?
+    #     - "--disable-hot-restart"
+    #     - "--drain-time-s"
+    #     - "1"
     volumes:
       - *workdir-volume
     network_mode: service:consul-primary
@@ -296,20 +287,20 @@ services:
   s3-v1-sidecar-proxy:
     depends_on:
       - consul-primary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
-    command:
-     - "envoy"
-     - "-c"
-     - "/workdir/primary/envoy/s3-v1-bootstrap.json"
-     - "-l"
-     - "debug"
-     # Hot restart breaks since both envoys seem to interact with each other
-     # despite separate containers that don't share IPC namespace. Not quite
-     # sure how this happens but may be due to unix socket being in some shared
-     # location?
-     - "--disable-hot-restart"
-     - "--drain-time-s"
-     - "1"
+    image: "haproxytech/haproxy-consul-connect:${HAPROXY_CONSUL_CONNECT_VERSION}"
+    #    command:
+    #     - "envoy"
+    #     - "-c"
+    #     - "/workdir/primary/envoy/s3-v1-bootstrap.json"
+    #     - "-l"
+    #     - "debug"
+    #     # Hot restart breaks since both envoys seem to interact with each other
+    #     # despite separate containers that don't share IPC namespace. Not quite
+    #     # sure how this happens but may be due to unix socket being in some shared
+    #     # location?
+    #     - "--disable-hot-restart"
+    #     - "--drain-time-s"
+    #     - "1"
     volumes:
       - *workdir-volume
     network_mode: service:consul-primary
@@ -317,20 +308,20 @@ services:
   s3-v2-sidecar-proxy:
     depends_on:
       - consul-primary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
-    command:
-     - "envoy"
-     - "-c"
-     - "/workdir/primary/envoy/s3-v2-bootstrap.json"
-     - "-l"
-     - "debug"
-     # Hot restart breaks since both envoys seem to interact with each other
-     # despite separate containers that don't share IPC namespace. Not quite
-     # sure how this happens but may be due to unix socket being in some shared
-     # location?
-     - "--disable-hot-restart"
-     - "--drain-time-s"
-     - "1"
+    image: "haproxytech/haproxy-consul-connect:${HAPROXY_CONSUL_CONNECT_VERSION}"
+    #    command:
+    #     - "envoy"
+    #     - "-c"
+    #     - "/workdir/primary/envoy/s3-v2-bootstrap.json"
+    #     - "-l"
+    #     - "debug"
+    #     # Hot restart breaks since both envoys seem to interact with each other
+    #     # despite separate containers that don't share IPC namespace. Not quite
+    #     # sure how this happens but may be due to unix socket being in some shared
+    #     # location?
+    #     - "--disable-hot-restart"
+    #     - "--drain-time-s"
+    #     - "1"
     volumes:
       - *workdir-volume
     network_mode: service:consul-primary
@@ -338,20 +329,20 @@ services:
   s3-alt-sidecar-proxy:
     depends_on:
       - consul-primary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
-    command:
-     - "envoy"
-     - "-c"
-     - "/workdir/primary/envoy/s3-alt-bootstrap.json"
-     - "-l"
-     - "debug"
-     # Hot restart breaks since both envoys seem to interact with each other
-     # despite separate containers that don't share IPC namespace. Not quite
-     # sure how this happens but may be due to unix socket being in some shared
-     # location?
-     - "--disable-hot-restart"
-     - "--drain-time-s"
-     - "1"
+    image: "haproxytech/haproxy-consul-connect:${HAPROXY_CONSUL_CONNECT_VERSION}"
+    #    command:
+    #     - "envoy"
+    #     - "-c"
+    #     - "/workdir/primary/envoy/s3-alt-bootstrap.json"
+    #     - "-l"
+    #     - "debug"
+    #     # Hot restart breaks since both envoys seem to interact with each other
+    #     # despite separate containers that don't share IPC namespace. Not quite
+    #     # sure how this happens but may be due to unix socket being in some shared
+    #     # location?
+    #     - "--disable-hot-restart"
+    #     - "--drain-time-s"
+    #     - "1"
     volumes:
       - *workdir-volume
     network_mode: service:consul-primary
@@ -364,7 +355,7 @@ services:
       dockerfile: Dockerfile-bats
     tty: true
     environment:
-     - ENVOY_VERSION
+     - HAPROXY_CONSUL_CONNECT_VERSION
     command:
      - "--pretty"
      - "/workdir/primary/bats"
@@ -377,21 +368,21 @@ services:
       - consul-primary
     build:
       context: .
-      dockerfile: Dockerfile-consul-envoy
+      dockerfile: Dockerfile-consul-haproxy-consul-connect
       args:
-        ENVOY_VERSION: ${ENVOY_VERSION}
-    image: consul-dev-envoy:${ENVOY_VERSION}
-    command:
-      - "consul"
-      - "connect"
-      - "envoy"
-      - "-sidecar-for"
-      - "s1"
-      - "-envoy-version"
-      - ${ENVOY_VERSION}
-      - "--"
-      - "-l"
-      - "debug"
+        HAPROXY_CONSUL_CONNECT_VERSION: ${HAPROXY_CONSUL_CONNECT_VERSION}
+        #image: consul-dev-envoy:${HAPROXY_CONSUL_CONNECT_VERSION}
+      #    command:
+      #      - "consul"
+      #      - "connect"
+      #      - "envoy"
+      #      - "-sidecar-for"
+      #      - "s1"
+      #      - "-envoy-version"
+      #      - ${HAPROXY_CONSUL_CONNECT_VERSION}
+      #      - "--"
+      #      - "-l"
+      #      - "debug"
     network_mode: service:consul-primary
 
   fake-statsd:
@@ -498,20 +489,20 @@ services:
   s1-sidecar-proxy-secondary:
     depends_on:
       - consul-secondary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
-    command:
-     - "envoy"
-     - "-c"
-     - "/workdir/secondary/envoy/s1-bootstrap.json"
-     - "-l"
-     - "debug"
-     # Hot restart breaks since both envoys seem to interact with each other
-     # despite separate containers that don't share IPC namespace. Not quite
-     # sure how this happens but may be due to unix socket being in some shared
-     # location?
-     - "--disable-hot-restart"
-     - "--drain-time-s"
-     - "1"
+    image: "haproxytech/haproxy-consul-connect:${HAPROXY_CONSUL_CONNECT_VERSION}"
+    #    command:
+    #     - "envoy"
+    #     - "-c"
+    #     - "/workdir/secondary/envoy/s1-bootstrap.json"
+    #     - "-l"
+    #     - "debug"
+    #     # Hot restart breaks since both envoys seem to interact with each other
+    #     # despite separate containers that don't share IPC namespace. Not quite
+    #     # sure how this happens but may be due to unix socket being in some shared
+    #     # location?
+    #     - "--disable-hot-restart"
+    #     - "--drain-time-s"
+    #     - "1"
     volumes:
       - *workdir-volume
     network_mode: service:consul-secondary
@@ -519,20 +510,20 @@ services:
   s2-sidecar-proxy-secondary:
     depends_on:
       - consul-secondary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
-    command:
-     - "envoy"
-     - "-c"
-     - "/workdir/secondary/envoy/s2-bootstrap.json"
-     - "-l"
-     - "debug"
-     # Hot restart breaks since both envoys seem to interact with each other
-     # despite separate containers that don't share IPC namespace. Not quite
-     # sure how this happens but may be due to unix socket being in some shared
-     # location?
-     - "--disable-hot-restart"
-     - "--drain-time-s"
-     - "1"
+    image: "haproxytech/haproxy-consul-connect:${HAPROXY_CONSUL_CONNECT_VERSION}"
+    #    command:
+    #     - "envoy"
+    #     - "-c"
+    #     - "/workdir/secondary/envoy/s2-bootstrap.json"
+    #     - "-l"
+    #     - "debug"
+    #     # Hot restart breaks since both envoys seem to interact with each other
+    #     # despite separate containers that don't share IPC namespace. Not quite
+    #     # sure how this happens but may be due to unix socket being in some shared
+    #     # location?
+    #     - "--disable-hot-restart"
+    #     - "--drain-time-s"
+    #     - "1"
     volumes:
       - *workdir-volume
     network_mode: service:consul-secondary
@@ -540,20 +531,20 @@ services:
   gateway-primary:
     depends_on:
       - consul-primary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
-    command:
-     - "envoy"
-     - "-c"
-     - "/workdir/primary/envoy/mesh-gateway-bootstrap.json"
-     - "-l"
-     - "debug"
-     # Hot restart breaks since both envoys seem to interact with each other
-     # despite separate containers that don't share IPC namespace. Not quite
-     # sure how this happens but may be due to unix socket being in some shared
-     # location?
-     - "--disable-hot-restart"
-     - "--drain-time-s"
-     - "1"
+    image: "haproxytech/haproxy-consul-connect:${HAPROXY_CONSUL_CONNECT_VERSION}"
+    #    command:
+    #     - "envoy"
+    #     - "-c"
+    #     - "/workdir/primary/envoy/mesh-gateway-bootstrap.json"
+    #     - "-l"
+    #     - "debug"
+    #     # Hot restart breaks since both envoys seem to interact with each other
+    #     # despite separate containers that don't share IPC namespace. Not quite
+    #     # sure how this happens but may be due to unix socket being in some shared
+    #     # location?
+    #     - "--disable-hot-restart"
+    #     - "--drain-time-s"
+    #     - "1"
     volumes:
       - *workdir-volume
     network_mode: service:consul-primary
@@ -561,20 +552,20 @@ services:
   gateway-secondary:
     depends_on:
       - consul-secondary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
-    command:
-     - "envoy"
-     - "-c"
-     - "/workdir/secondary/envoy/mesh-gateway-bootstrap.json"
-     - "-l"
-     - "debug"
-     # Hot restart breaks since both envoys seem to interact with each other
-     # despite separate containers that don't share IPC namespace. Not quite
-     # sure how this happens but may be due to unix socket being in some shared
-     # location?
-     - "--disable-hot-restart"
-     - "--drain-time-s"
-     - "1"
+    image: "haproxytech/haproxy-consul-connect:${HAPROXY_CONSUL_CONNECT_VERSION}"
+    #    command:
+    #     - "envoy"
+    #     - "-c"
+    #     - "/workdir/secondary/envoy/mesh-gateway-bootstrap.json"
+    #     - "-l"
+    #     - "debug"
+    #     # Hot restart breaks since both envoys seem to interact with each other
+    #     # despite separate containers that don't share IPC namespace. Not quite
+    #     # sure how this happens but may be due to unix socket being in some shared
+    #     # location?
+    #     - "--disable-hot-restart"
+    #     - "--drain-time-s"
+    #     - "1"
     volumes:
       - *workdir-volume
     network_mode: service:consul-secondary
@@ -582,37 +573,37 @@ services:
   ingress-gateway-primary:
     depends_on:
       - consul-primary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
-    command:
-     - "envoy"
-     - "-c"
-     - "/workdir/primary/envoy/ingress-gateway-bootstrap.json"
-     - "-l"
-     - "debug"
-     - "--disable-hot-restart"
-     - "--drain-time-s"
-     - "1"
-    volumes:
-      - *workdir-volume
-    network_mode: service:consul-primary
-
+    image: "haproxytech/haproxy-consul-connect:${HAPROXY_CONSUL_CONNECT_VERSION}"
+    #    command:
+    #     - "envoy"
+    #     - "-c"
+    #     - "/workdir/primary/envoy/ingress-gateway-bootstrap.json"
+    #     - "-l"
+    #     - "debug"
+    #     - "--disable-hot-restart"
+    #     - "--drain-time-s"
+    #     - "1"
+    #    volumes:
+    #      - *workdir-volume
+    #    network_mode: service:consul-primary
+    #
   terminating-gateway-primary:
     depends_on:
       - consul-primary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
-    command:
-      - "envoy"
-      - "-c"
-      - "/workdir/primary/envoy/terminating-gateway-bootstrap.json"
-      - "-l"
-      - "debug"
-      - "--disable-hot-restart"
-      - "--drain-time-s"
-      - "1"
-    volumes:
-      - *workdir-volume
-    network_mode: service:consul-primary
-
+    image: "haproxytech/haproxy-consul-connect:${HAPROXY_CONSUL_CONNECT_VERSION}"
+    #    command:
+    #      - "envoy"
+    #      - "-c"
+    #      - "/workdir/primary/envoy/terminating-gateway-bootstrap.json"
+    #      - "-l"
+    #      - "debug"
+    #      - "--disable-hot-restart"
+    #      - "--drain-time-s"
+    #      - "1"
+    #    volumes:
+    #      - *workdir-volume
+    #    network_mode: service:consul-primary
+    #
   verify-primary:
     depends_on:
       - consul-primary
@@ -621,7 +612,7 @@ services:
       dockerfile: Dockerfile-bats
     tty: true
     environment:
-     - ENVOY_VERSION
+     - HAPROXY_CONSUL_CONNECT_VERSION
     command:
      - "--pretty"
      - "/workdir/primary/bats"
@@ -638,7 +629,7 @@ services:
       dockerfile: Dockerfile-bats
     tty: true
     environment:
-     - ENVOY_VERSION
+     - HAPROXY_CONSUL_CONNECT_VERSION
     command:
      - "--pretty"
      - "/workdir/secondary/bats"

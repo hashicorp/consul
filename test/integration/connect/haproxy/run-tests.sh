@@ -5,9 +5,9 @@ set -eEuo pipefail
 # DEBUG=1 enables set -x for this script so echos every command run
 DEBUG=${DEBUG:-}
 
-# ENVOY_VERSION to run each test against
-ENVOY_VERSION=${ENVOY_VERSION:-"1.15.0"}
-export ENVOY_VERSION
+# HAPROXY_CONSUL_CONNECT_VERSION to run each test against
+HAPROXY_CONSUL_CONNECT_VERSION=${HAPROXY_CONSUL_CONNECT_VERSION:-"0.9.0"}
+export HAPROXY_CONSUL_CONNECT_VERSION
 
 if [ ! -z "$DEBUG" ] ; then
   set -x
@@ -92,7 +92,7 @@ function pre_service_setup {
 function start_services {
   # Push the state to the shared docker volume (note this is because CircleCI
   # can't use shared volumes)
-  docker cp workdir/. envoy_workdir_1:/workdir
+  docker cp workdir/. haproxy_workdir_1:/workdir
   
   # Start containers required
   if [ ! -z "$REQUIRED_SERVICES" ] ; then
@@ -129,7 +129,7 @@ function verify {
 
 function capture_logs {
   # exported to prevent docker-compose warning about unset var
-  export LOG_DIR="workdir/logs/${CASE_DIR}/${ENVOY_VERSION}"
+  export LOG_DIR="workdir/logs/${CASE_DIR}/${HAPROXY_CONSUL_CONNECT_VERSION}"
 
   init_vars
 
@@ -181,7 +181,7 @@ function run_tests {
   CASE_NAME=$( basename $CASE_DIR | cut -c6- )
   export CASE_NAME
 
-  export LOG_DIR="workdir/logs/${CASE_DIR}/${ENVOY_VERSION}"
+  export LOG_DIR="workdir/logs/${CASE_DIR}/${HAPROXY_CONSUL_CONNECT_VERSION}"
 
   init_vars
 
@@ -200,7 +200,7 @@ function run_tests {
 
   # Push the state to the shared docker volume (note this is because CircleCI
   # can't use shared volumes)
-  docker cp workdir/. envoy_workdir_1:/workdir
+  docker cp workdir/. haproxy_workdir_1:/workdir
 
   start_consul primary
 

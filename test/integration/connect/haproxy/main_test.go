@@ -1,6 +1,6 @@
 // +build integration
 
-package envoy
+package haproxy
 
 import (
 	"io/ioutil"
@@ -13,7 +13,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestEnvoy(t *testing.T) {
+func TestHAProxy(t *testing.T) {
+
 	testcases, err := discoverCases()
 	require.NoError(t, err)
 

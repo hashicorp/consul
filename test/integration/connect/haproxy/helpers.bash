@@ -149,19 +149,19 @@ function assert_envoy_version {
   echo "Output=$output"
   echo "---"
   echo "Got version=$VERSION"
-  echo "Want version=$ENVOY_VERSION"
-  echo $VERSION | grep "/$ENVOY_VERSION/"
+  echo "Want version=$HAPROXY_CONSUL_CONNECT_VERSION"
+  echo $VERSION | grep "/$HAPROXY_CONSUL_CONNECT_VERSION/"
 }
 
 function get_envoy_listener_filters {
   local HOSTPORT=$1
   run retry_default curl -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
-  local ENVOY_VERSION=$(echo $output | jq --raw-output '.configs[0].bootstrap.node.metadata.envoy_version')
+  local HAPROXY_CONSUL_CONNECT_VERSION=$(echo $output | jq --raw-output '.configs[0].bootstrap.node.metadata.envoy_version')
   local QUERY=''
   # from 1.13.0 on the config json looks slightly different
   # 1.10.x, 1.11.x, 1.12.x are not affected
-  if [[ "$ENVOY_VERSION" =~ ^1\.1[012]\. ]]; then
+  if [[ "$HAPROXY_CONSUL_CONNECT_VERSION" =~ ^1\.1[012]\. ]]; then
     QUERY='.configs[2].dynamic_active_listeners[].listener | "\(.name) \( .filter_chains[0].filters | map(.name) | join(","))"'
   else
     QUERY='.configs[2].dynamic_listeners[].active_state.listener | "\(.name) \( .filter_chains[0].filters | map(.name) | join(","))"'
@@ -173,11 +173,11 @@ function get_envoy_http_filters {
   local HOSTPORT=$1
   run retry_default curl -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
-  local ENVOY_VERSION=$(echo $output | jq --raw-output '.configs[0].bootstrap.node.metadata.envoy_version')
+  local HAPROXY_CONSUL_CONNECT_VERSION=$(echo $output | jq --raw-output '.configs[0].bootstrap.node.metadata.envoy_version')
   local QUERY=''
   # from 1.13.0 on the config json looks slightly different
   # 1.10.x, 1.11.x, 1.12.x are not affected
-  if [[ "$ENVOY_VERSION" =~ ^1\.1[012]\. ]]; then
+  if [[ "$HAPROXY_CONSUL_CONNECT_VERSION" =~ ^1\.1[012]\. ]]; then
       QUERY='.configs[2].dynamic_active_listeners[].listener | "\(.name) \( .filter_chains[0].filters[] | select(.name == "envoy.http_connection_manager") | .config.http_filters | map(.name) | join(","))"'
   else
       QUERY='.configs[2].dynamic_listeners[].active_state.listener | "\(.name) \( .filter_chains[0].filters[] | select(.name == "envoy.http_connection_manager") | .config.http_filters | map(.name) | join(","))"'
@@ -435,19 +435,19 @@ function assert_intention_denied {
 function docker_consul {
   local DC=$1
   shift 1
-  docker run -i --rm --network container:envoy_consul-${DC}_1 consul-dev "$@"
+  docker run -i --rm --network container:haproxy_consul-${DC}_1 consul-dev "$@"
 }
 
 function docker_wget {
   local DC=$1
   shift 1
-  docker run --rm --network container:envoy_consul-${DC}_1 alpine:3.9 wget "$@"
+  docker run --rm --network container:haproxy_consul-${DC}_1 alpine:3.9 wget "$@"
 }
 
 function docker_curl {
   local DC=$1
   shift 1
-  docker run --rm --network container:envoy_consul-${DC}_1 --entrypoint curl consul-dev "$@"
+  docker run --rm --network container:haproxy_consul-${DC}_1 --entrypoint curl consul-dev "$@"
 }
 
 function docker_exec {
@@ -461,7 +461,7 @@ function docker_exec {
 function docker_consul_exec {
   local DC=$1
   shift 1
-  docker_exec envoy_consul-${DC}_1 "$@"
+  docker_exec haproxy_consul-${DC}_1 "$@"
 }
 
 function get_envoy_pid {
@@ -549,7 +549,7 @@ function must_fail_http_connection {
 
   echo "OUTPUT $output"
 
-  local expect_response="${2:-403 Forbidden}"
+  local expect_response="${2:-503 Service Unavailable}"
   # Should fail request with 503
   echo "$output" | grep "${expect_response}"
 }
@@ -636,7 +636,7 @@ function gen_envoy_bootstrap {
 
   if output=$(docker_consul "$DC" connect envoy -bootstrap \
     -proxy-id $PROXY_ID \
-    -envoy-version "$ENVOY_VERSION" \
+    -envoy-version "$HAPROXY_CONSUL_CONNECT_VERSION" \
     -admin-bind 0.0.0.0:$ADMIN_PORT ${EXTRA_ENVOY_BS_ARGS} 2>&1); then
 
     # All OK, write config to file
