@@ -72,7 +72,6 @@ func TestDetermineEnvoyVersionFromNode(t *testing.T) {
 
 func TestDetermineSupportedProxyFeaturesFromString(t *testing.T) {
 	const (
-		err1_12   = "is too old of a point release and is not supported by Consul because it does not support RBAC rules using url_path. Please upgrade to version 1.12.3+."
 		err1_13   = "is too old of a point release and is not supported by Consul because it does not support RBAC rules using url_path. Please upgrade to version 1.13.1+."
 		errTooOld = "is too old and is not supported by Consul"
 	)
@@ -87,18 +86,22 @@ func TestDetermineSupportedProxyFeaturesFromString(t *testing.T) {
 		"1.9.0":  {expectErr: "Envoy 1.9.0 " + errTooOld},
 		"1.10.0": {expectErr: "Envoy 1.10.0 " + errTooOld},
 		"1.11.0": {expectErr: "Envoy 1.11.0 " + errTooOld},
-		"1.12.0": {expectErr: "Envoy 1.12.0 " + err1_12},
-		"1.12.1": {expectErr: "Envoy 1.12.1 " + err1_12},
-		"1.12.2": {expectErr: "Envoy 1.12.2 " + err1_12},
+		"1.12.0": {expectErr: "Envoy 1.12.0 " + errTooOld},
+		"1.12.1": {expectErr: "Envoy 1.12.1 " + errTooOld},
+		"1.12.2": {expectErr: "Envoy 1.12.2 " + errTooOld},
+		"1.12.3": {expectErr: "Envoy 1.12.3 " + errTooOld},
+		"1.12.4": {expectErr: "Envoy 1.12.4 " + errTooOld},
+		"1.12.5": {expectErr: "Envoy 1.12.5 " + errTooOld},
+		"1.12.6": {expectErr: "Envoy 1.12.6 " + errTooOld},
+		"1.12.7": {expectErr: "Envoy 1.12.7 " + errTooOld},
 		"1.13.0": {expectErr: "Envoy 1.13.0 " + err1_13},
 	}
 
 	// Insert a bunch of valid versions.
 	for _, v := range []string{
-		"1.12.3", "1.12.4", "1.12.5", "1.12.6", "1.12.7",
 		"1.13.1", "1.13.2", "1.13.3", "1.13.4", "1.13.6", "1.14.1",
 		"1.14.2", "1.14.3", "1.14.4", "1.14.5",
-		"1.15.0", "1.15.1", "1.15.2",
+		"1.15.0", "1.15.1", "1.15.2", "1.16.0",
 	} {
 		cases[v] = testcase{expect: supportedProxyFeatures{}}
 	}

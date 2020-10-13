@@ -11,24 +11,9 @@ import (
 var (
 	// minSupportedVersion is the oldest mainline version we support. This should always be
 	// the zero'th point release of the last element of proxysupport.EnvoyVersions.
-	minSupportedVersion = version.Must(version.NewVersion("1.12.0"))
+	minSupportedVersion = version.Must(version.NewVersion("1.13.0"))
 
 	specificUnsupportedVersions = []unsupportedVersion{
-		{
-			Version:   version.Must(version.NewVersion("1.12.0")),
-			UpgradeTo: "1.12.3+",
-			Why:       "does not support RBAC rules using url_path",
-		},
-		{
-			Version:   version.Must(version.NewVersion("1.12.1")),
-			UpgradeTo: "1.12.3+",
-			Why:       "does not support RBAC rules using url_path",
-		},
-		{
-			Version:   version.Must(version.NewVersion("1.12.2")),
-			UpgradeTo: "1.12.3+",
-			Why:       "does not support RBAC rules using url_path",
-		},
 		{
 			Version:   version.Must(version.NewVersion("1.13.0")),
 			UpgradeTo: "1.13.1+",

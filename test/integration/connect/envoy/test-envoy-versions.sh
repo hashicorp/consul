@@ -7,20 +7,12 @@ unset CDPATH
 cd "$(dirname "$0")"
 
 ## no rbac url_path support
-    # 1.12.0
-    # 1.12.1
-    # 1.12.2
     # 1.13.0
 
 ## does not exist in docker
     # 1.13.5
     # 1.14.0
 versions=(
-    1.12.3
-    1.12.4
-    1.12.5
-    1.12.6
-    1.12.7
     1.13.1
     1.13.2
     1.13.3
@@ -34,6 +26,7 @@ versions=(
     1.15.0
     1.15.1
     1.15.2
+    1.16.0
 )
 
 for v in "${versions[@]}"; do
