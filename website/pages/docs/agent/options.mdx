@@ -1230,7 +1230,10 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     - `address` ((#vault_ca_address)) The address of the Vault server to
       connect to.
 
-    - `token` ((#vault_ca_token)) The Vault token to use.
+    - `token` ((#vault_ca_token)) The Vault token to use. In Consul 1.8.5 and later, if
+      the token has the [renewable](https://www.vaultproject.io/api-docs/auth/token#renewable)
+      flag set, Consul will attempt to renew its lease periodically after half the
+      duration has expired.
 
     - `root_pki_path` ((#vault_ca_root_pki)) The path to use for the root
       CA pki backend in Vault. This can be an existing backend with a CA already
