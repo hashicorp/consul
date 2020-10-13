@@ -18,13 +18,52 @@ export default function NetworkInfrastructureAutomationPage() {
             {
               text: 'Learn More',
               url:
-                'https://learn.hashicorp.com/consul?track=integrations#integrations',
+                'https://learn.hashicorp.com/collections/consul/integrations',
               type: 'outbound',
             },
           ],
         }}
         image={{
-          url: require('./img/dynamic-load-balancing.svg?url'),
+          url: require('./img/DynamicLoadBalancing.svg?url'),
+        }}
+      />
+
+      <TextSplitWithImage
+        textSplit={{
+          heading: 'Automated Firewalling',
+          content:
+            'Use Consul-Terraform-Sync to dynamically configure and apply firewall rules for newly added services.',
+          textSide: 'left',
+          links: [
+            {
+              text: 'Learn More',
+              url: '/docs/nia',
+              type: 'outbound',
+            },
+          ],
+        }}
+        image={{
+          url: require('./img/DynamicFirewalling.svg?url'),
+        }}
+      />
+
+      <TextSplitWithImage
+        textSplit={{
+          heading: 'Health Checks Visibility',
+          content:
+            'Consul enables operators to gain real-time insights into the service definitions, health, and location of applications supported by the network.',
+          textSide: 'right',
+          links: [
+            {
+              text: 'Learn More',
+              url:
+                'https://www.hashicorp.com/integrations?product=consul&type=sdn',
+              type: 'outbound',
+            },
+          ],
+        }}
+        image={{
+          url: require('./img/ConsulACI.png?url'),
         }}
       />
 
@@ -37,13 +76,13 @@ export default function NetworkInfrastructureAutomationPage() {
           links: [
             {
               text: 'Read More',
-              url: '/docs/partnerships',
+              url: '/docs/integrate/nia-integration',
               type: 'inbound',
             },
           ],
         }}
         image={{
-          url: require('./img/extend-through-ecosystem.svg?url'),
+          url: require('./img/NIA_logo_grid.svg?url'),
         }}
       />
 
@@ -78,7 +117,7 @@ export default function NetworkInfrastructureAutomationPage() {
               {
                 text: 'Learn More',
                 url:
-                  'https://learn.hashicorp.com/consul?track=integrations#integrations',
+                  'https://learn.hashicorp.com/tutorials/consul/recovery-outage?in=consul/datacenter-operations',
                 type: 'outbound',
               },
             ],
