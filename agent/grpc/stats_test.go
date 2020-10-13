@@ -3,11 +3,13 @@ package grpc
 import (
 	"context"
 	"net"
+	"sort"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
@@ -64,21 +66,42 @@ func TestHandler_EmitsStats(t *testing.T) {
 	// Wait for the server to stop so that active_streams is predictable.
 	require.NoError(t, g.Wait())
 
+	// Occasionally the active_stream=0 metric may be emitted before the
+	// active_conns=0 metric. The order of those metrics is not really important
+	// so we sort the calls to match the expected.
+	sort.Slice(sink.gaugeCalls, func(i, j int) bool {
+		if i < 2 || j < 2 {
+			return i < j
+		}
+		if len(sink.gaugeCalls[i].key) < 4 || len(sink.gaugeCalls[j].key) < 4 {
+			return i < j
+		}
+		return sink.gaugeCalls[i].key[3] < sink.gaugeCalls[j].key[3]
+	})
+
+	cmpMetricCalls := cmp.AllowUnexported(metricCall{})
 	expectedGauge := []metricCall{
 		{key: []string{"testing", "grpc", "server", "active_conns"}, val: 1},
 		{key: []string{"testing", "grpc", "server", "active_streams"}, val: 1},
 		{key: []string{"testing", "grpc", "server", "active_conns"}, val: 0},
 		{key: []string{"testing", "grpc", "server", "active_streams"}, val: 0},
 	}
-	require.Equal(t, expectedGauge, sink.gaugeCalls)
+	assertDeepEqual(t, expectedGauge, sink.gaugeCalls, cmpMetricCalls)
 
 	expectedCounter := []metricCall{
 		{key: []string{"testing", "grpc", "server", "request"}, val: 1},
 	}
-	require.Equal(t, expectedCounter, sink.incrCounterCalls)
+	assertDeepEqual(t, expectedCounter, sink.incrCounterCalls, cmpMetricCalls)
 }
 
 var fastRetry = &retry.Timer{Timeout: 7 * time.Second, Wait: 2 * time.Millisecond}
+
+func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
+	t.Helper()
+	if diff := cmp.Diff(x, y, opts...); diff != "" {
+		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
+	}
+}
 
 func patchGlobalMetrics(t *testing.T) *fakeMetricsSink {
 	t.Helper()
