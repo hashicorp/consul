@@ -23,7 +23,7 @@
         </BlockSlot>
         <BlockSlot @name="toolbar">
   {{#if (gt items.length 0) }}
-          <ConsulIntentionSearchBar
+          <Consul::Intention::SearchBar
             @search={{search}}
             @onsearch={{action (mut search) value="target.value"}}
 

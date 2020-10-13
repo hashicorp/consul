@@ -30,7 +30,7 @@
       </BlockSlot>
       <BlockSlot @name="toolbar">
       {{#if (gt items.length 0) }}
-        <ConsulPolicySearchBar
+        <Consul::Policy::SearchBar
           @search={{search}}
           @onsearch={{action (mut search) value="target.value"}}
 
@@ -50,7 +50,7 @@
   {{#let (sort-by (comparator 'policy' sort) filtered) as |sorted|}}
         <ChangeableSet @dispatcher={{searchable 'policy' sorted}} @terms={{search}}>
           <BlockSlot @name="set" as |searched|>
-            <ConsulPolicyList
+            <Consul::Policy::List
               @items={{searched}}
               @ondelete={{action send 'delete'}}
             />

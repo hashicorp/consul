@@ -30,7 +30,7 @@
       </BlockSlot>
       <BlockSlot @name="toolbar">
     {{#if (gt items.length 0)}}
-        <ConsulTokenSearchBar
+        <Consul::Token::SearchBar
           @search={{search}}
           @onsearch={{action (mut search) value="target.value"}}
 
@@ -52,7 +52,7 @@
       {{#let (sort-by (comparator 'token' sort) filtered) as |sorted|}}
         <ChangeableSet @dispatcher={{searchable 'token' sorted}} @terms={{search}}>
           <BlockSlot @name="set" as |searched|>
-            <ConsulTokenList
+            <Consul::Token::List
               @items={{searched}}
               @token={{token}}
               @onuse={{action send 'use'}}

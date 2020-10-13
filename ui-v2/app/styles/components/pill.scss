@@ -1,7 +1,5 @@
 span.policy-service-identity,
 span.policy-node-identity,
-.consul-external-source,
-.consul-kind,
 .leader {
   @extend %pill-200, %frame-gray-600;
 }
@@ -31,9 +29,6 @@ span.policy-service-identity::before {
 }
 %pill.aws::before {
   @extend %with-logo-aws-color-icon, %as-pseudo;
-}
-%pill.consul-kind::before {
-  @extend %with-gateway-mask, %as-pseudo;
 }
 %pill.leader::before {
   @extend %with-star-outline-mask, %as-pseudo;

@@ -15,7 +15,7 @@
   </BlockSlot>
   <BlockSlot @name="toolbar">
   {{#if (gt items.length 0)}}
-        <ConsulNspaceSearchBar
+        <Consul::Nspace::SearchBar
           @search={{search}}
           @onsearch={{action (mut search) value="target.value"}}
 
@@ -29,7 +29,7 @@
   {{#let (sort-by (comparator 'nspace' sort) items) as |sorted|}}
     <ChangeableSet @dispatcher={{searchable 'nspace' sorted}} @terms={{search}}>
       <BlockSlot @name="set" as |filtered|>
-        <ConsulNspaceList
+        <Consul::Nspace::List
           @items={{filtered}}
           @ondelete={{queue (action send 'delete')}}
         >
@@ -61,7 +61,7 @@
               </li>
             </BlockSlot>
           </EmptyState>
-        </ConsulNspaceList>
+        </Consul::Nspace::List>
       </BlockSlot>
     </ChangeableSet>
   {{/let}}

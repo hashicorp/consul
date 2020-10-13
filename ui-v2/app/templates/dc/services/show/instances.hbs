@@ -7,7 +7,7 @@
   {{#let (or sortBy "Name:asc") as |sort|}}
     {{#if (gt items.length 0) }}
     <input type="checkbox" id="toolbar-toggle" />
-    <ConsulServiceInstanceSearchBar
+    <Consul::ServiceInstance::SearchBar
       @sources={{externalSources}}
       @search={{search}}
       @onsearch={{action (mut search) value="target.value"}}
@@ -26,7 +26,7 @@
   {{#let (sort-by (comparator 'serviceInstance' sort) filtered) as |sorted|}}
     <ChangeableSet @dispatcher={{searchable 'serviceInstance' sorted}} @terms={{search}}>
       <BlockSlot @name="set" as |searched|>
-        <ConsulServiceInstanceList @routeName="dc.services.instance" @items={{searched}}/>
+        <Consul::ServiceInstance::List @routeName="dc.services.instance" @items={{searched}}/>
       </BlockSlot>
       <BlockSlot @name="empty">
         <EmptyState>

@@ -14,7 +14,7 @@
     </BlockSlot>
     <BlockSlot @name="toolbar">
     {{#if (gt items.length 0) }}
-        <ConsulNodeSearchBar
+        <Consul::Node::SearchBar
           @search={{search}}
           @onsearch={{action (mut search) value="target.value"}}
 
@@ -33,7 +33,7 @@
   {{#let (sort-by (comparator 'node' sort) filtered) as |sorted|}}
       <ChangeableSet @dispatcher={{searchable 'node' sorted}} @terms={{search}}>
         <BlockSlot @name="set" as |searched|>
-          <ConsulNodeList @items={{searched}} @leader={{leader}} />
+          <Consul::Node::List @items={{searched}} @leader={{leader}} />
         </BlockSlot>
         <BlockSlot @name="empty">
           <EmptyState>

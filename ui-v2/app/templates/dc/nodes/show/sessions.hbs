@@ -2,7 +2,7 @@
 <div id="lock-sessions" class="tab-section">
   <div role="tabpanel">
 {{#if (gt sessions.length 0)}}
-    <ConsulLockSessionList @items={{sessions}} @onInvalidate={{action send 'invalidateSession'}}/>
+    <Consul::LockSession::List @items={{sessions}} @onInvalidate={{action send 'invalidateSession'}}/>
 {{else}}
     <EmptyState>
       <BlockSlot @name="body">

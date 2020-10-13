@@ -14,7 +14,7 @@
               <a data-test-create href={{href-to 'dc.services.show.intentions.create'}} class="type-create">Create</a>
             </Portal>
 {{#if (gt items.length 0) }}
-            <ConsulIntentionSearchBar
+            <Consul::Intention::SearchBar
               @search={{search}}
               @onsearch={{action (mut search) value="target.value"}}
 

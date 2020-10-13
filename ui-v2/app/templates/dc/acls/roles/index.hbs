@@ -27,7 +27,7 @@
   </BlockSlot>
   <BlockSlot @name="toolbar">
   {{#if (gt items.length 0) }}
-    <ConsulRoleSearchBar
+    <Consul::Role::SearchBar
       @search={{search}}
       @onsearch={{action (mut search) value="target.value"}}
 
@@ -40,7 +40,7 @@
   {{#let (sort-by (comparator 'role' sort) items) as |sorted|}}
     <ChangeableSet @dispatcher={{searchable 'role' sorted}} @terms={{search}}>
       <BlockSlot @name="set" as |filtered|>
-        <ConsulRoleList
+        <Consul::Role::List
           @items={{filtered}}
           @ondelete={{action send 'delete'}}
         />

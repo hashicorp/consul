@@ -78,7 +78,7 @@
     {{#let (sort-by (comparator 'kv' sort) items) as |sorted|}}
       <ChangeableSet @dispatcher={{searchable 'kv' sorted}} @terms={{search}}>
         <BlockSlot @name="content" as |filtered|>
-          <ConsulKvList
+          <Consul::Kv::List
             @items={{filtered}}
             @parent={{parent}}
             @ondelete={{refresh-route}}
@@ -111,7 +111,7 @@
                 </li>
               </BlockSlot>
             </EmptyState>
-          </ConsulKvList>
+          </Consul::Kv::List>
         </BlockSlot>
       </ChangeableSet>
       {{/let}}

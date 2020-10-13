@@ -1,7 +1,6 @@
 @import './composite-row/index';
 
 .proxy-upstreams > ul > li,
-.proxy-exposed-paths > ul > li,
 .list-collection > ul > li:not(:first-child) {
   @extend %composite-row;
 }
@@ -35,7 +34,6 @@
   overflow-x: visible !important;
 }
 .consul-intention-permission-list > ul,
-.proxy-exposed-paths > ul,
 .proxy-upstreams > ul {
   border-top: 1px solid $gray-200;
 }
