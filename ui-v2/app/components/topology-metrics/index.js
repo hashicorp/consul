@@ -16,7 +16,7 @@ export default class TopologyMetrics extends Component {
 
   constructor(owner, args) {
     super(owner, args);
-    this.hasMetricsProvider = !!this.cfg.get().metrics_provider
+    this.hasMetricsProvider = !!this.cfg.get().metrics_provider;
   }
 
   // =methods

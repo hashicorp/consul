@@ -1,54 +1,81 @@
 /*eslint no-console: "off"*/
 (function () {
+  var emptySeries = { unitSuffix: "", labels: {}, data: [] }
+
   var prometheusProvider = {
     options: {},
 
     /**
-     * init is called when the provide is first loaded.
+     * init is called when the provider is first loaded.
      *
      * options.providerOptions contains any operator configured parameters
      * specified in the Consul agent config that is serving the UI.
      *
-     * options.proxy.baseURL contains the base URL if the agent has a metrics
-     * proxy configured. If it doesn't options.proxy will be null. The provider
-     * should throw an Exception (TODO: specific type?) if it requires a metrics
-     * proxy and one is not configured.
+     * Consul will provider a boolean options.metrics_proxy_enabled to indicate
+     * whether the agent has a metrics proxy configured.
+     *
+     * The provider should throw an Exception if the options are not valid for
+     * example because it requires a metrics proxy and one is not configured.
      */
     init: function(options) {
       this.options = options;
+      if (!this.options.metrics_proxy_enabled) {
+        throw new Error("prometheus metrics provider currently requires the ui_config.metrics_proxy to be configured in the Consul agent.");
+      }
     },
 
     /**
      * serviceRecentSummarySeries should return time series for a recent time
      * period summarizing the usage of the named service.
      *
-     * If these metrics aren't available then empty series may be returned.
+     * If these metrics aren't available then an empty series array may be
+     * returned.
      *
      * The period may (later) be specified in options.startTime and
      * options.endTime.
      *
      * The service's protocol must be given as one of Consul's supported
      * protocols e.g. "tcp", "http", "http2", "grpc". If it is empty or the
-     * provider doesn't recognize it it should treat it as "tcp" and provide
-     * just basic connection stats.
+     * provider doesn't recognize the protocol, it should treat it as "tcp" and
+     * provide basic connection stats.
      *
      * The expected return value is a promise which resolves to an object that
      * should look like the following:
      *
      *  {
-     *    series: [
+     *    // The unitSuffix is shown after the value in tooltips. Values will be
+     *    // rounded and shortened. Larger values will already have a suffix
+     *    // like "10k". The suffix provided here is concatenated directly
+     *    // allowing for suffixes like "mbps/kbps" by using a suffix of "bps".
+     *    // If the unit doesn't make sense in this format, include a
+     *    // leading space for example " rps" would show as "1.2k rps".
+     *    unitSuffix: " rps",
+     *
+     *    // The set of labels to graph. The key should exactly correspond to a
+     *    // property of every data point in the array below except for the
+     *    // special case "Total" which is used to show the sum of all the
+     *    // stacked graph values. The key is displayed in the tooltop so it
+     *    // should be human-friendly but as concise as possible. The value is a
+     *    // longer description that is displayed in the graph's key on request
+     *    // to explain exactly what the metrics mean.
+     *    labels: {
+     *      "Total": "Total inbound requests per second.",
+     *      "Successes": "Successful responses (with an HTTP response code not in the 5xx range) per second.",
+     *      "Errors": "Error responses (with an HTTP response code in the 5xx range) per second.",
+     *    },
+     *
+     *    data: [
      *      {
-     *        label: "Requests per second",
-     *        data: [...]
+     *        time: 1600944516286, // milliseconds since Unix epoch
+     *        "Successes": 1234.5,
+     *        "Errors": 2.3,
      *      },
      *      ...
      *    ]
      *  }
      *
-     * Each time series' data array is simple an array of tuples with the first
-     * being a Date object and the second a floating point value:
-     *
-     *   [[Date(1600944516286), 1234.9], [Date(1600944526286), 1234.9], ...]
+     *  Every data point object should have a value for every series label
+     *  (except for "Total") otherwise it will be assumed to be "0".
      */
     serviceRecentSummarySeries: function(serviceName, protocol, options) {
       // Fetch time-series
@@ -62,36 +89,11 @@
       options.end = now;
 
       if (this.hasL7Metrics(protocol)) {
-        series.push(this.fetchRequestRateSeries(serviceName, options))
-        labels.push("Requests per second")
-        series.push(this.fetchErrorRateSeries(serviceName, options))
-        labels.push("Errors per second")
-      } else {
-        // Fallback to just L4 metrics.
-        series.push(this.fetchServiceRxSeries(serviceName, options))
-        labels.push("Data rate received")
-        series.push(this.fetchServiceTxSeries(serviceName, options))
-        labels.push("Data rate transmitted")
+        return this.fetchRequestRateSeries(serviceName, options);
       }
 
-      var all = Promise.allSettled(series).
-        then(function(results){
-        var data = { series: [] }
-        for (var i = 0; i < series.length; i++) {
-          if (results[i].value) {
-            data.series.push({
-              label: labels[i],
-              data: results[i].value
-            });
-          } else if (results[i].reason) {
-            console.log("ERROR processing series", labels[i], results[i].reason)
-          }
-        }
-        return data
-      })
-
-      // Fetch the metrics async, and return a promise to the result.
-      return all
+      // Fallback to just L4 metrics.
+      return this.fetchDataRateSeries(serviceName, options);
     },
 
     /**
@@ -174,8 +176,8 @@
     },
 
     /**
-     * downstreamRecentSummaryStats should return four summary statistics for each
-     * downstream service over a recent time period.
+     * downstreamRecentSummaryStats should return four summary statistics for
+     * each downstream service over a recent time period.
      *
      * If these metrics aren't available then an empty array may be returned.
      *
@@ -188,9 +190,10 @@
      *     stats: {
      *       // Each downstream will appear as an entry keyed by the downstream
      *       // service name. The value is an array of stats with the same
-     *       // format as serviceRecentSummaryStats response.stats. Note that
-     *       // different downstreams might show different stats depending on
-     *       // their protocol.
+     *       // format as serviceRecentSummaryStats response.stats. Different
+     *       // downstreams may display different stats if required although the
+     *       // protocol should be the same for all as it is the target
+     *       // service's protocol that matters here.
      *       "downstream_name": [
      *         {label: "SR", desc: "...", value: "99%"},
      *         ...
@@ -276,59 +279,102 @@
       return all
     },
 
-    reformatSeries: function(response) {
-      // Handle empty results from prometheus.
-      if (!response || !response.data || !response.data.result
-        || response.data.result.length < 1) {
-        return [];
-      }
-      // Reformat the prometheus data to be the format we want which is
-      // essentially the same but with Date objects instead of unix timestamps.
-      return response.data.result[0].values.map(function(val){
-        return [new Date(val[0]*1000), parseFloat(val[1])]
-      })
+    reformatSeries: function(unitSuffix, labelMap) {
+      return function(response) {
+        // Handle empty result sets gracefully.
+        if (!response.data || !response.data.result || response.data.result.length == 0
+            || !response.data.result[0].values
+            || response.data.result[0].values.length == 0) {
+          return emptySeries;
+        }
+        // Reformat the prometheus data to be the format we want with stacked
+        // values as object properties.
+
+        // Populate time values first based on first result since Prometheus will
+        // always return all the same points for all series in the query.
+        let series = response.data.result[0].values.map(function(d, i) {
+          return {
+            time: Math.round(d[0] * 1000),
+          };
+        });
+
+        // Then for each series returned populate the labels and values in the
+        // points.
+        response.data.result.map(function(d) {
+          d.values.map(function(p, i) {
+            series[i][d.metric.label] = parseFloat(p[1]);
+          });
+        });
+
+        return {
+          unitSuffix: unitSuffix,
+          labels: labelMap,
+          data: series
+        };
+      };
     },
 
     fetchRequestRateSeries: function(serviceName, options){
-      var q = `sum(irate(envoy_listener_http_downstream_rq_xx{local_cluster="${serviceName}",envoy_http_conn_manager_prefix="public_listener_http"}[10m]))`
-      return this.fetchSeries(q, options).then(this.reformatSeries, function(xhr){
-        // Failure. log to console and return an blank result for now.
-        console.log("ERROR: failed to fetch requestRate", xhr.responseText)
-        return []
+      // We need the sum of all non-500 error rates as one value and the 500
+      // error rate as a separate series so that they stack to show the full
+      // request rate. Some creative label replacement makes this possible in
+      // one query.
+      var q = `sum by (label) (`+
+        // The outer label_replace catches 5xx error and relabels them as
+        // err=yes
+        `label_replace(`+
+          // The inner label_replace relabels all !5xx rates as err=no so they
+          // will get summed together.
+          `label_replace(`+
+            // Get rate of requests to the service
+            `irate(envoy_listener_http_downstream_rq_xx{local_cluster="${serviceName}",envoy_http_conn_manager_prefix="public_listener_http"}[10m])`+
+          // ... inner replacement matches all code classes except "5" and
+          // applies err=no
+          `, "label", "Successes", "envoy_response_code_class", "[^5]")`+
+          // ... outer replacement matches code=5 and applies err=yes
+        `, "label", "Errors", "envoy_response_code_class", "5")`+
+      `)`
+      var labelMap = {
+        Total: 'Total inbound requests per second',
+        Successes: 'Successful responses (with an HTTP response code not in the 5xx range) per second.',
+        Errors: 'Error responses (with an HTTP response code in the 5xx range) per second.',
+      };
+      return this.fetchSeries(q, options)
+        .then(this.reformatSeries(" rps", labelMap), function(xhr){
+        // Failure. log to console and return a blank result for now.
+        console.log('ERROR: failed to fetch requestRate', xhr.responseText)
+        return emptySeries;
       })
     },
 
-    fetchErrorRateSeries: function(serviceName, options){
-      // 100 * to get a result in percent
-      var q = `sum(`+
-          `irate(envoy_listener_http_downstream_rq_xx{`+
-            `local_cluster="${serviceName}",`+
-            `envoy_http_conn_manager_prefix="public_listener_http",`+
-            `envoy_response_code_class="5"}[10m]`+
-          `)`+
-        `)`;
-      return this.fetchSeries(q, options).then(this.reformatSeries, function(xhr){
-        // Failure. log to console and return an blank result for now.
-        console.log("ERROR: failed to fetch errorRate", xhr.responseText)
-        return []
-      })
-    },
-
-    fetchServiceRxSeries: function(serviceName, options){
-      var q = `8 * sum(irate(envoy_tcp_downstream_cx_rx_bytes_total{local_cluster="${serviceName}", envoy_tcp_prefix="public_listener_tcp"}[10m]))`
-      return this.fetchSeries(q, options).then(this.reformatSeries, function(xhr){
-        // Failure. log to console and return an blank result for now.
-        console.log("ERROR: failed to fetch rx data rate", xhr.responseText)
-        return []
-      })
-    },
-
-    fetchServiceTxSeries: function(serviceName, options){
-      var q = `8 * sum(irate(envoy_tcp_downstream_cx_tx_bytes_total{local_cluster="${serviceName}", envoy_tcp_prefix="public_listener_tcp"}[10m]))`
-      return this.fetchSeries(q, options).then(this.reformatSeries, function(xhr){
-        // Failure. log to console and return an blank result for now.
-        console.log("ERROR: failed to fetch tx data rate", xhr.responseText)
-        return []
+    fetchDataRateSeries: function(serviceName, options){
+      // 8 * converts from bytes/second to bits/second
+      var q = `8 * sum by (label) (`+
+        // Label replace generates a unique label per rx/tx metric to stop them
+        // being summed together.
+        `label_replace(`+
+          // Get the tx rate
+          `irate(envoy_tcp_downstream_cx_tx_bytes_total{local_cluster="${serviceName}",envoy_tcp_prefix="public_listener_tcp"}[10m])`+
+          // Match all and apply the tx label
+          `, "label", "Outbound", "__name__", ".*"`+
+        // Union those vectors with the RX ones
+        `) or label_replace(`+
+          // Get the rx rate
+          `irate(envoy_tcp_downstream_cx_rx_bytes_total{local_cluster="${serviceName}",envoy_tcp_prefix="public_listener_tcp"}[10m])`+
+          // Match all and apply the rx label
+          `, "label", "Inbound", "__name__", ".*"`+
+        `)`+
+      `)`
+      var labelMap = {
+        Total: 'Total bandwidth',
+        Inbound: 'Inbound data rate (data recieved) from the network in bits per second.',
+        Outbound: 'Outbound data rate (data transmitted) from the network in bits per second.',
+      };
+      return this.fetchSeries(q, options)
+        .then(this.reformatSeries("bps", labelMap), function(xhr){
+        // Failure. log to console and return a blank result for now.
+        console.log('ERROR: failed to fetch requestRate', xhr.responseText)
+        return emptySeries;
       })
     },
 

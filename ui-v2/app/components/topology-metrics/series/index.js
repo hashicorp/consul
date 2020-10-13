@@ -27,14 +27,15 @@ export default Component.extend({
       this.drawGraphs();
     },
     change: function(evt) {
-      this.data = evt.data;
+      this.set('data', evt.data.series);
       this.element.querySelector('.sparkline-loader').style.display = 'none';
       this.drawGraphs();
+      this.rerender();
     },
   },
 
   drawGraphs: function() {
-    if (!this.data.series) {
+    if (!this.data) {
       return;
     }
 
@@ -50,13 +51,13 @@ export default Component.extend({
     // To be safe, filter any series that actually have no data points. This can
     // happen thanks to our current provider contract allowing empty arrays for
     // series data if there is no value.
-    //
-    // TODO(banks): switch series provider data to be a single array with series
-    // values as properties as we need below to enforce sensible alignment of
-    // timestamps and explicit summing expectations.
-    let series = ((this.data || {}).series || []).filter(s => s.data.length > 0);
+    let maybeData = this.data || {};
+    let series = maybeData.data || [];
+    let labels = maybeData.labels || {};
+    let unitSuffix = maybeData.unitSuffix || '';
+    let keys = Object.keys(labels).filter(l => l != 'Total');
 
-    if (series.length == 0) {
+    if (series.length == 0 || keys.length == 0) {
       // Put the graph in an error state that might get fixed if metrics show up
       // on next poll.
       let loader = this.element.querySelector('.sparkline-loader');
@@ -65,32 +66,26 @@ export default Component.extend({
       return;
     }
 
-    // Fill the timestamps for x axis.
-    let data = series[0].data.map(d => {
-      return { time: d[0] };
-    });
-    let keys = [];
-    // Initialize zeros
-    let summed = this.data.series[0].data.map(d => 0);
-
-    for (var i = 0; i < series.length; i++) {
-      let s = series[i];
-      // Attach the value as a new field to the data grid.
-      s.data.map((d, idx) => {
-        data[idx][s.label] = d[1];
-        summed[idx] += d[1];
-      });
-      keys.push(s.label);
-    }
-
     let st = stack()
       .keys(keys)
       .order(stackOrderReverse);
 
-    let stackData = st(data);
+    let stackData = st(series);
+
+    // Sum all of the values for each point to get max range. Technically
+    // stackData contains this but I didn't find reliable documentation on
+    // whether we can rely on the highest stacked area to always be first/last
+    // in array etc. so this is simpler.
+    let summed = series.map(d => {
+      let sum = 0;
+      keys.forEach(l => {
+        sum = sum + d[l];
+      });
+      return sum;
+    });
 
     let x = scaleTime()
-      .domain(extent(data, d => d.time))
+      .domain(extent(series, d => d.time))
       .range([0, w]);
 
     let y = scaleLinear()
@@ -126,6 +121,7 @@ export default Component.extend({
 
     let tooltip = select(this.element.querySelector('.tooltip'));
     tooltip.selectAll('.sparkline-tt-legend').remove();
+    tooltip.selectAll('.sparkline-tt-sum').remove();
 
     for (var k of keys) {
       let legend = tooltip.append('div').attr('class', 'sparkline-tt-legend');
@@ -137,12 +133,23 @@ export default Component.extend({
 
       legend
         .append('span')
-        .text(k + ': ')
+        .text(k)
         .append('span')
         .attr('class', 'sparkline-tt-legend-value');
     }
 
     let tipVals = tooltip.selectAll('.sparkline-tt-legend-value');
+
+    // Add a label for the summed value
+    if (keys.length > 1) {
+      tooltip
+        .append('div')
+        .attr('class', 'sparkline-tt-sum')
+        .append('span')
+        .text('Total')
+        .append('span')
+        .attr('class', 'sparkline-tt-sum-value');
+    }
 
     let self = this;
     svg
@@ -152,10 +159,30 @@ export default Component.extend({
         // We update here since we might redraw the graph with user's cursor
         // stationary over it. If that happens mouseover fires but not
         // mousemove but the tooltip and cursor are wrong (based on old data).
-        self.updateTooltip(e, data, stackData, keys, x, tooltip, tipVals, cursor);
+        self.updateTooltip(
+          e,
+          series,
+          stackData,
+          summed,
+          unitSuffix,
+          x,
+          tooltip,
+          tipVals,
+          cursor
+        );
       })
-      .on('mousemove', function(e, d, i) {
-        self.updateTooltip(e, data, stackData, keys, x, tooltip, tipVals, cursor);
+      .on('mousemove', function(e) {
+        self.updateTooltip(
+          e,
+          series,
+          stackData,
+          summed,
+          unitSuffix,
+          x,
+          tooltip,
+          tipVals,
+          cursor
+        );
       })
       .on('mouseout', function(e) {
         tooltip.style('visibility', 'hidden');
@@ -168,7 +195,17 @@ export default Component.extend({
       this.svg.on('mouseover mousemove mouseout', null);
     }
   },
-  updateTooltip: function(e, data, stackData, keys, x, tooltip, tipVals, cursor) {
+  updateTooltip: function(
+    e,
+    series,
+    stackData,
+    summed,
+    unitSuffix,
+    x,
+    tooltip,
+    tipVals,
+    cursor
+  ) {
     let [mouseX] = pointer(e);
     cursor.attr('x', mouseX);
 
@@ -176,7 +213,7 @@ export default Component.extend({
     var bisectTime = bisector(function(d) {
       return d.time;
     }).left;
-    let tipIdx = bisectTime(data, mouseTime);
+    let tipIdx = bisectTime(series, mouseTime);
 
     tooltip
       // 22 px is the correction to align the arrow on the tool tip with
@@ -185,23 +222,15 @@ export default Component.extend({
       .select('.sparkline-time')
       .text(niceTimeWithSeconds(mouseTime));
 
+    // Get the summed value - that's the one of the top most stack.
+    tooltip.select('.sparkline-tt-sum-value').text(`${shortNumStr(summed[tipIdx])}${unitSuffix}`);
+
     tipVals.nodes().forEach((n, i) => {
       let val = stackData[i][tipIdx][1] - stackData[i][tipIdx][0];
-      select(n).text(this.formatTooltip(keys[i], val));
+      select(n).text(`${shortNumStr(val)}${unitSuffix}`);
     });
     cursor.attr('x', mouseX);
-  },
-
-  formatTooltip: function(label, val) {
-    switch (label) {
-      case 'Data rate received':
-      // fallthrough
-      case 'Data rate transmitted':
-        return dataRateStr(val);
-      default:
-        return shortNumStr(val);
-    }
-  },
+  }
 });
 
 // Duplicated in vendor/metrics-providers/prometheus.js since we want that to
