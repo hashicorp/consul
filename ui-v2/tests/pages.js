@@ -38,12 +38,12 @@ import popoverSelectFactory from 'consul-ui/components/popover-select/pageobject
 import morePopoverMenuFactory from 'consul-ui/components/more-popover-menu/pageobject';
 
 import tokenListFactory from 'consul-ui/components/token-list/pageobject';
-import consulTokenListFactory from 'consul-ui/components/consul-token-list/pageobject';
-import consulRoleListFactory from 'consul-ui/components/consul-role-list/pageobject';
-import consulPolicyListFactory from 'consul-ui/components/consul-policy-list/pageobject';
+import consulTokenListFactory from 'consul-ui/components/consul/token/list/pageobject';
+import consulRoleListFactory from 'consul-ui/components/consul/role/list/pageobject';
+import consulPolicyListFactory from 'consul-ui/components/consul/policy/list/pageobject';
 import consulIntentionListFactory from 'consul-ui/components/consul/intention/list/pageobject';
-import consulNspaceListFactory from 'consul-ui/components/consul-nspace-list/pageobject';
-import consulKvListFactory from 'consul-ui/components/consul-kv-list/pageobject';
+import consulNspaceListFactory from 'consul-ui/components/consul/nspace/list/pageobject';
+import consulKvListFactory from 'consul-ui/components/consul/kv/list/pageobject';
 
 // pages
 import index from 'consul-ui/tests/pages/index';

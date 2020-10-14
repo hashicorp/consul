@@ -18,8 +18,8 @@
       <h1>
         {{item.Service.Service}}
       </h1>
-      <ConsulExternalSource @item={{item.Service}} />
-      <ConsulKind @item={{item.Service}} @withInfo={{true}} />
+      <Consul::ExternalSource @item={{item.Service}} />
+      <Consul::Kind @item={{item.Service}} @withInfo={{true}} />
   </BlockSlot>
   <BlockSlot @name="nav">
   {{#if (not-eq item.Service.Kind 'mesh-gateway')}}

@@ -18,7 +18,7 @@
       </BlockSlot>
       <BlockSlot @name="toolbar">
         {{#if (gt services.length 0) }}
-          <ConsulServiceSearchBar
+          <Consul::Service::SearchBar
             @sources={{externalSources}}
             @search={{search}}
             @onsearch={{action (mut search) value="target.value"}}
@@ -40,7 +40,7 @@
   {{#let (sort-by (comparator 'service' sort) filtered) as |sorted|}}
         <ChangeableSet @dispatcher={{searchable 'service' sorted}} @terms={{search}}>
           <BlockSlot @name="set" as |searched|>
-            <ConsulServiceList @items={{searched}} />
+            <Consul::Service::List @items={{searched}} />
           </BlockSlot>
           <BlockSlot @name="empty">
             <EmptyState @allowLogin={{true}}>

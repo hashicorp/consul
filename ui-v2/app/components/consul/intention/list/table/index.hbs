@@ -51,7 +51,7 @@ as |item index|>
         </td>
         <td class="meta">
         {{#if item.IsManagedByCRD}}
-          <ConsulExternalSource @item={{item}} @label="Managed by CRD" />
+          <Consul::ExternalSource @item={{item}} @label="Managed by CRD" />
         {{/if}}
         </td>
     </BlockSlot>
