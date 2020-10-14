@@ -30,7 +30,6 @@ func TestHandler_EmitsStats(t *testing.T) {
 
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
-	t.Cleanup(logError(t, lis.Close))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
@@ -50,7 +49,7 @@ func TestHandler_EmitsStats(t *testing.T) {
 
 	conn, err := grpc.DialContext(ctx, lis.Addr().String(), grpc.WithInsecure())
 	require.NoError(t, err)
-	t.Cleanup(logError(t, conn.Close))
+	t.Cleanup(func() { conn.Close() })
 
 	client := testservice.NewSimpleClient(conn)
 	fClient, err := client.Flow(ctx, &testservice.Req{Datacenter: "mine"})

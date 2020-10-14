@@ -8,12 +8,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/grpc/internal/testservice"
-	"github.com/hashicorp/consul/agent/metadata"
-	"github.com/hashicorp/consul/agent/pool"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
+
+	"github.com/hashicorp/consul/agent/grpc/internal/testservice"
+	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/consul/agent/pool"
 )
 
 type testServer struct {
@@ -40,16 +41,23 @@ func newTestServer(t *testing.T, name string, dc string) testServer {
 
 	g := errgroup.Group{}
 	g.Go(func() error {
-		return rpc.listen(lis)
+		if err := rpc.listen(lis); err != nil {
+			return fmt.Errorf("fake rpc listen error: %w", err)
+		}
+		return nil
 	})
 	g.Go(func() error {
-		return handler.Run()
+		if err := handler.Run(); err != nil {
+			return fmt.Errorf("grpc server error: %w", err)
+		}
+		return nil
 	})
 	return testServer{
 		addr: lis.Addr(),
 		name: name,
 		dc:   dc,
 		shutdown: func() {
+			rpc.shutdown = true
 			if err := lis.Close(); err != nil {
 				t.Logf("listener closed with error: %v", err)
 			}
@@ -57,7 +65,7 @@ func newTestServer(t *testing.T, name string, dc string) testServer {
 				t.Logf("grpc server shutdown: %v", err)
 			}
 			if err := g.Wait(); err != nil {
-				t.Logf("grpc server error: %v", err)
+				t.Log(err)
 			}
 		},
 	}
@@ -89,14 +97,18 @@ func (s *simple) Something(_ context.Context, _ *testservice.Req) (*testservice.
 // For now, since this logic is in agent/consul, we can't easily use Server.listen
 // so we fake it.
 type fakeRPCListener struct {
-	t       *testing.T
-	handler *Handler
+	t        *testing.T
+	handler  *Handler
+	shutdown bool
 }
 
 func (f *fakeRPCListener) listen(listener net.Listener) error {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
+			if f.shutdown {
+				return nil
+			}
 			return err
 		}
 
