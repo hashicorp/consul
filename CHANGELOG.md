@@ -23,7 +23,7 @@ FEATURES:
 
 IMPROVEMENTS:
 
-* agent: Return HTTP 429 when connections per clients limit (`limits.http_max_conns_per_client`) has been reached [GH-7527](https://github.com/hashicorp/consul/issues/7527). [[GH-8221](https://github.com/hashicorp/consul/issues/8221)]
+* agent: Return HTTP 429 when connections per clients limit (`limits.http_max_conns_per_client`) has been reached [[GH-8221](https://github.com/hashicorp/consul/issues/8221)]
 * agent: add config flag `telemetry { disable_compat_1.9 = (true|false) }` to disable deprecated metrics in 1.9 [[GH-8877](https://github.com/hashicorp/consul/issues/8877)]
 * agent: add counter `consul.api.http` with labels for each HTTP path and method. This is intended to replace `consul.http...` [[GH-8877](https://github.com/hashicorp/consul/issues/8877)]
 * agent: allow the /v1/connect/intentions/match endpoint to use the agent cache [[GH-8875](https://github.com/hashicorp/consul/issues/8875)]
