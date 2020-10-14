@@ -2,7 +2,7 @@ import Component from '@ember/component';
 import dayjs from 'dayjs';
 import Calendar from 'dayjs/plugin/calendar';
 
-import { select, event, mouse } from 'd3-selection';
+import { select, pointer } from 'd3-selection';
 import { scaleLinear, scaleTime, scaleOrdinal } from 'd3-scale';
 import { schemeTableau10 } from 'd3-scale-chromatic';
 import { area, stack, stackOrderReverse } from 'd3-shape';
@@ -146,18 +146,18 @@ export default Component.extend({
 
     let self = this;
     svg
-      .on('mouseover', function() {
+      .on('mouseover', function(e) {
         tooltip.style('visibility', 'visible');
         cursor.style('visibility', 'visible');
         // We update here since we might redraw the graph with user's cursor
         // stationary over it. If that happens mouseover fires but not
         // mousemove but the tooltip and cursor are wrong (based on old data).
-        self.updateTooltip(event, data, stackData, keys, x, tooltip, tipVals, cursor);
+        self.updateTooltip(e, data, stackData, keys, x, tooltip, tipVals, cursor);
       })
-      .on('mousemove', function(d, i) {
-        self.updateTooltip(event, data, stackData, keys, x, tooltip, tipVals, cursor);
+      .on('mousemove', function(e, d, i) {
+        self.updateTooltip(e, data, stackData, keys, x, tooltip, tipVals, cursor);
       })
-      .on('mouseout', function() {
+      .on('mouseout', function(e) {
         tooltip.style('visibility', 'hidden');
         cursor.style('visibility', 'hidden');
       });
@@ -168,8 +168,8 @@ export default Component.extend({
       this.svg.on('mouseover mousemove mouseout', null);
     }
   },
-  updateTooltip: function(event, data, stackData, keys, x, tooltip, tipVals, cursor) {
-    let [mouseX] = mouse(event.currentTarget);
+  updateTooltip: function(e, data, stackData, keys, x, tooltip, tipVals, cursor) {
+    let [mouseX] = pointer(e);
     cursor.attr('x', mouseX);
 
     let mouseTime = x.invert(mouseX);
