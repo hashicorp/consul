@@ -12,19 +12,6 @@ import (
 	"github.com/hashicorp/consul/agent/metadata"
 )
 
-var registerLock sync.Mutex
-
-// RegisterWithGRPC registers the ServerResolverBuilder as a grpc/resolver.
-// This function exists to synchronize registrations with a lock.
-// grpc/resolver.Register expects all registration to happen at init and does
-// not allow for concurrent registration. This function exists to support
-// parallel testing.
-func RegisterWithGRPC(b *ServerResolverBuilder) {
-	registerLock.Lock()
-	defer registerLock.Unlock()
-	resolver.Register(b)
-}
-
 // ServerResolverBuilder tracks the current server list and keeps any
 // ServerResolvers updated when changes occur.
 type ServerResolverBuilder struct {

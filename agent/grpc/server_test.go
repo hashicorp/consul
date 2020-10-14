@@ -2,19 +2,23 @@ package grpc
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/resolver"
 
 	"github.com/hashicorp/consul/agent/grpc/internal/testservice"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
+	"github.com/hashicorp/consul/tlsutil"
 )
 
 type testServer struct {
@@ -22,10 +26,16 @@ type testServer struct {
 	name     string
 	dc       string
 	shutdown func()
+	rpc      *fakeRPCListener
 }
 
 func (s testServer) Metadata() *metadata.Server {
-	return &metadata.Server{ID: s.name, Datacenter: s.dc, Addr: s.addr}
+	return &metadata.Server{
+		ID:         s.name,
+		Datacenter: s.dc,
+		Addr:       s.addr,
+		UseTLS:     s.rpc.tlsConf != nil,
+	}
 }
 
 func newTestServer(t *testing.T, name string, dc string) testServer {
@@ -56,6 +66,7 @@ func newTestServer(t *testing.T, name string, dc string) testServer {
 		addr: lis.Addr(),
 		name: name,
 		dc:   dc,
+		rpc:  rpc,
 		shutdown: func() {
 			rpc.shutdown = true
 			if err := lis.Close(); err != nil {
@@ -97,9 +108,11 @@ func (s *simple) Something(_ context.Context, _ *testservice.Req) (*testservice.
 // For now, since this logic is in agent/consul, we can't easily use Server.listen
 // so we fake it.
 type fakeRPCListener struct {
-	t        *testing.T
-	handler  *Handler
-	shutdown bool
+	t                  *testing.T
+	handler            *Handler
+	shutdown           bool
+	tlsConf            *tlsutil.Configurator
+	tlsConnEstablished int32
 }
 
 func (f *fakeRPCListener) listen(listener net.Listener) error {
@@ -128,11 +141,36 @@ func (f *fakeRPCListener) handleConn(conn net.Conn) {
 	}
 	typ := pool.RPCType(buf[0])
 
-	if typ == pool.RPCGRPC {
+	switch typ {
+
+	case pool.RPCGRPC:
 		f.handler.Handle(conn)
 		return
-	}
 
-	fmt.Println("ERROR: unexpected byte", typ)
-	conn.Close()
+	case pool.RPCTLS:
+		// occasionally we see a test client connecting to an rpc listener that
+		// was created as part of another test, despite none of the tests running
+		// in parallel.
+		// Maybe some strange grpc behaviour? I'm not sure.
+		if f.tlsConf == nil {
+			fmt.Println("ERROR: tls is not configured")
+			conn.Close()
+			return
+		}
+
+		atomic.AddInt32(&f.tlsConnEstablished, 1)
+		conn = tls.Server(conn, f.tlsConf.IncomingRPCConfig())
+		f.handleConn(conn)
+
+	default:
+		fmt.Println("ERROR: unexpected byte", typ)
+		conn.Close()
+	}
+}
+
+func registerWithGRPC(t *testing.T, b resolver.Builder) {
+	resolver.Register(b)
+	t.Cleanup(func() {
+		resolver.UnregisterForTesting(b.Scheme())
+	})
 }

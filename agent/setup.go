@@ -5,10 +5,12 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc/grpclog"
+	grpcresolver "google.golang.org/grpc/resolver"
 
 	autoconf "github.com/hashicorp/consul/agent/auto-config"
 	"github.com/hashicorp/consul/agent/cache"
@@ -88,7 +90,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 	d.ConnPool = newConnPool(cfg, d.Logger, d.TLSConfigurator)
 
 	builder := resolver.NewServerResolverBuilder(resolver.Config{})
-	resolver.RegisterWithGRPC(builder)
+	registerWithGRPC(builder)
 	d.GRPCConnPool = grpc.NewClientConnPool(builder, grpc.TLSWrapper(d.TLSConfigurator.OutgoingRPCWrapper()))
 
 	d.Router = router.NewRouter(d.Logger, cfg.Datacenter, fmt.Sprintf("%s.%s", cfg.NodeName, cfg.Datacenter), builder)
@@ -161,4 +163,17 @@ func newConnPool(config *config.RuntimeConfig, logger hclog.Logger, tls *tlsutil
 		pool.MaxStreams = 32
 	}
 	return pool
+}
+
+var registerLock sync.Mutex
+
+// registerWithGRPC registers the grpc/resolver.Builder as a grpc/resolver.
+// This function exists to synchronize registrations with a lock.
+// grpc/resolver.Register expects all registration to happen at init and does
+// not allow for concurrent registration. This function exists to support
+// parallel testing.
+func registerWithGRPC(b grpcresolver.Builder) {
+	registerLock.Lock()
+	defer registerLock.Unlock()
+	grpcresolver.Register(b)
 }
