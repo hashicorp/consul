@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/consul/agent/grpc/internal/testservice"
 	"github.com/hashicorp/consul/agent/grpc/resolver"
 	"github.com/hashicorp/consul/agent/metadata"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 func TestNewDialer_WithTLSWrapper(t *testing.T) {
@@ -84,7 +83,7 @@ func newScheme(n string) string {
 }
 
 func TestClientConnPool_IntegrationWithGRPCResolver_Rebalance(t *testing.T) {
-	count := 4
+	count := 5
 	cfg := resolver.Config{Scheme: newScheme(t.Name())}
 	res := resolver.NewServerResolverBuilder(cfg)
 	resolver.RegisterWithGRPC(res)
@@ -118,13 +117,17 @@ func TestClientConnPool_IntegrationWithGRPCResolver_Rebalance(t *testing.T) {
 	t.Run("rebalance the dc", func(t *testing.T) {
 		// Rebalance is random, but if we repeat it a few times it should give us a
 		// new server.
-		retry.RunWith(fastRetry, t, func(r *retry.R) {
+		attempts := 100
+		for i := 0; i < attempts; i++ {
 			res.NewRebalancer("dc1")()
 
 			resp, err := client.Something(ctx, &testservice.Req{})
-			require.NoError(r, err)
-			require.NotEqual(r, resp.ServerName, first.ServerName)
-		})
+			require.NoError(t, err)
+			if resp.ServerName != first.ServerName {
+				return
+			}
+		}
+		t.Fatalf("server was not rebalanced after %v attempts", attempts)
 	})
 }
 

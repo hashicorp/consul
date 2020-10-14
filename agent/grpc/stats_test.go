@@ -15,7 +15,6 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/agent/grpc/internal/testservice"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 func noopRegister(*grpc.Server) {}
@@ -92,8 +91,6 @@ func TestHandler_EmitsStats(t *testing.T) {
 	}
 	assertDeepEqual(t, expectedCounter, sink.incrCounterCalls, cmpMetricCalls)
 }
-
-var fastRetry = &retry.Timer{Timeout: 7 * time.Second, Wait: 2 * time.Millisecond}
 
 func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
 	t.Helper()
