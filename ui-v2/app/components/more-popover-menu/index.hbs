@@ -2,7 +2,11 @@
   class="more-popover-menu"
   ...attributes
 >
-  <PopoverMenu @expanded={{expanded}} @onchange={{action onchange}} @keyboardAccess={{false}} as |components api|>
+  <PopoverMenu
+    @expanded={{@expanded}}
+    @onchange={{action @onchange}}
+    @keyboardAccess={{false}}
+  as |components api|>
     <BlockSlot @name="trigger">
       More
     </BlockSlot>
