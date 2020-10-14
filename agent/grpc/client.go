@@ -61,8 +61,7 @@ func (c *ClientConnPool) ClientConn(datacenter string) (*grpc.ClientConn, error)
 		grpc.WithInsecure(),
 		grpc.WithContextDialer(c.dialer),
 		grpc.WithDisableRetry(),
-		// TODO: previously this statsHandler was shared with the Handler. Is that necessary?
-		grpc.WithStatsHandler(newStatsHandler()),
+		grpc.WithStatsHandler(newStatsHandler(defaultMetrics)),
 		// nolint:staticcheck // there is no other supported alternative to WithBalancerName
 		grpc.WithBalancerName("pick_first"))
 	if err != nil {

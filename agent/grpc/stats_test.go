@@ -20,10 +20,11 @@ import (
 func noopRegister(*grpc.Server) {}
 
 func TestHandler_EmitsStats(t *testing.T) {
-	sink := patchGlobalMetrics(t)
+	sink, reset := patchGlobalMetrics(t)
 
 	addr := &net.IPAddr{IP: net.ParseIP("127.0.0.1")}
 	handler := NewHandler(addr, noopRegister)
+	reset()
 
 	testservice.RegisterSimpleServer(handler.srv, &simple{})
 
@@ -99,7 +100,7 @@ func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
 	}
 }
 
-func patchGlobalMetrics(t *testing.T) *fakeMetricsSink {
+func patchGlobalMetrics(t *testing.T) (*fakeMetricsSink, func()) {
 	t.Helper()
 
 	sink := &fakeMetricsSink{}
@@ -112,11 +113,12 @@ func patchGlobalMetrics(t *testing.T) *fakeMetricsSink {
 	var err error
 	defaultMetrics, err = metrics.New(cfg, sink)
 	require.NoError(t, err)
-	t.Cleanup(func() {
-		_, err = metrics.NewGlobal(cfg, &metrics.BlackholeSink{})
+	reset := func() {
+		t.Helper()
+		defaultMetrics, err = metrics.New(cfg, &metrics.BlackholeSink{})
 		require.NoError(t, err, "failed to reset global metrics")
-	})
-	return sink
+	}
+	return sink, reset
 }
 
 type fakeMetricsSink struct {

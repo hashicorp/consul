@@ -18,8 +18,8 @@ type statsHandler struct {
 	activeConns uint64 // must be 8-byte aligned for atomic access
 }
 
-func newStatsHandler() *statsHandler {
-	return &statsHandler{metrics: defaultMetrics}
+func newStatsHandler(m *metrics.Metrics) *statsHandler {
+	return &statsHandler{metrics: m}
 }
 
 // TagRPC implements grpcStats.StatsHandler
@@ -64,6 +64,7 @@ func (c *statsHandler) HandleConn(_ context.Context, s stats.ConnStats) {
 }
 
 type activeStreamCounter struct {
+	metrics *metrics.Metrics
 	// count of the number of open streaming RPCs on a server. It is accessed
 	// atomically.
 	count uint64
@@ -78,10 +79,10 @@ func (i *activeStreamCounter) Intercept(
 	handler grpc.StreamHandler,
 ) error {
 	count := atomic.AddUint64(&i.count, 1)
-	defaultMetrics.SetGauge([]string{"grpc", "server", "active_streams"}, float32(count))
+	i.metrics.SetGauge([]string{"grpc", "server", "active_streams"}, float32(count))
 	defer func() {
 		count := atomic.AddUint64(&i.count, ^uint64(0))
-		defaultMetrics.SetGauge([]string{"grpc", "server", "active_streams"}, float32(count))
+		i.metrics.SetGauge([]string{"grpc", "server", "active_streams"}, float32(count))
 	}()
 
 	return handler(srv, ss)

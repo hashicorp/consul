@@ -17,8 +17,8 @@ func NewHandler(addr net.Addr, register func(server *grpc.Server)) *Handler {
 	// We don't need to pass tls.Config to the server since it's multiplexed
 	// behind the RPC listener, which already has TLS configured.
 	srv := grpc.NewServer(
-		grpc.StatsHandler(newStatsHandler()),
-		grpc.StreamInterceptor((&activeStreamCounter{}).Intercept),
+		grpc.StatsHandler(newStatsHandler(defaultMetrics)),
+		grpc.StreamInterceptor((&activeStreamCounter{metrics: defaultMetrics}).Intercept),
 	)
 	register(srv)
 
