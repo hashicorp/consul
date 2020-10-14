@@ -200,11 +200,11 @@ spec:
       - listenerPort: 80
         localPathPort: 42
         path: /test/path
-        protocol: tcp
+        protocol: http
       - listenerPort: 8080
         localPathPort: 4201
         path: /root/test/path
-        protocol: https
+        protocol: http2
   meshGateway:
     mode: local
 ```
@@ -242,7 +242,7 @@ spec:
       - listenerPort: 80
         path: /path
         localPathPort: 9000
-        protocol: tcp
+        protocol: http
       - listenerPort: 8080
         path: /another-path
         localPathPort: 9091
