@@ -36,8 +36,10 @@ Protocol  = "http"
 - `Protocol` `(string: "tcp")` - Sets the protocol of the service. This is used
   by Connect proxies for things like observability features and to unlock usage
   of the [`service-splitter`](/docs/agent/config-entries/service-splitter) and
-  [`service-router`](/docs/agent/config-entries/service-router) config
-  entries for a service. Supported values are one of `tcp`, `http`, `http2`, or `grpc`.
+  [`service-router`](/docs/agent/config-entries/service-router) config entries
+  for a service. It also unlocks the ability to define L7 intentions via
+  [`service-intentions`](/docs/agent/config-entries/service-intentions).
+  Supported values are one of `tcp`, `http`, `http2`, or `grpc`.
 
 - `MeshGateway` `(MeshGatewayConfig: <optional>)` - Controls the default
   [mesh gateway configuration](/docs/connect/mesh-gateway#connect-proxy-configuration)
@@ -74,10 +76,9 @@ Protocol  = "http"
 
 ## ACLs
 
-Configuration entries may be protected by
-[ACLs](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production).
+Configuration entries may be protected by [ACLs](/docs/security/acl).
 
-Reading a `service-defaults` config entry requires `service:read` on itself.
+Reading a `service-defaults` config entry requires `service:read` on the resource.
 
 Creating, updating, or deleting a `service-defaults` config entry requires
-`service:write` on itself.
+`service:write` on the resource.

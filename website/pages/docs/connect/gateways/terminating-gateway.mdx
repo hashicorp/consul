@@ -44,7 +44,7 @@ from the gateway to the destination service.
 
 When certificates for linked services are rotated, the gateway must be restarted to pick up the new certificates from disk.
 To avoid downtime, perform a rolling restart to reload the certificates. Registering multiple terminating gateway instances
-with the same [name](https://www.consul.io/docs/commands/connect/envoy#service) provides additional fault tolerance
+with the same [name](/commands/connect/envoy#service) provides additional fault tolerance
 as well as the ability to perform rolling restarts.
 
 -> **Note:** If certificates and keys are configured the terminating gateway will upgrade HTTP connections to TLS.
@@ -99,12 +99,12 @@ must also provide `agent:read` for its node's name in order to discover the agen
 
 Linking services to a terminating gateway is done with a `terminating-gateway`
 [configuration entry](/docs/agent/config-entries/terminating-gateway). This config entry can be applied via the
-[CLI](/docs/commands/config/write) or [API](/api/config#apply-configuration).
+[CLI](/commands/config/write) or [API](/api/config#apply-configuration).
 
 Gateways with the same name in Consul's service catalog are configured with a single configuration entry.
 This means that additional gateway instances registered with the same name will determine their routing based on the existing configuration entry.
 Adding replicas of a gateway that routes to a particular set of services requires running the
-[envoy subcommand](/docs/commands/connect/envoy#terminating-gateways) on additional hosts and specifying
+[envoy subcommand](/commands/connect/envoy#terminating-gateways) on additional hosts and specifying
 the same gateway name with the `service` flag.
 
 ~> [Configuration entries](/docs/agent/config-entries) are global in scope. A configuration entry for a gateway name applies

@@ -7,7 +7,7 @@ description: The /acl endpoints manage the Consul's ACL system.
 
 # ACL HTTP API
 
--> **1.4.0+:** This API documentation is for Consul versions 1.4.0 and later. The documentation for the legacy ACL API is [here](/api/acl/legacy)
+-> **1.4.0+:** This API documentation is for Consul versions 1.4.0 and later. The documentation for the legacy ACL API is [here](/api/acl/legacy).
 
 The `/acl` endpoints are used to manage ACL tokens and policies in Consul, [bootstrap the ACL system](#bootstrap-acls), [check ACL replication status](#check-acl-replication), and [translate rules](#translate-rules). There are additional pages for managing [tokens](/api/acl/tokens) and [policies](/api/acl/policies) with the `/acl` endpoints.
 
@@ -306,7 +306,7 @@ replication enabled.
 - `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of
   the Auth Method to use for Login. If not provided in the JSON body, the value of
   the `ns` URL query parameter or in the `X-Consul-Namespace` header will be used.
-  If not provided at all, the namespace will be inherited from the request's ACL
+  If not provided, the namespace will be inherited from the request's ACL
   token, or will default to the `default` namespace. Added in Consul 1.7.0.
 
 ### Sample Payload
@@ -434,7 +434,7 @@ replication enabled.
 - `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of
   the Auth Method to use for Login. If not provided in the JSON body, the value of
   the `ns` URL query parameter or in the `X-Consul-Namespace` header will be used.
-  If not provided at all, the namespace will be inherited from the request's ACL
+  If not provided, the namespace will be inherited from the request's ACL
   token, or will default to the `default` namespace.
 
   This must match the namespace provided on the [OIDC Callback](#oidc-callback).
@@ -518,7 +518,7 @@ replication enabled.
 - `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of
   the Auth Method to use for Login. If not provided in the JSON body, the value of
   the `ns` URL query parameter or in the `X-Consul-Namespace` header will be used.
-  If not provided at all, the namespace will be inherited from the request's ACL
+  If not provided, the namespace will be inherited from the request's ACL
   token, or will default to the `default` namespace.
 
   This must match the namespace provided on the [OIDC Callback](#oidc-callback).

@@ -37,7 +37,7 @@ Consul also supports reloading configuration when it receives the
 SIGHUP signal. Not all changes are respected, but those that are
 documented below in the
 [Reloadable Configuration](#reloadable-configuration) section. The
-[reload command](/docs/commands/reload) can also be used to trigger a
+[reload command](/commands/reload) can also be used to trigger a
 configuration reload.
 
 You can test the following configuration options by following the
@@ -235,7 +235,7 @@ The options below are all specified on the command-line.
 
 - `-encrypt` ((#\_encrypt)) - Specifies the secret key to use for encryption
   of Consul network traffic. This key must be 32-bytes that are Base64-encoded. The
-  easiest way to create an encryption key is to use [`consul keygen`](/docs/commands/keygen).
+  easiest way to create an encryption key is to use [`consul keygen`](/commands/keygen).
   All nodes within a cluster must share the same encryption key to communicate. The
   provided key is automatically persisted to the data directory and loaded automatically
   whenever the agent is restarted. This means that to encrypt Consul's gossip protocol,
@@ -381,7 +381,7 @@ The options below are all specified on the command-line.
 - `-log-level` ((#\_log_level)) - The level of logging to show after the
   Consul agent has started. This defaults to "info". The available log levels are
   "trace", "debug", "info", "warn", and "err". You can always connect to an agent
-  via [`consul monitor`](/docs/commands/monitor) and use any log level. Also,
+  via [`consul monitor`](/commands/monitor) and use any log level. Also,
   the log level can be changed during a config reload.
 
 - `-log-json` ((#\_log_json)) - This flag enables the agent to output logs
@@ -899,7 +899,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   Consul servers. When these keys are provided as configuration, they will only be
   respected on bootstrapping. If they are not provided, the defaults will be used.
   In order to change the value of these options after bootstrapping, you will need
-  to use the [Consul Operator Autopilot](/docs/commands/operator/autopilot)
+  to use the [Consul Operator Autopilot](/commands/operator/autopilot)
   command. For more information about Autopilot, review the [Autopilot tutorial](https://learn.hashicorp.com/tutorials/consul/autopilot-datacenter-operations).
 
   The following sub-keys are available:
@@ -1191,7 +1191,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     the Consul server gains leadership. This option is only applicable to server
     nodes. Each bootstrap entry will be created only if it does not exist. When reloading,
     any new entries that have been added to the configuration will be processed.
-    See the [configuration entry docs](/docs/agent/config_entries) for more
+    See the [configuration entry docs](/docs/agent/config-entries) for more
     details about the contents of each entry.
 
 - `connect` This object allows setting options for the Connect feature.

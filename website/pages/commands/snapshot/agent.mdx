@@ -10,9 +10,9 @@ Command: `consul snapshot agent`
 
 <EnterpriseAlert />
 
-~> The [`agent`](/docs/commands/snapshot/agent) subcommand described here is
+~> The [`agent`](/commands/snapshot/agent) subcommand described here is
 available only in [Consul Enterprise](https://www.hashicorp.com/products/consul/)
-version 0.7.1 and later. All other [snapshot subcommands](/docs/commands/snapshot)
+version 0.7.1 and later. All other [snapshot subcommands](/commands/snapshot)
 are available in the open source version of Consul.
 
 The `snapshot agent` subcommand starts a process that takes snapshots of the
@@ -49,7 +49,7 @@ in the file name when using local storage, or in the object key when using
 remote storage.
 
 Snapshots can be restored using the
-[`consul snapshot restore`](/docs/commands/snapshot/restore) command, or
+[`consul snapshot restore`](/commands/snapshot/restore) command, or
 the [HTTP API](/api/snapshot).
 
 If ACLs are enabled the following privileges are required:

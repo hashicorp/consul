@@ -11,7 +11,7 @@ description: >-
 
 # ACL System
 
--> **1.4.0 and later:** This guide only applies in Consul versions 1.4.0 and later. The documentation for the legacy ACL system is [here](/docs/acl/acl-legacy)
+-> **1.4.0 and later:** This guide only applies in Consul versions 1.4.0 and later. The documentation for the legacy ACL system is [here](/docs/acl/acl-legacy).
 
 Consul provides an optional Access Control List (ACL) system which can be used to control access to data and APIs.
 The ACL is [Capability-based](https://en.wikipedia.org/wiki/Capability-based_security), relying on tokens which
@@ -58,7 +58,7 @@ may benefit from additional components in the ACL system:
 
 ACL tokens, policies, roles, auth methods, and binding rules are managed by
 Consul operators via Consul's [ACL API](/api/acl/acl),
-[ACL CLI](/docs/commands/acl), or systems like
+[ACL CLI](/commands/acl), or systems like
 [HashiCorp's Vault](https://www.vaultproject.io/docs/secrets/consul).
 
 If the ACL system becomes inoperable, you can follow the
@@ -316,7 +316,7 @@ The [`acl.tokens.agent`](/docs/agent/options#acl_tokens_agent) is a special toke
 
 1. Updating the agent's node entry using the [Catalog API](/api/catalog), including updating its node metadata, tagged addresses, and network coordinates
 2. Performing [anti-entropy](/docs/internals/anti-entropy) syncing, in particular reading the node metadata and services registered with the catalog
-3. Reading and writing the special `_rexec` section of the KV store when executing [`consul exec`](/docs/commands/exec) commands
+3. Reading and writing the special `_rexec` section of the KV store when executing [`consul exec`](/commands/exec) commands
 
 Here's an example policy sufficient to accomplish the above for a node called `mynode`:
 

@@ -541,7 +541,7 @@ and consider if they're appropriate for your deployment.
       type: RollingUpdate
     ```
 
-  - `snapshotAgent` ((#v-client-snapshotagent)) <EnterpriseAlert inline /> - Values for setting up and running [snapshot agents](/docs/commands/snapshot/agent)
+  - `snapshotAgent` ((#v-client-snapshotagent)) <EnterpriseAlert inline /> - Values for setting up and running [snapshot agents](/commands/snapshot/agent)
     within the Consul clusters. They are required to be co-located with Consul clients,
     so will inherit the clients' nodeSelector, tolerations and affinity.
 
@@ -552,7 +552,7 @@ and consider if they're appropriate for your deployment.
       to run.
 
     - `configSecret` ((#v-client-snapshotagent-configsecret)) - A Kubernetes secret that should be
-      manually created to contain the entire config to be used on the snapshot agent. This is the preferred method of configuration since there are usually storage credentials present. Please see [Snapshot agent config](/docs/commands/snapshot/agent#config-file-options) for details.
+      manually created to contain the entire config to be used on the snapshot agent. This is the preferred method of configuration since there are usually storage credentials present. Please see [Snapshot agent config](/commands/snapshot/agent#config-file-options) for details.
 
       - secretName ((#v-client-snapshotagent-configsecret-secretname)) `(string: null)` - The name of the Kubernetes secret.
 
@@ -828,7 +828,7 @@ and consider if they're appropriate for your deployment.
 
     - `secretKey` ((#v-connectinject-aclinjecttoken-secretkey)) `(string: null)` - The key within the Kubernetes secret that holds the acl token.
 
-  - `centralConfig` ((#v-connectinject-centralconfig)) - Values that configure Consul's [central configuration](/docs/agent/config_entries)
+  - `centralConfig` ((#v-connectinject-centralconfig)) - Values that configure Consul's [central configuration](/docs/agent/config-entries)
     feature (requires Consul v1.5+ and consul-k8s v0.8.1+).
 
     - `enabled` ((#v-connectinject-centralconfig-enabled)) (`boolean: true`) - Turns on the central

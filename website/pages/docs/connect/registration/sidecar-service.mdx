@@ -180,7 +180,7 @@ service's ID. This enables the following behavior.
   - If a service registration removes the nested `sidecar_service` then the
     previously registered sidecar for that service will be deregistered
     automatically.
-- When reloading the configuration files, if a service definition changes it's
+- When reloading the configuration files, if a service definition changes its
   ID, then a new service instance _and_ a new sidecar instance will be
   registered. The old ones will be removed since they are no longer found in
   the config files.

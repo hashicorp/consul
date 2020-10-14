@@ -34,6 +34,9 @@ The supported `Kind` names for configuration entries are:
 - [`service-defaults`](/docs/agent/config-entries/service-defaults) - configures
   defaults for all the instances of a given service
 
+- [`service-intentions`](/docs/agent/config-entries/service-intentions) <sup>Beta</sup> - defines
+  the [intentions](/docs/connect/intentions) for a destination service
+
 - [`service-resolver`](/docs/agent/config-entries/service-resolver) - matches
   service instances with a specific Connect upstream discovery requests
 
@@ -49,7 +52,7 @@ The supported `Kind` names for configuration entries are:
 ## Managing Configuration Entries
 
 Configuration entries should be managed with the Consul
-[CLI](/docs/commands/config) or [API](/api/config). Additionally, as a
+[CLI](/commands/config) or [API](/api/config). Additionally, as a
 convenience for initial cluster bootstrapping, configuration entries can be
 specified in all of the Consul servers's
 [configuration files](/docs/agent/options#config_entries_bootstrap)
@@ -58,7 +61,7 @@ specified in all of the Consul servers's
 
 #### Creating or Updating a Configuration Entry
 
-The [`consul config write`](/docs/commands/config/write) command is used to
+The [`consul config write`](/commands/config/write) command is used to
 create and update configuration entries. This command will load either a JSON or
 HCL file holding the configuration entry definition and then will push this
 configuration to Consul.
@@ -88,7 +91,7 @@ overwriting other unknown modifications.
 
 #### Reading a Configuration Entry
 
-The [`consul config read`](/docs/commands/config/read) command is used to
+The [`consul config read`](/commands/config/read) command is used to
 read the current value of a configuration entry. The configuration entry will be
 displayed in JSON form which is how its transmitted between the CLI client and
 Consul's HTTP API.
@@ -106,7 +109,7 @@ $ consul config read -kind service-defaults -name web
 
 #### Listing Configuration Entries
 
-The [`consul config list`](/docs/commands/config/list) command is used to
+The [`consul config list`](/commands/config/list) command is used to
 list out all the configuration entries for a given kind.
 
 Example:
@@ -120,7 +123,7 @@ db
 
 #### Deleting Configuration Entries
 
-The [`consul config delete`](/docs/commands/config/delete) command is used
+The [`consul config delete`](/commands/config/delete) command is used
 to delete an entry by specifying both its `kind` and `name`.
 
 Example:

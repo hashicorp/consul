@@ -37,13 +37,15 @@ to this, the client provides its own client certificate to show its
 identity to the destination service. If the connection handshake succeeds,
 the connection is encrypted and authorized.
 
-The destination service verifies the client certificate
-against the [public CA bundle](/api/connect/ca#list-ca-root-certificates).
-After verifying the certificate, it must also call the
-[authorization API](/api/agent/connect#authorize) to authorize
-the connection against the configured set of Consul [intentions](/docs/connect/intentions).
-If the authorization API responds successfully, the connection is established.
-Otherwise, the connection is rejected.
+The destination service verifies the client certificate against the [public CA
+bundle](/api/connect/ca#list-ca-root-certificates). After verifying the
+certificate, the next step depends upon the configured application protocol of
+the destination service. TCP (L4) services must authorize incoming _connections_
+against the configured set of Consul [intentions](/docs/connect/intentions),
+whereas HTTP (L7) services must authorize incoming _requests_ against those same
+intentions. If the intention check responds successfully, the
+connection/request is established. Otherwise the connection/request is
+rejected.
 
 To generate and distribute certificates, Consul has a built-in CA that
 requires no other dependencies, and
@@ -59,12 +61,12 @@ in-memory data.
 
 ## Agent Caching and Performance
 
-To enable fast responses on [agent Connect API
-endpoints](/api/agent/connect), the Consul agent locally caches most
-Connect-related data and sets up background [blocking
-queries](/api/features/blocking) against the server to update the cache in
-the background. This allows most API calls such as retrieving certificates or
-authorizing connections to use in-memory data and respond very quickly.
+To enable fast responses on endpoints such as the [agent Connect
+API](/api/agent/connect), the Consul agent locally caches most Connect-related
+data and sets up background [blocking queries](/api/features/blocking) against
+the server to update the cache in the background. This allows most API calls
+such as retrieving certificates or authorizing connections to use in-memory
+data and respond very quickly.
 
 All data cached locally by the agent is populated on demand. Therefore, if
 Connect is not used at all, the cache does not store any data. On first request,
@@ -94,16 +96,16 @@ a long period of inactivity (3 days by default), the cache will empty itself.
 
 ## Connections Across Datacenters
 
-Sidecar proxy's [upstream configuration](/docs/connect/registration/service-registration#upstream-configuration-reference)
+A sidecar proxy's [upstream configuration](/docs/connect/registration/service-registration#upstream-configuration-reference)
 may specify an alternative datacenter or a prepared query that can address services
 in multiple datacenters (such as the [geo failover](https://learn.hashicorp.com/tutorials/consul/automate-geo-failover) pattern).
 
 [Intentions](/docs/connect/intentions) verify connections between services by
 source and destination name seamlessly across datacenters.
 
-Connections can be made via gateways to enable when communicating across
-network topologies allowing connections between services in each datacenter
-without externally routable IPs at the service level.
+Connections can be made via gateways to enable communicating across network
+topologies, allowing connections between services in each datacenter without
+externally routable IPs at the service level.
 
 ## Intention Replication
 

@@ -60,6 +60,7 @@ export default [
         content: ['service-registration', 'sidecar-service'],
       },
       'intentions',
+      'intentions-legacy',
       'observability',
       {
         category: 'l7-traffic',
@@ -195,6 +196,7 @@ export default [
           'ingress-gateway',
           'proxy-defaults',
           'service-defaults',
+          'service-intentions',
           'service-resolver',
           'service-router',
           'service-splitter',
