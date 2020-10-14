@@ -6,7 +6,7 @@
 as |item|>
   <BlockSlot @name="details">
     <div onclick={{action (optional onclick) item}}>
-      <strong class={{concat 'intent-' item.Action}}>{{item.Action}}</strong>
+      <strong class={{concat 'intent-' item.Action}}>{{capitalize item.Action}}</strong>
 {{#if (gt item.HTTP.Methods.length 0)}}
         <dl class="permission-methods">
           <dt>

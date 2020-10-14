@@ -33,37 +33,3 @@ span.policy-service-identity::before {
 %pill.leader::before {
   @extend %with-star-outline-mask, %as-pseudo;
 }
-%pill-allow:before,
-%pill-deny:before,
-%pill-l7:before {
-  @extend %as-pseudo;
-  margin-right: 5px;
-  font-size: 0.9em;
-}
-%pill-allow,
-%pill-deny,
-%pill-l7 {
-  text-transform: capitalize;
-  font-weight: $typo-weight-normal;
-  font-size: $typo-size-600;
-}
-%pill-allow {
-  color: $green-800;
-  background-color: $green-100;
-}
-%pill-deny {
-  color: $red-800;
-  background-color: $red-100;
-}
-%pill-l7 {
-  @extend %frame-gray-900;
-}
-%pill-allow::before {
-  @extend %with-arrow-right-color-mask;
-}
-%pill-deny::before {
-  @extend %with-deny-color-mask;
-}
-%pill-l7::before {
-  @extend %with-layers-mask;
-}
