@@ -40,6 +40,11 @@ export default [
       { title: 'Kubernetes', href: '/docs/k8s' },
     ],
   },
+
+  { title: 'API', href: '/api-docs' },
+
+  { title: 'Commands (CLI)', href: '/commands' },
+
   {
     category: 'discovery',
     name: 'Service Discovery',
