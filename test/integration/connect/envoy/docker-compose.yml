@@ -410,16 +410,6 @@ services:
       - *workdir-volume
     network_mode: service:consul-primary
 
-  wipe-volumes:
-    volumes:
-      - *workdir-volume
-    image: alpine
-    command:
-      - sh
-      - -c
-      - 'rm -rf /workdir/*'
-    network_mode: "none"
-
   # This is a debugging tool run docker-compose up dump-volumes to see the
   # current state.
   dump-volumes:

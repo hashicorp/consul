@@ -186,6 +186,14 @@ function global_setup {
   fi
 }
 
+function wipe_volumes {
+  docker run --rm -i \
+    -v envoy_workdir_1:/workdir \
+    --net=none \
+    alpine \
+    sh -c 'rm -rf /workdir/*'
+}
+
 function run_tests {
   CASE_DIR="${CASE_DIR?CASE_DIR must be set to the path of the test case}"
   CASE_NAME=$( basename $CASE_DIR | cut -c6- )
@@ -206,7 +214,7 @@ function run_tests {
   global_setup
 
   # Wipe state
-  docker-compose up wipe-volumes
+  wipe_volumes
 
   # Push the state to the shared docker volume (note this is because CircleCI
   # can't use shared volumes)
