@@ -594,7 +594,7 @@ func (p *ConnPool) rpc(dc string, nodeName string, addr net.Addr, method string,
 	// Get a usable client
 	conn, sc, err := p.getClient(dc, nodeName, addr)
 	if err != nil {
-		return fmt.Errorf("rpc error getting client: %v", err)
+		return fmt.Errorf("rpc error getting client: %w", err)
 	}
 
 	// Make the RPC call
@@ -611,7 +611,7 @@ func (p *ConnPool) rpc(dc string, nodeName string, addr net.Addr, method string,
 		}
 
 		p.releaseConn(conn)
-		return fmt.Errorf("rpc error making call: %v", err)
+		return fmt.Errorf("rpc error making call: %w", err)
 	}
 
 	// Done with the connection
