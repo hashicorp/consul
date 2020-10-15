@@ -704,6 +704,7 @@ jobs:
     environment:
       EMBER_TEST_REPORT: test-results/report-ent.xml #outputs test report for CircleCI test summary
       EMBER_TEST_PARALLEL: true #enables test parallelization with ember-exam
+      CONSUL_NSPACES_ENABLED: 1
     parallelism: 4
     steps:
       - checkout
