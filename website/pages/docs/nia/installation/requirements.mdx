@@ -10,7 +10,6 @@ description: >-
 
 Consul-Terraform-Sync requires a Terraform Provider, a Terraform Module, and a running Consul cluster outside of the consul-terraform-sync daemon. Practitioners can add support for their network infrastructure through Terraform providers. Once network infrastructure support exists, practitioners can add network integrations in the form of Terraform modules.
 
-
 ## Run a Consul Cluster
 
 Below are several steps towards a minimum Consul setup required for running Consul-Terraform-Sync.
@@ -73,6 +72,15 @@ Working with a Terraform provider, you can write an integration task for Consul-
 ### Using Terraform Modules
 
 The modules listed below are availabe to use and are compatible with Consul-Terraform-Sync.
+
+#### A10 Networks
+
+- Dynamic Load Balancing with Group Member Updates: [Terraform Registry](https://registry.terraform.io/modules/a10networks/service-group-sync-nia/thunder/latest) / [GitHub](https://github.com/a10networks/terraform-thunder-service-group-sync-nia)
+
+#### Checkpoint
+
+- Dynamic Firewalling with Address Object Updates: [Terraform Registry](https://registry.terraform.io/modules/CheckPointSW/dynobj-nia/checkpoint/latest) / [GitHub](https://github.com/CheckPointSW/terraform-checkpoint-dynobj-nia)
+
 #### Cisco ACI
 
 - Policy Based Redirection: [Terraform Registry](https://registry.terraform.io/modules/CiscoDevNet/autoscaling-nia/aci/latest) / [GitHub](https://github.com/CiscoDevNet/terraform-aci-autoscaling-nia)
