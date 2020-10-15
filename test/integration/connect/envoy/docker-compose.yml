@@ -360,11 +360,6 @@ services:
   s1-sidecar-proxy-consul-exec:
     depends_on:
       - consul-primary
-    build:
-      context: .
-      dockerfile: Dockerfile-consul-envoy
-      args:
-        ENVOY_VERSION: ${ENVOY_VERSION}
     image: consul-dev-envoy:${ENVOY_VERSION}
     command:
       - "consul"

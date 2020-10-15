@@ -286,10 +286,17 @@ function suite_setup {
     docker run -d --name envoy_workdir_1 \
         -v envoy_workdir:/workdir \
         --net=none \
-        google/pause
+        google/pause &>/dev/null
 
-    # pre-build the verify container\
+    # pre-build the verify container
+    echo "Rebuilding 'bats-verify' image..."
     docker build -t bats-verify -f Dockerfile-bats .
+
+    # pre-build the consul+envoy container
+    echo "Rebuilding 'consul-dev-envoy:${ENVOY_VERSION}' image..."
+    docker build -t consul-dev-envoy:${ENVOY_VERSION} \
+        --build-arg ENVOY_VERSION=${ENVOY_VERSION} \
+        -f Dockerfile-consul-envoy .
 }
 
 function suite_teardown {
