@@ -266,61 +266,71 @@ func test_reconcileServerList(maxServers int) (bool, error) {
 
 func TestManager_refreshServerRebalanceTimer(t *testing.T) {
 	type testCase struct {
-		clients  int
 		servers  int
-		min      time.Duration
-		max      time.Duration
+		nodes    int
 		expected time.Duration
 	}
 
 	testCases := []testCase{
-		{servers: 3, clients: 0},
-		{servers: 0, clients: 1}, // partitioned cluster
-		{servers: 3, clients: 1},
-		{servers: 3, clients: 2},
-		{servers: 0, clients: 100}, // partitioned
-		{servers: 1, clients: 100}, // partitioned
-		{servers: 3, clients: 100},
-		{servers: 1, clients: 1024}, // partitioned
-		{servers: 3, clients: 1024}, // partitioned
-		{servers: 5, clients: 1024},
-		{servers: 1, clients: 16384, expected: 4*time.Minute + 16*time.Second}, // partitioned
-		{servers: 2, clients: 16384}, // partitioned
-		{servers: 3, clients: 16384}, // partitioned
-		{servers: 5, clients: 16384},
-		{servers: 0, clients: 65535}, // partitioned
-		{servers: 1, clients: 65535, expected: 17*time.Minute + 3984375000},
-		{servers: 2, clients: 65535, expected: 8*time.Minute + 31992187500}, // partitioned
-		{servers: 3, clients: 65535, expected: 5*time.Minute + 41328125000}, // partitioned
-		{servers: 5, clients: 65535, expected: 3*time.Minute + 24796875000}, // partitioned
-		{servers: 7, clients: 65535},
-		{servers: 1, clients: 1000000, expected: 4*time.Hour + 20*time.Minute + 25*time.Second},         // partitioned
-		{servers: 2, clients: 1000000, expected: 2*time.Hour + 10*time.Minute + 12500*time.Millisecond}, // partitioned
-		{servers: 3, clients: 1000000, expected: 86*time.Minute + 48333333333},                          // partitioned
-		{servers: 5, clients: 1000000, expected: 52*time.Minute + 5*time.Second},                        // partitioned
-		{servers: 11, clients: 1000000, expected: 23*time.Minute + 40454545454},                         // partitioned
-		{servers: 19, clients: 1000000, expected: 13*time.Minute + 42368421052},
+		{servers: 0, nodes: 1},
+		{servers: 0, nodes: 100},
+		{servers: 0, nodes: 65535},
+		{servers: 0, nodes: 1000000},
+
+		{servers: 1, nodes: 100},
+		{servers: 1, nodes: 1024},
+		{servers: 1, nodes: 8192},
+		{servers: 1, nodes: 11520},
+		{servers: 1, nodes: 16384, expected: 4*time.Minute + 16*time.Second},
+		{servers: 1, nodes: 65535, expected: 17*time.Minute + 3984375000},
+		{servers: 1, nodes: 1000000, expected: 4*time.Hour + 20*time.Minute + 25*time.Second},
+
+		{servers: 2, nodes: 100},
+		{servers: 2, nodes: 16384},
+		{servers: 2, nodes: 65535, expected: 8*time.Minute + 31992187500},
+		{servers: 2, nodes: 1000000, expected: 2*time.Hour + 10*time.Minute + 12500*time.Millisecond},
+
+		{servers: 3, nodes: 0},
+		{servers: 3, nodes: 100},
+		{servers: 3, nodes: 1024},
+		{servers: 3, nodes: 16384},
+		{servers: 3, nodes: 32768},
+		{servers: 3, nodes: 65535, expected: 5*time.Minute + 41328125000},
+		{servers: 3, nodes: 1000000, expected: 86*time.Minute + 48333333333},
+
+		{servers: 5, nodes: 0},
+		{servers: 5, nodes: 1024},
+		{servers: 5, nodes: 16384},
+		{servers: 5, nodes: 32768},
+		{servers: 5, nodes: 56000},
+		{servers: 5, nodes: 65535, expected: 3*time.Minute + 24796875000},
+		{servers: 5, nodes: 1000000, expected: 52*time.Minute + 5*time.Second},
+
+		{servers: 7, nodes: 65535},
+		{servers: 7, nodes: 80500},
+		{servers: 7, nodes: 131070, expected: 4*time.Minute + 52566964285},
+
+		{servers: 11, nodes: 1000000, expected: 23*time.Minute + 40454545454},
+		{servers: 19, nodes: 1000000, expected: 13*time.Minute + 42368421052},
 	}
 
 	for _, tc := range testCases {
-		m := &Manager{clusterInfo: &fauxSerf{numNodes: tc.clients}, rebalanceTimer: time.NewTimer(0)}
+		m := &Manager{clusterInfo: &fauxSerf{numNodes: tc.nodes}, rebalanceTimer: time.NewTimer(0)}
 		m.saveServerList(serverList{servers: make([]*metadata.Server, tc.servers)})
 		delay := m.refreshServerRebalanceTimer()
 
 		if tc.expected != 0 {
-			assert.Equal(t, tc.expected, delay, "nodes=%d, servers=%d", tc.clients, tc.servers)
+			assert.Equal(t, tc.expected, delay, "nodes=%d, servers=%d", tc.nodes, tc.servers)
 			continue
 		}
 
-		if tc.min == 0 {
-			tc.min = 2 * time.Minute
-			tc.max = 3 * time.Minute
+		min := 2 * time.Minute
+		max := 3 * time.Minute
+		if delay < min {
+			t.Errorf("nodes=%d, servers=%d, expected >%v, actual %v", tc.nodes, tc.servers, min, delay)
 		}
-		if delay < tc.min {
-			t.Errorf("nodes=%d, servers=%d, expected >%v, actual %v", tc.clients, tc.servers, tc.min, delay)
-		}
-		if delay > tc.max {
-			t.Errorf("nodes=%d, servers=%d, expected <%v, actual %v", tc.clients, tc.servers, tc.max, delay)
+		if delay > max {
+			t.Errorf("nodes=%d, servers=%d, expected <%v, actual %v", tc.nodes, tc.servers, max, delay)
 		}
 	}
 }
