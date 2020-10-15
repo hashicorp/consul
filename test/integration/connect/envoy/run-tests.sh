@@ -73,9 +73,11 @@ function init_workdir {
 function docker_kill_rm {
   local name
   for name in "$@"; do
-    local name="envoy_${1}_1"
+    name="envoy_${name}_1"
     if docker container inspect $name &>/dev/null; then
-      docker rm -f $name
+      echo -n "Killing and removing $name..."
+      docker rm -v -f $name &> /dev/null
+      echo "done"
     fi
   done
 }
