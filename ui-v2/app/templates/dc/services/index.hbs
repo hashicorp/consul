@@ -8,7 +8,10 @@
   {{#let (or sortBy "Name:asc") as |sort|}}
     <AppView>
       <BlockSlot @name="notification" as |status type|>
-        {{partial 'dc/services/notifications'}}
+        <Consul::Service::Notifications
+          @type={{type}}
+          @status={{status}}
+        />
       </BlockSlot>
       <BlockSlot @name="header">
           <h1>

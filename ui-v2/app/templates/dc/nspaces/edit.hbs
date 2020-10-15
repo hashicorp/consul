@@ -5,7 +5,11 @@
 {{/if}}
 <AppView>
   <BlockSlot @name="notification" as |status type item error|>
-    {{partial 'dc/nspaces/notifications'}}
+    <Consul::Nspace::Notifications
+      @type={{type}}
+      @status={{status}}
+      @error={{error}}
+    />
   </BlockSlot>
   <BlockSlot @name="breadcrumbs">
     <ol>

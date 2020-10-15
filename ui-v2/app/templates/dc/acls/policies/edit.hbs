@@ -12,7 +12,12 @@
   @enabled={{isEnabled}}
   >
     <BlockSlot @name="notification" as |status type item error|>
-      {{partial 'dc/acls/policies/notifications'}}
+      <Consul::Policy::Notifications
+        @type={{type}}
+        @status={{status}}
+        @item={{item}}
+        @error={{error}}
+      />
     </BlockSlot>
     <BlockSlot @name="breadcrumbs">
         <ol>
