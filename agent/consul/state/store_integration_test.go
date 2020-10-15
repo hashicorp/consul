@@ -64,7 +64,7 @@ func TestStore_IntegrationWithEventPublisher_ACLTokenUpdate(t *testing.T) {
 
 	// Ensure the reset event was sent.
 	err = assertErr(t, eventCh)
-	require.Equal(stream.ErrSubscriptionClosed, err)
+	require.Equal(stream.ErrSubForceClosed, err)
 
 	// Register another subscription.
 	subscription2 := &stream.SubscribeRequest{
@@ -93,7 +93,7 @@ func TestStore_IntegrationWithEventPublisher_ACLTokenUpdate(t *testing.T) {
 
 	// Ensure the reset event was sent.
 	err = assertErr(t, eventCh2)
-	require.Equal(stream.ErrSubscriptionClosed, err)
+	require.Equal(stream.ErrSubForceClosed, err)
 }
 
 func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
@@ -162,6 +162,7 @@ func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
 	}
 	sub, err = publisher.Subscribe(subscription2)
 	require.NoError(err)
+	defer sub.Unsubscribe()
 
 	eventCh = testRunSub(sub)
 
@@ -180,7 +181,7 @@ func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
 
 	// Ensure the reload event was sent.
 	err = assertErr(t, eventCh)
-	require.Equal(stream.ErrSubscriptionClosed, err)
+	require.Equal(stream.ErrSubForceClosed, err)
 
 	// Register another subscription.
 	subscription3 := &stream.SubscribeRequest{
@@ -367,7 +368,7 @@ func assertReset(t *testing.T, eventCh <-chan nextResult, allowEOS bool) {
 				}
 			}
 			require.Error(t, next.Err)
-			require.Equal(t, stream.ErrSubscriptionClosed, next.Err)
+			require.Equal(t, stream.ErrSubForceClosed, next.Err)
 			return
 		case <-time.After(100 * time.Millisecond):
 			t.Fatalf("no err after 100ms")

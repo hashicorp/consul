@@ -122,7 +122,7 @@ func TestSubscription_Close(t *testing.T) {
 	_, err = sub.Next(ctx)
 	elapsed = time.Since(start)
 	require.Error(t, err)
-	require.Equal(t, ErrSubscriptionClosed, err)
+	require.Equal(t, ErrSubForceClosed, err)
 	require.True(t, elapsed > 200*time.Millisecond,
 		"Reload should have happened after blocking 200ms, took %s", elapsed)
 	require.True(t, elapsed < 2*time.Second,
