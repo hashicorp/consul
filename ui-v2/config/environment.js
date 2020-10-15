@@ -11,8 +11,16 @@ const binaryVersion = utils.binaryVersion(repositoryRoot);
 module.exports = function(environment, $ = process.env) {
   // basic 'get env var with fallback' accessor
   const env = function(flag, fallback) {
+    // a fallback value MUST be set
+    if (typeof fallback === 'undefined') {
+      throw new Error(`Please provide a fallback value for $${flag}`);
+    }
     // return the env var if set
     if (typeof $[flag] !== 'undefined') {
+      if (typeof fallback === 'boolean') {
+        // if we are expecting a boolean JSON parse strings to numbers/booleans
+        return !!JSON.parse($[flag]);
+      }
       return $[flag];
     }
     // If the fallback is a function call it and return the result.
@@ -80,8 +88,8 @@ module.exports = function(environment, $ = process.env) {
     CONSUL_BINARY_TYPE: env('CONSUL_BINARY_TYPE', 'oss'),
 
     // These can be overwritten by the UI user at runtime by setting localStorage values
-    CONSUL_UI_DISABLE_REALTIME: !!env('CONSUL_UI_DISABLE_REALTIME', false),
-    CONSUL_UI_DISABLE_ANCHOR_SELECTION: !!env('CONSUL_UI_DISABLE_ANCHOR_SELECTION', false),
+    CONSUL_UI_DISABLE_REALTIME: env('CONSUL_UI_DISABLE_REALTIME', false),
+    CONSUL_UI_DISABLE_ANCHOR_SELECTION: env('CONSUL_UI_DISABLE_ANCHOR_SELECTION', false),
 
     // The following variables are runtime variables that are overwritten when
     // the go binary services the index.html page
@@ -103,9 +111,9 @@ module.exports = function(environment, $ = process.env) {
         locationType: 'none',
 
         // During testing ACLs default to being turned on
-        CONSUL_ACLS_ENABLED: !!env('CONSUL_ACLS_ENABLED', true),
-        CONSUL_NSPACES_ENABLED: !!env('CONSUL_NSPACES_ENABLED', false),
-        CONSUL_SSO_ENABLED: !!env('CONSUL_SSO_ENABLED', false),
+        CONSUL_ACLS_ENABLED: env('CONSUL_ACLS_ENABLED', true),
+        CONSUL_NSPACES_ENABLED: env('CONSUL_NSPACES_ENABLED', false),
+        CONSUL_SSO_ENABLED: env('CONSUL_SSO_ENABLED', false),
 
         '@hashicorp/ember-cli-api-double': {
           'auto-import': false,
@@ -134,9 +142,9 @@ module.exports = function(environment, $ = process.env) {
         // different staging sites can be built with certain features disabled
         // by setting an environment variable to 0 during building (e.g.
         // CONSUL_NSPACES_ENABLED=0 make build)
-        CONSUL_ACLS_ENABLED: !!env('CONSUL_ACLS_ENABLED', true),
-        CONSUL_NSPACES_ENABLED: !!env('CONSUL_NSPACES_ENABLED', true),
-        CONSUL_SSO_ENABLED: !!env('CONSUL_SSO_ENABLED', true),
+        CONSUL_ACLS_ENABLED: env('CONSUL_ACLS_ENABLED', true),
+        CONSUL_NSPACES_ENABLED: env('CONSUL_NSPACES_ENABLED', true),
+        CONSUL_SSO_ENABLED: env('CONSUL_SSO_ENABLED', true),
 
         '@hashicorp/ember-cli-api-double': {
           enabled: true,
