@@ -88,7 +88,9 @@ func TestHandler_EmitsStats(t *testing.T) {
 	assertDeepEqual(t, expectedGauge, sink.gaugeCalls, cmpMetricCalls)
 
 	expectedCounter := []metricCall{
-		{key: []string{"testing", "grpc", "server", "request"}, val: 1},
+		{key: []string{"testing", "grpc", "server", "connection", "count"}, val: 1},
+		{key: []string{"testing", "grpc", "server", "request", "count"}, val: 1},
+		{key: []string{"testing", "grpc", "server", "stream", "count"}, val: 1},
 	}
 	assertDeepEqual(t, expectedCounter, sink.incrCounterCalls, cmpMetricCalls)
 }
