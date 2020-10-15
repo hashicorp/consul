@@ -11,7 +11,18 @@ const binaryVersion = utils.binaryVersion(repositoryRoot);
 module.exports = function(environment, $ = process.env) {
   // basic 'get env var with fallback' accessor
   const env = function(flag, fallback) {
-    return typeof $[flag] !== 'undefined' ? $[flag] : fallback;
+    // return the env var if set
+    if (typeof $[flag] !== 'undefined') {
+      return $[flag];
+    }
+    // If the fallback is a function call it and return the result.
+    // Lazily calling the function means binaries used for fallback don't need
+    // to be available if we are sure the environment variables will be set
+    if (typeof fallback === 'function') {
+      return fallback();
+    }
+    // just return the fallback value
+    return fallback;
   };
 
   let ENV = {
@@ -63,9 +74,9 @@ module.exports = function(environment, $ = process.env) {
     // is later added to the consul binary itself. Some values, if not set,
     // will automatically pull information from the git repository which means
     // these values are guaranteed to be set/correct during development.
-    CONSUL_COPYRIGHT_YEAR: env('CONSUL_COPYRIGHT_YEAR', repositoryYear()),
-    CONSUL_GIT_SHA: env('CONSUL_GIT_SHA', repositorySHA()),
-    CONSUL_VERSION: env('CONSUL_VERSION', binaryVersion()),
+    CONSUL_COPYRIGHT_YEAR: env('CONSUL_COPYRIGHT_YEAR', repositoryYear),
+    CONSUL_GIT_SHA: env('CONSUL_GIT_SHA', repositorySHA),
+    CONSUL_VERSION: env('CONSUL_VERSION', binaryVersion),
     CONSUL_BINARY_TYPE: env('CONSUL_BINARY_TYPE', 'oss'),
 
     // These can be overwritten by the UI user at runtime by setting localStorage values
