@@ -21,6 +21,7 @@ services:
     command:
       - sleep
       - "86400"
+    network_mode: "none"
 
   consul-primary:
     image: "consul-dev"
@@ -417,6 +418,7 @@ services:
       - sh
       - -c
       - 'rm -rf /workdir/*'
+    network_mode: "none"
 
   # This is a debugging tool run docker-compose up dump-volumes to see the
   # current state.
@@ -430,6 +432,7 @@ services:
       - -r
       - /workdir/.
       - /cwd/workdir/
+    network_mode: "none"
 
   zipkin:
     volumes:
