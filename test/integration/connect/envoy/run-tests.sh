@@ -72,6 +72,7 @@ function start_consul {
   local DC=${1:-primary}
 
   # Start consul now as setup script needs it up
+  docker-compose kill consul-${DC} || true
   docker-compose rm -v -f consul-${DC} || true
   docker-compose up -d consul-${DC}
 }
@@ -95,6 +96,7 @@ function start_services {
   
   # Start containers required
   if [ ! -z "$REQUIRED_SERVICES" ] ; then
+    docker-compose kill $REQUIRED_SERVICES || true
     docker-compose rm -v -f $REQUIRED_SERVICES || true
     docker-compose up --build -d $REQUIRED_SERVICES
   fi
@@ -112,6 +114,7 @@ function verify {
   res=0
 
   # Nuke any previous case's verify container.
+  docker-compose kill verify-${DC} || true
   docker-compose rm -v -f verify-${DC} || true
 
   if docker-compose up --abort-on-container-exit --exit-code-from verify-${DC} verify-${DC} ; then
@@ -156,6 +159,7 @@ function stop_services {
   if [ -f "${CASE_DIR}/teardown.sh" ] ; then
     source "${CASE_DIR}/teardown.sh"
   fi
+  docker-compose kill $REQUIRED_SERVICES || true
   docker-compose rm -v -f $REQUIRED_SERVICES || true
 }
 
