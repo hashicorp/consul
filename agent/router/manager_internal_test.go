@@ -281,12 +281,15 @@ func TestManager_refreshServerRebalanceTimer(t *testing.T) {
 		{servers: 1, nodes: 1024},
 		{servers: 1, nodes: 8192},
 		{servers: 1, nodes: 11520},
+		{servers: 1, nodes: 11521, expected: 3*time.Minute + 15625*time.Microsecond},
 		{servers: 1, nodes: 16384, expected: 4*time.Minute + 16*time.Second},
 		{servers: 1, nodes: 65535, expected: 17*time.Minute + 3984375000},
 		{servers: 1, nodes: 1000000, expected: 4*time.Hour + 20*time.Minute + 25*time.Second},
 
 		{servers: 2, nodes: 100},
 		{servers: 2, nodes: 16384},
+		{servers: 2, nodes: 23040},
+		{servers: 2, nodes: 23041, expected: 3*time.Minute + 7812500},
 		{servers: 2, nodes: 65535, expected: 8*time.Minute + 31992187500},
 		{servers: 2, nodes: 1000000, expected: 2*time.Hour + 10*time.Minute + 12500*time.Millisecond},
 
@@ -294,7 +297,8 @@ func TestManager_refreshServerRebalanceTimer(t *testing.T) {
 		{servers: 3, nodes: 100},
 		{servers: 3, nodes: 1024},
 		{servers: 3, nodes: 16384},
-		{servers: 3, nodes: 32768},
+		{servers: 3, nodes: 34560},
+		{servers: 3, nodes: 34561, expected: 3*time.Minute + 5208333},
 		{servers: 3, nodes: 65535, expected: 5*time.Minute + 41328125000},
 		{servers: 3, nodes: 1000000, expected: 86*time.Minute + 48333333333},
 
@@ -302,7 +306,7 @@ func TestManager_refreshServerRebalanceTimer(t *testing.T) {
 		{servers: 5, nodes: 1024},
 		{servers: 5, nodes: 16384},
 		{servers: 5, nodes: 32768},
-		{servers: 5, nodes: 56000},
+		{servers: 5, nodes: 57600},
 		{servers: 5, nodes: 65535, expected: 3*time.Minute + 24796875000},
 		{servers: 5, nodes: 1000000, expected: 52*time.Minute + 5*time.Second},
 
