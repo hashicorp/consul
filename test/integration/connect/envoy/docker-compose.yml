@@ -14,7 +14,7 @@ volumes:
 services:
   # This is a dummy container that we use to create volume and keep it
   # accessible while other containers are down.
-  workdir:
+  workdir: #NOTE THIS IS DEAD
     image: alpine
     volumes:
       - *workdir-volume

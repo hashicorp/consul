@@ -258,14 +258,27 @@ function test_teardown {
     fi
 }
 
+function workdir_cleanup {
+  docker_kill_rm workdir
+  docker volume rm -f envoy_workdir # TODO: conditional
+}
+
 function suite_setup {
     # Set a log dir to prevent docker-compose warning about unset var
     export LOG_DIR="workdir/logs/"
+
     # Cleanup from any previous unclean runs.
-    docker-compose down --volumes --timeout 0 --remove-orphans
+    suite_teardown
 
     # Start the volume container
-    docker-compose up -d workdir
+    #
+    # This is a dummy container that we use to create volume and keep it
+    # accessible while other containers are down.
+    docker volume create envoy_workdir &>/dev/null
+    docker run -d --name envoy_workdir_1 \
+        -v envoy_workdir:/workdir \
+        --net=none \
+        google/pause
 }
 
 function suite_teardown {
@@ -273,6 +286,7 @@ function suite_teardown {
     export LOG_DIR="workdir/logs/"
 
     docker-compose down --volumes --timeout 0 --remove-orphans
+    workdir_cleanup
 }
 
 
