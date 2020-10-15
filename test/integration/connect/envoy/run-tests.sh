@@ -68,12 +68,23 @@ function init_workdir {
   return 0
 }
 
+# Delete a series of containers by their docker-compose name, without invoking
+# "docker-compose" which has a ~500ms per execution startup penalty.
+function docker_kill_rm {
+  local name
+  for name in "$@"; do
+    local name="envoy_${1}_1"
+    if docker container inspect $name &>/dev/null; then
+      docker rm -f $name
+    fi
+  done
+}
+
 function start_consul {
   local DC=${1:-primary}
 
   # Start consul now as setup script needs it up
-  docker-compose kill consul-${DC} || true
-  docker-compose rm -v -f consul-${DC} || true
+  docker_kill_rm consul-${DC}
   docker-compose up -d consul-${DC}
 }
 
@@ -93,11 +104,10 @@ function start_services {
   # Push the state to the shared docker volume (note this is because CircleCI
   # can't use shared volumes)
   docker cp workdir/. envoy_workdir_1:/workdir
-  
+
   # Start containers required
   if [ ! -z "$REQUIRED_SERVICES" ] ; then
-    docker-compose kill $REQUIRED_SERVICES || true
-    docker-compose rm -v -f $REQUIRED_SERVICES || true
+    docker_kill_rm $REQUIRED_SERVICES
     docker-compose up --build -d $REQUIRED_SERVICES
   fi
 
@@ -114,8 +124,7 @@ function verify {
   res=0
 
   # Nuke any previous case's verify container.
-  docker-compose kill verify-${DC} || true
-  docker-compose rm -v -f verify-${DC} || true
+  docker_kill_rm verify-${DC}
 
   if docker-compose up --abort-on-container-exit --exit-code-from verify-${DC} verify-${DC} ; then
     echogreen "✓ PASS"
@@ -159,8 +168,7 @@ function stop_services {
   if [ -f "${CASE_DIR}/teardown.sh" ] ; then
     source "${CASE_DIR}/teardown.sh"
   fi
-  docker-compose kill $REQUIRED_SERVICES || true
-  docker-compose rm -v -f $REQUIRED_SERVICES || true
+  docker_kill_rm $REQUIRED_SERVICES
 }
 
 function init_vars {
