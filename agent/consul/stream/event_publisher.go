@@ -10,26 +10,16 @@ import (
 // EventPublisher receives change events from Publish, and sends the events to
 // all subscribers of the event Topic.
 type EventPublisher struct {
-	// snapCacheTTL controls how long we keep snapshots in our cache before
-	// allowing them to be garbage collected and a new one made for subsequent
-	// requests for that topic and key. In general this should be pretty short to
-	// keep memory overhead of duplicated event data low - snapshots are typically
-	// not that expensive, but having a cache for a few seconds can help
-	// de-duplicate building the same snapshot over and over again when a
-	// thundering herd of watchers all subscribe to the same topic within a few
-	// seconds.
-	snapCacheTTL time.Duration
-
-	// This lock protects the topicBuffers, and snapCache
+	// lock protects the topicBuffers. If this lock must be acquired along with
+	// either the subscriptions.lock or the snapshots.lock, this lock must be
+	// acquired first.
 	lock sync.RWMutex
 
 	// topicBuffers stores the head of the linked-list buffer to publish events to
 	// for a topic.
 	topicBuffers map[Topic]*eventBuffer
 
-	// snapCache if a cache of EventSnapshots indexed by topic and key.
-	// TODO(streaming): new snapshotCache struct for snapCache and snapCacheTTL
-	snapCache map[Topic]map[string]*eventSnapshot
+	snapshots snapshots
 
 	subscriptions *subscriptions
 
@@ -37,8 +27,6 @@ type EventPublisher struct {
 	// publishes events, so that publishing can happen asynchronously from
 	// the Commit call in the FSM hot path.
 	publishCh chan []Event
-
-	snapshotHandlers SnapshotHandlers
 }
 
 type subscriptions struct {
@@ -52,6 +40,27 @@ type subscriptions struct {
 	// reloaded.
 	// A subscription may be unsubscribed by using the pointer to the request.
 	byToken map[string]map[*SubscribeRequest]*Subscription
+}
+
+type snapshots struct {
+	// lock for cache. If both snapshots.lock and EventPublisher.lock must
+	// be held together, EventPublisher.lock MUST always be acquired first.
+	lock sync.RWMutex
+
+	// cache of eventSnapshot indexed by topic and key.
+	cache map[Topic]map[string]*eventSnapshot
+
+	// snapCacheTTL controls how long we keep snapshots in our cache before
+	// allowing them to be garbage collected and a new one made for subsequent
+	// requests for that topic and key. In general this should be pretty short to
+	// keep memory overhead of duplicated event data low - snapshots are typically
+	// not that expensive, but having a cache for a few seconds can help
+	// de-duplicate building the same snapshot over and over again when a
+	// thundering herd of watchers all subscribe to the same topic within a few
+	// seconds.
+	snapCacheTTL time.Duration
+
+	handlers SnapshotHandlers
 }
 
 // SnapshotHandlers is a mapping of Topic to a function which produces a snapshot
@@ -78,14 +87,16 @@ type SnapshotAppender interface {
 // and stop all publishing.
 func NewEventPublisher(handlers SnapshotHandlers, snapCacheTTL time.Duration) *EventPublisher {
 	e := &EventPublisher{
-		snapCacheTTL: snapCacheTTL,
 		topicBuffers: make(map[Topic]*eventBuffer),
-		snapCache:    make(map[Topic]map[string]*eventSnapshot),
 		publishCh:    make(chan []Event, 64),
 		subscriptions: &subscriptions{
 			byToken: make(map[string]map[*SubscribeRequest]*Subscription),
 		},
-		snapshotHandlers: handlers,
+		snapshots: snapshots{
+			cache:        make(map[Topic]map[string]*eventSnapshot),
+			snapCacheTTL: snapCacheTTL,
+			handlers:     handlers,
+		},
 	}
 
 	return e
@@ -154,7 +165,7 @@ func (e *EventPublisher) getTopicBuffer(topic Topic) *eventBuffer {
 // When the caller is finished with the subscription for any reason, it must
 // call Subscription.Unsubscribe to free ACL tracking resources.
 func (e *EventPublisher) Subscribe(req *SubscribeRequest) (*Subscription, error) {
-	handler, ok := e.snapshotHandlers[req.Topic]
+	handler, ok := e.snapshots.handlers[req.Topic]
 	if !ok || req.Topic == nil {
 		return nil, fmt.Errorf("unknown topic %v", req.Topic)
 	}
@@ -174,7 +185,7 @@ func (e *EventPublisher) Subscribe(req *SubscribeRequest) (*Subscription, error)
 		return e.subscriptions.add(req, subscriptionHead), nil
 	}
 
-	snapFromCache := e.getCachedSnapshotLocked(req)
+	snapFromCache := e.snapshots.get(req)
 	if req.Index == 0 && snapFromCache != nil {
 		return e.subscriptions.add(req, snapFromCache.First), nil
 	}
@@ -196,7 +207,7 @@ func (e *EventPublisher) Subscribe(req *SubscribeRequest) (*Subscription, error)
 	}
 
 	snap.appendAndSplice(*req, handler, topicHead)
-	e.setCachedSnapshotLocked(req, snap)
+	e.snapshots.set(req, snap)
 	return e.subscriptions.add(req, snap.First), nil
 }
 
@@ -260,32 +271,37 @@ func (s *subscriptions) closeAll() {
 	}
 }
 
-// EventPublisher.lock must be held to call this method.
-func (e *EventPublisher) getCachedSnapshotLocked(req *SubscribeRequest) *eventSnapshot {
-	topicSnaps, ok := e.snapCache[req.Topic]
+func (s *snapshots) get(req *SubscribeRequest) *eventSnapshot {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+	topicSnaps, ok := s.cache[req.Topic]
 	if !ok {
-		topicSnaps = make(map[string]*eventSnapshot)
-		e.snapCache[req.Topic] = topicSnaps
+		return nil
 	}
-
-	snap, ok := topicSnaps[req.Key]
-	if ok && snap.err() == nil {
+	if snap, ok := topicSnaps[req.Key]; ok && snap.err() == nil {
 		return snap
 	}
 	return nil
 }
 
-// EventPublisher.lock must be held to call this method.
-func (e *EventPublisher) setCachedSnapshotLocked(req *SubscribeRequest, snap *eventSnapshot) {
-	if e.snapCacheTTL == 0 {
+func (s *snapshots) set(req *SubscribeRequest, snap *eventSnapshot) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	if s.snapCacheTTL == 0 {
 		return
 	}
-	e.snapCache[req.Topic][req.Key] = snap
+
+	topicSnaps, ok := s.cache[req.Topic]
+	if !ok {
+		topicSnaps = make(map[string]*eventSnapshot)
+		s.cache[req.Topic] = topicSnaps
+	}
+	topicSnaps[req.Key] = snap
 
 	// Setup a cache eviction
-	time.AfterFunc(e.snapCacheTTL, func() {
-		e.lock.Lock()
-		defer e.lock.Unlock()
-		delete(e.snapCache[req.Topic], req.Key)
+	time.AfterFunc(s.snapCacheTTL, func() {
+		s.lock.Lock()
+		defer s.lock.Unlock()
+		delete(s.cache[req.Topic], req.Key)
 	})
 }

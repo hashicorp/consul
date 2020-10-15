@@ -172,7 +172,7 @@ func TestEventPublisher_SubscribeWithIndex0_FromCache(t *testing.T) {
 	_, err := publisher.Subscribe(req)
 	require.NoError(t, err)
 
-	publisher.snapshotHandlers[testTopic] = func(_ SubscribeRequest, _ SnapshotAppender) (uint64, error) {
+	publisher.snapshots.handlers[testTopic] = func(_ SubscribeRequest, _ SnapshotAppender) (uint64, error) {
 		return 0, fmt.Errorf("error should not be seen, cache should have been used")
 	}
 
@@ -348,7 +348,7 @@ func TestEventPublisher_SubscribeWithIndexNotZero_NewSnapshotFromCache(t *testin
 		publisher.publishEvent([]Event{nextEvent})
 	})
 
-	publisher.snapshotHandlers[testTopic] = func(_ SubscribeRequest, _ SnapshotAppender) (uint64, error) {
+	publisher.snapshots.handlers[testTopic] = func(_ SubscribeRequest, _ SnapshotAppender) (uint64, error) {
 		return 0, fmt.Errorf("error should not be seen, cache should have been used")
 	}
 
