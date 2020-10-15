@@ -81,11 +81,11 @@ instructions.
 
 ## Usage
 
-Once installed, we can use `kubectl` to create and manage Consul's configuration entries.
+Once installed, you can use `kubectl` to create and manage Consul's configuration entries.
 
 ### Create
 
-We can create configuration entries via `kubectl apply`.
+You can create configuration entries via `kubectl apply`.
 
 ```shell-session
 $ cat <<EOF | kubectl apply -f -
@@ -104,7 +104,7 @@ See [Specifications](#specifications) for detailed schema documentation.
 
 ### Get
 
-We can use `kubectl get [kind] [name]` to get the status of the configuration entry:
+You can use `kubectl get [kind] [name]` to get the status of the configuration entry:
 
 ```shell-session
 $ kubectl get servicedefaults foo
@@ -117,7 +117,7 @@ in Consul.
 
 ### Describe
 
-We can use `kubectl describe [kind] [name]` to investigate the status of the
+You can use `kubectl describe [kind] [name]` to investigate the status of the
 configuration entry. If `SYNCED` is false, the status will contain the reason
 why.
 
@@ -132,7 +132,7 @@ Status:
 
 ### Edit
 
-We can use `kubectl edit [kind] [name]` to edit the configuration entry:
+You can use `kubectl edit [kind] [name]` to edit the configuration entry:
 
 ```shell
 $ kubectl edit servicedefaults foo
@@ -140,7 +140,7 @@ $ kubectl edit servicedefaults foo
 servicedefaults.consul.hashicorp.com/foo edited
 ```
 
-We can then use `kubectl get` to ensure the change was synced to Consul:
+You can then use `kubectl get` to ensure the change was synced to Consul:
 
 ```shell-session
 $ kubectl get servicedefaults foo
@@ -150,14 +150,14 @@ foo   True
 
 ### Delete
 
-We can use `kubectl delete [kind] [name]` to delete the configuration entry:
+You can use `kubectl delete [kind] [name]` to delete the configuration entry:
 
 ```shell-session
 $ kubectl delete servicedefaults foo
 servicedefaults.consul.hashicorp.com "foo" deleted
 ```
 
-We can then use `kubectl get` to ensure the configuration entry was deleted:
+You can then use `kubectl get` to ensure the configuration entry was deleted:
 
 ```shell-session
 $ kubectl get servicedefaults foo
@@ -167,7 +167,7 @@ Error from server (NotFound): servicedefaults.consul.hashicorp.com "foo" not fou
 #### Delete Hanging
 
 If running `kubectl delete` hangs without exiting, there may be
-a requirement inside Consul that prevents that configuration entry from being
+a dependent configuration entry registered with Consul that prevents the target configuration entry from being
 deleted. For example, if you set the protocol of your service to `http` via `ServiceDefaults` and then
 create a `ServiceSplitter`, you won't be able to delete the `ServiceDefaults`.
 
@@ -176,15 +176,15 @@ protocol back to the default which is `tcp`. Since `ServiceSplitter` requires
 that the service has an `http` protocol, Consul will not allow the `ServiceDefaults`
 to be deleted since that would put Consul into a broken state.
 
-In order to delete the `ServiceDefaults` config you would need to first delete
+In order to delete the `ServiceDefaults` config, you would need to first delete
 the `ServiceSplitter`.
 
 ## Specifications
 
 ### ProxyDefaults
 
-[proxy-defaults](/docs/agent/config-entries/proxy-defaults)
-configures global defaults across all proxies.
+A [proxy-defaults](/docs/agent/config-entries/proxy-defaults)
+entry configures global defaults across all proxies.
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -193,18 +193,18 @@ metadata:
   name: global
 spec:
   config:
-    envoy_tracing_json: '{"http":{"name":"envoy.zipkin","config":{"collector_cluster":"zipkin","collector_endpoint":"/api/v1/spans","shared_span_context":false}}}'
+    envoy_tracing_json: '{"http":{"config":{"collector_cluster":"jaeger_9411","collector_endpoint":"/api/v2/spans"},"name":"envoy.zipkin"}}'
   expose:
     checks: true
     paths:
       - listenerPort: 80
         localPathPort: 42
         path: /test/path
-        protocol: tcp
+        protocol: http
       - listenerPort: 8080
         localPathPort: 4201
         path: /root/test/path
-        protocol: https
+        protocol: http2
   meshGateway:
     mode: local
 ```
@@ -224,8 +224,8 @@ Notes:
 
 ### ServiceDefaults
 
-[service-defaults](/docs/agent/config-entries/service-defaults)
-configures a specific service.
+A [service-defaults](/docs/agent/config-entries/service-defaults)
+entry configures a specific service.
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -242,7 +242,7 @@ spec:
       - listenerPort: 80
         path: /path
         localPathPort: 9000
-        protocol: tcp
+        protocol: http
       - listenerPort: 8080
         path: /another-path
         localPathPort: 9091
@@ -259,8 +259,8 @@ Notes:
 
 ### ServiceIntentions <sup>(Beta)</sup>
 
-[service-intentions](/docs/agent/config-entries/service-intentions)
-configures traffic authorization for a destination service.
+A [service-intentions](/docs/agent/config-entries/service-intentions)
+entry configures traffic authorization for a destination service.
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -307,13 +307,14 @@ spec:
 Notes:
 
 1. This resource is only supported in Consul 1.9.0.
-1. Unlike the other configuration entries, the value of `metadata.name` does not
-   define which service the intention applies to. It can be set to any value
-   however we recommend setting it to the name of the destination service the
-   intention is configuring.
-
+1. **Unlike the other configuration entries**, the value of `metadata.name` does not
+   define which service the intention applies to.
    Instead, the name of the service this intention
    is configuring is set in `spec.destination.name`.
+
+   The `metadata.name` field can be set to any value,
+   however, we recommend setting it to the name of the destination service the
+   intention is configuring.
 
 1. Wildcard intentions can be created by setting `spec.destination.name` to `*` and/or
    `spec.sources[].name` to `*`. For example to create a `deny` intention that applies
@@ -337,8 +338,8 @@ Notes:
 
 ### ServiceResolver
 
-[service-resolver](/docs/agent/config-entries/service-resolver)
-configures which service instances should satisfy Connect upstream discovery requests for a given service name.
+A [service-resolver](/docs/agent/config-entries/service-resolver)
+entry configures which service instances should satisfy Connect upstream discovery requests for a given service name.
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -401,8 +402,8 @@ Notes:
 
 ### ServiceRouter
 
-[service-router](/docs/agent/config-entries/service-router)
-configures traffic routing and manipulation at networking layer 7 (e.g. HTTP).
+A [service-router](/docs/agent/config-entries/service-router)
+entry configures traffic routing and manipulation at networking layer 7 (e.g. HTTP).
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -454,8 +455,8 @@ Notes:
 
 ### ServiceSplitter
 
-[service-splitter](/docs/agent/config-entries/service-splitter)
-configures splitting incoming requests across different subsets of a single service.
+A [service-splitter](/docs/agent/config-entries/service-splitter)
+entry configures splitting incoming requests across different subsets of a single service.
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
@@ -464,13 +465,13 @@ metadata:
   name: your-service-name
 spec:
   splits:
-    - weight: 50.1
+    - weight: 25.5
       service: foo
-      serviceSubset: bar
+      serviceSubset: v1
       namespace: baz
-    - weight: 49.9
+    - weight: 74.5
       service: foo
-      serviceSubset: bar
+      serviceSubset: v2
       namespace: baz
 ```
 
