@@ -128,7 +128,15 @@ function verify {
   # Nuke any previous case's verify container.
   docker_kill_rm verify-${DC}
 
-  if docker-compose up --abort-on-container-exit --exit-code-from verify-${DC} verify-${DC} ; then
+  echo "Running verification step for ${CASE_DIR}..."
+
+  if docker run --name envoy_verify-${DC}_1 -t \
+    -e ENVOY_VERSION \
+    -v envoy_workdir:/workdir \
+    --pid=host \
+    --net container:envoy_consul-${DC}_1 \
+    bats-verify \
+    --pretty /workdir/${DC}/bats ; then
     echogreen "✓ PASS"
   else
     echored "⨯ FAIL"
@@ -188,7 +196,7 @@ function global_setup {
 
 function wipe_volumes {
   docker run --rm -i \
-    -v envoy_workdir_1:/workdir \
+    -v envoy_workdir:/workdir \
     --net=none \
     alpine \
     sh -c 'rm -rf /workdir/*'
@@ -279,12 +287,18 @@ function suite_setup {
         -v envoy_workdir:/workdir \
         --net=none \
         google/pause
+
+    # pre-build the verify container\
+    docker build -t bats-verify -f Dockerfile-bats .
 }
 
 function suite_teardown {
     # Set a log dir to prevent docker-compose warning about unset var
     export LOG_DIR="workdir/logs/"
 
+    docker_kill_rm verify-primary verify-secondary
+
+    workdir_cleanup &>/dev/null || true #TODO HACK
     docker-compose down --volumes --timeout 0 --remove-orphans
     workdir_cleanup
 }

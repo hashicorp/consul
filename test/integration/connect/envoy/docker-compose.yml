@@ -357,22 +357,6 @@ services:
       - *workdir-volume
     network_mode: service:consul-primary
 
-  verify-primary:
-    depends_on:
-      - consul-primary
-    build:
-      context: .
-      dockerfile: Dockerfile-bats
-    tty: true
-    environment:
-     - ENVOY_VERSION
-    command:
-     - "--pretty"
-     - "/workdir/primary/bats"
-    volumes:
-      - *workdir-volume
-    network_mode: service:consul-primary
-
   s1-sidecar-proxy-consul-exec:
     depends_on:
       - consul-primary
@@ -605,40 +589,6 @@ services:
     volumes:
       - *workdir-volume
     network_mode: service:consul-primary
-
-  verify-primary:
-    depends_on:
-      - consul-primary
-    build:
-      context: .
-      dockerfile: Dockerfile-bats
-    tty: true
-    environment:
-     - ENVOY_VERSION
-    command:
-     - "--pretty"
-     - "/workdir/primary/bats"
-    volumes:
-      - *workdir-volume
-    network_mode: service:consul-primary
-    pid: host
-
-  verify-secondary:
-    depends_on:
-      - consul-secondary
-    build:
-      context: .
-      dockerfile: Dockerfile-bats
-    tty: true
-    environment:
-     - ENVOY_VERSION
-    command:
-     - "--pretty"
-     - "/workdir/secondary/bats"
-    volumes:
-      - *workdir-volume
-    network_mode: service:consul-secondary
-    pid: host
 
   tcpdump-primary:
     depends_on:
