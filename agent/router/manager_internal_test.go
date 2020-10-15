@@ -8,9 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/go-hclog"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/metadata"
 )
 
 var (
@@ -262,55 +264,63 @@ func test_reconcileServerList(maxServers int) (bool, error) {
 	return true, nil
 }
 
-// func (l *serverList) refreshServerRebalanceTimer() {
-func TestManagerInternal_refreshServerRebalanceTimer(t *testing.T) {
-	type clusterSizes struct {
-		numNodes     int
-		numServers   int
-		minRebalance time.Duration
-	}
-	clusters := []clusterSizes{
-		{0, 3, 2 * time.Minute},
-		{1, 0, 2 * time.Minute}, // partitioned cluster
-		{1, 3, 2 * time.Minute},
-		{2, 3, 2 * time.Minute},
-		{100, 0, 2 * time.Minute}, // partitioned
-		{100, 1, 2 * time.Minute}, // partitioned
-		{100, 3, 2 * time.Minute},
-		{1024, 1, 2 * time.Minute}, // partitioned
-		{1024, 3, 2 * time.Minute}, // partitioned
-		{1024, 5, 2 * time.Minute},
-		{16384, 1, 4 * time.Minute}, // partitioned
-		{16384, 2, 2 * time.Minute}, // partitioned
-		{16384, 3, 2 * time.Minute}, // partitioned
-		{16384, 5, 2 * time.Minute},
-		{65535, 0, 2 * time.Minute}, // partitioned
-		{65535, 1, 8 * time.Minute}, // partitioned
-		{65535, 2, 3 * time.Minute}, // partitioned
-		{65535, 3, 5 * time.Minute}, // partitioned
-		{65535, 5, 3 * time.Minute}, // partitioned
-		{65535, 7, 2 * time.Minute},
-		{1000000, 1, 4 * time.Hour},     // partitioned
-		{1000000, 2, 2 * time.Hour},     // partitioned
-		{1000000, 3, 80 * time.Minute},  // partitioned
-		{1000000, 5, 50 * time.Minute},  // partitioned
-		{1000000, 11, 20 * time.Minute}, // partitioned
-		{1000000, 19, 10 * time.Minute},
+func TestManager_refreshServerRebalanceTimer(t *testing.T) {
+	type testCase struct {
+		clients  int
+		servers  int
+		min      time.Duration
+		max      time.Duration
+		expected time.Duration
 	}
 
-	logger := GetBufferedLogger()
-	shutdownCh := make(chan struct{})
+	testCases := []testCase{
+		{servers: 3, clients: 0},
+		{servers: 0, clients: 1}, // partitioned cluster
+		{servers: 3, clients: 1},
+		{servers: 3, clients: 2},
+		{servers: 0, clients: 100}, // partitioned
+		{servers: 1, clients: 100}, // partitioned
+		{servers: 3, clients: 100},
+		{servers: 1, clients: 1024}, // partitioned
+		{servers: 3, clients: 1024}, // partitioned
+		{servers: 5, clients: 1024},
+		{servers: 1, clients: 16384, expected: 4*time.Minute + 16*time.Second}, // partitioned
+		{servers: 2, clients: 16384}, // partitioned
+		{servers: 3, clients: 16384}, // partitioned
+		{servers: 5, clients: 16384},
+		{servers: 0, clients: 65535}, // partitioned
+		{servers: 1, clients: 65535, expected: 17*time.Minute + 3984375000},
+		{servers: 2, clients: 65535, expected: 8*time.Minute + 31992187500}, // partitioned
+		{servers: 3, clients: 65535, expected: 5*time.Minute + 41328125000}, // partitioned
+		{servers: 5, clients: 65535, expected: 3*time.Minute + 24796875000}, // partitioned
+		{servers: 7, clients: 65535},
+		{servers: 1, clients: 1000000, expected: 4*time.Hour + 20*time.Minute + 25*time.Second},         // partitioned
+		{servers: 2, clients: 1000000, expected: 2*time.Hour + 10*time.Minute + 12500*time.Millisecond}, // partitioned
+		{servers: 3, clients: 1000000, expected: 86*time.Minute + 48333333333},                          // partitioned
+		{servers: 5, clients: 1000000, expected: 52*time.Minute + 5*time.Second},                        // partitioned
+		{servers: 11, clients: 1000000, expected: 23*time.Minute + 40454545454},                         // partitioned
+		{servers: 19, clients: 1000000, expected: 13*time.Minute + 42368421052},
+	}
 
-	for _, s := range clusters {
-		m := New(logger, shutdownCh, &fauxSerf{numNodes: s.numNodes}, &fauxConnPool{}, "", noopRebalancer)
-		for i := 0; i < s.numServers; i++ {
-			nodeName := fmt.Sprintf("s%02d", i)
-			m.AddServer(&metadata.Server{Name: nodeName})
+	for _, tc := range testCases {
+		m := &Manager{clusterInfo: &fauxSerf{numNodes: tc.clients}, rebalanceTimer: time.NewTimer(0)}
+		m.saveServerList(serverList{servers: make([]*metadata.Server, tc.servers)})
+		delay := m.refreshServerRebalanceTimer()
+
+		if tc.expected != 0 {
+			assert.Equal(t, tc.expected, delay, "nodes=%d, servers=%d", tc.clients, tc.servers)
+			continue
 		}
 
-		d := m.refreshServerRebalanceTimer()
-		if d < s.minRebalance {
-			t.Errorf("duration too short for cluster of size %d and %d servers (%s < %s)", s.numNodes, s.numServers, d, s.minRebalance)
+		if tc.min == 0 {
+			tc.min = 2 * time.Minute
+			tc.max = 3 * time.Minute
+		}
+		if delay < tc.min {
+			t.Errorf("nodes=%d, servers=%d, expected >%v, actual %v", tc.clients, tc.servers, tc.min, delay)
+		}
+		if delay > tc.max {
+			t.Errorf("nodes=%d, servers=%d, expected <%v, actual %v", tc.clients, tc.servers, tc.max, delay)
 		}
 	}
 }
