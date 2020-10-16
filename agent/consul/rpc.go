@@ -32,12 +32,6 @@ import (
 )
 
 const (
-	// jitterFraction is a the limit to the amount of jitter we apply
-	// to a user specified MaxQueryTime. We divide the specified time by
-	// the fraction. So 16 == 6.25% limit of jitter. This same fraction
-	// is applied to the RPCHoldTimeout
-	jitterFraction = 16
-
 	// Warn if the Raft command is larger than this.
 	// If it's over 1MB something is probably being abusive.
 	raftWarnSize = 1024 * 1024
@@ -485,7 +479,16 @@ func (c *limitedConn) Read(b []byte) (n int, err error) {
 }
 
 // canRetry returns true if the given situation is safe for a retry.
-func canRetry(args interface{}, err error) bool {
+func canRetry(args interface{}, err error, start time.Time, config *Config) bool {
+	rpcInfo, hasInfo := args.(structs.RPCInfo)
+	if hasInfo && rpcInfo.HasTimedOut(start, config.RPCHoldTimeout, config.MaxQueryTime, config.DefaultQueryTime) {
+		// RPCInfo timeout may include extra time for MaxQueryTime
+		return false
+	} else if !hasInfo && time.Since(start) > config.RPCHoldTimeout {
+		// When not RPCInfo, timeout is only RPCHoldTimeout
+		return false
+	}
+
 	// No leader errors are always safe to retry since no state could have
 	// been changed.
 	if structs.IsErrNoLeader(err) {
@@ -500,8 +503,7 @@ func canRetry(args interface{}, err error) bool {
 
 	// Reads are safe to retry for stream errors, such as if a server was
 	// being shut down.
-	info, ok := args.(structs.RPCInfo)
-	if ok && info.IsRead() && lib.IsErrEOF(err) {
+	if hasInfo && rpcInfo.IsRead() && lib.IsErrEOF(err) {
 		return true
 	}
 
@@ -511,7 +513,7 @@ func canRetry(args interface{}, err error) bool {
 // ForwardRPC is used to forward an RPC request to a remote DC or to the local leader
 // Returns a bool of if forwarding was performed, as well as any error
 func (s *Server) ForwardRPC(method string, info structs.RPCInfo, args interface{}, reply interface{}) (bool, error) {
-	var firstCheck time.Time
+	firstCheck := time.Now()
 
 	// Handle DC forwarding
 	dc := info.RequestDatacenter()
@@ -563,19 +565,14 @@ CHECK_LEADER:
 	if leader != nil {
 		rpcErr = s.connPool.RPC(s.config.Datacenter, leader.ShortName, leader.Addr,
 			method, args, reply)
-		if rpcErr != nil && canRetry(info, rpcErr) {
-			goto RETRY
+		if rpcErr == nil {
+			return true, nil
 		}
-		return true, rpcErr
 	}
 
-RETRY:
-	// Gate the request until there is a leader
-	if firstCheck.IsZero() {
-		firstCheck = time.Now()
-	}
-	if time.Since(firstCheck) < s.config.RPCHoldTimeout {
-		jitter := lib.RandomStagger(s.config.RPCHoldTimeout / jitterFraction)
+	if retry := canRetry(args, rpcErr, firstCheck, s.config); retry {
+		// Gate the request until there is a leader
+		jitter := lib.RandomStagger(s.config.RPCHoldTimeout / structs.JitterFraction)
 		select {
 		case <-time.After(jitter):
 			goto CHECK_LEADER
@@ -781,7 +778,7 @@ func (s *Server) blockingQuery(queryOpts structs.QueryOptionsCompat, queryMeta s
 	}
 
 	// Apply a small amount of jitter to the request.
-	queryTimeout += lib.RandomStagger(queryTimeout / jitterFraction)
+	queryTimeout += lib.RandomStagger(queryTimeout / structs.JitterFraction)
 
 	// wrap the base context with a deadline
 	ctx, cancel = context.WithDeadline(ctx, time.Now().Add(queryTimeout))
@@ -882,7 +879,7 @@ func (s *Server) consistentRead() error {
 	if s.isReadyForConsistentReads() {
 		return nil
 	}
-	jitter := lib.RandomStagger(s.config.RPCHoldTimeout / jitterFraction)
+	jitter := lib.RandomStagger(s.config.RPCHoldTimeout / structs.JitterFraction)
 	deadline := time.Now().Add(s.config.RPCHoldTimeout)
 
 	for time.Now().Before(deadline) {

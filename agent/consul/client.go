@@ -270,18 +270,16 @@ TRY:
 	)
 	metrics.IncrCounterWithLabels([]string{"client", "rpc", "failed"}, 1, []metrics.Label{{Name: "server", Value: server.Name}})
 	manager.NotifyFailedServer(server)
-	if retry := canRetry(args, rpcErr); !retry {
+	if retry := canRetry(args, rpcErr, firstCheck, c.config); !retry {
 		return rpcErr
 	}
 
 	// We can wait a bit and retry!
-	if time.Since(firstCheck) < c.config.RPCHoldTimeout {
-		jitter := lib.RandomStagger(c.config.RPCHoldTimeout / jitterFraction)
-		select {
-		case <-time.After(jitter):
-			goto TRY
-		case <-c.shutdownCh:
-		}
+	jitter := lib.RandomStagger(c.config.RPCHoldTimeout / structs.JitterFraction)
+	select {
+	case <-time.After(jitter):
+		goto TRY
+	case <-c.shutdownCh:
 	}
 	return rpcErr
 }
