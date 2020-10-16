@@ -110,7 +110,10 @@ function start_consul {
   # bit easier.
   #
   docker run -d --name envoy_consul-${DC}_1 \
+    --net=envoy-tests \
     -v envoy_workdir:/workdir \
+    --hostname "consul-${DC}" \
+    --network-alias "consul-${DC}" \
     ${ports[@]} \
     consul-dev \
     agent -dev -datacenter "${DC}" \
@@ -297,7 +300,7 @@ function test_teardown {
 
 function workdir_cleanup {
   docker_kill_rm workdir
-  docker volume rm -f envoy_workdir &>/dev/null
+  docker volume rm -f envoy_workdir &>/dev/null || true
 }
 
 function suite_setup {
@@ -306,6 +309,8 @@ function suite_setup {
 
     # Cleanup from any previous unclean runs.
     suite_teardown
+
+    docker network create envoy-tests &>/dev/null
 
     # Start the volume container
     #
@@ -339,6 +344,12 @@ function suite_teardown {
         sed 's/^function run_container_\(.*\) {/\1/g')
 
     docker_kill_rm consul-primary consul-secondary
+
+    if docker network inspect envoy-tests &>/dev/null ; then
+        echo -n "Deleting network 'envoy-tests'..."
+        docker network rm envoy-tests
+        echo "done"
+    fi
 
     workdir_cleanup
 }
