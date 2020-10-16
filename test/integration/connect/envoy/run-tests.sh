@@ -90,18 +90,28 @@ function start_consul {
   # Start consul now as setup script needs it up
   docker_kill_rm consul-${DC}
 
-  # Run consul and expose some ports to the host to make debugging locally a
-  # bit easier.
-  #
   # 8500/8502 are for consul
   # 9411 is for zipkin which shares the network with consul
   # 16686 is for jaeger ui which also shares the network with consul
-  docker run -d --name envoy_consul-primary_1 \
+  ports=(
+    '-p=8500:8500'
+    '-p=8502:8502'
+    '-p=9411:9411'
+    '-p=16686:16686'
+  )
+  if [[ $DC == 'secondary' ]]; then
+      ports=(
+        '-p=9500:8500'
+        '-p=9502:8502'
+      )
+  fi
+
+  # Run consul and expose some ports to the host to make debugging locally a
+  # bit easier.
+  #
+  docker run -d --name envoy_consul-${DC}_1 \
     -v envoy_workdir:/workdir \
-    -p 8500:8500 \
-    -p 8502:8502 \
-    -p 9411:9411 \
-    -p 16686:16686 \
+    ${ports[@]} \
     consul-dev \
     agent -dev -datacenter "${DC}" \
     -config-dir "/workdir/${DC}/consul" \
@@ -287,7 +297,7 @@ function test_teardown {
 
 function workdir_cleanup {
   docker_kill_rm workdir
-  docker volume rm -f envoy_workdir # TODO: conditional
+  docker volume rm -f envoy_workdir &>/dev/null
 }
 
 function suite_setup {
