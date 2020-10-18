@@ -76,8 +76,10 @@ func TestCatalogListServicesCommand(t *testing.T) {
 			t.Fatalf("bad exit code %d: %s", code, ui.ErrorWriter.String())
 		}
 		output := ui.OutputWriter.String()
-		if expected := "bar,foo"; !strings.Contains(output, expected) {
-			t.Errorf("expected %q to contain %q", output, expected)
+		for _, expected := range []string{"Service", "Tags", "testing", "bar,foo"} {
+			if !strings.Contains(output, expected) {
+				t.Errorf("expected %q to contain %q", output, expected)
+			}
 		}
 	})
 
@@ -93,7 +95,7 @@ func TestCatalogListServicesCommand(t *testing.T) {
 			t.Fatalf("bad exit code %d: %s", code, ui.ErrorWriter.String())
 		}
 		output := ui.OutputWriter.String()
-		for _, expected := range []string{"testing", "127.0.0.1", "8080"} {
+		for _, expected := range []string{"Service", "Address", "Port", "testing", "127.0.0.1", "8080"} {
 			if !strings.Contains(output, expected) {
 				t.Errorf("expected %q to contain %q", output, expected)
 			}
@@ -105,7 +107,7 @@ func TestCatalogListServicesCommand(t *testing.T) {
 		c := New(ui)
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
-			"-service", "testing",
+			"-service=testing",
 			"-tags",
 		}
 		code := c.Run(args)
@@ -113,7 +115,7 @@ func TestCatalogListServicesCommand(t *testing.T) {
 			t.Fatalf("bad exit code %d: %s", code, ui.ErrorWriter.String())
 		}
 		output := ui.OutputWriter.String()
-		for _, expected := range []string{"testing", "127.0.0.1", "8080", "bar,foo"} {
+		for _, expected := range []string{"Service", "Address", "Port", "Tags", "testing", "127.0.0.1", "8080", "bar,foo"} {
 			if !strings.Contains(output, expected) {
 				t.Errorf("expected %q to contain %q", output, expected)
 			}

@@ -1,16 +1,15 @@
 package services
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
 	"sort"
 	"strings"
-	"text/tabwriter"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
+	"github.com/ryanuber/columnize"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -142,40 +141,50 @@ func (c *cmd) Run(args []string) int {
 	}
 	sort.Strings(order)
 
-	var b bytes.Buffer
-	tw := tabwriter.NewWriter(&b, 0, 2, 6, ' ', 0)
-
 	if c.service != "" {
-		s := c.service
-		if c.tags {
-			sort.Strings(services[s].tags)
-			fmt.Fprintf(tw, "%s\t%s\t%d\t%s\n", s, services[s].address, services[s].port, strings.Join(services[s].tags, ","))
-		} else {
-			fmt.Fprintf(tw, "%s\t%s\t%d\n", s, services[s].address, services[s].port)
-		}
-		return c.flushAndPrint(tw, &b)
+		output := formatService(c.service, services[c.service], c.tags)
+		c.UI.Info(output)
 	} else if c.tags {
-		for _, s := range order {
-			sort.Strings(services[s].tags)
-			fmt.Fprintf(tw, "%s\t%s\n", s, strings.Join(services[s].tags, ","))
-		}
-		return c.flushAndPrint(tw, &b)
+		output := formatServicesWithTags(order, services)
+		c.UI.Info(output)
 	} else {
 		for _, s := range order {
-			c.UI.Output(s)
+			c.UI.Info(s)
 		}
 	}
 
 	return 0
 }
 
-func (c *cmd) flushAndPrint(tw *tabwriter.Writer, b *bytes.Buffer) int {
-	if err := tw.Flush(); err != nil {
-		c.UI.Error(fmt.Sprintf("Error flushing tabwriter: %s", err))
-		return 1
+func formatService(service string, s *serviceInfo, tags bool) string {
+	result := make([]string, 0, 2)
+	var header string
+	if tags {
+		header = "Service\x1fAddress\x1fPort\x1fTags"
+		result = append(result, header)
+		sort.Strings(s.tags)
+		result = append(result, fmt.Sprintf("%s\x1f%s\x1f%d\x1f%s", service, s.address, s.port, strings.Join(s.tags, ",")))
+	} else {
+		header = "Service\x1fAddress\x1fPort"
+		result = append(result, header)
+		result = append(result, fmt.Sprintf("%s\x1f%s\x1f%d", service, s.address, s.port))
 	}
-	c.UI.Output(strings.TrimSpace(b.String()))
-	return 0
+	return formatColumns(result)
+}
+
+func formatServicesWithTags(sortedServices []string, services map[string]*serviceInfo) string {
+	result := make([]string, 0, len(services)+1)
+	header := "Service\x1fTags"
+	result = append(result, header)
+	for _, s := range sortedServices {
+		sort.Strings(services[s].tags)
+		result = append(result, fmt.Sprintf("%s\x1f%s", s, strings.Join(services[s].tags, ",")))
+	}
+	return formatColumns(result)
+}
+
+func formatColumns(s []string) string {
+	return columnize.Format(s, &columnize.Config{Delim: string([]byte{0x1f})})
 }
 
 func (c *cmd) Synopsis() string {
