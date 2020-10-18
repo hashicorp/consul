@@ -27,9 +27,18 @@ Show all services with their tags:
 
 ```shell-session
 $ consul catalog services -tags
+Service     Tags
 consul
 postgresql  leader
 redis       primary,v1
+```
+
+Show a single service:
+
+```shell-session
+$ consul catalog services -service=redis
+Service   Address     Port
+redis     127.0.0.1   6379
 ```
 
 List services for the node "worker-01":
@@ -65,3 +74,5 @@ Usage: `consul catalog services [options]`
 
 - `-tags` - Display each service's tags as a comma-separated list beside each
   service entry.
+
+- `-service=<name of a service>` - Display details of specified service.
