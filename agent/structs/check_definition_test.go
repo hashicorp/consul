@@ -8,11 +8,10 @@ import (
 	fuzz "github.com/google/gofuzz"
 	"github.com/hashicorp/consul/api"
 	"github.com/mitchellh/reflectwalk"
-	"github.com/pascaldekloe/goe/verify"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCheckDefinition_Defaults(t *testing.T) {
-	t.Parallel()
 	def := CheckDefinition{}
 	check := def.HealthCheck("node1")
 
@@ -47,7 +46,6 @@ func mapFields(t *testing.T, obj interface{}) map[string]reflect.Value {
 }
 
 func TestCheckDefinition_CheckType(t *testing.T) {
-	t.Parallel()
 
 	// Fuzz a definition to fill all its fields with data.
 	var def CheckDefinition
@@ -77,7 +75,6 @@ func TestCheckDefinition_CheckType(t *testing.T) {
 }
 
 func TestCheckDefinitionToCheckType(t *testing.T) {
-	t.Parallel()
 	got := &CheckDefinition{
 		ID:     "id",
 		Name:   "name",
@@ -114,5 +111,5 @@ func TestCheckDefinitionToCheckType(t *testing.T) {
 		TTL:                            3 * time.Second,
 		DeregisterCriticalServiceAfter: 4 * time.Second,
 	}
-	verify.Values(t, "", got.CheckType(), want)
+	require.Equal(t, want, got.CheckType())
 }

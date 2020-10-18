@@ -1,6 +1,9 @@
 import Service, { inject as service } from '@ember/service';
 import { assert } from '@ember/debug';
 import { typeOf } from '@ember/utils';
+import { get } from '@ember/object';
+import { isChangeset } from 'validated-changeset';
+
 export default Service.extend({
   getModelName: function() {
     assert('RepositoryService.getModelName should be overridden', false);
@@ -13,6 +16,30 @@ export default Service.extend({
   },
   //
   store: service('store'),
+  reconcile: function(meta = {}) {
+    // unload anything older than our current sync date/time
+    if (typeof meta.date !== 'undefined') {
+      const checkNspace = meta.nspace !== '';
+      this.store.peekAll(this.getModelName()).forEach(item => {
+        const dc = get(item, 'Datacenter');
+        if (dc === meta.dc) {
+          if (checkNspace) {
+            const nspace = get(item, 'Namespace');
+            if (nspace !== meta.namespace) {
+              return;
+            }
+          }
+          const date = get(item, 'SyncTime');
+          if (!item.isDeleted && typeof date !== 'undefined' && date != meta.date) {
+            this.store.unloadRecord(item);
+          }
+        }
+      });
+    }
+  },
+  peekOne: function(id) {
+    return this.store.peekRecord(this.getModelName(), id);
+  },
   findAllByDatacenter: function(dc, nspace, configuration = {}) {
     const query = {
       dc: dc,
@@ -20,6 +47,7 @@ export default Service.extend({
     };
     if (typeof configuration.cursor !== 'undefined') {
       query.index = configuration.cursor;
+      query.uri = configuration.uri;
     }
     return this.store.query(this.getModelName(), query);
   },
@@ -31,6 +59,7 @@ export default Service.extend({
     };
     if (typeof configuration.cursor !== 'undefined') {
       query.index = configuration.cursor;
+      query.uri = configuration.uri;
     }
     return this.store.queryRecord(this.getModelName(), query);
   },
@@ -39,6 +68,13 @@ export default Service.extend({
     return this.store.createRecord(this.getModelName(), obj);
   },
   persist: function(item) {
+    // workaround for saving changesets that contain fragments
+    // firstly commit the changes down onto the object if
+    // its a changeset, then save as a normal object
+    if (isChangeset(item)) {
+      item.execute();
+      item = item.data;
+    }
     return item.save();
   },
   remove: function(obj) {

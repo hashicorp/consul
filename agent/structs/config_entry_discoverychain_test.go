@@ -8,12 +8,12 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestConfigEntries_ListRelatedServices_AndACLs(t *testing.T) {
 	// This test tests both of these because they are related functions.
-	t.Parallel()
 
 	newServiceACL := func(t *testing.T, canRead, canWrite []string) acl.Authorizer {
 		var buf bytes.Buffer
@@ -115,10 +115,10 @@ func TestConfigEntries_ListRelatedServices_AndACLs(t *testing.T) {
 					"bar": {OnlyPassing: true},
 				},
 				Failover: map[string]ServiceResolverFailover{
-					"foo": ServiceResolverFailover{
+					"foo": {
 						Service: "other1",
 					},
-					"bar": ServiceResolverFailover{
+					"bar": {
 						Service: "other2",
 					},
 				},
@@ -248,7 +248,6 @@ func TestConfigEntries_ListRelatedServices_AndACLs(t *testing.T) {
 }
 
 func TestServiceResolverConfigEntry(t *testing.T) {
-	t.Parallel()
 
 	type testcase struct {
 		name         string
@@ -374,7 +373,7 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				Failover: map[string]ServiceResolverFailover{
-					"*": ServiceResolverFailover{
+					"*": {
 						Datacenters: []string{"dc2"},
 					},
 				},
@@ -386,7 +385,7 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				Failover: map[string]ServiceResolverFailover{
-					"gone": ServiceResolverFailover{
+					"gone": {
 						Datacenters: []string{"dc2"},
 					},
 				},
@@ -402,7 +401,7 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 					"v1": {Filter: "Service.Meta.version == v1"},
 				},
 				Failover: map[string]ServiceResolverFailover{
-					"v1": ServiceResolverFailover{
+					"v1": {
 						Datacenters: []string{"dc2"},
 					},
 				},
@@ -417,7 +416,7 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 					"v1": {Filter: "Service.Meta.version == v1"},
 				},
 				Failover: map[string]ServiceResolverFailover{
-					"v1": ServiceResolverFailover{},
+					"v1": {},
 				},
 			},
 			validateErr: `Bad Failover["v1"] one of Service, ServiceSubset, Namespace, or Datacenters is required`,
@@ -431,7 +430,7 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 					"v1": {Filter: "Service.Meta.version == v1"},
 				},
 				Failover: map[string]ServiceResolverFailover{
-					"v1": ServiceResolverFailover{
+					"v1": {
 						Service:       "test",
 						ServiceSubset: "gone",
 					},
@@ -449,7 +448,7 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 					"v2": {Filter: "Service.Meta.version == v2"},
 				},
 				Failover: map[string]ServiceResolverFailover{
-					"v1": ServiceResolverFailover{
+					"v1": {
 						Service:       "test",
 						ServiceSubset: "v2",
 					},
@@ -462,7 +461,7 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 				Kind: ServiceResolver,
 				Name: "test",
 				Failover: map[string]ServiceResolverFailover{
-					"*": ServiceResolverFailover{
+					"*": {
 						Service:     "backup",
 						Datacenters: []string{"", "dc2", "dc3"},
 					},
@@ -537,8 +536,347 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 	}
 }
 
+func TestServiceResolverConfigEntry_LoadBalancer(t *testing.T) {
+
+	type testcase struct {
+		name         string
+		entry        *ServiceResolverConfigEntry
+		normalizeErr string
+		validateErr  string
+
+		// check is called between normalize and validate
+		check func(t *testing.T, entry *ServiceResolverConfigEntry)
+	}
+
+	cases := []testcase{
+		{
+			name: "empty policy is valid",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				LoadBalancer: &LoadBalancer{
+					Policy: "",
+				},
+			},
+		},
+		{
+			name: "supported policy",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				LoadBalancer: &LoadBalancer{
+					Policy: LBPolicyRandom,
+				},
+			},
+		},
+		{
+			name: "unsupported policy",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				LoadBalancer: &LoadBalancer{
+					Policy: "fake-policy",
+				},
+			},
+			validateErr: `"fake-policy" is not supported`,
+		},
+		{
+			name: "bad policy for least request config",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				LoadBalancer: &LoadBalancer{
+					Policy:             LBPolicyRingHash,
+					LeastRequestConfig: &LeastRequestConfig{ChoiceCount: 10},
+				},
+			},
+			validateErr: `LeastRequestConfig specified for incompatible load balancing policy`,
+		},
+		{
+			name: "bad policy for ring hash config",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				LoadBalancer: &LoadBalancer{
+					Policy:         LBPolicyLeastRequest,
+					RingHashConfig: &RingHashConfig{MinimumRingSize: 1024},
+				},
+			},
+			validateErr: `RingHashConfig specified for incompatible load balancing policy`,
+		},
+		{
+			name: "good policy for ring hash config",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				LoadBalancer: &LoadBalancer{
+					Policy:         LBPolicyRingHash,
+					RingHashConfig: &RingHashConfig{MinimumRingSize: 1024},
+				},
+			},
+		},
+		{
+			name: "good policy for least request config",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				LoadBalancer: &LoadBalancer{
+					Policy:             LBPolicyLeastRequest,
+					LeastRequestConfig: &LeastRequestConfig{ChoiceCount: 2},
+				},
+			},
+		},
+		{
+			name: "empty policy is not defaulted",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				LoadBalancer: &LoadBalancer{
+					Policy: "",
+				},
+			},
+			check: func(t *testing.T, entry *ServiceResolverConfigEntry) {
+				require.Equal(t, "", entry.LoadBalancer.Policy)
+			},
+		},
+		{
+			name: "empty policy with hash policy",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				LoadBalancer: &LoadBalancer{
+					Policy: "",
+					HashPolicies: []HashPolicy{
+						{
+							SourceIP: true,
+						},
+					},
+				},
+			},
+			validateErr: `HashPolicies specified for non-hash-based Policy`,
+		},
+		{
+			name: "cookie config with header policy",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				LoadBalancer: &LoadBalancer{
+					Policy: LBPolicyMaglev,
+					HashPolicies: []HashPolicy{
+						{
+							Field:      HashPolicyHeader,
+							FieldValue: "x-user-id",
+							CookieConfig: &CookieConfig{
+								TTL:  10 * time.Second,
+								Path: "/root",
+							},
+						},
+					},
+				},
+			},
+			validateErr: `cookie_config provided for "header"`,
+		},
+		{
+			name: "cannot generate session cookie with ttl",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				LoadBalancer: &LoadBalancer{
+					Policy: LBPolicyMaglev,
+					HashPolicies: []HashPolicy{
+						{
+							Field:      HashPolicyCookie,
+							FieldValue: "good-cookie",
+							CookieConfig: &CookieConfig{
+								Session: true,
+								TTL:     10 * time.Second,
+							},
+						},
+					},
+				},
+			},
+			validateErr: `a session cookie cannot have an associated TTL`,
+		},
+		{
+			name: "valid cookie policy",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				LoadBalancer: &LoadBalancer{
+					Policy: LBPolicyMaglev,
+					HashPolicies: []HashPolicy{
+						{
+							Field:      HashPolicyCookie,
+							FieldValue: "good-cookie",
+							CookieConfig: &CookieConfig{
+								TTL:  10 * time.Second,
+								Path: "/oven",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "supported match field",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				LoadBalancer: &LoadBalancer{
+					Policy: LBPolicyMaglev,
+					HashPolicies: []HashPolicy{
+						{
+							Field:      "header",
+							FieldValue: "X-Consul-Token",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "unsupported match field",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				LoadBalancer: &LoadBalancer{
+					Policy: LBPolicyMaglev,
+					HashPolicies: []HashPolicy{
+						{
+							Field: "fake-field",
+						},
+					},
+				},
+			},
+			validateErr: `"fake-field" is not a supported field`,
+		},
+		{
+			name: "cannot match on source address and custom field",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				LoadBalancer: &LoadBalancer{
+					Policy: LBPolicyMaglev,
+					HashPolicies: []HashPolicy{
+						{
+							Field:    "header",
+							SourceIP: true,
+						},
+					},
+				},
+			},
+			validateErr: `A single hash policy cannot hash both a source address and a "header"`,
+		},
+		{
+			name: "matchvalue not compatible with source address",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				LoadBalancer: &LoadBalancer{
+					Policy: LBPolicyMaglev,
+					HashPolicies: []HashPolicy{
+						{
+							FieldValue: "X-Consul-Token",
+							SourceIP:   true,
+						},
+					},
+				},
+			},
+			validateErr: `A FieldValue cannot be specified when hashing SourceIP`,
+		},
+		{
+			name: "field without match value",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				LoadBalancer: &LoadBalancer{
+					Policy: LBPolicyMaglev,
+					HashPolicies: []HashPolicy{
+						{
+							Field: "header",
+						},
+					},
+				},
+			},
+			validateErr: `Field "header" was specified without a FieldValue`,
+		},
+		{
+			name: "field without match value",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				LoadBalancer: &LoadBalancer{
+					Policy: LBPolicyMaglev,
+					HashPolicies: []HashPolicy{
+						{
+							FieldValue: "my-cookie",
+						},
+					},
+				},
+			},
+			validateErr: `FieldValue requires a Field to apply to`,
+		},
+		{
+			name: "ring hash kitchen sink",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				LoadBalancer: &LoadBalancer{
+					Policy:         LBPolicyRingHash,
+					RingHashConfig: &RingHashConfig{MaximumRingSize: 10, MinimumRingSize: 2},
+					HashPolicies: []HashPolicy{
+						{
+							Field:      "cookie",
+							FieldValue: "my-cookie",
+						},
+						{
+							Field:      "header",
+							FieldValue: "alt-header",
+							Terminal:   true,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "least request kitchen sink",
+			entry: &ServiceResolverConfigEntry{
+				Kind: ServiceResolver,
+				Name: "test",
+				LoadBalancer: &LoadBalancer{
+					Policy:             LBPolicyLeastRequest,
+					LeastRequestConfig: &LeastRequestConfig{ChoiceCount: 20},
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.entry.Normalize()
+			if tc.normalizeErr != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.normalizeErr)
+				return
+			}
+			require.NoError(t, err)
+
+			if tc.check != nil {
+				tc.check(t, tc.entry)
+			}
+
+			err = tc.entry.Validate()
+			if tc.validateErr != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.validateErr)
+				return
+			}
+			require.NoError(t, err)
+		})
+	}
+}
+
 func TestServiceSplitterConfigEntry(t *testing.T) {
-	t.Parallel()
 
 	makesplitter := func(splits ...ServiceSplit) *ServiceSplitterConfigEntry {
 		return &ServiceSplitterConfigEntry{
@@ -723,7 +1061,6 @@ func TestServiceSplitterConfigEntry(t *testing.T) {
 }
 
 func TestServiceRouterConfigEntry(t *testing.T) {
-	t.Parallel()
 
 	httpMatch := func(http *ServiceRouteHTTPMatch) *ServiceRouteMatch {
 		return &ServiceRouteMatch{HTTP: http}
@@ -1165,4 +1502,13 @@ func TestValidateServiceSubset(t *testing.T) {
 			require.Error(t, validateServiceSubset(name))
 		})
 	}
+}
+
+func TestIsProtocolHTTPLike(t *testing.T) {
+	assert.False(t, IsProtocolHTTPLike(""))
+	assert.False(t, IsProtocolHTTPLike("tcp"))
+
+	assert.True(t, IsProtocolHTTPLike("http"))
+	assert.True(t, IsProtocolHTTPLike("http2"))
+	assert.True(t, IsProtocolHTTPLike("grpc"))
 }

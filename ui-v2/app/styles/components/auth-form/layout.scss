@@ -1,0 +1,34 @@
+%auth-form {
+  width: 320px;
+  margin: 10px 25px;
+}
+%auth-form form {
+  margin-bottom: 0.5em !important;
+}
+%auth-form .ember-basic-dropdown-trigger,
+%auth-form button {
+  width: 100%;
+}
+%auth-form .progress {
+  margin: 0 auto;
+}
+%auth-form > p:not(.error) {
+  @extend %auth-form-hr;
+}
+%auth-form-hr {
+  text-align: center;
+  position: relative;
+}
+%auth-form-hr span {
+  display: inline-block;
+  padding: 5px;
+}
+
+%auth-form-hr::before {
+  @extend %as-pseudo;
+  width: 100%;
+  position: absolute;
+  left: 0;
+  top: 50%;
+  z-index: -1;
+}

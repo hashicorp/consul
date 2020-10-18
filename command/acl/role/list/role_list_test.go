@@ -3,13 +3,11 @@ package rolelist
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/assert"
@@ -27,9 +25,6 @@ func TestRoleListCommand_noTabs(t *testing.T) {
 func TestRoleListCommand(t *testing.T) {
 	t.Parallel()
 	require := require.New(t)
-
-	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
@@ -51,7 +46,7 @@ func TestRoleListCommand(t *testing.T) {
 	// Create a couple roles to list
 	client := a.Client()
 	svcids := []*api.ACLServiceIdentity{
-		&api.ACLServiceIdentity{ServiceName: "fake"},
+		{ServiceName: "fake"},
 	}
 	for i := 0; i < 5; i++ {
 		name := fmt.Sprintf("test-role-%d", i)
@@ -85,9 +80,6 @@ func TestRoleListCommand_JSON(t *testing.T) {
 	t.Parallel()
 	require := require.New(t)
 
-	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
-
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
 	acl {
@@ -108,7 +100,7 @@ func TestRoleListCommand_JSON(t *testing.T) {
 	// Create a couple roles to list
 	client := a.Client()
 	svcids := []*api.ACLServiceIdentity{
-		&api.ACLServiceIdentity{ServiceName: "fake"},
+		{ServiceName: "fake"},
 	}
 	for i := 0; i < 5; i++ {
 		name := fmt.Sprintf("test-role-%d", i)

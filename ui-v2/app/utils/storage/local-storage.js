@@ -2,7 +2,10 @@ export default function(
   scheme = '',
   storage = window.localStorage,
   encode = JSON.stringify,
-  decode = JSON.parse
+  decode = JSON.parse,
+  dispatch = function(key) {
+    window.dispatchEvent(new StorageEvent('storage', { key: key }));
+  }
 ) {
   const prefix = `${scheme}:`;
   return {
@@ -27,10 +30,14 @@ export default function(
       } catch (e) {
         value = '""';
       }
-      return storage.setItem(`${prefix}${path}`, value);
+      const res = storage.setItem(`${prefix}${path}`, value);
+      dispatch(`${prefix}${path}`);
+      return res;
     },
     removeValue: function(path) {
-      return storage.removeItem(`${prefix}${path}`);
+      const res = storage.removeItem(`${prefix}${path}`);
+      dispatch(`${prefix}${path}`);
+      return res;
     },
     all: function() {
       return Object.keys(storage).reduce((prev, item, i, arr) => {

@@ -29,10 +29,14 @@ type cmd struct {
 	bearerToken string
 
 	// flags
-	authMethodName  string
+	authMethodName string
+	authMethodType string
+
 	bearerTokenFile string
 	tokenSinkFile   string
 	meta            map[string]string
+
+	enterpriseCmd
 }
 
 func (c *cmd) init() {
@@ -40,6 +44,9 @@ func (c *cmd) init() {
 
 	c.flags.StringVar(&c.authMethodName, "method", "",
 		"Name of the auth method to login to.")
+
+	c.flags.StringVar(&c.authMethodType, "type", "",
+		"Type of the auth method to login to. This field is optional and defaults to no type.")
 
 	c.flags.StringVar(&c.bearerTokenFile, "bearer-token-file", "",
 		"Path to a file containing a secret bearer token to use with this auth method.")
@@ -50,6 +57,8 @@ func (c *cmd) init() {
 	c.flags.Var((*flags.FlagMapValue)(&c.meta), "meta",
 		"Metadata to set on the token, formatted as key=value. This flag "+
 			"may be specified multiple times to set multiple meta fields.")
+
+	c.initEnterpriseFlags()
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -76,6 +85,10 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
+	return c.login()
+}
+
+func (c *cmd) bearerTokenLogin() int {
 	if c.bearerTokenFile == "" {
 		c.UI.Error(fmt.Sprintf("Missing required '-bearer-token-file' flag"))
 		return 1

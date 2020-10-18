@@ -1,0 +1,38 @@
+## State
+
+`<State @state={{matchableStateObject}} @matches="idle">Currently Idle</State>`
+
+`<State />` is a renderless component that eases rendering of different states
+from within templates. State objects could be manually made state objects and
+xstate state objects. It's very similar to a normal conditional in that if the
+state identifier matches the current state, the contents of the component will
+be shown.
+
+### Arguments
+
+| Argument/Attribute | Type | Default | Description |
+| --- | --- | --- | --- |
+| `state` | `object` |  | An object that implements a `match` method |
+| `matches` | `String\|Array` |  | A state identifier (or array of state identifiers) to match on |
+
+
+### Example
+
+```handlebars
+<State @state={{state}} @matches="idle">
+  Currently Idle
+</State>
+<State @state={{state}} @matches="loading">
+  Currently Loading
+</State>
+<State @state={{state}} @matches={{array 'loading' 'idle'}}>
+  Idle and loading
+</State>
+```
+
+### See
+
+- [Component Source Code](./index.js)
+- [Template Source Code](./index.hbs)
+
+---

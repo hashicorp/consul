@@ -22,6 +22,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func unNilMap(in map[string]string) map[string]string {
+	if in == nil {
+		return make(map[string]string)
+	}
+	return in
+}
 func TestAgentAntiEntropy_Services(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t, "")
@@ -48,7 +54,9 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		},
 		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
+	assert.False(t, a.State.ServiceExists(structs.ServiceID{ID: srv1.ID}))
 	a.State.AddService(srv1, "")
+	assert.True(t, a.State.ServiceExists(structs.ServiceID{ID: srv1.ID}))
 	args.Service = srv1
 	if err := a.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -168,7 +176,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 	delete(meta, structs.MetaSegmentKey) // Added later, not in config.
 	assert.Equal(t, a.Config.NodeID, id)
 	assert.Equal(t, a.Config.TaggedAddresses, addrs)
-	assert.Equal(t, a.Config.NodeMeta, meta)
+	assert.Equal(t, unNilMap(a.Config.NodeMeta), meta)
 
 	// We should have 6 services (consul included)
 	if len(services.NodeServices.Services) != 6 {
@@ -754,8 +762,7 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 	a := agent.NewTestAgent(t, `
 		acl_datacenter = "dc1"
 		acl_master_token = "root"
-		acl_default_policy = "deny"
-		acl_enforce_version_8 = true`)
+		acl_default_policy = "deny" `)
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
@@ -989,96 +996,104 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 	}
 	var checks structs.IndexedHealthChecks
 
-	// Verify that we are in sync
-	if err := a.RPC("Health.NodeChecks", &req, &checks); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	retry.Run(t, func(r *retry.R) {
 
-	// We should have 5 checks (serf included)
-	if len(checks.HealthChecks) != 5 {
-		t.Fatalf("bad: %v", checks)
-	}
-
-	// All the checks should match
-	for _, chk := range checks.HealthChecks {
-		chk.CreateIndex, chk.ModifyIndex = 0, 0
-		switch chk.CheckID {
-		case "mysql":
-			require.Equal(t, chk, chk1)
-		case "redis":
-			require.Equal(t, chk, chk2)
-		case "web":
-			require.Equal(t, chk, chk3)
-		case "cache":
-			require.Equal(t, chk, chk5)
-		case "serfHealth":
-			// ignore
-		default:
-			t.Fatalf("unexpected check: %v", chk)
-		}
-	}
-
-	if err := checksInSync(a.State, 4, structs.DefaultEnterpriseMeta()); err != nil {
-		t.Fatal(err)
-	}
-
-	// Make sure we sent along our node info addresses when we synced.
-	{
-		req := structs.NodeSpecificRequest{
-			Datacenter: "dc1",
-			Node:       a.Config.NodeName,
-		}
-		var services structs.IndexedNodeServices
-		if err := a.RPC("Catalog.NodeServices", &req, &services); err != nil {
-			t.Fatalf("err: %v", err)
+		// Verify that we are in sync
+		if err := a.RPC("Health.NodeChecks", &req, &checks); err != nil {
+			r.Fatalf("err: %v", err)
 		}
 
-		id := services.NodeServices.Node.ID
-		addrs := services.NodeServices.Node.TaggedAddresses
-		meta := services.NodeServices.Node.Meta
-		delete(meta, structs.MetaSegmentKey) // Added later, not in config.
-		assert.Equal(t, a.Config.NodeID, id)
-		assert.Equal(t, a.Config.TaggedAddresses, addrs)
-		assert.Equal(t, a.Config.NodeMeta, meta)
-	}
-
-	// Remove one of the checks
-	a.State.RemoveCheck(structs.NewCheckID("redis", nil))
-
-	if err := a.State.SyncFull(); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Verify that we are in sync
-	if err := a.RPC("Health.NodeChecks", &req, &checks); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// We should have 5 checks (serf included)
-	if len(checks.HealthChecks) != 4 {
-		t.Fatalf("bad: %v", checks)
-	}
-
-	// All the checks should match
-	for _, chk := range checks.HealthChecks {
-		chk.CreateIndex, chk.ModifyIndex = 0, 0
-		switch chk.CheckID {
-		case "mysql":
-			require.Equal(t, chk1, chk)
-		case "web":
-			require.Equal(t, chk3, chk)
-		case "cache":
-			require.Equal(t, chk5, chk)
-		case "serfHealth":
-			// ignore
-		default:
-			t.Fatalf("unexpected check: %v", chk)
+		// We should have 5 checks (serf included)
+		if len(checks.HealthChecks) != 5 {
+			r.Fatalf("bad: %v", checks)
 		}
-	}
 
-	if err := checksInSync(a.State, 3, structs.DefaultEnterpriseMeta()); err != nil {
-		t.Fatal(err)
-	}
+		// All the checks should match
+		for _, chk := range checks.HealthChecks {
+			chk.CreateIndex, chk.ModifyIndex = 0, 0
+			switch chk.CheckID {
+			case "mysql":
+				require.Equal(t, chk, chk1)
+			case "redis":
+				require.Equal(t, chk, chk2)
+			case "web":
+				require.Equal(t, chk, chk3)
+			case "cache":
+				require.Equal(t, chk, chk5)
+			case "serfHealth":
+				// ignore
+			default:
+				r.Fatalf("unexpected check: %v", chk)
+			}
+		}
+
+		if err := checksInSync(a.State, 4, structs.DefaultEnterpriseMeta()); err != nil {
+			r.Fatal(err)
+		}
+	})
+
+	retry.Run(t, func(r *retry.R) {
+
+		// Make sure we sent along our node info addresses when we synced.
+		{
+			req := structs.NodeSpecificRequest{
+				Datacenter: "dc1",
+				Node:       a.Config.NodeName,
+			}
+			var services structs.IndexedNodeServices
+			if err := a.RPC("Catalog.NodeServices", &req, &services); err != nil {
+				r.Fatalf("err: %v", err)
+			}
+
+			id := services.NodeServices.Node.ID
+			addrs := services.NodeServices.Node.TaggedAddresses
+			meta := services.NodeServices.Node.Meta
+			delete(meta, structs.MetaSegmentKey) // Added later, not in config.
+			assert.Equal(t, a.Config.NodeID, id)
+			assert.Equal(t, a.Config.TaggedAddresses, addrs)
+			assert.Equal(t, unNilMap(a.Config.NodeMeta), meta)
+		}
+	})
+	retry.Run(t, func(r *retry.R) {
+
+		// Remove one of the checks
+		a.State.RemoveCheck(structs.NewCheckID("redis", nil))
+
+		if err := a.State.SyncFull(); err != nil {
+			r.Fatalf("err: %v", err)
+		}
+
+		// Verify that we are in sync
+		if err := a.RPC("Health.NodeChecks", &req, &checks); err != nil {
+			r.Fatalf("err: %v", err)
+		}
+
+		// We should have 5 checks (serf included)
+		if len(checks.HealthChecks) != 4 {
+			r.Fatalf("bad: %v", checks)
+		}
+
+		// All the checks should match
+		for _, chk := range checks.HealthChecks {
+			chk.CreateIndex, chk.ModifyIndex = 0, 0
+			switch chk.CheckID {
+			case "mysql":
+				require.Equal(t, chk1, chk)
+			case "web":
+				require.Equal(t, chk3, chk)
+			case "cache":
+				require.Equal(t, chk5, chk)
+			case "serfHealth":
+				// ignore
+			default:
+				r.Fatalf("unexpected check: %v", chk)
+			}
+		}
+
+		if err := checksInSync(a.State, 3, structs.DefaultEnterpriseMeta()); err != nil {
+			r.Fatal(err)
+		}
+	})
 }
 
 func TestAgentAntiEntropy_RemovingServiceAndCheck(t *testing.T) {
@@ -1162,8 +1177,7 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 	a := &agent.TestAgent{HCL: `
 		acl_datacenter = "` + dc + `"
 		acl_master_token = "root"
-		acl_default_policy = "deny"
-		acl_enforce_version_8 = true`}
+		acl_default_policy = "deny" `}
 	if err := a.Start(t); err != nil {
 		t.Fatal(err)
 	}
@@ -1678,7 +1692,7 @@ func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
 	delete(meta, structs.MetaSegmentKey) // Added later, not in config.
 	require.Equal(t, a.Config.NodeID, id)
 	require.Equal(t, a.Config.TaggedAddresses, addrs)
-	require.Equal(t, a.Config.NodeMeta, meta)
+	assert.Equal(t, unNilMap(a.Config.NodeMeta), meta)
 
 	// Blow away the catalog version of the node info
 	if err := a.RPC("Catalog.Register", args, &out); err != nil {
@@ -1898,9 +1912,62 @@ func TestAgent_AliasCheck(t *testing.T) {
 	}
 }
 
+func TestAgent_AliasCheck_ServiceNotification(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	cfg := config.DefaultRuntimeConfig(`bind_addr = "127.0.0.1" data_dir = "dummy"`)
+	l := local.NewState(agent.LocalConfig(cfg), nil, new(token.Store))
+	l.TriggerSyncChanges = func() {}
+
+	// Add an alias check for service s1
+	notifyCh := make(chan struct{}, 1)
+	require.NoError(l.AddAliasCheck(structs.NewCheckID(types.CheckID("a1"), nil), structs.NewServiceID("s1", nil), notifyCh))
+
+	// Add aliased service, s1, and verify we get notified
+	require.NoError(l.AddService(&structs.NodeService{Service: "s1"}, ""))
+	select {
+	case <-notifyCh:
+	default:
+		t.Fatal("notify not received")
+	}
+
+	// Re-adding same service should not lead to a notification
+	require.NoError(l.AddService(&structs.NodeService{Service: "s1"}, ""))
+	select {
+	case <-notifyCh:
+		t.Fatal("notify received")
+	default:
+	}
+
+	// Add different service and verify we do not get notified
+	require.NoError(l.AddService(&structs.NodeService{Service: "s2"}, ""))
+	select {
+	case <-notifyCh:
+		t.Fatal("notify received")
+	default:
+	}
+
+	// Delete service and verify we get notified
+	require.NoError(l.RemoveService(structs.NewServiceID("s1", nil)))
+	select {
+	case <-notifyCh:
+	default:
+		t.Fatal("notify not received")
+	}
+
+	// Delete different service and verify we do not get notified
+	require.NoError(l.RemoveService(structs.NewServiceID("s2", nil)))
+	select {
+	case <-notifyCh:
+		t.Fatal("notify received")
+	default:
+	}
+}
+
 func TestAgent_sendCoordinate(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, `
+	a := agent.StartTestAgent(t, agent.TestAgent{Overrides: `
 		sync_coordinate_interval_min = "1ms"
 		sync_coordinate_rate_target = 10.0
 		consul = {
@@ -1910,7 +1977,7 @@ func TestAgent_sendCoordinate(t *testing.T) {
 				update_max_batches = 1
 			}
 		}
-	`)
+	`})
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 

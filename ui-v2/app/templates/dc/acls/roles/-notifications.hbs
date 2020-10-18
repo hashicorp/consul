@@ -17,4 +17,9 @@
     There was an error deleting your role.
   {{/if}}
 {{/if}}
+{{#let error.errors.firstObject as |error|}}
+  {{#if error.detail }}
+    <br />{{concat '(' (if error.status (concat error.status ': ')) error.detail ')'}}
+  {{/if}}
+{{/let}}
 

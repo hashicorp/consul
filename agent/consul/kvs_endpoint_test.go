@@ -9,8 +9,8 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/pascaldekloe/goe/verify"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/stretchr/testify/require"
 )
 
 func TestKVS_Apply(t *testing.T) {
@@ -83,7 +83,7 @@ func TestKVS_Apply_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
 	// Create the ACL
 	arg := structs.ACLRequest{
@@ -195,7 +195,7 @@ func TestKVS_Get_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
 	arg := structs.KVSRequest{
 		Datacenter: "dc1",
@@ -354,7 +354,7 @@ func TestKVSEndpoint_List_Blocking(t *testing.T) {
 		}
 		var out bool
 		if err := msgpackrpc.CallWithCodec(codec, "KVS.Apply", &arg, &out); err != nil {
-			t.Fatalf("err: %v", err)
+			t.Errorf("RPC call failed: %v", err)
 		}
 	}()
 
@@ -404,7 +404,7 @@ func TestKVSEndpoint_List_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
 	keys := []string{
 		"abe",
@@ -491,7 +491,7 @@ func TestKVSEndpoint_List_ACLEnableKeyListPolicy(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
 	keys := []string{
 		"abe",
@@ -584,7 +584,7 @@ key "zip" {
 		actualKeys = append(actualKeys, entry.Key)
 	}
 
-	verify.Values(t, "", actualKeys, expectedKeys)
+	require.Equal(t, expectedKeys, actualKeys)
 
 	// list keys with a prefix that has list permissions should succeed
 	getKeysReq2 := structs.KeyListRequest{
@@ -598,7 +598,7 @@ key "zip" {
 
 	actualKeys = keyList.Keys
 
-	verify.Values(t, "", actualKeys, expectedKeys)
+	require.Equal(t, expectedKeys, actualKeys)
 
 }
 
@@ -685,7 +685,7 @@ func TestKVSEndpoint_ListKeys_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
 	keys := []string{
 		"abe",
@@ -891,7 +891,8 @@ func TestKVS_Issue_1626(t *testing.T) {
 		}
 		var dirent structs.IndexedDirEntries
 		if err := msgpackrpc.CallWithCodec(codec, "KVS.Get", &getR, &dirent); err != nil {
-			t.Fatalf("err: %v", err)
+			t.Errorf("RPC call failed: %v", err)
+			return
 		}
 		doneCh <- &dirent
 	}()

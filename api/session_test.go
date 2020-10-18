@@ -2,10 +2,11 @@ package api
 
 import (
 	"context"
-	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAPI_SessionCreateDestroy(t *testing.T) {
@@ -411,7 +412,7 @@ func TestAPI_SessionNode(t *testing.T) {
 	}
 	defer session.Destroy(id, nil)
 
-	info, qm, err := session.Info(id, nil)
+	info, _, err := session.Info(id, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -478,14 +479,14 @@ func TestAPI_SessionNodeChecks(t *testing.T) {
 	}
 	session := c.Session()
 
-	id, _, err := session.Create(&se, nil)
+	_, _, err := session.Create(&se, nil)
 	if err == nil {
 		t.Fatalf("should have failed")
 	}
 
 	// Empty node check should lead to serf check
 	se.NodeChecks = []string{}
-	id, _, err = session.Create(&se, nil)
+	id, _, err := session.Create(&se, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -588,7 +589,7 @@ func TestAPI_SessionServiceChecks(t *testing.T) {
 	}
 	session := c.Session()
 
-	id, _, err := session.Create(&se, nil)
+	_, _, err := session.Create(&se, nil)
 	if err == nil {
 		t.Fatalf("should have failed")
 	}
@@ -624,7 +625,7 @@ func TestAPI_SessionServiceChecks(t *testing.T) {
 		{"redis:alive", ""},
 	}
 
-	id, _, err = session.Create(&se, nil)
+	id, _, err := session.Create(&se, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 
 	"github.com/hashicorp/consul/agent"
-	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/mitchellh/cli"
@@ -22,7 +21,6 @@ func TestConfigFail(t *testing.T) {
 	t.Parallel()
 
 	dataDir := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(dataDir)
 
 	tests := []struct {
 		args []string
@@ -34,7 +32,7 @@ func TestConfigFail(t *testing.T) {
 		},
 		{
 			args: []string{"agent", "-server", "-bind=10.0.0.1", "-datacenter=foo", "some-other-arg"},
-			out:  "==> config: Unknown extra arguments: [some-other-arg]\n",
+			out:  "==> Unexpected extra arguments: [some-other-arg]\n",
 		},
 		{
 			args: []string{"agent", "-server", "-bind=10.0.0.1"},
@@ -109,7 +107,6 @@ func TestRetryJoin(t *testing.T) {
 func TestRetryJoinFail(t *testing.T) {
 	t.Parallel()
 	tmpDir := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(tmpDir)
 
 	ui := cli.NewMockUi()
 	cmd := New(ui, "", "", "", "", nil)
@@ -130,7 +127,6 @@ func TestRetryJoinFail(t *testing.T) {
 func TestRetryJoinWanFail(t *testing.T) {
 	t.Parallel()
 	tmpDir := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(tmpDir)
 
 	ui := cli.NewMockUi()
 	cmd := New(ui, "", "", "", "", nil)
@@ -152,14 +148,12 @@ func TestRetryJoinWanFail(t *testing.T) {
 func TestProtectDataDir(t *testing.T) {
 	t.Parallel()
 	dir := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(dir)
 
 	if err := os.MkdirAll(filepath.Join(dir, "mdb"), 0700); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	cfgDir := testutil.TempDir(t, "consul-config")
-	defer os.RemoveAll(cfgDir)
 
 	cfgFilePath := filepath.Join(cfgDir, "consul.json")
 	cfgFile, err := os.Create(cfgFilePath)
@@ -187,13 +181,10 @@ func TestProtectDataDir(t *testing.T) {
 func TestBadDataDirPermissions(t *testing.T) {
 	t.Parallel()
 	dir := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(dir)
-
 	dataDir := filepath.Join(dir, "mdb")
 	if err := os.MkdirAll(dataDir, 0400); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	defer os.RemoveAll(dataDir)
 
 	ui := cli.NewMockUi()
 	cmd := New(ui, "", "", "", "", nil)
@@ -203,69 +194,5 @@ func TestBadDataDirPermissions(t *testing.T) {
 	}
 	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Permission denied") {
 		t.Fatalf("expected permission denied error, got: %s", out)
-	}
-}
-
-func TestReloadLoggerFail(t *testing.T) {
-	a := agent.NewTestAgent(t, "")
-	defer a.Shutdown()
-
-	ui := cli.NewMockUi()
-	cmd := New(ui, "", "", "", "", nil)
-
-	bindAddr := a.Config.BindAddr.String()
-	cmd.flagArgs.Config.BindAddr = &bindAddr
-	cmd.flagArgs.Config.DataDir = &a.Config.DataDir
-
-	cmd.logger = testutil.Logger(t)
-
-	newLogLevel := "BLAH"
-	cmd.flagArgs.Config.LogLevel = &newLogLevel
-
-	oldCfg := config.RuntimeConfig{
-		LogLevel: "INFO",
-	}
-	cfg, err := cmd.handleReload(a.Agent, &oldCfg)
-	if err == nil {
-		t.Fatal("Should fail with bad log level")
-	}
-
-	if !strings.Contains(err.Error(), "Invalid log level") {
-		t.Fatalf("expected invalid log level error, got: %s", err)
-	}
-	if cfg.LogLevel != "INFO" {
-		t.Fatalf("expected log level to stay the same, got: %s", cfg.LogLevel)
-	}
-}
-
-func TestReloadLoggerSuccess(t *testing.T) {
-	a := agent.NewTestAgent(t, "")
-	defer a.Shutdown()
-
-	ui := cli.NewMockUi()
-	cmd := New(ui, "", "", "", "", nil)
-
-	bindAddr := a.Config.BindAddr.String()
-	cmd.flagArgs.Config.BindAddr = &bindAddr
-	cmd.flagArgs.Config.DataDir = &a.Config.DataDir
-
-	cmd.logger = testutil.Logger(t)
-
-	newLogLevel := "ERROR"
-	cmd.flagArgs.Config.LogLevel = &newLogLevel
-
-	oldCfg := config.RuntimeConfig{
-		LogLevel: "INFO",
-	}
-	cfg, err := cmd.handleReload(a.Agent, &oldCfg)
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
-	}
-
-	if cfg.LogLevel != "ERROR" {
-		t.Fatalf("expected log level to change to 'ERROR', got: %s", cfg.LogLevel)
-	}
-	if cmd.logger.IsWarn() || !cmd.logger.IsError() {
-		t.Fatal("expected logger level to change to 'ERROR'")
 	}
 }

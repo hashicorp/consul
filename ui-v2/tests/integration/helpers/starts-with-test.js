@@ -3,7 +3,7 @@ import { setupRenderingTest } from 'ember-qunit';
 import { render } from '@ember/test-helpers';
 import hbs from 'htmlbars-inline-precompile';
 
-module('helper:starts-with', function(hooks) {
+module('Integration | Helper | starts-with', function(hooks) {
   setupRenderingTest(hooks);
 
   // Replace this with your real tests.
@@ -12,6 +12,6 @@ module('helper:starts-with', function(hooks) {
 
     await render(hbs`{{starts-with inputValue}}`);
 
-    assert.dom('*').hasText('false');
+    assert.equal(this.element.textContent.trim(), 'false');
   });
 });

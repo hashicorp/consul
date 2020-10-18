@@ -4,7 +4,7 @@ import (
 	"container/list"
 	"crypto/tls"
 	"fmt"
-	"io"
+	"log"
 	"net"
 	"net/rpc"
 	"sync"
@@ -46,7 +46,6 @@ type Conn struct {
 	addr     net.Addr
 	session  muxSession
 	lastUsed time.Time
-	version  int
 
 	pool *ConnPool
 
@@ -127,8 +126,9 @@ type ConnPool struct {
 	// SrcAddr is the source address for outgoing connections.
 	SrcAddr *net.TCPAddr
 
-	// LogOutput is used to control logging
-	LogOutput io.Writer
+	// Logger passed to yamux
+	// TODO: consider refactoring to accept a full yamux.Config instead of a logger
+	Logger *log.Logger
 
 	// The maximum time to keep a connection open
 	MaxTime time.Duration
@@ -146,9 +146,6 @@ type ConnPool struct {
 
 	// Datacenter is the datacenter of the current agent.
 	Datacenter string
-
-	// ForceTLS is used to enforce outgoing TLS verification
-	ForceTLS bool
 
 	// Server should be set to true if this connection pool is configured in a
 	// server instead of a client.
@@ -209,7 +206,7 @@ func (p *ConnPool) Shutdown() error {
 // wait for an existing connection attempt to finish, if one if in progress,
 // and will return that one if it succeeds. If all else fails, it will return a
 // newly-created connection and add it to the pool.
-func (p *ConnPool) acquire(dc string, nodeName string, addr net.Addr, version int, useTLS bool) (*Conn, error) {
+func (p *ConnPool) acquire(dc string, nodeName string, addr net.Addr) (*Conn, error) {
 	if nodeName == "" {
 		return nil, fmt.Errorf("pool: ConnPool.acquire requires a node name")
 	}
@@ -244,7 +241,7 @@ func (p *ConnPool) acquire(dc string, nodeName string, addr net.Addr, version in
 	// If we are the lead thread, make the new connection and then wake
 	// everybody else up to see if we got it.
 	if isLeadThread {
-		c, err := p.getNewConn(dc, nodeName, addr, version, useTLS)
+		c, err := p.getNewConn(dc, nodeName, addr)
 		p.Lock()
 		delete(p.limiter, addrStr)
 		close(wait)
@@ -290,8 +287,6 @@ func (p *ConnPool) DialTimeout(
 	dc string,
 	nodeName string,
 	addr net.Addr,
-	timeout time.Duration,
-	useTLS bool,
 	actualRPCType RPCType,
 ) (net.Conn, HalfCloser, error) {
 	p.once.Do(p.init)
@@ -303,7 +298,6 @@ func (p *ConnPool) DialTimeout(
 			nodeName,
 			addr,
 			p.SrcAddr,
-			timeout,
 			p.TLSConfigurator.OutgoingALPNRPCWrapper(),
 			actualRPCType,
 			RPCTLS,
@@ -315,64 +309,17 @@ func (p *ConnPool) DialTimeout(
 		)
 	}
 
-	return DialTimeoutWithRPCTypeDirectly(
-		dc,
-		nodeName,
-		addr,
-		p.SrcAddr,
-		timeout,
-		useTLS || p.ForceTLS,
-		p.TLSConfigurator.OutgoingRPCWrapper(),
-		actualRPCType,
-		RPCTLS,
-	)
+	return p.dial(dc, addr, actualRPCType, RPCTLS)
 }
 
-// DialTimeoutInsecure is used to establish a raw connection to the given
-// server, with given connection timeout. It also writes RPCTLSInsecure as the
-// first byte to indicate that the client cannot provide a certificate. This is
-// so far only used for AutoEncrypt.Sign.
-func (p *ConnPool) DialTimeoutInsecure(
+func (p *ConnPool) dial(
 	dc string,
-	nodeName string,
 	addr net.Addr,
-	timeout time.Duration,
-	wrapper tlsutil.DCWrapper,
-) (net.Conn, HalfCloser, error) {
-	p.once.Do(p.init)
-
-	if wrapper == nil {
-		return nil, nil, fmt.Errorf("wrapper cannot be nil")
-	} else if dc != p.Datacenter {
-		return nil, nil, fmt.Errorf("insecure dialing prohibited between datacenters")
-	}
-
-	return DialTimeoutWithRPCTypeDirectly(
-		dc,
-		nodeName,
-		addr,
-		p.SrcAddr,
-		timeout,
-		true,
-		wrapper,
-		RPCTLSInsecure,
-		RPCTLSInsecure,
-	)
-}
-
-func DialTimeoutWithRPCTypeDirectly(
-	dc string,
-	nodeName string,
-	addr net.Addr,
-	src *net.TCPAddr,
-	timeout time.Duration,
-	useTLS bool,
-	wrapper tlsutil.DCWrapper,
 	actualRPCType RPCType,
 	tlsRPCType RPCType,
 ) (net.Conn, HalfCloser, error) {
 	// Try to dial the conn
-	d := &net.Dialer{LocalAddr: src, Timeout: timeout}
+	d := &net.Dialer{LocalAddr: p.SrcAddr, Timeout: defaultDialTimeout}
 	conn, err := d.Dial("tcp", addr.String())
 	if err != nil {
 		return nil, nil, err
@@ -389,7 +336,8 @@ func DialTimeoutWithRPCTypeDirectly(
 	}
 
 	// Check if TLS is enabled
-	if (useTLS) && wrapper != nil {
+	if p.TLSConfigurator.UseTLS(dc) {
+		wrapper := p.TLSConfigurator.OutgoingRPCWrapper()
 		// Switch the connection into TLS mode
 		if _, err := conn.Write([]byte{byte(tlsRPCType)}); err != nil {
 			conn.Close()
@@ -435,7 +383,6 @@ func DialTimeoutWithRPCTypeViaMeshGateway(
 	nodeName string,
 	addr net.Addr,
 	src *net.TCPAddr,
-	timeout time.Duration,
 	wrapper tlsutil.ALPNWrapper,
 	actualRPCType RPCType,
 	tlsRPCType RPCType,
@@ -467,7 +414,7 @@ func DialTimeoutWithRPCTypeViaMeshGateway(
 		return nil, nil, structs.ErrDCNotAvailable
 	}
 
-	dialer := &net.Dialer{LocalAddr: src, Timeout: timeout}
+	dialer := &net.Dialer{LocalAddr: src, Timeout: defaultDialTimeout}
 
 	rawConn, err := dialer.Dial("tcp", gwAddr)
 	if err != nil {
@@ -497,29 +444,28 @@ func DialTimeoutWithRPCTypeViaMeshGateway(
 }
 
 // getNewConn is used to return a new connection
-func (p *ConnPool) getNewConn(dc string, nodeName string, addr net.Addr, version int, useTLS bool) (*Conn, error) {
+func (p *ConnPool) getNewConn(dc string, nodeName string, addr net.Addr) (*Conn, error) {
 	if nodeName == "" {
 		return nil, fmt.Errorf("pool: ConnPool.getNewConn requires a node name")
 	}
 
-	// Switch the multiplexing based on version
-	var session muxSession
-	if version < 2 {
-		return nil, fmt.Errorf("cannot make client connection, unsupported protocol version %d", version)
-	}
-
 	// Get a new, raw connection and write the Consul multiplex byte to set the mode
-	conn, _, err := p.DialTimeout(dc, nodeName, addr, defaultDialTimeout, useTLS, RPCMultiplexV2)
+	conn, _, err := p.DialTimeout(dc, nodeName, addr, RPCMultiplexV2)
 	if err != nil {
 		return nil, err
 	}
 
-	// Setup the logger
 	conf := yamux.DefaultConfig()
-	conf.LogOutput = p.LogOutput
+	// override the default because LogOutput conflicts with Logger.
+	conf.LogOutput = nil
+	conf.Logger = p.Logger
 
 	// Create a multiplexed session
-	session, _ = yamux.Client(conn, conf)
+	session, err := yamux.Client(conn, conf)
+	if err != nil {
+		conn.Close()
+		return nil, fmt.Errorf("Failed to create yamux client: %w", err)
+	}
 
 	// Wrap the connection
 	c := &Conn{
@@ -529,7 +475,6 @@ func (p *ConnPool) getNewConn(dc string, nodeName string, addr net.Addr, version
 		session:  session,
 		clients:  list.New(),
 		lastUsed: time.Now(),
-		version:  version,
 		pool:     p,
 	}
 	return c, nil
@@ -567,12 +512,12 @@ func (p *ConnPool) releaseConn(conn *Conn) {
 	}
 }
 
-// getClient is used to get a usable client for an address and protocol version
-func (p *ConnPool) getClient(dc string, nodeName string, addr net.Addr, version int, useTLS bool) (*Conn, *StreamClient, error) {
+// getClient is used to get a usable client for an address
+func (p *ConnPool) getClient(dc string, nodeName string, addr net.Addr) (*Conn, *StreamClient, error) {
 	retries := 0
 START:
 	// Try to get a conn first
-	conn, err := p.acquire(dc, nodeName, addr, version, useTLS)
+	conn, err := p.acquire(dc, nodeName, addr)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get conn: %v", err)
 	}
@@ -598,9 +543,7 @@ func (p *ConnPool) RPC(
 	dc string,
 	nodeName string,
 	addr net.Addr,
-	version int,
 	method string,
-	useTLS bool,
 	args interface{},
 	reply interface{},
 ) error {
@@ -608,10 +551,14 @@ func (p *ConnPool) RPC(
 		return fmt.Errorf("pool: ConnPool.RPC requires a node name")
 	}
 
-	if method == "AutoEncrypt.Sign" {
-		return p.rpcInsecure(dc, nodeName, addr, method, args, reply)
+	// TODO (autoconf) probably will want to have a way to invoke the
+	// secure or insecure variant depending on whether its an ongoing
+	// or first time config request. For now though this is fine until
+	// those ongoing requests are implemented.
+	if method == "AutoEncrypt.Sign" || method == "AutoConfig.InitialConfiguration" {
+		return p.rpcInsecure(dc, addr, method, args, reply)
 	} else {
-		return p.rpc(dc, nodeName, addr, version, method, useTLS, args, reply)
+		return p.rpc(dc, nodeName, addr, method, args, reply)
 	}
 }
 
@@ -620,9 +567,13 @@ func (p *ConnPool) RPC(
 // transparent for the consumer. The pool cannot be used because
 // AutoEncrypt.Sign is a one-off call and it doesn't make sense to pool that
 // connection if it is not being reused.
-func (p *ConnPool) rpcInsecure(dc string, nodeName string, addr net.Addr, method string, args interface{}, reply interface{}) error {
+func (p *ConnPool) rpcInsecure(dc string, addr net.Addr, method string, args interface{}, reply interface{}) error {
+	if dc != p.Datacenter {
+		return fmt.Errorf("insecure dialing prohibited between datacenters")
+	}
+
 	var codec rpc.ClientCodec
-	conn, _, err := p.DialTimeoutInsecure(dc, nodeName, addr, 1*time.Second, p.TLSConfigurator.OutgoingRPCWrapper())
+	conn, _, err := p.dial(dc, addr, 0, RPCTLSInsecure)
 	if err != nil {
 		return fmt.Errorf("rpcinsecure error establishing connection: %v", err)
 	}
@@ -637,11 +588,11 @@ func (p *ConnPool) rpcInsecure(dc string, nodeName string, addr net.Addr, method
 	return nil
 }
 
-func (p *ConnPool) rpc(dc string, nodeName string, addr net.Addr, version int, method string, useTLS bool, args interface{}, reply interface{}) error {
+func (p *ConnPool) rpc(dc string, nodeName string, addr net.Addr, method string, args interface{}, reply interface{}) error {
 	p.once.Do(p.init)
 
 	// Get a usable client
-	conn, sc, err := p.getClient(dc, nodeName, addr, version, useTLS)
+	conn, sc, err := p.getClient(dc, nodeName, addr)
 	if err != nil {
 		return fmt.Errorf("rpc error getting client: %v", err)
 	}
@@ -671,9 +622,9 @@ func (p *ConnPool) rpc(dc string, nodeName string, addr net.Addr, version int, m
 
 // Ping sends a Status.Ping message to the specified server and
 // returns true if healthy, false if an error occurred
-func (p *ConnPool) Ping(dc string, nodeName string, addr net.Addr, version int, useTLS bool) (bool, error) {
+func (p *ConnPool) Ping(dc string, nodeName string, addr net.Addr) (bool, error) {
 	var out struct{}
-	err := p.RPC(dc, nodeName, addr, version, "Status.Ping", useTLS, struct{}{}, &out)
+	err := p.RPC(dc, nodeName, addr, "Status.Ping", struct{}{}, &out)
 	return err == nil, err
 }
 

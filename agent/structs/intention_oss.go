@@ -6,6 +6,26 @@ import (
 	"github.com/hashicorp/consul/acl"
 )
 
+func (ixn *Intention) SourceEnterpriseMeta() *EnterpriseMeta {
+	return DefaultEnterpriseMeta()
+}
+
+func (ixn *Intention) DestinationEnterpriseMeta() *EnterpriseMeta {
+	return DefaultEnterpriseMeta()
+}
+
+func (e *IntentionMatchEntry) GetEnterpriseMeta() *EnterpriseMeta {
+	return DefaultEnterpriseMeta()
+}
+
+func (e *IntentionQueryExact) SourceEnterpriseMeta() *EnterpriseMeta {
+	return DefaultEnterpriseMeta()
+}
+
+func (e *IntentionQueryExact) DestinationEnterpriseMeta() *EnterpriseMeta {
+	return DefaultEnterpriseMeta()
+}
+
 // FillAuthzContext can fill in an acl.AuthorizerContext object to setup
 // extra parameters for ACL enforcement. In OSS there is currently nothing
 // extra to be done.
@@ -37,4 +57,11 @@ func (ixn *Intention) DefaultNamespaces(_ *EnterpriseMeta) {
 	if ixn.DestinationNS == "" {
 		ixn.DestinationNS = IntentionDefaultNamespace
 	}
+}
+
+// FillNonDefaultNamespaces will populate the SourceNS and DestinationNS fields
+// if they are empty with the proper defaults, but only if the proper defaults
+// are themselves not "default".
+func (ixn *Intention) FillNonDefaultNamespaces(_ *EnterpriseMeta) {
+	// do nothing
 }

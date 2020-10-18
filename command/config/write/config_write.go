@@ -4,12 +4,12 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"time"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/helpers"
-	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/decode"
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/mapstructure"
@@ -65,7 +65,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	entry, err := parseConfigEntry(string(data))
+	entry, err := parseConfigEntry(data)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Failed to decode config entry input: %v", err))
 		return 1
@@ -86,16 +86,16 @@ func (c *cmd) Run(args []string) int {
 		written, _, err = entries.Set(entry, nil)
 	}
 	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error writing config entry %q / %q: %v", entry.GetKind(), entry.GetName(), err))
+		c.UI.Error(fmt.Sprintf("Error writing config entry %s/%s: %v", entry.GetKind(), entry.GetName(), err))
 		return 1
 	}
 
 	if !written {
-		c.UI.Error(fmt.Sprintf("Config entry %q / %q not updated", entry.GetKind(), entry.GetName()))
+		c.UI.Error(fmt.Sprintf("Config entry not updated: %s/%s", entry.GetKind(), entry.GetName()))
 		return 1
 	}
 
-	// TODO (mkeeler) should we output anything when successful
+	c.UI.Info(fmt.Sprintf("Config entry written: %s/%s", entry.GetKind(), entry.GetName()))
 	return 0
 }
 
@@ -132,23 +132,14 @@ func newDecodeConfigEntry(raw map[string]interface{}) (api.ConfigEntry, error) {
 		return nil, fmt.Errorf("Kind value in payload is not a string")
 	}
 
-	skipWhenPatching, translateKeysDict, err := structs.ConfigEntryDecodeRulesForKind(entry.GetKind())
-	if err != nil {
-		return nil, err
-	}
-
-	// lib.TranslateKeys doesn't understand []map[string]interface{} so we have
-	// to do this part first.
-	raw = lib.PatchSliceOfMaps(raw, skipWhenPatching, nil)
-
-	// CamelCase is the canonical form for these, since this translation
-	// happens in the `consul config write` command and the JSON form is sent
-	// off to the server.
-	lib.TranslateKeys(raw, translateKeysDict)
-
 	var md mapstructure.Metadata
 	decodeConf := &mapstructure.DecoderConfig{
-		DecodeHook:       mapstructure.StringToTimeDurationHookFunc(),
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			decode.HookWeakDecodeFromSlice,
+			decode.HookTranslateKeys,
+			mapstructure.StringToTimeDurationHookFunc(),
+			mapstructure.StringToTimeHookFunc(time.RFC3339),
+		),
 		Metadata:         &md,
 		Result:           &entry,
 		WeaklyTypedInput: true,

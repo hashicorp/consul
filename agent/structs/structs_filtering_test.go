@@ -566,16 +566,6 @@ var expectedFieldConfigIntention bexpr.FieldConfigurations = bexpr.FieldConfigur
 		CoerceFn:            bexpr.CoerceString,
 		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
 	},
-	"DefaultAddr": &bexpr.FieldConfiguration{
-		StructFieldName:     "DefaultAddr",
-		CoerceFn:            bexpr.CoerceString,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual, bexpr.MatchIn, bexpr.MatchNotIn, bexpr.MatchMatches, bexpr.MatchNotMatches},
-	},
-	"DefaultPort": &bexpr.FieldConfiguration{
-		StructFieldName:     "DefaultPort",
-		CoerceFn:            bexpr.CoerceInt,
-		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
-	},
 	"Precedence": &bexpr.FieldConfiguration{
 		StructFieldName:     "Precedence",
 		CoerceFn:            bexpr.CoerceInt,
@@ -592,37 +582,37 @@ var expectedFieldConfigIntention bexpr.FieldConfigurations = bexpr.FieldConfigur
 // Only need to generate the field configurations for the top level filtered types
 // The internal types will be checked within these.
 var fieldConfigTests map[string]fieldConfigTest = map[string]fieldConfigTest{
-	"Node": fieldConfigTest{
+	"Node": {
 		dataType: (*Node)(nil),
 		expected: expectedFieldConfigNode,
 	},
-	"NodeService": fieldConfigTest{
+	"NodeService": {
 		dataType: (*NodeService)(nil),
 		expected: expectedFieldConfigNodeService,
 	},
-	"ServiceNode": fieldConfigTest{
+	"ServiceNode": {
 		dataType: (*ServiceNode)(nil),
 		expected: expectedFieldConfigServiceNode,
 	},
-	"HealthCheck": fieldConfigTest{
+	"HealthCheck": {
 		dataType: (*HealthCheck)(nil),
 		expected: expectedFieldConfigHealthCheck,
 	},
-	"CheckServiceNode": fieldConfigTest{
+	"CheckServiceNode": {
 		dataType: (*CheckServiceNode)(nil),
 		expected: expectedFieldConfigCheckServiceNode,
 	},
-	"NodeInfo": fieldConfigTest{
+	"NodeInfo": {
 		dataType: (*NodeInfo)(nil),
 		expected: expectedFieldConfigNodeInfo,
 	},
-	"api.AgentService": fieldConfigTest{
+	"api.AgentService": {
 		dataType: (*api.AgentService)(nil),
 		// this also happens to ensure that our API representation of a service that can be
 		// registered with an agent stays in sync with our internal NodeService structure
 		expected: expectedFieldConfigNodeService,
 	},
-	"Intention": fieldConfigTest{
+	"Intention": {
 		dataType: (*Intention)(nil),
 		expected: expectedFieldConfigIntention,
 	},
@@ -733,7 +723,6 @@ func (d *fieldDumper) DumpFields(name string, fields bexpr.FieldConfigurations) 
 }
 
 func TestStructs_FilterFieldConfigurations(t *testing.T) {
-	t.Parallel()
 
 	var d *fieldDumper
 	if *dumpFieldConfig {

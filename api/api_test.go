@@ -38,9 +38,10 @@ func makeACLClient(t *testing.T) (*Client, *testutil.TestServer) {
 		clientConfig.Token = "root"
 	}, func(serverConfig *testutil.TestServerConfig) {
 		serverConfig.PrimaryDatacenter = "dc1"
-		serverConfig.ACLMasterToken = "root"
+		serverConfig.ACL.Tokens.Master = "root"
+		serverConfig.ACL.Tokens.Agent = "root"
 		serverConfig.ACL.Enabled = true
-		serverConfig.ACLDefaultPolicy = "deny"
+		serverConfig.ACL.DefaultPolicy = "deny"
 	})
 }
 
@@ -61,7 +62,7 @@ func makeClientWithConfig(
 	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
 		server, err = testutil.NewTestServerConfigT(t, cb2)
 		if err != nil {
-			r.Fatal(err)
+			r.Fatalf("Failed to start server: %v", err.Error())
 		}
 	})
 	if server.Config.Bootstrap {
@@ -98,7 +99,7 @@ func testNodeServiceCheckRegistrations(t *testing.T, client *Client, datacenter 
 	t.Helper()
 
 	registrations := map[string]*CatalogRegistration{
-		"Node foo": &CatalogRegistration{
+		"Node foo": {
 			Datacenter: datacenter,
 			Node:       "foo",
 			ID:         "e0155642-135d-4739-9853-a1ee6c9f945b",
@@ -128,7 +129,7 @@ func testNodeServiceCheckRegistrations(t *testing.T, client *Client, datacenter 
 				},
 			},
 		},
-		"Service redis v1 on foo": &CatalogRegistration{
+		"Service redis v1 on foo": {
 			Datacenter:     datacenter,
 			Node:           "foo",
 			SkipNodeUpdate: true,
@@ -153,7 +154,7 @@ func testNodeServiceCheckRegistrations(t *testing.T, client *Client, datacenter 
 				},
 			},
 		},
-		"Service redis v2 on foo": &CatalogRegistration{
+		"Service redis v2 on foo": {
 			Datacenter:     datacenter,
 			Node:           "foo",
 			SkipNodeUpdate: true,
@@ -178,7 +179,7 @@ func testNodeServiceCheckRegistrations(t *testing.T, client *Client, datacenter 
 				},
 			},
 		},
-		"Node bar": &CatalogRegistration{
+		"Node bar": {
 			Datacenter: datacenter,
 			Node:       "bar",
 			ID:         "c6e7a976-8f4f-44b5-bdd3-631be7e8ecac",
@@ -201,7 +202,7 @@ func testNodeServiceCheckRegistrations(t *testing.T, client *Client, datacenter 
 				},
 			},
 		},
-		"Service redis v1 on bar": &CatalogRegistration{
+		"Service redis v1 on bar": {
 			Datacenter:     datacenter,
 			Node:           "bar",
 			SkipNodeUpdate: true,
@@ -226,7 +227,7 @@ func testNodeServiceCheckRegistrations(t *testing.T, client *Client, datacenter 
 				},
 			},
 		},
-		"Service web v1 on bar": &CatalogRegistration{
+		"Service web v1 on bar": {
 			Datacenter:     datacenter,
 			Node:           "bar",
 			SkipNodeUpdate: true,
@@ -252,7 +253,7 @@ func testNodeServiceCheckRegistrations(t *testing.T, client *Client, datacenter 
 				},
 			},
 		},
-		"Node baz": &CatalogRegistration{
+		"Node baz": {
 			Datacenter: datacenter,
 			Node:       "baz",
 			ID:         "12f96b27-a7b0-47bd-add7-044a2bfc7bfb",
@@ -281,7 +282,7 @@ func testNodeServiceCheckRegistrations(t *testing.T, client *Client, datacenter 
 				},
 			},
 		},
-		"Service web v1 on baz": &CatalogRegistration{
+		"Service web v1 on baz": {
 			Datacenter:     datacenter,
 			Node:           "baz",
 			SkipNodeUpdate: true,
@@ -307,7 +308,7 @@ func testNodeServiceCheckRegistrations(t *testing.T, client *Client, datacenter 
 				},
 			},
 		},
-		"Service web v2 on baz": &CatalogRegistration{
+		"Service web v2 on baz": {
 			Datacenter:     datacenter,
 			Node:           "baz",
 			SkipNodeUpdate: true,
@@ -333,7 +334,7 @@ func testNodeServiceCheckRegistrations(t *testing.T, client *Client, datacenter 
 				},
 			},
 		},
-		"Service critical on baz": &CatalogRegistration{
+		"Service critical on baz": {
 			Datacenter:     datacenter,
 			Node:           "baz",
 			SkipNodeUpdate: true,
@@ -358,7 +359,7 @@ func testNodeServiceCheckRegistrations(t *testing.T, client *Client, datacenter 
 				},
 			},
 		},
-		"Service warning on baz": &CatalogRegistration{
+		"Service warning on baz": {
 			Datacenter:     datacenter,
 			Node:           "baz",
 			SkipNodeUpdate: true,
@@ -866,7 +867,6 @@ func TestAPI_UnixSocket(t *testing.T) {
 	}
 
 	tempDir := testutil.TempDir(t, "consul")
-	defer os.RemoveAll(tempDir)
 	socket := filepath.Join(tempDir, "test.sock")
 
 	c, s := makeClientWithConfig(t, func(c *Config) {

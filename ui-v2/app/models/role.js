@@ -22,11 +22,17 @@ export default Model.extend({
       return [];
     },
   }),
+  NodeIdentities: attr({
+    defaultValue: function() {
+      return [];
+    },
+  }),
   // frontend only for ordering where CreateIndex can't be used
   CreateTime: attr('date'),
   //
   Datacenter: attr('string'),
   Namespace: attr('string'),
+  SyncTime: attr('number'),
   // TODO: Figure out whether we need this or not
   Datacenters: attr(),
   Hash: attr('string'),

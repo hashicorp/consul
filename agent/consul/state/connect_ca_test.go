@@ -8,8 +8,8 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
-	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestStore_CAConfig(t *testing.T) {
@@ -127,7 +127,7 @@ func TestStore_CAConfig_Snapshot_Restore(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	verify.Values(t, "", before, snapped)
+	require.Equal(t, snapped, before)
 
 	s2 := testStateStore(t)
 	restore := s2.Restore()
@@ -143,7 +143,7 @@ func TestStore_CAConfig_Snapshot_Restore(t *testing.T) {
 	if idx != 99 {
 		t.Fatalf("bad index: %d", idx)
 	}
-	verify.Values(t, "", before, res)
+	require.Equal(t, res, before)
 }
 
 // Make sure we handle the case of a leftover blank CA config that
@@ -162,7 +162,7 @@ func TestStore_CAConfig_Snapshot_Restore_BlankConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	verify.Values(t, "", before, snapped)
+	require.Equal(t, snapped, before)
 
 	s2 := testStateStore(t)
 	restore := s2.Restore()
@@ -429,15 +429,15 @@ func TestStore_CABuiltinProvider(t *testing.T) {
 		// Since we've already written to the builtin provider table the serial
 		// numbers will initialize from the max index of the provider table.
 		// That's why this first serial is 2 and not 1.
-		sn, err := s.CAIncrementProviderSerialNumber()
+		sn, err := s.CAIncrementProviderSerialNumber(10)
 		assert.NoError(err)
 		assert.Equal(uint64(2), sn)
 
-		sn, err = s.CAIncrementProviderSerialNumber()
+		sn, err = s.CAIncrementProviderSerialNumber(10)
 		assert.NoError(err)
 		assert.Equal(uint64(3), sn)
 
-		sn, err = s.CAIncrementProviderSerialNumber()
+		sn, err = s.CAIncrementProviderSerialNumber(10)
 		assert.NoError(err)
 		assert.Equal(uint64(4), sn)
 	}

@@ -35,14 +35,14 @@ export default Controller.extend({
       switch (target.name) {
         case 'client[blocking]':
           set(this, 'item.client.blocking', !blocking);
-          this.send('update', this.item);
+          this.send('update', 'client', this.item.client);
           break;
         case 'urls[service]':
           if (typeof get(this, 'item.urls') === 'undefined') {
             set(this, 'item.urls', {});
           }
           set(this, 'item.urls.service', target.value);
-          this.send('update', this.item);
+          this.send('update', 'urls', this.item.urls);
           break;
       }
     },

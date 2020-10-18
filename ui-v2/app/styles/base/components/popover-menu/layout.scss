@@ -1,25 +1,15 @@
-%more-popover-menu {
-  @extend %display-toggle-siblings;
+%popover-menu {
+  position: relative;
 }
-%more-popover-menu + label > * {
-  @extend %toggle-button;
+%popover-menu-trigger {
+  display: block;
 }
-%more-popover-menu-panel {
-  @extend %menu-panel;
+%popover-menu-panel {
   width: 192px;
 }
-%more-popover-menu + label + div {
-  @extend %more-popover-menu-panel;
-}
-%more-popover-menu-panel:not(.above) {
+%popover-menu-panel:not(.above) {
   top: 38px;
 }
-%more-popover-menu-panel:not(.left) {
-  right: 10px;
-}
-%more-popover-menu-panel li [role='menu'] {
-  display: none;
-}
-%more-popover-menu-panel [id$='-']:first-child:checked ~ ul label[for$='-'] + [role='menu'] {
-  display: block;
+%popover-menu-panel:not(.left) {
+  right: 5px;
 }

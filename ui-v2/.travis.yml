@@ -1,0 +1,27 @@
+---
+language: node_js
+node_js:
+  - "10"
+
+dist: trusty
+
+addons:
+  chrome: stable
+
+cache:
+  directories:
+    - $HOME/.npm
+
+env:
+  global:
+    # See https://git.io/vdao3 for details.
+    - JOBS=1
+
+branches:
+  only:
+    - master
+
+script:
+  - npm run lint:hbs
+  - npm run lint:js
+  - npm test

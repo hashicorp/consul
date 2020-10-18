@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
+	"github.com/stretchr/testify/require"
 )
 
 func verifySession(t *testing.T, r *retry.R, a *TestAgent, want structs.Session) {
@@ -96,7 +97,7 @@ func TestSessionCreate(t *testing.T) {
 			"Checks":    []types.CheckID{"consul"},
 			"LockDelay": "20s",
 		}
-		enc.Encode(raw)
+		require.NoError(r, enc.Encode(raw))
 
 		req, _ := http.NewRequest("PUT", "/v1/session/create", body)
 		resp := httptest.NewRecorder()
@@ -157,7 +158,7 @@ func TestSessionCreate_NodeChecks(t *testing.T) {
 			"NodeChecks": []types.CheckID{structs.SerfCheckID},
 			"LockDelay":  "20s",
 		}
-		enc.Encode(raw)
+		require.NoError(r, enc.Encode(raw))
 
 		req, _ := http.NewRequest("PUT", "/v1/session/create", body)
 		resp := httptest.NewRecorder()
@@ -215,7 +216,7 @@ func TestSessionCreate_Delete(t *testing.T) {
 			"LockDelay":  "20s",
 			"Behavior":   structs.SessionKeysDelete,
 		}
-		enc.Encode(raw)
+		require.NoError(r, enc.Encode(raw))
 
 		req, _ := http.NewRequest("PUT", "/v1/session/create", body)
 		resp := httptest.NewRecorder()
@@ -243,23 +244,21 @@ func TestSessionCreate_DefaultCheck(t *testing.T) {
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
-	// Associate session with node and 2 health checks
-	body := bytes.NewBuffer(nil)
-	enc := json.NewEncoder(body)
 	raw := map[string]interface{}{
 		"Name":      "my-cool-session",
 		"Node":      a.Config.NodeName,
 		"LockDelay": "20s",
 	}
-	enc.Encode(raw)
 
-	req, _ := http.NewRequest("PUT", "/v1/session/create", body)
-	resp := httptest.NewRecorder()
 	retry.Run(t, func(r *retry.R) {
+		body := bytes.NewBuffer(nil)
+		enc := json.NewEncoder(body)
+		require.NoError(r, enc.Encode(raw))
+		req, _ := http.NewRequest("PUT", "/v1/session/create", body)
+		resp := httptest.NewRecorder()
 		obj, err := a.srv.SessionCreate(resp, req)
-		if err != nil {
-			r.Fatalf("err: %v", err)
-		}
+		require.NoError(r, err)
+		require.Equal(r, resp.Code, http.StatusOK)
 
 		want := structs.Session{
 			ID:         obj.(sessionCreateResponse).ID,
@@ -280,26 +279,23 @@ func TestSessionCreate_NoCheck(t *testing.T) {
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
-	t.Run("no check fields should yield default serfHealth", func(t *testing.T) {
-		body := bytes.NewBuffer(nil)
-		enc := json.NewEncoder(body)
-		raw := map[string]interface{}{
-			"Name":      "my-cool-session",
-			"Node":      a.Config.NodeName,
-			"LockDelay": "20s",
-		}
-		enc.Encode(raw)
+	raw := map[string]interface{}{
+		"Name":      "my-cool-session",
+		"Node":      a.Config.NodeName,
+		"LockDelay": "20s",
+	}
 
-		req, _ := http.NewRequest("PUT", "/v1/session/create", body)
-		resp := httptest.NewRecorder()
+	t.Run("no check fields should yield default serfHealth", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
+			body := bytes.NewBuffer(nil)
+			enc := json.NewEncoder(body)
+			require.NoError(r, enc.Encode(raw))
+
+			req, _ := http.NewRequest("PUT", "/v1/session/create", body)
+			resp := httptest.NewRecorder()
 			obj, err := a.srv.SessionCreate(resp, req)
-			if err != nil {
-				r.Fatalf("err: %v", err)
-			}
-			if obj == nil {
-				r.Fatalf("expected a session")
-			}
+			require.NoError(r, err)
+			require.Equal(r, resp.Code, http.StatusOK, resp.Body.String())
 
 			want := structs.Session{
 				ID:         obj.(sessionCreateResponse).ID,
@@ -314,23 +310,22 @@ func TestSessionCreate_NoCheck(t *testing.T) {
 	})
 
 	t.Run("overwrite nodechecks to associate with no checks", func(t *testing.T) {
-		body := bytes.NewBuffer(nil)
-		enc := json.NewEncoder(body)
 		raw := map[string]interface{}{
 			"Name":       "my-cool-session",
 			"Node":       a.Config.NodeName,
 			"NodeChecks": []string{},
 			"LockDelay":  "20s",
 		}
-		enc.Encode(raw)
 
-		req, _ := http.NewRequest("PUT", "/v1/session/create", body)
-		resp := httptest.NewRecorder()
 		retry.Run(t, func(r *retry.R) {
+			body := bytes.NewBuffer(nil)
+			enc := json.NewEncoder(body)
+			require.NoError(r, enc.Encode(raw))
+			req, _ := http.NewRequest("PUT", "/v1/session/create", body)
+			resp := httptest.NewRecorder()
 			obj, err := a.srv.SessionCreate(resp, req)
-			if err != nil {
-				r.Fatalf("err: %v", err)
-			}
+			require.NoError(r, err)
+			require.Equal(r, resp.Code, http.StatusOK)
 
 			want := structs.Session{
 				ID:         obj.(sessionCreateResponse).ID,
@@ -345,23 +340,23 @@ func TestSessionCreate_NoCheck(t *testing.T) {
 	})
 
 	t.Run("overwrite checks to associate with no checks", func(t *testing.T) {
-		body := bytes.NewBuffer(nil)
-		enc := json.NewEncoder(body)
 		raw := map[string]interface{}{
 			"Name":      "my-cool-session",
 			"Node":      a.Config.NodeName,
 			"Checks":    []string{},
 			"LockDelay": "20s",
 		}
-		enc.Encode(raw)
 
-		req, _ := http.NewRequest("PUT", "/v1/session/create", body)
-		resp := httptest.NewRecorder()
 		retry.Run(t, func(r *retry.R) {
+			body := bytes.NewBuffer(nil)
+			enc := json.NewEncoder(body)
+			require.NoError(r, enc.Encode(raw))
+
+			req, _ := http.NewRequest("PUT", "/v1/session/create", body)
+			resp := httptest.NewRecorder()
 			obj, err := a.srv.SessionCreate(resp, req)
-			if err != nil {
-				r.Fatalf("err: %v", err)
-			}
+			require.NoError(r, err)
+			require.Equal(r, resp.Code, http.StatusOK)
 
 			want := structs.Session{
 				ID:         obj.(sessionCreateResponse).ID,
@@ -377,7 +372,8 @@ func TestSessionCreate_NoCheck(t *testing.T) {
 	})
 }
 
-func makeTestSession(t *testing.T, srv *HTTPServer) string {
+func makeTestSession(t *testing.T, srv *HTTPHandlers) string {
+	t.Helper()
 	url := "/v1/session/create"
 	req, _ := http.NewRequest("PUT", url, nil)
 	resp := httptest.NewRecorder()
@@ -389,14 +385,15 @@ func makeTestSession(t *testing.T, srv *HTTPServer) string {
 	return sessResp.ID
 }
 
-func makeTestSessionDelete(t *testing.T, srv *HTTPServer) string {
+func makeTestSessionDelete(t *testing.T, srv *HTTPHandlers) string {
+	t.Helper()
 	// Create Session with delete behavior
 	body := bytes.NewBuffer(nil)
 	enc := json.NewEncoder(body)
 	raw := map[string]interface{}{
 		"Behavior": "delete",
 	}
-	enc.Encode(raw)
+	require.NoError(t, enc.Encode(raw))
 
 	url := "/v1/session/create"
 	req, _ := http.NewRequest("PUT", url, body)
@@ -409,14 +406,15 @@ func makeTestSessionDelete(t *testing.T, srv *HTTPServer) string {
 	return sessResp.ID
 }
 
-func makeTestSessionTTL(t *testing.T, srv *HTTPServer, ttl string) string {
+func makeTestSessionTTL(t *testing.T, srv *HTTPHandlers, ttl string) string {
+	t.Helper()
 	// Create Session with TTL
 	body := bytes.NewBuffer(nil)
 	enc := json.NewEncoder(body)
 	raw := map[string]interface{}{
 		"TTL": ttl,
 	}
-	enc.Encode(raw)
+	require.NoError(t, enc.Encode(raw))
 
 	url := "/v1/session/create"
 	req, _ := http.NewRequest("PUT", url, body)
@@ -486,9 +484,8 @@ func TestSessionCustomTTL(t *testing.T) {
 			r.Fatalf("err: %v", err)
 		}
 		respObj, ok = obj.(structs.Sessions)
-		if len(respObj) != 0 {
-			r.Fatalf("session '%s' should have been destroyed", id)
-		}
+		require.True(r, ok, "unexpected type: %T", obj)
+		require.Len(r, respObj, 0)
 	})
 }
 
@@ -586,9 +583,9 @@ func TestSessionGet(t *testing.T) {
 		defer a.Shutdown()
 		testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
-		req, _ := http.NewRequest("GET", "/v1/session/info/adf4238a-882b-9ddc-4a9d-5b6758e4159e", nil)
-		resp := httptest.NewRecorder()
 		retry.Run(t, func(r *retry.R) {
+			req, _ := http.NewRequest("GET", "/v1/session/info/adf4238a-882b-9ddc-4a9d-5b6758e4159e", nil)
+			resp := httptest.NewRecorder()
 			obj, err := a.srv.SessionGet(resp, req)
 			if err != nil {
 				r.Fatalf("err: %v", err)
@@ -667,9 +664,11 @@ func TestSessionList(t *testing.T) {
 		if !ok {
 			t.Fatalf("should work")
 		}
-		if len(respObj) != 10 {
-			t.Fatalf("bad: %v", respObj)
+		respIDs := make([]string, 0, len(respObj))
+		for _, obj := range respObj {
+			respIDs = append(respIDs, obj.ID)
 		}
+		require.ElementsMatch(t, respIDs, ids)
 	})
 }
 
@@ -715,9 +714,11 @@ func TestSessionsForNode(t *testing.T) {
 		if !ok {
 			t.Fatalf("should work")
 		}
-		if len(respObj) != 10 {
-			t.Fatalf("bad: %v", respObj)
+		respIDs := make([]string, 0, len(ids))
+		for _, session := range respObj {
+			respIDs = append(respIDs, session.ID)
 		}
+		require.ElementsMatch(t, ids, respIDs)
 	})
 }
 

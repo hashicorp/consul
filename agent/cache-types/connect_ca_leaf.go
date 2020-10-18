@@ -9,8 +9,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/consul/lib"
 	"github.com/mitchellh/hashstructure"
+
+	"github.com/hashicorp/consul/lib"
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/connect"
@@ -50,7 +51,7 @@ const caChangeJitterWindow = 30 * time.Second
 // ConnectCALeaf supports fetching and generating Connect leaf
 // certificates.
 type ConnectCALeaf struct {
-	RegisterOptionsBlockingRefresh
+	RegisterOptionsBlockingNoRefresh
 	caIndex uint64 // Current index for CA roots
 
 	// rootWatchMu protects access to the rootWatchSubscribers map and
@@ -119,6 +120,15 @@ type fetchState struct {
 	// use this to choose a new window for the next retry. See comment on
 	// caChangeJitterWindow above for more.
 	consecutiveRateLimitErrs int
+}
+
+func ConnectCALeafSuccess(authorityKeyID string) interface{} {
+	return fetchState{
+		authorityKeyID:           authorityKeyID,
+		forceExpireAfter:         time.Time{},
+		consecutiveRateLimitErrs: 0,
+		activeRootRotationStart:  time.Time{},
+	}
 }
 
 // fetchStart is called on each fetch that is about to block and wait for
@@ -457,11 +467,7 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 func activeRootHasKey(roots *structs.IndexedCARoots, currentSigningKeyID string) bool {
 	for _, ca := range roots.Roots {
 		if ca.Active {
-			if ca.SigningKeyID == currentSigningKeyID {
-				return true
-			}
-			// Found the active CA but it has changed
-			return false
+			return ca.SigningKeyID == currentSigningKeyID
 		}
 	}
 	// Shouldn't be possible since at least one root should be active.
@@ -469,7 +475,9 @@ func activeRootHasKey(roots *structs.IndexedCARoots, currentSigningKeyID string)
 }
 
 func (c *ConnectCALeaf) rootsFromCache() (*structs.IndexedCARoots, error) {
-	rawRoots, _, err := c.Cache.Get(ConnectCARootName, &structs.DCSpecificRequest{
+	// Background is fine here because this isn't a blocking query as no index is set.
+	// Therefore this will just either be a cache hit or return once the non-blocking query returns.
+	rawRoots, _, err := c.Cache.Get(context.Background(), ConnectCARootName, &structs.DCSpecificRequest{
 		Datacenter: c.Datacenter,
 	})
 	if err != nil {
@@ -521,6 +529,7 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 			Service:    req.Service,
 		}
 		commonName = connect.ServiceCN(req.Service, req.TargetNamespace(), roots.TrustDomain)
+		dnsNames = append(dnsNames, req.DNSSAN...)
 	} else if req.Agent != "" {
 		id = &connect.SpiffeIDAgent{
 			Host:       roots.TrustDomain,
@@ -529,7 +538,7 @@ func (c *ConnectCALeaf) generateNewLeaf(req *ConnectCALeafRequest,
 		}
 		commonName = connect.AgentCN(req.Agent, roots.TrustDomain)
 		dnsNames = append([]string{"localhost"}, req.DNSSAN...)
-		ipAddresses = append([]net.IP{net.ParseIP("127.0.0.1"), net.ParseIP("::")}, req.IPSAN...)
+		ipAddresses = append([]net.IP{net.ParseIP("127.0.0.1"), net.ParseIP("::1")}, req.IPSAN...)
 	} else {
 		return result, errors.New("URI must be either service or agent")
 	}

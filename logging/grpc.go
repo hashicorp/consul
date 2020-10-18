@@ -17,11 +17,11 @@ type GRPCLogger struct {
 // logger with Severity/Verbosity level appropriate for the given config.
 //
 // Note that grpclog has Info, Warning, Error, Fatal severity levels AND integer
-// verbosity levels for additional info. Verbose logs in glog are always INFO
+// verbosity levels for additional info. Verbose logs in hclog are always DEBUG
 // severity so we map Info,V0 to INFO, Info,V1 to DEBUG, and Info,V>1 to TRACE.
-func NewGRPCLogger(config *Config, logger hclog.Logger) *GRPCLogger {
+func NewGRPCLogger(logLevel string, logger hclog.Logger) *GRPCLogger {
 	return &GRPCLogger{
-		level:  config.LogLevel,
+		level:  logLevel,
 		logger: logger,
 	}
 }

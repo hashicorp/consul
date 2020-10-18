@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/raft"
-	"github.com/pascaldekloe/goe/verify"
+	"github.com/stretchr/testify/require"
 )
 
 func TestOperator_RaftGetConfiguration(t *testing.T) {
@@ -44,7 +44,7 @@ func TestOperator_RaftGetConfiguration(t *testing.T) {
 	me := future.Configuration().Servers[0]
 	expected := structs.RaftConfigurationResponse{
 		Servers: []*structs.RaftServer{
-			&structs.RaftServer{
+			{
 				ID:              me.ID,
 				Node:            s1.config.NodeName,
 				Address:         me.Address,
@@ -55,7 +55,7 @@ func TestOperator_RaftGetConfiguration(t *testing.T) {
 		},
 		Index: future.Index(),
 	}
-	verify.Values(t, "", reply, expected)
+	require.Equal(t, expected, reply)
 }
 
 func TestOperator_RaftGetConfiguration_ACLDeny(t *testing.T) {
@@ -71,7 +71,7 @@ func TestOperator_RaftGetConfiguration_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
 	// Make a request with no token to make sure it gets denied.
 	arg := structs.DCSpecificRequest{
@@ -121,7 +121,7 @@ func TestOperator_RaftGetConfiguration_ACLDeny(t *testing.T) {
 	me := future.Configuration().Servers[0]
 	expected := structs.RaftConfigurationResponse{
 		Servers: []*structs.RaftServer{
-			&structs.RaftServer{
+			{
 				ID:              me.ID,
 				Node:            s1.config.NodeName,
 				Address:         me.Address,
@@ -132,7 +132,7 @@ func TestOperator_RaftGetConfiguration_ACLDeny(t *testing.T) {
 		},
 		Index: future.Index(),
 	}
-	verify.Values(t, "", reply, expected)
+	require.Equal(t, expected, reply)
 }
 
 func TestOperator_RaftRemovePeerByAddress(t *testing.T) {
@@ -211,7 +211,7 @@ func TestOperator_RaftRemovePeerByAddress_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
 	// Make a request with no token to make sure it gets denied.
 	arg := structs.RaftRemovePeerRequest{

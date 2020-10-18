@@ -49,7 +49,7 @@ func TestACL_Legacy_Disabled_Response(t *testing.T) {
 	}
 }
 
-func makeTestACL(t *testing.T, srv *HTTPServer) string {
+func makeTestACL(t *testing.T, srv *HTTPHandlers) string {
 	body := bytes.NewBuffer(nil)
 	enc := json.NewEncoder(body)
 	raw := map[string]interface{}{
@@ -255,9 +255,8 @@ func TestACL_Legacy_List(t *testing.T) {
 	defer a.Shutdown()
 
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
-	var ids []string
 	for i := 0; i < 10; i++ {
-		ids = append(ids, makeTestACL(t, a.srv))
+		makeTestACL(t, a.srv)
 	}
 
 	req, _ := http.NewRequest("GET", "/v1/acl/list?token=root", nil)

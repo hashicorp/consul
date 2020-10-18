@@ -13,7 +13,7 @@ func configTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: configTableName,
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": &memdb.IndexSchema{
+			"id": {
 				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,
@@ -30,7 +30,7 @@ func configTableSchema() *memdb.TableSchema {
 					},
 				},
 			},
-			"kind": &memdb.IndexSchema{
+			"kind": {
 				Name:         "kind",
 				AllowMissing: false,
 				Unique:       false,
@@ -39,35 +39,60 @@ func configTableSchema() *memdb.TableSchema {
 					Lowercase: true,
 				},
 			},
-			"link": &memdb.IndexSchema{
+			"link": {
 				Name:         "link",
 				AllowMissing: true,
 				Unique:       false,
 				Indexer:      &ConfigEntryLinkIndex{},
 			},
+			"intention-legacy-id": {
+				Name:         "intention-legacy-id",
+				AllowMissing: true,
+				Unique:       true,
+				Indexer:      &ServiceIntentionLegacyIDIndex{},
+			},
+			"intention-source": {
+				Name:         "intention-source",
+				AllowMissing: true,
+				Unique:       false,
+				Indexer:      &ServiceIntentionSourceIndex{},
+			},
 		},
 	}
 }
 
-func (s *Store) firstConfigEntryWithTxn(tx *memdb.Txn,
-	kind, name string, entMeta *structs.EnterpriseMeta) (interface{}, error) {
+func firstConfigEntryWithTxn(tx ReadTxn, kind, name string, _ *structs.EnterpriseMeta) (interface{}, error) {
 	return tx.First(configTableName, "id", kind, name)
 }
 
-func (s *Store) firstWatchConfigEntryWithTxn(tx *memdb.Txn,
-	kind, name string, entMeta *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
+func firstWatchConfigEntryWithTxn(
+	tx ReadTxn,
+	kind string,
+	name string,
+	_ *structs.EnterpriseMeta,
+) (<-chan struct{}, interface{}, error) {
 	return tx.FirstWatch(configTableName, "id", kind, name)
 }
 
-func (s *Store) insertConfigEntryWithTxn(tx *memdb.Txn, conf structs.ConfigEntry) error {
-	return tx.Insert(configTableName, conf)
+func validateConfigEntryEnterprise(_ ReadTxn, _ structs.ConfigEntry) error {
+	return nil
 }
 
-func getAllConfigEntriesWithTxn(tx *memdb.Txn, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func getAllConfigEntriesWithTxn(tx ReadTxn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get(configTableName, "id")
 }
 
-func getConfigEntryKindsWithTxn(tx *memdb.Txn,
-	kind string, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func getConfigEntryKindsWithTxn(tx ReadTxn, kind string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get(configTableName, "kind", kind)
+}
+
+func configIntentionsConvertToList(iter memdb.ResultIterator, _ *structs.EnterpriseMeta) structs.Intentions {
+	var results structs.Intentions
+	for v := iter.Next(); v != nil; v = iter.Next() {
+		entry := v.(*structs.ServiceIntentionsConfigEntry)
+		for _, src := range entry.Sources {
+			results = append(results, entry.ToIntention(src))
+		}
+	}
+	return results
 }

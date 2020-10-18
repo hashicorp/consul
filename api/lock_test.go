@@ -189,10 +189,12 @@ func TestAPI_LockContend(t *testing.T) {
 			// Should work eventually, will contend
 			leaderCh, err := lock.Lock(nil)
 			if err != nil {
-				t.Fatalf("err: %v", err)
+				t.Errorf("err: %v", err)
+				return
 			}
 			if leaderCh == nil {
-				t.Fatalf("not leader")
+				t.Errorf("not leader")
+				return
 			}
 			defer lock.Unlock()
 			log.Printf("Contender %d acquired", idx)
@@ -358,7 +360,7 @@ func TestAPI_LockReclaimLock(t *testing.T) {
 	go func() {
 		l2Ch, err := l2.Lock(nil)
 		if err != nil {
-			t.Fatalf("not locked: %v", err)
+			t.Errorf("not locked: %v", err)
 		}
 		reclaimed <- l2Ch
 	}()

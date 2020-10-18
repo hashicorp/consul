@@ -15,7 +15,7 @@ func preparedQueriesTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: "prepared-queries",
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": &memdb.IndexSchema{
+			"id": {
 				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,
@@ -23,7 +23,7 @@ func preparedQueriesTableSchema() *memdb.TableSchema {
 					Field: "ID",
 				},
 			},
-			"name": &memdb.IndexSchema{
+			"name": {
 				Name:         "name",
 				AllowMissing: true,
 				Unique:       true,
@@ -32,13 +32,13 @@ func preparedQueriesTableSchema() *memdb.TableSchema {
 					Lowercase: true,
 				},
 			},
-			"template": &memdb.IndexSchema{
+			"template": {
 				Name:         "template",
 				AllowMissing: true,
 				Unique:       true,
 				Indexer:      &PreparedQueryIndex{},
 			},
-			"session": &memdb.IndexSchema{
+			"session": {
 				Name:         "session",
 				AllowMissing: true,
 				Unique:       false,
@@ -130,20 +130,19 @@ func (s *Restore) PreparedQuery(query *structs.PreparedQuery) error {
 
 // PreparedQuerySet is used to create or update a prepared query.
 func (s *Store) PreparedQuerySet(idx uint64, query *structs.PreparedQuery) error {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
-	if err := s.preparedQuerySetTxn(tx, idx, query); err != nil {
+	if err := preparedQuerySetTxn(tx, idx, query); err != nil {
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // preparedQuerySetTxn is the inner method used to insert a prepared query with
 // the proper indexes into the state store.
-func (s *Store) preparedQuerySetTxn(tx *memdb.Txn, idx uint64, query *structs.PreparedQuery) error {
+func preparedQuerySetTxn(tx *txn, idx uint64, query *structs.PreparedQuery) error {
 	// Check that the ID is set.
 	if query.ID == "" {
 		return ErrMissingQueryID
@@ -247,20 +246,19 @@ func (s *Store) preparedQuerySetTxn(tx *memdb.Txn, idx uint64, query *structs.Pr
 
 // PreparedQueryDelete deletes the given query by ID.
 func (s *Store) PreparedQueryDelete(idx uint64, queryID string) error {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
-	if err := s.preparedQueryDeleteTxn(tx, idx, queryID); err != nil {
+	if err := preparedQueryDeleteTxn(tx, idx, queryID); err != nil {
 		return fmt.Errorf("failed prepared query delete: %s", err)
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // preparedQueryDeleteTxn is the inner method used to delete a prepared query
 // with the proper indexes into the state store.
-func (s *Store) preparedQueryDeleteTxn(tx *memdb.Txn, idx uint64, queryID string) error {
+func preparedQueryDeleteTxn(tx *txn, idx uint64, queryID string) error {
 	// Pull the query.
 	wrapped, err := tx.First("prepared-queries", "id", queryID)
 	if err != nil {

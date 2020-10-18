@@ -9,8 +9,10 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
+const ConfigEntryNotFoundErr string = "Config entry not found"
+
 // Config switches on the different CRUD operations for config entries.
-func (s *HTTPServer) Config(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) Config(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	switch req.Method {
 	case "GET":
 		return s.configGet(resp, req)
@@ -25,7 +27,7 @@ func (s *HTTPServer) Config(resp http.ResponseWriter, req *http.Request) (interf
 
 // configGet gets either a specific config entry, or lists all config entries
 // of a kind if no name is provided.
-func (s *HTTPServer) configGet(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) configGet(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args structs.ConfigEntryQuery
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
@@ -34,12 +36,13 @@ func (s *HTTPServer) configGet(resp http.ResponseWriter, req *http.Request) (int
 
 	switch len(pathArgs) {
 	case 2:
-		if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
-			return nil, err
-		}
 		// Both kind/name provided.
 		args.Kind = pathArgs[0]
 		args.Name = pathArgs[1]
+
+		if err := s.parseEntMetaForConfigEntryKind(args.Kind, req, &args.EnterpriseMeta); err != nil {
+			return nil, err
+		}
 
 		var reply structs.ConfigEntryResponse
 		if err := s.agent.RPC("ConfigEntry.Get", &args, &reply); err != nil {
@@ -48,7 +51,7 @@ func (s *HTTPServer) configGet(resp http.ResponseWriter, req *http.Request) (int
 		setMeta(resp, &reply.QueryMeta)
 
 		if reply.Entry == nil {
-			return nil, NotFoundError{Reason: fmt.Sprintf("Config entry not found for %q / %q", pathArgs[0], pathArgs[1])}
+			return nil, NotFoundError{Reason: fmt.Sprintf("%s for %q / %q", ConfigEntryNotFoundErr, pathArgs[0], pathArgs[1])}
 		}
 
 		return reply.Entry, nil
@@ -72,7 +75,7 @@ func (s *HTTPServer) configGet(resp http.ResponseWriter, req *http.Request) (int
 }
 
 // configDelete deletes the given config entry.
-func (s *HTTPServer) configDelete(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) configDelete(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args structs.ConfigEntryRequest
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
@@ -93,7 +96,8 @@ func (s *HTTPServer) configDelete(resp http.ResponseWriter, req *http.Request) (
 	args.Entry = entry
 	// Parse enterprise meta.
 	meta := args.Entry.GetEnterpriseMeta()
-	if err := s.parseEntMetaNoWildcard(req, meta); err != nil {
+
+	if err := s.parseEntMetaForConfigEntryKind(entry.GetKind(), req, meta); err != nil {
 		return nil, err
 	}
 
@@ -106,7 +110,7 @@ func (s *HTTPServer) configDelete(resp http.ResponseWriter, req *http.Request) (
 }
 
 // ConfigCreate applies the given config entry update.
-func (s *HTTPServer) ConfigApply(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ConfigApply(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	args := structs.ConfigEntryRequest{
 		Op: structs.ConfigEntryUpsert,
 	}
@@ -126,7 +130,7 @@ func (s *HTTPServer) ConfigApply(resp http.ResponseWriter, req *http.Request) (i
 
 	// Parse enterprise meta.
 	var meta structs.EnterpriseMeta
-	if err := s.parseEntMetaNoWildcard(req, &meta); err != nil {
+	if err := s.parseEntMetaForConfigEntryKind(args.Entry.GetKind(), req, &meta); err != nil {
 		return nil, err
 	}
 	args.Entry.GetEnterpriseMeta().Merge(&meta)
@@ -147,4 +151,11 @@ func (s *HTTPServer) ConfigApply(resp http.ResponseWriter, req *http.Request) (i
 	}
 
 	return reply, nil
+}
+
+func (s *HTTPHandlers) parseEntMetaForConfigEntryKind(kind string, req *http.Request, entMeta *structs.EnterpriseMeta) error {
+	if kind == structs.ServiceIntentions {
+		return s.parseEntMeta(req, entMeta)
+	}
+	return s.parseEntMetaNoWildcard(req, entMeta)
 }

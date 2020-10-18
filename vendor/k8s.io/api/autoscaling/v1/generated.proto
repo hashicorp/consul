@@ -32,7 +32,7 @@ option go_package = "v1";
 
 // CrossVersionObjectReference contains enough information to let you identify the referred resource.
 message CrossVersionObjectReference {
-  // Kind of the referent; More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds"
+  // Kind of the referent; More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds"
   optional string kind = 1;
 
   // Name of the referent; More info: http://kubernetes.io/docs/user-guide/identifiers#names
@@ -88,11 +88,11 @@ message ExternalMetricStatus {
 
 // configuration of a horizontal pod autoscaler.
 message HorizontalPodAutoscaler {
-  // Standard object metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
+  // Standard object metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
   // +optional
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
-  // behaviour of autoscaler. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status.
+  // behaviour of autoscaler. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status.
   // +optional
   optional HorizontalPodAutoscalerSpec spec = 2;
 
@@ -141,7 +141,11 @@ message HorizontalPodAutoscalerSpec {
   // and will set the desired number of pods by using its Scale subresource.
   optional CrossVersionObjectReference scaleTargetRef = 1;
 
-  // lower limit for the number of pods that can be set by the autoscaler, default 1.
+  // minReplicas is the lower limit for the number of replicas to which the autoscaler
+  // can scale down.  It defaults to 1 pod.  minReplicas is allowed to be 0 if the
+  // alpha feature gate HPAScaleToZero is enabled and at least one Object or External
+  // metric is configured.  Scaling is active as long as at least one metric value is
+  // available.
   // +optional
   optional int32 minReplicas = 2;
 
@@ -257,6 +261,17 @@ message ObjectMetricSource {
 
   // targetValue is the target value of the metric (as a quantity).
   optional k8s.io.apimachinery.pkg.api.resource.Quantity targetValue = 3;
+
+  // selector is the string-encoded form of a standard kubernetes label selector for the given metric.
+  // When set, it is passed as an additional parameter to the metrics server for more specific metrics scoping
+  // When unset, just the metricName will be used to gather metrics.
+  // +optional
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.LabelSelector selector = 4;
+
+  // averageValue is the target value of the average of the
+  // metric across all relevant pods (as a quantity)
+  // +optional
+  optional k8s.io.apimachinery.pkg.api.resource.Quantity averageValue = 5;
 }
 
 // ObjectMetricStatus indicates the current value of a metric describing a
@@ -270,6 +285,17 @@ message ObjectMetricStatus {
 
   // currentValue is the current value of the metric (as a quantity).
   optional k8s.io.apimachinery.pkg.api.resource.Quantity currentValue = 3;
+
+  // selector is the string-encoded form of a standard kubernetes label selector for the given metric
+  // When set in the ObjectMetricSource, it is passed as an additional parameter to the metrics server for more specific metrics scoping.
+  // When unset, just the metricName will be used to gather metrics.
+  // +optional
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.LabelSelector selector = 4;
+
+  // averageValue is the current value of the average of the
+  // metric across all relevant pods (as a quantity)
+  // +optional
+  optional k8s.io.apimachinery.pkg.api.resource.Quantity averageValue = 5;
 }
 
 // PodsMetricSource indicates how to scale on a metric describing each pod in
@@ -283,6 +309,12 @@ message PodsMetricSource {
   // targetAverageValue is the target value of the average of the
   // metric across all relevant pods (as a quantity)
   optional k8s.io.apimachinery.pkg.api.resource.Quantity targetAverageValue = 2;
+
+  // selector is the string-encoded form of a standard kubernetes label selector for the given metric
+  // When set, it is passed as an additional parameter to the metrics server for more specific metrics scoping
+  // When unset, just the metricName will be used to gather metrics.
+  // +optional
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.LabelSelector selector = 3;
 }
 
 // PodsMetricStatus indicates the current value of a metric describing each pod in
@@ -294,6 +326,12 @@ message PodsMetricStatus {
   // currentAverageValue is the current value of the average of the
   // metric across all relevant pods (as a quantity)
   optional k8s.io.apimachinery.pkg.api.resource.Quantity currentAverageValue = 2;
+
+  // selector is the string-encoded form of a standard kubernetes label selector for the given metric
+  // When set in the PodsMetricSource, it is passed as an additional parameter to the metrics server for more specific metrics scoping.
+  // When unset, just the metricName will be used to gather metrics.
+  // +optional
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.LabelSelector selector = 3;
 }
 
 // ResourceMetricSource indicates how to scale on a resource metric known to
@@ -346,15 +384,15 @@ message ResourceMetricStatus {
 
 // Scale represents a scaling request for a resource.
 message Scale {
-  // Standard object metadata; More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata.
+  // Standard object metadata; More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata.
   // +optional
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
-  // defines the behavior of the scale. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status.
+  // defines the behavior of the scale. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status.
   // +optional
   optional ScaleSpec spec = 2;
 
-  // current status of the scale. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status. Read-only.
+  // current status of the scale. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status. Read-only.
   // +optional
   optional ScaleStatus status = 3;
 }

@@ -9,7 +9,7 @@ const dc = 'dc-1';
 const id = 'slug';
 const now = new Date().getTime();
 test('findByDatacenter returns the correct data for list endpoint', function(assert) {
-  get(this.subject(), 'store').serializerFor('<%= dasherizedModuleName %>').timestamp = function() {
+  this.subject().store.serializerFor('<%= dasherizedModuleName %>').timestamp = function() {
     return now;
   };
   return repo(

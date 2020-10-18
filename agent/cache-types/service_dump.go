@@ -41,7 +41,7 @@ func (c *InternalServiceDump) Fetch(opts cache.FetchOptions, req cache.Request) 
 	reqReal.AllowStale = true
 
 	// Fetch
-	var reply structs.IndexedCheckServiceNodes
+	var reply structs.IndexedNodesWithGateways
 	if err := c.RPC.RPC("Internal.ServiceDump", reqReal, &reply); err != nil {
 		return result, err
 	}

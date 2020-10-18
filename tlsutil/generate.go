@@ -191,7 +191,7 @@ func Verify(caString, certString, dns string) error {
 	}
 
 	opts := x509.VerifyOptions{
-		DNSName: fmt.Sprintf(dns),
+		DNSName: fmt.Sprint(dns),
 		Roots:   roots,
 	}
 

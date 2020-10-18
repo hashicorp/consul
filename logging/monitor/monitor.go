@@ -14,7 +14,7 @@ type Monitor interface {
 	// ever time a log message occurs
 	Start() <-chan []byte
 
-	// Stop de-registers the sink from the InterceptLogger and closes the log
+	// Stop deregisters the sink from the InterceptLogger and closes the log
 	// channels. This returns a count of the number of log messages that were
 	// dropped during streaming.
 	Stop() int

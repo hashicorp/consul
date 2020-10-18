@@ -1,0 +1,7 @@
+```release-note:feature
+agent: moved ui config options to a new `ui_config` stanza in agent configuration and added new options to display service metrics in the UI.
+```
+
+```release-note:deprecation
+agent: `ui`, `ui_dir` and `ui_content_path` are now deprecated for use in agent configuration files. Use `ui_config.{enable, dir, content_path}` instead. The command arguments `-ui`, `-ui-dir`, and `-ui-content-path` remain supported.
+```

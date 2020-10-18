@@ -1,3 +1,7 @@
+%with-transition-500 {
+  transition-duration: 0.15s;
+  transition-timing-function: ease-out;
+}
 %blink-in-fade-out {
   transition-property: opacity;
   transition-duration: 0.1s;

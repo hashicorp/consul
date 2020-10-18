@@ -598,6 +598,31 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "ready-bind-addr-and-prometheus-and-stats",
+			input: BootstrapConfig{
+				ReadyBindAddr:      "0.0.0.0:4444",
+				PrometheusBindAddr: "0.0.0.0:9000",
+				StatsBindAddr:      "0.0.0.0:9000",
+			},
+			baseArgs: BootstrapTplArgs{
+				AdminBindAddress: "127.0.0.1",
+				AdminBindPort:    "19000",
+			},
+			wantArgs: BootstrapTplArgs{
+				AdminBindAddress: "127.0.0.1",
+				AdminBindPort:    "19000",
+				// Should add a static cluster for the self-proxy to admin
+				StaticClustersJSON: expectedSelfAdminCluster,
+				// Should add a static http listener too
+				StaticListenersJSON: strings.Join(
+					[]string{expectedPromListener, expectedStatsListener, expectedReadyListener},
+					", ",
+				),
+				StatsConfigJSON: defaultStatsConfigJSON,
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

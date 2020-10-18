@@ -38,9 +38,10 @@ var badParams = []KeyConfig{
 
 func makeConfig(kc KeyConfig) structs.CommonCAProviderConfig {
 	return structs.CommonCAProviderConfig{
-		LeafCertTTL:    3 * 24 * time.Hour,
-		PrivateKeyType: kc.keyType,
-		PrivateKeyBits: kc.keyBits,
+		LeafCertTTL:         3 * 24 * time.Hour,
+		IntermediateCertTTL: 365 * 24 * time.Hour,
+		PrivateKeyType:      kc.keyType,
+		PrivateKeyBits:      kc.keyBits,
 	}
 }
 

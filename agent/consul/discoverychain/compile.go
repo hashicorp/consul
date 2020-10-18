@@ -272,7 +272,7 @@ func (c *compiler) compile() (*structs.CompiledDiscoveryChain, error) {
 		return nil, err
 	}
 
-	for targetID, _ := range c.loadedTargets {
+	for targetID := range c.loadedTargets {
 		if _, ok := c.retainedTargets[targetID]; !ok {
 			delete(c.loadedTargets, targetID)
 		}
@@ -443,7 +443,7 @@ func (c *compiler) removeUnusedNodes() error {
 		if len(todo) == 0 {
 			return ""
 		}
-		for k, _ := range todo {
+		for k := range todo {
 			delete(todo, k)
 			return k
 		}
@@ -485,7 +485,7 @@ func (c *compiler) removeUnusedNodes() error {
 		return nil
 	}
 
-	for name, _ := range c.nodes {
+	for name := range c.nodes {
 		if _, ok := visited[name]; !ok {
 			delete(c.nodes, name)
 		}
@@ -541,7 +541,7 @@ func (c *compiler) assembleChain() error {
 		return err
 	}
 
-	for i, _ := range router.Routes {
+	for i := range router.Routes {
 		// We don't use range variables here because we'll take the address of
 		// this route and store that in a DiscoveryGraphNode and the range
 		// variables share memory addresses between iterations which is exactly
@@ -552,7 +552,12 @@ func (c *compiler) assembleChain() error {
 		routeNode.Routes = append(routeNode.Routes, compiledRoute)
 
 		dest := route.Destination
-
+		if dest == nil {
+			dest = &structs.ServiceRouteDestination{
+				Service:   c.serviceName,
+				Namespace: router.NamespaceOrDefault(),
+			}
+		}
 		svc := defaultIfEmpty(dest.Service, c.serviceName)
 		destNamespace := defaultIfEmpty(dest.Namespace, router.NamespaceOrDefault())
 
@@ -702,6 +707,7 @@ func (c *compiler) getSplitterNode(sid structs.ServiceID) (*structs.DiscoveryGra
 	// sanely if there is some sort of graph loop below.
 	c.recordNode(splitNode)
 
+	var hasLB bool
 	for _, split := range splitter.Splits {
 		compiledSplit := &structs.DiscoverySplit{
 			Weight: split.Weight,
@@ -734,6 +740,17 @@ func (c *compiler) getSplitterNode(sid structs.ServiceID) (*structs.DiscoveryGra
 			return nil, err
 		}
 		compiledSplit.NextNode = node.MapKey()
+
+		// There exists the possibility that a splitter may split between two distinct service names
+		// with distinct hash-based load balancer configs specified in their service resolvers.
+		// We cannot apply multiple hash policies to a splitter node's route action.
+		// Therefore, we attach the first hash-based load balancer config we encounter.
+		if !hasLB {
+			if lb := node.LoadBalancer; lb != nil && lb.IsHashBased() {
+				splitNode.LoadBalancer = node.LoadBalancer
+				hasLB = true
+			}
+		}
 	}
 
 	c.usesAdvancedRoutingFeatures = true
@@ -846,6 +863,7 @@ RESOLVE_AGAIN:
 			Target:         target.ID,
 			ConnectTimeout: connectTimeout,
 		},
+		LoadBalancer: resolver.LoadBalancer,
 	}
 
 	target.Subset = resolver.Subsets[target.ServiceSubset]
@@ -1004,10 +1022,5 @@ func defaultIfEmpty(val, defaultVal string) string {
 }
 
 func enableAdvancedRoutingForProtocol(protocol string) bool {
-	switch protocol {
-	case "http", "http2", "grpc":
-		return true
-	default:
-		return false
-	}
+	return structs.IsProtocolHTTPLike(protocol)
 }

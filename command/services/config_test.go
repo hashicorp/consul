@@ -18,7 +18,7 @@ func TestDevModeHasNoServices(t *testing.T) {
 	require := require.New(t)
 
 	devMode := true
-	b, err := config.NewBuilder(config.Flags{
+	b, err := config.NewBuilder(config.BuilderOpts{
 		DevMode: &devMode,
 	})
 	require.NoError(err)

@@ -1,0 +1,20 @@
+<TabularCollection
+  data-test-metadata
+  class="consul-metadata-list"
+  @items={{items}} as |item index|
+>
+    <BlockSlot @name="header">
+        <th>Key</th>
+        <th>Value</th>
+    </BlockSlot>
+    <BlockSlot @name="row">
+        <td>
+          <span>
+            {{object-at 0 item}}
+          </span>
+        </td>
+        <td>
+          <span>{{object-at 1 item}}</span>
+        </td>
+    </BlockSlot>
+</TabularCollection>

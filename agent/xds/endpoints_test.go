@@ -1,7 +1,7 @@
 package xds
 
 import (
-	"path"
+	"path/filepath"
 	"sort"
 	"testing"
 
@@ -10,10 +10,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoyendpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	testinf "github.com/mitchellh/go-testing-interface"
 )
@@ -108,8 +109,8 @@ func Test_makeLoadAssignment(t *testing.T) {
 			},
 			want: &envoy.ClusterLoadAssignment{
 				ClusterName: "service:test",
-				Endpoints: []envoyendpoint.LocalityLbEndpoints{{
-					LbEndpoints: []envoyendpoint.LbEndpoint{},
+				Endpoints: []*envoyendpoint.LocalityLbEndpoints{{
+					LbEndpoints: []*envoyendpoint.LbEndpoint{},
 				}},
 			},
 		},
@@ -121,22 +122,22 @@ func Test_makeLoadAssignment(t *testing.T) {
 			},
 			want: &envoy.ClusterLoadAssignment{
 				ClusterName: "service:test",
-				Endpoints: []envoyendpoint.LocalityLbEndpoints{{
-					LbEndpoints: []envoyendpoint.LbEndpoint{
-						envoyendpoint.LbEndpoint{
+				Endpoints: []*envoyendpoint.LocalityLbEndpoints{{
+					LbEndpoints: []*envoyendpoint.LbEndpoint{
+						{
 							HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
 								Endpoint: &envoyendpoint.Endpoint{
-									Address: makeAddressPtr("10.10.10.10", 1234),
+									Address: makeAddress("10.10.10.10", 1234),
 								}},
-							HealthStatus:        core.HealthStatus_HEALTHY,
+							HealthStatus:        envoycore.HealthStatus_HEALTHY,
 							LoadBalancingWeight: makeUint32Value(1),
 						},
-						envoyendpoint.LbEndpoint{
+						{
 							HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
 								Endpoint: &envoyendpoint.Endpoint{
-									Address: makeAddressPtr("10.10.10.20", 1234),
+									Address: makeAddress("10.10.10.20", 1234),
 								}},
-							HealthStatus:        core.HealthStatus_HEALTHY,
+							HealthStatus:        envoycore.HealthStatus_HEALTHY,
 							LoadBalancingWeight: makeUint32Value(1),
 						},
 					},
@@ -151,22 +152,22 @@ func Test_makeLoadAssignment(t *testing.T) {
 			},
 			want: &envoy.ClusterLoadAssignment{
 				ClusterName: "service:test",
-				Endpoints: []envoyendpoint.LocalityLbEndpoints{{
-					LbEndpoints: []envoyendpoint.LbEndpoint{
-						envoyendpoint.LbEndpoint{
+				Endpoints: []*envoyendpoint.LocalityLbEndpoints{{
+					LbEndpoints: []*envoyendpoint.LbEndpoint{
+						{
 							HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
 								Endpoint: &envoyendpoint.Endpoint{
-									Address: makeAddressPtr("10.10.10.10", 1234),
+									Address: makeAddress("10.10.10.10", 1234),
 								}},
-							HealthStatus:        core.HealthStatus_HEALTHY,
+							HealthStatus:        envoycore.HealthStatus_HEALTHY,
 							LoadBalancingWeight: makeUint32Value(10),
 						},
-						envoyendpoint.LbEndpoint{
+						{
 							HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
 								Endpoint: &envoyendpoint.Endpoint{
-									Address: makeAddressPtr("10.10.10.20", 1234),
+									Address: makeAddress("10.10.10.20", 1234),
 								}},
-							HealthStatus:        core.HealthStatus_HEALTHY,
+							HealthStatus:        envoycore.HealthStatus_HEALTHY,
 							LoadBalancingWeight: makeUint32Value(5),
 						},
 					},
@@ -181,22 +182,22 @@ func Test_makeLoadAssignment(t *testing.T) {
 			},
 			want: &envoy.ClusterLoadAssignment{
 				ClusterName: "service:test",
-				Endpoints: []envoyendpoint.LocalityLbEndpoints{{
-					LbEndpoints: []envoyendpoint.LbEndpoint{
-						envoyendpoint.LbEndpoint{
+				Endpoints: []*envoyendpoint.LocalityLbEndpoints{{
+					LbEndpoints: []*envoyendpoint.LbEndpoint{
+						{
 							HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
 								Endpoint: &envoyendpoint.Endpoint{
-									Address: makeAddressPtr("10.10.10.10", 1234),
+									Address: makeAddress("10.10.10.10", 1234),
 								}},
-							HealthStatus:        core.HealthStatus_HEALTHY,
+							HealthStatus:        envoycore.HealthStatus_HEALTHY,
 							LoadBalancingWeight: makeUint32Value(1),
 						},
-						envoyendpoint.LbEndpoint{
+						{
 							HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
 								Endpoint: &envoyendpoint.Endpoint{
-									Address: makeAddressPtr("10.10.10.20", 1234),
+									Address: makeAddress("10.10.10.20", 1234),
 								}},
-							HealthStatus:        core.HealthStatus_UNHEALTHY,
+							HealthStatus:        envoycore.HealthStatus_UNHEALTHY,
 							LoadBalancingWeight: makeUint32Value(1),
 						},
 					},
@@ -307,6 +308,17 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 			setup:  nil,
 		},
 		{
+			name:   "connect-proxy-with-default-chain-and-custom-cluster",
+			create: proxycfg.TestConfigSnapshotDiscoveryChainDefault,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
+					customAppClusterJSON(t, customClusterJSONOptions{
+						Name:        "myservice",
+						IncludeType: false,
+					})
+			},
+		},
+		{
 			name:   "splitter-with-resolver-redirect",
 			create: proxycfg.TestConfigSnapshotDiscoveryChain_SplitterWithResolverRedirectMultiDC,
 			setup:  nil,
@@ -315,28 +327,28 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 			name:   "mesh-gateway-service-subsets",
 			create: proxycfg.TestConfigSnapshotMeshGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.MeshGateway.ServiceResolvers = map[structs.ServiceID]*structs.ServiceResolverConfigEntry{
-					structs.NewServiceID("bar", nil): &structs.ServiceResolverConfigEntry{
+				snap.MeshGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("bar", nil): {
 						Kind: structs.ServiceResolver,
 						Name: "bar",
 						Subsets: map[string]structs.ServiceResolverSubset{
-							"v1": structs.ServiceResolverSubset{
+							"v1": {
 								Filter: "Service.Meta.version == 1",
 							},
-							"v2": structs.ServiceResolverSubset{
+							"v2": {
 								Filter:      "Service.Meta.version == 2",
 								OnlyPassing: true,
 							},
 						},
 					},
-					structs.NewServiceID("foo", nil): &structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("foo", nil): {
 						Kind: structs.ServiceResolver,
 						Name: "foo",
 						Subsets: map[string]structs.ServiceResolverSubset{
-							"v1": structs.ServiceResolverSubset{
+							"v1": {
 								Filter: "Service.Meta.version == 1",
 							},
-							"v2": structs.ServiceResolverSubset{
+							"v2": {
 								Filter:      "Service.Meta.version == 2",
 								OnlyPassing: true,
 							},
@@ -349,30 +361,30 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 			name:   "mesh-gateway-default-service-subset",
 			create: proxycfg.TestConfigSnapshotMeshGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.MeshGateway.ServiceResolvers = map[structs.ServiceID]*structs.ServiceResolverConfigEntry{
-					structs.NewServiceID("bar", nil): &structs.ServiceResolverConfigEntry{
+				snap.MeshGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("bar", nil): {
 						Kind:          structs.ServiceResolver,
 						Name:          "bar",
 						DefaultSubset: "v2",
 						Subsets: map[string]structs.ServiceResolverSubset{
-							"v1": structs.ServiceResolverSubset{
+							"v1": {
 								Filter: "Service.Meta.version == 1",
 							},
-							"v2": structs.ServiceResolverSubset{
+							"v2": {
 								Filter:      "Service.Meta.version == 2",
 								OnlyPassing: true,
 							},
 						},
 					},
-					structs.NewServiceID("foo", nil): &structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("foo", nil): {
 						Kind:          structs.ServiceResolver,
 						Name:          "foo",
 						DefaultSubset: "v2",
 						Subsets: map[string]structs.ServiceResolverSubset{
-							"v1": structs.ServiceResolverSubset{
+							"v1": {
 								Filter: "Service.Meta.version == 1",
 							},
-							"v2": structs.ServiceResolverSubset{
+							"v2": {
 								Filter:      "Service.Meta.version == 2",
 								OnlyPassing: true,
 							},
@@ -456,46 +468,141 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotIngress_SplitterWithResolverRedirectMultiDC,
 			setup:  nil,
 		},
+		{
+			name:   "terminating-gateway",
+			create: proxycfg.TestConfigSnapshotTerminatingGateway,
+			setup:  nil,
+		},
+		{
+			name:   "terminating-gateway-no-services",
+			create: proxycfg.TestConfigSnapshotTerminatingGatewayNoServices,
+			setup:  nil,
+		},
+		{
+			name:   "terminating-gateway-service-subsets",
+			create: proxycfg.TestConfigSnapshotTerminatingGateway,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.TerminatingGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("web", nil): {
+						Kind: structs.ServiceResolver,
+						Name: "web",
+						Subsets: map[string]structs.ServiceResolverSubset{
+							"v1": {
+								Filter: "Service.Meta.version == 1",
+							},
+							"v2": {
+								Filter:      "Service.Meta.version == 2",
+								OnlyPassing: true,
+							},
+						},
+					},
+					structs.NewServiceName("web", nil): {
+						Kind: structs.ServiceResolver,
+						Name: "web",
+						Subsets: map[string]structs.ServiceResolverSubset{
+							"v1": {
+								Filter: "Service.Meta.version == 1",
+							},
+							"v2": {
+								Filter:      "Service.Meta.version == 2",
+								OnlyPassing: true,
+							},
+						},
+					},
+				}
+			},
+		},
+		{
+			name:   "terminating-gateway-default-service-subset",
+			create: proxycfg.TestConfigSnapshotTerminatingGateway,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.TerminatingGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("web", nil): {
+						Kind:          structs.ServiceResolver,
+						Name:          "web",
+						DefaultSubset: "v2",
+						Subsets: map[string]structs.ServiceResolverSubset{
+							"v1": {
+								Filter: "Service.Meta.version == 1",
+							},
+							"v2": {
+								Filter:      "Service.Meta.version == 2",
+								OnlyPassing: true,
+							},
+						},
+					},
+					structs.NewServiceName("web", nil): {
+						Kind:          structs.ServiceResolver,
+						Name:          "web",
+						DefaultSubset: "v2",
+						Subsets: map[string]structs.ServiceResolverSubset{
+							"v1": {
+								Filter: "Service.Meta.version == 1",
+							},
+							"v2": {
+								Filter:      "Service.Meta.version == 2",
+								OnlyPassing: true,
+							},
+						},
+					},
+				}
+			},
+		},
+		{
+			name:   "ingress-multiple-listeners-duplicate-service",
+			create: proxycfg.TestConfigSnapshotIngress_MultipleListenersDuplicateService,
+			setup:  nil,
+		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			require := require.New(t)
+	for _, envoyVersion := range proxysupport.EnvoyVersions {
+		sf, err := determineSupportedProxyFeaturesFromString(envoyVersion)
+		require.NoError(t, err)
+		t.Run("envoy-"+envoyVersion, func(t *testing.T) {
+			for _, tt := range tests {
+				t.Run(tt.name, func(t *testing.T) {
+					require := require.New(t)
 
-			// Sanity check default with no overrides first
-			snap := tt.create(t)
+					// Sanity check default with no overrides first
+					snap := tt.create(t)
 
-			// We need to replace the TLS certs with deterministic ones to make golden
-			// files workable. Note we don't update these otherwise they'd change
-			// golden files for every test case and so not be any use!
-			setupTLSRootsAndLeaf(t, snap)
+					// We need to replace the TLS certs with deterministic ones to make golden
+					// files workable. Note we don't update these otherwise they'd change
+					// golden files for every test case and so not be any use!
+					setupTLSRootsAndLeaf(t, snap)
 
-			if tt.setup != nil {
-				tt.setup(snap)
+					if tt.setup != nil {
+						tt.setup(snap)
+					}
+
+					// Need server just for logger dependency
+					logger := testutil.Logger(t)
+					s := Server{
+						Logger: logger,
+					}
+
+					cInfo := connectionInfo{
+						Token:         "my-token",
+						ProxyFeatures: sf,
+					}
+					endpoints, err := s.endpointsFromSnapshot(cInfo, snap)
+					sort.Slice(endpoints, func(i, j int) bool {
+						return endpoints[i].(*envoy.ClusterLoadAssignment).ClusterName < endpoints[j].(*envoy.ClusterLoadAssignment).ClusterName
+					})
+					require.NoError(err)
+					r, err := createResponse(EndpointType, "00000001", "00000001", endpoints)
+					require.NoError(err)
+
+					gotJSON := responseToJSON(t, r)
+
+					gName := tt.name
+					if tt.overrideGoldenName != "" {
+						gName = tt.overrideGoldenName
+					}
+
+					require.JSONEq(goldenEnvoy(t, filepath.Join("endpoints", gName), envoyVersion, gotJSON), gotJSON)
+				})
 			}
-
-			// Need server just for logger dependency
-			logger := testutil.Logger(t)
-			s := Server{
-				Logger: logger,
-			}
-
-			endpoints, err := s.endpointsFromSnapshot(snap, "my-token")
-			sort.Slice(endpoints, func(i, j int) bool {
-				return endpoints[i].(*envoy.ClusterLoadAssignment).ClusterName < endpoints[j].(*envoy.ClusterLoadAssignment).ClusterName
-			})
-			require.NoError(err)
-			r, err := createResponse(EndpointType, "00000001", "00000001", endpoints)
-			require.NoError(err)
-
-			gotJSON := responseToJSON(t, r)
-
-			gName := tt.name
-			if tt.overrideGoldenName != "" {
-				gName = tt.overrideGoldenName
-			}
-
-			require.JSONEq(golden(t, path.Join("endpoints", gName), gotJSON), gotJSON)
 		})
 	}
 }

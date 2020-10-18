@@ -4,7 +4,7 @@ const (
 	WildcardName = "*"
 )
 
-// Config encapsualtes all of the generic configuration parameters used for
+// Config encapsulates all of the generic configuration parameters used for
 // policy parsing and enforcement
 type Config struct {
 	// WildcardName is the string that represents a request to authorize a wildcard permission

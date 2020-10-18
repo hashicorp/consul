@@ -2,7 +2,6 @@ package tokenclone
 
 import (
 	"encoding/json"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -10,7 +9,6 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/assert"
@@ -63,9 +61,6 @@ func TestTokenCloneCommand_Pretty(t *testing.T) {
 	t.Parallel()
 	req := require.New(t)
 
-	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
-
 	a := agent.NewTestAgent(t, `
    primary_datacenter = "dc1"
    acl {
@@ -89,7 +84,7 @@ func TestTokenCloneCommand_Pretty(t *testing.T) {
 
 	// create a token
 	token, _, err := client.ACL().TokenCreate(
-		&api.ACLToken{Description: "test", Policies: []*api.ACLTokenPolicyLink{&api.ACLTokenPolicyLink{Name: "test-policy"}}},
+		&api.ACLToken{Description: "test", Policies: []*api.ACLTokenPolicyLink{{Name: "test-policy"}}},
 		&api.WriteOptions{Token: "root"},
 	)
 	req.NoError(err)
@@ -170,9 +165,6 @@ func TestTokenCloneCommand_JSON(t *testing.T) {
 	t.Parallel()
 	req := require.New(t)
 
-	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
-
 	a := agent.NewTestAgent(t, `
    primary_datacenter = "dc1"
    acl {
@@ -196,7 +188,7 @@ func TestTokenCloneCommand_JSON(t *testing.T) {
 
 	// create a token
 	token, _, err := client.ACL().TokenCreate(
-		&api.ACLToken{Description: "test", Policies: []*api.ACLTokenPolicyLink{&api.ACLTokenPolicyLink{Name: "test-policy"}}},
+		&api.ACLToken{Description: "test", Policies: []*api.ACLTokenPolicyLink{{Name: "test-policy"}}},
 		&api.WriteOptions{Token: "root"},
 	)
 	req.NoError(err)

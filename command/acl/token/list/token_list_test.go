@@ -3,13 +3,11 @@ package tokenlist
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/assert"
@@ -27,9 +25,6 @@ func TestTokenListCommand_noTabs(t *testing.T) {
 func TestTokenListCommand_Pretty(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
-
-	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
@@ -82,9 +77,6 @@ func TestTokenListCommand_JSON(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 
-	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
-
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
 	acl {
@@ -126,7 +118,13 @@ func TestTokenListCommand_JSON(t *testing.T) {
 	assert.Equal(code, 0)
 	assert.Empty(ui.ErrorWriter.String())
 
-	var jsonOutput json.RawMessage
+	var jsonOutput []api.ACLTokenListEntry
 	err := json.Unmarshal([]byte(ui.OutputWriter.String()), &jsonOutput)
 	require.NoError(t, err, "token unmarshalling error")
+
+	respIDs := make([]string, 0, len(jsonOutput))
+	for _, obj := range jsonOutput {
+		respIDs = append(respIDs, obj.AccessorID)
+	}
+	require.Subset(t, respIDs, tokenIds)
 }

@@ -17,7 +17,6 @@ Feature: submit-blank
     | Model     | Slug       |
     | kv        | kv         |
     | acl       | acls       |
-    | intention | intentions |
     --------------------------
 @ignore
   Scenario: The button is disabled

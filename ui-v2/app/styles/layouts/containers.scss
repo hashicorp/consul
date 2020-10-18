@@ -52,7 +52,7 @@ $ideal-content-padding: 33px;
     padding-right: $ideal-viewport-padding;
   }
 }
-form > fieldset [role='group'] {
+fieldset [role='group'] {
   display: flex;
   flex-wrap: wrap;
   flex-direction: row;

@@ -34,6 +34,8 @@ import (
 //     // item's config field
 //     "widgets.config": "",
 //   })
+//
+// Deprecated: Use lib/decode.HookTranslateKeys instead.
 func TranslateKeys(v map[string]interface{}, dict map[string]string) {
 	// Convert all dict keys for exclusions to lower. so we can match against them
 	// unambiguously with a single lookup.

@@ -1,8 +1,6 @@
-import pages from 'consul-ui/tests/pages';
-import Inflector from 'ember-inflector';
-import utils from '@ember/test-helpers';
-
-import api from 'consul-ui/tests/helpers/api';
+// This files export is executed from 2 places:
+// 1. consul-ui/tests/acceptance/steps/steps.js - run during testing
+// 2. consul-ui/lib/commands/lib/list.js - run when listing steps via the CLI
 
 import models from './steps/doubles/model';
 import http from './steps/doubles/http';
@@ -18,55 +16,81 @@ import assertForm from './steps/assertions/form';
 
 // const dont = `( don't| shouldn't| can't)?`;
 
-const pluralize = function(str) {
-  return Inflector.inflector.pluralize(str);
-};
-const getLastNthRequest = function(arr) {
-  return function(n, method) {
-    let requests = arr.slice(0).reverse();
-    if (method) {
-      requests = requests.filter(function(item) {
-        return item.method === method;
-      });
-    }
-    if (n == null) {
-      return requests;
-    }
-    return requests[n];
+export default function({
+  assert,
+  library,
+  pages = {},
+  utils = {},
+  api = {},
+  Inflector = {},
+  $ = {},
+}) {
+  const pluralize = function(str) {
+    return Inflector.inflector.pluralize(str);
   };
-};
-const mb = function(path) {
-  return function(obj) {
-    return (
-      path.map(function(prop) {
-        obj = obj || {};
-        if (isNaN(parseInt(prop))) {
-          return (obj = obj[prop]);
-        } else {
-          return (obj = obj.objectAt(parseInt(prop)));
-        }
-      }) && obj
-    );
-  };
-};
-export default function(assert, library) {
-  const pauseUntil = function(cb) {
-    return new Promise(function(resolve, reject) {
-      let count = 0;
-      const interval = setInterval(function() {
-        if (++count >= 50) {
-          clearInterval(interval);
-          assert.ok(false);
-          reject();
-        }
-        cb(function() {
-          clearInterval(interval);
-          resolve();
+  const getLastNthRequest = function(getRequests) {
+    return function(n, method) {
+      let requests = getRequests()
+        .slice(0)
+        .reverse();
+      if (method) {
+        requests = requests.filter(function(item) {
+          return item.method === method;
         });
-      }, 100);
+      }
+      if (n == null) {
+        return requests;
+      }
+      return requests[n];
+    };
+  };
+  const mb = function(path) {
+    return function(obj) {
+      return (
+        path.map(function(prop) {
+          obj = obj || {};
+          if (isNaN(parseInt(prop))) {
+            return (obj = obj[prop]);
+          } else {
+            return (obj = obj.objectAt(parseInt(prop)));
+          }
+        }) && obj
+      );
+    };
+  };
+  const pauseUntil = function(run, message = 'assertion timed out') {
+    return new Promise(function(r) {
+      let count = 0;
+      let resolved = false;
+      const retry = function() {
+        return Promise.resolve();
+      };
+      const reject = function() {
+        return Promise.reject();
+      };
+      const resolve = function(str = message) {
+        resolved = true;
+        assert.ok(resolved, str);
+        r();
+        return Promise.resolve();
+      };
+      (function tick() {
+        run(resolve, reject, retry).then(function() {
+          if (!resolved) {
+            setTimeout(function() {
+              if (++count >= 50) {
+                assert.ok(false, message);
+                reject();
+                return;
+              }
+              tick();
+            }, 100);
+          }
+        });
+      })();
     });
   };
-  const lastNthRequest = getLastNthRequest(api.server.history);
+  const lastNthRequest = getLastNthRequest(() => api.server.history);
   const create = function(number, name, value) {
     // don't return a promise here as
     // I don't need it to wait
@@ -83,6 +107,7 @@ export default function(assert, library) {
     return currentPage;
   };
   const setCurrentPage = function(page) {
+    api.server.clearHistory();
     currentPage = page;
     return page;
   };
@@ -98,7 +123,7 @@ export default function(assert, library) {
     }
     obj = parent[last];
     if (typeof obj === 'undefined') {
-      throw new Error(`The '${path}' object doesn't exist`);
+      throw new Error(`PageObject not found: The '${path}' object doesn't exist`);
     }
     if (typeof obj === 'function') {
       obj = obj.bind(parent);
@@ -116,7 +141,7 @@ export default function(assert, library) {
   debug(library, assert, utils.currentURL);
   assertHttp(library, assert, lastNthRequest);
   assertModel(library, assert, find, getCurrentPage, pauseUntil, pluralize);
-  assertPage(library, assert, find, getCurrentPage);
+  assertPage(library, assert, find, getCurrentPage, $);
   assertDom(library, assert, pauseUntil, utils.find, utils.currentURL, clipboard);
   assertForm(library, assert, find, getCurrentPage);
 

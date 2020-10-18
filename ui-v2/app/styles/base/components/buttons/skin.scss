@@ -4,6 +4,7 @@
   @extend %user-select-none;
   cursor: pointer;
   white-space: nowrap;
+  text-decoration: none;
 }
 %button:disabled,
 %internal-button:disabled {
@@ -27,7 +28,7 @@
   @extend %button;
   border-width: 1px;
   border-radius: $decor-radius-100;
-  box-shadow: 0 3px 1px 0 rgba($black, 0.12);
+  box-shadow: $decor-elevation-300;
 }
 /* color */
 %copy-button {
@@ -94,6 +95,7 @@
 
 %internal-button {
   color: $gray-900;
+  background-color: $white;
 }
 %internal-button-dangerous {
   @extend %frame-red-300;
@@ -111,4 +113,24 @@
 %internal-button-dangerous:focus,
 %internal-button-dangerous:hover {
   @extend %internal-button-dangerous-intent;
+}
+
+%split-button span::after {
+  @extend %as-pseudo;
+  position: absolute;
+  width: 1px;
+  top: 0;
+  height: 100%;
+  margin-left: 8px;
+  background-color: $gray-300;
+}
+%sort-button::before {
+  @extend %with-sort-mask, %as-pseudo;
+  position: relative;
+  top: 4px;
+  width: 16px;
+  height: 16px;
+}
+%sort-button::after {
+  top: 0 !important;
 }

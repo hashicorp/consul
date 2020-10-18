@@ -32,6 +32,9 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 		require.NotNil(t, qm)
 		require.NotEqual(t, 0, qm.RequestTime)
 
+		// generic verification
+		require.Equal(t, testEntry.Meta, entry.GetMeta())
+
 		// verify it
 		readResolver, ok := entry.(*ServiceResolverConfigEntry)
 		require.True(t, ok)
@@ -61,6 +64,9 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 		require.NotNil(t, qm)
 		require.NotEqual(t, 0, qm.RequestTime)
 
+		// generic verification
+		require.Equal(t, testEntry.Meta, entry.GetMeta())
+
 		// verify it
 		readSplitter, ok := entry.(*ServiceSplitterConfigEntry)
 		require.True(t, ok)
@@ -89,6 +95,9 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, qm)
 		require.NotEqual(t, 0, qm.RequestTime)
+
+		// generic verification
+		require.Equal(t, testEntry.Meta, entry.GetMeta())
 
 		// verify it
 		readRouter, ok := entry.(*ServiceRouterConfigEntry)
@@ -133,23 +142,27 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 				Namespace:     defaultNamespace,
 				DefaultSubset: "v1",
 				Subsets: map[string]ServiceResolverSubset{
-					"v1": ServiceResolverSubset{
+					"v1": {
 						Filter: "Service.Meta.version == v1",
 					},
-					"v2": ServiceResolverSubset{
+					"v2": {
 						Filter: "Service.Meta.version == v2",
 					},
 				},
 				Failover: map[string]ServiceResolverFailover{
-					"*": ServiceResolverFailover{
+					"*": {
 						Datacenters: []string{"dc2"},
 					},
-					"v1": ServiceResolverFailover{
+					"v1": {
 						Service:   "alternate",
 						Namespace: defaultNamespace,
 					},
 				},
 				ConnectTimeout: 5 * time.Second,
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
 			},
 			verify: verifyResolver,
 		},
@@ -187,6 +200,10 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 						Namespace: defaultNamespace,
 					},
 				},
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
 			},
 			verify: verifySplitter,
 		},
@@ -221,8 +238,130 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 						},
 					},
 				},
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
 			},
 			verify: verifyRouter,
+		},
+	} {
+		tc := tc
+		name := fmt.Sprintf("%s:%s: %s", tc.entry.GetKind(), tc.entry.GetName(), tc.name)
+		ok := t.Run(name, func(t *testing.T) {
+			tc.verify(t, tc.entry)
+		})
+		require.True(t, ok, "subtest %q failed so aborting remainder", name)
+	}
+}
+
+func TestAPI_ConfigEntry_ServiceResolver_LoadBalancer(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	config_entries := c.ConfigEntries()
+
+	verifyResolver := func(t *testing.T, initial ConfigEntry) {
+		t.Helper()
+		require.IsType(t, &ServiceResolverConfigEntry{}, initial)
+		testEntry := initial.(*ServiceResolverConfigEntry)
+
+		// set it
+		_, wm, err := config_entries.Set(testEntry, nil)
+		require.NoError(t, err)
+		require.NotNil(t, wm)
+		require.NotEqual(t, 0, wm.RequestTime)
+
+		// get it
+		entry, qm, err := config_entries.Get(ServiceResolver, testEntry.Name, nil)
+		require.NoError(t, err)
+		require.NotNil(t, qm)
+		require.NotEqual(t, 0, qm.RequestTime)
+
+		// verify it
+		readResolver, ok := entry.(*ServiceResolverConfigEntry)
+		require.True(t, ok)
+		readResolver.ModifyIndex = 0 // reset for Equals()
+		readResolver.CreateIndex = 0 // reset for Equals()
+
+		require.Equal(t, testEntry, readResolver)
+	}
+
+	// First set the necessary protocols to allow advanced routing features.
+	for _, service := range []string{
+		"test-least-req",
+		"test-ring-hash",
+	} {
+		serviceDefaults := &ServiceConfigEntry{
+			Kind:     ServiceDefaults,
+			Name:     service,
+			Protocol: "http",
+		}
+		_, _, err := config_entries.Set(serviceDefaults, nil)
+		require.NoError(t, err)
+	}
+
+	// NOTE: Due to service graph validation, these have to happen in a specific order.
+	for _, tc := range []struct {
+		name   string
+		entry  ConfigEntry
+		verify func(t *testing.T, initial ConfigEntry)
+	}{
+		{
+			name: "least-req",
+			entry: &ServiceResolverConfigEntry{
+				Kind:      ServiceResolver,
+				Name:      "test-least-req",
+				Namespace: defaultNamespace,
+				LoadBalancer: &LoadBalancer{
+					Policy:             "least_request",
+					LeastRequestConfig: &LeastRequestConfig{ChoiceCount: 10},
+				},
+			},
+			verify: verifyResolver,
+		},
+		{
+			name: "ring-hash-with-policies",
+			entry: &ServiceResolverConfigEntry{
+				Kind:      ServiceResolver,
+				Name:      "test-ring-hash",
+				Namespace: defaultNamespace,
+				LoadBalancer: &LoadBalancer{
+					Policy: "ring_hash",
+					RingHashConfig: &RingHashConfig{
+						MinimumRingSize: 1024 * 2,
+						MaximumRingSize: 1024 * 4,
+					},
+					HashPolicies: []HashPolicy{
+						{
+							Field:      "header",
+							FieldValue: "my-session-header",
+							Terminal:   true,
+						},
+						{
+							Field:      "cookie",
+							FieldValue: "oreo",
+							CookieConfig: &CookieConfig{
+								Path: "/tray",
+								TTL:  20 * time.Millisecond,
+							},
+						},
+						{
+							Field:      "cookie",
+							FieldValue: "sugar",
+							CookieConfig: &CookieConfig{
+								Session: true,
+								Path:    "/tin",
+							},
+						},
+						{
+							SourceIP: true,
+						},
+					},
+				},
+			},
+			verify: verifyResolver,
 		},
 	} {
 		tc := tc

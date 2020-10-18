@@ -1,11 +1,17 @@
-%breadcrumbs {
+%breadcrumbs > li {
+  list-style-type: none;
   display: inline-flex;
 }
-%breadcrumbs li > * {
-  display: inline-flex;
-  align-items: center;
+%breadcrumb-milestone::before {
+  margin-right: 4px;
+  display: inline-block;
 }
-%breadcrumbs li > *::before,
-%breadcrumbs li {
-  margin-right: 0.5em;
+%breadcrumb {
+  /* as the separator is a '/' the left margin needs */
+  /* to be different from the right in order to center it */
+  margin-left: 6px;
+}
+%breadcrumb::before {
+  margin-right: 8px;
+  display: inline-block;
 }

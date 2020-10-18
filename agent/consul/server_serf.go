@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	libserf "github.com/hashicorp/consul/lib/serf"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/memberlist"
@@ -28,9 +29,6 @@ const (
 
 	// maxPeerRetries limits how many invalidate attempts are made
 	maxPeerRetries = 6
-
-	// peerRetryBase is a baseline retry time
-	peerRetryBase = 1 * time.Second
 )
 
 // setupSerf is used to setup and initialize a Serf
@@ -49,11 +47,6 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	conf.Tags["role"] = "consul"
 	conf.Tags["dc"] = s.config.Datacenter
 	conf.Tags["segment"] = segment
-	if segment == "" {
-		for _, s := range s.config.Segments {
-			conf.Tags["sl_"+s.Name] = net.JoinHostPort(s.Advertise, fmt.Sprintf("%d", s.Port))
-		}
-	}
 	conf.Tags["id"] = string(s.config.NodeID)
 	conf.Tags["vsn"] = fmt.Sprintf("%d", s.config.ProtocolVersion)
 	conf.Tags["vsn_min"] = fmt.Sprintf("%d", ProtocolVersionMin)
@@ -81,6 +74,12 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	} else {
 		conf.Tags["acls"] = string(structs.ACLModeDisabled)
 	}
+
+	// feature flag: advertise support for federation states
+	conf.Tags["ft_fs"] = "1"
+
+	// feature flag: advertise support for service-intentions
+	conf.Tags["ft_si"] = "1"
 
 	var subLoggerName string
 	if wan {
@@ -170,7 +169,13 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 		return nil, err
 	}
 
+	conf.ReconnectTimeoutOverride = libserf.NewReconnectOverride(s.logger)
+
 	s.addEnterpriseSerfTags(conf.Tags)
+
+	if s.config.OverrideInitialSerfTags != nil {
+		s.config.OverrideInitialSerfTags(conf.Tags)
+	}
 
 	return serf.Create(conf)
 }
@@ -363,9 +368,9 @@ func (s *Server) maybeBootstrap() {
 
 		// Retry with exponential backoff to get peer status from this server
 		for attempt := uint(0); attempt < maxPeerRetries; attempt++ {
-			if err := s.connPool.RPC(s.config.Datacenter, server.ShortName, server.Addr, server.Version,
-				"Status.Peers", server.UseTLS, &structs.DCSpecificRequest{Datacenter: s.config.Datacenter}, &peers); err != nil {
-				nextRetry := time.Duration((1 << attempt) * peerRetryBase)
+			if err := s.connPool.RPC(s.config.Datacenter, server.ShortName, server.Addr,
+				"Status.Peers", &structs.DCSpecificRequest{Datacenter: s.config.Datacenter}, &peers); err != nil {
+				nextRetry := (1 << attempt) * time.Second
 				s.logger.Error("Failed to confirm peer status for server (will retry).",
 					"server", server.Name,
 					"retry_interval", nextRetry.String(),

@@ -1,0 +1,49 @@
+[
+    {
+        "CreateIndex": 5,
+        "ModifyIndex": 10,
+        "AccessorID": "fbd2447f-7479-4329-ad13-b021d74f86ba",
+        "Description": "test token",
+        "Policies": [
+            {
+                "ID": "beb04680-815b-4d7c-9e33-3d707c24672c",
+                "Name": "hobbiton"
+            },
+            {
+                "ID": "18788457-584c-4812-80d3-23d403148a90",
+                "Name": "bywater"
+            }
+        ],
+        "Roles": [
+            {
+                "ID": "3b0a78fe-b9c3-40de-b8ea-7d4d6674b366",
+                "Name": "shire"
+            },
+            {
+                "ID": "6c9d1e1d-34bc-4d55-80f3-add0890ad791",
+                "Name": "west-farthing"
+            }
+        ],
+        "ServiceIdentities": [
+            {
+                "ServiceName": "gardener",
+                "Datacenters": [
+                    "middleearth-northwest"
+                ]
+            }
+        ],
+        "NodeIdentities": [
+            {
+                "NodeName": "bagend",
+                "Datacenter": "middleearth-northwest"
+            }
+        ],
+        "Local": false,
+        "AuthMethod": "bar",
+        "ExpirationTime": "2020-05-22T19:52:31Z",
+        "CreateTime": "2020-05-22T18:52:31Z",
+        "Hash": "YWJjZGVmZ2g=",
+        "Legacy": false,
+        "Namespace": "foo"
+    }
+]

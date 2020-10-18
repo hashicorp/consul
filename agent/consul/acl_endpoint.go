@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -16,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/template"
 	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 	memdb "github.com/hashicorp/go-memdb"
@@ -33,6 +35,8 @@ var (
 	validPolicyName              = regexp.MustCompile(`^[A-Za-z0-9\-_]{1,128}$`)
 	validServiceIdentityName     = regexp.MustCompile(`^[a-z0-9]([a-z0-9\-_]*[a-z0-9])?$`)
 	serviceIdentityNameMaxLength = 256
+	validNodeIdentityName        = regexp.MustCompile(`^[a-z0-9]([a-z0-9\-_]*[a-z0-9])?$`)
+	nodeIdentityNameMaxLength    = 256
 	validRoleName                = regexp.MustCompile(`^[A-Za-z0-9\-_]{1,256}$`)
 	validAuthMethod              = regexp.MustCompile(`^[A-Za-z0-9\-_]{1,128}$`)
 )
@@ -94,7 +98,7 @@ func (a *ACL) removeBootstrapResetFile() {
 }
 
 func (a *ACL) aclPreCheck() error {
-	if !a.srv.ACLsEnabled() {
+	if !a.srv.config.ACLsEnabled {
 		return acl.ErrDisabled
 	}
 
@@ -111,7 +115,7 @@ func (a *ACL) BootstrapTokens(args *structs.DCSpecificRequest, reply *structs.AC
 	if err := a.aclPreCheck(); err != nil {
 		return err
 	}
-	if done, err := a.srv.forward("ACL.BootstrapTokens", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.BootstrapTokens", args, args, reply); done {
 		return err
 	}
 
@@ -210,7 +214,7 @@ func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLToke
 		args.Datacenter = a.srv.config.ACLDatacenter
 	}
 
-	if done, err := a.srv.forward("ACL.TokenRead", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.TokenRead", args, args, reply); done {
 		return err
 	}
 
@@ -259,6 +263,7 @@ func (a *ACL) TokenRead(args *structs.ACLTokenGetRequest, reply *structs.ACLToke
 			}
 
 			reply.Index, reply.Token = index, token
+			reply.SourceDatacenter = args.Datacenter
 			return nil
 		})
 }
@@ -278,7 +283,7 @@ func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLTok
 		args.Datacenter = a.srv.config.ACLDatacenter
 	}
 
-	if done, err := a.srv.forward("ACL.TokenClone", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.TokenClone", args, args, reply); done {
 		return err
 	}
 
@@ -317,6 +322,7 @@ func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLTok
 			Policies:          token.Policies,
 			Roles:             token.Roles,
 			ServiceIdentities: token.ServiceIdentities,
+			NodeIdentities:    token.NodeIdentities,
 			Local:             token.Local,
 			Description:       token.Description,
 			ExpirationTime:    token.ExpirationTime,
@@ -348,7 +354,7 @@ func (a *ACL) TokenSet(args *structs.ACLTokenSetRequest, reply *structs.ACLToken
 		return fmt.Errorf("Local tokens are disabled")
 	}
 
-	if done, err := a.srv.forward("ACL.TokenSet", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.TokenSet", args, args, reply); done {
 		return err
 	}
 
@@ -440,9 +446,6 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 		if fromLogin {
 			if token.AuthMethod == "" {
 				return fmt.Errorf("AuthMethod field is required during Login")
-			}
-			if !token.Local {
-				return fmt.Errorf("Cannot create Global token via Login")
 			}
 		} else {
 			if token.AuthMethod != "" {
@@ -616,6 +619,19 @@ func (a *ACL) tokenSetInternal(args *structs.ACLTokenSetRequest, reply *structs.
 	}
 	token.ServiceIdentities = dedupeServiceIdentities(token.ServiceIdentities)
 
+	for _, nodeid := range token.NodeIdentities {
+		if nodeid.NodeName == "" {
+			return fmt.Errorf("Node identity is missing the node name field on this token")
+		}
+		if nodeid.Datacenter == "" {
+			return fmt.Errorf("Node identity is missing the datacenter field on this token")
+		}
+		if !isValidNodeIdentityName(nodeid.NodeName) {
+			return fmt.Errorf("Node identity has an invalid name. Only alphanumeric characters, '-' and '_' are allowed")
+		}
+	}
+	token.NodeIdentities = dedupeNodeIdentities(token.NodeIdentities)
+
 	if token.Rules != "" {
 		return fmt.Errorf("Rules cannot be specified for this token")
 	}
@@ -685,13 +701,13 @@ func validateBindingRuleBindName(bindType, bindName string, availableFields []st
 }
 
 // computeBindingRuleBindName processes the HIL for the provided bind type+name
-// using the verified fields.
+// using the projected variables.
 //
 // - If the HIL is invalid ("", false, AN_ERROR) is returned.
 // - If the computed name is not valid for the type ("INVALID_NAME", false, nil) is returned.
 // - If the computed name is valid for the type ("VALID_NAME", true, nil) is returned.
-func computeBindingRuleBindName(bindType, bindName string, verifiedFields map[string]string) (string, bool, error) {
-	bindName, err := InterpolateHIL(bindName, verifiedFields)
+func computeBindingRuleBindName(bindType, bindName string, projectedVars map[string]string) (string, bool, error) {
+	bindName, err := template.InterpolateHIL(bindName, projectedVars, true)
 	if err != nil {
 		return "", false, err
 	}
@@ -701,7 +717,8 @@ func computeBindingRuleBindName(bindType, bindName string, verifiedFields map[st
 	switch bindType {
 	case structs.BindingRuleBindTypeService:
 		valid = isValidServiceIdentityName(bindName)
-
+	case structs.BindingRuleBindTypeNode:
+		valid = isValidNodeIdentityName(bindName)
 	case structs.BindingRuleBindTypeRole:
 		valid = validRoleName.MatchString(bindName)
 
@@ -723,6 +740,17 @@ func isValidServiceIdentityName(name string) bool {
 	return validServiceIdentityName.MatchString(name)
 }
 
+// isValidNodeIdentityName returns true if the provided name can be used as
+// an ACLNodeIdentity NodeName. This is more restrictive than standard
+// catalog registration, which basically takes the view that "everything is
+// valid".
+func isValidNodeIdentityName(name string) bool {
+	if len(name) < 1 || len(name) > nodeIdentityNameMaxLength {
+		return false
+	}
+	return validNodeIdentityName.MatchString(name)
+}
+
 func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) error {
 	if err := a.aclPreCheck(); err != nil {
 		return err
@@ -736,7 +764,7 @@ func (a *ACL) TokenDelete(args *structs.ACLTokenDeleteRequest, reply *string) er
 		args.Datacenter = a.srv.config.ACLDatacenter
 	}
 
-	if done, err := a.srv.forward("ACL.TokenDelete", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.TokenDelete", args, args, reply); done {
 		return err
 	}
 
@@ -826,7 +854,7 @@ func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTok
 		args.Datacenter = a.srv.config.ACLDatacenter
 	}
 
-	if done, err := a.srv.forward("ACL.TokenList", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.TokenList", args, args, reply); done {
 		return err
 	}
 
@@ -889,7 +917,7 @@ func (a *ACL) TokenBatchRead(args *structs.ACLTokenBatchGetRequest, reply *struc
 		args.Datacenter = a.srv.config.ACLDatacenter
 	}
 
-	if done, err := a.srv.forward("ACL.TokenBatchRead", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.TokenBatchRead", args, args, reply); done {
 		return err
 	}
 
@@ -943,7 +971,7 @@ func (a *ACL) PolicyRead(args *structs.ACLPolicyGetRequest, reply *structs.ACLPo
 		return err
 	}
 
-	if done, err := a.srv.forward("ACL.PolicyRead", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.PolicyRead", args, args, reply); done {
 		return err
 	}
 
@@ -981,7 +1009,7 @@ func (a *ACL) PolicyBatchRead(args *structs.ACLPolicyBatchGetRequest, reply *str
 		return err
 	}
 
-	if done, err := a.srv.forward("ACL.PolicyBatchRead", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.PolicyBatchRead", args, args, reply); done {
 		return err
 	}
 
@@ -1019,7 +1047,7 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 		args.Datacenter = a.srv.config.ACLDatacenter
 	}
 
-	if done, err := a.srv.forward("ACL.PolicySet", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.PolicySet", args, args, reply); done {
 		return err
 	}
 
@@ -1154,7 +1182,7 @@ func (a *ACL) PolicyDelete(args *structs.ACLPolicyDeleteRequest, reply *string) 
 		args.Datacenter = a.srv.config.ACLDatacenter
 	}
 
-	if done, err := a.srv.forward("ACL.PolicyDelete", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.PolicyDelete", args, args, reply); done {
 		return err
 	}
 
@@ -1197,9 +1225,7 @@ func (a *ACL) PolicyDelete(args *structs.ACLPolicyDeleteRequest, reply *string) 
 		return respErr
 	}
 
-	if policy != nil {
-		*reply = policy.Name
-	}
+	*reply = policy.Name
 
 	return nil
 }
@@ -1213,7 +1239,7 @@ func (a *ACL) PolicyList(args *structs.ACLPolicyListRequest, reply *structs.ACLP
 		return err
 	}
 
-	if done, err := a.srv.forward("ACL.PolicyList", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.PolicyList", args, args, reply); done {
 		return err
 	}
 
@@ -1253,7 +1279,7 @@ func (a *ACL) PolicyResolve(args *structs.ACLPolicyBatchGetRequest, reply *struc
 		return err
 	}
 
-	if done, err := a.srv.forward("ACL.PolicyResolve", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.PolicyResolve", args, args, reply); done {
 		return err
 	}
 
@@ -1311,7 +1337,7 @@ func makeACLETag(parent string, policy *acl.Policy) string {
 // GetPolicy is used to retrieve a compiled policy object with a TTL. Does not
 // support a blocking query.
 func (a *ACL) GetPolicy(args *structs.ACLPolicyResolveLegacyRequest, reply *structs.ACLPolicyResolveLegacyResponse) error {
-	if done, err := a.srv.forward("ACL.GetPolicy", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.GetPolicy", args, args, reply); done {
 		return err
 	}
 
@@ -1323,9 +1349,13 @@ func (a *ACL) GetPolicy(args *structs.ACLPolicyResolveLegacyRequest, reply *stru
 	// Get the policy via the cache
 	parent := a.srv.config.ACLDefaultPolicy
 
-	policy, err := a.srv.acls.GetMergedPolicyForToken(args.ACL)
+	ident, policy, err := a.srv.acls.GetMergedPolicyForToken(args.ACL)
 	if err != nil {
 		return err
+	}
+
+	if token, ok := ident.(*structs.ACLToken); ok && token.Type == structs.ACLTokenTypeManagement {
+		parent = "manage"
 	}
 
 	// translates the structures internals to most closely match what could be expressed in the original rule language
@@ -1354,7 +1384,7 @@ func (a *ACL) ReplicationStatus(args *structs.DCSpecificRequest,
 	// re-using a structure where we don't support all the options.
 	args.RequireConsistent = true
 	args.AllowStale = false
-	if done, err := a.srv.forward("ACL.ReplicationStatus", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.ReplicationStatus", args, args, reply); done {
 		return err
 	}
 
@@ -1382,7 +1412,7 @@ func (a *ACL) RoleRead(args *structs.ACLRoleGetRequest, reply *structs.ACLRoleRe
 		return err
 	}
 
-	if done, err := a.srv.forward("ACL.RoleRead", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.RoleRead", args, args, reply); done {
 		return err
 	}
 
@@ -1421,7 +1451,7 @@ func (a *ACL) RoleBatchRead(args *structs.ACLRoleBatchGetRequest, reply *structs
 		return err
 	}
 
-	if done, err := a.srv.forward("ACL.RoleBatchRead", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.RoleBatchRead", args, args, reply); done {
 		return err
 	}
 
@@ -1459,7 +1489,7 @@ func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) e
 		args.Datacenter = a.srv.config.ACLDatacenter
 	}
 
-	if done, err := a.srv.forward("ACL.RoleSet", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.RoleSet", args, args, reply); done {
 		return err
 	}
 
@@ -1569,6 +1599,19 @@ func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) e
 	}
 	role.ServiceIdentities = dedupeServiceIdentities(role.ServiceIdentities)
 
+	for _, nodeid := range role.NodeIdentities {
+		if nodeid.NodeName == "" {
+			return fmt.Errorf("Node identity is missing the node name field on this role")
+		}
+		if nodeid.Datacenter == "" {
+			return fmt.Errorf("Node identity is missing the datacenter field on this role")
+		}
+		if !isValidNodeIdentityName(nodeid.NodeName) {
+			return fmt.Errorf("Node identity has an invalid name. Only alphanumeric characters, '-' and '_' are allowed")
+		}
+	}
+	role.NodeIdentities = dedupeNodeIdentities(role.NodeIdentities)
+
 	// calculate the hash for this role
 	role.SetHash(true)
 
@@ -1608,7 +1651,7 @@ func (a *ACL) RoleDelete(args *structs.ACLRoleDeleteRequest, reply *string) erro
 		args.Datacenter = a.srv.config.ACLDatacenter
 	}
 
-	if done, err := a.srv.forward("ACL.RoleDelete", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.RoleDelete", args, args, reply); done {
 		return err
 	}
 
@@ -1647,9 +1690,7 @@ func (a *ACL) RoleDelete(args *structs.ACLRoleDeleteRequest, reply *string) erro
 		return respErr
 	}
 
-	if role != nil {
-		*reply = role.Name
-	}
+	*reply = role.Name
 
 	return nil
 }
@@ -1663,7 +1704,7 @@ func (a *ACL) RoleList(args *structs.ACLRoleListRequest, reply *structs.ACLRoleL
 		return err
 	}
 
-	if done, err := a.srv.forward("ACL.RoleList", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.RoleList", args, args, reply); done {
 		return err
 	}
 
@@ -1697,7 +1738,7 @@ func (a *ACL) RoleResolve(args *structs.ACLRoleBatchGetRequest, reply *structs.A
 		return err
 	}
 
-	if done, err := a.srv.forward("ACL.RoleResolve", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.RoleResolve", args, args, reply); done {
 		return err
 	}
 
@@ -1762,7 +1803,7 @@ func (a *ACL) BindingRuleRead(args *structs.ACLBindingRuleGetRequest, reply *str
 		return errAuthMethodsRequireTokenReplication
 	}
 
-	if done, err := a.srv.forward("ACL.BindingRuleRead", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.BindingRuleRead", args, args, reply); done {
 		return err
 	}
 
@@ -1801,7 +1842,7 @@ func (a *ACL) BindingRuleSet(args *structs.ACLBindingRuleSetRequest, reply *stru
 		return errAuthMethodsRequireTokenReplication
 	}
 
-	if done, err := a.srv.forward("ACL.BindingRuleSet", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.BindingRuleSet", args, args, reply); done {
 		return err
 	}
 
@@ -1870,10 +1911,11 @@ func (a *ACL) BindingRuleSet(args *structs.ACLBindingRuleSetRequest, reply *stru
 		return err
 	}
 
+	// Create a blank placeholder identity for use in validation below.
+	blankID := validator.NewIdentity()
+
 	if rule.Selector != "" {
-		selectableVars := validator.MakeFieldMapSelectable(map[string]string{})
-		_, err := bexpr.CreateEvaluatorForType(rule.Selector, nil, selectableVars)
-		if err != nil {
+		if _, err := bexpr.CreateEvaluatorForType(rule.Selector, nil, blankID.SelectableFields); err != nil {
 			return fmt.Errorf("invalid Binding Rule: Selector is invalid: %v", err)
 		}
 	}
@@ -1888,12 +1930,13 @@ func (a *ACL) BindingRuleSet(args *structs.ACLBindingRuleSetRequest, reply *stru
 
 	switch rule.BindType {
 	case structs.BindingRuleBindTypeService:
+	case structs.BindingRuleBindTypeNode:
 	case structs.BindingRuleBindTypeRole:
 	default:
 		return fmt.Errorf("Invalid Binding Rule: unknown BindType %q", rule.BindType)
 	}
 
-	if valid, err := validateBindingRuleBindName(rule.BindType, rule.BindName, validator.AvailableFields()); err != nil {
+	if valid, err := validateBindingRuleBindName(rule.BindType, rule.BindName, blankID.ProjectedVarNames()); err != nil {
 		return fmt.Errorf("Invalid Binding Rule: invalid BindName: %v", err)
 	} else if !valid {
 		return fmt.Errorf("Invalid Binding Rule: invalid BindName")
@@ -1907,9 +1950,8 @@ func (a *ACL) BindingRuleSet(args *structs.ACLBindingRuleSetRequest, reply *stru
 	if err != nil {
 		return fmt.Errorf("Failed to apply binding rule upsert request: %v", err)
 	}
-
 	if respErr, ok := resp.(error); ok {
-		return respErr
+		return fmt.Errorf("Failed to apply binding rule upsert request: %v", respErr)
 	}
 
 	if _, rule, err := a.srv.fsm.State().ACLBindingRuleGetByID(nil, rule.ID, &rule.EnterpriseMeta); err == nil && rule != nil {
@@ -1932,7 +1974,7 @@ func (a *ACL) BindingRuleDelete(args *structs.ACLBindingRuleDeleteRequest, reply
 		return errAuthMethodsRequireTokenReplication
 	}
 
-	if done, err := a.srv.forward("ACL.BindingRuleDelete", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.BindingRuleDelete", args, args, reply); done {
 		return err
 	}
 
@@ -1987,7 +2029,7 @@ func (a *ACL) BindingRuleList(args *structs.ACLBindingRuleListRequest, reply *st
 		return errAuthMethodsRequireTokenReplication
 	}
 
-	if done, err := a.srv.forward("ACL.BindingRuleList", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.BindingRuleList", args, args, reply); done {
 		return err
 	}
 
@@ -2027,7 +2069,7 @@ func (a *ACL) AuthMethodRead(args *structs.ACLAuthMethodGetRequest, reply *struc
 		return errAuthMethodsRequireTokenReplication
 	}
 
-	if done, err := a.srv.forward("ACL.AuthMethodRead", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.AuthMethodRead", args, args, reply); done {
 		return err
 	}
 
@@ -2045,6 +2087,10 @@ func (a *ACL) AuthMethodRead(args *structs.ACLAuthMethodGetRequest, reply *struc
 
 			if err != nil {
 				return err
+			}
+
+			if method != nil {
+				_ = a.enterpriseAuthMethodTypeValidation(method.Type)
 			}
 
 			reply.Index, reply.AuthMethod = index, method
@@ -2065,7 +2111,7 @@ func (a *ACL) AuthMethodSet(args *structs.ACLAuthMethodSetRequest, reply *struct
 		return errAuthMethodsRequireTokenReplication
 	}
 
-	if done, err := a.srv.forward("ACL.AuthMethodSet", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.AuthMethodSet", args, args, reply); done {
 		return err
 	}
 
@@ -2091,6 +2137,10 @@ func (a *ACL) AuthMethodSet(args *structs.ACLAuthMethodSetRequest, reply *struct
 		return fmt.Errorf("Invalid Auth Method: invalid Name. Only alphanumeric characters, '-' and '_' are allowed")
 	}
 
+	if err := a.enterpriseAuthMethodTypeValidation(method.Type); err != nil {
+		return err
+	}
+
 	// Check to see if the method exists first.
 	_, existing, err := state.ACLAuthMethodGetByName(nil, method.Name, &method.EnterpriseMeta)
 	if err != nil {
@@ -2109,10 +2159,35 @@ func (a *ACL) AuthMethodSet(args *structs.ACLAuthMethodSetRequest, reply *struct
 		return fmt.Errorf("Invalid Auth Method: Type should be one of: %v", authmethod.Types())
 	}
 
+	if method.MaxTokenTTL != 0 {
+		if method.MaxTokenTTL > a.srv.config.ACLTokenMaxExpirationTTL {
+			return fmt.Errorf("MaxTokenTTL %s cannot be more than %s",
+				method.MaxTokenTTL, a.srv.config.ACLTokenMaxExpirationTTL)
+		} else if method.MaxTokenTTL < a.srv.config.ACLTokenMinExpirationTTL {
+			return fmt.Errorf("MaxTokenTTL %s cannot be less than %s",
+				method.MaxTokenTTL, a.srv.config.ACLTokenMinExpirationTTL)
+		}
+	}
+
+	switch method.TokenLocality {
+	case "local", "":
+	case "global":
+		if !a.srv.InACLDatacenter() {
+			return fmt.Errorf("Invalid Auth Method: TokenLocality 'global' can only be used in the primary datacenter")
+		}
+	default:
+		return fmt.Errorf("Invalid Auth Method: TokenLocality should be one of 'local' or 'global'")
+	}
+
 	// Instantiate a validator but do not cache it yet. This will validate the
 	// configuration.
-	if _, err := authmethod.NewValidator(method); err != nil {
+	validator, err := authmethod.NewValidator(a.srv.logger, method)
+	if err != nil {
 		return fmt.Errorf("Invalid Auth Method: %v", err)
+	}
+
+	if err := enterpriseAuthMethodValidation(method, validator); err != nil {
+		return err
 	}
 
 	if err := a.srv.fsm.State().ACLAuthMethodUpsertValidateEnterprise(method, existing); err != nil {
@@ -2152,7 +2227,7 @@ func (a *ACL) AuthMethodDelete(args *structs.ACLAuthMethodDeleteRequest, reply *
 		return errAuthMethodsRequireTokenReplication
 	}
 
-	if done, err := a.srv.forward("ACL.AuthMethodDelete", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.AuthMethodDelete", args, args, reply); done {
 		return err
 	}
 
@@ -2174,6 +2249,10 @@ func (a *ACL) AuthMethodDelete(args *structs.ACLAuthMethodDeleteRequest, reply *
 
 	if method == nil {
 		return nil
+	}
+
+	if err := a.enterpriseAuthMethodTypeValidation(method.Type); err != nil {
+		return err
 	}
 
 	req := structs.ACLAuthMethodBatchDeleteRequest{
@@ -2208,7 +2287,7 @@ func (a *ACL) AuthMethodList(args *structs.ACLAuthMethodListRequest, reply *stru
 		return errAuthMethodsRequireTokenReplication
 	}
 
-	if done, err := a.srv.forward("ACL.AuthMethodList", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.AuthMethodList", args, args, reply); done {
 		return err
 	}
 
@@ -2232,6 +2311,7 @@ func (a *ACL) AuthMethodList(args *structs.ACLAuthMethodListRequest, reply *stru
 
 			var stubs structs.ACLAuthMethodListStubs
 			for _, method := range methods {
+				_ = a.enterpriseAuthMethodTypeValidation(method.Type)
 				stubs = append(stubs, method.Stub())
 			}
 
@@ -2261,7 +2341,7 @@ func (a *ACL) Login(args *structs.ACLLoginRequest, reply *structs.ACLToken) erro
 		return errors.New("do not provide a token when logging in")
 	}
 
-	if done, err := a.srv.forward("ACL.Login", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.Login", args, args, reply); done {
 		return err
 	}
 
@@ -2277,34 +2357,68 @@ func (a *ACL) Login(args *structs.ACLLoginRequest, reply *structs.ACLToken) erro
 		return acl.ErrNotFound
 	}
 
+	if err := a.enterpriseAuthMethodTypeValidation(method.Type); err != nil {
+		return err
+	}
+
 	validator, err := a.srv.loadAuthMethodValidator(idx, method)
 	if err != nil {
 		return err
 	}
 
 	// 2. Send args.Data.BearerToken to method validator and get back a fields map
-	verifiedFields, desiredMeta, err := validator.ValidateLogin(auth.BearerToken)
+	verifiedIdentity, err := validator.ValidateLogin(context.Background(), auth.BearerToken)
 	if err != nil {
 		return err
 	}
 
+	return a.tokenSetFromAuthMethod(
+		method,
+		&auth.EnterpriseMeta,
+		"token created via login",
+		auth.Meta,
+		validator,
+		verifiedIdentity,
+		&structs.ACLTokenSetRequest{
+			Datacenter:   args.Datacenter,
+			WriteRequest: args.WriteRequest,
+		},
+		reply,
+	)
+}
+
+func (a *ACL) tokenSetFromAuthMethod(
+	method *structs.ACLAuthMethod,
+	entMeta *structs.EnterpriseMeta,
+	tokenDescriptionPrefix string,
+	tokenMetadata map[string]string,
+	validator authmethod.Validator,
+	verifiedIdentity *authmethod.Identity,
+	createReq *structs.ACLTokenSetRequest, // this should be prepopulated with datacenter+writerequest
+	reply *structs.ACLToken,
+) error {
 	// This always will return a valid pointer
-	targetMeta := method.TargetEnterpriseMeta(desiredMeta)
+	targetMeta, err := computeTargetEnterpriseMeta(method, verifiedIdentity)
+	if err != nil {
+		return err
+	}
 
 	// 3. send map through role bindings
-	serviceIdentities, roleLinks, err := a.srv.evaluateRoleBindings(validator, verifiedFields, &auth.EnterpriseMeta, targetMeta)
+	bindings, err := a.srv.evaluateRoleBindings(validator, verifiedIdentity, entMeta, targetMeta)
 	if err != nil {
 		return err
 	}
 
 	// We try to prevent the creation of a useless token without taking a trip
 	// through the state store if we can.
-	if len(serviceIdentities) == 0 && len(roleLinks) == 0 {
+	if bindings == nil || (len(bindings.serviceIdentities) == 0 && len(bindings.nodeIdentities) == 0 && len(bindings.roles) == 0) {
 		return acl.ErrPermissionDenied
 	}
 
-	description := "token created via login"
-	loginMeta, err := encodeLoginMeta(auth.Meta)
+	// TODO(sso): add a CapturedField to ACLAuthMethod that would pluck fields from the returned identity and stuff into `auth.Meta`.
+
+	description := tokenDescriptionPrefix
+	loginMeta, err := encodeLoginMeta(tokenMetadata)
 	if err != nil {
 		return err
 	}
@@ -2313,23 +2427,28 @@ func (a *ACL) Login(args *structs.ACLLoginRequest, reply *structs.ACLToken) erro
 	}
 
 	// 4. create token
-	createReq := structs.ACLTokenSetRequest{
-		Datacenter: args.Datacenter,
-		ACLToken: structs.ACLToken{
-			Description:       description,
-			Local:             true,
-			AuthMethod:        auth.AuthMethod,
-			ServiceIdentities: serviceIdentities,
-			Roles:             roleLinks,
-			EnterpriseMeta:    *targetMeta,
-		},
-		WriteRequest: args.WriteRequest,
+	createReq.ACLToken = structs.ACLToken{
+		Description:       description,
+		Local:             true,
+		AuthMethod:        method.Name,
+		ServiceIdentities: bindings.serviceIdentities,
+		NodeIdentities:    bindings.nodeIdentities,
+		Roles:             bindings.roles,
+		ExpirationTTL:     method.MaxTokenTTL,
+		EnterpriseMeta:    *targetMeta,
 	}
 
-	createReq.ACLToken.ACLAuthMethodEnterpriseMeta.FillWithEnterpriseMeta(&auth.EnterpriseMeta)
+	if method.TokenLocality == "global" {
+		if !a.srv.InACLDatacenter() {
+			return errors.New("creating global tokens via auth methods is only permitted in the primary datacenter")
+		}
+		createReq.ACLToken.Local = false
+	}
+
+	createReq.ACLToken.ACLAuthMethodEnterpriseMeta.FillWithEnterpriseMeta(entMeta)
 
 	// 5. return token information like a TokenCreate would
-	err = a.tokenSetInternal(&createReq, reply, true)
+	err = a.tokenSetInternal(createReq, reply, true)
 
 	// If we were in a slight race with a role delete operation then we may
 	// still end up failing to insert an unprivileged token in the state
@@ -2367,7 +2486,7 @@ func (a *ACL) Logout(args *structs.ACLLogoutRequest, reply *bool) error {
 		return acl.ErrNotFound
 	}
 
-	if done, err := a.srv.forward("ACL.Logout", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.Logout", args, args, reply); done {
 		return err
 	}
 
@@ -2402,9 +2521,7 @@ func (a *ACL) Logout(args *structs.ACLLogoutRequest, reply *bool) error {
 	}
 
 	// Purge the identity from the cache to prevent using the previous definition of the identity
-	if token != nil {
-		a.srv.acls.cache.RemoveIdentity(tokenSecretCacheID(token.SecretID))
-	}
+	a.srv.acls.cache.RemoveIdentity(tokenSecretCacheID(token.SecretID))
 
 	if respErr, ok := resp.(error); ok {
 		return respErr
@@ -2420,7 +2537,7 @@ func (a *ACL) Authorize(args *structs.RemoteACLAuthorizationRequest, reply *[]st
 		return err
 	}
 
-	if done, err := a.srv.forward("ACL.Authorize", args, args, reply); done {
+	if done, err := a.srv.ForwardRPC("ACL.Authorize", args, args, reply); done {
 		return err
 	}
 

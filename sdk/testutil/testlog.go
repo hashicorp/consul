@@ -1,40 +1,20 @@
 package testutil
 
 import (
-	"fmt"
+	"bytes"
 	"io"
-	"io/ioutil"
-	"log"
 	"os"
-	"strings"
+	"sync"
 	"testing"
 
 	"github.com/hashicorp/go-hclog"
 )
 
-var sendTestLogsToStdout bool
-
-func init() {
-	sendTestLogsToStdout = os.Getenv("NOLOGBUFFER") == "1"
+func Logger(t TestingTB) hclog.InterceptLogger {
+	return LoggerWithOutput(t, NewLogBuffer(t))
 }
 
-// Deprecated: use Logger(t)
-func TestLogger(t testing.TB) *log.Logger {
-	return log.New(&testWriter{t}, t.Name()+": ", log.LstdFlags)
-}
-
-func NewDiscardLogger() hclog.Logger {
-	return hclog.New(&hclog.LoggerOptions{
-		Level:  0,
-		Output: ioutil.Discard,
-	})
-}
-
-func Logger(t testing.TB) hclog.InterceptLogger {
-	return LoggerWithOutput(t, &testWriter{t})
-}
-
-func LoggerWithOutput(t testing.TB, output io.Writer) hclog.InterceptLogger {
+func LoggerWithOutput(t TestingTB, output io.Writer) hclog.InterceptLogger {
 	return hclog.NewInterceptLogger(&hclog.LoggerOptions{
 		Name:   t.Name(),
 		Level:  hclog.Trace,
@@ -42,48 +22,36 @@ func LoggerWithOutput(t testing.TB, output io.Writer) hclog.InterceptLogger {
 	})
 }
 
-// Deprecated: use LoggerWithName(t)
-func TestLoggerWithName(t testing.TB, name string) *log.Logger {
-	return log.New(&testWriter{t}, "test["+name+"]: ", log.LstdFlags)
-}
+var sendTestLogsToStdout = os.Getenv("NOLOGBUFFER") == "1"
 
-func LoggerWithName(t testing.TB, name string) hclog.InterceptLogger {
-	return hclog.NewInterceptLogger(&hclog.LoggerOptions{
-		Name:   "test[" + name + "]",
-		Level:  hclog.Debug,
-		Output: &testWriter{t},
+// NewLogBuffer returns an io.Writer which buffers all writes. When the test
+// ends, t.Failed is checked. If the test has failed or has been run in verbose
+// mode all log output is printed to stdout.
+//
+// Set the env var NOLOGBUFFER=1 to disable buffering, resulting in all log
+// output being written immediately to stdout.
+func NewLogBuffer(t TestingTB) io.Writer {
+	if sendTestLogsToStdout {
+		return os.Stdout
+	}
+	buf := &logBuffer{buf: new(bytes.Buffer)}
+	t.Cleanup(func() {
+		if t.Failed() || testing.Verbose() {
+			buf.Lock()
+			defer buf.Unlock()
+			buf.buf.WriteTo(os.Stdout)
+		}
 	})
+	return buf
 }
 
-func TestWriter(t testing.TB) io.Writer {
-	return &testWriter{t}
+type logBuffer struct {
+	buf *bytes.Buffer
+	sync.Mutex
 }
 
-type testWriter struct {
-	t testing.TB
-}
-
-func (tw *testWriter) Write(p []byte) (n int, err error) {
-	if tw.t != nil {
-		tw.t.Helper()
-	}
-	if sendTestLogsToStdout || tw.t == nil {
-		fmt.Fprint(os.Stdout, strings.TrimSpace(string(p))+"\n")
-	} else {
-		defer func() {
-			if r := recover(); r != nil {
-				if sr, ok := r.(string); ok {
-					if strings.HasPrefix(sr, "Log in goroutine after ") {
-						// These sorts of panics are undesirable, but requires
-						// total control over goroutine lifetimes to correct.
-						fmt.Fprint(os.Stdout, "SUPPRESSED PANIC: "+sr+"\n")
-						return
-					}
-				}
-				panic(r)
-			}
-		}()
-		tw.t.Log(strings.TrimSpace(string(p)))
-	}
-	return len(p), nil
+func (lb *logBuffer) Write(p []byte) (n int, err error) {
+	lb.Lock()
+	defer lb.Unlock()
+	return lb.buf.Write(p)
 }

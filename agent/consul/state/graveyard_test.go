@@ -3,6 +3,8 @@ package state
 import (
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestGraveyard_Lifecycle(t *testing.T) {
@@ -14,7 +16,7 @@ func TestGraveyard_Lifecycle(t *testing.T) {
 
 	// Create some tombstones.
 	func() {
-		tx := s.db.Txn(true)
+		tx := s.db.WriteTxnRestore()
 		defer tx.Abort()
 
 		if err := g.InsertTxn(tx, "foo/in/the/house", 2, nil); err != nil {
@@ -29,7 +31,7 @@ func TestGraveyard_Lifecycle(t *testing.T) {
 		if err := g.InsertTxn(tx, "some/other/path", 9, nil); err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		tx.Commit()
+		require.NoError(t, tx.Commit())
 	}()
 
 	// Check some prefixes.
@@ -62,13 +64,13 @@ func TestGraveyard_Lifecycle(t *testing.T) {
 
 	// Reap some tombstones.
 	func() {
-		tx := s.db.Txn(true)
+		tx := s.db.WriteTxnRestore()
 		defer tx.Abort()
 
 		if err := g.ReapTxn(tx, 6); err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		tx.Commit()
+		require.NoError(t, tx.Commit())
 	}()
 
 	// Check prefixes to see that the reap took effect at the right index.
@@ -121,7 +123,7 @@ func TestGraveyard_GC_Trigger(t *testing.T) {
 	// GC.
 	s := testStateStore(t)
 	func() {
-		tx := s.db.Txn(true)
+		tx := s.db.WriteTxnRestore()
 		defer tx.Abort()
 
 		if err := g.InsertTxn(tx, "foo/in/the/house", 2, nil); err != nil {
@@ -136,13 +138,13 @@ func TestGraveyard_GC_Trigger(t *testing.T) {
 
 	// Now commit.
 	func() {
-		tx := s.db.Txn(true)
+		tx := s.db.WriteTxnRestore()
 		defer tx.Abort()
 
 		if err := g.InsertTxn(tx, "foo/in/the/house", 2, nil); err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		tx.Commit()
+		require.NoError(t, tx.Commit())
 	}()
 
 	// Make sure the GC got hinted.
@@ -170,7 +172,7 @@ func TestGraveyard_Snapshot_Restore(t *testing.T) {
 
 	// Create some tombstones.
 	func() {
-		tx := s.db.Txn(true)
+		tx := s.db.WriteTxnRestore()
 		defer tx.Abort()
 
 		if err := g.InsertTxn(tx, "foo/in/the/house", 2, nil); err != nil {
@@ -185,7 +187,7 @@ func TestGraveyard_Snapshot_Restore(t *testing.T) {
 		if err := g.InsertTxn(tx, "some/other/path", 9, nil); err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		tx.Commit()
+		require.NoError(t, tx.Commit())
 	}()
 
 	// Verify the index was set correctly.
@@ -211,10 +213,10 @@ func TestGraveyard_Snapshot_Restore(t *testing.T) {
 
 	// Verify the dump, which should be ordered by key.
 	expected := []*Tombstone{
-		&Tombstone{Key: "foo/bar/baz", Index: 5},
-		&Tombstone{Key: "foo/bar/zoo", Index: 8},
-		&Tombstone{Key: "foo/in/the/house", Index: 2},
-		&Tombstone{Key: "some/other/path", Index: 9},
+		{Key: "foo/bar/baz", Index: 5},
+		{Key: "foo/bar/zoo", Index: 8},
+		{Key: "foo/in/the/house", Index: 2},
+		{Key: "some/other/path", Index: 9},
 	}
 	if len(expected) != len(dump) {
 		t.Fatalf("expected %d, got %d tombstones", len(expected), len(dump))
@@ -232,7 +234,7 @@ func TestGraveyard_Snapshot_Restore(t *testing.T) {
 	func() {
 		s := testStateStore(t)
 		func() {
-			tx := s.db.Txn(true)
+			tx := s.db.WriteTxnRestore()
 			defer tx.Abort()
 
 			for _, stone := range dump {
@@ -240,7 +242,7 @@ func TestGraveyard_Snapshot_Restore(t *testing.T) {
 					t.Fatalf("err: %s", err)
 				}
 			}
-			tx.Commit()
+			require.NoError(t, tx.Commit())
 		}()
 
 		// Verify that the restore works.

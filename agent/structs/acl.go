@@ -2,6 +2,7 @@ package structs
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"hash"
@@ -118,6 +119,7 @@ type ACLIdentity interface {
 	RoleIDs() []string
 	EmbeddedPolicy() *ACLPolicy
 	ServiceIdentityList() []*ACLServiceIdentity
+	NodeIdentityList() []*ACLNodeIdentity
 	IsExpired(asOf time.Time) bool
 	IsLocal() bool
 	EnterpriseMetadata() *EnterpriseMeta
@@ -188,6 +190,50 @@ func (s *ACLServiceIdentity) SyntheticPolicy(entMeta *EnterpriseMeta) *ACLPolicy
 	return policy
 }
 
+// ACLNodeIdentity represents a high-level grant of all privileges
+// necessary to assume the identity of that node and manage it.
+type ACLNodeIdentity struct {
+	// NodeName identities the Node that this identity authorizes access to
+	NodeName string
+
+	// Datacenter is required and specifies the datacenter of the node.
+	Datacenter string
+}
+
+func (s *ACLNodeIdentity) Clone() *ACLNodeIdentity {
+	s2 := *s
+	return &s2
+}
+
+func (s *ACLNodeIdentity) AddToHash(h hash.Hash) {
+	h.Write([]byte(s.NodeName))
+	h.Write([]byte(s.Datacenter))
+}
+
+func (s *ACLNodeIdentity) EstimateSize() int {
+	return len(s.NodeName) + len(s.Datacenter)
+}
+
+func (s *ACLNodeIdentity) SyntheticPolicy() *ACLPolicy {
+	// Given that we validate this string name before persisting, we do not
+	// have to escape it before doing the following interpolation.
+	rules := fmt.Sprintf(aclPolicyTemplateNodeIdentity, s.NodeName)
+
+	hasher := fnv.New128a()
+	hashID := fmt.Sprintf("%x", hasher.Sum([]byte(rules)))
+
+	policy := &ACLPolicy{}
+	policy.ID = hashID
+	policy.Name = fmt.Sprintf("synthetic-policy-%s", hashID)
+	policy.Description = "synthetic policy"
+	policy.Rules = rules
+	policy.Syntax = acl.SyntaxCurrent
+	policy.Datacenters = []string{s.Datacenter}
+	policy.EnterpriseMeta = *DefaultEnterpriseMeta()
+	policy.SetHash(true)
+	return policy
+}
+
 type ACLToken struct {
 	// This is the UUID used for tracking and management purposes
 	AccessorID string
@@ -210,6 +256,9 @@ type ACLToken struct {
 
 	// List of services to generate synthetic policies for.
 	ServiceIdentities []*ACLServiceIdentity `json:",omitempty"`
+
+	// The node identities that this token should be allowed to manage.
+	NodeIdentities []*ACLNodeIdentity `json:",omitempty"`
 
 	// Type is the V1 Token Type
 	// DEPRECATED (ACL-Legacy-Compat) - remove once we no longer support v1 ACL compat
@@ -301,6 +350,7 @@ func (t *ACLToken) Clone() *ACLToken {
 	t2.Policies = nil
 	t2.Roles = nil
 	t2.ServiceIdentities = nil
+	t2.NodeIdentities = nil
 
 	if len(t.Policies) > 0 {
 		t2.Policies = make([]ACLTokenPolicyLink, len(t.Policies))
@@ -316,6 +366,13 @@ func (t *ACLToken) Clone() *ACLToken {
 			t2.ServiceIdentities[i] = s.Clone()
 		}
 	}
+	if len(t.NodeIdentities) > 0 {
+		t2.NodeIdentities = make([]*ACLNodeIdentity, len(t.NodeIdentities))
+		for i, n := range t.NodeIdentities {
+			t2.NodeIdentities[i] = n.Clone()
+		}
+	}
+
 	return &t2
 }
 
@@ -381,6 +438,7 @@ func (t *ACLToken) HasExpirationTime() bool {
 func (t *ACLToken) UsesNonLegacyFields() bool {
 	return len(t.Policies) > 0 ||
 		len(t.ServiceIdentities) > 0 ||
+		len(t.NodeIdentities) > 0 ||
 		len(t.Roles) > 0 ||
 		t.Type == "" ||
 		t.HasExpirationTime() ||
@@ -461,6 +519,10 @@ func (t *ACLToken) SetHash(force bool) []byte {
 			srvid.AddToHash(hash)
 		}
 
+		for _, nodeID := range t.NodeIdentities {
+			nodeID.AddToHash(hash)
+		}
+
 		t.EnterpriseMeta.addToHash(hash, false)
 
 		// Finalize the hash
@@ -484,6 +546,9 @@ func (t *ACLToken) EstimateSize() int {
 	for _, srvid := range t.ServiceIdentities {
 		size += srvid.EstimateSize()
 	}
+	for _, nodeID := range t.NodeIdentities {
+		size += nodeID.EstimateSize()
+	}
 	return size + t.EnterpriseMeta.estimateSize()
 }
 
@@ -496,6 +561,7 @@ type ACLTokenListStub struct {
 	Policies          []ACLTokenPolicyLink  `json:",omitempty"`
 	Roles             []ACLTokenRoleLink    `json:",omitempty"`
 	ServiceIdentities []*ACLServiceIdentity `json:",omitempty"`
+	NodeIdentities    []*ACLNodeIdentity    `json:",omitempty"`
 	Local             bool
 	AuthMethod        string     `json:",omitempty"`
 	ExpirationTime    *time.Time `json:",omitempty"`
@@ -516,6 +582,7 @@ func (token *ACLToken) Stub() *ACLTokenListStub {
 		Policies:          token.Policies,
 		Roles:             token.Roles,
 		ServiceIdentities: token.ServiceIdentities,
+		NodeIdentities:    token.NodeIdentities,
 		Local:             token.Local,
 		AuthMethod:        token.AuthMethod,
 		ExpirationTime:    token.ExpirationTime,
@@ -810,6 +877,9 @@ type ACLRole struct {
 	// List of services to generate synthetic policies for.
 	ServiceIdentities []*ACLServiceIdentity `json:",omitempty"`
 
+	// List of nodes to generate synthetic policies for.
+	NodeIdentities []*ACLNodeIdentity `json:",omitempty"`
+
 	// Hash of the contents of the role
 	// This does not take into account the ID (which is immutable)
 	// nor the raft metadata.
@@ -848,6 +918,7 @@ func (r *ACLRole) Clone() *ACLRole {
 	r2 := *r
 	r2.Policies = nil
 	r2.ServiceIdentities = nil
+	r2.NodeIdentities = nil
 
 	if len(r.Policies) > 0 {
 		r2.Policies = make([]ACLRolePolicyLink, len(r.Policies))
@@ -857,6 +928,12 @@ func (r *ACLRole) Clone() *ACLRole {
 		r2.ServiceIdentities = make([]*ACLServiceIdentity, len(r.ServiceIdentities))
 		for i, s := range r.ServiceIdentities {
 			r2.ServiceIdentities[i] = s.Clone()
+		}
+	}
+	if len(r.NodeIdentities) > 0 {
+		r2.NodeIdentities = make([]*ACLNodeIdentity, len(r.NodeIdentities))
+		for i, n := range r.NodeIdentities {
+			r2.NodeIdentities[i] = n.Clone()
 		}
 	}
 	return &r2
@@ -887,6 +964,9 @@ func (r *ACLRole) SetHash(force bool) []byte {
 		for _, srvid := range r.ServiceIdentities {
 			srvid.AddToHash(hash)
 		}
+		for _, nodeID := range r.NodeIdentities {
+			nodeID.AddToHash(hash)
+		}
 
 		r.EnterpriseMeta.addToHash(hash, false)
 
@@ -910,6 +990,9 @@ func (r *ACLRole) EstimateSize() int {
 	}
 	for _, srvid := range r.ServiceIdentities {
 		size += srvid.EstimateSize()
+	}
+	for _, nodeID := range r.NodeIdentities {
+		size += nodeID.EstimateSize()
 	}
 
 	return size + r.EnterpriseMeta.estimateSize()
@@ -944,6 +1027,21 @@ const (
 	//
 	// If it does not exist at login-time the rule is ignored.
 	BindingRuleBindTypeRole = "role"
+
+	// BindingRuleBindTypeNode is the binding rule bind type that assigns
+	// a Node Identity to the token that is created using the value of
+	// the computed BindName as the NodeName like:
+	//
+	// &ACLToken{
+	//   ...other fields...
+	//   NodeIdentities: []*ACLNodeIdentity{
+	//     &ACLNodeIdentity{
+	//       NodeName: "<computed BindName>",
+	//       Datacenter: "<local datacenter of the binding rule>"
+	//     }
+	//   }
+	// }
+	BindingRuleBindTypeNode = "node"
 )
 
 type ACLBindingRule struct {
@@ -994,8 +1092,9 @@ func (rules ACLBindingRules) Sort() {
 
 type ACLAuthMethodListStub struct {
 	Name        string
-	Description string
 	Type        string
+	DisplayName string `json:",omitempty"`
+	Description string `json:",omitempty"`
 	CreateIndex uint64
 	ModifyIndex uint64
 	EnterpriseMeta
@@ -1004,8 +1103,9 @@ type ACLAuthMethodListStub struct {
 func (p *ACLAuthMethod) Stub() *ACLAuthMethodListStub {
 	return &ACLAuthMethodListStub{
 		Name:           p.Name,
-		Description:    p.Description,
 		Type:           p.Type,
+		DisplayName:    p.DisplayName,
+		Description:    p.Description,
 		CreateIndex:    p.CreateIndex,
 		ModifyIndex:    p.ModifyIndex,
 		EnterpriseMeta: p.EnterpriseMeta,
@@ -1038,8 +1138,20 @@ type ACLAuthMethod struct {
 	// Immutable once set and only settable during create.
 	Type string
 
+	// DisplayName is an optional name to use instead of the Name field when
+	// displaying information about this auth method in any kind of user
+	// interface.
+	DisplayName string `json:",omitempty"`
+
 	// Description is just an optional bunch of explanatory text.
-	Description string
+	Description string `json:",omitempty"`
+
+	// MaxTokenTTL this is the maximum life of a token created by this method.
+	MaxTokenTTL time.Duration `json:",omitempty"`
+
+	// TokenLocality defines the kind of token that this auth method produces.
+	// This can be either 'local' or 'global'. If empty 'local' is assumed.
+	TokenLocality string `json:",omitempty"`
 
 	// Configuration is arbitrary configuration for the auth method. This
 	// should only contain primitive values and containers (such as lists and
@@ -1049,8 +1161,51 @@ type ACLAuthMethod struct {
 	// Embedded Enterprise ACL Meta
 	EnterpriseMeta `mapstructure:",squash"`
 
+	ACLAuthMethodEnterpriseFields `mapstructure:",squash"`
+
 	// Embedded Raft Metadata
 	RaftIndex `hash:"ignore"`
+}
+
+func (m *ACLAuthMethod) MarshalJSON() ([]byte, error) {
+	type Alias ACLAuthMethod
+	exported := &struct {
+		MaxTokenTTL string `json:",omitempty"`
+		*Alias
+	}{
+		MaxTokenTTL: m.MaxTokenTTL.String(),
+		Alias:       (*Alias)(m),
+	}
+	if m.MaxTokenTTL == 0 {
+		exported.MaxTokenTTL = ""
+	}
+
+	return json.Marshal(exported)
+}
+
+func (m *ACLAuthMethod) UnmarshalJSON(data []byte) (err error) {
+	type Alias ACLAuthMethod
+	aux := &struct {
+		MaxTokenTTL interface{}
+		*Alias
+	}{
+		Alias: (*Alias)(m),
+	}
+	if err = lib.UnmarshalJSON(data, &aux); err != nil {
+		return err
+	}
+	if aux.MaxTokenTTL != nil {
+		switch v := aux.MaxTokenTTL.(type) {
+		case string:
+			if m.MaxTokenTTL, err = time.ParseDuration(v); err != nil {
+				return err
+			}
+		case float64:
+			m.MaxTokenTTL = time.Duration(v)
+		}
+	}
+
+	return nil
 }
 
 type ACLReplicationType string
@@ -1200,8 +1355,9 @@ type ACLTokenBootstrapRequest struct {
 
 // ACLTokenResponse returns a single Token + metadata
 type ACLTokenResponse struct {
-	Token    *ACLToken
-	Redacted bool // whether the token's secret was redacted
+	Token            *ACLToken
+	Redacted         bool // whether the token's secret was redacted
+	SourceDatacenter string
 	QueryMeta
 }
 

@@ -6,12 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/require"
 )
 
 func TestAgentStructs_CheckTypes(t *testing.T) {
-	t.Parallel()
 	svc := new(ServiceDefinition)
 
 	// Singular Check field works
@@ -48,12 +46,13 @@ func TestAgentStructs_CheckTypes(t *testing.T) {
 		{&CheckType{TTL: 20 * time.Second, Interval: 10 * time.Second}, fmt.Errorf("Interval and TTL cannot both be specified"), "Interval and TTL both set"},
 	}
 	for _, tc := range cases {
-		svc.Check = *tc.in
-		checks, err := svc.CheckTypes()
-		verify.Values(t, tc.desc, err.Error(), tc.err.Error())
-		if len(checks) != 0 {
-			t.Fatalf("bad: %#v", svc)
-		}
+		t.Run(tc.desc, func(t *testing.T) {
+			svc.Check = *tc.in
+			checks, err := svc.CheckTypes()
+			require.Error(t, err, tc.err.Error())
+			require.Len(t, checks, 0)
+		})
+
 	}
 }
 

@@ -65,7 +65,7 @@ func testRegisterNode(t *testing.T, s *Store, idx uint64, nodeID string) {
 // testRegisterNodeWithChange registers a node and ensures it gets different from previous registration
 func testRegisterNodeWithChange(t *testing.T, s *Store, idx uint64, nodeID string) {
 	testRegisterNodeWithMeta(t, s, idx, nodeID, map[string]string{
-		"version": string(idx),
+		"version": fmt.Sprint(idx),
 	})
 }
 
@@ -92,7 +92,7 @@ func testRegisterNodeWithMeta(t *testing.T, s *Store, idx uint64, nodeID string,
 func testRegisterServiceWithChange(t *testing.T, s *Store, idx uint64, nodeID, serviceID string, modifyAccordingIndex bool) {
 	meta := make(map[string]string)
 	if modifyAccordingIndex {
-		meta["version"] = string(idx)
+		meta["version"] = fmt.Sprint(idx)
 	}
 	svc := &structs.NodeService{
 		ID:      serviceID,
@@ -296,11 +296,11 @@ func TestStateStore_indexUpdateMaxTxn(t *testing.T) {
 	testRegisterNode(t, s, 0, "foo")
 	testRegisterNode(t, s, 1, "bar")
 
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxnRestore()
 	if err := indexUpdateMaxTxn(tx, 3, "nodes"); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	tx.Commit()
+	require.NoError(t, tx.Commit())
 
 	if max := s.maxIndex("nodes"); max != 3 {
 		t.Fatalf("bad max: %d", max)

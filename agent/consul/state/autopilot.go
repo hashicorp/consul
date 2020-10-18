@@ -13,7 +13,7 @@ func autopilotConfigTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: "autopilot-config",
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": &memdb.IndexSchema{
+			"id": {
 				Name:         "id",
 				AllowMissing: true,
 				Unique:       true,
@@ -74,22 +74,21 @@ func (s *Store) AutopilotConfig() (uint64, *autopilot.Config, error) {
 
 // AutopilotSetConfig is used to set the current Autopilot configuration.
 func (s *Store) AutopilotSetConfig(idx uint64, config *autopilot.Config) error {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
-	if err := s.autopilotSetConfigTxn(idx, tx, config); err != nil {
+	if err := autopilotSetConfigTxn(tx, idx, config); err != nil {
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // AutopilotCASConfig is used to try updating the Autopilot configuration with a
 // given Raft index. If the CAS index specified is not equal to the last observed index
 // for the config, then the call is a noop,
 func (s *Store) AutopilotCASConfig(idx, cidx uint64, config *autopilot.Config) (bool, error) {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	// Check for an existing config
@@ -106,15 +105,15 @@ func (s *Store) AutopilotCASConfig(idx, cidx uint64, config *autopilot.Config) (
 		return false, nil
 	}
 
-	if err := s.autopilotSetConfigTxn(idx, tx, config); err != nil {
+	if err := autopilotSetConfigTxn(tx, idx, config); err != nil {
 		return false, err
 	}
 
-	tx.Commit()
-	return true, nil
+	err = tx.Commit()
+	return err == nil, err
 }
 
-func (s *Store) autopilotSetConfigTxn(idx uint64, tx *memdb.Txn, config *autopilot.Config) error {
+func autopilotSetConfigTxn(tx *txn, idx uint64, config *autopilot.Config) error {
 	// Check for an existing config
 	existing, err := tx.First("autopilot-config", "id")
 	if err != nil {

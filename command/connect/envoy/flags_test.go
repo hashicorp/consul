@@ -67,9 +67,17 @@ func TestServiceAddressValue_Set(t *testing.T) {
 			expectedValue: api.ServiceAddress{Address: "8.8.8.8", Port: 1234},
 		},
 		{
-			name:        "invalid address",
-			input:       "not-an-address",
-			expectedErr: "missing port in address",
+			name:  "address with no port",
+			input: "8.8.8.8",
+			expectedValue: api.ServiceAddress{
+				Address: "8.8.8.8",
+				Port:    defaultGatewayPort,
+			},
+		},
+		{
+			name:        "invalid addres",
+			input:       "not-an-ip-address",
+			expectedErr: "not an IP address",
 		},
 		{
 			name:        "invalid port",

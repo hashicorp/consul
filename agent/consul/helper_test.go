@@ -115,6 +115,8 @@ type clientOrServer interface {
 //
 //   member.JoinLAN("127.0.0.1:"+leader.config.SerfLANConfig.MemberlistConfig.BindPort)
 func joinLAN(t *testing.T, member clientOrServer, leader *Server) {
+	t.Helper()
+
 	if member == nil || leader == nil {
 		panic("no server")
 	}
@@ -143,6 +145,8 @@ func joinLAN(t *testing.T, member clientOrServer, leader *Server) {
 //
 //   member.JoinWAN("127.0.0.1:"+leader.config.SerfWANConfig.MemberlistConfig.BindPort)
 func joinWAN(t *testing.T, member, leader *Server) {
+	t.Helper()
+
 	if member == nil || leader == nil {
 		panic("no server")
 	}
@@ -207,7 +211,7 @@ func registerTestCatalogEntries(t *testing.T, codec rpc.ClientCodec) {
 
 	// prep the cluster with some data we can use in our filters
 	registrations := map[string]*structs.RegisterRequest{
-		"Node foo": &structs.RegisterRequest{
+		"Node foo": {
 			Datacenter: "dc1",
 			Node:       "foo",
 			ID:         types.NodeID("e0155642-135d-4739-9853-a1ee6c9f945b"),
@@ -237,7 +241,7 @@ func registerTestCatalogEntries(t *testing.T, codec rpc.ClientCodec) {
 				},
 			},
 		},
-		"Service redis v1 on foo": &structs.RegisterRequest{
+		"Service redis v1 on foo": {
 			Datacenter:     "dc1",
 			Node:           "foo",
 			SkipNodeUpdate: true,
@@ -262,7 +266,7 @@ func registerTestCatalogEntries(t *testing.T, codec rpc.ClientCodec) {
 				},
 			},
 		},
-		"Service redis v2 on foo": &structs.RegisterRequest{
+		"Service redis v2 on foo": {
 			Datacenter:     "dc1",
 			Node:           "foo",
 			SkipNodeUpdate: true,
@@ -287,7 +291,7 @@ func registerTestCatalogEntries(t *testing.T, codec rpc.ClientCodec) {
 				},
 			},
 		},
-		"Node bar": &structs.RegisterRequest{
+		"Node bar": {
 			Datacenter: "dc1",
 			Node:       "bar",
 			ID:         types.NodeID("c6e7a976-8f4f-44b5-bdd3-631be7e8ecac"),
@@ -310,7 +314,7 @@ func registerTestCatalogEntries(t *testing.T, codec rpc.ClientCodec) {
 				},
 			},
 		},
-		"Service redis v1 on bar": &structs.RegisterRequest{
+		"Service redis v1 on bar": {
 			Datacenter:     "dc1",
 			Node:           "bar",
 			SkipNodeUpdate: true,
@@ -335,7 +339,7 @@ func registerTestCatalogEntries(t *testing.T, codec rpc.ClientCodec) {
 				},
 			},
 		},
-		"Service web v1 on bar": &structs.RegisterRequest{
+		"Service web v1 on bar": {
 			Datacenter:     "dc1",
 			Node:           "bar",
 			SkipNodeUpdate: true,
@@ -361,7 +365,7 @@ func registerTestCatalogEntries(t *testing.T, codec rpc.ClientCodec) {
 				},
 			},
 		},
-		"Node baz": &structs.RegisterRequest{
+		"Node baz": {
 			Datacenter: "dc1",
 			Node:       "baz",
 			ID:         types.NodeID("12f96b27-a7b0-47bd-add7-044a2bfc7bfb"),
@@ -390,7 +394,7 @@ func registerTestCatalogEntries(t *testing.T, codec rpc.ClientCodec) {
 				},
 			},
 		},
-		"Service web v1 on baz": &structs.RegisterRequest{
+		"Service web v1 on baz": {
 			Datacenter:     "dc1",
 			Node:           "baz",
 			SkipNodeUpdate: true,
@@ -416,7 +420,7 @@ func registerTestCatalogEntries(t *testing.T, codec rpc.ClientCodec) {
 				},
 			},
 		},
-		"Service web v2 on baz": &structs.RegisterRequest{
+		"Service web v2 on baz": {
 			Datacenter:     "dc1",
 			Node:           "baz",
 			SkipNodeUpdate: true,
@@ -442,7 +446,7 @@ func registerTestCatalogEntries(t *testing.T, codec rpc.ClientCodec) {
 				},
 			},
 		},
-		"Service critical on baz": &structs.RegisterRequest{
+		"Service critical on baz": {
 			Datacenter:     "dc1",
 			Node:           "baz",
 			SkipNodeUpdate: true,
@@ -467,7 +471,7 @@ func registerTestCatalogEntries(t *testing.T, codec rpc.ClientCodec) {
 				},
 			},
 		},
-		"Service warning on baz": &structs.RegisterRequest{
+		"Service warning on baz": {
 			Datacenter:     "dc1",
 			Node:           "baz",
 			SkipNodeUpdate: true,
@@ -501,7 +505,7 @@ func registerTestCatalogProxyEntries(t *testing.T, codec rpc.ClientCodec) {
 	t.Helper()
 
 	registrations := map[string]*structs.RegisterRequest{
-		"Service tg-gw": &structs.RegisterRequest{
+		"Service tg-gw": {
 			Datacenter: "dc1",
 			Node:       "terminating-gateway",
 			ID:         types.NodeID("3a9d7530-20d4-443a-98d3-c10fe78f09f4"),
@@ -514,7 +518,7 @@ func registerTestCatalogProxyEntries(t *testing.T, codec rpc.ClientCodec) {
 				Address: "198.18.1.3",
 			},
 		},
-		"Service mg-gw": &structs.RegisterRequest{
+		"Service mg-gw": {
 			Datacenter: "dc1",
 			Node:       "gateway",
 			ID:         types.NodeID("72e18a4c-85ec-4520-978f-2fc0378b06aa"),
@@ -527,7 +531,7 @@ func registerTestCatalogProxyEntries(t *testing.T, codec rpc.ClientCodec) {
 				Address: "198.18.1.4",
 			},
 		},
-		"Service web-proxy": &structs.RegisterRequest{
+		"Service web-proxy": {
 			Datacenter: "dc1",
 			Node:       "proxy",
 			ID:         types.NodeID("2d31602c-3291-4f94-842d-446bc2f945ce"),
@@ -553,5 +557,346 @@ func registerTestCatalogEntriesMap(t *testing.T, codec rpc.ClientCodec, registra
 	for name, reg := range registrations {
 		err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", reg, nil)
 		require.NoError(t, err, "Failed catalog registration %q: %v", name, err)
+	}
+}
+
+func registerTestTopologyEntries(t *testing.T, codec rpc.ClientCodec, token string) {
+	t.Helper()
+
+	// api and api-proxy on node foo - upstream: web
+	// web and web-proxy on node bar - upstream: redis
+	// web and web-proxy on node baz - upstream: redis
+	// redis and redis-proxy on node zip
+	registrations := map[string]*structs.RegisterRequest{
+		"Node foo": {
+			Datacenter: "dc1",
+			Node:       "foo",
+			ID:         types.NodeID("e0155642-135d-4739-9853-a1ee6c9f945b"),
+			Address:    "127.0.0.2",
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:    "foo",
+					CheckID: "foo:alive",
+					Name:    "foo-liveness",
+					Status:  api.HealthPassing,
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		"Service api on foo": {
+			Datacenter:     "dc1",
+			Node:           "foo",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				ID:      "api",
+				Service: "api",
+				Port:    9090,
+				Address: "198.18.1.2",
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "foo",
+					CheckID:     "foo:api",
+					Name:        "api-liveness",
+					Status:      api.HealthPassing,
+					ServiceID:   "api",
+					ServiceName: "api",
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		"Service api-proxy": {
+			Datacenter:     "dc1",
+			Node:           "foo",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				ID:      "api-proxy",
+				Service: "api-proxy",
+				Port:    8443,
+				Address: "198.18.1.2",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "api",
+					Upstreams: structs.Upstreams{
+						{
+							DestinationName: "web",
+							LocalBindPort:   8080,
+						},
+					},
+				},
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "foo",
+					CheckID:     "foo:api-proxy",
+					Name:        "api proxy listening",
+					Status:      api.HealthPassing,
+					ServiceID:   "api-proxy",
+					ServiceName: "api-proxy",
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		"Node bar": {
+			Datacenter: "dc1",
+			Node:       "bar",
+			ID:         types.NodeID("c3e5fc07-3b2d-4c06-b8fc-a1a12432d459"),
+			Address:    "127.0.0.3",
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:    "bar",
+					CheckID: "bar:alive",
+					Name:    "bar-liveness",
+					Status:  api.HealthPassing,
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		"Service web on bar": {
+			Datacenter:     "dc1",
+			Node:           "bar",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				ID:      "web",
+				Service: "web",
+				Port:    80,
+				Address: "198.18.1.20",
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "bar",
+					CheckID:     "bar:web",
+					Name:        "web-liveness",
+					Status:      api.HealthWarning,
+					ServiceID:   "web",
+					ServiceName: "web",
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		"Service web-proxy on bar": {
+			Datacenter:     "dc1",
+			Node:           "bar",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				ID:      "web-proxy",
+				Service: "web-proxy",
+				Port:    8443,
+				Address: "198.18.1.20",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "web",
+					Upstreams: structs.Upstreams{
+						{
+							DestinationName: "redis",
+							LocalBindPort:   123,
+						},
+					},
+				},
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "bar",
+					CheckID:     "bar:web-proxy",
+					Name:        "web proxy listening",
+					Status:      api.HealthCritical,
+					ServiceID:   "web-proxy",
+					ServiceName: "web-proxy",
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		"Node baz": {
+			Datacenter: "dc1",
+			Node:       "baz",
+			ID:         types.NodeID("37ea7c44-a2a1-4764-ae28-7dfebeb54a22"),
+			Address:    "127.0.0.4",
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:    "baz",
+					CheckID: "baz:alive",
+					Name:    "baz-liveness",
+					Status:  api.HealthPassing,
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		"Service web on baz": {
+			Datacenter:     "dc1",
+			Node:           "baz",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				ID:      "web",
+				Service: "web",
+				Port:    80,
+				Address: "198.18.1.40",
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "baz",
+					CheckID:     "baz:web",
+					Name:        "web-liveness",
+					Status:      api.HealthPassing,
+					ServiceID:   "web",
+					ServiceName: "web",
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		"Service web-proxy on baz": {
+			Datacenter:     "dc1",
+			Node:           "baz",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				ID:      "web-proxy",
+				Service: "web-proxy",
+				Port:    8443,
+				Address: "198.18.1.40",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "web",
+					Upstreams: structs.Upstreams{
+						{
+							DestinationName: "redis",
+							LocalBindPort:   123,
+						},
+					},
+				},
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "baz",
+					CheckID:     "baz:web-proxy",
+					Name:        "web proxy listening",
+					Status:      api.HealthCritical,
+					ServiceID:   "web-proxy",
+					ServiceName: "web-proxy",
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		"Node zip": {
+			Datacenter: "dc1",
+			Node:       "zip",
+			ID:         types.NodeID("dc49fc8c-afc7-4a87-815d-74d144535075"),
+			Address:    "127.0.0.5",
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:    "zip",
+					CheckID: "zip:alive",
+					Name:    "zip-liveness",
+					Status:  api.HealthPassing,
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		"Service redis on zip": {
+			Datacenter:     "dc1",
+			Node:           "zip",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTypical,
+				ID:      "redis",
+				Service: "redis",
+				Port:    6379,
+				Address: "198.18.1.60",
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "zip",
+					CheckID:     "zip:redis",
+					Name:        "redis-liveness",
+					Status:      api.HealthPassing,
+					ServiceID:   "redis",
+					ServiceName: "redis",
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		"Service redis-proxy on zip": {
+			Datacenter:     "dc1",
+			Node:           "zip",
+			SkipNodeUpdate: true,
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindConnectProxy,
+				ID:      "redis-proxy",
+				Service: "redis-proxy",
+				Port:    8443,
+				Address: "198.18.1.60",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "redis",
+				},
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "zip",
+					CheckID:     "zip:redis-proxy",
+					Name:        "redis proxy listening",
+					Status:      api.HealthCritical,
+					ServiceID:   "redis-proxy",
+					ServiceName: "redis-proxy",
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+	}
+	registerTestCatalogEntriesMap(t, codec, registrations)
+
+	// Add intentions: deny all, web -> redis with L7 perms, but omit intention for api -> web
+	entries := []structs.ConfigEntryRequest{
+		{
+			Datacenter: "dc1",
+			Entry: &structs.ProxyConfigEntry{
+				Kind: structs.ProxyDefaults,
+				Name: structs.ProxyConfigGlobal,
+				Config: map[string]interface{}{
+					"protocol": "http",
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		{
+			Datacenter: "dc1",
+			Entry: &structs.ServiceIntentionsConfigEntry{
+				Kind: structs.ServiceIntentions,
+				Name: "redis",
+				Sources: []*structs.SourceIntention{
+					{
+						Name: "web",
+						Permissions: []*structs.IntentionPermission{
+							{
+								Action: structs.IntentionActionAllow,
+								HTTP: &structs.IntentionHTTPPermission{
+									Methods: []string{"GET"},
+								},
+							},
+						},
+					},
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+		{
+			Datacenter: "dc1",
+			Entry: &structs.ServiceIntentionsConfigEntry{
+				Kind: structs.ServiceIntentions,
+				Name: "*",
+				Meta: map[string]string{structs.MetaExternalSource: "nomad"},
+				Sources: []*structs.SourceIntention{
+					{
+						Name:   "*",
+						Action: structs.IntentionActionDeny,
+					},
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: token},
+		},
+	}
+	for _, req := range entries {
+		var out bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &req, &out))
 	}
 }

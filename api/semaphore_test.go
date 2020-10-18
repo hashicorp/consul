@@ -184,10 +184,12 @@ func TestAPI_SemaphoreContend(t *testing.T) {
 			// Should work eventually, will contend
 			lockCh, err := sema.Acquire(nil)
 			if err != nil {
-				t.Fatalf("err: %v", err)
+				t.Errorf("err: %v", err)
+				return
 			}
 			if lockCh == nil {
-				t.Fatalf("not locked")
+				t.Errorf("not locked")
+				return
 			}
 			defer sema.Release()
 			log.Printf("Contender %d acquired", idx)
@@ -225,7 +227,7 @@ func TestAPI_SemaphoreBadLimit(t *testing.T) {
 
 	s.WaitForSerfCheck(t)
 
-	sema, err := c.SemaphorePrefix("test/semaphore", 0)
+	_, err := c.SemaphorePrefix("test/semaphore", 0)
 	if err == nil {
 		t.Fatalf("should error, limit must be positive")
 	}

@@ -6,11 +6,10 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
-	"github.com/hashicorp/consul/command/intention/finder"
+	"github.com/hashicorp/consul/command/intention"
 	"github.com/mitchellh/cli"
 )
 
@@ -54,6 +53,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
+	flags.Merge(c.flags, c.http.NamespaceFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -88,20 +88,21 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	// Create the finder in case we need it
-	find := &finder.Finder{Client: client}
-
 	// Go through and create each intention
 	for _, ixn := range ixns {
 		// If replace is set to true, then perform an update operation.
 		if c.flagReplace {
-			oldIxn, err := find.Find(ixn.SourceString(), ixn.DestinationString())
+			oldIxn, _, err := client.Connect().IntentionGetExact(
+				intention.FormatSource(ixn),
+				intention.FormatDestination(ixn),
+				nil,
+			)
 			if err != nil {
 				c.UI.Error(fmt.Sprintf(
 					"Error looking up intention for replacement with source %q "+
 						"and destination %q: %s",
-					ixn.SourceString(),
-					ixn.DestinationString(),
+					intention.FormatSource(ixn),
+					intention.FormatDestination(ixn),
 					err))
 				return 1
 			}
@@ -109,12 +110,13 @@ func (c *cmd) Run(args []string) int {
 				// We set the ID of our intention so we overwrite it
 				ixn.ID = oldIxn.ID
 
+				//nolint:staticcheck
 				if _, err := client.Connect().IntentionUpdate(ixn, nil); err != nil {
 					c.UI.Error(fmt.Sprintf(
 						"Error replacing intention with source %q "+
 							"and destination %q: %s",
-						ixn.SourceString(),
-						ixn.DestinationString(),
+						intention.FormatSource(ixn),
+						intention.FormatDestination(ixn),
 						err))
 					return 1
 				}
@@ -124,6 +126,7 @@ func (c *cmd) Run(args []string) int {
 			}
 		}
 
+		//nolint:staticcheck
 		_, _, err := client.Connect().IntentionCreate(ixn, nil)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error creating intention %q: %s", ixn, err))
@@ -134,27 +137,6 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	return 0
-}
-
-// parseIntentionTarget parses a target of the form <namespace>/<name> and returns
-// the two distinct parts. In some cases the namespace may be elided and this function
-// will return the empty string for the namespace then.
-func parseIntentionTarget(input string) (name string, namespace string, err error) {
-	// Get the index to the '/'. If it doesn't exist, we have just a name
-	// so just set that and return.
-	idx := strings.IndexByte(input, '/')
-	if idx == -1 {
-		// let the agent do token based defaulting of the namespace
-		return input, "", nil
-	}
-
-	namespace = input[:idx]
-	name = input[idx+1:]
-	if strings.IndexByte(name, '/') != -1 {
-		return "", "", fmt.Errorf("target can contain at most one '/'")
-	}
-
-	return name, namespace, nil
 }
 
 // ixnsFromArgs returns the set of intentions to create based on the arguments
@@ -171,17 +153,17 @@ func (c *cmd) ixnsFromArgs(args []string) ([]*api.Intention, error) {
 		return nil, fmt.Errorf("Must specify two arguments: source and destination")
 	}
 
-	srcName, srcNamespace, err := parseIntentionTarget(args[0])
+	srcName, srcNamespace, err := intention.ParseIntentionTarget(args[0])
 	if err != nil {
 		return nil, fmt.Errorf("Invalid intention source: %v", err)
 	}
 
-	dstName, dstNamespace, err := parseIntentionTarget(args[1])
+	dstName, dstNamespace, err := intention.ParseIntentionTarget(args[1])
 	if err != nil {
 		return nil, fmt.Errorf("Invalid intention destination: %v", err)
 	}
 
-	return []*api.Intention{&api.Intention{
+	return []*api.Intention{{
 		SourceNS:        srcNamespace,
 		SourceName:      srcName,
 		DestinationNS:   dstNamespace,
@@ -195,22 +177,34 @@ func (c *cmd) ixnsFromArgs(args []string) ([]*api.Intention, error) {
 func (c *cmd) ixnsFromFiles(args []string) ([]*api.Intention, error) {
 	var result []*api.Intention
 	for _, path := range args {
-		f, err := os.Open(path)
+		ixn, err := c.ixnFromFile(path)
 		if err != nil {
 			return nil, err
 		}
 
-		var ixn api.Intention
-		err = json.NewDecoder(f).Decode(&ixn)
-		f.Close()
-		if err != nil {
-			return nil, err
-		}
-
-		result = append(result, &ixn)
+		result = append(result, ixn)
 	}
 
 	return result, nil
+}
+
+func (c *cmd) ixnFromFile(path string) (*api.Intention, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	var ixn api.Intention
+	if err := json.NewDecoder(f).Decode(&ixn); err != nil {
+		return nil, err
+	}
+
+	if len(ixn.Permissions) > 0 {
+		return nil, fmt.Errorf("cannot create L7 intention from file %q using this CLI; use 'consul config write' instead", path)
+	}
+
+	return &ixn, nil
 }
 
 // ixnAction returns the api.IntentionAction based on the flag set.
@@ -249,7 +243,7 @@ Usage: consul intention create [options] -file FILE...
 
       $ echo "{ ... }" | consul intention create -file -
 
-  An "allow" intention is created by default (whitelist). To create a
+  An "allow" intention is created by default (allowlist). To create a
   "deny" intention, the "-deny" flag should be specified.
 
   If a conflicting intention is found, creation will fail. To replace any

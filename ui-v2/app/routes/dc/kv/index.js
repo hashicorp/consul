@@ -1,13 +1,12 @@
-import Route from '@ember/routing/route';
+import Route from 'consul-ui/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 import { get } from '@ember/object';
 import isFolder from 'consul-ui/utils/isFolder';
-import WithKvActions from 'consul-ui/mixins/kv/with-actions';
 
-export default Route.extend(WithKvActions, {
+export default Route.extend({
   queryParams: {
-    s: {
+    search: {
       as: 'filter',
       replace: true,
     },
@@ -27,7 +26,6 @@ export default Route.extend(WithKvActions, {
     const dc = this.modelFor('dc').dc.Name;
     const nspace = this.modelFor('nspace').nspace.substr(1);
     return hash({
-      isLoading: false,
       parent: this.repo.findBySlug(key, dc, nspace),
     }).then(model => {
       return hash({
@@ -55,6 +53,7 @@ export default Route.extend(WithKvActions, {
     },
   },
   setupController: function(controller, model) {
+    this._super(...arguments);
     controller.setProperties(model);
   },
 });

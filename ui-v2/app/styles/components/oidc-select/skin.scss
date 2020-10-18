@@ -1,0 +1,20 @@
+%oidc-select [class$='-oidc-provider']::before {
+  width: 22px;
+  height: 22px;
+  /* this is to prevent resizing in an inline-flex context */
+  /* and should probably be moved to the parent*/
+  flex: 0 0 auto;
+  margin-right: 10px;
+}
+%oidc-select .auth0-oidc-provider::before {
+  @extend %with-logo-auth0-color-icon, %as-pseudo;
+}
+%oidc-select .okta-oidc-provider::before {
+  @extend %with-logo-okta-color-icon, %as-pseudo;
+}
+%oidc-select .google-oidc-provider::before {
+  @extend %with-logo-google-color-icon, %as-pseudo;
+}
+%oidc-select .microsoft-oidc-provider::before {
+  @extend %with-logo-microsoft-color-icon, %as-pseudo;
+}

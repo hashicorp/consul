@@ -1,85 +1,53 @@
 {{title 'Nodes'}}
-{{#app-view class="node list"}}
-  {{#block-slot name='header'}}
-    <h1>
-      Nodes <em>{{format-number items.length}} total</em>
-    </h1>
-    <label for="toolbar-toggle"></label>
-  {{/block-slot}}
-  {{#block-slot name='toolbar'}}
-{{#if (gt items.length 0) }}
-    {{catalog-filter searchable=(array searchableHealthy searchableUnhealthy) search=s status=filters.status onchange=(action 'filter')}}
-{{/if}}
-  {{/block-slot}}
-  {{#block-slot name='content'}}
-{{#if (gt unhealthy.length 0) }}
-      <div class="unhealthy">
-        <h2>Unhealthy Nodes</h2>
-        <div>
-          {{! think about 2 differing views here }}
-          <ul>
-            {{#changeable-set dispatcher=searchableUnhealthy}}
-              {{#block-slot name='set' as |unhealthy|}}
-                {{#each unhealthy as |item|}}
-                  {{#healthchecked-resource
-                      tagName='li'
-                      data-test-node=item.Node
-                      href=(href-to 'dc.nodes.show' item.Node)
-                      name=item.Node
-                      address=item.Address
-                      checks=item.Checks
-                  }}
-                    {{#block-slot name='icon'}}
-                      {{#if (eq item.Address leader.Address)}}
-                        <span data-test-leader={{leader.Address}} data-tooltip="Leader">Leader</span>
-                      {{/if}}
-                    {{/block-slot}}
-                  {{/healthchecked-resource}}
-                {{/each}}
-              {{/block-slot}}
-              {{#block-slot name='empty'}}
-                <p>
-                  There are no unhealthy nodes for that search.
-                </p>
-              {{/block-slot}}
-            {{/changeable-set}}
-          </ul>
-        </div>
-      </div>
-{{/if}}
-{{#if (gt healthy.length 0) }}
-      <div class="healthy">
-        <h2>Healthy Nodes</h2>
-        {{#changeable-set dispatcher=searchableHealthy}}
-          {{#block-slot name='set' as |healthy|}}
-            {{#list-collection cellHeight=92 items=healthy as |item index|}}
-              {{#healthchecked-resource
-                  data-test-node=item.Node
-                  href=(href-to 'dc.nodes.show' item.Node)
-                  name=item.Node
-                  address=item.Address
-                  checks=item.Checks
-              }}
-                {{#block-slot name='icon'}}
-                  {{#if (eq item.Address leader.Address)}}
-                    <span data-test-leader={{leader.Address}} data-tooltip="Leader">Leader</span>
-                  {{/if}}
-                {{/block-slot}}
-              {{/healthchecked-resource}}
-            {{/list-collection}}
-          {{/block-slot}}
-          {{#block-slot name='empty'}}
-            <p>
-              There are no healthy nodes for that search.
-            </p>
-          {{/block-slot}}
-        {{/changeable-set}}
-      </div>
-{{/if}}
-{{#if (and (eq healthy.length 0) (eq unhealthy.length 0)) }}
-      <p>
-          There are no nodes.
-      </p>
-{{/if}}
-  {{/block-slot}}
-{{/app-view}}
+<EventSource @src={{items}} />
+<EventSource @src={{leader}} />
+{{#let (hash
+  statuses=(if status (split status ',') undefined)
+) as |filters|}}
+{{#let (or sortBy "Node:asc") as |sort|}}
+  <AppView>
+    <BlockSlot @name="header">
+      <h1>
+        Nodes <em>{{format-number items.length}} total</em>
+      </h1>
+      <label for="toolbar-toggle"></label>
+    </BlockSlot>
+    <BlockSlot @name="toolbar">
+    {{#if (gt items.length 0) }}
+        <Consul::Node::SearchBar
+          @search={{search}}
+          @onsearch={{action (mut search) value="target.value"}}
+
+          @sort={{sort}}
+          @onsort={{action (mut sortBy) value="target.selected"}}
+
+          @filter={{filters}}
+          @onfilter={{hash
+            status=(action (mut status) value="target.selectedItems")
+          }}
+        />
+    {{/if}}
+    </BlockSlot>
+    <BlockSlot @name="content">
+{{#let (filter (filter-predicate 'node' filters) items) as |filtered|}}
+  {{#let (sort-by (comparator 'node' sort) filtered) as |sorted|}}
+      <ChangeableSet @dispatcher={{searchable 'node' sorted}} @terms={{search}}>
+        <BlockSlot @name="set" as |searched|>
+          <Consul::Node::List @items={{searched}} @leader={{leader}} />
+        </BlockSlot>
+        <BlockSlot @name="empty">
+          <EmptyState>
+            <BlockSlot @name="body">
+              <p>
+                There don't seem to be any registered nodes, or you may not have access to view nodes yet.
+              </p>
+            </BlockSlot>
+          </EmptyState>
+        </BlockSlot>
+      </ChangeableSet>
+  {{/let}}
+{{/let}}
+    </BlockSlot>
+  </AppView>
+  {{/let}}
+{{/let}}

@@ -40,3 +40,7 @@ func (id *SpiffeIDService) Authorize(ixn *structs.Intention) (bool, bool) {
 	// Match, return allow value
 	return ixn.Action == structs.IntentionActionAllow, true
 }
+
+func (id *SpiffeIDService) CommonName() string {
+	return ServiceCN(id.Service, id.Namespace, id.Host)
+}

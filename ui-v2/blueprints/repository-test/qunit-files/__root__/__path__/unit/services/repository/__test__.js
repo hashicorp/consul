@@ -6,7 +6,7 @@ module('Unit | Repository | <%= dasherizedModuleName %>', function(hooks) {
 
   // Replace this with your real tests.
   test('it exists', function(assert) {
-    let repo = this.owner.lookup('service:repository/<%= dasherizedModuleName %>');
+    const repo = this.owner.lookup('service:repository/<%= dasherizedModuleName %>');
     assert.ok(repo);
   });
 });

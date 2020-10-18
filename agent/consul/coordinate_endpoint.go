@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 )
@@ -117,7 +118,7 @@ func (c *Coordinate) batchApplyUpdates() error {
 
 // Update inserts or updates the LAN coordinate of a node.
 func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct{}) (err error) {
-	if done, err := c.srv.forward("Coordinate.Update", args, args, reply); done {
+	if done, err := c.srv.ForwardRPC("Coordinate.Update", args, args, reply); done {
 		return err
 	}
 
@@ -143,7 +144,7 @@ func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct
 	if err != nil {
 		return err
 	}
-	if authz != nil && c.srv.config.ACLEnforceVersion8 {
+	if authz != nil {
 		var authzContext acl.AuthorizerContext
 		structs.DefaultEnterpriseMeta().FillAuthzContext(&authzContext)
 		if authz.NodeWrite(args.Node, &authzContext) != acl.Allow {
@@ -161,30 +162,39 @@ func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct
 
 // ListDatacenters returns the list of datacenters and their respective nodes
 // and the raw coordinates of those nodes (if no coordinates are available for
-// any of the nodes, the node list may be empty).
+// any of the nodes, the node list may be empty). This endpoint will not return
+// information about the LAN network area.
 func (c *Coordinate) ListDatacenters(args *struct{}, reply *[]structs.DatacenterMap) error {
 	maps, err := c.srv.router.GetDatacenterMaps()
 	if err != nil {
 		return err
 	}
 
+	var out []structs.DatacenterMap
+
 	// Strip the datacenter suffixes from all the node names.
-	for i := range maps {
-		suffix := fmt.Sprintf(".%s", maps[i].Datacenter)
-		for j := range maps[i].Coordinates {
-			node := maps[i].Coordinates[j].Node
-			maps[i].Coordinates[j].Node = strings.TrimSuffix(node, suffix)
+	for _, dcMap := range maps {
+		if dcMap.AreaID == types.AreaLAN {
+			continue
 		}
+
+		suffix := fmt.Sprintf(".%s", dcMap.Datacenter)
+		for j := range dcMap.Coordinates {
+			node := dcMap.Coordinates[j].Node
+			dcMap.Coordinates[j].Node = strings.TrimSuffix(node, suffix)
+		}
+
+		out = append(out, dcMap)
 	}
 
-	*reply = maps
+	*reply = out
 	return nil
 }
 
 // ListNodes returns the list of nodes with their raw network coordinates (if no
 // coordinates are available for a node it won't appear in this list).
 func (c *Coordinate) ListNodes(args *structs.DCSpecificRequest, reply *structs.IndexedCoordinates) error {
-	if done, err := c.srv.forward("Coordinate.ListNodes", args, args, reply); done {
+	if done, err := c.srv.ForwardRPC("Coordinate.ListNodes", args, args, reply); done {
 		return err
 	}
 
@@ -207,7 +217,7 @@ func (c *Coordinate) ListNodes(args *structs.DCSpecificRequest, reply *structs.I
 
 // Node returns the raw coordinates for a single node.
 func (c *Coordinate) Node(args *structs.NodeSpecificRequest, reply *structs.IndexedCoordinates) error {
-	if done, err := c.srv.forward("Coordinate.Node", args, args, reply); done {
+	if done, err := c.srv.ForwardRPC("Coordinate.Node", args, args, reply); done {
 		return err
 	}
 
@@ -217,7 +227,7 @@ func (c *Coordinate) Node(args *structs.NodeSpecificRequest, reply *structs.Inde
 	if err != nil {
 		return err
 	}
-	if authz != nil && c.srv.config.ACLEnforceVersion8 {
+	if authz != nil {
 		var authzContext acl.AuthorizerContext
 		structs.WildcardEnterpriseMeta().FillAuthzContext(&authzContext)
 		if authz.NodeRead(args.Node, &authzContext) != acl.Allow {

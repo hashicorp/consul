@@ -8,7 +8,6 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 	gsyslog "github.com/hashicorp/go-syslog"
-	"github.com/mitchellh/cli"
 )
 
 // Config is used to set up logging.
@@ -51,58 +50,37 @@ var (
 	logRotateBytes    int
 )
 
-// Setup is used to perform setup of several logging objects:
-//
-// * A hclog.Logger is used to perform filtering by log level and write to io.Writer.
-// * A GatedWriter is used to buffer logs until startup UI operations are
-//   complete. After this is flushed then logs flow directly to output
-//   destinations.
-// * An io.Writer is provided as the sink for all logs to flow to.
-//
-// The provided ui object will get any log messages related to setting up
-// logging itself, and will also be hooked up to the gated logger. The final bool
-// parameter indicates if logging was set up successfully.
-func Setup(config *Config, ui cli.Ui) (hclog.InterceptLogger, *GatedWriter, io.Writer, bool) {
-	// The gated writer buffers logs at startup and holds until it's flushed.
-	logGate := &GatedWriter{
-		Writer: &cli.UiWriter{Ui: ui},
-	}
+type LogSetupErrorFn func(string)
 
+// Setup logging from Config, and return an hclog Logger.
+//
+// Logs may be written to out, and optionally to syslog, and a file.
+func Setup(config Config, out io.Writer) (hclog.InterceptLogger, error) {
 	if !ValidateLogLevel(config.LogLevel) {
-		ui.Error(fmt.Sprintf(
-			"Invalid log level: %s. Valid log levels are: %v",
-			config.LogLevel, allowedLogLevels))
-		return nil, nil, nil, false
+		return nil, fmt.Errorf("Invalid log level: %s. Valid log levels are: %v",
+			config.LogLevel,
+			allowedLogLevels)
 	}
 
-	// Set up syslog if it's enabled.
-	var syslog io.Writer
+	writers := []io.Writer{out}
+
 	if config.EnableSyslog {
 		retries := 12
 		delay := 5 * time.Second
 		for i := 0; i <= retries; i++ {
-			l, err := gsyslog.NewLogger(gsyslog.LOG_NOTICE, config.SyslogFacility, "consul")
+			syslog, err := gsyslog.NewLogger(gsyslog.LOG_NOTICE, config.SyslogFacility, "consul")
 			if err == nil {
-				syslog = &SyslogWrapper{l}
+				writers = append(writers, syslog)
 				break
 			}
 
-			ui.Error(fmt.Sprintf("Syslog setup error: %v", err))
 			if i == retries {
 				timeout := time.Duration(retries) * delay
-				ui.Error(fmt.Sprintf("Syslog setup did not succeed within timeout (%s).", timeout.String()))
-				return nil, nil, nil, false
+				return nil, fmt.Errorf("Syslog setup did not succeed within timeout (%s).", timeout.String())
 			}
 
-			ui.Error(fmt.Sprintf("Retrying syslog setup in %s...", delay.String()))
 			time.Sleep(delay)
 		}
-	}
-	writers := []io.Writer{logGate}
-
-	var logOutput io.Writer
-	if syslog != nil {
-		writers = append(writers, syslog)
 	}
 
 	// Create a file logger if the user has specified the path to the log file
@@ -130,17 +108,17 @@ func Setup(config *Config, ui cli.Ui) (hclog.InterceptLogger, *GatedWriter, io.W
 			MaxBytes: logRotateBytes,
 			MaxFiles: config.LogRotateMaxFiles,
 		}
+		if err := logFile.openNew(); err != nil {
+			return nil, fmt.Errorf("Failed to setup logging: %w", err)
+		}
 		writers = append(writers, logFile)
 	}
-
-	logOutput = io.MultiWriter(writers...)
 
 	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
 		Level:      LevelFromString(config.LogLevel),
 		Name:       config.Name,
-		Output:     logOutput,
+		Output:     io.MultiWriter(writers...),
 		JSONFormat: config.LogJSON,
 	})
-
-	return logger, logGate, logOutput, true
+	return logger, nil
 }

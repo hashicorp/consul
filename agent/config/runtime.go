@@ -7,12 +7,18 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-uuid"
+	"golang.org/x/time/rate"
+
+	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
-	"golang.org/x/time/rate"
 )
 
 type RuntimeSOAConfig struct {
@@ -60,19 +66,7 @@ type RuntimeConfig struct {
 	// hcl: acl.enabled = boolean
 	ACLsEnabled bool
 
-	// ACLAgentMasterToken is a special token that has full read and write
-	// privileges for this agent, and can be used to call agent endpoints
-	// when no servers are available.
-	//
-	// hcl: acl.tokens.agent_master = string
-	ACLAgentMasterToken string
-
-	// ACLAgentToken is the default token used to make requests for the agent
-	// itself, such as for registering itself with the catalog. If not
-	// configured, the 'acl_token' will be used.
-	//
-	// hcl: acl.tokens.agent = string
-	ACLAgentToken string
+	ACLTokens token.Config
 
 	// ACLDatacenter is the central datacenter that holds authoritative
 	// ACL records. This must be the same for the entire cluster.
@@ -104,13 +98,6 @@ type RuntimeConfig struct {
 	// hcl: acl.down_policy = ("allow"|"deny"|"extend-cache"|"async-cache")
 	ACLDownPolicy string
 
-	// DEPRECATED (ACL-Legacy-Compat)
-	// ACLEnforceVersion8 is used to gate a set of ACL policy features that
-	// are opt-in prior to Consul 0.8 and opt-out in Consul 0.8 and later.
-	//
-	// hcl: acl_enforce_version_8 = (true|false)
-	ACLEnforceVersion8 bool
-
 	// ACLEnableKeyListPolicy is used to opt-in to the "list" policy added to
 	// KV ACLs in Consul 1.0.
 	//
@@ -126,16 +113,6 @@ type RuntimeConfig struct {
 	//
 	// hcl: acl.tokens.master = string
 	ACLMasterToken string
-
-	// ACLReplicationToken is used to replicate data locally from the
-	// PrimaryDatacenter. Replication is only available on servers in
-	// datacenters other than the PrimaryDatacenter
-	//
-	// DEPRECATED (ACL-Legacy-Compat): Setting this to a non-empty value
-	// also enables legacy ACL replication if ACLs are enabled and in legacy mode.
-	//
-	// hcl: acl.tokens.replication = string
-	ACLReplicationToken string
 
 	// ACLtokenReplication is used to indicate that both tokens and policies
 	// should be replicated instead of just policies
@@ -160,16 +137,6 @@ type RuntimeConfig struct {
 	//
 	// hcl: acl.role_ttl = "duration"
 	ACLRoleTTL time.Duration
-
-	// ACLToken is the default token used to make requests if a per-request
-	// token is not provided. If not configured the 'anonymous' token is used.
-	//
-	// hcl: acl.tokens.default = string
-	ACLToken string
-
-	// ACLEnableTokenPersistence determines whether or not tokens set via the agent HTTP API
-	// should be persisted to disk and reloaded when an agent restarts.
-	ACLEnableTokenPersistence bool
 
 	// AutopilotCleanupDeadServers enables the automatic cleanup of dead servers when new ones
 	// are added to the peer list. Defaults to true.
@@ -300,7 +267,7 @@ type RuntimeConfig struct {
 	// whose health checks are in any non-passing state. By
 	// default, only nodes in a critical state are excluded.
 	//
-	// hcl: dns_config { only_passing = "duration" }
+	// hcl: dns_config { only_passing = (true|false) }
 	DNSOnlyPassing bool
 
 	// DNSRecursorTimeout specifies the timeout in seconds
@@ -348,6 +315,12 @@ type RuntimeConfig struct {
 	//
 	// hcl: dns_config { cache_max_age = "duration" }
 	DNSCacheMaxAge time.Duration
+
+	// HTTPUseCache whether or not to use cache for http queries. Defaults
+	// to true.
+	//
+	// hcl: http_config { use_cache = (true|false) }
+	HTTPUseCache bool
 
 	// HTTPBlockEndpoints is a list of endpoint prefixes to block in the
 	// HTTP API. Any requests to these will get a 403 response.
@@ -443,6 +416,9 @@ type RuntimeConfig struct {
 	// hcl: bootstrap_expect = int
 	// flag: -bootstrap-expect=int
 	BootstrapExpect int
+
+	// Cache represent cache configuration of agent
+	Cache cache.Options
 
 	// CAFile is a path to a certificate authority file. This is used with
 	// VerifyIncoming or VerifyOutgoing to verify the TLS connection.
@@ -540,6 +516,10 @@ type RuntimeConfig struct {
 	// AutoEncryptAllowTLS enables the server to respond to
 	// AutoEncrypt.Sign requests.
 	AutoEncryptAllowTLS bool
+
+	// AutoConfig is a grouping of the configurations around the agent auto configuration
+	// process including how servers can authorize requests.
+	AutoConfig AutoConfig
 
 	// ConnectEnabled opts the agent into connect. It should be set on all clients
 	// and servers in a cluster for correct connect operation.
@@ -716,20 +696,6 @@ type RuntimeConfig struct {
 	// flag: -enable-script-checks
 	EnableRemoteScriptChecks bool
 
-	// EnableSyslog is used to also tee all the logs over to syslog. Only supported
-	// on linux and OSX. Other platforms will generate an error.
-	//
-	// hcl: enable_syslog = (true|false)
-	// flag: -syslog
-	EnableSyslog bool
-
-	// EnableUI enables the statically-compiled assets for the Consul web UI and
-	// serves them at the default /ui/ endpoint automatically.
-	//
-	// hcl: enable_ui = (true|false)
-	// flag: -ui
-	EnableUI bool
-
 	// EncryptKey contains the encryption key to use for the Serf communication.
 	//
 	// hcl: encrypt = string
@@ -850,40 +816,8 @@ type RuntimeConfig struct {
 	// hcl: leave_on_terminate = (true|false)
 	LeaveOnTerm bool
 
-	// LogLevel is the level of the logs to write. Defaults to "INFO".
-	//
-	// hcl: log_level = string
-	LogLevel string
-
-	// LogJSON controls whether to output logs as structured JSON. Defaults to false.
-	//
-	// hcl: log_json = (true|false)
-	// flag: -log-json
-	LogJSON bool
-
-	// LogFile is the path to the file where the logs get written to. Defaults to empty string.
-	//
-	// hcl: log_file = string
-	// flags: -log-file string
-	LogFile string
-
-	// LogRotateDuration is the time configured to rotate logs based on time
-	//
-	// hcl: log_rotate_duration = string
-	// flags: -log-rotate-duration string
-	LogRotateDuration time.Duration
-
-	// LogRotateBytes is the time configured to rotate logs based on bytes written
-	//
-	// hcl: log_rotate_bytes = int
-	// flags: -log-rotate-bytes int
-	LogRotateBytes int
-
-	// LogRotateMaxFiles is the maximum number of log file archives to keep
-	//
-	// hcl: log_rotate_max_files = int
-	// flags: -log-rotate-max-files int
-	LogRotateMaxFiles int
+	// Logging configuration used to initialize agent logging.
+	Logging logging.Config
 
 	// MaxQueryTime is the maximum amount of time a blocking query can wait
 	// before Consul will force a response. Consul applies jitter to the wait
@@ -1001,6 +935,10 @@ type RuntimeConfig struct {
 	// hcl: protocol = int
 	RPCProtocol int
 
+	RPCConfig consul.RPCConfig
+
+	CacheUseStreamingBackend bool
+
 	// RaftProtocol sets the Raft protocol version to use on this server.
 	// Defaults to 3.
 	//
@@ -1047,6 +985,13 @@ type RuntimeConfig struct {
 	//
 	// hcl: reconnect_timeout = "duration"
 	ReconnectTimeoutWAN time.Duration
+
+	// AdvertiseReconnectTimeout specifies the amount of time other agents should
+	// wait for us to reconnect before deciding we are permanently gone. This
+	// should only be set for client agents that are run in a stateless or
+	// ephemeral manner in order to realize their deletion sooner than we
+	// would otherwise.
+	AdvertiseReconnectTimeout time.Duration
 
 	// RejoinAfterLeave controls our interaction with the cluster after leave.
 	// When set to false (default), a leave causes Consul to not rejoin
@@ -1152,6 +1097,18 @@ type RuntimeConfig struct {
 	//
 	// hcl: bind_addr = string advertise_addr_wan = string ports { serf_wan = int }
 	SerfAdvertiseAddrWAN *net.TCPAddr
+
+	// SerfAllowedCIDRsLAN if set to a non-empty value, will restrict which networks
+	// are allowed to connect to Serf on the LAN.
+	// hcl: serf_lan_allowed_cidrs = []string
+	// flag: serf-lan-allowed-cidrs string (can be specified multiple times)
+	SerfAllowedCIDRsLAN []net.IPNet
+
+	// SerfAllowedCIDRsWAN if set to a non-empty value, will restrict which networks
+	// are allowed to connect to Serf on the WAN.
+	// hcl: serf_wan_allowed_cidrs = []string
+	// flag: serf-wan-allowed-cidrs string (can be specified multiple times)
+	SerfAllowedCIDRsWAN []net.IPNet
 
 	// SerfBindAddrLAN is the address to bind the Serf LAN TCP and UDP
 	// listeners to. The ip address is either the default bind address or the
@@ -1402,12 +1359,6 @@ type RuntimeConfig struct {
 	// flag: -join-wan string -join-wan string
 	StartJoinAddrsWAN []string
 
-	// SyslogFacility is used to control where the syslog messages go
-	// By default, goes to LOCAL0
-	//
-	// hcl: syslog_facility = string
-	SyslogFacility string
-
 	// TLSCipherSuites is used to specify the list of supported ciphersuites.
 	//
 	// The values should be a list of the following values:
@@ -1466,16 +1417,18 @@ type RuntimeConfig struct {
 	// hcl: limits { txn_max_req_len = uint64 }
 	TxnMaxReqLen uint64
 
-	// UIDir is the directory containing the Web UI resources.
-	// If provided, the UI endpoints will be enabled.
+	// UIConfig holds various runtime options that control both the agent's
+	// behavior while serving the UI (e.g. whether it's enabled, what path it's
+	// mounted on) as well as options that enable or disable features within the
+	// UI.
 	//
-	// hcl: ui_dir = string
-	// flag: -ui-dir string
-	UIDir string
-
-	//UIContentPath is a string that sets the external
-	// path to a string. Default: /ui/
-	UIContentPath string
+	// NOTE: Never read from this field directly once the agent has started up
+	// since the UI config is reloadable. The on in the agent's config field may
+	// be out of date. Use the agent.getUIConfig() method to get the latest config
+	// in a thread-safe way.
+	//
+	// hcl: ui_config { ... }
+	UIConfig UIConfig
 
 	// UnixSocketGroup contains the group of the file permissions when
 	// Consul binds to UNIX sockets.
@@ -1553,6 +1506,45 @@ type RuntimeConfig struct {
 	Watches []map[string]interface{}
 
 	EnterpriseRuntimeConfig
+}
+
+type AutoConfig struct {
+	Enabled         bool
+	IntroToken      string
+	IntroTokenFile  string
+	ServerAddresses []string
+	DNSSANs         []string
+	IPSANs          []net.IP
+	Authorizer      AutoConfigAuthorizer
+}
+
+type AutoConfigAuthorizer struct {
+	Enabled    bool
+	AuthMethod structs.ACLAuthMethod
+	// AuthMethodConfig ssoauth.Config
+	ClaimAssertions []string
+	AllowReuse      bool
+}
+
+type UIConfig struct {
+	Enabled                    bool
+	Dir                        string
+	ContentPath                string
+	MetricsProvider            string
+	MetricsProviderFiles       []string
+	MetricsProviderOptionsJSON string
+	MetricsProxy               UIMetricsProxy
+	DashboardURLTemplates      map[string]string
+}
+
+type UIMetricsProxy struct {
+	BaseURL    string
+	AddHeaders []UIMetricsProxyAddHeader
+}
+
+type UIMetricsProxyAddHeader struct {
+	Name  string
+	Value string
 }
 
 func (c *RuntimeConfig) apiAddresses(maxPerType int) (unixAddrs, httpAddrs, httpsAddrs []string) {
@@ -1653,6 +1645,56 @@ func (c *RuntimeConfig) ClientAddress() (unixAddr, httpAddr, httpsAddr string) {
 	return
 }
 
+func (c *RuntimeConfig) ConnectCAConfiguration() (*structs.CAConfiguration, error) {
+	ca := &structs.CAConfiguration{
+		Provider: "consul",
+		Config: map[string]interface{}{
+			"RotationPeriod":      structs.DefaultCARotationPeriod,
+			"LeafCertTTL":         structs.DefaultLeafCertTTL,
+			"IntermediateCertTTL": structs.DefaultIntermediateCertTTL,
+		},
+	}
+
+	// Allow config to specify cluster_id provided it's a valid UUID. This is
+	// meant only for tests where a deterministic ID makes fixtures much simpler
+	// to work with but since it's only read on initial cluster bootstrap it's not
+	// that much of a liability in production. The worst a user could do is
+	// configure logically separate clusters with same ID by mistake but we can
+	// avoid documenting this is even an option.
+	if clusterID, ok := c.ConnectCAConfig["cluster_id"]; ok {
+		// If they tried to specify an ID but typoed it then don't ignore as they
+		//  will then bootstrap with a new ID and have to throw away the whole cluster
+		// and start again.
+
+		// ensure the cluster_id value in the opaque config is a string
+		cIDStr, ok := clusterID.(string)
+		if !ok {
+			return nil, fmt.Errorf("cluster_id was supplied but was not a string")
+		}
+
+		// ensure that the cluster_id string is a valid UUID
+		_, err := uuid.ParseUUID(cIDStr)
+		if err != nil {
+			return nil, fmt.Errorf("cluster_id was supplied but was not a valid UUID")
+		}
+
+		// now that we know the cluster_id is okay we can set it in the CAConfiguration
+		ca.ClusterID = cIDStr
+	}
+
+	if c.ConnectCAProvider != "" {
+		ca.Provider = c.ConnectCAProvider
+	}
+
+	// Merge connect CA Config regardless of provider (since there are some
+	// common config options valid to all like leaf TTL).
+	for k, v := range c.ConnectCAConfig {
+		ca.Config[k] = v
+	}
+
+	return ca, nil
+}
+
 func (c *RuntimeConfig) APIConfig(includeClientCerts bool) (*api.Config, error) {
 	cfg := &api.Config{
 		Datacenter: c.Datacenter,
@@ -1711,13 +1753,17 @@ func (c *RuntimeConfig) ToTLSUtilConfig() tlsutil.Config {
 		CipherSuites:             c.TLSCipherSuites,
 		PreferServerCipherSuites: c.TLSPreferServerCipherSuites,
 		EnableAgentTLSForChecks:  c.EnableAgentTLSForChecks,
-		AutoEncryptTLS:           c.AutoEncryptTLS,
+		AutoTLS:                  c.AutoEncryptTLS || c.AutoConfig.Enabled,
 	}
 }
 
 // isSecret determines whether a field name represents a field which
 // may contain a secret.
 func isSecret(name string) bool {
+	// special cases for AuthMethod locality and intro token file
+	if name == "TokenLocality" || name == "IntroTokenFile" {
+		return false
+	}
 	name = strings.ToLower(name)
 	return strings.Contains(name, "key") || strings.Contains(name, "token") || strings.Contains(name, "secret")
 }
@@ -1794,6 +1840,14 @@ func sanitize(name string, v reflect.Value) reflect.Value {
 
 	case isArray(typ) || isSlice(typ):
 		ma := make([]interface{}, 0, v.Len())
+		if strings.HasPrefix(name, "SerfAllowedCIDRs") {
+			for i := 0; i < v.Len(); i++ {
+				addr := v.Index(i).Addr()
+				ip := addr.Interface().(*net.IPNet)
+				ma = append(ma, ip.String())
+			}
+			return reflect.ValueOf(ma)
+		}
 		for i := 0; i < v.Len(); i++ {
 			ma = append(ma, sanitize(fmt.Sprintf("%s[%d]", name, i), v.Index(i)).Interface())
 		}

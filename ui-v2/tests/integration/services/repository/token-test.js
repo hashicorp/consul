@@ -69,6 +69,12 @@ const undefinedNspace = 'default';
               CreateTime: new Date(item.CreateTime),
               Namespace: item.Namespace || undefinedNspace,
               uid: `["${item.Namespace || undefinedNspace}","${dc}","${item.AccessorID}"]`,
+              meta: {
+                cacheControl: undefined,
+                cursor: undefined,
+                dc: dc,
+                nspace: item.Namespace || undefinedNspace,
+              },
               Policies: createPolicies(item),
             });
           })

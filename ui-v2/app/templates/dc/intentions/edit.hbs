@@ -1,49 +1,33 @@
-{{#if item.ID }}
+{{#if item.ID}}
     {{title 'Edit Intention'}}
 {{else}}
     {{title 'New Intention'}}
 {{/if}}
-
-{{#app-view class="intention edit" loading=isLoading}}
-    {{#block-slot name='notification' as |status type|}}
-      {{partial 'dc/intentions/notifications'}}
-    {{/block-slot}}
-    {{#block-slot name='breadcrumbs'}}
+<AppView>
+    <BlockSlot @name="breadcrumbs">
         <ol>
-            <li><a data-test-back href={{href-to 'dc.intentions'}}>All Intentions</a></li>
+          <li><a data-test-back href={{href-to 'dc.intentions'}}>All Intentions</a></li>
         </ol>
-    {{/block-slot}}
-    {{#block-slot name='header'}}
+    </BlockSlot>
+    <BlockSlot @name="header">
         <h1>
-{{#if item.ID }}
-            Edit Intention
+{{#if item.IsEditable}}
+  {{#if item.ID}}
+          Edit Intention
+  {{else}}
+          New Intention
+  {{/if}}
 {{else}}
-            New Intention
+          View Intention
 {{/if}}
         </h1>
-    {{/block-slot}}
-    {{#block-slot name='actions'}}
-{{#if (not create) }}
-        {{#feedback-dialog type='inline'}}
-            {{#block-slot name='action' as |success error|}}
-                {{#copy-button success=(action success) error=(action error) clipboardText=item.ID title='copy UUID to clipboard'}}
-                    Copy UUID
-                {{/copy-button}}
-            {{/block-slot}}
-            {{#block-slot name='success' as |transition|}}
-                <p class={{transition}}>
-                    Copied UUID!
-                </p>
-            {{/block-slot}}
-            {{#block-slot name='error' as |transition|}}
-                <p class={{transition}}>
-                    Sorry, something went wrong!
-                </p>
-            {{/block-slot}}
-        {{/feedback-dialog}}
-{{/if}}
-    {{/block-slot}}
-    {{#block-slot name='content'}}
-        {{ partial 'dc/intentions/form'}}
-    {{/block-slot}}
-{{/app-view}}
+    </BlockSlot>
+    <BlockSlot @name="content">
+      <Consul::Intention::Form
+        @item={{item}}
+        @dc={{dc}}
+        @nspace={{nspace}}
+        @onsubmit={{transition-to 'dc.intentions.index' dc}}
+      />
+    </BlockSlot>
+</AppView>

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
@@ -15,10 +14,12 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds"
+	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/api"
 	proxyCmd "github.com/hashicorp/consul/command/connect/proxy"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/ipaddr"
+	"github.com/hashicorp/consul/tlsutil"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -68,10 +69,9 @@ type cmd struct {
 	gatewayKind    api.ServiceKind
 }
 
-const (
-	defaultEnvoyVersion = "1.14.1"
-	meshGatewayVal      = "mesh"
-)
+const meshGatewayVal = "mesh"
+
+var defaultEnvoyVersion = proxysupport.EnvoyVersions[0]
 
 var supportedGateways = map[string]api.ServiceKind{
 	"mesh":        api.ServiceKindMeshGateway,
@@ -90,7 +90,7 @@ func (c *cmd) init() {
 		"Configure Envoy as a Mesh Gateway.")
 
 	c.flags.StringVar(&c.gateway, "gateway", "",
-		"The type of gateway to register. One of: terminating or mesh")
+		"The type of gateway to register. One of: terminating, ingress, or mesh")
 
 	c.flags.StringVar(&c.sidecarFor, "sidecar-for", os.Getenv("CONNECT_SIDECAR_FOR"),
 		"The ID of a service instance on the local agent that this proxy should "+
@@ -136,7 +136,8 @@ func (c *cmd) init() {
 		"LAN address to advertise in the gateway service registration")
 
 	c.flags.Var(&c.wanAddress, "wan-address",
-		"WAN address to advertise in the gateway service registration")
+		"WAN address to advertise in the gateway service registration. For ingress gateways, "+
+			"only an IP address (without a port) is required.")
 
 	c.flags.Var(&c.bindAddresses, "bind-address", "Bind "+
 		"address to use instead of the default binding rules given as `<name>=<ip>:<port>` "+
@@ -241,16 +242,46 @@ func (c *cmd) run(args []string) int {
 			return 1
 		}
 		c.gatewayKind = kind
+
+		if c.gatewaySvcName == "" {
+			c.gatewaySvcName = string(c.gatewayKind)
+		}
+	}
+
+	if c.proxyID == "" {
+		switch {
+		case c.sidecarFor != "":
+			proxyID, err := proxyCmd.LookupProxyIDForSidecar(c.client, c.sidecarFor)
+			if err != nil {
+				c.UI.Error(err.Error())
+				return 1
+			}
+			c.proxyID = proxyID
+
+		case c.gateway != "" && !c.register:
+			gatewaySvc, err := proxyCmd.LookupGatewayProxy(c.client, c.gatewayKind)
+			if err != nil {
+				c.UI.Error(err.Error())
+				return 1
+			}
+			c.proxyID = gatewaySvc.ID
+			c.gatewaySvcName = gatewaySvc.Service
+
+		case c.gateway != "" && c.register:
+			c.proxyID = c.gatewaySvcName
+
+		}
+	}
+	if c.proxyID == "" {
+		c.UI.Error("No proxy ID specified. One of -proxy-id, -sidecar-for, or -gateway is " +
+			"required")
+		return 1
 	}
 
 	if c.register {
 		if c.gateway == "" {
 			c.UI.Error("Auto-Registration can only be used for gateways")
 			return 1
-		}
-
-		if c.gatewaySvcName == "" {
-			c.gatewaySvcName = string(c.gatewayKind)
 		}
 
 		taggedAddrs := make(map[string]api.ServiceAddress)
@@ -302,6 +333,7 @@ func (c *cmd) run(args []string) int {
 		svc := api.AgentServiceRegistration{
 			Kind:            c.gatewayKind,
 			Name:            c.gatewaySvcName,
+			ID:              c.proxyID,
 			Address:         lanAddr.Address,
 			Port:            lanAddr.Port,
 			Meta:            meta,
@@ -321,30 +353,6 @@ func (c *cmd) run(args []string) int {
 		}
 
 		c.UI.Output(fmt.Sprintf("Registered service: %s", svc.Name))
-	}
-
-	// See if we need to lookup proxyID
-	if c.proxyID == "" && c.sidecarFor != "" {
-		proxyID, err := proxyCmd.LookupProxyIDForSidecar(c.client, c.sidecarFor)
-		if err != nil {
-			c.UI.Error(err.Error())
-			return 1
-		}
-		c.proxyID = proxyID
-	} else if c.proxyID == "" && c.gateway != "" {
-		gatewaySvc, err := proxyCmd.LookupGatewayProxy(c.client, c.gatewayKind)
-		if err != nil {
-			c.UI.Error(err.Error())
-			return 1
-		}
-		c.proxyID = gatewaySvc.ID
-		c.gatewaySvcName = gatewaySvc.Service
-	}
-
-	if c.proxyID == "" {
-		c.UI.Error("No proxy ID specified. One of -proxy-id or -sidecar-for/-gateway is " +
-			"required")
-		return 1
 	}
 
 	// Generate config
@@ -435,13 +443,11 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 	}
 
 	var caPEM string
-	if httpCfg.TLSConfig.CAFile != "" {
-		content, err := ioutil.ReadFile(httpCfg.TLSConfig.CAFile)
-		if err != nil {
-			return nil, fmt.Errorf("Failed to read CA file: %s", err)
-		}
-		caPEM = strings.Replace(string(content), "\n", "\\n", -1)
+	pems, err := tlsutil.LoadCAs(httpCfg.TLSConfig.CAFile, httpCfg.TLSConfig.CAPath)
+	if err != nil {
+		return nil, err
 	}
+	caPEM = strings.Replace(strings.Join(pems, ""), "\n", "\\n", -1)
 
 	return &BootstrapTplArgs{
 		GRPC:                  grpcAddr,
@@ -485,7 +491,7 @@ func (c *cmd) generateConfig() ([]byte, error) {
 		}
 
 		if svc.Proxy == nil {
-			return nil, errors.New("service is not a Connect proxy or mesh gateway")
+			return nil, errors.New("service is not a Connect proxy or gateway")
 		}
 
 		// Parse the bootstrap config
@@ -544,7 +550,7 @@ func (c *cmd) grpcAddress(httpCfg *api.Config) (GRPC, error) {
 	} else {
 		// Parse as host:port with option http prefix
 		grpcAddr = strings.TrimPrefix(addr, "http://")
-		grpcAddr = strings.TrimPrefix(addr, "https://")
+		grpcAddr = strings.TrimPrefix(grpcAddr, "https://")
 
 		var err error
 		var host string

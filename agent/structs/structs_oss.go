@@ -46,6 +46,10 @@ func (m *EnterpriseMeta) NamespaceOrDefault() string {
 	return IntentionDefaultNamespace
 }
 
+func (m *EnterpriseMeta) NamespaceOrEmpty() string {
+	return ""
+}
+
 func EnterpriseMetaInitializer(_ string) EnterpriseMeta {
 	return emptyEnterpriseMeta
 }
@@ -106,12 +110,29 @@ func ServiceIDFromString(input string) ServiceID {
 	return ServiceID{ID: id}
 }
 
+func ParseServiceNameString(input string) (string, *EnterpriseMeta) {
+	return input, DefaultEnterpriseMeta()
+}
+
+func (n *ServiceName) String() string {
+	return n.Name
+}
+
+func ServiceNameFromString(input string) ServiceName {
+	id, _ := ParseServiceNameString(input)
+	return ServiceName{Name: id}
+}
+
 func (cid *CheckID) String() string {
 	return string(cid.ID)
 }
 
 func (_ *HealthCheck) Validate() error {
 	return nil
+}
+
+func enterpriseRequestType(m MessageType) (string, bool) {
+	return "", false
 }
 
 // CheckIDs returns the IDs for all checks associated with a session, regardless of type

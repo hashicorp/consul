@@ -2,13 +2,11 @@ package rolecreate
 
 import (
 	"encoding/json"
-	"os"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/assert"
@@ -26,9 +24,6 @@ func TestRoleCreateCommand_noTabs(t *testing.T) {
 func TestRoleCreateCommand_Pretty(t *testing.T) {
 	t.Parallel()
 
-	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
-
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
 	acl {
@@ -41,8 +36,18 @@ func TestRoleCreateCommand_Pretty(t *testing.T) {
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
-	ui := cli.NewMockUi()
-	cmd := New(ui)
+	run := func(t *testing.T, args []string) *api.ACLRole {
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+
+		code := cmd.Run(append(args, "-format=json", "-http-addr="+a.HTTPAddr()))
+		require.Equal(t, 0, code)
+		require.Empty(t, ui.ErrorWriter.String())
+
+		var role api.ACLRole
+		require.NoError(t, json.Unmarshal(ui.OutputWriter.Bytes(), &role))
+		return &role
+	}
 
 	// Create a policy
 	client := a.Client()
@@ -54,71 +59,59 @@ func TestRoleCreateCommand_Pretty(t *testing.T) {
 	require.NoError(t, err)
 
 	// create with policy by name
-	{
-		args := []string{
-			"-http-addr=" + a.HTTPAddr(),
+	t.Run("policy-name", func(t *testing.T) {
+		_ = run(t, []string{
 			"-token=root",
 			"-name=role-with-policy-by-name",
 			"-description=test-role",
 			"-policy-name=" + policy.Name,
-		}
-
-		code := cmd.Run(args)
-		require.Equal(t, code, 0)
-		require.Empty(t, ui.ErrorWriter.String())
-	}
+		})
+	})
 
 	// create with policy by id
-	{
-		args := []string{
-			"-http-addr=" + a.HTTPAddr(),
+	t.Run("policy-id", func(t *testing.T) {
+		_ = run(t, []string{
 			"-token=root",
 			"-name=role-with-policy-by-id",
 			"-description=test-role",
 			"-policy-id=" + policy.ID,
-		}
-
-		code := cmd.Run(args)
-		require.Equal(t, code, 0)
-		require.Empty(t, ui.ErrorWriter.String())
-	}
+		})
+	})
 
 	// create with service identity
-	{
-		args := []string{
-			"-http-addr=" + a.HTTPAddr(),
+	t.Run("service-identity", func(t *testing.T) {
+		_ = run(t, []string{
 			"-token=root",
 			"-name=role-with-service-identity",
 			"-description=test-role",
 			"-service-identity=web",
-		}
-
-		code := cmd.Run(args)
-		require.Equal(t, code, 0)
-		require.Empty(t, ui.ErrorWriter.String())
-	}
+		})
+	})
 
 	// create with service identity scoped to 2 DCs
-	{
-		args := []string{
-			"-http-addr=" + a.HTTPAddr(),
+	t.Run("dc-scoped-service-identity", func(t *testing.T) {
+		_ = run(t, []string{
 			"-token=root",
 			"-name=role-with-service-identity-in-2-dcs",
 			"-description=test-role",
 			"-service-identity=db:abc,xyz",
-		}
+		})
+	})
 
-		code := cmd.Run(args)
-		require.Equal(t, code, 0)
-		require.Empty(t, ui.ErrorWriter.String())
-	}
+	t.Run("node-identity", func(t *testing.T) {
+		role := run(t, []string{
+			"-token=root",
+			"-name=role-with-node-identity",
+			"-description=test-role",
+			"-node-identity=foo:bar",
+		})
+
+		require.Len(t, role.NodeIdentities, 1)
+	})
 }
 
 func TestRoleCreateCommand_JSON(t *testing.T) {
 	t.Parallel()
-
-	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
 
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"

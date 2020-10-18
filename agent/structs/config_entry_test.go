@@ -14,7 +14,6 @@ import (
 // TestDecodeConfigEntry is the 'structs' mirror image of
 // command/config/write/config_write_test.go:TestParseConfigEntry
 func TestDecodeConfigEntry(t *testing.T) {
-	t.Parallel()
 
 	for _, tc := range []struct {
 		name      string
@@ -47,6 +46,10 @@ func TestDecodeConfigEntry(t *testing.T) {
 			snake: `
 				kind = "proxy-defaults"
 				name = "main"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
 				config {
 				  "foo" = 19
 				  "bar" = "abc"
@@ -61,6 +64,10 @@ func TestDecodeConfigEntry(t *testing.T) {
 			camel: `
 				Kind = "proxy-defaults"
 				Name = "main"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
 				Config {
 				  "foo" = 19
 				  "bar" = "abc"
@@ -75,6 +82,10 @@ func TestDecodeConfigEntry(t *testing.T) {
 			expect: &ProxyConfigEntry{
 				Kind: "proxy-defaults",
 				Name: "main",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
 				Config: map[string]interface{}{
 					"foo": 19,
 					"bar": "abc",
@@ -92,6 +103,10 @@ func TestDecodeConfigEntry(t *testing.T) {
 			snake: `
 				kind = "service-defaults"
 				name = "main"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
 				protocol = "http"
 				external_sni = "abc-123"
 				mesh_gateway {
@@ -101,6 +116,10 @@ func TestDecodeConfigEntry(t *testing.T) {
 			camel: `
 				Kind = "service-defaults"
 				Name = "main"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
 				Protocol = "http"
 				ExternalSNI = "abc-123"
 				MeshGateway {
@@ -108,8 +127,12 @@ func TestDecodeConfigEntry(t *testing.T) {
 				}
 			`,
 			expect: &ServiceConfigEntry{
-				Kind:        "service-defaults",
-				Name:        "main",
+				Kind: "service-defaults",
+				Name: "main",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
 				Protocol:    "http",
 				ExternalSNI: "abc-123",
 				MeshGateway: MeshGatewayConfig{
@@ -122,6 +145,10 @@ func TestDecodeConfigEntry(t *testing.T) {
 			snake: `
 				kind = "service-router"
 				name = "main"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
 				routes = [
 					{
 						match {
@@ -201,6 +228,10 @@ func TestDecodeConfigEntry(t *testing.T) {
 			camel: `
 				Kind = "service-router"
 				Name = "main"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
 				Routes = [
 					{
 						Match {
@@ -280,6 +311,10 @@ func TestDecodeConfigEntry(t *testing.T) {
 			expect: &ServiceRouterConfigEntry{
 				Kind: "service-router",
 				Name: "main",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
 				Routes: []ServiceRoute{
 					{
 						Match: &ServiceRouteMatch{
@@ -362,6 +397,10 @@ func TestDecodeConfigEntry(t *testing.T) {
 			snake: `
 				kind = "service-splitter"
 				name = "main"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
 				splits = [
 				  {
 					weight        = 99.1
@@ -377,6 +416,10 @@ func TestDecodeConfigEntry(t *testing.T) {
 			camel: `
 				Kind = "service-splitter"
 				Name = "main"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
 				Splits = [
 				  {
 					Weight        = 99.1
@@ -392,6 +435,10 @@ func TestDecodeConfigEntry(t *testing.T) {
 			expect: &ServiceSplitterConfigEntry{
 				Kind: ServiceSplitter,
 				Name: "main",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
 				Splits: []ServiceSplit{
 					{
 						Weight:        99.1,
@@ -410,6 +457,10 @@ func TestDecodeConfigEntry(t *testing.T) {
 			snake: `
 				kind = "service-resolver"
 				name = "main"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
 				default_subset = "v1"
 				connect_timeout = "15s"
 				subsets = {
@@ -435,6 +486,10 @@ func TestDecodeConfigEntry(t *testing.T) {
 			camel: `
 				Kind = "service-resolver"
 				Name = "main"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
 				DefaultSubset = "v1"
 				ConnectTimeout = "15s"
 				Subsets = {
@@ -458,8 +513,12 @@ func TestDecodeConfigEntry(t *testing.T) {
 					}
 				}`,
 			expect: &ServiceResolverConfigEntry{
-				Kind:           "service-resolver",
-				Name:           "main",
+				Kind: "service-resolver",
+				Name: "main",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
 				DefaultSubset:  "v1",
 				ConnectTimeout: 15 * time.Second,
 				Subsets: map[string]ServiceResolverSubset{
@@ -533,10 +592,168 @@ func TestDecodeConfigEntry(t *testing.T) {
 			},
 		},
 		{
+			name: "service-resolver: envoy hash lb kitchen sink",
+			snake: `
+				kind = "service-resolver"
+				name = "main"
+				load_balancer = {
+					policy = "ring_hash"
+					ring_hash_config = {
+						minimum_ring_size = 1
+						maximum_ring_size = 2
+					}
+					hash_policies = [
+						{
+							field = "cookie"
+							field_value = "good-cookie"
+							cookie_config = {
+								ttl = "1s"
+								path = "/oven"
+							}
+							terminal = true
+						},
+						{
+							field = "cookie"
+							field_value = "less-good-cookie"
+							cookie_config = {
+								session = true
+								path = "/toaster"
+							}
+							terminal = true
+						},
+						{
+							field = "header"
+							field_value = "x-user-id"
+						},
+						{
+							source_ip = true
+						}
+					]
+				}
+			`,
+			camel: `
+				Kind = "service-resolver"
+				Name = "main"
+				LoadBalancer = {
+					Policy = "ring_hash"
+					RingHashConfig = {
+						MinimumRingSize = 1
+						MaximumRingSize = 2
+					}
+					HashPolicies = [
+						{
+							Field = "cookie"
+							FieldValue = "good-cookie"
+							CookieConfig = {
+								TTL = "1s"
+								Path = "/oven"
+							}
+							Terminal = true
+						},
+						{
+							Field = "cookie"
+							FieldValue = "less-good-cookie"
+							CookieConfig = {
+								Session = true
+								Path = "/toaster"
+							}
+							Terminal = true
+						},
+						{
+							Field = "header"
+							FieldValue = "x-user-id"
+						},
+						{
+							SourceIP = true
+						}
+					]
+				}
+			`,
+			expect: &ServiceResolverConfigEntry{
+				Kind: "service-resolver",
+				Name: "main",
+				LoadBalancer: &LoadBalancer{
+					Policy: LBPolicyRingHash,
+					RingHashConfig: &RingHashConfig{
+						MinimumRingSize: 1,
+						MaximumRingSize: 2,
+					},
+					HashPolicies: []HashPolicy{
+						{
+							Field:      HashPolicyCookie,
+							FieldValue: "good-cookie",
+							CookieConfig: &CookieConfig{
+								TTL:  1 * time.Second,
+								Path: "/oven",
+							},
+							Terminal: true,
+						},
+						{
+							Field:      HashPolicyCookie,
+							FieldValue: "less-good-cookie",
+							CookieConfig: &CookieConfig{
+								Session: true,
+								Path:    "/toaster",
+							},
+							Terminal: true,
+						},
+						{
+							Field:      HashPolicyHeader,
+							FieldValue: "x-user-id",
+						},
+						{
+							SourceIP: true,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "service-resolver: envoy least request kitchen sink",
+			snake: `
+				kind = "service-resolver"
+				name = "main"
+				load_balancer = {
+					policy = "least_request"
+					least_request_config = {
+						choice_count = 2
+					}
+				}
+			`,
+			camel: `
+				Kind = "service-resolver"
+				Name = "main"
+				LoadBalancer = {
+					Policy = "least_request"
+					LeastRequestConfig = {
+						ChoiceCount = 2
+					}
+				}
+			`,
+			expect: &ServiceResolverConfigEntry{
+				Kind: "service-resolver",
+				Name: "main",
+				LoadBalancer: &LoadBalancer{
+					Policy: LBPolicyLeastRequest,
+					LeastRequestConfig: &LeastRequestConfig{
+						ChoiceCount: 2,
+					},
+				},
+			},
+		},
+		{
 			name: "ingress-gateway: kitchen sink",
 			snake: `
 				kind = "ingress-gateway"
 				name = "ingress-web"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+
+				tls {
+					enabled = true
+				}
 
 				listeners = [
 					{
@@ -545,6 +762,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 						services = [
 							{
 								name = "web"
+								hosts = ["test.example.com", "test2.example.com"]
 							},
 							{
 								name = "db"
@@ -566,7 +784,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 						services = [
 							{
 								name = "postgres"
-								service_subset = "v1"
 							}
 						]
 					}
@@ -575,6 +792,13 @@ func TestDecodeConfigEntry(t *testing.T) {
 			camel: `
 				Kind = "ingress-gateway"
 				Name = "ingress-web"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+				TLS {
+					Enabled = true
+				}
 				Listeners = [
 					{
 						Port = 8080
@@ -582,6 +806,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 						Services = [
 							{
 								Name = "web"
+								Hosts = ["test.example.com", "test2.example.com"]
 							},
 							{
 								Name = "db"
@@ -603,7 +828,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 						Services = [
 							{
 								Name = "postgres"
-								ServiceSubset = "v1"
 							}
 						]
 					}
@@ -612,35 +836,42 @@ func TestDecodeConfigEntry(t *testing.T) {
 			expect: &IngressGatewayConfigEntry{
 				Kind: "ingress-gateway",
 				Name: "ingress-web",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
+				TLS: GatewayTLSConfig{
+					Enabled: true,
+				},
 				Listeners: []IngressListener{
-					IngressListener{
+					{
 						Port:     8080,
 						Protocol: "http",
 						Services: []IngressService{
-							IngressService{
-								Name: "web",
+							{
+								Name:  "web",
+								Hosts: []string{"test.example.com", "test2.example.com"},
 							},
-							IngressService{
+							{
 								Name: "db",
 							},
 						},
 					},
-					IngressListener{
+					{
 						Port:     9999,
 						Protocol: "tcp",
 						Services: []IngressService{
-							IngressService{
+							{
 								Name: "mysql",
 							},
 						},
 					},
-					IngressListener{
+					{
 						Port:     2234,
 						Protocol: "tcp",
 						Services: []IngressService{
-							IngressService{
-								Name:          "postgres",
-								ServiceSubset: "v1",
+							{
+								Name: "postgres",
 							},
 						},
 					},
@@ -652,54 +883,340 @@ func TestDecodeConfigEntry(t *testing.T) {
 			snake: `
 				kind = "terminating-gateway"
 				name = "terminating-gw-west"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
 				services = [
 					{
 						name = "payments",
 						ca_file = "/etc/payments/ca.pem",
 						cert_file = "/etc/payments/cert.pem",
 						key_file = "/etc/payments/tls.key",
+						sni = "mydomain",
 					},
 					{
 						name = "*",
 						ca_file = "/etc/all/ca.pem",
 						cert_file = "/etc/all/cert.pem",
 						key_file = "/etc/all/tls.key",
+						sni = "my-alt-domain",
 					},
 				]
 			`,
 			camel: `
 				Kind = "terminating-gateway"
 				Name = "terminating-gw-west"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
 				Services = [
 					{
 						Name = "payments",
 						CAFile = "/etc/payments/ca.pem",
 						CertFile = "/etc/payments/cert.pem",
 						KeyFile = "/etc/payments/tls.key",
+						SNI = "mydomain",
 					},
 					{
 						Name = "*",
 						CAFile = "/etc/all/ca.pem",
 						CertFile = "/etc/all/cert.pem",
 						KeyFile = "/etc/all/tls.key",
+						SNI = "my-alt-domain",
 					},
 				]
 			`,
 			expect: &TerminatingGatewayConfigEntry{
 				Kind: "terminating-gateway",
 				Name: "terminating-gw-west",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
 				Services: []LinkedService{
 					{
 						Name:     "payments",
 						CAFile:   "/etc/payments/ca.pem",
 						CertFile: "/etc/payments/cert.pem",
 						KeyFile:  "/etc/payments/tls.key",
+						SNI:      "mydomain",
 					},
 					{
 						Name:     "*",
 						CAFile:   "/etc/all/ca.pem",
 						CertFile: "/etc/all/cert.pem",
 						KeyFile:  "/etc/all/tls.key",
+						SNI:      "my-alt-domain",
+					},
+				},
+			},
+		},
+		{
+			name: "service-intentions: kitchen sink",
+			snake: `
+				kind = "service-intentions"
+				name = "web"
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+				sources = [
+				  {
+					name        = "foo"
+					action      = "deny"
+					type        = "consul"
+					description = "foo desc"
+				  },
+				  {
+					name        = "bar"
+					action      = "allow"
+					description = "bar desc"
+				  },
+				  {
+					name = "l7"
+					permissions = [
+					  {
+						action = "deny"
+						http {
+						  path_exact = "/admin"
+						  header = [
+							{
+							  name    = "hdr-present"
+							  present = true
+							},
+							{
+							  name  = "hdr-exact"
+							  exact = "exact"
+							},
+							{
+							  name   = "hdr-prefix"
+							  prefix = "prefix"
+							},
+							{
+							  name   = "hdr-suffix"
+							  suffix = "suffix"
+							},
+							{
+							  name  = "hdr-regex"
+							  regex = "regex"
+							},
+							{
+							  name    = "hdr-absent"
+							  present = true
+							  invert  = true
+							}
+						  ]
+						}
+					  },
+					  {
+						action = "allow"
+						http {
+						  path_prefix = "/v3/"
+						}
+					  },
+					  {
+						action = "allow"
+						http {
+						  path_regex = "/v[12]/.*"
+						  methods    = ["GET", "POST"]
+						}
+					  }
+					]
+				  }
+				]
+				sources {
+				  name        = "*"
+				  action      = "deny"
+				  description = "wild desc"
+				}
+			`,
+			camel: `
+				Kind = "service-intentions"
+				Name = "web"
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+				Sources = [
+				  {
+					Name        = "foo"
+					Action      = "deny"
+					Type        = "consul"
+					Description = "foo desc"
+				  },
+				  {
+					Name        = "bar"
+					Action      = "allow"
+					Description = "bar desc"
+				  },
+				  {
+					Name = "l7"
+					Permissions = [
+					  {
+						Action = "deny"
+						HTTP {
+						  PathExact = "/admin"
+						  Header = [
+							{
+							  Name    = "hdr-present"
+							  Present = true
+							},
+							{
+							  Name  = "hdr-exact"
+							  Exact = "exact"
+							},
+							{
+							  Name   = "hdr-prefix"
+							  Prefix = "prefix"
+							},
+							{
+							  Name   = "hdr-suffix"
+							  Suffix = "suffix"
+							},
+							{
+							  Name  = "hdr-regex"
+							  Regex = "regex"
+							},
+							{
+							  Name    = "hdr-absent"
+							  Present = true
+							  Invert  = true
+							}
+						  ]
+						}
+					  },
+					  {
+						Action = "allow"
+						HTTP {
+						  PathPrefix = "/v3/"
+						}
+					  },
+					  {
+						Action = "allow"
+						HTTP {
+						  PathRegex = "/v[12]/.*"
+						  Methods   = ["GET", "POST"]
+						}
+					  }
+					]
+				  }
+				]
+				Sources {
+				  Name        = "*"
+				  Action      = "deny"
+				  Description = "wild desc"
+				}
+			`,
+			expect: &ServiceIntentionsConfigEntry{
+				Kind: "service-intentions",
+				Name: "web",
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
+				Sources: []*SourceIntention{
+					{
+						Name:        "foo",
+						Action:      "deny",
+						Type:        "consul",
+						Description: "foo desc",
+					},
+					{
+						Name:        "bar",
+						Action:      "allow",
+						Description: "bar desc",
+					},
+					{
+						Name: "l7",
+						Permissions: []*IntentionPermission{
+							{
+								Action: "deny",
+								HTTP: &IntentionHTTPPermission{
+									PathExact: "/admin",
+									Header: []IntentionHTTPHeaderPermission{
+										{
+											Name:    "hdr-present",
+											Present: true,
+										},
+										{
+											Name:  "hdr-exact",
+											Exact: "exact",
+										},
+										{
+											Name:   "hdr-prefix",
+											Prefix: "prefix",
+										},
+										{
+											Name:   "hdr-suffix",
+											Suffix: "suffix",
+										},
+										{
+											Name:  "hdr-regex",
+											Regex: "regex",
+										},
+										{
+											Name:    "hdr-absent",
+											Present: true,
+											Invert:  true,
+										},
+									},
+								},
+							},
+							{
+								Action: "allow",
+								HTTP: &IntentionHTTPPermission{
+									PathPrefix: "/v3/",
+								},
+							},
+							{
+								Action: "allow",
+								HTTP: &IntentionHTTPPermission{
+									PathRegex: "/v[12]/.*",
+									Methods:   []string{"GET", "POST"},
+								},
+							},
+						},
+					},
+					{
+						Name:        "*",
+						Action:      "deny",
+						Description: "wild desc",
+					},
+				},
+			},
+		},
+		{
+			name: "service-intentions: wildcard destination",
+			snake: `
+				kind = "service-intentions"
+				name = "*"
+				sources {
+				  name   = "foo"
+				  action = "deny"
+				  # should be parsed, but we'll ignore it later
+				  precedence = 6
+				}
+			`,
+			camel: `
+				Kind = "service-intentions"
+				Name = "*"
+				Sources {
+				  Name   = "foo"
+				  Action = "deny"
+				  # should be parsed, but we'll ignore it later
+				  Precedence = 6
+				}
+			`,
+			expect: &ServiceIntentionsConfigEntry{
+				Kind: "service-intentions",
+				Name: "*",
+				Sources: []*SourceIntention{
+					{
+						Name:       "foo",
+						Action:     "deny",
+						Precedence: 6,
 					},
 				},
 			},
@@ -708,8 +1225,6 @@ func TestDecodeConfigEntry(t *testing.T) {
 		tc := tc
 
 		testbody := func(t *testing.T, body string) {
-			t.Helper()
-
 			var raw map[string]interface{}
 			err := hcl.Decode(&raw, body)
 			require.NoError(t, err)
@@ -745,13 +1260,13 @@ func TestServiceConfigResponse_MsgPack(t *testing.T) {
 			// },
 		},
 		UpstreamConfigs: map[string]map[string]interface{}{
-			"a": map[string]interface{}{
+			"a": {
 				"string": "aaaa",
 				// "map": map[string]interface{}{
 				// 	"baz": "aa",
 				// },
 			},
-			"b": map[string]interface{}{
+			"b": {
 				"string": "bbbb",
 				// "map": map[string]interface{}{
 				// 	"baz": "bb",
@@ -776,11 +1291,10 @@ func TestServiceConfigResponse_MsgPack(t *testing.T) {
 }
 
 func TestConfigEntryResponseMarshalling(t *testing.T) {
-	t.Parallel()
 
 	cases := map[string]ConfigEntryResponse{
-		"nil entry": ConfigEntryResponse{},
-		"proxy-default entry": ConfigEntryResponse{
+		"nil entry": {},
+		"proxy-default entry": {
 			Entry: &ProxyConfigEntry{
 				Kind: ProxyDefaults,
 				Name: ProxyConfigGlobal,
@@ -789,7 +1303,7 @@ func TestConfigEntryResponseMarshalling(t *testing.T) {
 				},
 			},
 		},
-		"service-default entry": ConfigEntryResponse{
+		"service-default entry": {
 			Entry: &ServiceConfigEntry{
 				Kind:     ServiceDefaults,
 				Name:     "foo",
@@ -803,7 +1317,6 @@ func TestConfigEntryResponseMarshalling(t *testing.T) {
 		name := name
 		tcase := tcase
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
 
 			data, err := tcase.MarshalBinary()
 			require.NoError(t, err)

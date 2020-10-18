@@ -7,6 +7,7 @@ import {
   HEADERS_DATACENTER as HTTP_HEADERS_DATACENTER,
   HEADERS_NAMESPACE as HTTP_HEADERS_NAMESPACE,
 } from 'consul-ui/utils/http/consul';
+import { CACHE_CONTROL as HTTP_HEADERS_CACHE_CONTROL } from 'consul-ui/utils/http/headers';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 import { NSPACE_KEY } from 'consul-ui/models/nspace';
 import createFingerprinter from 'consul-ui/utils/create-fingerprinter';
@@ -91,7 +92,11 @@ export default Serializer.extend({
       // and they need the slug key AND potential namespace in order to
       // create the correct uid/fingerprint
       return {
-        [primaryKey]: this.fingerprint(primaryKey, slugKey, data[DATACENTER_KEY])({
+        [primaryKey]: this.fingerprint(
+          primaryKey,
+          slugKey,
+          data[DATACENTER_KEY]
+        )({
           [slugKey]: data[slugKey],
           [NSPACE_KEY]: data[NSPACE_KEY],
         })[primaryKey],
@@ -101,11 +106,7 @@ export default Serializer.extend({
   // this could get confusing if you tried to override
   // say `normalizeQueryResponse`
   // TODO: consider creating a method for each one of the `normalize...Response` family
-  normalizeResponse: function(store, primaryModelClass, payload, id, requestType) {
-    // Pick the meta/headers back off the payload and cleanup
-    // before we go through serializing
-    const headers = payload[HTTP_HEADERS_SYMBOL] || {};
-    delete payload[HTTP_HEADERS_SYMBOL];
+  normalizeResponse: function(store, modelClass, payload, id, requestType) {
     const normalizedPayload = this.normalizePayload(payload, id, requestType);
     // put the meta onto the response, here this is ok
     // as JSON-API allows this and our specific data is now in
@@ -114,37 +115,51 @@ export default Serializer.extend({
     // (which was the reason for the Symbol-like property earlier)
     // use a method modelled on ember-data methods so we have the opportunity to
     // do this on a per-model level
-    const meta = this.normalizeMeta(
-      store,
-      primaryModelClass,
-      headers,
-      normalizedPayload,
-      id,
-      requestType
-    );
-    if (requestType === 'queryRecord') {
+    const meta = this.normalizeMeta(store, modelClass, normalizedPayload, id, requestType);
+    if (requestType !== 'query') {
       normalizedPayload.meta = meta;
     }
-    return this._super(
+    const res = this._super(
       store,
-      primaryModelClass,
+      modelClass,
       {
         meta: meta,
-        [primaryModelClass.modelName]: normalizedPayload,
+        [modelClass.modelName]: normalizedPayload,
       },
       id,
       requestType
     );
+    // If the result of the super normalizeResponse is undefined
+    // its because the JSONSerializer (which REST inherits from)
+    // doesn't recognise the requestType, in this case its likely to be an 'action'
+    // request rather than a specific 'load me some data' one.
+    // Therefore its ok to bypass the store here for the moment
+    // we currently use this for self, but it also would affect any custom
+    // methods that use a serializer in our custom service/store
+    if (typeof res === 'undefined') {
+      return payload;
+    }
+    return res;
   },
   timestamp: function() {
     return new Date().getTime();
   },
-  normalizeMeta: function(store, primaryModelClass, headers, payload, id, requestType) {
+  normalizeMeta: function(store, modelClass, payload, id, requestType) {
+    // Pick the meta/headers back off the payload and cleanup
+    const headers = payload[HTTP_HEADERS_SYMBOL] || {};
+    delete payload[HTTP_HEADERS_SYMBOL];
     const meta = {
-      cursor: headers[HTTP_HEADERS_INDEX],
+      cacheControl: headers[HTTP_HEADERS_CACHE_CONTROL.toLowerCase()],
+      cursor: headers[HTTP_HEADERS_INDEX.toLowerCase()],
       dc: headers[HTTP_HEADERS_DATACENTER.toLowerCase()],
       nspace: headers[HTTP_HEADERS_NAMESPACE.toLowerCase()],
     };
+    if (typeof headers['x-range'] !== 'undefined') {
+      meta.range = headers['x-range'];
+    }
+    if (typeof headers['refresh'] !== 'undefined') {
+      meta.interval = headers['refresh'] * 1000;
+    }
     if (requestType === 'query') {
       meta.date = this.timestamp();
       payload.forEach(function(item) {

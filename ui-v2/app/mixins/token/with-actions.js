@@ -7,40 +7,24 @@ export default Mixin.create(WithBlockingActions, {
   settings: service('settings'),
   actions: {
     use: function(item) {
-      return this.feedback.execute(() => {
-        return this.repo
-          .findBySlug(
-            get(item, 'AccessorID'),
-            this.modelFor('dc').dc.Name,
-            this.modelFor('nspace').nspace.substr(1)
-          )
-          .then(item => {
-            return this.settings
-              .persist({
-                token: {
-                  AccessorID: get(item, 'AccessorID'),
-                  SecretID: get(item, 'SecretID'),
-                  Namespace: get(item, 'Namespace'),
-                },
-              })
-              .then(() => {
-                // using is similar to delete in that
-                // if you use from the listing page, stay on the listing page
-                // whereas if you use from the detail page, take me back to the listing page
-                return this.afterDelete(...arguments);
-              });
+      return this.repo
+        .findBySlug(
+          get(item, 'AccessorID'),
+          this.modelFor('dc').dc.Name,
+          this.modelFor('nspace').nspace.substr(1)
+        )
+        .then(item => {
+          return this.settings.persist({
+            token: {
+              AccessorID: get(item, 'AccessorID'),
+              SecretID: get(item, 'SecretID'),
+              Namespace: get(item, 'Namespace'),
+            },
           });
-      }, 'use');
+        });
     },
     logout: function(item) {
-      return this.feedback.execute(() => {
-        return this.settings.delete('token').then(() => {
-          // logging out is similar to delete in that
-          // if you log out from the listing page, stay on the listing page
-          // whereas if you logout from the detail page, take me back to the listing page
-          return this.afterDelete(...arguments);
-        });
-      }, 'logout');
+      return this.settings.delete('token');
     },
     clone: function(item) {
       let cloned;

@@ -30,7 +30,7 @@ func TestPolicyAuthorizer(t *testing.T) {
 		// This test ensures that if the policy doesn't define a rule then the policy authorizer will
 		// return no concrete enforcement decision. This allows deferring to some defaults in another
 		// authorizer including usage of a default overall policy of "deny"
-		"Defaults": aclTest{
+		"Defaults": {
 			policy: &Policy{},
 			checks: []aclCheck{
 				{name: "DefaultACLRead", prefix: "foo", check: checkDefaultACLRead},
@@ -61,147 +61,147 @@ func TestPolicyAuthorizer(t *testing.T) {
 				{name: "DefaultSnapshot", prefix: "foo", check: checkDefaultSnapshot},
 			},
 		},
-		"Prefer Exact Matches": aclTest{
+		"Prefer Exact Matches": {
 			policy: &Policy{PolicyRules: PolicyRules{
 				Agents: []*AgentRule{
-					&AgentRule{
+					{
 						Node:   "foo",
 						Policy: PolicyWrite,
 					},
-					&AgentRule{
+					{
 						Node:   "football",
 						Policy: PolicyDeny,
 					},
 				},
 				AgentPrefixes: []*AgentRule{
-					&AgentRule{
+					{
 						Node:   "foot",
 						Policy: PolicyRead,
 					},
-					&AgentRule{
+					{
 						Node:   "fo",
 						Policy: PolicyRead,
 					},
 				},
 				Keys: []*KeyRule{
-					&KeyRule{
+					{
 						Prefix: "foo",
 						Policy: PolicyWrite,
 					},
-					&KeyRule{
+					{
 						Prefix: "football",
 						Policy: PolicyDeny,
 					},
 				},
 				KeyPrefixes: []*KeyRule{
-					&KeyRule{
+					{
 						Prefix: "foot",
 						Policy: PolicyRead,
 					},
-					&KeyRule{
+					{
 						Prefix: "fo",
 						Policy: PolicyRead,
 					},
 				},
 				Nodes: []*NodeRule{
-					&NodeRule{
+					{
 						Name:   "foo",
 						Policy: PolicyWrite,
 					},
-					&NodeRule{
+					{
 						Name:   "football",
 						Policy: PolicyDeny,
 					},
 				},
 				NodePrefixes: []*NodeRule{
-					&NodeRule{
+					{
 						Name:   "foot",
 						Policy: PolicyRead,
 					},
-					&NodeRule{
+					{
 						Name:   "fo",
 						Policy: PolicyRead,
 					},
 				},
 				Services: []*ServiceRule{
-					&ServiceRule{
+					{
 						Name:       "foo",
 						Policy:     PolicyWrite,
 						Intentions: PolicyWrite,
 					},
-					&ServiceRule{
+					{
 						Name:   "football",
 						Policy: PolicyDeny,
 					},
 				},
 				ServicePrefixes: []*ServiceRule{
-					&ServiceRule{
+					{
 						Name:       "foot",
 						Policy:     PolicyRead,
 						Intentions: PolicyRead,
 					},
-					&ServiceRule{
+					{
 						Name:       "fo",
 						Policy:     PolicyRead,
 						Intentions: PolicyRead,
 					},
 				},
 				Sessions: []*SessionRule{
-					&SessionRule{
+					{
 						Node:   "foo",
 						Policy: PolicyWrite,
 					},
-					&SessionRule{
+					{
 						Node:   "football",
 						Policy: PolicyDeny,
 					},
 				},
 				SessionPrefixes: []*SessionRule{
-					&SessionRule{
+					{
 						Node:   "foot",
 						Policy: PolicyRead,
 					},
-					&SessionRule{
+					{
 						Node:   "fo",
 						Policy: PolicyRead,
 					},
 				},
 				Events: []*EventRule{
-					&EventRule{
+					{
 						Event:  "foo",
 						Policy: PolicyWrite,
 					},
-					&EventRule{
+					{
 						Event:  "football",
 						Policy: PolicyDeny,
 					},
 				},
 				EventPrefixes: []*EventRule{
-					&EventRule{
+					{
 						Event:  "foot",
 						Policy: PolicyRead,
 					},
-					&EventRule{
+					{
 						Event:  "fo",
 						Policy: PolicyRead,
 					},
 				},
 				PreparedQueries: []*PreparedQueryRule{
-					&PreparedQueryRule{
+					{
 						Prefix: "foo",
 						Policy: PolicyWrite,
 					},
-					&PreparedQueryRule{
+					{
 						Prefix: "football",
 						Policy: PolicyDeny,
 					},
 				},
 				PreparedQueryPrefixes: []*PreparedQueryRule{
-					&PreparedQueryRule{
+					{
 						Prefix: "foot",
 						Policy: PolicyRead,
 					},
-					&PreparedQueryRule{
+					{
 						Prefix: "fo",
 						Policy: PolicyRead,
 					},
@@ -344,17 +344,17 @@ func TestPolicyAuthorizer(t *testing.T) {
 				{name: "PreparedQueryWriteDenied", prefix: "football", check: checkDenyPreparedQueryWrite},
 			},
 		},
-		"Intention Wildcards - prefix denied": aclTest{
+		"Intention Wildcards - prefix denied": {
 			policy: &Policy{PolicyRules: PolicyRules{
 				Services: []*ServiceRule{
-					&ServiceRule{
+					{
 						Name:       "foo",
 						Policy:     PolicyWrite,
 						Intentions: PolicyWrite,
 					},
 				},
 				ServicePrefixes: []*ServiceRule{
-					&ServiceRule{
+					{
 						Name:       "",
 						Policy:     PolicyDeny,
 						Intentions: PolicyDeny,
@@ -366,17 +366,17 @@ func TestPolicyAuthorizer(t *testing.T) {
 				{name: "AllDenied", prefix: "*", check: checkDenyIntentionWrite},
 			},
 		},
-		"Intention Wildcards - prefix allowed": aclTest{
+		"Intention Wildcards - prefix allowed": {
 			policy: &Policy{PolicyRules: PolicyRules{
 				Services: []*ServiceRule{
-					&ServiceRule{
+					{
 						Name:       "foo",
 						Policy:     PolicyWrite,
 						Intentions: PolicyDeny,
 					},
 				},
 				ServicePrefixes: []*ServiceRule{
-					&ServiceRule{
+					{
 						Name:       "",
 						Policy:     PolicyWrite,
 						Intentions: PolicyWrite,
@@ -388,17 +388,17 @@ func TestPolicyAuthorizer(t *testing.T) {
 				{name: "AllDenied", prefix: "*", check: checkDenyIntentionWrite},
 			},
 		},
-		"Intention Wildcards - all allowed": aclTest{
+		"Intention Wildcards - all allowed": {
 			policy: &Policy{PolicyRules: PolicyRules{
 				Services: []*ServiceRule{
-					&ServiceRule{
+					{
 						Name:       "foo",
 						Policy:     PolicyWrite,
 						Intentions: PolicyWrite,
 					},
 				},
 				ServicePrefixes: []*ServiceRule{
-					&ServiceRule{
+					{
 						Name:       "",
 						Policy:     PolicyWrite,
 						Intentions: PolicyWrite,
@@ -410,10 +410,10 @@ func TestPolicyAuthorizer(t *testing.T) {
 				{name: "AllAllowed", prefix: "*", check: checkAllowIntentionWrite},
 			},
 		},
-		"Intention Wildcards - all default": aclTest{
+		"Intention Wildcards - all default": {
 			policy: &Policy{PolicyRules: PolicyRules{
 				Services: []*ServiceRule{
-					&ServiceRule{
+					{
 						Name:       "foo",
 						Policy:     PolicyWrite,
 						Intentions: PolicyWrite,
@@ -425,10 +425,10 @@ func TestPolicyAuthorizer(t *testing.T) {
 				{name: "AllDefault", prefix: "*", check: checkDefaultIntentionWrite},
 			},
 		},
-		"Intention Wildcards - any default": aclTest{
+		"Intention Wildcards - any default": {
 			policy: &Policy{PolicyRules: PolicyRules{
 				Services: []*ServiceRule{
-					&ServiceRule{
+					{
 						Name:       "foo",
 						Policy:     PolicyWrite,
 						Intentions: PolicyDeny,
@@ -484,21 +484,21 @@ func TestAnyAllowed(t *testing.T) {
 	}
 
 	cases := map[string]testCase{
-		"no-rules-default": testCase{
+		"no-rules-default": {
 			readEnforcement:  Default,
 			listEnforcement:  Default,
 			writeEnforcement: Default,
 		},
-		"prefix-write-allowed": testCase{
+		"prefix-write-allowed": {
 			insertions: []radixInsertion{
-				radixInsertion{
+				{
 					segment: "",
 					value: &policyAuthorizerRadixLeaf{
 						prefix: &policyAuthorizerRule{access: AccessWrite},
 					},
 				},
 				// this shouldn't affect whether anyAllowed returns things are allowed
-				radixInsertion{
+				{
 					segment: "foo",
 					value: &policyAuthorizerRadixLeaf{
 						prefix: &policyAuthorizerRule{access: AccessDeny},
@@ -509,9 +509,9 @@ func TestAnyAllowed(t *testing.T) {
 			listEnforcement:  Allow,
 			writeEnforcement: Allow,
 		},
-		"prefix-list-allowed": testCase{
+		"prefix-list-allowed": {
 			insertions: []radixInsertion{
-				radixInsertion{
+				{
 					segment: "",
 					value: &policyAuthorizerRadixLeaf{
 						prefix: &policyAuthorizerRule{access: AccessList},
@@ -522,9 +522,9 @@ func TestAnyAllowed(t *testing.T) {
 			listEnforcement:  Allow,
 			writeEnforcement: Deny,
 		},
-		"prefix-read-allowed": testCase{
+		"prefix-read-allowed": {
 			insertions: []radixInsertion{
-				radixInsertion{
+				{
 					segment: "",
 					value: &policyAuthorizerRadixLeaf{
 						prefix: &policyAuthorizerRule{access: AccessRead},
@@ -535,9 +535,9 @@ func TestAnyAllowed(t *testing.T) {
 			listEnforcement:  Deny,
 			writeEnforcement: Deny,
 		},
-		"prefix-deny": testCase{
+		"prefix-deny": {
 			insertions: []radixInsertion{
-				radixInsertion{
+				{
 					segment: "",
 					value: &policyAuthorizerRadixLeaf{
 						prefix: &policyAuthorizerRule{access: AccessDeny},
@@ -548,15 +548,15 @@ func TestAnyAllowed(t *testing.T) {
 			listEnforcement:  Deny,
 			writeEnforcement: Deny,
 		},
-		"prefix-deny-other-write-prefix": testCase{
+		"prefix-deny-other-write-prefix": {
 			insertions: []radixInsertion{
-				radixInsertion{
+				{
 					segment: "",
 					value: &policyAuthorizerRadixLeaf{
 						prefix: &policyAuthorizerRule{access: AccessDeny},
 					},
 				},
-				radixInsertion{
+				{
 					segment: "foo",
 					value: &policyAuthorizerRadixLeaf{
 						prefix: &policyAuthorizerRule{access: AccessWrite},
@@ -567,15 +567,15 @@ func TestAnyAllowed(t *testing.T) {
 			listEnforcement:  Allow,
 			writeEnforcement: Allow,
 		},
-		"prefix-deny-other-write-exact": testCase{
+		"prefix-deny-other-write-exact": {
 			insertions: []radixInsertion{
-				radixInsertion{
+				{
 					segment: "",
 					value: &policyAuthorizerRadixLeaf{
 						prefix: &policyAuthorizerRule{access: AccessDeny},
 					},
 				},
-				radixInsertion{
+				{
 					segment: "foo",
 					value: &policyAuthorizerRadixLeaf{
 						exact: &policyAuthorizerRule{access: AccessWrite},
@@ -586,15 +586,15 @@ func TestAnyAllowed(t *testing.T) {
 			listEnforcement:  Allow,
 			writeEnforcement: Allow,
 		},
-		"prefix-deny-other-list-prefix": testCase{
+		"prefix-deny-other-list-prefix": {
 			insertions: []radixInsertion{
-				radixInsertion{
+				{
 					segment: "",
 					value: &policyAuthorizerRadixLeaf{
 						prefix: &policyAuthorizerRule{access: AccessDeny},
 					},
 				},
-				radixInsertion{
+				{
 					segment: "foo",
 					value: &policyAuthorizerRadixLeaf{
 						prefix: &policyAuthorizerRule{access: AccessList},
@@ -605,15 +605,15 @@ func TestAnyAllowed(t *testing.T) {
 			listEnforcement:  Allow,
 			writeEnforcement: Deny,
 		},
-		"prefix-deny-other-list-exact": testCase{
+		"prefix-deny-other-list-exact": {
 			insertions: []radixInsertion{
-				radixInsertion{
+				{
 					segment: "",
 					value: &policyAuthorizerRadixLeaf{
 						prefix: &policyAuthorizerRule{access: AccessDeny},
 					},
 				},
-				radixInsertion{
+				{
 					segment: "foo",
 					value: &policyAuthorizerRadixLeaf{
 						exact: &policyAuthorizerRule{access: AccessList},
@@ -624,15 +624,15 @@ func TestAnyAllowed(t *testing.T) {
 			listEnforcement:  Allow,
 			writeEnforcement: Deny,
 		},
-		"prefix-deny-other-read-prefix": testCase{
+		"prefix-deny-other-read-prefix": {
 			insertions: []radixInsertion{
-				radixInsertion{
+				{
 					segment: "",
 					value: &policyAuthorizerRadixLeaf{
 						prefix: &policyAuthorizerRule{access: AccessDeny},
 					},
 				},
-				radixInsertion{
+				{
 					segment: "foo",
 					value: &policyAuthorizerRadixLeaf{
 						prefix: &policyAuthorizerRule{access: AccessRead},
@@ -643,15 +643,15 @@ func TestAnyAllowed(t *testing.T) {
 			listEnforcement:  Deny,
 			writeEnforcement: Deny,
 		},
-		"prefix-deny-other-read-exact": testCase{
+		"prefix-deny-other-read-exact": {
 			insertions: []radixInsertion{
-				radixInsertion{
+				{
 					segment: "",
 					value: &policyAuthorizerRadixLeaf{
 						prefix: &policyAuthorizerRule{access: AccessDeny},
 					},
 				},
-				radixInsertion{
+				{
 					segment: "foo",
 					value: &policyAuthorizerRadixLeaf{
 						exact: &policyAuthorizerRule{access: AccessRead},
@@ -662,15 +662,15 @@ func TestAnyAllowed(t *testing.T) {
 			listEnforcement:  Deny,
 			writeEnforcement: Deny,
 		},
-		"prefix-deny-other-deny-prefix": testCase{
+		"prefix-deny-other-deny-prefix": {
 			insertions: []radixInsertion{
-				radixInsertion{
+				{
 					segment: "",
 					value: &policyAuthorizerRadixLeaf{
 						prefix: &policyAuthorizerRule{access: AccessDeny},
 					},
 				},
-				radixInsertion{
+				{
 					segment: "foo",
 					value: &policyAuthorizerRadixLeaf{
 						prefix: &policyAuthorizerRule{access: AccessDeny},
@@ -681,15 +681,15 @@ func TestAnyAllowed(t *testing.T) {
 			listEnforcement:  Deny,
 			writeEnforcement: Deny,
 		},
-		"prefix-deny-other-deny-exact": testCase{
+		"prefix-deny-other-deny-exact": {
 			insertions: []radixInsertion{
-				radixInsertion{
+				{
 					segment: "",
 					value: &policyAuthorizerRadixLeaf{
 						prefix: &policyAuthorizerRule{access: AccessDeny},
 					},
 				},
-				radixInsertion{
+				{
 					segment: "foo",
 					value: &policyAuthorizerRadixLeaf{
 						exact: &policyAuthorizerRule{access: AccessDeny},
@@ -735,14 +735,14 @@ func TestAllAllowed(t *testing.T) {
 	}
 
 	cases := map[string]testCase{
-		"no-rules-default": testCase{
+		"no-rules-default": {
 			readEnforcement:  Default,
 			listEnforcement:  Default,
 			writeEnforcement: Default,
 		},
-		"prefix-write-allowed": testCase{
+		"prefix-write-allowed": {
 			insertions: []radixInsertion{
-				radixInsertion{
+				{
 					segment: "",
 					value: &policyAuthorizerRadixLeaf{
 						prefix: &policyAuthorizerRule{access: AccessWrite},
@@ -753,9 +753,9 @@ func TestAllAllowed(t *testing.T) {
 			listEnforcement:  Allow,
 			writeEnforcement: Allow,
 		},
-		"prefix-list-allowed": testCase{
+		"prefix-list-allowed": {
 			insertions: []radixInsertion{
-				radixInsertion{
+				{
 					segment: "",
 					value: &policyAuthorizerRadixLeaf{
 						prefix: &policyAuthorizerRule{access: AccessList},
@@ -766,9 +766,9 @@ func TestAllAllowed(t *testing.T) {
 			listEnforcement:  Allow,
 			writeEnforcement: Deny,
 		},
-		"prefix-read-allowed": testCase{
+		"prefix-read-allowed": {
 			insertions: []radixInsertion{
-				radixInsertion{
+				{
 					segment: "",
 					value: &policyAuthorizerRadixLeaf{
 						prefix: &policyAuthorizerRule{access: AccessRead},
@@ -779,9 +779,9 @@ func TestAllAllowed(t *testing.T) {
 			listEnforcement:  Deny,
 			writeEnforcement: Deny,
 		},
-		"prefix-deny": testCase{
+		"prefix-deny": {
 			insertions: []radixInsertion{
-				radixInsertion{
+				{
 					segment: "",
 					value: &policyAuthorizerRadixLeaf{
 						prefix: &policyAuthorizerRule{access: AccessDeny},
@@ -792,15 +792,15 @@ func TestAllAllowed(t *testing.T) {
 			listEnforcement:  Deny,
 			writeEnforcement: Deny,
 		},
-		"prefix-allow-other-write-prefix": testCase{
+		"prefix-allow-other-write-prefix": {
 			insertions: []radixInsertion{
-				radixInsertion{
+				{
 					segment: "",
 					value: &policyAuthorizerRadixLeaf{
 						prefix: &policyAuthorizerRule{access: AccessWrite},
 					},
 				},
-				radixInsertion{
+				{
 					segment: "foo",
 					value: &policyAuthorizerRadixLeaf{
 						prefix: &policyAuthorizerRule{access: AccessWrite},
@@ -811,15 +811,15 @@ func TestAllAllowed(t *testing.T) {
 			listEnforcement:  Allow,
 			writeEnforcement: Allow,
 		},
-		"prefix-allow-other-write-exact": testCase{
+		"prefix-allow-other-write-exact": {
 			insertions: []radixInsertion{
-				radixInsertion{
+				{
 					segment: "",
 					value: &policyAuthorizerRadixLeaf{
 						prefix: &policyAuthorizerRule{access: AccessWrite},
 					},
 				},
-				radixInsertion{
+				{
 					segment: "foo",
 					value: &policyAuthorizerRadixLeaf{
 						exact: &policyAuthorizerRule{access: AccessWrite},
@@ -830,15 +830,15 @@ func TestAllAllowed(t *testing.T) {
 			listEnforcement:  Allow,
 			writeEnforcement: Allow,
 		},
-		"prefix-allow-other-list-prefix": testCase{
+		"prefix-allow-other-list-prefix": {
 			insertions: []radixInsertion{
-				radixInsertion{
+				{
 					segment: "",
 					value: &policyAuthorizerRadixLeaf{
 						prefix: &policyAuthorizerRule{access: AccessWrite},
 					},
 				},
-				radixInsertion{
+				{
 					segment: "foo",
 					value: &policyAuthorizerRadixLeaf{
 						prefix: &policyAuthorizerRule{access: AccessList},
@@ -849,15 +849,15 @@ func TestAllAllowed(t *testing.T) {
 			listEnforcement:  Allow,
 			writeEnforcement: Deny,
 		},
-		"prefix-allow-other-list-exact": testCase{
+		"prefix-allow-other-list-exact": {
 			insertions: []radixInsertion{
-				radixInsertion{
+				{
 					segment: "",
 					value: &policyAuthorizerRadixLeaf{
 						prefix: &policyAuthorizerRule{access: AccessWrite},
 					},
 				},
-				radixInsertion{
+				{
 					segment: "foo",
 					value: &policyAuthorizerRadixLeaf{
 						exact: &policyAuthorizerRule{access: AccessList},
@@ -868,15 +868,15 @@ func TestAllAllowed(t *testing.T) {
 			listEnforcement:  Allow,
 			writeEnforcement: Deny,
 		},
-		"prefix-allow-other-read-prefix": testCase{
+		"prefix-allow-other-read-prefix": {
 			insertions: []radixInsertion{
-				radixInsertion{
+				{
 					segment: "",
 					value: &policyAuthorizerRadixLeaf{
 						prefix: &policyAuthorizerRule{access: AccessWrite},
 					},
 				},
-				radixInsertion{
+				{
 					segment: "foo",
 					value: &policyAuthorizerRadixLeaf{
 						prefix: &policyAuthorizerRule{access: AccessRead},
@@ -887,15 +887,15 @@ func TestAllAllowed(t *testing.T) {
 			listEnforcement:  Deny,
 			writeEnforcement: Deny,
 		},
-		"prefix-allow-other-read-exact": testCase{
+		"prefix-allow-other-read-exact": {
 			insertions: []radixInsertion{
-				radixInsertion{
+				{
 					segment: "",
 					value: &policyAuthorizerRadixLeaf{
 						prefix: &policyAuthorizerRule{access: AccessWrite},
 					},
 				},
-				radixInsertion{
+				{
 					segment: "foo",
 					value: &policyAuthorizerRadixLeaf{
 						exact: &policyAuthorizerRule{access: AccessRead},
@@ -906,15 +906,15 @@ func TestAllAllowed(t *testing.T) {
 			listEnforcement:  Deny,
 			writeEnforcement: Deny,
 		},
-		"prefix-allow-other-deny-prefix": testCase{
+		"prefix-allow-other-deny-prefix": {
 			insertions: []radixInsertion{
-				radixInsertion{
+				{
 					segment: "",
 					value: &policyAuthorizerRadixLeaf{
 						prefix: &policyAuthorizerRule{access: AccessWrite},
 					},
 				},
-				radixInsertion{
+				{
 					segment: "foo",
 					value: &policyAuthorizerRadixLeaf{
 						prefix: &policyAuthorizerRule{access: AccessDeny},
@@ -925,15 +925,15 @@ func TestAllAllowed(t *testing.T) {
 			listEnforcement:  Deny,
 			writeEnforcement: Deny,
 		},
-		"prefix-allow-other-deny-exact": testCase{
+		"prefix-allow-other-deny-exact": {
 			insertions: []radixInsertion{
-				radixInsertion{
+				{
 					segment: "",
 					value: &policyAuthorizerRadixLeaf{
 						prefix: &policyAuthorizerRule{access: AccessWrite},
 					},
 				},
-				radixInsertion{
+				{
 					segment: "foo",
 					value: &policyAuthorizerRadixLeaf{
 						exact: &policyAuthorizerRule{access: AccessDeny},

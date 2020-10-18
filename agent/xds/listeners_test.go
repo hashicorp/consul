@@ -2,15 +2,16 @@ package xds
 
 import (
 	"bytes"
-	"fmt"
-	"path"
+	"path/filepath"
 	"sort"
 	"testing"
 	"text/template"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
@@ -80,6 +81,66 @@ func TestListenersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name:   "custom-public-listener-http",
+			create: proxycfg.TestConfigSnapshot,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.Proxy.Config["protocol"] = "http"
+				snap.Proxy.Config["envoy_public_listener_json"] =
+					customHTTPListenerJSON(t, customHTTPListenerJSONOptions{
+						Name: "custom-public-listen",
+					})
+			},
+		},
+		{
+			name:   "custom-public-listener-http-typed",
+			create: proxycfg.TestConfigSnapshot,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.Proxy.Config["protocol"] = "http"
+				snap.Proxy.Config["envoy_public_listener_json"] =
+					customHTTPListenerJSON(t, customHTTPListenerJSONOptions{
+						Name:        "custom-public-listen",
+						TypedConfig: true,
+					})
+			},
+		},
+		{
+			name:   "custom-public-listener-http-2",
+			create: proxycfg.TestConfigSnapshot,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.Proxy.Config["protocol"] = "http"
+				snap.Proxy.Config["envoy_public_listener_json"] =
+					customHTTPListenerJSON(t, customHTTPListenerJSONOptions{
+						Name:                      "custom-public-listen",
+						HTTPConnectionManagerName: httpConnectionManagerNewName,
+					})
+			},
+		},
+		{
+			name:   "custom-public-listener-http-2-typed",
+			create: proxycfg.TestConfigSnapshot,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.Proxy.Config["protocol"] = "http"
+				snap.Proxy.Config["envoy_public_listener_json"] =
+					customHTTPListenerJSON(t, customHTTPListenerJSONOptions{
+						Name:                      "custom-public-listen",
+						HTTPConnectionManagerName: httpConnectionManagerNewName,
+						TypedConfig:               true,
+					})
+			},
+		},
+		{
+			name:   "custom-public-listener-http-missing",
+			create: proxycfg.TestConfigSnapshot,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.Proxy.Config["protocol"] = "http"
+				snap.Proxy.Config["envoy_public_listener_json"] =
+					customListenerJSON(t, customListenerJSONOptions{
+						Name:        "custom-public-listen",
+						IncludeType: false,
+					})
+			},
+		},
+		{
 			name:               "custom-public-listener-typed",
 			create:             proxycfg.TestConfigSnapshot,
 			overrideGoldenName: "custom-public-listener", // should be the same
@@ -120,6 +181,17 @@ func TestListenersFromSnapshot(t *testing.T) {
 			name:               "custom-upstream-typed",
 			create:             proxycfg.TestConfigSnapshot,
 			overrideGoldenName: "custom-upstream", // should be the same
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.Proxy.Upstreams[0].Config["envoy_listener_json"] =
+					customListenerJSON(t, customListenerJSONOptions{
+						Name:        "custom-upstream",
+						IncludeType: true,
+					})
+			},
+		},
+		{
+			name:   "custom-upstream-typed-ignored-with-disco-chain",
+			create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailover,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Upstreams[0].Config["envoy_listener_json"] =
 					customListenerJSON(t, customListenerJSONOptions{
@@ -247,15 +319,15 @@ func TestListenersFromSnapshot(t *testing.T) {
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Config = map[string]interface{}{
 					"envoy_mesh_gateway_bind_addresses": map[string]structs.ServiceAddress{
-						"foo": structs.ServiceAddress{
+						"foo": {
 							Address: "198.17.2.3",
 							Port:    8080,
 						},
-						"bar": structs.ServiceAddress{
+						"bar": {
 							Address: "2001:db8::ff",
 							Port:    9999,
 						},
-						"baz": structs.ServiceAddress{
+						"baz": {
 							Address: "127.0.0.1",
 							Port:    8765,
 						},
@@ -267,6 +339,23 @@ func TestListenersFromSnapshot(t *testing.T) {
 			name:   "ingress-gateway",
 			create: proxycfg.TestConfigSnapshotIngressGateway,
 			setup:  nil,
+		},
+		{
+			name:   "ingress-gateway-bind-addrs",
+			create: proxycfg.TestConfigSnapshotIngressGateway,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.TaggedAddresses = map[string]structs.ServiceAddress{
+					"lan": {Address: "10.0.0.1"},
+					"wan": {Address: "172.16.0.1"},
+				}
+				snap.Proxy.Config = map[string]interface{}{
+					"envoy_gateway_no_default_bind":       true,
+					"envoy_gateway_bind_tagged_addresses": true,
+					"envoy_gateway_bind_addresses": map[string]structs.ServiceAddress{
+						"foo": {Address: "8.8.8.8"},
+					},
+				}
+			},
 		},
 		{
 			name:   "ingress-gateway-no-services",
@@ -298,56 +387,170 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotIngress_SplitterWithResolverRedirectMultiDC,
 			setup:  nil,
 		},
+		{
+			name:   "terminating-gateway",
+			create: proxycfg.TestConfigSnapshotTerminatingGateway,
+			setup:  nil,
+		},
+		{
+			name:   "terminating-gateway-no-services",
+			create: proxycfg.TestConfigSnapshotTerminatingGatewayNoServices,
+			setup:  nil,
+		},
+		{
+			name:   "terminating-gateway-custom-and-tagged-addresses",
+			create: proxycfg.TestConfigSnapshotTerminatingGateway,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.Proxy.Config = map[string]interface{}{
+					"envoy_gateway_no_default_bind":       true,
+					"envoy_gateway_bind_tagged_addresses": true,
+					"envoy_gateway_bind_addresses": map[string]structs.ServiceAddress{
+						"foo": {
+							Address: "198.17.2.3",
+							Port:    8080,
+						},
+						// This bind address should not get a listener due to deduplication
+						"duplicate-of-tagged-wan-addr": {
+							Address: "198.18.0.1",
+							Port:    443,
+						},
+					},
+				}
+			},
+		},
+		{
+			name:   "terminating-gateway-service-subsets",
+			create: proxycfg.TestConfigSnapshotTerminatingGateway,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.TerminatingGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
+					structs.NewServiceName("web", nil): {
+						Kind: structs.ServiceResolver,
+						Name: "web",
+						Subsets: map[string]structs.ServiceResolverSubset{
+							"v1": {
+								Filter: "Service.Meta.version == 1",
+							},
+							"v2": {
+								Filter:      "Service.Meta.version == 2",
+								OnlyPassing: true,
+							},
+						},
+					},
+				}
+				snap.TerminatingGateway.ServiceConfigs[structs.NewServiceName("web", nil)] = &structs.ServiceConfigResponse{
+					ProxyConfig: map[string]interface{}{"protocol": "http"},
+				}
+			},
+		},
+		{
+			name:   "ingress-http-multiple-services",
+			create: proxycfg.TestConfigSnapshotIngress_HTTPMultipleServices,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.IngressGateway.Upstreams = map[proxycfg.IngressListenerKey]structs.Upstreams{
+					{Protocol: "http", Port: 8080}: {
+						{
+							DestinationName: "foo",
+							LocalBindPort:   8080,
+						},
+						{
+							DestinationName: "bar",
+							LocalBindPort:   8080,
+						},
+					},
+					{Protocol: "http", Port: 443}: {
+						{
+							DestinationName: "baz",
+							LocalBindPort:   443,
+						},
+						{
+							DestinationName: "qux",
+							LocalBindPort:   443,
+						},
+					},
+				}
+			},
+		},
+		{
+			name:   "terminating-gateway-no-api-cert",
+			create: proxycfg.TestConfigSnapshotTerminatingGateway,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.TerminatingGateway.ServiceLeaves[structs.NewServiceName("api", nil)] = nil
+			},
+		},
+		{
+			name:   "ingress-with-tls-listener",
+			create: proxycfg.TestConfigSnapshotIngressWithTLSListener,
+			setup:  nil,
+		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			require := require.New(t)
+	for _, envoyVersion := range proxysupport.EnvoyVersions {
+		sf, err := determineSupportedProxyFeaturesFromString(envoyVersion)
+		require.NoError(t, err)
+		t.Run("envoy-"+envoyVersion, func(t *testing.T) {
+			for _, tt := range tests {
+				t.Run(tt.name, func(t *testing.T) {
+					require := require.New(t)
 
-			// Sanity check default with no overrides first
-			snap := tt.create(t)
+					// Sanity check default with no overrides first
+					snap := tt.create(t)
 
-			// We need to replace the TLS certs with deterministic ones to make golden
-			// files workable. Note we don't update these otherwise they'd change
-			// golder files for every test case and so not be any use!
-			setupTLSRootsAndLeaf(t, snap)
+					// We need to replace the TLS certs with deterministic ones to make golden
+					// files workable. Note we don't update these otherwise they'd change
+					// golder files for every test case and so not be any use!
+					setupTLSRootsAndLeaf(t, snap)
 
-			if tt.setup != nil {
-				tt.setup(snap)
+					if tt.setup != nil {
+						tt.setup(snap)
+					}
+
+					// Need server just for logger dependency
+					logger := testutil.Logger(t)
+					s := Server{
+						Logger: logger,
+					}
+
+					cInfo := connectionInfo{
+						Token:         "my-token",
+						ProxyFeatures: sf,
+					}
+					listeners, err := s.listenersFromSnapshot(cInfo, snap)
+					sort.Slice(listeners, func(i, j int) bool {
+						return listeners[i].(*envoy.Listener).Name < listeners[j].(*envoy.Listener).Name
+					})
+
+					// For terminating gateways we create filter chain matches for services/subsets from the ServiceGroups map
+					for i := 0; i < len(listeners); i++ {
+						l := listeners[i].(*envoy.Listener)
+
+						if l.FilterChains != nil {
+							// Sort chains by the matched name with the exception of the last one
+							// The last chain is a fallback and does not have a FilterChainMatch
+							sort.Slice(l.FilterChains[:len(l.FilterChains)-1], func(i, j int) bool {
+								return l.FilterChains[i].FilterChainMatch.ServerNames[0] < l.FilterChains[j].FilterChainMatch.ServerNames[0]
+							})
+						}
+					}
+
+					require.NoError(err)
+					r, err := createResponse(ListenerType, "00000001", "00000001", listeners)
+					require.NoError(err)
+
+					gotJSON := responseToJSON(t, r)
+
+					gName := tt.name
+					if tt.overrideGoldenName != "" {
+						gName = tt.overrideGoldenName
+					}
+
+					require.JSONEq(goldenEnvoy(t, filepath.Join("listeners", gName), envoyVersion, gotJSON), gotJSON)
+				})
 			}
-
-			// Need server just for logger dependency
-			logger := testutil.Logger(t)
-			s := Server{
-				Logger: logger,
-			}
-
-			listeners, err := s.listenersFromSnapshot(snap, "my-token")
-			sort.Slice(listeners, func(i, j int) bool {
-				return listeners[i].(*envoy.Listener).Name < listeners[j].(*envoy.Listener).Name
-			})
-
-			require.NoError(err)
-			r, err := createResponse(ListenerType, "00000001", "00000001", listeners)
-			require.NoError(err)
-
-			gotJSON := responseToJSON(t, r)
-
-			gName := tt.name
-			if tt.overrideGoldenName != "" {
-				gName = tt.overrideGoldenName
-			}
-
-			require.JSONEq(golden(t, path.Join("listeners", gName), gotJSON), gotJSON)
 		})
 	}
 }
 
-func expectListenerJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot, token string, v, n uint64) map[string]string {
-	tokenVal := ""
-	if token != "" {
-		tokenVal = fmt.Sprintf(",\n"+`"value": "%s"`, token)
-	}
+func expectListenerJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot) map[string]string {
 	return map[string]string{
 		"public_listener": `{
 				"@type": "type.googleapis.com/envoy.api.v2.Listener",
@@ -363,18 +566,9 @@ func expectListenerJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot, to
 						"tlsContext": ` + expectedPublicTLSContextJSON(t, snap) + `,
 						"filters": [
 							{
-								"name": "envoy.ext_authz",
+								"name": "envoy.filters.network.rbac",
 								"config": {
-										"grpc_service": {
-												"envoy_grpc": {
-													"cluster_name": "local_agent"
-												},
-												"initial_metadata": [
-													{
-														"key": "x-consul-token"
-														` + tokenVal + `
-													}
-												]
+										"rules": {
 											},
 										"stat_prefix": "connect_authz"
 									}
@@ -439,7 +633,7 @@ func expectListenerJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot, to
 	}
 }
 
-func expectListenerJSONFromResources(t *testing.T, snap *proxycfg.ConfigSnapshot, token string, v, n uint64, resourcesJSON map[string]string) string {
+func expectListenerJSONFromResources(snap *proxycfg.ConfigSnapshot, v, n uint64, resourcesJSON map[string]string) string {
 	resJSON := ""
 	// Sort resources into specific order because that matters in JSONEq
 	// comparison later.
@@ -465,16 +659,14 @@ func expectListenerJSONFromResources(t *testing.T, snap *proxycfg.ConfigSnapshot
 		}`
 }
 
-func expectListenerJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, token string, v, n uint64) string {
-	return expectListenerJSONFromResources(t, snap, token, v, n,
-		expectListenerJSONResources(t, snap, token, v, n))
+func expectListenerJSON(t *testing.T, snap *proxycfg.ConfigSnapshot, v, n uint64) string {
+	return expectListenerJSONFromResources(snap, v, n, expectListenerJSONResources(t, snap))
 }
 
 type customListenerJSONOptions struct {
-	Name          string
-	IncludeType   bool
-	OverrideAuthz bool
-	TLSContext    string
+	Name        string
+	IncludeType bool
+	TLSContext  string
 }
 
 const customListenerJSONTpl = `{
@@ -494,25 +686,6 @@ const customListenerJSONTpl = `{
 			"tlsContext": {{ .TLSContext }},
 			{{- end }}
 			"filters": [
-				{{ if .OverrideAuthz -}}
-				{
-					"name": "envoy.ext_authz",
-					"config": {
-							"grpc_service": {
-										"envoy_grpc": {
-													"cluster_name": "local_agent"
-												},
-										"initial_metadata": [
-													{
-																"key": "x-consul-token",
-																"value": "my-token"
-															}
-												]
-									},
-							"stat_prefix": "connect_authz"
-						}
-				},
-				{{- end }}
 				{
 					"name": "envoy.tcp_proxy",
 					"config": {
@@ -525,12 +698,82 @@ const customListenerJSONTpl = `{
 	]
 }`
 
-var customListenerJSONTemplate = template.Must(template.New("").Parse(customListenerJSONTpl))
+type customHTTPListenerJSONOptions struct {
+	Name                      string
+	HTTPConnectionManagerName string
+	TypedConfig               bool
+}
+
+const customHTTPListenerJSONTpl = `{
+	"name": "{{ .Name }}",
+	"address": {
+		"socketAddress": {
+			"address": "11.11.11.11",
+			"portValue": 11111
+		}
+	},
+	"filterChains": [
+		{
+			"filters": [
+				{
+					"name": "{{ .HTTPConnectionManagerName }}",
+					{{ if .TypedConfig -}}
+					"typedConfig": {
+					"@type": "type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager",
+					{{ else -}}
+					"config": {
+					{{- end }}
+						"http_filters": [
+							{
+								"name": "envoy.router"
+							}
+						],
+						"route_config": {
+							"name": "public_listener",
+							"virtual_hosts": [
+								{
+									"domains": [
+										"*"
+									],
+									"name": "public_listener",
+									"routes": [
+										{
+											"match": {
+												"prefix": "/"
+											},
+											"route": {
+												"cluster": "random-cluster"
+											}
+										}
+									]
+								}
+							]
+						}
+					}
+				}
+			]
+		}
+	]
+}`
+
+var (
+	customListenerJSONTemplate     = template.Must(template.New("").Parse(customListenerJSONTpl))
+	customHTTPListenerJSONTemplate = template.Must(template.New("").Parse(customHTTPListenerJSONTpl))
+)
 
 func customListenerJSON(t *testing.T, opts customListenerJSONOptions) string {
 	t.Helper()
 	var buf bytes.Buffer
-	err := customListenerJSONTemplate.Execute(&buf, opts)
-	require.NoError(t, err)
+	require.NoError(t, customListenerJSONTemplate.Execute(&buf, opts))
+	return buf.String()
+}
+
+func customHTTPListenerJSON(t *testing.T, opts customHTTPListenerJSONOptions) string {
+	t.Helper()
+	if opts.HTTPConnectionManagerName == "" {
+		opts.HTTPConnectionManagerName = wellknown.HTTPConnectionManager
+	}
+	var buf bytes.Buffer
+	require.NoError(t, customHTTPListenerJSONTemplate.Execute(&buf, opts))
 	return buf.String()
 }

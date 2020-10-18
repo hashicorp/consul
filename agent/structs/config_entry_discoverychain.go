@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"net/http"
 	"regexp"
 	"sort"
 	"strconv"
@@ -14,6 +15,37 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/lib"
 	"github.com/mitchellh/hashstructure"
+)
+
+const (
+	// Names of Envoy's LB policies
+	LBPolicyMaglev       = "maglev"
+	LBPolicyRingHash     = "ring_hash"
+	LBPolicyRandom       = "random"
+	LBPolicyLeastRequest = "least_request"
+	LBPolicyRoundRobin   = "round_robin"
+
+	// Names of Envoy's LB policies
+	HashPolicyCookie     = "cookie"
+	HashPolicyHeader     = "header"
+	HashPolicyQueryParam = "query_parameter"
+)
+
+var (
+	validLBPolicies = map[string]bool{
+		"":                   true,
+		LBPolicyRandom:       true,
+		LBPolicyRoundRobin:   true,
+		LBPolicyLeastRequest: true,
+		LBPolicyRingHash:     true,
+		LBPolicyMaglev:       true,
+	}
+
+	validHashPolicies = map[string]bool{
+		HashPolicyHeader:     true,
+		HashPolicyCookie:     true,
+		HashPolicyQueryParam: true,
+	}
 )
 
 // ServiceRouterConfigEntry defines L7 (e.g. http) routing rules for a named
@@ -38,6 +70,7 @@ type ServiceRouterConfigEntry struct {
 	// the default service.
 	Routes []ServiceRoute
 
+	Meta           map[string]string `json:",omitempty"`
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
@@ -52,6 +85,13 @@ func (e *ServiceRouterConfigEntry) GetName() string {
 	}
 
 	return e.Name
+}
+
+func (e *ServiceRouterConfigEntry) GetMeta() map[string]string {
+	if e == nil {
+		return nil
+	}
+	return e.Meta
 }
 
 func (e *ServiceRouterConfigEntry) Normalize() error {
@@ -69,15 +109,12 @@ func (e *ServiceRouterConfigEntry) Normalize() error {
 		}
 
 		httpMatch := route.Match.HTTP
-		if len(httpMatch.Methods) == 0 {
-			continue
-		}
-
 		for j := 0; j < len(httpMatch.Methods); j++ {
 			httpMatch.Methods[j] = strings.ToUpper(httpMatch.Methods[j])
 		}
+
 		if route.Destination != nil && route.Destination.Namespace == "" {
-			route.Destination.Namespace = e.EnterpriseMeta.NamespaceOrDefault()
+			route.Destination.Namespace = e.EnterpriseMeta.NamespaceOrEmpty()
 		}
 	}
 
@@ -87,6 +124,10 @@ func (e *ServiceRouterConfigEntry) Normalize() error {
 func (e *ServiceRouterConfigEntry) Validate() error {
 	if e.Name == "" {
 		return fmt.Errorf("Name is required")
+	}
+
+	if err := validateConfigEntryMeta(e.Meta); err != nil {
+		return err
 	}
 
 	// Technically you can have no explicit routes at all where just the
@@ -166,6 +207,9 @@ func (e *ServiceRouterConfigEntry) Validate() error {
 			if len(route.Match.HTTP.Methods) > 0 {
 				found := make(map[string]struct{})
 				for _, m := range route.Match.HTTP.Methods {
+					if !isValidHTTPMethod(m) {
+						return fmt.Errorf("Route[%d] Methods contains an invalid method %q", i, m)
+					}
 					if _, ok := found[m]; ok {
 						return fmt.Errorf("Route[%d] Methods contains %q more than once", i, m)
 					}
@@ -182,6 +226,23 @@ func (e *ServiceRouterConfigEntry) Validate() error {
 	}
 
 	return nil
+}
+
+func isValidHTTPMethod(method string) bool {
+	switch method {
+	case http.MethodGet,
+		http.MethodHead,
+		http.MethodPost,
+		http.MethodPut,
+		http.MethodPatch,
+		http.MethodDelete,
+		http.MethodConnect,
+		http.MethodOptions,
+		http.MethodTrace:
+		return true
+	default:
+		return false
+	}
 }
 
 func (e *ServiceRouterConfigEntry) CanRead(rule acl.Authorizer) bool {
@@ -221,7 +282,7 @@ func (e *ServiceRouterConfigEntry) ListRelatedServices() []ServiceID {
 	}
 
 	out := make([]ServiceID, 0, len(found))
-	for svc, _ := range found {
+	for svc := range found {
 		out = append(out, svc)
 	}
 	sort.Slice(out, func(i, j int) bool {
@@ -260,12 +321,12 @@ func (m *ServiceRouteMatch) IsEmpty() bool {
 
 // ServiceRouteHTTPMatch is a set of http-specific match criteria.
 type ServiceRouteHTTPMatch struct {
-	PathExact  string `json:",omitempty"`
-	PathPrefix string `json:",omitempty"`
-	PathRegex  string `json:",omitempty"`
+	PathExact  string `json:",omitempty" alias:"path_exact"`
+	PathPrefix string `json:",omitempty" alias:"path_prefix"`
+	PathRegex  string `json:",omitempty" alias:"path_regex"`
 
 	Header     []ServiceRouteHTTPMatchHeader     `json:",omitempty"`
-	QueryParam []ServiceRouteHTTPMatchQueryParam `json:",omitempty"`
+	QueryParam []ServiceRouteHTTPMatchQueryParam `json:",omitempty" alias:"query_param"`
 	Methods    []string                          `json:",omitempty"`
 }
 
@@ -308,7 +369,7 @@ type ServiceRouteDestination struct {
 	//
 	// If this field is specified then this route is ineligible for further
 	// splitting.
-	ServiceSubset string `json:",omitempty"`
+	ServiceSubset string `json:",omitempty" alias:"service_subset"`
 
 	// Namespace is the namespace to resolve the service from instead of the
 	// current namespace. If empty the current namespace is assumed.
@@ -320,24 +381,24 @@ type ServiceRouteDestination struct {
 	// PrefixRewrite allows for the proxied request to have its matching path
 	// prefix modified before being sent to the destination. Described more
 	// below in the envoy implementation section.
-	PrefixRewrite string `json:",omitempty"`
+	PrefixRewrite string `json:",omitempty" alias:"prefix_rewrite"`
 
 	// RequestTimeout is the total amount of time permitted for the entire
 	// downstream request (and retries) to be processed.
-	RequestTimeout time.Duration `json:",omitempty"`
+	RequestTimeout time.Duration `json:",omitempty" alias:"request_timeout"`
 
 	// NumRetries is the number of times to retry the request when a retryable
 	// result occurs. This seems fairly proxy agnostic.
-	NumRetries uint32 `json:",omitempty"`
+	NumRetries uint32 `json:",omitempty" alias:"num_retries"`
 
 	// RetryOnConnectFailure allows for connection failure errors to trigger a
 	// retry. This should be expressible in other proxies as it's just a layer
 	// 4 failure bubbling up to layer 7.
-	RetryOnConnectFailure bool `json:",omitempty"`
+	RetryOnConnectFailure bool `json:",omitempty" alias:"retry_on_connect_failure"`
 
 	// RetryOnStatusCodes is a flat list of http response status codes that are
 	// eligible for retry. This again should be feasible in any sane proxy.
-	RetryOnStatusCodes []uint32 `json:",omitempty"`
+	RetryOnStatusCodes []uint32 `json:",omitempty" alias:"retry_on_status_codes"`
 }
 
 func (e *ServiceRouteDestination) MarshalJSON() ([]byte, error) {
@@ -407,6 +468,7 @@ type ServiceSplitterConfigEntry struct {
 	// to the FIRST split.
 	Splits []ServiceSplit
 
+	Meta           map[string]string `json:",omitempty"`
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
@@ -421,6 +483,13 @@ func (e *ServiceSplitterConfigEntry) GetName() string {
 	}
 
 	return e.Name
+}
+
+func (e *ServiceSplitterConfigEntry) GetMeta() map[string]string {
+	if e == nil {
+		return nil
+	}
+	return e.Meta
 }
 
 func (e *ServiceSplitterConfigEntry) Normalize() error {
@@ -449,7 +518,7 @@ func (e *ServiceSplitterConfigEntry) Normalize() error {
 
 func NormalizeServiceSplitWeight(weight float32) float32 {
 	weightScaled := scaleWeight(weight)
-	return float32(float32(weightScaled) / 100.0)
+	return float32(weightScaled) / 100.0
 }
 
 func (e *ServiceSplitterConfigEntry) Validate() error {
@@ -459,6 +528,10 @@ func (e *ServiceSplitterConfigEntry) Validate() error {
 
 	if len(e.Splits) == 0 {
 		return fmt.Errorf("no splits configured")
+	}
+
+	if err := validateConfigEntryMeta(e.Meta); err != nil {
+		return err
 	}
 
 	const maxScaledWeight = 100 * 100
@@ -545,7 +618,7 @@ func (e *ServiceSplitterConfigEntry) ListRelatedServices() []ServiceID {
 	}
 
 	out := make([]ServiceID, 0, len(found))
-	for svc, _ := range found {
+	for svc := range found {
 		out = append(out, svc)
 	}
 	sort.Slice(out, func(i, j int) bool {
@@ -576,7 +649,7 @@ type ServiceSplit struct {
 	//
 	// If this field is specified then this route is ineligible for further
 	// splitting.
-	ServiceSubset string `json:",omitempty"`
+	ServiceSubset string `json:",omitempty" alias:"service_subset"`
 
 	// Namespace is the namespace to resolve the service from instead of the
 	// current namespace. If empty the current namespace is assumed (optional).
@@ -604,7 +677,7 @@ type ServiceResolverConfigEntry struct {
 
 	// DefaultSubset is the subset to use when no explicit subset is
 	// requested. If empty the unnamed subset is used.
-	DefaultSubset string `json:",omitempty"`
+	DefaultSubset string `json:",omitempty" alias:"default_subset"`
 
 	// Subsets is a map of subset name to subset definition for all
 	// usable named subsets of this service. The map key is the name
@@ -637,8 +710,13 @@ type ServiceResolverConfigEntry struct {
 
 	// ConnectTimeout is the timeout for establishing new network connections
 	// to this service.
-	ConnectTimeout time.Duration `json:",omitempty"`
+	ConnectTimeout time.Duration `json:",omitempty" alias:"connect_timeout"`
 
+	// LoadBalancer determines the load balancing policy and configuration for services
+	// issuing requests to this upstream service.
+	LoadBalancer *LoadBalancer `json:",omitempty" alias:"load_balancer"`
+
+	Meta           map[string]string `json:",omitempty"`
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
@@ -695,7 +773,8 @@ func (e *ServiceResolverConfigEntry) IsDefault() bool {
 		len(e.Subsets) == 0 &&
 		e.Redirect == nil &&
 		len(e.Failover) == 0 &&
-		e.ConnectTimeout == 0
+		e.ConnectTimeout == 0 &&
+		e.LoadBalancer == nil
 }
 
 func (e *ServiceResolverConfigEntry) GetKind() string {
@@ -708,6 +787,13 @@ func (e *ServiceResolverConfigEntry) GetName() string {
 	}
 
 	return e.Name
+}
+
+func (e *ServiceResolverConfigEntry) GetMeta() map[string]string {
+	if e == nil {
+		return nil
+	}
+	return e.Meta
 }
 
 func (e *ServiceResolverConfigEntry) Normalize() error {
@@ -727,8 +813,12 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 		return fmt.Errorf("Name is required")
 	}
 
+	if err := validateConfigEntryMeta(e.Meta); err != nil {
+		return err
+	}
+
 	if len(e.Subsets) > 0 {
-		for name, _ := range e.Subsets {
+		for name := range e.Subsets {
 			if name == "" {
 				return fmt.Errorf("Subset defined with empty name")
 			}
@@ -807,6 +897,56 @@ func (e *ServiceResolverConfigEntry) Validate() error {
 		return fmt.Errorf("Bad ConnectTimeout '%s', must be >= 0", e.ConnectTimeout)
 	}
 
+	if e.LoadBalancer != nil {
+		lb := e.LoadBalancer
+
+		if ok := validLBPolicies[lb.Policy]; !ok {
+			return fmt.Errorf("Bad LoadBalancer policy: %q is not supported", lb.Policy)
+		}
+
+		if lb.Policy != LBPolicyRingHash && lb.RingHashConfig != nil {
+			return fmt.Errorf("Bad LoadBalancer configuration. "+
+				"RingHashConfig specified for incompatible load balancing policy %q", lb.Policy)
+		}
+		if lb.Policy != LBPolicyLeastRequest && lb.LeastRequestConfig != nil {
+			return fmt.Errorf("Bad LoadBalancer configuration. "+
+				"LeastRequestConfig specified for incompatible load balancing policy %q", lb.Policy)
+		}
+		if !lb.IsHashBased() && len(lb.HashPolicies) > 0 {
+			return fmt.Errorf("Bad LoadBalancer configuration: "+
+				"HashPolicies specified for non-hash-based Policy: %q", lb.Policy)
+		}
+
+		for i, hp := range lb.HashPolicies {
+			if ok := validHashPolicies[hp.Field]; hp.Field != "" && !ok {
+				return fmt.Errorf("Bad LoadBalancer HashPolicy[%d]: %q is not a supported field", i, hp.Field)
+			}
+
+			if hp.SourceIP && hp.Field != "" {
+				return fmt.Errorf("Bad LoadBalancer HashPolicy[%d]: "+
+					"A single hash policy cannot hash both a source address and a %q", i, hp.Field)
+			}
+			if hp.SourceIP && hp.FieldValue != "" {
+				return fmt.Errorf("Bad LoadBalancer HashPolicy[%d]: "+
+					"A FieldValue cannot be specified when hashing SourceIP", i)
+			}
+			if hp.Field != "" && hp.FieldValue == "" {
+				return fmt.Errorf("Bad LoadBalancer HashPolicy[%d]: Field %q was specified without a FieldValue", i, hp.Field)
+			}
+			if hp.FieldValue != "" && hp.Field == "" {
+				return fmt.Errorf("Bad LoadBalancer HashPolicy[%d]: FieldValue requires a Field to apply to", i)
+			}
+			if hp.CookieConfig != nil {
+				if hp.Field != HashPolicyCookie {
+					return fmt.Errorf("Bad LoadBalancer HashPolicy[%d]: cookie_config provided for %q", i, hp.Field)
+				}
+				if hp.CookieConfig.Session && hp.CookieConfig.TTL != 0*time.Second {
+					return fmt.Errorf("Bad LoadBalancer HashPolicy[%d]: a session cookie cannot have an associated TTL", i)
+				}
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -859,7 +999,7 @@ func (e *ServiceResolverConfigEntry) ListRelatedServices() []ServiceID {
 	}
 
 	out := make([]ServiceID, 0, len(found))
-	for svc, _ := range found {
+	for svc := range found {
 		out = append(out, svc)
 	}
 	sort.Slice(out, func(i, j int) bool {
@@ -884,7 +1024,7 @@ type ServiceResolverSubset struct {
 	// to true, only instances with checks in the passing state will be
 	// returned. (behaves identically to the similarly named field on prepared
 	// queries).
-	OnlyPassing bool `json:",omitempty"`
+	OnlyPassing bool `json:",omitempty" alias:"only_passing"`
 }
 
 type ServiceResolverRedirect struct {
@@ -898,7 +1038,7 @@ type ServiceResolverRedirect struct {
 	//
 	// If this is specified at least one of Service, Datacenter, or Namespace
 	// should be configured.
-	ServiceSubset string `json:",omitempty"`
+	ServiceSubset string `json:",omitempty" alias:"service_subset"`
 
 	// Namespace is the namespace to resolve the service from instead of the
 	// current one (optional).
@@ -926,7 +1066,7 @@ type ServiceResolverFailover struct {
 	// requested service is used (optional).
 	//
 	// This is a DESTINATION during failover.
-	ServiceSubset string `json:",omitempty"`
+	ServiceSubset string `json:",omitempty" alias:"service_subset"`
 
 	// Namespace is the namespace to resolve the requested service from to form
 	// the failover group of instances. If empty the current namespace is used
@@ -941,6 +1081,92 @@ type ServiceResolverFailover struct {
 	//
 	// This is a DESTINATION during failover.
 	Datacenters []string `json:",omitempty"`
+}
+
+// LoadBalancer determines the load balancing policy and configuration for services
+// issuing requests to this upstream service.
+type LoadBalancer struct {
+	// Policy is the load balancing policy used to select a host
+	Policy string `json:",omitempty"`
+
+	// RingHashConfig contains configuration for the "ring_hash" policy type
+	RingHashConfig *RingHashConfig `json:",omitempty" alias:"ring_hash_config"`
+
+	// LeastRequestConfig contains configuration for the "least_request" policy type
+	LeastRequestConfig *LeastRequestConfig `json:",omitempty" alias:"least_request_config"`
+
+	// HashPolicies is a list of hash policies to use for hashing load balancing algorithms.
+	// Hash policies are evaluated individually and combined such that identical lists
+	// result in the same hash.
+	// If no hash policies are present, or none are successfully evaluated,
+	// then a random backend host will be selected.
+	HashPolicies []HashPolicy `json:",omitempty" alias:"hash_policies"`
+}
+
+// RingHashConfig contains configuration for the "ring_hash" policy type
+type RingHashConfig struct {
+	// MinimumRingSize determines the minimum number of entries in the hash ring
+	MinimumRingSize uint64 `json:",omitempty" alias:"minimum_ring_size"`
+
+	// MaximumRingSize determines the maximum number of entries in the hash ring
+	MaximumRingSize uint64 `json:",omitempty" alias:"maximum_ring_size"`
+}
+
+// LeastRequestConfig contains configuration for the "least_request" policy type
+type LeastRequestConfig struct {
+	// ChoiceCount determines the number of random healthy hosts from which to select the one with the least requests.
+	ChoiceCount uint32 `json:",omitempty" alias:"choice_count"`
+}
+
+// HashPolicy defines which attributes will be hashed by hash-based LB algorithms
+type HashPolicy struct {
+	// Field is the attribute type to hash on.
+	// Must be one of "header","cookie", or "query_parameter".
+	// Cannot be specified along with SourceIP.
+	Field string `json:",omitempty"`
+
+	// FieldValue is the value to hash.
+	// ie. header name, cookie name, URL query parameter name
+	// Cannot be specified along with SourceIP.
+	FieldValue string `json:",omitempty" alias:"field_value"`
+
+	// CookieConfig contains configuration for the "cookie" hash policy type.
+	CookieConfig *CookieConfig `json:",omitempty" alias:"cookie_config"`
+
+	// SourceIP determines whether the hash should be of the source IP rather than of a field and field value.
+	// Cannot be specified along with Field or FieldValue.
+	SourceIP bool `json:",omitempty" alias:"source_ip"`
+
+	// Terminal will short circuit the computation of the hash when multiple hash policies are present.
+	// If a hash is computed when a Terminal policy is evaluated,
+	// then that hash will be used and subsequent hash policies will be ignored.
+	Terminal bool `json:",omitempty"`
+}
+
+// CookieConfig contains configuration for the "cookie" hash policy type.
+// This is specified to have Envoy generate a cookie for a client on its first request.
+type CookieConfig struct {
+	// Generates a session cookie with no expiration.
+	Session bool `json:",omitempty"`
+
+	// TTL for generated cookies. Cannot be specified for session cookies.
+	TTL time.Duration `json:",omitempty"`
+
+	// The path to set for the cookie
+	Path string `json:",omitempty"`
+}
+
+func (lb *LoadBalancer) IsHashBased() bool {
+	if lb == nil {
+		return false
+	}
+
+	switch lb.Policy {
+	case LBPolicyMaglev, LBPolicyRingHash:
+		return true
+	default:
+		return false
+	}
 }
 
 type discoveryChainConfigEntry interface {
@@ -1211,4 +1437,13 @@ func defaultIfEmpty(val, defaultVal string) string {
 		return val
 	}
 	return defaultVal
+}
+
+func IsProtocolHTTPLike(protocol string) bool {
+	switch protocol {
+	case "http", "http2", "grpc":
+		return true
+	default:
+		return false
+	}
 }

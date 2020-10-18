@@ -1,6 +1,5 @@
 import { skip, test } from 'qunit';
 import { setupApplicationTest } from 'ember-qunit';
-import { Promise } from 'rsvp';
 import Yadda from 'yadda';
 
 import { env } from '../../env';
@@ -18,6 +17,9 @@ const reset = function() {
   staticClassList.forEach(function(item) {
     list.add(item);
   });
+};
+const startup = function() {
+  api.server.setCookie('CONSUL_LATENCY', 0);
 };
 
 const runTest = function(context, libraries, steps, scenarioContext) {
@@ -90,6 +92,9 @@ export const setupFeature = function(featureAnnotations) {
 };
 export const setupScenario = function(featureAnnotations, scenarioAnnotations) {
   return function(model) {
+    model.beforeEach(function() {
+      startup();
+    });
     model.afterEach(function() {
       reset();
     });

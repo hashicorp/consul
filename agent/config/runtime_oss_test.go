@@ -2,12 +2,22 @@
 
 package config
 
+var authMethodEntFields = `{}`
+
 var entMetaJSON = `{}`
 
 var entRuntimeConfigSanitize = `{}`
 
-var entFullDNSJSONConfig = ``
+var entTokenConfigSanitize = `"EnterpriseConfig": {},`
 
-var entFullDNSHCLConfig = ``
+func entFullRuntimeConfig(rt *RuntimeConfig) {}
 
-var entFullRuntimeConfig = EnterpriseRuntimeConfig{}
+var enterpriseNonVotingServerWarnings []string = []string{enterpriseConfigKeyError{key: "non_voting_server"}.Error()}
+
+var enterpriseConfigKeyWarnings []string
+
+func init() {
+	for k := range enterpriseConfigMap {
+		enterpriseConfigKeyWarnings = append(enterpriseConfigKeyWarnings, enterpriseConfigKeyError{key: k}.Error())
+	}
+}

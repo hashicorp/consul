@@ -1,28 +1,29 @@
 package agent
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	"net"
+	"regexp"
 	"strings"
 	"sync/atomic"
 	"time"
 
-	"regexp"
-
 	metrics "github.com/armon/go-metrics"
 	radix "github.com/armon/go-radix"
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
+	"github.com/hashicorp/go-hclog"
+	"github.com/miekg/dns"
+
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/config"
-	"github.com/hashicorp/consul/agent/consul"
+	agentdns "github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/go-hclog"
-	"github.com/miekg/dns"
 )
 
 const (
@@ -38,11 +39,7 @@ const (
 	staleCounterThreshold = 5 * time.Second
 
 	defaultMaxUDPSize = 512
-
-	MaxDNSLabelLength = 63
 )
-
-var InvalidDnsRe = regexp.MustCompile(`[^A-Za-z0-9\\-]+`)
 
 type dnsSOAConfig struct {
 	Refresh uint32 // 3600 by default
@@ -317,7 +314,11 @@ START:
 }
 
 func serviceNodeCanonicalDNSName(sn *structs.ServiceNode, domain string) string {
-	return serviceCanonicalDNSName(sn.ServiceName, sn.Datacenter, domain, &sn.EnterpriseMeta)
+	return serviceCanonicalDNSName(sn.ServiceName, "service", sn.Datacenter, domain, &sn.EnterpriseMeta)
+}
+
+func serviceIngressDNSName(service, datacenter, domain string, entMeta *structs.EnterpriseMeta) string {
+	return serviceCanonicalDNSName(service, "ingress", datacenter, domain, entMeta)
 }
 
 // handlePtr is used to handle "reverse" DNS queries
@@ -535,7 +536,7 @@ func (d *DNSServer) nameservers(cfg *dnsConfig, maxRecursionLevel int) (ns []dns
 	for _, o := range out.Nodes {
 		name, dc := o.Node.Node, o.Node.Datacenter
 
-		if InvalidDnsRe.MatchString(name) {
+		if agentdns.InvalidNameRe.MatchString(name) {
 			d.logger.Warn("Skipping invalid node for NS records", "node", name)
 			continue
 		}
@@ -737,7 +738,7 @@ func (d *DNSServer) doDispatch(network string, remoteAddr net.Addr, req, resp *d
 
 		// Allow a "." in the node name, just join all the parts
 		node := strings.Join(queryParts, ".")
-		d.nodeLookup(cfg, network, datacenter, node, req, resp, maxRecursionLevel)
+		d.nodeLookup(cfg, datacenter, node, req, resp, maxRecursionLevel)
 	case "query":
 		// ensure we have a query name
 		if len(queryParts) < 1 {
@@ -818,8 +819,19 @@ func (d *DNSServer) trimDomain(query string) string {
 	return strings.TrimSuffix(query, shorter)
 }
 
+// computeRCode Return the DNS Error code from Consul Error
+func (d *DNSServer) computeRCode(err error) int {
+	if err == nil {
+		return dns.RcodeSuccess
+	}
+	if structs.IsErrNoDCPath(err) || structs.IsErrQueryNotFound(err) {
+		return dns.RcodeNameError
+	}
+	return dns.RcodeServerFailure
+}
+
 // nodeLookup is used to handle a node query
-func (d *DNSServer) nodeLookup(cfg *dnsConfig, network, datacenter, node string, req, resp *dns.Msg, maxRecursionLevel int) {
+func (d *DNSServer) nodeLookup(cfg *dnsConfig, datacenter, node string, req, resp *dns.Msg, maxRecursionLevel int) {
 	// Only handle ANY, A, AAAA, and TXT type requests
 	qType := req.Question[0].Qtype
 	if qType != dns.TypeANY && qType != dns.TypeA && qType != dns.TypeAAAA && qType != dns.TypeTXT {
@@ -838,7 +850,11 @@ func (d *DNSServer) nodeLookup(cfg *dnsConfig, network, datacenter, node string,
 	out, err := d.lookupNode(cfg, args)
 	if err != nil {
 		d.logger.Error("rpc error", "error", err)
-		resp.SetRcode(req, dns.RcodeServerFailure)
+		rCode := d.computeRCode(err)
+		if rCode == dns.RcodeNameError {
+			d.addSOA(cfg, resp)
+		}
+		resp.SetRcode(req, rCode)
 		return
 	}
 
@@ -865,7 +881,7 @@ func (d *DNSServer) nodeLookup(cfg *dnsConfig, network, datacenter, node string,
 	}
 
 	if cfg.NodeMetaTXT || qType == dns.TypeTXT || qType == dns.TypeANY {
-		metas := d.generateMeta(n.Datacenter, q.Name, n, cfg.NodeTTL)
+		metas := d.generateMeta(q.Name, n, cfg.NodeTTL)
 		*metaTarget = append(*metaTarget, metas...)
 	}
 }
@@ -876,7 +892,7 @@ func (d *DNSServer) lookupNode(cfg *dnsConfig, args *structs.NodeSpecificRequest
 	useCache := cfg.UseCache
 RPC:
 	if useCache {
-		raw, _, err := d.agent.cache.Get(cachetype.NodeServicesName, args)
+		raw, _, err := d.agent.cache.Get(context.TODO(), cachetype.NodeServicesName, args)
 		if err != nil {
 			return nil, err
 		}
@@ -1121,7 +1137,8 @@ func trimUDPResponse(req, resp *dns.Msg, udpAnswerLimit int) (trimmed bool) {
 }
 
 // trimDNSResponse will trim the response for UDP and TCP
-func (d *DNSServer) trimDNSResponse(cfg *dnsConfig, network string, req, resp *dns.Msg) (trimmed bool) {
+func (d *DNSServer) trimDNSResponse(cfg *dnsConfig, network string, req, resp *dns.Msg) {
+	var trimmed bool
 	if network != "tcp" {
 		trimmed = trimUDPResponse(req, resp, cfg.UDPAnswerLimit)
 	} else {
@@ -1131,7 +1148,6 @@ func (d *DNSServer) trimDNSResponse(cfg *dnsConfig, network string, req, resp *d
 	if trimmed && cfg.EnableTruncate {
 		resp.Truncated = true
 	}
-	return trimmed
 }
 
 // lookupServiceNodes returns nodes with a given service.
@@ -1144,49 +1160,18 @@ func (d *DNSServer) lookupServiceNodes(cfg *dnsConfig, lookup serviceLookup) (st
 		ServiceTags: []string{lookup.Tag},
 		TagFilter:   lookup.Tag != "",
 		QueryOptions: structs.QueryOptions{
-			Token:      d.agent.tokens.UserToken(),
-			AllowStale: cfg.AllowStale,
-			MaxAge:     cfg.CacheMaxAge,
+			Token:            d.agent.tokens.UserToken(),
+			AllowStale:       cfg.AllowStale,
+			MaxAge:           cfg.CacheMaxAge,
+			UseCache:         cfg.UseCache,
+			MaxStaleDuration: cfg.MaxStale,
 		},
 		EnterpriseMeta: lookup.EnterpriseMeta,
 	}
 
-	var out structs.IndexedCheckServiceNodes
-
-	if cfg.UseCache {
-		raw, m, err := d.agent.cache.Get(cachetype.HealthServicesName, &args)
-		if err != nil {
-			return out, err
-		}
-		reply, ok := raw.(*structs.IndexedCheckServiceNodes)
-		if !ok {
-			// This should never happen, but we want to protect against panics
-			return out, fmt.Errorf("internal error: response type not correct")
-		}
-		d.logger.Trace("cache results for service",
-			"cache_hit", m.Hit,
-			"service", lookup.Service,
-		)
-
-		out = *reply
-	} else {
-		if err := d.agent.RPC("Health.ServiceNodes", &args, &out); err != nil {
-			return out, err
-		}
-	}
-
-	if args.AllowStale && out.LastContact > staleCounterThreshold {
-		metrics.IncrCounter([]string{"dns", "stale_queries"}, 1)
-	}
-
-	// redo the request the response was too stale
-	if args.AllowStale && out.LastContact > cfg.MaxStale {
-		args.AllowStale = false
-		d.logger.Warn("Query results too stale, re-requesting")
-
-		if err := d.agent.RPC("Health.ServiceNodes", &args, &out); err != nil {
-			return structs.IndexedCheckServiceNodes{}, err
-		}
+	out, _, err := d.agent.rpcClientHealth.ServiceNodes(context.TODO(), args)
+	if err != nil {
+		return out, err
 	}
 
 	// Filter out any service nodes due to health checks
@@ -1202,7 +1187,11 @@ func (d *DNSServer) serviceLookup(cfg *dnsConfig, lookup serviceLookup, req, res
 	out, err := d.lookupServiceNodes(cfg, lookup)
 	if err != nil {
 		d.logger.Error("rpc error", "error", err)
-		resp.SetRcode(req, dns.RcodeServerFailure)
+		rCode := d.computeRCode(err)
+		if rCode == dns.RcodeNameError {
+			d.addSOA(cfg, resp)
+		}
+		resp.SetRcode(req, rCode)
 		return
 	}
 
@@ -1296,12 +1285,12 @@ func (d *DNSServer) preparedQueryLookup(cfg *dnsConfig, network, datacenter, que
 	// If they give a bogus query name, treat that as a name error,
 	// not a full on server error. We have to use a string compare
 	// here since the RPC layer loses the type information.
-	if err != nil && err.Error() == consul.ErrQueryNotFound.Error() {
-		d.addSOA(cfg, resp)
-		resp.SetRcode(req, dns.RcodeNameError)
-		return
-	} else if err != nil {
-		resp.SetRcode(req, dns.RcodeServerFailure)
+	if err != nil {
+		rCode := d.computeRCode(err)
+		if rCode == dns.RcodeNameError {
+			d.addSOA(cfg, resp)
+		}
+		resp.SetRcode(req, rCode)
 		return
 	}
 
@@ -1360,7 +1349,7 @@ func (d *DNSServer) lookupPreparedQuery(cfg *dnsConfig, args structs.PreparedQue
 
 RPC:
 	if cfg.UseCache {
-		raw, m, err := d.agent.cache.Get(cachetype.PreparedQueryName, &args)
+		raw, m, err := d.agent.cache.Get(context.TODO(), cachetype.PreparedQueryName, &args)
 		if err != nil {
 			return nil, err
 		}
@@ -1750,7 +1739,7 @@ func (d *DNSServer) nodeServiceRecords(dc string, node structs.CheckServiceNode,
 	return d.makeRecordFromFQDN(dc, serviceAddr, node, req, ttl, cfg, maxRecursionLevel)
 }
 
-func (d *DNSServer) generateMeta(dc string, qName string, node *structs.Node, ttl time.Duration) []dns.RR {
+func (d *DNSServer) generateMeta(qName string, node *structs.Node, ttl time.Duration) []dns.RR {
 	extra := make([]dns.RR, 0, len(node.Meta))
 	for key, value := range node.Meta {
 		txt := value
@@ -1792,7 +1781,7 @@ func (d *DNSServer) serviceSRVRecords(cfg *dnsConfig, dc string, nodes structs.C
 		resp.Extra = append(resp.Extra, extra...)
 
 		if cfg.NodeMetaTXT {
-			resp.Extra = append(resp.Extra, d.generateMeta(dc, fmt.Sprintf("%s.node.%s.%s", node.Node.Node, dc, d.domain), node.Node, ttl)...)
+			resp.Extra = append(resp.Extra, d.generateMeta(fmt.Sprintf("%s.node.%s.%s", node.Node.Node, dc, d.domain), node.Node, ttl)...)
 		}
 	}
 }

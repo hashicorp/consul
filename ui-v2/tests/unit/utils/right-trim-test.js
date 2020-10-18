@@ -37,6 +37,22 @@ module('Unit | Utility | right trim', function() {
         args: ['/a/folder/here/', '/a/folder/here/'],
         expected: '',
       },
+      {
+        args: ['/a/folder/here/', '-'],
+        expected: '/a/folder/here/',
+      },
+      {
+        args: ['/a/folder/here/', 'here'],
+        expected: '/a/folder/here/',
+      },
+      {
+        args: ['here', '/here'],
+        expected: 'here',
+      },
+      {
+        args: ['/here', '/here'],
+        expected: '',
+      },
     ].forEach(function(item) {
       const actual = rightTrim(...item.args);
       assert.equal(actual, item.expected);

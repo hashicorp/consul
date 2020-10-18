@@ -14,9 +14,14 @@ type IngressGatewayConfigEntry struct {
 	// Namespacing is a Consul Enterprise feature.
 	Namespace string `json:",omitempty"`
 
+	// TLS holds the TLS configuration for this gateway.
+	TLS GatewayTLSConfig
+
 	// Listeners declares what ports the ingress gateway should listen on, and
 	// what services to associated to those ports.
 	Listeners []IngressListener
+
+	Meta map[string]string `json:",omitempty"`
 
 	// CreateIndex is the Raft index this entry was created at. This is a
 	// read-only field.
@@ -28,6 +33,11 @@ type IngressGatewayConfigEntry struct {
 	ModifyIndex uint64
 }
 
+type GatewayTLSConfig struct {
+	// Indicates that TLS should be enabled for this gateway service
+	Enabled bool
+}
+
 // IngressListener manages the configuration for a listener on a specific port.
 type IngressListener struct {
 	// Port declares the port on which the ingress gateway should listen for traffic.
@@ -36,7 +46,7 @@ type IngressListener struct {
 	// Protocol declares what type of traffic this listener is expected to
 	// receive. Depending on the protocol, a listener might support multiplexing
 	// services over a single port, or additional discovery chain features. The
-	// current supported values are: (tcp | http).
+	// current supported values are: (tcp | http | http2 | grpc).
 	Protocol string
 
 	// Services declares the set of services to which the listener forwards
@@ -52,19 +62,30 @@ type IngressListener struct {
 type IngressService struct {
 	// Name declares the service to which traffic should be forwarded.
 	//
-	// This can either be a specific service instance, or the wildcard specifier,
+	// This can either be a specific service, or the wildcard specifier,
 	// "*". If the wildcard specifier is provided, the listener must be of "http"
 	// protocol and means that the listener will forward traffic to all services.
+	//
+	// A name can be specified on multiple listeners, and will be exposed on both
+	// of the listeners
 	Name string
+
+	// Hosts is a list of hostnames which should be associated to this service on
+	// the defined listener. Only allowed on layer 7 protocols, this will be used
+	// to route traffic to the service by matching the Host header of the HTTP
+	// request.
+	//
+	// If a host is provided for a service that also has a wildcard specifier
+	// defined, the host will override the wildcard-specifier-provided
+	// "<service-name>.*" domain for that listener.
+	//
+	// This cannot be specified when using the wildcard specifier, "*", or when
+	// using a "tcp" listener.
+	Hosts []string
 
 	// Namespace is the namespace where the service is located.
 	// Namespacing is a Consul Enterprise feature.
 	Namespace string `json:",omitempty"`
-
-	// ServiceSubset declares the specific service subset to which traffic should
-	// be sent. This must match an existing service subset declared in a
-	// service-resolver config entry.
-	ServiceSubset string
 }
 
 func (i *IngressGatewayConfigEntry) GetKind() string {
@@ -73,6 +94,14 @@ func (i *IngressGatewayConfigEntry) GetKind() string {
 
 func (i *IngressGatewayConfigEntry) GetName() string {
 	return i.Name
+}
+
+func (i *IngressGatewayConfigEntry) GetNamespace() string {
+	return i.Namespace
+}
+
+func (i *IngressGatewayConfigEntry) GetMeta() map[string]string {
+	return i.Meta
 }
 
 func (i *IngressGatewayConfigEntry) GetCreateIndex() uint64 {
@@ -95,6 +124,8 @@ type TerminatingGatewayConfigEntry struct {
 
 	// Services is a list of service names represented by the terminating gateway.
 	Services []LinkedService `json:",omitempty"`
+
+	Meta map[string]string `json:",omitempty"`
 
 	// CreateIndex is the Raft index this entry was created at. This is a
 	// read-only field.
@@ -120,15 +151,18 @@ type LinkedService struct {
 
 	// CAFile is the optional path to a CA certificate to use for TLS connections
 	// from the gateway to the linked service
-	CAFile string `json:",omitempty"`
+	CAFile string `json:",omitempty" alias:"ca_file"`
 
 	// CertFile is the optional path to a client certificate to use for TLS connections
 	// from the gateway to the linked service
-	CertFile string `json:",omitempty"`
+	CertFile string `json:",omitempty" alias:"cert_file"`
 
 	// KeyFile is the optional path to a private key to use for TLS connections
 	// from the gateway to the linked service
-	KeyFile string `json:",omitempty"`
+	KeyFile string `json:",omitempty" alias:"key_file"`
+
+	// SNI is the optional name to specify during the TLS handshake with a linked service
+	SNI string `json:",omitempty"`
 }
 
 func (g *TerminatingGatewayConfigEntry) GetKind() string {
@@ -137,6 +171,14 @@ func (g *TerminatingGatewayConfigEntry) GetKind() string {
 
 func (g *TerminatingGatewayConfigEntry) GetName() string {
 	return g.Name
+}
+
+func (g *TerminatingGatewayConfigEntry) GetNamespace() string {
+	return g.Namespace
+}
+
+func (g *TerminatingGatewayConfigEntry) GetMeta() map[string]string {
+	return g.Meta
 }
 
 func (g *TerminatingGatewayConfigEntry) GetCreateIndex() uint64 {

@@ -3,13 +3,11 @@ package policyread
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/assert"
@@ -27,9 +25,6 @@ func TestPolicyReadCommand(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 
-	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
-
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
 	acl {
@@ -40,7 +35,7 @@ func TestPolicyReadCommand(t *testing.T) {
 	}`)
 
 	defer a.Shutdown()
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1", testrpc.WithToken("root"))
 
 	ui := cli.NewMockUi()
 	cmd := New(ui)
@@ -73,9 +68,6 @@ func TestPolicyReadCommand_JSON(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 
-	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
-
 	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
 	acl {
@@ -86,7 +78,7 @@ func TestPolicyReadCommand_JSON(t *testing.T) {
 	}`)
 
 	defer a.Shutdown()
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1", testrpc.WithToken("root"))
 
 	ui := cli.NewMockUi()
 	cmd := New(ui)

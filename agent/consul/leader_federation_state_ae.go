@@ -42,7 +42,11 @@ func (s *Server) stopFederationStateAntiEntropy() {
 func (s *Server) federationStateAntiEntropySync(ctx context.Context) error {
 	var lastFetchIndex uint64
 
-	retryLoopBackoff(ctx.Done(), func() error {
+	retryLoopBackoff(ctx, func() error {
+		if !s.DatacenterSupportsFederationStates() {
+			return nil
+		}
+
 		idx, err := s.federationStateAntiEntropyMaybeSync(ctx, lastFetchIndex)
 		if err != nil {
 			return err
@@ -215,7 +219,7 @@ func (s *Server) pruneStaleFederationStates() error {
 		if err != nil {
 			return fmt.Errorf("Failed to delete federation state %s: %v", dc, err)
 		}
-		if respErr, ok := resp.(error); ok && err != nil {
+		if respErr, ok := resp.(error); ok {
 			return fmt.Errorf("Failed to delete federation state %s: %v", dc, respErr)
 		}
 	}

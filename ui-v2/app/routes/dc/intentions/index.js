@@ -1,26 +1,21 @@
-import Route from '@ember/routing/route';
-import { inject as service } from '@ember/service';
-import { hash } from 'rsvp';
+import Route from 'consul-ui/routing/route';
 
-import WithIntentionActions from 'consul-ui/mixins/intention/with-actions';
-
-export default Route.extend(WithIntentionActions, {
-  repo: service('repository/intention'),
+export default Route.extend({
   queryParams: {
-    s: {
+    sortBy: 'sort',
+    search: {
       as: 'filter',
       replace: true,
     },
   },
   model: function(params) {
-    return hash({
-      items: this.repo.findAllByDatacenter(
-        this.modelFor('dc').dc.Name,
-        this.modelFor('nspace').nspace.substr(1)
-      ),
-    });
+    return {
+      dc: this.modelFor('dc').dc.Name,
+      nspace: this.modelFor('nspace').nspace.substr(1) || 'default',
+    };
   },
   setupController: function(controller, model) {
+    this._super(...arguments);
     controller.setProperties(model);
   },
 });

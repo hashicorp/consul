@@ -1,11 +1,9 @@
-/*eslint node/no-extraneous-require: "off"*/
-'use strict';
-
-const useTestFrameworkDetector = require('@ember-data/-build-infra/src/utilities/test-framework-detector');
 const path = require('path');
 
+const useTestFrameworkDetector = require('@ember-data/private-build-infra/src/utilities/test-framework-detector');
+
 module.exports = useTestFrameworkDetector({
-  description: 'Generates a Consul HTTP ember-data serializer unit and integration tests',
+  description: 'Generates Consul HTTP ember-data serializer unit and integration tests.',
 
   root: __dirname,
 
@@ -16,7 +14,7 @@ module.exports = useTestFrameworkDetector({
       },
       __path__() {
         return '';
-      }
+      },
     };
   },
 

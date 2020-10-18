@@ -54,33 +54,28 @@ func TestCatalogDatacenters(t *testing.T) {
 
 	// Fetch first time
 	result, err := typ.Fetch(cache.FetchOptions{}, &structs.DatacentersRequest{})
-	result2, err := typ.Fetch(cache.FetchOptions{LastResult: &result}, &structs.DatacentersRequest{QueryOptions: structs.QueryOptions{MustRevalidate: true}})
-	result3, err := typ.Fetch(cache.FetchOptions{LastResult: &result2}, &structs.DatacentersRequest{QueryOptions: structs.QueryOptions{MustRevalidate: true}})
-
-	// make sure it was called the right number of times
-	rpc.AssertExpectations(t)
-
-	// make sure the first result was correct
 	require.NoError(t, err)
 	require.Equal(t, result, cache.FetchResult{
 		Value: resp,
 		Index: 1,
 	})
 
-	// validate the second result
+	result2, err := typ.Fetch(cache.FetchOptions{LastResult: &result}, &structs.DatacentersRequest{QueryOptions: structs.QueryOptions{MustRevalidate: true}})
 	require.NoError(t, err)
 	require.Equal(t, result2, cache.FetchResult{
 		Value: resp2,
 		Index: 2,
 	})
 
-	// validate the third result
+	result3, err := typ.Fetch(cache.FetchOptions{LastResult: &result2}, &structs.DatacentersRequest{QueryOptions: structs.QueryOptions{MustRevalidate: true}})
 	require.NoError(t, err)
 	require.Equal(t, result3, cache.FetchResult{
 		Value: resp3,
 		Index: 3,
 	})
 
+	// make sure it was called the right number of times
+	rpc.AssertExpectations(t)
 }
 
 func TestDatacenters_badReqType(t *testing.T) {

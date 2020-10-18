@@ -13,7 +13,7 @@ func federationStateTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: federationStateTableName,
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": &memdb.IndexSchema{
+			"id": {
 				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,
@@ -59,34 +59,32 @@ func (s *Restore) FederationState(g *structs.FederationState) error {
 }
 
 func (s *Store) FederationStateBatchSet(idx uint64, configs structs.FederationStates) error {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	for _, config := range configs {
-		if err := s.federationStateSetTxn(tx, idx, config); err != nil {
+		if err := federationStateSetTxn(tx, idx, config); err != nil {
 			return err
 		}
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // FederationStateSet is called to do an upsert of a given federation state.
 func (s *Store) FederationStateSet(idx uint64, config *structs.FederationState) error {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
-	if err := s.federationStateSetTxn(tx, idx, config); err != nil {
+	if err := federationStateSetTxn(tx, idx, config); err != nil {
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // federationStateSetTxn upserts a federation state inside of a transaction.
-func (s *Store) federationStateSetTxn(tx *memdb.Txn, idx uint64, config *structs.FederationState) error {
+func federationStateSetTxn(tx *txn, idx uint64, config *structs.FederationState) error {
 	if config.Datacenter == "" {
 		return fmt.Errorf("missing datacenter on federation state")
 	}
@@ -133,10 +131,10 @@ func (s *Store) federationStateSetTxn(tx *memdb.Txn, idx uint64, config *structs
 func (s *Store) FederationStateGet(ws memdb.WatchSet, datacenter string) (uint64, *structs.FederationState, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	return s.federationStateGetTxn(tx, ws, datacenter)
+	return federationStateGetTxn(tx, ws, datacenter)
 }
 
-func (s *Store) federationStateGetTxn(tx *memdb.Txn, ws memdb.WatchSet, datacenter string) (uint64, *structs.FederationState, error) {
+func federationStateGetTxn(tx *txn, ws memdb.WatchSet, datacenter string) (uint64, *structs.FederationState, error) {
 	// Get the index
 	idx := maxIndexTxn(tx, federationStateTableName)
 
@@ -163,10 +161,10 @@ func (s *Store) federationStateGetTxn(tx *memdb.Txn, ws memdb.WatchSet, datacent
 func (s *Store) FederationStateList(ws memdb.WatchSet) (uint64, []*structs.FederationState, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	return s.federationStateListTxn(tx, ws)
+	return federationStateListTxn(tx, ws)
 }
 
-func (s *Store) federationStateListTxn(tx *memdb.Txn, ws memdb.WatchSet) (uint64, []*structs.FederationState, error) {
+func federationStateListTxn(tx *txn, ws memdb.WatchSet) (uint64, []*structs.FederationState, error) {
 	// Get the index
 	idx := maxIndexTxn(tx, federationStateTableName)
 
@@ -184,32 +182,30 @@ func (s *Store) federationStateListTxn(tx *memdb.Txn, ws memdb.WatchSet) (uint64
 }
 
 func (s *Store) FederationStateDelete(idx uint64, datacenter string) error {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
-	if err := s.federationStateDeleteTxn(tx, idx, datacenter); err != nil {
+	if err := federationStateDeleteTxn(tx, idx, datacenter); err != nil {
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 func (s *Store) FederationStateBatchDelete(idx uint64, datacenters []string) error {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	for _, datacenter := range datacenters {
-		if err := s.federationStateDeleteTxn(tx, idx, datacenter); err != nil {
+		if err := federationStateDeleteTxn(tx, idx, datacenter); err != nil {
 			return err
 		}
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
-func (s *Store) federationStateDeleteTxn(tx *memdb.Txn, idx uint64, datacenter string) error {
+func federationStateDeleteTxn(tx *txn, idx uint64, datacenter string) error {
 	// Try to retrieve the existing federation state.
 	existing, err := tx.First(federationStateTableName, "id", datacenter)
 	if err != nil {

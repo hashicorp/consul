@@ -2,22 +2,22 @@ package consul
 
 import (
 	"fmt"
-	"io"
 	"net"
 	"os"
 	"time"
 
-	"github.com/hashicorp/consul/agent/checks"
-	"github.com/hashicorp/consul/agent/consul/autopilot"
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/tlsutil"
-	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/consul/version"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/time/rate"
+
+	"github.com/hashicorp/consul/agent/checks"
+	"github.com/hashicorp/consul/agent/consul/autopilot"
+	"github.com/hashicorp/consul/agent/structs"
+	libserf "github.com/hashicorp/consul/lib/serf"
+	"github.com/hashicorp/consul/tlsutil"
+	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/consul/version"
 )
 
 const (
@@ -120,9 +120,6 @@ type Config struct {
 	// configured at this point.
 	NotifyListen func()
 
-	// NotifyShutdown is called after Server is completely Shutdown.
-	NotifyShutdown func()
-
 	// RPCAddr is the RPC address used by Consul. This should be reachable
 	// by the WAN and LAN
 	RPCAddr *net.TCPAddr
@@ -160,13 +157,6 @@ type Config struct {
 	// that are force removed, as well as intermittent unavailability during
 	// leader election.
 	ReconcileInterval time.Duration
-
-	// LogLevel is the level of the logs to write. Defaults to "INFO".
-	LogLevel string
-
-	// LogOutput is the location to write logs to. If this is not set,
-	// logs will go to stderr.
-	LogOutput io.Writer
 
 	// ProtocolVersion is the protocol version to speak. This must be between
 	// ProtocolVersionMin and ProtocolVersionMax.
@@ -230,16 +220,17 @@ type Config struct {
 	// true, we ignore the leave, and rejoin the cluster on start.
 	RejoinAfterLeave bool
 
+	// AdvertiseReconnectTimeout is the duration after which this node should be
+	// assumed to not be returning and thus should be reaped within Serf. This
+	// can only be set for Client agents
+	AdvertiseReconnectTimeout time.Duration
+
 	// Build is a string that is gossiped around, and can be used to help
 	// operators track which versions are actively deployed
 	Build string
 
 	// ACLEnabled is used to enable ACLs
 	ACLsEnabled bool
-
-	// ACLEnforceVersion8 is used to gate a set of ACL policy features that
-	// are opt-in prior to Consul 0.8 and opt-out in Consul 0.8 and later.
-	ACLEnforceVersion8 bool
 
 	// ACLMasterToken is used to bootstrap the ACL system. It should be specified
 	// on the servers in the ACLDatacenter. When the leader comes online, it ensures
@@ -308,6 +299,17 @@ type Config struct {
 	// protects listing keys by prefix. This behavior is opt-in
 	// by default in Consul 1.0 and later.
 	ACLEnableKeyListPolicy bool
+
+	AutoConfigEnabled              bool
+	AutoConfigIntroToken           string
+	AutoConfigIntroTokenFile       string
+	AutoConfigServerAddresses      []string
+	AutoConfigDNSSANs              []string
+	AutoConfigIPSANs               []net.IP
+	AutoConfigAuthzEnabled         bool
+	AutoConfigAuthzAuthMethod      structs.ACLAuthMethod
+	AutoConfigAuthzClaimAssertions []string
+	AutoConfigAuthzAllowReuse      bool
 
 	// TombstoneTTL is used to control how long KV tombstones are retained.
 	// This provides a window of time where the X-Consul-Index is monotonic.
@@ -447,6 +449,10 @@ type Config struct {
 	// dead servers.
 	AutopilotInterval time.Duration
 
+	// MetricsReportingInterval is the frequency with which the server will
+	// report usage metrics to the configured go-metrics Sinks.
+	MetricsReportingInterval time.Duration
+
 	// ConnectEnabled is whether to enable Connect features such as the CA.
 	ConnectEnabled bool
 
@@ -457,6 +463,11 @@ type Config struct {
 	// DisableFederationStateAntiEntropy solely exists for use in unit tests to
 	// disable a background routine.
 	DisableFederationStateAntiEntropy bool
+
+	// OverrideInitialSerfTags solely exists for use in unit tests to ensure
+	// that a serf tag is initially set to a known value, rather than the
+	// default to test some consul upgrade scenarios with fewer races.
+	OverrideInitialSerfTags func(tags map[string]string)
 
 	// CAConfig is used to apply the initial Connect CA configuration when
 	// bootstrapping.
@@ -469,6 +480,8 @@ type Config struct {
 	// AutoEncryptAllowTLS is whether to enable the server responding to
 	// AutoEncrypt.Sign requests.
 	AutoEncryptAllowTLS bool
+
+	RPCConfig RPCConfig
 
 	// Embedded Consul Enterprise specific configuration
 	*EnterpriseConfig
@@ -536,8 +549,8 @@ func DefaultConfig() *Config {
 		NodeName:                             hostname,
 		RPCAddr:                              DefaultRPCAddr,
 		RaftConfig:                           raft.DefaultConfig(),
-		SerfLANConfig:                        lib.SerfDefaultConfig(),
-		SerfWANConfig:                        lib.SerfDefaultConfig(),
+		SerfLANConfig:                        libserf.DefaultConfig(),
+		SerfWANConfig:                        libserf.DefaultConfig(),
 		SerfFloodInterval:                    60 * time.Second,
 		ReconcileInterval:                    60 * time.Second,
 		ProtocolVersion:                      ProtocolVersion2Compatible,
@@ -587,17 +600,22 @@ func DefaultConfig() *Config {
 		CAConfig: &structs.CAConfiguration{
 			Provider: "consul",
 			Config: map[string]interface{}{
-				"RotationPeriod":      "2160h",
-				"LeafCertTTL":         "72h",
-				"IntermediateCertTTL": "8760h", // 365 * 24h
+				"RotationPeriod":      structs.DefaultCARotationPeriod,
+				"LeafCertTTL":         structs.DefaultLeafCertTTL,
+				"IntermediateCertTTL": structs.DefaultIntermediateCertTTL,
 			},
 		},
 
-		ServerHealthInterval: 2 * time.Second,
-		AutopilotInterval:    10 * time.Second,
-		DefaultQueryTime:     300 * time.Second,
-		MaxQueryTime:         600 * time.Second,
-		EnterpriseConfig:     DefaultEnterpriseConfig(),
+		// Stay under the 10 second aggregation interval of
+		// go-metrics. This ensures we always report the
+		// usage metrics in each cycle.
+		MetricsReportingInterval: 9 * time.Second,
+		ServerHealthInterval:     2 * time.Second,
+		AutopilotInterval:        10 * time.Second,
+		DefaultQueryTime:         300 * time.Second,
+		MaxQueryTime:             600 * time.Second,
+
+		EnterpriseConfig: DefaultEnterpriseConfig(),
 	}
 
 	// Increase our reap interval to 3 days instead of 24h.
@@ -630,4 +648,11 @@ func DefaultConfig() *Config {
 	conf.RaftConfig.SnapshotThreshold = 16384
 
 	return conf
+}
+
+// RPCConfig settings for the RPC server
+//
+// TODO: move many settings to this struct.
+type RPCConfig struct {
+	EnableStreaming bool
 }

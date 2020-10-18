@@ -16,7 +16,7 @@ func TestInternalServiceDump(t *testing.T) {
 
 	// Expect the proper RPC call. This also sets the expected value
 	// since that is return-by-pointer in the arguments.
-	var resp *structs.IndexedCheckServiceNodes
+	var resp *structs.IndexedNodesWithGateways
 	rpc.On("RPC", "Internal.ServiceDump", mock.Anything, mock.Anything).Return(nil).
 		Run(func(args mock.Arguments) {
 			req := args.Get(1).(*structs.ServiceDumpRequest)
@@ -24,7 +24,7 @@ func TestInternalServiceDump(t *testing.T) {
 			require.Equal(t, 1*time.Second, req.QueryOptions.MaxQueryTime)
 			require.True(t, req.AllowStale)
 
-			reply := args.Get(2).(*structs.IndexedCheckServiceNodes)
+			reply := args.Get(2).(*structs.IndexedNodesWithGateways)
 			reply.Nodes = []structs.CheckServiceNode{
 				{Service: &structs.NodeService{Kind: req.ServiceKind, Service: "foo"}},
 			}

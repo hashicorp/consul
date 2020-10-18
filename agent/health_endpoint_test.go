@@ -1065,7 +1065,7 @@ func TestHealthServiceNodes_WanTranslation(t *testing.T) {
 				Address: "127.0.0.1",
 				Port:    8080,
 				TaggedAddresses: map[string]structs.ServiceAddress{
-					"wan": structs.ServiceAddress{
+					"wan": {
 						Address: "1.2.3.4",
 						Port:    80,
 					},
@@ -1137,6 +1137,76 @@ func TestHealthConnectServiceNodes(t *testing.T) {
 	nodes := obj.(structs.CheckServiceNodes)
 	assert.Len(nodes, 1)
 	assert.Len(nodes[0].Checks, 0)
+}
+
+func TestHealthIngressServiceNodes(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	// Register gateway
+	gatewayArgs := structs.TestRegisterIngressGateway(t)
+	gatewayArgs.Service.Address = "127.0.0.27"
+	var out struct{}
+	require.NoError(t, a.RPC("Catalog.Register", gatewayArgs, &out))
+
+	args := structs.TestRegisterRequest(t)
+	require.NoError(t, a.RPC("Catalog.Register", args, &out))
+
+	// Associate service to gateway
+	cfgArgs := &structs.IngressGatewayConfigEntry{
+		Name: "ingress-gateway",
+		Kind: structs.IngressGateway,
+		Listeners: []structs.IngressListener{
+			{
+				Port:     8888,
+				Protocol: "tcp",
+				Services: []structs.IngressService{
+					{Name: args.Service.Service},
+				},
+			},
+		},
+	}
+
+	req := structs.ConfigEntryRequest{
+		Op:         structs.ConfigEntryUpsert,
+		Datacenter: "dc1",
+		Entry:      cfgArgs,
+	}
+	var outB bool
+	require.Nil(t, a.RPC("ConfigEntry.Apply", req, &outB))
+	require.True(t, outB)
+
+	t.Run("associated service", func(t *testing.T) {
+		assert := assert.New(t)
+		req, _ := http.NewRequest("GET", fmt.Sprintf(
+			"/v1/health/ingress/%s", args.Service.Service), nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.HealthIngressServiceNodes(resp, req)
+		assert.Nil(err)
+		assertIndex(t, resp)
+
+		nodes := obj.(structs.CheckServiceNodes)
+		require.Len(t, nodes, 1)
+		require.Equal(t, structs.ServiceKindIngressGateway, nodes[0].Service.Kind)
+		require.Equal(t, gatewayArgs.Service.Address, nodes[0].Service.Address)
+		require.Equal(t, gatewayArgs.Service.Proxy, nodes[0].Service.Proxy)
+	})
+
+	t.Run("non-associated service", func(t *testing.T) {
+		assert := assert.New(t)
+		req, _ := http.NewRequest("GET",
+			"/v1/health/connect/notexist", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.HealthIngressServiceNodes(resp, req)
+		assert.Nil(err)
+		assertIndex(t, resp)
+
+		nodes := obj.(structs.CheckServiceNodes)
+		require.Len(t, nodes, 0)
+	})
 }
 
 func TestHealthConnectServiceNodes_Filter(t *testing.T) {

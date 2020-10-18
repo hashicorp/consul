@@ -11,6 +11,9 @@ export default function(type) {
     case 'proxy':
       requests = ['/v1/catalog/connect'];
       break;
+    case 'intention':
+      requests = ['/v1/connect/intentions'];
+      break;
     case 'node':
       requests = ['/v1/internal/ui/nodes', '/v1/internal/ui/node/'];
       break;

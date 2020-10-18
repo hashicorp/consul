@@ -2,18 +2,16 @@ package ca
 
 import (
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"os"
-	"os/exec"
-	"sync"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/go-hclog"
 	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/stretchr/testify/require"
 )
@@ -37,10 +35,60 @@ func TestVaultCAProvider_VaultTLSConfig(t *testing.T) {
 	require.Equal(config.TLSSkipVerify, tlsConfig.Insecure)
 }
 
+func TestVaultCAProvider_SecondaryActiveIntermediate(t *testing.T) {
+	t.Parallel()
+
+	SkipIfVaultNotPresent(t)
+
+	provider, testVault := testVaultProviderWithConfig(t, false, nil)
+	defer testVault.Stop()
+	require := require.New(t)
+
+	cert, err := provider.ActiveIntermediate()
+	require.Empty(cert)
+	require.NoError(err)
+}
+
+func TestVaultCAProvider_RenewToken(t *testing.T) {
+	t.Parallel()
+	SkipIfVaultNotPresent(t)
+
+	testVault, err := runTestVault(t)
+	require.NoError(t, err)
+	testVault.WaitUntilReady(t)
+
+	// Create a token with a short TTL to be renewed by the provider.
+	ttl := 1 * time.Second
+	tcr := &vaultapi.TokenCreateRequest{
+		TTL: ttl.String(),
+	}
+	secret, err := testVault.client.Auth().Token().Create(tcr)
+	require.NoError(t, err)
+	providerToken := secret.Auth.ClientToken
+
+	_, err = createVaultProvider(t, true, testVault.Addr, providerToken, nil)
+	require.NoError(t, err)
+
+	// Check the last renewal time.
+	secret, err = testVault.client.Auth().Token().Lookup(providerToken)
+	require.NoError(t, err)
+	firstRenewal, err := secret.Data["last_renewal_time"].(json.Number).Int64()
+	require.NoError(t, err)
+
+	// Wait past the TTL and make sure the token has been renewed.
+	retry.Run(t, func(r *retry.R) {
+		secret, err = testVault.client.Auth().Token().Lookup(providerToken)
+		require.NoError(r, err)
+		lastRenewal, err := secret.Data["last_renewal_time"].(json.Number).Int64()
+		require.NoError(r, err)
+		require.Greater(r, lastRenewal, firstRenewal)
+	})
+}
+
 func TestVaultCAProvider_Bootstrap(t *testing.T) {
 	t.Parallel()
 
-	skipIfVaultNotPresent(t)
+	SkipIfVaultNotPresent(t)
 
 	provider, testVault := testVaultProvider(t)
 	defer testVault.Stop()
@@ -101,7 +149,7 @@ func assertCorrectKeyType(t *testing.T, want, certPEM string) {
 func TestVaultCAProvider_SignLeaf(t *testing.T) {
 	t.Parallel()
 
-	skipIfVaultNotPresent(t)
+	SkipIfVaultNotPresent(t)
 
 	for _, tc := range KeyTestCases {
 		tc := tc
@@ -185,7 +233,7 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 	t.Parallel()
 
-	skipIfVaultNotPresent(t)
+	SkipIfVaultNotPresent(t)
 
 	tests := CASigningKeyTypeCases()
 
@@ -240,7 +288,7 @@ func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 func TestVaultProvider_SignIntermediate(t *testing.T) {
 	t.Parallel()
 
-	skipIfVaultNotPresent(t)
+	SkipIfVaultNotPresent(t)
 
 	tests := CASigningKeyTypeCases()
 
@@ -269,7 +317,7 @@ func TestVaultProvider_SignIntermediate(t *testing.T) {
 func TestVaultProvider_SignIntermediateConsul(t *testing.T) {
 	t.Parallel()
 
-	skipIfVaultNotPresent(t)
+	SkipIfVaultNotPresent(t)
 
 	// primary = Vault, secondary = Consul
 	t.Run("pri=vault,sec=consul", func(t *testing.T) {
@@ -330,21 +378,30 @@ func getIntermediateCertTTL(t *testing.T, caConf *structs.CAConfiguration) time.
 	return dur
 }
 
-func testVaultProvider(t *testing.T) (*VaultProvider, *testVaultServer) {
+func testVaultProvider(t *testing.T) (*VaultProvider, *TestVaultServer) {
 	return testVaultProviderWithConfig(t, true, nil)
 }
 
-func testVaultProviderWithConfig(t *testing.T, isPrimary bool, rawConf map[string]interface{}) (*VaultProvider, *testVaultServer) {
-	testVault, err := runTestVault()
+func testVaultProviderWithConfig(t *testing.T, isPrimary bool, rawConf map[string]interface{}) (*VaultProvider, *TestVaultServer) {
+	testVault, err := runTestVault(t)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	testVault.WaitUntilReady(t)
 
+	provider, err := createVaultProvider(t, isPrimary, testVault.Addr, testVault.RootToken, rawConf)
+	if err != nil {
+		testVault.Stop()
+		t.Fatalf("err: %v", err)
+	}
+	return provider, testVault
+}
+
+func createVaultProvider(t *testing.T, isPrimary bool, addr, token string, rawConf map[string]interface{}) (*VaultProvider, error) {
 	conf := map[string]interface{}{
-		"Address":             testVault.addr,
-		"Token":               testVault.rootToken,
+		"Address":             addr,
+		"Token":               token,
 		"RootPKIPath":         "pki-root/",
 		"IntermediatePKIPath": "pki-intermediate/",
 		// Tests duration parsing after msgpack type mangling during raft apply.
@@ -354,7 +411,7 @@ func testVaultProviderWithConfig(t *testing.T, isPrimary bool, rawConf map[strin
 		conf[k] = v
 	}
 
-	provider := &VaultProvider{}
+	provider := NewVaultProvider()
 
 	cfg := ProviderConfig{
 		ClusterID:  connect.TestClusterID,
@@ -363,157 +420,22 @@ func testVaultProviderWithConfig(t *testing.T, isPrimary bool, rawConf map[strin
 		RawConfig:  conf,
 	}
 
+	logger := hclog.New(&hclog.LoggerOptions{
+		Output: ioutil.Discard,
+	})
+	provider.SetLogger(logger)
+
 	if !isPrimary {
 		cfg.IsPrimary = false
 		cfg.Datacenter = "dc2"
 	}
 
-	if err := provider.Configure(cfg); err != nil {
-		testVault.Stop()
-		t.Fatalf("err: %v", err)
-	}
+	require.NoError(t, provider.Configure(cfg))
 	if isPrimary {
-		if err = provider.GenerateRoot(); err != nil {
-			testVault.Stop()
-			t.Fatalf("err: %v", err)
-		}
-		if _, err := provider.GenerateIntermediate(); err != nil {
-			testVault.Stop()
-			t.Fatalf("err: %v", err)
-		}
-	}
-	return provider, testVault
-}
-
-// skipIfVaultNotPresent skips the test if the vault binary is not in PATH.
-//
-// These tests may be skipped in CI. They are run as part of a separate
-// integration test suite.
-func skipIfVaultNotPresent(t *testing.T) {
-	vaultBinaryName := os.Getenv("VAULT_BINARY_NAME")
-	if vaultBinaryName == "" {
-		vaultBinaryName = "vault"
+		require.NoError(t, provider.GenerateRoot())
+		_, err := provider.GenerateIntermediate()
+		require.NoError(t, err)
 	}
 
-	path, err := exec.LookPath(vaultBinaryName)
-	if err != nil || path == "" {
-		t.Skipf("%q not found on $PATH - download and install to run this test", vaultBinaryName)
-	}
-}
-
-func runTestVault() (*testVaultServer, error) {
-	vaultBinaryName := os.Getenv("VAULT_BINARY_NAME")
-	if vaultBinaryName == "" {
-		vaultBinaryName = "vault"
-	}
-
-	path, err := exec.LookPath(vaultBinaryName)
-	if err != nil || path == "" {
-		return nil, fmt.Errorf("%q not found on $PATH", vaultBinaryName)
-	}
-
-	ports := freeport.MustTake(2)
-	returnPortsFn := func() {
-		freeport.Return(ports)
-	}
-
-	var (
-		clientAddr  = fmt.Sprintf("127.0.0.1:%d", ports[0])
-		clusterAddr = fmt.Sprintf("127.0.0.1:%d", ports[1])
-	)
-
-	const token = "root"
-
-	client, err := vaultapi.NewClient(&vaultapi.Config{
-		Address: "http://" + clientAddr,
-	})
-	if err != nil {
-		returnPortsFn()
-		return nil, err
-	}
-	client.SetToken(token)
-
-	args := []string{
-		"server",
-		"-dev",
-		"-dev-root-token-id",
-		token,
-		"-dev-listen-address",
-		clientAddr,
-		"-address",
-		clusterAddr,
-	}
-
-	cmd := exec.Command(vaultBinaryName, args...)
-	cmd.Stdout = ioutil.Discard
-	cmd.Stderr = ioutil.Discard
-	if err := cmd.Start(); err != nil {
-		returnPortsFn()
-		return nil, err
-	}
-
-	return &testVaultServer{
-		rootToken:     token,
-		addr:          "http://" + clientAddr,
-		cmd:           cmd,
-		client:        client,
-		returnPortsFn: returnPortsFn,
-	}, nil
-}
-
-type testVaultServer struct {
-	rootToken string
-	addr      string
-	cmd       *exec.Cmd
-	client    *vaultapi.Client
-
-	// returnPortsFn will put the ports claimed for the test back into the
-	returnPortsFn func()
-}
-
-var printedVaultVersion sync.Once
-
-func (v *testVaultServer) WaitUntilReady(t *testing.T) {
-	var version string
-	retry.Run(t, func(r *retry.R) {
-		resp, err := v.client.Sys().Health()
-		if err != nil {
-			r.Fatalf("err: %v", err)
-		}
-		if !resp.Initialized {
-			r.Fatalf("vault server is not initialized")
-		}
-		if resp.Sealed {
-			r.Fatalf("vault server is sealed")
-		}
-		version = resp.Version
-	})
-	printedVaultVersion.Do(func() {
-		fmt.Fprintf(os.Stderr, "[INFO] agent/connect/ca: testing with vault server version: %s\n", version)
-	})
-}
-
-func (v *testVaultServer) Stop() error {
-	// There was no process
-	if v.cmd == nil {
-		return nil
-	}
-
-	if v.cmd.Process != nil {
-		if err := v.cmd.Process.Signal(os.Interrupt); err != nil {
-			return fmt.Errorf("failed to kill vault server: %v", err)
-		}
-	}
-
-	// wait for the process to exit to be sure that the data dir can be
-	// deleted on all platforms.
-	if err := v.cmd.Wait(); err != nil {
-		return err
-	}
-
-	if v.returnPortsFn != nil {
-		v.returnPortsFn()
-	}
-
-	return nil
+	return provider, nil
 }

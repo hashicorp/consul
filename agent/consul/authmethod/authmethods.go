@@ -1,11 +1,13 @@
 package authmethod
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"sync"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-hclog"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -24,11 +26,14 @@ type Cache interface {
 	Purge()
 }
 
-type ValidatorFactory func(method *structs.ACLAuthMethod) (Validator, error)
+type ValidatorFactory func(logger hclog.Logger, method *structs.ACLAuthMethod) (Validator, error)
 
 type Validator interface {
 	// Name returns the name of the auth method backing this validator.
 	Name() string
+
+	// NewIdentity creates a blank identity populated with empty values.
+	NewIdentity() *Identity
 
 	// ValidateLogin takes raw user-provided auth method metadata and ensures
 	// it is sane, provably correct, and currently valid. Relevant identifying
@@ -41,16 +46,32 @@ type Validator interface {
 	// Returns auth method specific metadata suitable for the Role Binding
 	// process as well as the desired enterprise meta for the token to be
 	// created.
-	ValidateLogin(loginToken string) (map[string]string, *structs.EnterpriseMeta, error)
+	ValidateLogin(ctx context.Context, loginToken string) (*Identity, error)
 
-	// AvailableFields returns a slice of all fields that are returned as a
-	// result of ValidateLogin. These are valid fields for use in any
-	// BindingRule tied to this auth method.
-	AvailableFields() []string
+	// Stop should be called to cease any background activity and free up
+	// resources.
+	Stop()
+}
 
-	// MakeFieldMapSelectable converts a field map as returned by ValidateLogin
-	// into a structure suitable for selection with a binding rule.
-	MakeFieldMapSelectable(fieldMap map[string]string) interface{}
+type Identity struct {
+	// SelectableFields is the format of this Identity suitable for selection
+	// with a binding rule.
+	SelectableFields interface{}
+
+	// ProjectedVars is the format of this Identity suitable for interpolation
+	// in a bind name within a binding rule.
+	ProjectedVars map[string]string
+
+	*structs.EnterpriseMeta
+}
+
+// ProjectedVarNames returns just the keyspace of the ProjectedVars map.
+func (i *Identity) ProjectedVarNames() []string {
+	v := make([]string, 0, len(i.ProjectedVars))
+	for k := range i.ProjectedVars {
+		v = append(v, k)
+	}
+	return v
 }
 
 var (
@@ -115,6 +136,7 @@ func (c *authMethodCache) PutValidatorIfNewer(method *structs.ACLAuthMethod, val
 		if prev.ModifyIndex >= idx {
 			return prev.Validator
 		}
+		prev.Validator.Stop()
 	}
 
 	c.entries[method.Name] = &authMethodValidatorEntry{
@@ -125,13 +147,16 @@ func (c *authMethodCache) PutValidatorIfNewer(method *structs.ACLAuthMethod, val
 }
 
 func (c *authMethodCache) Purge() {
+	for _, entry := range c.entries {
+		entry.Validator.Stop()
+	}
 	c.entries = make(map[string]*authMethodValidatorEntry)
 }
 
 // NewValidator instantiates a new Validator for the given auth method
 // configuration. If no auth method is registered with the provided type an
 // error is returned.
-func NewValidator(method *structs.ACLAuthMethod) (Validator, error) {
+func NewValidator(logger hclog.Logger, method *structs.ACLAuthMethod) (Validator, error) {
 	typesMu.RLock()
 	factory, ok := types[method.Type]
 	typesMu.RUnlock()
@@ -140,7 +165,9 @@ func NewValidator(method *structs.ACLAuthMethod) (Validator, error) {
 		return nil, fmt.Errorf("no auth method registered with type: %s", method.Type)
 	}
 
-	return factory(method)
+	logger = logger.Named("authmethod").With("type", method.Type, "name", method.Name)
+
+	return factory(logger, method)
 }
 
 // Types returns a sorted list of the names of the registered types.

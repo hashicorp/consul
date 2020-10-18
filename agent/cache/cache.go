@@ -16,12 +16,17 @@ package cache
 
 import (
 	"container/heap"
+	"context"
 	"fmt"
+	"io"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/armon/go-metrics"
+	"golang.org/x/time/rate"
+
 	"github.com/hashicorp/consul/lib"
 )
 
@@ -32,6 +37,17 @@ import (
 const (
 	CacheRefreshBackoffMin = 3               // 3 attempts before backing off
 	CacheRefreshMaxWait    = 1 * time.Minute // maximum backoff wait time
+
+	// The following constants are default values for the cache entry
+	// rate limiter settings.
+
+	// DefaultEntryFetchRate is the default rate at which cache entries can
+	// be fetch. This defaults to not being unlimited
+	DefaultEntryFetchRate = rate.Inf
+
+	// DefaultEntryFetchMaxBurst is the number of cache entry fetches that can
+	// occur in a burst.
+	DefaultEntryFetchMaxBurst = 2
 )
 
 // Cache is a agent-local cache of Consul data. Create a Cache using the
@@ -79,6 +95,10 @@ type Cache struct {
 	stopped uint32
 	// stopCh is closed when Close is called
 	stopCh chan struct{}
+	// options includes a per Cache Rate limiter specification to avoid performing too many queries
+	options          Options
+	rateLimitContext context.Context
+	rateLimitCancel  context.CancelFunc
 }
 
 // typeEntry is a single type that is registered with a Cache.
@@ -120,23 +140,46 @@ type ResultMeta struct {
 
 // Options are options for the Cache.
 type Options struct {
-	// Nothing currently, reserved.
+	// EntryFetchMaxBurst max burst size of RateLimit for a single cache entry
+	EntryFetchMaxBurst int
+	// EntryFetchRate represents the max calls/sec for a single cache entry
+	EntryFetchRate rate.Limit
+}
+
+// Equal return true if both options are equivalent
+func (o Options) Equal(other Options) bool {
+	return o.EntryFetchMaxBurst == other.EntryFetchMaxBurst && o.EntryFetchRate == other.EntryFetchRate
+}
+
+// applyDefaultValuesOnOptions set default values on options and returned updated value
+func applyDefaultValuesOnOptions(options Options) Options {
+	if options.EntryFetchRate == 0.0 {
+		options.EntryFetchRate = DefaultEntryFetchRate
+	}
+	if options.EntryFetchMaxBurst == 0 {
+		options.EntryFetchMaxBurst = DefaultEntryFetchMaxBurst
+	}
+	return options
 }
 
 // New creates a new cache with the given RPC client and reasonable defaults.
 // Further settings can be tweaked on the returned value.
-func New(*Options) *Cache {
+func New(options Options) *Cache {
+	options = applyDefaultValuesOnOptions(options)
 	// Initialize the heap. The buffer of 1 is really important because
 	// its possible for the expiry loop to trigger the heap to update
 	// itself and it'd block forever otherwise.
 	h := &expiryHeap{NotifyCh: make(chan struct{}, 1)}
 	heap.Init(h)
-
+	ctx, cancel := context.WithCancel(context.Background())
 	c := &Cache{
 		types:             make(map[string]typeEntry),
 		entries:           make(map[string]cacheEntry),
 		entriesExpiryHeap: h,
 		stopCh:            make(chan struct{}),
+		options:           options,
+		rateLimitContext:  ctx,
+		rateLimitCancel:   cancel,
 	}
 
 	// Start the expiry watcher
@@ -166,15 +209,12 @@ type RegisterOptions struct {
 	// client requests them with MinIndex.
 	SupportsBlocking bool
 
-	// RefreshTimer is the time between attempting to refresh data.
+	// RefreshTimer is the time to sleep between attempts to refresh data.
 	// If this is zero, then data is refreshed immediately when a fetch
 	// is returned.
 	//
-	// RefreshTimeout determines the maximum query time for a refresh
-	// operation. This is specified as part of the query options and is
-	// expected to be implemented by the Type itself.
-	//
-	// Using these values, various "refresh" mechanisms can be implemented:
+	// Using different values for RefreshTimer and QueryTimeout, various
+	// "refresh" mechanisms can be implemented:
 	//
 	//   * With a high timer duration and a low timeout, a timer-based
 	//     refresh can be set that minimizes load on the Consul servers.
@@ -183,8 +223,12 @@ type RegisterOptions struct {
 	//     refresh can be set so that changes in server data are recognized
 	//     within the cache very quickly.
 	//
-	RefreshTimer   time.Duration
-	RefreshTimeout time.Duration
+	RefreshTimer time.Duration
+
+	// QueryTimeout is the default value for the maximum query time for a fetch
+	// operation. It is set as FetchOptions.Timeout so that cache.Type
+	// implementations can use it as the MaxQueryTime.
+	QueryTimeout time.Duration
 }
 
 // RegisterType registers a cacheable type.
@@ -202,6 +246,28 @@ func (c *Cache) RegisterType(n string, typ Type) {
 	c.types[n] = typeEntry{Name: n, Type: typ, Opts: &opts}
 }
 
+// ReloadOptions updates the cache with the new options
+// return true if Cache is updated, false if already up to date
+func (c *Cache) ReloadOptions(options Options) bool {
+	options = applyDefaultValuesOnOptions(options)
+	modified := !options.Equal(c.options)
+	if modified {
+		c.entriesLock.RLock()
+		defer c.entriesLock.RUnlock()
+		for _, entry := range c.entries {
+			if c.options.EntryFetchRate != options.EntryFetchRate {
+				entry.FetchRateLimiter.SetLimit(options.EntryFetchRate)
+			}
+			if c.options.EntryFetchMaxBurst != options.EntryFetchMaxBurst {
+				entry.FetchRateLimiter.SetBurst(options.EntryFetchMaxBurst)
+			}
+		}
+		c.options.EntryFetchRate = options.EntryFetchRate
+		c.options.EntryFetchMaxBurst = options.EntryFetchMaxBurst
+	}
+	return modified
+}
+
 // Get loads the data for the given type and request. If data satisfying the
 // minimum index is present in the cache, it is returned immediately. Otherwise,
 // this will block until the data is available or the request timeout is
@@ -216,7 +282,7 @@ func (c *Cache) RegisterType(n string, typ Type) {
 // index is retrieved, the last known value (maybe nil) is returned. No
 // error is returned on timeout. This matches the behavior of Consul blocking
 // queries.
-func (c *Cache) Get(t string, r Request) (interface{}, ResultMeta, error) {
+func (c *Cache) Get(ctx context.Context, t string, r Request) (interface{}, ResultMeta, error) {
 	c.typesLock.RLock()
 	tEntry, ok := c.types[t]
 	c.typesLock.RUnlock()
@@ -225,7 +291,7 @@ func (c *Cache) Get(t string, r Request) (interface{}, ResultMeta, error) {
 		// once. But be robust against panics.
 		return nil, ResultMeta{}, fmt.Errorf("unknown type in cache: %s", t)
 	}
-	return c.getWithIndex(newGetOptions(tEntry, r))
+	return c.getWithIndex(ctx, newGetOptions(tEntry, r))
 }
 
 // getOptions contains the arguments for a Get request. It is used in place of
@@ -292,7 +358,7 @@ func entryExceedsMaxAge(maxAge time.Duration, entry cacheEntry) bool {
 // getWithIndex implements the main Get functionality but allows internal
 // callers (Watch) to manipulate the blocking index separately from the actual
 // request object.
-func (c *Cache) getWithIndex(r getOptions) (interface{}, ResultMeta, error) {
+func (c *Cache) getWithIndex(ctx context.Context, r getOptions) (interface{}, ResultMeta, error) {
 	if r.Info.Key == "" {
 		metrics.IncrCounter([]string{"consul", "cache", "bypass"}, 1)
 
@@ -394,6 +460,8 @@ RETRY_GET:
 	first = false
 
 	select {
+	case <-ctx.Done():
+		return nil, ResultMeta{}, ctx.Err()
 	case <-waiterCh:
 		// Our fetch returned, retry the get from the cache.
 		r.Info.MustRevalidate = false
@@ -449,7 +517,14 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 	// If we don't have an entry, then create it. The entry must be marked
 	// as invalid so that it isn't returned as a valid value for a zero index.
 	if !ok {
-		entry = cacheEntry{Valid: false, Waiter: make(chan struct{})}
+		entry = cacheEntry{
+			Valid:  false,
+			Waiter: make(chan struct{}),
+			FetchRateLimiter: rate.NewLimiter(
+				c.options.EntryFetchRate,
+				c.options.EntryFetchMaxBurst,
+			),
+		}
 	}
 
 	// Set that we're fetching to true, which makes it so that future
@@ -470,8 +545,7 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 		// keepalives are every 30 seconds so the RPC should fail if the packets are
 		// being blackholed for more than 30 seconds.
 		var connectedTimer *time.Timer
-		if tEntry.Opts.Refresh && entry.Index > 0 &&
-			tEntry.Opts.RefreshTimeout > (31*time.Second) {
+		if tEntry.Opts.Refresh && entry.Index > 0 && tEntry.Opts.QueryTimeout > 31*time.Second {
 			connectedTimer = time.AfterFunc(31*time.Second, func() {
 				c.entriesLock.Lock()
 				defer c.entriesLock.Unlock()
@@ -487,7 +561,11 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 		fOpts := FetchOptions{}
 		if tEntry.Opts.SupportsBlocking {
 			fOpts.MinIndex = entry.Index
-			fOpts.Timeout = tEntry.Opts.RefreshTimeout
+			fOpts.Timeout = tEntry.Opts.QueryTimeout
+
+			if fOpts.Timeout == 0 {
+				fOpts.Timeout = 10 * time.Minute
+			}
 		}
 		if entry.Valid {
 			fOpts.LastResult = &FetchResult{
@@ -496,7 +574,13 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 				Index: entry.Index,
 			}
 		}
-
+		if err := entry.FetchRateLimiter.Wait(c.rateLimitContext); err != nil {
+			if connectedTimer != nil {
+				connectedTimer.Stop()
+			}
+			entry.Error = fmt.Errorf("rateLimitContext canceled: %s", err.Error())
+			return
+		}
 		// Start building the new entry by blocking on the fetch.
 		result, err := r.Fetch(fOpts)
 		if connectedTimer != nil {
@@ -517,7 +601,9 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 
 		if result.Value != nil {
 			// A new value was given, so we create a brand new entry.
-			newEntry.Value = result.Value
+			if !result.NotModified {
+				newEntry.Value = result.Value
+			}
 			newEntry.State = result.State
 			newEntry.Index = result.Index
 			newEntry.FetchedAt = time.Now()
@@ -548,8 +634,9 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 
 		// Error handling
 		if err == nil {
-			metrics.IncrCounter([]string{"consul", "cache", "fetch_success"}, 1)
-			metrics.IncrCounter([]string{"consul", "cache", tEntry.Name, "fetch_success"}, 1)
+			labels := []metrics.Label{{Name: "result_not_modified", Value: strconv.FormatBool(result.NotModified)}}
+			metrics.IncrCounterWithLabels([]string{"consul", "cache", "fetch_success"}, 1, labels)
+			metrics.IncrCounterWithLabels([]string{"consul", "cache", tEntry.Name, "fetch_success"}, 1, labels)
 
 			if result.Index > 0 {
 				// Reset the attempts counter so we don't have any backoff
@@ -688,6 +775,12 @@ func (c *Cache) runExpiryLoop() {
 		case <-expiryCh:
 			c.entriesLock.Lock()
 
+			// Perform cleanup operations on the entry's state, if applicable.
+			state := c.entries[entry.Key].State
+			if closer, ok := state.(io.Closer); ok {
+				closer.Close()
+			}
+
 			// Entry expired! Remove it.
 			delete(c.entries, entry.Key)
 			heap.Remove(c.entriesExpiryHeap, entry.HeapIndex)
@@ -717,6 +810,7 @@ func (c *Cache) Close() error {
 	if wasStopped == 0 {
 		// First time only, close stop chan
 		close(c.stopCh)
+		c.rateLimitCancel()
 	}
 	return nil
 }
@@ -736,6 +830,10 @@ func (c *Cache) Prepopulate(t string, res FetchResult, dc, token, k string) erro
 		FetchedAt: time.Now(),
 		Waiter:    make(chan struct{}),
 		Expiry:    &cacheEntryExpiry{Key: key},
+		FetchRateLimiter: rate.NewLimiter(
+			c.options.EntryFetchRate,
+			c.options.EntryFetchMaxBurst,
+		),
 	}
 	c.entriesLock.Lock()
 	c.entries[key] = newEntry

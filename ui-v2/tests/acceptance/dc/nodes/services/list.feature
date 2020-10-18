@@ -30,24 +30,18 @@ Feature: dc / nodes / services / list: Node > Services Listing
       Tags: []
       Meta:
         external-source: kubernetes
-    - ID: 'service-4'
-      Port: 3
-      Service: 'service-4'
-      Tags: []
-      Meta: ~
     ---
     When I visit the node page for yaml
     ---
       dc: dc1
       node: node-0
     ---
-    When I click services on the tabs
-    And I see servicesIsSelected on the tabs
+    When I click serviceInstances on the tabs
+    And I see serviceInstancesIsSelected on the tabs
     And I see externalSource on the services like yaml
     ---
     - consul
     - nomad
     - terraform
     - kubernetes
-    - ~
     ---

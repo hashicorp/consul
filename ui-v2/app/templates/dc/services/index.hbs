@@ -1,62 +1,81 @@
 {{title 'Services'}}
-{{#app-view class="service list"}}
-    {{#block-slot name='notification' as |status type|}}
-      {{partial 'dc/services/notifications'}}
-    {{/block-slot}}
-    {{#block-slot name='header'}}
-        <h1>
-            Services <em>{{format-number items.length}} total</em>
-        </h1>
-        <label for="toolbar-toggle"></label>
-    {{/block-slot}}
-    {{#block-slot name='toolbar'}}
-{{#if (gt items.length 0) }}
-      {{phrase-editor
-        placeholder='service:name tag:name status:critical search-term'
-        value=(slice 0 terms.length terms)
-        onchange=(action (mut terms) value='target.value')
-        searchable=searchable
-      }}
-{{/if}}
-    {{/block-slot}}
-    {{#block-slot name='content'}}
-        {{#changeable-set dispatcher=searchable}}
-          {{#block-slot name='set' as |filtered|}}
-            {{#tabular-collection
-                route='dc.services.show'
-                key='Name'
-                items=filtered as |item index|
-            }}
-                {{#block-slot name='header'}}
-                    <th style={{remainingWidth}}>Service</th>
-                    <th style={{totalWidth}}>Health Checks<span><em role="tooltip">The number of health checks for the service on all nodes</em></span></th>
-                    <th style={{remainingWidth}}>Tags</th>
-                {{/block-slot}}
-                {{#block-slot name='row'}}
-                    <td data-test-service="{{item.Name}}" style={{remainingWidth}}>
-                      <a href={{href-to 'dc.services.show' item.Name}}>
-                        <span data-test-external-source="{{service/external-source item}}" style={{{ concat 'background-image: ' (css-var (concat '--' (service/external-source item) '-color-svg') 'none')}}}></span>
-                        {{item.Name}}
-                      </a>
-                    </td>
-                    <td style={{totalWidth}}>
-                      {{healthcheck-info
-                        passing=item.ChecksPassing warning=item.ChecksWarning critical=item.ChecksCritical
-                        passingWidth=passingWidth warningWidth=warningWidth criticalWidth=criticalWidth
-                      }}
-                    </td>
-                    <td style={{remainingWidth}}>
-                      {{tag-list items=item.Tags}}
-                    </td>
-                {{/block-slot}}
-            {{/tabular-collection}}
-          {{/block-slot}}
-          {{#block-slot name='empty'}}
-            <p>
-              There are no services.
-            </p>
-          {{/block-slot}}
-        {{/changeable-set}}
-    {{/block-slot}}
-{{/app-view}}
+<EventSource @src={{items}} />
+{{#let (hash
+  statuses=(if status (split status ',') undefined)
+  types=(if type (split type ',') undefined)
+  sources=(if source (split source ',') undefined)
+) as |filters|}}
+  {{#let (or sortBy "Name:asc") as |sort|}}
+    <AppView>
+      <BlockSlot @name="notification" as |status type|>
+        {{partial 'dc/services/notifications'}}
+      </BlockSlot>
+      <BlockSlot @name="header">
+          <h1>
+            Services <em>{{format-number services.length}} total</em>
+          </h1>
+          <label for="toolbar-toggle"></label>
+      </BlockSlot>
+      <BlockSlot @name="toolbar">
+        {{#if (gt services.length 0) }}
+          <Consul::Service::SearchBar
+            @sources={{externalSources}}
+            @search={{search}}
+            @onsearch={{action (mut search) value="target.value"}}
 
+            @sort={{sort}}
+            @onsort={{action (mut sortBy) value="target.selected"}}
+
+            @filter={{filters}}
+            @onfilter={{hash
+              status=(action (mut status) value="target.selectedItems")
+              type=(action (mut type) value="target.selectedItems")
+              source=(action (mut source) value="target.selectedItems")
+            }}
+          />
+        {{/if}}
+      </BlockSlot>
+      <BlockSlot @name="content">
+{{#let (filter (filter-predicate 'service' filters) services) as |filtered|}}
+  {{#let (sort-by (comparator 'service' sort) filtered) as |sorted|}}
+        <ChangeableSet @dispatcher={{searchable 'service' sorted}} @terms={{search}}>
+          <BlockSlot @name="set" as |searched|>
+            <Consul::Service::List @items={{searched}} />
+          </BlockSlot>
+          <BlockSlot @name="empty">
+            <EmptyState @allowLogin={{true}}>
+              <BlockSlot @name="header">
+                <h2>
+                  {{#if (gt services.length 0)}}
+                    No services found
+                  {{else}}
+                    Welcome to Services
+                  {{/if}}
+                </h2>
+              </BlockSlot>
+              <BlockSlot @name="body">
+                <p>
+                  {{#if (gt services.length 0)}}
+                    No services where found matching that search, or you may not have access to view the services you are searching for.
+                  {{else}}
+                    There don't seem to be any registered services, or you may not have access to view services yet.
+                  {{/if}}
+                </p>
+              </BlockSlot>
+              <BlockSlot @name="actions">
+                <li class="docs-link">
+                  <a href="{{env 'CONSUL_DOCS_URL'}}/commands/services" rel="noopener noreferrer" target="_blank">Documentation on services</a>
+                </li>
+                <li class="learn-link">
+                  <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/getting-started/services" rel="noopener noreferrer" target="_blank">Read the guide</a>
+                </li>
+              </BlockSlot>
+            </EmptyState>
+          </BlockSlot>
+        </ChangeableSet>
+  {{/let}}
+{{/let}}
+      </BlockSlot>
+    </AppView>
+  {{/let}}
+{{/let}}

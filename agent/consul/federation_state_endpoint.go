@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -9,6 +10,10 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	memdb "github.com/hashicorp/go-memdb"
+)
+
+var (
+	errFederationStatesNotEnabled = errors.New("Federation states are currently disabled until all servers in the datacenter support the feature")
 )
 
 // FederationState endpoint is used to manipulate federation states from all
@@ -22,9 +27,14 @@ func (c *FederationState) Apply(args *structs.FederationStateRequest, reply *boo
 	// be replicated to all the other datacenters.
 	args.Datacenter = c.srv.config.PrimaryDatacenter
 
-	if done, err := c.srv.forward("FederationState.Apply", args, args, reply); done {
+	if done, err := c.srv.ForwardRPC("FederationState.Apply", args, args, reply); done {
 		return err
 	}
+
+	if !c.srv.DatacenterSupportsFederationStates() {
+		return errFederationStatesNotEnabled
+	}
+
 	defer metrics.MeasureSince([]string{"federation_state", "apply"}, time.Now())
 
 	// Fetch the ACL token, if any.
@@ -66,9 +76,14 @@ func (c *FederationState) Apply(args *structs.FederationStateRequest, reply *boo
 }
 
 func (c *FederationState) Get(args *structs.FederationStateQuery, reply *structs.FederationStateResponse) error {
-	if done, err := c.srv.forward("FederationState.Get", args, args, reply); done {
+	if done, err := c.srv.ForwardRPC("FederationState.Get", args, args, reply); done {
 		return err
 	}
+
+	if !c.srv.DatacenterSupportsFederationStates() {
+		return errFederationStatesNotEnabled
+	}
+
 	defer metrics.MeasureSince([]string{"federation_state", "get"}, time.Now())
 
 	// Fetch the ACL token, if any.
@@ -102,9 +117,14 @@ func (c *FederationState) Get(args *structs.FederationStateQuery, reply *structs
 // List is the endpoint meant to be used by consul servers performing
 // replication.
 func (c *FederationState) List(args *structs.DCSpecificRequest, reply *structs.IndexedFederationStates) error {
-	if done, err := c.srv.forward("FederationState.List", args, args, reply); done {
+	if done, err := c.srv.ForwardRPC("FederationState.List", args, args, reply); done {
 		return err
 	}
+
+	if !c.srv.DatacenterSupportsFederationStates() {
+		return errFederationStatesNotEnabled
+	}
+
 	defer metrics.MeasureSince([]string{"federation_state", "list"}, time.Now())
 
 	// Fetch the ACL token, if any.
@@ -140,9 +160,14 @@ func (c *FederationState) List(args *structs.DCSpecificRequest, reply *structs.I
 // in the discovery info for dialing mesh gateways. Analogous to catalog
 // endpoints.
 func (c *FederationState) ListMeshGateways(args *structs.DCSpecificRequest, reply *structs.DatacenterIndexedCheckServiceNodes) error {
-	if done, err := c.srv.forward("FederationState.ListMeshGateways", args, args, reply); done {
+	if done, err := c.srv.ForwardRPC("FederationState.ListMeshGateways", args, args, reply); done {
 		return err
 	}
+
+	if !c.srv.DatacenterSupportsFederationStates() {
+		return errFederationStatesNotEnabled
+	}
+
 	defer metrics.MeasureSince([]string{"federation_state", "list_mesh_gateways"}, time.Now())
 
 	return c.srv.blockingQuery(
@@ -156,7 +181,7 @@ func (c *FederationState) ListMeshGateways(args *structs.DCSpecificRequest, repl
 
 			dump := make(map[string]structs.CheckServiceNodes)
 
-			for i, _ := range fedStates {
+			for i := range fedStates {
 				fedState := fedStates[i]
 				csn := fedState.MeshGateways
 				if len(csn) > 0 {

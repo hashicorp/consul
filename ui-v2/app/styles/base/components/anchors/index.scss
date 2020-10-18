@@ -19,6 +19,8 @@
 }
 %anchor {
   @extend %anchor-decoration;
+  cursor: pointer;
+  background-color: $transparent;
 }
 %anchor:hover,
 %anchor:focus {
@@ -26,4 +28,5 @@
 }
 %anchor:active {
   @extend %anchor-active;
+  outline: 0;
 }

@@ -2,7 +2,10 @@
 .healthcheck-output {
   @extend %healthcheck-output;
 }
-%healthcheck-output em::before {
+%healthcheck-output dd em[data-tooltip] {
+  @extend %with-pseudo-tooltip;
+}
+%healthcheck-output dd em::before {
   width: 250px;
   /* TODO: All tooltips previously used */
   /* nowrap, they shouldn't */

@@ -3,7 +3,7 @@ import { setupRenderingTest } from 'ember-qunit';
 import { render } from '@ember/test-helpers';
 import hbs from 'htmlbars-inline-precompile';
 
-module('helper:policy/typeof', function(hooks) {
+module('Integration | Helper | policy/typeof', function(hooks) {
   setupRenderingTest(hooks);
 
   // Replace this with your real tests.
@@ -12,6 +12,6 @@ module('helper:policy/typeof', function(hooks) {
 
     await render(hbs`{{policy/typeof inputValue}}`);
 
-    assert.dom('*').hasText('role');
+    assert.equal(this.element.textContent.trim(), 'role');
   });
 });

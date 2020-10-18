@@ -1,5 +1,3 @@
-enable_central_service_config = true
-
 config_entries {
   bootstrap {
     kind = "ingress-gateway"
@@ -8,7 +6,7 @@ config_entries {
     listeners = [
       {
         protocol = "tcp"
-        port = 9999
+        port     = 9999
         services = [
           {
             name = "s2"
@@ -17,7 +15,7 @@ config_entries {
       },
       {
         protocol = "tcp"
-        port = 10000
+        port     = 10000
         services = [
           {
             name = "s1"
@@ -39,7 +37,7 @@ config_entries {
     kind = "service-resolver"
     name = "s2"
     redirect {
-      service = "s2"
+      service    = "s2"
       datacenter = "secondary"
     }
   }
@@ -56,7 +54,7 @@ config_entries {
     kind = "service-resolver"
     name = "s1"
     redirect {
-      service = "s1"
+      service    = "s1"
       datacenter = "secondary"
     }
   }

@@ -2,6 +2,7 @@ package consul
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"time"
@@ -9,8 +10,15 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
+var errFederationStatesNotSupported = errors.New("Not all servers in the datacenter support federation states - preventing replication")
+
+func isErrFederationStatesNotSupported(err error) bool {
+	return errors.Is(err, errFederationStatesNotSupported)
+}
+
 type FederationStateReplicator struct {
-	srv *Server
+	srv            *Server
+	gatewayLocator *GatewayLocator
 }
 
 var _ IndexReplicatorDelegate = (*FederationStateReplicator)(nil)
@@ -26,6 +34,17 @@ func (r *FederationStateReplicator) MetricName() string { return "federation-sta
 
 // FetchRemote implements IndexReplicatorDelegate.
 func (r *FederationStateReplicator) FetchRemote(lastRemoteIndex uint64) (int, interface{}, uint64, error) {
+	if !r.srv.DatacenterSupportsFederationStates() {
+		return 0, nil, 0, errFederationStatesNotSupported
+	}
+	lenRemote, remote, remoteIndex, err := r.fetchRemote(lastRemoteIndex)
+	if r.gatewayLocator != nil {
+		r.gatewayLocator.SetLastFederationStateReplicationError(err)
+	}
+	return lenRemote, remote, remoteIndex, err
+}
+
+func (r *FederationStateReplicator) fetchRemote(lastRemoteIndex uint64) (int, interface{}, uint64, error) {
 	req := structs.DCSpecificRequest{
 		Datacenter: r.srv.config.PrimaryDatacenter,
 		QueryOptions: structs.QueryOptions{
@@ -139,7 +158,8 @@ func (r *FederationStateReplicator) PerformDeletions(ctx context.Context, deleti
 		if err != nil {
 			return false, err
 		}
-		if respErr, ok := resp.(error); ok && err != nil {
+
+		if respErr, ok := resp.(error); ok {
 			return false, respErr
 		}
 
@@ -183,7 +203,8 @@ func (r *FederationStateReplicator) PerformUpdates(ctx context.Context, updatesR
 		if err != nil {
 			return false, err
 		}
-		if respErr, ok := resp.(error); ok && err != nil {
+
+		if respErr, ok := resp.(error); ok {
 			return false, respErr
 		}
 

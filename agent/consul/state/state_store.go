@@ -1,10 +1,14 @@
 package state
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"time"
+
+	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-memdb"
+	memdb "github.com/hashicorp/go-memdb"
 )
 
 var (
@@ -78,7 +82,7 @@ var (
 	ErrMissingIntentionID = errors.New("Missing Intention ID")
 )
 
-const (
+var (
 	// watchLimit is used as a soft limit to cap how many watches we allow
 	// for a given blocking query. If this is exceeded, then we will use a
 	// higher-level watch that's less fine-grained.  Choosing the perfect
@@ -97,11 +101,15 @@ const (
 // from the Raft log through the FSM.
 type Store struct {
 	schema *memdb.DBSchema
-	db     *memdb.MemDB
+	db     *changeTrackerDB
 
 	// abandonCh is used to signal watchers that this state store has been
 	// abandoned (usually during a restore). This is only ever closed.
 	abandonCh chan struct{}
+
+	// TODO: refactor abondonCh to use a context so that both can use the same
+	// cancel mechanism.
+	stopEventPublisher func()
 
 	// kvsGraveyard manages tombstones for the key value store.
 	kvsGraveyard *Graveyard
@@ -114,7 +122,7 @@ type Store struct {
 // works by starting a read transaction against the whole state store.
 type Snapshot struct {
 	store     *Store
-	tx        *memdb.Txn
+	tx        *txn
 	lastIndex uint64
 }
 
@@ -122,7 +130,7 @@ type Snapshot struct {
 // data to a state store.
 type Restore struct {
 	store *Store
-	tx    *memdb.Txn
+	tx    *txn
 }
 
 // IndexEntry keeps a record of the last index per-table.
@@ -152,15 +160,29 @@ func NewStateStore(gc *TombstoneGC) (*Store, error) {
 		return nil, fmt.Errorf("Failed setting up state store: %s", err)
 	}
 
-	// Create and return the state store.
+	ctx, cancel := context.WithCancel(context.TODO())
 	s := &Store{
-		schema:       schema,
-		db:           db,
-		abandonCh:    make(chan struct{}),
-		kvsGraveyard: NewGraveyard(gc),
-		lockDelay:    NewDelay(),
+		schema:             schema,
+		abandonCh:          make(chan struct{}),
+		kvsGraveyard:       NewGraveyard(gc),
+		lockDelay:          NewDelay(),
+		stopEventPublisher: cancel,
 	}
+	pub := stream.NewEventPublisher(newSnapshotHandlers(s), 10*time.Second)
+	s.db = &changeTrackerDB{
+		db:             db,
+		publisher:      pub,
+		processChanges: processDBChanges,
+	}
+
+	go pub.Run(ctx)
 	return s, nil
+}
+
+// EventPublisher returns the stream.EventPublisher used by the Store to
+// publish events.
+func (s *Store) EventPublisher() *stream.EventPublisher {
+	return s.db.publisher
 }
 
 // Snapshot is used to create a point-in-time snapshot of the entire db.
@@ -206,7 +228,7 @@ func (s *Snapshot) Close() {
 // the state store. It works by doing all the restores inside of a single
 // transaction.
 func (s *Store) Restore() *Restore {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxnRestore()
 	return &Restore{s, tx}
 }
 
@@ -218,8 +240,8 @@ func (s *Restore) Abort() {
 
 // Commit commits the changes made by a restore. This or Abort should always be
 // called.
-func (s *Restore) Commit() {
-	s.tx.Commit()
+func (s *Restore) Commit() error {
+	return s.tx.Commit()
 }
 
 // AbandonCh returns a channel you can wait on to know if the state store was
@@ -231,6 +253,7 @@ func (s *Store) AbandonCh() <-chan struct{} {
 // Abandon is used to signal that the given state store has been abandoned.
 // Calling this more than one time will panic.
 func (s *Store) Abandon() {
+	s.stopEventPublisher()
 	close(s.abandonCh)
 }
 
@@ -244,11 +267,11 @@ func (s *Store) maxIndex(tables ...string) uint64 {
 
 // maxIndexTxn is a helper used to retrieve the highest known index
 // amongst a set of tables in the db.
-func maxIndexTxn(tx *memdb.Txn, tables ...string) uint64 {
+func maxIndexTxn(tx ReadTxn, tables ...string) uint64 {
 	return maxIndexWatchTxn(tx, nil, tables...)
 }
 
-func maxIndexWatchTxn(tx *memdb.Txn, ws memdb.WatchSet, tables ...string) uint64 {
+func maxIndexWatchTxn(tx ReadTxn, ws memdb.WatchSet, tables ...string) uint64 {
 	var lindex uint64
 	for _, table := range tables {
 		ch, ti, err := tx.FirstWatch("index", "id", table)
@@ -265,7 +288,7 @@ func maxIndexWatchTxn(tx *memdb.Txn, ws memdb.WatchSet, tables ...string) uint64
 
 // indexUpdateMaxTxn is used when restoring entries and sets the table's index to
 // the given idx only if it's greater than the current index.
-func indexUpdateMaxTxn(tx *memdb.Txn, idx uint64, table string) error {
+func indexUpdateMaxTxn(tx *txn, idx uint64, table string) error {
 	ti, err := tx.First("index", "id", table)
 	if err != nil {
 		return fmt.Errorf("failed to retrieve existing index: %s", err)

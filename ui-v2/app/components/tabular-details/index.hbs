@@ -1,0 +1,34 @@
+{{yield}}
+<table class="with-details has-actions">
+  <thead>
+    <tr>
+      <YieldSlot @name="header">{{yield}}</YieldSlot>
+      <th class="actions">Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+  {{#let (concat 'tabular-details-' name '-toggle-' guid '_') as |inputId|}}
+    {{#each items as |item index|}}
+      <tr data-test-tabular-row onclick={{action 'click'}}>
+          <YieldSlot @name="row">{{yield item index}}</YieldSlot>
+          <td class="actions">
+            <label for={{concat inputId index}}><span>Show details</span></label>
+          </td>
+      </tr>
+      <tr>
+        <td colspan="3">
+          <input type="checkbox" checked={{ not (is-empty item.closed) }} value={{index}} name={{name}} id={{concat inputId index}} onchange={{action 'change' item items}} />
+          <div>
+            <label for={{concat inputId index}}><span>Hide details</span></label>
+            <div>
+              <YieldSlot @name="details">
+                {{yield item index}}
+              </YieldSlot>
+            </div>
+          </div>
+        </td>
+      </tr>
+    {{/each}}
+  {{/let}}
+  </tbody>
+</table>

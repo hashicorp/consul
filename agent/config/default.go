@@ -10,23 +10,9 @@ import (
 	"github.com/hashicorp/raft"
 )
 
-func DefaultRPCProtocol() (int, error) {
-	src := DefaultSource()
-	c, err := Parse(src.Data, src.Format)
-	if err != nil {
-		return 0, fmt.Errorf("Error parsing default config: %s", err)
-	}
-	if c.RPCProtocol == nil {
-		return 0, fmt.Errorf("No default RPC protocol set")
-	}
-	return *c.RPCProtocol, nil
-}
-
 // DefaultSource is the default agent configuration.
 // This needs to be merged first in the head.
-// todo(fs): The values are sourced from multiple sources.
-// todo(fs): IMO, this should be the definitive default for all configurable values
-// todo(fs): and whatever is in here should clobber every default value. Hence, no sourcing.
+// TODO: return a LiteralSource (no decoding) instead of a FileSource
 func DefaultSource() Source {
 	cfg := consul.DefaultConfig()
 	serfLAN := cfg.SerfLANConfig.MemberlistConfig
@@ -37,13 +23,12 @@ func DefaultSource() Source {
 	//   acl stanza for now we need to be able to detect the new entries not being set (not
 	//   just set to the defaults here) so that we can use the old entries. So the true
 	//   default still needs to reside in the original config values
-	return Source{
+	return FileSource{
 		Name:   "default",
 		Format: "hcl",
 		Data: `
 		acl_default_policy = "allow"
 		acl_down_policy = "extend-cache"
-		acl_enforce_version_8 = true
 		acl_ttl = "30s"
 		acl = {
 			policy_ttl = "30s"
@@ -60,12 +45,13 @@ func DefaultSource() Source {
 		disable_host_node_id = true
 		disable_remote_exec = true
 		domain = "consul."
+		enable_central_service_config = true
 		encrypt_verify_incoming = true
 		encrypt_verify_outgoing = true
 		log_level = "INFO"
 		max_query_time = "600s"
 		primary_gateways_interval = "30s"
-		protocol =  2
+		protocol = ` + strconv.Itoa(consul.DefaultRPCProtocol) + `
 		retry_interval = "30s"
 		retry_interval_wan = "30s"
 		server = false
@@ -136,6 +122,7 @@ func DefaultSource() Source {
 		telemetry = {
 			metrics_prefix = "consul"
 			filter_default = true
+			prefix_filter = []
 		}
 
 	`,
@@ -144,8 +131,9 @@ func DefaultSource() Source {
 
 // DevSource is the additional default configuration for dev mode.
 // This should be merged in the head after the default configuration.
+// TODO: return a LiteralSource (no decoding) instead of a FileSource
 func DevSource() Source {
-	return Source{
+	return FileSource{
 		Name:   "dev",
 		Format: "hcl",
 		Data: `
@@ -153,7 +141,9 @@ func DevSource() Source {
 		disable_anonymous_signature = true
 		disable_keyring_file = true
 		enable_debug = true
-		ui = true
+		ui_config {
+			enabled = true
+		}
 		log_level = "DEBUG"
 		server = true
 
@@ -184,8 +174,9 @@ func DevSource() Source {
 
 // NonUserSource contains the values the user cannot configure.
 // This needs to be merged in the tail.
+// TODO: return a LiteralSource (no decoding) instead of a FileSource
 func NonUserSource() Source {
-	return Source{
+	return FileSource{
 		Name:   "non-user",
 		Format: "hcl",
 		Data: `
@@ -203,6 +194,12 @@ func NonUserSource() Source {
 
 		# SegmentNameLimit is the maximum segment name length.
 		segment_name_limit = 64
+		
+		connect = { 
+			# 0s causes the value to be ignored and operate without capping
+			# the max time before leaf certs can be generated after a roots change.
+			test_ca_leaf_root_change_spread = "0s"
+		}
 	`,
 	}
 }
@@ -210,8 +207,9 @@ func NonUserSource() Source {
 // VersionSource creates a config source for the version parameters.
 // This should be merged in the tail since these values are not
 // user configurable.
+// TODO: return a LiteralSource (no decoding) instead of a FileSource
 func VersionSource(rev, ver, verPre string) Source {
-	return Source{
+	return FileSource{
 		Name:   "version",
 		Format: "hcl",
 		Data:   fmt.Sprintf(`revision = %q version = %q version_prerelease = %q`, rev, ver, verPre),
@@ -226,10 +224,11 @@ func DefaultVersionSource() Source {
 
 // DefaultConsulSource returns the default configuration for the consul agent.
 // This should be merged in the tail since these values are not user configurable.
+// TODO: return a LiteralSource (no decoding) instead of a FileSource
 func DefaultConsulSource() Source {
 	cfg := consul.DefaultConfig()
 	raft := cfg.RaftConfig
-	return Source{
+	return FileSource{
 		Name:   "consul",
 		Format: "hcl",
 		Data: `
@@ -254,8 +253,9 @@ func DefaultConsulSource() Source {
 
 // DevConsulSource returns the consul agent configuration for the dev mode.
 // This should be merged in the tail after the DefaultConsulSource.
+// TODO: return a LiteralSource (no decoding) instead of a FileSource
 func DevConsulSource() Source {
-	return Source{
+	return FileSource{
 		Name:   "consul-dev",
 		Format: "hcl",
 		Data: `
@@ -277,7 +277,7 @@ func DevConsulSource() Source {
 }
 
 func DefaultRuntimeConfig(hcl string) *RuntimeConfig {
-	b, err := NewBuilder(Flags{HCL: []string{hcl}})
+	b, err := NewBuilder(BuilderOpts{HCL: []string{hcl}})
 	if err != nil {
 		panic(err)
 	}

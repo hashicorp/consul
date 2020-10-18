@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/agentpb"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	pbacl "github.com/hashicorp/consul/proto/pbacl"
 	memdb "github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
@@ -121,7 +121,7 @@ func setupExtraPoliciesAndRoles(t *testing.T, s *Store) {
 			Name:        "node-read-role",
 			Description: "Allows reading all node information",
 			Policies: []structs.ACLRolePolicyLink{
-				structs.ACLRolePolicyLink{
+				{
 					ID: testPolicyID_A,
 				},
 			},
@@ -131,7 +131,7 @@ func setupExtraPoliciesAndRoles(t *testing.T, s *Store) {
 			Name:        "agent-read-role",
 			Description: "Allows reading all agent information",
 			Policies: []structs.ACLRolePolicyLink{
-				structs.ACLRolePolicyLink{
+				{
 					ID: testPolicyID_B,
 				},
 			},
@@ -247,7 +247,7 @@ func TestStateStore_ACLToken_SetGet_Legacy(t *testing.T) {
 			AccessorID: "c8d0378c-566a-4535-8fc9-c883a8cc9849",
 			SecretID:   "6d48ce91-2558-4098-bdab-8737e4e57d5f",
 			Policies: []structs.ACLTokenPolicyLink{
-				structs.ACLTokenPolicyLink{
+				{
 					ID: testPolicyID_A,
 				},
 			},
@@ -367,7 +367,7 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 			AccessorID: "daf37c07-d04d-4fd5-9678-a8206a57d61a",
 			SecretID:   "39171632-6f34-4411-827f-9416403687f4",
 			ServiceIdentities: []*structs.ACLServiceIdentity{
-				&structs.ACLServiceIdentity{},
+				{},
 			},
 		}
 
@@ -382,7 +382,7 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 			AccessorID: "daf37c07-d04d-4fd5-9678-a8206a57d61a",
 			SecretID:   "39171632-6f34-4411-827f-9416403687f4",
 			ServiceIdentities: []*structs.ACLServiceIdentity{
-				&structs.ACLServiceIdentity{
+				{
 					Datacenters: []string{"dc1"},
 				},
 			},
@@ -399,7 +399,7 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 			AccessorID: "daf37c07-d04d-4fd5-9678-a8206a57d61a",
 			SecretID:   "39171632-6f34-4411-827f-9416403687f4",
 			Policies: []structs.ACLTokenPolicyLink{
-				structs.ACLTokenPolicyLink{
+				{
 					Name: "no-id",
 				},
 			},
@@ -416,7 +416,7 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 			AccessorID: "daf37c07-d04d-4fd5-9678-a8206a57d61a",
 			SecretID:   "39171632-6f34-4411-827f-9416403687f4",
 			Roles: []structs.ACLTokenRoleLink{
-				structs.ACLTokenRoleLink{
+				{
 					Name: "no-id",
 				},
 			},
@@ -433,7 +433,7 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 			AccessorID: "daf37c07-d04d-4fd5-9678-a8206a57d61a",
 			SecretID:   "39171632-6f34-4411-827f-9416403687f4",
 			Policies: []structs.ACLTokenPolicyLink{
-				structs.ACLTokenPolicyLink{
+				{
 					ID: "4f20e379-b496-4b99-9599-19a197126490",
 				},
 			},
@@ -450,7 +450,7 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 			AccessorID: "daf37c07-d04d-4fd5-9678-a8206a57d61a",
 			SecretID:   "39171632-6f34-4411-827f-9416403687f4",
 			Roles: []structs.ACLTokenRoleLink{
-				structs.ACLTokenRoleLink{
+				{
 					ID: "9b2349b6-55d3-4901-b287-347ae725af2f",
 				},
 			},
@@ -480,17 +480,17 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 			AccessorID: "daf37c07-d04d-4fd5-9678-a8206a57d61a",
 			SecretID:   "39171632-6f34-4411-827f-9416403687f4",
 			Policies: []structs.ACLTokenPolicyLink{
-				structs.ACLTokenPolicyLink{
+				{
 					ID: testPolicyID_A,
 				},
 			},
 			Roles: []structs.ACLTokenRoleLink{
-				structs.ACLTokenRoleLink{
+				{
 					ID: testRoleID_A,
 				},
 			},
 			ServiceIdentities: []*structs.ACLServiceIdentity{
-				&structs.ACLServiceIdentity{
+				{
 					ServiceName: "web",
 				},
 			},
@@ -501,6 +501,7 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 		idx, rtoken, err := s.ACLTokenGetByAccessor(nil, "daf37c07-d04d-4fd5-9678-a8206a57d61a", nil)
 		require.NoError(t, err)
 		require.Equal(t, uint64(2), idx)
+		require.NotEmpty(t, rtoken.Hash)
 		compareTokens(t, token, rtoken)
 		require.Equal(t, uint64(2), rtoken.CreateIndex)
 		require.Equal(t, uint64(2), rtoken.ModifyIndex)
@@ -519,12 +520,12 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 			AccessorID: "daf37c07-d04d-4fd5-9678-a8206a57d61a",
 			SecretID:   "39171632-6f34-4411-827f-9416403687f4",
 			Policies: []structs.ACLTokenPolicyLink{
-				structs.ACLTokenPolicyLink{
+				{
 					ID: testPolicyID_A,
 				},
 			},
 			ServiceIdentities: []*structs.ACLServiceIdentity{
-				&structs.ACLServiceIdentity{
+				{
 					ServiceName: "web",
 				},
 			},
@@ -536,17 +537,17 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 			AccessorID: "daf37c07-d04d-4fd5-9678-a8206a57d61a",
 			SecretID:   "39171632-6f34-4411-827f-9416403687f4",
 			Policies: []structs.ACLTokenPolicyLink{
-				structs.ACLTokenPolicyLink{
+				{
 					ID: structs.ACLPolicyGlobalManagementID,
 				},
 			},
 			Roles: []structs.ACLTokenRoleLink{
-				structs.ACLTokenRoleLink{
+				{
 					ID: testRoleID_A,
 				},
 			},
 			ServiceIdentities: []*structs.ACLServiceIdentity{
-				&structs.ACLServiceIdentity{
+				{
 					ServiceName: "db",
 				},
 			},
@@ -580,7 +581,7 @@ func TestStateStore_ACLToken_SetGet(t *testing.T) {
 			SecretID:   "39171632-6f34-4411-827f-9416403687f4",
 			AuthMethod: "test",
 			Roles: []structs.ACLTokenRoleLink{
-				structs.ACLTokenRoleLink{
+				{
 					ID: testRoleID_A,
 				},
 			},
@@ -743,7 +744,7 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 				SecretID:    "00ff4564-dd96-4d1b-8ad6-578a08279f79",
 				Description: "first token",
 				Policies: []structs.ACLTokenPolicyLink{
-					structs.ACLTokenPolicyLink{
+					{
 						ID: testPolicyID_A,
 					},
 				},
@@ -753,7 +754,7 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 				SecretID:    "ff826eaf-4b88-4881-aaef-52b1089e5d5d",
 				Description: "second token",
 				Policies: []structs.ACLTokenPolicyLink{
-					structs.ACLTokenPolicyLink{
+					{
 						ID: structs.ACLPolicyGlobalManagementID,
 					},
 				},
@@ -800,7 +801,7 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 				AccessorID: "a4f68bd6-3af5-4f56-b764-3c6f20247879",
 				SecretID:   "00ff4564-dd96-4d1b-8ad6-578a08279f79",
 				Policies: []structs.ACLTokenPolicyLink{
-					structs.ACLTokenPolicyLink{
+					{
 						ID: fakePolicyID,
 					},
 				},
@@ -839,7 +840,7 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 				AccessorID: "a4f68bd6-3af5-4f56-b764-3c6f20247879",
 				SecretID:   "00ff4564-dd96-4d1b-8ad6-578a08279f79",
 				Roles: []structs.ACLTokenRoleLink{
-					structs.ACLTokenRoleLink{
+					{
 						ID: fakeRoleID,
 					},
 				},
@@ -909,7 +910,7 @@ func TestStateStore_ACLTokens_ListUpgradeable(t *testing.T) {
 			AccessorID: "f1093997-b6c7-496d-bfb8-6b1b1895641b",
 			SecretID:   "34ec8eb3-095d-417a-a937-b439af7a8e8b",
 			Policies: []structs.ACLTokenPolicyLink{
-				structs.ACLTokenPolicyLink{
+				{
 					ID: structs.ACLPolicyGlobalManagementID,
 				},
 			},
@@ -918,7 +919,7 @@ func TestStateStore_ACLTokens_ListUpgradeable(t *testing.T) {
 			AccessorID: "54866514-3cf2-4fec-8a8a-710583831834",
 			SecretID:   "8de2dd39-134d-4cb1-950b-b7ab96ea20ba",
 			Policies: []structs.ACLTokenPolicyLink{
-				structs.ACLTokenPolicyLink{
+				{
 					ID: structs.ACLPolicyGlobalManagementID,
 				},
 			},
@@ -927,7 +928,7 @@ func TestStateStore_ACLTokens_ListUpgradeable(t *testing.T) {
 			AccessorID: "47eea4da-bda1-48a6-901c-3e36d2d9262f",
 			SecretID:   "548bdb8e-c0d6-477b-bcc4-67fb836e9e61",
 			Policies: []structs.ACLTokenPolicyLink{
-				structs.ACLTokenPolicyLink{
+				{
 					ID: structs.ACLPolicyGlobalManagementID,
 				},
 			},
@@ -936,7 +937,7 @@ func TestStateStore_ACLTokens_ListUpgradeable(t *testing.T) {
 			AccessorID: "af1dffe5-8ac2-4282-9336-aeed9f7d951a",
 			SecretID:   "3ee33676-d9b8-4144-bf0b-92618cff438b",
 			Policies: []structs.ACLTokenPolicyLink{
-				structs.ACLTokenPolicyLink{
+				{
 					ID: structs.ACLPolicyGlobalManagementID,
 				},
 			},
@@ -945,7 +946,7 @@ func TestStateStore_ACLTokens_ListUpgradeable(t *testing.T) {
 			AccessorID: "511df589-3316-4784-b503-6e25ead4d4e1",
 			SecretID:   "fa9d658a-6e26-42ab-a5f0-1ea05c893dee",
 			Policies: []structs.ACLTokenPolicyLink{
-				structs.ACLTokenPolicyLink{
+				{
 					ID: structs.ACLPolicyGlobalManagementID,
 				},
 			},
@@ -970,7 +971,7 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 			AccessorID: "f1093997-b6c7-496d-bfb8-6b1b1895641b",
 			SecretID:   "34ec8eb3-095d-417a-a937-b439af7a8e8b",
 			Policies: []structs.ACLTokenPolicyLink{
-				structs.ACLTokenPolicyLink{
+				{
 					ID: structs.ACLPolicyGlobalManagementID,
 				},
 			},
@@ -981,7 +982,7 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 			AccessorID: "54866514-3cf2-4fec-8a8a-710583831834",
 			SecretID:   "8de2dd39-134d-4cb1-950b-b7ab96ea20ba",
 			Policies: []structs.ACLTokenPolicyLink{
-				structs.ACLTokenPolicyLink{
+				{
 					ID: structs.ACLPolicyGlobalManagementID,
 				},
 			},
@@ -991,7 +992,7 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 			AccessorID: "47eea4da-bda1-48a6-901c-3e36d2d9262f",
 			SecretID:   "548bdb8e-c0d6-477b-bcc4-67fb836e9e61",
 			Policies: []structs.ACLTokenPolicyLink{
-				structs.ACLTokenPolicyLink{
+				{
 					ID: testPolicyID_A,
 				},
 			},
@@ -1001,7 +1002,7 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 			AccessorID: "4915fc9d-3726-4171-b588-6c271f45eecd",
 			SecretID:   "f6998577-fd9b-4e6c-b202-cc3820513d32",
 			Policies: []structs.ACLTokenPolicyLink{
-				structs.ACLTokenPolicyLink{
+				{
 					ID: testPolicyID_A,
 				},
 			},
@@ -1012,7 +1013,7 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 			AccessorID: "a7715fde-8954-4c92-afbc-d84c6ecdc582",
 			SecretID:   "77a2da3a-b479-4025-a83e-bd6b859f0cfe",
 			Roles: []structs.ACLTokenRoleLink{
-				structs.ACLTokenRoleLink{
+				{
 					ID: testRoleID_A,
 				},
 			},
@@ -1022,7 +1023,7 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 			AccessorID: "cadb4f13-f62a-49ab-ab3f-5a7e01b925d9",
 			SecretID:   "c432d12b-3c86-4628-b74f-94ddfc7fb3ba",
 			Roles: []structs.ACLTokenRoleLink{
-				structs.ACLTokenRoleLink{
+				{
 					ID: testRoleID_A,
 				},
 			},
@@ -1238,7 +1239,7 @@ func TestStateStore_ACLToken_FixupPolicyLinks(t *testing.T) {
 		AccessorID: "47eea4da-bda1-48a6-901c-3e36d2d9262f",
 		SecretID:   "548bdb8e-c0d6-477b-bcc4-67fb836e9e61",
 		Policies: []structs.ACLTokenPolicyLink{
-			structs.ACLTokenPolicyLink{
+			{
 				ID: testPolicyID_A,
 			},
 		},
@@ -1364,7 +1365,7 @@ func TestStateStore_ACLToken_FixupRoleLinks(t *testing.T) {
 		AccessorID: "47eea4da-bda1-48a6-901c-3e36d2d9262f",
 		SecretID:   "548bdb8e-c0d6-477b-bcc4-67fb836e9e61",
 		Roles: []structs.ACLTokenRoleLink{
-			structs.ACLTokenRoleLink{
+			{
 				ID: testRoleID_A,
 			},
 		},
@@ -1385,7 +1386,7 @@ func TestStateStore_ACLToken_FixupRoleLinks(t *testing.T) {
 		Name:        "node-read-role-renamed",
 		Description: "Allows reading all node information",
 		Policies: []structs.ACLRolePolicyLink{
-			structs.ACLRolePolicyLink{
+			{
 				ID: testPolicyID_A,
 			},
 		},
@@ -1489,7 +1490,7 @@ func TestStateStore_ACLToken_Delete(t *testing.T) {
 			AccessorID: "f1093997-b6c7-496d-bfb8-6b1b1895641b",
 			SecretID:   "34ec8eb3-095d-417a-a937-b439af7a8e8b",
 			Policies: []structs.ACLTokenPolicyLink{
-				structs.ACLTokenPolicyLink{
+				{
 					ID: structs.ACLPolicyGlobalManagementID,
 				},
 			},
@@ -1517,7 +1518,7 @@ func TestStateStore_ACLToken_Delete(t *testing.T) {
 			AccessorID: "f1093997-b6c7-496d-bfb8-6b1b1895641b",
 			SecretID:   "34ec8eb3-095d-417a-a937-b439af7a8e8b",
 			Policies: []structs.ACLTokenPolicyLink{
-				structs.ACLTokenPolicyLink{
+				{
 					ID: structs.ACLPolicyGlobalManagementID,
 				},
 			},
@@ -1546,7 +1547,7 @@ func TestStateStore_ACLToken_Delete(t *testing.T) {
 				AccessorID: "f1093997-b6c7-496d-bfb8-6b1b1895641b",
 				SecretID:   "34ec8eb3-095d-417a-a937-b439af7a8e8b",
 				Policies: []structs.ACLTokenPolicyLink{
-					structs.ACLTokenPolicyLink{
+					{
 						ID: structs.ACLPolicyGlobalManagementID,
 					},
 				},
@@ -1556,7 +1557,7 @@ func TestStateStore_ACLToken_Delete(t *testing.T) {
 				AccessorID: "a0bfe8d4-b2f3-4b48-b387-f28afb820eab",
 				SecretID:   "be444e46-fb95-4ccc-80d5-c873f34e6fa6",
 				Policies: []structs.ACLTokenPolicyLink{
-					structs.ACLTokenPolicyLink{
+					{
 						ID: structs.ACLPolicyGlobalManagementID,
 					},
 				},
@@ -2039,7 +2040,7 @@ func TestStateStore_ACLRole_SetGet(t *testing.T) {
 			Name:        "test-role",
 			Description: "test",
 			Policies: []structs.ACLRolePolicyLink{
-				structs.ACLRolePolicyLink{
+				{
 					ID: structs.ACLPolicyGlobalManagementID,
 				},
 			},
@@ -2056,7 +2057,7 @@ func TestStateStore_ACLRole_SetGet(t *testing.T) {
 			ID:          testRoleID_A,
 			Description: "test",
 			Policies: []structs.ACLRolePolicyLink{
-				structs.ACLRolePolicyLink{
+				{
 					ID: structs.ACLPolicyGlobalManagementID,
 				},
 			},
@@ -2073,7 +2074,7 @@ func TestStateStore_ACLRole_SetGet(t *testing.T) {
 			ID:          testRoleID_A,
 			Description: "test",
 			ServiceIdentities: []*structs.ACLServiceIdentity{
-				&structs.ACLServiceIdentity{},
+				{},
 			},
 		}
 
@@ -2088,7 +2089,7 @@ func TestStateStore_ACLRole_SetGet(t *testing.T) {
 			ID:          testRoleID_A,
 			Description: "test",
 			ServiceIdentities: []*structs.ACLServiceIdentity{
-				&structs.ACLServiceIdentity{
+				{
 					Datacenters: []string{"dc1"},
 				},
 			},
@@ -2105,7 +2106,7 @@ func TestStateStore_ACLRole_SetGet(t *testing.T) {
 			ID:          testRoleID_A,
 			Description: "test",
 			Policies: []structs.ACLRolePolicyLink{
-				structs.ACLRolePolicyLink{
+				{
 					Name: "no-id",
 				},
 			},
@@ -2122,7 +2123,7 @@ func TestStateStore_ACLRole_SetGet(t *testing.T) {
 			ID:          testRoleID_A,
 			Description: "test",
 			Policies: []structs.ACLRolePolicyLink{
-				structs.ACLRolePolicyLink{
+				{
 					ID: "4f20e379-b496-4b99-9599-19a197126490",
 				},
 			},
@@ -2140,7 +2141,7 @@ func TestStateStore_ACLRole_SetGet(t *testing.T) {
 			Name:        "my-new-role",
 			Description: "test",
 			Policies: []structs.ACLRolePolicyLink{
-				structs.ACLRolePolicyLink{
+				{
 					ID: testPolicyID_A,
 				},
 			},
@@ -2179,7 +2180,7 @@ func TestStateStore_ACLRole_SetGet(t *testing.T) {
 			Name:        "node-read-role",
 			Description: "Allows reading all node information",
 			Policies: []structs.ACLRolePolicyLink{
-				structs.ACLRolePolicyLink{
+				{
 					ID: testPolicyID_A,
 				},
 			},
@@ -2194,7 +2195,7 @@ func TestStateStore_ACLRole_SetGet(t *testing.T) {
 			Name:        "node-read-role-modified",
 			Description: "Modified",
 			Policies: []structs.ACLRolePolicyLink{
-				structs.ACLRolePolicyLink{
+				{
 					ID: structs.ACLPolicyGlobalManagementID,
 				},
 			},
@@ -2246,7 +2247,7 @@ func TestStateStore_ACLRoles_UpsertBatchRead(t *testing.T) {
 				Name:        "role1",
 				Description: "test-role1",
 				Policies: []structs.ACLRolePolicyLink{
-					structs.ACLRolePolicyLink{
+					{
 						ID: testPolicyID_A,
 					},
 				},
@@ -2256,7 +2257,7 @@ func TestStateStore_ACLRoles_UpsertBatchRead(t *testing.T) {
 				Name:        "role2",
 				Description: "test-role2",
 				Policies: []structs.ACLRolePolicyLink{
-					structs.ACLRolePolicyLink{
+					{
 						ID: testPolicyID_B,
 					},
 				},
@@ -2288,7 +2289,7 @@ func TestStateStore_ACLRoles_UpsertBatchRead(t *testing.T) {
 				Name:        "role1",
 				Description: "test-role1",
 				Policies: []structs.ACLRolePolicyLink{
-					structs.ACLRolePolicyLink{
+					{
 						ID: testPolicyID_A,
 					},
 				},
@@ -2298,7 +2299,7 @@ func TestStateStore_ACLRoles_UpsertBatchRead(t *testing.T) {
 				Name:        "role2",
 				Description: "test-role2",
 				Policies: []structs.ACLRolePolicyLink{
-					structs.ACLRolePolicyLink{
+					{
 						ID: testPolicyID_B,
 					},
 				},
@@ -2314,7 +2315,7 @@ func TestStateStore_ACLRoles_UpsertBatchRead(t *testing.T) {
 				Name:        "role1-modified",
 				Description: "test-role1-modified",
 				Policies: []structs.ACLRolePolicyLink{
-					structs.ACLRolePolicyLink{
+					{
 						ID: testPolicyID_C,
 					},
 				},
@@ -2323,10 +2324,10 @@ func TestStateStore_ACLRoles_UpsertBatchRead(t *testing.T) {
 				ID:   testRoleID_B,
 				Name: "role2-modified",
 				Policies: []structs.ACLRolePolicyLink{
-					structs.ACLRolePolicyLink{
+					{
 						ID: testPolicyID_D,
 					},
-					structs.ACLRolePolicyLink{
+					{
 						ID: testPolicyID_E,
 					},
 				},
@@ -2368,7 +2369,7 @@ func TestStateStore_ACLRoles_UpsertBatchRead(t *testing.T) {
 				Name:        "role1",
 				Description: "test-role1",
 				Policies: []structs.ACLRolePolicyLink{
-					structs.ACLRolePolicyLink{
+					{
 						ID: fakePolicyID,
 					},
 				},
@@ -2407,7 +2408,7 @@ func TestStateStore_ACLRole_List(t *testing.T) {
 			Name:        "role1",
 			Description: "test-role1",
 			Policies: []structs.ACLRolePolicyLink{
-				structs.ACLRolePolicyLink{
+				{
 					ID: testPolicyID_A,
 				},
 			},
@@ -2417,7 +2418,7 @@ func TestStateStore_ACLRole_List(t *testing.T) {
 			Name:        "role2",
 			Description: "test-role2",
 			Policies: []structs.ACLRolePolicyLink{
-				structs.ACLRolePolicyLink{
+				{
 					ID: testPolicyID_B,
 				},
 			},
@@ -2507,7 +2508,7 @@ func TestStateStore_ACLRole_FixupPolicyLinks(t *testing.T) {
 		ID:   "672537b1-35cb-48fc-a2cd-a1863c301b70",
 		Name: "test-role",
 		Policies: []structs.ACLRolePolicyLink{
-			structs.ACLRolePolicyLink{
+			{
 				ID: testPolicyID_A,
 			},
 		},
@@ -2630,7 +2631,7 @@ func TestStateStore_ACLRole_Delete(t *testing.T) {
 			Name:        "role1",
 			Description: "test-role1",
 			Policies: []structs.ACLRolePolicyLink{
-				structs.ACLRolePolicyLink{
+				{
 					ID: structs.ACLPolicyGlobalManagementID,
 				},
 			},
@@ -2659,7 +2660,7 @@ func TestStateStore_ACLRole_Delete(t *testing.T) {
 			Name:        "role1",
 			Description: "test-role1",
 			Policies: []structs.ACLRolePolicyLink{
-				structs.ACLRolePolicyLink{
+				{
 					ID: structs.ACLPolicyGlobalManagementID,
 				},
 			},
@@ -2689,7 +2690,7 @@ func TestStateStore_ACLRole_Delete(t *testing.T) {
 				Name:        "role1",
 				Description: "test-role1",
 				Policies: []structs.ACLRolePolicyLink{
-					structs.ACLRolePolicyLink{
+					{
 						ID: structs.ACLPolicyGlobalManagementID,
 					},
 				},
@@ -2699,7 +2700,7 @@ func TestStateStore_ACLRole_Delete(t *testing.T) {
 				Name:        "role2",
 				Description: "test-role2",
 				Policies: []structs.ACLRolePolicyLink{
-					structs.ACLRolePolicyLink{
+					{
 						ID: structs.ACLPolicyGlobalManagementID,
 					},
 				},
@@ -3491,7 +3492,7 @@ func TestStateStore_ACLTokens_Snapshot_Restore(t *testing.T) {
 			Name:        "role1",
 			Description: "role1",
 			Policies: []structs.ACLRolePolicyLink{
-				structs.ACLRolePolicyLink{
+				{
 					ID: "ca1fc52c-3676-4050-82ed-ca223e38b2c9",
 				},
 			},
@@ -3501,7 +3502,7 @@ func TestStateStore_ACLTokens_Snapshot_Restore(t *testing.T) {
 			Name:        "role2",
 			Description: "role2",
 			Policies: []structs.ACLRolePolicyLink{
-				structs.ACLRolePolicyLink{
+				{
 					ID: "7b70fa0f-58cd-412d-93c3-a0f17bb19a3e",
 				},
 			},
@@ -3520,21 +3521,21 @@ func TestStateStore_ACLTokens_Snapshot_Restore(t *testing.T) {
 			SecretID:    "838f72b5-5c15-4a9e-aa6d-31734c3a0286",
 			Description: "token1",
 			Policies: []structs.ACLTokenPolicyLink{
-				structs.ACLTokenPolicyLink{
+				{
 					ID:   "ca1fc52c-3676-4050-82ed-ca223e38b2c9",
 					Name: "policy1",
 				},
-				structs.ACLTokenPolicyLink{
+				{
 					ID:   "7b70fa0f-58cd-412d-93c3-a0f17bb19a3e",
 					Name: "policy2",
 				},
 			},
 			Roles: []structs.ACLTokenRoleLink{
-				structs.ACLTokenRoleLink{
+				{
 					ID:   "1a3a9af9-9cdc-473a-8016-010067b7e424",
 					Name: "role1",
 				},
-				structs.ACLTokenRoleLink{
+				{
 					ID:   "4dccc2c7-10f3-4eba-b367-9c09be9a9d67",
 					Name: "role2",
 				},
@@ -3545,21 +3546,21 @@ func TestStateStore_ACLTokens_Snapshot_Restore(t *testing.T) {
 			SecretID:    "ba5d9239-a4ab-49b9-ae09-1f19eed92204",
 			Description: "token2",
 			Policies: []structs.ACLTokenPolicyLink{
-				structs.ACLTokenPolicyLink{
+				{
 					ID:   "ca1fc52c-3676-4050-82ed-ca223e38b2c9",
 					Name: "policy1",
 				},
-				structs.ACLTokenPolicyLink{
+				{
 					ID:   "7b70fa0f-58cd-412d-93c3-a0f17bb19a3e",
 					Name: "policy2",
 				},
 			},
 			Roles: []structs.ACLTokenRoleLink{
-				structs.ACLTokenRoleLink{
+				{
 					ID:   "1a3a9af9-9cdc-473a-8016-010067b7e424",
 					Name: "role1",
 				},
-				structs.ACLTokenRoleLink{
+				{
 					ID:   "4dccc2c7-10f3-4eba-b367-9c09be9a9d67",
 					Name: "role2",
 				},
@@ -3706,7 +3707,7 @@ func TestTokenPoliciesIndex(t *testing.T) {
 	}
 	schema := &memdb.DBSchema{
 		Tables: map[string]*memdb.TableSchema{
-			"test": &memdb.TableSchema{
+			"test": {
 				Name: "test",
 				Indexes: map[string]*memdb.IndexSchema{
 					"id":     idIndex,
@@ -3843,6 +3844,10 @@ func stripIrrelevantTokenFields(token *structs.ACLToken) *structs.ACLToken {
 	// The raft indexes won't match either because the requester will not
 	// have access to that.
 	tokenCopy.RaftIndex = structs.RaftIndex{}
+
+	// nil out the hash - this is a computed field and we should assert
+	// elsewhere that its not empty when expected
+	tokenCopy.Hash = nil
 	return tokenCopy
 }
 
@@ -3882,11 +3887,11 @@ func TestStateStore_ACLRoles_Snapshot_Restore(t *testing.T) {
 			Name:        "838f72b5-5c15-4a9e-aa6d-31734c3a0286",
 			Description: "policy1",
 			Policies: []structs.ACLRolePolicyLink{
-				structs.ACLRolePolicyLink{
+				{
 					ID:   "ca1fc52c-3676-4050-82ed-ca223e38b2c9",
 					Name: "policy1",
 				},
-				structs.ACLRolePolicyLink{
+				{
 					ID:   "7b70fa0f-58cd-412d-93c3-a0f17bb19a3e",
 					Name: "policy2",
 				},
@@ -3899,11 +3904,11 @@ func TestStateStore_ACLRoles_Snapshot_Restore(t *testing.T) {
 			Name:        "ba5d9239-a4ab-49b9-ae09-1f19eed92204",
 			Description: "policy2",
 			Policies: []structs.ACLRolePolicyLink{
-				structs.ACLRolePolicyLink{
+				{
 					ID:   "ca1fc52c-3676-4050-82ed-ca223e38b2c9",
 					Name: "policy1",
 				},
-				structs.ACLRolePolicyLink{
+				{
 					ID:   "7b70fa0f-58cd-412d-93c3-a0f17bb19a3e",
 					Name: "policy2",
 				},
@@ -4094,13 +4099,13 @@ func TestStateStore_resolveACLLinks(t *testing.T) {
 		tx := s.db.Txn(false)
 		defer tx.Abort()
 
-		links := []agentpb.ACLLink{
-			agentpb.ACLLink{
+		links := []pbacl.ACLLink{
+			{
 				Name: "foo",
 			},
 		}
 
-		_, err := s.resolveACLLinks(tx, links, func(*memdb.Txn, string) (string, error) {
+		_, err := resolveACLLinks(tx, links, func(ReadTxn, string) (string, error) {
 			err := fmt.Errorf("Should not be attempting to resolve an empty id")
 			require.Fail(t, err.Error())
 			return "", err
@@ -4117,16 +4122,16 @@ func TestStateStore_resolveACLLinks(t *testing.T) {
 		tx := s.db.Txn(false)
 		defer tx.Abort()
 
-		links := []agentpb.ACLLink{
-			agentpb.ACLLink{
+		links := []pbacl.ACLLink{
+			{
 				ID: "b985e082-25d3-45a9-9dd8-fd1a41b83b0d",
 			},
-			agentpb.ACLLink{
+			{
 				ID: "e81887b4-836b-4053-a1fa-7e8305902be9",
 			},
 		}
 
-		numValid, err := s.resolveACLLinks(tx, links, func(_ *memdb.Txn, linkID string) (string, error) {
+		numValid, err := resolveACLLinks(tx, links, func(_ ReadTxn, linkID string) (string, error) {
 			switch linkID {
 			case "e81887b4-836b-4053-a1fa-7e8305902be9":
 				return "foo", nil
@@ -4150,13 +4155,13 @@ func TestStateStore_resolveACLLinks(t *testing.T) {
 		tx := s.db.Txn(false)
 		defer tx.Abort()
 
-		links := []agentpb.ACLLink{
-			agentpb.ACLLink{
+		links := []pbacl.ACLLink{
+			{
 				ID: "b985e082-25d3-45a9-9dd8-fd1a41b83b0d",
 			},
 		}
 
-		numValid, err := s.resolveACLLinks(tx, links, func(_ *memdb.Txn, linkID string) (string, error) {
+		numValid, err := resolveACLLinks(tx, links, func(_ ReadTxn, linkID string) (string, error) {
 			require.Equal(t, "b985e082-25d3-45a9-9dd8-fd1a41b83b0d", linkID)
 			return "", nil
 		})
@@ -4170,20 +4175,20 @@ func TestStateStore_resolveACLLinks(t *testing.T) {
 func TestStateStore_fixupACLLinks(t *testing.T) {
 	t.Parallel()
 
-	links := []agentpb.ACLLink{
-		agentpb.ACLLink{
+	links := []pbacl.ACLLink{
+		{
 			ID:   "40b57f86-97ea-40e4-a99a-c399cc81f4dd",
 			Name: "foo",
 		},
-		agentpb.ACLLink{
+		{
 			ID:   "8f024f92-1f8e-42ea-a3c3-55fb0c8670bc",
 			Name: "bar",
 		},
-		agentpb.ACLLink{
+		{
 			ID:   "c91afed1-e474-4cd2-98aa-cd57dd9377e9",
 			Name: "baz",
 		},
-		agentpb.ACLLink{
+		{
 			ID:   "c1585be7-ab0e-4973-b572-ba9afda86e07",
 			Name: "four",
 		},
@@ -4196,7 +4201,7 @@ func TestStateStore_fixupACLLinks(t *testing.T) {
 		tx := s.db.Txn(false)
 		defer tx.Abort()
 
-		newLinks, cloned, err := s.fixupACLLinks(tx, links, func(_ *memdb.Txn, linkID string) (string, error) {
+		newLinks, cloned, err := fixupACLLinks(tx, links, func(_ ReadTxn, linkID string) (string, error) {
 			switch linkID {
 			case "40b57f86-97ea-40e4-a99a-c399cc81f4dd":
 				return "foo", nil
@@ -4223,7 +4228,7 @@ func TestStateStore_fixupACLLinks(t *testing.T) {
 		tx := s.db.Txn(false)
 		defer tx.Abort()
 
-		newLinks, cloned, err := s.fixupACLLinks(tx, links, func(_ *memdb.Txn, linkID string) (string, error) {
+		newLinks, cloned, err := fixupACLLinks(tx, links, func(_ ReadTxn, linkID string) (string, error) {
 			switch linkID {
 			case "40b57f86-97ea-40e4-a99a-c399cc81f4dd":
 				return "foo", nil
@@ -4255,7 +4260,7 @@ func TestStateStore_fixupACLLinks(t *testing.T) {
 		tx := s.db.Txn(false)
 		defer tx.Abort()
 
-		newLinks, cloned, err := s.fixupACLLinks(tx, links, func(_ *memdb.Txn, linkID string) (string, error) {
+		newLinks, cloned, err := fixupACLLinks(tx, links, func(_ ReadTxn, linkID string) (string, error) {
 			switch linkID {
 			case "40b57f86-97ea-40e4-a99a-c399cc81f4dd":
 				return "foo", nil
@@ -4282,7 +4287,7 @@ func TestStateStore_fixupACLLinks(t *testing.T) {
 		tx := s.db.Txn(false)
 		defer tx.Abort()
 
-		_, _, err := s.fixupACLLinks(tx, links, func(*memdb.Txn, string) (string, error) {
+		_, _, err := fixupACLLinks(tx, links, func(ReadTxn, string) (string, error) {
 			return "", fmt.Errorf("Resolver Error")
 		})
 

@@ -1,10 +1,15 @@
+%expanded-single-select {
+  border: $decor-border-100;
+  border-color: $gray-300;
+  border-radius: $decor-radius-100;
+}
 %expanded-single-select label {
   cursor: pointer;
 }
 %expanded-single-select input[type='radio']:checked + *,
 %expanded-single-select input[type='radio']:hover + *,
 %expanded-single-select input[type='radio']:focus + * {
-  box-shadow: 0 4px 8px 0 rgba($black, 0.05);
+  box-shadow: $decor-elevation-300;
 }
 %expanded-single-select input[type='radio']:checked + *,
 %expanded-single-select input[type='radio']:hover + *,

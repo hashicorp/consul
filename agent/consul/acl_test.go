@@ -72,10 +72,10 @@ func testIdentityForToken(token string) (bool, structs.ACLIdentity, error) {
 			AccessorID: "435a75af-1763-4980-89f4-f0951dda53b4",
 			SecretID:   "b1b6be70-ed2e-4c80-8495-bdb3db110b1e",
 			Policies: []structs.ACLTokenPolicyLink{
-				structs.ACLTokenPolicyLink{
+				{
 					ID: "not-found",
 				},
-				structs.ACLTokenPolicyLink{
+				{
 					ID: "acl-ro",
 				},
 			},
@@ -85,10 +85,10 @@ func testIdentityForToken(token string) (bool, structs.ACLIdentity, error) {
 			AccessorID: "435a75af-1763-4980-89f4-f0951dda53b4",
 			SecretID:   "b1b6be70-ed2e-4c80-8495-bdb3db110b1e",
 			Roles: []structs.ACLTokenRoleLink{
-				structs.ACLTokenRoleLink{
+				{
 					ID: "not-found",
 				},
-				structs.ACLTokenRoleLink{
+				{
 					ID: "acl-ro",
 				},
 			},
@@ -98,7 +98,7 @@ func testIdentityForToken(token string) (bool, structs.ACLIdentity, error) {
 			AccessorID: "435a75af-1763-4980-89f4-f0951dda53b4",
 			SecretID:   "b1b6be70-ed2e-4c80-8495-bdb3db110b1e",
 			Roles: []structs.ACLTokenRoleLink{
-				structs.ACLTokenRoleLink{
+				{
 					ID: "missing-policy",
 				},
 			},
@@ -121,10 +121,10 @@ func testIdentityForToken(token string) (bool, structs.ACLIdentity, error) {
 			AccessorID: "5f57c1f6-6a89-4186-9445-531b316e01df",
 			SecretID:   "a1a54629-5050-4d17-8a4e-560d2423f835",
 			Policies: []structs.ACLTokenPolicyLink{
-				structs.ACLTokenPolicyLink{
+				{
 					ID: "node-wr",
 				},
-				structs.ACLTokenPolicyLink{
+				{
 					ID: "dc2-key-wr",
 				},
 			},
@@ -136,7 +136,7 @@ func testIdentityForToken(token string) (bool, structs.ACLIdentity, error) {
 			AccessorID: "5f57c1f6-6a89-4186-9445-531b316e01df",
 			SecretID:   "a1a54629-5050-4d17-8a4e-560d2423f835",
 			Roles: []structs.ACLTokenRoleLink{
-				structs.ACLTokenRoleLink{
+				{
 					ID: "found",
 				},
 			},
@@ -146,15 +146,15 @@ func testIdentityForToken(token string) (bool, structs.ACLIdentity, error) {
 			AccessorID: "5f57c1f6-6a89-4186-9445-531b316e01df",
 			SecretID:   "a1a54629-5050-4d17-8a4e-560d2423f835",
 			Policies: []structs.ACLTokenPolicyLink{
-				structs.ACLTokenPolicyLink{
+				{
 					ID: "node-wr",
 				},
-				structs.ACLTokenPolicyLink{
+				{
 					ID: "dc2-key-wr",
 				},
 			},
 			Roles: []structs.ACLTokenRoleLink{
-				structs.ACLTokenRoleLink{
+				{
 					ID: "service-ro",
 				},
 			},
@@ -164,7 +164,7 @@ func testIdentityForToken(token string) (bool, structs.ACLIdentity, error) {
 			AccessorID: "f6c5a5fb-4da4-422b-9abf-2c942813fc71",
 			SecretID:   "55cb7d69-2bea-42c3-a68f-2a1443d2abbc",
 			ServiceIdentities: []*structs.ACLServiceIdentity{
-				&structs.ACLServiceIdentity{
+				{
 					ServiceName: "service1",
 				},
 			},
@@ -174,8 +174,50 @@ func testIdentityForToken(token string) (bool, structs.ACLIdentity, error) {
 			AccessorID: "7c87dfad-be37-446e-8305-299585677cb5",
 			SecretID:   "dfca9676-ac80-453a-837b-4c0cf923473c",
 			ServiceIdentities: []*structs.ACLServiceIdentity{
-				&structs.ACLServiceIdentity{
+				{
 					ServiceName: "service2",
+				},
+			},
+		}, nil
+	case "found-synthetic-policy-3":
+		return true, &structs.ACLToken{
+			AccessorID: "bebccc92-3987-489d-84c2-ffd00d93ef93",
+			SecretID:   "de70f2e2-69d9-4e88-9815-f91c03c6bcb1",
+			NodeIdentities: []*structs.ACLNodeIdentity{
+				{
+					NodeName:   "test-node1",
+					Datacenter: "dc1",
+				},
+				// as the resolver is in dc1 this identity should be ignored
+				{
+					NodeName:   "test-node-dc2",
+					Datacenter: "dc2",
+				},
+			},
+		}, nil
+	case "found-synthetic-policy-4":
+		return true, &structs.ACLToken{
+			AccessorID: "359b9927-25fd-46b9-bd14-3470f848ec65",
+			SecretID:   "83c4d500-847d-49f7-8c08-0483f6b4156e",
+			NodeIdentities: []*structs.ACLNodeIdentity{
+				{
+					NodeName:   "test-node2",
+					Datacenter: "dc1",
+				},
+				// as the resolver is in dc1 this identity should be ignored
+				{
+					NodeName:   "test-node-dc2",
+					Datacenter: "dc2",
+				},
+			},
+		}, nil
+	case "found-role-node-identity":
+		return true, &structs.ACLToken{
+			AccessorID: "f3f47a09-de29-4c57-8f54-b65a9be79641",
+			SecretID:   "e96aca00-5951-4b97-b0e5-5816f42dfb93",
+			Roles: []structs.ACLTokenRoleLink{
+				{
+					ID: "node-identity",
 				},
 			},
 		}, nil
@@ -184,7 +226,7 @@ func testIdentityForToken(token string) (bool, structs.ACLIdentity, error) {
 			AccessorID: "435a75af-1763-4980-89f4-f0951dda53b4",
 			SecretID:   "b1b6be70-ed2e-4c80-8495-bdb3db110b1e",
 			Policies: []structs.ACLTokenPolicyLink{
-				structs.ACLTokenPolicyLink{
+				{
 					ID: "acl-ro",
 				},
 			},
@@ -194,7 +236,7 @@ func testIdentityForToken(token string) (bool, structs.ACLIdentity, error) {
 			AccessorID: "435a75af-1763-4980-89f4-f0951dda53b4",
 			SecretID:   "b1b6be70-ed2e-4c80-8495-bdb3db110b1e",
 			Policies: []structs.ACLTokenPolicyLink{
-				structs.ACLTokenPolicyLink{
+				{
 					ID: "acl-wr",
 				},
 			},
@@ -204,10 +246,10 @@ func testIdentityForToken(token string) (bool, structs.ACLIdentity, error) {
 			AccessorID: "5f57c1f6-6a89-4186-9445-531b316e01df",
 			SecretID:   "a1a54629-5050-4d17-8a4e-560d2423f835",
 			Policies: []structs.ACLTokenPolicyLink{
-				structs.ACLTokenPolicyLink{
+				{
 					ID: "node-wr",
 				},
-				structs.ACLTokenPolicyLink{
+				{
 					ID: "acl-wr",
 				},
 			},
@@ -217,7 +259,7 @@ func testIdentityForToken(token string) (bool, structs.ACLIdentity, error) {
 			AccessorID: "5f57c1f6-6a89-4186-9445-531b316e01df",
 			SecretID:   "a1a54629-5050-4d17-8a4e-560d2423f835",
 			Policies: []structs.ACLTokenPolicyLink{
-				structs.ACLTokenPolicyLink{
+				{
 					ID: "node-wr",
 				},
 			},
@@ -227,10 +269,10 @@ func testIdentityForToken(token string) (bool, structs.ACLIdentity, error) {
 			AccessorID: "5f57c1f6-6a89-4186-9445-531b316e01df",
 			SecretID:   "a1a54629-5050-4d17-8a4e-560d2423f835",
 			Policies: []structs.ACLTokenPolicyLink{
-				structs.ACLTokenPolicyLink{
+				{
 					ID: "node-wr",
 				},
-				structs.ACLTokenPolicyLink{
+				{
 					ID: "acl-wr",
 				},
 			},
@@ -240,7 +282,7 @@ func testIdentityForToken(token string) (bool, structs.ACLIdentity, error) {
 			AccessorID: "00000000-0000-0000-0000-000000000002",
 			SecretID:   anonymousToken,
 			Policies: []structs.ACLTokenPolicyLink{
-				structs.ACLTokenPolicyLink{
+				{
 					ID: "node-wr",
 				},
 			},
@@ -321,7 +363,7 @@ func testRoleForID(roleID string) (bool, *structs.ACLRole, error) {
 			Name:        "service-ro",
 			Description: "service-ro",
 			Policies: []structs.ACLRolePolicyLink{
-				structs.ACLRolePolicyLink{
+				{
 					ID: "service-ro",
 				},
 			},
@@ -333,7 +375,7 @@ func testRoleForID(roleID string) (bool, *structs.ACLRole, error) {
 			Name:        "service-wr",
 			Description: "service-wr",
 			Policies: []structs.ACLRolePolicyLink{
-				structs.ACLRolePolicyLink{
+				{
 					ID: "service-wr",
 				},
 			},
@@ -345,10 +387,10 @@ func testRoleForID(roleID string) (bool, *structs.ACLRole, error) {
 			Name:        "missing-policy",
 			Description: "missing-policy",
 			Policies: []structs.ACLRolePolicyLink{
-				structs.ACLRolePolicyLink{
+				{
 					ID: "not-found",
 				},
-				structs.ACLRolePolicyLink{
+				{
 					ID: "acl-ro",
 				},
 			},
@@ -360,10 +402,10 @@ func testRoleForID(roleID string) (bool, *structs.ACLRole, error) {
 			Name:        "found",
 			Description: "found",
 			Policies: []structs.ACLRolePolicyLink{
-				structs.ACLRolePolicyLink{
+				{
 					ID: "node-wr",
 				},
-				structs.ACLRolePolicyLink{
+				{
 					ID: "dc2-key-wr",
 				},
 			},
@@ -374,7 +416,7 @@ func testRoleForID(roleID string) (bool, *structs.ACLRole, error) {
 			Name:        "acl-ro",
 			Description: "acl-ro",
 			Policies: []structs.ACLRolePolicyLink{
-				structs.ACLRolePolicyLink{
+				{
 					ID: "acl-ro",
 				},
 			},
@@ -385,7 +427,7 @@ func testRoleForID(roleID string) (bool, *structs.ACLRole, error) {
 			Name:        "acl-rw",
 			Description: "acl-rw",
 			Policies: []structs.ACLRolePolicyLink{
-				structs.ACLRolePolicyLink{
+				{
 					ID: "acl-wr",
 				},
 			},
@@ -396,10 +438,10 @@ func testRoleForID(roleID string) (bool, *structs.ACLRole, error) {
 			Name:        "racey-unmodified",
 			Description: "racey-unmodified",
 			Policies: []structs.ACLRolePolicyLink{
-				structs.ACLRolePolicyLink{
+				{
 					ID: "node-wr",
 				},
-				structs.ACLRolePolicyLink{
+				{
 					ID: "acl-wr",
 				},
 			},
@@ -410,7 +452,7 @@ func testRoleForID(roleID string) (bool, *structs.ACLRole, error) {
 			Name:        "racey-modified",
 			Description: "racey-modified",
 			Policies: []structs.ACLRolePolicyLink{
-				structs.ACLRolePolicyLink{
+				{
 					ID: "node-wr",
 				},
 			},
@@ -421,10 +463,10 @@ func testRoleForID(roleID string) (bool, *structs.ACLRole, error) {
 			Name:        "concurrent-resolve-1",
 			Description: "concurrent-resolve-1",
 			Policies: []structs.ACLRolePolicyLink{
-				structs.ACLRolePolicyLink{
+				{
 					ID: "node-wr",
 				},
-				structs.ACLRolePolicyLink{
+				{
 					ID: "acl-wr",
 				},
 			},
@@ -435,11 +477,27 @@ func testRoleForID(roleID string) (bool, *structs.ACLRole, error) {
 			Name:        "concurrent-resolve-2",
 			Description: "concurrent-resolve-2",
 			Policies: []structs.ACLRolePolicyLink{
-				structs.ACLRolePolicyLink{
+				{
 					ID: "node-wr",
 				},
-				structs.ACLRolePolicyLink{
+				{
 					ID: "acl-wr",
+				},
+			},
+		}, nil
+	case "node-identity":
+		return true, &structs.ACLRole{
+			ID:          "node-identity",
+			Name:        "node-identity",
+			Description: "node-identity",
+			NodeIdentities: []*structs.ACLNodeIdentity{
+				{
+					NodeName:   "test-node",
+					Datacenter: "dc1",
+				},
+				{
+					NodeName:   "test-node-dc2",
+					Datacenter: "dc2",
 				},
 			},
 		}, nil
@@ -451,6 +509,9 @@ func testRoleForID(roleID string) (bool, *structs.ACLRole, error) {
 // ACLResolverTestDelegate is used to test
 // the ACLResolver without running Agents
 type ACLResolverTestDelegate struct {
+	// enabled is no longer part of the delegate. It is still here as a field on
+	// the fake delegate because many tests use this field to enable ACLs. This field
+	// is now used to set ACLResolverConfig.Config.ACLsEnabled.
 	enabled         bool
 	datacenter      string
 	legacy          bool
@@ -461,6 +522,14 @@ type ACLResolverTestDelegate struct {
 	tokenReadFn     func(*structs.ACLTokenGetRequest, *structs.ACLTokenResponse) error
 	policyResolveFn func(*structs.ACLPolicyBatchGetRequest, *structs.ACLPolicyBatchResponse) error
 	roleResolveFn   func(*structs.ACLRoleBatchGetRequest, *structs.ACLRoleBatchResponse) error
+
+	localTokenResolutions   int32
+	remoteTokenResolutions  int32
+	localPolicyResolutions  int32
+	remotePolicyResolutions int32
+	localRoleResolutions    int32
+	remoteRoleResolutions   int32
+	remoteLegacyResolutions int32
 
 	// state for the optional default resolver function defaultTokenReadFn
 	tokenCached bool
@@ -553,10 +622,6 @@ func (d *ACLResolverTestDelegate) plainRoleResolveFn(args *structs.ACLRoleBatchG
 	return nil
 }
 
-func (d *ACLResolverTestDelegate) ACLsEnabled() bool {
-	return d.enabled
-}
-
 func (d *ACLResolverTestDelegate) ACLDatacenter(legacy bool) string {
 	return d.datacenter
 }
@@ -570,6 +635,7 @@ func (d *ACLResolverTestDelegate) ResolveIdentityFromToken(token string) (bool, 
 		return false, nil, nil
 	}
 
+	atomic.AddInt32(&d.localTokenResolutions, 1)
 	return testIdentityForToken(token)
 }
 
@@ -578,6 +644,7 @@ func (d *ACLResolverTestDelegate) ResolvePolicyFromID(policyID string) (bool, *s
 		return false, nil, nil
 	}
 
+	atomic.AddInt32(&d.localPolicyResolutions, 1)
 	return testPolicyForID(policyID)
 }
 
@@ -586,27 +653,32 @@ func (d *ACLResolverTestDelegate) ResolveRoleFromID(roleID string) (bool, *struc
 		return false, nil, nil
 	}
 
+	atomic.AddInt32(&d.localRoleResolutions, 1)
 	return testRoleForID(roleID)
 }
 
 func (d *ACLResolverTestDelegate) RPC(method string, args interface{}, reply interface{}) error {
 	switch method {
 	case "ACL.GetPolicy":
+		atomic.AddInt32(&d.remoteLegacyResolutions, 1)
 		if d.getPolicyFn != nil {
 			return d.getPolicyFn(args.(*structs.ACLPolicyResolveLegacyRequest), reply.(*structs.ACLPolicyResolveLegacyResponse))
 		}
 		panic("Bad Test Implementation: should provide a getPolicyFn to the ACLResolverTestDelegate")
 	case "ACL.TokenRead":
+		atomic.AddInt32(&d.remoteTokenResolutions, 1)
 		if d.tokenReadFn != nil {
 			return d.tokenReadFn(args.(*structs.ACLTokenGetRequest), reply.(*structs.ACLTokenResponse))
 		}
 		panic("Bad Test Implementation: should provide a tokenReadFn to the ACLResolverTestDelegate")
 	case "ACL.PolicyResolve":
+		atomic.AddInt32(&d.remotePolicyResolutions, 1)
 		if d.policyResolveFn != nil {
 			return d.policyResolveFn(args.(*structs.ACLPolicyBatchGetRequest), reply.(*structs.ACLPolicyBatchResponse))
 		}
 		panic("Bad Test Implementation: should provide a policyResolveFn to the ACLResolverTestDelegate")
 	case "ACL.RoleResolve":
+		atomic.AddInt32(&d.remoteRoleResolutions, 1)
 		if d.roleResolveFn != nil {
 			return d.roleResolveFn(args.(*structs.ACLRoleBatchGetRequest), reply.(*structs.ACLRoleBatchResponse))
 		}
@@ -618,13 +690,14 @@ func (d *ACLResolverTestDelegate) RPC(method string, args interface{}, reply int
 	panic("Bad Test Implementation: Was the ACLResolver updated to use new RPC methods")
 }
 
-func newTestACLResolver(t *testing.T, delegate ACLResolverDelegate, cb func(*ACLResolverConfig)) *ACLResolver {
+func newTestACLResolver(t *testing.T, delegate *ACLResolverTestDelegate, cb func(*ACLResolverConfig)) *ACLResolver {
 	config := DefaultConfig()
 	config.ACLDefaultPolicy = "deny"
 	config.ACLDownPolicy = "extend-cache"
+	config.ACLsEnabled = delegate.enabled
 	rconf := &ACLResolverConfig{
 		Config: config,
-		Logger: testutil.LoggerWithName(t, t.Name()),
+		Logger: testutil.Logger(t),
 		CacheConfig: &structs.ACLCachesConfig{
 			Identities:     4,
 			Policies:       4,
@@ -1446,6 +1519,79 @@ func TestACLResolver_Client(t *testing.T) {
 		require.Equal(t, policyResolves, int32(3))
 	})
 
+	t.Run("Resolve-Identity", func(t *testing.T) {
+		t.Parallel()
+
+		delegate := &ACLResolverTestDelegate{
+			enabled:       true,
+			datacenter:    "dc1",
+			legacy:        false,
+			localTokens:   false,
+			localPolicies: false,
+		}
+
+		delegate.tokenReadFn = delegate.plainTokenReadFn
+		delegate.policyResolveFn = delegate.plainPolicyResolveFn
+		delegate.roleResolveFn = delegate.plainRoleResolveFn
+
+		r := newTestACLResolver(t, delegate, nil)
+
+		ident, err := r.ResolveTokenToIdentity("found-policy-and-role")
+		require.NoError(t, err)
+		require.NotNil(t, ident)
+		require.Equal(t, "5f57c1f6-6a89-4186-9445-531b316e01df", ident.ID())
+		require.EqualValues(t, 0, delegate.localTokenResolutions)
+		require.EqualValues(t, 1, delegate.remoteTokenResolutions)
+		require.EqualValues(t, 0, delegate.localPolicyResolutions)
+		require.EqualValues(t, 0, delegate.remotePolicyResolutions)
+		require.EqualValues(t, 0, delegate.localRoleResolutions)
+		require.EqualValues(t, 0, delegate.remoteRoleResolutions)
+		require.EqualValues(t, 0, delegate.remoteLegacyResolutions)
+	})
+
+	t.Run("Resolve-Identity-Legacy", func(t *testing.T) {
+		t.Parallel()
+
+		delegate := &ACLResolverTestDelegate{
+			enabled:       true,
+			datacenter:    "dc1",
+			legacy:        true,
+			localTokens:   false,
+			localPolicies: false,
+			getPolicyFn: func(args *structs.ACLPolicyResolveLegacyRequest, reply *structs.ACLPolicyResolveLegacyResponse) error {
+				reply.Parent = "deny"
+				reply.TTL = 30
+				reply.ETag = "nothing"
+				reply.Policy = &acl.Policy{
+					ID: "not-needed",
+					PolicyRules: acl.PolicyRules{
+						Nodes: []*acl.NodeRule{
+							{
+								Name:   "foo",
+								Policy: acl.PolicyWrite,
+							},
+						},
+					},
+				}
+				return nil
+			},
+		}
+
+		r := newTestACLResolver(t, delegate, nil)
+
+		ident, err := r.ResolveTokenToIdentity("found-policy-and-role")
+		require.NoError(t, err)
+		require.NotNil(t, ident)
+		require.Equal(t, "legacy-token", ident.ID())
+		require.EqualValues(t, 0, delegate.localTokenResolutions)
+		require.EqualValues(t, 0, delegate.remoteTokenResolutions)
+		require.EqualValues(t, 0, delegate.localPolicyResolutions)
+		require.EqualValues(t, 0, delegate.remotePolicyResolutions)
+		require.EqualValues(t, 0, delegate.localRoleResolutions)
+		require.EqualValues(t, 0, delegate.remoteRoleResolutions)
+		require.EqualValues(t, 1, delegate.remoteLegacyResolutions)
+	})
+
 	t.Run("Concurrent-Token-Resolve", func(t *testing.T) {
 		t.Parallel()
 
@@ -1493,8 +1639,8 @@ func TestACLResolver_Client(t *testing.T) {
 			// effectively disable caching - so the only way we end up with 1 token read is if they were
 			// being resolved concurrently
 			config.Config.ACLTokenTTL = 0 * time.Second
-			config.Config.ACLPolicyTTL = 30 * time.Millisecond
-			config.Config.ACLRoleTTL = 30 * time.Millisecond
+			config.Config.ACLPolicyTTL = 30 * time.Second
+			config.Config.ACLRoleTTL = 30 * time.Second
 			config.Config.ACLDownPolicy = "extend-cache"
 		})
 
@@ -1641,8 +1787,18 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 		require.Equal(t, acl.Allow, authz.ServiceRead("bar", nil))
 	})
 
+	runTwiceAndReset("Role With Node Identity", func(t *testing.T) {
+		authz, err := r.ResolveToken("found-role-node-identity")
+		require.NoError(t, err)
+		require.NotNil(t, authz)
+		require.Equal(t, acl.Allow, authz.NodeWrite("test-node", nil))
+		require.Equal(t, acl.Deny, authz.NodeWrite("test-node-dc2", nil))
+		require.Equal(t, acl.Allow, authz.ServiceRead("something", nil))
+		require.Equal(t, acl.Deny, authz.ServiceWrite("something", nil))
+	})
+
 	runTwiceAndReset("Synthetic Policies Independently Cache", func(t *testing.T) {
-		// We resolve both of these tokens in the same cache session
+		// We resolve these tokens in the same cache session
 		// to verify that the keys for caching synthetic policies don't bleed
 		// over between each other.
 		{
@@ -1672,6 +1828,38 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 			require.Equal(t, acl.Allow, authz.ServiceWrite("service2", nil))
 			require.Equal(t, acl.Allow, authz.ServiceRead("literally-anything", nil))
 			require.Equal(t, acl.Allow, authz.NodeRead("any-node", nil))
+		}
+		{
+			authz, err := r.ResolveToken("found-synthetic-policy-3")
+			require.NoError(t, err)
+			require.NotNil(t, authz)
+
+			// spot check some random perms
+			require.Equal(t, acl.Deny, authz.ACLRead(nil))
+			require.Equal(t, acl.Deny, authz.NodeWrite("foo", nil))
+			// ensure we didn't bleed over to the other synthetic policy
+			require.Equal(t, acl.Deny, authz.NodeWrite("test-node2", nil))
+			// check our own synthetic policy
+			require.Equal(t, acl.Allow, authz.ServiceRead("literally-anything", nil))
+			require.Equal(t, acl.Allow, authz.NodeWrite("test-node1", nil))
+			// ensure node identity for other DC is ignored
+			require.Equal(t, acl.Deny, authz.NodeWrite("test-node-dc2", nil))
+		}
+		{
+			authz, err := r.ResolveToken("found-synthetic-policy-4")
+			require.NoError(t, err)
+			require.NotNil(t, authz)
+
+			// spot check some random perms
+			require.Equal(t, acl.Deny, authz.ACLRead(nil))
+			require.Equal(t, acl.Deny, authz.NodeWrite("foo", nil))
+			// ensure we didn't bleed over to the other synthetic policy
+			require.Equal(t, acl.Deny, authz.NodeWrite("test-node1", nil))
+			// check our own synthetic policy
+			require.Equal(t, acl.Allow, authz.ServiceRead("literally-anything", nil))
+			require.Equal(t, acl.Allow, authz.NodeWrite("test-node2", nil))
+			// ensure node identity for other DC is ignored
+			require.Equal(t, acl.Deny, authz.NodeWrite("test-node-dc2", nil))
 		}
 	})
 
@@ -1721,7 +1909,7 @@ func TestACLResolver_Legacy(t *testing.T) {
 						ID: "not-needed",
 						PolicyRules: acl.PolicyRules{
 							Nodes: []*acl.NodeRule{
-								&acl.NodeRule{
+								{
 									Name:   "foo",
 									Policy: acl.PolicyWrite,
 								},
@@ -1772,7 +1960,7 @@ func TestACLResolver_Legacy(t *testing.T) {
 						ID: "not-needed",
 						PolicyRules: acl.PolicyRules{
 							Nodes: []*acl.NodeRule{
-								&acl.NodeRule{
+								{
 									Name:   "foo",
 									Policy: acl.PolicyWrite,
 								},
@@ -1825,7 +2013,7 @@ func TestACLResolver_Legacy(t *testing.T) {
 						ID: "not-needed",
 						PolicyRules: acl.PolicyRules{
 							Nodes: []*acl.NodeRule{
-								&acl.NodeRule{
+								{
 									Name:   "foo",
 									Policy: acl.PolicyWrite,
 								},
@@ -1879,7 +2067,7 @@ func TestACLResolver_Legacy(t *testing.T) {
 						ID: "not-needed",
 						PolicyRules: acl.PolicyRules{
 							Nodes: []*acl.NodeRule{
-								&acl.NodeRule{
+								{
 									Name:   "foo",
 									Policy: acl.PolicyWrite,
 								},
@@ -1933,7 +2121,7 @@ func TestACLResolver_Legacy(t *testing.T) {
 						ID: "not-needed",
 						PolicyRules: acl.PolicyRules{
 							Nodes: []*acl.NodeRule{
-								&acl.NodeRule{
+								{
 									Name:   "foo",
 									Policy: acl.PolicyWrite,
 								},
@@ -2170,20 +2358,9 @@ func TestACL_filterHealthChecks(t *testing.T) {
 		}
 	}
 
-	// Try permissive filtering.
 	{
 		hc := fill()
-		filt := newACLFilter(acl.AllowAll(), nil, false)
-		filt.filterHealthChecks(&hc)
-		if len(hc) != 1 {
-			t.Fatalf("bad: %#v", hc)
-		}
-	}
-
-	// Try restrictive filtering.
-	{
-		hc := fill()
-		filt := newACLFilter(acl.DenyAll(), nil, false)
+		filt := newACLFilter(acl.DenyAll(), nil)
 		filt.filterHealthChecks(&hc)
 		if len(hc) != 0 {
 			t.Fatalf("bad: %#v", hc)
@@ -2204,20 +2381,9 @@ service "foo" {
 		t.Fatalf("err: %v", err)
 	}
 
-	// This will work because version 8 ACLs aren't being enforced.
 	{
 		hc := fill()
-		filt := newACLFilter(perms, nil, false)
-		filt.filterHealthChecks(&hc)
-		if len(hc) != 1 {
-			t.Fatalf("bad: %#v", hc)
-		}
-	}
-
-	// But with version 8 the node will block it.
-	{
-		hc := fill()
-		filt := newACLFilter(perms, nil, true)
+		filt := newACLFilter(perms, nil)
 		filt.filterHealthChecks(&hc)
 		if len(hc) != 0 {
 			t.Fatalf("bad: %#v", hc)
@@ -2241,7 +2407,7 @@ node "node1" {
 	// Now it should go through.
 	{
 		hc := fill()
-		filt := newACLFilter(perms, nil, true)
+		filt := newACLFilter(perms, nil)
 		filt.filterHealthChecks(&hc)
 		if len(hc) != 1 {
 			t.Fatalf("bad: %#v", hc)
@@ -2269,7 +2435,7 @@ func TestACL_filterIntentions(t *testing.T) {
 	// Try permissive filtering.
 	{
 		ixns := fill()
-		filt := newACLFilter(acl.AllowAll(), nil, false)
+		filt := newACLFilter(acl.AllowAll(), nil)
 		filt.filterIntentions(&ixns)
 		assert.Len(ixns, 2)
 	}
@@ -2277,7 +2443,7 @@ func TestACL_filterIntentions(t *testing.T) {
 	// Try restrictive filtering.
 	{
 		ixns := fill()
-		filt := newACLFilter(acl.DenyAll(), nil, false)
+		filt := newACLFilter(acl.DenyAll(), nil)
 		filt.filterIntentions(&ixns)
 		assert.Len(ixns, 0)
 	}
@@ -2295,7 +2461,7 @@ service "foo" {
 	// Filter
 	{
 		ixns := fill()
-		filt := newACLFilter(perms, nil, false)
+		filt := newACLFilter(perms, nil)
 		filt.filterIntentions(&ixns)
 		assert.Len(ixns, 1)
 	}
@@ -2311,24 +2477,14 @@ func TestACL_filterServices(t *testing.T) {
 	}
 
 	// Try permissive filtering.
-	filt := newACLFilter(acl.AllowAll(), nil, false)
+	filt := newACLFilter(acl.AllowAll(), nil)
 	filt.filterServices(services, nil)
 	if len(services) != 3 {
 		t.Fatalf("bad: %#v", services)
 	}
 
 	// Try restrictive filtering.
-	filt = newACLFilter(acl.DenyAll(), nil, false)
-	filt.filterServices(services, nil)
-	if len(services) != 1 {
-		t.Fatalf("bad: %#v", services)
-	}
-	if _, ok := services["consul"]; !ok {
-		t.Fatalf("bad: %#v", services)
-	}
-
-	// Try restrictive filtering with version 8 enforcement.
-	filt = newACLFilter(acl.DenyAll(), nil, true)
+	filt = newACLFilter(acl.DenyAll(), nil)
 	filt.filterServices(services, nil)
 	if len(services) != 0 {
 		t.Fatalf("bad: %#v", services)
@@ -2350,7 +2506,7 @@ func TestACL_filterServiceNodes(t *testing.T) {
 	// Try permissive filtering.
 	{
 		nodes := fill()
-		filt := newACLFilter(acl.AllowAll(), nil, false)
+		filt := newACLFilter(acl.AllowAll(), nil)
 		filt.filterServiceNodes(&nodes)
 		if len(nodes) != 1 {
 			t.Fatalf("bad: %#v", nodes)
@@ -2360,7 +2516,7 @@ func TestACL_filterServiceNodes(t *testing.T) {
 	// Try restrictive filtering.
 	{
 		nodes := fill()
-		filt := newACLFilter(acl.DenyAll(), nil, false)
+		filt := newACLFilter(acl.DenyAll(), nil)
 		filt.filterServiceNodes(&nodes)
 		if len(nodes) != 0 {
 			t.Fatalf("bad: %#v", nodes)
@@ -2381,20 +2537,10 @@ service "foo" {
 		t.Fatalf("err: %v", err)
 	}
 
-	// This will work because version 8 ACLs aren't being enforced.
-	{
-		nodes := fill()
-		filt := newACLFilter(perms, nil, false)
-		filt.filterServiceNodes(&nodes)
-		if len(nodes) != 1 {
-			t.Fatalf("bad: %#v", nodes)
-		}
-	}
-
 	// But with version 8 the node will block it.
 	{
 		nodes := fill()
-		filt := newACLFilter(perms, nil, true)
+		filt := newACLFilter(perms, nil)
 		filt.filterServiceNodes(&nodes)
 		if len(nodes) != 0 {
 			t.Fatalf("bad: %#v", nodes)
@@ -2418,7 +2564,7 @@ node "node1" {
 	// Now it should go through.
 	{
 		nodes := fill()
-		filt := newACLFilter(perms, nil, true)
+		filt := newACLFilter(perms, nil)
 		filt.filterServiceNodes(&nodes)
 		if len(nodes) != 1 {
 			t.Fatalf("bad: %#v", nodes)
@@ -2435,7 +2581,7 @@ func TestACL_filterNodeServices(t *testing.T) {
 				Node: "node1",
 			},
 			Services: map[string]*structs.NodeService{
-				"foo": &structs.NodeService{
+				"foo": {
 					ID:      "foo",
 					Service: "foo",
 				},
@@ -2446,7 +2592,7 @@ func TestACL_filterNodeServices(t *testing.T) {
 	// Try nil, which is a possible input.
 	{
 		var services *structs.NodeServices
-		filt := newACLFilter(acl.AllowAll(), nil, false)
+		filt := newACLFilter(acl.AllowAll(), nil)
 		filt.filterNodeServices(&services)
 		if services != nil {
 			t.Fatalf("bad: %#v", services)
@@ -2456,7 +2602,7 @@ func TestACL_filterNodeServices(t *testing.T) {
 	// Try permissive filtering.
 	{
 		services := fill()
-		filt := newACLFilter(acl.AllowAll(), nil, false)
+		filt := newACLFilter(acl.AllowAll(), nil)
 		filt.filterNodeServices(&services)
 		if len(services.Services) != 1 {
 			t.Fatalf("bad: %#v", services.Services)
@@ -2466,10 +2612,10 @@ func TestACL_filterNodeServices(t *testing.T) {
 	// Try restrictive filtering.
 	{
 		services := fill()
-		filt := newACLFilter(acl.DenyAll(), nil, false)
+		filt := newACLFilter(acl.DenyAll(), nil)
 		filt.filterNodeServices(&services)
-		if len((*services).Services) != 0 {
-			t.Fatalf("bad: %#v", (*services).Services)
+		if services != nil {
+			t.Fatalf("bad: %#v", *services)
 		}
 	}
 
@@ -2487,20 +2633,10 @@ service "foo" {
 		t.Fatalf("err: %v", err)
 	}
 
-	// This will work because version 8 ACLs aren't being enforced.
+	// Node will block it.
 	{
 		services := fill()
-		filt := newACLFilter(perms, nil, false)
-		filt.filterNodeServices(&services)
-		if len((*services).Services) != 1 {
-			t.Fatalf("bad: %#v", (*services).Services)
-		}
-	}
-
-	// But with version 8 the node will block it.
-	{
-		services := fill()
-		filt := newACLFilter(perms, nil, true)
+		filt := newACLFilter(perms, nil)
 		filt.filterNodeServices(&services)
 		if services != nil {
 			t.Fatalf("bad: %#v", services)
@@ -2524,7 +2660,7 @@ node "node1" {
 	// Now it should go through.
 	{
 		services := fill()
-		filt := newACLFilter(perms, nil, true)
+		filt := newACLFilter(perms, nil)
 		filt.filterNodeServices(&services)
 		if len((*services).Services) != 1 {
 			t.Fatalf("bad: %#v", (*services).Services)
@@ -2559,7 +2695,7 @@ func TestACL_filterCheckServiceNodes(t *testing.T) {
 	// Try permissive filtering.
 	{
 		nodes := fill()
-		filt := newACLFilter(acl.AllowAll(), nil, false)
+		filt := newACLFilter(acl.AllowAll(), nil)
 		filt.filterCheckServiceNodes(&nodes)
 		if len(nodes) != 1 {
 			t.Fatalf("bad: %#v", nodes)
@@ -2572,7 +2708,7 @@ func TestACL_filterCheckServiceNodes(t *testing.T) {
 	// Try restrictive filtering.
 	{
 		nodes := fill()
-		filt := newACLFilter(acl.DenyAll(), nil, false)
+		filt := newACLFilter(acl.DenyAll(), nil)
 		filt.filterCheckServiceNodes(&nodes)
 		if len(nodes) != 0 {
 			t.Fatalf("bad: %#v", nodes)
@@ -2593,23 +2729,9 @@ service "foo" {
 		t.Fatalf("err: %v", err)
 	}
 
-	// This will work because version 8 ACLs aren't being enforced.
 	{
 		nodes := fill()
-		filt := newACLFilter(perms, nil, false)
-		filt.filterCheckServiceNodes(&nodes)
-		if len(nodes) != 1 {
-			t.Fatalf("bad: %#v", nodes)
-		}
-		if len(nodes[0].Checks) != 1 {
-			t.Fatalf("bad: %#v", nodes[0].Checks)
-		}
-	}
-
-	// But with version 8 the node will block it.
-	{
-		nodes := fill()
-		filt := newACLFilter(perms, nil, true)
+		filt := newACLFilter(perms, nil)
 		filt.filterCheckServiceNodes(&nodes)
 		if len(nodes) != 0 {
 			t.Fatalf("bad: %#v", nodes)
@@ -2633,7 +2755,7 @@ node "node1" {
 	// Now it should go through.
 	{
 		nodes := fill()
-		filt := newACLFilter(perms, nil, true)
+		filt := newACLFilter(perms, nil)
 		filt.filterCheckServiceNodes(&nodes)
 		if len(nodes) != 1 {
 			t.Fatalf("bad: %#v", nodes)
@@ -2642,6 +2764,166 @@ node "node1" {
 			t.Fatalf("bad: %#v", nodes[0].Checks)
 		}
 	}
+}
+
+func TestACL_filterServiceTopology(t *testing.T) {
+	t.Parallel()
+	// Create some nodes.
+	fill := func() structs.ServiceTopology {
+		return structs.ServiceTopology{
+			Upstreams: structs.CheckServiceNodes{
+				structs.CheckServiceNode{
+					Node: &structs.Node{
+						Node: "node1",
+					},
+					Service: &structs.NodeService{
+						ID:      "foo",
+						Service: "foo",
+					},
+					Checks: structs.HealthChecks{
+						&structs.HealthCheck{
+							Node:        "node1",
+							CheckID:     "check1",
+							ServiceName: "foo",
+						},
+					},
+				},
+			},
+			Downstreams: structs.CheckServiceNodes{
+				structs.CheckServiceNode{
+					Node: &structs.Node{
+						Node: "node2",
+					},
+					Service: &structs.NodeService{
+						ID:      "bar",
+						Service: "bar",
+					},
+					Checks: structs.HealthChecks{
+						&structs.HealthCheck{
+							Node:        "node2",
+							CheckID:     "check1",
+							ServiceName: "bar",
+						},
+					},
+				},
+			},
+		}
+	}
+	original := fill()
+
+	t.Run("allow all without permissions", func(t *testing.T) {
+		topo := fill()
+		f := newACLFilter(acl.AllowAll(), nil)
+
+		filtered := f.filterServiceTopology(&topo)
+		if filtered {
+			t.Fatalf("should not have been filtered")
+		}
+		assert.Equal(t, original, topo)
+	})
+
+	t.Run("deny all without permissions", func(t *testing.T) {
+		topo := fill()
+		f := newACLFilter(acl.DenyAll(), nil)
+
+		filtered := f.filterServiceTopology(&topo)
+		if !filtered {
+			t.Fatalf("should have been marked as filtered")
+		}
+		assert.Len(t, topo.Upstreams, 0)
+		assert.Len(t, topo.Upstreams, 0)
+	})
+
+	t.Run("only upstream permissions", func(t *testing.T) {
+		rules := `
+node "node1" {
+  policy = "read"
+}
+service "foo" {
+  policy = "read"
+}`
+		policy, err := acl.NewPolicyFromSource("", 0, rules, acl.SyntaxLegacy, nil, nil)
+		if err != nil {
+			t.Fatalf("err %v", err)
+		}
+		perms, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		topo := fill()
+		f := newACLFilter(perms, nil)
+
+		filtered := f.filterServiceTopology(&topo)
+		if !filtered {
+			t.Fatalf("should have been marked as filtered")
+		}
+		assert.Equal(t, original.Upstreams, topo.Upstreams)
+		assert.Len(t, topo.Downstreams, 0)
+	})
+
+	t.Run("only downstream permissions", func(t *testing.T) {
+		rules := `
+node "node2" {
+  policy = "read"
+}
+service "bar" {
+  policy = "read"
+}`
+		policy, err := acl.NewPolicyFromSource("", 0, rules, acl.SyntaxLegacy, nil, nil)
+		if err != nil {
+			t.Fatalf("err %v", err)
+		}
+		perms, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		topo := fill()
+		f := newACLFilter(perms, nil)
+
+		filtered := f.filterServiceTopology(&topo)
+		if !filtered {
+			t.Fatalf("should have been marked as filtered")
+		}
+		assert.Equal(t, original.Downstreams, topo.Downstreams)
+		assert.Len(t, topo.Upstreams, 0)
+	})
+
+	t.Run("upstream and downstream permissions", func(t *testing.T) {
+		rules := `
+node "node1" {
+  policy = "read"
+}
+service "foo" {
+  policy = "read"
+}
+node "node2" {
+  policy = "read"
+}
+service "bar" {
+  policy = "read"
+}`
+		policy, err := acl.NewPolicyFromSource("", 0, rules, acl.SyntaxLegacy, nil, nil)
+		if err != nil {
+			t.Fatalf("err %v", err)
+		}
+		perms, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		topo := fill()
+		f := newACLFilter(perms, nil)
+
+		filtered := f.filterServiceTopology(&topo)
+		if filtered {
+			t.Fatalf("should not have been filtered")
+		}
+
+		original := fill()
+		assert.Equal(t, original, topo)
+	})
 }
 
 func TestACL_filterCoordinates(t *testing.T) {
@@ -2659,21 +2941,14 @@ func TestACL_filterCoordinates(t *testing.T) {
 	}
 
 	// Try permissive filtering.
-	filt := newACLFilter(acl.AllowAll(), nil, false)
+	filt := newACLFilter(acl.AllowAll(), nil)
 	filt.filterCoordinates(&coords)
 	if len(coords) != 2 {
 		t.Fatalf("bad: %#v", coords)
 	}
 
-	// Try restrictive filtering without version 8 ACL enforcement.
-	filt = newACLFilter(acl.DenyAll(), nil, false)
-	filt.filterCoordinates(&coords)
-	if len(coords) != 2 {
-		t.Fatalf("bad: %#v", coords)
-	}
-
-	// Try restrictive filtering with version 8 ACL enforcement.
-	filt = newACLFilter(acl.DenyAll(), nil, true)
+	// Try restrictive filtering
+	filt = newACLFilter(acl.DenyAll(), nil)
 	filt.filterCoordinates(&coords)
 	if len(coords) != 0 {
 		t.Fatalf("bad: %#v", coords)
@@ -2693,21 +2968,14 @@ func TestACL_filterSessions(t *testing.T) {
 	}
 
 	// Try permissive filtering.
-	filt := newACLFilter(acl.AllowAll(), nil, true)
+	filt := newACLFilter(acl.AllowAll(), nil)
 	filt.filterSessions(&sessions)
 	if len(sessions) != 2 {
 		t.Fatalf("bad: %#v", sessions)
 	}
 
-	// Try restrictive filtering but with version 8 enforcement turned off.
-	filt = newACLFilter(acl.DenyAll(), nil, false)
-	filt.filterSessions(&sessions)
-	if len(sessions) != 2 {
-		t.Fatalf("bad: %#v", sessions)
-	}
-
-	// Try restrictive filtering with version 8 enforcement turned on.
-	filt = newACLFilter(acl.DenyAll(), nil, true)
+	// Try restrictive filtering
+	filt = newACLFilter(acl.DenyAll(), nil)
 	filt.filterSessions(&sessions)
 	if len(sessions) != 0 {
 		t.Fatalf("bad: %#v", sessions)
@@ -2722,13 +2990,13 @@ func TestACL_filterNodeDump(t *testing.T) {
 			&structs.NodeInfo{
 				Node: "node1",
 				Services: []*structs.NodeService{
-					&structs.NodeService{
+					{
 						ID:      "foo",
 						Service: "foo",
 					},
 				},
 				Checks: []*structs.HealthCheck{
-					&structs.HealthCheck{
+					{
 						Node:        "node1",
 						CheckID:     "check1",
 						ServiceName: "foo",
@@ -2741,7 +3009,7 @@ func TestACL_filterNodeDump(t *testing.T) {
 	// Try permissive filtering.
 	{
 		dump := fill()
-		filt := newACLFilter(acl.AllowAll(), nil, false)
+		filt := newACLFilter(acl.AllowAll(), nil)
 		filt.filterNodeDump(&dump)
 		if len(dump) != 1 {
 			t.Fatalf("bad: %#v", dump)
@@ -2757,16 +3025,10 @@ func TestACL_filterNodeDump(t *testing.T) {
 	// Try restrictive filtering.
 	{
 		dump := fill()
-		filt := newACLFilter(acl.DenyAll(), nil, false)
+		filt := newACLFilter(acl.DenyAll(), nil)
 		filt.filterNodeDump(&dump)
-		if len(dump) != 1 {
+		if len(dump) != 0 {
 			t.Fatalf("bad: %#v", dump)
-		}
-		if len(dump[0].Services) != 0 {
-			t.Fatalf("bad: %#v", dump[0].Services)
-		}
-		if len(dump[0].Checks) != 0 {
-			t.Fatalf("bad: %#v", dump[0].Checks)
 		}
 	}
 
@@ -2784,26 +3046,10 @@ service "foo" {
 		t.Fatalf("err: %v", err)
 	}
 
-	// This will work because version 8 ACLs aren't being enforced.
+	// But the node will block it.
 	{
 		dump := fill()
-		filt := newACLFilter(perms, nil, false)
-		filt.filterNodeDump(&dump)
-		if len(dump) != 1 {
-			t.Fatalf("bad: %#v", dump)
-		}
-		if len(dump[0].Services) != 1 {
-			t.Fatalf("bad: %#v", dump[0].Services)
-		}
-		if len(dump[0].Checks) != 1 {
-			t.Fatalf("bad: %#v", dump[0].Checks)
-		}
-	}
-
-	// But with version 8 the node will block it.
-	{
-		dump := fill()
-		filt := newACLFilter(perms, nil, true)
+		filt := newACLFilter(perms, nil)
 		filt.filterNodeDump(&dump)
 		if len(dump) != 0 {
 			t.Fatalf("bad: %#v", dump)
@@ -2827,7 +3073,7 @@ node "node1" {
 	// Now it should go through.
 	{
 		dump := fill()
-		filt := newACLFilter(perms, nil, true)
+		filt := newACLFilter(perms, nil)
 		filt.filterNodeDump(&dump)
 		if len(dump) != 1 {
 			t.Fatalf("bad: %#v", dump)
@@ -2854,21 +3100,14 @@ func TestACL_filterNodes(t *testing.T) {
 	}
 
 	// Try permissive filtering.
-	filt := newACLFilter(acl.AllowAll(), nil, true)
+	filt := newACLFilter(acl.AllowAll(), nil)
 	filt.filterNodes(&nodes)
 	if len(nodes) != 2 {
 		t.Fatalf("bad: %#v", nodes)
 	}
 
-	// Try restrictive filtering but with version 8 enforcement turned off.
-	filt = newACLFilter(acl.DenyAll(), nil, false)
-	filt.filterNodes(&nodes)
-	if len(nodes) != 2 {
-		t.Fatalf("bad: %#v", nodes)
-	}
-
-	// Try restrictive filtering with version 8 enforcement turned on.
-	filt = newACLFilter(acl.DenyAll(), nil, true)
+	// Try restrictive filtering
+	filt = newACLFilter(acl.DenyAll(), nil)
 	filt.filterNodes(&nodes)
 	if len(nodes) != 0 {
 		t.Fatalf("bad: %#v", nodes)
@@ -2907,7 +3146,7 @@ func TestACL_filterDatacenterCheckServiceNodes(t *testing.T) {
 	// Try permissive filtering.
 	{
 		dcNodes := fill(t)
-		filt := newACLFilter(acl.AllowAll(), nil, true)
+		filt := newACLFilter(acl.AllowAll(), nil)
 		filt.filterDatacenterCheckServiceNodes(&dcNodes)
 		require.Len(t, dcNodes, 2)
 		require.Equal(t, fill(t), dcNodes)
@@ -2916,7 +3155,7 @@ func TestACL_filterDatacenterCheckServiceNodes(t *testing.T) {
 	// Try restrictive filtering.
 	{
 		dcNodes := fill(t)
-		filt := newACLFilter(acl.DenyAll(), nil, true)
+		filt := newACLFilter(acl.DenyAll(), nil)
 		filt.filterDatacenterCheckServiceNodes(&dcNodes)
 		require.Len(t, dcNodes, 0)
 	}
@@ -2936,7 +3175,7 @@ func TestACL_filterDatacenterCheckServiceNodes(t *testing.T) {
 
 	{
 		dcNodes := fill(t)
-		filt := newACLFilter(perms, nil, true)
+		filt := newACLFilter(perms, nil)
 		filt.filterDatacenterCheckServiceNodes(&dcNodes)
 		require.Len(t, dcNodes, 0)
 	}
@@ -2951,7 +3190,7 @@ func TestACL_filterDatacenterCheckServiceNodes(t *testing.T) {
 
 	{
 		dcNodes := fill(t)
-		filt := newACLFilter(perms, nil, true)
+		filt := newACLFilter(perms, nil)
 		filt.filterDatacenterCheckServiceNodes(&dcNodes)
 		require.Len(t, dcNodes, 0)
 	}
@@ -2962,13 +3201,13 @@ func TestACL_filterDatacenterCheckServiceNodes(t *testing.T) {
 	node_prefix "" { policy = "read" }
 	`, acl.SyntaxCurrent, nil, nil)
 	require.NoError(t, err)
-	perms, err = acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
+	_, err = acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{policy}, nil)
 	require.NoError(t, err)
 
 	// Now it should go through.
 	{
 		dcNodes := fill(t)
-		filt := newACLFilter(acl.AllowAll(), nil, true)
+		filt := newACLFilter(acl.AllowAll(), nil)
 		filt.filterDatacenterCheckServiceNodes(&dcNodes)
 		require.Len(t, dcNodes, 2)
 		require.Equal(t, fill(t), dcNodes)
@@ -2989,7 +3228,7 @@ func TestACL_redactPreparedQueryTokens(t *testing.T) {
 
 	// Try permissive filtering with a management token. This will allow the
 	// embedded token to be seen.
-	filt := newACLFilter(acl.ManageAll(), nil, false)
+	filt := newACLFilter(acl.ManageAll(), nil)
 	filt.redactPreparedQueryTokens(&query)
 	if !reflect.DeepEqual(query, expected) {
 		t.Fatalf("bad: %#v", &query)
@@ -3001,7 +3240,7 @@ func TestACL_redactPreparedQueryTokens(t *testing.T) {
 
 	// Now try permissive filtering with a client token, which should cause
 	// the embedded token to get redacted.
-	filt = newACLFilter(acl.AllowAll(), nil, false)
+	filt = newACLFilter(acl.AllowAll(), nil)
 	filt.redactPreparedQueryTokens(&query)
 	expected.Token = redactedToken
 	if !reflect.DeepEqual(query, expected) {
@@ -3102,7 +3341,7 @@ func TestACL_filterPreparedQueries(t *testing.T) {
 
 	// Try permissive filtering with a management token. This will allow the
 	// embedded token to be seen.
-	filt := newACLFilter(acl.ManageAll(), nil, false)
+	filt := newACLFilter(acl.ManageAll(), nil)
 	filt.filterPreparedQueries(&queries)
 	if !reflect.DeepEqual(queries, expected) {
 		t.Fatalf("bad: %#v", queries)
@@ -3115,7 +3354,7 @@ func TestACL_filterPreparedQueries(t *testing.T) {
 	// Now try permissive filtering with a client token, which should cause
 	// the embedded token to get redacted, and the query with no name to get
 	// filtered out.
-	filt = newACLFilter(acl.AllowAll(), nil, false)
+	filt = newACLFilter(acl.AllowAll(), nil)
 	filt.filterPreparedQueries(&queries)
 	expected[2].Token = redactedToken
 	expected = append(structs.PreparedQueries{}, expected[1], expected[2])
@@ -3129,7 +3368,7 @@ func TestACL_filterPreparedQueries(t *testing.T) {
 	}
 
 	// Now try restrictive filtering.
-	filt = newACLFilter(acl.DenyAll(), nil, false)
+	filt = newACLFilter(acl.DenyAll(), nil)
 	filt.filterPreparedQueries(&queries)
 	if len(queries) != 0 {
 		t.Fatalf("bad: %#v", queries)
@@ -3723,4 +3962,50 @@ func TestDedupeServiceIdentities(t *testing.T) {
 			require.ElementsMatch(t, test.expect, got)
 		})
 	}
+}
+func TestACL_LocalToken(t *testing.T) {
+	t.Run("local token in same dc", func(t *testing.T) {
+		d := &ACLResolverTestDelegate{
+			datacenter: "dc1",
+			tokenReadFn: func(_ *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
+				reply.Token = &structs.ACLToken{Local: true}
+				// different dc
+				reply.SourceDatacenter = "dc1"
+				return nil
+			},
+		}
+		r := newTestACLResolver(t, d, nil)
+		_, err := r.fetchAndCacheIdentityFromToken("", nil)
+		require.NoError(t, err)
+	})
+
+	t.Run("non local token in remote dc", func(t *testing.T) {
+		d := &ACLResolverTestDelegate{
+			datacenter: "dc1",
+			tokenReadFn: func(_ *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
+				reply.Token = &structs.ACLToken{Local: false}
+				// different dc
+				reply.SourceDatacenter = "remote"
+				return nil
+			},
+		}
+		r := newTestACLResolver(t, d, nil)
+		_, err := r.fetchAndCacheIdentityFromToken("", nil)
+		require.NoError(t, err)
+	})
+
+	t.Run("local token in remote dc", func(t *testing.T) {
+		d := &ACLResolverTestDelegate{
+			datacenter: "dc1",
+			tokenReadFn: func(_ *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
+				reply.Token = &structs.ACLToken{Local: true}
+				// different dc
+				reply.SourceDatacenter = "remote"
+				return nil
+			},
+		}
+		r := newTestACLResolver(t, d, nil)
+		_, err := r.fetchAndCacheIdentityFromToken("", nil)
+		require.Equal(t, acl.PermissionDeniedError{Cause: "This is a local token in datacenter \"remote\""}, err)
+	})
 }

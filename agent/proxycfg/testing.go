@@ -3,7 +3,9 @@ package proxycfg
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"path"
+	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -13,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 	"github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 )
@@ -49,7 +52,7 @@ func NewTestCacheTypes(t testing.T) *TestCacheTypes {
 // TestCacheWithTypes registers ControllableCacheTypes for all types that
 // proxycfg will watch suitable for testing a proxycfg.State or Manager.
 func TestCacheWithTypes(t testing.T, types *TestCacheTypes) *cache.Cache {
-	c := cache.TestCache(t)
+	c := cache.New(cache.Options{})
 	c.RegisterType(cachetype.ConnectCARootName, types.roots)
 	c.RegisterType(cachetype.ConnectCALeafName, types.leaf)
 	c.RegisterType(cachetype.IntentionMatchName, types.intentions)
@@ -96,11 +99,11 @@ func TestLeafForCA(t testing.T, ca *structs.CARoot) *structs.IssuedCert {
 
 // TestIntentions returns a sample intentions match result useful to
 // mocking service discovery cache results.
-func TestIntentions(t testing.T) *structs.IndexedIntentionMatches {
+func TestIntentions() *structs.IndexedIntentionMatches {
 	return &structs.IndexedIntentionMatches{
 		Matches: []structs.Intentions{
 			[]*structs.Intention{
-				&structs.Intention{
+				{
 					ID:              "foo",
 					SourceNS:        "default",
 					SourceName:      "billing",
@@ -372,6 +375,110 @@ func TestGatewayNodesDC3(t testing.T) structs.CheckServiceNodes {
 	}
 }
 
+func TestGatewayNodesDC4Hostname(t testing.T) structs.CheckServiceNodes {
+	return structs.CheckServiceNodes{
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         "mesh-gateway-1",
+				Node:       "mesh-gateway",
+				Address:    "10.30.1.1",
+				Datacenter: "dc4",
+			},
+			Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+				"10.30.1.1", 8443,
+				structs.ServiceAddress{Address: "10.0.1.1", Port: 8443},
+				structs.ServiceAddress{Address: "123.us-west-2.elb.notaws.com", Port: 443}),
+		},
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         "mesh-gateway-2",
+				Node:       "mesh-gateway",
+				Address:    "10.30.1.2",
+				Datacenter: "dc4",
+			},
+			Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+				"10.30.1.2", 8443,
+				structs.ServiceAddress{Address: "10.30.1.2", Port: 8443},
+				structs.ServiceAddress{Address: "456.us-west-2.elb.notaws.com", Port: 443}),
+		},
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         "mesh-gateway-3",
+				Node:       "mesh-gateway",
+				Address:    "10.30.1.3",
+				Datacenter: "dc4",
+			},
+			Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+				"10.30.1.3", 8443,
+				structs.ServiceAddress{Address: "10.30.1.3", Port: 8443},
+				structs.ServiceAddress{Address: "198.38.1.1", Port: 443}),
+		},
+	}
+}
+
+func TestGatewayNodesDC5Hostname(t testing.T) structs.CheckServiceNodes {
+	return structs.CheckServiceNodes{
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         "mesh-gateway-1",
+				Node:       "mesh-gateway",
+				Address:    "10.30.1.1",
+				Datacenter: "dc5",
+			},
+			Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+				"10.30.1.1", 8443,
+				structs.ServiceAddress{Address: "10.0.1.1", Port: 8443},
+				structs.ServiceAddress{Address: "123.us-west-2.elb.notaws.com", Port: 443}),
+		},
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         "mesh-gateway-2",
+				Node:       "mesh-gateway",
+				Address:    "10.30.1.2",
+				Datacenter: "dc5",
+			},
+			Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+				"10.30.1.2", 8443,
+				structs.ServiceAddress{Address: "10.30.1.2", Port: 8443},
+				structs.ServiceAddress{Address: "456.us-west-2.elb.notaws.com", Port: 443}),
+		},
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         "mesh-gateway-3",
+				Node:       "mesh-gateway",
+				Address:    "10.30.1.3",
+				Datacenter: "dc5",
+			},
+			Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+				"10.30.1.3", 8443,
+				structs.ServiceAddress{Address: "10.30.1.3", Port: 8443},
+				structs.ServiceAddress{Address: "198.38.1.1", Port: 443}),
+		},
+	}
+}
+
+func TestGatewayNodesDC6Hostname(t testing.T) structs.CheckServiceNodes {
+	return structs.CheckServiceNodes{
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         "mesh-gateway-1",
+				Node:       "mesh-gateway",
+				Address:    "10.30.1.1",
+				Datacenter: "dc6",
+			},
+			Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+				"10.30.1.1", 8443,
+				structs.ServiceAddress{Address: "10.0.1.1", Port: 8443},
+				structs.ServiceAddress{Address: "123.us-east-1.elb.notaws.com", Port: 443}),
+			Checks: structs.HealthChecks{
+				{
+					Status: api.HealthCritical,
+				},
+			},
+		},
+	}
+}
+
 func TestGatewayServiceGroupBarDC1(t testing.T) structs.CheckServiceNodes {
 	return structs.CheckServiceNodes{
 		structs.CheckServiceNode{
@@ -570,7 +677,7 @@ func TestConfigSnapshot(t testing.T) *ConfigSnapshot {
 					"db": dbChain,
 				},
 				WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
-					"db": map[string]structs.CheckServiceNodes{
+					"db": {
 						"db.default.dc1": TestUpstreamNodes(t),
 					},
 				},
@@ -578,6 +685,8 @@ func TestConfigSnapshot(t testing.T) *ConfigSnapshot {
 			PreparedQueryEndpoints: map[string]structs.CheckServiceNodes{
 				"prepared_query:geo-cache": TestUpstreamNodes(t),
 			},
+			Intentions:    nil, // no intentions defined
+			IntentionsSet: true,
 		},
 		Datacenter: "dc1",
 	}
@@ -654,6 +763,10 @@ func TestConfigSnapshotDiscoveryChainWithGRPCRouter(t testing.T) *ConfigSnapshot
 
 func TestConfigSnapshotDiscoveryChainWithRouter(t testing.T) *ConfigSnapshot {
 	return testConfigSnapshotDiscoveryChain(t, "chain-and-router")
+}
+
+func TestConfigSnapshotDiscoveryChainWithLB(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshotDiscoveryChain(t, "lb-resolver")
 }
 
 func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalEntries ...structs.ConfigEntry) *ConfigSnapshot {
@@ -870,10 +983,10 @@ func setupTestVariationConfigEntriesAndSnapshot(
 				Kind: structs.ServiceResolver,
 				Name: "db",
 				Subsets: map[string]structs.ServiceResolverSubset{
-					"v1": structs.ServiceResolverSubset{
+					"v1": {
 						Filter: "Service.Meta.version == v1",
 					},
-					"v2": structs.ServiceResolverSubset{
+					"v2": {
 						Filter: "Service.Meta.version == v2",
 					},
 				},
@@ -1141,6 +1254,56 @@ func setupTestVariationConfigEntriesAndSnapshot(
 				},
 			},
 		)
+	case "lb-resolver":
+		entries = append(entries,
+			&structs.ProxyConfigEntry{
+				Kind: structs.ProxyDefaults,
+				Name: structs.ProxyConfigGlobal,
+				Config: map[string]interface{}{
+					"protocol": "http",
+				},
+			},
+			&structs.ServiceSplitterConfigEntry{
+				Kind: structs.ServiceSplitter,
+				Name: "db",
+				Splits: []structs.ServiceSplit{
+					{Weight: 95.5, Service: "something-else"},
+					{Weight: 4.5, Service: "db"},
+				},
+			},
+			&structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "db",
+				LoadBalancer: &structs.LoadBalancer{
+					Policy: "ring_hash",
+					RingHashConfig: &structs.RingHashConfig{
+						MinimumRingSize: 20,
+						MaximumRingSize: 30,
+					},
+					HashPolicies: []structs.HashPolicy{
+						{
+							Field:      "cookie",
+							FieldValue: "chocolate-chip",
+							Terminal:   true,
+						},
+						{
+							Field:        "cookie",
+							FieldValue:   "chocolate-chip",
+							CookieConfig: &structs.CookieConfig{Session: true},
+						},
+						{
+							Field:      "header",
+							FieldValue: "x-user-id",
+						},
+						{
+							SourceIP: true,
+							Terminal: true,
+						},
+					},
+				},
+			},
+		)
+	case "http-multiple-services":
 	default:
 		t.Fatalf("unexpected variation: %q", variation)
 		return ConfigSnapshotUpstreams{}
@@ -1158,7 +1321,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 			"db": dbChain,
 		},
 		WatchedUpstreamEndpoints: map[string]map[string]structs.CheckServiceNodes{
-			"db": map[string]structs.CheckServiceNodes{
+			"db": {
 				"db.default.dc1": TestUpstreamNodes(t),
 			},
 		},
@@ -1180,7 +1343,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		snap.WatchedUpstreamEndpoints["db"]["db.default.dc2"] =
 			TestUpstreamNodesDC2(t)
 		snap.WatchedGatewayEndpoints = map[string]map[string]structs.CheckServiceNodes{
-			"db": map[string]structs.CheckServiceNodes{
+			"db": {
 				"dc2": TestGatewayNodesDC2(t),
 			},
 		}
@@ -1193,7 +1356,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 	case "failover-through-double-remote-gateway":
 		snap.WatchedUpstreamEndpoints["db"]["db.default.dc3"] = TestUpstreamNodesDC2(t)
 		snap.WatchedGatewayEndpoints = map[string]map[string]structs.CheckServiceNodes{
-			"db": map[string]structs.CheckServiceNodes{
+			"db": {
 				"dc2": TestGatewayNodesDC2(t),
 				"dc3": TestGatewayNodesDC3(t),
 			},
@@ -1206,7 +1369,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		snap.WatchedUpstreamEndpoints["db"]["db.default.dc2"] =
 			TestUpstreamNodesDC2(t)
 		snap.WatchedGatewayEndpoints = map[string]map[string]structs.CheckServiceNodes{
-			"db": map[string]structs.CheckServiceNodes{
+			"db": {
 				"dc1": TestGatewayNodesDC1(t),
 			},
 		}
@@ -1219,7 +1382,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 	case "failover-through-double-local-gateway":
 		snap.WatchedUpstreamEndpoints["db"]["db.default.dc3"] = TestUpstreamNodesDC2(t)
 		snap.WatchedGatewayEndpoints = map[string]map[string]structs.CheckServiceNodes{
-			"db": map[string]structs.CheckServiceNodes{
+			"db": {
 				"dc1": TestGatewayNodesDC1(t),
 			},
 		}
@@ -1231,6 +1394,14 @@ func setupTestVariationConfigEntriesAndSnapshot(
 	case "chain-and-splitter":
 	case "grpc-router":
 	case "chain-and-router":
+	case "http-multiple-services":
+		snap.WatchedUpstreamEndpoints["foo"] = map[string]structs.CheckServiceNodes{
+			"foo.default.dc1": TestUpstreamNodes(t),
+		}
+		snap.WatchedUpstreamEndpoints["bar"] = map[string]structs.CheckServiceNodes{
+			"bar.default.dc1": TestUpstreamNodesAlternate(t),
+		}
+	case "lb-resolver":
 	default:
 		t.Fatalf("unexpected variation: %q", variation)
 		return ConfigSnapshotUpstreams{}
@@ -1263,11 +1434,11 @@ func testConfigSnapshotMeshGateway(t testing.T, populateServices bool, useFedera
 			Config: map[string]interface{}{},
 		},
 		TaggedAddresses: map[string]structs.ServiceAddress{
-			structs.TaggedAddressLAN: structs.ServiceAddress{
+			structs.TaggedAddressLAN: {
 				Address: "1.2.3.4",
 				Port:    8443,
 			},
-			structs.TaggedAddressWAN: structs.ServiceAddress{
+			structs.TaggedAddressWAN: {
 				Address: "198.18.0.1",
 				Port:    443,
 			},
@@ -1281,25 +1452,76 @@ func testConfigSnapshotMeshGateway(t testing.T, populateServices bool, useFedera
 
 	if populateServices {
 		snap.MeshGateway = configSnapshotMeshGateway{
-			WatchedServices: map[structs.ServiceID]context.CancelFunc{
-				structs.NewServiceID("foo", nil): nil,
-				structs.NewServiceID("bar", nil): nil,
+			WatchedServices: map[structs.ServiceName]context.CancelFunc{
+				structs.NewServiceName("foo", nil): nil,
+				structs.NewServiceName("bar", nil): nil,
 			},
 			WatchedServicesSet: true,
 			WatchedDatacenters: map[string]context.CancelFunc{
 				"dc2": nil,
 			},
-			ServiceGroups: map[structs.ServiceID]structs.CheckServiceNodes{
-				structs.NewServiceID("foo", nil): TestGatewayServiceGroupFooDC1(t),
-				structs.NewServiceID("bar", nil): TestGatewayServiceGroupBarDC1(t),
+			ServiceGroups: map[structs.ServiceName]structs.CheckServiceNodes{
+				structs.NewServiceName("foo", nil): TestGatewayServiceGroupFooDC1(t),
+				structs.NewServiceName("bar", nil): TestGatewayServiceGroupBarDC1(t),
 			},
 			GatewayGroups: map[string]structs.CheckServiceNodes{
 				"dc2": TestGatewayNodesDC2(t),
+				"dc4": TestGatewayNodesDC4Hostname(t),
+				"dc6": TestGatewayNodesDC6Hostname(t),
+			},
+			HostnameDatacenters: map[string]structs.CheckServiceNodes{
+				"dc4": {
+					structs.CheckServiceNode{
+						Node: &structs.Node{
+							ID:         "mesh-gateway-1",
+							Node:       "mesh-gateway",
+							Address:    "10.30.1.1",
+							Datacenter: "dc4",
+						},
+						Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+							"10.30.1.1", 8443,
+							structs.ServiceAddress{Address: "10.0.1.1", Port: 8443},
+							structs.ServiceAddress{Address: "123.us-west-2.elb.notaws.com", Port: 443}),
+					},
+					structs.CheckServiceNode{
+						Node: &structs.Node{
+							ID:         "mesh-gateway-2",
+							Node:       "mesh-gateway",
+							Address:    "10.30.1.2",
+							Datacenter: "dc4",
+						},
+						Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+							"10.30.1.2", 8443,
+							structs.ServiceAddress{Address: "10.30.1.2", Port: 8443},
+							structs.ServiceAddress{Address: "456.us-west-2.elb.notaws.com", Port: 443}),
+					},
+				},
+				"dc6": {
+					structs.CheckServiceNode{
+						Node: &structs.Node{
+							ID:         "mesh-gateway-1",
+							Node:       "mesh-gateway",
+							Address:    "10.30.1.1",
+							Datacenter: "dc6",
+						},
+						Service: structs.TestNodeServiceMeshGatewayWithAddrs(t,
+							"10.30.1.1", 8443,
+							structs.ServiceAddress{Address: "10.0.1.1", Port: 8443},
+							structs.ServiceAddress{Address: "123.us-east-1.elb.notaws.com", Port: 443}),
+						Checks: structs.HealthChecks{
+							{
+								Status: api.HealthCritical,
+							},
+						},
+					},
+				},
 			},
 		}
 		if useFederationStates {
 			snap.MeshGateway.FedStateGateways = map[string]structs.CheckServiceNodes{
 				"dc2": TestGatewayNodesDC2(t),
+				"dc4": TestGatewayNodesDC4Hostname(t),
+				"dc6": TestGatewayNodesDC6Hostname(t),
 			}
 
 			delete(snap.MeshGateway.GatewayGroups, "dc2")
@@ -1310,82 +1532,96 @@ func testConfigSnapshotMeshGateway(t testing.T, populateServices bool, useFedera
 }
 
 func TestConfigSnapshotIngress(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "simple")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "simple")
+}
+
+func TestConfigSnapshotIngressWithTLSListener(t testing.T) *ConfigSnapshot {
+	snap := testConfigSnapshotIngressGateway(t, true, "tcp", "default")
+	snap.IngressGateway.TLSEnabled = true
+	return snap
 }
 
 func TestConfigSnapshotIngressWithOverrides(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "simple-with-overrides")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "simple-with-overrides")
 }
 func TestConfigSnapshotIngress_SplitterWithResolverRedirectMultiDC(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "splitter-with-resolver-redirect-multidc")
+	return testConfigSnapshotIngressGateway(t, true, "http", "splitter-with-resolver-redirect-multidc")
+}
+
+func TestConfigSnapshotIngress_HTTPMultipleServices(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshotIngressGateway(t, true, "http", "http-multiple-services")
 }
 
 func TestConfigSnapshotIngressExternalSNI(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "external-sni")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "external-sni")
 }
 
 func TestConfigSnapshotIngressWithFailover(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "failover")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "failover")
 }
 
 func TestConfigSnapshotIngressWithFailoverThroughRemoteGateway(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "failover-through-remote-gateway")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "failover-through-remote-gateway")
 }
 
 func TestConfigSnapshotIngressWithFailoverThroughRemoteGatewayTriggered(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "failover-through-remote-gateway-triggered")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "failover-through-remote-gateway-triggered")
 }
 
 func TestConfigSnapshotIngressWithDoubleFailoverThroughRemoteGateway(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "failover-through-double-remote-gateway")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "failover-through-double-remote-gateway")
 }
 
 func TestConfigSnapshotIngressWithDoubleFailoverThroughRemoteGatewayTriggered(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "failover-through-double-remote-gateway-triggered")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "failover-through-double-remote-gateway-triggered")
 }
 
 func TestConfigSnapshotIngressWithFailoverThroughLocalGateway(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "failover-through-local-gateway")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "failover-through-local-gateway")
 }
 
 func TestConfigSnapshotIngressWithFailoverThroughLocalGatewayTriggered(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "failover-through-local-gateway-triggered")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "failover-through-local-gateway-triggered")
 }
 
 func TestConfigSnapshotIngressWithDoubleFailoverThroughLocalGateway(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "failover-through-double-local-gateway")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "failover-through-double-local-gateway")
 }
 
 func TestConfigSnapshotIngressWithDoubleFailoverThroughLocalGatewayTriggered(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "failover-through-double-local-gateway-triggered")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "failover-through-double-local-gateway-triggered")
 }
 
 func TestConfigSnapshotIngressWithSplitter(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "chain-and-splitter")
+	return testConfigSnapshotIngressGateway(t, true, "http", "chain-and-splitter")
 }
 
 func TestConfigSnapshotIngressWithGRPCRouter(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "grpc-router")
+	return testConfigSnapshotIngressGateway(t, true, "http", "grpc-router")
 }
 
 func TestConfigSnapshotIngressWithRouter(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "chain-and-router")
+	return testConfigSnapshotIngressGateway(t, true, "http", "chain-and-router")
 }
 
 func TestConfigSnapshotIngressGateway(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "default")
+	return testConfigSnapshotIngressGateway(t, true, "tcp", "default")
 }
 
 func TestConfigSnapshotIngressGatewayNoServices(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, false, "default")
+	return testConfigSnapshotIngressGateway(t, false, "tcp", "default")
+}
+
+func TestConfigSnapshotIngressWithLB(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshotIngressGateway(t, true, "http", "lb-resolver")
 }
 
 func TestConfigSnapshotIngressDiscoveryChainWithEntries(t testing.T, additionalEntries ...structs.ConfigEntry) *ConfigSnapshot {
-	return testConfigSnapshotIngressGateway(t, true, "simple", additionalEntries...)
+	return testConfigSnapshotIngressGateway(t, true, "http", "simple", additionalEntries...)
 }
 
 func testConfigSnapshotIngressGateway(
-	t testing.T, populateServices bool, variation string,
+	t testing.T, populateServices bool, protocol, variation string,
 	additionalEntries ...structs.ConfigEntry,
 ) *ConfigSnapshot {
 	roots, leaf := TestCerts(t)
@@ -1402,12 +1638,14 @@ func testConfigSnapshotIngressGateway(
 			ConfigSnapshotUpstreams: setupTestVariationConfigEntriesAndSnapshot(
 				t, variation, leaf, additionalEntries...,
 			),
-			Upstreams: structs.Upstreams{
-				{
-					// We rely on this one having default type in a few tests...
-					DestinationName:  "db",
-					LocalBindPort:    9191,
-					LocalBindAddress: "2.3.4.5",
+			Upstreams: map[IngressListenerKey]structs.Upstreams{
+				{protocol, 9191}: {
+					{
+						// We rely on this one having default type in a few tests...
+						DestinationName:  "db",
+						LocalBindPort:    9191,
+						LocalBindAddress: "2.3.4.5",
+					},
 				},
 			},
 		}
@@ -1446,6 +1684,250 @@ func TestConfigSnapshotExposeConfig(t testing.T) *ConfigSnapshot {
 	}
 }
 
+func TestConfigSnapshotTerminatingGateway(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshotTerminatingGateway(t, true)
+}
+
+func TestConfigSnapshotTerminatingGatewayNoServices(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshotTerminatingGateway(t, false)
+}
+
+func testConfigSnapshotTerminatingGateway(t testing.T, populateServices bool) *ConfigSnapshot {
+	roots, _ := TestCerts(t)
+
+	snap := &ConfigSnapshot{
+		Kind:    structs.ServiceKindTerminatingGateway,
+		Service: "terminating-gateway",
+		ProxyID: structs.NewServiceID("terminating-gateway", nil),
+		Address: "1.2.3.4",
+		TaggedAddresses: map[string]structs.ServiceAddress{
+			structs.TaggedAddressWAN: {
+				Address: "198.18.0.1",
+				Port:    443,
+			},
+		},
+		Port:       8443,
+		Roots:      roots,
+		Datacenter: "dc1",
+	}
+	if populateServices {
+		web := structs.NewServiceName("web", nil)
+		webNodes := TestUpstreamNodes(t)
+		webNodes[0].Service.Meta = map[string]string{
+			"version": "1",
+		}
+		webNodes[1].Service.Meta = map[string]string{
+			"version": "2",
+		}
+
+		api := structs.NewServiceName("api", nil)
+		apiNodes := structs.CheckServiceNodes{
+			structs.CheckServiceNode{
+				Node: &structs.Node{
+					ID:         "api",
+					Node:       "test1",
+					Address:    "10.10.1.1",
+					Datacenter: "dc1",
+				},
+				Service: &structs.NodeService{
+					Service: "api",
+					Address: "api.mydomain",
+					Port:    8081,
+				},
+				Checks: structs.HealthChecks{
+					{
+						Status: "critical",
+					},
+				},
+			},
+			structs.CheckServiceNode{
+				Node: &structs.Node{
+					ID:         "test2",
+					Node:       "test2",
+					Address:    "10.10.1.2",
+					Datacenter: "dc1",
+				},
+				Service: &structs.NodeService{
+					Service: "api",
+					Address: "api.altdomain",
+					Port:    8081,
+					Meta: map[string]string{
+						"domain": "alt",
+					},
+				},
+			},
+			structs.CheckServiceNode{
+				Node: &structs.Node{
+					ID:         "test3",
+					Node:       "test3",
+					Address:    "10.10.1.3",
+					Datacenter: "dc1",
+				},
+				Service: &structs.NodeService{
+					Service: "api",
+					Address: "10.10.1.3",
+					Port:    8081,
+				},
+			},
+			structs.CheckServiceNode{
+				Node: &structs.Node{
+					ID:         "test4",
+					Node:       "test4",
+					Address:    "10.10.1.4",
+					Datacenter: "dc1",
+				},
+				Service: &structs.NodeService{
+					Service: "api",
+					Address: "api.thirddomain",
+					Port:    8081,
+				},
+			},
+		}
+
+		// Has failing instance
+		db := structs.NewServiceName("db", nil)
+		dbNodes := structs.CheckServiceNodes{
+			structs.CheckServiceNode{
+				Node: &structs.Node{
+					ID:         "db",
+					Node:       "test4",
+					Address:    "10.10.1.4",
+					Datacenter: "dc1",
+				},
+				Service: &structs.NodeService{
+					Service: "db",
+					Address: "db.mydomain",
+					Port:    8081,
+				},
+				Checks: structs.HealthChecks{
+					{
+						Status: "critical",
+					},
+				},
+			},
+		}
+
+		// Has passing instance but failing subset
+		cache := structs.NewServiceName("cache", nil)
+		cacheNodes := structs.CheckServiceNodes{
+			{
+				Node: &structs.Node{
+					ID:         "cache",
+					Node:       "test5",
+					Address:    "10.10.1.5",
+					Datacenter: "dc1",
+				},
+				Service: &structs.NodeService{
+					Service: "cache",
+					Address: "cache.mydomain",
+					Port:    8081,
+				},
+			},
+			{
+				Node: &structs.Node{
+					ID:         "cache",
+					Node:       "test5",
+					Address:    "10.10.1.5",
+					Datacenter: "dc1",
+				},
+				Service: &structs.NodeService{
+					Service: "cache",
+					Address: "cache.mydomain",
+					Port:    8081,
+					Meta: map[string]string{
+						"Env": "prod",
+					},
+				},
+				Checks: structs.HealthChecks{
+					{
+						Status: "critical",
+					},
+				},
+			},
+		}
+
+		snap.TerminatingGateway = configSnapshotTerminatingGateway{
+			ServiceGroups: map[structs.ServiceName]structs.CheckServiceNodes{
+				web:   webNodes,
+				api:   apiNodes,
+				db:    dbNodes,
+				cache: cacheNodes,
+			},
+			ServiceResolversSet: map[structs.ServiceName]bool{
+				web:   true,
+				api:   true,
+				db:    true,
+				cache: true,
+			},
+			GatewayServices: map[structs.ServiceName]structs.GatewayService{
+				web: {
+					Service: web,
+					CAFile:  "ca.cert.pem",
+				},
+				api: {
+					Service:  api,
+					CAFile:   "ca.cert.pem",
+					CertFile: "api.cert.pem",
+					KeyFile:  "api.key.pem",
+				},
+				db: {
+					Service: db,
+				},
+				cache: {
+					Service: cache,
+				},
+			},
+			HostnameServices: map[structs.ServiceName]structs.CheckServiceNodes{
+				api:   {apiNodes[0], apiNodes[1]},
+				db:    {dbNodes[0]},
+				cache: {cacheNodes[0], cacheNodes[1]},
+			},
+		}
+
+		snap.TerminatingGateway.ServiceConfigs = map[structs.ServiceName]*structs.ServiceConfigResponse{
+			web: {
+				ProxyConfig: map[string]interface{}{"protocol": "tcp"},
+			},
+			api: {
+				ProxyConfig: map[string]interface{}{"protocol": "tcp"},
+			},
+			db: {
+				ProxyConfig: map[string]interface{}{"protocol": "tcp"},
+			},
+			cache: {
+				ProxyConfig: map[string]interface{}{"protocol": "tcp"},
+			},
+		}
+		snap.TerminatingGateway.Intentions = map[structs.ServiceName]structs.Intentions{
+			// no intentions defined for thse services
+			web:   nil,
+			api:   nil,
+			db:    nil,
+			cache: nil,
+		}
+
+		snap.TerminatingGateway.ServiceLeaves = map[structs.ServiceName]*structs.IssuedCert{
+			web: {
+				CertPEM:       golden(t, "test-leaf-cert"),
+				PrivateKeyPEM: golden(t, "test-leaf-key"),
+			},
+			api: {
+				CertPEM:       golden(t, "alt-test-leaf-cert"),
+				PrivateKeyPEM: golden(t, "alt-test-leaf-key"),
+			},
+			db: {
+				CertPEM:       golden(t, "db-test-leaf-cert"),
+				PrivateKeyPEM: golden(t, "db-test-leaf-key"),
+			},
+			cache: {
+				CertPEM:       golden(t, "cache-test-leaf-cert"),
+				PrivateKeyPEM: golden(t, "cache-test-leaf-key"),
+			},
+		}
+	}
+	return snap
+}
+
 func TestConfigSnapshotGRPCExposeHTTP1(t testing.T) *ConfigSnapshot {
 	return &ConfigSnapshot{
 		Kind:    structs.ServiceKindConnectProxy,
@@ -1474,6 +1956,39 @@ func TestConfigSnapshotGRPCExposeHTTP1(t testing.T) *ConfigSnapshot {
 		},
 		Datacenter: "dc1",
 	}
+}
+
+func TestConfigSnapshotIngress_MultipleListenersDuplicateService(t testing.T) *ConfigSnapshot {
+	snap := TestConfigSnapshotIngress_HTTPMultipleServices(t)
+
+	snap.IngressGateway.Upstreams = map[IngressListenerKey]structs.Upstreams{
+		{Protocol: "http", Port: 8080}: {
+			{
+				DestinationName: "foo",
+				LocalBindPort:   8080,
+			},
+			{
+				DestinationName: "bar",
+				LocalBindPort:   8080,
+			},
+		},
+		{Protocol: "http", Port: 443}: {
+			{
+				DestinationName: "foo",
+				LocalBindPort:   443,
+			},
+		},
+	}
+
+	fooChain := discoverychain.TestCompileConfigEntries(t, "foo", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil)
+	barChain := discoverychain.TestCompileConfigEntries(t, "bar", "default", "dc1", connect.TestClusterID+".consul", "dc1", nil)
+
+	snap.IngressGateway.DiscoveryChain = map[string]*structs.CompiledDiscoveryChain{
+		"foo": fooChain,
+		"bar": barChain,
+	}
+
+	return snap
 }
 
 func httpMatch(http *structs.ServiceRouteHTTPMatch) *structs.ServiceRouteMatch {
@@ -1569,6 +2084,17 @@ func (ct *ControllableCacheType) RegisterOptions() cache.RegisterOptions {
 	return cache.RegisterOptions{
 		Refresh:          ct.blocking,
 		SupportsBlocking: ct.blocking,
-		RefreshTimeout:   10 * time.Minute,
+		QueryTimeout:     10 * time.Minute,
 	}
+}
+
+// golden is used to read golden files stores in consul/agent/xds/testdata
+func golden(t testing.T, name string) string {
+	t.Helper()
+
+	golden := filepath.Join("../xds/testdata", name+".golden")
+	expected, err := ioutil.ReadFile(golden)
+	require.NoError(t, err)
+
+	return string(expected)
 }

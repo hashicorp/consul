@@ -1,10 +1,12 @@
 package authmethodcreate
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/acl/authmethod"
@@ -27,7 +29,11 @@ type cmd struct {
 
 	authMethodType string
 	name           string
+	displayName    string
 	description    string
+	maxTokenTTL    time.Duration
+	tokenLocality  string
+	config         string
 
 	k8sHost              string
 	k8sCACert            string
@@ -37,6 +43,8 @@ type cmd struct {
 	format   string
 
 	testStdin io.Reader
+
+	enterpriseCmd
 }
 
 func (c *cmd) init() {
@@ -63,10 +71,29 @@ func (c *cmd) init() {
 		"The new auth method's name. This flag is required.",
 	)
 	c.flags.StringVar(
+		&c.displayName,
+		"display-name",
+		"",
+		"An optional name to use instead of the name when displaying this auth method in a UI.",
+	)
+	c.flags.StringVar(
 		&c.description,
 		"description",
 		"",
 		"A description of the auth method.",
+	)
+	c.flags.DurationVar(
+		&c.maxTokenTTL,
+		"max-token-ttl",
+		0,
+		"Duration of time all tokens created by this auth method should be valid for",
+	)
+	c.flags.StringVar(
+		&c.tokenLocality,
+		"token-locality",
+		"",
+		"Defines the kind of token that this auth method should produce. "+
+			"This can be either 'local' or 'global'. If empty the value of 'local' is assumed.",
 	)
 
 	c.flags.StringVar(
@@ -98,6 +125,16 @@ func (c *cmd) init() {
 		authmethod.PrettyFormat,
 		fmt.Sprintf("Output format {%s}", strings.Join(authmethod.GetSupportedFormats(), "|")),
 	)
+	c.flags.StringVar(
+		&c.config,
+		"config",
+		"",
+		"The configuration for the auth method. Must be JSON. May be prefixed with '@' "+
+			"to indicate that the value is a file path to load the config from. '-' may also be "+
+			"given to indicate that the config is available on stdin",
+	)
+
+	c.initEnterpriseFlags()
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -128,9 +165,37 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	newAuthMethod := &api.ACLAuthMethod{
-		Type:        c.authMethodType,
-		Name:        c.name,
-		Description: c.description,
+		Type:          c.authMethodType,
+		Name:          c.name,
+		DisplayName:   c.displayName,
+		Description:   c.description,
+		TokenLocality: c.tokenLocality,
+	}
+	if c.maxTokenTTL > 0 {
+		newAuthMethod.MaxTokenTTL = c.maxTokenTTL
+	}
+
+	if err := c.enterprisePopulateAuthMethod(newAuthMethod); err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+
+	if c.config != "" {
+		if c.k8sHost != "" || c.k8sCACert != "" || c.k8sServiceAccountJWT != "" {
+			c.UI.Error(fmt.Sprintf("Cannot use command line arguments with '-config' flags"))
+			return 1
+		}
+		data, err := helpers.LoadDataSource(c.config, c.testStdin)
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error loading configuration file: %v", err))
+			return 1
+		}
+		err = json.Unmarshal([]byte(data), &newAuthMethod.Config)
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error parsing JSON configuration file: %v", err))
+			return 1
+		}
+
 	}
 
 	if c.authMethodType == "kubernetes" {
@@ -204,6 +269,6 @@ Usage: consul acl auth-method create -name NAME -type TYPE [options]
                             -name "my-k8s" \
                             -description "This is an example kube method" \
                             -kubernetes-host "https://apiserver.example.com:8443" \
-                            -kubernetes-ca-file /path/to/kube.ca.crt \
+                            -kubernetes-ca-cert @/path/to/kube.ca.crt \
                             -kubernetes-service-account-jwt "JWT_CONTENTS"
 `

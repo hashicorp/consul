@@ -1,32 +1,46 @@
-{{#app-view class="acl list" loading=isLoading}}
-  {{#block-slot name='notification' as |status type|}}
+{{#let (filter-by "Type" "client" items) as |client|}}
+  {{#let (selectable-key-values
+      (array "" (concat "All (" items.length ")"))
+      (array "management" (concat "Management (" (sub items.length client.length) ")"))
+      (array "client" (concat "Client (" client.length ")"))
+        selected=filterBy
+    )
+    as |filter|
+  }}
+<AppView>
+  <BlockSlot @name="notification" as |status type|>
     {{partial 'dc/acls/notifications'}}
-  {{/block-slot}}
-  {{#block-slot name='header'}}
+  </BlockSlot>
+  <BlockSlot @name="header">
     <h1>
         ACL Tokens <em>{{format-number items.length}} total</em>
     </h1>
     <label for="toolbar-toggle"></label>
-  {{/block-slot}}
-  {{#block-slot name='actions'}}
+  </BlockSlot>
+  <BlockSlot @name="actions">
     <a data-test-create href="{{href-to 'dc.acls.create'}}" class="type-create">Create</a>
-  {{/block-slot}}
-  {{#block-slot name='toolbar'}}
+  </BlockSlot>
+  <BlockSlot @name="toolbar">
 {{#if (gt items.length 0) }}
-    {{acl-filter searchable=searchable filters=typeFilters search=filters.s type=filters.type onchange=(action 'filter')}}
+    <SearchBar
+      data-test-acl-filter="true"
+      @value={{search}}
+      @onsearch={{action (mut search) value="target.value"}}
+      @selected={{filter.selected}}
+      @options={{filter.items}}
+      @onchange={{action (mut filterBy) value='target.value'}}
+    />
 {{/if}}
-  {{/block-slot}}
-  {{#block-slot name='content'}}
-    {{#changeable-set dispatcher=searchable}}
-      {{#block-slot name='set' as |filtered|}}
-        {{#tabular-collection
-            items=(sort-by 'Name:asc' filtered) as |item index|
-        }}
-          {{#block-slot name='header'}}
+  </BlockSlot>
+  <BlockSlot @name="content">
+    <ChangeableSet @dispatcher={{searchable 'acl' (if (eq filter.selected.key "") items (filter-by "Type" filter.selected.key items))}} @terms={{search}}>
+      <BlockSlot @name="set" as |filtered|>
+        <TabularCollection @items={{sort-by "Name:asc" filtered}} as |item index|>
+          <BlockSlot @name="header">
             <th>Name</th>
             <th>Type</th>
-          {{/block-slot}}
-          {{#block-slot name='row'}}
+          </BlockSlot>
+          <BlockSlot @name="row">
             <td data-test-acl="{{item.Name}}">
               <a href={{href-to 'dc.acls.edit' item.ID}}>{{item.Name}}</a>
             </td>
@@ -37,18 +51,13 @@
                 <span>{{item.Type}}</span>
               {{/if}}
             </td>
-          {{/block-slot}}
-          {{#block-slot name='actions' as |index change checked|}}
-            {{#popover-menu
-              expanded=(if (eq checked index) true false)
-              onchange=(action change index)
-              keyboardAccess=false
-              submenus=(array 'logout' 'use' 'delete')
-            }}
-              {{#block-slot name='trigger'}}
+          </BlockSlot>
+          <BlockSlot @name="actions" as |index change checked|>
+            <PopoverMenu @expanded={{if (eq checked index) true false}} @onchange={{action change index}} @keyboardAccess={{false}} @submenus={{array "logout" "use" "delete"}}>
+              <BlockSlot @name="trigger">
                 More
-              {{/block-slot}}
-              {{#block-slot name='menu' as |confirm send keypressClick|}}
+              </BlockSlot>
+              <BlockSlot @name="menu" as |confirm send keypressClick|>
                   <li role="none">
                     <a data-test-edit role="menuitem" tabindex="-1" href={{href-to 'dc.acls.edit' item.ID}}>Edit</a>
                   </li>
@@ -129,16 +138,35 @@
                     </div>
                   </li>
       {{/if}}
-              {{/block-slot}}
-            {{/popover-menu}}
-          {{/block-slot}}
-        {{/tabular-collection}}
-      {{/block-slot}}
-      {{#block-slot name='empty'}}
-        <p>
-          There are no ACLs.
-        </p>
-      {{/block-slot}}
-    {{/changeable-set}}
-  {{/block-slot}}
-{{/app-view}}
+              </BlockSlot>
+            </PopoverMenu>
+          </BlockSlot>
+        </TabularCollection>
+      </BlockSlot>
+      <BlockSlot @name="empty">
+        <EmptyState @allowLogin={{true}}>
+          <BlockSlot @name="header">
+            <h2>
+              {{#if (gt items.length 0)}}
+                No ACLs found
+              {{else}}
+                Welcome to ACLs
+              {{/if}}
+            </h2>
+          </BlockSlot>
+          <BlockSlot @name="body">
+            <p>
+              {{#if (gt items.length 0)}}
+                No ACLs where found matching that search, or you may not have access to view the ACLs you are searching for.
+              {{else}}
+                There don't seem to be any ACLs yet, or you may not have access to view ACLs yet.
+              {{/if}}
+            </p>
+          </BlockSlot>
+        </EmptyState>
+      </BlockSlot>
+    </ChangeableSet>
+  </BlockSlot>
+</AppView>
+  {{/let}}
+{{/let}}

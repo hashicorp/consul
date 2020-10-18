@@ -29,8 +29,8 @@ func TestDiscoveryChainEndpoint_Get(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	waitForLeaderEstablishment(t, s1)
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
 	denyToken, err := upsertTestTokenWithPolicyRules(codec, "root", "dc1", "")
 	require.NoError(t, err)
@@ -91,7 +91,7 @@ func TestDiscoveryChainEndpoint_Get(t *testing.T) {
 			Protocol:    "tcp",
 			StartNode:   "resolver:web.default.dc1",
 			Nodes: map[string]*structs.DiscoveryGraphNode{
-				"resolver:web.default.dc1": &structs.DiscoveryGraphNode{
+				"resolver:web.default.dc1": {
 					Type: structs.DiscoveryGraphNodeTypeResolver,
 					Name: "web.default.dc1",
 					Resolver: &structs.DiscoveryResolver{
@@ -185,7 +185,7 @@ func TestDiscoveryChainEndpoint_Get(t *testing.T) {
 				Protocol:    "tcp",
 				StartNode:   "resolver:web.default.dc1",
 				Nodes: map[string]*structs.DiscoveryGraphNode{
-					"resolver:web.default.dc1": &structs.DiscoveryGraphNode{
+					"resolver:web.default.dc1": {
 						Type: structs.DiscoveryGraphNodeTypeResolver,
 						Name: "web.default.dc1",
 						Resolver: &structs.DiscoveryResolver{

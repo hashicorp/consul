@@ -40,7 +40,8 @@ func TestConfigDelete(t *testing.T) {
 
 	code := c.Run(args)
 	require.Equal(t, 0, code)
-	require.Empty(t, ui.OutputWriter.String())
+	require.Contains(t, ui.OutputWriter.String(),
+		"Config entry deleted: service-defaults/web")
 	require.Empty(t, ui.ErrorWriter.String())
 
 	entry, _, err := client.ConfigEntries().Get(api.ServiceDefaults, "web", nil)
@@ -52,8 +53,8 @@ func TestConfigDelete_InvalidArgs(t *testing.T) {
 	t.Parallel()
 
 	cases := map[string][]string{
-		"no kind": []string{},
-		"no name": []string{"-kind", "service-defaults"},
+		"no kind": {},
+		"no name": {"-kind", "service-defaults"},
 	}
 
 	for name, tcase := range cases {

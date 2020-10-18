@@ -1,0 +1,44 @@
+---
+layout: commands
+page_title: 'Commands: Members'
+sidebar_title: members
+description: >-
+  The `members` command outputs the current list of members that a Consul agent
+  knows about, along with their state. The state of a node can only be alive,
+  left, or failed.
+---
+
+# Consul Members
+
+Command: `consul members`
+
+The `members` command outputs the current list of members that a Consul
+agent knows about, along with their state. The state of a node can only
+be "alive", "left", or "failed".
+
+Nodes in the "failed" state are still listed because Consul attempts to
+reconnect with failed nodes for a certain amount of time in the case
+that the failure is actually just a network partition.
+
+## Usage
+
+Usage: `consul members [options]`
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+#### Command Options
+
+- `-detailed` - If provided, output shows more detailed information
+  about each node.
+
+- `-segment` <EnterpriseAlert inline /> - The segment to show members in. If not provided, members
+  in all segments visible to the agent will be listed.
+
+- `-status` - If provided, output is filtered to only nodes matching
+  the regular expression for status
+
+- `-wan` - For agents in Server mode, this will return the list of nodes
+  in the WAN gossip pool. These are generally all the server nodes in
+  each datacenter.

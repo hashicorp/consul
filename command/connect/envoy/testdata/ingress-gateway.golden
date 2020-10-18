@@ -9,11 +9,11 @@
     }
   },
   "node": {
-    "cluster": "ingress-gateway",
-    "id": "ingress-gateway",
+    "cluster": "ingress-gateway-1",
+    "id": "ingress-gateway-1",
     "metadata": {
       "namespace": "default",
-      "envoy_version": "1.14.1"
+      "envoy_version": "1.15.0"
     }
   },
   "static_resources": {
@@ -147,7 +147,7 @@
       },
       {
         "tag_name": "local_cluster",
-        "fixed_value": "ingress-gateway"
+        "fixed_value": "ingress-gateway-1"
       }
     ],
     "use_all_default_tags": true

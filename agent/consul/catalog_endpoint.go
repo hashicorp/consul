@@ -12,13 +12,15 @@ import (
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/types"
 	bexpr "github.com/hashicorp/go-bexpr"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
 )
 
 // Catalog endpoint is used to manipulate the service catalog
 type Catalog struct {
-	srv *Server
+	srv    *Server
+	logger hclog.Logger
 }
 
 // nodePreApply does the verification of a node before it is applied to Raft.
@@ -92,7 +94,7 @@ func checkPreApply(check *structs.HealthCheck) {
 
 // Register is used register that a node is providing a given service.
 func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error {
-	if done, err := c.srv.forward("Catalog.Register", args, args, reply); done {
+	if done, err := c.srv.ForwardRPC("Catalog.Register", args, args, reply); done {
 		return err
 	}
 	defer metrics.MeasureSince([]string{"catalog", "register"}, time.Now())
@@ -150,7 +152,7 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 	}
 
 	// Check the complete register request against the given ACL policy.
-	if authz != nil && c.srv.config.ACLEnforceVersion8 {
+	if authz != nil {
 		state := c.srv.fsm.State()
 		_, ns, err := state.NodeServices(nil, args.Node, entMeta)
 		if err != nil {
@@ -173,7 +175,7 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 
 // Deregister is used to remove a service registration for a given node.
 func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) error {
-	if done, err := c.srv.forward("Catalog.Deregister", args, args, reply); done {
+	if done, err := c.srv.ForwardRPC("Catalog.Deregister", args, args, reply); done {
 		return err
 	}
 	defer metrics.MeasureSince([]string{"catalog", "deregister"}, time.Now())
@@ -194,7 +196,7 @@ func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) e
 	}
 
 	// Check the complete deregister request against the given ACL policy.
-	if authz != nil && c.srv.config.ACLEnforceVersion8 {
+	if authz != nil {
 		state := c.srv.fsm.State()
 
 		var ns *structs.NodeService
@@ -242,7 +244,7 @@ func (c *Catalog) ListDatacenters(args *structs.DatacentersRequest, reply *[]str
 
 // ListNodes is used to query the nodes in a DC
 func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.IndexedNodes) error {
-	if done, err := c.srv.forward("Catalog.ListNodes", args, args, reply); done {
+	if done, err := c.srv.ForwardRPC("Catalog.ListNodes", args, args, reply); done {
 		return err
 	}
 
@@ -255,19 +257,21 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			var index uint64
-			var nodes structs.Nodes
 			var err error
 			if len(args.NodeMetaFilters) > 0 {
-				index, nodes, err = state.NodesByMeta(ws, args.NodeMetaFilters)
+				reply.Index, reply.Nodes, err = state.NodesByMeta(ws, args.NodeMetaFilters)
 			} else {
-				index, nodes, err = state.Nodes(ws)
+				reply.Index, reply.Nodes, err = state.Nodes(ws)
 			}
 			if err != nil {
 				return err
 			}
+			if isUnmodified(args.QueryOptions, reply.Index) {
+				reply.QueryMeta.NotModified = true
+				reply.Nodes = nil
+				return nil
+			}
 
-			reply.Index, reply.Nodes = index, nodes
 			if err := c.srv.filterACL(args.Token, reply); err != nil {
 				return err
 			}
@@ -282,13 +286,15 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 		})
 }
 
+func isUnmodified(opts structs.QueryOptions, index uint64) bool {
+	return opts.AllowNotModifiedResponse && opts.MinQueryIndex > 0 && opts.MinQueryIndex == index
+}
+
 // ListServices is used to query the services in a DC
 func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.IndexedServices) error {
-	if done, err := c.srv.forward("Catalog.ListServices", args, args, reply); done {
+	if done, err := c.srv.ForwardRPC("Catalog.ListServices", args, args, reply); done {
 		return err
 	}
-
-	(*reply).EnterpriseMeta = args.EnterpriseMeta
 
 	authz, err := c.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
 	if err != nil {
@@ -299,29 +305,35 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 		return err
 	}
 
+	// Set reply enterprise metadata after resolving and validating the token so
+	// that we can properly infer metadata from the token.
+	reply.EnterpriseMeta = args.EnterpriseMeta
+
 	return c.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			var index uint64
-			var services structs.Services
 			var err error
 			if len(args.NodeMetaFilters) > 0 {
-				index, services, err = state.ServicesByNodeMeta(ws, args.NodeMetaFilters, &args.EnterpriseMeta)
+				reply.Index, reply.Services, err = state.ServicesByNodeMeta(ws, args.NodeMetaFilters, &args.EnterpriseMeta)
 			} else {
-				index, services, err = state.Services(ws, &args.EnterpriseMeta)
+				reply.Index, reply.Services, err = state.Services(ws, &args.EnterpriseMeta)
 			}
 			if err != nil {
 				return err
 			}
+			if isUnmodified(args.QueryOptions, reply.Index) {
+				reply.Services = nil
+				reply.QueryMeta.NotModified = true
+				return nil
+			}
 
-			reply.Index, reply.Services, reply.EnterpriseMeta = index, services, args.EnterpriseMeta
 			return c.srv.filterACLWithAuthorizer(authz, reply)
 		})
 }
 
 func (c *Catalog) ServiceList(args *structs.DCSpecificRequest, reply *structs.IndexedServiceList) error {
-	if done, err := c.srv.forward("Catalog.ServiceList", args, args, reply); done {
+	if done, err := c.srv.ForwardRPC("Catalog.ServiceList", args, args, reply); done {
 		return err
 	}
 
@@ -350,7 +362,7 @@ func (c *Catalog) ServiceList(args *structs.DCSpecificRequest, reply *structs.In
 
 // ServiceNodes returns all the nodes registered as part of a service
 func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *structs.IndexedServiceNodes) error {
-	if done, err := c.srv.forward("Catalog.ServiceNodes", args, args, reply); done {
+	if done, err := c.srv.ForwardRPC("Catalog.ServiceNodes", args, args, reply); done {
 		return err
 	}
 
@@ -488,7 +500,7 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 
 // NodeServices returns all the services registered as part of a node
 func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs.IndexedNodeServices) error {
-	if done, err := c.srv.forward("Catalog.NodeServices", args, args, reply); done {
+	if done, err := c.srv.ForwardRPC("Catalog.NodeServices", args, args, reply); done {
 		return err
 	}
 
@@ -539,7 +551,7 @@ func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs
 }
 
 func (c *Catalog) NodeServiceList(args *structs.NodeSpecificRequest, reply *structs.IndexedNodeServiceList) error {
-	if done, err := c.srv.forward("Catalog.NodeServiceList", args, args, reply); done {
+	if done, err := c.srv.ForwardRPC("Catalog.NodeServiceList", args, args, reply); done {
 		return err
 	}
 
@@ -587,6 +599,71 @@ func (c *Catalog) NodeServiceList(args *structs.NodeSpecificRequest, reply *stru
 				reply.NodeServices.Services = raw.([]*structs.NodeService)
 			}
 
+			return nil
+		})
+}
+
+func (c *Catalog) GatewayServices(args *structs.ServiceSpecificRequest, reply *structs.IndexedGatewayServices) error {
+	if done, err := c.srv.ForwardRPC("Catalog.GatewayServices", args, args, reply); done {
+		return err
+	}
+
+	var authzContext acl.AuthorizerContext
+	authz, err := c.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzContext)
+	if err != nil {
+		return err
+	}
+
+	if err := c.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
+	if authz != nil && authz.ServiceRead(args.ServiceName, &authzContext) != acl.Allow {
+		return acl.ErrPermissionDenied
+	}
+
+	return c.srv.blockingQuery(
+		&args.QueryOptions,
+		&reply.QueryMeta,
+		func(ws memdb.WatchSet, state *state.Store) error {
+			var index uint64
+			var services structs.GatewayServices
+
+			supportedGateways := []string{structs.IngressGateway, structs.TerminatingGateway}
+			var found bool
+			for _, kind := range supportedGateways {
+				// We only use this call to validate the RPC call, don't add the watch set
+				_, entry, err := state.ConfigEntry(nil, kind, args.ServiceName, &args.EnterpriseMeta)
+				if err != nil {
+					return err
+				}
+				if entry != nil {
+					found = true
+					break
+				}
+			}
+
+			// We log a warning here to indicate that there is a potential
+			// misconfiguration. We explicitly do NOT return an error because this
+			// can occur in the course of normal operation by deleting a
+			// configuration entry or starting the proxy before registering the
+			// config entry.
+			if !found {
+				c.logger.Warn("no terminating-gateway or ingress-gateway associated with this gateway",
+					"gateway", args.ServiceName,
+				)
+			}
+
+			index, services, err = state.GatewayServices(ws, args.ServiceName, &args.EnterpriseMeta)
+			if err != nil {
+				return err
+			}
+
+			if err := c.srv.filterACL(args.Token, &services); err != nil {
+				return err
+			}
+
+			reply.Index, reply.Services = index, services
 			return nil
 		})
 }

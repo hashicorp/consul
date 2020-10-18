@@ -13,7 +13,22 @@ Feature: dc / nspaces / manage : Managing Namespaces
     ---
       - dc-1
     ---
-    And 6 service models
+    And 6 service models from yaml
+    ---
+      - Name: Service-0
+        Kind: ~
+      - Name: Service-1
+        Kind: ~
+      - Name: Service-2
+        Kind: ~
+      - Name: Service-3
+        Kind: ~
+      - Name: Service-4
+        Kind: ~
+      - Name: Service-5
+        Kind: ~
+    ---
+
     When I visit the services page for yaml
     ---
       dc: dc-1

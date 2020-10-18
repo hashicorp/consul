@@ -1,0 +1,21 @@
+{{yield}}
+{{#let (hash
+  change=(action "change")
+) as |api|}}
+<div class="menu-panel {{position}}">
+  <YieldSlot @name="controls">
+    {{yield api}}
+  </YieldSlot>
+  {{#yield-slot name="header"}}
+    <div>
+      {{yield api}}
+    </div>
+  {{else}}
+  {{/yield-slot}}
+  <ul role="menu" ...attributes>
+    <YieldSlot @name="menu">
+      {{yield api}}
+    </YieldSlot>
+  </ul>
+</div>
+{{/let}}

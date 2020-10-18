@@ -100,7 +100,7 @@ function is_set {
 
 function get_cert {
   local HOSTPORT=$1
-  CERT=$(openssl s_client -connect $HOSTPORT -showcerts )
+  CERT=$(openssl s_client -connect $HOSTPORT -showcerts </dev/null)
   openssl x509 -noout -text <<< "$CERT"
 }
 
@@ -118,6 +118,19 @@ function assert_proxy_presents_cert_uri {
   echo "$CERT"
 
   echo "$CERT" | grep -Eo "URI:spiffe://([a-zA-Z0-9-]+).consul/ns/${NS}/dc/${DC}/svc/$SERVICENAME"
+}
+
+function assert_dnssan_in_cert {
+  local HOSTPORT=$1
+  local DNSSAN=$2
+
+  CERT=$(retry_default get_cert $HOSTPORT)
+
+  echo "WANT DNSSAN: ${DNSSAN}"
+  echo "GOT CERT:"
+  echo "$CERT"
+
+  echo "$CERT" | grep -Eo "DNS:${DNSSAN}"
 }
 
 function assert_envoy_version {
@@ -156,7 +169,23 @@ function get_envoy_listener_filters {
   echo "$output" | jq --raw-output "$QUERY"
 }
 
-function get_envoy_cluster_threshold {
+function get_envoy_http_filters {
+  local HOSTPORT=$1
+  run retry_default curl -s -f $HOSTPORT/config_dump
+  [ "$status" -eq 0 ]
+  local ENVOY_VERSION=$(echo $output | jq --raw-output '.configs[0].bootstrap.node.metadata.envoy_version')
+  local QUERY=''
+  # from 1.13.0 on the config json looks slightly different
+  # 1.10.x, 1.11.x, 1.12.x are not affected
+  if [[ "$ENVOY_VERSION" =~ ^1\.1[012]\. ]]; then
+      QUERY='.configs[2].dynamic_active_listeners[].listener | "\(.name) \( .filter_chains[0].filters[] | select(.name == "envoy.http_connection_manager") | .config.http_filters | map(.name) | join(","))"'
+  else
+      QUERY='.configs[2].dynamic_listeners[].active_state.listener | "\(.name) \( .filter_chains[0].filters[] | select(.name == "envoy.http_connection_manager") | .config.http_filters | map(.name) | join(","))"'
+  fi
+  echo "$output" | jq --raw-output "$QUERY"
+}
+
+function get_envoy_cluster_config {
   local HOSTPORT=$1
   local CLUSTER_NAME=$2
   run retry_default curl -s -f $HOSTPORT/config_dump
@@ -164,7 +193,7 @@ function get_envoy_cluster_threshold {
   echo "$output" | jq --raw-output "
     .configs[1].dynamic_active_clusters[]
     | select(.cluster.name|startswith(\"${CLUSTER_NAME}\"))
-    | .cluster.circuit_breakers.thresholds[0]
+    | .cluster
   "
 }
 
@@ -412,13 +441,13 @@ function docker_consul {
 function docker_wget {
   local DC=$1
   shift 1
-  docker run -ti --rm --network container:envoy_consul-${DC}_1 alpine:3.9 wget "$@"
+  docker run --rm --network container:envoy_consul-${DC}_1 alpine:3.9 wget "$@"
 }
 
 function docker_curl {
   local DC=$1
   shift 1
-  docker run -ti --rm --network container:envoy_consul-${DC}_1 --entrypoint curl consul-dev "$@"
+  docker run --rm --network container:envoy_consul-${DC}_1 --entrypoint curl consul-dev "$@"
 }
 
 function docker_exec {
@@ -516,12 +545,80 @@ function must_fail_tcp_connection {
 # to generate a 503 response since the upstreams have refused connection.
 function must_fail_http_connection {
   # Attempt to curl through upstream
-  run curl -s -i -d hello $1
+  run curl -s -i -d hello "$1"
 
   echo "OUTPUT $output"
 
+  local expect_response="${2:-403 Forbidden}"
   # Should fail request with 503
-  echo "$output" | grep '503 Service Unavailable'
+  echo "$output" | grep "${expect_response}"
+}
+
+# must_pass_http_request allows you to craft a specific http request to assert
+# that envoy will NOT reject the request. Primarily of use for testing L7
+# intentions.
+function must_pass_http_request {
+  local METHOD=$1
+  local URL=$2
+  local DEBUG_HEADER_VALUE="${3:-""}"
+
+  local extra_args
+  if [[ -n "${DEBUG_HEADER_VALUE}" ]]; then
+    extra_args="-H x-test-debug:${DEBUG_HEADER_VALUE}"
+  fi
+  case "$METHOD" in
+    GET)
+      ;;
+    DELETE)
+      extra_args="$extra_args -X${METHOD}"
+      ;;
+    PUT|POST)
+      extra_args="$extra_args -d'{}' -X${METHOD}"
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+
+  run retry_default curl -v -s -f $extra_args "$URL"
+  [ "$status" == 0 ]
+}
+
+# must_fail_http_request allows you to craft a specific http request to assert
+# that envoy will reject the request. Primarily of use for testing L7
+# intentions.
+function must_fail_http_request {
+  local METHOD=$1
+  local URL=$2
+  local DEBUG_HEADER_VALUE="${3:-""}"
+
+  local extra_args
+  if [[ -n "${DEBUG_HEADER_VALUE}" ]]; then
+      extra_args="-H x-test-debug:${DEBUG_HEADER_VALUE}"
+  fi
+  case "$METHOD" in
+    HEAD)
+      extra_args="$extra_args -I"
+      ;;
+    GET)
+      ;;
+    DELETE)
+      extra_args="$extra_args -X${METHOD}"
+      ;;
+    PUT|POST)
+      extra_args="$extra_args -d'{}' -X${METHOD}"
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+
+  # Attempt to curl through upstream
+  run retry_default curl -s -i $extra_args "$URL"
+
+  echo "OUTPUT $output"
+
+  echo "$output" | grep "403 Forbidden"
 }
 
 function gen_envoy_bootstrap {
@@ -619,6 +716,10 @@ function update_intention {
   return $?
 }
 
+function get_ca_root {
+  curl -s -f "http://localhost:8500/v1/connect/ca/roots" | jq -r ".Roots[0].RootCert"
+}
+
 function wait_for_agent_service_register {
   local SERVICE_ID=$1
   local DC=${2:-primary}
@@ -646,18 +747,48 @@ function set_ttl_check_state {
 }
 
 function get_upstream_fortio_name {
-  run retry_default curl -v -s -f localhost:5000/debug?env=dump
+  local HOST=$1
+  local PORT=$2
+  local PREFIX=$3
+  local DEBUG_HEADER_VALUE="${4:-""}"
+  local extra_args
+  if [[ -n "${DEBUG_HEADER_VALUE}" ]]; then
+      extra_args="-H x-test-debug:${DEBUG_HEADER_VALUE}"
+  fi
+  run retry_default curl -v -s -f -H"Host: ${HOST}" $extra_args \
+      "localhost:${PORT}${PREFIX}/debug?env=dump"
   [ "$status" == 0 ]
   echo "$output" | grep -E "^FORTIO_NAME="
 }
 
 function assert_expected_fortio_name {
   local EXPECT_NAME=$1
+  local HOST=${2:-"localhost"}
+  local PORT=${3:-5000}
+  local URL_PREFIX=${4:-""}
+  local DEBUG_HEADER_VALUE="${5:-""}"
 
-  GOT=$(get_upstream_fortio_name)
+  GOT=$(get_upstream_fortio_name ${HOST} ${PORT} "${URL_PREFIX}" "${DEBUG_HEADER_VALUE}")
 
   if [ "$GOT" != "FORTIO_NAME=${EXPECT_NAME}" ]; then
     echo "expected name: $EXPECT_NAME, actual name: $GOT" 1>&2
+    return 1
+  fi
+}
+
+function assert_expected_fortio_name_pattern {
+  local EXPECT_NAME_PATTERN=$1
+  local HOST=${2:-"localhost"}
+  local PORT=${3:-5000}
+  local URL_PREFIX=${4:-""}
+  local DEBUG_HEADER_VALUE="${5:-""}"
+
+  GOT=$(get_upstream_fortio_name ${HOST} ${PORT} "${URL_PREFIX}" "${DEBUG_HEADER_VALUE}")
+
+  if [[ "$GOT" =~ $EXPECT_NAME_PATTERN ]]; then
+      :
+  else
+    echo "expected name pattern: $EXPECT_NAME_PATTERN, actual name: $GOT" 1>&2
     return 1
   fi
 }

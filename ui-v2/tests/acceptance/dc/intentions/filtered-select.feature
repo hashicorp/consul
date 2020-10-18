@@ -8,9 +8,9 @@ Feature: dc / intentions / filtered-select: Intention Service Select Dropdowns
     And 4 service models from yaml
     ---
     - Name: service-0
-      Kind: consul
+      Kind: ~
     - Name: service-1
-      Kind: consul
+      Kind: ~
     - Name: service-2
       Kind: connect-proxy
     - Name: service-3
@@ -19,13 +19,36 @@ Feature: dc / intentions / filtered-select: Intention Service Select Dropdowns
     When I visit the intention page for yaml
     ---
       dc: datacenter
-      intention: intention
     ---
-    Then the url should be /datacenter/intentions/intention
+    Then the url should be /datacenter/intentions/create
     And I click "[data-test-[Name]-element] .ember-power-select-trigger"
     Then I see the text "* (All Services)" in ".ember-power-select-option:nth-last-child(3)"
     Then I see the text "service-0" in ".ember-power-select-option:nth-last-child(2)"
     Then I see the text "service-1" in ".ember-power-select-option:last-child"
+    Where:
+      ---------------
+      | Name        |
+      | source      |
+      | destination |
+      ---------------
+  Scenario: Opening the [Name] dropdown with 2 services with the same name from different nspaces
+    Given 1 datacenter model with the value "datacenter"
+    And 2 service models from yaml
+    ---
+    - Name: service-0
+      Kind: ~
+    - Name: service-0
+      Namespace: nspace
+      Kind: ~
+    ---
+    When I visit the intention page for yaml
+    ---
+      dc: datacenter
+    ---
+    Then the url should be /datacenter/intentions/create
+    And I click "[data-test-[Name]-element] .ember-power-select-trigger"
+    Then I see the text "* (All Services)" in ".ember-power-select-option:nth-last-child(2)"
+    Then I see the text "service-0" in ".ember-power-select-option:last-child"
     Where:
       ---------------
       | Name        |

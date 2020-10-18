@@ -65,9 +65,16 @@ type ManagerConfig struct {
 	// Datacenter name into other request types that need it. This is sufficient
 	// for now and cleaner than passing the entire RuntimeConfig.
 	Source *structs.QuerySource
+	// DNSConfig is the agent's relevant DNS config for any proxies.
+	DNSConfig DNSConfig
 	// logger is the agent's logger to be used for logging logs.
 	Logger          hclog.Logger
 	TLSConfigurator *tlsutil.Configurator
+
+	// IntentionDefaultAllow is set by the agent so that we can pass this
+	// information to proxies that need to make intention decisions on their
+	// own.
+	IntentionDefaultAllow bool
 }
 
 // NewManager constructs a manager from the provided agent cache.
@@ -134,6 +141,7 @@ func (m *Manager) syncState() {
 	services := m.State.Services(structs.WildcardEnterpriseMeta())
 	for sid, svc := range services {
 		if svc.Kind != structs.ServiceKindConnectProxy &&
+			svc.Kind != structs.ServiceKindTerminatingGateway &&
 			svc.Kind != structs.ServiceKindMeshGateway &&
 			svc.Kind != structs.ServiceKindIngressGateway {
 			continue
@@ -185,9 +193,11 @@ func (m *Manager) ensureProxyServiceLocked(ns *structs.NodeService, token string
 	}
 
 	// Set the necessary dependencies
-	state.logger = m.Logger
+	state.logger = m.Logger.With("service_id", sid.String())
 	state.cache = m.Cache
 	state.source = m.Source
+	state.dnsConfig = m.DNSConfig
+	state.intentionDefaultAllow = m.IntentionDefaultAllow
 	if m.TLSConfigurator != nil {
 		state.serverSNIFn = m.TLSConfigurator.ServerSNI
 	}

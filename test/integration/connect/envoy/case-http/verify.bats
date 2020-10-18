@@ -42,6 +42,39 @@ load helpers
   echo "PUB = $PUB"
   echo "UPS = $UPS"
 
-  [ "$PUB" = "envoy.ext_authz,envoy.http_connection_manager" ]
+  [ "$PUB" = "envoy.http_connection_manager" ]
   [ "$UPS" = "envoy.http_connection_manager" ]
+}
+
+@test "s2 proxy should have been configured with an http connection manager" {
+  LISTEN_FILTERS=$(get_envoy_listener_filters localhost:19001)
+  PUB=$(echo "$LISTEN_FILTERS" | grep -E "^public_listener:" | cut -f 2 -d ' ' )
+
+  echo "LISTEN_FILTERS = $LISTEN_FILTERS"
+  echo "PUB = $PUB"
+
+  [ "$PUB" = "envoy.http_connection_manager" ]
+}
+
+@test "s1 proxy should have been configured with http rbac filters" {
+  HTTP_FILTERS=$(get_envoy_http_filters localhost:19000)
+  PUB=$(echo "$HTTP_FILTERS" | grep -E "^public_listener:" | cut -f 2 -d ' ' )
+  UPS=$(echo "$HTTP_FILTERS" | grep -E "^s2:" | cut -f 2 -d ' ' )
+
+  echo "HTTP_FILTERS = $HTTP_FILTERS"
+  echo "PUB = $PUB"
+  echo "UPS = $UPS"
+
+  [ "$PUB" = "envoy.filters.http.rbac,envoy.router" ]
+  [ "$UPS" = "envoy.router" ]
+}
+
+@test "s2 proxy should have been configured with http rbac filters" {
+  HTTP_FILTERS=$(get_envoy_http_filters localhost:19001)
+  PUB=$(echo "$HTTP_FILTERS" | grep -E "^public_listener:" | cut -f 2 -d ' ' )
+
+  echo "HTTP_FILTERS = $HTTP_FILTERS"
+  echo "PUB = $PUB"
+
+  [ "$PUB" = "envoy.filters.http.rbac,envoy.router" ]
 }

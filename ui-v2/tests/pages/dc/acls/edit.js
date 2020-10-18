@@ -6,6 +6,7 @@ export default function(visitable, submitable, deletable, cancelable, clickable)
         use: clickable('[data-test-use]'),
         confirmUse: clickable('button.type-delete'),
       })
-    )
+    ),
+    'main'
   );
 }

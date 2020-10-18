@@ -1,0 +1,3 @@
+```release-note:feature
+xds: use envoy's rbac filter to handle intentions entirely within envoy
+```

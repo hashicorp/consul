@@ -1,18 +1,18 @@
 // decoration/color
-%filter-bar > * {
-  border: $decor-border-100;
-  border-radius: $decor-radius-100;
+%filter-bar {
+  border-bottom: $decor-border-100;
+  border-color: $gray-200;
+}
+%filter-bar-reversed {
+  border-bottom: none;
 }
 // TODO: Move this elsewhere
 @media #{$--horizontal-selects} {
-  %filter-bar label:not(:last-child) {
+  %filter-bar .type-radio:not(:last-child) {
     border-right: $decor-border-100;
   }
 }
 @media #{$--lt-horizontal-selects} {
-  %filter-bar label:not(:last-child) {
-    border-bottom: $decor-border-100;
-  }
 }
 %filter-bar [role='radiogroup'] label {
   cursor: pointer;

@@ -1,6 +1,7 @@
 package kubeauth
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -8,6 +9,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/structs"
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-hclog"
 	"gopkg.in/square/go-jose.v2/jwt"
 	authv1 "k8s.io/api/authentication/v1"
 	client_metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,7 +22,7 @@ import (
 
 func init() {
 	// register this as an available auth method type
-	authmethod.Register("kubernetes", func(method *structs.ACLAuthMethod) (authmethod.Validator, error) {
+	authmethod.Register("kubernetes", func(logger hclog.Logger, method *structs.ACLAuthMethod) (authmethod.Validator, error) {
 		v, err := NewValidator(method)
 		if err != nil {
 			return nil, err
@@ -92,6 +94,10 @@ func NewValidator(method *structs.ACLAuthMethod) (*Validator, error) {
 		return nil, fmt.Errorf("Config.ServiceAccountJWT is not a valid JWT: %v", err)
 	}
 
+	if err := enterpriseValidation(method, &config); err != nil {
+		return nil, err
+	}
+
 	transport := cleanhttp.DefaultTransport()
 	client, err := k8s.NewForConfig(&client_rest.Config{
 		Host:        config.Host,
@@ -118,9 +124,11 @@ func NewValidator(method *structs.ACLAuthMethod) (*Validator, error) {
 
 func (v *Validator) Name() string { return v.name }
 
-func (v *Validator) ValidateLogin(loginToken string) (map[string]string, *structs.EnterpriseMeta, error) {
+func (v *Validator) Stop() {}
+
+func (v *Validator) ValidateLogin(ctx context.Context, loginToken string) (*authmethod.Identity, error) {
 	if _, err := jwt.ParseSigned(loginToken); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse and validate JWT: %v", err)
+		return nil, fmt.Errorf("failed to parse and validate JWT: %v", err)
 	}
 
 	// Check TokenReview for the bulk of the work.
@@ -131,36 +139,36 @@ func (v *Validator) ValidateLogin(loginToken string) (map[string]string, *struct
 	})
 
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	} else if trResp.Status.Error != "" {
-		return nil, nil, fmt.Errorf("lookup failed: %s", trResp.Status.Error)
+		return nil, fmt.Errorf("lookup failed: %s", trResp.Status.Error)
 	}
 
 	if !trResp.Status.Authenticated {
-		return nil, nil, errors.New("lookup failed: service account jwt not valid")
+		return nil, errors.New("lookup failed: service account jwt not valid")
 	}
 
 	// The username is of format: system:serviceaccount:(NAMESPACE):(SERVICEACCOUNT)
 	parts := strings.Split(trResp.Status.User.Username, ":")
 	if len(parts) != 4 {
-		return nil, nil, errors.New("lookup failed: unexpected username format")
+		return nil, errors.New("lookup failed: unexpected username format")
 	}
 
 	// Validate the user that comes back from token review is a service account
 	if parts[0] != "system" || parts[1] != "serviceaccount" {
-		return nil, nil, errors.New("lookup failed: username returned is not a service account")
+		return nil, errors.New("lookup failed: username returned is not a service account")
 	}
 
 	var (
 		saNamespace = parts[2]
 		saName      = parts[3]
-		saUID       = string(trResp.Status.User.UID)
+		saUID       = trResp.Status.User.UID
 	)
 
 	// Check to see  if there is an override name on the ServiceAccount object.
 	sa, err := v.saGetter.ServiceAccounts(saNamespace).Get(saName, client_metav1.GetOptions{})
 	if err != nil {
-		return nil, nil, fmt.Errorf("annotation lookup failed: %v", err)
+		return nil, fmt.Errorf("annotation lookup failed: %v", err)
 	}
 
 	annotations := sa.GetObjectMeta().GetAnnotations()
@@ -174,25 +182,37 @@ func (v *Validator) ValidateLogin(loginToken string) (map[string]string, *struct
 		serviceAccountUIDField:       saUID,
 	}
 
-	return fields, v.k8sEntMetaFromFields(fields), nil
-}
-
-func (p *Validator) AvailableFields() []string {
-	return []string{
-		serviceAccountNamespaceField,
-		serviceAccountNameField,
-		serviceAccountUIDField,
-	}
-}
-
-func (v *Validator) MakeFieldMapSelectable(fieldMap map[string]string) interface{} {
-	return &k8sFieldDetails{
+	id := v.NewIdentity()
+	id.SelectableFields = &k8sFieldDetails{
 		ServiceAccount: k8sFieldDetailsServiceAccount{
-			Namespace: fieldMap[serviceAccountNamespaceField],
-			Name:      fieldMap[serviceAccountNameField],
-			UID:       fieldMap[serviceAccountUIDField],
+			Namespace: fields[serviceAccountNamespaceField],
+			Name:      fields[serviceAccountNameField],
+			UID:       fields[serviceAccountUIDField],
 		},
 	}
+	for k, val := range fields {
+		id.ProjectedVars[k] = val
+	}
+	id.EnterpriseMeta = v.k8sEntMetaFromFields(fields)
+
+	return id, nil
+}
+
+func (v *Validator) NewIdentity() *authmethod.Identity {
+	id := &authmethod.Identity{
+		SelectableFields: &k8sFieldDetails{},
+		ProjectedVars:    map[string]string{},
+	}
+	for _, f := range availableFields {
+		id.ProjectedVars[f] = ""
+	}
+	return id
+}
+
+var availableFields = []string{
+	serviceAccountNamespaceField,
+	serviceAccountNameField,
+	serviceAccountUIDField,
 }
 
 type k8sFieldDetails struct {

@@ -1,4 +1,3 @@
-enable_central_service_config = true
 config_entries {
   bootstrap {
     kind = "proxy-defaults"
@@ -8,13 +7,13 @@ config_entries {
     }
   }
   bootstrap {
-    kind = "service-defaults"
-    name = "s1"
+    kind     = "service-defaults"
+    name     = "s1"
     protocol = "http"
   }
   bootstrap {
-    kind = "service-defaults"
-    name = "s2"
+    kind     = "service-defaults"
+    name     = "s2"
     protocol = "http"
   }
 }

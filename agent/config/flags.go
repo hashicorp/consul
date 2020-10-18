@@ -6,8 +6,8 @@ import (
 	"time"
 )
 
-// Flags defines the command line flags.
-type Flags struct {
+// BuilderOpts used by Builder to construct and validate a RuntimeConfig.
+type BuilderOpts struct {
 	// Config contains the command line arguments that can also be set
 	// in a config file.
 	Config Config
@@ -18,21 +18,18 @@ type Flags struct {
 
 	// ConfigFormat forces all config files to be interpreted as this
 	// format independent of their extension.
-	ConfigFormat *string
+	ConfigFormat string
 
-	// HCL contains an arbitrary config in hcl format.
 	// DevMode indicates whether the agent should be started in development
 	// mode. This cannot be configured in a config file.
 	DevMode *bool
 
+	// HCL contains an arbitrary config in hcl format.
 	HCL []string
-
-	// Args contains the remaining unparsed flags.
-	Args []string
 }
 
 // AddFlags adds the command line flags for the agent.
-func AddFlags(fs *flag.FlagSet, f *Flags) {
+func AddFlags(fs *flag.FlagSet, f *BuilderOpts) {
 	add := func(p interface{}, name, help string) {
 		switch x := p.(type) {
 		case **bool:
@@ -63,7 +60,7 @@ func AddFlags(fs *flag.FlagSet, f *Flags) {
 	add(&f.Config.CheckOutputMaxSize, "check_output_max_size", "Sets the maximum output size for checks on this agent")
 	add(&f.ConfigFiles, "config-dir", "Path to a directory to read configuration files from. This will read every file ending in '.json' as configuration in this directory in alphabetical order. Can be specified multiple times.")
 	add(&f.ConfigFiles, "config-file", "Path to a file in JSON or HCL format with a matching file extension. Can be specified multiple times.")
-	add(&f.ConfigFormat, "config-format", "Config files are in this format irrespective of their extension. Must be 'hcl' or 'json'")
+	fs.StringVar(&f.ConfigFormat, "config-format", "", "Config files are in this format irrespective of their extension. Must be 'hcl' or 'json'")
 	add(&f.Config.DataDir, "data-dir", "Path to a data directory to store agent state.")
 	add(&f.Config.Datacenter, "datacenter", "Datacenter of the agent.")
 	add(&f.Config.DefaultQueryTime, "default-query-time", "the amount of time a blocking query will wait before Consul will force a response. This value can be overridden by the 'wait' query parameter.")
@@ -105,6 +102,8 @@ func AddFlags(fs *flag.FlagSet, f *Flags) {
 	add(&f.Config.RetryJoinWAN, "retry-join-wan", "Address of an agent to join -wan at start time with retries enabled. Can be specified multiple times.")
 	add(&f.Config.RetryJoinMaxAttemptsLAN, "retry-max", "Maximum number of join attempts. Defaults to 0, which will retry indefinitely.")
 	add(&f.Config.RetryJoinMaxAttemptsWAN, "retry-max-wan", "Maximum number of join -wan attempts. Defaults to 0, which will retry indefinitely.")
+	add(&f.Config.SerfAllowedCIDRsLAN, "serf-lan-allowed-cidrs", "Networks (eg: 192.168.1.0/24) allowed for Serf LAN. Can be specified multiple times.")
+	add(&f.Config.SerfAllowedCIDRsWAN, "serf-wan-allowed-cidrs", "Networks (eg: 192.168.1.0/24) allowed for Serf WAN (other datacenters). Can be specified multiple times.")
 	add(&f.Config.SerfBindAddrLAN, "serf-lan-bind", "Address to bind Serf LAN listeners to.")
 	add(&f.Config.Ports.SerfLAN, "serf-lan-port", "Sets the Serf LAN port to listen on.")
 	add(&f.Config.SegmentName, "segment", "(Enterprise-only) Sets the network segment to join.")
@@ -112,8 +111,8 @@ func AddFlags(fs *flag.FlagSet, f *Flags) {
 	add(&f.Config.Ports.SerfWAN, "serf-wan-port", "Sets the Serf WAN port to listen on.")
 	add(&f.Config.ServerMode, "server", "Switches agent to server mode.")
 	add(&f.Config.EnableSyslog, "syslog", "Enables logging to syslog.")
-	add(&f.Config.UI, "ui", "Enables the built-in static web UI server.")
-	add(&f.Config.UIContentPath, "ui-content-path", "Sets the external UI path to a string. Defaults to: /ui/ ")
-	add(&f.Config.UIDir, "ui-dir", "Path to directory containing the web UI resources.")
+	add(&f.Config.UIConfig.Enabled, "ui", "Enables the built-in static web UI server.")
+	add(&f.Config.UIConfig.ContentPath, "ui-content-path", "Sets the external UI path to a string. Defaults to: /ui/ ")
+	add(&f.Config.UIConfig.Dir, "ui-dir", "Path to directory containing the web UI resources.")
 	add(&f.HCL, "hcl", "hcl config fragment. Can be specified multiple times.")
 }

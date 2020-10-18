@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -17,21 +18,6 @@ import (
 	"time"
 
 	metrics "github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/acl"
-	ca "github.com/hashicorp/consul/agent/connect/ca"
-	"github.com/hashicorp/consul/agent/consul/authmethod"
-	"github.com/hashicorp/consul/agent/consul/autopilot"
-	"github.com/hashicorp/consul/agent/consul/fsm"
-	"github.com/hashicorp/consul/agent/consul/state"
-	"github.com/hashicorp/consul/agent/metadata"
-	"github.com/hashicorp/consul/agent/pool"
-	"github.com/hashicorp/consul/agent/router"
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/tlsutil"
-	"github.com/hashicorp/consul/types"
 	connlimit "github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -40,12 +26,36 @@ import (
 	raftboltdb "github.com/hashicorp/raft-boltdb"
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/time/rate"
+	"google.golang.org/grpc"
+
+	"github.com/hashicorp/consul/acl"
+	ca "github.com/hashicorp/consul/agent/connect/ca"
+	"github.com/hashicorp/consul/agent/consul/authmethod"
+	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
+	"github.com/hashicorp/consul/agent/consul/autopilot"
+	"github.com/hashicorp/consul/agent/consul/fsm"
+	"github.com/hashicorp/consul/agent/consul/state"
+	"github.com/hashicorp/consul/agent/consul/usagemetrics"
+	agentgrpc "github.com/hashicorp/consul/agent/grpc"
+	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/consul/agent/pool"
+	"github.com/hashicorp/consul/agent/router"
+	"github.com/hashicorp/consul/agent/rpc/subscribe"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
+	"github.com/hashicorp/consul/tlsutil"
+	"github.com/hashicorp/consul/types"
 )
 
 // These are the protocol versions that Consul can _understand_. These are
 // Consul-level protocol versions, that are used to configure the Serf
 // protocol versions.
 const (
+	DefaultRPCProtocol = 2
+
 	ProtocolVersionMin uint8 = 2
 
 	// Version 3 added support for network coordinates but we kept the
@@ -63,14 +73,6 @@ const (
 	serfWANSnapshot   = "serf/remote.snapshot"
 	raftState         = "raft/"
 	snapshotsRetained = 2
-
-	// serverRPCCache controls how long we keep an idle connection
-	// open to a server
-	serverRPCCache = 2 * time.Minute
-
-	// serverMaxStreams controls how many idle streams we keep
-	// open to a server
-	serverMaxStreams = 64
 
 	// raftLogCacheSize is the maximum number of logs to cache in-memory.
 	// This is used to reduce disk I/O for the recently committed entries.
@@ -102,9 +104,9 @@ const (
 	federationStateReplicationRoutineName = "federation state replication"
 	federationStateAntiEntropyRoutineName = "federation state anti-entropy"
 	federationStatePruningRoutineName     = "federation state pruning"
-	intentionReplicationRoutineName       = "intention replication"
+	intentionMigrationRoutineName         = "intention config entry migration"
 	secondaryCARootWatchRoutineName       = "secondary CA roots watch"
-	secondaryCertRenewWatchRoutineName    = "secondary cert renew watch"
+	intermediateCertRenewWatchRoutineName = "intermediate cert renew watch"
 )
 
 var (
@@ -150,6 +152,9 @@ type Server struct {
 	caProviderRoot *structs.CARoot
 	caProviderLock sync.RWMutex
 
+	// rate limiter to use when signing leaf certificates
+	caLeafLimiter connectSignRateLimiter
+
 	// Consul configuration
 	config *Config
 
@@ -160,6 +165,12 @@ type Server struct {
 	// federationStateReplicator is used to manage the leaders replication routines for
 	// federation states
 	federationStateReplicator *Replicator
+
+	// dcSupportsFederationStates is used to determine whether we can
+	// replicate federation states or not. All servers in the local
+	// DC must be on a version of Consul supporting federation states
+	// before this will get enabled.
+	dcSupportsFederationStates int32
 
 	// tokens holds ACL tokens initially from the configuration, but can
 	// be updated at runtime, so should always be used instead of going to
@@ -225,8 +236,9 @@ type Server struct {
 	rpcConnLimiter connlimit.Limiter
 
 	// Listener is used to listen for incoming connections
-	Listener  net.Listener
-	rpcServer *rpc.Server
+	Listener    net.Listener
+	grpcHandler connHandler
+	rpcServer   *rpc.Server
 
 	// insecureRPCServer is a RPC server that is configure with
 	// IncomingInsecureRPCConfig to allow clients to call AutoEncrypt.Sign
@@ -293,6 +305,12 @@ type Server struct {
 	actingSecondaryCA   bool
 	actingSecondaryLock sync.RWMutex
 
+	// dcSupportsIntentionsAsConfigEntries is used to determine whether we can
+	// migrate old intentions into service-intentions config entries. All
+	// servers in the local DC must be on a version of Consul supporting
+	// service-intentions before this will get enabled.
+	dcSupportsIntentionsAsConfigEntries int32
+
 	// Manager to handle starting/stopping go routines when establishing/revoking raft leadership
 	leaderRoutineManager *LeaderRoutineManager
 
@@ -300,44 +318,24 @@ type Server struct {
 	EnterpriseServer
 }
 
-// NewServer is only used to help setting up a server for testing. Normal code
-// exercises NewServerLogger.
-func NewServer(config *Config) (*Server, error) {
-	c, err := tlsutil.NewConfigurator(config.ToTLSUtilConfig(), nil)
-	if err != nil {
-		return nil, err
-	}
-	return NewServerLogger(config, nil, new(token.Store), c)
+type connHandler interface {
+	Run() error
+	Handle(conn net.Conn)
+	Shutdown() error
 }
 
-// NewServerLogger is used to construct a new Consul server from the
-// configuration, potentially returning an error
-func NewServerLogger(config *Config, logger hclog.InterceptLogger, tokens *token.Store, tlsConfigurator *tlsutil.Configurator) (*Server, error) {
-	// Check the protocol version.
+// NewServer is used to construct a new Consul server from the configuration
+// and extra options, potentially returning an error.
+func NewServer(config *Config, flat Deps) (*Server, error) {
+	logger := flat.Logger
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
 	}
-
-	// Check for a data directory.
 	if config.DataDir == "" && !config.DevMode {
 		return nil, fmt.Errorf("Config must provide a DataDir")
 	}
-
-	// Sanity check the ACLs.
 	if err := config.CheckACL(); err != nil {
 		return nil, err
-	}
-
-	// Ensure we have a log output and create a logger.
-	if config.LogOutput == nil {
-		config.LogOutput = os.Stderr
-	}
-
-	if logger == nil {
-		logger = hclog.NewInterceptLogger(&hclog.LoggerOptions{
-			Level:  hclog.Debug,
-			Output: config.LogOutput,
-		})
 	}
 
 	// Check if TLS is enabled
@@ -367,34 +365,24 @@ func NewServerLogger(config *Config, logger hclog.InterceptLogger, tokens *token
 	// Create the shutdown channel - this is closed but never written to.
 	shutdownCh := make(chan struct{})
 
-	connPool := &pool.ConnPool{
-		Server:          true,
-		SrcAddr:         config.RPCSrcAddr,
-		LogOutput:       config.LogOutput,
-		MaxTime:         serverRPCCache,
-		MaxStreams:      serverMaxStreams,
-		TLSConfigurator: tlsConfigurator,
-		ForceTLS:        config.VerifyOutgoing,
-		Datacenter:      config.Datacenter,
-	}
-
-	serverLogger := logger.NamedIntercept(logging.ConsulServer)
+	serverLogger := flat.Logger.NamedIntercept(logging.ConsulServer)
 	loggers := newLoggerStore(serverLogger)
+
 	// Create server.
 	s := &Server{
 		config:                  config,
-		tokens:                  tokens,
-		connPool:                connPool,
+		tokens:                  flat.Tokens,
+		connPool:                flat.ConnPool,
 		eventChLAN:              make(chan serf.Event, serfEventChSize),
 		eventChWAN:              make(chan serf.Event, serfEventChSize),
 		logger:                  serverLogger,
 		loggers:                 loggers,
 		leaveCh:                 make(chan struct{}),
 		reconcileCh:             make(chan serf.Member, reconcileChSize),
-		router:                  router.NewRouter(serverLogger, config.Datacenter),
+		router:                  flat.Router,
 		rpcServer:               rpc.NewServer(),
 		insecureRPCServer:       rpc.NewServer(),
-		tlsConfigurator:         tlsConfigurator,
+		tlsConfigurator:         flat.TLSConfigurator,
 		reassertLeaderCh:        make(chan chan error),
 		segmentLAN:              make(map[string]*serf.Serf, len(config.Segments)),
 		sessionTimers:           NewSessionTimers(),
@@ -439,12 +427,16 @@ func NewServerLogger(config *Config, logger hclog.InterceptLogger, tokens *token
 	federationStateReplicatorConfig := ReplicatorConfig{
 		Name: logging.FederationState,
 		Delegate: &IndexReplicator{
-			Delegate: &FederationStateReplicator{srv: s},
-			Logger:   s.logger,
+			Delegate: &FederationStateReplicator{
+				srv:            s,
+				gatewayLocator: s.gatewayLocator,
+			},
+			Logger: s.loggers.Named(logging.Replication).Named(logging.FederationState),
 		},
-		Rate:   s.config.FederationStateReplicationRate,
-		Burst:  s.config.FederationStateReplicationBurst,
-		Logger: logger,
+		Rate:             s.config.FederationStateReplicationRate,
+		Burst:            s.config.FederationStateReplicationBurst,
+		Logger:           s.logger,
+		SuppressErrorLog: isErrFederationStatesNotSupported,
 	}
 	s.federationStateReplicator, err = NewReplicator(&federationStateReplicatorConfig)
 	if err != nil {
@@ -490,12 +482,12 @@ func NewServerLogger(config *Config, logger hclog.InterceptLogger, tokens *token
 		return nil, fmt.Errorf("Failed to start Raft: %v", err)
 	}
 
-	if s.config.ConnectEnabled && s.config.AutoEncryptAllowTLS {
-		go s.trackAutoEncryptCARoots()
+	if s.config.ConnectEnabled && (s.config.AutoEncryptAllowTLS || s.config.AutoConfigAuthzEnabled) {
+		go s.connectCARootsMonitor(&lib.StopChannelContext{StopCh: s.shutdownCh})
 	}
 
 	if s.gatewayLocator != nil {
-		go s.gatewayLocator.Run(s.shutdownCh)
+		go s.gatewayLocator.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 	}
 
 	// Serf and dynamic bind ports
@@ -544,6 +536,11 @@ func NewServerLogger(config *Config, logger hclog.InterceptLogger, tokens *token
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start LAN Serf: %v", err)
 	}
+
+	if err := s.router.AddArea(types.AreaLAN, s.serfLAN, s.connPool); err != nil {
+		s.Shutdown()
+		return nil, fmt.Errorf("Failed to add LAN serf route: %w", err)
+	}
 	go s.lanEventHandler()
 
 	// Start the flooders after the LAN event handler is wired up.
@@ -551,20 +548,24 @@ func NewServerLogger(config *Config, logger hclog.InterceptLogger, tokens *token
 
 	// Add a "static route" to the WAN Serf and hook it up to Serf events.
 	if s.serfWAN != nil {
-		if err := s.router.AddArea(types.AreaWAN, s.serfWAN, s.connPool, s.config.VerifyOutgoing); err != nil {
+		if err := s.router.AddArea(types.AreaWAN, s.serfWAN, s.connPool); err != nil {
 			s.Shutdown()
 			return nil, fmt.Errorf("Failed to add WAN serf route: %v", err)
 		}
 		go router.HandleSerfEvents(s.logger, s.router, types.AreaWAN, s.serfWAN.ShutdownCh(), s.eventChWAN)
 
 		// Fire up the LAN <-> WAN join flooder.
-		portFn := func(s *metadata.Server) (int, bool) {
-			if s.WanJoinPort > 0 {
-				return s.WanJoinPort, true
+		addrFn := func(s *metadata.Server) (string, error) {
+			if s.WanJoinPort == 0 {
+				return "", fmt.Errorf("no wan join  port for server: %s", s.Addr.String())
 			}
-			return 0, false
+			addr, _, err := net.SplitHostPort(s.Addr.String())
+			if err != nil {
+				return "", err
+			}
+			return fmt.Sprintf("%s:%d", addr, s.WanJoinPort), nil
 		}
-		go s.Flood(nil, portFn, s.serfWAN)
+		go s.Flood(addrFn, s.serfWAN)
 	}
 
 	// Start enterprise specific functionality
@@ -572,6 +573,21 @@ func NewServerLogger(config *Config, logger hclog.InterceptLogger, tokens *token
 		s.Shutdown()
 		return nil, err
 	}
+
+	reporter, err := usagemetrics.NewUsageMetricsReporter(
+		new(usagemetrics.Config).
+			WithStateProvider(s.fsm).
+			WithLogger(s.logger).
+			WithDatacenter(s.config.Datacenter).
+			WithReportingInterval(s.config.MetricsReportingInterval),
+	)
+	if err != nil {
+		s.Shutdown()
+		return nil, fmt.Errorf("Failed to start usage metrics reporter: %v", err)
+	}
+	go reporter.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
+
+	s.grpcHandler = newGRPCHandlerFromConfig(flat, config, s)
 
 	// Initialize Autopilot. This must happen before starting leadership monitoring
 	// as establishing leadership could attempt to use autopilot and cause a panic.
@@ -582,6 +598,11 @@ func NewServerLogger(config *Config, logger hclog.InterceptLogger, tokens *token
 	go s.monitorLeadership()
 
 	// Start listening for RPC requests.
+	go func() {
+		if err := s.grpcHandler.Run(); err != nil {
+			s.logger.Error("gRPC server failed", "error", err)
+		}
+	}()
 	go s.listen(s.Listener)
 
 	// Start listeners for any segments with separate RPC listeners.
@@ -595,14 +616,21 @@ func NewServerLogger(config *Config, logger hclog.InterceptLogger, tokens *token
 	return s, nil
 }
 
-func (s *Server) trackAutoEncryptCARoots() {
+func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler {
+	if !config.RPCConfig.EnableStreaming {
+		return agentgrpc.NoOpHandler{Logger: deps.Logger}
+	}
+
+	register := func(srv *grpc.Server) {
+		pbsubscribe.RegisterStateChangeSubscriptionServer(srv, subscribe.NewServer(
+			&subscribeBackend{srv: s, connPool: deps.GRPCConnPool},
+			deps.Logger.Named("grpc-api.subscription")))
+	}
+	return agentgrpc.NewHandler(config.RPCAddr, register)
+}
+
+func (s *Server) connectCARootsMonitor(ctx context.Context) {
 	for {
-		select {
-		case <-s.shutdownCh:
-			s.logger.Debug("shutting down trackAutoEncryptCARoots because shutdown")
-			return
-		default:
-		}
 		ws := memdb.NewWatchSet()
 		state := s.fsm.State()
 		ws.Add(state.AbandonCh())
@@ -615,10 +643,14 @@ func (s *Server) trackAutoEncryptCARoots() {
 		for _, ca := range cas {
 			caPems = append(caPems, ca.RootCert)
 		}
-		if err := s.tlsConfigurator.UpdateAutoEncryptCA(caPems); err != nil {
+		if err := s.tlsConfigurator.UpdateAutoTLSCA(caPems); err != nil {
 			s.logger.Error("Failed to update AutoEncrypt CAPems", "error", err)
 		}
-		ws.Watch(nil)
+
+		if err := ws.WatchCtx(ctx); err == context.Canceled {
+			s.logger.Info("shutting down Connect CA roots monitor")
+			return
+		}
 	}
 }
 
@@ -699,7 +731,7 @@ func (s *Server) setupRaft() error {
 		log = cacheStore
 
 		// Create the snapshot store.
-		snapshots, err := raft.NewFileSnapshotStore(path, snapshotsRetained, s.config.LogOutput)
+		snapshots, err := raft.NewFileSnapshotStoreWithLogger(path, snapshotsRetained, s.logger.Named("snapshot"))
 		if err != nil {
 			return err
 		}
@@ -766,7 +798,7 @@ func (s *Server) setupRaft() error {
 		if !hasState {
 			configuration := raft.Configuration{
 				Servers: []raft.Server{
-					raft.Server{
+					{
 						ID:      s.config.RaftConfig.LocalID,
 						Address: trans.LocalAddr(),
 					},
@@ -819,6 +851,27 @@ func (s *Server) setupRPC() error {
 	// been configured.
 	s.insecureRPCServer.Register(&AutoEncrypt{srv: s})
 
+	// Setup the AutoConfig JWT Authorizer
+	var authz AutoConfigAuthorizer
+	if s.config.AutoConfigAuthzEnabled {
+		// create the auto config authorizer from the JWT authmethod
+		validator, err := ssoauth.NewValidator(s.logger, &s.config.AutoConfigAuthzAuthMethod)
+		if err != nil {
+			return fmt.Errorf("Failed to initialize JWT Auto Config Authorizer: %w", err)
+		}
+
+		authz = &jwtAuthorizer{
+			validator:       validator,
+			allowReuse:      s.config.AutoConfigAuthzAllowReuse,
+			claimAssertions: s.config.AutoConfigAuthzClaimAssertions,
+		}
+	} else {
+		// This authorizer always returns that the endpoint is disabled
+		authz = &disabledAuthorizer{}
+	}
+	// now register with the insecure RPC server
+	s.insecureRPCServer.Register(NewAutoConfig(s.config, s.tlsConfigurator, s, authz))
+
 	ln, err := net.ListenTCP("tcp", s.config.RPCAddr)
 	if err != nil {
 		return err
@@ -839,23 +892,16 @@ func (s *Server) setupRPC() error {
 		return fmt.Errorf("RPC advertise address is not advertisable: %v", s.config.RPCAdvertise)
 	}
 
+	// TODO (hans) switch NewRaftLayer to tlsConfigurator
+
 	// Provide a DC specific wrapper. Raft replication is only
 	// ever done in the same datacenter, so we can provide it as a constant.
 	wrapper := tlsutil.SpecificDC(s.config.Datacenter, s.tlsConfigurator.OutgoingRPCWrapper())
 
 	// Define a callback for determining whether to wrap a connection with TLS
 	tlsFunc := func(address raft.ServerAddress) bool {
-		if s.config.VerifyOutgoing {
-			return true
-		}
-
-		server := s.serverLookup.Server(address)
-
-		if server == nil {
-			return false
-		}
-
-		return server.UseTLS
+		// raft only talks to its own datacenter
+		return s.tlsConfigurator.UseTLS(s.config.Datacenter)
 	}
 	s.raftLayer = NewRaftLayer(s.config.RPCSrcAddr, s.config.RPCAdvertise, wrapper, tlsFunc)
 	return nil
@@ -883,6 +929,10 @@ func (s *Server) Shutdown() error {
 		s.serfLAN.Shutdown()
 	}
 
+	for _, segment := range s.segmentLAN {
+		segment.Shutdown()
+	}
+
 	if s.serfWAN != nil {
 		s.serfWAN.Shutdown()
 		if err := s.router.RemoveArea(types.AreaWAN); err != nil {
@@ -907,13 +957,23 @@ func (s *Server) Shutdown() error {
 		s.Listener.Close()
 	}
 
+	if s.grpcHandler != nil {
+		if err := s.grpcHandler.Shutdown(); err != nil {
+			s.logger.Warn("failed to stop gRPC server", "error", err)
+		}
+	}
+
 	// Close the connection pool
-	s.connPool.Shutdown()
+	if s.connPool != nil {
+		s.connPool.Shutdown()
+	}
 
-	s.acls.Close()
+	if s.acls != nil {
+		s.acls.Close()
+	}
 
-	if s.config.NotifyShutdown != nil {
-		s.config.NotifyShutdown()
+	if s.fsm != nil {
+		s.fsm.State().Abandon()
 	}
 
 	return nil
@@ -1291,7 +1351,7 @@ func (s *Server) Stats() map[string]map[string]string {
 	}
 	numKnownDCs := len(s.router.GetDatacenters())
 	stats := map[string]map[string]string{
-		"consul": map[string]string{
+		"consul": {
 			"server":            "true",
 			"leader":            fmt.Sprintf("%v", s.IsLeader()),
 			"leader_addr":       string(s.raft.Leader()),
@@ -1303,7 +1363,7 @@ func (s *Server) Stats() map[string]map[string]string {
 		"runtime":  runtimeStats(),
 	}
 
-	if s.ACLsEnabled() {
+	if s.config.ACLsEnabled {
 		if s.UseLegacyACLs() {
 			stats["consul"]["acl"] = "legacy"
 		} else {
@@ -1361,6 +1421,7 @@ func (s *Server) ReloadConfig(config *Config) error {
 		// this will error if we lose leadership while bootstrapping here.
 		return s.bootstrapConfigEntries(config.ConfigEntryBootstrap)
 	}
+
 	return nil
 }
 
@@ -1379,8 +1440,70 @@ func (s *Server) isReadyForConsistentReads() bool {
 	return atomic.LoadInt32(&s.readyForConsistentReads) == 1
 }
 
-func (s *Server) intentionReplicationEnabled() bool {
-	return s.config.ConnectEnabled && s.config.Datacenter != s.config.PrimaryDatacenter
+// CreateACLToken will create an ACL token from the given template
+func (s *Server) CreateACLToken(template *structs.ACLToken) (*structs.ACLToken, error) {
+	// we have to require local tokens or else it would require having these servers use a token with acl:write to make a
+	// token create RPC to the servers in the primary DC.
+	if !s.LocalTokensEnabled() {
+		return nil, fmt.Errorf("Agent Auto Configuration requires local token usage to be enabled in this datacenter: %s", s.config.Datacenter)
+	}
+
+	newToken := *template
+
+	// generate the accessor id
+	if newToken.AccessorID == "" {
+		accessor, err := lib.GenerateUUID(s.checkTokenUUID)
+		if err != nil {
+			return nil, err
+		}
+
+		newToken.AccessorID = accessor
+	}
+
+	// generate the secret id
+	if newToken.SecretID == "" {
+		secret, err := lib.GenerateUUID(s.checkTokenUUID)
+		if err != nil {
+			return nil, err
+		}
+
+		newToken.SecretID = secret
+	}
+
+	newToken.CreateTime = time.Now()
+
+	req := structs.ACLTokenBatchSetRequest{
+		Tokens: structs.ACLTokens{&newToken},
+		CAS:    false,
+	}
+
+	// perform the request to mint the new token
+	if _, err := s.raftApplyMsgpack(structs.ACLTokenSetRequestType, &req); err != nil {
+		return nil, err
+	}
+
+	// return the full token definition from the FSM
+	_, token, err := s.fsm.State().ACLTokenGetByAccessor(nil, newToken.AccessorID, &newToken.EnterpriseMeta)
+	return token, err
+}
+
+// DatacenterJoinAddresses will return all the strings suitable for usage in
+// retry join operations to connect to the the LAN or LAN segment gossip pool.
+func (s *Server) DatacenterJoinAddresses(segment string) ([]string, error) {
+	members, err := s.LANSegmentMembers(segment)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to retrieve members for segment %s - %w", segment, err)
+	}
+
+	var joinAddrs []string
+	for _, m := range members {
+		if ok, _ := metadata.IsConsulServer(m); ok {
+			serfAddr := net.TCPAddr{IP: m.Addr, Port: int(m.Port)}
+			joinAddrs = append(joinAddrs, serfAddr.String())
+		}
+	}
+
+	return joinAddrs, nil
 }
 
 // peersInfoContent is used to help operators understand what happened to the

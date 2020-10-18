@@ -7,34 +7,16 @@ export default Mixin.create(WithBlockingActions, {
   settings: service('settings'),
   actions: {
     use: function(item) {
-      return this.feedback.execute(() => {
-        // old style legacy ACLs don't have AccessorIDs or Namespaces
-        // therefore set AccessorID to null, this way the frontend knows
-        // to use legacy ACLs
-        // set the Namespace to just use default
-        return this.settings
-          .persist({
-            token: {
-              Namespace: 'default',
-              AccessorID: null,
-              SecretID: get(item, 'ID'),
-            },
-          })
-          .then(() => {
-            return this.transitionTo('dc.services');
-          });
-      }, 'use');
+      return this.settings.persist({
+        token: {
+          Namespace: 'default',
+          AccessorID: null,
+          SecretID: get(item, 'ID'),
+        },
+      });
     },
-    // TODO: This is also used in tokens, probably an opportunity to dry this out
     logout: function(item) {
-      return this.feedback.execute(() => {
-        return this.settings.delete('token').then(() => {
-          // in this case we don't do the same as delete as we want to go to the new
-          // dc.acls.tokens page. If we get there via the dc.acls redirect/rewrite
-          // then we lose the flash message
-          return this.transitionTo('dc.acls.tokens');
-        });
-      }, 'logout');
+      return this.settings.delete('token');
     },
     clone: function(item) {
       return this.feedback.execute(() => {

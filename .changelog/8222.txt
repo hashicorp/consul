@@ -1,0 +1,3 @@
+```release-note:bug
+xds: version sniff envoy and switch regular expressions from 'regex' to 'safe_regex' on newer envoy versions.
+```

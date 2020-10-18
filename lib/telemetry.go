@@ -19,6 +19,10 @@ import (
 // the shared InitTelemetry functions below, but we can't import agent/config
 // due to a dependency cycle.
 type TelemetryConfig struct {
+	// Disable may be set to true to have InitTelemetry to skip initialization
+	// and return a nil MetricsSink.
+	Disable bool
+
 	// Circonus*: see https://github.com/circonus-labs/circonus-gometrics
 	// for more details on the various configuration options.
 	// Valid configuration combinations:
@@ -127,6 +131,11 @@ type TelemetryConfig struct {
 	//
 	// hcl: telemetry { circonus_submission_url = string }
 	CirconusSubmissionURL string `json:"circonus_submission_url,omitempty" mapstructure:"circonus_submission_url"`
+
+	// DisableCompatOneNine is a flag to stop emitting metrics that have been deprecated in version 1.9.
+	//
+	// hcl: telemetry { disable_compat_1.9 = (true|false) }
+	DisableCompatOneNine bool `json:"disable_compat_1.9,omitempty" mapstructure:"disable_compat_1.9"`
 
 	// DisableHostname will disable hostname prefixing for all metrics.
 	//
@@ -326,6 +335,9 @@ func circonusSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, err
 // InitTelemetry configures go-metrics based on map of telemetry config
 // values as returned by Runtimecfg.Config().
 func InitTelemetry(cfg TelemetryConfig) (*metrics.InmemSink, error) {
+	if cfg.Disable {
+		return nil, nil
+	}
 	// Setup telemetry
 	// Aggregate on 10 second intervals for 1 minute. Expose the
 	// metrics over stderr when there is a SIGUSR1 received.
@@ -338,7 +350,7 @@ func InitTelemetry(cfg TelemetryConfig) (*metrics.InmemSink, error) {
 	metricsConf.BlockedPrefixes = cfg.BlockedPrefixes
 
 	var sinks metrics.FanoutSink
-	addSink := func(name string, fn func(TelemetryConfig, string) (metrics.MetricSink, error)) error {
+	addSink := func(fn func(TelemetryConfig, string) (metrics.MetricSink, error)) error {
 		s, err := fn(cfg, metricsConf.HostName)
 		if err != nil {
 			return err
@@ -349,19 +361,19 @@ func InitTelemetry(cfg TelemetryConfig) (*metrics.InmemSink, error) {
 		return nil
 	}
 
-	if err := addSink("statsite", statsiteSink); err != nil {
+	if err := addSink(statsiteSink); err != nil {
 		return nil, err
 	}
-	if err := addSink("statsd", statsdSink); err != nil {
+	if err := addSink(statsdSink); err != nil {
 		return nil, err
 	}
-	if err := addSink("dogstatd", dogstatdSink); err != nil {
+	if err := addSink(dogstatdSink); err != nil {
 		return nil, err
 	}
-	if err := addSink("circonus", circonusSink); err != nil {
+	if err := addSink(circonusSink); err != nil {
 		return nil, err
 	}
-	if err := addSink("prometheus", prometheusSink); err != nil {
+	if err := addSink(prometheusSink); err != nil {
 		return nil, err
 	}
 

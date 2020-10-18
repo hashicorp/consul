@@ -1,5 +1,8 @@
 %freetext-filter {
   cursor: pointer;
+  border: $decor-border-100;
+  border-color: $gray-200;
+  border-radius: $decor-radius-100;
 }
 %freetext-filter input {
   -webkit-appearance: none;

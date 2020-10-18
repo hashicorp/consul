@@ -1,0 +1,3 @@
+```release-note:feature
+connect: all config entries pick up a meta field
+```

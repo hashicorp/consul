@@ -17,15 +17,14 @@ cat <<-EOF
 Usage: ${SCRIPT_NAME} [<options ...>] <proto filepath>
 
 Description:
-   This script will build generate the Go files from protobuf files. In addition to
-   just running the correct protoc generator it will also fixup build tags in the
+   Generate the Go files from protobuf definitions. In addition to
+   running the protoc generator it will also fixup build tags in the
    generated code.
 
 Options:
    --import-replace         Replace imports of google types with those from the gogo/protobuf repo.
    --grpc                   Enable the gRPC plugin
-
-   -h | --help                   Print this help text.
+   -h | --help              Print this help text.
 EOF
 }
 
@@ -74,23 +73,23 @@ function main {
    local gogo_proto_imp_replace="Mgoogle/protobuf/timestamp.proto=github.com/gogo/protobuf/types"
    gogo_proto_imp_replace="${gogo_proto_imp_replace},Mgoogle/protobuf/duration.proto=github.com/gogo/protobuf/types"
    gogo_proto_imp_replace="${gogo_proto_imp_replace},Mgoogle/protobuf/empty.proto=github.com/gogo/protobuf/types"
+   gogo_proto_imp_replace="${gogo_proto_imp_replace},Mgoogle/protobuf/struct.proto=github.com/gogo/protobuf/types"
    gogo_proto_imp_replace="${gogo_proto_imp_replace},Mgoogle/api/annotations.proto=github.com/gogo/googleapis/google/api"
    gogo_proto_imp_replace="${gogo_proto_imp_replace},Mgoogle/protobuf/field_mask.proto=github.com/gogo/protobuf/types"
+   gogo_proto_imp_replace="${gogo_proto_imp_replace},Mgoogle/protobuf/any.proto=github.com/gogo/protobuf/types"
 
    local proto_go_path=${proto_path%%.proto}.pb.go
    local proto_go_bin_path=${proto_path%%.proto}.pb.binary.go
    
-   local go_proto_out=""
-   local sep=""
+   local go_proto_out="paths=source_relative"
    if is_set "${grpc}"
    then
-      go_proto_out="plugins=grpc"
-      sep=","
+      go_proto_out="${go_proto_out},plugins=grpc"
    fi
 
    if is_set "${imp_replace}"
    then
-      go_proto_out="${go_proto_out}${sep}${gogo_proto_imp_replace}"
+      go_proto_out="${go_proto_out},${gogo_proto_imp_replace}"
    fi
 
    if test -n "${go_proto_out}"
@@ -98,15 +97,19 @@ function main {
       go_proto_out="${go_proto_out}:"
    fi
 
+   # How we run protoc probably needs some documentation.
+   #
+   # This is the path to where 
+   #  -I="${gogo_proto_path}/protobuf" \
    local -i ret=0
    status_stage "Generating ${proto_path} into ${proto_go_path} and ${proto_go_bin_path}"
    debug_run protoc \
-      -I="$(dirname ${proto_path})" \
       -I="${gogo_proto_path}/protobuf" \
       -I="${gogo_proto_path}" \
       -I="${gogo_proto_mod_path}" \
-      --gofast_out="${go_proto_out}$(dirname ${proto_path})" \
-      --go-binary_out="$(dirname ${proto_path})" \
+      -I="${SOURCE_DIR}" \
+      --gofast_out="${go_proto_out}${SOURCE_DIR}" \
+      --go-binary_out="${SOURCE_DIR}" \
       "${proto_path}"
    if test $? -ne 0
    then
@@ -114,7 +117,7 @@ function main {
       return 1
    fi
 
-   BUILD_TAGS=$(sed -e '/^[:space:]*$/,$d' < "${proto_path}" | grep '// +build')
+   BUILD_TAGS=$(sed -e '/^[[:space:]]*$/,$d' < "${proto_path}" | grep '// +build')
    if test -n "${BUILD_TAGS}"
    then
       echo -e "${BUILD_TAGS}\n" >> "${proto_go_path}.new"

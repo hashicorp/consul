@@ -1,3 +1,4 @@
+const not = `(n't| not)?`;
 export default function(scenario, assert, lastNthRequest) {
   // lastNthRequest should return a
   // {
@@ -21,12 +22,17 @@ export default function(scenario, assert, lastNthRequest) {
       );
       assert.equal(diff.size, 0, `Expected requests "${[...diff].join(', ')}"`);
     })
-    .then('a $method request was made to "$endpoint"', function(method, url) {
+    .then(`a $method request was${not} made to "$endpoint"`, function(method, negative, url) {
+      const isNegative = typeof negative !== 'undefined';
       const requests = lastNthRequest(null, method);
-      const request = requests.find(function(item) {
+      const request = requests.some(function(item) {
         return method === item.method && url === item.url;
       });
-      assert.ok(request, `Expected a ${method} request url to ${url}`);
+      if (isNegative) {
+        assert.notOk(request, `Didn't expect a ${method} request url to ${url}`);
+      } else {
+        assert.ok(request, `Expected a ${method} request url to ${url}`);
+      }
     })
     .then('a $method request was made to "$endpoint" with no body', function(method, url) {
       const requests = lastNthRequest(null, method);

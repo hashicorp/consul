@@ -1,9 +1,10 @@
 package xds
 
 import (
-	"github.com/hashicorp/consul/agent/structs"
 	"testing"
+	"time"
 
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/require"
 )
 
@@ -244,6 +245,23 @@ func TestParseUpstreamConfig(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "passive health check map",
+			input: map[string]interface{}{
+				"passive_health_check": map[string]interface{}{
+					"interval":     "22s",
+					"max_failures": 7,
+				},
+			},
+			want: UpstreamConfig{
+				ConnectTimeoutMs: 5000,
+				Protocol:         "tcp",
+				PassiveHealthCheck: PassiveHealthCheck{
+					Interval:    22 * time.Second,
+					MaxFailures: 7,
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -290,6 +308,7 @@ func TestParseGatewayConfig(t *testing.T) {
 				"envoy_gateway_bind_tagged_addresses": true,
 				"envoy_gateway_bind_addresses":        map[string]structs.ServiceAddress{"foo": {Address: "127.0.0.1", Port: 80}},
 				"envoy_gateway_no_default_bind":       true,
+				"envoy_dns_discovery_type":            "StRiCt_DnS",
 				"connect_timeout_ms":                  10,
 			},
 			want: GatewayConfig{
@@ -297,6 +316,7 @@ func TestParseGatewayConfig(t *testing.T) {
 				BindTaggedAddresses: true,
 				NoDefaultBind:       true,
 				BindAddresses:       map[string]structs.ServiceAddress{"foo": {Address: "127.0.0.1", Port: 80}},
+				DNSDiscoveryType:    "strict_dns",
 			},
 		},
 		{

@@ -6,7 +6,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/serf"
 )
 
 var serverACLCacheConfig *structs.ACLCachesConfig = &structs.ACLCachesConfig{
@@ -86,10 +86,10 @@ func (s *Server) checkBindingRuleUUID(id string) (bool, error) {
 
 func (s *Server) updateSerfTags(key, value string) {
 	// Update the LAN serf
-	lib.UpdateSerfTag(s.serfLAN, key, value)
+	serf.UpdateTag(s.serfLAN, key, value)
 
 	if s.serfWAN != nil {
-		lib.UpdateSerfTag(s.serfWAN, key, value)
+		serf.UpdateTag(s.serfWAN, key, value)
 	}
 
 	s.updateEnterpriseSerfTags(key, value)
@@ -147,10 +147,10 @@ func (s *Server) LocalTokensEnabled() bool {
 	}
 
 	if !s.config.ACLTokenReplication || s.tokens.ReplicationToken() == "" {
+		// token replication is off so local tokens are disabled
 		return false
 	}
 
-	// token replication is off so local tokens are disabled
 	return true
 }
 
@@ -165,10 +165,6 @@ func (s *Server) ACLDatacenter(legacy bool) string {
 	// When no ACL DC is set then it is assumed that this DC
 	// is the primary DC
 	return s.config.Datacenter
-}
-
-func (s *Server) ACLsEnabled() bool {
-	return s.config.ACLsEnabled
 }
 
 // ResolveIdentityFromToken retrieves a token's full identity given its secretID.
@@ -220,6 +216,13 @@ func (s *Server) ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error
 func (s *Server) ResolveToken(token string) (acl.Authorizer, error) {
 	_, authz, err := s.ResolveTokenToIdentityAndAuthorizer(token)
 	return authz, err
+}
+
+func (s *Server) ResolveTokenToIdentity(token string) (structs.ACLIdentity, error) {
+	// not using ResolveTokenToIdentityAndAuthorizer because in this case we don't
+	// need to resolve the roles, policies and namespace but just want the identity
+	// information such as accessor id.
+	return s.acls.ResolveTokenToIdentity(token)
 }
 
 func (s *Server) ResolveTokenToIdentityAndAuthorizer(token string) (structs.ACLIdentity, acl.Authorizer, error) {

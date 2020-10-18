@@ -121,7 +121,7 @@ func (c *CheckState) CriticalFor() time.Duration {
 
 type rpc interface {
 	RPC(method string, args interface{}, reply interface{}) error
-	ResolveIdentityFromToken(secretID string) (bool, structs.ACLIdentity, error)
+	ResolveTokenToIdentity(secretID string) (structs.ACLIdentity, error)
 }
 
 // State is used to represent the node's services,
@@ -305,6 +305,8 @@ func (l *State) removeServiceLocked(id structs.ServiceID) error {
 		close(s.WatchCh)
 		s.WatchCh = nil
 	}
+
+	l.notifyIfAliased(id)
 	l.TriggerSyncChanges()
 	l.broadcastUpdateLocked()
 
@@ -378,6 +380,11 @@ func (l *State) setServiceStateLocked(s *ServiceState) {
 
 	if hasOld && old.WatchCh != nil {
 		close(old.WatchCh)
+	}
+	if !hasOld {
+		// The status of an alias check is updated if the alias service is added/removed
+		// Only try notify alias checks if service didn't already exist (!hasOld)
+		l.notifyIfAliased(key)
 	}
 
 	l.TriggerSyncChanges()
@@ -483,6 +490,15 @@ func (l *State) AddAliasCheck(checkID structs.CheckID, srcServiceID structs.Serv
 	m[checkID] = notifyCh
 
 	return nil
+}
+
+// ServiceExists return true if the given service does exists
+func (l *State) ServiceExists(serviceID structs.ServiceID) bool {
+	serviceID.EnterpriseMeta.Normalize()
+
+	l.Lock()
+	defer l.Unlock()
+	return l.services[serviceID] != nil
 }
 
 // RemoveAliasCheck removes the mapping for the alias check.
@@ -1344,7 +1360,7 @@ func (l *State) syncNodeInfo() error {
 	}
 }
 
-// notifyIfAliased will notify waiters if this is a check for an aliased service
+// notifyIfAliased will notify waiters of changes to an aliased service
 func (l *State) notifyIfAliased(serviceID structs.ServiceID) {
 	if aliases, ok := l.checkAliases[serviceID]; ok && len(aliases) > 0 {
 		for _, notifyCh := range aliases {
@@ -1364,7 +1380,7 @@ func (l *State) notifyIfAliased(serviceID structs.ServiceID) {
 // critical purposes, such as logging. Therefore we interpret all errors as empty-string
 // so we can safely log it without handling non-critical errors at the usage site.
 func (l *State) aclAccessorID(secretID string) string {
-	_, ident, err := l.Delegate.ResolveIdentityFromToken(secretID)
+	ident, err := l.Delegate.ResolveTokenToIdentity(secretID)
 	if acl.IsErrNotFound(err) {
 		return ""
 	}

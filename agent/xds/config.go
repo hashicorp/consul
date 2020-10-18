@@ -1,10 +1,14 @@
 package xds
 
 import (
-	"github.com/hashicorp/consul/lib"
 	"strings"
+	"time"
 
+	envoycluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib/decode"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -55,7 +59,22 @@ type ProxyConfig struct {
 // allows caller to choose whether and how to report the error.
 func ParseProxyConfig(m map[string]interface{}) (ProxyConfig, error) {
 	var cfg ProxyConfig
-	err := mapstructure.WeakDecode(m, &cfg)
+	decodeConf := &mapstructure.DecoderConfig{
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			decode.HookWeakDecodeFromSlice,
+			decode.HookTranslateKeys,
+		),
+		Result:           &cfg,
+		WeaklyTypedInput: true,
+	}
+	decoder, err := mapstructure.NewDecoder(decodeConf)
+	if err != nil {
+		return cfg, err
+	}
+	if err := decoder.Decode(m); err != nil {
+		return cfg, err
+	}
+
 	// Set defaults (even if error is returned)
 	if cfg.Protocol == "" {
 		cfg.Protocol = "tcp"
@@ -76,14 +95,18 @@ type GatewayConfig struct {
 	// for those addresses or where an external entity maps that IP to the Envoy
 	// (like AWS EC2 mapping a public IP to the private interface) then this
 	// cannot be used. See the BindAddresses config instead
-	BindTaggedAddresses bool `mapstructure:"envoy_gateway_bind_tagged_addresses"`
+	BindTaggedAddresses bool `mapstructure:"envoy_gateway_bind_tagged_addresses" alias:"envoy_mesh_gateway_bind_tagged_addresses"`
 
 	// BindAddresses additional bind addresses to configure listeners for
-	BindAddresses map[string]structs.ServiceAddress `mapstructure:"envoy_gateway_bind_addresses"`
+	BindAddresses map[string]structs.ServiceAddress `mapstructure:"envoy_gateway_bind_addresses" alias:"envoy_mesh_gateway_bind_addresses"`
 
 	// NoDefaultBind indicates that we should not bind to the default address of the
 	// gateway service
-	NoDefaultBind bool `mapstructure:"envoy_gateway_no_default_bind"`
+	NoDefaultBind bool `mapstructure:"envoy_gateway_no_default_bind" alias:"envoy_mesh_gateway_no_default_bind"`
+
+	// DNSDiscoveryType indicates the DNS service discovery type.
+	// See: https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/service_discovery#arch-overview-service-discovery-types
+	DNSDiscoveryType string `mapstructure:"envoy_dns_discovery_type"`
 
 	// ConnectTimeoutMs is the number of milliseconds to timeout making a new
 	// connection to this upstream. Defaults to 5000 (5 seconds) if not set.
@@ -94,19 +117,28 @@ type GatewayConfig struct {
 // error occurs during parsing, it is returned along with the default config. This
 // allows the caller to choose whether and how to report the error
 func ParseGatewayConfig(m map[string]interface{}) (GatewayConfig, error) {
-	// Fixup for deprecated mesh gateway names
-	lib.TranslateKeys(m, map[string]string{
-		"envoy_mesh_gateway_bind_tagged_addresses": "envoy_gateway_bind_tagged_addresses",
-		"envoy_mesh_gateway_bind_addresses":        "envoy_gateway_bind_addresses",
-		"envoy_mesh_gateway_no_default_bind":       "envoy_gateway_no_default_bind",
-	})
-
 	var cfg GatewayConfig
-	err := mapstructure.WeakDecode(m, &cfg)
+	d, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			decode.HookWeakDecodeFromSlice,
+			decode.HookTranslateKeys,
+		),
+		Result:           &cfg,
+		WeaklyTypedInput: true,
+	})
+	if err != nil {
+		return cfg, err
+	}
+	if err := d.Decode(m); err != nil {
+		return cfg, err
+	}
 
 	if cfg.ConnectTimeoutMs < 1 {
 		cfg.ConnectTimeoutMs = 5000
 	}
+
+	cfg.DNSDiscoveryType = strings.ToLower(cfg.DNSDiscoveryType)
+
 	return cfg, err
 }
 
@@ -160,11 +192,52 @@ type UpstreamConfig struct {
 	// Limits are the set of limits that are applied to the proxy for a specific upstream of a
 	// service instance.
 	Limits UpstreamLimits `mapstructure:"limits"`
+
+	// PassiveHealthCheck configuration
+	PassiveHealthCheck PassiveHealthCheck `mapstructure:"passive_health_check"`
+}
+
+type PassiveHealthCheck struct {
+	// Interval between health check analysis sweeps. Each sweep may remove
+	// hosts or return hosts to the pool.
+	Interval time.Duration
+	// MaxFailures is the count of consecutive failures that results in a host
+	// being removed from the pool.
+	MaxFailures uint32 `mapstructure:"max_failures"`
+}
+
+// Return an envoy.OutlierDetection populated by the values from this struct.
+// If all values are zero a default empty OutlierDetection will be returned to
+// enable outlier detection with default values.
+func (p PassiveHealthCheck) AsOutlierDetection() *envoycluster.OutlierDetection {
+	od := &envoycluster.OutlierDetection{}
+	if p.Interval != 0 {
+		od.Interval = ptypes.DurationProto(p.Interval)
+	}
+	if p.MaxFailures != 0 {
+		od.Consecutive_5Xx = &wrappers.UInt32Value{Value: p.MaxFailures}
+	}
+	return od
 }
 
 func ParseUpstreamConfigNoDefaults(m map[string]interface{}) (UpstreamConfig, error) {
 	var cfg UpstreamConfig
-	err := mapstructure.WeakDecode(m, &cfg)
+	config := &mapstructure.DecoderConfig{
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			decode.HookWeakDecodeFromSlice,
+			decode.HookTranslateKeys,
+			mapstructure.StringToTimeDurationHookFunc(),
+		),
+		Result:           &cfg,
+		WeaklyTypedInput: true,
+	}
+
+	decoder, err := mapstructure.NewDecoder(config)
+	if err != nil {
+		return cfg, err
+	}
+
+	err = decoder.Decode(m)
 	return cfg, err
 }
 

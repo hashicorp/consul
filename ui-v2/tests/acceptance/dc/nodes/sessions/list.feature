@@ -26,3 +26,26 @@ Feature: dc / nodes / sessions / list: List Lock Sessions
     - 30s
     - 60m
     ---
+  Scenario: Given 2 session with LockDelay in milliseconds
+    Given 1 datacenter model with the value "dc1"
+    And 1 node model from yaml
+    ---
+    ID: node-0
+    ---
+    And 2 session models from yaml
+    ---
+    - LockDelay: 120000
+    - LockDelay: 18000000
+    ---
+    When I visit the node page for yaml
+    ---
+      dc: dc1
+      node: node-0
+    ---
+    And I click lockSessions on the tabs
+    Then I see lockSessionsIsSelected on the tabs
+    Then I see delay on the sessions like yaml
+    ---
+    - 2m
+    - 5h
+    ---

@@ -1,0 +1,70 @@
+<div
+  ...attributes
+  class="consul-intention-permission-header-form"
+>
+  <FormGroup
+    @name={{name}}
+  as |group|>
+
+    {{yield (hash
+      submit=(action 'submit' changeset)
+      reset=(action 'reset' changeset)
+
+      isDirty=(and changeset.isValid changeset.isDirty)
+      changeset=changeset
+    )}}
+
+    <fieldset>
+      <div>
+        <group.Element
+          @name="HeaderType"
+          @type="select"
+        as |el|>
+          <el.Label>Header type</el.Label>
+          <PowerSelect
+            @options={{headerTypes}}
+            @selected={{headerType}}
+            @onChange={{action 'change' 'HeaderType' changeset}} as |Type|>
+              {{get headerLabels Type}}
+          </PowerSelect>
+        </group.Element>
+
+
+        <group.Element
+          @name="Name"
+          @error={{changeset-get changeset 'error.Name'}}
+        as |el|>
+          <el.Label>Header name</el.Label>
+          <el.Text
+            @value={{changeset-get changeset 'Name'}}
+            oninput={{action 'change' 'Name' changeset}}
+          />
+          <State @state={{el.state}} @matches="error">
+            <el.Error>
+              {{changeset-get changeset 'error.Name.validation'}}
+            </el.Error>
+          </State>
+        </group.Element>
+
+  {{#if shouldShowValueField}}
+        <group.Element
+          @name="Value"
+          @error={{changeset-get changeset 'error.Value'}}
+        as |el|>
+          <el.Label>Header {{lowercase (get headerLabels headerType)}}</el.Label>
+          <el.Text
+            @value={{changeset-get changeset 'Value'}}
+            oninput={{action 'change' 'Value' changeset}}
+          />
+          <State @state={{el.state}} @matches="error">
+            <el.Error>
+              {{changeset-get changeset 'error.Value.validation'}}
+            </el.Error>
+          </State>
+        </group.Element>
+  {{/if}}
+
+      </div>
+    </fieldset>
+  </FormGroup>
+</div>

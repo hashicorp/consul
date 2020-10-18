@@ -8,10 +8,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"reflect"
+	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -25,6 +26,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	tokenStore "github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -37,7 +39,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func makeReadOnlyAgentACL(t *testing.T, srv *HTTPServer) string {
+func makeReadOnlyAgentACL(t *testing.T, srv *HTTPHandlers) string {
 	args := map[string]interface{}{
 		"Name":  "User Token",
 		"Type":  "client",
@@ -384,7 +386,7 @@ func TestAgent_Service(t *testing.T) {
 			Warning: 1,
 		},
 		TaggedAddresses: map[string]api.ServiceAddress{
-			"wan": api.ServiceAddress{
+			"wan": {
 				Address: "198.18.0.1",
 				Port:    1818,
 			},
@@ -499,7 +501,7 @@ func TestAgent_Service(t *testing.T) {
 			updateFunc: func() {
 				time.Sleep(100 * time.Millisecond)
 				// Reload
-				require.NoError(t, a.ReloadConfig(a.Config))
+				require.NoError(t, a.reloadConfigInternal(a.Config))
 			},
 			// Should eventually timeout since there is no actual change
 			wantWait: 200 * time.Millisecond,
@@ -517,7 +519,7 @@ func TestAgent_Service(t *testing.T) {
 				// Reload
 				newConfig := *a.Config
 				newConfig.Services = append(newConfig.Services, &updatedProxy)
-				require.NoError(t, a.ReloadConfig(&newConfig))
+				require.NoError(t, a.reloadConfigInternal(&newConfig))
 			},
 			wantWait: 100 * time.Millisecond,
 			wantCode: 200,
@@ -1207,39 +1209,65 @@ func TestAgent_Checks_ACLFilter(t *testing.T) {
 
 func TestAgent_Self(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t, `
-		node_meta {
-			somekey = "somevalue"
-		}
-	`)
-	defer a.Shutdown()
 
-	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
-	req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
-	obj, err := a.srv.AgentSelf(nil, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
+	cases := map[string]struct {
+		hcl       string
+		expectXDS bool
+	}{
+		"normal": {
+			hcl: `
+			node_meta {
+				somekey = "somevalue"
+			}
+			`,
+			expectXDS: true,
+		},
+		"no grpc": {
+			hcl: `
+			node_meta {
+				somekey = "somevalue"
+			}
+			ports = {
+				grpc = -1
+			}
+			`,
+			expectXDS: false,
+		},
 	}
 
-	val := obj.(Self)
-	if int(val.Member.Port) != a.Config.SerfPortLAN {
-		t.Fatalf("incorrect port: %v", obj)
-	}
+	for name, tc := range cases {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			a := NewTestAgent(t, tc.hcl)
+			defer a.Shutdown()
 
-	if val.DebugConfig["SerfPortLAN"].(int) != a.Config.SerfPortLAN {
-		t.Fatalf("incorrect port: %v", obj)
-	}
+			testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+			req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
+			obj, err := a.srv.AgentSelf(nil, req)
+			require.NoError(t, err)
 
-	cs, err := a.GetLANCoordinate()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if c := cs[a.config.SegmentName]; !reflect.DeepEqual(c, val.Coord) {
-		t.Fatalf("coordinates are not equal: %v != %v", c, val.Coord)
-	}
-	delete(val.Meta, structs.MetaSegmentKey) // Added later, not in config.
-	if !reflect.DeepEqual(a.config.NodeMeta, val.Meta) {
-		t.Fatalf("meta fields are not equal: %v != %v", a.config.NodeMeta, val.Meta)
+			val := obj.(Self)
+			require.Equal(t, a.Config.SerfPortLAN, int(val.Member.Port))
+			require.Equal(t, a.Config.SerfPortLAN, val.DebugConfig["SerfPortLAN"].(int))
+
+			cs, err := a.GetLANCoordinate()
+			require.NoError(t, err)
+			require.Equal(t, cs[a.config.SegmentName], val.Coord)
+
+			delete(val.Meta, structs.MetaSegmentKey) // Added later, not in config.
+			require.Equal(t, a.config.NodeMeta, val.Meta)
+
+			if tc.expectXDS {
+				require.NotNil(t, val.XDS, "xds component missing when gRPC is enabled")
+				require.Equal(t,
+					map[string][]string{"envoy": proxysupport.EnvoyVersions},
+					val.XDS.SupportedProxies,
+				)
+
+			} else {
+				require.Nil(t, val.XDS, "xds component should be missing when gRPC is disabled")
+			}
+		})
 	}
 }
 
@@ -1305,7 +1333,6 @@ func TestAgent_Reload(t *testing.T) {
 	t.Parallel()
 	dc1 := "dc1"
 	a := NewTestAgent(t, `
-		acl_enforce_version_8 = false
 		services = [
 			{
 				name = "redis"
@@ -1331,7 +1358,7 @@ func TestAgent_Reload(t *testing.T) {
 		t.Fatal("missing redis service")
 	}
 
-	cfg2 := TestConfig(testutil.Logger(t), config.Source{
+	cfg2 := TestConfig(testutil.Logger(t), config.FileSource{
 		Name:   "reload",
 		Format: "hcl",
 		Data: `
@@ -1339,7 +1366,6 @@ func TestAgent_Reload(t *testing.T) {
 			node_id = "` + string(a.Config.NodeID) + `"
 			node_name = "` + a.Config.NodeName + `"
 
-			acl_enforce_version_8 = false
 			services = [
 				{
 					name = "redis-reloaded"
@@ -1352,7 +1378,7 @@ func TestAgent_Reload(t *testing.T) {
 		`,
 	})
 
-	if err := a.ReloadConfig(cfg2); err != nil {
+	if err := a.reloadConfigInternal(cfg2); err != nil {
 		t.Fatalf("got error %v want nil", err)
 	}
 	if a.State.Service(structs.NewServiceID("redis-reloaded", nil)) == nil {
@@ -1372,6 +1398,151 @@ func TestAgent_Reload(t *testing.T) {
 			t.Fatalf("Reloading configs should stop watch plans of the previous configuration")
 		}
 	}
+}
+
+// TestAgent_ReloadDoesNotTriggerWatch Ensure watches not triggered after reload
+// see https://github.com/hashicorp/consul/issues/7446
+func TestAgent_ReloadDoesNotTriggerWatch(t *testing.T) {
+	dc1 := "dc1"
+	tmpFileRaw, err := ioutil.TempFile("", "rexec")
+	require.NoError(t, err)
+	tmpFile := tmpFileRaw.Name()
+	defer os.Remove(tmpFile)
+	handlerShell := fmt.Sprintf("(cat ; echo CONSUL_INDEX $CONSUL_INDEX) | tee '%s.atomic' ; mv '%s.atomic' '%s'", tmpFile, tmpFile, tmpFile)
+
+	a := NewTestAgent(t, `
+		services = [
+			{
+				name = "redis"
+				checks = [
+					{
+						id =  "red-is-dead"
+						ttl = "30s"
+						notes = "initial check"
+					}
+				]
+			}
+		]
+		watches = [
+			{
+				datacenter = "`+dc1+`"
+				type = "service"
+				service = "redis"
+				args = ["bash", "-c", "`+handlerShell+`"]
+			}
+		]
+	`)
+	checkID := structs.NewCheckID("red-is-dead", nil)
+	defer a.Shutdown()
+
+	testrpc.WaitForTestAgent(t, a.RPC, dc1)
+	require.NoError(t, a.updateTTLCheck(checkID, api.HealthPassing, "testing-agent-reload-001"))
+
+	checkStr := func(r *retry.R, evaluator func(string) error) {
+		t.Helper()
+		contentsStr := ""
+		// Wait for watch to be populated
+		for i := 1; i < 7; i++ {
+			contents, err := ioutil.ReadFile(tmpFile)
+			if err != nil {
+				t.Fatalf("should be able to read file, but had: %#v", err)
+			}
+			contentsStr = string(contents)
+			if contentsStr != "" {
+				break
+			}
+			time.Sleep(time.Duration(i) * time.Second)
+			testutil.Logger(t).Info("Watch not yet populated, retrying")
+		}
+		if err := evaluator(contentsStr); err != nil {
+			r.Errorf("ERROR: Test failing: %s", err)
+		}
+	}
+	ensureNothingCritical := func(r *retry.R, mustContain string) {
+		t.Helper()
+		eval := func(contentsStr string) error {
+			if strings.Contains(contentsStr, "critical") {
+				return fmt.Errorf("MUST NOT contain critical:= %s", contentsStr)
+			}
+			if !strings.Contains(contentsStr, mustContain) {
+				return fmt.Errorf("MUST contain '%s' := %s", mustContain, contentsStr)
+			}
+			return nil
+		}
+		checkStr(r, eval)
+	}
+
+	retriesWithDelay := func() *retry.Counter {
+		return &retry.Counter{Count: 10, Wait: 1 * time.Second}
+	}
+
+	retry.RunWith(retriesWithDelay(), t, func(r *retry.R) {
+		testutil.Logger(t).Info("Consul is now ready")
+		// it should contain the output
+		checkStr(r, func(contentStr string) error {
+			if contentStr == "[]" {
+				return fmt.Errorf("Consul is still starting up")
+			}
+			return nil
+		})
+	})
+
+	retry.RunWith(retriesWithDelay(), t, func(r *retry.R) {
+		ensureNothingCritical(r, "testing-agent-reload-001")
+	})
+
+	// Let's take almost the same config
+	cfg2 := TestConfig(testutil.Logger(t), config.FileSource{
+		Name:   "reload",
+		Format: "hcl",
+		Data: `
+			data_dir = "` + a.Config.DataDir + `"
+			node_id = "` + string(a.Config.NodeID) + `"
+			node_name = "` + a.Config.NodeName + `"
+
+			services = [
+				{
+					name = "redis"
+					checks = [
+						{
+							id  = "red-is-dead"
+							ttl = "30s"
+							notes = "initial check"
+						}
+					]
+				}
+			]
+			watches = [
+				{
+					datacenter = "` + dc1 + `"
+					type = "service"
+					service = "redis"
+					args = ["bash", "-c", "` + handlerShell + `"]
+				}
+			]
+		`,
+	})
+
+	justOnce := func() *retry.Counter {
+		return &retry.Counter{Count: 1, Wait: 25 * time.Millisecond}
+	}
+
+	retry.RunWith(justOnce(), t, func(r *retry.R) {
+		// We check that reload does not go to critical
+		ensureNothingCritical(r, "red-is-dead")
+
+		if err := a.reloadConfigInternal(cfg2); err != nil {
+			t.Fatalf("got error %v want nil", err)
+		}
+
+		// We check that reload does not go to critical
+		ensureNothingCritical(r, "red-is-dead")
+		ensureNothingCritical(r, "testing-agent-reload-001")
+
+		require.NoError(t, a.updateTTLCheck(checkID, api.HealthPassing, "testing-agent-reload-002"))
+
+		ensureNothingCritical(r, "red-is-dead")
+	})
 }
 
 func TestAgent_Reload_ACLDeny(t *testing.T) {
@@ -2109,7 +2280,7 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 	tokenReq := &structs.ACLToken{
 		Description: "write-foo",
 		Policies: []structs.ACLTokenPolicyLink{
-			structs.ACLTokenPolicyLink{
+			{
 				Name: "write-foo",
 			},
 		},
@@ -2127,7 +2298,7 @@ func TestAgent_RegisterCheck_ACLDeny(t *testing.T) {
 	tokenReq = &structs.ACLToken{
 		Description: "write-node",
 		Policies: []structs.ACLTokenPolicyLink{
-			structs.ACLTokenPolicyLink{
+			{
 				Name: "write-node",
 			},
 		},
@@ -2420,9 +2591,9 @@ func TestAgent_UpdateCheck(t *testing.T) {
 	}
 
 	cases := []checkUpdate{
-		checkUpdate{api.HealthPassing, "hello-passing"},
-		checkUpdate{api.HealthCritical, "hello-critical"},
-		checkUpdate{api.HealthWarning, "hello-warning"},
+		{api.HealthPassing, "hello-passing"},
+		{api.HealthCritical, "hello-critical"},
+		{api.HealthWarning, "hello-warning"},
 	}
 
 	for _, c := range cases {
@@ -2523,7 +2694,7 @@ func TestAgent_UpdateCheck_ACLDeny(t *testing.T) {
 func TestAgent_RegisterService(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService(t, "")
+		testAgent_RegisterService(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -2547,10 +2718,10 @@ func testAgent_RegisterService(t *testing.T, extraHCL string) {
 			TTL: 15 * time.Second,
 		},
 		Checks: []*structs.CheckType{
-			&structs.CheckType{
+			{
 				TTL: 20 * time.Second,
 			},
-			&structs.CheckType{
+			{
 				TTL: 30 * time.Second,
 			},
 		},
@@ -2609,7 +2780,7 @@ func testAgent_RegisterService(t *testing.T, extraHCL string) {
 func TestAgent_RegisterService_ReRegister(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_ReRegister(t, "")
+		testAgent_RegisterService_ReRegister(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -2630,11 +2801,11 @@ func testAgent_RegisterService_ReRegister(t *testing.T, extraHCL string) {
 		Tags: []string{"master"},
 		Port: 8000,
 		Checks: []*structs.CheckType{
-			&structs.CheckType{
+			{
 				CheckID: types.CheckID("check_1"),
 				TTL:     20 * time.Second,
 			},
-			&structs.CheckType{
+			{
 				CheckID: types.CheckID("check_2"),
 				TTL:     30 * time.Second,
 			},
@@ -2654,11 +2825,11 @@ func testAgent_RegisterService_ReRegister(t *testing.T, extraHCL string) {
 		Tags: []string{"master"},
 		Port: 8000,
 		Checks: []*structs.CheckType{
-			&structs.CheckType{
+			{
 				CheckID: types.CheckID("check_1"),
 				TTL:     20 * time.Second,
 			},
-			&structs.CheckType{
+			{
 				CheckID: types.CheckID("check_3"),
 				TTL:     30 * time.Second,
 			},
@@ -2685,7 +2856,7 @@ func testAgent_RegisterService_ReRegister(t *testing.T, extraHCL string) {
 func TestAgent_RegisterService_ReRegister_ReplaceExistingChecks(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_ReRegister_ReplaceExistingChecks(t, "")
+		testAgent_RegisterService_ReRegister_ReplaceExistingChecks(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -2705,12 +2876,12 @@ func testAgent_RegisterService_ReRegister_ReplaceExistingChecks(t *testing.T, ex
 		Tags: []string{"master"},
 		Port: 8000,
 		Checks: []*structs.CheckType{
-			&structs.CheckType{
+			{
 				// explicitly not setting the check id to let it be auto-generated
 				// we want to ensure that we are testing out the cases with autogenerated names/ids
 				TTL: 20 * time.Second,
 			},
-			&structs.CheckType{
+			{
 				CheckID: types.CheckID("check_2"),
 				TTL:     30 * time.Second,
 			},
@@ -2730,10 +2901,10 @@ func testAgent_RegisterService_ReRegister_ReplaceExistingChecks(t *testing.T, ex
 		Tags: []string{"master"},
 		Port: 8000,
 		Checks: []*structs.CheckType{
-			&structs.CheckType{
+			{
 				TTL: 20 * time.Second,
 			},
-			&structs.CheckType{
+			{
 				CheckID: types.CheckID("check_3"),
 				TTL:     30 * time.Second,
 			},
@@ -2760,7 +2931,7 @@ func testAgent_RegisterService_ReRegister_ReplaceExistingChecks(t *testing.T, ex
 func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_ACLDeny(t, "")
+		testAgent_RegisterService_ACLDeny(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -2976,7 +3147,7 @@ func testAgent_RegisterService_TranslateKeys(t *testing.T, extraHCL string) {
 func TestAgent_RegisterService_ACLDeny(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_ACLDeny(t, "")
+		testAgent_RegisterService_ACLDeny(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -2999,10 +3170,10 @@ func testAgent_RegisterService_ACLDeny(t *testing.T, extraHCL string) {
 			TTL: 15 * time.Second,
 		},
 		Checks: []*structs.CheckType{
-			&structs.CheckType{
+			{
 				TTL: 20 * time.Second,
 			},
-			&structs.CheckType{
+			{
 				TTL: 30 * time.Second,
 			},
 		},
@@ -3026,7 +3197,7 @@ func testAgent_RegisterService_ACLDeny(t *testing.T, extraHCL string) {
 func TestAgent_RegisterService_InvalidAddress(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_UnmanagedConnectProxy(t, "")
+		testAgent_RegisterService_InvalidAddress(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -3070,7 +3241,7 @@ func testAgent_RegisterService_InvalidAddress(t *testing.T, extraHCL string) {
 func TestAgent_RegisterService_UnmanagedConnectProxy(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_UnmanagedConnectProxy(t, "")
+		testAgent_RegisterService_UnmanagedConnectProxy(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -3167,7 +3338,7 @@ func testCreateToken(t *testing.T, a *TestAgent, rules string) string {
 	args := map[string]interface{}{
 		"Description": "User Token",
 		"Policies": []map[string]interface{}{
-			map[string]interface{}{
+			{
 				"ID": policyID,
 			},
 		},
@@ -3204,7 +3375,7 @@ func testCreatePolicy(t *testing.T, a *TestAgent, name, rules string) string {
 func TestAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterServiceDeregisterService_Sidecar(t, "")
+		testAgent_RegisterServiceDeregisterService_Sidecar(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -3683,7 +3854,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 				require.Nil(obj)
 
 				svcs := a.State.Services(nil)
-				svc, ok = svcs[structs.NewServiceID(tt.wantNS.ID, nil)]
+				_, ok = svcs[structs.NewServiceID(tt.wantNS.ID, nil)]
 				if tt.wantSidecarIDLeftAfterDereg {
 					require.True(ok, "removed non-sidecar service at "+tt.wantNS.ID)
 				} else {
@@ -3700,7 +3871,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 func TestAgent_RegisterService_UnmanagedConnectProxyInvalid(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_UnmanagedConnectProxyInvalid(t, "")
+		testAgent_RegisterService_UnmanagedConnectProxyInvalid(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -3743,7 +3914,7 @@ func testAgent_RegisterService_UnmanagedConnectProxyInvalid(t *testing.T, extraH
 func TestAgent_RegisterService_ConnectNative(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_ConnectNative(t, "")
+		testAgent_RegisterService_ConnectNative(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -3788,7 +3959,7 @@ func testAgent_RegisterService_ConnectNative(t *testing.T, extraHCL string) {
 func TestAgent_RegisterService_ScriptCheck_ExecDisable(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_ScriptCheck_ExecDisable(t, "")
+		testAgent_RegisterService_ScriptCheck_ExecDisable(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -3834,7 +4005,7 @@ func testAgent_RegisterService_ScriptCheck_ExecDisable(t *testing.T, extraHCL st
 func TestAgent_RegisterService_ScriptCheck_ExecRemoteDisable(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_ScriptCheck_ExecRemoteDisable(t, "")
+		testAgent_RegisterService_ScriptCheck_ExecRemoteDisable(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -4306,6 +4477,44 @@ func TestAgent_Monitor(t *testing.T) {
 		})
 	})
 
+	t.Run("stream compressed unstructured logs", func(t *testing.T) {
+		// The only purpose of this test is to see something being
+		// logged. Because /v1/agent/monitor is streaming the response
+		// it needs special handling with the compression.
+		retry.Run(t, func(r *retry.R) {
+			req, _ := http.NewRequest("GET", "/v1/agent/monitor?loglevel=debug", nil)
+			// Usually this would be automatically set by transport content
+			// negotiation, but since this call doesn't go through a real
+			// transport, the header has to be set manually
+			req.Header["Accept-Encoding"] = []string{"gzip"}
+			cancelCtx, cancelFunc := context.WithCancel(context.Background())
+			req = req.WithContext(cancelCtx)
+
+			resp := httptest.NewRecorder()
+			handler := a.srv.handler(true)
+			go handler.ServeHTTP(resp, req)
+
+			args := &structs.ServiceDefinition{
+				Name: "monitor",
+				Port: 8000,
+				Check: structs.CheckType{
+					TTL: 15 * time.Second,
+				},
+			}
+
+			registerReq, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
+			if _, err := a.srv.AgentRegisterService(nil, registerReq); err != nil {
+				t.Fatalf("err: %v", err)
+			}
+
+			// Wait until we have received some type of logging output
+			require.Eventually(t, func() bool {
+				return len(resp.Body.Bytes()) > 0
+			}, 3*time.Second, 100*time.Millisecond)
+			cancelFunc()
+		})
+	})
+
 	t.Run("stream JSON logs", func(t *testing.T) {
 		// Try to stream logs until we see the expected log line
 		retry.Run(t, func(r *retry.R) {
@@ -4359,12 +4568,15 @@ func TestAgent_Monitor(t *testing.T) {
 		req = req.WithContext(cancelCtx)
 
 		resp := httptest.NewRecorder()
-		errCh := make(chan error)
+		chErr := make(chan error)
+		chStarted := make(chan struct{})
 		go func() {
+			close(chStarted)
 			_, err := a.srv.AgentMonitor(resp, req)
-			errCh <- err
+			chErr <- err
 		}()
 
+		<-chStarted
 		require.NoError(t, a.Shutdown())
 
 		// Wait until we have received some type of logging output
@@ -4373,7 +4585,7 @@ func TestAgent_Monitor(t *testing.T) {
 		}, 3*time.Second, 100*time.Millisecond)
 
 		cancelFunc()
-		err := <-errCh
+		err := <-chErr
 		require.NoError(t, err)
 
 		got := resp.Body.String()
@@ -4433,7 +4645,7 @@ func TestAgent_TokenTriggersFullSync(t *testing.T) {
 		token := &structs.ACLToken{
 			Description: "test",
 			Policies: []structs.ACLTokenPolicyLink{
-				structs.ACLTokenPolicyLink{Name: policyName},
+				{Name: policyName},
 			},
 		}
 
@@ -4562,13 +4774,14 @@ func TestAgent_Token(t *testing.T) {
 		init        tokens
 		raw         tokens
 		effective   tokens
+		expectedErr error
 	}{
 		{
-			name:   "bad token name",
-			method: "PUT",
-			url:    "nope?token=root",
-			body:   body("X"),
-			code:   http.StatusNotFound,
+			name:        "bad token name",
+			method:      "PUT",
+			url:         "nope?token=root",
+			body:        body("X"),
+			expectedErr: NotFoundError{Reason: `Token "nope" is unknown`},
 		},
 		{
 			name:   "bad JSON",
@@ -4730,7 +4943,12 @@ func TestAgent_Token(t *testing.T) {
 			url := fmt.Sprintf("/v1/agent/token/%s", tt.url)
 			resp := httptest.NewRecorder()
 			req, _ := http.NewRequest(tt.method, url, tt.body)
+
 			_, err := a.srv.AgentToken(resp, req)
+			if tt.expectedErr != nil {
+				require.Equal(t, tt.expectedErr, err)
+				return
+			}
 			require.NoError(t, err)
 			require.Equal(t, tt.code, resp.Code)
 			require.Equal(t, tt.effective.user, a.tokens.UserToken())
@@ -5012,7 +5230,11 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 
 	assert := assert.New(t)
 	require := require.New(t)
-	a := NewTestAgent(t, "")
+	a := StartTestAgent(t, TestAgent{Overrides: `
+		connect {
+			test_ca_leaf_root_change_spread = "1ns"
+		}
+	`})
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 	testrpc.WaitForActiveCARoot(t, a.RPC, "dc1", nil)
@@ -5060,6 +5282,8 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 	assert.Equal(fmt.Sprintf("%d", issued.ModifyIndex),
 		resp.Header().Get("X-Consul-Index"))
 
+	index := resp.Header().Get("X-Consul-Index")
+
 	// Test caching
 	{
 		// Fetch it again
@@ -5072,39 +5296,25 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 		require.Equal("HIT", resp.Header().Get("X-Cache"))
 	}
 
-	// Test that caching is updated in the background
+	// Issue a blocking query to ensure that the cert gets updated appropriately
 	{
 		// Set a new CA
 		ca := connect.TestCAConfigSet(t, a, nil)
 
-		retry.Run(t, func(r *retry.R) {
-			resp := httptest.NewRecorder()
-			// Try and sign again (note no index/wait arg since cache should update in
-			// background even if we aren't actively blocking)
-			obj, err := a.srv.AgentConnectCALeafCert(resp, req)
-			r.Check(err)
+		resp := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test?index="+index, nil)
+		obj, err := a.srv.AgentConnectCALeafCert(resp, req)
+		require.NoError(err)
+		issued2 := obj.(*structs.IssuedCert)
+		require.NotEqual(issued.CertPEM, issued2.CertPEM)
+		require.NotEqual(issued.PrivateKeyPEM, issued2.PrivateKeyPEM)
 
-			issued2 := obj.(*structs.IssuedCert)
-			if issued.CertPEM == issued2.CertPEM {
-				r.Fatalf("leaf has not updated")
-			}
+		// Verify that the cert is signed by the new CA
+		requireLeafValidUnderCA(t, issued2, ca)
 
-			// Got a new leaf. Sanity check it's a whole new key as well as different
-			// cert.
-			if issued.PrivateKeyPEM == issued2.PrivateKeyPEM {
-				r.Fatalf("new leaf has same private key as before")
-			}
-
-			// Verify that the cert is signed by the new CA
-			requireLeafValidUnderCA(t, issued2, ca)
-
-			// Should be a cache hit! The data should've updated in the cache
-			// in the background so this should've been fetched directly from
-			// the cache.
-			if resp.Header().Get("X-Cache") != "HIT" {
-				r.Fatalf("should be a cache hit")
-			}
-		})
+		// Should not be a cache hit! The data was updated in response to the blocking
+		// query being made.
+		require.Equal("MISS", resp.Header().Get("X-Cache"))
 	}
 }
 
@@ -5115,7 +5325,11 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 
 	assert := assert.New(t)
 	require := require.New(t)
-	a := NewTestAgent(t, "")
+	a := StartTestAgent(t, TestAgent{Overrides: `
+		connect {
+			test_ca_leaf_root_change_spread = "1ns"
+		}
+	`})
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 	testrpc.WaitForActiveCARoot(t, a.RPC, "dc1", nil)
@@ -5239,6 +5453,10 @@ func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
 	a1 := StartTestAgent(t, TestAgent{Name: "dc1", HCL: `
 		datacenter = "dc1"
 		primary_datacenter = "dc1"
+	`, Overrides: `
+		connect {
+			test_ca_leaf_root_change_spread = "1ns"
+		}
 	`})
 	defer a1.Shutdown()
 	testrpc.WaitForTestAgent(t, a1.RPC, "dc1")
@@ -5246,6 +5464,10 @@ func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
 	a2 := StartTestAgent(t, TestAgent{Name: "dc2", HCL: `
 		datacenter = "dc2"
 		primary_datacenter = "dc1"
+	`, Overrides: `
+		connect {
+			test_ca_leaf_root_change_spread = "1ns"
+		}
 	`})
 	defer a2.Shutdown()
 	testrpc.WaitForTestAgent(t, a2.RPC, "dc2")
@@ -5393,7 +5615,7 @@ func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
 	})
 }
 
-func waitForActiveCARoot(t *testing.T, srv *HTTPServer, expect *structs.CARoot) {
+func waitForActiveCARoot(t *testing.T, srv *HTTPHandlers, expect *structs.CARoot) {
 	retry.Run(t, func(r *retry.R) {
 		req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/roots", nil)
 		resp := httptest.NewRecorder()
@@ -5882,7 +6104,6 @@ func TestAgentConnectAuthorize_defaultAllow(t *testing.T) {
 		acl_master_token = "root"
 		acl_agent_token = "root"
 		acl_agent_master_token = "towel"
-		acl_enforce_version_8 = true
 	`)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, dc1)
@@ -5914,7 +6135,6 @@ func TestAgent_Host(t *testing.T) {
 	acl_master_token = "master"
 	acl_agent_token = "agent"
 	acl_agent_master_token = "towel"
-	acl_enforce_version_8 = true
 `)
 	defer a.Shutdown()
 
@@ -5942,7 +6162,6 @@ func TestAgent_HostBadACL(t *testing.T) {
 	acl_master_token = "root"
 	acl_agent_token = "agent"
 	acl_agent_master_token = "towel"
-	acl_enforce_version_8 = true
 `)
 	defer a.Shutdown()
 

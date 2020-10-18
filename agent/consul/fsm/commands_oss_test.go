@@ -21,7 +21,6 @@ import (
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/mitchellh/mapstructure"
-	"github.com/pascaldekloe/goe/verify"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -944,7 +943,7 @@ func TestFSM_ACL_CRUD(t *testing.T) {
 	}
 	bootstrap.ACL.CreateIndex = respACL.CreateIndex
 	bootstrap.ACL.ModifyIndex = respACL.ModifyIndex
-	verify.Values(t, "", respACL, &bootstrap.ACL)
+	require.Equal(t, &bootstrap.ACL, respACL)
 }
 
 func TestFSM_PreparedQuery_CRUD(t *testing.T) {
@@ -1231,6 +1230,7 @@ func TestFSM_Intention_CRUD(t *testing.T) {
 		Intention:  structs.TestIntention(t),
 	}
 	ixn.Intention.ID = generateUUID()
+	//nolint:staticcheck
 	ixn.Intention.UpdatePrecedence()
 
 	{
@@ -1241,7 +1241,7 @@ func TestFSM_Intention_CRUD(t *testing.T) {
 
 	// Verify it's in the state store.
 	{
-		_, actual, err := fsm.state.IntentionGet(nil, ixn.Intention.ID)
+		_, _, actual, err := fsm.state.IntentionGet(nil, ixn.Intention.ID)
 		assert.Nil(err)
 
 		actual.CreateIndex, actual.ModifyIndex = 0, 0
@@ -1261,7 +1261,7 @@ func TestFSM_Intention_CRUD(t *testing.T) {
 
 	// Verify the update.
 	{
-		_, actual, err := fsm.state.IntentionGet(nil, ixn.Intention.ID)
+		_, _, actual, err := fsm.state.IntentionGet(nil, ixn.Intention.ID)
 		assert.Nil(err)
 
 		actual.CreateIndex, actual.ModifyIndex = 0, 0
@@ -1280,7 +1280,7 @@ func TestFSM_Intention_CRUD(t *testing.T) {
 
 	// Make sure it's gone.
 	{
-		_, actual, err := fsm.state.IntentionGet(nil, ixn.Intention.ID)
+		_, _, actual, err := fsm.state.IntentionGet(nil, ixn.Intention.ID)
 		assert.Nil(err)
 		assert.Nil(actual)
 	}
@@ -1487,7 +1487,6 @@ func TestFSM_Chunking_Lifecycle(t *testing.T) {
 	require.NoError(err)
 
 	var logOfLogs [][]*raft.Log
-	var bufs [][]byte
 	for i := 0; i < 10; i++ {
 		req := structs.RegisterRequest{
 			Datacenter: "dc1",
@@ -1527,7 +1526,6 @@ func TestFSM_Chunking_Lifecycle(t *testing.T) {
 				Extensions: chunkBytes,
 			})
 		}
-		bufs = append(bufs, buf)
 		logOfLogs = append(logOfLogs, logs)
 	}
 

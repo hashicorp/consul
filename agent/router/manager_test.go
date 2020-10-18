@@ -32,7 +32,7 @@ type fauxConnPool struct {
 	failAddr net.Addr
 }
 
-func (cp *fauxConnPool) Ping(dc string, nodeName string, addr net.Addr, version int, useTLS bool) (bool, error) {
+func (cp *fauxConnPool) Ping(dc string, nodeName string, addr net.Addr) (bool, error) {
 	var success bool
 
 	successProb := rand.Float64()
@@ -57,21 +57,23 @@ func (s *fauxSerf) NumNodes() int {
 func testManager(t testing.TB) (m *router.Manager) {
 	logger := testutil.Logger(t)
 	shutdownCh := make(chan struct{})
-	m = router.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{})
+	m = router.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{}, "", noopRebalancer)
 	return m
 }
+
+func noopRebalancer() {}
 
 func testManagerFailProb(t testing.TB, failPct float64) (m *router.Manager) {
 	logger := testutil.Logger(t)
 	shutdownCh := make(chan struct{})
-	m = router.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{failPct: failPct})
+	m = router.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{failPct: failPct}, "", noopRebalancer)
 	return m
 }
 
 func testManagerFailAddr(t testing.TB, failAddr net.Addr) (m *router.Manager) {
 	logger := testutil.Logger(t)
 	shutdownCh := make(chan struct{})
-	m = router.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{failAddr: failAddr})
+	m = router.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{failAddr: failAddr}, "", noopRebalancer)
 	return m
 }
 
@@ -195,7 +197,7 @@ func TestServers_FindServer(t *testing.T) {
 func TestServers_New(t *testing.T) {
 	logger := testutil.Logger(t)
 	shutdownCh := make(chan struct{})
-	m := router.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{})
+	m := router.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{}, "", noopRebalancer)
 	if m == nil {
 		t.Fatalf("Manager nil")
 	}
@@ -316,9 +318,9 @@ func TestServers_RebalanceServers_AvoidFailed(t *testing.T) {
 	// of trials with a small number of servers to try to make sure
 	// the shuffle alone won't give the right answer.
 	servers := []*metadata.Server{
-		&metadata.Server{Name: "s1", Addr: &fauxAddr{"s1"}},
-		&metadata.Server{Name: "s2", Addr: &fauxAddr{"s2"}},
-		&metadata.Server{Name: "s3", Addr: &fauxAddr{"s3"}},
+		{Name: "s1", Addr: &fauxAddr{"s1"}},
+		{Name: "s2", Addr: &fauxAddr{"s2"}},
+		{Name: "s3", Addr: &fauxAddr{"s3"}},
 	}
 	for i := 0; i < 100; i++ {
 		m := testManagerFailAddr(t, &fauxAddr{"s2"})
@@ -354,12 +356,10 @@ func TestManager_RemoveServer(t *testing.T) {
 	m.AddServer(s2)
 
 	const maxServers = 19
-	servers := make([]*metadata.Server, maxServers)
 	// Already added two servers above
 	for i := maxServers; i > 2; i-- {
 		nodeName := fmt.Sprintf(nodeNameFmt, i)
 		server := &metadata.Server{Name: nodeName}
-		servers = append(servers, server)
 		m.AddServer(server)
 	}
 	if m.NumServers() != maxServers {

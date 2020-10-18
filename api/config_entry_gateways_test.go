@@ -16,15 +16,35 @@ func TestAPI_ConfigEntries_IngressGateway(t *testing.T) {
 	ingress1 := &IngressGatewayConfigEntry{
 		Kind: IngressGateway,
 		Name: "foo",
+		Meta: map[string]string{
+			"foo": "bar",
+			"gir": "zim",
+		},
 	}
 
 	ingress2 := &IngressGatewayConfigEntry{
 		Kind: IngressGateway,
 		Name: "bar",
+		TLS: GatewayTLSConfig{
+			Enabled: true,
+		},
 	}
 
+	global := &ProxyConfigEntry{
+		Kind: ProxyDefaults,
+		Name: ProxyConfigGlobal,
+		Config: map[string]interface{}{
+			"protocol": "http",
+		},
+	}
+	// set default protocol to http so that ingress gateways pass validation
+	_, wm, err := config_entries.Set(global, nil)
+	require.NoError(t, err)
+	require.NotNil(t, wm)
+	require.NotEqual(t, 0, wm.RequestTime)
+
 	// set it
-	_, wm, err := config_entries.Set(ingress1, nil)
+	_, wm, err = config_entries.Set(ingress1, nil)
 	require.NoError(t, err)
 	require.NotNil(t, wm)
 	require.NotEqual(t, 0, wm.RequestTime)
@@ -46,15 +66,18 @@ func TestAPI_ConfigEntries_IngressGateway(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, ingress1.Kind, readIngress.Kind)
 	require.Equal(t, ingress1.Name, readIngress.Name)
+	require.Equal(t, ingress1.Meta, readIngress.Meta)
+	require.Equal(t, ingress1.Meta, readIngress.GetMeta())
 
 	// update it
 	ingress1.Listeners = []IngressListener{
 		{
 			Port:     2222,
-			Protocol: "tcp",
+			Protocol: "http",
 			Services: []IngressService{
 				{
-					Name: "asdf",
+					Name:  "asdf",
+					Hosts: []string{"test.example.com"},
 				},
 			},
 		},
@@ -133,7 +156,7 @@ func TestAPI_ConfigEntries_IngressGateway(t *testing.T) {
 	require.NotEqual(t, 0, wm.RequestTime)
 
 	// verify deletion
-	entry, qm, err = config_entries.Get(IngressGateway, "foo", nil)
+	_, _, err = config_entries.Get(IngressGateway, "foo", nil)
 	require.Error(t, err)
 }
 
@@ -147,6 +170,10 @@ func TestAPI_ConfigEntries_TerminatingGateway(t *testing.T) {
 	terminating1 := &TerminatingGatewayConfigEntry{
 		Kind: TerminatingGateway,
 		Name: "foo",
+		Meta: map[string]string{
+			"foo": "bar",
+			"gir": "zim",
+		},
 	}
 
 	terminating2 := &TerminatingGatewayConfigEntry{
@@ -177,6 +204,8 @@ func TestAPI_ConfigEntries_TerminatingGateway(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, terminating1.Kind, readTerminating.Kind)
 	require.Equal(t, terminating1.Name, readTerminating.Name)
+	require.Equal(t, terminating1.Meta, readTerminating.Meta)
+	require.Equal(t, terminating1.Meta, readTerminating.GetMeta())
 
 	// update it
 	terminating1.Services = []LinkedService{
@@ -185,6 +214,7 @@ func TestAPI_ConfigEntries_TerminatingGateway(t *testing.T) {
 			CAFile:   "/etc/web/ca.crt",
 			CertFile: "/etc/web/client.crt",
 			KeyFile:  "/etc/web/tls.key",
+			SNI:      "mydomain",
 		},
 	}
 
@@ -212,6 +242,7 @@ func TestAPI_ConfigEntries_TerminatingGateway(t *testing.T) {
 			CAFile:   "/etc/certs/ca.crt",
 			CertFile: "/etc/certs/client.crt",
 			KeyFile:  "/etc/certs/tls.key",
+			SNI:      "mydomain",
 		},
 	}
 	_, wm, err = configEntries.Set(terminating2, nil)
@@ -260,6 +291,6 @@ func TestAPI_ConfigEntries_TerminatingGateway(t *testing.T) {
 	require.NotEqual(t, 0, wm.RequestTime)
 
 	// verify deletion
-	entry, qm, err = configEntries.Get(TerminatingGateway, "foo", nil)
+	_, _, err = configEntries.Get(TerminatingGateway, "foo", nil)
 	require.Error(t, err)
 }

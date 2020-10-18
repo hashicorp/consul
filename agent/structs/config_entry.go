@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/decode"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/hashstructure"
@@ -22,11 +24,23 @@ const (
 	ServiceResolver    string = "service-resolver"
 	IngressGateway     string = "ingress-gateway"
 	TerminatingGateway string = "terminating-gateway"
+	ServiceIntentions  string = "service-intentions"
 
 	ProxyConfigGlobal string = "global"
 
 	DefaultServiceProtocol = "tcp"
 )
+
+var AllConfigEntryKinds = []string{
+	ServiceDefaults,
+	ProxyDefaults,
+	ServiceRouter,
+	ServiceSplitter,
+	ServiceResolver,
+	IngressGateway,
+	TerminatingGateway,
+	ServiceIntentions,
+}
 
 // ConfigEntry is the interface for centralized configuration stored in Raft.
 // Currently only service-defaults and proxy-defaults are supported.
@@ -43,8 +57,22 @@ type ConfigEntry interface {
 	CanRead(acl.Authorizer) bool
 	CanWrite(acl.Authorizer) bool
 
+	GetMeta() map[string]string
 	GetEnterpriseMeta() *EnterpriseMeta
 	GetRaftIndex() *RaftIndex
+}
+
+// UpdatableConfigEntry is the optional interface implemented by a ConfigEntry
+// if it wants more control over how the update part of upsert works
+// differently than a straight create. By default without this implementation
+// all upsert operations are replacements.
+type UpdatableConfigEntry interface {
+	// UpdateOver is called from the state machine when an identically named
+	// config entry already exists. This lets the config entry optionally
+	// choose to use existing information from a config entry (such as
+	// CreateTime) to slightly adjust how the update actually happens.
+	UpdateOver(prev ConfigEntry) error
+	ConfigEntry
 }
 
 // ServiceConfiguration is the top-level struct for the configuration of a service
@@ -53,10 +81,10 @@ type ServiceConfigEntry struct {
 	Kind        string
 	Name        string
 	Protocol    string
-	MeshGateway MeshGatewayConfig `json:",omitempty"`
+	MeshGateway MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway"`
 	Expose      ExposeConfig      `json:",omitempty"`
 
-	ExternalSNI string `json:",omitempty"`
+	ExternalSNI string `json:",omitempty" alias:"external_sni"`
 
 	// TODO(banks): enable this once we have upstreams supported too. Enabling
 	// sidecars actually makes no sense and adds complications when you don't
@@ -64,6 +92,7 @@ type ServiceConfigEntry struct {
 	//
 	// Connect ConnectConfiguration
 
+	Meta           map[string]string `json:",omitempty"`
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
@@ -80,6 +109,13 @@ func (e *ServiceConfigEntry) GetName() string {
 	return e.Name
 }
 
+func (e *ServiceConfigEntry) GetMeta() map[string]string {
+	if e == nil {
+		return nil
+	}
+	return e.Meta
+}
+
 func (e *ServiceConfigEntry) Normalize() error {
 	if e == nil {
 		return fmt.Errorf("config entry is nil")
@@ -94,7 +130,7 @@ func (e *ServiceConfigEntry) Normalize() error {
 }
 
 func (e *ServiceConfigEntry) Validate() error {
-	return nil
+	return validateConfigEntryMeta(e.Meta)
 }
 
 func (e *ServiceConfigEntry) CanRead(authz acl.Authorizer) bool {
@@ -134,9 +170,10 @@ type ProxyConfigEntry struct {
 	Kind        string
 	Name        string
 	Config      map[string]interface{}
-	MeshGateway MeshGatewayConfig `json:",omitempty"`
+	MeshGateway MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway"`
 	Expose      ExposeConfig      `json:",omitempty"`
 
+	Meta           map[string]string `json:",omitempty"`
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
 }
@@ -151,6 +188,13 @@ func (e *ProxyConfigEntry) GetName() string {
 	}
 
 	return e.Name
+}
+
+func (e *ProxyConfigEntry) GetMeta() map[string]string {
+	if e == nil {
+		return nil
+	}
+	return e.Meta
 }
 
 func (e *ProxyConfigEntry) Normalize() error {
@@ -173,6 +217,10 @@ func (e *ProxyConfigEntry) Validate() error {
 
 	if e.Name != ProxyConfigGlobal {
 		return fmt.Errorf("invalid name (%q), only %q is supported", e.Name, ProxyConfigGlobal)
+	}
+
+	if err := validateConfigEntryMeta(e.Meta); err != nil {
+		return err
 	}
 
 	return e.validateEnterpriseMeta()
@@ -283,20 +331,14 @@ func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
 		return nil, fmt.Errorf("Kind value in payload is not a string")
 	}
 
-	skipWhenPatching, translateKeysDict, err := ConfigEntryDecodeRulesForKind(entry.GetKind())
-	if err != nil {
-		return nil, err
-	}
-
-	// lib.TranslateKeys doesn't understand []map[string]interface{} so we have
-	// to do this part first.
-	raw = lib.PatchSliceOfMaps(raw, skipWhenPatching, nil)
-
-	lib.TranslateKeys(raw, translateKeysDict)
-
 	var md mapstructure.Metadata
 	decodeConf := &mapstructure.DecoderConfig{
-		DecodeHook:       mapstructure.StringToTimeDurationHookFunc(),
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			decode.HookWeakDecodeFromSlice,
+			decode.HookTranslateKeys,
+			mapstructure.StringToTimeDurationHookFunc(),
+			mapstructure.StringToTimeHookFunc(time.RFC3339),
+		),
 		Metadata:         &md,
 		Result:           &entry,
 		WeaklyTypedInput: true,
@@ -311,99 +353,10 @@ func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
 		return nil, err
 	}
 
-	for _, k := range md.Unused {
-		switch k {
-		case "CreateIndex", "ModifyIndex":
-		default:
-			err = multierror.Append(err, fmt.Errorf("invalid config key %q", k))
-		}
-	}
-	if err != nil {
+	if err := validateUnusedKeys(md.Unused); err != nil {
 		return nil, err
 	}
 	return entry, nil
-}
-
-// ConfigEntryDecodeRulesForKind returns rules for 'fixing' config entry key
-// formats by kind. This is shared between the 'structs' and 'api' variations
-// of config entries.
-func ConfigEntryDecodeRulesForKind(kind string) (skipWhenPatching []string, translateKeysDict map[string]string, err error) {
-	switch kind {
-	case ProxyDefaults:
-		return []string{
-				"expose.paths",
-				"Expose.Paths",
-			}, map[string]string{
-				"local_path_port": "localpathport",
-				"listener_port":   "listenerport",
-				"mesh_gateway":    "meshgateway",
-				"config":          "",
-			}, nil
-	case ServiceDefaults:
-		return []string{
-				"expose.paths",
-				"Expose.Paths",
-			}, map[string]string{
-				"local_path_port": "localpathport",
-				"listener_port":   "listenerport",
-				"mesh_gateway":    "meshgateway",
-				"external_sni":    "externalsni",
-			}, nil
-	case ServiceRouter:
-		return []string{
-				"routes",
-				"Routes",
-				"routes.match.http.header",
-				"Routes.Match.HTTP.Header",
-				"routes.match.http.query_param",
-				"Routes.Match.HTTP.QueryParam",
-			}, map[string]string{
-				"num_retries":              "numretries",
-				"path_exact":               "pathexact",
-				"path_prefix":              "pathprefix",
-				"path_regex":               "pathregex",
-				"prefix_rewrite":           "prefixrewrite",
-				"query_param":              "queryparam",
-				"request_timeout":          "requesttimeout",
-				"retry_on_connect_failure": "retryonconnectfailure",
-				"retry_on_status_codes":    "retryonstatuscodes",
-				"service_subset":           "servicesubset",
-			}, nil
-	case ServiceSplitter:
-		return []string{
-				"splits",
-				"Splits",
-			}, map[string]string{
-				"service_subset": "servicesubset",
-			}, nil
-	case ServiceResolver:
-		return nil, map[string]string{
-			"connect_timeout": "connecttimeout",
-			"default_subset":  "defaultsubset",
-			"only_passing":    "onlypassing",
-			"service_subset":  "servicesubset",
-		}, nil
-	case IngressGateway:
-		return []string{
-				"listeners",
-				"Listeners",
-				"listeners.services",
-				"Listeners.Services",
-			}, map[string]string{
-				"service_subset": "servicesubset",
-			}, nil
-	case TerminatingGateway:
-		return []string{
-				"services",
-				"Services",
-			}, map[string]string{
-				"ca_file":   "cafile",
-				"cert_file": "certfile",
-				"key_file":  "keyfile",
-			}, nil
-	default:
-		return nil, nil, fmt.Errorf("kind %q should be explicitly handled here", kind)
-	}
 }
 
 type ConfigEntryOp string
@@ -495,6 +448,8 @@ func MakeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &IngressGatewayConfigEntry{Name: name}, nil
 	case TerminatingGateway:
 		return &TerminatingGatewayConfigEntry{Name: name}, nil
+	case ServiceIntentions:
+		return &ServiceIntentionsConfigEntry{Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}
@@ -507,6 +462,8 @@ func ValidateConfigEntryKind(kind string) bool {
 	case ServiceRouter, ServiceSplitter, ServiceResolver:
 		return true
 	case IngressGateway, TerminatingGateway:
+		return true
+	case ServiceIntentions:
 		return true
 	default:
 		return false
@@ -551,6 +508,26 @@ func (r *ConfigEntryQuery) CacheInfo() cache.RequestInfo {
 	}
 
 	return info
+}
+
+// ConfigEntryListAllRequest is used when requesting to list all config entries
+// of a set of kinds.
+type ConfigEntryListAllRequest struct {
+	// Kinds should always be set. For backwards compatibility with versions
+	// prior to 1.9.0, if this is omitted or left empty it is assumed to mean
+	// the subset of config entry kinds that were present in 1.8.0:
+	//
+	// proxy-defaults, service-defaults, service-resolver, service-splitter,
+	// service-router, terminating-gateway, and ingress-gateway.
+	Kinds      []string
+	Datacenter string
+
+	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	QueryOptions
+}
+
+func (r *ConfigEntryListAllRequest) RequestDatacenter() string {
+	return r.Datacenter
 }
 
 // ServiceConfigRequest is used when requesting the resolved configuration
@@ -762,4 +739,38 @@ func (c *ConfigEntryResponse) UnmarshalBinary(data []byte) error {
 type ConfigEntryKindName struct {
 	Kind string
 	Name string
+	EnterpriseMeta
+}
+
+func NewConfigEntryKindName(kind, name string, entMeta *EnterpriseMeta) ConfigEntryKindName {
+	ret := ConfigEntryKindName{
+		Kind: kind,
+		Name: name,
+	}
+	if entMeta == nil {
+		entMeta = DefaultEnterpriseMeta()
+	}
+
+	ret.EnterpriseMeta = *entMeta
+	ret.EnterpriseMeta.Normalize()
+	return ret
+}
+
+func validateConfigEntryMeta(meta map[string]string) error {
+	var err error
+	if len(meta) > metaMaxKeyPairs {
+		err = multierror.Append(err, fmt.Errorf(
+			"Meta exceeds maximum element count %d", metaMaxKeyPairs))
+	}
+	for k, v := range meta {
+		if len(k) > metaKeyMaxLength {
+			err = multierror.Append(err, fmt.Errorf(
+				"Meta key %q exceeds maximum length %d", k, metaKeyMaxLength))
+		}
+		if len(v) > metaValueMaxLength {
+			err = multierror.Append(err, fmt.Errorf(
+				"Meta value for key %q exceeds maximum length %d", k, metaValueMaxLength))
+		}
+	}
+	return err
 }

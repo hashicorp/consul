@@ -34,7 +34,7 @@ func TestAPI_DiscoveryChain_Get(t *testing.T) {
 				Protocol:    "tcp",
 				StartNode:   "resolver:web.default.dc1",
 				Nodes: map[string]*DiscoveryGraphNode{
-					"resolver:web.default.dc1": &DiscoveryGraphNode{
+					"resolver:web.default.dc1": {
 						Type: DiscoveryGraphNodeTypeResolver,
 						Name: "web.default.dc1",
 						Resolver: &DiscoveryResolver{
@@ -45,7 +45,7 @@ func TestAPI_DiscoveryChain_Get(t *testing.T) {
 					},
 				},
 				Targets: map[string]*DiscoveryTarget{
-					"web.default.dc1": &DiscoveryTarget{
+					"web.default.dc1": {
 						ID:         "web.default.dc1",
 						Service:    "web",
 						Namespace:  "default",
@@ -74,7 +74,7 @@ func TestAPI_DiscoveryChain_Get(t *testing.T) {
 				Protocol:    "tcp",
 				StartNode:   "resolver:web.default.dc2",
 				Nodes: map[string]*DiscoveryGraphNode{
-					"resolver:web.default.dc2": &DiscoveryGraphNode{
+					"resolver:web.default.dc2": {
 						Type: DiscoveryGraphNodeTypeResolver,
 						Name: "web.default.dc2",
 						Resolver: &DiscoveryResolver{
@@ -85,7 +85,7 @@ func TestAPI_DiscoveryChain_Get(t *testing.T) {
 					},
 				},
 				Targets: map[string]*DiscoveryTarget{
-					"web.default.dc2": &DiscoveryTarget{
+					"web.default.dc2": {
 						ID:         "web.default.dc2",
 						Service:    "web",
 						Namespace:  "default",
@@ -121,7 +121,7 @@ func TestAPI_DiscoveryChain_Get(t *testing.T) {
 				Protocol:    "tcp",
 				StartNode:   "resolver:web.default.dc1",
 				Nodes: map[string]*DiscoveryGraphNode{
-					"resolver:web.default.dc1": &DiscoveryGraphNode{
+					"resolver:web.default.dc1": {
 						Type: DiscoveryGraphNodeTypeResolver,
 						Name: "web.default.dc1",
 						Resolver: &DiscoveryResolver{
@@ -131,7 +131,7 @@ func TestAPI_DiscoveryChain_Get(t *testing.T) {
 					},
 				},
 				Targets: map[string]*DiscoveryTarget{
-					"web.default.dc1": &DiscoveryTarget{
+					"web.default.dc1": {
 						ID:         "web.default.dc1",
 						Service:    "web",
 						Namespace:  "default",
@@ -166,7 +166,7 @@ func TestAPI_DiscoveryChain_Get(t *testing.T) {
 				CustomizationHash: "98809527",
 				StartNode:         "resolver:web.default.dc2",
 				Nodes: map[string]*DiscoveryGraphNode{
-					"resolver:web.default.dc2": &DiscoveryGraphNode{
+					"resolver:web.default.dc2": {
 						Type: DiscoveryGraphNodeTypeResolver,
 						Name: "web.default.dc2",
 						Resolver: &DiscoveryResolver{
@@ -176,7 +176,7 @@ func TestAPI_DiscoveryChain_Get(t *testing.T) {
 					},
 				},
 				Targets: map[string]*DiscoveryTarget{
-					"web.default.dc2": &DiscoveryTarget{
+					"web.default.dc2": {
 						ID:         "web.default.dc2",
 						Service:    "web",
 						Namespace:  "default",

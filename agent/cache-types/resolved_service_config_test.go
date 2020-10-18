@@ -32,7 +32,7 @@ func TestResolvedServiceConfig(t *testing.T) {
 				"protocol": "http",
 			}
 			reply.UpstreamConfigs = map[string]map[string]interface{}{
-				"s2": map[string]interface{}{
+				"s2": {
 					"protocol": "http",
 				},
 			}

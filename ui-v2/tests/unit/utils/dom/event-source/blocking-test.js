@@ -1,6 +1,6 @@
 import domEventSourceBlocking, {
   validateCursor,
-  create5xxBackoff,
+  createErrorBackoff,
 } from 'consul-ui/utils/dom/event-source/blocking';
 import { module } from 'qunit';
 import test from 'ember-sinon-qunit/test-support/test';
@@ -46,13 +46,12 @@ module('Unit | Utility | dom/event-source/blocking', function() {
     assert.ok(source instanceof EventSource);
   });
   test("the 5xx backoff continues to throw when it's not a 5xx", function(assert) {
-    const backoff = create5xxBackoff();
+    const backoff = createErrorBackoff();
     [
       undefined,
       null,
       new Error(),
       { errors: [] },
-      { errors: [{ status: '0' }] },
       { errors: [{ status: 501 }] },
       { errors: [{ status: '401' }] },
       { errors: [{ status: '500' }] },
@@ -76,7 +75,7 @@ module('Unit | Utility | dom/event-source/blocking', function() {
       const timeout = this.stub().callsArg(0);
       const resolve = this.stub().withArgs(item);
       const Promise = createPromise(resolve);
-      const backoff = create5xxBackoff(undefined, Promise, timeout);
+      const backoff = createErrorBackoff(undefined, Promise, timeout);
       const promise = backoff(item);
       assert.ok(promise instanceof Promise, 'a promise was returned');
       assert.ok(resolve.calledOnce, 'the promise was resolved with the correct arguments');

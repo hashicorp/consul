@@ -1,8 +1,11 @@
+/*eslint ember/no-observers: "warn"*/
+// TODO: Remove ^
 // This helper requires `ember-href-to` for the moment at least
 // It's similar code but allows us to check on the type of route
 // (dynamic or wildcard) and encode or not depending on the type
 import { inject as service } from '@ember/service';
 import Helper from '@ember/component/helper';
+import { observer } from '@ember/object';
 import { hrefTo as _hrefTo } from 'ember-href-to/helpers/href-to';
 
 import wildcard from 'consul-ui/utils/routing/wildcard';
@@ -39,4 +42,7 @@ export default Helper.extend({
   compute(params, hash) {
     return hrefTo(this, this.router, params, hash);
   },
+  onURLChange: observer('router.currentURL', function() {
+    this.recompute();
+  }),
 });

@@ -1,8 +1,6 @@
 import Model from 'ember-data/model';
 import attr from 'ember-data/attr';
-import { computed, get } from '@ember/object';
-import sumOfUnhealthy from 'consul-ui/utils/sumOfUnhealthy';
-import hasStatus from 'consul-ui/utils/hasStatus';
+import { computed } from '@ember/object';
 
 export const PRIMARY_KEY = 'uid';
 export const SLUG_KEY = 'ID';
@@ -23,13 +21,25 @@ export default Model.extend({
   Coord: attr(),
   SyncTime: attr('number'),
   meta: attr(),
-  hasStatus: function(status) {
-    return hasStatus(get(this, 'Checks'), status);
-  },
-  isHealthy: computed('Checks', function() {
-    return sumOfUnhealthy(get(this, 'Checks')) === 0;
+  Status: computed('Checks.[]', 'ChecksCritical', 'ChecksPassing', 'ChecksWarning', function() {
+    switch (true) {
+      case this.ChecksCritical !== 0:
+        return 'critical';
+      case this.ChecksWarning !== 0:
+        return 'warning';
+      case this.ChecksPassing !== 0:
+        return 'passing';
+      default:
+        return 'empty';
+    }
   }),
-  isUnhealthy: computed('Checks', function() {
-    return sumOfUnhealthy(get(this, 'Checks')) > 0;
+  ChecksCritical: computed('Checks.[]', function() {
+    return this.Checks.filter(item => item.Status === 'critical').length;
+  }),
+  ChecksPassing: computed('Checks.[]', function() {
+    return this.Checks.filter(item => item.Status === 'passing').length;
+  }),
+  ChecksWarning: computed('Checks.[]', function() {
+    return this.Checks.filter(item => item.Status === 'warning').length;
   }),
 });

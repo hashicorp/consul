@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
 )
@@ -77,8 +78,6 @@ func TestSnapshotSaveCommand(t *testing.T) {
 	c := New(ui)
 
 	dir := testutil.TempDir(t, "snapshot")
-	defer os.RemoveAll(dir)
-
 	file := filepath.Join(dir, "backup.tgz")
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
@@ -151,8 +150,14 @@ func TestSnapshotSaveCommand_TruncatedStream(t *testing.T) {
 		_, _ = w.Write(data)
 	}))
 
+	// Wait until the server is actually listening.
+	retry.Run(t, func(r *retry.R) {
+		resp, err := http.Get("http://" + fakeAddr + "/not-real")
+		require.NoError(r, err)
+		require.Equal(r, http.StatusNotFound, resp.StatusCode)
+	})
+
 	dir := testutil.TempDir(t, "snapshot")
-	defer os.RemoveAll(dir)
 
 	for _, removeBytes := range []int{200, 16, 8, 4, 2, 1} {
 		t.Run(fmt.Sprintf("truncate %d bytes from end", removeBytes), func(t *testing.T) {

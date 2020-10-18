@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/mitchellh/hashstructure"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
@@ -68,7 +69,48 @@ const (
 	ACLAuthMethodDeleteRequestType              = 28
 	ChunkingStateType                           = 29
 	FederationStateRequestType                  = 30
+	SystemMetadataRequestType                   = 31
 )
+
+// if a new request type is added above it must be
+// added to the map below
+
+// requestTypeStrings is used for snapshot enhance
+// any new request types added must be placed here
+var requestTypeStrings = map[MessageType]string{
+	RegisterRequestType:             "Register",
+	DeregisterRequestType:           "Deregister",
+	KVSRequestType:                  "KVS",
+	SessionRequestType:              "Session",
+	ACLRequestType:                  "ACL", // DEPRECATED (ACL-Legacy-Compat)
+	TombstoneRequestType:            "Tombstone",
+	CoordinateBatchUpdateType:       "CoordinateBatchUpdate",
+	PreparedQueryRequestType:        "PreparedQuery",
+	TxnRequestType:                  "Txn",
+	AutopilotRequestType:            "Autopilot",
+	AreaRequestType:                 "Area",
+	ACLBootstrapRequestType:         "ACLBootstrap",
+	IntentionRequestType:            "Intention",
+	ConnectCARequestType:            "ConnectCA",
+	ConnectCAProviderStateType:      "ConnectCAProviderState",
+	ConnectCAConfigType:             "ConnectCAConfig", // FSM snapshots only.
+	IndexRequestType:                "Index",           // FSM snapshots only.
+	ACLTokenSetRequestType:          "ACLToken",
+	ACLTokenDeleteRequestType:       "ACLTokenDelete",
+	ACLPolicySetRequestType:         "ACLPolicy",
+	ACLPolicyDeleteRequestType:      "ACLPolicyDelete",
+	ConnectCALeafRequestType:        "ConnectCALeaf",
+	ConfigEntryRequestType:          "ConfigEntry",
+	ACLRoleSetRequestType:           "ACLRole",
+	ACLRoleDeleteRequestType:        "ACLRoleDelete",
+	ACLBindingRuleSetRequestType:    "ACLBindingRule",
+	ACLBindingRuleDeleteRequestType: "ACLBindingRuleDelete",
+	ACLAuthMethodSetRequestType:     "ACLAuthMethod",
+	ACLAuthMethodDeleteRequestType:  "ACLAuthMethodDelete",
+	ChunkingStateType:               "ChunkingState",
+	FederationStateRequestType:      "FederationState",
+	SystemMetadataRequestType:       "SystemMetadata",
+}
 
 const (
 	// IgnoreUnknownTypeFlag is set along with a MessageType
@@ -103,6 +145,9 @@ const (
 	// mesh gateway is usable for wan federation.
 	MetaWANFederationKey = "consul-wan-federation"
 
+	// MetaExternalSource is the metadata key used when a resource is managed by a source outside Consul like nomad/k8s
+	MetaExternalSource = "external-source"
+
 	// MaxLockDelay provides a maximum LockDelay value for
 	// a session. Any value above this will not be respected.
 	MaxLockDelay = 60 * time.Second
@@ -120,7 +165,7 @@ const (
 	WildcardSpecifier = "*"
 )
 
-var allowedConsulMetaKeysForMeshGateway = map[string]struct{}{MetaWANFederationKey: struct{}{}}
+var allowedConsulMetaKeysForMeshGateway = map[string]struct{}{MetaWANFederationKey: {}}
 
 var (
 	NodeMaintCheckID = NewCheckID(NodeMaint, nil)
@@ -212,6 +257,11 @@ type QueryOptions struct {
 	// Filter specifies the go-bexpr filter expression to be used for
 	// filtering the data prior to returning a response
 	Filter string
+
+	// AllowNotModifiedResponse indicates that if the MinIndex matches the
+	// QueryMeta.Index, the response can be left empty and QueryMeta.NotModified
+	// will be set to true to indicate the result of the query has not changed.
+	AllowNotModifiedResponse bool
 }
 
 // IsRead is always true for QueryOption.
@@ -268,7 +318,7 @@ func (w *WriteRequest) SetTokenSecret(s string) {
 // QueryMeta allows a query response to include potentially
 // useful metadata about a query
 type QueryMeta struct {
-	// This is the index associated with the read
+	// Index in the raft log of the latest item returned by the query.
 	Index uint64
 
 	// If AllowStale is used, this is time elapsed since
@@ -283,6 +333,12 @@ type QueryMeta struct {
 	// Having `discovery_max_stale` on the agent can affect whether
 	// the request was served by a leader.
 	ConsistencyLevel string
+
+	// NotModified is true when the Index of the query is the same value as the
+	// requested MinIndex. It indicates that the entity has not been modified.
+	// When NotModified is true, the response will not contain the result of
+	// the query.
+	NotModified bool
 }
 
 // RegisterRequest is used for the Catalog.Register endpoint
@@ -310,6 +366,7 @@ type RegisterRequest struct {
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 
 	WriteRequest
+	RaftIndex `bexpr:"-"`
 }
 
 func (r *RegisterRequest) RequestDatacenter() string {
@@ -502,6 +559,7 @@ type ServiceSpecificRequest struct {
 	Datacenter      string
 	NodeMetaFilters map[string]string
 	ServiceName     string
+	ServiceKind     ServiceKind
 	// DEPRECATED (singular-service-tag) - remove this when backwards RPC compat
 	// with 1.2.x is not required.
 	ServiceTag     string
@@ -512,9 +570,6 @@ type ServiceSpecificRequest struct {
 
 	// Connect if true will only search for Connect-compatible services.
 	Connect bool
-
-	// TODO(ingress): Add corresponding API changes after figuring out what the
-	// HTTP endpoint looks like
 
 	// Ingress if true will only search for Ingress gateways for the given service.
 	Ingress bool
@@ -843,12 +898,10 @@ func (s *ServiceNode) ToNodeService() *NodeService {
 	}
 }
 
-func (sn *ServiceNode) compoundID(preferName bool) ServiceID {
-	var id string
-	if sn.ServiceID == "" || (preferName && sn.ServiceName != "") {
+func (sn *ServiceNode) CompoundServiceID() ServiceID {
+	id := sn.ServiceID
+	if id == "" {
 		id = sn.ServiceName
-	} else {
-		id = sn.ServiceID
 	}
 
 	// copy the ent meta and normalize it
@@ -861,12 +914,20 @@ func (sn *ServiceNode) compoundID(preferName bool) ServiceID {
 	}
 }
 
-func (sn *ServiceNode) CompoundServiceID() ServiceID {
-	return sn.compoundID(false)
-}
+func (sn *ServiceNode) CompoundServiceName() ServiceName {
+	name := sn.ServiceName
+	if name == "" {
+		name = sn.ServiceID
+	}
 
-func (sn *ServiceNode) CompoundServiceName() ServiceID {
-	return sn.compoundID(true)
+	// copy the ent meta and normalize it
+	entMeta := sn.EnterpriseMeta
+	entMeta.Normalize()
+
+	return ServiceName{
+		Name:           name,
+		EnterpriseMeta: entMeta,
+	}
 }
 
 // Weights represent the weight used by DNS for a given status
@@ -984,12 +1045,10 @@ func (ns *NodeService) BestAddress(wan bool) (string, int) {
 	return addr, port
 }
 
-func (ns *NodeService) compoundID(preferName bool) ServiceID {
-	var id string
-	if ns.ID == "" || (preferName && ns.Service != "") {
+func (ns *NodeService) CompoundServiceID() ServiceID {
+	id := ns.ID
+	if id == "" {
 		id = ns.Service
-	} else {
-		id = ns.ID
 	}
 
 	// copy the ent meta and normalize it
@@ -1002,12 +1061,28 @@ func (ns *NodeService) compoundID(preferName bool) ServiceID {
 	}
 }
 
-func (ns *NodeService) CompoundServiceID() ServiceID {
-	return ns.compoundID(false)
+func (ns *NodeService) CompoundServiceName() ServiceName {
+	name := ns.Service
+	if name == "" {
+		name = ns.ID
+	}
+
+	// copy the ent meta and normalize it
+	entMeta := ns.EnterpriseMeta
+	entMeta.Normalize()
+
+	return ServiceName{
+		Name:           name,
+		EnterpriseMeta: entMeta,
+	}
 }
 
-func (ns *NodeService) CompoundServiceName() ServiceID {
-	return ns.compoundID(true)
+// UniqueID is a unique identifier for a service instance within a datacenter by encoding:
+// node/namespace/service_id
+//
+// Note: We do not have strict character restrictions in all node names, so this should NOT be split on / to retrieve components.
+func UniqueID(node string, compoundID string) string {
+	return fmt.Sprintf("%s/%s", node, compoundID)
 }
 
 // ServiceConnect are the shared Connect settings between all service
@@ -1035,10 +1110,12 @@ func (t *ServiceConnect) UnmarshalJSON(data []byte) (err error) {
 	}{
 		Alias: (*Alias)(t),
 	}
+
 	if err = json.Unmarshal(data, &aux); err != nil {
 		return err
 	}
-	if t.SidecarService == nil {
+
+	if t.SidecarService == nil && aux != nil {
 		t.SidecarService = aux.SidecarServiceSnake
 	}
 	return nil
@@ -1138,7 +1215,7 @@ func (s *NodeService) Validate() error {
 			path.Protocol = strings.ToLower(path.Protocol)
 			if ok := allowedExposeProtocols[path.Protocol]; !ok && path.Protocol != "" {
 				protocols := make([]string, 0)
-				for p, _ := range allowedExposeProtocols {
+				for p := range allowedExposeProtocols {
 					protocols = append(protocols, p)
 				}
 
@@ -1544,6 +1621,25 @@ func (csn *CheckServiceNode) BestAddress(wan bool) (string, int) {
 	return addr, port
 }
 
+func (csn *CheckServiceNode) CanRead(authz acl.Authorizer) acl.EnforcementDecision {
+	if csn.Node == nil || csn.Service == nil {
+		return acl.Deny
+	}
+
+	// TODO(streaming): add enterprise test that uses namespaces
+	authzContext := new(acl.AuthorizerContext)
+	csn.Service.FillAuthzContext(authzContext)
+
+	if authz.NodeRead(csn.Node.Node, authzContext) != acl.Allow {
+		return acl.Deny
+	}
+
+	if authz.ServiceRead(csn.Service.Service, authzContext) != acl.Allow {
+		return acl.Deny
+	}
+	return acl.Allow
+}
+
 type CheckServiceNodes []CheckServiceNode
 
 // Shuffle does an in-place random shuffle using the Fisher-Yates algorithm.
@@ -1552,6 +1648,20 @@ func (nodes CheckServiceNodes) Shuffle() {
 		j := rand.Int31n(int32(i + 1))
 		nodes[i], nodes[j] = nodes[j], nodes[i]
 	}
+}
+
+func (nodes CheckServiceNodes) ToServiceDump() ServiceDump {
+	var ret ServiceDump
+	for i := range nodes {
+		svc := ServiceInfo{
+			Node:           nodes[i].Node,
+			Service:        nodes[i].Service,
+			Checks:         nodes[i].Checks,
+			GatewayService: nil,
+		}
+		ret = append(ret, &svc)
+	}
+	return ret
 }
 
 // ShallowClone duplicates the slice and underlying array.
@@ -1616,6 +1726,15 @@ type NodeInfo struct {
 // associated data. This is currently used for the UI only,
 // as it is rather expensive to generate.
 type NodeDump []*NodeInfo
+
+type ServiceInfo struct {
+	Node           *Node
+	Service        *NodeService
+	Checks         HealthChecks
+	GatewayService *GatewayService
+}
+
+type ServiceDump []*ServiceInfo
 
 type CheckID struct {
 	ID types.CheckID
@@ -1702,16 +1821,48 @@ type IndexedServices struct {
 	QueryMeta
 }
 
-type ServiceInfo struct {
+type ServiceName struct {
 	Name string
 	EnterpriseMeta
 }
 
-func (si *ServiceInfo) ToServiceID() ServiceID {
-	return ServiceID{ID: si.Name, EnterpriseMeta: si.EnterpriseMeta}
+func NewServiceName(name string, entMeta *EnterpriseMeta) ServiceName {
+	var ret ServiceName
+	ret.Name = name
+	if entMeta == nil {
+		entMeta = DefaultEnterpriseMeta()
+	}
+
+	ret.EnterpriseMeta = *entMeta
+	ret.EnterpriseMeta.Normalize()
+	return ret
 }
 
-type ServiceList []ServiceInfo
+func (n *ServiceName) Matches(o *ServiceName) bool {
+	if n == nil && o == nil {
+		return true
+	}
+
+	if n == nil || o == nil || n.Name != o.Name || !n.EnterpriseMeta.Matches(&o.EnterpriseMeta) {
+		return false
+	}
+
+	return true
+}
+
+func (n *ServiceName) ToServiceID() ServiceID {
+	return ServiceID{ID: n.Name, EnterpriseMeta: n.EnterpriseMeta}
+}
+
+func (n *ServiceName) LessThan(other *ServiceName) bool {
+	if n.EnterpriseMeta.LessThan(&other.EnterpriseMeta) {
+		return true
+	}
+
+	return n.Name < other.Name
+}
+
+type ServiceList []ServiceName
 
 type IndexedServiceList struct {
 	Services ServiceList
@@ -1745,6 +1896,12 @@ type IndexedCheckServiceNodes struct {
 	QueryMeta
 }
 
+type IndexedNodesWithGateways struct {
+	Nodes    CheckServiceNodes
+	Gateways GatewayServices
+	QueryMeta
+}
+
 type DatacenterIndexedCheckServiceNodes struct {
 	DatacenterNodes map[string]CheckServiceNodes
 	QueryMeta
@@ -1755,9 +1912,31 @@ type IndexedNodeDump struct {
 	QueryMeta
 }
 
+type IndexedServiceDump struct {
+	Dump ServiceDump
+	QueryMeta
+}
+
 type IndexedGatewayServices struct {
 	Services GatewayServices
 	QueryMeta
+}
+
+type IndexedServiceTopology struct {
+	ServiceTopology *ServiceTopology
+	FilteredByACLs  bool
+	QueryMeta
+}
+
+type ServiceTopology struct {
+	Upstreams   CheckServiceNodes
+	Downstreams CheckServiceNodes
+
+	UpstreamDecisions   map[string]IntentionDecisionSummary
+	DownstreamDecisions map[string]IntentionDecisionSummary
+
+	// MetricsProtocol is the protocol of the service being queried
+	MetricsProtocol string
 }
 
 // IndexedConfigEntries has its own encoding logic which differs from
@@ -2276,13 +2455,14 @@ func (r *KeyringRequest) RequestDatacenter() string {
 // KeyringResponse is a unified key response and can be used for install,
 // remove, use, as well as listing key queries.
 type KeyringResponse struct {
-	WAN        bool
-	Datacenter string
-	Segment    string
-	Messages   map[string]string `json:",omitempty"`
-	Keys       map[string]int
-	NumNodes   int
-	Error      string `json:",omitempty"`
+	WAN         bool
+	Datacenter  string
+	Segment     string
+	Messages    map[string]string `json:",omitempty"`
+	Keys        map[string]int
+	PrimaryKeys map[string]int
+	NumNodes    int
+	Error       string `json:",omitempty"`
 }
 
 // KeyringResponses holds multiple responses to keyring queries. Each
@@ -2300,4 +2480,34 @@ func (r *KeyringResponses) Add(v interface{}) {
 
 func (r *KeyringResponses) New() interface{} {
 	return new(KeyringResponses)
+}
+
+// String converts message type int to string
+func (m MessageType) String() string {
+	s, ok := requestTypeStrings[m]
+	if ok {
+		return s
+	}
+
+	s, ok = enterpriseRequestType(m)
+	if ok {
+		return s
+	}
+	return "Unknown(" + strconv.Itoa(int(m)) + ")"
+
+}
+
+// UpstreamDownstream pairs come from individual proxy registrations, which can be updated independently.
+type UpstreamDownstream struct {
+	Upstream   ServiceName
+	Downstream ServiceName
+
+	// Refs stores the registrations that contain this pairing.
+	// When there are no remaining Refs, the UpstreamDownstream can be deleted.
+	//
+	// Note: This map must be treated as immutable when accessed in MemDB.
+	//       The entire UpstreamDownstream structure must be deep copied on updates.
+	Refs map[string]struct{}
+
+	RaftIndex
 }

@@ -1,20 +1,26 @@
 package state
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
 
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-memdb"
+	memdb "github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
+	"github.com/mitchellh/copystructure"
 )
 
 const (
 	servicesTableName        = "services"
 	gatewayServicesTableName = "gateway-services"
+	topologyTableName        = "mesh-topology"
 
 	// serviceLastExtinctionIndexName keeps track of the last raft index when the last instance
 	// of any service was unregistered. This is used by blocking queries on missing services.
@@ -27,7 +33,7 @@ func nodesTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: "nodes",
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": &memdb.IndexSchema{
+			"id": {
 				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,
@@ -36,7 +42,7 @@ func nodesTableSchema() *memdb.TableSchema {
 					Lowercase: true,
 				},
 			},
-			"uuid": &memdb.IndexSchema{
+			"uuid": {
 				Name:         "uuid",
 				AllowMissing: true,
 				Unique:       true,
@@ -44,7 +50,7 @@ func nodesTableSchema() *memdb.TableSchema {
 					Field: "ID",
 				},
 			},
-			"meta": &memdb.IndexSchema{
+			"meta": {
 				Name:         "meta",
 				AllowMissing: true,
 				Unique:       false,
@@ -69,11 +75,14 @@ func gatewayServicesTableNameSchema() *memdb.TableSchema {
 				Unique:       true,
 				Indexer: &memdb.CompoundIndex{
 					Indexes: []memdb.Indexer{
-						&ServiceIDIndex{
+						&ServiceNameIndex{
 							Field: "Gateway",
 						},
-						&ServiceIDIndex{
+						&ServiceNameIndex{
 							Field: "Service",
+						},
+						&memdb.IntFieldIndex{
+							Field: "Port",
 						},
 					},
 				},
@@ -82,7 +91,7 @@ func gatewayServicesTableNameSchema() *memdb.TableSchema {
 				Name:         "gateway",
 				AllowMissing: false,
 				Unique:       false,
-				Indexer: &ServiceIDIndex{
+				Indexer: &ServiceNameIndex{
 					Field: "Gateway",
 				},
 			},
@@ -90,7 +99,7 @@ func gatewayServicesTableNameSchema() *memdb.TableSchema {
 				Name:         "service",
 				AllowMissing: true,
 				Unique:       false,
-				Indexer: &ServiceIDIndex{
+				Indexer: &ServiceNameIndex{
 					Field: "Service",
 				},
 			},
@@ -98,11 +107,52 @@ func gatewayServicesTableNameSchema() *memdb.TableSchema {
 	}
 }
 
-type ServiceIDIndex struct {
+// topologyTableNameSchema returns a new table schema used to store information
+// relating upstream and downstream services
+func topologyTableNameSchema() *memdb.TableSchema {
+	return &memdb.TableSchema{
+		Name: topologyTableName,
+		Indexes: map[string]*memdb.IndexSchema{
+			"id": {
+				Name:         "id",
+				AllowMissing: false,
+				Unique:       true,
+				Indexer: &memdb.CompoundIndex{
+					Indexes: []memdb.Indexer{
+						&ServiceNameIndex{
+							Field: "Upstream",
+						},
+						&ServiceNameIndex{
+							Field: "Downstream",
+						},
+					},
+				},
+			},
+			"upstream": {
+				Name:         "upstream",
+				AllowMissing: true,
+				Unique:       false,
+				Indexer: &ServiceNameIndex{
+					Field: "Upstream",
+				},
+			},
+			"downstream": {
+				Name:         "downstream",
+				AllowMissing: false,
+				Unique:       false,
+				Indexer: &ServiceNameIndex{
+					Field: "Downstream",
+				},
+			},
+		},
+	}
+}
+
+type ServiceNameIndex struct {
 	Field string
 }
 
-func (index *ServiceIDIndex) FromObject(obj interface{}) (bool, []byte, error) {
+func (index *ServiceNameIndex) FromObject(obj interface{}) (bool, []byte, error) {
 	v := reflect.ValueOf(obj)
 	v = reflect.Indirect(v) // Dereference the pointer if any
 
@@ -114,33 +164,33 @@ func (index *ServiceIDIndex) FromObject(obj interface{}) (bool, []byte, error) {
 			fmt.Errorf("field '%s' for %#v is invalid %v ", index.Field, obj, isPtr)
 	}
 
-	sid, ok := fv.Interface().(structs.ServiceID)
+	name, ok := fv.Interface().(structs.ServiceName)
 	if !ok {
-		return false, nil, fmt.Errorf("Field 'ServiceID' is not of type structs.ServiceID")
+		return false, nil, fmt.Errorf("Field 'ServiceName' is not of type structs.ServiceName")
 	}
 
 	// Enforce lowercase and add null character as terminator
-	id := strings.ToLower(sid.String()) + "\x00"
+	id := strings.ToLower(name.String()) + "\x00"
 
 	return true, []byte(id), nil
 }
 
-func (index *ServiceIDIndex) FromArgs(args ...interface{}) ([]byte, error) {
+func (index *ServiceNameIndex) FromArgs(args ...interface{}) ([]byte, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("must provide only a single argument")
 	}
-	sid, ok := args[0].(structs.ServiceID)
+	name, ok := args[0].(structs.ServiceName)
 	if !ok {
-		return nil, fmt.Errorf("argument must be of type structs.ServiceID: %#v", args[0])
+		return nil, fmt.Errorf("argument must be of type structs.ServiceName: %#v", args[0])
 	}
 
 	// Enforce lowercase and add null character as terminator
-	id := strings.ToLower(sid.String()) + "\x00"
+	id := strings.ToLower(name.String()) + "\x00"
 
 	return []byte(strings.ToLower(id)), nil
 }
 
-func (index *ServiceIDIndex) PrefixFromArgs(args ...interface{}) ([]byte, error) {
+func (index *ServiceNameIndex) PrefixFromArgs(args ...interface{}) ([]byte, error) {
 	val, err := index.FromArgs(args...)
 	if err != nil {
 		return nil, err
@@ -159,6 +209,7 @@ func init() {
 	registerSchema(servicesTableSchema)
 	registerSchema(checksTableSchema)
 	registerSchema(gatewayServicesTableNameSchema)
+	registerSchema(topologyTableNameSchema)
 }
 
 const (
@@ -190,7 +241,7 @@ func (s *Snapshot) Nodes() (memdb.ResultIterator, error) {
 // Services is used to pull the full list of services for a given node for use
 // during snapshots.
 func (s *Snapshot) Services(node string) (memdb.ResultIterator, error) {
-	iter, err := s.store.catalogServiceListByNode(s.tx, node, structs.WildcardEnterpriseMeta(), true)
+	iter, err := catalogServiceListByNode(s.tx, node, structs.WildcardEnterpriseMeta(), true)
 	if err != nil {
 		return nil, err
 	}
@@ -200,7 +251,7 @@ func (s *Snapshot) Services(node string) (memdb.ResultIterator, error) {
 // Checks is used to pull the full list of checks for a given node for use
 // during snapshots.
 func (s *Snapshot) Checks(node string) (memdb.ResultIterator, error) {
-	iter, err := s.store.catalogListChecksByNode(s.tx, node, structs.WildcardEnterpriseMeta())
+	iter, err := catalogListChecksByNode(s.tx, node, structs.WildcardEnterpriseMeta())
 	if err != nil {
 		return nil, err
 	}
@@ -211,7 +262,7 @@ func (s *Snapshot) Checks(node string) (memdb.ResultIterator, error) {
 // performed within a single transaction to avoid race conditions on state
 // updates.
 func (s *Restore) Registration(idx uint64, req *structs.RegisterRequest) error {
-	if err := s.store.ensureRegistrationTxn(s.tx, idx, req); err != nil {
+	if err := s.store.ensureRegistrationTxn(s.tx, idx, true, req); err != nil {
 		return err
 	}
 	return nil
@@ -221,23 +272,22 @@ func (s *Restore) Registration(idx uint64, req *structs.RegisterRequest) error {
 // registration is performed within a single transaction to avoid race
 // conditions on state updates.
 func (s *Store) EnsureRegistration(idx uint64, req *structs.RegisterRequest) error {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
-	if err := s.ensureRegistrationTxn(tx, idx, req); err != nil {
+	if err := s.ensureRegistrationTxn(tx, idx, false, req); err != nil {
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
-func (s *Store) ensureCheckIfNodeMatches(tx *memdb.Txn, idx uint64, node string, check *structs.HealthCheck) error {
+func (s *Store) ensureCheckIfNodeMatches(tx *txn, idx uint64, preserveIndexes bool, node string, check *structs.HealthCheck) error {
 	if check.Node != node {
 		return fmt.Errorf("check node %q does not match node %q",
 			check.Node, node)
 	}
-	if err := s.ensureCheckTxn(tx, idx, check); err != nil {
+	if err := s.ensureCheckTxn(tx, idx, preserveIndexes, check); err != nil {
 		return fmt.Errorf("failed inserting check: %s on node %q", err, check.Node)
 	}
 	return nil
@@ -246,8 +296,8 @@ func (s *Store) ensureCheckIfNodeMatches(tx *memdb.Txn, idx uint64, node string,
 // ensureRegistrationTxn is used to make sure a node, service, and check
 // registration is performed within a single transaction to avoid race
 // conditions on state updates.
-func (s *Store) ensureRegistrationTxn(tx *memdb.Txn, idx uint64, req *structs.RegisterRequest) error {
-	if _, err := s.validateRegisterRequestTxn(tx, req); err != nil {
+func (s *Store) ensureRegistrationTxn(tx *txn, idx uint64, preserveIndexes bool, req *structs.RegisterRequest) error {
+	if _, err := validateRegisterRequestTxn(tx, req); err != nil {
 		return err
 	}
 
@@ -259,6 +309,10 @@ func (s *Store) ensureRegistrationTxn(tx *memdb.Txn, idx uint64, req *structs.Re
 		Datacenter:      req.Datacenter,
 		TaggedAddresses: req.TaggedAddresses,
 		Meta:            req.NodeMeta,
+	}
+	if preserveIndexes {
+		node.CreateIndex = req.CreateIndex
+		node.ModifyIndex = req.ModifyIndex
 	}
 
 	// Since this gets called for all node operations (service and check
@@ -272,7 +326,7 @@ func (s *Store) ensureRegistrationTxn(tx *memdb.Txn, idx uint64, req *structs.Re
 			return fmt.Errorf("node lookup failed: %s", err)
 		}
 		if existing == nil || req.ChangesNode(existing.(*structs.Node)) {
-			if err := s.ensureNodeTxn(tx, idx, node); err != nil {
+			if err := s.ensureNodeTxn(tx, idx, preserveIndexes, node); err != nil {
 				return fmt.Errorf("failed inserting node: %s", err)
 			}
 		}
@@ -287,7 +341,7 @@ func (s *Store) ensureRegistrationTxn(tx *memdb.Txn, idx uint64, req *structs.Re
 			return fmt.Errorf("failed service lookup: %s", err)
 		}
 		if existing == nil || !(existing.(*structs.ServiceNode).ToNodeService()).IsSame(req.Service) {
-			if err := s.ensureServiceTxn(tx, idx, req.Node, req.Service); err != nil {
+			if err := ensureServiceTxn(tx, idx, req.Node, preserveIndexes, req.Service); err != nil {
 				return fmt.Errorf("failed inserting service: %s", err)
 
 			}
@@ -296,12 +350,12 @@ func (s *Store) ensureRegistrationTxn(tx *memdb.Txn, idx uint64, req *structs.Re
 
 	// Add the checks, if any.
 	if req.Check != nil {
-		if err := s.ensureCheckIfNodeMatches(tx, idx, req.Node, req.Check); err != nil {
+		if err := s.ensureCheckIfNodeMatches(tx, idx, preserveIndexes, req.Node, req.Check); err != nil {
 			return err
 		}
 	}
 	for _, check := range req.Checks {
-		if err := s.ensureCheckIfNodeMatches(tx, idx, req.Node, check); err != nil {
+		if err := s.ensureCheckIfNodeMatches(tx, idx, preserveIndexes, req.Node, check); err != nil {
 			return err
 		}
 	}
@@ -311,21 +365,20 @@ func (s *Store) ensureRegistrationTxn(tx *memdb.Txn, idx uint64, req *structs.Re
 
 // EnsureNode is used to upsert node registration or modification.
 func (s *Store) EnsureNode(idx uint64, node *structs.Node) error {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	// Call the node upsert
-	if err := s.ensureNodeTxn(tx, idx, node); err != nil {
+	if err := s.ensureNodeTxn(tx, idx, false, node); err != nil {
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // ensureNoNodeWithSimilarNameTxn checks that no other node has conflict in its name
 // If allowClashWithoutID then, getting a conflict on another node without ID will be allowed
-func (s *Store) ensureNoNodeWithSimilarNameTxn(tx *memdb.Txn, node *structs.Node, allowClashWithoutID bool) error {
+func ensureNoNodeWithSimilarNameTxn(tx *txn, node *structs.Node, allowClashWithoutID bool) error {
 	// Retrieve all of the nodes
 	enodes, err := tx.Get("nodes", "id")
 	if err != nil {
@@ -361,7 +414,7 @@ func (s *Store) ensureNoNodeWithSimilarNameTxn(tx *memdb.Txn, node *structs.Node
 
 // ensureNodeCASTxn updates a node only if the existing index matches the given index.
 // Returns a bool indicating if a write happened and any error.
-func (s *Store) ensureNodeCASTxn(tx *memdb.Txn, idx uint64, node *structs.Node) (bool, error) {
+func (s *Store) ensureNodeCASTxn(tx *txn, idx uint64, node *structs.Node) (bool, error) {
 	// Retrieve the existing entry.
 	existing, err := getNodeTxn(tx, node.Node)
 	if err != nil {
@@ -381,7 +434,7 @@ func (s *Store) ensureNodeCASTxn(tx *memdb.Txn, idx uint64, node *structs.Node) 
 	}
 
 	// Perform the update.
-	if err := s.ensureNodeTxn(tx, idx, node); err != nil {
+	if err := s.ensureNodeTxn(tx, idx, false, node); err != nil {
 		return false, err
 	}
 
@@ -391,7 +444,7 @@ func (s *Store) ensureNodeCASTxn(tx *memdb.Txn, idx uint64, node *structs.Node) 
 // ensureNodeTxn is the inner function called to actually create a node
 // registration or modify an existing one in the state store. It allows
 // passing in a memdb transaction so it may be part of a larger txn.
-func (s *Store) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node) error {
+func (s *Store) ensureNodeTxn(tx *txn, idx uint64, preserveIndexes bool, node *structs.Node) error {
 	// See if there's an existing node with this UUID, and make sure the
 	// name is the same.
 	var n *structs.Node
@@ -404,7 +457,7 @@ func (s *Store) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node) err
 			n = existing
 			if n.Node != node.Node {
 				// Lets first get all nodes and check whether name do match, we do not allow clash on nodes without ID
-				dupNameError := s.ensureNoNodeWithSimilarNameTxn(tx, node, false)
+				dupNameError := ensureNoNodeWithSimilarNameTxn(tx, node, false)
 				if dupNameError != nil {
 					return fmt.Errorf("Error while renaming Node ID: %q (%s): %s", node.ID, node.Address, dupNameError)
 				}
@@ -418,7 +471,7 @@ func (s *Store) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node) err
 		} else {
 			// We allow to "steal" another node name that would have no ID
 			// It basically means that we allow upgrading a node without ID and add the ID
-			dupNameError := s.ensureNoNodeWithSimilarNameTxn(tx, node, true)
+			dupNameError := ensureNoNodeWithSimilarNameTxn(tx, node, true)
 			if dupNameError != nil {
 				return fmt.Errorf("Error while renaming Node ID: %q: %s", node.ID, dupNameError)
 			}
@@ -451,7 +504,11 @@ func (s *Store) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node) err
 			return nil
 		}
 		node.ModifyIndex = idx
-	} else {
+	} else if !preserveIndexes || node.CreateIndex == 0 {
+		// If this isn't a snapshot or there were no saved indexes, set CreateIndex
+		// and ModifyIndex from the given index. Prior to 1.9.0/1.8.3/1.7.7, nodes
+		// were not saved with an index, so this is to avoid ending up with a 0 index
+		// when loading a snapshot from an older version.
 		node.CreateIndex = idx
 		node.ModifyIndex = idx
 	}
@@ -466,7 +523,7 @@ func (s *Store) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node) err
 	// Update the node's service indexes as the node information is included
 	// in health queries and we would otherwise miss node updates in some cases
 	// for those queries.
-	if err := s.updateAllServiceIndexesOfNode(tx, idx, node.Node); err != nil {
+	if err := updateAllServiceIndexesOfNode(tx, idx, node.Node); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
@@ -489,7 +546,7 @@ func (s *Store) GetNode(id string) (uint64, *structs.Node, error) {
 	return idx, node, nil
 }
 
-func getNodeTxn(tx *memdb.Txn, nodeName string) (*structs.Node, error) {
+func getNodeTxn(tx *txn, nodeName string) (*structs.Node, error) {
 	node, err := tx.First("nodes", "id", nodeName)
 	if err != nil {
 		return nil, fmt.Errorf("node lookup failed: %s", err)
@@ -500,7 +557,7 @@ func getNodeTxn(tx *memdb.Txn, nodeName string) (*structs.Node, error) {
 	return nil, nil
 }
 
-func getNodeIDTxn(tx *memdb.Txn, id types.NodeID) (*structs.Node, error) {
+func getNodeIDTxn(tx *txn, id types.NodeID) (*structs.Node, error) {
 	strnode := string(id)
 	uuidValue, err := uuid.ParseUUID(strnode)
 	if err != nil {
@@ -586,7 +643,7 @@ func (s *Store) NodesByMeta(ws memdb.WatchSet, filters map[string]string) (uint6
 
 // DeleteNode is used to delete a given node by its ID.
 func (s *Store) DeleteNode(idx uint64, nodeName string) error {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	// Call the node deletion.
@@ -594,14 +651,13 @@ func (s *Store) DeleteNode(idx uint64, nodeName string) error {
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // deleteNodeCASTxn is used to try doing a node delete operation with a given
 // raft index. If the CAS index specified is not equal to the last observed index for
 // the given check, then the call is a noop, otherwise a normal check delete is invoked.
-func (s *Store) deleteNodeCASTxn(tx *memdb.Txn, idx, cidx uint64, nodeName string) (bool, error) {
+func (s *Store) deleteNodeCASTxn(tx *txn, idx, cidx uint64, nodeName string) (bool, error) {
 	// Look up the node.
 	node, err := getNodeTxn(tx, nodeName)
 	if err != nil {
@@ -628,7 +684,7 @@ func (s *Store) deleteNodeCASTxn(tx *memdb.Txn, idx, cidx uint64, nodeName strin
 
 // deleteNodeTxn is the inner method used for removing a node from
 // the store within a given transaction.
-func (s *Store) deleteNodeTxn(tx *memdb.Txn, idx uint64, nodeName string) error {
+func (s *Store) deleteNodeTxn(tx *txn, idx uint64, nodeName string) error {
 	// Look up the node.
 	node, err := tx.First("nodes", "id", nodeName)
 	if err != nil {
@@ -648,10 +704,10 @@ func (s *Store) deleteNodeTxn(tx *memdb.Txn, idx uint64, nodeName string) error 
 		svc := service.(*structs.ServiceNode)
 		deleteServices = append(deleteServices, svc)
 
-		if err := s.catalogUpdateServiceIndexes(tx, svc.ServiceName, idx, &svc.EnterpriseMeta); err != nil {
+		if err := catalogUpdateServiceIndexes(tx, svc.ServiceName, idx, &svc.EnterpriseMeta); err != nil {
 			return err
 		}
-		if err := s.catalogUpdateServiceKindIndexes(tx, svc.ServiceKind, idx, &svc.EnterpriseMeta); err != nil {
+		if err := catalogUpdateServiceKindIndexes(tx, svc.ServiceKind, idx, &svc.EnterpriseMeta); err != nil {
 			return err
 		}
 	}
@@ -704,7 +760,7 @@ func (s *Store) deleteNodeTxn(tx *memdb.Txn, idx uint64, nodeName string) error 
 	}
 
 	// Invalidate any sessions for this node.
-	toDelete, err := s.allNodeSessionsTxn(tx, nodeName)
+	toDelete, err := allNodeSessionsTxn(tx, nodeName)
 	if err != nil {
 		return err
 	}
@@ -720,51 +776,47 @@ func (s *Store) deleteNodeTxn(tx *memdb.Txn, idx uint64, nodeName string) error 
 
 // EnsureService is called to upsert creation of a given NodeService.
 func (s *Store) EnsureService(idx uint64, node string, svc *structs.NodeService) error {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	// Call the service registration upsert
-	if err := s.ensureServiceTxn(tx, idx, node, svc); err != nil {
+	if err := ensureServiceTxn(tx, idx, node, false, svc); err != nil {
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
+var errCASCompareFailed = errors.New("compare-and-set: comparison failed")
+
 // ensureServiceCASTxn updates a service only if the existing index matches the given index.
-// Returns a bool indicating if a write happened and any error.
-func (s *Store) ensureServiceCASTxn(tx *memdb.Txn, idx uint64, node string, svc *structs.NodeService) (bool, error) {
+// Returns an error if the write didn't happen and nil if write was successful.
+func ensureServiceCASTxn(tx *txn, idx uint64, node string, svc *structs.NodeService) error {
 	// Retrieve the existing service.
 	_, existing, err := firstWatchCompoundWithTxn(tx, "services", "id", &svc.EnterpriseMeta, node, svc.ID)
 	if err != nil {
-		return false, fmt.Errorf("failed service lookup: %s", err)
+		return fmt.Errorf("failed service lookup: %s", err)
 	}
 
 	// Check if the we should do the set. A ModifyIndex of 0 means that
 	// we are doing a set-if-not-exists.
 	if svc.ModifyIndex == 0 && existing != nil {
-		return false, nil
+		return errCASCompareFailed
 	}
 	if svc.ModifyIndex != 0 && existing == nil {
-		return false, nil
+		return errCASCompareFailed
 	}
 	e, ok := existing.(*structs.ServiceNode)
 	if ok && svc.ModifyIndex != 0 && svc.ModifyIndex != e.ModifyIndex {
-		return false, nil
+		return errCASCompareFailed
 	}
 
-	// Perform the update.
-	if err := s.ensureServiceTxn(tx, idx, node, svc); err != nil {
-		return false, err
-	}
-
-	return true, nil
+	return ensureServiceTxn(tx, idx, node, false, svc)
 }
 
 // ensureServiceTxn is used to upsert a service registration within an
 // existing memdb transaction.
-func (s *Store) ensureServiceTxn(tx *memdb.Txn, idx uint64, node string, svc *structs.NodeService) error {
+func ensureServiceTxn(tx *txn, idx uint64, node string, preserveIndexes bool, svc *structs.NodeService) error {
 	// Check for existing service
 	_, existing, err := firstWatchCompoundWithTxn(tx, "services", "id", &svc.EnterpriseMeta, node, svc.ID)
 	if err != nil {
@@ -776,9 +828,14 @@ func (s *Store) ensureServiceTxn(tx *memdb.Txn, idx uint64, node string, svc *st
 	}
 
 	// Check if this service is covered by a gateway's wildcard specifier
-	err = s.checkGatewayWildcardsAndUpdate(tx, idx, svc)
-	if err != nil {
+	if err = checkGatewayWildcardsAndUpdate(tx, idx, svc); err != nil {
 		return fmt.Errorf("failed updating gateway mapping: %s", err)
+	}
+	// Update upstream/downstream mappings if it's a connect service
+	if svc.Kind == structs.ServiceKindConnectProxy {
+		if err = updateMeshTopology(tx, idx, node, svc, existing); err != nil {
+			return fmt.Errorf("failed updating upstream/downstream association")
+		}
 	}
 
 	// Create the service node entry and populate the indexes. Note that
@@ -804,13 +861,16 @@ func (s *Store) ensureServiceTxn(tx *memdb.Txn, idx uint64, node string, svc *st
 		if entry.IsSameService(serviceNode) {
 			return nil
 		}
-	} else {
-		entry.CreateIndex = idx
 	}
-	entry.ModifyIndex = idx
+	if !preserveIndexes {
+		entry.ModifyIndex = idx
+		if existing == nil {
+			entry.CreateIndex = idx
+		}
+	}
 
 	// Insert the service and update the index
-	return s.catalogInsertService(tx, entry)
+	return catalogInsertService(tx, entry)
 }
 
 // Services returns all services along with a list of associated tags.
@@ -819,10 +879,10 @@ func (s *Store) Services(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (ui
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := s.catalogServicesMaxIndex(tx, entMeta)
+	idx := catalogServicesMaxIndex(tx, entMeta)
 
 	// List all the services.
-	services, err := s.catalogServiceList(tx, entMeta, false)
+	services, err := catalogServiceList(tx, entMeta, false)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed querying services: %s", err)
 	}
@@ -858,27 +918,27 @@ func (s *Store) ServiceList(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) 
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	return s.serviceListTxn(tx, ws, entMeta)
+	return serviceListTxn(tx, ws, entMeta)
 }
 
-func (s *Store) serviceListTxn(tx *memdb.Txn, ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.ServiceList, error) {
-	idx := s.catalogServicesMaxIndex(tx, entMeta)
+func serviceListTxn(tx *txn, ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.ServiceList, error) {
+	idx := catalogServicesMaxIndex(tx, entMeta)
 
-	services, err := s.catalogServiceList(tx, entMeta, true)
+	services, err := catalogServiceList(tx, entMeta, true)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed querying services: %s", err)
 	}
 	ws.Add(services.WatchCh())
 
-	unique := make(map[structs.ServiceID]struct{})
+	unique := make(map[structs.ServiceName]struct{})
 	for service := services.Next(); service != nil; service = services.Next() {
 		svc := service.(*structs.ServiceNode)
 		unique[svc.CompoundServiceName()] = struct{}{}
 	}
 
 	results := make(structs.ServiceList, 0, len(unique))
-	for sid, _ := range unique {
-		results = append(results, structs.ServiceInfo{Name: sid.ID, EnterpriseMeta: sid.EnterpriseMeta})
+	for sn := range unique {
+		results = append(results, structs.ServiceName{Name: sn.Name, EnterpriseMeta: sn.EnterpriseMeta})
 	}
 
 	return idx, results, nil
@@ -890,7 +950,7 @@ func (s *Store) ServicesByNodeMeta(ws memdb.WatchSet, filters map[string]string,
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := s.catalogServicesMaxIndex(tx, entMeta)
+	idx := catalogServicesMaxIndex(tx, entMeta)
 	if nodeIdx := maxIndexTxn(tx, "nodes"); nodeIdx > idx {
 		idx = nodeIdx
 	}
@@ -909,7 +969,7 @@ func (s *Store) ServicesByNodeMeta(ws memdb.WatchSet, filters map[string]string,
 
 	// We don't want to track an unlimited number of services, so we pull a
 	// top-level watch to use as a fallback.
-	allServices, err := s.catalogServiceList(tx, entMeta, false)
+	allServices, err := catalogServiceList(tx, entMeta, false)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed services lookup: %s", err)
 	}
@@ -924,7 +984,7 @@ func (s *Store) ServicesByNodeMeta(ws memdb.WatchSet, filters map[string]string,
 		}
 
 		// List all the services on the node
-		services, err := s.catalogServiceListByNode(tx, n.Node, entMeta, false)
+		services, err := catalogServiceListByNode(tx, n.Node, entMeta, false)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed querying services: %s", err)
 		}
@@ -965,8 +1025,8 @@ func (s *Store) ServicesByNodeMeta(ws memdb.WatchSet, filters map[string]string,
 //   * return when the last instance of a service is removed
 //   * block until an instance for this service is available, or another
 //     service is unregistered.
-func (s *Store) maxIndexForService(tx *memdb.Txn, serviceName string, serviceExists, checks bool, entMeta *structs.EnterpriseMeta) uint64 {
-	idx, _ := s.maxIndexAndWatchChForService(tx, serviceName, serviceExists, checks, entMeta)
+func maxIndexForService(tx *txn, serviceName string, serviceExists, checks bool, entMeta *structs.EnterpriseMeta) uint64 {
+	idx, _ := maxIndexAndWatchChForService(tx, serviceName, serviceExists, checks, entMeta)
 	return idx
 }
 
@@ -984,20 +1044,45 @@ func (s *Store) maxIndexForService(tx *memdb.Txn, serviceName string, serviceExi
 // returned for the chan. This allows for blocking watchers to _only_ watch this
 // one chan in the common case, falling back to watching all touched MemDB
 // indexes in more complicated cases.
-func (s *Store) maxIndexAndWatchChForService(tx *memdb.Txn, serviceName string, serviceExists, checks bool, entMeta *structs.EnterpriseMeta) (uint64, <-chan struct{}) {
+func maxIndexAndWatchChForService(tx *txn, serviceName string, serviceExists, checks bool, entMeta *structs.EnterpriseMeta) (uint64, <-chan struct{}) {
 	if !serviceExists {
-		res, err := s.catalogServiceLastExtinctionIndex(tx, entMeta)
+		res, err := catalogServiceLastExtinctionIndex(tx, entMeta)
 		if missingIdx, ok := res.(*IndexEntry); ok && err == nil {
 			// Note safe to only watch the extinction index as it's not updated when new instances come along so return nil watchCh
 			return missingIdx.Value, nil
 		}
 	}
 
-	ch, res, err := s.catalogServiceMaxIndex(tx, serviceName, entMeta)
+	ch, res, err := catalogServiceMaxIndex(tx, serviceName, entMeta)
 	if idx, ok := res.(*IndexEntry); ok && err == nil {
 		return idx.Value, ch
 	}
-	return s.catalogMaxIndex(tx, entMeta, checks), nil
+	return catalogMaxIndex(tx, entMeta, checks), nil
+}
+
+// Wrapper for maxIndexAndWatchChForService that operates on a list of ServiceNodes
+func maxIndexAndWatchChsForServiceNodes(tx *txn,
+	nodes structs.ServiceNodes, watchChecks bool) (uint64, []<-chan struct{}) {
+
+	var watchChans []<-chan struct{}
+	var maxIdx uint64
+
+	seen := make(map[structs.ServiceName]bool)
+	for i := 0; i < len(nodes); i++ {
+		sn := structs.NewServiceName(nodes[i].ServiceName, &nodes[i].EnterpriseMeta)
+		if ok := seen[sn]; !ok {
+			idx, svcCh := maxIndexAndWatchChForService(tx, sn.Name, true, watchChecks, &sn.EnterpriseMeta)
+			if idx > maxIdx {
+				maxIdx = idx
+			}
+			if svcCh != nil {
+				watchChans = append(watchChans, svcCh)
+			}
+			seen[sn] = true
+		}
+	}
+
+	return maxIdx, watchChans
 }
 
 // ConnectServiceNodes returns the nodes associated with a Connect
@@ -1022,7 +1107,7 @@ func (s *Store) serviceNodes(ws memdb.WatchSet, serviceName string, connect bool
 		index = "connect"
 	}
 
-	services, err := s.catalogServiceNodeList(tx, serviceName, index, entMeta)
+	services, err := catalogServiceNodeList(tx, serviceName, index, entMeta)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
 	}
@@ -1037,29 +1122,44 @@ func (s *Store) serviceNodes(ws memdb.WatchSet, serviceName string, connect bool
 	// Gateways are tracked in a separate table, and we append them to the result set.
 	// We append rather than replace since it allows users to migrate a service
 	// to the mesh with a mix of sidecars and gateways until all its instances have a sidecar.
+	var idx uint64
 	if connect {
 		// Look up gateway nodes associated with the service
-		_, nodes, chs, err := s.serviceGatewayNodes(tx, serviceName, structs.ServiceKindTerminatingGateway, entMeta)
+		gwIdx, nodes, err := serviceGatewayNodes(tx, ws, serviceName, structs.ServiceKindTerminatingGateway, entMeta)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed gateway nodes lookup: %v", err)
 		}
+		if idx < gwIdx {
+			idx = gwIdx
+		}
 
-		for _, ch := range chs {
+		// Watch for index changes to the gateway nodes
+		svcIdx, chans := maxIndexAndWatchChsForServiceNodes(tx, nodes, false)
+		if svcIdx > idx {
+			idx = svcIdx
+		}
+		for _, ch := range chans {
 			ws.Add(ch)
 		}
+
 		for i := 0; i < len(nodes); i++ {
 			results = append(results, nodes[i])
 		}
 	}
 
 	// Fill in the node details.
-	results, err = s.parseServiceNodes(tx, ws, results)
+	results, err = parseServiceNodes(tx, ws, results)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed parsing service nodes: %s", err)
 	}
 
 	// Get the table index.
-	idx := s.maxIndexForService(tx, serviceName, len(results) > 0, false, entMeta)
+	// TODO (gateways) (freddy) Why do we always consider the main service index here?
+	//      This doesn't seem to make sense for Connect when there's more than 1 result
+	svcIdx := maxIndexForService(tx, serviceName, len(results) > 0, false, entMeta)
+	if idx < svcIdx {
+		idx = svcIdx
+	}
 
 	return idx, results, nil
 }
@@ -1071,7 +1171,7 @@ func (s *Store) ServiceTagNodes(ws memdb.WatchSet, service string, tags []string
 	defer tx.Abort()
 
 	// List all the services.
-	services, err := s.catalogServiceNodeList(tx, service, "service", entMeta)
+	services, err := catalogServiceNodeList(tx, service, "service", entMeta)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
 	}
@@ -1089,12 +1189,12 @@ func (s *Store) ServiceTagNodes(ws memdb.WatchSet, service string, tags []string
 	}
 
 	// Fill in the node details.
-	results, err = s.parseServiceNodes(tx, ws, results)
+	results, err = parseServiceNodes(tx, ws, results)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed parsing service nodes: %s", err)
 	}
 	// Get the table index.
-	idx := s.maxIndexForService(tx, service, serviceExists, false, entMeta)
+	idx := maxIndexForService(tx, service, serviceExists, false, entMeta)
 
 	return idx, results, nil
 }
@@ -1136,7 +1236,7 @@ func (s *Store) ServiceAddressNodes(ws memdb.WatchSet, address string, entMeta *
 	defer tx.Abort()
 
 	// List all the services.
-	services, err := s.catalogServiceList(tx, entMeta, true)
+	services, err := catalogServiceList(tx, entMeta, true)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
 	}
@@ -1159,7 +1259,7 @@ func (s *Store) ServiceAddressNodes(ws memdb.WatchSet, address string, entMeta *
 	}
 
 	// Fill in the node details.
-	results, err = s.parseServiceNodes(tx, ws, results)
+	results, err = parseServiceNodes(tx, ws, results)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed parsing service nodes: %s", err)
 	}
@@ -1168,7 +1268,7 @@ func (s *Store) ServiceAddressNodes(ws memdb.WatchSet, address string, entMeta *
 
 // parseServiceNodes iterates over a services query and fills in the node details,
 // returning a ServiceNodes slice.
-func (s *Store) parseServiceNodes(tx *memdb.Txn, ws memdb.WatchSet, services structs.ServiceNodes) (structs.ServiceNodes, error) {
+func parseServiceNodes(tx *txn, ws memdb.WatchSet, services structs.ServiceNodes) (structs.ServiceNodes, error) {
 	// We don't want to track an unlimited number of nodes, so we pull a
 	// top-level watch to use as a fallback.
 	allNodes, err := tx.Get("nodes", "id")
@@ -1214,10 +1314,10 @@ func (s *Store) NodeService(nodeName string, serviceID string, entMeta *structs.
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := s.catalogServicesMaxIndex(tx, entMeta)
+	idx := catalogServicesMaxIndex(tx, entMeta)
 
 	// Query the service
-	service, err := s.getNodeServiceTxn(tx, nodeName, serviceID, entMeta)
+	service, err := getNodeServiceTxn(tx, nodeName, serviceID, entMeta)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed querying service for node %q: %s", nodeName, err)
 	}
@@ -1225,7 +1325,7 @@ func (s *Store) NodeService(nodeName string, serviceID string, entMeta *structs.
 	return idx, service, nil
 }
 
-func (s *Store) getNodeServiceTxn(tx *memdb.Txn, nodeName, serviceID string, entMeta *structs.EnterpriseMeta) (*structs.NodeService, error) {
+func getNodeServiceTxn(tx *txn, nodeName, serviceID string, entMeta *structs.EnterpriseMeta) (*structs.NodeService, error) {
 	// Query the service
 	_, service, err := firstWatchCompoundWithTxn(tx, "services", "id", entMeta, nodeName, serviceID)
 	if err != nil {
@@ -1244,7 +1344,7 @@ func (s *Store) nodeServices(ws memdb.WatchSet, nodeNameOrID string, entMeta *st
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := s.catalogMaxIndex(tx, entMeta, false)
+	idx := catalogMaxIndex(tx, entMeta, false)
 
 	// Query the node by node name
 	watchCh, n, err := tx.FirstWatch("nodes", "id", nodeNameOrID)
@@ -1291,7 +1391,7 @@ func (s *Store) nodeServices(ws memdb.WatchSet, nodeNameOrID string, entMeta *st
 	nodeName := node.Node
 
 	// Read all of the services
-	services, err := s.catalogServiceListByNode(tx, nodeName, entMeta, allowWildcard)
+	services, err := catalogServiceListByNode(tx, nodeName, entMeta, allowWildcard)
 	if err != nil {
 		return true, 0, nil, nil, fmt.Errorf("failed querying services for node %q: %s", nodeName, err)
 	}
@@ -1353,7 +1453,7 @@ func (s *Store) NodeServiceList(ws memdb.WatchSet, nodeNameOrID string, entMeta 
 
 // DeleteService is used to delete a given service associated with a node.
 func (s *Store) DeleteService(idx uint64, nodeName, serviceID string, entMeta *structs.EnterpriseMeta) error {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	// Call the service deletion
@@ -1361,16 +1461,15 @@ func (s *Store) DeleteService(idx uint64, nodeName, serviceID string, entMeta *s
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // deleteServiceCASTxn is used to try doing a service delete operation with a given
 // raft index. If the CAS index specified is not equal to the last observed index for
 // the given service, then the call is a noop, otherwise a normal delete is invoked.
-func (s *Store) deleteServiceCASTxn(tx *memdb.Txn, idx, cidx uint64, nodeName, serviceID string, entMeta *structs.EnterpriseMeta) (bool, error) {
+func (s *Store) deleteServiceCASTxn(tx *txn, idx, cidx uint64, nodeName, serviceID string, entMeta *structs.EnterpriseMeta) (bool, error) {
 	// Look up the service.
-	service, err := s.getNodeServiceTxn(tx, nodeName, serviceID, entMeta)
+	service, err := getNodeServiceTxn(tx, nodeName, serviceID, entMeta)
 	if err != nil {
 		return false, fmt.Errorf("service lookup failed: %s", err)
 	}
@@ -1395,7 +1494,7 @@ func (s *Store) deleteServiceCASTxn(tx *memdb.Txn, idx, cidx uint64, nodeName, s
 
 // deleteServiceTxn is the inner method called to remove a service
 // registration within an existing transaction.
-func (s *Store) deleteServiceTxn(tx *memdb.Txn, idx uint64, nodeName, serviceID string, entMeta *structs.EnterpriseMeta) error {
+func (s *Store) deleteServiceTxn(tx *txn, idx uint64, nodeName, serviceID string, entMeta *structs.EnterpriseMeta) error {
 	// Look up the service.
 	_, service, err := firstWatchCompoundWithTxn(tx, "services", "id", entMeta, nodeName, serviceID)
 	if err != nil {
@@ -1407,7 +1506,7 @@ func (s *Store) deleteServiceTxn(tx *memdb.Txn, idx uint64, nodeName, serviceID 
 
 	// Delete any checks associated with the service. This will invalidate
 	// sessions as necessary.
-	checks, err := s.catalogChecksForNodeService(tx, nodeName, serviceID, entMeta)
+	checks, err := catalogChecksForNodeService(tx, nodeName, serviceID, entMeta)
 	if err != nil {
 		return fmt.Errorf("failed service check lookup: %s", err)
 	}
@@ -1424,7 +1523,7 @@ func (s *Store) deleteServiceTxn(tx *memdb.Txn, idx uint64, nodeName, serviceID 
 	}
 
 	// Update the index.
-	if err := s.catalogUpdateCheckIndexes(tx, idx, entMeta); err != nil {
+	if err := catalogUpdateCheckIndexes(tx, idx, entMeta); err != nil {
 		return err
 	}
 
@@ -1432,24 +1531,29 @@ func (s *Store) deleteServiceTxn(tx *memdb.Txn, idx uint64, nodeName, serviceID 
 	if err := tx.Delete("services", service); err != nil {
 		return fmt.Errorf("failed deleting service: %s", err)
 	}
-	if err := s.catalogUpdateServicesIndexes(tx, idx, entMeta); err != nil {
+	if err := catalogUpdateServicesIndexes(tx, idx, entMeta); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
 	svc := service.(*structs.ServiceNode)
-	if err := s.catalogUpdateServiceKindIndexes(tx, svc.ServiceKind, idx, &svc.EnterpriseMeta); err != nil {
+	name := svc.CompoundServiceName()
+
+	if err := catalogUpdateServiceKindIndexes(tx, svc.ServiceKind, idx, &svc.EnterpriseMeta); err != nil {
 		return err
+	}
+	if err := cleanupMeshTopology(tx, idx, svc); err != nil {
+		return fmt.Errorf("failed to clean up mesh-topology associations for %q: %v", name.String(), err)
 	}
 
 	if _, remainingService, err := firstWatchWithTxn(tx, "services", "service", svc.ServiceName, entMeta); err == nil {
 		if remainingService != nil {
 			// We have at least one remaining service, update the index
-			if err := s.catalogUpdateServiceIndexes(tx, svc.ServiceName, idx, entMeta); err != nil {
+			if err := catalogUpdateServiceIndexes(tx, svc.ServiceName, idx, entMeta); err != nil {
 				return err
 			}
 		} else {
 			// There are no more service instances, cleanup the service.<serviceName> index
-			_, serviceIndex, err := s.catalogServiceMaxIndex(tx, svc.ServiceName, entMeta)
+			_, serviceIndex, err := catalogServiceMaxIndex(tx, svc.ServiceName, entMeta)
 			if err == nil && serviceIndex != nil {
 				// we found service.<serviceName> index, garbage collect it
 				if errW := tx.Delete("index", serviceIndex); errW != nil {
@@ -1457,16 +1561,11 @@ func (s *Store) deleteServiceTxn(tx *memdb.Txn, idx uint64, nodeName, serviceID 
 				}
 			}
 
-			if err := s.catalogUpdateServiceExtinctionIndex(tx, idx, entMeta); err != nil {
+			if err := catalogUpdateServiceExtinctionIndex(tx, idx, entMeta); err != nil {
 				return err
 			}
-
-			// Clean up association between service name and gateways
-			if _, err := tx.DeleteAll(gatewayServicesTableName, "service", structs.NewServiceID(svc.ServiceName, entMeta)); err != nil {
-				return fmt.Errorf("failed to truncate gateway services table: %v", err)
-			}
-			if err := indexUpdateMaxTxn(tx, idx, gatewayServicesTableName); err != nil {
-				return fmt.Errorf("failed updating gateway-services index: %v", err)
+			if err := cleanupGatewayWildcards(tx, idx, svc); err != nil {
+				return fmt.Errorf("failed to clean up gateway-service associations for %q: %v", name.String(), err)
 			}
 		}
 	} else {
@@ -1478,30 +1577,29 @@ func (s *Store) deleteServiceTxn(tx *memdb.Txn, idx uint64, nodeName, serviceID 
 
 // EnsureCheck is used to store a check registration in the db.
 func (s *Store) EnsureCheck(idx uint64, hc *structs.HealthCheck) error {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	// Call the check registration
-	if err := s.ensureCheckTxn(tx, idx, hc); err != nil {
+	if err := s.ensureCheckTxn(tx, idx, false, hc); err != nil {
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // updateAllServiceIndexesOfNode updates the Raft index of all the services associated with this node
-func (s *Store) updateAllServiceIndexesOfNode(tx *memdb.Txn, idx uint64, nodeID string) error {
+func updateAllServiceIndexesOfNode(tx *txn, idx uint64, nodeID string) error {
 	services, err := tx.Get("services", "node", nodeID)
 	if err != nil {
 		return fmt.Errorf("failed updating services for node %s: %s", nodeID, err)
 	}
 	for service := services.Next(); service != nil; service = services.Next() {
 		svc := service.(*structs.ServiceNode)
-		if err := s.catalogUpdateServiceIndexes(tx, svc.ServiceName, idx, &svc.EnterpriseMeta); err != nil {
+		if err := catalogUpdateServiceIndexes(tx, svc.ServiceName, idx, &svc.EnterpriseMeta); err != nil {
 			return err
 		}
-		if err := s.catalogUpdateServiceKindIndexes(tx, svc.ServiceKind, idx, &svc.EnterpriseMeta); err != nil {
+		if err := catalogUpdateServiceKindIndexes(tx, svc.ServiceKind, idx, &svc.EnterpriseMeta); err != nil {
 			return err
 		}
 	}
@@ -1510,9 +1608,9 @@ func (s *Store) updateAllServiceIndexesOfNode(tx *memdb.Txn, idx uint64, nodeID 
 
 // ensureCheckCASTxn updates a check only if the existing index matches the given index.
 // Returns a bool indicating if a write happened and any error.
-func (s *Store) ensureCheckCASTxn(tx *memdb.Txn, idx uint64, hc *structs.HealthCheck) (bool, error) {
+func (s *Store) ensureCheckCASTxn(tx *txn, idx uint64, hc *structs.HealthCheck) (bool, error) {
 	// Retrieve the existing entry.
-	_, existing, err := s.getNodeCheckTxn(tx, hc.Node, hc.CheckID, &hc.EnterpriseMeta)
+	_, existing, err := getNodeCheckTxn(tx, hc.Node, hc.CheckID, &hc.EnterpriseMeta)
 	if err != nil {
 		return false, fmt.Errorf("failed health check lookup: %s", err)
 	}
@@ -1530,17 +1628,17 @@ func (s *Store) ensureCheckCASTxn(tx *memdb.Txn, idx uint64, hc *structs.HealthC
 	}
 
 	// Perform the update.
-	if err := s.ensureCheckTxn(tx, idx, hc); err != nil {
+	if err := s.ensureCheckTxn(tx, idx, false, hc); err != nil {
 		return false, err
 	}
 
 	return true, nil
 }
 
-// ensureCheckTransaction is used as the inner method to handle inserting
+// ensureCheckTxn is used as the inner method to handle inserting
 // a health check into the state store. It ensures safety against inserting
 // checks with no matching node or service.
-func (s *Store) ensureCheckTxn(tx *memdb.Txn, idx uint64, hc *structs.HealthCheck) error {
+func (s *Store) ensureCheckTxn(tx *txn, idx uint64, preserveIndexes bool, hc *structs.HealthCheck) error {
 	// Check if we have an existing health check
 	_, existing, err := firstWatchCompoundWithTxn(tx, "checks", "id", &hc.EnterpriseMeta, hc.Node, string(hc.CheckID))
 	if err != nil {
@@ -1552,9 +1650,8 @@ func (s *Store) ensureCheckTxn(tx *memdb.Txn, idx uint64, hc *structs.HealthChec
 		existingCheck := existing.(*structs.HealthCheck)
 		hc.CreateIndex = existingCheck.CreateIndex
 		hc.ModifyIndex = existingCheck.ModifyIndex
-	} else {
+	} else if !preserveIndexes {
 		hc.CreateIndex = idx
-		hc.ModifyIndex = idx
 	}
 
 	// Use the default check status if none was provided
@@ -1590,10 +1687,10 @@ func (s *Store) ensureCheckTxn(tx *memdb.Txn, idx uint64, hc *structs.HealthChec
 		if existing != nil && existing.(*structs.HealthCheck).IsSame(hc) {
 			modified = false
 		} else {
-			if err = s.catalogUpdateServiceIndexes(tx, svc.ServiceName, idx, &svc.EnterpriseMeta); err != nil {
+			if err = catalogUpdateServiceIndexes(tx, svc.ServiceName, idx, &svc.EnterpriseMeta); err != nil {
 				return err
 			}
-			if err := s.catalogUpdateServiceKindIndexes(tx, svc.ServiceKind, idx, &svc.EnterpriseMeta); err != nil {
+			if err := catalogUpdateServiceKindIndexes(tx, svc.ServiceKind, idx, &svc.EnterpriseMeta); err != nil {
 				return err
 			}
 		}
@@ -1603,7 +1700,7 @@ func (s *Store) ensureCheckTxn(tx *memdb.Txn, idx uint64, hc *structs.HealthChec
 		} else {
 			// Since the check has been modified, it impacts all services of node
 			// Update the status for all the services associated with this node
-			err = s.updateAllServiceIndexesOfNode(tx, idx, hc.Node)
+			err = updateAllServiceIndexesOfNode(tx, idx, hc.Node)
 			if err != nil {
 				return err
 			}
@@ -1625,19 +1722,14 @@ func (s *Store) ensureCheckTxn(tx *memdb.Txn, idx uint64, hc *structs.HealthChec
 			}
 		}
 	}
-	if modified {
-		// We update the modify index, ONLY if something has changed, thus
-		// With constant output, no change is seen when watching a service
-		// With huge number of nodes where anti-entropy updates continuously
-		// the checks, but not the values within the check
+	if !modified {
+		return nil
+	}
+	if !preserveIndexes {
 		hc.ModifyIndex = idx
 	}
 
-	// TODO (state store) TODO (catalog) - should we be reinserting at all. Similar
-	// code in ensureServiceTxn simply returns nil when the service being inserted
-	// already exists without modifications thereby avoiding the memdb insertions
-	// and also preventing some blocking queries from waking unnecessarily.
-	return s.catalogInsertCheck(tx, hc, idx)
+	return catalogInsertCheck(tx, hc, idx)
 }
 
 // NodeCheck is used to retrieve a specific check associated with the given
@@ -1646,14 +1738,14 @@ func (s *Store) NodeCheck(nodeName string, checkID types.CheckID, entMeta *struc
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	return s.getNodeCheckTxn(tx, nodeName, checkID, entMeta)
+	return getNodeCheckTxn(tx, nodeName, checkID, entMeta)
 }
 
 // nodeCheckTxn is used as the inner method to handle reading a health check
 // from the state store.
-func (s *Store) getNodeCheckTxn(tx *memdb.Txn, nodeName string, checkID types.CheckID, entMeta *structs.EnterpriseMeta) (uint64, *structs.HealthCheck, error) {
+func getNodeCheckTxn(tx *txn, nodeName string, checkID types.CheckID, entMeta *structs.EnterpriseMeta) (uint64, *structs.HealthCheck, error) {
 	// Get the table index.
-	idx := s.catalogChecksMaxIndex(tx, entMeta)
+	idx := catalogChecksMaxIndex(tx, entMeta)
 
 	// Return the check.
 	_, check, err := firstWatchCompoundWithTxn(tx, "checks", "id", entMeta, nodeName, string(checkID))
@@ -1674,10 +1766,10 @@ func (s *Store) NodeChecks(ws memdb.WatchSet, nodeName string, entMeta *structs.
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := s.catalogChecksMaxIndex(tx, entMeta)
+	idx := catalogChecksMaxIndex(tx, entMeta)
 
 	// Return the checks.
-	iter, err := s.catalogListChecksByNode(tx, nodeName, entMeta)
+	iter, err := catalogListChecksByNode(tx, nodeName, entMeta)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed check lookup: %s", err)
 	}
@@ -1698,10 +1790,10 @@ func (s *Store) ServiceChecks(ws memdb.WatchSet, serviceName string, entMeta *st
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := s.catalogChecksMaxIndex(tx, entMeta)
+	idx := catalogChecksMaxIndex(tx, entMeta)
 
 	// Return the checks.
-	iter, err := s.catalogListChecksByService(tx, serviceName, entMeta)
+	iter, err := catalogListChecksByService(tx, serviceName, entMeta)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed check lookup: %s", err)
 	}
@@ -1724,15 +1816,15 @@ func (s *Store) ServiceChecksByNodeMeta(ws memdb.WatchSet, serviceName string,
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := s.maxIndexForService(tx, serviceName, true, true, entMeta)
+	idx := maxIndexForService(tx, serviceName, true, true, entMeta)
 	// Return the checks.
-	iter, err := s.catalogListChecksByService(tx, serviceName, entMeta)
+	iter, err := catalogListChecksByService(tx, serviceName, entMeta)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed check lookup: %s", err)
 	}
 	ws.Add(iter.WatchCh())
 
-	return s.parseChecksByNodeMeta(tx, ws, idx, iter, filters)
+	return parseChecksByNodeMeta(tx, ws, idx, iter, filters)
 }
 
 // ChecksInState is used to query the state store for all checks
@@ -1741,7 +1833,7 @@ func (s *Store) ChecksInState(ws memdb.WatchSet, state string, entMeta *structs.
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	idx, iter, err := s.checksInStateTxn(tx, ws, state, entMeta)
+	idx, iter, err := checksInStateTxn(tx, ws, state, entMeta)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -1759,25 +1851,25 @@ func (s *Store) ChecksInStateByNodeMeta(ws memdb.WatchSet, state string, filters
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	idx, iter, err := s.checksInStateTxn(tx, ws, state, entMeta)
+	idx, iter, err := checksInStateTxn(tx, ws, state, entMeta)
 	if err != nil {
 		return 0, nil, err
 	}
 
-	return s.parseChecksByNodeMeta(tx, ws, idx, iter, filters)
+	return parseChecksByNodeMeta(tx, ws, idx, iter, filters)
 }
 
-func (s *Store) checksInStateTxn(tx *memdb.Txn, ws memdb.WatchSet, state string, entMeta *structs.EnterpriseMeta) (uint64, memdb.ResultIterator, error) {
+func checksInStateTxn(tx *txn, ws memdb.WatchSet, state string, entMeta *structs.EnterpriseMeta) (uint64, memdb.ResultIterator, error) {
 	// Get the table index.
-	idx := s.catalogChecksMaxIndex(tx, entMeta)
+	idx := catalogChecksMaxIndex(tx, entMeta)
 
 	// Query all checks if HealthAny is passed, otherwise use the index.
 	var iter memdb.ResultIterator
 	var err error
 	if state == api.HealthAny {
-		iter, err = s.catalogListChecks(tx, entMeta)
+		iter, err = catalogListChecks(tx, entMeta)
 	} else {
-		iter, err = s.catalogListChecksInState(tx, state, entMeta)
+		iter, err = catalogListChecksInState(tx, state, entMeta)
 	}
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed check lookup: %s", err)
@@ -1789,7 +1881,7 @@ func (s *Store) checksInStateTxn(tx *memdb.Txn, ws memdb.WatchSet, state string,
 
 // parseChecksByNodeMeta is a helper function used to deduplicate some
 // repetitive code for returning health checks filtered by node metadata fields.
-func (s *Store) parseChecksByNodeMeta(tx *memdb.Txn, ws memdb.WatchSet,
+func parseChecksByNodeMeta(tx *txn, ws memdb.WatchSet,
 	idx uint64, iter memdb.ResultIterator, filters map[string]string) (uint64, structs.HealthChecks, error) {
 
 	// We don't want to track an unlimited number of nodes, so we pull a
@@ -1824,7 +1916,7 @@ func (s *Store) parseChecksByNodeMeta(tx *memdb.Txn, ws memdb.WatchSet,
 
 // DeleteCheck is used to delete a health check registration.
 func (s *Store) DeleteCheck(idx uint64, node string, checkID types.CheckID, entMeta *structs.EnterpriseMeta) error {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	// Call the check deletion
@@ -1832,16 +1924,15 @@ func (s *Store) DeleteCheck(idx uint64, node string, checkID types.CheckID, entM
 		return err
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }
 
 // deleteCheckCASTxn is used to try doing a check delete operation with a given
 // raft index. If the CAS index specified is not equal to the last observed index for
 // the given check, then the call is a noop, otherwise a normal check delete is invoked.
-func (s *Store) deleteCheckCASTxn(tx *memdb.Txn, idx, cidx uint64, node string, checkID types.CheckID, entMeta *structs.EnterpriseMeta) (bool, error) {
+func (s *Store) deleteCheckCASTxn(tx *txn, idx, cidx uint64, node string, checkID types.CheckID, entMeta *structs.EnterpriseMeta) (bool, error) {
 	// Try to retrieve the existing health check.
-	_, hc, err := s.getNodeCheckTxn(tx, node, checkID, entMeta)
+	_, hc, err := getNodeCheckTxn(tx, node, checkID, entMeta)
 	if err != nil {
 		return false, fmt.Errorf("check lookup failed: %s", err)
 	}
@@ -1866,7 +1957,7 @@ func (s *Store) deleteCheckCASTxn(tx *memdb.Txn, idx, cidx uint64, node string, 
 
 // deleteCheckTxn is the inner method used to call a health
 // check deletion within an existing transaction.
-func (s *Store) deleteCheckTxn(tx *memdb.Txn, idx uint64, node string, checkID types.CheckID, entMeta *structs.EnterpriseMeta) error {
+func (s *Store) deleteCheckTxn(tx *txn, idx uint64, node string, checkID types.CheckID, entMeta *structs.EnterpriseMeta) error {
 	// Try to retrieve the existing health check.
 	_, hc, err := firstWatchCompoundWithTxn(tx, "checks", "id", entMeta, node, string(checkID))
 	if err != nil {
@@ -1879,7 +1970,7 @@ func (s *Store) deleteCheckTxn(tx *memdb.Txn, idx uint64, node string, checkID t
 	if existing != nil {
 		// When no service is linked to this service, update all services of node
 		if existing.ServiceID != "" {
-			if err := s.catalogUpdateServiceIndexes(tx, existing.ServiceName, idx, &existing.EnterpriseMeta); err != nil {
+			if err := catalogUpdateServiceIndexes(tx, existing.ServiceName, idx, &existing.EnterpriseMeta); err != nil {
 				return err
 			}
 
@@ -1889,14 +1980,14 @@ func (s *Store) deleteCheckTxn(tx *memdb.Txn, idx uint64, node string, checkID t
 			}
 
 			svc := svcRaw.(*structs.ServiceNode)
-			if err := s.catalogUpdateServiceKindIndexes(tx, svc.ServiceKind, idx, &svc.EnterpriseMeta); err != nil {
+			if err := catalogUpdateServiceKindIndexes(tx, svc.ServiceKind, idx, &svc.EnterpriseMeta); err != nil {
 				return err
 			}
 		} else {
-			if err := s.updateAllServiceIndexesOfNode(tx, idx, existing.Node); err != nil {
+			if err := updateAllServiceIndexesOfNode(tx, idx, existing.Node); err != nil {
 				return fmt.Errorf("Failed to update services linked to deleted healthcheck: %s", err)
 			}
-			if err := s.catalogUpdateServicesIndexes(tx, idx, entMeta); err != nil {
+			if err := catalogUpdateServicesIndexes(tx, idx, entMeta); err != nil {
 				return err
 			}
 		}
@@ -1907,7 +1998,7 @@ func (s *Store) deleteCheckTxn(tx *memdb.Txn, idx uint64, node string, checkID t
 		return fmt.Errorf("failed removing check: %s", err)
 	}
 
-	if err := s.catalogUpdateCheckIndexes(tx, idx, entMeta); err != nil {
+	if err := catalogUpdateCheckIndexes(tx, idx, entMeta); err != nil {
 		return err
 	}
 
@@ -1927,6 +2018,33 @@ func (s *Store) deleteCheckTxn(tx *memdb.Txn, idx uint64, node string, checkID t
 	return nil
 }
 
+// CombinedCheckServiceNodes is used to query all nodes and checks for both typical and Connect endpoints of a service
+func (s *Store) CombinedCheckServiceNodes(ws memdb.WatchSet, service structs.ServiceName) (uint64, structs.CheckServiceNodes, error) {
+	var (
+		resp   structs.CheckServiceNodes
+		maxIdx uint64
+	)
+	idx, csn, err := s.CheckServiceNodes(ws, service.Name, &service.EnterpriseMeta)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to get downstream nodes for %q: %v", service, err)
+	}
+	if idx > maxIdx {
+		maxIdx = idx
+	}
+	resp = append(resp, csn...)
+
+	idx, csn, err = s.CheckConnectServiceNodes(ws, service.Name, &service.EnterpriseMeta)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to get downstream connect nodes for %q: %v", service, err)
+	}
+	if idx > maxIdx {
+		maxIdx = idx
+	}
+	resp = append(resp, csn...)
+
+	return maxIdx, resp, nil
+}
+
 // CheckServiceNodes is used to query all nodes and checks for a given service.
 func (s *Store) CheckServiceNodes(ws memdb.WatchSet, serviceName string, entMeta *structs.EnterpriseMeta) (uint64, structs.CheckServiceNodes, error) {
 	return s.checkServiceNodes(ws, serviceName, false, entMeta)
@@ -1943,35 +2061,34 @@ func (s *Store) CheckConnectServiceNodes(ws memdb.WatchSet, serviceName string, 
 func (s *Store) CheckIngressServiceNodes(ws memdb.WatchSet, serviceName string, entMeta *structs.EnterpriseMeta) (uint64, structs.CheckServiceNodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	maxIdx, nodes, watchChs, err := s.serviceGatewayNodes(tx, serviceName, structs.ServiceKindIngressGateway, entMeta)
+
+	maxIdx, nodes, err := serviceGatewayNodes(tx, ws, serviceName, structs.ServiceKindIngressGateway, entMeta)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed gateway nodes lookup: %v", err)
 	}
 
 	// TODO(ingress) : Deal with incorporating index from mapping table
-
-	// Watch list of gateway nodes for changes
-	for _, ch := range watchChs {
+	// Watch for index changes to the gateway nodes
+	idx, chans := maxIndexAndWatchChsForServiceNodes(tx, nodes, false)
+	for _, ch := range chans {
 		ws.Add(ch)
 	}
+	maxIdx = lib.MaxUint64(maxIdx, idx)
 
 	// TODO(ingress): Test namespace functionality here
 	// De-dup services to lookup
-	serviceIDs := make(map[structs.ServiceID]struct{})
+	names := make(map[structs.ServiceName]struct{})
 	for _, n := range nodes {
-		serviceIDs[n.CompoundServiceName()] = struct{}{}
+		names[n.CompoundServiceName()] = struct{}{}
 	}
 
 	var results structs.CheckServiceNodes
-	for sid := range serviceIDs {
-		idx, n, err := s.checkServiceNodesTxn(tx, ws, sid.ID, false, &sid.EnterpriseMeta)
+	for sn := range names {
+		idx, n, err := checkServiceNodesTxn(tx, ws, sn.Name, false, &sn.EnterpriseMeta)
 		if err != nil {
 			return 0, nil, err
 		}
-		if idx > maxIdx {
-			maxIdx = idx
-		}
-
+		maxIdx = lib.MaxUint64(maxIdx, idx)
 		results = append(results, n...)
 	}
 	return maxIdx, results, nil
@@ -1981,10 +2098,10 @@ func (s *Store) checkServiceNodes(ws memdb.WatchSet, serviceName string, connect
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	return s.checkServiceNodesTxn(tx, ws, serviceName, connect, entMeta)
+	return checkServiceNodesTxn(tx, ws, serviceName, connect, entMeta)
 }
 
-func (s *Store) checkServiceNodesTxn(tx *memdb.Txn, ws memdb.WatchSet, serviceName string, connect bool, entMeta *structs.EnterpriseMeta) (uint64, structs.CheckServiceNodes, error) {
+func checkServiceNodesTxn(tx *txn, ws memdb.WatchSet, serviceName string, connect bool, entMeta *structs.EnterpriseMeta) (uint64, structs.CheckServiceNodes, error) {
 	// Function for lookup
 	index := "service"
 	if connect {
@@ -1992,7 +2109,7 @@ func (s *Store) checkServiceNodesTxn(tx *memdb.Txn, ws memdb.WatchSet, serviceNa
 	}
 
 	// Query the state store for the service.
-	iter, err := s.catalogServiceNodeList(tx, serviceName, index, entMeta)
+	iter, err := catalogServiceNodeList(tx, serviceName, index, entMeta)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
 	}
@@ -2011,26 +2128,32 @@ func (s *Store) checkServiceNodesTxn(tx *memdb.Txn, ws memdb.WatchSet, serviceNa
 	// service name IFF there is at least one Connect-native instance of that
 	// service. Either way there is usually only one distinct name if proxies are
 	// named consistently but could be multiple.
-	serviceNames := make(map[string]struct{}, 2)
+	serviceNames := make(map[structs.ServiceName]struct{}, 2)
 	for service := iter.Next(); service != nil; service = iter.Next() {
 		sn := service.(*structs.ServiceNode)
 		results = append(results, sn)
-		serviceNames[sn.ServiceName] = struct{}{}
+
+		name := structs.NewServiceName(sn.ServiceName, &sn.EnterpriseMeta)
+		serviceNames[name] = struct{}{}
 	}
 
 	// If we are querying for Connect nodes, the associated proxy might be a terminating-gateway.
 	// Gateways are tracked in a separate table, and we append them to the result set.
 	// We append rather than replace since it allows users to migrate a service
 	// to the mesh with a mix of sidecars and gateways until all its instances have a sidecar.
+	var idx uint64
 	if connect {
 		// Look up gateway nodes associated with the service
-		_, nodes, _, err := s.serviceGatewayNodes(tx, serviceName, structs.ServiceKindTerminatingGateway, entMeta)
+		gwIdx, nodes, err := serviceGatewayNodes(tx, ws, serviceName, structs.ServiceKindTerminatingGateway, entMeta)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed gateway nodes lookup: %v", err)
 		}
+		idx = lib.MaxUint64(idx, gwIdx)
 		for i := 0; i < len(nodes); i++ {
 			results = append(results, nodes[i])
-			serviceNames[nodes[i].ServiceName] = struct{}{}
+
+			name := structs.NewServiceName(nodes[i].ServiceName, &nodes[i].EnterpriseMeta)
+			serviceNames[name] = struct{}{}
 		}
 	}
 
@@ -2043,22 +2166,19 @@ func (s *Store) checkServiceNodesTxn(tx *memdb.Txn, ws memdb.WatchSet, serviceNa
 	// (~682 service instances). See
 	// https://github.com/hashicorp/consul/issues/4984
 	watchOptimized := false
-	idx := uint64(0)
 	if len(serviceNames) > 0 {
 		// Assume optimization will work since it really should at this point. For
 		// safety we'll sanity check this below for each service name.
 		watchOptimized = true
 
 		// Fetch indexes for all names services in result set.
-		for svcName := range serviceNames {
+		for n := range serviceNames {
 			// We know service values should exist since the serviceNames map is only
 			// populated if there is at least one result above. so serviceExists arg
 			// below is always true.
-			svcIdx, svcCh := s.maxIndexAndWatchChForService(tx, svcName, true, true, entMeta)
+			svcIdx, svcCh := maxIndexAndWatchChForService(tx, n.Name, true, true, &n.EnterpriseMeta)
 			// Take the max index represented
-			if idx < svcIdx {
-				idx = svcIdx
-			}
+			idx = lib.MaxUint64(idx, svcIdx)
 			if svcCh != nil {
 				// Watch the service-specific index for changes in liu of all iradix nodes
 				// for checks etc.
@@ -2073,11 +2193,12 @@ func (s *Store) checkServiceNodesTxn(tx *memdb.Txn, ws memdb.WatchSet, serviceNa
 		}
 	} else {
 		// If we have no results, we should use the index of the last service
-		// extinction event so we don't go backwards when services de-register. We
+		// extinction event so we don't go backwards when services deregister. We
 		// use target serviceName here but it actually doesn't matter. No chan will
 		// be returned as we can't use the optimization in this case (and don't need
 		// to as there is only one chan to watch anyway).
-		idx, _ = s.maxIndexAndWatchChForService(tx, serviceName, false, true, entMeta)
+		svcIdx, _ := maxIndexAndWatchChForService(tx, serviceName, false, true, entMeta)
+		idx = lib.MaxUint64(idx, svcIdx)
 	}
 
 	// Create a nil watchset to pass below, we'll only pass the real one if we
@@ -2102,7 +2223,7 @@ func (s *Store) checkServiceNodesTxn(tx *memdb.Txn, ws memdb.WatchSet, serviceNa
 		ws.Add(iter.WatchCh())
 	}
 
-	return s.parseCheckServiceNodes(tx, fallbackWS, idx, serviceName, results, err)
+	return parseCheckServiceNodes(tx, fallbackWS, idx, results, err)
 }
 
 // CheckServiceTagNodes is used to query all nodes and checks for a given
@@ -2112,7 +2233,7 @@ func (s *Store) CheckServiceTagNodes(ws memdb.WatchSet, serviceName string, tags
 	defer tx.Abort()
 
 	// Query the state store for the service.
-	iter, err := s.catalogServiceNodeList(tx, serviceName, "service", entMeta)
+	iter, err := catalogServiceNodeList(tx, serviceName, "service", entMeta)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
 	}
@@ -2130,8 +2251,8 @@ func (s *Store) CheckServiceTagNodes(ws memdb.WatchSet, serviceName string, tags
 	}
 
 	// Get the table index.
-	idx := s.maxIndexForService(tx, serviceName, serviceExists, true, entMeta)
-	return s.parseCheckServiceNodes(tx, ws, idx, serviceName, results, err)
+	idx := maxIndexForService(tx, serviceName, serviceExists, true, entMeta)
+	return parseCheckServiceNodes(tx, ws, idx, results, err)
 }
 
 // GatewayServices is used to query all services associated with a gateway
@@ -2139,31 +2260,27 @@ func (s *Store) GatewayServices(ws memdb.WatchSet, gateway string, entMeta *stru
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	iter, err := s.gatewayServices(tx, gateway, entMeta)
+	iter, err := gatewayServices(tx, gateway, entMeta)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed gateway services lookup: %s", err)
 	}
 	ws.Add(iter.WatchCh())
 
-	var results structs.GatewayServices
-	for service := iter.Next(); service != nil; service = iter.Next() {
-		svc := service.(*structs.GatewayService)
-
-		if svc.Service.ID != structs.WildcardSpecifier {
-			results = append(results, svc)
-		}
+	maxIdx, results, err := s.collectGatewayServices(tx, ws, iter)
+	if err != nil {
+		return 0, nil, err
 	}
-
 	idx := maxIndexTxn(tx, gatewayServicesTableName)
-	return idx, results, nil
+
+	return lib.MaxUint64(maxIdx, idx), results, nil
 }
 
 // parseCheckServiceNodes is used to parse through a given set of services,
 // and query for an associated node and a set of checks. This is the inner
 // method used to return a rich set of results from a more simple query.
-func (s *Store) parseCheckServiceNodes(
-	tx *memdb.Txn, ws memdb.WatchSet, idx uint64,
-	serviceName string, services structs.ServiceNodes,
+func parseCheckServiceNodes(
+	tx *txn, ws memdb.WatchSet, idx uint64,
+	services structs.ServiceNodes,
 	err error) (uint64, structs.CheckServiceNodes, error) {
 	if err != nil {
 		return 0, nil, err
@@ -2209,7 +2326,7 @@ func (s *Store) parseCheckServiceNodes(
 		// First add the node-level checks. These always apply to any
 		// service on the node.
 		var checks structs.HealthChecks
-		iter, err := s.catalogListNodeChecks(tx, sn.Node)
+		iter, err := catalogListNodeChecks(tx, sn.Node)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -2219,7 +2336,7 @@ func (s *Store) parseCheckServiceNodes(
 		}
 
 		// Now add the service-specific checks.
-		iter, err = s.catalogListServiceChecks(tx, sn.Node, sn.ServiceID, &sn.EnterpriseMeta)
+		iter, err = catalogListServiceChecks(tx, sn.Node, sn.ServiceID, &sn.EnterpriseMeta)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -2246,7 +2363,7 @@ func (s *Store) NodeInfo(ws memdb.WatchSet, node string, entMeta *structs.Enterp
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := s.catalogMaxIndex(tx, entMeta, true)
+	idx := catalogMaxIndex(tx, entMeta, true)
 
 	// Query the node by the passed node
 	nodes, err := tx.Get("nodes", "id", node)
@@ -2254,7 +2371,7 @@ func (s *Store) NodeInfo(ws memdb.WatchSet, node string, entMeta *structs.Enterp
 		return 0, nil, fmt.Errorf("failed node lookup: %s", err)
 	}
 	ws.Add(nodes.WatchCh())
-	return s.parseNodes(tx, ws, idx, nodes, entMeta)
+	return parseNodes(tx, ws, idx, nodes, entMeta)
 }
 
 // NodeDump is used to generate a dump of all nodes. This call is expensive
@@ -2265,7 +2382,7 @@ func (s *Store) NodeDump(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (ui
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := s.catalogMaxIndex(tx, entMeta, true)
+	idx := catalogMaxIndex(tx, entMeta, true)
 
 	// Fetch all of the registered nodes
 	nodes, err := tx.Get("nodes", "id")
@@ -2273,7 +2390,7 @@ func (s *Store) NodeDump(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (ui
 		return 0, nil, fmt.Errorf("failed node lookup: %s", err)
 	}
 	ws.Add(nodes.WatchCh())
-	return s.parseNodes(tx, ws, idx, nodes, entMeta)
+	return parseNodes(tx, ws, idx, nodes, entMeta)
 }
 
 func (s *Store) ServiceDump(ws memdb.WatchSet, kind structs.ServiceKind, useKind bool, entMeta *structs.EnterpriseMeta) (uint64, structs.CheckServiceNodes, error) {
@@ -2281,17 +2398,17 @@ func (s *Store) ServiceDump(ws memdb.WatchSet, kind structs.ServiceKind, useKind
 	defer tx.Abort()
 
 	if useKind {
-		return s.serviceDumpKindTxn(tx, ws, kind, entMeta)
+		return serviceDumpKindTxn(tx, ws, kind, entMeta)
 	} else {
-		return s.serviceDumpAllTxn(tx, ws, entMeta)
+		return serviceDumpAllTxn(tx, ws, entMeta)
 	}
 }
 
-func (s *Store) serviceDumpAllTxn(tx *memdb.Txn, ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.CheckServiceNodes, error) {
+func serviceDumpAllTxn(tx *txn, ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.CheckServiceNodes, error) {
 	// Get the table index
-	idx := s.catalogMaxIndexWatch(tx, ws, entMeta, true)
+	idx := catalogMaxIndexWatch(tx, ws, entMeta, true)
 
-	services, err := s.catalogServiceList(tx, entMeta, true)
+	services, err := catalogServiceList(tx, entMeta, true)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
 	}
@@ -2302,17 +2419,17 @@ func (s *Store) serviceDumpAllTxn(tx *memdb.Txn, ws memdb.WatchSet, entMeta *str
 		results = append(results, sn)
 	}
 
-	return s.parseCheckServiceNodes(tx, nil, idx, "", results, err)
+	return parseCheckServiceNodes(tx, nil, idx, results, err)
 }
 
-func (s *Store) serviceDumpKindTxn(tx *memdb.Txn, ws memdb.WatchSet, kind structs.ServiceKind, entMeta *structs.EnterpriseMeta) (uint64, structs.CheckServiceNodes, error) {
+func serviceDumpKindTxn(tx *txn, ws memdb.WatchSet, kind structs.ServiceKind, entMeta *structs.EnterpriseMeta) (uint64, structs.CheckServiceNodes, error) {
 	// unlike when we are dumping all services here we only need to watch the kind specific index entry for changing (or nodes, checks)
 	// updating any services, nodes or checks will bump the appropriate service kind index so there is no need to watch any of the individual
 	// entries
-	idx := s.catalogServiceKindMaxIndex(tx, ws, kind, entMeta)
+	idx := catalogServiceKindMaxIndex(tx, ws, kind, entMeta)
 
 	// Query the state store for the service.
-	services, err := s.catalogServiceListByKind(tx, kind, entMeta)
+	services, err := catalogServiceListByKind(tx, kind, entMeta)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
 	}
@@ -2323,13 +2440,13 @@ func (s *Store) serviceDumpKindTxn(tx *memdb.Txn, ws memdb.WatchSet, kind struct
 		results = append(results, sn)
 	}
 
-	return s.parseCheckServiceNodes(tx, nil, idx, "", results, err)
+	return parseCheckServiceNodes(tx, nil, idx, results, err)
 }
 
 // parseNodes takes an iterator over a set of nodes and returns a struct
 // containing the nodes along with all of their associated services
 // and/or health checks.
-func (s *Store) parseNodes(tx *memdb.Txn, ws memdb.WatchSet, idx uint64,
+func parseNodes(tx *txn, ws memdb.WatchSet, idx uint64,
 	iter memdb.ResultIterator, entMeta *structs.EnterpriseMeta) (uint64, structs.NodeDump, error) {
 
 	// We don't want to track an unlimited number of services, so we pull a
@@ -2361,7 +2478,7 @@ func (s *Store) parseNodes(tx *memdb.Txn, ws memdb.WatchSet, idx uint64,
 		}
 
 		// Query the node services
-		services, err := s.catalogServiceListByNode(tx, node.Node, entMeta, true)
+		services, err := catalogServiceListByNode(tx, node.Node, entMeta, true)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed services lookup: %s", err)
 		}
@@ -2372,7 +2489,7 @@ func (s *Store) parseNodes(tx *memdb.Txn, ws memdb.WatchSet, idx uint64,
 		}
 
 		// Query the service level checks
-		checks, err := s.catalogListChecksByNode(tx, node.Node, entMeta)
+		checks, err := catalogListChecksByNode(tx, node.Node, entMeta)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed node lookup: %s", err)
 		}
@@ -2389,7 +2506,7 @@ func (s *Store) parseNodes(tx *memdb.Txn, ws memdb.WatchSet, idx uint64,
 }
 
 // checkSessionsTxn returns the IDs of all sessions associated with a health check
-func checkSessionsTxn(tx *memdb.Txn, hc *structs.HealthCheck) ([]*sessionCheck, error) {
+func checkSessionsTxn(tx *txn, hc *structs.HealthCheck) ([]*sessionCheck, error) {
 	mappings, err := getCompoundWithTxn(tx, "session_checks", "node_check", &hc.EnterpriseMeta, hc.Node, string(hc.CheckID))
 	if err != nil {
 		return nil, fmt.Errorf("failed session checks lookup: %s", err)
@@ -2403,34 +2520,42 @@ func checkSessionsTxn(tx *memdb.Txn, hc *structs.HealthCheck) ([]*sessionCheck, 
 }
 
 // updateGatewayServices associates services with gateways as specified in a gateway config entry
-func (s *Store) updateGatewayServices(tx *memdb.Txn, idx uint64, conf structs.ConfigEntry, entMeta *structs.EnterpriseMeta) error {
-	var gatewayServices structs.GatewayServices
-	var err error
+func updateGatewayServices(tx *txn, idx uint64, conf structs.ConfigEntry, entMeta *structs.EnterpriseMeta) error {
+	var (
+		noChange        bool
+		gatewayServices structs.GatewayServices
+		err             error
+	)
 
-	gatewayID := structs.NewServiceID(conf.GetName(), conf.GetEnterpriseMeta())
+	gateway := structs.NewServiceName(conf.GetName(), entMeta)
 	switch conf.GetKind() {
 	case structs.IngressGateway:
-		gatewayServices, err = s.ingressConfigGatewayServices(tx, gatewayID, conf, entMeta)
+		noChange, gatewayServices, err = ingressConfigGatewayServices(tx, gateway, conf, entMeta)
 	case structs.TerminatingGateway:
-		gatewayServices, err = s.terminatingConfigGatewayServices(tx, gatewayID, conf, entMeta)
+		noChange, gatewayServices, err = terminatingConfigGatewayServices(tx, gateway, conf, entMeta)
 	default:
 		return fmt.Errorf("config entry kind %q does not need gateway-services", conf.GetKind())
 	}
 	// Return early if there is an error OR we don't have any services to update
-	if err != nil {
+	if err != nil || noChange {
 		return err
 	}
 
 	// Delete all associated with gateway first, to avoid keeping mappings that were removed
-	if _, err := tx.DeleteAll(gatewayServicesTableName, "gateway", structs.NewServiceID(conf.GetName(), entMeta)); err != nil {
+	sn := structs.NewServiceName(conf.GetName(), entMeta)
+
+	if _, err := tx.DeleteAll(gatewayServicesTableName, "gateway", sn); err != nil {
 		return fmt.Errorf("failed to truncate gateway services table: %v", err)
+	}
+	if err := truncateGatewayServiceTopologyMappings(tx, idx, sn, conf.GetKind()); err != nil {
+		return fmt.Errorf("failed to truncate mesh topology for gateway: %v", err)
 	}
 
 	for _, svc := range gatewayServices {
 		// If the service is a wildcard we need to target all services within the namespace
-		if svc.Service.ID == structs.WildcardSpecifier {
-			if err := s.updateGatewayNamespace(tx, idx, svc, entMeta); err != nil {
-				return fmt.Errorf("failed to associate gateway %q with wildcard: %v", gatewayID.String(), err)
+		if svc.Service.Name == structs.WildcardSpecifier {
+			if err := updateGatewayNamespace(tx, idx, svc, entMeta); err != nil {
+				return fmt.Errorf("failed to associate gateway %q with wildcard: %v", gateway.String(), err)
 			}
 			// Skip service-specific update below if there was a wildcard update
 			continue
@@ -2441,7 +2566,7 @@ func (s *Store) updateGatewayServices(tx *memdb.Txn, idx uint64, conf structs.Co
 		//
 		// By extension, if TLS creds are provided with a wildcard but are not provided in
 		// the service entry, the service does not inherit the creds from the wildcard.
-		err = s.updateGatewayService(tx, idx, svc)
+		err = updateGatewayService(tx, idx, svc)
 		if err != nil {
 			return err
 		}
@@ -2453,21 +2578,29 @@ func (s *Store) updateGatewayServices(tx *memdb.Txn, idx uint64, conf structs.Co
 	return nil
 }
 
-func (s *Store) ingressConfigGatewayServices(tx *memdb.Txn, gateway structs.ServiceID, conf structs.ConfigEntry, entMeta *structs.EnterpriseMeta) (structs.GatewayServices, error) {
+// ingressConfigGatewayServices constructs a list of GatewayService structs for
+// insertion into the memdb table, specific to ingress gateways. The boolean
+// returned indicates that there are no changes necessary to the memdb table.
+func ingressConfigGatewayServices(
+	tx *txn,
+	gateway structs.ServiceName,
+	conf structs.ConfigEntry,
+	entMeta *structs.EnterpriseMeta,
+) (bool, structs.GatewayServices, error) {
 	entry, ok := conf.(*structs.IngressGatewayConfigEntry)
 	if !ok {
-		return nil, fmt.Errorf("unexpected config entry type: %T", conf)
+		return false, nil, fmt.Errorf("unexpected config entry type: %T", conf)
 	}
 
 	// Check if service list matches the last known list for the config entry, if it does, skip the update
-	_, c, err := s.configEntryTxn(tx, nil, conf.GetKind(), conf.GetName(), entMeta)
+	_, c, err := configEntryTxn(tx, nil, conf.GetKind(), conf.GetName(), entMeta)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get config entry: %v", err)
+		return false, nil, fmt.Errorf("failed to get config entry: %v", err)
 	}
 	if cfg, ok := c.(*structs.IngressGatewayConfigEntry); ok && cfg != nil {
 		if reflect.DeepEqual(cfg.Listeners, entry.Listeners) {
 			// Services are the same, nothing to update
-			return nil, nil
+			return true, nil, nil
 		}
 	}
 
@@ -2476,32 +2609,43 @@ func (s *Store) ingressConfigGatewayServices(tx *memdb.Txn, gateway structs.Serv
 		for _, service := range listener.Services {
 			mapping := &structs.GatewayService{
 				Gateway:     gateway,
-				Service:     service.ToServiceID(),
+				Service:     service.ToServiceName(),
 				GatewayKind: structs.ServiceKindIngressGateway,
+				Hosts:       service.Hosts,
 				Port:        listener.Port,
+				Protocol:    listener.Protocol,
 			}
 
 			gatewayServices = append(gatewayServices, mapping)
 		}
 	}
-	return gatewayServices, nil
+	return false, gatewayServices, nil
 }
 
-func (s *Store) terminatingConfigGatewayServices(tx *memdb.Txn, gateway structs.ServiceID, conf structs.ConfigEntry, entMeta *structs.EnterpriseMeta) (structs.GatewayServices, error) {
+// terminatingConfigGatewayServices constructs a list of GatewayService structs
+// for insertion into the memdb table, specific to terminating gateways. The
+// boolean returned indicates that there are no changes necessary to the memdb
+// table.
+func terminatingConfigGatewayServices(
+	tx *txn,
+	gateway structs.ServiceName,
+	conf structs.ConfigEntry,
+	entMeta *structs.EnterpriseMeta,
+) (bool, structs.GatewayServices, error) {
 	entry, ok := conf.(*structs.TerminatingGatewayConfigEntry)
 	if !ok {
-		return nil, fmt.Errorf("unexpected config entry type: %T", conf)
+		return false, nil, fmt.Errorf("unexpected config entry type: %T", conf)
 	}
 
 	// Check if service list matches the last known list for the config entry, if it does, skip the update
-	_, c, err := s.configEntryTxn(tx, nil, conf.GetKind(), conf.GetName(), entMeta)
+	_, c, err := configEntryTxn(tx, nil, conf.GetKind(), conf.GetName(), entMeta)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get config entry: %v", err)
+		return false, nil, fmt.Errorf("failed to get config entry: %v", err)
 	}
 	if cfg, ok := c.(*structs.TerminatingGatewayConfigEntry); ok && cfg != nil {
 		if reflect.DeepEqual(cfg.Services, entry.Services) {
 			// Services are the same, nothing to update
-			return nil, nil
+			return true, nil, nil
 		}
 	}
 
@@ -2509,21 +2653,22 @@ func (s *Store) terminatingConfigGatewayServices(tx *memdb.Txn, gateway structs.
 	for _, svc := range entry.Services {
 		mapping := &structs.GatewayService{
 			Gateway:     gateway,
-			Service:     structs.NewServiceID(svc.Name, &svc.EnterpriseMeta),
+			Service:     structs.NewServiceName(svc.Name, &svc.EnterpriseMeta),
 			GatewayKind: structs.ServiceKindTerminatingGateway,
 			KeyFile:     svc.KeyFile,
 			CertFile:    svc.CertFile,
 			CAFile:      svc.CAFile,
+			SNI:         svc.SNI,
 		}
 
 		gatewayServices = append(gatewayServices, mapping)
 	}
-	return gatewayServices, nil
+	return false, gatewayServices, nil
 }
 
 // updateGatewayNamespace is used to target all services within a namespace
-func (s *Store) updateGatewayNamespace(tx *memdb.Txn, idx uint64, service *structs.GatewayService, entMeta *structs.EnterpriseMeta) error {
-	services, err := s.catalogServiceListByKind(tx, structs.ServiceKindTypical, entMeta)
+func updateGatewayNamespace(tx *txn, idx uint64, service *structs.GatewayService, entMeta *structs.EnterpriseMeta) error {
+	services, err := catalogServiceListByKind(tx, structs.ServiceKindTypical, entMeta)
 	if err != nil {
 		return fmt.Errorf("failed querying services: %s", err)
 	}
@@ -2537,7 +2682,7 @@ func (s *Store) updateGatewayNamespace(tx *memdb.Txn, idx uint64, service *struc
 			continue
 		}
 
-		existing, err := tx.First(gatewayServicesTableName, "id", service.Gateway, sn.CompoundServiceName())
+		existing, err := tx.First(gatewayServicesTableName, "id", service.Gateway, sn.CompoundServiceName(), service.Port)
 		if err != nil {
 			return fmt.Errorf("gateway service lookup failed: %s", err)
 		}
@@ -2548,8 +2693,11 @@ func (s *Store) updateGatewayNamespace(tx *memdb.Txn, idx uint64, service *struc
 		}
 
 		mapping := service.Clone()
-		mapping.Service = structs.NewServiceID(sn.ServiceName, &service.Service.EnterpriseMeta)
-		err = s.updateGatewayService(tx, idx, mapping)
+
+		mapping.Service = structs.NewServiceName(sn.ServiceName, &service.Service.EnterpriseMeta)
+		mapping.FromWildcard = true
+
+		err = updateGatewayService(tx, idx, mapping)
 		if err != nil {
 			return err
 		}
@@ -2557,7 +2705,7 @@ func (s *Store) updateGatewayNamespace(tx *memdb.Txn, idx uint64, service *struc
 
 	// Also store a mapping for the wildcard so that the TLS creds can be pulled
 	// for new services registered in its namespace
-	err = s.updateGatewayService(tx, idx, service)
+	err = updateGatewayService(tx, idx, service)
 	if err != nil {
 		return err
 	}
@@ -2566,10 +2714,10 @@ func (s *Store) updateGatewayNamespace(tx *memdb.Txn, idx uint64, service *struc
 
 // updateGatewayService associates services with gateways after an eligible event
 // ie. Registering a service in a namespace targeted by a gateway
-func (s *Store) updateGatewayService(tx *memdb.Txn, idx uint64, mapping *structs.GatewayService) error {
+func updateGatewayService(tx *txn, idx uint64, mapping *structs.GatewayService) error {
 	// Check if mapping already exists in table if it's already in the table
 	// Avoid insert if nothing changed
-	existing, err := tx.First(gatewayServicesTableName, "id", mapping.Gateway, mapping.Service)
+	existing, err := tx.First(gatewayServicesTableName, "id", mapping.Gateway, mapping.Service, mapping.Port)
 	if err != nil {
 		return fmt.Errorf("gateway service lookup failed: %s", err)
 	}
@@ -2591,19 +2739,23 @@ func (s *Store) updateGatewayService(tx *memdb.Txn, idx uint64, mapping *structs
 	if err := indexUpdateMaxTxn(tx, idx, gatewayServicesTableName); err != nil {
 		return fmt.Errorf("failed updating gateway-services index: %v", err)
 	}
+
+	if err := insertGatewayServiceTopologyMapping(tx, idx, mapping); err != nil {
+		return fmt.Errorf("failed to reconcile mesh topology for gateway: %v", err)
+	}
 	return nil
 }
 
 // checkWildcardForGatewaysAndUpdate checks whether a service matches a
 // wildcard definition in gateway config entries and if so adds it the the
 // gateway-services table.
-func (s *Store) checkGatewayWildcardsAndUpdate(tx *memdb.Txn, idx uint64, svc *structs.NodeService) error {
+func checkGatewayWildcardsAndUpdate(tx *txn, idx uint64, svc *structs.NodeService) error {
 	// Do not associate non-typical services with gateways or consul services
 	if svc.Kind != structs.ServiceKindTypical || svc.Service == "consul" {
 		return nil
 	}
 
-	svcGateways, err := s.serviceGateways(tx, structs.WildcardSpecifier, &svc.EnterpriseMeta)
+	svcGateways, err := serviceGateways(tx, structs.WildcardSpecifier, &svc.EnterpriseMeta)
 	if err != nil {
 		return fmt.Errorf("failed gateway lookup for %q: %s", svc.Service, err)
 	}
@@ -2612,10 +2764,39 @@ func (s *Store) checkGatewayWildcardsAndUpdate(tx *memdb.Txn, idx uint64, svc *s
 
 			// Copy the wildcard mapping and modify it
 			gatewaySvc := wildcardSvc.Clone()
-			gatewaySvc.Service = structs.NewServiceID(svc.Service, &svc.EnterpriseMeta)
 
-			if err = s.updateGatewayService(tx, idx, gatewaySvc); err != nil {
+			gatewaySvc.Service = structs.NewServiceName(svc.Service, &svc.EnterpriseMeta)
+			gatewaySvc.FromWildcard = true
+
+			if err = updateGatewayService(tx, idx, gatewaySvc); err != nil {
 				return fmt.Errorf("Failed to associate service %q with gateway %q", gatewaySvc.Service.String(), gatewaySvc.Gateway.String())
+			}
+		}
+	}
+	return nil
+}
+
+func cleanupGatewayWildcards(tx *txn, idx uint64, svc *structs.ServiceNode) error {
+	// Clean up association between service name and gateways if needed
+	gateways, err := serviceGateways(tx, svc.ServiceName, &svc.EnterpriseMeta)
+	if err != nil {
+		return fmt.Errorf("failed gateway lookup for %q: %s", svc.ServiceName, err)
+	}
+	for mapping := gateways.Next(); mapping != nil; mapping = gateways.Next() {
+		if gs, ok := mapping.(*structs.GatewayService); ok && gs != nil {
+			// Only delete if association was created by a wildcard specifier.
+			// Otherwise the service was specified in the config entry, and the association should be maintained
+			// for when the service is re-registered
+			if gs.FromWildcard {
+				if err := tx.Delete(gatewayServicesTableName, gs); err != nil {
+					return fmt.Errorf("failed to truncate gateway services table: %v", err)
+				}
+				if err := indexUpdateMaxTxn(tx, idx, gatewayServicesTableName); err != nil {
+					return fmt.Errorf("failed updating gateway-services index: %v", err)
+				}
+				if err := deleteGatewayServiceTopologyMapping(tx, idx, gs); err != nil {
+					return fmt.Errorf("failed to reconcile mesh topology for gateway: %v", err)
+				}
 			}
 		}
 	}
@@ -2624,26 +2805,71 @@ func (s *Store) checkGatewayWildcardsAndUpdate(tx *memdb.Txn, idx uint64, svc *s
 
 // serviceGateways returns all GatewayService entries with the given service name. This effectively looks up
 // all the gateways mapped to this service.
-func (s *Store) serviceGateways(tx *memdb.Txn, name string, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get(gatewayServicesTableName, "service", structs.NewServiceID(name, entMeta))
+func serviceGateways(tx *txn, name string, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+	return tx.Get(gatewayServicesTableName, "service", structs.NewServiceName(name, entMeta))
 }
 
-func (s *Store) gatewayServices(tx *memdb.Txn, name string, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get(gatewayServicesTableName, "gateway", structs.NewServiceID(name, entMeta))
+func gatewayServices(tx *txn, name string, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+	return tx.Get(gatewayServicesTableName, "gateway", structs.NewServiceName(name, entMeta))
+}
+
+func (s *Store) DumpGatewayServices(ws memdb.WatchSet) (uint64, structs.GatewayServices, error) {
+	tx := s.db.ReadTxn()
+	defer tx.Abort()
+
+	iter, err := tx.Get(gatewayServicesTableName, "id")
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to dump gateway-services: %s", err)
+	}
+	ws.Add(iter.WatchCh())
+
+	maxIdx, results, err := s.collectGatewayServices(tx, ws, iter)
+	if err != nil {
+		return 0, nil, err
+	}
+	idx := maxIndexTxn(tx, gatewayServicesTableName)
+
+	return lib.MaxUint64(maxIdx, idx), results, nil
+}
+
+func (s *Store) collectGatewayServices(tx *txn, ws memdb.WatchSet, iter memdb.ResultIterator) (uint64, structs.GatewayServices, error) {
+	var maxIdx uint64
+	var results structs.GatewayServices
+
+	for obj := iter.Next(); obj != nil; obj = iter.Next() {
+		gs := obj.(*structs.GatewayService)
+		maxIdx = lib.MaxUint64(maxIdx, gs.ModifyIndex)
+
+		if gs.Service.Name != structs.WildcardSpecifier {
+			idx, matches, err := checkProtocolMatch(tx, ws, gs)
+			if err != nil {
+				return 0, nil, fmt.Errorf("failed checking protocol: %s", err)
+			}
+			maxIdx = lib.MaxUint64(maxIdx, idx)
+
+			if matches {
+				results = append(results, gs)
+			}
+		}
+	}
+	return maxIdx, results, nil
 }
 
 // TODO(ingress): How to handle index rolling back when a config entry is
 // deleted that references a service?
 // We might need something like the service_last_extinction index?
-func (s *Store) serviceGatewayNodes(tx *memdb.Txn, service string, kind structs.ServiceKind, entMeta *structs.EnterpriseMeta) (uint64, structs.ServiceNodes, []<-chan struct{}, error) {
+func serviceGatewayNodes(tx *txn, ws memdb.WatchSet, service string, kind structs.ServiceKind, entMeta *structs.EnterpriseMeta) (uint64, structs.ServiceNodes, error) {
 	// Look up gateway name associated with the service
-	gws, err := s.serviceGateways(tx, service, entMeta)
+	gws, err := serviceGateways(tx, service, entMeta)
 	if err != nil {
-		return 0, nil, nil, fmt.Errorf("failed gateway lookup: %s", err)
+		return 0, nil, fmt.Errorf("failed gateway lookup: %s", err)
 	}
 
+	// Adding this channel to the WatchSet means that the watch will fire if a config entry targeting the service is added.
+	// Otherwise, if there's no associated gateway, then no watch channel would be returned
+	ws.Add(gws.WatchCh())
+
 	var ret structs.ServiceNodes
-	var watchChans []<-chan struct{}
 	var maxIdx uint64
 
 	for gateway := gws.Next(); gateway != nil; gateway = gws.Next() {
@@ -2652,21 +2878,471 @@ func (s *Store) serviceGatewayNodes(tx *memdb.Txn, service string, kind structs.
 		if mapping.GatewayKind != kind {
 			continue
 		}
-
-		if mapping.ModifyIndex > maxIdx {
-			maxIdx = mapping.ModifyIndex
-		}
+		maxIdx = lib.MaxUint64(maxIdx, mapping.ModifyIndex)
 
 		// Look up nodes for gateway
-		gwServices, err := s.catalogServiceNodeList(tx, mapping.Gateway.ID, "service", &mapping.Gateway.EnterpriseMeta)
+		gwServices, err := catalogServiceNodeList(tx, mapping.Gateway.Name, "service", &mapping.Gateway.EnterpriseMeta)
 		if err != nil {
-			return 0, nil, nil, fmt.Errorf("failed service lookup: %s", err)
+			return 0, nil, fmt.Errorf("failed service lookup: %s", err)
 		}
+
+		var exists bool
 		for svc := gwServices.Next(); svc != nil; svc = gwServices.Next() {
 			sn := svc.(*structs.ServiceNode)
 			ret = append(ret, sn)
+
+			// Tracking existence to know whether we should check extinction index for service
+			exists = true
 		}
-		watchChans = append(watchChans, gwServices.WatchCh())
+
+		// This prevents the index from sliding back if case all instances of the gateway service are deregistered
+		svcIdx := maxIndexForService(tx, mapping.Gateway.Name, exists, false, &mapping.Gateway.EnterpriseMeta)
+		maxIdx = lib.MaxUint64(maxIdx, svcIdx)
+
+		// Ensure that blocking queries wake up if the gateway-service mapping exists, but the gateway does not exist yet
+		if !exists {
+			ws.Add(gwServices.WatchCh())
+		}
 	}
-	return maxIdx, ret, watchChans, nil
+	return maxIdx, ret, nil
+}
+
+// metricsProtocolForIngressGateway determines the protocol that should be used when fetching metrics for an ingress gateway
+// Since ingress gateways may have listeners with different protocols, favor capturing all traffic by only returning HTTP
+// when all listeners are HTTP-like.
+func metricsProtocolForIngressGateway(tx ReadTxn, ws memdb.WatchSet, sn structs.ServiceName) (uint64, string, error) {
+	idx, conf, err := configEntryTxn(tx, ws, structs.IngressGateway, sn.Name, &sn.EnterpriseMeta)
+	if err != nil {
+		return 0, "", fmt.Errorf("failed to get ingress-gateway config entry for %q: %v", sn.String(), err)
+	}
+	if conf == nil {
+		return 0, "", nil
+	}
+	entry, ok := conf.(*structs.IngressGatewayConfigEntry)
+	if !ok {
+		return 0, "", fmt.Errorf("unexpected config entry type: %T", conf)
+	}
+	counts := make(map[string]int)
+	for _, l := range entry.Listeners {
+		if structs.IsProtocolHTTPLike(l.Protocol) {
+			counts["http"] += 1
+		} else {
+			counts["tcp"] += 1
+		}
+	}
+	protocol := "tcp"
+	if counts["tcp"] == 0 && counts["http"] > 0 {
+		protocol = "http"
+	}
+	return idx, protocol, nil
+}
+
+// checkProtocolMatch filters out any GatewayService entries added from a wildcard with a protocol
+// that doesn't match the one configured in their discovery chain.
+func checkProtocolMatch(tx ReadTxn, ws memdb.WatchSet, svc *structs.GatewayService) (uint64, bool, error) {
+	if svc.GatewayKind != structs.ServiceKindIngressGateway || !svc.FromWildcard {
+		return 0, true, nil
+	}
+
+	idx, protocol, err := protocolForService(tx, ws, svc.Service)
+	if err != nil {
+		return 0, false, err
+	}
+
+	return idx, svc.Protocol == protocol, nil
+}
+
+func (s *Store) ServiceTopology(
+	ws memdb.WatchSet,
+	dc, service string,
+	kind structs.ServiceKind,
+	defaultAllow acl.EnforcementDecision,
+	entMeta *structs.EnterpriseMeta,
+) (uint64, *structs.ServiceTopology, error) {
+	tx := s.db.ReadTxn()
+	defer tx.Abort()
+
+	var (
+		maxIdx   uint64
+		protocol string
+		err      error
+
+		sn = structs.NewServiceName(service, entMeta)
+	)
+
+	switch kind {
+	case structs.ServiceKindIngressGateway:
+		maxIdx, protocol, err = metricsProtocolForIngressGateway(tx, ws, sn)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to fetch protocol for service %s: %v", sn.String(), err)
+		}
+
+	case structs.ServiceKindTypical:
+		maxIdx, protocol, err = protocolForService(tx, ws, sn)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to fetch protocol for service %s: %v", sn.String(), err)
+		}
+
+	default:
+		return 0, nil, fmt.Errorf("unsupported kind %q", kind)
+	}
+
+	idx, upstreamNames, err := upstreamsFromRegistrationTxn(tx, ws, sn)
+	if err != nil {
+		return 0, nil, err
+	}
+	if idx > maxIdx {
+		maxIdx = idx
+	}
+	idx, upstreams, err := s.combinedServiceNodesTxn(tx, ws, upstreamNames)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to get upstreams for %q: %v", sn.String(), err)
+	}
+	if idx > maxIdx {
+		maxIdx = idx
+	}
+
+	upstreamDecisions := make(map[string]structs.IntentionDecisionSummary)
+
+	// The given service is the source relative to upstreams
+	sourceURI := connect.SpiffeIDService{
+		Namespace: entMeta.NamespaceOrDefault(),
+		Service:   service,
+	}
+	for _, un := range upstreamNames {
+		decision, err := s.IntentionDecision(&sourceURI, un.Name, un.NamespaceOrDefault(), defaultAllow)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to get intention decision from (%s/%s) to (%s/%s): %v",
+				sourceURI.Namespace, sourceURI.Service, un.Name, un.NamespaceOrDefault(), err)
+		}
+		upstreamDecisions[un.String()] = decision
+	}
+
+	idx, downstreamNames, err := s.downstreamsForServiceTxn(tx, ws, dc, sn)
+	if err != nil {
+		return 0, nil, err
+	}
+	if idx > maxIdx {
+		maxIdx = idx
+	}
+	idx, downstreams, err := s.combinedServiceNodesTxn(tx, ws, downstreamNames)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to get downstreams for %q: %v", sn.String(), err)
+	}
+	if idx > maxIdx {
+		maxIdx = idx
+	}
+
+	downstreamDecisions := make(map[string]structs.IntentionDecisionSummary)
+	for _, dn := range downstreamNames {
+		// Downstreams are the source relative to the given service
+		sourceURI := connect.SpiffeIDService{
+			Namespace: dn.NamespaceOrDefault(),
+			Service:   dn.Name,
+		}
+		decision, err := s.IntentionDecision(&sourceURI, service, entMeta.NamespaceOrDefault(), defaultAllow)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to get intention decision from (%s/%s) to (%s/%s): %v",
+				sourceURI.Namespace, sourceURI.Service, service, dn.NamespaceOrDefault(), err)
+		}
+		downstreamDecisions[dn.String()] = decision
+	}
+
+	resp := &structs.ServiceTopology{
+		MetricsProtocol:     protocol,
+		Upstreams:           upstreams,
+		Downstreams:         downstreams,
+		UpstreamDecisions:   upstreamDecisions,
+		DownstreamDecisions: downstreamDecisions,
+	}
+	return maxIdx, resp, nil
+}
+
+// combinedServiceNodesTxn returns typical and connect endpoints for a list of services.
+// This enabled aggregating checks statuses across both.
+func (s *Store) combinedServiceNodesTxn(tx *txn, ws memdb.WatchSet, names []structs.ServiceName) (uint64, structs.CheckServiceNodes, error) {
+	var (
+		maxIdx uint64
+		resp   structs.CheckServiceNodes
+	)
+	for _, u := range names {
+		// Collect typical then connect instances
+		idx, csn, err := checkServiceNodesTxn(tx, ws, u.Name, false, &u.EnterpriseMeta)
+		if err != nil {
+			return 0, nil, err
+		}
+		if idx > maxIdx {
+			maxIdx = idx
+		}
+		resp = append(resp, csn...)
+
+		idx, csn, err = checkServiceNodesTxn(tx, ws, u.Name, true, &u.EnterpriseMeta)
+		if err != nil {
+			return 0, nil, err
+		}
+		if idx > maxIdx {
+			maxIdx = idx
+		}
+		resp = append(resp, csn...)
+	}
+	return maxIdx, resp, nil
+}
+
+// downstreamsForServiceTxn will find all downstream services that could route traffic to the input service.
+// There are two factors at play. Upstreams defined in a proxy registration, and the discovery chain for those upstreams.
+// TODO (freddy): Account for ingress gateways
+func (s *Store) downstreamsForServiceTxn(tx ReadTxn, ws memdb.WatchSet, dc string, service structs.ServiceName) (uint64, []structs.ServiceName, error) {
+	// First fetch services that have discovery chains that eventually route to the target service
+	idx, sources, err := s.discoveryChainSourcesTxn(tx, ws, dc, service)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to get sources for discovery chain target %q: %v", service.String(), err)
+	}
+
+	var maxIdx uint64
+	if idx > maxIdx {
+		maxIdx = idx
+	}
+
+	var (
+		resp []structs.ServiceName
+		seen = make(map[structs.ServiceName]bool)
+	)
+	for _, s := range sources {
+		// We then follow these sources one level down to the services defining them as an upstream.
+		idx, downstreams, err := downstreamsFromRegistrationTxn(tx, ws, s)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to get registration downstreams for %q: %v", s.String(), err)
+		}
+		if idx > maxIdx {
+			maxIdx = idx
+		}
+		for _, d := range downstreams {
+			if !seen[d] {
+				resp = append(resp, d)
+				seen[d] = true
+			}
+		}
+	}
+	return maxIdx, resp, nil
+}
+
+// upstreamsFromRegistrationTxn returns the ServiceNames of the upstreams defined across instances of the input
+func upstreamsFromRegistrationTxn(tx ReadTxn, ws memdb.WatchSet, sn structs.ServiceName) (uint64, []structs.ServiceName, error) {
+	return linkedFromRegistrationTxn(tx, ws, sn, false)
+}
+
+// downstreamsFromRegistrationTxn returns the ServiceNames of downstream services based on registrations across instances of the input
+func downstreamsFromRegistrationTxn(tx ReadTxn, ws memdb.WatchSet, sn structs.ServiceName) (uint64, []structs.ServiceName, error) {
+	return linkedFromRegistrationTxn(tx, ws, sn, true)
+}
+
+func linkedFromRegistrationTxn(tx ReadTxn, ws memdb.WatchSet, service structs.ServiceName, downstreams bool) (uint64, []structs.ServiceName, error) {
+	// To fetch upstreams we query services that have the input listed as a downstream
+	// To fetch downstreams we query services that have the input listed as an upstream
+	index := "downstream"
+	if downstreams {
+		index = "upstream"
+	}
+
+	iter, err := tx.Get(topologyTableName, index, service)
+	if err != nil {
+		return 0, nil, fmt.Errorf("%q lookup failed: %v", topologyTableName, err)
+	}
+	ws.Add(iter.WatchCh())
+
+	var (
+		idx  uint64
+		resp []structs.ServiceName
+	)
+	for raw := iter.Next(); raw != nil; raw = iter.Next() {
+		entry := raw.(*structs.UpstreamDownstream)
+		if entry.ModifyIndex > idx {
+			idx = entry.ModifyIndex
+		}
+
+		linked := entry.Upstream
+		if downstreams {
+			linked = entry.Downstream
+		}
+		resp = append(resp, linked)
+	}
+
+	// TODO (freddy) This needs a tombstone to avoid the index sliding back on mapping deletion
+	//  Using the table index here means that blocking queries will wake up more often than they should
+	tableIdx := maxIndexTxn(tx, topologyTableName)
+	if tableIdx > idx {
+		idx = tableIdx
+	}
+	return idx, resp, nil
+}
+
+// updateMeshTopology creates associations between the input service and its upstreams in the topology table
+func updateMeshTopology(tx *txn, idx uint64, node string, svc *structs.NodeService, existing interface{}) error {
+	oldUpstreams := make(map[structs.ServiceName]bool)
+	if e, ok := existing.(*structs.ServiceNode); ok {
+		for _, u := range e.ServiceProxy.Upstreams {
+			upstreamMeta := structs.EnterpriseMetaInitializer(u.DestinationNamespace)
+			sn := structs.NewServiceName(u.DestinationName, &upstreamMeta)
+
+			oldUpstreams[sn] = true
+		}
+	}
+
+	// Despite the name "destination", this service name is downstream of the proxy
+	downstream := structs.NewServiceName(svc.Proxy.DestinationServiceName, &svc.EnterpriseMeta)
+	inserted := make(map[structs.ServiceName]bool)
+	for _, u := range svc.Proxy.Upstreams {
+		if u.DestinationType == structs.UpstreamDestTypePreparedQuery {
+			continue
+		}
+
+		// TODO (freddy): Account for upstream datacenter
+		upstreamMeta := structs.EnterpriseMetaInitializer(u.DestinationNamespace)
+		upstream := structs.NewServiceName(u.DestinationName, &upstreamMeta)
+
+		obj, err := tx.First(topologyTableName, "id", upstream, downstream)
+		if err != nil {
+			return fmt.Errorf("%q lookup failed: %v", topologyTableName, err)
+		}
+		sid := svc.CompoundServiceID()
+		uid := structs.UniqueID(node, sid.String())
+
+		var mapping *structs.UpstreamDownstream
+		if existing, ok := obj.(*structs.UpstreamDownstream); ok {
+			rawCopy, err := copystructure.Copy(existing)
+			if err != nil {
+				return fmt.Errorf("failed to copy existing topology mapping: %v", err)
+			}
+			mapping, ok = rawCopy.(*structs.UpstreamDownstream)
+			if !ok {
+				return fmt.Errorf("unexpected topology type %T", rawCopy)
+			}
+			mapping.Refs[uid] = struct{}{}
+			mapping.ModifyIndex = idx
+
+			inserted[upstream] = true
+		}
+		if mapping == nil {
+			mapping = &structs.UpstreamDownstream{
+				Upstream:   upstream,
+				Downstream: downstream,
+				Refs:       map[string]struct{}{uid: {}},
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: idx,
+					ModifyIndex: idx,
+				},
+			}
+		}
+		if err := tx.Insert(topologyTableName, mapping); err != nil {
+			return fmt.Errorf("failed inserting %s mapping: %s", topologyTableName, err)
+		}
+		if err := indexUpdateMaxTxn(tx, idx, topologyTableName); err != nil {
+			return fmt.Errorf("failed updating %s index: %v", topologyTableName, err)
+		}
+		inserted[upstream] = true
+	}
+
+	for u := range oldUpstreams {
+		if !inserted[u] {
+			if _, err := tx.DeleteAll(topologyTableName, "id", u, downstream); err != nil {
+				return fmt.Errorf("failed to truncate %s table: %v", topologyTableName, err)
+			}
+			if err := indexUpdateMaxTxn(tx, idx, topologyTableName); err != nil {
+				return fmt.Errorf("failed updating %s index: %v", topologyTableName, err)
+			}
+		}
+	}
+	return nil
+}
+
+// cleanupMeshTopology removes a service from the mesh topology table
+// This is only safe to call when there are no more known instances of this proxy
+func cleanupMeshTopology(tx *txn, idx uint64, service *structs.ServiceNode) error {
+	if service.ServiceKind != structs.ServiceKindConnectProxy {
+		return nil
+	}
+	sn := structs.NewServiceName(service.ServiceProxy.DestinationServiceName, &service.EnterpriseMeta)
+
+	sid := service.CompoundServiceID()
+	uid := structs.UniqueID(service.Node, sid.String())
+
+	iter, err := tx.Get(topologyTableName, "downstream", sn)
+	if err != nil {
+		return fmt.Errorf("%q lookup failed: %v", topologyTableName, err)
+	}
+	for raw := iter.Next(); raw != nil; raw = iter.Next() {
+		entry := raw.(*structs.UpstreamDownstream)
+		rawCopy, err := copystructure.Copy(entry)
+		if err != nil {
+			return fmt.Errorf("failed to copy existing topology mapping: %v", err)
+		}
+		copy, ok := rawCopy.(*structs.UpstreamDownstream)
+		if !ok {
+			return fmt.Errorf("unexpected topology type %T", rawCopy)
+		}
+		delete(copy.Refs, uid)
+
+		if len(copy.Refs) == 0 {
+			if err := tx.Delete(topologyTableName, entry); err != nil {
+				return fmt.Errorf("failed to truncate %s table: %v", topologyTableName, err)
+			}
+			if err := indexUpdateMaxTxn(tx, idx, topologyTableName); err != nil {
+				return fmt.Errorf("failed updating %s index: %v", topologyTableName, err)
+			}
+		}
+	}
+	return nil
+}
+
+func insertGatewayServiceTopologyMapping(tx *txn, idx uint64, gs *structs.GatewayService) error {
+	// Only ingress gateways are standalone items in the mesh topology viz
+	if gs.GatewayKind != structs.ServiceKindIngressGateway || gs.Service.Name == structs.WildcardSpecifier {
+		return nil
+	}
+
+	mapping := structs.UpstreamDownstream{
+		Upstream:   gs.Service,
+		Downstream: gs.Gateway,
+		RaftIndex:  gs.RaftIndex,
+	}
+	if err := tx.Insert(topologyTableName, &mapping); err != nil {
+		return fmt.Errorf("failed inserting %s mapping: %s", topologyTableName, err)
+	}
+	if err := indexUpdateMaxTxn(tx, idx, topologyTableName); err != nil {
+		return fmt.Errorf("failed updating %s index: %v", topologyTableName, err)
+	}
+
+	return nil
+}
+
+func deleteGatewayServiceTopologyMapping(tx *txn, idx uint64, gs *structs.GatewayService) error {
+	// Only ingress gateways are standalone items in the mesh topology viz
+	if gs.GatewayKind != structs.ServiceKindIngressGateway {
+		return nil
+	}
+
+	if _, err := tx.DeleteAll(topologyTableName, "id", gs.Service, gs.Gateway); err != nil {
+		return fmt.Errorf("failed to truncate %s table: %v", topologyTableName, err)
+	}
+	if err := indexUpdateMaxTxn(tx, idx, topologyTableName); err != nil {
+		return fmt.Errorf("failed updating %s index: %v", topologyTableName, err)
+	}
+
+	return nil
+}
+
+func truncateGatewayServiceTopologyMappings(tx *txn, idx uint64, gateway structs.ServiceName, kind string) error {
+	// Only ingress gateways are standalone items in the mesh topology viz
+	if kind != string(structs.ServiceKindIngressGateway) {
+		return nil
+	}
+
+	if _, err := tx.DeleteAll(topologyTableName, "downstream", gateway); err != nil {
+		return fmt.Errorf("failed to truncate %s table: %v", topologyTableName, err)
+	}
+	if err := indexUpdateMaxTxn(tx, idx, topologyTableName); err != nil {
+		return fmt.Errorf("failed updating %s index: %v", topologyTableName, err)
+	}
+
+	return nil
 }

@@ -1,6 +1,5 @@
 import RepositoryService from 'consul-ui/services/repository';
 import { get } from '@ember/object';
-import { Promise } from 'rsvp';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/token';
 import statusFactory from 'consul-ui/utils/acls-status';
 import isValidServerErrorFactory from 'consul-ui/utils/http/acl/is-valid-server-error';

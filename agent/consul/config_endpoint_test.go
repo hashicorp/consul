@@ -145,7 +145,7 @@ func TestConfigEntry_Apply_ACLDeny(t *testing.T) {
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
@@ -266,7 +266,7 @@ func TestConfigEntry_Get_ACLDeny(t *testing.T) {
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
@@ -368,8 +368,6 @@ func TestConfigEntry_List(t *testing.T) {
 func TestConfigEntry_ListAll(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
-
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -378,34 +376,82 @@ func TestConfigEntry_ListAll(t *testing.T) {
 
 	// Create some dummy services in the state store to look up.
 	state := s1.fsm.State()
-	expected := structs.IndexedGenericConfigEntries{
-		Entries: []structs.ConfigEntry{
-			&structs.ProxyConfigEntry{
-				Kind: structs.ProxyDefaults,
-				Name: "global",
-			},
-			&structs.ServiceConfigEntry{
-				Kind: structs.ServiceDefaults,
-				Name: "bar",
-			},
-			&structs.ServiceConfigEntry{
-				Kind: structs.ServiceDefaults,
-				Name: "foo",
+	entries := []structs.ConfigEntry{
+		&structs.ProxyConfigEntry{
+			Kind: structs.ProxyDefaults,
+			Name: "global",
+		},
+		&structs.ServiceConfigEntry{
+			Kind: structs.ServiceDefaults,
+			Name: "bar",
+		},
+		&structs.ServiceConfigEntry{
+			Kind: structs.ServiceDefaults,
+			Name: "foo",
+		},
+		&structs.ServiceIntentionsConfigEntry{
+			Kind: structs.ServiceIntentions,
+			Name: "api",
+			Sources: []*structs.SourceIntention{
+				{
+					Name:   "web",
+					Action: structs.IntentionActionAllow,
+				},
 			},
 		},
 	}
-	require.NoError(state.EnsureConfigEntry(1, expected.Entries[0], nil))
-	require.NoError(state.EnsureConfigEntry(2, expected.Entries[1], nil))
-	require.NoError(state.EnsureConfigEntry(3, expected.Entries[2], nil))
+	require.NoError(t, state.EnsureConfigEntry(1, entries[0], nil))
+	require.NoError(t, state.EnsureConfigEntry(2, entries[1], nil))
+	require.NoError(t, state.EnsureConfigEntry(3, entries[2], nil))
+	require.NoError(t, state.EnsureConfigEntry(4, entries[3], nil))
 
-	args := structs.DCSpecificRequest{
-		Datacenter: "dc1",
-	}
-	var out structs.IndexedGenericConfigEntries
-	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.ListAll", &args, &out))
+	t.Run("all kinds", func(t *testing.T) {
+		args := structs.ConfigEntryListAllRequest{
+			Datacenter: "dc1",
+			Kinds:      structs.AllConfigEntryKinds,
+		}
+		var out structs.IndexedGenericConfigEntries
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.ListAll", &args, &out))
 
-	expected.QueryMeta = out.QueryMeta
-	require.Equal(expected, out)
+		expected := structs.IndexedGenericConfigEntries{
+			Entries:   entries[:],
+			QueryMeta: out.QueryMeta,
+		}
+		require.Equal(t, expected, out)
+	})
+
+	t.Run("all kinds pre 1.9.0", func(t *testing.T) {
+		args := structs.ConfigEntryListAllRequest{
+			Datacenter: "dc1",
+			Kinds:      nil, // let it default
+		}
+		var out structs.IndexedGenericConfigEntries
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.ListAll", &args, &out))
+
+		expected := structs.IndexedGenericConfigEntries{
+			Entries:   entries[0:3],
+			QueryMeta: out.QueryMeta,
+		}
+		require.Equal(t, expected, out)
+	})
+
+	t.Run("omit service defaults", func(t *testing.T) {
+		args := structs.ConfigEntryListAllRequest{
+			Datacenter: "dc1",
+			Kinds: []string{
+				structs.ProxyDefaults,
+			},
+		}
+		var out structs.IndexedGenericConfigEntries
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.ListAll", &args, &out))
+
+		expected := structs.IndexedGenericConfigEntries{
+			Entries:   entries[0:1],
+			QueryMeta: out.QueryMeta,
+		}
+
+		require.Equal(t, expected, out)
+	})
 }
 
 func TestConfigEntry_List_ACLDeny(t *testing.T) {
@@ -421,7 +467,7 @@ func TestConfigEntry_List_ACLDeny(t *testing.T) {
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
@@ -502,7 +548,7 @@ func TestConfigEntry_ListAll_ACLDeny(t *testing.T) {
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
@@ -543,8 +589,9 @@ operator = "read"
 	}, nil))
 
 	// This should filter out the "db" service since we don't have permissions for it.
-	args := structs.ConfigEntryQuery{
+	args := structs.ConfigEntryListAllRequest{
 		Datacenter:   s1.config.Datacenter,
+		Kinds:        structs.AllConfigEntryKinds,
 		QueryOptions: structs.QueryOptions{Token: id},
 	}
 	var out structs.IndexedGenericConfigEntries
@@ -652,7 +699,7 @@ func TestConfigEntry_Delete_ACLDeny(t *testing.T) {
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
@@ -779,7 +826,7 @@ func TestConfigEntry_ResolveServiceConfig(t *testing.T) {
 			"protocol": "http",
 		},
 		UpstreamConfigs: map[string]map[string]interface{}{
-			"bar": map[string]interface{}{
+			"bar": {
 				"protocol": "grpc",
 			},
 		},
@@ -1013,14 +1060,61 @@ func TestConfigEntry_ResolveServiceConfig_UpstreamProxyDefaultsProtocol(t *testi
 			"protocol": "http",
 		},
 		UpstreamConfigs: map[string]map[string]interface{}{
-			"bar": map[string]interface{}{
+			"bar": {
 				"protocol": "http",
 			},
-			"other": map[string]interface{}{
+			"other": {
 				"protocol": "http",
 			},
-			"alreadyprotocol": map[string]interface{}{
+			"dne": {
+				"protocol": "http",
+			},
+			"alreadyprotocol": {
 				"protocol": "grpc",
+			},
+		},
+		// Don't know what this is deterministically
+		QueryMeta: out.QueryMeta,
+	}
+	require.Equal(expected, out)
+}
+
+func TestConfigEntry_ResolveServiceConfig_ProxyDefaultsProtocol_UsedForAllUpstreams(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	// Create a dummy proxy/service config in the state store to look up.
+	state := s1.fsm.State()
+	require.NoError(state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: structs.ProxyConfigGlobal,
+		Config: map[string]interface{}{
+			"protocol": "http",
+		},
+	}, nil))
+
+	args := structs.ServiceConfigRequest{
+		Name:       "foo",
+		Datacenter: s1.config.Datacenter,
+		Upstreams:  []string{"bar"},
+	}
+	var out structs.ServiceConfigResponse
+	require.NoError(msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig", &args, &out))
+
+	expected := structs.ServiceConfigResponse{
+		ProxyConfig: map[string]interface{}{
+			"protocol": "http",
+		},
+		UpstreamConfigs: map[string]map[string]interface{}{
+			"bar": {
+				"protocol": "http",
 			},
 		},
 		// Don't know what this is deterministically
@@ -1072,7 +1166,7 @@ func TestConfigEntry_ResolveServiceConfig_ACLDeny(t *testing.T) {
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 

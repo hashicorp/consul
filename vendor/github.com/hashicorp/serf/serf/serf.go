@@ -11,6 +11,7 @@ import (
 	"math/rand"
 	"net"
 	"os"
+	"regexp"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -36,6 +37,8 @@ const (
 	tagMagicByte uint8 = 255
 )
 
+const MaxNodeNameLength int = 128
+
 var (
 	// FeatureNotSupported is returned if a feature cannot be used
 	// due to an older protocol version being used.
@@ -45,6 +48,12 @@ var (
 func init() {
 	// Seed the random number generator
 	rand.Seed(time.Now().UnixNano())
+}
+
+// ReconnectTimeoutOverrider is an interface that can be implemented to allow overriding
+// the reconnect timeout for individual members.
+type ReconnectTimeoutOverrider interface {
+	ReconnectTimeout(member *Member, timeout time.Duration) time.Duration
 }
 
 // Serf is a single node that is part of a single cluster that gets
@@ -268,6 +277,9 @@ func Create(conf *Config) (*Serf, error) {
 	// Check that the meta data length is okay
 	if len(serf.encodeTags(conf.Tags)) > memberlist.MetaMaxSize {
 		return nil, fmt.Errorf("Encoded length of tags exceeds limit of %d bytes", memberlist.MetaMaxSize)
+	}
+	if err := serf.ValidateNodeNames(); err != nil {
+		return nil, err
 	}
 
 	// Check if serf member event coalescing is enabled
@@ -907,6 +919,10 @@ func (s *Serf) handleNodeJoin(n *memberlist.Node) {
 	s.memberLock.Lock()
 	defer s.memberLock.Unlock()
 
+	if s.config.messageDropper(messageJoinType) {
+		return
+	}
+
 	var oldStatus MemberStatus
 	member, ok := s.members[n.Name]
 	if !ok {
@@ -1098,11 +1114,27 @@ func (s *Serf) handleNodeLeaveIntent(leaveMsg *messageLeave) bool {
 		return false
 	}
 
+	// Always update the lamport time even when the status does not change
+	// (despite the variable naming implying otherwise).
+	//
+	// By updating this statusLTime here we ensure that the earlier conditional
+	// on "leaveMsg.LTime <= member.statusLTime" will prevent an infinite
+	// rebroadcast when seeing two successive leave message for the same
+	// member. Without this fix a leave message that arrives after a member is
+	// already marked as leaving/left will cause it to be rebroadcast without
+	// marking it locally as witnessed. If more than one serf instance in the
+	// cluster experiences this series of events then they will rebroadcast
+	// each other's messages about the affected node indefinitely.
+	//
+	// This eventually leads to overflowing serf intent queues
+	// - https://github.com/hashicorp/consul/issues/8179
+	// - https://github.com/hashicorp/consul/issues/7960
+	member.statusLTime = leaveMsg.LTime
+
 	// State transition depends on current state
 	switch member.Status {
 	case StatusAlive:
 		member.Status = StatusLeaving
-		member.statusLTime = leaveMsg.LTime
 
 		if leaveMsg.Prune {
 			s.handlePrune(member)
@@ -1110,7 +1142,6 @@ func (s *Serf) handleNodeLeaveIntent(leaveMsg *messageLeave) bool {
 		return true
 	case StatusFailed:
 		member.Status = StatusLeft
-		member.statusLTime = leaveMsg.LTime
 
 		// Remove from the failed list and add to the left list. We add
 		// to the left list so that when we do a sync, other nodes will
@@ -1552,8 +1583,13 @@ func (s *Serf) reap(old []*memberState, now time.Time, timeout time.Duration) []
 	for i := 0; i < n; i++ {
 		m := old[i]
 
+		memberTimeout := timeout
+		if s.config.ReconnectTimeoutOverride != nil {
+			memberTimeout = s.config.ReconnectTimeoutOverride.ReconnectTimeout(&m.Member, memberTimeout)
+		}
+
 		// Skip if the timeout is not yet reached
-		if now.Sub(m.leaveTime) <= timeout {
+		if now.Sub(m.leaveTime) <= memberTimeout {
 			continue
 		}
 
@@ -1864,4 +1900,25 @@ func (s *Serf) NumNodes() (numNodes int) {
 	s.memberLock.RUnlock()
 
 	return numNodes
+}
+
+// ValidateNodeNames verifies the NodeName contains
+// only alphanumeric, -, or . and is under 128 chracters
+func (s *Serf) ValidateNodeNames() error {
+	return s.validateNodeName(s.config.NodeName)
+}
+
+func (s *Serf) validateNodeName(name string) error {
+	if s.config.ValidateNodeNames {
+		var InvalidNameRe = regexp.MustCompile(`[^A-Za-z0-9\-\.]+`)
+		if InvalidNameRe.MatchString(name) {
+			return fmt.Errorf("Node name contains invalid characters %v , Valid characters include "+
+				"all alpha-numerics and dashes and '.' ", name)
+		}
+		if len(name) > MaxNodeNameLength {
+			return fmt.Errorf("Node name is %v characters. "+
+				"Valid length is between 1 and 128 characters", len(name))
+		}
+	}
+	return nil
 }

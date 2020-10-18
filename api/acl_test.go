@@ -423,16 +423,16 @@ func TestAPI_ACLToken_CreateReadDelete(t *testing.T) {
 	created, wm, err := acl.TokenCreate(&ACLToken{
 		Description: "token created",
 		Policies: []*ACLTokenPolicyLink{
-			&ACLTokenPolicyLink{
+			{
 				ID: policies[0].ID,
 			},
-			&ACLTokenPolicyLink{
+			{
 				ID: policies[1].ID,
 			},
-			&ACLTokenPolicyLink{
+			{
 				Name: policies[2].Name,
 			},
-			&ACLTokenPolicyLink{
+			{
 				Name: policies[3].Name,
 			},
 		},
@@ -476,10 +476,10 @@ func TestAPI_ACLToken_CreateUpdate(t *testing.T) {
 	created, _, err := acl.TokenCreate(&ACLToken{
 		Description: "token created",
 		Policies: []*ACLTokenPolicyLink{
-			&ACLTokenPolicyLink{
+			{
 				ID: policies[0].ID,
 			},
-			&ACLTokenPolicyLink{
+			{
 				Name: policies[2].Name,
 			},
 		},
@@ -498,15 +498,15 @@ func TestAPI_ACLToken_CreateUpdate(t *testing.T) {
 	read.Policies = append(read.Policies, &ACLTokenPolicyLink{Name: policies[2].Name})
 
 	expectedPolicies := []*ACLTokenPolicyLink{
-		&ACLTokenPolicyLink{
+		{
 			ID:   policies[0].ID,
 			Name: policies[0].Name,
 		},
-		&ACLTokenPolicyLink{
+		{
 			ID:   policies[1].ID,
 			Name: policies[1].Name,
 		},
-		&ACLTokenPolicyLink{
+		{
 			ID:   policies[2].ID,
 			Name: policies[2].Name,
 		},
@@ -540,7 +540,7 @@ func TestAPI_ACLToken_List(t *testing.T) {
 	created1, _, err := acl.TokenCreate(&ACLToken{
 		Description: "token created1",
 		Policies: []*ACLTokenPolicyLink{
-			&ACLTokenPolicyLink{
+			{
 				ID: policies[0].ID,
 			},
 		},
@@ -554,7 +554,7 @@ func TestAPI_ACLToken_List(t *testing.T) {
 	created2, _, err := acl.TokenCreate(&ACLToken{
 		Description: "token created2",
 		Policies: []*ACLTokenPolicyLink{
-			&ACLTokenPolicyLink{
+			{
 				ID: policies[1].ID,
 			},
 		},
@@ -568,7 +568,7 @@ func TestAPI_ACLToken_List(t *testing.T) {
 	created3, _, err := acl.TokenCreate(&ACLToken{
 		Description: "token created3",
 		Policies: []*ACLTokenPolicyLink{
-			&ACLTokenPolicyLink{
+			{
 				ID: policies[2].ID,
 			},
 		},

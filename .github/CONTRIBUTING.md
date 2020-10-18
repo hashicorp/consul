@@ -18,8 +18,8 @@ work on an issue, comment on it first and tell us the approach you want to take.
 * Report potential bugs.
 * Suggest product enhancements.
 * Increase our test coverage.
-* Fix a [bug](https://github.com/hashicorp/consul/labels/bug).
-* Implement a requested [enhancement](https://github.com/hashicorp/consul/labels/enhancement).
+* Fix a [bug](https://github.com/hashicorp/consul/labels/type/bug).
+* Implement a requested [enhancement](https://github.com/hashicorp/consul/labels/type/enhancement).
 * Improve our guides and documentation. Consul's [Guides](https://www.consul.io/docs/guides/index.html), [Docs](https://www.consul.io/docs/index.html), and [api godoc](https://godoc.org/github.com/hashicorp/consul/api)
 are deployed from this repo.
 * Respond to questions about usage on the issue tracker or the Consul section of the [HashiCorp forum]: (https://discuss.hashicorp.com/c/consul)
@@ -124,7 +124,7 @@ The underlying script dumps the full Consul log output to `test.log` in
 the directory of the target package. In the example above it would be 
 located at `consul/connect/proxy/test.log`. 
 
-Historically, the defaults for `FLAKE_CPUS` (30) and `FLAKE_N` (0.15) have been 
+Historically, the defaults for `FLAKE_CPUS` (0.15) and `FLAKE_N` (30) have been
 sufficient to surface a flaky test. If a test is run in this environment and 
 it does not fail after 30 iterations, it should be sufficiently stable.
 

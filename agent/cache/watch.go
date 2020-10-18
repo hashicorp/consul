@@ -91,7 +91,7 @@ func (c *Cache) notifyBlockingQuery(ctx context.Context, r getOptions, correlati
 
 		// Blocking request
 		r.Info.MinIndex = index
-		res, meta, err := c.getWithIndex(r)
+		res, meta, err := c.getWithIndex(ctx, r)
 
 		// Check context hasn't been canceled
 		if ctx.Err() != nil {
@@ -151,7 +151,7 @@ func (c *Cache) notifyPollingQuery(ctx context.Context, r getOptions, correlatio
 
 		// Make the request
 		r.Info.MinIndex = index
-		res, meta, err := c.getWithIndex(r)
+		res, meta, err := c.getWithIndex(ctx, r)
 
 		// Check context hasn't been canceled
 		if ctx.Err() != nil {

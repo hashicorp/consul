@@ -1,21 +1,3 @@
-{{#hashicorp-consul id="wrapper" permissions=permissions dcs=dcs dc=dc nspaces=nspaces nspace=nspace}}
-    {{#app-view class="error show"}}
-        {{#block-slot name='header'}}
-            <h1 data-test-error>
-{{#if error.status }}
-                {{error.status}} ({{error.message}})
-{{else}}
-                {{error.message}}
+{{#if error}}
+<AppError @error={{error}} />
 {{/if}}
-            </h1>
-        {{/block-slot}}
-        {{#block-slot name='content'}}
-            <p>
-                Consul returned an error.
-                You may have visited a URL that is loading an unknown resource, so you can try going back to the root or try re-submitting your ACL Token/SecretID by going back to ACLs.<br />
-                Try looking in our <a href="{{env 'CONSUL_DOCS_URL'}}" target="_blank">documentation</a>
-            </p>
-            <a data-test-home rel="home" href={{href-to 'index'}}>Go back to root</a>
-        {{/block-slot}}
-    {{/app-view}}
-{{/hashicorp-consul}}

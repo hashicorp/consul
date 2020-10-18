@@ -1,24 +1,48 @@
 %menu-panel {
   position: absolute;
-  overflow: hidden;
 }
 %menu-panel [type='checkbox'] {
   display: none;
 }
-%menu-panel [type='checkbox'] ~ * {
-  transition: transform 150ms, min-height 150ms, max-height 150ms;
+%menu-panel {
+  overflow: hidden;
+  transition: min-height 150ms, max-height 150ms;
   min-height: 0;
+}
+%menu-panel [type='checkbox'] ~ * {
+  transition: transform 150ms;
 }
 %menu-panel [type='checkbox']:checked ~ * {
   transform: translateX(calc(-100% - 10px));
-  /* this needs to autocalculate */
-  /* or be hardcoded */
-  /* min-height: 143px; */
+}
+%menu-panel [role='menuitem'] {
+  display: flex;
+  justify-content: space-between;
+}
+%menu-panel [role='menuitem']:after {
+  @extend %as-pseudo;
+  display: block !important;
+  background-position: center right !important;
 }
 %menu-panel-sub-panel {
   position: absolute;
   top: 0;
   left: calc(100% + 10px);
+  display: none;
+}
+/* TODO: once everything is using ListCollection */
+/* this can go */
+%menu-panel [type='checkbox']:checked ~ * {
+  /* this needs to autocalculate */
+  min-height: 143px;
+  max-height: 143px;
+}
+%menu-panel [id$='-']:first-child:checked ~ ul label[for$='-'] + [role='menu'] {
+  display: block;
+}
+/**/
+%menu-panel dl {
+  padding: 0.9em 1em;
 }
 %menu-panel > ul > li > div[role='menu'] {
   @extend %menu-panel-sub-panel;
@@ -28,6 +52,7 @@
 }
 %menu-panel:not(.left) {
   right: 0px;
+  left: auto;
 }
 %menu-panel.left {
   left: 0px;
@@ -63,7 +88,7 @@
 }
 %menu-panel-header {
   padding: 10px;
-  padding-left: 36px;
+  white-space: normal;
 }
 /* here the !important is only needed for what seems to be a difference */
 /* with the CSS before and after compression */

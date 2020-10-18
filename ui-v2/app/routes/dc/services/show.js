@@ -1,51 +1,62 @@
-import Route from '@ember/routing/route';
+import Route from 'consul-ui/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 import { get } from '@ember/object';
 
 export default Route.extend({
-  repo: service('repository/service'),
-  chainRepo: service('repository/discovery-chain'),
+  data: service('data-source/service'),
   settings: service('settings'),
-  queryParams: {
-    s: {
-      as: 'filter',
-      replace: true,
-    },
-  },
-  model: function(params) {
+  model: function(params, transition) {
     const dc = this.modelFor('dc').dc.Name;
     const nspace = this.modelFor('nspace').nspace.substr(1);
     return hash({
-      item: this.repo.findBySlug(params.name, dc, nspace),
-      urls: this.settings.findBySlug('urls'),
+      slug: params.name,
       dc: dc,
-    }).then(model => {
-      return hash({
-        chain: ['connect-proxy', 'mesh-gateway'].includes(get(model, 'item.Service.Kind'))
-          ? null
-          : this.chainRepo.findBySlug(params.name, dc, nspace).catch(function(e) {
-              const code = get(e, 'errors.firstObject.status');
-              // Currently we are specifically catching a 500, but we return null
-              // by default, so null for all errors.
-              // The extra code here is mainly for documentation purposes
-              // and for if we need to perform different actions based on the error code
-              // in the future
-              switch (code) {
-                case '500':
-                  // connect is likely to be disabled
-                  // we just return a null to hide the tab
-                  // `Connect must be enabled in order to use this endpoint`
-                  return null;
-                default:
-                  return null;
-              }
-            }),
-        ...model,
+      nspace: nspace,
+      items: this.data.source(
+        uri => uri`/${nspace}/${dc}/service-instances/for-service/${params.name}`
+      ),
+      urls: this.settings.findBySlug('urls'),
+      chain: null,
+      proxies: [],
+      topology: null,
+    })
+      .then(model => {
+        return ['connect-proxy', 'mesh-gateway', 'ingress-gateway', 'terminating-gateway'].includes(
+          get(model, 'items.firstObject.Service.Kind')
+        )
+          ? model
+          : hash({
+              ...model,
+              chain: this.data.source(uri => uri`/${nspace}/${dc}/discovery-chain/${params.name}`),
+              // Whilst `proxies` isn't used anywhere in the show templates
+              // it provides a relationship of ProxyInstance on the ServiceInstance
+              // which can respond at a completely different blocking rate to
+              // the ServiceInstance itself
+              proxies: this.data.source(
+                uri => uri`/${nspace}/${dc}/proxies/for-service/${params.name}`
+              ),
+            });
+      })
+      .then(model => {
+        let kind = get(model, 'items.firstObject.Service.Kind');
+        if (typeof kind === 'undefined') {
+          kind = '';
+        }
+        return ['mesh-gateway', 'terminating-gateway'].includes(
+          get(model, 'items.firstObject.Service.Kind')
+        )
+          ? model
+          : hash({
+              ...model,
+              topology: this.data.source(
+                uri => uri`/${nspace}/${dc}/topology/${params.name}/${kind}`
+              ),
+            });
       });
-    });
   },
   setupController: function(controller, model) {
+    this._super(...arguments);
     controller.setProperties(model);
   },
 });

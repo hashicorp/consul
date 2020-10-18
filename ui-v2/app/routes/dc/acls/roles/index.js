@@ -1,4 +1,4 @@
-import Route from '@ember/routing/route';
+import Route from 'consul-ui/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 
@@ -7,7 +7,8 @@ import WithRoleActions from 'consul-ui/mixins/role/with-actions';
 export default Route.extend(WithRoleActions, {
   repo: service('repository/role'),
   queryParams: {
-    s: {
+    sortBy: 'sort',
+    search: {
       as: 'filter',
       replace: true,
     },
@@ -20,10 +21,10 @@ export default Route.extend(WithRoleActions, {
           this.modelFor('nspace').nspace.substr(1)
         ),
       }),
-      isLoading: false,
     });
   },
   setupController: function(controller, model) {
+    this._super(...arguments);
     controller.setProperties(model);
   },
 });

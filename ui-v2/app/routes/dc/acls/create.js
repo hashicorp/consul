@@ -1,4 +1,4 @@
-import Route from '@ember/routing/route';
+import Route from 'consul-ui/routing/route';
 import { inject as service } from '@ember/service';
 import { hash } from 'rsvp';
 import { get } from '@ember/object';
@@ -17,12 +17,12 @@ export default Route.extend(WithAclActions, {
     });
     return hash({
       create: true,
-      isLoading: false,
       item: this.item,
       types: ['management', 'client'],
     });
   },
   setupController: function(controller, model) {
+    this._super(...arguments);
     controller.setProperties(model);
   },
   deactivate: function() {

@@ -1,6 +1,5 @@
-@import '../base/components/notice/index';
 %notice {
-  margin-bottom: 1em;
+  margin: 1em 0;
 }
 %notice-success::before {
   @extend %with-check-circle-fill-color-icon;
@@ -18,8 +17,14 @@
   @extend %with-cancel-square-fill-color-icon;
 }
 /**/
+.notice.success {
+  @extend %notice-success;
+}
 .notice.warning {
   @extend %notice-warning;
+}
+.notice.error {
+  @extend %notice-error;
 }
 .notice.info {
   @extend %notice-info;

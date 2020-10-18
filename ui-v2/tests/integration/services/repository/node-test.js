@@ -63,6 +63,7 @@ test('findBySlug returns the correct data for item endpoint', function(assert) {
             Datacenter: dc,
             uid: `["${nspace}","${dc}","${item.ID}"]`,
             meta: {
+              cacheControl: undefined,
               cursor: undefined,
               dc: dc,
               nspace: nspace,

@@ -1,6 +1,5 @@
 import Service from '@ember/service';
 import promisedTimeoutFactory from 'consul-ui/utils/promisedTimeout';
-import { Promise } from 'rsvp';
 import { next } from '@ember/runloop';
 
 const promisedTimeout = promisedTimeoutFactory(Promise);

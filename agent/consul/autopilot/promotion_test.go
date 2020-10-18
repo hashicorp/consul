@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/raft"
-	"github.com/pascaldekloe/goe/verify"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPromotion(t *testing.T) {
@@ -37,7 +37,6 @@ func TestPromotion(t *testing.T) {
 			servers: []raft.Server{
 				{ID: "a", Suffrage: raft.Voter},
 			},
-			promotions: []raft.Server{},
 		},
 		{
 			name: "one stable nonvoter, should be promoted",
@@ -91,12 +90,13 @@ func TestPromotion(t *testing.T) {
 				{ID: "b", Suffrage: raft.Nonvoter},
 				{ID: "c", Suffrage: raft.Nonvoter},
 			},
-			promotions: []raft.Server{},
 		},
 	}
 
 	for _, tc := range cases {
-		promotions := PromoteStableServers(tc.conf, tc.health, tc.servers)
-		verify.Values(t, tc.name, tc.promotions, promotions)
+		t.Run(tc.name, func(t *testing.T) {
+			promotions := PromoteStableServers(tc.conf, tc.health, tc.servers)
+			require.Equal(t, tc.promotions, promotions)
+		})
 	}
 }

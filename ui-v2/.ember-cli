@@ -5,5 +5,14 @@
 
     Setting `disableAnalytics` to true will prevent any data from being sent.
   */
-  "disableAnalytics": false
+  "disableAnalytics": false,
+  /**
+    We use a nested in /components folder structure:
+    /components/component-name/index.{hbs,js}
+  */
+  "componentStructure": "nested",
+  /**
+    We currently use classic components
+  */
+  "componentClass": "@ember/component"
 }

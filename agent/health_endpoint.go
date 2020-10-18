@@ -3,15 +3,21 @@ package agent
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
-	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 )
 
-func (s *HTTPServer) HealthChecksInState(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+const (
+	serviceHealth = "service"
+	connectHealth = "connect"
+	ingressHealth = "ingress"
+)
+
+func (s *HTTPHandlers) HealthChecksInState(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Set default DC
 	args := structs.ChecksInStateRequest{}
 	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
@@ -59,7 +65,7 @@ RETRY_ONCE:
 	return out.HealthChecks, nil
 }
 
-func (s *HTTPServer) HealthNodeChecks(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) HealthNodeChecks(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Set default DC
 	args := structs.NodeSpecificRequest{}
 	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
@@ -105,7 +111,7 @@ RETRY_ONCE:
 	return out.HealthChecks, nil
 }
 
-func (s *HTTPServer) HealthServiceChecks(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) HealthServiceChecks(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Set default DC
 	args := structs.ServiceSpecificRequest{}
 	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
@@ -153,17 +159,28 @@ RETRY_ONCE:
 	return out.HealthChecks, nil
 }
 
-func (s *HTTPServer) HealthConnectServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	return s.healthServiceNodes(resp, req, true)
+// HealthIngressServiceNodes should return "all the healthy ingress gateway instances
+// that I can use to access this connect-enabled service without mTLS".
+func (s *HTTPHandlers) HealthIngressServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	return s.healthServiceNodes(resp, req, ingressHealth)
 }
 
-func (s *HTTPServer) HealthServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	return s.healthServiceNodes(resp, req, false)
+// HealthConnectServiceNodes should return "all healthy connect-enabled
+// endpoints (e.g. could be side car proxies or native instances) for this
+// service so I can connect with mTLS".
+func (s *HTTPHandlers) HealthConnectServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	return s.healthServiceNodes(resp, req, connectHealth)
 }
 
-func (s *HTTPServer) healthServiceNodes(resp http.ResponseWriter, req *http.Request, connect bool) (interface{}, error) {
+// HealthServiceNodes should return "all the healthy instances of this service
+// registered so I can connect directly to them".
+func (s *HTTPHandlers) HealthServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	return s.healthServiceNodes(resp, req, serviceHealth)
+}
+
+func (s *HTTPHandlers) healthServiceNodes(resp http.ResponseWriter, req *http.Request, healthType string) (interface{}, error) {
 	// Set default DC
-	args := structs.ServiceSpecificRequest{Connect: connect}
+	args := structs.ServiceSpecificRequest{}
 	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
 		return nil, err
 	}
@@ -181,9 +198,17 @@ func (s *HTTPServer) healthServiceNodes(resp http.ResponseWriter, req *http.Requ
 	}
 
 	// Determine the prefix
-	prefix := "/v1/health/service/"
-	if connect {
+	var prefix string
+	switch healthType {
+	case connectHealth:
 		prefix = "/v1/health/connect/"
+		args.Connect = true
+	case ingressHealth:
+		prefix = "/v1/health/ingress/"
+		args.Ingress = true
+	default:
+		// serviceHealth is the default type
+		prefix = "/v1/health/service/"
 	}
 
 	// Pull out the service name
@@ -194,56 +219,32 @@ func (s *HTTPServer) healthServiceNodes(resp http.ResponseWriter, req *http.Requ
 		return nil, nil
 	}
 
-	// Make the RPC request
-	var out structs.IndexedCheckServiceNodes
-	defer setMeta(resp, &out.QueryMeta)
+	// TODO: handle this for all endpoints in parseConsistency
+	args.QueryOptions.UseCache = s.agent.config.HTTPUseCache && args.QueryOptions.UseCache
+
+	out, md, err := s.agent.rpcClientHealth.ServiceNodes(req.Context(), args)
+	if err != nil {
+		return nil, err
+	}
 
 	if args.QueryOptions.UseCache {
-		raw, m, err := s.agent.cache.Get(cachetype.HealthServicesName, &args)
-		if err != nil {
-			return nil, err
-		}
-		defer setCacheMeta(resp, &m)
-		reply, ok := raw.(*structs.IndexedCheckServiceNodes)
-		if !ok {
-			// This should never happen, but we want to protect against panics
-			return nil, fmt.Errorf("internal error: response type not correct")
-		}
-		out = *reply
-	} else {
-	RETRY_ONCE:
-		if err := s.agent.RPC("Health.ServiceNodes", &args, &out); err != nil {
-			return nil, err
-		}
-		if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
-			args.AllowStale = false
-			args.MaxStaleDuration = 0
-			goto RETRY_ONCE
-		}
+		setCacheMeta(resp, &md)
 	}
+	setMeta(resp, &out.QueryMeta)
 	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
 
+	// FIXME: argument parsing should be done before performing the rpc
 	// Filter to only passing if specified
-	if _, ok := params[api.HealthPassing]; ok {
-		val := params.Get(api.HealthPassing)
-		// Backwards-compat to allow users to specify ?passing without a value. This
-		// should be removed in Consul 0.10.
-		var filter bool
-		if val == "" {
-			filter = true
-		} else {
-			var err error
-			filter, err = strconv.ParseBool(val)
-			if err != nil {
-				resp.WriteHeader(http.StatusBadRequest)
-				fmt.Fprint(resp, "Invalid value for ?passing")
-				return nil, nil
-			}
-		}
+	filter, err := getBoolQueryParam(params, api.HealthPassing)
+	if err != nil {
+		resp.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(resp, "Invalid value for ?passing")
+		return nil, nil
+	}
 
-		if filter {
-			out.Nodes = filterNonPassing(out.Nodes)
-		}
+	// FIXME: remove filterNonPassing, replace with nodes.Filter, which is used by DNSServer
+	if filter {
+		out.Nodes = filterNonPassing(out.Nodes)
 	}
 
 	// Translate addresses after filtering so we don't waste effort.
@@ -271,6 +272,27 @@ func (s *HTTPServer) healthServiceNodes(resp http.ResponseWriter, req *http.Requ
 		}
 	}
 	return out.Nodes, nil
+}
+
+func getBoolQueryParam(params url.Values, key string) (bool, error) {
+	var param bool
+	if _, ok := params[key]; ok {
+		val := params.Get(key)
+		// Orginally a comment declared this check should be removed after Consul
+		// 0.10, to no longer support using ?passing without a value. However, I
+		// think this is a reasonable experience for a user and so am keeping it
+		// here.
+		if val == "" {
+			param = true
+		} else {
+			var err error
+			param, err = strconv.ParseBool(val)
+			if err != nil {
+				return false, err
+			}
+		}
+	}
+	return param, nil
 }
 
 // filterNonPassing is used to filter out any nodes that have check that are not passing

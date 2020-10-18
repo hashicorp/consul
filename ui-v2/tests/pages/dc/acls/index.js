@@ -11,6 +11,6 @@ export default function(visitable, deletable, creatable, clickable, attribute, c
         confirmUse: clickable('[data-test-confirm-use]'),
       })
     ),
-    filter: filter,
+    filter: filter('[data-test-acl-filter]'),
   });
 }

@@ -40,7 +40,7 @@ func TestAPI_ConnectCARoots_list(t *testing.T) {
 		connect := c.Connect()
 		list, meta, err := connect.CARoots(nil)
 		r.Check(err)
-		if meta.LastIndex <= 0 {
+		if meta.LastIndex == 0 {
 			r.Fatalf("expected roots raft index to be > 0")
 		}
 		if v := len(list.Roots); v != 1 {

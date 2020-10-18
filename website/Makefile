@@ -1,33 +1,54 @@
-VERSION?="0.3.44"
-
-# The volume mounting steps are a way to exclude all the consul docs from being built
-# in the Consul site build process while still including the index.html page that points
-# users to learn.hashicorp.com. See PR#5847.
-
-build:
-	@echo "==> Starting build in Docker..."
-	@docker run \
-		--interactive \
-		--rm \
-		--tty \
-		--volume "$(shell pwd):/website" \
-		--volume "/website/source/docs/guides" \
-		--volume "$(shell pwd)/source/docs/guides/index.html.md:/website/source/docs/guides/index.html.md" \
-		-e "ENV=production" \
-		hashicorp/middleman-hashicorp:${VERSION} \
-		bundle exec middleman build --verbose --clean
-
+# Default: run this if working on the website locally to run in watch mode.
 website:
+	@echo "==> Downloading latest Docker image..."
+	@docker pull hashicorp/consul-website
 	@echo "==> Starting website in Docker..."
 	@docker run \
 		--interactive \
 		--rm \
 		--tty \
-		--publish "4567:4567" \
-		--publish "35729:35729" \
+		--workdir "/website" \
 		--volume "$(shell pwd):/website" \
-		--volume "/website/source/docs/guides" \
-		--volume "$(shell pwd)/source/docs/guides/index.html.md:/website/source/docs/guides/index.html.md" \
-		hashicorp/middleman-hashicorp:${VERSION}
+		--volume "/website/node_modules" \
+		--publish "3000:3000" \
+		hashicorp/consul-website \
+		npm start
 
-.PHONY: build website
+# This command will generate a static version of the website to the "out" folder.
+build:
+	@echo "==> Downloading latest Docker image..."
+	@docker pull hashicorp/consul-website
+	@echo "==> Starting build in Docker..."
+	@docker run \
+		--interactive \
+		--rm \
+		--tty \
+		--workdir "/website" \
+		--volume "$(shell pwd):/website" \
+		--volume "/website/node_modules" \
+		hashicorp/consul-website \
+		npm run static
+
+# If you are changing node dependencies locally, run this to generate a new
+# local Docker image with the dependency changes included.
+build-image:
+	@echo "==> Building Docker image..."
+	@docker build -t hashicorp-consul-website-local .
+
+# Use this if you have run `build-image` to use the locally built image
+# rather than our CI-generated image to test dependency changes.
+website-local:
+	@echo "==> Starting website in Docker..."
+	@docker run \
+		--interactive \
+		--rm \
+		--tty \
+		--workdir "/website" \
+		--volume "$(shell pwd):/website" \
+		--volume "/website/node_modules" \
+		--publish "3000:3000" \
+		hashicorp-consul-website-local \
+		npm start
+
+.DEFAULT_GOAL := website
+.PHONY: build build-image website website-local

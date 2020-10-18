@@ -236,7 +236,7 @@ func TestCoordinate_Node(t *testing.T) {
 	// Make sure we get a 404 with no coordinates.
 	req, _ := http.NewRequest("GET", "/v1/coordinate/node/foo?dc=dc1", nil)
 	resp := httptest.NewRecorder()
-	obj, err := a.srv.CoordinateNode(resp, req)
+	_, err := a.srv.CoordinateNode(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -285,7 +285,7 @@ func TestCoordinate_Node(t *testing.T) {
 	// Query back and check the nodes are present.
 	req, _ = http.NewRequest("GET", "/v1/coordinate/node/foo?dc=dc1", nil)
 	resp = httptest.NewRecorder()
-	obj, err = a.srv.CoordinateNode(resp, req)
+	obj, err := a.srv.CoordinateNode(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -303,7 +303,7 @@ func TestCoordinate_Node(t *testing.T) {
 	// Filter on a nonexistent node segment
 	req, _ = http.NewRequest("GET", "/v1/coordinate/node/foo?segment=nope", nil)
 	resp = httptest.NewRecorder()
-	obj, err = a.srv.CoordinateNode(resp, req)
+	_, err = a.srv.CoordinateNode(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -331,7 +331,7 @@ func TestCoordinate_Node(t *testing.T) {
 	// Make sure the empty filter works
 	req, _ = http.NewRequest("GET", "/v1/coordinate/node/foo?segment=", nil)
 	resp = httptest.NewRecorder()
-	obj, err = a.srv.CoordinateNode(resp, req)
+	_, err = a.srv.CoordinateNode(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

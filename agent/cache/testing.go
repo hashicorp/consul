@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"context"
 	"reflect"
 	"time"
 
@@ -9,19 +10,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestCache returns a Cache instance configuring for testing.
-func TestCache(t testing.T) *Cache {
-	// Simple but lets us do some fine-tuning later if we want to.
-	return New(nil)
-}
-
 // TestCacheGetCh returns a channel that returns the result of the Get call.
 // This is useful for testing timing and concurrency with Get calls. Any
 // error will be logged, so the result value should always be asserted.
 func TestCacheGetCh(t testing.T, c *Cache, typ string, r Request) <-chan interface{} {
 	resultCh := make(chan interface{})
 	go func() {
-		result, _, err := c.Get(typ, r)
+		result, _, err := c.Get(context.Background(), typ, r)
 		if err != nil {
 			t.Logf("Error: %s", err)
 			close(resultCh)
@@ -65,7 +60,7 @@ func TestCacheNotifyChResult(t testing.T, ch <-chan UpdateEvent, expected ...Upd
 	}
 
 	got := make([]UpdateEvent, 0, expectLen)
-	timeoutCh := time.After(50 * time.Millisecond)
+	timeoutCh := time.After(75 * time.Millisecond)
 
 OUT:
 	for {
@@ -79,7 +74,7 @@ OUT:
 			}
 
 		case <-timeoutCh:
-			t.Fatalf("got %d results on chan in 50ms, want %d", len(got), expectLen)
+			t.Fatalf("timeout while waiting for result: got %d results on chan, want %d", len(got), expectLen)
 		}
 	}
 

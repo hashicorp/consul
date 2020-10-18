@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"context"
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
@@ -12,10 +13,9 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/connect"
-	ca "github.com/hashicorp/consul/agent/connect/ca"
+	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
-	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	uuid "github.com/hashicorp/go-uuid"
@@ -99,8 +99,8 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 				err               error
 			)
 			retry.Run(t, func(r *retry.R) {
-				_, caRoot = s1.getCAProvider()
-				secondaryProvider, _ = s2.getCAProvider()
+				_, caRoot = getCAProviderWithLock(s1)
+				secondaryProvider, _ = getCAProviderWithLock(s2)
 				intermediatePEM, err = secondaryProvider.ActiveIntermediate()
 				require.NoError(r, err)
 
@@ -164,7 +164,7 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 
 func waitForActiveCARoot(t *testing.T, srv *Server, expect *structs.CARoot) {
 	retry.Run(t, func(r *retry.R) {
-		_, root := srv.getCAProvider()
+		_, root := getCAProviderWithLock(srv)
 		if root == nil {
 			r.Fatal("no root")
 		}
@@ -172,6 +172,125 @@ func waitForActiveCARoot(t *testing.T, srv *Server, expect *structs.CARoot) {
 			r.Fatalf("current active root is %s; waiting for %s", root.ID, expect.ID)
 		}
 	})
+}
+
+func getCAProviderWithLock(s *Server) (ca.Provider, *structs.CARoot) {
+	s.caProviderReconfigurationLock.Lock()
+	defer s.caProviderReconfigurationLock.Unlock()
+	return s.getCAProvider()
+}
+
+func TestLeader_Vault_PrimaryCA_IntermediateRenew(t *testing.T) {
+	ca.SkipIfVaultNotPresent(t)
+
+	// no parallel execution because we change globals
+	origInterval := structs.IntermediateCertRenewInterval
+	origMinTTL := structs.MinLeafCertTTL
+	origDriftBuffer := ca.CertificateTimeDriftBuffer
+	defer func() {
+		structs.IntermediateCertRenewInterval = origInterval
+		structs.MinLeafCertTTL = origMinTTL
+		ca.CertificateTimeDriftBuffer = origDriftBuffer
+	}()
+
+	// Vault backdates certs by 30s by default.
+	ca.CertificateTimeDriftBuffer = 30 * time.Second
+	structs.IntermediateCertRenewInterval = time.Millisecond
+	structs.MinLeafCertTTL = time.Second
+	require := require.New(t)
+
+	testVault := ca.NewTestVaultServer(t)
+	defer testVault.Stop()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Build = "1.6.0"
+		c.PrimaryDatacenter = "dc1"
+		c.CAConfig = &structs.CAConfiguration{
+			Provider: "vault",
+			Config: map[string]interface{}{
+				"Address":             testVault.Addr,
+				"Token":               testVault.RootToken,
+				"RootPKIPath":         "pki-root/",
+				"IntermediatePKIPath": "pki-intermediate/",
+				"LeafCertTTL":         "1s",
+				// The retry loop only retries for 7sec max and
+				// the ttl needs to be below so that it
+				// triggers definitely.
+				"IntermediateCertTTL": "5s",
+			},
+		}
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Capture the current root.
+	var originalRoot *structs.CARoot
+	{
+		rootList, activeRoot, err := getTestRoots(s1, "dc1")
+		require.NoError(err)
+		require.Len(rootList.Roots, 1)
+		originalRoot = activeRoot
+	}
+
+	// Get the original intermediate.
+	waitForActiveCARoot(t, s1, originalRoot)
+	provider, _ := getCAProviderWithLock(s1)
+	intermediatePEM, err := provider.ActiveIntermediate()
+	require.NoError(err)
+	_, err = connect.ParseCert(intermediatePEM)
+	require.NoError(err)
+
+	// Wait for dc1's intermediate to be refreshed.
+	// It is possible that test fails when the blocking query doesn't return.
+	retry.Run(t, func(r *retry.R) {
+		provider, _ = getCAProviderWithLock(s1)
+		newIntermediatePEM, err := provider.ActiveIntermediate()
+		r.Check(err)
+		_, err = connect.ParseCert(intermediatePEM)
+		r.Check(err)
+		if newIntermediatePEM == intermediatePEM {
+			r.Fatal("not a renewed intermediate")
+		}
+		intermediatePEM = newIntermediatePEM
+	})
+	require.NoError(err)
+
+	// Get the root from dc1 and validate a chain of:
+	// dc1 leaf -> dc1 intermediate -> dc1 root
+	provider, caRoot := getCAProviderWithLock(s1)
+
+	// Have the new intermediate sign a leaf cert and make sure the chain is correct.
+	spiffeService := &connect.SpiffeIDService{
+		Host:       "node1",
+		Namespace:  "default",
+		Datacenter: "dc1",
+		Service:    "foo",
+	}
+	raw, _ := connect.TestCSR(t, spiffeService)
+
+	leafCsr, err := connect.ParseCSR(raw)
+	require.NoError(err)
+
+	leafPEM, err := provider.Sign(leafCsr)
+	require.NoError(err)
+
+	cert, err := connect.ParseCert(leafPEM)
+	require.NoError(err)
+
+	// Check that the leaf signed by the new intermediate can be verified using the
+	// returned cert chain (signed intermediate + remote root).
+	intermediatePool := x509.NewCertPool()
+	intermediatePool.AppendCertsFromPEM([]byte(intermediatePEM))
+	rootPool := x509.NewCertPool()
+	rootPool.AppendCertsFromPEM([]byte(caRoot.RootCert))
+
+	_, err = cert.Verify(x509.VerifyOptions{
+		Intermediates: intermediatePool,
+		Roots:         rootPool,
+	})
+	require.NoError(err)
 }
 
 func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
@@ -226,7 +345,8 @@ func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 
 	// Get the original intermediate
-	secondaryProvider, _ := s2.getCAProvider()
+	// TODO: Wait for intermediate instead of wait for leader
+	secondaryProvider, _ := getCAProviderWithLock(s2)
 	intermediatePEM, err := secondaryProvider.ActiveIntermediate()
 	require.NoError(err)
 	cert, err := connect.ParseCert(intermediatePEM)
@@ -252,7 +372,7 @@ func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
 	// however, defaultQueryTime will be configurable and we con lower it
 	// so that it returns for sure.
 	retry.Run(t, func(r *retry.R) {
-		secondaryProvider, _ := s2.getCAProvider()
+		secondaryProvider, _ = getCAProviderWithLock(s2)
 		intermediatePEM, err = secondaryProvider.ActiveIntermediate()
 		r.Check(err)
 		cert, err := connect.ParseCert(intermediatePEM)
@@ -265,9 +385,9 @@ func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
 	})
 	require.NoError(err)
 
-	// Get the new root from dc1 and validate a chain of:
+	// Get the root from dc1 and validate a chain of:
 	// dc2 leaf -> dc2 intermediate -> dc1 root
-	_, caRoot := s1.getCAProvider()
+	_, caRoot := getCAProviderWithLock(s1)
 
 	// Have dc2 sign a leaf cert and make sure the chain is correct.
 	spiffeService := &connect.SpiffeIDService{
@@ -328,7 +448,7 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 	testrpc.WaitForLeader(t, s2.RPC, "dc2")
 
 	// Get the original intermediate
-	secondaryProvider, _ := s2.getCAProvider()
+	secondaryProvider, _ := getCAProviderWithLock(s2)
 	oldIntermediatePEM, err := secondaryProvider.ActiveIntermediate()
 	require.NoError(err)
 	require.NotEmpty(oldIntermediatePEM)
@@ -414,7 +534,7 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 
 	// Get the new root from dc1 and validate a chain of:
 	// dc2 leaf -> dc2 intermediate -> dc1 root
-	_, caRoot := s1.getCAProvider()
+	_, caRoot := getCAProviderWithLock(s1)
 
 	// Have dc2 sign a leaf cert and make sure the chain is correct.
 	spiffeService := &connect.SpiffeIDService{
@@ -523,7 +643,7 @@ func TestLeader_SecondaryCA_FixSigningKeyID_via_IntermediateRefresh(t *testing.T
 	// the CA provider anyway.
 	retry.Run(t, func(r *retry.R) {
 		// verify that the root is now corrected
-		provider, activeRoot := s2.getCAProvider()
+		provider, activeRoot := getCAProviderWithLock(s2)
 		require.NotNil(r, provider)
 		require.NotNil(r, activeRoot)
 
@@ -708,7 +828,7 @@ func TestLeader_SecondaryCA_UpgradeBeforePrimary(t *testing.T) {
 
 	// Wait for the secondary transition to happen and then verify the secondary DC
 	// has both roots present.
-	secondaryProvider, _ := s2.getCAProvider()
+	secondaryProvider, _ := getCAProviderWithLock(s2)
 	retry.Run(t, func(r *retry.R) {
 		state1 := s1.fsm.State()
 		_, roots1, err := state1.CARoots(nil)
@@ -729,7 +849,7 @@ func TestLeader_SecondaryCA_UpgradeBeforePrimary(t *testing.T) {
 		require.NotEmpty(r, inter, "should have valid intermediate")
 	})
 
-	_, caRoot := s1.getCAProvider()
+	_, caRoot := getCAProviderWithLock(s1)
 	intermediatePEM, err := secondaryProvider.ActiveIntermediate()
 	require.NoError(t, err)
 
@@ -783,422 +903,6 @@ func getTestRoots(s *Server, datacenter string) (*structs.IndexedCARoots, *struc
 	}
 
 	return &rootList, active, nil
-}
-
-func TestLeader_ReplicateIntentions(t *testing.T) {
-	t.Parallel()
-
-	assert := assert.New(t)
-	require := require.New(t)
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.Datacenter = "dc1"
-		c.ACLDatacenter = "dc1"
-		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-		c.ACLDefaultPolicy = "deny"
-		// set the build to ensure all the version checks pass and enable all the connect features that operate cross-dc
-		c.Build = "1.6.0"
-	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	codec := rpcClient(t, s1)
-	defer codec.Close()
-
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-
-	s1.tokens.UpdateAgentToken("root", tokenStore.TokenSourceConfig)
-
-	replicationRules := `acl = "read" service_prefix "" { policy = "read" intentions = "read" } operator = "write" `
-	// create some tokens
-	replToken1, err := upsertTestTokenWithPolicyRules(codec, "root", "dc1", replicationRules)
-	require.NoError(err)
-
-	replToken2, err := upsertTestTokenWithPolicyRules(codec, "root", "dc1", replicationRules)
-	require.NoError(err)
-
-	// dc2 as a secondary DC
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
-		c.Datacenter = "dc2"
-		c.ACLDatacenter = "dc1"
-		c.ACLsEnabled = true
-		c.ACLDefaultPolicy = "deny"
-		c.ACLTokenReplication = false
-		c.Build = "1.6.0"
-	})
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
-
-	s2.tokens.UpdateAgentToken("root", tokenStore.TokenSourceConfig)
-
-	// start out with one token
-	s2.tokens.UpdateReplicationToken(replToken1.SecretID, tokenStore.TokenSourceConfig)
-
-	// Create the WAN link
-	joinWAN(t, s2, s1)
-	testrpc.WaitForLeader(t, s2.RPC, "dc2")
-
-	// Create an intention in dc1
-	ixn := structs.IntentionRequest{
-		Datacenter:   "dc1",
-		WriteRequest: structs.WriteRequest{Token: "root"},
-		Op:           structs.IntentionOpCreate,
-		Intention: &structs.Intention{
-			SourceNS:        structs.IntentionDefaultNamespace,
-			SourceName:      "test",
-			DestinationNS:   structs.IntentionDefaultNamespace,
-			DestinationName: "test",
-			Action:          structs.IntentionActionAllow,
-			SourceType:      structs.IntentionSourceConsul,
-			Meta:            map[string]string{},
-		},
-	}
-	var reply string
-	require.NoError(s1.RPC("Intention.Apply", &ixn, &reply))
-	require.NotEmpty(reply)
-
-	// Wait for it to get replicated to dc2
-	var createdAt time.Time
-	ixn.Intention.ID = reply
-	retry.Run(t, func(r *retry.R) {
-		req := &structs.IntentionQueryRequest{
-			Datacenter:   "dc2",
-			QueryOptions: structs.QueryOptions{Token: "root"},
-			IntentionID:  ixn.Intention.ID,
-		}
-		var resp structs.IndexedIntentions
-		r.Check(s2.RPC("Intention.Get", req, &resp))
-		if len(resp.Intentions) != 1 {
-			r.Fatalf("bad: %v", resp.Intentions)
-		}
-		actual := resp.Intentions[0]
-		createdAt = actual.CreatedAt
-	})
-
-	// Sleep a bit so that the UpdatedAt field will definitely be different
-	time.Sleep(1 * time.Millisecond)
-
-	// delete underlying acl token being used for replication
-	require.NoError(deleteTestToken(codec, "root", "dc1", replToken1.AccessorID))
-
-	// switch to the other token
-	s2.tokens.UpdateReplicationToken(replToken2.SecretID, tokenStore.TokenSourceConfig)
-
-	// Update the intention in dc1
-	ixn.Op = structs.IntentionOpUpdate
-	ixn.Intention.ID = reply
-	ixn.Intention.SourceName = "*"
-	require.NoError(s1.RPC("Intention.Apply", &ixn, &reply))
-
-	// Wait for dc2 to get the update
-	ixn.Intention.ID = reply
-	var resp structs.IndexedIntentions
-	retry.Run(t, func(r *retry.R) {
-		req := &structs.IntentionQueryRequest{
-			Datacenter:   "dc2",
-			QueryOptions: structs.QueryOptions{Token: "root"},
-			IntentionID:  ixn.Intention.ID,
-		}
-		r.Check(s2.RPC("Intention.Get", req, &resp))
-		if len(resp.Intentions) != 1 {
-			r.Fatalf("bad: %v", resp.Intentions)
-		}
-		if resp.Intentions[0].SourceName != "*" {
-			r.Fatalf("bad: %v", resp.Intentions[0])
-		}
-	})
-
-	actual := resp.Intentions[0]
-	assert.Equal(createdAt, actual.CreatedAt)
-	assert.WithinDuration(time.Now(), actual.UpdatedAt, 5*time.Second)
-
-	actual.CreateIndex, actual.ModifyIndex = 0, 0
-	actual.CreatedAt = ixn.Intention.CreatedAt
-	actual.UpdatedAt = ixn.Intention.UpdatedAt
-	ixn.Intention.UpdatePrecedence()
-	assert.Equal(ixn.Intention, actual)
-
-	// Delete
-	ixn.Op = structs.IntentionOpDelete
-	require.NoError(s1.RPC("Intention.Apply", &ixn, &reply))
-
-	// Wait for the delete to be replicated
-	retry.Run(t, func(r *retry.R) {
-		req := &structs.IntentionQueryRequest{
-			Datacenter:   "dc2",
-			QueryOptions: structs.QueryOptions{Token: "root"},
-			IntentionID:  ixn.Intention.ID,
-		}
-		var resp structs.IndexedIntentions
-		err := s2.RPC("Intention.Get", req, &resp)
-		if err == nil || !strings.Contains(err.Error(), ErrIntentionNotFound.Error()) {
-			r.Fatalf("expected intention not found")
-		}
-	})
-}
-
-func TestLeader_ReplicateIntentions_forwardToPrimary(t *testing.T) {
-	t.Parallel()
-
-	assert := assert.New(t)
-	require := require.New(t)
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
-
-	// dc2 as a secondary DC
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
-		c.Datacenter = "dc2"
-		c.PrimaryDatacenter = "dc1"
-	})
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
-
-	// Create the WAN link
-	joinWAN(t, s2, s1)
-	testrpc.WaitForLeader(t, s2.RPC, "dc2")
-
-	// Create an intention in dc2
-	ixn := structs.IntentionRequest{
-		Datacenter: "dc2",
-		Op:         structs.IntentionOpCreate,
-		Intention: &structs.Intention{
-			SourceNS:        structs.IntentionDefaultNamespace,
-			SourceName:      "test",
-			DestinationNS:   structs.IntentionDefaultNamespace,
-			DestinationName: "test",
-			Action:          structs.IntentionActionAllow,
-			SourceType:      structs.IntentionSourceConsul,
-			Meta:            map[string]string{},
-		},
-	}
-	var reply string
-	require.NoError(s1.RPC("Intention.Apply", &ixn, &reply))
-	require.NotEmpty(reply)
-
-	// Make sure it exists in both DCs
-	var createdAt time.Time
-	ixn.Intention.ID = reply
-	retry.Run(t, func(r *retry.R) {
-		for _, server := range []*Server{s1, s2} {
-			req := &structs.IntentionQueryRequest{
-				Datacenter:  server.config.Datacenter,
-				IntentionID: ixn.Intention.ID,
-			}
-			var resp structs.IndexedIntentions
-			r.Check(server.RPC("Intention.Get", req, &resp))
-			if len(resp.Intentions) != 1 {
-				r.Fatalf("bad: %v", resp.Intentions)
-			}
-			actual := resp.Intentions[0]
-			createdAt = actual.CreatedAt
-		}
-	})
-
-	// Sleep a bit so that the UpdatedAt field will definitely be different
-	time.Sleep(1 * time.Millisecond)
-
-	// Update the intention in dc1
-	ixn.Op = structs.IntentionOpUpdate
-	ixn.Intention.ID = reply
-	ixn.Intention.SourceName = "*"
-	require.NoError(s1.RPC("Intention.Apply", &ixn, &reply))
-
-	// Wait for dc2 to get the update
-	ixn.Intention.ID = reply
-	var resp structs.IndexedIntentions
-	retry.Run(t, func(r *retry.R) {
-		for _, server := range []*Server{s1, s2} {
-			req := &structs.IntentionQueryRequest{
-				Datacenter:  server.config.Datacenter,
-				IntentionID: ixn.Intention.ID,
-			}
-			r.Check(server.RPC("Intention.Get", req, &resp))
-			if len(resp.Intentions) != 1 {
-				r.Fatalf("bad: %v", resp.Intentions)
-			}
-			if resp.Intentions[0].SourceName != "*" {
-				r.Fatalf("bad: %v", resp.Intentions[0])
-			}
-		}
-	})
-
-	actual := resp.Intentions[0]
-	assert.Equal(createdAt, actual.CreatedAt)
-	assert.WithinDuration(time.Now(), actual.UpdatedAt, 5*time.Second)
-
-	actual.CreateIndex, actual.ModifyIndex = 0, 0
-	actual.CreatedAt = ixn.Intention.CreatedAt
-	actual.UpdatedAt = ixn.Intention.UpdatedAt
-	actual.Hash = ixn.Intention.Hash
-	ixn.Intention.UpdatePrecedence()
-	assert.Equal(ixn.Intention, actual)
-
-	// Delete
-	ixn.Op = structs.IntentionOpDelete
-	require.NoError(s1.RPC("Intention.Apply", &ixn, &reply))
-
-	// Wait for the delete to be replicated
-	retry.Run(t, func(r *retry.R) {
-		for _, server := range []*Server{s1, s2} {
-			req := &structs.IntentionQueryRequest{
-				Datacenter:  server.config.Datacenter,
-				IntentionID: ixn.Intention.ID,
-			}
-			var resp structs.IndexedIntentions
-			err := server.RPC("Intention.Get", req, &resp)
-			if err == nil || !strings.Contains(err.Error(), ErrIntentionNotFound.Error()) {
-				r.Fatalf("expected intention not found")
-			}
-		}
-	})
-}
-
-func TestLeader_batchIntentionUpdates(t *testing.T) {
-	t.Parallel()
-
-	assert := assert.New(t)
-	ixn1 := structs.TestIntention(t)
-	ixn1.ID = "ixn1"
-	ixn2 := structs.TestIntention(t)
-	ixn2.ID = "ixn2"
-	ixnLarge := structs.TestIntention(t)
-	ixnLarge.ID = "ixnLarge"
-	ixnLarge.Description = strings.Repeat("x", maxIntentionTxnSize-1)
-
-	cases := []struct {
-		deletes  structs.Intentions
-		updates  structs.Intentions
-		expected []structs.TxnOps
-	}{
-		// 1 deletes, 0 updates
-		{
-			deletes: structs.Intentions{ixn1},
-			expected: []structs.TxnOps{
-				structs.TxnOps{
-					&structs.TxnOp{
-						Intention: &structs.TxnIntentionOp{
-							Op:        structs.IntentionOpDelete,
-							Intention: ixn1,
-						},
-					},
-				},
-			},
-		},
-		// 0 deletes, 1 updates
-		{
-			updates: structs.Intentions{ixn1},
-			expected: []structs.TxnOps{
-				structs.TxnOps{
-					&structs.TxnOp{
-						Intention: &structs.TxnIntentionOp{
-							Op:        structs.IntentionOpUpdate,
-							Intention: ixn1,
-						},
-					},
-				},
-			},
-		},
-		// 1 deletes, 1 updates
-		{
-			deletes: structs.Intentions{ixn1},
-			updates: structs.Intentions{ixn2},
-			expected: []structs.TxnOps{
-				structs.TxnOps{
-					&structs.TxnOp{
-						Intention: &structs.TxnIntentionOp{
-							Op:        structs.IntentionOpDelete,
-							Intention: ixn1,
-						},
-					},
-					&structs.TxnOp{
-						Intention: &structs.TxnIntentionOp{
-							Op:        structs.IntentionOpUpdate,
-							Intention: ixn2,
-						},
-					},
-				},
-			},
-		},
-		// 1 large intention update
-		{
-			updates: structs.Intentions{ixnLarge},
-			expected: []structs.TxnOps{
-				structs.TxnOps{
-					&structs.TxnOp{
-						Intention: &structs.TxnIntentionOp{
-							Op:        structs.IntentionOpUpdate,
-							Intention: ixnLarge,
-						},
-					},
-				},
-			},
-		},
-		// 2 deletes (w/ a large intention), 1 updates
-		{
-			deletes: structs.Intentions{ixn1, ixnLarge},
-			updates: structs.Intentions{ixn2},
-			expected: []structs.TxnOps{
-				structs.TxnOps{
-					&structs.TxnOp{
-						Intention: &structs.TxnIntentionOp{
-							Op:        structs.IntentionOpDelete,
-							Intention: ixn1,
-						},
-					},
-					&structs.TxnOp{
-						Intention: &structs.TxnIntentionOp{
-							Op:        structs.IntentionOpDelete,
-							Intention: ixnLarge,
-						},
-					},
-				},
-				structs.TxnOps{
-					&structs.TxnOp{
-						Intention: &structs.TxnIntentionOp{
-							Op:        structs.IntentionOpUpdate,
-							Intention: ixn2,
-						},
-					},
-				},
-			},
-		},
-		// 1 deletes , 2 updates (w/ a large intention)
-		{
-			deletes: structs.Intentions{ixn1},
-			updates: structs.Intentions{ixnLarge, ixn2},
-			expected: []structs.TxnOps{
-				structs.TxnOps{
-					&structs.TxnOp{
-						Intention: &structs.TxnIntentionOp{
-							Op:        structs.IntentionOpDelete,
-							Intention: ixn1,
-						},
-					},
-					&structs.TxnOp{
-						Intention: &structs.TxnIntentionOp{
-							Op:        structs.IntentionOpUpdate,
-							Intention: ixnLarge,
-						},
-					},
-				},
-				structs.TxnOps{
-					&structs.TxnOp{
-						Intention: &structs.TxnIntentionOp{
-							Op:        structs.IntentionOpUpdate,
-							Intention: ixn2,
-						},
-					},
-				},
-			},
-		},
-	}
-
-	for _, tc := range cases {
-		actual := batchIntentionUpdates(tc.deletes, tc.updates)
-		assert.Equal(tc.expected, actual)
-	}
 }
 
 func TestLeader_GenerateCASignRequest(t *testing.T) {
@@ -1324,7 +1028,7 @@ func TestLeader_PersistIntermediateCAs(t *testing.T) {
 	}
 
 	// Get the active root before leader change.
-	_, root := s1.getCAProvider()
+	_, root := getCAProviderWithLock(s1)
 	require.Len(root.IntermediateCerts, 1)
 
 	// Force a leader change and make sure the root CA values are preserved.
@@ -1343,7 +1047,7 @@ func TestLeader_PersistIntermediateCAs(t *testing.T) {
 			r.Fatal("no leader")
 		}
 
-		_, newLeaderRoot := leader.getCAProvider()
+		_, newLeaderRoot := getCAProviderWithLock(leader)
 		if !reflect.DeepEqual(newLeaderRoot, root) {
 			r.Fatalf("got %v, want %v", newLeaderRoot, root)
 		}
@@ -1441,4 +1145,44 @@ func TestLeader_lessThanHalfTimePassed(t *testing.T) {
 	require.False(t, lessThanHalfTimePassed(now, now.Add(-10*time.Second), now.Add(10*time.Second)))
 
 	require.True(t, lessThanHalfTimePassed(now, now.Add(-10*time.Second), now.Add(20*time.Second)))
+}
+
+func TestLeader_retryLoopBackoffHandleSuccess(t *testing.T) {
+	type test struct {
+		desc     string
+		loopFn   func() error
+		abort    bool
+		timedOut bool
+	}
+	success := func() error {
+		return nil
+	}
+	failure := func() error {
+		return fmt.Errorf("test error")
+	}
+	tests := []test{
+		{"loop without error and no abortOnSuccess keeps running", success, false, true},
+		{"loop with error and no abortOnSuccess keeps running", failure, false, true},
+		{"loop without error and abortOnSuccess is stopped", success, true, false},
+		{"loop with error and abortOnSuccess keeps running", failure, true, true},
+	}
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.desc, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+			defer cancel()
+
+			retryLoopBackoffHandleSuccess(ctx, tc.loopFn, func(_ error) {}, tc.abort)
+			select {
+			case <-ctx.Done():
+				if !tc.timedOut {
+					t.Fatal("should not have timed out")
+				}
+			default:
+				if tc.timedOut {
+					t.Fatal("should have timed out")
+				}
+			}
+		})
+	}
 }
