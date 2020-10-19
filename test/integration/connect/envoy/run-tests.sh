@@ -81,6 +81,7 @@ function init_workdir {
 # "docker-compose" which has a ~500ms per execution startup penalty.
 function docker_kill_rm {
   local name
+  local todo=()
   for name in "$@"; do
     name="envoy_${name}_1"
     if docker container inspect $name &>/dev/null; then
@@ -89,11 +90,17 @@ function docker_kill_rm {
         docker stop $name &> /dev/null
         echo "done"
       fi
-      echo -n "Killing and removing $name..."
-      docker rm -v -f $name &> /dev/null
-      echo "done"
+      todo+=($name)
     fi
   done
+
+  if [[ ${#todo[@]} -eq 0 ]]; then
+      return 0
+  fi
+
+  echo -n "Killing and removing: ${todo[@]}..."
+  docker rm -v -f ${todo[@]} &> /dev/null
+  echo "done"
 }
 
 function start_consul {
