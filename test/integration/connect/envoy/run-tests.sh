@@ -84,6 +84,11 @@ function docker_kill_rm {
   for name in "$@"; do
     name="envoy_${name}_1"
     if docker container inspect $name &>/dev/null; then
+      if [[ "$name" == envoy_tcpdump-* ]]; then
+        echo -n "Gracefully stopping $name..."
+        docker stop $name &> /dev/null
+        echo "done"
+      fi
       echo -n "Killing and removing $name..."
       docker rm -v -f $name &> /dev/null
       echo "done"
@@ -569,6 +574,31 @@ function debug_dump_volumes {
     --net=none \
     alpine \
     cp -r /workdir/. /cwd/workdir/
+}
+
+function run_container_tcpdump-primary {
+    # To use add "tcpdump-primary" to REQUIRED_SERVICES
+    common_run_container_tcpdump primary
+}
+function run_container_tcpdump-secondary {
+    # To use add "tcpdump-secondary" to REQUIRED_SERVICES
+    common_run_container_tcpdump secondary
+}
+
+function common_run_container_tcpdump {
+    local DC="$1"
+
+    # we cant run this in circle but its only here to temporarily enable.
+
+    docker build -t envoy-tcpdump -f Dockerfile-tcpdump .
+
+    docker run -d --name $(container_name_prev) \
+        $(network_snippet $DC) \
+        -v $(pwd)/workdir/${DC}/envoy/:/data \
+        --privileged \
+        envoy-tcpdump \
+        -v -i any \
+        -w "/data/${DC}.pcap"
 }
 
 case "${1-}" in
