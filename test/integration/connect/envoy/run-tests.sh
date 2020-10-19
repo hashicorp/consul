@@ -166,7 +166,7 @@ function verify {
   # Nuke any previous case's verify container.
   docker_kill_rm verify-${DC}
 
-  echo "Running verification step for ${CASE_DIR}..."
+  echo "Running ${DC} verification step for ${CASE_DIR}..."
 
   if docker run --name envoy_verify-${DC}_1 -t \
     -e ENVOY_VERSION \
