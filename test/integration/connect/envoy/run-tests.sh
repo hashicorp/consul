@@ -77,8 +77,6 @@ function init_workdir {
   return 0
 }
 
-# Delete a series of containers by their docker-compose name, without invoking
-# "docker-compose" which has a ~500ms per execution startup penalty.
 function docker_kill_rm {
   local name
   local todo=()
@@ -197,8 +195,7 @@ function verify {
 }
 
 function capture_logs {
-  # exported to prevent docker-compose warning about unset var
-  export LOG_DIR="workdir/logs/${CASE_DIR}/${ENVOY_VERSION}"
+  local LOG_DIR="workdir/logs/${CASE_DIR}/${ENVOY_VERSION}"
 
   init_vars
 
@@ -260,8 +257,6 @@ function run_tests {
   CASE_NAME=$( basename $CASE_DIR | cut -c6- )
   export CASE_NAME
 
-  export LOG_DIR="workdir/logs/${CASE_DIR}/${ENVOY_VERSION}"
-
   init_vars
 
   # Initialize the workdir
@@ -307,9 +302,6 @@ function run_tests {
 }
 
 function test_teardown {
-    # Set a log dir to prevent docker-compose warning about unset var
-    export LOG_DIR="workdir/logs/"
-
     init_vars
 
     stop_services primary
@@ -326,9 +318,6 @@ function workdir_cleanup {
 
 
 function suite_setup {
-    # Set a log dir to prevent docker-compose warning about unset var
-    export LOG_DIR="workdir/logs/"
-
     # Cleanup from any previous unclean runs.
     suite_teardown
 
@@ -356,9 +345,6 @@ function suite_setup {
 }
 
 function suite_teardown {
-    # Set a log dir to prevent docker-compose warning about unset var
-    export LOG_DIR="workdir/logs/"
-
     docker_kill_rm verify-primary verify-secondary
 
     # this is some hilarious magic
