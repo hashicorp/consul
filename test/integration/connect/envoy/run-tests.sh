@@ -421,27 +421,27 @@ function run_container_s2-secondary {
 }
 
 function common_run_container_sidecar_proxy {
-  local service="$1"
-  local DC="$2"
+  local sidecar="$1"
+  local service="$2"
+  local DC="$3"
 
-  local bootstrapName="${service/-secondary//}"
   # Hot restart breaks since both envoys seem to interact with each other
   # despite separate containers that don't share IPC namespace. Not quite
   # sure how this happens but may be due to unix socket being in some shared
   # location?
-  docker run -d --name envoy_${service}-sidecar-proxy_1 \
+  docker run -d --name envoy_${sidecar}_1 \
     -v envoy_workdir:/workdir \
     --net container:envoy_consul-${DC}_1 \
     "envoyproxy/envoy:v${ENVOY_VERSION}" \
     envoy \
-    -c /workdir/${DC}/envoy/${bootstrapName}-bootstrap.json \
+    -c /workdir/${DC}/envoy/${service}-bootstrap.json \
     -l debug \
     --disable-hot-restart \
     --drain-time-s 1
 }
 
 function run_container_s1-sidecar-proxy {
-  common_run_container_sidecar_proxy s1 primary
+  common_run_container_sidecar_proxy s1-sidecar-proxy s1 primary
 }
 function run_container_s1-sidecar-proxy-consul-exec {
   docker run -d --name envoy_s1-sidecar-proxy-consul-exec_1 \
@@ -454,34 +454,34 @@ function run_container_s1-sidecar-proxy-consul-exec {
 }
 
 function run_container_s2-sidecar-proxy {
-  common_run_container_sidecar_proxy s2 primary
+  common_run_container_sidecar_proxy s2-sidecar-proxy s2 primary
 }
 function run_container_s2-v1-sidecar-proxy {
-  common_run_container_sidecar_proxy s2-v1 primary
+  common_run_container_sidecar_proxy s2-v1-sidecar-proxy s2-v1 primary
 }
 function run_container_s2-v2-sidecar-proxy {
-  common_run_container_sidecar_proxy s2-v2 primary
+  common_run_container_sidecar_proxy s2-v2-sidecar-proxy s2-v2 primary
 }
 
 function run_container_s3-sidecar-proxy {
-  common_run_container_sidecar_proxy s3 primary
+  common_run_container_sidecar_proxy s3-sidecar-proxy s3 primary
 }
 function run_container_s3-v1-sidecar-proxy {
-  common_run_container_sidecar_proxy s3-v1 primary
+  common_run_container_sidecar_proxy s3-v1-sidecar-proxy s3-v1 primary
 }
 function run_container_s3-v2-sidecar-proxy {
-  common_run_container_sidecar_proxy s3-v2 primary
+  common_run_container_sidecar_proxy s1-v2-sidecar-proxy s3-v2 primary
 }
 
 function run_container_s3-alt-sidecar-proxy {
-  common_run_container_sidecar_proxy s3-alt primary
+  common_run_container_sidecar_proxy s3-alt-sidecar-proxy s3-alt primary
 }
 
 function run_container_s1-sidecar-proxy-secondary {
-  common_run_container_sidecar_proxy s1-secondary secondary
+  common_run_container_sidecar_proxy s1-sidecar-proxy-secondary s1 secondary
 }
 function run_container_s2-sidecar-proxy-secondary {
-  common_run_container_sidecar_proxy s2-secondary secondary
+  common_run_container_sidecar_proxy s2-sidecar-proxy-secondary s2 secondary
 }
 
 function common_run_container_gateway {
@@ -493,7 +493,7 @@ function common_run_container_gateway {
   # despite separate containers that don't share IPC namespace. Not quite
   # sure how this happens but may be due to unix socket being in some shared
   # location?
-  docker run -d --name envoy_${name}_${DC}_1 \
+  docker run -d --name envoy_${name}_1 \
     -v envoy_workdir:/workdir \
     --net container:envoy_consul-${DC}_1 \
     "envoyproxy/envoy:v${ENVOY_VERSION}" \
@@ -505,10 +505,10 @@ function common_run_container_gateway {
 }
 
 function run_container_gateway-primary {
-  common_run_container_gateway gateway mesh-gateway primary
+  common_run_container_gateway gateway-primary mesh-gateway primary
 }
 function run_container_gateway-secondary {
-  common_run_container_gateway gateway mesh-gateway secondary
+  common_run_container_gateway gateway-secondary mesh-gateway secondary
 }
 
 function run_container_ingress-gateway-primary {
