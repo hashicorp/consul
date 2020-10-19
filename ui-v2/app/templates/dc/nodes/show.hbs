@@ -31,8 +31,10 @@
   <BlockSlot @name="loaded">
     <AppView>
         <BlockSlot @name="notification" as |status type|>
-          {{!TODO: Move sessions to its own folder within nodes }}
-          {{partial 'dc/nodes/notifications'}}
+          <Consul::LockSession::Notifications
+            @type={{type}}
+            @status={{status}}
+          />
         </BlockSlot>
         <BlockSlot @name="breadcrumbs">
             <ol>

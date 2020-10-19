@@ -2,8 +2,12 @@
 {{#let (or sortBy "Name:asc") as |sort|}}
 <EventSource @src={{items}} />
 <AppView>
-  <BlockSlot @name="notification" as |status type subject|>
-    {{partial 'dc/nspaces/notifications'}}
+  <BlockSlot @name="notification" as |status type item error|>
+    <Consul::Nspace::Notifications
+      @type={{type}}
+      @status={{status}}
+      @error={{error}}
+    />
   </BlockSlot>
   <BlockSlot @name="header">
     <h1>

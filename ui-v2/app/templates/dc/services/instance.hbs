@@ -4,7 +4,10 @@
 <EventSource @src={{proxyMeta}} />
 <AppView>
     <BlockSlot @name="notification" as |status type|>
-      {{partial 'dc/services/notifications'}}
+      <Consul::Service::Notifications
+        @type={{type}}
+        @status={{status}}
+      />
     </BlockSlot>
     <BlockSlot @name="breadcrumbs">
         <ol>

@@ -12,8 +12,13 @@
       @authorized={{isAuthorized}}
       @enabled={{isEnabled}}
       >
-      <BlockSlot @name="notification" as |status type subject|>
-        {{partial 'dc/acls/tokens/notifications'}}
+      <BlockSlot @name="notification" as |status type item error|>
+        <Consul::Token::Notifications
+          @type={{type}}
+          @status={{status}}
+          @item={{item}}
+          @error={{error}}
+        />
       </BlockSlot>
       <BlockSlot @name="header">
         <h1>
