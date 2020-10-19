@@ -199,7 +199,9 @@ function capture_logs {
 
   for cont in $services; do
     echo "Capturing log for $cont"
-    docker logs "envoy_${cont}_1" &> "${LOG_DIR}/${cont}.log"
+    docker logs "envoy_${cont}_1" &> "${LOG_DIR}/${cont}.log" || {
+        echo "EXIT CODE $?" > "${LOG_DIR}/${cont}.log"
+    }
   done
 }
 
@@ -515,7 +517,7 @@ function run_container_ingress-gateway-primary {
   common_run_container_gateway ingress-gateway-primary ingress-gateway primary
 }
 
-function run_container_terminatin-gateway-primary {
+function run_container_terminating-gateway-primary {
   common_run_container_gateway terminating-gateway-primary terminating-gateway primary
 }
 
