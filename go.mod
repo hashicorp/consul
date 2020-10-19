@@ -102,3 +102,5 @@ require (
 )
 
 replace istio.io/gogo-genproto v0.0.0-20190124151557-6d926a6e6feb => github.com/istio/gogo-genproto v0.0.0-20190124151557-6d926a6e6feb
+
+replace github.com/hashicorp/go-hclog => ../go-hclog

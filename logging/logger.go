@@ -40,7 +40,7 @@ type Config struct {
 	LogRotateMaxFiles int
 
 	// Color enables colored output of the log level label in the logs.
-	Color ColorOption
+	Color hclog.ColorOption
 }
 
 const (
@@ -65,15 +65,19 @@ func Setup(config Config, out io.Writer) (hclog.InterceptLogger, error) {
 			allowedLogLevels)
 	}
 
-	writers := []io.Writer{newColorWriter(out, config.Color)}
+	var sinks []hclog.SinkAdapter
 
 	if config.EnableSyslog {
-		retries := 12
-		delay := 5 * time.Second
+		const retries = 12
+		const delay = 5 * time.Second
 		for i := 0; i <= retries; i++ {
 			syslog, err := gsyslog.NewLogger(gsyslog.LOG_NOTICE, config.SyslogFacility, "consul")
 			if err == nil {
-				writers = append(writers, syslog)
+				sinks = append(sinks, hclog.NewSinkAdapter(&hclog.LoggerOptions{
+					Level:  LevelFromString(config.LogLevel),
+					Name:   config.Name,
+					Output: syslog,
+				}))
 				break
 			}
 
@@ -86,7 +90,6 @@ func Setup(config Config, out io.Writer) (hclog.InterceptLogger, error) {
 		}
 	}
 
-	// Create a file logger if the user has specified the path to the log file
 	if config.LogFilePath != "" {
 		dir, fileName := filepath.Split(config.LogFilePath)
 		// If a path is provided but has no fileName a default is provided.
@@ -114,14 +117,23 @@ func Setup(config Config, out io.Writer) (hclog.InterceptLogger, error) {
 		if err := logFile.openNew(); err != nil {
 			return nil, fmt.Errorf("Failed to setup logging: %w", err)
 		}
-		writers = append(writers, logFile)
+		sinks = append(sinks, hclog.NewSinkAdapter(&hclog.LoggerOptions{
+			Level:      LevelFromString(config.LogLevel),
+			Name:       config.Name,
+			Output:     logFile,
+			JSONFormat: config.LogJSON,
+		}))
 	}
 
 	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
 		Level:      LevelFromString(config.LogLevel),
 		Name:       config.Name,
-		Output:     io.MultiWriter(writers...),
+		Output:     out,
 		JSONFormat: config.LogJSON,
+		Color:      config.Color,
 	})
+	for _, sink := range sinks {
+		logger.RegisterSink(sink)
+	}
 	return logger, nil
 }
