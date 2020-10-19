@@ -43,12 +43,14 @@ type subscriptions struct {
 }
 
 type snapshots struct {
-	// lock for cache. If both snapshots.lock and EventPublisher.lock must
-	// be held together, EventPublisher.lock MUST always be acquired first.
+	// lock for the cache and evinctionTimers. If both snapshots.lock and
+	// EventPublisher.lock must be held together, EventPublisher.lock MUST always be acquired first.
 	lock sync.RWMutex
 
 	// cache of eventSnapshot indexed by topic and key.
 	cache map[Topic]map[string]*eventSnapshot
+
+	evictionTimers map[*time.Timer]struct{}
 
 	// snapCacheTTL controls how long we keep snapshots in our cache before
 	// allowing them to be garbage collected and a new one made for subsequent
@@ -116,6 +118,7 @@ func (e *EventPublisher) Run(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			e.subscriptions.closeAll()
+			e.snapshots.stop()
 			return
 		case update := <-e.publishCh:
 			e.publishEvent(update)
@@ -298,10 +301,31 @@ func (s *snapshots) set(req *SubscribeRequest, snap *eventSnapshot) {
 	}
 	topicSnaps[req.Key] = snap
 
-	// Setup a cache eviction
-	time.AfterFunc(s.snapCacheTTL, func() {
-		s.lock.Lock()
-		defer s.lock.Unlock()
-		delete(s.cache[req.Topic], req.Key)
-	})
+	if s.evictionTimers == nil {
+		s.evictionTimers = make(map[*time.Timer]struct{})
+	}
+
+	e := &eviction{snapshots: s, req: req}
+	timer := time.AfterFunc(s.snapCacheTTL, e.Evict)
+	e.timer = timer
+	s.evictionTimers[timer] = struct{}{}
+}
+
+func (s *snapshots) stop() {
+	for timer := range s.evictionTimers {
+		timer.Stop()
+	}
+}
+
+type eviction struct {
+	snapshots *snapshots
+	req       *SubscribeRequest
+	timer     *time.Timer
+}
+
+func (e *eviction) Evict() {
+	e.snapshots.lock.Lock()
+	defer e.snapshots.lock.Unlock()
+	delete(e.snapshots.cache[e.req.Topic], e.req.Key)
+	delete(e.snapshots.evictionTimers, e.timer)
 }
