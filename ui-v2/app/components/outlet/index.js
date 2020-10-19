@@ -65,8 +65,9 @@ export default class Outlet extends Component {
   }
 
   setAppRoute(name) {
-    if (name.startsWith('nspace.')) {
-      name = name.substr(0, 'nspace.'.length);
+    const nspace = 'nspace.';
+    if (name.startsWith(nspace)) {
+      name = name.substr(nspace.length);
     }
     if (name !== 'loading') {
       const doc = this.dom.root();
