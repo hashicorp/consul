@@ -11,7 +11,7 @@ export default Route.extend({
       .split('.')
       .slice(0, -1)
       .join('.');
-    const name = this.modelFor(parent).name;
+    const name = this.modelFor(parent).slug;
     return hash({
       dc: dc,
       nspace: nspace,
