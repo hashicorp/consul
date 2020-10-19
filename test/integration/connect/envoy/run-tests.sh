@@ -373,7 +373,7 @@ function common_run_container_service {
   local httpPort="$3"
   local grpcPort="$4"
 
-  docker run -d --name envoy_${service}_1 \
+  docker run -d --name $(container_name_prev) \
     -e "FORTIO_NAME=${service}" \
     --net container:envoy_consul-${DC}_1 \
     fortio/fortio \
@@ -423,15 +423,14 @@ function run_container_s2-secondary {
 }
 
 function common_run_container_sidecar_proxy {
-  local sidecar="$1"
-  local service="$2"
-  local DC="$3"
+  local service="$1"
+  local DC="$2"
 
   # Hot restart breaks since both envoys seem to interact with each other
   # despite separate containers that don't share IPC namespace. Not quite
   # sure how this happens but may be due to unix socket being in some shared
   # location?
-  docker run -d --name envoy_${sidecar}_1 \
+  docker run -d --name $(container_name_prev) \
     -v envoy_workdir:/workdir \
     --net container:envoy_consul-${DC}_1 \
     "envoyproxy/envoy:v${ENVOY_VERSION}" \
@@ -443,10 +442,10 @@ function common_run_container_sidecar_proxy {
 }
 
 function run_container_s1-sidecar-proxy {
-  common_run_container_sidecar_proxy s1-sidecar-proxy s1 primary
+  common_run_container_sidecar_proxy s1 primary
 }
 function run_container_s1-sidecar-proxy-consul-exec {
-  docker run -d --name envoy_s1-sidecar-proxy-consul-exec_1 \
+  docker run -d --name $(container_name) \
     --net container:envoy_consul-primary_1 \
     consul-dev-envoy:${ENVOY_VERSION} \
     consul connect envoy -sidecar-for s1 \
@@ -456,76 +455,75 @@ function run_container_s1-sidecar-proxy-consul-exec {
 }
 
 function run_container_s2-sidecar-proxy {
-  common_run_container_sidecar_proxy s2-sidecar-proxy s2 primary
+  common_run_container_sidecar_proxy s2 primary
 }
 function run_container_s2-v1-sidecar-proxy {
-  common_run_container_sidecar_proxy s2-v1-sidecar-proxy s2-v1 primary
+  common_run_container_sidecar_proxy s2-v1 primary
 }
 function run_container_s2-v2-sidecar-proxy {
-  common_run_container_sidecar_proxy s2-v2-sidecar-proxy s2-v2 primary
+  common_run_container_sidecar_proxy s2-v2 primary
 }
 
 function run_container_s3-sidecar-proxy {
-  common_run_container_sidecar_proxy s3-sidecar-proxy s3 primary
+  common_run_container_sidecar_proxy s3 primary
 }
 function run_container_s3-v1-sidecar-proxy {
-  common_run_container_sidecar_proxy s3-v1-sidecar-proxy s3-v1 primary
+  common_run_container_sidecar_proxy s3-v1 primary
 }
 function run_container_s3-v2-sidecar-proxy {
-  common_run_container_sidecar_proxy s3-v2-sidecar-proxy s3-v2 primary
+  common_run_container_sidecar_proxy s3-v2 primary
 }
 
 function run_container_s3-alt-sidecar-proxy {
-  common_run_container_sidecar_proxy s3-alt-sidecar-proxy s3-alt primary
+  common_run_container_sidecar_proxy s3-alt primary
 }
 
 function run_container_s1-sidecar-proxy-secondary {
-  common_run_container_sidecar_proxy s1-sidecar-proxy-secondary s1 secondary
+  common_run_container_sidecar_proxy s1 secondary
 }
 function run_container_s2-sidecar-proxy-secondary {
-  common_run_container_sidecar_proxy s2-sidecar-proxy-secondary s2 secondary
+  common_run_container_sidecar_proxy s2 secondary
 }
 
 function common_run_container_gateway {
   local name="$1"
-  local bootName="$2"
-  local DC="$3"
+  local DC="$2"
 
   # Hot restart breaks since both envoys seem to interact with each other
   # despite separate containers that don't share IPC namespace. Not quite
   # sure how this happens but may be due to unix socket being in some shared
   # location?
-  docker run -d --name envoy_${name}_1 \
+  docker run -d --name $(container_name_prev) \
     -v envoy_workdir:/workdir \
     --net container:envoy_consul-${DC}_1 \
     "envoyproxy/envoy:v${ENVOY_VERSION}" \
     envoy \
-    -c /workdir/${DC}/envoy/${bootName}-bootstrap.json \
+    -c /workdir/${DC}/envoy/${name}-bootstrap.json \
     -l debug \
     --disable-hot-restart \
     --drain-time-s 1 >/dev/null
 }
 
 function run_container_gateway-primary {
-  common_run_container_gateway gateway-primary mesh-gateway primary
+  common_run_container_gateway mesh-gateway primary
 }
 function run_container_gateway-secondary {
-  common_run_container_gateway gateway-secondary mesh-gateway secondary
+  common_run_container_gateway mesh-gateway secondary
 }
 
 function run_container_ingress-gateway-primary {
-  common_run_container_gateway ingress-gateway-primary ingress-gateway primary
+  common_run_container_gateway ingress-gateway primary
 }
 
 function run_container_terminating-gateway-primary {
-  common_run_container_gateway terminating-gateway-primary terminating-gateway primary
+  common_run_container_gateway terminating-gateway primary
 }
 
 function run_container_fake-statsd {
   # This magic SYSTEM incantation is needed since Envoy doesn't add newlines and so
   # we need each packet to be passed to echo to add a new line before
   # appending.
-  docker run -d --name envoy_fake-statsd_1 \
+  docker run -d --name $(container_name) \
     -v envoy_workdir:/workdir \
     --net container:envoy_consul-primary_1 \
     alpine/socat \
@@ -534,18 +532,25 @@ function run_container_fake-statsd {
 }
 
 function run_container_zipkin {
-  docker run -d --name envoy_zipkin_1 \
+  docker run -d --name $(container_name) \
     -v envoy_workdir:/workdir \
     --net container:envoy_consul-primary_1 \
     openzipkin/zipkin
 }
 
 function run_container_jaeger {
-  docker run -d --name envoy_jaeger_1 \
+  docker run -d --name $(container_name) \
     -v envoy_workdir:/workdir \
     --net container:envoy_consul-primary_1 \
     jaegertracing/all-in-one:1.11 \
     --collector.zipkin.http-port=9411
+}
+
+function container_name {
+  echo "envoy_${FUNCNAME[1]/#run_container_/}_1"
+}
+function container_name_prev {
+  echo "envoy_${FUNCNAME[2]/#run_container_/}_1"
 }
 
 # This is a debugging tool. Run via './run-tests.sh debug_dump_volumes'
