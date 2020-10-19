@@ -30,6 +30,13 @@ function command_error {
 
 trap 'command_error $? "${BASH_COMMAND}" "${LINENO}" "${FUNCNAME[0]:-main}" "${BASH_SOURCE[0]}:${BASH_LINENO[0]}"' ERR
 
+readonly WORKDIR_SNIPPET='-v envoy_workdir:/workdir'
+
+function network_snippet {
+    local DC="$1"
+    echo "--net container:envoy_consul-${DC}_1"
+}
+
 function init_workdir {
   local DC="$1"
 
@@ -111,7 +118,7 @@ function start_consul {
   #
   docker run -d --name envoy_consul-${DC}_1 \
     --net=envoy-tests \
-    -v envoy_workdir:/workdir \
+    $WORKDIR_SNIPPET \
     --hostname "consul-${DC}" \
     --network-alias "consul-${DC}" \
     ${ports[@]} \
@@ -163,9 +170,9 @@ function verify {
 
   if docker run --name envoy_verify-${DC}_1 -t \
     -e ENVOY_VERSION \
-    -v envoy_workdir:/workdir \
+    $WORKDIR_SNIPPET \
     --pid=host \
-    --net container:envoy_consul-${DC}_1 \
+    $(network_snippet $DC) \
     bats-verify \
     --pretty /workdir/${DC}/bats ; then
     echogreen "✓ PASS"
@@ -230,7 +237,7 @@ function global_setup {
 
 function wipe_volumes {
   docker run --rm -i \
-    -v envoy_workdir:/workdir \
+    $WORKDIR_SNIPPET \
     --net=none \
     alpine \
     sh -c 'rm -rf /workdir/*'
@@ -305,6 +312,7 @@ function workdir_cleanup {
   docker volume rm -f envoy_workdir &>/dev/null || true
 }
 
+
 function suite_setup {
     # Set a log dir to prevent docker-compose warning about unset var
     export LOG_DIR="workdir/logs/"
@@ -320,7 +328,7 @@ function suite_setup {
     # accessible while other containers are down.
     docker volume create envoy_workdir &>/dev/null
     docker run -d --name envoy_workdir_1 \
-        -v envoy_workdir:/workdir \
+        $WORKDIR_SNIPPET \
         --net=none \
         google/pause &>/dev/null
 
@@ -375,7 +383,7 @@ function common_run_container_service {
 
   docker run -d --name $(container_name_prev) \
     -e "FORTIO_NAME=${service}" \
-    --net container:envoy_consul-${DC}_1 \
+    $(network_snippet $DC) \
     fortio/fortio \
     server \
     -http-port ":$httpPort" \
@@ -431,8 +439,8 @@ function common_run_container_sidecar_proxy {
   # sure how this happens but may be due to unix socket being in some shared
   # location?
   docker run -d --name $(container_name_prev) \
-    -v envoy_workdir:/workdir \
-    --net container:envoy_consul-${DC}_1 \
+    $WORKDIR_SNIPPET \
+    $(network_snippet $DC) \
     "envoyproxy/envoy:v${ENVOY_VERSION}" \
     envoy \
     -c /workdir/${DC}/envoy/${service}-bootstrap.json \
@@ -446,7 +454,7 @@ function run_container_s1-sidecar-proxy {
 }
 function run_container_s1-sidecar-proxy-consul-exec {
   docker run -d --name $(container_name) \
-    --net container:envoy_consul-primary_1 \
+    $(network_snippet primary) \
     consul-dev-envoy:${ENVOY_VERSION} \
     consul connect envoy -sidecar-for s1 \
     -envoy-version ${ENVOY_VERSION} \
@@ -494,8 +502,8 @@ function common_run_container_gateway {
   # sure how this happens but may be due to unix socket being in some shared
   # location?
   docker run -d --name $(container_name_prev) \
-    -v envoy_workdir:/workdir \
-    --net container:envoy_consul-${DC}_1 \
+    $WORKDIR_SNIPPET \
+    $(network_snippet $DC) \
     "envoyproxy/envoy:v${ENVOY_VERSION}" \
     envoy \
     -c /workdir/${DC}/envoy/${name}-bootstrap.json \
@@ -524,8 +532,8 @@ function run_container_fake-statsd {
   # we need each packet to be passed to echo to add a new line before
   # appending.
   docker run -d --name $(container_name) \
-    -v envoy_workdir:/workdir \
-    --net container:envoy_consul-primary_1 \
+    $WORKDIR_SNIPPET \
+    $(network_snippet primary) \
     alpine/socat \
     -u UDP-RECVFROM:8125,fork,reuseaddr \
     SYSTEM:'xargs -0 echo >> /workdir/primary/statsd/statsd.log'
@@ -533,15 +541,15 @@ function run_container_fake-statsd {
 
 function run_container_zipkin {
   docker run -d --name $(container_name) \
-    -v envoy_workdir:/workdir \
-    --net container:envoy_consul-primary_1 \
+    $WORKDIR_SNIPPET \
+    $(network_snippet primary) \
     openzipkin/zipkin
 }
 
 function run_container_jaeger {
   docker run -d --name $(container_name) \
-    -v envoy_workdir:/workdir \
-    --net container:envoy_consul-primary_1 \
+    $WORKDIR_SNIPPET \
+    $(network_snippet primary) \
     jaegertracing/all-in-one:1.11 \
     --collector.zipkin.http-port=9411
 }
@@ -556,7 +564,7 @@ function container_name_prev {
 # This is a debugging tool. Run via './run-tests.sh debug_dump_volumes'
 function debug_dump_volumes {
   docker run --rm -it \
-    -v envoy_workdir:/workdir \
+    $WORKDIR_SNIPPET \
     -v ./:/cwd \
     --net=none \
     alpine \
