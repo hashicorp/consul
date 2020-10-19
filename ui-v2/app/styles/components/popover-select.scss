@@ -17,13 +17,10 @@
 %popover-select.type-sort label > * {
   @extend %sort-button;
 }
-
-%popover-select.type-access button::before,
-%popover-select.type-source button::before,
-%popover-select.type-status button::before {
+%popover-select button::before {
   margin-right: 10px;
 }
-%popover-select .value-allow button::before,
+
 %popover-select .value-passing button::before {
   @extend %with-check-circle-fill-mask, %as-pseudo;
   color: $green-500;
@@ -32,7 +29,6 @@
   @extend %with-alert-triangle-mask, %as-pseudo;
   color: $orange-500;
 }
-%popover-select .value-deny button::before,
 %popover-select .value-critical button::before {
   @extend %with-cancel-square-fill-mask, %as-pseudo;
   color: $red-500;

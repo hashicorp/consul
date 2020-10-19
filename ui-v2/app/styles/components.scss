@@ -64,11 +64,7 @@
 @import 'consul-ui/components/consul/exposed-path/list';
 @import 'consul-ui/components/consul/external-source';
 @import 'consul-ui/components/consul/kind';
-@import 'consul-ui/components/consul/intention/list';
-@import 'consul-ui/components/consul/intention/form/fieldsets';
-@import 'consul-ui/components/consul/intention/permission/list';
-@import 'consul-ui/components/consul/intention/permission/form';
-@import 'consul-ui/components/consul/intention/permission/header/list';
+@import 'consul-ui/components/consul/intention';
 @import 'consul-ui/components/role-selector';
 @import 'consul-ui/components/topology-metrics';
 @import 'consul-ui/components/topology-metrics/series';

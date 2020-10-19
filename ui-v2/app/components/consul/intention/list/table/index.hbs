@@ -28,11 +28,9 @@ as |item index|>
             <em class={{concat 'nspace-' (or item.SourceNS 'default')}}>{{or item.SourceNS 'default'}}</em>
           </a>
         </td>
-{{#let (or item.Action "L7 rules") as |intent|}}
-        <td class="intent intent-{{slugify intent}}" data-test-intention-action={{intent}}>
-          <strong>{{capitalize intent}}</strong>
+        <td class="intent intent-{{slugify item.Action}}" data-test-intention-action={{item.Action}}>
+          <strong>{{capitalize (or item.Action "App aware")}}</strong>
         </td>
-{{/let}}
         <td class="destination" data-test-intention-destination={{item.DestinationName}}>
           <span>
             {{#if (eq item.DestinationName '*') }}
