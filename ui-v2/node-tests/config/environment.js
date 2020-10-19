@@ -17,28 +17,28 @@ test(
         environment: 'test',
         CONSUL_BINARY_TYPE: 'oss',
         CONSUL_ACLS_ENABLED: true,
-        CONSUL_NSPACES_ENABLED: true,
-        CONSUL_SSO_ENABLED: false,
-      },
-      {
-        $: {
-          CONSUL_NSPACES_ENABLED: 0
-        },
-        environment: 'test',
-        CONSUL_BINARY_TYPE: 'oss',
-        CONSUL_ACLS_ENABLED: true,
         CONSUL_NSPACES_ENABLED: false,
         CONSUL_SSO_ENABLED: false,
       },
       {
         $: {
-          CONSUL_SSO_ENABLED: 0
+          CONSUL_NSPACES_ENABLED: 1
         },
         environment: 'test',
         CONSUL_BINARY_TYPE: 'oss',
         CONSUL_ACLS_ENABLED: true,
         CONSUL_NSPACES_ENABLED: true,
         CONSUL_SSO_ENABLED: false,
+      },
+      {
+        $: {
+          CONSUL_SSO_ENABLED: 1
+        },
+        environment: 'test',
+        CONSUL_BINARY_TYPE: 'oss',
+        CONSUL_ACLS_ENABLED: true,
+        CONSUL_NSPACES_ENABLED: false,
+        CONSUL_SSO_ENABLED: true,
       },
       {
         environment: 'staging',
