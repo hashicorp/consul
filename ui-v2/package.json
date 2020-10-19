@@ -67,7 +67,13 @@
     "chalk": "^4.1.0",
     "clipboard": "^2.0.4",
     "css.escape": "^1.5.1",
+    "d3-array": "^2.8.0",
+    "d3-scale": "^3.2.3",
+    "d3-scale-chromatic": "^2.0.0",
+    "d3-selection": "^2.0.0",
+    "d3-shape": "^2.0.0",
     "dart-sass": "^1.25.0",
+    "dayjs": "^1.9.3",
     "ember-auto-import": "^1.5.3",
     "ember-changeset-conditional-validations": "^0.6.0",
     "ember-changeset-validations": "^3.9.0",
@@ -91,7 +97,6 @@
     "ember-collection": "^1.0.0-alpha.9",
     "ember-composable-helpers": "~4.0.0",
     "ember-computed-style": "^0.3.0",
-    "ember-d3": "^0.5.1",
     "ember-data": "~3.20.4",
     "ember-data-model-fragments": "5.0.0-beta.0",
     "ember-exam": "^4.0.0",
@@ -153,8 +158,5 @@
       "lib/commands",
       "lib/startup"
     ]
-  },
-  "dependencies": {
-    "dayjs": "^1.9.1"
   }
 }
