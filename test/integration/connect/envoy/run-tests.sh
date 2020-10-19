@@ -118,7 +118,7 @@ function start_consul {
     consul-dev \
     agent -dev -datacenter "${DC}" \
     -config-dir "/workdir/${DC}/consul" \
-    -client "0.0.0.0"
+    -client "0.0.0.0" >/dev/null
 }
 
 function pre_service_setup {
@@ -378,7 +378,7 @@ function common_run_container_service {
     server \
     -http-port ":$httpPort" \
     -grpc-port ":$grpcPort" \
-    -redirect-port disabled
+    -redirect-port disabled >/dev/null
 }
 
 function run_container_s1 {
@@ -437,7 +437,7 @@ function common_run_container_sidecar_proxy {
     -c /workdir/${DC}/envoy/${service}-bootstrap.json \
     -l debug \
     --disable-hot-restart \
-    --drain-time-s 1
+    --drain-time-s 1 >/dev/null
 }
 
 function run_container_s1-sidecar-proxy {
@@ -450,7 +450,7 @@ function run_container_s1-sidecar-proxy-consul-exec {
     consul connect envoy -sidecar-for s1 \
     -envoy-version ${ENVOY_VERSION} \
     -- \
-    -l debug
+    -l debug >/dev/null
 }
 
 function run_container_s2-sidecar-proxy {
@@ -470,7 +470,7 @@ function run_container_s3-v1-sidecar-proxy {
   common_run_container_sidecar_proxy s3-v1-sidecar-proxy s3-v1 primary
 }
 function run_container_s3-v2-sidecar-proxy {
-  common_run_container_sidecar_proxy s1-v2-sidecar-proxy s3-v2 primary
+  common_run_container_sidecar_proxy s3-v2-sidecar-proxy s3-v2 primary
 }
 
 function run_container_s3-alt-sidecar-proxy {
@@ -501,7 +501,7 @@ function common_run_container_gateway {
     -c /workdir/${DC}/envoy/${bootName}-bootstrap.json \
     -l debug \
     --disable-hot-restart \
-    --drain-time-s 1
+    --drain-time-s 1 >/dev/null
 }
 
 function run_container_gateway-primary {
