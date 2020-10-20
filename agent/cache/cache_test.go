@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
 
+	"github.com/hashicorp/consul/lib/ttlcache"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -1403,5 +1404,29 @@ OUT:
 		if res1 && res2 {
 			break OUT
 		}
+	}
+}
+
+func TestCache_ExpiryLoop_ExitsWhenStopped(t *testing.T) {
+	c := &Cache{
+		stopCh:            make(chan struct{}),
+		entries:           make(map[string]cacheEntry),
+		entriesExpiryHeap: ttlcache.NewExpiryHeap(),
+	}
+	chStart := make(chan struct{})
+	chDone := make(chan struct{})
+	go func() {
+		close(chStart)
+		c.runExpiryLoop()
+		close(chDone)
+	}()
+
+	<-chStart
+	close(c.stopCh)
+
+	select {
+	case <-chDone:
+	case <-time.After(50 * time.Millisecond):
+		t.Fatalf("expected loop to exit when stopped")
 	}
 }

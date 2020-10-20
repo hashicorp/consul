@@ -4,6 +4,8 @@ import (
 	"time"
 
 	"golang.org/x/time/rate"
+
+	"github.com/hashicorp/consul/lib/ttlcache"
 )
 
 // cacheEntry stores a single cache entry.
@@ -31,7 +33,7 @@ type cacheEntry struct {
 	// Expiry contains information about the expiration of this
 	// entry. This is a pointer as its shared as a value in the
 	// ExpiryHeap as well.
-	Expiry *CacheEntryExpiry
+	Expiry *ttlcache.Entry
 
 	// FetchedAt stores the time the cache entry was retrieved for determining
 	// it's age later.

@@ -26,6 +26,8 @@ import (
 	"github.com/armon/go-metrics"
 	"golang.org/x/time/rate"
 
+	"github.com/hashicorp/consul/lib/ttlcache"
+
 	"github.com/hashicorp/consul/lib"
 )
 
@@ -87,7 +89,7 @@ type Cache struct {
 	// internal storage format so changing this should be possible safely.
 	entriesLock       sync.RWMutex
 	entries           map[string]cacheEntry
-	entriesExpiryHeap *ExpiryHeap
+	entriesExpiryHeap *ttlcache.ExpiryHeap
 
 	// stopped is used as an atomic flag to signal that the Cache has been
 	// discarded so background fetches and expiry processing should stop.
@@ -169,7 +171,7 @@ func New(options Options) *Cache {
 	c := &Cache{
 		types:             make(map[string]typeEntry),
 		entries:           make(map[string]cacheEntry),
-		entriesExpiryHeap: NewExpiryHeap(),
+		entriesExpiryHeap: ttlcache.NewExpiryHeap(),
 		stopCh:            make(chan struct{}),
 		options:           options,
 		rateLimitContext:  ctx,
@@ -400,7 +402,7 @@ RETRY_GET:
 
 		// Touch the expiration and fix the heap.
 		c.entriesLock.Lock()
-		c.entriesExpiryHeap.Update(entry.Expiry.HeapIndex, r.TypeEntry.Opts.LastGetTTL)
+		c.entriesExpiryHeap.Update(entry.Expiry.Index(), r.TypeEntry.Opts.LastGetTTL)
 		c.entriesLock.Unlock()
 
 		// We purposely do not return an error here since the cache only works with
@@ -681,7 +683,7 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 		// If this is a new entry (not in the heap yet), then setup the
 		// initial expiry information and insert. If we're already in
 		// the heap we do nothing since we're reusing the same entry.
-		if newEntry.Expiry == nil || newEntry.Expiry.HeapIndex == -1 {
+		if newEntry.Expiry == nil || newEntry.Expiry.Index() == -1 {
 			newEntry.Expiry = c.entriesExpiryHeap.Add(key, tEntry.Opts.LastGetTTL)
 		}
 
@@ -762,7 +764,7 @@ func (c *Cache) runExpiryLoop() {
 
 			// Entry expired! Remove it.
 			delete(c.entries, entry.Key)
-			c.entriesExpiryHeap.Remove(entry.HeapIndex)
+			c.entriesExpiryHeap.Remove(entry.Index())
 
 			// Set some metrics
 			metrics.IncrCounter([]string{"consul", "cache", "evict_expired"}, 1)
@@ -803,7 +805,6 @@ func (c *Cache) Prepopulate(t string, res FetchResult, dc, token, k string) erro
 		Index:     res.Index,
 		FetchedAt: time.Now(),
 		Waiter:    make(chan struct{}),
-		Expiry:    &CacheEntryExpiry{Key: key},
 		FetchRateLimiter: rate.NewLimiter(
 			c.options.EntryFetchRate,
 			c.options.EntryFetchMaxBurst,
