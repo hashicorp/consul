@@ -66,6 +66,10 @@ func (h *ExpiryHeap) Add(key string, expiry time.Duration) *Entry {
 //
 // Must be synchronized by the caller.
 func (h *ExpiryHeap) Update(idx int, expiry time.Duration) {
+	if idx < 0 {
+		// the previous entry did not have a valid index, its not in the heap
+		return
+	}
 	entry := h.entries[idx]
 	entry.expiry = time.Now().Add(expiry)
 	heap.Fix((*entryHeap)(h), idx)

@@ -1430,3 +1430,49 @@ func TestCache_ExpiryLoop_ExitsWhenStopped(t *testing.T) {
 		t.Fatalf("expected loop to exit when stopped")
 	}
 }
+
+func TestCache_Prepopulate(t *testing.T) {
+	typ := &fakeType{index: 5}
+	c := New(Options{})
+	c.RegisterType("t", typ)
+
+	c.Prepopulate("t", FetchResult{Value: 17, Index: 1}, "dc1", "token", "v1")
+
+	ctx := context.Background()
+	req := fakeRequest{
+		info: RequestInfo{
+			Key:        "v1",
+			Token:      "token",
+			Datacenter: "dc1",
+			MinIndex:   1,
+		},
+	}
+	result, _, err := c.Get(ctx, "t", req)
+	require.NoError(t, err)
+	require.Equal(t, 17, result)
+}
+
+type fakeType struct {
+	index uint64
+}
+
+func (f fakeType) Fetch(_ FetchOptions, _ Request) (FetchResult, error) {
+	idx := atomic.LoadUint64(&f.index)
+	return FetchResult{Value: int(idx * 2), Index: idx}, nil
+}
+
+func (f fakeType) RegisterOptions() RegisterOptions {
+	return RegisterOptions{Refresh: true}
+}
+
+var _ Type = (*fakeType)(nil)
+
+type fakeRequest struct {
+	info RequestInfo
+}
+
+func (f fakeRequest) CacheInfo() RequestInfo {
+	return f.info
+}
+
+var _ Request = (*fakeRequest)(nil)
