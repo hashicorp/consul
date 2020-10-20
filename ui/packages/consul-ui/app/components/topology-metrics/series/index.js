@@ -159,30 +159,10 @@ export default Component.extend({
         // We update here since we might redraw the graph with user's cursor
         // stationary over it. If that happens mouseover fires but not
         // mousemove but the tooltip and cursor are wrong (based on old data).
-        self.updateTooltip(
-          e,
-          series,
-          stackData,
-          summed,
-          unitSuffix,
-          x,
-          tooltip,
-          tipVals,
-          cursor
-        );
+        self.updateTooltip(e, series, stackData, summed, unitSuffix, x, tooltip, tipVals, cursor);
       })
       .on('mousemove', function(e) {
-        self.updateTooltip(
-          e,
-          series,
-          stackData,
-          summed,
-          unitSuffix,
-          x,
-          tooltip,
-          tipVals,
-          cursor
-        );
+        self.updateTooltip(e, series, stackData, summed, unitSuffix, x, tooltip, tipVals, cursor);
       })
       .on('mouseout', function(e) {
         tooltip.style('visibility', 'hidden');
@@ -195,17 +175,7 @@ export default Component.extend({
       this.svg.on('mouseover mousemove mouseout', null);
     }
   },
-  updateTooltip: function(
-    e,
-    series,
-    stackData,
-    summed,
-    unitSuffix,
-    x,
-    tooltip,
-    tipVals,
-    cursor
-  ) {
+  updateTooltip: function(e, series, stackData, summed, unitSuffix, x, tooltip, tipVals, cursor) {
     let [mouseX] = pointer(e);
     cursor.attr('x', mouseX);
 
@@ -230,7 +200,7 @@ export default Component.extend({
       select(n).text(`${shortNumStr(val)}${unitSuffix}`);
     });
     cursor.attr('x', mouseX);
-  }
+  },
 });
 
 // Duplicated in vendor/metrics-providers/prometheus.js since we want that to
@@ -256,8 +226,4 @@ function shortNumStr(n) {
   if (n >= 1e6 && n < 1e9) return +(n / 1e6).toPrecision(3) + 'm';
   if (n >= 1e9 && n < 1e12) return +(n / 1e9).toPrecision(3) + 'g';
   if (n >= 1e12) return +(n / 1e12).toFixed(0) + 't';
-}
-
-function dataRateStr(n) {
-  return shortNumStr(n) + 'bps';
 }
