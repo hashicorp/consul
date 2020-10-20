@@ -5,20 +5,20 @@ import (
 	"time"
 )
 
-// cacheEntryExpiry contains the expiration time for a cache entry.
-type cacheEntryExpiry struct {
+// CacheEntryExpiry contains the expiration time for a cache entry.
+type CacheEntryExpiry struct {
 	Key       string    // Key in the cache map
 	Expires   time.Time // Time when entry expires (monotonic clock)
 	HeapIndex int       // Index in the heap
 }
 
-// expiryHeap is a container/heap.Interface implementation that expires entries
+// ExpiryHeap is a container/heap.Interface implementation that expires entries
 // in the cache when their expiration time is reached.
 //
 // All operations on the heap and read/write of the heap contents require
 // the proper entriesLock to be held on Cache.
-type expiryHeap struct {
-	Entries []*cacheEntryExpiry
+type ExpiryHeap struct {
+	entries []*CacheEntryExpiry
 
 	// NotifyCh is sent a value whenever the 0 index value of the heap
 	// changes. This can be used to detect when the earliest value
@@ -29,25 +29,25 @@ type expiryHeap struct {
 // Initialize the heap. The buffer of 1 is really important because
 // its possible for the expiry loop to trigger the heap to update
 // itself and it'd block forever otherwise.
-func newExpiryHeap() *expiryHeap {
-	h := &expiryHeap{NotifyCh: make(chan struct{}, 1)}
-	heap.Init(h)
+func NewExpiryHeap() *ExpiryHeap {
+	h := &ExpiryHeap{NotifyCh: make(chan struct{}, 1)}
+	heap.Init((*entryHeap)(h))
 	return h
 }
 
 // Add an entry to the heap.
 //
 // Must be synchronized by the caller.
-func (h *expiryHeap) Add(key string, expiry time.Duration) *cacheEntryExpiry {
-	entry := &cacheEntryExpiry{
+func (h *ExpiryHeap) Add(key string, expiry time.Duration) *CacheEntryExpiry {
+	entry := &CacheEntryExpiry{
 		Key:     key,
 		Expires: time.Now().Add(expiry),
 		// Set the initial heap index to the last index. If the entry is swapped it
 		// will have the correct index set, and if it remains at the end the last
 		// index will be correct.
-		HeapIndex: len(h.Entries),
+		HeapIndex: len(h.entries),
 	}
-	heap.Push(h, entry)
+	heap.Push((*entryHeap)(h), entry)
 	if entry.HeapIndex == 0 {
 		h.notify()
 	}
@@ -58,10 +58,10 @@ func (h *expiryHeap) Add(key string, expiry time.Duration) *cacheEntryExpiry {
 // will be rebalanced after the entry is updated.
 //
 // Must be synchronized by the caller.
-func (h *expiryHeap) Update(idx int, expiry time.Duration) {
-	entry := h.Entries[idx]
+func (h *ExpiryHeap) Update(idx int, expiry time.Duration) {
+	entry := h.entries[idx]
 	entry.Expires = time.Now().Add(expiry)
-	heap.Fix(h, idx)
+	heap.Fix((*entryHeap)(h), idx)
 
 	// If the previous index and current index are both zero then Fix did not
 	// swap the entry, and notify must be called here.
@@ -71,9 +71,9 @@ func (h *expiryHeap) Update(idx int, expiry time.Duration) {
 }
 
 // Must be synchronized by the caller.
-func (h *expiryHeap) Remove(idx int) {
-	entry := h.Entries[idx]
-	heap.Remove(h, idx)
+func (h *ExpiryHeap) Remove(idx int) {
+	entry := h.entries[idx]
+	heap.Remove((*entryHeap)(h), idx)
 
 	// A goroutine which is fetching a new value will have a reference to this
 	// entry. When it re-acquires the lock it needs to be informed that
@@ -86,38 +86,40 @@ func (h *expiryHeap) Remove(idx int) {
 	}
 }
 
-func (h *expiryHeap) Len() int { return len(h.Entries) }
+type entryHeap ExpiryHeap
 
-func (h *expiryHeap) Swap(i, j int) {
-	h.Entries[i], h.Entries[j] = h.Entries[j], h.Entries[i]
-	h.Entries[i].HeapIndex = i
-	h.Entries[j].HeapIndex = j
+func (h *entryHeap) Len() int { return len(h.entries) }
+
+func (h *entryHeap) Swap(i, j int) {
+	h.entries[i], h.entries[j] = h.entries[j], h.entries[i]
+	h.entries[i].HeapIndex = i
+	h.entries[j].HeapIndex = j
 }
 
-func (h *expiryHeap) Less(i, j int) bool {
+func (h *entryHeap) Less(i, j int) bool {
 	// The usage of Before here is important (despite being obvious):
 	// this function uses the monotonic time that should be available
 	// on the time.Time value so the heap is immune to wall clock changes.
-	return h.Entries[i].Expires.Before(h.Entries[j].Expires)
+	return h.entries[i].Expires.Before(h.entries[j].Expires)
 }
 
 // heap.Interface, this isn't expected to be called directly.
-func (h *expiryHeap) Push(x interface{}) {
-	h.Entries = append(h.Entries, x.(*cacheEntryExpiry))
+func (h *entryHeap) Push(x interface{}) {
+	h.entries = append(h.entries, x.(*CacheEntryExpiry))
 }
 
 // heap.Interface, this isn't expected to be called directly.
-func (h *expiryHeap) Pop() interface{} {
-	n := len(h.Entries)
-	entries := h.Entries
+func (h *entryHeap) Pop() interface{} {
+	n := len(h.entries)
+	entries := h.entries
 	last := entries[n-1]
-	h.Entries = entries[0 : n-1]
+	h.entries = entries[0 : n-1]
 	return last
 }
 
 // notify the timer that the head value has changed, so the expiry time has
 // also likely changed.
-func (h *expiryHeap) notify() {
+func (h *ExpiryHeap) notify() {
 	// Send to channel without blocking. Skips sending if there is already
 	// an item in the buffered channel.
 	select {
@@ -127,30 +129,30 @@ func (h *expiryHeap) notify() {
 }
 
 // Must be synchronized by the caller.
-func (h *expiryHeap) Next() timer {
-	if len(h.Entries) == 0 {
-		return timer{}
+func (h *ExpiryHeap) Next() Timer {
+	if len(h.entries) == 0 {
+		return Timer{}
 	}
-	entry := h.Entries[0]
-	return timer{
+	entry := h.entries[0]
+	return Timer{
 		timer: time.NewTimer(time.Until(entry.Expires)),
 		Entry: entry,
 	}
 }
 
-type timer struct {
+type Timer struct {
 	timer *time.Timer
-	Entry *cacheEntryExpiry
+	Entry *CacheEntryExpiry
 }
 
-func (t *timer) Wait() <-chan time.Time {
+func (t *Timer) Wait() <-chan time.Time {
 	if t.timer == nil {
 		return nil
 	}
 	return t.timer.C
 }
 
-func (t *timer) Stop() {
+func (t *Timer) Stop() {
 	if t.timer != nil {
 		t.timer.Stop()
 	}

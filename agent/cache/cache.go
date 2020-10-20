@@ -87,7 +87,7 @@ type Cache struct {
 	// internal storage format so changing this should be possible safely.
 	entriesLock       sync.RWMutex
 	entries           map[string]cacheEntry
-	entriesExpiryHeap *expiryHeap
+	entriesExpiryHeap *ExpiryHeap
 
 	// stopped is used as an atomic flag to signal that the Cache has been
 	// discarded so background fetches and expiry processing should stop.
@@ -169,7 +169,7 @@ func New(options Options) *Cache {
 	c := &Cache{
 		types:             make(map[string]typeEntry),
 		entries:           make(map[string]cacheEntry),
-		entriesExpiryHeap: newExpiryHeap(),
+		entriesExpiryHeap: NewExpiryHeap(),
 		stopCh:            make(chan struct{}),
 		options:           options,
 		rateLimitContext:  ctx,
@@ -803,7 +803,7 @@ func (c *Cache) Prepopulate(t string, res FetchResult, dc, token, k string) erro
 		Index:     res.Index,
 		FetchedAt: time.Now(),
 		Waiter:    make(chan struct{}),
-		Expiry:    &cacheEntryExpiry{Key: key},
+		Expiry:    &CacheEntryExpiry{Key: key},
 		FetchRateLimiter: rate.NewLimiter(
 			c.options.EntryFetchRate,
 			c.options.EntryFetchMaxBurst,
