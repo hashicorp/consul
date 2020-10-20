@@ -14,9 +14,13 @@ type Entry struct {
 	heapIndex int
 }
 
+// NotIndexed indicates that the entry does not exist in the heap. Either because
+// it is nil, or because it was removed.
+const NotIndexed = -1
+
 func (c *Entry) Index() int {
 	if c == nil {
-		return -1
+		return NotIndexed
 	}
 	return c.heapIndex
 }
@@ -66,7 +70,7 @@ func (h *ExpiryHeap) Add(key string, expiry time.Duration) *Entry {
 //
 // Must be synchronized by the caller.
 func (h *ExpiryHeap) Update(idx int, expiry time.Duration) {
-	if idx < 0 {
+	if idx == NotIndexed {
 		// the previous entry did not have a valid index, its not in the heap
 		return
 	}
@@ -92,7 +96,7 @@ func (h *ExpiryHeap) Remove(idx int) {
 	// entry. When it re-acquires the lock it needs to be informed that
 	// the entry was expired while it was fetching. Setting heapIndex to -1
 	// indicates that the entry is no longer in the heap, and must be re-added.
-	entry.heapIndex = -1
+	entry.heapIndex = NotIndexed
 
 	if idx == 0 {
 		h.notify()
