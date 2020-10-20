@@ -12,4 +12,4 @@ RUN apk update && \
     mkdir /consul-src
 
 WORKDIR /consul-src
-CMD make
+CMD make dist-docker
