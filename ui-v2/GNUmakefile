@@ -1,4 +1,5 @@
 ROOT:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
+CONSUL_UI_INSTALL_FLAGS?=
 
 all: build
 
@@ -77,7 +78,6 @@ test-coverage-ci: deps
 test-parallel: deps
 	yarn run test:parallel
 
-
 lint: deps
 	yarn run lint:hbs && yarn run lint:js
 
@@ -88,6 +88,6 @@ steps:
 	yarn run steps:list
 
 node_modules: yarn.lock package.json
-	yarn install
+	yarn install $(CONSUL_UI_INSTALL_FLAGS)
 
 .PHONY: all deps build start test test-view lint format clean
