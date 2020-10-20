@@ -17,7 +17,7 @@
     position: absolute;
     z-index: 100;
     bottom: 78px;
-    width: 250px;
+    width: 217px;
   }
 
   .sparkline-tt-legend-color {
@@ -37,3 +37,35 @@
   }
 }
 
+// Key modal
+.sparkline-key {
+  .sparkline-key-content {
+    width: 500px;
+    min-height: 100px;
+
+    dl {
+      padding: 10px 0 0 0;
+    }
+    dt {
+      width: 125px;
+      float: left;
+    }
+    dd {
+      margin: 0 0 12px 135px;
+    }
+  }
+}
+
+.sparkline-key-link {
+  visibility: hidden;
+  float: right;
+  // TODO: this is a massive hack but we want it to be actually outside of the
+  // bounding box of this component. We could move it into the parent component
+  // but it's pretty tied up to the state - should only show if we have metrics
+  // loaded etc. I expect there is a cleaner way to refactor this though.
+  margin-top: -35px;
+  margin-right: 12px;
+}
+#metrics-container:hover .sparkline-key-link {
+  visibility: visible;
+}
