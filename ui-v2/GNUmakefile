@@ -8,16 +8,6 @@ deps: node_modules clean
 clean:
 	rm -rf ./tmp
 
-# target for netlify ui previews
-# Netlify Settings
-# base-directory: ui-v2
-# build command: make netlify
-# publish directory: ui-v2/ui-dist
-netlify: build-staging
-	mkdir -p ui-dist/ui \
-		&& mv dist/* ui-dist/ui/ \
-		&& cp _redirects ui-dist/_redirects
-
 build-staging: deps
 	yarn run build:staging
 
