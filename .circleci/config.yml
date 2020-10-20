@@ -11,7 +11,7 @@ references:
     test-results: &TEST_RESULTS_DIR /tmp/test-results
 
   cache:
-    yarn: &YARN_CACHE_KEY consul-ui-v2-{{ checksum "ui-v2/yarn.lock" }}
+    yarn: &YARN_CACHE_KEY consul-ui-v3-{{ checksum "ui/packages/consul-ui/yarn.lock" }}
     rubygem: &RUBYGEM_CACHE_KEY static-site-gems-v1-{{ checksum "Gemfile.lock" }}
 
   environment: &ENVIRONMENT
@@ -559,12 +559,13 @@ jobs:
 
       - run:
           name: install yarn packages
-          command: cd ui-v2 && yarn install
+          command: cd ui/packages/consul-ui && yarn install --focus
 
       - save_cache:
           key: *YARN_CACHE_KEY
           paths:
-            - ui-v2/node_modules
+            - ui/node_modules
+            - ui/packages/consul-ui/node_modules
       - run: *notify-slack-failure
 
   # build ember so frontend tests run faster
@@ -578,13 +579,13 @@ jobs:
       - checkout
       - restore_cache:
           key: *YARN_CACHE_KEY
-      - run: cd ui-v2 && make build-ci
+      - run: cd ui/packages/consul-ui && make build-ci
 
       # saves the build to a workspace to be passed to a downstream job
       - persist_to_workspace:
-          root: ui-v2
+          root: ui
           paths:
-            - dist
+            - packages/consul-ui/dist
       - run: *notify-slack-failure
 
   # build ember so frontend tests run faster
@@ -604,13 +605,13 @@ jobs:
       - checkout
       - restore_cache:
           key: *YARN_CACHE_KEY
-      - run: cd ui-v2 && make
+      - run: cd ui && make
 
       # saves the build to a workspace to be passed to a downstream job
       - persist_to_workspace:
-          root: ui-v2
+          root: ui
           paths:
-            - dist
+            - packages/consul-ui/dist
       - run: *notify-slack-failure
 
   # build static-assets file
@@ -644,10 +645,10 @@ jobs:
       - run:
           name: commit agent/uiserver/bindata_assetfs.go if there are UI changes
           command: |
-            # check if there are any changes in ui-v2/
+            # check if there are any changes in ui/
             # if there are, we commit the ui static asset file
             # HEAD^! is shorthand for HEAD^..HEAD (parent of HEAD and HEAD)
-            if ! git diff --quiet --exit-code HEAD^! ui-v2/; then
+            if ! git diff --quiet --exit-code HEAD^! ui/; then
               git config --local user.email "hashicorp-ci@users.noreply.github.com"
               git config --local user.name "hashicorp-ci"
 
@@ -669,9 +670,9 @@ jobs:
       - restore_cache:
           key: *YARN_CACHE_KEY
       - attach_workspace:
-          at: ui-v2
+          at: ui
       - run:
-          working_directory: ui-v2
+          working_directory: ui/packages/consul-ui
           command: make test-node
       - run: *notify-slack-failure
 
@@ -689,12 +690,12 @@ jobs:
       - restore_cache:
           key: *YARN_CACHE_KEY
       - attach_workspace:
-          at: ui-v2
+          at: ui
       - run:
-          working_directory: ui-v2
+          working_directory: ui/packages/consul-ui
           command: node_modules/.bin/ember exam --split=$CIRCLE_NODE_TOTAL --partition=`expr $CIRCLE_NODE_INDEX + 1` --path dist --silent -r xunit
       - store_test_results:
-          path: ui-v2/test-results
+          path: ui/packages/consul-ui/test-results
       - run: *notify-slack-failure
 
   # run ember frontend tests
@@ -711,12 +712,12 @@ jobs:
       - restore_cache:
           key: *YARN_CACHE_KEY
       - attach_workspace:
-          at: ui-v2
+          at: ui
       - run:
-          working_directory: ui-v2
+          working_directory: ui/packages/consul-ui
           command: node_modules/.bin/ember exam --split=$CIRCLE_NODE_TOTAL --partition=`expr $CIRCLE_NODE_INDEX + 1` --path dist --silent -r xunit
       - store_test_results:
-          path: ui-v2/test-results
+          path: ui/packages/consul-ui/test-results
       - run: *notify-slack-failure
 
   # run ember frontend unit tests to produce coverage report
@@ -728,13 +729,13 @@ jobs:
       - restore_cache:
           key: *YARN_CACHE_KEY
       - attach_workspace:
-          at: ui-v2
+          at: ui
       - run:
-          working_directory: ui-v2
+          working_directory: ui/packages/consul-ui
           command: make test-coverage-ci
       - run:
           name: codecov ui upload
-          working_directory: ui-v2
+          working_directory: ui/packages/consul-ui
           command: bash <(curl -s https://codecov.io/bash) -v -c -C $CIRCLE_SHA1 -F ui
       - run: *notify-slack-failure
 
