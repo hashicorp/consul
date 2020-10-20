@@ -304,11 +304,7 @@ function run_tests {
 function test_teardown {
     init_vars
 
-    stop_services primary
-
-    if is_set $REQUIRE_SECONDARY; then
-      stop_services secondary
-    fi
+    stop_services
 }
 
 function workdir_cleanup {
