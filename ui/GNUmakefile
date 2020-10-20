@@ -11,20 +11,19 @@ dist: clean
 		CONSUL_UI_INSTALL_FLAGS=--focus \
 		$(MAKE)
 
-# Build a distribution of the UI for Netlify previews
+# Build a distribution of the UI for Netlify previews.
+# The distribution must be copied into the ui/ subfolder
+# in order to mirror the go binary
 #
 # Netlify Settings:
 # ---
 # base-directory: ui
 # build command: make dist-netlify
 # publish directory: ui/dist
-
 dist-netlify: clean
-	mkdir -p dist && \
+	mkdir -p dist/ui && \
 	cd packages/consul-ui && \
 		CONSUL_UI_INSTALL_FLAGS=--focus \
 		$(MAKE) build-staging && \
-		mv dist/* ../../dist && \
+		mv dist/* ../../dist/ui && \
 		cp _redirects ../../dist/_redirects
-
-
