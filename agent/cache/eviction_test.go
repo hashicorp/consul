@@ -43,12 +43,10 @@ func TestExpiryHeap(t *testing.T) {
 	})
 
 	runStep(t, "remove the first entry", func(t *testing.T) {
-		remove := h.Entries[0]
-		heap.Remove(h, remove.HeapIndex)
+		h.Remove(0)
 		require.Equal(0, entry.HeapIndex)
 		require.Equal(1, entry3.HeapIndex)
 		testMessage(t, ch)
-		testMessage(t, ch) // we have two because two swaps happen
 		testNoMessage(t, ch)
 	})
 
@@ -92,5 +90,29 @@ func testMessage(t *testing.T, ch <-chan struct{}) {
 func runStep(t *testing.T, name string, fn func(t *testing.T)) {
 	if !t.Run(name, fn) {
 		t.FailNow()
+	}
+}
+
+func TestExpiryLoop_ExitsWhenStopped(t *testing.T) {
+	c := &Cache{
+		stopCh:            make(chan struct{}),
+		entries:           make(map[string]cacheEntry),
+		entriesExpiryHeap: newExpiryHeap(),
+	}
+	chStart := make(chan struct{})
+	chDone := make(chan struct{})
+	go func() {
+		close(chStart)
+		c.runExpiryLoop()
+		close(chDone)
+	}()
+
+	<-chStart
+	close(c.stopCh)
+
+	select {
+	case <-chDone:
+	case <-time.After(50 * time.Millisecond):
+		t.Fatalf("expected loop to exit when stopped")
 	}
 }

@@ -15,7 +15,6 @@
 package cache
 
 import (
-	"container/heap"
 	"context"
 	"fmt"
 	"io"
@@ -166,16 +165,11 @@ func applyDefaultValuesOnOptions(options Options) Options {
 // Further settings can be tweaked on the returned value.
 func New(options Options) *Cache {
 	options = applyDefaultValuesOnOptions(options)
-	// Initialize the heap. The buffer of 1 is really important because
-	// its possible for the expiry loop to trigger the heap to update
-	// itself and it'd block forever otherwise.
-	h := &expiryHeap{NotifyCh: make(chan struct{}, 1)}
-	heap.Init(h)
 	ctx, cancel := context.WithCancel(context.Background())
 	c := &Cache{
 		types:             make(map[string]typeEntry),
 		entries:           make(map[string]cacheEntry),
-		entriesExpiryHeap: h,
+		entriesExpiryHeap: newExpiryHeap(),
 		stopCh:            make(chan struct{}),
 		options:           options,
 		rateLimitContext:  ctx,
@@ -745,47 +739,30 @@ func backOffWait(failures uint) time.Duration {
 // runExpiryLoop is a blocking function that watches the expiration
 // heap and invalidates entries that have expired.
 func (c *Cache) runExpiryLoop() {
-	var expiryTimer *time.Timer
 	for {
-		// If we have a previous timer, stop it.
-		if expiryTimer != nil {
-			expiryTimer.Stop()
-		}
-
-		// Get the entry expiring soonest
-		var entry *cacheEntryExpiry
-		var expiryCh <-chan time.Time
 		c.entriesLock.RLock()
-		if len(c.entriesExpiryHeap.Entries) > 0 {
-			entry = c.entriesExpiryHeap.Entries[0]
-			expiryTimer = time.NewTimer(time.Until(entry.Expires))
-			expiryCh = expiryTimer.C
-		}
+		timer := c.entriesExpiryHeap.Next()
 		c.entriesLock.RUnlock()
 
 		select {
 		case <-c.stopCh:
+			timer.Stop()
 			return
 		case <-c.entriesExpiryHeap.NotifyCh:
-			// Entries changed, so the heap may have changed. Restart loop.
+			timer.Stop()
+			continue
 
-		case <-expiryCh:
+		case <-timer.Wait():
 			c.entriesLock.Lock()
 
-			// Perform cleanup operations on the entry's state, if applicable.
-			state := c.entries[entry.Key].State
-			if closer, ok := state.(io.Closer); ok {
+			entry := timer.Entry
+			if closer, ok := c.entries[entry.Key].State.(io.Closer); ok {
 				closer.Close()
 			}
 
 			// Entry expired! Remove it.
 			delete(c.entries, entry.Key)
-			heap.Remove(c.entriesExpiryHeap, entry.HeapIndex)
-
-			// This is subtle but important: if we race and simultaneously
-			// evict and fetch a new value, then we set this to -1 to
-			// have it treated as a new value so that the TTL is extended.
-			entry.HeapIndex = -1
+			c.entriesExpiryHeap.Remove(entry.HeapIndex)
 
 			// Set some metrics
 			metrics.IncrCounter([]string{"consul", "cache", "evict_expired"}, 1)

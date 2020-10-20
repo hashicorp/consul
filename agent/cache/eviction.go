@@ -12,11 +12,6 @@ type cacheEntryExpiry struct {
 	HeapIndex int       // Index in the heap
 }
 
-// TODO: use or remove
-func newCacheEntry(key string, expiry time.Duration) *cacheEntryExpiry {
-	return &cacheEntryExpiry{Key: key, Expires: time.Now().Add(expiry)}
-}
-
 // expiryHeap is a container/heap.Interface implementation that expires entries
 // in the cache when their expiration time is reached.
 //
@@ -37,6 +32,16 @@ type expiryHeap struct {
 	NotifyCh chan struct{}
 }
 
+// Initialize the heap. The buffer of 1 is really important because
+// its possible for the expiry loop to trigger the heap to update
+// itself and it'd block forever otherwise.
+func newExpiryHeap() *expiryHeap {
+	h := &expiryHeap{NotifyCh: make(chan struct{}, 1)}
+	heap.Init(h)
+	return h
+}
+
+// Must be synchronized by the caller.
 func (h *expiryHeap) Add(key string, expiry time.Duration) *cacheEntryExpiry {
 	entry := &cacheEntryExpiry{Key: key, Expires: time.Now().Add(expiry)}
 	heap.Push(h, entry)
@@ -57,6 +62,18 @@ func (h *expiryHeap) Update(idx int, expiry time.Duration) {
 	if idx == 0 && entry.HeapIndex == 0 {
 		h.notify()
 	}
+}
+
+// Must be synchronized by the caller.
+func (h *expiryHeap) Remove(idx int) {
+	entry := h.Entries[idx]
+	heap.Remove(h, idx)
+
+	// A goroutine which is fetching a new value will have a reference to this
+	// entry. When it re-acquires the lock it needs to be informed that
+	// the entry was expired while it was fetching. Setting HeapIndex to -1
+	// indicates that the entry is no longer in the heap, and must be re-added.
+	entry.HeapIndex = -1
 }
 
 func (h *expiryHeap) Len() int { return len(h.Entries) }
@@ -109,6 +126,7 @@ func (h *expiryHeap) Pop() interface{} {
 	return last
 }
 
+// TODO: look at calls to notify.
 func (h *expiryHeap) notify() {
 	select {
 	case h.NotifyCh <- struct{}{}:
@@ -119,5 +137,35 @@ func (h *expiryHeap) notify() {
 		// is safe is because NotifyCh should always be a buffered channel.
 		// If this blocks, it means that there is a pending message anyways
 		// so the receiver will restart regardless.
+	}
+}
+
+// Must be synchronized by the caller.
+func (h *expiryHeap) Next() timer {
+	if len(h.Entries) == 0 {
+		return timer{}
+	}
+	entry := h.Entries[0]
+	return timer{
+		timer: time.NewTimer(time.Until(entry.Expires)),
+		Entry: entry,
+	}
+}
+
+type timer struct {
+	timer *time.Timer
+	Entry *cacheEntryExpiry
+}
+
+func (t *timer) Wait() <-chan time.Time {
+	if t.timer == nil {
+		return nil
+	}
+	return t.timer.C
+}
+
+func (t *timer) Stop() {
+	if t.timer != nil {
+		t.timer.Stop()
 	}
 }
