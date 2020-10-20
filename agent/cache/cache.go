@@ -26,9 +26,8 @@ import (
 	"github.com/armon/go-metrics"
 	"golang.org/x/time/rate"
 
-	"github.com/hashicorp/consul/lib/ttlcache"
-
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/ttlcache"
 )
 
 //go:generate mockery -all -inpkg
@@ -758,12 +757,12 @@ func (c *Cache) runExpiryLoop() {
 			c.entriesLock.Lock()
 
 			entry := timer.Entry
-			if closer, ok := c.entries[entry.Key].State.(io.Closer); ok {
+			if closer, ok := c.entries[entry.Key()].State.(io.Closer); ok {
 				closer.Close()
 			}
 
 			// Entry expired! Remove it.
-			delete(c.entries, entry.Key)
+			delete(c.entries, entry.Key())
 			c.entriesExpiryHeap.Remove(entry.Index())
 
 			// Set some metrics

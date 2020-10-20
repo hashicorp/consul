@@ -1,3 +1,8 @@
+/*
+Package ttlcache provides an ExpiryHeap that can be used by a cache to track the
+expiration time of its entries. When an expiry is reached the Timer will fire
+and the entry can be removed.
+*/
 package ttlcache
 
 import (
@@ -8,8 +13,7 @@ import (
 // Entry in the ExpiryHeap, tracks the index and expiry time of an item in a
 // ttl cache.
 type Entry struct {
-	// TODO: can Key be unexported?
-	Key       string
+	key       string
 	expiry    time.Time
 	heapIndex int
 }
@@ -18,18 +22,25 @@ type Entry struct {
 // it is nil, or because it was removed.
 const NotIndexed = -1
 
-func (c *Entry) Index() int {
-	if c == nil {
+// Index returns the index of this entry within the heap.
+func (e *Entry) Index() int {
+	if e == nil {
 		return NotIndexed
 	}
-	return c.heapIndex
+	return e.heapIndex
 }
 
-// ExpiryHeap is a container/heap.Interface implementation that expires entries
-// in the cache when their expiration time is reached.
+// Key returns the key for the entry in the heap.
+func (e *Entry) Key() string {
+	return e.key
+}
+
+// ExpiryHeap is a heap that is ordered by the expiry time of entries. It may
+// be used by a cache or storage to expiry items after a TTL.
 //
-// All operations on the heap and read/write of the heap contents require
-// the proper entriesLock to be held on Cache.
+// ExpiryHeap expects the caller to synchronize calls to most of its methods. This
+// is necessary because the cache needs to ensure that updates to both its
+// storage and the ExpiryHeap are synchronized.
 type ExpiryHeap struct {
 	entries []*Entry
 
@@ -51,7 +62,7 @@ func NewExpiryHeap() *ExpiryHeap {
 // Must be synchronized by the caller.
 func (h *ExpiryHeap) Add(key string, expiry time.Duration) *Entry {
 	entry := &Entry{
-		Key:    key,
+		key:    key,
 		expiry: time.Now().Add(expiry),
 		// Set the initial heap index to the last index. If the entry is swapped it
 		// will have the correct index set, and if it remains at the end the last
@@ -159,6 +170,12 @@ func (h *ExpiryHeap) Next() Timer {
 	}
 }
 
+// Timer provides a channel to block on. When the Wait channel receives an
+// item the Timer.Entry has expired. The caller is expected to call
+// ExpiryHeap.Remove with the Entry.Index().
+//
+// The caller is responsible for calling Stop to stop the timer if the timer has
+// not fired.
 type Timer struct {
 	timer *time.Timer
 	Entry *Entry
