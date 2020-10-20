@@ -2,7 +2,7 @@
 const path = require('path');
 const utils = require('./utils');
 
-const repositoryRoot = path.resolve(__dirname, '../../');
+const repositoryRoot = path.resolve(__dirname, '../../../../');
 
 const repositoryYear = utils.repositoryYear;
 const repositorySHA = utils.repositorySHA;
