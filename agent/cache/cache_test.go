@@ -1000,6 +1000,9 @@ func (t *testPartitionType) RegisterOptions() RegisterOptions {
 // Test that background refreshing reports correct Age in failure and happy
 // states.
 func TestCacheGet_refreshAge(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for -short run")
+	}
 	t.Parallel()
 
 	require := require.New(t)

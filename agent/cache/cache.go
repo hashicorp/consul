@@ -406,8 +406,7 @@ RETRY_GET:
 
 		// Touch the expiration and fix the heap.
 		c.entriesLock.Lock()
-		entry.Expiry.Update(r.TypeEntry.Opts.LastGetTTL)
-		c.entriesExpiryHeap.Fix(entry.Expiry)
+		c.entriesExpiryHeap.Update(entry.Expiry.HeapIndex, r.TypeEntry.Opts.LastGetTTL)
 		c.entriesLock.Unlock()
 
 		// We purposely do not return an error here since the cache only works with
@@ -689,9 +688,7 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 		// initial expiry information and insert. If we're already in
 		// the heap we do nothing since we're reusing the same entry.
 		if newEntry.Expiry == nil || newEntry.Expiry.HeapIndex == -1 {
-			newEntry.Expiry = &cacheEntryExpiry{Key: key}
-			newEntry.Expiry.Update(tEntry.Opts.LastGetTTL)
-			heap.Push(c.entriesExpiryHeap, newEntry.Expiry)
+			newEntry.Expiry = c.entriesExpiryHeap.Add(key, tEntry.Opts.LastGetTTL)
 		}
 
 		c.entries[key] = newEntry
