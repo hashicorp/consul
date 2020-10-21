@@ -1,13 +1,13 @@
 package consul
 
 import (
-	"github.com/hashicorp/consul/agent/structs"
 	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	agentgrpc "github.com/hashicorp/consul/agent/grpc"
 	"github.com/hashicorp/consul/agent/rpc/subscribe"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 type subscribeBackend struct {
