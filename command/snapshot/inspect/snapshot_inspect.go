@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/snapshot"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/raft"
 	"github.com/mitchellh/cli"
@@ -53,9 +54,9 @@ type MetadataInfo struct {
 // OutputFormat is used for passing information
 // through the formatter
 type OutputFormat struct {
-	Meta   *MetadataInfo
-	Stats  map[structs.MessageType]typeStats
-	Offset int
+	Meta      *MetadataInfo
+	Stats     map[structs.MessageType]typeStats
+	TotalSize int
 }
 
 func (c *cmd) Run(args []string) int {
@@ -86,11 +87,20 @@ func (c *cmd) Run(args []string) int {
 	}
 	defer f.Close()
 
-	readFile, meta, err := snapshot.Read(nil, f)
+	readFile, meta, err := snapshot.Read(hclog.New(nil), f)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error reading snapshot: %s", err))
 	}
-	stats, offset, err := enhance(readFile)
+	defer func() {
+		if err := readFile.Close(); err != nil {
+			c.UI.Error(fmt.Sprintf("Failed to close temp snapshot: %v", err))
+		}
+		if err := os.Remove(readFile.Name()); err != nil {
+			c.UI.Error(fmt.Sprintf("Failed to clean up temp snapshot: %v", err))
+		}
+	}()
+
+	stats, totalSize, err := enhance(readFile)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error extracting snapshot data: %s", err))
 		return 1
@@ -98,7 +108,7 @@ func (c *cmd) Run(args []string) int {
 
 	formatter, err := NewFormatter(c.format)
 	if err != nil {
-		c.UI.Error(err.Error())
+		c.UI.Error(fmt.Sprintf("Error outputting enhanced snapshot data: %s", err))
 		return 1
 	}
 	//Generate structs for the formatter with information we read in
@@ -111,9 +121,9 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	in := &OutputFormat{
-		Meta:   metaformat,
-		Stats:  stats,
-		Offset: offset,
+		Meta:      metaformat,
+		Stats:     stats,
+		TotalSize: totalSize,
 	}
 	out, err := formatter.Format(in)
 	if err != nil {

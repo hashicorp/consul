@@ -65,7 +65,7 @@ func (_ *prettyFormatter) Format(info *OutputFormat) (string, error) {
 		fmt.Fprintf(tw, "\n %s\t%d\t%s\t", s.Name, s.Count, ByteSize(uint64(s.Sum)))
 	}
 	fmt.Fprintf(tw, "\n %s\t%s\t%s\t", "----", "----", "----")
-	fmt.Fprintf(tw, "\n Total\t\t%s\t", ByteSize(uint64(info.Offset)))
+	fmt.Fprintf(tw, "\n Total\t\t%s\t", ByteSize(uint64(info.TotalSize)))
 
 	if err := tw.Flush(); err != nil {
 		return b.String(), err

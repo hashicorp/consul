@@ -24,7 +24,7 @@ func TestFormat(t *testing.T) {
 			Version: 1,
 		},
 		Stats:  m,
-		Offset: 1,
+		TotalSize: 1,
 	}
 
 	formatters := map[string]Formatter{
