@@ -5,7 +5,7 @@ import { get } from '@ember/object';
 
 export default Route.extend({
   data: service('data-source/service'),
-  settings: service('settings'),
+  config: service('ui-config'),
   model: function(params, transition) {
     const dc = this.modelFor('dc').dc.Name;
     const nspace = this.modelFor('nspace').nspace.substr(1);
@@ -16,7 +16,7 @@ export default Route.extend({
       items: this.data.source(
         uri => uri`/${nspace}/${dc}/service-instances/for-service/${params.name}`
       ),
-      urls: this.settings.findBySlug('urls'),
+      urls: this.config.get().dashboard_url_template,
       chain: null,
       proxies: [],
       topology: null,
