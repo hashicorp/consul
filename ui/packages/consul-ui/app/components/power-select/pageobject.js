@@ -1,5 +1,4 @@
 import { clickable, isPresent } from 'ember-cli-page-object';
-import { options } from 'consul-ui/tests/lib/page-object';
 
 export default options => {
   return {
