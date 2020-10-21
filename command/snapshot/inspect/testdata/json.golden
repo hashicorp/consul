@@ -1,0 +1,17 @@
+{
+   "Meta": {
+      "ID": "one",
+      "Size": 2,
+      "Index": 3,
+      "Term": 4,
+      "Version": 1
+   },
+   "Stats": {
+      "1": {
+         "Name": "msg",
+         "Sum": 1,
+         "Count": 2
+      }
+   },
+   "Offset": 1
+}
