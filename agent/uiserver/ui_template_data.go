@@ -28,9 +28,10 @@ func uiTemplateDataFromConfig(cfg *config.RuntimeConfig) (map[string]interface{}
 	}
 
 	d := map[string]interface{}{
-		"ContentPath": cfg.UIConfig.ContentPath,
-		"ACLsEnabled": cfg.ACLsEnabled,
-		"UIConfig":    uiCfg,
+		"ContentPath":     cfg.UIConfig.ContentPath,
+		"ACLsEnabled":     cfg.ACLsEnabled,
+		"UIConfig":        uiCfg,
+		"LocalDatacenter": cfg.Datacenter,
 	}
 
 	// Also inject additional provider scripts if needed, otherwise strip the
