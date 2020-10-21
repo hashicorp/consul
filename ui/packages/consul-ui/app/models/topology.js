@@ -13,7 +13,4 @@ export default Model.extend({
   Downstreams: attr(),
   Protocol: attr(),
   meta: attr(),
-  Exists: computed(function() {
-    return true;
-  }),
 });
