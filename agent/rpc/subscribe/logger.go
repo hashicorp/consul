@@ -37,11 +37,12 @@ func (s *streamID) String() string {
 	return s.id
 }
 
-func (h *Server) newLoggerForRequest(req *pbsubscribe.SubscribeRequest) Logger {
-	return h.Logger.With(
+func newLoggerForRequest(l Logger, req *pbsubscribe.SubscribeRequest) Logger {
+	return l.With(
 		"topic", req.Topic.String(),
 		"dc", req.Datacenter,
 		"key", req.Key,
+		"namespace", req.Namespace,
 		"index", req.Index,
 		"stream_id", &streamID{})
 }

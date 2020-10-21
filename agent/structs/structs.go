@@ -1628,7 +1628,7 @@ func (csn *CheckServiceNode) CanRead(authz acl.Authorizer) acl.EnforcementDecisi
 
 	// TODO(streaming): add enterprise test that uses namespaces
 	authzContext := new(acl.AuthorizerContext)
-	csn.Service.FillAuthzContext(authzContext)
+	csn.Service.EnterpriseMeta.FillAuthzContext(authzContext)
 
 	if authz.NodeRead(csn.Node.Node, authzContext) != acl.Allow {
 		return acl.Deny
