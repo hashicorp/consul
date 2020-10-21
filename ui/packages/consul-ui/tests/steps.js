@@ -18,9 +18,10 @@ import assertForm from './steps/assertions/form';
 
 export default function({
   assert,
+  utils,
   library,
   pages = {},
-  utils = {},
+  helpers = {},
   api = {},
   Inflector = {},
   $ = {},
@@ -42,20 +43,6 @@ export default function({
         return requests;
       }
       return requests[n];
-    };
-  };
-  const mb = function(path) {
-    return function(obj) {
-      return (
-        path.map(function(prop) {
-          obj = obj || {};
-          if (isNaN(parseInt(prop))) {
-            return (obj = obj[prop]);
-          } else {
-            return (obj = obj.objectAt(parseInt(prop)));
-          }
-        }) && obj
-      );
     };
   };
   const pauseUntil = function(run, message = 'assertion timed out') {
@@ -102,48 +89,25 @@ export default function({
   const setCookie = function(key, value) {
     api.server.setCookie(key, value);
   };
-  let currentPage;
-  const getCurrentPage = function() {
-    return currentPage;
-  };
-  const setCurrentPage = function(page) {
+
+  const reset = function() {
     api.server.clearHistory();
-    currentPage = page;
-    return page;
   };
 
-  const find = function(path) {
-    const page = getCurrentPage();
-    const parts = path.split('.');
-    const last = parts.pop();
-    let obj;
-    let parent = mb(parts)(page) || page;
-    if (typeof parent.objectAt === 'function') {
-      parent = parent.objectAt(0);
-    }
-    obj = parent[last];
-    if (typeof obj === 'undefined') {
-      throw new Error(`PageObject not found: The '${path}' object doesn't exist`);
-    }
-    if (typeof obj === 'function') {
-      obj = obj.bind(parent);
-    }
-    return obj;
-  };
   const clipboard = function() {
     return window.localStorage.getItem('clipboard');
   };
   models(library, create);
   http(library, respondWith, setCookie);
-  visit(library, pages, setCurrentPage);
-  click(library, find, utils.click);
-  form(library, find, utils.fillIn, utils.triggerKeyEvent, getCurrentPage);
+  visit(library, pages, utils.setCurrentPage, reset);
+  click(library, utils.find, helpers.click);
+  form(library, utils.find, helpers.fillIn, helpers.triggerKeyEvent, utils.getCurrentPage);
   debug(library, assert, utils.currentURL);
   assertHttp(library, assert, lastNthRequest);
-  assertModel(library, assert, find, getCurrentPage, pauseUntil, pluralize);
-  assertPage(library, assert, find, getCurrentPage, $);
-  assertDom(library, assert, pauseUntil, utils.find, utils.currentURL, clipboard);
-  assertForm(library, assert, find, getCurrentPage);
+  assertModel(library, assert, utils.find, utils.getCurrentPage, pauseUntil, pluralize);
+  assertPage(library, assert, utils.find, utils.getCurrentPage, $);
+  assertDom(library, assert, pauseUntil, helpers.find, helpers.currentURL, clipboard);
+  assertForm(library, assert, utils.find, utils.getCurrentPage);
 
   return library.given(["I'm using a legacy token"], function(number, model, data) {
     window.localStorage['consul:token'] = JSON.stringify({

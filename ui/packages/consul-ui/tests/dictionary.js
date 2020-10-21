@@ -2,8 +2,12 @@
 import Yadda from 'yadda';
 import YAML from 'js-yaml';
 import { env } from '../env';
-export default function(annotations, nspace, dict = new Yadda.Dictionary()) {
+export default utils => (annotations, nspace, dict = new Yadda.Dictionary()) => {
   dict
+    .define('pageObject', /(\S+)/, function(path, cb) {
+      const $el = utils.find(path);
+      cb(null, $el);
+    })
     .define('model', /(\w+)/, function(model, cb) {
       switch (model) {
         case 'datacenter':
@@ -89,4 +93,4 @@ export default function(annotations, nspace, dict = new Yadda.Dictionary()) {
     });
   }
   return dict;
-}
+};
