@@ -50,178 +50,6 @@ func (s *Intention) checkIntentionID(id string) (bool, error) {
 	return true, nil
 }
 
-// prepareApplyCreate validates that the requester has permissions to create
-// the new intention, generates a new uuid for the intention and generally
-// validates that the request is well-formed
-//
-// Returns an existing service-intentions config entry for this destination if
-// one exists.
-func (s *Intention) prepareApplyCreate(
-	ident structs.ACLIdentity,
-	authz acl.Authorizer,
-	entMeta *structs.EnterpriseMeta,
-	args *structs.IntentionRequest,
-) (*structs.ServiceIntentionsConfigEntry, error) {
-	if !args.Intention.CanWrite(authz) {
-		var accessorID string
-		if ident != nil {
-			accessorID = ident.ID()
-		}
-		// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
-		s.logger.Warn("Intention creation denied due to ACLs", "intention", args.Intention.ID, "accessorID", accessorID)
-		return nil, acl.ErrPermissionDenied
-	}
-
-	// If no ID is provided, generate a new ID. This must be done prior to
-	// appending to the Raft log, because the ID is not deterministic. Once
-	// the entry is in the log, the state update MUST be deterministic or
-	// the followers will not converge.
-	if args.Intention.ID != "" {
-		return nil, fmt.Errorf("ID must be empty when creating a new intention")
-	}
-
-	var err error
-	args.Intention.ID, err = lib.GenerateUUID(s.checkIntentionID)
-	if err != nil {
-		return nil, err
-	}
-	// Set the created at
-	args.Intention.CreatedAt = time.Now().UTC()
-	args.Intention.UpdatedAt = args.Intention.CreatedAt
-
-	// Default source type
-	if args.Intention.SourceType == "" {
-		args.Intention.SourceType = structs.IntentionSourceConsul
-	}
-
-	args.Intention.DefaultNamespaces(entMeta)
-
-	if err := s.validateEnterpriseIntention(args.Intention); err != nil {
-		return nil, err
-	}
-
-	//nolint:staticcheck
-	if err := args.Intention.Validate(); err != nil {
-		return nil, err
-	}
-
-	_, configEntry, err := s.srv.fsm.State().ConfigEntry(nil, structs.ServiceIntentions, args.Intention.DestinationName, args.Intention.DestinationEnterpriseMeta())
-	if err != nil {
-		return nil, fmt.Errorf("service-intentions config entry lookup failed: %v", err)
-	} else if configEntry == nil {
-		return nil, nil
-	}
-
-	return configEntry.(*structs.ServiceIntentionsConfigEntry), nil
-}
-
-// prepareApplyUpdateLegacy validates that the requester has permissions on both the updated and existing
-// intention as well as generally validating that the request is well-formed
-//
-// Returns an existing service-intentions config entry for this destination if
-// one exists.
-func (s *Intention) prepareApplyUpdateLegacy(
-	ident structs.ACLIdentity,
-	authz acl.Authorizer,
-	entMeta *structs.EnterpriseMeta,
-	args *structs.IntentionRequest,
-) (*structs.ServiceIntentionsConfigEntry, error) {
-	if !args.Intention.CanWrite(authz) {
-		var accessorID string
-		if ident != nil {
-			accessorID = ident.ID()
-		}
-		// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
-		s.logger.Warn("Update operation on intention denied due to ACLs", "intention", args.Intention.ID, "accessorID", accessorID)
-		return nil, acl.ErrPermissionDenied
-	}
-
-	_, configEntry, ixn, err := s.srv.fsm.State().IntentionGet(nil, args.Intention.ID)
-	if err != nil {
-		return nil, fmt.Errorf("Intention lookup failed: %v", err)
-	}
-	if ixn == nil || configEntry == nil {
-		return nil, fmt.Errorf("Cannot modify non-existent intention: '%s'", args.Intention.ID)
-	}
-
-	// Perform the ACL check that we have write to the old intention too,
-	// which must be true to perform any rename. This is the only ACL enforcement
-	// done for deletions and a secondary enforcement for updates.
-	if !ixn.CanWrite(authz) {
-		var accessorID string
-		if ident != nil {
-			accessorID = ident.ID()
-		}
-		// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
-		s.logger.Warn("Update operation on intention denied due to ACLs", "intention", args.Intention.ID, "accessorID", accessorID)
-		return nil, acl.ErrPermissionDenied
-	}
-
-	// Prior to v1.9.0 renames of the destination side of an intention were
-	// allowed, but that behavior doesn't work anymore.
-	if ixn.DestinationServiceName() != args.Intention.DestinationServiceName() {
-		return nil, fmt.Errorf("Cannot modify DestinationNS or DestinationName for an intention once it exists.")
-	}
-
-	// We always update the updatedat field.
-	args.Intention.UpdatedAt = time.Now().UTC()
-
-	// Default source type
-	if args.Intention.SourceType == "" {
-		args.Intention.SourceType = structs.IntentionSourceConsul
-	}
-
-	args.Intention.DefaultNamespaces(entMeta)
-
-	if err := s.validateEnterpriseIntention(args.Intention); err != nil {
-		return nil, err
-	}
-
-	// Validate. We do not validate on delete since it is valid to only
-	// send an ID in that case.
-	//nolint:staticcheck
-	if err := args.Intention.Validate(); err != nil {
-		return nil, err
-	}
-
-	return configEntry, nil
-}
-
-// prepareApplyDeleteLegacy ensures that the intention specified by the ID in the request exists
-// and that the requester is authorized to delete it
-//
-// Returns an existing service-intentions config entry for this destination if
-// one exists.
-func (s *Intention) prepareApplyDeleteLegacy(
-	ident structs.ACLIdentity,
-	authz acl.Authorizer,
-	args *structs.IntentionRequest,
-) (*structs.ServiceIntentionsConfigEntry, error) {
-	// If this is not a create, then we have to verify the ID.
-	_, configEntry, ixn, err := s.srv.fsm.State().IntentionGet(nil, args.Intention.ID)
-	if err != nil {
-		return nil, fmt.Errorf("Intention lookup failed: %v", err)
-	}
-	if ixn == nil || configEntry == nil {
-		return nil, fmt.Errorf("Cannot delete non-existent intention: '%s'", args.Intention.ID)
-	}
-
-	// Perform the ACL check that we have write to the old intention. This is
-	// the only ACL enforcement done for deletions and a secondary enforcement
-	// for updates.
-	if !ixn.CanWrite(authz) {
-		var accessorID string
-		if ident != nil {
-			accessorID = ident.ID()
-		}
-		// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
-		s.logger.Warn("Deletion operation on intention denied due to ACLs", "intention", args.Intention.ID, "accessorID", accessorID)
-		return nil, acl.ErrPermissionDenied
-	}
-
-	return configEntry, nil
-}
-
 var ErrIntentionsNotUpgradedYet = errors.New("Intentions are read only while being upgraded to config entries")
 
 // legacyUpgradeCheck fast fails a write request using the legacy intention
@@ -271,236 +99,399 @@ func (s *Intention) Apply(
 		return err
 	}
 
+	var accessorID string
+	if ident != nil {
+		accessorID = ident.ID()
+	}
+
 	var (
-		prevEntry   *structs.ServiceIntentionsConfigEntry
-		upsertEntry *structs.ServiceIntentionsConfigEntry
+		configOp    structs.ConfigEntryOp
+		configEntry *structs.ServiceIntentionsConfigEntry
 		legacyWrite bool
-		noop        bool
 	)
 	switch args.Op {
 	case structs.IntentionOpCreate:
 		legacyWrite = true
-
-		// This variant is just for legacy UUID-based intentions.
-		prevEntry, err = s.prepareApplyCreate(ident, authz, &entMeta, args)
-		if err != nil {
-			return err
-		}
-
-		if prevEntry == nil {
-			upsertEntry = args.Intention.ToConfigEntry(true)
-		} else {
-			upsertEntry = prevEntry.Clone()
-			upsertEntry.Sources = append(upsertEntry.Sources, args.Intention.ToSourceIntention(true))
-		}
-
+		configOp, configEntry, err = s.computeApplyChangesLegacyCreate(accessorID, authz, &entMeta, args)
 	case structs.IntentionOpUpdate:
-		// This variant is just for legacy UUID-based intentions.
 		legacyWrite = true
-
-		prevEntry, err = s.prepareApplyUpdateLegacy(ident, authz, &entMeta, args)
-		if err != nil {
-			return err
-		}
-
-		upsertEntry = prevEntry.Clone()
-		for i, src := range upsertEntry.Sources {
-			if src.LegacyID == args.Intention.ID {
-				upsertEntry.Sources[i] = args.Intention.ToSourceIntention(true)
-				break
-			}
-		}
-
+		configOp, configEntry, err = s.computeApplyChangesLegacyUpdate(accessorID, authz, &entMeta, args)
 	case structs.IntentionOpUpsert:
-		// This variant is just for config-entry based intentions.
 		legacyWrite = false
-
-		if args.Intention.ID != "" {
-			// This is a new-style only endpoint
-			return fmt.Errorf("ID must not be specified")
-		}
-
-		args.Intention.DefaultNamespaces(&entMeta)
-
-		prevEntry, err = s.getServiceIntentionsConfigEntry(args.Intention.DestinationName, args.Intention.DestinationEnterpriseMeta())
-		if err != nil {
-			return err
-		}
-
-		sn := args.Intention.SourceServiceName()
-
-		// TODO(intentions): have service-intentions validation functions
-		// return structured errors so that we can rewrite the field prefix
-		// here so that the validation errors are not misleading.
-		if prevEntry == nil {
-			// Meta is NOT permitted here, as it would need to be persisted on
-			// the enclosing config entry.
-			if len(args.Intention.Meta) > 0 {
-				return fmt.Errorf("Meta must not be specified")
-			}
-
-			upsertEntry = args.Intention.ToConfigEntry(false)
-		} else {
-			upsertEntry = prevEntry.Clone()
-
-			if len(args.Intention.Meta) > 0 {
-				// Meta is NOT permitted here, but there is one exception. If
-				// you are updating a previous record, but that record lives
-				// within a config entry that itself has Meta, then you may
-				// incidentally ship the Meta right back to consul.
-				//
-				// In that case if Meta is provided, it has to be a perfect
-				// match for what is already on the enclosing config entry so
-				// it's safe to discard.
-				if !equalStringMaps(upsertEntry.Meta, args.Intention.Meta) {
-					return fmt.Errorf("Meta must not be specified, or should be unchanged during an update.")
-				}
-
-				// Now it is safe to discard
-				args.Intention.Meta = nil
-			}
-
-			found := false
-			for i, src := range upsertEntry.Sources {
-				if src.SourceServiceName() == sn {
-					upsertEntry.Sources[i] = args.Intention.ToSourceIntention(false)
-					found = true
-					break
-				}
-			}
-			if !found {
-				upsertEntry.Sources = append(upsertEntry.Sources, args.Intention.ToSourceIntention(false))
-			}
-		}
-
+		configOp, configEntry, err = s.computeApplyChangesUpsert(&entMeta, args)
 	case structs.IntentionOpDelete:
-		// There are two ways to get this request:
-		//
-		// 1) legacy: the ID field is populated
-		// 2) config-entry: the ID field is NOT populated
-
 		if args.Intention.ID == "" {
-			// config-entry style: no LegacyID
 			legacyWrite = false
-
-			args.Intention.DefaultNamespaces(&entMeta)
-
-			prevEntry, err = s.getServiceIntentionsConfigEntry(args.Intention.DestinationName, args.Intention.DestinationEnterpriseMeta())
-			if err != nil {
-				return err
-			}
-
-			// NOTE: validation errors may be misleading!
-			noop = true
-			if prevEntry != nil {
-				sn := args.Intention.SourceServiceName()
-
-				upsertEntry = prevEntry.Clone()
-				for i, src := range upsertEntry.Sources {
-					if src.SourceServiceName() == sn {
-						// Delete slice element: https://github.com/golang/go/wiki/SliceTricks#delete
-						//    a = append(a[:i], a[i+1:]...)
-						upsertEntry.Sources = append(upsertEntry.Sources[:i], upsertEntry.Sources[i+1:]...)
-
-						if len(upsertEntry.Sources) == 0 {
-							upsertEntry.Sources = nil
-						}
-						noop = false
-						break
-					}
-				}
-			}
-
+			configOp, configEntry, err = s.computeApplyChangesDelete(&entMeta, args)
 		} else {
-			// legacy style: LegacyID required
 			legacyWrite = true
-
-			prevEntry, err = s.prepareApplyDeleteLegacy(ident, authz, args)
-			if err != nil {
-				return err
-			}
-
-			upsertEntry = prevEntry.Clone()
-			for i, src := range upsertEntry.Sources {
-				if src.LegacyID == args.Intention.ID {
-					// Delete slice element: https://github.com/golang/go/wiki/SliceTricks#delete
-					//    a = append(a[:i], a[i+1:]...)
-					upsertEntry.Sources = append(upsertEntry.Sources[:i], upsertEntry.Sources[i+1:]...)
-
-					if len(upsertEntry.Sources) == 0 {
-						upsertEntry.Sources = nil
-					}
-					break
-				}
-			}
+			configOp, configEntry, err = s.computeApplyChangesLegacyDelete(accessorID, authz, &entMeta, args)
 		}
-
 	case structs.IntentionOpDeleteAll:
 		// This is an internal operation initiated by the leader and is not
 		// exposed for general RPC use.
-		fallthrough
+		return fmt.Errorf("Invalid Intention operation: %v", args.Op)
 	default:
 		return fmt.Errorf("Invalid Intention operation: %v", args.Op)
 	}
 
-	if !noop && prevEntry != nil && legacyWrite && !prevEntry.LegacyIDFieldsAreAllSet() {
-		sn := prevEntry.DestinationServiceName()
-		return fmt.Errorf("cannot use legacy intention API to edit intentions with a destination of %q after editing them via a service-intentions config entry", sn.String())
+	if err != nil {
+		return err
 	}
 
-	// setup the reply which will have been filled in by one of the preparedApply* funcs
 	if legacyWrite {
 		*reply = args.Intention.ID
 	} else {
 		*reply = ""
 	}
 
-	if noop {
-		return nil
+	if configOp == "" {
+		return nil // no-op
 	}
 
 	// Commit indirectly by invoking the other RPC handler directly.
-	configReq := &structs.ConfigEntryRequest{
-		Datacenter:   args.Datacenter,
-		WriteRequest: args.WriteRequest,
-	}
-	if upsertEntry == nil || len(upsertEntry.Sources) == 0 {
-		configReq.Op = structs.ConfigEntryDelete
-		configReq.Entry = &structs.ServiceIntentionsConfigEntry{
-			Kind:           structs.ServiceIntentions,
-			Name:           prevEntry.Name,
-			EnterpriseMeta: prevEntry.EnterpriseMeta,
+
+	if configOp == structs.ConfigEntryDelete {
+		configReq := &structs.ConfigEntryRequest{
+			Datacenter:   args.Datacenter,
+			WriteRequest: args.WriteRequest,
+			Op:           structs.ConfigEntryDelete,
+			Entry:        configEntry,
 		}
 
 		var ignored struct{}
 		return s.configEntryEndpoint.Delete(configReq, &ignored)
-	} else {
-		// Update config entry CAS
-		configReq.Op = structs.ConfigEntryUpsertCAS
-		configReq.Entry = upsertEntry
+	}
 
-		var normalizeAndValidateFn func(raw structs.ConfigEntry) error
-		if legacyWrite {
-			normalizeAndValidateFn = func(raw structs.ConfigEntry) error {
-				entry := raw.(*structs.ServiceIntentionsConfigEntry)
-				if err := entry.LegacyNormalize(); err != nil {
-					return err
-				}
+	if configOp != structs.ConfigEntryUpsertCAS {
+		return fmt.Errorf("Invalid Intention config entry operation: %v", configOp)
+	}
 
-				return entry.LegacyValidate()
+	configReq := &structs.ConfigEntryRequest{
+		Datacenter:   args.Datacenter,
+		WriteRequest: args.WriteRequest,
+		Op:           structs.ConfigEntryUpsertCAS,
+		Entry:        configEntry,
+	}
+
+	var normalizeAndValidateFn func(raw structs.ConfigEntry) error
+	if legacyWrite {
+		normalizeAndValidateFn = func(raw structs.ConfigEntry) error {
+			entry := raw.(*structs.ServiceIntentionsConfigEntry)
+			if err := entry.LegacyNormalize(); err != nil {
+				return err
 			}
+
+			return entry.LegacyValidate()
+		}
+	}
+
+	var applied bool
+	if err = s.configEntryEndpoint.applyInternal(configReq, &applied, normalizeAndValidateFn); err != nil {
+		return err
+	}
+
+	if !applied {
+		return fmt.Errorf("config entry failed to persist due to CAS failure: kind=%q, name=%q", configEntry.Kind, configEntry.Name)
+	}
+
+	return nil
+}
+
+func (s *Intention) computeApplyChangesLegacyCreate(
+	accessorID string,
+	authz acl.Authorizer,
+	entMeta *structs.EnterpriseMeta,
+	args *structs.IntentionRequest,
+) (structs.ConfigEntryOp, *structs.ServiceIntentionsConfigEntry, error) {
+	// This variant is just for legacy UUID-based intentions.
+
+	args.Intention.DefaultNamespaces(entMeta)
+
+	// Even though the eventual config entry RPC will do an authz check and
+	// validation, if we do them here too we can generate error messages that
+	// make more sense for legacy edits.
+	if !args.Intention.CanWrite(authz) {
+		// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
+		s.logger.Warn("Intention creation denied due to ACLs", "accessorID", accessorID)
+		return "", nil, acl.ErrPermissionDenied
+	}
+
+	// If no ID is provided, generate a new ID. This must be done prior to
+	// appending to the Raft log, because the ID is not deterministic. Once
+	// the entry is in the log, the state update MUST be deterministic or
+	// the followers will not converge.
+	if args.Intention.ID != "" {
+		return "", nil, fmt.Errorf("ID must be empty when creating a new intention")
+	}
+
+	var err error
+	args.Intention.ID, err = lib.GenerateUUID(s.checkIntentionID)
+	if err != nil {
+		return "", nil, err
+	}
+	// Set the created at
+	args.Intention.CreatedAt = time.Now().UTC()
+	args.Intention.UpdatedAt = args.Intention.CreatedAt
+
+	// Default source type
+	if args.Intention.SourceType == "" {
+		args.Intention.SourceType = structs.IntentionSourceConsul
+	}
+
+	if err := s.validateEnterpriseIntention(args.Intention); err != nil {
+		return "", nil, err
+	}
+
+	//nolint:staticcheck
+	if err := args.Intention.Validate(); err != nil {
+		return "", nil, err
+	}
+
+	_, configEntry, err := s.srv.fsm.State().ConfigEntry(nil, structs.ServiceIntentions, args.Intention.DestinationName, args.Intention.DestinationEnterpriseMeta())
+	if err != nil {
+		return "", nil, fmt.Errorf("service-intentions config entry lookup failed: %v", err)
+	}
+
+	if configEntry == nil {
+		return structs.ConfigEntryUpsertCAS, args.Intention.ToConfigEntry(true), nil
+	}
+	prevEntry := configEntry.(*structs.ServiceIntentionsConfigEntry)
+
+	if err := checkLegacyIntentionApplyAllowed(prevEntry); err != nil {
+		return "", nil, err
+	}
+
+	upsertEntry := prevEntry.Clone()
+	upsertEntry.Sources = append(upsertEntry.Sources, args.Intention.ToSourceIntention(true))
+
+	// NOTE: if the append of this source causes a duplicate source name the
+	// config entry validation will fail so we don't have to check that
+	// explicitly here.
+
+	return structs.ConfigEntryUpsertCAS, upsertEntry, nil
+}
+
+func (s *Intention) computeApplyChangesLegacyUpdate(
+	accessorID string,
+	authz acl.Authorizer,
+	entMeta *structs.EnterpriseMeta,
+	args *structs.IntentionRequest,
+) (structs.ConfigEntryOp, *structs.ServiceIntentionsConfigEntry, error) {
+	// This variant is just for legacy UUID-based intentions.
+
+	_, prevEntry, ixn, err := s.srv.fsm.State().IntentionGet(nil, args.Intention.ID)
+	if err != nil {
+		return "", nil, fmt.Errorf("Intention lookup failed: %v", err)
+	}
+	if ixn == nil || prevEntry == nil {
+		return "", nil, fmt.Errorf("Cannot modify non-existent intention: '%s'", args.Intention.ID)
+	}
+
+	if err := checkLegacyIntentionApplyAllowed(prevEntry); err != nil {
+		return "", nil, err
+	}
+
+	// Even though the eventual config entry RPC will do an authz check and
+	// validation, if we do them here too we can generate error messages that
+	// make more sense for legacy edits.
+	if !ixn.CanWrite(authz) {
+		// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
+		s.logger.Warn("Update operation on intention denied due to ACLs", "intention", args.Intention.ID, "accessorID", accessorID)
+		return "", nil, acl.ErrPermissionDenied
+	}
+
+	args.Intention.DefaultNamespaces(entMeta)
+
+	// Prior to v1.9.0 renames of the destination side of an intention were
+	// allowed, but that behavior doesn't work anymore.
+	if ixn.DestinationServiceName() != args.Intention.DestinationServiceName() {
+		return "", nil, fmt.Errorf("Cannot modify DestinationNS or DestinationName for an intention once it exists.")
+	}
+
+	// We always update the updatedat field.
+	args.Intention.UpdatedAt = time.Now().UTC()
+
+	// Default source type
+	if args.Intention.SourceType == "" {
+		args.Intention.SourceType = structs.IntentionSourceConsul
+	}
+
+	if err := s.validateEnterpriseIntention(args.Intention); err != nil {
+		return "", nil, err
+	}
+
+	// Validate. We do not validate on delete since it is valid to only
+	// send an ID in that case.
+	//nolint:staticcheck
+	if err := args.Intention.Validate(); err != nil {
+		return "", nil, err
+	}
+
+	upsertEntry := prevEntry.Clone()
+
+	foundMatch := upsertEntry.UpdateSourceByLegacyID(
+		args.Intention.ID,
+		args.Intention.ToSourceIntention(true),
+	)
+	if !foundMatch {
+		return "", nil, fmt.Errorf("Cannot modify non-existent intention: '%s'", args.Intention.ID)
+	}
+
+	return structs.ConfigEntryUpsertCAS, upsertEntry, nil
+}
+
+func (s *Intention) computeApplyChangesUpsert(
+	entMeta *structs.EnterpriseMeta,
+	args *structs.IntentionRequest,
+) (structs.ConfigEntryOp, *structs.ServiceIntentionsConfigEntry, error) {
+	// This variant is just for config-entry based intentions.
+
+	if args.Intention.ID != "" {
+		// This is a new-style only endpoint
+		return "", nil, fmt.Errorf("ID must not be specified")
+	}
+
+	args.Intention.DefaultNamespaces(entMeta)
+
+	prevEntry, err := s.getServiceIntentionsConfigEntry(args.Intention.DestinationName, args.Intention.DestinationEnterpriseMeta())
+	if err != nil {
+		return "", nil, err
+	}
+
+	// TODO(intentions): have service-intentions validation functions
+	// return structured errors so that we can rewrite the field prefix
+	// here so that the validation errors are not misleading.
+	if prevEntry == nil {
+		// Meta is NOT permitted here, as it would need to be persisted on
+		// the enclosing config entry.
+		if len(args.Intention.Meta) > 0 {
+			return "", nil, fmt.Errorf("Meta must not be specified")
 		}
 
-		var applied bool
-		err := s.configEntryEndpoint.applyInternal(configReq, &applied, normalizeAndValidateFn)
-		if err != nil {
-			return err
+		upsertEntry := args.Intention.ToConfigEntry(false)
+
+		return structs.ConfigEntryUpsertCAS, upsertEntry, nil
+	}
+
+	upsertEntry := prevEntry.Clone()
+
+	if len(args.Intention.Meta) > 0 {
+		// Meta is NOT permitted here, but there is one exception. If
+		// you are updating a previous record, but that record lives
+		// within a config entry that itself has Meta, then you may
+		// incidentally ship the Meta right back to consul.
+		//
+		// In that case if Meta is provided, it has to be a perfect
+		// match for what is already on the enclosing config entry so
+		// it's safe to discard.
+		if !equalStringMaps(upsertEntry.Meta, args.Intention.Meta) {
+			return "", nil, fmt.Errorf("Meta must not be specified, or should be unchanged during an update.")
 		}
-		if !applied {
-			return fmt.Errorf("config entry failed to persist due to CAS failure: kind=%q, name=%q", upsertEntry.Kind, upsertEntry.Name)
-		}
+
+		// Now it is safe to discard
+		args.Intention.Meta = nil
+	}
+
+	sn := args.Intention.SourceServiceName()
+
+	upsertEntry.UpsertSourceByName(sn, args.Intention.ToSourceIntention(false))
+
+	return structs.ConfigEntryUpsertCAS, upsertEntry, nil
+}
+
+func (s *Intention) computeApplyChangesLegacyDelete(
+	accessorID string,
+	authz acl.Authorizer,
+	entMeta *structs.EnterpriseMeta,
+	args *structs.IntentionRequest,
+) (structs.ConfigEntryOp, *structs.ServiceIntentionsConfigEntry, error) {
+	_, prevEntry, ixn, err := s.srv.fsm.State().IntentionGet(nil, args.Intention.ID)
+	if err != nil {
+		return "", nil, fmt.Errorf("Intention lookup failed: %v", err)
+	}
+	if ixn == nil || prevEntry == nil {
+		return "", nil, fmt.Errorf("Cannot delete non-existent intention: '%s'", args.Intention.ID)
+	}
+
+	if err := checkLegacyIntentionApplyAllowed(prevEntry); err != nil {
+		return "", nil, err
+	}
+
+	// Even though the eventual config entry RPC will do an authz check and
+	// validation, if we do them here too we can generate error messages that
+	// make more sense for legacy edits.
+	if !ixn.CanWrite(authz) {
+		// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
+		s.logger.Warn("Deletion operation on intention denied due to ACLs", "intention", args.Intention.ID, "accessorID", accessorID)
+		return "", nil, acl.ErrPermissionDenied
+	}
+
+	upsertEntry := prevEntry.Clone()
+
+	deleted := upsertEntry.DeleteSourceByLegacyID(args.Intention.ID)
+	if !deleted {
+		return "", nil, fmt.Errorf("Cannot delete non-existent intention: '%s'", args.Intention.ID)
+	}
+
+	if upsertEntry == nil || len(upsertEntry.Sources) == 0 {
+		return structs.ConfigEntryDelete, &structs.ServiceIntentionsConfigEntry{
+			Kind:           structs.ServiceIntentions,
+			Name:           prevEntry.Name,
+			EnterpriseMeta: prevEntry.EnterpriseMeta,
+		}, nil
+	}
+
+	return structs.ConfigEntryUpsertCAS, upsertEntry, nil
+}
+
+func (s *Intention) computeApplyChangesDelete(
+	entMeta *structs.EnterpriseMeta,
+	args *structs.IntentionRequest,
+) (structs.ConfigEntryOp, *structs.ServiceIntentionsConfigEntry, error) {
+	args.Intention.DefaultNamespaces(entMeta)
+
+	prevEntry, err := s.getServiceIntentionsConfigEntry(args.Intention.DestinationName, args.Intention.DestinationEnterpriseMeta())
+	if err != nil {
+		return "", nil, err
+	}
+
+	if prevEntry == nil {
+		return "", nil, nil // no op means no-op
+	}
+
+	// NOTE: validation errors may be misleading!
+
+	upsertEntry := prevEntry.Clone()
+
+	sn := args.Intention.SourceServiceName()
+
+	deleted := upsertEntry.DeleteSourceByName(sn)
+	if !deleted {
+		return "", nil, nil // no op means no-op
+	}
+
+	if upsertEntry == nil || len(upsertEntry.Sources) == 0 {
+		return structs.ConfigEntryDelete, &structs.ServiceIntentionsConfigEntry{
+			Kind:           structs.ServiceIntentions,
+			Name:           prevEntry.Name,
+			EnterpriseMeta: prevEntry.EnterpriseMeta,
+		}, nil
+	}
+
+	return structs.ConfigEntryUpsertCAS, upsertEntry, nil
+}
+
+func checkLegacyIntentionApplyAllowed(prevEntry *structs.ServiceIntentionsConfigEntry) error {
+	if prevEntry == nil {
 		return nil
 	}
+	if prevEntry.LegacyIDFieldsAreAllSet() {
+		return nil
+	}
+
+	sn := prevEntry.DestinationServiceName()
+	return fmt.Errorf("cannot use legacy intention API to edit intentions with a destination of %q after editing them via a service-intentions config entry", sn.String())
 }
 
 // Get returns a single intention by ID.
