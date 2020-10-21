@@ -1,4 +1,5 @@
 ROOT:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
+CONSUL_UI_INSTALL_FLAGS?=
 
 all: build
 
@@ -6,16 +7,6 @@ deps: node_modules clean
 
 clean:
 	rm -rf ./tmp
-
-# target for netlify ui previews
-# Netlify Settings
-# base-directory: ui-v2
-# build command: make netlify
-# publish directory: ui-v2/ui-dist
-netlify: build-staging
-	mkdir -p ui-dist/ui \
-		&& mv dist/* ui-dist/ui/ \
-		&& cp _redirects ui-dist/_redirects
 
 build-staging: deps
 	yarn run build:staging
@@ -77,7 +68,6 @@ test-coverage-ci: deps
 test-parallel: deps
 	yarn run test:parallel
 
-
 lint: deps
 	yarn run lint:hbs && yarn run lint:js
 
@@ -88,6 +78,6 @@ steps:
 	yarn run steps:list
 
 node_modules: yarn.lock package.json
-	yarn install
+	yarn install $(CONSUL_UI_INSTALL_FLAGS)
 
 .PHONY: all deps build start test test-view lint format clean

@@ -25,11 +25,11 @@ export default RepositoryService.extend({
 
     try {
       this.provider = window.consul.getMetricsProvider(provider, opts);
-    } catch(e) {
+    } catch (e) {
       this.error = new Error(`metrics provider not initialized: ${e}`);
       // Show the user the error once for debugging their provider outside UI
       // Dev.
-      console.error(this.error);
+      console.error(this.error); // eslint-disable-line no-console
     }
   },
 
@@ -69,5 +69,5 @@ export default RepositoryService.extend({
       result.meta = meta;
       return result;
     });
-  }
+  },
 });
