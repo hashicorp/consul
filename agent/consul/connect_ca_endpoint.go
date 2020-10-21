@@ -163,6 +163,27 @@ func (s *ConnectCA) ConfigurationSet(
 		}
 	}()
 
+	// If this is a secondary, check if the intermediate needs to be regenerated.
+	if s.srv.config.Datacenter != s.srv.config.PrimaryDatacenter {
+		// Get the current root certs from the primary DC.
+		var roots structs.IndexedCARoots
+		rootArgs := structs.DCSpecificRequest{
+			Datacenter: s.srv.config.PrimaryDatacenter,
+		}
+		if err := s.srv.forwardDC("ConnectCA.Roots", s.srv.config.PrimaryDatacenter, &rootArgs, &roots); err != nil {
+			return fmt.Errorf("Error retrieving the primary datacenter's roots: %v", err)
+		}
+
+		s.srv.caProviderReconfigurationLock.Lock()
+		defer s.srv.caProviderReconfigurationLock.Unlock()
+		if err := s.srv.initializeSecondaryCA(newProvider, roots, args.Config); err != nil {
+			return fmt.Errorf("Error updating secondary datacenter CA config: %v", err)
+		}
+		cleanupNewProvider = false
+		s.logger.Info("Secondary CA provider config updated")
+		return nil
+	}
+
 	if err := newProvider.GenerateRoot(); err != nil {
 		return fmt.Errorf("error generating CA root certificate: %v", err)
 	}
@@ -192,10 +213,8 @@ func (s *ConnectCA) ConfigurationSet(
 		return err
 	}
 
-	// If the root didn't change or if this is a secondary DC, just update the
-	// config and return.
-	if (s.srv.config.Datacenter != s.srv.config.PrimaryDatacenter) ||
-		root != nil && root.ID == newActiveRoot.ID {
+	// If the root didn't change, just update the config and return.
+	if root != nil && root.ID == newActiveRoot.ID {
 		args.Op = structs.CAOpSetConfig
 		resp, err := s.srv.raftApply(structs.ConnectCARequestType, args)
 		if err != nil {

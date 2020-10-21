@@ -214,7 +214,7 @@ func (s *Server) initializeCA() error {
 		if err := s.initializeSecondaryProvider(provider, roots); err != nil {
 			return fmt.Errorf("error configuring provider: %v", err)
 		}
-		if err := s.initializeSecondaryCA(provider, roots); err != nil {
+		if err := s.initializeSecondaryCA(provider, roots, nil); err != nil {
 			return err
 		}
 
@@ -337,7 +337,7 @@ func (s *Server) initializeRootCA(provider ca.Provider, conf *structs.CAConfigur
 // intermediate.
 // It is being called while holding caProviderReconfigurationLock
 // which means it must never take that lock itself or call anything that does.
-func (s *Server) initializeSecondaryCA(provider ca.Provider, primaryRoots structs.IndexedCARoots) error {
+func (s *Server) initializeSecondaryCA(provider ca.Provider, primaryRoots structs.IndexedCARoots, config *structs.CAConfiguration) error {
 	activeIntermediate, err := provider.ActiveIntermediate()
 	if err != nil {
 		return err
@@ -432,19 +432,25 @@ func (s *Server) initializeSecondaryCA(provider ca.Provider, primaryRoots struct
 	if err != nil {
 		return err
 	}
+
+	// Determine whether a root update is needed, and persist the roots/config accordingly.
+	var newRoot *structs.CARoot
 	if activeRoot == nil || activeRoot.ID != newActiveRoot.ID || newIntermediate {
-		if err := s.persistNewRoot(provider, newActiveRoot); err != nil {
-			return err
-		}
+		newRoot = newActiveRoot
+	}
+	if err := s.persistNewRootAndConfig(provider, newRoot, config); err != nil {
+		return err
 	}
 
 	s.setCAProvider(provider, newActiveRoot)
 	return nil
 }
 
-// persistNewRoot is being called while holding caProviderReconfigurationLock
+// persistNewRootAndConfig is being called while holding caProviderReconfigurationLock
 // which means it must never take that lock itself or call anything that does.
-func (s *Server) persistNewRoot(provider ca.Provider, newActiveRoot *structs.CARoot) error {
+// If newActiveRoot is non-nil, it will be appended to the current roots list.
+// If config is non-nil, it will be used to overwrite the existing config.
+func (s *Server) persistNewRootAndConfig(provider ca.Provider, newActiveRoot *structs.CARoot, config *structs.CAConfiguration) error {
 	connectLogger := s.loggers.Named(logging.Connect)
 	state := s.fsm.State()
 	idx, oldRoots, err := state.CARoots(nil)
@@ -452,15 +458,23 @@ func (s *Server) persistNewRoot(provider ca.Provider, newActiveRoot *structs.CAR
 		return err
 	}
 
-	_, config, err := state.CAConfig(nil)
+	var newConf structs.CAConfiguration
+	_, storedConfig, err := state.CAConfig(nil)
 	if err != nil {
 		return err
 	}
-	if config == nil {
+	if storedConfig == nil {
 		return fmt.Errorf("local CA not initialized yet")
 	}
-	newConf := *config
-	newConf.ClusterID = newActiveRoot.ExternalTrustDomain
+	if config != nil {
+		newConf = *config
+	} else {
+		newConf = *storedConfig
+	}
+	newConf.ModifyIndex = storedConfig.ModifyIndex
+	if newActiveRoot != nil {
+		newConf.ClusterID = newActiveRoot.ExternalTrustDomain
+	}
 
 	// Persist any state the provider needs us to
 	newConf.State, err = provider.State()
@@ -468,21 +482,25 @@ func (s *Server) persistNewRoot(provider ca.Provider, newActiveRoot *structs.CAR
 		return fmt.Errorf("error getting provider state: %v", err)
 	}
 
-	// Copy the root list and append the new active root, updating the old root
-	// with the time it was rotated out.
+	// If there's a new active root, copy the root list and append it, updating
+	// the old root with the time it was rotated out.
 	var newRoots structs.CARoots
-	for _, r := range oldRoots {
-		newRoot := *r
-		if newRoot.Active {
-			newRoot.Active = false
-			newRoot.RotatedOutAt = time.Now()
+	if newActiveRoot != nil {
+		for _, r := range oldRoots {
+			newRoot := *r
+			if newRoot.Active {
+				newRoot.Active = false
+				newRoot.RotatedOutAt = time.Now()
+			}
+			if newRoot.ExternalTrustDomain == "" {
+				newRoot.ExternalTrustDomain = config.ClusterID
+			}
+			newRoots = append(newRoots, &newRoot)
 		}
-		if newRoot.ExternalTrustDomain == "" {
-			newRoot.ExternalTrustDomain = config.ClusterID
-		}
-		newRoots = append(newRoots, &newRoot)
+		newRoots = append(newRoots, newActiveRoot)
+	} else {
+		newRoots = oldRoots
 	}
-	newRoots = append(newRoots, newActiveRoot)
 
 	args := &structs.CARequest{
 		Op:     structs.CAOpSetRootsAndConfig,
@@ -748,7 +766,7 @@ func (s *Server) intermediateCertRenewalWatch(ctx context.Context) error {
 					return err
 				}
 
-				if err := s.persistNewRoot(provider, activeRoot); err != nil {
+				if err := s.persistNewRootAndConfig(provider, activeRoot, nil); err != nil {
 					return err
 				}
 
@@ -808,7 +826,7 @@ func (s *Server) secondaryCARootWatch(ctx context.Context) error {
 		// Run the secondary CA init routine to see if we need to request a new
 		// intermediate.
 		if s.configuredSecondaryCA() {
-			if err := s.initializeSecondaryCA(provider, roots); err != nil {
+			if err := s.initializeSecondaryCA(provider, roots, nil); err != nil {
 				return fmt.Errorf("Failed to initialize the secondary CA: %v", err)
 			}
 		}
