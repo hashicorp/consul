@@ -32,3 +32,6 @@
 .notice.policy-management {
   @extend %notice-highlight;
 }
+.notice.crd::before {
+  @extend %with-logo-kubernetes-color-icon;
+}
