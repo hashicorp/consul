@@ -1,6 +1,5 @@
 import Model from 'ember-data/model';
 import attr from 'ember-data/attr';
-import { computed } from '@ember/object';
 
 export const PRIMARY_KEY = 'uid';
 export const SLUG_KEY = 'ServiceName';
