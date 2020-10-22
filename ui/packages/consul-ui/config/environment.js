@@ -2,7 +2,7 @@
 const path = require('path');
 const utils = require('./utils');
 
-const repositoryRoot = path.resolve(__dirname, '../../');
+const repositoryRoot = path.resolve(__dirname, '../../../../');
 
 const repositoryYear = utils.repositoryYear;
 const repositorySHA = utils.repositorySHA;
@@ -96,6 +96,7 @@ module.exports = function(environment, $ = process.env) {
     CONSUL_ACLS_ENABLED: false,
     CONSUL_NSPACES_ENABLED: false,
     CONSUL_SSO_ENABLED: false,
+    CONSUL_DATACENTER_LOCAL: env('CONSUL_DATACENTER_LOCAL', 'dc1'),
 
     // Static variables used in multiple places throughout the UI
     CONSUL_HOME_URL: 'https://www.consul.io',
@@ -114,7 +115,6 @@ module.exports = function(environment, $ = process.env) {
         CONSUL_ACLS_ENABLED: env('CONSUL_ACLS_ENABLED', true),
         CONSUL_NSPACES_ENABLED: env('CONSUL_NSPACES_ENABLED', false),
         CONSUL_SSO_ENABLED: env('CONSUL_SSO_ENABLED', false),
-        CONSUL_DATACENTER_LOCAL: env('CONSUL_DATACENTER_LOCAL', 'dc1'),
 
         '@hashicorp/ember-cli-api-double': {
           'auto-import': false,
@@ -146,7 +146,6 @@ module.exports = function(environment, $ = process.env) {
         CONSUL_ACLS_ENABLED: env('CONSUL_ACLS_ENABLED', true),
         CONSUL_NSPACES_ENABLED: env('CONSUL_NSPACES_ENABLED', true),
         CONSUL_SSO_ENABLED: env('CONSUL_SSO_ENABLED', true),
-        CONSUL_DATACENTER_LOCAL: env('CONSUL_DATACENTER_LOCAL', 'dc1'),
 
         '@hashicorp/ember-cli-api-double': {
           enabled: true,

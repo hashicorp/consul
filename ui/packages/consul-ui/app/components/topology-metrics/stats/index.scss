@@ -18,11 +18,4 @@
   dd {
     color: $gray-400 !important;
   }
-  span {
-    margin: 0 auto !important;
-    color: $gray-500;
-  }
-  span.loader::after {
-    @extend %with-loading-icon, %as-pseudo;
-  }
 }

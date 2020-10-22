@@ -38,7 +38,6 @@ export default RepositoryService.extend({
       return Promise.reject(this.error);
     }
     const promises = [
-      // TODO: support namespaces in providers
       this.provider.serviceRecentSummarySeries(dc, nspace, slug, protocol, {}),
       this.provider.serviceRecentSummaryStats(dc, nspace, slug, protocol, {}),
     ];

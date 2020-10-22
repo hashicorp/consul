@@ -1,7 +1,10 @@
-<DataSource
-  @src={{uri nspace dc 'metrics' @endpoint @service @protocol}}
-  @onchange={{action 'statsUpdate'}}
-/>
+{{#unless @noMetricsReason}}
+  <DataSource
+    @src={{uri nspace dc 'metrics' @endpoint @service @protocol}}
+    @onchange={{action 'statsUpdate'}}
+    @onerror={{action (mut error) value="error"}}
+  />
+{{/unless}}
 
 <div class="stats">
   {{#if hasLoaded }}
@@ -19,6 +22,9 @@
       <span>No Metrics Available</span>
     {{/each}}
   {{else}}
-    <span class="loader">Loading Metrics</span>
+    <TopologyMetrics::Status
+      @noMetricsReason={{@noMetricsReason}}
+      @error={{error}}
+    />
   {{/if}}
 </div>
