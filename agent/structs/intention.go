@@ -26,8 +26,6 @@ const (
 	// fix up all the places where this was used with the proper namespace
 	// value.
 	IntentionDefaultNamespace = "default"
-
-	MaxIntentionPrecedence = 9
 )
 
 // Intention defines an intention for the Connect Service Graph. This defines
@@ -349,7 +347,7 @@ func (x *Intention) UpdatePrecedence() {
 	var max int
 	switch x.countExact(x.DestinationNS, x.DestinationName) {
 	case 2:
-		max = MaxIntentionPrecedence
+		max = 9
 	case 1:
 		max = 6
 	case 0:
