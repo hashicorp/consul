@@ -1721,6 +1721,11 @@ type persistedService struct {
 	Token   string
 	Service *structs.NodeService
 	Source  string
+	// whether this service was registered as a sidecar, see structs.NodeService
+	// we store this field here because it is excluded from json serialization
+	// to exclude it from API output, but we need it to properly deregister
+	// persisted sidecars.
+	LocallyRegisteredAsSidecar bool `json:",omitempty"`
 }
 
 // persistService saves a service definition to a JSON file in the data dir
@@ -1729,9 +1734,10 @@ func (a *Agent) persistService(service *structs.NodeService, source configSource
 	svcPath := filepath.Join(a.config.DataDir, servicesDir, svcID.StringHash())
 
 	wrapped := persistedService{
-		Token:   a.State.ServiceToken(service.CompoundServiceID()),
-		Service: service,
-		Source:  source.String(),
+		Token:                      a.State.ServiceToken(service.CompoundServiceID()),
+		Service:                    service,
+		Source:                     source.String(),
+		LocallyRegisteredAsSidecar: service.LocallyRegisteredAsSidecar,
 	}
 	encoded, err := json.Marshal(wrapped)
 	if err != nil {
@@ -3180,6 +3186,10 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 				continue
 			}
 		}
+
+		// Restore LocallyRegisteredAsSidecar, see persistedService.LocallyRegisteredAsSidecar
+		p.Service.LocallyRegisteredAsSidecar = p.LocallyRegisteredAsSidecar
+
 		serviceID := p.Service.CompoundServiceID()
 
 		source, ok := ConfigSourceFromName(p.Source)

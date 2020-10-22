@@ -2442,6 +2442,75 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 	require.Equal(t, expected, result)
 }
 
+func TestAgent_DeregisterPersistedSidecarAfterRestart(t *testing.T) {
+	t.Parallel()
+	nodeID := NodeID()
+	a := StartTestAgent(t, TestAgent{
+		HCL: `
+	    node_id = "` + nodeID + `"
+	    node_name = "Node ` + nodeID + `"
+		server = false
+		bootstrap = false
+		enable_central_service_config = false
+	`})
+	defer a.Shutdown()
+
+	srv := &structs.NodeService{
+		ID:      "svc",
+		Service: "svc",
+		Weights: &structs.Weights{
+			Passing: 2,
+			Warning: 1,
+		},
+		Tags:           []string{"tag2"},
+		Port:           8200,
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+
+		Connect: structs.ServiceConnect{
+			SidecarService: &structs.ServiceDefinition{},
+		},
+	}
+
+	connectSrv, _, _, err := a.sidecarServiceFromNodeService(srv, "")
+	require.NoError(t, err)
+
+	// First persist the check
+	err = a.AddService(srv, nil, true, "", ConfigSourceLocal)
+	require.NoError(t, err)
+	err = a.AddService(connectSrv, nil, true, "", ConfigSourceLocal)
+	require.NoError(t, err)
+
+	// check both services were registered
+	require.NotNil(t, a.State.Service(srv.CompoundServiceID()))
+	require.NotNil(t, a.State.Service(connectSrv.CompoundServiceID()))
+
+	a.Shutdown()
+
+	// Start again with the check registered in config
+	a2 := StartTestAgent(t, TestAgent{
+		Name:    "Agent2",
+		DataDir: a.DataDir,
+		HCL: `
+	    node_id = "` + nodeID + `"
+	    node_name = "Node ` + nodeID + `"
+		server = false
+		bootstrap = false
+		enable_central_service_config = false
+	`})
+	defer a2.Shutdown()
+
+	// check both services were restored
+	require.NotNil(t, a2.State.Service(srv.CompoundServiceID()))
+	require.NotNil(t, a2.State.Service(connectSrv.CompoundServiceID()))
+
+	err = a2.RemoveService(srv.CompoundServiceID())
+	require.NoError(t, err)
+
+	// check both services were deregistered
+	require.Nil(t, a2.State.Service(srv.CompoundServiceID()))
+	require.Nil(t, a2.State.Service(connectSrv.CompoundServiceID()))
+}
+
 func TestAgent_loadChecks_token(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, `
