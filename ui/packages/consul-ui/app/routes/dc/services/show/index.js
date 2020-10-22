@@ -19,7 +19,7 @@ export default Route.extend({
     } else {
       switch (kind) {
         case 'ingress-gateway':
-          if (!get(parentModel, 'topology.Exists')) {
+          if (!get(parentModel, 'topology.Datacenter')) {
             to = 'upstreams';
           }
           break;
@@ -30,7 +30,7 @@ export default Route.extend({
           to = 'instances';
           break;
         default:
-          if (!get(parentModel, 'topology.Exists')) {
+          if (!get(parentModel, 'topology.Datacenter')) {
             to = 'instances';
           }
       }
