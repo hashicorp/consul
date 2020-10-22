@@ -223,9 +223,6 @@ function capture_logs {
 
 function stop_services {
   # Teardown
-  if [ -f "${CASE_DIR}/teardown.sh" ] ; then
-    source "${CASE_DIR}/teardown.sh"
-  fi
   docker_kill_rm $REQUIRED_SERVICES
 
   docker_kill_rm consul-primary consul-secondary
