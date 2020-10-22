@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -107,6 +108,7 @@ func (l *LogFile) pruneFiles() error {
 		return nil
 	}
 
+	sort.Strings(matches)
 	last := len(matches) - l.MaxFiles
 	return removeFiles(matches[:last])
 }
