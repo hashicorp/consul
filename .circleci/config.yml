@@ -646,18 +646,18 @@ jobs:
       ENVOY_VERSIONS: "1.11.2"
     steps: *ENVOY_INTEGRATION_TEST_STEPS
 
-  envoy-integration-test-1.12.3:
+  envoy-integration-test-1.12.7:
     docker:
       - image: *GOLANG_IMAGE
     environment:
-      ENVOY_VERSIONS: "1.12.3"
+      ENVOY_VERSIONS: "1.12.7"
     steps: *ENVOY_INTEGRATION_TEST_STEPS
 
-  envoy-integration-test-1.13.1:
+  envoy-integration-test-1.13.6:
     docker:
       - image: *GOLANG_IMAGE
     environment:
-      ENVOY_VERSIONS: "1.13.1"
+      ENVOY_VERSIONS: "1.13.6"
     steps: *ENVOY_INTEGRATION_TEST_STEPS
 
   # run tests on vault ca provider integration tests
@@ -763,10 +763,10 @@ workflows:
       - envoy-integration-test-1.11.2:
           requires:
             - dev-build
-      - envoy-integration-test-1.12.3:
+      - envoy-integration-test-1.12.7:
           requires:
             - dev-build
-      - envoy-integration-test-1.13.1:
+      - envoy-integration-test-1.13.6:
           requires:
             - dev-build
       - vault-ca-provider:
