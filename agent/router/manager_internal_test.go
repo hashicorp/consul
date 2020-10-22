@@ -264,7 +264,7 @@ func test_reconcileServerList(maxServers int) (bool, error) {
 	return true, nil
 }
 
-func TestManager_refreshServerRebalanceTimer(t *testing.T) {
+func TestRebalanceDelayer(t *testing.T) {
 	type testCase struct {
 		servers  int
 		nodes    int
@@ -319,9 +319,7 @@ func TestManager_refreshServerRebalanceTimer(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		m := &Manager{clusterInfo: &fauxSerf{numNodes: tc.nodes}, rebalanceTimer: time.NewTimer(0)}
-		m.saveServerList(serverList{servers: make([]*metadata.Server, tc.servers)})
-		delay := m.refreshServerRebalanceTimer()
+		delay := delayer.Delay(tc.servers, tc.nodes)
 
 		if tc.expected != 0 {
 			assert.Equal(t, tc.expected, delay, "nodes=%d, servers=%d", tc.nodes, tc.servers)
