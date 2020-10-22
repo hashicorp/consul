@@ -699,8 +699,8 @@ function upsert_l4_intention {
   local DESTINATION=$2
   local ACTION=$3
 
-  retry_default curl -sL -XPUT "http://localhost:8500/v1/connect/intentions/exact?source=${SOURCE}&destination=${DESTINATION}" \
-      -d"{\"Action\": \"${ACTION}\"}" >/dev/null
+  retry_default curl -v -sL -XPUT "http://127.0.0.1:8500/v1/connect/intentions/exact?source=${SOURCE}&destination=${DESTINATION}" \
+      -d"{\"Action\": \"${ACTION}\"}"
 }
 
 function get_ca_root {
