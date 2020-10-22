@@ -92,6 +92,9 @@ func Setup(config Config, out io.Writer) (hclog.InterceptLogger, error) {
 			MaxBytes: config.LogRotateBytes,
 			MaxFiles: config.LogRotateMaxFiles,
 		}
+		if err := logFile.pruneFiles(); err != nil {
+			return nil, fmt.Errorf("Failed to prune log files: %w", err)
+		}
 		if err := logFile.openNew(); err != nil {
 			return nil, fmt.Errorf("Failed to setup logging: %w", err)
 		}
