@@ -103,11 +103,6 @@ Feature: dc / services / show: Show Service
     ---
   Scenario: Given a dashboard template has been set
     Given 1 datacenter model with the value "dc1"
-    And settings from yaml
-    ---
-    consul:urls:
-      service: https://example.com?service-name={{Service.Name}}&dc={{Datacenter}}
-    ---
     When I visit the service page for yaml
     ---
       dc: dc1
