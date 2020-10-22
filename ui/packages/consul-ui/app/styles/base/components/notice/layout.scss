@@ -2,11 +2,15 @@
   position: relative;
   padding: 0.8rem;
 }
+%notice header {
+  margin-bottom: 0.1rem;
+}
 %notice header > * {
   margin-bottom: 0;
 }
-%notice header {
-  margin-bottom: 0.1rem;
+%notice p {
+  margin-bottom: 0.3rem;
+  line-height: 1.4;
 }
 /* this is probably skin */
 %notice {
