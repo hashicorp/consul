@@ -40,15 +40,8 @@ type Config struct {
 	LogRotateMaxFiles int
 }
 
-const (
-	// defaultRotateDuration is the default time taken by the agent to rotate logs
-	defaultRotateDuration = 24 * time.Hour
-)
-
-var (
-	logRotateDuration time.Duration
-	logRotateBytes    int
-)
+// defaultRotateDuration is the default time taken by the agent to rotate logs
+const defaultRotateDuration = 24 * time.Hour
 
 type LogSetupErrorFn func(string)
 
@@ -86,26 +79,17 @@ func Setup(config Config, out io.Writer) (hclog.InterceptLogger, error) {
 	// Create a file logger if the user has specified the path to the log file
 	if config.LogFilePath != "" {
 		dir, fileName := filepath.Split(config.LogFilePath)
-		// If a path is provided but has no fileName a default is provided.
 		if fileName == "" {
 			fileName = "consul.log"
 		}
-		// Try to enter the user specified log rotation duration first
-		if config.LogRotateDuration != 0 {
-			logRotateDuration = config.LogRotateDuration
-		} else {
-			// Default to 24 hrs if no rotation period is specified
-			logRotateDuration = defaultRotateDuration
-		}
-		// User specified byte limit for log rotation if one is provided
-		if config.LogRotateBytes != 0 {
-			logRotateBytes = config.LogRotateBytes
+		if config.LogRotateDuration == 0 {
+			config.LogRotateDuration = defaultRotateDuration
 		}
 		logFile := &LogFile{
 			fileName: fileName,
 			logPath:  dir,
-			duration: logRotateDuration,
-			MaxBytes: logRotateBytes,
+			duration: config.LogRotateDuration,
+			MaxBytes: config.LogRotateBytes,
 			MaxFiles: config.LogRotateMaxFiles,
 		}
 		if err := logFile.openNew(); err != nil {
