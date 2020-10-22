@@ -23,7 +23,7 @@ func TestFormat(t *testing.T) {
 			Term:    4,
 			Version: 1,
 		},
-		Stats:  m,
+		Stats:     m,
 		TotalSize: 1,
 	}
 
