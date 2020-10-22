@@ -164,16 +164,7 @@ function get_envoy_http_rbac_once {
   local HOSTPORT=$1
   run curl -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
-  local ENVOY_VERSION=$(echo $output | jq --raw-output '.configs[0].bootstrap.node.metadata.envoy_version')
-  local QUERY=''
-  # from 1.13.0 on the config json looks slightly different
-  # 1.12.x is not affected
-  if [[ "$ENVOY_VERSION" =~ ^1\.12\. ]]; then
-    return 1 # TODO
-  else
-    QUERY='.configs[2].dynamic_listeners[].active_state.listener.filter_chains[0].filters[0].config.http_filters[] | select(.name == "envoy.filters.http.rbac") | .config'
-  fi
-  echo "$output" | jq --raw-output "$QUERY"
+  echo "$output" | jq --raw-output '.configs[2].dynamic_listeners[].active_state.listener.filter_chains[0].filters[0].config.http_filters[] | select(.name == "envoy.filters.http.rbac") | .config'
 }
 
 function assert_envoy_network_rbac_policy_count {
@@ -188,48 +179,21 @@ function get_envoy_network_rbac_once {
   local HOSTPORT=$1
   run curl -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
-  local ENVOY_VERSION=$(echo $output | jq --raw-output '.configs[0].bootstrap.node.metadata.envoy_version')
-  local QUERY=''
-  # from 1.13.0 on the config json looks slightly different
-  # 1.12.x is not affected
-  if [[ "$ENVOY_VERSION" =~ ^1\.12\. ]]; then
-    return 1 # TODO
-  else
-    QUERY='.configs[2].dynamic_listeners[].active_state.listener.filter_chains[0].filters[] | select(.name == "envoy.filters.network.rbac") | .config'
-  fi
-  echo "$output" | jq --raw-output "$QUERY"
+  echo "$output" | jq --raw-output '.configs[2].dynamic_listeners[].active_state.listener.filter_chains[0].filters[] | select(.name == "envoy.filters.network.rbac") | .config'
 }
 
 function get_envoy_listener_filters {
   local HOSTPORT=$1
   run retry_default curl -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
-  local ENVOY_VERSION=$(echo $output | jq --raw-output '.configs[0].bootstrap.node.metadata.envoy_version')
-  local QUERY=''
-  # from 1.13.0 on the config json looks slightly different
-  # 1.12.x is not affected
-  if [[ "$ENVOY_VERSION" =~ ^1\.12\. ]]; then
-    QUERY='.configs[2].dynamic_active_listeners[].listener | "\(.name) \( .filter_chains[0].filters | map(.name) | join(","))"'
-  else
-    QUERY='.configs[2].dynamic_listeners[].active_state.listener | "\(.name) \( .filter_chains[0].filters | map(.name) | join(","))"'
-  fi
-  echo "$output" | jq --raw-output "$QUERY"
+  echo "$output" | jq --raw-output '.configs[2].dynamic_listeners[].active_state.listener | "\(.name) \( .filter_chains[0].filters | map(.name) | join(","))"'
 }
 
 function get_envoy_http_filters {
   local HOSTPORT=$1
   run retry_default curl -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
-  local ENVOY_VERSION=$(echo $output | jq --raw-output '.configs[0].bootstrap.node.metadata.envoy_version')
-  local QUERY=''
-  # from 1.13.0 on the config json looks slightly different
-  # 1.12.x is not affected
-  if [[ "$ENVOY_VERSION" =~ ^1\.12\. ]]; then
-      QUERY='.configs[2].dynamic_active_listeners[].listener | "\(.name) \( .filter_chains[0].filters[] | select(.name == "envoy.http_connection_manager") | .config.http_filters | map(.name) | join(","))"'
-  else
-      QUERY='.configs[2].dynamic_listeners[].active_state.listener | "\(.name) \( .filter_chains[0].filters[] | select(.name == "envoy.http_connection_manager") | .config.http_filters | map(.name) | join(","))"'
-  fi
-  echo "$output" | jq --raw-output "$QUERY"
+  echo "$output" | jq --raw-output '.configs[2].dynamic_listeners[].active_state.listener | "\(.name) \( .filter_chains[0].filters[] | select(.name == "envoy.http_connection_manager") | .config.http_filters | map(.name) | join(","))"'
 }
 
 function get_envoy_cluster_config {
