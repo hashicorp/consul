@@ -1373,6 +1373,7 @@ func TestUIServiceTopology(t *testing.T) {
 						},
 					},
 				},
+				Downstreams:    []*ServiceTopologySummary{},
 				FilteredByACLs: false,
 			}
 			result := obj.(ServiceTopology)
@@ -1530,7 +1531,8 @@ func TestUIServiceTopology(t *testing.T) {
 			require.NoError(r, checkIndex(resp))
 
 			expect := ServiceTopology{
-				Protocol: "http",
+				Protocol:  "http",
+				Upstreams: []*ServiceTopologySummary{},
 				Downstreams: []*ServiceTopologySummary{
 					{
 						ServiceSummary: ServiceSummary{
