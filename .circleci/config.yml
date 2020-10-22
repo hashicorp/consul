@@ -622,7 +622,7 @@ jobs:
       - checkout
       - attach_workspace:
           at: ./pkg
-      - run: mv pkg/dist pkg/web_ui # 'make static-assets' looks for the 'pkg/web_ui' path
+      - run: mv pkg/packages/consul-ui/dist pkg/web_ui # 'make static-assets' looks for the 'pkg/web_ui' path
       - run: make tools
       - run: make static-assets
       - persist_to_workspace:
