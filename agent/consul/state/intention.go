@@ -500,6 +500,12 @@ func (s *Store) IntentionDecision(
 	}
 	resp.ExternalSource = ixnMatch.Meta[structs.MetaExternalSource]
 
+	// Intentions with wildcard namespaces but specific names are not allowed (*/web -> */api)
+	// So we don't check namespaces to see if there's an exact intention
+	if ixnMatch.SourceName != structs.WildcardSpecifier && ixnMatch.DestinationName != structs.WildcardSpecifier {
+		resp.HasExact = true
+	}
+
 	return resp, nil
 }
 

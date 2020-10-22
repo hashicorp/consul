@@ -26,6 +26,8 @@ const (
 	// fix up all the places where this was used with the proper namespace
 	// value.
 	IntentionDefaultNamespace = "default"
+
+	MaxIntentionPrecedence = 9
 )
 
 // Intention defines an intention for the Connect Service Graph. This defines
@@ -347,7 +349,7 @@ func (x *Intention) UpdatePrecedence() {
 	var max int
 	switch x.countExact(x.DestinationNS, x.DestinationName) {
 	case 2:
-		max = 9
+		max = MaxIntentionPrecedence
 	case 1:
 		max = 6
 	case 0:
@@ -645,11 +647,13 @@ type IntentionQueryCheckResponse struct {
 // Currently contains:
 // - Whether all actions are allowed
 // - Whether the matching intention has L7 permissions attached
-// - Whether the intention is managed by an external source like k8s,
+// - Whether the intention is managed by an external source like k8s
+// - Whether there is an exact, on-wildcard, intention referencing the two services
 type IntentionDecisionSummary struct {
 	Allowed        bool
 	HasPermissions bool
 	ExternalSource string
+	HasExact       bool
 }
 
 // IntentionQueryExact holds the parameters for performing a lookup of an

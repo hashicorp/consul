@@ -1132,6 +1132,16 @@ func TestStore_IntentionDecision(t *testing.T) {
 				},
 			},
 		},
+		&structs.ServiceIntentionsConfigEntry{
+			Kind: structs.ServiceIntentions,
+			Name: "mysql",
+			Sources: []*structs.SourceIntention{
+				{
+					Name:   "*",
+					Action: structs.IntentionActionAllow,
+				},
+			},
+		},
 	}
 
 	s := testConfigStateStore(t)
@@ -1167,6 +1177,7 @@ func TestStore_IntentionDecision(t *testing.T) {
 			expect: structs.IntentionDecisionSummary{
 				Allowed:        false,
 				HasPermissions: true,
+				HasExact:       true,
 			},
 		},
 		{
@@ -1176,6 +1187,7 @@ func TestStore_IntentionDecision(t *testing.T) {
 			expect: structs.IntentionDecisionSummary{
 				Allowed:        false,
 				HasPermissions: false,
+				HasExact:       true,
 			},
 		},
 		{
@@ -1186,6 +1198,17 @@ func TestStore_IntentionDecision(t *testing.T) {
 				Allowed:        true,
 				HasPermissions: false,
 				ExternalSource: "nomad",
+				HasExact:       true,
+			},
+		},
+		{
+			name: "allowed by source wildcard not exact",
+			src:  "anything",
+			dst:  "mysql",
+			expect: structs.IntentionDecisionSummary{
+				Allowed:        true,
+				HasPermissions: false,
+				HasExact:       false,
 			},
 		},
 	}
