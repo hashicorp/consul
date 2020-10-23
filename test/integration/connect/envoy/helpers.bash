@@ -694,12 +694,21 @@ function delete_config_entry {
   retry_default curl -sL -XDELETE "http://127.0.0.1:8500/v1/config/${KIND}/${NAME}"
 }
 
+function setup_upsert_l4_intention {
+  local SOURCE=$1
+  local DESTINATION=$2
+  local ACTION=$3
+
+  retry_default docker_curl primary -sL -XPUT "http://127.0.0.1:8500/v1/connect/intentions/exact?source=${SOURCE}&destination=${DESTINATION}" \
+      -d"{\"Action\": \"${ACTION}\"}" >/dev/null
+}
+
 function upsert_l4_intention {
   local SOURCE=$1
   local DESTINATION=$2
   local ACTION=$3
 
-  retry_default curl -sL -XPUT "http://localhost:8500/v1/connect/intentions/exact?source=${SOURCE}&destination=${DESTINATION}" \
+  retry_default curl -sL -XPUT "http://127.0.0.1:8500/v1/connect/intentions/exact?source=${SOURCE}&destination=${DESTINATION}" \
       -d"{\"Action\": \"${ACTION}\"}" >/dev/null
 }
 
