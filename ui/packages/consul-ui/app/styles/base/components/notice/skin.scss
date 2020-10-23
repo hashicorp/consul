@@ -1,6 +1,10 @@
 %notice {
   border-radius: $decor-radius-100;
-  border-width: 1px;
+  border: 1px solid;
+}
+%notice p:last-child a:only-child {
+  @extend %p3;
+  font-weight: $typo-weight-bold;
 }
 %notice-success,
 %notice-info,
@@ -16,7 +20,12 @@
   @extend %frame-green-500;
 }
 %notice-info {
-  @extend %frame-blue-500;
+  border-color: $blue-100;
+  background-color: $gray-010;
+  color: $black;
+}
+%notice-info header * {
+  color: $blue-700;
 }
 %notice-highlight {
   @extend %frame-gray-800;
