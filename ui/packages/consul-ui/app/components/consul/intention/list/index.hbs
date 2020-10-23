@@ -1,6 +1,7 @@
 <div
   class="consul-intention-list"
   ...attributes
+  {{did-update this.updateCRDManagement @items}}
 >
   <DataWriter
     @sink={{concat '/' @dc '/' @nspace '/intention/'}}
@@ -10,16 +11,22 @@
     <BlockSlot @name="content">
 
 {{#let (hash
-  Check=(component 'consul/intention/list/check')
-  Table=(component 'consul/intention/list/table' delete=writer.delete items=@items)
+  Table=(component 'consul/intention/list/table' delete=writer.delete items=this.items)
+  CheckNotice=(if this.checkedItem
+    (component 'consul/intention/list/check' item=this.checkedItem)
+    ''
+  )
+  CustomResourceNotice=(if this.isManagedByCRDs
+    (component 'consul/intention/notice/custom-resource')
+    ''
+  )
 ) as |api|}}
 
-  {{#if (gt @items.length 0)}}
+  {{#if (gt this.items.length 0)}}
     {{yield api to="idle"}}
   {{else}}
     {{yield api to="empty"}}
   {{/if}}
-
 {{/let}}
 
     </BlockSlot>
