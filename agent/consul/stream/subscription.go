@@ -3,28 +3,33 @@ package stream
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync/atomic"
 )
 
 const (
-	// subscriptionStateOpen is the default state of a subscription. An open
-	// subscription may receive new events.
-	subscriptionStateOpen uint32 = 0
+	// subStateOpen is the default state of a subscription. An open subscription
+	// may return new events.
+	subStateOpen = 0
 
-	// subscriptionStateClosed indicates that the subscription was closed, possibly
-	// as a result of a change to an ACL token, and will not receive new events.
+	// subStateForceClosed indicates the subscription was forced closed by
+	// the EventPublisher, possibly as a result of a change to an ACL token, and
+	// will not return new events.
 	// The subscriber must issue a new Subscribe request.
-	subscriptionStateClosed uint32 = 1
+	subStateForceClosed = 1
+
+	// subStateUnsub indicates the subscription was closed by the caller, and
+	// will not return new events.
+	subStateUnsub = 2
 )
 
-// ErrSubscriptionClosed is a error signalling the subscription has been
+// ErrSubForceClosed is a error signalling the subscription has been
 // closed. The client should Unsubscribe, then re-Subscribe.
-var ErrSubscriptionClosed = errors.New("subscription closed by server, client must reset state and resubscribe")
+var ErrSubForceClosed = errors.New("subscription closed by server, client must reset state and resubscribe")
 
 // Subscription provides events on a Topic. Events may be filtered by Key.
 // Events are returned by Next(), and may start with a Snapshot of events.
 type Subscription struct {
-	// state is accessed atomically 0 means open, 1 means closed with reload
 	state uint32
 
 	// req is the requests that we are responding to
@@ -34,9 +39,9 @@ type Subscription struct {
 	// is mutated by calls to Next.
 	currentItem *bufferItem
 
-	// forceClosed is closed when forceClose is called. It is used by
-	// EventPublisher to cancel Next().
-	forceClosed chan struct{}
+	// closed is a channel which is closed when the subscription is closed. It
+	// is used to exit the blocking select.
+	closed chan struct{}
 
 	// unsub is a function set by EventPublisher that is called to free resources
 	// when the subscription is no longer needed.
@@ -58,7 +63,7 @@ type SubscribeRequest struct {
 // calling Unsubscribe when it is done with the subscription, to free resources.
 func newSubscription(req SubscribeRequest, item *bufferItem, unsub func()) *Subscription {
 	return &Subscription{
-		forceClosed: make(chan struct{}),
+		closed:      make(chan struct{}),
 		req:         req,
 		currentItem: item,
 		unsub:       unsub,
@@ -68,16 +73,16 @@ func newSubscription(req SubscribeRequest, item *bufferItem, unsub func()) *Subs
 // Next returns the next Event to deliver. It must only be called from a
 // single goroutine concurrently as it mutates the Subscription.
 func (s *Subscription) Next(ctx context.Context) (Event, error) {
-	if atomic.LoadUint32(&s.state) == subscriptionStateClosed {
-		return Event{}, ErrSubscriptionClosed
-	}
-
 	for {
-		next, err := s.currentItem.Next(ctx, s.forceClosed)
-		switch {
-		case err != nil && atomic.LoadUint32(&s.state) == subscriptionStateClosed:
-			return Event{}, ErrSubscriptionClosed
-		case err != nil:
+		if err := s.requireStateOpen(); err != nil {
+			return Event{}, err
+		}
+
+		next, err := s.currentItem.Next(ctx, s.closed)
+		if err := s.requireStateOpen(); err != nil {
+			return Event{}, err
+		}
+		if err != nil {
 			return Event{}, err
 		}
 		s.currentItem = next
@@ -89,6 +94,17 @@ func (s *Subscription) Next(ctx context.Context) (Event, error) {
 			continue
 		}
 		return event, nil
+	}
+}
+
+func (s *Subscription) requireStateOpen() error {
+	switch atomic.LoadUint32(&s.state) {
+	case subStateForceClosed:
+		return ErrSubForceClosed
+	case subStateUnsub:
+		return fmt.Errorf("subscription was closed by unsubscribe")
+	default:
+		return nil
 	}
 }
 
@@ -121,13 +137,15 @@ func filterByKey(req SubscribeRequest, events []Event) (Event, bool) {
 // and will need to perform a new Subscribe request.
 // It is safe to call from any goroutine.
 func (s *Subscription) forceClose() {
-	swapped := atomic.CompareAndSwapUint32(&s.state, subscriptionStateOpen, subscriptionStateClosed)
-	if swapped {
-		close(s.forceClosed)
+	if atomic.CompareAndSwapUint32(&s.state, subStateOpen, subStateForceClosed) {
+		close(s.closed)
 	}
 }
 
 // Unsubscribe the subscription, freeing resources.
 func (s *Subscription) Unsubscribe() {
+	if atomic.CompareAndSwapUint32(&s.state, subStateOpen, subStateUnsub) {
+		close(s.closed)
+	}
 	s.unsub()
 }

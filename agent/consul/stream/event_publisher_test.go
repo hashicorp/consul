@@ -30,6 +30,7 @@ func TestEventPublisher_SubscribeWithIndex0(t *testing.T) {
 
 	sub, err := publisher.Subscribe(req)
 	require.NoError(t, err)
+	defer sub.Unsubscribe()
 	eventCh := runSubscription(ctx, sub)
 
 	next := getNextEvent(t, eventCh)
@@ -141,10 +142,10 @@ func TestEventPublisher_ShutdownClosesSubscriptions(t *testing.T) {
 	cancel() // Shutdown
 
 	err = consumeSub(context.Background(), sub1)
-	require.Equal(t, err, ErrSubscriptionClosed)
+	require.Equal(t, err, ErrSubForceClosed)
 
 	_, err = sub2.Next(context.Background())
-	require.Equal(t, err, ErrSubscriptionClosed)
+	require.Equal(t, err, ErrSubForceClosed)
 }
 
 func consumeSub(ctx context.Context, sub *Subscription) error {
@@ -169,14 +170,15 @@ func TestEventPublisher_SubscribeWithIndex0_FromCache(t *testing.T) {
 
 	publisher := NewEventPublisher(newTestSnapshotHandlers(), time.Second)
 	go publisher.Run(ctx)
-	_, err := publisher.Subscribe(req)
+	sub, err := publisher.Subscribe(req)
 	require.NoError(t, err)
+	sub.Unsubscribe()
 
 	publisher.snapshotHandlers[testTopic] = func(_ SubscribeRequest, _ SnapshotAppender) (uint64, error) {
 		return 0, fmt.Errorf("error should not be seen, cache should have been used")
 	}
 
-	sub, err := publisher.Subscribe(req)
+	sub, err = publisher.Subscribe(req)
 	require.NoError(t, err)
 
 	eventCh := runSubscription(ctx, sub)
@@ -357,6 +359,7 @@ func TestEventPublisher_SubscribeWithIndexNotZero_NewSnapshotFromCache(t *testin
 		newReq.Index = 1
 		sub, err := publisher.Subscribe(&newReq)
 		require.NoError(t, err)
+		defer sub.Unsubscribe()
 
 		eventCh := runSubscription(ctx, sub)
 		next := getNextEvent(t, eventCh)
@@ -378,4 +381,26 @@ func runStep(t *testing.T, name string, fn func(t *testing.T)) {
 	if !t.Run(name, fn) {
 		t.FailNow()
 	}
+}
+
+func TestEventPublisher_Unsubscribe_ClosesSubscription(t *testing.T) {
+	req := &SubscribeRequest{
+		Topic: testTopic,
+		Key:   "sub-key",
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	publisher := NewEventPublisher(newTestSnapshotHandlers(), time.Second)
+
+	sub, err := publisher.Subscribe(req)
+	require.NoError(t, err)
+
+	_, err = sub.Next(ctx)
+	require.NoError(t, err)
+
+	sub.Unsubscribe()
+	_, err = sub.Next(ctx)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "subscription was closed by unsubscribe")
 }
