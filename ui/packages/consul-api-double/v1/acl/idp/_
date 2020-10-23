@@ -1,0 +1,10 @@
+{
+  "Name": "${location.pathname.get(3)}",
+  "Description": "${fake.lorem.sentence()}",
+  "Type": "${fake.helpers.randomize(['kubernetes'])}", ${''/* oidc */}
+  "KubernetesHost": "https://${fake.internet.ip()}:8443",
+  "KubernetesCACert": "-----BEGIN CERTIFICATE-----${fake.internet.password(1357)}-----END CERTIFICATE-----",
+  "KubernetesServiceAccountJWT": "eyJhbGciOiJ${fake.internet.password(25)}.eyJ${fake.internet.password(61)}.${fake.internet.password(32)}",
+  "CreateIndex": 10,
+  "ModifyIndex": 10
+}

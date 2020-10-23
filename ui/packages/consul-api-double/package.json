@@ -1,0 +1,10 @@
+{
+  "name": "consul-api-double",
+  "version": "6.1.1",
+  "description": "Super simple API 'double' for easily visualizing the Consul API via the filesystem.",
+  "license": "MPL-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashicorp/consul-api-double.git"
+  }
+}

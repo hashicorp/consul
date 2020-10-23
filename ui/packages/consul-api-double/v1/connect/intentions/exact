@@ -1,0 +1,93 @@
+${range(1).map(item => {
+    const ID = fake.random.uuid();
+    const legacy = ID.indexOf('%3A') === -1;
+    const source = location.search.source.split('/');
+    const destination = location.search.destination.split('/');
+return `
+  {
+    "ID": "${legacy ? ID : ''}"
+${ http.method !== "PUT" ? `
+    ,"Description": "${fake.lorem.sentence()}",
+    "SourceNS": "${source[0]}",
+    "SourceName": "${source[1]}",
+    "DestinationNS": "${destination[0]}",
+    "DestinationName": "${destination[1]}",
+    "SourceType": "${fake.helpers.randomize(['consul', 'externaluri'])}",
+${legacy ? `
+    "Action": "${fake.helpers.randomize(['allow', 'deny'])}",
+`:``}
+${!legacy ? `
+    "Permissions": [
+${range(
+  env(
+    'CONSUL_INTENTION_PERMISSION_COUNT',
+    Math.floor(
+      (
+        Math.random() * env('CONSUL_INTENTION_PERMISSION_MAX', 10)
+      ) + parseInt(env('CONSUL_INTENTION_PERMISSION_MIN', 1))
+    )
+  )
+).map((item, i) => {
+  const headerCount = env(
+    'CONSUL_HEADER_COUNT',
+    Math.floor(
+      (
+        Math.random() * env('CONSUL_HEADER_MAX', 3)
+      ) + parseInt(env('CONSUL_HEADER_MIN', 1))
+    )
+  );
+  const path = fake.helpers.randomize(['PathExact', 'PathPrefix', 'PathRegex', '']);
+  return `
+              {
+                "Action": "${fake.helpers.randomize(['allow', 'deny'])}",
+                "HTTP": {
+${path !== '' ? `
+                  "${path}": "${path === 'PathRegex' ? `${fake.helpers.randomize(['^[0-9]{1,3}?$', '(\w+)\s(\w+)'])}` : `/${fake.lorem.words(fake.random.number({min: 1, max: 5})).split(' ').join('/')}${fake.random.boolean() ? fake.system.fileName() : ''}`}",
+`:``}
+
+${ fake.random.boolean() ? `
+                  "Methods": [
+                    ${
+                      fake.helpers.shuffle(
+                        ["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"]
+                      ).filter(item => fake.random.boolean()).map(item => `
+                        "${item}"
+                      `)
+                    }
+                  ],
+` : ``}
+                  "Header": [
+${range(headerCount).map(item => `
+                    {
+                      "Name": "X-${fake.hacker.noun().split(' ').map(item => `${item.substr(0, 1).toUpperCase()}${item.substr(1)}`).join('-')}",
+${fake.random.boolean() ? `
+                      "Invert": true,
+` : ``}
+${fake.helpers.randomize([
+                      '"Present": true',
+                      '"Exact": "abc"',
+                      '"Prefix": "abc"',
+                      '"Suffix": "xyz"',
+                      '"Regex": "[abc]"'
+])}
+                    }
+`)}
+                ]
+              }
+            }
+`})}
+    ],
+`:``}
+    "Precedence": ${fake.random.number({min: 1, max: 100})},
+${ !legacy && fake.random.number({min: 1, max: 10}) > 2 ? `
+    "Meta": {
+      "external-source": "${fake.helpers.randomize(['kubernetes'])}"
+    },
+` : `` }
+    "CreatedAt": "2018-05-21T16:41:27.977155457Z",
+    "UpdatedAt": "2018-05-21T16:41:27.977157724Z",
+    "CreateIndex": 11,
+    "ModifyIndex": 11
+` : ``}
+  }
+`})}

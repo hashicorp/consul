@@ -1,0 +1,57 @@
+{
+  "name": "ember-cli-api-double",
+  "version": "3.1.2",
+  "description": "An ember-cli wrapper around @hashicorp/api-double",
+  "keywords": [
+    "ember-addon"
+  ],
+  "license": "MPL-2.0",
+  "author": "",
+  "repository": "https://github.com/hashicorp/ember-cli-api-double",
+  "scripts": {
+    "build": "ember build",
+    "lint:js": "eslint ./*.js addon addon-test-support app config lib server test-support tests",
+    "start": "ember serve",
+    "test": "ember try:each"
+  },
+  "resolutions": {
+    "jquery": "^3.4.0"
+  },
+  "dependencies": {
+    "api-double": "*",
+    "array-range": "^1.0.1",
+    "broccoli-file-creator": "^2.1.1",
+    "broccoli-merge-trees": "^3.0.2",
+    "ember-auto-import": "^1.5.3",
+    "ember-cli-babel": "^6.6.0",
+    "merge-options": "^1.0.1",
+    "pretender": "^3.2.0",
+    "recursive-readdir-sync": "^1.0.6"
+  },
+  "devDependencies": {
+    "broccoli-asset-rev": "^2.4.5",
+    "ember-cli": "^3.15.2",
+    "ember-cli-dependency-checker": "^2.0.0",
+    "ember-cli-eslint": "^4.2.1",
+    "ember-cli-htmlbars": "^2.0.1",
+    "ember-cli-htmlbars-inline-precompile": "^1.0.0",
+    "ember-cli-inject-live-reload": "^1.4.1",
+    "ember-cli-qunit": "^4.4.0",
+    "ember-cli-shims": "^1.2.0",
+    "ember-cli-sri": "^2.1.0",
+    "ember-cli-uglify": "^2.0.0",
+    "ember-export-application-global": "^2.0.1",
+    "ember-load-initializers": "^1.0.0",
+    "ember-resolver": "^4.0.0",
+    "ember-source": "~2.18.0",
+    "eslint-plugin-ember": "^5.0.0",
+    "eslint-plugin-node": "^5.2.1",
+    "loader.js": "^4.2.3"
+  },
+  "engines": {
+    "node": "^4.5 || 6.* || >= 7.*"
+  },
+  "ember-addon": {
+    "configPath": "tests/dummy/config"
+  }
+}

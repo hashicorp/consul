@@ -1,0 +1,43 @@
+{
+  "name": "api-double",
+  "version": "1.6.1",
+  "description": "api-double serving via HTTP or other means",
+  "main": "index.js",
+  "scripts": {
+    "format:js": "prettier --write --ignore-path .gitignore \"**/*.js\" \"**/.*.js\"",
+    "docs": "typedoc --theme markdown --out ./docs --includeDeclarations -excludeExternals index.d.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashicorp/api-double.git"
+  },
+  "keywords": [],
+  "author": "",
+  "collaborators": [
+    {
+      "email": "jcowen@hashicorp.com"
+    }
+  ],
+  "license": "MPL-2.0",
+  "bin": {
+    "api-double": "./bin/index.js"
+  },
+  "prettier": {
+    "printWidth": 100,
+    "singleQuote": true,
+    "trailingComma": "es5"
+  },
+  "dependencies": {
+    "array-range": "^1.0.1",
+    "backtick-template": "^0.2.0",
+    "body-parser": "^1.19.0",
+    "cookie-parser": "^1.4.4",
+    "express": "^4.17.1",
+    "faker": "^4.1.0",
+    "js-yaml": "^3.13.1"
+  },
+  "devDependencies": {
+    "typedoc": "^0.15.0",
+    "typedoc-plugin-markdown": "^2.1.11"
+  }
+}

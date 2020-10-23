@@ -1,0 +1,12 @@
+*
+
+!/bin/*
+!/express/iterator/*
+!/lib/*
+/lib/.DS_Store
+!/iterator/*
+!/location/*
+!/reader/*
+!/vars/*
+!/*.js
+!/container.yaml

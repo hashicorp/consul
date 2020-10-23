@@ -1,0 +1,32 @@
+[
+  ${
+    range(
+      env(
+        'CONSUL_SESSION_COUNT',
+        Math.floor(
+          (
+            Math.random() * env('CONSUL_SESSION_MAX', 5)
+          ) + parseInt(env('CONSUL_SESSION_MIN', 1))
+        )
+      )
+    ).map(
+        function(item, i) {
+            // TTL = "" | 10:84600
+            return `{
+                "ID":"${fake.random.uuid()}",
+                "Name":"${fake.hacker.noun()}",
+${typeof location.search.ns !== 'undefined' ? `
+                "Namespace": "${location.search.ns}",
+` : ``}
+                "Node":"${location.pathname.get(3)}",
+                "Checks":["serfHealth"],
+                "LockDelay":15000000000,
+                "Behavior":"${fake.helpers.randomize(['release', 'delete'])}",
+                "TTL":"",
+                "CreateIndex":2782,
+                "ModifyIndex":2782
+            }`;
+        }
+    )
+  }
+]
