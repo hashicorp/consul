@@ -308,10 +308,7 @@ func newTestBackend() (*testBackend, error) {
 	if err != nil {
 		return nil, err
 	}
-	store, err := state.NewStateStore(gc)
-	if err != nil {
-		return nil, err
-	}
+	store := state.NewStateStoreWithEventPublisher(gc)
 	allowAll := func(_ string) acl.Authorizer {
 		return acl.AllowAll()
 	}

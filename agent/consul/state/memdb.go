@@ -1,6 +1,7 @@
 package state
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/hashicorp/go-memdb"
@@ -51,8 +52,14 @@ type Changes struct {
 // 2. Sent to the eventPublisher which will create and emit change events
 type changeTrackerDB struct {
 	db             *memdb.MemDB
-	publisher      *stream.EventPublisher
+	publisher      EventPublisher
 	processChanges func(ReadTxn, Changes) ([]stream.Event, error)
+}
+
+type EventPublisher interface {
+	Publish([]stream.Event)
+	Run(context.Context)
+	Subscribe(*stream.SubscribeRequest) (*stream.Subscription, error)
 }
 
 // Txn exists to maintain backwards compatibility with memdb.DB.Txn. Preexisting

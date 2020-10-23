@@ -153,36 +153,46 @@ type sessionCheck struct {
 }
 
 // NewStateStore creates a new in-memory state storage layer.
-func NewStateStore(gc *TombstoneGC) (*Store, error) {
+func NewStateStore(gc *TombstoneGC) *Store {
 	// Create the in-memory DB.
 	schema := stateStoreSchema()
 	db, err := memdb.NewMemDB(schema)
 	if err != nil {
-		return nil, fmt.Errorf("Failed setting up state store: %s", err)
+		// the only way for NewMemDB to error is if the schema is invalid. The
+		// scheme is static and tested to be correct, so any failure here would
+		// be a programming error, which should panic.
+		panic(fmt.Sprintf("failed to create state store: %v", err))
 	}
-
-	pub := stream.NewEventPublisher(newSnapshotHandlers((*readDB)(db)), 10*time.Second)
-	ctx, cancel := context.WithCancel(context.TODO())
 	s := &Store{
 		schema:             schema,
 		abandonCh:          make(chan struct{}),
 		kvsGraveyard:       NewGraveyard(gc),
 		lockDelay:          NewDelay(),
-		stopEventPublisher: cancel,
+		stopEventPublisher: func() {},
 		db: &changeTrackerDB{
 			db:             db,
-			publisher:      pub,
+			publisher:      stream.NoOpEventPublisher{},
 			processChanges: processDBChanges,
 		},
 	}
+	return s
+}
+
+func NewStateStoreWithEventPublisher(gc *TombstoneGC) *Store {
+	store := NewStateStore(gc)
+	ctx, cancel := context.WithCancel(context.TODO())
+	store.stopEventPublisher = cancel
+
+	pub := stream.NewEventPublisher(newSnapshotHandlers((*readDB)(store.db.db)), 10*time.Second)
+	store.db.publisher = pub
 
 	go pub.Run(ctx)
-	return s, nil
+	return store
 }
 
 // EventPublisher returns the stream.EventPublisher used by the Store to
 // publish events.
-func (s *Store) EventPublisher() *stream.EventPublisher {
+func (s *Store) EventPublisher() EventPublisher {
 	return s.db.publisher
 }
 
