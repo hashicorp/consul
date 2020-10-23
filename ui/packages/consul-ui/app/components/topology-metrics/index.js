@@ -24,7 +24,7 @@ export default class TopologyMetrics extends Component {
     const order = ['allow', 'deny'];
     const dest = {
       x: this.centerDimensions.x,
-      y: this.centerDimensions.y + this.centerDimensions.height / 4,
+      y: this.centerDimensions.y + this.centerDimensions.height / 2,
     };
 
     return items
@@ -51,7 +51,7 @@ export default class TopologyMetrics extends Component {
     const order = ['allow', 'deny'];
     const src = {
       x: this.centerDimensions.x + 20,
-      y: this.centerDimensions.y + this.centerDimensions.height / 4,
+      y: this.centerDimensions.y + this.centerDimensions.height / 2,
     };
 
     return items
@@ -83,7 +83,7 @@ export default class TopologyMetrics extends Component {
 
     // Get Card elements positions
     const downCards = [...document.querySelectorAll('#downstream-container .card')];
-    const grafanaCard = document.querySelector('#metrics-container');
+    const grafanaCard = document.querySelector('.metrics-header');
     const upCards = [...document.querySelectorAll('#upstream-column .card')];
 
     // Set center positioning points
