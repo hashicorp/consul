@@ -316,8 +316,8 @@ RPC:
 	downstreams, _ := summarizeServices(out.ServiceTopology.Downstreams.ToServiceDump(), nil, "")
 
 	var (
-		upstreamResp   []*ServiceTopologySummary
-		downstreamResp []*ServiceTopologySummary
+		upstreamResp   = make([]*ServiceTopologySummary, 0)
+		downstreamResp = make([]*ServiceTopologySummary, 0)
 	)
 
 	// Sort and attach intention data for upstreams and downstreams

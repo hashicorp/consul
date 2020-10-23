@@ -1369,9 +1369,11 @@ func TestUIServiceTopology(t *testing.T) {
 						Intention: structs.IntentionDecisionSummary{
 							Allowed:        true,
 							HasPermissions: false,
+							HasExact:       true,
 						},
 					},
 				},
+				Downstreams:    []*ServiceTopologySummary{},
 				FilteredByACLs: false,
 			}
 			result := obj.(ServiceTopology)
@@ -1410,6 +1412,7 @@ func TestUIServiceTopology(t *testing.T) {
 						Intention: structs.IntentionDecisionSummary{
 							Allowed:        true,
 							HasPermissions: false,
+							HasExact:       true,
 						},
 					},
 				},
@@ -1429,6 +1432,9 @@ func TestUIServiceTopology(t *testing.T) {
 							Allowed:        false,
 							HasPermissions: false,
 							ExternalSource: "nomad",
+
+							// From wildcard deny
+							HasExact: false,
 						},
 					},
 				},
@@ -1474,6 +1480,7 @@ func TestUIServiceTopology(t *testing.T) {
 						Intention: structs.IntentionDecisionSummary{
 							Allowed:        false,
 							HasPermissions: true,
+							HasExact:       true,
 						},
 					},
 				},
@@ -1491,6 +1498,9 @@ func TestUIServiceTopology(t *testing.T) {
 							Allowed:        false,
 							HasPermissions: false,
 							ExternalSource: "nomad",
+
+							// From wildcard deny
+							HasExact: false,
 						},
 					},
 				},
@@ -1521,7 +1531,8 @@ func TestUIServiceTopology(t *testing.T) {
 			require.NoError(r, checkIndex(resp))
 
 			expect := ServiceTopology{
-				Protocol: "http",
+				Protocol:  "http",
+				Upstreams: []*ServiceTopologySummary{},
 				Downstreams: []*ServiceTopologySummary{
 					{
 						ServiceSummary: ServiceSummary{
@@ -1537,6 +1548,7 @@ func TestUIServiceTopology(t *testing.T) {
 						Intention: structs.IntentionDecisionSummary{
 							Allowed:        false,
 							HasPermissions: true,
+							HasExact:       true,
 						},
 					},
 				},

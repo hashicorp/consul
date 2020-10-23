@@ -1622,6 +1622,8 @@ func TestInternal_ServiceTopology(t *testing.T) {
 	// web and web-proxy on node bar - upstream: redis
 	// web and web-proxy on node baz - upstream: redis
 	// redis and redis-proxy on node zip
+	// wildcard deny intention
+	// web -> redis exact intentino
 	registerTestTopologyEntries(t, codec, "")
 
 	var (
@@ -1650,6 +1652,9 @@ func TestInternal_ServiceTopology(t *testing.T) {
 					Allowed:        false,
 					HasPermissions: false,
 					ExternalSource: "nomad",
+
+					// From wildcard deny
+					HasExact: false,
 				},
 			}
 			require.Equal(r, expectUp, out.ServiceTopology.UpstreamDecisions)
@@ -1675,6 +1680,9 @@ func TestInternal_ServiceTopology(t *testing.T) {
 					Allowed:        false,
 					HasPermissions: false,
 					ExternalSource: "nomad",
+
+					// From wildcard deny
+					HasExact: false,
 				},
 			}
 			require.Equal(r, expectDown, out.ServiceTopology.DownstreamDecisions)
@@ -1686,6 +1694,7 @@ func TestInternal_ServiceTopology(t *testing.T) {
 				redis.String(): {
 					Allowed:        false,
 					HasPermissions: true,
+					HasExact:       true,
 				},
 			}
 			require.Equal(r, expectUp, out.ServiceTopology.UpstreamDecisions)
@@ -1712,6 +1721,7 @@ func TestInternal_ServiceTopology(t *testing.T) {
 				web.String(): {
 					Allowed:        false,
 					HasPermissions: true,
+					HasExact:       true,
 				},
 			}
 			require.Equal(r, expectDown, out.ServiceTopology.DownstreamDecisions)
