@@ -11,5 +11,6 @@ export default Model.extend({
   Upstreams: attr(),
   Downstreams: attr(),
   Protocol: attr(),
+  FilteredByACLs: attr(),
   meta: attr(),
 });
