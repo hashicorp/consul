@@ -17,16 +17,19 @@ html[data-route^='dc.acls.index'] .filter-bar [role='radiogroup'] {
 }
 
 @media #{$--lt-wide-form} {
+  html[data-route^='dc.acls.create'] main header .actions,
   html[data-route^='dc.acls.edit'] main header .actions {
     float: none;
     display: flex;
     justify-content: space-between;
     margin-bottom: 1em;
   }
+  html[data-route^='dc.acls.create'] main header .actions .with-feedback,
   html[data-route^='dc.acls.edit'] main header .actions .with-feedback {
     position: absolute;
     right: 0;
   }
+  html[data-route^='dc.acls.create'] main header .actions .with-confirmation,
   html[data-route^='dc.acls.edit'] main header .actions .with-confirmation {
     margin-top: 0;
   }
