@@ -103,14 +103,9 @@ Feature: dc / services / show: Show Service
     ---
   Scenario: Given a dashboard template has been set
     Given 1 datacenter model with the value "dc1"
-    And settings from yaml
-    ---
-    consul:urls:
-      service: https://consul.io?service-name={{Service.Name}}&dc={{Datacenter}}
-    ---
     When I visit the service page for yaml
     ---
       dc: dc1
       service: service-0
     ---
-    And I see href on the dashboardAnchor like "https://consul.io?service-name=service-0&dc=dc1"
+    And I see href on the dashboardAnchor like "https://example.com?service-0-with-id&dc1"

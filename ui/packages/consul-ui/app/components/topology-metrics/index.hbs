@@ -29,9 +29,9 @@
     {{/if}}
     <div class="link">
      {{#if @metricsHref}}
-      <a class="metrics-link" href={{@metricsHref}} target="_blank" rel="noopener noreferrer">Open metrics Dashboard</a>
+      <a class="metrics-link" href={{@metricsHref}} target="_blank" rel="noopener noreferrer" data-test-dashboard-anchor>Open metrics Dashboard</a>
     {{else}}
-      <a class="settings-link" href={{href-to 'settings'}}>Configure metrics dashboard</a>
+      <a class="config-link" href="{{env 'CONSUL_DOCS_URL'}}/agent/options.html#ui_config" target="_blank" rel="noopener noreferrer">Configure metrics dashboard</a>
     {{/if}}
     </div>
   </div>

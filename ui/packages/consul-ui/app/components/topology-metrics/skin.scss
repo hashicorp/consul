@@ -82,7 +82,7 @@
     .metrics-link::before {
       @extend %with-exit-mask, %as-pseudo;
     }
-    .settings-link::before {
+    .config-link::before {
       @extend %with-docs-mask, %as-pseudo;
     }
   }

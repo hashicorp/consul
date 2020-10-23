@@ -7,9 +7,9 @@
       @upstreams={{topology.Upstreams}}
       @downstreams={{filter-by 'Datacenter' topology.Datacenter topology.Downstreams}}
       @dc={{topology.Datacenter}}
-      @metricsHref={{render-template urls.service (hash
+      @metricsHref={{render-template urls.services (hash
         Datacenter=dc
-        Service=(hash Name=item.Service.Service)
+        Service=items.firstObject
       )}}
     />
   {{else}}

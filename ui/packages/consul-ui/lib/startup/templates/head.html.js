@@ -3,7 +3,15 @@ module.exports = ({ appName, environment, rootURL, config }) => `
   <meta name="consul-ui/ui_config" content="${
     environment === 'production'
       ? `{{ jsonEncodeAndEscape .UIConfig }}`
-      : escape(`{"metrics_provider":"prometheus","metrics_proxy_enabled":true}`)
+      : escape(
+          JSON.stringify({
+            metrics_provider: 'prometheus',
+            metrics_proxy_enabled: true,
+            dashboard_url_template: {
+              services: 'https://example.com?{{Service.Name}}&{{Datacenter}}',
+            },
+          })
+        )
   }" />
 
   <link rel="icon" type="image/png" href="${rootURL}assets/favicon-32x32.png" sizes="32x32">
