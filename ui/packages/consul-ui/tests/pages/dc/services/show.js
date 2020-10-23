@@ -21,7 +21,7 @@ export default function(visitable, attribute, collection, text, intentions, filt
     instances: collection('.consul-service-instance-list > ul > li:not(:first-child)', {
       address: text('[data-test-address]'),
     }),
-    intentions: intentions(),
+    intentionList: intentions(),
   };
   page.tabs.upstreamsTab = {
     services: collection('.consul-upstream-list > ul > li:not(:first-child)', {
