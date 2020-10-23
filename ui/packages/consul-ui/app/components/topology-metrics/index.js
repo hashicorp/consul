@@ -83,7 +83,7 @@ export default class TopologyMetrics extends Component {
 
     // Get Card elements positions
     const downCards = [...document.querySelectorAll('#downstream-container .card')];
-    const grafanaCard = document.querySelector('#metrics-header');
+    const grafanaCard = document.querySelector('.metrics-header');
     const upCards = [...document.querySelectorAll('#upstream-column .card')];
 
     // Set center positioning points
