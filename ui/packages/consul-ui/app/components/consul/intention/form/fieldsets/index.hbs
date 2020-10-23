@@ -144,7 +144,13 @@
   </fieldset>
 {{#if (eq (or item.Action '') '')}}
   <fieldset class="permissions">
-    <button type="button" onclick={{action (mut shouldShowPermissionForm) true}}>Add permission</button>
+    <button
+      data-test-create-permission
+      type="button"
+      onclick={{action (mut shouldShowPermissionForm) true}}
+    >
+      Add permission
+    </button>
     <h2>Permissions</h2>
 {{#if (gt item.Permissions.length 0) }}
     <div class="notice info">
@@ -210,6 +216,7 @@
     <BlockSlot @name="actions">
       <button
         type="button"
+        data-test-intention-permission-submit
         class="type-submit"
         disabled={{if (not this.permissionForm.isDirty) 'disabled'}}
         onclick={{queue (action this.permissionForm.submit) (action modal.close)}}

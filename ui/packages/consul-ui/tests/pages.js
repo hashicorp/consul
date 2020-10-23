@@ -19,6 +19,8 @@ import createCreatable from 'consul-ui/tests/lib/page-object/createCreatable';
 import createCancelable from 'consul-ui/tests/lib/page-object/createCancelable';
 
 // components
+import intentionPermissionForm from 'consul-ui/components/consul/intention/permission/form/pageobject';
+import intentionPermissionList from 'consul-ui/components/consul/intention/permission/list/pageobject';
 import pageFactory from 'consul-ui/components/hashicorp-consul/pageobject';
 
 import radiogroup from 'consul-ui/components/radio-group/pageobject';
@@ -170,7 +172,17 @@ export default {
   intentions: create(
     intentions(visitable, creatable, clickable, consulIntentionList, popoverSelect)
   ),
-  intention: create(intention(visitable, submitable, deletable, cancelable)),
+  intention: create(
+    intention(
+      visitable,
+      clickable,
+      submitable,
+      deletable,
+      cancelable,
+      intentionPermissionForm,
+      intentionPermissionList
+    )
+  ),
   nspaces: create(nspaces(visitable, creatable, consulNspaceList, popoverSelect)),
   nspace: create(
     nspace(visitable, submitable, deletable, cancelable, policySelector, roleSelector)

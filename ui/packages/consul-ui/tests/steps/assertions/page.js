@@ -33,6 +33,32 @@ const isExpectedError = function(e) {
 const dont = `( don't| shouldn't| can't)?`;
 export default function(scenario, assert, find, currentPage, $) {
   scenario
+    .then([`I${dont} $verb the $pageObject object`], function(negative, verb, element, next) {
+      assert[negative ? 'notOk' : 'ok'](element[verb]());
+      setTimeout(() => next());
+    })
+    .then(
+      [
+        `I${dont} $verb the $pageObject object with value "$value"`,
+        `I${dont} $verb the $pageObject object from $yaml`,
+      ],
+      function(negative, verb, element, data, next) {
+        assert[negative ? 'notOk' : 'ok'](element[verb](data));
+        setTimeout(() => next());
+      }
+    )
+    .then(`the $pageObject object is(n't) $state`, function(element, negative, state, next) {
+      assert[negative ? 'notOk' : 'ok'](element[state]);
+      setTimeout(() => next());
+    })
+    .then(`I${dont} see $num of the $pageObject objects`, function(negative, num, element, next) {
+      assert[negative ? 'notEqual' : 'equal'](
+        element.length,
+        num,
+        `Expected to${negative ? ' not' : ''} see ${num} ${element.key}`
+      );
+      setTimeout(() => next());
+    })
     .then(['I see $num of the $component object'], function(num, component) {
       assert.equal(
         currentPage()[component].length,
