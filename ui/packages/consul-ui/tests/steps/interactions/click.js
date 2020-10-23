@@ -4,7 +4,11 @@ export default function(scenario, find, click) {
       return click(selector);
     })
     // TODO: Probably nicer to think of better vocab than having the 'without " rule'
-    .when(['I click (?!")$property(?!")', 'I click $property on the $component'], function(
+    .when([
+      'I click (?!")$property(?!")',
+      'I click $property on the $component',
+      'I click $property on the $component component'
+    ], function(
       property,
       component,
       next

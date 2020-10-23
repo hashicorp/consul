@@ -16,10 +16,10 @@ Feature: dc / intentions / sorting
     ---
       dc: dc-1
     ---
-    Then I see 6 intention models
+    Then I see 6 intention models on the intentionList component
     When I click selected on the sort
     When I click options.1.button on the sort
-    Then I see action on the intentions vertically like yaml
+    Then I see action on the intentionList.intentions vertically like yaml
     ---
     - "deny"
     - "deny"
@@ -30,7 +30,7 @@ Feature: dc / intentions / sorting
     ---
     When I click selected on the sort
     When I click options.0.button on the sort
-    Then I see action on the intentions vertically like yaml
+    Then I see action on the intentionList.intentions vertically like yaml
     ---
     - "allow"
     - "allow"
