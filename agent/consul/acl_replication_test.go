@@ -2,7 +2,9 @@ package consul
 
 import (
 	"fmt"
+	"io"
 	"os"
+	"path/filepath"
 	"strconv"
 	"testing"
 	"time"
@@ -10,15 +12,17 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/stretchr/testify/require"
 )
 
 func TestACLReplication_diffACLPolicies(t *testing.T) {
+	logger := testutil.Logger(t)
 	diffACLPolicies := func(local structs.ACLPolicies, remote structs.ACLPolicyListStubs, lastRemoteIndex uint64) ([]string, []string) {
 		tr := &aclPolicyReplicator{local: local, remote: remote}
-		res := diffACLType(tr, lastRemoteIndex)
+		res := diffACLType(logger, tr, lastRemoteIndex)
 		return res.LocalDeletes, res.LocalUpserts
 	}
 	local := structs.ACLPolicies{
@@ -133,13 +137,14 @@ func TestACLReplication_diffACLPolicies(t *testing.T) {
 }
 
 func TestACLReplication_diffACLTokens(t *testing.T) {
+	logger := testutil.Logger(t)
 	diffACLTokens := func(
 		local structs.ACLTokens,
 		remote structs.ACLTokenListStubs,
 		lastRemoteIndex uint64,
 	) itemDiffResults {
 		tr := &aclTokenReplicator{local: local, remote: remote}
-		return diffACLType(tr, lastRemoteIndex)
+		return diffACLType(logger, tr, lastRemoteIndex)
 	}
 
 	local := structs.ACLTokens{
@@ -983,4 +988,411 @@ func createACLTestData(t *testing.T, srv *Server, namePrefix string, numObjects,
 	}
 
 	return policyIDs, roleIDs, tokenIDs
+}
+
+func TestACLReplication_AllTypes_CorrectedAfterUpgrade(t *testing.T) {
+	// If during an in-flight cross-datacenter consul version upgrade the
+	// primary datacenter is updated first, and an operator elects to persist a
+	// field into a Token/Role/Policy that did not exist in the prior consul
+	// version then it can lead to the secondary datacenters replicating all
+	// but the field it doesn't understand, but it does persist the hash of the
+	// new fields (since that's computed by the primary and persisted).
+	//
+	// There used to be a bug whereby after the secondary is finally upgraded
+	// it would never go back and figure out that it was missing some data.
+	//
+	// This tests that the bug is fixed. Because we're running on a single
+	// version of consul we make a mirror universe version of the buggy
+	// behavior where we persist an incorrect Hash in the primary's state
+	// machine so that when it replicates the secondary gets into a similar
+	// situation.
+	//
+	// We'll use edits to the Description as a proxy for "new fields".
+
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.PrimaryDatacenter = "dc1"
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc2"
+		c.PrimaryDatacenter = "dc1"
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLTokenReplication = true
+		c.ACLReplicationRate = 100
+		c.ACLReplicationBurst = 25
+		c.ACLReplicationApplyLimit = 1000000
+	})
+	s2.tokens.UpdateReplicationToken("root", tokenStore.TokenSourceConfig)
+	testrpc.WaitForLeader(t, s2.RPC, "dc2")
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	// Try to join.
+	joinWAN(t, s2, s1)
+	testrpc.WaitForLeader(t, s2.RPC, "dc2")
+	testrpc.WaitForLeader(t, s2.RPC, "dc1")
+
+	// Wait for legacy acls to be disabled so we are clear that
+	// legacy replication isn't meddling.
+	waitForNewACLs(t, s1)
+	waitForNewACLs(t, s2)
+	waitForNewACLReplication(t, s2, structs.ACLReplicateTokens, 1, 1, 0)
+
+	// Create one of each type of data the proper way, simulating a write + replication
+	// of pre-upgrade data on both sides.
+	var policyID string
+	{
+		arg := structs.ACLPolicySetRequest{
+			Datacenter: "dc1",
+			Policy: structs.ACLPolicy{
+				Name:  "test-policy",
+				Rules: `key_prefix "" { policy = "deny" }`,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		var out structs.ACLPolicy
+		require.NoError(t, s1.RPC("ACL.PolicySet", &arg, &out))
+		policyID = out.ID
+	}
+	t.Logf("created policy with id=%q", policyID)
+
+	var roleID string
+	{
+		arg := structs.ACLRoleSetRequest{
+			Datacenter: "dc1",
+			Role: structs.ACLRole{
+				Name: "test-role",
+				Policies: []structs.ACLRolePolicyLink{
+					{ID: policyID},
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		var out structs.ACLRole
+		require.NoError(t, s1.RPC("ACL.RoleSet", &arg, &out))
+		roleID = out.ID
+	}
+	t.Logf("created role with id=%q", roleID)
+
+	var tokenAccessor string
+	{
+		arg := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				Description: "test-token",
+				Policies: []structs.ACLTokenPolicyLink{
+					{ID: policyID},
+				},
+				Roles: []structs.ACLTokenRoleLink{
+					{ID: roleID},
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		var out structs.ACLToken
+		require.NoError(t, s1.RPC("ACL.TokenSet", &arg, &out))
+		tokenAccessor = out.AccessorID
+	}
+	t.Logf("created token with accessor=%q", tokenAccessor)
+
+	checkSame := func(r *retry.R, s2 *Server) {
+		{
+			_, expect, err := s1.fsm.State().ACLPolicyGetByID(nil, policyID, nil)
+			require.NoError(r, err)
+			_, got, err := s2.fsm.State().ACLPolicyGetByID(nil, policyID, nil)
+			require.NoError(r, err)
+
+			require.NotNil(r, expect)
+			require.NotNil(r, got)
+
+			require.Equal(r, expect.ID, got.ID)
+			require.Equal(r, expect.Hash, got.Hash)
+			require.Equal(r, expect.Description, got.Description) // is our new field correct?
+		}
+		{
+			_, expect, err := s1.fsm.State().ACLRoleGetByID(nil, roleID, nil)
+			require.NoError(r, err)
+			_, got, err := s2.fsm.State().ACLRoleGetByID(nil, roleID, nil)
+			require.NoError(r, err)
+
+			require.NotNil(r, expect)
+			require.NotNil(r, got)
+
+			require.Equal(r, expect.ID, got.ID)
+			require.Equal(r, expect.Hash, got.Hash)
+			require.Equal(r, expect.Description, got.Description) // is our new field correct?
+		}
+		{
+			_, expect, err := s1.fsm.State().ACLTokenGetByAccessor(nil, tokenAccessor, nil)
+			require.NoError(r, err)
+			_, got, err := s2.fsm.State().ACLTokenGetByAccessor(nil, tokenAccessor, nil)
+			require.NoError(r, err)
+
+			require.NotNil(r, expect)
+			require.NotNil(r, got)
+
+			require.Equal(r, expect.AccessorID, got.AccessorID)
+			require.Equal(r, expect.Hash, got.Hash)
+			require.Equal(r, expect.Description, got.Description) // is our new field correct?
+		}
+	}
+
+	// Wait for each of the 3 data types to replicate with identical hashes.
+	retry.Run(t, func(r *retry.R) {
+		checkSame(r, s2)
+	})
+
+	// OK, now let's simulate a primary upgrade followed immediately by a new
+	// field edit.
+	//
+	// First we'll bypass replication safeties with a direct raftApply and
+	// update the hashes to the new value in the secondary first. This is like
+	// setting a new field in the primary that is factored into the hash and
+	// letting it replicate using OLD CODE from before this bugfix.
+	//
+	// Then we'll shutdown the secondary. While it's shutdown we'll simulate
+	// the new field and updated hash both being visible in the primary, which
+	// is an approximation of what a newly upgraded secondary would "see".
+	//
+	// Then we power the secondary back on and let the patched replicators do
+	// their job on startup and correct it.
+
+	var (
+		policyJustHashSecondary, policyFull *structs.ACLPolicy
+	)
+	{
+		_, policy, err := s1.fsm.State().ACLPolicyGetByID(nil, policyID, nil)
+		require.NoError(t, err)
+		require.NotNil(t, policy)
+		_, policy2, err := s2.fsm.State().ACLPolicyGetByID(nil, policyID, nil)
+		require.NoError(t, err)
+		require.NotNil(t, policy2)
+
+		policyFull = policy.Clone()
+		policyFull.Description = "edited"
+		policyFull.SetHash(true)
+
+		policyJustHashSecondary = policy2.Clone()
+		policyJustHashSecondary.Hash = policyFull.Hash
+
+		// Double check some hashes
+		require.NotEqual(t, policy.Hash, policyFull.Hash)
+		require.Equal(t, policyFull.Hash, policyJustHashSecondary.Hash)
+
+		// Double check the descriptions.
+		require.NotEqual(t, policy.Description, policyFull.Description)
+		require.Equal(t, policy.Description, policyJustHashSecondary.Description)
+	}
+
+	var (
+		roleJustHashSecondary, roleFull *structs.ACLRole
+	)
+	{
+		_, role, err := s1.fsm.State().ACLRoleGetByID(nil, roleID, nil)
+		require.NoError(t, err)
+		require.NotNil(t, role)
+		_, role2, err := s2.fsm.State().ACLRoleGetByID(nil, roleID, nil)
+		require.NoError(t, err)
+		require.NotNil(t, role2)
+
+		roleFull = role.Clone()
+		roleFull.Description = "edited"
+		roleFull.SetHash(true)
+
+		roleJustHashSecondary = role2.Clone()
+		roleJustHashSecondary.Hash = roleFull.Hash
+
+		// Double check some hashes
+		require.NotEqual(t, role.Hash, roleFull.Hash)
+		require.Equal(t, roleFull.Hash, roleJustHashSecondary.Hash)
+
+		// Double check the descriptions.
+		require.NotEqual(t, role.Description, roleFull.Description)
+		require.Equal(t, role.Description, roleJustHashSecondary.Description)
+	}
+
+	var (
+		tokenJustHashSecondary, tokenFull *structs.ACLToken
+	)
+	{
+		_, token, err := s1.fsm.State().ACLTokenGetByAccessor(nil, tokenAccessor, nil)
+		require.NoError(t, err)
+		require.NotNil(t, token)
+		_, token2, err := s2.fsm.State().ACLTokenGetByAccessor(nil, tokenAccessor, nil)
+		require.NoError(t, err)
+		require.NotNil(t, token2)
+
+		tokenFull = token.Clone()
+		tokenFull.Description = "edited"
+		tokenFull.SetHash(true)
+
+		tokenJustHashSecondary = token2.Clone()
+		tokenJustHashSecondary.Hash = tokenFull.Hash
+
+		// Double check some hashes
+		require.NotEqual(t, token.Hash, tokenFull.Hash)
+		require.Equal(t, tokenFull.Hash, tokenJustHashSecondary.Hash)
+
+		// Double check the descriptions.
+		require.NotEqual(t, token.Description, tokenFull.Description)
+		require.Equal(t, token.Description, tokenJustHashSecondary.Description)
+	}
+
+	setPolicy := func(t *testing.T, srv *Server, policy *structs.ACLPolicy) {
+		req := &structs.ACLPolicyBatchSetRequest{
+			Policies: structs.ACLPolicies{policy},
+		}
+
+		resp, err := srv.raftApply(structs.ACLPolicySetRequestType, req)
+		require.NoError(t, err)
+		if respErr, ok := resp.(error); ok {
+			t.Fatalf("err: %v", respErr)
+		}
+	}
+	setRole := func(t *testing.T, srv *Server, role *structs.ACLRole) {
+		req := &structs.ACLRoleBatchSetRequest{
+			Roles: structs.ACLRoles{role},
+		}
+
+		resp, err := srv.raftApply(structs.ACLRoleSetRequestType, req)
+		require.NoError(t, err)
+		if respErr, ok := resp.(error); ok {
+			t.Fatalf("err: %v", respErr)
+		}
+	}
+	setToken := func(t *testing.T, srv *Server, token *structs.ACLToken) {
+		req := &structs.ACLTokenBatchSetRequest{
+			Tokens: structs.ACLTokens{token},
+			CAS:    false,
+		}
+
+		resp, err := srv.raftApply(structs.ACLTokenSetRequestType, req)
+		require.NoError(t, err)
+		if respErr, ok := resp.(error); ok {
+			t.Fatalf("err: %v", respErr)
+		}
+	}
+
+	// Force the weird hash-only update in the secondary.
+	setPolicy(t, s2, policyJustHashSecondary)
+	setRole(t, s2, roleJustHashSecondary)
+	setToken(t, s2, tokenJustHashSecondary)
+
+	// Stop the secondary so we know the replication routines will restart completely.
+	s2.Shutdown()
+
+	// To avoid any previous replicator goroutines from manipulating the data
+	// directory while it's shutting down (and thus seeing our actual write
+	// below, rather than letting the NEXT server instance see it) we'll copy
+	// the data directory and feed that one to the new server rather than
+	// having them possibly share.
+	newDataDir := testutil.TempDir(t, "datadir-s2-restart")
+	require.NoError(t, testCopyDir(s2.config.DataDir, newDataDir))
+
+	// While s2 isn't running, re-introduce the edited Description field to
+	// simulate being able to "see" the new field.
+	setPolicy(t, s1, policyFull)
+	setRole(t, s1, roleFull)
+	setToken(t, s1, tokenFull)
+
+	// Now restart it, simulating the restart after an upgrade.
+	dir2_restart, s2_restart := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc2"
+		c.PrimaryDatacenter = "dc1"
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLTokenReplication = true
+		c.ACLReplicationRate = 100
+		c.ACLReplicationBurst = 25
+		c.ACLReplicationApplyLimit = 1000000
+		// use the cloned data
+		c.DataDir = newDataDir
+		// use the same name
+		c.NodeName = s2.config.NodeName
+		c.NodeID = s2.config.NodeID
+		// use the same ports
+		c.SerfLANConfig.MemberlistConfig = s2.config.SerfLANConfig.MemberlistConfig
+		c.SerfWANConfig.MemberlistConfig = s2.config.SerfWANConfig.MemberlistConfig
+		c.RPCAddr = s2.config.RPCAddr
+		c.RPCAdvertise = s2.config.RPCAdvertise
+	})
+	defer os.RemoveAll(dir2_restart)
+	defer s2_restart.Shutdown()
+	s2_restart.tokens.UpdateReplicationToken("root", tokenStore.TokenSourceConfig)
+	testrpc.WaitForLeader(t, s2_restart.RPC, "dc2")
+
+	// If the bug is gone, they should be identical.
+	retry.Run(t, func(r *retry.R) {
+		checkSame(r, s2_restart)
+	})
+}
+
+// testCopyFile is roughly the same as "cp -a src dst", and only works for
+// directories and regular files recursively.
+//
+// It's a heavily trimmed down version of "CopyDir" from
+// https://github.com/moby/moby/blob/master/daemon/graphdriver/copy/copy.go
+func testCopyDir(srcDir, dstDir string) error {
+	testCopyFile := func(srcPath, dstPath string, fileinfo os.FileInfo) error {
+		srcFile, err := os.Open(srcPath)
+		if err != nil {
+			return err
+		}
+		defer srcFile.Close()
+
+		dstFile, err := os.Create(dstPath)
+		if err != nil {
+			return err
+		}
+
+		if _, err = io.Copy(dstFile, srcFile); err != nil {
+			_ = dstFile.Close()
+			return err
+		}
+
+		return dstFile.Close()
+	}
+
+	return filepath.Walk(srcDir, func(srcPath string, f os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Rebase path
+		relPath, err := filepath.Rel(srcDir, srcPath)
+		if err != nil {
+			return err
+		}
+
+		dstPath := filepath.Join(dstDir, relPath)
+
+		switch mode := f.Mode(); {
+		case mode.IsRegular():
+			if err2 := testCopyFile(srcPath, dstPath, f); err2 != nil {
+				return err2
+			}
+		case mode.IsDir():
+			if err := os.Mkdir(dstPath, f.Mode()); err != nil && !os.IsExist(err) {
+				return err
+			}
+		default:
+			return fmt.Errorf("unknown file type (%d / %s) for %s", f.Mode(), f.Mode().String(), srcPath)
+		}
+
+		if err := os.Chmod(dstPath, f.Mode()); err != nil {
+			return err
+		}
+
+		return nil
+	})
 }

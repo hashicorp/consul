@@ -52,7 +52,10 @@ type aclTypeReplicator interface {
 
 	// LocalMeta allows for type-agnostic metadata from the sorted local state
 	// can be retrieved for the purposes of diffing.
-	LocalMeta(i int) (id string, modIndex uint64, hash []byte)
+	LocalMeta(i int) (id string, modIndex uint64, hash []byte, hashMismatch bool)
+
+	// LocalID is just the ID portion of LocalMeta.
+	LocalID(i int) string
 
 	// RemoteMeta allows for type-agnostic metadata from the sorted remote
 	// state can be retrieved for the purposes of diffing.
@@ -167,7 +170,7 @@ type itemDiffResults struct {
 	RemoteSkipped int
 }
 
-func diffACLType(tr aclTypeReplicator, lastRemoteIndex uint64) itemDiffResults {
+func diffACLType(logger hclog.Logger, tr aclTypeReplicator, lastRemoteIndex uint64) itemDiffResults {
 	// Note: items with empty IDs will bubble up to the top (like legacy, unmigrated Tokens)
 
 	lenLocal, lenRemote := tr.SortState()
@@ -176,7 +179,7 @@ func diffACLType(tr aclTypeReplicator, lastRemoteIndex uint64) itemDiffResults {
 	var localIdx int
 	var remoteIdx int
 	for localIdx, remoteIdx = 0, 0; localIdx < lenLocal && remoteIdx < lenRemote; {
-		localID, _, localHash := tr.LocalMeta(localIdx)
+		localID, _, localHash, hashMismatch := tr.LocalMeta(localIdx)
 		remoteID, remoteMod, remoteHash := tr.RemoteMeta(remoteIdx)
 
 		if localID == "" {
@@ -193,6 +196,9 @@ func diffACLType(tr aclTypeReplicator, lastRemoteIndex uint64) itemDiffResults {
 		if localID == remoteID {
 			// item is in both the local and remote state - need to check raft indices and the Hash
 			if remoteMod > lastRemoteIndex && !bytes.Equal(remoteHash, localHash) {
+				if hashMismatch {
+					logger.Warn("correcting local hash mismatch", "item", localID)
+				}
 				res.LocalUpserts = append(res.LocalUpserts, remoteID)
 			}
 			// increment both indices when equal
@@ -214,7 +220,7 @@ func diffACLType(tr aclTypeReplicator, lastRemoteIndex uint64) itemDiffResults {
 	}
 
 	for ; localIdx < lenLocal; localIdx += 1 {
-		localID, _, _ := tr.LocalMeta(localIdx)
+		localID := tr.LocalID(localIdx)
 		if localID != "" {
 			res.LocalDeletes = append(res.LocalDeletes, localID)
 		} else {
@@ -413,7 +419,7 @@ func (s *Server) replicateACLType(ctx context.Context, logger hclog.Logger, tr a
 		"remote", lenRemote,
 	)
 	// Calculate the changes required to bring the state into sync and then apply them.
-	res := diffACLType(tr, lastRemoteIndex)
+	res := diffACLType(logger, tr, lastRemoteIndex)
 	if res.LocalSkipped > 0 || res.RemoteSkipped > 0 {
 		logger.Debug(
 			"acl replication",

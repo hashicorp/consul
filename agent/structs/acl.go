@@ -482,56 +482,62 @@ func (t *ACLToken) EnterpriseMetadata() *EnterpriseMeta {
 
 func (t *ACLToken) SetHash(force bool) []byte {
 	if force || t.Hash == nil {
-		// Initialize a 256bit Blake2 hash (32 bytes)
-		hash, err := blake2b.New256(nil)
-		if err != nil {
-			panic(err)
-		}
-
-		// Any non-immutable "content" fields should be involved with the
-		// overall hash. The IDs are immutable which is why they aren't here.
-		// The raft indices are metadata similar to the hash which is why they
-		// aren't incorporated. CreateTime is similarly immutable
-		//
-		// The Hash is really only used for replication to determine if a token
-		// has changed and should be updated locally.
-
-		// Write all the user set fields
-		hash.Write([]byte(t.Description))
-		hash.Write([]byte(t.Type))
-		hash.Write([]byte(t.Rules))
-
-		if t.Local {
-			hash.Write([]byte("local"))
-		} else {
-			hash.Write([]byte("global"))
-		}
-
-		for _, link := range t.Policies {
-			hash.Write([]byte(link.ID))
-		}
-
-		for _, link := range t.Roles {
-			hash.Write([]byte(link.ID))
-		}
-
-		for _, srvid := range t.ServiceIdentities {
-			srvid.AddToHash(hash)
-		}
-
-		for _, nodeID := range t.NodeIdentities {
-			nodeID.AddToHash(hash)
-		}
-
-		t.EnterpriseMeta.addToHash(hash, false)
-
-		// Finalize the hash
-		hashVal := hash.Sum(nil)
-
+		hashVal := t.ComputeHash()
 		// Set and return the hash
 		t.Hash = hashVal
 	}
 	return t.Hash
+}
+
+func (t *ACLToken) ComputeHash() []byte {
+	// Initialize a 256bit Blake2 hash (32 bytes)
+	hash, err := blake2b.New256(nil)
+	if err != nil {
+		panic(err)
+	}
+
+	// Any non-immutable "content" fields should be involved with the
+	// overall hash. The IDs are immutable which is why they aren't here.
+	// The raft indices are metadata similar to the hash which is why they
+	// aren't incorporated. CreateTime is similarly immutable
+	//
+	// The Hash is really only used for replication to determine if a token
+	// has changed and should be updated locally.
+
+	// Write all the user set fields
+	hash.Write([]byte(t.Description))
+	hash.Write([]byte(t.Type))
+	hash.Write([]byte(t.Rules))
+
+	if t.Local {
+		hash.Write([]byte("local"))
+	} else {
+		hash.Write([]byte("global"))
+	}
+
+	for _, link := range t.Policies {
+		hash.Write([]byte(link.ID))
+	}
+
+	for _, link := range t.Roles {
+		hash.Write([]byte(link.ID))
+	}
+
+	for _, srvid := range t.ServiceIdentities {
+		srvid.AddToHash(hash)
+	}
+
+	for _, nodeID := range t.NodeIdentities {
+		nodeID.AddToHash(hash)
+	}
+
+	t.EnterpriseMeta.addToHash(hash, false)
+
+	// Finalize the hash
+	hashVal := hash.Sum(nil)
+
+	// Return the hash
+	return hashVal
 }
 
 func (t *ACLToken) EstimateSize() int {
@@ -699,37 +705,43 @@ type ACLPolicyListStubs []*ACLPolicyListStub
 
 func (p *ACLPolicy) SetHash(force bool) []byte {
 	if force || p.Hash == nil {
-		// Initialize a 256bit Blake2 hash (32 bytes)
-		hash, err := blake2b.New256(nil)
-		if err != nil {
-			panic(err)
-		}
-
-		// Any non-immutable "content" fields should be involved with the
-		// overall hash. The ID is immutable which is why it isn't here.  The
-		// raft indices are metadata similar to the hash which is why they
-		// aren't incorporated. CreateTime is similarly immutable
-		//
-		// The Hash is really only used for replication to determine if a policy
-		// has changed and should be updated locally.
-
-		// Write all the user set fields
-		hash.Write([]byte(p.Name))
-		hash.Write([]byte(p.Description))
-		hash.Write([]byte(p.Rules))
-		for _, dc := range p.Datacenters {
-			hash.Write([]byte(dc))
-		}
-
-		p.EnterpriseMeta.addToHash(hash, false)
-
-		// Finalize the hash
-		hashVal := hash.Sum(nil)
-
+		hashVal := p.ComputeHash()
 		// Set and return the hash
 		p.Hash = hashVal
 	}
 	return p.Hash
+}
+
+func (p *ACLPolicy) ComputeHash() []byte {
+	// Initialize a 256bit Blake2 hash (32 bytes)
+	hash, err := blake2b.New256(nil)
+	if err != nil {
+		panic(err)
+	}
+
+	// Any non-immutable "content" fields should be involved with the
+	// overall hash. The ID is immutable which is why it isn't here.  The
+	// raft indices are metadata similar to the hash which is why they
+	// aren't incorporated. CreateTime is similarly immutable
+	//
+	// The Hash is really only used for replication to determine if a policy
+	// has changed and should be updated locally.
+
+	// Write all the user set fields
+	hash.Write([]byte(p.Name))
+	hash.Write([]byte(p.Description))
+	hash.Write([]byte(p.Rules))
+	for _, dc := range p.Datacenters {
+		hash.Write([]byte(dc))
+	}
+
+	p.EnterpriseMeta.addToHash(hash, false)
+
+	// Finalize the hash
+	hashVal := hash.Sum(nil)
+
+	// Return the hash
+	return hashVal
 }
 
 func (p *ACLPolicy) EstimateSize() int {
@@ -941,42 +953,48 @@ func (r *ACLRole) Clone() *ACLRole {
 
 func (r *ACLRole) SetHash(force bool) []byte {
 	if force || r.Hash == nil {
-		// Initialize a 256bit Blake2 hash (32 bytes)
-		hash, err := blake2b.New256(nil)
-		if err != nil {
-			panic(err)
-		}
-
-		// Any non-immutable "content" fields should be involved with the
-		// overall hash. The ID is immutable which is why it isn't here.  The
-		// raft indices are metadata similar to the hash which is why they
-		// aren't incorporated. CreateTime is similarly immutable
-		//
-		// The Hash is really only used for replication to determine if a role
-		// has changed and should be updated locally.
-
-		// Write all the user set fields
-		hash.Write([]byte(r.Name))
-		hash.Write([]byte(r.Description))
-		for _, link := range r.Policies {
-			hash.Write([]byte(link.ID))
-		}
-		for _, srvid := range r.ServiceIdentities {
-			srvid.AddToHash(hash)
-		}
-		for _, nodeID := range r.NodeIdentities {
-			nodeID.AddToHash(hash)
-		}
-
-		r.EnterpriseMeta.addToHash(hash, false)
-
-		// Finalize the hash
-		hashVal := hash.Sum(nil)
-
+		hashVal := r.ComputeHash()
 		// Set and return the hash
 		r.Hash = hashVal
 	}
 	return r.Hash
+}
+
+func (r *ACLRole) ComputeHash() []byte {
+	// Initialize a 256bit Blake2 hash (32 bytes)
+	hash, err := blake2b.New256(nil)
+	if err != nil {
+		panic(err)
+	}
+
+	// Any non-immutable "content" fields should be involved with the
+	// overall hash. The ID is immutable which is why it isn't here.  The
+	// raft indices are metadata similar to the hash which is why they
+	// aren't incorporated. CreateTime is similarly immutable
+	//
+	// The Hash is really only used for replication to determine if a role
+	// has changed and should be updated locally.
+
+	// Write all the user set fields
+	hash.Write([]byte(r.Name))
+	hash.Write([]byte(r.Description))
+	for _, link := range r.Policies {
+		hash.Write([]byte(link.ID))
+	}
+	for _, srvid := range r.ServiceIdentities {
+		srvid.AddToHash(hash)
+	}
+	for _, nodeID := range r.NodeIdentities {
+		nodeID.AddToHash(hash)
+	}
+
+	r.EnterpriseMeta.addToHash(hash, false)
+
+	// Finalize the hash
+	hashVal := hash.Sum(nil)
+
+	// Return the hash
+	return hashVal
 }
 
 func (r *ACLRole) EstimateSize() int {

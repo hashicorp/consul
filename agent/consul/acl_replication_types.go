@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 
@@ -52,9 +53,16 @@ func (r *aclTokenReplicator) SortState() (int, int) {
 
 	return len(r.local), len(r.remote)
 }
-func (r *aclTokenReplicator) LocalMeta(i int) (id string, modIndex uint64, hash []byte) {
+func (r *aclTokenReplicator) LocalMeta(i int) (id string, modIndex uint64, hash []byte, hashMismatch bool) {
 	v := r.local[i]
-	return v.AccessorID, v.ModifyIndex, v.Hash
+	// Ignore the stored hash during replication.
+	freshHash := v.ComputeHash()
+	hashMismatch = !bytes.Equal(freshHash, v.Hash)
+	return v.AccessorID, v.ModifyIndex, freshHash, hashMismatch
+}
+func (r *aclTokenReplicator) LocalID(i int) string {
+	v := r.local[i]
+	return v.AccessorID
 }
 func (r *aclTokenReplicator) RemoteMeta(i int) (id string, modIndex uint64, hash []byte) {
 	v := r.remote[i]
@@ -170,9 +178,16 @@ func (r *aclPolicyReplicator) SortState() (int, int) {
 
 	return len(r.local), len(r.remote)
 }
-func (r *aclPolicyReplicator) LocalMeta(i int) (id string, modIndex uint64, hash []byte) {
+func (r *aclPolicyReplicator) LocalMeta(i int) (id string, modIndex uint64, hash []byte, hashMismatch bool) {
 	v := r.local[i]
-	return v.ID, v.ModifyIndex, v.Hash
+	// Ignore the stored hash during replication.
+	freshHash := v.ComputeHash()
+	hashMismatch = !bytes.Equal(freshHash, v.Hash)
+	return v.ID, v.ModifyIndex, freshHash, hashMismatch
+}
+func (r *aclPolicyReplicator) LocalID(i int) string {
+	v := r.local[i]
+	return v.ID
 }
 func (r *aclPolicyReplicator) RemoteMeta(i int) (id string, modIndex uint64, hash []byte) {
 	v := r.remote[i]
@@ -281,9 +296,16 @@ func (r *aclRoleReplicator) SortState() (int, int) {
 
 	return len(r.local), len(r.remote)
 }
-func (r *aclRoleReplicator) LocalMeta(i int) (id string, modIndex uint64, hash []byte) {
+func (r *aclRoleReplicator) LocalMeta(i int) (id string, modIndex uint64, hash []byte, hashMismatch bool) {
 	v := r.local[i]
-	return v.ID, v.ModifyIndex, v.Hash
+	// Ignore the stored hash during replication.
+	freshHash := v.ComputeHash()
+	hashMismatch = !bytes.Equal(freshHash, v.Hash)
+	return v.ID, v.ModifyIndex, freshHash, hashMismatch
+}
+func (r *aclRoleReplicator) LocalID(i int) string {
+	v := r.local[i]
+	return v.ID
 }
 func (r *aclRoleReplicator) RemoteMeta(i int) (id string, modIndex uint64, hash []byte) {
 	v := r.remote[i]
