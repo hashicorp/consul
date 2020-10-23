@@ -1343,7 +1343,7 @@ func TestACLReplication_AllTypes_CorrectedAfterUpgrade(t *testing.T) {
 // It's a heavily trimmed down version of "CopyDir" from
 // https://github.com/moby/moby/blob/master/daemon/graphdriver/copy/copy.go
 func testCopyDir(srcDir, dstDir string) error {
-	testCopyFile := func(srcPath, dstPath string, fileinfo os.FileInfo) error {
+	testCopyFile := func(srcPath, dstPath string) error {
 		srcFile, err := os.Open(srcPath)
 		if err != nil {
 			return err
@@ -1378,7 +1378,7 @@ func testCopyDir(srcDir, dstDir string) error {
 
 		switch mode := f.Mode(); {
 		case mode.IsRegular():
-			if err2 := testCopyFile(srcPath, dstPath, f); err2 != nil {
+			if err2 := testCopyFile(srcPath, dstPath); err2 != nil {
 				return err2
 			}
 		case mode.IsDir():
