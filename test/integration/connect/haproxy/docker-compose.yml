@@ -321,7 +321,6 @@ services:
       - "-sidecar-for"
       - "s1"
       - "-enable-intentions"
-    image: haproxytech/haproxy-consul-connect:${HAPROXY_CONSUL_CONNECT_VERSION}
     network_mode: service:consul-primary
 
   fake-statsd:

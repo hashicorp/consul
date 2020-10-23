@@ -2,5 +2,7 @@
 
 set -eEuo pipefail
 
-gen_envoy_bootstrap s1 19000 primary
-gen_envoy_bootstrap s2 19001 primary
+wait_for_catalog_service_register s1 primary
+wait_for_catalog_service_register s1-sidecar-proxy primary
+wait_for_catalog_service_register s2 primary
+wait_for_catalog_service_register s2-sidecar-proxy primary
