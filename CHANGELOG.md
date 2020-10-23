@@ -57,6 +57,27 @@ BUG FIXES:
 * raft: (Enterprise only) properly update consul server meta non_voter for non-voting Enterprise Consul servers [[GH-8731](https://github.com/hashicorp/consul/issues/8731)]
 * ui: show correct datacenter for gateways [[GH-8704](https://github.com/hashicorp/consul/issues/8704)]
 
+## 1.8.5 (October 23, 2020)
+
+SECURITY:
+
+* Fix Consul Enterprise Namespace Config Entry Replication DoS. Previously an operator with service:write ACL permissions in a Consul Enterprise cluster could write a malicious config entry that caused infinite raft writes due to issues with the namespace replication logic. [[CVE-2020-25201](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-25201)] [[GH-9024](https://github.com/hashicorp/consul/issues/9024)]
+
+IMPROVEMENTS:
+
+* api: The `v1/connect/ca/roots` endpoint now accepts a `pem=true` query parameter and will return a PEM encoded certificate chain of all the certificates that would normally be in the JSON version of the response. [[GH-8774](https://github.com/hashicorp/consul/issues/8774)]
+* connect: The Vault provider will now automatically renew the lease of the token used, if supported. [[GH-8560](https://github.com/hashicorp/consul/issues/8560)]
+* connect: update supported envoy releases to 1.14.5, 1.13.6, 1.12.7, 1.11.2 for 1.8.x [[GH-8999](https://github.com/hashicorp/consul/issues/8999)]
+
+BUG FIXES:
+
+* agent: when enable_central_service_config is enabled ensure agent reload doesn't revert check state to critical [[GH-8747](https://github.com/hashicorp/consul/issues/8747)]
+* connect: Fixed an issue where the Vault intermediate was not renewed in the primary datacenter. [[GH-8784](https://github.com/hashicorp/consul/issues/8784)]
+* connect: fix Vault provider not respecting IntermediateCertTTL [[GH-8646](https://github.com/hashicorp/consul/issues/8646)]
+* connect: fix connect sidecars registered via the API not being automatically deregistered with their parent service after an agent restart by persisting the LocallyRegisteredAsSidecar property. [[GH-8924](https://github.com/hashicorp/consul/issues/8924)]
+* fixed a bug that caused logs to be flooded with `[WARN] agent.router: Non-server in server-only area` [[GH-8685](https://github.com/hashicorp/consul/issues/8685)]
+* ui: show correct datacenter for gateways [[GH-8704](https://github.com/hashicorp/consul/issues/8704)]
+
 ## 1.8.4 (September 11, 2020)
 
 FEATURES:
