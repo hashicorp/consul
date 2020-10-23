@@ -40,7 +40,7 @@ function init_workdir {
   # don't wipe logs between runs as they are already split and we need them to
   # upload as artifacts later.
   rm -rf workdir/${DC}
-  mkdir -p workdir/${DC}/{consul,envoy,bats,statsd,data}
+  mkdir -p workdir/${DC}/{consul,haproxy,bats,statsd,data}
 
   # Reload consul config from defaults
   cp consul-base-cfg/* workdir/${DC}/consul/
@@ -59,12 +59,12 @@ function init_workdir {
     find ${CASE_DIR}/${DC} -type f -name '*.hcl' -exec cp -f {} workdir/${DC}/consul \;
     find ${CASE_DIR}/${DC} -type f -name '*.bats' -exec cp -f {} workdir/${DC}/bats \;
   fi
-  
+
   if test -d "${CASE_DIR}/data"
   then
     cp -r ${CASE_DIR}/data/* workdir/${DC}/data
   fi
-  
+
   return 0
 }
 
@@ -93,14 +93,13 @@ function start_services {
   # Push the state to the shared docker volume (note this is because CircleCI
   # can't use shared volumes)
   docker cp workdir/. haproxy_workdir_1:/workdir
-  
+
   # Start containers required
   if [ ! -z "$REQUIRED_SERVICES" ] ; then
     docker-compose kill $REQUIRED_SERVICES || true
     docker-compose rm -v -f $REQUIRED_SERVICES || true
     docker-compose up --build -d $REQUIRED_SERVICES
   fi
-
   return 0
 }
 
@@ -176,6 +175,12 @@ function global_setup {
   fi
 }
 
+function pre_verify_setup {
+  if [ -f "${CASE_DIR}/pre-verify-setup.sh" ] ; then
+    source "${CASE_DIR}/pre-verify-setup.sh"
+  fi
+}
+
 function run_tests {
   CASE_DIR="${CASE_DIR?CASE_DIR must be set to the path of the test case}"
   CASE_NAME=$( basename $CASE_DIR | cut -c6- )
@@ -218,6 +223,9 @@ function run_tests {
 
   echo "Starting services"
   start_services
+
+  # Setup before tests execution
+  pre_verify_setup
 
   # Run the verify container and report on the output
   verify primary

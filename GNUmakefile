@@ -353,6 +353,9 @@ ui-docker: ui-build-image
 test-envoy-integ: $(ENVOY_INTEG_DEPS)
 	@go test -v -timeout=30m -tags integration ./test/integration/connect/envoy
 
+test-haproxy-integ:
+	@go test -v -timeout=30m -tags integration ./test/integration/connect/haproxy
+
 test-connect-ca-providers:
 ifeq ("$(CIRCLECI)","true")
 # Run in CI

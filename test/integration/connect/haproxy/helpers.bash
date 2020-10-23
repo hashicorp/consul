@@ -153,6 +153,29 @@ function assert_envoy_version {
   echo $VERSION | grep "/$HAPROXY_CONSUL_CONNECT_VERSION/"
 }
 
+function extract_haproxy_connect_version {
+  local SERVICE=$1
+  local version=$(docker-compose exec -T $SERVICE haproxy-connect -version || true)
+  echo $version > "case-${CASE_NAME}/version.txt"
+}
+
+function assert_haproxy_connect_version {
+  local CASE=$1
+  ls
+  VERSION=$(cat case-${CASE}/version.txt | grep -o '[0-9].*.[0-9]')
+
+  echo "$output" >&3
+  # [ "$status" -eq 0 ]
+
+  # VERSION=$(echo $output | grep -o '[0-9].*.[0-9]')
+  # echo "Status=$status"
+  # echo "Output=$output"
+  # echo "---"
+  echo "Got version=$VERSION"
+  echo "Want version=$HAPROXY_CONSUL_CONNECT_VERSION"
+  echo $VERSION | grep "$HAPROXY_CONSUL_CONNECT_VERSION"
+}
+
 function get_envoy_listener_filters {
   local HOSTPORT=$1
   run retry_default curl -s -f $HOSTPORT/config_dump
@@ -211,7 +234,7 @@ function snapshot_envoy_admin {
   local ENVOY_NAME=$2
   local DC=${3:-primary}
   local OUTDIR="${LOG_DIR}/envoy-snapshots/${DC}/${ENVOY_NAME}"
-  
+
   mkdir -p "${OUTDIR}"
   docker_wget "$DC" "http://${HOSTPORT}/config_dump" -q -O - > "${OUTDIR}/config_dump.json"
   docker_wget "$DC" "http://${HOSTPORT}/clusters?format=json" -q -O - > "${OUTDIR}/clusters.json"
@@ -554,6 +577,19 @@ function must_fail_http_connection {
   echo "$output" | grep "${expect_response}"
 }
 
+# must_fail_http_connection_with_502 see must_fail_tcp_connection but this expects HAProxy
+# to generate a 502 response since the upstreams have refused connection.
+function must_fail_http_connection_with_502 {
+  # Attempt to curl through upstream
+  run curl -s -i -d hello "$1"
+
+  echo "OUTPUT $output"
+
+  local expect_response="${2:-502 Bad Gateway}"
+  # Should fail request with 502
+  echo "$output" | grep "${expect_response}"
+}
+
 # must_pass_http_request allows you to craft a specific http request to assert
 # that envoy will NOT reject the request. Primarily of use for testing L7
 # intentions.
@@ -724,6 +760,46 @@ function wait_for_agent_service_register {
   local SERVICE_ID=$1
   local DC=${2:-primary}
   retry_default docker_curl "$DC" -sLf "http://127.0.0.1:8500/v1/agent/service/${SERVICE_ID}" >/dev/null
+}
+
+function wait_for_catalog_service_register {
+  local SERVICE_ID=$1
+  local DC=$2
+  local MAX_RETRY=${3:-15}
+
+  local counter=0
+
+  while [ "$(docker_curl "$DC" -sLf "http://127.0.0.1:8500/v1/catalog/service/${SERVICE_ID}")" = "[]" ]; do
+    echo "Waiting $SERVICE_ID service to be registered in $DC datacenter..."
+    sleep 1
+
+    if [ $MAX_RETRY -eq $counter ]; then
+      echo "Registering service ${SERVICE_ID} timeout(${MAX_RETRY}s) reached."
+      return
+    fi
+    counter=$((counter+1))
+  done
+  echo "$SERVICE_ID service registered in $DC datacenter."
+}
+
+function wait_for_health_check_passing_state {
+  local SERVICE_ID=$1
+  local DC=$2
+  local MAX_RETRY=${3:-15}
+
+  local counter=0
+
+  while [ "$(docker_curl "$DC" -sLf "http://localhost:8500/v1/health/connect/${SERVICE_ID}?passing")" = "[]" ]; do
+    echo "Waiting $SERVICE_ID service health check..."
+    sleep 1
+
+    if [ $MAX_RETRY -eq $counter ]; then
+      echo "Health check for service ${SERVICE_ID} timeout(${MAX_RETRY}s) reached."
+      return
+    fi
+    counter=$((counter+1))
+  done
+  echo "$SERVICE_ID service health status: passing."
 }
 
 function set_ttl_check_state {
