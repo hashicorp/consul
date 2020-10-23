@@ -116,11 +116,11 @@ module.exports = function(environment, $ = process.env) {
         CONSUL_NSPACES_ENABLED: env('CONSUL_NSPACES_ENABLED', false),
         CONSUL_SSO_ENABLED: env('CONSUL_SSO_ENABLED', false),
 
-        '@hashicorp/ember-cli-api-double': {
+        'ember-cli-api-double': {
           'auto-import': false,
           enabled: true,
           endpoints: {
-            '/v1': '/node_modules/@hashicorp/consul-api-double/v1',
+            '/v1': `${path.dirname(require.resolve('consul-api-double'))}/v1`,
           },
         },
         APP: Object.assign({}, ENV.APP, {
@@ -138,6 +138,7 @@ module.exports = function(environment, $ = process.env) {
       });
       break;
     case environment === 'staging':
+      console.log(require.resolve('consul-api-double'));
       ENV = Object.assign({}, ENV, {
         // On staging sites everything defaults to being turned on by
         // different staging sites can be built with certain features disabled
@@ -147,10 +148,10 @@ module.exports = function(environment, $ = process.env) {
         CONSUL_NSPACES_ENABLED: env('CONSUL_NSPACES_ENABLED', true),
         CONSUL_SSO_ENABLED: env('CONSUL_SSO_ENABLED', true),
 
-        '@hashicorp/ember-cli-api-double': {
+        'ember-cli-api-double': {
           enabled: true,
           endpoints: {
-            '/v1': '/node_modules/@hashicorp/consul-api-double/v1',
+            '/v1': `${path.dirname(require.resolve('consul-api-double'))}/v1`,
           },
         },
       });

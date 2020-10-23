@@ -6,10 +6,6 @@
   "workspaces": {
     "packages": [
       "packages/*"
-    ],
-    "nohoist": [
-      "**/@hashicorp/consul-api-double",
-      "**/@hashicorp/consul-api-double/**"
     ]
   },
   "scripts": {

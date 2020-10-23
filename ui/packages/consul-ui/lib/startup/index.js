@@ -6,9 +6,9 @@ const fs = require('fs');
 const path = require('path');
 const promisify = require('util').promisify;
 const read = promisify(fs.readFile);
-const apiDouble = require('@hashicorp/api-double');
+const apiDouble = require('api-double');
 
-const apiDoubleHeaders = require('@hashicorp/api-double/lib/headers');
+const apiDoubleHeaders = require('api-double/lib/headers');
 const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
 
@@ -24,7 +24,7 @@ module.exports = {
     // so we can set this path name centrally in config
     // TODO: undefined here is a possible faker salt that we should be able
     // to pass in from ember serve/config somehow
-    const dir = path.resolve('./node_modules/@hashicorp/consul-api-double');
+    const dir = path.dirname(require.resolve('consul-api-double'));
     const controller = apiDouble(undefined, dir, read, $, path.resolve);
     [
       apiDoubleHeaders(),
