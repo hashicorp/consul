@@ -19,9 +19,9 @@ type EventPayloadCheckServiceNode struct {
 // of stream.Events that describe the current state of a service health query.
 //
 // TODO: no tests for this yet
-func serviceHealthSnapshot(s *Store, topic stream.Topic) stream.SnapshotFunc {
+func serviceHealthSnapshot(db ReadDB, topic stream.Topic) stream.SnapshotFunc {
 	return func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (index uint64, err error) {
-		tx := s.db.Txn(false)
+		tx := db.ReadTxn()
 		defer tx.Abort()
 
 		connect := topic == topicServiceHealthConnect

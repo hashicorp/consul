@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"time"
 
+	memdb "github.com/hashicorp/go-memdb"
+
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
-	memdb "github.com/hashicorp/go-memdb"
 )
 
 var (
@@ -160,6 +161,7 @@ func NewStateStore(gc *TombstoneGC) (*Store, error) {
 		return nil, fmt.Errorf("Failed setting up state store: %s", err)
 	}
 
+	pub := stream.NewEventPublisher(newSnapshotHandlers((*readDB)(db)), 10*time.Second)
 	ctx, cancel := context.WithCancel(context.TODO())
 	s := &Store{
 		schema:             schema,
@@ -167,12 +169,11 @@ func NewStateStore(gc *TombstoneGC) (*Store, error) {
 		kvsGraveyard:       NewGraveyard(gc),
 		lockDelay:          NewDelay(),
 		stopEventPublisher: cancel,
-	}
-	pub := stream.NewEventPublisher(newSnapshotHandlers(s), 10*time.Second)
-	s.db = &changeTrackerDB{
-		db:             db,
-		publisher:      pub,
-		processChanges: processDBChanges,
+		db: &changeTrackerDB{
+			db:             db,
+			publisher:      pub,
+			processChanges: processDBChanges,
+		},
 	}
 
 	go pub.Run(ctx)
