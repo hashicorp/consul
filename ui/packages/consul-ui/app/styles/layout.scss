@@ -1,8 +1,8 @@
 @import 'layouts/index';
 
 /* all forms have a margin below the header */
-html[data-route$='.create'] .app-view > header + div > *:first-child,
-html[data-route$='.edit'] .app-view > header + div > *:first-child {
+html[data-route$='create'] .app-view > header + div > *:first-child,
+html[data-route$='edit'] .app-view > header + div > *:first-child {
   margin-top: 1.8em;
 }
 /* most tabs have margin after the tab bar, unless the tab has a filter bar */
@@ -59,7 +59,8 @@ main,
 #wrapper > footer {
   @extend %content-container;
 }
-html[data-route$='.edit'] main {
+html[data-route$='create'] main,
+html[data-route$='edit'] main {
   @extend %content-container-restricted;
 }
 

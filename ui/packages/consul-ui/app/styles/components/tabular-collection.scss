@@ -69,10 +69,10 @@ table.has-actions tr > *:nth-last-child(5):first-child ~ * {
 }
 
 /*TODO: trs only live in tables, get rid of table */
-html[data-route^='dc.acls.policies.edit'] [role='dialog'] table tr,
-html[data-route^='dc.acls.policies.edit'] table tr,
-html[data-route^='dc.acls.roles.edit'] [role='dialog'] table tr,
-html[data-route^='dc.acls.roles.edit'] main table.token-list tr {
+html[data-route^='dc.acls.policies'] [role='dialog'] table tr,
+html[data-route^='dc.acls.policies'] table tr,
+html[data-route^='dc.acls.roles'] [role='dialog'] table tr,
+html[data-route^='dc.acls.roles'] main table.token-list tr {
   @extend %tokens-minimal-row;
 }
 // this will get auto calculated later in tabular-collection.js
