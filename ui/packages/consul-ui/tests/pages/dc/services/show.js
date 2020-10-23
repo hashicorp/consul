@@ -8,6 +8,7 @@ export default function(visitable, attribute, collection, text, intentions, filt
       href: attribute('href', '[data-test-dashboard-anchor]'),
     },
     tabs: tabs('tab', [
+      'topology',
       'instances',
       'linked-services',
       'upstreams',
