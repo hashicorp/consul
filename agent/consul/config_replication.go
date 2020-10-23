@@ -11,12 +11,8 @@ import (
 	"github.com/hashicorp/go-hclog"
 )
 
-func cmpConfigLess(first structs.ConfigEntry, second structs.ConfigEntry) bool {
-	return first.GetKind() < second.GetKind() || (first.GetKind() == second.GetKind() && first.GetName() < second.GetName())
-}
-
 func configSort(configs []structs.ConfigEntry) {
-	sort.Slice(configs, func(i, j int) bool {
+	sort.SliceStable(configs, func(i, j int) bool {
 		return cmpConfigLess(configs[i], configs[j])
 	})
 }
@@ -25,12 +21,14 @@ func diffConfigEntries(local []structs.ConfigEntry, remote []structs.ConfigEntry
 	configSort(local)
 	configSort(remote)
 
-	var deletions []structs.ConfigEntry
-	var updates []structs.ConfigEntry
-	var localIdx int
-	var remoteIdx int
+	var (
+		deletions []structs.ConfigEntry
+		updates   []structs.ConfigEntry
+		localIdx  int
+		remoteIdx int
+	)
 	for localIdx, remoteIdx = 0, 0; localIdx < len(local) && remoteIdx < len(remote); {
-		if local[localIdx].GetKind() == remote[remoteIdx].GetKind() && local[localIdx].GetName() == remote[remoteIdx].GetName() {
+		if configSameID(local[localIdx], remote[remoteIdx]) {
 			// config is in both the local and remote state - need to check raft indices
 			if remote[remoteIdx].GetRaftIndex().ModifyIndex > lastRemoteIndex {
 				updates = append(updates, remote[remoteIdx])
@@ -62,6 +60,30 @@ func diffConfigEntries(local []structs.ConfigEntry, remote []structs.ConfigEntry
 	}
 
 	return deletions, updates
+}
+
+func cmpConfigLess(first structs.ConfigEntry, second structs.ConfigEntry) bool {
+	if first.GetKind() < second.GetKind() {
+		return true
+	}
+	if first.GetKind() > second.GetKind() {
+		return false
+	}
+
+	if first.GetEnterpriseMeta().LessThan(second.GetEnterpriseMeta()) {
+		return true
+	}
+	if second.GetEnterpriseMeta().LessThan(first.GetEnterpriseMeta()) {
+		return false
+	}
+
+	return first.GetName() < second.GetName()
+}
+
+func configSameID(e1, e2 structs.ConfigEntry) bool {
+	return e1.GetKind() == e2.GetKind() &&
+		e1.GetEnterpriseMeta().IsSame(e2.GetEnterpriseMeta()) &&
+		e1.GetName() == e2.GetName()
 }
 
 func (s *Server) reconcileLocalConfig(ctx context.Context, configs []structs.ConfigEntry, op structs.ConfigEntryOp) (bool, error) {
