@@ -120,7 +120,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 // function is for registering newer cache-types which no longer have a dependency
 // on Agent.
 func registerCacheTypes(bd BaseDeps) error {
-	if bd.RuntimeConfig.CacheUseStreamingBackend {
+	if bd.RuntimeConfig.UseStreamingBackend {
 		conn, err := bd.GRPCConnPool.ClientConn(bd.RuntimeConfig.Datacenter)
 		if err != nil {
 			return err

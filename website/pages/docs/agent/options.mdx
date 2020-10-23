@@ -1151,13 +1151,6 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     The default value is "No limit" and should be tuned on large
     clusters to avoid performing too many RPCs on entries changing a lot.
 
-  - `use_streaming_backend` when enabled Consul client agents will use streaming rpc to
-    populate the cache, instead of the traditional blocking queries. All servers must
-    have [`rpc.enable_streaming`](#rpc_enable_streaming) enabled before any client can enable `use_streaming_backend`.
-    At least one of [`dns.use_cache`](#dns_use_cache) or
-    [`http_config.use_cache`](#http_config_use_cache) must be enabled, otherwise
-    this setting has no effect.
-
 - `ca_file` This provides a file path to a PEM-encoded certificate
   authority. The certificate authority is used to check the authenticity of client
   and server connections with the appropriate [`verify_incoming`](#verify_incoming)
@@ -1834,7 +1827,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
   - `enable_streaming` ((#rpc_enable_streaming)) enables the gRPC subscribe endpoint on a Consul Server. All
     servers in all federated datacenters must have this enabled before any client can use
-    [`cache.use_streaming_backend`](#use_streaming_backend). This setting will default to true in a future release of Consul.
+    [`use_streaming_backend`](#use_streaming_backend). This setting will default to true in a future release of Consul.
 
 - `segment` <EnterpriseAlert inline /> - Equivalent to the [`-segment` command-line flag](#_segment).
 
@@ -2161,6 +2154,14 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   - `group` - The group ID ownership of the socket file. This option
     currently only supports numeric IDs.
   - `mode` - The permission bits to set on the file.
+
+- `use_streaming_backend` when enabled Consul client agents will use streaming rpc to
+  populate, instead of the traditional blocking queries, for endpoints which support
+  streaming. All servers must have [`rpc.enable_streaming`](#rpc_enable_streaming)
+  enabled before any client can enable `use_streaming_backend`.
+  At least one of [`dns.use_cache`](#dns_use_cache) or
+  [`http_config.use_cache`](#http_config_use_cache) must be enabled, otherwise
+  this setting has no effect.
 
 - `verify_incoming` - If set to true, Consul
   requires that all incoming connections make use of TLS and that the client

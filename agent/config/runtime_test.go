@@ -4895,9 +4895,9 @@ func TestFullConfig(t *testing.T) {
 			"bootstrap_expect": 53,
 			"cache": {
 				"entry_fetch_max_burst": 42,
-				"entry_fetch_rate": 0.334,
-				"use_streaming_backend": true
+				"entry_fetch_rate": 0.334
 			},
+			"use_streaming_backend": true,
 			"ca_file": "erA7T0PM",
 			"ca_path": "mQEN1Mfp",
 			"cert_file": "7s4QAzDk",
@@ -5581,8 +5581,8 @@ func TestFullConfig(t *testing.T) {
 			cache = {
 				entry_fetch_max_burst = 42
 				entry_fetch_rate = 0.334
-				use_streaming_backend = true
 			},
+            use_streaming_backend = true
 			ca_file = "erA7T0PM"
 			ca_path = "mQEN1Mfp"
 			cert_file = "7s4QAzDk"
@@ -6877,17 +6877,17 @@ func TestFullConfig(t *testing.T) {
 				},
 			},
 		},
-		CacheUseStreamingBackend: true,
-		SerfAdvertiseAddrLAN:     tcpAddr("17.99.29.16:8301"),
-		SerfAdvertiseAddrWAN:     tcpAddr("78.63.37.19:8302"),
-		SerfBindAddrLAN:          tcpAddr("99.43.63.15:8301"),
-		SerfBindAddrWAN:          tcpAddr("67.88.33.19:8302"),
-		SerfAllowedCIDRsLAN:      []net.IPNet{},
-		SerfAllowedCIDRsWAN:      []net.IPNet{},
-		SessionTTLMin:            26627 * time.Second,
-		SkipLeaveOnInt:           true,
-		StartJoinAddrsLAN:        []string{"LR3hGDoG", "MwVpZ4Up"},
-		StartJoinAddrsWAN:        []string{"EbFSc3nA", "kwXTh623"},
+		UseStreamingBackend:  true,
+		SerfAdvertiseAddrLAN: tcpAddr("17.99.29.16:8301"),
+		SerfAdvertiseAddrWAN: tcpAddr("78.63.37.19:8302"),
+		SerfBindAddrLAN:      tcpAddr("99.43.63.15:8301"),
+		SerfBindAddrWAN:      tcpAddr("67.88.33.19:8302"),
+		SerfAllowedCIDRsLAN:  []net.IPNet{},
+		SerfAllowedCIDRsWAN:  []net.IPNet{},
+		SessionTTLMin:        26627 * time.Second,
+		SkipLeaveOnInt:       true,
+		StartJoinAddrsLAN:    []string{"LR3hGDoG", "MwVpZ4Up"},
+		StartJoinAddrsWAN:    []string{"EbFSc3nA", "kwXTh623"},
 		Telemetry: lib.TelemetryConfig{
 			CirconusAPIApp:                     "p4QOTe9j",
 			CirconusAPIToken:                   "E3j35V23",
@@ -7527,7 +7527,7 @@ func TestSanitize(t *testing.T) {
 		"SerfBindAddrWAN": "",
 		"SerfPortLAN": 0,
 		"SerfPortWAN": 0,
-		"CacheUseStreamingBackend": false,
+		"UseStreamingBackend": false,
 		"ServerMode": false,
 		"ServerName": "",
 		"ServerPort": 0,

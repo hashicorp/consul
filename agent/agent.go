@@ -360,7 +360,7 @@ func New(bd BaseDeps) (*Agent, error) {
 	}
 
 	cacheName := cachetype.HealthServicesName
-	if bd.RuntimeConfig.CacheUseStreamingBackend {
+	if bd.RuntimeConfig.UseStreamingBackend {
 		cacheName = cachetype.StreamingHealthServicesName
 	}
 	a.rpcClientHealth = &health.Client{Cache: bd.Cache, NetRPC: &a, CacheName: cacheName}
