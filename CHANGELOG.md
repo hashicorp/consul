@@ -8,8 +8,7 @@ SECURITY:
 
 IMPROVEMENTS:
 
-* api: The `v1/connect/ca/roots` endpoint now accepts a `pem=true` query parameter and will return a PEM encoded certificate chain of
-     all the certificates that would normally be in the JSON version of the response. [[GH-8774](https://github.com/hashicorp/consul/issues/8774)]
+* api: The `v1/connect/ca/roots` endpoint now accepts a `pem=true` query parameter and will return a PEM encoded certificate chain of all the certificates that would normally be in the JSON version of the response. [[GH-8774](https://github.com/hashicorp/consul/issues/8774)]
 * connect: The Vault provider will now automatically renew the lease of the token used, if supported. [[GH-8560](https://github.com/hashicorp/consul/issues/8560)]
 * connect: update supported envoy releases to 1.14.5, 1.13.6, 1.12.7, 1.11.2 for 1.8.x [[GH-8999](https://github.com/hashicorp/consul/issues/8999)]
 
