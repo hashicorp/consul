@@ -1,7 +1,7 @@
 <Notice
   class="consul-intention-notice-custom-resource crd"
   ...attributes
-  @type="info"
+  @type={{or @type "info"}}
 as |notice|>
   <notice.Header>
     <h3>

@@ -40,8 +40,8 @@ as |api|>
           @onchange={{action this.createNspaces item}}
         />
     {{/if}}
-    {{#if this.isManagedByCRDs}}
-        <Consul::Intention::Notice::CustomResource />
+    {{#if (and api.isCreate this.isManagedByCRDs)}}
+        <Consul::Intention::Notice::CustomResource @type="warning" />
     {{/if}}
       <form onsubmit={{action api.submit}}>
         <Consul::Intention::Form::Fieldsets
