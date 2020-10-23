@@ -739,11 +739,12 @@ jobs:
           command: bash <(curl -s https://codecov.io/bash) -v -c -C $CIRCLE_SHA1 -F ui
       - run: *notify-slack-failure
 
-  envoy-integration-test-1.13.6:
+  envoy-integration-test-1.13.6: &ENVOY_TESTS
     docker:
       # We only really need bash and docker-compose which is installed on all
       # Circle images but pick Go since we have to pick one of them.
       - image: *GOLANG_IMAGE
+    parallelism: 2
     environment:
       ENVOY_VERSION: "1.13.6"
     steps: &ENVOY_INTEGRATION_TEST_STEPS
@@ -757,8 +758,12 @@ jobs:
       - run:
           name: Envoy Integration Tests
           command: |
+            subtests=$(ls -d test/integration/connect/envoy/*/ | xargs -n 1 basename | circleci tests split)
+            echo "Running $(echo $subtests | wc -w) subtests"
+            echo "$subtests"
+            subtests_pipe_sepr=$(echo "$subtests" | xargs | sed 's/ /|/g')
             mkdir -p /tmp/test-results/
-            gotestsum -- -timeout=30m -tags integration ./test/integration/connect/envoy
+            gotestsum -- -timeout=30m -tags integration ./test/integration/connect/envoy -run="TestEnvoy/($subtests_pipe_sepr)"
           environment:
             GOTESTSUM_JUNITFILE: /tmp/test-results/results.xml
             GOTESTSUM_FORMAT: standard-verbose
@@ -775,25 +780,19 @@ jobs:
       - run: *notify-slack-failure
 
   envoy-integration-test-1.14.5:
-    docker:
-      - image: *GOLANG_IMAGE
+    <<: *ENVOY_TESTS
     environment:
       ENVOY_VERSION: "1.14.5"
-    steps: *ENVOY_INTEGRATION_TEST_STEPS
 
   envoy-integration-test-1.15.2:
-    docker:
-      - image: *GOLANG_IMAGE
+    <<: *ENVOY_TESTS
     environment:
       ENVOY_VERSION: "1.15.2"
-    steps: *ENVOY_INTEGRATION_TEST_STEPS
 
   envoy-integration-test-1.16.0:
-    docker:
-      - image: *GOLANG_IMAGE
+    <<: *ENVOY_TESTS
     environment:
       ENVOY_VERSION: "1.16.0"
-    steps: *ENVOY_INTEGRATION_TEST_STEPS
 
   # run integration tests for the connect ca providers
   test-connect-ca-providers:
