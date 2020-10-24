@@ -4,18 +4,17 @@ package freeport
 
 import (
 	"fmt"
-	"os/exec"
+	"io/ioutil"
 	"regexp"
 	"strconv"
 )
 
-const ephemeralPortRangeSysctlKey = "net.ipv4.ip_local_port_range"
+const ephemeralPortRangeProcFile = "/proc/sys/net/ipv4/ip_local_port_range"
 
 var ephemeralPortRangePatt = regexp.MustCompile(`^\s*(\d+)\s+(\d+)\s*$`)
 
 func getEphemeralPortRange() (int, int, error) {
-	cmd := exec.Command("/sbin/sysctl", "-n", ephemeralPortRangeSysctlKey)
-	out, err := cmd.Output()
+	out, err := ioutil.ReadFile(ephemeralPortRangeProcFile)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -32,5 +31,5 @@ func getEphemeralPortRange() (int, int, error) {
 		}
 	}
 
-	return 0, 0, fmt.Errorf("unexpected sysctl value %q for key %q", val, ephemeralPortRangeSysctlKey)
+	return 0, 0, fmt.Errorf("unexpected sysctl value %q for key %q", val, ephemeralPortRangeProcFile)
 }
