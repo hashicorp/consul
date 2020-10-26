@@ -10,7 +10,7 @@
   --highlight-color: var(--consul);
 }
 
-@import '~@hashicorp/react-alert-banner/dist/style.css';
+@import '~@hashicorp/react-alert-banner/style.css';
 @import '~@hashicorp/react-alert/dist/style.css';
 @import '~@hashicorp/react-button/dist/style.css';
 @import '~@hashicorp/react-call-to-action/dist/style.css';
