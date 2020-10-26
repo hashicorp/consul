@@ -153,14 +153,7 @@
     </button>
     <h2>Permissions</h2>
 {{#if (gt item.Permissions.length 0) }}
-    <div class="notice info">
-      <p>
-        Permissions are L7 attributes. If any of the following permissions match the request, the Intention will apply. Requests that fail to match any of the provided routes will do the opposite of the allow/deny action above.
-      </p>
-      <p>
-        <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl-migrate-tokens.html" target="_blank" rel="noopener noreferrer">documentation</a>
-      </p>
-    </div>
+    <Consul::Intention::Notice::Permissions />
     <Consul::Intention::Permission::List
       @items={{item.Permissions}}
       @onclick={{queue (action (mut permission)) (action (mut shouldShowPermissionForm) true)}}

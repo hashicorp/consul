@@ -29,7 +29,6 @@
 @import './components/modal-dialog';
 @import './components/auth-form';
 @import './components/auth-modal';
-@import './components/notice';
 @import './components/oidc-select';
 @import './components/discovery-chain';
 @import './components/empty-state';
@@ -55,11 +54,7 @@
 
 /**/
 
-/**
- * Migration: We are migrating our consul-* styles to use colocated styles
- * consul-* component styles should be moved or added under here
- * when convienient
- **/
+@import 'consul-ui/components/notice';
 
 @import 'consul-ui/components/consul/exposed-path/list';
 @import 'consul-ui/components/consul/external-source';

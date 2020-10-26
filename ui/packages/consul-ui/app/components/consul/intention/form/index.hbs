@@ -111,10 +111,12 @@ as |api|>
           <p>
             This Intention is view only because it is managed through an Intention Custom Resource in your Kubernetes cluster.
           </p>
+        </notice.Body>
+        <notice.Footer>
           <p>
             <a href="{{env 'CONSUL_DOCS_URL'}}/k8s/crds" target="_blank" rel="noopener noreferrer">Learn more about CRDs</a>
           </p>
-        </notice.Body>
+        </notice.Footer>
       </Notice>
     {{/if}}
     <Consul::Intention::View

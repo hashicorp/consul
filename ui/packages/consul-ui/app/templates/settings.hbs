@@ -6,12 +6,18 @@
     </h1>
   </BlockSlot>
   <BlockSlot @name="content">
-    <div class="notice info">
-      <h3>Local Storage</h3>
-      <p>
-        These settings are immediately saved to local storage and persisted through browser usage.
-      </p>
-    </div>
+    <Notice
+      @type="info"
+    as |notice|>
+      <notice.Header>
+        <h3>Local Storage</h3>
+      </notice.Header>
+      <notice.Body>
+        <p>
+          These settings are immediately saved to local storage and persisted through browser usage.
+        </p>
+      </notice.Body>
+    </Notice>
     <form>
     {{#if (not (env 'CONSUL_UI_DISABLE_REALTIME'))}}
       <fieldset data-test-blocking-queries>
