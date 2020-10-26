@@ -6,7 +6,7 @@
   "dependencies": {
     "@hashicorp/nextjs-scripts": "11.1.1",
     "@hashicorp/react-alert": "2.0.3",
-    "@hashicorp/react-alert-banner": "3.2.1",
+    "@hashicorp/react-alert-banner": "4.2.0",
     "@hashicorp/react-button": "2.2.4",
     "@hashicorp/react-call-to-action": "0.2.4",
     "@hashicorp/react-case-study-slider": "2.1.4",
