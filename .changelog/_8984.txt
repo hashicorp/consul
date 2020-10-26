@@ -1,0 +1,3 @@
+```release-note:breaking-change
+sentinel: **(Consul Enterprise only)** update to v0.16.0, which replaces `whitelist` and `blacklist` with `allowlist` and `denylist`
+```
