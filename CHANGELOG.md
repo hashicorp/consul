@@ -1,4 +1,4 @@
-## UNRELEASED
+## 1.7.9 (October 26, 2020)
 
 SECURITY:
 
