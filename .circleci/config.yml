@@ -344,7 +344,7 @@ jobs:
     <<: *build-distros
     environment:
       <<: *build-env
-      XC_OS: "darwin freebsd linux windows"
+      XC_OS: "freebsd linux windows"
       XC_ARCH: "386"
 
   # build all amd64 architecture supported OS binaries
