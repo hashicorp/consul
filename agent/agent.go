@@ -363,7 +363,13 @@ func New(bd BaseDeps) (*Agent, error) {
 	if bd.RuntimeConfig.UseStreamingBackend {
 		cacheName = cachetype.StreamingHealthServicesName
 	}
-	a.rpcClientHealth = &health.Client{Cache: bd.Cache, NetRPC: &a, CacheName: cacheName}
+	a.rpcClientHealth = &health.Client{
+		Cache:     bd.Cache,
+		NetRPC:    &a,
+		CacheName: cacheName,
+		// Temporarily until streaming supports all connect events
+		CacheNameConnect: cachetype.HealthServicesName,
+	}
 
 	a.serviceManager = NewServiceManager(&a)
 
