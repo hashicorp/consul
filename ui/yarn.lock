@@ -1243,10 +1243,10 @@
     faker "^4.1.0"
     js-yaml "^3.13.1"
 
-"@hashicorp/consul-api-double@^5.3.7":
-  version "5.4.0"
-  resolved "https://registry.yarnpkg.com/@hashicorp/consul-api-double/-/consul-api-double-5.4.0.tgz#fc75e064c3e50385f4fb8c5dd9068875806d8901"
-  integrity sha512-vAi580MyPoFhjDl8WhSviMzFJ1/PZesLqYCuGy8vuxqFaKCQET4AR8gRuungWSdRf5432aJXUNtXLhMHdJeNPg==
+"@hashicorp/consul-api-double@^6.1.0":
+  version "6.1.2"
+  resolved "https://registry.yarnpkg.com/@hashicorp/consul-api-double/-/consul-api-double-6.1.2.tgz#06f1d5e81014b34d6cf5d4935cec1c2eafec1000"
+  integrity sha512-UtM0TuViKS79QD9MuS2LwOassjrNlO0+yy858gXCo1CsxYDRdDNaeFSfKmp2mMmhjxXlxUeXwl4eSZPRczKdAQ==
 
 "@hashicorp/ember-cli-api-double@^3.1.0":
   version "3.1.2"
