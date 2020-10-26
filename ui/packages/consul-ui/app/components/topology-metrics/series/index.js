@@ -28,7 +28,6 @@ export default Component.extend({
     },
     change: function(evt) {
       this.set('data', evt.data.series);
-      this.element.querySelector('.sparkline-loader').style.display = 'none';
       this.drawGraphs();
       this.rerender();
     },

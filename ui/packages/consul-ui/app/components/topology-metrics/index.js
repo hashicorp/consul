@@ -5,6 +5,7 @@ import { inject as service } from '@ember/service';
 
 export default class TopologyMetrics extends Component {
   @service('ui-config') cfg;
+  @service('env') env;
 
   // =attributes
   @tracked centerDimensions;
@@ -13,10 +14,21 @@ export default class TopologyMetrics extends Component {
   @tracked upView;
   @tracked upLines = [];
   @tracked hasMetricsProvider = false;
+  @tracked noMetricsReason = null;
 
   constructor(owner, args) {
     super(owner, args);
     this.hasMetricsProvider = !!this.cfg.get().metrics_provider;
+
+    // Disable metrics fetching if we are not in the local DC since we don't
+    // currently support that for all providers.
+    //
+    // TODO we can make the configurable even before we have a full solution for
+    // multi-DC forwarding for Prometheus so providers that are global for all
+    // DCs like an external managed APM can still load in all DCs.
+    if (this.env.var('CONSUL_DATACENTER_LOCAL') != this.args.dc) {
+      this.noMetricsReason = 'Unable to fetch metrics for a remote datacenter';
+    }
   }
 
   // =methods

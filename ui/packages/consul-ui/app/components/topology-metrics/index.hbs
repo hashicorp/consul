@@ -16,6 +16,7 @@
       @service={{@service.Service.Service}}
       @dc={{@dc}}
       @hasMetricsProvider={{this.hasMetricsProvider}}
+      @noMetricsReason={{noMetricsReason}}
     />
   </div>
 {{/if}}
@@ -24,8 +25,19 @@
       {{@service.Service.Service}}
     </div>
     {{#if this.hasMetricsProvider }}
-      <TopologyMetrics::Series @service={{@service.Service.Service}} @protocol={{@protocol}} />
-      <TopologyMetrics::Stats @endpoint='summary-for-service' @service={{@service.Service.Service}} @protocol={{@protocol}} />
+      <TopologyMetrics::Series
+        @service={{@service.Service.Service}}
+        @dc={{@dc}}
+        @protocol={{@protocol}}
+        @noMetricsReason={{noMetricsReason}}
+      />
+      <TopologyMetrics::Stats
+        @endpoint='summary-for-service'
+        @service={{@service.Service.Service}}
+        @dc={{@dc}}
+        @protocol={{@protocol}}
+        @noMetricsReason={{noMetricsReason}}
+      />
     {{/if}}
     <div class="link">
      {{#if @metricsHref}}
@@ -55,6 +67,7 @@
         @dc={{@dc}}
         @type='upstream'
         @hasMetricsProvider={{this.hasMetricsProvider}}
+        @noMetricsReason={{noMetricsReason}}
       />
     </div>
   {{/each-in}}

@@ -25,16 +25,11 @@
     display: inline-block;
   }
 
-  div.sparkline-loader {
-    font-weight: normal;
+  // extra padding for the status sub-component that's not needed for the stats
+  // status
+  .topology-metrics-error,
+  .topology-metrics-loader {
     padding-top: 15px;
-    font-size: 0.875rem;
-    color: $gray-500;
-    text-align: center;
-
-    span::after {
-      @extend %with-loading-icon, %as-pseudo;
-    }
   }
 }
 

@@ -1,6 +1,10 @@
-<DataSource
-  @src={{uri nspace dc 'metrics' 'summary-for-service' @service @protocol}}
-  @onchange={{action 'change'}} />
+{{#unless @noMetricsReason}}
+  <DataSource
+    @src={{uri nspace dc 'metrics' 'summary-for-service' @service @protocol}}
+    @onchange={{action 'change'}}
+    @onerror={{action (mut error) value="error"}}
+  />
+{{/unless}}
 
 {{on-window 'resize' (action 'redraw')}}
 
@@ -12,7 +16,12 @@
   <div class="tooltip">
     <div class="sparkline-time">Timestamp</div>
   </div>
-  <div class="sparkline-loader"><span>Loading Metrics</span></div>
+  {{#unless data}}
+    <TopologyMetrics::Status
+      @noMetricsReason={{@noMetricsReason}}
+      @error={{error}}
+    />
+  {{/unless}}
   <svg class="sparkline"></svg>
 </div>
 
@@ -30,7 +39,7 @@
         <dl>
           {{#each-in data.labels as |label desc| }}
             <dt>{{label}}</dt>
-            <dd>{{{desc}}}</dd>
+            <dd>{{desc}}</dd>
           {{/each-in}}
         </dl>
         {{#unless data.labels}}

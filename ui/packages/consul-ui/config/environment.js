@@ -96,6 +96,7 @@ module.exports = function(environment, $ = process.env) {
     CONSUL_ACLS_ENABLED: false,
     CONSUL_NSPACES_ENABLED: false,
     CONSUL_SSO_ENABLED: false,
+    CONSUL_DATACENTER_LOCAL: env('CONSUL_DATACENTER_LOCAL', 'dc1'),
 
     // Static variables used in multiple places throughout the UI
     CONSUL_HOME_URL: 'https://www.consul.io',
@@ -164,9 +165,14 @@ module.exports = function(environment, $ = process.env) {
         // __RUNTIME_BOOL_Xxxx__ will be replaced with either "true" or "false"
         // depending on whether the named variable is true or false in the data
         // returned from `uiTemplateDataFromConfig`.
+        //
+        // __RUNTIME_STRING_Xxxx__ will be replaced with the literal string in
+        // the named variable in the data returned from
+        // `uiTemplateDataFromConfig`. It may be empty.
         CONSUL_ACLS_ENABLED: '__RUNTIME_BOOL_ACLsEnabled__',
         CONSUL_SSO_ENABLED: '__RUNTIME_BOOL_SSOEnabled__',
         CONSUL_NSPACES_ENABLED: '__RUNTIME_BOOL_NamespacesEnabled__',
+        CONSUL_DATACENTER_LOCAL: '__RUNTIME_STRING_LocalDatacenter__',
       });
       break;
   }

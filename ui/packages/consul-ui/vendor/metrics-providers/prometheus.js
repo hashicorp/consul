@@ -26,7 +26,8 @@
 
     /**
      * serviceRecentSummarySeries should return time series for a recent time
-     * period summarizing the usage of the named service.
+     * period summarizing the usage of the named service in the indicated
+     * datacenter. In Consul Enterprise a non-empty namespace is also provided.
      *
      * If these metrics aren't available then an empty series array may be
      * returned.
@@ -60,8 +61,8 @@
      *    // to explain exactly what the metrics mean.
      *    labels: {
      *      "Total": "Total inbound requests per second.",
-     *      "Successes": "Successful responses (with an HTTP response code not in the 5xx range) per second.",
-     *      "Errors": "Error responses (with an HTTP response code in the 5xx range) per second.",
+     *      "Successes": "Successful responses (with an HTTP response code ...",
+     *      "Errors": "Error responses (with an HTTP response code in the ...",
      *    },
      *
      *    data: [
@@ -77,7 +78,7 @@
      *  Every data point object should have a value for every series label
      *  (except for "Total") otherwise it will be assumed to be "0".
      */
-    serviceRecentSummarySeries: function(serviceName, protocol, options) {
+    serviceRecentSummarySeries: function(serviceDC, namespace, serviceName, protocol, options) {
       // Fetch time-series
       var series = []
       var labels = []
@@ -98,7 +99,8 @@
 
     /**
      * serviceRecentSummaryStats should return four summary statistics for a
-     * recent time period for the named service.
+     * recent time period for the named service in the indicated datacenter. In
+     * Consul Enterprise a non-empty namespace is also provided.
      *
      * If these metrics aren't available then an empty array may be returned.
      *
@@ -118,8 +120,10 @@
      *      {
      *        // label should be 3 chars or fewer as an abbreviation
      *        label: "SR",
+     *
      *        // desc describes the stat in a tooltip
      *        desc: "Success Rate - the percentage of all requests that were not 5xx status",
+     *
      *        // value is a string allowing the provider to format it and add
      *        // units as appropriate. It should be as compact as possible.
      *        value: "98%",
@@ -127,7 +131,7 @@
      *    ]
      *  }
      */
-    serviceRecentSummaryStats: function(serviceName, protocol, options) {
+    serviceRecentSummaryStats: function(serviceDC, namespace, serviceName, protocol, options) {
       // Fetch stats
       var stats = [];
       if (this.hasL7Metrics(protocol)) {
@@ -147,7 +151,14 @@
 
     /**
      * upstreamRecentSummaryStats should return four summary statistics for each
-     * upstream service over a recent time period.
+     * upstream service over a recent time period, relative to the named service
+     * in the indicated datacenter. In Consul Enterprise a non-empty namespace
+     * is also provided.
+     *
+     * Note that the upstreams themselves might be in different datacenters but
+     * we only pass the target service DC since typically these metrics should
+     * be from the outbound listener of the target service in this DC even if
+     * they eventually end up in another DC.
      *
      * If these metrics aren't available then an empty array may be returned.
      *
@@ -171,13 +182,25 @@
      *     }
      *   }
      */
-    upstreamRecentSummaryStats: function(serviceName, upstreamName, options) {
+    upstreamRecentSummaryStats: function(serviceDC, namespace, serviceName, upstreamName, options) {
       return this.fetchRecentSummaryStats(serviceName, "upstream", options)
     },
 
     /**
      * downstreamRecentSummaryStats should return four summary statistics for
-     * each downstream service over a recent time period.
+     * each downstream service over a recent time period, relative to the named
+     * service in the indicated datacenter. In Consul Enterprise a non-empty
+     * namespace is also provided.
+     *
+     * Note that the service may have downstreams in different datacenters. For
+     * some metrics systems which are per-datacenter this makes it hard to query
+     * for all downstream metrics from one source. For now the UI will only show
+     * downstreams in the same datacenter as the target service. In the future
+     * this method may be called multiple times, once for each DC that contains
+     * downstream services to gather metrics from each. In that case a separate
+     * option for target datacenter will be used since the target service's DC
+     * is still needed to correctly identify the outbound clusters that will
+     * route to it from the remote DC.
      *
      * If these metrics aren't available then an empty array may be returned.
      *
@@ -202,7 +225,7 @@
      *     }
      *   }
      */
-    downstreamRecentSummaryStats: function(serviceName, options) {
+    downstreamRecentSummaryStats: function(serviceDC, namespace, serviceName, options) {
       return this.fetchRecentSummaryStats(serviceName, "downstream", options)
     },
 

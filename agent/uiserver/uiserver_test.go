@@ -34,14 +34,19 @@ func TestUIServerIndex(t *testing.T) {
 			path:         "/", // Note /index.html redirects to /
 			wantStatus:   http.StatusOK,
 			wantContains: []string{"<!-- CONSUL_VERSION:"},
+			wantNotContains: []string{
+				"__RUNTIME_BOOL_",
+				"__RUNTIME_STRING_",
+			},
 			wantEnv: map[string]interface{}{
-				"CONSUL_ACLS_ENABLED": false,
+				"CONSUL_ACLS_ENABLED":     false,
+				"CONSUL_DATACENTER_LOCAL": "dc1",
 			},
 		},
 		{
-			// TODO: is this really what we want? It's what we've always done but
-			// seems a bit odd to not do an actual 301 but instead serve the
-			// index.html from every path... It also breaks the UI probably.
+			// We do this redirect just for UI dir since the app is a single page app
+			// and any URL under the path should just load the index and let Ember do
+			// it's thing unless it's a specific asset URL in the filesystem.
 			name:         "unknown paths to serve index",
 			cfg:          basicUIEnabledConfig(),
 			path:         "/foo-bar-bazz-qux",
@@ -202,6 +207,7 @@ func basicUIEnabledConfig(opts ...cfgFunc) *config.RuntimeConfig {
 			Enabled:     true,
 			ContentPath: "/ui/",
 		},
+		Datacenter: "dc1",
 	}
 	for _, f := range opts {
 		f(cfg)

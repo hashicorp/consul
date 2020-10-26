@@ -38,9 +38,8 @@ export default RepositoryService.extend({
       return Promise.reject(this.error);
     }
     const promises = [
-      // TODO: support namespaces in providers
-      this.provider.serviceRecentSummarySeries(slug, protocol, {}),
-      this.provider.serviceRecentSummaryStats(slug, protocol, {}),
+      this.provider.serviceRecentSummarySeries(dc, nspace, slug, protocol, {}),
+      this.provider.serviceRecentSummaryStats(dc, nspace, slug, protocol, {}),
     ];
     return Promise.all(promises).then(function(results) {
       return {
@@ -55,7 +54,7 @@ export default RepositoryService.extend({
     if (this.error) {
       return Promise.reject(this.error);
     }
-    return this.provider.upstreamRecentSummaryStats(slug, {}).then(function(result) {
+    return this.provider.upstreamRecentSummaryStats(dc, nspace, slug, {}).then(function(result) {
       result.meta = meta;
       return result;
     });
@@ -65,7 +64,7 @@ export default RepositoryService.extend({
     if (this.error) {
       return Promise.reject(this.error);
     }
-    return this.provider.downstreamRecentSummaryStats(slug, {}).then(function(result) {
+    return this.provider.downstreamRecentSummaryStats(dc, nspace, slug, {}).then(function(result) {
       result.meta = meta;
       return result;
     });
