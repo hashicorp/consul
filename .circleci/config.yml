@@ -3,7 +3,7 @@ version: 2
 
 references:
   images:
-    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/circleci/golang:1.14.11
+    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/circleci/golang:1.15.4
     ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:12-browsers
 
   paths:
@@ -821,7 +821,7 @@ jobs:
   # only runs on master: checks latest commit to see if the PR associated has a backport/* or docs* label to cherry-pick
   cherry-picker:
     docker:
-      - image: docker.mirror.hashicorp.services/alpine:3.11
+      - image: docker.mirror.hashicorp.services/alpine:3.12
     steps:
       - run: apk add --no-cache --no-progress git bash curl ncurses jq openssh-client
       - checkout
@@ -833,7 +833,7 @@ jobs:
 
   trigger-oss-merge:
     docker:
-      - image: docker.mirror.hashicorp.services/alpine:3.11
+      - image: docker.mirror.hashicorp.services/alpine:3.12
     steps:
       - run: apk add --no-cache --no-progress curl jq
       - run:
