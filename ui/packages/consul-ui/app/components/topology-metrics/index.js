@@ -29,7 +29,6 @@ export default class TopologyMetrics extends Component {
     if (this.env.var('CONSUL_DATACENTER_LOCAL') != this.args.dc) {
       this.noMetricsReason = 'Unable to fetch metrics for a remote datacenter';
     }
-    console.log(this.env.var('CONSUL_DATACENTER_LOCAL'), this.args.dc);
   }
 
   // =methods
