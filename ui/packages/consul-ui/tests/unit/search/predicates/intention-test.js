@@ -1,8 +1,8 @@
-import getFilter from 'consul-ui/search/filters/intention';
+import getPredicate from 'consul-ui/search/predicates/intention';
 import { module, test } from 'qunit';
 
-module('Unit | Search | Filter | intention', function() {
-  const filter = getFilter(cb => cb);
+module('Unit | Search | Predicate | intention', function() {
+  const predicate = getPredicate();
   test('items are found by properties', function(assert) {
     [
       {
@@ -14,9 +14,7 @@ module('Unit | Search | Filter | intention', function() {
         DestinationName: 'hiT',
       },
     ].forEach(function(item) {
-      const actual = filter(item, {
-        s: 'hit',
-      });
+      const actual = predicate('hit')(item);
       assert.ok(actual);
     });
   });
@@ -27,9 +25,7 @@ module('Unit | Search | Filter | intention', function() {
         DestinationName: 'destination',
       },
     ].forEach(function(item) {
-      const actual = filter(item, {
-        s: '*',
-      });
+      const actual = predicate('*')(item);
       assert.notOk(actual);
     });
   });
@@ -44,9 +40,7 @@ module('Unit | Search | Filter | intention', function() {
         DestinationName: '*',
       },
     ].forEach(function(item) {
-      const actual = filter(item, {
-        s: '*',
-      });
+      const actual = predicate('*')(item);
       assert.ok(actual);
     });
   });
@@ -62,9 +56,7 @@ module('Unit | Search | Filter | intention', function() {
       },
     ].forEach(function(item) {
       ['All Services (*)', 'SerVices', '(*)', '*', 'vIces', 'lL Ser'].forEach(function(term) {
-        const actual = filter(item, {
-          s: term,
-        });
+        const actual = predicate(term)(item);
         assert.ok(actual);
       });
     });

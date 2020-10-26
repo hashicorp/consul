@@ -1,14 +1,14 @@
 <DataForm
-  @dc={{dc}}
-  @nspace={{nspace}}
   @type="intention"
-  @autofill={{autofill}}
-  @item={{item}}
-  @src={{src}}
-  @onchange={{action "change"}}
-  @onsubmit={{action onsubmit}}
-  as |api|
->
+  @dc={{@dc}}
+  @nspace={{@nspace}}
+  @autofill={{@autofill}}
+  @item={{@item}}
+  @src={{@src}}
+  @onchange={{action this.change}}
+  @onsubmit={{action this.onsubmit}}
+as |api|>
+
     <BlockSlot @name="error" as |Notification|>
       <Notification>
         <p data-notification role="alert" class="error notification-update">
@@ -27,43 +27,69 @@
     </BlockSlot>
 
     <BlockSlot @name="form">
+
 {{#let api.data as |item|}}
   {{#if item.IsEditable}}
       <DataSource
-        @src={{concat '/' nspace '/' dc '/services'}}
-        @onchange={{action "createServices" item}}
+        @src={{concat '/' @nspace '/' @dc '/services'}}
+        @onchange={{action this.createServices item}}
       />
-
-      {{#if (env 'CONSUL_NSPACES_ENABLED')}}
+    {{#if (env 'CONSUL_NSPACES_ENABLED')}}
         <DataSource
           @src="/*/*/namespaces"
-          @onchange={{action "createNspaces" item}}
+          @onchange={{action this.createNspaces item}}
         />
-      {{/if}}
+    {{/if}}
+    {{#if (and api.isCreate this.isManagedByCRDs)}}
+        <Consul::Intention::Notice::CustomResource @type="warning" />
+    {{/if}}
       <form onsubmit={{action api.submit}}>
         <Consul::Intention::Form::Fieldsets
-          @nspaces={{nspaces}}
-          @services={{services}}
-          @SourceName={{SourceName}}
-          @SourceNS={{SourceNS}}
-          @DestinationName={{DestinationName}}
-          @DestinationNS={{DestinationNS}}
+          @nspaces={{this.nspaces}}
+          @services={{this.services}}
+          @SourceName={{this.SourceName}}
+          @SourceNS={{this.SourceNS}}
+          @DestinationName={{this.DestinationName}}
+          @DestinationNS={{this.DestinationNS}}
           @item={{item}}
           @disabled={{api.disabled}}
           @create={{api.isCreate}}
           @onchange={{api.change}}
         />
         <div>
-          <button type="submit" disabled={{or item.isInvalid api.disabled}}>Save</button>
-          <button type="reset" onclick={{action oncancel item}} disabled={{api.disabled}}>Cancel</button>
+          <button
+            type="submit"
+            disabled={{or item.isInvalid api.disabled}}
+          >
+            Save
+          </button>
+          <button
+            type="reset"
+            disabled={{api.disabled}}
+            {{on 'click' (fn this.oncancel item)}}
+          >
+            Cancel
+          </button>
 {{#if (not api.isCreate)}}
   {{#if (not-eq item.ID 'anonymous') }}
           <ConfirmationDialog @message="Are you sure you want to delete this Intention?">
             <BlockSlot @name="action" as |confirm|>
-              <button data-test-delete type="button" class="type-delete" {{action confirm api.delete}} disabled={{api.disabled}}>Delete</button>
+              <button
+                data-test-delete
+                type="button"
+                class="type-delete"
+                disabled={{api.disabled}}
+                {{on 'click' (fn confirm api.delete)}}
+              >
+                Delete
+              </button>
             </BlockSlot>
             <BlockSlot @name="dialog" as |execute cancel message|>
-              <DeleteConfirmation @message={{message}} @execute={{execute}} @cancel={{cancel}} />
+              <DeleteConfirmation
+                @message={{message}}
+                @execute={{execute}}
+                @cancel={{cancel}}
+              />
             </BlockSlot>
           </ConfirmationDialog>
   {{/if}}
@@ -71,10 +97,31 @@
         </div>
       </form>
   {{else}}
-      <Consul::Intention::View
-        @item={{item}}
-      />
+    {{#if item.IsManagedByCRD}}
+      <Notice
+        class="crd"
+        @type="warning"
+      as |notice|>
+        <notice.Header>
+          <h3>
+            Intention Custom Resource
+          </h3>
+        </notice.Header>
+        <notice.Body>
+          <p>
+            This Intention is view only because it is managed through an Intention Custom Resource in your Kubernetes cluster.
+          </p>
+          <p>
+            <a href="{{env 'CONSUL_DOCS_URL'}}/k8s/crds" target="_blank" rel="noopener noreferrer">Learn more about CRDs</a>
+          </p>
+        </notice.Body>
+      </Notice>
+    {{/if}}
+    <Consul::Intention::View
+      @item={{item}}
+    />
   {{/if}}
 {{/let}}
+
   </BlockSlot>
 </DataForm>

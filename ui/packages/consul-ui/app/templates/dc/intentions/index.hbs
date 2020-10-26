@@ -22,6 +22,7 @@
             <a data-test-create href="{{href-to 'dc.intentions.create'}}" class="type-create">Create</a>
         </BlockSlot>
         <BlockSlot @name="toolbar">
+
   {{#if (gt items.length 0) }}
           <Consul::Intention::SearchBar
             @search={{search}}
@@ -34,58 +35,55 @@
             @onfilter={{hash
               access=(action (mut access) value="target.selectedItems")
             }}
-            />
+          />
   {{/if}}
+
         </BlockSlot>
         <BlockSlot @name="content">
-    {{#let (filter (filter-predicate 'intention' filters) items) as |filtered|}}
-      {{#let (sort-by (comparator 'intention' sort) filtered) as |sorted|}}
-            <ChangeableSet @dispatcher={{searchable 'intention' sorted}} @terms={{search}}>
-              <BlockSlot @name="content" as |searched|>
-                <Consul::Intention::List
-                  @items={{searched}}
-                  @ondelete={{refresh-route}}
-                >
-                  <:idle as |list|>
-                    <list.Table />
-                  </:idle>
-                  <:empty as |list|>
-                    <EmptyState @allowLogin={{true}}>
-                      <BlockSlot @name="header">
-                        <h2>
-                          {{#if (gt items.length 0)}}
-                            No intentions found
-                          {{else}}
-                            Welcome to Intentions
-                          {{/if}}
-                        </h2>
-                      </BlockSlot>
-                      <BlockSlot @name="body">
-                        <p>
-                          {{#if (gt items.length 0)}}
-                            No intentions where found matching that search, or you may not have access to view the intentions you are searching for.
-                          {{else}}
-                            There don't seem to be any intentions, or you may not have access to view intentions yet.
-                          {{/if}}
-                        </p>
-                      </BlockSlot>
-                      <BlockSlot @name="actions">
-                        <li class="docs-link">
-                          <a href="{{env 'CONSUL_DOCS_URL'}}/commands/intention" rel="noopener noreferrer" target="_blank">Documentation on intentions</a>
-                        </li>
-                        <li class="learn-link">
-                          <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/getting-started/connect" rel="noopener noreferrer" target="_blank">Read the guide</a>
-                        </li>
-                      </BlockSlot>
-                    </EmptyState>
-                  </:empty>
-                </Consul::Intention::List>
-              </BlockSlot>
-            </ChangeableSet>
-      {{/let}}
-    {{/let}}
-          </BlockSlot>
-        </AppView>
+          <Consul::Intention::List
+            @sort={{sort}}
+            @filters={{filters}}
+            @search={{search}}
+            @items={{items}}
+            @ondelete={{refresh-route}}
+          >
+            <:idle as |list|>
+              <list.CustomResourceNotice />
+              <list.Table />
+            </:idle>
+            <:empty as |list|>
+              <EmptyState @allowLogin={{true}}>
+                <BlockSlot @name="header">
+                  <h2>
+                    {{#if (gt items.length 0)}}
+                      No intentions found
+                    {{else}}
+                      Welcome to Intentions
+                    {{/if}}
+                  </h2>
+                </BlockSlot>
+                <BlockSlot @name="body">
+                  <p>
+                    {{#if (gt items.length 0)}}
+                      No intentions where found matching that search, or you may not have access to view the intentions you are searching for.
+                    {{else}}
+                      There don't seem to be any intentions, or you may not have access to view intentions yet.
+                    {{/if}}
+                  </p>
+                </BlockSlot>
+                <BlockSlot @name="actions">
+                  <li class="docs-link">
+                    <a href="{{env 'CONSUL_DOCS_URL'}}/commands/intention" rel="noopener noreferrer" target="_blank">Documentation on intentions</a>
+                  </li>
+                  <li class="learn-link">
+                    <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/getting-started/connect" rel="noopener noreferrer" target="_blank">Read the guide</a>
+                  </li>
+                </BlockSlot>
+              </EmptyState>
+            </:empty>
+          </Consul::Intention::List>
+        </BlockSlot>
+      </AppView>
     {{/let}}
   {{/let}}
 {{/let}}

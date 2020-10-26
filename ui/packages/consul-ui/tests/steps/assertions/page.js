@@ -101,7 +101,7 @@ export default function(scenario, assert, find, currentPage, $) {
       component,
       yaml
     ) {
-      const _component = currentPage()[component];
+      const _component = find(component);
       const iterator = new Array(_component.length).fill(true);
       assert.ok(iterator.length > 0);
 

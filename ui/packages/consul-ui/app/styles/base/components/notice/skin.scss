@@ -1,6 +1,7 @@
 %notice {
   border-radius: $decor-radius-100;
   border: 1px solid;
+  color: $black;
 }
 %notice p:last-child a:only-child {
   @extend %p3;
@@ -22,7 +23,6 @@
 %notice-info {
   border-color: $blue-100;
   background-color: $gray-010;
-  color: $black;
 }
 %notice-info header * {
   color: $blue-700;
@@ -31,7 +31,11 @@
   @extend %frame-gray-800;
 }
 %notice-warning {
-  @extend %frame-yellow-500;
+  border-color: $yellow-100;
+  background-color: $yellow-050;
+}
+%notice-warning header * {
+  color: $yellow-800;
 }
 %notice-error {
   @extend %frame-red-500;

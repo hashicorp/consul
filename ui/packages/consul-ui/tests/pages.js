@@ -94,7 +94,7 @@ const morePopoverMenu = morePopoverMenuFactory(clickable);
 const popoverSelect = popoverSelectFactory(clickable, collection);
 const emptyState = emptyStateFactory(isPresent);
 
-const consulIntentionList = consulIntentionListFactory(collection, clickable, attribute, deletable);
+const consulIntentionList = consulIntentionListFactory(collection, clickable, attribute, isPresent, deletable);
 const consulNspaceList = consulNspaceListFactory(
   collection,
   clickable,

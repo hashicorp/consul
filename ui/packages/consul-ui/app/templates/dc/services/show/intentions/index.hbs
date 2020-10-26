@@ -27,24 +27,17 @@
               }}
               />
 {{/if}}
-{{#let (filter (filter-predicate 'intention' filters) items) as |filtered|}}
-  {{#let (sort-by (comparator 'intention' sort) filtered) as |sorted|}}
-            <ChangeableSet @dispatcher={{searchable 'intention' sorted}} @terms={{search}}>
-              <BlockSlot @name="content" as |searched|>
 
                 <Consul::Intention::List
-                  @items={{searched}}
+                  @sort={{sort}}
+                  @filters={{filters}}
+                  @search={{search}}
+                  @items={{items}}
                   @ondelete={{refresh-route}}
-                  @routeName="dc.services.show.intentions.edit"
                 >
                   <:idle as |list|>
-                    {{#if (eq searched.length 1)}}
-                      {{#let searched.firstObject as |item|}}
-                        {{#if (eq search item.SourceName)}}
-                          <list.Check @item={{item}} />
-                        {{/if}}
-                      {{/let}}
-                    {{/if}}
+                    <list.CustomResourceNotice />
+                    <list.CheckNotice />
                     <list.Table />
                   </:idle>
                   <:empty as |list|>
@@ -58,10 +51,6 @@
                   </:empty>
                 </Consul::Intention::List>
 
-              </BlockSlot>
-            </ChangeableSet>
-  {{/let}}
-{{/let}}
           </div>
         </div>
     {{/let}}

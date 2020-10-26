@@ -11,6 +11,18 @@ export default function(scenario, assert, find, currentPage, pauseUntil, plurali
         return retry();
       }, `Expected ${num} ${model}s`);
     })
+    .then('pause until I see $number $model model[s]? on the $component component', function(num, model, component) {
+      return pauseUntil(function(resolve, reject, retry) {
+        const obj = find(component);
+        const len = obj[pluralize(model)].filter(function(item) {
+          return item.isVisible;
+        }).length;
+        if (len === num) {
+          return resolve();
+        }
+        return retry();
+      }, `Expected ${num} ${model}s`);
+    })
     .then(['I see $num $model model[s]?'], function(num, model) {
       const len = currentPage()[pluralize(model)].filter(function(item) {
         return item.isVisible;
