@@ -51,7 +51,16 @@
       </BlockSlot>
       <BlockSlot @name="content">
     {{#if (token/is-legacy items)}}
-        <p data-test-notification-update class="notice info"><strong>Update.</strong> We have upgraded our ACL System to allow the creation of reusable policies that can be applied to tokens. Read more about the changes and how to upgrade legacy tokens in our <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl-migrate-tokens.html" target="_blank" rel="noopener noreferrer">documentation</a>.</p>
+    <Notice
+      @type="info"
+    as |notice|>
+      <notice.Header>
+        <h3>Update</h3>
+      </notice.Header>
+      <notice.Body>
+        <p data-test-notification-update>We have upgraded our ACL System to allow the creation of reusable policies that can be applied to tokens. Read more about the changes and how to upgrade legacy tokens in our <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl-migrate-tokens.html" target="_blank" rel="noopener noreferrer">documentation</a>.</p>
+      </notice.Body>
+    </Notice>
     {{/if}}
     {{#let (filter (filter-predicate 'token' filters) items) as |filtered|}}
       {{#let (sort-by (comparator 'token' sort) filtered) as |sorted|}}
