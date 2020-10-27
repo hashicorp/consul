@@ -107,7 +107,6 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 	runStep(t, "receive the initial snapshot of events", func(t *testing.T) {
 		expected := []*pbsubscribe.Event{
 			{
-				Key:   "redis",
 				Index: ids.For("reg3"),
 				Payload: &pbsubscribe.Event_ServiceHealth{
 					ServiceHealth: &pbsubscribe.ServiceHealthUpdate{
@@ -138,7 +137,6 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 				},
 			},
 			{
-				Key:   "redis",
 				Index: ids.For("reg3"),
 				Payload: &pbsubscribe.Event_ServiceHealth{
 					ServiceHealth: &pbsubscribe.ServiceHealthUpdate{
@@ -169,7 +167,6 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 				},
 			},
 			{
-				Key:     "redis",
 				Index:   ids.For("reg3"),
 				Payload: &pbsubscribe.Event_EndOfSnapshot{EndOfSnapshot: true},
 			},
@@ -189,7 +186,6 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 
 		event := getEvent(t, chEvents)
 		expectedEvent := &pbsubscribe.Event{
-			Key:   "redis",
 			Index: ids.Last(),
 			Payload: &pbsubscribe.Event_ServiceHealth{
 				ServiceHealth: &pbsubscribe.ServiceHealthUpdate{
@@ -459,7 +455,6 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 	runStep(t, "receive the initial snapshot of events", func(t *testing.T) {
 		expected := []*pbsubscribe.Event{
 			{
-				Key:   "redis",
 				Index: ids.Last(),
 				Payload: &pbsubscribe.Event_ServiceHealth{
 					ServiceHealth: &pbsubscribe.ServiceHealthUpdate{
@@ -490,7 +485,6 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 				},
 			},
 			{
-				Key:   "redis",
 				Index: ids.Last(),
 				Payload: &pbsubscribe.Event_ServiceHealth{
 					ServiceHealth: &pbsubscribe.ServiceHealthUpdate{
@@ -521,7 +515,6 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 				},
 			},
 			{
-				Key:     "redis",
 				Index:   ids.Last(),
 				Payload: &pbsubscribe.Event_EndOfSnapshot{EndOfSnapshot: true},
 			},
@@ -541,7 +534,6 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 
 		event := getEvent(t, chEvents)
 		expectedEvent := &pbsubscribe.Event{
-			Key:   "redis",
 			Index: ids.Last(),
 			Payload: &pbsubscribe.Event_ServiceHealth{
 				ServiceHealth: &pbsubscribe.ServiceHealthUpdate{
@@ -922,11 +914,9 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 		{
 			name: "event batch",
 			event: stream.Event{
-				Key:   "web1",
 				Index: 2002,
 				Payload: []stream.Event{
 					{
-						Key:   "web1",
 						Index: 2002,
 						Payload: state.EventPayloadCheckServiceNode{
 							Op: pbsubscribe.CatalogOp_Register,
@@ -937,7 +927,6 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 						},
 					},
 					{
-						Key:   "web1",
 						Index: 2002,
 						Payload: state.EventPayloadCheckServiceNode{
 							Op: pbsubscribe.CatalogOp_Deregister,
@@ -950,13 +939,11 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 				},
 			},
 			expected: pbsubscribe.Event{
-				Key:   "web1",
 				Index: 2002,
 				Payload: &pbsubscribe.Event_EventBatch{
 					EventBatch: &pbsubscribe.EventBatch{
 						Events: []*pbsubscribe.Event{
 							{
-								Key:   "web1",
 								Index: 2002,
 								Payload: &pbsubscribe.Event_ServiceHealth{
 									ServiceHealth: &pbsubscribe.ServiceHealthUpdate{
@@ -969,7 +956,6 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 								},
 							},
 							{
-								Key:   "web1",
 								Index: 2002,
 								Payload: &pbsubscribe.Event_ServiceHealth{
 									ServiceHealth: &pbsubscribe.ServiceHealthUpdate{
@@ -989,7 +975,6 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 		{
 			name: "event payload CheckServiceNode",
 			event: stream.Event{
-				Key:   "web1",
 				Index: 2002,
 				Payload: state.EventPayloadCheckServiceNode{
 					Op: pbsubscribe.CatalogOp_Register,
@@ -1000,7 +985,6 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 				},
 			},
 			expected: pbsubscribe.Event{
-				Key:   "web1",
 				Index: 2002,
 				Payload: &pbsubscribe.Event_ServiceHealth{
 					ServiceHealth: &pbsubscribe.ServiceHealthUpdate{

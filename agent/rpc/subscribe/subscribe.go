@@ -140,7 +140,7 @@ func filterByAuth(authz acl.Authorizer, event stream.Event) (stream.Event, bool)
 }
 
 func newEventFromStreamEvent(event stream.Event) *pbsubscribe.Event {
-	e := &pbsubscribe.Event{Key: event.Key, Index: event.Index}
+	e := &pbsubscribe.Event{Index: event.Index}
 	switch {
 	case event.IsEndOfSnapshot():
 		e.Payload = &pbsubscribe.Event_EndOfSnapshot{EndOfSnapshot: true}
@@ -178,7 +178,7 @@ func batchEventsFromEventSlice(events []stream.Event) []*pbsubscribe.Event {
 	result := make([]*pbsubscribe.Event, len(events))
 	for i := range events {
 		event := events[i]
-		result[i] = &pbsubscribe.Event{Key: event.Key, Index: event.Index}
+		result[i] = &pbsubscribe.Event{Index: event.Index}
 		setPayload(result[i], event.Payload)
 	}
 	return result

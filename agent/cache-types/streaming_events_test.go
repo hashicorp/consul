@@ -35,7 +35,6 @@ func newEventServiceHealthRegister(index uint64, nodeNum int, svc string) *pbsub
 	addr := fmt.Sprintf("10.10.%d.%d", nodeNum/256, nodeNum%256)
 
 	return &pbsubscribe.Event{
-		Key:   svc,
 		Index: index,
 		Payload: &pbsubscribe.Event_ServiceHealth{
 			ServiceHealth: &pbsubscribe.ServiceHealthUpdate{
@@ -114,7 +113,6 @@ func newEventServiceHealthDeregister(index uint64, nodeNum int, svc string) *pbs
 	node := fmt.Sprintf("node%d", nodeNum)
 
 	return &pbsubscribe.Event{
-		Key:   svc,
 		Index: index,
 		Payload: &pbsubscribe.Event_ServiceHealth{
 			ServiceHealth: &pbsubscribe.ServiceHealthUpdate{
