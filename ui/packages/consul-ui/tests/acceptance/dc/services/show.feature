@@ -108,4 +108,4 @@ Feature: dc / services / show: Show Service
       dc: dc1
       service: service-0
     ---
-    And I see href on the dashboardAnchor like "https://example.com?service-0-with-id&dc1"
+    And I see href on the metricsAnchor like "https://example.com?service-0-with-id&dc1"

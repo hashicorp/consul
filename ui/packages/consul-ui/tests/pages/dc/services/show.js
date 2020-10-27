@@ -7,6 +7,9 @@ export default function(visitable, attribute, collection, text, intentions, filt
     dashboardAnchor: {
       href: attribute('href', '[data-test-dashboard-anchor]'),
     },
+    metricsAnchor: {
+      href: attribute('href', '[data-test-metrics-anchor]'),
+    },
     tabs: tabs('tab', [
       'topology',
       'instances',
