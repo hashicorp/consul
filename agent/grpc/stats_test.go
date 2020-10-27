@@ -80,15 +80,17 @@ func TestHandler_EmitsStats(t *testing.T) {
 
 	cmpMetricCalls := cmp.AllowUnexported(metricCall{})
 	expectedGauge := []metricCall{
-		{key: []string{"testing", "grpc", "server", "active_conns"}, val: 1},
-		{key: []string{"testing", "grpc", "server", "active_streams"}, val: 1},
-		{key: []string{"testing", "grpc", "server", "active_conns"}, val: 0},
-		{key: []string{"testing", "grpc", "server", "active_streams"}, val: 0},
+		{key: []string{"testing", "grpc", "server", "connections"}, val: 1},
+		{key: []string{"testing", "grpc", "server", "streams"}, val: 1},
+		{key: []string{"testing", "grpc", "server", "connections"}, val: 0},
+		{key: []string{"testing", "grpc", "server", "streams"}, val: 0},
 	}
 	assertDeepEqual(t, expectedGauge, sink.gaugeCalls, cmpMetricCalls)
 
 	expectedCounter := []metricCall{
-		{key: []string{"testing", "grpc", "server", "request"}, val: 1},
+		{key: []string{"testing", "grpc", "server", "connection", "count"}, val: 1},
+		{key: []string{"testing", "grpc", "server", "request", "count"}, val: 1},
+		{key: []string{"testing", "grpc", "server", "stream", "count"}, val: 1},
 	}
 	assertDeepEqual(t, expectedCounter, sink.incrCounterCalls, cmpMetricCalls)
 }
