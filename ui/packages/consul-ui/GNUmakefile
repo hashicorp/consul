@@ -77,7 +77,7 @@ format: deps
 steps:
 	yarn run steps:list
 
-node_modules: yarn.lock package.json
+../../node_modules: ../../yarn.lock package.json
 	yarn install $(CONSUL_UI_INSTALL_FLAGS)
 
 .PHONY: all deps build start test test-view lint format clean
