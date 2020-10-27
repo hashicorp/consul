@@ -169,6 +169,5 @@
       "lib/commands",
       "lib/startup"
     ]
-  },
-  "dependencies": {}
+  }
 }
