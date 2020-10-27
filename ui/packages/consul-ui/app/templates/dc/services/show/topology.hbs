@@ -1,7 +1,7 @@
 <div id="tags" class="tab-section">
   <div role="tabpanel">
   {{#if topology.FilteredByACLs}}
-    <TopologyMetrics::Banner />
+    <TopologyMetrics::Notice::LimitedAccess />
   {{/if}}
   {{#if topology}}
     <TopologyMetrics
