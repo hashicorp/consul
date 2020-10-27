@@ -255,7 +255,7 @@
     },
 
     fetchStats: function(statsPromises) {
-      var all = Promise.allSettled(statsPromises).
+      var all = Promise.all(statsPromises).
         then(function(results){
         var data = {
           stats: []
@@ -263,9 +263,7 @@
         // Add all non-empty stats
         for (var i = 0; i < statsPromises.length; i++) {
           if (results[i].value) {
-            data.stats.push(results[i].value);
-          } else if (results[i].reason) {
-            console.log("ERROR processing stat", results[i].reason)
+            data.stats.push(results[i]);
           }
         }
         return data
@@ -276,23 +274,21 @@
     },
 
     fetchStatsGrouped: function(statsPromises) {
-      var all = Promise.allSettled(statsPromises).
+      var all = Promise.all(statsPromises).
         then(function(results){
         var data = {
           stats: {}
         }
         // Add all non-empty stats
         for (var i = 0; i < statsPromises.length; i++) {
-          if (results[i].value) {
-            for (var group in results[i].value) {
-              if (!results[i].value.hasOwnProperty(group)) continue;
+          if (results[i]) {
+            for (var group in results[i]) {
+              if (!results[i].hasOwnProperty(group)) continue;
               if (!data.stats[group]) {
                 data.stats[group] = []
               }
-              data.stats[group].push(results[i].value[group])
+              data.stats[group].push(results[i][group])
             }
-          } else if (results[i].reason) {
-            console.log("ERROR processing stat", results[i].reason)
           }
         }
         return data
@@ -363,11 +359,7 @@
         Errors: 'Error responses (with an HTTP response code in the 5xx range) per second.',
       };
       return this.fetchSeries(q, options)
-        .then(this.reformatSeries(" rps", labelMap), function(xhr){
-        // Failure. log to console and return a blank result for now.
-        console.log('ERROR: failed to fetch requestRate', xhr.responseText)
-        return emptySeries;
-      })
+        .then(this.reformatSeries(" rps", labelMap))
     },
 
     fetchDataRateSeries: function(serviceName, options){
@@ -394,11 +386,7 @@
         Outbound: 'Outbound data rate (data transmitted) from the network in bits per second.',
       };
       return this.fetchSeries(q, options)
-        .then(this.reformatSeries("bps", labelMap), function(xhr){
-        // Failure. log to console and return a blank result for now.
-        console.log('ERROR: failed to fetch requestRate', xhr.responseText)
-        return emptySeries;
-      })
+        .then(this.reformatSeries("bps", labelMap))
     },
 
     makeSubject: function(serviceName, type) {
@@ -654,10 +642,6 @@
           }
         }
         return data;
-      }, function(xhr){
-        // Failure. log to console and return an blank result for now.
-        console.log("ERROR: failed to fetch stat", label, xhr.responseText)
-        return {}
       })
     },
 
@@ -684,7 +668,9 @@
             var o = JSON.parse(xhr.responseText)
             resolve(o)
           }
-          reject(xhr)
+          const e = new Error(xhr.statusText);
+          e.statusCode = xhr.status;
+          reject(e);
         }
 
         var url = self.baseURL()+path;
