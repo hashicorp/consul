@@ -6,11 +6,8 @@
   {{#if topology}}
     <TopologyMetrics
       @service={{items.firstObject}}
-      @protocol={{topology.Protocol}}
-      @upstreams={{topology.Upstreams}}
-      @downstreams={{filter-by 'Datacenter' topology.Datacenter topology.Downstreams}}
-      @dc={{topology.Datacenter}}
-      @metricsHref={{render-template urls.services (hash
+      @topology={{topology}}
+      @metricsHref={{render-template urls.service (hash
         Datacenter=dc
         Service=items.firstObject
       )}}

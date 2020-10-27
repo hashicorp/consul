@@ -8,7 +8,7 @@ module.exports = ({ appName, environment, rootURL, config }) => `
             metrics_provider: 'prometheus',
             metrics_proxy_enabled: true,
             dashboard_url_template: {
-              services: 'https://example.com?{{Service.Name}}&{{Datacenter}}',
+              service: 'https://example.com?{{Service.Name}}&{{Datacenter}}',
             },
           })
         )
