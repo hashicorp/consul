@@ -73,6 +73,12 @@ message SubscribeRequest {
     // the remote DC and proxy the results back  to the subscriber. An empty
     // string defaults to the local datacenter.
     string Datacenter = 5;
+
+    // Namespace which contains the resources. If Namespace is not specified the
+    // default namespace will be used.
+    //
+    // Namespace is an enterprise-only feature.
+    string Namespace = 6;
 }
 
 // Event describes a streaming update on a subscription. Events are used both to
