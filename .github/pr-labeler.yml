@@ -52,7 +52,7 @@ theme/testing:
 theme/tls:
     - tlsutil/**/*
 theme/ui:
-    - ui-v2/**/*
+    - ui/**/*
 # theme/windows:
 # thinking:
 # type/bug:
@@ -60,6 +60,4 @@ type/ci:
     - .circleci/*
 # type/crash:
 type/docs:
-    - website/**/*
-type/docs-cherrypick:
     - website/**/*
