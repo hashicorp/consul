@@ -822,6 +822,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 
 				return nil
 			},
+
 			WantEvents: []stream.Event{
 				// We should see:
 				//  - service dereg for web and proxy on node2
@@ -832,29 +833,15 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				//  - connect reg for api on node2
 				testServiceHealthDeregistrationEvent(t, "web", evNode2),
 				testServiceHealthDeregistrationEvent(t, "web", evNode2, evSidecar),
-				testServiceHealthDeregistrationEvent(t, "web",
-					evConnectTopic,
-					evNode2,
-					evSidecar,
-				),
+				testServiceHealthDeregistrationEvent(t, "web", evConnectTopic, evNode2, evSidecar),
 
 				testServiceHealthEvent(t, "web", evNodeUnchanged),
 				testServiceHealthEvent(t, "web", evSidecar, evNodeUnchanged),
 				testServiceHealthEvent(t, "web", evConnectTopic, evSidecar, evNodeUnchanged),
 
-				testServiceHealthEvent(t, "api",
-					evNode2,
-					evConnectNative,
-					evNodeUnchanged,
-				),
-				testServiceHealthEvent(t, "api",
-					evNode2,
-					evConnectTopic,
-					evConnectNative,
-					evNodeUnchanged,
-				),
+				testServiceHealthEvent(t, "api", evNode2, evConnectNative, evNodeUnchanged),
+				testServiceHealthEvent(t, "api", evNode2, evConnectTopic, evConnectNative, evNodeUnchanged),
 			},
-			WantErr: false,
 		},
 	}
 
@@ -1192,10 +1179,10 @@ func evSidecar(e *stream.Event) error {
 		csn.Checks[1].ServiceName = svc + "_sidecar_proxy"
 	}
 
-	// Update event key to be the proxy service name, but only if this is not
-	// already in the connect topic
-	if e.Topic != topicServiceHealthConnect {
-		e.Key = csn.Service.Service
+	if e.Topic == topicServiceHealthConnect {
+		payload := e.Payload.(EventPayloadCheckServiceNode)
+		payload.key = svc
+		e.Payload = payload
 	}
 	return nil
 }
@@ -1264,15 +1251,13 @@ func evChecksUnchanged(e *stream.Event) error {
 // name but not ID simulating an in-place service rename.
 func evRenameService(e *stream.Event) error {
 	csn := getPayloadCheckServiceNode(e.Payload)
-	isSidecar := csn.Service.Kind == structs.ServiceKindConnectProxy
 
-	if !isSidecar {
+	if csn.Service.Kind != structs.ServiceKindConnectProxy {
 		csn.Service.Service += "_changed"
 		// Update service checks
 		if len(csn.Checks) >= 2 {
 			csn.Checks[1].ServiceName += "_changed"
 		}
-		e.Key += "_changed"
 		return nil
 	}
 	// This is a sidecar, it's not really realistic but lets only update the
@@ -1280,12 +1265,13 @@ func evRenameService(e *stream.Event) error {
 	// we get the right result. This is certainly possible if not likely so a
 	// valid case.
 
-	// We don't need to update out own details, only the name of the destination
+	// We don't need to update our own details, only the name of the destination
 	csn.Service.Proxy.DestinationServiceName += "_changed"
 
-	// If this is the connect topic we need to change the key too
 	if e.Topic == topicServiceHealthConnect {
-		e.Key += "_changed"
+		payload := e.Payload.(EventPayloadCheckServiceNode)
+		payload.key = csn.Service.Proxy.DestinationServiceName
+		e.Payload = payload
 	}
 	return nil
 }
@@ -1373,7 +1359,6 @@ func newTestEventServiceHealthRegister(index uint64, nodeNum int, svc string) st
 
 	return stream.Event{
 		Topic: topicServiceHealth,
-		Key:   svc,
 		Index: index,
 		Payload: EventPayloadCheckServiceNode{
 			Op: pbsubscribe.CatalogOp_Register,
@@ -1444,7 +1429,6 @@ func newTestEventServiceHealthRegister(index uint64, nodeNum int, svc string) st
 func newTestEventServiceHealthDeregister(index uint64, nodeNum int, svc string) stream.Event {
 	return stream.Event{
 		Topic: topicServiceHealth,
-		Key:   svc,
 		Index: index,
 		Payload: EventPayloadCheckServiceNode{
 			Op: pbsubscribe.CatalogOp_Deregister,

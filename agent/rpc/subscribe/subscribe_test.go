@@ -915,7 +915,7 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 			name: "event batch",
 			event: stream.Event{
 				Index: 2002,
-				Payload: []stream.Event{
+				Payload: stream.PayloadEvents{
 					{
 						Index: 2002,
 						Payload: state.EventPayloadCheckServiceNode{

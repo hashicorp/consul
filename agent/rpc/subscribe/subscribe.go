@@ -153,9 +153,9 @@ func newEventFromStreamEvent(event stream.Event) *pbsubscribe.Event {
 	return e
 }
 
-func setPayload(e *pbsubscribe.Event, payload interface{}) {
+func setPayload(e *pbsubscribe.Event, payload stream.Payload) {
 	switch p := payload.(type) {
-	case []stream.Event:
+	case stream.PayloadEvents:
 		e.Payload = &pbsubscribe.Event_EventBatch{
 			EventBatch: &pbsubscribe.EventBatch{
 				Events: batchEventsFromEventSlice(p),
