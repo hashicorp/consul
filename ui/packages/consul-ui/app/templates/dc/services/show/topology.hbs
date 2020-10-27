@@ -1,5 +1,8 @@
 <div id="tags" class="tab-section">
   <div role="tabpanel">
+  {{#if topology.FilteredByACLs}}
+    <TopologyMetrics::Notice::LimitedAccess />
+  {{/if}}
   {{#if topology}}
     <TopologyMetrics
       @service={{items.firstObject}}
