@@ -6,16 +6,22 @@ sidebar_title: create
 
 # Consul Intention Create
 
+-> **Deprecated** - This command is deprecated in Consul 1.9.0 in favor of
+using the [config entry CLI command](/commands/config/write). To create an
+intention, create or modify a
+[`service-intentions`](/docs/agent/config-entries/service-intentions) config
+entry for the destination.
+
 Command: `consul intention create`
 
-The `intention create` command creates or updates an intention.
+The `intention create` command creates or updates an L4 intention.
 
 ## Usage
 
-Usage: `consul intention create [options] SRC DST`
-Usage: `consul intention create [options] -f FILE...`
+- `consul intention create [options] SRC DST`
+- `consul intention create [options] -file FILE...`
 
-`SRC` and `DST` can both take [several forms](/docs/commands/intention#source-and-destination-naming).
+`SRC` and `DST` can both take [several forms](/commands/intention#source-and-destination-naming).
 
 #### API Options
 

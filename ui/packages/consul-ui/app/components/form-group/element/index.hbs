@@ -1,0 +1,33 @@
+{{#let (hash
+
+  Element=(component 'form-group/element' group=@group name=@name)
+
+  Text=(component 'form-group/element/text' didinsert=(action this.connect) name=this.name oninput=(action (mut this.touched) true))
+  Checkbox=(component 'form-group/element/checkbox' didinsert=(action this.connect) name=this.name onchange=(action (mut this.touched) true))
+  Radio=(component 'form-group/element/radio' didinsert=(action this.connect) name=this.name onchange=(action (mut this.touched) true))
+
+
+  Label=(component 'form-group/element/label')
+  Error=(component 'form-group/element/error')
+
+  state=state
+)
+as |el|}}
+  {{#if (contains this.type (array 'radiogroup' 'checkbox-group' 'checkboxgroup'))}}
+    <div
+      data-property={{this.prop}}
+      class="type-{{this.type}}{{if (state-matches state 'error') ' has-error'}}"
+      ...attributes
+    >
+      {{yield el}}
+    </div>
+  {{else}}
+    <label
+      data-property={{this.prop}}
+      class="type-{{this.type}}{{if (state-matches state 'error') ' has-error'}}"
+      ...attributes
+    >
+      {{yield el}}
+    </label>
+  {{/if}}
+{{/let}}

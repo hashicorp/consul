@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/NYTimes/gziphandler"
@@ -83,6 +84,7 @@ type HTTPHandlers struct {
 	denylist        *Denylist
 	configReloaders []ConfigReloader
 	h               http.Handler
+	metricsProxyCfg atomic.Value
 }
 
 // endpoint is a Consul-specific HTTP handler that takes the usual arguments in
@@ -195,14 +197,15 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 			start := time.Now()
 			handler(resp, req)
 
-			// This new metric is disabled by default with the prefix_filter option.
-			// It will be enabled by default in a future version.
 			labels := []metrics.Label{{Name: "method", Value: req.Method}, {Name: "path", Value: path_label}}
 			metrics.MeasureSinceWithLabels([]string{"api", "http"}, start, labels)
 
-			// Duplicated information. Kept for backward compatibility.
-			key := append([]string{"http", req.Method}, parts...)
-			metrics.MeasureSince(key, start)
+			// DEPRECATED Emit pre-1.9 metric as `consul.http...` to maintain backwards compatibility. Enabled by
+			// default. Users may set `telemetry { disable_compat_1.9 = true }`
+			if !s.agent.config.Telemetry.DisableCompatOneNine {
+				key := append([]string{"http", req.Method}, parts...)
+				metrics.MeasureSince(key, start)
+			}
 		}
 
 		var gzipHandler http.Handler
@@ -273,8 +276,11 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 	if s.IsUIEnabled() {
 		// Note that we _don't_ support reloading ui_config.{enabled, content_dir,
 		// content_path} since this only runs at initial startup.
-
-		uiHandler := uiserver.NewHandler(s.agent.config, s.agent.logger.Named(logging.HTTP))
+		uiHandler := uiserver.NewHandler(
+			s.agent.config,
+			s.agent.logger.Named(logging.HTTP),
+			s.uiTemplateDataTransform(),
+		)
 		s.configReloaders = append(s.configReloaders, uiHandler.ReloadConfig)
 
 		// Wrap it to add the headers specified by the http_config.response_headers
@@ -295,6 +301,12 @@ func (s *HTTPHandlers) handler(enableDebug bool) http.Handler {
 			),
 		)
 	}
+	// Initialize (reloadable) metrics proxy config
+	s.metricsProxyCfg.Store(s.agent.config.UIConfig.MetricsProxy)
+	s.configReloaders = append(s.configReloaders, func(cfg *config.RuntimeConfig) error {
+		s.metricsProxyCfg.Store(cfg.UIConfig.MetricsProxy)
+		return nil
+	})
 
 	// Wrap the whole mux with a handler that bans URLs with non-printable
 	// characters, unless disabled explicitly to deal with old keys that fail this
@@ -609,6 +621,7 @@ func decodeBodyDeprecated(req *http.Request, out interface{}, cb func(interface{
 	decodeConf := &mapstructure.DecoderConfig{
 		DecodeHook: mapstructure.ComposeDecodeHookFunc(
 			mapstructure.StringToTimeDurationHookFunc(),
+			mapstructure.StringToTimeHookFunc(time.RFC3339),
 			stringToReadableDurationFunc(),
 		),
 		Result: &out,

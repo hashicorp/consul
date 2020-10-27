@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/hashicorp/consul/lib/decode"
 	"github.com/hashicorp/hcl"
 	"github.com/mitchellh/mapstructure"
+
+	"github.com/hashicorp/consul/lib/decode"
 )
 
 const (
@@ -96,12 +97,15 @@ func (l LiteralSource) Parse() (Config, mapstructure.Metadata, error) {
 	return l.Config, mapstructure.Metadata{}, nil
 }
 
-// Cache is the tunning configuration for cache, values are optional
+// Cache configuration for the agent/cache.
 type Cache struct {
 	// EntryFetchMaxBurst max burst size of RateLimit for a single cache entry
 	EntryFetchMaxBurst *int `json:"entry_fetch_max_burst,omitempty" hcl:"entry_fetch_max_burst" mapstructure:"entry_fetch_max_burst"`
 	// EntryFetchRate represents the max calls/sec for a single cache entry
 	EntryFetchRate *float64 `json:"entry_fetch_rate,omitempty" hcl:"entry_fetch_rate" mapstructure:"entry_fetch_rate"`
+	// UseStreamingBackend instead of blocking queries to populate the cache.
+	// Only supported by some cache types.
+	UseStreamingBackend *bool `json:"use_streaming_backend" hcl:"use_streaming_backend" mapstructure:"use_streaming_backend"`
 }
 
 // Config defines the format of a configuration file in either JSON or
@@ -142,6 +146,7 @@ type Config struct {
 	AdvertiseAddrWAN                 *string             `json:"advertise_addr_wan,omitempty" hcl:"advertise_addr_wan" mapstructure:"advertise_addr_wan"`
 	AdvertiseAddrWANIPv4             *string             `json:"advertise_addr_wan_ipv4,omitempty" hcl:"advertise_addr_wan_ipv4" mapstructure:"advertise_addr_wan_ipv4"`
 	AdvertiseAddrWANIPv6             *string             `json:"advertise_addr_wan_ipv6,omitempty" hcl:"advertise_addr_wan_ipv6" mapstructure:"advertise_addr_ipv6"`
+	AdvertiseReconnectTimeout        *string             `json:"advertise_reconnect_timeout,omitempty" hcl:"advertise_reconnect_timeout" mapstructure:"advertise_reconnect_timeout"`
 	AutoConfig                       AutoConfigRaw       `json:"auto_config,omitempty" hcl:"auto_config" mapstructure:"auto_config"`
 	Autopilot                        Autopilot           `json:"autopilot,omitempty" hcl:"autopilot" mapstructure:"autopilot"`
 	BindAddr                         *string             `json:"bind_addr,omitempty" hcl:"bind_addr" mapstructure:"bind_addr"`
@@ -256,6 +261,8 @@ type Config struct {
 	VerifyOutgoing       *bool                    `json:"verify_outgoing,omitempty" hcl:"verify_outgoing" mapstructure:"verify_outgoing"`
 	VerifyServerHostname *bool                    `json:"verify_server_hostname,omitempty" hcl:"verify_server_hostname" mapstructure:"verify_server_hostname"`
 	Watches              []map[string]interface{} `json:"watches,omitempty" hcl:"watches" mapstructure:"watches"`
+
+	RPC RPC `mapstructure:"rpc"`
 
 	// This isn't used by Consul but we've documented a feature where users
 	// can deploy their snapshot agent configs alongside their Consul configs
@@ -628,6 +635,7 @@ type Telemetry struct {
 	CirconusCheckTags                  *string  `json:"circonus_check_tags,omitempty" hcl:"circonus_check_tags" mapstructure:"circonus_check_tags"`
 	CirconusSubmissionInterval         *string  `json:"circonus_submission_interval,omitempty" hcl:"circonus_submission_interval" mapstructure:"circonus_submission_interval"`
 	CirconusSubmissionURL              *string  `json:"circonus_submission_url,omitempty" hcl:"circonus_submission_url" mapstructure:"circonus_submission_url"`
+	DisableCompatOneNine               *bool    `json:"disable_compat_1.9,omitempty" hcl:"disable_compat_1.9" mapstructure:"disable_compat_1.9"`
 	DisableHostname                    *bool    `json:"disable_hostname,omitempty" hcl:"disable_hostname" mapstructure:"disable_hostname"`
 	DogstatsdAddr                      *string  `json:"dogstatsd_addr,omitempty" hcl:"dogstatsd_addr" mapstructure:"dogstatsd_addr"`
 	DogstatsdTags                      []string `json:"dogstatsd_tags,omitempty" hcl:"dogstatsd_tags" mapstructure:"dogstatsd_tags"`
@@ -795,4 +803,8 @@ type RawUIMetricsProxy struct {
 type RawUIMetricsProxyAddHeader struct {
 	Name  *string `json:"name,omitempty" hcl:"name" mapstructure:"name"`
 	Value *string `json:"value,omitempty" hcl:"value" mapstructure:"value"`
+}
+
+type RPC struct {
+	EnableStreaming *bool `json:"enable_streaming" hcl:"enable_streaming" mapstructure:"enable_streaming"`
 }

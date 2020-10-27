@@ -2,10 +2,13 @@ package uiserver
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
+	"path"
 	"regexp"
 	"strings"
 	"sync/atomic"
@@ -16,6 +19,10 @@ import (
 	"github.com/hashicorp/go-hclog"
 )
 
+const (
+	compiledProviderJSPath = "assets/compiled-metrics-providers.js"
+)
+
 // Handler is the http.Handler that serves the Consul UI. It may serve from the
 // compiled-in AssetFS or from and external dir. It provides a few important
 // transformations on the index.html file and includes a proxy for metrics
@@ -24,8 +31,9 @@ type Handler struct {
 	// state is a reloadableState struct accessed through an atomic value to make
 	// it safe to reload at run time. Each call to ServeHTTP will see the latest
 	// version of the state without internal locking needed.
-	state  atomic.Value
-	logger hclog.Logger
+	state     atomic.Value
+	logger    hclog.Logger
+	transform UIDataTransform
 }
 
 // reloadableState encapsulates all the state that might be modified during
@@ -36,12 +44,23 @@ type reloadableState struct {
 	err error
 }
 
+// UIDataTransform is an optional dependency that allows the agent to add
+// additional data into the UI index as needed. For example we use this to
+// inject enterprise-only feature flags into the template without making this
+// package inherently dependent on Enterprise-only code.
+//
+// It is passed the current RuntimeConfig being applied and a map containing the
+// current data that will be passed to the template. It should be modified
+// directly to inject additional context.
+type UIDataTransform func(cfg *config.RuntimeConfig, data map[string]interface{}) error
+
 // NewHandler returns a Handler that can be used to serve UI http requests. It
 // accepts a full agent config since properties like ACLs being enabled affect
 // the UI so we need more than just UIConfig parts.
-func NewHandler(agentCfg *config.RuntimeConfig, logger hclog.Logger) *Handler {
+func NewHandler(agentCfg *config.RuntimeConfig, logger hclog.Logger, transform UIDataTransform) *Handler {
 	h := &Handler{
-		logger: logger.Named(logging.UIServer),
+		logger:    logger.Named(logging.UIServer),
+		transform: transform,
 	}
 	// Don't return the error since this is likely the result of a
 	// misconfiguration and reloading config could fix it. Instead we'll capture
@@ -57,7 +76,16 @@ func NewHandler(agentCfg *config.RuntimeConfig, logger hclog.Logger) *Handler {
 
 // ServeHTTP implements http.Handler and serves UI HTTP requests
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// TODO: special case for compiled metrics assets in later PR
+
+	// We need to support the path being trimmed by http.StripTags just like the
+	// file servers do since http.StripPrefix will remove the leading slash in our
+	// current config. Everything else works fine that way so we should to.
+	pathTrimmed := strings.TrimLeft(r.URL.Path, "/")
+	if pathTrimmed == compiledProviderJSPath {
+		h.serveUIMetricsProviders(w, r)
+		return
+	}
+
 	s := h.getState()
 	if s == nil {
 		panic("nil state")
@@ -87,7 +115,7 @@ func (h *Handler) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	}
 
 	// Render a new index.html with the new config values ready to serve.
-	buf, info, err := renderIndex(newCfg, fs)
+	buf, info, err := h.renderIndex(newCfg, fs)
 	if _, ok := err.(*os.PathError); ok && newCfg.UIConfig.Dir != "" {
 		// A Path error indicates that there is no index.html. This could happen if
 		// the user configured their own UI dir and is serving something that is not
@@ -133,7 +161,60 @@ func (h *Handler) getState() *reloadableState {
 	return nil
 }
 
-func renderIndex(cfg *config.RuntimeConfig, fs http.FileSystem) ([]byte, os.FileInfo, error) {
+func (h *Handler) serveUIMetricsProviders(resp http.ResponseWriter, req *http.Request) {
+	// Reload config in case it's changed
+	state := h.getState()
+
+	if len(state.cfg.MetricsProviderFiles) < 1 {
+		http.Error(resp, "No provider JS files configured", http.StatusNotFound)
+		return
+	}
+
+	var buf bytes.Buffer
+
+	// Open each one and concatenate them
+	for _, file := range state.cfg.MetricsProviderFiles {
+		if err := concatFile(&buf, file); err != nil {
+			http.Error(resp, "Internal Server Error", http.StatusInternalServerError)
+			h.logger.Error("failed serving metrics provider js file", "file", file, "error", err)
+			return
+		}
+	}
+	// Done!
+	resp.Header()["Content-Type"] = []string{"application/javascript"}
+	_, err := buf.WriteTo(resp)
+	if err != nil {
+		http.Error(resp, "Internal Server Error", http.StatusInternalServerError)
+		h.logger.Error("failed writing ui metrics provider files: %s", err)
+		return
+	}
+}
+
+func concatFile(buf *bytes.Buffer, file string) error {
+	base := path.Base(file)
+	_, err := buf.WriteString("// " + base + "\n\n")
+	if err != nil {
+		return fmt.Errorf("failed writing provider JS files: %w", err)
+	}
+
+	// Attempt to open the file
+	f, err := os.Open(file)
+	if err != nil {
+		return fmt.Errorf("failed opening ui metrics provider JS file: %w", err)
+	}
+	defer f.Close()
+	_, err = buf.ReadFrom(f)
+	if err != nil {
+		return fmt.Errorf("failed reading ui metrics provider JS file: %w", err)
+	}
+	_, err = buf.WriteString("\n\n")
+	if err != nil {
+		return fmt.Errorf("failed writing provider JS files: %w", err)
+	}
+	return nil
+}
+
+func (h *Handler) renderIndex(cfg *config.RuntimeConfig, fs http.FileSystem) ([]byte, os.FileInfo, error) {
 	// Open the original index.html
 	f, err := fs.Open("/index.html")
 	if err != nil {
@@ -143,17 +224,24 @@ func renderIndex(cfg *config.RuntimeConfig, fs http.FileSystem) ([]byte, os.File
 
 	content, err := ioutil.ReadAll(f)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed reading index.html: %s", err)
+		return nil, nil, fmt.Errorf("failed reading index.html: %w", err)
 	}
 	info, err := f.Stat()
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed reading metadata for index.html: %s", err)
+		return nil, nil, fmt.Errorf("failed reading metadata for index.html: %w", err)
 	}
 
 	// Create template data from the current config.
 	tplData, err := uiTemplateDataFromConfig(cfg)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed loading UI config for template: %s", err)
+		return nil, nil, fmt.Errorf("failed loading UI config for template: %w", err)
+	}
+
+	// Allow caller to apply additional data transformations if needed.
+	if h.transform != nil {
+		if err := h.transform(cfg, tplData); err != nil {
+			return nil, nil, fmt.Errorf("failed running transform: %w", err)
+		}
 	}
 
 	// Sadly we can't perform all the replacements we need with Go template
@@ -163,27 +251,58 @@ func renderIndex(cfg *config.RuntimeConfig, fs http.FileSystem) ([]byte, os.File
 	// have to match the encoded double quotes around the JSON string value that
 	// is there as a placeholder so the end result is an actual JSON bool not a
 	// string containing "false" etc.
-	re := regexp.MustCompile(`%22__RUNTIME_BOOL_[A-Za-z0-9-_]+__%22`)
+	re := regexp.MustCompile(`%22__RUNTIME_(BOOL|STRING)_([A-Za-z0-9-_]+)__%22`)
 
 	content = []byte(re.ReplaceAllStringFunc(string(content), func(str string) string {
-		// Trim the prefix and __ suffix
-		varName := strings.TrimSuffix(strings.TrimPrefix(str, "%22__RUNTIME_BOOL_"), "__%22")
-		if v, ok := tplData[varName].(bool); ok && v {
-			return "true"
+		// Trim the prefix and suffix
+		pair := strings.TrimSuffix(strings.TrimPrefix(str, "%22__RUNTIME_"), "__%22")
+		parts := strings.SplitN(pair, "_", 2)
+		switch parts[0] {
+		case "BOOL":
+			if v, ok := tplData[parts[1]].(bool); ok && v {
+				return "true"
+			}
+			return "false"
+		case "STRING":
+			if v, ok := tplData[parts[1]].(string); ok {
+				if bs, err := json.Marshal(v); err == nil {
+					return url.PathEscape(string(bs))
+				}
+				// Error!
+				h.logger.Error("Encoding JSON value for UI template failed",
+					"placeholder", str,
+					"value", v,
+				)
+				// Fall through to return the empty string to make JSON parse
+			}
+			return `""` // Empty JSON string
 		}
-		return "false"
+		// Unknown type is likely an error
+		h.logger.Error("Unknown placeholder type in UI template",
+			"placeholder", str,
+		)
+		// Return a literal empty string so the JSON still parses
+		return `""`
 	}))
 
-	tpl, err := template.New("index").Parse(string(content))
+	tpl, err := template.New("index").Funcs(template.FuncMap{
+		"jsonEncodeAndEscape": func(data map[string]interface{}) (string, error) {
+			bs, err := json.Marshal(data)
+			if err != nil {
+				return "", fmt.Errorf("failed jsonEncodeAndEscape: %w", err)
+			}
+			return url.PathEscape(string(bs)), nil
+		},
+	}).Parse(string(content))
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed parsing index.html template: %s", err)
+		return nil, nil, fmt.Errorf("failed parsing index.html template: %w", err)
 	}
 
 	var buf bytes.Buffer
 
 	err = tpl.Execute(&buf, tplData)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to render index.html: %s", err)
+		return nil, nil, fmt.Errorf("failed to render index.html: %w", err)
 	}
 
 	return buf.Bytes(), info, nil

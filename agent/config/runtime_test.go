@@ -18,15 +18,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
-	"github.com/stretchr/testify/require"
 )
 
 type configTest struct {
@@ -39,6 +41,7 @@ type configTest struct {
 	privatev4      func() ([]*net.IPAddr, error)
 	publicv6       func() ([]*net.IPAddr, error)
 	patch          func(rt *RuntimeConfig)
+	patchActual    func(rt *RuntimeConfig)
 	err            string
 	warns          []string
 	hostname       func() (string, error)
@@ -50,7 +53,7 @@ type configTest struct {
 // should check one option at a time if possible and should use generic
 // values, e.g. 'a' or 1 instead of 'servicex' or 3306.
 
-func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
+func TestBuilder_BuildAndValidate_ConfigFlagsAndEdgecases(t *testing.T) {
 	dataDir := testutil.TempDir(t, "consul")
 
 	defaultEntMeta := structs.DefaultEnterpriseMeta()
@@ -2261,7 +2264,7 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 			patch: func(rt *RuntimeConfig) {
 				rt.DataDir = dataDir
 				rt.Telemetry.AllowedPrefixes = []string{"foo"}
-				rt.Telemetry.BlockedPrefixes = []string{"consul.api.http", "bar"}
+				rt.Telemetry.BlockedPrefixes = []string{"bar"}
 			},
 			warns: []string{`Filter rule must begin with either '+' or '-': "nix"`},
 		},
@@ -3814,6 +3817,192 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 		},
 		// TODO(rb): add in missing tests for ingress-gateway (snake + camel)
 		// TODO(rb): add in missing tests for terminating-gateway (snake + camel)
+		{
+			desc: "ConfigEntry bootstrap service-intentions (snake-case)",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"config_entries": {
+					"bootstrap": [
+						{
+							"kind": "service-intentions",
+							"name": "web",
+							"meta" : {
+								"foo": "bar",
+								"gir": "zim"
+							},
+							"sources": [
+								{
+									"name": "foo",
+									"action": "deny",
+									"type": "consul",
+									"description": "foo desc"
+								},
+								{
+									"name": "bar",
+									"action": "allow",
+									"description": "bar desc"
+								},
+								{
+									"name": "*",
+									"action": "deny",
+									"description": "wild desc"
+								}
+							]
+						}
+					]
+				}
+			}`,
+			},
+			hcl: []string{`
+				config_entries {
+				  bootstrap {
+					kind = "service-intentions"
+					name = "web"
+					meta {
+						"foo" = "bar"
+						"gir" = "zim"
+					}
+					sources = [
+					  {
+						name        = "foo"
+						action      = "deny"
+						type        = "consul"
+						description = "foo desc"
+					  },
+					  {
+						name        = "bar"
+						action      = "allow"
+						description = "bar desc"
+					  }
+					]
+					sources {
+					  name        = "*"
+					  action      = "deny"
+					  description = "wild desc"
+					}
+				  }
+				}
+			`,
+			},
+			patchActual: func(rt *RuntimeConfig) {
+				// Wipe the time tracking fields to make comparison easier.
+				for _, raw := range rt.ConfigEntryBootstrap {
+					if entry, ok := raw.(*structs.ServiceIntentionsConfigEntry); ok {
+						for _, src := range entry.Sources {
+							src.LegacyCreateTime = nil
+							src.LegacyUpdateTime = nil
+						}
+					}
+				}
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.ConfigEntryBootstrap = []structs.ConfigEntry{
+					&structs.ServiceIntentionsConfigEntry{
+						Kind: "service-intentions",
+						Name: "web",
+						Meta: map[string]string{
+							"foo": "bar",
+							"gir": "zim",
+						},
+						EnterpriseMeta: *defaultEntMeta,
+						Sources: []*structs.SourceIntention{
+							{
+								Name:           "foo",
+								Action:         "deny",
+								Type:           "consul",
+								Description:    "foo desc",
+								Precedence:     9,
+								EnterpriseMeta: *defaultEntMeta,
+							},
+							{
+								Name:           "bar",
+								Action:         "allow",
+								Type:           "consul",
+								Description:    "bar desc",
+								Precedence:     9,
+								EnterpriseMeta: *defaultEntMeta,
+							},
+							{
+								Name:           "*",
+								Action:         "deny",
+								Type:           "consul",
+								Description:    "wild desc",
+								Precedence:     8,
+								EnterpriseMeta: *defaultEntMeta,
+							},
+						},
+					},
+				}
+			},
+		},
+		{
+			desc: "ConfigEntry bootstrap service-intentions wildcard destination (snake-case)",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"config_entries": {
+					"bootstrap": [
+						{
+							"kind": "service-intentions",
+							"name": "*",
+							"sources": [
+								{
+									"name": "foo",
+									"action": "deny",
+									"precedence": 6
+								}
+							]
+						}
+					]
+				}
+			}`,
+			},
+			hcl: []string{`
+				config_entries {
+				  bootstrap {
+					kind = "service-intentions"
+					name = "*"
+					sources {
+					  name   = "foo"
+					  action = "deny"
+					  # should be parsed, but we'll ignore it later
+					  precedence = 6
+					}
+				  }
+				}
+			`,
+			},
+			patchActual: func(rt *RuntimeConfig) {
+				// Wipe the time tracking fields to make comparison easier.
+				for _, raw := range rt.ConfigEntryBootstrap {
+					if entry, ok := raw.(*structs.ServiceIntentionsConfigEntry); ok {
+						for _, src := range entry.Sources {
+							src.LegacyCreateTime = nil
+							src.LegacyUpdateTime = nil
+						}
+					}
+				}
+			},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.ConfigEntryBootstrap = []structs.ConfigEntry{
+					&structs.ServiceIntentionsConfigEntry{
+						Kind:           "service-intentions",
+						Name:           "*",
+						EnterpriseMeta: *defaultEntMeta,
+						Sources: []*structs.SourceIntention{
+							{
+								Name:           "foo",
+								Action:         "deny",
+								Type:           "consul",
+								Precedence:     6,
+								EnterpriseMeta: *defaultEntMeta,
+							},
+						},
+					},
+				}
+			},
+		},
 
 		///////////////////////////////////
 		// Defaults sanity checks
@@ -4251,7 +4440,6 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 				rt.CertFile = "foo"
 			},
 		},
-
 		// UI Config tests
 		{
 			desc: "ui config deprecated",
@@ -4414,6 +4602,23 @@ func TestBuilder_BuildAndValide_ConfigFlagsAndEdgecases(t *testing.T) {
 			`},
 			err: `ui_config.dashboard_url_templates values must be a valid http or https URL.`,
 		},
+
+		// Per node reconnect timeout test
+		{
+			desc: "server and advertised reconnect timeout error",
+			args: []string{
+				`-data-dir=` + dataDir,
+				`-server`,
+			},
+			hcl: []string{`
+				advertise_reconnect_timeout = "5s"
+			`},
+			json: []string{`
+			{
+				"advertise_reconnect_timeout": "5s"
+			}`},
+			err: "advertise_reconnect_timeout can only be used on a client",
+		},
 	}
 
 	testConfig(t, tests, dataDir)
@@ -4557,6 +4762,9 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 				require.Equal(t, actual.DataDir, actual.ACLTokens.DataDir)
 				expected.ACLTokens.DataDir = actual.ACLTokens.DataDir
 
+				if tt.patchActual != nil {
+					tt.patchActual(&actual)
+				}
 				require.Equal(t, expected, actual)
 			})
 		}
@@ -4644,6 +4852,7 @@ func TestFullConfig(t *testing.T) {
 			},
 			"advertise_addr": "17.99.29.16",
 			"advertise_addr_wan": "78.63.37.19",
+			"advertise_reconnect_timeout": "0s",
 			"audit": {
 				"enabled": false
 			},
@@ -4686,7 +4895,8 @@ func TestFullConfig(t *testing.T) {
 			"bootstrap_expect": 53,
 			"cache": {
 				"entry_fetch_max_burst": 42,
-				"entry_fetch_rate": 0.334
+				"entry_fetch_rate": 0.334,
+				"use_streaming_backend": true
 			},
 			"ca_file": "erA7T0PM",
 			"ca_path": "mQEN1Mfp",
@@ -4923,6 +5133,7 @@ func TestFullConfig(t *testing.T) {
 			"retry_join_wan": [ "PFsR02Ye", "rJdQIhER" ],
 			"retry_max": 913,
 			"retry_max_wan": 23160,
+			"rpc": {"enable_streaming": true},
 			"segment": "BC2NhTDi",
 			"segments": [
 				{
@@ -5227,7 +5438,8 @@ func TestFullConfig(t *testing.T) {
 				"metrics_prefix": "ftO6DySn",
 				"prometheus_retention_time": "15s",
 				"statsd_address": "drce87cy",
-				"statsite_address": "HpFwKB8R"
+				"statsite_address": "HpFwKB8R",
+				"disable_compat_1.9": true
 			},
 			"tls_cipher_suites": "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
 			"tls_min_version": "pAOWafkR",
@@ -5325,6 +5537,7 @@ func TestFullConfig(t *testing.T) {
 			}
 			advertise_addr = "17.99.29.16"
 			advertise_addr_wan = "78.63.37.19"
+			advertise_reconnect_timeout = "0s"
 			audit = {
 				enabled = false
 			}
@@ -5368,6 +5581,7 @@ func TestFullConfig(t *testing.T) {
 			cache = {
 				entry_fetch_max_burst = 42
 				entry_fetch_rate = 0.334
+				use_streaming_backend = true
 			},
 			ca_file = "erA7T0PM"
 			ca_path = "mQEN1Mfp"
@@ -5607,6 +5821,9 @@ func TestFullConfig(t *testing.T) {
 			retry_join_wan = [ "PFsR02Ye", "rJdQIhER" ]
 			retry_max = 913
 			retry_max_wan = 23160
+			rpc {
+				enable_streaming = true
+			}
 			segment = "BC2NhTDi"
 			segments = [
 				{
@@ -5911,6 +6128,7 @@ func TestFullConfig(t *testing.T) {
 				prometheus_retention_time = "15s"
 				statsd_address = "drce87cy"
 				statsite_address = "HpFwKB8R"
+				disable_compat_1.9 = true
 			}
 			tls_cipher_suites = "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
 			tls_min_version = "pAOWafkR"
@@ -6105,6 +6323,7 @@ func TestFullConfig(t *testing.T) {
 		ACLTokenReplication:              true,
 		AdvertiseAddrLAN:                 ipAddr("17.99.29.16"),
 		AdvertiseAddrWAN:                 ipAddr("78.63.37.19"),
+		AdvertiseReconnectTimeout:        0 * time.Second,
 		AutopilotCleanupDeadServers:      true,
 		AutopilotDisableUpgradeMigration: true,
 		AutopilotLastContactThreshold:    12705 * time.Second,
@@ -6362,6 +6581,7 @@ func TestFullConfig(t *testing.T) {
 		RetryJoinMaxAttemptsLAN: 913,
 		RetryJoinMaxAttemptsWAN: 23160,
 		RetryJoinWAN:            []string{"PFsR02Ye", "rJdQIhER"},
+		RPCConfig:               consul.RPCConfig{EnableStreaming: true},
 		SegmentName:             "BC2NhTDi",
 		Segments: []structs.NetworkSegment{
 			{
@@ -6657,16 +6877,17 @@ func TestFullConfig(t *testing.T) {
 				},
 			},
 		},
-		SerfAdvertiseAddrLAN: tcpAddr("17.99.29.16:8301"),
-		SerfAdvertiseAddrWAN: tcpAddr("78.63.37.19:8302"),
-		SerfBindAddrLAN:      tcpAddr("99.43.63.15:8301"),
-		SerfBindAddrWAN:      tcpAddr("67.88.33.19:8302"),
-		SerfAllowedCIDRsLAN:  []net.IPNet{},
-		SerfAllowedCIDRsWAN:  []net.IPNet{},
-		SessionTTLMin:        26627 * time.Second,
-		SkipLeaveOnInt:       true,
-		StartJoinAddrsLAN:    []string{"LR3hGDoG", "MwVpZ4Up"},
-		StartJoinAddrsWAN:    []string{"EbFSc3nA", "kwXTh623"},
+		CacheUseStreamingBackend: true,
+		SerfAdvertiseAddrLAN:     tcpAddr("17.99.29.16:8301"),
+		SerfAdvertiseAddrWAN:     tcpAddr("78.63.37.19:8302"),
+		SerfBindAddrLAN:          tcpAddr("99.43.63.15:8301"),
+		SerfBindAddrWAN:          tcpAddr("67.88.33.19:8302"),
+		SerfAllowedCIDRsLAN:      []net.IPNet{},
+		SerfAllowedCIDRsWAN:      []net.IPNet{},
+		SessionTTLMin:            26627 * time.Second,
+		SkipLeaveOnInt:           true,
+		StartJoinAddrsLAN:        []string{"LR3hGDoG", "MwVpZ4Up"},
+		StartJoinAddrsWAN:        []string{"EbFSc3nA", "kwXTh623"},
 		Telemetry: lib.TelemetryConfig{
 			CirconusAPIApp:                     "p4QOTe9j",
 			CirconusAPIToken:                   "E3j35V23",
@@ -6681,12 +6902,13 @@ func TestFullConfig(t *testing.T) {
 			CirconusCheckTags:                  "prvO4uBl",
 			CirconusSubmissionInterval:         "DolzaflP",
 			CirconusSubmissionURL:              "gTcbS93G",
+			DisableCompatOneNine:               true,
 			DisableHostname:                    true,
 			DogstatsdAddr:                      "0wSndumK",
 			DogstatsdTags:                      []string{"3N81zSUB", "Xtj8AnXZ"},
 			FilterDefault:                      true,
 			AllowedPrefixes:                    []string{"oJotS8XJ"},
-			BlockedPrefixes:                    []string{"consul.api.http", "cazlEhGn"},
+			BlockedPrefixes:                    []string{"cazlEhGn"},
 			MetricsPrefix:                      "ftO6DySn",
 			PrometheusRetentionTime:            15 * time.Second,
 			StatsdAddr:                         "drce87cy",
@@ -7088,6 +7310,7 @@ func TestSanitize(t *testing.T) {
 		"AEInterval": "0s",
 		"AdvertiseAddrLAN": "",
 		"AdvertiseAddrWAN": "",
+		"AdvertiseReconnectTimeout": "0s",
 		"AutopilotCleanupDeadServers": false,
 		"AutopilotDisableUpgradeMigration": false,
 		"AutopilotLastContactThreshold": "0s",
@@ -7271,6 +7494,9 @@ func TestSanitize(t *testing.T) {
 		"RPCMaxConnsPerClient": 0,
 		"RPCProtocol": 0,
 		"RPCRateLimit": 0,
+		"RPCConfig": {
+			"EnableStreaming": false
+		},
 		"RaftProtocol": 0,
 		"RaftSnapshotInterval": "0s",
 		"RaftSnapshotThreshold": 0,
@@ -7301,6 +7527,7 @@ func TestSanitize(t *testing.T) {
 		"SerfBindAddrWAN": "",
 		"SerfPortLAN": 0,
 		"SerfPortWAN": 0,
+		"CacheUseStreamingBackend": false,
 		"ServerMode": false,
 		"ServerName": "",
 		"ServerPort": 0,
@@ -7379,6 +7606,7 @@ func TestSanitize(t *testing.T) {
 			"CirconusSubmissionInterval": "",
 			"CirconusSubmissionURL": "",
 			"Disable": false,
+			"DisableCompatOneNine": false,
 			"DisableHostname": false,
 			"DogstatsdAddr": "",
 			"DogstatsdTags": [],
@@ -7423,11 +7651,11 @@ func TestSanitize(t *testing.T) {
 				"Enabled": false,
 				"AllowReuse": false,
 				"AuthMethod": {
-					"ACLAuthMethodEnterpriseFields": {},
+					"ACLAuthMethodEnterpriseFields": ` + authMethodEntFields + `,
 					"Config": {},
 					"Description": "",
 					"DisplayName": "",
-					"EnterpriseMeta": {},
+					"EnterpriseMeta": ` + entMetaJSON + `,
 					"MaxTokenTTL": "0s",
 					"Name": "",
 					"RaftIndex": {

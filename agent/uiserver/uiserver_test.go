@@ -16,11 +16,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestUIServer(t *testing.T) {
+func TestUIServerIndex(t *testing.T) {
 	cases := []struct {
 		name            string
 		cfg             *config.RuntimeConfig
 		path            string
+		tx              UIDataTransform
 		wantStatus      int
 		wantContains    []string
 		wantNotContains []string
@@ -33,14 +34,19 @@ func TestUIServer(t *testing.T) {
 			path:         "/", // Note /index.html redirects to /
 			wantStatus:   http.StatusOK,
 			wantContains: []string{"<!-- CONSUL_VERSION:"},
+			wantNotContains: []string{
+				"__RUNTIME_BOOL_",
+				"__RUNTIME_STRING_",
+			},
 			wantEnv: map[string]interface{}{
-				"CONSUL_ACLS_ENABLED": false,
+				"CONSUL_ACLS_ENABLED":     false,
+				"CONSUL_DATACENTER_LOCAL": "dc1",
 			},
 		},
 		{
-			// TODO: is this really what we want? It's what we've always done but
-			// seems a bit odd to not do an actual 301 but instead serve the
-			// index.html from every path... It also breaks the UI probably.
+			// We do this redirect just for UI dir since the app is a single page app
+			// and any URL under the path should just load the index and let Ember do
+			// it's thing unless it's a specific asset URL in the filesystem.
 			name:         "unknown paths to serve index",
 			cfg:          basicUIEnabledConfig(),
 			path:         "/foo-bar-bazz-qux",
@@ -51,12 +57,20 @@ func TestUIServer(t *testing.T) {
 			name: "injecting metrics vars",
 			cfg: basicUIEnabledConfig(
 				withMetricsProvider("foo"),
-				withMetricsProviderOptions(`{"bar":1}`),
+				withMetricsProviderOptions(`{"a-very-unlikely-string":1}`),
 			),
 			path:       "/",
 			wantStatus: http.StatusOK,
 			wantContains: []string{
 				"<!-- CONSUL_VERSION:",
+			},
+			wantNotContains: []string{
+				// This is a quick check to be sure that we actually URL encoded the
+				// JSON ui settings too. The assertions below could pass just fine even
+				// if we got that wrong because the decode would be a no-op if it wasn't
+				// URL encoded. But this just ensures that we don't see the raw values
+				// in the output because the quotes should be encoded.
+				`"a-very-unlikely-string"`,
 			},
 			wantEnv: map[string]interface{}{
 				"CONSUL_ACLS_ENABLED": false,
@@ -64,7 +78,7 @@ func TestUIServer(t *testing.T) {
 			wantUICfgJSON: `{
 				"metrics_provider":         "foo",
 				"metrics_provider_options": {
-					"bar":1
+					"a-very-unlikely-string":1
 				},
 				"metrics_proxy_enabled": false,
 				"dashboard_url_templates": null
@@ -80,12 +94,50 @@ func TestUIServer(t *testing.T) {
 				"CONSUL_ACLS_ENABLED": true,
 			},
 		},
+		{
+			name: "external transformation",
+			cfg: basicUIEnabledConfig(
+				withMetricsProvider("foo"),
+			),
+			path: "/",
+			tx: func(cfg *config.RuntimeConfig, data map[string]interface{}) error {
+				data["SSOEnabled"] = true
+				o := data["UIConfig"].(map[string]interface{})
+				o["metrics_provider"] = "bar"
+				return nil
+			},
+			wantStatus: http.StatusOK,
+			wantContains: []string{
+				"<!-- CONSUL_VERSION:",
+			},
+			wantEnv: map[string]interface{}{
+				"CONSUL_SSO_ENABLED": true,
+			},
+			wantUICfgJSON: `{
+				"metrics_provider": "bar",
+				"metrics_proxy_enabled": false,
+				"dashboard_url_templates": null
+			}`,
+		},
+		{
+			name: "serving metrics provider js",
+			cfg: basicUIEnabledConfig(
+				withMetricsProvider("foo"),
+				withMetricsProviderFiles("testdata/foo.js", "testdata/bar.js"),
+			),
+			path:       "/",
+			wantStatus: http.StatusOK,
+			wantContains: []string{
+				"<!-- CONSUL_VERSION:",
+				`<script src="/ui/assets/compiled-metrics-providers.js">`,
+			},
+		},
 	}
 
 	for _, tc := range cases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			h := NewHandler(tc.cfg, testutil.Logger(t))
+			h := NewHandler(tc.cfg, testutil.Logger(t), tc.tx)
 
 			req := httptest.NewRequest("GET", tc.path, nil)
 			rec := httptest.NewRecorder()
@@ -152,8 +204,10 @@ type cfgFunc func(cfg *config.RuntimeConfig)
 func basicUIEnabledConfig(opts ...cfgFunc) *config.RuntimeConfig {
 	cfg := &config.RuntimeConfig{
 		UIConfig: config.UIConfig{
-			Enabled: true,
+			Enabled:     true,
+			ContentPath: "/ui/",
 		},
+		Datacenter: "dc1",
 	}
 	for _, f := range opts {
 		f(cfg)
@@ -175,6 +229,12 @@ func withMetricsProvider(name string) cfgFunc {
 	}
 }
 
+func withMetricsProviderFiles(names ...string) cfgFunc {
+	return func(cfg *config.RuntimeConfig) {
+		cfg.UIConfig.MetricsProviderFiles = names
+	}
+}
+
 func withMetricsProviderOptions(jsonStr string) cfgFunc {
 	return func(cfg *config.RuntimeConfig) {
 		cfg.UIConfig.MetricsProviderOptionsJSON = jsonStr
@@ -185,7 +245,7 @@ func withMetricsProviderOptions(jsonStr string) cfgFunc {
 // beyond the first request. The initial implementation did not as it shared an
 // bytes.Reader between callers.
 func TestMultipleIndexRequests(t *testing.T) {
-	h := NewHandler(basicUIEnabledConfig(), testutil.Logger(t))
+	h := NewHandler(basicUIEnabledConfig(), testutil.Logger(t), nil)
 
 	for i := 0; i < 3; i++ {
 		req := httptest.NewRequest("GET", "/", nil)
@@ -200,7 +260,7 @@ func TestMultipleIndexRequests(t *testing.T) {
 }
 
 func TestReload(t *testing.T) {
-	h := NewHandler(basicUIEnabledConfig(), testutil.Logger(t))
+	h := NewHandler(basicUIEnabledConfig(), testutil.Logger(t), nil)
 
 	{
 		req := httptest.NewRequest("GET", "/", nil)
@@ -241,7 +301,7 @@ func TestCustomDir(t *testing.T) {
 
 	cfg := basicUIEnabledConfig()
 	cfg.UIConfig.Dir = uiDir
-	h := NewHandler(cfg, testutil.Logger(t))
+	h := NewHandler(cfg, testutil.Logger(t), nil)
 
 	req := httptest.NewRequest("GET", "/test-file", nil)
 	rec := httptest.NewRecorder()
@@ -250,4 +310,44 @@ func TestCustomDir(t *testing.T) {
 
 	require.Equal(t, http.StatusOK, rec.Code)
 	require.Contains(t, rec.Body.String(), "test")
+}
+
+func TestCompiledJS(t *testing.T) {
+	cfg := basicUIEnabledConfig(
+		withMetricsProvider("foo"),
+		withMetricsProviderFiles("testdata/foo.js", "testdata/bar.js"),
+	)
+	h := NewHandler(cfg, testutil.Logger(t), nil)
+
+	paths := []string{
+		"/" + compiledProviderJSPath,
+		// We need to work even without the initial slash because the agent uses
+		// http.StripPrefix with the entire ContentPath which includes a trailing
+		// slash. This apparently works fine for the assetFS etc. so we need to
+		// also tolerate it when the URL doesn't have a slash at the start of the
+		// path.
+		compiledProviderJSPath,
+	}
+
+	for _, path := range paths {
+		t.Run(path, func(t *testing.T) {
+			// NewRequest doesn't like paths with no leading slash but we need to test
+			// a request with a URL that has that so just create with root path and
+			// then manually modify the URL path so it emulates one that has been
+			// doctored by http.StripPath.
+			req := httptest.NewRequest("GET", "/", nil)
+			req.URL.Path = path
+
+			rec := httptest.NewRecorder()
+
+			h.ServeHTTP(rec, req)
+
+			require.Equal(t, http.StatusOK, rec.Code)
+			require.Equal(t, rec.Result().Header["Content-Type"][0], "application/javascript")
+			wantCompiled, err := ioutil.ReadFile("testdata/compiled-metrics-providers-golden.js")
+			require.NoError(t, err)
+			require.Equal(t, rec.Body.String(), string(wantCompiled))
+		})
+	}
+
 }

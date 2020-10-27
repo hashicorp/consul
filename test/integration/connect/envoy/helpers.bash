@@ -110,7 +110,6 @@ function assert_proxy_presents_cert_uri {
   local DC=${3:-primary}
   local NS=${4:-default}
 
-
   CERT=$(retry_default get_cert $HOSTPORT)
 
   echo "WANT SERVICE: ${NS}/${SERVICENAME}"
@@ -153,36 +152,48 @@ function assert_envoy_version {
   echo $VERSION | grep "/$ENVOY_VERSION/"
 }
 
+function assert_envoy_http_rbac_policy_count {
+  local HOSTPORT=$1
+  local EXPECT_COUNT=$2
+
+  GOT_COUNT=$(get_envoy_http_rbac_once $HOSTPORT | jq '.rules.policies | length')
+  [ "${GOT_COUNT:-0}" -eq $EXPECT_COUNT ]
+}
+
+function get_envoy_http_rbac_once {
+  local HOSTPORT=$1
+  run curl -s -f $HOSTPORT/config_dump
+  [ "$status" -eq 0 ]
+  echo "$output" | jq --raw-output '.configs[2].dynamic_listeners[].active_state.listener.filter_chains[0].filters[0].config.http_filters[] | select(.name == "envoy.filters.http.rbac") | .config'
+}
+
+function assert_envoy_network_rbac_policy_count {
+  local HOSTPORT=$1
+  local EXPECT_COUNT=$2
+
+  GOT_COUNT=$(get_envoy_network_rbac_once $HOSTPORT | jq '.rules.policies | length')
+  [ "${GOT_COUNT:-0}" -eq $EXPECT_COUNT ]
+}
+
+function get_envoy_network_rbac_once {
+  local HOSTPORT=$1
+  run curl -s -f $HOSTPORT/config_dump
+  [ "$status" -eq 0 ]
+  echo "$output" | jq --raw-output '.configs[2].dynamic_listeners[].active_state.listener.filter_chains[0].filters[] | select(.name == "envoy.filters.network.rbac") | .config'
+}
+
 function get_envoy_listener_filters {
   local HOSTPORT=$1
   run retry_default curl -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
-  local ENVOY_VERSION=$(echo $output | jq --raw-output '.configs[0].bootstrap.node.metadata.envoy_version')
-  local QUERY=''
-  # from 1.13.0 on the config json looks slightly different
-  # 1.10.x, 1.11.x, 1.12.x are not affected
-  if [[ "$ENVOY_VERSION" =~ ^1\.1[012]\. ]]; then
-    QUERY='.configs[2].dynamic_active_listeners[].listener | "\(.name) \( .filter_chains[0].filters | map(.name) | join(","))"'
-  else
-    QUERY='.configs[2].dynamic_listeners[].active_state.listener | "\(.name) \( .filter_chains[0].filters | map(.name) | join(","))"'
-  fi
-  echo "$output" | jq --raw-output "$QUERY"
+  echo "$output" | jq --raw-output '.configs[2].dynamic_listeners[].active_state.listener | "\(.name) \( .filter_chains[0].filters | map(.name) | join(","))"'
 }
 
 function get_envoy_http_filters {
   local HOSTPORT=$1
   run retry_default curl -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
-  local ENVOY_VERSION=$(echo $output | jq --raw-output '.configs[0].bootstrap.node.metadata.envoy_version')
-  local QUERY=''
-  # from 1.13.0 on the config json looks slightly different
-  # 1.10.x, 1.11.x, 1.12.x are not affected
-  if [[ "$ENVOY_VERSION" =~ ^1\.1[012]\. ]]; then
-      QUERY='.configs[2].dynamic_active_listeners[].listener | "\(.name) \( .filter_chains[0].filters[] | select(.name == "envoy.http_connection_manager") | .config.http_filters | map(.name) | join(","))"'
-  else
-      QUERY='.configs[2].dynamic_listeners[].active_state.listener | "\(.name) \( .filter_chains[0].filters[] | select(.name == "envoy.http_connection_manager") | .config.http_filters | map(.name) | join(","))"'
-  fi
-  echo "$output" | jq --raw-output "$QUERY"
+  echo "$output" | jq --raw-output '.configs[2].dynamic_listeners[].active_state.listener | "\(.name) \( .filter_chains[0].filters[] | select(.name == "envoy.http_connection_manager") | .config.http_filters | map(.name) | join(","))"'
 }
 
 function get_envoy_cluster_config {
@@ -241,7 +252,7 @@ function get_upstream_endpoint_in_status_count {
   local HOSTPORT=$1
   local CLUSTER_NAME=$2
   local HEALTH_STATUS=$3
-  run retry_default curl -s -f "http://${HOSTPORT}/clusters?format=json"
+  run curl -s -f "http://${HOSTPORT}/clusters?format=json"
   [ "$status" -eq 0 ]
   # echo "$output" >&3
   echo "$output" | jq --raw-output "
@@ -364,7 +375,7 @@ function get_healthy_service_count {
   local DC=$2
   local NS=$3
 
-  run retry_default curl -s -f ${HEADERS} "127.0.0.1:8500/v1/health/connect/${SERVICE_NAME}?dc=${DC}&passing&ns=${NS}"
+  run curl -s -f ${HEADERS} "127.0.0.1:8500/v1/health/connect/${SERVICE_NAME}?dc=${DC}&passing&ns=${NS}"
   [ "$status" -eq 0 ]
   echo "$output" | jq --raw-output '. | length'
 }
@@ -422,14 +433,18 @@ function assert_intention_allowed {
   local SOURCE=$1
   local DESTINATION=$2
 
-  [ "$(check_intention "${SOURCE}" "${DESTINATION}")" == "true" ]
+  run check_intention "${SOURCE}" "${DESTINATION}"
+  [ "$status" -eq 0 ]
+  [ "$output" = "true" ]
 }
 
 function assert_intention_denied {
   local SOURCE=$1
   local DESTINATION=$2
 
-  [ "$(check_intention "${SOURCE}" "${DESTINATION}")" == "false" ]
+  run check_intention "${SOURCE}" "${DESTINATION}"
+  [ "$status" -eq 0 ]
+  [ "$output" = "false" ]
 }
 
 function docker_consul {
@@ -530,7 +545,7 @@ function must_match_in_stats_proxy_response {
 # Envoy rather than a connection-level error.
 function must_fail_tcp_connection {
   # Attempt to curl through upstream
-  run curl -s -v -f -d hello $1
+  run curl --no-keepalive -s -v -f -d hello $1
 
   echo "OUTPUT $output"
 
@@ -541,17 +556,95 @@ function must_fail_tcp_connection {
   echo "$output" | grep 'Empty reply from server'
 }
 
+function must_pass_tcp_connection {
+  run curl --no-keepalive -s -f -d hello $1
+
+  echo "OUTPUT $output"
+
+  [ "$status" == "0" ]
+  [ "$output" = "hello" ]
+}
+
 # must_fail_http_connection see must_fail_tcp_connection but this expects Envoy
 # to generate a 503 response since the upstreams have refused connection.
 function must_fail_http_connection {
   # Attempt to curl through upstream
-  run curl -s -i -d hello "$1"
+  run curl --no-keepalive -s -i -d hello "$1"
 
   echo "OUTPUT $output"
+
+  [ "$status" == "0" ]
 
   local expect_response="${2:-403 Forbidden}"
   # Should fail request with 503
   echo "$output" | grep "${expect_response}"
+}
+
+# must_pass_http_request allows you to craft a specific http request to assert
+# that envoy will NOT reject the request. Primarily of use for testing L7
+# intentions.
+function must_pass_http_request {
+  local METHOD=$1
+  local URL=$2
+  local DEBUG_HEADER_VALUE="${3:-""}"
+
+  local extra_args
+  if [[ -n "${DEBUG_HEADER_VALUE}" ]]; then
+    extra_args="-H x-test-debug:${DEBUG_HEADER_VALUE}"
+  fi
+  case "$METHOD" in
+    GET)
+      ;;
+    DELETE)
+      extra_args="$extra_args -X${METHOD}"
+      ;;
+    PUT|POST)
+      extra_args="$extra_args -d'{}' -X${METHOD}"
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+
+  run curl --no-keepalive -v -s -f $extra_args "$URL"
+  [ "$status" == 0 ]
+}
+
+# must_fail_http_request allows you to craft a specific http request to assert
+# that envoy will reject the request. Primarily of use for testing L7
+# intentions.
+function must_fail_http_request {
+  local METHOD=$1
+  local URL=$2
+  local DEBUG_HEADER_VALUE="${3:-""}"
+
+  local extra_args
+  if [[ -n "${DEBUG_HEADER_VALUE}" ]]; then
+      extra_args="-H x-test-debug:${DEBUG_HEADER_VALUE}"
+  fi
+  case "$METHOD" in
+    HEAD)
+      extra_args="$extra_args -I"
+      ;;
+    GET)
+      ;;
+    DELETE)
+      extra_args="$extra_args -X${METHOD}"
+      ;;
+    PUT|POST)
+      extra_args="$extra_args -d'{}' -X${METHOD}"
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+
+  # Attempt to curl through upstream
+  run curl --no-keepalive -s -i $extra_args "$URL"
+
+  echo "OUTPUT $output"
+
+  echo "$output" | grep "403 Forbidden"
 }
 
 function gen_envoy_bootstrap {
@@ -601,52 +694,22 @@ function delete_config_entry {
   retry_default curl -sL -XDELETE "http://127.0.0.1:8500/v1/config/${KIND}/${NAME}"
 }
 
-function list_intentions {
-  curl -s -f "http://localhost:8500/v1/connect/intentions"
-}
-
-function get_intention_target_name {
-  awk -F / '{ if ( NF == 1 ) { print $0 } else { print $2 }}'
-}
-
-function get_intention_target_namespace {
-  awk -F / '{ if ( NF != 1 ) { print $1 } }'
-}
-
-function get_intention_by_targets {
-  local SOURCE=$1
-  local DESTINATION=$2
-
-  local SOURCE_NS=$(get_intention_target_namespace <<< "${SOURCE}")
-  local SOURCE_NAME=$(get_intention_target_name <<< "${SOURCE}")
-  local DESTINATION_NS=$(get_intention_target_namespace <<< "${DESTINATION}")
-  local DESTINATION_NAME=$(get_intention_target_name <<< "${DESTINATION}")
-
-  existing=$(list_intentions | jq ".[] | select(.SourceNS == \"$SOURCE_NS\" and .SourceName == \"$SOURCE_NAME\" and .DestinationNS == \"$DESTINATION_NS\" and .DestinationName == \"$DESTINATION_NAME\")")
-  if test -z "$existing"
-  then
-    return 1
-  fi
-  echo "$existing"
-  return 0
-}
-
-function update_intention {
+function setup_upsert_l4_intention {
   local SOURCE=$1
   local DESTINATION=$2
   local ACTION=$3
 
-  intention=$(get_intention_by_targets "${SOURCE}" "${DESTINATION}")
-  if test $? -ne 0
-  then
-    return 1
-  fi
+  retry_default docker_curl primary -sL -XPUT "http://127.0.0.1:8500/v1/connect/intentions/exact?source=${SOURCE}&destination=${DESTINATION}" \
+      -d"{\"Action\": \"${ACTION}\"}" >/dev/null
+}
 
-  id=$(jq -r .ID <<< "${intention}")
-  updated=$(jq ".Action = \"$ACTION\"" <<< "${intention}")
+function upsert_l4_intention {
+  local SOURCE=$1
+  local DESTINATION=$2
+  local ACTION=$3
 
-  curl -s -X PUT "http://localhost:8500/v1/connect/intentions/${id}" -d "${updated}"
-  return $?
+  retry_default curl -sL -XPUT "http://127.0.0.1:8500/v1/connect/intentions/exact?source=${SOURCE}&destination=${DESTINATION}" \
+      -d"{\"Action\": \"${ACTION}\"}" >/dev/null
 }
 
 function get_ca_root {

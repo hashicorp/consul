@@ -27,10 +27,10 @@ load helpers
   assert_upstream_has_endpoints_in_status 127.0.0.1:19000 1a47f6e1~s2.default.primary HEALTHY 1
 }
 
+@test "s2 should have http rbac rules loaded from xDS" {
+  retry_default assert_envoy_http_rbac_policy_count localhost:19001 1
+}
+
 @test "s1 upstream should NOT be able to connect to s2" {
-  run retry_default must_fail_http_connection localhost:5000
-
-  echo "OUTPUT $output"
-
-  [ "$status" == "0" ]
+  retry_default must_fail_http_connection localhost:5000
 }

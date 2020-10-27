@@ -7,7 +7,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-uuid"
+	"golang.org/x/time/rate"
+
 	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
@@ -15,8 +19,6 @@ import (
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-uuid"
-	"golang.org/x/time/rate"
 )
 
 type RuntimeSOAConfig struct {
@@ -933,6 +935,10 @@ type RuntimeConfig struct {
 	// hcl: protocol = int
 	RPCProtocol int
 
+	RPCConfig consul.RPCConfig
+
+	CacheUseStreamingBackend bool
+
 	// RaftProtocol sets the Raft protocol version to use on this server.
 	// Defaults to 3.
 	//
@@ -979,6 +985,13 @@ type RuntimeConfig struct {
 	//
 	// hcl: reconnect_timeout = "duration"
 	ReconnectTimeoutWAN time.Duration
+
+	// AdvertiseReconnectTimeout specifies the amount of time other agents should
+	// wait for us to reconnect before deciding we are permanently gone. This
+	// should only be set for client agents that are run in a stateless or
+	// ephemeral manner in order to realize their deletion sooner than we
+	// would otherwise.
+	AdvertiseReconnectTimeout time.Duration
 
 	// RejoinAfterLeave controls our interaction with the cluster after leave.
 	// When set to false (default), a leave causes Consul to not rejoin

@@ -1,0 +1,185 @@
+---
+layout: docs
+page_title: Requirements
+sidebar_title: Requirements
+description: >-
+  Consul-Terraform-Sync requires a Terraform Provider, a Terraform Module, and a running Consul cluster outside of the consul-terraform-sync daemon.
+---
+
+# Prerequisites Needed to Run Consul-Terraform-Sync
+
+Consul-Terraform-Sync requires a Terraform Provider, a Terraform Module, and a running Consul cluster outside of the consul-terraform-sync daemon. Practitioners can add support for their network infrastructure through Terraform providers. Once network infrastructure support exists, practitioners can add network integrations in the form of Terraform modules.
+
+## Run a Consul Cluster
+
+Below are several steps towards a minimum Consul setup required for running Consul-Terraform-Sync.
+
+### Install Consul
+
+Consul-Terraform-Sync is a daemon that runs alongside Consul, similar to other Consul ecosystem tools like Consul Template. Consul-Terraform-Sync is not included with the Consul binary and needs to be installed separately.
+
+To install a local Consul agent, refer to the [Getting Started: Install Consul Tutorial](https://learn.hashicorp.com/tutorials/consul/get-started-install).
+
+### Run an Agent
+
+The Consul agent must be running in order to dynamically update network devices. To run the local Consul agent, you can run Consul in development mode which can be started with `consul agent -dev` for simplicity. For more details on running Consul agent, refer to the [Getting Started: Run the Consul Agent Tutorial](https://learn.hashicorp.com/tutorials/consul/get-started-agent?in=consul/getting-started).
+
+### Register Services
+
+Consul-Terraform-Sync monitors Consul catalog for service changes which lead to downstream changes to your network devices. Without services, your Consul-Terraform-Sync daemon will be operational but idle. You can register services with your Consul agent either by loading a service definition or by HTTP API request.
+
+If you are running Consul in development mode, below is an example of registering a service by HTTP API request:
+
+```shell-session
+$ echo '{
+    "ID": "web",
+    "Name": "web",
+    "Address": "10.10.10.10",
+    "Port": 8000
+}' > payload.json
+
+$ curl --request PUT --data @payload.json http://localhost:8500/v1/agent/service/register
+```
+
+The above example registers a service named "web" with your Consul agent. This represents a non-existent web service running at 10.10.10.10:8000. Your web service is now available for Consul-Terraform-Sync to consume. In Consul-Terraform-Sync, you can optionally configure the web service with a [service block](/docs/nia/installation/configuration#service) if it has any non-default values. You can also have Consul-Terraform-Sync monitor the web service to execute a task and update network device(s) by configuring "web" in [`task.services`](/docs/nia/installation/configuration#services) of a task block.
+
+For more details on registering a service by HTTP API request, refer to the [register service API docs](https://www.consul.io/api-docs/agent/service#register-service).
+
+For more details on registering a service by loading a service definition, refer to the [Getting Started: Register a Service with Consul Service Discovery Tutorial](https://learn.hashicorp.com/tutorials/consul/get-started-service-discovery?in=consul/getting-started).
+
+### Run a Cluster
+
+The previous steps of installing and running a single Consul agent then registering a single service is sufficient to meaningfully start running Consul-Terraform-Sync.
+
+If you would like to run a Consul cluster rather than a single agent, refer to [Getting Started: Create a Local Consul Datacenter](https://learn.hashicorp.com/tutorials/consul/get-started-create-datacenter?in=consul/getting-started). This will walk you through the steps of running multiple Consul agents and then joining them together into a cluster.
+
+## Network Infrastructure (using a Terraform Provider)
+
+Consul-Terraform-Sync integrations for the Terraform driver utilizes Terraform providers as plugins to interface with specific network infrastructure platforms. The Terraform driver of Consul-Terraform-Sync inherits the expansive collection of Terraform providers to integrate with, and with release of [Terraform 0.13](https://www.hashicorp.com/blog/announcing-hashicorp-terraform-0-13/), this extends to include providers written by the community too by using [provider source](https://www.hashicorp.com/blog/adding-provider-source-to-hashicorp-terraform/).
+
+### Finding and Using Terraform Providers
+
+To find providers for the infrastructure platforms you use, browse the providers section of the [Terraform Registry](https://registry.terraform.io/browse/providers).
+
+### How to Create a Provider
+
+If there is no existing Terraform provider, a new Terraform provider can be [created](https://learn.hashicorp.com/tutorials/terraform/provider-setup) and [published](https://www.terraform.io/docs/registry/providers/publishing.html). The provider can then be used within a network integration task by authoring a compatible Terraform module.
+
+## Network Integration (using a Terraform Module)
+
+Working with a Terraform provider, you can write an integration task for Consul-Terraform-Sync by creating a Terraform module that is compatible with the Terraform driver.
+
+-> **Note:** [Release 0.1.0-techpreview1](https://github.com/hashicorp/consul-terraform-sync/releases/tag/v0.1.0-techpreview1) is compatible with Terraform modules with syntax supported by [Terraform version 0.13](https://github.com/hashicorp/terraform/blob/v0.13/CHANGELOG.md).
+
+### Using Terraform Modules
+
+The modules listed below are availabe to use and are compatible with Consul-Terraform-Sync.
+
+#### A10 Networks
+
+- Dynamic Load Balancing with Group Member Updates: [Terraform Registry](https://registry.terraform.io/modules/a10networks/service-group-sync-nia/thunder/latest) / [GitHub](https://github.com/a10networks/terraform-thunder-service-group-sync-nia)
+
+#### Checkpoint
+
+- Dynamic Firewalling with Address Object Updates: [Terraform Registry](https://registry.terraform.io/modules/CheckPointSW/dynobj-nia/checkpoint/latest) / [GitHub](https://github.com/CheckPointSW/terraform-checkpoint-dynobj-nia)
+
+#### Cisco ACI
+
+- Policy Based Redirection: [Terraform Registry](https://registry.terraform.io/modules/CiscoDevNet/autoscaling-nia/aci/latest) / [GitHub](https://github.com/CiscoDevNet/terraform-aci-autoscaling-nia)
+
+#### F5
+
+- Dynamic Load Balancing with Pool Member Updates: [Terraform Registry](https://registry.terraform.io/modules/f5devcentral/app-consul-sync-nia/bigip/latest) / [GitHub](https://github.com/f5devcentral/terraform-bigip-app-consul-sync-nia)
+
+#### Palo Alto Networks
+
+- Dynamic Address Group (DAG) Tags: [Terraform Registry](https://registry.terraform.io/modules/PaloAltoNetworks/dag-nia/panos/latest) / [GitHub](https://github.com/PaloAltoNetworks/terraform-panos-dag-nia)
+- Address Group and Dynamic Address Group (DAG) Tags: [Terraform Registry](https://registry.terraform.io/modules/PaloAltoNetworks/ag-dag-nia/panos/latest) / [GitHub](https://github.com/PaloAltoNetworks/terraform-panos-ag-dag-nia)
+
+### How to Create a Compatible Terraform Module
+
+-> **Note:** Consul-Terraform-Sync is currently in Technology Preview. Specifications in this section may change going into Beta release.
+
+You can read more on how to [create a module](https://www.terraform.io/docs/modules/index.html) or work through a [tutorial to build a module](https://learn.hashicorp.com/tutorials/terraform/module-create). Consul-Terraform-Sync is designed to integrate with any module that satisfies the specifications in the following section.
+
+#### Module Specifications
+
+Compatible modules for Consul-Terraform-Sync follow the [standard module](https://www.terraform.io/docs/modules/index.html#standard-module-structure) structure. Modules can use syntax supported by Terraform version 0.13 and newer. There are **2 required elements for compatibility:**
+
+1. **Root module** - Terraform has one requirement for files in the root directory of the repository to function as the primary entrypoint for the module. It should encapsulate the core logic to be used by Consul-Terraform-Sync for task automation. `main.tf` is the recommended filename for the main file where resources are created.
+2. **`services` input variable** - Consul-Terraform-Sync requires all modules to have the following input variable declared within the root module. The declaration of the `services` variable can be included at the top of the suggested `variables.tf` file where other input variables are commonly declared. This variable functions as the response object from the Consul catalog API and surfaces network information to be consumed by the module. It is structured as a map of objects.
+
+```hcl
+variable "services" {
+  description = "Consul services monitored by Consul-Terraform-Sync"
+  type = map(
+    object({
+      id        = string
+      name      = string
+      address   = string
+      port      = number
+      meta      = map(string)
+      tags      = list(string)
+      namespace = string
+      status    = string
+
+      node                  = string
+      node_id               = string
+      node_address          = string
+      node_datacenter       = string
+      node_tagged_addresses = map(string)
+      node_meta             = map(string)
+    })
+  )
+}
+```
+
+Keys of the `services` map are unique identifiers of the service across Consul agents and data centers. Keys follow the format `service-id.node.datacenter` (or `service-id.node.namespace.datacenter` for Consul Enterprise). A complete list of attributes available for the `services` variable is included in the [documentation for Consul-Terraform-Sync tasks](/docs/nia/tasks#task-execution).
+
+Terraform variables when passed as module arguments can be [lossy for object types](https://www.terraform.io/docs/configuration/types.html#conversion-of-complex-types). This allows Consul-Terraform-Sync to declare the full variable with every object attribute in the generated root module, and pass the variable to a child module that contains a subset of these attributes for its variable declaration. Modules compatible with Consul-Terraform-Sync may simplify the services variable within the module by omitting unused attributes. For example, the following services variable has 4 attributes with the rest omitted.
+
+```hcl
+variable "services" {
+  description = "Consul services monitored by Consul-Terraform-Sync"
+  type = map(
+    object({
+      id           = string
+      name         = string
+      node_address = string
+      port         = number
+      status       = string
+    })
+  )
+}
+```
+
+#### Module Input Variables
+
+Network infrastructure differs vastly across teams and organizations, and the automation needs of practitioners are unique based on their existing setup. [Input variables](https://www.terraform.io/docs/configuration/variables.html) can be used to serve as customization parameters to the module for practitioners.
+
+1. Identify areas in the module where practitioners could tailor the automation to fit their infrastructure.
+2. Declare input variables and insert the use of variables throughout module resources to expose these options to practitioners.
+3. Include descriptions to capture what the variables are and how they are used, and specify [custom validation rules for variables](https://www.terraform.io/docs/configuration/variables.html#custom-validation-rules) to provide context to users the expected format and conditions for the variables.
+4. Set reasonable default values for variables that are optional, and omit default values for variables that are required module arguments.
+
+Terraform is an explicit configuration language and requires variables to be declared, typed, and passed explicitly through as module arguments. Consul-Terraform-Sync abstracts this by creating intermediate variables at the root level from values intended for the module. These values are configured by practitioners within the [`task` block](/docs/nia/installation/configuration#variable_files). Value assignments are parsed to interpolate the corresponding variable declaration and are written to the appropriate Terraform files. A few assumptions are made for the intermediate variables: the variables users provide Consul-Terraform-Sync are declared and supported by the module, matching name and type.
+
+#### Module Guidelines
+
+This section covers guidelines for authoring compatible Consul-Terraform-Sync modules.
+
+##### Scope
+
+We recommend scoping the module to a few related resources for a provider. Small modules are easier and more flexible for end users to adopt for Consul-Terraform-Sync. It allows them to iteratively combine different modules and use them as building blocks to meet their unique network infrastructure needs.
+
+##### Complexity
+
+Consider authoring modules with low complexity to reduce the run time for Terraform execution. Complex modules that have a large number of dependencies may result in longer runs, which adds delay to the near real time network updates.
+
+##### Providers
+
+Provider configurations belong in the root module of a Terraform configuration and should not be included within the authored module for network integrations. End users will configure the providers through Consul-Terraform-Sync, and Consul-Terraform-Sync will then translate provider configuration to the generated root module appropriately.
+
+##### Documentation
+
+Modules for Consul-Terraform-Sync are Terraform modules and can effectively run independently from the `consul-terraform-sync` daemon and Consul environment. They should be written and designed with Terraform best practices and should be clear to a Terraform user what the module does and how to use it. Module documentation should be named `README` or `README.md`. The description should capture what the module should be used for and the implications of running it in automation with Consul-Terraform-Sync.

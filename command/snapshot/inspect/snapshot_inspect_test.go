@@ -1,16 +1,35 @@
 package inspect
 
 import (
-	"io"
-	"os"
+	"flag"
+	"io/ioutil"
 	"path/filepath"
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/agent"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/require"
 )
+
+// update allows golden files to be updated based on the current output.
+var update = flag.Bool("update", false, "update golden files")
+
+// golden reads and optionally writes the expected data to the golden file,
+// returning the contents as a string.
+func golden(t *testing.T, name, got string) string {
+	t.Helper()
+
+	golden := filepath.Join("testdata", name+".golden")
+	if *update && got != "" {
+		err := ioutil.WriteFile(golden, []byte(got), 0644)
+		require.NoError(t, err)
+	}
+
+	expected, err := ioutil.ReadFile(golden)
+	require.NoError(t, err)
+
+	return string(expected)
+}
 
 func TestSnapshotInspectCommand_noTabs(t *testing.T) {
 	t.Parallel()
@@ -60,53 +79,19 @@ func TestSnapshotInspectCommand_Validation(t *testing.T) {
 }
 
 func TestSnapshotInspectCommand(t *testing.T) {
-	t.Parallel()
-	a := agent.NewTestAgent(t, ``)
-	defer a.Shutdown()
-	client := a.Client()
 
-	dir := testutil.TempDir(t, "snapshot")
-	file := filepath.Join(dir, "backup.tgz")
-
-	// Save a snapshot of the current Consul state
-	f, err := os.Create(file)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	snap, _, err := client.Snapshot().Save(nil)
-	if err != nil {
-		f.Close()
-		t.Fatalf("err: %v", err)
-	}
-	if _, err := io.Copy(f, snap); err != nil {
-		f.Close()
-		t.Fatalf("err: %v", err)
-	}
-	if err := f.Close(); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	filepath := "./testdata/backup.snap"
 
 	// Inspect the snapshot
 	ui := cli.NewMockUi()
 	c := New(ui)
-	args := []string{file}
+	args := []string{filepath}
 
 	code := c.Run(args)
 	if code != 0 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
 
-	output := ui.OutputWriter.String()
-	for _, key := range []string{
-		"ID",
-		"Size",
-		"Index",
-		"Term",
-		"Version",
-	} {
-		if !strings.Contains(output, key) {
-			t.Fatalf("bad %#v, missing %q", output, key)
-		}
-	}
+	want := golden(t, t.Name(), ui.OutputWriter.String())
+	require.Equal(t, want, ui.OutputWriter.String())
 }

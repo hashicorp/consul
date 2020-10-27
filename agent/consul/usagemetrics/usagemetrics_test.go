@@ -21,7 +21,7 @@ func (m *mockStateProvider) State() *state.Store {
 	return retValues.Get(0).(*state.Store)
 }
 
-func TestUsageReporter_Run(t *testing.T) {
+func TestUsageReporter_Run_Nodes(t *testing.T) {
 	type testCase struct {
 		modfiyStateStore func(t *testing.T, s *state.Store)
 		expectedGauges   map[string]metrics.GaugeValue
@@ -34,53 +34,19 @@ func TestUsageReporter_Run(t *testing.T) {
 					Value:  0,
 					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
 				},
-				"consul.usage.test.consul.state.services;datacenter=dc1": {
-					Name:  "consul.usage.test.consul.state.services",
-					Value: 0,
-					Labels: []metrics.Label{
-						{Name: "datacenter", Value: "dc1"},
-					},
-				},
-				"consul.usage.test.consul.state.service_instances;datacenter=dc1": {
-					Name:  "consul.usage.test.consul.state.service_instances",
-					Value: 0,
-					Labels: []metrics.Label{
-						{Name: "datacenter", Value: "dc1"},
-					},
-				},
 			},
 		},
-		"nodes-and-services": {
+		"nodes": {
 			modfiyStateStore: func(t *testing.T, s *state.Store) {
 				require.Nil(t, s.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"}))
 				require.Nil(t, s.EnsureNode(2, &structs.Node{Node: "bar", Address: "127.0.0.2"}))
 				require.Nil(t, s.EnsureNode(3, &structs.Node{Node: "baz", Address: "127.0.0.2"}))
-
-				// Typical services and some consul services spread across two nodes
-				require.Nil(t, s.EnsureService(4, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: nil, Address: "", Port: 5000}))
-				require.Nil(t, s.EnsureService(5, "bar", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}))
-				require.Nil(t, s.EnsureService(6, "foo", &structs.NodeService{ID: "consul", Service: "consul", Tags: nil}))
-				require.Nil(t, s.EnsureService(7, "bar", &structs.NodeService{ID: "consul", Service: "consul", Tags: nil}))
 			},
 			expectedGauges: map[string]metrics.GaugeValue{
 				"consul.usage.test.consul.state.nodes;datacenter=dc1": {
 					Name:   "consul.usage.test.consul.state.nodes",
 					Value:  3,
 					Labels: []metrics.Label{{Name: "datacenter", Value: "dc1"}},
-				},
-				"consul.usage.test.consul.state.services;datacenter=dc1": {
-					Name:  "consul.usage.test.consul.state.services",
-					Value: 3,
-					Labels: []metrics.Label{
-						{Name: "datacenter", Value: "dc1"},
-					},
-				},
-				"consul.usage.test.consul.state.service_instances;datacenter=dc1": {
-					Name:  "consul.usage.test.consul.state.service_instances",
-					Value: 4,
-					Labels: []metrics.Label{
-						{Name: "datacenter", Value: "dc1"},
-					},
 				},
 			},
 		},
@@ -118,8 +84,8 @@ func TestUsageReporter_Run(t *testing.T) {
 
 			// Range over the expected values instead of just doing an Equal
 			// comparison on the maps because of different metrics emitted between
-			// OSS and Ent. The enterprise tests have a full equality comparison on
-			// the maps.
+			// OSS and Ent. The enterprise and OSS tests have a full equality
+			// comparison on the maps.
 			for key, expected := range tcase.expectedGauges {
 				require.Equal(t, expected, intv.Gauges[key])
 			}

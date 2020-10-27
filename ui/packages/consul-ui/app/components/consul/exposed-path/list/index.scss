@@ -1,0 +1,8 @@
+.consul-exposed-path-list {
+  > ul {
+    border-top: 1px solid $gray-200;
+  }
+  > ul > li {
+    @extend %composite-row;
+  }
+}

@@ -3,6 +3,7 @@ package agent
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
@@ -15,13 +16,39 @@ func (s *HTTPHandlers) ConnectCARoots(resp http.ResponseWriter, req *http.Reques
 		return nil, nil
 	}
 
+	pemResponse := false
+	if pemParam := req.URL.Query().Get("pem"); pemParam != "" {
+		val, err := strconv.ParseBool(pemParam)
+		if err != nil {
+			return nil, BadRequestError{Reason: "The 'pem' query parameter must be a boolean value"}
+		}
+		pemResponse = val
+	}
+
 	var reply structs.IndexedCARoots
 	defer setMeta(resp, &reply.QueryMeta)
 	if err := s.agent.RPC("ConnectCA.Roots", &args, &reply); err != nil {
 		return nil, err
 	}
 
-	return reply, nil
+	if !pemResponse {
+		return reply, nil
+	}
+
+	// defined in RFC 8555 and registered with the IANA
+	resp.Header().Set("Content-Type", "application/pem-certificate-chain")
+	for _, root := range reply.Roots {
+		if _, err := resp.Write([]byte(root.RootCert)); err != nil {
+			return nil, err
+		}
+		for _, intermediate := range root.IntermediateCerts {
+			if _, err := resp.Write([]byte(intermediate)); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return nil, nil
 }
 
 // /v1/connect/ca/configuration

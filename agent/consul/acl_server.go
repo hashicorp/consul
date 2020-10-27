@@ -6,7 +6,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/serf"
 )
 
 var serverACLCacheConfig *structs.ACLCachesConfig = &structs.ACLCachesConfig{
@@ -86,10 +86,10 @@ func (s *Server) checkBindingRuleUUID(id string) (bool, error) {
 
 func (s *Server) updateSerfTags(key, value string) {
 	// Update the LAN serf
-	lib.UpdateSerfTag(s.serfLAN, key, value)
+	serf.UpdateTag(s.serfLAN, key, value)
 
 	if s.serfWAN != nil {
-		lib.UpdateSerfTag(s.serfWAN, key, value)
+		serf.UpdateTag(s.serfWAN, key, value)
 	}
 
 	s.updateEnterpriseSerfTags(key, value)

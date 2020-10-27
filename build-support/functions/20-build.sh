@@ -49,7 +49,7 @@ function build_ui {
    fi
 
    local sdir="$1"
-   local ui_dir="${1}/ui-v2"
+   local ui_dir="${1}/ui"
 
    # parse the version
    version=$(parse_version "${sdir}")
@@ -89,8 +89,8 @@ function build_ui {
       (
          tar -c $(ls -A | grep -v "^(node_modules\|dist\|tmp)") | docker cp - ${container_id}:/consul-src &&
          status "Running build in container" && docker start -i ${container_id} &&
-         rm -rf ${1}/ui-v2/dist &&
-         status "Copying back artifacts" && docker cp ${container_id}:/consul-src/dist ${1}/ui-v2/dist
+         rm -rf ${1}/ui/dist &&
+         status "Copying back artifacts" && docker cp ${container_id}:/consul-src/packages/consul-ui/dist ${1}/ui/dist
       )
       ret=$?
       docker rm ${container_id} > /dev/null
@@ -99,7 +99,7 @@ function build_ui {
    # Check the version is baked in correctly
    if test ${ret} -eq 0
    then
-      local ui_vers=$(ui_version "${1}/ui-v2/dist/index.html")
+      local ui_vers=$(ui_version "${1}/ui/dist/index.html")
       if test "${version}" != "${ui_vers}"
       then
          err "ERROR: UI version mismatch. Expecting: '${version}' found '${ui_vers}'"
@@ -110,7 +110,7 @@ function build_ui {
    # Check the logo is baked in correctly
    if test ${ret} -eq 0
    then
-     local ui_logo_type=$(ui_logo_type "${1}/ui-v2/dist/index.html")
+     local ui_logo_type=$(ui_logo_type "${1}/ui/dist/index.html")
      if test "${logo_type}" != "${ui_logo_type}"
      then
        err "ERROR: UI logo type mismatch. Expecting: '${logo_type}' found '${ui_logo_type}'"
@@ -123,7 +123,7 @@ function build_ui {
    then
       rm -rf ${1}/pkg/web_ui
       mkdir -p ${1}/pkg
-      cp -r ${1}/ui-v2/dist ${1}/pkg/web_ui
+      cp -r ${1}/ui/dist ${1}/pkg/web_ui
    fi
 
    popd > /dev/null
@@ -316,7 +316,7 @@ function build_consul {
    then
       status "Copying the source from '${sdir}' to /consul"
       (
-         tar -c $(ls | grep -v "^(ui\|ui-v2\|website\|bin\|pkg\|.git)") | docker cp - ${container_id}:/consul &&
+         tar -c $(ls | grep -v "^(ui\|website\|bin\|pkg\|.git)") | docker cp - ${container_id}:/consul &&
          status "Running build in container" &&
          docker start -i ${container_id} &&
          status "Copying back artifacts" &&

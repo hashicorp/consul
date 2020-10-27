@@ -119,17 +119,5 @@ func (u *UsageMetricsReporter) runOnce() {
 		u.logger.Warn("failed to retrieve services from state store", "error", err)
 	}
 
-	metrics.SetGaugeWithLabels(
-		[]string{"consul", "state", "services"},
-		float32(serviceUsage.Services),
-		u.metricLabels,
-	)
-
-	metrics.SetGaugeWithLabels(
-		[]string{"consul", "state", "service_instances"},
-		float32(serviceUsage.ServiceInstances),
-		u.metricLabels,
-	)
-
-	u.emitEnterpriseUsage(serviceUsage)
+	u.emitServiceUsage(serviceUsage)
 }

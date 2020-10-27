@@ -6,17 +6,18 @@ import (
 	"os"
 	"time"
 
-	"github.com/hashicorp/consul/agent/checks"
-	"github.com/hashicorp/consul/agent/consul/autopilot"
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/tlsutil"
-	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/consul/version"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/time/rate"
+
+	"github.com/hashicorp/consul/agent/checks"
+	"github.com/hashicorp/consul/agent/consul/autopilot"
+	"github.com/hashicorp/consul/agent/structs"
+	libserf "github.com/hashicorp/consul/lib/serf"
+	"github.com/hashicorp/consul/tlsutil"
+	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/consul/version"
 )
 
 const (
@@ -218,6 +219,11 @@ type Config struct {
 	// the cluster until an explicit join is received. If this is set to
 	// true, we ignore the leave, and rejoin the cluster on start.
 	RejoinAfterLeave bool
+
+	// AdvertiseReconnectTimeout is the duration after which this node should be
+	// assumed to not be returning and thus should be reaped within Serf. This
+	// can only be set for Client agents
+	AdvertiseReconnectTimeout time.Duration
 
 	// Build is a string that is gossiped around, and can be used to help
 	// operators track which versions are actively deployed
@@ -458,6 +464,11 @@ type Config struct {
 	// disable a background routine.
 	DisableFederationStateAntiEntropy bool
 
+	// OverrideInitialSerfTags solely exists for use in unit tests to ensure
+	// that a serf tag is initially set to a known value, rather than the
+	// default to test some consul upgrade scenarios with fewer races.
+	OverrideInitialSerfTags func(tags map[string]string)
+
 	// CAConfig is used to apply the initial Connect CA configuration when
 	// bootstrapping.
 	CAConfig *structs.CAConfiguration
@@ -470,8 +481,7 @@ type Config struct {
 	// AutoEncrypt.Sign requests.
 	AutoEncryptAllowTLS bool
 
-	// TODO: godoc, set this value from Agent
-	EnableGRPCServer bool
+	RPCConfig RPCConfig
 
 	// Embedded Consul Enterprise specific configuration
 	*EnterpriseConfig
@@ -539,8 +549,8 @@ func DefaultConfig() *Config {
 		NodeName:                             hostname,
 		RPCAddr:                              DefaultRPCAddr,
 		RaftConfig:                           raft.DefaultConfig(),
-		SerfLANConfig:                        lib.SerfDefaultConfig(),
-		SerfWANConfig:                        lib.SerfDefaultConfig(),
+		SerfLANConfig:                        libserf.DefaultConfig(),
+		SerfWANConfig:                        libserf.DefaultConfig(),
 		SerfFloodInterval:                    60 * time.Second,
 		ReconcileInterval:                    60 * time.Second,
 		ProtocolVersion:                      ProtocolVersion2Compatible,
@@ -638,4 +648,11 @@ func DefaultConfig() *Config {
 	conf.RaftConfig.SnapshotThreshold = 16384
 
 	return conf
+}
+
+// RPCConfig settings for the RPC server
+//
+// TODO: move many settings to this struct.
+type RPCConfig struct {
+	EnableStreaming bool
 }

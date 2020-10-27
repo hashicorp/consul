@@ -3,18 +3,18 @@ package agent
 import (
 	"fmt"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
+	"path"
 	"sort"
 	"strings"
 
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-hclog"
 )
-
-// metaExternalSource is the key name for the service instance meta that
-// defines the external syncing source. This is used by the UI APIs below
-// to extract this.
-const metaExternalSource = "external-source"
 
 // ServiceSummary is used to summarize a service
 type ServiceSummary struct {
@@ -42,13 +42,6 @@ func (s *ServiceSummary) LessThan(other *ServiceSummary) bool {
 	return s.Name < other.Name
 }
 
-type ServiceListingSummary struct {
-	ServiceSummary
-
-	ConnectedWithProxy   bool
-	ConnectedWithGateway bool
-}
-
 type GatewayConfig struct {
 	AssociatedServiceCount int      `json:",omitempty"`
 	Addresses              []string `json:",omitempty"`
@@ -57,9 +50,23 @@ type GatewayConfig struct {
 	addressesSet map[string]struct{}
 }
 
+type ServiceListingSummary struct {
+	ServiceSummary
+
+	ConnectedWithProxy   bool
+	ConnectedWithGateway bool
+}
+
+type ServiceTopologySummary struct {
+	ServiceSummary
+
+	Intention structs.IntentionDecisionSummary
+}
+
 type ServiceTopology struct {
-	Upstreams      []*ServiceSummary
-	Downstreams    []*ServiceSummary
+	Protocol       string
+	Upstreams      []*ServiceTopologySummary
+	Downstreams    []*ServiceTopologySummary
 	FilteredByACLs bool
 }
 
@@ -275,6 +282,23 @@ func (s *HTTPHandlers) UIServiceTopology(resp http.ResponseWriter, req *http.Req
 		return nil, nil
 	}
 
+	kind, ok := req.URL.Query()["kind"]
+	if !ok {
+		resp.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(resp, "Missing service kind")
+		return nil, nil
+	}
+	args.ServiceKind = structs.ServiceKind(kind[0])
+
+	switch args.ServiceKind {
+	case structs.ServiceKindTypical, structs.ServiceKindIngressGateway:
+		// allowed
+	default:
+		resp.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(resp, "Unsupported service kind %q", args.ServiceKind)
+		return nil, nil
+	}
+
 	// Make the RPC request
 	var out structs.IndexedServiceTopology
 	defer setMeta(resp, &out.QueryMeta)
@@ -291,12 +315,39 @@ RPC:
 	upstreams, _ := summarizeServices(out.ServiceTopology.Upstreams.ToServiceDump(), nil, "")
 	downstreams, _ := summarizeServices(out.ServiceTopology.Downstreams.ToServiceDump(), nil, "")
 
-	sum := ServiceTopology{
-		Upstreams:      prepSummaryOutput(upstreams, true),
-		Downstreams:    prepSummaryOutput(downstreams, true),
+	var (
+		upstreamResp   = make([]*ServiceTopologySummary, 0)
+		downstreamResp = make([]*ServiceTopologySummary, 0)
+	)
+
+	// Sort and attach intention data for upstreams and downstreams
+	sortedUpstreams := prepSummaryOutput(upstreams, true)
+	for _, svc := range sortedUpstreams {
+		sn := structs.NewServiceName(svc.Name, &svc.EnterpriseMeta)
+		sum := ServiceTopologySummary{
+			ServiceSummary: *svc,
+			Intention:      out.ServiceTopology.UpstreamDecisions[sn.String()],
+		}
+		upstreamResp = append(upstreamResp, &sum)
+	}
+
+	sortedDownstreams := prepSummaryOutput(downstreams, true)
+	for _, svc := range sortedDownstreams {
+		sn := structs.NewServiceName(svc.Name, &svc.EnterpriseMeta)
+		sum := ServiceTopologySummary{
+			ServiceSummary: *svc,
+			Intention:      out.ServiceTopology.DownstreamDecisions[sn.String()],
+		}
+		downstreamResp = append(downstreamResp, &sum)
+	}
+
+	topo := ServiceTopology{
+		Protocol:       out.ServiceTopology.MetricsProtocol,
+		Upstreams:      upstreamResp,
+		Downstreams:    downstreamResp,
 		FilteredByACLs: out.FilteredByACLs,
 	}
-	return sum, nil
+	return topo, nil
 }
 
 func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig, dc string) (map[structs.ServiceName]*ServiceSummary, map[structs.ServiceName]bool) {
@@ -370,8 +421,8 @@ func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig, dc s
 		// sources. We only want to add unique sources so there is extra
 		// accounting here with an unexported field to maintain the set
 		// of sources.
-		if len(svc.Meta) > 0 && svc.Meta[metaExternalSource] != "" {
-			source := svc.Meta[metaExternalSource]
+		if len(svc.Meta) > 0 && svc.Meta[structs.MetaExternalSource] != "" {
+			source := svc.Meta[structs.MetaExternalSource]
 			if sum.externalSourceSet == nil {
 				sum.externalSourceSet = make(map[string]struct{})
 			}
@@ -412,7 +463,7 @@ func prepSummaryOutput(summaries map[structs.ServiceName]*ServiceSummary, exclud
 				sum.ChecksCritical++
 			}
 		}
-		if excludeSidecars && sum.Kind != structs.ServiceKindTypical {
+		if excludeSidecars && sum.Kind != structs.ServiceKindTypical && sum.Kind != structs.ServiceKindIngressGateway {
 			continue
 		}
 		resp = append(resp, sum)
@@ -496,4 +547,86 @@ func (s *HTTPHandlers) UIGatewayIntentions(resp http.ResponseWriter, req *http.R
 	}
 
 	return reply.Intentions, nil
+}
+
+// UIMetricsProxy handles the /v1/internal/ui/metrics-proxy/ endpoint which, if
+// configured, provides a simple read-only HTTP proxy to a single metrics
+// backend to expose it to the UI.
+func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Check the UI was enabled at agent startup (note this is not reloadable
+	// currently).
+	if !s.IsUIEnabled() {
+		return nil, NotFoundError{Reason: "UI is not enabled"}
+	}
+
+	// Load reloadable proxy config
+	cfg, ok := s.metricsProxyCfg.Load().(config.UIMetricsProxy)
+	if !ok || cfg.BaseURL == "" {
+		// Proxy not configured
+		return nil, NotFoundError{Reason: "Metrics proxy is not enabled"}
+	}
+
+	log := s.agent.logger.Named(logging.UIMetricsProxy)
+
+	// Construct the new URL from the path and the base path. Note we do this here
+	// not in the Director function below because we can handle any errors cleanly
+	// here.
+
+	// Replace prefix in the path
+	subPath := strings.TrimPrefix(req.URL.Path, "/v1/internal/ui/metrics-proxy")
+
+	// Append that to the BaseURL (which might contain a path prefix component)
+	newURL := cfg.BaseURL + subPath
+
+	// Parse it into a new URL
+	u, err := url.Parse(newURL)
+	if err != nil {
+		log.Error("couldn't parse target URL", "base_url", cfg.BaseURL, "path", subPath)
+		return nil, BadRequestError{Reason: "Invalid path."}
+	}
+
+	// Clean the new URL path to prevent path traversal attacks and remove any
+	// double slashes etc.
+	u.Path = path.Clean(u.Path)
+
+	// Pass through query params
+	u.RawQuery = req.URL.RawQuery
+
+	// Validate that the full BaseURL is still a prefix - if there was a path
+	// prefix on the BaseURL but an attacker tried to circumvent it with path
+	// traversal then the Clean above would have resolve the /../ components back
+	// to the actual path which means part of the prefix will now be missing.
+	//
+	// Note that in practice this is not currently possible since any /../ in the
+	// path would have already been resolved by the API server mux and so not even
+	// hit this handler. Any /../ that are far enough into the path to hit this
+	// handler, can't backtrack far enough to eat into the BaseURL either. But we
+	// leave this in anyway in case something changes in the future.
+	if !strings.HasPrefix(u.String(), cfg.BaseURL) {
+		log.Error("target URL escaped from base path",
+			"base_url", cfg.BaseURL,
+			"path", subPath,
+			"target_url", u.String(),
+		)
+		return nil, BadRequestError{Reason: "Invalid path."}
+	}
+
+	// Add any configured headers
+	for _, h := range cfg.AddHeaders {
+		req.Header.Set(h.Name, h.Value)
+	}
+
+	log.Debug("proxying request", "to", u.String())
+
+	proxy := httputil.ReverseProxy{
+		Director: func(r *http.Request) {
+			r.URL = u
+		},
+		ErrorLog: log.StandardLogger(&hclog.StandardLoggerOptions{
+			InferLevels: true,
+		}),
+	}
+
+	proxy.ServeHTTP(resp, req)
+	return nil, nil
 }

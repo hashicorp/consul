@@ -140,7 +140,7 @@ machine is always encrypted.
 
 We previously established a connection by directly running `consul connect proxy` in developer mode. Realistically, services need to establish connections
 to dependencies over Connect. Let's register a service "web" that registers
-"socat" as an upstream dependency in it's sidecar registration:
+"socat" as an upstream dependency in its sidecar registration:
 
 ```shell-session
 $ cat <<EOF | sudo tee /etc/consul.d/web.json

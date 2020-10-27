@@ -393,7 +393,7 @@ func (s *TestServer) WaitForLeader(t *testing.T) {
 		}
 		defer resp.Body.Close()
 		if err := s.requireOK(resp); err != nil {
-			r.Fatal("failed OK response", err)
+			r.Fatalf("failed OK response: %v", err)
 		}
 
 		// Ensure we have a leader and a node registration.
@@ -402,7 +402,7 @@ func (s *TestServer) WaitForLeader(t *testing.T) {
 		}
 		index, err := strconv.ParseInt(resp.Header.Get("X-Consul-Index"), 10, 64)
 		if err != nil {
-			r.Fatal("bad consul index", err)
+			r.Fatalf("bad consul index: %v", err)
 		}
 		if index < 2 {
 			r.Fatal("consul index should be at least 2")
@@ -433,7 +433,7 @@ func (s *TestServer) WaitForActiveCARoot(t *testing.T) {
 		// since this is used in both `api` and consul test or duplication. The 200
 		// is all we really need to wait for.
 		if err := s.requireOK(resp); err != nil {
-			r.Fatal("failed OK response", err)
+			r.Fatalf("failed OK response: %v", err)
 		}
 
 		var roots rootsResponse
@@ -449,6 +449,27 @@ func (s *TestServer) WaitForActiveCARoot(t *testing.T) {
 	})
 }
 
+// WaitForServiceIntentions waits until the server can accept config entry
+// kinds of service-intentions meaning any migration bootstrapping from pre-1.9
+// intentions has completed.
+func (s *TestServer) WaitForServiceIntentions(t *testing.T) {
+	const fakeConfigName = "Sa4ohw5raith4si0Ohwuqu3lowiethoh"
+	retry.Run(t, func(r *retry.R) {
+		// Try to delete a non-existent service-intentions config entry. The
+		// preflightCheck call in agent/consul/config_endpoint.go will fail if
+		// we aren't ready yet, vs just doing no work instead.
+		url := s.url("/v1/config/service-intentions/" + fakeConfigName)
+		resp, err := s.masterDelete(url)
+		if err != nil {
+			r.Fatalf("failed http get '%s': %v", url, err)
+		}
+		defer resp.Body.Close()
+		if err := s.requireOK(resp); err != nil {
+			r.Fatalf("failed OK response: %v", err)
+		}
+	})
+}
+
 // WaitForSerfCheck ensures we have a node with serfHealth check registered
 // Behavior mirrors testrpc.WaitForTestAgent but avoids the dependency cycle in api pkg
 func (s *TestServer) WaitForSerfCheck(t *testing.T) {
@@ -457,11 +478,11 @@ func (s *TestServer) WaitForSerfCheck(t *testing.T) {
 		url := s.url("/v1/catalog/nodes?index=0")
 		resp, err := s.masterGet(url)
 		if err != nil {
-			r.Fatal("failed http get", err)
+			r.Fatalf("failed http get: %v", err)
 		}
 		defer resp.Body.Close()
 		if err := s.requireOK(resp); err != nil {
-			r.Fatal("failed OK response", err)
+			r.Fatalf("failed OK response: %v", err)
 		}
 
 		// Watch for the anti-entropy sync to finish.
@@ -478,11 +499,11 @@ func (s *TestServer) WaitForSerfCheck(t *testing.T) {
 		url = s.url(fmt.Sprintf("/v1/health/node/%s", payload[0]["Node"]))
 		resp, err = s.masterGet(url)
 		if err != nil {
-			r.Fatal("failed http get", err)
+			r.Fatalf("failed http get: %v", err)
 		}
 		defer resp.Body.Close()
 		if err := s.requireOK(resp); err != nil {
-			r.Fatal("failed OK response", err)
+			r.Fatalf("failed OK response: %v", err)
 		}
 		dec = json.NewDecoder(resp.Body)
 		if err = dec.Decode(&payload); err != nil {
@@ -504,6 +525,17 @@ func (s *TestServer) WaitForSerfCheck(t *testing.T) {
 
 func (s *TestServer) masterGet(url string) (*http.Response, error) {
 	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	if s.Config.ACL.Tokens.Master != "" {
+		req.Header.Set("x-consul-token", s.Config.ACL.Tokens.Master)
+	}
+	return s.HTTPClient.Do(req)
+}
+
+func (s *TestServer) masterDelete(url string) (*http.Response, error) {
+	req, err := http.NewRequest("DELETE", url, nil)
 	if err != nil {
 		return nil, err
 	}

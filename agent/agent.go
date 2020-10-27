@@ -17,15 +17,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/consul/agent/dns"
-	"github.com/hashicorp/consul/agent/token"
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
-
+	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/raft"
+	"github.com/hashicorp/serf/serf"
+	"golang.org/x/net/http2"
 	"google.golang.org/grpc"
 
-	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/ae"
 	"github.com/hashicorp/consul/agent/cache"
@@ -33,10 +34,13 @@ import (
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/proxycfg"
+	"github.com/hashicorp/consul/agent/rpcclient/health"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/systemd"
+	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/agent/xds"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/api/watch"
@@ -46,10 +50,6 @@ import (
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/raft"
-	"github.com/hashicorp/serf/serf"
-	"golang.org/x/net/http2"
 )
 
 const (
@@ -311,6 +311,10 @@ type Agent struct {
 	// they can update their internal state.
 	configReloaders []ConfigReloader
 
+	// TODO: pass directly to HTTPHandlers and DNSServer once those are passed
+	// into Agent, which will allow us to remove this field.
+	rpcClientHealth *health.Client
+
 	// enterpriseAgent embeds fields that we only access in consul-enterprise builds
 	enterpriseAgent
 }
@@ -354,6 +358,12 @@ func New(bd BaseDeps) (*Agent, error) {
 		config:          bd.RuntimeConfig,
 		cache:           bd.Cache,
 	}
+
+	cacheName := cachetype.HealthServicesName
+	if bd.RuntimeConfig.CacheUseStreamingBackend {
+		cacheName = cachetype.StreamingHealthServicesName
+	}
+	a.rpcClientHealth = &health.Client{Cache: bd.Cache, NetRPC: &a, CacheName: cacheName}
 
 	a.serviceManager = NewServiceManager(&a)
 
@@ -590,6 +600,12 @@ func (a *Agent) Start(ctx context.Context) error {
 	go a.retryJoinLAN()
 	if a.config.ServerMode {
 		go a.retryJoinWAN()
+	}
+
+	// DEPRECATED: Warn users if they're emitting deprecated metrics. Remove this warning and the flagged metrics in a
+	// future release of Consul.
+	if !a.config.Telemetry.DisableCompatOneNine {
+		a.logger.Warn("DEPRECATED Backwards compatibility with pre-1.9 metrics enabled. These metrics will be removed in a future version of Consul. Set `telemetry { disable_compat_1.9 = true }` to disable them.")
 	}
 
 	return nil
@@ -1019,6 +1035,8 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 		cfg.SerfWANConfig = nil
 	}
 
+	cfg.AdvertiseReconnectTimeout = runtimeCfg.AdvertiseReconnectTimeout
+
 	cfg.RPCAddr = runtimeCfg.RPCBindAddr
 	cfg.RPCAdvertise = runtimeCfg.RPCAdvertiseAddr
 
@@ -1125,6 +1143,8 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	// RPC-related performance configs. We allow explicit zero value to disable so
 	// copy it whatever the value.
 	cfg.RPCHoldTimeout = runtimeCfg.RPCHoldTimeout
+
+	cfg.RPCConfig = runtimeCfg.RPCConfig
 
 	if runtimeCfg.LeaveDrainTime > 0 {
 		cfg.LeaveDrainTime = runtimeCfg.LeaveDrainTime
@@ -1701,6 +1721,11 @@ type persistedService struct {
 	Token   string
 	Service *structs.NodeService
 	Source  string
+	// whether this service was registered as a sidecar, see structs.NodeService
+	// we store this field here because it is excluded from json serialization
+	// to exclude it from API output, but we need it to properly deregister
+	// persisted sidecars.
+	LocallyRegisteredAsSidecar bool `json:",omitempty"`
 }
 
 // persistService saves a service definition to a JSON file in the data dir
@@ -1709,9 +1734,10 @@ func (a *Agent) persistService(service *structs.NodeService, source configSource
 	svcPath := filepath.Join(a.config.DataDir, servicesDir, svcID.StringHash())
 
 	wrapped := persistedService{
-		Token:   a.State.ServiceToken(service.CompoundServiceID()),
-		Service: service,
-		Source:  source.String(),
+		Token:                      a.State.ServiceToken(service.CompoundServiceID()),
+		Service:                    service,
+		Source:                     source.String(),
+		LocallyRegisteredAsSidecar: service.LocallyRegisteredAsSidecar,
 	}
 	encoded, err := json.Marshal(wrapped)
 	if err != nil {
@@ -3160,6 +3186,10 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 				continue
 			}
 		}
+
+		// Restore LocallyRegisteredAsSidecar, see persistedService.LocallyRegisteredAsSidecar
+		p.Service.LocallyRegisteredAsSidecar = p.LocallyRegisteredAsSidecar
+
 		serviceID := p.Service.CompoundServiceID()
 
 		source, ok := ConfigSourceFromName(p.Source)
@@ -3489,6 +3519,12 @@ func (a *Agent) ReloadConfig() error {
 	// breaking some existing behavior.
 	newCfg.NodeID = a.config.NodeID
 
+	// DEPRECATED: Warn users on reload if they're emitting deprecated metrics. Remove this warning and the flagged
+	// metrics in a future release of Consul.
+	if !a.config.Telemetry.DisableCompatOneNine {
+		a.logger.Warn("DEPRECATED Backwards compatibility with pre-1.9 metrics enabled. These metrics will be removed in a future version of Consul. Set `telemetry { disable_compat_1.9 = true }` to disable them.")
+	}
+
 	return a.reloadConfigInternal(newCfg)
 }
 
@@ -3667,10 +3703,11 @@ func (a *Agent) LocalBlockingQuery(alwaysBlock bool, hash string, wait time.Dura
 	}
 }
 
-// registerCache configures the cache and registers all the supported
-// types onto the cache. This is NOT safe to call multiple times so
-// care should be taken to call this exactly once after the cache
-// field has been initialized.
+// registerCache types on a.cache.
+// This function may only be called once from New.
+//
+// Note: this function no longer registered all cache-types. Newer cache-types
+// that do not depend on Agent are registered from registerCacheTypes.
 func (a *Agent) registerCache() {
 	// Note that you should register the _agent_ as the RPC implementation and not
 	// the a.delegate directly, otherwise tests that rely on overriding RPC

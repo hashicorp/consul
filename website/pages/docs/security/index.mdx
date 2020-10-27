@@ -91,7 +91,7 @@ non-default options that potentially present additional security risks.
   1.1.1, and 1.2.4 [as described here](https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations).
 
 - **Remote exec enabled.** Consul includes a [`consul exec`
-  feature](/docs/commands/exec) allowing execution of arbitrary commands
+  feature](/commands/exec) allowing execution of arbitrary commands
   across the cluster. This is disabled by default since 0.8.0. We recommend
   leaving it disabled. If enabled, extreme care must be taken to ensure correct
   ACLs restrict access, for example any management token grants access to

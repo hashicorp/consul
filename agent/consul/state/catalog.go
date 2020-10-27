@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
@@ -2540,8 +2542,13 @@ func updateGatewayServices(tx *txn, idx uint64, conf structs.ConfigEntry, entMet
 	}
 
 	// Delete all associated with gateway first, to avoid keeping mappings that were removed
-	if _, err := tx.DeleteAll(gatewayServicesTableName, "gateway", structs.NewServiceName(conf.GetName(), entMeta)); err != nil {
+	sn := structs.NewServiceName(conf.GetName(), entMeta)
+
+	if _, err := tx.DeleteAll(gatewayServicesTableName, "gateway", sn); err != nil {
 		return fmt.Errorf("failed to truncate gateway services table: %v", err)
+	}
+	if err := truncateGatewayServiceTopologyMappings(tx, idx, sn, conf.GetKind()); err != nil {
+		return fmt.Errorf("failed to truncate mesh topology for gateway: %v", err)
 	}
 
 	for _, svc := range gatewayServices {
@@ -2732,6 +2739,10 @@ func updateGatewayService(tx *txn, idx uint64, mapping *structs.GatewayService) 
 	if err := indexUpdateMaxTxn(tx, idx, gatewayServicesTableName); err != nil {
 		return fmt.Errorf("failed updating gateway-services index: %v", err)
 	}
+
+	if err := insertGatewayServiceTopologyMapping(tx, idx, mapping); err != nil {
+		return fmt.Errorf("failed to reconcile mesh topology for gateway: %v", err)
+	}
 	return nil
 }
 
@@ -2782,6 +2793,9 @@ func cleanupGatewayWildcards(tx *txn, idx uint64, svc *structs.ServiceNode) erro
 				}
 				if err := indexUpdateMaxTxn(tx, idx, gatewayServicesTableName); err != nil {
 					return fmt.Errorf("failed updating gateway-services index: %v", err)
+				}
+				if err := deleteGatewayServiceTopologyMapping(tx, idx, gs); err != nil {
+					return fmt.Errorf("failed to reconcile mesh topology for gateway: %v", err)
 				}
 			}
 		}
@@ -2893,6 +2907,36 @@ func serviceGatewayNodes(tx *txn, ws memdb.WatchSet, service string, kind struct
 	return maxIdx, ret, nil
 }
 
+// metricsProtocolForIngressGateway determines the protocol that should be used when fetching metrics for an ingress gateway
+// Since ingress gateways may have listeners with different protocols, favor capturing all traffic by only returning HTTP
+// when all listeners are HTTP-like.
+func metricsProtocolForIngressGateway(tx ReadTxn, ws memdb.WatchSet, sn structs.ServiceName) (uint64, string, error) {
+	idx, conf, err := configEntryTxn(tx, ws, structs.IngressGateway, sn.Name, &sn.EnterpriseMeta)
+	if err != nil {
+		return 0, "", fmt.Errorf("failed to get ingress-gateway config entry for %q: %v", sn.String(), err)
+	}
+	if conf == nil {
+		return 0, "", nil
+	}
+	entry, ok := conf.(*structs.IngressGatewayConfigEntry)
+	if !ok {
+		return 0, "", fmt.Errorf("unexpected config entry type: %T", conf)
+	}
+	counts := make(map[string]int)
+	for _, l := range entry.Listeners {
+		if structs.IsProtocolHTTPLike(l.Protocol) {
+			counts["http"] += 1
+		} else {
+			counts["tcp"] += 1
+		}
+	}
+	protocol := "tcp"
+	if counts["tcp"] == 0 && counts["http"] > 0 {
+		protocol = "http"
+	}
+	return idx, protocol, nil
+}
+
 // checkProtocolMatch filters out any GatewayService entries added from a wildcard with a protocol
 // that doesn't match the one configured in their discovery chain.
 func checkProtocolMatch(tx ReadTxn, ws memdb.WatchSet, svc *structs.GatewayService) (uint64, bool, error) {
@@ -2911,15 +2955,37 @@ func checkProtocolMatch(tx ReadTxn, ws memdb.WatchSet, svc *structs.GatewayServi
 func (s *Store) ServiceTopology(
 	ws memdb.WatchSet,
 	dc, service string,
+	kind structs.ServiceKind,
+	defaultAllow acl.EnforcementDecision,
 	entMeta *structs.EnterpriseMeta,
 ) (uint64, *structs.ServiceTopology, error) {
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
 	var (
-		maxIdx uint64
-		sn     = structs.NewServiceName(service, entMeta)
+		maxIdx   uint64
+		protocol string
+		err      error
+
+		sn = structs.NewServiceName(service, entMeta)
 	)
+
+	switch kind {
+	case structs.ServiceKindIngressGateway:
+		maxIdx, protocol, err = metricsProtocolForIngressGateway(tx, ws, sn)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to fetch protocol for service %s: %v", sn.String(), err)
+		}
+
+	case structs.ServiceKindTypical:
+		maxIdx, protocol, err = protocolForService(tx, ws, sn)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to fetch protocol for service %s: %v", sn.String(), err)
+		}
+
+	default:
+		return 0, nil, fmt.Errorf("unsupported kind %q", kind)
+	}
 
 	idx, upstreamNames, err := upstreamsFromRegistrationTxn(tx, ws, sn)
 	if err != nil {
@@ -2934,6 +3000,22 @@ func (s *Store) ServiceTopology(
 	}
 	if idx > maxIdx {
 		maxIdx = idx
+	}
+
+	upstreamDecisions := make(map[string]structs.IntentionDecisionSummary)
+
+	// The given service is the source relative to upstreams
+	sourceURI := connect.SpiffeIDService{
+		Namespace: entMeta.NamespaceOrDefault(),
+		Service:   service,
+	}
+	for _, un := range upstreamNames {
+		decision, err := s.IntentionDecision(&sourceURI, un.Name, un.NamespaceOrDefault(), defaultAllow)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to get intention decision from (%s/%s) to (%s/%s): %v",
+				sourceURI.Namespace, sourceURI.Service, un.Name, un.NamespaceOrDefault(), err)
+		}
+		upstreamDecisions[un.String()] = decision
 	}
 
 	idx, downstreamNames, err := s.downstreamsForServiceTxn(tx, ws, dc, sn)
@@ -2951,9 +3033,27 @@ func (s *Store) ServiceTopology(
 		maxIdx = idx
 	}
 
+	downstreamDecisions := make(map[string]structs.IntentionDecisionSummary)
+	for _, dn := range downstreamNames {
+		// Downstreams are the source relative to the given service
+		sourceURI := connect.SpiffeIDService{
+			Namespace: dn.NamespaceOrDefault(),
+			Service:   dn.Name,
+		}
+		decision, err := s.IntentionDecision(&sourceURI, service, entMeta.NamespaceOrDefault(), defaultAllow)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to get intention decision from (%s/%s) to (%s/%s): %v",
+				sourceURI.Namespace, sourceURI.Service, service, dn.NamespaceOrDefault(), err)
+		}
+		downstreamDecisions[dn.String()] = decision
+	}
+
 	resp := &structs.ServiceTopology{
-		Upstreams:   upstreams,
-		Downstreams: downstreams,
+		MetricsProtocol:     protocol,
+		Upstreams:           upstreams,
+		Downstreams:         downstreams,
+		UpstreamDecisions:   upstreamDecisions,
+		DownstreamDecisions: downstreamDecisions,
 	}
 	return maxIdx, resp, nil
 }
@@ -3191,5 +3291,58 @@ func cleanupMeshTopology(tx *txn, idx uint64, service *structs.ServiceNode) erro
 			}
 		}
 	}
+	return nil
+}
+
+func insertGatewayServiceTopologyMapping(tx *txn, idx uint64, gs *structs.GatewayService) error {
+	// Only ingress gateways are standalone items in the mesh topology viz
+	if gs.GatewayKind != structs.ServiceKindIngressGateway || gs.Service.Name == structs.WildcardSpecifier {
+		return nil
+	}
+
+	mapping := structs.UpstreamDownstream{
+		Upstream:   gs.Service,
+		Downstream: gs.Gateway,
+		RaftIndex:  gs.RaftIndex,
+	}
+	if err := tx.Insert(topologyTableName, &mapping); err != nil {
+		return fmt.Errorf("failed inserting %s mapping: %s", topologyTableName, err)
+	}
+	if err := indexUpdateMaxTxn(tx, idx, topologyTableName); err != nil {
+		return fmt.Errorf("failed updating %s index: %v", topologyTableName, err)
+	}
+
+	return nil
+}
+
+func deleteGatewayServiceTopologyMapping(tx *txn, idx uint64, gs *structs.GatewayService) error {
+	// Only ingress gateways are standalone items in the mesh topology viz
+	if gs.GatewayKind != structs.ServiceKindIngressGateway {
+		return nil
+	}
+
+	if _, err := tx.DeleteAll(topologyTableName, "id", gs.Service, gs.Gateway); err != nil {
+		return fmt.Errorf("failed to truncate %s table: %v", topologyTableName, err)
+	}
+	if err := indexUpdateMaxTxn(tx, idx, topologyTableName); err != nil {
+		return fmt.Errorf("failed updating %s index: %v", topologyTableName, err)
+	}
+
+	return nil
+}
+
+func truncateGatewayServiceTopologyMappings(tx *txn, idx uint64, gateway structs.ServiceName, kind string) error {
+	// Only ingress gateways are standalone items in the mesh topology viz
+	if kind != string(structs.ServiceKindIngressGateway) {
+		return nil
+	}
+
+	if _, err := tx.DeleteAll(topologyTableName, "downstream", gateway); err != nil {
+		return fmt.Errorf("failed to truncate %s table: %v", topologyTableName, err)
+	}
+	if err := indexUpdateMaxTxn(tx, idx, topologyTableName); err != nil {
+		return fmt.Errorf("failed updating %s index: %v", topologyTableName, err)
+	}
+
 	return nil
 }

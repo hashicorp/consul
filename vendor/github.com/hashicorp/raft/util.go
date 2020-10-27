@@ -96,6 +96,25 @@ func asyncNotifyBool(ch chan bool, v bool) {
 	}
 }
 
+// overrideNotifyBool is used to notify on a bool channel
+// but override existing value if value is present.
+// ch must be 1-item buffered channel.
+//
+// This method does not support multiple concurrent calls.
+func overrideNotifyBool(ch chan bool, v bool) {
+	select {
+	case ch <- v:
+		// value sent, all done
+	case <-ch:
+		// channel had an old value
+		select {
+		case ch <- v:
+		default:
+			panic("race: channel was sent concurrently")
+		}
+	}
+}
+
 // Decode reverses the encode operation on a byte slice input.
 func decodeMsgPack(buf []byte, out interface{}) error {
 	r := bytes.NewBuffer(buf)

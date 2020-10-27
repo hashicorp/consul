@@ -37,6 +37,7 @@ func init() {
 	registerCommand(structs.ACLAuthMethodSetRequestType, (*FSM).applyACLAuthMethodSetOperation)
 	registerCommand(structs.ACLAuthMethodDeleteRequestType, (*FSM).applyACLAuthMethodDeleteOperation)
 	registerCommand(structs.FederationStateRequestType, (*FSM).applyFederationStateOperation)
+	registerCommand(structs.SystemMetadataRequestType, (*FSM).applySystemMetadataOperation)
 }
 
 func (c *FSM) applyRegister(buf []byte, index uint64) interface{} {
@@ -292,9 +293,15 @@ func (c *FSM) applyIntentionOperation(buf []byte, index uint64) interface{} {
 		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
 	switch req.Op {
 	case structs.IntentionOpCreate, structs.IntentionOpUpdate:
-		return c.state.IntentionSet(index, req.Intention)
+		//nolint:staticcheck
+		return c.state.LegacyIntentionSet(index, req.Intention)
 	case structs.IntentionOpDelete:
-		return c.state.IntentionDelete(index, req.Intention.ID)
+		//nolint:staticcheck
+		return c.state.LegacyIntentionDelete(index, req.Intention.ID)
+	case structs.IntentionOpDeleteAll:
+		return c.state.LegacyIntentionDeleteAll(index)
+	case structs.IntentionOpUpsert:
+		fallthrough // unsupported
 	default:
 		c.logger.Warn("Invalid Intention operation", "operation", req.Op)
 		return fmt.Errorf("Invalid Intention operation '%s'", req.Op)
@@ -566,5 +573,28 @@ func (c *FSM) applyFederationStateOperation(buf []byte, index uint64) interface{
 		return c.state.FederationStateDelete(index, req.State.Datacenter)
 	default:
 		return fmt.Errorf("invalid federation state operation type: %v", req.Op)
+	}
+}
+
+func (c *FSM) applySystemMetadataOperation(buf []byte, index uint64) interface{} {
+	var req structs.SystemMetadataRequest
+	if err := structs.Decode(buf, &req); err != nil {
+		panic(fmt.Errorf("failed to decode request: %v", err))
+	}
+
+	switch req.Op {
+	case structs.SystemMetadataUpsert:
+		defer metrics.MeasureSinceWithLabels([]string{"fsm", "system_metadata"}, time.Now(),
+			[]metrics.Label{{Name: "op", Value: "upsert"}})
+		if err := c.state.SystemMetadataSet(index, req.Entry); err != nil {
+			return err
+		}
+		return true
+	case structs.SystemMetadataDelete:
+		defer metrics.MeasureSinceWithLabels([]string{"fsm", "system_metadata"}, time.Now(),
+			[]metrics.Label{{Name: "op", Value: "delete"}})
+		return c.state.SystemMetadataDelete(index, req.Entry)
+	default:
+		return fmt.Errorf("invalid system metadata operation type: %v", req.Op)
 	}
 }

@@ -16,6 +16,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-bexpr"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-sockaddr/template"
+	"github.com/hashicorp/memberlist"
+	"golang.org/x/time/rate"
+
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/connect/ca"
@@ -30,12 +37,6 @@ import (
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-bexpr"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/go-sockaddr/template"
-	"github.com/hashicorp/memberlist"
-	"golang.org/x/time/rate"
 )
 
 // Load will build the configuration including the extraHead source injected
@@ -936,6 +937,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 			CirconusCheckTags:                  b.stringVal(c.Telemetry.CirconusCheckTags),
 			CirconusSubmissionInterval:         b.stringVal(c.Telemetry.CirconusSubmissionInterval),
 			CirconusSubmissionURL:              b.stringVal(c.Telemetry.CirconusSubmissionURL),
+			DisableCompatOneNine:               b.boolVal(c.Telemetry.DisableCompatOneNine),
 			DisableHostname:                    b.boolVal(c.Telemetry.DisableHostname),
 			DogstatsdAddr:                      b.stringVal(c.Telemetry.DogstatsdAddr),
 			DogstatsdTags:                      c.Telemetry.DogstatsdTags,
@@ -949,11 +951,12 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		},
 
 		// Agent
-		AdvertiseAddrLAN: advertiseAddrLAN,
-		AdvertiseAddrWAN: advertiseAddrWAN,
-		BindAddr:         bindAddr,
-		Bootstrap:        b.boolVal(c.Bootstrap),
-		BootstrapExpect:  b.intVal(c.BootstrapExpect),
+		AdvertiseAddrLAN:          advertiseAddrLAN,
+		AdvertiseAddrWAN:          advertiseAddrWAN,
+		AdvertiseReconnectTimeout: b.durationVal("advertise_reconnect_timeout", c.AdvertiseReconnectTimeout),
+		BindAddr:                  bindAddr,
+		Bootstrap:                 b.boolVal(c.Bootstrap),
+		BootstrapExpect:           b.intVal(c.BootstrapExpect),
 		Cache: cache.Options{
 			EntryFetchRate: rate.Limit(
 				b.float64ValWithDefault(c.Cache.EntryFetchRate, float64(cache.DefaultEntryFetchRate)),
@@ -1040,6 +1043,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		RPCMaxConnsPerClient:        b.intVal(c.Limits.RPCMaxConnsPerClient),
 		RPCProtocol:                 b.intVal(c.RPCProtocol),
 		RPCRateLimit:                rate.Limit(b.float64Val(c.Limits.RPCRate)),
+		RPCConfig:                   consul.RPCConfig{EnableStreaming: b.boolVal(c.RPC.EnableStreaming)},
 		RaftProtocol:                b.intVal(c.RaftProtocol),
 		RaftSnapshotThreshold:       b.intVal(c.RaftSnapshotThreshold),
 		RaftSnapshotInterval:        b.durationVal("raft_snapshot_interval", c.RaftSnapshotInterval),
@@ -1088,6 +1092,8 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		VerifyServerHostname:        verifyServerName,
 		Watches:                     c.Watches,
 	}
+
+	rt.CacheUseStreamingBackend = b.boolVal(c.Cache.UseStreamingBackend)
 
 	if rt.Cache.EntryFetchMaxBurst <= 0 {
 		return RuntimeConfig{}, fmt.Errorf("cache.entry_fetch_max_burst must be strictly positive, was: %v", rt.Cache.EntryFetchMaxBurst)
@@ -1387,6 +1393,10 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	}
 	if !rt.ServerMode && rt.AutoEncryptAllowTLS {
 		return fmt.Errorf("auto_encrypt.allow_tls can only be used on a server.")
+	}
+
+	if rt.ServerMode && rt.AdvertiseReconnectTimeout != 0 {
+		return fmt.Errorf("advertise_reconnect_timeout can only be used on a client")
 	}
 
 	// ----------------------------------------------------------------

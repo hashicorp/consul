@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib/stringslice"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
@@ -1621,51 +1622,110 @@ func TestInternal_ServiceTopology(t *testing.T) {
 	// web and web-proxy on node bar - upstream: redis
 	// web and web-proxy on node baz - upstream: redis
 	// redis and redis-proxy on node zip
+	// wildcard deny intention
+	// web -> redis exact intentino
 	registerTestTopologyEntries(t, codec, "")
 
-	t.Run("api", func(t *testing.T) {
-		args := structs.ServiceSpecificRequest{
-			Datacenter:  "dc1",
-			ServiceName: "api",
-		}
-		var out structs.IndexedServiceTopology
-		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
-		require.False(t, out.FilteredByACLs)
+	var (
+		api   = structs.NewServiceName("api", structs.DefaultEnterpriseMeta())
+		web   = structs.NewServiceName("web", structs.DefaultEnterpriseMeta())
+		redis = structs.NewServiceName("redis", structs.DefaultEnterpriseMeta())
+	)
 
-		// bar/web, bar/web-proxy, baz/web, baz/web-proxy
-		require.Len(t, out.ServiceTopology.Upstreams, 4)
-		require.Len(t, out.ServiceTopology.Downstreams, 0)
+	t.Run("api", func(t *testing.T) {
+		retry.Run(t, func(r *retry.R) {
+			args := structs.ServiceSpecificRequest{
+				Datacenter:  "dc1",
+				ServiceName: "api",
+			}
+			var out structs.IndexedServiceTopology
+			require.NoError(r, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
+			require.False(r, out.FilteredByACLs)
+			require.Equal(r, "http", out.ServiceTopology.MetricsProtocol)
+
+			// bar/web, bar/web-proxy, baz/web, baz/web-proxy
+			require.Len(r, out.ServiceTopology.Upstreams, 4)
+			require.Len(r, out.ServiceTopology.Downstreams, 0)
+
+			expectUp := map[string]structs.IntentionDecisionSummary{
+				web.String(): {
+					Allowed:        false,
+					HasPermissions: false,
+					ExternalSource: "nomad",
+
+					// From wildcard deny
+					HasExact: false,
+				},
+			}
+			require.Equal(r, expectUp, out.ServiceTopology.UpstreamDecisions)
+		})
 	})
 
 	t.Run("web", func(t *testing.T) {
-		args := structs.ServiceSpecificRequest{
-			Datacenter:  "dc1",
-			ServiceName: "web",
-		}
-		var out structs.IndexedServiceTopology
-		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
-		require.False(t, out.FilteredByACLs)
+		retry.Run(t, func(r *retry.R) {
+			args := structs.ServiceSpecificRequest{
+				Datacenter:  "dc1",
+				ServiceName: "web",
+			}
+			var out structs.IndexedServiceTopology
+			require.NoError(r, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
+			require.False(r, out.FilteredByACLs)
+			require.Equal(r, "http", out.ServiceTopology.MetricsProtocol)
 
-		// foo/api, foo/api-proxy
-		require.Len(t, out.ServiceTopology.Upstreams, 2)
+			// foo/api, foo/api-proxy
+			require.Len(r, out.ServiceTopology.Downstreams, 2)
 
-		// zip/redis, zip/redis-proxy
-		require.Len(t, out.ServiceTopology.Downstreams, 2)
+			expectDown := map[string]structs.IntentionDecisionSummary{
+				api.String(): {
+					Allowed:        false,
+					HasPermissions: false,
+					ExternalSource: "nomad",
+
+					// From wildcard deny
+					HasExact: false,
+				},
+			}
+			require.Equal(r, expectDown, out.ServiceTopology.DownstreamDecisions)
+
+			// zip/redis, zip/redis-proxy
+			require.Len(r, out.ServiceTopology.Upstreams, 2)
+
+			expectUp := map[string]structs.IntentionDecisionSummary{
+				redis.String(): {
+					Allowed:        false,
+					HasPermissions: true,
+					HasExact:       true,
+				},
+			}
+			require.Equal(r, expectUp, out.ServiceTopology.UpstreamDecisions)
+		})
 	})
 
 	t.Run("redis", func(t *testing.T) {
-		args := structs.ServiceSpecificRequest{
-			Datacenter:  "dc1",
-			ServiceName: "redis",
-		}
-		var out structs.IndexedServiceTopology
-		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
-		require.False(t, out.FilteredByACLs)
+		retry.Run(t, func(r *retry.R) {
+			args := structs.ServiceSpecificRequest{
+				Datacenter:  "dc1",
+				ServiceName: "redis",
+			}
+			var out structs.IndexedServiceTopology
+			require.NoError(r, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
+			require.False(r, out.FilteredByACLs)
+			require.Equal(r, "http", out.ServiceTopology.MetricsProtocol)
 
-		require.Len(t, out.ServiceTopology.Upstreams, 0)
+			require.Len(r, out.ServiceTopology.Upstreams, 0)
 
-		// bar/web, bar/web-proxy, baz/web, baz/web-proxy
-		require.Len(t, out.ServiceTopology.Downstreams, 4)
+			// bar/web, bar/web-proxy, baz/web, baz/web-proxy
+			require.Len(r, out.ServiceTopology.Downstreams, 4)
+
+			expectDown := map[string]structs.IntentionDecisionSummary{
+				web.String(): {
+					Allowed:        false,
+					HasPermissions: true,
+					HasExact:       true,
+				},
+			}
+			require.Equal(r, expectDown, out.ServiceTopology.DownstreamDecisions)
+		})
 	})
 }
 
@@ -1709,6 +1769,7 @@ service "web" { policy = "read" }
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
 
 		require.True(t, out.FilteredByACLs)
+		require.Equal(t, "http", out.ServiceTopology.MetricsProtocol)
 
 		// The web-proxy upstream gets filtered out from both bar and baz
 		require.Len(t, out.ServiceTopology.Upstreams, 2)
@@ -1728,6 +1789,7 @@ service "web" { policy = "read" }
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
 
 		require.True(t, out.FilteredByACLs)
+		require.Equal(t, "http", out.ServiceTopology.MetricsProtocol)
 
 		// The redis upstream gets filtered out but the api and proxy downstream are returned
 		require.Len(t, out.ServiceTopology.Upstreams, 0)

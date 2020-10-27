@@ -159,28 +159,7 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 	restore := stateNew.Restore()
 	defer restore.Abort()
 
-	// Create a decoder
-	dec := codec.NewDecoder(old, structs.MsgpackHandle)
-
-	// Read in the header
-	var header snapshotHeader
-	if err := dec.Decode(&header); err != nil {
-		return err
-	}
-
-	// Populate the new state
-	msgType := make([]byte, 1)
-	for {
-		// Read the message type
-		_, err := old.Read(msgType)
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return err
-		}
-
-		// Decode
-		msg := structs.MessageType(msgType[0])
+	handler := func(header *SnapshotHeader, msg structs.MessageType, dec *codec.Decoder) error {
 		switch {
 		case msg == structs.ChunkingStateType:
 			chunkState := &raftchunking.State{
@@ -194,13 +173,18 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 			}
 		case restorers[msg] != nil:
 			fn := restorers[msg]
-			if err := fn(&header, restore, dec); err != nil {
+			if err := fn(header, restore, dec); err != nil {
 				return err
 			}
 		default:
 			return fmt.Errorf("Unrecognized msg type %d", msg)
 		}
+		return nil
 	}
+	if err := ReadSnapshot(old, handler); err != nil {
+		return err
+	}
+
 	if err := restore.Commit(); err != nil {
 		return err
 	}
@@ -217,4 +201,36 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 	// blocking queries won't see any changes and need to be woken up.
 	stateOld.Abandon()
 	return nil
+}
+
+// ReadSnapshot decodes each message type and utilizes the handler function to
+// process each message type individually
+func ReadSnapshot(r io.Reader, handler func(header *SnapshotHeader, msg structs.MessageType, dec *codec.Decoder) error) error {
+	// Create a decoder
+	dec := codec.NewDecoder(r, structs.MsgpackHandle)
+
+	// Read in the header
+	var header SnapshotHeader
+	if err := dec.Decode(&header); err != nil {
+		return err
+	}
+
+	// Populate the new state
+	msgType := make([]byte, 1)
+	for {
+		// Read the message type
+		_, err := r.Read(msgType)
+		if err == io.EOF {
+			return nil
+		} else if err != nil {
+			return err
+		}
+
+		// Decode
+		msg := structs.MessageType(msgType[0])
+
+		if err := handler(&header, msg, dec); err != nil {
+			return err
+		}
+	}
 }

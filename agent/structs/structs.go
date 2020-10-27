@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/mitchellh/hashstructure"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
@@ -68,7 +69,48 @@ const (
 	ACLAuthMethodDeleteRequestType              = 28
 	ChunkingStateType                           = 29
 	FederationStateRequestType                  = 30
+	SystemMetadataRequestType                   = 31
 )
+
+// if a new request type is added above it must be
+// added to the map below
+
+// requestTypeStrings is used for snapshot enhance
+// any new request types added must be placed here
+var requestTypeStrings = map[MessageType]string{
+	RegisterRequestType:             "Register",
+	DeregisterRequestType:           "Deregister",
+	KVSRequestType:                  "KVS",
+	SessionRequestType:              "Session",
+	ACLRequestType:                  "ACL", // DEPRECATED (ACL-Legacy-Compat)
+	TombstoneRequestType:            "Tombstone",
+	CoordinateBatchUpdateType:       "CoordinateBatchUpdate",
+	PreparedQueryRequestType:        "PreparedQuery",
+	TxnRequestType:                  "Txn",
+	AutopilotRequestType:            "Autopilot",
+	AreaRequestType:                 "Area",
+	ACLBootstrapRequestType:         "ACLBootstrap",
+	IntentionRequestType:            "Intention",
+	ConnectCARequestType:            "ConnectCA",
+	ConnectCAProviderStateType:      "ConnectCAProviderState",
+	ConnectCAConfigType:             "ConnectCAConfig", // FSM snapshots only.
+	IndexRequestType:                "Index",           // FSM snapshots only.
+	ACLTokenSetRequestType:          "ACLToken",
+	ACLTokenDeleteRequestType:       "ACLTokenDelete",
+	ACLPolicySetRequestType:         "ACLPolicy",
+	ACLPolicyDeleteRequestType:      "ACLPolicyDelete",
+	ConnectCALeafRequestType:        "ConnectCALeaf",
+	ConfigEntryRequestType:          "ConfigEntry",
+	ACLRoleSetRequestType:           "ACLRole",
+	ACLRoleDeleteRequestType:        "ACLRoleDelete",
+	ACLBindingRuleSetRequestType:    "ACLBindingRule",
+	ACLBindingRuleDeleteRequestType: "ACLBindingRuleDelete",
+	ACLAuthMethodSetRequestType:     "ACLAuthMethod",
+	ACLAuthMethodDeleteRequestType:  "ACLAuthMethodDelete",
+	ChunkingStateType:               "ChunkingState",
+	FederationStateRequestType:      "FederationState",
+	SystemMetadataRequestType:       "SystemMetadata",
+}
 
 const (
 	// IgnoreUnknownTypeFlag is set along with a MessageType
@@ -102,6 +144,9 @@ const (
 	// MetaWANFederationKey is the mesh gateway metadata key that indicates a
 	// mesh gateway is usable for wan federation.
 	MetaWANFederationKey = "consul-wan-federation"
+
+	// MetaExternalSource is the metadata key used when a resource is managed by a source outside Consul like nomad/k8s
+	MetaExternalSource = "external-source"
 
 	// MaxLockDelay provides a maximum LockDelay value for
 	// a session. Any value above this will not be respected.
@@ -514,6 +559,7 @@ type ServiceSpecificRequest struct {
 	Datacenter      string
 	NodeMetaFilters map[string]string
 	ServiceName     string
+	ServiceKind     ServiceKind
 	// DEPRECATED (singular-service-tag) - remove this when backwards RPC compat
 	// with 1.2.x is not required.
 	ServiceTag     string
@@ -1575,6 +1621,25 @@ func (csn *CheckServiceNode) BestAddress(wan bool) (string, int) {
 	return addr, port
 }
 
+func (csn *CheckServiceNode) CanRead(authz acl.Authorizer) acl.EnforcementDecision {
+	if csn.Node == nil || csn.Service == nil {
+		return acl.Deny
+	}
+
+	// TODO(streaming): add enterprise test that uses namespaces
+	authzContext := new(acl.AuthorizerContext)
+	csn.Service.FillAuthzContext(authzContext)
+
+	if authz.NodeRead(csn.Node.Node, authzContext) != acl.Allow {
+		return acl.Deny
+	}
+
+	if authz.ServiceRead(csn.Service.Service, authzContext) != acl.Allow {
+		return acl.Deny
+	}
+	return acl.Allow
+}
+
 type CheckServiceNodes []CheckServiceNode
 
 // Shuffle does an in-place random shuffle using the Fisher-Yates algorithm.
@@ -1866,6 +1931,12 @@ type IndexedServiceTopology struct {
 type ServiceTopology struct {
 	Upstreams   CheckServiceNodes
 	Downstreams CheckServiceNodes
+
+	UpstreamDecisions   map[string]IntentionDecisionSummary
+	DownstreamDecisions map[string]IntentionDecisionSummary
+
+	// MetricsProtocol is the protocol of the service being queried
+	MetricsProtocol string
 }
 
 // IndexedConfigEntries has its own encoding logic which differs from
@@ -2409,6 +2480,21 @@ func (r *KeyringResponses) Add(v interface{}) {
 
 func (r *KeyringResponses) New() interface{} {
 	return new(KeyringResponses)
+}
+
+// String converts message type int to string
+func (m MessageType) String() string {
+	s, ok := requestTypeStrings[m]
+	if ok {
+		return s
+	}
+
+	s, ok = enterpriseRequestType(m)
+	if ok {
+		return s
+	}
+	return "Unknown(" + strconv.Itoa(int(m)) + ")"
+
 }
 
 // UpstreamDownstream pairs come from individual proxy registrations, which can be updated independently.

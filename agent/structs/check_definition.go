@@ -63,6 +63,7 @@ func (t *CheckDefinition) UnmarshalJSON(data []byte) (err error) {
 		DeregisterCriticalServiceAfterSnake interface{} `json:"deregister_critical_service_after"`
 		DockerContainerIDSnake              string      `json:"docker_container_id"`
 		TLSSkipVerifySnake                  bool        `json:"tls_skip_verify"`
+		GRPCUseTLSSnake                     bool        `json:"grpc_use_tls"`
 		ServiceIDSnake                      string      `json:"service_id"`
 
 		*Alias
@@ -88,6 +89,9 @@ func (t *CheckDefinition) UnmarshalJSON(data []byte) (err error) {
 	}
 	if aux.TLSSkipVerifySnake {
 		t.TLSSkipVerify = aux.TLSSkipVerifySnake
+	}
+	if aux.GRPCUseTLSSnake {
+		t.GRPCUseTLS = aux.GRPCUseTLSSnake
 	}
 	if t.ServiceID == "" {
 		t.ServiceID = aux.ServiceIDSnake
