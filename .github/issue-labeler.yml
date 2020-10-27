@@ -70,7 +70,7 @@ theme/testing:
 theme/tls:
     - '(mtls|mTLS|tls|TLS)'
 theme/ui:
-    - '(ui|browser|chrome|firefox|IE|ie|Chrome)'
+    - '(browser|chrome|firefox|IE|ie|Chrome)'
 theme/windows:
     - '(windows|Windows|Microsoft|microsoft)'
 # thinking:

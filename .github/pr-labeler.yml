@@ -1,19 +1,6 @@
-# backport/1.6:
-# backport/1.7:
-# backport/1.8:
-# beta/1.8:
-# blocks-release:
-# crash:
-# do-not-merge:
-# help-wanted:
-# needs-discussion:
-# needs-investigation:
-# post-beta:
 pr/dependencies:
     - vendor/**/*
     - go.*
-# pr/needs-rebase:
-# pr/needs-tests:
 theme/acls:
     - acl/**/*
 theme/agent-cache:
@@ -74,11 +61,5 @@ type/ci:
 # type/crash:
 type/docs:
     - website/**/*
-# type/enhancement:
-# type/good-first-issue:
-# type/question:
-# type/umbrella-☂️:
-# version/0.8.3:
-# waiting-pr-merge:
-# waiting-reply:
-# waiting-reply-🤖:
+type/docs-cherrypick:
+    - website/**/*
