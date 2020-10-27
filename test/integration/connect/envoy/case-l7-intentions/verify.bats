@@ -26,7 +26,7 @@ load helpers
   assert_upstream_has_endpoints_in_status 127.0.0.1:19000 s2.default.primary HEALTHY 1
 }
 
-@test "s2 should have network rbac rules loaded from xDS" {
+@test "s2 should have http rbac rules loaded from xDS" {
   retry_default assert_envoy_http_rbac_policy_count localhost:19001 1
 }
 
