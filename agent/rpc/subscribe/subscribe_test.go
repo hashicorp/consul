@@ -107,7 +107,6 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 	runStep(t, "receive the initial snapshot of events", func(t *testing.T) {
 		expected := []*pbsubscribe.Event{
 			{
-				Topic: pbsubscribe.Topic_ServiceHealth,
 				Key:   "redis",
 				Index: ids.For("reg3"),
 				Payload: &pbsubscribe.Event_ServiceHealth{
@@ -139,7 +138,6 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 				},
 			},
 			{
-				Topic: pbsubscribe.Topic_ServiceHealth,
 				Key:   "redis",
 				Index: ids.For("reg3"),
 				Payload: &pbsubscribe.Event_ServiceHealth{
@@ -171,7 +169,6 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 				},
 			},
 			{
-				Topic:   pbsubscribe.Topic_ServiceHealth,
 				Key:     "redis",
 				Index:   ids.For("reg3"),
 				Payload: &pbsubscribe.Event_EndOfSnapshot{EndOfSnapshot: true},
@@ -192,7 +189,6 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 
 		event := getEvent(t, chEvents)
 		expectedEvent := &pbsubscribe.Event{
-			Topic: pbsubscribe.Topic_ServiceHealth,
 			Key:   "redis",
 			Index: ids.Last(),
 			Payload: &pbsubscribe.Event_ServiceHealth{
@@ -463,7 +459,6 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 	runStep(t, "receive the initial snapshot of events", func(t *testing.T) {
 		expected := []*pbsubscribe.Event{
 			{
-				Topic: pbsubscribe.Topic_ServiceHealth,
 				Key:   "redis",
 				Index: ids.Last(),
 				Payload: &pbsubscribe.Event_ServiceHealth{
@@ -495,7 +490,6 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 				},
 			},
 			{
-				Topic: pbsubscribe.Topic_ServiceHealth,
 				Key:   "redis",
 				Index: ids.Last(),
 				Payload: &pbsubscribe.Event_ServiceHealth{
@@ -527,7 +521,6 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 				},
 			},
 			{
-				Topic:   pbsubscribe.Topic_ServiceHealth,
 				Key:     "redis",
 				Index:   ids.Last(),
 				Payload: &pbsubscribe.Event_EndOfSnapshot{EndOfSnapshot: true},
@@ -548,7 +541,6 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 
 		event := getEvent(t, chEvents)
 		expectedEvent := &pbsubscribe.Event{
-			Topic: pbsubscribe.Topic_ServiceHealth,
 			Key:   "redis",
 			Index: ids.Last(),
 			Payload: &pbsubscribe.Event_ServiceHealth{
@@ -905,11 +897,9 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 		expected pbsubscribe.Event
 	}
 
-	testTopic := pbsubscribe.Topic_ServiceHealthConnect
 	fn := func(t *testing.T, tc testCase) {
 		expected := tc.expected
-		expected.Topic = testTopic
-		actual := newEventFromStreamEvent(testTopic, tc.event)
+		actual := newEventFromStreamEvent(tc.event)
 		assertDeepEqual(t, &expected, actual, cmpopts.EquateEmpty())
 	}
 

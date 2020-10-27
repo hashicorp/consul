@@ -26,7 +26,7 @@ func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
 
 	// Initially there are no services registered. Server should send an
 	// EndOfSnapshot message immediately with index of 1.
-	client.QueueEvents(newEndOfSnapshotEvent(pbsubscribe.Topic_ServiceHealth, 1))
+	client.QueueEvents(newEndOfSnapshotEvent(1))
 
 	opts := cache.FetchOptions{
 		MinIndex: 0,
@@ -230,7 +230,7 @@ func TestStreamingHealthServices_FullSnapshot(t *testing.T) {
 		registerServiceWeb(5, 1),
 		registerServiceWeb(5, 2),
 		registerServiceWeb(5, 3),
-		newEndOfSnapshotEvent(pbsubscribe.Topic_ServiceHealth, 5))
+		newEndOfSnapshotEvent(5))
 
 	// This contains the view state so important we share it between calls.
 	opts := cache.FetchOptions{
@@ -301,7 +301,7 @@ func TestStreamingHealthServices_FullSnapshot(t *testing.T) {
 			registerServiceWeb(50, 3), // overlap existing node
 			registerServiceWeb(50, 4),
 			registerServiceWeb(50, 5),
-			newEndOfSnapshotEvent(pbsubscribe.Topic_ServiceHealth, 50))
+			newEndOfSnapshotEvent(50))
 
 		// Make another blocking query with THE SAME index. It should immediately
 		// return the new snapshot.
@@ -324,11 +324,11 @@ func TestStreamingHealthServices_FullSnapshot(t *testing.T) {
 		client.QueueErr(tempError("temporary connection error"))
 
 		client.QueueEvents(
-			newNewSnapshotToFollowEvent(pbsubscribe.Topic_ServiceHealth),
+			newNewSnapshotToFollowEvent(),
 			registerServiceWeb(50, 3), // overlap existing node
 			registerServiceWeb(50, 4),
 			registerServiceWeb(50, 5),
-			newEndOfSnapshotEvent(pbsubscribe.Topic_ServiceHealth, 50))
+			newEndOfSnapshotEvent(50))
 
 		start := time.Now()
 		opts.MinIndex = 49
@@ -358,7 +358,7 @@ func TestStreamingHealthServices_EventBatches(t *testing.T) {
 		newEventServiceHealthRegister(5, 3, "web"))
 	client.QueueEvents(
 		batchEv,
-		newEndOfSnapshotEvent(pbsubscribe.Topic_ServiceHealth, 5))
+		newEndOfSnapshotEvent(5))
 
 	// This contains the view state so important we share it between calls.
 	opts := cache.FetchOptions{
@@ -428,7 +428,7 @@ func TestStreamingHealthServices_Filtering(t *testing.T) {
 		newEventServiceHealthRegister(5, 3, "web"))
 	client.QueueEvents(
 		batchEv,
-		newEndOfSnapshotEvent(pbsubscribe.Topic_ServiceHealth, 5))
+		newEndOfSnapshotEvent(5))
 
 	// This contains the view state so important we share it between calls.
 	opts := cache.FetchOptions{

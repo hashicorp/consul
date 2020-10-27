@@ -85,37 +85,34 @@ message SubscribeRequest {
 // describe the current "snapshot" of the result as well as ongoing mutations to
 // that snapshot.
 message Event {
-    // Topic the event was published to
-    Topic Topic = 1;
-
     // Key is the logical identifier for the entity that was mutated.
-    string Key = 2;
+    string Key = 1;
 
     // Index is the raft index at which the mutation took place. At the top
     // level of a subscription there will always be at most one Event per index.
     // If multiple events are published to the same topic in a single raft
     // transaction then the batch of events will be encoded inside a single
     // top-level event to ensure they are delivered atomically to clients.
-    uint64 Index = 3;
+    uint64 Index = 2;
 
     // Payload is the actual event content.
     oneof Payload {
         // EndOfSnapshot indicates the event stream for the initial snapshot has
         // ended. Subsequent Events delivered will be mutations to that result.
-        bool EndOfSnapshot = 5;
+        bool EndOfSnapshot = 3;
 
         // NewSnapshotToFollow indicates that the client view is stale. The client
         // must reset its view before handing any more events. Subsequent events
         // in the stream will be for a new snapshot until an EndOfSnapshot event
         // is received.
-        bool NewSnapshotToFollow = 6;
+        bool NewSnapshotToFollow = 4;
 
         // EventBatch is a set of events. This is typically used as the payload
         // type where multiple events are emitted in a single topic and raft
         // index (e.g. transactional updates). In this case the Topic and Index
         // values of all events will match and the whole set should be delivered
         // and consumed atomically.
-        EventBatch EventBatch = 7;
+        EventBatch EventBatch = 5;
 
         // ServiceHealth is used for ServiceHealth and ServiceHealthConnect
         // topics.

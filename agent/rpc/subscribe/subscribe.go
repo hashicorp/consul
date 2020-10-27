@@ -83,7 +83,7 @@ func (h *Server) Subscribe(req *pbsubscribe.SubscribeRequest, serverStream pbsub
 		}
 
 		elog.Trace(event)
-		e := newEventFromStreamEvent(req.Topic, event)
+		e := newEventFromStreamEvent(event)
 		if err := serverStream.Send(e); err != nil {
 			return err
 		}
@@ -139,12 +139,8 @@ func filterByAuth(authz acl.Authorizer, event stream.Event) (stream.Event, bool)
 	return event.Filter(fn)
 }
 
-func newEventFromStreamEvent(topic pbsubscribe.Topic, event stream.Event) *pbsubscribe.Event {
-	e := &pbsubscribe.Event{
-		Topic: topic,
-		Key:   event.Key,
-		Index: event.Index,
-	}
+func newEventFromStreamEvent(event stream.Event) *pbsubscribe.Event {
+	e := &pbsubscribe.Event{Key: event.Key, Index: event.Index}
 	switch {
 	case event.IsEndOfSnapshot():
 		e.Payload = &pbsubscribe.Event_EndOfSnapshot{EndOfSnapshot: true}
