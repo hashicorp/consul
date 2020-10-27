@@ -51,8 +51,8 @@ module('Unit | Utility | dom/event-source/blocking', function() {
       undefined,
       null,
       new Error(),
+      { statusCode: 404 },
       { errors: [] },
-      { errors: [{ status: 501 }] },
       { errors: [{ status: '401' }] },
       { errors: [{ status: '500' }] },
       { errors: [{ status: '5' }] },
@@ -67,6 +67,8 @@ module('Unit | Utility | dom/event-source/blocking', function() {
   });
   test('the 5xx backoff returns a resolve promise on a 5xx (apart from 500)', function(assert) {
     [
+      { statusCode: 501 },
+      { errors: [{ status: 501 }] },
       { errors: [{ status: '501' }] },
       { errors: [{ status: '503' }] },
       { errors: [{ status: '504' }] },
