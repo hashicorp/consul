@@ -138,63 +138,97 @@ func publishTestEvent(index uint64, b *eventBuffer, key string) {
 	b.Append([]Event{e})
 }
 
-func TestFilter_NoKey(t *testing.T) {
-	events := make(PayloadEvents, 0, 5)
-	events = append(events, newSimpleEvent("One", 102), newSimpleEvent("Two", 102))
-
-	req := SubscribeRequest{Topic: testTopic}
-	actual, ok := filterByKey(req, events)
-	require.True(t, ok)
-	require.Equal(t, Event{Topic: testTopic, Index: 102, Payload: events}, actual)
-
-	// test that a new array was not allocated
-	require.Equal(t, cap(actual.Payload.(PayloadEvents)), 5)
-}
-
 func newSimpleEvent(key string, index uint64) Event {
 	return Event{Index: index, Payload: simplePayload{key: key}}
 }
 
-func TestFilter_WithKey_AllEventsMatch(t *testing.T) {
-	events := make(PayloadEvents, 0, 5)
-	events = append(events, newSimpleEvent("Same", 103), newSimpleEvent("Same", 103))
-
-	req := SubscribeRequest{Topic: testTopic, Key: "Same"}
-	actual, ok := filterByKey(req, events)
-	require.True(t, ok)
-	expected := Event{Topic: testTopic, Index: 103, Payload: events}
-	require.Equal(t, expected, actual)
-
-	// test that a new array was not allocated
-	require.Equal(t, 5, cap(actual.Payload.(PayloadEvents)))
-}
-
-func TestFilter_WithKey_SomeEventsMatch(t *testing.T) {
-	events := make([]Event, 0, 5)
-	events = append(events,
-		newSimpleEvent("Same", 104),
-		newSimpleEvent("Other", 0),
-		newSimpleEvent("Same", 0))
-
-	req := SubscribeRequest{Topic: testTopic, Key: "Same"}
-	actual, ok := filterByKey(req, events)
-	require.True(t, ok)
-	expected := Event{
-		Topic:   testTopic,
-		Index:   104,
-		Payload: PayloadEvents{newSimpleEvent("Same", 104), newSimpleEvent("Same", 0)},
+func TestFilterByKey(t *testing.T) {
+	type testCase struct {
+		name        string
+		req         SubscribeRequest
+		events      []Event
+		expectEvent bool
+		expected    Event
+		expectedCap int
 	}
-	require.Equal(t, expected, actual)
 
-	// test that a new array was allocated with the correct size
-	require.Equal(t, cap(actual.Payload.(PayloadEvents)), 2)
-}
+	fn := func(t *testing.T, tc testCase) {
+		events := make(PayloadEvents, 0, 5)
+		events = append(events, tc.events...)
 
-func TestFilter_WithKey_NoEventsMatch(t *testing.T) {
-	events := make([]Event, 0, 5)
-	events = append(events, newSimpleEvent("Same", 0), newSimpleEvent("Same", 0))
+		actual, ok := filterByKey(tc.req, events)
+		require.Equal(t, tc.expectEvent, ok)
+		if !tc.expectEvent {
+			return
+		}
 
-	req := SubscribeRequest{Topic: testTopic, Key: "Other"}
-	_, ok := filterByKey(req, events)
-	require.False(t, ok)
+		require.Equal(t, tc.expected, actual)
+		// test if there was a new array allocated or not
+		require.Equal(t, tc.expectedCap, cap(actual.Payload.(PayloadEvents)))
+	}
+
+	var testCases = []testCase{
+		{
+			name: "all events match, no key or namespace",
+			req:  SubscribeRequest{Topic: testTopic},
+			events: []Event{
+				newSimpleEvent("One", 102),
+				newSimpleEvent("Two", 102)},
+			expectEvent: true,
+			expected: Event{
+				Topic: testTopic,
+				Index: 102,
+				Payload: PayloadEvents{
+					newSimpleEvent("One", 102),
+					newSimpleEvent("Two", 102)}},
+			expectedCap: 5,
+		},
+		{
+			name: "all events match, no namespace",
+			req:  SubscribeRequest{Topic: testTopic, Key: "Same"},
+			events: []Event{
+				newSimpleEvent("Same", 103),
+				newSimpleEvent("Same", 103)},
+			expectEvent: true,
+			expected: Event{
+				Topic: testTopic,
+				Index: 103,
+				Payload: PayloadEvents{
+					newSimpleEvent("Same", 103),
+					newSimpleEvent("Same", 103)}},
+			expectedCap: 5,
+		},
+		// TODO: all events match, no key
+		{
+			name: "some evens match, no namespace",
+			req:  SubscribeRequest{Topic: testTopic, Key: "Same"},
+			events: []Event{
+				newSimpleEvent("Same", 104),
+				newSimpleEvent("Other", 104),
+				newSimpleEvent("Same", 104)},
+			expectEvent: true,
+			expected: Event{
+				Topic: testTopic,
+				Index: 104,
+				Payload: PayloadEvents{
+					newSimpleEvent("Same", 104),
+					newSimpleEvent("Same", 104)}},
+			expectedCap: 2,
+		},
+		// TODO: some events match, no key
+		{
+			name: "no events match key",
+			req:  SubscribeRequest{Topic: testTopic, Key: "Other"},
+			events: []Event{
+				newSimpleEvent("Same", 0),
+				newSimpleEvent("Same", 0)},
+		},
+		// TODO: no events match namespace
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			fn(t, tc)
+		})
+	}
 }
