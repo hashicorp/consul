@@ -198,7 +198,21 @@ func TestFilterByKey(t *testing.T) {
 					newSimpleEvent("Same", 103)}},
 			expectedCap: 5,
 		},
-		// TODO: all events match, no key
+		{
+			name: "all events match, no key",
+			req:  SubscribeRequest{Topic: testTopic, Namespace: "apps"},
+			events: []Event{
+				newNSEvent("Something", "apps"),
+				newNSEvent("Other", "apps")},
+			expectEvent: true,
+			expected: Event{
+				Topic: testTopic,
+				Index: 22,
+				Payload: PayloadEvents{
+					newNSEvent("Something", "apps"),
+					newNSEvent("Other", "apps")}},
+			expectedCap: 5,
+		},
 		{
 			name: "some evens match, no namespace",
 			req:  SubscribeRequest{Topic: testTopic, Key: "Same"},
@@ -215,7 +229,22 @@ func TestFilterByKey(t *testing.T) {
 					newSimpleEvent("Same", 104)}},
 			expectedCap: 2,
 		},
-		// TODO: some events match, no key
+		{
+			name: "some events match, no key",
+			req:  SubscribeRequest{Topic: testTopic, Namespace: "apps"},
+			events: []Event{
+				newNSEvent("app1", "apps"),
+				newNSEvent("db1", "dbs"),
+				newNSEvent("app2", "apps")},
+			expectEvent: true,
+			expected: Event{
+				Topic: testTopic,
+				Index: 22,
+				Payload: PayloadEvents{
+					newNSEvent("app1", "apps"),
+					newNSEvent("app2", "apps")}},
+			expectedCap: 2,
+		},
 		{
 			name: "no events match key",
 			req:  SubscribeRequest{Topic: testTopic, Key: "Other"},
@@ -223,7 +252,14 @@ func TestFilterByKey(t *testing.T) {
 				newSimpleEvent("Same", 0),
 				newSimpleEvent("Same", 0)},
 		},
-		// TODO: no events match namespace
+		{
+			name: "no events match namespace",
+			req:  SubscribeRequest{Topic: testTopic, Namespace: "apps"},
+			events: []Event{
+				newNSEvent("app1", "group1"),
+				newNSEvent("app2", "group2")},
+			expectEvent: false,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -231,4 +267,18 @@ func TestFilterByKey(t *testing.T) {
 			fn(t, tc)
 		})
 	}
+}
+
+func newNSEvent(key, namespace string) Event {
+	return Event{Index: 22, Payload: nsPayload{key: key, namespace: namespace}}
+}
+
+type nsPayload struct {
+	key       string
+	namespace string
+	value     string
+}
+
+func (p nsPayload) FilterByKey(key, namespace string) bool {
+	return (key == "" || key == p.key) && (namespace == "" || namespace == p.namespace)
 }

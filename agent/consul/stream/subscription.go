@@ -134,7 +134,7 @@ func newEventFromBatch(req SubscribeRequest, events []Event) Event {
 
 func filterByKey(req SubscribeRequest, events []Event) (Event, bool) {
 	event := newEventFromBatch(req, events)
-	if req.Key == "" {
+	if req.Key == "" && req.Namespace == "" {
 		return event, true
 	}
 
