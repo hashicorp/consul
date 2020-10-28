@@ -140,11 +140,11 @@ func (s *Restore) LegacyIntention(ixn *structs.Intention) error {
 func (s *Store) AreIntentionsInConfigEntries() (bool, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	return areIntentionsInConfigEntries(tx)
+	return areIntentionsInConfigEntries(tx, nil)
 }
 
-func areIntentionsInConfigEntries(tx ReadTxn) (bool, error) {
-	_, entry, err := systemMetadataGetTxn(tx, nil, structs.SystemMetadataIntentionFormatKey)
+func areIntentionsInConfigEntries(tx ReadTxn, ws memdb.WatchSet) (bool, error) {
+	_, entry, err := systemMetadataGetTxn(tx, ws, structs.SystemMetadataIntentionFormatKey)
 	if err != nil {
 		return false, fmt.Errorf("failed system metadatalookup: %s", err)
 	}
@@ -169,7 +169,7 @@ func (s *Store) Intentions(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	usingConfigEntries, err := areIntentionsInConfigEntries(tx)
+	usingConfigEntries, err := areIntentionsInConfigEntries(tx, ws)
 	if err != nil {
 		return 0, nil, false, err
 	}
@@ -214,7 +214,7 @@ func (s *Store) LegacyIntentionSet(idx uint64, ixn *structs.Intention) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
-	usingConfigEntries, err := areIntentionsInConfigEntries(tx)
+	usingConfigEntries, err := areIntentionsInConfigEntries(tx, nil)
 	if err != nil {
 		return err
 	}
@@ -291,7 +291,7 @@ func (s *Store) IntentionGet(ws memdb.WatchSet, id string) (uint64, *structs.Ser
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	usingConfigEntries, err := areIntentionsInConfigEntries(tx)
+	usingConfigEntries, err := areIntentionsInConfigEntries(tx, ws)
 	if err != nil {
 		return 0, nil, nil, err
 	}
@@ -330,7 +330,7 @@ func (s *Store) IntentionGetExact(ws memdb.WatchSet, args *structs.IntentionQuer
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	usingConfigEntries, err := areIntentionsInConfigEntries(tx)
+	usingConfigEntries, err := areIntentionsInConfigEntries(tx, ws)
 	if err != nil {
 		return 0, nil, nil, err
 	}
@@ -376,7 +376,7 @@ func (s *Store) LegacyIntentionDelete(idx uint64, id string) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
-	usingConfigEntries, err := areIntentionsInConfigEntries(tx)
+	usingConfigEntries, err := areIntentionsInConfigEntries(tx, nil)
 	if err != nil {
 		return err
 	}
@@ -522,7 +522,7 @@ func (s *Store) IntentionMatch(ws memdb.WatchSet, args *structs.IntentionQueryMa
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	usingConfigEntries, err := areIntentionsInConfigEntries(tx)
+	usingConfigEntries, err := areIntentionsInConfigEntries(tx, ws)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -571,7 +571,7 @@ func (s *Store) IntentionMatchOne(
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	usingConfigEntries, err := areIntentionsInConfigEntries(tx)
+	usingConfigEntries, err := areIntentionsInConfigEntries(tx, ws)
 	if err != nil {
 		return 0, nil, err
 	}
