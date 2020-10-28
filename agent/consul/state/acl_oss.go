@@ -243,7 +243,7 @@ func aclPolicyDeleteWithPolicy(tx *txn, policy *structs.ACLPolicy, idx uint64) e
 	return nil
 }
 
-func aclPolicyMaxIndex(tx *txn, _ *structs.ACLPolicy, _ *structs.EnterpriseMeta) uint64 {
+func aclPolicyMaxIndex(tx ReadTxn, _ *structs.ACLPolicy, _ *structs.EnterpriseMeta) uint64 {
 	return maxIndexTxn(tx, "acl-policies")
 }
 
@@ -273,19 +273,19 @@ func aclTokenInsert(tx *txn, token *structs.ACLToken) error {
 	return nil
 }
 
-func aclTokenGetFromIndex(tx *txn, id string, index string, entMeta *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
+func aclTokenGetFromIndex(tx ReadTxn, id string, index string, entMeta *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
 	return tx.FirstWatch("acl-tokens", index, id)
 }
 
-func aclTokenListAll(tx *txn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func aclTokenListAll(tx ReadTxn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get("acl-tokens", "id")
 }
 
-func aclTokenListLocal(tx *txn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func aclTokenListLocal(tx ReadTxn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get("acl-tokens", "local", true)
 }
 
-func aclTokenListGlobal(tx *txn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func aclTokenListGlobal(tx ReadTxn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get("acl-tokens", "local", false)
 }
 
@@ -297,7 +297,7 @@ func aclTokenListByRole(tx ReadTxn, role string, _ *structs.EnterpriseMeta) (mem
 	return tx.Get("acl-tokens", "roles", role)
 }
 
-func aclTokenListByAuthMethod(tx *txn, authMethod string, _, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func aclTokenListByAuthMethod(tx ReadTxn, authMethod string, _, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get("acl-tokens", "authmethod", authMethod)
 }
 
@@ -314,7 +314,7 @@ func aclTokenDeleteWithToken(tx *txn, token *structs.ACLToken, idx uint64) error
 	return nil
 }
 
-func aclTokenMaxIndex(tx *txn, _ *structs.ACLToken, entMeta *structs.EnterpriseMeta) uint64 {
+func aclTokenMaxIndex(tx ReadTxn, _ *structs.ACLToken, entMeta *structs.EnterpriseMeta) uint64 {
 	return maxIndexTxn(tx, "acl-tokens")
 }
 
@@ -372,7 +372,7 @@ func aclRoleDeleteWithRole(tx *txn, role *structs.ACLRole, idx uint64) error {
 	return nil
 }
 
-func aclRoleMaxIndex(tx *txn, _ *structs.ACLRole, _ *structs.EnterpriseMeta) uint64 {
+func aclRoleMaxIndex(tx ReadTxn, _ *structs.ACLRole, _ *structs.EnterpriseMeta) uint64 {
 	return maxIndexTxn(tx, "acl-roles")
 }
 
@@ -402,15 +402,15 @@ func aclBindingRuleInsert(tx *txn, rule *structs.ACLBindingRule) error {
 	return nil
 }
 
-func aclBindingRuleGetByID(tx *txn, id string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
+func aclBindingRuleGetByID(tx ReadTxn, id string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
 	return tx.FirstWatch("acl-binding-rules", "id", id)
 }
 
-func aclBindingRuleList(tx *txn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func aclBindingRuleList(tx ReadTxn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get("acl-binding-rules", "id")
 }
 
-func aclBindingRuleListByAuthMethod(tx *txn, method string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func aclBindingRuleListByAuthMethod(tx ReadTxn, method string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get("acl-binding-rules", "authmethod", method)
 }
 
@@ -427,7 +427,7 @@ func aclBindingRuleDeleteWithRule(tx *txn, rule *structs.ACLBindingRule, idx uin
 	return nil
 }
 
-func aclBindingRuleMaxIndex(tx *txn, _ *structs.ACLBindingRule, entMeta *structs.EnterpriseMeta) uint64 {
+func aclBindingRuleMaxIndex(tx ReadTxn, _ *structs.ACLBindingRule, entMeta *structs.EnterpriseMeta) uint64 {
 	return maxIndexTxn(tx, "acl-binding-rules")
 }
 
@@ -457,11 +457,11 @@ func aclAuthMethodInsert(tx *txn, method *structs.ACLAuthMethod) error {
 	return nil
 }
 
-func aclAuthMethodGetByName(tx *txn, method string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
+func aclAuthMethodGetByName(tx ReadTxn, method string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
 	return tx.FirstWatch("acl-auth-methods", "id", method)
 }
 
-func aclAuthMethodList(tx *txn, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
+func aclAuthMethodList(tx ReadTxn, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get("acl-auth-methods", "id")
 }
 
@@ -478,7 +478,7 @@ func aclAuthMethodDeleteWithMethod(tx *txn, method *structs.ACLAuthMethod, idx u
 	return nil
 }
 
-func aclAuthMethodMaxIndex(tx *txn, _ *structs.ACLAuthMethod, entMeta *structs.EnterpriseMeta) uint64 {
+func aclAuthMethodMaxIndex(tx ReadTxn, _ *structs.ACLAuthMethod, entMeta *structs.EnterpriseMeta) uint64 {
 	return maxIndexTxn(tx, "acl-auth-methods")
 }
 

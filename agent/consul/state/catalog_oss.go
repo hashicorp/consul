@@ -168,7 +168,7 @@ func serviceKindIndexName(kind structs.ServiceKind, _ *structs.EnterpriseMeta) s
 	}
 }
 
-func catalogUpdateServicesIndexes(tx *txn, idx uint64, _ *structs.EnterpriseMeta) error {
+func catalogUpdateServicesIndexes(tx WriteTxn, idx uint64, _ *structs.EnterpriseMeta) error {
 	// overall services index
 	if err := indexUpdateMaxTxn(tx, idx, "services"); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
@@ -177,7 +177,7 @@ func catalogUpdateServicesIndexes(tx *txn, idx uint64, _ *structs.EnterpriseMeta
 	return nil
 }
 
-func catalogUpdateServiceKindIndexes(tx *txn, kind structs.ServiceKind, idx uint64, _ *structs.EnterpriseMeta) error {
+func catalogUpdateServiceKindIndexes(tx WriteTxn, kind structs.ServiceKind, idx uint64, _ *structs.EnterpriseMeta) error {
 	// service-kind index
 	if err := indexUpdateMaxTxn(tx, idx, serviceKindIndexName(kind, nil)); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
@@ -186,7 +186,7 @@ func catalogUpdateServiceKindIndexes(tx *txn, kind structs.ServiceKind, idx uint
 	return nil
 }
 
-func catalogUpdateServiceIndexes(tx *txn, serviceName string, idx uint64, _ *structs.EnterpriseMeta) error {
+func catalogUpdateServiceIndexes(tx WriteTxn, serviceName string, idx uint64, _ *structs.EnterpriseMeta) error {
 	// per-service index
 	if err := indexUpdateMaxTxn(tx, idx, serviceIndexName(serviceName, nil)); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
@@ -195,14 +195,14 @@ func catalogUpdateServiceIndexes(tx *txn, serviceName string, idx uint64, _ *str
 	return nil
 }
 
-func catalogUpdateServiceExtinctionIndex(tx *txn, idx uint64, _ *structs.EnterpriseMeta) error {
+func catalogUpdateServiceExtinctionIndex(tx WriteTxn, idx uint64, _ *structs.EnterpriseMeta) error {
 	if err := tx.Insert("index", &IndexEntry{serviceLastExtinctionIndexName, idx}); err != nil {
 		return fmt.Errorf("failed updating missing service extinction index: %s", err)
 	}
 	return nil
 }
 
-func catalogInsertService(tx *txn, svc *structs.ServiceNode) error {
+func catalogInsertService(tx WriteTxn, svc *structs.ServiceNode) error {
 	// Insert the service and update the index
 	if err := tx.Insert("services", svc); err != nil {
 		return fmt.Errorf("failed inserting service: %s", err)
@@ -269,7 +269,7 @@ func catalogMaxIndexWatch(tx ReadTxn, ws memdb.WatchSet, _ *structs.EnterpriseMe
 	return maxIndexWatchTxn(tx, ws, "nodes", "services")
 }
 
-func catalogUpdateCheckIndexes(tx *txn, idx uint64, _ *structs.EnterpriseMeta) error {
+func catalogUpdateCheckIndexes(tx WriteTxn, idx uint64, _ *structs.EnterpriseMeta) error {
 	// update the universal index entry
 	if err := tx.Insert("index", &IndexEntry{"checks", idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
@@ -306,7 +306,7 @@ func catalogListServiceChecks(tx ReadTxn, node string, service string, _ *struct
 	return tx.Get("checks", "node_service", node, service)
 }
 
-func catalogInsertCheck(tx *txn, chk *structs.HealthCheck, idx uint64) error {
+func catalogInsertCheck(tx WriteTxn, chk *structs.HealthCheck, idx uint64) error {
 	// Insert the check
 	if err := tx.Insert("checks", chk); err != nil {
 		return fmt.Errorf("failed inserting check: %s", err)
@@ -323,7 +323,7 @@ func catalogChecksForNodeService(tx ReadTxn, node string, service string, entMet
 	return tx.Get("checks", "node_service", node, service)
 }
 
-func validateRegisterRequestTxn(_ *txn, _ *structs.RegisterRequest) (*structs.EnterpriseMeta, error) {
+func validateRegisterRequestTxn(_ ReadTxn, _ *structs.RegisterRequest) (*structs.EnterpriseMeta, error) {
 	return nil, nil
 }
 

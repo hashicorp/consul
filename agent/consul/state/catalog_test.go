@@ -4415,12 +4415,12 @@ func TestStateStore_ensureServiceCASTxn(t *testing.T) {
 	require.NoError(t, tx.Commit())
 
 	// ensure no update happened
-	tx = s.db.Txn(false)
+	roTxn := s.db.Txn(false)
 	_, nsRead, err := s.NodeService("node1", "foo", nil)
 	require.NoError(t, err)
 	require.NotNil(t, nsRead)
 	require.Equal(t, uint64(2), nsRead.ModifyIndex)
-	require.NoError(t, tx.Commit())
+	roTxn.Commit()
 
 	ns.ModifyIndex = 99
 	// attempt to update with a non-matching index
@@ -4430,12 +4430,12 @@ func TestStateStore_ensureServiceCASTxn(t *testing.T) {
 	require.NoError(t, tx.Commit())
 
 	// ensure no update happened
-	tx = s.db.Txn(false)
+	roTxn = s.db.Txn(false)
 	_, nsRead, err = s.NodeService("node1", "foo", nil)
 	require.NoError(t, err)
 	require.NotNil(t, nsRead)
 	require.Equal(t, uint64(2), nsRead.ModifyIndex)
-	require.NoError(t, tx.Commit())
+	roTxn.Commit()
 
 	ns.ModifyIndex = 2
 	// update with the matching modify index
@@ -4445,12 +4445,12 @@ func TestStateStore_ensureServiceCASTxn(t *testing.T) {
 	require.NoError(t, tx.Commit())
 
 	// ensure the update happened
-	tx = s.db.Txn(false)
+	roTxn = s.db.Txn(false)
 	_, nsRead, err = s.NodeService("node1", "foo", nil)
 	require.NoError(t, err)
 	require.NotNil(t, nsRead)
 	require.Equal(t, uint64(7), nsRead.ModifyIndex)
-	require.NoError(t, tx.Commit())
+	roTxn.Commit()
 }
 
 func TestStateStore_GatewayServices_Terminating(t *testing.T) {

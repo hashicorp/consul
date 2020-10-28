@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/hashicorp/go-memdb"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-memdb"
 )
 
 const (
@@ -142,7 +143,7 @@ func (s *Store) AreIntentionsInConfigEntries() (bool, error) {
 	return areIntentionsInConfigEntries(tx)
 }
 
-func areIntentionsInConfigEntries(tx *txn) (bool, error) {
+func areIntentionsInConfigEntries(tx ReadTxn) (bool, error) {
 	_, entry, err := systemMetadataGetTxn(tx, nil, structs.SystemMetadataIntentionFormatKey)
 	if err != nil {
 		return false, fmt.Errorf("failed system metadatalookup: %s", err)
@@ -178,7 +179,7 @@ func (s *Store) Intentions(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (
 	return s.configIntentionsListTxn(tx, ws, entMeta)
 }
 
-func (s *Store) legacyIntentionsListTxn(tx *txn, ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.Intentions, bool, error) {
+func (s *Store) legacyIntentionsListTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.Intentions, bool, error) {
 	// Get the index
 	idx := maxIndexTxn(tx, intentionsTableName)
 	if idx < 1 {
@@ -230,7 +231,7 @@ func (s *Store) LegacyIntentionSet(idx uint64, ixn *structs.Intention) error {
 
 // legacyIntentionSetTxn is the inner method used to insert an intention with
 // the proper indexes into the state store.
-func legacyIntentionSetTxn(tx *txn, idx uint64, ixn *structs.Intention) error {
+func legacyIntentionSetTxn(tx WriteTxn, idx uint64, ixn *structs.Intention) error {
 	// ID is required
 	if ixn.ID == "" {
 		return ErrMissingIntentionID
@@ -301,7 +302,7 @@ func (s *Store) IntentionGet(ws memdb.WatchSet, id string) (uint64, *structs.Ser
 	return s.configIntentionGetTxn(tx, ws, id)
 }
 
-func (s *Store) legacyIntentionGetTxn(tx *txn, ws memdb.WatchSet, id string) (uint64, *structs.Intention, error) {
+func (s *Store) legacyIntentionGetTxn(tx ReadTxn, ws memdb.WatchSet, id string) (uint64, *structs.Intention, error) {
 	// Get the table index.
 	idx := maxIndexTxn(tx, intentionsTableName)
 	if idx < 1 {
@@ -340,7 +341,7 @@ func (s *Store) IntentionGetExact(ws memdb.WatchSet, args *structs.IntentionQuer
 	return s.configIntentionGetExactTxn(tx, ws, args)
 }
 
-func (s *Store) legacyIntentionGetExactTxn(tx *txn, ws memdb.WatchSet, args *structs.IntentionQueryExact) (uint64, *structs.Intention, error) {
+func (s *Store) legacyIntentionGetExactTxn(tx ReadTxn, ws memdb.WatchSet, args *structs.IntentionQueryExact) (uint64, *structs.Intention, error) {
 	if err := args.Validate(); err != nil {
 		return 0, nil, err
 	}
@@ -392,7 +393,7 @@ func (s *Store) LegacyIntentionDelete(idx uint64, id string) error {
 
 // legacyIntentionDeleteTxn is the inner method used to delete a legacy intention
 // with the proper indexes into the state store.
-func legacyIntentionDeleteTxn(tx *txn, idx uint64, queryID string) error {
+func legacyIntentionDeleteTxn(tx WriteTxn, idx uint64, queryID string) error {
 	// Pull the query.
 	wrapped, err := tx.First(intentionsTableName, "id", queryID)
 	if err != nil {
@@ -531,7 +532,7 @@ func (s *Store) IntentionMatch(ws memdb.WatchSet, args *structs.IntentionQueryMa
 	return s.configIntentionMatchTxn(tx, ws, args)
 }
 
-func (s *Store) legacyIntentionMatchTxn(tx *txn, ws memdb.WatchSet, args *structs.IntentionQueryMatch) (uint64, []structs.Intentions, error) {
+func (s *Store) legacyIntentionMatchTxn(tx ReadTxn, ws memdb.WatchSet, args *structs.IntentionQueryMatch) (uint64, []structs.Intentions, error) {
 	// Get the table index.
 	idx := maxIndexTxn(tx, intentionsTableName)
 	if idx < 1 {
@@ -541,7 +542,7 @@ func (s *Store) legacyIntentionMatchTxn(tx *txn, ws memdb.WatchSet, args *struct
 	// Make all the calls and accumulate the results
 	results := make([]structs.Intentions, len(args.Entries))
 	for i, entry := range args.Entries {
-		ixns, err := s.intentionMatchOneTxn(tx, ws, entry, args.Type)
+		ixns, err := intentionMatchOneTxn(tx, ws, entry, args.Type)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -575,13 +576,13 @@ func (s *Store) IntentionMatchOne(
 		return 0, nil, err
 	}
 	if !usingConfigEntries {
-		return s.legacyIntentionMatchOneTxn(tx, ws, entry, matchType)
+		return legacyIntentionMatchOneTxn(tx, ws, entry, matchType)
 	}
-	return s.configIntentionMatchOneTxn(tx, ws, entry, matchType)
+	return configIntentionMatchOneTxn(tx, ws, entry, matchType)
 }
 
-func (s *Store) legacyIntentionMatchOneTxn(
-	tx *txn,
+func legacyIntentionMatchOneTxn(
+	tx ReadTxn,
 	ws memdb.WatchSet,
 	entry structs.IntentionMatchEntry,
 	matchType structs.IntentionMatchType,
@@ -592,7 +593,7 @@ func (s *Store) legacyIntentionMatchOneTxn(
 		idx = 1
 	}
 
-	results, err := s.intentionMatchOneTxn(tx, ws, entry, matchType)
+	results, err := intentionMatchOneTxn(tx, ws, entry, matchType)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -602,7 +603,7 @@ func (s *Store) legacyIntentionMatchOneTxn(
 	return idx, results, nil
 }
 
-func (s *Store) intentionMatchOneTxn(tx ReadTxn, ws memdb.WatchSet,
+func intentionMatchOneTxn(tx ReadTxn, ws memdb.WatchSet,
 	entry structs.IntentionMatchEntry, matchType structs.IntentionMatchType) (structs.Intentions, error) {
 
 	// Each search entry may require multiple queries to memdb, so this

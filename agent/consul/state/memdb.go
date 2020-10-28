@@ -13,14 +13,22 @@ type ReadTxn interface {
 	Get(table, index string, args ...interface{}) (memdb.ResultIterator, error)
 	First(table, index string, args ...interface{}) (interface{}, error)
 	FirstWatch(table, index string, args ...interface{}) (<-chan struct{}, interface{}, error)
+}
+
+// AbortTxn is a ReadTxn that can also be aborted to end the transaction.
+type AbortTxn interface {
+	ReadTxn
 	Abort()
 }
 
 // WriteTxn is implemented by memdb.Txn to perform write operations.
 type WriteTxn interface {
 	ReadTxn
+	Defer(func())
+	Delete(table string, obj interface{}) error
+	DeleteAll(table, index string, args ...interface{}) (int, error)
+	DeletePrefix(table string, index string, prefix string) (bool, error)
 	Insert(table string, obj interface{}) error
-	Commit() error
 }
 
 // Changes wraps a memdb.Changes to include the index at which these changes
@@ -46,20 +54,16 @@ type changeTrackerDB struct {
 // with write=true.
 //
 // Deprecated: use either ReadTxn, or WriteTxn.
-func (c *changeTrackerDB) Txn(write bool) *txn {
+func (c *changeTrackerDB) Txn(write bool) *memdb.Txn {
 	if write {
 		panic("don't use db.Txn(true), use db.WriteTxn(idx uin64)")
 	}
 	return c.ReadTxn()
 }
 
-// ReadTxn returns a read-only transaction which behaves exactly the same as
-// memdb.Txn
-//
-// TODO: this could return a regular memdb.Txn if all the state functions accepted
-// the ReadTxn interface
-func (c *changeTrackerDB) ReadTxn() *txn {
-	return &txn{Txn: c.db.Txn(false)}
+// ReadTxn returns a read-only transaction.
+func (c *changeTrackerDB) ReadTxn() *memdb.Txn {
+	return c.db.Txn(false)
 }
 
 // WriteTxn returns a wrapped memdb.Txn suitable for writes to the state store.
