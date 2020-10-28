@@ -684,6 +684,10 @@ function read_config_entry {
   docker_consul "$DC" config read -kind $KIND -name $NAME
 }
 
+function wait_for_namespace {
+  retry_default curl -sL -f "http://127.0.0.1:8500/v1/namespace/${1}" >/dev/null
+}
+
 function wait_for_config_entry {
   retry_default read_config_entry "$@" >/dev/null
 }
