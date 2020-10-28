@@ -8,6 +8,8 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/proto/pbcommon"
+
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -1457,5 +1459,100 @@ func newTestEventServiceHealthDeregister(index uint64, nodeNum int, svc string) 
 				},
 			},
 		},
+	}
+}
+
+func TestEventPayloadCheckServiceNode_FilterByKey(t *testing.T) {
+	type testCase struct {
+		name      string
+		payload   EventPayloadCheckServiceNode
+		key       string
+		namespace string
+		expected  bool
+	}
+
+	fn := func(t *testing.T, tc testCase) {
+		if tc.namespace != "" && pbcommon.DefaultEnterpriseMeta.Namespace == "" {
+			t.Skip("cant test namespace matching without namespace support")
+		}
+
+		require.Equal(t, tc.expected, tc.payload.FilterByKey(tc.key, tc.namespace))
+	}
+
+	var testCases = []testCase{
+		{
+			name:     "no key or namespace",
+			payload:  newPayloadCheckServiceNode("srv1", "ns1"),
+			expected: true,
+		},
+		{
+			name:      "no key, with namespace match",
+			payload:   newPayloadCheckServiceNode("srv1", "ns1"),
+			namespace: "ns1",
+			expected:  true,
+		},
+		{
+			name:     "no namespace, with key match",
+			payload:  newPayloadCheckServiceNode("srv1", "ns1"),
+			key:      "srv1",
+			expected: true,
+		},
+		{
+			name:      "key match, namespace mismatch",
+			payload:   newPayloadCheckServiceNode("srv1", "ns1"),
+			key:       "srv1",
+			namespace: "ns2",
+			expected:  false,
+		},
+		{
+			name:      "key mismatch, namespace match",
+			payload:   newPayloadCheckServiceNode("srv1", "ns1"),
+			key:       "srv2",
+			namespace: "ns1",
+			expected:  false,
+		},
+		{
+			name:      "override key match",
+			payload:   newPayloadCheckServiceNodeWithKey("proxy", "ns1", "srv1"),
+			key:       "srv1",
+			namespace: "ns1",
+			expected:  true,
+		},
+		{
+			name:      "override key match",
+			payload:   newPayloadCheckServiceNodeWithKey("proxy", "ns1", "srv2"),
+			key:       "proxy",
+			namespace: "ns1",
+			expected:  false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			fn(t, tc)
+		})
+	}
+}
+
+func newPayloadCheckServiceNode(service, namespace string) EventPayloadCheckServiceNode {
+	return EventPayloadCheckServiceNode{
+		Value: &structs.CheckServiceNode{
+			Service: &structs.NodeService{
+				Service:        service,
+				EnterpriseMeta: structs.EnterpriseMetaInitializer(namespace),
+			},
+		},
+	}
+}
+
+func newPayloadCheckServiceNodeWithKey(service, namespace, key string) EventPayloadCheckServiceNode {
+	return EventPayloadCheckServiceNode{
+		Value: &structs.CheckServiceNode{
+			Service: &structs.NodeService{
+				Service:        service,
+				EnterpriseMeta: structs.EnterpriseMetaInitializer(namespace),
+			},
+		},
+		key: key,
 	}
 }

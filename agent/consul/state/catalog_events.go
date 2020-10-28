@@ -32,7 +32,8 @@ func (e EventPayloadCheckServiceNode) FilterByKey(key, namespace string) bool {
 	if e.key != "" {
 		name = e.key
 	}
-	return key == name && namespace == e.Value.Service.EnterpriseMeta.GetNamespace()
+	ns := e.Value.Service.EnterpriseMeta.GetNamespace()
+	return (key == "" || key == name) && (namespace == "" || namespace == ns)
 }
 
 // serviceHealthSnapshot returns a stream.SnapshotFunc that provides a snapshot
