@@ -1014,7 +1014,7 @@ func TestStore_IntentionMatch_WatchesDuringUpgrade(t *testing.T) {
 	}
 	require.NoError(t, s.EnsureConfigEntry(1, conf, &conf.EnterpriseMeta))
 
-	require.True(t, watchFired(ws)) // fails!
+	require.True(t, watchFired(ws))
 }
 
 func TestStore_LegacyIntention_Snapshot_Restore(t *testing.T) {
