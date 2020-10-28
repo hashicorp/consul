@@ -26,6 +26,10 @@ load helpers
   assert_upstream_has_endpoints_in_status 127.0.0.1:19000 s2.default.primary HEALTHY 1
 }
 
+@test "s2 should have http rbac rules loaded from xDS" {
+  retry_default assert_envoy_http_rbac_policy_count localhost:19001 1
+}
+
 # these all use the same context: "s1 upstream should be able to connect to s2 via upstream s2"
 
 @test "test exact path" {
