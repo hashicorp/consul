@@ -937,7 +937,9 @@ type RuntimeConfig struct {
 
 	RPCConfig consul.RPCConfig
 
-	CacheUseStreamingBackend bool
+	// UseStreamingBackend enables streaming as a replacement for agent/cache
+	// in the client agent for endpoints which support streaming.
+	UseStreamingBackend bool
 
 	// RaftProtocol sets the Raft protocol version to use on this server.
 	// Defaults to 3.

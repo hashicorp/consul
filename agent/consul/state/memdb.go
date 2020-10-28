@@ -3,9 +3,10 @@ package state
 import (
 	"fmt"
 
+	"github.com/hashicorp/go-memdb"
+
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
-	"github.com/hashicorp/go-memdb"
 )
 
 // ReadTxn is implemented by memdb.Txn to perform read operations.
@@ -183,7 +184,9 @@ func processDBChanges(tx ReadTxn, changes Changes) ([]stream.Event, error) {
 
 func newSnapshotHandlers(s *Store) stream.SnapshotHandlers {
 	return stream.SnapshotHandlers{
-		topicServiceHealth:        serviceHealthSnapshot(s, topicServiceHealth),
-		topicServiceHealthConnect: serviceHealthSnapshot(s, topicServiceHealthConnect),
+		topicServiceHealth: serviceHealthSnapshot(s, topicServiceHealth),
+		// The connect topic is temporarily disabled until the correct events are
+		// created for terminating gateway changes.
+		//topicServiceHealthConnect: serviceHealthSnapshot(s, topicServiceHealthConnect),
 	}
 }

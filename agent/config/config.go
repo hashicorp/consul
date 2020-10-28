@@ -103,9 +103,6 @@ type Cache struct {
 	EntryFetchMaxBurst *int `json:"entry_fetch_max_burst,omitempty" hcl:"entry_fetch_max_burst" mapstructure:"entry_fetch_max_burst"`
 	// EntryFetchRate represents the max calls/sec for a single cache entry
 	EntryFetchRate *float64 `json:"entry_fetch_rate,omitempty" hcl:"entry_fetch_rate" mapstructure:"entry_fetch_rate"`
-	// UseStreamingBackend instead of blocking queries to populate the cache.
-	// Only supported by some cache types.
-	UseStreamingBackend *bool `json:"use_streaming_backend" hcl:"use_streaming_backend" mapstructure:"use_streaming_backend"`
 }
 
 // Config defines the format of a configuration file in either JSON or
@@ -263,6 +260,10 @@ type Config struct {
 	Watches              []map[string]interface{} `json:"watches,omitempty" hcl:"watches" mapstructure:"watches"`
 
 	RPC RPC `mapstructure:"rpc"`
+
+	// UseStreamingBackend instead of blocking queries for service health and
+	// any other endpoints which support streaming.
+	UseStreamingBackend *bool `json:"use_streaming_backend" hcl:"use_streaming_backend" mapstructure:"use_streaming_backend"`
 
 	// This isn't used by Consul but we've documented a feature where users
 	// can deploy their snapshot agent configs alongside their Consul configs

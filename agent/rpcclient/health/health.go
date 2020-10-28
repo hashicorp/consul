@@ -8,9 +8,12 @@ import (
 )
 
 type Client struct {
-	NetRPC    NetRPC
-	Cache     CacheGetter
+	NetRPC NetRPC
+	Cache  CacheGetter
+	// CacheName to use for service health.
 	CacheName string
+	// CacheNameConnect is the name of the cache to use for connect service health.
+	CacheNameConnect string
 }
 
 type NetRPC interface {
@@ -51,7 +54,12 @@ func (c *Client) getServiceNodes(
 		return out, cache.ResultMeta{}, err
 	}
 
-	raw, md, err := c.Cache.Get(ctx, c.CacheName, &req)
+	cacheName := c.CacheName
+	if req.Connect {
+		cacheName = c.CacheNameConnect
+	}
+
+	raw, md, err := c.Cache.Get(ctx, cacheName, &req)
 	if err != nil {
 		return out, md, err
 	}
