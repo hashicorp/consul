@@ -4546,6 +4546,189 @@ func TestBuilder_BuildAndValidate_ConfigFlagsAndEdgecases(t *testing.T) {
 			err: `ui_config.metrics_proxy.base_url must be a valid http or https URL.`,
 		},
 		{
+			desc: "metrics_proxy.allowed_paths invalid (empty)",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"ui_config": {
+					"metrics_proxy": {
+						"allowed_paths": ["", "/foo"]
+					}
+				}
+			}`},
+			hcl: []string{`
+			ui_config {
+				metrics_proxy {
+					allowed_paths = ["", "/foo"]
+				}
+			}
+			`},
+			err: `ui_config.metrics_proxy.allowed_paths: path "" is not an absolute path`,
+		},
+		{
+			desc: "metrics_proxy.allowed_paths invalid (relative)",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"ui_config": {
+					"metrics_proxy": {
+						"allowed_paths": ["bar/baz", "/foo"]
+					}
+				}
+			}`},
+			hcl: []string{`
+			ui_config {
+				metrics_proxy {
+					allowed_paths = ["bar/baz", "/foo"]
+				}
+			}
+			`},
+			err: `ui_config.metrics_proxy.allowed_paths: path "bar/baz" is not an absolute path`,
+		},
+		{
+			desc: "metrics_proxy.allowed_paths invalid (weird)",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"ui_config": {
+					"metrics_proxy": {
+						"allowed_paths": ["://bar/baz", "/foo"]
+					}
+				}
+			}`},
+			hcl: []string{`
+			ui_config {
+				metrics_proxy {
+					allowed_paths = ["://bar/baz", "/foo"]
+				}
+			}
+			`},
+			err: `ui_config.metrics_proxy.allowed_paths: path "://bar/baz" is not an absolute path`,
+		},
+		{
+			desc: "metrics_proxy.allowed_paths invalid (fragment)",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"ui_config": {
+					"metrics_proxy": {
+						"allowed_paths": ["/bar/baz#stuff", "/foo"]
+					}
+				}
+			}`},
+			hcl: []string{`
+			ui_config {
+				metrics_proxy {
+					allowed_paths = ["/bar/baz#stuff", "/foo"]
+				}
+			}
+			`},
+			err: `ui_config.metrics_proxy.allowed_paths: path "/bar/baz#stuff" is not an absolute path`,
+		},
+		{
+			desc: "metrics_proxy.allowed_paths invalid (querystring)",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"ui_config": {
+					"metrics_proxy": {
+						"allowed_paths": ["/bar/baz?stu=ff", "/foo"]
+					}
+				}
+			}`},
+			hcl: []string{`
+			ui_config {
+				metrics_proxy {
+					allowed_paths = ["/bar/baz?stu=ff", "/foo"]
+				}
+			}
+			`},
+			err: `ui_config.metrics_proxy.allowed_paths: path "/bar/baz?stu=ff" is not an absolute path`,
+		},
+		{
+			desc: "metrics_proxy.allowed_paths invalid (encoded slash)",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"ui_config": {
+					"metrics_proxy": {
+						"allowed_paths": ["/bar%2fbaz", "/foo"]
+					}
+				}
+			}`},
+			hcl: []string{`
+			ui_config {
+				metrics_proxy {
+					allowed_paths = ["/bar%2fbaz", "/foo"]
+				}
+			}
+			`},
+			err: `ui_config.metrics_proxy.allowed_paths: path "/bar%2fbaz" is not an absolute path`,
+		},
+		{
+			desc: "metrics_proxy.allowed_paths ok",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"ui_config": {
+					"metrics_proxy": {
+						"allowed_paths": ["/bar/baz", "/foo"]
+					}
+				}
+			}`},
+			hcl: []string{`
+			ui_config {
+				metrics_proxy {
+					allowed_paths = ["/bar/baz", "/foo"]
+				}
+			}
+			`},
+			patch: func(rt *RuntimeConfig) {
+				rt.UIConfig.MetricsProxy.AllowedPaths = []string{"/bar/baz", "/foo"}
+				rt.DataDir = dataDir
+			},
+		},
+		{
+			desc: "metrics_proxy.allowed_paths defaulted for prometheus",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"ui_config": {
+					"metrics_provider": "prometheus"
+				}
+			}`},
+			hcl: []string{`
+			ui_config {
+				metrics_provider = "prometheus"
+			}
+			`},
+			patch: func(rt *RuntimeConfig) {
+				rt.UIConfig.MetricsProvider = "prometheus"
+				rt.UIConfig.MetricsProxy.AllowedPaths = []string{
+					"/api/v1/query",
+					"/api/v1/query_range",
+				}
+				rt.DataDir = dataDir
+			},
+		},
+		{
+			desc: "metrics_proxy.allowed_paths not overridden with defaults for prometheus",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"ui_config": {
+					"metrics_provider": "prometheus",
+					"metrics_proxy": {
+						"allowed_paths": ["/bar/baz", "/foo"]
+					}
+				}
+			}`},
+			hcl: []string{`
+			ui_config {
+				metrics_provider = "prometheus"
+				metrics_proxy {
+					allowed_paths = ["/bar/baz", "/foo"]
+				}
+			}
+			`},
+			patch: func(rt *RuntimeConfig) {
+				rt.UIConfig.MetricsProvider = "prometheus"
+				rt.UIConfig.MetricsProxy.AllowedPaths = []string{"/bar/baz", "/foo"}
+				rt.DataDir = dataDir
+			},
+		},
+		{
 			desc: "metrics_proxy.base_url http(s)",
 			args: []string{`-data-dir=` + dataDir},
 			json: []string{`{
@@ -5459,7 +5642,8 @@ func TestFullConfig(t *testing.T) {
 							"name": "p3nynwc9",
 							"value": "TYBgnN2F"
 						}
-					]
+					],
+					"allowed_paths": ["/aSh3cu", "/eiK/2Th"]
 				},
 				"dashboard_url_templates": {
 					"u2eziu2n_lower_case": "http://lkjasd.otr"
@@ -6149,6 +6333,7 @@ func TestFullConfig(t *testing.T) {
 							value = "TYBgnN2F"
 						}
 					]
+					allowed_paths = ["/aSh3cu", "/eiK/2Th"]
 				}
 			 	dashboard_url_templates {
 					u2eziu2n_lower_case = "http://lkjasd.otr"
@@ -6942,6 +7127,7 @@ func TestFullConfig(t *testing.T) {
 						Value: "TYBgnN2F",
 					},
 				},
+				AllowedPaths: []string{"/aSh3cu", "/eiK/2Th"},
 			},
 			DashboardURLTemplates: map[string]string{"u2eziu2n_lower_case": "http://lkjasd.otr"},
 		},
@@ -7627,6 +7813,7 @@ func TestSanitize(t *testing.T) {
 			"MetricsProviderOptionsJSON": "",
 			"MetricsProxy": {
 				"AddHeaders": [],
+				"AllowedPaths": [],
 				"BaseURL": ""
 			},
 			"DashboardURLTemplates": {}
