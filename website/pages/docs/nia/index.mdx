@@ -1,6 +1,6 @@
 ---
 layout: docs
-page_title: Network Infrastructure Automation <sup>Tech Preview</sup>
+page_title: Network Infrastructure Automation
 sidebar_title: Network Infrastructure Automation <sup>Tech Preview</sup>
 description: >-
   Network Infrastructure Automation (NIA) is the concept of dynamically updating infrastructure devices triggered by service changes. Consul-Terraform-Sync is a tool that performs NIA and utilizes Consul as a data source that contains networking information about services and monitors those services. Terraform is used as the underlying automation tool and leverages the Terraform provider ecosystem to drive relevant changes to the network infrastructure.
@@ -20,7 +20,7 @@ Consul-Terraform-Sync executes one or more automation tasks with the most recent
 
 ## Glossary
 
-**Consul-Terraform-Sync** - GitHub repo and binary/CLI name for the project that is used to perform Network Infrastructure Automation.
+**Consul-Terraform-Sync** - [GitHub repo](https://github.com/hashicorp/consul-terraform-sync) and binary/CLI name for the project that is used to perform Network Infrastructure Automation.
 
 **Network Drivers** - Network drivers are used by Consul-Terraform-Sync to execute and update network infrastructure. Drivers transform Consul service level information into downstream changes by understanding and abstracting API and resource details tied to specific network infrastructure.
 
@@ -31,3 +31,10 @@ Consul-Terraform-Sync executes one or more automation tasks with the most recent
 **Terraform Module** - A [Terraform module](https://www.terraform.io/docs/configuration/modules.html) is a container for multiple Terraform resources that are used together.
 
 **Terraform Provider** - A [Terraform provider](https://www.terraform.io/docs/providers/index.html) is responsible for understanding API interactions and exposing resources for an infrastructure type.
+
+## Community
+
+* [Contribute](https://github.com/hashicorp/consul-terraform-sync) to the open source project
+* [Report](https://github.com/hashicorp/consul-terraform-sync/issues) bugs or request enhancements
+* [Discuss](https://discuss.hashicorp.com/tags/c/consul/29/consul-tf-sync) with the community or ask questions
+* [Build integrations](/docs/nia/installation/requirements#how-to-create-a-compatible-terraform-module) for Consul-Terraform-Sync
