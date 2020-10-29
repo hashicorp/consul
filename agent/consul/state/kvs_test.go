@@ -8,8 +8,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 func TestStateStore_ReapTombstones(t *testing.T) {
@@ -91,10 +92,7 @@ func TestStateStore_GC(t *testing.T) {
 
 	// Enable it and attach it to the state store.
 	gc.SetEnabled(true)
-	s, err := NewStateStore(gc)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	s := NewStateStore(gc)
 
 	// Create some KV pairs.
 	testSetKey(t, s, 1, "foo", "foo", nil)

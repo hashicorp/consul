@@ -5,11 +5,12 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 )
 
 type mockStateProvider struct {
@@ -61,8 +62,7 @@ func TestUsageReporter_Run_Nodes(t *testing.T) {
 			metrics.NewGlobal(cfg, sink)
 
 			mockStateProvider := &mockStateProvider{}
-			s, err := newStateStore()
-			require.NoError(t, err)
+			s := newStateStore()
 			if tcase.modfiyStateStore != nil {
 				tcase.modfiyStateStore(t, s)
 			}

@@ -391,6 +391,7 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 		shutdownCh:              shutdownCh,
 		leaderRoutineManager:    NewLeaderRoutineManager(logger),
 		aclAuthMethodValidators: authmethod.NewCache(),
+		fsm:                     newFSMFromConfig(flat.Logger, gc, config),
 	}
 
 	if s.config.ConnectMeshGatewayWANFederationEnabled {
@@ -616,6 +617,21 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 	return s, nil
 }
 
+func newFSMFromConfig(logger hclog.Logger, gc *state.TombstoneGC, config *Config) *fsm.FSM {
+	deps := fsm.Deps{Logger: logger}
+	if config.RPCConfig.EnableStreaming {
+		deps.NewStateStore = func() *state.Store {
+			return state.NewStateStoreWithEventPublisher(gc)
+		}
+		return fsm.NewFromDeps(deps)
+	}
+
+	deps.NewStateStore = func() *state.Store {
+		return state.NewStateStore(gc)
+	}
+	return fsm.NewFromDeps(deps)
+}
+
 func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler {
 	if !config.RPCConfig.EnableStreaming {
 		return agentgrpc.NoOpHandler{Logger: deps.Logger}
@@ -664,13 +680,6 @@ func (s *Server) setupRaft() error {
 			}
 		}
 	}()
-
-	// Create the FSM.
-	var err error
-	s.fsm, err = fsm.New(s.tombstoneGC, s.logger)
-	if err != nil {
-		return err
-	}
 
 	var serverAddressProvider raft.ServerAddressProvider = nil
 	if s.config.RaftConfig.ProtocolVersion >= 3 { //ServerAddressProvider needs server ids to work correctly, which is only supported in protocol version 3 or higher
@@ -772,10 +781,12 @@ func (s *Server) setupRaft() error {
 				return fmt.Errorf("recovery failed to parse peers.json: %v", err)
 			}
 
-			tmpFsm, err := fsm.New(s.tombstoneGC, s.logger)
-			if err != nil {
-				return fmt.Errorf("recovery failed to make temp FSM: %v", err)
-			}
+			tmpFsm := fsm.NewFromDeps(fsm.Deps{
+				Logger: s.logger,
+				NewStateStore: func() *state.Store {
+					return state.NewStateStore(s.tombstoneGC)
+				},
+			})
 			if err := raft.RecoverCluster(s.config.RaftConfig, tmpFsm,
 				log, stable, snap, trans, configuration); err != nil {
 				return fmt.Errorf("recovery failed: %v", err)
@@ -817,11 +828,9 @@ func (s *Server) setupRaft() error {
 	s.raftNotifyCh = raftNotifyCh
 
 	// Setup the Raft store.
+	var err error
 	s.raft, err = raft.NewRaft(s.config.RaftConfig, s.fsm.ChunkingFSM(), log, stable, snap, trans)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 // endpointFactory is a function that returns an RPC endpoint bound to the given

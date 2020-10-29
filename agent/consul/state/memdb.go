@@ -1,6 +1,7 @@
 package state
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/hashicorp/go-memdb"
@@ -20,6 +21,11 @@ type ReadTxn interface {
 type AbortTxn interface {
 	ReadTxn
 	Abort()
+}
+
+// ReadDB is a DB that provides read-only transactions.
+type ReadDB interface {
+	ReadTxn() AbortTxn
 }
 
 // WriteTxn is implemented by memdb.Txn to perform write operations.
@@ -46,8 +52,14 @@ type Changes struct {
 // 2. Sent to the eventPublisher which will create and emit change events
 type changeTrackerDB struct {
 	db             *memdb.MemDB
-	publisher      *stream.EventPublisher
+	publisher      EventPublisher
 	processChanges func(ReadTxn, Changes) ([]stream.Event, error)
+}
+
+type EventPublisher interface {
+	Publish([]stream.Event)
+	Run(context.Context)
+	Subscribe(*stream.SubscribeRequest) (*stream.Subscription, error)
 }
 
 // Txn exists to maintain backwards compatibility with memdb.DB.Txn. Preexisting
@@ -160,6 +172,12 @@ func (tx *txn) Commit() error {
 	return nil
 }
 
+type readDB memdb.MemDB
+
+func (db *readDB) ReadTxn() AbortTxn {
+	return (*memdb.MemDB)(db).Txn(false)
+}
+
 var (
 	topicServiceHealth        = pbsubscribe.Topic_ServiceHealth
 	topicServiceHealthConnect = pbsubscribe.Topic_ServiceHealthConnect
@@ -182,11 +200,11 @@ func processDBChanges(tx ReadTxn, changes Changes) ([]stream.Event, error) {
 	return events, nil
 }
 
-func newSnapshotHandlers(s *Store) stream.SnapshotHandlers {
+func newSnapshotHandlers(db ReadDB) stream.SnapshotHandlers {
 	return stream.SnapshotHandlers{
-		topicServiceHealth: serviceHealthSnapshot(s, topicServiceHealth),
+		topicServiceHealth: serviceHealthSnapshot(db, topicServiceHealth),
 		// The connect topic is temporarily disabled until the correct events are
 		// created for terminating gateway changes.
-		//topicServiceHealthConnect: serviceHealthSnapshot(s, topicServiceHealthConnect),
+		//topicServiceHealthConnect: serviceHealthSnapshot(db, topicServiceHealthConnect),
 	}
 }
