@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/consul/agent/consul/fsm"
@@ -55,7 +56,7 @@ type MetadataInfo struct {
 // through the formatter
 type OutputFormat struct {
 	Meta      *MetadataInfo
-	Stats     map[structs.MessageType]typeStats
+	Stats     []typeStats
 	TotalSize int
 }
 
@@ -120,9 +121,12 @@ func (c *cmd) Run(args []string) int {
 		Version: meta.Version,
 	}
 
+	//Restructures stats given above to be human readable
+	formattedStats := generatetypeStats(stats)
+
 	in := &OutputFormat{
 		Meta:      metaformat,
-		Stats:     stats,
+		Stats:     formattedStats,
 		TotalSize: totalSize,
 	}
 	out, err := formatter.Format(in)
@@ -139,6 +143,19 @@ type typeStats struct {
 	Name  string
 	Sum   int
 	Count int
+}
+
+func generatetypeStats(info map[structs.MessageType]typeStats) []typeStats {
+	ss := make([]typeStats, 0, len(info))
+
+	for _, s := range info {
+		ss = append(ss, s)
+	}
+
+	// Sort the stat slice
+	sort.Slice(ss, func(i, j int) bool { return ss[i].Sum > ss[j].Sum })
+
+	return ss
 }
 
 // countingReader helps keep track of the bytes we have read

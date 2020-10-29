@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"sort"
 	"strconv"
 	"strings"
 	"text/tabwriter"
@@ -41,15 +40,6 @@ func NewFormatter(format string) (Formatter, error) {
 
 func (_ *prettyFormatter) Format(info *OutputFormat) (string, error) {
 	var b bytes.Buffer
-	// For the enhanced stats
-	ss := make([]typeStats, 0, len(info.Stats))
-
-	for _, s := range info.Stats {
-		ss = append(ss, s)
-	}
-
-	// Sort the stat slice
-	sort.Slice(ss, func(i, j int) bool { return ss[i].Sum > ss[j].Sum })
 	tw := tabwriter.NewWriter(&b, 8, 8, 6, ' ', 0)
 
 	fmt.Fprintf(tw, " ID\t%s", info.Meta.ID)
@@ -61,7 +51,7 @@ func (_ *prettyFormatter) Format(info *OutputFormat) (string, error) {
 	fmt.Fprintln(tw, "\n Type\tCount\tSize\t")
 	fmt.Fprintf(tw, " %s\t%s\t%s\t", "----", "----", "----")
 	// For each different type generate new output
-	for _, s := range ss {
+	for _, s := range info.Stats {
 		fmt.Fprintf(tw, "\n %s\t%d\t%s\t", s.Name, s.Count, ByteSize(uint64(s.Sum)))
 	}
 	fmt.Fprintf(tw, "\n %s\t%s\t%s\t", "----", "----", "----")

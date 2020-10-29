@@ -6,12 +6,12 @@
       "Term": 4,
       "Version": 1
    },
-   "Stats": {
-      "1": {
+   "Stats": [
+      {
          "Name": "msg",
          "Sum": 1,
          "Count": 2
       }
-   },
+   ],
    "TotalSize": 1
 }

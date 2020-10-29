@@ -4,17 +4,15 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/require"
 )
 
 func TestFormat(t *testing.T) {
-	m := make(map[structs.MessageType]typeStats)
-	m[1] = typeStats{
+	m := []typeStats{{
 		Name:  "msg",
 		Sum:   1,
 		Count: 2,
-	}
+	}}
 	info := OutputFormat{
 		Meta: &MetadataInfo{
 			ID:      "one",
