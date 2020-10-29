@@ -5,18 +5,18 @@ import (
 	"testing"
 	"time"
 
+	memdb "github.com/hashicorp/go-memdb"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
-	memdb "github.com/hashicorp/go-memdb"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestGatewayLocator(t *testing.T) {
-	state, err := state.NewStateStore(nil)
-	require.NoError(t, err)
+	state := state.NewStateStore(nil)
 
 	dc1 := &structs.FederationState{
 		Datacenter: "dc1",
@@ -360,10 +360,6 @@ func (d *testServerDelegate) blockingQuery(
 	}
 
 	return err
-}
-
-func newFakeStateStore() (*state.Store, error) {
-	return state.NewStateStore(nil)
 }
 
 func (d *testServerDelegate) IsLeader() bool {
