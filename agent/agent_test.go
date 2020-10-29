@@ -239,6 +239,63 @@ func TestAgent_ReconnectConfigSettings(t *testing.T) {
 	}()
 }
 
+func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
+	tests := []struct {
+		name                 string
+		maxHeaderBytes       int
+		expectError          bool
+		expectedHTTPResponse int
+	}{
+		{
+			"max header bytes 1 returns 431 http response when too large headers are sent",
+			1,
+			false,
+			431,
+		},
+		{
+			"max header bytes 0 returns 200 http response, as the http.DefaultMaxHeaderBytes size of 1MB is used",
+			0,
+			false,
+			200,
+		},
+		{
+			"negative maxHeaderBytes returns 200 http response, as the http.DefaultMaxHeaderBytes size of 1MB is used",
+			-10,
+			false,
+			200,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			a := NewTestAgent(t, fmt.Sprintf(`
+				http_config {
+					max_header_bytes = %d
+				}
+			`, tt.maxHeaderBytes))
+			defer a.Shutdown()
+
+			require.Equal(t, tt.maxHeaderBytes, a.Agent.config.HTTPMaxHeaderBytes)
+
+			req, err := http.NewRequest(http.MethodGet, "http://"+a.HTTPAddr()+"/v1/health/state/passing", nil)
+			require.NoError(t, err, "unexpected error creating new http request")
+
+			// This is directly pulled from the testing of request limits in the net/http source
+			// https://github.com/golang/go/blob/go1.15.3/src/net/http/serve_test.go#L2897-L2900
+			var bytesPerHeader = len("header12345: val12345\r\n")
+			t.Logf("bytesPerHeader: %d", bytesPerHeader)
+			for i := 0; i < ((tt.maxHeaderBytes+4096)/bytesPerHeader)+1; i++ {
+				req.Header.Set(fmt.Sprintf("header%05d", i), fmt.Sprintf("val%05d", i))
+			}
+
+			var res *http.Response
+			res, err = http.DefaultClient.Do(req)
+			require.True(t, (tt.expectError && (err != nil)) || !tt.expectError && (err == nil))
+			require.Equal(t, tt.expectedHTTPResponse, res.StatusCode, "expected a '%d' http response, got '%d'", tt.expectedHTTPResponse, res.StatusCode)
+		})
+	}
+
+}
+
 func TestAgent_ReconnectConfigWanDisabled(t *testing.T) {
 	t.Parallel()
 

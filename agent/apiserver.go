@@ -37,6 +37,8 @@ type apiServer struct {
 	Run func() error
 	// Shutdown function used to stop the server
 	Shutdown func(context.Context) error
+
+	MaxHeaderBytes int
 }
 
 // NewAPIServers returns an empty apiServers that is ready to Start servers.

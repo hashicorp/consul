@@ -775,9 +775,10 @@ func (a *Agent) listenHTTP() ([]apiServer, error) {
 			a.configReloaders = append(a.configReloaders, srv.ReloadConfig)
 			a.httpHandlers = srv
 			httpServer := &http.Server{
-				Addr:      l.Addr().String(),
-				TLSConfig: tlscfg,
-				Handler:   srv.handler(a.config.EnableDebug),
+				Addr:           l.Addr().String(),
+				TLSConfig:      tlscfg,
+				Handler:        srv.handler(a.config.EnableDebug),
+				MaxHeaderBytes: a.config.HTTPMaxHeaderBytes,
 			}
 
 			// Load the connlimit helper into the server
@@ -802,6 +803,7 @@ func (a *Agent) listenHTTP() ([]apiServer, error) {
 					}
 					return fmt.Errorf("%s server %s failed: %w", proto, l.Addr(), err)
 				},
+				MaxHeaderBytes: a.config.HTTPMaxHeaderBytes,
 			})
 		}
 		return nil
