@@ -62,7 +62,8 @@ func TestUsageReporter_Run_Nodes(t *testing.T) {
 			metrics.NewGlobal(cfg, sink)
 
 			mockStateProvider := &mockStateProvider{}
-			s := newStateStore()
+			s, err := newStateStore()
+			require.NoError(t, err)
 			if tcase.modfiyStateStore != nil {
 				tcase.modfiyStateStore(t, s)
 			}
