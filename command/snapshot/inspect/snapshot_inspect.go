@@ -1,15 +1,12 @@
 package inspect
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
 	"io"
 	"os"
 	"sort"
-	"strconv"
 	"strings"
-	"text/tabwriter"
 
 	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/structs"
@@ -28,14 +25,39 @@ func New(ui cli.Ui) *cmd {
 }
 
 type cmd struct {
-	UI    cli.Ui
-	flags *flag.FlagSet
-	help  string
+	UI     cli.Ui
+	flags  *flag.FlagSet
+	help   string
+	format string
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.StringVar(
+		&c.format,
+		"format",
+		PrettyFormat,
+		fmt.Sprintf("Output format {%s}", strings.Join(GetSupportedFormats(), "|")))
+
 	c.help = flags.Usage(help, c.flags)
+}
+
+// MetadataInfo is used for passing information
+// through the formatter
+type MetadataInfo struct {
+	ID      string
+	Size    int64
+	Index   uint64
+	Term    uint64
+	Version raft.SnapshotVersion
+}
+
+// OutputFormat is used for passing information
+// through the formatter
+type OutputFormat struct {
+	Meta      *MetadataInfo
+	Stats     []typeStats
+	TotalSize int
 }
 
 func (c *cmd) Run(args []string) int {
@@ -84,44 +106,56 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error(fmt.Sprintf("Error extracting snapshot data: %s", err))
 		return 1
 	}
-	// Outputs the original style of inspect information
-	legacy, err := c.legacyStats(meta)
-	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error outputting snapshot data: %s", err))
-	}
-	c.UI.Info(legacy.String())
 
-	// Outputs the more detailed snapshot information
-	enhanced, err := c.readStats(stats, totalSize)
+	formatter, err := NewFormatter(c.format)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error outputting enhanced snapshot data: %s", err))
 		return 1
 	}
-	c.UI.Info(enhanced.String())
-
-	return 0
-}
-
-// legacyStats outputs the expected stats from the original snapshot
-// inspect command
-func (c *cmd) legacyStats(meta *raft.SnapshotMeta) (bytes.Buffer, error) {
-	var b bytes.Buffer
-	tw := tabwriter.NewWriter(&b, 0, 2, 6, ' ', 0)
-	fmt.Fprintf(tw, "ID\t%s\n", meta.ID)
-	fmt.Fprintf(tw, "Size\t%d\n", meta.Size)
-	fmt.Fprintf(tw, "Index\t%d\n", meta.Index)
-	fmt.Fprintf(tw, "Term\t%d\n", meta.Term)
-	fmt.Fprintf(tw, "Version\t%d\n", meta.Version)
-	if err := tw.Flush(); err != nil {
-		return b, err
+	//Generate structs for the formatter with information we read in
+	metaformat := &MetadataInfo{
+		ID:      meta.ID,
+		Size:    meta.Size,
+		Index:   meta.Index,
+		Term:    meta.Term,
+		Version: meta.Version,
 	}
-	return b, nil
+
+	//Restructures stats given above to be human readable
+	formattedStats := generatetypeStats(stats)
+
+	in := &OutputFormat{
+		Meta:      metaformat,
+		Stats:     formattedStats,
+		TotalSize: totalSize,
+	}
+	out, err := formatter.Format(in)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+
+	c.UI.Output(out)
+	return 0
 }
 
 type typeStats struct {
 	Name  string
 	Sum   int
 	Count int
+}
+
+func generatetypeStats(info map[structs.MessageType]typeStats) []typeStats {
+	ss := make([]typeStats, 0, len(info))
+
+	for _, s := range info {
+		ss = append(ss, s)
+	}
+
+	// Sort the stat slice
+	sort.Slice(ss, func(i, j int) bool { return ss[i].Sum > ss[j].Sum })
+
+	return ss
 }
 
 // countingReader helps keep track of the bytes we have read
@@ -169,85 +203,6 @@ func enhance(file io.Reader) (map[structs.MessageType]typeStats, int, error) {
 	}
 	return stats, totalSize, nil
 
-}
-
-// readStats takes the information generated from enhance and creates human
-// readable output from it
-func (c *cmd) readStats(stats map[structs.MessageType]typeStats, totalSize int) (bytes.Buffer, error) {
-	// Output stats in size-order
-	ss := make([]typeStats, 0, len(stats))
-
-	for _, s := range stats {
-		ss = append(ss, s)
-	}
-
-	// Sort the stat slice
-	sort.Slice(ss, func(i, j int) bool { return ss[i].Sum > ss[j].Sum })
-
-	var b bytes.Buffer
-
-	tw := tabwriter.NewWriter(&b, 8, 8, 6, ' ', 0)
-	fmt.Fprintln(tw, "\n Type\tCount\tSize\t")
-	fmt.Fprintf(tw, " %s\t%s\t%s\t", "----", "----", "----")
-	// For each different type generate new output
-	for _, s := range ss {
-		fmt.Fprintf(tw, "\n %s\t%d\t%s\t", s.Name, s.Count, ByteSize(uint64(s.Sum)))
-	}
-	fmt.Fprintf(tw, "\n %s\t%s\t%s\t", "----", "----", "----")
-	fmt.Fprintf(tw, "\n Total\t\t%s\t", ByteSize(uint64(totalSize)))
-
-	if err := tw.Flush(); err != nil {
-		c.UI.Error(fmt.Sprintf("Error rendering snapshot info: %s", err))
-		return b, err
-	}
-
-	return b, nil
-
-}
-
-// ByteSize returns a human-readable byte string of the form 10MB, 12.5KB, and so forth.  The following units are available:
-//	TB: Terabyte
-//	GB: Gigabyte
-//	MB: Megabyte
-//	KB: Kilobyte
-//	B: Byte
-// The unit that results in the smallest number greater than or equal to 1 is always chosen.
-// From https://github.com/cloudfoundry/bytefmt/blob/master/bytes.go
-
-const (
-	BYTE = 1 << (10 * iota)
-	KILOBYTE
-	MEGABYTE
-	GIGABYTE
-	TERABYTE
-)
-
-func ByteSize(bytes uint64) string {
-	unit := ""
-	value := float64(bytes)
-
-	switch {
-	case bytes >= TERABYTE:
-		unit = "TB"
-		value = value / TERABYTE
-	case bytes >= GIGABYTE:
-		unit = "GB"
-		value = value / GIGABYTE
-	case bytes >= MEGABYTE:
-		unit = "MB"
-		value = value / MEGABYTE
-	case bytes >= KILOBYTE:
-		unit = "KB"
-		value = value / KILOBYTE
-	case bytes >= BYTE:
-		unit = "B"
-	case bytes == 0:
-		return "0"
-	}
-
-	result := strconv.FormatFloat(value, 'f', 1, 64)
-	result = strings.TrimSuffix(result, ".0")
-	return result + unit
 }
 
 func (c *cmd) Synopsis() string {

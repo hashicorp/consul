@@ -26,6 +26,8 @@ The following fields are displayed when inspecting a snapshot:
 - `Version` - The snapshot format version. This only refers to the structure of
   the snapshot, not the data contained within.
 
+- Each data type, size, and count within the read snapshot.
+
 ## Usage
 
 Usage: `consul snapshot inspect [options] FILE`
@@ -36,11 +38,11 @@ To inspect a snapshot from the file "backup.snap":
 
 ```shell-session
 $ consul snapshot inspect backup.snap
-ID           2-5-1477944140022
-Size         667
-Index        5
-Term         2
-Version      1
+ ID           2-13-1603221729747
+ Size         5141
+ Index        13
+ Term         2
+ Version      1
 
  Type                        Count      Size
  ----                        ----       ----
@@ -48,14 +50,80 @@ Version      1
  ConnectCA                   1          1.2KB
  ConnectCAProviderState      1          1.1KB
  Index                       12         344B
- AutopilotRequest            1          199B
+ Autopilot                   1          199B
  ConnectCAConfig             1          197B
  FederationState             1          139B
  SystemMetadata              1          68B
  ChunkingState               1          12B
  ----                        ----       ----
- Total                                   5KB
+ Total                                  5KB
+```
+
+To enhance a snapshot inespection from "backup.snap":
+```shell-session
+$ consul snapshot inspect -format=json backup.snap
+{
+   "Meta": {
+      "ID": "2-13-1603221729747",
+      "Size": 5141,
+      "Index": 13,
+      "Term": 2,
+      "Version": 1
+   },
+   "Stats": [
+      {
+         "Name": "Register",
+         "Sum": 1750,
+         "Count": 3
+      },
+      {
+         "Name": "ConnectCA",
+         "Sum": 1258,
+         "Count": 1
+      },
+      {
+         "Name": "ConnectCAProviderState",
+         "Sum": 1174,
+         "Count": 1
+      },
+      {
+         "Name": "Index",
+         "Sum": 344,
+         "Count": 12
+      },
+      {
+         "Name": "Autopilot",
+         "Sum": 199,
+         "Count": 1
+      },
+      {
+         "Name": "ConnectCAConfig",
+         "Sum": 197,
+         "Count": 1
+      },
+      {
+         "Name": "FederationState",
+         "Sum": 139,
+         "Count": 1
+      },
+      {
+         "Name": "SystemMetadata",
+         "Sum": 68,
+         "Count": 1
+      },
+      {
+         "Name": "ChunkingState",
+         "Sum": 12,
+         "Count": 1
+      }
+   ],
+   "TotalSize": 5141
+}
 ```
 
 Please see the [HTTP API](/api/snapshot) documentation for
 more details about snapshot internals.
+
+#### Command Options
+
+- `-format` - Optional, allows from changing the output to JSON. Parameters accepted are "pretty" and "JSON".

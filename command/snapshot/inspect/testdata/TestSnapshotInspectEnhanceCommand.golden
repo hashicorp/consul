@@ -1,18 +1,17 @@
- ID           2-13-1602222343947
- Size         5141
- Index        13
+ ID           2-12-1603319127176
+ Size         5133
+ Index        12
  Term         2
  Version      1
 
  Type                        Count      Size       
  ----                        ----       ----       
- Register                    3          1.7KB      
+ Register                    3          1.8KB      
  ConnectCA                   1          1.2KB      
  ConnectCAProviderState      1          1.1KB      
- Index                       12         344B       
+ Index                       11         313B       
+ ConnectCAConfig             1          247B       
  Autopilot                   1          199B       
- ConnectCAConfig             1          197B       
- FederationState             1          139B       
  SystemMetadata              1          68B        
  ChunkingState               1          12B        
  ----                        ----       ----       
