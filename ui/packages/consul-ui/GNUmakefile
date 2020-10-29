@@ -3,7 +3,7 @@ CONSUL_UI_INSTALL_FLAGS?=
 
 all: build
 
-deps: node_modules clean
+deps: ../../node_modules clean
 
 clean:
 	rm -rf ./tmp
