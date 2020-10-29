@@ -70,54 +70,54 @@ $ consul snapshot inspect -format=json backup.snap
       "Term": 2,
       "Version": 1
    },
-   "Stats": {
-      "0": {
+   "Stats": [
+      {
          "Name": "Register",
          "Sum": 1750,
          "Count": 3
       },
-      "13": {
+      {
          "Name": "ConnectCA",
          "Sum": 1258,
          "Count": 1
       },
-      "14": {
+      {
          "Name": "ConnectCAProviderState",
          "Sum": 1174,
          "Count": 1
       },
-      "15": {
-         "Name": "ConnectCAConfig",
-         "Sum": 197,
-         "Count": 1
-      },
-      "16": {
+      {
          "Name": "Index",
          "Sum": 344,
          "Count": 12
       },
-      "29": {
-         "Name": "ChunkingState",
-         "Sum": 12,
+      {
+         "Name": "Autopilot",
+         "Sum": 199,
          "Count": 1
       },
-      "30": {
+      {
+         "Name": "ConnectCAConfig",
+         "Sum": 197,
+         "Count": 1
+      },
+      {
          "Name": "FederationState",
          "Sum": 139,
          "Count": 1
       },
-      "31": {
+      {
          "Name": "SystemMetadata",
          "Sum": 68,
          "Count": 1
       },
-      "9": {
-         "Name": "Autopilot",
-         "Sum": 199,
+      {
+         "Name": "ChunkingState",
+         "Sum": 12,
          "Count": 1
       }
-   },
-   "Offset": 5141
+   ],
+   "TotalSize": 5141
 }
 ```
 
