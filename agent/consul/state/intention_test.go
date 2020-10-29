@@ -986,6 +986,37 @@ func TestStore_IntentionMatchOne_table(t *testing.T) {
 	}
 }
 
+func TestStore_IntentionMatch_WatchesDuringUpgrade(t *testing.T) {
+	s := testStateStore(t)
+
+	args := structs.IntentionQueryMatch{
+		Type: structs.IntentionMatchDestination,
+		Entries: []structs.IntentionMatchEntry{
+			{Namespace: "default", Name: "api"},
+		},
+	}
+
+	// Start with an empty, un-upgraded database and do a watch.
+
+	ws := memdb.NewWatchSet()
+	_, matches, err := s.IntentionMatch(ws, &args)
+	require.NoError(t, err)
+	require.Len(t, matches, 1)    // one request gets one response
+	require.Len(t, matches[0], 0) // but no intentions
+
+	disableLegacyIntentions(s)
+	conf := &structs.ServiceIntentionsConfigEntry{
+		Kind: structs.ServiceIntentions,
+		Name: "api",
+		Sources: []*structs.SourceIntention{
+			{Name: "web", Action: structs.IntentionActionAllow},
+		},
+	}
+	require.NoError(t, s.EnsureConfigEntry(1, conf, &conf.EnterpriseMeta))
+
+	require.True(t, watchFired(ws))
+}
+
 func TestStore_LegacyIntention_Snapshot_Restore(t *testing.T) {
 	// note: irrelevant test for config entries variant
 	s := testStateStore(t)
