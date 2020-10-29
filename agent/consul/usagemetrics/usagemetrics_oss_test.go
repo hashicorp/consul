@@ -14,8 +14,8 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
-func newStateStore() *state.Store {
-	return state.NewStateStore(nil)
+func newStateStore() (*state.Store, error) {
+	return state.NewStateStore(nil), nil
 }
 
 func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
