@@ -68,12 +68,12 @@ function init_workdir {
     find ${CASE_DIR}/${DC} -type f -name '*.hcl' -exec cp -f {} workdir/${DC}/consul \;
     find ${CASE_DIR}/${DC} -type f -name '*.bats' -exec cp -f {} workdir/${DC}/bats \;
   fi
-  
+
   if test -d "${CASE_DIR}/data"
   then
     cp -r ${CASE_DIR}/data/* workdir/${DC}/data
   fi
-  
+
   return 0
 }
 
@@ -432,7 +432,7 @@ function common_run_container_sidecar_proxy {
   docker run -d --name $(container_name_prev) \
     $WORKDIR_SNIPPET \
     $(network_snippet $DC) \
-    "envoyproxy/envoy:v${ENVOY_VERSION}" \
+    "docker.mirror.hashicorp.services/envoyproxy/envoy:v${ENVOY_VERSION}" \
     envoy \
     -c /workdir/${DC}/envoy/${service}-bootstrap.json \
     -l debug \
@@ -495,7 +495,7 @@ function common_run_container_gateway {
   docker run -d --name $(container_name_prev) \
     $WORKDIR_SNIPPET \
     $(network_snippet $DC) \
-    "envoyproxy/envoy:v${ENVOY_VERSION}" \
+    "docker.mirror.hashicorp.services/envoyproxy/envoy:v${ENVOY_VERSION}" \
     envoy \
     -c /workdir/${DC}/envoy/${name}-bootstrap.json \
     -l debug \

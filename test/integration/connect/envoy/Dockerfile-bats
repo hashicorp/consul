@@ -1,12 +1,6 @@
-<<<<<<< HEAD
-FROM fortio/fortio AS fortio
+FROM docker.mirror.hashicorp.services/fortio/fortio AS fortio
 
-FROM bats/bats:latest
-=======
-FROM hashicorp.jfrog.io/docker/fortio/fortio AS fortio
-
-FROM hashicorp.jfrog.io/docker/bats/bats:latest
->>>>>>> 06b3b017d... Add namespace support for metrics (OSS) (#9117)
+FROM docker.mirror.hashicorp.services/bats/bats:latest
 
 RUN apk add curl
 RUN apk add openssl
