@@ -14,11 +14,13 @@ import (
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/pbcommon"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
 func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
-	client := NewTestStreamingClient()
+	namespace := pbcommon.DefaultEnterpriseMeta.Namespace
+	client := NewTestStreamingClient(namespace)
 	typ := StreamingHealthServices{deps: MaterializerDeps{
 		Client: client,
 		Logger: hclog.Default(),
@@ -33,8 +35,9 @@ func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
 		Timeout:  time.Second,
 	}
 	req := &structs.ServiceSpecificRequest{
-		Datacenter:  "dc1",
-		ServiceName: "web",
+		Datacenter:     "dc1",
+		ServiceName:    "web",
+		EnterpriseMeta: structs.EnterpriseMetaInitializer(namespace),
 	}
 	empty := &structs.IndexedCheckServiceNodes{
 		Nodes: structs.CheckServiceNodes{},
@@ -215,8 +218,17 @@ func requireResultsSame(t *testing.T, want, got *structs.IndexedCheckServiceNode
 	require.ElementsMatch(t, wantIDs, gotIDs)
 }
 
+// getNamespace returns a namespace if namespace support exists, otherwise
+// returns the empty string. It allows the same tests to work in both oss and ent
+// without duplicating the tests.
+func getNamespace(ns string) string {
+	meta := structs.EnterpriseMetaInitializer(ns)
+	return meta.GetNamespace()
+}
+
 func TestStreamingHealthServices_FullSnapshot(t *testing.T) {
-	client := NewTestStreamingClient()
+	namespace := getNamespace("ns2")
+	client := NewTestStreamingClient(namespace)
 	typ := StreamingHealthServices{deps: MaterializerDeps{
 		Client: client,
 		Logger: hclog.Default(),
@@ -238,8 +250,9 @@ func TestStreamingHealthServices_FullSnapshot(t *testing.T) {
 		Timeout:  1 * time.Second,
 	}
 	req := &structs.ServiceSpecificRequest{
-		Datacenter:  "dc1",
-		ServiceName: "web",
+		Datacenter:     "dc1",
+		ServiceName:    "web",
+		EnterpriseMeta: structs.EnterpriseMetaInitializer(namespace),
 	}
 
 	gatherNodes := func(res interface{}) []string {
@@ -345,7 +358,8 @@ func TestStreamingHealthServices_FullSnapshot(t *testing.T) {
 }
 
 func TestStreamingHealthServices_EventBatches(t *testing.T) {
-	client := NewTestStreamingClient()
+	namespace := getNamespace("ns3")
+	client := NewTestStreamingClient(namespace)
 	typ := StreamingHealthServices{deps: MaterializerDeps{
 		Client: client,
 		Logger: hclog.Default(),
@@ -366,8 +380,9 @@ func TestStreamingHealthServices_EventBatches(t *testing.T) {
 		Timeout:  1 * time.Second,
 	}
 	req := &structs.ServiceSpecificRequest{
-		Datacenter:  "dc1",
-		ServiceName: "web",
+		Datacenter:     "dc1",
+		ServiceName:    "web",
+		EnterpriseMeta: structs.EnterpriseMetaInitializer(namespace),
 	}
 
 	gatherNodes := func(res interface{}) []string {
@@ -415,7 +430,8 @@ func TestStreamingHealthServices_EventBatches(t *testing.T) {
 }
 
 func TestStreamingHealthServices_Filtering(t *testing.T) {
-	client := NewTestStreamingClient()
+	namespace := getNamespace("ns3")
+	client := NewTestStreamingClient(namespace)
 	typ := StreamingHealthServices{deps: MaterializerDeps{
 		Client: client,
 		Logger: hclog.Default(),
@@ -436,8 +452,9 @@ func TestStreamingHealthServices_Filtering(t *testing.T) {
 		Timeout:  1 * time.Second,
 	}
 	req := &structs.ServiceSpecificRequest{
-		Datacenter:  "dc1",
-		ServiceName: "web",
+		Datacenter:     "dc1",
+		ServiceName:    "web",
+		EnterpriseMeta: structs.EnterpriseMetaInitializer(namespace),
 		QueryOptions: structs.QueryOptions{
 			Filter: `Node.Node == "node2"`,
 		},

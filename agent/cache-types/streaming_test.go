@@ -2,6 +2,7 @@ package cachetype
 
 import (
 	"context"
+	"fmt"
 
 	"google.golang.org/grpc"
 
@@ -12,8 +13,9 @@ import (
 // for queueing up custom events to a subscriber.
 type TestStreamingClient struct {
 	pbsubscribe.StateChangeSubscription_SubscribeClient
-	events chan eventOrErr
-	ctx    context.Context
+	events            chan eventOrErr
+	ctx               context.Context
+	expectedNamespace string
 }
 
 type eventOrErr struct {
@@ -21,17 +23,22 @@ type eventOrErr struct {
 	Event *pbsubscribe.Event
 }
 
-func NewTestStreamingClient() *TestStreamingClient {
+func NewTestStreamingClient(ns string) *TestStreamingClient {
 	return &TestStreamingClient{
-		events: make(chan eventOrErr, 32),
+		events:            make(chan eventOrErr, 32),
+		expectedNamespace: ns,
 	}
 }
 
 func (t *TestStreamingClient) Subscribe(
 	ctx context.Context,
-	_ *pbsubscribe.SubscribeRequest,
+	req *pbsubscribe.SubscribeRequest,
 	_ ...grpc.CallOption,
 ) (pbsubscribe.StateChangeSubscription_SubscribeClient, error) {
+	if req.Namespace != t.expectedNamespace {
+		return nil, fmt.Errorf("wrong SubscribeRequest.Namespace %v, expected %v",
+			req.Namespace, t.expectedNamespace)
+	}
 	t.ctx = ctx
 	return t, nil
 }
