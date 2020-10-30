@@ -797,9 +797,9 @@ type RawUIConfig struct {
 }
 
 type RawUIMetricsProxy struct {
-	BaseURL      *string                      `json:"base_url,omitempty" hcl:"base_url" mapstructure:"base_url"`
-	AddHeaders   []RawUIMetricsProxyAddHeader `json:"add_headers,omitempty" hcl:"add_headers" mapstructure:"add_headers"`
-	AllowedPaths []string                     `json:"allowed_paths,omitempty" hcl:"allowed_paths" mapstructure:"allowed_Paths"`
+	BaseURL       *string                      `json:"base_url,omitempty" hcl:"base_url" mapstructure:"base_url"`
+	AddHeaders    []RawUIMetricsProxyAddHeader `json:"add_headers,omitempty" hcl:"add_headers" mapstructure:"add_headers"`
+	PathAllowlist []string                     `json:"path_allowlist,omitempty" hcl:"path_allowlist" mapstructure:"path_allowlist"`
 }
 
 type RawUIMetricsProxyAddHeader struct {

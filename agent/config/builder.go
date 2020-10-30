@@ -1105,8 +1105,8 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 
 	if rt.UIConfig.MetricsProvider == "prometheus" {
 		// Handle defaulting for the built-in version of prometheus.
-		if len(rt.UIConfig.MetricsProxy.AllowedPaths) == 0 {
-			rt.UIConfig.MetricsProxy.AllowedPaths = []string{
+		if len(rt.UIConfig.MetricsProxy.PathAllowlist) == 0 {
+			rt.UIConfig.MetricsProxy.PathAllowlist = []string{
 				"/api/v1/query",
 				"/api/v1/query_range",
 			}
@@ -1191,9 +1191,9 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 				rt.UIConfig.MetricsProxy.BaseURL)
 		}
 	}
-	for _, allowedPath := range rt.UIConfig.MetricsProxy.AllowedPaths {
+	for _, allowedPath := range rt.UIConfig.MetricsProxy.PathAllowlist {
 		if err := validateAbsoluteURLPath(allowedPath); err != nil {
-			return fmt.Errorf("ui_config.metrics_proxy.allowed_paths: %v", err)
+			return fmt.Errorf("ui_config.metrics_proxy.path_allowlist: %v", err)
 		}
 	}
 	for k, v := range rt.UIConfig.DashboardURLTemplates {
@@ -1762,9 +1762,9 @@ func (b *Builder) uiMetricsProxyVal(v RawUIMetricsProxy) UIMetricsProxy {
 	}
 
 	return UIMetricsProxy{
-		BaseURL:      b.stringVal(v.BaseURL),
-		AddHeaders:   hdrs,
-		AllowedPaths: v.AllowedPaths,
+		BaseURL:       b.stringVal(v.BaseURL),
+		AddHeaders:    hdrs,
+		PathAllowlist: v.PathAllowlist,
 	}
 }
 

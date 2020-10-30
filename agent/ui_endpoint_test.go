@@ -1634,8 +1634,8 @@ func TestUIEndpoint_MetricsProxy(t *testing.T) {
 		{
 			name: "blocked path",
 			config: config.UIMetricsProxy{
-				BaseURL:      backendURL,
-				AllowedPaths: []string{"/some/other-prefix/ok"},
+				BaseURL:       backendURL,
+				PathAllowlist: []string{"/some/other-prefix/ok"},
 			},
 			path:     endpointPath + "/ok",
 			wantCode: http.StatusForbidden,
@@ -1643,8 +1643,8 @@ func TestUIEndpoint_MetricsProxy(t *testing.T) {
 		{
 			name: "allowed path",
 			config: config.UIMetricsProxy{
-				BaseURL:      backendURL,
-				AllowedPaths: []string{"/some/prefix/ok"},
+				BaseURL:       backendURL,
+				PathAllowlist: []string{"/some/prefix/ok"},
 			},
 			path:         endpointPath + "/ok",
 			wantCode:     http.StatusOK,
