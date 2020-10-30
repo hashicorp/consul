@@ -157,7 +157,7 @@ set to `http://prometheus-server` then the proxy would also expose read access
 to several other endpoints such as `/api/v1/status/config` which includes all
 Prometheus configuration which might include sensitive information.
 
-The default value for `metrics_proxy.allowed_paths` is `["/api/v1/query_range",
+The default value for `metrics_proxy.path_allowlist` is `["/api/v1/query_range",
 "/api/v1/query"]` so that if you are using the built in provider, this is
 already limited to the essential endpoints.
 
@@ -495,7 +495,6 @@ Currently there are some limitations to this feature.
   `prometheus` provider only support querying Prometheus via the [metrics
   proxy](#metrics-proxy). Later it may be possible to configure it for direct
   access to an expose Prometheus.
-
 
 
 
