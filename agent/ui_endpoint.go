@@ -589,6 +589,29 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 	// double slashes etc.
 	u.Path = path.Clean(u.Path)
 
+	if len(cfg.PathAllowlist) > 0 {
+		// This could be done better with a map, but for the prometheus default
+		// integration this list has two items in it, so the straight iteration
+		// isn't awful.
+		denied := true
+		for _, allowedPath := range cfg.PathAllowlist {
+			if u.Path == allowedPath {
+				denied = false
+				break
+			}
+		}
+		if denied {
+			log.Error("target URL path is not allowed",
+				"base_url", cfg.BaseURL,
+				"path", subPath,
+				"target_url", u.String(),
+				"path_allowlist", cfg.PathAllowlist,
+			)
+			resp.WriteHeader(http.StatusForbidden)
+			return nil, nil
+		}
+	}
+
 	// Pass through query params
 	u.RawQuery = req.URL.RawQuery
 

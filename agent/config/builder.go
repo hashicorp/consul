@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"reflect"
 	"regexp"
@@ -1102,6 +1103,16 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		return RuntimeConfig{}, fmt.Errorf("cache.entry_fetch_rate must be strictly positive, was: %v", rt.Cache.EntryFetchRate)
 	}
 
+	if rt.UIConfig.MetricsProvider == "prometheus" {
+		// Handle defaulting for the built-in version of prometheus.
+		if len(rt.UIConfig.MetricsProxy.PathAllowlist) == 0 {
+			rt.UIConfig.MetricsProxy.PathAllowlist = []string{
+				"/api/v1/query",
+				"/api/v1/query_range",
+			}
+		}
+	}
+
 	if err := b.BuildEnterpriseRuntimeConfig(&rt, &c); err != nil {
 		return rt, err
 	}
@@ -1178,6 +1189,11 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 			return fmt.Errorf("ui_config.metrics_proxy.base_url must be a valid http"+
 				" or https URL. received: %q",
 				rt.UIConfig.MetricsProxy.BaseURL)
+		}
+	}
+	for _, allowedPath := range rt.UIConfig.MetricsProxy.PathAllowlist {
+		if err := validateAbsoluteURLPath(allowedPath); err != nil {
+			return fmt.Errorf("ui_config.metrics_proxy.path_allowlist: %v", err)
 		}
 	}
 	for k, v := range rt.UIConfig.DashboardURLTemplates {
@@ -1746,8 +1762,9 @@ func (b *Builder) uiMetricsProxyVal(v RawUIMetricsProxy) UIMetricsProxy {
 	}
 
 	return UIMetricsProxy{
-		BaseURL:    b.stringVal(v.BaseURL),
-		AddHeaders: hdrs,
+		BaseURL:       b.stringVal(v.BaseURL),
+		AddHeaders:    hdrs,
+		PathAllowlist: v.PathAllowlist,
 	}
 }
 
@@ -2323,5 +2340,26 @@ func validateRemoteScriptsChecks(conf RuntimeConfig) error {
 	if conf.EnableRemoteScriptChecks && !conf.ACLsEnabled && len(conf.AllowWriteHTTPFrom) == 0 {
 		return errors.New(remoteScriptCheckSecurityWarning)
 	}
+	return nil
+}
+
+func validateAbsoluteURLPath(p string) error {
+	if !path.IsAbs(p) {
+		return fmt.Errorf("path %q is not an absolute path", p)
+	}
+
+	// A bit more extra validation that these are actually paths.
+	u, err := url.Parse(p)
+	if err != nil ||
+		u.Scheme != "" ||
+		u.Opaque != "" ||
+		u.User != nil ||
+		u.Host != "" ||
+		u.RawQuery != "" ||
+		u.Fragment != "" ||
+		u.Path != p {
+		return fmt.Errorf("path %q is not an absolute path", p)
+	}
+
 	return nil
 }

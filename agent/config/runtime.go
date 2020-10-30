@@ -1540,8 +1540,9 @@ type UIConfig struct {
 }
 
 type UIMetricsProxy struct {
-	BaseURL    string
-	AddHeaders []UIMetricsProxyAddHeader
+	BaseURL       string
+	AddHeaders    []UIMetricsProxyAddHeader
+	PathAllowlist []string
 }
 
 type UIMetricsProxyAddHeader struct {
