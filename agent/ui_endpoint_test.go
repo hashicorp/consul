@@ -1632,6 +1632,25 @@ func TestUIEndpoint_MetricsProxy(t *testing.T) {
 			wantCode: http.StatusNotFound,
 		},
 		{
+			name: "blocked path",
+			config: config.UIMetricsProxy{
+				BaseURL:       backendURL,
+				PathAllowlist: []string{"/some/other-prefix/ok"},
+			},
+			path:     endpointPath + "/ok",
+			wantCode: http.StatusForbidden,
+		},
+		{
+			name: "allowed path",
+			config: config.UIMetricsProxy{
+				BaseURL:       backendURL,
+				PathAllowlist: []string{"/some/prefix/ok"},
+			},
+			path:         endpointPath + "/ok",
+			wantCode:     http.StatusOK,
+			wantContains: "OK",
+		},
+		{
 			name: "basic proxying",
 			config: config.UIMetricsProxy{
 				BaseURL: backendURL,

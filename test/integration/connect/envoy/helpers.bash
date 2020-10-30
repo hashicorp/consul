@@ -157,6 +157,7 @@ function assert_envoy_http_rbac_policy_count {
   local EXPECT_COUNT=$2
 
   GOT_COUNT=$(get_envoy_http_rbac_once $HOSTPORT | jq '.rules.policies | length')
+  echo "GOT_COUNT = $GOT_COUNT"
   [ "${GOT_COUNT:-0}" -eq $EXPECT_COUNT ]
 }
 
@@ -172,6 +173,7 @@ function assert_envoy_network_rbac_policy_count {
   local EXPECT_COUNT=$2
 
   GOT_COUNT=$(get_envoy_network_rbac_once $HOSTPORT | jq '.rules.policies | length')
+  echo "GOT_COUNT = $GOT_COUNT"
   [ "${GOT_COUNT:-0}" -eq $EXPECT_COUNT ]
 }
 
