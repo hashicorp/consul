@@ -13,7 +13,7 @@
     </div>
     <TopologyMetrics::Card
       @items={{@topology.Downstreams}}
-      @service={{@service.Service.Service}}
+      @service={{@service.Service}}
       @dc={{@topology.Datacenter}}
       @hasMetricsProvider={{this.hasMetricsProvider}}
       @noMetricsReason={{this.noMetricsReason}}
@@ -31,6 +31,7 @@
         @protocol={{@topology.Protocol}}
         @noMetricsReason={{this.noMetricsReason}}
       />
+      {{#if (not-eq @service.Service.Kind 'ingress-gateway')}}
       <TopologyMetrics::Stats
         @endpoint='summary-for-service'
         @service={{@service.Service.Service}}
@@ -38,6 +39,7 @@
         @protocol={{@topology.Protocol}}
         @noMetricsReason={{this.noMetricsReason}}
       />
+      {{/if}}
     {{/if}}
     <div class="link">
      {{#if @metricsHref}}
@@ -63,7 +65,7 @@
       <p>{{dc}}</p>
       <TopologyMetrics::Card
         @items={{upstreams}}
-        @service={{@service.Service.Service}}
+        @service={{@service.Service}}
         @dc={{@topology.Datacenter}}
         @type='upstream'
         @hasMetricsProvider={{this.hasMetricsProvider}}
