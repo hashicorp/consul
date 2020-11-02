@@ -1,15 +1,16 @@
 import Route from 'consul-ui/routing/route';
 import { get } from '@ember/object';
 
-export default Route.extend({
-  model: function() {
+export default class UpstreamsRoute extends Route {
+  model() {
     const parent = this.routeName
       .split('.')
       .slice(0, -1)
       .join('.');
     return this.modelFor(parent);
-  },
-  afterModel: function(model, transition) {
+  }
+
+  afterModel(model, transition) {
     if (get(model, 'item.Service.Kind') !== 'connect-proxy') {
       const parent = this.routeName
         .split('.')
@@ -17,9 +18,10 @@ export default Route.extend({
         .join('.');
       this.replaceWith(parent);
     }
-  },
-  setupController: function(controller, model) {
-    this._super(...arguments);
+  }
+
+  setupController(controller, model) {
+    super.setupController(...arguments);
     controller.setProperties(model);
-  },
-});
+  }
+}

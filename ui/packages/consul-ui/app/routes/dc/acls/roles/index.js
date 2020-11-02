@@ -1,19 +1,22 @@
-import Route from 'consul-ui/routing/route';
 import { inject as service } from '@ember/service';
+import Route from 'consul-ui/routing/route';
 import { hash } from 'rsvp';
 
 import WithRoleActions from 'consul-ui/mixins/role/with-actions';
 
-export default Route.extend(WithRoleActions, {
-  repo: service('repository/role'),
-  queryParams: {
+export default class IndexRoute extends Route.extend(WithRoleActions) {
+  @service('repository/role')
+  repo;
+
+  queryParams = {
     sortBy: 'sort',
     search: {
       as: 'filter',
       replace: true,
     },
-  },
-  model: function(params) {
+  };
+
+  model(params) {
     return hash({
       ...this.repo.status({
         items: this.repo.findAllByDatacenter(
@@ -22,9 +25,10 @@ export default Route.extend(WithRoleActions, {
         ),
       }),
     });
-  },
-  setupController: function(controller, model) {
-    this._super(...arguments);
+  }
+
+  setupController(controller, model) {
+    super.setupController(...arguments);
     controller.setProperties(model);
-  },
-});
+  }
+}

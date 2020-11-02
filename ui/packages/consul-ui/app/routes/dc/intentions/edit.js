@@ -1,10 +1,12 @@
-import Route from 'consul-ui/routing/route';
 import { inject as service } from '@ember/service';
+import Route from 'consul-ui/routing/route';
 import { hash } from 'rsvp';
 
-export default Route.extend({
-  repo: service('repository/intention'),
-  model: function({ intention_id }, transition) {
+export default class EditRoute extends Route {
+  @service('repository/intention')
+  repo;
+
+  model({ intention_id }, transition) {
     const dc = this.modelFor('dc').dc.Name;
     const nspace = '*';
     return hash({
@@ -17,9 +19,10 @@ export default Route.extend({
               Datacenter: dc,
             }),
     });
-  },
-  setupController: function(controller, model) {
-    this._super(...arguments);
+  }
+
+  setupController(controller, model) {
+    super.setupController(...arguments);
     controller.setProperties(model);
-  },
-});
+  }
+}

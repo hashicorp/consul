@@ -1,10 +1,12 @@
-import Route from 'consul-ui/routing/route';
 import { inject as service } from '@ember/service';
+import Route from 'consul-ui/routing/route';
 import { hash } from 'rsvp';
 
-export default Route.extend({
-  data: service('data-source/service'),
-  model: function() {
+export default class ServicesRoute extends Route {
+  @service('data-source/service')
+  data;
+
+  model() {
     const dc = this.modelFor('dc').dc.Name;
     const nspace = this.modelFor('nspace').nspace.substr(1);
     const parent = this.routeName
@@ -17,9 +19,10 @@ export default Route.extend({
       nspace: nspace,
       gatewayServices: this.data.source(uri => uri`/${nspace}/${dc}/gateways/for-service/${name}`),
     });
-  },
-  setupController: function(controller, model) {
-    this._super(...arguments);
+  }
+
+  setupController(controller, model) {
+    super.setupController(...arguments);
     controller.setProperties(model);
-  },
-});
+  }
+}
