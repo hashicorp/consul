@@ -120,7 +120,7 @@ module.exports = function(environment, $ = process.env) {
           'auto-import': false,
           enabled: true,
           endpoints: {
-            '/v1': '/node_modules/@hashicorp/consul-api-double/v1',
+            '/v1': '/api/v1',
           },
         },
         APP: Object.assign({}, ENV.APP, {
