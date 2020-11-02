@@ -687,8 +687,9 @@ function read_config_entry {
 }
 
 function wait_for_namespace {
-  local DC=${1:-primary}
-  retry_default docker_curl "$DC" -sLf "http://127.0.0.1:8500/v1/namespace/${1}" >/dev/null
+  local NS="${1}"
+  local DC=${2:-primary}
+  retry_default docker_curl "$DC" -sLf "http://127.0.0.1:8500/v1/namespace/${NS}" >/dev/null
 }
 
 function wait_for_config_entry {
