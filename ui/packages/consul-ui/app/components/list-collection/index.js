@@ -71,7 +71,7 @@ export default Component.extend(Slotted, {
       return this.dom.clickFirstAnchor(e, '.list-collection > ul > li');
     },
     change: function(index, e = {}) {
-      if (e.target.checked && index != get(this, 'checked')) {
+      if (e.target.checked && index !== get(this, 'checked')) {
         set(this, 'checked', parseInt(index));
         this.$row = this.dom.closest('li', e.target);
         this.$row.style.zIndex = 1;

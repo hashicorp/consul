@@ -18,7 +18,7 @@
       <YieldSlot @name="row">{{yield cell.item index}}</YieldSlot>
 {{#if hasActions }}
       <td class="actions">
-        <YieldSlot @name="actions" @params={{block-params (concat cell.index) (action "change") checked}}>
+        <YieldSlot @name="actions" @params={{block-params cell.index (action "change") checked}}>
           {{yield cell.item index}}
         </YieldSlot>
       </td>

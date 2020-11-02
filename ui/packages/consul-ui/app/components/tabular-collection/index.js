@@ -95,13 +95,10 @@ export default CollectionComponent.extend(Slotted, {
       return this.dom.clickFirstAnchor(e);
     },
     change: function(index, e = {}) {
-      if (typeof index !== 'string') {
-        return;
-      }
       if (this.$tr) {
         this.$tr.style.zIndex = null;
       }
-      if (e.target.checked && index != get(this, 'checked')) {
+      if (e.target && e.target.checked && index !== get(this, 'checked')) {
         set(this, 'checked', parseInt(index));
         const target = e.target;
         const $tr = this.dom.closest('tr', target);
