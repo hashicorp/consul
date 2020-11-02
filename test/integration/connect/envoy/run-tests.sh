@@ -326,7 +326,8 @@ function suite_setup {
     docker run -d --name envoy_workdir_1 \
         $WORKDIR_SNIPPET \
         --net=none \
-        "${HASHICORP_DOCKER_PROXY}/google/pause" &>/dev/null
+        k8s.gcr.io/pause &>/dev/null
+    # TODO(rb): switch back to "${HASHICORP_DOCKER_PROXY}/google/pause" once that is cached
 
     # pre-build the verify container
     echo "Rebuilding 'bats-verify' image..."
