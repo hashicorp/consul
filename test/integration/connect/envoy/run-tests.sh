@@ -4,6 +4,8 @@ set -eEuo pipefail
 
 readonly self_name="$0"
 
+readonly HASHICORP_DOCKER_PROXY="docker.mirror.hashicorp.services"
+
 # DEBUG=1 enables set -x for this script so echos every command run
 DEBUG=${DEBUG:-}
 
@@ -245,7 +247,7 @@ function wipe_volumes {
   docker run --rm -i \
     $WORKDIR_SNIPPET \
     --net=none \
-    alpine \
+    "${HASHICORP_DOCKER_PROXY}/alpine" \
     sh -c 'rm -rf /workdir/*'
 }
 
@@ -324,7 +326,8 @@ function suite_setup {
     docker run -d --name envoy_workdir_1 \
         $WORKDIR_SNIPPET \
         --net=none \
-        google/pause &>/dev/null
+        k8s.gcr.io/pause &>/dev/null
+    # TODO(rb): switch back to "${HASHICORP_DOCKER_PROXY}/google/pause" once that is cached
 
     # pre-build the verify container
     echo "Rebuilding 'bats-verify' image..."
@@ -375,7 +378,7 @@ function common_run_container_service {
   docker run -d --name $(container_name_prev) \
     -e "FORTIO_NAME=${service}" \
     $(network_snippet $DC) \
-    fortio/fortio \
+    "${HASHICORP_DOCKER_PROXY}/fortio/fortio" \
     server \
     -http-port ":$httpPort" \
     -grpc-port ":$grpcPort" \
@@ -432,7 +435,7 @@ function common_run_container_sidecar_proxy {
   docker run -d --name $(container_name_prev) \
     $WORKDIR_SNIPPET \
     $(network_snippet $DC) \
-    "docker.mirror.hashicorp.services/envoyproxy/envoy:v${ENVOY_VERSION}" \
+    "${HASHICORP_DOCKER_PROXY}/envoyproxy/envoy:v${ENVOY_VERSION}" \
     envoy \
     -c /workdir/${DC}/envoy/${service}-bootstrap.json \
     -l debug \
@@ -495,7 +498,7 @@ function common_run_container_gateway {
   docker run -d --name $(container_name_prev) \
     $WORKDIR_SNIPPET \
     $(network_snippet $DC) \
-    "docker.mirror.hashicorp.services/envoyproxy/envoy:v${ENVOY_VERSION}" \
+    "${HASHICORP_DOCKER_PROXY}/envoyproxy/envoy:v${ENVOY_VERSION}" \
     envoy \
     -c /workdir/${DC}/envoy/${name}-bootstrap.json \
     -l debug \
@@ -525,7 +528,7 @@ function run_container_fake-statsd {
   docker run -d --name $(container_name) \
     $WORKDIR_SNIPPET \
     $(network_snippet primary) \
-    alpine/socat \
+    "${HASHICORP_DOCKER_PROXY}/alpine/socat" \
     -u UDP-RECVFROM:8125,fork,reuseaddr \
     SYSTEM:'xargs -0 echo >> /workdir/primary/statsd/statsd.log'
 }
@@ -534,14 +537,14 @@ function run_container_zipkin {
   docker run -d --name $(container_name) \
     $WORKDIR_SNIPPET \
     $(network_snippet primary) \
-    openzipkin/zipkin
+    "${HASHICORP_DOCKER_PROXY}/openzipkin/zipkin"
 }
 
 function run_container_jaeger {
   docker run -d --name $(container_name) \
     $WORKDIR_SNIPPET \
     $(network_snippet primary) \
-    jaegertracing/all-in-one:1.11 \
+    "${HASHICORP_DOCKER_PROXY}/jaegertracing/all-in-one:1.11" \
     --collector.zipkin.http-port=9411
 }
 
@@ -558,7 +561,7 @@ function debug_dump_volumes {
     $WORKDIR_SNIPPET \
     -v ./:/cwd \
     --net=none \
-    alpine \
+    "${HASHICORP_DOCKER_PROXY}/alpine" \
     cp -r /workdir/. /cwd/workdir/
 }
 
