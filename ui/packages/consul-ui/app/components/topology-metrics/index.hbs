@@ -37,6 +37,7 @@
         @protocol={{@topology.Protocol}}
         @noMetricsReason={{this.noMetricsReason}}
       />
+      {{#if (not-eq @service.Service.Kind 'ingress-gateway')}}
       <TopologyMetrics::Stats
         @endpoint='summary-for-service'
         @service={{@service.Service.Service}}
@@ -44,6 +45,7 @@
         @protocol={{@topology.Protocol}}
         @noMetricsReason={{this.noMetricsReason}}
       />
+      {{/if}}
     {{/if}}
     <div class="link">
      {{#if @metricsHref}}

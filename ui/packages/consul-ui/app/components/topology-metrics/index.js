@@ -26,7 +26,10 @@ export default class TopologyMetrics extends Component {
     // TODO we can make the configurable even before we have a full solution for
     // multi-DC forwarding for Prometheus so providers that are global for all
     // DCs like an external managed APM can still load in all DCs.
-    if (this.env.var('CONSUL_DATACENTER_LOCAL') != this.args.topology.get('Datacenter')) {
+    if (
+      this.env.var('CONSUL_DATACENTER_LOCAL') !== this.args.topology.get('Datacenter') ||
+      this.args.service.Service.Kind === 'ingress-gateway'
+    ) {
       this.noMetricsReason = 'Unable to fetch metrics for a remote datacenter';
     }
   }
