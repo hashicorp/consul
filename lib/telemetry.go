@@ -280,8 +280,83 @@ func prometheusSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, e
 	if cfg.PrometheusRetentionTime.Nanoseconds() < 1 {
 		return nil, nil
 	}
+
+	// TODO(kit) define these in vars in the package/file they're used
+	gaugeDefs := []prometheus.GaugeDefinition{
+		{
+			Name: []string{"consul", "autopilot", "healthy"},
+			Help: "This tracks the overall health of the local server cluster. 1 if all servers are healthy, 0 if one or more are unhealthy.",
+		},
+		{
+			Name: []string{"consul", "runtime", "alloc_bytes"},
+			Help: "This measures the number of bytes allocated by the Consul process.",
+		},
+		{
+			Name: []string{"consul", "runtime", "sys_bytes"},
+			Help: "This is the total number of bytes of memory obtained from the OS.",
+		},
+	}
+
+	// TODO(kit) define these in vars in the package/file they're used
+	counterDefs := []prometheus.CounterDefinition{
+		{
+			Name: []string{"consul", "raft", "apply"},
+			Help: "This counts the number of Raft transactions occurring over the interval.",
+		},
+		{
+			Name: []string{"consul", "raft", "state", "candidate"},
+			Help: "This increments whenever a Consul server starts an election.",
+		},
+		{
+			Name: []string{"consul", "raft", "state", "leader"},
+			Help: "This increments whenever a Consul server becomes a leader.",
+		},
+		{
+			Name: []string{"consul", "client", "api", "catalog_register"},
+			Help: "Increments whenever a Consul agent receives a catalog register request.",
+		},
+		{
+			Name: []string{"consul", "runtime", "total_gc_pause_ns"},
+			Help: "Number of nanoseconds consumed by stop-the-world garbage collection (GC) pauses since Consul started.",
+		},
+		{
+			Name: []string{"consul", "client", "rpc"},
+			Help: "Increments whenever a Consul agent in client mode makes an RPC request to a Consul server.",
+		},
+		{
+			Name: []string{"consul", "client", "rpc", "exceeded"},
+			Help: "Increments whenever a Consul agent in client mode makes an RPC request to a Consul server gets rate limited by that agent's limits configuration.",
+		},
+		{
+			Name: []string{"consul", "client", "rpc", "failed"},
+			Help: "Increments whenever a Consul agent in client mode makes an RPC request to a Consul server and fails.",
+		},
+	}
+
+	// TODO(kit) define these in vars in the package/file they're used
+	summaryDefs := []prometheus.SummaryDefinition{
+		{
+			Name: []string{"consul", "kvs", "apply"},
+			Help: "This measures the time it takes to complete an update to the KV store.",
+		},
+		{
+			Name: []string{"consul", "txn", "apply"},
+			Help: "This measures the time spent applying a transaction operation.",
+		},
+		{
+			Name: []string{"consul", "raft", "commitTime"},
+			Help: "This measures the time it takes to commit a new entry to the Raft log on the leader.",
+		},
+		{
+			Name: []string{"consul", "raft", "leader", "lastContact"},
+			Help: "Measures the time since the leader was last able to contact the follower nodes when checking its leader lease.",
+		},
+	}
 	prometheusOpts := prometheus.PrometheusOpts{
-		Expiration: cfg.PrometheusRetentionTime,
+		Expiration:         cfg.PrometheusRetentionTime,
+		GaugeDefinitions:   gaugeDefs,
+		CounterDefinitions: counterDefs,
+		SummaryDefinitions: summaryDefs,
 	}
 	sink, err := prometheus.NewPrometheusSinkFrom(prometheusOpts)
 	if err != nil {
