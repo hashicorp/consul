@@ -27,7 +27,14 @@ export function initialize(application) {
         form = set(this.forms, name, forms[name](this));
         // only do special things for our new things for the moment
         if (name === 'role' || name === 'policy') {
-          const repo = get(this, name);
+          let repo = get(this, name);
+          // In the grand 'ember native class conversion' it seems like EmberObject
+          // no longer proxy through to content if you don't specify a property
+          // so here we manually check for the content property if the function we
+          // are looking for doesn't exist
+          if (typeof repo.create !== 'function') {
+            repo = repo.content;
+          }
           form.clear(function(obj) {
             return repo.create(obj);
           });
