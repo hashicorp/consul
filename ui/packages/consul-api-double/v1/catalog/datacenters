@@ -1,9 +1,12 @@
 [
-  "${env('CONSUL_DATACENTER_LOCAL', 'dc1')}"
   ${
-    range(env('CONSUL_DATACENTER_COUNT', 10)-1).map(
-        function(item, i) {
-            return `,"${fake.address.countryCode().toLowerCase()}_${ i % 2 ? "west" : "east"}-${i}"`;
+    range(env('CONSUL_DATACENTER_COUNT', 10)).map((item, i) => {
+      if(i === 0) {
+        return `"dc1"`;
+      }
+      return `
+        "${fake.address.countryCode().toLowerCase()}_${ i % 2 ? "west" : "east"}-${i}"
+`;
         }
     )
   }
