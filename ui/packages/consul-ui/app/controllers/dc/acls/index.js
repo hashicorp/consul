@@ -1,6 +1,7 @@
+import { action } from '@ember/object';
 import Controller from '@ember/controller';
-export default Controller.extend({
-  queryParams: {
+export default class IndexController extends Controller {
+  queryParams = {
     filterBy: {
       as: 'type',
     },
@@ -8,10 +9,10 @@ export default Controller.extend({
       as: 'filter',
       replace: true,
     },
-  },
-  actions: {
-    sendClone: function(item) {
-      this.send('clone', item);
-    },
-  },
-});
+  };
+
+  @action
+  sendClone(item) {
+    this.send('clone', item);
+  }
+}

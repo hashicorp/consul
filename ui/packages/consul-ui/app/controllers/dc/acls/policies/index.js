@@ -1,6 +1,6 @@
 import Controller from '@ember/controller';
-export default Controller.extend({
-  queryParams: {
+export default class IndexController extends Controller {
+  queryParams = {
     sortBy: 'sort',
     dc: 'dc',
     type: 'type',
@@ -8,5 +8,5 @@ export default Controller.extend({
       as: 'filter',
       replace: true,
     },
-  },
-});
+  };
+}

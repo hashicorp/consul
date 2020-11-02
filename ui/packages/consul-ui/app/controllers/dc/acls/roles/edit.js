@@ -1,14 +1,17 @@
-import Controller from '@ember/controller';
 import { inject as service } from '@ember/service';
-export default Controller.extend({
-  builder: service('form'),
-  init: function() {
-    this._super(...arguments);
+import Controller from '@ember/controller';
+export default class EditController extends Controller {
+  @service('form')
+  builder;
+
+  init() {
+    super.init(...arguments);
     this.form = this.builder.form('role');
-  },
-  setProperties: function(model) {
+  }
+
+  setProperties(model) {
     // essentially this replaces the data with changesets
-    this._super(
+    super.setProperties(
       Object.keys(model).reduce((prev, key, i) => {
         switch (key) {
           case 'item':
@@ -18,5 +21,5 @@ export default Controller.extend({
         return prev;
       }, model)
     );
-  },
-});
+  }
+}

@@ -1,8 +1,8 @@
-import Controller from '@ember/controller';
 import { computed } from '@ember/object';
+import Controller from '@ember/controller';
 
-export default Controller.extend({
-  queryParams: {
+export default class IndexController extends Controller {
+  queryParams = {
     sortBy: 'sort',
     status: 'status',
     source: 'source',
@@ -10,17 +10,21 @@ export default Controller.extend({
     search: {
       as: 'filter',
     },
-  },
-  services: computed('items.[]', function() {
+  };
+
+  @computed('items.[]')
+  get services() {
     return this.items.filter(function(item) {
       return item.Kind !== 'connect-proxy';
     });
-  }),
-  externalSources: computed('services', function() {
+  }
+
+  @computed('services')
+  get externalSources() {
     const sources = this.services.reduce(function(prev, item) {
       return prev.concat(item.ExternalSources || []);
     }, []);
     // unique, non-empty values, alpha sort
     return [...new Set(sources)].filter(Boolean).sort();
-  }),
-});
+  }
+}
