@@ -558,7 +558,7 @@ jobs:
 
       - run:
           name: install yarn packages
-          command: cd ui/packages/consul-ui && yarn install --focus
+          command: cd ui/packages/consul-ui && yarn
 
       - save_cache:
           key: *YARN_CACHE_KEY
