@@ -1,0 +1,71 @@
+${
+    env('CONSUL_ENABLE_ACLS', 1) ? `
+[
+    ${
+      (count = env(
+        'CONSUL_ACL_COUNT',
+        Math.floor(
+          (
+            Math.random() * env('CONSUL_ACL_MAX', 10)
+          ) + parseInt(env('CONSUL_ACL_MIN', 2))
+        )
+      )) >= 2 ? `
+    {
+        "ID":"anonymous",
+        "Name":"Anonymous Token",
+        "Type":"client",
+        "Rules":"",
+        "CreateIndex":4,
+        "ModifyIndex":4
+    },
+    {
+        "ID":"secret",
+        "Name":"Master Token",
+        "Type":"management",
+        "Rules":"",
+        "CreateIndex":5,
+        "ModifyIndex":5
+    }${count > 2 ? "," : ""}
+  ${
+    range(
+      Math.max(0, count - 2)
+    ).map(
+        function(item, i) {
+            return `{
+                "ID":"${fake.lorem.word()}-${i}",
+                "Name":"${fake.lorem.word()}-${i}",
+                "Type":"client",
+                "Rules":"",
+                "CreateIndex":5,
+                "ModifyIndex":5
+            }`;
+        }
+    )
+  }` : `
+    ${
+      range(
+        env(
+          'CONSUL_ACL_COUNT',
+          Math.floor(
+            (
+              Math.random() * env('CONSUL_ACL_MAX', 10)
+            ) + parseInt(env('CONSUL_ACL_MIN', 1))
+          )
+        )
+      ).map(
+        function(item, i) {
+            return `{
+                "ID":"${fake.lorem.word()}-${i}",
+                "Name":"${fake.lorem.word()}-${i}",
+                "Type":"client",
+                "Rules":"",
+                "CreateIndex":5,
+                "ModifyIndex":5
+            }`;
+        }
+      )
+      }
+  `}
+]
+` : "ACL support disabled"
+}

@@ -1,0 +1,34 @@
+[
+  {
+    "Resource": "acl",
+    "Access": "read",
+    "Allow": false
+  },
+  {
+    "Resource": "acl",
+    "Access": "write",
+    "Allow": false
+  },
+  {
+    "Resource": "operator",
+    "Access": "read",
+    "Allow": true
+  },
+  {
+    "Resource": "operator",
+    "Access": "write",
+    "Allow": true
+  },
+  {
+    "Resource": "service",
+    "Segment": "web",
+    "Access": "read",
+    "Allow": true
+  },
+  {
+    "Resource": "service",
+    "Segment": "web",
+    "Access": "write",
+    "Allow": true
+  }
+]
