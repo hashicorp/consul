@@ -29,7 +29,7 @@
     <TabNav @items={{
       compact
           (array
-(if (and topology.Datacenter (gt proxies.length 0))
+(if (and topology.Datacenter (or (gt proxies.length 0) (eq item.Service.Kind 'ingress-gateway')))
             (hash label="Topology" href=(href-to "dc.services.show.topology") selected=(is-href "dc.services.show.topology"))
 '')
 (if (eq item.Service.Kind 'terminating-gateway')

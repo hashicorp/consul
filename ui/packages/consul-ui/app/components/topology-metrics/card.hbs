@@ -44,7 +44,7 @@
     </dl>
 {{/if}}
   </div>
-  {{#if @hasMetricsProvider }}
+  {{#if (and @hasMetricsProvider (not-eq @service.Kind 'ingress-gateway'))}}
     {{#if (eq @type 'upstream')}}
       <TopologyMetrics::Stats
         @endpoint='upstream-summary-for-service'
