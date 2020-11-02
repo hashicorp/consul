@@ -19,6 +19,7 @@ BUG FIXES:
 * connect: fix Vault provider not respecting IntermediateCertTTL [[GH-8646](https://github.com/hashicorp/consul/issues/8646)]
 * connect: fix connect sidecars registered via the API not being automatically deregistered with their parent service after an agent restart by persisting the LocallyRegisteredAsSidecar property. [[GH-8924](https://github.com/hashicorp/consul/issues/8924)]
 * fixed a bug that caused logs to be flooded with `[WARN] agent.router: Non-server in server-only area` [[GH-8685](https://github.com/hashicorp/consul/issues/8685)]
+* license: (Enterprise only) Fixed an issue where the UI would see Namespaces and SSO as licensed when they were not.
 * ui: show correct datacenter for gateways [[GH-8704](https://github.com/hashicorp/consul/issues/8704)]
 
 ## 1.8.4 (September 11, 2020)
