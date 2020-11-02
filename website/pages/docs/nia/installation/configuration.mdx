@@ -95,7 +95,7 @@ consul {
   * `enabled` - `(bool: false)`
   * `username` - `(string: <none>)`
   * `password` - `(string: <none>)`
-* `tls` - Configure TLS to use a secure client connection with Consul. This requires Consul to be configured to serve HTTPS.
+* `tls` - Configure TLS to use a secure client connection with Consul. This option is required for Consul-Terraform-Sync when connecting to a [Consul agent with TLS verification enabled for HTTPS connections](https://www.consul.io/docs/agent/options#verify_incoming).
   * `enabled` - `(bool: false)` Enable TLS. Specifying any option for TLS will also enable it.
   * `verify` - `(bool: true)` Enables TLS peer verification. The default is enabled, which will check the global CA chain to make sure the given certificates are valid. If you are using a self-signed certificate that you have not added to the CA chain, you may want to disable SSL verification. However, please understand this is a potential security vulnerability.
   * `key` - `(string: <none>)` The client key file to use for talking to Consul over TLS. The key also be provided through the `CONSUL_CLIENT_KEY` environment variable.
