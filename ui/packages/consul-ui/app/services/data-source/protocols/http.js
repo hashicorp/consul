@@ -1,36 +1,86 @@
 import Service, { inject as service } from '@ember/service';
 import { get } from '@ember/object';
 
-export default Service.extend({
-  datacenters: service('repository/dc'),
-  nodes: service('repository/node'),
-  node: service('repository/node'),
-  leader: service('repository/node'),
-  gateways: service('repository/service'),
-  services: service('repository/service'),
-  service: service('repository/service'),
-  ['service-instance']: service('repository/service-instance'),
-  ['service-instances']: service('repository/service-instance'),
-  proxies: service('repository/proxy'),
-  ['proxy-instance']: service('repository/proxy'),
-  ['discovery-chain']: service('repository/discovery-chain'),
-  ['topology']: service('repository/topology'),
-  coordinates: service('repository/coordinate'),
-  sessions: service('repository/session'),
-  namespaces: service('repository/nspace'),
-  intentions: service('repository/intention'),
-  intention: service('repository/intention'),
-  kv: service('repository/kv'),
-  token: service('repository/token'),
-  policies: service('repository/policy'),
-  policy: service('repository/policy'),
-  roles: service('repository/role'),
-  oidc: service('repository/oidc-provider'),
-  metrics: service('repository/metrics'),
+export default class HttpService extends Service {
+  @service('repository/dc')
+  datacenters;
 
-  type: service('data-source/protocols/http/blocking'),
+  @service('repository/node')
+  nodes;
 
-  source: function(src, configuration) {
+  @service('repository/node')
+  node;
+
+  @service('repository/node')
+  leader;
+
+  @service('repository/service')
+  gateways;
+
+  @service('repository/service')
+  services;
+
+  @service('repository/service')
+  service;
+
+  @service('repository/service-instance')
+  'service-instance';
+
+  @service('repository/service-instance')
+  'service-instances';
+
+  @service('repository/proxy')
+  proxies;
+
+  @service('repository/proxy')
+  'proxy-instance';
+
+  @service('repository/discovery-chain')
+  'discovery-chain';
+
+  @service('repository/topology')
+  topology;
+
+  @service('repository/coordinate')
+  coordinates;
+
+  @service('repository/session')
+  sessions;
+
+  @service('repository/nspace')
+  namespaces;
+
+  @service('repository/intention')
+  intentions;
+
+  @service('repository/intention')
+  intention;
+
+  @service('repository/kv')
+  kv;
+
+  @service('repository/token')
+  token;
+
+  @service('repository/policy')
+  policies;
+
+  @service('repository/policy')
+  policy;
+
+  @service('repository/role')
+  roles;
+
+  @service('repository/oidc-provider')
+  oidc;
+
+  @service('repository/metrics')
+  metrics;
+
+  @service('data-source/protocols/http/blocking')
+  type;
+
+  source(src, configuration) {
     // TODO: Consider adding/requiring 'action': nspace, dc, model, action, ...rest
     const [, nspace, dc, model, ...rest] = src.split('/').map(decodeURIComponent);
     // nspaces can be filled, blank or *
@@ -179,5 +229,5 @@ export default Service.extend({
         break;
     }
     return this.type.source(find, configuration);
-  },
-});
+  }
+}

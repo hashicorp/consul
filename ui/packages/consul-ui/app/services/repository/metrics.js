@@ -1,5 +1,5 @@
-import RepositoryService from 'consul-ui/services/repository';
 import { inject as service } from '@ember/service';
+import RepositoryService from 'consul-ui/services/repository';
 import { env } from 'consul-ui/env';
 
 // meta is used by DataSource to configure polling. The interval controls how
@@ -9,13 +9,17 @@ const meta = {
   interval: env('CONSUL_METRICS_POLL_INTERVAL') || 10000,
 };
 
-export default RepositoryService.extend({
-  cfg: service('ui-config'),
-  client: service('client/http'),
-  error: null,
+export default class MetricsService extends RepositoryService {
+  @service('ui-config')
+  cfg;
 
-  init: function() {
-    this._super(...arguments);
+  @service('client/http')
+  client;
+
+  error = null;
+
+  init() {
+    super.init(...arguments);
     const uiCfg = this.cfg.get();
     // Inject whether or not the proxy is enabled as an option into the opaque
     // JSON options the user provided.
@@ -35,9 +39,9 @@ export default RepositoryService.extend({
       // Dev.
       console.error(this.error); // eslint-disable-line no-console
     }
-  },
+  }
 
-  findServiceSummary: function(protocol, slug, dc, nspace, configuration = {}) {
+  findServiceSummary(protocol, slug, dc, nspace, configuration = {}) {
     if (this.error) {
       return Promise.reject(this.error);
     }
@@ -52,9 +56,9 @@ export default RepositoryService.extend({
         stats: results[1].stats,
       };
     });
-  },
+  }
 
-  findUpstreamSummary: function(slug, dc, nspace, configuration = {}) {
+  findUpstreamSummary(slug, dc, nspace, configuration = {}) {
     if (this.error) {
       return Promise.reject(this.error);
     }
@@ -62,9 +66,9 @@ export default RepositoryService.extend({
       result.meta = meta;
       return result;
     });
-  },
+  }
 
-  findDownstreamSummary: function(slug, dc, nspace, configuration = {}) {
+  findDownstreamSummary(slug, dc, nspace, configuration = {}) {
     if (this.error) {
       return Promise.reject(this.error);
     }
@@ -72,5 +76,5 @@ export default RepositoryService.extend({
       result.meta = meta;
       return result;
     });
-  },
-});
+  }
+}

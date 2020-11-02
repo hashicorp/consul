@@ -1,10 +1,11 @@
 import RepositoryService from 'consul-ui/services/repository';
 const modelName = 'service-instance';
-export default RepositoryService.extend({
-  getModelName: function() {
+export default class ServiceInstanceService extends RepositoryService {
+  getModelName() {
     return modelName;
-  },
-  findByService: function(slug, dc, nspace, configuration = {}) {
+  }
+
+  findByService(slug, dc, nspace, configuration = {}) {
     const query = {
       dc: dc,
       ns: nspace,
@@ -15,8 +16,9 @@ export default RepositoryService.extend({
       query.uri = configuration.uri;
     }
     return this.store.query(this.getModelName(), query);
-  },
-  findBySlug: function(serviceId, node, service, dc, nspace, configuration = {}) {
+  }
+
+  findBySlug(serviceId, node, service, dc, nspace, configuration = {}) {
     const query = {
       dc: dc,
       ns: nspace,
@@ -29,5 +31,5 @@ export default RepositoryService.extend({
       query.uri = configuration.uri;
     }
     return this.store.queryRecord(this.getModelName(), query);
-  },
-});
+  }
+}

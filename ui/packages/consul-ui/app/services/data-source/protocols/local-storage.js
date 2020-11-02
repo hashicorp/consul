@@ -1,9 +1,11 @@
 import Service, { inject as service } from '@ember/service';
 import { StorageEventSource } from 'consul-ui/utils/dom/event-source';
 
-export default Service.extend({
-  repo: service('settings'),
-  source: function(src, configuration) {
+export default class LocalStorageService extends Service {
+  @service('settings')
+  repo;
+
+  source(src, configuration) {
     const slug = src.split(':').pop();
     return new StorageEventSource(
       configuration => {
@@ -14,5 +16,5 @@ export default Service.extend({
         uri: configuration.uri,
       }
     );
-  },
-});
+  }
+}

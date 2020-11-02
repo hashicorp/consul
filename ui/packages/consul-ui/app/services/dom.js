@@ -23,35 +23,43 @@ const $$ = qsaFactory();
 let $_;
 let inViewportCallbacks;
 const clickFirstAnchor = clickFirstAnchorFactory(closest);
-export default Service.extend({
-  doc: document,
-  win: window,
-  init: function() {
-    this._super(...arguments);
+export default class DomService extends Service {
+  doc = document;
+  win = window;
+
+  init() {
+    super.init(...arguments);
     inViewportCallbacks = new WeakMap();
     $_ = getComponentFactory(getOwner(this));
-  },
-  willDestroy: function() {
-    this._super(...arguments);
+  }
+
+  willDestroy() {
+    super.willDestroy(...arguments);
     inViewportCallbacks = null;
     $_ = null;
-  },
-  document: function() {
+  }
+
+  document() {
     return this.doc;
-  },
-  viewport: function() {
+  }
+
+  viewport() {
     return this.win;
-  },
-  guid: function(el) {
+  }
+
+  guid(el) {
     return guidFor(el);
-  },
+  }
+
   // TODO: should this be here? Needs a better name at least
-  clickFirstAnchor: clickFirstAnchor,
-  closest: closest,
-  sibling: sibling,
-  isOutside: isOutside,
-  normalizeEvent: normalizeEvent,
-  setEventTargetProperty: function(e, property, cb) {
+  clickFirstAnchor = clickFirstAnchor;
+
+  closest = closest;
+  sibling = sibling;
+  isOutside = isOutside;
+  normalizeEvent = normalizeEvent;
+
+  setEventTargetProperty(e, property, cb) {
     const target = e.target;
     return new Proxy(e, {
       get: function(obj, prop, receiver) {
@@ -68,8 +76,9 @@ export default Service.extend({
         return Reflect.get(...arguments);
       },
     });
-  },
-  setEventTargetProperties: function(e, propObj) {
+  }
+
+  setEventTargetProperties(e, propObj) {
     const target = e.target;
     return new Proxy(e, {
       get: function(obj, prop, receiver) {
@@ -86,44 +95,52 @@ export default Service.extend({
         return Reflect.get(...arguments);
       },
     });
-  },
-  listeners: createListeners,
-  root: function() {
+  }
+
+  listeners = createListeners;
+
+  root() {
     return this.doc.documentElement;
-  },
+  }
+
   // TODO: Should I change these to use the standard names
   // even though they don't have a standard signature (querySelector*)
-  elementById: function(id) {
+  elementById(id) {
     return this.doc.getElementById(id);
-  },
-  elementsByTagName: function(name, context) {
+  }
+
+  elementsByTagName(name, context) {
     context = typeof context === 'undefined' ? this.doc : context;
     return context.getElementsByTagName(name);
-  },
-  elements: function(selector, context) {
+  }
+
+  elements(selector, context) {
     // don't ever be tempted to [...$$()] here
     // it should return a NodeList
     return $$(selector, context);
-  },
-  element: function(selector, context) {
+  }
+
+  element(selector, context) {
     if (selector.substr(0, 1) === '#') {
       return this.elementById(selector.substr(1));
     }
     // TODO: This can just use querySelector
     return [...$$(selector, context)][0];
-  },
+  }
+
   // ember components aren't strictly 'dom-like'
   // but if you think of them as a web component 'shim'
   // then it makes more sense to think of them as part of the dom
   // with traditional/standard web components you wouldn't actually need this
   // method as you could just get to their methods from the dom element
-  component: function(selector, context) {
+  component(selector, context) {
     if (typeof selector !== 'string') {
       return $_(selector);
     }
     return $_(this.element(selector, context));
-  },
-  components: function(selector, context) {
+  }
+
+  components(selector, context) {
     return [...this.elements(selector, context)]
       .map(function(item) {
         return $_(item);
@@ -131,8 +148,9 @@ export default Service.extend({
       .filter(function(item) {
         return item != null;
       });
-  },
-  isInViewport: function($el, cb, threshold = 0) {
+  }
+
+  isInViewport($el, cb, threshold = 0) {
     inViewportCallbacks.set($el, cb);
     let observer = new IntersectionObserver(
       (entries, observer) => {
@@ -158,5 +176,5 @@ export default Service.extend({
       observer.disconnect(); // eslint-disable-line ember/no-observers
       observer = null;
     };
-  },
-});
+  }
+}

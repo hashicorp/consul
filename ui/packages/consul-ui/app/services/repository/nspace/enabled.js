@@ -5,27 +5,35 @@ import RepositoryService from 'consul-ui/services/repository';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/nspace';
 
 const modelName = 'nspace';
-export default RepositoryService.extend({
-  router: service('router'),
-  settings: service('settings'),
-  getPrimaryKey: function() {
+export default class EnabledService extends RepositoryService {
+  @service('router')
+  router;
+
+  @service('settings')
+  settings;
+
+  getPrimaryKey() {
     return PRIMARY_KEY;
-  },
-  getSlugKey: function() {
+  }
+
+  getSlugKey() {
     return SLUG_KEY;
-  },
-  getModelName: function() {
+  }
+
+  getModelName() {
     return modelName;
-  },
-  findAll: function(configuration = {}) {
+  }
+
+  findAll(configuration = {}) {
     const query = {};
     if (typeof configuration.cursor !== 'undefined') {
       query.index = configuration.cursor;
       query.uri = configuration.uri;
     }
     return this.store.query(this.getModelName(), query);
-  },
-  authorize: function(dc, nspace) {
+  }
+
+  authorize(dc, nspace) {
     if (!env('CONSUL_ACLS_ENABLED')) {
       return Promise.resolve([
         {
@@ -38,8 +46,9 @@ export default RepositoryService.extend({
     return this.store.authorize(this.getModelName(), { dc: dc, ns: nspace }).catch(function(e) {
       return [];
     });
-  },
-  getActive: function() {
+  }
+
+  getActive() {
     let routeParams = {};
     // this is only populated before the model hook as fired,
     // it is then deleted after the model hook has finished
@@ -77,5 +86,5 @@ export default RepositoryService.extend({
           Name: item.nspace.substr(1),
         };
       });
-  },
-});
+  }
+}

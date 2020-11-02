@@ -16,8 +16,8 @@ const predicates = {
   policy: policy(),
 };
 
-export default Service.extend({
-  predicate: function(type) {
+export default class FilterService extends Service {
+  predicate(type) {
     return predicates[type];
-  },
-});
+  }
+}

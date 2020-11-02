@@ -1,9 +1,9 @@
 import Service from '@ember/service';
 
-export default Service.extend({
-  config: undefined,
+export default class UiConfigService extends Service {
+  config = undefined;
 
-  get: function() {
+  get() {
     if (this.config === undefined) {
       // Load config from our special meta tag for now. Later it might come from
       // an API instead/as well.
@@ -11,5 +11,5 @@ export default Service.extend({
       this.config = JSON.parse(meta);
     }
     return this.config;
-  },
-});
+  }
+}

@@ -1,11 +1,12 @@
 import Service from '@ember/service';
 
-export default Service.extend({
-  shouldProxy: function(content, method) {
+export default class LazyProxyService extends Service {
+  shouldProxy(content, method) {
     return false;
-  },
-  init: function() {
-    this._super(...arguments);
+  }
+
+  init() {
+    super.init(...arguments);
     const content = this.content;
     for (let prop in content) {
       if (typeof content[prop] === 'function') {
@@ -27,5 +28,5 @@ export default Service.extend({
         }
       }
     }
-  },
-});
+  }
+}

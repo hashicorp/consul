@@ -1,22 +1,32 @@
 import Service, { inject as service } from '@ember/service';
 
-export default Service.extend({
-  dom: service('dom'),
-  env: service('env'),
-  data: service('data-source/service'),
-  sources: service('repository/type/event-source'),
-  init: function() {
-    this._super(...arguments);
+export default class ConnectionsService extends Service {
+  @service('dom')
+  dom;
+
+  @service('env')
+  env;
+
+  @service('data-source/service')
+  data;
+
+  @service('repository/type/event-source')
+  sources;
+
+  init() {
+    super.init(...arguments);
     this._listeners = this.dom.listeners();
     this.connections = new Set();
     this.addVisibilityChange();
-  },
-  willDestroy: function() {
+  }
+
+  willDestroy() {
     this._listeners.remove();
     this.purge();
-    this._super(...arguments);
-  },
-  addVisibilityChange: function() {
+    super.willDestroy(...arguments);
+  }
+
+  addVisibilityChange() {
     // when the user hides the tab, abort all connections
     this._listeners.add(this.dom.document(), {
       visibilitychange: e => {
@@ -25,8 +35,9 @@ export default Service.extend({
         }
       },
     });
-  },
-  whenAvailable: function(e) {
+  }
+
+  whenAvailable(e) {
     // if the user has hidden the tab (hidden browser/tab switch)
     // any aborted errors should restart
     const doc = this.dom.document();
@@ -43,15 +54,17 @@ export default Service.extend({
       });
     }
     return Promise.resolve(e);
-  },
-  purge: function(statusCode = 0) {
+  }
+
+  purge(statusCode = 0) {
     [...this.connections].forEach(function(connection) {
       // Cancelled
       connection.abort(statusCode);
     });
     this.connections = new Set();
-  },
-  acquire: function(request) {
+  }
+
+  acquire(request) {
     if (this.connections.size >= this.env.var('CONSUL_HTTP_MAX_CONNECTIONS')) {
       const closed = this.data.closed();
       let connection = [...this.connections].find(item => {
@@ -79,8 +92,9 @@ export default Service.extend({
       }
     }
     this.connections.add(request);
-  },
-  release: function(request) {
+  }
+
+  release(request) {
     this.connections.delete(request);
-  },
-});
+  }
+}

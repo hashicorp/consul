@@ -1,18 +1,22 @@
-import RepositoryService from 'consul-ui/services/repository';
 import { inject as service } from '@ember/service';
+import RepositoryService from 'consul-ui/services/repository';
 import { get } from '@ember/object';
 import Error from '@ember/error';
 
 const modelName = 'dc';
-export default RepositoryService.extend({
-  settings: service('settings'),
-  getModelName: function() {
+export default class DcService extends RepositoryService {
+  @service('settings')
+  settings;
+
+  getModelName() {
     return modelName;
-  },
-  findAll: function() {
+  }
+
+  findAll() {
     return this.store.query(this.getModelName(), {});
-  },
-  findBySlug: function(name, items) {
+  }
+
+  findBySlug(name, items) {
     if (name != null) {
       const item = items.findBy('Name', name);
       if (item) {
@@ -26,8 +30,9 @@ export default RepositoryService.extend({
     e.status = '404';
     e.detail = 'Page not found';
     return Promise.reject({ errors: [e] });
-  },
-  getActive: function(name, items) {
+  }
+
+  getActive(name, items) {
     const settings = this.settings;
     return Promise.all([name || settings.findBySlug('dc'), items || this.findAll()]).then(
       ([name, items]) => {
@@ -38,8 +43,9 @@ export default RepositoryService.extend({
         });
       }
     );
-  },
-  clearActive: function() {
+  }
+
+  clearActive() {
     return this.settings.delete('dc');
-  },
-});
+  }
+}

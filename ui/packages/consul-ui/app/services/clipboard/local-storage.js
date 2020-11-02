@@ -16,12 +16,13 @@ class ClipboardCallback extends Clipboard {
   }
 }
 
-export default Service.extend({
-  storage: window.localStorage,
-  key: 'clipboard',
-  execute: function(trigger) {
+export default class LocalStorageService extends Service {
+  storage = window.localStorage;
+  key = 'clipboard';
+
+  execute(trigger) {
     return new ClipboardCallback(trigger, val => {
       this.storage.setItem(this.key, val);
     });
-  },
-});
+  }
+}

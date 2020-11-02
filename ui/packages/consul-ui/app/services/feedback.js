@@ -12,10 +12,14 @@ const notificationDefaults = function() {
     extendedTimeout: 300,
   };
 };
-export default Service.extend({
-  notify: service('flashMessages'),
-  logger: service('logger'),
-  execute: function(handle, action, status = defaultStatus, controller) {
+export default class FeedbackService extends Service {
+  @service('flashMessages')
+  notify;
+
+  @service('logger')
+  logger;
+
+  execute(handle, action, status = defaultStatus, controller) {
     const getAction = callableType(action);
     const getStatus = callableType(status);
     const notify = this.notify;
@@ -58,5 +62,5 @@ export default Service.extend({
           }
         })
     );
-  },
-});
+  }
+}

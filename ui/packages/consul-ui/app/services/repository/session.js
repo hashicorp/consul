@@ -1,13 +1,16 @@
-import RepositoryService from 'consul-ui/services/repository';
 import { inject as service } from '@ember/service';
+import RepositoryService from 'consul-ui/services/repository';
 
 const modelName = 'session';
-export default RepositoryService.extend({
-  store: service('store'),
-  getModelName: function() {
+export default class SessionService extends RepositoryService {
+  @service('store')
+  store;
+
+  getModelName() {
     return modelName;
-  },
-  findByNode: function(node, dc, nspace, configuration = {}) {
+  }
+
+  findByNode(node, dc, nspace, configuration = {}) {
     const query = {
       id: node,
       dc: dc,
@@ -18,9 +21,10 @@ export default RepositoryService.extend({
       query.uri = configuration.uri;
     }
     return this.store.query(this.getModelName(), query);
-  },
+  }
+
   // TODO: Why Key? Probably should be findBySlug like the others
-  findByKey: function(slug, dc, nspace) {
+  findByKey(slug, dc, nspace) {
     return this.findBySlug(...arguments);
-  },
-});
+  }
+}

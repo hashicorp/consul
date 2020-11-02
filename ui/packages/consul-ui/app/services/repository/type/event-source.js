@@ -57,35 +57,43 @@ const createProxy = function(repo, find, settings, cache, serialize = JSON.strin
 };
 let cache = null;
 let cacheMap = null;
-export default LazyProxyService.extend({
-  settings: service('settings'),
-  client: service('client/http'),
-  init: function() {
-    this._super(...arguments);
+export default class EventSourceService extends LazyProxyService {
+  @service('settings')
+  settings;
+
+  @service('client/http')
+  client;
+
+  init() {
+    super.init(...arguments);
     if (cache === null) {
       this.resetCache();
     }
-  },
-  resetCache: function() {
+  }
+
+  resetCache() {
     Object.entries(cacheMap || {}).forEach(function([key, item]) {
       item.close();
     });
     cacheMap = {};
     cache = createCache(cacheMap);
-  },
-  willDestroy: function() {
+  }
+
+  willDestroy() {
     Object.entries(cacheMap || {}).forEach(function([key, item]) {
       item.close();
     });
     cacheMap = null;
     cache = null;
-  },
-  shouldProxy: function(content, method) {
+  }
+
+  shouldProxy(content, method) {
     return method.indexOf('find') === 0;
-  },
-  execute: function(repo, find) {
+  }
+
+  execute(repo, find) {
     return this.settings.findBySlug('client').then(settings => {
       return createProxy.bind(this)(repo, find, settings, cache);
     });
-  },
-});
+  }
+}
