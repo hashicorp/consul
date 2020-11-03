@@ -10,9 +10,6 @@ export default class ConnectionsService extends Service {
   @service('data-source/service')
   data;
 
-  @service('repository/type/event-source')
-  sources;
-
   init() {
     super.init(...arguments);
     this._listeners = this.dom.listeners();

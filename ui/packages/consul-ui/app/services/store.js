@@ -2,11 +2,6 @@ import { inject as service } from '@ember/service';
 import Store from 'ember-data/store';
 
 export default class StoreService extends Store {
-  // TODO: This should eventually go on a static method
-  // of the abstract Repository class
-  @service('repository/type/event-source')
-  http;
-
   @service('data-source/service')
   dataSource;
 
@@ -17,7 +12,6 @@ export default class StoreService extends Store {
     // Aborting the client will close all open http type sources
     this.client.abort();
     // once they are closed clear their caches
-    this.http.resetCache();
     this.dataSource.resetCache();
     this.init();
   }
