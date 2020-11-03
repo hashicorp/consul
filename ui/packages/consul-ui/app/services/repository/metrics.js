@@ -11,7 +11,7 @@ const meta = {
 
 export default RepositoryService.extend({
   cfg: service('ui-config'),
-  settings: service('settings'),
+  client: service('client/http'),
   error: null,
 
   init: function() {
@@ -22,9 +22,8 @@ export default RepositoryService.extend({
     const opts = uiCfg.metrics_provider_options || {};
     opts.metrics_proxy_enabled = uiCfg.metrics_proxy_enabled;
     // Inject a convenience function for dialing through the metrics proxy.
-    opts.httpGet = (path, params) => {
-      return this.httpGet(path, params);
-    };
+    opts.fetch = (path, params) =>
+      this.client.fetchWithToken(`/v1/internal/ui/metrics-proxy${path}`, params);
     // Inject the base app URL
     const provider = uiCfg.metrics_provider || 'prometheus';
 
@@ -36,44 +35,6 @@ export default RepositoryService.extend({
       // Dev.
       console.error(this.error); // eslint-disable-line no-console
     }
-  },
-
-  httpGet: function(path, params) {
-    var xhr = new XMLHttpRequest();
-    var self = this;
-    return self.settings.findBySlug('token').then(token => {
-      var tokenValue = typeof token.SecretID === 'undefined' ? '' : token.SecretID;
-
-      return new Promise(function(resolve, reject) {
-        xhr.onreadystatechange = function() {
-          if (xhr.readyState !== 4) return;
-
-          if (xhr.status == 200) {
-            // Attempt to parse response as JSON and return the object
-            var o = JSON.parse(xhr.responseText);
-            resolve(o);
-          }
-          const e = new Error(xhr.statusText);
-          e.statusCode = xhr.status;
-          reject(e);
-        };
-
-        var url = '/v1/internal/ui/metrics-proxy' + path;
-        if (params) {
-          var qs = Object.keys(params)
-            .map(function(key) {
-              return encodeURIComponent(key) + '=' + encodeURIComponent(params[key]);
-            })
-            .join('&');
-          url = url + '?' + qs;
-        }
-        xhr.open('GET', url, true);
-        if (tokenValue) {
-          xhr.setRequestHeader('X-Consul-Token', tokenValue);
-        }
-        xhr.send();
-      });
-    });
   },
 
   findServiceSummary: function(protocol, slug, dc, nspace, configuration = {}) {
