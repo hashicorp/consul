@@ -22,6 +22,10 @@
       if (!this.options.metrics_proxy_enabled) {
         throw new Error("prometheus metrics provider currently requires the ui_config.metrics_proxy to be configured in the Consul agent.");
       }
+      if (!this.options.httpGet) {
+        throw new Error("missing required option 'httpGet'");
+      }
+      this.httpGet = this.options.httpGet;
     },
 
     /**
@@ -656,42 +660,6 @@
       return this.httpGet("/api/v1/query_range", params)
     },
 
-    httpGet: function(path, params) {
-      var xhr = new XMLHttpRequest();
-      var self = this
-      return new Promise(function(resolve, reject){
-        xhr.onreadystatechange = function(){
-          if (xhr.readyState !== 4) return;
-
-          if (xhr.status == 200) {
-            // Attempt to parse response as JSON and return the object
-            var o = JSON.parse(xhr.responseText)
-            resolve(o)
-          }
-          const e = new Error(xhr.statusText);
-          e.statusCode = xhr.status;
-          reject(e);
-        }
-
-        var url = self.baseURL()+path;
-        if (params) {
-          var qs = Object.keys(params).
-          map(function(key){
-            return encodeURIComponent(key)+"="+encodeURIComponent(params[key])
-          }).
-          join("&")
-          url = url+"?"+qs
-        }
-        xhr.open("GET", url, true);
-        xhr.send();
-      });
-    },
-
-    baseURL: function() {
-      // TODO support configuring a direct Prometheus via
-      // metrics_provider_options_json.
-      return "/v1/internal/ui/metrics-proxy"
-    }
   }
 
   // Helper functions
