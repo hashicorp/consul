@@ -20,7 +20,11 @@ export default Model.extend({
     defaultValue: '',
   }),
   // frontend only for ordering where CreateIndex can't be used
-  CreateTime: attr('date', { defaultValue: 0 }),
+  CreateTime: attr('number', {
+    defaultValue: function() {
+      return new Date().getTime();
+    },
+  }),
   //
   isGlobalManagement: computed('ID', function() {
     return this.ID === MANAGEMENT_ID;
