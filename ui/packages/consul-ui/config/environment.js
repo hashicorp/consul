@@ -150,7 +150,7 @@ module.exports = function(environment, $ = process.env) {
         '@hashicorp/ember-cli-api-double': {
           enabled: true,
           endpoints: {
-            '/v1': '/node_modules/@hashicorp/consul-api-double/v1',
+            '/v1': '/mock-api/v1',
           },
         },
       });
