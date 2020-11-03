@@ -1,0 +1,41 @@
+import { Meta, Story, Canvas } from '@storybook/addon-docs/blocks';
+import { hbs } from 'ember-cli-htmlbars';
+import { select } from '@storybook/addon-knobs';
+
+<Meta title="Components/Notice" component="Notice" />
+
+# Notice
+
+<Canvas>
+  <Story name="Basic">{{
+    template: hbs`<Notice
+        @type={{type}}
+      as |notice|>
+        <notice.Header>
+          <h3>Header</h3>
+        </notice.Header>
+        <notice.Body>
+          <p>
+            Body
+          </p>
+        </notice.Body>
+        <notice.Footer>
+          <p>
+            Footer
+          </p>
+        </notice.Footer>
+      </Notice>`,
+    context: {
+      type: select('type', {
+          'success': 'success',
+          'warning': 'warning',
+          'info': 'info',
+          'highlight': 'highlight',
+        },
+        'success'
+      ),
+    }
+  }}
+  </Story>
+</Canvas>
+

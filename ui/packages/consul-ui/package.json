@@ -32,7 +32,9 @@
     "test:coverage": "COVERAGE=true ember test --environment test --filter=Unit --test-port=${EMBER_TEST_PORT:-7357}",
     "test:coverage:ci": "COVERAGE=true ember test --environment test --filter=Unit --path dist --test-port=${EMBER_TEST_PORT:-7357}",
     "test:coverage:view": "COVERAGE=true ember test --server --environment test --filter=Unit --test-port=${EMBER_TEST_PORT:-7357}",
-    "steps:list": "node ./lib/commands/bin/list.js"
+    "steps:list": "node ./lib/commands/bin/list.js",
+    "storybook": "start-storybook -p 6006 -s dist",
+    "build-storybook": "build-storybook -s dist"
   },
   "husky": {
     "hooks": {
@@ -58,8 +60,17 @@
     "@glimmer/tracking": "^1.0.0",
     "@hashicorp/consul-api-double": "^6.1.4",
     "@hashicorp/ember-cli-api-double": "^3.1.0",
+    "@storybook/addon-actions": "^6.0.27",
+    "@storybook/addon-essentials": "^6.0.27",
+    "@storybook/addon-knobs": "^6.0.27",
+    "@storybook/addon-links": "^6.0.27",
+    "@storybook/ember": "^6.0.27",
+    "@storybook/ember-cli-storybook": "^0.2.1",
     "@xstate/fsm": "^1.4.0",
     "babel-eslint": "^10.0.3",
+    "babel-loader": "^8.1.0",
+    "babel-plugin-ember-modules-api-polyfill": "^3.2.0",
+    "babel-plugin-htmlbars-inline-precompile": "^4.2.0",
     "base64-js": "^1.3.0",
     "broccoli-asset-rev": "^3.0.0",
     "broccoli-funnel": "^3.0.3",
@@ -136,6 +147,7 @@
     "pretender": "^3.2.0",
     "prettier": "^1.10.2",
     "qunit-dom": "^1.0.0",
+    "react-is": "^17.0.1",
     "sass": "^1.28.0",
     "tape": "^5.0.1",
     "text-encoding": "^0.7.0",
