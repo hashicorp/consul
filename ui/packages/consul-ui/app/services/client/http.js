@@ -152,6 +152,17 @@ export default Service.extend({
     params.headers[CONTENT_TYPE] = 'application/json; charset=utf-8';
     return params;
   },
+  fetchWithToken: function(path, params) {
+    return this.settings.findBySlug('token').then(token => {
+      return fetch(`${path}`, {
+        ...params,
+        headers: {
+          'X-Consul-Token': typeof token.SecretID === 'undefined' ? '' : token.SecretID,
+          ...params.headers,
+        },
+      });
+    });
+  },
   request: function(cb) {
     const client = this;
     return cb(function(strs, ...values) {

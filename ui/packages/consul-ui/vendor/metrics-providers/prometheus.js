@@ -11,8 +11,14 @@
      * options.providerOptions contains any operator configured parameters
      * specified in the Consul agent config that is serving the UI.
      *
-     * Consul will provider a boolean options.metrics_proxy_enabled to indicate
-     * whether the agent has a metrics proxy configured.
+     * Consul will provide:
+     *
+     * 1. A boolean options.metrics_proxy_enabled to indicate whether the agent
+     * has a metrics proxy configured.
+     * 2. A fetch-like options.fetch which is a thin fetch wrapper that prefixes
+     * any url with the url of Consul's proxy endpoint and adds your current
+     * Consul ACL token to the request headers. Otherwise it functions like the
+     * browsers native fetch
      *
      * The provider should throw an Exception if the options are not valid for
      * example because it requires a metrics proxy and one is not configured.
@@ -22,6 +28,34 @@
       if (!this.options.metrics_proxy_enabled) {
         throw new Error("prometheus metrics provider currently requires the ui_config.metrics_proxy to be configured in the Consul agent.");
       }
+    },
+
+    // simple httpGet function that also encodes query parameters
+    // before passing the constructed url through to native fetch
+    // any errors should throw an error with a statusCode property
+    httpGet: function(url, queryParams, headers) {
+      if (queryParams) {
+        var separator = url.indexOf('?') !== -1 ? '&' : '?';
+        var qs = Object.keys(queryParams).
+          map(function(key) {
+            return encodeURIComponent(key) + "=" + encodeURIComponent(queryParams[key]);
+          }).
+          join("&");
+        url = url + separator + qs;
+      }
+      // fetch the url along with any headers
+      return this.options.fetch(url, {headers: headers || {}}).then(
+        function(response) {
+          if(response.ok) {
+            return response.json();
+          } else {
+            // throw a statusCode error if any errors are received
+            var e = new Error('HTTP Error: ' + response.statusText);
+            e.statusCode = response.status;
+            throw e;
+          }
+        }
+      );
     },
 
     /**
@@ -656,42 +690,6 @@
       return this.httpGet("/api/v1/query_range", params)
     },
 
-    httpGet: function(path, params) {
-      var xhr = new XMLHttpRequest();
-      var self = this
-      return new Promise(function(resolve, reject){
-        xhr.onreadystatechange = function(){
-          if (xhr.readyState !== 4) return;
-
-          if (xhr.status == 200) {
-            // Attempt to parse response as JSON and return the object
-            var o = JSON.parse(xhr.responseText)
-            resolve(o)
-          }
-          const e = new Error(xhr.statusText);
-          e.statusCode = xhr.status;
-          reject(e);
-        }
-
-        var url = self.baseURL()+path;
-        if (params) {
-          var qs = Object.keys(params).
-          map(function(key){
-            return encodeURIComponent(key)+"="+encodeURIComponent(params[key])
-          }).
-          join("&")
-          url = url+"?"+qs
-        }
-        xhr.open("GET", url, true);
-        xhr.send();
-      });
-    },
-
-    baseURL: function() {
-      // TODO support configuring a direct Prometheus via
-      // metrics_provider_options_json.
-      return "/v1/internal/ui/metrics-proxy"
-    }
   }
 
   // Helper functions
