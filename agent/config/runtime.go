@@ -1843,6 +1843,21 @@ func sanitize(name string, v reflect.Value) reflect.Value {
 
 	case isArray(typ) || isSlice(typ):
 		ma := make([]interface{}, 0, v.Len())
+
+		if name == "AddHeaders" {
+			// must be UIConfig.MetricsProxy.AddHeaders
+			for i := 0; i < v.Len(); i++ {
+				addr := v.Index(i).Addr()
+				hdr := addr.Interface().(*UIMetricsProxyAddHeader)
+				hm := map[string]interface{}{
+					"Name":  hdr.Name,
+					"Value": "hidden",
+				}
+				ma = append(ma, hm)
+			}
+			return reflect.ValueOf(ma)
+		}
+
 		if strings.HasPrefix(name, "SerfAllowedCIDRs") {
 			for i := 0; i < v.Len(); i++ {
 				addr := v.Index(i).Addr()
