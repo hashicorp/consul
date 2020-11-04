@@ -33,7 +33,6 @@ func TestACLReplication_diffACLPolicies(t *testing.T) {
 			Rules:       `acl = "read"`,
 			Syntax:      acl.SyntaxCurrent,
 			Datacenters: nil,
-			Hash:        []byte{1, 2, 3, 4},
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 		},
 		&structs.ACLPolicy{
@@ -43,7 +42,6 @@ func TestACLReplication_diffACLPolicies(t *testing.T) {
 			Rules:       `acl = "read"`,
 			Syntax:      acl.SyntaxCurrent,
 			Datacenters: nil,
-			Hash:        []byte{1, 2, 3, 4},
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 25},
 		},
 		&structs.ACLPolicy{
@@ -53,7 +51,6 @@ func TestACLReplication_diffACLPolicies(t *testing.T) {
 			Rules:       `acl = "read"`,
 			Syntax:      acl.SyntaxCurrent,
 			Datacenters: nil,
-			Hash:        []byte{1, 2, 3, 4},
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 25},
 		},
 		&structs.ACLPolicy{
@@ -63,9 +60,16 @@ func TestACLReplication_diffACLPolicies(t *testing.T) {
 			Rules:       `acl = "read"`,
 			Syntax:      acl.SyntaxCurrent,
 			Datacenters: nil,
-			Hash:        []byte{1, 2, 3, 4},
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 25},
 		},
+	}
+	// compute actual hashes
+	hashByID := map[string][]byte{}
+	for _, policy := range local {
+		policy.SetHash(true)
+		dup := make([]byte, len(policy.Hash))
+		copy(dup, policy.Hash)
+		hashByID[policy.ID] = dup
 	}
 
 	remote := structs.ACLPolicyListStubs{
@@ -74,7 +78,6 @@ func TestACLReplication_diffACLPolicies(t *testing.T) {
 			Name:        "policy1",
 			Description: "policy1 - already in sync",
 			Datacenters: nil,
-			Hash:        []byte{1, 2, 3, 4},
 			CreateIndex: 1,
 			ModifyIndex: 2,
 		},
@@ -83,7 +86,6 @@ func TestACLReplication_diffACLPolicies(t *testing.T) {
 			Name:        "policy2",
 			Description: "policy2 - updated but not changed",
 			Datacenters: nil,
-			Hash:        []byte{1, 2, 3, 4},
 			CreateIndex: 1,
 			ModifyIndex: 50,
 		},
@@ -92,7 +94,6 @@ func TestACLReplication_diffACLPolicies(t *testing.T) {
 			Name:        "policy3",
 			Description: "policy3 - updated and changed",
 			Datacenters: nil,
-			Hash:        []byte{5, 6, 7, 8},
 			CreateIndex: 1,
 			ModifyIndex: 50,
 		},
@@ -101,10 +102,17 @@ func TestACLReplication_diffACLPolicies(t *testing.T) {
 			Name:        "policy5",
 			Description: "policy5 - needs adding",
 			Datacenters: nil,
-			Hash:        []byte{1, 2, 3, 4},
 			CreateIndex: 1,
 			ModifyIndex: 50,
 		},
+	}
+
+	for _, stub := range remote {
+		if stub.Name == "policy3" {
+			stub.Hash = []byte{5, 6, 7, 8} // change the hash to indicate the content has changed
+		} else {
+			stub.Hash = hashByID[stub.ID]
+		}
 	}
 
 	// Do the full diff. This full exercises the main body of the loop
