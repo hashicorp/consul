@@ -38,17 +38,23 @@
     border-top: 1px solid $gray-300;
     width: 100%;
     display: inline-flex;
+    a,
     button {
       width: 50%;
       height: 36px;
       padding: 10px 0;
       font-weight: $typo-weight-medium;
+      text-align: center;
+      line-height: normal;
     }
     button:first-child {
       color: $blue-500;
     }
     button:nth-child(2) {
       color: $gray-800;
+    }
+    button:hover {
+      cursor: pointer;
     }
   }
   .ember-popover {
