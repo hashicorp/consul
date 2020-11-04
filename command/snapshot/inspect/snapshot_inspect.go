@@ -32,15 +32,18 @@ type cmd struct {
 
 	// flags
 	detailed bool
-	kvDepth  int
+	depth    int
+	filter   string
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.BoolVar(&c.detailed, "detailed", false,
 		"Provides detailed information about KV store data.")
-	c.flags.IntVar(&c.kvDepth, "kv-depth", 2,
+	c.flags.IntVar(&c.depth, "depth", 2,
 		"The key prefix depth used to breakdown KV store data. Defaults to 2.")
+	c.flags.StringVar(&c.filter, "filter", "",
+		"Filter KV keys using this prefix filter.")
 	c.flags.StringVar(
 		&c.format,
 		"format",
@@ -110,7 +113,7 @@ func (c *cmd) Run(args []string) int {
 		}
 	}()
 
-	stats, kstats, totalSize, err := enhance(readFile, c.detailed, c.kvDepth)
+	stats, kstats, totalSize, err := enhance(readFile, c.detailed, c.depth, c.filter)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error extracting snapshot data: %s", err))
 		return 1
@@ -203,7 +206,7 @@ func (r *countingReader) Read(p []byte) (n int, err error) {
 
 // enhance utilizes ReadSnapshot to populate the struct with
 // all of the snapshot's itemized data
-func enhance(file io.Reader, detailed bool, kvDepth int) (map[structs.MessageType]typeStats, map[string]typeStats, int, error) {
+func enhance(file io.Reader, detailed bool, depth int, filter string) (map[structs.MessageType]typeStats, map[string]typeStats, int, error) {
 	stats := make(map[structs.MessageType]typeStats)
 	kstats := make(map[string]typeStats)
 	cr := &countingReader{wrappedReader: file}
@@ -231,19 +234,28 @@ func enhance(file io.Reader, detailed bool, kvDepth int) (map[structs.MessageTyp
 			if s.Name == "KVS" {
 				switch val := val.(type) {
 				case map[string]interface{}:
-					fmt.Println("map-match")
 					for k, v := range val {
-						depth := kvDepth
 						if k == "Key" {
-							split := strings.Split(v.(string), "/")
-							if depth > len(split) {
-								depth = len(split)
+							// check for whether a filter is specified. if it is, skip
+							// any keys that don't match.
+							if len(filter) > 0 && !strings.HasPrefix(v.(string), filter) {
+								break
 							}
-							prefix := strings.Join(split[0:depth], "/")
+
+							split := strings.Split(v.(string), "/")
+
+							// handle the situation where the key is shorter than
+							// the specified depth.
+							actualDepth := depth
+							if depth > len(split) {
+								actualDepth = len(split)
+							}
+							prefix := strings.Join(split[0:actualDepth], "/")
 							kvs := kstats[prefix]
 							if kvs.Name == "" {
 								kvs.Name = prefix
 							}
+
 							kvs.Sum += size
 							kvs.Count++
 							kstats[prefix] = kvs
