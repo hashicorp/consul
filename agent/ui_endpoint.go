@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -564,6 +565,33 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 	if !ok || cfg.BaseURL == "" {
 		// Proxy not configured
 		return nil, NotFoundError{Reason: "Metrics proxy is not enabled"}
+	}
+
+	// Fetch the ACL token, if provided, but ONLY from headers since other
+	// metrics proxies might use a ?token query string parameter for something.
+	var token string
+	s.parseTokenFromHeaders(req, &token)
+
+	// Clear the token from the headers so we don't end up proxying it.
+	s.clearTokenFromHeaders(req)
+
+	var entMeta structs.EnterpriseMeta
+	authz, err := s.agent.resolveTokenAndDefaultMeta(token, &entMeta, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if authz != nil {
+		// This endpoint requires wildcard read on all services and all nodes.
+		//
+		// In enterprise it requires this _in all namespaces_ too.
+		wildMeta := structs.WildcardEnterpriseMeta()
+		var authzContext acl.AuthorizerContext
+		wildMeta.FillAuthzContext(&authzContext)
+
+		if authz.NodeReadAll(&authzContext) != acl.Allow || authz.ServiceReadAll(&authzContext) != acl.Allow {
+			return nil, acl.ErrPermissionDenied
+		}
 	}
 
 	log := s.agent.logger.Named(logging.UIMetricsProxy)
