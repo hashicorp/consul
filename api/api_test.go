@@ -840,6 +840,7 @@ func TestAPI_ParseQueryMeta(t *testing.T) {
 	resp.Header.Set("X-Consul-LastContact", "80")
 	resp.Header.Set("X-Consul-KnownLeader", "true")
 	resp.Header.Set("X-Consul-Translate-Addresses", "true")
+	resp.Header.Set("X-Consul-Default-ACL-Policy", "deny")
 
 	qm := &QueryMeta{}
 	if err := parseQueryMeta(resp, qm); err != nil {
@@ -856,6 +857,9 @@ func TestAPI_ParseQueryMeta(t *testing.T) {
 		t.Fatalf("Bad: %v", qm)
 	}
 	if !qm.AddressTranslationEnabled {
+		t.Fatalf("Bad: %v", qm)
+	}
+	if qm.DefaultACLPolicy != "deny" {
 		t.Fatalf("Bad: %v", qm)
 	}
 }
