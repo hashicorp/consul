@@ -287,14 +287,6 @@ func prometheusSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, e
 			Name: []string{"consul", "autopilot", "healthy"},
 			Help: "This tracks the overall health of the local server cluster. 1 if all servers are healthy, 0 if one or more are unhealthy.",
 		},
-		{
-			Name: []string{"consul", "runtime", "alloc_bytes"},
-			Help: "This measures the number of bytes allocated by the Consul process.",
-		},
-		{
-			Name: []string{"consul", "runtime", "sys_bytes"},
-			Help: "This is the total number of bytes of memory obtained from the OS.",
-		},
 	}
 
 	// TODO(kit) define these in vars in the package/file they're used
