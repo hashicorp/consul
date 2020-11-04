@@ -11,6 +11,7 @@ const meta = {
 
 export default RepositoryService.extend({
   cfg: service('ui-config'),
+  client: service('client/http'),
   error: null,
 
   init: function() {
@@ -20,6 +21,9 @@ export default RepositoryService.extend({
     // JSON options the user provided.
     const opts = uiCfg.metrics_provider_options || {};
     opts.metrics_proxy_enabled = uiCfg.metrics_proxy_enabled;
+    // Inject a convenience function for dialing through the metrics proxy.
+    opts.fetch = (path, params) =>
+      this.client.fetchWithToken(`/v1/internal/ui/metrics-proxy${path}`, params);
     // Inject the base app URL
     const provider = uiCfg.metrics_provider || 'prometheus';
 
