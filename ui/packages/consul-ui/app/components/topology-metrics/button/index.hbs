@@ -1,0 +1,59 @@
+<div class="topology-metrics-popover">
+{{#let (find-by 'id' (concat @item.Namespace @item.Name) @positions) as |style|}}
+{{#if (and (not @item.Intention.Allowed) (not @item.Intention.HasPermissions))}}
+  <button
+    {{on "click" this.togglePopover}}
+    type="button"
+    class="deny-target"
+    style={{{ concat 'top:' style.y 'px;left:' style.x 'px;'}}}
+  >
+    <EmberPopover
+      @isShown={{this.showToggleablePopover}}
+      @event="none"
+      @hideOn="mouseleave"
+      @side="bottom-start"
+      @tooltipClass="deny-popover"
+    >
+      <div class="body">
+        <h3>Connection Denied</h3>
+        <p>Add an intention that allows these two services to connect.</p>
+      </div>
+      <div class="actions">
+      {{#if @item.Intention.HasExact}}
+         <a href={{href-to (or routeName 'dc.intentions.edit') (concat @item.Intention.ID)}}>Edit</a>
+      {{else}}
+        <button class="view" {{on "click" (fn this.createIntention @item.Intention)}}>Create</button>
+      {{/if}}
+        <button class="cancel" {{on "click" this.togglePopover}}>Cancel</button>
+      </div>
+    </EmberPopover>
+  </button>
+{{else if @item.Intention.HasPermissions}}
+  <button
+    {{on "click" this.togglePopover}}
+    type="button"
+    class="L7-target"
+    style={{{ concat 'top:' style.y 'px;left:' style.x 'px;'}}}
+  >
+    <EmberPopover
+      @isShown={{this.showToggleablePopover}}
+      @event="none"
+      @hideOn="mouseleave"
+      @side="bottom-start"
+      @tooltipClass="L7-popover"
+    >
+      <div class="body">
+        <h3>Layer 7 permissions</h3>
+        <p>Certain HTTP request info must be identified.</p>
+      </div>
+      <div class="actions">
+        <a href={{href-to (or routeName 'dc.intentions.edit') (concat @item.Intention.ID)}}>View</a>
+        <button {{on "click" this.togglePopover}}>Close</button>
+      </div>
+    </EmberPopover>
+  </button>
+{{/if}}
+{{/let}}
+</div>
+
+

@@ -123,22 +123,3 @@
     stroke-linejoin: round;
   }
 }
-
-
-// Icon on SVG Lines
-#downstream-lines,
-#upstream-lines {
-  .deny::before {
-    @extend %with-cancel-square-fill-color-mask, %as-pseudo;
-    background-color: $red-500;
-  }
-  .L7::before {
-    @extend %with-layers-mask, %as-pseudo;
-    background-color: $gray-300;
-  }
-  span {
-    transform: translate(-50%,-50%);
-    position: absolute;
-    background-color: $white;
-  }
-}
