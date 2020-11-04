@@ -15,7 +15,7 @@ const (
 )
 
 type Formatter interface {
-	Format(*OutputFormat) (string, error)
+	Format(*OutputFormat, *OutputFormat, bool) (string, error)
 }
 
 func GetSupportedFormats() []string {
@@ -38,7 +38,7 @@ func NewFormatter(format string) (Formatter, error) {
 	}
 }
 
-func (_ *prettyFormatter) Format(info *OutputFormat) (string, error) {
+func (_ *prettyFormatter) Format(info *OutputFormat, kvInfo *OutputFormat, detailed bool) (string, error) {
 	var b bytes.Buffer
 	tw := tabwriter.NewWriter(&b, 8, 8, 6, ' ', 0)
 
@@ -60,6 +60,25 @@ func (_ *prettyFormatter) Format(info *OutputFormat) (string, error) {
 	if err := tw.Flush(); err != nil {
 		return b.String(), err
 	}
+
+	if detailed {
+		kvtw := tabwriter.NewWriter(&b, 30, 8, 12, ' ', 0)
+
+		fmt.Fprintf(kvtw, "\n")
+		fmt.Fprintln(kvtw, "\n Key Name\tCount\tSize\t")
+		fmt.Fprintf(kvtw, " %s\t%s\t%s\t", "----", "----", "----")
+		// For each different type generate new output
+		for _, s := range kvInfo.Stats {
+			fmt.Fprintf(kvtw, "\n %s\t%d\t%s\t", s.Name, s.Count, ByteSize(uint64(s.Sum)))
+		}
+		fmt.Fprintf(kvtw, "\n %s\t%s\t%s\t", "----", "----", "----")
+		fmt.Fprintf(kvtw, "\n Total\t\t%s\t", ByteSize(uint64(kvInfo.TotalSize)))
+
+		if err := kvtw.Flush(); err != nil {
+			return b.String(), err
+		}
+	}
+
 	return b.String(), nil
 }
 
@@ -69,7 +88,7 @@ func newJSONFormatter() Formatter {
 	return &jsonFormatter{}
 }
 
-func (_ *jsonFormatter) Format(info *OutputFormat) (string, error) {
+func (_ *jsonFormatter) Format(info *OutputFormat, infoKV *OutputFormat, detailed bool) (string, error) {
 	b, err := json.MarshalIndent(info, "", "   ")
 	if err != nil {
 		return "", fmt.Errorf("Failed to marshal original snapshot stats: %v", err)

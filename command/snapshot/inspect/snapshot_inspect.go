@@ -29,10 +29,18 @@ type cmd struct {
 	flags  *flag.FlagSet
 	help   string
 	format string
+
+	// flags
+	detailed bool
+	kvDepth  int
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.BoolVar(&c.detailed, "detailed", false,
+		"Provides detailed information about KV store data.")
+	c.flags.IntVar(&c.kvDepth, "kv-depth", 2,
+		"The key prefix depth used to breakdown KV store data. Defaults to 2.")
 	c.flags.StringVar(
 		&c.format,
 		"format",
@@ -57,6 +65,7 @@ type MetadataInfo struct {
 type OutputFormat struct {
 	Meta      *MetadataInfo
 	Stats     []typeStats
+	KStats    []typeStats
 	TotalSize int
 }
 
@@ -101,7 +110,7 @@ func (c *cmd) Run(args []string) int {
 		}
 	}()
 
-	stats, totalSize, err := enhance(readFile)
+	stats, kstats, totalSize, err := enhance(readFile, c.detailed, c.kvDepth)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error extracting snapshot data: %s", err))
 		return 1
@@ -122,14 +131,20 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	//Restructures stats given above to be human readable
-	formattedStats := generatetypeStats(stats)
+	formattedStats, formattedKStats := generatetypeStats(stats, kstats, c.detailed)
 
 	in := &OutputFormat{
 		Meta:      metaformat,
 		Stats:     formattedStats,
 		TotalSize: totalSize,
 	}
-	out, err := formatter.Format(in)
+	inKV := &OutputFormat{
+		Meta:      metaformat,
+		Stats:     formattedKStats,
+		TotalSize: totalSize,
+	}
+
+	out, err := formatter.Format(in, inKV, c.detailed)
 	if err != nil {
 		c.UI.Error(err.Error())
 		return 1
@@ -145,7 +160,7 @@ type typeStats struct {
 	Count int
 }
 
-func generatetypeStats(info map[structs.MessageType]typeStats) []typeStats {
+func generatetypeStats(info map[structs.MessageType]typeStats, kvInfo map[string]typeStats, detailed bool) ([]typeStats, []typeStats) {
 	ss := make([]typeStats, 0, len(info))
 
 	for _, s := range info {
@@ -155,7 +170,20 @@ func generatetypeStats(info map[structs.MessageType]typeStats) []typeStats {
 	// Sort the stat slice
 	sort.Slice(ss, func(i, j int) bool { return ss[i].Sum > ss[j].Sum })
 
-	return ss
+	if detailed {
+		ks := make([]typeStats, 0, len(kvInfo))
+
+		for _, s := range kvInfo {
+			ks = append(ks, s)
+		}
+
+		// Sort the kv stat slice
+		sort.Slice(ks, func(i, j int) bool { return ks[i].Sum > ks[j].Sum })
+
+		return ss, ks
+	}
+
+	return ss, nil
 }
 
 // countingReader helps keep track of the bytes we have read
@@ -175,8 +203,9 @@ func (r *countingReader) Read(p []byte) (n int, err error) {
 
 // enhance utilizes ReadSnapshot to populate the struct with
 // all of the snapshot's itemized data
-func enhance(file io.Reader) (map[structs.MessageType]typeStats, int, error) {
+func enhance(file io.Reader, detailed bool, kvDepth int) (map[structs.MessageType]typeStats, map[string]typeStats, int, error) {
 	stats := make(map[structs.MessageType]typeStats)
+	kstats := make(map[string]typeStats)
 	cr := &countingReader{wrappedReader: file}
 	totalSize := 0
 	handler := func(header *fsm.SnapshotHeader, msg structs.MessageType, dec *codec.Decoder) error {
@@ -185,6 +214,7 @@ func enhance(file io.Reader) (map[structs.MessageType]typeStats, int, error) {
 		if s.Name == "" {
 			s.Name = name
 		}
+
 		var val interface{}
 		err := dec.Decode(&val)
 		if err != nil {
@@ -196,12 +226,39 @@ func enhance(file io.Reader) (map[structs.MessageType]typeStats, int, error) {
 		s.Count++
 		totalSize = cr.read
 		stats[msg] = s
+
+		if detailed {
+			if s.Name == "KVS" {
+				switch val := val.(type) {
+				case map[string]interface{}:
+					fmt.Println("map-match")
+					for k, v := range val {
+						depth := kvDepth
+						if k == "Key" {
+							split := strings.Split(v.(string), "/")
+							if depth > len(split) {
+								depth = len(split)
+							}
+							prefix := strings.Join(split[0:depth], "/")
+							kvs := kstats[prefix]
+							if kvs.Name == "" {
+								kvs.Name = prefix
+							}
+							kvs.Sum += size
+							kvs.Count++
+							kstats[prefix] = kvs
+						}
+					}
+				}
+			}
+		}
+
 		return nil
 	}
 	if err := fsm.ReadSnapshot(cr, handler); err != nil {
-		return nil, 0, err
+		return nil, nil, 0, err
 	}
-	return stats, totalSize, nil
+	return stats, kstats, totalSize, nil
 
 }
 
