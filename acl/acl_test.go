@@ -100,6 +100,10 @@ func checkAllowNodeRead(t *testing.T, authz Authorizer, prefix string, entCtx *A
 	require.Equal(t, Allow, authz.NodeRead(prefix, entCtx))
 }
 
+func checkAllowNodeReadAll(t *testing.T, authz Authorizer, _ string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.NodeReadAll(entCtx))
+}
+
 func checkAllowNodeWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Allow, authz.NodeWrite(prefix, entCtx))
 }
@@ -122,6 +126,10 @@ func checkAllowPreparedQueryWrite(t *testing.T, authz Authorizer, prefix string,
 
 func checkAllowServiceRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Allow, authz.ServiceRead(prefix, entCtx))
+}
+
+func checkAllowServiceReadAll(t *testing.T, authz Authorizer, _ string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.ServiceReadAll(entCtx))
 }
 
 func checkAllowServiceWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
@@ -204,6 +212,10 @@ func checkDenyNodeRead(t *testing.T, authz Authorizer, prefix string, entCtx *Au
 	require.Equal(t, Deny, authz.NodeRead(prefix, entCtx))
 }
 
+func checkDenyNodeReadAll(t *testing.T, authz Authorizer, _ string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.NodeReadAll(entCtx))
+}
+
 func checkDenyNodeWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Deny, authz.NodeWrite(prefix, entCtx))
 }
@@ -226,6 +238,10 @@ func checkDenyPreparedQueryWrite(t *testing.T, authz Authorizer, prefix string, 
 
 func checkDenyServiceRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Deny, authz.ServiceRead(prefix, entCtx))
+}
+
+func checkDenyServiceReadAll(t *testing.T, authz Authorizer, _ string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.ServiceReadAll(entCtx))
 }
 
 func checkDenyServiceWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
@@ -308,6 +324,10 @@ func checkDefaultNodeRead(t *testing.T, authz Authorizer, prefix string, entCtx 
 	require.Equal(t, Default, authz.NodeRead(prefix, entCtx))
 }
 
+func checkDefaultNodeReadAll(t *testing.T, authz Authorizer, _ string, entCtx *AuthorizerContext) {
+	require.Equal(t, Default, authz.NodeReadAll(entCtx))
+}
+
 func checkDefaultNodeWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Default, authz.NodeWrite(prefix, entCtx))
 }
@@ -330,6 +350,10 @@ func checkDefaultPreparedQueryWrite(t *testing.T, authz Authorizer, prefix strin
 
 func checkDefaultServiceRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Default, authz.ServiceRead(prefix, entCtx))
+}
+
+func checkDefaultServiceReadAll(t *testing.T, authz Authorizer, _ string, entCtx *AuthorizerContext) {
+	require.Equal(t, Default, authz.ServiceReadAll(entCtx))
 }
 
 func checkDefaultServiceWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
@@ -381,12 +405,14 @@ func TestACL(t *testing.T) {
 				{name: "DenyKeyringWrite", check: checkDenyKeyringWrite},
 				{name: "DenyKeyWrite", check: checkDenyKeyWrite},
 				{name: "DenyNodeRead", check: checkDenyNodeRead},
+				{name: "DenyNodeReadAll", check: checkDenyNodeReadAll},
 				{name: "DenyNodeWrite", check: checkDenyNodeWrite},
 				{name: "DenyOperatorRead", check: checkDenyOperatorRead},
 				{name: "DenyOperatorWrite", check: checkDenyOperatorWrite},
 				{name: "DenyPreparedQueryRead", check: checkDenyPreparedQueryRead},
 				{name: "DenyPreparedQueryWrite", check: checkDenyPreparedQueryWrite},
 				{name: "DenyServiceRead", check: checkDenyServiceRead},
+				{name: "DenyServiceReadAll", check: checkDenyServiceReadAll},
 				{name: "DenyServiceWrite", check: checkDenyServiceWrite},
 				{name: "DenySessionRead", check: checkDenySessionRead},
 				{name: "DenySessionWrite", check: checkDenySessionWrite},
@@ -411,12 +437,14 @@ func TestACL(t *testing.T) {
 				{name: "AllowKeyringWrite", check: checkAllowKeyringWrite},
 				{name: "AllowKeyWrite", check: checkAllowKeyWrite},
 				{name: "AllowNodeRead", check: checkAllowNodeRead},
+				{name: "AllowNodeReadAll", check: checkAllowNodeReadAll},
 				{name: "AllowNodeWrite", check: checkAllowNodeWrite},
 				{name: "AllowOperatorRead", check: checkAllowOperatorRead},
 				{name: "AllowOperatorWrite", check: checkAllowOperatorWrite},
 				{name: "AllowPreparedQueryRead", check: checkAllowPreparedQueryRead},
 				{name: "AllowPreparedQueryWrite", check: checkAllowPreparedQueryWrite},
 				{name: "AllowServiceRead", check: checkAllowServiceRead},
+				{name: "AllowServiceReadAll", check: checkAllowServiceReadAll},
 				{name: "AllowServiceWrite", check: checkAllowServiceWrite},
 				{name: "AllowSessionRead", check: checkAllowSessionRead},
 				{name: "AllowSessionWrite", check: checkAllowSessionWrite},
@@ -441,12 +469,14 @@ func TestACL(t *testing.T) {
 				{name: "AllowKeyringWrite", check: checkAllowKeyringWrite},
 				{name: "AllowKeyWrite", check: checkAllowKeyWrite},
 				{name: "AllowNodeRead", check: checkAllowNodeRead},
+				{name: "AllowNodeReadAll", check: checkAllowNodeReadAll},
 				{name: "AllowNodeWrite", check: checkAllowNodeWrite},
 				{name: "AllowOperatorRead", check: checkAllowOperatorRead},
 				{name: "AllowOperatorWrite", check: checkAllowOperatorWrite},
 				{name: "AllowPreparedQueryRead", check: checkAllowPreparedQueryRead},
 				{name: "AllowPreparedQueryWrite", check: checkAllowPreparedQueryWrite},
 				{name: "AllowServiceRead", check: checkAllowServiceRead},
+				{name: "AllowServiceReadAll", check: checkAllowServiceReadAll},
 				{name: "AllowServiceWrite", check: checkAllowServiceWrite},
 				{name: "AllowSessionRead", check: checkAllowSessionRead},
 				{name: "AllowSessionWrite", check: checkAllowSessionWrite},
@@ -995,6 +1025,7 @@ func TestACL(t *testing.T) {
 				}),
 			},
 			checks: []aclCheck{
+				{name: "ReadAllDenied", prefix: "", check: checkDenyNodeReadAll},
 				{name: "DefaultReadDenied", prefix: "nope", check: checkDenyNodeRead},
 				{name: "DefaultWriteDenied", prefix: "nope", check: checkDenyNodeWrite},
 				{name: "DenyReadDenied", prefix: "root-nope", check: checkDenyNodeRead},
@@ -1075,6 +1106,7 @@ func TestACL(t *testing.T) {
 				}),
 			},
 			checks: []aclCheck{
+				{name: "ReadAllDenied", prefix: "", check: checkDenyNodeReadAll},
 				{name: "DefaultReadAllowed", prefix: "nope", check: checkAllowNodeRead},
 				{name: "DefaultWriteAllowed", prefix: "nope", check: checkAllowNodeWrite},
 				{name: "DenyReadDenied", prefix: "root-nope", check: checkDenyNodeRead},
@@ -1335,6 +1367,7 @@ func TestACL(t *testing.T) {
 				}),
 			},
 			checks: []aclCheck{
+				{name: "ServiceReadAllDenied", prefix: "", check: checkDenyServiceReadAll},
 				{name: "KeyReadDenied", prefix: "other", check: checkDenyKeyRead},
 				{name: "KeyWriteDenied", prefix: "other", check: checkDenyKeyWrite},
 				{name: "KeyWritePrefixDenied", prefix: "other", check: checkDenyKeyWritePrefix},
@@ -1464,6 +1497,7 @@ func TestACL(t *testing.T) {
 				}),
 			},
 			checks: []aclCheck{
+				{name: "ServiceReadAllDenied", prefix: "", check: checkDenyServiceReadAll},
 				{name: "KeyReadAllowed", prefix: "other", check: checkAllowKeyRead},
 				{name: "KeyWriteAllowed", prefix: "other", check: checkAllowKeyWrite},
 				{name: "KeyWritePrefixAllowed", prefix: "other", check: checkAllowKeyWritePrefix},
@@ -1708,6 +1742,9 @@ func TestACL(t *testing.T) {
 				},
 			},
 			checks: []aclCheck{
+				{name: "NodeReadAllDenied", prefix: "", check: checkDenyNodeReadAll},
+				{name: "ServiceReadAllDenied", prefix: "", check: checkDenyServiceReadAll},
+
 				{name: "AgentReadPrefixAllowed", prefix: "fo", check: checkAllowAgentRead},
 				{name: "AgentWritePrefixDenied", prefix: "fo", check: checkDenyAgentWrite},
 				{name: "AgentReadPrefixAllowed", prefix: "for", check: checkAllowAgentRead},
@@ -2098,6 +2135,81 @@ func TestACLEnforce(t *testing.T) {
 	for _, tcase := range tests {
 		t.Run(tcase.name, func(t *testing.T) {
 			require.Equal(t, tcase.expected, enforce(tcase.rule, tcase.required))
+		})
+	}
+}
+
+func TestACL_ReadAll(t *testing.T) {
+	type testcase struct {
+		name  string
+		rules string
+		check func(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext)
+	}
+
+	tests := []testcase{
+		{
+			name:  "node:bar:read",
+			rules: `node "bar" { policy = "read" }`,
+			check: checkDenyNodeReadAll,
+		},
+		{
+			name:  "node:bar:write",
+			rules: `node "bar" { policy = "write" }`,
+			check: checkDenyNodeReadAll,
+		},
+		{
+			name:  "node:*:read",
+			rules: `node_prefix "" { policy = "read" }`,
+			check: checkAllowNodeReadAll,
+		},
+		{
+			name:  "node:*:write",
+			rules: `node_prefix "" { policy = "write" }`,
+			check: checkAllowNodeReadAll,
+		},
+		{
+			name:  "service:bar:read",
+			rules: `service "bar" { policy = "read" }`,
+			check: checkDenyServiceReadAll,
+		},
+		{
+			name:  "service:bar:write",
+			rules: `service "bar" { policy = "write" }`,
+			check: checkDenyServiceReadAll,
+		},
+		{
+			name:  "service:*:read",
+			rules: `service_prefix "" { policy = "read" }`,
+			check: checkAllowServiceReadAll,
+		},
+		{
+			name:  "service:*:write",
+			rules: `service_prefix "" { policy = "write" }`,
+			check: checkAllowServiceReadAll,
+		},
+	}
+
+	body := func(t *testing.T, rules string, defaultPolicy Authorizer, check func(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext)) {
+		t.Helper()
+
+		policy, err := NewPolicyFromSource("", 0, rules, SyntaxCurrent, nil, nil)
+		require.NoError(t, err)
+
+		acl, err := NewPolicyAuthorizerWithDefaults(defaultPolicy, []*Policy{policy}, nil)
+		require.NoError(t, err)
+
+		check(t, acl, "", nil)
+	}
+
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Run("default deny", func(t *testing.T) {
+				body(t, tc.rules, DenyAll(), tc.check)
+			})
+			t.Run("default allow", func(t *testing.T) {
+				body(t, tc.rules, AllowAll(), checkAllowNodeReadAll)
+			})
 		})
 	}
 }

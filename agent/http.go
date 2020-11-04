@@ -895,12 +895,26 @@ func (s *HTTPHandlers) parseDC(req *http.Request, dc *string) {
 // parseTokenInternal is used to parse the ?token query param or the X-Consul-Token header or
 // Authorization Bearer token (RFC6750).
 func (s *HTTPHandlers) parseTokenInternal(req *http.Request, token *string) {
-	tok := ""
 	if other := req.URL.Query().Get("token"); other != "" {
-		tok = other
-	} else if other := req.Header.Get("X-Consul-Token"); other != "" {
-		tok = other
-	} else if other := req.Header.Get("Authorization"); other != "" {
+		*token = other
+		return
+	}
+
+	if ok := s.parseTokenFromHeaders(req, token); ok {
+		return
+	}
+
+	*token = ""
+	return
+}
+
+func (s *HTTPHandlers) parseTokenFromHeaders(req *http.Request, token *string) bool {
+	if other := req.Header.Get("X-Consul-Token"); other != "" {
+		*token = other
+		return true
+	}
+
+	if other := req.Header.Get("Authorization"); other != "" {
 		// HTTP Authorization headers are in the format: <Scheme>[SPACE]<Value>
 		// Ref. https://tools.ietf.org/html/rfc7236#section-3
 		parts := strings.Split(other, " ")
@@ -916,13 +930,18 @@ func (s *HTTPHandlers) parseTokenInternal(req *http.Request, token *string) {
 			if strings.ToLower(scheme) == "bearer" {
 				// Since Bearer tokens shouldn't contain spaces (rfc6750#section-2.1)
 				// "value" is tokenized, only the first item is used
-				tok = strings.TrimSpace(strings.Split(value, " ")[0])
+				*token = strings.TrimSpace(strings.Split(value, " ")[0])
+				return true
 			}
 		}
 	}
 
-	*token = tok
-	return
+	return false
+}
+
+func (s *HTTPHandlers) clearTokenFromHeaders(req *http.Request) {
+	req.Header.Del("X-Consul-Token")
+	req.Header.Del("Authorization")
 }
 
 // parseTokenWithDefault passes through to parseTokenInternal and optionally resolves proxy tokens to real ACL tokens.
