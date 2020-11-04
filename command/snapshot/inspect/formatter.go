@@ -57,26 +57,20 @@ func (_ *prettyFormatter) Format(info *OutputFormat, detailed bool) (string, err
 	fmt.Fprintf(tw, "\n %s\t%s\t%s\t", "----", "----", "----")
 	fmt.Fprintf(tw, "\n Total\t\t%s\t", ByteSize(uint64(info.TotalSize)))
 
-	if err := tw.Flush(); err != nil {
-		return b.String(), err
-	}
-
 	if detailed {
-		kvtw := tabwriter.NewWriter(&b, 30, 8, 12, ' ', 0)
-
-		fmt.Fprintf(kvtw, "\n")
-		fmt.Fprintln(kvtw, "\n Key Name\tCount\tSize\t")
-		fmt.Fprintf(kvtw, " %s\t%s\t%s\t", "----", "----", "----")
+		fmt.Fprintf(tw, "\n")
+		fmt.Fprintln(tw, "\n Key Name\tCount\tSize\t")
+		fmt.Fprintf(tw, " %s\t%s\t%s\t", "----", "----", "----")
 		// For each different type generate new output
 		for _, s := range info.KStats {
-			fmt.Fprintf(kvtw, "\n %s\t%d\t%s\t", s.Name, s.Count, ByteSize(uint64(s.Sum)))
+			fmt.Fprintf(tw, "\n %s\t%d\t%s\t", s.Name, s.Count, ByteSize(uint64(s.Sum)))
 		}
-		fmt.Fprintf(kvtw, "\n %s\t%s\t%s\t", "----", "----", "----")
-		fmt.Fprintf(kvtw, "\n Total\t\t%s\t", ByteSize(uint64(info.TotalSize)))
+		fmt.Fprintf(tw, "\n %s\t%s\t%s\t", "----", "----", "----")
+		fmt.Fprintf(tw, "\n Total\t\t%s\t", ByteSize(uint64(info.TotalSize)))
+	}
 
-		if err := kvtw.Flush(); err != nil {
-			return b.String(), err
-		}
+	if err := tw.Flush(); err != nil {
+		return b.String(), err
 	}
 
 	return b.String(), nil
