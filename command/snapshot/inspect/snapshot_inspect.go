@@ -68,7 +68,6 @@ type MetadataInfo struct {
 type OutputFormat struct {
 	Meta      *MetadataInfo
 	Stats     []typeStats
-	KStats    []typeStats
 	TotalSize int
 }
 
