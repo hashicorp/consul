@@ -68,6 +68,7 @@ type MetadataInfo struct {
 type OutputFormat struct {
 	Meta      *MetadataInfo
 	Stats     []typeStats
+	KStats    []typeStats
 	TotalSize int
 }
 
@@ -138,15 +139,11 @@ func (c *cmd) Run(args []string) int {
 	in := &OutputFormat{
 		Meta:      metaformat,
 		Stats:     formattedStats,
-		TotalSize: totalSize,
-	}
-	inKV := &OutputFormat{
-		Meta:      metaformat,
-		Stats:     formattedKStats,
+		KStats:    formattedKStats,
 		TotalSize: totalSize,
 	}
 
-	out, err := formatter.Format(in, inKV, c.detailed)
+	out, err := formatter.Format(in, c.detailed)
 	if err != nil {
 		c.UI.Error(err.Error())
 		return 1
