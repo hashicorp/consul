@@ -11,8 +11,8 @@ description: |-
 
 Since Consul 1.9.0, Consul's built in UI includes a topology visualization to
 show a service's immediate connectivity at a glance. It is not intended as a
-replacement for dedication monitoring solutions, but rather as a quick overview
-of the state of a service and it's connections within the Service Mesh.
+replacement for dedicated monitoring solutions, but rather as a quick overview
+of the state of a service and its connections within the Service Mesh.
 
 The topology visualization requires services to be using [Consul
 Connect](/docs/connect) via [side-car proxies](/docs/connect/proxies).
@@ -33,29 +33,28 @@ Consul has built-in support for overlaying metrics from a
 be supported using a new and experimental Javascript API. See [Custom Metrics
 Providers](#custom-metrics-providers).
 
-
 ## Configuring the UI To Display Metrics
 
-To configure Consul's UI to be able to fetch metrics there are several
+To configure Consul's UI to fetch metrics there are several
 configuration variables needed. These need to be set on each Consul Agent that
 is responsible for serving the UI. If there are multiple clients with the UI
-enabled in a Datacenter for redundancy, these configurations should be added to
+enabled in a datacenter for redundancy these configurations should be added to
 all of them.
 
-We assume that the UI is already enabled which since Consul 1.9.0 is done by
+We assume that the UI is already enabled by
 setting [`ui_config.enabled`](/docs/agent/options#ui_config_enabled) to `true`
 in the agent's configuration file.
 
-To use the built-in Prometheus provider,
+To use the built-in Prometheus provider
 [`ui_config.metrics_provider`](/docs/agent/options#ui_config_metrics_provider)
 must be set to `prometheus`.
 
-Finally, the UI currently must query the metrics provider through a proxy
-endpoint to simplify setup where Prometheus isn't already publicly available to
-user's browsers directly.
+The UI must query the metrics provider through a proxy endpoint. This
+simplifies deployment where Prometheus is not exposed externally to UI users'
+browsers.
 
-To set this up, provide the URL that the _Consul agent_ can reach the Prometheus
-server on in
+To set this up, provide the URL that the _Consul agent_ should use to reach the Prometheus
+server in
 [`ui_config.metrics_proxy.base_url`](/docs/agent/options#ui_config_metrics_proxy_base_url).
 For example in Kubernetes, the Prometheus helm chart by default installs a
 service named `prometheus-server` so each Consul agent can reach it on
@@ -106,12 +105,12 @@ TODO: show screenshot of the configured link in the topology view.
 
 ### Metrics Proxy
 
-In many cases the metrics backend may not be exposed outside of the datacenter
-to user's browser or may be on a different domain and so subject to CORS
-restrictions. To make it simpler to serve the metrics to the UI in these cases,
-the Consul agent can proxy requests for metrics from the UI to the backend.
+In many cases the metrics backend may be inaccessible to UI users' browsers or
+may be on a different domain and so subject to CORS restrictions. To make it
+simpler to serve the metrics to the UI in these cases, the Consul agent can
+proxy requests for metrics from the UI to the backend.
 
-**This is intended to enable simple setup in test and demo environments. Careful
+**This is intended simplify setup in test and demo environments. Careful
 consideration should be given towards using this in production.**
 
 The simplest configuration is described in [Configuring the UI for
@@ -123,21 +122,42 @@ metrics](#configuring-the-ui-for-metrics).
  un-authenticated network traffic via the proxy should be _carefully_ considered
  in production.
 
-The proxy endpoint is an internal one intended only for UI use however by
-enabling it anyone with network access to the agent's API port is potentially
-able to access metrics from the backend.
+The metrics proxy endpoint is internal and intended only for UI use. However by
+enabling it anyone with network access to the Consul agent's API port may use
+it to access metrics from the backend.
 
 **If ACLs are not enabled, full access to metrics will be exposed to
 un-authenticated workloads on the network**.
 
-With ACLs enabled, the proxy endpoint requires a valid token with read access to
-all nodes and services (across all namespaces in Enterprise). It's typical for
-most authenticated users to have this level of access in Consul as it's required
-for viewing the catalog or discovering services. For example if you use a
-[Single Sign-On
+With ACLs enabled, the proxy endpoint requires a valid token with read access
+to all nodes and services (across all namespaces in Enterprise):
+
+```hcl
+# Consul OSS
+service_prefix "" {
+  policy = "read"
+}
+node_prefix "" {
+  policy = "read"
+}
+
+# Consul Enterprise
+namespace_prefix "" {
+  service_prefix "" {
+    policy = "read"
+  }
+  node_prefix "" {
+    policy = "read"
+  }
+}
+```
+
+It's typical for most authenticated users to have this level of access in
+Consul as it's required for viewing the catalog or discovering services. If you
+use a [Single Sign-On
 integration](http://localhost:3000/docs/security/acl/auth-methods/oidc) (Consul
-Enterprise) for the UI the users will automatically be issued an ACL token that
-will be allowed access to the metrics through the proxy.
+Enterprise) users of the UI can be automatically issued an ACL token with the
+privileges above to be allowed access to the metrics through the proxy.
 
 Even with ACLs enabled, the proxy endpoint doesn't deeply understand the query
 language of the backend so there is no way it can enforce least-privilege access
@@ -157,9 +177,9 @@ set to `http://prometheus-server` then the proxy would also expose read access
 to several other endpoints such as `/api/v1/status/config` which includes all
 Prometheus configuration which might include sensitive information.
 
-The default value for `metrics_proxy.path_allowlist` is `["/api/v1/query_range",
-"/api/v1/query"]` so that if you are using the built in provider, this is
-already limited to the essential endpoints.
+If you use the built-in `prometheus` provider the proxy is limited to the
+essential endpoints. The default value for `metrics_proxy.path_allowlist` is
+`["/api/v1/query_range", "/api/v1/query"]`.
 
 If you use a custom provider that uses the metrics proxy, you'll need to
 explicitly set the allowlist based on the endpoints the provider needs to
@@ -181,7 +201,7 @@ ui_config {
   enabled = true
   metrics_provider = "example-apm"
   metrics_proxy {
-    base_url = "http://example-apm/api/v1/metrics"
+    base_url = "https://example-apm/api/v1/metrics"
     add_headers = [
       {
         name = "Authorization"
@@ -195,10 +215,10 @@ ui_config {
 ## Custom Metrics Providers
 
 Consul 1.9.0 includes a built-in provider for fetching metrics from
-[Prometheus](https://prometheus.io). To enable others to use the feature along
-with other existing metrics stores and hosted services, we created a "metrics
-provider" interface in Javascript. A custom provider may be written and the
-javascript file served by the Consul agent.
+[Prometheus](https://prometheus.io). To enable the UI visualization feature to
+work with other existing metrics stores and hosted services, we created a
+"metrics provider" interface in Javascript. A custom provider may be written
+and the javascript file served by the Consul agent.
 
 ~> **Note**: this interface is _experimental_ and may change in breaking ways or
  be removed entirely as we discover the needs of the community. Please provide
@@ -217,8 +237,15 @@ The template for a complete provider Javascript file is given below.
      * specified in the `metrics_provider_options_json` field of the Consul
      * agent configuration file.
      *
-     * Consul will provide a boolean field options.metrics_proxy_enabled to
-     * indicate whether the agent has a metrics proxy configured.
+     * Consul will provide:
+     *
+     * 1. A boolean field options.metrics_proxy_enabled to indicate whether the agent
+     *    has a metrics proxy configured.
+     *
+     * 2. A fetch-like options.fetch which is a thin fetch wrapper that prefixes
+     *    any url with the url of Consul's proxy endpoint and adds your current
+     *    Consul ACL token to the request headers. Otherwise it functions like the
+     *    browsers native fetch
      *
      * The provider should throw an Exception if the options are not valid, for
      * example because it requires a metrics proxy and one is not configured.
@@ -450,13 +477,15 @@ browsers from blocking these requests. These may be configured with
 Alternatively, the provider may choose to use the [built-in metrics
 proxy](#metrics-proxy) to avoid cross domain issues or to inject additional
 authorization headers without requiring each UI user to be separately
-authenticated to the metrics backend. To do so, requests should be made to
-`/v1/internal/ui/metrics-proxy/<path>`. All components in the `<path>` will be
-appended to the configured
-[`base_url`](/docs/agent/options#ui_config_metrics_proxy_base_url) in the
-agent's metrics proxy configuration, and the request forwarded. The response
-will be returned without any modification to be interpreted by the provider and
-converted into the format as described in the interface above.
+authenticated to the metrics backend.
+
+A fetch-like function is provided to the metrics provider javascript during
+`init` as `options.fetch`. This is a thin fetch wrapper that prefixes any url
+with the url of Consul's metrics proxy endpoint and adds your current Consul
+ACL token to the request headers. Otherwise it functions like the browsers
+native fetch and will forward your request on to the metrics backend. The
+response will be returned without any modification to be interpreted by the
+provider and converted into the format as described in the interface above.
 
 Provider authors should make it clear to users which paths are required so they
 can correctly configure the [path allowlist](#path-allowlist) in the metrics
@@ -495,7 +524,3 @@ Currently there are some limitations to this feature.
   `prometheus` provider only support querying Prometheus via the [metrics
   proxy](#metrics-proxy). Later it may be possible to configure it for direct
   access to an expose Prometheus.
-
-
-
-
