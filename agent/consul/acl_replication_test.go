@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -171,37 +172,41 @@ func TestACLReplication_diffACLTokens(t *testing.T) {
 			AccessorID:  "",
 			SecretID:    "5128289f-c22c-4d32-936e-7662443f1a55",
 			Description: "token0 - old and not yet upgraded",
-			Hash:        []byte{1, 2, 3, 4},
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 3},
 		},
 		&structs.ACLToken{
 			AccessorID:  "44ef9aec-7654-4401-901b-4d4a8b3c80fc",
 			SecretID:    "44ef9aec-7654-4401-901b-4d4a8b3c80fc",
 			Description: "token1 - already in sync",
-			Hash:        []byte{1, 2, 3, 4},
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 2},
 		},
 		&structs.ACLToken{
 			AccessorID:  "8ea41efb-8519-4091-bc91-c42da0cda9ae",
 			SecretID:    "8ea41efb-8519-4091-bc91-c42da0cda9ae",
 			Description: "token2 - updated but not changed",
-			Hash:        []byte{1, 2, 3, 4},
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 25},
 		},
 		&structs.ACLToken{
 			AccessorID:  "539f1cb6-40aa-464f-ae66-a900d26bc1b2",
 			SecretID:    "539f1cb6-40aa-464f-ae66-a900d26bc1b2",
 			Description: "token3 - updated and changed",
-			Hash:        []byte{1, 2, 3, 4},
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 25},
 		},
 		&structs.ACLToken{
 			AccessorID:  "e9d33298-6490-4466-99cb-ba93af64fa76",
 			SecretID:    "e9d33298-6490-4466-99cb-ba93af64fa76",
 			Description: "token4 - needs deleting",
-			Hash:        []byte{1, 2, 3, 4},
 			RaftIndex:   structs.RaftIndex{CreateIndex: 1, ModifyIndex: 25},
 		},
+	}
+
+	// compute actual hashes
+	hashByAccessorID := map[string][]byte{}
+	for _, token := range local {
+		token.SetHash(true)
+		dup := make([]byte, len(token.Hash))
+		copy(dup, token.Hash)
+		hashByAccessorID[token.AccessorID] = dup
 	}
 
 	remote := structs.ACLTokenListStubs{
@@ -209,35 +214,30 @@ func TestACLReplication_diffACLTokens(t *testing.T) {
 			AccessorID: "72fac6a3-a014-41c8-9cb2-8d9a5e935f3d",
 			//SecretID:    "5128289f-c22c-4d32-936e-7662443f1a55", (formerly)
 			Description: "token0 - old and not yet upgraded locally",
-			Hash:        []byte{1, 2, 3, 4},
 			CreateIndex: 1,
 			ModifyIndex: 3,
 		},
 		&structs.ACLTokenListStub{
 			AccessorID:  "44ef9aec-7654-4401-901b-4d4a8b3c80fc",
 			Description: "token1 - already in sync",
-			Hash:        []byte{1, 2, 3, 4},
 			CreateIndex: 1,
 			ModifyIndex: 2,
 		},
 		&structs.ACLTokenListStub{
 			AccessorID:  "8ea41efb-8519-4091-bc91-c42da0cda9ae",
 			Description: "token2 - updated but not changed",
-			Hash:        []byte{1, 2, 3, 4},
 			CreateIndex: 1,
 			ModifyIndex: 50,
 		},
 		&structs.ACLTokenListStub{
 			AccessorID:  "539f1cb6-40aa-464f-ae66-a900d26bc1b2",
 			Description: "token3 - updated and changed",
-			Hash:        []byte{5, 6, 7, 8},
 			CreateIndex: 1,
 			ModifyIndex: 50,
 		},
 		&structs.ACLTokenListStub{
 			AccessorID:  "c6e8fffd-cbd9-4ecd-99fe-ab2f200c7926",
 			Description: "token5 - needs adding",
-			Hash:        []byte{1, 2, 3, 4},
 			CreateIndex: 1,
 			ModifyIndex: 50,
 		},
@@ -254,10 +254,17 @@ func TestACLReplication_diffACLTokens(t *testing.T) {
 		&structs.ACLTokenListStub{
 			AccessorID:  "",
 			Description: "token6 - pending async AccessorID assignment",
-			Hash:        []byte{1, 2, 3, 4},
 			CreateIndex: 51,
 			ModifyIndex: 51,
 		},
+	}
+
+	for _, stub := range remote {
+		if strings.HasPrefix(stub.Description, "token3 -") {
+			stub.Hash = []byte{5, 6, 7, 8} // change the hash to indicate the content has changed
+		} else {
+			stub.Hash = hashByAccessorID[stub.AccessorID]
+		}
 	}
 
 	// Do the full diff. This full exercises the main body of the loop
