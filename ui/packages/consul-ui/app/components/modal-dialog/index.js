@@ -19,7 +19,7 @@ export default Component.extend(Slotted, {
     set(this, 'checked', true);
     if (this.height === null) {
       if (this.element) {
-        const dialogPanel = this.dom.element('[role="dialog"] > div > div', this.modal);
+        const dialogPanel = this.dom.element('.modal-dialog-window', this.modal);
         const rect = dialogPanel.getBoundingClientRect();
         set(this, 'dialog', dialogPanel);
         set(this, 'height', rect.height);
