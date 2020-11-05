@@ -83,25 +83,26 @@ environment and adapt these configurations accordingly.
   - [`verifing_incoming_rpc`](/docs/agent/options#verify_incoming_rpc) -  By default this is false, and should almost 
     always be set to true to require clients to provide a valid TLS certificate for Consul agent RPCs.
 
-  - [`verify_outgoing` - By default this is false, and should be set to true to require TLS for outgoing connections from
-    server or client agents. Servers that specify `verify_outgoing = true` will always talk to other servers over TLS, 
-    but they still accept non-TLS connections to allow for a transition of all clients to TLS. Currently the only way to 
-    enforce that no client can communicate with a server unencrypted is to also enable `verify_incoming` which requires 
-    client certificates too.
+  - [`verify_outgoing`](/docs/agent/options#verify_outgoing) - By default this is false, and should be set to true to 
+    require TLS for outgoing connections from server or client agents. Servers that specify `verify_outgoing = true` 
+    will always talk to other servers over TLS, but they still accept non-TLS connections to allow for a transition of 
+    all clients to TLS. Currently the only way to enforce that no client can communicate with a server unencrypted is 
+    to also enable `verify_incoming` which requires client certificates too.
 
-  - `enable_agent_tls_for_checks`](/docs/agent/options#verify_outgoing) - By default this is false, and should almost 
-    always be set to true to require mTLS to set up the client for HTTP or gRPC health checks. This was added in 
-    Consul 1.0.1.
+  - [`enable_agent_tls_for_checks`](/docs/agent/options#enable_agent_tls_for_checks) - By default this is false, and 
+    should almost always be set to true to require mTLS to set up the client for HTTP or gRPC health checks. This was 
+    added in Consul 1.0.1.
 
-  - `verify_server_hostname` - By default this is false, and should be set to true to require for outgoing TLS 
-    connections that the TLS certificate presented by the servers matches `server.<datacenter>.<domain> hostname`. The 
-    default configuration does not verify the hostname of the certificate, only that it is signed by a trusted CA. This 
-    setting is critical to prevent a compromised client agent from being restarted as a server and having all cluster 
-    state including all ACL tokens and Connect CA root keys replicated to it, and introduced in 0.5.1. From version 
-    0.5.1 to 1.4.0 we documented that `verify_server_hostname` being true implied verify_outgoing however due to a bug
-    this was not the case so setting only `verify_server_hostname` results in plaintext communication between client 
-    and server. See [CVE-2018-19653](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2018-19653) for more details. 
-    This is fixed in 1.4.1.
+  - [`verify_server_hostname`](/docs/agent/options#verify_server_hostname)  - By default this is false, and should be 
+    set to true to require for outgoing TLS connections that the TLS certificate presented by the servers matches 
+    `server.<datacenter>.<domain> hostname`. The default configuration does not verify the hostname of the certificate, 
+    only that it is signed by a trusted CA. This setting is critical to prevent a compromised client agent from being 
+    restarted as a server and having all cluster state including all ACL tokens and Connect CA root keys replicated to 
+    it, and introduced in 0.5.1. From version 0.5.1 to 1.4.0 we documented that `verify_server_hostname` being true 
+    implied verify_outgoing however due to a bug this was not the case so setting only `verify_server_hostname` results
+    in plaintext communication between client and server. 
+    See [CVE-2018-19653](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2018-19653) for more details. This is fixed 
+    in 1.4.1.
 
     **Example Server Agent TLS Configuration**
 
