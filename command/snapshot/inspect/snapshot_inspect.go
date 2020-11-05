@@ -169,7 +169,14 @@ func generatetypeStats(info map[structs.MessageType]typeStats, kvInfo map[string
 	}
 
 	// Sort the stat slice
-	sort.Slice(ss, func(i, j int) bool { return ss[i].Sum > ss[j].Sum })
+	sort.Slice(ss, func(i, j int) bool {
+		if ss[i].Sum == ss[j].Sum {
+			// sort alphabetically if size is equal
+			return ss[i].Name < ss[j].Name
+		}
+
+		return ss[i].Sum > ss[j].Sum
+	})
 
 	if detailed {
 		ks := make([]typeStats, 0, len(kvInfo))
@@ -179,7 +186,14 @@ func generatetypeStats(info map[structs.MessageType]typeStats, kvInfo map[string
 		}
 
 		// Sort the kv stat slice
-		sort.Slice(ks, func(i, j int) bool { return ks[i].Sum > ks[j].Sum })
+		sort.Slice(ks, func(i, j int) bool {
+			if ks[i].Sum == ks[j].Sum {
+				// sort alphabetically if size is equal
+				return ks[i].Name < ks[j].Name
+			}
+
+			return ks[i].Sum > ks[j].Sum
+		})
 
 		return ss, ks
 	}
