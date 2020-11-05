@@ -145,7 +145,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	//Restructures stats given above to be human readable
-	formattedStats, formattedStatsKV := generatetypeStats(info)
+	formattedStats, formattedStatsKV := generateStats(info)
 
 	in := &OutputFormat{
 		Meta:        metaformat,
@@ -171,22 +171,14 @@ type typeStats struct {
 	Count int
 }
 
-func generatetypeStats(info SnapshotInfo) ([]typeStats, []typeStats) {
+func generateStats(info SnapshotInfo) ([]typeStats, []typeStats) {
 	ss := make([]typeStats, 0, len(info.Stats))
 
 	for _, s := range info.Stats {
 		ss = append(ss, s)
 	}
 
-	// Sort the stat slice
-	sort.Slice(ss, func(i, j int) bool {
-		if ss[i].Sum == ss[j].Sum {
-			// sort alphabetically if size is equal
-			return ss[i].Name < ss[j].Name
-		}
-
-		return ss[i].Sum > ss[j].Sum
-	})
+	ss = sortTypeStats(ss)
 
 	if len(info.StatsKV) > 0 {
 		ks := make([]typeStats, 0, len(info.StatsKV))
@@ -195,20 +187,26 @@ func generatetypeStats(info SnapshotInfo) ([]typeStats, []typeStats) {
 			ks = append(ks, s)
 		}
 
-		// Sort the kv stat slice
-		sort.Slice(ks, func(i, j int) bool {
-			if ks[i].Sum == ks[j].Sum {
-				// sort alphabetically if size is equal
-				return ks[i].Name < ks[j].Name
-			}
-
-			return ks[i].Sum > ks[j].Sum
-		})
+		ks = sortTypeStats(ks)
 
 		return ss, ks
 	}
 
 	return ss, nil
+}
+
+// Sort the stat slice
+func sortTypeStats(stats []typeStats) []typeStats {
+	sort.Slice(stats, func(i, j int) bool {
+		// sort alphabetically if size is equal
+		if stats[i].Sum == stats[j].Sum {
+			return stats[i].Name < stats[j].Name
+		}
+
+		return stats[i].Sum > stats[j].Sum
+	})
+
+	return stats
 }
 
 // countingReader helps keep track of the bytes we have read
