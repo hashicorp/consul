@@ -13,7 +13,7 @@ require (
 	github.com/NYTimes/gziphandler v1.0.1
 	github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 // indirect
 	github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e
-	github.com/armon/go-metrics v0.3.5-0.20200914211745-2bc64ebd2914
+	github.com/armon/go-metrics v0.3.5-0.20201104215618-6fd5a4ddf425
 	github.com/armon/go-radix v1.0.0
 	github.com/aws/aws-sdk-go v1.25.41
 	github.com/coredns/coredns v1.1.2
@@ -63,7 +63,6 @@ require (
 	github.com/joyent/triton-go v1.7.1-0.20200416154420-6801d15b779f // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/kr/text v0.1.0
-	github.com/mattn/go-colorable v0.1.7 // indirect
 	github.com/miekg/dns v1.1.31
 	github.com/mitchellh/cli v1.1.0
 	github.com/mitchellh/copystructure v1.0.0
