@@ -138,147 +138,29 @@ func publishTestEvent(index uint64, b *eventBuffer, key string) {
 	b.Append([]Event{e})
 }
 
-func newSimpleEvent(key string, index uint64) Event {
-	return Event{Index: index, Payload: simplePayload{key: key}}
-}
-
-func TestFilterByKey(t *testing.T) {
-	type testCase struct {
-		name        string
-		req         SubscribeRequest
-		events      []Event
-		expectEvent bool
-		expected    Event
-		expectedCap int
-	}
-
-	fn := func(t *testing.T, tc testCase) {
-		events := make(PayloadEvents, 0, 5)
-		events = append(events, tc.events...)
-
-		actual, ok := filterByKey(tc.req, events)
-		require.Equal(t, tc.expectEvent, ok)
-		if !tc.expectEvent {
-			return
+func TestNewEventsFromBatch(t *testing.T) {
+	t.Run("single item", func(t *testing.T) {
+		first := Event{
+			Topic:   testTopic,
+			Index:   1234,
+			Payload: simplePayload{key: "key"},
 		}
-
-		require.Equal(t, tc.expected, actual)
-		// test if there was a new array allocated or not
-		require.Equal(t, tc.expectedCap, cap(actual.Payload.(PayloadEvents)))
-	}
-
-	var testCases = []testCase{
-		{
-			name: "all events match, no key or namespace",
-			req:  SubscribeRequest{Topic: testTopic},
-			events: []Event{
-				newSimpleEvent("One", 102),
-				newSimpleEvent("Two", 102)},
-			expectEvent: true,
-			expected: Event{
-				Topic: testTopic,
-				Index: 102,
-				Payload: PayloadEvents{
-					newSimpleEvent("One", 102),
-					newSimpleEvent("Two", 102)}},
-			expectedCap: 5,
-		},
-		{
-			name: "all events match, no namespace",
-			req:  SubscribeRequest{Topic: testTopic, Key: "Same"},
-			events: []Event{
-				newSimpleEvent("Same", 103),
-				newSimpleEvent("Same", 103)},
-			expectEvent: true,
-			expected: Event{
-				Topic: testTopic,
-				Index: 103,
-				Payload: PayloadEvents{
-					newSimpleEvent("Same", 103),
-					newSimpleEvent("Same", 103)}},
-			expectedCap: 5,
-		},
-		{
-			name: "all events match, no key",
-			req:  SubscribeRequest{Topic: testTopic, Namespace: "apps"},
-			events: []Event{
-				newNSEvent("Something", "apps"),
-				newNSEvent("Other", "apps")},
-			expectEvent: true,
-			expected: Event{
-				Topic: testTopic,
-				Index: 22,
-				Payload: PayloadEvents{
-					newNSEvent("Something", "apps"),
-					newNSEvent("Other", "apps")}},
-			expectedCap: 5,
-		},
-		{
-			name: "some evens match, no namespace",
-			req:  SubscribeRequest{Topic: testTopic, Key: "Same"},
-			events: []Event{
-				newSimpleEvent("Same", 104),
-				newSimpleEvent("Other", 104),
-				newSimpleEvent("Same", 104)},
-			expectEvent: true,
-			expected: Event{
-				Topic: testTopic,
-				Index: 104,
-				Payload: PayloadEvents{
-					newSimpleEvent("Same", 104),
-					newSimpleEvent("Same", 104)}},
-			expectedCap: 2,
-		},
-		{
-			name: "some events match, no key",
-			req:  SubscribeRequest{Topic: testTopic, Namespace: "apps"},
-			events: []Event{
-				newNSEvent("app1", "apps"),
-				newNSEvent("db1", "dbs"),
-				newNSEvent("app2", "apps")},
-			expectEvent: true,
-			expected: Event{
-				Topic: testTopic,
-				Index: 22,
-				Payload: PayloadEvents{
-					newNSEvent("app1", "apps"),
-					newNSEvent("app2", "apps")}},
-			expectedCap: 2,
-		},
-		{
-			name: "no events match key",
-			req:  SubscribeRequest{Topic: testTopic, Key: "Other"},
-			events: []Event{
-				newSimpleEvent("Same", 0),
-				newSimpleEvent("Same", 0)},
-		},
-		{
-			name: "no events match namespace",
-			req:  SubscribeRequest{Topic: testTopic, Namespace: "apps"},
-			events: []Event{
-				newNSEvent("app1", "group1"),
-				newNSEvent("app2", "group2")},
-			expectEvent: false,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			fn(t, tc)
-		})
-	}
-}
-
-func newNSEvent(key, namespace string) Event {
-	return Event{Index: 22, Payload: nsPayload{key: key, namespace: namespace}}
-}
-
-type nsPayload struct {
-	key       string
-	namespace string
-	value     string
-}
-
-func (p nsPayload) FilterByKey(key, namespace string) bool {
-	return (key == "" || key == p.key) && (namespace == "" || namespace == p.namespace)
+		e := newEventFromBatch(SubscribeRequest{}, []Event{first})
+		require.Equal(t, first, e)
+	})
+	t.Run("many items", func(t *testing.T) {
+		events := []Event{
+			newSimpleEvent("foo", 9999),
+			newSimpleEvent("foo", 9999),
+			newSimpleEvent("zee", 9999),
+		}
+		req := SubscribeRequest{Topic: testTopic}
+		e := newEventFromBatch(req, events)
+		expected := Event{
+			Topic:   testTopic,
+			Index:   9999,
+			Payload: NewPayloadEvents(events...),
+		}
+		require.Equal(t, expected, e)
+	})
 }
