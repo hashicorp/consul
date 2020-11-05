@@ -13,6 +13,11 @@ func TestFormat(t *testing.T) {
 		Sum:   1,
 		Count: 2,
 	}}
+	mkv := []typeStats{{
+		Name:  "msgKV",
+		Sum:   1,
+		Count: 2,
+	}}
 	info := OutputFormat{
 		Meta: &MetadataInfo{
 			ID:      "one",
@@ -21,9 +26,12 @@ func TestFormat(t *testing.T) {
 			Term:    4,
 			Version: 1,
 		},
-		Stats:     m,
-		TotalSize: 1,
+		Stats:       m,
+		StatsKV:     mkv,
+		TotalSize:   1,
+		TotalSizeKV: 1,
 	}
+	detailed := false
 
 	formatters := map[string]Formatter{
 		"pretty": newPrettyFormatter(),
@@ -33,7 +41,7 @@ func TestFormat(t *testing.T) {
 
 	for fmtName, formatter := range formatters {
 		t.Run(fmtName, func(t *testing.T) {
-			actual, err := formatter.Format(&info)
+			actual, err := formatter.Format(&info, detailed)
 			require.NoError(t, err)
 
 			gName := fmt.Sprintf("%s", fmtName)
