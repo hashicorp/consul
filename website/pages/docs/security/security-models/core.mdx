@@ -27,8 +27,8 @@ environment, but the general mechanisms for a secure Consul deployment revolve a
   [authentication methods](/docs/security/acl/auth-methods) can be used to enable trusted external parties to authorize
   ACL token creation.
 
-- **Namespaces (Enterprise Only)** - Read and write operations can be scoped to a logical name to restrict access to 
-  Consul components within a multi-tenant environment.
+- **Namespaces (Enterprise Only)** - Read and write operations can be scoped to a logical namespace to restrict access 
+  to Consul components within a multi-tenant environment.
 
 - **Sentinel Policies (Enterprise Only)** - Sentinel policies enable policy-as-code for granular control over the 
   built-in key-value store.
@@ -177,9 +177,9 @@ environment and adapt these configurations accordingly.
   - [`encrypt_verify_outgoing`](/docs/agent/options#encrypt_verify_outgoing) - By default this is true to enforce 
     encryption on *outgoing* gossip communications.
 
-- **Namespaces (Enterprise Only)** - Read and write operations should be scoped to logical names to restrict access to
-    Consul components within a multi-tenant environment. Furthermore, this feature can be used to enable a self-service
-    approach to Consul ACL administration for teams within a scoped namespace.
+- **Namespaces (Enterprise Only)** - Read and write operations should be scoped to logical namespaces to restrict access
+  to Consul components within a multi-tenant environment. Furthermore, this feature can be used to enable a self-service
+  approach to Consul ACL administration for teams within a scoped namespace.
 
 - **Sentinel Policies (Enterprise Only)** - Sentinel policies allow for granular control over the builtin 
   key-value store.
@@ -330,17 +330,36 @@ The following are not part of the threat model for server agents:
   Connect TLS certificates should be considered compromised; they are never persisted by server agents but do exist 
   in-memory during at least the duration of a Sign request.
   
-  The following are not part of the threat model for client agents:
+The following are not part of the threat model for client agents:
   
-  Access (read or write) to the Consul data directory - Consul clients will use the data directory to cache local state. This includes local services, associated ACL tokens, Connect TLS certificates, and more. Read or write access to this directory will allow an attacker to access this data. This data is typically a smaller subset of the full data of the cluster.
+- **Access (read or write) to the Consul data directory** - Consul clients will use the data directory to cache local 
+  state. This includes local services, associated ACL tokens, Connect TLS certificates, and more. Read or write access 
+  to this directory will allow an attacker to access this data. This data is typically a smaller subset of the full data
+  of the cluster.
   
-  Access (read or write) to the Consul configuration directory - Consul client configuration files contain the address and port information of services, default ACL tokens for the agent, and more. Access to Consul configuration could enable an attacker to change the port of a service to a malicious port, register new services, and more. Further, some service definitions have ACL tokens attached that could be used cluster-wide to impersonate that service. An attacker cannot change cluster-wide configurations such as disabling the ACL system.
-  
-  Memory access to a running Consul client agent - The blast radius of this is much smaller than a server agent but the confidentiality of a subset of data can still be compromised. Particularly, any data requested against the agent's API including services, KV, and Connect information may be compromised. If a particular set of data on the server was never requested by the agent, it never enters the agent's memory since replication only exists between servers. An attacker could also potentially extract ACL tokens used for service registration on this agent, since the tokens must be stored in-memory alongside the registered service.
-  
-  Network access to a local Connect proxy or service - Communications between a service and a Connect-aware proxy are generally unencrypted and must happen over a trusted network. This is typically a loopback device. This requires that other processes on the same machine are trusted, or more complex isolation mechanisms are used such as network namespaces. This also requires that external processes cannot communicate to the Connect service or proxy (except on the inbound port). Therefore, non-native Connect applications should only bind to non-public addresses.
-  
-  Improperly Implemented Connect proxy or service - A Connect proxy or natively integrated service must correctly serve a valid leaf certificate, verify the inbound TLS client certificate, and call the Consul agent-local authorized endpoint. If any of this isn't performed correctly, the proxy or service may allow unauthenticated or unauthorized connections.
+- **Access (read or write) to the Consul configuration directory** - Consul client configuration files contain the 
+  address and port information of services, default ACL tokens for the agent, and more. Access to Consul configuration 
+  could enable an attacker to change the port of a service to a malicious port, register new services, and more. 
+  Further, some service definitions have ACL tokens attached that could be used cluster-wide to impersonate that 
+  service. An attacker cannot change cluster-wide configurations such as disabling the ACL system.
+
+- **Memory access to a running Consul client agent** - The blast radius of this is much smaller than a server agent but 
+  the confidentiality of a subset of data can still be compromised. Particularly, any data requested against the agent's
+  API including services, KV, and Connect information may be compromised. If a particular set of data on the server was 
+  never requested by the agent, it never enters the agent's memory since replication only exists between servers. An 
+  attacker could also potentially extract ACL tokens used for service registration on this agent, since the tokens must 
+  be stored in-memory alongside the registered service.
+
+- **Network access to a local Connect proxy or service** - Communications between a service and a Connect-aware proxy 
+  are generally unencrypted and must happen over a trusted network. This is typically a loopback device. This requires 
+  that other processes on the same machine are trusted, or more complex isolation mechanisms are used such as network 
+  namespaces. This also requires that external processes cannot communicate to the Connect service or proxy (except on 
+  the inbound port). Therefore, non-native Connect applications should only bind to non-public addresses.
+
+- **Improperly Implemented Connect proxy or service** - A Connect proxy or natively integrated service must correctly 
+  serve a valid leaf certificate, verify the inbound TLS client certificate, and call the Consul agent-local authorized 
+  endpoint. If any of this isn't performed correctly, the proxy or service may allow unauthenticated or unauthorized 
+  connections.
 
 #### Internal Threats
 
