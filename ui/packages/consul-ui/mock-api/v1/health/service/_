@@ -1,0 +1,160 @@
+[
+  ${
+    range(
+      env(
+        'CONSUL_NODE_COUNT',
+        Math.floor(
+          (
+            Math.random() * env('CONSUL_NODE_MAX', 10)
+          ) + parseInt(env('CONSUL_NODE_MIN', 1))
+        )
+      )
+    ).map(
+      function(item, i)
+      {
+        const node = `node-${i}`;
+        const service = location.pathname.slice(4);
+        const ip = fake.internet.ip();
+        const proxy = service.indexOf('-proxy')
+        const sidecar = service.indexOf('-sidecar-proxy')
+        const id = (proxy !== -1 ? service.slice(0, -6) + '-with-id-proxy' : service + '-with-id');
+        let kind = ''; 
+        switch(true) {
+          case service.endsWith('-mesh-gateway'):
+            kind = 'mesh-gateway';
+            break;
+          case service.endsWith('-terminating-gateway'):
+            kind = 'terminating-gateway';
+            break;
+          case service.endsWith('-ingress-gateway'):
+            kind = 'ingress-gateway';
+            break;
+          case service.endsWith('-proxy'):
+            kind = 'connect-proxy';
+            break;
+        }
+
+        return `
+        {
+          "Node":{
+            "ID":"7037e928-d9e8-3b58-4712-6f5ded209002",
+            "Node":"${node}",
+            "Address":"${ip}",
+            "Datacenter":"dc1",
+            "TaggedAddresses":{"lan":"${ip}","wan":"${ip}"},
+            "Meta":{"${service}-network-segment":""},
+            "CreateIndex":5,
+            "ModifyIndex":6
+          },
+          "Service":{
+            "ID": "${ i === 0 ? id : fake.helpers.randomize([service, service + '-ID'])}",
+            "Service":"${service}",
+${typeof location.search.ns !== 'undefined' ? `
+            "Namespace": "${location.search.ns}",
+` : ``}
+            "Tags":[
+                ${
+                    range(
+                      env(
+                        'CONSUL_TAG_COUNT',
+                        Math.floor(
+                          (
+                            Math.random() * env('CONSUL_TAG_MAX', 10)
+                          ) + parseInt(env('CONSUL_TAG_MIN', 1))
+                        )
+                      )
+                    ).map(
+                      function(item, i)
+                      {
+                          return `"${fake.hacker.noun()}"`;
+                      }
+                    )
+                }
+            ],
+${ fake.random.number({min: 1, max: 10}) > 2 ? `
+            "Meta": {
+              "consul-dashboard-url": "${fake.internet.protocol()}://${fake.internet.domainName()}/?id={{Service}}",
+              "external-source": "${fake.helpers.randomize(['consul', 'nomad', 'terraform', 'kubernetes', 'aws', ''])}"
+            },
+` : `` }
+            "Address":"${fake.internet.ip()}",
+            "Port":${fake.random.number({min: 0, max: 65535})},
+${kind !== '' ? `
+            "Kind": "${kind}",
+` : `` }
+            "Proxy": {
+${proxy !== -1 && sidecar === -1 ? `
+              "DestinationServiceName": "${service.substr(0, proxy)}",
+` : ``}
+${sidecar !== -1 ? `
+              "DestinationServiceName": "${service.substr(0, sidecar)}",
+              "DestinationServiceID": "${service.substr(0, sidecar)}-ID",
+              "LocalServiceAddress": "${fake.internet.ip()}",
+              "LocalServicePort": ${fake.random.number({min: 0, max: 65535})},
+` : ``}
+${proxy !== -1 ? `
+              "Expose": {
+                "Checks": true,
+                "Paths": [
+${range(env('CONSUL_EXPOSED_COUNT', 3)).map((i) => `
+                  {
+                    "Path": "/${fake.lorem.words(fake.random.number({min: 1, max: 5})).split(' ').join('/')}${fake.random.boolean() ? fake.system.fileName() : ''}",
+                    "Protocol": "${fake.helpers.randomize(['http', 'http2', 'grpc'])}",
+                    "LocalPathPort": ${fake.random.number({min: 0, max: 65535})},
+                    "ListenerPort": ${fake.random.number({min: 0, max: 65535})}
+                  }
+`)}
+                ]
+              },
+              "Upstreams": [
+  ${range(env('CONSUL_UPSTREAM_COUNT', 10)).map((item, j) => `
+                  {
+                    "Datacenter": "${fake.address.countryCode().toLowerCase()} ${ i % 2 ? "west" : "east"}-${j}",
+                    "DestinationName": "${fake.hacker.noun()}",
+                    "DestinationNamespace": "${fake.hacker.noun()}",
+                    "DestinationType": "${fake.helpers.randomize(['service', 'prepared_query'])}",
+                    "LocalBindAddress": "${fake.internet.ip()}",
+                    "LocalBindPort": ${fake.random.number({min: 0, max: 65535})}
+                  }
+  `)}
+              ]
+` : ``}
+            },
+            "ProxyDestination": "",
+            "EnableTagOverride":false,
+            "CreateIndex":5,
+            "ModifyIndex":5
+          },
+          "Checks":[
+          ${
+            range(env('CONSUL_CHECK_COUNT', 10)).map(
+              function(item, j) {
+                const passing = i > 7 || j > fake.random.number(4);
+                const id = fake.helpers.randomize([service, '']);
+                return `
+                {
+                  "Node":"${node}",
+                  "CheckID":"${fake.hacker.noun()}Health",
+                  "Name":"${fake.hacker.noun()} Status",
+                  "Type": "${j === 0 ? 'ttl' : (j === 1 ? 'http' : fake.helpers.randomize(['script', 'http', 'tcp', 'ttl', 'docker', 'grpc', 'alias']))}",
+                  "Status":"${j < 2 ? 'critical' : (passing ? "passing" : fake.helpers.randomize(['warning', 'critical']))}",
+                  "Notes":"${fake.lorem.paragraph()}",
+                  "Output":"${fake.internet.ipv6()} ${fake.internet.protocol()}://${fake.internet.userName()}:${fake.internet.password()}@${fake.internet.domainName()} ${fake.internet.userAgent()}",
+                  "ServiceID":"${j < 2 ? service : id}",
+                  "ServiceName":"",
+                  "ServiceTags":["Tag"],
+                  "Definition":{},
+                  "CreateIndex":5,
+                  "ModifyIndex":5
+                }
+                `;
+              }
+            )
+          }
+          ]
+        }
+        `;
+      }
+    )
+  }
+]

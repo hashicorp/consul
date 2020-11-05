@@ -1,0 +1,72 @@
+${ location.pathname.slice(4).indexOf('-proxy') !== -1 ? `[]` :`
+[
+  ${
+    range(
+      env(
+        'CONSUL_PROXY_COUNT',
+        Math.floor(
+          (
+            Math.random() * env('CONSUL_PROXY_MAX', 10)
+          ) + parseInt(env('CONSUL_PROXY_MIN', 1))
+        )
+      )
+    ).map((item, i) => `
+      {
+        "ID": "${fake.random.uuid()}",
+${typeof location.search.ns !== 'undefined' ? `
+        "Namespace": "${location.search.ns}",
+` : ``}
+        "Node": "node-${i}",
+        "Address": "${fake.internet.ip()}",
+        "Datacenter": "${location.search.dc}",
+        "TaggedAddresses": {
+          "lan": "${fake.internet.ip()}",
+          "wan": "${fake.internet.ip()}"
+        },
+        "NodeMeta": {
+          "consul-network-segment": ""
+        },
+        "ServiceConnect": {},
+        "ServiceKind": "connect-proxy",
+        "ServiceID": "${location.pathname.slice(4)}-with-id-proxy",
+        "ServiceName": "${location.pathname.slice(4)}-proxy",
+        "ServiceTags": ["Tag", "Another Tag"],
+        "ServiceAddress": "${fake.internet.ip()}",
+        "ServiceMeta": {},
+        "ServicePort": ${fake.random.number({min: 21000, max: 21255})},
+        "ServiceEnableTagOverride": false,
+        "ServiceProxy": {
+          "Expose": {
+            "Checks": true,
+            "Paths": [
+${range(env('CONSUL_EXPOSED_COUNT', 3)).map((i) => `
+              {
+                "Path": "/${fake.lorem.words(fake.random.number({min: 1, max: 5})).split(' ').join('/')}${fake.random.boolean() ? fake.system.fileName() : ''}",
+                "Protocol": "${fake.helpers.randomize(['http', 'http2', 'grpc'])}",
+                "LocalPathPort": ${fake.random.number({min: 0, max: 65535})},
+                "ListenerPort": ${fake.random.number({min: 0, max: 65535})}
+              }
+`)}
+            ]
+          },
+          "DestinationServiceName": "${location.pathname.slice(4)}"
+          ${ location.pathname.slice(4) === "service-0" ? `
+          ,
+          "DestinationServiceID": "${location.pathname.slice(4)}-with-id",
+          "LocalServiceAddress": "${fake.internet.ip()}",
+          "LocalServicePort": ${fake.random.number({min: 0, max: 65535})}
+          `
+          : ``}
+        },
+        "ServiceProxyDestination": "${location.pathname.slice(4)}",
+        "ServiceWeights": {
+          "Passing": 1,
+          "Warning": 1
+        },
+        "CreateIndex": 11,
+        "ModifyIndex": 11
+      }
+    `)
+  }
+]
+`}

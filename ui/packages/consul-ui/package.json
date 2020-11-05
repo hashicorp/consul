@@ -58,7 +58,6 @@
     "@ember/render-modifiers": "^1.0.2",
     "@glimmer/component": "^1.0.0",
     "@glimmer/tracking": "^1.0.0",
-    "@hashicorp/consul-api-double": "^6.1.4",
     "@hashicorp/ember-cli-api-double": "^3.1.0",
     "@storybook/addon-actions": "^6.0.27",
     "@storybook/addon-essentials": "^6.0.27",

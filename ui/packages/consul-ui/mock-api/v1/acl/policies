@@ -1,0 +1,46 @@
+${ env('CONSUL_ACLS_LEGACY', false) ? `rpc error making call: rpc: can't find method ACL.Method` : `
+[
+  ${
+    range(
+      env(
+        'CONSUL_POLICY_COUNT',
+        Math.floor(
+          (
+            Math.random() * env('CONSUL_POLICY_MAX', 10)
+          ) + parseInt(env('CONSUL_POLICY_MIN', 1))
+        )
+      )
+    ).map(
+      function(item, i) {
+        if(i === 1) {
+          return `
+            {
+              "ID": "00000000-0000-0000-0000-000000000001",
+              "Name": "global-management",
+${typeof location.search.ns !== 'undefined' ? `
+              "Namespace": "${location.search.ns}",
+` : ``}
+              "Description": "Built-In Management Policy",
+              "CreateIndex": 10,
+              "ModifyIndex": 10
+            }
+          `
+        }
+        return `
+          {
+            "ID": "${fake.random.uuid()}",
+            "Name": "${fake.hacker.noun()}-${i}",
+${typeof location.search.ns !== 'undefined' ? `
+            "Namespace": "${location.search.ns}",
+            ` : ``}
+            "Description": "${fake.lorem.sentence()}",
+            "Datacenters": ${fake.helpers.randomize(['["aq west-5", "ch east-4"]'])},
+            "CreateIndex": 10,
+            "ModifyIndex": 10
+          }
+        `
+      }
+    )
+  }
+]
+`}

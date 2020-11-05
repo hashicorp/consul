@@ -24,7 +24,7 @@ module.exports = {
     // so we can set this path name centrally in config
     // TODO: undefined here is a possible faker salt that we should be able
     // to pass in from ember serve/config somehow
-    const dir = path.resolve('./node_modules/@hashicorp/consul-api-double');
+    const dir = path.resolve('./mock-api');
     const controller = apiDouble(undefined, dir, read, $, path.resolve);
     [
       apiDoubleHeaders(),
