@@ -78,7 +78,8 @@ environment and adapt these configurations accordingly.
     HTTPS API.
 
   - [`verify_incoming_https`](/docs/agent/options#verify_incoming_https) - By default this is false, and should be set 
-    to true to require clients to provide a valid TLS certificate when the Consul HTTPS API is enabled.
+    to true to require clients to provide a valid TLS certificate when the Consul HTTPS API is enabled. TLS for the API 
+    may be not be necessary if it is exclusively served over a loopback interface such as `localhost`.
 
   - [`verifing_incoming_rpc`](/docs/agent/options#verify_incoming_rpc) -  By default this is false, and should almost 
     always be set to true to require clients to provide a valid TLS certificate for Consul agent RPCs.
