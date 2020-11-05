@@ -38,6 +38,7 @@ as |api|>
   {{#let (changeset-get item 'Action') as |newAction|}}
       <ModalDialog
         class="consul-intention-action-warn-modal warning"
+        data-test-action-warning
         @onclose={{action (mut this.warn) false}}
       >
         <BlockSlot @name="header">
@@ -50,6 +51,7 @@ as |api|>
         </BlockSlot>
         <BlockSlot @name="actions" as |close|>
           <button
+            data-test-action-warning-confirm
             type="button"
             class="dangerous"
             {{on 'click' api.submit}}
@@ -57,6 +59,7 @@ as |api|>
             Set to {{capitalize newAction}}
           </button>
           <button
+            data-test-action-warning-cancel
             type="button"
             class="type-cancel"
             onclick={{close}}
