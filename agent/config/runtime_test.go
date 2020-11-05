@@ -7470,6 +7470,13 @@ func TestSanitize(t *testing.T) {
 			*parseCIDR(t, "127.0.0.0/8"),
 		},
 		TxnMaxReqLen: 5678000000000000,
+		UIConfig: UIConfig{
+			MetricsProxy: UIMetricsProxy{
+				AddHeaders: []UIMetricsProxyAddHeader{
+					{Name: "foo", Value: "secret"},
+				},
+			},
+		},
 	}
 
 	rtJSON := `{
@@ -7812,7 +7819,12 @@ func TestSanitize(t *testing.T) {
 			"MetricsProviderFiles": [],
 			"MetricsProviderOptionsJSON": "",
 			"MetricsProxy": {
-				"AddHeaders": [],
+				"AddHeaders": [
+					{
+						"Name": "foo",
+						"Value": "hidden"
+					}
+				],
 				"BaseURL": "",
 				"PathAllowlist": []
 			},
