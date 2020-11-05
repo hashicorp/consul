@@ -185,7 +185,6 @@ func (e *EventPublisher) Subscribe(req *SubscribeRequest) (*Subscription, error)
 	if req.Index > 0 {
 		snap.buffer.Append([]Event{{
 			Topic:   req.Topic,
-			Key:     req.Key,
 			Payload: newSnapshotToFollow{},
 		}})
 

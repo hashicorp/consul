@@ -129,9 +129,9 @@ func TestEventSnapshot(t *testing.T) {
 				e := curItem.Events[0]
 				switch {
 				case snapDone:
-					payload, ok := e.Payload.(string)
+					payload, ok := e.Payload.(simplePayload)
 					require.True(t, ok, "want health event got: %#v", e.Payload)
-					updateIDs = append(updateIDs, payload)
+					updateIDs = append(updateIDs, payload.value)
 					if len(updateIDs) == tc.updatesAfterSnap {
 						// We're done!
 						break RECV
@@ -139,9 +139,9 @@ func TestEventSnapshot(t *testing.T) {
 				case e.IsEndOfSnapshot():
 					snapDone = true
 				default:
-					payload, ok := e.Payload.(string)
+					payload, ok := e.Payload.(simplePayload)
 					require.True(t, ok, "want health event got: %#v", e.Payload)
-					snapIDs = append(snapIDs, payload)
+					snapIDs = append(snapIDs, payload.value)
 				}
 			}
 
@@ -176,6 +176,6 @@ func newDefaultHealthEvent(index uint64, n int) Event {
 	return Event{
 		Index:   index,
 		Topic:   testTopic,
-		Payload: fmt.Sprintf("test-event-%03d", n),
+		Payload: simplePayload{value: fmt.Sprintf("test-event-%03d", n)},
 	}
 }

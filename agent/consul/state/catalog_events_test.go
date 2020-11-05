@@ -4,12 +4,15 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/consul/types"
-	"github.com/stretchr/testify/require"
 )
 
 func TestServiceHealthEventsFromChanges(t *testing.T) {
@@ -819,6 +822,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 
 				return nil
 			},
+
 			WantEvents: []stream.Event{
 				// We should see:
 				//  - service dereg for web and proxy on node2
@@ -829,29 +833,15 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				//  - connect reg for api on node2
 				testServiceHealthDeregistrationEvent(t, "web", evNode2),
 				testServiceHealthDeregistrationEvent(t, "web", evNode2, evSidecar),
-				testServiceHealthDeregistrationEvent(t, "web",
-					evConnectTopic,
-					evNode2,
-					evSidecar,
-				),
+				testServiceHealthDeregistrationEvent(t, "web", evConnectTopic, evNode2, evSidecar),
 
 				testServiceHealthEvent(t, "web", evNodeUnchanged),
 				testServiceHealthEvent(t, "web", evSidecar, evNodeUnchanged),
 				testServiceHealthEvent(t, "web", evConnectTopic, evSidecar, evNodeUnchanged),
 
-				testServiceHealthEvent(t, "api",
-					evNode2,
-					evConnectNative,
-					evNodeUnchanged,
-				),
-				testServiceHealthEvent(t, "api",
-					evNode2,
-					evConnectTopic,
-					evConnectNative,
-					evNodeUnchanged,
-				),
+				testServiceHealthEvent(t, "api", evNode2, evConnectNative, evNodeUnchanged),
+				testServiceHealthEvent(t, "api", evNode2, evConnectTopic, evConnectNative, evNodeUnchanged),
 			},
-			WantErr: false,
 		},
 	}
 
@@ -884,15 +874,34 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			}
 			require.NoError(t, err)
 
-			// Make sure we have the right events, only taking ordering into account
-			// where it matters to account for non-determinism.
-			requireEventsInCorrectPartialOrder(t, tc.WantEvents, got, func(e stream.Event) string {
-				// We need events affecting unique registrations to be ordered, within a topic
-				csn := getPayloadCheckServiceNode(e.Payload)
-				return fmt.Sprintf("%s/%s/%s", e.Topic, csn.Node.Node, csn.Service.Service)
-			})
+			assertDeepEqual(t, tc.WantEvents, got, cmpPartialOrderEvents)
 		})
 	}
+}
+
+func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
+	t.Helper()
+	if diff := cmp.Diff(x, y, opts...); diff != "" {
+		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
+	}
+}
+
+// cmpPartialOrderEvents returns a compare option which sorts events so that
+// all events for a particular node/service are grouped together. The sort is
+// stable so events with the same node/service retain their relative order.
+var cmpPartialOrderEvents = cmp.Options{
+	cmpopts.SortSlices(func(i, j stream.Event) bool {
+		key := func(e stream.Event) string {
+			csn := getPayloadCheckServiceNode(e.Payload)
+			return fmt.Sprintf("%s/%s/%s", e.Topic, csn.Node.Node, csn.Service.Service)
+		}
+		return key(i) < key(j)
+	}),
+	cmpEvents,
+}
+
+var cmpEvents = cmp.Options{
+	cmp.AllowUnexported(EventPayloadCheckServiceNode{}),
 }
 
 type regOption func(req *structs.RegisterRequest) error
@@ -1170,10 +1179,10 @@ func evSidecar(e *stream.Event) error {
 		csn.Checks[1].ServiceName = svc + "_sidecar_proxy"
 	}
 
-	// Update event key to be the proxy service name, but only if this is not
-	// already in the connect topic
-	if e.Topic != topicServiceHealthConnect {
-		e.Key = csn.Service.Service
+	if e.Topic == topicServiceHealthConnect {
+		payload := e.Payload.(EventPayloadCheckServiceNode)
+		payload.key = svc
+		e.Payload = payload
 	}
 	return nil
 }
@@ -1242,15 +1251,13 @@ func evChecksUnchanged(e *stream.Event) error {
 // name but not ID simulating an in-place service rename.
 func evRenameService(e *stream.Event) error {
 	csn := getPayloadCheckServiceNode(e.Payload)
-	isSidecar := csn.Service.Kind == structs.ServiceKindConnectProxy
 
-	if !isSidecar {
+	if csn.Service.Kind != structs.ServiceKindConnectProxy {
 		csn.Service.Service += "_changed"
 		// Update service checks
 		if len(csn.Checks) >= 2 {
 			csn.Checks[1].ServiceName += "_changed"
 		}
-		e.Key += "_changed"
 		return nil
 	}
 	// This is a sidecar, it's not really realistic but lets only update the
@@ -1258,12 +1265,13 @@ func evRenameService(e *stream.Event) error {
 	// we get the right result. This is certainly possible if not likely so a
 	// valid case.
 
-	// We don't need to update out own details, only the name of the destination
+	// We don't need to update our own details, only the name of the destination
 	csn.Service.Proxy.DestinationServiceName += "_changed"
 
-	// If this is the connect topic we need to change the key too
 	if e.Topic == topicServiceHealthConnect {
-		e.Key += "_changed"
+		payload := e.Payload.(EventPayloadCheckServiceNode)
+		payload.key = csn.Service.Proxy.DestinationServiceName
+		e.Payload = payload
 	}
 	return nil
 }
@@ -1337,48 +1345,6 @@ func evServiceCheckDelete(e *stream.Event) error {
 	return nil
 }
 
-// requireEventsInCorrectPartialOrder compares that the expected set of events
-// was emitted. It allows for _independent_ events to be emitted in any order -
-// this can be important because even though the transaction processing is all
-// strictly ordered up until the processing func, grouping multiple updates that
-// affect the same logical entity may be necessary and may impose random
-// ordering changes on the eventual events if a map is used. We only care that
-// events _affecting the same topic and key_ are ordered correctly with respect
-// to the "expected" set of events so this helper asserts that.
-//
-// The caller provides a func that can return a partition key for the given
-// event types and we assert that all events with the same partition key are
-// deliveries in the same order. Note that this is not necessarily the same as
-// topic/key since for example in Catalog only events about a specific service
-// _instance_ need to be ordered while topic and key are more general.
-func requireEventsInCorrectPartialOrder(t *testing.T, want, got []stream.Event,
-	partKey func(stream.Event) string) {
-	t.Helper()
-
-	// Partion both arrays by topic/key
-	wantParts := make(map[string][]stream.Event)
-	gotParts := make(map[string][]stream.Event)
-
-	for _, e := range want {
-		k := partKey(e)
-		wantParts[k] = append(wantParts[k], e)
-	}
-	for _, e := range got {
-		k := partKey(e)
-		gotParts[k] = append(gotParts[k], e)
-	}
-
-	for k, want := range wantParts {
-		require.Equal(t, want, gotParts[k], "got incorrect events for partition: %s", k)
-	}
-
-	for k, got := range gotParts {
-		if _, ok := wantParts[k]; !ok {
-			require.Equal(t, nil, got, "got unwanted events for partition: %s", k)
-		}
-	}
-}
-
 // newTestEventServiceHealthRegister returns a realistically populated service
 // health registration event. The nodeNum is a
 // logical node and is used to create the node name ("node%d") but also change
@@ -1393,7 +1359,6 @@ func newTestEventServiceHealthRegister(index uint64, nodeNum int, svc string) st
 
 	return stream.Event{
 		Topic: topicServiceHealth,
-		Key:   svc,
 		Index: index,
 		Payload: EventPayloadCheckServiceNode{
 			Op: pbsubscribe.CatalogOp_Register,
@@ -1464,7 +1429,6 @@ func newTestEventServiceHealthRegister(index uint64, nodeNum int, svc string) st
 func newTestEventServiceHealthDeregister(index uint64, nodeNum int, svc string) stream.Event {
 	return stream.Event{
 		Topic: topicServiceHealth,
-		Key:   svc,
 		Index: index,
 		Payload: EventPayloadCheckServiceNode{
 			Op: pbsubscribe.CatalogOp_Deregister,

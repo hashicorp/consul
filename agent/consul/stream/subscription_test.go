@@ -69,7 +69,7 @@ func TestSubscription(t *testing.T) {
 	require.True(t, elapsed < 200*time.Millisecond,
 		"Event should have been delivered immediately, took %s", elapsed)
 	require.Equal(t, index, got.Index)
-	require.Equal(t, "test", got.Key)
+	require.Equal(t, "test", got.Payload.(simplePayload).key)
 
 	// Cancelling the subscription context should unblock Next
 	start = time.Now()
@@ -130,20 +130,17 @@ func TestSubscription_Close(t *testing.T) {
 }
 
 func publishTestEvent(index uint64, b *eventBuffer, key string) {
-	// Don't care about the event payload for now just the semantics of publishing
-	// something. This is not a valid stream in the end-to-end streaming protocol
-	// but enough to test subscription mechanics.
 	e := Event{
-		Index: index,
-		Topic: testTopic,
-		Key:   key,
+		Index:   index,
+		Topic:   testTopic,
+		Payload: simplePayload{key: key},
 	}
 	b.Append([]Event{e})
 }
 
 func TestFilter_NoKey(t *testing.T) {
-	events := make([]Event, 0, 5)
-	events = append(events, Event{Key: "One", Index: 102}, Event{Key: "Two"})
+	events := make(PayloadEvents, 0, 5)
+	events = append(events, newSimpleEvent("One", 102), newSimpleEvent("Two", 102))
 
 	req := SubscribeRequest{Topic: testTopic}
 	actual, ok := filterByKey(req, events)
@@ -151,26 +148,33 @@ func TestFilter_NoKey(t *testing.T) {
 	require.Equal(t, Event{Topic: testTopic, Index: 102, Payload: events}, actual)
 
 	// test that a new array was not allocated
-	require.Equal(t, cap(actual.Payload.([]Event)), 5)
+	require.Equal(t, cap(actual.Payload.(PayloadEvents)), 5)
+}
+
+func newSimpleEvent(key string, index uint64) Event {
+	return Event{Index: index, Payload: simplePayload{key: key}}
 }
 
 func TestFilter_WithKey_AllEventsMatch(t *testing.T) {
-	events := make([]Event, 0, 5)
-	events = append(events, Event{Key: "Same", Index: 103}, Event{Key: "Same"})
+	events := make(PayloadEvents, 0, 5)
+	events = append(events, newSimpleEvent("Same", 103), newSimpleEvent("Same", 103))
 
 	req := SubscribeRequest{Topic: testTopic, Key: "Same"}
 	actual, ok := filterByKey(req, events)
 	require.True(t, ok)
-	expected := Event{Topic: testTopic, Index: 103, Key: "Same", Payload: events}
+	expected := Event{Topic: testTopic, Index: 103, Payload: events}
 	require.Equal(t, expected, actual)
 
 	// test that a new array was not allocated
-	require.Equal(t, 5, cap(actual.Payload.([]Event)))
+	require.Equal(t, 5, cap(actual.Payload.(PayloadEvents)))
 }
 
 func TestFilter_WithKey_SomeEventsMatch(t *testing.T) {
 	events := make([]Event, 0, 5)
-	events = append(events, Event{Key: "Same", Index: 104}, Event{Key: "Other"}, Event{Key: "Same"})
+	events = append(events,
+		newSimpleEvent("Same", 104),
+		newSimpleEvent("Other", 0),
+		newSimpleEvent("Same", 0))
 
 	req := SubscribeRequest{Topic: testTopic, Key: "Same"}
 	actual, ok := filterByKey(req, events)
@@ -178,18 +182,17 @@ func TestFilter_WithKey_SomeEventsMatch(t *testing.T) {
 	expected := Event{
 		Topic:   testTopic,
 		Index:   104,
-		Key:     "Same",
-		Payload: []Event{{Key: "Same", Index: 104}, {Key: "Same"}},
+		Payload: PayloadEvents{newSimpleEvent("Same", 104), newSimpleEvent("Same", 0)},
 	}
 	require.Equal(t, expected, actual)
 
 	// test that a new array was allocated with the correct size
-	require.Equal(t, cap(actual.Payload.([]Event)), 2)
+	require.Equal(t, cap(actual.Payload.(PayloadEvents)), 2)
 }
 
 func TestFilter_WithKey_NoEventsMatch(t *testing.T) {
 	events := make([]Event, 0, 5)
-	events = append(events, Event{Key: "Same"}, Event{Key: "Same"})
+	events = append(events, newSimpleEvent("Same", 0), newSimpleEvent("Same", 0))
 
 	req := SubscribeRequest{Topic: testTopic, Key: "Other"}
 	_, ok := filterByKey(req, events)
