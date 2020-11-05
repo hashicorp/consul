@@ -62,11 +62,11 @@ func (_ *prettyFormatter) Format(info *OutputFormat, detailed bool) (string, err
 		fmt.Fprintln(tw, "\n Key Name\tCount\tSize\t")
 		fmt.Fprintf(tw, " %s\t%s\t%s\t", "----", "----", "----")
 		// For each different type generate new output
-		for _, s := range info.KStats {
+		for _, s := range info.StatsKV {
 			fmt.Fprintf(tw, "\n %s\t%d\t%s\t", s.Name, s.Count, ByteSize(uint64(s.Sum)))
 		}
 		fmt.Fprintf(tw, "\n %s\t%s\t%s\t", "----", "----", "----")
-		fmt.Fprintf(tw, "\n Total\t\t%s\t", ByteSize(uint64(info.TotalSize)))
+		fmt.Fprintf(tw, "\n Total\t\t%s\t", ByteSize(uint64(info.TotalSizeKV)))
 	}
 
 	if err := tw.Flush(); err != nil {

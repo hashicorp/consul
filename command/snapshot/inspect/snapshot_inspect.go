@@ -66,10 +66,11 @@ type MetadataInfo struct {
 // OutputFormat is used for passing information
 // through the formatter
 type OutputFormat struct {
-	Meta      *MetadataInfo
-	Stats     []typeStats
-	KStats    []typeStats
-	TotalSize int
+	Meta        *MetadataInfo
+	Stats       []typeStats
+	StatsKV     []typeStats
+	TotalSize   int
+	TotalSizeKV int
 }
 
 func (c *cmd) Run(args []string) int {
@@ -113,7 +114,7 @@ func (c *cmd) Run(args []string) int {
 		}
 	}()
 
-	stats, kstats, totalSize, err := enhance(readFile, c.detailed, c.depth, c.filter)
+	stats, statsKV, totalSize, totalSizeKV, err := enhance(readFile, c.detailed, c.depth, c.filter)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error extracting snapshot data: %s", err))
 		return 1
@@ -134,13 +135,14 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	//Restructures stats given above to be human readable
-	formattedStats, formattedKStats := generatetypeStats(stats, kstats, c.detailed)
+	formattedStats, formattedStatsKV := generatetypeStats(stats, statsKV, c.detailed)
 
 	in := &OutputFormat{
-		Meta:      metaformat,
-		Stats:     formattedStats,
-		KStats:    formattedKStats,
-		TotalSize: totalSize,
+		Meta:        metaformat,
+		Stats:       formattedStats,
+		StatsKV:     formattedStatsKV,
+		TotalSize:   totalSize,
+		TotalSizeKV: totalSizeKV,
 	}
 
 	out, err := formatter.Format(in, c.detailed)
@@ -202,11 +204,12 @@ func (r *countingReader) Read(p []byte) (n int, err error) {
 
 // enhance utilizes ReadSnapshot to populate the struct with
 // all of the snapshot's itemized data
-func enhance(file io.Reader, detailed bool, depth int, filter string) (map[structs.MessageType]typeStats, map[string]typeStats, int, error) {
+func enhance(file io.Reader, detailed bool, depth int, filter string) (map[structs.MessageType]typeStats, map[string]typeStats, int, int, error) {
 	stats := make(map[structs.MessageType]typeStats)
-	kstats := make(map[string]typeStats)
+	statsKV := make(map[string]typeStats)
 	cr := &countingReader{wrappedReader: file}
 	totalSize := 0
+	totalSizeKV := 0
 	handler := func(header *fsm.SnapshotHeader, msg structs.MessageType, dec *codec.Decoder) error {
 		name := structs.MessageType.String(msg)
 		s := stats[msg]
@@ -247,14 +250,15 @@ func enhance(file io.Reader, detailed bool, depth int, filter string) (map[struc
 								actualDepth = len(split)
 							}
 							prefix := strings.Join(split[0:actualDepth], "/")
-							kvs := kstats[prefix]
+							kvs := statsKV[prefix]
 							if kvs.Name == "" {
 								kvs.Name = prefix
 							}
 
 							kvs.Sum += size
 							kvs.Count++
-							kstats[prefix] = kvs
+							totalSizeKV += size
+							statsKV[prefix] = kvs
 						}
 					}
 				}
@@ -264,9 +268,9 @@ func enhance(file io.Reader, detailed bool, depth int, filter string) (map[struc
 		return nil
 	}
 	if err := fsm.ReadSnapshot(cr, handler); err != nil {
-		return nil, nil, 0, err
+		return nil, nil, 0, 0, err
 	}
-	return stats, kstats, totalSize, nil
+	return stats, statsKV, totalSize, totalSizeKV, nil
 
 }
 
