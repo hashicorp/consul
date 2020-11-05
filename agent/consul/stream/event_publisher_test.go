@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/acl"
 )
 
 type intTopic int
@@ -63,8 +65,9 @@ var testSnapshotEvent = Event{
 }
 
 type simplePayload struct {
-	key   string
-	value string
+	key        string
+	value      string
+	noReadPerm bool
 }
 
 func (p simplePayload) FilterByKey(key, _ string) bool {
@@ -72,6 +75,10 @@ func (p simplePayload) FilterByKey(key, _ string) bool {
 		return true
 	}
 	return p.key == key
+}
+
+func (p simplePayload) HasReadPermission(acl.Authorizer) bool {
+	return !p.noReadPerm
 }
 
 func newTestSnapshotHandlers() SnapshotHandlers {

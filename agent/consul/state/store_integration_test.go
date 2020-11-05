@@ -414,6 +414,10 @@ func (p nodePayload) FilterByKey(key, _ string) bool {
 	return p.key == key
 }
 
+func (p nodePayload) HasReadPermission(acl.Authorizer) bool {
+	return true
+}
+
 func createTokenAndWaitForACLEventPublish(t *testing.T, s *Store) *structs.ACLToken {
 	token := &structs.ACLToken{
 		AccessorID:  "3af117a9-2233-4cf4-8ff8-3c749c9906b4",

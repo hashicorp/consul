@@ -138,6 +138,7 @@ func newNSEvent(key, namespace string) Event {
 }
 
 type nsPayload struct {
+	framingEvent
 	key       string
 	namespace string
 	value     string
@@ -145,4 +146,32 @@ type nsPayload struct {
 
 func (p nsPayload) FilterByKey(key, namespace string) bool {
 	return (key == "" || key == p.key) && (namespace == "" || namespace == p.namespace)
+}
+
+func TestPayloadEvents_HasReadPermission(t *testing.T) {
+	t.Run("some events filtered", func(t *testing.T) {
+		ep := NewPayloadEvents(
+			Event{Payload: simplePayload{key: "one", noReadPerm: true}},
+			Event{Payload: simplePayload{key: "two", noReadPerm: false}},
+			Event{Payload: simplePayload{key: "three", noReadPerm: true}},
+			Event{Payload: simplePayload{key: "four", noReadPerm: false}})
+
+		require.True(t, ep.HasReadPermission(nil))
+		expected := []Event{
+			{Payload: simplePayload{key: "two"}},
+			{Payload: simplePayload{key: "four"}},
+		}
+		require.Equal(t, expected, ep.Items)
+	})
+
+	t.Run("all events filtered", func(t *testing.T) {
+		ep := NewPayloadEvents(
+			Event{Payload: simplePayload{key: "one", noReadPerm: true}},
+			Event{Payload: simplePayload{key: "two", noReadPerm: true}},
+			Event{Payload: simplePayload{key: "three", noReadPerm: true}},
+			Event{Payload: simplePayload{key: "four", noReadPerm: true}})
+
+		require.False(t, ep.HasReadPermission(nil))
+	})
+
 }

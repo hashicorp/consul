@@ -132,10 +132,8 @@ func filterByAuth(authz acl.Authorizer, event stream.Event) (stream.Event, bool)
 	if authz == nil {
 		return event, true
 	}
-	fn := func(e stream.Event) bool {
-		return enforceACL(authz, e) == acl.Allow
-	}
-	return event.Filter(fn)
+
+	return event, event.Payload.HasReadPermission(authz)
 }
 
 func newEventFromStreamEvent(event stream.Event) *pbsubscribe.Event {
@@ -154,10 +152,10 @@ func newEventFromStreamEvent(event stream.Event) *pbsubscribe.Event {
 
 func setPayload(e *pbsubscribe.Event, payload stream.Payload) {
 	switch p := payload.(type) {
-	case stream.PayloadEvents:
+	case *stream.PayloadEvents:
 		e.Payload = &pbsubscribe.Event_EventBatch{
 			EventBatch: &pbsubscribe.EventBatch{
-				Events: batchEventsFromEventSlice(p),
+				Events: batchEventsFromEventSlice(p.Items),
 			},
 		}
 	case state.EventPayloadCheckServiceNode:

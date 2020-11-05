@@ -917,8 +917,8 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 			name: "event batch",
 			event: stream.Event{
 				Index: 2002,
-				Payload: stream.PayloadEvents{
-					{
+				Payload: stream.NewPayloadEvents(
+					stream.Event{
 						Index: 2002,
 						Payload: state.EventPayloadCheckServiceNode{
 							Op: pbsubscribe.CatalogOp_Register,
@@ -928,7 +928,7 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 							},
 						},
 					},
-					{
+					stream.Event{
 						Index: 2002,
 						Payload: state.EventPayloadCheckServiceNode{
 							Op: pbsubscribe.CatalogOp_Deregister,
@@ -937,8 +937,7 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 								Service: &structs.NodeService{Service: "web1"},
 							},
 						},
-					},
-				},
+					}),
 			},
 			expected: pbsubscribe.Event{
 				Index: 2002,

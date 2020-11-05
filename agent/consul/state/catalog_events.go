@@ -3,6 +3,8 @@ package state
 import (
 	memdb "github.com/hashicorp/go-memdb"
 
+	"github.com/hashicorp/consul/acl"
+
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
@@ -17,6 +19,10 @@ type EventPayloadCheckServiceNode struct {
 	// events in the connect topic to specify the name of the underlying service
 	// when the change event is for a sidecar or gateway.
 	key string
+}
+
+func (e EventPayloadCheckServiceNode) HasReadPermission(authz acl.Authorizer) bool {
+	return e.Value.CanRead(authz) == acl.Allow
 }
 
 func (e EventPayloadCheckServiceNode) FilterByKey(key, namespace string) bool {

@@ -4,7 +4,11 @@ to the state store.
 */
 package stream
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/hashicorp/consul/acl"
+)
 
 // Topic is an identifier that partitions events. A subscription will only receive
 // events which match the Topic.
@@ -26,6 +30,11 @@ type Payload interface {
 	// subscription.
 	// TODO: rename to MatchesKey
 	FilterByKey(key, namespace string) bool
+
+	// HasReadPermission uses the acl.Authorizer to determine if the items in the
+	// Payload are visible to the request. It returns true if the payload is
+	// authorized for Read, otherwise returns false.
+	HasReadPermission(authz acl.Authorizer) bool
 }
 
 // PayloadEvents is an Payload which contains multiple Events.
@@ -75,6 +84,12 @@ func (p *PayloadEvents) Len() int {
 	return len(p.Items)
 }
 
+func (p *PayloadEvents) HasReadPermission(authz acl.Authorizer) bool {
+	return p.filter(func(event Event) bool {
+		return event.Payload.HasReadPermission(authz)
+	})
+}
+
 // IsEndOfSnapshot returns true if this is a framing event that indicates the
 // snapshot has completed. Subsequent events from Subscription.Next will be
 // streamed as they occur.
@@ -89,16 +104,22 @@ func (e Event) IsNewSnapshotToFollow() bool {
 	return e.Payload == newSnapshotToFollow{}
 }
 
-type endOfSnapshot struct{}
+type framingEvent struct{}
 
-func (endOfSnapshot) FilterByKey(string, string) bool {
+func (framingEvent) FilterByKey(string, string) bool {
 	return true
 }
 
-type newSnapshotToFollow struct{}
-
-func (newSnapshotToFollow) FilterByKey(string, string) bool {
+func (framingEvent) HasReadPermission(acl.Authorizer) bool {
 	return true
+}
+
+type endOfSnapshot struct {
+	framingEvent
+}
+
+type newSnapshotToFollow struct {
+	framingEvent
 }
 
 type closeSubscriptionPayload struct {
@@ -106,7 +127,11 @@ type closeSubscriptionPayload struct {
 }
 
 func (closeSubscriptionPayload) FilterByKey(string, string) bool {
-	return true
+	return false
+}
+
+func (closeSubscriptionPayload) HasReadPermission(acl.Authorizer) bool {
+	return false
 }
 
 // NewCloseSubscriptionEvent returns a special Event that is handled by the
