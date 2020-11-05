@@ -95,3 +95,57 @@ func TestSnapshotInspectCommand(t *testing.T) {
 	want := golden(t, t.Name(), ui.OutputWriter.String())
 	require.Equal(t, want, ui.OutputWriter.String())
 }
+
+func TestSnapshotInspectDetailedCommand(t *testing.T) {
+
+	filepath := "./testdata/backup-with-kv.snap"
+
+	// Inspect the snapshot
+	ui := cli.NewMockUi()
+	c := New(ui)
+	args := []string{"-detailed", filepath}
+
+	code := c.Run(args)
+	if code != 0 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+
+	want := golden(t, t.Name(), ui.OutputWriter.String())
+	require.Equal(t, want, ui.OutputWriter.String())
+}
+
+func TestSnapshotInspectDetailedDepthCommand(t *testing.T) {
+
+	filepath := "./testdata/backup-with-kv.snap"
+
+	// Inspect the snapshot
+	ui := cli.NewMockUi()
+	c := New(ui)
+	args := []string{"-detailed", "-depth", "3", filepath}
+
+	code := c.Run(args)
+	if code != 0 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+
+	want := golden(t, t.Name(), ui.OutputWriter.String())
+	require.Equal(t, want, ui.OutputWriter.String())
+}
+
+func TestSnapshotInspectDetailedDepthFilterCommand(t *testing.T) {
+
+	filepath := "./testdata/backup-with-kv.snap"
+
+	// Inspect the snapshot
+	ui := cli.NewMockUi()
+	c := New(ui)
+	args := []string{"-detailed", "-depth", "3", "-filter", "vault/logical", filepath}
+
+	code := c.Run(args)
+	if code != 0 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+
+	want := golden(t, t.Name(), ui.OutputWriter.String())
+	require.Equal(t, want, ui.OutputWriter.String())
+}
