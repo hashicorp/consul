@@ -32,7 +32,8 @@ func (e EventPayloadCheckServiceNode) FilterByKey(key, namespace string) bool {
 	if e.key != "" {
 		name = e.key
 	}
-	return key == name && namespace == e.Value.Service.EnterpriseMeta.GetNamespace()
+	ns := e.Value.Service.EnterpriseMeta.GetNamespace()
+	return (key == "" || key == name) && (namespace == "" || namespace == ns)
 }
 
 // serviceHealthSnapshot returns a stream.SnapshotFunc that provides a snapshot
@@ -45,8 +46,8 @@ func serviceHealthSnapshot(db ReadDB, topic stream.Topic) stream.SnapshotFunc {
 		defer tx.Abort()
 
 		connect := topic == topicServiceHealthConnect
-		// TODO(namespace-streaming): plumb entMeta through from SubscribeRequest
-		idx, nodes, err := checkServiceNodesTxn(tx, nil, req.Key, connect, nil)
+		entMeta := structs.EnterpriseMetaInitializer(req.Namespace)
+		idx, nodes, err := checkServiceNodesTxn(tx, nil, req.Key, connect, &entMeta)
 		if err != nil {
 			return 0, err
 		}
@@ -349,8 +350,7 @@ func getPayloadCheckServiceNode(payload stream.Payload) *structs.CheckServiceNod
 // parseCheckServiceNodes but is more efficient since we know they are all on
 // the same node.
 func newServiceHealthEventsForNode(tx ReadTxn, idx uint64, node string) ([]stream.Event, error) {
-	// TODO(namespace-streaming): figure out the right EntMeta and mystery arg.
-	services, err := catalogServiceListByNode(tx, node, nil, false)
+	services, err := catalogServiceListByNode(tx, node, structs.WildcardEnterpriseMeta(), true)
 	if err != nil {
 		return nil, err
 	}
@@ -384,8 +384,7 @@ func getNodeAndChecks(tx ReadTxn, node string) (*structs.Node, serviceChecksFunc
 	}
 	n := nodeRaw.(*structs.Node)
 
-	// TODO(namespace-streaming): work out what EntMeta is needed here, wildcard?
-	iter, err := catalogListChecksByNode(tx, node, nil)
+	iter, err := catalogListChecksByNode(tx, node, structs.WildcardEnterpriseMeta())
 	if err != nil {
 		return nil, nil, err
 	}

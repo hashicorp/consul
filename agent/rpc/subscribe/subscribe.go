@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbservice"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
@@ -35,15 +36,13 @@ type Logger interface {
 var _ pbsubscribe.StateChangeSubscriptionServer = (*Server)(nil)
 
 type Backend interface {
-	// TODO(streaming): Use ResolveTokenAndDefaultMeta instead once SubscribeRequest
-	// has an EnterpriseMeta.
-	ResolveToken(token string) (acl.Authorizer, error)
+	ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error)
 	Forward(dc string, f func(*grpc.ClientConn) error) (handled bool, err error)
 	Subscribe(req *stream.SubscribeRequest) (*stream.Subscription, error)
 }
 
 func (h *Server) Subscribe(req *pbsubscribe.SubscribeRequest, serverStream pbsubscribe.StateChangeSubscription_SubscribeServer) error {
-	logger := h.newLoggerForRequest(req)
+	logger := newLoggerForRequest(h.Logger, req)
 	handled, err := h.Backend.Forward(req.Datacenter, forwardToDC(req, serverStream, logger))
 	if handled || err != nil {
 		return err
@@ -52,13 +51,13 @@ func (h *Server) Subscribe(req *pbsubscribe.SubscribeRequest, serverStream pbsub
 	logger.Trace("new subscription")
 	defer logger.Trace("subscription closed")
 
-	// Resolve the token and create the ACL filter.
-	authz, err := h.Backend.ResolveToken(req.Token)
+	entMeta := structs.EnterpriseMetaInitializer(req.Namespace)
+	authz, err := h.Backend.ResolveTokenAndDefaultMeta(req.Token, &entMeta, nil)
 	if err != nil {
 		return err
 	}
 
-	sub, err := h.Backend.Subscribe(toStreamSubscribeRequest(req))
+	sub, err := h.Backend.Subscribe(toStreamSubscribeRequest(req, entMeta))
 	if err != nil {
 		return err
 	}
@@ -90,13 +89,13 @@ func (h *Server) Subscribe(req *pbsubscribe.SubscribeRequest, serverStream pbsub
 	}
 }
 
-// TODO: can be replaced by mog conversion
-func toStreamSubscribeRequest(req *pbsubscribe.SubscribeRequest) *stream.SubscribeRequest {
+func toStreamSubscribeRequest(req *pbsubscribe.SubscribeRequest, entMeta structs.EnterpriseMeta) *stream.SubscribeRequest {
 	return &stream.SubscribeRequest{
-		Topic: req.Topic,
-		Key:   req.Key,
-		Token: req.Token,
-		Index: req.Index,
+		Topic:     req.Topic,
+		Key:       req.Key,
+		Token:     req.Token,
+		Index:     req.Index,
+		Namespace: entMeta.GetNamespace(),
 	}
 }
 
