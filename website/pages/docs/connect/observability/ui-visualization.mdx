@@ -26,11 +26,11 @@ URLs](#configuring-dashboard-urls).
 It is possible to configure the UI to fetch basic metrics from your metrics
 provider storage to augment the visualization as displayed below.
 
-TODO: realistic screenshot here
+![Consul UI Service Mesh Visualization](/img/connect-ui-vizualization.png)
 
 Consul has built-in support for overlaying metrics from a
 [Prometheus](https://prometheus.io) backend. Alternative metrics providers may
-be supported using a new and experimental Javascript API. See [Custom Metrics
+be supported using a new and experimental JavaScript API. See [Custom Metrics
 Providers](#custom-metrics-providers).
 
 
@@ -94,12 +94,16 @@ An example with Grafana is shown below.
 ui_config {
   enabled = true
   dashboard_url_templates {
-    service = "https://grafana.example.com/d/lDlaj-NGz/ ⏎
-      service-overview?orgId=1&var-service={{Service.Name}}& ⏎
+    service = "https://grafana.example.com/d/lDlaj-NGz/
+      service-overview?orgId=1&var-service={{Service.Name}}&
       var-namespace={{Service.Namespace}}&var-dc={{Datacenter}}"
   }
 }
 ```
+
+-> **Note**: the URL is wrapped over multiple lines to make it easier to read without
+horizontal scrolling in the example above however this needs to be a normal
+single-line string value in actual HCL config.
 
 TODO: show screenshot of the configured link in the topology view.
 
@@ -135,7 +139,7 @@ all nodes and services (across all namespaces in Enterprise). It's typical for
 most authenticated users to have this level of access in Consul as it's required
 for viewing the catalog or discovering services. For example if you use a
 [Single Sign-On
-integration](http://localhost:3000/docs/security/acl/auth-methods/oidc) (Consul
+integration](/docs/security/acl/auth-methods/oidc) (Consul
 Enterprise) for the UI the users will automatically be issued an ACL token that
 will be allowed access to the metrics through the proxy.
 
@@ -197,17 +201,17 @@ ui_config {
 Consul 1.9.0 includes a built-in provider for fetching metrics from
 [Prometheus](https://prometheus.io). To enable others to use the feature along
 with other existing metrics stores and hosted services, we created a "metrics
-provider" interface in Javascript. A custom provider may be written and the
-javascript file served by the Consul agent.
+provider" interface in JavaScript. A custom provider may be written and the
+JavaScript file served by the Consul agent.
 
 ~> **Note**: this interface is _experimental_ and may change in breaking ways or
  be removed entirely as we discover the needs of the community. Please provide
  feedback on Github or [Discuss](https://discuss.hashicorp.com/) on how you'd
  like to use this.
 
-The template for a complete provider Javascript file is given below.
+The template for a complete provider JavaScript file is given below.
 
-```Javascript
+```JavaScript
 (function () {
   var provider = {
     /**
@@ -241,7 +245,7 @@ The template for a complete provider Javascript file is given below.
      * provider doesn't recognize the protocol, it should treat it as "tcp" and
      * provide basic connection stats.
      *
-     * The expected return value is a Javascript promise which resolves to an
+     * The expected return value is a JavaScript promise which resolves to an
      * object that should look like the following:
      *
      *  {
@@ -296,7 +300,7 @@ The template for a complete provider Javascript file is given below.
      * provider doesn't recognize it it should treat it as "tcp" and provide
      * just basic connection stats.
      *
-     * The expected return value is a Javascript promise which resolves to an
+     * The expected return value is a JavaScript promise which resolves to an
      * object that should look like the following:
      *
      *  {
@@ -335,7 +339,7 @@ The template for a complete provider Javascript file is given below.
      * The period may (later) be specified in options.startTime and
      * options.endTime.
      *
-     * The expected return value is a Javascript promise which resolves to an
+     * The expected return value is a JavaScript promise which resolves to an
      * object that should look like the following:
      *
      *   {
@@ -376,7 +380,7 @@ The template for a complete provider Javascript file is given below.
      * The period may (later) be specified in options.startTime and
      * options.endTime.
      *
-     * The expected return value is a Javascript promise which resolves to an
+     * The expected return value is a JavaScript promise which resolves to an
      * object that should look like the following:
      *
      *   {
@@ -430,7 +434,7 @@ ui_config {
 }
 ```
 
-More than one javascript file may be specified in
+More than one JavaScript file may be specified in
 [`metrics_provider_files`](/docs/agent/options#ui_config_metrics_provider_files)
 and all we be served allowing flexibility if needed to include dependencies.
 Only one metrics provider can be configured and used at one time.
@@ -445,7 +449,7 @@ make providers more reusable.
 The provider may fetch metrics directly from another source although in this
 case the agent will probably need to serve the correct CORS headers to prevent
 browsers from blocking these requests. These may be configured with
-[`http_config.response_headers`](http://localhost:3000/docs/agent/options#response_headers).
+[`http_config.response_headers`](/docs/agent/options#response_headers).
 
 Alternatively, the provider may choose to use the [built-in metrics
 proxy](#metrics-proxy) to avoid cross domain issues or to inject additional
@@ -464,7 +468,7 @@ proxy to avoid exposing more than needed of the metrics backend.
 
 ### Custom Provider Security Model
 
-Since the javascript file(s) are included in Consul's UI verbatim, the code in
+Since the JavaScript file(s) are included in Consul's UI verbatim, the code in
 them must be treated as fully trusted by the operator. Typically they will have
 authored this or will need to carefully vet providers written by third parties.
 
