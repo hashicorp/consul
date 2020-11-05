@@ -1,0 +1,40 @@
+{
+  "web": {
+    "Kind": "",
+    "ID": "web",
+    "Service": "web",
+    "Tags": [],
+    "Meta": {},
+    "Port": 8181,
+    "Address": "",
+    "EnableTagOverride": false,
+    "CreateIndex": 0,
+    "ModifyIndex": 0,
+    "ProxyDestination": "",
+    "Connect": {
+      "Proxy": {
+        "ExecMode": "daemon",
+        "Command": [
+          "/bin/consul",
+          "connect",
+          "proxy"
+        ],
+        "Config": null
+      }
+    }
+  },
+  "web-proxy": {
+    "Kind": "connect-proxy",
+    "ID": "web-proxy",
+    "Service": "web-proxy",
+    "Tags": [],
+    "Meta": {},
+    "Port": 20199,
+    "Address": "",
+    "EnableTagOverride": false,
+    "CreateIndex": 0,
+    "ModifyIndex": 0,
+    "ProxyDestination": "web",
+    "Connect": null
+  }
+}

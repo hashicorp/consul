@@ -1,0 +1,105 @@
+${[1].map(() => {
+
+  const services = range(
+    env(
+      'CONSUL_SERVICE_COUNT',
+      Math.floor(
+        (
+          Math.random() * env('CONSUL_SERVICE_MAX', 10)
+        ) + parseInt(env('CONSUL_SERVICE_MIN', 1))
+      )
+    )
+  ).map(
+    (item, i) => {
+      const service = `service-${i}`;
+      return {
+        "ID": i === 0 ? 'service-0-with-id' : fake.helpers.randomize([service, service + '-ID']),
+        "Service": service,
+      };
+    }
+  );
+
+return `
+{
+  "ID":"${node = location.pathname.get(4)}",
+  "Node":"${node}",
+  "Address":"${ip = fake.internet.ip()}",
+  "TaggedAddresses":{"lan":"${ip}","wan":"${ip}"},
+  "Meta":{
+    "consul-network-segment":"",
+    "consul-dashboard-url": "${fake.internet.protocol()}://${fake.internet.domainName()}/?id={{Node}}"
+  },
+  "Services":[
+    ${
+      services.map(
+        function(item, i)
+        {
+          const service = `service-${i}`;
+          return `
+            {
+              "ID": "${item.ID}",
+              "Service":"${item.Service}",
+              "Tags":[
+                ${
+                  range(
+                    env(
+                      'CONSUL_TAG_COUNT',
+                      Math.floor(
+                        (
+                          Math.random() * env('CONSUL_TAG_MAX', 10)
+                        ) + parseInt(env('CONSUL_TAG_MIN', 1))
+                      )
+                    )
+                  ).map(
+                    function(item, i)
+                    {
+                      return `"${fake.hacker.noun()}"`;
+                    }
+                  )
+                }
+              ],
+${ fake.random.number({min: 1, max: 10}) > 2 ? `
+            "Meta": {
+              "external-source": "${fake.helpers.randomize(['consul', 'nomad', 'terraform', 'kubernetes', ''])}"
+            },
+` : `` }
+              "Address":"",
+              "Port": ${ i === 0 ? '65535' : fake.random.number({min: 0, max: 65534})},
+              "EnableTagOverride":false,
+              "CreateIndex":11,
+              "ModifyIndex":11
+            }
+          `;
+        }
+      )
+    }
+  ],
+  "Checks":[
+    ${
+      range(env('CONSUL_CHECK_COUNT', 10)).map(
+        function(item, i)
+        {
+          const service = fake.random.number({min: 0, max: 10}) > 5 ? fake.helpers.randomize(services) : {ID: '', Service: ''};
+          return `
+            {
+              "Node":"${location.pathname.get(4)}",
+              "CheckID":"${fake.hacker.noun()}Health",
+              "Name":"${fake.hacker.noun()} Status",
+              "Type": "${fake.helpers.randomize(['script', 'http', 'tcp', 'ttl', 'docker', 'grpc', 'alias'])}",
+              "Status":"${fake.helpers.randomize(['passing', 'warning', 'critical'])}",
+              "Notes":"${fake.lorem.paragraph()}",
+              "Output":"${fake.internet.ipv6()} ${fake.internet.protocol()}://${fake.internet.userName()}:${fake.internet.password()}@${fake.internet.domainName()} ${fake.internet.userAgent()}",
+              "ServiceID":"${service.ID}",
+              "ServiceName":"${service.Service}",
+              "ServiceTags":null,
+              "Definition":{},
+              "CreateIndex":12,
+              "ModifyIndex":230113
+            }
+          `;
+        }
+      )
+    }
+   ]
+}`
+})}

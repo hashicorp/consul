@@ -1,0 +1,90 @@
+[
+  ${
+    range(
+      env(
+        'CONSUL_NODE_COUNT',
+        Math.floor(
+          (
+            Math.random() * env('CONSUL_NODE_MAX', 10)
+          ) + parseInt(env('CONSUL_NODE_MIN', 1))
+        )
+      )
+    ).map(
+      function(item, i)
+      {
+        return `
+          {
+            "ID":"${fake.random.uuid()}",
+            "Node":"node-${i}",
+            "Address":"${fake.internet.ip()}",
+            "TaggedAddresses":{
+              "lan":"${fake.internet.ip()}",
+              "wan":"${fake.internet.ip()}"
+            },
+            "Meta": {
+              "consul-network-segment":""
+            },
+            "Services":[
+                ${
+                    range(fake.random.number(4) + 1).map(
+                        function(item, i) {
+                        const service = `service-${i}`;
+                        return `
+                            {
+                                "ID":"${service}",
+                                "Service":"${service}",
+                                "Tags":[
+                                    ${
+                                        range(env('CONSUL_TAG_COUNT', fake.random.number(10))).map(
+                                            function(item, i)
+                                            {
+                                                return `"${fake.hacker.noun()}"`;
+                                            }
+                                        )
+                                    }
+                                ],
+                                "Address":"",
+                                "Port":${fake.random.number({min: 0, max: 65535})},
+                                "EnableTagOverride":false,
+                                "CreateIndex":5,
+                                "ModifyIndex":5
+                            }
+                        `;
+                        }
+                    )
+                }
+            ],
+            "Checks":[
+            ${
+                range(env('CONSUL_CHECK_COUNT', fake.random.number(9) + 1)).map(
+                    function(item, j)
+                    {
+                        const passing = i > 7 || j > fake.random.number(4);
+                        return `
+                            {
+                                "Node":"node-${i}",
+                                "CheckID":"${fake.hacker.noun()}Health",
+                                "Name":"${fake.hacker.noun()} Status",
+                                "Type": "${fake.helpers.randomize(['script', 'http', 'tcp', 'ttl', 'docker', 'grpc', 'alias'])}",
+                                "Status":"${ passing ? "passing" : fake.helpers.randomize(['warning', 'critical'])}",
+                                "Notes":"${fake.lorem.paragraph()}",
+                                "Output":"${fake.internet.ipv6()} ${fake.internet.protocol()}://${fake.internet.userName()}:${fake.internet.password()}@${fake.internet.domainName()} ${fake.internet.userAgent()}",
+                                "ServiceID":"",
+                                "ServiceName":"",
+                                "ServiceTags":["Tag"],
+                                "Definition":{},
+                                "CreateIndex":5,
+                                "ModifyIndex":5
+                            }
+                        `;
+
+                    }
+                )
+            }
+            ]
+          }
+        `;
+      }
+    )
+  }
+]

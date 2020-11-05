@@ -1,0 +1,70 @@
+[
+  ${
+    range(
+      env(
+        'CONSUL_SERVICE_COUNT',
+        Math.floor(
+          (
+            Math.random() * env('CONSUL_SERVICE_MAX', 10)
+          ) + parseInt(env('CONSUL_SERVICE_MIN', 1))
+        )
+      )
+    ).map((item, i) => `
+  {
+    "Name": "service-${i}",
+${i === 1 ? `
+      "Namespace": "default",
+` : `
+      "Namespace": "${fake.hacker.noun()}-ns-${i}",
+`}
+    "Tags": [
+      ${
+        range(env('CONSUL_TAG_COUNT', fake.random.number(10))).map(
+          function(item, i)
+          {
+            return `"${fake.hacker.noun()}"`;
+          }
+        )
+      }
+    ],
+    "Nodes": [
+      ${
+        range(env('CONSUL_NODE_COUNT', 100)).map(
+          function(item, i)
+          {
+            return `"node-${i}"`;
+          }
+        )
+      }
+    ],
+    "InstanceCount": ${fake.helpers.randomize([fake.random.number({min: 1, max: 100})])},
+    "ChecksPassing":${fake.random.number({min: 1, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
+    "ChecksWarning":${fake.random.number({min: 0, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
+    "ChecksCritical":${fake.random.number({min: 0, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
+${ fake.random.number({min: 1, max: 10}) > 2 ? `
+    "ExternalSources": [
+      ${
+        range(fake.random.number({min: 1, max: 1})).map(
+          function(item, i)
+          {
+            return `"${fake.helpers.randomize(['consul', 'nomad', 'terraform', 'kubernetes', 'aws', ''])}"`;
+          }
+        )
+      }
+    ],
+` : `` }
+    "GatewayConfig": {
+      "Addresses": [
+        ${
+          range(fake.random.number(6)).map(
+            function(item, i)
+            {
+              return `"${fake.random.number({min: 1, max: 10}) > 8 ? `*.`: ``}${fake.internet.domainName()}:${fake.random.number({min: 0, max: 65535})}"`;
+            }
+          )
+        }
+      ]
+    }
+  }
+    `)}
+]
