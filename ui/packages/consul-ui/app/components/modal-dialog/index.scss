@@ -3,7 +3,7 @@
 .modal-dialog-modal {
   @extend %modal-dialog;
 }
-.modal-dialog-control {
+input[name='modal'] {
   @extend %modal-control;
 }
 html.template-with-modal {
