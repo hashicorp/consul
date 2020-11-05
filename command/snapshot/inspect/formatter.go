@@ -15,7 +15,7 @@ const (
 )
 
 type Formatter interface {
-	Format(*OutputFormat, bool) (string, error)
+	Format(*OutputFormat) (string, error)
 }
 
 func GetSupportedFormats() []string {
@@ -38,7 +38,7 @@ func NewFormatter(format string) (Formatter, error) {
 	}
 }
 
-func (_ *prettyFormatter) Format(info *OutputFormat, detailed bool) (string, error) {
+func (_ *prettyFormatter) Format(info *OutputFormat) (string, error) {
 	var b bytes.Buffer
 	tw := tabwriter.NewWriter(&b, 8, 8, 6, ' ', 0)
 
@@ -57,7 +57,7 @@ func (_ *prettyFormatter) Format(info *OutputFormat, detailed bool) (string, err
 	fmt.Fprintf(tw, "\n %s\t%s\t%s\t", "----", "----", "----")
 	fmt.Fprintf(tw, "\n Total\t\t%s\t", ByteSize(uint64(info.TotalSize)))
 
-	if detailed {
+	if len(info.StatsKV) > 0 {
 		fmt.Fprintf(tw, "\n")
 		fmt.Fprintln(tw, "\n Key Name\tCount\tSize\t")
 		fmt.Fprintf(tw, " %s\t%s\t%s\t", "----", "----", "----")
@@ -82,7 +82,7 @@ func newJSONFormatter() Formatter {
 	return &jsonFormatter{}
 }
 
-func (_ *jsonFormatter) Format(info *OutputFormat, detailed bool) (string, error) {
+func (_ *jsonFormatter) Format(info *OutputFormat) (string, error) {
 	b, err := json.MarshalIndent(info, "", "   ")
 	if err != nil {
 		return "", fmt.Errorf("Failed to marshal original snapshot stats: %v", err)

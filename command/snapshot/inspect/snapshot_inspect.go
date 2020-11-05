@@ -63,6 +63,16 @@ type MetadataInfo struct {
 	Version raft.SnapshotVersion
 }
 
+// SnapshotInfo is used for passing snapshot stat
+// information between functions
+type SnapshotInfo struct {
+	Meta        MetadataInfo
+	Stats       map[structs.MessageType]typeStats
+	StatsKV     map[string]typeStats
+	TotalSize   int
+	TotalSizeKV int
+}
+
 // OutputFormat is used for passing information
 // through the formatter
 type OutputFormat struct {
@@ -114,7 +124,7 @@ func (c *cmd) Run(args []string) int {
 		}
 	}()
 
-	stats, statsKV, totalSize, totalSizeKV, err := enhance(readFile, c.detailed, c.depth, c.filter)
+	info, err := c.enhance(readFile)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error extracting snapshot data: %s", err))
 		return 1
@@ -135,17 +145,17 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	//Restructures stats given above to be human readable
-	formattedStats, formattedStatsKV := generatetypeStats(stats, statsKV, c.detailed)
+	formattedStats, formattedStatsKV := generatetypeStats(info)
 
 	in := &OutputFormat{
 		Meta:        metaformat,
 		Stats:       formattedStats,
 		StatsKV:     formattedStatsKV,
-		TotalSize:   totalSize,
-		TotalSizeKV: totalSizeKV,
+		TotalSize:   info.TotalSize,
+		TotalSizeKV: info.TotalSizeKV,
 	}
 
-	out, err := formatter.Format(in, c.detailed)
+	out, err := formatter.Format(in)
 	if err != nil {
 		c.UI.Error(err.Error())
 		return 1
@@ -161,10 +171,10 @@ type typeStats struct {
 	Count int
 }
 
-func generatetypeStats(info map[structs.MessageType]typeStats, kvInfo map[string]typeStats, detailed bool) ([]typeStats, []typeStats) {
-	ss := make([]typeStats, 0, len(info))
+func generatetypeStats(info SnapshotInfo) ([]typeStats, []typeStats) {
+	ss := make([]typeStats, 0, len(info.Stats))
 
-	for _, s := range info {
+	for _, s := range info.Stats {
 		ss = append(ss, s)
 	}
 
@@ -178,10 +188,10 @@ func generatetypeStats(info map[structs.MessageType]typeStats, kvInfo map[string
 		return ss[i].Sum > ss[j].Sum
 	})
 
-	if detailed {
-		ks := make([]typeStats, 0, len(kvInfo))
+	if len(info.StatsKV) > 0 {
+		ks := make([]typeStats, 0, len(info.StatsKV))
 
-		for _, s := range kvInfo {
+		for _, s := range info.StatsKV {
 			ks = append(ks, s)
 		}
 
@@ -218,15 +228,17 @@ func (r *countingReader) Read(p []byte) (n int, err error) {
 
 // enhance utilizes ReadSnapshot to populate the struct with
 // all of the snapshot's itemized data
-func enhance(file io.Reader, detailed bool, depth int, filter string) (map[structs.MessageType]typeStats, map[string]typeStats, int, int, error) {
-	stats := make(map[structs.MessageType]typeStats)
-	statsKV := make(map[string]typeStats)
+func (c *cmd) enhance(file io.Reader) (SnapshotInfo, error) {
+	info := SnapshotInfo{
+		Stats:       make(map[structs.MessageType]typeStats),
+		StatsKV:     make(map[string]typeStats),
+		TotalSize:   0,
+		TotalSizeKV: 0,
+	}
 	cr := &countingReader{wrappedReader: file}
-	totalSize := 0
-	totalSizeKV := 0
 	handler := func(header *fsm.SnapshotHeader, msg structs.MessageType, dec *codec.Decoder) error {
 		name := structs.MessageType.String(msg)
-		s := stats[msg]
+		s := info.Stats[msg]
 		if s.Name == "" {
 			s.Name = name
 		}
@@ -237,13 +249,13 @@ func enhance(file io.Reader, detailed bool, depth int, filter string) (map[struc
 			return fmt.Errorf("failed to decode msg type %v, error %v", name, err)
 		}
 
-		size := cr.read - totalSize
+		size := cr.read - info.TotalSize
 		s.Sum += size
 		s.Count++
-		totalSize = cr.read
-		stats[msg] = s
+		info.TotalSize = cr.read
+		info.Stats[msg] = s
 
-		if detailed {
+		if c.detailed {
 			if s.Name == "KVS" {
 				switch val := val.(type) {
 				case map[string]interface{}:
@@ -251,7 +263,7 @@ func enhance(file io.Reader, detailed bool, depth int, filter string) (map[struc
 						if k == "Key" {
 							// check for whether a filter is specified. if it is, skip
 							// any keys that don't match.
-							if len(filter) > 0 && !strings.HasPrefix(v.(string), filter) {
+							if len(c.filter) > 0 && !strings.HasPrefix(v.(string), c.filter) {
 								break
 							}
 
@@ -259,20 +271,20 @@ func enhance(file io.Reader, detailed bool, depth int, filter string) (map[struc
 
 							// handle the situation where the key is shorter than
 							// the specified depth.
-							actualDepth := depth
-							if depth > len(split) {
+							actualDepth := c.depth
+							if c.depth > len(split) {
 								actualDepth = len(split)
 							}
 							prefix := strings.Join(split[0:actualDepth], "/")
-							kvs := statsKV[prefix]
+							kvs := info.StatsKV[prefix]
 							if kvs.Name == "" {
 								kvs.Name = prefix
 							}
 
 							kvs.Sum += size
 							kvs.Count++
-							totalSizeKV += size
-							statsKV[prefix] = kvs
+							info.TotalSizeKV += size
+							info.StatsKV[prefix] = kvs
 						}
 					}
 				}
@@ -282,9 +294,9 @@ func enhance(file io.Reader, detailed bool, depth int, filter string) (map[struc
 		return nil
 	}
 	if err := fsm.ReadSnapshot(cr, handler); err != nil {
-		return nil, nil, 0, 0, err
+		return info, err
 	}
-	return stats, statsKV, totalSize, totalSizeKV, nil
+	return info, nil
 
 }
 
