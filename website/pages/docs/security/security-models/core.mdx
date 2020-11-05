@@ -143,8 +143,10 @@ environment and adapt these configurations accordingly.
 
 - **ACLs** - The access control list (ACL) system provides a capability-based control mechanism for Consul 
   administrators to define scoped, custom roles (typically within Vault) tied to an individual human, or machine 
-  operator identity. To ultimately secure the ACL system, administrators should configure the default_policy to 
-  "deny". The system is comprised of five major components:
+  operator identity. To ultimately secure the ACL system, administrators should configure the 
+  [`default_policy`](/docs/agent/options#acl_default_policy) to "deny". 
+
+  The system is comprised of five major components:
 
   - **🗝 Token** - API key associated with policies, roles, or service identities.
 
