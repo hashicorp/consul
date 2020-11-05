@@ -7,7 +7,7 @@ module.exports = ({ appName, environment, rootURL, config }) => `
           JSON.stringify({
             metrics_provider: 'prometheus',
             metrics_proxy_enabled: true,
-            dashboard_url_template: {
+            dashboard_url_templates: {
               service: 'https://example.com?{{Service.Name}}&{{Datacenter}}',
             },
           })

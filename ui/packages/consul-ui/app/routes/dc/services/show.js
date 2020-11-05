@@ -16,7 +16,7 @@ export default Route.extend({
       items: this.data.source(
         uri => uri`/${nspace}/${dc}/service-instances/for-service/${params.name}`
       ),
-      urls: this.config.get().dashboard_url_template,
+      urls: this.config.get().dashboard_url_templates,
       chain: null,
       proxies: [],
       topology: null,
