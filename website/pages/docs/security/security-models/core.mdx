@@ -15,9 +15,9 @@ Consul uses a lightweight gossip and RPC system which provides various essential
 provide security mechanisms which should be used to enable confidentiality, integrity and authentication.
 
 Using defense in depth is crucial for Consul security, and deployment requirements may differ drastically depending on 
-your use case. Some security features for multi-tenant deployments are offered exclusively in the enterprise version. 
-This documentation may need to be adapted to your environment, but the general mechanisms for a secure Consul deployment
-revolve around:
+your use case. Some security features for multi-tenant deployments are offered exclusively in the 
+[Enterprise](/docs/enterprise) version. This documentation may need to be adapted to your 
+environment, but the general mechanisms for a secure Consul deployment revolve around:
 
 - **mTLS** - Mutual authentication of both the TLS server and client x509 certificates prevents internal abuse from 
   unauthorized access to network components within the cluster.
