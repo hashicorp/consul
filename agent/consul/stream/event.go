@@ -82,10 +82,6 @@ func (e PayloadEvents) FilterByKey(_, _ string) bool {
 	return true
 }
 
-func (e PayloadEvents) Events() []Event {
-	return e
-}
-
 // IsEndOfSnapshot returns true if this is a framing event that indicates the
 // snapshot has completed. Subsequent events from Subscription.Next will be
 // streamed as they occur.
