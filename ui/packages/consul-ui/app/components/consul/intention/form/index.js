@@ -54,7 +54,7 @@ export default class ConsulIntentionForm extends Component {
     e.preventDefault();
     // if the action of the intention has changed and its non-empty then warn
     // the user
-    if (typeof item.change.Action !== 'undefined' && item.change.Action.length > 0) {
+    if (typeof item.change.Action !== 'undefined' && typeof item.data.Action === 'undefined') {
       this.warn = true;
     } else {
       submit();
