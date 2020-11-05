@@ -95,14 +95,14 @@ environment and adapt these configurations accordingly.
     added in Consul 1.0.1.
 
   - [`verify_server_hostname`](/docs/agent/options#verify_server_hostname)  - By default this is false, and should be 
-    set to true to require for outgoing TLS connections that the TLS certificate presented by the servers matches 
-    `server.<datacenter>.<domain> hostname`. The default configuration does not verify the hostname of the certificate, 
-    only that it is signed by a trusted CA. This setting is critical to prevent a compromised client agent from being 
-    restarted as a server and having all cluster state including all ACL tokens and Connect CA root keys replicated to 
-    it, and introduced in 0.5.1. From version 0.5.1 to 1.4.0 we documented that `verify_server_hostname` being true 
-    implied verify_outgoing however due to a bug this was not the case so setting only `verify_server_hostname` results
-    in plaintext communication between client and server. 
-    See [CVE-2018-19653](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2018-19653) for more details. This is fixed 
+    set to true to require that the TLS certificate presented by the servers matches
+    `server.<datacenter>.<domain>` hostname for outgoing TLS connections. The default configuration does not verify the 
+    hostname of the certificate, only that it is signed by a trusted CA. This setting is critical to prevent a 
+    compromised client agent from being restarted as a server and having all cluster state including all ACL tokens and 
+    Connect CA root keys replicated to it. This setting was introduced in 0.5.1. From version 0.5.1 to 1.4.0 we 
+    documented that `verify_server_hostname` being true implied verify_outgoing however due to a bug this was not the 
+    case so setting only `verify_server_hostname` results in plaintext communication between client and server. See 
+    [CVE-2018-19653](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2018-19653) for more details. This is fixed 
     in 1.4.1.
 
     **Example Server Agent TLS Configuration**
