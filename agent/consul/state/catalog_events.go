@@ -13,6 +13,26 @@ import (
 type EventPayloadCheckServiceNode struct {
 	Op    pbsubscribe.CatalogOp
 	Value *structs.CheckServiceNode
+	// key is used to override the key used to filter the payload. It is set for
+	// events in the connect topic to specify the name of the underlying service
+	// when the change event is for a sidecar or gateway.
+	key string
+}
+
+func (e EventPayloadCheckServiceNode) FilterByKey(key, namespace string) bool {
+	if key == "" && namespace == "" {
+		return true
+	}
+
+	if e.Value.Service == nil {
+		return false
+	}
+
+	name := e.Value.Service.Service
+	if e.key != "" {
+		name = e.key
+	}
+	return key == name && namespace == e.Value.Service.EnterpriseMeta.GetNamespace()
 }
 
 // serviceHealthSnapshot returns a stream.SnapshotFunc that provides a snapshot
@@ -40,10 +60,6 @@ func serviceHealthSnapshot(db ReadDB, topic stream.Topic) stream.SnapshotFunc {
 					Op:    pbsubscribe.CatalogOp_Register,
 					Value: &n,
 				},
-			}
-
-			if n.Service != nil {
-				event.Key = n.Service.Service
 			}
 
 			// append each event as a separate item so that they can be serialized
@@ -252,7 +268,9 @@ func isConnectProxyDestinationServiceChange(idx uint64, before, after *structs.S
 
 	e := newServiceHealthEventDeregister(idx, before)
 	e.Topic = topicServiceHealthConnect
-	e.Key = getPayloadCheckServiceNode(e.Payload).Service.Proxy.DestinationServiceName
+	payload := e.Payload.(EventPayloadCheckServiceNode)
+	payload.key = payload.Value.Service.Proxy.DestinationServiceName
+	e.Payload = payload
 	return e, true
 }
 
@@ -304,7 +322,9 @@ func serviceHealthToConnectEvents(events ...stream.Event) []stream.Event {
 			result = append(result, connectEvent)
 
 		case node.Service.Kind == structs.ServiceKindConnectProxy:
-			connectEvent.Key = node.Service.Proxy.DestinationServiceName
+			payload := event.Payload.(EventPayloadCheckServiceNode)
+			payload.key = node.Service.Proxy.DestinationServiceName
+			connectEvent.Payload = payload
 			result = append(result, connectEvent)
 
 		default:
@@ -316,7 +336,7 @@ func serviceHealthToConnectEvents(events ...stream.Event) []stream.Event {
 	return result
 }
 
-func getPayloadCheckServiceNode(payload interface{}) *structs.CheckServiceNode {
+func getPayloadCheckServiceNode(payload stream.Payload) *structs.CheckServiceNode {
 	ep, ok := payload.(EventPayloadCheckServiceNode)
 	if !ok {
 		return nil
@@ -431,7 +451,6 @@ func newServiceHealthEventRegister(
 	}
 	return stream.Event{
 		Topic: topicServiceHealth,
-		Key:   sn.ServiceName,
 		Index: idx,
 		Payload: EventPayloadCheckServiceNode{
 			Op:    pbsubscribe.CatalogOp_Register,
@@ -458,7 +477,6 @@ func newServiceHealthEventDeregister(idx uint64, sn *structs.ServiceNode) stream
 
 	return stream.Event{
 		Topic: topicServiceHealth,
-		Key:   sn.ServiceName,
 		Index: idx,
 		Payload: EventPayloadCheckServiceNode{
 			Op:    pbsubscribe.CatalogOp_Deregister,

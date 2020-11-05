@@ -83,7 +83,7 @@ func (h *Server) Subscribe(req *pbsubscribe.SubscribeRequest, serverStream pbsub
 		}
 
 		elog.Trace(event)
-		e := newEventFromStreamEvent(req.Topic, event)
+		e := newEventFromStreamEvent(event)
 		if err := serverStream.Send(e); err != nil {
 			return err
 		}
@@ -139,12 +139,8 @@ func filterByAuth(authz acl.Authorizer, event stream.Event) (stream.Event, bool)
 	return event.Filter(fn)
 }
 
-func newEventFromStreamEvent(topic pbsubscribe.Topic, event stream.Event) *pbsubscribe.Event {
-	e := &pbsubscribe.Event{
-		Topic: topic,
-		Key:   event.Key,
-		Index: event.Index,
-	}
+func newEventFromStreamEvent(event stream.Event) *pbsubscribe.Event {
+	e := &pbsubscribe.Event{Index: event.Index}
 	switch {
 	case event.IsEndOfSnapshot():
 		e.Payload = &pbsubscribe.Event_EndOfSnapshot{EndOfSnapshot: true}
@@ -157,9 +153,9 @@ func newEventFromStreamEvent(topic pbsubscribe.Topic, event stream.Event) *pbsub
 	return e
 }
 
-func setPayload(e *pbsubscribe.Event, payload interface{}) {
+func setPayload(e *pbsubscribe.Event, payload stream.Payload) {
 	switch p := payload.(type) {
-	case []stream.Event:
+	case stream.PayloadEvents:
 		e.Payload = &pbsubscribe.Event_EventBatch{
 			EventBatch: &pbsubscribe.EventBatch{
 				Events: batchEventsFromEventSlice(p),
@@ -182,7 +178,7 @@ func batchEventsFromEventSlice(events []stream.Event) []*pbsubscribe.Event {
 	result := make([]*pbsubscribe.Event, len(events))
 	for i := range events {
 		event := events[i]
-		result[i] = &pbsubscribe.Event{Key: event.Key, Index: event.Index}
+		result[i] = &pbsubscribe.Event{Index: event.Index}
 		setPayload(result[i], event.Payload)
 	}
 	return result

@@ -43,22 +43,35 @@ func TestEventPublisher_SubscribeWithIndex0(t *testing.T) {
 
 	events := []Event{{
 		Topic:   testTopic,
-		Key:     "sub-key",
-		Payload: "the-published-event-payload",
+		Payload: simplePayload{key: "sub-key", value: "the-published-event-payload"},
 	}}
 	publisher.Publish(events)
 
 	// Subscriber should see the published event
 	next = getNextEvent(t, eventCh)
-	expected := Event{Payload: "the-published-event-payload", Key: "sub-key", Topic: testTopic}
+	expected := Event{
+		Topic:   testTopic,
+		Payload: simplePayload{key: "sub-key", value: "the-published-event-payload"},
+	}
 	require.Equal(t, expected, next)
 }
 
 var testSnapshotEvent = Event{
 	Topic:   testTopic,
-	Payload: "snapshot-event-payload",
-	Key:     "sub-key",
+	Payload: simplePayload{key: "sub-key", value: "snapshot-event-payload"},
 	Index:   1,
+}
+
+type simplePayload struct {
+	key   string
+	value string
+}
+
+func (p simplePayload) FilterByKey(key, _ string) bool {
+	if key == "" {
+		return true
+	}
+	return p.key == key
 }
 
 func newTestSnapshotHandlers() SnapshotHandlers {
@@ -193,8 +206,7 @@ func TestEventPublisher_SubscribeWithIndex0_FromCache(t *testing.T) {
 
 	expected := Event{
 		Topic:   testTopic,
-		Key:     "sub-key",
-		Payload: "the-published-event-payload",
+		Payload: simplePayload{key: "sub-key", value: "the-published-event-payload"},
 		Index:   3,
 	}
 	publisher.Publish([]Event{expected})
@@ -243,9 +255,8 @@ func TestEventPublisher_SubscribeWithIndexNotZero_CanResume(t *testing.T) {
 
 		expected := Event{
 			Topic:   testTopic,
-			Key:     "sub-key",
 			Index:   3,
-			Payload: "event-3",
+			Payload: simplePayload{key: "sub-key", value: "event-3"},
 		}
 		publisher.publishEvent([]Event{expected})
 
@@ -284,9 +295,8 @@ func TestEventPublisher_SubscribeWithIndexNotZero_NewSnapshot(t *testing.T) {
 
 	nextEvent := Event{
 		Topic:   testTopic,
-		Key:     "sub-key",
 		Index:   3,
-		Payload: "event-3",
+		Payload: simplePayload{key: "sub-key", value: "event-3"},
 	}
 
 	runStep(t, "publish an event while unsubed", func(t *testing.T) {
@@ -341,9 +351,8 @@ func TestEventPublisher_SubscribeWithIndexNotZero_NewSnapshotFromCache(t *testin
 
 	nextEvent := Event{
 		Topic:   testTopic,
-		Key:     "sub-key",
 		Index:   3,
-		Payload: "event-3",
+		Payload: simplePayload{key: "sub-key", value: "event-3"},
 	}
 
 	runStep(t, "publish an event while unsubed", func(t *testing.T) {
