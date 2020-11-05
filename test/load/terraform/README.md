@@ -1,7 +1,7 @@
 ## Terraform Consul Load Testing
 
 # How to use
-1. Build an image with the desired Consul version and a loadtest image in the Packer folder here.
+1. Build an image with the desired Consul version and a loadtest image in the Packer folder [here](../packer).
 2. Create your own `vars.tfvars` file in this directory.
 3. Place the appropriate AMI IDs in the `consul_ami_id` and `test_server_ami` variables, here is an example of a `vars.tfvars`:
 ```
