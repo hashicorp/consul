@@ -280,7 +280,7 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 					},
 				},
 			},
-			patchResponse: func(t *testing.T, srv *Server, resp *pbautoconf.AutoConfigResponse) {
+			patchResponse: func(t *testing.T, _ *Server, resp *pbautoconf.AutoConfigResponse) {
 				// we are expecting an ACL token but cannot check anything for equality
 				// so here we check that it was set and overwrite it
 				require.NotNil(t, resp.Config)

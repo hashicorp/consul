@@ -449,9 +449,9 @@ func TestACLEndpoint_ReplicationStatus(t *testing.T) {
 		err := msgpackrpc.CallWithCodec(codec, "ACL.ReplicationStatus", &getR, &status)
 		require.NoError(t, err)
 
-		require.True(t, status.Enabled)
-		require.True(t, status.Running)
-		require.Equal(t, "dc2", status.SourceDatacenter)
+		require.True(r, status.Enabled)
+		require.True(r, status.Running)
+		require.Equal(r, "dc2", status.SourceDatacenter)
 	})
 }
 

@@ -2900,7 +2900,7 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 	{
 		mock := &mockQueryServer{
 			Datacenters: []string{"dc1", "dc2", "dc3", "xxx", "dc4"},
-			QueryFn: func(dc string, args interface{}, reply interface{}) error {
+			QueryFn: func(dc string, _ interface{}, reply interface{}) error {
 				ret := reply.(*structs.PreparedQueryExecuteResponse)
 				if dc == "dc1" {
 					ret.Nodes = nodes()
@@ -2928,7 +2928,7 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 	{
 		mock := &mockQueryServer{
 			Datacenters: []string{"dc1", "dc2", "dc3", "xxx", "dc4"},
-			QueryFn: func(dc string, args interface{}, reply interface{}) error {
+			QueryFn: func(dc string, _ interface{}, reply interface{}) error {
 				ret := reply.(*structs.PreparedQueryExecuteResponse)
 				if dc == "dc3" {
 					ret.Nodes = nodes()
@@ -2978,7 +2978,7 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 	{
 		mock := &mockQueryServer{
 			Datacenters: []string{"dc1", "dc2", "dc3", "xxx", "dc4"},
-			QueryFn: func(dc string, args interface{}, reply interface{}) error {
+			QueryFn: func(dc string, _ interface{}, reply interface{}) error {
 				ret := reply.(*structs.PreparedQueryExecuteResponse)
 				if dc == "dc4" {
 					ret.Nodes = nodes()
@@ -3007,7 +3007,7 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 	{
 		mock := &mockQueryServer{
 			Datacenters: []string{"dc1", "dc2", "dc3", "xxx", "dc4"},
-			QueryFn: func(dc string, args interface{}, reply interface{}) error {
+			QueryFn: func(dc string, _ interface{}, reply interface{}) error {
 				ret := reply.(*structs.PreparedQueryExecuteResponse)
 				if dc == "dc4" {
 					ret.Nodes = nodes()
@@ -3036,7 +3036,7 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 	{
 		mock := &mockQueryServer{
 			Datacenters: []string{"dc1", "dc2", "dc3", "xxx", "dc4"},
-			QueryFn: func(dc string, args interface{}, reply interface{}) error {
+			QueryFn: func(dc string, _ interface{}, reply interface{}) error {
 				ret := reply.(*structs.PreparedQueryExecuteResponse)
 				if dc == "dc4" {
 					ret.Nodes = nodes()
@@ -3069,7 +3069,7 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 	{
 		mock := &mockQueryServer{
 			Datacenters: []string{"dc1", "dc2", "dc3", "xxx", "dc4"},
-			QueryFn: func(dc string, args interface{}, reply interface{}) error {
+			QueryFn: func(dc string, _ interface{}, reply interface{}) error {
 				ret := reply.(*structs.PreparedQueryExecuteResponse)
 				if dc == "dc1" {
 					return fmt.Errorf("XXX")
@@ -3103,7 +3103,7 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 	{
 		mock := &mockQueryServer{
 			Datacenters: []string{"dc1", "dc2", "dc3", "xxx", "dc4"},
-			QueryFn: func(dc string, args interface{}, reply interface{}) error {
+			QueryFn: func(dc string, _ interface{}, reply interface{}) error {
 				ret := reply.(*structs.PreparedQueryExecuteResponse)
 				if dc == "xxx" {
 					ret.Nodes = nodes()
