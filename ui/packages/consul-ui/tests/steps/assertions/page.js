@@ -47,7 +47,7 @@ export default function(scenario, assert, find, currentPage, $) {
         setTimeout(() => next());
       }
     )
-    .then(`the $pageObject object is(n't) $state`, function(element, negative, state, next) {
+    .then(`the $pageObject object is(n't)? $state`, function(element, negative, state, next) {
       assert[negative ? 'notOk' : 'ok'](element[state]);
       setTimeout(() => next());
     })

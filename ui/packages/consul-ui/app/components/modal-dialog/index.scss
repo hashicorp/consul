@@ -1,0 +1,14 @@
+@import './skin';
+@import './layout';
+.modal-dialog-modal {
+  @extend %modal-dialog;
+}
+input[name='modal'] {
+  @extend %modal-control;
+}
+html.template-with-modal {
+  @extend %with-modal;
+}
+%modal-dialog table {
+  min-height: 149px;
+}

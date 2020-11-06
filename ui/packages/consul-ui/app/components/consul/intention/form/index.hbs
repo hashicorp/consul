@@ -1,3 +1,7 @@
+<div
+  class="consul-intention"
+  ...attributes
+>
 <DataForm
   @type="intention"
   @dc={{@dc}}
@@ -27,9 +31,46 @@ as |api|>
     </BlockSlot>
 
     <BlockSlot @name="form">
-
 {{#let api.data as |item|}}
   {{#if item.IsEditable}}
+
+{{#if this.warn}}
+  {{#let (changeset-get item 'Action') as |newAction|}}
+      <ModalDialog
+        class="consul-intention-action-warn-modal warning"
+        data-test-action-warning
+        @onclose={{action (mut this.warn) false}}
+      >
+        <BlockSlot @name="header">
+          <h2>Set intention to {{newAction}}?</h2>
+        </BlockSlot>
+        <BlockSlot @name="body">
+          <p>
+            When you change this Intention to {{newAction}}, you will remove all the L7 policy permissions currently saved to this Intention. Are you sure you want to set it to {{newAction}}?
+          </p>
+        </BlockSlot>
+        <BlockSlot @name="actions" as |close|>
+          <button
+            data-test-action-warning-confirm
+            type="button"
+            class="dangerous"
+            {{on 'click' api.submit}}
+          >
+            Set to {{capitalize newAction}}
+          </button>
+          <button
+            data-test-action-warning-cancel
+            type="button"
+            class="type-cancel"
+            onclick={{close}}
+          >
+            No, Cancel
+          </button>
+        </BlockSlot>
+      </ModalDialog>
+  {{/let}}
+{{/if}}
+
       <DataSource
         @src={{concat '/' @nspace '/' @dc '/services'}}
         @onchange={{action this.createServices item}}
@@ -43,7 +84,9 @@ as |api|>
     {{#if (and api.isCreate this.isManagedByCRDs)}}
         <Consul::Intention::Notice::CustomResource @type="warning" />
     {{/if}}
-      <form onsubmit={{action api.submit}}>
+      <form
+        {{on 'submit' (fn this.submit item api.submit)}}
+      >
         <Consul::Intention::Form::Fieldsets
           @nspaces={{this.nspaces}}
           @services={{this.services}}
@@ -127,3 +170,4 @@ as |api|>
 
   </BlockSlot>
 </DataForm>
+</div>
