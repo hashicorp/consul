@@ -1,6 +1,10 @@
 {{on-window 'resize' (action this.calculate)}}
 
-<div {{did-insert (action this.calculate)}} {{did-update (action this.calculate) @topology}} class="topology-container">
+<div
+  {{did-insert (action this.calculate)}}
+  {{did-update (action this.calculate) @topology}}
+  class="topology-container"
+>
 {{#if (gt @topology.Downstreams.length 0)}}
   <div id="downstream-container">
     <div>
@@ -11,13 +15,16 @@
         </Tooltip>
       </span>
     </div>
+  {{#each @topology.Downstreams as |item|}}
     <TopologyMetrics::Card
-      @items={{@topology.Downstreams}}
+      {{did-update (action this.calculate) item}}
+      @item={{item}}
       @service={{@service.Service}}
       @dc={{@topology.Datacenter}}
       @hasMetricsProvider={{this.hasMetricsProvider}}
       @noMetricsReason={{this.noMetricsReason}}
     />
+  {{/each}}
   </div>
 {{/if}}
   <div id="metrics-container">
@@ -56,21 +63,24 @@
       @center={{this.centerDimensions}}
       @lines={{this.downLines}}
       @items={{@topology.Downstreams}}
-     />
+    />
   </div>
 {{#if (gt @topology.Upstreams.length 0)}}
   <div id="upstream-column">
   {{#each-in (group-by "Datacenter" @topology.Upstreams) as |dc upstreams|}}
     <div id="upstream-container">
       <p>{{dc}}</p>
+    {{#each upstreams as |item|}}
       <TopologyMetrics::Card
-        @items={{upstreams}}
+        {{did-update (action this.calculate) item}}
+        @item={{item}}
         @service={{@service.Service}}
         @dc={{@topology.Datacenter}}
         @type='upstream'
         @hasMetricsProvider={{this.hasMetricsProvider}}
         @noMetricsReason={{this.noMetricsReason}}
       />
+    {{/each}}
     </div>
   {{/each-in}}
   </div>
@@ -82,6 +92,6 @@
       @center={{this.centerDimensions}}
       @lines={{this.upLines}}
       @items={{@topology.Upstreams}}
-     />
+    />
   </div>
 </div>
