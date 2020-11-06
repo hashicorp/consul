@@ -1,6 +1,6 @@
-FROM hashicorp.jfrog.io/docker/fortio/fortio AS fortio
+FROM docker.mirror.hashicorp.services/fortio/fortio AS fortio
 
-FROM hashicorp.jfrog.io/docker/bats/bats:latest
+FROM docker.mirror.hashicorp.services/bats/bats:latest
 
 RUN apk add curl
 RUN apk add openssl

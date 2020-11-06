@@ -305,7 +305,7 @@ type Config struct {
 	TokenFile string
 
 	// Namespace is the name of the namespace to send along for the request
-	// when no other Namespace is present in the QueryOptions
+	// when no other Namespace ispresent in the QueryOptions
 	Namespace string
 
 	TLSConfig TLSConfig
