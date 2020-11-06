@@ -44,7 +44,7 @@
                                   }
                             ]
                       },
-                  "stat_prefix": "exposed_path_filter_grpchealthv1HealthCheck_21501.http",
+                  "stat_prefix": "exposed_path_filter_grpchealthv1HealthCheck_21501_http",
                   "tracing": {
                         "random_sampling": {
                             }
@@ -96,7 +96,7 @@
                                   }
                             ]
                       },
-                  "stat_prefix": "exposed_path_filter_health1_21500.http",
+                  "stat_prefix": "exposed_path_filter_health1_21500_http",
                   "tracing": {
                         "random_sampling": {
                             }
@@ -134,7 +134,7 @@
               "name": "envoy.tcp_proxy",
               "config": {
                   "cluster": "local_app",
-                  "stat_prefix": "public_listener.tcp"
+                  "stat_prefix": "public_listener_tcp"
                 }
             }
           ]

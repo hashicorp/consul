@@ -577,7 +577,7 @@ func expectListenerJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot) ma
 								"name": "envoy.tcp_proxy",
 								"config": {
 									"cluster": "local_app",
-									"stat_prefix": "public_listener.tcp"
+									"stat_prefix": "public_listener_tcp"
 								}
 							}
 						]
@@ -600,7 +600,7 @@ func expectListenerJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot) ma
 							"name": "envoy.tcp_proxy",
 							"config": {
 								"cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-								"stat_prefix": "upstream.db.dc1.tcp"
+								"stat_prefix": "upstream_db_tcp"
 							}
 						}
 					]
@@ -623,7 +623,7 @@ func expectListenerJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot) ma
 							"name": "envoy.tcp_proxy",
 							"config": {
 								"cluster": "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
-								"stat_prefix": "upstream.prepared_query_geo-cache.tcp"
+								"stat_prefix": "upstream_prepared_query_geo-cache_tcp"
 							}
 						}
 					]

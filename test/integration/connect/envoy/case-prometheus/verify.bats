@@ -40,13 +40,13 @@ load helpers
     must_match_in_prometheus_response localhost:1234 \
     '^envoy_http_downstream_rq_active'
 
-  # Should be labelling with consul_source_service.
+  # Should be labelling with local_cluster.
   retry_default \
     must_match_in_prometheus_response localhost:1234 \
-    '[\{,]consul_source_service="s1"[,}] '
+    '[\{,]local_cluster="s1"[,}] '
 
   # Should be labelling with http listener prefix.
   retry_default \
     must_match_in_prometheus_response localhost:1234 \
-    '[\{,]envoy_http_conn_manager_prefix="public_listener"[,}]'
+    '[\{,]envoy_http_conn_manager_prefix="public_listener_http"[,}]'
 }

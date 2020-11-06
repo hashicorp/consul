@@ -48,12 +48,12 @@ load helpers
   # Response should include the http public listener.
   retry_default \
      must_match_in_stats_proxy_response localhost:1239 \
-    'stats' 'http.public_listener.http'
+    'stats' 'http.public_listener_http'
 
   # /stats/prometheus should also be reachable and labelling the local cluster.
   retry_default \
      must_match_in_stats_proxy_response localhost:1239 \
-    'stats/prometheus' '[\{,]consul_source_service="s1"[,}]'
+    'stats/prometheus' '[\{,]local_cluster="s1"[,}]'
 
   # /stats/prometheus should also be reachable and exposing metrics.
   retry_default \

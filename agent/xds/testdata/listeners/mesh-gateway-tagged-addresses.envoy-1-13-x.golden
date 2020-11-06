@@ -22,7 +22,7 @@
               "name": "envoy.tcp_proxy",
               "config": {
                   "cluster": "dc2.internal.11111111-2222-3333-4444-555555555555.consul",
-                  "stat_prefix": "mesh_gateway_remote_lan_dc2.tcp"
+                  "stat_prefix": "mesh_gateway_remote_lan_dc2_tcp"
                 }
             }
           ]
@@ -38,7 +38,7 @@
               "name": "envoy.tcp_proxy",
               "config": {
                   "cluster": "dc4.internal.11111111-2222-3333-4444-555555555555.consul",
-                  "stat_prefix": "mesh_gateway_remote_lan_dc4.tcp"
+                  "stat_prefix": "mesh_gateway_remote_lan_dc4_tcp"
                 }
             }
           ]
@@ -54,7 +54,7 @@
               "name": "envoy.tcp_proxy",
               "config": {
                   "cluster": "dc6.internal.11111111-2222-3333-4444-555555555555.consul",
-                  "stat_prefix": "mesh_gateway_remote_lan_dc6.tcp"
+                  "stat_prefix": "mesh_gateway_remote_lan_dc6_tcp"
                 }
             }
           ]
@@ -68,7 +68,7 @@
               "name": "envoy.tcp_proxy",
               "config": {
                   "cluster": "",
-                  "stat_prefix": "mesh_gateway_local_lan.tcp"
+                  "stat_prefix": "mesh_gateway_local_lan_tcp"
                 }
             }
           ]
@@ -101,7 +101,7 @@
               "name": "envoy.tcp_proxy",
               "config": {
                   "cluster": "dc2.internal.11111111-2222-3333-4444-555555555555.consul",
-                  "stat_prefix": "mesh_gateway_remote_wan_dc2.tcp"
+                  "stat_prefix": "mesh_gateway_remote_wan_dc2_tcp"
                 }
             }
           ]
@@ -117,7 +117,7 @@
               "name": "envoy.tcp_proxy",
               "config": {
                   "cluster": "dc4.internal.11111111-2222-3333-4444-555555555555.consul",
-                  "stat_prefix": "mesh_gateway_remote_wan_dc4.tcp"
+                  "stat_prefix": "mesh_gateway_remote_wan_dc4_tcp"
                 }
             }
           ]
@@ -133,7 +133,7 @@
               "name": "envoy.tcp_proxy",
               "config": {
                   "cluster": "dc6.internal.11111111-2222-3333-4444-555555555555.consul",
-                  "stat_prefix": "mesh_gateway_remote_wan_dc6.tcp"
+                  "stat_prefix": "mesh_gateway_remote_wan_dc6_tcp"
                 }
             }
           ]
@@ -147,7 +147,7 @@
               "name": "envoy.tcp_proxy",
               "config": {
                   "cluster": "",
-                  "stat_prefix": "mesh_gateway_local_wan.tcp"
+                  "stat_prefix": "mesh_gateway_local_wan_tcp"
                 }
             }
           ]
