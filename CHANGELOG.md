@@ -1,5 +1,31 @@
 ## UNRELEASED
 
+BREAKING CHANGES:
+
+* sentinel: **(Consul Enterprise only)** update to v0.16.0, which replaces `whitelist` and `blacklist` with `allowlist` and `denylist`
+
+SECURITY:
+
+* Fix Consul Enterprise Namespace Config Entry Replication DoS. Previously an operator with service:write ACL permissions in a Consul Enterprise cluster could write a malicious config entry that caused infinite raft writes due to issues with the namespace replication logic. [[CVE-2020-25201](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-25201)] [[GH-9024](https://github.com/hashicorp/consul/issues/9024)]
+
+FEATURES:
+
+* agent: Add a new RPC endpoint for streaming cluster state change events to clients.
+* telemetry: add initialization and definition for non-expiring key metrics in Prometheus [[GH-9088](https://github.com/hashicorp/consul/issues/9088)]
+
+IMPROVEMENTS:
+
+* agent: add path_allowlist config option to restrict metrics proxy queries [[GH-9059](https://github.com/hashicorp/consul/issues/9059)]
+* agent: protect the metrics proxy behind ACLs [[GH-9099](https://github.com/hashicorp/consul/issues/9099)]
+* ui: add dashboard_url_template config option for external dashboard links [[GH-9002](https://github.com/hashicorp/consul/issues/9002)]
+
+BUG FIXES:
+
+* api: Fixed a bug where the Check.GRPCUseTLS field could not be set using snake case. [[GH-8771](https://github.com/hashicorp/consul/issues/8771)]
+* connect: fix connect sidecars registered via the API not being automatically deregistered with their parent service after an agent restart by persisting the LocallyRegisteredAsSidecar property. [[GH-8924](https://github.com/hashicorp/consul/issues/8924)]
+* ui: hide metrics for ingress gateways until full support can be implemented [[GH-9081](https://github.com/hashicorp/consul/issues/9081)]
+* ui: only show topology tab for services that exist [[GH-9008](https://github.com/hashicorp/consul/issues/9008)]
+
 ## 1.9.0-beta1 (October 12, 2020)
 
 BREAKING CHANGES:
