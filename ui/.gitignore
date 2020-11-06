@@ -1,25 +1,31 @@
 !bin
 # See https://help.github.com/ignore-files/ for more about ignoring files.
-
 # compiled output
-/dist/
-/tmp/
+dist
+tmp
 
 # dependencies
-/node_modules/
+node_modules
 
 # misc
-/.env*
-/.pnp*
-/.sass-cache
-/connect.lock
-/coverage/
-/libpeerconnection.log
-/npm-debug.log*
-/testem.log
-/yarn-error.log
+.env*
+.pnp*
+.sass-cache
+.DS_Store
+connect.lock
+coverage
+coverage_*
+coverage-*
+libpeerconnection.log
+npm-debug.log*
+testem.log
+yarn-error.log
+
+# storybook
+storybook-static
+**/.storybook/*.html
 
 # ember-try
-/.node_modules.ember-try/
-/bower.json.ember-try
-/package.json.ember-try
+.node_modules.ember-try
+bower.json.ember-try
+package.json.ember-try
