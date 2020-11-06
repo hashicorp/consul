@@ -111,6 +111,62 @@
     "stats_tags": [
       {
         "regex": "^cluster\\.((?:([^.]+)~)?(?:[^.]+\\.)?[^.]+\\.[^.]+\\.[^.]+\\.[^.]+\\.[^.]+\\.consul\\.)",
+        "tag_name": "consul.destination.custom_hash"
+      },
+      {
+        "regex": "^cluster\\.((?:[^.]+~)?(?:([^.]+)\\.)?[^.]+\\.[^.]+\\.[^.]+\\.[^.]+\\.[^.]+\\.consul\\.)",
+        "tag_name": "consul.destination.service_subset"
+      },
+      {
+        "regex": "^cluster\\.((?:[^.]+~)?(?:[^.]+\\.)?([^.]+)\\.[^.]+\\.[^.]+\\.[^.]+\\.[^.]+\\.consul\\.)",
+        "tag_name": "consul.destination.service"
+      },
+      {
+        "regex": "^cluster\\.((?:[^.]+~)?(?:[^.]+\\.)?[^.]+\\.([^.]+)\\.[^.]+\\.[^.]+\\.[^.]+\\.consul\\.)",
+        "tag_name": "consul.destination.namespace"
+      },
+      {
+        "regex": "^cluster\\.((?:[^.]+~)?(?:[^.]+\\.)?[^.]+\\.[^.]+\\.([^.]+)\\.[^.]+\\.[^.]+\\.consul\\.)",
+        "tag_name": "consul.destination.datacenter"
+      },
+      {
+        "regex": "^cluster\\.((?:[^.]+~)?(?:[^.]+\\.)?[^.]+\\.[^.]+\\.[^.]+\\.([^.]+)\\.[^.]+\\.consul\\.)",
+        "tag_name": "consul.destination.routing_type"
+      },
+      {
+        "regex": "^cluster\\.((?:[^.]+~)?(?:[^.]+\\.)?[^.]+\\.[^.]+\\.[^.]+\\.[^.]+\\.([^.]+)\\.consul\\.)",
+        "tag_name": "consul.destination.trust_domain"
+      },
+      {
+        "regex": "^cluster\\.(((?:[^.]+~)?(?:[^.]+\\.)?[^.]+\\.[^.]+\\.[^.]+)\\.[^.]+\\.[^.]+\\.consul\\.)",
+        "tag_name": "consul.destination.target"
+      },
+      {
+        "regex": "^cluster\\.(((?:[^.]+~)?(?:[^.]+\\.)?[^.]+\\.[^.]+\\.[^.]+\\.[^.]+\\.[^.]+)\\.consul\\.)",
+        "tag_name": "consul.destination.full_target"
+      },
+      {
+        "regex": "^(?:tcp|http)\\.upstream\\.(([^.]+)\\.[^.]+\\.(?:[^.]+\\.)?[^.]+\\.)",
+        "tag_name": "consul.upstream.service"
+      },
+      {
+        "regex": "^(?:tcp|http)\\.upstream\\.([^.]+\\.([^.]+)\\.(?:[^.]+\\.)?[^.]+\\.)",
+        "tag_name": "consul.upstream.datacenter"
+      },
+      {
+        "regex": "^(?:tcp|http)\\.upstream\\.([^.]+\\.[^.]+\\.((?:[^.]+\\.))?[^.]+\\.)",
+        "tag_name": "consul.upstream.namespace"
+      },
+      {
+        "regex": "^(?:tcp|http)\\.upstream\\.([^.]+\\.[^.]+\\.(?:[^.]+\\.)?([^.]+)\\.)",
+        "tag_name": "consul.upstream.protocol"
+      },
+      {
+        "regex": "^(?:tcp|http)\\.upstream\\.(([^.]+\\.[^.]+\\.(?:[^.]+\\.)?[^.]+)\\.)",
+        "tag_name": "consul.upstream.full_target"
+      },
+      {
+        "regex": "^cluster\\.((?:([^.]+)~)?(?:[^.]+\\.)?[^.]+\\.[^.]+\\.[^.]+\\.[^.]+\\.[^.]+\\.consul\\.)",
         "tag_name": "consul.custom_hash"
       },
       {
@@ -147,6 +203,10 @@
       },
       {
         "tag_name": "local_cluster",
+        "fixed_value": "my-gateway-123"
+      },
+      {
+        "tag_name": "consul.source.service",
         "fixed_value": "my-gateway-123"
       }
     ],

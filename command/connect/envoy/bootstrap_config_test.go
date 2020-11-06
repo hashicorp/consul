@@ -197,21 +197,37 @@ const (
 )
 
 func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
-	sniTagJSON := strings.Join(sniTagJSONs, ",\n")
+	defaultTags, err := consulTagSpecifiers(false)
+	require.NoError(t, err)
+
+	defaultTagsJSON := strings.Join(defaultTags, ",\n")
 	defaultStatsConfigJSON := `{
 					"stats_tags": [
-						` + sniTagJSON + `
+						` + defaultTagsJSON + `
+					],
+					"use_all_default_tags": true
+				}`
+
+	// The updated tags exclude the ones deprecated in Consul 1.9
+	updatedTags, err := consulTagSpecifiers(true)
+	require.NoError(t, err)
+
+	updatedTagsJSON := strings.Join(updatedTags, ",\n")
+	updatedStatsConfigJSON := `{
+					"stats_tags": [
+						` + updatedTagsJSON + `
 					],
 					"use_all_default_tags": true
 				}`
 
 	tests := []struct {
-		name     string
-		input    BootstrapConfig
-		env      []string
-		baseArgs BootstrapTplArgs
-		wantArgs BootstrapTplArgs
-		wantErr  bool
+		name               string
+		input              BootstrapConfig
+		env                []string
+		baseArgs           BootstrapTplArgs
+		wantArgs           BootstrapTplArgs
+		omitDeprecatedTags bool
+		wantErr            bool
 	}{
 		{
 			name:  "defaults",
@@ -403,7 +419,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 			wantArgs: BootstrapTplArgs{
 				StatsConfigJSON: `{
 					"stats_tags": [
-						` + sniTagJSON + `,
+						` + defaultTagsJSON + `,
 						{
 							"tag_name": "canary",
 							"fixed_value": "1"
@@ -623,6 +639,31 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "omit-deprecated-tags",
+			input: BootstrapConfig{
+				ReadyBindAddr:      "0.0.0.0:4444",
+				PrometheusBindAddr: "0.0.0.0:9000",
+				StatsBindAddr:      "0.0.0.0:9000",
+			},
+			baseArgs: BootstrapTplArgs{
+				AdminBindAddress: "127.0.0.1",
+				AdminBindPort:    "19000",
+			},
+			omitDeprecatedTags: true,
+			wantArgs: BootstrapTplArgs{
+				AdminBindAddress:   "127.0.0.1",
+				AdminBindPort:      "19000",
+				StaticClustersJSON: expectedSelfAdminCluster,
+				StaticListenersJSON: strings.Join(
+					[]string{expectedPromListener, expectedStatsListener, expectedReadyListener},
+					", ",
+				),
+				// Should not have default stats config JSON when deprecated tags are omitted
+				StatsConfigJSON: updatedStatsConfigJSON,
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -630,7 +671,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 
 			defer testSetAndResetEnv(t, tt.env)()
 
-			err := tt.input.ConfigureArgs(&args)
+			err := tt.input.ConfigureArgs(&args, tt.omitDeprecatedTags)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {

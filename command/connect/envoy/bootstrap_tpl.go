@@ -14,6 +14,12 @@ type BootstrapTplArgs struct {
 	// the agent to deliver the correct configuration.
 	ProxyID string
 
+	// ProxySourceService is the Consul service name to report for this proxy
+	// instance's source service label. For sidecars it should be the
+	// Proxy.DestinationServiceName. For gateways and similar it is the service
+	// name of the proxy service itself.
+	ProxySourceService string
+
 	// AgentCAPEM is the CA to use to verify the local agent gRPC service if
 	// TLS is enabled.
 	AgentCAPEM string
@@ -79,8 +85,8 @@ type BootstrapTplArgs struct {
 	// See https://www.envoyproxy.io/docs/envoy/v1.9.0/api-v2/config/trace/v2/trace.proto.
 	TracingConfigJSON string
 
-	// Namespace is the Consul Enterprise Namespace of the proxy service instance as
-	// registered with the Consul agent.
+	// Namespace is the Consul Enterprise Namespace of the proxy service instance
+	// as registered with the Consul agent.
 	Namespace string
 
 	// EnvoyVersion is the envoy version, which is necessary to generate the

@@ -28,7 +28,7 @@
                                     "domains": [
                                           "*"
                                         ],
-                                    "name": "db",
+                                    "name": "db.dc1",
                                     "routes": [
                                           {
                                                 "match": {
@@ -42,7 +42,7 @@
                                   }
                             ]
                       },
-                  "stat_prefix": "upstream_db_http",
+                  "stat_prefix": "upstream.db.dc1.http",
                   "tracing": {
                         "operation_name": "EGRESS",
                         "random_sampling": {
@@ -70,7 +70,7 @@
               "name": "envoy.tcp_proxy",
               "config": {
                   "cluster": "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
-                  "stat_prefix": "upstream_prepared_query_geo-cache_tcp"
+                  "stat_prefix": "upstream.prepared_query_geo-cache.tcp"
                 }
             }
           ]
@@ -124,7 +124,7 @@
               "name": "envoy.tcp_proxy",
               "config": {
                   "cluster": "local_app",
-                  "stat_prefix": "public_listener_tcp"
+                  "stat_prefix": "public_listener.tcp"
                 }
             }
           ]
