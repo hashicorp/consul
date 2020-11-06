@@ -1,6 +1,6 @@
 @import './composite-row/index';
 
-.proxy-upstreams > ul > li,
+.proxy-upstreams > li,
 .list-collection > ul > li:not(:first-child) {
   @extend %composite-row;
 }
