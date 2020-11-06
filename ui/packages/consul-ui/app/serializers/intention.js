@@ -2,6 +2,7 @@ import Serializer from './application';
 import { inject as service } from '@ember/service';
 import { get } from '@ember/object';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/intention';
+import removeNull from 'consul-ui/utils/remove-null';
 
 export default Serializer.extend({
   primaryKey: PRIMARY_KEY,
@@ -28,7 +29,7 @@ export default Serializer.extend({
         respond((headers, body) => {
           return cb(
             headers,
-            body.map(item => this.ensureID(item))
+            body.map(item => this.ensureID(removeNull(item)))
           );
         }),
       query
@@ -38,7 +39,7 @@ export default Serializer.extend({
     return this._super(
       cb =>
         respond((headers, body) => {
-          body = this.ensureID(body);
+          body = this.ensureID(removeNull(body));
           return cb(headers, body);
         }),
       query

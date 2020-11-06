@@ -1,5 +1,5 @@
 @setupApplicationTest
-Feature: dc / intentions / permissions / warn: Intention Permission  Warn
+Feature: dc / intentions / permissions / warn: Intention Permission Warn
   Scenario:
     Given 1 datacenter model with the value "datacenter"
     And 1 intention model from yaml
@@ -8,6 +8,7 @@ Feature: dc / intentions / permissions / warn: Intention Permission  Warn
       SourceName: web
       DestinationNS: default
       DestinationName: db
+      Action: ~
       Permissions:
       - Action: allow
         HTTP:
