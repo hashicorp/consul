@@ -2100,11 +2100,20 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
   - `metrics_proxy` ((#ui_config_metrics_proxy)) - This object configures an
     internal agent API endpoint that will proxy GET requests to a metrics
-    backend to allow querying metrics data in the UI. It simplifies deployment
-    where the metrics backend is not exposed externally to UI user's browsers.
+    backend to allow querying metrics data in the UI. This simplifies deployment
+    where the metrics backend is not exposed externally to UI users' browsers.
     It may also be used to augment requests with API credentials to allow
     serving graphs to UI users without them needing individual access tokens for
     the metrics backend.
+
+    ~> **Security Note:** Exposing your metrics backend via Consul in this way
+    should be carefully considered in production. As Consul doesn't understand
+    the requests, it can't limit access to only specific resources. For example
+    **this might make it possible for a malicious user on the network to query
+    for arbitrary metrics about any server or workload in your infrastructure,
+    or overload the metrics infrastructure with queries**. See [Metrics Proxy
+    Security](/docs/connect/observability/ui-visualization#metrics-proxy-security)
+    for more details.
 
     The following sub-keys are available:
 
@@ -2116,6 +2125,17 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
       which will then not be necessary in provider requests to the backend and
       the proxy will prevent any access to paths without that prefix on the
       backend.
+
+    - `path_allowlist` ((#ui_config_metrics_provider_path_allowlist)) - This
+      specifies the paths that may be proxies to when appended to the
+      `base_url`. It will defaults to `["/api/v1/query_range", "/api/v1/query"]`
+      which are the endpoints required for the built-in Prometheus provider. If
+      a [custom
+      provider](/docs/connect/observability/ui-visualization#custom-metrics-providers)
+      is used that requires the metrics proxy, the correct allowlist must be
+      specified to enable proxying to necessary endpoints. See [Path
+      Allowlist](/docs/connect/observability/ui-visualization#path-allowlist)
+      for more information.
 
     - `add_headers` ((#ui_config_metrics_proxy_add_headers)) - This is an
       optional list if headers to add to requests that are proxied to the
@@ -2129,6 +2149,30 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
       - `value` ((#ui_config_metrics_proxy_add_headers_value)) - Specifies the
         value in inject into proxied requests.
+
+  - `dashboard_url_templates` ((#ui_config_dashboard_url_templates)) - This map
+    specifies URL templates that may be used to render links to external
+    dashboards in various contexts in the UI. It is a map with the name of the
+    template as a key. The value is a string URL with optional placeholders.
+
+    Each template may contain placeholders which will be substituted for the
+    correct values in content when rendered in the UI. The placeholders
+    available are listed for each template.
+
+    For more information and examples see [UI
+      Visualization](/docs/connect/observability/ui-visualization#configuring-dashboard-urls)
+
+    The following named templates are defined:
+
+    - `service` ((#ui_config_dashboard_url_templates_service)) - This is the URL
+      to use when linking to the dashboard for a specific service. It is shown
+      as part of the [Topology
+      Visualization](/docs/connect/observability/ui-visualization).
+
+      The placeholders available are:
+       - `{{Service.Name}}` - Replaced with the current service's name.
+       - `{{Service.Namespace}}` - Replaced with the current service's namespace or empty if namespaces are not enabled.
+       - `{{Datacenter}}` - Replaced with the current service's datacenter.
 
 
 - `ui_dir` - **This field is deprecated in Consul 1.9.0. See the [`ui_config.dir`](#ui_config_dir) field instead.**

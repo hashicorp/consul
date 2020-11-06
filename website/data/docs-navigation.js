@@ -66,7 +66,10 @@ export default [
       },
       'intentions',
       'intentions-legacy',
-      'observability',
+      {
+        category: 'observability',
+        content: ['ui-visualization'],
+      },
       {
         category: 'l7-traffic',
         content: ['discovery-chain'],
