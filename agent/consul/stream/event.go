@@ -23,13 +23,12 @@ type Event struct {
 }
 
 type Payload interface {
-	// FilterByKey must return true if the Payload should be included in a subscription
+	// MatchesKey must return true if the Payload should be included in a subscription
 	// requested with the key and namespace.
 	// Generally this means that the payload matches the key and namespace or
 	// the payload is a special framing event that should be returned to every
 	// subscription.
-	// TODO: rename to MatchesKey
-	FilterByKey(key, namespace string) bool
+	MatchesKey(key, namespace string) bool
 
 	// HasReadPermission uses the acl.Authorizer to determine if the items in the
 	// Payload are visible to the request. It returns true if the payload is
@@ -74,9 +73,9 @@ func (p *PayloadEvents) filter(f func(Event) bool) bool {
 	return true
 }
 
-func (p *PayloadEvents) FilterByKey(key, namespace string) bool {
+func (p *PayloadEvents) MatchesKey(key, namespace string) bool {
 	return p.filter(func(event Event) bool {
-		return event.Payload.FilterByKey(key, namespace)
+		return event.Payload.MatchesKey(key, namespace)
 	})
 }
 
@@ -106,7 +105,7 @@ func (e Event) IsNewSnapshotToFollow() bool {
 
 type framingEvent struct{}
 
-func (framingEvent) FilterByKey(string, string) bool {
+func (framingEvent) MatchesKey(string, string) bool {
 	return true
 }
 
@@ -126,7 +125,7 @@ type closeSubscriptionPayload struct {
 	tokensSecretIDs []string
 }
 
-func (closeSubscriptionPayload) FilterByKey(string, string) bool {
+func (closeSubscriptionPayload) MatchesKey(string, string) bool {
 	return false
 }
 

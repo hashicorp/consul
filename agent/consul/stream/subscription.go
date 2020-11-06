@@ -102,7 +102,7 @@ func (s *Subscription) Next(ctx context.Context) (Event, error) {
 			continue
 		}
 		event := newEventFromBatch(s.req, next.Events)
-		if !event.Payload.FilterByKey(s.req.Key, s.req.Namespace) {
+		if !event.Payload.MatchesKey(s.req.Key, s.req.Namespace) {
 			continue
 		}
 		return event, nil

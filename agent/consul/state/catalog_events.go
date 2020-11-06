@@ -4,7 +4,6 @@ import (
 	memdb "github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
-
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
@@ -25,7 +24,7 @@ func (e EventPayloadCheckServiceNode) HasReadPermission(authz acl.Authorizer) bo
 	return e.Value.CanRead(authz) == acl.Allow
 }
 
-func (e EventPayloadCheckServiceNode) FilterByKey(key, namespace string) bool {
+func (e EventPayloadCheckServiceNode) MatchesKey(key, namespace string) bool {
 	if key == "" && namespace == "" {
 		return true
 	}

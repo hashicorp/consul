@@ -35,7 +35,7 @@ func TestPayloadEvents_FilterByKey(t *testing.T) {
 		events = append(events, tc.events...)
 
 		pe := &PayloadEvents{Items: events}
-		ok := pe.FilterByKey(tc.req.Key, tc.req.Namespace)
+		ok := pe.MatchesKey(tc.req.Key, tc.req.Namespace)
 		require.Equal(t, tc.expectEvent, ok)
 		if !tc.expectEvent {
 			return
@@ -144,7 +144,7 @@ type nsPayload struct {
 	value     string
 }
 
-func (p nsPayload) FilterByKey(key, namespace string) bool {
+func (p nsPayload) MatchesKey(key, namespace string) bool {
 	return (key == "" || key == p.key) && (namespace == "" || namespace == p.namespace)
 }
 
