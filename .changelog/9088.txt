@@ -1,0 +1,3 @@
+```release-note:feature
+telemetry: add initialization and definition for non-expiring key metrics in Prometheus
+```

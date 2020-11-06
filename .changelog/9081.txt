@@ -1,0 +1,4 @@
+```release-note:bug
+ui: hide metrics for ingress gateways until full support can be implemented
+```
+
