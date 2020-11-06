@@ -27,11 +27,11 @@ environment, but the general mechanisms for a secure Consul deployment revolve a
   [authentication methods](/docs/security/acl/auth-methods) can be used to enable trusted external parties to authorize
   ACL token creation.
 
-- **Namespaces (Enterprise Only)** - Read and write operations can be scoped to a logical namespace to restrict access 
-  to Consul components within a multi-tenant environment.
+- **Namespaces** <EnterpriseAlert inline /> - Read and write operations can be scoped to a logical namespace to restrict
+  access to Consul components within a multi-tenant environment.
 
-- **Sentinel Policies (Enterprise Only)** - Sentinel policies enable policy-as-code for granular control over the 
-  built-in key-value store.
+- **Sentinel Policies** <EnterpriseAlert inline /> - Sentinel policies enable policy-as-code for granular control over 
+  the built-in key-value store.
 
 ### Personas
 
@@ -167,8 +167,8 @@ environment and adapt these configurations accordingly.
   - **👤 Service or Node Identity** - Synthetic policy granting a predefined set of permissions typical for services 
     deployed within Consul.
   
-  - **🏷 Namespace** - a named, logical scoping of Consul Enterprise resources, typically to enable multi-tenant 
-    environments. Consul OSS clusters always operate within the “default” namespace.
+  - **🏷 Namespace** <EnterpriseAlert inline /> - a named, logical scoping of Consul Enterprise resources, typically to 
+    enable multi-tenant environments. Consul OSS clusters always operate within the “default” namespace.
 
 - **Gossip Encryption** - A shared, base64-encoded 32-byte symmetric key is required to [encrypt Serf gossip 
   communication](https://learn.hashicorp.com/tutorials/consul/gossip-encryption-secure) within a cluster using 
@@ -187,11 +187,11 @@ environment and adapt these configurations accordingly.
   - [`encrypt_verify_outgoing`](/docs/agent/options#encrypt_verify_outgoing) - By default this is true to enforce 
     encryption on *outgoing* gossip communications.
 
-- **Namespaces (Enterprise Only)** - Read and write operations should be scoped to logical namespaces to restrict access
-  to Consul components within a multi-tenant environment. Furthermore, this feature can be used to enable a self-service
-  approach to Consul ACL administration for teams within a scoped namespace.
+- **Namespaces** <EnterpriseAlert inline /> - Read and write operations should be scoped to logical namespaces to 
+  restrict access to Consul components within a multi-tenant environment. Furthermore, this feature can be used to 
+  enable a self-service approach to Consul ACL administration for teams within a scoped namespace.
 
-- **Sentinel Policies (Enterprise Only)** - Sentinel policies allow for granular control over the builtin 
+- **Sentinel Policies** <EnterpriseAlert inline /> - Sentinel policies allow for granular control over the builtin 
   key-value store.
 
 - **Ensure Script Checks are Disabled** - Consul’s agent optionally has an HTTP API, which can be exposed beyond 
