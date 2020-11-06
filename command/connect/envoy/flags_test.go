@@ -36,7 +36,7 @@ func TestServiceAddressValue_String(t *testing.T) {
 
 	t.Run("default value", func(t *testing.T) {
 		addr := &ServiceAddressValue{}
-        require.Equal(t, addr.String(), ":8443")
+		require.Equal(t, addr.String(), ":8443")
 	})
 
 	t.Run("set value", func(t *testing.T) {
