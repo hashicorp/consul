@@ -159,7 +159,7 @@ func TestNewEventsFromBatch(t *testing.T) {
 		expected := Event{
 			Topic:   testTopic,
 			Index:   9999,
-			Payload: NewPayloadEvents(events...),
+			Payload: newPayloadEvents(events...),
 		}
 		require.Equal(t, expected, e)
 	})

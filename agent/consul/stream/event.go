@@ -22,6 +22,9 @@ type Event struct {
 	Payload Payload
 }
 
+// A Payload contains the topic-specific data in an event. The payload methods
+// should not modify the state of the payload if the Event is being submitted to
+// EventPublisher.Publish.
 type Payload interface {
 	// MatchesKey must return true if the Payload should be included in a subscription
 	// requested with the key and namespace.
@@ -36,12 +39,16 @@ type Payload interface {
 	HasReadPermission(authz acl.Authorizer) bool
 }
 
-// PayloadEvents is an Payload which contains multiple Events.
+// PayloadEvents is a Payload that may be returned by Subscription.Next when
+// there are multiple events at an index.
+//
+// Note that unlike most other Payload, PayloadEvents is mutable and it is NOT
+// safe to send to EventPublisher.Publish.
 type PayloadEvents struct {
 	Items []Event
 }
 
-func NewPayloadEvents(items ...Event) *PayloadEvents {
+func newPayloadEvents(items ...Event) *PayloadEvents {
 	return &PayloadEvents{Items: items}
 }
 
@@ -73,6 +80,7 @@ func (p *PayloadEvents) filter(f func(Event) bool) bool {
 	return true
 }
 
+// MatchesKey filters the PayloadEvents to those which match the key and namespace.
 func (p *PayloadEvents) MatchesKey(key, namespace string) bool {
 	return p.filter(func(event Event) bool {
 		return event.Payload.MatchesKey(key, namespace)
@@ -83,6 +91,8 @@ func (p *PayloadEvents) Len() int {
 	return len(p.Items)
 }
 
+// HasReadPermission filters the PayloadEvents to those which are authorized
+// for reading by authz.
 func (p *PayloadEvents) HasReadPermission(authz acl.Authorizer) bool {
 	return p.filter(func(event Event) bool {
 		return event.Payload.HasReadPermission(authz)

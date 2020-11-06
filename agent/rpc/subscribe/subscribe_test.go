@@ -917,7 +917,7 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 			name: "event batch",
 			event: stream.Event{
 				Index: 2002,
-				Payload: stream.NewPayloadEvents(
+				Payload: newPayloadEvents(
 					stream.Event{
 						Index: 2002,
 						Payload: state.EventPayloadCheckServiceNode{
@@ -1005,6 +1005,10 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 			fn(t, tc)
 		})
 	}
+}
+
+func newPayloadEvents(items ...stream.Event) *stream.PayloadEvents {
+	return &stream.PayloadEvents{Items: items}
 }
 
 // newEventFromSubscription is used to return framing events. EndOfSnapshot and

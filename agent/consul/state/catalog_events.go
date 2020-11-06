@@ -11,6 +11,10 @@ import (
 
 // EventPayloadCheckServiceNode is used as the Payload for a stream.Event to
 // indicates changes to a CheckServiceNode for service health.
+//
+// The stream.Payload methods implemented by EventPayloadCheckServiceNode are
+// do not mutate the payload, making it safe to use in an Event sent to
+// stream.EventPublisher.Publish.
 type EventPayloadCheckServiceNode struct {
 	Op    pbsubscribe.CatalogOp
 	Value *structs.CheckServiceNode

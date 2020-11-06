@@ -128,7 +128,7 @@ func newEventFromBatch(req SubscribeRequest, events []Event) Event {
 	return Event{
 		Topic:   req.Topic,
 		Index:   first.Index,
-		Payload: NewPayloadEvents(events...),
+		Payload: newPayloadEvents(events...),
 	}
 }
 

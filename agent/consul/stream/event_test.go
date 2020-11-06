@@ -54,7 +54,7 @@ func TestPayloadEvents_FilterByKey(t *testing.T) {
 				newSimpleEvent("One", 102),
 				newSimpleEvent("Two", 102)},
 			expectEvent: true,
-			expected: NewPayloadEvents(
+			expected: newPayloadEvents(
 				newSimpleEvent("One", 102),
 				newSimpleEvent("Two", 102)),
 			expectedCap: 5,
@@ -66,7 +66,7 @@ func TestPayloadEvents_FilterByKey(t *testing.T) {
 				newSimpleEvent("Same", 103),
 				newSimpleEvent("Same", 103)},
 			expectEvent: true,
-			expected: NewPayloadEvents(
+			expected: newPayloadEvents(
 				newSimpleEvent("Same", 103),
 				newSimpleEvent("Same", 103)),
 			expectedCap: 5,
@@ -78,7 +78,7 @@ func TestPayloadEvents_FilterByKey(t *testing.T) {
 				newNSEvent("Something", "apps"),
 				newNSEvent("Other", "apps")},
 			expectEvent: true,
-			expected: NewPayloadEvents(
+			expected: newPayloadEvents(
 				newNSEvent("Something", "apps"),
 				newNSEvent("Other", "apps")),
 			expectedCap: 5,
@@ -91,7 +91,7 @@ func TestPayloadEvents_FilterByKey(t *testing.T) {
 				newSimpleEvent("Other", 104),
 				newSimpleEvent("Same", 104)},
 			expectEvent: true,
-			expected: NewPayloadEvents(
+			expected: newPayloadEvents(
 				newSimpleEvent("Same", 104),
 				newSimpleEvent("Same", 104)),
 			expectedCap: 2,
@@ -104,7 +104,7 @@ func TestPayloadEvents_FilterByKey(t *testing.T) {
 				newNSEvent("db1", "dbs"),
 				newNSEvent("app2", "apps")},
 			expectEvent: true,
-			expected: NewPayloadEvents(
+			expected: newPayloadEvents(
 				newNSEvent("app1", "apps"),
 				newNSEvent("app2", "apps")),
 			expectedCap: 2,
@@ -150,7 +150,7 @@ func (p nsPayload) MatchesKey(key, namespace string) bool {
 
 func TestPayloadEvents_HasReadPermission(t *testing.T) {
 	t.Run("some events filtered", func(t *testing.T) {
-		ep := NewPayloadEvents(
+		ep := newPayloadEvents(
 			Event{Payload: simplePayload{key: "one", noReadPerm: true}},
 			Event{Payload: simplePayload{key: "two", noReadPerm: false}},
 			Event{Payload: simplePayload{key: "three", noReadPerm: true}},
@@ -165,7 +165,7 @@ func TestPayloadEvents_HasReadPermission(t *testing.T) {
 	})
 
 	t.Run("all events filtered", func(t *testing.T) {
-		ep := NewPayloadEvents(
+		ep := newPayloadEvents(
 			Event{Payload: simplePayload{key: "one", noReadPerm: true}},
 			Event{Payload: simplePayload{key: "two", noReadPerm: true}},
 			Event{Payload: simplePayload{key: "three", noReadPerm: true}},
