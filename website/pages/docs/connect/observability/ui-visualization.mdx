@@ -36,7 +36,7 @@ Providers](#custom-metrics-providers).
 
 ## Configuring the UI To Display Metrics
 
-To configure Consul's UI to fetch metrics two required configuration settings.
+To configure Consul's UI to fetch metrics there are two required configuration settings.
 These need to be set on each Consul Agent that is responsible for serving the
 UI. If there are multiple clients with the UI enabled in a datacenter for
 redundancy these configurations must be added to all of them.
@@ -250,7 +250,7 @@ The template for a complete provider JavaScript file is given below.
      *    [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API)
      *    that prefixes any url with the url of Consul's internal metrics proxy
      *    endpoint and adds your current Consul ACL token to the request
-     *    headers. Otherwise it functions like the browsers native fetch.
+     *    headers. Otherwise it functions like the browser's native fetch.
      *
      * The provider should throw an Exception if the options are not valid, for
      * example because it requires a metrics proxy and one is not configured.
@@ -489,7 +489,7 @@ API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) is provided to
 the metrics provider JavaScript during `init` as `options.fetch`. This is a thin
 wrapper that prefixes any url with the url of Consul's metrics proxy endpoint
 and adds your current Consul ACL token to the request headers. Otherwise it
-functions like the browsers native fetch and will forward your request on to the
+functions like the browser's native fetch and will forward your request on to the
 metrics backend. The response will be returned without any modification to be
 interpreted by the provider and converted into the format as described in the
 interface above.
@@ -531,7 +531,6 @@ Currently there are some limitations to this feature.
   `prometheus` provider only support querying Prometheus via the [metrics
   proxy](#metrics-proxy). Later it may be possible to configure it for direct
   access to an expose Prometheus.
-
 
 
 
