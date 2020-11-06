@@ -151,12 +151,11 @@ environment and adapt these configurations accordingly.
     using the local Consul agent. In this case ACLs should be enabled to provide authorization and only ACL tokens would
     need to be distributed.
 
-- **ACLs** - The access control list (ACL) system provides a capability-based control mechanism for Consul 
-  administrators to define scoped, custom roles (typically within Vault) tied to an individual human, or machine 
-  operator identity. To ultimately secure the ACL system, administrators should configure the 
-  [`default_policy`](/docs/agent/options#acl_default_policy) to "deny". 
+- **ACLs** - The access control list (ACL) system provides a security mechanism for Consul administrators to grant 
+  capabilities tied to an individual human, or machine operator identity. To ultimately secure the ACL system, 
+  administrators should configure the [`default_policy`](/docs/agent/options#acl_default_policy) to "deny".
 
-  The system is comprised of five major components:
+  The [system](/docs/acl/acl-system) is comprised of five major components:
 
   - **🗝 Token** - API key associated with policies, roles, or service identities.
 
