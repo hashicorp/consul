@@ -78,7 +78,7 @@ require (
 	github.com/prometheus/client_golang v1.4.0
 	github.com/rboyer/safeio v0.2.1
 	github.com/ryanuber/columnize v2.1.0+incompatible
-	github.com/shirou/gopsutil v2.20.9+incompatible
+	github.com/shirou/gopsutil v3.20.10+incompatible
 	github.com/stretchr/testify v1.5.1
 	go.opencensus.io v0.22.0 // indirect
 	go.uber.org/goleak v1.0.0
