@@ -35,7 +35,7 @@
                             },
                         "route_config_name": "db"
                       },
-                  "stat_prefix": "upstream_db_grpc",
+                  "stat_prefix": "upstream.db.dc1.default.grpc",
                   "tracing": {
                         "operation_name": "EGRESS",
                         "random_sampling": {
