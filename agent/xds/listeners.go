@@ -976,38 +976,58 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 	}
 
 	useRDS := true
-	clusterName := ""
+	var (
+		clusterName                        string
+		destination, datacenter, namespace string
+	)
 	if chain == nil || chain.IsDefault() {
+		useRDS = false
+
 		dc := u.Datacenter
 		if dc == "" {
 			dc = cfgSnap.Datacenter
 		}
-		sni := connect.UpstreamSNI(u, "", dc, cfgSnap.Roots.TrustDomain)
+		destination, datacenter, namespace = u.DestinationName, dc, u.DestinationNamespace
 
-		useRDS = false
+		sni := connect.UpstreamSNI(u, "", dc, cfgSnap.Roots.TrustDomain)
 		clusterName = CustomizeClusterName(sni, chain)
 
-	} else if cfg.Protocol == "tcp" {
-		startNode := chain.Nodes[chain.StartNode]
-		if startNode == nil {
-			return nil, fmt.Errorf("missing first node in compiled discovery chain for: %s", chain.ServiceName)
-		} else if startNode.Type != structs.DiscoveryGraphNodeTypeResolver {
-			return nil, fmt.Errorf("unexpected first node in discovery chain using protocol=%q: %s", cfg.Protocol, startNode.Type)
-		}
-		targetID := startNode.Resolver.Target
-		target := chain.Targets[targetID]
+	} else {
+		destination, datacenter, namespace = chain.ServiceName, chain.Datacenter, chain.Namespace
 
-		useRDS = false
-		clusterName = CustomizeClusterName(target.Name, chain)
+		if cfg.Protocol == "tcp" {
+			useRDS = false
+
+			startNode := chain.Nodes[chain.StartNode]
+			if startNode == nil {
+				return nil, fmt.Errorf("missing first node in compiled discovery chain for: %s", chain.ServiceName)
+			}
+			if startNode.Type != structs.DiscoveryGraphNodeTypeResolver {
+				return nil, fmt.Errorf("unexpected first node in discovery chain using protocol=%q: %s", cfg.Protocol, startNode.Type)
+			}
+			targetID := startNode.Resolver.Target
+			target := chain.Targets[targetID]
+
+			clusterName = CustomizeClusterName(target.Name, chain)
+		}
+	}
+	filterName := fmt.Sprintf("%s.%s", destination, datacenter)
+	if namespace != "" {
+		filterName += fmt.Sprintf(".%s", namespace)
+	}
+	if u.DestinationType == structs.UpstreamDestTypePreparedQuery {
+		// Avoid encoding dc and namespace for prepared queries.
+		// Those are defined in the query itself and are not available here.
+		filterName = upstreamID
 	}
 
 	opts := listenerFilterOpts{
 		useRDS:          useRDS,
 		protocol:        cfg.Protocol,
-		filterName:      upstreamID,
+		filterName:      filterName,
 		routeName:       upstreamID,
 		cluster:         clusterName,
-		statPrefix:      "upstream_",
+		statPrefix:      "upstream.",
 		routePath:       "",
 		ingress:         false,
 		httpAuthzFilter: nil,
@@ -1130,7 +1150,7 @@ func makeStatPrefix(protocol, prefix, filterName string) string {
 	// Replace colons here because Envoy does that in the metrics for the actual
 	// clusters but doesn't in the stat prefix here while dashboards assume they
 	// will match.
-	return fmt.Sprintf("%s%s_%s", prefix, strings.Replace(filterName, ":", "_", -1), protocol)
+	return fmt.Sprintf("%s%s.%s", prefix, strings.Replace(filterName, ":", "_", -1), protocol)
 }
 
 func makeHTTPFilter(opts listenerFilterOpts) (*envoylistener.Filter, error) {

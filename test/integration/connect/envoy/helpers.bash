@@ -229,6 +229,7 @@ function snapshot_envoy_admin {
   docker_wget "$DC" "http://${HOSTPORT}/config_dump" -q -O - > "${OUTDIR}/config_dump.json"
   docker_wget "$DC" "http://${HOSTPORT}/clusters?format=json" -q -O - > "${OUTDIR}/clusters.json"
   docker_wget "$DC" "http://${HOSTPORT}/stats" -q -O - > "${OUTDIR}/stats.txt"
+  docker_wget "$DC" "http://${HOSTPORT}/stats/prometheus" -q -O - > "${OUTDIR}/stats_prometheus.txt"
 }
 
 function reset_envoy_metrics {
