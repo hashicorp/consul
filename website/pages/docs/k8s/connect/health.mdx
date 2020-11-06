@@ -22,7 +22,7 @@ status, which is the combination of all probes registered with the pod. Kubernet
 case as they can change state without restarting the containers in the pod.
 
 When readiness probes are set for a pod, the status of the pod will be reflected within Consul, and will cause Consul to redirect service
-mesh traffic from/to the pod based on the pod's health. If the pod were to have failing health checks, Consul will no longer use
+mesh traffic to the pod based on the pod's health. If the pod were to have failing health checks, Consul will no longer use
 the service instance associated with the pod for service mesh traffic. When the pod passes its health checks, Consul will
 then use the respective service instance for service mesh traffic.
 
