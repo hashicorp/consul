@@ -22,7 +22,7 @@
               "name": "envoy.tcp_proxy",
               "config": {
                   "cluster": "dc2.internal.11111111-2222-3333-4444-555555555555.consul",
-                  "stat_prefix": "mesh_gateway_remote_bar_dc2_tcp"
+                  "stat_prefix": "mesh_gateway_remote_bar_dc2.tcp"
                 }
             }
           ]
@@ -38,7 +38,7 @@
               "name": "envoy.tcp_proxy",
               "config": {
                   "cluster": "dc4.internal.11111111-2222-3333-4444-555555555555.consul",
-                  "stat_prefix": "mesh_gateway_remote_bar_dc4_tcp"
+                  "stat_prefix": "mesh_gateway_remote_bar_dc4.tcp"
                 }
             }
           ]
@@ -54,7 +54,7 @@
               "name": "envoy.tcp_proxy",
               "config": {
                   "cluster": "dc6.internal.11111111-2222-3333-4444-555555555555.consul",
-                  "stat_prefix": "mesh_gateway_remote_bar_dc6_tcp"
+                  "stat_prefix": "mesh_gateway_remote_bar_dc6.tcp"
                 }
             }
           ]
@@ -68,7 +68,7 @@
               "name": "envoy.tcp_proxy",
               "config": {
                   "cluster": "",
-                  "stat_prefix": "mesh_gateway_local_bar_tcp"
+                  "stat_prefix": "mesh_gateway_local_bar.tcp"
                 }
             }
           ]
@@ -101,7 +101,7 @@
               "name": "envoy.tcp_proxy",
               "config": {
                   "cluster": "dc2.internal.11111111-2222-3333-4444-555555555555.consul",
-                  "stat_prefix": "mesh_gateway_remote_baz_dc2_tcp"
+                  "stat_prefix": "mesh_gateway_remote_baz_dc2.tcp"
                 }
             }
           ]
@@ -117,7 +117,7 @@
               "name": "envoy.tcp_proxy",
               "config": {
                   "cluster": "dc4.internal.11111111-2222-3333-4444-555555555555.consul",
-                  "stat_prefix": "mesh_gateway_remote_baz_dc4_tcp"
+                  "stat_prefix": "mesh_gateway_remote_baz_dc4.tcp"
                 }
             }
           ]
@@ -133,7 +133,7 @@
               "name": "envoy.tcp_proxy",
               "config": {
                   "cluster": "dc6.internal.11111111-2222-3333-4444-555555555555.consul",
-                  "stat_prefix": "mesh_gateway_remote_baz_dc6_tcp"
+                  "stat_prefix": "mesh_gateway_remote_baz_dc6.tcp"
                 }
             }
           ]
@@ -147,7 +147,7 @@
               "name": "envoy.tcp_proxy",
               "config": {
                   "cluster": "",
-                  "stat_prefix": "mesh_gateway_local_baz_tcp"
+                  "stat_prefix": "mesh_gateway_local_baz.tcp"
                 }
             }
           ]
@@ -180,7 +180,7 @@
               "name": "envoy.tcp_proxy",
               "config": {
                   "cluster": "dc2.internal.11111111-2222-3333-4444-555555555555.consul",
-                  "stat_prefix": "mesh_gateway_remote_default_dc2_tcp"
+                  "stat_prefix": "mesh_gateway_remote_default_dc2.tcp"
                 }
             }
           ]
@@ -196,7 +196,7 @@
               "name": "envoy.tcp_proxy",
               "config": {
                   "cluster": "dc4.internal.11111111-2222-3333-4444-555555555555.consul",
-                  "stat_prefix": "mesh_gateway_remote_default_dc4_tcp"
+                  "stat_prefix": "mesh_gateway_remote_default_dc4.tcp"
                 }
             }
           ]
@@ -212,7 +212,7 @@
               "name": "envoy.tcp_proxy",
               "config": {
                   "cluster": "dc6.internal.11111111-2222-3333-4444-555555555555.consul",
-                  "stat_prefix": "mesh_gateway_remote_default_dc6_tcp"
+                  "stat_prefix": "mesh_gateway_remote_default_dc6.tcp"
                 }
             }
           ]
@@ -226,7 +226,7 @@
               "name": "envoy.tcp_proxy",
               "config": {
                   "cluster": "",
-                  "stat_prefix": "mesh_gateway_local_default_tcp"
+                  "stat_prefix": "mesh_gateway_local_default.tcp"
                 }
             }
           ]
@@ -259,7 +259,7 @@
               "name": "envoy.tcp_proxy",
               "config": {
                   "cluster": "dc2.internal.11111111-2222-3333-4444-555555555555.consul",
-                  "stat_prefix": "mesh_gateway_remote_foo_dc2_tcp"
+                  "stat_prefix": "mesh_gateway_remote_foo_dc2.tcp"
                 }
             }
           ]
@@ -275,7 +275,7 @@
               "name": "envoy.tcp_proxy",
               "config": {
                   "cluster": "dc4.internal.11111111-2222-3333-4444-555555555555.consul",
-                  "stat_prefix": "mesh_gateway_remote_foo_dc4_tcp"
+                  "stat_prefix": "mesh_gateway_remote_foo_dc4.tcp"
                 }
             }
           ]
@@ -291,7 +291,7 @@
               "name": "envoy.tcp_proxy",
               "config": {
                   "cluster": "dc6.internal.11111111-2222-3333-4444-555555555555.consul",
-                  "stat_prefix": "mesh_gateway_remote_foo_dc6_tcp"
+                  "stat_prefix": "mesh_gateway_remote_foo_dc6.tcp"
                 }
             }
           ]
@@ -305,7 +305,7 @@
               "name": "envoy.tcp_proxy",
               "config": {
                   "cluster": "",
-                  "stat_prefix": "mesh_gateway_local_foo_tcp"
+                  "stat_prefix": "mesh_gateway_local_foo.tcp"
                 }
             }
           ]

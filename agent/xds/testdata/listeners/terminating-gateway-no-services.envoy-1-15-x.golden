@@ -20,7 +20,7 @@
               "name": "envoy.tcp_proxy",
               "config": {
                   "cluster": "",
-                  "stat_prefix": "terminating_gateway_default_tcp"
+                  "stat_prefix": "terminating_gateway_default.tcp"
                 }
             }
           ]
