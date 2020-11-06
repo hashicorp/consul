@@ -1,6 +1,7 @@
 export default function(
   visitable,
   clickable,
+  isPresent,
   submitable,
   deletable,
   cancelable,
@@ -17,6 +18,19 @@ export default function(
       },
       form: permissionsForm(),
       list: permissionsList(),
+    },
+    warning: {
+      scope: '[data-test-action-warning]',
+      resetScope: true,
+      present: isPresent(),
+      confirm: {
+        scope: '[data-test-action-warning-confirm]',
+        click: clickable(),
+      },
+      cancel: {
+        scope: '[data-test-action-warning-cancel]',
+        click: clickable(),
+      },
     },
     ...submitable(),
     ...cancelable(),

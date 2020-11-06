@@ -26,7 +26,6 @@
 @import './components/flash-message';
 @import './components/code-editor';
 @import './components/confirmation-dialog';
-@import './components/modal-dialog';
 @import './components/auth-form';
 @import './components/auth-modal';
 @import './components/oidc-select';
@@ -55,6 +54,7 @@
 /**/
 
 @import 'consul-ui/components/notice';
+@import 'consul-ui/components/modal-dialog';
 
 @import 'consul-ui/components/consul/exposed-path/list';
 @import 'consul-ui/components/consul/external-source';
