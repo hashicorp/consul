@@ -503,3 +503,8 @@ type Clockinfo struct {
 	Stathz  int32
 	Profhz  int32
 }
+
+type CtlInfo struct {
+	Id   uint32
+	Name [96]byte
+}

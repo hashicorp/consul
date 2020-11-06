@@ -92,11 +92,11 @@ func UTF16FromString(s string) ([]uint16, error) {
 }
 
 // UTF16ToString returns the UTF-8 encoding of the UTF-16 sequence s,
-// with a terminating NUL removed.
+// with a terminating NUL and any bytes after the NUL removed.
 func UTF16ToString(s []uint16) string {
 	for i, v := range s {
 		if v == 0 {
-			s = s[0:i]
+			s = s[:i]
 			break
 		}
 	}
@@ -120,7 +120,7 @@ func UTF16PtrFromString(s string) (*uint16, error) {
 }
 
 // UTF16PtrToString takes a pointer to a UTF-16 sequence and returns the corresponding UTF-8 encoded string.
-// If the pointer is nil, this returns the empty string. This assumes that the UTF-16 sequence is terminated
+// If the pointer is nil, it returns the empty string. It assumes that the UTF-16 sequence is terminated
 // at a zero word; if the zero word is not present, the program may crash.
 func UTF16PtrToString(p *uint16) string {
 	if p == nil {
