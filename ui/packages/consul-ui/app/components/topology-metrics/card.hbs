@@ -1,11 +1,10 @@
-{{#each @items as |item|}}
 <a class="card"
-  href={{href-to "dc.services.show.index" item.Name}}
-  data-permission={{service/intention-permissions item}}
-  id="{{item.Namespace}}{{item.Name}}"
+  href={{href-to "dc.services.show.index" @item.Name}}
+  data-permission={{service/intention-permissions @item}}
+  id="{{@item.Namespace}}{{@item.Name}}"
 >
   <p>
-    {{item.Name}}
+    {{@item.Name}}
   </p>
   <div class="details">
   {{#if (and (and nspace (env 'CONSUL_NSPACES_ENABLED')) @type)}}
@@ -16,12 +15,12 @@
         </Tooltip>
       </dt>
       <dd>
-        {{item.Namespace}}
+        {{@item.Namespace}}
       </dd>
     </dl>
   {{/if}}
-{{#if (eq item.Datacenter @dc)}}
-  {{#let (service/health-percentage item) as |percentage|}}
+{{#if (eq @item.Datacenter @dc)}}
+  {{#let (service/health-percentage @item) as |percentage|}}
     {{#if (not-eq percentage.passing 0)}}
       <span class="passing">{{percentage.passing}}%</span>
     {{/if}}
@@ -50,17 +49,16 @@
       <TopologyMetrics::Stats
         @endpoint='upstream-summary-for-service'
         @service={{@service.Service}}
-        @item={{item.Name}}
+        @item={{@item.Name}}
         @noMetricsReason={{@noMetricsReason}}
       />
     {{else}}
       <TopologyMetrics::Stats
         @endpoint='downstream-summary-for-service'
         @service={{@service.Service}}
-        @item={{item.Name}}
+        @item={{@item.Name}}
         @noMetricsReason={{@noMetricsReason}}
       />
     {{/if}}
   {{/if}}
 </a>
-{{/each}}

@@ -20,9 +20,9 @@
       </div>
       <div class="actions">
       {{#if @item.Intention.HasExact}}
-         <a href={{href-to (or routeName 'dc.intentions.edit') (concat @item.Intention.ID)}}>Edit</a>
+        <a href={{href-to (or routeName 'dc.intentions.edit') (concat @item.Intention.ID)}}>Edit</a>
       {{else}}
-        <button class="view" {{on "click" (fn this.createIntention @item.Intention)}}>Create</button>
+        <a href={{href-to (or routeName 'dc.intentions.create')}}>Create</a>
       {{/if}}
         <button class="cancel" {{on "click" this.togglePopover}}>Cancel</button>
       </div>
