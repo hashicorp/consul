@@ -1,5 +1,7 @@
 ## UNRELEASED
 
+## 1.9.0-beta2 (November 07, 2020)
+
 BREAKING CHANGES:
 
 * sentinel: **(Consul Enterprise only)** update to v0.16.0, which replaces `whitelist` and `blacklist` with `allowlist` and `denylist`
