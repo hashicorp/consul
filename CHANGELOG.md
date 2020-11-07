@@ -1,4 +1,4 @@
-## UNRELEASED
+## 1.9.0-beta2 (November 07, 2020)
 
 BREAKING CHANGES:
 
