@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/go-sockaddr/template"
 )
 
-const defaultGatewayPort int = 443
+const defaultGatewayPort int = 8443
 
 // ServiceAddressValue implements a flag.Value that may be used to parse an
 // addr:port string into an api.ServiceAddress.
