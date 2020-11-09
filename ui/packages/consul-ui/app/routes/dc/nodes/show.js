@@ -1,10 +1,12 @@
-import Route from 'consul-ui/routing/route';
 import { inject as service } from '@ember/service';
+import Route from 'consul-ui/routing/route';
 import { hash } from 'rsvp';
 
-export default Route.extend({
-  data: service('data-source/service'),
-  model: function(params) {
+export default class ShowRoute extends Route {
+  @service('data-source/service')
+  data;
+
+  model(params) {
     const dc = this.modelFor('dc').dc.Name;
     const nspace = this.modelFor('nspace').nspace.substr(1);
     const name = params.name;
@@ -18,9 +20,10 @@ export default Route.extend({
         tomography: this.data.source(uri => uri`/${nspace}/${dc}/coordinates/for-node/${name}`),
       });
     });
-  },
-  setupController: function(controller, model) {
-    this._super(...arguments);
+  }
+
+  setupController(controller, model) {
+    super.setupController(...arguments);
     controller.setProperties(model);
-  },
-});
+  }
+}

@@ -71,26 +71,38 @@ const parseBody = function(strs, ...values) {
 };
 
 const CLIENT_HEADERS = [CACHE_CONTROL, 'X-Request-ID', 'X-Range', 'Refresh'];
-export default Service.extend({
-  dom: service('dom'),
-  connections: service('client/connections'),
-  transport: service('client/transports/xhr'),
-  settings: service('settings'),
-  init: function() {
-    this._super(...arguments);
+export default class HttpService extends Service {
+  @service('dom')
+  dom;
+
+  @service('client/connections')
+  connections;
+
+  @service('client/transports/xhr')
+  transport;
+
+  @service('settings')
+  settings;
+
+  init() {
+    super.init(...arguments);
     this._listeners = this.dom.listeners();
-  },
-  willDestroy: function() {
+  }
+
+  willDestroy() {
     this._listeners.remove();
-    this._super(...arguments);
-  },
-  url: function() {
+    super.willDestroy(...arguments);
+  }
+
+  url() {
     return parseURL(...arguments);
-  },
-  body: function() {
+  }
+
+  body() {
     return parseBody(...arguments);
-  },
-  requestParams: function(strs, ...values) {
+  }
+
+  requestParams(strs, ...values) {
     // first go to the end and remove/parse the http body
     const [body, ...urlVars] = this.body(...arguments);
     // with whats left get the method off the front
@@ -151,8 +163,9 @@ export default Service.extend({
     // also see https://github.com/hashicorp/consul/issues/3804
     params.headers[CONTENT_TYPE] = 'application/json; charset=utf-8';
     return params;
-  },
-  fetchWithToken: function(path, params) {
+  }
+
+  fetchWithToken(path, params) {
     return this.settings.findBySlug('token').then(token => {
       return fetch(`${path}`, {
         ...params,
@@ -162,8 +175,9 @@ export default Service.extend({
         },
       });
     });
-  },
-  request: function(cb) {
+  }
+
+  request(cb) {
     const client = this;
     return cb(function(strs, ...values) {
       const params = client.requestParams(...arguments);
@@ -208,17 +222,21 @@ export default Service.extend({
         });
       });
     });
-  },
-  whenAvailable: function(e) {
+  }
+
+  whenAvailable(e) {
     return this.connections.whenAvailable(e);
-  },
-  abort: function() {
+  }
+
+  abort() {
     return this.connections.purge(...arguments);
-  },
-  acquire: function() {
+  }
+
+  acquire() {
     return this.connections.acquire(...arguments);
-  },
-  release: function() {
+  }
+
+  release() {
     return this.connections.release(...arguments);
-  },
-});
+  }
+}

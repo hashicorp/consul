@@ -6,13 +6,14 @@ import distance from 'consul-ui/utils/distance';
 const tomography = tomographyFactory(distance);
 
 const modelName = 'coordinate';
-export default RepositoryService.extend({
-  getModelName: function() {
+export default class CoordinateService extends RepositoryService {
+  getModelName() {
     return modelName;
-  },
+  }
+
   // Coordinates don't need nspaces so we have a custom method here
   // that doesn't accept nspaces
-  findAllByDatacenter: function(dc, configuration = {}) {
+  findAllByDatacenter(dc, configuration = {}) {
     const query = {
       dc: dc,
     };
@@ -21,8 +22,9 @@ export default RepositoryService.extend({
       query.uri = configuration.uri;
     }
     return this.store.query(this.getModelName(), query);
-  },
-  findAllByNode: function(node, dc, configuration) {
+  }
+
+  findAllByNode(node, dc, configuration) {
     return this.findAllByDatacenter(dc, configuration).then(function(coordinates) {
       let results = {};
       if (get(coordinates, 'length') > 1) {
@@ -34,5 +36,5 @@ export default RepositoryService.extend({
       results.meta = get(coordinates, 'meta');
       return results;
     });
-  },
-});
+  }
+}

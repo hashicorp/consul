@@ -1,9 +1,9 @@
 import Controller from '@ember/controller';
-export default Controller.extend({
-  queryParams: {
+export default class IndexController extends Controller {
+  queryParams = {
     search: {
       as: 'filter',
       replace: true,
     },
-  },
-});
+  };
+}

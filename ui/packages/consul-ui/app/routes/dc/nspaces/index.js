@@ -1,25 +1,31 @@
-import Route from 'consul-ui/routing/route';
 import { inject as service } from '@ember/service';
+import Route from 'consul-ui/routing/route';
 import { hash } from 'rsvp';
 
 import WithNspaceActions from 'consul-ui/mixins/nspace/with-actions';
-export default Route.extend(WithNspaceActions, {
-  data: service('data-source/service'),
-  repo: service('repository/nspace'),
-  queryParams: {
+export default class IndexRoute extends Route.extend(WithNspaceActions) {
+  @service('data-source/service')
+  data;
+
+  @service('repository/nspace')
+  repo;
+
+  queryParams = {
     sortBy: 'sort',
     search: {
       as: 'filter',
       replace: true,
     },
-  },
-  model: function(params) {
+  };
+
+  model(params) {
     return hash({
       items: this.data.source(uri => uri`/*/*/namespaces`),
     });
-  },
-  setupController: function(controller, model) {
-    this._super(...arguments);
+  }
+
+  setupController(controller, model) {
+    super.setupController(...arguments);
     controller.setProperties(model);
-  },
-});
+  }
+}

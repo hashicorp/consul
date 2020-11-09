@@ -1,17 +1,21 @@
-import Route from 'consul-ui/routing/route';
 import { inject as service } from '@ember/service';
+import Route from 'consul-ui/routing/route';
 import { hash } from 'rsvp';
 import { get } from '@ember/object';
 
 import WithAclActions from 'consul-ui/mixins/acl/with-actions';
 
-export default Route.extend(WithAclActions, {
-  templateName: 'dc/acls/edit',
-  repo: service('repository/acl'),
-  beforeModel: function() {
+export default class CreateRoute extends Route.extend(WithAclActions) {
+  templateName = 'dc/acls/edit';
+
+  @service('repository/acl')
+  repo;
+
+  beforeModel() {
     this.repo.invalidate();
-  },
-  model: function(params) {
+  }
+
+  model(params) {
     this.item = this.repo.create({
       Datacenter: this.modelFor('dc').dc.Name,
     });
@@ -20,14 +24,16 @@ export default Route.extend(WithAclActions, {
       item: this.item,
       types: ['management', 'client'],
     });
-  },
-  setupController: function(controller, model) {
-    this._super(...arguments);
+  }
+
+  setupController(controller, model) {
+    super.setupController(...arguments);
     controller.setProperties(model);
-  },
-  deactivate: function() {
+  }
+
+  deactivate() {
     if (get(this.item, 'isNew')) {
       this.item.destroyRecord();
     }
-  },
-});
+  }
+}

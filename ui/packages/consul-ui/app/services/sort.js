@@ -1,4 +1,4 @@
 import Service from '@ember/service';
-export default Service.extend({
-  comparator: function(type) {},
-});
+export default class SortService extends Service {
+  comparator(type) {}
+}

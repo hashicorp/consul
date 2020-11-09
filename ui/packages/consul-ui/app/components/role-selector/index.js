@@ -6,7 +6,7 @@ import { alias } from '@ember/object/computed';
 import { CallableEventSource as EventSource } from 'consul-ui/utils/dom/event-source';
 
 export default ChildSelectorComponent.extend({
-  repo: service('repository/role/component'),
+  repo: service('repository/role'),
   dom: service('dom'),
   name: 'role',
   type: 'role',

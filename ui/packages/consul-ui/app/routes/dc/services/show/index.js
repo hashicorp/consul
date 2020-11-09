@@ -1,8 +1,8 @@
 import Route from '@ember/routing/route';
 import { get } from '@ember/object';
 
-export default Route.extend({
-  afterModel: function(model, transition) {
+export default class IndexRoute extends Route {
+  afterModel(model, transition) {
     const parent = this.routeName
       .split('.')
       .slice(0, -1)
@@ -37,5 +37,5 @@ export default Route.extend({
     }
 
     this.replaceWith(`${parent}.${to}`, parentModel);
-  },
-});
+  }
+}

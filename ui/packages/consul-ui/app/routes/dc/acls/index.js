@@ -1,20 +1,25 @@
-import Route from 'consul-ui/routing/route';
 import { inject as service } from '@ember/service';
+import Route from 'consul-ui/routing/route';
 import { hash } from 'rsvp';
 import { get } from '@ember/object';
 
 import WithAclActions from 'consul-ui/mixins/acl/with-actions';
 
-export default Route.extend(WithAclActions, {
-  repo: service('repository/acl'),
-  settings: service('settings'),
-  queryParams: {
+export default class IndexRoute extends Route.extend(WithAclActions) {
+  @service('repository/acl')
+  repo;
+
+  @service('settings')
+  settings;
+
+  queryParams = {
     search: {
       as: 'filter',
       replace: true,
     },
-  },
-  beforeModel: function(transition) {
+  };
+
+  beforeModel(transition) {
     return this.settings.findBySlug('token').then(token => {
       // If you don't have a token set or you have a
       // token set with AccessorID set to not null (new ACL mode)
@@ -25,15 +30,17 @@ export default Route.extend(WithAclActions, {
         this.replaceWith('dc.acls.tokens');
       }
     });
-  },
-  model: function(params) {
+  }
+
+  model(params) {
     return hash({
       items: this.repo.findAllByDatacenter(this.modelFor('dc').dc.Name),
       token: this.settings.findBySlug('token'),
     });
-  },
-  setupController: function(controller, model) {
-    this._super(...arguments);
+  }
+
+  setupController(controller, model) {
+    super.setupController(...arguments);
     controller.setProperties(model);
-  },
-});
+  }
+}

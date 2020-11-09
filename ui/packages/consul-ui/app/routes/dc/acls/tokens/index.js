@@ -1,19 +1,24 @@
-import Route from 'consul-ui/routing/route';
 import { inject as service } from '@ember/service';
+import Route from 'consul-ui/routing/route';
 import { hash } from 'rsvp';
 import { get } from '@ember/object';
 import WithTokenActions from 'consul-ui/mixins/token/with-actions';
-export default Route.extend(WithTokenActions, {
-  repo: service('repository/token'),
-  settings: service('settings'),
-  queryParams: {
+export default class IndexRoute extends Route.extend(WithTokenActions) {
+  @service('repository/token')
+  repo;
+
+  @service('settings')
+  settings;
+
+  queryParams = {
     sortBy: 'sort',
     search: {
       as: 'filter',
       replace: true,
     },
-  },
-  beforeModel: function(transition) {
+  };
+
+  beforeModel(transition) {
     return this.settings.findBySlug('token').then(token => {
       // If you have a token set with AccessorID set to null (legacy mode)
       // then rewrite to the old acls
@@ -23,8 +28,9 @@ export default Route.extend(WithTokenActions, {
         this.replaceWith('dc.acls');
       }
     });
-  },
-  model: function(params) {
+  }
+
+  model(params) {
     return hash({
       ...this.repo.status({
         items: this.repo.findAllByDatacenter(
@@ -35,9 +41,10 @@ export default Route.extend(WithTokenActions, {
       nspace: this.modelFor('nspace').nspace.substr(1),
       token: this.settings.findBySlug('token'),
     });
-  },
-  setupController: function(controller, model) {
-    this._super(...arguments);
+  }
+
+  setupController(controller, model) {
+    super.setupController(...arguments);
     controller.setProperties(model);
-  },
-});
+  }
+}

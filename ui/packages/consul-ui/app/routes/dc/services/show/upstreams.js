@@ -1,5 +1,5 @@
 import Route from './services';
 
-export default Route.extend({
-  templateName: 'dc/services/show/upstreams',
-});
+export default class UpstreamsRoute extends Route {
+  templateName = 'dc/services/show/upstreams';
+}

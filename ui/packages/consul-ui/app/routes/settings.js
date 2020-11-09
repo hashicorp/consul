@@ -1,14 +1,22 @@
-import Route from 'consul-ui/routing/route';
 import { inject as service } from '@ember/service';
+import Route from 'consul-ui/routing/route';
 import { hash } from 'rsvp';
-import { get, set } from '@ember/object';
+import { get, set, action } from '@ember/object';
 
-export default Route.extend({
-  client: service('client/http'),
-  repo: service('settings'),
-  dcRepo: service('repository/dc'),
-  nspacesRepo: service('repository/nspace/disabled'),
-  model: function(params) {
+export default class SettingsRoute extends Route {
+  @service('client/http')
+  client;
+
+  @service('settings')
+  repo;
+
+  @service('repository/dc')
+  dcRepo;
+
+  @service('repository/nspace/disabled')
+  nspacesRepo;
+
+  model(params) {
     const app = this.modelFor('application');
     return hash({
       item: this.repo.findAll(),
@@ -20,23 +28,24 @@ export default Route.extend({
       }
       return model;
     });
-  },
-  setupController: function(controller, model) {
-    this._super(...arguments);
+  }
+
+  setupController(controller, model) {
+    super.setupController(...arguments);
     controller.setProperties(model);
-  },
-  actions: {
-    update: function(slug, item) {
-      switch (slug) {
-        case 'client':
-          if (!get(item, 'client.blocking')) {
-            this.client.abort();
-          }
-          break;
-      }
-      this.repo.persist({
-        [slug]: item,
-      });
-    },
-  },
-});
+  }
+
+  @action
+  update(slug, item) {
+    switch (slug) {
+      case 'client':
+        if (!get(item, 'client.blocking')) {
+          this.client.abort();
+        }
+        break;
+    }
+    this.repo.persist({
+      [slug]: item,
+    });
+  }
+}

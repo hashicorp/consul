@@ -1,5 +1,5 @@
 import Route from './edit';
 
-export default Route.extend({
-  templateName: 'dc/kv/edit',
-});
+export default class CreateRoute extends Route {
+  templateName = 'dc/kv/edit';
+}

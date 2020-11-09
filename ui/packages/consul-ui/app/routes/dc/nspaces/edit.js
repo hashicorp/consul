@@ -1,15 +1,18 @@
-import Route from 'consul-ui/routing/route';
 import { inject as service } from '@ember/service';
+import Route from 'consul-ui/routing/route';
 import { hash } from 'rsvp';
 
 import WithNspaceActions from 'consul-ui/mixins/nspace/with-actions';
 
-export default Route.extend(WithNspaceActions, {
-  repo: service('repository/nspace'),
-  isCreate: function(params, transition) {
+export default class EditRoute extends Route.extend(WithNspaceActions) {
+  @service('repository/nspace')
+  repo;
+
+  isCreate(params, transition) {
     return transition.targetName.split('.').pop() === 'create';
-  },
-  model: function(params, transition) {
+  }
+
+  model(params, transition) {
     const repo = this.repo;
     const create = this.isCreate(...arguments);
     const dc = this.modelFor('dc').dc.Name;
@@ -27,9 +30,10 @@ export default Route.extend(WithNspaceActions, {
           )
         : repo.findBySlug(params.name),
     });
-  },
-  setupController: function(controller, model) {
-    this._super(...arguments);
+  }
+
+  setupController(controller, model) {
+    super.setupController(...arguments);
     controller.setProperties(model);
-  },
-});
+  }
+}

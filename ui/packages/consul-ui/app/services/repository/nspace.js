@@ -2,17 +2,20 @@ import RepositoryService from 'consul-ui/services/repository';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/nspace';
 
 const modelName = 'nspace';
-export default RepositoryService.extend({
-  getPrimaryKey: function() {
+export default class NspaceService extends RepositoryService {
+  getPrimaryKey() {
     return PRIMARY_KEY;
-  },
-  getSlugKey: function() {
+  }
+
+  getSlugKey() {
     return SLUG_KEY;
-  },
-  getModelName: function() {
+  }
+
+  getModelName() {
     return modelName;
-  },
-  remove: function(item) {
+  }
+
+  remove(item) {
     // Namespace deletion is more of a soft delete.
     // Therefore the namespace still exists once we've requested a delete/removal.
     // This makes 'removing' more of a custom action rather than a standard
@@ -32,13 +35,14 @@ export default RepositoryService.extend({
       'nspace'
     );
     return res;
-  },
-  findAll: function(configuration = {}) {
+  }
+
+  findAll(configuration = {}) {
     const query = {};
     if (typeof configuration.cursor !== 'undefined') {
       query.index = configuration.cursor;
       query.uri = configuration.uri;
     }
     return this.store.query(this.getModelName(), query);
-  },
-});
+  }
+}

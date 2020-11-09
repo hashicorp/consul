@@ -1,21 +1,23 @@
 import Route from 'consul-ui/routing/route';
 
-export default Route.extend({
-  queryParams: {
+export default class InstancesRoute extends Route {
+  queryParams = {
     search: {
       as: 'filter',
       replace: true,
     },
-  },
-  model: function() {
+  };
+
+  model() {
     const parent = this.routeName
       .split('.')
       .slice(0, -1)
       .join('.');
     return this.modelFor(parent);
-  },
-  setupController: function(controller, model) {
-    this._super(...arguments);
+  }
+
+  setupController(controller, model) {
+    super.setupController(...arguments);
     controller.setProperties(model);
-  },
-});
+  }
+}

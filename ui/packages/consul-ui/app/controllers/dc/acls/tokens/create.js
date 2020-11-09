@@ -1,2 +1,2 @@
 import Controller from './edit';
-export default Controller.extend();
+export default class CreateController extends Controller {}

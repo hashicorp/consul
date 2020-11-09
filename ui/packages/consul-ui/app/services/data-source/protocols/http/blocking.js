@@ -6,10 +6,14 @@ import { ifNotBlocking } from 'consul-ui/services/settings';
 import { restartWhenAvailable } from 'consul-ui/services/client/http';
 import maybeCall from 'consul-ui/utils/maybe-call';
 
-export default Service.extend({
-  client: service('client/http'),
-  settings: service('settings'),
-  source: function(find, configuration) {
+export default class BlockingService extends Service {
+  @service('client/http')
+  client;
+
+  @service('settings')
+  settings;
+
+  source(find, configuration) {
     return new EventSource((configuration, source) => {
       const close = source.close.bind(source);
       const deleteCursor = () => (configuration.cursor = undefined);
@@ -27,5 +31,5 @@ export default Service.extend({
           .catch(restartWhenAvailable(this.client));
       });
     }, configuration);
-  },
-});
+  }
+}
