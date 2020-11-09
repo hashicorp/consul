@@ -21,6 +21,5 @@ export default class Role extends Model {
   @attr('number') CreateTime;
   // TODO: Figure out whether we need this or not
   @attr() Datacenters; // string[]
-  @attr() meta; // {}
   @attr('string') Hash;
 }
