@@ -20,9 +20,9 @@
       </div>
       <div class="actions">
       {{#if @item.Intention.HasExact}}
-        <a href={{href-to (or routeName 'dc.intentions.edit') (concat @item.Intention.ID)}}>Edit</a>
+        <a href={{href-to 'dc.services.show.intentions.edit' (concat @item.Intention.ID)}}>Edit</a>
       {{else}}
-        <a href={{href-to (or routeName 'dc.intentions.create')}}>Create</a>
+        <a href={{href-to 'dc.services.show.intentions.create'}}>Create</a>
       {{/if}}
         <button class="cancel" {{on "click" this.togglePopover}}>Cancel</button>
       </div>
@@ -47,7 +47,7 @@
         <p>Certain HTTP request info must be identified.</p>
       </div>
       <div class="actions">
-        <a href={{href-to (or routeName 'dc.intentions.edit') (concat @item.Intention.ID)}}>View</a>
+        <a href={{href-to 'dc.services.show.intentions.edit' (concat @item.Intention.ID)}}>View</a>
         <button {{on "click" this.togglePopover}}>Close</button>
       </div>
     </EmberPopover>
