@@ -77,7 +77,7 @@ the name of your node with the `-node` flag.
 
 ## Cluster Members
 
-If you run [`consul members`](/docs/commands/members) in another terminal, you
+If you run [`consul members`](/commands/members) in another terminal, you
 can see the members of the Consul cluster. We'll cover joining clusters in the next
 section, but for now, you should only see one member (yourself):
 
@@ -91,7 +91,7 @@ The output shows our own node, the address it is running on, its
 health state, its role in the cluster, and some version information.
 Additional metadata can be viewed by providing the `-detailed` flag.
 
-The output of the [`members`](/docs/commands/members) command is based on
+The output of the [`members`](/commands/members) command is based on
 the [gossip protocol](/docs/internals/gossip) and is eventually consistent.
 That is, at any point in time, the view of the world as seen by your local
 agent may not exactly match the state on the servers. For a strongly consistent

@@ -1,0 +1,4 @@
+```release-note:bug
+api: Fixed a bug where the Check.GRPCUseTLS field could not be set using snake case.
+```
+

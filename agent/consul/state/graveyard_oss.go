@@ -6,9 +6,7 @@ import (
 	"fmt"
 )
 
-func (g *Graveyard) insertTombstoneWithTxn(tx *txn,
-	table string, stone *Tombstone, updateMax bool) error {
-
+func (g *Graveyard) insertTombstoneWithTxn(tx WriteTxn, _ string, stone *Tombstone, updateMax bool) error {
 	if err := tx.Insert("tombstones", stone); err != nil {
 		return err
 	}

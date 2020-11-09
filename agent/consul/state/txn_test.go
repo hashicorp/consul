@@ -11,10 +11,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestStateStore_Txn_Intention(t *testing.T) {
+//nolint:staticcheck
+func TestStateStore_Txn_LegacyIntention(t *testing.T) {
 	s := testStateStore(t)
 
-	// Create some intentions.
+	// Create some legacy intentions.
 	ixn1 := &structs.Intention{
 		ID:              testUUID(),
 		SourceNS:        "default",
@@ -43,8 +44,8 @@ func TestStateStore_Txn_Intention(t *testing.T) {
 
 	// Write the first two to the state store, leave the third
 	// to be created by the transaction operation.
-	require.NoError(t, s.IntentionSet(1, ixn1))
-	require.NoError(t, s.IntentionSet(2, ixn2))
+	require.NoError(t, s.LegacyIntentionSet(1, ixn1))
+	require.NoError(t, s.LegacyIntentionSet(2, ixn2))
 
 	// Set up a transaction that hits every operation.
 	ops := structs.TxnOps{
@@ -77,9 +78,10 @@ func TestStateStore_Txn_Intention(t *testing.T) {
 	require.Equal(t, expected, results)
 
 	// Pull the resulting state store contents.
-	idx, actual, err := s.Intentions(nil, nil)
+	idx, actual, fromConfig, err := s.Intentions(nil, nil)
 	require.NoError(t, err)
 	require.Equal(t, uint64(3), idx, "wrong index")
+	require.False(t, fromConfig)
 
 	// Make sure it looks as expected.
 	intentions := structs.Intentions{

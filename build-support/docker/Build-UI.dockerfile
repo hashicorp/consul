@@ -3,7 +3,7 @@ FROM alpine:${ALPINE_VERSION}
 
 ARG NODEJS_VERSION=12.15.0-r1
 ARG MAKE_VERSION=4.2.1-r2
-ARG YARN_VERSION=1.19.1
+ARG YARN_VERSION=1.22.5
 
 RUN apk update && \
     apk add nodejs=${NODEJS_VERSION} nodejs-npm=${NODEJS_VERSION} make=${MAKE_VERSION} && \
@@ -12,4 +12,4 @@ RUN apk update && \
     mkdir /consul-src
 
 WORKDIR /consul-src
-CMD make
+CMD make dist-docker

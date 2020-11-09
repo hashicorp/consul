@@ -2,6 +2,8 @@
 
 package config
 
+var authMethodEntFields = `{}`
+
 var entMetaJSON = `{}`
 
 var entRuntimeConfigSanitize = `{}`

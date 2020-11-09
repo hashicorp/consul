@@ -36,12 +36,13 @@ func (s *HTTPHandlers) configGet(resp http.ResponseWriter, req *http.Request) (i
 
 	switch len(pathArgs) {
 	case 2:
-		if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
-			return nil, err
-		}
 		// Both kind/name provided.
 		args.Kind = pathArgs[0]
 		args.Name = pathArgs[1]
+
+		if err := s.parseEntMetaForConfigEntryKind(args.Kind, req, &args.EnterpriseMeta); err != nil {
+			return nil, err
+		}
 
 		var reply structs.ConfigEntryResponse
 		if err := s.agent.RPC("ConfigEntry.Get", &args, &reply); err != nil {
@@ -95,7 +96,8 @@ func (s *HTTPHandlers) configDelete(resp http.ResponseWriter, req *http.Request)
 	args.Entry = entry
 	// Parse enterprise meta.
 	meta := args.Entry.GetEnterpriseMeta()
-	if err := s.parseEntMetaNoWildcard(req, meta); err != nil {
+
+	if err := s.parseEntMetaForConfigEntryKind(entry.GetKind(), req, meta); err != nil {
 		return nil, err
 	}
 
@@ -128,7 +130,7 @@ func (s *HTTPHandlers) ConfigApply(resp http.ResponseWriter, req *http.Request) 
 
 	// Parse enterprise meta.
 	var meta structs.EnterpriseMeta
-	if err := s.parseEntMetaNoWildcard(req, &meta); err != nil {
+	if err := s.parseEntMetaForConfigEntryKind(args.Entry.GetKind(), req, &meta); err != nil {
 		return nil, err
 	}
 	args.Entry.GetEnterpriseMeta().Merge(&meta)
@@ -149,4 +151,11 @@ func (s *HTTPHandlers) ConfigApply(resp http.ResponseWriter, req *http.Request) 
 	}
 
 	return reply, nil
+}
+
+func (s *HTTPHandlers) parseEntMetaForConfigEntryKind(kind string, req *http.Request, entMeta *structs.EnterpriseMeta) error {
+	if kind == structs.ServiceIntentions {
+		return s.parseEntMeta(req, entMeta)
+	}
+	return s.parseEntMetaNoWildcard(req, entMeta)
 }

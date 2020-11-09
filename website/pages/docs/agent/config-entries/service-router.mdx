@@ -24,7 +24,7 @@ service of the same name.
   Management](/docs/connect/l7-traffic-management).
 
 - Service router config entries are restricted to only services that define
-  their protocol as http-based via a corresponding
+  their protocol as HTTP-based via a corresponding
   [`service-defaults`](/docs/agent/config-entries/service-defaults) config
   entry or globally via
   [`proxy-defaults`](/docs/agent/config-entries/proxy-defaults) .
@@ -102,7 +102,7 @@ Routes = [
 ```
 
 Re-route a gRPC method to another service. Since gRPC method calls [are
-HTTP2](https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md), we can use an HTTP path match rule to re-route traffic:
+HTTP/2](https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md), we can use an HTTP path match rule to re-route traffic:
 
 ```hcl
 Kind = "service-router"
@@ -142,7 +142,7 @@ Routes = [
     match incoming L7 requests. If empty or omitted it acts as a catch-all.
 
     - `HTTP` `(ServiceRouteHTTPMatch: <optional>)` - A set of
-      [http-specific match criteria](#serviceroutehttpmatch).
+      [HTTP-specific match criteria](#serviceroutehttpmatch).
 
   - `Destination` `(ServiceRouteDestination: <optional>)` - Controls [how to
     proxy](#serviceroutedestination) the matching request(s) to a
@@ -156,7 +156,7 @@ Routes = [
 
 - `PathPrefix` `(string: "")` - Path prefix to match on the HTTP request path.
 
-      At most only one of `PathExact`, `PathPrefix`, or `PathRegex` may be configured.
+  At most only one of `PathExact`, `PathPrefix`, or `PathRegex` may be configured.
 
 - `PathRegex` `(string: "")` - Regular expression to match on the HTTP
   request path.
@@ -164,6 +164,10 @@ Routes = [
   The syntax is [described below](#regular-expression-syntax).
 
   At most only one of `PathExact`, `PathPrefix`, or `PathRegex` may be configured.
+
+- `Methods` `(array<string>)` - A list of HTTP methods for which this match
+  applies. If unspecified all HTTP methods are matched.
+  If provided the names must be a valid [method](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods).
 
 - `Header` `(array<ServiceRouteHTTPMatchHeader>)` - A set of criteria that can
   match on HTTP request headers. If more than one is configured all must match
@@ -228,9 +232,6 @@ Routes = [
 
     At most only one of `Exact`, `Regex`, or `Present` may be configured.
 
-- `Methods` `(array<string>)` - A list of HTTP methods for which this match
-  applies. If unspecified all http methods are matched.
-
 ### `ServiceRouteDestination`
 
 - `Service` `(string: "")` - The service to resolve instead of the default
@@ -258,18 +259,17 @@ Routes = [
 - `RetryOnConnectFailure` `(bool: false)` - Allows for connection failure
   errors to trigger a retry.
 
-- `RetryOnStatusCodes` `(array<int>)` - A flat list of http response status
-  codes that are eligible for retry.
+- `RetryOnStatusCodes` `(array<int>)` - A list of HTTP response status codes
+  that are eligible for retry.
 
 ## ACLs
 
-Configuration entries may be protected by
-[ACLs](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production).
+Configuration entries may be protected by [ACLs](/docs/security/acl).
 
-Reading a `service-router` config entry requires `service:read` on itself.
+Reading a `service-router` config entry requires `service:read` on the resource.
 
 Creating, updating, or deleting a `service-router` config entry requires
-`service:write` on itself and `service:read` on any other service referenced by
+`service:write` on the resource and `service:read` on any other service referenced by
 name in these fields:
 
 - [`Routes[].Destination.Service`](#service)

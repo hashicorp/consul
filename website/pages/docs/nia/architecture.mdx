@@ -1,0 +1,52 @@
+---
+layout: docs
+page_title: Architecture
+sidebar_title: Architecture
+description: >-
+  Consul-Terraform-Sync Architecture
+---
+
+# Consul-Terraform-Sync Architecture
+
+Consul-Terraform-Sync is a service-oriented tool for managing
+network infrastructure near real-time. Consul-Terraform-Sync runs as a daemon
+and integrates the network topology maintained by your Consul cluster with your
+network infrastructure to dynamically secure and connect services.
+
+## 10,000 Foot View
+
+[![Consul-Terraform-Sync Architecture](/img/nia-highlevel-diagram.png)](/img/nia-highlevel-diagram.png)
+
+The diagram shows Consul-Terraform-Sync monitoring the Consul service catalog
+for updates and utilizing Terraform to update the state of the infrastructure.
+
+There are two principal aspects of Sync to know about corresponding to the
+lines to Consul and Terraform in the diagram above. The line to Consul
+represents the Watchers monitoring the state of Consul's service catalog (and
+possibly KV store) while the line to Terraform represents tasks being run to
+update the infrastructure.
+
+## Watcher and Views
+
+Consul-Terraform-Sync monitors Consul for updates utilizing Consul's [Blocking
+Queries](/api-docs/features/blocking) whenever supported, falling back on
+polling when not. The watcher maintains a separate thread (known internally as
+a view) for each value monitored, running any tasks that depend on that watched
+value whenever it's updated. Say, for example, running a task to update a
+proxy when an instance goes unhealthy.
+
+## Tasks
+
+A task is the action triggered by the updated data monitored in Consul. It
+takes the that dynamic service data and translates it into a call to the
+infrastructure application to configure it with the updates. It uses a driver
+to push out these updates, the initial driver being a local Terraform run. An
+example of a task is to automate a firewall security policy rule with
+discovered IP addresses for a set of Consul services.
+
+## Drivers
+
+A driver encapsulates the resources required to communicate the updates to the
+network infrastructure. Terraform is the initial supported driver. It comes
+with a set of providers that [enables supporting](/docs/nia/installation/requirements#how-to-create-a-compatible-terraform-module) a wide variety of
+infrastructure applications.

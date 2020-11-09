@@ -12,7 +12,127 @@ description: |-
 The `/connect/intentions` endpoint provide tools for managing
 [intentions](/docs/connect/intentions).
 
-## Create Intention
+-> **1.9.0 and later:** Reading and writing intentions has been
+migrated to the
+[`service-intentions`](/docs/agent/config-entries/service-intentions)
+config entry kind.
+
+## Upsert Intention by Name ((#upsert-intention-by-name)) <sup>Beta</sup>
+
+-> **1.9.0+:** This API is available in Consul versions 1.9.0 and later.
+
+This endpoint creates a new intention and returns `true` if it was created
+successfully.
+
+The name and destination pair must be unique. If another intention matches the
+name and destination, the creation will replace the previous intention.
+
+~> The intentions created by this endpoint will not be assigned the following
+fields: `ID`, `CreatedAt`, `UpdatedAt`. Additionally, the `Meta` field cannot
+be persisted using this endpoint and will require editing the enclosing
+`service-intentions` config entry for the destination.
+
+| Method | Path                        | Produces           |
+| ------ | --------------------------- | ------------------ |
+| `PUT`  | `/connect/intentions/exact` | `application/json` |
+
+The table below shows this endpoint's support for
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
+[required ACLs](/api#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required                   |
+| ---------------- | ----------------- | ------------- | ------------------------------ |
+| `NO`             | `none`            | `none`        | `intentions:write`<sup>1</sup> |
+
+<p>
+  <sup>1</sup> Intention ACL rules are specified as part of a <code>service</code> rule.
+  See{' '}
+  <a href="/docs/connect/intentions#intention-management-permissions">
+    Intention Management Permissions
+  </a>{' '}
+  for more details.
+</p>
+
+### URL Parameters
+
+- `source` `(string: <required>)` - Specifies the source service. This
+  is specified as part of the URL.
+  This can take [several forms](/commands/intention#source-and-destination-naming).
+
+- `destination` `(string: <required>)` - Specifies the destination service. This
+  is specified as part of the URL.
+  This can take [several forms](/commands/intention#source-and-destination-naming).
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the default
+  namespace to use when `source` or `destination` parameters lack namespaces.
+  If not provided, the default namespace will be inherited from the
+  request's ACL token or will default to the `default` namespace.
+  This value may be provided by either the `ns` URL query parameter or in the
+  `X-Consul-Namespace` header.
+  Added in Consul 1.9.0.
+
+### PUT Body Parameters
+
+- `SourceType` `(string: "")` - The type for the `SourceName` value.
+  This can be only "consul" today to represent a Consul service. If not
+  provided, this will be defaulted to "consul".
+
+- `Action` `(string: "")` - For an L4 intention this is required, and should be
+  set to one of "allow" or "deny" for the action that should be taken if
+  this intention matches a request.
+
+  This should be omitted for an L7 intention as it is mutually exclusive with
+  the `Permissions` field.
+
+- `Permissions` `(array<IntentionPermission>)` - The list of all [additional L7
+  attributes](/docs/agent/config-entries/service-intentions#intentionpermission)
+  that extend the intention match criteria.
+
+  Permission precedence is applied top to bottom. For any given request the
+  first permission to match in the list is terminal and stops further
+  evaluation. As with L4 intentions, traffic that fails to match any of the
+  provided permissions in this intention will be subject to the default
+  intention behavior is defined by the default [ACL
+  policy](/docs/agent/options#acl_default_policy).
+
+  This should be omitted for an L4 intention as it is mutually exclusive with
+  the `Action` field.
+
+- `Description` `(string: "")` - Description for the intention. This is not
+  used by Consul, but is presented in API responses to assist tooling.
+
+### Sample Payload
+
+```json
+{
+  "SourceType": "consul",
+  "Action": "allow"
+}
+```
+
+### Sample Request
+
+```shell-session
+$ curl \
+    --request PUT \
+    --data @payload.json \
+    http://127.0.0.1:8500/v1/connect/intentions/exact?source=web&destination=db
+```
+
+### Sample Response
+
+```json
+true
+```
+
+## Create Intention with ID
+
+-> **Deprecated** - This endpoint is deprecated in Consul 1.9.0 in favor of
+[upserting by name](#upsert-intention-by-name) or editing the
+[`service-intentions`](/docs/agent/config-entries/service-intentions) config
+entry for the destination.
 
 This endpoint creates a new intention and returns its ID if it was created
 successfully.
@@ -36,7 +156,7 @@ The table below shows this endpoint's support for
 | `NO`             | `none`            | `none`        | `intentions:write`<sup>1</sup> |
 
 <p>
-  <sup>1</sup> Intention ACL rules are specified as part of a `service` rule.
+  <sup>1</sup> Intention ACL rules are specified as part of a <code>service</code> rule.
   See{' '}
   <a href="/docs/connect/intentions#intention-management-permissions">
     Intention Management Permissions
@@ -44,7 +164,17 @@ The table below shows this endpoint's support for
   for more details.
 </p>
 
-### Parameters
+### URL Parameters
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the default
+  namespace to use when `SourceNS` or `DestinationNS` are omitted or empty.
+  If not provided, the default namespace will be inherited from the
+  request's ACL token or will default to the `default` namespace.
+  This value may be provided by either the `ns` URL query parameter or in the
+  `X-Consul-Namespace` header.
+  Added in Consul 1.9.0.
+
+### POST Body Parameters
 
 - `SourceName` `(string: <required>)` - The source of the intention.
   For a `SourceType` of `consul` this is the name of a Consul service. The
@@ -60,25 +190,17 @@ The table below shows this endpoint's support for
 - `DestinationNS` `(string: "")` <EnterpriseAlert inline /> - The namespace for the
   `DestinationName` parameter.
 
-- `SourceType` `(string: <required>)` - The type for the `SourceName` value.
-  This can be only "consul" today to represent a Consul service.
+- `SourceType` `(string: "")` - The type for the `SourceName` value.
+  This can be only "consul" today to represent a Consul service. If not
+  provided, this will be defaulted to "consul".
 
 - `Action` `(string: <required>)` - This is one of "allow" or "deny" for
   the action that should be taken if this intention matches a request.
 
 - `Description` `(string: "")` - Description for the intention. This is not
-  used for anything by Consul, but is presented in API responses to assist
-  tooling.
+  used by Consul, but is presented in API responses to assist tooling.
 
 - `Meta` `(map<string|string>: nil)` - Specifies arbitrary KV metadata pairs.
-
-- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the default
-  namespace to use when `SourceNS` or `DestinationNS` are omitted or empty.
-  If not provided at all, the default namespace will be inherited from the
-  request's ACL token or will default to the `default` namespace.
-  This value may be provided by either the `ns` URL query parameter or in the
-  `X-Consul-Namespace` header.
-  Added in Consul 1.9.0.
 
 ### Sample Payload
 
@@ -108,13 +230,18 @@ $ curl \
 }
 ```
 
-## Read Specific Intention
+## Update Intention by ID
 
-This endpoint reads a specific intention.
+-> **Deprecated** - This endpoint is deprecated in Consul 1.9.0 in favor of
+[upserting by name](#upsert-intention-by-name) or editing the
+[`service-intentions`](/docs/agent/config-entries/service-intentions) config
+entry for the destination.
+
+This endpoint updates an intention with the given values.
 
 | Method | Path                        | Produces           |
 | ------ | --------------------------- | ------------------ |
-| `GET`  | `/connect/intentions/:uuid` | `application/json` |
+| `PUT`  | `/connect/intentions/:uuid` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/features/blocking),
@@ -122,12 +249,12 @@ The table below shows this endpoint's support for
 [agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
-| Blocking Queries | Consistency Modes | Agent Caching | ACL Required                  |
-| ---------------- | ----------------- | ------------- | ----------------------------- |
-| `YES`            | `all`             | `none`        | `intentions:read`<sup>1</sup> |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required                   |
+| ---------------- | ----------------- | ------------- | ------------------------------ |
+| `NO`             | `none`            | `none`        | `intentions:write`<sup>1</sup> |
 
 <p>
-  <sup>1</sup> Intention ACL rules are specified as part of a `service` rule.
+  <sup>1</sup> Intention ACL rules are specified as part of a <code>service</code> rule.
   See{' '}
   <a href="/docs/connect/intentions#intention-management-permissions">
     Intention Management Permissions
@@ -137,38 +264,32 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `uuid` `(string: <required>)` - Specifies the UUID of the intention to read. This
+- `uuid` `(string: <required>)` - Specifies the UUID of the intention to update. This
   is specified as part of the URL.
+
+- Other parameters are identical to creating an intention.
+
+### Sample Payload
+
+```json
+{
+  "SourceName": "web",
+  "DestinationName": "other-db",
+  "SourceType": "consul",
+  "Action": "allow"
+}
+```
 
 ### Sample Request
 
 ```shell-session
 $ curl \
+    --request PUT \
+    --data @payload.json \
     http://127.0.0.1:8500/v1/connect/intentions/e9ebc19f-d481-42b1-4871-4d298d3acd5c
 ```
 
-### Sample Response
-
-```json
-{
-  "ID": "e9ebc19f-d481-42b1-4871-4d298d3acd5c",
-  "Description": "",
-  "SourceNS": "default",
-  "SourceName": "web",
-  "DestinationNS": "default",
-  "DestinationName": "db",
-  "SourceType": "consul",
-  "Action": "allow",
-  "Meta": {},
-  "Precedence": 9,
-  "CreatedAt": "2018-05-21T16:41:27.977155457Z",
-  "UpdatedAt": "2018-05-21T16:41:27.977157724Z",
-  "CreateIndex": 11,
-  "ModifyIndex": 11
-}
-```
-
-## Read Specific Intention by Name
+## Read Specific Intention by Name ((##read-specific-intention-by-name)) <sup>Beta</sup>
 
 This endpoint reads a specific intention by its unique source and destination.
 
@@ -187,7 +308,7 @@ The table below shows this endpoint's support for
 | `YES`            | `all`             | `none`        | `intentions:read`<sup>1</sup> |
 
 <p>
-  <sup>1</sup> Intention ACL rules are specified as part of a `service` rule.
+  <sup>1</sup> Intention ACL rules are specified as part of a <code>service</code> rule.
   See{' '}
   <a href="/docs/connect/intentions#intention-management-permissions">
     Intention Management Permissions
@@ -199,15 +320,15 @@ The table below shows this endpoint's support for
 
 - `source` `(string: <required>)` - Specifies the source service. This
   is specified as part of the URL.
-  This can take [several forms](/docs/commands/intention#source-and-destination-naming).
+  This can take [several forms](/commands/intention#source-and-destination-naming).
 
 - `destination` `(string: <required>)` - Specifies the destination service. This
   is specified as part of the URL.
-  This can take [several forms](/docs/commands/intention#source-and-destination-naming).
+  This can take [several forms](/commands/intention#source-and-destination-naming).
 
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the default
   namespace to use when `source` or `destination` parameters lack namespaces.
-  If not provided at all, the default namespace will be inherited from the
+  If not provided, the default namespace will be inherited from the
   request's ACL token or will default to the `default` namespace.
   This value may be provided by either the `ns` URL query parameter or in the
   `X-Consul-Namespace` header.
@@ -218,6 +339,68 @@ The table below shows this endpoint's support for
 ```shell-session
 $ curl \
     http://127.0.0.1:8500/v1/connect/intentions/exact?source=web&destination=db
+```
+
+### Sample Response
+
+```json
+{
+  "Description": "",
+  "SourceNS": "default",
+  "SourceName": "web",
+  "DestinationNS": "default",
+  "DestinationName": "db",
+  "SourceType": "consul",
+  "Action": "allow",
+  "Meta": {},
+  "Precedence": 9,
+  "CreateIndex": 11,
+  "ModifyIndex": 11
+}
+```
+
+## Read Specific Intention by ID
+
+-> **Deprecated** - This endpoint is deprecated in Consul 1.9.0 in favor of 
+[reading by name](#read-specific-intention-by-name) or by viewing the 
+[`service-intentions`](/docs/agent/config-entries/service-intentions)
+config entry for the destination.
+
+This endpoint reads a specific intention.
+
+| Method | Path                        | Produces           |
+| ------ | --------------------------- | ------------------ |
+| `GET`  | `/connect/intentions/:uuid` | `application/json` |
+
+The table below shows this endpoint's support for
+[blocking queries](/api/features/blocking),
+[consistency modes](/api/features/consistency),
+[agent caching](/api/features/caching), and
+[required ACLs](/api#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required                  |
+| ---------------- | ----------------- | ------------- | ----------------------------- |
+| `YES`            | `all`             | `none`        | `intentions:read`<sup>1</sup> |
+
+<p>
+  <sup>1</sup> Intention ACL rules are specified as part of a <code>service</code> rule.
+  See{' '}
+  <a href="/docs/connect/intentions#intention-management-permissions">
+    Intention Management Permissions
+  </a>{' '}
+  for more details.
+</p>
+
+### Parameters
+
+- `uuid` `(string: <required>)` - Specifies the UUID of the intention to read. This
+  is specified as part of the URL.
+
+### Sample Request
+
+```shell-session
+$ curl \
+    http://127.0.0.1:8500/v1/connect/intentions/e9ebc19f-d481-42b1-4871-4d298d3acd5c
 ```
 
 ### Sample Response
@@ -260,7 +443,7 @@ The table below shows this endpoint's support for
 | `YES`            | `all`             | `none`        | `intentions:read`<sup>1</sup> |
 
 <p>
-  <sup>1</sup> Intention ACL rules are specified as part of a `service` rule.
+  <sup>1</sup> Intention ACL rules are specified as part of a <code>service</code> rule.
   See{' '}
   <a href="/docs/connect/intentions#intention-management-permissions">
     Intention Management Permissions
@@ -276,7 +459,7 @@ The table below shows this endpoint's support for
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the
   namespace to list intentions from.
   The `*` wildcard may be used to list intentions from all namespaces.
-  If not provided at all, the default namespace will be inherited from the
+  If not provided, the default namespace will be inherited from the
   request's ACL token or will default to the `default` namespace.
   This value may be provided by either the `ns` URL query parameter or in the
   `X-Consul-Namespace` header.
@@ -294,7 +477,6 @@ $ curl \
 ```json
 [
   {
-    "ID": "e9ebc19f-d481-42b1-4871-4d298d3acd5c",
     "Description": "",
     "SourceNS": "default",
     "SourceName": "web",
@@ -304,8 +486,6 @@ $ curl \
     "Action": "allow",
     "Meta": {},
     "Precedence": 9,
-    "CreatedAt": "2018-05-21T16:41:27.977155457Z",
-    "UpdatedAt": "2018-05-21T16:41:27.977157724Z",
     "CreateIndex": 11,
     "ModifyIndex": 11
   }
@@ -331,13 +511,15 @@ the following selectors and filter operations being supported:
 | `SourceName`      | Equal, Not Equal, In, Not In, Matches, Not Matches |
 | `SourceType`      | Equal, Not Equal, In, Not In, Matches, Not Matches |
 
-## Update Intention
+## Delete Intention by Name ((#delete-intention-by-name)) <sup>Beta</sup>
 
-This endpoint updates an intention with the given values.
+-> **1.9.0+:** This API is available in Consul versions 1.9.0 and later.
 
-| Method | Path                        | Produces           |
-| ------ | --------------------------- | ------------------ |
-| `PUT`  | `/connect/intentions/:uuid` | `application/json` |
+This endpoint deletes a specific intention by its unique source and destination.
+
+| Method   | Path                        | Produces           |
+| -------- | --------------------------- | ------------------ |
+| `DELETE` | `/connect/intentions/exact` | `application/json` |
 
 The table below shows this endpoint's support for
 [blocking queries](/api/features/blocking),
@@ -345,12 +527,12 @@ The table below shows this endpoint's support for
 [agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
-| Blocking Queries | Consistency Modes | Agent Caching | ACL Required                   |
-| ---------------- | ----------------- | ------------- | ------------------------------ |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required                  |
+| ---------------- | ----------------- | ------------- | ----------------------------- |
 | `NO`             | `none`            | `none`        | `intentions:write`<sup>1</sup> |
 
 <p>
-  <sup>1</sup> Intention ACL rules are specified as part of a `service` rule.
+  <sup>1</sup> Intention ACL rules are specified as part of a <code>service</code> rule.
   See{' '}
   <a href="/docs/connect/intentions#intention-management-permissions">
     Intention Management Permissions
@@ -360,32 +542,36 @@ The table below shows this endpoint's support for
 
 ### Parameters
 
-- `uuid` `(string: <required>)` - Specifies the UUID of the intention to update. This
+- `source` `(string: <required>)` - Specifies the source service. This
   is specified as part of the URL.
+  This can take [several forms](/commands/intention#source-and-destination-naming).
 
-- Other parameters are identical to creating an intention.
+- `destination` `(string: <required>)` - Specifies the destination service. This
+  is specified as part of the URL.
+  This can take [several forms](/commands/intention#source-and-destination-naming).
 
-### Sample Payload
-
-```json
-{
-  "SourceName": "web",
-  "DestinationName": "other-db",
-  "SourceType": "consul",
-  "Action": "allow"
-}
-```
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the default
+  namespace to use when `source` or `destination` parameters lack namespaces.
+  If not provided, the default namespace will be inherited from the
+  request's ACL token or will default to the `default` namespace.
+  This value may be provided by either the `ns` URL query parameter or in the
+  `X-Consul-Namespace` header.
+  Added in Consul 1.9.0.
 
 ### Sample Request
 
 ```shell-session
 $ curl \
-    --request PUT \
-    --data @payload.json \
-    http://127.0.0.1:8500/v1/connect/intentions/e9ebc19f-d481-42b1-4871-4d298d3acd5c
+    --request DELETE \
+    http://127.0.0.1:8500/v1/connect/intentions/exact?source=web&destination=db
 ```
 
-## Delete Intention
+## Delete Intention by ID
+
+-> **Deprecated** - This endpoint is deprecated in Consul 1.9.0 in favor of
+[deleting by name](#delete-intention-by-name) or editing the
+[`service-intentions`](/docs/agent/config-entries/service-intentions) config
+entry for the destination.
 
 This endpoint deletes a specific intention.
 
@@ -404,7 +590,7 @@ The table below shows this endpoint's support for
 | `NO`             | `none`            | `none`        | `intentions:write`<sup>1</sup> |
 
 <p>
-  <sup>1</sup> Intention ACL rules are specified as part of a `service` rule.
+  <sup>1</sup> Intention ACL rules are specified as part of a <code>service</code> rule.
   See{' '}
   <a href="/docs/connect/intentions#intention-management-permissions">
     Intention Management Permissions
@@ -428,8 +614,17 @@ $ curl \
 ## Check Intention Result
 
 This endpoint evaluates the intentions for a specific source and destination
-and returns whether the connection would be authorized or not given the
-current Consul configuration and set of intentions.
+and returns whether the connection would be authorized or not given the current
+Consul configuration and set of intentions.
+
+-> **Note:** This endpoint will always evaulate intentions with `Permissions`
+defined as *deny* intentions during. This endpoint is only suited for
+networking layer 4 (e.g. TCP) integration.
+
+For performance and reliability reasons it is desirable to implement intention
+enforcement by listing [intentions that match the
+destination](/api/connect/intentions#list-matching-intentions) and representing
+them in the native configuration of the proxy itself (such as RBAC for Envoy).
 
 This endpoint will work even if the destination service has
 `intention = "deny"` specifically set, because the resulting API response
@@ -450,7 +645,7 @@ The table below shows this endpoint's support for
 | `NO`             | `none`            | `none`        | `intentions:read`<sup>1</sup> |
 
 <p>
-  <sup>1</sup> Intention ACL rules are specified as part of a `service` rule.
+  <sup>1</sup> Intention ACL rules are specified as part of a <code>service</code> rule.
   See{' '}
   <a href="/docs/connect/intentions#intention-management-permissions">
     Intention Management Permissions
@@ -462,15 +657,15 @@ The table below shows this endpoint's support for
 
 - `source` `(string: <required>)` - Specifies the source service. This
   is specified as part of the URL.
-  This can take [several forms](/docs/commands/intention#source-and-destination-naming).
+  This can take [several forms](/commands/intention#source-and-destination-naming).
 
 - `destination` `(string: <required>)` - Specifies the destination service. This
   is specified as part of the URL.
-  This can take [several forms](/docs/commands/intention#source-and-destination-naming).
+  This can take [several forms](/commands/intention#source-and-destination-naming).
 
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the default
   namespace to use when `source` or `destination` parameters lack namespaces.
-  If not provided at all, the default namespace will be inherited from the
+  If not provided, the default namespace will be inherited from the
   request's ACL token or will default to the `default` namespace.
   This value may be provided by either the `ns` URL query parameter or in the
   `X-Consul-Namespace` header.
@@ -508,12 +703,12 @@ The table below shows this endpoint's support for
 [agent caching](/api/features/caching), and
 [required ACLs](/api#authentication).
 
-| Blocking Queries | Consistency Modes | Agent Caching | ACL Required                  |
-| ---------------- | ----------------- | ------------- | ----------------------------- |
-| `NO`             | `none`            | `none`        | `intentions:read`<sup>1</sup> |
+| Blocking Queries | Consistency Modes | Agent Caching        | ACL Required                  |
+| ---------------- | ----------------- | -------------------- | ----------------------------- |
+| `YES`            | `all`             | `background refresh` | `intentions:read`<sup>1</sup> |
 
 <p>
-  <sup>1</sup> Intention ACL rules are specified as part of a `service` rule.
+  <sup>1</sup> Intention ACL rules are specified as part of a <code>service</code> rule.
   See{' '}
   <a href="/docs/connect/intentions#intention-management-permissions">
     Intention Management Permissions
@@ -528,11 +723,11 @@ The table below shows this endpoint's support for
 
 - `name` `(string: <required>)` - Specifies a name to match. This parameter
   can be repeated for batching multiple matches.
-  This can take [several forms](/docs/commands/intention#source-and-destination-naming).
+  This can take [several forms](/commands/intention#source-and-destination-naming).
 
 - `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the default
   namespace to use when `name` parameter lacks namespaces.
-  If not provided at all, the default namespace will be inherited from the
+  If not provided, the default namespace will be inherited from the
   request's ACL token or will default to the `default` namespace.
   This value may be provided by either the `ns` URL query parameter or in the
   `X-Consul-Namespace` header.
@@ -551,7 +746,6 @@ $ curl \
 {
   "web": [
     {
-      "ID": "ed16f6a6-d863-1bec-af45-96bbdcbe02be",
       "Description": "",
       "SourceNS": "default",
       "SourceName": "web",
@@ -560,13 +754,10 @@ $ curl \
       "SourceType": "consul",
       "Action": "deny",
       "Meta": {},
-      "CreatedAt": "2018-05-21T16:41:33.296693825Z",
-      "UpdatedAt": "2018-05-21T16:41:33.296694288Z",
       "CreateIndex": 12,
       "ModifyIndex": 12
     },
     {
-      "ID": "e9ebc19f-d481-42b1-4871-4d298d3acd5c",
       "Description": "",
       "SourceNS": "default",
       "SourceName": "web",
@@ -575,8 +766,6 @@ $ curl \
       "SourceType": "consul",
       "Action": "allow",
       "Meta": {},
-      "CreatedAt": "2018-05-21T16:41:27.977155457Z",
-      "UpdatedAt": "2018-05-21T16:41:27.977157724Z",
       "CreateIndex": 11,
       "ModifyIndex": 11
     }

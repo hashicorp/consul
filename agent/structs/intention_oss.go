@@ -14,6 +14,18 @@ func (ixn *Intention) DestinationEnterpriseMeta() *EnterpriseMeta {
 	return DefaultEnterpriseMeta()
 }
 
+func (e *IntentionMatchEntry) GetEnterpriseMeta() *EnterpriseMeta {
+	return DefaultEnterpriseMeta()
+}
+
+func (e *IntentionQueryExact) SourceEnterpriseMeta() *EnterpriseMeta {
+	return DefaultEnterpriseMeta()
+}
+
+func (e *IntentionQueryExact) DestinationEnterpriseMeta() *EnterpriseMeta {
+	return DefaultEnterpriseMeta()
+}
+
 // FillAuthzContext can fill in an acl.AuthorizerContext object to setup
 // extra parameters for ACL enforcement. In OSS there is currently nothing
 // extra to be done.

@@ -10,11 +10,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
+
+	"github.com/hashicorp/consul/lib/ttlcache"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 // Test a basic Get with no indexes (and therefore no blocking queries).
@@ -841,6 +843,56 @@ func TestCacheGet_expireResetGet(t *testing.T) {
 	typ.AssertExpectations(t)
 }
 
+// Test that entries with state that satisfies io.Closer get cleaned up
+func TestCacheGet_expireClose(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	typ := &MockType{}
+	defer typ.AssertExpectations(t)
+	c := New(Options{})
+	defer c.Close()
+	typ.On("RegisterOptions").Return(RegisterOptions{
+		SupportsBlocking: true,
+		LastGetTTL:       100 * time.Millisecond,
+	})
+
+	// Register the type with a timeout
+	c.RegisterType("t", typ)
+
+	// Configure the type
+	state := &testCloser{}
+	typ.Static(FetchResult{Value: 42, State: state}, nil).Times(1)
+
+	ctx := context.Background()
+	req := TestRequest(t, RequestInfo{Key: "hello"})
+	result, meta, err := c.Get(ctx, "t", req)
+	require.NoError(err)
+	require.Equal(42, result)
+	require.False(meta.Hit)
+	require.False(state.isClosed())
+
+	// Sleep for the expiry
+	time.Sleep(200 * time.Millisecond)
+
+	// state.Close() should have been called
+	require.True(state.isClosed())
+}
+
+type testCloser struct {
+	closed uint32
+}
+
+func (t *testCloser) Close() error {
+	atomic.SwapUint32(&t.closed, 1)
+	return nil
+}
+
+func (t *testCloser) isClosed() bool {
+	return atomic.LoadUint32(&t.closed) == 1
+}
+
 // Test a Get with a request that returns the same cache key across
 // two different "types" returns two separate results.
 func TestCacheGet_duplicateKeyDifferentType(t *testing.T) {
@@ -949,6 +1001,9 @@ func (t *testPartitionType) RegisterOptions() RegisterOptions {
 // Test that background refreshing reports correct Age in failure and happy
 // states.
 func TestCacheGet_refreshAge(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for -short run")
+	}
 	t.Parallel()
 
 	require := require.New(t)
@@ -1351,3 +1406,73 @@ OUT:
 		}
 	}
 }
+
+func TestCache_ExpiryLoop_ExitsWhenStopped(t *testing.T) {
+	c := &Cache{
+		stopCh:            make(chan struct{}),
+		entries:           make(map[string]cacheEntry),
+		entriesExpiryHeap: ttlcache.NewExpiryHeap(),
+	}
+	chStart := make(chan struct{})
+	chDone := make(chan struct{})
+	go func() {
+		close(chStart)
+		c.runExpiryLoop()
+		close(chDone)
+	}()
+
+	<-chStart
+	close(c.stopCh)
+
+	select {
+	case <-chDone:
+	case <-time.After(50 * time.Millisecond):
+		t.Fatalf("expected loop to exit when stopped")
+	}
+}
+
+func TestCache_Prepopulate(t *testing.T) {
+	typ := &fakeType{index: 5}
+	c := New(Options{})
+	c.RegisterType("t", typ)
+
+	c.Prepopulate("t", FetchResult{Value: 17, Index: 1}, "dc1", "token", "v1")
+
+	ctx := context.Background()
+	req := fakeRequest{
+		info: RequestInfo{
+			Key:        "v1",
+			Token:      "token",
+			Datacenter: "dc1",
+			MinIndex:   1,
+		},
+	}
+	result, _, err := c.Get(ctx, "t", req)
+	require.NoError(t, err)
+	require.Equal(t, 17, result)
+}
+
+type fakeType struct {
+	index uint64
+}
+
+func (f fakeType) Fetch(_ FetchOptions, _ Request) (FetchResult, error) {
+	idx := atomic.LoadUint64(&f.index)
+	return FetchResult{Value: int(idx * 2), Index: idx}, nil
+}
+
+func (f fakeType) RegisterOptions() RegisterOptions {
+	return RegisterOptions{Refresh: true}
+}
+
+var _ Type = (*fakeType)(nil)
+
+type fakeRequest struct {
+	info RequestInfo
+}
+
+func (f fakeRequest) CacheInfo() RequestInfo {
+	return f.info
+}
+
+var _ Request = (*fakeRequest)(nil)

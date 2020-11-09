@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	libserf "github.com/hashicorp/consul/lib/serf"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/memberlist"
@@ -76,6 +77,9 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 
 	// feature flag: advertise support for federation states
 	conf.Tags["ft_fs"] = "1"
+
+	// feature flag: advertise support for service-intentions
+	conf.Tags["ft_si"] = "1"
 
 	var subLoggerName string
 	if wan {
@@ -165,7 +169,13 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 		return nil, err
 	}
 
+	conf.ReconnectTimeoutOverride = libserf.NewReconnectOverride(s.logger)
+
 	s.addEnterpriseSerfTags(conf.Tags)
+
+	if s.config.OverrideInitialSerfTags != nil {
+		s.config.OverrideInitialSerfTags(conf.Tags)
+	}
 
 	return serf.Create(conf)
 }
@@ -393,20 +403,12 @@ func (s *Server) maybeBootstrap() {
 	// Attempt a live bootstrap!
 	var configuration raft.Configuration
 	var addrs []string
-	minRaftVersion, err := s.autopilot.MinRaftProtocol()
-	if err != nil {
-		s.logger.Error("Failed to read server raft versions", "error", err)
-	}
 
 	for _, server := range servers {
 		addr := server.Addr.String()
 		addrs = append(addrs, addr)
-		var id raft.ServerID
-		if minRaftVersion >= 3 {
-			id = raft.ServerID(server.ID)
-		} else {
-			id = raft.ServerID(addr)
-		}
+		id := raft.ServerID(server.ID)
+
 		suffrage := raft.Voter
 		if server.NonVoter {
 			suffrage = raft.Nonvoter

@@ -311,6 +311,10 @@ func (r *Raft) runCandidate() {
 			// Reject any restores since we are not the leader
 			r.respond(ErrNotLeader)
 
+		case r := <-r.leadershipTransferCh:
+			// Reject any operations since we are not the leader
+			r.respond(ErrNotLeader)
+
 		case c := <-r.configurationsCh:
 			c.configurations = r.configurations.Clone()
 			c.respond(nil)
@@ -364,7 +368,7 @@ func (r *Raft) runLeader() {
 	metrics.IncrCounter([]string{"raft", "state", "leader"}, 1)
 
 	// Notify that we are the leader
-	asyncNotifyBool(r.leaderCh, true)
+	overrideNotifyBool(r.leaderCh, true)
 
 	// Push to the notify channel if given
 	if notify := r.conf.NotifyCh; notify != nil {
@@ -420,7 +424,7 @@ func (r *Raft) runLeader() {
 		r.leaderLock.Unlock()
 
 		// Notify that we are not the leader
-		asyncNotifyBool(r.leaderCh, false)
+		overrideNotifyBool(r.leaderCh, false)
 
 		// Push to the notify channel if given
 		if notify := r.conf.NotifyCh; notify != nil {
@@ -469,10 +473,13 @@ func (r *Raft) startStopReplication() {
 		if server.ID == r.localID {
 			continue
 		}
+
 		inConfig[server.ID] = true
-		if _, ok := r.leaderState.replState[server.ID]; !ok {
+
+		s, ok := r.leaderState.replState[server.ID]
+		if !ok {
 			r.logger.Info("added peer, starting replication", "peer", server.ID)
-			s := &followerReplication{
+			s = &followerReplication{
 				peer:                server,
 				commitment:          r.leaderState.commitment,
 				stopCh:              make(chan uint64, 1),
@@ -485,10 +492,14 @@ func (r *Raft) startStopReplication() {
 				notifyCh:            make(chan struct{}, 1),
 				stepDown:            r.leaderState.stepDown,
 			}
+
 			r.leaderState.replState[server.ID] = s
 			r.goFunc(func() { r.replicate(s) })
 			asyncNotifyCh(s.triggerCh)
 			r.observe(PeerObservation{Peer: server, Removed: false})
+		} else if ok && s.peer.Address != server.Address {
+			r.logger.Info("updating peer", "peer", server.ID)
+			s.peer = server
 		}
 	}
 
@@ -504,6 +515,9 @@ func (r *Raft) startStopReplication() {
 		delete(r.leaderState.replState, serverID)
 		r.observe(PeerObservation{Peer: repl.peer, Removed: true})
 	}
+
+	// Update peers metric
+	metrics.SetGauge([]string{"raft", "peers"}, float32(len(r.configurations.latest.Servers)))
 }
 
 // configurationChangeChIfStable returns r.configurationChangeCh if it's safe
@@ -982,6 +996,7 @@ func (r *Raft) restoreUserSnapshot(meta *SnapshotMeta, reader io.Reader) error {
 	// Restore the snapshot into the FSM. If this fails we are in a
 	// bad state so we panic to take ourselves out.
 	fsm := &restoreFuture{ID: sink.ID()}
+	fsm.ShutdownCh = r.shutdownCh
 	fsm.init()
 	select {
 	case r.fsmMutateCh <- fsm:
@@ -1451,7 +1466,7 @@ func (r *Raft) requestVote(rpc RPC, req *RequestVoteRequest) {
 	if lastVoteTerm == req.Term && lastVoteCandBytes != nil {
 		r.logger.Info("duplicate requestVote for same term", "term", req.Term)
 		if bytes.Compare(lastVoteCandBytes, req.Candidate) == 0 {
-			r.logger.Warn("duplicate requestVote from", "candidate", req.Candidate)
+			r.logger.Warn("duplicate requestVote from", "candidate", candidate)
 			resp.Granted = true
 		}
 		return
@@ -1576,6 +1591,7 @@ func (r *Raft) installSnapshot(rpc RPC, req *InstallSnapshotRequest) {
 
 	// Restore snapshot
 	future := &restoreFuture{ID: sink.ID()}
+	future.ShutdownCh = r.shutdownCh
 	future.init()
 	select {
 	case r.fsmMutateCh <- future:
@@ -1732,13 +1748,13 @@ func (r *Raft) lookupServer(id ServerID) *Server {
 	return nil
 }
 
-// pickServer returns the follower that is most up to date. Because it accesses
-// leaderstate, it should only be called from the leaderloop.
+// pickServer returns the follower that is most up to date and participating in quorum.
+// Because it accesses leaderstate, it should only be called from the leaderloop.
 func (r *Raft) pickServer() *Server {
 	var pick *Server
 	var current uint64
 	for _, server := range r.configurations.latest.Servers {
-		if server.ID == r.localID {
+		if server.ID == r.localID || server.Suffrage != Voter {
 			continue
 		}
 		state, ok := r.leaderState.replState[server.ID]

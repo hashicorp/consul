@@ -2,17 +2,17 @@ package consul
 
 import (
 	"os"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/raft"
+	autopilot "github.com/hashicorp/raft-autopilot"
+	"github.com/stretchr/testify/require"
 )
 
 func TestOperator_Autopilot_GetConfiguration(t *testing.T) {
@@ -30,7 +30,7 @@ func TestOperator_Autopilot_GetConfiguration(t *testing.T) {
 	arg := structs.DCSpecificRequest{
 		Datacenter: "dc1",
 	}
-	var reply autopilot.Config
+	var reply structs.AutopilotConfig
 	err := msgpackrpc.CallWithCodec(codec, "Operator.AutopilotGetConfiguration", &arg, &reply)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -60,7 +60,7 @@ func TestOperator_Autopilot_GetConfiguration_ACLDeny(t *testing.T) {
 	arg := structs.DCSpecificRequest{
 		Datacenter: "dc1",
 	}
-	var reply autopilot.Config
+	var reply structs.AutopilotConfig
 	err := msgpackrpc.CallWithCodec(codec, "Operator.AutopilotGetConfiguration", &arg, &reply)
 	if !acl.IsErrPermissionDenied(err) {
 		t.Fatalf("err: %v", err)
@@ -114,7 +114,7 @@ func TestOperator_Autopilot_SetConfiguration(t *testing.T) {
 	// Change the autopilot config from the default
 	arg := structs.AutopilotSetConfigRequest{
 		Datacenter: "dc1",
-		Config: autopilot.Config{
+		Config: structs.AutopilotConfig{
 			CleanupDeadServers: true,
 			MinQuorum:          3,
 		},
@@ -155,7 +155,7 @@ func TestOperator_Autopilot_SetConfiguration_ACLDeny(t *testing.T) {
 	// Try to set config without permissions
 	arg := structs.AutopilotSetConfigRequest{
 		Datacenter: "dc1",
-		Config: autopilot.Config{
+		Config: structs.AutopilotConfig{
 			CleanupDeadServers: true,
 		},
 	}
@@ -236,7 +236,7 @@ func TestOperator_ServerHealth(t *testing.T) {
 		arg := structs.DCSpecificRequest{
 			Datacenter: "dc1",
 		}
-		var reply autopilot.OperatorHealthReply
+		var reply structs.AutopilotHealthReply
 		err := msgpackrpc.CallWithCodec(codec, "Operator.ServerHealth", &arg, &reply)
 		if err != nil {
 			r.Fatalf("err: %v", err)
@@ -263,24 +263,52 @@ func TestOperator_ServerHealth(t *testing.T) {
 	})
 }
 
-func TestOperator_ServerHealth_UnsupportedRaftVersion(t *testing.T) {
+func TestOperator_AutopilotState(t *testing.T) {
 	t.Parallel()
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+	conf := func(c *Config) {
 		c.Datacenter = "dc1"
-		c.Bootstrap = true
-		c.RaftConfig.ProtocolVersion = 2
-	})
+		c.Bootstrap = false
+		c.BootstrapExpect = 3
+		c.RaftConfig.ProtocolVersion = 3
+		c.ServerHealthInterval = 100 * time.Millisecond
+		c.AutopilotInterval = 100 * time.Millisecond
+	}
+	dir1, s1 := testServerWithConfig(t, conf)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	arg := structs.DCSpecificRequest{
-		Datacenter: "dc1",
-	}
-	var reply autopilot.OperatorHealthReply
-	err := msgpackrpc.CallWithCodec(codec, "Operator.ServerHealth", &arg, &reply)
-	if err == nil || !strings.Contains(err.Error(), "raft_protocol set to 3 or higher") {
-		t.Fatalf("bad: %v", err)
-	}
+	dir2, s2 := testServerWithConfig(t, conf)
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+	joinLAN(t, s2, s1)
+
+	dir3, s3 := testServerWithConfig(t, conf)
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+	joinLAN(t, s3, s1)
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	retry.Run(t, func(r *retry.R) {
+		arg := structs.DCSpecificRequest{
+			Datacenter: "dc1",
+		}
+		var reply autopilot.State
+		err := msgpackrpc.CallWithCodec(codec, "Operator.AutopilotState", &arg, &reply)
+		require.NoError(r, err)
+		require.True(r, reply.Healthy)
+		require.Equal(r, 1, reply.FailureTolerance)
+		require.Len(r, reply.Servers, 3)
+
+		// Leader should have LastContact == 0, others should be positive
+		for _, s := range reply.Servers {
+			isLeader := s1.raft.Leader() == s.Server.Address
+			if isLeader {
+				require.Zero(r, s.Stats.LastContact)
+			} else {
+				require.NotEqual(r, time.Duration(0), s.Stats.LastContact)
+			}
+		}
+	})
 }

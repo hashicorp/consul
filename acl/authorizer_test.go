@@ -12,6 +12,8 @@ type mockAuthorizer struct {
 	mock.Mock
 }
 
+var _ Authorizer = (*mockAuthorizer)(nil)
+
 // ACLRead checks for permission to list all the ACLs
 func (m *mockAuthorizer) ACLRead(ctx *AuthorizerContext) EnforcementDecision {
 	ret := m.Called(ctx)
@@ -115,6 +117,11 @@ func (m *mockAuthorizer) NodeRead(segment string, ctx *AuthorizerContext) Enforc
 	return ret.Get(0).(EnforcementDecision)
 }
 
+func (m *mockAuthorizer) NodeReadAll(ctx *AuthorizerContext) EnforcementDecision {
+	ret := m.Called(ctx)
+	return ret.Get(0).(EnforcementDecision)
+}
+
 // NodeWrite checks for permission to create or update (register) a
 // given node.
 func (m *mockAuthorizer) NodeWrite(segment string, ctx *AuthorizerContext) EnforcementDecision {
@@ -153,6 +160,11 @@ func (m *mockAuthorizer) PreparedQueryWrite(segment string, ctx *AuthorizerConte
 // ServiceRead checks for permission to read a given service
 func (m *mockAuthorizer) ServiceRead(segment string, ctx *AuthorizerContext) EnforcementDecision {
 	ret := m.Called(segment, ctx)
+	return ret.Get(0).(EnforcementDecision)
+}
+
+func (m *mockAuthorizer) ServiceReadAll(ctx *AuthorizerContext) EnforcementDecision {
+	ret := m.Called(ctx)
 	return ret.Get(0).(EnforcementDecision)
 }
 

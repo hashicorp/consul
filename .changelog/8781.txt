@@ -1,0 +1,3 @@
+```release-note:feature
+agent: Allow client agents to be configured with an advertised reconnect timeout to control how long until the nodes are reaped by others in the cluster.
+```

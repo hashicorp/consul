@@ -1,0 +1,24 @@
+{
+  "Name": "${location.pathname.get(2)}",
+  "Description": "${fake.lorem.sentence()}",
+  "ACLs": {
+    "PolicyDefaults": [
+${range(env('CONSUL_POLICY_COUNT', 3)).map((i) => `
+        {
+          "ID": "${fake.random.uuid()}-${i}",
+          "Name": "${fake.hacker.noun()}-policy"
+        }
+`)}
+    ],
+    "RoleDefaults": [
+${range(env('CONSUL_ROLE_COUNT', 3)).map((i) => `
+        {
+          "ID": "${fake.random.uuid()}-${i}",
+          "Name": "${fake.hacker.noun()}-role"
+        }
+`)}
+    ]
+  },
+  "CreateIndex": 12,
+  "ModifyIndex": 16
+}

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/uiserver"
 )
 
 func (s *HTTPHandlers) parseEntMeta(req *http.Request, entMeta *structs.EnterpriseMeta) error {
@@ -55,8 +56,6 @@ func (s *HTTPHandlers) rewordUnknownEnterpriseFieldError(err error) error {
 	return err
 }
 
-func (s *HTTPHandlers) addEnterpriseUIENVVars(_ map[string]interface{}) {}
-
 func parseACLAuthMethodEnterpriseMeta(req *http.Request, _ *structs.ACLAuthMethodEnterpriseMeta) error {
 	if methodNS := req.URL.Query().Get("authmethod-ns"); methodNS != "" {
 		return BadRequestError{Reason: "Invalid query parameter: \"authmethod-ns\" - Namespaces are a Consul Enterprise feature"}
@@ -68,4 +67,10 @@ func parseACLAuthMethodEnterpriseMeta(req *http.Request, _ *structs.ACLAuthMetho
 // enterpriseHandler is a noop for the enterprise implementation. we pass the original back
 func (s *HTTPHandlers) enterpriseHandler(next http.Handler) http.Handler {
 	return next
+}
+
+// uiTemplateDataTransform returns an optional uiserver.UIDataTransform to allow
+// altering UI data in enterprise.
+func (s *HTTPHandlers) uiTemplateDataTransform() uiserver.UIDataTransform {
+	return nil
 }

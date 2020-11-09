@@ -29,7 +29,7 @@ Learn.
 ## Accessing the KV store
 
 The KV store can be accessed by the [consul kv CLI
-subcommands](/docs/commands/kv), [HTTP API](/api/kv), and Consul UI.
+subcommands](/commands/kv), [HTTP API](/api/kv), and Consul UI.
 To restrict access, enable and configure
 [ACLs](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production).
 Once the ACL system has been bootstrapped, users and services, will need a
@@ -41,7 +41,7 @@ application.
 
 The datastore itself is located on the Consul servers in the [data
 directory](/docs/agent/options#_data_dir). To ensure data is not lost in
-the event of a complete outage, use the [`consul snapshot`](/docs/commands/snapshot/restore) feature to backup the data.
+the event of a complete outage, use the [`consul snapshot`](/commands/snapshot/restore) feature to backup the data.
 
 ## Using Consul KV
 

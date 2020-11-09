@@ -168,6 +168,27 @@ func WaitForActiveCARoot(t *testing.T, rpc rpcFn, dc string, expect *structs.CAR
 	})
 }
 
+// WaitForServiceIntentions waits until the server can accept config entry
+// kinds of service-intentions meaning any migration bootstrapping from pre-1.9
+// intentions has completed.
+func WaitForServiceIntentions(t *testing.T, rpc rpcFn, dc string) {
+	const fakeConfigName = "Sa4ohw5raith4si0Ohwuqu3lowiethoh"
+	retry.Run(t, func(r *retry.R) {
+		args := &structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryDelete,
+			Datacenter: dc,
+			Entry: &structs.ServiceIntentionsConfigEntry{
+				Kind: structs.ServiceIntentions,
+				Name: fakeConfigName,
+			},
+		}
+		var ignored struct{}
+		if err := rpc("ConfigEntry.Delete", args, &ignored); err != nil {
+			r.Fatalf("err: %v", err)
+		}
+	})
+}
+
 func WaitForACLReplication(t *testing.T, rpc rpcFn, dc string, expectedReplicationType structs.ACLReplicationType, minPolicyIndex, minTokenIndex, minRoleIndex uint64) {
 	retry.Run(t, func(r *retry.R) {
 		args := structs.DCSpecificRequest{

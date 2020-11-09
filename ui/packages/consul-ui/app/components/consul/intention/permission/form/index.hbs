@@ -1,0 +1,156 @@
+<div
+  ...attributes
+  class="consul-intention-permission-form"
+>
+<FormGroup
+  @name={{name}}
+as |group|>
+
+  {{yield (hash
+    submit=(action 'submit' changeset)
+    reset=(action 'reset' changeset)
+
+    isDirty=(and changeset.isValid)
+    changeset=changeset
+  )}}
+
+  <fieldset>
+    <div data-property="action">
+      <span class="label">
+        Should this permission allow the source connect to the destination?
+      </span>
+      <div role="radiogroup" class={{if changeset.error.Action ' has-error'}}>
+        {{#each intents as |intent|}}
+          <label>
+            <span>{{capitalize intent}}</span>
+            <input
+              type="radio"
+              name="Action"
+              value={{intent}}
+              checked={{if (eq changeset.Action intent) 'checked'}}
+              onchange={{action (changeset-set changeset 'Action') value="target.value"}}
+            />
+          </label>
+        {{/each}}
+      </div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <header>
+      <h2>Path</h2>
+    </header>
+    <div>
+        <group.Element
+          @name="PathType"
+          @type="select"
+        as |el|>
+          <el.Label>
+            Path type
+          </el.Label>
+          <PowerSelect
+            @options={{pathTypes}}
+            @selected={{pathType}}
+            @onChange={{action 'change' 'HTTP.PathType' changeset}} as |Type|>
+              {{get pathLabels Type}}
+          </PowerSelect>
+        </group.Element>
+
+{{#if shouldShowPathField}}
+        <group.Element
+          @name="Path"
+          @error={{changeset-get changeset 'error.HTTP.Path'}}
+        as |el|>
+          <el.Label>
+            {{get pathLabels pathType}}
+          </el.Label>
+          <el.Text
+            @value={{changeset-get changeset 'HTTP.Path'}}
+            oninput={{action 'change' 'HTTP.Path' changeset}}
+          />
+          <State @state={{el.state}} @matches="error">
+            <el.Error>
+              {{#if (eq (changeset-get changeset 'HTTP.Path') 'Regex')}}
+                Path Regex should not be blank
+              {{else}}
+                Path should begin with a '/'
+              {{/if}}
+            </el.Error>
+          </State>
+        </group.Element>
+{{/if}}
+
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <h2>Methods</h2>
+    <div class="type-toggle">
+      <span>All methods are applied by default unless specified</span>
+      <group.Element
+        @name="allMethods"
+      as |el|>
+        <el.Checkbox
+          checked={{if allMethods 'checked'}}
+          onchange={{action 'change' 'allMethods' changeset}}
+        />
+        <el.Label>
+          All Methods
+        </el.Label>
+      </group.Element>
+    </div>
+
+{{#if shouldShowMethods}}
+    <div class="checkbox-group" role="group">
+      {{#each methods as |method|}}
+        <label class="type-checkbox">
+          <input
+            type="checkbox"
+            name="method"
+            value={{method}}
+            checked={{if (contains method changeset.HTTP.Methods) 'checked'}}
+            onchange={{action 'change' 'method' changeset}}
+          />
+          <span>{{method}}</span>
+        </label>
+      {{/each}}
+    </div>
+{{/if}}
+  </fieldset>
+
+  <fieldset>
+    <h2>Headers</h2>
+
+    <Consul::Intention::Permission::Header::List
+      @items={{changeset-get changeset 'HTTP.Header'}}
+      @ondelete={{action 'delete' 'HTTP.Header' changeset}}
+    as |headerList|>
+
+    </Consul::Intention::Permission::Header::List>
+
+    <Consul::Intention::Permission::Header::Form
+      @onsubmit={{action 'add' 'HTTP.Header' changeset}}
+    as |headerForm|>
+      <Ref @target={{this}} @name="headerForm" @value={{headerForm}} />
+    </Consul::Intention::Permission::Header::Form>
+
+    <button
+      data-test-add-header
+      type="button"
+      class="type-submit"
+      disabled={{if (not this.headerForm.isDirty) 'disabled'}}
+      onclick={{action this.headerForm.submit}}
+    >
+      Add{{#if (gt (get (changeset-get changeset 'HTTP.Header') 'length') 0)}} another{{/if}} header
+    </button>
+    <button
+      type="button"
+      class="type-cancel"
+      onclick={{action this.headerForm.reset}}
+    >
+      Cancel
+    </button>
+
+  </fieldset>
+  </FormGroup>
+</div>

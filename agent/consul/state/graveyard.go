@@ -28,7 +28,7 @@ func NewGraveyard(gc *TombstoneGC) *Graveyard {
 }
 
 // InsertTxn adds a new tombstone.
-func (g *Graveyard) InsertTxn(tx *txn, key string, idx uint64, entMeta *structs.EnterpriseMeta) error {
+func (g *Graveyard) InsertTxn(tx WriteTxn, key string, idx uint64, entMeta *structs.EnterpriseMeta) error {
 	stone := &Tombstone{
 		Key:   key,
 		Index: idx,
@@ -51,7 +51,7 @@ func (g *Graveyard) InsertTxn(tx *txn, key string, idx uint64, entMeta *structs.
 
 // GetMaxIndexTxn returns the highest index tombstone whose key matches the
 // given context, using a prefix match.
-func (g *Graveyard) GetMaxIndexTxn(tx *txn, prefix string, entMeta *structs.EnterpriseMeta) (uint64, error) {
+func (g *Graveyard) GetMaxIndexTxn(tx ReadTxn, prefix string, entMeta *structs.EnterpriseMeta) (uint64, error) {
 	stones, err := getWithTxn(tx, "tombstones", "id_prefix", prefix, entMeta)
 	if err != nil {
 		return 0, fmt.Errorf("failed querying tombstones: %s", err)
@@ -68,7 +68,7 @@ func (g *Graveyard) GetMaxIndexTxn(tx *txn, prefix string, entMeta *structs.Ente
 }
 
 // DumpTxn returns all the tombstones.
-func (g *Graveyard) DumpTxn(tx *txn) (memdb.ResultIterator, error) {
+func (g *Graveyard) DumpTxn(tx ReadTxn) (memdb.ResultIterator, error) {
 	iter, err := tx.Get("tombstones", "id")
 	if err != nil {
 		return nil, err

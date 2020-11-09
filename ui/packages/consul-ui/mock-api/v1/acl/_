@@ -1,0 +1,28 @@
+${
+  location.pathname.get(2) === 'policy' && http.method === 'PUT' ? `
+{
+  "ID": "${fake.random.uuid()}-1",
+  "Name": "${body.Name || ''}",
+  "Description": "${body.Description || ''}",
+  "Datacenters": ${fake.helpers.randomize(['null', '["dc-1", "dc-2"]'])},
+  "Rules": "${body.Rules || ''}"
+}
+` : location.pathname.get(2) === 'token' && http.method === 'PUT' ?
+  `
+{
+    "AccessorID":"${fake.random.uuid()}-1",
+    "SecretID":"${fake.random.uuid()}",
+    "Name": "${body.Name || ''}",
+    "Policies": ["dc2-service-register", "global-service-read"],
+    "CreateTime":"2017-08-23T22:47:14.695408057Z",
+    "CreateIndex":7,
+    "ModifyIndex":7
+}
+` : location.pathname.get(2) === 'role' && http.method === 'PUT' ?
+  `
+{
+  "ID": "${fake.random.uuid()}-1"
+}
+  ` : `true`
+}
+

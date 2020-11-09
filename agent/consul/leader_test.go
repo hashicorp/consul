@@ -334,7 +334,7 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 	versionToExpect := "19.7.9"
 
 	retry.Run(t, func(r *retry.R) {
-		member.Tags["non_voter"] = "true"
+		member.Tags["nonvoter"] = "1"
 		member.Tags["build"] = versionToExpect
 		err := s1.handleAliveMember(member)
 		if err != nil {
@@ -348,7 +348,7 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 			r.Fatal("client not registered")
 		}
 		if service.Meta["non_voter"] != "true" {
-			r.Fatalf("Expected to be non_voter == false, was: %s", service.Meta["non_voter"])
+			r.Fatalf("Expected to be non_voter == true, was: %s", service.Meta["non_voter"])
 		}
 		newVersion := service.Meta["version"]
 		if newVersion != versionToExpect {
@@ -741,7 +741,7 @@ func TestLeader_MultiBootstrap(t *testing.T) {
 
 	// Ensure we don't have multiple raft peers
 	for _, s := range servers {
-		peers, _ := s.numPeers()
+		peers, _ := s.autopilot.NumVoters()
 		if peers != 1 {
 			t.Fatalf("should only have 1 raft peer!")
 		}
@@ -886,7 +886,6 @@ func TestLeader_RollRaftServer(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = true
 		c.Datacenter = "dc1"
-		c.RaftConfig.ProtocolVersion = 2
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -894,7 +893,6 @@ func TestLeader_RollRaftServer(t *testing.T) {
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = false
 		c.Datacenter = "dc1"
-		c.RaftConfig.ProtocolVersion = 1
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
@@ -902,7 +900,6 @@ func TestLeader_RollRaftServer(t *testing.T) {
 	dir3, s3 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = false
 		c.Datacenter = "dc1"
-		c.RaftConfig.ProtocolVersion = 2
 	})
 	defer os.RemoveAll(dir3)
 	defer s3.Shutdown()
@@ -922,21 +919,15 @@ func TestLeader_RollRaftServer(t *testing.T) {
 
 	for _, s := range []*Server{s1, s3} {
 		retry.Run(t, func(r *retry.R) {
-			minVer, err := s.autopilot.MinRaftProtocol()
-			if err != nil {
-				r.Fatal(err)
-			}
-			if got, want := minVer, 2; got != want {
-				r.Fatalf("got min raft version %d want %d", got, want)
-			}
+			// autopilot should force removal of the shutdown node
+			r.Check(wantPeers(s, 2))
 		})
 	}
 
-	// Replace the dead server with one running raft protocol v3
+	// Replace the dead server with a new one
 	dir4, s4 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = false
 		c.Datacenter = "dc1"
-		c.RaftConfig.ProtocolVersion = 3
 	})
 	defer os.RemoveAll(dir4)
 	defer s4.Shutdown()
@@ -946,25 +937,7 @@ func TestLeader_RollRaftServer(t *testing.T) {
 	// Make sure the dead server is removed and we're back to 3 total peers
 	for _, s := range servers {
 		retry.Run(t, func(r *retry.R) {
-			addrs := 0
-			ids := 0
-			future := s.raft.GetConfiguration()
-			if err := future.Error(); err != nil {
-				r.Fatal(err)
-			}
-			for _, server := range future.Configuration().Servers {
-				if string(server.ID) == string(server.Address) {
-					addrs++
-				} else {
-					ids++
-				}
-			}
-			if got, want := addrs, 2; got != want {
-				r.Fatalf("got %d server addresses want %d", got, want)
-			}
-			if got, want := ids, 1; got != want {
-				r.Fatalf("got %d server ids want %d", got, want)
-			}
+			r.Check(wantPeers(s, 3))
 		})
 	}
 }
@@ -1271,7 +1244,7 @@ func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
 				ch <- ""
 				return
 			}
-			if strings.Contains(line, "initialized primary datacenter") {
+			if strings.Contains(line, "successfully established leadership") {
 				ch <- "leadership should not have gotten here if config entries properly failed"
 				return
 			}
@@ -1630,5 +1603,353 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 				r.Fatal("server 2 shouldn't activate fedstates")
 			}
 		})
+	})
+}
+
+func TestDatacenterSupportsIntentionsAsConfigEntries(t *testing.T) {
+	addLegacyIntention := func(srv *Server, dc, src, dest string, allow bool) error {
+		ixn := &structs.Intention{
+			SourceNS:        structs.IntentionDefaultNamespace,
+			SourceName:      src,
+			DestinationNS:   structs.IntentionDefaultNamespace,
+			DestinationName: dest,
+			SourceType:      structs.IntentionSourceConsul,
+			Meta:            map[string]string{},
+		}
+
+		if allow {
+			ixn.Action = structs.IntentionActionAllow
+		} else {
+			ixn.Action = structs.IntentionActionDeny
+		}
+
+		//nolint:staticcheck
+		ixn.UpdatePrecedence()
+		//nolint:staticcheck
+		ixn.SetHash()
+
+		arg := structs.IntentionRequest{
+			Datacenter: dc,
+			Op:         structs.IntentionOpCreate,
+			Intention:  ixn,
+		}
+
+		var id string
+		return srv.RPC("Intention.Apply", &arg, &id)
+	}
+
+	getConfigEntry := func(srv *Server, dc, kind, name string) (structs.ConfigEntry, error) {
+		arg := structs.ConfigEntryQuery{
+			Datacenter: dc,
+			Kind:       kind,
+			Name:       name,
+		}
+		var reply structs.ConfigEntryResponse
+		if err := srv.RPC("ConfigEntry.Get", &arg, &reply); err != nil {
+			return nil, err
+		}
+		return reply.Entry, nil
+	}
+
+	disableServiceIntentions := func(tags map[string]string) {
+		tags["ft_si"] = "0"
+	}
+
+	defaultEntMeta := structs.DefaultEnterpriseMeta()
+
+	t.Run("one node primary with old version", func(t *testing.T) {
+		dir1, s1 := testServerWithConfig(t, func(c *Config) {
+			c.NodeName = "node1"
+			c.Datacenter = "dc1"
+			c.PrimaryDatacenter = "dc1"
+			c.OverrideInitialSerfTags = disableServiceIntentions
+		})
+		defer os.RemoveAll(dir1)
+		defer s1.Shutdown()
+
+		waitForLeaderEstablishment(t, s1)
+
+		retry.Run(t, func(r *retry.R) {
+			if s1.DatacenterSupportsIntentionsAsConfigEntries() {
+				r.Fatal("server 1 shouldn't activate service-intentions")
+			}
+		})
+
+		testutil.RequireErrorContains(t,
+			addLegacyIntention(s1, "dc1", "web", "api", true),
+			ErrIntentionsNotUpgradedYet.Error(),
+		)
+	})
+
+	t.Run("one node primary with new version", func(t *testing.T) {
+		dir1, s1 := testServerWithConfig(t, func(c *Config) {
+			c.NodeName = "node1"
+			c.Datacenter = "dc1"
+			c.PrimaryDatacenter = "dc1"
+		})
+		defer os.RemoveAll(dir1)
+		defer s1.Shutdown()
+
+		waitForLeaderEstablishment(t, s1)
+
+		retry.Run(t, func(r *retry.R) {
+			if !s1.DatacenterSupportsIntentionsAsConfigEntries() {
+				r.Fatal("server 1 didn't activate service-intentions")
+			}
+		})
+
+		// try to write a using the legacy API and it should work
+		require.NoError(t, addLegacyIntention(s1, "dc1", "web", "api", true))
+
+		// read it back as a config entry and that should work too
+		raw, err := getConfigEntry(s1, "dc1", structs.ServiceIntentions, "api")
+		require.NoError(t, err)
+		require.NotNil(t, raw)
+
+		got, ok := raw.(*structs.ServiceIntentionsConfigEntry)
+		require.True(t, ok)
+		require.Len(t, got.Sources, 1)
+
+		expect := &structs.ServiceIntentionsConfigEntry{
+			Kind:           structs.ServiceIntentions,
+			Name:           "api",
+			EnterpriseMeta: *defaultEntMeta,
+
+			Sources: []*structs.SourceIntention{
+				{
+					Name:           "web",
+					EnterpriseMeta: *defaultEntMeta,
+					Action:         structs.IntentionActionAllow,
+					Type:           structs.IntentionSourceConsul,
+					Precedence:     9,
+					LegacyMeta:     map[string]string{},
+					LegacyID:       got.Sources[0].LegacyID,
+					// steal
+					LegacyCreateTime: got.Sources[0].LegacyCreateTime,
+					LegacyUpdateTime: got.Sources[0].LegacyUpdateTime,
+				},
+			},
+
+			RaftIndex: got.RaftIndex,
+		}
+
+		require.Equal(t, expect, got)
+	})
+
+	t.Run("two node primary with mixed versions", func(t *testing.T) {
+		dir1, s1 := testServerWithConfig(t, func(c *Config) {
+			c.NodeName = "node1"
+			c.Datacenter = "dc1"
+			c.PrimaryDatacenter = "dc1"
+			c.OverrideInitialSerfTags = disableServiceIntentions
+		})
+		defer os.RemoveAll(dir1)
+		defer s1.Shutdown()
+
+		waitForLeaderEstablishment(t, s1)
+
+		dir2, s2 := testServerWithConfig(t, func(c *Config) {
+			c.NodeName = "node2"
+			c.Datacenter = "dc1"
+			c.PrimaryDatacenter = "dc1"
+			c.Bootstrap = false
+		})
+		defer os.RemoveAll(dir2)
+		defer s2.Shutdown()
+
+		// Put s1 last so we don't trigger a leader election.
+		servers := []*Server{s2, s1}
+
+		// Try to join
+		joinLAN(t, s2, s1)
+		for _, s := range servers {
+			retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 2)) })
+		}
+
+		waitForLeaderEstablishment(t, s1)
+
+		retry.Run(t, func(r *retry.R) {
+			if s1.DatacenterSupportsIntentionsAsConfigEntries() {
+				r.Fatal("server 1 shouldn't activate service-intentions")
+			}
+		})
+		retry.Run(t, func(r *retry.R) {
+			if s2.DatacenterSupportsIntentionsAsConfigEntries() {
+				r.Fatal("server 2 shouldn't activate service-intentions")
+			}
+		})
+
+		testutil.RequireErrorContains(t,
+			addLegacyIntention(s1, "dc1", "web", "api", true),
+			ErrIntentionsNotUpgradedYet.Error(),
+		)
+		testutil.RequireErrorContains(t,
+			addLegacyIntention(s2, "dc1", "web", "api", true),
+			ErrIntentionsNotUpgradedYet.Error(),
+		)
+	})
+
+	t.Run("two node primary with new version", func(t *testing.T) {
+		dir1, s1 := testServerWithConfig(t, func(c *Config) {
+			c.NodeName = "node1"
+			c.Datacenter = "dc1"
+			c.PrimaryDatacenter = "dc1"
+		})
+		defer os.RemoveAll(dir1)
+		defer s1.Shutdown()
+
+		waitForLeaderEstablishment(t, s1)
+
+		dir2, s2 := testServerWithConfig(t, func(c *Config) {
+			c.NodeName = "node2"
+			c.Datacenter = "dc1"
+			c.PrimaryDatacenter = "dc1"
+			c.Bootstrap = false
+		})
+		defer os.RemoveAll(dir2)
+		defer s2.Shutdown()
+
+		// Put s1 last so we don't trigger a leader election.
+		servers := []*Server{s2, s1}
+
+		// Try to join
+		joinLAN(t, s2, s1)
+		for _, s := range servers {
+			retry.Run(t, func(r *retry.R) { r.Check(wantPeers(s, 2)) })
+		}
+
+		testrpc.WaitForLeader(t, s1.RPC, "dc1")
+		testrpc.WaitForLeader(t, s2.RPC, "dc1")
+
+		retry.Run(t, func(r *retry.R) {
+			if !s1.DatacenterSupportsIntentionsAsConfigEntries() {
+				r.Fatal("server 1 didn't activate service-intentions")
+			}
+		})
+		retry.Run(t, func(r *retry.R) {
+			if !s2.DatacenterSupportsIntentionsAsConfigEntries() {
+				r.Fatal("server 2 didn't activate service-intentions")
+			}
+		})
+
+		// try to write a using the legacy API and it should work from both sides
+		require.NoError(t, addLegacyIntention(s1, "dc1", "web", "api", true))
+		require.NoError(t, addLegacyIntention(s2, "dc1", "web2", "api", true))
+
+		// read it back as a config entry and that should work too
+		raw, err := getConfigEntry(s1, "dc1", structs.ServiceIntentions, "api")
+		require.NoError(t, err)
+		require.NotNil(t, raw)
+
+		raw, err = getConfigEntry(s2, "dc1", structs.ServiceIntentions, "api")
+		require.NoError(t, err)
+		require.NotNil(t, raw)
+	})
+
+	t.Run("primary and secondary with new version", func(t *testing.T) {
+		dir1, s1 := testServerWithConfig(t, func(c *Config) {
+			c.NodeName = "node1"
+			c.Datacenter = "dc1"
+			c.PrimaryDatacenter = "dc1"
+		})
+		defer os.RemoveAll(dir1)
+		defer s1.Shutdown()
+
+		waitForLeaderEstablishment(t, s1)
+
+		dir2, s2 := testServerWithConfig(t, func(c *Config) {
+			c.NodeName = "node2"
+			c.Datacenter = "dc2"
+			c.PrimaryDatacenter = "dc1"
+			c.ConfigReplicationRate = 100
+			c.ConfigReplicationBurst = 100
+			c.ConfigReplicationApplyLimit = 1000000
+		})
+		defer os.RemoveAll(dir2)
+		defer s2.Shutdown()
+
+		waitForLeaderEstablishment(t, s2)
+
+		// Try to join
+		joinWAN(t, s2, s1)
+		testrpc.WaitForLeader(t, s1.RPC, "dc1")
+		testrpc.WaitForLeader(t, s1.RPC, "dc2")
+
+		retry.Run(t, func(r *retry.R) {
+			if !s1.DatacenterSupportsIntentionsAsConfigEntries() {
+				r.Fatal("server 1 didn't activate service-intentions")
+			}
+		})
+		retry.Run(t, func(r *retry.R) {
+			if !s2.DatacenterSupportsIntentionsAsConfigEntries() {
+				r.Fatal("server 2 didn't activate service-intentions")
+			}
+		})
+
+		// try to write a using the legacy API
+		require.NoError(t, addLegacyIntention(s1, "dc1", "web", "api", true))
+
+		// read it back as a config entry and that should work too
+		raw, err := getConfigEntry(s1, "dc1", structs.ServiceIntentions, "api")
+		require.NoError(t, err)
+		require.NotNil(t, raw)
+
+		// Wait until after replication runs for the secondary.
+		retry.Run(t, func(r *retry.R) {
+			raw, err = getConfigEntry(s2, "dc1", structs.ServiceIntentions, "api")
+			require.NoError(r, err)
+			require.NotNil(r, raw)
+		})
+	})
+
+	t.Run("primary and secondary with mixed versions", func(t *testing.T) {
+		dir1, s1 := testServerWithConfig(t, func(c *Config) {
+			c.NodeName = "node1"
+			c.Datacenter = "dc1"
+			c.PrimaryDatacenter = "dc1"
+			c.OverrideInitialSerfTags = disableServiceIntentions
+		})
+		defer os.RemoveAll(dir1)
+		defer s1.Shutdown()
+
+		waitForLeaderEstablishment(t, s1)
+
+		dir2, s2 := testServerWithConfig(t, func(c *Config) {
+			c.NodeName = "node2"
+			c.Datacenter = "dc2"
+			c.PrimaryDatacenter = "dc1"
+			c.ConfigReplicationRate = 100
+			c.ConfigReplicationBurst = 100
+			c.ConfigReplicationApplyLimit = 1000000
+		})
+		defer os.RemoveAll(dir2)
+		defer s2.Shutdown()
+
+		waitForLeaderEstablishment(t, s2)
+
+		// Try to join
+		joinWAN(t, s2, s1)
+		testrpc.WaitForLeader(t, s1.RPC, "dc1")
+		testrpc.WaitForLeader(t, s1.RPC, "dc2")
+
+		retry.Run(t, func(r *retry.R) {
+			if s1.DatacenterSupportsIntentionsAsConfigEntries() {
+				r.Fatal("server 1 shouldn't activate service-intentions")
+			}
+		})
+		retry.Run(t, func(r *retry.R) {
+			if s2.DatacenterSupportsIntentionsAsConfigEntries() {
+				r.Fatal("server 2 shouldn't activate service-intentions")
+			}
+		})
+
+		testutil.RequireErrorContains(t,
+			addLegacyIntention(s1, "dc1", "web", "api", true),
+			ErrIntentionsNotUpgradedYet.Error(),
+		)
+		testutil.RequireErrorContains(t,
+			addLegacyIntention(s2, "dc1", "web", "api", true),
+			ErrIntentionsNotUpgradedYet.Error(),
+		)
 	})
 }

@@ -3,27 +3,33 @@ package grpc
 import (
 	"context"
 	"net"
+	"sort"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/agent/grpc/internal/testservice"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
+
+	"github.com/hashicorp/consul/agent/grpc/internal/testservice"
 )
 
+func noopRegister(*grpc.Server) {}
+
 func TestHandler_EmitsStats(t *testing.T) {
-	sink := patchGlobalMetrics(t)
+	sink, reset := patchGlobalMetrics(t)
 
 	addr := &net.IPAddr{IP: net.ParseIP("127.0.0.1")}
-	handler := NewHandler(addr)
+	handler := NewHandler(addr, noopRegister)
+	reset()
+
 	testservice.RegisterSimpleServer(handler.srv, &simple{})
 
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
-	t.Cleanup(logError(t, lis.Close))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
@@ -43,7 +49,7 @@ func TestHandler_EmitsStats(t *testing.T) {
 
 	conn, err := grpc.DialContext(ctx, lis.Addr().String(), grpc.WithInsecure())
 	require.NoError(t, err)
-	t.Cleanup(logError(t, conn.Close))
+	t.Cleanup(func() { conn.Close() })
 
 	client := testservice.NewSimpleClient(conn)
 	fClient, err := client.Flow(ctx, &testservice.Req{Datacenter: "mine"})
@@ -54,25 +60,49 @@ func TestHandler_EmitsStats(t *testing.T) {
 	require.NoError(t, err)
 
 	cancel()
+	conn.Close()
+	handler.srv.GracefulStop()
 	// Wait for the server to stop so that active_streams is predictable.
-	retry.RunWith(fastRetry, t, func(r *retry.R) {
-		expectedGauge := []metricCall{
-			{key: []string{"testing", "grpc", "server", "active_conns"}, val: 1},
-			{key: []string{"testing", "grpc", "server", "active_streams"}, val: 1},
-			{key: []string{"testing", "grpc", "server", "active_streams"}, val: 0},
+	require.NoError(t, g.Wait())
+
+	// Occasionally the active_stream=0 metric may be emitted before the
+	// active_conns=0 metric. The order of those metrics is not really important
+	// so we sort the calls to match the expected.
+	sort.Slice(sink.gaugeCalls, func(i, j int) bool {
+		if i < 2 || j < 2 {
+			return i < j
 		}
-		require.Equal(r, expectedGauge, sink.gaugeCalls)
+		if len(sink.gaugeCalls[i].key) < 4 || len(sink.gaugeCalls[j].key) < 4 {
+			return i < j
+		}
+		return sink.gaugeCalls[i].key[3] < sink.gaugeCalls[j].key[3]
 	})
 
-	expectedCounter := []metricCall{
-		{key: []string{"testing", "grpc", "server", "request"}, val: 1},
+	cmpMetricCalls := cmp.AllowUnexported(metricCall{})
+	expectedGauge := []metricCall{
+		{key: []string{"testing", "grpc", "server", "connections"}, val: 1},
+		{key: []string{"testing", "grpc", "server", "streams"}, val: 1},
+		{key: []string{"testing", "grpc", "server", "connections"}, val: 0},
+		{key: []string{"testing", "grpc", "server", "streams"}, val: 0},
 	}
-	require.Equal(t, expectedCounter, sink.incrCounterCalls)
+	assertDeepEqual(t, expectedGauge, sink.gaugeCalls, cmpMetricCalls)
+
+	expectedCounter := []metricCall{
+		{key: []string{"testing", "grpc", "server", "connection", "count"}, val: 1},
+		{key: []string{"testing", "grpc", "server", "request", "count"}, val: 1},
+		{key: []string{"testing", "grpc", "server", "stream", "count"}, val: 1},
+	}
+	assertDeepEqual(t, expectedCounter, sink.incrCounterCalls, cmpMetricCalls)
 }
 
-var fastRetry = &retry.Timer{Timeout: 7 * time.Second, Wait: 2 * time.Millisecond}
+func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
+	t.Helper()
+	if diff := cmp.Diff(x, y, opts...); diff != "" {
+		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
+	}
+}
 
-func patchGlobalMetrics(t *testing.T) *fakeMetricsSink {
+func patchGlobalMetrics(t *testing.T) (*fakeMetricsSink, func()) {
 	t.Helper()
 
 	sink := &fakeMetricsSink{}
@@ -85,25 +115,31 @@ func patchGlobalMetrics(t *testing.T) *fakeMetricsSink {
 	var err error
 	defaultMetrics, err = metrics.New(cfg, sink)
 	require.NoError(t, err)
-	t.Cleanup(func() {
-		_, err = metrics.NewGlobal(cfg, &metrics.BlackholeSink{})
+	reset := func() {
+		t.Helper()
+		defaultMetrics, err = metrics.New(cfg, &metrics.BlackholeSink{})
 		require.NoError(t, err, "failed to reset global metrics")
-	})
-	return sink
+	}
+	return sink, reset
 }
 
 type fakeMetricsSink struct {
+	lock sync.Mutex
 	metrics.BlackholeSink
 	gaugeCalls       []metricCall
 	incrCounterCalls []metricCall
 }
 
 func (f *fakeMetricsSink) SetGaugeWithLabels(key []string, val float32, labels []metrics.Label) {
+	f.lock.Lock()
 	f.gaugeCalls = append(f.gaugeCalls, metricCall{key: key, val: val, labels: labels})
+	f.lock.Unlock()
 }
 
 func (f *fakeMetricsSink) IncrCounterWithLabels(key []string, val float32, labels []metrics.Label) {
+	f.lock.Lock()
 	f.incrCounterCalls = append(f.incrCounterCalls, metricCall{key: key, val: val, labels: labels})
+	f.lock.Unlock()
 }
 
 type metricCall struct {

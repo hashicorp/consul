@@ -57,7 +57,11 @@ is used if you're adding configuring to the agent's configuration file.
 
 - `Token` / `token` (`string: <required>`) - A token for accessing Vault.
   This is write-only and will not be exposed when reading the CA configuration.
-  This token must have proper privileges for the PKI paths configured.
+  This token must have proper privileges for the PKI paths configured. In Consul
+  1.8.5 and later, if the token has the [renewable]
+  (https://www.vaultproject.io/api-docs/auth/token#renewable)
+  flag set, Consul will attempt to renew its lease periodically after half the
+  duration has expired.
 
 - `RootPKIPath` / `root_pki_path` (`string: <required>`) - The path to
   a PKI secrets engine for the root certificate. If the path doesn't

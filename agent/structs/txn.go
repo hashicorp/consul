@@ -60,19 +60,34 @@ type TxnSessionOp struct {
 	Session Session
 }
 
-// TxnKVOp is used to define a single operation on an Intention inside a
+// TxnIntentionOp is used to define a single operation on an Intention inside a
 // transaction.
+//
+// Deprecated: see TxnOp.Intention description
 type TxnIntentionOp IntentionRequest
 
 // TxnOp is used to define a single operation inside a transaction. Only one
 // of the types should be filled out per entry.
 type TxnOp struct {
-	KV        *TxnKVOp
+	KV      *TxnKVOp
+	Node    *TxnNodeOp
+	Service *TxnServiceOp
+	Check   *TxnCheckOp
+	Session *TxnSessionOp
+
+	// Intention was an internal-only (not exposed in API or RPC)
+	// implementation detail of legacy intention replication. This is
+	// deprecated but retained for backwards compatibility with versions
+	// of consul pre-dating 1.9.0. We need it for two reasons:
+	//
+	// 1. If a secondary DC is upgraded first, we need to continue to
+	//    replicate legacy intentions UNTIL the primary DC is upgraded.
+	//    Legacy intention replication exclusively writes using a TxnOp.
+	// 2. If we attempt to reprocess raft-log contents pre-dating 1.9.0
+	//    (such as when updating a secondary DC) we need to be able to
+	//    recreate the state machine from the snapshot and whatever raft logs are
+	//    present.
 	Intention *TxnIntentionOp
-	Node      *TxnNodeOp
-	Service   *TxnServiceOp
-	Check     *TxnCheckOp
-	Session   *TxnSessionOp
 }
 
 // TxnOps is a list of operations within a transaction.

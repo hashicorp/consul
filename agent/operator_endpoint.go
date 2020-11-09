@@ -6,11 +6,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/raft"
+	autopilot "github.com/hashicorp/raft-autopilot"
 )
 
 // OperatorRaftConfiguration is used to inspect the current Raft configuration.
@@ -192,7 +192,7 @@ func (s *HTTPHandlers) OperatorAutopilotConfiguration(resp http.ResponseWriter, 
 			return nil, nil
 		}
 
-		var reply autopilot.Config
+		var reply structs.AutopilotConfig
 		if err := s.agent.RPC("Operator.AutopilotGetConfiguration", &args, &reply); err != nil {
 			return nil, err
 		}
@@ -222,7 +222,7 @@ func (s *HTTPHandlers) OperatorAutopilotConfiguration(resp http.ResponseWriter, 
 			return nil, BadRequestError{Reason: fmt.Sprintf("Error parsing autopilot config: %v", err)}
 		}
 
-		args.Config = autopilot.Config{
+		args.Config = structs.AutopilotConfig{
 			CleanupDeadServers:      conf.CleanupDeadServers,
 			LastContactThreshold:    conf.LastContactThreshold.Duration(),
 			MaxTrailingLogs:         conf.MaxTrailingLogs,
@@ -267,7 +267,7 @@ func (s *HTTPHandlers) OperatorServerHealth(resp http.ResponseWriter, req *http.
 		return nil, nil
 	}
 
-	var reply autopilot.OperatorHealthReply
+	var reply structs.AutopilotHealthReply
 	if err := s.agent.RPC("Operator.ServerHealth", &args, &reply); err != nil {
 		return nil, err
 	}
@@ -299,4 +299,67 @@ func (s *HTTPHandlers) OperatorServerHealth(resp http.ResponseWriter, req *http.
 	}
 
 	return out, nil
+}
+
+func (s *HTTPHandlers) OperatorAutopilotState(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	var args structs.DCSpecificRequest
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
+	var reply autopilot.State
+	if err := s.agent.RPC("Operator.AutopilotState", &args, &reply); err != nil {
+		return nil, err
+	}
+
+	out := autopilotToAPIState(&reply)
+	return out, nil
+}
+
+func stringIDs(ids []raft.ServerID) []string {
+	out := make([]string, len(ids))
+	for i, id := range ids {
+		out[i] = string(id)
+	}
+	return out
+}
+
+func autopilotToAPIState(state *autopilot.State) *api.AutopilotState {
+	out := &api.AutopilotState{
+		Healthy:          state.Healthy,
+		FailureTolerance: state.FailureTolerance,
+		Leader:           string(state.Leader),
+		Voters:           stringIDs(state.Voters),
+		Servers:          make(map[string]api.AutopilotServer),
+	}
+
+	for id, srv := range state.Servers {
+		out.Servers[string(id)] = autopilotToAPIServer(srv)
+	}
+
+	autopilotToAPIStateEnterprise(state, out)
+
+	return out
+}
+
+func autopilotToAPIServer(srv *autopilot.ServerState) api.AutopilotServer {
+	apiSrv := api.AutopilotServer{
+		ID:          string(srv.Server.ID),
+		Name:        srv.Server.Name,
+		Address:     string(srv.Server.Address),
+		NodeStatus:  string(srv.Server.NodeStatus),
+		Version:     srv.Server.Version,
+		LastContact: api.NewReadableDuration(srv.Stats.LastContact),
+		LastTerm:    srv.Stats.LastTerm,
+		LastIndex:   srv.Stats.LastIndex,
+		Healthy:     srv.Health.Healthy,
+		StableSince: srv.Health.StableSince,
+		Status:      api.AutopilotServerStatus(srv.State),
+		Meta:        srv.Server.Meta,
+		NodeType:    api.AutopilotServerType(srv.Server.NodeType),
+	}
+
+	autopilotToAPIServerEnterprise(srv, &apiSrv)
+
+	return apiSrv
 }

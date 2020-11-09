@@ -1341,6 +1341,8 @@ func (s *HTTPHandlers) AgentConnectCALeafCert(resp http.ResponseWriter, req *htt
 //
 // POST /v1/agent/connect/authorize
 //
+// NOTE: This endpoint treats any L7 intentions as DENY.
+//
 // Note: when this logic changes, consider if the Intention.Check RPC method
 // also needs to be updated.
 func (s *HTTPHandlers) AgentConnectAuthorize(resp http.ResponseWriter, req *http.Request) (interface{}, error) {

@@ -5,13 +5,14 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/sdk/testutil"
 	memdb "github.com/hashicorp/go-memdb"
 	"github.com/stretchr/testify/require"
 )
 
 func TestStore_ConfigEntry(t *testing.T) {
 	require := require.New(t)
-	s := testStateStore(t)
+	s := testConfigStateStore(t)
 
 	expected := &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
@@ -75,7 +76,7 @@ func TestStore_ConfigEntry(t *testing.T) {
 
 func TestStore_ConfigEntryCAS(t *testing.T) {
 	require := require.New(t)
-	s := testStateStore(t)
+	s := testConfigStateStore(t)
 
 	expected := &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
@@ -123,9 +124,105 @@ func TestStore_ConfigEntryCAS(t *testing.T) {
 	require.Equal(updated, config)
 }
 
+func TestStore_ConfigEntry_UpdateOver(t *testing.T) {
+	// This test uses ServiceIntentions because they are the only
+	// kind that implements UpdateOver() at this time.
+
+	s := testConfigStateStore(t)
+
+	var (
+		idA = testUUID()
+		idB = testUUID()
+
+		loc   = time.FixedZone("UTC-8", -8*60*60)
+		timeA = time.Date(1955, 11, 5, 6, 15, 0, 0, loc)
+		timeB = time.Date(1985, 10, 26, 1, 35, 0, 0, loc)
+	)
+	require.NotEqual(t, idA, idB)
+
+	initial := &structs.ServiceIntentionsConfigEntry{
+		Kind: structs.ServiceIntentions,
+		Name: "api",
+		Sources: []*structs.SourceIntention{
+			{
+				LegacyID:         idA,
+				Name:             "web",
+				Action:           structs.IntentionActionAllow,
+				LegacyCreateTime: &timeA,
+				LegacyUpdateTime: &timeA,
+			},
+		},
+	}
+
+	// Create
+	nextIndex := uint64(1)
+	require.NoError(t, s.EnsureConfigEntry(nextIndex, initial.Clone(), nil))
+
+	idx, raw, err := s.ConfigEntry(nil, structs.ServiceIntentions, "api", nil)
+	require.NoError(t, err)
+	require.Equal(t, nextIndex, idx)
+
+	got, ok := raw.(*structs.ServiceIntentionsConfigEntry)
+	require.True(t, ok)
+	initial.RaftIndex = got.RaftIndex
+	require.Equal(t, initial, got)
+
+	t.Run("update and fail change legacyID", func(t *testing.T) {
+		// Update
+		updated := &structs.ServiceIntentionsConfigEntry{
+			Kind: structs.ServiceIntentions,
+			Name: "api",
+			Sources: []*structs.SourceIntention{
+				{
+					LegacyID:         idB,
+					Name:             "web",
+					Action:           structs.IntentionActionDeny,
+					LegacyCreateTime: &timeB,
+					LegacyUpdateTime: &timeB,
+				},
+			},
+		}
+
+		nextIndex++
+		err := s.EnsureConfigEntry(nextIndex, updated.Clone(), nil)
+		testutil.RequireErrorContains(t, err, "cannot set this field to a different value")
+	})
+
+	t.Run("update and do not update create time", func(t *testing.T) {
+		// Update
+		updated := &structs.ServiceIntentionsConfigEntry{
+			Kind: structs.ServiceIntentions,
+			Name: "api",
+			Sources: []*structs.SourceIntention{
+				{
+					LegacyID:         idA,
+					Name:             "web",
+					Action:           structs.IntentionActionDeny,
+					LegacyCreateTime: &timeB,
+					LegacyUpdateTime: &timeB,
+				},
+			},
+		}
+
+		nextIndex++
+		require.NoError(t, s.EnsureConfigEntry(nextIndex, updated.Clone(), nil))
+
+		// check
+		idx, raw, err = s.ConfigEntry(nil, structs.ServiceIntentions, "api", nil)
+		require.NoError(t, err)
+		require.Equal(t, nextIndex, idx)
+
+		got, ok = raw.(*structs.ServiceIntentionsConfigEntry)
+		require.True(t, ok)
+		updated.RaftIndex = got.RaftIndex
+		updated.Sources[0].LegacyCreateTime = &timeA // UpdateOver will not replace this
+		require.Equal(t, updated, got)
+	})
+}
+
 func TestStore_ConfigEntries(t *testing.T) {
 	require := require.New(t)
-	s := testStateStore(t)
+	s := testConfigStateStore(t)
 
 	// Create some config entries.
 	entry1 := &structs.ProxyConfigEntry{
@@ -837,7 +934,7 @@ func TestStore_ConfigEntry_GraphValidation(t *testing.T) {
 		tc := tc
 
 		t.Run(name, func(t *testing.T) {
-			s := testStateStore(t)
+			s := testConfigStateStore(t)
 			for _, entry := range tc.entries {
 				require.NoError(t, entry.Normalize())
 				require.NoError(t, s.EnsureConfigEntry(0, entry, nil))
@@ -1146,7 +1243,7 @@ func TestStore_ReadDiscoveryChainConfigEntries_Overrides(t *testing.T) {
 		tc := tc
 
 		t.Run(tc.name, func(t *testing.T) {
-			s := testStateStore(t)
+			s := testConfigStateStore(t)
 			for _, entry := range tc.entries {
 				require.NoError(t, s.EnsureConfigEntry(0, entry, nil))
 			}
@@ -1212,7 +1309,7 @@ func entrySetToKindNames(entrySet *structs.DiscoveryChainConfigEntries) []struct
 }
 
 func TestStore_ReadDiscoveryChainConfigEntries_SubsetSplit(t *testing.T) {
-	s := testStateStore(t)
+	s := testConfigStateStore(t)
 
 	entries := []structs.ConfigEntry{
 		&structs.ServiceConfigEntry{
@@ -1246,7 +1343,7 @@ func TestStore_ReadDiscoveryChainConfigEntries_SubsetSplit(t *testing.T) {
 		require.NoError(t, s.EnsureConfigEntry(0, entry, nil))
 	}
 
-	_, entrySet, err := s.ReadDiscoveryChainConfigEntries(nil, "main", nil)
+	_, entrySet, err := s.readDiscoveryChainConfigEntries(nil, "main", nil, nil)
 	require.NoError(t, err)
 
 	require.Len(t, entrySet.Routers, 0)
@@ -1255,8 +1352,10 @@ func TestStore_ReadDiscoveryChainConfigEntries_SubsetSplit(t *testing.T) {
 	require.Len(t, entrySet.Services, 1)
 }
 
+// TODO(rb): add ServiceIntentions tests
+
 func TestStore_ValidateGatewayNamesCannotBeShared(t *testing.T) {
-	s := testStateStore(t)
+	s := testConfigStateStore(t)
 
 	ingress := &structs.IngressGatewayConfigEntry{
 		Kind: structs.IngressGateway,
@@ -1306,7 +1405,7 @@ func TestStore_ValidateIngressGatewayErrorOnMismatchedProtocols(t *testing.T) {
 	}
 
 	t.Run("http ingress fails with http upstream later changed to tcp", func(t *testing.T) {
-		s := testStateStore(t)
+		s := testConfigStateStore(t)
 
 		// First set the target service as http
 		expected := &structs.ServiceConfigEntry{
@@ -1340,7 +1439,7 @@ func TestStore_ValidateIngressGatewayErrorOnMismatchedProtocols(t *testing.T) {
 	})
 
 	t.Run("tcp ingress ok with tcp upstream (defaulted) later changed to http", func(t *testing.T) {
-		s := testStateStore(t)
+		s := testConfigStateStore(t)
 
 		// First configure tcp ingress to route to a defaulted tcp service
 		require.NoError(t, s.EnsureConfigEntry(0, newIngress("tcp", "web"), nil))
@@ -1355,7 +1454,7 @@ func TestStore_ValidateIngressGatewayErrorOnMismatchedProtocols(t *testing.T) {
 	})
 
 	t.Run("tcp ingress fails with tcp upstream (defaulted) later changed to http", func(t *testing.T) {
-		s := testStateStore(t)
+		s := testConfigStateStore(t)
 
 		// First configure tcp ingress to route to a defaulted tcp service
 		require.NoError(t, s.EnsureConfigEntry(0, newIngress("tcp", "web"), nil))
@@ -1395,14 +1494,14 @@ func TestStore_ValidateIngressGatewayErrorOnMismatchedProtocols(t *testing.T) {
 	})
 
 	t.Run("http ingress fails with tcp upstream (defaulted)", func(t *testing.T) {
-		s := testStateStore(t)
+		s := testConfigStateStore(t)
 		err := s.EnsureConfigEntry(0, newIngress("http", "web"), nil)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), `has protocol "tcp"`)
 	})
 
 	t.Run("http ingress fails with http2 upstream (via proxy-defaults)", func(t *testing.T) {
-		s := testStateStore(t)
+		s := testConfigStateStore(t)
 		expected := &structs.ProxyConfigEntry{
 			Kind: structs.ProxyDefaults,
 			Name: "global",
@@ -1418,7 +1517,7 @@ func TestStore_ValidateIngressGatewayErrorOnMismatchedProtocols(t *testing.T) {
 	})
 
 	t.Run("http ingress fails with grpc upstream (via service-defaults)", func(t *testing.T) {
-		s := testStateStore(t)
+		s := testConfigStateStore(t)
 		expected := &structs.ServiceConfigEntry{
 			Kind:     structs.ServiceDefaults,
 			Name:     "web",
@@ -1431,7 +1530,7 @@ func TestStore_ValidateIngressGatewayErrorOnMismatchedProtocols(t *testing.T) {
 	})
 
 	t.Run("http ingress ok with http upstream (via service-defaults)", func(t *testing.T) {
-		s := testStateStore(t)
+		s := testConfigStateStore(t)
 		expected := &structs.ServiceConfigEntry{
 			Kind:     structs.ServiceDefaults,
 			Name:     "web",
@@ -1442,13 +1541,732 @@ func TestStore_ValidateIngressGatewayErrorOnMismatchedProtocols(t *testing.T) {
 	})
 
 	t.Run("http ingress ignores wildcard specifier", func(t *testing.T) {
-		s := testStateStore(t)
+		s := testConfigStateStore(t)
 		require.NoError(t, s.EnsureConfigEntry(4, newIngress("http", "*"), nil))
 	})
 
 	t.Run("deleting ingress config entry ok", func(t *testing.T) {
-		s := testStateStore(t)
+		s := testConfigStateStore(t)
 		require.NoError(t, s.EnsureConfigEntry(1, newIngress("tcp", "web"), nil))
 		require.NoError(t, s.DeleteConfigEntry(5, structs.IngressGateway, "gateway", nil))
 	})
+}
+
+func TestSourcesForTarget(t *testing.T) {
+	defaultMeta := *structs.DefaultEnterpriseMeta()
+
+	type expect struct {
+		idx   uint64
+		names []structs.ServiceName
+	}
+	tt := []struct {
+		name    string
+		entries []structs.ConfigEntry
+		expect  expect
+	}{
+		{
+			name:    "no relevant config entries",
+			entries: []structs.ConfigEntry{},
+			expect: expect{
+				idx: 1,
+				names: []structs.ServiceName{
+					{Name: "sink", EnterpriseMeta: defaultMeta},
+				},
+			},
+		},
+		{
+			name: "from route match",
+			entries: []structs.ConfigEntry{
+				&structs.ProxyConfigEntry{
+					Kind: structs.ProxyDefaults,
+					Name: structs.ProxyConfigGlobal,
+					Config: map[string]interface{}{
+						"protocol": "http",
+					},
+				},
+				&structs.ServiceRouterConfigEntry{
+					Kind: structs.ServiceRouter,
+					Name: "web",
+					Routes: []structs.ServiceRoute{
+						{
+							Match: &structs.ServiceRouteMatch{
+								HTTP: &structs.ServiceRouteHTTPMatch{
+									PathExact: "/sink",
+								},
+							},
+							Destination: &structs.ServiceRouteDestination{
+								Service: "sink",
+							},
+						},
+					},
+				},
+			},
+			expect: expect{
+				idx: 2,
+				names: []structs.ServiceName{
+					{Name: "web", EnterpriseMeta: defaultMeta},
+					{Name: "sink", EnterpriseMeta: defaultMeta},
+				},
+			},
+		},
+		{
+			name: "from redirect",
+			entries: []structs.ConfigEntry{
+				&structs.ProxyConfigEntry{
+					Kind: structs.ProxyDefaults,
+					Name: structs.ProxyConfigGlobal,
+					Config: map[string]interface{}{
+						"protocol": "http",
+					},
+				},
+				&structs.ServiceResolverConfigEntry{
+					Kind: structs.ServiceResolver,
+					Name: "web",
+					Redirect: &structs.ServiceResolverRedirect{
+						Service: "sink",
+					},
+				},
+			},
+			expect: expect{
+				idx: 2,
+				names: []structs.ServiceName{
+					{Name: "web", EnterpriseMeta: defaultMeta},
+					{Name: "sink", EnterpriseMeta: defaultMeta},
+				},
+			},
+		},
+		{
+			name: "from failover",
+			entries: []structs.ConfigEntry{
+				&structs.ProxyConfigEntry{
+					Kind: structs.ProxyDefaults,
+					Name: structs.ProxyConfigGlobal,
+					Config: map[string]interface{}{
+						"protocol": "http",
+					},
+				},
+				&structs.ServiceResolverConfigEntry{
+					Kind: structs.ServiceResolver,
+					Name: "web",
+					Failover: map[string]structs.ServiceResolverFailover{
+						"*": {
+							Service:     "sink",
+							Datacenters: []string{"dc2", "dc3"},
+						},
+					},
+				},
+			},
+			expect: expect{
+				idx: 2,
+				names: []structs.ServiceName{
+					{Name: "web", EnterpriseMeta: defaultMeta},
+					{Name: "sink", EnterpriseMeta: defaultMeta},
+				},
+			},
+		},
+		{
+			name: "from splitter",
+			entries: []structs.ConfigEntry{
+				&structs.ProxyConfigEntry{
+					Kind: structs.ProxyDefaults,
+					Name: structs.ProxyConfigGlobal,
+					Config: map[string]interface{}{
+						"protocol": "http",
+					},
+				},
+				&structs.ServiceSplitterConfigEntry{
+					Kind: structs.ServiceSplitter,
+					Name: "web",
+					Splits: []structs.ServiceSplit{
+						{Weight: 90, Service: "web"},
+						{Weight: 10, Service: "sink"},
+					},
+				},
+			},
+			expect: expect{
+				idx: 2,
+				names: []structs.ServiceName{
+					{Name: "web", EnterpriseMeta: defaultMeta},
+					{Name: "sink", EnterpriseMeta: defaultMeta},
+				},
+			},
+		},
+		{
+			name: "chained route redirect",
+			entries: []structs.ConfigEntry{
+				&structs.ProxyConfigEntry{
+					Kind: structs.ProxyDefaults,
+					Name: structs.ProxyConfigGlobal,
+					Config: map[string]interface{}{
+						"protocol": "http",
+					},
+				},
+				&structs.ServiceRouterConfigEntry{
+					Kind: structs.ServiceRouter,
+					Name: "source",
+					Routes: []structs.ServiceRoute{
+						{
+							Match: &structs.ServiceRouteMatch{
+								HTTP: &structs.ServiceRouteHTTPMatch{
+									PathExact: "/route",
+								},
+							},
+							Destination: &structs.ServiceRouteDestination{
+								Service: "routed",
+							},
+						},
+					},
+				},
+				&structs.ServiceResolverConfigEntry{
+					Kind: structs.ServiceResolver,
+					Name: "routed",
+					Redirect: &structs.ServiceResolverRedirect{
+						Service: "sink",
+					},
+				},
+			},
+			expect: expect{
+				idx: 3,
+				names: []structs.ServiceName{
+					{Name: "source", EnterpriseMeta: defaultMeta},
+					{Name: "routed", EnterpriseMeta: defaultMeta},
+					{Name: "sink", EnterpriseMeta: defaultMeta},
+				},
+			},
+		},
+		{
+			name: "kitchen sink with multiple services referencing sink directly",
+			entries: []structs.ConfigEntry{
+				&structs.ProxyConfigEntry{
+					Kind: structs.ProxyDefaults,
+					Name: structs.ProxyConfigGlobal,
+					Config: map[string]interface{}{
+						"protocol": "http",
+					},
+				},
+				&structs.ServiceRouterConfigEntry{
+					Kind: structs.ServiceRouter,
+					Name: "routed",
+					Routes: []structs.ServiceRoute{
+						{
+							Match: &structs.ServiceRouteMatch{
+								HTTP: &structs.ServiceRouteHTTPMatch{
+									PathExact: "/sink",
+								},
+							},
+							Destination: &structs.ServiceRouteDestination{
+								Service: "sink",
+							},
+						},
+					},
+				},
+				&structs.ServiceResolverConfigEntry{
+					Kind: structs.ServiceResolver,
+					Name: "redirected",
+					Redirect: &structs.ServiceResolverRedirect{
+						Service: "sink",
+					},
+				},
+				&structs.ServiceResolverConfigEntry{
+					Kind: structs.ServiceResolver,
+					Name: "failed-over",
+					Failover: map[string]structs.ServiceResolverFailover{
+						"*": {
+							Service:     "sink",
+							Datacenters: []string{"dc2", "dc3"},
+						},
+					},
+				},
+				&structs.ServiceSplitterConfigEntry{
+					Kind: structs.ServiceSplitter,
+					Name: "split",
+					Splits: []structs.ServiceSplit{
+						{Weight: 90, Service: "no-op"},
+						{Weight: 10, Service: "sink"},
+					},
+				},
+				&structs.ServiceSplitterConfigEntry{
+					Kind: structs.ServiceSplitter,
+					Name: "unrelated",
+					Splits: []structs.ServiceSplit{
+						{Weight: 90, Service: "zip"},
+						{Weight: 10, Service: "zop"},
+					},
+				},
+			},
+			expect: expect{
+				idx: 6,
+				names: []structs.ServiceName{
+					{Name: "split", EnterpriseMeta: defaultMeta},
+					{Name: "failed-over", EnterpriseMeta: defaultMeta},
+					{Name: "redirected", EnterpriseMeta: defaultMeta},
+					{Name: "routed", EnterpriseMeta: defaultMeta},
+					{Name: "sink", EnterpriseMeta: defaultMeta},
+				},
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			s := testStateStore(t)
+			ws := memdb.NewWatchSet()
+
+			ca := &structs.CAConfiguration{
+				Provider: "consul",
+			}
+			err := s.CASetConfig(0, ca)
+			require.NoError(t, err)
+
+			var i uint64 = 1
+			for _, entry := range tc.entries {
+				require.NoError(t, entry.Normalize())
+				require.NoError(t, s.EnsureConfigEntry(i, entry, nil))
+				i++
+			}
+
+			tx := s.db.ReadTxn()
+			defer tx.Abort()
+
+			sn := structs.NewServiceName("sink", structs.DefaultEnterpriseMeta())
+			idx, names, err := s.discoveryChainSourcesTxn(tx, ws, "dc1", sn)
+			require.NoError(t, err)
+
+			require.Equal(t, tc.expect.idx, idx)
+			require.ElementsMatch(t, tc.expect.names, names)
+		})
+	}
+}
+
+func TestTargetsForSource(t *testing.T) {
+	defaultMeta := *structs.DefaultEnterpriseMeta()
+
+	type expect struct {
+		idx uint64
+		ids []structs.ServiceName
+	}
+	tt := []struct {
+		name    string
+		entries []structs.ConfigEntry
+		expect  expect
+	}{
+		{
+			name: "from route match",
+			entries: []structs.ConfigEntry{
+				&structs.ProxyConfigEntry{
+					Kind: structs.ProxyDefaults,
+					Name: structs.ProxyConfigGlobal,
+					Config: map[string]interface{}{
+						"protocol": "http",
+					},
+				},
+				&structs.ServiceRouterConfigEntry{
+					Kind: structs.ServiceRouter,
+					Name: "web",
+					Routes: []structs.ServiceRoute{
+						{
+							Match: &structs.ServiceRouteMatch{
+								HTTP: &structs.ServiceRouteHTTPMatch{
+									PathExact: "/sink",
+								},
+							},
+							Destination: &structs.ServiceRouteDestination{
+								Service: "sink",
+							},
+						},
+					},
+				},
+			},
+			expect: expect{
+				idx: 2,
+				ids: []structs.ServiceName{
+					{Name: "web", EnterpriseMeta: defaultMeta},
+					{Name: "sink", EnterpriseMeta: defaultMeta},
+				},
+			},
+		},
+		{
+			name: "from redirect",
+			entries: []structs.ConfigEntry{
+				&structs.ProxyConfigEntry{
+					Kind: structs.ProxyDefaults,
+					Name: structs.ProxyConfigGlobal,
+					Config: map[string]interface{}{
+						"protocol": "http",
+					},
+				},
+				&structs.ServiceResolverConfigEntry{
+					Kind: structs.ServiceResolver,
+					Name: "web",
+					Redirect: &structs.ServiceResolverRedirect{
+						Service: "sink",
+					},
+				},
+			},
+			expect: expect{
+				idx: 2,
+				ids: []structs.ServiceName{
+					{Name: "sink", EnterpriseMeta: defaultMeta},
+				},
+			},
+		},
+		{
+			name: "from failover",
+			entries: []structs.ConfigEntry{
+				&structs.ProxyConfigEntry{
+					Kind: structs.ProxyDefaults,
+					Name: structs.ProxyConfigGlobal,
+					Config: map[string]interface{}{
+						"protocol": "http",
+					},
+				},
+				&structs.ServiceResolverConfigEntry{
+					Kind: structs.ServiceResolver,
+					Name: "web",
+					Failover: map[string]structs.ServiceResolverFailover{
+						"*": {
+							Service:     "remote-web",
+							Datacenters: []string{"dc2", "dc3"},
+						},
+					},
+				},
+			},
+			expect: expect{
+				idx: 2,
+				ids: []structs.ServiceName{
+					{Name: "web", EnterpriseMeta: defaultMeta},
+				},
+			},
+		},
+		{
+			name: "from splitter",
+			entries: []structs.ConfigEntry{
+				&structs.ProxyConfigEntry{
+					Kind: structs.ProxyDefaults,
+					Name: structs.ProxyConfigGlobal,
+					Config: map[string]interface{}{
+						"protocol": "http",
+					},
+				},
+				&structs.ServiceSplitterConfigEntry{
+					Kind: structs.ServiceSplitter,
+					Name: "web",
+					Splits: []structs.ServiceSplit{
+						{Weight: 90, Service: "web"},
+						{Weight: 10, Service: "sink"},
+					},
+				},
+			},
+			expect: expect{
+				idx: 2,
+				ids: []structs.ServiceName{
+					{Name: "web", EnterpriseMeta: defaultMeta},
+					{Name: "sink", EnterpriseMeta: defaultMeta},
+				},
+			},
+		},
+		{
+			name: "chained route redirect",
+			entries: []structs.ConfigEntry{
+				&structs.ProxyConfigEntry{
+					Kind: structs.ProxyDefaults,
+					Name: structs.ProxyConfigGlobal,
+					Config: map[string]interface{}{
+						"protocol": "http",
+					},
+				},
+				&structs.ServiceRouterConfigEntry{
+					Kind: structs.ServiceRouter,
+					Name: "web",
+					Routes: []structs.ServiceRoute{
+						{
+							Match: &structs.ServiceRouteMatch{
+								HTTP: &structs.ServiceRouteHTTPMatch{
+									PathExact: "/route",
+								},
+							},
+							Destination: &structs.ServiceRouteDestination{
+								Service: "routed",
+							},
+						},
+					},
+				},
+				&structs.ServiceResolverConfigEntry{
+					Kind: structs.ServiceResolver,
+					Name: "routed",
+					Redirect: &structs.ServiceResolverRedirect{
+						Service: "sink",
+					},
+				},
+			},
+			expect: expect{
+				idx: 3,
+				ids: []structs.ServiceName{
+					{Name: "web", EnterpriseMeta: defaultMeta},
+					{Name: "sink", EnterpriseMeta: defaultMeta},
+				},
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			s := testStateStore(t)
+			ws := memdb.NewWatchSet()
+
+			ca := &structs.CAConfiguration{
+				Provider: "consul",
+			}
+			err := s.CASetConfig(0, ca)
+			require.NoError(t, err)
+
+			var i uint64 = 1
+			for _, entry := range tc.entries {
+				require.NoError(t, entry.Normalize())
+				require.NoError(t, s.EnsureConfigEntry(i, entry, nil))
+				i++
+			}
+
+			tx := s.db.ReadTxn()
+			defer tx.Abort()
+
+			idx, ids, err := s.discoveryChainTargetsTxn(tx, ws, "dc1", "web", nil)
+			require.NoError(t, err)
+
+			require.Equal(t, tc.expect.idx, idx)
+			require.ElementsMatch(t, tc.expect.ids, ids)
+		})
+	}
+}
+
+func TestStore_ValidateServiceIntentionsErrorOnIncompatibleProtocols(t *testing.T) {
+	l7perms := []*structs.IntentionPermission{
+		{
+			Action: structs.IntentionActionAllow,
+			HTTP: &structs.IntentionHTTPPermission{
+				PathPrefix: "/v2/",
+			},
+		},
+	}
+
+	serviceDefaults := func(service, protocol string) *structs.ServiceConfigEntry {
+		return &structs.ServiceConfigEntry{
+			Kind:     structs.ServiceDefaults,
+			Name:     service,
+			Protocol: protocol,
+		}
+	}
+
+	proxyDefaults := func(protocol string) *structs.ProxyConfigEntry {
+		return &structs.ProxyConfigEntry{
+			Kind: structs.ProxyDefaults,
+			Name: structs.ProxyConfigGlobal,
+			Config: map[string]interface{}{
+				"protocol": protocol,
+			},
+		}
+	}
+
+	type operation struct {
+		entry    structs.ConfigEntry
+		deletion bool
+	}
+
+	type testcase struct {
+		ops           []operation
+		expectLastErr string
+	}
+
+	cases := map[string]testcase{
+		"L4 intention cannot upgrade to L7 when tcp": {
+			ops: []operation{
+				{ // set the target service as tcp
+					entry: serviceDefaults("api", "tcp"),
+				},
+				{ // create an L4 intention
+					entry: &structs.ServiceIntentionsConfigEntry{
+						Kind: structs.ServiceIntentions,
+						Name: "api",
+						Sources: []*structs.SourceIntention{
+							{Name: "web", Action: structs.IntentionActionAllow},
+						},
+					},
+				},
+				{ // Should fail if converted to L7
+					entry: &structs.ServiceIntentionsConfigEntry{
+						Kind: structs.ServiceIntentions,
+						Name: "api",
+						Sources: []*structs.SourceIntention{
+							{Name: "web", Permissions: l7perms},
+						},
+					},
+				},
+			},
+			expectLastErr: `has protocol "tcp"`,
+		},
+		"L4 intention can upgrade to L7 when made http via service-defaults": {
+			ops: []operation{
+				{ // set the target service as tcp
+					entry: serviceDefaults("api", "tcp"),
+				},
+				{ // create an L4 intention
+					entry: &structs.ServiceIntentionsConfigEntry{
+						Kind: structs.ServiceIntentions,
+						Name: "api",
+						Sources: []*structs.SourceIntention{
+							{Name: "web", Action: structs.IntentionActionAllow},
+						},
+					},
+				},
+				{ // set the target service as http
+					entry: serviceDefaults("api", "http"),
+				},
+				{ // Should succeed if converted to L7
+					entry: &structs.ServiceIntentionsConfigEntry{
+						Kind: structs.ServiceIntentions,
+						Name: "api",
+						Sources: []*structs.SourceIntention{
+							{Name: "web", Permissions: l7perms},
+						},
+					},
+				},
+			},
+		},
+		"L4 intention can upgrade to L7 when made http via proxy-defaults": {
+			ops: []operation{
+				{ // set the target service as tcp
+					entry: proxyDefaults("tcp"),
+				},
+				{ // create an L4 intention
+					entry: &structs.ServiceIntentionsConfigEntry{
+						Kind: structs.ServiceIntentions,
+						Name: "api",
+						Sources: []*structs.SourceIntention{
+							{Name: "web", Action: structs.IntentionActionAllow},
+						},
+					},
+				},
+				{ // set the target service as http
+					entry: proxyDefaults("http"),
+				},
+				{ // Should succeed if converted to L7
+					entry: &structs.ServiceIntentionsConfigEntry{
+						Kind: structs.ServiceIntentions,
+						Name: "api",
+						Sources: []*structs.SourceIntention{
+							{Name: "web", Permissions: l7perms},
+						},
+					},
+				},
+			},
+		},
+		"L7 intention cannot have protocol downgraded to tcp via modification via service-defaults": {
+			ops: []operation{
+				{ // set the target service as http
+					entry: serviceDefaults("api", "http"),
+				},
+				{ // create an L7 intention
+					entry: &structs.ServiceIntentionsConfigEntry{
+						Kind: structs.ServiceIntentions,
+						Name: "api",
+						Sources: []*structs.SourceIntention{
+							{Name: "web", Permissions: l7perms},
+						},
+					},
+				},
+				{ // setting the target service as tcp should fail
+					entry: serviceDefaults("api", "tcp"),
+				},
+			},
+			expectLastErr: `has protocol "tcp"`,
+		},
+		"L7 intention cannot have protocol downgraded to tcp via modification via proxy-defaults": {
+			ops: []operation{
+				{ // set the target service as http
+					entry: proxyDefaults("http"),
+				},
+				{ // create an L7 intention
+					entry: &structs.ServiceIntentionsConfigEntry{
+						Kind: structs.ServiceIntentions,
+						Name: "api",
+						Sources: []*structs.SourceIntention{
+							{Name: "web", Permissions: l7perms},
+						},
+					},
+				},
+				{ // setting the target service as tcp should fail
+					entry: proxyDefaults("tcp"),
+				},
+			},
+			expectLastErr: `has protocol "tcp"`,
+		},
+		"L7 intention cannot have protocol downgraded to tcp via deletion of service-defaults": {
+			ops: []operation{
+				{ // set the target service as http
+					entry: serviceDefaults("api", "http"),
+				},
+				{ // create an L7 intention
+					entry: &structs.ServiceIntentionsConfigEntry{
+						Kind: structs.ServiceIntentions,
+						Name: "api",
+						Sources: []*structs.SourceIntention{
+							{Name: "web", Permissions: l7perms},
+						},
+					},
+				},
+				{ // setting the target service as tcp should fail
+					entry:    serviceDefaults("api", "tcp"),
+					deletion: true,
+				},
+			},
+			expectLastErr: `has protocol "tcp"`,
+		},
+		"L7 intention cannot have protocol downgraded to tcp via deletion of proxy-defaults": {
+			ops: []operation{
+				{ // set the target service as http
+					entry: proxyDefaults("http"),
+				},
+				{ // create an L7 intention
+					entry: &structs.ServiceIntentionsConfigEntry{
+						Kind: structs.ServiceIntentions,
+						Name: "api",
+						Sources: []*structs.SourceIntention{
+							{Name: "web", Permissions: l7perms},
+						},
+					},
+				},
+				{ // setting the target service as tcp should fail
+					entry:    proxyDefaults("tcp"),
+					deletion: true,
+				},
+			},
+			expectLastErr: `has protocol "tcp"`,
+		},
+	}
+
+	for name, tc := range cases {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			s := testStateStore(t)
+
+			var nextIndex = uint64(1)
+
+			for i, op := range tc.ops {
+				isLast := (i == len(tc.ops)-1)
+
+				var err error
+				if op.deletion {
+					err = s.DeleteConfigEntry(nextIndex, op.entry.GetKind(), op.entry.GetName(), nil)
+				} else {
+					err = s.EnsureConfigEntry(nextIndex, op.entry, nil)
+				}
+
+				if isLast && tc.expectLastErr != "" {
+					testutil.RequireErrorContains(t, err, `has protocol "tcp"`)
+				} else {
+					require.NoError(t, err)
+				}
+			}
+		})
+	}
 }

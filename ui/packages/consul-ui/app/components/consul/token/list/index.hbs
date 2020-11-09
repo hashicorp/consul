@@ -1,0 +1,112 @@
+{{#if (gt items.length 0)}}
+<ListCollection @items={{items}} class="consul-token-list" as |item|>
+    <BlockSlot @name="header">
+{{#if (eq item.AccessorID token.AccessorID)}}
+        <dl rel="me">
+          <dd>
+            <Tooltip @position="top-start">
+              Your token
+            </Tooltip>
+          </dd>
+        </dl>
+{{/if}}
+        <a data-test-token={{item.AccessorID}} href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>{{substr item.AccessorID -8}}</a>
+    </BlockSlot>
+    <BlockSlot @name="details">
+        <dl>
+          <dt>Scope</dt>
+          <dd>
+              {{if item.Local 'local' 'global' }}
+          </dd>
+        </dl>
+        <Consul::Token::Ruleset::List @item={{item}} />
+        <dl>
+          <dt>Description</dt>
+          <dd data-test-description>
+              {{or item.Description item.Name}}
+          </dd>
+        </dl>
+    </BlockSlot>
+    <BlockSlot @name="actions" as |Actions|>
+      <Actions as |Action|>
+        <Action data-test-edit-action @href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>
+          <BlockSlot @name="label">
+            Edit
+          </BlockSlot>
+        </Action>
+  {{#if (not (token/is-legacy item))}}
+        <Action data-test-clone-action @onclick={{action onclone item}}>
+          <BlockSlot @name="label">
+            Duplicate
+          </BlockSlot>
+        </Action>
+  {{/if}}
+  {{#if (eq item.AccessorID token.AccessorID)}}
+        <Action data-test-logout-action class="dangerous" @onclick={{action onclone item}}>
+          <BlockSlot @name="label">
+            Logout
+          </BlockSlot>
+          <BlockSlot @name="confirmation" as |Confirmation|>
+            <Confirmation class="warning">
+              <BlockSlot @name="header">
+                Confirm logout
+              </BlockSlot>
+              <BlockSlot @name="body">
+                <p>
+                  Are you sure you want to stop using this ACL token? This will log you out.
+                </p>
+              </BlockSlot>
+              <BlockSlot @name="confirm" as |Confirm|>
+                <Confirm>Logout</Confirm>
+              </BlockSlot>
+            </Confirmation>
+          </BlockSlot>
+        </Action>
+  {{else}}
+        <Action data-test-use-action @onclick={{action onuse item}}>
+          <BlockSlot @name="label">
+            Use
+          </BlockSlot>
+          <BlockSlot @name="confirmation" as |Confirmation|>
+            <Confirmation class="warning">
+              <BlockSlot @name="header">
+                Confirm use
+              </BlockSlot>
+              <BlockSlot @name="body">
+                <p>
+                  Are you sure you want to use this ACL token?
+                </p>
+              </BlockSlot>
+              <BlockSlot @name="confirm" as |Confirm|>
+                <Confirm>Use</Confirm>
+              </BlockSlot>
+            </Confirmation>
+          </BlockSlot>
+        </Action>
+  {{/if}}
+  {{#if (not (or (token/is-anonymous item) (eq item.AccessorID token.AccessorID)))}}
+        <Action data-test-delete-action @onclick={{action ondelete item}} class="dangerous">
+          <BlockSlot @name="label">
+            Delete
+          </BlockSlot>
+          <BlockSlot @name="confirmation" as |Confirmation|>
+            <Confirmation class="warning">
+              <BlockSlot @name="header">
+                Confirm delete
+              </BlockSlot>
+              <BlockSlot @name="body">
+                <p>
+                  Are you sure you want to delete this token?
+                </p>
+              </BlockSlot>
+              <BlockSlot @name="confirm" as |Confirm|>
+                <Confirm>Delete</Confirm>
+              </BlockSlot>
+            </Confirmation>
+          </BlockSlot>
+        </Action>
+  {{/if}}
+      </Actions>
+    </BlockSlot>
+</ListCollection>
+{{/if}}

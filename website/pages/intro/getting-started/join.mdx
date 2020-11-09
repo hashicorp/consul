@@ -79,7 +79,7 @@ Finally, we add the [`config-dir` flag](/docs/agent/options#_config_dir),
 marking where service and check definitions can be found.
 
 All together, these settings yield a
-[`consul agent`](/docs/commands/agent) command like this:
+[`consul agent`](/commands/agent) command like this:
 
 ```text
 vagrant@n1:~$ consul agent -server -bootstrap-expect=1 \
@@ -101,7 +101,7 @@ Since this node will not be a Consul server, we don't provide a
 [`server` switch](/docs/agent/options#_server).
 
 All together, these settings yield a
-[`consul agent`](/docs/commands/agent) command like this:
+[`consul agent`](/commands/agent) command like this:
 
 ```text
 vagrant@n2:~$ consul agent -data-dir=/tmp/consul -node=agent-two \
@@ -112,7 +112,7 @@ vagrant@n2:~$ consul agent -data-dir=/tmp/consul -node=agent-two \
 At this point, you have two Consul agents running: one server and one client.
 The two Consul agents still don't know anything about each other and are each
 part of their own single-node clusters. You can verify this by running
-[`consul members`](/docs/commands/members) against each agent and noting
+[`consul members`](/commands/members) against each agent and noting
 that only one member is visible to each agent.
 
 ## Joining a Cluster
@@ -129,7 +129,7 @@ Successfully joined cluster by contacting 1 nodes.
 
 You should see some log output in each of the agent logs. If you read
 carefully, you'll see that they received join information. If you
-run [`consul members`](/docs/commands/members) against each agent,
+run [`consul members`](/commands/members) against each agent,
 you'll see that both agents now know about each other:
 
 ```text

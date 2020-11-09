@@ -20,8 +20,8 @@ type snapshot struct {
 	chunkState *raftchunking.State
 }
 
-// snapshotHeader is the first entry in our snapshot
-type snapshotHeader struct {
+// SnapshotHeader is the first entry in our snapshot
+type SnapshotHeader struct {
 	// LastIndex is the last index that affects the data.
 	// This is used when we do the restore for watchers.
 	LastIndex uint64
@@ -40,7 +40,7 @@ func registerPersister(fn persister) {
 }
 
 // restorer is a function used to load back a snapshot of the FSM state.
-type restorer func(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error
+type restorer func(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error
 
 // restorers is a map of restore functions by message type.
 var restorers map[structs.MessageType]restorer
@@ -62,7 +62,7 @@ func (s *snapshot) Persist(sink raft.SnapshotSink) error {
 	defer metrics.MeasureSince([]string{"fsm", "persist"}, time.Now())
 
 	// Write the header
-	header := snapshotHeader{
+	header := SnapshotHeader{
 		LastIndex: s.state.LastIndex(),
 	}
 	encoder := codec.NewEncoder(sink, structs.MsgpackHandle)

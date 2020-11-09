@@ -76,6 +76,7 @@ func (t *CheckType) UnmarshalJSON(data []byte) (err error) {
 		DeregisterCriticalServiceAfterSnake interface{} `json:"deregister_critical_service_after"`
 		DockerContainerIDSnake              string      `json:"docker_container_id"`
 		TLSSkipVerifySnake                  bool        `json:"tls_skip_verify"`
+		GRPCUseTLSSnake                     bool        `json:"grpc_use_tls"`
 
 		// These are going to be ignored but since we are disallowing unknown fields
 		// during parsing we have to be explicit about parsing but not using these.
@@ -103,6 +104,9 @@ func (t *CheckType) UnmarshalJSON(data []byte) (err error) {
 	}
 	if aux.TLSSkipVerifySnake {
 		t.TLSSkipVerify = aux.TLSSkipVerifySnake
+	}
+	if aux.GRPCUseTLSSnake {
+		t.GRPCUseTLS = aux.GRPCUseTLSSnake
 	}
 
 	if aux.Interval != nil {

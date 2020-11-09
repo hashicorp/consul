@@ -9,8 +9,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/consul/lib"
 	"github.com/mitchellh/hashstructure"
+
+	"github.com/hashicorp/consul/lib"
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/connect"
@@ -466,11 +467,7 @@ func (c *ConnectCALeaf) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 func activeRootHasKey(roots *structs.IndexedCARoots, currentSigningKeyID string) bool {
 	for _, ca := range roots.Roots {
 		if ca.Active {
-			if ca.SigningKeyID == currentSigningKeyID {
-				return true
-			}
-			// Found the active CA but it has changed
-			return false
+			return ca.SigningKeyID == currentSigningKeyID
 		}
 	}
 	// Shouldn't be possible since at least one root should be active.

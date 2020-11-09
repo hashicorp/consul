@@ -7,6 +7,7 @@ import (
 	"io"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 )
@@ -19,6 +20,7 @@ const (
 	ServiceResolver    string = "service-resolver"
 	IngressGateway     string = "ingress-gateway"
 	TerminatingGateway string = "terminating-gateway"
+	ServiceIntentions  string = "service-intentions"
 
 	ProxyConfigGlobal string = "global"
 )
@@ -178,6 +180,8 @@ func makeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &IngressGatewayConfigEntry{Kind: kind, Name: name}, nil
 	case TerminatingGateway:
 		return &TerminatingGatewayConfigEntry{Kind: kind, Name: name}, nil
+	case ServiceIntentions:
+		return &ServiceIntentionsConfigEntry{Kind: kind, Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}
@@ -220,7 +224,10 @@ func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
 	}
 
 	decodeConf := &mapstructure.DecoderConfig{
-		DecodeHook:       mapstructure.StringToTimeDurationHookFunc(),
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			mapstructure.StringToTimeDurationHookFunc(),
+			mapstructure.StringToTimeHookFunc(time.RFC3339),
+		),
 		Result:           &entry,
 		WeaklyTypedInput: true,
 	}

@@ -54,7 +54,7 @@ gRPC](/docs/agent/options#grpc_port).
 
 Additionally if you plan on using the observability features of Connect, it can
 be convenient to configure your proxies and services using [configuration
-entries](/docs/agent/config_entries) which you can interact with using the
+entries](/docs/agent/config-entries) which you can interact with using the
 CLI or API, or by creating configuration entry files. You will want to enable
 [centralized service
 configuration](/docs/agent/options#enable_central_service_config) on
@@ -71,7 +71,7 @@ needed for a secure deployment.
 To account for common Connect use cases where you have many instances of the
 same service, and many colocated sidecar proxies, Consul allows you to customize
 the settings for all of your proxies or all the instances of a given service at
-once using [Configuration Entries](/docs/agent/config_entries).
+once using [Configuration Entries](/docs/agent/config-entries).
 
 You can override centralized configurations for individual proxy instances in
 their
@@ -100,5 +100,5 @@ configure Connect on Nomad by reading the
 The Consul Helm chart can automate much of Consul Connect's configuration, and
 makes it easy to automatically inject Envoy sidecars into new pods when they are
 deployed. Learn about the [Helm chart](/docs/platform/k8s/helm) in general,
-or if you are already familiar with it, check out it's
+or if you are already familiar with it, check out its
 [connect specific configurations](/docs/platform/k8s/connect).

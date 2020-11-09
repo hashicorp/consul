@@ -108,7 +108,12 @@ type SubscribeRequest struct {
 	// If it's not the local DC the server will forward the request to
 	// the remote DC and proxy the results back  to the subscriber. An empty
 	// string defaults to the local datacenter.
-	Datacenter           string   `protobuf:"bytes,5,opt,name=Datacenter,proto3" json:"Datacenter,omitempty"`
+	Datacenter string `protobuf:"bytes,5,opt,name=Datacenter,proto3" json:"Datacenter,omitempty"`
+	// Namespace which contains the resources. If Namespace is not specified the
+	// default namespace will be used.
+	//
+	// Namespace is an enterprise-only feature.
+	Namespace            string   `protobuf:"bytes,6,opt,name=Namespace,proto3" json:"Namespace,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -182,25 +187,28 @@ func (m *SubscribeRequest) GetDatacenter() string {
 	return ""
 }
 
+func (m *SubscribeRequest) GetNamespace() string {
+	if m != nil {
+		return m.Namespace
+	}
+	return ""
+}
+
 // Event describes a streaming update on a subscription. Events are used both to
 // describe the current "snapshot" of the result as well as ongoing mutations to
 // that snapshot.
 type Event struct {
-	// Topic the event was published to
-	Topic Topic `protobuf:"varint,1,opt,name=Topic,proto3,enum=subscribe.Topic" json:"Topic,omitempty"`
-	// Key is the logical identifier for the entity that was mutated.
-	Key string `protobuf:"bytes,2,opt,name=Key,proto3" json:"Key,omitempty"`
 	// Index is the raft index at which the mutation took place. At the top
 	// level of a subscription there will always be at most one Event per index.
 	// If multiple events are published to the same topic in a single raft
 	// transaction then the batch of events will be encoded inside a single
 	// top-level event to ensure they are delivered atomically to clients.
-	Index uint64 `protobuf:"varint,3,opt,name=Index,proto3" json:"Index,omitempty"`
+	Index uint64 `protobuf:"varint,1,opt,name=Index,proto3" json:"Index,omitempty"`
 	// Payload is the actual event content.
 	//
 	// Types that are valid to be assigned to Payload:
 	//	*Event_EndOfSnapshot
-	//	*Event_EndOfEmptySnapshot
+	//	*Event_NewSnapshotToFollow
 	//	*Event_EventBatch
 	//	*Event_ServiceHealth
 	Payload              isEvent_Payload `protobuf_oneof:"Payload"`
@@ -249,42 +257,28 @@ type isEvent_Payload interface {
 }
 
 type Event_EndOfSnapshot struct {
-	EndOfSnapshot bool `protobuf:"varint,5,opt,name=EndOfSnapshot,proto3,oneof"`
+	EndOfSnapshot bool `protobuf:"varint,2,opt,name=EndOfSnapshot,proto3,oneof"`
 }
-type Event_EndOfEmptySnapshot struct {
-	EndOfEmptySnapshot bool `protobuf:"varint,6,opt,name=EndOfEmptySnapshot,proto3,oneof"`
+type Event_NewSnapshotToFollow struct {
+	NewSnapshotToFollow bool `protobuf:"varint,3,opt,name=NewSnapshotToFollow,proto3,oneof"`
 }
 type Event_EventBatch struct {
-	EventBatch *EventBatch `protobuf:"bytes,7,opt,name=EventBatch,proto3,oneof"`
+	EventBatch *EventBatch `protobuf:"bytes,4,opt,name=EventBatch,proto3,oneof"`
 }
 type Event_ServiceHealth struct {
 	ServiceHealth *ServiceHealthUpdate `protobuf:"bytes,10,opt,name=ServiceHealth,proto3,oneof"`
 }
 
-func (*Event_EndOfSnapshot) isEvent_Payload()      {}
-func (*Event_EndOfEmptySnapshot) isEvent_Payload() {}
-func (*Event_EventBatch) isEvent_Payload()         {}
-func (*Event_ServiceHealth) isEvent_Payload()      {}
+func (*Event_EndOfSnapshot) isEvent_Payload()       {}
+func (*Event_NewSnapshotToFollow) isEvent_Payload() {}
+func (*Event_EventBatch) isEvent_Payload()          {}
+func (*Event_ServiceHealth) isEvent_Payload()       {}
 
 func (m *Event) GetPayload() isEvent_Payload {
 	if m != nil {
 		return m.Payload
 	}
 	return nil
-}
-
-func (m *Event) GetTopic() Topic {
-	if m != nil {
-		return m.Topic
-	}
-	return Topic_Unknown
-}
-
-func (m *Event) GetKey() string {
-	if m != nil {
-		return m.Key
-	}
-	return ""
 }
 
 func (m *Event) GetIndex() uint64 {
@@ -301,9 +295,9 @@ func (m *Event) GetEndOfSnapshot() bool {
 	return false
 }
 
-func (m *Event) GetEndOfEmptySnapshot() bool {
-	if x, ok := m.GetPayload().(*Event_EndOfEmptySnapshot); ok {
-		return x.EndOfEmptySnapshot
+func (m *Event) GetNewSnapshotToFollow() bool {
+	if x, ok := m.GetPayload().(*Event_NewSnapshotToFollow); ok {
+		return x.NewSnapshotToFollow
 	}
 	return false
 }
@@ -326,7 +320,7 @@ func (m *Event) GetServiceHealth() *ServiceHealthUpdate {
 func (*Event) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
 	return _Event_OneofMarshaler, _Event_OneofUnmarshaler, _Event_OneofSizer, []interface{}{
 		(*Event_EndOfSnapshot)(nil),
-		(*Event_EndOfEmptySnapshot)(nil),
+		(*Event_NewSnapshotToFollow)(nil),
 		(*Event_EventBatch)(nil),
 		(*Event_ServiceHealth)(nil),
 	}
@@ -341,17 +335,17 @@ func _Event_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
 		if x.EndOfSnapshot {
 			t = 1
 		}
-		_ = b.EncodeVarint(5<<3 | proto.WireVarint)
+		_ = b.EncodeVarint(2<<3 | proto.WireVarint)
 		_ = b.EncodeVarint(t)
-	case *Event_EndOfEmptySnapshot:
+	case *Event_NewSnapshotToFollow:
 		t := uint64(0)
-		if x.EndOfEmptySnapshot {
+		if x.NewSnapshotToFollow {
 			t = 1
 		}
-		_ = b.EncodeVarint(6<<3 | proto.WireVarint)
+		_ = b.EncodeVarint(3<<3 | proto.WireVarint)
 		_ = b.EncodeVarint(t)
 	case *Event_EventBatch:
-		_ = b.EncodeVarint(7<<3 | proto.WireBytes)
+		_ = b.EncodeVarint(4<<3 | proto.WireBytes)
 		if err := b.EncodeMessage(x.EventBatch); err != nil {
 			return err
 		}
@@ -370,21 +364,21 @@ func _Event_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
 func _Event_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
 	m := msg.(*Event)
 	switch tag {
-	case 5: // Payload.EndOfSnapshot
+	case 2: // Payload.EndOfSnapshot
 		if wire != proto.WireVarint {
 			return true, proto.ErrInternalBadWireType
 		}
 		x, err := b.DecodeVarint()
 		m.Payload = &Event_EndOfSnapshot{x != 0}
 		return true, err
-	case 6: // Payload.EndOfEmptySnapshot
+	case 3: // Payload.NewSnapshotToFollow
 		if wire != proto.WireVarint {
 			return true, proto.ErrInternalBadWireType
 		}
 		x, err := b.DecodeVarint()
-		m.Payload = &Event_EndOfEmptySnapshot{x != 0}
+		m.Payload = &Event_NewSnapshotToFollow{x != 0}
 		return true, err
-	case 7: // Payload.EventBatch
+	case 4: // Payload.EventBatch
 		if wire != proto.WireBytes {
 			return true, proto.ErrInternalBadWireType
 		}
@@ -412,7 +406,7 @@ func _Event_OneofSizer(msg proto.Message) (n int) {
 	case *Event_EndOfSnapshot:
 		n += 1 // tag and wire
 		n += 1
-	case *Event_EndOfEmptySnapshot:
+	case *Event_NewSnapshotToFollow:
 		n += 1 // tag and wire
 		n += 1
 	case *Event_EventBatch:
@@ -546,40 +540,41 @@ func init() {
 func init() { proto.RegisterFile("proto/pbsubscribe/subscribe.proto", fileDescriptor_ab3eb8c810e315fb) }
 
 var fileDescriptor_ab3eb8c810e315fb = []byte{
-	// 521 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x53, 0x4f, 0x8f, 0xd2, 0x40,
-	0x14, 0xef, 0xc0, 0x02, 0xcb, 0xc3, 0xdd, 0xd4, 0x11, 0x63, 0xc3, 0x26, 0x0d, 0x12, 0xb3, 0xa9,
-	0x9b, 0x48, 0x37, 0x98, 0xe8, 0x4d, 0x23, 0x2c, 0x8a, 0x31, 0x11, 0x53, 0xdc, 0x83, 0xde, 0x86,
-	0xf6, 0x49, 0x1b, 0xd8, 0x99, 0xb1, 0x1d, 0x56, 0xb9, 0xfb, 0x21, 0xf6, 0xcb, 0x78, 0xf7, 0xe8,
-	0x47, 0x30, 0xf8, 0x45, 0x0c, 0x43, 0xb7, 0x5b, 0x60, 0x6f, 0xde, 0xfa, 0x7e, 0x7f, 0xe6, 0xfd,
-	0xf2, 0x5e, 0x1f, 0x3c, 0x94, 0xb1, 0x50, 0xc2, 0x95, 0xe3, 0x64, 0x3e, 0x4e, 0xfc, 0x38, 0x1a,
-	0xa3, 0x9b, 0x7d, 0xb5, 0x35, 0x47, 0xab, 0x19, 0xd0, 0x68, 0x64, 0x6a, 0x8c, 0x2f, 0x23, 0x1f,
-	0x5d, 0x2e, 0x82, 0x54, 0xd6, 0xba, 0x22, 0x60, 0x8e, 0xae, 0x95, 0x1e, 0x7e, 0x9d, 0x63, 0xa2,
-	0xe8, 0x31, 0x94, 0x3e, 0x0a, 0x19, 0xf9, 0x16, 0x69, 0x12, 0xe7, 0xb0, 0x63, 0xb6, 0x6f, 0x1e,
-	0xd7, 0xb8, 0xb7, 0xa6, 0xa9, 0x09, 0xc5, 0x77, 0xb8, 0xb0, 0x0a, 0x4d, 0xe2, 0x54, 0xbd, 0xd5,
-	0x27, 0xad, 0xaf, 0x9c, 0x53, 0xe4, 0x56, 0x51, 0x63, 0xeb, 0x62, 0x85, 0xbe, 0xe5, 0x01, 0x7e,
-	0xb7, 0xf6, 0x9a, 0xc4, 0xd9, 0xf3, 0xd6, 0x05, 0xb5, 0x01, 0xce, 0x98, 0x62, 0x3e, 0x72, 0x85,
-	0xb1, 0x55, 0xd2, 0x86, 0x1c, 0xd2, 0xfa, 0x59, 0x80, 0x52, 0xff, 0x12, 0xf9, 0x7f, 0xe6, 0x59,
-	0x77, 0x2e, 0xe6, 0x3b, 0x1f, 0xc3, 0x41, 0x9f, 0x07, 0xc3, 0x2f, 0x23, 0xce, 0x64, 0x12, 0x0a,
-	0xa5, 0x9b, 0xef, 0x0f, 0x0c, 0x6f, 0x13, 0xa6, 0xa7, 0x40, 0x35, 0xd0, 0xbf, 0x90, 0x6a, 0x91,
-	0x89, 0xcb, 0xa9, 0xf8, 0x16, 0x8e, 0x3e, 0x07, 0xd0, 0x91, 0xbb, 0x4c, 0xf9, 0xa1, 0x55, 0x69,
-	0x12, 0xa7, 0xd6, 0xb9, 0x9f, 0x8b, 0x7b, 0x43, 0x0e, 0x0c, 0x2f, 0x27, 0xa5, 0xaf, 0xe1, 0x60,
-	0xb4, 0xde, 0xce, 0x00, 0xd9, 0x4c, 0x85, 0x16, 0x68, 0xaf, 0x9d, 0xf3, 0x6e, 0xf0, 0xe7, 0x32,
-	0x60, 0x0a, 0x57, 0x91, 0x37, 0xe0, 0x6e, 0x15, 0x2a, 0x1f, 0xd8, 0x62, 0x26, 0x58, 0xd0, 0x7a,
-	0x96, 0xcf, 0x42, 0x1d, 0x28, 0xeb, 0x2a, 0xb1, 0x48, 0xb3, 0xe8, 0xd4, 0x36, 0x86, 0xa8, 0x09,
-	0x2f, 0xe5, 0x5b, 0x3f, 0x08, 0xdc, 0xbb, 0xa5, 0x17, 0x7d, 0x04, 0x85, 0xa1, 0x4c, 0x57, 0x50,
-	0xcf, 0xb9, 0x7b, 0x4c, 0xb1, 0x99, 0x98, 0x0c, 0xa5, 0x57, 0x18, 0x4a, 0xfa, 0x06, 0xcc, 0x5e,
-	0x88, 0xfe, 0x34, 0x7d, 0xe1, 0xbd, 0x08, 0x50, 0x2f, 0xa4, 0xd6, 0x39, 0x6a, 0x67, 0x7f, 0x60,
-	0x7b, 0x5b, 0xe2, 0xed, 0x98, 0x4e, 0x5e, 0xa5, 0x4b, 0xa7, 0x35, 0xa8, 0x9c, 0xf3, 0x29, 0x17,
-	0xdf, 0xb8, 0x69, 0xd0, 0xbb, 0x5b, 0x73, 0x32, 0x09, 0xb5, 0xa0, 0xbe, 0x01, 0xf5, 0x04, 0xe7,
-	0xe8, 0x2b, 0xb3, 0x70, 0xf2, 0x18, 0xaa, 0x59, 0x38, 0x7a, 0x07, 0xf6, 0x3d, 0x9c, 0x44, 0x89,
-	0xc2, 0xd8, 0x34, 0xe8, 0x21, 0xc0, 0x19, 0xc6, 0xd7, 0x35, 0xe9, 0x7c, 0x82, 0x07, 0x23, 0xc5,
-	0x14, 0xf6, 0x42, 0xc6, 0x27, 0x98, 0x5e, 0x84, 0x54, 0x91, 0xe0, 0xf4, 0x05, 0x54, 0xb3, 0x0b,
-	0xa1, 0x47, 0xf9, 0x85, 0x6c, 0xdd, 0x4d, 0x63, 0x67, 0xa6, 0x2d, 0xe3, 0x94, 0x74, 0x5f, 0xfe,
-	0x5a, 0xda, 0xe4, 0xf7, 0xd2, 0x26, 0x7f, 0x96, 0x36, 0xb9, 0xfa, 0x6b, 0x1b, 0x9f, 0x9f, 0x4c,
-	0x22, 0x15, 0xce, 0xc7, 0x6d, 0x5f, 0x5c, 0xb8, 0x21, 0x4b, 0xc2, 0xc8, 0x17, 0xb1, 0x74, 0x7d,
-	0xc1, 0x93, 0xf9, 0xcc, 0xdd, 0x39, 0xed, 0x71, 0x59, 0x43, 0x4f, 0xff, 0x05, 0x00, 0x00, 0xff,
-	0xff, 0x7d, 0xf7, 0xca, 0x01, 0xf6, 0x03, 0x00, 0x00,
+	// 536 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x6c, 0x53, 0x5f, 0x6f, 0xd2, 0x50,
+	0x14, 0xef, 0x65, 0x83, 0xad, 0x07, 0xb7, 0xd4, 0x3b, 0x8c, 0x0d, 0x33, 0x0d, 0x12, 0xb3, 0xe0,
+	0x12, 0xa9, 0xc1, 0x44, 0xdf, 0x34, 0xc2, 0x36, 0x31, 0x26, 0x60, 0xca, 0xf6, 0xa0, 0x6f, 0x97,
+	0xf6, 0x48, 0x1b, 0xba, 0x7b, 0x6b, 0x7b, 0x19, 0xee, 0x5d, 0xbf, 0x83, 0x9f, 0xc4, 0xcf, 0xe0,
+	0xa3, 0x1f, 0xc1, 0xe0, 0x17, 0x31, 0x5c, 0x4a, 0x29, 0xb0, 0xb7, 0x9e, 0xdf, 0x9f, 0x73, 0x4f,
+	0xcf, 0x1f, 0x78, 0x1c, 0xc5, 0x42, 0x0a, 0x3b, 0x1a, 0x26, 0x93, 0x61, 0xe2, 0xc6, 0xc1, 0x10,
+	0xed, 0xec, 0xab, 0xa9, 0x38, 0xaa, 0x67, 0x40, 0xb5, 0x9a, 0xa9, 0x31, 0xbe, 0x09, 0x5c, 0xb4,
+	0xb9, 0xf0, 0x52, 0x59, 0xfd, 0x17, 0x01, 0x63, 0xb0, 0x54, 0x3a, 0xf8, 0x75, 0x82, 0x89, 0xa4,
+	0x27, 0x50, 0xbc, 0x14, 0x51, 0xe0, 0x9a, 0xa4, 0x46, 0x1a, 0x87, 0x2d, 0xa3, 0xb9, 0x4a, 0xae,
+	0x70, 0x67, 0x41, 0x53, 0x03, 0x76, 0x3e, 0xe0, 0xad, 0x59, 0xa8, 0x91, 0x86, 0xee, 0xcc, 0x3f,
+	0x69, 0x65, 0xee, 0x1c, 0x23, 0x37, 0x77, 0x14, 0xb6, 0x08, 0xe6, 0xe8, 0x7b, 0xee, 0xe1, 0x37,
+	0x73, 0xb7, 0x46, 0x1a, 0xbb, 0xce, 0x22, 0xa0, 0x16, 0xc0, 0x19, 0x93, 0xcc, 0x45, 0x2e, 0x31,
+	0x36, 0x8b, 0xca, 0x90, 0x43, 0xe8, 0x23, 0xd0, 0x7b, 0xec, 0x1a, 0x93, 0x88, 0xb9, 0x68, 0x96,
+	0x14, 0xbd, 0x02, 0xea, 0x3f, 0x0a, 0x50, 0x3c, 0xbf, 0x41, 0x2e, 0x57, 0xd9, 0x49, 0x3e, 0xfb,
+	0x09, 0x1c, 0x9c, 0x73, 0xaf, 0xff, 0x65, 0xc0, 0x59, 0x94, 0xf8, 0x42, 0xaa, 0x2a, 0xf7, 0xbb,
+	0x9a, 0xb3, 0x0e, 0xd3, 0x16, 0x1c, 0xf5, 0x70, 0xba, 0x0c, 0x2f, 0xc5, 0x85, 0x08, 0x43, 0x31,
+	0x55, 0xf5, 0xcf, 0xd5, 0x77, 0x91, 0xf4, 0x15, 0x80, 0x7a, 0xba, 0xcd, 0xa4, 0xeb, 0xab, 0x9f,
+	0x2a, 0xb7, 0x1e, 0xe4, 0x9a, 0xb4, 0x22, 0xbb, 0x9a, 0x93, 0x93, 0xd2, 0x0b, 0x38, 0x18, 0x2c,
+	0x66, 0xd0, 0x45, 0x16, 0x4a, 0xdf, 0x04, 0xe5, 0xb5, 0x72, 0xde, 0x35, 0xfe, 0x2a, 0xf2, 0x98,
+	0xc4, 0x79, 0xd1, 0x6b, 0x70, 0x5b, 0x87, 0xbd, 0x8f, 0xec, 0x36, 0x14, 0xcc, 0xab, 0xbf, 0xcc,
+	0xd7, 0x42, 0x1b, 0x50, 0x52, 0x51, 0x62, 0x92, 0xda, 0x4e, 0xa3, 0xbc, 0x36, 0x3a, 0x45, 0x38,
+	0x29, 0x5f, 0xff, 0x4e, 0xe0, 0xe8, 0x8e, 0xb7, 0xe8, 0x13, 0x28, 0xf4, 0xa3, 0x74, 0xf0, 0x95,
+	0x9c, 0xbb, 0xc3, 0x24, 0x0b, 0xc5, 0xa8, 0x1f, 0x39, 0x85, 0x7e, 0x44, 0xdf, 0x81, 0xd1, 0xf1,
+	0xd1, 0x1d, 0xa7, 0x19, 0x7a, 0xc2, 0x43, 0xd5, 0xe0, 0x72, 0xeb, 0xb8, 0x99, 0xed, 0x59, 0x73,
+	0x53, 0xe2, 0x6c, 0x99, 0x4e, 0xdf, 0xa6, 0xab, 0x46, 0xcb, 0xb0, 0x77, 0xc5, 0xc7, 0x5c, 0x4c,
+	0xb9, 0xa1, 0xd1, 0xfb, 0x1b, 0x7d, 0x32, 0x08, 0x35, 0xa1, 0xb2, 0x06, 0x75, 0x04, 0xe7, 0xe8,
+	0x4a, 0xa3, 0x70, 0xfa, 0x14, 0xf4, 0xac, 0x38, 0x7a, 0x0f, 0xf6, 0x1d, 0x1c, 0x05, 0x89, 0xc4,
+	0xd8, 0xd0, 0xe8, 0x21, 0xc0, 0x19, 0xc6, 0xcb, 0x98, 0xb4, 0x3e, 0xc1, 0xc3, 0x81, 0x64, 0x12,
+	0x3b, 0x3e, 0xe3, 0x23, 0x4c, 0xf7, 0x3e, 0x92, 0x81, 0xe0, 0xf4, 0x35, 0xe8, 0xd9, 0x1d, 0xd0,
+	0xe3, 0xfc, 0x40, 0x36, 0xae, 0xa3, 0xba, 0xd5, 0xd3, 0xba, 0xf6, 0x9c, 0xb4, 0xdf, 0xfc, 0x9e,
+	0x59, 0xe4, 0xcf, 0xcc, 0x22, 0x7f, 0x67, 0x16, 0xf9, 0xf9, 0xcf, 0xd2, 0x3e, 0x3f, 0x1b, 0x05,
+	0xd2, 0x9f, 0x0c, 0x9b, 0xae, 0xb8, 0xb6, 0x7d, 0x96, 0xf8, 0x81, 0x2b, 0xe2, 0xc8, 0x76, 0x05,
+	0x4f, 0x26, 0xa1, 0xbd, 0x75, 0xc0, 0xc3, 0x92, 0x82, 0x5e, 0xfc, 0x0f, 0x00, 0x00, 0xff, 0xff,
+	0x8f, 0x56, 0x73, 0x78, 0xdc, 0x03, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -595,18 +590,24 @@ const _ = grpc.SupportPackageIsVersion4
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type StateChangeSubscriptionClient interface {
 	// Subscribe to a topic to receive events when there are changes to the topic.
-	// TODO: document how to handle framing events
 	//
+	// If SubscribeRequest.Index is 0 the event stream will start with one or
+	// more snapshot events, followed by an EndOfSnapshot event. Subsequent
+	// events will be a live stream of events as they happen.
 	//
-	// Subscribe may return an ABORTED status error to indicate the client must
-	// re-start the Subscribe call.
+	// If SubscribeRequest.Index is > 0 it is assumed the client already has a
+	// snapshot, and is trying to resume a stream that was disconnected. The
+	// client will either receive a NewSnapshotToFollow event, indicating the
+	// client view is stale and it must reset its view and prepare for a new
+	// snapshot. Or, if no NewSnapshotToFollow event is received, the client
+	// view is still fresh, and all events will be the live stream.
+	//
+	// Subscribe may return a gRPC status error with codes.ABORTED to indicate
+	// the client view is now stale due to a change on the server. The client
+	// must reset its view and issue a new Subscribe call to restart the stream.
 	// This error is used when the server can no longer correctly maintain the
-	// stream, for example because the ACL permissions for the token changed
-	// and the server doesn't know which previously delivered events should
-	// now not be visible. Clients when receiving this must reset their
-	// local copy of the state to empty and start over from index 0 to get a
-	// valid snapshot again. Servers may also send this if their state store
-	// is restored from a snapshot.
+	// stream, for example because the ACL permissions for the token changed, or
+	// because the server state was restored from a snapshot.
 	Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (StateChangeSubscription_SubscribeClient, error)
 }
 
@@ -653,18 +654,24 @@ func (x *stateChangeSubscriptionSubscribeClient) Recv() (*Event, error) {
 // StateChangeSubscriptionServer is the server API for StateChangeSubscription service.
 type StateChangeSubscriptionServer interface {
 	// Subscribe to a topic to receive events when there are changes to the topic.
-	// TODO: document how to handle framing events
 	//
+	// If SubscribeRequest.Index is 0 the event stream will start with one or
+	// more snapshot events, followed by an EndOfSnapshot event. Subsequent
+	// events will be a live stream of events as they happen.
 	//
-	// Subscribe may return an ABORTED status error to indicate the client must
-	// re-start the Subscribe call.
+	// If SubscribeRequest.Index is > 0 it is assumed the client already has a
+	// snapshot, and is trying to resume a stream that was disconnected. The
+	// client will either receive a NewSnapshotToFollow event, indicating the
+	// client view is stale and it must reset its view and prepare for a new
+	// snapshot. Or, if no NewSnapshotToFollow event is received, the client
+	// view is still fresh, and all events will be the live stream.
+	//
+	// Subscribe may return a gRPC status error with codes.ABORTED to indicate
+	// the client view is now stale due to a change on the server. The client
+	// must reset its view and issue a new Subscribe call to restart the stream.
 	// This error is used when the server can no longer correctly maintain the
-	// stream, for example because the ACL permissions for the token changed
-	// and the server doesn't know which previously delivered events should
-	// now not be visible. Clients when receiving this must reset their
-	// local copy of the state to empty and start over from index 0 to get a
-	// valid snapshot again. Servers may also send this if their state store
-	// is restored from a snapshot.
+	// stream, for example because the ACL permissions for the token changed, or
+	// because the server state was restored from a snapshot.
 	Subscribe(*SubscribeRequest, StateChangeSubscription_SubscribeServer) error
 }
 
@@ -739,6 +746,13 @@ func (m *SubscribeRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i -= len(m.XXX_unrecognized)
 		copy(dAtA[i:], m.XXX_unrecognized)
 	}
+	if len(m.Namespace) > 0 {
+		i -= len(m.Namespace)
+		copy(dAtA[i:], m.Namespace)
+		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.Namespace)))
+		i--
+		dAtA[i] = 0x32
+	}
 	if len(m.Datacenter) > 0 {
 		i -= len(m.Datacenter)
 		copy(dAtA[i:], m.Datacenter)
@@ -809,18 +823,6 @@ func (m *Event) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	if m.Index != 0 {
 		i = encodeVarintSubscribe(dAtA, i, uint64(m.Index))
 		i--
-		dAtA[i] = 0x18
-	}
-	if len(m.Key) > 0 {
-		i -= len(m.Key)
-		copy(dAtA[i:], m.Key)
-		i = encodeVarintSubscribe(dAtA, i, uint64(len(m.Key)))
-		i--
-		dAtA[i] = 0x12
-	}
-	if m.Topic != 0 {
-		i = encodeVarintSubscribe(dAtA, i, uint64(m.Topic))
-		i--
 		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
@@ -839,23 +841,23 @@ func (m *Event_EndOfSnapshot) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		dAtA[i] = 0
 	}
 	i--
-	dAtA[i] = 0x28
+	dAtA[i] = 0x10
 	return len(dAtA) - i, nil
 }
-func (m *Event_EndOfEmptySnapshot) MarshalTo(dAtA []byte) (int, error) {
+func (m *Event_NewSnapshotToFollow) MarshalTo(dAtA []byte) (int, error) {
 	return m.MarshalToSizedBuffer(dAtA[:m.Size()])
 }
 
-func (m *Event_EndOfEmptySnapshot) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *Event_NewSnapshotToFollow) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	i--
-	if m.EndOfEmptySnapshot {
+	if m.NewSnapshotToFollow {
 		dAtA[i] = 1
 	} else {
 		dAtA[i] = 0
 	}
 	i--
-	dAtA[i] = 0x30
+	dAtA[i] = 0x18
 	return len(dAtA) - i, nil
 }
 func (m *Event_EventBatch) MarshalTo(dAtA []byte) (int, error) {
@@ -874,7 +876,7 @@ func (m *Event_EventBatch) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 			i = encodeVarintSubscribe(dAtA, i, uint64(size))
 		}
 		i--
-		dAtA[i] = 0x3a
+		dAtA[i] = 0x22
 	}
 	return len(dAtA) - i, nil
 }
@@ -1018,6 +1020,10 @@ func (m *SubscribeRequest) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovSubscribe(uint64(l))
 	}
+	l = len(m.Namespace)
+	if l > 0 {
+		n += 1 + l + sovSubscribe(uint64(l))
+	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
 	}
@@ -1030,13 +1036,6 @@ func (m *Event) Size() (n int) {
 	}
 	var l int
 	_ = l
-	if m.Topic != 0 {
-		n += 1 + sovSubscribe(uint64(m.Topic))
-	}
-	l = len(m.Key)
-	if l > 0 {
-		n += 1 + l + sovSubscribe(uint64(l))
-	}
 	if m.Index != 0 {
 		n += 1 + sovSubscribe(uint64(m.Index))
 	}
@@ -1058,7 +1057,7 @@ func (m *Event_EndOfSnapshot) Size() (n int) {
 	n += 2
 	return n
 }
-func (m *Event_EndOfEmptySnapshot) Size() (n int) {
+func (m *Event_NewSnapshotToFollow) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -1297,6 +1296,38 @@ func (m *SubscribeRequest) Unmarshal(dAtA []byte) error {
 			}
 			m.Datacenter = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Namespace", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSubscribe
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthSubscribe
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthSubscribe
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Namespace = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipSubscribe(dAtA[iNdEx:])
@@ -1353,57 +1384,6 @@ func (m *Event) Unmarshal(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Topic", wireType)
-			}
-			m.Topic = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowSubscribe
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Topic |= Topic(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowSubscribe
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthSubscribe
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthSubscribe
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Key = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 3:
-			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Index", wireType)
 			}
 			m.Index = 0
@@ -1421,7 +1401,7 @@ func (m *Event) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 5:
+		case 2:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field EndOfSnapshot", wireType)
 			}
@@ -1442,9 +1422,9 @@ func (m *Event) Unmarshal(dAtA []byte) error {
 			}
 			b := bool(v != 0)
 			m.Payload = &Event_EndOfSnapshot{b}
-		case 6:
+		case 3:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field EndOfEmptySnapshot", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field NewSnapshotToFollow", wireType)
 			}
 			var v int
 			for shift := uint(0); ; shift += 7 {
@@ -1462,8 +1442,8 @@ func (m *Event) Unmarshal(dAtA []byte) error {
 				}
 			}
 			b := bool(v != 0)
-			m.Payload = &Event_EndOfEmptySnapshot{b}
-		case 7:
+			m.Payload = &Event_NewSnapshotToFollow{b}
+		case 4:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field EventBatch", wireType)
 			}

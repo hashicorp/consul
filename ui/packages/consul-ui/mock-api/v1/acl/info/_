@@ -1,0 +1,19 @@
+[
+    {
+        "ID":"${ location.pathname.get(3) }",
+        "Name":"${ location.pathname.get(3) } Token",
+        "Type":"${fake.helpers.randomize(['client', 'management'])}",
+        "Rules":${
+            JSON.stringify(
+`agent "${fake.hacker.noun()}" {
+    policy = "write"
+}
+node "node-0" {
+    policy = "read"
+}`
+            )
+        },
+        "CreateIndex":4,
+        "ModifyIndex":4
+    }
+]

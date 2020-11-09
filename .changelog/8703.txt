@@ -1,0 +1,4 @@
+```release-note:feature
+server: create new memdb table for storing system metadata
+```
+
