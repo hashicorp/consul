@@ -1,7 +1,7 @@
 import { inject as service } from '@ember/service';
-import Adapter from 'ember-data/adapter';
-import AdapterError from '@ember-data/adapter/error';
+import Adapter from '@ember-data/adapter';
 import {
+  AdapterError,
   AbortError,
   TimeoutError,
   ServerError,
@@ -10,7 +10,7 @@ import {
   NotFoundError,
   ConflictError,
   InvalidError,
-} from 'ember-data/adapters/errors';
+} from '@ember-data/adapter/error';
 
 // TODO These are now exactly the same, apart from the fact that one uses
 // `serialized, unserialized` and the other just `query`
@@ -40,9 +40,10 @@ const write = function(adapter, modelName, type, snapshot) {
     modelName
   );
 };
-export default Adapter.extend({
-  client: service('client/http'),
-  rpc: function(req, resp, obj, modelName) {
+export default class HttpAdapter extends Adapter {
+  @service('client/http') client;
+
+  rpc(req, resp, obj, modelName) {
     const client = this.client;
     const store = this.store;
     const adapter = this;
@@ -79,8 +80,9 @@ export default Adapter.extend({
     // .catch(function(e) {
     //   return Promise.reject(e);
     // });
-  },
-  error: function(err) {
+  }
+
+  error(err) {
     if (err instanceof TypeError) {
       throw err;
     }
@@ -132,23 +134,29 @@ export default Adapter.extend({
     // Consider changing this to return the error and then
     // throw from the call site instead
     throw error;
-  },
-  query: function(store, type, query) {
+  }
+
+  query(store, type, query) {
     return read(this, type.modelName, 'Query', query);
-  },
-  queryRecord: function(store, type, query) {
+  }
+
+  queryRecord(store, type, query) {
     return read(this, type.modelName, 'QueryRecord', query);
-  },
-  findAll: function(store, type) {
+  }
+
+  findAll(store, type) {
     return read(this, type.modelName, 'FindAll');
-  },
-  createRecord: function(store, type, snapshot) {
+  }
+
+  createRecord(store, type, snapshot) {
     return write(this, type.modelName, 'CreateRecord', snapshot);
-  },
-  updateRecord: function(store, type, snapshot) {
+  }
+
+  updateRecord(store, type, snapshot) {
     return write(this, type.modelName, 'UpdateRecord', snapshot);
-  },
-  deleteRecord: function(store, type, snapshot) {
+  }
+
+  deleteRecord(store, type, snapshot) {
     return write(this, type.modelName, 'DeleteRecord', snapshot);
-  },
-});
+  }
+}

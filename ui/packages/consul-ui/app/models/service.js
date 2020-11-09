@@ -1,52 +1,48 @@
-import Model from 'ember-data/model';
-import attr from 'ember-data/attr';
+import Model, { attr } from '@ember-data/model';
 import { computed, get } from '@ember/object';
 
 export const PRIMARY_KEY = 'uid';
 export const SLUG_KEY = 'Name';
 
-export default Model.extend({
-  [PRIMARY_KEY]: attr('string'),
-  [SLUG_KEY]: attr('string'),
-  Tags: attr({
-    defaultValue: function() {
-      return [];
-    },
-  }),
-  InstanceCount: attr('number'),
-  ConnectedWithGateway: attr(),
-  ConnectedWithProxy: attr(),
-  Proxy: attr(),
-  GatewayConfig: attr(),
-  Kind: attr('string'),
-  ExternalSources: attr(),
-  Meta: attr(),
-  Address: attr('string'),
-  TaggedAddresses: attr(),
-  Port: attr('number'),
-  EnableTagOverride: attr('boolean'),
-  CreateIndex: attr('number'),
-  ModifyIndex: attr('number'),
-  // TODO: These should be typed
-  ChecksPassing: attr(),
-  ChecksCritical: attr(),
-  ChecksWarning: attr(),
-  Nodes: attr(),
-  Datacenter: attr('string'),
-  Namespace: attr('string'),
-  Node: attr(),
-  Service: attr(),
-  Checks: attr(),
-  SyncTime: attr('number'),
-  meta: attr(),
+export default class Service extends Model {
+  @attr('string') uid;
+  @attr('string') Name;
+
+  @attr('string') Datacenter;
+  @attr('string') Namespace;
+  @attr('string') Kind;
+  @attr('number') ChecksPassing;
+  @attr('number') ChecksCritical;
+  @attr('number') ChecksWarning;
+  @attr('number') InstanceCount;
+  @attr('boolean') ConnectedWithGateway;
+  @attr('boolean') ConnectedWithProxy;
+  @attr('number') SyncTime;
+  @attr('number') CreateIndex;
+  @attr('number') ModifyIndex;
+  @attr({ defaultValue: () => [] }) Tags;
+
+  @attr() Nodes; // array
+  @attr() Proxy; // Service
+  @attr() GatewayConfig; // {AssociatedServiceCount: 0}
+  @attr() ExternalSources; // array
+  @attr() Meta; // {}
+
+  @attr() meta; // {}
+
   /* Mesh properties involve both the service and the associated proxy */
-  MeshEnabled: computed('ConnectedWithProxy', 'ConnectedWithGateway', function() {
+  @computed('ConnectedWithProxy', 'ConnectedWithGateway')
+  get MeshEnabled() {
     return this.ConnectedWithProxy || this.ConnectedWithGateway;
-  }),
-  InMesh: computed('Kind', function() {
+  }
+
+  @computed('MeshEnabled', 'Kind')
+  get InMesh() {
     return this.MeshEnabled || (this.Kind || '').length > 0;
-  }),
-  MeshStatus: computed('MeshChecksPassing', 'MeshChecksWarning', 'MeshChecksCritical', function() {
+  }
+
+  @computed('MeshChecksPassing', 'MeshChecksWarning', 'MeshChecksCritical')
+  get MeshStatus() {
     switch (true) {
       case this.MeshChecksCritical !== 0:
         return 'critical';
@@ -57,57 +53,33 @@ export default Model.extend({
       default:
         return 'empty';
     }
-  }),
-  MeshChecksPassing: computed('ChecksPassing', 'Proxy.ChecksPassing', function() {
+  }
+
+  @computed('ChecksPassing', 'Proxy.ChecksPassing')
+  get MeshChecksPassing() {
     let proxyCount = 0;
     if (typeof this.Proxy !== 'undefined') {
       proxyCount = this.Proxy.ChecksPassing;
     }
     return this.ChecksPassing + proxyCount;
-  }),
-  MeshChecksWarning: computed('ChecksWarning', 'Proxy.ChecksWarning', function() {
+  }
+
+  @computed('ChecksWarning', 'Proxy.ChecksWarning')
+  get MeshChecksWarning() {
     let proxyCount = 0;
     if (typeof this.Proxy !== 'undefined') {
       proxyCount = this.Proxy.ChecksWarning;
     }
     return this.ChecksWarning + proxyCount;
-  }),
-  MeshChecksCritical: computed('ChecksCritical', 'Proxy.ChecksCritical', function() {
+  }
+
+  @computed('ChecksCritical', 'Proxy.ChecksCritical')
+  get MeshChecksCritical() {
     let proxyCount = 0;
     if (typeof this.Proxy !== 'undefined') {
       proxyCount = this.Proxy.ChecksCritical;
     }
     return this.ChecksCritical + proxyCount;
-  }),
+  }
   /**/
-  passing: computed('ChecksPassing', 'Checks', function() {
-    let num = 0;
-    // TODO: use typeof
-    if (get(this, 'ChecksPassing') !== undefined) {
-      num = get(this, 'ChecksPassing');
-    } else {
-      num = get(get(this, 'Checks').filterBy('Status', 'passing'), 'length');
-    }
-    return {
-      length: num,
-    };
-  }),
-  hasStatus: function(status) {
-    let num = 0;
-    switch (status) {
-      case 'passing':
-        num = get(this, 'ChecksPassing');
-        break;
-      case 'critical':
-        num = get(this, 'ChecksCritical');
-        break;
-      case 'warning':
-        num = get(this, 'ChecksWarning');
-        break;
-      case '': // all
-        num = 1;
-        break;
-    }
-    return num > 0;
-  },
-});
+}

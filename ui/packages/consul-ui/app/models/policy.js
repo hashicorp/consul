@@ -1,43 +1,31 @@
-import Model from 'ember-data/model';
-import attr from 'ember-data/attr';
+import Model, { attr } from '@ember-data/model';
 import { computed } from '@ember/object';
 
+export const MANAGEMENT_ID = '00000000-0000-0000-0000-000000000001';
 export const PRIMARY_KEY = 'uid';
 export const SLUG_KEY = 'ID';
 
-export const MANAGEMENT_ID = '00000000-0000-0000-0000-000000000001';
+export default class Policy extends Model {
+  @attr('string') uid;
+  @attr('string') ID;
 
-export default Model.extend({
-  [PRIMARY_KEY]: attr('string'),
-  [SLUG_KEY]: attr('string'),
-  Name: attr('string', {
-    defaultValue: '',
-  }),
-  Description: attr('string', {
-    defaultValue: '',
-  }),
-  Rules: attr('string', {
-    defaultValue: '',
-  }),
+  @attr('string') Datacenter;
+  @attr('string') Namespace;
+  @attr('string', { defaultValue: () => '' }) Name;
+  @attr('string', { defaultValue: () => '' }) Description;
+  @attr('string', { defaultValue: () => '' }) Rules;
+  @attr('number') SyncTime;
+  @attr('number') CreateIndex;
+  @attr('number') ModifyIndex;
+  @attr() Datacenters; // string[]
+  @attr() meta; // {}
+  // frontend only for templated policies (Identities)
+  @attr('string', { defaultValue: () => '' }) template;
   // frontend only for ordering where CreateIndex can't be used
-  CreateTime: attr('number', {
-    defaultValue: function() {
-      return new Date().getTime();
-    },
-  }),
-  //
-  isGlobalManagement: computed('ID', function() {
-    return this.ID === MANAGEMENT_ID;
-  }),
-  Datacenter: attr('string'),
-  Namespace: attr('string'),
-  SyncTime: attr('number'),
-  meta: attr(),
-  Datacenters: attr(),
-  CreateIndex: attr('number'),
-  ModifyIndex: attr('number'),
+  @attr('number', { defaultValue: () => new Date().getTime() }) CreateTime;
 
-  template: attr('string', {
-    defaultValue: '',
-  }),
-});
+  @computed('ID')
+  get isGlobalManagement() {
+    return this.ID === MANAGEMENT_ID;
+  }
+}
