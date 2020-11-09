@@ -1,5 +1,5 @@
 import { inject as service } from '@ember/service';
-import Store from 'ember-data/store';
+import Store from '@ember-data/store';
 
 export default class StoreService extends Store {
   @service('data-source/service')

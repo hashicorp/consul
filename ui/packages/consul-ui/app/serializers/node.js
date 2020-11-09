@@ -1,8 +1,8 @@
 import Serializer from './application';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/node';
 
-// TODO: Looks like ID just isn't used at all
-// consider just using .Node for the SLUG_KEY
+// TODO: Looks like ID just isn't used at all consider just using .Node for
+// the SLUG_KEY
 const fillSlug = function(item) {
   if (item[SLUG_KEY] === '') {
     item[SLUG_KEY] = item['Node'];
@@ -10,22 +10,28 @@ const fillSlug = function(item) {
   return item;
 };
 
-export default Serializer.extend({
-  primaryKey: PRIMARY_KEY,
-  slugKey: SLUG_KEY,
-  respondForQuery: function(respond, query) {
-    return this._super(cb => respond((headers, body) => cb(headers, body.map(fillSlug))), query);
-  },
-  respondForQueryRecord: function(respond, query) {
-    return this._super(
+export default class NodeSerializer extends Serializer {
+  primaryKey = PRIMARY_KEY;
+  slugKey = SLUG_KEY;
+
+  respondForQuery(respond, query) {
+    return super.respondForQuery(
+      cb => respond((headers, body) => cb(headers, body.map(fillSlug))),
+      query
+    );
+  }
+
+  respondForQueryRecord(respond, query) {
+    return super.respondForQueryRecord(
       cb =>
         respond((headers, body) => {
           return cb(headers, fillSlug(body));
         }),
       query
     );
-  },
-  respondForQueryLeader: function(respond, query) {
+  }
+
+  respondForQueryLeader(respond, query) {
     // don't call super here we don't care about
     // ids/fingerprinting
     return respond((headers, body) => {
@@ -45,5 +51,5 @@ export default Serializer.extend({
         query
       );
     });
-  },
-});
+  }
+}

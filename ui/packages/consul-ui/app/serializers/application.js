@@ -1,5 +1,4 @@
 import Serializer from './http';
-
 import { set } from '@ember/object';
 import {
   HEADERS_SYMBOL as HTTP_HEADERS_SYMBOL,
@@ -27,9 +26,9 @@ const attachHeaders = function(headers, body, query = {}) {
   Object.keys(headers).forEach(function(key) {
     lower[key.toLowerCase()] = headers[key];
   });
-  // Add a 'pretend' Datacenter/Nspace header, they are not headers
-  // the come from the request but we add them here so we can use them later
-  // for store reconciliation
+  // Add a 'pretend' Datacenter/Nspace header, they are not headers the come
+  // from the request but we add them here so we can use them later for store
+  // reconciliation
   if (typeof query.dc !== 'undefined') {
     lower[HTTP_HEADERS_DATACENTER.toLowerCase()] = query.dc;
   }
@@ -40,10 +39,11 @@ const attachHeaders = function(headers, body, query = {}) {
   return body;
 };
 
-export default Serializer.extend({
-  attachHeaders: attachHeaders,
-  fingerprint: createFingerprinter(DATACENTER_KEY, NSPACE_KEY),
-  respondForQuery: function(respond, query) {
+export default class ApplicationSerializer extends Serializer {
+  attachHeaders = attachHeaders;
+  fingerprint = createFingerprinter(DATACENTER_KEY, NSPACE_KEY);
+
+  respondForQuery(respond, query) {
     return respond((headers, body) =>
       attachHeaders(
         headers,
@@ -51,13 +51,15 @@ export default Serializer.extend({
         query
       )
     );
-  },
-  respondForQueryRecord: function(respond, query) {
+  }
+
+  respondForQueryRecord(respond, query) {
     return respond((headers, body) =>
       attachHeaders(headers, this.fingerprint(this.primaryKey, this.slugKey, query.dc)(body), query)
     );
-  },
-  respondForCreateRecord: function(respond, serialized, data) {
+  }
+
+  respondForCreateRecord(respond, serialized, data) {
     const slugKey = this.slugKey;
     const primaryKey = this.primaryKey;
     return respond((headers, body) => {
@@ -68,29 +70,32 @@ export default Serializer.extend({
       // Creates need a primaryKey adding
       return this.fingerprint(primaryKey, slugKey, data[DATACENTER_KEY])(body);
     });
-  },
-  respondForUpdateRecord: function(respond, serialized, data) {
+  }
+
+  respondForUpdateRecord(respond, serialized, data) {
     const slugKey = this.slugKey;
     const primaryKey = this.primaryKey;
     return respond((headers, body) => {
       // If updates are true use the info we already have
-      // TODO: We may aswell avoid re-fingerprinting here if we are just
-      // going to reuse data then its already fingerprinted and as the response
-      // is true we don't have anything changed so the old fingerprint stays the same
-      // as long as nothing in the fingerprint has been edited (the namespace?)
+      // TODO: We may aswell avoid re-fingerprinting here if we are just going
+      // to reuse data then its already fingerprinted and as the response is
+      // true we don't have anything changed so the old fingerprint stays the
+      // same as long as nothing in the fingerprint has been edited (the
+      // namespace?)
       if (body === true) {
         body = data;
       }
       return this.fingerprint(primaryKey, slugKey, data[DATACENTER_KEY])(body);
     });
-  },
-  respondForDeleteRecord: function(respond, serialized, data) {
+  }
+
+  respondForDeleteRecord(respond, serialized, data) {
     const slugKey = this.slugKey;
     const primaryKey = this.primaryKey;
     return respond((headers, body) => {
-      // Deletes only need the primaryKey/uid returning
-      // and they need the slug key AND potential namespace in order to
-      // create the correct uid/fingerprint
+      // Deletes only need the primaryKey/uid returning and they need the slug
+      // key AND potential namespace in order to create the correct
+      // uid/fingerprint
       return {
         [primaryKey]: this.fingerprint(
           primaryKey,
@@ -102,24 +107,25 @@ export default Serializer.extend({
         })[primaryKey],
       };
     });
-  },
-  // this could get confusing if you tried to override
-  // say `normalizeQueryResponse`
-  // TODO: consider creating a method for each one of the `normalize...Response` family
-  normalizeResponse: function(store, modelClass, payload, id, requestType) {
+  }
+
+  // this could get confusing if you tried to override say
+  // `normalizeQueryResponse`
+  // TODO: consider creating a method for each one of the
+  // `normalize...Response` family
+  normalizeResponse(store, modelClass, payload, id, requestType) {
     const normalizedPayload = this.normalizePayload(payload, id, requestType);
-    // put the meta onto the response, here this is ok
-    // as JSON-API allows this and our specific data is now in
-    // response[primaryModelClass.modelName]
-    // so we aren't in danger of overwriting anything
-    // (which was the reason for the Symbol-like property earlier)
-    // use a method modelled on ember-data methods so we have the opportunity to
-    // do this on a per-model level
+    // put the meta onto the response, here this is ok as JSON-API allows this
+    // and our specific data is now in response[primaryModelClass.modelName]
+    // so we aren't in danger of overwriting anything (which was the reason
+    // for the Symbol-like property earlier) use a method modelled on
+    // ember-data methods so we have the opportunity to do this on a per-model
+    // level
     const meta = this.normalizeMeta(store, modelClass, normalizedPayload, id, requestType);
     if (requestType !== 'query') {
       normalizedPayload.meta = meta;
     }
-    const res = this._super(
+    const res = super.normalizeResponse(
       store,
       modelClass,
       {
@@ -129,22 +135,24 @@ export default Serializer.extend({
       id,
       requestType
     );
-    // If the result of the super normalizeResponse is undefined
-    // its because the JSONSerializer (which REST inherits from)
-    // doesn't recognise the requestType, in this case its likely to be an 'action'
-    // request rather than a specific 'load me some data' one.
-    // Therefore its ok to bypass the store here for the moment
-    // we currently use this for self, but it also would affect any custom
-    // methods that use a serializer in our custom service/store
+    // If the result of the super normalizeResponse is undefined its because
+    // the JSONSerializer (which REST inherits from) doesn't recognise the
+    // requestType, in this case its likely to be an 'action' request rather
+    // than a specific 'load me some data' one. Therefore its ok to bypass the
+    // store here for the moment we currently use this for self, but it also
+    // would affect any custom methods that use a serializer in our custom
+    // service/store
     if (typeof res === 'undefined') {
       return payload;
     }
     return res;
-  },
-  timestamp: function() {
+  }
+
+  timestamp() {
     return new Date().getTime();
-  },
-  normalizeMeta: function(store, modelClass, payload, id, requestType) {
+  }
+
+  normalizeMeta(store, modelClass, payload, id, requestType) {
     // Pick the meta/headers back off the payload and cleanup
     const headers = payload[HTTP_HEADERS_SYMBOL] || {};
     delete payload[HTTP_HEADERS_SYMBOL];
@@ -167,8 +175,9 @@ export default Serializer.extend({
       });
     }
     return meta;
-  },
-  normalizePayload: function(payload, id, requestType) {
+  }
+
+  normalizePayload(payload, id, requestType) {
     return payload;
-  },
-});
+  }
+}

@@ -1,15 +1,18 @@
 import Adapter from './application';
+
 // TODO: Update to use this.formatDatacenter()
-export default Adapter.extend({
-  requestForQuery: function(request, { dc, index, id, uri }) {
+
+export default class NodeAdapter extends Adapter {
+  requestForQuery(request, { dc, index, id, uri }) {
     return request`
       GET /v1/internal/ui/nodes?${{ dc }}
       X-Request-ID: ${uri}
 
       ${{ index }}
     `;
-  },
-  requestForQueryRecord: function(request, { dc, index, id, uri }) {
+  }
+
+  requestForQueryRecord(request, { dc, index, id, uri }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
@@ -19,15 +22,17 @@ export default Adapter.extend({
 
       ${{ index }}
     `;
-  },
-  requestForQueryLeader: function(request, { dc, uri }) {
+  }
+
+  requestForQueryLeader(request, { dc, uri }) {
     return request`
       GET /v1/status/leader?${{ dc }}
       X-Request-ID: ${uri}
       Refresh: 30
     `;
-  },
-  queryLeader: function(store, type, id, snapshot) {
+  }
+
+  queryLeader(store, type, id, snapshot) {
     return this.rpc(
       function(adapter, request, serialized, unserialized) {
         return adapter.requestForQueryLeader(request, serialized, unserialized);
@@ -38,5 +43,5 @@ export default Adapter.extend({
       snapshot,
       type.modelName
     );
-  },
-});
+  }
+}

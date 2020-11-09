@@ -1,25 +1,31 @@
-import Serializer from 'ember-data/serializers/rest';
+import Serializer from '@ember-data/serializer/rest';
 
-export default Serializer.extend({
-  respondForQuery: function(respond, query) {
+export default class HttpSerializer extends Serializer {
+  respondForQuery(respond, query) {
     return respond((headers, body) => body);
-  },
-  respondForQueryRecord: function(respond, query) {
+  }
+
+  respondForQueryRecord(respond, query) {
     return respond((headers, body) => body);
-  },
-  respondForFindAll: function(respond, query) {
+  }
+
+  respondForFindAll(respond, query) {
     return respond((headers, body) => body);
-  },
-  respondForCreateRecord: function(respond, data) {
+  }
+
+  respondForCreateRecord(respond, data) {
     // TODO: Creates may need a primaryKey adding (remove from application)
     return respond((headers, body) => body);
-  },
-  respondForUpdateRecord: function(respond, data) {
-    // TODO: Updates only need the primaryKey/uid returning (remove from application)
+  }
+
+  respondForUpdateRecord(respond, data) {
+    // TODO: Updates only need the primaryKey/uid returning (remove from
+    // application)
     return respond((headers, body) => body);
-  },
-  respondForDeleteRecord: function(respond, data) {
+  }
+
+  respondForDeleteRecord(respond, data) {
     // TODO: Deletes only need the primaryKey/uid returning (remove from application)
     return respond((headers, body) => body);
-  },
-});
+  }
+}

@@ -1,10 +1,8 @@
 import Adapter from './application';
 import { inject as service } from '@ember/service';
-
 import { SLUG_KEY } from 'consul-ui/models/token';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 import { NSPACE_KEY } from 'consul-ui/models/nspace';
-
 import { env } from 'consul-ui/env';
 import nonEmptySet from 'consul-ui/utils/non-empty-set';
 
@@ -14,11 +12,12 @@ if (env('CONSUL_NSPACES_ENABLED')) {
 } else {
   Namespace = () => ({});
 }
-// TODO: Update to use this.formatDatacenter()
-export default Adapter.extend({
-  store: service('store'),
 
-  requestForQuery: function(request, { dc, ns, index, role, policy }) {
+// TODO: Update to use this.formatDatacenter()
+export default class TokenAdapter extends Adapter {
+  @service('store') store;
+
+  requestForQuery(request, { dc, ns, index, role, policy }) {
     return request`
       GET /v1/acl/tokens?${{ role, policy, dc }}
 
@@ -27,8 +26,9 @@ export default Adapter.extend({
         index,
       }}
     `;
-  },
-  requestForQueryRecord: function(request, { dc, ns, index, id }) {
+  }
+
+  requestForQueryRecord(request, { dc, ns, index, id }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
@@ -40,8 +40,9 @@ export default Adapter.extend({
         index,
       }}
     `;
-  },
-  requestForCreateRecord: function(request, serialized, data) {
+  }
+
+  requestForCreateRecord(request, serialized, data) {
     const params = {
       ...this.formatDatacenter(data[DATACENTER_KEY]),
     };
@@ -58,11 +59,12 @@ export default Adapter.extend({
         ...Namespace(serialized.Namespace),
       }}
     `;
-  },
-  requestForUpdateRecord: function(request, serialized, data) {
-    // TODO: here we check data['Rules'] not serialized['Rules']
-    // data.Rules is not undefined, and serialized.Rules is not null
-    // revisit this at some point we should probably use serialized here
+  }
+
+  requestForUpdateRecord(request, serialized, data) {
+    // TODO: here we check data['Rules'] not serialized['Rules'] data.Rules is
+    // not undefined, and serialized.Rules is not null revisit this at some
+    // point we should probably use serialized here
 
     // If a token has Rules, use the old API
     if (typeof data['Rules'] !== 'undefined') {
@@ -90,8 +92,9 @@ export default Adapter.extend({
         ...Namespace(serialized.Namespace),
       }}
     `;
-  },
-  requestForDeleteRecord: function(request, serialized, data) {
+  }
+
+  requestForDeleteRecord(request, serialized, data) {
     const params = {
       ...this.formatDatacenter(data[DATACENTER_KEY]),
       ...this.formatNspace(data[NSPACE_KEY]),
@@ -99,8 +102,9 @@ export default Adapter.extend({
     return request`
       DELETE /v1/acl/token/${data[SLUG_KEY]}?${params}
     `;
-  },
-  requestForSelf: function(request, serialized, { dc, index, secret }) {
+  }
+
+  requestForSelf(request, serialized, { dc, index, secret }) {
     // TODO: Change here and elsewhere to use Authorization Bearer Token
     // https://github.com/hashicorp/consul/pull/4502
     return request`
@@ -110,8 +114,9 @@ export default Adapter.extend({
 
       ${{ index }}
     `;
-  },
-  requestForCloneRecord: function(request, serialized, data) {
+  }
+
+  requestForCloneRecord(request, serialized, data) {
     // this uses snapshots
     const id = data[SLUG_KEY];
     if (typeof id === 'undefined') {
@@ -124,12 +129,13 @@ export default Adapter.extend({
     return request`
       PUT /v1/acl/token/${id}/clone?${params}
     `;
-  },
-  // TODO: self doesn't get passed a snapshot right now
-  // ideally it would just for consistency
-  // thing is its probably not the same shape as a 'Token',
-  // plus we can't create Snapshots as they are private, see services/store.js
-  self: function(store, type, id, unserialized) {
+  }
+
+  // TODO: self doesn't get passed a snapshot right now ideally it would just
+  // for consistency thing is its probably not the same shape as a
+  // 'Token', plus we can't create Snapshots as they are private, see
+  // services/store.js
+  self(store, type, id, unserialized) {
     return this.rpc(
       function(adapter, request, serialized, data) {
         return adapter.requestForSelf(request, serialized, data);
@@ -140,8 +146,9 @@ export default Adapter.extend({
       unserialized,
       type.modelName
     );
-  },
-  clone: function(store, type, id, snapshot) {
+  }
+
+  clone(store, type, id, snapshot) {
     return this.rpc(
       function(adapter, request, serialized, data) {
         return adapter.requestForCloneRecord(request, serialized, data);
@@ -159,5 +166,5 @@ export default Adapter.extend({
       snapshot,
       type.modelName
     );
-  },
-});
+  }
+}

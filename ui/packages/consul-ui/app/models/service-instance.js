@@ -1,44 +1,43 @@
-import Model from 'ember-data/model';
-import attr from 'ember-data/attr';
-import { belongsTo } from 'ember-data/relationships';
+import Model, { attr, belongsTo } from '@ember-data/model';
 import { computed } from '@ember/object';
 import { or, filter, alias } from '@ember/object/computed';
 
 export const PRIMARY_KEY = 'uid';
 export const SLUG_KEY = 'Node.Node,Service.ID';
 
-export default Model.extend({
-  [PRIMARY_KEY]: attr('string'),
-  [SLUG_KEY]: attr('string'),
-  Datacenter: attr('string'),
+export default class ServiceInstance extends Model {
+  @attr('string') uid;
+
+  @attr('string') Datacenter;
   // ProxyInstance is the ember-data model relationship
-  ProxyInstance: belongsTo('Proxy'),
+  @belongsTo('Proxy') ProxyInstance;
   // Proxy is the actual JSON api response
-  Proxy: attr(),
-  Node: attr(),
-  Service: attr(),
-  Checks: attr(),
-  SyncTime: attr('number'),
-  meta: attr(),
-  Name: or('Service.ID', 'Service.Service'),
-  Tags: alias('Service.Tags'),
-  Meta: alias('Service.Meta'),
-  Namespace: alias('Service.Namespace'),
-  ExternalSources: computed('Service.Meta', function() {
+  @attr() Proxy;
+  @attr() Node;
+  @attr() Service;
+  @attr() Checks;
+  @attr('number') SyncTime;
+  @attr() meta;
+
+  @or('Service.ID', 'Service.Service') Name;
+  @alias('Service.Tags') Tags;
+  @alias('Service.Meta') Meta;
+  @alias('Service.Namespace') Namespace;
+  @filter('Checks.[]', (item, i, arr) => item.ServiceID !== '') ServiceChecks;
+  @filter('Checks.[]', (item, i, arr) => item.ServiceID === '') NodeChecks;
+
+  @computed('Service.Meta')
+  get ExternalSources() {
     const sources = Object.entries(this.Service.Meta || {})
       .filter(([key, value]) => key === 'external-source')
       .map(([key, value]) => {
         return value;
       });
     return [...new Set(sources)];
-  }),
-  ServiceChecks: filter('Checks.[]', function(item, i, arr) {
-    return item.ServiceID !== '';
-  }),
-  NodeChecks: filter('Checks.[]', function(item, i, arr) {
-    return item.ServiceID === '';
-  }),
-  Status: computed('ChecksPassing', 'ChecksWarning', 'ChecksCritical', function() {
+  }
+
+  @computed('ChecksPassing', 'ChecksWarning', 'ChecksCritical')
+  get Status() {
     switch (true) {
       case this.ChecksCritical.length !== 0:
         return 'critical';
@@ -49,23 +48,35 @@ export default Model.extend({
       default:
         return 'empty';
     }
-  }),
-  ChecksPassing: computed('Checks.[]', function() {
+  }
+
+  @computed('Checks.[]')
+  get ChecksPassing() {
     return this.Checks.filter(item => item.Status === 'passing');
-  }),
-  ChecksWarning: computed('Checks.[]', function() {
+  }
+
+  @computed('Checks.[]')
+  get ChecksWarning() {
     return this.Checks.filter(item => item.Status === 'warning');
-  }),
-  ChecksCritical: computed('Checks.[]', function() {
+  }
+
+  @computed('Checks.[]')
+  get ChecksCritical() {
     return this.Checks.filter(item => item.Status === 'critical');
-  }),
-  PercentageChecksPassing: computed('Checks.[]', 'ChecksPassing', function() {
+  }
+
+  @computed('Checks.[]', 'ChecksPassing')
+  get PercentageChecksPassing() {
     return (this.ChecksPassing.length / this.Checks.length) * 100;
-  }),
-  PercentageChecksWarning: computed('Checks.[]', 'ChecksWarning', function() {
+  }
+
+  @computed('Checks.[]', 'ChecksWarning')
+  get PercentageChecksWarning() {
     return (this.ChecksWarning.length / this.Checks.length) * 100;
-  }),
-  PercentageChecksCritical: computed('Checks.[]', 'ChecksCritical', function() {
+  }
+
+  @computed('Checks.[]', 'ChecksCritical')
+  get PercentageChecksCritical() {
     return (this.ChecksCritical.length / this.Checks.length) * 100;
-  }),
-});
+  }
+}

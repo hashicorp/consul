@@ -1,6 +1,5 @@
 import Adapter from './application';
 import { inject as service } from '@ember/service';
-
 import { env } from 'consul-ui/env';
 import nonEmptySet from 'consul-ui/utils/non-empty-set';
 
@@ -10,9 +9,11 @@ if (env('CONSUL_NSPACES_ENABLED')) {
 } else {
   Namespace = () => ({});
 }
-export default Adapter.extend({
-  env: service('env'),
-  requestForQuery: function(request, { dc, ns, index, uri }) {
+
+export default class OidcProviderAdapter extends Adapter {
+  @service('env') env;
+
+  requestForQuery(request, { dc, ns, index, uri }) {
     return request`
       GET /v1/internal/ui/oidc-auth-methods?${{ dc }}
       X-Request-ID: ${uri}
@@ -22,8 +23,9 @@ export default Adapter.extend({
         ...this.formatNspace(ns),
       }}
     `;
-  },
-  requestForQueryRecord: function(request, { dc, ns, id }) {
+  }
+
+  requestForQueryRecord(request, { dc, ns, id }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
@@ -37,8 +39,9 @@ export default Adapter.extend({
         RedirectURI: `${this.env.var('CONSUL_BASE_UI_URL')}/oidc/callback`,
       }}
     `;
-  },
-  requestForAuthorize: function(request, { dc, ns, id, code, state }) {
+  }
+
+  requestForAuthorize(request, { dc, ns, id, code, state }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
@@ -59,8 +62,9 @@ export default Adapter.extend({
         State: state,
       }}
     `;
-  },
-  requestForLogout: function(request, { id }) {
+  }
+
+  requestForLogout(request, { id }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
@@ -69,8 +73,9 @@ export default Adapter.extend({
       Cache-Control: no-store
       X-Consul-Token: ${id}
     `;
-  },
-  authorize: function(store, type, id, snapshot) {
+  }
+
+  authorize(store, type, id, snapshot) {
     return this.rpc(
       function(adapter, request, serialized, unserialized) {
         return adapter.requestForAuthorize(request, serialized, unserialized);
@@ -81,8 +86,9 @@ export default Adapter.extend({
       snapshot,
       type.modelName
     );
-  },
-  logout: function(store, type, id, snapshot) {
+  }
+
+  logout(store, type, id, snapshot) {
     return this.rpc(
       function(adapter, request, serialized, unserialized) {
         return adapter.requestForLogout(request, serialized, unserialized);
@@ -94,5 +100,5 @@ export default Adapter.extend({
       snapshot,
       type.modelName
     );
-  },
-});
+  }
+}

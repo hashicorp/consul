@@ -1,7 +1,6 @@
-import attr from 'ember-data/attr';
-
 import Fragment from 'ember-data-model-fragments/fragment';
 import { fragment } from 'ember-data-model-fragments/attributes';
+import { attr } from '@ember-data/model';
 
 export const schema = {
   Action: {
@@ -10,9 +9,7 @@ export const schema = {
   },
 };
 
-export default Fragment.extend({
-  Action: attr('string', {
-    defaultValue: schema.Action.defaultValue,
-  }),
-  HTTP: fragment('intention-permission-http'),
-});
+export default class IntentionPermission extends Fragment {
+  @attr('string', { defaultValue: () => schema.Action.defaultValue }) Action;
+  @fragment('intention-permission-http') HTTP;
+}
