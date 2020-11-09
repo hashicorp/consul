@@ -3,7 +3,7 @@
 BREAKING CHANGES:
 
 * connect: Switch the default gateway port from 443 to 8443 to avoid assumption of Envoy running as root. [[GH-9113](https://github.com/hashicorp/consul/issues/9113)]
-* raft: Raft protocol v3 is no longer supported. If currently using protocol v2 then an intermediate upgrade to a version supporting both protocols will be necessary (1.0.0 - 1.8.x) [[GH-9103](https://github.com/hashicorp/consul/issues/9103)]
+* raft: Raft protocol v2 is no longer supported. If currently using protocol v2 then an intermediate upgrade to a version supporting both v2 and v3 protocols will be necessary (1.0.0 - 1.8.x). Note that the Raft protocol configured with the `raft_protocol` setting and the Consul RPC protocol configured with the `protocol` setting and output by the `consul version` command are distinct and supported Consul RPC protocol versions are not altered. [[GH-9103](https://github.com/hashicorp/consul/issues/9103)]
 
 FEATURES:
 
