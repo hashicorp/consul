@@ -3,8 +3,8 @@ import { schema as intentionPermissionSchema } from 'consul-ui/models/intention-
 import { schema as intentionPermissionHttpSchema } from 'consul-ui/models/intention-permission-http';
 import { schema as intentionPermissionHttpHeaderSchema } from 'consul-ui/models/intention-permission-http-header';
 
-export default Service.extend({
-  'intention-permission': intentionPermissionSchema,
-  'intention-permission-http': intentionPermissionHttpSchema,
-  'intention-permission-http-header': intentionPermissionHttpHeaderSchema,
-});
+export default class SchemaService extends Service {
+  'intention-permission' = intentionPermissionSchema;
+  'intention-permission-http' = intentionPermissionHttpSchema;
+  'intention-permission-http-header' = intentionPermissionHttpHeaderSchema;
+}

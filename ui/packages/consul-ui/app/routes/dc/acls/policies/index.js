@@ -1,19 +1,22 @@
-import Route from 'consul-ui/routing/route';
 import { inject as service } from '@ember/service';
+import Route from 'consul-ui/routing/route';
 import { hash } from 'rsvp';
 
 import WithPolicyActions from 'consul-ui/mixins/policy/with-actions';
 
-export default Route.extend(WithPolicyActions, {
-  repo: service('repository/policy'),
-  queryParams: {
+export default class IndexRoute extends Route.extend(WithPolicyActions) {
+  @service('repository/policy')
+  repo;
+
+  queryParams = {
     sortBy: 'sort',
     search: {
       as: 'filter',
       replace: true,
     },
-  },
-  model: function(params) {
+  };
+
+  model(params) {
     return hash({
       ...this.repo.status({
         items: this.repo.findAllByDatacenter(
@@ -22,9 +25,10 @@ export default Route.extend(WithPolicyActions, {
         ),
       }),
     });
-  },
-  setupController: function(controller, model) {
-    this._super(...arguments);
+  }
+
+  setupController(controller, model) {
+    super.setupController(...arguments);
     controller.setProperties(model);
-  },
-});
+  }
+}

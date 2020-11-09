@@ -1,18 +1,22 @@
-import SingleRoute from 'consul-ui/routing/single';
 import { inject as service } from '@ember/service';
+import SingleRoute from 'consul-ui/routing/single';
 import { hash } from 'rsvp';
 import { get } from '@ember/object';
 
 import WithPolicyActions from 'consul-ui/mixins/policy/with-actions';
 
-export default SingleRoute.extend(WithPolicyActions, {
-  repo: service('repository/policy'),
-  tokenRepo: service('repository/token'),
-  model: function(params) {
+export default class EditRoute extends SingleRoute.extend(WithPolicyActions) {
+  @service('repository/policy')
+  repo;
+
+  @service('repository/token')
+  tokenRepo;
+
+  model(params) {
     const dc = this.modelFor('dc').dc.Name;
     const nspace = this.modelFor('nspace').nspace.substr(1);
     const tokenRepo = this.tokenRepo;
-    return this._super(...arguments).then(model => {
+    return super.model(...arguments).then(model => {
       return hash({
         ...model,
         ...{
@@ -29,9 +33,10 @@ export default SingleRoute.extend(WithPolicyActions, {
         },
       });
     });
-  },
-  setupController: function(controller, model) {
-    this._super(...arguments);
+  }
+
+  setupController(controller, model) {
+    super.setupController(...arguments);
     controller.setProperties(model);
-  },
-});
+  }
+}

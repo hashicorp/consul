@@ -1,8 +1,8 @@
-import Controller from '@ember/controller';
 import { computed } from '@ember/object';
+import Controller from '@ember/controller';
 
-export default Controller.extend({
-  queryParams: {
+export default class InstancesController extends Controller {
+  queryParams = {
     sortBy: 'sort',
     status: 'status',
     source: 'source',
@@ -10,12 +10,14 @@ export default Controller.extend({
       as: 'filter',
       replace: true,
     },
-  },
-  externalSources: computed('items', function() {
+  };
+
+  @computed('items')
+  get externalSources() {
     const sources = this.items.reduce(function(prev, item) {
       return prev.concat(item.ExternalSources || []);
     }, []);
     // unique, non-empty values, alpha sort
     return [...new Set(sources)].filter(Boolean).sort();
-  }),
-});
+  }
+}

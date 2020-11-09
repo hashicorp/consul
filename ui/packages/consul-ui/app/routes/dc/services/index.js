@@ -1,10 +1,12 @@
-import Route from 'consul-ui/routing/route';
 import { inject as service } from '@ember/service';
+import Route from 'consul-ui/routing/route';
 import { hash } from 'rsvp';
 
-export default Route.extend({
-  data: service('data-source/service'),
-  queryParams: {
+export default class IndexRoute extends Route {
+  @service('data-source/service')
+  data;
+
+  queryParams = {
     search: {
       as: 'filter',
       replace: true,
@@ -13,8 +15,9 @@ export default Route.extend({
     status: {
       as: 'status',
     },
-  },
-  model: function(params) {
+  };
+
+  model(params) {
     let terms = params.s || '';
     // we check for the old style `status` variable here
     // and convert it to the new style filter=status:critical
@@ -37,9 +40,10 @@ export default Route.extend({
       terms: terms !== '' ? terms.split('\n') : [],
       items: this.data.source(uri => uri`/${nspace}/${dc}/services`),
     });
-  },
-  setupController: function(controller, model) {
-    this._super(...arguments);
+  }
+
+  setupController(controller, model) {
+    super.setupController(...arguments);
     controller.setProperties(model);
-  },
-});
+  }
+}

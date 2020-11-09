@@ -1,16 +1,19 @@
-import RepositoryService from 'consul-ui/services/repository';
 import { inject as service } from '@ember/service';
+import RepositoryService from 'consul-ui/services/repository';
 import { get, set } from '@ember/object';
 
 const modelName = 'topology';
 const ERROR_MESH_DISABLED = 'Connect must be enabled in order to use this endpoint';
 
-export default RepositoryService.extend({
-  dcs: service('repository/dc'),
-  getModelName: function() {
+export default class TopologyService extends RepositoryService {
+  @service('repository/dc')
+  dcs;
+
+  getModelName() {
     return modelName;
-  },
-  findBySlug: function(slug, kind, dc, nspace, configuration = {}) {
+  }
+
+  findBySlug(slug, kind, dc, nspace, configuration = {}) {
     const datacenter = this.dcs.peekOne(dc);
     if (datacenter !== null && !get(datacenter, 'MeshEnabled')) {
       return Promise.resolve();
@@ -38,5 +41,5 @@ export default RepositoryService.extend({
           throw e;
       }
     });
-  },
-});
+  }
+}

@@ -18,15 +18,19 @@ const MODES = [
   { name: 'YAML', mime: 'text/x-yaml', mode: 'yaml', ext: ['yaml', 'yml'], alias: ['yml'] },
 ];
 
-export default Service.extend({
-  dom: service('dom'),
-  modes: function() {
+export default class LinterService extends Service {
+  @service('dom')
+  dom;
+
+  modes() {
     return MODES;
-  },
-  lint: function() {
+  }
+
+  lint() {
     return lint(...arguments);
-  },
-  getEditor: function(element) {
+  }
+
+  getEditor(element) {
     return this.dom.element('textarea + div', element).CodeMirror;
-  },
-});
+  }
+}

@@ -1,8 +1,8 @@
 import Route from 'consul-ui/routing/route';
 
-export default Route.extend({
-  setupController: function(controller, model) {
-    this._super(...arguments);
+export default class IntentionsRoute extends Route {
+  setupController(controller, model) {
+    super.setupController(...arguments);
     controller.setProperties(model);
-  },
-});
+  }
+}

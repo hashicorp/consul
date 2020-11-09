@@ -1,26 +1,30 @@
-import Route from 'consul-ui/routing/route';
 import { inject as service } from '@ember/service';
+import Route from 'consul-ui/routing/route';
 import { hash } from 'rsvp';
 
-export default Route.extend({
-  data: service('data-source/service'),
-  queryParams: {
+export default class IndexRoute extends Route {
+  @service('data-source/service')
+  data;
+
+  queryParams = {
     sortBy: 'sort',
     search: {
       as: 'filter',
       replace: true,
     },
-  },
-  model: function(params) {
+  };
+
+  model(params) {
     const dc = this.modelFor('dc').dc.Name;
     const nspace = '*';
     return hash({
       items: this.data.source(uri => uri`/${nspace}/${dc}/nodes`),
       leader: this.data.source(uri => uri`/${nspace}/${dc}/leader`),
     });
-  },
-  setupController: function(controller, model) {
-    this._super(...arguments);
+  }
+
+  setupController(controller, model) {
+    super.setupController(...arguments);
     controller.setProperties(model);
-  },
-});
+  }
+}

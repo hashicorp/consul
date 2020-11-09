@@ -1,18 +1,22 @@
-import SingleRoute from 'consul-ui/routing/single';
 import { inject as service } from '@ember/service';
+import SingleRoute from 'consul-ui/routing/single';
 import { hash } from 'rsvp';
 import { get } from '@ember/object';
 
 import WithRoleActions from 'consul-ui/mixins/role/with-actions';
 
-export default SingleRoute.extend(WithRoleActions, {
-  repo: service('repository/role'),
-  tokenRepo: service('repository/token'),
-  model: function(params) {
+export default class EditRoute extends SingleRoute.extend(WithRoleActions) {
+  @service('repository/role')
+  repo;
+
+  @service('repository/token')
+  tokenRepo;
+
+  model(params) {
     const dc = this.modelFor('dc').dc.Name;
     const nspace = this.modelFor('nspace').nspace.substr(1);
     const tokenRepo = this.tokenRepo;
-    return this._super(...arguments).then(model => {
+    return super.model(...arguments).then(model => {
       return hash({
         ...model,
         ...{
@@ -28,9 +32,10 @@ export default SingleRoute.extend(WithRoleActions, {
         },
       });
     });
-  },
-  setupController: function(controller, model) {
-    this._super(...arguments);
+  }
+
+  setupController(controller, model) {
+    super.setupController(...arguments);
     controller.setProperties(model);
-  },
-});
+  }
+}

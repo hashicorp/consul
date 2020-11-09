@@ -1,14 +1,16 @@
 import Controller from '@ember/controller';
 import { get, computed } from '@ember/object';
 
-export default Controller.extend({
-  queryParams: {
+export default class ServicesController extends Controller {
+  queryParams = {
     search: {
       as: 'filter',
       replace: true,
     },
-  },
-  checks: computed('item.Checks.[]', function() {
+  };
+
+  @computed('item.Checks.[]')
+  get checks() {
     const checks = {};
     get(this, 'item.Checks')
       .filter(item => {
@@ -22,5 +24,5 @@ export default Controller.extend({
       });
 
     return checks;
-  }),
-});
+  }
+}

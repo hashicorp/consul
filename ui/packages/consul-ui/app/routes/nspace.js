@@ -1,14 +1,18 @@
-import Route from 'consul-ui/routing/route';
 import { inject as service } from '@ember/service';
+import Route from 'consul-ui/routing/route';
 import { hash } from 'rsvp';
 import { getOwner } from '@ember/application';
 import { env } from 'consul-ui/env';
 import transitionable from 'consul-ui/utils/routing/transitionable';
 
 const DEFAULT_NSPACE_PARAM = '~default';
-export default Route.extend({
-  repo: service('repository/dc'),
-  router: service('router'),
+export default class NspaceRoute extends Route {
+  @service('repository/dc')
+  repo;
+
+  @service('router')
+  router;
+
   // The ember router seems to change the priority of individual routes
   // depending on whether they are wildcard routes or not.
   // This means that the namespace routes will be recognized before kv ones
@@ -22,7 +26,7 @@ export default Route.extend({
   // information that we generated onto the route, which leaves us with the route
   // we actually want. Using this final route information we redirect the user
   // to where they wanted to go.
-  beforeModel: function(transition) {
+  beforeModel(transition) {
     if (!this.paramsFor('nspace').nspace.startsWith('~')) {
       const url = `${env('rootURL')}${DEFAULT_NSPACE_PARAM}${transition.intent.url}`;
       const route = this.router.recognize(url);
@@ -37,13 +41,14 @@ export default Route.extend({
         ...params.slice(1),
       ]);
     }
-  },
-  model: function(params) {
+  }
+
+  model(params) {
     return hash({
       item: this.repo.getActive(),
       nspace: params.nspace,
     });
-  },
+  }
 
   /**
    * We need to redirect if someone doesn't specify the section they want,
@@ -64,5 +69,5 @@ export default Route.extend({
         this.transitionTo('dc.services', model.nspace);
       }
     }
-  },
-});
+  }
+}

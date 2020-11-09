@@ -3,6 +3,8 @@ import { get, set, computed } from '@ember/object';
 import { alias } from '@ember/object/computed';
 import { inject as service } from '@ember/service';
 
+import { task } from 'ember-concurrency';
+
 import Slotted from 'block-slots';
 
 export default Component.extend(Slotted, {
@@ -43,6 +45,25 @@ export default Component.extend(Slotted, {
     }
     return options;
   }),
+  save: task(function*(item, items, success = function() {}) {
+    const repo = this.repo;
+    try {
+      item = yield repo.persist(item);
+      this.actions.change.apply(this, [
+        {
+          target: {
+            name: 'items[]',
+            value: items,
+          },
+        },
+        items,
+        item,
+      ]);
+      success();
+    } catch (e) {
+      this.error({ error: e });
+    }
+  }),
   actions: {
     search: function(term) {
       // TODO: make sure we can either search before things are loaded
@@ -60,37 +81,7 @@ export default Component.extend(Slotted, {
     reset: function() {
       this.form.clear({ Datacenter: this.dc, Namespace: this.nspace });
     },
-    save: function(item, items, success = function() {}) {
-      // Specifically this saves an 'new' option/child
-      // and then adds it to the selectedOptions, not options
-      const repo = this.repo;
-      set(item, 'CreateTime', new Date().getTime());
-      // TODO: temporary async
-      // this should be `set(this, 'item', repo.persist(item));`
-      // need to be sure that its saved before adding/closing the modal for now
-      // and we don't open the modal on prop change yet
-      item = repo.persist(item);
-      this._listeners.add(item, {
-        message: e => {
-          this.actions.change.apply(this, [
-            {
-              target: {
-                name: 'items[]',
-                value: items,
-              },
-            },
-            items,
-            e.data,
-          ]);
-          item.willDestroy();
-          success();
-        },
-        error: e => {
-          item.willDestroy();
-          this.error(e);
-        },
-      });
-    },
+
     remove: function(item, items) {
       const prop = this.repo.getSlugKey();
       const value = get(item, prop);

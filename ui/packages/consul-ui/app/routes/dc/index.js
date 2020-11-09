@@ -1,7 +1,7 @@
 import Route from 'consul-ui/routing/route';
 
-export default Route.extend({
-  beforeModel: function() {
+export default class IndexRoute extends Route {
+  beforeModel() {
     this.transitionTo('dc.services');
-  },
-});
+  }
+}

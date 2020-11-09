@@ -7,17 +7,20 @@ const isValidServerError = isValidServerErrorFactory();
 const status = statusFactory(isValidServerError, Promise);
 const MODEL_NAME = 'role';
 
-export default RepositoryService.extend({
-  getModelName: function() {
+export default class RoleService extends RepositoryService {
+  getModelName() {
     return MODEL_NAME;
-  },
-  getPrimaryKey: function() {
+  }
+
+  getPrimaryKey() {
     return PRIMARY_KEY;
-  },
-  getSlugKey: function() {
+  }
+
+  getSlugKey() {
     return SLUG_KEY;
-  },
-  status: function(obj) {
+  }
+
+  status(obj) {
     return status(obj);
-  },
-});
+  }
+}

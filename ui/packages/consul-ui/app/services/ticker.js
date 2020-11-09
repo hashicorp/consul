@@ -2,12 +2,13 @@ import Service from '@ember/service';
 import { Tween } from 'consul-ui/utils/ticker';
 
 let map;
-export default Service.extend({
-  init: function() {
-    this._super(...arguments);
+export default class TickerService extends Service {
+  init() {
+    super.init(...arguments);
     this.reset();
-  },
-  tweenTo: function(props, obj = '', frames, method) {
+  }
+
+  tweenTo(props, obj = '', frames, method) {
     // TODO: Right now we only support string id's
     // but potentially look at allowing passing of other objects
     // especially DOM elements
@@ -23,13 +24,15 @@ export default Service.extend({
       map.set(id, Tween.to(obj, props, frames, method));
       return obj;
     }
-  },
+  }
+
   // TODO: We'll try and use obj later for ticker bookkeeping
-  destroy: function(obj) {
+  destroy(obj) {
     this.reset();
     return Tween.destroy();
-  },
-  reset: function() {
+  }
+
+  reset() {
     map = new Map();
-  },
-});
+  }
+}
