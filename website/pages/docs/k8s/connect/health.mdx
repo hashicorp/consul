@@ -7,22 +7,22 @@ description: Configuring Kubernetes Health Checks
 
 # Kubernetes Health Checks in Consul on Kubernetes
 
--> 0.25+ This feature is available in consul-helm versions 0.25 and higher
+-> 0.26+ This feature is available in consul-helm versions 0.26 and higher
 
 ~> This topic requires familiarity with [Kubernetes Health Checks](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/).
 
-This page describes how to enable Kubernetes Health checks to extend Consul for service mesh uses cases.
+This page describes how to enable Consul on Kubernetes to sync the Kubernetes readiness status to Consul for service mesh uses cases.
 
 When deploying your helm chart, you must provide helm with a custom yaml file that contains your environment configuration.
 Enabling health checks is done via the `healthChecks` stanza under `connectInject`.
 
-When `enabled: true` is set, a [TTL health check](https://www.consul.io/docs/discovery/checks) will be registered within
+When `enabled: true` is set, a [TTL health check](https://www.consul.io/docs/discovery/checks#ttl) will be registered within
 Consul for each Kubernetes pod that is connect-injected. The Consul health check's state will reflect the pod's readiness
 status, which is the combination of all probes registered with the pod. Kubernetes Readiness probes are the primary use
 case as they can change state without restarting the containers in the pod.
 
-When readiness probes are set for a pod, the status of the pod will be reflected within Consul, and will cause Consul to redirect service
-mesh traffic to the pod based on the pod's health. If the pod were to have failing health checks, Consul will no longer use
+When readiness probes are set for a pod, the status of the pod will be reflected within Consul and will cause Consul to redirect service
+mesh traffic to the pod based on the pod's health. If the pod has failing health checks, Consul will no longer use
 the service instance associated with the pod for service mesh traffic. When the pod passes its health checks, Consul will
 then use the respective service instance for service mesh traffic.
 
