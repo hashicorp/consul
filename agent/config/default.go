@@ -119,6 +119,7 @@ func DefaultSource() Source {
 			expose_min_port = 21500
 			expose_max_port = 21755
 		}
+		raft_protocol = 3
 		telemetry = {
 			metrics_prefix = "consul"
 			filter_default = true

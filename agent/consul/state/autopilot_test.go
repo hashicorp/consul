@@ -5,14 +5,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul/autopilot"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/require"
 )
 
 func TestStateStore_Autopilot(t *testing.T) {
 	s := testStateStore(t)
 
-	expected := &autopilot.Config{
+	expected := &structs.AutopilotConfig{
 		CleanupDeadServers:      true,
 		LastContactThreshold:    5 * time.Second,
 		MaxTrailingLogs:         500,
@@ -41,7 +41,7 @@ func TestStateStore_Autopilot(t *testing.T) {
 func TestStateStore_AutopilotCAS(t *testing.T) {
 	s := testStateStore(t)
 
-	expected := &autopilot.Config{
+	expected := &structs.AutopilotConfig{
 		CleanupDeadServers: true,
 	}
 
@@ -53,7 +53,7 @@ func TestStateStore_AutopilotCAS(t *testing.T) {
 	}
 
 	// Do a CAS with an index lower than the entry
-	ok, err := s.AutopilotCASConfig(2, 0, &autopilot.Config{
+	ok, err := s.AutopilotCASConfig(2, 0, &structs.AutopilotConfig{
 		CleanupDeadServers: false,
 	})
 	if ok || err != nil {
@@ -74,7 +74,7 @@ func TestStateStore_AutopilotCAS(t *testing.T) {
 	}
 
 	// Do another CAS, this time with the correct index
-	ok, err = s.AutopilotCASConfig(2, 1, &autopilot.Config{
+	ok, err = s.AutopilotCASConfig(2, 1, &structs.AutopilotConfig{
 		CleanupDeadServers: false,
 	})
 	if !ok || err != nil {
@@ -96,7 +96,7 @@ func TestStateStore_AutopilotCAS(t *testing.T) {
 
 func TestStateStore_Autopilot_Snapshot_Restore(t *testing.T) {
 	s := testStateStore(t)
-	before := &autopilot.Config{
+	before := &structs.AutopilotConfig{
 		CleanupDeadServers: true,
 	}
 	if err := s.AutopilotSetConfig(99, before); err != nil {
@@ -106,7 +106,7 @@ func TestStateStore_Autopilot_Snapshot_Restore(t *testing.T) {
 	snap := s.Snapshot()
 	defer snap.Close()
 
-	after := &autopilot.Config{
+	after := &structs.AutopilotConfig{
 		CleanupDeadServers: false,
 	}
 	if err := s.AutopilotSetConfig(100, after); err != nil {

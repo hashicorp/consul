@@ -1,13 +1,14 @@
-package autopilot
+package structs
 
 import (
 	"time"
 
+	autopilot "github.com/hashicorp/raft-autopilot"
 	"github.com/hashicorp/serf/serf"
 )
 
-// Config holds the Autopilot configuration for a cluster.
-type Config struct {
+// Autopilotconfig holds the Autopilot configuration for a cluster.
+type AutopilotConfig struct {
 	// CleanupDeadServers controls whether to remove dead servers when a new
 	// server is added to the Raft peers.
 	CleanupDeadServers bool
@@ -47,8 +48,35 @@ type Config struct {
 	ModifyIndex uint64
 }
 
+func (c *AutopilotConfig) ToAutopilotLibraryConfig() *autopilot.Config {
+	if c == nil {
+		return nil
+	}
+	return &autopilot.Config{
+		CleanupDeadServers:      c.CleanupDeadServers,
+		LastContactThreshold:    c.LastContactThreshold,
+		MaxTrailingLogs:         c.MaxTrailingLogs,
+		MinQuorum:               c.MinQuorum,
+		ServerStabilizationTime: c.ServerStabilizationTime,
+		Ext:                     c.autopilotConfigExt(),
+	}
+}
+
+// AutopilotHealthReply is a representation of the overall health of the cluster
+type AutopilotHealthReply struct {
+	// Healthy is true if all the servers in the cluster are healthy.
+	Healthy bool
+
+	// FailureTolerance is the number of healthy servers that could be lost without
+	// an outage occurring.
+	FailureTolerance int
+
+	// Servers holds the health of each server.
+	Servers []AutopilotServerHealth
+}
+
 // ServerHealth is the health (from the leader's point of view) of a server.
-type ServerHealth struct {
+type AutopilotServerHealth struct {
 	// ID is the raft ID of the server.
 	ID string
 
@@ -87,48 +115,8 @@ type ServerHealth struct {
 	StableSince time.Time
 }
 
-// IsHealthy determines whether this ServerHealth is considered healthy
-// based on the given Autopilot config
-func (h *ServerHealth) IsHealthy(lastTerm uint64, leaderLastIndex uint64, autopilotConf *Config) bool {
-	if h.SerfStatus != serf.StatusAlive {
-		return false
-	}
-
-	if h.LastContact > autopilotConf.LastContactThreshold || h.LastContact < 0 {
-		return false
-	}
-
-	if h.LastTerm != lastTerm {
-		return false
-	}
-
-	if leaderLastIndex > autopilotConf.MaxTrailingLogs && h.LastIndex < leaderLastIndex-autopilotConf.MaxTrailingLogs {
-		return false
-	}
-
-	return true
-}
-
-// IsStable returns true if the ServerHealth shows a stable, passing state
-// according to the given AutopilotConfig
-func (h *ServerHealth) IsStable(now time.Time, conf *Config) bool {
-	if h == nil {
-		return false
-	}
-
-	if !h.Healthy {
-		return false
-	}
-
-	if now.Sub(h.StableSince) < conf.ServerStabilizationTime {
-		return false
-	}
-
-	return true
-}
-
-// ServerStats holds miscellaneous Raft metrics for a server
-type ServerStats struct {
+// RaftStats holds miscellaneous Raft metrics for a server.
+type RaftStats struct {
 	// LastContact is the time since this node's last contact with the leader.
 	LastContact string
 
@@ -139,24 +127,11 @@ type ServerStats struct {
 	LastIndex uint64
 }
 
-// OperatorHealthReply is a representation of the overall health of the cluster
-type OperatorHealthReply struct {
-	// Healthy is true if all the servers in the cluster are healthy.
-	Healthy bool
-
-	// FailureTolerance is the number of healthy servers that could be lost without
-	// an outage occurring.
-	FailureTolerance int
-
-	// Servers holds the health of each server.
-	Servers []ServerHealth
-}
-
-func (o *OperatorHealthReply) ServerHealth(id string) *ServerHealth {
-	for _, health := range o.Servers {
-		if health.ID == id {
-			return &health
-		}
+func (s *RaftStats) ToAutopilotServerStats() *autopilot.ServerStats {
+	duration, _ := time.ParseDuration(s.LastContact)
+	return &autopilot.ServerStats{
+		LastContact: duration,
+		LastTerm:    s.LastTerm,
+		LastIndex:   s.LastIndex,
 	}
-	return nil
 }
