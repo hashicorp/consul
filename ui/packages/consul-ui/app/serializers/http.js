@@ -1,4 +1,4 @@
-import Serializer from 'ember-data/serializers/rest';
+import Serializer from '@ember-data/serializer/rest';
 
 export default Serializer.extend({
   respondForQuery: function(respond, query) {

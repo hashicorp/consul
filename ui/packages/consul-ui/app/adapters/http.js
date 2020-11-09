@@ -1,7 +1,7 @@
 import { inject as service } from '@ember/service';
-import Adapter from 'ember-data/adapter';
-import AdapterError from '@ember-data/adapter/error';
+import Adapter from '@ember-data/adapter';
 import {
+  AdapterError,
   AbortError,
   TimeoutError,
   ServerError,
@@ -10,7 +10,7 @@ import {
   NotFoundError,
   ConflictError,
   InvalidError,
-} from 'ember-data/adapters/errors';
+} from '@ember-data/adapter/error';
 
 // TODO These are now exactly the same, apart from the fact that one uses
 // `serialized, unserialized` and the other just `query`
