@@ -51,10 +51,10 @@ function init_workdir {
   # don't wipe logs between runs as they are already split and we need them to
   # upload as artifacts later.
   rm -rf workdir/${DC}
-  mkdir -p workdir/${DC}/{consul,envoy,bats,statsd,data}
+  mkdir -p workdir/${DC}/{consul,register,envoy,bats,statsd,data}
 
   # Reload consul config from defaults
-  cp consul-base-cfg/* workdir/${DC}/consul/
+  cp consul-base-cfg/*.hcl workdir/${DC}/consul/
 
   # Add any overrides if there are any (no op if not)
   find ${CASE_DIR} -maxdepth 1 -name '*.hcl' -type f -exec cp -f {} workdir/${DC}/consul \;
@@ -70,6 +70,9 @@ function init_workdir {
     find ${CASE_DIR}/${DC} -type f -name '*.hcl' -exec cp -f {} workdir/${DC}/consul \;
     find ${CASE_DIR}/${DC} -type f -name '*.bats' -exec cp -f {} workdir/${DC}/bats \;
   fi
+
+  # move all of the registration files OUT of the consul config dir now
+  find workdir/${DC}/consul -type f -name 'service_*.hcl' -exec mv -f {} workdir/${DC}/register \;
 
   if test -d "${CASE_DIR}/data"
   then
