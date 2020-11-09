@@ -36,7 +36,7 @@ require (
 	github.com/hashicorp/go-cleanhttp v0.5.1
 	github.com/hashicorp/go-connlimit v0.3.0
 	github.com/hashicorp/go-discover v0.0.0-20200501174627-ad1e96bde088
-	github.com/hashicorp/go-hclog v0.12.0
+	github.com/hashicorp/go-hclog v0.14.1
 	github.com/hashicorp/go-memdb v1.3.0
 	github.com/hashicorp/go-msgpack v0.5.5
 	github.com/hashicorp/go-multierror v1.1.0
@@ -53,6 +53,7 @@ require (
 	github.com/hashicorp/memberlist v0.2.2
 	github.com/hashicorp/net-rpc-msgpackrpc v0.0.0-20151116020338-a14192a58a69
 	github.com/hashicorp/raft v1.2.0
+	github.com/hashicorp/raft-autopilot v0.1.1
 	github.com/hashicorp/raft-boltdb v0.0.0-20171010151810-6e5ba93211ea
 	github.com/hashicorp/serf v0.9.5
 	github.com/hashicorp/vault/api v1.0.5-0.20200717191844-f687267c8086
@@ -79,7 +80,7 @@ require (
 	github.com/shirou/gopsutil/v3 v3.20.10
 	github.com/stretchr/testify v1.6.1
 	go.opencensus.io v0.22.0 // indirect
-	go.uber.org/goleak v1.0.0
+	go.uber.org/goleak v1.1.10
 	golang.org/x/crypto v0.0.0-20200930160638-afb6bcd081ae
 	golang.org/x/net v0.0.0-20200930145003-4acb6c075d10
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45

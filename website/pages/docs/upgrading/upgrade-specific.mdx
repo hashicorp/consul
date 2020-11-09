@@ -17,6 +17,15 @@ upgrade flow.
 
 ## Consul 1.9.0
 
+### Changes to Raft Protocol Support
+
+Consul 1.8 supported Raft protocols 2 and 3. Consul 1.9.0 now only supports
+Raft protocol 3 so before upgrading to Consul 1.9.0 users may have to first
+upgrade to a previous release supporting both protocol versions and upgrade
+the protocol in use to version 3.
+
+### Changes to Configuration Defaults
+
 The [`enable_central_service_config`](/docs/agent/options#enable_central_service_config)
 configuration now defaults to `true`.
 

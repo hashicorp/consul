@@ -10,7 +10,6 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -1163,7 +1162,7 @@ func TestFSM_Autopilot(t *testing.T) {
 	// Set the autopilot config using a request.
 	req := structs.AutopilotSetConfigRequest{
 		Datacenter: "dc1",
-		Config: autopilot.Config{
+		Config: structs.AutopilotConfig{
 			CleanupDeadServers:   true,
 			LastContactThreshold: 10 * time.Second,
 			MaxTrailingLogs:      300,

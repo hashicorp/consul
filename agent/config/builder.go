@@ -1154,6 +1154,10 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	// check required params we cannot recover from first
 	//
 
+	if rt.RaftProtocol != 3 {
+		return fmt.Errorf("raft_protocol version %d is not supported by this version of Consul", rt.RaftProtocol)
+	}
+
 	if err := validateBasicName("datacenter", rt.Datacenter, false); err != nil {
 		return err
 	}

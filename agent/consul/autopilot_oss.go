@@ -2,9 +2,15 @@
 
 package consul
 
-import "github.com/hashicorp/consul/agent/consul/autopilot"
+import (
+	"github.com/hashicorp/consul/agent/metadata"
+	autopilot "github.com/hashicorp/raft-autopilot"
+)
 
-func (s *Server) initAutopilot(config *Config) {
-	apDelegate := &AutopilotDelegate{s}
-	s.autopilot = autopilot.NewAutopilot(s.logger, apDelegate, config.AutopilotInterval, config.ServerHealthInterval)
+func (s *Server) autopilotPromoter() autopilot.Promoter {
+	return autopilot.DefaultPromoter()
+}
+
+func (_ *Server) autopilotServerExt(_ *metadata.Server) interface{} {
+	return nil
 }

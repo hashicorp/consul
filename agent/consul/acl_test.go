@@ -1264,7 +1264,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 			legacy:        false,
 			localTokens:   false,
 			localPolicies: false,
-			tokenReadFn: func(args *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
+			tokenReadFn: func(_ *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
 				if !tokenResolved {
 					reply.Token = foundToken
 					tokenResolved = true
@@ -1330,7 +1330,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 			legacy:        false,
 			localTokens:   false,
 			localPolicies: false,
-			tokenReadFn: func(args *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
+			tokenReadFn: func(_ *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
 				// no limit
 				reply.Token = foundToken
 				return nil
@@ -1440,7 +1440,7 @@ func TestACLResolver_Client(t *testing.T) {
 			legacy:        false,
 			localTokens:   false,
 			localPolicies: false,
-			tokenReadFn: func(args *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
+			tokenReadFn: func(_ *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
 				atomic.AddInt32(&tokenReads, 1)
 				if deleted {
 					return acl.ErrNotFound
@@ -1558,7 +1558,7 @@ func TestACLResolver_Client(t *testing.T) {
 			legacy:        true,
 			localTokens:   false,
 			localPolicies: false,
-			getPolicyFn: func(args *structs.ACLPolicyResolveLegacyRequest, reply *structs.ACLPolicyResolveLegacyResponse) error {
+			getPolicyFn: func(_ *structs.ACLPolicyResolveLegacyRequest, reply *structs.ACLPolicyResolveLegacyResponse) error {
 				reply.Parent = "deny"
 				reply.TTL = 30
 				reply.ETag = "nothing"
@@ -1900,7 +1900,7 @@ func TestACLResolver_Legacy(t *testing.T) {
 			legacy:        true,
 			localTokens:   false,
 			localPolicies: false,
-			getPolicyFn: func(args *structs.ACLPolicyResolveLegacyRequest, reply *structs.ACLPolicyResolveLegacyResponse) error {
+			getPolicyFn: func(_ *structs.ACLPolicyResolveLegacyRequest, reply *structs.ACLPolicyResolveLegacyResponse) error {
 				if !cached {
 					reply.Parent = "deny"
 					reply.TTL = 30
@@ -1951,7 +1951,7 @@ func TestACLResolver_Legacy(t *testing.T) {
 			legacy:        true,
 			localTokens:   false,
 			localPolicies: false,
-			getPolicyFn: func(args *structs.ACLPolicyResolveLegacyRequest, reply *structs.ACLPolicyResolveLegacyResponse) error {
+			getPolicyFn: func(_ *structs.ACLPolicyResolveLegacyRequest, reply *structs.ACLPolicyResolveLegacyResponse) error {
 				if !cached {
 					reply.Parent = "deny"
 					reply.TTL = 0
@@ -2004,7 +2004,7 @@ func TestACLResolver_Legacy(t *testing.T) {
 			legacy:        true,
 			localTokens:   false,
 			localPolicies: false,
-			getPolicyFn: func(args *structs.ACLPolicyResolveLegacyRequest, reply *structs.ACLPolicyResolveLegacyResponse) error {
+			getPolicyFn: func(_ *structs.ACLPolicyResolveLegacyRequest, reply *structs.ACLPolicyResolveLegacyResponse) error {
 				if !cached {
 					reply.Parent = "deny"
 					reply.TTL = 0
@@ -2058,7 +2058,7 @@ func TestACLResolver_Legacy(t *testing.T) {
 			legacy:        true,
 			localTokens:   false,
 			localPolicies: false,
-			getPolicyFn: func(args *structs.ACLPolicyResolveLegacyRequest, reply *structs.ACLPolicyResolveLegacyResponse) error {
+			getPolicyFn: func(_ *structs.ACLPolicyResolveLegacyRequest, reply *structs.ACLPolicyResolveLegacyResponse) error {
 				if !cached {
 					reply.Parent = "deny"
 					reply.TTL = 0
@@ -2112,7 +2112,7 @@ func TestACLResolver_Legacy(t *testing.T) {
 			legacy:        true,
 			localTokens:   false,
 			localPolicies: false,
-			getPolicyFn: func(args *structs.ACLPolicyResolveLegacyRequest, reply *structs.ACLPolicyResolveLegacyResponse) error {
+			getPolicyFn: func(_ *structs.ACLPolicyResolveLegacyRequest, reply *structs.ACLPolicyResolveLegacyResponse) error {
 				if !cached {
 					reply.Parent = "deny"
 					reply.TTL = 0

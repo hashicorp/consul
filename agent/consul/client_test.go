@@ -145,8 +145,8 @@ func TestClient_LANReap(t *testing.T) {
 	// Check the router has both
 	retry.Run(t, func(r *retry.R) {
 		server := c1.router.FindLANServer()
-		require.NotNil(t, server)
-		require.Equal(t, s1.config.NodeName, server.Name)
+		require.NotNil(r, server)
+		require.Equal(r, s1.config.NodeName, server.Name)
 	})
 
 	// shutdown the second dc

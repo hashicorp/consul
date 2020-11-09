@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
+	autopilot "github.com/hashicorp/raft-autopilot"
 	raftboltdb "github.com/hashicorp/raft-boltdb"
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/time/rate"
@@ -32,7 +33,6 @@ import (
 	ca "github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
-	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
@@ -136,9 +136,6 @@ type Server struct {
 
 	// autopilot is the Autopilot instance for this server.
 	autopilot *autopilot.Autopilot
-
-	// autopilotWaitGroup is used to block until Autopilot shuts down.
-	autopilotWaitGroup sync.WaitGroup
 
 	// caProviderReconfigurationLock guards the provider reconfiguration.
 	caProviderReconfigurationLock sync.Mutex
@@ -993,7 +990,7 @@ func (s *Server) Leave() error {
 	s.logger.Info("server starting leave")
 
 	// Check the number of known peers
-	numPeers, err := s.numPeers()
+	numPeers, err := s.autopilot.NumVoters()
 	if err != nil {
 		s.logger.Error("failed to check raft peers", "error", err)
 		return err
@@ -1007,21 +1004,8 @@ func (s *Server) Leave() error {
 	// removed for some sane period of time.
 	isLeader := s.IsLeader()
 	if isLeader && numPeers > 1 {
-		minRaftProtocol, err := s.autopilot.MinRaftProtocol()
-		if err != nil {
-			return err
-		}
-
-		if minRaftProtocol >= 2 && s.config.RaftConfig.ProtocolVersion >= 3 {
-			future := s.raft.RemoveServer(raft.ServerID(s.config.NodeID), 0, 0)
-			if err := future.Error(); err != nil {
-				s.logger.Error("failed to remove ourself as raft peer", "error", err)
-			}
-		} else {
-			future := s.raft.RemovePeer(addr)
-			if err := future.Error(); err != nil {
-				s.logger.Error("failed to remove ourself as raft peer", "error", err)
-			}
+		if err := s.autopilot.RemoveServer(raft.ServerID(s.config.NodeID)); err != nil {
+			s.logger.Error("failed to remove ourself as a Raft peer", "error", err)
 		}
 	}
 
@@ -1098,18 +1082,6 @@ func (s *Server) Leave() error {
 	}
 
 	return nil
-}
-
-// numPeers is used to check on the number of known peers, including potentially
-// the local node. We count only voters, since others can't actually become
-// leader, so aren't considered peers.
-func (s *Server) numPeers() (int, error) {
-	future := s.raft.GetConfiguration()
-	if err := future.Error(); err != nil {
-		return 0, err
-	}
-
-	return autopilot.NumPeers(future.Configuration()), nil
 }
 
 // JoinLAN is used to have Consul join the inner-DC pool
@@ -1194,17 +1166,21 @@ func (s *Server) RemoveFailedNode(node string, prune bool) error {
 	if err := removeFn(s.serfLAN, node); err != nil {
 		return err
 	}
+
+	wanNode := node
+
 	// The Serf WAN pool stores members as node.datacenter
 	// so the dc is appended if not present
 	if !strings.HasSuffix(node, "."+s.config.Datacenter) {
-		node = node + "." + s.config.Datacenter
+		wanNode = node + "." + s.config.Datacenter
 	}
 	if s.serfWAN != nil {
-		if err := removeFn(s.serfWAN, node); err != nil {
+		if err := removeFn(s.serfWAN, wanNode); err != nil {
 			return err
 		}
 	}
-	return nil
+
+	return s.removeFailedNodeEnterprise(removeFn, node, wanNode)
 }
 
 // IsLeader checks if this server is the cluster leader

@@ -662,13 +662,21 @@ func TestBuilder_BuildAndValidate_ConfigFlagsAndEdgecases(t *testing.T) {
 		{
 			desc: "-raft-protocol",
 			args: []string{
-				`-raft-protocol=1`,
+				`-raft-protocol=3`,
 				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
-				rt.RaftProtocol = 1
+				rt.RaftProtocol = 3
 				rt.DataDir = dataDir
 			},
+		},
+		{
+			desc: "-raft-protocol unsupported",
+			args: []string{
+				`-raft-protocol=2`,
+				`-data-dir=` + dataDir,
+			},
+			err: "raft_protocol version 2 is not supported by this version of Consul",
 		},
 		{
 			desc: "-recursor",
@@ -5302,7 +5310,7 @@ func TestFullConfig(t *testing.T) {
 			"primary_datacenter": "ejtmd43d",
 			"primary_gateways": [ "aej8eeZo", "roh2KahS" ],
 			"primary_gateways_interval": "18866s",
-			"raft_protocol": 19016,
+			"raft_protocol": 3,
 			"raft_snapshot_threshold": 16384,
 			"raft_snapshot_interval": "30s",
 			"raft_trailing_logs": 83749,
@@ -5991,7 +5999,7 @@ func TestFullConfig(t *testing.T) {
 			primary_datacenter = "ejtmd43d"
 			primary_gateways = [ "aej8eeZo", "roh2KahS" ]
 			primary_gateways_interval = "18866s"
-			raft_protocol = 19016
+			raft_protocol = 3
 			raft_snapshot_threshold = 16384
 			raft_snapshot_interval = "30s"
 			raft_trailing_logs = 83749
@@ -6753,7 +6761,7 @@ func TestFullConfig(t *testing.T) {
 		RPCRateLimit:            12029.43,
 		RPCMaxBurst:             44848,
 		RPCMaxConnsPerClient:    2954,
-		RaftProtocol:            19016,
+		RaftProtocol:            3,
 		RaftSnapshotThreshold:   16384,
 		RaftSnapshotInterval:    30 * time.Second,
 		RaftTrailingLogs:        83749,
@@ -7434,6 +7442,7 @@ func TestSanitize(t *testing.T) {
 			EntryFetchRate:     0.334,
 		},
 		ConsulCoordinateUpdatePeriod: 15 * time.Second,
+		RaftProtocol:                 3,
 		RetryJoinLAN: []string{
 			"foo=bar key=baz secret=boom bang=bar",
 		},
@@ -7690,7 +7699,7 @@ func TestSanitize(t *testing.T) {
 		"RPCConfig": {
 			"EnableStreaming": false
 		},
-		"RaftProtocol": 0,
+		"RaftProtocol": 3,
 		"RaftSnapshotInterval": "0s",
 		"RaftSnapshotThreshold": 0,
 		"RaftTrailingLogs": 0,
