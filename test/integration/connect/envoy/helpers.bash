@@ -702,6 +702,11 @@ function delete_config_entry {
   retry_default curl -sL -XDELETE "http://127.0.0.1:8500/v1/config/${KIND}/${NAME}"
 }
 
+function register_services {
+  local DC=${1:-primary}
+  docker_consul_exec ${DC} sh -c "consul services register /workdir/${DC}/register/service_*.hcl"
+}
+
 function setup_upsert_l4_intention {
   local SOURCE=$1
   local DESTINATION=$2
