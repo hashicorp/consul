@@ -134,7 +134,7 @@ func (s *Store) FederationStateGet(ws memdb.WatchSet, datacenter string) (uint64
 	return federationStateGetTxn(tx, ws, datacenter)
 }
 
-func federationStateGetTxn(tx *txn, ws memdb.WatchSet, datacenter string) (uint64, *structs.FederationState, error) {
+func federationStateGetTxn(tx ReadTxn, ws memdb.WatchSet, datacenter string) (uint64, *structs.FederationState, error) {
 	// Get the index
 	idx := maxIndexTxn(tx, federationStateTableName)
 
@@ -164,7 +164,7 @@ func (s *Store) FederationStateList(ws memdb.WatchSet) (uint64, []*structs.Feder
 	return federationStateListTxn(tx, ws)
 }
 
-func federationStateListTxn(tx *txn, ws memdb.WatchSet) (uint64, []*structs.FederationState, error) {
+func federationStateListTxn(tx ReadTxn, ws memdb.WatchSet) (uint64, []*structs.FederationState, error) {
 	// Get the index
 	idx := maxIndexTxn(tx, federationStateTableName)
 

@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"reflect"
@@ -25,10 +24,6 @@ const (
 	// retryBucketSize is the maximum number of stored rate limit attempts for looped
 	// blocking query operations.
 	retryBucketSize = 5
-
-	// maxIntentionTxnSize is the maximum size (in bytes) of a transaction used during
-	// Intention replication.
-	maxIntentionTxnSize = raftWarnSize / 4
 )
 
 var (
@@ -510,6 +505,32 @@ func (s *Server) persistNewRoot(provider ca.Provider, newActiveRoot *structs.CAR
 	return nil
 }
 
+// getIntermediateCAPrimary regenerates the intermediate cert in the primary datacenter.
+// This is only run for CAs that require an intermediary in the primary DC, such as Vault.
+// This function is being called while holding caProviderReconfigurationLock
+// which means it must never take that lock itself or call anything that does.
+func (s *Server) getIntermediateCAPrimary(provider ca.Provider, newActiveRoot *structs.CARoot) error {
+	connectLogger := s.loggers.Named(logging.Connect)
+	// Generate and sign an intermediate cert using the root CA.
+	intermediatePEM, err := provider.GenerateIntermediate()
+	if err != nil {
+		return fmt.Errorf("error generating new intermediate cert: %v", err)
+	}
+
+	intermediateCert, err := connect.ParseCert(intermediatePEM)
+	if err != nil {
+		return fmt.Errorf("error parsing intermediate cert: %v", err)
+	}
+
+	// Append the new intermediate to our local active root entry. This is
+	// where the root representations start to diverge.
+	newActiveRoot.IntermediateCerts = append(newActiveRoot.IntermediateCerts, intermediatePEM)
+	newActiveRoot.SigningKeyID = connect.EncodeSigningKeyID(intermediateCert.SubjectKeyId)
+
+	connectLogger.Info("generated new intermediate certificate for primary datacenter")
+	return nil
+}
+
 // getIntermediateCASigned is being called while holding caProviderReconfigurationLock
 // which means it must never take that lock itself or call anything that does.
 func (s *Server) getIntermediateCASigned(provider ca.Provider, newActiveRoot *structs.CARoot) error {
@@ -553,24 +574,27 @@ func (s *Server) generateCASignRequest(csr string) *structs.CASignRequest {
 }
 
 // startConnectLeader starts multi-dc connect leader routines.
-func (s *Server) startConnectLeader() {
-	// Start the Connect secondary DC actions if enabled.
-	if s.config.ConnectEnabled && s.config.Datacenter != s.config.PrimaryDatacenter {
-		s.leaderRoutineManager.Start(secondaryCARootWatchRoutineName, s.secondaryCARootWatch)
-		s.leaderRoutineManager.Start(intentionReplicationRoutineName, s.replicateIntentions)
-		s.leaderRoutineManager.Start(secondaryCertRenewWatchRoutineName, s.secondaryIntermediateCertRenewalWatch)
-		s.startConnectLeaderEnterprise()
+func (s *Server) startConnectLeader() error {
+	if !s.config.ConnectEnabled {
+		return nil
 	}
 
+	// Start the Connect secondary DC actions if enabled.
+	if s.config.Datacenter != s.config.PrimaryDatacenter {
+		s.leaderRoutineManager.Start(secondaryCARootWatchRoutineName, s.secondaryCARootWatch)
+	}
+
+	s.leaderRoutineManager.Start(intermediateCertRenewWatchRoutineName, s.intermediateCertRenewalWatch)
 	s.leaderRoutineManager.Start(caRootPruningRoutineName, s.runCARootPruning)
+	return s.startIntentionConfigEntryMigration()
 }
 
 // stopConnectLeader stops connect specific leader functions.
 func (s *Server) stopConnectLeader() {
+	s.leaderRoutineManager.Stop(intentionMigrationRoutineName)
 	s.leaderRoutineManager.Stop(secondaryCARootWatchRoutineName)
-	s.leaderRoutineManager.Stop(intentionReplicationRoutineName)
+	s.leaderRoutineManager.Stop(intermediateCertRenewWatchRoutineName)
 	s.leaderRoutineManager.Stop(caRootPruningRoutineName)
-	s.stopConnectLeaderEnterprise()
 
 	// If the provider implements NeedsStop, we call Stop to perform any shutdown actions.
 	s.caProviderReconfigurationLock.Lock()
@@ -652,11 +676,12 @@ func (s *Server) pruneCARoots() error {
 	return nil
 }
 
-// secondaryIntermediateCertRenewalWatch checks the intermediate cert for
+// intermediateCertRenewalWatch checks the intermediate cert for
 // expiration. As soon as more than half the time a cert is valid has passed,
 // it will try to renew it.
-func (s *Server) secondaryIntermediateCertRenewalWatch(ctx context.Context) error {
+func (s *Server) intermediateCertRenewalWatch(ctx context.Context) error {
 	connectLogger := s.loggers.Named(logging.Connect)
+	isPrimary := s.config.Datacenter == s.config.PrimaryDatacenter
 
 	for {
 		select {
@@ -672,7 +697,8 @@ func (s *Server) secondaryIntermediateCertRenewalWatch(ctx context.Context) erro
 					// this happens when leadership is being revoked and this go routine will be stopped
 					return nil
 				}
-				if !s.configuredSecondaryCA() {
+				// If this isn't the primary, make sure the CA has been initialized.
+				if !isPrimary && !s.configuredSecondaryCA() {
 					return fmt.Errorf("secondary CA is not yet configured.")
 				}
 
@@ -682,13 +708,26 @@ func (s *Server) secondaryIntermediateCertRenewalWatch(ctx context.Context) erro
 					return err
 				}
 
+				// If this is the primary, check if this is a provider that uses an intermediate cert. If
+				// it isn't, we don't need to check for a renewal.
+				if isPrimary {
+					_, config, err := state.CAConfig(nil)
+					if err != nil {
+						return err
+					}
+
+					if _, ok := ca.PrimaryIntermediateProviders[config.Provider]; !ok {
+						return nil
+					}
+				}
+
 				activeIntermediate, err := provider.ActiveIntermediate()
 				if err != nil {
 					return err
 				}
 
 				if activeIntermediate == "" {
-					return fmt.Errorf("secondary datacenter doesn't have an active intermediate.")
+					return fmt.Errorf("datacenter doesn't have an active intermediate.")
 				}
 
 				intermediateCert, err := connect.ParseCert(activeIntermediate)
@@ -701,7 +740,11 @@ func (s *Server) secondaryIntermediateCertRenewalWatch(ctx context.Context) erro
 					return nil
 				}
 
-				if err := s.getIntermediateCASigned(provider, activeRoot); err != nil {
+				renewalFunc := s.getIntermediateCAPrimary
+				if !isPrimary {
+					renewalFunc = s.getIntermediateCASigned
+				}
+				if err := renewalFunc(provider, activeRoot); err != nil {
 					return err
 				}
 
@@ -713,7 +756,7 @@ func (s *Server) secondaryIntermediateCertRenewalWatch(ctx context.Context) erro
 				return nil
 			}, func(err error) {
 				connectLogger.Error("error renewing intermediate certs",
-					"routine", secondaryCertRenewWatchRoutineName,
+					"routine", intermediateCertRenewWatchRoutineName,
 					"error", err,
 				)
 			})
@@ -782,66 +825,6 @@ func (s *Server) secondaryCARootWatch(ctx context.Context) error {
 	return nil
 }
 
-// replicateIntentions executes a blocking query to the primary datacenter to replicate
-// the intentions there to the local state.
-func (s *Server) replicateIntentions(ctx context.Context) error {
-	connectLogger := s.loggers.Named(logging.Connect)
-	args := structs.DCSpecificRequest{
-		Datacenter: s.config.PrimaryDatacenter,
-	}
-
-	connectLogger.Debug("starting Connect intention replication from primary datacenter", "primary", s.config.PrimaryDatacenter)
-
-	retryLoopBackoff(ctx, func() error {
-		// Always use the latest replication token value in case it changed while looping.
-		args.QueryOptions.Token = s.tokens.ReplicationToken()
-
-		var remote structs.IndexedIntentions
-		if err := s.forwardDC("Intention.List", s.config.PrimaryDatacenter, &args, &remote); err != nil {
-			return err
-		}
-
-		_, local, err := s.fsm.State().Intentions(nil, s.replicationEnterpriseMeta())
-		if err != nil {
-			return err
-		}
-
-		// Compute the diff between the remote and local intentions.
-		deletes, updates := diffIntentions(local, remote.Intentions)
-		txnOpSets := batchIntentionUpdates(deletes, updates)
-
-		// Apply batched updates to the state store.
-		for _, ops := range txnOpSets {
-			txnReq := structs.TxnRequest{Ops: ops}
-
-			resp, err := s.raftApply(structs.TxnRequestType, &txnReq)
-			if err != nil {
-				return err
-			}
-			if respErr, ok := resp.(error); ok {
-				return respErr
-			}
-
-			if txnResp, ok := resp.(structs.TxnResponse); ok {
-				if len(txnResp.Errors) > 0 {
-					return txnResp.Error()
-				}
-			} else {
-				return fmt.Errorf("unexpected return type %T", resp)
-			}
-		}
-
-		args.QueryOptions.MinQueryIndex = nextIndexVal(args.QueryOptions.MinQueryIndex, remote.QueryMeta.Index)
-		return nil
-	}, func(err error) {
-		connectLogger.Error("error replicating intentions",
-			"routine", intentionReplicationRoutineName,
-			"error", err,
-		)
-	})
-	return nil
-}
-
 // retryLoopBackoff loops a given function indefinitely, backing off exponentially
 // upon errors up to a maximum of maxRetryBackoff seconds.
 func retryLoopBackoff(ctx context.Context, loopFn func() error, errFn func(error)) {
@@ -886,79 +869,6 @@ func retryLoopBackoffHandleSuccess(ctx context.Context, loopFn func() error, err
 		// Reset the failed attempts after a successful run.
 		failedAttempts = 0
 	}
-}
-
-// diffIntentions computes the difference between the local and remote intentions
-// and returns lists of deletes and updates.
-func diffIntentions(local, remote structs.Intentions) (structs.Intentions, structs.Intentions) {
-	localIdx := make(map[string][]byte, len(local))
-	remoteIdx := make(map[string]struct{}, len(remote))
-
-	var deletes structs.Intentions
-	var updates structs.Intentions
-
-	for _, intention := range local {
-		localIdx[intention.ID] = intention.Hash
-	}
-	for _, intention := range remote {
-		remoteIdx[intention.ID] = struct{}{}
-	}
-
-	for _, intention := range local {
-		if _, ok := remoteIdx[intention.ID]; !ok {
-			deletes = append(deletes, intention)
-		}
-	}
-
-	for _, intention := range remote {
-		existingHash, ok := localIdx[intention.ID]
-		if !ok {
-			updates = append(updates, intention)
-		} else if bytes.Compare(existingHash, intention.Hash) != 0 {
-			updates = append(updates, intention)
-		}
-	}
-
-	return deletes, updates
-}
-
-// batchIntentionUpdates breaks up the given updates into sets of TxnOps based
-// on the estimated size of the operations.
-func batchIntentionUpdates(deletes, updates structs.Intentions) []structs.TxnOps {
-	var txnOps structs.TxnOps
-	for _, delete := range deletes {
-		deleteOp := &structs.TxnIntentionOp{
-			Op:        structs.IntentionOpDelete,
-			Intention: delete,
-		}
-		txnOps = append(txnOps, &structs.TxnOp{Intention: deleteOp})
-	}
-
-	for _, update := range updates {
-		updateOp := &structs.TxnIntentionOp{
-			Op:        structs.IntentionOpUpdate,
-			Intention: update,
-		}
-		txnOps = append(txnOps, &structs.TxnOp{Intention: updateOp})
-	}
-
-	// Divide the operations into chunks according to maxIntentionTxnSize.
-	var batchedOps []structs.TxnOps
-	for batchStart := 0; batchStart < len(txnOps); {
-		// inner loop finds the last element to include in this batch.
-		batchSize := 0
-		batchEnd := batchStart
-		for ; batchEnd < len(txnOps) && batchSize < maxIntentionTxnSize; batchEnd += 1 {
-			batchSize += txnOps[batchEnd].Intention.Intention.EstimateSize()
-		}
-
-		batchedOps = append(batchedOps, txnOps[batchStart:batchEnd])
-
-		// txnOps[batchEnd] wasn't included as the slicing doesn't include the element at the stop index
-		batchStart = batchEnd
-	}
-
-	return batchedOps
 }
 
 // nextIndexVal computes the next index value to query for, resetting to zero

@@ -906,7 +906,6 @@ func (l *State) updateSyncState() error {
 		!reflect.DeepEqual(svcNode.Meta, l.metadata) {
 		l.nodeInfoInSync = false
 	}
-
 	// Check which services need syncing
 
 	// Look for local services that do not exist remotely and mark them for

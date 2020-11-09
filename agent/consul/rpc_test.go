@@ -164,7 +164,7 @@ func TestRPC_blockingQuery(t *testing.T) {
 		var opts structs.QueryOptions
 		var meta structs.QueryMeta
 		var calls int
-		fn := func(ws memdb.WatchSet, state *state.Store) error {
+		fn := func(_ memdb.WatchSet, _ *state.Store) error {
 			calls++
 			return nil
 		}
@@ -183,7 +183,7 @@ func TestRPC_blockingQuery(t *testing.T) {
 		}
 		var meta structs.QueryMeta
 		var calls int
-		fn := func(ws memdb.WatchSet, state *state.Store) error {
+		fn := func(ws memdb.WatchSet, _ *state.Store) error {
 			if calls == 0 {
 				meta.Index = 3
 
@@ -219,7 +219,7 @@ func TestRPC_blockingQuery(t *testing.T) {
 		}
 		var meta structs.QueryMeta
 		var calls int
-		fn := func(ws memdb.WatchSet, state *state.Store) error {
+		fn := func(ws memdb.WatchSet, _ *state.Store) error {
 			if opts.MinQueryIndex > 0 {
 				// If client requested blocking, block forever. This is simulating
 				// waiting for the watched resource to be initialized/written to giving
@@ -261,7 +261,7 @@ func TestRPC_blockingQuery(t *testing.T) {
 		}
 		var meta structs.QueryMeta
 		var calls int
-		fn := func(ws memdb.WatchSet, state *state.Store) error {
+		fn := func(_ memdb.WatchSet, _ *state.Store) error {
 			if calls == 0 {
 				meta.Index = 3
 

@@ -45,6 +45,7 @@ func DefaultSource() Source {
 		disable_host_node_id = true
 		disable_remote_exec = true
 		domain = "consul."
+		enable_central_service_config = true
 		encrypt_verify_incoming = true
 		encrypt_verify_outgoing = true
 		log_level = "INFO"
@@ -118,9 +119,11 @@ func DefaultSource() Source {
 			expose_min_port = 21500
 			expose_max_port = 21755
 		}
+		raft_protocol = 3
 		telemetry = {
 			metrics_prefix = "consul"
 			filter_default = true
+			prefix_filter = []
 		}
 
 	`,
@@ -139,7 +142,9 @@ func DevSource() Source {
 		disable_anonymous_signature = true
 		disable_keyring_file = true
 		enable_debug = true
-		ui = true
+		ui_config {
+			enabled = true
+		}
 		log_level = "DEBUG"
 		server = true
 

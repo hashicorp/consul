@@ -1,0 +1,3 @@
+```release-note:feature
+ui: Services using Connect with Envoy sidecars have a topology tab in the UI showing their upstream and downstream services.
+```

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"net/http"
 	"regexp"
 	"sort"
 	"strconv"
@@ -108,15 +109,12 @@ func (e *ServiceRouterConfigEntry) Normalize() error {
 		}
 
 		httpMatch := route.Match.HTTP
-		if len(httpMatch.Methods) == 0 {
-			continue
-		}
-
 		for j := 0; j < len(httpMatch.Methods); j++ {
 			httpMatch.Methods[j] = strings.ToUpper(httpMatch.Methods[j])
 		}
+
 		if route.Destination != nil && route.Destination.Namespace == "" {
-			route.Destination.Namespace = e.EnterpriseMeta.NamespaceOrDefault()
+			route.Destination.Namespace = e.EnterpriseMeta.NamespaceOrEmpty()
 		}
 	}
 
@@ -209,6 +207,9 @@ func (e *ServiceRouterConfigEntry) Validate() error {
 			if len(route.Match.HTTP.Methods) > 0 {
 				found := make(map[string]struct{})
 				for _, m := range route.Match.HTTP.Methods {
+					if !isValidHTTPMethod(m) {
+						return fmt.Errorf("Route[%d] Methods contains an invalid method %q", i, m)
+					}
 					if _, ok := found[m]; ok {
 						return fmt.Errorf("Route[%d] Methods contains %q more than once", i, m)
 					}
@@ -225,6 +226,23 @@ func (e *ServiceRouterConfigEntry) Validate() error {
 	}
 
 	return nil
+}
+
+func isValidHTTPMethod(method string) bool {
+	switch method {
+	case http.MethodGet,
+		http.MethodHead,
+		http.MethodPost,
+		http.MethodPut,
+		http.MethodPatch,
+		http.MethodDelete,
+		http.MethodConnect,
+		http.MethodOptions,
+		http.MethodTrace:
+		return true
+	default:
+		return false
+	}
 }
 
 func (e *ServiceRouterConfigEntry) CanRead(rule acl.Authorizer) bool {

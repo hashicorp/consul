@@ -5,12 +5,13 @@ import (
 	"net"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/consul/lib/retry"
 )
 
 // DirectRPC is the interface that needs to be satisifed for AutoConfig to be able to perform
@@ -67,17 +68,17 @@ type Config struct {
 	// known servers during fallback operations.
 	ServerProvider ServerProvider
 
-	// Waiter is a RetryWaiter to be used during retrieval of the
-	// initial configuration. When a round of requests fails we will
+	// Waiter is used during retrieval of the initial configuration.
+	// When around of requests fails we will
 	// wait and eventually make another round of requests (1 round
 	// is trying the RPC once against each configured server addr). The
 	// waiting implements some backoff to prevent from retrying these RPCs
-	// to often. This field is not required and if left unset a waiter will
+	// too often. This field is not required and if left unset a waiter will
 	// be used that has a max wait duration of 10 minutes and a randomized
 	// jitter of 25% of the wait time. Setting this is mainly useful for
 	// testing purposes to allow testing out the retrying functionality without
 	// having the test take minutes/hours to complete.
-	Waiter *lib.RetryWaiter
+	Waiter *retry.Waiter
 
 	// Loader merges source with the existing FileSources and returns the complete
 	// RuntimeConfig.

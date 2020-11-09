@@ -6,10 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-memdb"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/types"
 )
 
 func testUUID() string {
@@ -48,10 +49,7 @@ func restoreIndexes(indexes []*IndexEntry, r *Restore) error {
 }
 
 func testStateStore(t *testing.T) *Store {
-	s, err := NewStateStore(nil)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	s := NewStateStore(nil)
 	if s == nil {
 		t.Fatalf("missing state store")
 	}

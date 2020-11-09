@@ -133,3 +133,10 @@ message QueryMeta  {
    // the request was served by a leader.
    string ConsistencyLevel = 4;
 }
+
+// EnterpriseMeta contains metadata that is only used by the Enterprise version
+// of Consul.
+message EnterpriseMeta {
+   // Namespace in which the entity exists.
+   string Namespace = 1;
+}

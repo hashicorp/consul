@@ -6,6 +6,8 @@ import (
 
 type testAuthorizer EnforcementDecision
 
+var _ Authorizer = testAuthorizer(Allow)
+
 func (authz testAuthorizer) ACLRead(*AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
@@ -54,6 +56,9 @@ func (authz testAuthorizer) KeyringWrite(*AuthorizerContext) EnforcementDecision
 func (authz testAuthorizer) NodeRead(string, *AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
+func (authz testAuthorizer) NodeReadAll(*AuthorizerContext) EnforcementDecision {
+	return EnforcementDecision(authz)
+}
 func (authz testAuthorizer) NodeWrite(string, *AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
@@ -70,6 +75,9 @@ func (authz testAuthorizer) PreparedQueryWrite(string, *AuthorizerContext) Enfor
 	return EnforcementDecision(authz)
 }
 func (authz testAuthorizer) ServiceRead(string, *AuthorizerContext) EnforcementDecision {
+	return EnforcementDecision(authz)
+}
+func (authz testAuthorizer) ServiceReadAll(*AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
 func (authz testAuthorizer) ServiceWrite(string, *AuthorizerContext) EnforcementDecision {

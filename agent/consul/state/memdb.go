@@ -1,10 +1,13 @@
 package state
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/go-memdb"
+
+	"github.com/hashicorp/consul/agent/consul/stream"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
 // ReadTxn is implemented by memdb.Txn to perform read operations.
@@ -12,14 +15,27 @@ type ReadTxn interface {
 	Get(table, index string, args ...interface{}) (memdb.ResultIterator, error)
 	First(table, index string, args ...interface{}) (interface{}, error)
 	FirstWatch(table, index string, args ...interface{}) (<-chan struct{}, interface{}, error)
+}
+
+// AbortTxn is a ReadTxn that can also be aborted to end the transaction.
+type AbortTxn interface {
+	ReadTxn
 	Abort()
+}
+
+// ReadDB is a DB that provides read-only transactions.
+type ReadDB interface {
+	ReadTxn() AbortTxn
 }
 
 // WriteTxn is implemented by memdb.Txn to perform write operations.
 type WriteTxn interface {
 	ReadTxn
+	Defer(func())
+	Delete(table string, obj interface{}) error
+	DeleteAll(table, index string, args ...interface{}) (int, error)
+	DeletePrefix(table string, index string, prefix string) (bool, error)
 	Insert(table string, obj interface{}) error
-	Commit() error
 }
 
 // Changes wraps a memdb.Changes to include the index at which these changes
@@ -36,12 +52,14 @@ type Changes struct {
 // 2. Sent to the eventPublisher which will create and emit change events
 type changeTrackerDB struct {
 	db             *memdb.MemDB
-	publisher      eventPublisher
+	publisher      EventPublisher
 	processChanges func(ReadTxn, Changes) ([]stream.Event, error)
 }
 
-type eventPublisher interface {
-	Publish(events []stream.Event)
+type EventPublisher interface {
+	Publish([]stream.Event)
+	Run(context.Context)
+	Subscribe(*stream.SubscribeRequest) (*stream.Subscription, error)
 }
 
 // Txn exists to maintain backwards compatibility with memdb.DB.Txn. Preexisting
@@ -49,20 +67,16 @@ type eventPublisher interface {
 // with write=true.
 //
 // Deprecated: use either ReadTxn, or WriteTxn.
-func (c *changeTrackerDB) Txn(write bool) *txn {
+func (c *changeTrackerDB) Txn(write bool) *memdb.Txn {
 	if write {
 		panic("don't use db.Txn(true), use db.WriteTxn(idx uin64)")
 	}
 	return c.ReadTxn()
 }
 
-// ReadTxn returns a read-only transaction which behaves exactly the same as
-// memdb.Txn
-//
-// TODO: this could return a regular memdb.Txn if all the state functions accepted
-// the ReadTxn interface
-func (c *changeTrackerDB) ReadTxn() *txn {
-	return &txn{Txn: c.db.Txn(false)}
+// ReadTxn returns a read-only transaction.
+func (c *changeTrackerDB) ReadTxn() *memdb.Txn {
+	return c.db.Txn(false)
 }
 
 // WriteTxn returns a wrapped memdb.Txn suitable for writes to the state store.
@@ -158,18 +172,15 @@ func (tx *txn) Commit() error {
 	return nil
 }
 
-// TODO: may be replaced by a gRPC type.
-type topic string
+type readDB memdb.MemDB
 
-func (t topic) String() string {
-	return string(t)
+func (db *readDB) ReadTxn() AbortTxn {
+	return (*memdb.MemDB)(db).Txn(false)
 }
 
 var (
-	// TopicServiceHealth contains events for all registered service instances.
-	TopicServiceHealth topic = "topic-service-health"
-	// TopicServiceHealthConnect contains events for connect-enabled service instances.
-	TopicServiceHealthConnect topic = "topic-service-health-connect"
+	topicServiceHealth        = pbsubscribe.Topic_ServiceHealth
+	topicServiceHealthConnect = pbsubscribe.Topic_ServiceHealthConnect
 )
 
 func processDBChanges(tx ReadTxn, changes Changes) ([]stream.Event, error) {
@@ -189,9 +200,11 @@ func processDBChanges(tx ReadTxn, changes Changes) ([]stream.Event, error) {
 	return events, nil
 }
 
-func newSnapshotHandlers(s *Store) stream.SnapshotHandlers {
+func newSnapshotHandlers(db ReadDB) stream.SnapshotHandlers {
 	return stream.SnapshotHandlers{
-		TopicServiceHealth:        serviceHealthSnapshot(s, TopicServiceHealth),
-		TopicServiceHealthConnect: serviceHealthSnapshot(s, TopicServiceHealthConnect),
+		topicServiceHealth: serviceHealthSnapshot(db, topicServiceHealth),
+		// The connect topic is temporarily disabled until the correct events are
+		// created for terminating gateway changes.
+		//topicServiceHealthConnect: serviceHealthSnapshot(db, topicServiceHealthConnect),
 	}
 }

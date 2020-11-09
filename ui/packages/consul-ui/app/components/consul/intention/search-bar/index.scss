@@ -1,0 +1,9 @@
+.consul-intention-search-bar {
+  .value-allow button::before {
+    @extend %with-arrow-right-color-mask, %as-pseudo;
+    color: $green-500;
+  }
+  .value-deny button::before {
+    @extend %with-deny-color-icon, %as-pseudo;
+  }
+}

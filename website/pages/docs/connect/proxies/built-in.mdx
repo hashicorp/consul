@@ -53,10 +53,10 @@ for the built-in proxy.
 
 All fields are optional with a sane default.
 
-- `bind_address` - The address the proxy will bind it's
+- `bind_address` - The address the proxy will bind its
   _public_ mTLS listener to. It defaults to the same address the agent binds to.
 
-- `bind_port` - The port the proxy will bind it's _public_
+- `bind_port` - The port the proxy will bind its _public_
   mTLS listener to. If not provided, the agent will attempt to assign one from its
   [configured proxy port range](/docs/agent/options#sidecar_min_port) if available.
   By default the range is [20000, 20255] and the port is selected at random from
@@ -69,7 +69,7 @@ All fields are optional with a sane default.
   dial the proxy over loopback. For more complex configurations where agent and proxy
   communicate over a bridge for example, this configuration can be used to specify
   a different _address_ (but not port) for the agent to use for health checks if
-  it can't talk to the proxy over localhost or it's publicly advertised port. The
+  it can't talk to the proxy over localhost or its publicly advertised port. The
   check always uses the same port that the proxy is bound to.
 
 - `disable_tcp_check` - If true, this disables a

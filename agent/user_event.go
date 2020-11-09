@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/go-uuid"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 const (

@@ -1,0 +1,25 @@
+{{#let
+  (from-entries (array
+    (array 'allow' 'Allowed')
+    (array 'deny' 'Denied')
+    (array '' 'L7 Rules')
+  ))
+as |titles|}}
+<div
+  class={{concat 'consul-intention-list-check ' 'notice ' (or @item.Action 'permissions')}}
+  ...attributes
+>
+  <h3>
+    {{get titles (or @item.Action '')}}
+  </h3>
+  <p>
+  {{#if (eq @item.Action 'allow')}}
+    Yes, {{item.SourceName}} is allowed to connect to {{@item.DestinationName}} due to the highest precedence intention below:
+  {{else if (eq @item.Action 'deny')}}
+    No, {{@item.SourceName}} is not allowed to connect to {{@item.DestinationName}} due to the highest precedence intention below:
+  {{else}}
+    {{@item.SourceName}} may or may not be allowed to connect with {{@item.DestinationName}} through its L7 rules.
+  {{/if}}
+  </p>
+</div>
+{{/let}}

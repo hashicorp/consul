@@ -222,7 +222,7 @@ the clients.
 
 First, create the policy that will grant write privileges to only the
 "dashboard" service. This means the "dashboard" service can register
-itself, update it's health checks, and write any of the fields in the [service
+itself, update its health checks, and write any of the fields in the [service
 definition](/docs/agent/services).
 
 ```shell
@@ -448,4 +448,4 @@ node_prefix "" {
 
 In this guide you bootstrapped the ACL system for consul and applied tokens to agents and services. You assigned tokens for DNS, Consul KV, and the Consul UI.
 
-To learn more about Consul’s security model read the [internals documentation](/docs/internals/security). You can find commands relating to ACLs in our [reference documentation](/docs/commands/acl).
+To learn more about Consul’s security model read the [internals documentation](/docs/internals/security). You can find commands relating to ACLs in our [reference documentation](/commands/acl).

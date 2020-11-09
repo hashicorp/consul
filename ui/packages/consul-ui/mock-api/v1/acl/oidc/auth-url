@@ -1,0 +1,3 @@
+{
+  "AuthURL": "${env('CONSUL_OIDC_PROVIDER_URL')}&redirect_uri=${encodeURIComponent(http.body.RedirectURI)}&response_type=code&scope=openid"
+}

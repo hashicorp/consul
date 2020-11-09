@@ -278,7 +278,7 @@ When a previously stopped server container is restarted using `docker start <con
 
 ### Backing-up Data
 
-You can back-up your Consul datacenter using the [consul snapshot](/docs/commands/snapshot) command.
+You can back-up your Consul datacenter using the [consul snapshot](/commands/snapshot) command.
 
 ```shell-session
 $ docker exec <container_id> consul snapshot save backup.snap
@@ -290,7 +290,7 @@ This will leave the `backup.snap` snapshot file inside of your container. If you
 $ docker cp <container_id>:backup.snap ./
 ```
 
-Users running the Consul Enterprise Docker containers can run the [consul snapshot agent](/docs/commands/snapshot/agent) to save backups automatically. Consul Enterprise's snapshot agent also allows you to save snapshots to Amazon S3 and Azure Blob Storage.
+Users running the Consul Enterprise Docker containers can run the [consul snapshot agent](/commands/snapshot/agent) to save backups automatically. Consul Enterprise's snapshot agent also allows you to save snapshots to Amazon S3 and Azure Blob Storage.
 
 ### Environment Variables
 

@@ -230,7 +230,7 @@ The [`acl_agent_token`](/docs/agent/options#acl_agent_token) is a special token 
 
 1. Updating the agent's node entry using the [Catalog API](/api/catalog), including updating its node metadata, tagged addresses, and network coordinates
 2. Performing [anti-entropy](/docs/internals/anti-entropy) syncing, in particular reading the node metadata and services registered with the catalog
-3. Reading and writing the special `_rexec` section of the KV store when executing [`consul exec`](/docs/commands/exec) commands
+3. Reading and writing the special `_rexec` section of the KV store when executing [`consul exec`](/commands/exec) commands
 
 Here's an example policy sufficient to accomplish the above for a node called `mynode`:
 
@@ -738,7 +738,7 @@ Event rules are keyed by the event name prefix they apply to, using the longest 
 In the example above, the rules allow read-only access to any event, and firing of any event that
 starts with "deploy".
 
-The [`consul exec`](/docs/commands/exec) command uses events with the "\_rexec" prefix during
+The [`consul exec`](/commands/exec) command uses events with the "\_rexec" prefix during
 operation, so to enable this feature in a Consul environment with ACLs enabled, you will need to
 give agents a token with access to this event prefix, in addition to configuring
 [`disable_remote_exec`](/docs/agent/options#disable_remote_exec) to `false`.

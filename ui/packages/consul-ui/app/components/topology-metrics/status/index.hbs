@@ -1,0 +1,12 @@
+{{#if @noMetricsReason}}
+  <span class="topology-metrics-error">
+    Unable to load metrics
+    <span>
+      <Tooltip>{{@noMetricsReason}}</Tooltip>
+    </span>
+  </span>
+{{else if @error}}
+  <span class="topology-metrics-error">Unable to load metrics</span>
+{{else}}
+  <span class="topology-metrics-loader">Loading Metrics</span>
+{{/if}}

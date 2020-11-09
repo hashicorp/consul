@@ -1,0 +1,63 @@
+pr/dependencies:
+    - vendor/**/*
+    - go.*
+theme/acls:
+    - acl/**/*
+theme/agent-cache:
+    - agent/cache/**/*
+theme/api:
+    - api/**/*
+theme/catalog:
+    - agent/catalog/**/*
+theme/certificates:
+    - tlsutil/**/*
+theme/cli:
+    - command/**/*
+theme/config:
+    - agent/config/**/*
+theme/connect:
+    - connect/**/*
+    - agent/connect/**/*
+# theme/consul-nomad:
+theme/consul-terraform-sync:
+    - website/pages/docs/nia/**/*
+    - website/pages/docs/integrate/nia*
+# theme/consul-vault:
+theme/contributing:
+    - .github/**/*
+theme/dns:
+    - dns/**/*
+theme/envoy/xds:
+    - agent/xds/**/*
+# theme/federation-usability:
+theme/health-checks:
+    - agent/health*
+    - api/health*
+# theme/ingress-gw:
+# theme/internal-cleanup:
+theme/internals:
+    - lib/**/*
+    - types/**/*
+# theme/kubernetes:
+# theme/mesh-gw:
+# theme/operator-usability:
+# theme/performance:
+# theme/service-metadata:
+# theme/streaming:
+theme/telemetry:
+    - logging/**/*
+# theme/terminating-gw:
+theme/testing:
+    - ./*test*/**/*
+theme/tls:
+    - tlsutil/**/*
+theme/ui:
+    - ui/**/*
+# theme/windows:
+# thinking:
+# type/bug:
+type/ci:
+    - .circleci/*
+# type/crash:
+type/docs:
+    - website/**/*

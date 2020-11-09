@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
-	"github.com/shirou/gopsutil/host"
+	"github.com/shirou/gopsutil/v3/host"
 )
 
 // newNodeIDFromConfig will pull the persisted node ID, if any, or create a random one

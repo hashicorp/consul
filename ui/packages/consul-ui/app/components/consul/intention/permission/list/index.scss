@@ -1,0 +1,17 @@
+@import './skin';
+@import './layout';
+.consul-intention-permission-list > ul > li {
+  @extend %list-row-200;
+}
+.consul-intention-permission-list:not(.readonly) > ul > li {
+  @extend %with-composite-row-intent;
+}
+.consul-intention-permission-list strong {
+  @extend %pill-500;
+}
+.consul-intention-permission-list .intent-allow {
+  @extend %pill-allow;
+}
+.consul-intention-permission-list .intent-deny {
+  @extend %pill-deny;
+}

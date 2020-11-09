@@ -105,13 +105,12 @@ Splits = [
 
 ## ACLs
 
-Configuration entries may be protected by
-[ACLs](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production).
+Configuration entries may be protected by [ACLs](/docs/security/acl).
 
-Reading a `service-splitter` config entry requires `service:read` on itself.
+Reading a `service-splitter` config entry requires `service:read` on the resource.
 
 Creating, updating, or deleting a `service-splitter` config entry requires
-`service:write` on itself and `service:read` on any other service referenced by
+`service:write` on the resource and `service:read` on any other service referenced by
 name in these fields:
 
 - [`Splits[].Service`](#service)

@@ -6,10 +6,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/stretchr/testify/require"
 )
 
 type consulCAMockDelegate struct {
@@ -48,10 +49,7 @@ func (c *consulCAMockDelegate) ApplyCARequest(req *structs.CARequest) (interface
 }
 
 func newMockDelegate(t *testing.T, conf *structs.CAConfiguration) *consulCAMockDelegate {
-	s, err := state.NewStateStore(nil)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	s := state.NewStateStore(nil)
 	if s == nil {
 		t.Fatalf("missing state store")
 	}

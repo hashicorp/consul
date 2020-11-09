@@ -18,32 +18,36 @@ import (
 	"time"
 
 	metrics "github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/acl"
-	ca "github.com/hashicorp/consul/agent/connect/ca"
-	"github.com/hashicorp/consul/agent/consul/authmethod"
-	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
-	"github.com/hashicorp/consul/agent/consul/autopilot"
-	"github.com/hashicorp/consul/agent/consul/fsm"
-	"github.com/hashicorp/consul/agent/consul/state"
-	"github.com/hashicorp/consul/agent/consul/usagemetrics"
-	"github.com/hashicorp/consul/agent/grpc"
-	"github.com/hashicorp/consul/agent/metadata"
-	"github.com/hashicorp/consul/agent/pool"
-	"github.com/hashicorp/consul/agent/router"
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/tlsutil"
-	"github.com/hashicorp/consul/types"
 	connlimit "github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
+	autopilot "github.com/hashicorp/raft-autopilot"
 	raftboltdb "github.com/hashicorp/raft-boltdb"
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/time/rate"
+	"google.golang.org/grpc"
+
+	"github.com/hashicorp/consul/acl"
+	ca "github.com/hashicorp/consul/agent/connect/ca"
+	"github.com/hashicorp/consul/agent/consul/authmethod"
+	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
+	"github.com/hashicorp/consul/agent/consul/fsm"
+	"github.com/hashicorp/consul/agent/consul/state"
+	"github.com/hashicorp/consul/agent/consul/usagemetrics"
+	agentgrpc "github.com/hashicorp/consul/agent/grpc"
+	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/consul/agent/pool"
+	"github.com/hashicorp/consul/agent/router"
+	"github.com/hashicorp/consul/agent/rpc/subscribe"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
+	"github.com/hashicorp/consul/tlsutil"
+	"github.com/hashicorp/consul/types"
 )
 
 // These are the protocol versions that Consul can _understand_. These are
@@ -100,9 +104,9 @@ const (
 	federationStateReplicationRoutineName = "federation state replication"
 	federationStateAntiEntropyRoutineName = "federation state anti-entropy"
 	federationStatePruningRoutineName     = "federation state pruning"
-	intentionReplicationRoutineName       = "intention replication"
+	intentionMigrationRoutineName         = "intention config entry migration"
 	secondaryCARootWatchRoutineName       = "secondary CA roots watch"
-	secondaryCertRenewWatchRoutineName    = "secondary cert renew watch"
+	intermediateCertRenewWatchRoutineName = "intermediate cert renew watch"
 )
 
 var (
@@ -132,9 +136,6 @@ type Server struct {
 
 	// autopilot is the Autopilot instance for this server.
 	autopilot *autopilot.Autopilot
-
-	// autopilotWaitGroup is used to block until Autopilot shuts down.
-	autopilotWaitGroup sync.WaitGroup
 
 	// caProviderReconfigurationLock guards the provider reconfiguration.
 	caProviderReconfigurationLock sync.Mutex
@@ -301,6 +302,12 @@ type Server struct {
 	actingSecondaryCA   bool
 	actingSecondaryLock sync.RWMutex
 
+	// dcSupportsIntentionsAsConfigEntries is used to determine whether we can
+	// migrate old intentions into service-intentions config entries. All
+	// servers in the local DC must be on a version of Consul supporting
+	// service-intentions before this will get enabled.
+	dcSupportsIntentionsAsConfigEntries int32
+
 	// Manager to handle starting/stopping go routines when establishing/revoking raft leadership
 	leaderRoutineManager *LeaderRoutineManager
 
@@ -381,6 +388,7 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 		shutdownCh:              shutdownCh,
 		leaderRoutineManager:    NewLeaderRoutineManager(logger),
 		aclAuthMethodValidators: authmethod.NewCache(),
+		fsm:                     newFSMFromConfig(flat.Logger, gc, config),
 	}
 
 	if s.config.ConnectMeshGatewayWANFederationEnabled {
@@ -577,7 +585,7 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 	}
 	go reporter.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
-	s.grpcHandler = newGRPCHandlerFromConfig(logger, config)
+	s.grpcHandler = newGRPCHandlerFromConfig(flat, config, s)
 
 	// Initialize Autopilot. This must happen before starting leadership monitoring
 	// as establishing leadership could attempt to use autopilot and cause a panic.
@@ -606,12 +614,32 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 	return s, nil
 }
 
-func newGRPCHandlerFromConfig(logger hclog.Logger, config *Config) connHandler {
-	if !config.EnableGRPCServer {
-		return grpc.NoOpHandler{Logger: logger}
+func newFSMFromConfig(logger hclog.Logger, gc *state.TombstoneGC, config *Config) *fsm.FSM {
+	deps := fsm.Deps{Logger: logger}
+	if config.RPCConfig.EnableStreaming {
+		deps.NewStateStore = func() *state.Store {
+			return state.NewStateStoreWithEventPublisher(gc)
+		}
+		return fsm.NewFromDeps(deps)
 	}
 
-	return grpc.NewHandler(config.RPCAddr)
+	deps.NewStateStore = func() *state.Store {
+		return state.NewStateStore(gc)
+	}
+	return fsm.NewFromDeps(deps)
+}
+
+func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler {
+	if !config.RPCConfig.EnableStreaming {
+		return agentgrpc.NoOpHandler{Logger: deps.Logger}
+	}
+
+	register := func(srv *grpc.Server) {
+		pbsubscribe.RegisterStateChangeSubscriptionServer(srv, subscribe.NewServer(
+			&subscribeBackend{srv: s, connPool: deps.GRPCConnPool},
+			deps.Logger.Named("grpc-api.subscription")))
+	}
+	return agentgrpc.NewHandler(config.RPCAddr, register)
 }
 
 func (s *Server) connectCARootsMonitor(ctx context.Context) {
@@ -649,13 +677,6 @@ func (s *Server) setupRaft() error {
 			}
 		}
 	}()
-
-	// Create the FSM.
-	var err error
-	s.fsm, err = fsm.New(s.tombstoneGC, s.logger)
-	if err != nil {
-		return err
-	}
 
 	var serverAddressProvider raft.ServerAddressProvider = nil
 	if s.config.RaftConfig.ProtocolVersion >= 3 { //ServerAddressProvider needs server ids to work correctly, which is only supported in protocol version 3 or higher
@@ -757,10 +778,12 @@ func (s *Server) setupRaft() error {
 				return fmt.Errorf("recovery failed to parse peers.json: %v", err)
 			}
 
-			tmpFsm, err := fsm.New(s.tombstoneGC, s.logger)
-			if err != nil {
-				return fmt.Errorf("recovery failed to make temp FSM: %v", err)
-			}
+			tmpFsm := fsm.NewFromDeps(fsm.Deps{
+				Logger: s.logger,
+				NewStateStore: func() *state.Store {
+					return state.NewStateStore(s.tombstoneGC)
+				},
+			})
 			if err := raft.RecoverCluster(s.config.RaftConfig, tmpFsm,
 				log, stable, snap, trans, configuration); err != nil {
 				return fmt.Errorf("recovery failed: %v", err)
@@ -802,11 +825,9 @@ func (s *Server) setupRaft() error {
 	s.raftNotifyCh = raftNotifyCh
 
 	// Setup the Raft store.
+	var err error
 	s.raft, err = raft.NewRaft(s.config.RaftConfig, s.fsm.ChunkingFSM(), log, stable, snap, trans)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 // endpointFactory is a function that returns an RPC endpoint bound to the given
@@ -914,6 +935,10 @@ func (s *Server) Shutdown() error {
 		s.serfLAN.Shutdown()
 	}
 
+	for _, segment := range s.segmentLAN {
+		segment.Shutdown()
+	}
+
 	if s.serfWAN != nil {
 		s.serfWAN.Shutdown()
 		if err := s.router.RemoveArea(types.AreaWAN); err != nil {
@@ -965,7 +990,7 @@ func (s *Server) Leave() error {
 	s.logger.Info("server starting leave")
 
 	// Check the number of known peers
-	numPeers, err := s.numPeers()
+	numPeers, err := s.autopilot.NumVoters()
 	if err != nil {
 		s.logger.Error("failed to check raft peers", "error", err)
 		return err
@@ -979,21 +1004,8 @@ func (s *Server) Leave() error {
 	// removed for some sane period of time.
 	isLeader := s.IsLeader()
 	if isLeader && numPeers > 1 {
-		minRaftProtocol, err := s.autopilot.MinRaftProtocol()
-		if err != nil {
-			return err
-		}
-
-		if minRaftProtocol >= 2 && s.config.RaftConfig.ProtocolVersion >= 3 {
-			future := s.raft.RemoveServer(raft.ServerID(s.config.NodeID), 0, 0)
-			if err := future.Error(); err != nil {
-				s.logger.Error("failed to remove ourself as raft peer", "error", err)
-			}
-		} else {
-			future := s.raft.RemovePeer(addr)
-			if err := future.Error(); err != nil {
-				s.logger.Error("failed to remove ourself as raft peer", "error", err)
-			}
+		if err := s.autopilot.RemoveServer(raft.ServerID(s.config.NodeID)); err != nil {
+			s.logger.Error("failed to remove ourself as a Raft peer", "error", err)
 		}
 	}
 
@@ -1070,18 +1082,6 @@ func (s *Server) Leave() error {
 	}
 
 	return nil
-}
-
-// numPeers is used to check on the number of known peers, including potentially
-// the local node. We count only voters, since others can't actually become
-// leader, so aren't considered peers.
-func (s *Server) numPeers() (int, error) {
-	future := s.raft.GetConfiguration()
-	if err := future.Error(); err != nil {
-		return 0, err
-	}
-
-	return autopilot.NumPeers(future.Configuration()), nil
 }
 
 // JoinLAN is used to have Consul join the inner-DC pool
@@ -1166,17 +1166,21 @@ func (s *Server) RemoveFailedNode(node string, prune bool) error {
 	if err := removeFn(s.serfLAN, node); err != nil {
 		return err
 	}
+
+	wanNode := node
+
 	// The Serf WAN pool stores members as node.datacenter
 	// so the dc is appended if not present
 	if !strings.HasSuffix(node, "."+s.config.Datacenter) {
-		node = node + "." + s.config.Datacenter
+		wanNode = node + "." + s.config.Datacenter
 	}
 	if s.serfWAN != nil {
-		if err := removeFn(s.serfWAN, node); err != nil {
+		if err := removeFn(s.serfWAN, wanNode); err != nil {
 			return err
 		}
 	}
-	return nil
+
+	return s.removeFailedNodeEnterprise(removeFn, node, wanNode)
 }
 
 // IsLeader checks if this server is the cluster leader
@@ -1419,10 +1423,6 @@ func (s *Server) resetConsistentReadReady() {
 // Returns true if this server is ready to serve consistent reads
 func (s *Server) isReadyForConsistentReads() bool {
 	return atomic.LoadInt32(&s.readyForConsistentReads) == 1
-}
-
-func (s *Server) intentionReplicationEnabled() bool {
-	return s.config.ConnectEnabled && s.config.Datacenter != s.config.PrimaryDatacenter
 }
 
 // CreateACLToken will create an ACL token from the given template

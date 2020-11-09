@@ -13,8 +13,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/go-hclog"
+
+	"github.com/hashicorp/consul/logging"
 )
 
 // ALPNWrapper is a function that is used to wrap a non-TLS connection and
@@ -79,9 +80,6 @@ type Config struct {
 	// enabled by default with VerifyOutgoing, but for legacy reasons we
 	// cannot break existing clients.
 	VerifyServerHostname bool
-
-	// UseTLS is used to enable outgoing TLS connections to Consul servers.
-	UseTLS bool
 
 	// CAFile is a path to a certificate authority file. This is used with
 	// VerifyIncoming or VerifyOutgoing to verify the TLS connection.

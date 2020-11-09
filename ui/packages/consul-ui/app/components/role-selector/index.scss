@@ -1,0 +1,9 @@
+.role-selector {
+  [name='role[state]'],
+  [name='role[state]'] + * {
+    display: none;
+  }
+  [name='role[state]']:checked + * {
+    display: block;
+  }
+}

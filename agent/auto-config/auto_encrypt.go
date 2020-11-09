@@ -16,23 +16,21 @@ func (ac *AutoConfig) autoEncryptInitialCerts(ctx context.Context) (*structs.Sig
 		return nil, err
 	}
 
-	// this resets the failures so that we will perform immediate request
-	wait := ac.acConfig.Waiter.Success()
+	ac.acConfig.Waiter.Reset()
 	for {
-		select {
-		case <-wait:
-			if resp, err := ac.autoEncryptInitialCertsOnce(ctx, csr, key); err == nil && resp != nil {
-				return resp, nil
-			} else if err != nil {
-				ac.logger.Error(err.Error())
-			} else {
-				ac.logger.Error("No error returned when fetching certificates from the servers but no response was either")
-			}
+		resp, err := ac.autoEncryptInitialCertsOnce(ctx, csr, key)
+		switch {
+		case err == nil && resp != nil:
+			return resp, nil
+		case err != nil:
+			ac.logger.Error(err.Error())
+		default:
+			ac.logger.Error("No error returned when fetching certificates from the servers but no response was either")
+		}
 
-			wait = ac.acConfig.Waiter.Failed()
-		case <-ctx.Done():
-			ac.logger.Info("interrupted during retrieval of auto-encrypt certificates", "err", ctx.Err())
-			return nil, ctx.Err()
+		if err := ac.acConfig.Waiter.Wait(ctx); err != nil {
+			ac.logger.Info("interrupted during retrieval of auto-encrypt certificates", "err", err)
+			return nil, err
 		}
 	}
 }

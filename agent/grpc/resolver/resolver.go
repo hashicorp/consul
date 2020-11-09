@@ -7,22 +7,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/consul/agent/metadata"
 	"google.golang.org/grpc/resolver"
+
+	"github.com/hashicorp/consul/agent/metadata"
 )
-
-var registerLock sync.Mutex
-
-// RegisterWithGRPC registers the ServerResolverBuilder as a grpc/resolver.
-// This function exists to synchronize registrations with a lock.
-// grpc/resolver.Register expects all registration to happen at init and does
-// not allow for concurrent registration. This function exists to support
-// parallel testing.
-func RegisterWithGRPC(b *ServerResolverBuilder) {
-	registerLock.Lock()
-	defer registerLock.Unlock()
-	resolver.Register(b)
-}
 
 // ServerResolverBuilder tracks the current server list and keeps any
 // ServerResolvers updated when changes occur.
@@ -31,7 +19,7 @@ type ServerResolverBuilder struct {
 	// parallel testing because gRPC registers resolvers globally.
 	scheme string
 	// servers is an index of Servers by Server.ID. The map contains server IDs
-	// for all datacenters, so it assumes the ID is globally unique.
+	// for all datacenters.
 	servers map[string]*metadata.Server
 	// resolvers is an index of connections to the serverResolver which manages
 	// addresses of servers for that connection.
@@ -131,7 +119,7 @@ func (s *ServerResolverBuilder) AddServer(server *metadata.Server) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	s.servers[server.ID] = server
+	s.servers[uniqueID(server)] = server
 
 	addrs := s.getDCAddrs(server.Datacenter)
 	for _, resolver := range s.resolvers {
@@ -141,12 +129,21 @@ func (s *ServerResolverBuilder) AddServer(server *metadata.Server) {
 	}
 }
 
+// uniqueID returns a unique identifier for the server which includes the
+// Datacenter and the ID.
+//
+// In practice it is expected that the server.ID is already a globally unique
+// UUID. This function is an extra safeguard in case that ever changes.
+func uniqueID(server *metadata.Server) string {
+	return server.Datacenter + "-" + server.ID
+}
+
 // RemoveServer updates the resolvers' states with the given server removed.
 func (s *ServerResolverBuilder) RemoveServer(server *metadata.Server) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	delete(s.servers, server.ID)
+	delete(s.servers, uniqueID(server))
 
 	addrs := s.getDCAddrs(server.Datacenter)
 	for _, resolver := range s.resolvers {

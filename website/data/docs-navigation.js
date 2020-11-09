@@ -40,6 +40,11 @@ export default [
       { title: 'Kubernetes', href: '/docs/k8s' },
     ],
   },
+
+  { title: 'API', href: '/api-docs' },
+
+  { title: 'Commands (CLI)', href: '/commands' },
+
   {
     category: 'discovery',
     name: 'Service Discovery',
@@ -60,7 +65,11 @@ export default [
         content: ['service-registration', 'sidecar-service'],
       },
       'intentions',
-      'observability',
+      'intentions-legacy',
+      {
+        category: 'observability',
+        content: ['ui-visualization'],
+      },
       {
         category: 'l7-traffic',
         content: ['discovery-chain'],
@@ -155,6 +164,7 @@ export default [
         ],
       },
       'service-sync',
+      'crds',
       'dns',
       {
         category: 'upgrade',
@@ -164,6 +174,22 @@ export default [
       'helm',
     ],
   },
+
+  {
+    category: 'nia',
+    content: [
+      {
+        category: 'installation',
+        name: 'Get Started',
+        content: ['install', 'requirements', 'configuration', 'run'],
+      },
+      'architecture',
+      'cli',
+      'tasks',
+      'network-drivers',
+    ],
+  },
+
   {
     category: 'dynamic-app-config',
     name: 'Dynamic App Configuration',
@@ -179,6 +205,7 @@ export default [
           'ingress-gateway',
           'proxy-defaults',
           'service-defaults',
+          'service-intentions',
           'service-resolver',
           'service-router',
           'service-splitter',
@@ -231,6 +258,7 @@ export default [
     name: 'Integrations',
     content: [
       'partnerships',
+      'nia-integration',
       {
         title: 'Vault Integration',
         href: '/docs/connect/ca/vault',

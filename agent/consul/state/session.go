@@ -301,7 +301,7 @@ func (s *Store) SessionDestroy(idx uint64, sessionID string, entMeta *structs.En
 
 // deleteSessionTxn is the inner method, which is used to do the actual
 // session deletion and handle session invalidation, etc.
-func (s *Store) deleteSessionTxn(tx *txn, idx uint64, sessionID string, entMeta *structs.EnterpriseMeta) error {
+func (s *Store) deleteSessionTxn(tx WriteTxn, idx uint64, sessionID string, entMeta *structs.EnterpriseMeta) error {
 	// Look up the session.
 	sess, err := firstWithTxn(tx, "sessions", "id", sessionID, entMeta)
 	if err != nil {

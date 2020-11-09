@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -27,7 +28,7 @@ func (s *HTTPHandlers) IntentionEndpoint(resp http.ResponseWriter, req *http.Req
 func (s *HTTPHandlers) IntentionList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Method is tested in IntentionEndpoint
 
-	var args structs.DCSpecificRequest
+	var args structs.IntentionListRequest
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
@@ -124,27 +125,55 @@ func (s *HTTPHandlers) IntentionMatch(resp http.ResponseWriter, req *http.Reques
 	// order of the returned responses.
 	args.Match.Entries = make([]structs.IntentionMatchEntry, len(names))
 	for i, n := range names {
-		entry, err := parseIntentionMatchEntry(n, &entMeta)
+		ns, name, err := parseIntentionStringComponent(n, &entMeta)
 		if err != nil {
 			return nil, fmt.Errorf("name %q is invalid: %s", n, err)
 		}
 
-		args.Match.Entries[i] = entry
+		args.Match.Entries[i] = structs.IntentionMatchEntry{
+			Namespace: ns,
+			Name:      name,
+		}
 	}
 
-	var reply structs.IndexedIntentionMatches
-	if err := s.agent.RPC("Intention.Match", args, &reply); err != nil {
-		return nil, err
+	// Make the RPC request
+	var out structs.IndexedIntentionMatches
+	defer setMeta(resp, &out.QueryMeta)
+
+	if s.agent.config.HTTPUseCache && args.QueryOptions.UseCache {
+		raw, m, err := s.agent.cache.Get(req.Context(), cachetype.IntentionMatchName, args)
+		if err != nil {
+			return nil, err
+		}
+		defer setCacheMeta(resp, &m)
+
+		reply, ok := raw.(*structs.IndexedIntentionMatches)
+		if !ok {
+			// This should never happen, but we want to protect against panics
+			return nil, fmt.Errorf("internal error: response type not correct")
+		}
+		out = *reply
+	} else {
+	RETRY_ONCE:
+		if err := s.agent.RPC("Intention.Match", args, &out); err != nil {
+			return nil, err
+		}
+		if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
+			args.AllowStale = false
+			args.MaxStaleDuration = 0
+			goto RETRY_ONCE
+		}
 	}
+	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
 
 	// We must have an identical count of matches
-	if len(reply.Matches) != len(names) {
+	if len(out.Matches) != len(names) {
 		return nil, fmt.Errorf("internal error: match response count didn't match input count")
 	}
 
 	// Use empty list instead of nil.
 	response := make(map[string]structs.Intentions)
-	for i, ixns := range reply.Matches {
+	for i, ixns := range out.Matches {
 		response[names[i]] = ixns
 	}
 
@@ -185,21 +214,21 @@ func (s *HTTPHandlers) IntentionCheck(resp http.ResponseWriter, req *http.Reques
 	// We parse them the same way as matches to extract namespace/name
 	args.Check.SourceName = source[0]
 	if args.Check.SourceType == structs.IntentionSourceConsul {
-		entry, err := parseIntentionMatchEntry(source[0], &entMeta)
+		ns, name, err := parseIntentionStringComponent(source[0], &entMeta)
 		if err != nil {
 			return nil, fmt.Errorf("source %q is invalid: %s", source[0], err)
 		}
-		args.Check.SourceNS = entry.Namespace
-		args.Check.SourceName = entry.Name
+		args.Check.SourceNS = ns
+		args.Check.SourceName = name
 	}
 
 	// The destination is always in the Consul format
-	entry, err := parseIntentionMatchEntry(destination[0], &entMeta)
+	ns, name, err := parseIntentionStringComponent(destination[0], &entMeta)
 	if err != nil {
 		return nil, fmt.Errorf("destination %q is invalid: %s", destination[0], err)
 	}
-	args.Check.DestinationNS = entry.Namespace
-	args.Check.DestinationName = entry.Name
+	args.Check.DestinationNS = ns
+	args.Check.DestinationName = name
 
 	var reply structs.IntentionQueryCheckResponse
 	if err := s.agent.RPC("Intention.Check", args, &reply); err != nil {
@@ -236,21 +265,21 @@ func (s *HTTPHandlers) IntentionGetExact(resp http.ResponseWriter, req *http.Req
 	}
 
 	{
-		entry, err := parseIntentionMatchEntry(source[0], &entMeta)
+		ns, name, err := parseIntentionStringComponent(source[0], &entMeta)
 		if err != nil {
 			return nil, fmt.Errorf("source %q is invalid: %s", source[0], err)
 		}
-		args.Exact.SourceNS = entry.Namespace
-		args.Exact.SourceName = entry.Name
+		args.Exact.SourceNS = ns
+		args.Exact.SourceName = name
 	}
 
 	{
-		entry, err := parseIntentionMatchEntry(destination[0], &entMeta)
+		ns, name, err := parseIntentionStringComponent(destination[0], &entMeta)
 		if err != nil {
 			return nil, fmt.Errorf("destination %q is invalid: %s", destination[0], err)
 		}
-		args.Exact.DestinationNS = entry.Namespace
-		args.Exact.DestinationName = entry.Name
+		args.Exact.DestinationNS = ns
+		args.Exact.DestinationName = name
 	}
 
 	var reply structs.IndexedIntentions
@@ -281,6 +310,20 @@ func (s *HTTPHandlers) IntentionGetExact(resp http.ResponseWriter, req *http.Req
 	}
 
 	return reply.Intentions[0], nil
+}
+
+// IntentionExact handles the endpoint for /v1/connect/intentions/exact
+func (s *HTTPHandlers) IntentionExact(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	switch req.Method {
+	case "GET":
+		return s.IntentionGetExact(resp, req)
+	case "PUT":
+		return s.IntentionPutExact(resp, req)
+	case "DELETE":
+		return s.IntentionDeleteExact(resp, req)
+	default:
+		return nil, MethodNotAllowedError{req.Method, []string{"GET", "PUT", "DELETE"}}
+	}
 }
 
 // IntentionSpecific handles the endpoint for /v1/connect/intentions/:id
@@ -376,6 +419,46 @@ func (s *HTTPHandlers) IntentionSpecificUpdate(id string, resp http.ResponseWrit
 
 }
 
+// PUT /v1/connect/intentions/exact
+func (s *HTTPHandlers) IntentionPutExact(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	var entMeta structs.EnterpriseMeta
+	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
+		return nil, err
+	}
+
+	exact, err := parseIntentionQueryExact(req, &entMeta)
+	if err != nil {
+		return nil, err
+	}
+
+	args := structs.IntentionRequest{
+		Op: structs.IntentionOpUpsert,
+	}
+	s.parseDC(req, &args.Datacenter)
+	s.parseToken(req, &args.Token)
+	if err := decodeBody(req.Body, &args.Intention); err != nil {
+		return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
+	}
+
+	// Explicitly CLEAR the old legacy ID field
+	args.Intention.ID = ""
+
+	// Use the intention identity from the URL.
+	args.Intention.SourceNS = exact.SourceNS
+	args.Intention.SourceName = exact.SourceName
+	args.Intention.DestinationNS = exact.DestinationNS
+	args.Intention.DestinationName = exact.DestinationName
+
+	args.Intention.FillNonDefaultNamespaces(&entMeta)
+
+	var ignored string
+	if err := s.agent.RPC("Intention.Apply", &args, &ignored); err != nil {
+		return nil, err
+	}
+
+	return true, nil
+}
+
 // DELETE /v1/connect/intentions/:id
 func (s *HTTPHandlers) IntentionSpecificDelete(id string, resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Method is tested in IntentionEndpoint
@@ -395,28 +478,91 @@ func (s *HTTPHandlers) IntentionSpecificDelete(id string, resp http.ResponseWrit
 	return true, nil
 }
 
+// DELETE /v1/connect/intentions/exact
+func (s *HTTPHandlers) IntentionDeleteExact(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	var entMeta structs.EnterpriseMeta
+	if err := s.parseEntMetaNoWildcard(req, &entMeta); err != nil {
+		return nil, err
+	}
+
+	exact, err := parseIntentionQueryExact(req, &entMeta)
+	if err != nil {
+		return nil, err
+	}
+
+	args := structs.IntentionRequest{
+		Op: structs.IntentionOpDelete,
+		Intention: &structs.Intention{
+			// NOTE: ID is explicitly empty here
+			SourceNS:        exact.SourceNS,
+			SourceName:      exact.SourceName,
+			DestinationNS:   exact.DestinationNS,
+			DestinationName: exact.DestinationName,
+		},
+	}
+	s.parseDC(req, &args.Datacenter)
+	s.parseToken(req, &args.Token)
+
+	var ignored string
+	if err := s.agent.RPC("Intention.Apply", &args, &ignored); err != nil {
+		return nil, err
+	}
+
+	return true, nil
+}
+
 // intentionCreateResponse is the response structure for creating an intention.
 type intentionCreateResponse struct{ ID string }
 
-// parseIntentionMatchEntry parses the query parameter for an intention
-// match query entry.
-func parseIntentionMatchEntry(input string, entMeta *structs.EnterpriseMeta) (structs.IntentionMatchEntry, error) {
-	var result structs.IntentionMatchEntry
-	result.Namespace = entMeta.NamespaceOrEmpty()
+func parseIntentionQueryExact(req *http.Request, entMeta *structs.EnterpriseMeta) (*structs.IntentionQueryExact, error) {
+	q := req.URL.Query()
 
+	// Extract the source/destination
+	source, ok := q["source"]
+	if !ok || len(source) != 1 || source[0] == "" {
+		return nil, fmt.Errorf("required query parameter 'source' not set")
+	}
+	destination, ok := q["destination"]
+	if !ok || len(destination) != 1 || destination[0] == "" {
+		return nil, fmt.Errorf("required query parameter 'destination' not set")
+	}
+
+	var exact structs.IntentionQueryExact
+	{
+		ns, name, err := parseIntentionStringComponent(source[0], entMeta)
+		if err != nil {
+			return nil, fmt.Errorf("source %q is invalid: %s", source[0], err)
+		}
+		exact.SourceNS = ns
+		exact.SourceName = name
+	}
+
+	{
+		ns, name, err := parseIntentionStringComponent(destination[0], entMeta)
+		if err != nil {
+			return nil, fmt.Errorf("destination %q is invalid: %s", destination[0], err)
+		}
+		exact.DestinationNS = ns
+		exact.DestinationName = name
+	}
+
+	return &exact, nil
+}
+
+func parseIntentionStringComponent(input string, entMeta *structs.EnterpriseMeta) (string, string, error) {
 	// Get the index to the '/'. If it doesn't exist, we have just a name
 	// so just set that and return.
 	idx := strings.IndexByte(input, '/')
 	if idx == -1 {
-		result.Name = input
-		return result, nil
+		ns := entMeta.NamespaceOrEmpty()
+		return ns, input, nil
 	}
 
-	result.Namespace = input[:idx]
-	result.Name = input[idx+1:]
-	if strings.IndexByte(result.Name, '/') != -1 {
-		return result, fmt.Errorf("input can contain at most one '/'")
+	ns, name := input[:idx], input[idx+1:]
+
+	if strings.IndexByte(name, '/') != -1 {
+		return "", "", fmt.Errorf("input can contain at most one '/'")
 	}
 
-	return result, nil
+	return ns, name, nil
 }

@@ -105,3 +105,21 @@ func TestAPI_OperatorAutopilotServerHealth(t *testing.T) {
 		}
 	})
 }
+
+func TestAPI_OperatorAutopilotState(t *testing.T) {
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	operator := c.Operator()
+	retry.Run(t, func(r *retry.R) {
+		out, err := operator.AutopilotState(nil)
+		if err != nil {
+			r.Fatalf("err: %v", err)
+		}
+
+		srv, ok := out.Servers[s.Config.NodeID]
+		if !ok || !srv.Healthy || srv.Name != s.Config.NodeName {
+			r.Fatalf("bad: %v", out)
+		}
+	})
+}

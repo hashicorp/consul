@@ -5,10 +5,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/stretchr/testify/require"
 )
 
 func TestStore_IntegrationWithEventPublisher_ACLTokenUpdate(t *testing.T) {
@@ -28,7 +29,8 @@ func TestStore_IntegrationWithEventPublisher_ACLTokenUpdate(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	publisher := stream.NewEventPublisher(ctx, newTestSnapshotHandlers(s), 0)
+	publisher := stream.NewEventPublisher(newTestSnapshotHandlers(s), 0)
+	go publisher.Run(ctx)
 	s.db.publisher = publisher
 	sub, err := publisher.Subscribe(subscription)
 	require.NoError(err)
@@ -62,7 +64,7 @@ func TestStore_IntegrationWithEventPublisher_ACLTokenUpdate(t *testing.T) {
 
 	// Ensure the reset event was sent.
 	err = assertErr(t, eventCh)
-	require.Equal(stream.ErrSubscriptionClosed, err)
+	require.Equal(stream.ErrSubForceClosed, err)
 
 	// Register another subscription.
 	subscription2 := &stream.SubscribeRequest{
@@ -91,7 +93,7 @@ func TestStore_IntegrationWithEventPublisher_ACLTokenUpdate(t *testing.T) {
 
 	// Ensure the reset event was sent.
 	err = assertErr(t, eventCh2)
-	require.Equal(stream.ErrSubscriptionClosed, err)
+	require.Equal(stream.ErrSubForceClosed, err)
 }
 
 func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
@@ -111,7 +113,8 @@ func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	publisher := stream.NewEventPublisher(ctx, newTestSnapshotHandlers(s), 0)
+	publisher := stream.NewEventPublisher(newTestSnapshotHandlers(s), 0)
+	go publisher.Run(ctx)
 	s.db.publisher = publisher
 	sub, err := publisher.Subscribe(subscription)
 	require.NoError(err)
@@ -159,6 +162,7 @@ func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
 	}
 	sub, err = publisher.Subscribe(subscription2)
 	require.NoError(err)
+	defer sub.Unsubscribe()
 
 	eventCh = testRunSub(sub)
 
@@ -177,7 +181,7 @@ func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
 
 	// Ensure the reload event was sent.
 	err = assertErr(t, eventCh)
-	require.Equal(stream.ErrSubscriptionClosed, err)
+	require.Equal(stream.ErrSubForceClosed, err)
 
 	// Register another subscription.
 	subscription3 := &stream.SubscribeRequest{
@@ -227,7 +231,8 @@ func TestStore_IntegrationWithEventPublisher_ACLRoleUpdate(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	publisher := stream.NewEventPublisher(ctx, newTestSnapshotHandlers(s), 0)
+	publisher := stream.NewEventPublisher(newTestSnapshotHandlers(s), 0)
+	go publisher.Run(ctx)
 	s.db.publisher = publisher
 	sub, err := publisher.Subscribe(subscription)
 	require.NoError(err)
@@ -291,8 +296,8 @@ func TestStore_IntegrationWithEventPublisher_ACLRoleUpdate(t *testing.T) {
 }
 
 type nextResult struct {
-	Events []stream.Event
-	Err    error
+	Event stream.Event
+	Err   error
 }
 
 func testRunSub(sub *stream.Subscription) <-chan nextResult {
@@ -301,8 +306,8 @@ func testRunSub(sub *stream.Subscription) <-chan nextResult {
 		for {
 			es, err := sub.Next(context.TODO())
 			eventCh <- nextResult{
-				Events: es,
-				Err:    err,
+				Event: es,
+				Err:   err,
 			}
 			if err != nil {
 				return
@@ -317,8 +322,8 @@ func assertNoEvent(t *testing.T, eventCh <-chan nextResult) {
 	select {
 	case next := <-eventCh:
 		require.NoError(t, next.Err)
-		require.Len(t, next.Events, 1)
-		t.Fatalf("got unwanted event: %#v", next.Events[0].Payload)
+		require.Len(t, next.Event, 1)
+		t.Fatalf("got unwanted event: %#v", next.Event.Payload)
 	case <-time.After(100 * time.Millisecond):
 	}
 }
@@ -328,8 +333,7 @@ func assertEvent(t *testing.T, eventCh <-chan nextResult) *stream.Event {
 	select {
 	case next := <-eventCh:
 		require.NoError(t, next.Err)
-		require.Len(t, next.Events, 1)
-		return &next.Events[0]
+		return &next.Event
 	case <-time.After(100 * time.Millisecond):
 		t.Fatalf("no event after 100ms")
 	}
@@ -359,12 +363,12 @@ func assertReset(t *testing.T, eventCh <-chan nextResult, allowEOS bool) {
 		select {
 		case next := <-eventCh:
 			if allowEOS {
-				if next.Err == nil && len(next.Events) == 1 && next.Events[0].IsEndOfSnapshot() {
+				if next.Err == nil && next.Event.IsEndOfSnapshot() {
 					continue
 				}
 			}
 			require.Error(t, next.Err)
-			require.Equal(t, stream.ErrSubscriptionClosed, next.Err)
+			require.Equal(t, stream.ErrSubForceClosed, next.Err)
 			return
 		case <-time.After(100 * time.Millisecond):
 			t.Fatalf("no err after 100ms")
@@ -372,7 +376,13 @@ func assertReset(t *testing.T, eventCh <-chan nextResult, allowEOS bool) {
 	}
 }
 
-var topicService stream.Topic = topic("test-topic-service")
+type topic string
+
+func (t topic) String() string {
+	return string(t)
+}
+
+var topicService topic = "test-topic-service"
 
 func newTestSnapshotHandlers(s *Store) stream.SnapshotHandlers {
 	return stream.SnapshotHandlers{
@@ -385,15 +395,23 @@ func newTestSnapshotHandlers(s *Store) stream.SnapshotHandlers {
 			for _, node := range nodes {
 				event := stream.Event{
 					Topic:   req.Topic,
-					Key:     req.Key,
 					Index:   node.ModifyIndex,
-					Payload: node,
+					Payload: nodePayload{node: node, key: req.Key},
 				}
 				snap.Append([]stream.Event{event})
 			}
 			return idx, nil
 		},
 	}
+}
+
+type nodePayload struct {
+	key  string
+	node *structs.ServiceNode
+}
+
+func (p nodePayload) FilterByKey(key, _ string) bool {
+	return p.key == key
 }
 
 func createTokenAndWaitForACLEventPublish(t *testing.T, s *Store) *structs.ACLToken {
@@ -427,7 +445,9 @@ func createTokenAndWaitForACLEventPublish(t *testing.T, s *Store) *structs.ACLTo
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	publisher := stream.NewEventPublisher(ctx, newTestSnapshotHandlers(s), 0)
+	publisher := stream.NewEventPublisher(newTestSnapshotHandlers(s), 0)
+	go publisher.Run(ctx)
+
 	s.db.publisher = publisher
 	sub, err := publisher.Subscribe(req)
 	require.NoError(t, err)
