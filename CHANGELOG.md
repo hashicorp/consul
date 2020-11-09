@@ -1,5 +1,23 @@
 ## UNRELEASED
 
+BREAKING CHANGES:
+
+* connect: Switch the default gateway port from 443 to 8443 to avoid assumption of Envoy running as root. [[GH-9113](https://github.com/hashicorp/consul/issues/9113)]
+* raft: Raft protocol v3 is no longer supported. If currently using protocol v2 then an intermediate upgrade to a version supporting both protocols will be necessary (1.0.0 - 1.8.x) [[GH-9103](https://github.com/hashicorp/consul/issues/9103)]
+
+FEATURES:
+
+* autopilot: A new `/v1/operator/autopilot/state` HTTP API was created to give greater visibility into what autopilot is doing and how it has classified all the servers it is tracking. [[GH-9103](https://github.com/hashicorp/consul/issues/9103)]
+
+IMPROVEMENTS:
+
+* autopilot: **(Enterprise Only)** Autopilot now supports using both Redundancy Zones and Automated Upgrades together. [[GH-9103](https://github.com/hashicorp/consul/issues/9103)]
+* chore: update to Go 1.14.11 with mitigation for [golang/go#42138](https://github.com/golang/go/issues/42138) [[GH-9119](https://github.com/hashicorp/consul/issues/9119)]
+
+BUG FIXES:
+
+* autopilot: **(Enterprise Only)** Previously servers in other zones would not be promoted when all servers in a second zone had failed. Now the actual behavior matches the docs and autopilot will promote a healthy non-voter from any zone to replace failure of an entire zone. [[GH-9103](https://github.com/hashicorp/consul/issues/9103)]
+
 ## 1.9.0-beta2 (November 07, 2020)
 
 BREAKING CHANGES:
