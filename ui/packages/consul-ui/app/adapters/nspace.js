@@ -2,16 +2,17 @@ import Adapter from './application';
 import { SLUG_KEY } from 'consul-ui/models/nspace';
 
 // namespaces aren't categorized by datacenter, therefore no dc
-export default Adapter.extend({
-  requestForQuery: function(request, { index, uri }) {
+export default class NspaceAdapter extends Adapter {
+  requestForQuery(request, { index, uri }) {
     return request`
       GET /v1/namespaces
       X-Request-ID: ${uri}
 
       ${{ index }}
     `;
-  },
-  requestForQueryRecord: function(request, { index, id }) {
+  }
+
+  requestForQueryRecord(request, { index, id }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an name');
     }
@@ -20,8 +21,9 @@ export default Adapter.extend({
 
       ${{ index }}
     `;
-  },
-  requestForCreateRecord: function(request, serialized, data) {
+  }
+
+  requestForCreateRecord(request, serialized, data) {
     return request`
       PUT /v1/namespace/${data[SLUG_KEY]}
 
@@ -34,8 +36,9 @@ export default Adapter.extend({
         },
       }}
     `;
-  },
-  requestForUpdateRecord: function(request, serialized, data) {
+  }
+
+  requestForUpdateRecord(request, serialized, data) {
     return request`
       PUT /v1/namespace/${data[SLUG_KEY]}
 
@@ -47,13 +50,15 @@ export default Adapter.extend({
         },
       }}
     `;
-  },
-  requestForDeleteRecord: function(request, serialized, data) {
+  }
+
+  requestForDeleteRecord(request, serialized, data) {
     return request`
       DELETE /v1/namespace/${data[SLUG_KEY]}
     `;
-  },
-  requestForAuthorize: function(request, { dc, ns, index }) {
+  }
+
+  requestForAuthorize(request, { dc, ns, index }) {
     return request`
       POST /v1/internal/acl/authorize?${{ dc, ns, index }}
 
@@ -64,8 +69,9 @@ export default Adapter.extend({
         },
       ]}
     `;
-  },
-  authorize: function(store, type, id, snapshot) {
+  }
+
+  authorize(store, type, id, snapshot) {
     return this.rpc(
       function(adapter, request, serialized, unserialized) {
         return adapter.requestForAuthorize(request, serialized, unserialized);
@@ -79,5 +85,5 @@ export default Adapter.extend({
       snapshot,
       type.modelName
     );
-  },
-});
+  }
+}
