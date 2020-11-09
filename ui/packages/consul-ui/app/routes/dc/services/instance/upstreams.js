@@ -7,9 +7,10 @@ export default class UpstreamsRoute extends Route {
       .slice(0, -1)
       .join('.');
     return this.modelFor(parent);
-  },
-  setupController: function(controller, model) {
-    this._super(...arguments);
+  }
+
+  setupController(controller, model) {
+    super.setupController(...arguments);
     controller.setProperties(model);
   }
 }
