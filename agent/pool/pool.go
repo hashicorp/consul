@@ -462,7 +462,7 @@ func (p *ConnPool) rpc(dc string, addr net.Addr, version int, method string, arg
 	useTLS := p.TLSConfigurator.UseTLS(dc)
 	conn, sc, err := p.getClient(dc, addr, version, useTLS)
 	if err != nil {
-		return fmt.Errorf("rpc error getting client: %v", err)
+		return fmt.Errorf("rpc error getting client: %w", err)
 	}
 
 	// Make the RPC call
@@ -479,7 +479,7 @@ func (p *ConnPool) rpc(dc string, addr net.Addr, version int, method string, arg
 		}
 
 		p.releaseConn(conn)
-		return fmt.Errorf("rpc error making call: %v", err)
+		return fmt.Errorf("rpc error making call: %w", err)
 	}
 
 	// Done with the connection
