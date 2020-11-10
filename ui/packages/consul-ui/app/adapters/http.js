@@ -1,7 +1,6 @@
 import { inject as service } from '@ember/service';
 import Adapter from '@ember-data/adapter';
-import {
-  AdapterError,
+import AdapterError, {
   AbortError,
   TimeoutError,
   ServerError,
