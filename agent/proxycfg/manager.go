@@ -4,11 +4,12 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/tlsutil"
-	"github.com/hashicorp/go-hclog"
 )
 
 var (
@@ -70,6 +71,9 @@ type ManagerConfig struct {
 	// logger is the agent's logger to be used for logging logs.
 	Logger          hclog.Logger
 	TLSConfigurator *tlsutil.Configurator
+
+	// TODO: replace this field with a type that exposes Notify
+	ServiceHealthCacheName string
 
 	// IntentionDefaultAllow is set by the agent so that we can pass this
 	// information to proxies that need to make intention decisions on their
@@ -187,7 +191,7 @@ func (m *Manager) ensureProxyServiceLocked(ns *structs.NodeService, token string
 	}
 
 	var err error
-	state, err = newState(ns, token)
+	state, err = newState(ns, token, m.ManagerConfig.ServiceHealthCacheName)
 	if err != nil {
 		return err
 	}

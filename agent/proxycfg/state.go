@@ -9,13 +9,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
+	"github.com/mitchellh/copystructure"
+	"github.com/mitchellh/mapstructure"
+
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/go-hclog"
-	"github.com/mitchellh/copystructure"
-	"github.com/mitchellh/mapstructure"
 )
 
 type CacheNotifier interface {
@@ -72,6 +73,9 @@ type state struct {
 	proxyCfg        structs.ConnectProxyConfig
 	token           string
 
+	// TODO: replace this field with a type that exposes Notify
+	serviceHealthCacheName string
+
 	ch     chan cache.UpdateEvent
 	snapCh chan ConfigSnapshot
 	reqCh  chan chan *ConfigSnapshot
@@ -120,7 +124,7 @@ func copyProxyConfig(ns *structs.NodeService) (structs.ConnectProxyConfig, error
 //
 // The returned state needs its required dependencies to be set before Watch
 // can be called.
-func newState(ns *structs.NodeService, token string) (*state, error) {
+func newState(ns *structs.NodeService, token string, serviceHealthCacheName string) (*state, error) {
 	switch ns.Kind {
 	case structs.ServiceKindConnectProxy:
 	case structs.ServiceKindTerminatingGateway:
@@ -155,6 +159,8 @@ func newState(ns *structs.NodeService, token string) (*state, error) {
 		taggedAddresses: taggedAddresses,
 		proxyCfg:        proxyCfg,
 		token:           token,
+
+		serviceHealthCacheName: serviceHealthCacheName,
 		// 10 is fairly arbitrary here but allow for the 3 mandatory and a
 		// reasonable number of upstream watches to all deliver their initial
 		// messages in parallel without blocking the cache.Notify loops. It's not a
@@ -225,7 +231,7 @@ func (s *state) watchConnectProxyService(ctx context.Context, correlationId stri
 	var finalMeta structs.EnterpriseMeta
 	finalMeta.Merge(entMeta)
 
-	return s.cache.Notify(ctx, cachetype.HealthServicesName, &structs.ServiceSpecificRequest{
+	return s.cache.Notify(ctx, s.serviceHealthCacheName, &structs.ServiceSpecificRequest{
 		Datacenter: dc,
 		QueryOptions: structs.QueryOptions{
 			Token:  s.token,
@@ -443,7 +449,7 @@ func (s *state) initWatchesMeshGateway() error {
 			return err
 		}
 
-		err = s.cache.Notify(s.ctx, cachetype.HealthServicesName, &structs.ServiceSpecificRequest{
+		err = s.cache.Notify(s.ctx, s.serviceHealthCacheName, &structs.ServiceSpecificRequest{
 			Datacenter:   s.source.Datacenter,
 			QueryOptions: structs.QueryOptions{Token: s.token},
 			ServiceName:  structs.ConsulServiceName,
@@ -969,7 +975,7 @@ func (s *state) handleUpdateTerminatingGateway(u cache.UpdateEvent, snap *Config
 			// Watch the health endpoint to discover endpoints for the service
 			if _, ok := snap.TerminatingGateway.WatchedServices[svc.Service]; !ok {
 				ctx, cancel := context.WithCancel(s.ctx)
-				err := s.cache.Notify(ctx, cachetype.HealthServicesName, &structs.ServiceSpecificRequest{
+				err := s.cache.Notify(ctx, s.serviceHealthCacheName, &structs.ServiceSpecificRequest{
 					Datacenter:     s.source.Datacenter,
 					QueryOptions:   structs.QueryOptions{Token: s.token},
 					ServiceName:    svc.Service.Name,
@@ -1267,7 +1273,7 @@ func (s *state) handleUpdateMeshGateway(u cache.UpdateEvent, snap *ConfigSnapsho
 
 			if _, ok := snap.MeshGateway.WatchedServices[svc]; !ok {
 				ctx, cancel := context.WithCancel(s.ctx)
-				err := s.cache.Notify(ctx, cachetype.HealthServicesName, &structs.ServiceSpecificRequest{
+				err := s.cache.Notify(ctx, s.serviceHealthCacheName, &structs.ServiceSpecificRequest{
 					Datacenter:     s.source.Datacenter,
 					QueryOptions:   structs.QueryOptions{Token: s.token},
 					ServiceName:    svc.Name,

@@ -6,12 +6,13 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/stretchr/testify/require"
 )
 
 func TestStateChanged(t *testing.T) {
@@ -111,7 +112,7 @@ func TestStateChanged(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			require := require.New(t)
-			state, err := newState(tt.ns, tt.token)
+			state, err := newState(tt.ns, tt.token, cachetype.HealthServicesName)
 			require.NoError(err)
 			otherNS, otherToken := tt.mutate(*tt.ns, tt.token)
 			require.Equal(tt.want, state.Changed(otherNS, otherToken))
@@ -1509,7 +1510,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			state, err := newState(&tc.ns, "")
+			state, err := newState(&tc.ns, "", cachetype.HealthServicesName)
 
 			// verify building the initial state worked
 			require.NoError(t, err)
