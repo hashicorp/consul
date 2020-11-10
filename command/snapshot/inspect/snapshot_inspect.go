@@ -145,7 +145,8 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	//Restructures stats given above to be human readable
-	formattedStats, formattedStatsKV := generateStats(info)
+	formattedStats := generateStats(info)
+	formattedStatsKV := generateKVStats(info)
 
 	in := &OutputFormat{
 		Meta:        metaformat,
@@ -171,7 +172,7 @@ type typeStats struct {
 	Count int
 }
 
-func generateStats(info SnapshotInfo) ([]typeStats, []typeStats) {
+func generateStats(info SnapshotInfo) []typeStats {
 	ss := make([]typeStats, 0, len(info.Stats))
 
 	for _, s := range info.Stats {
@@ -180,6 +181,10 @@ func generateStats(info SnapshotInfo) ([]typeStats, []typeStats) {
 
 	ss = sortTypeStats(ss)
 
+	return ss
+}
+
+func generateKVStats(info SnapshotInfo) []typeStats {
 	if len(info.StatsKV) > 0 {
 		ks := make([]typeStats, 0, len(info.StatsKV))
 
@@ -189,10 +194,10 @@ func generateStats(info SnapshotInfo) ([]typeStats, []typeStats) {
 
 		ks = sortTypeStats(ks)
 
-		return ss, ks
+		return ks
 	}
 
-	return ss, nil
+	return nil
 }
 
 // Sort the stat slice
