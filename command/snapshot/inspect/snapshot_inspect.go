@@ -103,20 +103,6 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	// automatically set kvDetails to true if a depth or filter
-	// is provided. this allows the user to omit the -kvdetails
-	// flag if they prefer.
-	if c.kvDepth != 0 || c.kvFilter != "" {
-		c.kvDetails = true
-	}
-
-	// set the default depth if one wasn't specified with -kvdepth.
-	// this is used rather than the flag default to facilitate the
-	// above shortcut.
-	if c.kvDetails && c.kvDepth == 0 {
-		c.kvDepth = 2
-	}
-
 	// Open the file.
 	f, err := os.Open(file)
 	if err != nil {
@@ -284,6 +270,20 @@ func (c *cmd) enhance(file io.Reader) (SnapshotInfo, error) {
 }
 
 func (c *cmd) kvEnhance(keyType string, val interface{}, size int, info *SnapshotInfo) {
+	// automatically set kvDetails to true if a depth or filter
+	// is provided. this allows the user to omit the -kvdetails
+	// flag if they prefer.
+	if c.kvDepth != 0 || c.kvFilter != "" {
+		c.kvDetails = true
+	}
+
+	// set the default depth if one wasn't specified with -kvdepth.
+	// this is used rather than the flag default to facilitate the
+	// above shortcut.
+	if c.kvDetails && c.kvDepth == 0 {
+		c.kvDepth = 2
+	}
+
 	if c.kvDetails {
 		if keyType != "KVS" {
 			return
