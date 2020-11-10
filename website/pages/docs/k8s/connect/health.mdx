@@ -43,5 +43,5 @@ be marked `passing` until the pod becomes unready.
 To disable the health check controller, set the configuration for `healthChecks` to `enabled: false`.
 In this state no health checks will be associated with Consul for Kubernetes pods regardless of the pod's health probes.
 
--> It is highly recommended to [enable TLS](/docs/k8s/tls-on-existing-cluster) for all configurations which use healthChecks to mitigate any
+-> It is highly recommended to [enable TLS](/docs/k8s/helm#v-global-tls-enabled) for all configurations which use healthChecks to mitigate any
 security concerns should the pod network ever be compromised.
