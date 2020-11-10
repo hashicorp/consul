@@ -524,9 +524,20 @@ type IntentionRequest struct {
 	// Intention is the intention.
 	Intention *Intention
 
+	// TODO(rb): mutually exclusive with Intention
+	Mutation *IntentionMutation
+
 	// WriteRequest is a common struct containing ACL tokens and other
 	// write-related common elements for requests.
 	WriteRequest
+}
+
+// TODO(rb): raft only
+type IntentionMutation struct {
+	ID          string
+	Destination ServiceName
+	Source      ServiceName
+	Value       *SourceIntention
 }
 
 // RequestDatacenter returns the datacenter for a given request.

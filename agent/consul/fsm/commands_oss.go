@@ -291,6 +291,11 @@ func (c *FSM) applyIntentionOperation(buf []byte, index uint64) interface{} {
 		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
 	defer metrics.MeasureSinceWithLabels([]string{"fsm", "intention"}, time.Now(),
 		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
+
+	if req.Mutation != nil {
+		return c.state.IntentionMutation(index, req.Op, req.Mutation)
+	}
+
 	switch req.Op {
 	case structs.IntentionOpCreate, structs.IntentionOpUpdate:
 		//nolint:staticcheck

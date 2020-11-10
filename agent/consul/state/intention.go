@@ -207,6 +207,294 @@ func (s *Store) legacyIntentionsListTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *
 
 var ErrLegacyIntentionsAreDisabled = errors.New("Legacy intention modifications are disabled after the config entry migration.")
 
+func (s *Store) IntentionMutation(idx uint64, op structs.IntentionOp, mut *structs.IntentionMutation) error {
+	tx := s.db.WriteTxn(idx)
+	defer tx.Abort()
+
+	usingConfigEntries, err := areIntentionsInConfigEntries(tx, nil)
+	if err != nil {
+		return err
+	}
+	if !usingConfigEntries {
+		return ErrLegacyIntentionsAreDisabled
+	}
+
+	switch op {
+	case structs.IntentionOpCreate:
+		if err := s.intentionMutationLegacyCreate(tx, idx, mut.Destination, mut.Value); err != nil {
+			return err
+		}
+	case structs.IntentionOpUpdate:
+		if err := s.intentionMutationLegacyUpdate(tx, idx, mut.ID, mut.Value); err != nil {
+			return err
+		}
+	case structs.IntentionOpDelete:
+		if mut.ID == "" {
+			if err := s.intentionMutationDelete(tx, idx, mut.Destination, mut.Source); err != nil {
+				return err
+			}
+		} else {
+			if err := s.intentionMutationLegacyDelete(tx, idx, mut.ID); err != nil {
+				return err
+			}
+		}
+	case structs.IntentionOpUpsert:
+		if err := s.intentionMutationUpsert(tx, idx, mut.Destination, mut.Source, mut.Value); err != nil {
+			return err
+		}
+	case structs.IntentionOpDeleteAll:
+		// This is an internal operation initiated by the leader and is not
+		// exposed for general RPC use.
+		return fmt.Errorf("Invalid Intention mutation operation '%s'", op)
+	default:
+		return fmt.Errorf("Invalid Intention mutation operation '%s'", op)
+	}
+
+	return tx.Commit()
+}
+
+func (s *Store) intentionMutationLegacyCreate(
+	tx WriteTxn,
+	idx uint64,
+	dest structs.ServiceName,
+	value *structs.SourceIntention,
+) error {
+	idx, configEntry, err := configEntryTxn(tx, nil, structs.ServiceIntentions, dest.Name, &dest.EnterpriseMeta)
+	if err != nil {
+		return fmt.Errorf("service-intentions config entry lookup failed: %v", err)
+	}
+
+	var upsertEntry *structs.ServiceIntentionsConfigEntry
+	if configEntry == nil {
+		upsertEntry = &structs.ServiceIntentionsConfigEntry{
+			Kind:           structs.ServiceIntentions,
+			Name:           dest.Name,
+			EnterpriseMeta: dest.EnterpriseMeta,
+			Sources:        []*structs.SourceIntention{value},
+		}
+	} else {
+		prevEntry := configEntry.(*structs.ServiceIntentionsConfigEntry)
+
+		if err := checkLegacyIntentionApplyAllowed(prevEntry); err != nil {
+			return err
+		}
+
+		upsertEntry = prevEntry.Clone()
+		upsertEntry.Sources = append(upsertEntry.Sources, value)
+	}
+
+	if err := upsertEntry.LegacyNormalize(); err != nil {
+		return err
+	}
+	if err := upsertEntry.LegacyValidate(); err != nil {
+		return err
+	}
+
+	if err := ensureConfigEntryTxn(tx, idx, upsertEntry, upsertEntry.GetEnterpriseMeta()); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Store) intentionMutationLegacyUpdate(
+	tx WriteTxn,
+	idx uint64,
+	legacyID string,
+	value *structs.SourceIntention,
+) error {
+	// This variant is just for legacy UUID-based intentions.
+
+	_, prevEntry, ixn, err := s.IntentionGet(nil, legacyID)
+	if err != nil {
+		return fmt.Errorf("Intention lookup failed: %v", err)
+	}
+	if ixn == nil || prevEntry == nil {
+		return fmt.Errorf("Cannot modify non-existent intention: '%s'", legacyID)
+	}
+
+	if err := checkLegacyIntentionApplyAllowed(prevEntry); err != nil {
+		return err
+	}
+
+	upsertEntry := prevEntry.Clone()
+
+	foundMatch := upsertEntry.UpdateSourceByLegacyID(
+		legacyID,
+		value,
+	)
+	if !foundMatch {
+		return fmt.Errorf("Cannot modify non-existent intention: '%s'", legacyID)
+	}
+
+	if err := upsertEntry.LegacyNormalize(); err != nil {
+		return err
+	}
+	if err := upsertEntry.LegacyValidate(); err != nil {
+		return err
+	}
+
+	if err := ensureConfigEntryTxn(tx, idx, upsertEntry, upsertEntry.GetEnterpriseMeta()); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Store) intentionMutationDelete(
+	tx WriteTxn,
+	idx uint64,
+	dest structs.ServiceName,
+	src structs.ServiceName,
+) error {
+	_, configEntry, err := configEntryTxn(tx, nil, structs.ServiceIntentions, dest.Name, &dest.EnterpriseMeta)
+	if err != nil {
+		return fmt.Errorf("service-intentions config entry lookup failed: %v", err)
+	}
+	if configEntry == nil {
+		return nil
+	}
+
+	prevEntry := configEntry.(*structs.ServiceIntentionsConfigEntry)
+	upsertEntry := prevEntry.Clone()
+
+	deleted := upsertEntry.DeleteSourceByName(src)
+	if !deleted {
+		return nil
+	}
+
+	if upsertEntry == nil || len(upsertEntry.Sources) == 0 {
+		return deleteConfigEntryTxn(
+			tx,
+			idx,
+			structs.ServiceIntentions,
+			dest.Name,
+			&dest.EnterpriseMeta,
+		)
+	}
+
+	if err := upsertEntry.Normalize(); err != nil {
+		return err
+	}
+	if err := upsertEntry.Validate(); err != nil {
+		return err
+	}
+
+	if err := ensureConfigEntryTxn(tx, idx, upsertEntry, upsertEntry.GetEnterpriseMeta()); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Store) intentionMutationLegacyDelete(
+	tx WriteTxn,
+	idx uint64,
+	legacyID string,
+) error {
+	_, prevEntry, ixn, err := s.IntentionGet(nil, legacyID)
+	if err != nil {
+		return fmt.Errorf("Intention lookup failed: %v", err)
+	}
+	if ixn == nil || prevEntry == nil {
+		return fmt.Errorf("Cannot delete non-existent intention: '%s'", legacyID)
+	}
+
+	if err := checkLegacyIntentionApplyAllowed(prevEntry); err != nil {
+		return err
+	}
+
+	upsertEntry := prevEntry.Clone()
+
+	deleted := upsertEntry.DeleteSourceByLegacyID(legacyID)
+	if !deleted {
+		return fmt.Errorf("Cannot delete non-existent intention: '%s'", legacyID)
+	}
+
+	if upsertEntry == nil || len(upsertEntry.Sources) == 0 {
+		return deleteConfigEntryTxn(
+			tx,
+			idx,
+			structs.ServiceIntentions,
+			prevEntry.Name,
+			&prevEntry.EnterpriseMeta,
+		)
+	}
+
+	if err := upsertEntry.LegacyNormalize(); err != nil {
+		return err
+	}
+	if err := upsertEntry.LegacyValidate(); err != nil {
+		return err
+	}
+
+	if err := ensureConfigEntryTxn(tx, idx, upsertEntry, upsertEntry.GetEnterpriseMeta()); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Store) intentionMutationUpsert(
+	tx WriteTxn,
+	idx uint64,
+	dest structs.ServiceName,
+	src structs.ServiceName,
+	value *structs.SourceIntention,
+) error {
+	// This variant is just for config-entry based intentions.
+
+	_, configEntry, err := configEntryTxn(tx, nil, structs.ServiceIntentions, dest.Name, &dest.EnterpriseMeta)
+	if err != nil {
+		return fmt.Errorf("service-intentions config entry lookup failed: %v", err)
+	}
+
+	var prevEntry *structs.ServiceIntentionsConfigEntry
+	if configEntry != nil {
+		prevEntry = configEntry.(*structs.ServiceIntentionsConfigEntry)
+	}
+
+	var upsertEntry *structs.ServiceIntentionsConfigEntry
+
+	if prevEntry == nil {
+		upsertEntry = &structs.ServiceIntentionsConfigEntry{
+			Kind:           structs.ServiceIntentions,
+			Name:           dest.Name,
+			EnterpriseMeta: dest.EnterpriseMeta,
+			Sources:        []*structs.SourceIntention{value},
+		}
+	} else {
+		upsertEntry = prevEntry.Clone()
+
+		upsertEntry.UpsertSourceByName(src, value)
+	}
+
+	if err := upsertEntry.Normalize(); err != nil {
+		return err
+	}
+	if err := upsertEntry.Validate(); err != nil {
+		return err
+	}
+
+	if err := ensureConfigEntryTxn(tx, idx, upsertEntry, upsertEntry.GetEnterpriseMeta()); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func checkLegacyIntentionApplyAllowed(prevEntry *structs.ServiceIntentionsConfigEntry) error {
+	if prevEntry == nil {
+		return nil
+	}
+	if prevEntry.LegacyIDFieldsAreAllSet() {
+		return nil
+	}
+
+	sn := prevEntry.DestinationServiceName()
+	return fmt.Errorf("cannot use legacy intention API to edit intentions with a destination of %q after editing them via a service-intentions config entry", sn.String())
+}
+
 // LegacyIntentionSet creates or updates an intention.
 //
 // Deprecated: Edit service-intentions config entries directly.

@@ -11,7 +11,7 @@ func init() {
 	registerEndpoint(func(s *Server) interface{} { return &FederationState{s} })
 	registerEndpoint(func(s *Server) interface{} { return &DiscoveryChain{s} })
 	registerEndpoint(func(s *Server) interface{} { return &Health{s} })
-	registerEndpoint(func(s *Server) interface{} { return NewIntentionEndpoint(s, s.loggers.Named(logging.Intentions)) })
+	registerEndpoint(func(s *Server) interface{} { return &Intention{s, s.loggers.Named(logging.Intentions)} })
 	registerEndpoint(func(s *Server) interface{} { return &Internal{s, s.loggers.Named(logging.Internal)} })
 	registerEndpoint(func(s *Server) interface{} { return &KVS{s, s.loggers.Named(logging.KV)} })
 	registerEndpoint(func(s *Server) interface{} { return &Operator{s, s.loggers.Named(logging.Operator)} })
