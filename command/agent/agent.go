@@ -11,15 +11,15 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/hashicorp/go-checkpoint"
+	"github.com/hashicorp/go-hclog"
+	"github.com/mitchellh/cli"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/service_os"
-	"github.com/hashicorp/go-checkpoint"
-	"github.com/hashicorp/go-hclog"
-	"github.com/mitchellh/cli"
 )
 
 func New(ui cli.Ui, revision, version, versionPre, versionHuman string, shutdownCh <-chan struct{}) *cmd {
@@ -160,11 +160,10 @@ func (c *cmd) run(args []string) int {
 		return 1
 	}
 
-	logGate := &logging.GatedWriter{Writer: &cli.UiWriter{Ui: c.UI}}
 	loader := func(source config.Source) (cfg *config.RuntimeConfig, warnings []string, err error) {
 		return config.Load(c.flagArgs, source)
 	}
-	bd, err := agent.NewBaseDeps(loader, logGate)
+	bd, err := agent.NewBaseDeps(loader, os.Stdout)
 	if err != nil {
 		c.UI.Error(err.Error())
 		return 1
@@ -206,7 +205,6 @@ func (c *cmd) run(args []string) int {
 	// Enable log streaming
 	cli.output("")
 	cli.output("Log data will now stream in as it occurs:\n")
-	logGate.Flush()
 
 	// wait for signal
 	signalCh := make(chan os.Signal, 10)

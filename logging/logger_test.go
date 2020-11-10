@@ -5,10 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func TestLogger_SetupBasic(t *testing.T) {
@@ -28,7 +31,6 @@ func TestLogger_SetupInvalidLogLevel(t *testing.T) {
 }
 
 func TestLogger_SetupLoggerErrorLevel(t *testing.T) {
-
 	cases := []struct {
 		desc   string
 		before func(*Config)
@@ -127,6 +129,27 @@ func TestLogger_SetupLoggerWithJSON(t *testing.T) {
 	require.Equal(jsonOutput["@level"], "warn")
 	require.Contains(jsonOutput, "@message")
 	require.Equal(jsonOutput["@message"], "test warn msg")
+}
+
+func TestSetup_WithColor(t *testing.T) {
+	tmpDir := testutil.TempDir(t, t.Name())
+	cfg := Config{
+		LogLevel:    "DEBUG",
+		Name:        "test-system",
+		Color:       hclog.ForceColor,
+		LogFilePath: tmpDir + "/consul.log",
+	}
+
+	var buf bytes.Buffer
+	logger, err := Setup(cfg, &buf)
+	require.NoError(t, err)
+	require.NotNil(t, logger)
+
+	msg := "test warn msg"
+	logger.Warn(msg)
+
+	actual := buf.String()
+	require.True(t, strings.HasSuffix(actual, msg+"\n"), actual)
 }
 
 func TestLogger_SetupLoggerWithValidLogPath(t *testing.T) {

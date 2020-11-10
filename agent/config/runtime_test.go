@@ -7668,6 +7668,7 @@ func TestSanitize(t *testing.T) {
 		"LeaveOnTerm": false,
 		"Logging": {
 			"EnableSyslog": false,
+			"Color": 0,
 			"LogLevel": "",
 			"LogJSON": false,
 			"LogFilePath": "",

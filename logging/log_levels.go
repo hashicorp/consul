@@ -6,15 +6,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 )
 
-var (
-	allowedLogLevels = []string{"TRACE", "DEBUG", "INFO", "WARN", "ERR", "ERROR"}
-)
-
-func AllowedLogLevels() []string {
-	var c []string
-	copy(c, allowedLogLevels)
-	return c
-}
+var allowedLogLevels = []string{"TRACE", "DEBUG", "INFO", "WARN", "ERR", "ERROR"}
 
 // ValidateLogLevel verifies that a new log level is valid
 func ValidateLogLevel(minLevel string) bool {

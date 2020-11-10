@@ -27,17 +27,20 @@ type Config struct {
 	// SyslogFacility is the destination for syslog forwarding.
 	SyslogFacility string
 
-	//LogFilePath is the path to write the logs to the user specified file.
+	// LogFilePath is the path to write the logs to the user specified file.
 	LogFilePath string
 
-	//LogRotateDuration is the user specified time to rotate logs
+	// LogRotateDuration is the user specified time to rotate logs
 	LogRotateDuration time.Duration
 
-	//LogRotateBytes is the user specified byte limit to rotate logs
+	// LogRotateBytes is the user specified byte limit to rotate logs
 	LogRotateBytes int
 
-	//LogRotateMaxFiles is the maximum number of past archived log files to keep
+	// LogRotateMaxFiles is the maximum number of past archived log files to keep
 	LogRotateMaxFiles int
+
+	// Color enables colored output of the log level label in the logs.
+	Color hclog.ColorOption
 }
 
 const (
@@ -62,15 +65,19 @@ func Setup(config Config, out io.Writer) (hclog.InterceptLogger, error) {
 			allowedLogLevels)
 	}
 
-	writers := []io.Writer{out}
+	var sinks []hclog.SinkAdapter
 
 	if config.EnableSyslog {
-		retries := 12
-		delay := 5 * time.Second
+		const retries = 12
+		const delay = 5 * time.Second
 		for i := 0; i <= retries; i++ {
 			syslog, err := gsyslog.NewLogger(gsyslog.LOG_NOTICE, config.SyslogFacility, "consul")
 			if err == nil {
-				writers = append(writers, syslog)
+				sinks = append(sinks, hclog.NewSinkAdapter(&hclog.LoggerOptions{
+					Level:  LevelFromString(config.LogLevel),
+					Name:   config.Name,
+					Output: syslog,
+				}))
 				break
 			}
 
@@ -83,7 +90,6 @@ func Setup(config Config, out io.Writer) (hclog.InterceptLogger, error) {
 		}
 	}
 
-	// Create a file logger if the user has specified the path to the log file
 	if config.LogFilePath != "" {
 		dir, fileName := filepath.Split(config.LogFilePath)
 		// If a path is provided but has no fileName a default is provided.
@@ -111,14 +117,23 @@ func Setup(config Config, out io.Writer) (hclog.InterceptLogger, error) {
 		if err := logFile.openNew(); err != nil {
 			return nil, fmt.Errorf("Failed to setup logging: %w", err)
 		}
-		writers = append(writers, logFile)
+		sinks = append(sinks, hclog.NewSinkAdapter(&hclog.LoggerOptions{
+			Level:      LevelFromString(config.LogLevel),
+			Name:       config.Name,
+			Output:     logFile,
+			JSONFormat: config.LogJSON,
+		}))
 	}
 
 	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
 		Level:      LevelFromString(config.LogLevel),
 		Name:       config.Name,
-		Output:     io.MultiWriter(writers...),
+		Output:     out,
 		JSONFormat: config.LogJSON,
+		Color:      config.Color,
 	})
+	for _, sink := range sinks {
+		logger.RegisterSink(sink)
+	}
 	return logger, nil
 }
