@@ -40,8 +40,8 @@ and consider if they're appropriate for your deployment.
     ```
 
   - `imagePullSecrets` ((#v-global-imagepullsecrets)) (`array<map>: [])` - Array of objects containing image pull secret names that will be applied to each service account.
-     This can be used to reference image pull secrets if using a custom consul or consul-k8s Docker image.
-     See [Using A Private Registry](https://kubernetes.io/docs/concepts/containers/images/#using-a-private-registry) for reference.
+    This can be used to reference image pull secrets if using a custom consul or consul-k8s Docker image.
+    See [Using A Private Registry](https://kubernetes.io/docs/concepts/containers/images/#using-a-private-registry) for reference.
 
   - `imageK8S` ((#v-global-imagek8s)) (`string: "hashicorp/consul-k8s:<latest version>"`) - The name (and tag) of the [consul-k8s](https://github.com/hashicorp/consul-k8s) Docker image that is used for functionality such the catalog sync. This can be overridden per component.
 
@@ -263,9 +263,9 @@ and consider if they're appropriate for your deployment.
     # Resources are defined as a YAML map:
     resources:
       requests:
-        memory: "10Gi"
+        memory: '10Gi'
       limits:
-        memory: "10Gi"
+        memory: '10Gi'
     ```
 
   - `updatePartition` ((#v-server-updatepartition)) (`integer: 0`) - This value is used to carefully
@@ -356,11 +356,11 @@ and consider if they're appropriate for your deployment.
 
   - `extraLabels` ((#v-server-extralabels)) (`map`) - Extra labels to attach to the server pods. This should be a YAML map.
 
-     ```yaml
-     extraLabels:
-       labelKey: "label-value"
-       anotherLabelKey: "another-label-value"
-     ```
+    ```yaml
+    extraLabels:
+      labelKey: 'label-value'
+      anotherLabelKey: 'another-label-value'
+    ```
 
   - `annotations` ((#v-server-annotations)) (`string`) - This value defines additional annotations for
     server pods. This should be a formatted as a multi-line string.
@@ -602,7 +602,7 @@ and consider if they're appropriate for your deployment.
     service. This should be a multi-line string of annotations to apply to the DNS service.
 
   - `additionalSpec` ((#v-dns-additionalspec)) (`string: null`) - Additional ServiceSpec values.
-     This should be a multi-line string mapping directly to a Kubernetes ServiceSpec object.
+    This should be a multi-line string mapping directly to a Kubernetes ServiceSpec object.
 
 - `syncCatalog` ((#v-synccatalog)) - Values that configure the [service sync](/docs/k8s/service-sync) process.
 
@@ -690,11 +690,11 @@ and consider if they're appropriate for your deployment.
   - `priorityClassName` ((#v-synccatalog-priorityclassname)) (`string: ""`) - Priority class name setting for sync catalog pods.
 
   - `tolerations` ((#v-synccatalog-tolerations)) (`string: null`) - Tolerations setting for sync catalog pods.
-      This should be a multi-line string matching the Toleration array in a PodSpec.
+    This should be a multi-line string matching the Toleration array in a PodSpec.
 
   - `consulNodeName` ((#v-synccatalog-consulnodename)) (`string: "k8s-sync"`) - Defines the Consul synthetic node that all services will be registered to.
-     NOTE: Changing the node name and upgrading the Helm chart will leave all of the previously sync'd services registered with Consul and
-     register them again under the new Consul node name. The out-of-date registrations will need to be explicitly removed.
+    NOTE: Changing the node name and upgrading the Helm chart will leave all of the previously sync'd services registered with Consul and
+    register them again under the new Consul node name. The out-of-date registrations will need to be explicitly removed.
 
   - `resources` ((#v-synccatalog-resources)) (`map`) - Resource settings for sync catalog pods. See values file for defaults.
 
@@ -747,171 +747,170 @@ and consider if they're appropriate for your deployment.
     to opt-in to Connect injection. If this is true, pods can use the same annotation
     to explicitly opt-out of injection.
 
+* `healthChecks` ((#v-connectinject-healthchecks)) - Synchronization of Kubernetes health probes status with Consul.
 
-  - `healthChecks` ((#v-connectinject-healthchecks)) - Synchronization of Kubernetes health probes with Consul.
+  - `enabled` ((#v-connectinject-healthchecks-enabled)) (`boolean: true`) - Enables the Consul health check controller which syncs the readiness status of connect-injected pods with Consul.
 
-    - `enabled` ((#v-connectinject-healthchecks-enabled)) (`boolean: true`) - Enables the health check controller causing k8s health probes to synchronize with Consul to influence service mesh traffic.
+  - `reconcilePeriod` ((#v-connectinject-healthchecks-reconcileperiod)) (`string: "1m"`) - If
+    `healthChecks.enabled` is set to true, reconcilePeriod defines how often a full state reconcile is done after the initial reconcile at startup is completed.
 
-    - `reconcilePeriod` ((#v-connectinject-healthchecks-reconcileperiod)) (`string: "1m"`) - If
-      `healthChecks.enabled` is set to true, sets the full sync reconcile period of the health checks controller.
+* `imageConsul` ((#v-connectinject-imageconsul)) (`string: global.image`) - The name of the Docker
 
-  - `imageConsul` ((#v-connectinject-imageconsul)) (`string: global.image`) - The name of the Docker
+  image (including any tag) for Consul. This is used for proxy service registration, Envoy configuration, etc.
 
-    image (including any tag) for Consul. This is used for proxy service registration, Envoy configuration, etc.
+* `namespaceSelector` ((#v-connectinject-namespaceselector)) (`string: ""`) - A [selector](https://
+  kubernetes.io/docs/concepts/overview/working-with-objects/labels/)
+  for restricting injection to only matching namespaces. By default all namespaces
+  except `kube-system` and `kube-public` will have injection enabled.
 
-  - `namespaceSelector` ((#v-connectinject-namespaceselector)) (`string: ""`) - A [selector](https://
-    kubernetes.io/docs/concepts/overview/working-with-objects/labels/)
-    for restricting injection to only matching namespaces. By default all namespaces
-    except `kube-system` and `kube-public` will have injection enabled.
+  ```yaml
+  namespaceSelector: |
+    matchLabels:
+      namespace-label: label-value
+  ```
+
+* `k8sAllowNamespaces` ((#v-connectinject-k8sallownamespaces)) - list of k8s namespaces to allow
+  Connect sidecar injection in. If a k8s namespace is not included or is listed in `k8sDenyNamespaces`, pods in that k8s namespace will not be injected even if they are explicitly annotated. Use `["*"]` to automatically allow all k8s namespaces.
+
+  For example, `["namespace1", "namespace2"]` will only allow pods in the k8s namespaces `namespace1` and `namespace2` to have Connect sidecars injected and registered with Consul. All other k8s namespaces will be ignored.
+
+  Note: `k8sDenyNamespaces` takes precedence over values defined here and `namespaceSelector` takes precedence over both since it is applied first. `kube-system` and `kube-public` are never injected, even if included here. Requires consul-k8s v0.12+
+
+* `k8sDenyNamespaces` ((#v-connectinject-k8sdenynamespaces)) - list of k8s namespaces that should not
+  allow Connect sidecar injection. This list takes precedence over `k8sAllowNamespaces`. `*` is not supported because then nothing would be allowed to be injected.
+
+  For example, if `k8sAllowNamespaces` is `["*"]` and `k8sDenyNamespaces` is `["namespace1", "namespace2"]`, then all k8s namespaces besides `namespace1` and `namespace2` will be injected.
+
+  Note: `namespaceSelector` takes precedence over this since it is applied first. `kube-system` and `kube-public` are never injected. Requires consul-k8s v0.12+.
+
+* `consulNamespaces` ((#v-connectinject-consulnamespaces)) <EnterpriseAlert inline /> - These settings manage
+  the connect injector's interaction with Consul namespaces (requires consul-ent v1.7+ and consul-k8s v0.12+). Also, `global.enableConsulNamespaces` must be true.
+
+  - `consulDestinationNamespace` ((#v-connectinject-consulnamespaces-consuldestinationnamespace))
+    (`string: "default"`) - Name of the Consul namespace to register all k8s services into. If the Consul namespace does not already exist, it will be created.
+    This will be ignored if `mirroringK8S` is true.
+
+  - `mirroringK8S` ((#v-connectinject-consulnamespaces-mirroringk8s)) (`boolean: false`) - causes k8s
+    services to be registered into a Consul namespace of the same name as their k8s namespace, optionally prefixed if `mirroringK8SPrefix` is set below. If the Consul namespace does not already exist, it will be created. Turning this on overrides the `consulDestinationNamespace` setting.
+
+  - `mirroringK8SPrefix` ((#v-connectinject-consulnamespaces-mirroringk8sprefix)) (`string: ""`) - If
+    `mirroringK8S` is set to true, `mirroringK8SPrefix` allows each Consul namespace to be given a prefix. For example, if `mirroringK8SPrefix` is set to `"k8s-"`, a service in the k8s `staging` namespace will be registered into the `k8s-staging` Consul namespace.
+
+* `certs` ((#v-connectinject-certs)) - The certs section configures how the webhook TLS certs are
+  configured. These are the TLS certs for the Kube apiserver communicating to the webhook.
+  By default, the injector will generate and manage its own certs, but this requires
+  the ability for the injector to update its own `MutatingWebhookConfiguration`.
+  In a production environment, custom certs should probably be used. Configure
+  the values below to enable this.
+
+  - `secretName` ((#v-connectinject-certs-secretname)) (`string: null`) - secretName is the name of
+    the Kubernetes secret that has the TLS certificate and private key to serve the injector webhook. If this is null, then the injector will default to its automatic management mode.
+
+  - `caBundle` ((#v-connectinject-certs-cabundle)) (`string: ""`) - The PEM-encoded CA public certificate
+    bundle for the TLS certificate served by the injector. This must be specified as a string
+    and can't come from a secret because it must be statically configured on the
+    Kubernetes `MutatingAdmissionWebhook` resource. This only needs to be specified
+    if `secretName` is not null.
+
+  - `certName` ((#v-connectinject-certs-certname)) (`string: "tls.crt"`) - The name of the
+    certificate file within the `secretName` secret.
+
+  - `keyName` ((#v-connectinject-certs-keyname)) (`string: "tls.key"`) - The name of the private key
+    for the certificate file within the `secretName` secret.
+
+* `nodeSelector` ((#v-connectinject-nodeselector)) (`string: null`) - This value defines
+  [`nodeSelector`](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector)
+  labels for `connectInject` pod assignment, formatted as a multi-line string.
+
+  ```yaml
+  nodeSelector: |
+    beta.kubernetes.io/arch: amd64
+  ```
+
+* `affinity` ((#v-connectinject-affinity)) (`string: null`) - Affinity setting for Connect injector pods. This should be a multi-line string matching the affinity object.
+
+* `tolerations` ((#v-connectinject-tolerations)) (`string: null`) - Tolerations setting for Connect injector pods.
+  This should be a multi-line string matching the Toleration array in a PodSpec.
+
+* `priorityClassName` ((#v-connectinject-priorityclassname)) (`string: ""`) - Priority class name setting for Connect injector pods.
+
+* `aclBindingRuleSelector` ((#v-connectinject-aclbindingruleselector)) (`string: "serviceaccount.name!=default"`) - A [selector](/docs/acl/auth-methods#binding-rules)
+  for restricting automatic injection to only matching services based on their
+  associated service account. By default, services using the `default` Kubernetes
+  service account will be prevented from logging in. This only has effect if ACLs
+  are enabled. Requires Consul 1.5+ and consul-k8s 0.8.0+.
+
+* `overrideAuthMethodName` ((#v-connectinject-overrideauthmethodname)) (`string: ""`) - If not using `global.acls.manageSystemACLs` and instead
+  manually setting up an auth method for Connect inject, set this to the name of
+  your Auth method.
+
+* `aclInjectToken` ((#v-connectinject-aclinjecttoken)) - Refers to a Kubernetes secret that you have created that contains an ACL token for your Consul cluster which allows the Connect injector the correct permissions. This is only needed if Consul namespaces and ACLs are enabled on the Consul cluster and you are not setting `global.acls.manageSystemACLs` to `true`. This token needs to have `operator = "write"` privileges so that it can create namespaces.
+
+  - `secretName` ((#v-connectinject-aclinjecttoken-secretname)) `(string: null)` - The name of the Kubernetes secret.
+
+  - `secretKey` ((#v-connectinject-aclinjecttoken-secretkey)) `(string: null)` - The key within the Kubernetes secret that holds the acl token.
+
+* `centralConfig` ((#v-connectinject-centralconfig)) - Values that configure Consul's [central configuration](/docs/agent/config-entries)
+  feature (requires Consul v1.5+ and consul-k8s v0.8.1+).
+
+  - `enabled` ((#v-connectinject-centralconfig-enabled)) (`boolean: true`) - Turns on the central
+    configuration feature. Pods that have a Connect proxy injected will have their service automatically registered in this central configuration.
+
+  - `defaultProtocol` ((#v-connectinject-centralconfig-defaultprotocol)) (`string: null`) - If
+    defined, this value will be used as the default protocol type for all services registered with the central configuration. This can be overridden by using the [protocol annotation](/docs/k8s/connect#consul-hashicorp-com-connect-service-protocol) directly on any pod spec.
+
+  - `proxyDefaults` ((#v-connectinject-centralconfig-proxydefaults)) (`string: "{}"`) - This value is
+    a raw json string that will be applied to all Connect proxy sidecar pods. It can include any valid configuration for the configured proxy.
 
     ```yaml
-    namespaceSelector: |
-      matchLabels:
-        namespace-label: label-value
+    # proxyDefaults values are formatted as a multi-line string:
+    proxyDefaults: |
+      {
+        "envoy_dogstatsd_url": "udp://127.0.0.1:9125"
+      }
     ```
 
-  - `k8sAllowNamespaces` ((#v-connectinject-k8sallownamespaces)) - list of k8s namespaces to allow
-    Connect sidecar injection in. If a k8s namespace is not included or is listed in `k8sDenyNamespaces`, pods in that k8s namespace will not be injected even if they are explicitly annotated. Use `["*"]` to automatically allow all k8s namespaces.
+* `resources` ((#v-connectinject-resources)) (`map`) - Resource settings for connect inject pods. See values file for defaults.
 
-    For example, `["namespace1", "namespace2"]` will only allow pods in the k8s namespaces `namespace1` and `namespace2` to have Connect sidecars injected and registered with Consul. All other k8s namespaces will be ignored.
+* `initContainer` ((#v-connectinject-initcontainer)) - As part of the Connect injection process, a utility init container
+  is created that runs various startup tasks including registering the service with Consul.
 
-    Note: `k8sDenyNamespaces` takes precedence over values defined here and `namespaceSelector` takes precedence over both since it is applied first. `kube-system` and `kube-public` are never injected, even if included here. Requires consul-k8s v0.12+
-
-  - `k8sDenyNamespaces` ((#v-connectinject-k8sdenynamespaces)) - list of k8s namespaces that should not
-    allow Connect sidecar injection. This list takes precedence over `k8sAllowNamespaces`. `*` is not supported because then nothing would be allowed to be injected.
-
-    For example, if `k8sAllowNamespaces` is `["*"]` and `k8sDenyNamespaces` is `["namespace1", "namespace2"]`, then all k8s namespaces besides `namespace1` and `namespace2` will be injected.
-
-    Note: `namespaceSelector` takes precedence over this since it is applied first. `kube-system` and `kube-public` are never injected. Requires consul-k8s v0.12+.
-
-  - `consulNamespaces` ((#v-connectinject-consulnamespaces)) <EnterpriseAlert inline /> - These settings manage
-    the connect injector's interaction with Consul namespaces (requires consul-ent v1.7+ and consul-k8s v0.12+). Also, `global.enableConsulNamespaces` must be true.
-
-    - `consulDestinationNamespace` ((#v-connectinject-consulnamespaces-consuldestinationnamespace))
-      (`string: "default"`) - Name of the Consul namespace to register all k8s services into. If the Consul namespace does not already exist, it will be created.
-      This will be ignored if `mirroringK8S` is true.
-
-    - `mirroringK8S` ((#v-connectinject-consulnamespaces-mirroringk8s)) (`boolean: false`) - causes k8s
-      services to be registered into a Consul namespace of the same name as their k8s namespace, optionally prefixed if `mirroringK8SPrefix` is set below. If the Consul namespace does not already exist, it will be created. Turning this on overrides the `consulDestinationNamespace` setting.
-
-    - `mirroringK8SPrefix` ((#v-connectinject-consulnamespaces-mirroringk8sprefix)) (`string: ""`) - If
-      `mirroringK8S` is set to true, `mirroringK8SPrefix` allows each Consul namespace to be given a prefix. For example, if `mirroringK8SPrefix` is set to `"k8s-"`, a service in the k8s `staging` namespace will be registered into the `k8s-staging` Consul namespace.
-
-  - `certs` ((#v-connectinject-certs)) - The certs section configures how the webhook TLS certs are
-    configured. These are the TLS certs for the Kube apiserver communicating to the webhook.
-    By default, the injector will generate and manage its own certs, but this requires
-    the ability for the injector to update its own `MutatingWebhookConfiguration`.
-    In a production environment, custom certs should probably be used. Configure
-    the values below to enable this.
-
-    - `secretName` ((#v-connectinject-certs-secretname)) (`string: null`) - secretName is the name of
-      the Kubernetes secret that has the TLS certificate and private key to serve the injector webhook. If this is null, then the injector will default to its automatic management mode.
-
-    - `caBundle` ((#v-connectinject-certs-cabundle)) (`string: ""`) - The PEM-encoded CA public certificate
-      bundle for the TLS certificate served by the injector. This must be specified as a string
-      and can't come from a secret because it must be statically configured on the
-      Kubernetes `MutatingAdmissionWebhook` resource. This only needs to be specified
-      if `secretName` is not null.
-
-    - `certName` ((#v-connectinject-certs-certname)) (`string: "tls.crt"`) - The name of the
-      certificate file within the `secretName` secret.
-
-    - `keyName` ((#v-connectinject-certs-keyname)) (`string: "tls.key"`) - The name of the private key
-      for the certificate file within the `secretName` secret.
-
-  - `nodeSelector` ((#v-connectinject-nodeselector)) (`string: null`) - This value defines
-    [`nodeSelector`](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector)
-    labels for `connectInject` pod assignment, formatted as a multi-line string.
+  - `resources` ((#v-connectinject-initcontainer-resources)) (`map`) - The resource requests and limits (CPU, memory, etc.)
+    for all of the Connect-injected init containers. This should be a YAML map of a Kubernetes
+    [ResourceRequirements](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) object. See values file for defaults.
 
     ```yaml
-    nodeSelector: |
-      beta.kubernetes.io/arch: amd64
+    # Resources are defined as a YAML map:
+    resources:
+      requests:
+        memory: '25Mi'
+        cpu: '20m'
+      limits:
+        memory: '50Mi'
+        cpu: '20m'
     ```
 
-  - `affinity` ((#v-connectinject-affinity)) (`string: null`) - Affinity setting for Connect injector pods. This should be a multi-line string matching the affinity object.
+* `sidecarProxy` ((#v-connectinject-sidecarproxy)) - Configure the sidecar proxy that is injected into each Connect pod.
 
-  - `tolerations` ((#v-connectinject-tolerations)) (`string: null`) - Tolerations setting for Connect injector pods.
-    This should be a multi-line string matching the Toleration array in a PodSpec.
+  - `resources` ((#v-connectinject-sidecarproxy-resources)) - The default resource requests and limits (CPU, memory)
+    for the Envoy sidecar proxy that is injected into each Connect pod. This should be a YAML map of a Kubernetes
+    [ResourceRequirements](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) object.
+    By default, each key is set to `null`, which results in no resource limits.
 
-  - `priorityClassName` ((#v-connectinject-priorityclassname)) (`string: ""`) - Priority class name setting for Connect injector pods.
+    These defaults can be overridden on a per-pod basis via [annotation](/docs/k8s/connect#consul-hashicorp-com-sidecar-proxy).
 
-  - `aclBindingRuleSelector` ((#v-connectinject-aclbindingruleselector)) (`string: "serviceaccount.name!=default"`) - A [selector](/docs/acl/auth-methods#binding-rules)
-    for restricting automatic injection to only matching services based on their
-    associated service account. By default, services using the `default` Kubernetes
-    service account will be prevented from logging in. This only has effect if ACLs
-    are enabled. Requires Consul 1.5+ and consul-k8s 0.8.0+.
+    ```yaml
+    # Recommended defaults
+    resources:
+      requests:
+        memory: '100Mi'
+        cpu: '100m'
+      limits:
+        memory: '100Mi'
+        cpu: '100m'
+    ```
 
-  - `overrideAuthMethodName` ((#v-connectinject-overrideauthmethodname)) (`string: ""`) - If not using `global.acls.manageSystemACLs` and instead
-    manually setting up an auth method for Connect inject, set this to the name of
-    your Auth method.
-
-  - `aclInjectToken` ((#v-connectinject-aclinjecttoken)) - Refers to a Kubernetes secret that you have created that contains an ACL token for your Consul cluster which allows the Connect injector the correct permissions. This is only needed if Consul namespaces and ACLs are enabled on the Consul cluster and you are not setting `global.acls.manageSystemACLs` to `true`. This token needs to have `operator = "write"` privileges so that it can create namespaces.
-
-    - `secretName` ((#v-connectinject-aclinjecttoken-secretname)) `(string: null)` - The name of the Kubernetes secret.
-
-    - `secretKey` ((#v-connectinject-aclinjecttoken-secretkey)) `(string: null)` - The key within the Kubernetes secret that holds the acl token.
-
-  - `centralConfig` ((#v-connectinject-centralconfig)) - Values that configure Consul's [central configuration](/docs/agent/config-entries)
-    feature (requires Consul v1.5+ and consul-k8s v0.8.1+).
-
-    - `enabled` ((#v-connectinject-centralconfig-enabled)) (`boolean: true`) - Turns on the central
-      configuration feature. Pods that have a Connect proxy injected will have their service automatically registered in this central configuration.
-
-    - `defaultProtocol` ((#v-connectinject-centralconfig-defaultprotocol)) (`string: null`) - If
-      defined, this value will be used as the default protocol type for all services registered with the central configuration. This can be overridden by using the [protocol annotation](/docs/k8s/connect#consul-hashicorp-com-connect-service-protocol) directly on any pod spec.
-
-    - `proxyDefaults` ((#v-connectinject-centralconfig-proxydefaults)) (`string: "{}"`) - This value is
-      a raw json string that will be applied to all Connect proxy sidecar pods. It can include any valid configuration for the configured proxy.
-
-      ```yaml
-      # proxyDefaults values are formatted as a multi-line string:
-      proxyDefaults: |
-        {
-          "envoy_dogstatsd_url": "udp://127.0.0.1:9125"
-        }
-      ```
-
-  - `resources` ((#v-connectinject-resources)) (`map`) - Resource settings for connect inject pods. See values file for defaults.
-
-  - `initContainer` ((#v-connectinject-initcontainer)) - As part of the Connect injection process, a utility init container
-    is created that runs various startup tasks including registering the service with Consul.
-
-    - `resources` ((#v-connectinject-initcontainer-resources)) (`map`) - The resource requests and limits (CPU, memory, etc.)
-      for all of the Connect-injected init containers. This should be a YAML map of a Kubernetes
-      [ResourceRequirements](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) object. See values file for defaults.
-
-      ```yaml
-      # Resources are defined as a YAML map:
-      resources:
-        requests:
-          memory: '25Mi'
-          cpu: '20m'
-        limits:
-          memory: '50Mi'
-          cpu: '20m'
-      ```
-
-  - `sidecarProxy` ((#v-connectinject-sidecarproxy)) - Configure the sidecar proxy that is injected into each Connect pod.
-
-    - `resources` ((#v-connectinject-sidecarproxy-resources)) - The default resource requests and limits (CPU, memory)
-      for the Envoy sidecar proxy that is injected into each Connect pod. This should be a YAML map of a Kubernetes
-      [ResourceRequirements](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) object.
-      By default, each key is set to `null`, which results in no resource limits.
-
-      These defaults can be overridden on a per-pod basis via [annotation](/docs/k8s/connect#consul-hashicorp-com-sidecar-proxy).
-
-      ```yaml
-      # Recommended defaults
-      resources:
-        requests:
-          memory: '100Mi'
-          cpu: '100m'
-        limits:
-          memory: '100Mi'
-          cpu: '100m'
-      ```
-
-- `meshGateway` ((#v-meshgateway)) - Configure mesh gateways.
+* `meshGateway` ((#v-meshgateway)) - Configure mesh gateways.
 
   - `enabled` ((#v-meshgateway-enabled)) (`boolean: true`) - If mesh gateways are enabled, a Deployment will be created that runs
     gateways and Consul Connect will be configured to use gateways.
@@ -1035,7 +1034,7 @@ and consider if they're appropriate for your deployment.
 
   - `annotations` ((#v-meshgateway-annotations)) (`string: null`) - Annotations for the mesh gateway deployment.
 
-- `ingressGateways` ((#v-ingressgateways)) - Configuration options for ingress gateways. Default values for all ingress gateways are defined in `ingressGateways.defaults`. Any of these values may be overridden in `ingressGateways.gateways` for a specific gateway with the exception of annotations. Annotations will include both the default annotations and any additional ones defined for a specific gateway. Requirements: consul >= 1.8.0. If using `global.acls.manageSystemACLs`, consul-k8s >= 0.16.0 is needed.
+* `ingressGateways` ((#v-ingressgateways)) - Configuration options for ingress gateways. Default values for all ingress gateways are defined in `ingressGateways.defaults`. Any of these values may be overridden in `ingressGateways.gateways` for a specific gateway with the exception of annotations. Annotations will include both the default annotations and any additional ones defined for a specific gateway. Requirements: consul >= 1.8.0. If using `global.acls.manageSystemACLs`, consul-k8s >= 0.16.0 is needed.
 
   - `enabled` ((#v-ingressgateways-enabled)) (`boolean: false`) - Enable ingress gateway deployment. Requires `connectInject.enabled=true`.
 
@@ -1103,7 +1102,7 @@ and consider if they're appropriate for your deployment.
 
     - `name` ((#v-ingressgateways-gateways-name)) (`string: "ingress-gateway"`) - The name of the ingress gateway.
 
-- `terminatingGateways` ((#v-terminatinggateways)) - Configuration options for terminating gateways. Default values for all terminating gateways are defined in `terminatingGateways.defaults`. Any of these values may be overridden in `terminatingGateways.gateways` for a specific gateway with the exception of annotations. Annotations will include both the default annotations and any additional ones defined for a specific gateway. Requirements: consul >= 1.8.0. If using `global.acls.manageSystemACLs`, consul-k8s >= 0.16.0 is needed.
+* `terminatingGateways` ((#v-terminatinggateways)) - Configuration options for terminating gateways. Default values for all terminating gateways are defined in `terminatingGateways.defaults`. Any of these values may be overridden in `terminatingGateways.gateways` for a specific gateway with the exception of annotations. Annotations will include both the default annotations and any additional ones defined for a specific gateway. Requirements: consul >= 1.8.0. If using `global.acls.manageSystemACLs`, consul-k8s >= 0.16.0 is needed.
 
   - `enabled` ((#v-terminatinggateways-enabled)) (`boolean: false`) - Enable terminating gateway deployment. Requires `connectInject.enabled=true`.
 
@@ -1162,7 +1161,7 @@ and consider if they're appropriate for your deployment.
 
     - `name` ((#v-terminatinggateways-gateways-name)) (`string: "terminating-gateway"`) - The name of the terminating gateway.
 
-- `tests` ((#v-tests)) - Control whether to enable a test for this Helm chart.
+* `tests` ((#v-tests)) - Control whether to enable a test for this Helm chart.
 
   - `enabled` ((#v-tests-enabled)) (`boolean: true`) - If true, the test Pod manifest will be generated
     to be used as a Helm test. The pod will be created when a `helm test` command is executed.
