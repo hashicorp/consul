@@ -48,25 +48,25 @@ func (_ *prettyFormatter) Format(info *OutputFormat) (string, error) {
 	fmt.Fprintf(tw, "\n Term\t%d", info.Meta.Term)
 	fmt.Fprintf(tw, "\n Version\t%d", info.Meta.Version)
 	fmt.Fprintf(tw, "\n")
-	fmt.Fprintln(tw, "\n Type\tCount\tSize\t")
-	fmt.Fprintf(tw, " %s\t%s\t%s\t", "----", "----", "----")
+	fmt.Fprintln(tw, "\n Type\tCount\tSize")
+	fmt.Fprintf(tw, " %s\t%s\t%s", "----", "----", "----")
 	// For each different type generate new output
 	for _, s := range info.Stats {
-		fmt.Fprintf(tw, "\n %s\t%d\t%s\t", s.Name, s.Count, ByteSize(uint64(s.Sum)))
+		fmt.Fprintf(tw, "\n %s\t%d\t%s", s.Name, s.Count, ByteSize(uint64(s.Sum)))
 	}
-	fmt.Fprintf(tw, "\n %s\t%s\t%s\t", "----", "----", "----")
-	fmt.Fprintf(tw, "\n Total\t\t%s\t", ByteSize(uint64(info.TotalSize)))
+	fmt.Fprintf(tw, "\n %s\t%s\t%s", "----", "----", "----")
+	fmt.Fprintf(tw, "\n Total\t\t%s", ByteSize(uint64(info.TotalSize)))
 
 	if info.StatsKV != nil {
 		fmt.Fprintf(tw, "\n")
-		fmt.Fprintln(tw, "\n Key Name\tCount\tSize\t")
-		fmt.Fprintf(tw, " %s\t%s\t%s\t", "----", "----", "----")
+		fmt.Fprintln(tw, "\n Key Name\tCount\tSize")
+		fmt.Fprintf(tw, " %s\t%s\t%s", "----", "----", "----")
 		// For each different type generate new output
 		for _, s := range info.StatsKV {
-			fmt.Fprintf(tw, "\n %s\t%d\t%s\t", s.Name, s.Count, ByteSize(uint64(s.Sum)))
+			fmt.Fprintf(tw, "\n %s\t%d\t%s", s.Name, s.Count, ByteSize(uint64(s.Sum)))
 		}
-		fmt.Fprintf(tw, "\n %s\t%s\t%s\t", "----", "----", "----")
-		fmt.Fprintf(tw, "\n Total\t\t%s\t", ByteSize(uint64(info.TotalSizeKV)))
+		fmt.Fprintf(tw, "\n %s\t%s\t%s", "----", "----", "----")
+		fmt.Fprintf(tw, "\n Total\t\t%s", ByteSize(uint64(info.TotalSizeKV)))
 	}
 
 	if err := tw.Flush(); err != nil {
