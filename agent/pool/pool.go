@@ -405,7 +405,7 @@ START:
 	// Try to get a conn first
 	conn, err := p.acquire(dc, addr, version, useTLS)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get conn: %v", err)
+		return nil, nil, fmt.Errorf("failed to get conn: %w", err)
 	}
 
 	// Get a client
@@ -419,7 +419,7 @@ START:
 			retries++
 			goto START
 		}
-		return nil, nil, fmt.Errorf("failed to start stream: %v", err)
+		return nil, nil, fmt.Errorf("failed to start stream: %w", err)
 	}
 	return conn, client, nil
 }
@@ -442,14 +442,14 @@ func (p *ConnPool) rpcInsecure(dc string, addr net.Addr, method string, args int
 	var codec rpc.ClientCodec
 	conn, _, err := p.DialTimeoutInsecure(dc, addr, 1*time.Second, p.TLSConfigurator.OutgoingRPCWrapper())
 	if err != nil {
-		return fmt.Errorf("rpcinsecure error establishing connection: %v", err)
+		return fmt.Errorf("rpcinsecure error establishing connection: %w", err)
 	}
 	codec = msgpackrpc.NewCodecFromHandle(true, true, conn, structs.MsgpackHandle)
 
 	// Make the RPC call
 	err = msgpackrpc.CallWithCodec(codec, method, args, reply)
 	if err != nil {
-		return fmt.Errorf("rpcinsecure error making call: %v", err)
+		return fmt.Errorf("rpcinsecure error making call: %w", err)
 	}
 
 	return nil
