@@ -172,6 +172,8 @@ type typeStats struct {
 	Count int
 }
 
+// Generate the stats for the output struct that's
+// used to produce the printed output the user sees.
 func generateStats(info SnapshotInfo) []typeStats {
 	ss := make([]typeStats, 0, len(info.Stats))
 
@@ -184,6 +186,8 @@ func generateStats(info SnapshotInfo) []typeStats {
 	return ss
 }
 
+// Generate the KV stats for the output struct that's
+// used to produce the printed output the user sees.
 func generateKVStats(info SnapshotInfo) []typeStats {
 	if info.StatsKV != nil {
 		ks := make([]typeStats, 0, len(info.StatsKV))
@@ -269,6 +273,8 @@ func (c *cmd) enhance(file io.Reader) (SnapshotInfo, error) {
 
 }
 
+// kvEnhance populates the struct with all of the snapshot's
+// size information for KV data stored in it
 func (c *cmd) kvEnhance(keyType string, val interface{}, size int, info *SnapshotInfo) {
 	// automatically set kvDetails to true if a depth or filter
 	// is provided. this allows the user to omit the -kvdetails
