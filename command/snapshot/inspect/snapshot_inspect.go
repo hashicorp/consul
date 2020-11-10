@@ -258,41 +258,7 @@ func (c *cmd) enhance(file io.Reader) (SnapshotInfo, error) {
 		info.TotalSize = cr.read
 		info.Stats[msg] = s
 
-		if c.detailed {
-			if s.Name == "KVS" {
-				switch val := val.(type) {
-				case map[string]interface{}:
-					for k, v := range val {
-						if k == "Key" {
-							// check for whether a filter is specified. if it is, skip
-							// any keys that don't match.
-							if len(c.filter) > 0 && !strings.HasPrefix(v.(string), c.filter) {
-								break
-							}
-
-							split := strings.Split(v.(string), "/")
-
-							// handle the situation where the key is shorter than
-							// the specified depth.
-							actualDepth := c.depth
-							if c.depth > len(split) {
-								actualDepth = len(split)
-							}
-							prefix := strings.Join(split[0:actualDepth], "/")
-							kvs := info.StatsKV[prefix]
-							if kvs.Name == "" {
-								kvs.Name = prefix
-							}
-
-							kvs.Sum += size
-							kvs.Count++
-							info.TotalSizeKV += size
-							info.StatsKV[prefix] = kvs
-						}
-					}
-				}
-			}
-		}
+		c.kvEnhance(s.Name, val, size, &info)
 
 		return nil
 	}
@@ -301,6 +267,49 @@ func (c *cmd) enhance(file io.Reader) (SnapshotInfo, error) {
 	}
 	return info, nil
 
+}
+
+func (c *cmd) kvEnhance(keyType string, val interface{}, size int, info *SnapshotInfo) {
+	if c.detailed {
+		if keyType != "KVS" {
+			return
+		}
+
+		// have to coerce this into a usable type here or this won't work
+		keyVal := val.(map[string]interface{})
+		for k, v := range keyVal {
+			// we only care about the entry on the key specifically
+			// related to the key name, so skip all others
+			if k != "Key" {
+				continue
+			}
+
+			// check for whether a filter is specified. if it is, skip
+			// any keys that don't match.
+			if len(c.filter) > 0 && !strings.HasPrefix(v.(string), c.filter) {
+				break
+			}
+
+			split := strings.Split(v.(string), "/")
+
+			// handle the situation where the key is shorter than
+			// the specified depth.
+			actualDepth := c.depth
+			if c.depth > len(split) {
+				actualDepth = len(split)
+			}
+			prefix := strings.Join(split[0:actualDepth], "/")
+			kvs := info.StatsKV[prefix]
+			if kvs.Name == "" {
+				kvs.Name = prefix
+			}
+
+			kvs.Sum += size
+			kvs.Count++
+			info.TotalSizeKV += size
+			info.StatsKV[prefix] = kvs
+		}
+	}
 }
 
 func (c *cmd) Synopsis() string {
