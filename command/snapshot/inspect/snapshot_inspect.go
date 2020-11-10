@@ -31,19 +31,19 @@ type cmd struct {
 	format string
 
 	// flags
-	detailed bool
-	depth    int
-	filter   string
+	kvDetails bool
+	kvDepth   int
+	kvFilter  string
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
-	c.flags.BoolVar(&c.detailed, "detailed", false,
+	c.flags.BoolVar(&c.kvDetails, "kvdetails", false,
 		"Provides a detailed KV space usage breakdown for any KV data that's been stored.")
-	c.flags.IntVar(&c.depth, "depth", 2,
-		"Must be used with -detailed. The key prefix depth used to breakdown KV store data. Defaults to 2.")
-	c.flags.StringVar(&c.filter, "filter", "",
-		"Must be used with -detailed. Limits KV key breakdown using this prefix filter.")
+	c.flags.IntVar(&c.kvDepth, "kvdepth", 2,
+		"Can only be used with -kvdetails. The key prefix depth used to breakdown KV store data. Defaults to 2.")
+	c.flags.StringVar(&c.kvFilter, "kvfilter", "",
+		"Can only be used with -kvdetails. Limits KV key breakdown using this prefix filter.")
 	c.flags.StringVar(
 		&c.format,
 		"format",
@@ -270,7 +270,7 @@ func (c *cmd) enhance(file io.Reader) (SnapshotInfo, error) {
 }
 
 func (c *cmd) kvEnhance(keyType string, val interface{}, size int, info *SnapshotInfo) {
-	if c.detailed {
+	if c.kvDetails {
 		if keyType != "KVS" {
 			return
 		}
@@ -286,7 +286,7 @@ func (c *cmd) kvEnhance(keyType string, val interface{}, size int, info *Snapsho
 
 			// check for whether a filter is specified. if it is, skip
 			// any keys that don't match.
-			if len(c.filter) > 0 && !strings.HasPrefix(v.(string), c.filter) {
+			if len(c.kvFilter) > 0 && !strings.HasPrefix(v.(string), c.kvFilter) {
 				break
 			}
 
@@ -294,8 +294,8 @@ func (c *cmd) kvEnhance(keyType string, val interface{}, size int, info *Snapsho
 
 			// handle the situation where the key is shorter than
 			// the specified depth.
-			actualDepth := c.depth
-			if c.depth > len(split) {
+			actualDepth := c.kvDepth
+			if c.kvDepth > len(split) {
 				actualDepth = len(split)
 			}
 			prefix := strings.Join(split[0:actualDepth], "/")
