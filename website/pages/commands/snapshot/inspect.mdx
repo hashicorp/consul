@@ -62,7 +62,7 @@ $ consul snapshot inspect backup.snap
 To get more details for a snapshot inspection from "backup.snap":
 
 ```shell-session
-$ consul snapshot inspect -detailed -depth 3 -filter vault/core backup.snap
+$ consul snapshot inspect -kvdetails -kvdepth 3 -kvfilter vault/core backup.snap
  ID           2-12426-1604593650375
  Size         17228
  Index        12426
