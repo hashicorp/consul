@@ -1,5 +1,5 @@
-<ul data-test-proxy-upstreams>
-{{#each items as |item|}}
+<ul data-test-proxy-upstreams class="consul-upstream-instance-list">
+{{#each @items as |item|}}
   <li>
     <div class="header">
       <p data-test-destination-name>
@@ -21,7 +21,7 @@
       </dl>
     {{/if}}
   {{/if}}
-    {{#if (and (not-eq item.Datacenter dc) (not-eq item.Datacenter ""))}}
+    {{#if (and (not-eq item.Datacenter @dc) (not-eq item.Datacenter ""))}}
       <dl class="datacenter">
         <dt>
           <Tooltip>
@@ -35,15 +35,15 @@
     {{/if}}
     {{#if (gt item.LocalBindPort 0)}}
     {{#let (concat (or item.LocalBindAddress '127.0.0.1') ':' item.LocalBindPort) as |combinedAddress|}}
-      <dl>
-        <dt>
-          <CopyButton
-            @value={{combinedAddress}}
-            @name="Address"
-          />
-        </dt>
-        <dd>{{combinedAddress}}</dd>
-      </dl>
+      <span>
+        <CopyButton
+          @value={{combinedAddress}}
+          @name="Address"
+        />
+        <span>
+          {{combinedAddress}}
+        </span>
+      </span>
     {{/let}}
     {{/if}}
     </div>
