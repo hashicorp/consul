@@ -31,7 +31,6 @@ func TestFormat(t *testing.T) {
 		TotalSize:   1,
 		TotalSizeKV: 1,
 	}
-	detailed := false
 
 	formatters := map[string]Formatter{
 		"pretty": newPrettyFormatter(),
@@ -41,7 +40,7 @@ func TestFormat(t *testing.T) {
 
 	for fmtName, formatter := range formatters {
 		t.Run(fmtName, func(t *testing.T) {
-			actual, err := formatter.Format(&info, detailed)
+			actual, err := formatter.Format(&info)
 			require.NoError(t, err)
 
 			gName := fmt.Sprintf("%s", fmtName)

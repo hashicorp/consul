@@ -8,4 +8,10 @@
  ----       ----       ----      
  msg        2          1B        
  ----       ----       ----      
- Total                 1B
+ Total                 1B        
+
+ Key Name      Count      Size      
+ ----          ----       ----      
+ msgKV         2          1B        
+ ----          ----       ----      
+ Total                    1B

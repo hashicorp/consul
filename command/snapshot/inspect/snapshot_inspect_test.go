@@ -96,14 +96,14 @@ func TestSnapshotInspectCommand(t *testing.T) {
 	require.Equal(t, want, ui.OutputWriter.String())
 }
 
-func TestSnapshotInspectDetailedCommand(t *testing.T) {
+func TestSnapshotInspectKVDetailsCommand(t *testing.T) {
 
-	filepath := "./testdata/backup-with-kv.snap"
+	filepath := "./testdata/backupWithKV.snap"
 
 	// Inspect the snapshot
 	ui := cli.NewMockUi()
 	c := New(ui)
-	args := []string{"-detailed", filepath}
+	args := []string{"-kvdetails", filepath}
 
 	code := c.Run(args)
 	if code != 0 {
@@ -114,14 +114,14 @@ func TestSnapshotInspectDetailedCommand(t *testing.T) {
 	require.Equal(t, want, ui.OutputWriter.String())
 }
 
-func TestSnapshotInspectDetailedDepthCommand(t *testing.T) {
+func TestSnapshotInspectKVDetailsDepthCommand(t *testing.T) {
 
-	filepath := "./testdata/backup-with-kv.snap"
+	filepath := "./testdata/backupWithKV.snap"
 
 	// Inspect the snapshot
 	ui := cli.NewMockUi()
 	c := New(ui)
-	args := []string{"-detailed", "-depth", "3", filepath}
+	args := []string{"-kvdetails", "-kvdepth", "3", filepath}
 
 	code := c.Run(args)
 	if code != 0 {
@@ -132,14 +132,32 @@ func TestSnapshotInspectDetailedDepthCommand(t *testing.T) {
 	require.Equal(t, want, ui.OutputWriter.String())
 }
 
-func TestSnapshotInspectDetailedDepthFilterCommand(t *testing.T) {
+func TestSnapshotInspectKVDetailsDepthFilterCommand(t *testing.T) {
 
-	filepath := "./testdata/backup-with-kv.snap"
+	filepath := "./testdata/backupWithKV.snap"
 
 	// Inspect the snapshot
 	ui := cli.NewMockUi()
 	c := New(ui)
-	args := []string{"-detailed", "-depth", "3", "-filter", "vault/logical", filepath}
+	args := []string{"-kvdetails", "-kvdepth", "3", "-kvfilter", "vault/logical", filepath}
+
+	code := c.Run(args)
+	if code != 0 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+
+	want := golden(t, t.Name(), ui.OutputWriter.String())
+	require.Equal(t, want, ui.OutputWriter.String())
+}
+
+func TestSnapshotInspectKVDetailsCommandNoDetailsFlag(t *testing.T) {
+
+	filepath := "./testdata/backupWithKV.snap"
+
+	// Inspect the snapshot
+	ui := cli.NewMockUi()
+	c := New(ui)
+	args := []string{"-kvdepth", "3", filepath}
 
 	code := c.Run(args)
 	if code != 0 {

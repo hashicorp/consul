@@ -9,8 +9,8 @@
  KVS                        27         12.3KB      
  Register                   5          3.4KB       
  Index                      11         285B        
- Session                    1          199B        
  Autopilot                  1          199B        
+ Session                    1          199B        
  CoordinateBatchUpdate      1          166B        
  Tombstone                  2          146B        
  FederationState            1          139B        
