@@ -39,11 +39,11 @@ type cmd struct {
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.BoolVar(&c.detailed, "detailed", false,
-		"Provides detailed information about KV store data.")
+		"Provides a detailed KV space usage breakdown for any KV data that's been stored.")
 	c.flags.IntVar(&c.depth, "depth", 2,
-		"The key prefix depth used to breakdown KV store data. Defaults to 2.")
+		"Must be used with -detailed. The key prefix depth used to breakdown KV store data. Defaults to 2.")
 	c.flags.StringVar(&c.filter, "filter", "",
-		"Filter KV keys using this prefix filter.")
+		"Must be used with -detailed. Limits KV key breakdown using this prefix filter.")
 	c.flags.StringVar(
 		&c.format,
 		"format",
