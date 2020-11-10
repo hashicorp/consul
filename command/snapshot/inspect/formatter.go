@@ -57,7 +57,7 @@ func (_ *prettyFormatter) Format(info *OutputFormat) (string, error) {
 	fmt.Fprintf(tw, "\n %s\t%s\t%s\t", "----", "----", "----")
 	fmt.Fprintf(tw, "\n Total\t\t%s\t", ByteSize(uint64(info.TotalSize)))
 
-	if len(info.StatsKV) > 0 {
+	if info.StatsKV != nil {
 		fmt.Fprintf(tw, "\n")
 		fmt.Fprintln(tw, "\n Key Name\tCount\tSize\t")
 		fmt.Fprintf(tw, " %s\t%s\t%s\t", "----", "----", "----")

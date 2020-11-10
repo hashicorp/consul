@@ -199,7 +199,7 @@ func generateStats(info SnapshotInfo) []typeStats {
 }
 
 func generateKVStats(info SnapshotInfo) []typeStats {
-	if len(info.StatsKV) > 0 {
+	if info.StatsKV != nil {
 		ks := make([]typeStats, 0, len(info.StatsKV))
 
 		for _, s := range info.StatsKV {
