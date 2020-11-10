@@ -2,7 +2,10 @@
   <div role="tabpanel">
     {{#if (gt item.Checks.length 0) }}
       <section data-test-checks>
-        <HealthcheckList @items={{sort-by (comparator 'check' 'Status:asc') item.Checks}} @exposed={{proxy.ServiceProxy.Expose.Checks}} />
+        <HealthcheckList
+          @items={{sort-by (comparator 'check' 'Status:asc') (append item.Checks proxy.Checks)}}
+          @exposed={{proxyMeta.ServiceProxy.Expose.Checks}}
+        />
       </section>
     {{else}}
       <EmptyState>

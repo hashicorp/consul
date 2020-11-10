@@ -47,8 +47,10 @@
                       (hash label="Addresses" href=(href-to "dc.services.instance.addresses") selected=(is-href "dc.services.instance.addresses")) ""
 )
 (if proxy
-                      (hash label="Proxy Info" href=(href-to "dc.services.instance.proxy") selected=(is-href "dc.services.instance.proxy"))
-
+                      (hash label="Upstreams" href=(href-to "dc.services.instance.upstreams") selected=(is-href "dc.services.instance.upstreams"))
+)
+(if proxy
+                      (hash label="Exposed Paths" href=(href-to "dc.services.instance.exposedpaths") selected=(is-href "dc.services.instance.exposedpaths"))
 )
                       (hash label="Tags & Meta" href=(href-to "dc.services.instance.metadata") selected=(is-href "dc.services.instance.metadata"))
               )

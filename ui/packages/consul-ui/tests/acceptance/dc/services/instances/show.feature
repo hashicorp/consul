@@ -65,7 +65,7 @@ Feature: dc / services / instances / show: Show Service Instance
 
     And I don't see upstreams on the tabs
     And I see healthChecksIsSelected on the tabs
-    And I see 6 of the checks object
+    And I see 7 of the checks object
 
     When I click tags&Meta on the tabs
     And I see tags&MetaIsSelected on the tabs
