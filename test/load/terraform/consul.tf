@@ -43,6 +43,8 @@ data "template_file" "user_data_server" {
   template = file("${path.module}/user-data-server.sh")
 
   vars = {
+    consul_ver = var.consul_version
+    consul_download_url = var.consul_download_url
     cluster_tag_key   = var.cluster_tag_key
     cluster_tag_value = var.cluster_name
   }
@@ -52,6 +54,8 @@ data "template_file" "user_data_client" {
   template = file("${path.module}/user-data-client.sh")
 
   vars = {
+    consul_version = var.consul_version
+    consul_download_url = var.consul_download_url
     cluster_tag_key   = var.cluster_tag_key
     cluster_tag_value = var.cluster_name
   }
@@ -65,7 +69,7 @@ module "alb" {
   source  = "terraform-aws-modules/alb/aws"
   version = "~> 5.0"
 
-  name = "${var.cluster_name}-${local.random_name}-alb"
+  name = "${var.cluster_name}-alb"
 
   load_balancer_type = "application"
 
