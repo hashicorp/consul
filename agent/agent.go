@@ -377,8 +377,6 @@ func New(bd BaseDeps) (*Agent, error) {
 		Cache:     bd.Cache,
 		NetRPC:    &a,
 		CacheName: cacheName,
-		// Temporarily until streaming supports all connect events
-		CacheNameConnect: cachetype.HealthServicesName,
 	}
 
 	a.serviceManager = NewServiceManager(&a)
