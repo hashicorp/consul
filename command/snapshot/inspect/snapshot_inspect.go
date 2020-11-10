@@ -40,7 +40,7 @@ func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flags.BoolVar(&c.kvDetails, "kvdetails", false,
 		"Provides a detailed KV space usage breakdown for any KV data that's been stored.")
-	c.flags.IntVar(&c.kvDepth, "kvdepth", 2,
+	c.flags.IntVar(&c.kvDepth, "kvdepth", 0,
 		"Can only be used with -kvdetails. The key prefix depth used to breakdown KV store data. Defaults to 2.")
 	c.flags.StringVar(&c.kvFilter, "kvfilter", "",
 		"Can only be used with -kvdetails. Limits KV key breakdown using this prefix filter.")
@@ -101,6 +101,20 @@ func (c *cmd) Run(args []string) int {
 	default:
 		c.UI.Error(fmt.Sprintf("Too many arguments (expected 1, got %d)", len(args)))
 		return 1
+	}
+
+	// automatically set kvDetails to true if a depth or filter
+	// is provided. this allows the user to omit the -kvdetails
+	// flag if they prefer.
+	if c.kvDepth != 0 || c.kvFilter != "" {
+		c.kvDetails = true
+	}
+
+	// set the default depth if one wasn't specified with -kvdepth.
+	// this is used rather than the flag default to facilitate the
+	// above shortcut.
+	if c.kvDetails && c.kvDepth == 0 {
+		c.kvDepth = 2
 	}
 
 	// Open the file.
