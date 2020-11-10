@@ -12,10 +12,11 @@ html[data-route$='edit'] .app-view > header + div > *:first-child {
 %app-view-content [role='tabpanel'] > .filter-bar + p {
   margin-top: 1.25em;
 }
-/* turn off top borders for things flush up to a filter bar */
+.consul-upstream-instance-list,
 .consul-lock-session-list {
   margin-top: 0 !important;
 }
+/* turn off top borders for things flush up to a filter bar */
 html[data-route='dc.services.index'] .consul-service-list ul,
 .consul-nspace-list ul,
 .consul-service-instance-list ul,

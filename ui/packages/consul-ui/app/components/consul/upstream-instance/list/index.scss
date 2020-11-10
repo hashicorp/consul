@@ -1,0 +1,6 @@
+.consul-upstream-instance-list > li {
+  @extend %composite-row;
+}
+.consul-upstream-instance-list > ul {
+  border-top: 1px solid $gray-200;
+}
