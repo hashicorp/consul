@@ -259,7 +259,7 @@ func (s *Store) intentionMutationLegacyCreate(
 	dest structs.ServiceName,
 	value *structs.SourceIntention,
 ) error {
-	idx, configEntry, err := configEntryTxn(tx, nil, structs.ServiceIntentions, dest.Name, &dest.EnterpriseMeta)
+	_, configEntry, err := configEntryTxn(tx, nil, structs.ServiceIntentions, dest.Name, &dest.EnterpriseMeta)
 	if err != nil {
 		return fmt.Errorf("service-intentions config entry lookup failed: %v", err)
 	}
