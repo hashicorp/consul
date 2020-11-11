@@ -243,7 +243,7 @@ jobs:
               -tags="$GOTAGS" -p 2 \
               -race -gcflags=all=-d=checkptr=0 \
               ./agent/{ae,cache,cache-types,checks,config,pool,proxycfg,router}/... \
-              ./agent/consul/{authmethod,autopilot,fsm,state,stream}/... \
+              ./agent/consul/{authmethod,fsm,state,stream}/... \
               ./agent/{grpc,rpc,rpcclient,submatview}/... \
               ./snapshot
 
