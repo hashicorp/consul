@@ -29,10 +29,21 @@ type cmd struct {
 	flags  *flag.FlagSet
 	help   string
 	format string
+
+	// flags
+	kvDetails bool
+	kvDepth   int
+	kvFilter  string
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.BoolVar(&c.kvDetails, "kvdetails", false,
+		"Provides a detailed KV space usage breakdown for any KV data that's been stored.")
+	c.flags.IntVar(&c.kvDepth, "kvdepth", 2,
+		"Can only be used with -kvdetails. The key prefix depth used to breakdown KV store data. Defaults to 2.")
+	c.flags.StringVar(&c.kvFilter, "kvfilter", "",
+		"Can only be used with -kvdetails. Limits KV key breakdown using this prefix filter.")
 	c.flags.StringVar(
 		&c.format,
 		"format",
@@ -52,12 +63,24 @@ type MetadataInfo struct {
 	Version raft.SnapshotVersion
 }
 
+// SnapshotInfo is used for passing snapshot stat
+// information between functions
+type SnapshotInfo struct {
+	Meta        MetadataInfo
+	Stats       map[structs.MessageType]typeStats
+	StatsKV     map[string]typeStats
+	TotalSize   int
+	TotalSizeKV int
+}
+
 // OutputFormat is used for passing information
 // through the formatter
 type OutputFormat struct {
-	Meta      *MetadataInfo
-	Stats     []typeStats
-	TotalSize int
+	Meta        *MetadataInfo
+	Stats       []typeStats
+	StatsKV     []typeStats
+	TotalSize   int
+	TotalSizeKV int
 }
 
 func (c *cmd) Run(args []string) int {
@@ -101,7 +124,7 @@ func (c *cmd) Run(args []string) int {
 		}
 	}()
 
-	stats, totalSize, err := enhance(readFile)
+	info, err := c.enhance(readFile)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error extracting snapshot data: %s", err))
 		return 1
@@ -122,13 +145,17 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	//Restructures stats given above to be human readable
-	formattedStats := generatetypeStats(stats)
+	formattedStats := generateStats(info)
+	formattedStatsKV := generateKVStats(info)
 
 	in := &OutputFormat{
-		Meta:      metaformat,
-		Stats:     formattedStats,
-		TotalSize: totalSize,
+		Meta:        metaformat,
+		Stats:       formattedStats,
+		StatsKV:     formattedStatsKV,
+		TotalSize:   info.TotalSize,
+		TotalSizeKV: info.TotalSizeKV,
 	}
+
 	out, err := formatter.Format(in)
 	if err != nil {
 		c.UI.Error(err.Error())
@@ -145,17 +172,53 @@ type typeStats struct {
 	Count int
 }
 
-func generatetypeStats(info map[structs.MessageType]typeStats) []typeStats {
-	ss := make([]typeStats, 0, len(info))
+// generateStats formats the stats for the output struct
+// that's used to produce the printed output the user sees.
+func generateStats(info SnapshotInfo) []typeStats {
+	ss := make([]typeStats, 0, len(info.Stats))
 
-	for _, s := range info {
+	for _, s := range info.Stats {
 		ss = append(ss, s)
 	}
 
-	// Sort the stat slice
-	sort.Slice(ss, func(i, j int) bool { return ss[i].Sum > ss[j].Sum })
+	ss = sortTypeStats(ss)
 
 	return ss
+}
+
+// generateKVStats reformats the KV stats to work with
+// the output struct that's used to produce the printed
+// output the user sees.
+func generateKVStats(info SnapshotInfo) []typeStats {
+	kvLen := len(info.StatsKV)
+	if kvLen > 0 {
+		ks := make([]typeStats, 0, kvLen)
+
+		for _, s := range info.StatsKV {
+			ks = append(ks, s)
+		}
+
+		ks = sortTypeStats(ks)
+
+		return ks
+	}
+
+	return nil
+}
+
+// sortTypeStats sorts the stat slice by size and then
+// alphabetically in the case the size is identical
+func sortTypeStats(stats []typeStats) []typeStats {
+	sort.Slice(stats, func(i, j int) bool {
+		// sort alphabetically if size is equal
+		if stats[i].Sum == stats[j].Sum {
+			return stats[i].Name < stats[j].Name
+		}
+
+		return stats[i].Sum > stats[j].Sum
+	})
+
+	return stats
 }
 
 // countingReader helps keep track of the bytes we have read
@@ -175,34 +238,87 @@ func (r *countingReader) Read(p []byte) (n int, err error) {
 
 // enhance utilizes ReadSnapshot to populate the struct with
 // all of the snapshot's itemized data
-func enhance(file io.Reader) (map[structs.MessageType]typeStats, int, error) {
-	stats := make(map[structs.MessageType]typeStats)
+func (c *cmd) enhance(file io.Reader) (SnapshotInfo, error) {
+	info := SnapshotInfo{
+		Stats:       make(map[structs.MessageType]typeStats),
+		StatsKV:     make(map[string]typeStats),
+		TotalSize:   0,
+		TotalSizeKV: 0,
+	}
 	cr := &countingReader{wrappedReader: file}
-	totalSize := 0
 	handler := func(header *fsm.SnapshotHeader, msg structs.MessageType, dec *codec.Decoder) error {
 		name := structs.MessageType.String(msg)
-		s := stats[msg]
+		s := info.Stats[msg]
 		if s.Name == "" {
 			s.Name = name
 		}
+
 		var val interface{}
 		err := dec.Decode(&val)
 		if err != nil {
 			return fmt.Errorf("failed to decode msg type %v, error %v", name, err)
 		}
 
-		size := cr.read - totalSize
+		size := cr.read - info.TotalSize
 		s.Sum += size
 		s.Count++
-		totalSize = cr.read
-		stats[msg] = s
+		info.TotalSize = cr.read
+		info.Stats[msg] = s
+
+		c.kvEnhance(s.Name, val, size, &info)
+
 		return nil
 	}
 	if err := fsm.ReadSnapshot(cr, handler); err != nil {
-		return nil, 0, err
+		return info, err
 	}
-	return stats, totalSize, nil
+	return info, nil
 
+}
+
+// kvEnhance populates the struct with all of the snapshot's
+// size information for KV data stored in it
+func (c *cmd) kvEnhance(keyType string, val interface{}, size int, info *SnapshotInfo) {
+	if c.kvDetails {
+		if keyType != "KVS" {
+			return
+		}
+
+		// have to coerce this into a usable type here or this won't work
+		keyVal := val.(map[string]interface{})
+		for k, v := range keyVal {
+			// we only care about the entry on the key specifically
+			// related to the key name, so skip all others
+			if k != "Key" {
+				continue
+			}
+
+			// check for whether a filter is specified. if it is, skip
+			// any keys that don't match.
+			if len(c.kvFilter) > 0 && !strings.HasPrefix(v.(string), c.kvFilter) {
+				break
+			}
+
+			split := strings.Split(v.(string), "/")
+
+			// handle the situation where the key is shorter than
+			// the specified depth.
+			actualDepth := c.kvDepth
+			if c.kvDepth > len(split) {
+				actualDepth = len(split)
+			}
+			prefix := strings.Join(split[0:actualDepth], "/")
+			kvs := info.StatsKV[prefix]
+			if kvs.Name == "" {
+				kvs.Name = prefix
+			}
+
+			kvs.Sum += size
+			kvs.Count++
+			info.TotalSizeKV += size
+			info.StatsKV[prefix] = kvs
+		}
+	}
 }
 
 func (c *cmd) Synopsis() string {

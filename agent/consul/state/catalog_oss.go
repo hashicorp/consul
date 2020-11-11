@@ -323,7 +323,7 @@ func catalogChecksForNodeService(tx ReadTxn, node string, service string, entMet
 	return tx.Get("checks", "node_service", node, service)
 }
 
-func validateRegisterRequestTxn(_ ReadTxn, _ *structs.RegisterRequest) (*structs.EnterpriseMeta, error) {
+func validateRegisterRequestTxn(_ ReadTxn, _ *structs.RegisterRequest, _ bool) (*structs.EnterpriseMeta, error) {
 	return nil, nil
 }
 

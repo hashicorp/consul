@@ -38,87 +38,70 @@ To inspect a snapshot from the file "backup.snap":
 
 ```shell-session
 $ consul snapshot inspect backup.snap
- ID           2-13-1603221729747
- Size         5141
- Index        13
+ ID           2-12426-1604593650375
+ Size         17228
+ Index        12426
  Term         2
  Version      1
 
- Type                        Count      Size
- ----                        ----       ----
- Register                    3          1.7KB
- ConnectCA                   1          1.2KB
- ConnectCAProviderState      1          1.1KB
- Index                       12         344B
- Autopilot                   1          199B
- ConnectCAConfig             1          197B
- FederationState             1          139B
- SystemMetadata              1          68B
- ChunkingState               1          12B
- ----                        ----       ----
- Total                                  5KB
+ Type                       Count      Size
+ ----                       ----       ----
+ KVS                        27         12.3KB
+ Register                   5          3.4KB
+ Index                      11         285B
+ Autopilot                  1          199B
+ Session                    1          199B
+ CoordinateBatchUpdate      1          166B
+ Tombstone                  2          146B
+ FederationState            1          139B
+ ChunkingState              1          12B
+ ----                       ----       ----
+ Total                                 16.8KB
 ```
 
-To enhance a snapshot inespection from "backup.snap":
+To get more details for a snapshot inspection from "backup.snap":
+
 ```shell-session
-$ consul snapshot inspect -format=json backup.snap
-{
-   "Meta": {
-      "ID": "2-13-1603221729747",
-      "Size": 5141,
-      "Index": 13,
-      "Term": 2,
-      "Version": 1
-   },
-   "Stats": [
-      {
-         "Name": "Register",
-         "Sum": 1750,
-         "Count": 3
-      },
-      {
-         "Name": "ConnectCA",
-         "Sum": 1258,
-         "Count": 1
-      },
-      {
-         "Name": "ConnectCAProviderState",
-         "Sum": 1174,
-         "Count": 1
-      },
-      {
-         "Name": "Index",
-         "Sum": 344,
-         "Count": 12
-      },
-      {
-         "Name": "Autopilot",
-         "Sum": 199,
-         "Count": 1
-      },
-      {
-         "Name": "ConnectCAConfig",
-         "Sum": 197,
-         "Count": 1
-      },
-      {
-         "Name": "FederationState",
-         "Sum": 139,
-         "Count": 1
-      },
-      {
-         "Name": "SystemMetadata",
-         "Sum": 68,
-         "Count": 1
-      },
-      {
-         "Name": "ChunkingState",
-         "Sum": 12,
-         "Count": 1
-      }
-   ],
-   "TotalSize": 5141
-}
+$ consul snapshot inspect -kvdetails -kvdepth 3 -kvfilter vault/core backup.snap
+ ID           2-12426-1604593650375
+ Size         17228
+ Index        12426
+ Term         2
+ Version      1
+
+ Type                       Count      Size
+ ----                       ----       ----
+ KVS                        27         12.3KB
+ Register                   5          3.4KB
+ Index                      11         285B
+ Autopilot                  1          199B
+ Session                    1          199B
+ CoordinateBatchUpdate      1          166B
+ Tombstone                  2          146B
+ FederationState            1          139B
+ ChunkingState              1          12B
+ ----                       ----       ----
+ Total                                 16.8KB
+
+ Key Name                     Count      Size
+ ----                         ----       ----
+ vault/core/leader            1          1.6KB
+ vault/core/mounts            1          675B
+ vault/core/wrapping          1          633B
+ vault/core/local-mounts      1          450B
+ vault/core/auth              1          423B
+ vault/core/cluster           2          388B
+ vault/core/keyring           1          320B
+ vault/core/master            1          237B
+ vault/core/seal-config       1          211B
+ vault/core/hsm               1          189B
+ vault/core/local-audit       1          185B
+ vault/core/local-auth        1          183B
+ vault/core/audit             1          179B
+ vault/core/lock              1          170B
+ vault/core/shamir-kek        1          159B
+ ----                         ----       ----
+ Total                                   5.9KB
 ```
 
 Please see the [HTTP API](/api/snapshot) documentation for
@@ -126,4 +109,7 @@ more details about snapshot internals.
 
 #### Command Options
 
+- `-kvdetails` - Optional, provides a space usage breakdown for any KV data stored in Consul.
+- `-kvdepth` - Can only be used with `-kvdetails`. Used to adjust the grouping level of keys. Defaults to 2.
+- `-kvfilter` - Can only be used with `-kvdetails`. Used to specify a key prefix that excludes keys that don't match.
 - `-format` - Optional, allows from changing the output to JSON. Parameters accepted are "pretty" and "JSON".

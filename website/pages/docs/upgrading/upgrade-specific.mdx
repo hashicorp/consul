@@ -593,6 +593,11 @@ as part of upgrading agents. If this is set to `true`, you should also enable
 to provide control over which users are allowed to register health checks that
 could potentially execute scripts on the agent machines.
 
+!> **Security Warning:** Using `enable_script_checks` without ACLs and without
+`allow_write_http_from` is _DANGEROUS_. Use the `enable_local_script_checks` setting
+introduced in v0.9.4 instead. See [this article](https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations/)
+for more information.
+
 #### Web UI Is No Longer Released Separately
 
 Consul releases will no longer include a `web_ui.zip` file with the compiled

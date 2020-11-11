@@ -1,0 +1,389 @@
+{
+   "Healthy": true,
+   "FailureTolerance": 1,
+   "OptimisitcFailureTolerance": 10,
+   "Servers": {
+      "1b8044f6-1d25-4a83-9662-acdf404341d2": {
+         "ID": "1b8044f6-1d25-4a83-9662-acdf404341d2",
+         "Name": "node6.new",
+         "Address": "198.18.1.6:8300",
+         "NodeStatus": "alive",
+         "Version": "1.9.0",
+         "LastContact": "1ms",
+         "LastTerm": 3,
+         "LastIndex": 41,
+         "Healthy": true,
+         "StableSince": "2020-11-06T14:52:00Z",
+         "RedundancyZone": "zone3",
+         "UpgradeVersion": "2.0.0",
+         "Status": "non-voter",
+         "Meta": {
+            "bar": "baz",
+            "upgrade": "2.0.0",
+            "zone": "zone3"
+         },
+         "NodeType": "zone-standby"
+      },
+      "1baeb453-ad9e-489a-bbfe-53bee097aec8": {
+         "ID": "1baeb453-ad9e-489a-bbfe-53bee097aec8",
+         "Name": "node4",
+         "Address": "198.18.0.4:8300",
+         "NodeStatus": "alive",
+         "Version": "1.9.0",
+         "LastContact": "1ms",
+         "LastTerm": 3,
+         "LastIndex": 41,
+         "Healthy": true,
+         "StableSince": "2020-11-06T14:52:00Z",
+         "RedundancyZone": "zone2",
+         "UpgradeVersion": "1.0.0",
+         "Status": "non-voter",
+         "Meta": {
+            "bar": "baz",
+            "upgrade": "1.0.0",
+            "zone": "zone2"
+         },
+         "NodeType": "zone-standby"
+      },
+      "3044d109-f028-4489-b59c-f267afe408f2": {
+         "ID": "3044d109-f028-4489-b59c-f267afe408f2",
+         "Name": "node2.new",
+         "Address": "198.18.1.2:8300",
+         "NodeStatus": "alive",
+         "Version": "1.9.0",
+         "LastContact": "1ms",
+         "LastTerm": 3,
+         "LastIndex": 41,
+         "Healthy": true,
+         "StableSince": "2020-11-06T14:52:00Z",
+         "RedundancyZone": "zone1",
+         "UpgradeVersion": "2.0.0",
+         "Status": "non-voter",
+         "Meta": {
+            "bar": "baz",
+            "upgrade": "2.0.0",
+            "zone": "zone1"
+         },
+         "NodeType": "zone-standby"
+      },
+      "4691e516-6989-4a16-8f55-12ff2226a3c9": {
+         "ID": "4691e516-6989-4a16-8f55-12ff2226a3c9",
+         "Name": "node4.new",
+         "Address": "198.18.1.4:8300",
+         "NodeStatus": "alive",
+         "Version": "1.9.0",
+         "LastContact": "1ms",
+         "LastTerm": 3,
+         "LastIndex": 41,
+         "Healthy": true,
+         "StableSince": "2020-11-06T14:52:00Z",
+         "RedundancyZone": "zone2",
+         "UpgradeVersion": "2.0.0",
+         "Status": "non-voter",
+         "Meta": {
+            "bar": "baz",
+            "upgrade": "2.0.0",
+            "zone": "zone2"
+         },
+         "NodeType": "zone-standby"
+      },
+      "4c42fe86-321d-4e8f-be0d-c261e6cfc453": {
+         "ID": "4c42fe86-321d-4e8f-be0d-c261e6cfc453",
+         "Name": "node5",
+         "Address": "198.18.0.5:8300",
+         "NodeStatus": "alive",
+         "Version": "1.9.0",
+         "LastContact": "1ms",
+         "LastTerm": 3,
+         "LastIndex": 42,
+         "Healthy": true,
+         "StableSince": "2020-11-06T14:51:00Z",
+         "RedundancyZone": "zone3",
+         "UpgradeVersion": "1.0.0",
+         "Status": "voter",
+         "Meta": {
+            "foo": "bar",
+            "upgrade": "1.0.0",
+            "zone": "zone3"
+         },
+         "NodeType": "zone-voter"
+      },
+      "6ca5a41c-6162-41c1-b4eb-09082efe206f": {
+         "ID": "6ca5a41c-6162-41c1-b4eb-09082efe206f",
+         "Name": "node2",
+         "Address": "198.18.0.2:8300",
+         "NodeStatus": "alive",
+         "Version": "1.9.0",
+         "LastContact": "1ms",
+         "LastTerm": 3,
+         "LastIndex": 41,
+         "Healthy": true,
+         "StableSince": "2020-11-06T14:52:00Z",
+         "RedundancyZone": "zone1",
+         "UpgradeVersion": "1.0.0",
+         "Status": "non-voter",
+         "Meta": {
+            "bar": "baz",
+            "upgrade": "1.0.0",
+            "zone": "zone1"
+         },
+         "NodeType": "zone-standby"
+      },
+      "6e8a37e5-a1c4-4212-a75e-91487d8cda6d": {
+         "ID": "6e8a37e5-a1c4-4212-a75e-91487d8cda6d",
+         "Name": "node3",
+         "Address": "198.18.0.3:8300",
+         "NodeStatus": "alive",
+         "Version": "1.9.0",
+         "LastContact": "1ms",
+         "LastTerm": 3,
+         "LastIndex": 42,
+         "Healthy": true,
+         "StableSince": "2020-11-06T14:51:00Z",
+         "RedundancyZone": "zone2",
+         "UpgradeVersion": "1.0.0",
+         "Status": "voter",
+         "Meta": {
+            "foo": "bar",
+            "upgrade": "1.0.0",
+            "zone": "zone2"
+         },
+         "NodeType": "zone-voter"
+      },
+      "746b8782-ce77-41fd-bce0-cce62cca62b4": {
+         "ID": "746b8782-ce77-41fd-bce0-cce62cca62b4",
+         "Name": "node6",
+         "Address": "198.18.0.6:8300",
+         "NodeStatus": "alive",
+         "Version": "1.9.0",
+         "LastContact": "1ms",
+         "LastTerm": 3,
+         "LastIndex": 41,
+         "Healthy": true,
+         "StableSince": "2020-11-06T14:52:00Z",
+         "RedundancyZone": "zone3",
+         "UpgradeVersion": "1.0.0",
+         "Status": "non-voter",
+         "Meta": {
+            "bar": "baz",
+            "upgrade": "1.0.0",
+            "zone": "zone3"
+         },
+         "NodeType": "zone-standby"
+      },
+      "79324811-9588-4311-b208-f272e38aaabf": {
+         "ID": "79324811-9588-4311-b208-f272e38aaabf",
+         "Name": "node1",
+         "Address": "198.18.0.1:8300",
+         "NodeStatus": "alive",
+         "Version": "1.9.0",
+         "LastContact": "0s",
+         "LastTerm": 3,
+         "LastIndex": 42,
+         "Healthy": true,
+         "StableSince": "2020-11-06T14:51:00Z",
+         "RedundancyZone": "zone1",
+         "UpgradeVersion": "1.0.0",
+         "Status": "leader",
+         "Meta": {
+            "foo": "bar",
+            "upgrade": "1.0.0",
+            "zone": "zone1"
+         },
+         "NodeType": "zone-voter"
+      },
+      "7b02a615-ccce-4251-bda8-b89e0bd4f7c7": {
+         "ID": "7b02a615-ccce-4251-bda8-b89e0bd4f7c7",
+         "Name": "read-replica",
+         "Address": "198.18.0.7:8300",
+         "NodeStatus": "alive",
+         "Version": "1.9.0",
+         "LastContact": "2ms",
+         "LastTerm": 3,
+         "LastIndex": 39,
+         "Healthy": true,
+         "StableSince": "2020-11-06T14:53:00Z",
+         "UpgradeVersion": "1.0.0",
+         "ReadReplica": true,
+         "Status": "non-voter",
+         "Meta": {
+            "baz": "foo",
+            "version": "1.0.0"
+         },
+         "NodeType": "read-replica"
+      },
+      "98dfd0fd-504e-4280-8e73-6983a6af1b8c": {
+         "ID": "98dfd0fd-504e-4280-8e73-6983a6af1b8c",
+         "Name": "node5.new",
+         "Address": "198.18.1.5:8300",
+         "NodeStatus": "alive",
+         "Version": "1.9.0",
+         "LastContact": "1ms",
+         "LastTerm": 3,
+         "LastIndex": 42,
+         "Healthy": true,
+         "StableSince": "2020-11-06T14:51:00Z",
+         "RedundancyZone": "zone3",
+         "UpgradeVersion": "2.0.0",
+         "Status": "non-voter",
+         "Meta": {
+            "foo": "bar",
+            "upgrade": "2.0.0",
+            "zone": "zone3"
+         },
+         "NodeType": "zone-standby"
+      },
+      "997b0851-37c5-4d65-a477-a8b3a56eea42": {
+         "ID": "997b0851-37c5-4d65-a477-a8b3a56eea42",
+         "Name": "node3.new",
+         "Address": "198.18.1.3:8300",
+         "NodeStatus": "alive",
+         "Version": "1.9.0",
+         "LastContact": "1ms",
+         "LastTerm": 3,
+         "LastIndex": 42,
+         "Healthy": true,
+         "StableSince": "2020-11-06T14:51:00Z",
+         "RedundancyZone": "zone2",
+         "UpgradeVersion": "2.0.0",
+         "Status": "non-voter",
+         "Meta": {
+            "foo": "bar",
+            "upgrade": "2.0.0",
+            "zone": "zone2"
+         },
+         "NodeType": "zone-standby"
+      },
+      "de95799e-15a4-4c86-b508-78840554b7cb": {
+         "ID": "de95799e-15a4-4c86-b508-78840554b7cb",
+         "Name": "node1.new",
+         "Address": "198.18.1.1:8300",
+         "NodeStatus": "alive",
+         "Version": "1.9.0",
+         "LastContact": "0s",
+         "LastTerm": 3,
+         "LastIndex": 42,
+         "Healthy": true,
+         "StableSince": "2020-11-06T14:51:00Z",
+         "RedundancyZone": "zone1",
+         "UpgradeVersion": "2.0.0",
+         "Status": "non-voter",
+         "Meta": {
+            "foo": "bar",
+            "upgrade": "2.0.0",
+            "zone": "zone1"
+         },
+         "NodeType": "zone-standby"
+      }
+   },
+   "Leader": "79324811-9588-4311-b208-f272e38aaabf",
+   "Voters": [
+      "79324811-9588-4311-b208-f272e38aaabf",
+      "6e8a37e5-a1c4-4212-a75e-91487d8cda6d",
+      "4c42fe86-321d-4e8f-be0d-c261e6cfc453"
+   ],
+   "ReadReplicas": [
+      "7b02a615-ccce-4251-bda8-b89e0bd4f7c7"
+   ],
+   "RedundancyZones": {
+      "zone1": {
+         "Servers": [
+            "79324811-9588-4311-b208-f272e38aaabf",
+            "6ca5a41c-6162-41c1-b4eb-09082efe206f",
+            "de95799e-15a4-4c86-b508-78840554b7cb",
+            "3044d109-f028-4489-b59c-f267afe408f2"
+         ],
+         "Voters": [
+            "79324811-9588-4311-b208-f272e38aaabf"
+         ],
+         "FailureTolerance": 3
+      },
+      "zone2": {
+         "Servers": [
+            "6e8a37e5-a1c4-4212-a75e-91487d8cda6d",
+            "1baeb453-ad9e-489a-bbfe-53bee097aec8",
+            "997b0851-37c5-4d65-a477-a8b3a56eea42",
+            "4691e516-6989-4a16-8f55-12ff2226a3c9"
+         ],
+         "Voters": [
+            "6e8a37e5-a1c4-4212-a75e-91487d8cda6d"
+         ],
+         "FailureTolerance": 3
+      },
+      "zone3": {
+         "Servers": [
+            "4c42fe86-321d-4e8f-be0d-c261e6cfc453",
+            "746b8782-ce77-41fd-bce0-cce62cca62b4",
+            "98dfd0fd-504e-4280-8e73-6983a6af1b8c",
+            "1b8044f6-1d25-4a83-9662-acdf404341d2"
+         ],
+         "Voters": [
+            "4c42fe86-321d-4e8f-be0d-c261e6cfc453"
+         ],
+         "FailureTolerance": 3
+      }
+   },
+   "Upgrade": {
+      "Status": "promoting",
+      "TargetVersion": "2.0.0",
+      "TargetVersionNonVoters": [
+         "de95799e-15a4-4c86-b508-78840554b7cb",
+         "3044d109-f028-4489-b59c-f267afe408f2",
+         "997b0851-37c5-4d65-a477-a8b3a56eea42",
+         "4691e516-6989-4a16-8f55-12ff2226a3c9",
+         "98dfd0fd-504e-4280-8e73-6983a6af1b8c",
+         "1b8044f6-1d25-4a83-9662-acdf404341d2"
+      ],
+      "OtherVersionVoters": [
+         "79324811-9588-4311-b208-f272e38aaabf",
+         "6e8a37e5-a1c4-4212-a75e-91487d8cda6d",
+         "4c42fe86-321d-4e8f-be0d-c261e6cfc453"
+      ],
+      "OtherVersionNonVoters": [
+         "6ca5a41c-6162-41c1-b4eb-09082efe206f",
+         "1baeb453-ad9e-489a-bbfe-53bee097aec8",
+         "746b8782-ce77-41fd-bce0-cce62cca62b4"
+      ],
+      "OtherVersionReadReplicas": [
+         "7b02a615-ccce-4251-bda8-b89e0bd4f7c7"
+      ],
+      "RedundancyZones": {
+         "zone1": {
+            "TargetVersionNonVoters": [
+               "de95799e-15a4-4c86-b508-78840554b7cb",
+               "3044d109-f028-4489-b59c-f267afe408f2"
+            ],
+            "OtherVersionVoters": [
+               "79324811-9588-4311-b208-f272e38aaabf"
+            ],
+            "OtherVersionNonVoters": [
+               "6ca5a41c-6162-41c1-b4eb-09082efe206f"
+            ]
+         },
+         "zone2": {
+            "TargetVersionNonVoters": [
+               "997b0851-37c5-4d65-a477-a8b3a56eea42",
+               "4691e516-6989-4a16-8f55-12ff2226a3c9"
+            ],
+            "OtherVersionVoters": [
+               "6e8a37e5-a1c4-4212-a75e-91487d8cda6d"
+            ],
+            "OtherVersionNonVoters": [
+               "1baeb453-ad9e-489a-bbfe-53bee097aec8"
+            ]
+         },
+         "zone3": {
+            "TargetVersionNonVoters": [
+               "98dfd0fd-504e-4280-8e73-6983a6af1b8c",
+               "1b8044f6-1d25-4a83-9662-acdf404341d2"
+            ],
+            "OtherVersionVoters": [
+               "4c42fe86-321d-4e8f-be0d-c261e6cfc453"
+            ],
+            "OtherVersionNonVoters": [
+               "746b8782-ce77-41fd-bce0-cce62cca62b4"
+            ]
+         }
+      }
+   }
+}

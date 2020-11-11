@@ -4,7 +4,7 @@ export default function(visitable, attribute, collection, text, tabs) {
     externalSource: attribute('data-test-external-source', '[data-test-external-source]', {
       scope: '.title',
     }),
-    tabs: tabs('tab', ['health-checks', 'proxy-info', 'addresses', 'tags-&-meta']),
+    tabs: tabs('tab', ['health-checks', 'upstreams', 'exposed-paths', 'addresses', 'tags-&-meta']),
     checks: collection('[data-test-checks] li'),
     upstreams: collection('[data-test-proxy-upstreams] > li', {
       name: text('[data-test-destination-name]'),

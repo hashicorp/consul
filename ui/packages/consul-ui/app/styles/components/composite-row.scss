@@ -1,6 +1,6 @@
 @import './composite-row/index';
 
-.proxy-upstreams > ul > li,
+.consul-upstream-instance-list > li,
 .list-collection > ul > li:not(:first-child) {
   @extend %composite-row;
 }
@@ -34,7 +34,7 @@
   overflow-x: visible !important;
 }
 .consul-intention-permission-list > ul,
-.proxy-upstreams > ul {
+.consul-upstream-instance-list > ul {
   border-top: 1px solid $gray-200;
 }
 .consul-service-instance-list .port dt,

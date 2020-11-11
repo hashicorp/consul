@@ -1,0 +1,12 @@
+```release-note:bug
+autopilot: **(Enterprise Only)** Previously servers in other zones would not be promoted when all servers in a second zone had failed. Now the actual behavior matches the docs and autopilot will promote a healthy non-voter from any zone to replace failure of an entire zone.
+```
+```release-note:feature
+autopilot: A new `/v1/operator/autopilot/state` HTTP API was created to give greater visibility into what autopilot is doing and how it has classified all the servers it is tracking.
+```
+```release-note:improvement
+autopilot: **(Enterprise Only)** Autopilot now supports using both Redundancy Zones and Automated Upgrades together.
+```
+```release-note:breaking-change
+raft: Raft protocol v2 is no longer supported. If currently using protocol v2 then an intermediate upgrade to a version supporting both v2 and v3 protocols will be necessary (1.0.0 - 1.8.x). Note that the Raft protocol configured with the `raft_protocol` setting and the Consul RPC protocol configured with the `protocol` setting and output by the `consul version` command are distinct and supported Consul RPC protocol versions are not altered.
+```
