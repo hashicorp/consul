@@ -114,7 +114,7 @@ type OperatorHealthReply struct {
 type AutopilotState struct {
 	Healthy                    bool
 	FailureTolerance           int
-	OptimisitcFailureTolerance int
+	OptimisticFailureTolerance int
 
 	Servers         map[string]AutopilotServer
 	Leader          string
@@ -137,7 +137,7 @@ type AutopilotServer struct {
 	StableSince    time.Time
 	RedundancyZone string `json:",omitempty"`
 	UpgradeVersion string `json:",omitempty"`
-	ReadReplica    bool   `json:",omitempty"`
+	ReadReplica    bool
 	Status         AutopilotServerStatus
 	Meta           map[string]string
 	NodeType       AutopilotServerType

@@ -1,0 +1,279 @@
+Healthy:                      true
+Failure Tolerance:            1
+Optimistic Failure Tolerance: 0
+Leader:                       79324811-9588-4311-b208-f272e38aaabf
+Voters:
+   79324811-9588-4311-b208-f272e38aaabf
+   6e8a37e5-a1c4-4212-a75e-91487d8cda6d
+   4c42fe86-321d-4e8f-be0d-c261e6cfc453
+Read Replicas:
+   7b02a615-ccce-4251-bda8-b89e0bd4f7c7
+Redundancy Zones:
+   zone1:
+      Failure Tolerance: 3
+      Voters:
+         79324811-9588-4311-b208-f272e38aaabf
+      Servers:
+         79324811-9588-4311-b208-f272e38aaabf
+         6ca5a41c-6162-41c1-b4eb-09082efe206f
+         de95799e-15a4-4c86-b508-78840554b7cb
+         3044d109-f028-4489-b59c-f267afe408f2
+   zone2:
+      Failure Tolerance: 3
+      Voters:
+         6e8a37e5-a1c4-4212-a75e-91487d8cda6d
+      Servers:
+         6e8a37e5-a1c4-4212-a75e-91487d8cda6d
+         1baeb453-ad9e-489a-bbfe-53bee097aec8
+         997b0851-37c5-4d65-a477-a8b3a56eea42
+         4691e516-6989-4a16-8f55-12ff2226a3c9
+   zone3:
+      Failure Tolerance: 3
+      Voters:
+         4c42fe86-321d-4e8f-be0d-c261e6cfc453
+      Servers:
+         4c42fe86-321d-4e8f-be0d-c261e6cfc453
+         746b8782-ce77-41fd-bce0-cce62cca62b4
+         98dfd0fd-504e-4280-8e73-6983a6af1b8c
+         1b8044f6-1d25-4a83-9662-acdf404341d2
+Upgrade:
+   Status:         promoting
+   Target Version: 2.0.0
+   Target Version Non-Voters:
+      de95799e-15a4-4c86-b508-78840554b7cb
+      3044d109-f028-4489-b59c-f267afe408f2
+      997b0851-37c5-4d65-a477-a8b3a56eea42
+      4691e516-6989-4a16-8f55-12ff2226a3c9
+      98dfd0fd-504e-4280-8e73-6983a6af1b8c
+      1b8044f6-1d25-4a83-9662-acdf404341d2
+   Other Version Voters:
+      79324811-9588-4311-b208-f272e38aaabf
+      6e8a37e5-a1c4-4212-a75e-91487d8cda6d
+      4c42fe86-321d-4e8f-be0d-c261e6cfc453
+   Other Version Non-Voters:
+      6ca5a41c-6162-41c1-b4eb-09082efe206f
+      1baeb453-ad9e-489a-bbfe-53bee097aec8
+      746b8782-ce77-41fd-bce0-cce62cca62b4
+   Other Version ReadReplicas:
+      7b02a615-ccce-4251-bda8-b89e0bd4f7c7
+Servers:
+   1b8044f6-1d25-4a83-9662-acdf404341d2
+      Name:            node6.new
+      Address:         198.18.1.6:8300
+      Version:         1.9.0
+      Status:          non-voter
+      Node Type:       zone-standby
+      Node Status:     alive
+      Healthy:         true
+      Last Contact:    1ms
+      Last Term:       3
+      Last Index:      41
+      Redundancy Zone: zone3
+      Upgrade Version: 2.0.0
+      Meta
+         "bar": "baz"
+         "upgrade": "2.0.0"
+         "zone": "zone3"
+   1baeb453-ad9e-489a-bbfe-53bee097aec8
+      Name:            node4
+      Address:         198.18.0.4:8300
+      Version:         1.9.0
+      Status:          non-voter
+      Node Type:       zone-standby
+      Node Status:     alive
+      Healthy:         true
+      Last Contact:    1ms
+      Last Term:       3
+      Last Index:      41
+      Redundancy Zone: zone2
+      Upgrade Version: 1.0.0
+      Meta
+         "bar": "baz"
+         "upgrade": "1.0.0"
+         "zone": "zone2"
+   3044d109-f028-4489-b59c-f267afe408f2
+      Name:            node2.new
+      Address:         198.18.1.2:8300
+      Version:         1.9.0
+      Status:          non-voter
+      Node Type:       zone-standby
+      Node Status:     alive
+      Healthy:         true
+      Last Contact:    1ms
+      Last Term:       3
+      Last Index:      41
+      Redundancy Zone: zone1
+      Upgrade Version: 2.0.0
+      Meta
+         "bar": "baz"
+         "upgrade": "2.0.0"
+         "zone": "zone1"
+   4691e516-6989-4a16-8f55-12ff2226a3c9
+      Name:            node4.new
+      Address:         198.18.1.4:8300
+      Version:         1.9.0
+      Status:          non-voter
+      Node Type:       zone-standby
+      Node Status:     alive
+      Healthy:         true
+      Last Contact:    1ms
+      Last Term:       3
+      Last Index:      41
+      Redundancy Zone: zone2
+      Upgrade Version: 2.0.0
+      Meta
+         "bar": "baz"
+         "upgrade": "2.0.0"
+         "zone": "zone2"
+   4c42fe86-321d-4e8f-be0d-c261e6cfc453
+      Name:            node5
+      Address:         198.18.0.5:8300
+      Version:         1.9.0
+      Status:          voter
+      Node Type:       zone-voter
+      Node Status:     alive
+      Healthy:         true
+      Last Contact:    1ms
+      Last Term:       3
+      Last Index:      42
+      Redundancy Zone: zone3
+      Upgrade Version: 1.0.0
+      Meta
+         "foo": "bar"
+         "upgrade": "1.0.0"
+         "zone": "zone3"
+   6ca5a41c-6162-41c1-b4eb-09082efe206f
+      Name:            node2
+      Address:         198.18.0.2:8300
+      Version:         1.9.0
+      Status:          non-voter
+      Node Type:       zone-standby
+      Node Status:     alive
+      Healthy:         true
+      Last Contact:    1ms
+      Last Term:       3
+      Last Index:      41
+      Redundancy Zone: zone1
+      Upgrade Version: 1.0.0
+      Meta
+         "bar": "baz"
+         "upgrade": "1.0.0"
+         "zone": "zone1"
+   6e8a37e5-a1c4-4212-a75e-91487d8cda6d
+      Name:            node3
+      Address:         198.18.0.3:8300
+      Version:         1.9.0
+      Status:          voter
+      Node Type:       zone-voter
+      Node Status:     alive
+      Healthy:         true
+      Last Contact:    1ms
+      Last Term:       3
+      Last Index:      42
+      Redundancy Zone: zone2
+      Upgrade Version: 1.0.0
+      Meta
+         "foo": "bar"
+         "upgrade": "1.0.0"
+         "zone": "zone2"
+   746b8782-ce77-41fd-bce0-cce62cca62b4
+      Name:            node6
+      Address:         198.18.0.6:8300
+      Version:         1.9.0
+      Status:          non-voter
+      Node Type:       zone-standby
+      Node Status:     alive
+      Healthy:         true
+      Last Contact:    1ms
+      Last Term:       3
+      Last Index:      41
+      Redundancy Zone: zone3
+      Upgrade Version: 1.0.0
+      Meta
+         "bar": "baz"
+         "upgrade": "1.0.0"
+         "zone": "zone3"
+   79324811-9588-4311-b208-f272e38aaabf
+      Name:            node1
+      Address:         198.18.0.1:8300
+      Version:         1.9.0
+      Status:          leader
+      Node Type:       zone-voter
+      Node Status:     alive
+      Healthy:         true
+      Last Contact:    0s
+      Last Term:       3
+      Last Index:      42
+      Redundancy Zone: zone1
+      Upgrade Version: 1.0.0
+      Meta
+         "foo": "bar"
+         "upgrade": "1.0.0"
+         "zone": "zone1"
+   7b02a615-ccce-4251-bda8-b89e0bd4f7c7
+      Name:            read-replica
+      Address:         198.18.0.7:8300
+      Version:         1.9.0
+      Status:          non-voter
+      Node Type:       read-replica
+      Node Status:     alive
+      Healthy:         true
+      Last Contact:    2ms
+      Last Term:       3
+      Last Index:      39
+      Upgrade Version: 1.0.0
+      Read Replica:    true
+      Meta
+         "baz": "foo"
+         "version": "1.0.0"
+   98dfd0fd-504e-4280-8e73-6983a6af1b8c
+      Name:            node5.new
+      Address:         198.18.1.5:8300
+      Version:         1.9.0
+      Status:          non-voter
+      Node Type:       zone-standby
+      Node Status:     alive
+      Healthy:         true
+      Last Contact:    1ms
+      Last Term:       3
+      Last Index:      42
+      Redundancy Zone: zone3
+      Upgrade Version: 2.0.0
+      Meta
+         "foo": "bar"
+         "upgrade": "2.0.0"
+         "zone": "zone3"
+   997b0851-37c5-4d65-a477-a8b3a56eea42
+      Name:            node3.new
+      Address:         198.18.1.3:8300
+      Version:         1.9.0
+      Status:          non-voter
+      Node Type:       zone-standby
+      Node Status:     alive
+      Healthy:         true
+      Last Contact:    1ms
+      Last Term:       3
+      Last Index:      42
+      Redundancy Zone: zone2
+      Upgrade Version: 2.0.0
+      Meta
+         "foo": "bar"
+         "upgrade": "2.0.0"
+         "zone": "zone2"
+   de95799e-15a4-4c86-b508-78840554b7cb
+      Name:            node1.new
+      Address:         198.18.1.1:8300
+      Version:         1.9.0
+      Status:          non-voter
+      Node Type:       zone-standby
+      Node Status:     alive
+      Healthy:         true
+      Last Contact:    0s
+      Last Term:       3
+      Last Index:      42
+      Redundancy Zone: zone1
+      Upgrade Version: 2.0.0
+      Meta
+         "foo": "bar"
+         "upgrade": "2.0.0"
+         "zone": "zone1"

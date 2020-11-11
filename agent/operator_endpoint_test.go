@@ -656,9 +656,10 @@ func TestAutopilotStateToAPIConversion(t *testing.T) {
 	}
 
 	expected := api.AutopilotState{
-		Healthy:          true,
-		FailureTolerance: 1,
-		Leader:           string(leaderID),
+		Healthy:                    true,
+		FailureTolerance:           1,
+		OptimisticFailureTolerance: 1,
+		Leader:                     string(leaderID),
 		Voters: []string{
 			string(leaderID),
 			string(follower1ID),
