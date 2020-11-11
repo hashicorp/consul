@@ -634,6 +634,7 @@ type testAutoConfig struct {
 	ac            *AutoConfig
 	tokenUpdates  chan struct{}
 	originalToken string
+	stop          func()
 
 	initialRoots *structs.IndexedCARoots
 	initialCert  *structs.IssuedCert
@@ -835,6 +836,7 @@ func startedAutoConfig(t *testing.T, autoEncrypt bool) testAutoConfig {
 		initialRoots:  indexedRoots,
 		initialCert:   cert,
 		extraCerts:    extraCerts,
+		stop:          cancel,
 	}
 }
 
@@ -1098,16 +1100,15 @@ func TestFallback(t *testing.T) {
 	// now wait for the fallback routine to be invoked
 	require.True(t, waitForChans(100*time.Millisecond, fallbackCtx.Done()), "fallback routines did not get invoked within the alotted time")
 
-	// persisting these to disk happens after the RPC we waited on above will have fired
-	// There is no deterministic way to know once its been written so we wrap this in a retry.
-	testretry.Run(t, func(r *testretry.R) {
-		resp, err := testAC.ac.readPersistedAutoConfig()
-		require.NoError(r, err)
+	testAC.stop()
+	<-testAC.ac.done
 
-		// ensure the roots got persisted to disk
-		require.Equal(r, thirdCert.CertPEM, resp.Certificate.GetCertPEM())
-		require.Equal(r, secondRoots.ActiveRootID, resp.CARoots.GetActiveRootID())
-	})
+	resp, err := testAC.ac.readPersistedAutoConfig()
+	require.NoError(t, err)
+
+	// ensure the roots got persisted to disk
+	require.Equal(t, thirdCert.CertPEM, resp.Certificate.GetCertPEM())
+	require.Equal(t, secondRoots.ActiveRootID, resp.CARoots.GetActiveRootID())
 }
 
 func TestIntroToken(t *testing.T) {

@@ -5,12 +5,12 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/connect"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/stretchr/testify/require"
 )
 
 func TestUpstreamResolverFuncFromClient(t *testing.T) {
@@ -79,8 +79,6 @@ func TestUpstreamResolverFuncFromClient(t *testing.T) {
 }
 
 func TestAgentConfigWatcherSidecarProxy(t *testing.T) {
-	t.Parallel()
-
 	a := agent.StartTestAgent(t, agent.TestAgent{Name: "agent_smith"})
 	defer a.Shutdown()
 
