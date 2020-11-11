@@ -1,13 +1,18 @@
-<div class="resolver-card">
-  <header onclick={{onclick}} id={{concat 'resolver:' item.ID}}>
+<div
+  class="resolver-card"
+  ...attributes
+>
+  <header onclick={{optional @onclick}} id={{concat 'resolver:' @item.ID}}>
     <a name="">
-      <h3>{{item.Name}}</h3>
+      <h3>{{@item.Name}}</h3>
 {{#if item.Failover}}
       <dl class="failover">
-        <dt data-tooltip={{concat item.Failover.Type ' failover'}}>{{concat item.Failover.Type ' failover'}}</dt>
+        <dt data-tooltip={{concat @item.Failover.Type ' failover'}}>
+          {{concat @item.Failover.Type ' failover'}}
+        </dt>
         <dd>
           <ol>
-  {{#each item.Failover.Targets as |item|}}
+  {{#each @item.Failover.Targets as |item|}}
             <li>
               <span>{{item}}</span>
             </li>
@@ -18,10 +23,10 @@
 {{/if}}
     </a>
   </header>
-{{#if (gt item.Children.length 0)}}
+{{#if (gt @item.Children.length 0)}}
     <ul>
-  {{#each item.Children as |child|}}
-      <li onclick={{onclick}} id={{concat 'resolver:' child.ID}}>
+  {{#each @item.Children as |child|}}
+      <li onclick={{optional @onclick}} id={{concat 'resolver:' child.ID}}>
         <a name="">
     {{#if child.Redirect}}
           <dl class="redirect">
