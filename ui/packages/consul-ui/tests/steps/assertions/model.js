@@ -11,7 +11,11 @@ export default function(scenario, assert, find, currentPage, pauseUntil, plurali
         return retry();
       }, `Expected ${num} ${model}s`);
     })
-    .then('pause until I see $number $model model[s]? on the $component component', function(num, model, component) {
+    .then('pause until I see $number $model model[s]? on the $component component', function(
+      num,
+      model,
+      component
+    ) {
       return pauseUntil(function(resolve, reject, retry) {
         const obj = find(component);
         const len = obj[pluralize(model)].filter(function(item) {
