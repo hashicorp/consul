@@ -20,22 +20,6 @@ export default Component.extend({
   init: function() {
     this._super(...arguments);
     this._listeners = this.dom.listeners();
-    this._viewportlistener = this.dom.listeners();
-  },
-  didInsertElement: function() {
-    this._super(...arguments);
-    this._viewportlistener.add(
-      this.dom.isInViewport(this.element, bool => {
-        if (get(this, 'isDisplayed') !== bool) {
-          set(this, 'isDisplayed', bool);
-          if (this.isDisplayed) {
-            this.addPathListeners();
-          } else {
-            this.ticker.destroy(this);
-          }
-        }
-      })
-    );
   },
   didReceiveAttrs: function() {
     this._super(...arguments);
@@ -46,7 +30,6 @@ export default Component.extend({
   willDestroyElement: function() {
     this._super(...arguments);
     this._listeners.remove();
-    this._viewportlistener.remove();
     this.ticker.destroy(this);
   },
   splitters: computed('chain.Nodes', function() {
@@ -133,10 +116,10 @@ export default Component.extend({
       edges: edges.map(item => `#${CSS.escape(item)}`),
     };
   }),
-  width: computed('isDisplayed', 'chain.{Nodes,Targets}', function() {
+  width: computed('chain.{Nodes,Targets}', function() {
     return this.element.offsetWidth;
   }),
-  height: computed('isDisplayed', 'chain.{Nodes,Targets}', function() {
+  height: computed('chain.{Nodes,Targets}', function() {
     return this.element.offsetHeight;
   }),
   // TODO(octane): ember has trouble adding mouse events to svg elements whilst giving
