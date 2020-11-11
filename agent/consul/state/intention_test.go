@@ -361,7 +361,7 @@ func testStore_IntentionMutation(t *testing.T, s *Store) {
 				Action:         structs.IntentionActionDeny,
 				LegacyID:       id2,
 			},
-		}), `Sources[1] defines "web" more than once`)
+		}), `more than once`)
 	}
 
 	// Create intention with existing config entry
@@ -773,7 +773,7 @@ func testStore_IntentionMutation(t *testing.T, s *Store) {
 				Action:         structs.IntentionActionAllow,
 				LegacyID:       idFake,
 			},
-		}), `cannot use legacy intention API to edit intentions with a destination of "new" after editing them via a service-intentions config entry`)
+		}), `cannot use legacy intention API to edit intentions with a destination`)
 	}
 }
 
