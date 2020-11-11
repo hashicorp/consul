@@ -172,8 +172,8 @@ type typeStats struct {
 	Count int
 }
 
-// Generate the stats for the output struct that's
-// used to produce the printed output the user sees.
+// generateStats formats the stats for the output struct
+// that's used to produce the printed output the user sees.
 func generateStats(info SnapshotInfo) []typeStats {
 	ss := make([]typeStats, 0, len(info.Stats))
 
@@ -186,8 +186,9 @@ func generateStats(info SnapshotInfo) []typeStats {
 	return ss
 }
 
-// Generate the KV stats for the output struct that's
-// used to produce the printed output the user sees.
+// generateKVStats reformats the KV stats to work with
+// the output struct that's used to produce the printed
+// output the user sees.
 func generateKVStats(info SnapshotInfo) []typeStats {
 	kvLen := len(info.StatsKV)
 	if kvLen > 0 {
@@ -205,7 +206,8 @@ func generateKVStats(info SnapshotInfo) []typeStats {
 	return nil
 }
 
-// Sort the stat slice
+// sortTypeStats sorts the stat slice by size and then
+// alphabetically in the case the size is identical
 func sortTypeStats(stats []typeStats) []typeStats {
 	sort.Slice(stats, func(i, j int) bool {
 		// sort alphabetically if size is equal
