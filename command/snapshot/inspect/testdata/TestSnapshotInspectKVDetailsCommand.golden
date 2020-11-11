@@ -1,0 +1,27 @@
+ ID           2-12426-1604593650375
+ Size         17228
+ Index        12426
+ Term         2
+ Version      1
+
+ Type                       Count      Size
+ ----                       ----       ----
+ KVS                        27         12.3KB
+ Register                   5          3.4KB
+ Index                      11         285B
+ Autopilot                  1          199B
+ Session                    1          199B
+ CoordinateBatchUpdate      1          166B
+ Tombstone                  2          146B
+ FederationState            1          139B
+ ChunkingState              1          12B
+ ----                       ----       ----
+ Total                                 16.8KB
+
+ Key Name           Count      Size
+ ----               ----       ----
+ vault/core         16         5.9KB
+ vault/sys          7          4.4KB
+ vault/logical      4          2KB
+ ----               ----       ----
+ Total                         12.3KB
