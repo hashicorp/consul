@@ -16,7 +16,7 @@ func kvsIndexer() *memdb.StringFieldIndex {
 	}
 }
 
-func insertKVTxn(tx WriteTxn, entry *structs.DirEntry, updateMax bool) error {
+func insertKVTxn(tx WriteTxn, entry *structs.DirEntry, updateMax bool, _ bool) error {
 	if err := tx.Insert("kvs", entry); err != nil {
 		return err
 	}
