@@ -1,7 +1,7 @@
-import { getAlternateServices } from 'consul-ui/components/discovery-chain/utils';
+import { getAlternateServices } from 'consul-ui/components/consul/discovery-chain/utils';
 import { module, test } from 'qunit';
 
-module('Unit | Component | discovery-chain/get-alternative-services', function() {
+module('Unit | Component | consul/discovery-chain/get-alternative-services', function() {
   test('it guesses a different namespace', function(assert) {
     const expected = {
       Type: 'Namespace',

@@ -1,10 +1,9 @@
-import Component from '@ember/component';
-import { get, computed } from '@ember/object';
+import Component from '@glimmer/component';
+import { get } from '@ember/object';
 
-export default Component.extend({
-  tagName: '',
-  path: computed('item', function() {
-    return Object.entries(get(this, 'item.Definition.Match.HTTP') || {}).reduce(
+export default class RouteCard extends Component {
+  get path() {
+    return Object.entries(get(this.args.item, 'Definition.Match.HTTP') || {}).reduce(
       function(prev, [key, value]) {
         if (key.toLowerCase().startsWith('path')) {
           return {
@@ -19,5 +18,5 @@ export default Component.extend({
         value: '/',
       }
     );
-  }),
-});
+  }
+}
