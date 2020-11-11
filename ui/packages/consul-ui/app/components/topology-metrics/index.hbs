@@ -2,7 +2,7 @@
 
 <div
   {{did-insert (action this.calculate)}}
-  {{did-update (action this.calculate) @topology}}
+  {{did-update (action this.calculate) @topology.Upstreams @topology.Downstreams}}
   class="topology-container"
 >
 {{#if (gt @topology.Downstreams.length 0)}}
@@ -17,7 +17,6 @@
     </div>
   {{#each @topology.Downstreams as |item|}}
     <TopologyMetrics::Card
-      {{did-update (action this.calculate) item}}
       @item={{item}}
       @service={{@service.Service}}
       @dc={{@topology.Datacenter}}
@@ -59,10 +58,12 @@
   <div id="downstream-lines">
     <TopologyMetrics::DownLines
       @type='downstream'
+      @service={{@service}}
       @view={{this.downView}}
       @center={{this.centerDimensions}}
       @lines={{this.downLines}}
       @items={{@topology.Downstreams}}
+      @oncreate={{action @oncreate}}
     />
   </div>
 {{#if (gt @topology.Upstreams.length 0)}}
@@ -72,7 +73,6 @@
       <p>{{dc}}</p>
     {{#each upstreams as |item|}}
       <TopologyMetrics::Card
-        {{did-update (action this.calculate) item}}
         @item={{item}}
         @service={{@service.Service}}
         @dc={{@topology.Datacenter}}
@@ -88,10 +88,12 @@
   <div id="upstream-lines">
     <TopologyMetrics::UpLines
       @type='upstream'
+      @service={{@service}}
       @view={{this.upView}}
       @center={{this.centerDimensions}}
       @lines={{this.upLines}}
       @items={{@topology.Upstreams}}
+      @oncreate={{action @oncreate}}
     />
   </div>
 </div>
