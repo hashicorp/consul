@@ -1,11 +1,10 @@
 <div class="topology-metrics-popover">
-{{#let (find-by 'id' (concat @item.Namespace @item.Name) @positions) as |style|}}
 {{#if (and (not @item.Intention.Allowed) (not @item.Intention.HasPermissions))}}
   <button
     {{on "click" this.togglePopover}}
     type="button"
     class="deny-target"
-    style={{{ concat 'top:' style.y 'px;left:' style.x 'px;'}}}
+    style={{{ concat 'top:' @position.y 'px;left:' @position.x 'px;'}}}
   >
     <EmberPopover
       @isShown={{this.showToggleablePopover}}
@@ -43,7 +42,7 @@
     {{on "click" this.togglePopover}}
     type="button"
     class="L7-target"
-    style={{{ concat 'top:' style.y 'px;left:' style.x 'px;'}}}
+    style={{{ concat 'top:' @position.y 'px;left:' @position.x 'px;'}}}
   >
     <EmberPopover
       @isShown={{this.showToggleablePopover}}
@@ -67,7 +66,6 @@
     </EmberPopover>
   </button>
 {{/if}}
-{{/let}}
 </div>
 
 
