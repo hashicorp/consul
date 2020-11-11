@@ -146,7 +146,7 @@ func (s *Snapshot) Sessions() (memdb.ResultIterator, error) {
 // Session is used when restoring from a snapshot. For general inserts, use
 // SessionCreate.
 func (s *Restore) Session(sess *structs.Session) error {
-	if err := s.store.insertSessionTxn(s.tx, sess, sess.ModifyIndex, true); err != nil {
+	if err := s.store.insertSessionTxn(s.tx, sess, sess.ModifyIndex, true, true); err != nil {
 		return fmt.Errorf("failed inserting session: %s", err)
 	}
 
@@ -214,7 +214,7 @@ func (s *Store) sessionCreateTxn(tx *memdb.Txn, idx uint64, sess *structs.Sessio
 	}
 
 	// Insert the session
-	if err := s.insertSessionTxn(tx, sess, idx, false); err != nil {
+	if err := s.insertSessionTxn(tx, sess, idx, false, false); err != nil {
 		return fmt.Errorf("failed inserting session: %s", err)
 	}
 

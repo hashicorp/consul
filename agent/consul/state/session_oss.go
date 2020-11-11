@@ -48,7 +48,7 @@ func (s *Store) sessionDeleteWithSession(tx *memdb.Txn, session *structs.Session
 	return nil
 }
 
-func (s *Store) insertSessionTxn(tx *memdb.Txn, session *structs.Session, idx uint64, updateMax bool) error {
+func (s *Store) insertSessionTxn(tx *memdb.Txn, session *structs.Session, idx uint64, updateMax bool, _ bool) error {
 	if err := tx.Insert("sessions", session); err != nil {
 		return err
 	}

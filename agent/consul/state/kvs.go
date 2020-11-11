@@ -69,7 +69,7 @@ func (s *Snapshot) Tombstones() (memdb.ResultIterator, error) {
 
 // KVS is used when restoring from a snapshot. Use KVSSet for general inserts.
 func (s *Restore) KVS(entry *structs.DirEntry) error {
-	if err := s.store.insertKVTxn(s.tx, entry, true); err != nil {
+	if err := s.store.insertKVTxn(s.tx, entry, true, true); err != nil {
 		return fmt.Errorf("failed inserting kvs entry: %s", err)
 	}
 
@@ -155,7 +155,7 @@ func (s *Store) kvsSetTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntry, up
 	entry.ModifyIndex = idx
 
 	// Store the kv pair in the state store and update the index.
-	if err := s.insertKVTxn(tx, entry, false); err != nil {
+	if err := s.insertKVTxn(tx, entry, false, false); err != nil {
 		return fmt.Errorf("failed inserting kvs entry: %s", err)
 	}
 

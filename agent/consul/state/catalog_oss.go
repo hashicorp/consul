@@ -322,7 +322,7 @@ func (s *Store) catalogChecksForNodeService(tx *memdb.Txn, node string, service 
 	return tx.Get("checks", "node_service", node, service)
 }
 
-func (s *Store) validateRegisterRequestTxn(tx *memdb.Txn, args *structs.RegisterRequest) (*structs.EnterpriseMeta, error) {
+func (s *Store) validateRegisterRequestTxn(tx *memdb.Txn, args *structs.RegisterRequest, _ bool) (*structs.EnterpriseMeta, error) {
 	return nil, nil
 }
 
