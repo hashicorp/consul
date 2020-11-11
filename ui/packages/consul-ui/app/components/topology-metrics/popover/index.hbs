@@ -22,9 +22,19 @@
       {{#if @item.Intention.HasExact}}
         <a href={{href-to 'dc.services.show.intentions.edit' (concat @item.Intention.ID)}}>Edit</a>
       {{else}}
-        <a href={{href-to 'dc.services.show.intentions.create'}}>Create</a>
+        <button
+          {{on "click" @oncreate}}
+          type="button"
+        >
+          Create
+        </button>
       {{/if}}
-        <button class="cancel" {{on "click" this.togglePopover}}>Cancel</button>
+        <button
+          {{on "click" this.togglePopover}}
+          class="cancel"
+        >
+          Cancel
+        </button>
       </div>
     </EmberPopover>
   </button>
@@ -48,7 +58,11 @@
       </div>
       <div class="actions">
         <a href={{href-to 'dc.services.show.intentions.edit' (concat @item.Intention.ID)}}>View</a>
-        <button {{on "click" this.togglePopover}}>Close</button>
+        <button
+          {{on "click" this.togglePopover}}
+        >
+          Close
+        </button>
       </div>
     </EmberPopover>
   </button>
