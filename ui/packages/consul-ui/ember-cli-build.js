@@ -8,18 +8,15 @@ module.exports = function(defaults) {
   const isProdLike = prodlike.indexOf(env) > -1;
   const sourcemaps = !isProd;
   let trees = {};
-  if(isProdLike) {
+  if (isProdLike) {
     // exclude any component/pageobject.js files from production-like environments
-    trees.app = new Funnel(
-      'app',
-      {
-        exclude: [
-          'components/**/pageobject.js',
-          'components/**/*.test-support.js',
-          'components/**/*.test.js'
-        ]
-      }
-    );
+    trees.app = new Funnel('app', {
+      exclude: [
+        'components/**/pageobject.js',
+        'components/**/*.test-support.js',
+        'components/**/*.test.js',
+      ],
+    });
   }
   let app = new EmberApp(
     Object.assign({}, defaults, {
@@ -31,14 +28,7 @@ module.exports = function(defaults) {
         includePolyfill: true,
       },
       'ember-cli-string-helpers': {
-        only: [
-          'capitalize',
-          'lowercase',
-          'truncate',
-          'uppercase',
-          'humanize',
-          'titleize'
-        ],
+        only: ['capitalize', 'lowercase', 'truncate', 'uppercase', 'humanize', 'titleize'],
       },
       'ember-cli-math-helpers': {
         only: ['div'],

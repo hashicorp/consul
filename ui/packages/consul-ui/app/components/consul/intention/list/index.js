@@ -5,7 +5,6 @@ import { tracked } from '@glimmer/tracking';
 import { sort } from '@ember/object/computed';
 
 export default class ConsulIntentionList extends Component {
-
   @service('filter') filter;
   @service('sort') sort;
   @service('search') search;
@@ -24,10 +23,10 @@ export default class ConsulIntentionList extends Component {
   }
   get filtered() {
     const predicate = this.filter.predicate('intention');
-    return this.args.items.filter(predicate(this.args.filters))
+    return this.args.items.filter(predicate(this.args.filters));
   }
   get searched() {
-    if(typeof this.args.search === 'undefined') {
+    if (typeof this.args.search === 'undefined') {
       return this.filtered;
     }
     const predicate = this.search.predicate('intention');
@@ -37,7 +36,7 @@ export default class ConsulIntentionList extends Component {
     return [this.args.sort];
   }
   get checkedItem() {
-    if(this.searched.length === 1) {
+    if (this.searched.length === 1) {
       return this.searched[0].SourceName === this.args.search ? this.searched[0] : null;
     }
     return null;
