@@ -257,7 +257,7 @@ type QueryMeta struct {
 
 	// DefaultACLPolicy is used to control the ACL interaction when there is no
 	// defined policy. This can be "allow" which means ACLs are used to
-	// black-list, or "deny" which means ACLs are white-lists.
+	// deny-list, or "deny" which means ACLs are allow-lists.
 	DefaultACLPolicy string
 }
 
