@@ -894,6 +894,7 @@ workflows:
             branches:
               only:
                 - master
+                - /release\/\d+\.\d+\.x$/
           requires:
             - build-static-assets
       - dev-build:
