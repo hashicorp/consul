@@ -3,6 +3,6 @@ export default function(visitable, creatable, clickable, intentions, popoverSele
     visit: visitable('/:dc/intentions'),
     intentionList: intentions(),
     sort: popoverSelect('[data-test-sort-control]'),
-    ...creatable({})
-  }
+    ...creatable({}),
+  };
 }

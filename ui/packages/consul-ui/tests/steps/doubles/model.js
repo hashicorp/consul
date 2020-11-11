@@ -14,7 +14,8 @@ export default function(scenario, create) {
       function(number, model, data) {
         return create(number, model, data);
       }
-    ).given(['settings from yaml\n$yaml'], function(data) {
+    )
+    .given(['settings from yaml\n$yaml'], function(data) {
       return Object.keys(data).forEach(function(key) {
         window.localStorage[key] = JSON.stringify(data[key]);
       });
