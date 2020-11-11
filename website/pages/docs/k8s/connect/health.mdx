@@ -44,4 +44,4 @@ To disable the health check controller, set the configuration for `healthChecks`
 In this state no health checks will be associated with Consul for Kubernetes pods regardless of the pod's health probes.
 
 -> It is highly recommended to [enable TLS](/docs/k8s/helm#v-global-tls-enabled) for all configurations which use healthChecks to mitigate any
-security concerns should the pod network ever be compromised.
+security concerns should the pod network ever be compromised. The health checks controller makes calls across the network to Consul agents on all nodes so an attacker could potentially sniff ACL tokens if those calls are not encrypted.
