@@ -189,8 +189,9 @@ func generateStats(info SnapshotInfo) []typeStats {
 // Generate the KV stats for the output struct that's
 // used to produce the printed output the user sees.
 func generateKVStats(info SnapshotInfo) []typeStats {
-	if info.StatsKV != nil {
-		ks := make([]typeStats, 0, len(info.StatsKV))
+	kvLen := len(info.StatsKV)
+	if kvLen > 0 {
+		ks := make([]typeStats, 0, kvLen)
 
 		for _, s := range info.StatsKV {
 			ks = append(ks, s)
