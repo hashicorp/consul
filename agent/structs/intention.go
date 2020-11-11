@@ -522,9 +522,16 @@ type IntentionRequest struct {
 	Op IntentionOp
 
 	// Intention is the intention.
+	//
+	// This is mutually exclusive with the Mutation field.
 	Intention *Intention
 
-	// TODO(rb): mutually exclusive with Intention
+	// Mutation is a change to make to an Intention.
+	//
+	// This is mutually exclusive with the Intention field.
+	//
+	// This field is only set by the leader before writing to the raft log and
+	// is not settable via the API or an RPC.
 	Mutation *IntentionMutation
 
 	// WriteRequest is a common struct containing ACL tokens and other
@@ -532,7 +539,6 @@ type IntentionRequest struct {
 	WriteRequest
 }
 
-// TODO(rb): raft only
 type IntentionMutation struct {
 	ID          string
 	Destination ServiceName
