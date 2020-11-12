@@ -38,7 +38,7 @@ export default class TopologyMetrics extends Component {
   drawDownLines(items) {
     const order = ['allow', 'deny'];
     const dest = {
-      x: this.centerDimensions.x,
+      x: this.centerDimensions.x - 7,
       y: this.centerDimensions.y + this.centerDimensions.height / 2,
     };
 
@@ -65,7 +65,7 @@ export default class TopologyMetrics extends Component {
   drawUpLines(items) {
     const order = ['allow', 'deny'];
     const src = {
-      x: this.centerDimensions.x + 20,
+      x: this.centerDimensions.x + 5.5,
       y: this.centerDimensions.y + this.centerDimensions.height / 2,
     };
 
@@ -73,7 +73,7 @@ export default class TopologyMetrics extends Component {
       .map(item => {
         const dimensions = item.getBoundingClientRect();
         const dest = {
-          x: dimensions.x - dimensions.width - 26,
+          x: dimensions.x - dimensions.width - 25,
           y: dimensions.y + dimensions.height / 2,
         };
 

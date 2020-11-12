@@ -1,6 +1,10 @@
 {{on-window 'resize' (action this.calculate)}}
 
-<div {{did-insert (action this.calculate)}} {{did-update (action this.calculate) @topology}} class="topology-container">
+<div
+  {{did-insert (action this.calculate)}}
+  {{did-update (action this.calculate) @topology.Upstreams @topology.Downstreams}}
+  class="topology-container"
+>
 {{#if (gt @topology.Downstreams.length 0)}}
   <div id="downstream-container">
     <div>
@@ -11,13 +15,15 @@
         </Tooltip>
       </span>
     </div>
+  {{#each @topology.Downstreams as |item|}}
     <TopologyMetrics::Card
-      @items={{@topology.Downstreams}}
+      @item={{item}}
       @service={{@service.Service}}
       @dc={{@topology.Datacenter}}
       @hasMetricsProvider={{this.hasMetricsProvider}}
       @noMetricsReason={{this.noMetricsReason}}
     />
+  {{/each}}
   </div>
 {{/if}}
   <div id="metrics-container">
@@ -52,25 +58,29 @@
   <div id="downstream-lines">
     <TopologyMetrics::DownLines
       @type='downstream'
+      @service={{@service}}
       @view={{this.downView}}
       @center={{this.centerDimensions}}
       @lines={{this.downLines}}
       @items={{@topology.Downstreams}}
-     />
+      @oncreate={{action @oncreate}}
+    />
   </div>
 {{#if (gt @topology.Upstreams.length 0)}}
   <div id="upstream-column">
   {{#each-in (group-by "Datacenter" @topology.Upstreams) as |dc upstreams|}}
     <div id="upstream-container">
       <p>{{dc}}</p>
+    {{#each upstreams as |item|}}
       <TopologyMetrics::Card
-        @items={{upstreams}}
+        @item={{item}}
         @service={{@service.Service}}
         @dc={{@topology.Datacenter}}
         @type='upstream'
         @hasMetricsProvider={{this.hasMetricsProvider}}
         @noMetricsReason={{this.noMetricsReason}}
       />
+    {{/each}}
     </div>
   {{/each-in}}
   </div>
@@ -78,10 +88,12 @@
   <div id="upstream-lines">
     <TopologyMetrics::UpLines
       @type='upstream'
+      @service={{@service}}
       @view={{this.upView}}
       @center={{this.centerDimensions}}
       @lines={{this.upLines}}
       @items={{@topology.Upstreams}}
-     />
+      @oncreate={{action @oncreate}}
+    />
   </div>
 </div>

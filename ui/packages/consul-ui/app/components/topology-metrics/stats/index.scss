@@ -1,15 +1,13 @@
 .stats {
-  padding: 12px;
+  padding: 12px 12px 0 12px;
   display: flex;
   flex-flow: row wrap;
   justify-content: space-between;
   align-items: stretch;
   width: 100%;
-  height: 46px;
-  overflow: hidden;
   dl {
     display:flex;
-    margin-bottom: 50px; // pushes wrapped metrics well out of the bounding box to hide them.
+    padding-bottom: 12px;
   }
   dt {
     margin-right: 5px;

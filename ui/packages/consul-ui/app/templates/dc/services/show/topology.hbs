@@ -11,6 +11,8 @@
         Datacenter=dc
         Service=items.firstObject
       )}}
+
+      @oncreate={{route-action 'createIntention'}}
     />
   {{else}}
     <EmptyState>
