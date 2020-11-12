@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc/stats"
 )
 
-var defaultMetrics = metrics.Default()
+var defaultMetrics = metrics.Default
 
 // statsHandler is a grpc/stats.StatsHandler which emits connection and
 // request metrics to go-metrics.

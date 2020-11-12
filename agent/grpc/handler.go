@@ -14,11 +14,12 @@ import (
 // The register function will be called with the grpc.Server to register
 // gRPC services with the server.
 func NewHandler(addr net.Addr, register func(server *grpc.Server)) *Handler {
+	metrics := defaultMetrics()
 	// We don't need to pass tls.Config to the server since it's multiplexed
 	// behind the RPC listener, which already has TLS configured.
 	srv := grpc.NewServer(
-		grpc.StatsHandler(newStatsHandler(defaultMetrics)),
-		grpc.StreamInterceptor((&activeStreamCounter{metrics: defaultMetrics}).Intercept),
+		grpc.StatsHandler(newStatsHandler(metrics)),
+		grpc.StreamInterceptor((&activeStreamCounter{metrics: metrics}).Intercept),
 	)
 	register(srv)
 
