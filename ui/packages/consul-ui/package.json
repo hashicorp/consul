@@ -123,6 +123,7 @@
     "ember-ref-modifier": "^1.0.0",
     "ember-render-helpers": "^0.1.1",
     "ember-resolver": "^8.0.0",
+    "ember-route-action-helper": "^2.0.8",
     "ember-router-helpers": "^0.4.0",
     "ember-sinon-qunit": "5.0.0",
     "ember-source": "~3.20.5",
