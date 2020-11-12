@@ -26,7 +26,7 @@ export default class ShowRoute extends Route {
 
   model(params, transition) {
     const dc = this.modelFor('dc').dc.Name;
-    const nspace = this.modelFor('nspace').nspace.substr(1);
+    const nspace = this.modelFor('nspace').nspace.substr(1) || 'default';
     return hash({
       slug: params.name,
       dc: dc,
