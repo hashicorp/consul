@@ -80,10 +80,10 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 			s2.tokens.UpdateAgentToken(masterToken, token.TokenSourceConfig)
 			s2.tokens.UpdateReplicationToken(masterToken, token.TokenSourceConfig)
 
-			testrpc.WaitForLeader(t, s2.RPC, "secondary")
-
 			// Create the WAN link
 			joinWAN(t, s2, s1)
+
+			testrpc.WaitForLeader(t, s2.RPC, "secondary")
 
 			waitForNewACLs(t, s1)
 			waitForNewACLs(t, s2)
@@ -175,9 +175,7 @@ func waitForActiveCARoot(t *testing.T, srv *Server, expect *structs.CARoot) {
 }
 
 func getCAProviderWithLock(s *Server) (ca.Provider, *structs.CARoot) {
-	s.caProviderReconfigurationLock.Lock()
-	defer s.caProviderReconfigurationLock.Unlock()
-	return s.getCAProvider()
+	return s.caManager.getCAProvider()
 }
 
 func TestLeader_Vault_PrimaryCA_IntermediateRenew(t *testing.T) {
