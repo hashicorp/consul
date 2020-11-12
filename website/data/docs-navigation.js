@@ -117,7 +117,7 @@ export default [
               {
                 title: 'Kind',
                 href:
-                  'https://learn.hashicorp.com/tutorials/consul/kubernetes-kind?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=mk',
+                  'https://learn.hashicorp.com/tutorials/consul/kubernetes-kind?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=kind',
               },
               {
                 title: 'AKS (Azure)',
@@ -133,6 +133,11 @@ export default [
                 title: 'GKE (Google Cloud)',
                 href:
                   'https://learn.hashicorp.com/tutorials/consul/kubernetes-gke-google?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=gke',
+              },
+              {
+                title: 'Red Hat OpenShift',
+                href:
+                  'https://learn.hashicorp.com/tutorials/consul/kubernetes-openshift-red-hat?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=openshift',
               },
               'self-hosted-kubernetes',
             ],
