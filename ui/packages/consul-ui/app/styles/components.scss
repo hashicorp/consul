@@ -56,10 +56,12 @@
 @import 'consul-ui/components/modal-dialog';
 
 @import 'consul-ui/components/consul/discovery-chain';
+@import 'consul-ui/components/consul/upstream-instance/list';
 @import 'consul-ui/components/consul/exposed-path/list';
 @import 'consul-ui/components/consul/external-source';
 @import 'consul-ui/components/consul/kind';
 @import 'consul-ui/components/consul/intention';
+
 @import 'consul-ui/components/role-selector';
 @import 'consul-ui/components/topology-metrics';
 @import 'consul-ui/components/topology-metrics/popover';
