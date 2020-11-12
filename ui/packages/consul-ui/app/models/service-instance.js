@@ -38,6 +38,27 @@ export default class ServiceInstance extends Model {
     return [...new Set(sources)];
   }
 
+  @computed('Service.Kind')
+  get IsProxy() {
+    return ['connect-proxy', 'mesh-gateway', 'ingress-gateway', 'terminating-gateway'].includes(
+      this.Service.Kind
+    );
+  }
+
+  // IsOrigin means that the service can have associated up or down streams,
+  // this service being the origin point of those streams
+  @computed('Service.Kind')
+  get IsOrigin() {
+    return !['connect-proxy', 'mesh-gateway'].includes(this.Service.Kind);
+  }
+
+  // IsMeshOrigin means that the service can have associated up or downstreams
+  // that are in the Consul mesh itself
+  @computed('IsOrigin')
+  get IsMeshOrigin() {
+    return this.IsOrigin && !['terminating-gateway'].includes(this.Service.Kind);
+  }
+
   @computed('ChecksPassing', 'ChecksWarning', 'ChecksCritical')
   get Status() {
     switch (true) {
