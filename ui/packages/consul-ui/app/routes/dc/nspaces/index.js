@@ -4,11 +4,8 @@ import { hash } from 'rsvp';
 
 import WithNspaceActions from 'consul-ui/mixins/nspace/with-actions';
 export default class IndexRoute extends Route.extend(WithNspaceActions) {
-  @service('data-source/service')
-  data;
-
-  @service('repository/nspace')
-  repo;
+  @service('data-source/service') data;
+  @service('repository/nspace') repo;
 
   queryParams = {
     sortBy: 'sort',

@@ -3,17 +3,16 @@ import Route from 'consul-ui/routing/route';
 import { hash } from 'rsvp';
 
 export default class IndexRoute extends Route {
-  @service('data-source/service')
-  data;
+  @service('data-source/service') data;
 
   queryParams = {
+    sortBy: 'sort',
+    status: 'status',
+    source: 'source',
+    kind: 'kind',
     search: {
       as: 'filter',
       replace: true,
-    },
-    // temporary support of old style status
-    status: {
-      as: 'status',
     },
   };
 

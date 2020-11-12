@@ -1,20 +1,20 @@
 import setHelpers from 'mnemonist/set';
-export default () => ({ dcs = [], types = [] }) => {
-  const typeIncludes = ['global-management', 'standard'].reduce((prev, item) => {
-    prev[item] = types.includes(item);
+export default () => ({ dcs = [], kinds = [] }) => {
+  const kindIncludes = ['global-management', 'standard'].reduce((prev, item) => {
+    prev[item] = kinds.includes(item);
     return prev;
   }, {});
   const selectedDcs = new Set(dcs);
   return item => {
-    let type = true;
+    let kind = true;
     let dc = true;
-    if (types.length > 0) {
-      type = false;
-      if (typeIncludes['global-management'] && item.isGlobalManagement) {
-        type = true;
+    if (kinds.length > 0) {
+      kind = false;
+      if (kindIncludes['global-management'] && item.isGlobalManagement) {
+        kind = true;
       }
-      if (typeIncludes['standard'] && !item.isGlobalManagement) {
-        type = true;
+      if (kindIncludes['standard'] && !item.isGlobalManagement) {
+        kind = true;
       }
     }
     if (dcs.length > 0) {
@@ -23,6 +23,6 @@ export default () => ({ dcs = [], types = [] }) => {
         typeof item.Datacenters === 'undefined' ||
         setHelpers.intersectionSize(selectedDcs, new Set(item.Datacenters)) > 0;
     }
-    return type && dc;
+    return kind && dc;
   };
 };

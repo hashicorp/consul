@@ -1,7 +1,7 @@
 import setHelpers from 'mnemonist/set';
-export default () => ({ instances = [], sources = [], statuses = [], types = [] }) => {
+export default () => ({ instances = [], sources = [], statuses = [], kinds = [] }) => {
   const uniqueSources = new Set(sources);
-  const typeIncludes = [
+  const kindIncludes = [
     'ingress-gateway',
     'terminating-gateway',
     'mesh-gateway',
@@ -9,7 +9,7 @@ export default () => ({ instances = [], sources = [], statuses = [], types = [] 
     'in-mesh',
     'not-in-mesh',
   ].reduce((prev, item) => {
-    prev[item] = types.includes(item);
+    prev[item] = kinds.includes(item);
     return prev;
   }, {});
   const instanceIncludes = ['registered', 'not-registered'].reduce((prev, item) => {
@@ -35,25 +35,25 @@ export default () => ({ instances = [], sources = [], statuses = [], types = [] 
       }
       return false;
     }
-    if (types.length > 0) {
-      if (typeIncludes['ingress-gateway'] && item.Kind === 'ingress-gateway') {
+    if (kinds.length > 0) {
+      if (kindIncludes['ingress-gateway'] && item.Kind === 'ingress-gateway') {
         return true;
       }
-      if (typeIncludes['terminating-gateway'] && item.Kind === 'terminating-gateway') {
+      if (kindIncludes['terminating-gateway'] && item.Kind === 'terminating-gateway') {
         return true;
       }
-      if (typeIncludes['mesh-gateway'] && item.Kind === 'mesh-gateway') {
+      if (kindIncludes['mesh-gateway'] && item.Kind === 'mesh-gateway') {
         return true;
       }
-      if (typeIncludes['service'] && typeof item.Kind === 'undefined') {
+      if (kindIncludes['service'] && typeof item.Kind === 'undefined') {
         return true;
       }
-      if (typeIncludes['in-mesh']) {
+      if (kindIncludes['in-mesh']) {
         if (item.InMesh) {
           return true;
         }
       }
-      if (typeIncludes['not-in-mesh']) {
+      if (kindIncludes['not-in-mesh']) {
         if (!item.InMesh) {
           return true;
         }

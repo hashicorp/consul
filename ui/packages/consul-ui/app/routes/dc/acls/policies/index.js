@@ -5,11 +5,12 @@ import { hash } from 'rsvp';
 import WithPolicyActions from 'consul-ui/mixins/policy/with-actions';
 
 export default class IndexRoute extends Route.extend(WithPolicyActions) {
-  @service('repository/policy')
-  repo;
+  @service('repository/policy') repo;
 
   queryParams = {
     sortBy: 'sort',
+    dc: 'dc',
+    kind: 'kind',
     search: {
       as: 'filter',
       replace: true,

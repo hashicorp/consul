@@ -3,15 +3,14 @@ import Route from 'consul-ui/routing/route';
 import { hash } from 'rsvp';
 import { get } from '@ember/object';
 import WithTokenActions from 'consul-ui/mixins/token/with-actions';
-export default class IndexRoute extends Route.extend(WithTokenActions) {
-  @service('repository/token')
-  repo;
 
-  @service('settings')
-  settings;
+export default class IndexRoute extends Route.extend(WithTokenActions) {
+  @service('repository/token') repo;
+  @service('settings') settings;
 
   queryParams = {
     sortBy: 'sort',
+    kind: 'kind',
     search: {
       as: 'filter',
       replace: true,
