@@ -1,6 +1,14 @@
-.consul-upstream-instance-list > li {
-  @extend %composite-row;
-}
-.consul-upstream-instance-list > ul {
-  border-top: 1px solid $gray-200;
+.consul-upstream-instance-list {
+  li {
+    @extend %composite-row;
+  }
+  dl {
+    @extend %icon-definition;
+  }
+  dl.datacenter dt::before {
+    @extend %with-user-organization-mask, %as-pseudo;
+  }
+  dl.nspace dt::before {
+    @extend %with-folder-outline-mask, %as-pseudo;
+  }
 }
