@@ -747,6 +747,12 @@ and consider if they're appropriate for your deployment.
     to opt-in to Connect injection. If this is true, pods can use the same annotation
     to explicitly opt-out of injection.
 
+  - `healthChecks` ((#v-connectinject-healthchecks)) - Synchronization of Kubernetes health probes status with Consul.
+
+    - `enabled` ((#v-connectinject-healthchecks-enabled)) (`boolean: true`) - Enables the Consul health check controller which syncs the readiness status of connect-injected pods with Consul.
+
+    - `reconcilePeriod` ((#v-connectinject-healthchecks-reconcileperiod)) (`string: "1m"`) - If `healthChecks.enabled` is set to true, reconcilePeriod defines how often a full state reconcile is done after the initial reconcile at startup is completed.
+
   - `imageConsul` ((#v-connectinject-imageconsul)) (`string: global.image`) - The name of the Docker
     image (including any tag) for Consul. This is used for proxy service registration, Envoy configuration, etc.
 
