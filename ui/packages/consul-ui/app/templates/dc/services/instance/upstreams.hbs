@@ -1,7 +1,37 @@
 <div class="tab-section">
   <div role="tabpanel">
+{{#let (or sortBy "DestinationName:asc") as |sort|}}
   {{#if (gt proxy.Service.Proxy.Upstreams.length 0)}}
-    <Consul::UpstreamInstance::List @items={{proxy.Service.Proxy.Upstreams}} @dc={{dc}} @nspace={{nspace}} />
+    <input type="checkbox" id="toolbar-toggle" />
+    <Consul::UpstreamInstance::SearchBar
+      @search={{search}}
+      @onsearch={{action (mut search) value="target.value"}}
+
+      @sort={{sort}}
+      @onsort={{action (mut sortBy) value="target.selected"}}
+    />
+    <Consul::UpstreamInstance::List
+      @search={{search}}
+      @sort={{sort}}
+      @items={{proxy.Service.Proxy.Upstreams}}
+      @dc={{dc}}
+      @nspace={{nspace}}
+    >
+      <:empty>
+        <EmptyState>
+          <BlockSlot @name="body">
+            <p>
+              {{#if search.length}}
+                No upstreams where found matching that search.
+              {{else}}
+                This service has no upstreams.
+              {{/if}}
+            </p>
+          </BlockSlot>
+        </EmptyState>
+      </:empty>
+    </Consul::UpstreamInstance::List>
   {{/if}}
+{{/let}}
   </div>
 </div>

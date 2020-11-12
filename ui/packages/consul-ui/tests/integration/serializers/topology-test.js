@@ -10,8 +10,9 @@ module('Integration | Serializer | topology', function(hooks) {
     const serializer = this.owner.lookup('serializer:topology');
     const dc = 'dc-1';
     const id = 'slug';
+    const kind = '';
     const request = {
-      url: `/v1/internal/ui/service-topology/${id}?dc=${dc}`,
+      url: `/v1/internal/ui/service-topology/${id}?dc=${dc}&kind=${kind}`,
     };
     return get(request.url).then(function(payload) {
       const expected = {
@@ -28,6 +29,7 @@ module('Integration | Serializer | topology', function(hooks) {
         {
           dc: dc,
           id: id,
+          kind: kind,
         }
       );
       assert.equal(actual.Datacenter, expected.Datacenter);
