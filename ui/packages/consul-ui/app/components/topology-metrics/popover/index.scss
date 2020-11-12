@@ -65,7 +65,7 @@
 }
 .L7-popover {
   .body {
-    background-color: #FBFCFF;
+    background-color: $white;
   }
   h3 {
     margin-left: -20px;
@@ -79,9 +79,9 @@
 }
 .deny-popover {
   .body {
-    background-color: #FDFAFB;
+    background-color: $white;
   }
   h3 {
-    color: #5B1820;
+    color: $red-800;
   }
 }
