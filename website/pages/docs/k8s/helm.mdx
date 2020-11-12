@@ -40,8 +40,8 @@ and consider if they're appropriate for your deployment.
     ```
 
   - `imagePullSecrets` ((#v-global-imagepullsecrets)) (`array<map>: [])` - Array of objects containing image pull secret names that will be applied to each service account.
-    This can be used to reference image pull secrets if using a custom consul or consul-k8s Docker image.
-    See [Using A Private Registry](https://kubernetes.io/docs/concepts/containers/images/#using-a-private-registry) for reference.
+     This can be used to reference image pull secrets if using a custom consul or consul-k8s Docker image.
+     See [Using A Private Registry](https://kubernetes.io/docs/concepts/containers/images/#using-a-private-registry) for reference.
 
   - `imageK8S` ((#v-global-imagek8s)) (`string: "hashicorp/consul-k8s:<latest version>"`) - The name (and tag) of the [consul-k8s](https://github.com/hashicorp/consul-k8s) Docker image that is used for functionality such the catalog sync. This can be overridden per component.
 
@@ -263,9 +263,9 @@ and consider if they're appropriate for your deployment.
     # Resources are defined as a YAML map:
     resources:
       requests:
-        memory: '10Gi'
+        memory: "10Gi"
       limits:
-        memory: '10Gi'
+        memory: "10Gi"
     ```
 
   - `updatePartition` ((#v-server-updatepartition)) (`integer: 0`) - This value is used to carefully
@@ -356,11 +356,11 @@ and consider if they're appropriate for your deployment.
 
   - `extraLabels` ((#v-server-extralabels)) (`map`) - Extra labels to attach to the server pods. This should be a YAML map.
 
-    ```yaml
-    extraLabels:
-      labelKey: 'label-value'
-      anotherLabelKey: 'another-label-value'
-    ```
+     ```yaml
+     extraLabels:
+       labelKey: "label-value"
+       anotherLabelKey: "another-label-value"
+     ```
 
   - `annotations` ((#v-server-annotations)) (`string`) - This value defines additional annotations for
     server pods. This should be a formatted as a multi-line string.
@@ -602,7 +602,7 @@ and consider if they're appropriate for your deployment.
     service. This should be a multi-line string of annotations to apply to the DNS service.
 
   - `additionalSpec` ((#v-dns-additionalspec)) (`string: null`) - Additional ServiceSpec values.
-    This should be a multi-line string mapping directly to a Kubernetes ServiceSpec object.
+     This should be a multi-line string mapping directly to a Kubernetes ServiceSpec object.
 
 - `syncCatalog` ((#v-synccatalog)) - Values that configure the [service sync](/docs/k8s/service-sync) process.
 
@@ -690,11 +690,11 @@ and consider if they're appropriate for your deployment.
   - `priorityClassName` ((#v-synccatalog-priorityclassname)) (`string: ""`) - Priority class name setting for sync catalog pods.
 
   - `tolerations` ((#v-synccatalog-tolerations)) (`string: null`) - Tolerations setting for sync catalog pods.
-    This should be a multi-line string matching the Toleration array in a PodSpec.
+      This should be a multi-line string matching the Toleration array in a PodSpec.
 
   - `consulNodeName` ((#v-synccatalog-consulnodename)) (`string: "k8s-sync"`) - Defines the Consul synthetic node that all services will be registered to.
-    NOTE: Changing the node name and upgrading the Helm chart will leave all of the previously sync'd services registered with Consul and
-    register them again under the new Consul node name. The out-of-date registrations will need to be explicitly removed.
+     NOTE: Changing the node name and upgrading the Helm chart will leave all of the previously sync'd services registered with Consul and
+     register them again under the new Consul node name. The out-of-date registrations will need to be explicitly removed.
 
   - `resources` ((#v-synccatalog-resources)) (`map`) - Resource settings for sync catalog pods. See values file for defaults.
 
@@ -746,12 +746,6 @@ and consider if they're appropriate for your deployment.
     Connect sidecar into all pods by default. Otherwise, pods must specify the. [injection annotation](/docs/k8s/connect#consul-hashicorp-com-connect-inject)
     to opt-in to Connect injection. If this is true, pods can use the same annotation
     to explicitly opt-out of injection.
-
-  - `healthChecks` ((#v-connectinject-healthchecks)) - Synchronization of Kubernetes health probes status with Consul.
-
-    - `enabled` ((#v-connectinject-healthchecks-enabled)) (`boolean: true`) - Enables the Consul health check controller which syncs the readiness status of connect-injected pods with Consul.
-
-    - `reconcilePeriod` ((#v-connectinject-healthchecks-reconcileperiod)) (`string: "1m"`) - If `healthChecks.enabled` is set to true, reconcilePeriod defines how often a full state reconcile is done after the initial reconcile at startup is completed.
 
   - `imageConsul` ((#v-connectinject-imageconsul)) (`string: global.image`) - The name of the Docker
     image (including any tag) for Consul. This is used for proxy service registration, Envoy configuration, etc.
