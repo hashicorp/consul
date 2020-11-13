@@ -22,23 +22,23 @@ import (
 
 var StateCounters = []prometheus.CounterDefinition{
 	{
-		Name: []string{"consul", "acl", "blocked", "service", "deregistration"},
+		Name: []string{"acl", "blocked", "service", "deregistration"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "acl", "blocked", "check", "deregistration"},
+		Name: []string{"acl", "blocked", "check", "deregistration"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "acl", "blocked", "service", "registration"},
+		Name: []string{"acl", "blocked", "service", "registration"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "acl", "blocked", "check", "registration"},
+		Name: []string{"acl", "blocked", "check", "registration"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "acl", "blocked", "node", "registration"},
+		Name: []string{"acl", "blocked", "node", "registration"},
 		Help: "",
 	},
 }

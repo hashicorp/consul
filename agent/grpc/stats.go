@@ -13,37 +13,37 @@ import (
 var defaultMetrics = metrics.Default()
 var StatsGauges = []prometheus.GaugeDefinition{
 	{
-		Name: []string{"consul", "grpc", "server", "connections"},
+		Name: []string{"grpc", "server", "connections"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "grpc", "client", "connections"},
+		Name: []string{"grpc", "client", "connections"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "grpc", "server", "streams"},
+		Name: []string{"grpc", "server", "streams"},
 		Help: "",
 	},
 }
 var StatsCounters = []prometheus.CounterDefinition{
 	{
-		Name: []string{"consul", "grpc", "client", "request", "count"},
+		Name: []string{"grpc", "client", "request", "count"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "grpc", "server", "request", "count"},
+		Name: []string{"grpc", "server", "request", "count"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "grpc", "client", "connection", "count"},
+		Name: []string{"grpc", "client", "connection", "count"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "grpc", "server", "connection", "count"},
+		Name: []string{"grpc", "server", "connection", "count"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "grpc", "server", "stream", "count"},
+		Name: []string{"grpc", "server", "stream", "count"},
 		Help: "",
 	},
 }

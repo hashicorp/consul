@@ -18,19 +18,19 @@ import (
 
 var PreparedQuerySummaries = []prometheus.SummaryDefinition{
 	{
-		Name: []string{"consul", "prepared-query", "apply"},
+		Name: []string{"prepared-query", "apply"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "prepared-query", "explain"},
+		Name: []string{"prepared-query", "explain"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "prepared-query", "execute"},
+		Name: []string{"prepared-query", "execute"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "prepared-query", "execute_remote"},
+		Name: []string{"prepared-query", "execute_remote"},
 		Help: "",
 	},
 }

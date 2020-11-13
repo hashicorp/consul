@@ -12,22 +12,22 @@ import (
 
 var SessionGauges = []prometheus.GaugeDefinition{
 	{
-		Name: []string{"consul", "session_ttl", "active"},
+		Name: []string{"session_ttl", "active"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "raft", "applied_index"},
+		Name: []string{"raft", "applied_index"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "raft", "last_index"},
+		Name: []string{"raft", "last_index"},
 		Help: "",
 	},
 }
 
 var SessionSummaries = []prometheus.SummaryDefinition{
 	{
-		Name: []string{"consul", "session_ttl", "invalidate"},
+		Name: []string{"session_ttl", "invalidate"},
 		Help: "",
 	},
 }

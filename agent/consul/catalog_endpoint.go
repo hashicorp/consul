@@ -20,46 +20,46 @@ import (
 
 var CatalogCounters = []prometheus.CounterDefinition{
 	{
-		Name: []string{"consul", "catalog", "service", "query"},
+		Name: []string{"catalog", "service", "query"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "catalog", "connect", "query"},
+		Name: []string{"catalog", "connect", "query"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "catalog", "service", "query-tag"},
+		Name: []string{"catalog", "service", "query-tag"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "catalog", "connect", "query-tag"},
+		Name: []string{"catalog", "connect", "query-tag"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "catalog", "service", "query-tags"},
+		Name: []string{"catalog", "service", "query-tags"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "catalog", "connect", "query-tags"},
+		Name: []string{"catalog", "connect", "query-tags"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "catalog", "service", "not-found"},
+		Name: []string{"catalog", "service", "not-found"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "catalog", "connect", "not-found"},
+		Name: []string{"catalog", "connect", "not-found"},
 		Help: "",
 	},
 }
 
 var CatalogSummaries = []prometheus.SummaryDefinition{
 	{
-		Name: []string{"consul", "catalog", "deregister"},
+		Name: []string{"catalog", "deregister"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "catalog", "register"},
+		Name: []string{"catalog", "register"},
 		Help: "",
 	},
 }

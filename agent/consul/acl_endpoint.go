@@ -33,67 +33,67 @@ const (
 
 var ACLEndpointSummaries = []prometheus.SummaryDefinition{
 	{
-		Name: []string{"consul", "acl", "token", "clone"},
+		Name: []string{"acl", "token", "clone"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "acl", "token", "upsert"},
+		Name: []string{"acl", "token", "upsert"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "acl", "token", "delete"},
+		Name: []string{"acl", "token", "delete"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "acl", "policy", "upsert"},
+		Name: []string{"acl", "policy", "upsert"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "acl", "policy", "delete"},
+		Name: []string{"acl", "policy", "delete"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "acl", "policy", "delete"},
+		Name: []string{"acl", "policy", "delete"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "acl", "role", "upsert"},
+		Name: []string{"acl", "role", "upsert"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "acl", "role", "delete"},
+		Name: []string{"acl", "role", "delete"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "acl", "bindingrule", "upsert"},
+		Name: []string{"acl", "bindingrule", "upsert"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "acl", "bindingrule", "delete"},
+		Name: []string{"acl", "bindingrule", "delete"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "acl", "authmethod", "upsert"},
+		Name: []string{"acl", "authmethod", "upsert"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "acl", "authmethod", "delete"},
+		Name: []string{"acl", "authmethod", "delete"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "acl", "login"},
+		Name: []string{"acl", "login"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "acl", "login"},
+		Name: []string{"acl", "login"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "acl", "logout"},
+		Name: []string{"acl", "logout"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "acl", "logout"},
+		Name: []string{"acl", "logout"},
 		Help: "",
 	},
 }

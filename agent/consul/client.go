@@ -24,15 +24,15 @@ import (
 
 var ClientCounters = []prometheus.CounterDefinition{
 	{
-		Name: []string{"consul", "client", "rpc"},
+		Name: []string{"client", "rpc"},
 		Help: "Increments whenever a Consul agent in client mode makes an RPC request to a Consul server.",
 	},
 	{
-		Name: []string{"consul", "client", "rpc", "exceeded"},
+		Name: []string{"client", "rpc", "exceeded"},
 		Help: "Increments whenever a Consul agent in client mode makes an RPC request to a Consul server gets rate limited by that agent's limits configuration.",
 	},
 	{
-		Name: []string{"consul", "client", "rpc", "failed"},
+		Name: []string{"client", "rpc", "failed"},
 		Help: "Increments whenever a Consul agent in client mode makes an RPC request to a Consul server and fails.",
 	},
 }

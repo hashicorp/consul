@@ -16,27 +16,27 @@ import (
 
 var ConfigSummaries = []prometheus.SummaryDefinition{
 	{
-		Name: []string{"consul", "config_entry", "apply"},
+		Name: []string{"config_entry", "apply"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "config_entry", "get"},
+		Name: []string{"config_entry", "get"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "config_entry", "list"},
+		Name: []string{"config_entry", "list"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "config_entry", "listAll"},
+		Name: []string{"config_entry", "listAll"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "config_entry", "delete"},
+		Name: []string{"config_entry", "delete"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "config_entry", "resolve_service_config"},
+		Name: []string{"config_entry", "resolve_service_config"},
 		Help: "",
 	},
 }

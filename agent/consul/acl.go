@@ -18,26 +18,26 @@ import (
 
 var ACLCounters = []prometheus.CounterDefinition{
 	{
-		Name: []string{"consul", "acl", "token", "cache_hit"},
+		Name: []string{"acl", "token", "cache_hit"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "acl", "token", "cache_miss"},
+		Name: []string{"acl", "token", "cache_miss"},
 		Help: "",
 	},
 }
 
 var ACLSummaries = []prometheus.SummaryDefinition{
 	{
-		Name: []string{"consul", "acl", "resolveTokenLegacy"},
+		Name: []string{"acl", "resolveTokenLegacy"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "acl", "ResolveToken"},
+		Name: []string{"acl", "ResolveToken"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "acl", "ResolveTokenToIdentity"},
+		Name: []string{"acl", "ResolveTokenToIdentity"},
 		Help: "",
 	},
 }

@@ -34,7 +34,7 @@ import (
 
 var HTTPSummaries = []prometheus.SummaryDefinition{
 	{
-		Name: []string{"consul", "api", "http"},
+		Name: []string{"api", "http"},
 		Help: "",
 	},
 }

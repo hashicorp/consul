@@ -22,6 +22,10 @@ var IntentionSummaries = []prometheus.SummaryDefinition{
 		Name: []string{"consul", "intention", "apply"},
 		Help: "",
 	},
+	{
+		Name: []string{"intention", "apply"},
+		Help: "",
+	},
 }
 
 var (
@@ -260,7 +264,6 @@ func (s *Intention) Apply(
 	if done, err := s.srv.ForwardRPC("Intention.Apply", args, args, reply); done {
 		return err
 	}
-	// TODO(Kit): Why do we have summaries for intentions both with and without the consul namespace?
 	defer metrics.MeasureSince([]string{"consul", "intention", "apply"}, time.Now())
 	defer metrics.MeasureSince([]string{"intention", "apply"}, time.Now())
 

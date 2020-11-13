@@ -34,41 +34,41 @@ import (
 
 var RPCCounters = []prometheus.CounterDefinition{
 	{
-		Name: []string{"consul", "rpc", "accept_conn"},
+		Name: []string{"rpc", "accept_conn"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "rpc", "raft_handoff"},
+		Name: []string{"rpc", "raft_handoff"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "rpc", "request_error"},
+		Name: []string{"rpc", "request_error"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "rpc", "request"},
+		Name: []string{"rpc", "request"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "rpc", "cross-dc"},
+		Name: []string{"rpc", "cross-dc"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "rpc", "query"},
+		Name: []string{"rpc", "query"},
 		Help: "",
 	},
 }
 
 var RPCGauges = []prometheus.GaugeDefinition{
 	{
-		Name: []string{"consul", "rpc", "queries_blocking"},
+		Name: []string{"rpc", "queries_blocking"},
 		Help: "",
 	},
 }
 
 var RPCSummaries = []prometheus.SummaryDefinition{
 	{
-		Name: []string{"consul", "rpc", "consistentRead"},
+		Name: []string{"rpc", "consistentRead"},
 		Help: "",
 	},
 }

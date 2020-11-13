@@ -14,11 +14,11 @@ import (
 
 var TxnSummaries = []prometheus.SummaryDefinition{
 	{
-		Name: []string{"consul", "txn", "apply"},
+		Name: []string{"txn", "apply"},
 		Help: "This measures the time spent applying a transaction operation.",
 	},
 	{
-		Name: []string{"consul", "txn", "read"},
+		Name: []string{"txn", "read"},
 		Help: "",
 	},
 }

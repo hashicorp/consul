@@ -15,19 +15,19 @@ import (
 
 var FederationStateSummaries = []prometheus.SummaryDefinition{
 	{
-		Name: []string{"consul", "federation_state", "apply"},
+		Name: []string{"federation_state", "apply"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "federation_state", "get"},
+		Name: []string{"federation_state", "get"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "federation_state", "list"},
+		Name: []string{"federation_state", "list"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "federation_state", "list_mesh_gateways"},
+		Name: []string{"federation_state", "list_mesh_gateways"},
 		Help: "",
 	},
 }

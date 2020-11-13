@@ -15,15 +15,15 @@ import (
 
 var Gauges = []prometheus.GaugeDefinition{
 	{
-		Name: []string{"consul", "state", "nodes"},
+		Name: []string{"state", "nodes"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "state", "services"},
+		Name: []string{"state", "services"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "state", "service_instances"},
+		Name: []string{"state", "service_instances"},
 		Help: "",
 	},
 }

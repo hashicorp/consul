@@ -15,11 +15,11 @@ import (
 
 var AutopilotGauges = []prometheus.GaugeDefinition{
 	{
-		Name: []string{"consul", "autopilot", "failure_tolerance"},
+		Name: []string{"autopilot", "failure_tolerance"},
 		Help: "",
 	},
 	{
-		Name: []string{"consul", "autopilot", "healthy"},
+		Name: []string{"autopilot", "healthy"},
 		Help: "This tracks the overall health of the local server cluster. 1 if all servers are healthy, 0 if one or more are unhealthy.",
 	},
 }

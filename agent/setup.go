@@ -185,6 +185,7 @@ func registerWithGRPC(b grpcresolver.Builder) {
 // getPrometheusDefs reaches into every slice of prometheus defs we've defined in each part of the agent, and appends
 //  all of our slices into one nice slice of definitions per metric type for the Consul agent to pass to go-metrics.
 func getPrometheusDefs() lib.PrometheusDefs {
+	serviceName := []string{"consul"}
 	var gauges = [][]prometheus.GaugeDefinition{
 		consul.AutopilotGauges,
 		consul.RPCGauges,
@@ -194,7 +195,13 @@ func getPrometheusDefs() lib.PrometheusDefs {
 	}
 	var gaugeDefs []prometheus.GaugeDefinition
 	for _, g := range gauges {
-		gaugeDefs = append(gaugeDefs, g...)
+		// Set Consul to each definition's namespace
+		var withService []prometheus.GaugeDefinition
+		for _, gauge := range g {
+			gauge.Name = append(serviceName, gauge.Name...)
+			withService = append(withService, gauge)
+		}
+		gaugeDefs = append(gaugeDefs, withService...)
 	}
 
 	raftCounters := []prometheus.CounterDefinition{
@@ -202,15 +209,15 @@ func getPrometheusDefs() lib.PrometheusDefs {
 		//  package within. In the mean time, we're going to define them here because it's important that they're always
 		//  present for Consul users setting up dashboards.
 		{
-			Name: []string{"consul", "raft", "apply"},
+			Name: []string{"raft", "apply"},
 			Help: "This counts the number of Raft transactions occurring over the interval.",
 		},
 		{
-			Name: []string{"consul", "raft", "state", "candidate"},
+			Name: []string{"raft", "state", "candidate"},
 			Help: "This increments whenever a Consul server starts an election.",
 		},
 		{
-			Name: []string{"consul", "raft", "state", "leader"},
+			Name: []string{"raft", "state", "leader"},
 			Help: "This increments whenever a Consul server becomes a leader.",
 		},
 	}
@@ -227,7 +234,13 @@ func getPrometheusDefs() lib.PrometheusDefs {
 	}
 	var counterDefs []prometheus.CounterDefinition
 	for _, c := range counters {
-		counterDefs = append(counterDefs, c...)
+		// Set Consul to each definition's namespace
+		var withService []prometheus.CounterDefinition
+		for _, counter := range c {
+			counter.Name = append(serviceName, counter.Name...)
+			withService = append(withService, counter)
+		}
+		counterDefs = append(counterDefs, withService...)
 	}
 
 	raftSummaries := []prometheus.SummaryDefinition{
@@ -235,11 +248,11 @@ func getPrometheusDefs() lib.PrometheusDefs {
 		//  package within. In the mean time, we're going to define them here because it's important that they're always
 		//  present for Consul users setting up dashboards.
 		{
-			Name: []string{"consul", "raft", "commitTime"},
+			Name: []string{"raft", "commitTime"},
 			Help: "This measures the time it takes to commit a new entry to the Raft log on the leader.",
 		},
 		{
-			Name: []string{"consul", "raft", "leader", "lastContact"},
+			Name: []string{"raft", "leader", "lastContact"},
 			Help: "Measures the time since the leader was last able to contact the follower nodes when checking its leader lease.",
 		},
 	}
@@ -260,7 +273,13 @@ func getPrometheusDefs() lib.PrometheusDefs {
 	}
 	var summaryDefs []prometheus.SummaryDefinition
 	for _, s := range summaries {
-		summaryDefs = append(summaryDefs, s...)
+		// Set Consul to each definition's namespace
+		var withService []prometheus.SummaryDefinition
+		for _, summary := range s {
+			summary.Name = append(serviceName, summary.Name...)
+			withService = append(withService, summary)
+		}
+		summaryDefs = append(summaryDefs, withService...)
 	}
 
 	return lib.PrometheusDefs{
