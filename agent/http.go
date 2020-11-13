@@ -17,6 +17,7 @@ import (
 
 	"github.com/NYTimes/gziphandler"
 	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/config"
@@ -30,6 +31,13 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
 )
+
+var HTTPSummaries = []prometheus.SummaryDefinition{
+	{
+		Name: []string{"consul", "api", "http"},
+		Help: "",
+	},
+}
 
 // MethodNotAllowedError should be returned by a handler when the HTTP method is not allowed.
 type MethodNotAllowedError struct {

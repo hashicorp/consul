@@ -10,6 +10,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/armon/go-metrics/prometheus"
+
 	metrics "github.com/armon/go-metrics"
 	radix "github.com/armon/go-radix"
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
@@ -25,6 +27,24 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 )
+
+var DNSCounters = []prometheus.CounterDefinition{
+	{
+		Name: []string{"dns", "stale_queries"},
+		Help: "",
+	},
+}
+
+var DNSSummaries = []prometheus.SummaryDefinition{
+	{
+		Name: []string{"dns", "ptr_query"},
+		Help: "",
+	},
+	{
+		Name: []string{"dns", "domain_query"},
+		Help: "",
+	},
+}
 
 const (
 	// UDP can fit ~25 A records in a 512B response, and ~14 AAAA

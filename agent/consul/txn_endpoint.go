@@ -5,11 +5,23 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-hclog"
 )
+
+var TxnSummaries = []prometheus.SummaryDefinition{
+	{
+		Name: []string{"consul", "txn", "apply"},
+		Help: "This measures the time spent applying a transaction operation.",
+	},
+	{
+		Name: []string{"consul", "txn", "read"},
+		Help: "",
+	},
+}
 
 // Txn endpoint is used to perform multi-object atomic transactions.
 type Txn struct {

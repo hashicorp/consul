@@ -276,79 +276,17 @@ func dogstatdSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, err
 	return sink, nil
 }
 
-func prometheusSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, error) {
+func prometheusSink(cfg TelemetryConfig, hostname string, defs PrometheusDefs) (metrics.MetricSink, error) {
+
 	if cfg.PrometheusRetentionTime.Nanoseconds() < 1 {
 		return nil, nil
 	}
 
-	// TODO(kit) define these in vars in the package/file they're used
-	gaugeDefs := []prometheus.GaugeDefinition{
-		{
-			Name: []string{"consul", "autopilot", "healthy"},
-			Help: "This tracks the overall health of the local server cluster. 1 if all servers are healthy, 0 if one or more are unhealthy.",
-		},
-	}
-
-	// TODO(kit) define these in vars in the package/file they're used
-	counterDefs := []prometheus.CounterDefinition{
-		{
-			Name: []string{"consul", "raft", "apply"},
-			Help: "This counts the number of Raft transactions occurring over the interval.",
-		},
-		{
-			Name: []string{"consul", "raft", "state", "candidate"},
-			Help: "This increments whenever a Consul server starts an election.",
-		},
-		{
-			Name: []string{"consul", "raft", "state", "leader"},
-			Help: "This increments whenever a Consul server becomes a leader.",
-		},
-		{
-			Name: []string{"consul", "client", "api", "catalog_register"},
-			Help: "Increments whenever a Consul agent receives a catalog register request.",
-		},
-		{
-			Name: []string{"consul", "runtime", "total_gc_pause_ns"},
-			Help: "Number of nanoseconds consumed by stop-the-world garbage collection (GC) pauses since Consul started.",
-		},
-		{
-			Name: []string{"consul", "client", "rpc"},
-			Help: "Increments whenever a Consul agent in client mode makes an RPC request to a Consul server.",
-		},
-		{
-			Name: []string{"consul", "client", "rpc", "exceeded"},
-			Help: "Increments whenever a Consul agent in client mode makes an RPC request to a Consul server gets rate limited by that agent's limits configuration.",
-		},
-		{
-			Name: []string{"consul", "client", "rpc", "failed"},
-			Help: "Increments whenever a Consul agent in client mode makes an RPC request to a Consul server and fails.",
-		},
-	}
-
-	// TODO(kit) define these in vars in the package/file they're used
-	summaryDefs := []prometheus.SummaryDefinition{
-		{
-			Name: []string{"consul", "kvs", "apply"},
-			Help: "This measures the time it takes to complete an update to the KV store.",
-		},
-		{
-			Name: []string{"consul", "txn", "apply"},
-			Help: "This measures the time spent applying a transaction operation.",
-		},
-		{
-			Name: []string{"consul", "raft", "commitTime"},
-			Help: "This measures the time it takes to commit a new entry to the Raft log on the leader.",
-		},
-		{
-			Name: []string{"consul", "raft", "leader", "lastContact"},
-			Help: "Measures the time since the leader was last able to contact the follower nodes when checking its leader lease.",
-		},
-	}
 	prometheusOpts := prometheus.PrometheusOpts{
 		Expiration:         cfg.PrometheusRetentionTime,
-		GaugeDefinitions:   gaugeDefs,
-		CounterDefinitions: counterDefs,
-		SummaryDefinitions: summaryDefs,
+		GaugeDefinitions:   defs.Gauges,
+		CounterDefinitions: defs.Counters,
+		SummaryDefinitions: defs.Summaries,
 	}
 	sink, err := prometheus.NewPrometheusSinkFrom(prometheusOpts)
 	if err != nil {
@@ -399,9 +337,25 @@ func circonusSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, err
 	return sink, nil
 }
 
+// PrometheusDefs wraps collections of metric definitions to pass into the PrometheusSink
+type PrometheusDefs struct {
+	Gauges    []prometheus.GaugeDefinition
+	Counters  []prometheus.CounterDefinition
+	Summaries []prometheus.SummaryDefinition
+}
+
+// EmptyPrometheusDefs returns a PrometheusDefs struct where each of the slices have zero elements, but not nil.
+func EmptyPrometheusDefs() PrometheusDefs {
+	return PrometheusDefs{
+		Gauges:    []prometheus.GaugeDefinition{},
+		Counters:  []prometheus.CounterDefinition{},
+		Summaries: []prometheus.SummaryDefinition{},
+	}
+}
+
 // InitTelemetry configures go-metrics based on map of telemetry config
 // values as returned by Runtimecfg.Config().
-func InitTelemetry(cfg TelemetryConfig) (*metrics.InmemSink, error) {
+func InitTelemetry(cfg TelemetryConfig, defs PrometheusDefs) (*metrics.InmemSink, error) {
 	if cfg.Disable {
 		return nil, nil
 	}
@@ -440,9 +394,12 @@ func InitTelemetry(cfg TelemetryConfig) (*metrics.InmemSink, error) {
 	if err := addSink(circonusSink); err != nil {
 		return nil, err
 	}
-	if err := addSink(prometheusSink); err != nil {
+
+	promSink, err := prometheusSink(cfg, metricsConf.HostName, defs)
+	if err != nil {
 		return nil, err
 	}
+	sinks = append(sinks, promSink)
 
 	if len(sinks) > 0 {
 		sinks = append(sinks, memSink)

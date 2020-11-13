@@ -8,6 +8,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/consul/agent/consul/usagemetrics"
+	"github.com/hashicorp/consul/agent/local"
+
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc/grpclog"
 	grpcresolver "google.golang.org/grpc/resolver"
@@ -72,7 +76,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 		return d, fmt.Errorf("failed to setup node ID: %w", err)
 	}
 
-	d.MetricsHandler, err = lib.InitTelemetry(cfg.Telemetry)
+	d.MetricsHandler, err = lib.InitTelemetry(cfg.Telemetry, getPrometheusDefs())
 	if err != nil {
 		return d, fmt.Errorf("failed to initialize telemetry: %w", err)
 	}
@@ -176,4 +180,92 @@ func registerWithGRPC(b grpcresolver.Builder) {
 	registerLock.Lock()
 	defer registerLock.Unlock()
 	grpcresolver.Register(b)
+}
+
+// getPrometheusDefs reaches into every slice of prometheus defs we've defined in each part of the agent, and appends
+//  all of our slices into one nice slice of definitions per metric type for the Consul agent to pass to go-metrics.
+func getPrometheusDefs() lib.PrometheusDefs {
+	var gauges = [][]prometheus.GaugeDefinition{
+		consul.AutopilotGauges,
+		consul.RPCGauges,
+		consul.SessionGauges,
+		grpc.StatsGauges,
+		usagemetrics.Gauges,
+	}
+	var gaugeDefs []prometheus.GaugeDefinition
+	for _, g := range gauges {
+		gaugeDefs = append(gaugeDefs, g...)
+	}
+
+	raftCounters := []prometheus.CounterDefinition{
+		// TODO(kit): "consul.raft..." metrics come from the raft lib and we should migrate these to a telemetry
+		//  package within. In the mean time, we're going to define them here because it's important that they're always
+		//  present for Consul users setting up dashboards.
+		{
+			Name: []string{"consul", "raft", "apply"},
+			Help: "This counts the number of Raft transactions occurring over the interval.",
+		},
+		{
+			Name: []string{"consul", "raft", "state", "candidate"},
+			Help: "This increments whenever a Consul server starts an election.",
+		},
+		{
+			Name: []string{"consul", "raft", "state", "leader"},
+			Help: "This increments whenever a Consul server becomes a leader.",
+		},
+	}
+
+	var counters = [][]prometheus.CounterDefinition{
+		CatalogCounters,
+		consul.ACLCounters,
+		consul.CatalogCounters,
+		consul.ClientCounters,
+		consul.RPCCounters,
+		grpc.StatsCounters,
+		local.StateCounters,
+		raftCounters,
+	}
+	var counterDefs []prometheus.CounterDefinition
+	for _, c := range counters {
+		counterDefs = append(counterDefs, c...)
+	}
+
+	raftSummaries := []prometheus.SummaryDefinition{
+		// TODO(kit): "consul.raft..." metrics come from the raft lib and we should migrate these to a telemetry
+		//  package within. In the mean time, we're going to define them here because it's important that they're always
+		//  present for Consul users setting up dashboards.
+		{
+			Name: []string{"consul", "raft", "commitTime"},
+			Help: "This measures the time it takes to commit a new entry to the Raft log on the leader.",
+		},
+		{
+			Name: []string{"consul", "raft", "leader", "lastContact"},
+			Help: "Measures the time since the leader was last able to contact the follower nodes when checking its leader lease.",
+		},
+	}
+
+	var summaries = [][]prometheus.SummaryDefinition{
+		HTTPSummaries,
+		consul.ACLSummaries,
+		consul.ACLEndpointSummaries,
+		consul.CatalogSummaries,
+		consul.FederationStateSummaries,
+		consul.IntentionSummaries,
+		consul.KVSummaries,
+		consul.PreparedQuerySummaries,
+		consul.RPCSummaries,
+		consul.SessionSummaries,
+		consul.TxnSummaries,
+		raftSummaries,
+	}
+	var summaryDefs []prometheus.SummaryDefinition
+	for _, s := range summaries {
+		summaryDefs = append(summaryDefs, s...)
+	}
+
+	return lib.PrometheusDefs{
+		Gauges:    gaugeDefs,
+		Counters:  counterDefs,
+		Summaries: summaryDefs,
+	}
 }

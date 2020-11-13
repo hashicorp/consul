@@ -4,9 +4,33 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/armon/go-metrics/prometheus"
+
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/structs"
 )
+
+var SessionGauges = []prometheus.GaugeDefinition{
+	{
+		Name: []string{"consul", "session_ttl", "active"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "raft", "applied_index"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "raft", "last_index"},
+		Help: "",
+	},
+}
+
+var SessionSummaries = []prometheus.SummaryDefinition{
+	{
+		Name: []string{"consul", "session_ttl", "invalidate"},
+		Help: "",
+	},
+}
 
 const (
 	// maxInvalidateAttempts limits how many invalidate attempts are made

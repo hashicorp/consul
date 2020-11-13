@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -15,6 +16,13 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 )
+
+var IntentionSummaries = []prometheus.SummaryDefinition{
+	{
+		Name: []string{"consul", "intention", "apply"},
+		Help: "",
+	},
+}
 
 var (
 	// ErrIntentionNotFound is returned if the intention lookup failed.
@@ -252,6 +260,7 @@ func (s *Intention) Apply(
 	if done, err := s.srv.ForwardRPC("Intention.Apply", args, args, reply); done {
 		return err
 	}
+	// TODO(Kit): Why do we have summaries for intentions both with and without the consul namespace?
 	defer metrics.MeasureSince([]string{"consul", "intention", "apply"}, time.Now())
 	defer metrics.MeasureSince([]string{"intention", "apply"}, time.Now())
 

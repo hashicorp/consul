@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
@@ -16,6 +17,52 @@ import (
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
 )
+
+var CatalogCounters = []prometheus.CounterDefinition{
+	{
+		Name: []string{"consul", "catalog", "service", "query"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "catalog", "connect", "query"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "catalog", "service", "query-tag"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "catalog", "connect", "query-tag"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "catalog", "service", "query-tags"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "catalog", "connect", "query-tags"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "catalog", "service", "not-found"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "catalog", "connect", "not-found"},
+		Help: "",
+	},
+}
+
+var CatalogSummaries = []prometheus.SummaryDefinition{
+	{
+		Name: []string{"consul", "catalog", "deregister"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "catalog", "register"},
+		Help: "",
+	},
+}
 
 // Catalog endpoint is used to manipulate the service catalog
 type Catalog struct {

@@ -5,11 +5,28 @@ import (
 	"errors"
 	"time"
 
+	"github.com/armon/go-metrics/prometheus"
+
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/go-hclog"
 )
+
+var Gauges = []prometheus.GaugeDefinition{
+	{
+		Name: []string{"consul", "state", "nodes"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "state", "services"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "state", "service_instances"},
+		Help: "",
+	},
+}
 
 // Config holds the settings for various parameters for the
 // UsageMetricsReporter

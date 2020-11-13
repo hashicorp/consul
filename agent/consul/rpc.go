@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/wanfed"
@@ -30,6 +31,47 @@ import (
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/yamux"
 )
+
+var RPCCounters = []prometheus.CounterDefinition{
+	{
+		Name: []string{"consul", "rpc", "accept_conn"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "rpc", "raft_handoff"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "rpc", "request_error"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "rpc", "request"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "rpc", "cross-dc"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "rpc", "query"},
+		Help: "",
+	},
+}
+
+var RPCGauges = []prometheus.GaugeDefinition{
+	{
+		Name: []string{"consul", "rpc", "queries_blocking"},
+		Help: "",
+	},
+}
+
+var RPCSummaries = []prometheus.SummaryDefinition{
+	{
+		Name: []string{"consul", "rpc", "consistentRead"},
+		Help: "",
+	},
+}
 
 const (
 	// jitterFraction is a the limit to the amount of jitter we apply

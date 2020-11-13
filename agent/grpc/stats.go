@@ -5,11 +5,48 @@ import (
 	"sync/atomic"
 
 	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/stats"
 )
 
 var defaultMetrics = metrics.Default()
+var StatsGauges = []prometheus.GaugeDefinition{
+	{
+		Name: []string{"consul", "grpc", "server", "connections"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "grpc", "client", "connections"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "grpc", "server", "streams"},
+		Help: "",
+	},
+}
+var StatsCounters = []prometheus.CounterDefinition{
+	{
+		Name: []string{"consul", "grpc", "client", "request", "count"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "grpc", "server", "request", "count"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "grpc", "client", "connection", "count"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "grpc", "server", "connection", "count"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "grpc", "server", "stream", "count"},
+		Help: "",
+	},
+}
 
 // statsHandler is a grpc/stats.StatsHandler which emits connection and
 // request metrics to go-metrics.

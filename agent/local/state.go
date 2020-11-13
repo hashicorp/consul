@@ -9,8 +9,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	metrics "github.com/armon/go-metrics"
-
+	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
@@ -19,6 +19,29 @@ import (
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-hclog"
 )
+
+var StateCounters = []prometheus.CounterDefinition{
+	{
+		Name: []string{"consul", "acl", "blocked", "service", "deregistration"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "acl", "blocked", "check", "deregistration"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "acl", "blocked", "service", "registration"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "acl", "blocked", "check", "registration"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "acl", "blocked", "node", "registration"},
+		Help: "",
+	},
+}
 
 const fullSyncReadMaxStale = 2 * time.Second
 

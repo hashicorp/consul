@@ -5,10 +5,127 @@ import (
 	"net/http"
 	"strings"
 
-	metrics "github.com/armon/go-metrics"
+	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
 )
+
+// TODO(kit): Add help strings for each
+var CatalogCounters = []prometheus.CounterDefinition{
+	{
+		Name: []string{"consul", "client", "api", "catalog_register"},
+		Help: "Increments whenever a Consul agent receives a catalog register request.",
+	},
+	{
+		Name: []string{"consul", "client", "rpc", "error", "catalog_register"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "client", "api", "success", "catalog_register"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "client", "api", "catalog_deregister"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "client", "api", "catalog_datacenters"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "client", "rpc", "error", "catalog_deregister"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "client", "api", "success", "catalog_nodes"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "client", "rpc", "error", "catalog_nodes"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "client", "api", "success", "catalog_deregister"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "client", "rpc", "error", "catalog_datacenters"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "client", "api", "success", "catalog_datacenters"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "client", "api", "catalog_nodes"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "client", "api", "catalog_services"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "client", "rpc", "error", "catalog_services"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "client", "api", "success", "catalog_services"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "client", "api", "catalog_service_nodes"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "client", "rpc", "error", "catalog_service_nodes"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "client", "api", "success", "catalog_service_nodes"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "client", "api", "error", "catalog_service_nodes"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "client", "api", "catalog_node_services"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "client", "api", "success", "catalog_node_services"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "client", "rpc", "error", "catalog_node_services"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "client", "api", "catalog_node_service_list"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "client", "rpc", "error", "catalog_node_service_list"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "client", "api", "success", "catalog_node_service_list"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "client", "api", "catalog_gateway_services"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "client", "rpc", "error", "catalog_gateway_services"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "client", "api", "success", "catalog_gateway_services"},
+		Help: "",
+	},
+}
 
 func (s *HTTPHandlers) CatalogRegister(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_register"}, 1,
