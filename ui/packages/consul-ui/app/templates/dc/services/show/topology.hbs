@@ -5,6 +5,8 @@
   {{/if}}
   {{#if topology}}
     <TopologyMetrics
+      @nspace={{nspace}}
+      @dc={{dc}}
       @service={{items.firstObject}}
       @topology={{topology}}
       @metricsHref={{render-template urls.service (hash
