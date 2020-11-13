@@ -405,6 +405,9 @@ func (e *ServiceIntentionsConfigEntry) normalize(legacyWrite bool) error {
 		return fmt.Errorf("config entry is nil")
 	}
 
+	// NOTE: this function must be deterministic so that the raft log doesn't
+	// diverge. This means no ID assignments or time.Now() usage!
+
 	e.Kind = ServiceIntentions
 
 	e.EnterpriseMeta.Normalize()
@@ -430,11 +433,6 @@ func (e *ServiceIntentionsConfigEntry) normalize(legacyWrite bool) error {
 			if src.LegacyMeta == nil {
 				src.LegacyMeta = make(map[string]string)
 			}
-			// Set the created/updated times. If this is an update instead of an insert
-			// the UpdateOver() will fix it up appropriately.
-			now := time.Now().UTC()
-			src.LegacyCreateTime = timePointer(now)
-			src.LegacyUpdateTime = timePointer(now)
 		} else {
 			// Legacy fields are cleared, except LegacyMeta which we leave
 			// populated so that we can later fail the write in Validate() and
@@ -594,11 +592,25 @@ func (e *ServiceIntentionsConfigEntry) validate(legacyWrite bool) error {
 					)
 				}
 			}
+
+			if src.LegacyCreateTime == nil {
+				return fmt.Errorf("Sources[%d].LegacyCreateTime must be set", i)
+			}
+			if src.LegacyUpdateTime == nil {
+				return fmt.Errorf("Sources[%d].LegacyUpdateTime must be set", i)
+			}
 		} else {
 			if len(src.LegacyMeta) > 0 {
 				return fmt.Errorf("Sources[%d].LegacyMeta must be omitted", i)
 			}
 			src.LegacyMeta = nil // ensure it's completely unset
+
+			if src.LegacyCreateTime != nil {
+				return fmt.Errorf("Sources[%d].LegacyCreateTime must be omitted", i)
+			}
+			if src.LegacyUpdateTime != nil {
+				return fmt.Errorf("Sources[%d].LegacyUpdateTime must be omitted", i)
+			}
 		}
 
 		if legacyWrite {
