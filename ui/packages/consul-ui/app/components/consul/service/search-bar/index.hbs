@@ -27,7 +27,7 @@
     </PopoverSelect>
     <PopoverSelect
       @position="left"
-      @onchange={{action onfilter.type}}
+      @onchange={{action onfilter.kind}}
       @multiple={{true}}
     as |components|>
       <BlockSlot @name="selected">
@@ -37,15 +37,15 @@
       </BlockSlot>
       <BlockSlot @name="options">
 {{#let components.Optgroup components.Option as |Optgroup Option|}}
-        <Option @value="service" @selected={{contains 'service' filter.types}}>Service</Option>
+        <Option @value="service" @selected={{contains 'service' filter.kinds}}>Service</Option>
         <Optgroup @label="Gateway">
-          <Option @value="ingress-gateway" @selected={{contains 'ingress-gateway' filter.types}}>Ingress Gateway</Option>
-          <Option @value="terminating-gateway" @selected={{contains 'terminating-gateway' filter.types}}>Terminating Gateway</Option>
-          <Option @value="mesh-gateway" @selected={{contains 'mesh-gateway' filter.types}}>Mesh Gateway</Option>
+          <Option @value="ingress-gateway" @selected={{contains 'ingress-gateway' filter.kinds}}>Ingress Gateway</Option>
+          <Option @value="terminating-gateway" @selected={{contains 'terminating-gateway' filter.kinds}}>Terminating Gateway</Option>
+          <Option @value="mesh-gateway" @selected={{contains 'mesh-gateway' filter.kinds}}>Mesh Gateway</Option>
         </Optgroup>
         <Optgroup @label="Mesh">
-          <Option @value="in-mesh" @selected={{contains 'in-mesh' filter.types}}>In service mesh</Option>
-          <Option @value="not-in-mesh" @selected={{contains 'not-in-mesh' filter.types}}>Not in service mesh</Option>
+          <Option @value="in-mesh" @selected={{contains 'in-mesh' filter.kinds}}>In service mesh</Option>
+          <Option @value="not-in-mesh" @selected={{contains 'not-in-mesh' filter.kinds}}>Not in service mesh</Option>
         </Optgroup>
 {{/let}}
       </BlockSlot>

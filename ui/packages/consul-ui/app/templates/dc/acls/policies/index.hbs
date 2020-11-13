@@ -4,7 +4,7 @@
   {{title 'Access Controls'}}
 {{/if}}
 {{#let (hash
-  types=(if type (split type ',') undefined)
+  kinds=(if kind (split kind ',') undefined)
   dcs=(if dc (split dc ',') undefined)
 ) as |filters|}}
   {{#let (or sortBy "Name:asc") as |sort|}}
@@ -45,7 +45,7 @@
           @filter={{filters}}
           @onfilter={{hash
             dc=(action (mut dc) value="target.selectedItems")
-            type=(action (mut type) value="target.selectedItems")
+            kind=(action (mut kind) value="target.selectedItems")
           }}
         />
       {{/if}}

@@ -5,8 +5,7 @@ import { hash } from 'rsvp';
 import WithRoleActions from 'consul-ui/mixins/role/with-actions';
 
 export default class IndexRoute extends Route.extend(WithRoleActions) {
-  @service('repository/role')
-  repo;
+  @service('repository/role') repo;
 
   queryParams = {
     sortBy: 'sort',
