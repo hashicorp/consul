@@ -73,7 +73,9 @@ func (s *Intention) Apply(args *structs.IntentionRequest, reply *string) error {
 		return err
 	}
 
-	args.Mutation = nil // not something the user can control
+	if args.Mutation != nil {
+		return fmt.Errorf("Mutation field is internal only and must not be set via RPC")
+	}
 
 	// Always set a non-nil intention to avoid nil-access below
 	if args.Intention == nil {
