@@ -309,6 +309,6 @@ export default [
   {
     category: 'release-notes',
     name: 'Release Notes',
-    content: ['1.9.0'],
+    content: ['1-9-0'],
   },
 ]
