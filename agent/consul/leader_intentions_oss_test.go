@@ -11,6 +11,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func testLeader_LegacyIntentionMigrationHookEnterprise(_ *testing.T, _ *Server, _ bool) {
+}
+
+func appendLegacyIntentionsForMigrationTestEnterprise(_ *testing.T, _ *Server, ixns []*structs.Intention) []*structs.Intention {
+	return ixns
+}
+
 func TestMigrateIntentionsToConfigEntries(t *testing.T) {
 	compare := func(t *testing.T, got structs.Intentions, expect [][]string) {
 		t.Helper()
