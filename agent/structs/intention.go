@@ -440,6 +440,9 @@ func (x *Intention) ToConfigEntry(legacy bool) *ServiceIntentionsConfigEntry {
 }
 
 func (x *Intention) ToSourceIntention(legacy bool) *SourceIntention {
+	ct := x.CreatedAt // copy
+	ut := x.UpdatedAt
+
 	src := &SourceIntention{
 		Name:             x.SourceName,
 		EnterpriseMeta:   *x.SourceEnterpriseMeta(),
@@ -450,8 +453,8 @@ func (x *Intention) ToSourceIntention(legacy bool) *SourceIntention {
 		Type:             x.SourceType,
 		Description:      x.Description,
 		LegacyMeta:       x.Meta,
-		LegacyCreateTime: nil, // Ignore
-		LegacyUpdateTime: nil, // Ignore
+		LegacyCreateTime: &ct,
+		LegacyUpdateTime: &ut,
 	}
 	if !legacy {
 		src.Permissions = x.Permissions

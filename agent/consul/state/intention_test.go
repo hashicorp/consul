@@ -13,6 +13,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var (
+	testLocation = time.FixedZone("UTC-8", -8*60*60)
+
+	testTimeA = time.Date(1955, 11, 5, 6, 15, 0, 0, testLocation)
+	testTimeB = time.Date(1985, 10, 26, 1, 35, 0, 0, testLocation)
+	testTimeC = time.Date(2015, 10, 21, 16, 29, 0, 0, testLocation)
+)
+
 func testBothIntentionFormats(t *testing.T, f func(t *testing.T, s *Store, legacy bool)) {
 	t.Helper()
 
@@ -72,6 +80,8 @@ func TestStore_IntentionSetGet_basic(t *testing.T) {
 				DestinationNS:   "default",
 				DestinationName: "web",
 				Meta:            map[string]string{},
+				CreatedAt:       testTimeA,
+				UpdatedAt:       testTimeA,
 			}
 
 			// Inserting a with empty ID is disallowed.
@@ -89,6 +99,8 @@ func TestStore_IntentionSetGet_basic(t *testing.T) {
 				DestinationNS:   "default",
 				DestinationName: "web",
 				Meta:            map[string]string{},
+				CreatedAt:       testTimeA,
+				UpdatedAt:       testTimeA,
 				RaftIndex: structs.RaftIndex{
 					CreateIndex: lastIndex,
 					ModifyIndex: lastIndex,
@@ -103,10 +115,12 @@ func TestStore_IntentionSetGet_basic(t *testing.T) {
 				Name: "web",
 				Sources: []*structs.SourceIntention{
 					{
-						LegacyID:   srcID,
-						Name:       "*",
-						Action:     structs.IntentionActionAllow,
-						LegacyMeta: map[string]string{},
+						LegacyID:         srcID,
+						Name:             "*",
+						Action:           structs.IntentionActionAllow,
+						LegacyMeta:       map[string]string{},
+						LegacyCreateTime: &testTimeA,
+						LegacyUpdateTime: &testTimeA,
 					},
 				},
 			}
@@ -302,9 +316,11 @@ func testStore_IntentionMutation(t *testing.T, s *Store) {
 	testutil.RequireErrorContains(t, s.IntentionMutation(lastIndex, structs.IntentionOpCreate, &structs.IntentionMutation{
 		Destination: structs.NewServiceName("api", defaultEntMeta),
 		Value: &structs.SourceIntention{
-			Name:           "web",
-			EnterpriseMeta: *defaultEntMeta,
-			Action:         structs.IntentionActionAllow,
+			Name:             "web",
+			EnterpriseMeta:   *defaultEntMeta,
+			Action:           structs.IntentionActionAllow,
+			LegacyCreateTime: &testTimeA,
+			LegacyUpdateTime: &testTimeA,
 		},
 	}), `Sources[0].LegacyID must be set`)
 
@@ -313,10 +329,12 @@ func testStore_IntentionMutation(t *testing.T, s *Store) {
 		require.NoError(t, s.IntentionMutation(lastIndex, structs.IntentionOpCreate, &structs.IntentionMutation{
 			Destination: structs.NewServiceName("api", defaultEntMeta),
 			Value: &structs.SourceIntention{
-				Name:           "web",
-				EnterpriseMeta: *defaultEntMeta,
-				Action:         structs.IntentionActionAllow,
-				LegacyID:       id1,
+				Name:             "web",
+				EnterpriseMeta:   *defaultEntMeta,
+				Action:           structs.IntentionActionAllow,
+				LegacyID:         id1,
+				LegacyCreateTime: &testTimeA,
+				LegacyUpdateTime: &testTimeA,
 			},
 		}))
 
@@ -356,10 +374,12 @@ func testStore_IntentionMutation(t *testing.T, s *Store) {
 		testutil.RequireErrorContains(t, s.IntentionMutation(lastIndex, structs.IntentionOpCreate, &structs.IntentionMutation{
 			Destination: structs.NewServiceName("api", defaultEntMeta),
 			Value: &structs.SourceIntention{
-				Name:           "web",
-				EnterpriseMeta: *defaultEntMeta,
-				Action:         structs.IntentionActionDeny,
-				LegacyID:       id2,
+				Name:             "web",
+				EnterpriseMeta:   *defaultEntMeta,
+				Action:           structs.IntentionActionDeny,
+				LegacyID:         id2,
+				LegacyCreateTime: &testTimeB,
+				LegacyUpdateTime: &testTimeB,
 			},
 		}), `more than once`)
 	}
@@ -369,10 +389,12 @@ func testStore_IntentionMutation(t *testing.T, s *Store) {
 		require.NoError(t, s.IntentionMutation(lastIndex, structs.IntentionOpCreate, &structs.IntentionMutation{
 			Destination: structs.NewServiceName("api", defaultEntMeta),
 			Value: &structs.SourceIntention{
-				Name:           "debug",
-				EnterpriseMeta: *defaultEntMeta,
-				Action:         structs.IntentionActionDeny,
-				LegacyID:       id2,
+				Name:             "debug",
+				EnterpriseMeta:   *defaultEntMeta,
+				Action:           structs.IntentionActionDeny,
+				LegacyID:         id2,
+				LegacyCreateTime: &testTimeB,
+				LegacyUpdateTime: &testTimeB,
 			},
 		}))
 
@@ -443,11 +465,13 @@ func testStore_IntentionMutation(t *testing.T, s *Store) {
 			ID:          id2,
 			Destination: structs.NewServiceName("api", defaultEntMeta),
 			Value: &structs.SourceIntention{
-				Name:           "debug",
-				EnterpriseMeta: *defaultEntMeta,
-				Action:         structs.IntentionActionDeny,
-				LegacyID:       id2,
-				Description:    "op update",
+				Name:             "debug",
+				EnterpriseMeta:   *defaultEntMeta,
+				Action:           structs.IntentionActionDeny,
+				LegacyID:         id2,
+				LegacyCreateTime: &testTimeB,
+				LegacyUpdateTime: &testTimeC,
+				Description:      "op update",
 			},
 		}))
 
@@ -801,24 +825,27 @@ func TestStore_IntentionSet_updateCreatedAt(t *testing.T) {
 	testBothIntentionFormats(t, func(t *testing.T, s *Store, legacy bool) {
 		// Build a valid intention
 		var (
-			id         = testUUID()
-			createTime time.Time
+			id = testUUID()
 		)
 
 		if legacy {
 			ixn := structs.Intention{
-				ID:        id,
-				CreatedAt: time.Now().UTC(),
+				ID:              id,
+				SourceNS:        "default",
+				SourceName:      "*",
+				DestinationNS:   "default",
+				DestinationName: "web",
+				Action:          structs.IntentionActionAllow,
+				CreatedAt:       testTimeA,
+				UpdatedAt:       testTimeA,
 			}
 
 			// Insert
 			require.NoError(t, s.LegacyIntentionSet(1, &ixn))
 
-			createTime = ixn.CreatedAt
-
 			// Change a value and test updating
 			ixnUpdate := ixn
-			ixnUpdate.CreatedAt = createTime.Add(10 * time.Second)
+			ixnUpdate.CreatedAt = testTimeB
 			require.NoError(t, s.LegacyIntentionSet(2, &ixnUpdate))
 
 			id = ixn.ID
@@ -829,10 +856,12 @@ func TestStore_IntentionSet_updateCreatedAt(t *testing.T) {
 				Name: "web",
 				Sources: []*structs.SourceIntention{
 					{
-						LegacyID:   id,
-						Name:       "*",
-						Action:     structs.IntentionActionAllow,
-						LegacyMeta: map[string]string{},
+						LegacyID:         id,
+						Name:             "*",
+						Action:           structs.IntentionActionAllow,
+						LegacyMeta:       map[string]string{},
+						LegacyCreateTime: &testTimeA,
+						LegacyUpdateTime: &testTimeA,
 					},
 				},
 			}
@@ -840,15 +869,13 @@ func TestStore_IntentionSet_updateCreatedAt(t *testing.T) {
 			require.NoError(t, conf.LegacyNormalize())
 			require.NoError(t, conf.LegacyValidate())
 			require.NoError(t, s.EnsureConfigEntry(1, conf.Clone(), nil))
-
-			createTime = *conf.Sources[0].LegacyCreateTime
 		}
 
 		// Read it back and verify
 		_, _, actual, err := s.IntentionGet(nil, id)
 		require.NoError(t, err)
 		require.NotNil(t, actual)
-		require.Equal(t, createTime, actual.CreatedAt)
+		require.Equal(t, testTimeA, actual.CreatedAt)
 	})
 }
 
@@ -858,7 +885,14 @@ func TestStore_IntentionSet_metaNil(t *testing.T) {
 		if legacy {
 			// Build a valid intention
 			ixn := &structs.Intention{
-				ID: id,
+				ID:              id,
+				SourceNS:        "default",
+				SourceName:      "*",
+				DestinationNS:   "default",
+				DestinationName: "web",
+				Action:          structs.IntentionActionAllow,
+				CreatedAt:       testTimeA,
+				UpdatedAt:       testTimeA,
 			}
 
 			// Insert
@@ -870,9 +904,11 @@ func TestStore_IntentionSet_metaNil(t *testing.T) {
 				Name: "web",
 				Sources: []*structs.SourceIntention{
 					{
-						LegacyID: id,
-						Name:     "*",
-						Action:   structs.IntentionActionAllow,
+						LegacyID:         id,
+						Name:             "*",
+						Action:           structs.IntentionActionAllow,
+						LegacyCreateTime: &testTimeA,
+						LegacyUpdateTime: &testTimeA,
 					},
 				},
 			}
@@ -899,8 +935,15 @@ func TestStore_IntentionSet_metaSet(t *testing.T) {
 		if legacy {
 			// Build a valid intention
 			ixn := structs.Intention{
-				ID:   id,
-				Meta: expectMeta,
+				ID:              id,
+				SourceNS:        "default",
+				SourceName:      "*",
+				DestinationNS:   "default",
+				DestinationName: "web",
+				Action:          structs.IntentionActionAllow,
+				CreatedAt:       testTimeA,
+				UpdatedAt:       testTimeA,
+				Meta:            expectMeta,
 			}
 
 			// Insert
@@ -913,10 +956,12 @@ func TestStore_IntentionSet_metaSet(t *testing.T) {
 				Name: "web",
 				Sources: []*structs.SourceIntention{
 					{
-						LegacyID:   id,
-						Name:       "*",
-						Action:     structs.IntentionActionAllow,
-						LegacyMeta: expectMeta,
+						LegacyID:         id,
+						Name:             "*",
+						Action:           structs.IntentionActionAllow,
+						LegacyCreateTime: &testTimeA,
+						LegacyUpdateTime: &testTimeA,
+						LegacyMeta:       expectMeta,
 					},
 				},
 			}
@@ -947,7 +992,14 @@ func TestStore_IntentionDelete(t *testing.T) {
 		// Create
 		if legacy {
 			ixn := &structs.Intention{
-				ID: id,
+				ID:              id,
+				SourceNS:        "default",
+				SourceName:      "*",
+				DestinationNS:   "default",
+				DestinationName: "web",
+				Action:          structs.IntentionActionAllow,
+				CreatedAt:       testTimeA,
+				UpdatedAt:       testTimeA,
 			}
 			lastIndex++
 			require.NoError(t, s.LegacyIntentionSet(lastIndex, ixn))
@@ -961,9 +1013,11 @@ func TestStore_IntentionDelete(t *testing.T) {
 				Name: "web",
 				Sources: []*structs.SourceIntention{
 					{
-						LegacyID: id,
-						Name:     "*",
-						Action:   structs.IntentionActionAllow,
+						LegacyID:         id,
+						Name:             "*",
+						Action:           structs.IntentionActionAllow,
+						LegacyCreateTime: &testTimeA,
+						LegacyUpdateTime: &testTimeA,
 					},
 				},
 			}
@@ -1038,6 +1092,8 @@ func TestStore_IntentionsList(t *testing.T) {
 				SourceType:      structs.IntentionSourceConsul,
 				Action:          structs.IntentionActionAllow,
 				Meta:            map[string]string{},
+				CreatedAt:       testTimeA,
+				UpdatedAt:       testTimeA,
 			}
 		}
 
@@ -1049,22 +1105,17 @@ func TestStore_IntentionsList(t *testing.T) {
 			id := testUUID()
 			for _, src := range srcs {
 				conf.Sources = append(conf.Sources, &structs.SourceIntention{
-					LegacyID: id,
-					Name:     src,
-					Action:   structs.IntentionActionAllow,
+					LegacyID:         id,
+					Name:             src,
+					Action:           structs.IntentionActionAllow,
+					LegacyCreateTime: &testTimeA,
+					LegacyUpdateTime: &testTimeA,
 				})
 			}
 			return conf
 		}
 
-		cmpIntention := func(ixn *structs.Intention, id string) *structs.Intention {
-			ixn.ID = id
-			//nolint:staticcheck
-			ixn.UpdatePrecedence()
-			return ixn
-		}
-
-		clearIrrelevantFields := func(ixns []*structs.Intention) {
+		clearIrrelevantFields := func(ixns ...*structs.Intention) {
 			// Clear fields irrelevant for comparison.
 			for _, ixn := range ixns {
 				ixn.Hash = nil
@@ -1073,6 +1124,15 @@ func TestStore_IntentionsList(t *testing.T) {
 				ixn.CreatedAt = time.Time{}
 				ixn.UpdatedAt = time.Time{}
 			}
+		}
+
+		cmpIntention := func(ixn *structs.Intention, id string) *structs.Intention {
+			ixn2 := ixn.Clone()
+			ixn2.ID = id
+			clearIrrelevantFields(ixn2)
+			//nolint:staticcheck
+			ixn2.UpdatePrecedence()
+			return ixn2
 		}
 
 		var (
@@ -1129,7 +1189,7 @@ func TestStore_IntentionsList(t *testing.T) {
 		require.Equal(t, !legacy, fromConfig)
 		require.Equal(t, lastIndex, idx)
 
-		clearIrrelevantFields(actual)
+		clearIrrelevantFields(actual...)
 		require.Equal(t, expected, actual)
 	})
 }

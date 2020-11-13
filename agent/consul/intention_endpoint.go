@@ -205,10 +205,18 @@ func (s *Intention) computeApplyChangesLegacyCreate(
 	// config entry validation will fail so we don't have to check that
 	// explicitly here.
 
-	return &structs.IntentionMutation{
+	mut := &structs.IntentionMutation{
 		Destination: args.Intention.DestinationServiceName(),
 		Value:       args.Intention.ToSourceIntention(true),
-	}, nil
+	}
+
+	// Set the created/updated times. If this is an update instead of an insert
+	// the UpdateOver() will fix it up appropriately.
+	now := time.Now().UTC()
+	mut.Value.LegacyCreateTime = timePointer(now)
+	mut.Value.LegacyUpdateTime = timePointer(now)
+
+	return mut, nil
 }
 
 func (s *Intention) computeApplyChangesLegacyUpdate(
@@ -241,9 +249,6 @@ func (s *Intention) computeApplyChangesLegacyUpdate(
 		return nil, fmt.Errorf("Cannot modify DestinationNS or DestinationName for an intention once it exists.")
 	}
 
-	// We always update the updatedat field.
-	args.Intention.UpdatedAt = time.Now().UTC()
-
 	// Default source type
 	if args.Intention.SourceType == "" {
 		args.Intention.SourceType = structs.IntentionSourceConsul
@@ -260,10 +265,18 @@ func (s *Intention) computeApplyChangesLegacyUpdate(
 		return nil, err
 	}
 
-	return &structs.IntentionMutation{
+	mut := &structs.IntentionMutation{
 		ID:    args.Intention.ID,
 		Value: args.Intention.ToSourceIntention(true),
-	}, nil
+	}
+
+	// Set the created/updated times. If this is an update instead of an insert
+	// the UpdateOver() will fix it up appropriately.
+	now := time.Now().UTC()
+	mut.Value.LegacyCreateTime = timePointer(now)
+	mut.Value.LegacyUpdateTime = timePointer(now)
+
+	return mut, nil
 }
 
 func (s *Intention) computeApplyChangesUpsert(
