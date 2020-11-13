@@ -136,9 +136,6 @@ type Server struct {
 	// autopilot is the Autopilot instance for this server.
 	autopilot *autopilot.Autopilot
 
-	// autopilotWaitGroup is used to block until Autopilot shuts down.
-	autopilotWaitGroup sync.WaitGroup
-
 	// caManager is used to synchronize CA operations across the leader and RPC functions.
 	caManager *CAManager
 

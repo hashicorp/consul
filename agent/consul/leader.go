@@ -327,8 +327,7 @@ func (s *Server) establishLeadership(ctx context.Context) error {
 	s.getOrCreateAutopilotConfig()
 	s.autopilot.Start(ctx)
 
-	// todo(kyhavlov): start a goroutine here for handling periodic CA rotation
-	if err := s.caManager.initializeCA(); err != nil {
+	if err := s.caManager.InitializeCA(); err != nil {
 		return err
 	}
 
