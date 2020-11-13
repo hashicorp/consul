@@ -7,7 +7,7 @@
     {{@item.Name}}
   </p>
   <div class="details">
-  {{#if (and (and nspace (env 'CONSUL_NSPACES_ENABLED')) @type)}}
+  {{#if (and (and @nspace (env 'CONSUL_NSPACES_ENABLED')) @type)}}
     <dl class="nspace">
       <dt>
         <Tooltip>
@@ -47,6 +47,8 @@
   {{#if (and @hasMetricsProvider (not-eq @service.Kind 'ingress-gateway'))}}
     {{#if (eq @type 'upstream')}}
       <TopologyMetrics::Stats
+        @nspace={{@item.Namespace}}
+        @dc={{@item.Datacenter}}
         @endpoint='upstream-summary-for-service'
         @service={{@service.Service}}
         @item={{@item.Name}}
@@ -54,6 +56,8 @@
       />
     {{else}}
       <TopologyMetrics::Stats
+        @nspace={{@item.Namespace}}
+        @dc={{@item.Datacenter}}
         @endpoint='downstream-summary-for-service'
         @service={{@service.Service}}
         @item={{@item.Name}}

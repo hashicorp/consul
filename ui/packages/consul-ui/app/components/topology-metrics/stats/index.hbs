@@ -1,6 +1,6 @@
 {{#unless @noMetricsReason}}
   <DataSource
-    @src={{uri nspace dc 'metrics' @endpoint @service @protocol}}
+    @src={{uri @nspace @dc 'metrics' @endpoint @service @protocol}}
     @onchange={{action 'statsUpdate'}}
     @onerror={{action (mut error) value="error"}}
   />
