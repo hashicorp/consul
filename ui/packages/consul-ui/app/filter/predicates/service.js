@@ -1,71 +1,25 @@
 import setHelpers from 'mnemonist/set';
-export default () => ({ instances = [], sources = [], statuses = [], kinds = [] }) => {
-  const uniqueSources = new Set(sources);
-  const kindIncludes = [
-    'ingress-gateway',
-    'terminating-gateway',
-    'mesh-gateway',
-    'service',
-    'in-mesh',
-    'not-in-mesh',
-  ].reduce((prev, item) => {
-    prev[item] = kinds.includes(item);
-    return prev;
-  }, {});
-  const instanceIncludes = ['registered', 'not-registered'].reduce((prev, item) => {
-    prev[item] = instances.includes(item);
-    return prev;
-  }, {});
-  return item => {
-    if (statuses.length > 0) {
-      if (statuses.includes(item.MeshStatus)) {
-        return true;
-      }
-      return false;
-    }
-    if (instances.length > 0) {
-      if (item.InstanceCount > 0) {
-        if (instanceIncludes['registered']) {
-          return true;
-        }
-      } else {
-        if (instanceIncludes['not-registered']) {
-          return true;
-        }
-      }
-      return false;
-    }
-    if (kinds.length > 0) {
-      if (kindIncludes['ingress-gateway'] && item.Kind === 'ingress-gateway') {
-        return true;
-      }
-      if (kindIncludes['terminating-gateway'] && item.Kind === 'terminating-gateway') {
-        return true;
-      }
-      if (kindIncludes['mesh-gateway'] && item.Kind === 'mesh-gateway') {
-        return true;
-      }
-      if (kindIncludes['service'] && typeof item.Kind === 'undefined') {
-        return true;
-      }
-      if (kindIncludes['in-mesh']) {
-        if (item.InMesh) {
-          return true;
-        }
-      }
-      if (kindIncludes['not-in-mesh']) {
-        if (!item.InMesh) {
-          return true;
-        }
-      }
-      return false;
-    }
-    if (sources.length > 0) {
-      if (setHelpers.intersectionSize(uniqueSources, new Set(item.ExternalSources || [])) !== 0) {
-        return true;
-      }
-      return false;
-    }
-    return true;
-  };
-};
+import { andOr } from 'consul-ui/utils/filter';
+
+export default andOr({
+  kinds: {
+    'ingress-gateway': (item, value) => item.Kind === value,
+    'terminating-gateway': (item, value) => item.Kind === value,
+    'mesh-gateway': (item, value) => item.Kind === value,
+    service: (item, value) => !item.Kind,
+    'in-mesh': (item, value) => item.InMesh,
+    'not-in-mesh': (item, value) => !item.InMesh,
+  },
+  statuses: {
+    passing: (item, value) => item.MeshStatus === value,
+    warning: (item, value) => item.MeshStatus === value,
+    critical: (item, value) => item.MeshStatus === value,
+  },
+  instances: {
+    registered: (item, value) => item.InstanceCount > 0,
+    'not-registered': (item, value) => item.InstanceCount === 0,
+  },
+  sources: (item, values) => {
+    return setHelpers.intersectionSize(values, new Set(item.ExternalSources || [])) !== 0;
+  },
+});

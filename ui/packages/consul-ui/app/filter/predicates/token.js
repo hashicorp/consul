@@ -1,21 +1,10 @@
-export default () => ({ kinds = [] }) => {
-  const kindIncludes = ['global-management', 'global', 'local'].reduce((prev, item) => {
-    prev[item] = kinds.includes(item);
-    return prev;
-  }, {});
-  return item => {
-    if (kinds.length > 0) {
-      if (kindIncludes['global-management'] && item.isGlobalManagement) {
-        return true;
-      }
-      if (kindIncludes['global'] && !item.Local) {
-        return true;
-      }
-      if (kindIncludes['local'] && item.Local) {
-        return true;
-      }
-      return false;
-    }
-    return true;
-  };
-};
+import setHelpers from 'mnemonist/set';
+import { andOr } from 'consul-ui/utils/filter';
+
+export default andOr({
+  kinds: {
+    'global-management': (item, value) => item.isGlobalManagement,
+    global: (item, value) => !item.Local,
+    local: (item, value) => item.Local,
+  },
+});
