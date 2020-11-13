@@ -1,0 +1,321 @@
+---
+layout: docs
+page_title: Upgrade An Existing Cluster to CRDs
+sidebar_title: Upgrade An Existing Cluster to CRDs
+description: >-
+  Upgrade an existing cluster to use custom resources.
+---
+
+# Upgrade An Existing Cluster to CRDs
+
+-> This feature requires consul-helm >= 0.26.0, consul-k8s >= 0.20.0 and consul >= 1.8.4.
+
+If you have an existing Consul cluster running on Kubernetes you may need to perform
+extra steps to migrate to CRDs.
+
+You will need to perform extra steps if you are using any of the following configurations:
+
+- Helm config `connectInject.centralConfig.defaultProtocol`, e.g.
+
+  ```yaml
+  connectInject:
+    centralConfig:
+      defaultProtocol: http
+  ```
+
+- Or setting the `consul.hashicorp.com/connect-service-protocol` annotation on your
+  connect pods, e.g.
+
+  ```yaml
+  annotations:
+    'consul.hashicorp.com/connect-service-protocol': 'http'
+  ```
+
+- Or Helm config `connectInject.centralConfig.proxyDefaults`, e.g.
+  ```yaml
+  connectInject:
+    centralConfig:
+      proxyDefaults: |
+        {
+          "local_connect_timeout_ms": 1000
+        }
+  ```
+
+## Why Migrate?
+
+All of the above settings do not support modification after the initial
+installation of Consul, i.e. they cannot be updated through the Helm chart.
+
+By switching to custom resources, these settings can now be modified.
+
+## Migration Overview
+
+The migration process will consist of identifying which [config entries](/docs/agent/config-entries)
+have been created in Consul and adding metadata to them so that they can
+be managed by a custom resource instead.
+
+## Default Protocol
+
+If you are setting `connectInject.centralConfig.defaultProtocol` then you must
+perform the follow steps to migrate to custom resources.
+
+1. Find existing `service-defaults` config entries:
+   ```shell-session
+   $ consul config list -kind service-defaults
+   static-client
+   static-server
+   ```
+1. For each entry, export the config to a file:
+
+   ```shell-session
+   $ consul config read -name static-client -kind service-defaults > static-client.json
+   ```
+
+1. Edit the file and add the key `"Meta": {"consul.hashicorp.com/source-datacenter": "dc1"}`.
+   Where `dc1` is the name of your datacenter. Make sure you add any missing trailing commas required for JSON:
+
+   ```json
+   {
+     "Kind": "service-defaults",
+     "Name": "static-client",
+     "Protocol": "http",
+     "MeshGateway": {},
+     "Expose": {},
+     "CreateIndex": 26,
+     "ModifyIndex": 26,
+     "Meta": { "consul.hashicorp.com/source-datacenter": "dc1" }
+   }
+   ```
+
+1. Write the updated config entry:
+
+   ```shell-session
+   $ consul config write static-client.json
+   Config entry written: service-defaults/static-client
+   ```
+
+1. Now you're ready to create a custom resource that takes over control of this
+   config entry. The custom resource will look like:
+
+   ```yaml
+   apiVersion: consul.hashicorp.com/v1alpha1
+   kind: ServiceDefaults
+   metadata:
+     name: static-client
+   spec:
+     protocol: 'http'
+   ```
+
+   Where `metadata.name` is the name of your service and `spec.protocol` is
+   the default protocol you've set.
+
+1. When you run `kubectl apply` on this file, the `ServiceDefaults` custom
+   resource should be created successfully and its `synced` status will be `True`:
+
+   ```shell-session
+   $ cat <<EOF | kubectl apply -f -
+   apiVersion: consul.hashicorp.com/v1alpha1
+   kind: ServiceDefaults
+   metadata:
+     name: static-client
+   spec:
+     protocol: "http"
+   EOF
+   servicedefaults.consul.hashicorp.com/static-client created
+
+   $ kubectl get servicedefaults static-client
+   NAME            SYNCED   AGE
+   static-client   True     1s
+   ```
+
+1. Repeat steps 2-6 for each service-defaults config entry.
+
+1. Finally, delete your `connectInject.centralConfig.defaultProtocol` Helm config and run Helm upgrade.
+
+   From here on out, you must create a `ServiceDefaults` custom resource
+   for each new service to set its protocol. As there will no longer be a
+   default.
+
+## Connect Service Protocol Annotation
+
+If you are setting the `consul.hashicorp.com/connect-service-protocol` annotation on your
+connect pods, then you must perform the follow steps to migrate to custom resources.
+
+1. Find existing `service-defaults` config entries:
+
+   ```shell-session
+   $ consul config list -kind service-defaults
+   static-client
+   static-server
+   ```
+
+1. For each entry, export the config to a file:
+
+   ```shell-session
+   $ consul config read -name static-client -kind service-defaults > static-client.json
+   ```
+
+1. Edit the file and add the key `"Meta": {"consul.hashicorp.com/source-datacenter": "dc1"}`.
+   Where `dc1` is the name of your datacenter. Make sure you add any missing trailing commas required for JSON:
+
+   ```json
+   {
+     "Kind": "service-defaults",
+     "Name": "static-client",
+     "Protocol": "http",
+     "MeshGateway": {},
+     "Expose": {},
+     "CreateIndex": 26,
+     "ModifyIndex": 26,
+     "Meta": { "consul.hashicorp.com/source-datacenter": "dc1" }
+   }
+   ```
+
+1. Write the updated config entry:
+
+   ```shell-session
+   $ consul config write static-client.json
+   Config entry written: service-defaults/static-client
+   ```
+
+1. Now you're ready to create a custom resource that takes over control of this
+   config entry. The custom resource will look like:
+
+   ```yaml
+   apiVersion: consul.hashicorp.com/v1alpha1
+   kind: ServiceDefaults
+   metadata:
+     name: static-client
+   spec:
+     protocol: 'http'
+   ```
+
+   Where `metadata.name` is the name of your service and `spec.protocol` is
+   the default protocol you've set.
+
+1. When you run `kubectl apply` on this file, the `ServiceDefaults` custom
+   resource should be created successfully and its `synced` status will be `True`:
+
+   ```shell-session
+   $ cat <<EOF | kubectl apply -f -
+   apiVersion: consul.hashicorp.com/v1alpha1
+   kind: ServiceDefaults
+   metadata:
+     name: static-client
+   spec:
+     protocol: "http"
+   EOF
+   servicedefaults.consul.hashicorp.com/static-client created
+
+   $ kubectl get servicedefaults static-client
+   NAME            SYNCED   AGE
+   static-client   True     1s
+   ```
+
+1. Repeat steps 2-6 for each service-defaults config entry.
+
+1. You can now remove the `consul.hashicorp.com/connect-service-protocol`
+   annotation from your deployments to indicate it is no longer used.
+
+## Proxy Defaults
+
+If you are setting `connectInject.centralConfig.proxyDefaults` then you must
+perform the follow steps to migrate to custom resources.
+
+1. Get your existing proxy-defaults config:
+
+   ```shell-session
+   $ consul config read -name global -kind proxy-defaults
+   {
+       "Kind": "proxy-defaults",
+       "Name": "global",
+       "Config": {
+           "local_connect_timeout_ms": 1000
+       },
+       "MeshGateway": {
+           "Mode": "local"
+       },
+       "Expose": {},
+       "CreateIndex": 4,
+       "ModifyIndex": 4
+   }
+   ```
+
+1. Export to a file:
+
+   ```shell-session
+   $ consul config read -name global -kind proxy-defaults > proxy-defaults.json
+   ```
+
+1. Edit the file and add the key `"Meta": {"consul.hashicorp.com/source-datacenter": "dc1"}`.
+   Where `dc1` is the name of your datacenter. Make sure you add any missing trailing commas required for JSON:
+
+   ```json
+   {
+     "Kind": "proxy-defaults",
+     "Name": "global",
+     "Config": {
+       "local_connect_timeout_ms": 1000
+     },
+     "MeshGateway": {
+       "Mode": "local"
+     },
+     "Expose": {},
+     "CreateIndex": 4,
+     "ModifyIndex": 4,
+     "Meta": { "consul.hashicorp.com/source-datacenter": "dc1" }
+   }
+   ```
+
+1. Write the updated config entry:
+
+   ```shell-session
+   $ consul config write proxy-defaults.json
+   Config entry written: proxy-defaults/global
+   ```
+
+1. Now you're ready to create a custom resource that takes over control of this
+   config entry. The custom resource will look like:
+
+   ```yaml
+   apiVersion: consul.hashicorp.com/v1alpha1
+   kind: ProxyDefaults
+   metadata:
+     name: global
+   spec:
+     config:
+       local_connect_timeout_ms: 1000
+     meshGateway:
+       mode: local
+   ```
+
+   Any keys you had under `"Config"` must be set in YAML.
+   If you previously had `"MeshGateway"` config this must also be set now
+   under `spec.meshGateway`. Also, `metadata.name` must be `global`.
+
+1. When you run `kubectl apply` on this file, the `ProxyDefaults` custom
+   resource should be created successfully and its `synced` status will be `True`:
+
+   ```shell-session
+   $ cat <<EOF | kubectl apply -f -
+   apiVersion: consul.hashicorp.com/v1alpha1
+   kind: ProxyDefaults
+   metadata:
+     name: global
+   spec:
+     config:
+       local_connect_timeout_ms: 1000
+     meshGateway:
+       mode: local
+   EOF
+   proxydefaults.consul.hashicorp.com/global created
+
+   $ kubectl get proxydefaults global
+   NAME     SYNCED   AGE
+   global   True     1s
+   ```
+
+1. Finally, delete your `connectInject.centralConfig.proxyDefaults` Helm config and run Helm upgrade.
+
+   This will have no effect because changes to this config are not picked up
+   by Consul after initial installation.

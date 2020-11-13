@@ -169,7 +169,10 @@ export default [
         ],
       },
       'service-sync',
-      'crds',
+      {
+        category: 'crds',
+        content: ['upgrade-to-crds'],
+      },
       'dns',
       {
         category: 'upgrade',

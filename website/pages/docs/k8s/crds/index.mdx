@@ -1,19 +1,16 @@
 ---
 layout: docs
-page_title: Consul Custom Resource Definitions (Beta)
-sidebar_title: Custom Resource Definitions <sup>(Beta)</sup>
+page_title: Consul Custom Resource Definitions
+sidebar_title: Custom Resource Definitions
 description: >-
-  Consul now supports managing configuration entries via Kubernetes Custom Resources.
+  Consul supports managing configuration entries via Kubernetes Custom Resources.
   These custom resource can be used to manage the configuration for workloads
   deployed within the cluster.
 ---
 
-# Custom Resource Definitions <sup>(beta)</sup>
+# Custom Resource Definitions
 
-## Overview
-
--> **This feature is currently in Beta.** It requires consul-helm >= 0.25.0 and
-consul >= 1.8.4.
+-> This feature requires consul-helm >= 0.26.0, consul-k8s >= 0.20.0 and consul >= 1.8.4.
 
 We support managing Consul [configuration entries](/docs/agent/config-entries)
 via Kubernetes Custom Resources. Configuration entries are used to provide
@@ -35,15 +32,15 @@ The following kinds are **not** currently supported:
 
 ## Installation
 
-Ensure you have version `0.25.0` of the helm chart:
+Ensure you have version `0.26.0` of the helm chart:
 
 ```shell-session
 $ helm search repo hashicorp/consul
 NAME            	CHART VERSION	APP VERSION	DESCRIPTION
-hashicorp/consul	0.25.0       	1.8.4      	Official HashiCorp Consul Chart
+hashicorp/consul	0.26.0       	1.8.5      	Official HashiCorp Consul Chart
 ```
 
-If you don't have `0.25.0`, you will need to update your helm repository cache:
+If you don't have `0.26.0`, you will need to update your helm repository cache:
 
 ```shell-session
 $ helm repo update
@@ -59,7 +56,7 @@ and enable the controller that acts on them:
 global:
   name: consul
   image: 'consul:1.9.0-beta1' # consul >= 1.8.4 must be used
-  imageK8S: 'hashicorp/consul-k8s:0.19.0'
+  imageK8S: 'hashicorp/consul-k8s:0.20.0'
 
 controller:
   enabled: true
@@ -72,12 +69,17 @@ Note that:
 
 1. `controller.enabled: true` installs the CRDs and enables the controller.
 1. `global.image` must be a Consul version `>= 1.8.4`, e.g. `consul:1.8.4` or `consul:1.9.0-beta1`.
-1. `global.imageK8S` must be `>= 0.19.0`
+1. `global.imageK8S` must be `>= 0.20.0`
 1. Configuration entries are used to configure Consul service mesh so it's also
    expected that `connectInject` will be enabled.
 
 See [Install with Helm Chart](/docs/k8s/installation/install) for further installation
 instructions.
+
+## Upgrading An Existing Cluster to CRDs
+
+If you have an existing Consul cluster running on Kubernetes you may need to perform
+extra steps to migrate to CRDs. See [Upgrade An Existing Cluster to CRDs](/docs/k8s/crds/upgrade-to-crds) for full instructions.
 
 ## Usage
 
