@@ -234,6 +234,13 @@ export default [
         ],
       },
       'encryption',
+      {
+        category: 'security-models',
+        content: [
+          'core',
+          'nia',
+        ],
+      },
     ],
   },
   {
