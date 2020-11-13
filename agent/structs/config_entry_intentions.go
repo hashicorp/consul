@@ -59,6 +59,59 @@ func (e *ServiceIntentionsConfigEntry) DestinationServiceName() ServiceName {
 	return NewServiceName(e.Name, &e.EnterpriseMeta)
 }
 
+func (e *ServiceIntentionsConfigEntry) UpdateSourceByLegacyID(legacyID string, update *SourceIntention) bool {
+	for i, src := range e.Sources {
+		if src.LegacyID == legacyID {
+			e.Sources[i] = update
+			return true
+		}
+	}
+	return false
+}
+
+func (e *ServiceIntentionsConfigEntry) UpsertSourceByName(sn ServiceName, upsert *SourceIntention) {
+	for i, src := range e.Sources {
+		if src.SourceServiceName() == sn {
+			e.Sources[i] = upsert
+			return
+		}
+	}
+
+	e.Sources = append(e.Sources, upsert)
+}
+
+func (e *ServiceIntentionsConfigEntry) DeleteSourceByLegacyID(legacyID string) bool {
+	for i, src := range e.Sources {
+		if src.LegacyID == legacyID {
+			// Delete slice element: https://github.com/golang/go/wiki/SliceTricks#delete
+			//    a = append(a[:i], a[i+1:]...)
+			e.Sources = append(e.Sources[:i], e.Sources[i+1:]...)
+
+			if len(e.Sources) == 0 {
+				e.Sources = nil
+			}
+			return true
+		}
+	}
+	return false
+}
+
+func (e *ServiceIntentionsConfigEntry) DeleteSourceByName(sn ServiceName) bool {
+	for i, src := range e.Sources {
+		if src.SourceServiceName() == sn {
+			// Delete slice element: https://github.com/golang/go/wiki/SliceTricks#delete
+			//    a = append(a[:i], a[i+1:]...)
+			e.Sources = append(e.Sources[:i], e.Sources[i+1:]...)
+
+			if len(e.Sources) == 0 {
+				e.Sources = nil
+			}
+			return true
+		}
+	}
+	return false
+}
+
 func (e *ServiceIntentionsConfigEntry) ToIntention(src *SourceIntention) *Intention {
 	meta := e.Meta
 	if src.LegacyID != "" {
