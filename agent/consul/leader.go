@@ -1017,18 +1017,32 @@ func (s *Server) bootstrapConfigEntries(entries []structs.ConfigEntry) error {
 
 	state := s.fsm.State()
 
-	// Do a quick preflight check to see if someone is trying to upgrade from
-	// an older pre-1.9.0 version of consul with intentions AND are trying to
-	// bootstrap a service-intentions config entry at the same time.
+	// Do some quick preflight checks to see if someone is doing something
+	// that's not allowed at this time:
+	//
+	// - Trying to upgrade from an older pre-1.9.0 version of consul with
+	// intentions AND are trying to bootstrap a service-intentions config entry
+	// at the same time.
+	//
+	// - Trying to insert service-intentions config entries when connect is
+	// disabled.
+
 	usingConfigEntries, err := s.fsm.State().AreIntentionsInConfigEntries()
 	if err != nil {
 		return fmt.Errorf("Failed to determine if we are migrating intentions yet: %v", err)
 	}
-	if !usingConfigEntries {
+
+	if !usingConfigEntries || !s.config.ConnectEnabled {
 		for _, entry := range entries {
 			if entry.GetKind() == structs.ServiceIntentions {
-				return fmt.Errorf("Refusing to apply configuration entry %q / %q because intentions are still being migrated to config entries: %v",
-					entry.GetKind(), entry.GetName(), err)
+				if !s.config.ConnectEnabled {
+					return fmt.Errorf("Refusing to apply configuration entry %q / %q because Connect must be enabled to bootstrap intentions",
+						entry.GetKind(), entry.GetName())
+				}
+				if !usingConfigEntries {
+					return fmt.Errorf("Refusing to apply configuration entry %q / %q because intentions are still being migrated to config entries",
+						entry.GetKind(), entry.GetName())
+				}
 			}
 		}
 	}

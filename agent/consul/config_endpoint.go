@@ -444,6 +444,11 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 func (c *ConfigEntry) preflightCheck(kind string) error {
 	switch kind {
 	case structs.ServiceIntentions:
+		// Exit early if Connect hasn't been enabled.
+		if !c.srv.config.ConnectEnabled {
+			return ErrConnectNotEnabled
+		}
+
 		usingConfigEntries, err := c.srv.fsm.State().AreIntentionsInConfigEntries()
 		if err != nil {
 			return fmt.Errorf("system metadata lookup failed: %v", err)
