@@ -440,6 +440,9 @@ func (x *Intention) ToConfigEntry(legacy bool) *ServiceIntentionsConfigEntry {
 }
 
 func (x *Intention) ToSourceIntention(legacy bool) *SourceIntention {
+	ct := x.CreatedAt // copy
+	ut := x.UpdatedAt
+
 	src := &SourceIntention{
 		Name:             x.SourceName,
 		EnterpriseMeta:   *x.SourceEnterpriseMeta(),
@@ -450,8 +453,8 @@ func (x *Intention) ToSourceIntention(legacy bool) *SourceIntention {
 		Type:             x.SourceType,
 		Description:      x.Description,
 		LegacyMeta:       x.Meta,
-		LegacyCreateTime: nil, // Ignore
-		LegacyUpdateTime: nil, // Ignore
+		LegacyCreateTime: &ct,
+		LegacyUpdateTime: &ut,
 	}
 	if !legacy {
 		src.Permissions = x.Permissions
@@ -522,11 +525,28 @@ type IntentionRequest struct {
 	Op IntentionOp
 
 	// Intention is the intention.
+	//
+	// This is mutually exclusive with the Mutation field.
 	Intention *Intention
+
+	// Mutation is a change to make to an Intention.
+	//
+	// This is mutually exclusive with the Intention field.
+	//
+	// This field is only set by the leader before writing to the raft log and
+	// is not settable via the API or an RPC.
+	Mutation *IntentionMutation
 
 	// WriteRequest is a common struct containing ACL tokens and other
 	// write-related common elements for requests.
 	WriteRequest
+}
+
+type IntentionMutation struct {
+	ID          string
+	Destination ServiceName
+	Source      ServiceName
+	Value       *SourceIntention
 }
 
 // RequestDatacenter returns the datacenter for a given request.
