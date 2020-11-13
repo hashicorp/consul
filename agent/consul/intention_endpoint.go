@@ -212,8 +212,13 @@ func (s *Intention) computeApplyChangesLegacyCreate(
 	// validation, if we do them here too we can generate error messages that
 	// make more sense for legacy edits.
 	if !args.Intention.CanWrite(authz) {
+		sn := args.Intention.SourceServiceName()
+		dn := args.Intention.DestinationServiceName()
 		// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
-		s.logger.Warn("Intention creation denied due to ACLs", "accessorID", accessorID)
+		s.logger.Warn("Intention creation denied due to ACLs",
+			"source", sn.String(),
+			"destination", dn.String(),
+			"accessorID", accessorID)
 		return "", nil, acl.ErrPermissionDenied
 	}
 
