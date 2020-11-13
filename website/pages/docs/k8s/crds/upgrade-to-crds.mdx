@@ -8,22 +8,22 @@ description: >-
 
 # Upgrade An Existing Cluster to CRDs
 
--> This feature requires consul-helm >= 0.26.0 and consul >= 1.8.4.
+-> This feature requires consul-helm >= 0.26.0, consul-k8s >= 0.20.0 and consul >= 1.8.4.
 
 If you have an existing Consul cluster running on Kubernetes you may need to perform
 extra steps to migrate to CRDs.
 
-You will need to perform extra steps if you are using:
+You will need to perform extra steps if you are using any of the following configurations:
 
 - Helm config `connectInject.centralConfig.defaultProtocol`, e.g.
 
   ```yaml
   connectInject:
     centralConfig:
-      defaultProtocol: 'http'
+      defaultProtocol: http
   ```
 
-- Setting the `consul.hashicorp.com/connect-service-protocol` annotation on your
+- Or setting the `consul.hashicorp.com/connect-service-protocol` annotation on your
   connect pods, e.g.
 
   ```yaml
@@ -31,7 +31,7 @@ You will need to perform extra steps if you are using:
     'consul.hashicorp.com/connect-service-protocol': 'http'
   ```
 
-- Helm config `connectInject.centralConfig.proxyDefaults`, e.g.
+- Or Helm config `connectInject.centralConfig.proxyDefaults`, e.g.
   ```yaml
   connectInject:
     centralConfig:
@@ -41,18 +41,18 @@ You will need to perform extra steps if you are using:
         }
   ```
 
-## Migration Overview
-
-Overall our migration process will consist of identifying which [config entries](/docs/agent/config-entries)
-have been created in Consul and adding metadata to them so that they can
-be managed by a custom resource instead.
-
-## Why Migrate
+## Why Migrate?
 
 All of the above settings do not support modification after the initial
-installation of Consul, i.e. they can not be changed through the Helm chart.
+installation of Consul, i.e. they cannot be updated through the Helm chart.
 
 By switching to custom resources, these settings can now be modified.
+
+## Migration Overview
+
+The migration process will consist of identifying which [config entries](/docs/agent/config-entries)
+have been created in Consul and adding metadata to them so that they can
+be managed by a custom resource instead.
 
 ## Default Protocol
 
@@ -88,10 +88,12 @@ perform the follow steps to migrate to custom resources.
    ```
 
 1. Write the updated config entry:
+
    ```shell-session
    $ consul config write static-client.json
    Config entry written: service-defaults/static-client
    ```
+
 1. Now you're ready to create a custom resource that takes over control of this
    config entry. The custom resource will look like:
 
@@ -127,27 +129,26 @@ perform the follow steps to migrate to custom resources.
    ```
 
 1. Repeat steps 2-6 for each service-defaults config entry.
-1. Finally, set `connectInject.centralConfig.defaultProtocol` to `""` and run a Helm upgrade to remind yourself that it is no longer used:
-   ```yaml
-   connectInject:
-     centralConfig:
-       defaultProtocol: ''
-   ```
 
-From new services from now on, you must create a `ServiceDefaults` custom resource
-for each service.
+1. Finally, delete your `connectInject.centralConfig.defaultProtocol` Helm config and run Helm upgrade.
+
+   From here on out, you must create a `ServiceDefaults` custom resource
+   for each new service to set its protocol. As there will no longer be a
+   default.
 
 ## Connect Service Protocol Annotation
 
 If you are setting the `consul.hashicorp.com/connect-service-protocol` annotation on your
-connect pods then you must perform the follow steps to migrate to custom resources.
+connect pods, then you must perform the follow steps to migrate to custom resources.
 
 1. Find existing `service-defaults` config entries:
+
    ```shell-session
    $ consul config list -kind service-defaults
    static-client
    static-server
    ```
+
 1. For each entry, export the config to a file:
 
    ```shell-session
@@ -171,10 +172,12 @@ connect pods then you must perform the follow steps to migrate to custom resourc
    ```
 
 1. Write the updated config entry:
+
    ```shell-session
    $ consul config write static-client.json
    Config entry written: service-defaults/static-client
    ```
+
 1. Now you're ready to create a custom resource that takes over control of this
    config entry. The custom resource will look like:
 
@@ -210,6 +213,7 @@ connect pods then you must perform the follow steps to migrate to custom resourc
    ```
 
 1. Repeat steps 2-6 for each service-defaults config entry.
+
 1. You can now remove the `consul.hashicorp.com/connect-service-protocol`
    annotation from your deployments to indicate it is no longer used.
 
@@ -219,6 +223,7 @@ If you are setting `connectInject.centralConfig.proxyDefaults` then you must
 perform the follow steps to migrate to custom resources.
 
 1. Get your existing proxy-defaults config:
+
    ```shell-session
    $ consul config read -name global -kind proxy-defaults
    {
@@ -235,6 +240,7 @@ perform the follow steps to migrate to custom resources.
        "ModifyIndex": 4
    }
    ```
+
 1. Export to a file:
 
    ```shell-session
@@ -243,6 +249,7 @@ perform the follow steps to migrate to custom resources.
 
 1. Edit the file and add the key `"Meta": {"consul.hashicorp.com/source-datacenter": "dc1"}`.
    Where `dc1` is the name of your datacenter. Make sure you add any missing trailing commas required for JSON:
+
    ```json
    {
      "Kind": "proxy-defaults",
@@ -259,11 +266,14 @@ perform the follow steps to migrate to custom resources.
      "Meta": { "consul.hashicorp.com/source-datacenter": "dc1" }
    }
    ```
+
 1. Write the updated config entry:
+
    ```shell-session
    $ consul config write proxy-defaults.json
    Config entry written: proxy-defaults/global
    ```
+
 1. Now you're ready to create a custom resource that takes over control of this
    config entry. The custom resource will look like:
 
@@ -281,7 +291,7 @@ perform the follow steps to migrate to custom resources.
 
    Any keys you had under `"Config"` must be set in YAML.
    If you previously had `"MeshGateway"` config this must also be set now
-   under `spec.meshGateway`.
+   under `spec.meshGateway`. Also, `metadata.name` must be `global`.
 
 1. When you run `kubectl apply` on this file, the `ProxyDefaults` custom
    resource should be created successfully and its `synced` status will be `True`:
@@ -305,14 +315,7 @@ perform the follow steps to migrate to custom resources.
    global   True     1s
    ```
 
-1. Finally, set `connectInject.centralConfig.proxyDefaults` to `{}` and run a Helm upgrade to remind yourself that it is no longer used:
-
-   ```yaml
-   connectInject:
-     centralConfig:
-       proxyDefaults: |
-         {}
-   ```
+1. Finally, delete your `connectInject.centralConfig.proxyDefaults` Helm config and run Helm upgrade.
 
    This will have no effect because changes to this config are not picked up
    by Consul after initial installation.
