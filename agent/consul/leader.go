@@ -1231,6 +1231,7 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 			},
 			Meta: map[string]string{
 				"non_voter":             strconv.FormatBool(member.Tags["nonvoter"] == "1"),
+				"read_replica":          strconv.FormatBool(member.Tags["read_replica"] == "1"),
 				"raft_version":          strconv.Itoa(parts.RaftVersion),
 				"serf_protocol_current": strconv.FormatUint(uint64(member.ProtocolCur), 10),
 				"serf_protocol_min":     strconv.FormatUint(uint64(member.ProtocolMin), 10),

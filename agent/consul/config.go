@@ -110,9 +110,9 @@ type Config struct {
 	// RaftConfig is the configuration used for Raft in the local DC
 	RaftConfig *raft.Config
 
-	// (Enterprise-only) NonVoter is used to prevent this server from being added
+	// (Enterprise-only) ReadReplica is used to prevent this server from being added
 	// as a voting member of the Raft cluster.
-	NonVoter bool
+	ReadReplica bool
 
 	// NotifyListen is called after the RPC listener has been configured.
 	// RPCAdvertise will be set to the listener address if it hasn't been

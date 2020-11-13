@@ -61,8 +61,11 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	if s.config.BootstrapExpect != 0 {
 		conf.Tags["expect"] = fmt.Sprintf("%d", s.config.BootstrapExpect)
 	}
-	if s.config.NonVoter {
+	if s.config.ReadReplica {
+		// DEPRECATED - This tag should be removed when we no longer want to support
+		// upgrades from 1.8.x and below
 		conf.Tags["nonvoter"] = "1"
+		conf.Tags["read_replica"] = "1"
 	}
 	if s.config.UseTLS {
 		conf.Tags["use_tls"] = "1"
@@ -351,7 +354,7 @@ func (s *Server) maybeBootstrap() {
 			s.logger.Error("Member has bootstrap mode. Expect disabled.", "member", member)
 			return
 		}
-		if !p.NonVoter {
+		if !p.ReadReplica {
 			voters++
 		}
 		servers = append(servers, *p)
@@ -410,7 +413,7 @@ func (s *Server) maybeBootstrap() {
 		id := raft.ServerID(server.ID)
 
 		suffrage := raft.Voter
-		if server.NonVoter {
+		if server.ReadReplica {
 			suffrage = raft.Nonvoter
 		}
 		peer := raft.Server{

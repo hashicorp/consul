@@ -24,10 +24,17 @@ func TestBuilder_validateEnterpriseConfigKeys(t *testing.T) {
 	cases := map[string]testCase{
 		"non_voting_server": {
 			config: Config{
-				NonVotingServer: &boolVal,
+				ReadReplica: &boolVal,
 			},
 			keys:    []string{"non_voting_server"},
 			badKeys: []string{"non_voting_server"},
+		},
+		"read_replica": {
+			config: Config{
+				ReadReplica: &boolVal,
+			},
+			keys:    []string{"read_replica"},
+			badKeys: []string{"read_replica"},
 		},
 		"segment": {
 			config: Config{
@@ -118,11 +125,11 @@ func TestBuilder_validateEnterpriseConfigKeys(t *testing.T) {
 		},
 		"multi": {
 			config: Config{
-				NonVotingServer: &boolVal,
-				SegmentName:     &stringVal,
+				ReadReplica: &boolVal,
+				SegmentName: &stringVal,
 			},
-			keys:    []string{"non_voting_server", "segment", "acl.tokens.agent_master"},
-			badKeys: []string{"non_voting_server", "segment"},
+			keys:    []string{"non_voting_server", "read_replica", "segment", "acl.tokens.agent_master"},
+			badKeys: []string{"non_voting_server", "read_replica", "segment"},
 		},
 	}
 

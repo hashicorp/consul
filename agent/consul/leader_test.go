@@ -335,6 +335,7 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 
 	retry.Run(t, func(r *retry.R) {
 		member.Tags["nonvoter"] = "1"
+		member.Tags["read_replica"] = "1"
 		member.Tags["build"] = versionToExpect
 		err := s1.handleAliveMember(member)
 		if err != nil {
@@ -349,6 +350,9 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 		}
 		if service.Meta["non_voter"] != "true" {
 			r.Fatalf("Expected to be non_voter == true, was: %s", service.Meta["non_voter"])
+		}
+		if service.Meta["read_replica"] != "true" {
+			r.Fatalf("Expected to be read_replica == true, was: %s", service.Meta["non_voter"])
 		}
 		newVersion := service.Meta["version"]
 		if newVersion != versionToExpect {

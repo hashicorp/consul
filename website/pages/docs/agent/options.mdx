@@ -479,7 +479,10 @@ The options below are all specified on the command-line.
   This overrides the default server RPC port 8300. This is available in Consul 1.2.2
   and later.
 
-- `-non-voting-server` ((#\_non_voting_server)) <EnterpriseAlert inline /> - This
+- `-non-voting-server` ((#\_non_voting_server)) <EnterpriseAlert inline /> - **This field 
+  is deprecated in Consul 1.9.1. See the [`-read-replica`](#_read_replica) flag instead.**
+
+- `-read-replica` ((#\_read_replica)) <EnterpriseAlert inline /> - This
   flag is used to make the server not participate in the Raft quorum, and have it
   only receive the data replication stream. This can be used to add read scalability
   to a cluster in cases where a high volume of reads to servers are needed.
@@ -1852,7 +1855,9 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
 - `server` Equivalent to the [`-server` command-line flag](#_server).
 
-- `non_voting_server` - Equivalent to the [`-non-voting-server` command-line flag](#_non_voting_server).
+- `non_voting_server` - **This field is deprecated in Consul 1.9.1. See the [`read_replica`](#read_replica) field instead.**
+
+- `read_replica` - Equivalent to the [`-read-replica` command-line flag](#_read_replica).
 
 - `server_name` When provided, this overrides the [`node_name`](#_node)
   for the TLS certificate. It can be used to ensure that the certificate name matches
