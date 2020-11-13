@@ -390,7 +390,7 @@ function docker_consul {
 function docker_wget {
   local DC=$1
   shift 1
-  docker run -ti --rm --network container:envoy_consul-${DC}_1 alpine:3.9 wget "$@"
+  docker run -ti --rm --network container:envoy_consul-${DC}_1 docker.mirror.hashicorp.services/alpine:3.9 wget "$@"
 }
 
 function docker_curl {

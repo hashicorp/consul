@@ -15,7 +15,7 @@ services:
   # This is a dummy container that we use to create volume and keep it
   # accessible while other containers are down.
   workdir:
-    image: alpine
+    image: docker.mirror.hashicorp.services/alpine
     volumes:
       - *workdir-volume
     command:
@@ -47,7 +47,7 @@ services:
   s1:
     depends_on:
       - consul-primary
-    image: "fortio/fortio"
+    image: "docker.mirror.hashicorp.services/fortio/fortio"
     environment:
       - "FORTIO_NAME=s1"
     command:
@@ -63,7 +63,7 @@ services:
   s2:
     depends_on:
       - consul-primary
-    image: "fortio/fortio"
+    image: "docker.mirror.hashicorp.services/fortio/fortio"
     environment:
       - "FORTIO_NAME=s2"
     command:
@@ -79,7 +79,7 @@ services:
   s2-v1:
     depends_on:
       - consul-primary
-    image: "fortio/fortio"
+    image: "docker.mirror.hashicorp.services/fortio/fortio"
     environment:
       - "FORTIO_NAME=s2-v1"
     command:
@@ -95,7 +95,7 @@ services:
   s2-v2:
     depends_on:
       - consul-primary
-    image: "fortio/fortio"
+    image: "docker.mirror.hashicorp.services/fortio/fortio"
     environment:
       - "FORTIO_NAME=s2-v2"
     command:
@@ -111,7 +111,7 @@ services:
   s3:
     depends_on:
       - consul-primary
-    image: "fortio/fortio"
+    image: "docker.mirror.hashicorp.services/fortio/fortio"
     environment:
       - "FORTIO_NAME=s3"
     command:
@@ -127,7 +127,7 @@ services:
   s3-v1:
     depends_on:
       - consul-primary
-    image: "fortio/fortio"
+    image: "docker.mirror.hashicorp.services/fortio/fortio"
     environment:
       - "FORTIO_NAME=s3-v1"
     command:
@@ -143,7 +143,7 @@ services:
   s3-v2:
     depends_on:
       - consul-primary
-    image: "fortio/fortio"
+    image: "docker.mirror.hashicorp.services/fortio/fortio"
     environment:
       - "FORTIO_NAME=s3-v2"
     command:
@@ -159,7 +159,7 @@ services:
   s3-alt:
     depends_on:
       - consul-primary
-    image: "fortio/fortio"
+    image: "docker.mirror.hashicorp.services/fortio/fortio"
     environment:
       - "FORTIO_NAME=s3-alt"
     command:
@@ -175,7 +175,7 @@ services:
   s1-sidecar-proxy:
     depends_on:
       - consul-primary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
+    image: "docker.mirror.hashicorp.services/envoyproxy/envoy:v${ENVOY_VERSION}"
     command:
      - "envoy"
      - "-c"
@@ -196,7 +196,7 @@ services:
   s2-sidecar-proxy:
     depends_on:
       - consul-primary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
+    image: "docker.mirror.hashicorp.services/envoyproxy/envoy:v${ENVOY_VERSION}"
     command:
      - "envoy"
      - "-c"
@@ -217,7 +217,7 @@ services:
   s2-v1-sidecar-proxy:
     depends_on:
       - consul-primary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
+    image: "docker.mirror.hashicorp.services/envoyproxy/envoy:v${ENVOY_VERSION}"
     command:
      - "envoy"
      - "-c"
@@ -238,7 +238,7 @@ services:
   s2-v2-sidecar-proxy:
     depends_on:
       - consul-primary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
+    image: "docker.mirror.hashicorp.services/envoyproxy/envoy:v${ENVOY_VERSION}"
     command:
      - "envoy"
      - "-c"
@@ -259,7 +259,7 @@ services:
   s3-sidecar-proxy:
     depends_on:
       - consul-primary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
+    image: "docker.mirror.hashicorp.services/envoyproxy/envoy:v${ENVOY_VERSION}"
     command:
      - "envoy"
      - "-c"
@@ -280,7 +280,7 @@ services:
   s3-v1-sidecar-proxy:
     depends_on:
       - consul-primary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
+    image: "docker.mirror.hashicorp.services/envoyproxy/envoy:v${ENVOY_VERSION}"
     command:
      - "envoy"
      - "-c"
@@ -301,7 +301,7 @@ services:
   s3-v2-sidecar-proxy:
     depends_on:
       - consul-primary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
+    image: "docker.mirror.hashicorp.services/envoyproxy/envoy:v${ENVOY_VERSION}"
     command:
      - "envoy"
      - "-c"
@@ -322,7 +322,7 @@ services:
   s3-alt-sidecar-proxy:
     depends_on:
       - consul-primary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
+    image: "docker.mirror.hashicorp.services/envoyproxy/envoy:v${ENVOY_VERSION}"
     command:
      - "envoy"
      - "-c"
@@ -381,7 +381,7 @@ services:
   fake-statsd:
     depends_on:
       - consul-primary
-    image: "alpine/socat"
+    image: "docker.mirror.hashicorp.services/alpine/socat"
     command:
       - -u
       - UDP-RECVFROM:8125,fork,reuseaddr
@@ -396,7 +396,7 @@ services:
   wipe-volumes:
     volumes:
       - *workdir-volume
-    image: alpine
+    image: docker.mirror.hashicorp.services/alpine
     command:
       - sh
       - -c
@@ -408,7 +408,7 @@ services:
     volumes:
       - *workdir-volume
       - ./:/cwd
-    image: alpine
+    image: docker.mirror.hashicorp.services/alpine
     command:
       - cp
       - -r
@@ -418,13 +418,13 @@ services:
   zipkin:
     volumes:
       - *workdir-volume
-    image: openzipkin/zipkin
+    image: docker.mirror.hashicorp.services/openzipkin/zipkin
     network_mode: service:consul-primary
 
   jaeger:
     volumes:
       - *workdir-volume
-    image: jaegertracing/all-in-one:1.11
+    image: docker.mirror.hashicorp.services/jaegertracing/all-in-one:1.11
     network_mode: service:consul-primary
     command:
       - --collector.zipkin.http-port=9411
@@ -450,7 +450,7 @@ services:
   s1-secondary:
     depends_on:
       - consul-secondary
-    image: "fortio/fortio"
+    image: "docker.mirror.hashicorp.services/fortio/fortio"
     environment:
       - "FORTIO_NAME=s1-secondary"
     command:
@@ -466,7 +466,7 @@ services:
   s2-secondary:
     depends_on:
       - consul-secondary
-    image: "fortio/fortio"
+    image: "docker.mirror.hashicorp.services/fortio/fortio"
     environment:
       - "FORTIO_NAME=s2-secondary"
     command:
@@ -482,7 +482,7 @@ services:
   s1-sidecar-proxy-secondary:
     depends_on:
       - consul-secondary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
+    image: "docker.mirror.hashicorp.services/envoyproxy/envoy:v${ENVOY_VERSION}"
     command:
      - "envoy"
      - "-c"
@@ -503,7 +503,7 @@ services:
   s2-sidecar-proxy-secondary:
     depends_on:
       - consul-secondary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
+    image: "docker.mirror.hashicorp.services/envoyproxy/envoy:v${ENVOY_VERSION}"
     command:
      - "envoy"
      - "-c"
@@ -524,7 +524,7 @@ services:
   gateway-primary:
     depends_on:
       - consul-primary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
+    image: "docker.mirror.hashicorp.services/envoyproxy/envoy:v${ENVOY_VERSION}"
     command:
      - "envoy"
      - "-c"
@@ -545,7 +545,7 @@ services:
   gateway-secondary:
     depends_on:
       - consul-secondary
-    image: "envoyproxy/envoy:v${ENVOY_VERSION}"
+    image: "docker.mirror.hashicorp.services/envoyproxy/envoy:v${ENVOY_VERSION}"
     command:
      - "envoy"
      - "-c"
