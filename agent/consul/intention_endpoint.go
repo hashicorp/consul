@@ -59,6 +59,11 @@ func (s *Intention) legacyUpgradeCheck() error {
 
 // Apply creates or updates an intention in the data store.
 func (s *Intention) Apply(args *structs.IntentionRequest, reply *string) error {
+	// Exit early if Connect hasn't been enabled.
+	if !s.srv.config.ConnectEnabled {
+		return ErrConnectNotEnabled
+	}
+
 	// Ensure that all service-intentions config entry writes go to the primary
 	// datacenter. These will then be replicated to all the other datacenters.
 	args.Datacenter = s.srv.config.PrimaryDatacenter
@@ -402,9 +407,12 @@ func (s *Intention) computeApplyChangesDelete(
 }
 
 // Get returns a single intention by ID.
-func (s *Intention) Get(
-	args *structs.IntentionQueryRequest,
-	reply *structs.IndexedIntentions) error {
+func (s *Intention) Get(args *structs.IntentionQueryRequest, reply *structs.IndexedIntentions) error {
+	// Exit early if Connect hasn't been enabled.
+	if !s.srv.config.ConnectEnabled {
+		return ErrConnectNotEnabled
+	}
+
 	// Forward if necessary
 	if done, err := s.srv.ForwardRPC("Intention.Get", args, args, reply); done {
 		return err
@@ -477,9 +485,12 @@ func (s *Intention) Get(
 }
 
 // List returns all the intentions.
-func (s *Intention) List(
-	args *structs.IntentionListRequest,
-	reply *structs.IndexedIntentions) error {
+func (s *Intention) List(args *structs.IntentionListRequest, reply *structs.IndexedIntentions) error {
+	// Exit early if Connect hasn't been enabled.
+	if !s.srv.config.ConnectEnabled {
+		return ErrConnectNotEnabled
+	}
+
 	// Forward if necessary
 	if done, err := s.srv.ForwardRPC("Intention.List", args, args, reply); done {
 		return err
@@ -544,9 +555,12 @@ func (s *Intention) List(
 }
 
 // Match returns the set of intentions that match the given source/destination.
-func (s *Intention) Match(
-	args *structs.IntentionQueryRequest,
-	reply *structs.IndexedIntentionMatches) error {
+func (s *Intention) Match(args *structs.IntentionQueryRequest, reply *structs.IndexedIntentionMatches) error {
+	// Exit early if Connect hasn't been enabled.
+	if !s.srv.config.ConnectEnabled {
+		return ErrConnectNotEnabled
+	}
+
 	// Forward if necessary
 	if done, err := s.srv.ForwardRPC("Intention.Match", args, args, reply); done {
 		return err
@@ -615,9 +629,12 @@ func (s *Intention) Match(
 // Note: Whenever the logic for this method is changed, you should take
 // a look at the agent authorize endpoint (agent/agent_endpoint.go) since
 // the logic there is similar.
-func (s *Intention) Check(
-	args *structs.IntentionQueryRequest,
-	reply *structs.IntentionQueryCheckResponse) error {
+func (s *Intention) Check(args *structs.IntentionQueryRequest, reply *structs.IntentionQueryCheckResponse) error {
+	// Exit early if Connect hasn't been enabled.
+	if !s.srv.config.ConnectEnabled {
+		return ErrConnectNotEnabled
+	}
+
 	// Forward maybe
 	if done, err := s.srv.ForwardRPC("Intention.Check", args, args, reply); done {
 		return err
