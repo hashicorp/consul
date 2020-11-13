@@ -285,7 +285,6 @@ func TestStore_IntentionMutation(t *testing.T) {
 }
 
 func testStore_IntentionMutation(t *testing.T, s *Store) {
-	// TODO: namespaces
 	lastIndex := uint64(1)
 
 	defaultEntMeta := structs.DefaultEnterpriseMeta()
