@@ -216,7 +216,7 @@ func (s *Store) IntentionMutation(idx uint64, op structs.IntentionOp, mut *struc
 		return err
 	}
 	if !usingConfigEntries {
-		return ErrLegacyIntentionsAreDisabled
+		return errors.New("state: IntentionMutation() is not allowed when intentions are not stored in config entries")
 	}
 
 	switch op {

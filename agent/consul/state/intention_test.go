@@ -277,7 +277,7 @@ func TestStore_IntentionMutation(t *testing.T) {
 		if legacy {
 			mut := &structs.IntentionMutation{}
 			err := s.IntentionMutation(1, structs.IntentionOpCreate, mut)
-			testutil.RequireErrorContains(t, err, ErrLegacyIntentionsAreDisabled.Error())
+			testutil.RequireErrorContains(t, err, "state: IntentionMutation() is not allowed when intentions are not stored in config entries")
 		} else {
 			testStore_IntentionMutation(t, s)
 		}
