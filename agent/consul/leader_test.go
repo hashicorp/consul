@@ -334,6 +334,7 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 	versionToExpect := "19.7.9"
 
 	retry.Run(t, func(r *retry.R) {
+		// DEPRECATED - remove nonvoter tag in favor of read_replica in a future version of consul
 		member.Tags["nonvoter"] = "1"
 		member.Tags["read_replica"] = "1"
 		member.Tags["build"] = versionToExpect
@@ -348,6 +349,7 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 		if service == nil {
 			r.Fatal("client not registered")
 		}
+		// DEPRECATED - remove non_voter in favor of read_replica in a future version of consul
 		if service.Meta["non_voter"] != "true" {
 			r.Fatalf("Expected to be non_voter == true, was: %s", service.Meta["non_voter"])
 		}
