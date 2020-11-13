@@ -920,11 +920,6 @@ func (c *Configurator) wrapALPNTLSClient(dc, nodeName, alpnProto string, conn ne
 		return nil, err
 	}
 
-	if cs := tlsConn.ConnectionState(); !cs.NegotiatedProtocolIsMutual {
-		tlsConn.Close()
-		return nil, fmt.Errorf("could not negotiate ALPN protocol %q with %q", alpnProto, config.ServerName)
-	}
-
 	return tlsConn, nil
 }
 
