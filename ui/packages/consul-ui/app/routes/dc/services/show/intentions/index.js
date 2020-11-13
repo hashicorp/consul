@@ -2,6 +2,8 @@ import Route from 'consul-ui/routing/route';
 
 export default class IndexRoute extends Route {
   queryParams = {
+    sortBy: 'sort',
+    access: 'access',
     search: {
       as: 'filter',
       replace: true,

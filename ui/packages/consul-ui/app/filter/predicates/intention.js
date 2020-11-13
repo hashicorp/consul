@@ -1,9 +1,9 @@
-export default () => ({ accesses = [] }) => item => {
-  if (accesses.length > 0) {
-    if (accesses.includes(item.Action)) {
-      return true;
-    }
-    return false;
-  }
-  return true;
-};
+import { andOr } from 'consul-ui/utils/filter';
+
+export default andOr({
+  accesses: {
+    allow: (item, value) => item.Action === value,
+    deny: (item, value) => item.Action === value,
+    'app-aware': (item, value) => typeof item.Action === 'undefined',
+  },
+});

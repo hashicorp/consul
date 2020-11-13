@@ -6,9 +6,10 @@ export default class IndexController extends Controller {
     sortBy: 'sort',
     status: 'status',
     source: 'source',
-    type: 'type',
+    kind: 'kind',
     search: {
       as: 'filter',
+      replace: true,
     },
   };
 

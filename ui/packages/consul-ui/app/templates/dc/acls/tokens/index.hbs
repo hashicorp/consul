@@ -5,7 +5,7 @@
 {{/if}}
 
 {{#let (hash
-  types=(if type (split type ',') undefined)
+  kinds=(if kind (split kind ',') undefined)
 ) as |filters|}}
   {{#let (or sortBy "CreateTime:desc") as |sort|}}
     <AppView
@@ -44,7 +44,7 @@
 
           @filter={{filters}}
           @onfilter={{hash
-            type=(action (mut type) value="target.selectedItems")
+            kind=(action (mut kind) value="target.selectedItems")
           }}
         />
     {{/if}}

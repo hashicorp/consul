@@ -1,8 +1,10 @@
-export default () => ({ statuses = [] }) => {
-  return item => {
-    if (statuses.length > 0 && !statuses.includes(item.Status)) {
-      return false;
-    }
-    return true;
-  };
-};
+import setHelpers from 'mnemonist/set';
+import { andOr } from 'consul-ui/utils/filter';
+
+export default andOr({
+  statuses: {
+    passing: (item, value) => item.Status === value,
+    warning: (item, value) => item.Status === value,
+    critical: (item, value) => item.Status === value,
+  },
+});

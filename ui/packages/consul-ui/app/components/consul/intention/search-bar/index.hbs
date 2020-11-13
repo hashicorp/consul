@@ -1,4 +1,7 @@
-<form class="consul-intention-search-bar filter-bar">
+<form
+  class="consul-intention-search-bar filter-bar"
+  ...attributes
+>
   <FreetextFilter
     @onsearch={{action onsearch}}
     @value={{search}}
@@ -19,6 +22,7 @@
 {{#let components.Optgroup components.Option as |Optgroup Option|}}
         <Option class="value-allow" @value="allow" @selected={{contains 'allow' filter.accesses}}>Allow</Option>
         <Option class="value-deny" @value="deny" @selected={{contains 'deny' filter.accesses}}>Deny</Option>
+        <Option class="value-" @value="app-aware" @selected={{contains 'app-aware' filter.accesses}}>App aware</Option>
 {{/let}}
       </BlockSlot>
     </PopoverSelect>
