@@ -158,15 +158,6 @@ const (
 	// configured to use TLS. Any other value indicates that it was not setup in
 	// that manner.
 	MemberTagValueUseTLS = "1"
-
-	// MemberTagKeyReadReplica is the key used to indicate that the member is a read
-	// replica server (will remain a Raft non-voter).
-	// Read Replicas are a Consul Enterprise feature.
-	MemberTagKeyReadReplica = "nonvoter"
-	// MemberTagValueReadReplica is the value of the MemberTagKeyReadReplica key when
-	// the member is in fact a read-replica. Any other value indicates that it is not.
-	// Read Replicas are a Consul Enterprise feature.
-	MemberTagValueReadReplica = "1"
 )
 
 type MemberACLMode string
