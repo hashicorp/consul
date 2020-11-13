@@ -21,8 +21,6 @@ import (
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/sdk/testutil"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
@@ -30,6 +28,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/freeport"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/tlsutil"
 )
@@ -55,8 +54,7 @@ type TestAgent struct {
 	// when Shutdown() is called.
 	Config *config.RuntimeConfig
 
-	// LogOutput is the sink for the logs. If nil, logs are written
-	// to os.Stderr.
+	// LogOutput is the sink for the logs. If nil, logs are written to os.Stderr.
 	LogOutput io.Writer
 
 	// DataDir may be set to a directory which exists. If is it not set,
