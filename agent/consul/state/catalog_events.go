@@ -47,8 +47,6 @@ func (e EventPayloadCheckServiceNode) MatchesKey(key, namespace string) bool {
 
 // serviceHealthSnapshot returns a stream.SnapshotFunc that provides a snapshot
 // of stream.Events that describe the current state of a service health query.
-//
-// TODO: no tests for this yet
 func serviceHealthSnapshot(db ReadDB, topic stream.Topic) stream.SnapshotFunc {
 	return func(req stream.SubscribeRequest, buf stream.SnapshotAppender) (index uint64, err error) {
 		tx := db.ReadTxn()
