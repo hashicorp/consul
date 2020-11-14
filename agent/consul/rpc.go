@@ -35,41 +35,41 @@ import (
 var RPCCounters = []prometheus.CounterDefinition{
 	{
 		Name: []string{"rpc", "accept_conn"},
-		Help: "",
+		Help: "This increments when a server accepts an RPC connection.",
 	},
 	{
 		Name: []string{"rpc", "raft_handoff"},
-		Help: "",
+		Help: "This increments when a server accepts a Raft-related RPC connection.",
 	},
 	{
 		Name: []string{"rpc", "request_error"},
-		Help: "",
+		Help: "This increments when a server returns an error from an RPC request.",
 	},
 	{
 		Name: []string{"rpc", "request"},
-		Help: "",
+		Help: "This increments when a server receives a Consul-related RPC request.",
 	},
 	{
 		Name: []string{"rpc", "cross-dc"},
-		Help: "",
+		Help: "This increments when a server sends a (potentially blocking) cross datacenter RPC query.",
 	},
 	{
 		Name: []string{"rpc", "query"},
-		Help: "",
+		Help: "This increments when a server receives a new blocking RPC request, indicating the rate of new blocking query calls.",
 	},
 }
 
 var RPCGauges = []prometheus.GaugeDefinition{
 	{
 		Name: []string{"rpc", "queries_blocking"},
-		Help: "",
+		Help: "This shows the current number of in-flight blocking queries the server is handling.",
 	},
 }
 
 var RPCSummaries = []prometheus.SummaryDefinition{
 	{
 		Name: []string{"rpc", "consistentRead"},
-		Help: "",
+		Help: "This measures the time spent confirming that a consistent read can be performed.",
 	},
 }
 

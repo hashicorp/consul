@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/consul/agent/consul/fsm"
+
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
 	"github.com/hashicorp/consul/agent/local"
@@ -187,6 +189,7 @@ func registerWithGRPC(b grpcresolver.Builder) {
 func getPrometheusDefs() lib.PrometheusDefs {
 	serviceName := []string{"consul"}
 	var gauges = [][]prometheus.GaugeDefinition{
+		cache.Gauges,
 		consul.AutopilotGauges,
 		consul.RPCGauges,
 		consul.SessionGauges,
@@ -205,9 +208,8 @@ func getPrometheusDefs() lib.PrometheusDefs {
 	}
 
 	raftCounters := []prometheus.CounterDefinition{
-		// TODO(kit): "consul.raft..." metrics come from the raft lib and we should migrate these to a telemetry
-		//  package within. In the mean time, we're going to define them here because it's important that they're always
-		//  present for Consul users setting up dashboards.
+		// TODO(kit): "raft..." metrics come from the raft lib and we should migrate these to a telemetry
+		//  package within. In the mean time, we're going to define a few here because they're key to monitoring Consul.
 		{
 			Name: []string{"raft", "apply"},
 			Help: "This counts the number of Raft transactions occurring over the interval.",
@@ -224,6 +226,7 @@ func getPrometheusDefs() lib.PrometheusDefs {
 
 	var counters = [][]prometheus.CounterDefinition{
 		CatalogCounters,
+		cache.Counters,
 		consul.ACLCounters,
 		consul.CatalogCounters,
 		consul.ClientCounters,
@@ -244,9 +247,8 @@ func getPrometheusDefs() lib.PrometheusDefs {
 	}
 
 	raftSummaries := []prometheus.SummaryDefinition{
-		// TODO(kit): "consul.raft..." metrics come from the raft lib and we should migrate these to a telemetry
-		//  package within. In the mean time, we're going to define them here because it's important that they're always
-		//  present for Consul users setting up dashboards.
+		// TODO(kit): "raft..." metrics come from the raft lib and we should migrate these to a telemetry
+		//  package within. In the mean time, we're going to define a few here because they're key to monitoring Consul.
 		{
 			Name: []string{"raft", "commitTime"},
 			Help: "This measures the time it takes to commit a new entry to the Raft log on the leader.",
@@ -261,14 +263,20 @@ func getPrometheusDefs() lib.PrometheusDefs {
 		HTTPSummaries,
 		consul.ACLSummaries,
 		consul.ACLEndpointSummaries,
+		consul.ACLEndpointLegacySummaries,
 		consul.CatalogSummaries,
 		consul.FederationStateSummaries,
 		consul.IntentionSummaries,
 		consul.KVSummaries,
+		consul.LeaderSummaries,
 		consul.PreparedQuerySummaries,
 		consul.RPCSummaries,
+		consul.SegmentOSSSummaries,
 		consul.SessionSummaries,
+		consul.SessionEndpointSummaries,
 		consul.TxnSummaries,
+		fsm.CommandsSummaries,
+		fsm.SnapshotSummaries,
 		raftSummaries,
 	}
 	var summaryDefs []prometheus.SummaryDefinition

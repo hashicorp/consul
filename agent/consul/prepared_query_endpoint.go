@@ -19,19 +19,19 @@ import (
 var PreparedQuerySummaries = []prometheus.SummaryDefinition{
 	{
 		Name: []string{"prepared-query", "apply"},
-		Help: "",
+		Help: "This measures the time it takes to apply a prepared query update.",
 	},
 	{
 		Name: []string{"prepared-query", "explain"},
-		Help: "",
+		Help: "This measures the time it takes to process a prepared query explain request.",
 	},
 	{
 		Name: []string{"prepared-query", "execute"},
-		Help: "",
+		Help: "This measures the time it takes to process a prepared query execute request.",
 	},
 	{
 		Name: []string{"prepared-query", "execute_remote"},
-		Help: "",
+		Help: "This measures the time it takes to process a prepared query execute request that was forwarded to another datacenter.",
 	},
 }
 

@@ -35,7 +35,7 @@ import (
 var HTTPSummaries = []prometheus.SummaryDefinition{
 	{
 		Name: []string{"api", "http"},
-		Help: "",
+		Help: "Samples how long it takes to service the given HTTP request for the given verb and path.",
 	},
 }
 

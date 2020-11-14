@@ -19,7 +19,7 @@ var TxnSummaries = []prometheus.SummaryDefinition{
 	},
 	{
 		Name: []string{"txn", "read"},
-		Help: "",
+		Help: "This measures the time spent returning a read transaction.",
 	},
 }
 

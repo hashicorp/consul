@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
@@ -26,6 +27,21 @@ import (
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/time/rate"
 )
+
+var LeaderSummaries = []prometheus.SummaryDefinition{
+	{
+		Name: []string{"leader", "barrier"},
+		Help: "This measures the time spent waiting for the raft barrier upon gaining leadership.",
+	},
+	{
+		Name: []string{"leader", "reconcileMember"},
+		Help: "This measures the time spent updating the raft store for a single serf member's information.",
+	},
+	{
+		Name: []string{"leader", "reapTombstones"},
+		Help: "This measures the time spent clearing tombstones.",
+	},
+}
 
 const (
 	newLeaderEvent      = "consul:new-leader"

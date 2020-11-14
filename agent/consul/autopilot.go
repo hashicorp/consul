@@ -16,7 +16,7 @@ import (
 var AutopilotGauges = []prometheus.GaugeDefinition{
 	{
 		Name: []string{"autopilot", "failure_tolerance"},
-		Help: "",
+		Help: "This tracks the number of voting servers that the cluster can lose while continuing to function.",
 	},
 	{
 		Name: []string{"autopilot", "healthy"},

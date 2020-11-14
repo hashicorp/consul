@@ -4,10 +4,101 @@ import (
 	"fmt"
 	"time"
 
-	metrics "github.com/armon/go-metrics"
+	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 )
+
+var CommandsSummaries = []prometheus.SummaryDefinition{
+	{
+		Name: []string{"fsm", "register"},
+		Help: "This measures the time it takes to apply a catalog register operation to the FSM.",
+	},
+	{
+		Name: []string{"fsm", "deregister"},
+		Help: "This measures the time it takes to apply a catalog deregister operation to the FSM.",
+	},
+	{
+		Name: []string{"fsm", "kvs"},
+		Help: "This measures the time it takes to apply the given KV operation to the FSM.",
+	},
+	{
+		Name: []string{"fsm", "session"},
+		Help: "This measures the time it takes to apply the given session operation to the FSM.",
+	},
+	{
+		Name: []string{"fsm", "acl"},
+		Help: "This measures the time it takes to apply the given ACL operation to the FSM.",
+	},
+	{
+		Name: []string{"fsm", "tombstone"},
+		Help: "This measures the time it takes to apply the given tombstone operation to the FSM.",
+	},
+	{
+		Name: []string{"fsm", "coordinate", "batch-update"},
+		Help: "This measures the time it takes to apply the given batch coordinate update to the FSM.",
+	},
+	{
+		Name: []string{"fsm", "prepared-query"},
+		Help: "This measures the time it takes to apply the given prepared query update operation to the FSM.",
+	},
+	{
+		Name: []string{"fsm", "txn"},
+		Help: "This measures the time it takes to apply the given transaction update to the FSM.",
+	},
+	{
+		Name: []string{"fsm", "autopilot"},
+		Help: "This measures the time it takes to apply the given autopilot update to the FSM.",
+	},
+	{
+		Name: []string{"consul", "fsm", "intention"},
+		Help: "",
+	},
+	{
+		Name: []string{"fsm", "intention"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "fsm", "ca"},
+		Help: "",
+	},
+	{
+		Name: []string{"fsm", "ca", "leaf"},
+		Help: "",
+	},
+	{
+		Name: []string{"fsm", "acl", "token"},
+		Help: "",
+	},
+	{
+		Name: []string{"fsm", "ca", "leaf"},
+		Help: "",
+	},
+	{
+		Name: []string{"fsm", "acl", "policy"},
+		Help: "",
+	},
+	{
+		Name: []string{"fsm", "acl", "bindingrule"},
+		Help: "",
+	},
+	{
+		Name: []string{"fsm", "acl", "authmethod"},
+		Help: "",
+	},
+	{
+		Name: []string{"fsm", "system_metadata"},
+		Help: "",
+	},
+	// TODO(kit): We generate the config-entry fsm summaries by reading off of the request. It is
+	//  possible to statically declare these when we know all of the names, but I didn't get to it
+	//  in this patch. Config-entries are known though and we should add these in the future.
+	// {
+	// 	Name:        []string{"fsm", "config_entry", req.Entry.GetKind()},
+	// 	Help:        "",
+	// },
+}
 
 func init() {
 	registerCommand(structs.RegisterRequestType, (*FSM).applyRegister)

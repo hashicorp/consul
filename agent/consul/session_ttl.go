@@ -4,16 +4,15 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/armon/go-metrics/prometheus"
-
 	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
 var SessionGauges = []prometheus.GaugeDefinition{
 	{
 		Name: []string{"session_ttl", "active"},
-		Help: "",
+		Help: "This tracks the active number of sessions being tracked.",
 	},
 	{
 		Name: []string{"raft", "applied_index"},
@@ -28,7 +27,7 @@ var SessionGauges = []prometheus.GaugeDefinition{
 var SessionSummaries = []prometheus.SummaryDefinition{
 	{
 		Name: []string{"session_ttl", "invalidate"},
-		Help: "",
+		Help: "This measures the time spent invalidating an expired session.",
 	},
 }
 
