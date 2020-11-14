@@ -1,0 +1,3 @@
+```release-note:improvement
+agent: add path_allowlist config option to restrict metrics proxy queries
+```

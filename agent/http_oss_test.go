@@ -12,16 +12,14 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/testrpc"
-
-	"github.com/hashicorp/consul/logger"
 )
 
 // extra endpoints that should be tested, and their allowed methods
 var extraTestEndpoints = map[string][]string{
-	"/v1/query":             []string{"GET", "POST"},
-	"/v1/query/":            []string{"GET", "PUT", "DELETE"},
-	"/v1/query/xxx/execute": []string{"GET"},
-	"/v1/query/xxx/explain": []string{"GET"},
+	"/v1/query":             {"GET", "POST"},
+	"/v1/query/":            {"GET", "PUT", "DELETE"},
+	"/v1/query/xxx/execute": {"GET"},
+	"/v1/query/xxx/explain": {"GET"},
 }
 
 // These endpoints are ignored in unit testing for response codes
@@ -64,7 +62,7 @@ func newHttpClient(timeout time.Duration) *http.Client {
 func TestHTTPAPI_MethodNotAllowed_OSS(t *testing.T) {
 	// To avoid actually triggering RPCs that are allowed, lock everything down
 	// with default-deny ACLs. This drops the test runtime from 11s to 0.6s.
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 	primary_datacenter = "dc1"
 	acl {
 		enabled        = true
@@ -75,7 +73,6 @@ func TestHTTPAPI_MethodNotAllowed_OSS(t *testing.T) {
 		}
 	}
 	`)
-	a.Agent.LogWriter = logger.NewLogWriter(512)
 	defer a.Shutdown()
 	// Use the master token here so the wait actually works.
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1", testrpc.WithToken("sekrit"))
@@ -127,8 +124,7 @@ func TestHTTPAPI_MethodNotAllowed_OSS(t *testing.T) {
 }
 
 func TestHTTPAPI_OptionMethod_OSS(t *testing.T) {
-	a := NewTestAgent(t, t.Name(), `acl_datacenter = "dc1"`)
-	a.Agent.LogWriter = logger.NewLogWriter(512)
+	a := NewTestAgent(t, `acl_datacenter = "dc1"`)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -137,7 +133,7 @@ func TestHTTPAPI_OptionMethod_OSS(t *testing.T) {
 			uri := fmt.Sprintf("http://%s%s", a.HTTPAddr(), path)
 			req, _ := http.NewRequest("OPTIONS", uri, nil)
 			resp := httptest.NewRecorder()
-			a.srv.Handler.ServeHTTP(resp, req)
+			a.srv.handler(true).ServeHTTP(resp, req)
 			allMethods := append([]string{"OPTIONS"}, methods...)
 
 			if resp.Code != http.StatusOK {
@@ -164,13 +160,12 @@ func TestHTTPAPI_OptionMethod_OSS(t *testing.T) {
 }
 
 func TestHTTPAPI_AllowedNets_OSS(t *testing.T) {
-	a := NewTestAgent(t, t.Name(), `
+	a := NewTestAgent(t, `
 		acl_datacenter = "dc1"
 		http_config {
 			allow_write_http_from = ["127.0.0.1/8"]
 		}
 	`)
-	a.Agent.LogWriter = logger.NewLogWriter(512)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -180,7 +175,7 @@ func TestHTTPAPI_AllowedNets_OSS(t *testing.T) {
 			req, _ := http.NewRequest(method, uri, nil)
 			req.RemoteAddr = "192.168.1.2:5555"
 			resp := httptest.NewRecorder()
-			a.srv.Handler.ServeHTTP(resp, req)
+			a.srv.handler(true).ServeHTTP(resp, req)
 
 			require.Equal(t, http.StatusForbidden, resp.Code, "%s %s", method, path)
 		})

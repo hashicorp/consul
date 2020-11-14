@@ -6,49 +6,16 @@
 package router
 
 import (
-	"log"
 	"math/rand"
 	"net"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/agent/metadata"
-	"github.com/hashicorp/consul/lib"
-)
-
-const (
-	// clientRPCJitterFraction determines the amount of jitter added to
-	// clientRPCMinReuseDuration before a connection is expired and a new
-	// connection is established in order to rebalance load across consul
-	// servers.  The cluster-wide number of connections per second from
-	// rebalancing is applied after this jitter to ensure the CPU impact
-	// is always finite.  See newRebalanceConnsPerSecPerServer's comment
-	// for additional commentary.
-	//
-	// For example, in a 10K consul cluster with 5x servers, this default
-	// averages out to ~13 new connections from rebalancing per server
-	// per second (each connection is reused for 120s to 180s).
-	clientRPCJitterFraction = 2
-
-	// clientRPCMinReuseDuration controls the minimum amount of time RPC
-	// queries are sent over an established connection to a single server
-	clientRPCMinReuseDuration = 120 * time.Second
-
-	// Limit the number of new connections a server receives per second
-	// for connection rebalancing.  This limit caps the load caused by
-	// continual rebalancing efforts when a cluster is in equilibrium.  A
-	// lower value comes at the cost of increased recovery time after a
-	// partition.  This parameter begins to take effect when there are
-	// more than ~48K clients querying 5x servers or at lower server
-	// values when there is a partition.
-	//
-	// For example, in a 100K consul cluster with 5x servers, it will
-	// take ~5min for all servers to rebalance their connections.  If
-	// 99,995 agents are in the minority talking to only one server, it
-	// will take ~26min for all servers to rebalance.  A 10K cluster in
-	// the same scenario will take ~2.6min to rebalance.
-	newRebalanceConnsPerSecPerServer = 64
+	"github.com/hashicorp/consul/logging"
 )
 
 // ManagerSerfCluster is an interface wrapper around Serf in order to make this
@@ -60,7 +27,7 @@ type ManagerSerfCluster interface {
 // Pinger is an interface wrapping client.ConnPool to prevent a cyclic import
 // dependency.
 type Pinger interface {
-	Ping(dc string, addr net.Addr, version int, useTLS bool) (bool, error)
+	Ping(dc, nodeName string, addr net.Addr) (bool, error)
 }
 
 // serverList is a local copy of the struct used to maintain the list of
@@ -85,7 +52,7 @@ type Manager struct {
 	// shutdownCh is a copy of the channel in consul.Client
 	shutdownCh chan struct{}
 
-	logger *log.Logger
+	logger hclog.Logger
 
 	// clusterInfo is used to estimate the approximate number of nodes in
 	// a cluster and limit the rate at which it rebalances server
@@ -96,6 +63,12 @@ type Manager struct {
 	// connection pool.  Pinger is an interface that wraps
 	// client.ConnPool.
 	connPoolPinger Pinger
+
+	rebalancer Rebalancer
+
+	// serverName has the name of the managers's server. This is used to
+	// short-circuit pinging to itself.
+	serverName string
 
 	// notifyFailedBarrier is acts as a barrier to prevent queuing behind
 	// serverListLog and acts as a TryLock().
@@ -146,6 +119,18 @@ func (m *Manager) AddServer(s *metadata.Server) {
 
 	// Start using this list of servers.
 	m.saveServerList(l)
+}
+
+// UpdateTLS updates the TLS setting for the servers in this manager
+func (m *Manager) UpdateTLS(useTLS bool) {
+	m.listLock.Lock()
+	defer m.listLock.Unlock()
+
+	list := m.getServerList()
+	for _, server := range list.servers {
+		server.UseTLS = useTLS
+	}
+	m.saveServerList(list)
 }
 
 // cycleServers returns a new list of servers that has dequeued the first
@@ -206,7 +191,7 @@ func (m *Manager) FindServer() *metadata.Server {
 	l := m.getServerList()
 	numServers := len(l.servers)
 	if numServers == 0 {
-		m.logger.Printf("[WARN] manager: No servers available")
+		m.logger.Warn("No servers available")
 		return nil
 	}
 
@@ -217,9 +202,29 @@ func (m *Manager) FindServer() *metadata.Server {
 	return l.servers[0]
 }
 
+func (m *Manager) checkServers(fn func(srv *metadata.Server) bool) bool {
+	if m == nil {
+		return true
+	}
+
+	for _, srv := range m.getServerList().servers {
+		if !fn(srv) {
+			return false
+		}
+	}
+	return true
+}
+
+func (m *Manager) CheckServers(fn func(srv *metadata.Server) bool) {
+	_ = m.checkServers(fn)
+}
+
 // getServerList is a convenience method which hides the locking semantics
 // of atomic.Value from the caller.
 func (m *Manager) getServerList() serverList {
+	if m == nil {
+		return serverList{}
+	}
 	return m.listValue.Load().(serverList)
 }
 
@@ -230,13 +235,19 @@ func (m *Manager) saveServerList(l serverList) {
 }
 
 // New is the only way to safely create a new Manager struct.
-func New(logger *log.Logger, shutdownCh chan struct{}, clusterInfo ManagerSerfCluster, connPoolPinger Pinger) (m *Manager) {
+func New(logger hclog.Logger, shutdownCh chan struct{}, clusterInfo ManagerSerfCluster, connPoolPinger Pinger, serverName string, rb Rebalancer) (m *Manager) {
+	if logger == nil {
+		logger = hclog.New(&hclog.LoggerOptions{})
+	}
+
 	m = new(Manager)
-	m.logger = logger
+	m.logger = logger.Named(logging.Manager)
 	m.clusterInfo = clusterInfo       // can't pass *consul.Client: import cycle
 	m.connPoolPinger = connPoolPinger // can't pass *consul.ConnPool: import cycle
-	m.rebalanceTimer = time.NewTimer(clientRPCMinReuseDuration)
+	m.rebalanceTimer = time.NewTimer(delayer.MinDelay)
 	m.shutdownCh = shutdownCh
+	m.rebalancer = rb
+	m.serverName = serverName
 	atomic.StoreInt32(&m.offline, 1)
 
 	l := serverList{}
@@ -270,7 +281,7 @@ func (m *Manager) NotifyFailedServer(s *metadata.Server) {
 		if len(l.servers) > 1 && l.servers[0].Name == s.Name {
 			l.servers = l.cycleServer()
 			m.saveServerList(l)
-			m.logger.Printf(`[DEBUG] manager: cycled away from server "%s"`, s.Name)
+			m.logger.Debug("cycled away from server", "server", s.String())
 		}
 	}
 }
@@ -280,6 +291,25 @@ func (m *Manager) NotifyFailedServer(s *metadata.Server) {
 func (m *Manager) NumServers() int {
 	l := m.getServerList()
 	return len(l.servers)
+}
+
+func (m *Manager) healthyServer(server *metadata.Server) bool {
+	// Check to see if the manager is trying to ping itself. This
+	// is a small optimization to avoid performing an unnecessary
+	// RPC call.
+	// If this is true, we know there are healthy servers for this
+	// manager and we don't need to continue.
+	if m.serverName != "" && server.Name == m.serverName {
+		return true
+	}
+	if ok, err := m.connPoolPinger.Ping(server.Datacenter, server.ShortName, server.Addr); !ok {
+		m.logger.Debug("pinging server failed",
+			"server", server.String(),
+			"error", err,
+		)
+		return false
+	}
+	return true
 }
 
 // RebalanceServers shuffles the list of servers on this metadata.  The server
@@ -306,16 +336,12 @@ func (m *Manager) RebalanceServers() {
 	// this loop mutates the server list in-place.
 	var foundHealthyServer bool
 	for i := 0; i < len(l.servers); i++ {
-		// Always test the first server.  Failed servers are cycled
+		// Always test the first server. Failed servers are cycled
 		// while Serf detects the node has failed.
-		srv := l.servers[0]
-
-		ok, err := m.connPoolPinger.Ping(srv.Datacenter, srv.Addr, srv.Version, srv.UseTLS)
-		if ok {
+		if m.healthyServer(l.servers[0]) {
 			foundHealthyServer = true
 			break
 		}
-		m.logger.Printf(`[DEBUG] manager: pinging server "%s" failed: %s`, srv, err)
 		l.servers = l.cycleServer()
 	}
 
@@ -325,25 +351,27 @@ func (m *Manager) RebalanceServers() {
 		atomic.StoreInt32(&m.offline, 0)
 	} else {
 		atomic.StoreInt32(&m.offline, 1)
-		m.logger.Printf("[DEBUG] manager: No healthy servers during rebalance, aborting")
+		m.logger.Debug("No healthy servers during rebalance, aborting")
 		return
 	}
 
 	// Verify that all servers are present
 	if m.reconcileServerList(&l) {
-		m.logger.Printf("[DEBUG] manager: Rebalanced %d servers, next active server is %s", len(l.servers), l.servers[0].String())
-	} else {
-		// reconcileServerList failed because Serf removed the server
-		// that was at the front of the list that had successfully
-		// been Ping'ed.  Between the Ping and reconcile, a Serf
-		// event had shown up removing the node.
-		//
-		// Instead of doing any heroics, "freeze in place" and
-		// continue to use the existing connection until the next
-		// rebalance occurs.
+		m.logger.Debug("Rebalanced servers, new active server",
+			"number_of_servers", len(l.servers),
+			"active_server", l.servers[0].String(),
+		)
 	}
-
-	return
+	// else {
+	// reconcileServerList failed because Serf removed the server
+	// that was at the front of the list that had successfully
+	// been Ping'ed.  Between the Ping and reconcile, a Serf
+	// event had shown up removing the node.
+	//
+	// Instead of doing any heroics, "freeze in place" and
+	// continue to use the existing connection until the next
+	// rebalance occurs.
+	// }
 }
 
 // reconcileServerList returns true when the first server in serverList
@@ -435,47 +463,88 @@ func (m *Manager) RemoveServer(s *metadata.Server) {
 	}
 }
 
-// refreshServerRebalanceTimer is only called once m.rebalanceTimer expires.
-func (m *Manager) refreshServerRebalanceTimer() time.Duration {
-	l := m.getServerList()
-	numServers := len(l.servers)
-	// Limit this connection's life based on the size (and health) of the
-	// cluster.  Never rebalance a connection more frequently than
-	// connReuseLowWatermarkDuration, and make sure we never exceed
-	// clusterWideRebalanceConnsPerSec operations/s across numLANMembers.
-	clusterWideRebalanceConnsPerSec := float64(numServers * newRebalanceConnsPerSecPerServer)
-	connReuseLowWatermarkDuration := clientRPCMinReuseDuration + lib.RandomStagger(clientRPCMinReuseDuration/clientRPCJitterFraction)
-	numLANMembers := m.clusterInfo.NumNodes()
-	connRebalanceTimeout := lib.RateScaledInterval(clusterWideRebalanceConnsPerSec, connReuseLowWatermarkDuration, numLANMembers)
-
-	m.rebalanceTimer.Reset(connRebalanceTimeout)
-	return connRebalanceTimeout
-}
-
 // ResetRebalanceTimer resets the rebalance timer.  This method exists for
 // testing and should not be used directly.
 func (m *Manager) ResetRebalanceTimer() {
 	m.listLock.Lock()
 	defer m.listLock.Unlock()
-	m.rebalanceTimer.Reset(clientRPCMinReuseDuration)
+	m.rebalanceTimer.Reset(delayer.MinDelay)
 }
 
-// Start is used to start and manage the task of automatically shuffling and
-// rebalancing the list of Consul servers.  This maintenance only happens
-// periodically based on the expiration of the timer.  Failed servers are
-// automatically cycled to the end of the list.  New servers are appended to
-// the list.  The order of the server list must be shuffled periodically to
-// distribute load across all known and available Consul servers.
-func (m *Manager) Start() {
+// Run periodically shuffles the list of servers to evenly distribute load.
+// Run exits when shutdownCh is closed.
+//
+// When a server fails it is moved to the end of the list, and new servers are
+// appended to the end of the list. Run ensures that load is distributed evenly
+// to all servers by randomly shuffling the list.
+func (m *Manager) Run() {
 	for {
 		select {
 		case <-m.rebalanceTimer.C:
+			m.rebalancer()
 			m.RebalanceServers()
-			m.refreshServerRebalanceTimer()
+			delay := delayer.Delay(len(m.getServerList().servers), m.clusterInfo.NumNodes())
+			m.rebalanceTimer.Reset(delay)
 
 		case <-m.shutdownCh:
-			m.logger.Printf("[INFO] manager: shutting down")
+			m.logger.Info("shutting down")
 			return
 		}
 	}
+}
+
+// delayer is used to calculate the time to wait between calls to rebalance the
+// servers. Rebalancing is necessary to ensure that load is balanced evenly
+// across all the servers.
+//
+// The values used by delayer must balance perfectly distributed server load
+// against the overhead of a client reconnecting to a server. Rebalancing on
+// every request would cause a lot of unnecessary load as clients reconnect,
+// where as never rebalancing would lead to situations where one or two servers
+// handle a lot more requests than others.
+//
+// These values result in a minimum delay of 120-180s. Once the number of
+// nodes/server exceeds 11520, the value will be determined by multiplying the
+// node/server ratio by 15.625ms.
+var delayer = rebalanceDelayer{
+	MinDelay:  2 * time.Minute,
+	MaxJitter: time.Minute,
+	// Once the number of nodes/server exceeds 11520 this value is used to
+	// increase the delay between rebalances to set a limit on the number of
+	// reconnections per server in a given time frame.
+	//
+	// A higher value comes at the cost of increased recovery time after a
+	// partition.
+	//
+	// For example, in a 100,000 node consul cluster with 5 servers, it will
+	// take ~5min for all clients to rebalance their connections.  If
+	// 99,995 agents are in the minority talking to only one server, it
+	// will take ~26min for all clients to rebalance.  A 10K cluster in
+	// the same scenario will take ~2.6min to rebalance.
+	DelayPerNode: 15*time.Millisecond + 625*time.Microsecond,
+}
+
+type rebalanceDelayer struct {
+	// MinDelay that may be returned by Delay
+	MinDelay time.Duration
+	// MaxJitter to add to MinDelay to ensure there is some randomness in the
+	// delay.
+	MaxJitter time.Duration
+	// DelayPerNode is the duration to add to each node when calculating delay.
+	// The value is divided by the number of servers to arrive at the final
+	// delay value.
+	DelayPerNode time.Duration
+}
+
+func (d *rebalanceDelayer) Delay(servers int, nodes int) time.Duration {
+	min := d.MinDelay + time.Duration(rand.Int63n(int64(d.MaxJitter)))
+	if servers == 0 {
+		return min
+	}
+
+	delay := time.Duration(float64(nodes) * float64(d.DelayPerNode) / float64(servers))
+	if delay < min {
+		return min
+	}
+	return delay
 }

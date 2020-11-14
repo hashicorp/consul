@@ -5,7 +5,7 @@ import (
 
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/serf/serf"
-	"github.com/pascaldekloe/goe/verify"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBuild(t *testing.T) {
@@ -69,7 +69,7 @@ func TestBuild(t *testing.T) {
 			if wantErr := tt.err; gotErr != wantErr {
 				t.Fatalf("got %v want %v", gotErr, wantErr)
 			}
-			verify.Values(t, "", ver, tt.ver)
+			require.Equal(t, tt.ver, ver)
 		})
 	}
 }

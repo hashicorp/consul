@@ -19,3 +19,8 @@ const (
 	ConsulServiceID   = "consul"
 	ConsulServiceName = "consul"
 )
+
+var (
+	ConsulCompoundServiceID = NewServiceID(ConsulServiceID, nil)
+	SerfCompoundCheckID     = NewCheckID(SerfCheckID, nil)
+)

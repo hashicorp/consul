@@ -2,12 +2,14 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/vault/helper/jsonutil"
+	"github.com/hashicorp/vault/sdk/helper/jsonutil"
 )
 
 const (
@@ -19,8 +21,9 @@ var (
 	// changed
 	DefaultWrappingTTL = "5m"
 
-	// The default function used if no other function is set, which honors the
-	// env var and wraps `sys/wrapping/wrap`
+	// The default function used if no other function is set. It honors the env
+	// var to set the wrap TTL. The default wrap TTL will apply when when writing
+	// to `sys/wrapping/wrap` when the env var is not set.
 	DefaultWrappingLookupFunc = func(operation, path string) string {
 		if os.Getenv(EnvVaultWrapTTL) != "" {
 			return os.Getenv(EnvVaultWrapTTL)
@@ -45,8 +48,29 @@ func (c *Client) Logical() *Logical {
 }
 
 func (c *Logical) Read(path string) (*Secret, error) {
+	return c.ReadWithData(path, nil)
+}
+
+func (c *Logical) ReadWithData(path string, data map[string][]string) (*Secret, error) {
 	r := c.c.NewRequest("GET", "/v1/"+path)
-	resp, err := c.c.RawRequest(r)
+
+	var values url.Values
+	for k, v := range data {
+		if values == nil {
+			values = make(url.Values)
+		}
+		for _, val := range v {
+			values.Add(k, val)
+		}
+	}
+
+	if values != nil {
+		r.Params = values
+	}
+
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	defer cancelFunc()
+	resp, err := c.c.RawRequestWithContext(ctx, r)
 	if resp != nil {
 		defer resp.Body.Close()
 	}
@@ -77,7 +101,10 @@ func (c *Logical) List(path string) (*Secret, error) {
 	// handle the wrapping lookup function
 	r.Method = "GET"
 	r.Params.Set("list", "true")
-	resp, err := c.c.RawRequest(r)
+
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	defer cancelFunc()
+	resp, err := c.c.RawRequestWithContext(ctx, r)
 	if resp != nil {
 		defer resp.Body.Close()
 	}
@@ -108,7 +135,20 @@ func (c *Logical) Write(path string, data map[string]interface{}) (*Secret, erro
 		return nil, err
 	}
 
-	resp, err := c.c.RawRequest(r)
+	return c.write(path, r)
+}
+
+func (c *Logical) WriteBytes(path string, data []byte) (*Secret, error) {
+	r := c.c.NewRequest("PUT", "/v1/"+path)
+	r.BodyBytes = data
+
+	return c.write(path, r)
+}
+
+func (c *Logical) write(path string, request *Request) (*Secret, error) {
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	defer cancelFunc()
+	resp, err := c.c.RawRequestWithContext(ctx, request)
 	if resp != nil {
 		defer resp.Body.Close()
 	}
@@ -129,16 +169,33 @@ func (c *Logical) Write(path string, data map[string]interface{}) (*Secret, erro
 		return nil, err
 	}
 
-	if resp.StatusCode == 200 {
-		return ParseSecret(resp.Body)
-	}
-
-	return nil, nil
+	return ParseSecret(resp.Body)
 }
 
 func (c *Logical) Delete(path string) (*Secret, error) {
+	return c.DeleteWithData(path, nil)
+}
+
+func (c *Logical) DeleteWithData(path string, data map[string][]string) (*Secret, error) {
 	r := c.c.NewRequest("DELETE", "/v1/"+path)
-	resp, err := c.c.RawRequest(r)
+
+	var values url.Values
+	for k, v := range data {
+		if values == nil {
+			values = make(url.Values)
+		}
+		for _, val := range v {
+			values.Add(k, val)
+		}
+	}
+
+	if values != nil {
+		r.Params = values
+	}
+
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	defer cancelFunc()
+	resp, err := c.c.RawRequestWithContext(ctx, r)
 	if resp != nil {
 		defer resp.Body.Close()
 	}
@@ -159,11 +216,7 @@ func (c *Logical) Delete(path string) (*Secret, error) {
 		return nil, err
 	}
 
-	if resp.StatusCode == 200 {
-		return ParseSecret(resp.Body)
-	}
-
-	return nil, nil
+	return ParseSecret(resp.Body)
 }
 
 func (c *Logical) Unwrap(wrappingToken string) (*Secret, error) {
@@ -183,7 +236,9 @@ func (c *Logical) Unwrap(wrappingToken string) (*Secret, error) {
 		return nil, err
 	}
 
-	resp, err := c.c.RawRequest(r)
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	defer cancelFunc()
+	resp, err := c.c.RawRequestWithContext(ctx, r)
 	if resp != nil {
 		defer resp.Body.Close()
 	}

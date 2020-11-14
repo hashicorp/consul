@@ -1,0 +1,15 @@
+%visually-hidden {
+  position: absolute !important;
+  height: 1px;
+  width: 1px;
+  overflow: hidden;
+  clip: rect(1px, 1px, 1px, 1px);
+}
+%visually-hidden-text {
+  text-indent: -9000px;
+  font-size: 0;
+}
+%decor-border-000 {
+  border-style: solid;
+  border-width: 0;
+}

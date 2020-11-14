@@ -3,20 +3,18 @@ package fsm
 import (
 	"fmt"
 	"io"
-	"log"
 	"sync"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/hashicorp/go-raftchunking"
+	"github.com/hashicorp/raft"
+
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-msgpack/codec"
-	"github.com/hashicorp/raft"
+	"github.com/hashicorp/consul/logging"
 )
-
-// msgpackHandle is a shared handle for encoding/decoding msgpack payloads
-var msgpackHandle = &codec.MsgpackHandle{
-	RawToString: true,
-}
 
 // command is a command method on the FSM.
 type command func(buf []byte, index uint64) interface{}
@@ -44,9 +42,9 @@ func registerCommand(msg structs.MessageType, fn unboundCommand) {
 // along with Raft to provide strong consistency. We implement
 // this outside the Server to avoid exposing this outside the package.
 type FSM struct {
-	logOutput io.Writer
-	logger    *log.Logger
-	path      string
+	deps    Deps
+	logger  hclog.Logger
+	chunker *raftchunking.ChunkingFSM
 
 	// apply is built off the commands global and is used to route apply
 	// operations to their appropriate handlers.
@@ -58,23 +56,40 @@ type FSM struct {
 	// Raft side, so doesn't need to lock this.
 	stateLock sync.RWMutex
 	state     *state.Store
-
-	gc *state.TombstoneGC
 }
 
 // New is used to construct a new FSM with a blank state.
-func New(gc *state.TombstoneGC, logOutput io.Writer) (*FSM, error) {
-	stateNew, err := state.NewStateStore(gc)
-	if err != nil {
-		return nil, err
+//
+// Deprecated: use NewFromDeps.
+func New(gc *state.TombstoneGC, logger hclog.Logger) (*FSM, error) {
+	newStateStore := func() *state.Store {
+		return state.NewStateStore(gc)
+	}
+	return NewFromDeps(Deps{Logger: logger, NewStateStore: newStateStore}), nil
+}
+
+// Deps are dependencies used to construct the FSM.
+type Deps struct {
+	// Logger used to emit log messages
+	Logger hclog.Logger
+	// NewStateStore returns a state.Store which the FSM will use to make changes
+	// to the state.
+	// NewStateStore will be called once when the FSM is created and again any
+	// time Restore() is called.
+	NewStateStore func() *state.Store
+}
+
+// NewFromDeps creates a new FSM from its dependencies.
+func NewFromDeps(deps Deps) *FSM {
+	if deps.Logger == nil {
+		deps.Logger = hclog.New(&hclog.LoggerOptions{})
 	}
 
 	fsm := &FSM{
-		logOutput: logOutput,
-		logger:    log.New(logOutput, "", log.LstdFlags),
-		apply:     make(map[structs.MessageType]command),
-		state:     stateNew,
-		gc:        gc,
+		deps:   deps,
+		logger: deps.Logger.Named(logging.FSM),
+		apply:  make(map[structs.MessageType]command),
+		state:  deps.NewStateStore(),
 	}
 
 	// Build out the apply dispatch table based on the registered commands.
@@ -85,7 +100,12 @@ func New(gc *state.TombstoneGC, logOutput io.Writer) (*FSM, error) {
 		}
 	}
 
-	return fsm, nil
+	fsm.chunker = raftchunking.NewChunkingFSM(fsm, nil)
+	return fsm
+}
+
+func (c *FSM) ChunkingFSM() *raftchunking.ChunkingFSM {
+	return c.chunker
 }
 
 // State is used to return a handle to the current state
@@ -116,7 +136,7 @@ func (c *FSM) Apply(log *raft.Log) interface{} {
 	// Otherwise, see if it's safe to ignore. If not, we have to panic so
 	// that we crash and our state doesn't diverge.
 	if ignoreUnknown {
-		c.logger.Printf("[WARN] consul.fsm: ignoring unknown message type (%d), upgrade to newer version", msgType)
+		c.logger.Warn("ignoring unknown message type, upgrade to newer version", "type", msgType)
 		return nil
 	}
 	panic(fmt.Errorf("failed to apply request: %#v", buf))
@@ -124,10 +144,18 @@ func (c *FSM) Apply(log *raft.Log) interface{} {
 
 func (c *FSM) Snapshot() (raft.FSMSnapshot, error) {
 	defer func(start time.Time) {
-		c.logger.Printf("[INFO] consul.fsm: snapshot created in %v", time.Since(start))
+		c.logger.Info("snapshot created", "duration", time.Since(start).String())
 	}(time.Now())
 
-	return &snapshot{c.state.Snapshot()}, nil
+	chunkState, err := c.chunker.CurrentState()
+	if err != nil {
+		return nil, err
+	}
+
+	return &snapshot{
+		state:      c.state.Snapshot(),
+		chunkState: chunkState,
+	}, nil
 }
 
 // Restore streams in the snapshot and replaces the current state store with a
@@ -135,47 +163,41 @@ func (c *FSM) Snapshot() (raft.FSMSnapshot, error) {
 func (c *FSM) Restore(old io.ReadCloser) error {
 	defer old.Close()
 
-	// Create a new state store.
-	stateNew, err := state.NewStateStore(c.gc)
-	if err != nil {
-		return err
-	}
+	stateNew := c.deps.NewStateStore()
 
 	// Set up a new restore transaction
 	restore := stateNew.Restore()
 	defer restore.Abort()
 
-	// Create a decoder
-	dec := codec.NewDecoder(old, msgpackHandle)
-
-	// Read in the header
-	var header snapshotHeader
-	if err := dec.Decode(&header); err != nil {
+	handler := func(header *SnapshotHeader, msg structs.MessageType, dec *codec.Decoder) error {
+		switch {
+		case msg == structs.ChunkingStateType:
+			chunkState := &raftchunking.State{
+				ChunkMap: make(raftchunking.ChunkMap),
+			}
+			if err := dec.Decode(chunkState); err != nil {
+				return err
+			}
+			if err := c.chunker.RestoreState(chunkState); err != nil {
+				return err
+			}
+		case restorers[msg] != nil:
+			fn := restorers[msg]
+			if err := fn(header, restore, dec); err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("Unrecognized msg type %d", msg)
+		}
+		return nil
+	}
+	if err := ReadSnapshot(old, handler); err != nil {
 		return err
 	}
 
-	// Populate the new state
-	msgType := make([]byte, 1)
-	for {
-		// Read the message type
-		_, err := old.Read(msgType)
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return err
-		}
-
-		// Decode
-		msg := structs.MessageType(msgType[0])
-		if fn := restorers[msg]; fn != nil {
-			if err := fn(&header, restore, dec); err != nil {
-				return err
-			}
-		} else {
-			return fmt.Errorf("Unrecognized msg type %d", msg)
-		}
+	if err := restore.Commit(); err != nil {
+		return err
 	}
-	restore.Commit()
 
 	// External code might be calling State(), so we need to synchronize
 	// here to make sure we swap in the new state store atomically.
@@ -189,4 +211,36 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 	// blocking queries won't see any changes and need to be woken up.
 	stateOld.Abandon()
 	return nil
+}
+
+// ReadSnapshot decodes each message type and utilizes the handler function to
+// process each message type individually
+func ReadSnapshot(r io.Reader, handler func(header *SnapshotHeader, msg structs.MessageType, dec *codec.Decoder) error) error {
+	// Create a decoder
+	dec := codec.NewDecoder(r, structs.MsgpackHandle)
+
+	// Read in the header
+	var header SnapshotHeader
+	if err := dec.Decode(&header); err != nil {
+		return err
+	}
+
+	// Populate the new state
+	msgType := make([]byte, 1)
+	for {
+		// Read the message type
+		_, err := r.Read(msgType)
+		if err == io.EOF {
+			return nil
+		} else if err != nil {
+			return err
+		}
+
+		// Decode
+		msg := structs.MessageType(msgType[0])
+
+		if err := handler(&header, msg, dec); err != nil {
+			return err
+		}
+	}
 }

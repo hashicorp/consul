@@ -1,0 +1,3 @@
+```release-note:improvement
+api: The `v1/connect/ca/roots` endpoint now accepts a `pem=true` query parameter and will return a PEM encoded certificate chain of all the certificates that would normally be in the JSON version of the response.
+```

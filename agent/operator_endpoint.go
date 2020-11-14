@@ -6,16 +6,16 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/raft"
+	autopilot "github.com/hashicorp/raft-autopilot"
 )
 
 // OperatorRaftConfiguration is used to inspect the current Raft configuration.
 // This supports the stale query mode in case the cluster doesn't have a leader.
-func (s *HTTPServer) OperatorRaftConfiguration(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) OperatorRaftConfiguration(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args structs.DCSpecificRequest
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
@@ -31,7 +31,7 @@ func (s *HTTPServer) OperatorRaftConfiguration(resp http.ResponseWriter, req *ht
 
 // OperatorRaftPeer supports actions on Raft peers. Currently we only support
 // removing peers by address.
-func (s *HTTPServer) OperatorRaftPeer(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) OperatorRaftPeer(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args structs.RaftRemovePeerRequest
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
@@ -47,14 +47,10 @@ func (s *HTTPServer) OperatorRaftPeer(resp http.ResponseWriter, req *http.Reques
 	}
 
 	if !hasID && !hasAddress {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Must specify either ?id with the server's ID or ?address with IP:port of peer to remove")
-		return nil, nil
+		return nil, BadRequestError{Reason: "Must specify either ?id with the server's ID or ?address with IP:port of peer to remove"}
 	}
 	if hasID && hasAddress {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(resp, "Must specify only one of ?id or ?address")
-		return nil, nil
+		return nil, BadRequestError{Reason: "Must specify only one of ?id or ?address"}
 	}
 
 	var reply struct{}
@@ -73,16 +69,15 @@ type keyringArgs struct {
 	Key         string
 	Token       string
 	RelayFactor uint8
+	LocalOnly   bool // ?local-only; only used for GET requests
 }
 
 // OperatorKeyringEndpoint handles keyring operations (install, list, use, remove)
-func (s *HTTPServer) OperatorKeyringEndpoint(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) OperatorKeyringEndpoint(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args keyringArgs
 	if req.Method == "POST" || req.Method == "PUT" || req.Method == "DELETE" {
-		if err := decodeBody(req, &args, nil); err != nil {
-			resp.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(resp, "Request decode failed: %v", err)
-			return nil, nil
+		if err := decodeBody(req.Body, &args); err != nil {
+			return nil, BadRequestError{Reason: fmt.Sprintf("Request decode failed: %v", err)}
 		}
 	}
 	s.parseToken(req, &args.Token)
@@ -91,16 +86,26 @@ func (s *HTTPServer) OperatorKeyringEndpoint(resp http.ResponseWriter, req *http
 	if relayFactor := req.URL.Query().Get("relay-factor"); relayFactor != "" {
 		n, err := strconv.Atoi(relayFactor)
 		if err != nil {
-			resp.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(resp, "Error parsing relay factor: %v", err)
-			return nil, nil
+			return nil, BadRequestError{Reason: fmt.Sprintf("Error parsing relay factor: %v", err)}
 		}
 
 		args.RelayFactor, err = ParseRelayFactor(n)
 		if err != nil {
-			resp.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(resp, "Invalid relay factor: %v", err)
-			return nil, nil
+			return nil, BadRequestError{Reason: fmt.Sprintf("Invalid relay-factor: %v", err)}
+		}
+	}
+
+	// Parse local-only. local-only can only be used in GET requests.
+	if localOnly := req.URL.Query().Get("local-only"); localOnly != "" {
+		var err error
+		args.LocalOnly, err = strconv.ParseBool(localOnly)
+		if err != nil {
+			return nil, BadRequestError{Reason: fmt.Sprintf("Error parsing local-only: %v", err)}
+		}
+
+		err = ValidateLocalOnly(args.LocalOnly, req.Method == "GET")
+		if err != nil {
+			return nil, BadRequestError{Reason: fmt.Sprintf("Invalid use of local-only: %v", err)}
 		}
 	}
 
@@ -120,7 +125,7 @@ func (s *HTTPServer) OperatorKeyringEndpoint(resp http.ResponseWriter, req *http
 }
 
 // KeyringInstall is used to install a new gossip encryption key into the cluster
-func (s *HTTPServer) KeyringInstall(resp http.ResponseWriter, req *http.Request, args *keyringArgs) (interface{}, error) {
+func (s *HTTPHandlers) KeyringInstall(resp http.ResponseWriter, req *http.Request, args *keyringArgs) (interface{}, error) {
 	responses, err := s.agent.InstallKey(args.Key, args.Token, args.RelayFactor)
 	if err != nil {
 		return nil, err
@@ -130,8 +135,8 @@ func (s *HTTPServer) KeyringInstall(resp http.ResponseWriter, req *http.Request,
 }
 
 // KeyringList is used to list the keys installed in the cluster
-func (s *HTTPServer) KeyringList(resp http.ResponseWriter, req *http.Request, args *keyringArgs) (interface{}, error) {
-	responses, err := s.agent.ListKeys(args.Token, args.RelayFactor)
+func (s *HTTPHandlers) KeyringList(resp http.ResponseWriter, req *http.Request, args *keyringArgs) (interface{}, error) {
+	responses, err := s.agent.ListKeys(args.Token, args.LocalOnly, args.RelayFactor)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +145,7 @@ func (s *HTTPServer) KeyringList(resp http.ResponseWriter, req *http.Request, ar
 }
 
 // KeyringRemove is used to list the keys installed in the cluster
-func (s *HTTPServer) KeyringRemove(resp http.ResponseWriter, req *http.Request, args *keyringArgs) (interface{}, error) {
+func (s *HTTPHandlers) KeyringRemove(resp http.ResponseWriter, req *http.Request, args *keyringArgs) (interface{}, error) {
 	responses, err := s.agent.RemoveKey(args.Key, args.Token, args.RelayFactor)
 	if err != nil {
 		return nil, err
@@ -150,7 +155,7 @@ func (s *HTTPServer) KeyringRemove(resp http.ResponseWriter, req *http.Request, 
 }
 
 // KeyringUse is used to change the primary gossip encryption key
-func (s *HTTPServer) KeyringUse(resp http.ResponseWriter, req *http.Request, args *keyringArgs) (interface{}, error) {
+func (s *HTTPHandlers) KeyringUse(resp http.ResponseWriter, req *http.Request, args *keyringArgs) (interface{}, error) {
 	responses, err := s.agent.UseKey(args.Key, args.Token, args.RelayFactor)
 	if err != nil {
 		return nil, err
@@ -178,7 +183,7 @@ func keyringErrorsOrNil(responses []*structs.KeyringResponse) error {
 
 // OperatorAutopilotConfiguration is used to inspect the current Autopilot configuration.
 // This supports the stale query mode in case the cluster doesn't have a leader.
-func (s *HTTPServer) OperatorAutopilotConfiguration(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) OperatorAutopilotConfiguration(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Switch on the method
 	switch req.Method {
 	case "GET":
@@ -187,7 +192,7 @@ func (s *HTTPServer) OperatorAutopilotConfiguration(resp http.ResponseWriter, re
 			return nil, nil
 		}
 
-		var reply autopilot.Config
+		var reply structs.AutopilotConfig
 		if err := s.agent.RPC("Operator.AutopilotGetConfiguration", &args, &reply); err != nil {
 			return nil, err
 		}
@@ -196,6 +201,7 @@ func (s *HTTPServer) OperatorAutopilotConfiguration(resp http.ResponseWriter, re
 			CleanupDeadServers:      reply.CleanupDeadServers,
 			LastContactThreshold:    api.NewReadableDuration(reply.LastContactThreshold),
 			MaxTrailingLogs:         reply.MaxTrailingLogs,
+			MinQuorum:               reply.MinQuorum,
 			ServerStabilizationTime: api.NewReadableDuration(reply.ServerStabilizationTime),
 			RedundancyZoneTag:       reply.RedundancyZoneTag,
 			DisableUpgradeMigration: reply.DisableUpgradeMigration,
@@ -212,17 +218,15 @@ func (s *HTTPServer) OperatorAutopilotConfiguration(resp http.ResponseWriter, re
 		s.parseToken(req, &args.Token)
 
 		var conf api.AutopilotConfiguration
-		durations := NewDurationFixer("lastcontactthreshold", "serverstabilizationtime")
-		if err := decodeBody(req, &conf, durations.FixupDurations); err != nil {
-			resp.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(resp, "Error parsing autopilot config: %v", err)
-			return nil, nil
+		if err := decodeBody(req.Body, &conf); err != nil {
+			return nil, BadRequestError{Reason: fmt.Sprintf("Error parsing autopilot config: %v", err)}
 		}
 
-		args.Config = autopilot.Config{
+		args.Config = structs.AutopilotConfig{
 			CleanupDeadServers:      conf.CleanupDeadServers,
 			LastContactThreshold:    conf.LastContactThreshold.Duration(),
 			MaxTrailingLogs:         conf.MaxTrailingLogs,
+			MinQuorum:               conf.MinQuorum,
 			ServerStabilizationTime: conf.ServerStabilizationTime.Duration(),
 			RedundancyZoneTag:       conf.RedundancyZoneTag,
 			DisableUpgradeMigration: conf.DisableUpgradeMigration,
@@ -234,9 +238,7 @@ func (s *HTTPServer) OperatorAutopilotConfiguration(resp http.ResponseWriter, re
 		if _, ok := params["cas"]; ok {
 			casVal, err := strconv.ParseUint(params.Get("cas"), 10, 64)
 			if err != nil {
-				resp.WriteHeader(http.StatusBadRequest)
-				fmt.Fprintf(resp, "Error parsing cas value: %v", err)
-				return nil, nil
+				return nil, BadRequestError{Reason: fmt.Sprintf("Error parsing cas value: %v", err)}
 			}
 			args.Config.ModifyIndex = casVal
 			args.CAS = true
@@ -259,13 +261,13 @@ func (s *HTTPServer) OperatorAutopilotConfiguration(resp http.ResponseWriter, re
 }
 
 // OperatorServerHealth is used to get the health of the servers in the local DC
-func (s *HTTPServer) OperatorServerHealth(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) OperatorServerHealth(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args structs.DCSpecificRequest
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
 
-	var reply autopilot.OperatorHealthReply
+	var reply structs.AutopilotHealthReply
 	if err := s.agent.RPC("Operator.ServerHealth", &args, &reply); err != nil {
 		return nil, err
 	}
@@ -297,4 +299,67 @@ func (s *HTTPServer) OperatorServerHealth(resp http.ResponseWriter, req *http.Re
 	}
 
 	return out, nil
+}
+
+func (s *HTTPHandlers) OperatorAutopilotState(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	var args structs.DCSpecificRequest
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
+	var reply autopilot.State
+	if err := s.agent.RPC("Operator.AutopilotState", &args, &reply); err != nil {
+		return nil, err
+	}
+
+	out := autopilotToAPIState(&reply)
+	return out, nil
+}
+
+func stringIDs(ids []raft.ServerID) []string {
+	out := make([]string, len(ids))
+	for i, id := range ids {
+		out[i] = string(id)
+	}
+	return out
+}
+
+func autopilotToAPIState(state *autopilot.State) *api.AutopilotState {
+	out := &api.AutopilotState{
+		Healthy:          state.Healthy,
+		FailureTolerance: state.FailureTolerance,
+		Leader:           string(state.Leader),
+		Voters:           stringIDs(state.Voters),
+		Servers:          make(map[string]api.AutopilotServer),
+	}
+
+	for id, srv := range state.Servers {
+		out.Servers[string(id)] = autopilotToAPIServer(srv)
+	}
+
+	autopilotToAPIStateEnterprise(state, out)
+
+	return out
+}
+
+func autopilotToAPIServer(srv *autopilot.ServerState) api.AutopilotServer {
+	apiSrv := api.AutopilotServer{
+		ID:          string(srv.Server.ID),
+		Name:        srv.Server.Name,
+		Address:     string(srv.Server.Address),
+		NodeStatus:  string(srv.Server.NodeStatus),
+		Version:     srv.Server.Version,
+		LastContact: api.NewReadableDuration(srv.Stats.LastContact),
+		LastTerm:    srv.Stats.LastTerm,
+		LastIndex:   srv.Stats.LastIndex,
+		Healthy:     srv.Health.Healthy,
+		StableSince: srv.Health.StableSince,
+		Status:      api.AutopilotServerStatus(srv.State),
+		Meta:        srv.Server.Meta,
+		NodeType:    api.AutopilotServerType(srv.Server.NodeType),
+	}
+
+	autopilotToAPIServerEnterprise(srv, &apiSrv)
+
+	return apiSrv
 }

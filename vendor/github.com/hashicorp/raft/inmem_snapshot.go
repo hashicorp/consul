@@ -82,14 +82,17 @@ func (m *InmemSnapshotStore) Open(id string) (*SnapshotMeta, io.ReadCloser, erro
 		return nil, nil, fmt.Errorf("[ERR] snapshot: failed to open snapshot id: %s", id)
 	}
 
-	return &m.latest.meta, ioutil.NopCloser(m.latest.contents), nil
+	// Make a copy of the contents, since a bytes.Buffer can only be read
+	// once.
+	contents := bytes.NewBuffer(m.latest.contents.Bytes())
+	return &m.latest.meta, ioutil.NopCloser(contents), nil
 }
 
 // Write appends the given bytes to the snapshot contents
 func (s *InmemSnapshotSink) Write(p []byte) (n int, err error) {
-	written, err := io.Copy(s.contents, bytes.NewReader(p))
-	s.meta.Size += written
-	return int(written), err
+	written, err := s.contents.Write(p)
+	s.meta.Size += int64(written)
+	return written, err
 }
 
 // Close updates the Size and is otherwise a no-op
@@ -97,10 +100,12 @@ func (s *InmemSnapshotSink) Close() error {
 	return nil
 }
 
+// ID returns the ID of the SnapshotMeta
 func (s *InmemSnapshotSink) ID() string {
 	return s.meta.ID
 }
 
+// Cancel returns successfully with a nil error
 func (s *InmemSnapshotSink) Cancel() error {
 	return nil
 }

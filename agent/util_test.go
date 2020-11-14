@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/pascaldekloe/goe/verify"
+	"github.com/stretchr/testify/require"
 )
 
 func TestStringHash(t *testing.T) {
@@ -31,7 +31,6 @@ func TestSetFilePermissions(t *testing.T) {
 	}
 	tempFile := testutil.TempFile(t, "consul")
 	path := tempFile.Name()
-	defer os.Remove(path)
 
 	// Bad UID fails
 	if err := setFilePermissions(path, "%", "", ""); err == nil {
@@ -121,7 +120,7 @@ func TestDurationFixer(t *testing.T) {
 	}
 
 	// Ensure we only processed the intended fieldnames
-	verify.Values(t, "", obj, expected)
+	require.Equal(t, expected, obj)
 }
 
 // helperProcessSentinel is a sentinel value that is put as the first
@@ -165,7 +164,7 @@ func TestHelperProcess(t *testing.T) {
 
 	defer os.Exit(0)
 	args = args[1:] // strip sentinel value
-	cmd, args := args[0], args[1:]
+	cmd := args[0]
 
 	switch cmd {
 	case "parent-signal":
@@ -202,7 +201,7 @@ func TestHelperProcess(t *testing.T) {
 		limitProcessLifetime(2 * time.Minute)
 
 		ch := make(chan os.Signal, 10)
-		signal.Notify(ch)
+		signal.Notify(ch, forwardSignals...)
 		defer signal.Stop(ch)
 
 		fmt.Fprintf(os.Stdout, "ready\n")

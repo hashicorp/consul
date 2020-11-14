@@ -1,0 +1,7 @@
+basicConstraints = CA:FALSE
+keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = server.dc3.consul
+DNS.2 = bonnie.server.dc3.consul

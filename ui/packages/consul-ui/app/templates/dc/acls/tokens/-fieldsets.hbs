@@ -1,0 +1,23 @@
+<fieldset>
+{{#if create }}
+  <div class="type-toggle">
+    <label>
+      <input type="checkbox" name="Local" checked={{if Local 'checked' }} onchange={{action 'change'}} />
+      <span>Restrict this token to a local datacenter?</span>
+    </label>
+    <em>Local tokens get set in the Raft store of the local DC and do not ever get transmitted to the primary DC or replicated to any other DC.</em>
+  </div>
+{{/if}}
+  <label class="type-text validate-optional">
+    <span>Description (Optional)</span>
+    <textarea name="Description" oninput={{action 'change'}}>{{item.Description}}</textarea>
+  </label>
+</fieldset>
+<fieldset id="roles">
+  <h2>Roles</h2>
+  <RoleSelector @dc={{dc}} @nspace={{nspace}} @items={{item.Roles}} />
+</fieldset>
+<fieldset id="policies">
+  <h2>Policies</h2>
+  <PolicySelector @dc={{dc}} @nspace={{nspace}} @items={{item.Policies}} />
+</fieldset>

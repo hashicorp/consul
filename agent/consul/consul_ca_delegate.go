@@ -15,14 +15,14 @@ func (c *consulCADelegate) State() *state.Store {
 	return c.srv.fsm.State()
 }
 
-func (c *consulCADelegate) ApplyCARequest(req *structs.CARequest) error {
+func (c *consulCADelegate) ApplyCARequest(req *structs.CARequest) (interface{}, error) {
 	resp, err := c.srv.raftApply(structs.ConnectCARequestType, req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if respErr, ok := resp.(error); ok {
-		return respErr
+		return nil, respErr
 	}
 
-	return nil
+	return resp, nil
 }

@@ -1,0 +1,16 @@
+<EventSource @src={{sessions}} />
+<div id="lock-sessions" class="tab-section">
+  <div role="tabpanel">
+{{#if (gt sessions.length 0)}}
+    <Consul::LockSession::List @items={{sessions}} @onInvalidate={{action send 'invalidateSession'}}/>
+{{else}}
+    <EmptyState>
+      <BlockSlot @name="body">
+        <p>
+          There are no Lock Sessions for this Node. For more information, view <a href="{{ env 'CONSUL_DOCS_URL'}}/internals/sessions.html" rel="noopener noreferrer" target="_blank">our documentation</a>
+        </p>
+      </BlockSlot>
+    </EmptyState>
+{{/if}}
+  </div>
+</div>

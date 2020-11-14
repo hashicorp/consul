@@ -4,7 +4,6 @@ Columnize
 Easy column-formatted output for golang
 
 [![Build Status](https://travis-ci.org/ryanuber/columnize.svg)](https://travis-ci.org/ryanuber/columnize)
-[![GoDoc](https://godoc.org/github.com/ryanuber/columnize?status.svg)](https://godoc.org/github.com/ryanuber/columnize)
 
 Columnize is a really small Go package that makes building CLI's a little bit
 easier. In some CLI designs, you want to output a number similar items in a
@@ -66,4 +65,11 @@ config.Empty = ""
 You can then pass the `Config` in using the `Format` method (signature below) to
 have text formatted to your liking.
 
-See the [godoc](https://godoc.org/github.com/ryanuber/columnize) page for usage.
+Usage
+=====
+
+```go
+SimpleFormat(intput []string) string
+
+Format(input []string, config *Config) string
+```

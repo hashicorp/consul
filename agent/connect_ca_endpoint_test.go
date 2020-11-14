@@ -2,17 +2,17 @@ package agent
 
 import (
 	"bytes"
+	"crypto/x509"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/consul/testrpc"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/connect"
-	ca "github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/assert"
 )
@@ -21,7 +21,7 @@ func TestConnectCARoots_empty(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := NewTestAgent(t, t.Name(), "connect { enabled = false }")
+	a := NewTestAgent(t, "connect { enabled = false }")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -36,7 +36,7 @@ func TestConnectCARoots_list(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	a := NewTestAgent(t, t.Name(), "")
+	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
@@ -64,58 +64,230 @@ func TestConnectCARoots_list(t *testing.T) {
 func TestConnectCAConfig(t *testing.T) {
 	t.Parallel()
 
-	assert := assert.New(t)
-	a := NewTestAgent(t, t.Name(), "")
-	defer a.Shutdown()
-	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
-
-	expected := &structs.ConsulCAProviderConfig{
-		RotationPeriod: 90 * 24 * time.Hour,
-	}
-	expected.LeafCertTTL = 72 * time.Hour
-
-	// Get the initial config.
-	{
-		req, _ := http.NewRequest("GET", "/v1/connect/ca/configuration", nil)
-		resp := httptest.NewRecorder()
-		obj, err := a.srv.ConnectCAConfiguration(resp, req)
-		assert.NoError(err)
-
-		value := obj.(structs.CAConfiguration)
-		parsed, err := ca.ParseConsulCAConfig(value.Config)
-		assert.NoError(err)
-		assert.Equal("consul", value.Provider)
-		assert.Equal(expected, parsed)
-	}
-
-	// Set the config.
-	{
-		body := bytes.NewBuffer([]byte(`
+	tests := []struct {
+		name         string
+		initialState string
+		body         string
+		wantErr      bool
+		wantCfg      structs.CAConfiguration
+	}{
 		{
-			"Provider": "consul",
-			"Config": {
-				"LeafCertTTL": "72h",
-				"RotationPeriod": "1h"
+			name: "basic",
+			body: `
+			{
+				"Provider": "consul",
+				"Config": {
+					"LeafCertTTL": "72h",
+					"RotationPeriod": "1h",
+					"IntermediateCertTTL": "288h"
+				}
+			}`,
+			wantErr: false,
+			wantCfg: structs.CAConfiguration{
+				Provider:  "consul",
+				ClusterID: connect.TestClusterID,
+				Config: map[string]interface{}{
+					"LeafCertTTL":         "72h",
+					"RotationPeriod":      "1h",
+					"IntermediateCertTTL": "288h",
+				},
+			},
+		},
+		{
+			name: "basic with IntermediateCertTTL",
+			body: `
+			{
+				"Provider": "consul",
+				"Config": {
+					"LeafCertTTL": "72h",
+					"RotationPeriod": "1h",
+					"IntermediateCertTTL": "288h"
+				}
+			}`,
+			wantErr: false,
+			wantCfg: structs.CAConfiguration{
+				Provider:  "consul",
+				ClusterID: connect.TestClusterID,
+				Config: map[string]interface{}{
+					"LeafCertTTL":         "72h",
+					"RotationPeriod":      "1h",
+					"IntermediateCertTTL": "288h",
+				},
+			},
+		},
+		{
+			name: "force without cross sign CamelCase",
+			body: `
+			{
+				"Provider": "consul",
+				"Config": {
+					"LeafCertTTL": "72h",
+					"RotationPeriod": "1h",
+					"IntermediateCertTTL": "288h"
+				},
+				"ForceWithoutCrossSigning": true
+			}`,
+			wantErr: false,
+			wantCfg: structs.CAConfiguration{
+				Provider:  "consul",
+				ClusterID: connect.TestClusterID,
+				Config: map[string]interface{}{
+					"LeafCertTTL":         "72h",
+					"RotationPeriod":      "1h",
+					"IntermediateCertTTL": "288h",
+				},
+				ForceWithoutCrossSigning: true,
+			},
+		},
+		{
+			name: "force without cross sign snake_case",
+			// Note that config is still CamelCase. We don't currently support snake
+			// case config in the API only in config files for this. Arguably that's a
+			// bug but it's unrelated to the force options being tested here so we'll
+			// only test the new behaviour here rather than scope creep to refactoring
+			// all the CA config handling.
+			body: `
+			{
+				"provider": "consul",
+				"config": {
+					"LeafCertTTL": "72h",
+					"RotationPeriod": "1h",
+					"IntermediateCertTTL": "288h"
+				},
+				"force_without_cross_signing": true
+			}`,
+			wantErr: false,
+			wantCfg: structs.CAConfiguration{
+				Provider:  "consul",
+				ClusterID: connect.TestClusterID,
+				Config: map[string]interface{}{
+					"LeafCertTTL":         "72h",
+					"RotationPeriod":      "1h",
+					"IntermediateCertTTL": "288h",
+				},
+				ForceWithoutCrossSigning: true,
+			},
+		},
+		{
+			name: "setting state fails",
+			body: `
+			{
+				"Provider": "consul",
+				"State": {
+					"foo": "bar"
+				}
+			}`,
+			wantErr: true,
+		},
+		{
+			name:         "updating config with same state",
+			initialState: `foo = "bar"`,
+			body: `
+			{
+				"Provider": "consul",
+				"config": {
+					"LeafCertTTL": "72h",
+					"RotationPeriod": "1h",
+				        "IntermediateCertTTL": "288h"
+				},
+				"State": {
+					"foo": "bar"
+				}
+			}`,
+			wantErr: false,
+			wantCfg: structs.CAConfiguration{
+				Provider:  "consul",
+				ClusterID: connect.TestClusterID,
+				Config: map[string]interface{}{
+					"LeafCertTTL":         "72h",
+					"RotationPeriod":      "1h",
+					"IntermediateCertTTL": "288h",
+				},
+				State: map[string]string{
+					"foo": "bar",
+				},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			require := require.New(t)
+			hcl := ""
+			if tc.initialState != "" {
+				hcl = `
+				connect {
+					enabled = true
+					ca_provider = "consul"
+					ca_config {
+						intermediate_cert_ttl = "288h"
+						test_state {
+							` + tc.initialState + `
+						}
+					}
+				}`
 			}
-		}`))
-		req, _ := http.NewRequest("PUT", "/v1/connect/ca/configuration", body)
-		resp := httptest.NewRecorder()
-		_, err := a.srv.ConnectCAConfiguration(resp, req)
-		assert.NoError(err)
-	}
+			a := NewTestAgent(t, hcl)
+			defer a.Shutdown()
+			testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
-	// The config should be updated now.
-	{
-		expected.RotationPeriod = time.Hour
-		req, _ := http.NewRequest("GET", "/v1/connect/ca/configuration", nil)
-		resp := httptest.NewRecorder()
-		obj, err := a.srv.ConnectCAConfiguration(resp, req)
-		assert.NoError(err)
+			// Set the config.
+			{
+				body := bytes.NewBuffer([]byte(tc.body))
+				req, _ := http.NewRequest("PUT", "/v1/connect/ca/configuration", body)
+				resp := httptest.NewRecorder()
+				_, err := a.srv.ConnectCAConfiguration(resp, req)
+				if tc.wantErr {
+					require.Error(err)
+					return
+				}
+				require.NoError(err)
+			}
+			// The config should be updated now.
+			{
+				req, _ := http.NewRequest("GET", "/v1/connect/ca/configuration", nil)
+				resp := httptest.NewRecorder()
+				obj, err := a.srv.ConnectCAConfiguration(resp, req)
+				require.NoError(err)
 
-		value := obj.(structs.CAConfiguration)
-		parsed, err := ca.ParseConsulCAConfig(value.Config)
-		assert.NoError(err)
-		assert.Equal("consul", value.Provider)
-		assert.Equal(expected, parsed)
+				got := obj.(structs.CAConfiguration)
+				// Reset Raft indexes to make it non flaky
+				got.CreateIndex = 0
+				got.ModifyIndex = 0
+				require.Equal(tc.wantCfg, got)
+			}
+		})
 	}
+}
+
+func TestConnectCARoots_PEMEncoding(t *testing.T) {
+	primary := NewTestAgent(t, "")
+	defer primary.Shutdown()
+	testrpc.WaitForActiveCARoot(t, primary.RPC, "dc1", nil)
+
+	secondary := NewTestAgent(t, `
+		primary_datacenter = "dc1"
+		datacenter = "dc2"
+		retry_join_wan = ["`+primary.Config.SerfBindAddrWAN.String()+`"]
+	`)
+	defer secondary.Shutdown()
+	testrpc.WaitForActiveCARoot(t, secondary.RPC, "dc2", nil)
+
+	req, _ := http.NewRequest("GET", "/v1/connect/ca/roots?pem=true", nil)
+	recorder := httptest.NewRecorder()
+	obj, err := secondary.srv.ConnectCARoots(recorder, req)
+	require.NoError(t, err)
+	require.Nil(t, obj, "Endpoint returned an object for serialization when it should have returned nil and written to the responses")
+	resp := recorder.Result()
+	require.Equal(t, resp.Header.Get("Content-Type"), "application/pem-certificate-chain")
+
+	data, err := ioutil.ReadAll(resp.Body)
+	require.NoError(t, err)
+
+	pool := x509.NewCertPool()
+
+	require.True(t, pool.AppendCertsFromPEM(data))
+	// expecting the root cert from dc1 and an intermediate in dc2
+	require.Len(t, pool.Subjects(), 2)
 }

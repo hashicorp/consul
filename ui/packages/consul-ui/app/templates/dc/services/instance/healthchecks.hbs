@@ -1,0 +1,20 @@
+<div class="tab-section">
+  <div role="tabpanel">
+    {{#if (gt item.Checks.length 0) }}
+      <section data-test-checks>
+        <HealthcheckList
+          @items={{sort-by (comparator 'check' 'Status:asc') (append item.Checks proxy.Checks)}}
+          @exposed={{proxyMeta.ServiceProxy.Expose.Checks}}
+        />
+      </section>
+    {{else}}
+      <EmptyState>
+        <BlockSlot @name="body">
+          <p>
+            This instance has no health checks.
+          </p>
+        </BlockSlot>
+      </EmptyState>
+    {{/if}}
+  </div>
+</div>

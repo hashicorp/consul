@@ -1,7 +1,0 @@
-@import './flash-message/index';
-.flash-message {
-  @extend %flash-message;
-}
-%flash-message.exiting {
-  @extend %blink-in-fade-out;
-}

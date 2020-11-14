@@ -23,15 +23,15 @@ func (c *cmd) Help() string {
 	return flags.Usage(help, nil)
 }
 
-const synopsis = "Manage Consul's ACL Policies"
+const synopsis = "Manage Consul's ACL policies"
 const help = `
 Usage: consul acl policy <subcommand> [options] [args]
 
-  This command has subcommands for managing Consul's ACL Policies.
+  This command has subcommands for managing Consul's ACL policies.
   Here are some simple examples, and more detailed examples are available
   in the subcommands or the documentation.
 
-  Create a new ACL Policy:
+  Create a new ACL policy:
 
       $ consul acl policy create -name "new-policy" \
                                  -description "This is an example policy" \

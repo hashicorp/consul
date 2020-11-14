@@ -18,11 +18,11 @@ work on an issue, comment on it first and tell us the approach you want to take.
 * Report potential bugs.
 * Suggest product enhancements.
 * Increase our test coverage.
-* Fix a [bug](https://github.com/hashicorp/consul/labels/bug).
-* Implement a requested [enhancement](https://github.com/hashicorp/consul/labels/enhancement).
+* Fix a [bug](https://github.com/hashicorp/consul/labels/type/bug).
+* Implement a requested [enhancement](https://github.com/hashicorp/consul/labels/type/enhancement).
 * Improve our guides and documentation. Consul's [Guides](https://www.consul.io/docs/guides/index.html), [Docs](https://www.consul.io/docs/index.html), and [api godoc](https://godoc.org/github.com/hashicorp/consul/api)
 are deployed from this repo.
-* Respond to questions about usage on the issue tracker or mailing list.
+* Respond to questions about usage on the issue tracker or the Consul section of the [HashiCorp forum]: (https://discuss.hashicorp.com/c/consul)
 
 ### Reporting an Issue:
 >Note: Issues on GitHub for Consul are intended to be related to bugs or feature requests. 
@@ -60,12 +60,11 @@ issue. Stale issues will be closed.
 ## Building Consul
 
 If you wish to work on Consul itself, you'll first need [Go](https://golang.org)
-installed (version 1.10+ is _required_). Make sure you have Go properly installed,
-including setting up your [GOPATH](https://golang.org/doc/code.html#GOPATH).
+installed (version 1.14 is _required_).
 
-Next, clone this repository into `$GOPATH/src/github.com/hashicorp/consul` and 
-then run `make dev`. In a few moments, you'll have a working `consul` executable 
-in `consul/bin` and `$GOPATH/bin`:
+
+Next, clone this repository and then run `make dev`. In a few moments, you'll have a working
+`consul` executable in `consul/bin` and `$GOPATH/bin`:
 
 >Note: `make dev` will build for your local machine's os/architecture. If you wish to build for all os/architecture combinations use `make`.
 
@@ -125,7 +124,7 @@ The underlying script dumps the full Consul log output to `test.log` in
 the directory of the target package. In the example above it would be 
 located at `consul/connect/proxy/test.log`. 
 
-Historically, the defaults for `FLAKE_CPUS` (30) and `FLAKE_N` (0.15) have been 
+Historically, the defaults for `FLAKE_CPUS` (0.15) and `FLAKE_N` (30) have been
 sufficient to surface a flaky test. If a test is run in this environment and 
 it does not fail after 30 iterations, it should be sufficiently stable.
 
@@ -136,3 +135,10 @@ Consul currently uses Go Modules for vendoring.
 Please only apply the minimal vendor changes to get your PR to work. 
 Consul does not attempt to track the latest version for each dependency.
 
+## Checklists
+
+Some common changes that many PRs require such as adding config fields, are
+documented through checklists.
+
+Please check in `contributing/` for any `checklist-*.md` files that might help
+with your change.

@@ -23,23 +23,20 @@ const (
 	// service proxies another service within Consul and speaks the connect
 	// protocol.
 	ServiceKindConnectProxy ServiceKind = "connect-proxy"
-)
 
-// ProxyExecMode is the execution mode for a managed Connect proxy.
-type ProxyExecMode string
+	// ServiceKindMeshGateway is a Mesh Gateway for the Connect feature. This
+	// service will proxy connections based off the SNI header set by other
+	// connect proxies
+	ServiceKindMeshGateway ServiceKind = "mesh-gateway"
 
-const (
-	// ProxyExecModeDaemon indicates that the proxy command should be long-running
-	// and should be started and supervised by the agent until it's target service
-	// is deregistered.
-	ProxyExecModeDaemon ProxyExecMode = "daemon"
+	// ServiceKindTerminatingGateway is a Terminating Gateway for the Connect
+	// feature. This service will proxy connections to services outside the mesh.
+	ServiceKindTerminatingGateway ServiceKind = "terminating-gateway"
 
-	// ProxyExecModeScript indicates that the proxy command should be invoke to
-	// completion on each change to the configuration of lifecycle event. The
-	// script typically fetches the config and certificates from the agent API and
-	// then configures an externally managed daemon, perhaps starting and stopping
-	// it if necessary.
-	ProxyExecModeScript ProxyExecMode = "script"
+	// ServiceKindIngressGateway is an Ingress Gateway for the Connect feature.
+	// This service will ingress connections based of configuration defined in
+	// the ingress-gateway config entry.
+	ServiceKindIngressGateway ServiceKind = "ingress-gateway"
 )
 
 // UpstreamDestType is the type of upstream discovery mechanism.
@@ -64,7 +61,9 @@ type AgentCheck struct {
 	Output      string
 	ServiceID   string
 	ServiceName string
+	Type        string
 	Definition  HealthCheckDefinition
+	Namespace   string `json:",omitempty"`
 }
 
 // AgentWeights represent optional weights for a service
@@ -82,15 +81,18 @@ type AgentService struct {
 	Meta              map[string]string
 	Port              int
 	Address           string
+	TaggedAddresses   map[string]ServiceAddress `json:",omitempty"`
 	Weights           AgentWeights
 	EnableTagOverride bool
-	CreateIndex       uint64 `json:",omitempty"`
-	ModifyIndex       uint64 `json:",omitempty"`
-	ContentHash       string `json:",omitempty"`
-	// DEPRECATED (ProxyDestination) - remove this field
-	ProxyDestination string                          `json:",omitempty"`
-	Proxy            *AgentServiceConnectProxyConfig `json:",omitempty"`
-	Connect          *AgentServiceConnect            `json:",omitempty"`
+	CreateIndex       uint64                          `json:",omitempty" bexpr:"-"`
+	ModifyIndex       uint64                          `json:",omitempty" bexpr:"-"`
+	ContentHash       string                          `json:",omitempty" bexpr:"-"`
+	Proxy             *AgentServiceConnectProxyConfig `json:",omitempty"`
+	Connect           *AgentServiceConnect            `json:",omitempty"`
+	// NOTE: If we ever set the ContentHash outside of singular service lookup then we may need
+	// to include the Namespace in the hash. When we do, then we are in for lots of fun with tests.
+	// For now though, ignoring it works well enough.
+	Namespace string `json:",omitempty" bexpr:"-" hash:"ignore"`
 }
 
 // AgentServiceChecksInfo returns information about a Service and its checks
@@ -103,36 +105,91 @@ type AgentServiceChecksInfo struct {
 // AgentServiceConnect represents the Connect configuration of a service.
 type AgentServiceConnect struct {
 	Native         bool                      `json:",omitempty"`
-	Proxy          *AgentServiceConnectProxy `json:",omitempty"`
-	SidecarService *AgentServiceRegistration `json:",omitempty"`
-}
-
-// AgentServiceConnectProxy represents the Connect Proxy configuration of a
-// service.
-type AgentServiceConnectProxy struct {
-	ExecMode  ProxyExecMode          `json:",omitempty"`
-	Command   []string               `json:",omitempty"`
-	Config    map[string]interface{} `json:",omitempty"`
-	Upstreams []Upstream             `json:",omitempty"`
+	SidecarService *AgentServiceRegistration `json:",omitempty" bexpr:"-"`
 }
 
 // AgentServiceConnectProxyConfig is the proxy configuration in a connect-proxy
 // ServiceDefinition or response.
 type AgentServiceConnectProxyConfig struct {
-	DestinationServiceName string
+	DestinationServiceName string                 `json:",omitempty"`
 	DestinationServiceID   string                 `json:",omitempty"`
 	LocalServiceAddress    string                 `json:",omitempty"`
 	LocalServicePort       int                    `json:",omitempty"`
-	Config                 map[string]interface{} `json:",omitempty"`
-	Upstreams              []Upstream
+	Config                 map[string]interface{} `json:",omitempty" bexpr:"-"`
+	Upstreams              []Upstream             `json:",omitempty"`
+	MeshGateway            MeshGatewayConfig      `json:",omitempty"`
+	Expose                 ExposeConfig           `json:",omitempty"`
 }
+
+const (
+	// MemberTagKeyACLMode is the key used to indicate what ACL mode the agent is
+	// operating in. The values of this key will be one of the MemberACLMode constants
+	// with the key not being present indicating ACLModeUnknown.
+	MemberTagKeyACLMode = "acls"
+
+	// MemberTagRole is the key used to indicate that the member is a server or not.
+	MemberTagKeyRole = "role"
+
+	// MemberTagValueRoleServer is the value of the MemberTagKeyRole used to indicate
+	// that the member represents a Consul server.
+	MemberTagValueRoleServer = "consul"
+
+	// MemberTagKeySegment is the key name of the tag used to indicate which network
+	// segment this member is in.
+	// Network Segments are a Consul Enterprise feature.
+	MemberTagKeySegment = "segment"
+
+	// MemberTagKeyBootstrap is the key name of the tag used to indicate whether this
+	// agent was started with the "bootstrap" configuration enabled
+	MemberTagKeyBootstrap = "bootstrap"
+	// MemberTagValueBootstrap is the value of the MemberTagKeyBootstrap key when the
+	// agent was started with the "bootstrap" configuration enabled.
+	MemberTagValueBootstrap = "1"
+
+	// MemberTagKeyBootstrapExpect is the key name of the tag used to indicate whether
+	// this agent was started with the "bootstrap_expect" configuration set to a non-zero
+	// value. The value of this key will be the string for of that configuration value.
+	MemberTagKeyBootstrapExpect = "expect"
+
+	// MemberTagKeyUseTLS is the key name of the tag used to indicate whther this agent
+	// was configured to use TLS.
+	MemberTagKeyUseTLS = "use_tls"
+	// MemberTagValueUseTLS is the value of the MemberTagKeyUseTLS when the agent was
+	// configured to use TLS. Any other value indicates that it was not setup in
+	// that manner.
+	MemberTagValueUseTLS = "1"
+)
+
+type MemberACLMode string
+
+const (
+	// ACLModeDisables indicates that ACLs are disabled for this agent
+	ACLModeDisabled MemberACLMode = "0"
+	// ACLModeEnabled indicates that ACLs are enabled and operating in new ACL
+	// mode (v1.4.0+ ACLs)
+	ACLModeEnabled MemberACLMode = "1"
+	// ACLModeLegacy indicates that ACLs are enabled and operating in legacy mode.
+	ACLModeLegacy MemberACLMode = "2"
+	// ACLModeUnkown is used to indicate that the AgentMember.Tags didn't advertise
+	// an ACL mode at all. This is the case for Consul versions before v1.4.0 and
+	// should be treated similarly to ACLModeLegacy.
+	ACLModeUnknown MemberACLMode = "3"
+)
 
 // AgentMember represents a cluster member known to the agent
 type AgentMember struct {
-	Name        string
-	Addr        string
-	Port        uint16
-	Tags        map[string]string
+	Name string
+	Addr string
+	Port uint16
+	Tags map[string]string
+	// Status of the Member which corresponds to  github.com/hashicorp/serf/serf.MemberStatus
+	// Value is one of:
+	//
+	// 	  AgentMemberNone    = 0
+	//	  AgentMemberAlive   = 1
+	//	  AgentMemberLeaving = 2
+	//	  AgentMemberLeft    = 3
+	//	  AgentMemberFailed  = 4
 	Status      int
 	ProtocolMin uint8
 	ProtocolMax uint8
@@ -140,6 +197,30 @@ type AgentMember struct {
 	DelegateMin uint8
 	DelegateMax uint8
 	DelegateCur uint8
+}
+
+// ACLMode returns the ACL mode this agent is operating in.
+func (m *AgentMember) ACLMode() MemberACLMode {
+	mode := m.Tags[MemberTagKeyACLMode]
+
+	// the key may not have existed but then an
+	// empty string will be returned and we will
+	// handle that in the default case of the switch
+	switch MemberACLMode(mode) {
+	case ACLModeDisabled:
+		return ACLModeDisabled
+	case ACLModeEnabled:
+		return ACLModeEnabled
+	case ACLModeLegacy:
+		return ACLModeLegacy
+	default:
+		return ACLModeUnknown
+	}
+}
+
+// IsConsulServer returns true when this member is a Consul server.
+func (m *AgentMember) IsConsulServer() bool {
+	return m.Tags[MemberTagKeyRole] == MemberTagValueRoleServer
 }
 
 // AllSegments is used to select for all segments in MembersOpts.
@@ -157,21 +238,29 @@ type MembersOpts struct {
 
 // AgentServiceRegistration is used to register a new service
 type AgentServiceRegistration struct {
-	Kind              ServiceKind       `json:",omitempty"`
-	ID                string            `json:",omitempty"`
-	Name              string            `json:",omitempty"`
-	Tags              []string          `json:",omitempty"`
-	Port              int               `json:",omitempty"`
-	Address           string            `json:",omitempty"`
-	EnableTagOverride bool              `json:",omitempty"`
-	Meta              map[string]string `json:",omitempty"`
-	Weights           *AgentWeights     `json:",omitempty"`
+	Kind              ServiceKind               `json:",omitempty"`
+	ID                string                    `json:",omitempty"`
+	Name              string                    `json:",omitempty"`
+	Tags              []string                  `json:",omitempty"`
+	Port              int                       `json:",omitempty"`
+	Address           string                    `json:",omitempty"`
+	TaggedAddresses   map[string]ServiceAddress `json:",omitempty"`
+	EnableTagOverride bool                      `json:",omitempty"`
+	Meta              map[string]string         `json:",omitempty"`
+	Weights           *AgentWeights             `json:",omitempty"`
 	Check             *AgentServiceCheck
 	Checks            AgentServiceChecks
-	// DEPRECATED (ProxyDestination) - remove this field
-	ProxyDestination string                          `json:",omitempty"`
-	Proxy            *AgentServiceConnectProxyConfig `json:",omitempty"`
-	Connect          *AgentServiceConnect            `json:",omitempty"`
+	Proxy             *AgentServiceConnectProxyConfig `json:",omitempty"`
+	Connect           *AgentServiceConnect            `json:",omitempty"`
+	Namespace         string                          `json:",omitempty" bexpr:"-" hash:"ignore"`
+}
+
+//ServiceRegisterOpts is used to pass extra options to the service register.
+type ServiceRegisterOpts struct {
+	//Missing healthchecks will be deleted from the agent.
+	//Using this parameter allows to idempotently register a service and its checks without
+	//having to manually deregister checks.
+	ReplaceExistingChecks bool
 }
 
 // AgentCheckRegistration is used to register a new check
@@ -181,29 +270,33 @@ type AgentCheckRegistration struct {
 	Notes     string `json:",omitempty"`
 	ServiceID string `json:",omitempty"`
 	AgentServiceCheck
+	Namespace string `json:",omitempty"`
 }
 
 // AgentServiceCheck is used to define a node or service level check
 type AgentServiceCheck struct {
-	CheckID           string              `json:",omitempty"`
-	Name              string              `json:",omitempty"`
-	Args              []string            `json:"ScriptArgs,omitempty"`
-	DockerContainerID string              `json:",omitempty"`
-	Shell             string              `json:",omitempty"` // Only supported for Docker.
-	Interval          string              `json:",omitempty"`
-	Timeout           string              `json:",omitempty"`
-	TTL               string              `json:",omitempty"`
-	HTTP              string              `json:",omitempty"`
-	Header            map[string][]string `json:",omitempty"`
-	Method            string              `json:",omitempty"`
-	TCP               string              `json:",omitempty"`
-	Status            string              `json:",omitempty"`
-	Notes             string              `json:",omitempty"`
-	TLSSkipVerify     bool                `json:",omitempty"`
-	GRPC              string              `json:",omitempty"`
-	GRPCUseTLS        bool                `json:",omitempty"`
-	AliasNode         string              `json:",omitempty"`
-	AliasService      string              `json:",omitempty"`
+	CheckID                string              `json:",omitempty"`
+	Name                   string              `json:",omitempty"`
+	Args                   []string            `json:"ScriptArgs,omitempty"`
+	DockerContainerID      string              `json:",omitempty"`
+	Shell                  string              `json:",omitempty"` // Only supported for Docker.
+	Interval               string              `json:",omitempty"`
+	Timeout                string              `json:",omitempty"`
+	TTL                    string              `json:",omitempty"`
+	HTTP                   string              `json:",omitempty"`
+	Header                 map[string][]string `json:",omitempty"`
+	Method                 string              `json:",omitempty"`
+	Body                   string              `json:",omitempty"`
+	TCP                    string              `json:",omitempty"`
+	Status                 string              `json:",omitempty"`
+	Notes                  string              `json:",omitempty"`
+	TLSSkipVerify          bool                `json:",omitempty"`
+	GRPC                   string              `json:",omitempty"`
+	GRPCUseTLS             bool                `json:",omitempty"`
+	AliasNode              string              `json:",omitempty"`
+	AliasService           string              `json:",omitempty"`
+	SuccessBeforePassing   int                 `json:",omitempty"`
+	FailuresBeforeCritical int                 `json:",omitempty"`
 
 	// In Consul 0.7 and later, checks that are associated with a service
 	// may also contain this optional DeregisterCriticalServiceAfter field,
@@ -276,12 +369,8 @@ type ConnectProxyConfig struct {
 	TargetServiceID   string
 	TargetServiceName string
 	ContentHash       string
-	// DEPRECATED(managed-proxies) - this struct is re-used for sidecar configs
-	// but they don't need ExecMode or Command
-	ExecMode  ProxyExecMode `json:",omitempty"`
-	Command   []string      `json:",omitempty"`
-	Config    map[string]interface{}
-	Upstreams []Upstream
+	Config            map[string]interface{} `bexpr:"-"`
+	Upstreams         []Upstream
 }
 
 // Upstream is the response structure for a proxy upstream configuration.
@@ -292,7 +381,8 @@ type Upstream struct {
 	Datacenter           string                 `json:",omitempty"`
 	LocalBindAddress     string                 `json:",omitempty"`
 	LocalBindPort        int                    `json:",omitempty"`
-	Config               map[string]interface{} `json:",omitempty"`
+	Config               map[string]interface{} `json:",omitempty" bexpr:"-"`
+	MeshGateway          MeshGatewayConfig      `json:",omitempty"`
 }
 
 // Agent can be used to query the Agent endpoints
@@ -387,7 +477,14 @@ func (a *Agent) NodeName() (string, error) {
 
 // Checks returns the locally registered checks
 func (a *Agent) Checks() (map[string]*AgentCheck, error) {
+	return a.ChecksWithFilter("")
+}
+
+// ChecksWithFilter returns a subset of the locally registered checks that match
+// the given filter expression
+func (a *Agent) ChecksWithFilter(filter string) (map[string]*AgentCheck, error) {
 	r := a.c.newRequest("GET", "/v1/agent/checks")
+	r.filterQuery(filter)
 	_, resp, err := requireOK(a.c.doRequest(r))
 	if err != nil {
 		return nil, err
@@ -403,7 +500,14 @@ func (a *Agent) Checks() (map[string]*AgentCheck, error) {
 
 // Services returns the locally registered services
 func (a *Agent) Services() (map[string]*AgentService, error) {
+	return a.ServicesWithFilter("")
+}
+
+// ServicesWithFilter returns a subset of the locally registered services that match
+// the given filter expression
+func (a *Agent) ServicesWithFilter(filter string) (map[string]*AgentService, error) {
 	r := a.c.newRequest("GET", "/v1/agent/services")
+	r.filterQuery(filter)
 	_, resp, err := requireOK(a.c.doRequest(r))
 	if err != nil {
 		return nil, err
@@ -557,8 +661,25 @@ func (a *Agent) MembersOpts(opts MembersOpts) ([]*AgentMember, error) {
 // ServiceRegister is used to register a new service with
 // the local agent
 func (a *Agent) ServiceRegister(service *AgentServiceRegistration) error {
+	opts := ServiceRegisterOpts{
+		ReplaceExistingChecks: false,
+	}
+
+	return a.serviceRegister(service, opts)
+}
+
+// ServiceRegister is used to register a new service with
+// the local agent and can be passed additional options.
+func (a *Agent) ServiceRegisterOpts(service *AgentServiceRegistration, opts ServiceRegisterOpts) error {
+	return a.serviceRegister(service, opts)
+}
+
+func (a *Agent) serviceRegister(service *AgentServiceRegistration, opts ServiceRegisterOpts) error {
 	r := a.c.newRequest("PUT", "/v1/agent/service/register")
 	r.obj = service
+	if opts.ReplaceExistingChecks {
+		r.params.Set("replace-existing-checks", "true")
+	}
 	_, resp, err := requireOK(a.c.doRequest(r))
 	if err != nil {
 		return err
@@ -741,6 +862,19 @@ func (a *Agent) ForceLeave(node string) error {
 	return nil
 }
 
+//ForceLeavePrune is used to have an a failed agent removed
+//from the list of members
+func (a *Agent) ForceLeavePrune(node string) error {
+	r := a.c.newRequest("PUT", "/v1/agent/force-leave/"+node)
+	r.params.Set("prune", "1")
+	_, resp, err := requireOK(a.c.doRequest(r))
+	if err != nil {
+		return err
+	}
+	resp.Body.Close()
+	return nil
+}
+
 // ConnectAuthorize is used to authorize an incoming connection
 // to a natively integrated Connect service.
 func (a *Agent) ConnectAuthorize(auth *AgentAuthorizeParams) (*AgentAuthorize, error) {
@@ -795,31 +929,6 @@ func (a *Agent) ConnectCALeaf(serviceID string, q *QueryOptions) (*LeafCert, *Qu
 	qm.RequestTime = rtt
 
 	var out LeafCert
-	if err := decodeBody(resp, &out); err != nil {
-		return nil, nil, err
-	}
-	return &out, qm, nil
-}
-
-// ConnectProxyConfig gets the configuration for a local managed proxy instance.
-//
-// Note that this uses an unconventional blocking mechanism since it's
-// agent-local state. That means there is no persistent raft index so we block
-// based on object hash instead.
-func (a *Agent) ConnectProxyConfig(proxyServiceID string, q *QueryOptions) (*ConnectProxyConfig, *QueryMeta, error) {
-	r := a.c.newRequest("GET", "/v1/agent/connect/proxy/"+proxyServiceID)
-	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(a.c.doRequest(r))
-	if err != nil {
-		return nil, nil, err
-	}
-	defer resp.Body.Close()
-
-	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
-	qm.RequestTime = rtt
-
-	var out ConnectProxyConfig
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, nil, err
 	}
@@ -885,20 +994,29 @@ func (a *Agent) DisableNodeMaintenance() error {
 // log stream. An empty string will be sent down the given channel when there's
 // nothing left to stream, after which the caller should close the stopCh.
 func (a *Agent) Monitor(loglevel string, stopCh <-chan struct{}, q *QueryOptions) (chan string, error) {
+	return a.monitor(loglevel, false, stopCh, q)
+}
+
+// MonitorJSON is like Monitor except it returns logs in JSON format.
+func (a *Agent) MonitorJSON(loglevel string, stopCh <-chan struct{}, q *QueryOptions) (chan string, error) {
+	return a.monitor(loglevel, true, stopCh, q)
+}
+func (a *Agent) monitor(loglevel string, logJSON bool, stopCh <-chan struct{}, q *QueryOptions) (chan string, error) {
 	r := a.c.newRequest("GET", "/v1/agent/monitor")
 	r.setQueryOptions(q)
 	if loglevel != "" {
 		r.params.Add("loglevel", loglevel)
 	}
+	if logJSON {
+		r.params.Set("logjson", "true")
+	}
 	_, resp, err := requireOK(a.c.doRequest(r))
 	if err != nil {
 		return nil, err
 	}
-
 	logCh := make(chan string, 64)
 	go func() {
 		defer resp.Body.Close()
-
 		scanner := bufio.NewScanner(resp.Body)
 		for {
 			select {
@@ -922,7 +1040,6 @@ func (a *Agent) Monitor(loglevel string, stopCh <-chan struct{}, q *QueryOptions
 			}
 		}
 	}()
-
 	return logCh, nil
 }
 

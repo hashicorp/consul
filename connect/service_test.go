@@ -18,8 +18,8 @@ import (
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/stretchr/testify/require"
 )
 
@@ -127,7 +127,11 @@ func TestService_Dial(t *testing.T) {
 func TestService_ServerTLSConfig(t *testing.T) {
 	require := require.New(t)
 
-	a := agent.NewTestAgent(t, "007", "")
+	a := agent.StartTestAgent(t, agent.TestAgent{Name: "007", Overrides: `
+		connect {
+			test_ca_leaf_root_change_spread = "1ns"
+		}
+	`})
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 	client := a.Client()
@@ -135,7 +139,7 @@ func TestService_ServerTLSConfig(t *testing.T) {
 
 	// NewTestAgent setup a CA already by default
 
-	// Register a local agent service with a managed proxy
+	// Register a local agent service
 	reg := &api.AgentServiceRegistration{
 		Name: "web",
 		Port: 8080,
@@ -181,8 +185,8 @@ func TestService_ServerTLSConfig(t *testing.T) {
 	// After some time, both root and leaves should be different but both should
 	// still be correct.
 	oldRootSubjects := bytes.Join(tlsCfg.RootCAs.Subjects(), []byte(", "))
-	oldLeafSerial := connect.HexString(cert.SerialNumber.Bytes())
-	oldLeafKeyID := connect.HexString(cert.SubjectKeyId)
+	oldLeafSerial := cert.SerialNumber
+	oldLeafKeyID := cert.SubjectKeyId
 	retry.Run(t, func(r *retry.R) {
 		updatedCfg := service.ServerTLSConfig()
 
@@ -198,13 +202,13 @@ func TestService_ServerTLSConfig(t *testing.T) {
 		cert, err := x509.ParseCertificate(leaf.Certificate[0])
 		r.Check(err)
 
-		if oldLeafSerial == connect.HexString(cert.SerialNumber.Bytes()) {
+		if oldLeafSerial.Cmp(cert.SerialNumber) == 0 {
 			r.Fatalf("leaf certificate should have changed, got serial %s",
-				oldLeafSerial)
+				connect.EncodeSerialNumber(oldLeafSerial))
 		}
-		if oldLeafKeyID == connect.HexString(cert.SubjectKeyId) {
+		if bytes.Equal(oldLeafKeyID, cert.SubjectKeyId) {
 			r.Fatalf("leaf should have a different key, got matching SubjectKeyID = %s",
-				oldLeafKeyID)
+				connect.HexString(oldLeafKeyID))
 		}
 	})
 }

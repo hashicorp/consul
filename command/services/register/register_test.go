@@ -63,7 +63,7 @@ func TestCommand_File(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -96,7 +96,7 @@ func TestCommand_Flags(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -116,6 +116,78 @@ func TestCommand_Flags(t *testing.T) {
 
 	svc := svcs["web"]
 	require.NotNil(svc)
+}
+
+func TestCommand_Flags_TaggedAddresses(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	a := agent.NewTestAgent(t, ``)
+	defer a.Shutdown()
+	client := a.Client()
+
+	ui := cli.NewMockUi()
+	c := New(ui)
+
+	args := []string{
+		"-http-addr=" + a.HTTPAddr(),
+		"-name", "web",
+		"-tagged-address", "lan=127.0.0.1:1234",
+		"-tagged-address", "v6=[2001:db8::12]:1234",
+	}
+
+	require.Equal(0, c.Run(args), ui.ErrorWriter.String())
+
+	svcs, err := client.Agent().Services()
+	require.NoError(err)
+	require.Len(svcs, 1)
+
+	svc := svcs["web"]
+	require.NotNil(svc)
+	require.Len(svc.TaggedAddresses, 2)
+	require.Contains(svc.TaggedAddresses, "lan")
+	require.Contains(svc.TaggedAddresses, "v6")
+	require.Equal(svc.TaggedAddresses["lan"].Address, "127.0.0.1")
+	require.Equal(svc.TaggedAddresses["lan"].Port, 1234)
+	require.Equal(svc.TaggedAddresses["v6"].Address, "2001:db8::12")
+	require.Equal(svc.TaggedAddresses["v6"].Port, 1234)
+}
+
+func TestCommand_FileWithUnnamedCheck(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	a := agent.NewTestAgent(t, ``)
+	defer a.Shutdown()
+	client := a.Client()
+
+	ui := cli.NewMockUi()
+	c := New(ui)
+
+	contents := `{ "Service": { "Name": "web", "Check": { "TTL": "10s" } } }`
+	f := testFile(t, "json")
+	defer os.Remove(f.Name())
+	if _, err := f.WriteString(contents); err != nil {
+		t.Fatalf("err: %#v", err)
+	}
+
+	args := []string{
+		"-http-addr=" + a.HTTPAddr(),
+		f.Name(),
+	}
+
+	require.Equal(0, c.Run(args), ui.ErrorWriter.String())
+
+	svcs, err := client.Agent().Services()
+	require.NoError(err)
+	require.Len(svcs, 1)
+
+	svc := svcs["web"]
+	require.NotNil(svc)
+
+	checks, err := client.Agent().Checks()
+	require.NoError(err)
+	require.Len(checks, 1)
 }
 
 func testFile(t *testing.T, suffix string) *os.File {

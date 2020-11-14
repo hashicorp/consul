@@ -1,0 +1,3 @@
+```release-note:improvement
+agent: Return HTTP 429 when connections per clients limit (`limits.http_max_conns_per_client`) has been reached.
+```

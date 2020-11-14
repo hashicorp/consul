@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
-	"os"
 	"strings"
 
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/tls"
+	"github.com/hashicorp/consul/lib/file"
+	"github.com/hashicorp/consul/tlsutil"
 	"github.com/mitchellh/cli"
 )
 
@@ -32,6 +33,7 @@ type cmd struct {
 	days        int
 	domain      string
 	help        string
+	node        string
 	dnsnames    flags.AppendSliceValue
 	ipaddresses flags.AppendSliceValue
 	prefix      string
@@ -43,6 +45,7 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.key, "key", "#DOMAIN#-agent-ca-key.pem", "Provide path to the key. Defaults to #DOMAIN#-agent-ca-key.pem.")
 	c.flags.BoolVar(&c.server, "server", false, "Generate server certificate.")
 	c.flags.BoolVar(&c.client, "client", false, "Generate client certificate.")
+	c.flags.StringVar(&c.node, "node", "", "When generating a server cert and this is set an additional dns name is included of the form <node>.server.<datacenter>.<domain>.")
 	c.flags.BoolVar(&c.cli, "cli", false, "Generate cli certificate.")
 	c.flags.IntVar(&c.days, "days", 365, "Provide number of days the certificate is valid for from now on. Defaults to 1 year.")
 	c.flags.StringVar(&c.dc, "dc", "dc1", "Provide the datacenter. Matters only for -server certificates. Defaults to dc1.")
@@ -78,6 +81,11 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
+	if c.node != "" && !c.server {
+		c.UI.Error("-node requires -server")
+		return 1
+	}
+
 	var DNSNames []string
 	var IPAddresses []net.IP
 	var extKeyUsage []x509.ExtKeyUsage
@@ -97,10 +105,18 @@ func (c *cmd) Run(args []string) int {
 
 	if c.server {
 		name = fmt.Sprintf("server.%s.%s", c.dc, c.domain)
-		DNSNames = append(DNSNames, []string{name, "localhost"}...)
+
+		if c.node != "" {
+			nodeName := fmt.Sprintf("%s.server.%s.%s", c.node, c.dc, c.domain)
+			DNSNames = append(DNSNames, nodeName)
+		}
+		DNSNames = append(DNSNames, name)
+		DNSNames = append(DNSNames, "localhost")
+
 		IPAddresses = append(IPAddresses, net.ParseIP("127.0.0.1"))
 		extKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth}
 		prefix = fmt.Sprintf("%s-server-%s", c.dc, c.domain)
+
 	} else if c.client {
 		name = fmt.Sprintf("client.%s.%s", c.dc, c.domain)
 		DNSNames = append(DNSNames, []string{name, "localhost"}...)
@@ -154,43 +170,39 @@ func (c *cmd) Run(args []string) int {
 	}
 	c.UI.Info("==> Using " + caFile + " and " + keyFile)
 
-	signer, err := tls.ParseSigner(string(key))
+	signer, err := tlsutil.ParseSigner(string(key))
 	if err != nil {
 		c.UI.Error(err.Error())
 		return 1
 	}
 
-	sn, err := tls.GenerateSerialNumber()
+	sn, err := tlsutil.GenerateSerialNumber()
 	if err != nil {
 		c.UI.Error(err.Error())
 		return 1
 	}
 
-	pub, priv, err := tls.GenerateCert(signer, string(cert), sn, name, c.days, DNSNames, IPAddresses, extKeyUsage)
+	pub, priv, err := tlsutil.GenerateCert(signer, string(cert), sn, name, c.days, DNSNames, IPAddresses, extKeyUsage)
 	if err != nil {
 		c.UI.Error(err.Error())
 		return 1
 	}
 
-	if err = tls.Verify(string(cert), pub, name); err != nil {
-		c.UI.Error("==> " + err.Error())
-		return 1
-	}
-
-	certFile, err := os.Create(certFileName)
-	if err != nil {
+	if err = tlsutil.Verify(string(cert), pub, name); err != nil {
 		c.UI.Error(err.Error())
 		return 1
 	}
-	certFile.WriteString(pub)
+
+	if err := file.WriteAtomicWithPerms(certFileName, []byte(pub), 0755, 0666); err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
 	c.UI.Output("==> Saved " + certFileName)
 
-	pkFile, err := os.Create(pkFileName)
-	if err != nil {
+	if err := file.WriteAtomicWithPerms(pkFileName, []byte(priv), 0755, 0666); err != nil {
 		c.UI.Error(err.Error())
 		return 1
 	}
-	pkFile.WriteString(priv)
 	c.UI.Output("==> Saved " + pkFileName)
 
 	return 0
@@ -216,10 +228,10 @@ Usage: consul tls cert create [options]
       and all ACL tokens. Do not distribute them to production hosts
       that are not server nodes. Store them as securely as CA keys.
   ==> Using consul-agent-ca.pem and consul-agent-ca-key.pem
-  ==> Saved consul-server-dc1-0.pem
-  ==> Saved consul-server-dc1-0-key.pem
-  $ consul tls cert -client
+  ==> Saved dc1-server-consul-0.pem
+  ==> Saved dc1-server-consul-0-key.pem
+  $ consul tls cert create -client
   ==> Using consul-agent-ca.pem and consul-agent-ca-key.pem
-  ==> Saved consul-client-dc1-0.pem
-  ==> Saved consul-client-dc1-0-key.pem
+  ==> Saved dc1-client-consul-0.pem
+  ==> Saved dc1-client-consul-0-key.pem
 `

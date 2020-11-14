@@ -46,10 +46,10 @@ func TestAPI_OperatorAutopilotCASConfiguration(t *testing.T) {
 		operator := c.Operator()
 		config, err := operator.AutopilotGetConfiguration(nil)
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			r.Fatalf("err: %v", err)
 		}
 		if !config.CleanupDeadServers {
-			t.Fatalf("bad: %v", config)
+			r.Fatalf("bad: %v", config)
 		}
 
 		// Pass an invalid ModifyIndex
@@ -60,10 +60,10 @@ func TestAPI_OperatorAutopilotCASConfiguration(t *testing.T) {
 			}
 			resp, err := operator.AutopilotCASConfiguration(newConf, nil)
 			if err != nil {
-				t.Fatalf("err: %v", err)
+				r.Fatalf("err: %v", err)
 			}
 			if resp {
-				t.Fatalf("bad: %v", resp)
+				r.Fatalf("bad: %v", resp)
 			}
 		}
 
@@ -75,10 +75,10 @@ func TestAPI_OperatorAutopilotCASConfiguration(t *testing.T) {
 			}
 			resp, err := operator.AutopilotCASConfiguration(newConf, nil)
 			if err != nil {
-				t.Fatalf("err: %v", err)
+				r.Fatalf("err: %v", err)
 			}
 			if !resp {
-				t.Fatalf("bad: %v", resp)
+				r.Fatalf("bad: %v", resp)
 			}
 		}
 	})
@@ -101,6 +101,24 @@ func TestAPI_OperatorAutopilotServerHealth(t *testing.T) {
 		if len(out.Servers) != 1 ||
 			!out.Servers[0].Healthy ||
 			out.Servers[0].Name != s.Config.NodeName {
+			r.Fatalf("bad: %v", out)
+		}
+	})
+}
+
+func TestAPI_OperatorAutopilotState(t *testing.T) {
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	operator := c.Operator()
+	retry.Run(t, func(r *retry.R) {
+		out, err := operator.AutopilotState(nil)
+		if err != nil {
+			r.Fatalf("err: %v", err)
+		}
+
+		srv, ok := out.Servers[s.Config.NodeID]
+		if !ok || !srv.Healthy || srv.Name != s.Config.NodeName {
 			r.Fatalf("bad: %v", out)
 		}
 	})

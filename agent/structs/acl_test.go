@@ -11,20 +11,18 @@ import (
 )
 
 func TestStructs_ACLToken_PolicyIDs(t *testing.T) {
-	t.Parallel()
 
 	t.Run("Basic", func(t *testing.T) {
-		t.Parallel()
 
 		token := &ACLToken{
 			Policies: []ACLTokenPolicyLink{
-				ACLTokenPolicyLink{
+				{
 					ID: "one",
 				},
-				ACLTokenPolicyLink{
+				{
 					ID: "two",
 				},
-				ACLTokenPolicyLink{
+				{
 					ID: "three",
 				},
 			},
@@ -38,7 +36,6 @@ func TestStructs_ACLToken_PolicyIDs(t *testing.T) {
 	})
 
 	t.Run("Legacy Management", func(t *testing.T) {
-		t.Parallel()
 
 		a := &ACL{
 			ID:   "root",
@@ -57,7 +54,6 @@ func TestStructs_ACLToken_PolicyIDs(t *testing.T) {
 	})
 
 	t.Run("Legacy Management With Rules", func(t *testing.T) {
-		t.Parallel()
 
 		a := &ACL{
 			ID:    "root",
@@ -77,7 +73,6 @@ func TestStructs_ACLToken_PolicyIDs(t *testing.T) {
 	})
 
 	t.Run("No Policies", func(t *testing.T) {
-		t.Parallel()
 
 		token := &ACLToken{}
 
@@ -87,17 +82,14 @@ func TestStructs_ACLToken_PolicyIDs(t *testing.T) {
 }
 
 func TestStructs_ACLToken_EmbeddedPolicy(t *testing.T) {
-	t.Parallel()
 
 	t.Run("No Rules", func(t *testing.T) {
-		t.Parallel()
 
 		token := &ACLToken{}
 		require.Nil(t, token.EmbeddedPolicy())
 	})
 
 	t.Run("Legacy Client", func(t *testing.T) {
-		t.Parallel()
 
 		// None of the other fields should be considered
 		token := &ACLToken{
@@ -116,7 +108,6 @@ func TestStructs_ACLToken_EmbeddedPolicy(t *testing.T) {
 	})
 
 	t.Run("Same Policy for Tokens with same Rules", func(t *testing.T) {
-		t.Parallel()
 
 		token1 := &ACLToken{
 			AccessorID:  "f55b260c-5e05-418e-ab19-d421d1ab4b52",
@@ -140,21 +131,61 @@ func TestStructs_ACLToken_EmbeddedPolicy(t *testing.T) {
 	})
 }
 
+func TestStructs_ACLServiceIdentity_SyntheticPolicy(t *testing.T) {
+
+	cases := []struct {
+		serviceName string
+		datacenters []string
+		expectRules string
+	}{
+		{"web", nil, aclServiceIdentityRules("web", nil)},
+		{"companion-cube-99", []string{"dc1", "dc2"}, aclServiceIdentityRules("companion-cube-99", nil)},
+	}
+
+	for _, test := range cases {
+		name := test.serviceName
+		if len(test.datacenters) > 0 {
+			name += " [" + strings.Join(test.datacenters, ", ") + "]"
+		}
+		t.Run(name, func(t *testing.T) {
+			svcid := &ACLServiceIdentity{
+				ServiceName: test.serviceName,
+				Datacenters: test.datacenters,
+			}
+
+			expect := &ACLPolicy{
+				Syntax:      acl.SyntaxCurrent,
+				Datacenters: test.datacenters,
+				Description: "synthetic policy",
+				Rules:       test.expectRules,
+			}
+
+			got := svcid.SyntheticPolicy(nil)
+			require.NotEmpty(t, got.ID)
+			require.True(t, strings.HasPrefix(got.Name, "synthetic-policy-"))
+			// strip irrelevant fields before equality
+			got.ID = ""
+			got.Name = ""
+			got.Hash = nil
+			require.Equal(t, expect, got)
+		})
+	}
+}
+
 func TestStructs_ACLToken_SetHash(t *testing.T) {
-	t.Parallel()
 
 	token := ACLToken{
 		AccessorID:  "09d1c059-961a-46bd-a2e4-76adebe35fa5",
 		SecretID:    "65e98e67-9b29-470c-8ffa-7c5a23cc67c8",
 		Description: "test",
 		Policies: []ACLTokenPolicyLink{
-			ACLTokenPolicyLink{
+			{
 				ID: "one",
 			},
-			ACLTokenPolicyLink{
+			{
 				ID: "two",
 			},
-			ACLTokenPolicyLink{
+			{
 				ID: "three",
 			},
 		},
@@ -186,7 +217,6 @@ func TestStructs_ACLToken_SetHash(t *testing.T) {
 }
 
 func TestStructs_ACLToken_EstimateSize(t *testing.T) {
-	t.Parallel()
 
 	// estimated size here should
 	token := ACLToken{
@@ -194,13 +224,13 @@ func TestStructs_ACLToken_EstimateSize(t *testing.T) {
 		SecretID:    "65e98e67-9b29-470c-8ffa-7c5a23cc67c8",
 		Description: "test",
 		Policies: []ACLTokenPolicyLink{
-			ACLTokenPolicyLink{
+			{
 				ID: "one",
 			},
-			ACLTokenPolicyLink{
+			{
 				ID: "two",
 			},
-			ACLTokenPolicyLink{
+			{
 				ID: "three",
 			},
 		},
@@ -208,27 +238,25 @@ func TestStructs_ACLToken_EstimateSize(t *testing.T) {
 
 	// this test is very contrived. Basically just tests that the
 	// math is okay and returns the value.
-	require.Equal(t, 120, token.EstimateSize())
+	require.Equal(t, 128, token.EstimateSize())
 }
 
 func TestStructs_ACLToken_Stub(t *testing.T) {
-	t.Parallel()
 
 	t.Run("Basic", func(t *testing.T) {
-		t.Parallel()
 
 		token := ACLToken{
 			AccessorID:  "09d1c059-961a-46bd-a2e4-76adebe35fa5",
 			SecretID:    "65e98e67-9b29-470c-8ffa-7c5a23cc67c8",
 			Description: "test",
 			Policies: []ACLTokenPolicyLink{
-				ACLTokenPolicyLink{
+				{
 					ID: "one",
 				},
-				ACLTokenPolicyLink{
+				{
 					ID: "two",
 				},
-				ACLTokenPolicyLink{
+				{
 					ID: "three",
 				},
 			},
@@ -248,7 +276,6 @@ func TestStructs_ACLToken_Stub(t *testing.T) {
 	})
 
 	t.Run("Legacy", func(t *testing.T) {
-		t.Parallel()
 		token := ACLToken{
 			AccessorID:  "09d1c059-961a-46bd-a2e4-76adebe35fa5",
 			SecretID:    "65e98e67-9b29-470c-8ffa-7c5a23cc67c8",
@@ -271,7 +298,6 @@ func TestStructs_ACLToken_Stub(t *testing.T) {
 }
 
 func TestStructs_ACLTokens_Sort(t *testing.T) {
-	t.Parallel()
 
 	tokens := ACLTokens{
 		&ACLToken{
@@ -296,7 +322,6 @@ func TestStructs_ACLTokens_Sort(t *testing.T) {
 }
 
 func TestStructs_ACLTokenListStubs_Sort(t *testing.T) {
-	t.Parallel()
 
 	tokens := ACLTokenListStubs{
 		&ACLTokenListStub{
@@ -321,7 +346,6 @@ func TestStructs_ACLTokenListStubs_Sort(t *testing.T) {
 }
 
 func TestStructs_ACLPolicy_Stub(t *testing.T) {
-	t.Parallel()
 
 	policy := &ACLPolicy{
 		ID:          "09d1c059-961a-46bd-a2e4-76adebe35fa5",
@@ -342,7 +366,6 @@ func TestStructs_ACLPolicy_Stub(t *testing.T) {
 }
 
 func TestStructs_ACLPolicy_SetHash(t *testing.T) {
-	t.Parallel()
 
 	policy := &ACLPolicy{
 		ID:          "09d1c059-961a-46bd-a2e4-76adebe35fa5",
@@ -377,7 +400,6 @@ func TestStructs_ACLPolicy_SetHash(t *testing.T) {
 }
 
 func TestStructs_ACLPolicy_EstimateSize(t *testing.T) {
-	t.Parallel()
 
 	policy := ACLPolicy{
 		ID:          "09d1c059-961a-46bd-a2e4-76adebe35fa5",
@@ -394,7 +416,6 @@ func TestStructs_ACLPolicy_EstimateSize(t *testing.T) {
 }
 
 func TestStructs_ACLPolicies_Sort(t *testing.T) {
-	t.Parallel()
 
 	policies := ACLPolicies{
 		&ACLPolicy{
@@ -419,7 +440,6 @@ func TestStructs_ACLPolicies_Sort(t *testing.T) {
 }
 
 func TestStructs_ACLPolicyListStubs_Sort(t *testing.T) {
-	t.Parallel()
 
 	policies := ACLPolicyListStubs{
 		&ACLPolicyListStub{
@@ -444,13 +464,13 @@ func TestStructs_ACLPolicyListStubs_Sort(t *testing.T) {
 }
 
 func TestStructs_ACLPolicies_resolveWithCache(t *testing.T) {
-	t.Parallel()
 
 	config := ACLCachesConfig{
 		Identities:     0,
 		Policies:       0,
 		ParsedPolicies: 4,
 		Authorizers:    0,
+		Roles:          0,
 	}
 	cache, err := NewACLCaches(&config)
 	require.NoError(t, err)
@@ -536,13 +556,13 @@ func TestStructs_ACLPolicies_resolveWithCache(t *testing.T) {
 }
 
 func TestStructs_ACLPolicies_Compile(t *testing.T) {
-	t.Parallel()
 
 	config := ACLCachesConfig{
 		Identities:     0,
 		Policies:       0,
 		ParsedPolicies: 4,
 		Authorizers:    2,
+		Roles:          0,
 	}
 	cache, err := NewACLCaches(&config)
 	require.NoError(t, err)
@@ -595,15 +615,15 @@ func TestStructs_ACLPolicies_Compile(t *testing.T) {
 	}
 
 	t.Run("Cache Miss", func(t *testing.T) {
-		authz, err := testPolicies.Compile(acl.DenyAll(), cache, nil)
+		authz, err := testPolicies.Compile(cache, nil)
 		require.NoError(t, err)
 		require.NotNil(t, authz)
 
-		require.True(t, authz.NodeRead("foo"))
-		require.True(t, authz.AgentRead("foo"))
-		require.True(t, authz.KeyRead("foo"))
-		require.True(t, authz.ServiceRead("foo"))
-		require.False(t, authz.ACLRead())
+		require.Equal(t, acl.Allow, authz.NodeRead("foo", nil))
+		require.Equal(t, acl.Allow, authz.AgentRead("foo", nil))
+		require.Equal(t, acl.Allow, authz.KeyRead("foo", nil))
+		require.Equal(t, acl.Allow, authz.ServiceRead("foo", nil))
+		require.Equal(t, acl.Default, authz.ACLRead(nil))
 	})
 
 	t.Run("Check Cache", func(t *testing.T) {
@@ -612,26 +632,26 @@ func TestStructs_ACLPolicies_Compile(t *testing.T) {
 		authz := entry.Authorizer
 		require.NotNil(t, authz)
 
-		require.True(t, authz.NodeRead("foo"))
-		require.True(t, authz.AgentRead("foo"))
-		require.True(t, authz.KeyRead("foo"))
-		require.True(t, authz.ServiceRead("foo"))
-		require.False(t, authz.ACLRead())
+		require.Equal(t, acl.Allow, authz.NodeRead("foo", nil))
+		require.Equal(t, acl.Allow, authz.AgentRead("foo", nil))
+		require.Equal(t, acl.Allow, authz.KeyRead("foo", nil))
+		require.Equal(t, acl.Allow, authz.ServiceRead("foo", nil))
+		require.Equal(t, acl.Default, authz.ACLRead(nil))
 
 		// setup the cache for the next test
 		cache.PutAuthorizer(testPolicies.HashKey(), acl.DenyAll())
 	})
 
 	t.Run("Cache Hit", func(t *testing.T) {
-		authz, err := testPolicies.Compile(acl.DenyAll(), cache, nil)
+		authz, err := testPolicies.Compile(cache, nil)
 		require.NoError(t, err)
 		require.NotNil(t, authz)
 
-		// we reset the Authorizer in the cache so now everything should be denied
-		require.False(t, authz.NodeRead("foo"))
-		require.False(t, authz.AgentRead("foo"))
-		require.False(t, authz.KeyRead("foo"))
-		require.False(t, authz.ServiceRead("foo"))
-		require.False(t, authz.ACLRead())
+		// we reset the Authorizer in the cache so now everything should be defaulted
+		require.Equal(t, acl.Deny, authz.NodeRead("foo", nil))
+		require.Equal(t, acl.Deny, authz.AgentRead("foo", nil))
+		require.Equal(t, acl.Deny, authz.KeyRead("foo", nil))
+		require.Equal(t, acl.Deny, authz.ServiceRead("foo", nil))
+		require.Equal(t, acl.Deny, authz.ACLRead(nil))
 	})
 }

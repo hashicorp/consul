@@ -1,14 +1,16 @@
 package consul
 
 import (
-	"os"
 	"reflect"
 	"testing"
 
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/raft"
+
 	consulfsm "github.com/hashicorp/consul/agent/consul/fsm"
+	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/raft"
 )
 
 func makeLog(buf []byte) *raft.Log {
@@ -23,10 +25,12 @@ func makeLog(buf []byte) *raft.Log {
 // Testing for GH-300 and GH-279
 func TestHealthCheckRace(t *testing.T) {
 	t.Parallel()
-	fsm, err := consulfsm.New(nil, os.Stderr)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	fsm := consulfsm.NewFromDeps(consulfsm.Deps{
+		Logger: hclog.New(nil),
+		NewStateStore: func() *state.Store {
+			return state.NewStateStore(nil)
+		},
+	})
 	state := fsm.State()
 
 	req := structs.RegisterRequest{
@@ -58,7 +62,7 @@ func TestHealthCheckRace(t *testing.T) {
 	}
 
 	// Verify the index
-	idx, out1, err := state.CheckServiceNodes(nil, "db")
+	idx, out1, err := state.CheckServiceNodes(nil, "db", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -81,7 +85,7 @@ func TestHealthCheckRace(t *testing.T) {
 	}
 
 	// Verify the index changed
-	idx, out2, err := state.CheckServiceNodes(nil, "db")
+	idx, out2, err := state.CheckServiceNodes(nil, "db", nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

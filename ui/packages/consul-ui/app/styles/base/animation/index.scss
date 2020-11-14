@@ -1,0 +1,19 @@
+%with-transition-500 {
+  transition-duration: 0.15s;
+  transition-timing-function: ease-out;
+}
+%blink-in-fade-out {
+  transition-property: opacity;
+  transition-duration: 0.1s;
+  transition-timing-function: linear;
+  opacity: 0;
+  pointer-events: none;
+}
+%blink-in-fade-out-active {
+  transition-duration: 0;
+  transition-duration: unset;
+  transition-delay: 0;
+  transition-delay: unset;
+  opacity: 1;
+  pointer-events: auto;
+}

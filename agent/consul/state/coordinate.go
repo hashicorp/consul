@@ -14,7 +14,7 @@ func coordinatesTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: "coordinates",
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": &memdb.IndexSchema{
+			"id": {
 				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,
@@ -34,7 +34,7 @@ func coordinatesTableSchema() *memdb.TableSchema {
 					},
 				},
 			},
-			"node": &memdb.IndexSchema{
+			"node": {
 				Name:         "node",
 				AllowMissing: false,
 				Unique:       false,
@@ -130,7 +130,7 @@ func (s *Store) Coordinates(ws memdb.WatchSet) (uint64, structs.Coordinates, err
 // CoordinateBatchUpdate processes a batch of coordinate updates and applies
 // them in a single transaction.
 func (s *Store) CoordinateBatchUpdate(idx uint64, updates structs.Coordinates) error {
-	tx := s.db.Txn(true)
+	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	// Upsert the coordinates.
@@ -167,6 +167,5 @@ func (s *Store) CoordinateBatchUpdate(idx uint64, updates structs.Coordinates) e
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	tx.Commit()
-	return nil
+	return tx.Commit()
 }

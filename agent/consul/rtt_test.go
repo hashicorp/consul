@@ -92,27 +92,27 @@ func seedCoordinates(t *testing.T, codec rpc.ClientCodec, server *Server) {
 
 	// Seed the fixed setup of the nodes.
 	updates := []structs.CoordinateUpdateRequest{
-		structs.CoordinateUpdateRequest{
+		{
 			Datacenter: "dc1",
 			Node:       "node1",
 			Coord:      lib.GenerateCoordinate(10 * time.Millisecond),
 		},
-		structs.CoordinateUpdateRequest{
+		{
 			Datacenter: "dc1",
 			Node:       "node2",
 			Coord:      lib.GenerateCoordinate(2 * time.Millisecond),
 		},
-		structs.CoordinateUpdateRequest{
+		{
 			Datacenter: "dc1",
 			Node:       "node3",
 			Coord:      lib.GenerateCoordinate(1 * time.Millisecond),
 		},
-		structs.CoordinateUpdateRequest{
+		{
 			Datacenter: "dc1",
 			Node:       "node4",
 			Coord:      lib.GenerateCoordinate(8 * time.Millisecond),
 		},
-		structs.CoordinateUpdateRequest{
+		{
 			Datacenter: "dc1",
 			Node:       "node5",
 			Coord:      lib.GenerateCoordinate(3 * time.Millisecond),

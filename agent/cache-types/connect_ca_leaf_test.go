@@ -1,19 +1,23 @@
 package cachetype
 
 import (
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
+	"net"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 func TestCalculateSoftExpire(t *testing.T) {
@@ -143,6 +147,9 @@ func TestCalculateSoftExpire(t *testing.T) {
 // Test that after an initial signing, new CA roots (new ID) will
 // trigger a blocking query to execute.
 func TestConnectCALeaf_changingRoots(t *testing.T) {
+	if testingRace {
+		t.Skip("fails with -race because caRoot.Active is modified concurrently")
+	}
 	t.Parallel()
 
 	require := require.New(t)
@@ -689,9 +696,11 @@ func TestConnectCALeaf_CSRRateLimiting(t *testing.T) {
 // This test runs multiple concurrent callers watching different leaf certs and
 // tries to ensure that the background root watch activity behaves correctly.
 func TestConnectCALeaf_watchRootsDedupingMultipleCallers(t *testing.T) {
+	if testingRace {
+		t.Skip("fails with -race because caRoot.Active is modified concurrently")
+	}
 	t.Parallel()
 
-	require := require.New(t)
 	rpc := TestRPC(t)
 	defer rpc.AssertExpectations(t)
 
@@ -733,8 +742,8 @@ func TestConnectCALeaf_watchRootsDedupingMultipleCallers(t *testing.T) {
 	// initial cert delivered and is blocking before the root changes. It's not a
 	// wait group since we want to be able to timeout the main test goroutine if
 	// one of the clients gets stuck. Instead it's a buffered chan.
-	setupDoneCh := make(chan struct{}, n)
-	testDoneCh := make(chan struct{}, n)
+	setupDoneCh := make(chan error, n)
+	testDoneCh := make(chan error, n)
 	// rootsUpdate is used to coordinate clients so they know when they should
 	// expect to see leaf renewed after root change.
 	rootsUpdatedCh := make(chan struct{})
@@ -751,7 +760,8 @@ func TestConnectCALeaf_watchRootsDedupingMultipleCallers(t *testing.T) {
 		fetchCh := TestFetchCh(t, typ, opts, req)
 		select {
 		case <-time.After(100 * time.Millisecond):
-			t.Fatal("shouldn't block waiting for fetch")
+			setupDoneCh <- fmt.Errorf("shouldn't block waiting for fetch")
+			return
 		case result := <-fetchCh:
 			v := mustFetchResult(t, result)
 			opts.LastResult = &v
@@ -762,33 +772,38 @@ func TestConnectCALeaf_watchRootsDedupingMultipleCallers(t *testing.T) {
 		fetchCh = TestFetchCh(t, typ, opts, req)
 		select {
 		case result := <-fetchCh:
-			t.Fatalf("should not return: %#v", result)
+			setupDoneCh <- fmt.Errorf("should not return: %#v", result)
+			return
 		case <-time.After(100 * time.Millisecond):
 		}
 
 		// We're done with setup and the blocking call is still blocking in
 		// background.
-		setupDoneCh <- struct{}{}
+		setupDoneCh <- nil
 
 		// Wait until all others are also done and roots change incase there are
 		// stragglers delaying the root update.
 		select {
 		case <-rootsUpdatedCh:
 		case <-time.After(200 * time.Millisecond):
-			t.Fatalf("waited too long for root update")
+			testDoneCh <- fmt.Errorf("waited too long for root update")
+			return
 		}
 
 		// Now we should see root update within a short period
 		select {
 		case <-time.After(100 * time.Millisecond):
-			t.Fatal("shouldn't block waiting for fetch")
+			testDoneCh <- fmt.Errorf("shouldn't block waiting for fetch")
+			return
 		case result := <-fetchCh:
 			v := mustFetchResult(t, result)
-			// Index must be different
-			require.NotEqual(opts.MinIndex, v.Value.(*structs.IssuedCert).CreateIndex)
+			if opts.MinIndex == v.Value.(*structs.IssuedCert).CreateIndex {
+				testDoneCh <- fmt.Errorf("index must be different")
+				return
+			}
 		}
 
-		testDoneCh <- struct{}{}
+		testDoneCh <- nil
 	}
 
 	// Sanity check the roots watcher is not running yet
@@ -804,7 +819,10 @@ func TestConnectCALeaf_watchRootsDedupingMultipleCallers(t *testing.T) {
 		select {
 		case <-timeoutCh:
 			t.Fatal("timed out waiting for clients")
-		case <-setupDoneCh:
+		case err := <-setupDoneCh:
+			if err != nil {
+				t.Fatalf(err.Error())
+			}
 		}
 	}
 
@@ -833,7 +851,10 @@ func TestConnectCALeaf_watchRootsDedupingMultipleCallers(t *testing.T) {
 		select {
 		case <-timeoutCh:
 			t.Fatalf("timed out waiting for %d of %d clients to renew after root change", n-i, n)
-		case <-testDoneCh:
+		case err := <-testDoneCh:
+			if err != nil {
+				t.Fatalf(err.Error())
+			}
 		}
 	}
 
@@ -964,6 +985,68 @@ func TestConnectCALeaf_expiringLeaf(t *testing.T) {
 	}
 }
 
+func TestConnectCALeaf_DNSSANForService(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	rpc := TestRPC(t)
+	defer rpc.AssertExpectations(t)
+
+	typ, rootsCh := testCALeafType(t, rpc)
+	defer close(rootsCh)
+
+	caRoot := connect.TestCA(t, nil)
+	caRoot.Active = true
+	rootsCh <- structs.IndexedCARoots{
+		ActiveRootID: caRoot.ID,
+		TrustDomain:  "fake-trust-domain.consul",
+		Roots: []*structs.CARoot{
+			caRoot,
+		},
+		QueryMeta: structs.QueryMeta{Index: 1},
+	}
+
+	// Instrument ConnectCA.Sign to
+	var caReq *structs.CASignRequest
+	rpc.On("RPC", "ConnectCA.Sign", mock.Anything, mock.Anything).Return(nil).
+		Run(func(args mock.Arguments) {
+			reply := args.Get(2).(*structs.IssuedCert)
+			leaf, _ := connect.TestLeaf(t, "web", caRoot)
+			reply.CertPEM = leaf
+
+			caReq = args.Get(1).(*structs.CASignRequest)
+		})
+
+	opts := cache.FetchOptions{MinIndex: 0, Timeout: 10 * time.Second}
+	req := &ConnectCALeafRequest{
+		Datacenter: "dc1",
+		Service:    "web",
+		DNSSAN:     []string{"test.example.com"},
+	}
+	_, err := typ.Fetch(opts, req)
+	require.NoError(err)
+
+	pemBlock, _ := pem.Decode([]byte(caReq.CSR))
+	csr, err := x509.ParseCertificateRequest(pemBlock.Bytes)
+	require.NoError(err)
+	require.Equal(csr.DNSNames, []string{"test.example.com"})
+}
+
+// testConnectCaRoot wraps ConnectCARoot to disable refresh so that the gated
+// channel controls the request directly. Otherwise, we get background refreshes and
+// it screws up the ordering of the channel reads of the testGatedRootsRPC
+// implementation.
+type testConnectCaRoot struct {
+	ConnectCARoot
+}
+
+func (r testConnectCaRoot) RegisterOptions() cache.RegisterOptions {
+	return cache.RegisterOptions{
+		Refresh:          false,
+		SupportsBlocking: true,
+	}
+}
+
 // testCALeafType returns a *ConnectCALeaf that is pre-configured to
 // use the given RPC implementation for "ConnectCA.Sign" operations.
 func testCALeafType(t *testing.T, rpc RPC) (*ConnectCALeaf, chan structs.IndexedCARoots) {
@@ -974,15 +1057,10 @@ func testCALeafType(t *testing.T, rpc RPC) (*ConnectCALeaf, chan structs.Indexed
 	rootsRPC := &testGatedRootsRPC{ValueCh: rootsCh}
 
 	// Create a cache
-	c := cache.TestCache(t)
-	c.RegisterType(ConnectCARootName, &ConnectCARoot{RPC: rootsRPC}, &cache.RegisterOptions{
-		// Disable refresh so that the gated channel controls the
-		// request directly. Otherwise, we get background refreshes and
-		// it screws up the ordering of the channel reads of the
-		// testGatedRootsRPC implementation.
-		Refresh: false,
+	c := cache.New(cache.Options{})
+	c.RegisterType(ConnectCARootName, &testConnectCaRoot{
+		ConnectCARoot: ConnectCARoot{RPC: rootsRPC},
 	})
-
 	// Create the leaf type
 	return &ConnectCALeaf{
 		RPC:        rpc,
@@ -1015,4 +1093,32 @@ func (r *testGatedRootsRPC) RPC(method string, args interface{}, reply interface
 	replyReal := reply.(*structs.IndexedCARoots)
 	*replyReal = <-r.ValueCh
 	return nil
+}
+
+func TestConnectCALeaf_Key(t *testing.T) {
+	r1 := ConnectCALeafRequest{Service: "web"}
+	r2 := ConnectCALeafRequest{Service: "api"}
+
+	r3 := ConnectCALeafRequest{DNSSAN: []string{"a.com"}}
+	r4 := ConnectCALeafRequest{DNSSAN: []string{"b.com"}}
+
+	r5 := ConnectCALeafRequest{IPSAN: []net.IP{net.ParseIP("192.168.4.139")}}
+	r6 := ConnectCALeafRequest{IPSAN: []net.IP{net.ParseIP("192.168.4.140")}}
+	// hashstructure will hash the service name + ent meta to produce this key
+	r1Key := r1.Key()
+	r2Key := r2.Key()
+
+	r3Key := r3.Key()
+	r4Key := r4.Key()
+
+	r5Key := r5.Key()
+	r6Key := r6.Key()
+
+	require.True(t, strings.HasPrefix(r1Key, "service:"), "Key %s does not start with service:", r1Key)
+	require.True(t, strings.HasPrefix(r2Key, "service:"), "Key %s does not start with service:", r2Key)
+	require.NotEqual(t, r1Key, r2Key, "Cache keys for different services are not equal")
+	require.NotEqual(t, r3Key, r4Key, "Cache keys for different DNSSAN are not equal")
+	require.NotEqual(t, r5Key, r6Key, "Cache keys for different IPSAN are not equal")
+	r := ConnectCALeafRequest{Agent: "abc"}
+	require.Equal(t, "agent:abc", r.Key())
 }

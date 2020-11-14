@@ -1,0 +1,31 @@
+.tomography .background {
+  fill: $gray-050;
+}
+.tomography .axis {
+  fill: none;
+  stroke: $gray-300;
+  stroke-dasharray: 4 4;
+}
+.tomography .border {
+  fill: none;
+  stroke: $gray-300;
+}
+.tomography .point {
+  stroke: $gray-400;
+  fill: $magenta-600;
+}
+.tomography .lines line {
+  stroke: $magenta-600;
+}
+.tomography .lines line:hover {
+  stroke: $gray-300;
+  stroke-width: 2px;
+}
+.tomography .tick line {
+  stroke: $gray-300;
+}
+.tomography .tick text {
+  font-size: $typo-size-600;
+  text-anchor: start;
+  color: $gray-900;
+}

@@ -6,15 +6,15 @@ import (
 	"time"
 
 	"github.com/hashicorp/serf/coordinate"
-	"github.com/pascaldekloe/goe/verify"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRTT_ComputeDistance(t *testing.T) {
 	tests := []struct {
-		desc string
-		a    *coordinate.Coordinate
-		b    *coordinate.Coordinate
-		dist float64
+		desc     string
+		a        *coordinate.Coordinate
+		b        *coordinate.Coordinate
+		expected float64
 	}{
 		{
 			"10 ms",
@@ -61,8 +61,8 @@ func TestRTT_ComputeDistance(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			dist := ComputeDistance(tt.a, tt.b)
-			verify.Values(t, "", dist, tt.dist)
+			actual := ComputeDistance(tt.a, tt.b)
+			require.Equal(t, tt.expected, actual)
 		})
 	}
 }
@@ -146,8 +146,9 @@ func TestRTT_Intersect(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
 			r1, r2 := tt.a.Intersect(tt.b)
-			verify.Values(t, "", r1, tt.c1)
-			verify.Values(t, "", r2, tt.c2)
+
+			require.Equal(t, tt.c1, r1)
+			require.Equal(t, tt.c2, r2)
 		})
 	}
 }

@@ -242,12 +242,37 @@ type Config struct {
 	// Merge can be optionally provided to intercept a cluster merge
 	// and conditionally abort the merge.
 	Merge MergeDelegate
+
+	// UserEventSizeLimit is maximum byte size limit of user event `name` + `payload` in bytes.
+	// It's optimal to be relatively small, since it's going to be gossiped through the cluster.
+	UserEventSizeLimit int
+
+	// messageDropper is a callback used for selectively ignoring inbound
+	// gossip messages. This should only be used in unit tests needing careful
+	// control over sequencing of gossip arrival
+	//
+	// WARNING: this should ONLY be used in tests
+	messageDropper func(typ messageType) bool
+
+	// ReconnectTimeoutOverride is an optional interface which when present allows
+	// the application to cause reaping of a node to happen when it otherwise wouldn't
+	ReconnectTimeoutOverride ReconnectTimeoutOverrider
+
+	// ValidateNodeNames controls whether nodenames only
+	// contain alphanumeric, dashes and '.'characters
+	// and sets maximum length to 128 characters
+	ValidateNodeNames bool
 }
 
 // Init allocates the subdata structures
 func (c *Config) Init() {
 	if c.Tags == nil {
 		c.Tags = make(map[string]string)
+	}
+	if c.messageDropper == nil {
+		c.messageDropper = func(typ messageType) bool {
+			return false
+		}
 	}
 }
 
@@ -282,5 +307,7 @@ func DefaultConfig() *Config {
 		QuerySizeLimit:               1024,
 		EnableNameConflictResolution: true,
 		DisableCoordinates:           false,
+		ValidateNodeNames:            false,
+		UserEventSizeLimit:           512,
 	}
 }

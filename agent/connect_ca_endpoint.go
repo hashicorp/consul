@@ -3,15 +3,26 @@ package agent
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
 // GET /v1/connect/ca/roots
-func (s *HTTPServer) ConnectCARoots(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ConnectCARoots(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args structs.DCSpecificRequest
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
+	}
+
+	pemResponse := false
+	if pemParam := req.URL.Query().Get("pem"); pemParam != "" {
+		val, err := strconv.ParseBool(pemParam)
+		if err != nil {
+			return nil, BadRequestError{Reason: "The 'pem' query parameter must be a boolean value"}
+		}
+		pemResponse = val
 	}
 
 	var reply structs.IndexedCARoots
@@ -20,11 +31,28 @@ func (s *HTTPServer) ConnectCARoots(resp http.ResponseWriter, req *http.Request)
 		return nil, err
 	}
 
-	return reply, nil
+	if !pemResponse {
+		return reply, nil
+	}
+
+	// defined in RFC 8555 and registered with the IANA
+	resp.Header().Set("Content-Type", "application/pem-certificate-chain")
+	for _, root := range reply.Roots {
+		if _, err := resp.Write([]byte(root.RootCert)); err != nil {
+			return nil, err
+		}
+		for _, intermediate := range root.IntermediateCerts {
+			if _, err := resp.Write([]byte(intermediate)); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return nil, nil
 }
 
 // /v1/connect/ca/configuration
-func (s *HTTPServer) ConnectCAConfiguration(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ConnectCAConfiguration(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	switch req.Method {
 	case "GET":
 		return s.ConnectCAConfigurationGet(resp, req)
@@ -38,7 +66,7 @@ func (s *HTTPServer) ConnectCAConfiguration(resp http.ResponseWriter, req *http.
 }
 
 // GEt /v1/connect/ca/configuration
-func (s *HTTPServer) ConnectCAConfigurationGet(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ConnectCAConfigurationGet(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Method is tested in ConnectCAConfiguration
 	var args structs.DCSpecificRequest
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
@@ -51,47 +79,29 @@ func (s *HTTPServer) ConnectCAConfigurationGet(resp http.ResponseWriter, req *ht
 		return nil, err
 	}
 
-	fixupConfig(&reply)
 	return reply, nil
 }
 
 // PUT /v1/connect/ca/configuration
-func (s *HTTPServer) ConnectCAConfigurationSet(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ConnectCAConfigurationSet(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Method is tested in ConnectCAConfiguration
 
 	var args structs.CARequest
 	s.parseDC(req, &args.Datacenter)
 	s.parseToken(req, &args.Token)
-	if err := decodeBody(req, &args.Config, nil); err != nil {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(resp, "Request decode failed: %v", err)
-		return nil, nil
+	if err := decodeBody(req.Body, &args.Config); err != nil {
+		return nil, BadRequestError{
+			Reason: fmt.Sprintf("Request decode failed: %v", err),
+		}
 	}
 
 	var reply interface{}
 	err := s.agent.RPC("ConnectCA.ConfigurationSet", &args, &reply)
-	return nil, err
-}
-
-// A hack to fix up the config types inside of the map[string]interface{}
-// so that they get formatted correctly during json.Marshal. Without this,
-// string values that get converted to []uint8 end up getting output back
-// to the user in base64-encoded form.
-func fixupConfig(conf *structs.CAConfiguration) {
-	for k, v := range conf.Config {
-		if raw, ok := v.([]uint8); ok {
-			strVal := structs.Uint8ToString(raw)
-			conf.Config[k] = strVal
-			switch conf.Provider {
-			case structs.ConsulCAProvider:
-				if k == "PrivateKey" && strVal != "" {
-					conf.Config["PrivateKey"] = "hidden"
-				}
-			case structs.VaultCAProvider:
-				if k == "Token" && strVal != "" {
-					conf.Config["Token"] = "hidden"
-				}
-			}
+	if err != nil && err.Error() == consul.ErrStateReadOnly.Error() {
+		return nil, BadRequestError{
+			Reason: "Provider State is read-only. It must be omitted" +
+				" or identical to the current value",
 		}
 	}
+	return nil, err
 }

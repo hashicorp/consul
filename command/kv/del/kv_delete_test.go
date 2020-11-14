@@ -32,7 +32,7 @@ func TestKVDeleteCommand_Validation(t *testing.T) {
 		},
 		"-cas no -modify-index": {
 			[]string{"-cas", "foo"},
-			"Must specify -modify-index",
+			"Cannot delete a key that does not exist",
 		},
 		"-modify-index no -cas": {
 			[]string{"-modify-index", "2", "foo"},
@@ -72,7 +72,7 @@ func TestKVDeleteCommand_Validation(t *testing.T) {
 
 func TestKVDeleteCommand(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -109,7 +109,7 @@ func TestKVDeleteCommand(t *testing.T) {
 
 func TestKVDeleteCommand_Recurse(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -153,7 +153,7 @@ func TestKVDeleteCommand_Recurse(t *testing.T) {
 
 func TestKVDeleteCommand_CAS(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 

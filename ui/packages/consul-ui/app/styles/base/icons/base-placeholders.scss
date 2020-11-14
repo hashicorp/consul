@@ -1,0 +1,24 @@
+%with-icon {
+  background-repeat: no-repeat;
+  background-position: center;
+}
+%with-mask {
+  mask-repeat: no-repeat;
+  mask-position: center;
+  background-color: currentColor;
+}
+%with-glyph-icon {
+  font-weight: $typo-weight-normal;
+  background-color: $gray-100;
+  visibility: visible;
+  padding: 0 4px;
+}
+%as-pseudo {
+  display: inline-block;
+  content: '';
+  visibility: visible;
+  background-size: contain;
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: text-top;
+}

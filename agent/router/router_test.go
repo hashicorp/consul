@@ -2,9 +2,7 @@ package router
 
 import (
 	"fmt"
-	"log"
 	"net"
-	"os"
 	"reflect"
 	"sort"
 	"strings"
@@ -13,9 +11,12 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
+
+	"github.com/stretchr/testify/require"
 )
 
 type mockCluster struct {
@@ -70,6 +71,26 @@ func (m *mockCluster) AddMember(dc string, name string, coord *coordinate.Coordi
 	m.addr++
 }
 
+func (m *mockCluster) AddLANMember(dc, name, role string, coord *coordinate.Coordinate) {
+	member := serf.Member{
+		Name: name,
+		Addr: net.ParseIP(fmt.Sprintf("127.0.0.%d", m.addr)),
+		Port: 8300,
+		Tags: map[string]string{
+			"dc":    dc,
+			"role":  role,
+			"port":  "8300",
+			"build": "0.8.0",
+			"vsn":   "3",
+		},
+	}
+	m.members = append(m.members, member)
+	if coord != nil {
+		m.coords[member.Name] = coord
+	}
+	m.addr++
+}
+
 // testCluster is used to generate a single WAN-like area with a known set of
 // member and RTT topology.
 //
@@ -94,18 +115,18 @@ func testCluster(self string) *mockCluster {
 	return c
 }
 
-func testRouter(dc string) *Router {
-	logger := log.New(os.Stderr, "", log.LstdFlags)
-	return NewRouter(logger, dc)
+func testRouter(t testing.TB, dc string) *Router {
+	logger := testutil.Logger(t)
+	return NewRouter(logger, dc, "", nil)
 }
 
 func TestRouter_Shutdown(t *testing.T) {
-	r := testRouter("dc0")
+	r := testRouter(t, "dc0")
 
 	// Create a WAN-looking area.
 	self := "node0.dc0"
 	wan := testCluster(self)
-	if err := r.AddArea(types.AreaWAN, wan, &fauxConnPool{}, false); err != nil {
+	if err := r.AddArea(types.AreaWAN, wan, &fauxConnPool{}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -113,7 +134,7 @@ func TestRouter_Shutdown(t *testing.T) {
 	otherID := types.AreaID("other")
 	other := newMockCluster(self)
 	other.AddMember("dcY", "node1", nil)
-	if err := r.AddArea(otherID, other, &fauxConnPool{}, false); err != nil {
+	if err := r.AddArea(otherID, other, &fauxConnPool{}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	_, _, ok := r.FindRoute("dcY")
@@ -129,19 +150,19 @@ func TestRouter_Shutdown(t *testing.T) {
 	}
 
 	// You can't add areas once the router is shut down.
-	err := r.AddArea(otherID, other, &fauxConnPool{}, false)
+	err := r.AddArea(otherID, other, &fauxConnPool{})
 	if err == nil || !strings.Contains(err.Error(), "router is shut down") {
 		t.Fatalf("err: %v", err)
 	}
 }
 
 func TestRouter_Routing(t *testing.T) {
-	r := testRouter("dc0")
+	r := testRouter(t, "dc0")
 
 	// Create a WAN-looking area.
 	self := "node0.dc0"
 	wan := testCluster(self)
-	if err := r.AddArea(types.AreaWAN, wan, &fauxConnPool{}, false); err != nil {
+	if err := r.AddArea(types.AreaWAN, wan, &fauxConnPool{}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -170,7 +191,7 @@ func TestRouter_Routing(t *testing.T) {
 	other.AddMember("dc0", "node0", nil)
 	other.AddMember("dc1", "node1", nil)
 	other.AddMember("dcY", "node1", nil)
-	if err := r.AddArea(otherID, other, &fauxConnPool{}, false); err != nil {
+	if err := r.AddArea(otherID, other, &fauxConnPool{}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -270,12 +291,12 @@ func TestRouter_Routing(t *testing.T) {
 }
 
 func TestRouter_Routing_Offline(t *testing.T) {
-	r := testRouter("dc0")
+	r := testRouter(t, "dc0")
 
 	// Create a WAN-looking area.
 	self := "node0.dc0"
 	wan := testCluster(self)
-	if err := r.AddArea(types.AreaWAN, wan, &fauxConnPool{1.0}, false); err != nil {
+	if err := r.AddArea(types.AreaWAN, wan, &fauxConnPool{1.0}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -329,7 +350,7 @@ func TestRouter_Routing_Offline(t *testing.T) {
 	other := newMockCluster(self)
 	other.AddMember("dc0", "node0", nil)
 	other.AddMember("dc1", "node1", nil)
-	if err := r.AddArea(otherID, other, &fauxConnPool{}, false); err != nil {
+	if err := r.AddArea(otherID, other, &fauxConnPool{}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -350,11 +371,11 @@ func TestRouter_Routing_Offline(t *testing.T) {
 }
 
 func TestRouter_GetDatacenters(t *testing.T) {
-	r := testRouter("dc0")
+	r := testRouter(t, "dc0")
 
 	self := "node0.dc0"
 	wan := testCluster(self)
-	if err := r.AddArea(types.AreaWAN, wan, &fauxConnPool{}, false); err != nil {
+	if err := r.AddArea(types.AreaWAN, wan, &fauxConnPool{}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -381,12 +402,12 @@ func TestRouter_distanceSorter(t *testing.T) {
 }
 
 func TestRouter_GetDatacentersByDistance(t *testing.T) {
-	r := testRouter("dc0")
+	r := testRouter(t, "dc0")
 
 	// Start with just the WAN area described in the diagram above.
 	self := "node0.dc0"
 	wan := testCluster(self)
-	if err := r.AddArea(types.AreaWAN, wan, &fauxConnPool{}, false); err != nil {
+	if err := r.AddArea(types.AreaWAN, wan, &fauxConnPool{}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -404,7 +425,7 @@ func TestRouter_GetDatacentersByDistance(t *testing.T) {
 	other := newMockCluster(self)
 	other.AddMember("dc0", "node0", lib.GenerateCoordinate(20*time.Millisecond))
 	other.AddMember("dc1", "node1", lib.GenerateCoordinate(21*time.Millisecond))
-	if err := r.AddArea(otherID, other, &fauxConnPool{}, false); err != nil {
+	if err := r.AddArea(otherID, other, &fauxConnPool{}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -419,11 +440,11 @@ func TestRouter_GetDatacentersByDistance(t *testing.T) {
 }
 
 func TestRouter_GetDatacenterMaps(t *testing.T) {
-	r := testRouter("dc0")
+	r := testRouter(t, "dc0")
 
 	self := "node0.dc0"
 	wan := testCluster(self)
-	if err := r.AddArea(types.AreaWAN, wan, &fauxConnPool{}, false); err != nil {
+	if err := r.AddArea(types.AreaWAN, wan, &fauxConnPool{}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -487,4 +508,23 @@ func TestRouter_GetDatacenterMaps(t *testing.T) {
 			t.Fatalf("bad: %#v", entry)
 		}
 	}
+}
+
+func TestRouter_FindLANServer(t *testing.T) {
+	r := testRouter(t, "dc0")
+
+	lan := newMockCluster("node4.dc0")
+	lan.AddLANMember("dc0", "node0", "consul", lib.GenerateCoordinate(10*time.Millisecond))
+	lan.AddLANMember("dc0", "node1", "", lib.GenerateCoordinate(20*time.Millisecond))
+	lan.AddLANMember("dc0", "node2", "", lib.GenerateCoordinate(21*time.Millisecond))
+
+	require.NoError(t, r.AddArea(types.AreaLAN, lan, &fauxConnPool{}))
+
+	srv := r.FindLANServer()
+	require.NotNil(t, srv)
+	require.Equal(t, "127.0.0.1:8300", srv.Addr.String())
+
+	mgr, srv2 := r.FindLANRoute()
+	require.NotNil(t, mgr)
+	require.Equal(t, srv, srv2)
 }

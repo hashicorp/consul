@@ -4,11 +4,18 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/agent/mock"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/go-hclog"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
@@ -88,11 +95,79 @@ func TestCheck(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			probe := NewGrpcHealthProbe(tt.args.target, tt.args.timeout, tt.args.tlsConfig)
-			actualError := probe.Check()
+			actualError := probe.Check(tt.args.target)
 			actuallyHealthy := actualError == nil
 			if tt.healthy != actuallyHealthy {
 				t.Errorf("FAIL: %s. Expected healthy %t, but err == %v", tt.name, tt.healthy, actualError)
 			}
 		})
 	}
+}
+
+func TestGRPC_Proxied(t *testing.T) {
+	t.Parallel()
+
+	notif := mock.NewNotify()
+	logger := hclog.New(&hclog.LoggerOptions{
+		Name:   uniqueID(),
+		Output: ioutil.Discard,
+	})
+
+	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	cid := structs.NewCheckID("foo", nil)
+
+	check := &CheckGRPC{
+		CheckID:       cid,
+		GRPC:          "",
+		Interval:      10 * time.Millisecond,
+		Logger:        logger,
+		ProxyGRPC:     server,
+		StatusHandler: statusHandler,
+	}
+	check.Start()
+	defer check.Stop()
+
+	// If ProxyGRPC is set, check() reqs should go to that address
+	retry.Run(t, func(r *retry.R) {
+		if got, want := notif.Updates(cid), 2; got < want {
+			r.Fatalf("got %d updates want at least %d", got, want)
+		}
+		if got, want := notif.State(cid), api.HealthPassing; got != want {
+			r.Fatalf("got state %q want %q", got, want)
+		}
+	})
+}
+
+func TestGRPC_NotProxied(t *testing.T) {
+	t.Parallel()
+
+	notif := mock.NewNotify()
+	logger := hclog.New(&hclog.LoggerOptions{
+		Name:   uniqueID(),
+		Output: ioutil.Discard,
+	})
+
+	statusHandler := NewStatusHandler(notif, logger, 0, 0)
+	cid := structs.NewCheckID("foo", nil)
+
+	check := &CheckGRPC{
+		CheckID:       cid,
+		GRPC:          server,
+		Interval:      10 * time.Millisecond,
+		Logger:        logger,
+		ProxyGRPC:     "",
+		StatusHandler: statusHandler,
+	}
+	check.Start()
+	defer check.Stop()
+
+	// If ProxyGRPC is not set, check() reqs should go to check.GRPC
+	retry.Run(t, func(r *retry.R) {
+		if got, want := notif.Updates(cid), 2; got < want {
+			r.Fatalf("got %d updates want at least %d", got, want)
+		}
+		if got, want := notif.State(cid), api.HealthPassing; got != want {
+			r.Fatalf("got state %q want %q", got, want)
+		}
+	})
 }

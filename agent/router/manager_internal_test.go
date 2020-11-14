@@ -3,28 +3,32 @@ package router
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"math/rand"
 	"net"
-	"os"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/go-hclog"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/metadata"
 )
 
 var (
-	localLogger    *log.Logger
 	localLogBuffer *bytes.Buffer
 )
 
 func init() {
 	localLogBuffer = new(bytes.Buffer)
-	localLogger = log.New(localLogBuffer, "", 0)
 }
 
-func GetBufferedLogger() *log.Logger {
-	return localLogger
+func GetBufferedLogger() hclog.Logger {
+	localLogBuffer = new(bytes.Buffer)
+	return hclog.New(&hclog.LoggerOptions{
+		Level:  0,
+		Output: localLogBuffer,
+	})
 }
 
 type fauxConnPool struct {
@@ -32,7 +36,7 @@ type fauxConnPool struct {
 	failPct float64
 }
 
-func (cp *fauxConnPool) Ping(string, net.Addr, int, bool) (bool, error) {
+func (cp *fauxConnPool) Ping(string, string, net.Addr) (bool, error) {
 	var success bool
 	successProb := rand.Float64()
 	if successProb > cp.failPct {
@@ -52,15 +56,16 @@ func (s *fauxSerf) NumNodes() int {
 func testManager() (m *Manager) {
 	logger := GetBufferedLogger()
 	shutdownCh := make(chan struct{})
-	m = New(logger, shutdownCh, &fauxSerf{numNodes: 16384}, &fauxConnPool{})
+	m = New(logger, shutdownCh, &fauxSerf{numNodes: 16384}, &fauxConnPool{}, "", noopRebalancer)
 	return m
 }
 
+func noopRebalancer() {}
+
 func testManagerFailProb(failPct float64) (m *Manager) {
 	logger := GetBufferedLogger()
-	logger = log.New(os.Stderr, "", log.LstdFlags)
 	shutdownCh := make(chan struct{})
-	m = New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{failPct: failPct})
+	m = New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{failPct: failPct}, "", noopRebalancer)
 	return m
 }
 
@@ -129,7 +134,6 @@ func TestManagerInternal_getServerList(t *testing.T) {
 	}
 }
 
-// func New(logger *log.Logger, shutdownCh chan struct{}, clusterInfo ConsulClusterInfo) (m *Manager) {
 func TestManagerInternal_New(t *testing.T) {
 	m := testManager()
 	if m == nil {
@@ -180,7 +184,7 @@ func test_reconcileServerList(maxServers int) (bool, error) {
 			// failPct of the servers for the reconcile.  This
 			// allows for the selected server to no longer be
 			// healthy for the reconcile below.
-			if ok, _ := m.connPoolPinger.Ping(node.Datacenter, node.Addr, node.Version, node.UseTLS); ok {
+			if ok, _ := m.connPoolPinger.Ping(node.Datacenter, node.ShortName, node.Addr); ok {
 				// Will still be present
 				healthyServers = append(healthyServers, node)
 			} else {
@@ -260,55 +264,75 @@ func test_reconcileServerList(maxServers int) (bool, error) {
 	return true, nil
 }
 
-// func (l *serverList) refreshServerRebalanceTimer() {
-func TestManagerInternal_refreshServerRebalanceTimer(t *testing.T) {
-	type clusterSizes struct {
-		numNodes     int
-		numServers   int
-		minRebalance time.Duration
-	}
-	clusters := []clusterSizes{
-		{0, 3, 2 * time.Minute},
-		{1, 0, 2 * time.Minute}, // partitioned cluster
-		{1, 3, 2 * time.Minute},
-		{2, 3, 2 * time.Minute},
-		{100, 0, 2 * time.Minute}, // partitioned
-		{100, 1, 2 * time.Minute}, // partitioned
-		{100, 3, 2 * time.Minute},
-		{1024, 1, 2 * time.Minute}, // partitioned
-		{1024, 3, 2 * time.Minute}, // partitioned
-		{1024, 5, 2 * time.Minute},
-		{16384, 1, 4 * time.Minute}, // partitioned
-		{16384, 2, 2 * time.Minute}, // partitioned
-		{16384, 3, 2 * time.Minute}, // partitioned
-		{16384, 5, 2 * time.Minute},
-		{65535, 0, 2 * time.Minute}, // partitioned
-		{65535, 1, 8 * time.Minute}, // partitioned
-		{65535, 2, 3 * time.Minute}, // partitioned
-		{65535, 3, 5 * time.Minute}, // partitioned
-		{65535, 5, 3 * time.Minute}, // partitioned
-		{65535, 7, 2 * time.Minute},
-		{1000000, 1, 4 * time.Hour},     // partitioned
-		{1000000, 2, 2 * time.Hour},     // partitioned
-		{1000000, 3, 80 * time.Minute},  // partitioned
-		{1000000, 5, 50 * time.Minute},  // partitioned
-		{1000000, 11, 20 * time.Minute}, // partitioned
-		{1000000, 19, 10 * time.Minute},
+func TestRebalanceDelayer(t *testing.T) {
+	type testCase struct {
+		servers  int
+		nodes    int
+		expected time.Duration
 	}
 
-	logger := log.New(os.Stderr, "", log.LstdFlags)
-	shutdownCh := make(chan struct{})
+	testCases := []testCase{
+		{servers: 0, nodes: 1},
+		{servers: 0, nodes: 100},
+		{servers: 0, nodes: 65535},
+		{servers: 0, nodes: 1000000},
 
-	for _, s := range clusters {
-		m := New(logger, shutdownCh, &fauxSerf{numNodes: s.numNodes}, &fauxConnPool{})
-		for i := 0; i < s.numServers; i++ {
-			nodeName := fmt.Sprintf("s%02d", i)
-			m.AddServer(&metadata.Server{Name: nodeName})
+		{servers: 1, nodes: 100},
+		{servers: 1, nodes: 1024},
+		{servers: 1, nodes: 8192},
+		{servers: 1, nodes: 11520},
+		{servers: 1, nodes: 11521, expected: 3*time.Minute + 15625*time.Microsecond},
+		{servers: 1, nodes: 16384, expected: 4*time.Minute + 16*time.Second},
+		{servers: 1, nodes: 65535, expected: 17*time.Minute + 3984375000},
+		{servers: 1, nodes: 1000000, expected: 4*time.Hour + 20*time.Minute + 25*time.Second},
+
+		{servers: 2, nodes: 100},
+		{servers: 2, nodes: 16384},
+		{servers: 2, nodes: 23040},
+		{servers: 2, nodes: 23041, expected: 3*time.Minute + 7812500},
+		{servers: 2, nodes: 65535, expected: 8*time.Minute + 31992187500},
+		{servers: 2, nodes: 1000000, expected: 2*time.Hour + 10*time.Minute + 12500*time.Millisecond},
+
+		{servers: 3, nodes: 0},
+		{servers: 3, nodes: 100},
+		{servers: 3, nodes: 1024},
+		{servers: 3, nodes: 16384},
+		{servers: 3, nodes: 34560},
+		{servers: 3, nodes: 34561, expected: 3*time.Minute + 5208333},
+		{servers: 3, nodes: 65535, expected: 5*time.Minute + 41328125000},
+		{servers: 3, nodes: 1000000, expected: 86*time.Minute + 48333333333},
+
+		{servers: 5, nodes: 0},
+		{servers: 5, nodes: 1024},
+		{servers: 5, nodes: 16384},
+		{servers: 5, nodes: 32768},
+		{servers: 5, nodes: 57600},
+		{servers: 5, nodes: 65535, expected: 3*time.Minute + 24796875000},
+		{servers: 5, nodes: 1000000, expected: 52*time.Minute + 5*time.Second},
+
+		{servers: 7, nodes: 65535},
+		{servers: 7, nodes: 80500},
+		{servers: 7, nodes: 131070, expected: 4*time.Minute + 52566964285},
+
+		{servers: 11, nodes: 1000000, expected: 23*time.Minute + 40454545454},
+		{servers: 19, nodes: 1000000, expected: 13*time.Minute + 42368421052},
+	}
+
+	for _, tc := range testCases {
+		delay := delayer.Delay(tc.servers, tc.nodes)
+
+		if tc.expected != 0 {
+			assert.Equal(t, tc.expected, delay, "nodes=%d, servers=%d", tc.nodes, tc.servers)
+			continue
 		}
 
-		d := m.refreshServerRebalanceTimer()
-		if d < s.minRebalance {
-			t.Errorf("duration too short for cluster of size %d and %d servers (%s < %s)", s.numNodes, s.numServers, d, s.minRebalance)
+		min := 2 * time.Minute
+		max := 3 * time.Minute
+		if delay < min {
+			t.Errorf("nodes=%d, servers=%d, expected >%v, actual %v", tc.nodes, tc.servers, min, delay)
+		}
+		if delay > max {
+			t.Errorf("nodes=%d, servers=%d, expected <%v, actual %v", tc.nodes, tc.servers, max, delay)
 		}
 	}
 }
@@ -350,4 +374,54 @@ func TestManagerInternal_saveServerList(t *testing.T) {
 			t.Fatalf("Manager.saveServerList unsaved config overwrote original")
 		}
 	}()
+}
+
+func TestManager_healthyServer(t *testing.T) {
+	t.Run("checking itself", func(t *testing.T) {
+		m := testManager()
+		m.serverName = "s1"
+		server := metadata.Server{Name: m.serverName}
+		require.True(t, m.healthyServer(&server))
+	})
+	t.Run("checking another server with successful ping", func(t *testing.T) {
+		m := testManager()
+		server := metadata.Server{Name: "s1"}
+		require.True(t, m.healthyServer(&server))
+	})
+	t.Run("checking another server with failed ping", func(t *testing.T) {
+		m := testManagerFailProb(1)
+		server := metadata.Server{Name: "s1"}
+		require.False(t, m.healthyServer(&server))
+	})
+}
+
+func TestManager_Rebalance(t *testing.T) {
+	t.Run("single server cluster checking itself", func(t *testing.T) {
+		m := testManager()
+		m.serverName = "s1"
+		m.AddServer(&metadata.Server{Name: m.serverName})
+		m.RebalanceServers()
+		require.False(t, m.IsOffline())
+	})
+	t.Run("multi server cluster is unhealthy when pings always fail", func(t *testing.T) {
+		m := testManagerFailProb(1)
+		m.AddServer(&metadata.Server{Name: "s1"})
+		m.AddServer(&metadata.Server{Name: "s2"})
+		m.AddServer(&metadata.Server{Name: "s3"})
+		for i := 0; i < 100; i++ {
+			m.RebalanceServers()
+			require.True(t, m.IsOffline())
+		}
+	})
+	t.Run("multi server cluster checking itself remains healthy despite pings always fail", func(t *testing.T) {
+		m := testManagerFailProb(1)
+		m.serverName = "s1"
+		m.AddServer(&metadata.Server{Name: m.serverName})
+		m.AddServer(&metadata.Server{Name: "s2"})
+		m.AddServer(&metadata.Server{Name: "s3"})
+		for i := 0; i < 100; i++ {
+			m.RebalanceServers()
+			require.False(t, m.IsOffline())
+		}
+	})
 }

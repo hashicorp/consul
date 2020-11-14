@@ -4,26 +4,24 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"sync/atomic"
 	"time"
 
+	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	envoydisco "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
+	"github.com/golang/protobuf/proto"
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/proxycfg"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/tlsutil"
+	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
-
-	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	envoyauthz "github.com/envoyproxy/go-control-plane/envoy/service/auth/v2alpha"
-	envoydisco "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
-	"github.com/gogo/googleapis/google/rpc"
-	"github.com/gogo/protobuf/proto"
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/cache"
-	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/proxycfg"
-	"github.com/hashicorp/consul/agent/structs"
 )
 
 // ADSStream is a shorter way of referring to this thing...
@@ -51,11 +49,31 @@ const (
 	PublicListenerName = "public_listener"
 
 	// LocalAppClusterName is the name we give the local application "cluster" in
-	// Envoy config.
+	// Envoy config. Note that all cluster names may collide with service names
+	// since we want cluster names and service names to match to enable nice
+	// metrics correlation without massaging prefixes on cluster names.
+	//
+	// We should probably make this more unlikely to collide however changing it
+	// potentially breaks upgrade compatibility without restarting all Envoy's as
+	// it will no longer match their existing cluster name. Changing this will
+	// affect metrics output so could break dashboards (for local app traffic).
+	//
+	// We should probably just make it configurable if anyone actually has
+	// services named "local_app" in the future.
 	LocalAppClusterName = "local_app"
 
 	// LocalAgentClusterName is the name we give the local agent "cluster" in
-	// Envoy config.
+	// Envoy config. Note that all cluster names may collide with service names
+	// since we want cluster names and service names to match to enable nice
+	// metrics correlation without massaging prefixes on cluster names.
+	//
+	// We should probably make this more unlikely to collied however changing it
+	// potentially breaks upgrade compatibility without restarting all Envoy's as
+	// it will no longer match their existing cluster name. Changing this will
+	// affect metrics output so could break dashboards (for local agent traffic).
+	//
+	// We should probably just make it configurable if anyone actually has
+	// services named "local_agent" in the future.
 	LocalAgentClusterName = "local_agent"
 
 	// DefaultAuthCheckFrequency is the default value for
@@ -69,11 +87,16 @@ const (
 // coupling this to the agent.
 type ACLResolverFunc func(id string) (acl.Authorizer, error)
 
-// ConnectAuthz is the interface the agent needs to expose to be able to re-use
-// the authorization logic between both APIs.
-type ConnectAuthz interface {
-	// ConnectAuthorize is implemented by Agent.ConnectAuthorize
-	ConnectAuthorize(token string, req *structs.ConnectAuthorizeRequest) (authz bool, reason string, m *cache.ResultMeta, err error)
+// ServiceChecks is the interface the agent needs to expose
+// for the xDS server to fetch a service's HTTP check definitions
+type HTTPCheckFetcher interface {
+	ServiceHTTPBasedChecks(serviceID structs.ServiceID) []structs.CheckType
+}
+
+// ConfigFetcher is the interface the agent needs to expose
+// for the xDS server to fetch agent config, currently only one field is fetched
+type ConfigFetcher interface {
+	AdvertiseAddrLAN() string
 }
 
 // ConfigManager is the interface xds.Server requires to consume proxy config
@@ -81,25 +104,25 @@ type ConnectAuthz interface {
 // easier testing without several layers of mocked cache, local state and
 // proxycfg.Manager.
 type ConfigManager interface {
-	Watch(proxyID string) (<-chan *proxycfg.ConfigSnapshot, proxycfg.CancelFunc)
+	Watch(proxyID structs.ServiceID) (<-chan *proxycfg.ConfigSnapshot, proxycfg.CancelFunc)
 }
 
-// Server represents a gRPC server that can handle both XDS and ext_authz
-// requests from Envoy. All of it's public members must be set before the gRPC
-// server is started.
+// Server represents a gRPC server that can handle xDS requests from Envoy. All
+// of it's public members must be set before the gRPC server is started.
 //
 // A full description of the XDS protocol can be found at
-// https://github.com/envoyproxy/data-plane-api/blob/master/XDS_PROTOCOL.md
+// https://www.envoyproxy.io/docs/envoy/latest/api-docs/xds_protocol
 type Server struct {
-	Logger       *log.Logger
+	Logger       hclog.Logger
 	CfgMgr       ConfigManager
-	Authz        ConnectAuthz
 	ResolveToken ACLResolverFunc
 	// AuthCheckFrequency is how often we should re-check the credentials used
 	// during a long-lived gRPC Stream after it has been initially established.
 	// This is only used during idle periods of stream interactions (i.e. when
 	// there has been no recent DiscoveryRequest).
 	AuthCheckFrequency time.Duration
+	CheckFetcher       HTTPCheckFetcher
+	CfgFetcher         ConfigFetcher
 }
 
 // Initialize will finish configuring the Server for first use.
@@ -107,6 +130,7 @@ func (s *Server) Initialize() {
 	if s.AuthCheckFrequency == 0 {
 		s.AuthCheckFrequency = DefaultAuthCheckFrequency
 	}
+	s.Logger = s.Logger.Named(logging.Envoy)
 }
 
 // StreamAggregatedResources implements
@@ -132,7 +156,7 @@ func (s *Server) StreamAggregatedResources(stream ADSStream) error {
 
 	err := s.process(stream, reqCh)
 	if err != nil {
-		s.Logger.Printf("[DEBUG] Error handling ADS stream: %s", err)
+		s.Logger.Error("Error handling ADS stream", "error", err)
 	}
 
 	// prevents writing to a closed channel if send failed on blocked recv
@@ -152,44 +176,61 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 	var nonce uint64
 
 	// xDS works with versions of configs. Internally we don't have a consistent
-	// version. We could just hash the config since versions don't have to be
-	// ordered as far as I can tell, but it's cheaper just to increment a counter
+	// version. We could hash the config since versions don't have to be
+	// ordered as far as I can tell, but it is cheaper to increment a counter
 	// every time we observe a new config since the upstream proxycfg package only
 	// delivers updates when there are actual changes.
 	var configVersion uint64
 
 	// Loop state
-	var cfgSnap *proxycfg.ConfigSnapshot
-	var req *envoy.DiscoveryRequest
-	var ok bool
-	var stateCh <-chan *proxycfg.ConfigSnapshot
-	var watchCancel func()
-	var proxyID string
+	var (
+		cfgSnap       *proxycfg.ConfigSnapshot
+		req           *envoy.DiscoveryRequest
+		node          *envoycore.Node
+		proxyFeatures supportedProxyFeatures
+		ok            bool
+		stateCh       <-chan *proxycfg.ConfigSnapshot
+		watchCancel   func()
+		proxyID       structs.ServiceID
+	)
 
 	// need to run a small state machine to get through initial authentication.
 	var state = stateInit
 
 	// Configure handlers for each type of request
 	handlers := map[string]*xDSType{
-		EndpointType: &xDSType{
+		EndpointType: {
 			typeURL:   EndpointType,
-			resources: endpointsFromSnapshot,
+			resources: s.endpointsFromSnapshot,
 			stream:    stream,
 		},
-		ClusterType: &xDSType{
+		ClusterType: {
 			typeURL:   ClusterType,
-			resources: clustersFromSnapshot,
+			resources: s.clustersFromSnapshot,
 			stream:    stream,
+			allowEmptyFn: func(cfgSnap *proxycfg.ConfigSnapshot) bool {
+				// Mesh, Ingress, and Terminating gateways are allowed to inform CDS of
+				// no clusters.
+				return cfgSnap.Kind == structs.ServiceKindMeshGateway ||
+					cfgSnap.Kind == structs.ServiceKindTerminatingGateway ||
+					cfgSnap.Kind == structs.ServiceKindIngressGateway
+			},
 		},
-		RouteType: &xDSType{
+		RouteType: {
 			typeURL:   RouteType,
-			resources: routesFromSnapshot,
+			resources: s.routesFromSnapshot,
 			stream:    stream,
+			allowEmptyFn: func(cfgSnap *proxycfg.ConfigSnapshot) bool {
+				return cfgSnap.Kind == structs.ServiceKindIngressGateway
+			},
 		},
-		ListenerType: &xDSType{
+		ListenerType: {
 			typeURL:   ListenerType,
-			resources: listenersFromSnapshot,
+			resources: s.listenersFromSnapshot,
 			stream:    stream,
+			allowEmptyFn: func(cfgSnap *proxycfg.ConfigSnapshot) bool {
+				return cfgSnap.Kind == structs.ServiceKindIngressGateway
+			},
 		},
 	}
 
@@ -203,8 +244,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 			return status.Errorf(codes.Unauthenticated, "unauthenticated: no config snapshot")
 		}
 
-		token := tokenFromStream(stream)
-		rule, err := s.ResolveToken(token)
+		rule, err := s.ResolveToken(tokenFromContext(stream.Context()))
 
 		if acl.IsErrNotFound(err) {
 			return status.Errorf(codes.Unauthenticated, "unauthenticated: %v", err)
@@ -214,8 +254,20 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 			return err
 		}
 
-		if rule != nil && !rule.ServiceWrite(cfgSnap.Proxy.DestinationServiceName, nil) {
-			return status.Errorf(codes.PermissionDenied, "permission denied")
+		var authzContext acl.AuthorizerContext
+		switch cfgSnap.Kind {
+		case structs.ServiceKindConnectProxy:
+			cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
+			if rule != nil && rule.ServiceWrite(cfgSnap.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
+				return status.Errorf(codes.PermissionDenied, "permission denied")
+			}
+		case structs.ServiceKindMeshGateway, structs.ServiceKindTerminatingGateway, structs.ServiceKindIngressGateway:
+			cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
+			if rule != nil && rule.ServiceWrite(cfgSnap.Service, &authzContext) != acl.Allow {
+				return status.Errorf(codes.PermissionDenied, "permission denied")
+			}
+		default:
+			return status.Errorf(codes.Internal, "Invalid service kind")
 		}
 
 		// Authed OK!
@@ -242,8 +294,18 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 			if req.TypeUrl == "" {
 				return status.Errorf(codes.InvalidArgument, "type URL is required for ADS")
 			}
+
+			if node == nil && req.Node != nil {
+				node = req.Node
+				var err error
+				proxyFeatures, err = determineSupportedProxyFeatures(req.Node)
+				if err != nil {
+					return status.Errorf(codes.InvalidArgument, err.Error())
+				}
+			}
+
 			if handler, ok := handlers[req.TypeUrl]; ok {
-				handler.Recv(req)
+				handler.Recv(req, node, proxyFeatures)
 			}
 		case cfgSnap = <-stateCh:
 			// We got a new config, update the version counter
@@ -259,7 +321,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 				continue
 			}
 			// Start authentication process, we need the proxyID
-			proxyID = req.Node.Id
+			proxyID = structs.NewServiceID(req.Node.Id, parseEnterpriseMeta(req.Node))
 
 			// Start watching config for that proxy
 			stateCh, watchCancel = s.CfgMgr.Watch(proxyID)
@@ -313,10 +375,12 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 }
 
 type xDSType struct {
-	typeURL   string
-	stream    ADSStream
-	req       *envoy.DiscoveryRequest
-	lastNonce string
+	typeURL       string
+	stream        ADSStream
+	req           *envoy.DiscoveryRequest
+	node          *envoycore.Node
+	proxyFeatures supportedProxyFeatures
+	lastNonce     string
 	// lastVersion is the version that was last sent to the proxy. It is needed
 	// because we don't want to send the same version more than once.
 	// req.VersionInfo may be an older version than the most recent once sent in
@@ -324,13 +388,22 @@ type xDSType struct {
 	// previous request we already responded to and 2) if the proxy rejected the
 	// last version we sent with a Nack then req.VersionInfo will be the older
 	// version it's hanging on to.
-	lastVersion uint64
-	resources   func(cfgSnap *proxycfg.ConfigSnapshot, token string) ([]proto.Message, error)
+	lastVersion  uint64
+	resources    func(cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error)
+	allowEmptyFn func(cfgSnap *proxycfg.ConfigSnapshot) bool
 }
 
-func (t *xDSType) Recv(req *envoy.DiscoveryRequest) {
+// connectionInfo represents details specific to this connection
+type connectionInfo struct {
+	Token         string
+	ProxyFeatures supportedProxyFeatures
+}
+
+func (t *xDSType) Recv(req *envoy.DiscoveryRequest, node *envoycore.Node, proxyFeatures supportedProxyFeatures) {
 	if t.lastNonce == "" || t.lastNonce == req.GetResponseNonce() {
 		t.req = req
+		t.node = node
+		t.proxyFeatures = proxyFeatures
 	}
 }
 
@@ -342,17 +415,25 @@ func (t *xDSType) SendIfNew(cfgSnap *proxycfg.ConfigSnapshot, version uint64, no
 		// Already sent this version
 		return nil
 	}
-	resources, err := t.resources(cfgSnap, tokenFromStream(t.stream))
+
+	cInfo := connectionInfo{
+		Token:         tokenFromContext(t.stream.Context()),
+		ProxyFeatures: t.proxyFeatures,
+	}
+	resources, err := t.resources(cInfo, cfgSnap)
 	if err != nil {
 		return err
 	}
+
+	allowEmpty := t.allowEmptyFn != nil && t.allowEmptyFn(cfgSnap)
+
 	// Zero length resource responses should be ignored and are the result of no
 	// data yet. Notice that this caused a bug originally where we had zero
 	// healthy endpoints for an upstream that would cause Envoy to hang waiting
 	// for the EDS response. This is fixed though by ensuring we send an explicit
 	// empty LoadAssignment resource for the cluster rather than allowing junky
 	// empty resources.
-	if len(resources) == 0 {
+	if len(resources) == 0 && !allowEmpty {
 		// Nothing to send yet
 		return nil
 	}
@@ -378,10 +459,6 @@ func (t *xDSType) SendIfNew(cfgSnap *proxycfg.ConfigSnapshot, version uint64, no
 	return nil
 }
 
-func tokenFromStream(stream ADSStream) string {
-	return tokenFromContext(stream.Context())
-}
-
 func tokenFromContext(ctx context.Context) string {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
@@ -394,95 +471,24 @@ func tokenFromContext(ctx context.Context) string {
 	return ""
 }
 
-// IncrementalAggregatedResources implements envoydisco.AggregatedDiscoveryServiceServer
-func (s *Server) IncrementalAggregatedResources(_ envoydisco.AggregatedDiscoveryService_IncrementalAggregatedResourcesServer) error {
+// DeltaAggregatedResources implements envoydisco.AggregatedDiscoveryServiceServer
+func (s *Server) DeltaAggregatedResources(_ envoydisco.AggregatedDiscoveryService_DeltaAggregatedResourcesServer) error {
 	return errors.New("not implemented")
 }
 
-func deniedResponse(reason string) (*envoyauthz.CheckResponse, error) {
-	return &envoyauthz.CheckResponse{
-		Status: &rpc.Status{
-			Code:    int32(rpc.PERMISSION_DENIED),
-			Message: "Denied: " + reason,
-		},
-	}, nil
-}
-
-// Check implements envoyauthz.AuthorizationServer.
-func (s *Server) Check(ctx context.Context, r *envoyauthz.CheckRequest) (*envoyauthz.CheckResponse, error) {
-	// Sanity checks
-	if r.Attributes == nil || r.Attributes.Source == nil || r.Attributes.Destination == nil {
-		return nil, status.Error(codes.InvalidArgument, "source and destination attributes are required")
-	}
-	if r.Attributes.Source.Principal == "" || r.Attributes.Destination.Principal == "" {
-		return nil, status.Error(codes.InvalidArgument, "source and destination Principal are required")
-	}
-
-	// Parse destination to know the target service
-	dest, err := connect.ParseCertURIFromString(r.Attributes.Destination.Principal)
-	if err != nil {
-		// Treat this as an auth error since Envoy has sent something it considers
-		// valid, it's just not an identity we trust.
-		return deniedResponse("Destination Principal is not a valid Connect identity")
-	}
-
-	destID, ok := dest.(*connect.SpiffeIDService)
-	if !ok {
-		return deniedResponse("Destination Principal is not a valid Service identity")
-	}
-
-	// For now we don't validate the trust domain of the _destination_ at all -
-	// the HTTP Authorize endpoint just accepts a target _service_ and it's
-	// implicit that the request is for the correct cluster. We might want to
-	// reconsider this later but plumbing in additional machinery to check the
-	// clusterID here is not really necessary for now unless Envoys are badly
-	// configured. Our threat model _requires_ correctly configured and well
-	// behaved proxies given that they have ACLs to fetch certs and so can do
-	// whatever they want including not authorizing traffic at all or routing it
-	// do a different service than they auth'd against.
-
-	// Create an authz request
-	req := &structs.ConnectAuthorizeRequest{
-		Target:        destID.Service,
-		ClientCertURI: r.Attributes.Source.Principal,
-		// TODO(banks): need Envoy to support sending cert serial/hash to enforce
-		// revocation later.
-	}
-	token := tokenFromContext(ctx)
-	authed, reason, _, err := s.Authz.ConnectAuthorize(token, req)
-	if err != nil {
-		if err == acl.ErrPermissionDenied {
-			return nil, status.Error(codes.PermissionDenied, err.Error())
-		}
-		return nil, status.Error(codes.Internal, err.Error())
-	}
-	if !authed {
-		return deniedResponse(reason)
-	}
-
-	return &envoyauthz.CheckResponse{
-		Status: &rpc.Status{
-			Code:    int32(rpc.OK),
-			Message: "ALLOWED: " + reason,
-		},
-	}, nil
-}
-
-// GRPCServer returns a server instance that can handle XDS and ext_authz
-// requests.
-func (s *Server) GRPCServer(certFile, keyFile string) (*grpc.Server, error) {
+// GRPCServer returns a server instance that can handle xDS requests.
+func (s *Server) GRPCServer(tlsConfigurator *tlsutil.Configurator) (*grpc.Server, error) {
 	opts := []grpc.ServerOption{
 		grpc.MaxConcurrentStreams(2048),
 	}
-	if certFile != "" && keyFile != "" {
-		creds, err := credentials.NewServerTLSFromFile(certFile, keyFile)
-		if err != nil {
-			return nil, err
+	if tlsConfigurator != nil {
+		if tlsConfigurator.Cert() != nil {
+			creds := credentials.NewTLS(tlsConfigurator.IncomingGRPCConfig())
+			opts = append(opts, grpc.Creds(creds))
 		}
-		opts = append(opts, grpc.Creds(creds))
 	}
 	srv := grpc.NewServer(opts...)
 	envoydisco.RegisterAggregatedDiscoveryServiceServer(srv, s)
-	envoyauthz.RegisterAuthorizationServer(srv, s)
+
 	return srv, nil
 }

@@ -1,0 +1,18 @@
+{
+  "ActiveRootID": "15:bf:3a:7d:ff:ea:c1:8c:46:67:6c:db:b8:81:18:36:ad:e5:d0:c7",
+  "Roots": [
+    {
+      "ID": "15:bf:3a:7d:ff:ea:c1:8c:46:67:6c:db:b8:81:18:36:ad:e5:d0:c7",
+      "Name": "Consul CA Root Cert",
+      "SerialNumber": 7,
+      "SigningKeyID": "31:66:3a:39:31:3a:63:61:3a:34:31:3a:38:66:3a:61:63:3a:36:37:3a:62:66:3a:35:39:3a:63:32:3a:66:61:3a:34:65:3a:37:35:3a:35:63:3a:64:38:3a:66:30:3a:35:35:3a:64:65:3a:62:65:3a:37:35:3a:62:38:3a:33:33:3a:33:31:3a:64:35:3a:32:34:3a:62:30:3a:30:34:3a:62:33:3a:65:38:3a:39:37:3a:35:62:3a:37:65",
+      "NotBefore": "2018-05-21T16:33:28Z",
+      "NotAfter": "2028-05-18T16:33:28Z",
+      "RootCert": "-----BEGIN CERTIFICATE-----\nMIICmDCCAj6gAwIBAgIBBzAKBggqhkjOPQQDAjAWMRQwEgYDVQQDEwtDb25zdWwg\nQ0EgNzAeFw0xODA1MjExNjMzMjhaFw0yODA1MTgxNjMzMjhaMBYxFDASBgNVBAMT\nC0NvbnN1bCBDQSA3MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAER0qlxjnRcMEr\niSGlH7G7dYU7lzBEmLUSMZkyBbClmyV8+e8WANemjn+PLnCr40If9cmpr7RnC9Qk\nGTaLnLiF16OCAXswggF3MA4GA1UdDwEB/wQEAwIBhjAPBgNVHRMBAf8EBTADAQH/\nMGgGA1UdDgRhBF8xZjo5MTpjYTo0MTo4ZjphYzo2NzpiZjo1OTpjMjpmYTo0ZTo3\nNTo1YzpkODpmMDo1NTpkZTpiZTo3NTpiODozMzozMTpkNToyNDpiMDowNDpiMzpl\nODo5Nzo1Yjo3ZTBqBgNVHSMEYzBhgF8xZjo5MTpjYTo0MTo4ZjphYzo2NzpiZjo1\nOTpjMjpmYTo0ZTo3NTo1YzpkODpmMDo1NTpkZTpiZTo3NTpiODozMzozMTpkNToy\nNDpiMDowNDpiMzplODo5Nzo1Yjo3ZTA/BgNVHREEODA2hjRzcGlmZmU6Ly8xMjRk\nZjVhMC05ODIwLTc2YzMtOWFhOS02ZjYyMTY0YmExYzIuY29uc3VsMD0GA1UdHgEB\n/wQzMDGgLzAtgisxMjRkZjVhMC05ODIwLTc2YzMtOWFhOS02ZjYyMTY0YmExYzIu\nY29uc3VsMAoGCCqGSM49BAMCA0gAMEUCIQDzkkI7R+0U12a+zq2EQhP/n2mHmta+\nfs2hBxWIELGwTAIgLdO7RRw+z9nnxCIA6kNl//mIQb+PGItespiHZKAz74Q=\n-----END CERTIFICATE-----\n",
+      "IntermediateCerts": null,
+      "Active": true,
+      "CreateIndex": 8,
+      "ModifyIndex": 8
+    }
+  ]
+}

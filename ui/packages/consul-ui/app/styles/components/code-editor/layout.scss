@@ -1,0 +1,34 @@
+%code-editor {
+  display: block;
+  border: 10px;
+  overflow: hidden;
+  position: relative;
+}
+%code-editor .ember-power-select-trigger {
+  @extend %code-editor-syntax-select;
+}
+%code-editor-syntax-select {
+  width: 200px;
+  float: right;
+  z-index: 1;
+}
+%code-editor-syntax-select {
+  margin-top: 1px;
+  border: 0;
+  background-color: $black;
+  color: $white;
+  border-left: 1px solid;
+  border-radius: 0;
+}
+%code-editor::after {
+  position: absolute;
+  bottom: 0px;
+  width: 100%;
+  height: 25px;
+  background-color: $black;
+  content: '';
+  display: block;
+}
+%code-editor > pre {
+  display: none;
+}

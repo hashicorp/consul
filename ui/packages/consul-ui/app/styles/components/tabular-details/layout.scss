@@ -1,0 +1,62 @@
+/* TODO: rename: %details-table */
+%tabular-details tr > .actions {
+  @extend %table-actions;
+  position: relative;
+}
+%tabular-details td:only-child > div {
+  @extend %tabular-detail;
+}
+%tabular-details-toggle-button {
+  @extend %toggle-button;
+  pointer-events: auto;
+  position: absolute;
+  top: 8px;
+}
+%tabular-details-toggle-button span {
+  display: none;
+}
+%tabular-details td > label {
+  @extend %tabular-details-toggle-button;
+  right: 2px;
+}
+%tabular-details tr:nth-child(even) td {
+  height: auto;
+  position: relative;
+  display: table-cell;
+}
+%tabular-details tr:nth-child(even) td > * {
+  display: none;
+}
+%tabular-detail > label {
+  @extend %tabular-details-toggle-button;
+  right: 11px;
+}
+%tabular-details tr:nth-child(even) td > input:checked + * {
+  display: block;
+}
+%tabular-details td:only-child {
+  overflow: visible;
+  width: 100%;
+}
+
+// detail
+%tabular-detail {
+  position: relative;
+  left: -10px;
+  right: -10px;
+  width: calc(100% + 20px);
+  margin-top: -51px;
+  pointer-events: none;
+}
+%tabular-detail {
+  padding: 10px;
+}
+%tabular-detail::after {
+  content: '';
+  display: block;
+  clear: both;
+}
+%tabular-detail > div {
+  pointer-events: auto;
+  margin-top: 36px;
+}

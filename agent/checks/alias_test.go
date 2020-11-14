@@ -20,17 +20,17 @@ func TestCheckAlias_remoteErrBackoff(t *testing.T) {
 	t.Parallel()
 
 	notify := newMockAliasNotify()
-	chkID := types.CheckID("foo")
+	chkID := structs.NewCheckID(types.CheckID("foo"), nil)
 	rpc := &mockRPC{}
 	chk := &CheckAlias{
 		Node:      "remote",
-		ServiceID: "web",
+		ServiceID: structs.ServiceID{ID: "web"},
 		CheckID:   chkID,
 		Notify:    notify,
 		RPC:       rpc,
 	}
 
-	rpc.Reply.Store(fmt.Errorf("failure"))
+	rpc.AddReply("Health.NodeChecks", fmt.Errorf("failure"))
 
 	chk.Start()
 	defer chk.Stop()
@@ -52,17 +52,17 @@ func TestCheckAlias_remoteNoChecks(t *testing.T) {
 	t.Parallel()
 
 	notify := newMockAliasNotify()
-	chkID := types.CheckID("foo")
+	chkID := structs.NewCheckID(types.CheckID("foo"), nil)
 	rpc := &mockRPC{}
 	chk := &CheckAlias{
 		Node:      "remote",
-		ServiceID: "web",
+		ServiceID: structs.ServiceID{ID: "web"},
 		CheckID:   chkID,
 		Notify:    notify,
 		RPC:       rpc,
 	}
 
-	rpc.Reply.Store(structs.IndexedHealthChecks{})
+	rpc.AddReply("Health.NodeChecks", structs.IndexedHealthChecks{})
 
 	chk.Start()
 	defer chk.Stop()
@@ -78,34 +78,34 @@ func TestCheckAlias_remoteNodeFailure(t *testing.T) {
 	t.Parallel()
 
 	notify := newMockAliasNotify()
-	chkID := types.CheckID("foo")
+	chkID := structs.NewCheckID(types.CheckID("foo"), nil)
 	rpc := &mockRPC{}
 	chk := &CheckAlias{
 		Node:      "remote",
-		ServiceID: "web",
+		ServiceID: structs.ServiceID{ID: "web"},
 		CheckID:   chkID,
 		Notify:    notify,
 		RPC:       rpc,
 	}
 
-	rpc.Reply.Store(structs.IndexedHealthChecks{
+	rpc.AddReply("Health.NodeChecks", structs.IndexedHealthChecks{
 		HealthChecks: []*structs.HealthCheck{
 			// Should ignore non-matching node
-			&structs.HealthCheck{
+			{
 				Node:      "A",
 				ServiceID: "web",
 				Status:    api.HealthCritical,
 			},
 
 			// Node failure
-			&structs.HealthCheck{
+			{
 				Node:      "remote",
 				ServiceID: "",
 				Status:    api.HealthCritical,
 			},
 
 			// Match
-			&structs.HealthCheck{
+			{
 				Node:      "remote",
 				ServiceID: "web",
 				Status:    api.HealthPassing,
@@ -127,34 +127,34 @@ func TestCheckAlias_remotePassing(t *testing.T) {
 	t.Parallel()
 
 	notify := newMockAliasNotify()
-	chkID := types.CheckID("foo")
+	chkID := structs.NewCheckID("foo", nil)
 	rpc := &mockRPC{}
 	chk := &CheckAlias{
 		Node:      "remote",
-		ServiceID: "web",
+		ServiceID: structs.ServiceID{ID: "web"},
 		CheckID:   chkID,
 		Notify:    notify,
 		RPC:       rpc,
 	}
 
-	rpc.Reply.Store(structs.IndexedHealthChecks{
+	rpc.AddReply("Health.NodeChecks", structs.IndexedHealthChecks{
 		HealthChecks: []*structs.HealthCheck{
 			// Should ignore non-matching node
-			&structs.HealthCheck{
+			{
 				Node:      "A",
 				ServiceID: "web",
 				Status:    api.HealthCritical,
 			},
 
 			// Should ignore non-matching service
-			&structs.HealthCheck{
+			{
 				Node:      "remote",
 				ServiceID: "db",
 				Status:    api.HealthCritical,
 			},
 
 			// Match
-			&structs.HealthCheck{
+			{
 				Node:      "remote",
 				ServiceID: "web",
 				Status:    api.HealthPassing,
@@ -171,45 +171,155 @@ func TestCheckAlias_remotePassing(t *testing.T) {
 	})
 }
 
-// If any checks are critical, it should be critical
-func TestCheckAlias_remoteCritical(t *testing.T) {
+// Remote service has no healtchecks, but service exists on remote host
+func TestCheckAlias_remotePassingWithoutChecksButWithService(t *testing.T) {
 	t.Parallel()
 
 	notify := newMockAliasNotify()
-	chkID := types.CheckID("foo")
+	chkID := structs.NewCheckID("foo", nil)
 	rpc := &mockRPC{}
 	chk := &CheckAlias{
 		Node:      "remote",
-		ServiceID: "web",
+		ServiceID: structs.ServiceID{ID: "web"},
 		CheckID:   chkID,
 		Notify:    notify,
 		RPC:       rpc,
 	}
 
-	rpc.Reply.Store(structs.IndexedHealthChecks{
+	rpc.AddReply("Health.NodeChecks", structs.IndexedHealthChecks{
 		HealthChecks: []*structs.HealthCheck{
 			// Should ignore non-matching node
-			&structs.HealthCheck{
+			{
 				Node:      "A",
 				ServiceID: "web",
 				Status:    api.HealthCritical,
 			},
 
 			// Should ignore non-matching service
-			&structs.HealthCheck{
+			{
+				Node:      "remote",
+				ServiceID: "db",
+				Status:    api.HealthCritical,
+			},
+		},
+	})
+
+	injected := structs.IndexedNodeServices{
+		NodeServices: &structs.NodeServices{
+			Node: &structs.Node{
+				Node: "remote",
+			},
+			Services: make(map[string]*structs.NodeService),
+		},
+		QueryMeta: structs.QueryMeta{},
+	}
+	injected.NodeServices.Services["web"] = &structs.NodeService{
+		Service: "web",
+		ID:      "web",
+	}
+	rpc.AddReply("Catalog.NodeServices", injected)
+
+	chk.Start()
+	defer chk.Stop()
+	retry.Run(t, func(r *retry.R) {
+		if got, want := notify.State(chkID), api.HealthPassing; got != want {
+			r.Fatalf("got state %q want %q", got, want)
+		}
+	})
+}
+
+// Remote service has no healtchecks, service does not exists on remote host
+func TestCheckAlias_remotePassingWithoutChecksAndWithoutService(t *testing.T) {
+	t.Parallel()
+
+	notify := newMockAliasNotify()
+	chkID := structs.NewCheckID("foo", nil)
+	rpc := &mockRPC{}
+	chk := &CheckAlias{
+		Node:      "remote",
+		ServiceID: structs.ServiceID{ID: "web"},
+		CheckID:   chkID,
+		Notify:    notify,
+		RPC:       rpc,
+	}
+
+	rpc.AddReply("Health.NodeChecks", structs.IndexedHealthChecks{
+		HealthChecks: []*structs.HealthCheck{
+			// Should ignore non-matching node
+			{
+				Node:      "A",
+				ServiceID: "web",
+				Status:    api.HealthCritical,
+			},
+
+			// Should ignore non-matching service
+			{
+				Node:      "remote",
+				ServiceID: "db",
+				Status:    api.HealthCritical,
+			},
+		},
+	})
+
+	injected := structs.IndexedNodeServices{
+		NodeServices: &structs.NodeServices{
+			Node: &structs.Node{
+				Node: "remote",
+			},
+			Services: make(map[string]*structs.NodeService),
+		},
+		QueryMeta: structs.QueryMeta{},
+	}
+	rpc.AddReply("Catalog.NodeServices", injected)
+
+	chk.Start()
+	defer chk.Stop()
+	retry.Run(t, func(r *retry.R) {
+		if got, want := notify.State(chkID), api.HealthCritical; got != want {
+			r.Fatalf("got state %q want %q", got, want)
+		}
+	})
+}
+
+// If any checks are critical, it should be critical
+func TestCheckAlias_remoteCritical(t *testing.T) {
+	t.Parallel()
+
+	notify := newMockAliasNotify()
+	chkID := structs.NewCheckID("foo", nil)
+	rpc := &mockRPC{}
+	chk := &CheckAlias{
+		Node:      "remote",
+		ServiceID: structs.ServiceID{ID: "web"},
+		CheckID:   chkID,
+		Notify:    notify,
+		RPC:       rpc,
+	}
+
+	rpc.AddReply("Health.NodeChecks", structs.IndexedHealthChecks{
+		HealthChecks: []*structs.HealthCheck{
+			// Should ignore non-matching node
+			{
+				Node:      "A",
+				ServiceID: "web",
+				Status:    api.HealthCritical,
+			},
+
+			// Should ignore non-matching service
+			{
 				Node:      "remote",
 				ServiceID: "db",
 				Status:    api.HealthCritical,
 			},
 
 			// Match
-			&structs.HealthCheck{
+			{
 				Node:      "remote",
 				ServiceID: "web",
 				Status:    api.HealthPassing,
 			},
 
-			&structs.HealthCheck{
+			{
 				Node:      "remote",
 				ServiceID: "web",
 				Status:    api.HealthCritical,
@@ -231,40 +341,40 @@ func TestCheckAlias_remoteWarning(t *testing.T) {
 	t.Parallel()
 
 	notify := newMockAliasNotify()
-	chkID := types.CheckID("foo")
+	chkID := structs.NewCheckID("foo", nil)
 	rpc := &mockRPC{}
 	chk := &CheckAlias{
 		Node:      "remote",
-		ServiceID: "web",
+		ServiceID: structs.NewServiceID("web", nil),
 		CheckID:   chkID,
 		Notify:    notify,
 		RPC:       rpc,
 	}
 
-	rpc.Reply.Store(structs.IndexedHealthChecks{
+	rpc.AddReply("Health.NodeChecks", structs.IndexedHealthChecks{
 		HealthChecks: []*structs.HealthCheck{
 			// Should ignore non-matching node
-			&structs.HealthCheck{
+			{
 				Node:      "A",
 				ServiceID: "web",
 				Status:    api.HealthCritical,
 			},
 
 			// Should ignore non-matching service
-			&structs.HealthCheck{
+			{
 				Node:      "remote",
 				ServiceID: "db",
 				Status:    api.HealthCritical,
 			},
 
 			// Match
-			&structs.HealthCheck{
+			{
 				Node:      "remote",
 				ServiceID: "web",
 				Status:    api.HealthPassing,
 			},
 
-			&structs.HealthCheck{
+			{
 				Node:      "remote",
 				ServiceID: "web",
 				Status:    api.HealthWarning,
@@ -286,7 +396,7 @@ func TestCheckAlias_remoteNodeOnlyPassing(t *testing.T) {
 	t.Parallel()
 
 	notify := newMockAliasNotify()
-	chkID := types.CheckID("foo")
+	chkID := structs.NewCheckID(types.CheckID("foo"), nil)
 	rpc := &mockRPC{}
 	chk := &CheckAlias{
 		Node:    "remote",
@@ -295,24 +405,24 @@ func TestCheckAlias_remoteNodeOnlyPassing(t *testing.T) {
 		RPC:     rpc,
 	}
 
-	rpc.Reply.Store(structs.IndexedHealthChecks{
+	rpc.AddReply("Health.NodeChecks", structs.IndexedHealthChecks{
 		HealthChecks: []*structs.HealthCheck{
 			// Should ignore non-matching node
-			&structs.HealthCheck{
+			{
 				Node:      "A",
 				ServiceID: "web",
 				Status:    api.HealthCritical,
 			},
 
 			// Should ignore any services
-			&structs.HealthCheck{
+			{
 				Node:      "remote",
 				ServiceID: "db",
 				Status:    api.HealthCritical,
 			},
 
 			// Match
-			&structs.HealthCheck{
+			{
 				Node:   "remote",
 				Status: api.HealthPassing,
 			},
@@ -333,7 +443,7 @@ func TestCheckAlias_remoteNodeOnlyCritical(t *testing.T) {
 	t.Parallel()
 
 	notify := newMockAliasNotify()
-	chkID := types.CheckID("foo")
+	chkID := structs.NewCheckID(types.CheckID("foo"), nil)
 	rpc := &mockRPC{}
 	chk := &CheckAlias{
 		Node:    "remote",
@@ -342,24 +452,24 @@ func TestCheckAlias_remoteNodeOnlyCritical(t *testing.T) {
 		RPC:     rpc,
 	}
 
-	rpc.Reply.Store(structs.IndexedHealthChecks{
+	rpc.AddReply("Health.NodeChecks", structs.IndexedHealthChecks{
 		HealthChecks: []*structs.HealthCheck{
 			// Should ignore non-matching node
-			&structs.HealthCheck{
+			{
 				Node:      "A",
 				ServiceID: "web",
 				Status:    api.HealthCritical,
 			},
 
 			// Should ignore any services
-			&structs.HealthCheck{
+			{
 				Node:      "remote",
 				ServiceID: "db",
 				Status:    api.HealthCritical,
 			},
 
 			// Match
-			&structs.HealthCheck{
+			{
 				Node:   "remote",
 				Status: api.HealthCritical,
 			},
@@ -385,14 +495,14 @@ func newMockAliasNotify() *mockAliasNotify {
 	}
 }
 
-func (m *mockAliasNotify) AddAliasCheck(chkID types.CheckID, serviceID string, ch chan<- struct{}) error {
+func (m *mockAliasNotify) AddAliasCheck(chkID structs.CheckID, serviceID structs.ServiceID, ch chan<- struct{}) error {
 	return nil
 }
 
-func (m *mockAliasNotify) RemoveAliasCheck(chkID types.CheckID, serviceID string) {
+func (m *mockAliasNotify) RemoveAliasCheck(chkID structs.CheckID, serviceID structs.ServiceID) {
 }
 
-func (m *mockAliasNotify) Checks() map[types.CheckID]*structs.HealthCheck {
+func (m *mockAliasNotify) Checks(*structs.EnterpriseMeta) map[structs.CheckID]*structs.HealthCheck {
 	return nil
 }
 
@@ -403,9 +513,19 @@ type mockRPC struct {
 	Calls uint32       // Read-only, number of RPC calls
 	Args  atomic.Value // Read-only, the last args sent
 
-	// Write-only, the reply to send. If of type "error" then an error will
+	// Write-only, the replies to send, indexed per method. If of type "error" then an error will
 	// be returned from the RPC call.
-	Reply atomic.Value
+	Replies map[string]*atomic.Value
+}
+
+func (m *mockRPC) AddReply(method string, reply interface{}) {
+	if m.Replies == nil {
+		m.Replies = make(map[string]*atomic.Value)
+	}
+	val := &atomic.Value{}
+	val.Store(reply)
+	m.Replies[method] = val
+
 }
 
 func (m *mockRPC) RPC(method string, args interface{}, reply interface{}) error {
@@ -424,12 +544,15 @@ func (m *mockRPC) RPC(method string, args interface{}, reply interface{}) error 
 	}
 	replyv = replyv.Elem()                  // Get pointer value
 	replyv.Set(reflect.Zero(replyv.Type())) // Reset to zero value
-	if v := m.Reply.Load(); v != nil {
+	repl := m.Replies[method]
+	if repl == nil {
+		return fmt.Errorf("No Such Method: %s", method)
+	}
+	if v := m.Replies[method].Load(); v != nil {
 		// Return an error if the reply is an error type
 		if err, ok := v.(error); ok {
 			return err
 		}
-
 		replyv.Set(reflect.ValueOf(v)) // Set to reply value if non-nil
 	}
 
@@ -442,10 +565,12 @@ func TestCheckAlias_localInitialStatus(t *testing.T) {
 	t.Parallel()
 
 	notify := newMockAliasNotify()
-	chkID := types.CheckID("foo")
+	// We fake a local service web to ensure check if passing works
+	notify.Notify.AddServiceID(structs.ServiceID{ID: "web"})
+	chkID := structs.NewCheckID(types.CheckID("foo"), nil)
 	rpc := &mockRPC{}
 	chk := &CheckAlias{
-		ServiceID: "web",
+		ServiceID: structs.ServiceID{ID: "web"},
 		CheckID:   chkID,
 		Notify:    notify,
 		RPC:       rpc,
@@ -459,6 +584,30 @@ func TestCheckAlias_localInitialStatus(t *testing.T) {
 
 	retry.Run(t, func(r *retry.R) {
 		if got, want := notify.State(chkID), api.HealthPassing; got != want {
+			r.Fatalf("got state %q want %q", got, want)
+		}
+	})
+}
+
+// Local check on non-existing service
+func TestCheckAlias_localInitialStatusShouldFailBecauseNoService(t *testing.T) {
+	t.Parallel()
+
+	notify := newMockAliasNotify()
+	chkID := structs.NewCheckID(types.CheckID("foo"), nil)
+	rpc := &mockRPC{}
+	chk := &CheckAlias{
+		ServiceID: structs.ServiceID{ID: "web"},
+		CheckID:   chkID,
+		Notify:    notify,
+		RPC:       rpc,
+	}
+
+	chk.Start()
+	defer chk.Stop()
+
+	retry.Run(t, func(r *retry.R) {
+		if got, want := notify.State(chkID), api.HealthCritical; got != want {
 			r.Fatalf("got state %q want %q", got, want)
 		}
 	})

@@ -1,0 +1,32 @@
+## ConsulTokenList
+
+```
+<ConsulTokenList
+  @items={{items}}
+  @token={{userToken}}
+  @onuse={{action 'use'}}
+  @ondelete={{action 'delete'}}
+  @onlogout={{action 'logout'}}
+  @onclone={{action 'clone'}}
+/>
+```
+
+A presentational component for rendering Consul ACL tokens
+
+### Arguments
+
+| Argument/Attribute | Type | Default | Description |
+| --- | --- | --- | --- |
+| `items` | `array` |  | An array of ACL tokens |
+| `token` | `Token` |  | A token object to use for comparision for current token, usually the users current token |
+| `onuse` | `function` |  | An action to execute when the `Use` action is clicked |
+| `ondelete` | `function` |  | An action to execute when the `Delete` action is clicked |
+| `onlogout` | `function` |  | An action to execute when the `Logout` action is clicked |
+| `onclone` | `function` |  | An action to execute when the `Clone/Duplicate` action is clicked |
+
+### See
+
+- [Component Source Code](./index.js)
+- [Template Source Code](./index.hbs)
+
+---

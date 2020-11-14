@@ -1,0 +1,12 @@
+%confirmation-dialog {
+  float: right;
+}
+%confirmation-dialog-inline p {
+  margin-right: 12px;
+  padding-left: 12px;
+  margin-bottom: 0 !important;
+}
+%confirmation-dialog-inline {
+  display: flex;
+  align-items: center;
+}

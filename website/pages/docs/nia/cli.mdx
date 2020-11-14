@@ -1,0 +1,39 @@
+---
+layout: docs
+page_title: Consul-Terraform-Sync CLI
+sidebar_title: CLI
+description: >-
+  How to use the Consul-Terraform-Sync CLI
+---
+
+# Consul-Terraform-Sync Command (CLI)
+
+Consul-Terraform-Sync is controlled via an easy to use command-line interface (CLI). Consul-Terraform-Sync is only a single command-line application: `consul-terraform-sync`.
+
+Since there is no default configuration to run Consul-Terraform-Sync in a meaningful way, setting a configuration flag `-config-file` or `-config-dir` is required. For example:
+
+```shell-session
+$ consul-terraform-sync -config-file=config.hcl
+```
+
+To view a list of available flags, use the `-help` or `-h` flag.
+
+## Modes
+
+Consul-Terraform-Sync can be run in different modes.
+
+### Daemon Mode
+
+Flag: none
+
+Behavior: This is the default mode in which Consul-Terraform-Sync passes through a once-mode phase and then turns into a long running process. During the once-mode phase, the daemon will exit with a non-zero status if it encounters an error. After successfully passing through once-mode phase, it will begin a long running process in which errors are logged and exiting is not expected behavior.
+
+Usage: Intended to be run as a long running process after running once-mode successfully for given configuration and tasks.
+
+### Once Mode
+
+Flag: `-once`
+
+Behavior: Consul-Terraform-Sync will run all tasks once with buffer periods disabled and exit. On encountering an error before completing, Consul-Terraform-Sync will exit with a non-zero status.
+
+Usage: Intended to be run before daemon-mode in order to confirm configuration is accurate and tasks update network infrastructure as expected.

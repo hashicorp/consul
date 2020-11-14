@@ -32,7 +32,7 @@ func TestCatalogListNodesCommand_Validation(t *testing.T) {
 
 func TestCatalogListNodesCommand(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -95,6 +95,23 @@ func TestCatalogListNodesCommand(t *testing.T) {
 		}
 	})
 
+	t.Run("filter", func(t *testing.T) {
+		ui := cli.NewMockUi()
+		c := New(ui)
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-filter", "Meta.foo == bar",
+		}
+		code := c.Run(args)
+		if code != 0 {
+			t.Fatalf("bad exit code %d: %s", code, ui.ErrorWriter.String())
+		}
+		output := ui.ErrorWriter.String()
+		if expected := "No nodes match the given query"; !strings.Contains(output, expected) {
+			t.Errorf("expected %q to contain %q", output, expected)
+		}
+	})
+
 	t.Run("near", func(t *testing.T) {
 		ui := cli.NewMockUi()
 		c := New(ui)
@@ -145,4 +162,32 @@ func TestCatalogListNodesCommand(t *testing.T) {
 			t.Errorf("expected %q to contain %q", output, expected)
 		}
 	})
+}
+
+func TestCatalogListNodesCommand_verticalBar(t *testing.T) {
+	t.Parallel()
+
+	nodeName := "name|with|bars"
+	a := agent.NewTestAgent(t, `node_name = "`+nodeName+`"`)
+	defer a.Shutdown()
+
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	ui := cli.NewMockUi()
+	c := New(ui)
+	c.flags.SetOutput(ui.ErrorWriter)
+
+	args := []string{
+		"-http-addr=" + a.HTTPAddr(),
+	}
+
+	code := c.Run(args)
+	if code != 0 {
+		t.Fatalf("bad exit code: %d. %q", code, ui.ErrorWriter.String())
+	}
+
+	// Check for nodeName presense because it should not be parsed by columnize
+	if !strings.Contains(ui.OutputWriter.String(), nodeName) {
+		t.Fatalf("expected %q to contain %q", ui.OutputWriter.String(), nodeName)
+	}
 }

@@ -22,7 +22,7 @@ func TestExecCommand_noTabs(t *testing.T) {
 
 func TestExecCommand(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), `
+	a := agent.NewTestAgent(t, `
 		disable_remote_exec = false
 	`)
 	defer a.Shutdown()
@@ -45,7 +45,7 @@ func TestExecCommand(t *testing.T) {
 
 func TestExecCommand_NoShell(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), `
+	a := agent.NewTestAgent(t, `
 		disable_remote_exec = false
 	`)
 	defer a.Shutdown()
@@ -68,14 +68,14 @@ func TestExecCommand_NoShell(t *testing.T) {
 
 func TestExecCommand_CrossDC(t *testing.T) {
 	t.Parallel()
-	a1 := agent.NewTestAgent(t, t.Name(), `
+	a1 := agent.NewTestAgent(t, `
 		disable_remote_exec = false
 	`)
 	defer a1.Shutdown()
 
 	testrpc.WaitForTestAgent(t, a1.RPC, "dc1")
 
-	a2 := agent.NewTestAgent(t, t.Name(), `
+	a2 := agent.NewTestAgent(t, `
 		datacenter = "dc2"
 		disable_remote_exec = false
 	`)
@@ -89,12 +89,14 @@ func TestExecCommand_CrossDC(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if got, want := len(a1.WANMembers()), 2; got != want {
-		t.Fatalf("got %d WAN members on a1 want %d", got, want)
-	}
-	if got, want := len(a2.WANMembers()), 2; got != want {
-		t.Fatalf("got %d WAN members on a2 want %d", got, want)
-	}
+	retry.Run(t, func(r *retry.R) {
+		if got, want := len(a1.WANMembers()), 2; got != want {
+			r.Fatalf("got %d WAN members on a1 want %d", got, want)
+		}
+		if got, want := len(a2.WANMembers()), 2; got != want {
+			r.Fatalf("got %d WAN members on a2 want %d", got, want)
+		}
+	})
 
 	ui := cli.NewMockUi()
 	c := New(ui, nil)
@@ -148,7 +150,7 @@ func TestExecCommand_Validate(t *testing.T) {
 
 func TestExecCommand_Sessions(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), `
+	a := agent.NewTestAgent(t, `
 		disable_remote_exec = false
 	`)
 	defer a.Shutdown()
@@ -188,7 +190,7 @@ func TestExecCommand_Sessions(t *testing.T) {
 
 func TestExecCommand_Sessions_Foreign(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), `
+	a := agent.NewTestAgent(t, `
 		disable_remote_exec = false
 	`)
 	defer a.Shutdown()
@@ -238,7 +240,7 @@ func TestExecCommand_Sessions_Foreign(t *testing.T) {
 
 func TestExecCommand_UploadDestroy(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), `
+	a := agent.NewTestAgent(t, `
 		disable_remote_exec = false
 	`)
 	defer a.Shutdown()
@@ -295,7 +297,7 @@ func TestExecCommand_UploadDestroy(t *testing.T) {
 
 func TestExecCommand_StreamResults(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), `
+	a := agent.NewTestAgent(t, `
 		disable_remote_exec = false
 	`)
 	defer a.Shutdown()

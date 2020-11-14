@@ -1,0 +1,3 @@
+```release-note:bug
+namespace: **(Enterprise Only)** Fixed a bug that could case snapshot restoration to fail when it contained a namespace marked for deletion while still containing other resources in that namespace. 
+```

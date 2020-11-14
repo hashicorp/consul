@@ -11,9 +11,9 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/raft"
-	"github.com/pascaldekloe/goe/verify"
+	"github.com/stretchr/testify/require"
 )
 
 func TestOperator_RaftGetConfiguration(t *testing.T) {
@@ -44,7 +44,7 @@ func TestOperator_RaftGetConfiguration(t *testing.T) {
 	me := future.Configuration().Servers[0]
 	expected := structs.RaftConfigurationResponse{
 		Servers: []*structs.RaftServer{
-			&structs.RaftServer{
+			{
 				ID:              me.ID,
 				Node:            s1.config.NodeName,
 				Address:         me.Address,
@@ -55,7 +55,7 @@ func TestOperator_RaftGetConfiguration(t *testing.T) {
 		},
 		Index: future.Index(),
 	}
-	verify.Values(t, "", reply, expected)
+	require.Equal(t, expected, reply)
 }
 
 func TestOperator_RaftGetConfiguration_ACLDeny(t *testing.T) {
@@ -71,7 +71,7 @@ func TestOperator_RaftGetConfiguration_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
 	// Make a request with no token to make sure it gets denied.
 	arg := structs.DCSpecificRequest{
@@ -121,7 +121,7 @@ func TestOperator_RaftGetConfiguration_ACLDeny(t *testing.T) {
 	me := future.Configuration().Servers[0]
 	expected := structs.RaftConfigurationResponse{
 		Servers: []*structs.RaftServer{
-			&structs.RaftServer{
+			{
 				ID:              me.ID,
 				Node:            s1.config.NodeName,
 				Address:         me.Address,
@@ -132,7 +132,7 @@ func TestOperator_RaftGetConfiguration_ACLDeny(t *testing.T) {
 		},
 		Index: future.Index(),
 	}
-	verify.Values(t, "", reply, expected)
+	require.Equal(t, expected, reply)
 }
 
 func TestOperator_RaftRemovePeerByAddress(t *testing.T) {
@@ -145,10 +145,13 @@ func TestOperator_RaftRemovePeerByAddress(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
+	ports := freeport.MustTake(1)
+	defer freeport.Return(ports)
+
 	// Try to remove a peer that's not there.
 	arg := structs.RaftRemovePeerRequest{
 		Datacenter: "dc1",
-		Address:    raft.ServerAddress(fmt.Sprintf("127.0.0.1:%d", freeport.Get(1)[0])),
+		Address:    raft.ServerAddress(fmt.Sprintf("127.0.0.1:%d", ports[0])),
 	}
 	var reply struct{}
 	err := msgpackrpc.CallWithCodec(codec, "Operator.RaftRemovePeerByAddress", &arg, &reply)
@@ -208,7 +211,7 @@ func TestOperator_RaftRemovePeerByAddress_ACLDeny(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
 	// Make a request with no token to make sure it gets denied.
 	arg := structs.RaftRemovePeerRequest{
@@ -277,7 +280,10 @@ func TestOperator_RaftRemovePeerByID(t *testing.T) {
 
 	// Add it manually to Raft.
 	{
-		future := s1.raft.AddVoter(arg.ID, raft.ServerAddress(fmt.Sprintf("127.0.0.1:%d", freeport.Get(1)[0])), 0, 0)
+		ports := freeport.MustTake(1)
+		defer freeport.Return(ports)
+
+		future := s1.raft.AddVoter(arg.ID, raft.ServerAddress(fmt.Sprintf("127.0.0.1:%d", ports[0])), 0, 0)
 		if err := future.Error(); err != nil {
 			t.Fatalf("err: %v", err)
 		}

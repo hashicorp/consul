@@ -20,10 +20,12 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"net/http"
 	"reflect"
 
 	"github.com/gogo/protobuf/proto"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer/recognizer"
@@ -50,6 +52,15 @@ func (e errNotMarshalable) Error() string {
 	return fmt.Sprintf("object %v does not implement the protobuf marshalling interface and cannot be encoded to a protobuf message", e.t)
 }
 
+func (e errNotMarshalable) Status() metav1.Status {
+	return metav1.Status{
+		Status:  metav1.StatusFailure,
+		Code:    http.StatusNotAcceptable,
+		Reason:  metav1.StatusReason("NotAcceptable"),
+		Message: e.Error(),
+	}
+}
+
 func IsNotMarshalable(err error) bool {
 	_, ok := err.(errNotMarshalable)
 	return err != nil && ok
@@ -58,22 +69,18 @@ func IsNotMarshalable(err error) bool {
 // NewSerializer creates a Protobuf serializer that handles encoding versioned objects into the proper wire form. If a typer
 // is passed, the encoded object will have group, version, and kind fields set. If typer is nil, the objects will be written
 // as-is (any type info passed with the object will be used).
-//
-// This encoding scheme is experimental, and is subject to change at any time.
-func NewSerializer(creater runtime.ObjectCreater, typer runtime.ObjectTyper, defaultContentType string) *Serializer {
+func NewSerializer(creater runtime.ObjectCreater, typer runtime.ObjectTyper) *Serializer {
 	return &Serializer{
-		prefix:      protoEncodingPrefix,
-		creater:     creater,
-		typer:       typer,
-		contentType: defaultContentType,
+		prefix:  protoEncodingPrefix,
+		creater: creater,
+		typer:   typer,
 	}
 }
 
 type Serializer struct {
-	prefix      []byte
-	creater     runtime.ObjectCreater
-	typer       runtime.ObjectTyper
-	contentType string
+	prefix  []byte
+	creater runtime.ObjectCreater
+	typer   runtime.ObjectTyper
 }
 
 var _ runtime.Serializer = &Serializer{}
@@ -127,7 +134,7 @@ func (s *Serializer) Decode(originalData []byte, gvk *schema.GroupVersionKind, i
 	if intoUnknown, ok := into.(*runtime.Unknown); ok && intoUnknown != nil {
 		*intoUnknown = unk
 		if ok, _, _ := s.RecognizesData(bytes.NewBuffer(unk.Raw)); ok {
-			intoUnknown.ContentType = s.contentType
+			intoUnknown.ContentType = runtime.ContentTypeProtobuf
 		}
 		return intoUnknown, &actual, nil
 	}
@@ -196,7 +203,7 @@ func (s *Serializer) Encode(obj runtime.Object, w io.Writer) error {
 	switch t := obj.(type) {
 	case bufferedMarshaller:
 		// this path performs a single allocation during write but requires the caller to implement
-		// the more efficient Size and MarshalTo methods
+		// the more efficient Size and MarshalToSizedBuffer methods
 		encodedSize := uint64(t.Size())
 		estimatedSize := prefixSize + estimateUnknownSize(&unk, encodedSize)
 		data := make([]byte, estimatedSize)
@@ -276,6 +283,12 @@ type bufferedMarshaller interface {
 	runtime.ProtobufMarshaller
 }
 
+// Like bufferedMarshaller, but is able to marshal backwards, which is more efficient since it doesn't call Size() as frequently.
+type bufferedReverseMarshaller interface {
+	proto.Sizer
+	runtime.ProtobufReverseMarshaller
+}
+
 // estimateUnknownSize returns the expected bytes consumed by a given runtime.Unknown
 // object with a nil RawJSON struct and the expected size of the provided buffer. The
 // returned size will not be correct if RawJSOn is set on unk.
@@ -292,20 +305,18 @@ func estimateUnknownSize(unk *runtime.Unknown, byteSize uint64) uint64 {
 // encoded object, and thus is not self describing (callers must know what type is being described in order to decode).
 //
 // This encoding scheme is experimental, and is subject to change at any time.
-func NewRawSerializer(creater runtime.ObjectCreater, typer runtime.ObjectTyper, defaultContentType string) *RawSerializer {
+func NewRawSerializer(creater runtime.ObjectCreater, typer runtime.ObjectTyper) *RawSerializer {
 	return &RawSerializer{
-		creater:     creater,
-		typer:       typer,
-		contentType: defaultContentType,
+		creater: creater,
+		typer:   typer,
 	}
 }
 
 // RawSerializer encodes and decodes objects without adding a runtime.Unknown wrapper (objects are encoded without identifying
 // type).
 type RawSerializer struct {
-	creater     runtime.ObjectCreater
-	typer       runtime.ObjectTyper
-	contentType string
+	creater runtime.ObjectCreater
+	typer   runtime.ObjectTyper
 }
 
 var _ runtime.Serializer = &RawSerializer{}
@@ -347,7 +358,7 @@ func (s *RawSerializer) Decode(originalData []byte, gvk *schema.GroupVersionKind
 	if intoUnknown, ok := into.(*runtime.Unknown); ok && intoUnknown != nil {
 		intoUnknown.Raw = data
 		intoUnknown.ContentEncoding = ""
-		intoUnknown.ContentType = s.contentType
+		intoUnknown.ContentType = runtime.ContentTypeProtobuf
 		intoUnknown.SetGroupVersionKind(*actual)
 		return intoUnknown, actual, nil
 	}
@@ -400,12 +411,28 @@ func unmarshalToObject(typer runtime.ObjectTyper, creater runtime.ObjectCreater,
 	if err := proto.Unmarshal(data, pb); err != nil {
 		return nil, actual, err
 	}
+	if actual != nil {
+		obj.GetObjectKind().SetGroupVersionKind(*actual)
+	}
 	return obj, actual, nil
 }
 
 // Encode serializes the provided object to the given writer. Overrides is ignored.
 func (s *RawSerializer) Encode(obj runtime.Object, w io.Writer) error {
 	switch t := obj.(type) {
+	case bufferedReverseMarshaller:
+		// this path performs a single allocation during write but requires the caller to implement
+		// the more efficient Size and MarshalToSizedBuffer methods
+		encodedSize := uint64(t.Size())
+		data := make([]byte, encodedSize)
+
+		n, err := t.MarshalToSizedBuffer(data)
+		if err != nil {
+			return err
+		}
+		_, err = w.Write(data[:n])
+		return err
+
 	case bufferedMarshaller:
 		// this path performs a single allocation during write but requires the caller to implement
 		// the more efficient Size and MarshalTo methods

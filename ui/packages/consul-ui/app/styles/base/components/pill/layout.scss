@@ -1,0 +1,22 @@
+%pill {
+  display: inline-flex;
+  position: relative;
+  align-items: center;
+  white-space: nowrap;
+}
+%pill::before {
+  margin-right: 4px;
+  font-size: 0.8em;
+}
+%pill-200 {
+  @extend %pill;
+  padding: 0 8px;
+}
+%pill-500 {
+  @extend %pill;
+  padding: 1px 5px;
+}
+%pill-700 {
+  @extend %pill;
+  padding: 4px 8px;
+}

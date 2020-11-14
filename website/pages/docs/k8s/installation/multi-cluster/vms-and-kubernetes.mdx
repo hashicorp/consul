@@ -1,0 +1,294 @@
+---
+layout: docs
+page_title: Federation Between VMs and Kubernetes
+sidebar_title: Federation Between VMs and Kubernetes
+description: >-
+  Federating Kubernetes clusters and VMs.
+---
+
+# Federation Between VMs and Kubernetes
+
+-> **1.8.0+:** This feature is available in Consul versions 1.8.0 and higher
+
+~> This topic requires familiarity with [Mesh Gateways](/docs/connect/mesh-gateway) and [WAN Federation Via Mesh Gateways](/docs/connect/gateways/wan-federation-via-mesh-gateways).
+
+Consul datacenters running on non-kubernetes platforms like VMs or bare metal can
+be federated with Kubernetes datacenters. Just like with Kubernetes, one datacenter
+must be the [primary](/docs/k8s/installation/multi-cluster/kubernetes#primary-datacenter).
+
+## Kubernetes as the Primary
+
+If your primary datacenter is running on Kubernetes, use the Helm config from the
+[Primary Datacenter](/docs/k8s/installation/multi-cluster/kubernetes#primary-datacenter) section to install Consul.
+
+Once installed, you'll need to export the following information from the primary Kubernetes
+cluster:
+
+1. The certificate authority cert:
+
+```sh
+kubectl get secrets/consul-ca-cert --template='{{index .data "tls.crt" }}' |
+  base64 -D > consul-agent-ca.pem
+```
+
+and the certificate authority signing key:
+
+```sh
+kubectl get secrets/consul-ca-key --template='{{index .data "tls.key" }}' |
+   base64 -D > consul-agent-ca-key.pem
+```
+
+With the `consul-agent-ca.pem` and `consul-agent-ca-key.pem` files you can
+create certificates for your servers and clients running on VMs that share the
+same certificate authority as your Kubernetes servers.
+
+You can use the `consul tls` commands to generate those certificates:
+
+```sh
+# NOTE: consul-agent-ca.pem and consul-agent-ca-key.pem must be in the current
+# directory.
+$ consul tls cert create -server -dc=vm-dc
+==> WARNING: Server Certificates grants authority to become a
+    server and access all state in the cluster including root keys
+    and all ACL tokens. Do not distribute them to production hosts
+    that are not server nodes. Store them as securely as CA keys.
+==> Using consul-agent-ca.pem and consul-agent-ca-key.pem
+==> Saved vm-dc-server-consul-0.pem
+==> Saved vm-dc-server-consul-0-key.pem
+```
+
+See the help for output of `consul tls cert create -h` to see more options
+for generating server certificates.
+
+These certificates can be used in your server config file:
+
+```hcl
+# server.hcl
+cert_file = "vm-dc-server-consul-0.pem"
+key_file = "vm-dc-server-consul-0-key.pem"
+ca_file = "consul-agent-ca.pem"
+```
+
+For clients, you can generate TLS certs with:
+
+```shell-session
+$ consul tls cert create -client
+==> Using consul-agent-ca.pem and consul-agent-ca-key.pem
+==> Saved dc1-client-consul-0.pem
+==> Saved dc1-client-consul-0-key.pem
+```
+
+Or use the [auto_encrypt](/docs/agent/options#auto_encrypt) feature.
+
+1. The WAN addresses of the mesh gateways:
+
+```shell-session
+$ kubectl exec statefulset/consul-server -- sh -c \
+  'curl -sk https://localhost:8501/v1/catalog/service/mesh-gateway | jq ".[].ServiceTaggedAddresses.wan"'
+{
+  "Address": "1.2.3.4",
+  "Port": 443
+}
+{
+  "Address": "1.2.3.4",
+  "Port": 443
+}
+```
+
+In this example, the addresses are the same because both mesh gateway pods are
+fronted by the same Kubernetes load balancer.
+
+These addresses will be used in the server config for the `primary_gateways`
+setting:
+
+```hcl
+primary_gateways = ["1.2.3.4:443"]
+```
+
+1. If ACLs are enabled, you'll also need the replication ACL token:
+
+```shell-session
+$ kubectl get secrets/consul-acl-replication-acl-token --template='{{.data.token}}'
+e7924dd1-dc3f-f644-da54-81a73ba0a178
+```
+
+This token will be used in the server config for the replication token.
+You must also create your own agent policy and token.
+
+```hcl
+acls {
+  tokens {
+    agent = "<your agent token>"
+    replication = "e7924dd1-dc3f-f644-da54-81a73ba0a178"
+  }
+}
+```
+
+1. If gossip encryption is enabled, you'll need the key as well. The command
+   to retrieve the key will depend on which Kubernetes secret you've stored it in.
+
+   This key will be used in server and client configs for the `encrypt` setting:
+
+   ```hcl
+   encrypt = "uF+GsbI66cuWU21kiXLze5JLEX5j4iDFlDTb0ZWNpDI="
+   ```
+
+A final example server config file might look like:
+
+```hcl
+# From above
+cert_file = "vm-dc-server-consul-0.pem"
+key_file = "vm-dc-server-consul-0-key.pem"
+ca_file = "consul-agent-ca.pem"
+primary_gateways = ["1.2.3.4:443"]
+acl {
+  enabled = true
+  default_policy = "deny"
+  down_policy = "extend-cache"
+  tokens {
+    agent = "e7924dd1-dc3f-f644-da54-81a73ba0a178"
+    replication = "e7924dd1-dc3f-f644-da54-81a73ba0a178"
+  }
+}
+encrypt = "uF+GsbI66cuWU21kiXLze5JLEX5j4iDFlDTb0ZWNpDI="
+
+# Other server settings
+server = true
+datacenter = "vm-dc"
+data_dir = "/opt/consul"
+enable_central_service_config = true
+primary_datacenter = "dc1"
+connect {
+  enabled = true
+  enable_mesh_gateway_wan_federation = true
+}
+verify_incoming_rpc = true
+verify_outgoing = true
+verify_server_hostname = true
+ports {
+  https = 8501
+  http = -1
+  grpc = 8502
+}
+```
+
+## Kubernetes as the Secondary
+
+If you're running your primary datacenter on VMs then you'll need to manually
+construct the [Federation Secret](/docs/k8s/installation/multi-cluster/kubernetes#federation-secret) in order to federate
+Kubernetes clusters as secondaries.
+
+-> Your VM cluster must be running mesh gateways, and have mesh gateway WAN
+federation enabled. See [WAN Federation via Mesh Gateways](/docs/connect/gateways/wan-federation-via-mesh-gateways).
+
+You'll need:
+
+1. The root certificate authority cert placed in `consul-agent-ca.pem`.
+1. The root certificate authority key placed in `consul-agent-ca-key.pem`.
+1. The IP addresses of the mesh gateways running in your VM datacenter. These must
+   be routable from the Kubernetes cluster.
+1. If ACLs are enabled you must create an ACL replication token with the following rules:
+
+```hcl
+acl = "write"
+operator = "write"
+agent_prefix "" {
+  policy = "read"
+}
+node_prefix "" {
+  policy = "write"
+}
+service_prefix "" {
+  policy = "read"
+  intentions = "read"
+}
+```
+
+This token is used for ACL replication and for automatic ACL management in Kubernetes.
+
+If you're running Consul Enterprise you'll need the rules:
+
+```hcl
+acl = "write"
+operator = "write"
+agent_prefix "" {
+  policy = "read"
+}
+node_prefix "" {
+  policy = "write"
+}
+namespace_prefix "" {
+  service_prefix "" {
+    policy = "read"
+    intentions = "read"
+  }
+}
+```
+
+1. If gossip encryption is enabled, you'll need the key.
+
+With that data ready, you can create the Kubernetes federation secret:
+
+```sh
+kubectl create secret generic consul-federation \
+    --from-literal=caCert=$(cat consul-agent-ca.pem) \
+    --from-literal=caKey=$(cat consul-agent-ca-key.pem)
+    # If ACLs are enabled uncomment.
+    # --from-literal=replicationToken="<your acl replication token>" \
+    # If using gossip encryption uncomment.
+    # --from-literal=gossipEncryptionKey="<your gossip encryption key>"
+```
+
+Then use the following Helm config file:
+
+```yaml
+global:
+  name: consul
+  datacenter: dc2
+  tls:
+    enabled: true
+    caCert:
+      secretName: consul-federation
+      secretKey: caCert
+    caKey:
+      secretName: consul-federation
+      secretKey: caKey
+
+  # Delete this acls section if ACLs are disabled.
+  acls:
+    manageSystemACLs: true
+    replicationToken:
+      secretName: consul-federation
+      secretKey: replicationToken
+
+  federation:
+    enabled: true
+
+  # Delete this gossipEncryption section if gossip encryption is disabled.
+  gossipEncryption:
+    secretName: consul-federation
+    secretKey: gossipEncryptionKey
+
+connectInject:
+  enabled: true
+meshGateway:
+  enabled: true
+server:
+  extraConfig: |
+    {
+      "primary_datacenter": "<your VM datacenter name>",
+      "primary_gateways": ["<ip of your VM mesh gateway>", "<other ip>", ...]
+    }
+```
+
+-> **NOTE: ** You must fill out the `server.extraConfig` section with the datacenter
+name of your primary datacenter running on VMs and with the IPs of your mesh
+gateways running on VMs.
+
+With your config file ready to go, follow our [Installation Guide](/docs/k8s/installation/install)
+to install Consul on your secondary cluster(s).
+
+## Next Steps
+
+Read the [Verifying Federation](/docs/k8s/installation/multi-cluster/kubernetes#verifying-federation)
+section to verify that federation is working as expected.

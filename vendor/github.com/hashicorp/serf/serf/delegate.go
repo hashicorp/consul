@@ -35,6 +35,11 @@ func (d *delegate) NotifyMsg(buf []byte) {
 	rebroadcast := false
 	rebroadcastQueue := d.serf.broadcasts
 	t := messageType(buf[0])
+
+	if d.serf.config.messageDropper(t) {
+		return
+	}
+
 	switch t {
 	case messageLeaveType:
 		var leave messageLeave
@@ -101,8 +106,14 @@ func (d *delegate) NotifyMsg(buf []byte) {
 		// The remaining contents are the message itself, so forward that
 		raw := make([]byte, reader.Len())
 		reader.Read(raw)
+
+		addr := memberlist.Address{
+			Addr: header.DestAddr.String(),
+			Name: header.DestName,
+		}
+
 		d.serf.logger.Printf("[DEBUG] serf: Relaying response to addr: %s", header.DestAddr.String())
-		if err := d.serf.memberlist.SendTo(&header.DestAddr, raw); err != nil {
+		if err := d.serf.memberlist.SendToAddress(addr, raw); err != nil {
 			d.serf.logger.Printf("[ERR] serf: Error forwarding message to %s: %s", header.DestAddr.String(), err)
 			break
 		}
@@ -204,6 +215,10 @@ func (d *delegate) MergeRemoteState(buf []byte, isJoin bool) {
 	// Check the message type
 	if messageType(buf[0]) != messagePushPullType {
 		d.serf.logger.Printf("[ERR] serf: Remote state has bad type prefix: %v", buf[0])
+		return
+	}
+
+	if d.serf.config.messageDropper(messagePushPullType) {
 		return
 	}
 

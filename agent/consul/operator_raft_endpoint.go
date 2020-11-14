@@ -13,7 +13,7 @@ import (
 
 // RaftGetConfiguration is used to retrieve the current Raft configuration.
 func (op *Operator) RaftGetConfiguration(args *structs.DCSpecificRequest, reply *structs.RaftConfigurationResponse) error {
-	if done, err := op.srv.forward("Operator.RaftGetConfiguration", args, args, reply); done {
+	if done, err := op.srv.ForwardRPC("Operator.RaftGetConfiguration", args, args, reply); done {
 		return err
 	}
 
@@ -22,7 +22,7 @@ func (op *Operator) RaftGetConfiguration(args *structs.DCSpecificRequest, reply 
 	if err != nil {
 		return err
 	}
-	if rule != nil && !rule.OperatorRead() {
+	if rule != nil && rule.OperatorRead(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -74,17 +74,20 @@ func (op *Operator) RaftGetConfiguration(args *structs.DCSpecificRequest, reply 
 // "IP:port". The reply argument is not used, but it required to fulfill the RPC
 // interface.
 func (op *Operator) RaftRemovePeerByAddress(args *structs.RaftRemovePeerRequest, reply *struct{}) error {
-	if done, err := op.srv.forward("Operator.RaftRemovePeerByAddress", args, args, reply); done {
+	if done, err := op.srv.ForwardRPC("Operator.RaftRemovePeerByAddress", args, args, reply); done {
 		return err
 	}
 
 	// This is a super dangerous operation that requires operator write
 	// access.
-	rule, err := op.srv.ResolveToken(args.Token)
+	identity, rule, err := op.srv.ResolveTokenToIdentityAndAuthorizer(args.Token)
 	if err != nil {
 		return err
 	}
-	if rule != nil && !rule.OperatorWrite() {
+	if err := op.srv.validateEnterpriseToken(identity); err != nil {
+		return err
+	}
+	if rule != nil && rule.OperatorWrite(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -107,32 +110,15 @@ func (op *Operator) RaftRemovePeerByAddress(args *structs.RaftRemovePeerRequest,
 	}
 
 REMOVE:
-	// The Raft library itself will prevent various forms of foot-shooting,
-	// like making a configuration with no voters. Some consideration was
-	// given here to adding more checks, but it was decided to make this as
-	// low-level and direct as possible. We've got ACL coverage to lock this
-	// down, and if you are an operator, it's assumed you know what you are
-	// doing if you are calling this. If you remove a peer that's known to
-	// Serf, for example, it will come back when the leader does a reconcile
-	// pass.
-	minRaftProtocol, err := op.srv.autopilot.MinRaftProtocol()
-	if err != nil {
+	if err := op.srv.autopilot.RemoveServer(args.ID); err != nil {
+		op.logger.Warn("Failed to remove Raft server",
+			"address", args.Address,
+			"error", err,
+		)
 		return err
 	}
 
-	var future raft.Future
-	if minRaftProtocol >= 2 {
-		future = op.srv.raft.RemoveServer(args.ID, 0, 0)
-	} else {
-		future = op.srv.raft.RemovePeer(args.Address)
-	}
-	if err := future.Error(); err != nil {
-		op.srv.logger.Printf("[WARN] consul.operator: Failed to remove Raft peer %q: %v",
-			args.Address, err)
-		return err
-	}
-
-	op.srv.logger.Printf("[WARN] consul.operator: Removed Raft peer %q", args.Address)
+	op.logger.Warn("Removed Raft server", "address", args.Address)
 	return nil
 }
 
@@ -141,17 +127,20 @@ REMOVE:
 // "IP:port". The reply argument is not used, but is required to fulfill the RPC
 // interface.
 func (op *Operator) RaftRemovePeerByID(args *structs.RaftRemovePeerRequest, reply *struct{}) error {
-	if done, err := op.srv.forward("Operator.RaftRemovePeerByID", args, args, reply); done {
+	if done, err := op.srv.ForwardRPC("Operator.RaftRemovePeerByID", args, args, reply); done {
 		return err
 	}
 
 	// This is a super dangerous operation that requires operator write
 	// access.
-	rule, err := op.srv.ResolveToken(args.Token)
+	identity, rule, err := op.srv.ResolveTokenToIdentityAndAuthorizer(args.Token)
 	if err != nil {
 		return err
 	}
-	if rule != nil && !rule.OperatorWrite() {
+	if err := op.srv.validateEnterpriseToken(identity); err != nil {
+		return err
+	}
+	if rule != nil && rule.OperatorWrite(nil) != acl.Allow {
 		return acl.ErrPermissionDenied
 	}
 
@@ -182,23 +171,14 @@ REMOVE:
 	// doing if you are calling this. If you remove a peer that's known to
 	// Serf, for example, it will come back when the leader does a reconcile
 	// pass.
-	minRaftProtocol, err := op.srv.autopilot.MinRaftProtocol()
-	if err != nil {
+	if err := op.srv.autopilot.RemoveServer(args.ID); err != nil {
+		op.logger.Warn("Failed to remove Raft peer with id",
+			"peer_id", args.ID,
+			"error", err,
+		)
 		return err
 	}
 
-	var future raft.Future
-	if minRaftProtocol >= 2 {
-		future = op.srv.raft.RemoveServer(args.ID, 0, 0)
-	} else {
-		future = op.srv.raft.RemovePeer(args.Address)
-	}
-	if err := future.Error(); err != nil {
-		op.srv.logger.Printf("[WARN] consul.operator: Failed to remove Raft peer with id %q: %v",
-			args.ID, err)
-		return err
-	}
-
-	op.srv.logger.Printf("[WARN] consul.operator: Removed Raft peer with id %q", args.ID)
+	op.logger.Warn("Removed Raft peer with id", "peer_id", args.ID)
 	return nil
 }

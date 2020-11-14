@@ -1,0 +1,21 @@
+AccessorID:       fbd2447f-7479-4329-ad13-b021d74f86ba
+SecretID:         869c6e91-4de9-4dab-b56e-87548435f9c6
+Namespace:        foo
+Description:      test token
+Local:            false
+Auth Method:      bar
+Create Time:      2020-05-22 18:52:31 +0000 UTC
+Expiration Time:  2020-05-22 19:52:31 +0000 UTC
+Hash:             6162636465666768
+Create Index:     5
+Modify Index:     10
+Policies:
+   beb04680-815b-4d7c-9e33-3d707c24672c - hobbiton
+   18788457-584c-4812-80d3-23d403148a90 - bywater
+Roles:
+   3b0a78fe-b9c3-40de-b8ea-7d4d6674b366 - shire
+   6c9d1e1d-34bc-4d55-80f3-add0890ad791 - west-farthing
+Service Identities:
+   gardener (Datacenters: middleearth-northwest)
+Node Identities:
+   bagend (Datacenter: middleearth-northwest)

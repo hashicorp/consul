@@ -1,12 +1,29 @@
-ROOT:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
+.PHONY: clean dist dist-docker dist-netlify
+# Called from the build ui docker image
+dist-docker: dist
 
-server:
-	python -m SimpleHTTPServer
+clean:
+	rm -rf ./dist
 
-watch:
-	sass styles:static --watch
+# Build a distribution of the UI using the minimal amount of dependencies
+dist: clean
+	cd packages/consul-ui && \
+		CONSUL_UI_INSTALL_FLAGS=--focus \
+		$(MAKE)
 
-dist:
-	@sh -c "'$(ROOT)/scripts/dist.sh'"
-
-.PHONY: server watch dist
+# Build a distribution of the UI for Netlify previews.
+# The distribution must be copied into the ui/ subfolder
+# in order to mirror the go binary
+#
+# Netlify Settings:
+# ---
+# base-directory: ui
+# build command: make dist-netlify
+# publish directory: ui/dist
+dist-netlify: clean
+	mkdir -p dist/ui && \
+	cd packages/consul-ui && \
+		CONSUL_UI_INSTALL_FLAGS=--focus \
+		$(MAKE) build-staging && \
+		mv dist/* ../../dist/ui && \
+		cp _redirects ../../dist/_redirects

@@ -5,10 +5,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/serf/serf"
+	"github.com/hashicorp/consul/lib/serf"
 )
 
 var clientACLCacheConfig *structs.ACLCachesConfig = &structs.ACLCachesConfig{
@@ -25,6 +23,8 @@ var clientACLCacheConfig *structs.ACLCachesConfig = &structs.ACLCachesConfig{
 	ParsedPolicies: 128,
 	// Authorizers - number of compiled multi-policy effective policies that can be cached
 	Authorizers: 256,
+	// Roles - number of ACL roles that can be cached
+	Roles: 128,
 }
 
 func (c *Client) UseLegacyACLs() bool {
@@ -34,22 +34,11 @@ func (c *Client) UseLegacyACLs() bool {
 func (c *Client) monitorACLMode() {
 	waitTime := aclModeCheckMinInterval
 	for {
-		canUpgrade := false
-		for _, member := range c.LANMembers() {
-			if valid, parts := metadata.IsConsulServer(member); valid && parts.Status == serf.StatusAlive {
-				if parts.ACLs != structs.ACLModeEnabled {
-					canUpgrade = false
-					break
-				} else {
-					canUpgrade = true
-				}
-			}
-		}
-
-		if canUpgrade {
-			c.logger.Printf("[DEBUG] acl: transition out of legacy ACL mode")
+		foundServers, mode, _ := ServersGetACLMode(c, "", c.config.Datacenter)
+		if foundServers && mode == structs.ACLModeEnabled {
+			c.logger.Debug("transitioned out of legacy ACL mode")
+			c.updateSerfTags("acls", string(structs.ACLModeEnabled))
 			atomic.StoreInt32(&c.useNewACLs, 1)
-			lib.UpdateSerfTag(c.serf, "acls", string(structs.ACLModeEnabled))
 			return
 		}
 
@@ -82,10 +71,6 @@ func (c *Client) ACLDatacenter(legacy bool) string {
 	return c.config.Datacenter
 }
 
-func (c *Client) ACLsEnabled() bool {
-	return c.config.ACLsEnabled
-}
-
 func (c *Client) ResolveIdentityFromToken(token string) (bool, structs.ACLIdentity, error) {
 	// clients do no local identity resolution at the moment
 	return false, nil, nil
@@ -96,6 +81,47 @@ func (c *Client) ResolvePolicyFromID(policyID string) (bool, *structs.ACLPolicy,
 	return false, nil, nil
 }
 
+func (c *Client) ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error) {
+	// clients do no local role resolution at the moment
+	return false, nil, nil
+}
+
 func (c *Client) ResolveToken(token string) (acl.Authorizer, error) {
 	return c.acls.ResolveToken(token)
+}
+
+func (c *Client) ResolveTokenToIdentity(token string) (structs.ACLIdentity, error) {
+	// not using ResolveTokenToIdentityAndAuthorizer because in this case we don't
+	// need to resolve the roles, policies and namespace but just want the identity
+	// information such as accessor id.
+	return c.acls.ResolveTokenToIdentity(token)
+}
+
+func (c *Client) ResolveTokenToIdentityAndAuthorizer(token string) (structs.ACLIdentity, acl.Authorizer, error) {
+	return c.acls.ResolveTokenToIdentityAndAuthorizer(token)
+}
+
+func (c *Client) ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error) {
+	identity, authz, err := c.acls.ResolveTokenToIdentityAndAuthorizer(token)
+	if err != nil {
+		return nil, err
+	}
+
+	// Default the EnterpriseMeta based on the Tokens meta or actual defaults
+	// in the case of unknown identity
+	if identity != nil {
+		entMeta.Merge(identity.EnterpriseMetadata())
+	} else {
+		entMeta.Merge(structs.DefaultEnterpriseMeta())
+	}
+
+	// Use the meta to fill in the ACL authorization context
+	entMeta.FillAuthzContext(authzContext)
+
+	return authz, err
+}
+
+func (c *Client) updateSerfTags(key, value string) {
+	// Update the LAN serf
+	serf.UpdateTag(c.serf, key, value)
 }

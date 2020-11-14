@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018, Joyent, Inc. All rights reserved.
+// Copyright 2019 Joyent, Inc.
 //
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -52,6 +52,11 @@ type InstanceVolume struct {
 	Type       string `json:"type,omitempty"`
 	Mode       string `json:"mode,omitempty"`
 	Mountpoint string `json:"mountpoint,omitempty"`
+}
+
+type NetworkObject struct {
+	IPv4UUID string   `json:"ipv4_uuid"`
+	IPv4IPs  []string `json:"ipv4_ips,omitempty"`
 }
 
 type Instance struct {
@@ -147,30 +152,30 @@ func (c *InstancesClient) Get(ctx context.Context, input *GetInstanceInput) (*In
 
 	fullPath := path.Join("/", c.client.AccountName, "machines", input.ID)
 	reqInputs := client.RequestInput{
-		Method: http.MethodGet,
-		Path:   fullPath,
+		Method:       http.MethodGet,
+		Path:         fullPath,
+		PreserveGone: true,
 	}
-	response, err := c.client.ExecuteRequestRaw(ctx, reqInputs)
+	response, reqErr := c.client.ExecuteRequestRaw(ctx, reqInputs)
 	if response == nil {
-		return nil, pkgerrors.Wrap(err, "unable to get machine")
+		return nil, pkgerrors.Wrap(reqErr, "unable to get machine")
 	}
 	if response.Body != nil {
 		defer response.Body.Close()
 	}
-	if response.StatusCode == http.StatusNotFound || response.StatusCode == http.StatusGone {
-		return nil, &errors.APIError{
-			StatusCode: response.StatusCode,
-			Code:       "ResourceNotFound",
+	if reqErr != nil {
+		reqErr = pkgerrors.Wrap(reqErr, "unable to get machine")
+
+		// If this is not a HTTP 410 Gone error, return it immediately to the caller.  Otherwise, we'll return it alongside the instance below.
+		if response.StatusCode != http.StatusGone {
+			return nil, reqErr
 		}
-	}
-	if err != nil {
-		return nil, pkgerrors.Wrap(err, "unable to get machine")
 	}
 
 	var result *_Instance
 	decoder := json.NewDecoder(response.Body)
-	if err = decoder.Decode(&result); err != nil {
-		return nil, pkgerrors.Wrap(err, "unable to decode get machine response")
+	if err := decoder.Decode(&result); err != nil {
+		return nil, pkgerrors.Wrap(err, "unable to parse JSON in get machine response")
 	}
 
 	native, err := result.toNative()
@@ -178,7 +183,8 @@ func (c *InstancesClient) Get(ctx context.Context, input *GetInstanceInput) (*In
 		return nil, pkgerrors.Wrap(err, "unable to decode get machine response")
 	}
 
-	return native, nil
+	// To remain compatible with the existing interface, we'll return both an error and an instance object in some cases; e.g., for HTTP 410 Gone responses for deleted instances.
+	return native, reqErr
 }
 
 type ListInstancesInput struct {
@@ -277,6 +283,7 @@ type CreateInstanceInput struct {
 	Package         string
 	Image           string
 	Networks        []string
+	NetworkObjects  []NetworkObject
 	Affinity        []string
 	LocalityStrict  bool
 	LocalityNear    []string
@@ -314,8 +321,31 @@ func (input *CreateInstanceInput) toAPI() (map[string]interface{}, error) {
 		result["image"] = input.Image
 	}
 
-	if len(input.Networks) > 0 {
-		result["networks"] = input.Networks
+	// If we are passed []string from input.Networks that do not conflict with networks provided by NetworkObjects, add them to the request sent to CloudAPI
+	var networks []NetworkObject
+
+	if len(input.NetworkObjects) > 0 {
+		networks = append(networks, input.NetworkObjects...)
+	}
+
+	for _, netuuid := range input.Networks {
+		found := false
+
+		for _, net := range networks {
+			if net.IPv4UUID == netuuid {
+				found = true
+			}
+		}
+
+		if !found {
+			networks = append(networks, NetworkObject{
+				IPv4UUID: netuuid,
+			})
+		}
+	}
+
+	if len(networks) > 0 {
+		result["networks"] = networks
 	}
 
 	if len(input.Volumes) > 0 {
@@ -912,8 +942,30 @@ func (c *InstancesClient) GetNIC(ctx context.Context, input *GetNICInput) (*NIC,
 }
 
 type AddNICInput struct {
-	InstanceID string `json:"-"`
-	Network    string `json:"network"`
+	InstanceID    string
+	Network       string
+	NetworkObject NetworkObject
+}
+
+// toAPI is used to build up the JSON Object to send to the API gateway.  It
+// also will resolve the scenario where a user provides both a NetworkObject
+// and a Network. If both are provided, NetworkObject wins.
+func (input AddNICInput) toAPI() map[string]interface{} {
+	result := map[string]interface{}{}
+
+	var network NetworkObject
+
+	if input.NetworkObject.IPv4UUID != "" {
+		network = input.NetworkObject
+	} else {
+		network = NetworkObject{
+			IPv4UUID: input.Network,
+		}
+	}
+
+	result["network"] = network
+
+	return result
 }
 
 // AddNIC asynchronously adds a NIC to a given instance.  If a NIC for a given
@@ -926,7 +978,7 @@ func (c *InstancesClient) AddNIC(ctx context.Context, input *AddNICInput) (*NIC,
 	reqInputs := client.RequestInput{
 		Method: http.MethodPost,
 		Path:   fullPath,
-		Body:   input,
+		Body:   input.toAPI(),
 	}
 	response, err := c.client.ExecuteRequestRaw(ctx, reqInputs)
 	if err != nil {

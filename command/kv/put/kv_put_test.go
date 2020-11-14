@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/base64"
 	"io"
-	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -38,10 +37,6 @@ func TestKVPutCommand_Validation(t *testing.T) {
 		"-release without -session": {
 			[]string{"-release", "foo"},
 			"Missing -session",
-		},
-		"-cas no -modify-index": {
-			[]string{"-cas", "foo"},
-			"Must specify -modify-index",
 		},
 		"no key": {
 			[]string{},
@@ -77,7 +72,7 @@ func TestKVPutCommand_Validation(t *testing.T) {
 
 func TestKVPutCommand(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -106,7 +101,7 @@ func TestKVPutCommand(t *testing.T) {
 
 func TestKVPutCommand_EmptyDataQuoted(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -135,7 +130,7 @@ func TestKVPutCommand_EmptyDataQuoted(t *testing.T) {
 
 func TestKVPutCommand_Base64(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -165,14 +160,14 @@ func TestKVPutCommand_Base64(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !bytes.Equal(data.Value, []byte(expected)) {
+	if !bytes.Equal(data.Value, expected) {
 		t.Errorf("bad: %#v, %s", data.Value, data.Value)
 	}
 }
 
 func TestKVPutCommand_File(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -180,7 +175,6 @@ func TestKVPutCommand_File(t *testing.T) {
 	c := New(ui)
 
 	f := testutil.TempFile(t, "kv-put-command-file")
-	defer os.Remove(f.Name())
 	if _, err := f.WriteString("bar"); err != nil {
 		t.Fatalf("err: %#v", err)
 	}
@@ -227,7 +221,7 @@ func TestKVPutCommand_FileNoExist(t *testing.T) {
 
 func TestKVPutCommand_Stdin(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -264,7 +258,7 @@ func TestKVPutCommand_Stdin(t *testing.T) {
 
 func TestKVPutCommand_NegativeVal(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -293,7 +287,7 @@ func TestKVPutCommand_NegativeVal(t *testing.T) {
 
 func TestKVPutCommand_Flags(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -323,7 +317,7 @@ func TestKVPutCommand_Flags(t *testing.T) {
 
 func TestKVPutCommand_CAS(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 

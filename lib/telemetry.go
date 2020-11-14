@@ -19,6 +19,10 @@ import (
 // the shared InitTelemetry functions below, but we can't import agent/config
 // due to a dependency cycle.
 type TelemetryConfig struct {
+	// Disable may be set to true to have InitTelemetry to skip initialization
+	// and return a nil MetricsSink.
+	Disable bool
+
 	// Circonus*: see https://github.com/circonus-labs/circonus-gometrics
 	// for more details on the various configuration options.
 	// Valid configuration combinations:
@@ -128,6 +132,11 @@ type TelemetryConfig struct {
 	// hcl: telemetry { circonus_submission_url = string }
 	CirconusSubmissionURL string `json:"circonus_submission_url,omitempty" mapstructure:"circonus_submission_url"`
 
+	// DisableCompatOneNine is a flag to stop emitting metrics that have been deprecated in version 1.9.
+	//
+	// hcl: telemetry { disable_compat_1.9 = (true|false) }
+	DisableCompatOneNine bool `json:"disable_compat_1.9,omitempty" mapstructure:"disable_compat_1.9"`
+
 	// DisableHostname will disable hostname prefixing for all metrics.
 	//
 	// hcl: telemetry { disable_hostname = (true|false)
@@ -225,7 +234,7 @@ func (c *TelemetryConfig) MergeDefaults(defaults *TelemetryConfig) {
 				continue
 			}
 		case reflect.Bool:
-			if f.Bool() != false {
+			if f.Bool() {
 				continue
 			}
 		default:
@@ -271,8 +280,75 @@ func prometheusSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, e
 	if cfg.PrometheusRetentionTime.Nanoseconds() < 1 {
 		return nil, nil
 	}
+
+	// TODO(kit) define these in vars in the package/file they're used
+	gaugeDefs := []prometheus.GaugeDefinition{
+		{
+			Name: []string{"consul", "autopilot", "healthy"},
+			Help: "This tracks the overall health of the local server cluster. 1 if all servers are healthy, 0 if one or more are unhealthy.",
+		},
+	}
+
+	// TODO(kit) define these in vars in the package/file they're used
+	counterDefs := []prometheus.CounterDefinition{
+		{
+			Name: []string{"consul", "raft", "apply"},
+			Help: "This counts the number of Raft transactions occurring over the interval.",
+		},
+		{
+			Name: []string{"consul", "raft", "state", "candidate"},
+			Help: "This increments whenever a Consul server starts an election.",
+		},
+		{
+			Name: []string{"consul", "raft", "state", "leader"},
+			Help: "This increments whenever a Consul server becomes a leader.",
+		},
+		{
+			Name: []string{"consul", "client", "api", "catalog_register"},
+			Help: "Increments whenever a Consul agent receives a catalog register request.",
+		},
+		{
+			Name: []string{"consul", "runtime", "total_gc_pause_ns"},
+			Help: "Number of nanoseconds consumed by stop-the-world garbage collection (GC) pauses since Consul started.",
+		},
+		{
+			Name: []string{"consul", "client", "rpc"},
+			Help: "Increments whenever a Consul agent in client mode makes an RPC request to a Consul server.",
+		},
+		{
+			Name: []string{"consul", "client", "rpc", "exceeded"},
+			Help: "Increments whenever a Consul agent in client mode makes an RPC request to a Consul server gets rate limited by that agent's limits configuration.",
+		},
+		{
+			Name: []string{"consul", "client", "rpc", "failed"},
+			Help: "Increments whenever a Consul agent in client mode makes an RPC request to a Consul server and fails.",
+		},
+	}
+
+	// TODO(kit) define these in vars in the package/file they're used
+	summaryDefs := []prometheus.SummaryDefinition{
+		{
+			Name: []string{"consul", "kvs", "apply"},
+			Help: "This measures the time it takes to complete an update to the KV store.",
+		},
+		{
+			Name: []string{"consul", "txn", "apply"},
+			Help: "This measures the time spent applying a transaction operation.",
+		},
+		{
+			Name: []string{"consul", "raft", "commitTime"},
+			Help: "This measures the time it takes to commit a new entry to the Raft log on the leader.",
+		},
+		{
+			Name: []string{"consul", "raft", "leader", "lastContact"},
+			Help: "Measures the time since the leader was last able to contact the follower nodes when checking its leader lease.",
+		},
+	}
 	prometheusOpts := prometheus.PrometheusOpts{
-		Expiration: cfg.PrometheusRetentionTime,
+		Expiration:         cfg.PrometheusRetentionTime,
+		GaugeDefinitions:   gaugeDefs,
+		CounterDefinitions: counterDefs,
+		SummaryDefinitions: summaryDefs,
 	}
 	sink, err := prometheus.NewPrometheusSinkFrom(prometheusOpts)
 	if err != nil {
@@ -326,6 +402,9 @@ func circonusSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, err
 // InitTelemetry configures go-metrics based on map of telemetry config
 // values as returned by Runtimecfg.Config().
 func InitTelemetry(cfg TelemetryConfig) (*metrics.InmemSink, error) {
+	if cfg.Disable {
+		return nil, nil
+	}
 	// Setup telemetry
 	// Aggregate on 10 second intervals for 1 minute. Expose the
 	// metrics over stderr when there is a SIGUSR1 received.
@@ -338,7 +417,7 @@ func InitTelemetry(cfg TelemetryConfig) (*metrics.InmemSink, error) {
 	metricsConf.BlockedPrefixes = cfg.BlockedPrefixes
 
 	var sinks metrics.FanoutSink
-	addSink := func(name string, fn func(TelemetryConfig, string) (metrics.MetricSink, error)) error {
+	addSink := func(fn func(TelemetryConfig, string) (metrics.MetricSink, error)) error {
 		s, err := fn(cfg, metricsConf.HostName)
 		if err != nil {
 			return err
@@ -349,19 +428,19 @@ func InitTelemetry(cfg TelemetryConfig) (*metrics.InmemSink, error) {
 		return nil
 	}
 
-	if err := addSink("statsite", statsiteSink); err != nil {
+	if err := addSink(statsiteSink); err != nil {
 		return nil, err
 	}
-	if err := addSink("statsd", statsdSink); err != nil {
+	if err := addSink(statsdSink); err != nil {
 		return nil, err
 	}
-	if err := addSink("dogstatd", dogstatdSink); err != nil {
+	if err := addSink(dogstatdSink); err != nil {
 		return nil, err
 	}
-	if err := addSink("circonus", circonusSink); err != nil {
+	if err := addSink(circonusSink); err != nil {
 		return nil, err
 	}
-	if err := addSink("prometheus", prometheusSink); err != nil {
+	if err := addSink(prometheusSink); err != nil {
 		return nil, err
 	}
 

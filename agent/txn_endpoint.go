@@ -50,40 +50,6 @@ func decodeValue(rawKV interface{}) error {
 	return nil
 }
 
-// fixupTxnOp looks for non-nil Txn operations and passes them on for
-// value conversion.
-func fixupTxnOp(rawOp interface{}) error {
-	rawMap, ok := rawOp.(map[string]interface{})
-	if !ok {
-		return fmt.Errorf("unexpected raw op type: %T", rawOp)
-	}
-	for k, v := range rawMap {
-		switch strings.ToLower(k) {
-		case "kv":
-			if v == nil {
-				return nil
-			}
-			return decodeValue(v)
-		}
-	}
-	return nil
-}
-
-// fixupTxnOps takes the raw decoded JSON and base64 decodes values in Txn ops,
-// replacing them with byte arrays.
-func fixupTxnOps(raw interface{}) error {
-	rawSlice, ok := raw.([]interface{})
-	if !ok {
-		return fmt.Errorf("unexpected raw type: %t", raw)
-	}
-	for _, rawOp := range rawSlice {
-		if err := fixupTxnOp(rawOp); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // isWrite returns true if the given operation alters the state store.
 func isWrite(op api.KVOp) bool {
 	switch op {
@@ -97,14 +63,58 @@ func isWrite(op api.KVOp) bool {
 // internal RPC format. This returns a count of the number of write ops, and
 // a boolean, that if false means an error response has been generated and
 // processing should stop.
-func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (structs.TxnOps, int, bool) {
-	// Note the body is in API format, and not the RPC format. If we can't
-	// decode it, we will return a 400 since we don't have enough context to
-	// associate the error with a given operation.
+func (s *HTTPHandlers) convertOps(resp http.ResponseWriter, req *http.Request) (structs.TxnOps, int, bool) {
+	// The TxnMaxReqLen limit and KVMaxValueSize limit both default to the
+	// suggested raft data size and can be configured independently. The
+	// TxnMaxReqLen is enforced on the cumulative size of the transaction,
+	// whereas the KVMaxValueSize limit is imposed on the values of individual KV
+	// operations -- this is to keep consistent with the behavior for KV values
+	// in the kvs endpoint.
+	//
+	// The defaults are set to the suggested raft size to keep the total
+	// transaction size reasonable to account for timely heartbeat signals. If
+	// the TxnMaxReqLen limit is above the raft's suggested threshold, large
+	// transactions are automatically set to attempt a chunking apply.
+	// Performance may degrade and warning messages may appear.
+	maxTxnLen := int64(s.agent.config.TxnMaxReqLen)
+	kvMaxValueSize := int64(s.agent.config.KVMaxValueSize)
+
+	// For backward compatibility, KVMaxValueSize is used as the max txn request
+	// length if it is configured greater than TxnMaxReqLen or its default
+	if maxTxnLen < kvMaxValueSize {
+		maxTxnLen = kvMaxValueSize
+	}
+
+	// Check Content-Length first before decoding to return early
+	if req.ContentLength > maxTxnLen {
+		resp.WriteHeader(http.StatusRequestEntityTooLarge)
+		fmt.Fprintf(resp,
+			"Request body(%d bytes) too large, max size: %d bytes. See %s.",
+			req.ContentLength, maxTxnLen,
+			"https://www.consul.io/docs/agent/options.html#txn_max_req_len",
+		)
+		return nil, 0, false
+	}
+
 	var ops api.TxnOps
-	if err := decodeBody(req, &ops, fixupTxnOps); err != nil {
-		resp.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(resp, "Failed to parse body: %v", err)
+	req.Body = http.MaxBytesReader(resp, req.Body, maxTxnLen)
+	if err := decodeBody(req.Body, &ops); err != nil {
+		if err.Error() == "http: request body too large" {
+			// The request size is also verified during decoding to double check
+			// if the Content-Length header was not set by the client.
+			resp.WriteHeader(http.StatusRequestEntityTooLarge)
+			fmt.Fprintf(resp,
+				"Request body too large, max size: %d bytes. See %s.",
+				maxTxnLen,
+				"https://www.consul.io/docs/agent/options.html#txn_max_req_len",
+			)
+		} else {
+			// Note the body is in API format, and not the RPC format. If we can't
+			// decode it, we will return a 400 since we don't have enough context to
+			// associate the error with a given operation.
+			resp.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(resp, "Failed to parse body: %v", err)
+		}
 		return nil, 0, false
 	}
 
@@ -123,19 +133,17 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 	// byte arrays so we can assign right over.
 	var opsRPC structs.TxnOps
 	var writes int
-	var netKVSize int
 	for _, in := range ops {
 		switch {
 		case in.KV != nil:
 			size := len(in.KV.Value)
-			if size > maxKVSize {
+			if int64(size) > kvMaxValueSize {
 				resp.WriteHeader(http.StatusRequestEntityTooLarge)
-				fmt.Fprintf(resp, "Value for key %q is too large (%d > %d bytes)", in.KV.Key, size, maxKVSize)
+				fmt.Fprintf(resp, "Value for key %q is too large (%d > %d bytes)", in.KV.Key, size, s.agent.config.KVMaxValueSize)
 				return nil, 0, false
 			}
-			netKVSize += size
 
-			verb := api.KVOp(in.KV.Verb)
+			verb := in.KV.Verb
 			if isWrite(verb) {
 				writes++
 			}
@@ -144,10 +152,11 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 				KV: &structs.TxnKVOp{
 					Verb: verb,
 					DirEnt: structs.DirEntry{
-						Key:     in.KV.Key,
-						Value:   in.KV.Value,
-						Flags:   in.KV.Flags,
-						Session: in.KV.Session,
+						Key:            in.KV.Key,
+						Value:          in.KV.Value,
+						Flags:          in.KV.Flags,
+						Session:        in.KV.Session,
+						EnterpriseMeta: structs.EnterpriseMetaInitializer(in.KV.Namespace),
 						RaftIndex: structs.RaftIndex{
 							ModifyIndex: in.KV.Index,
 						},
@@ -207,6 +216,7 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 							Warning: svc.Weights.Warning,
 						},
 						EnableTagOverride: svc.EnableTagOverride,
+						EnterpriseMeta:    structs.EnterpriseMetaInitializer(svc.Namespace),
 						RaftIndex: structs.RaftIndex{
 							ModifyIndex: svc.ModifyIndex,
 						},
@@ -253,15 +263,17 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 						ServiceName: check.ServiceName,
 						ServiceTags: check.ServiceTags,
 						Definition: structs.HealthCheckDefinition{
-							HTTP:          check.Definition.HTTP,
-							TLSSkipVerify: check.Definition.TLSSkipVerify,
-							Header:        check.Definition.Header,
-							Method:        check.Definition.Method,
-							TCP:           check.Definition.TCP,
-							Interval:      interval,
-							Timeout:       timeout,
+							HTTP:                           check.Definition.HTTP,
+							TLSSkipVerify:                  check.Definition.TLSSkipVerify,
+							Header:                         check.Definition.Header,
+							Method:                         check.Definition.Method,
+							Body:                           check.Definition.Body,
+							TCP:                            check.Definition.TCP,
+							Interval:                       interval,
+							Timeout:                        timeout,
 							DeregisterCriticalServiceAfter: deregisterCriticalServiceAfter,
 						},
+						EnterpriseMeta: structs.EnterpriseMetaInitializer(check.Namespace),
 						RaftIndex: structs.RaftIndex{
 							ModifyIndex: check.ModifyIndex,
 						},
@@ -272,15 +284,6 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 		}
 	}
 
-	// Enforce an overall size limit to help prevent abuse.
-	if netKVSize > maxKVSize {
-		resp.WriteHeader(http.StatusRequestEntityTooLarge)
-		fmt.Fprintf(resp, "Cumulative size of key data is too large (%d > %d bytes)",
-			netKVSize, maxKVSize)
-
-		return nil, 0, false
-	}
-
 	return opsRPC, writes, true
 }
 
@@ -288,7 +291,7 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 // transaction. A transaction consisting of only read operations will be fast-
 // pathed to an endpoint that supports consistency modes (but not blocking),
 // and everything else will be routed through Raft like a normal write.
-func (s *HTTPServer) Txn(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) Txn(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Convert the ops from the API format to the internal format.
 	ops, writes, ok := s.convertOps(resp, req)
 	if !ok {

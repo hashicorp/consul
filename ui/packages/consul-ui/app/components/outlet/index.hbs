@@ -1,0 +1,15 @@
+  {{did-insert this.connect}}
+  {{will-destroy this.disconnect}}
+<section
+  class="outlet"
+  data-outlet={{@name}}
+  data-route={{this.route}}
+  data-state={{this.state.name}}
+  data-transition={{concat this.previousState.name ' ' this.state.name}}
+>
+  {{yield (hash
+    state=this.state
+    previousState=this.previousState
+    route=this.route
+  )}}
+</section>

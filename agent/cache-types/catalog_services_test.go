@@ -29,7 +29,7 @@ func TestCatalogServices(t *testing.T) {
 
 			reply := args.Get(2).(*structs.IndexedServiceNodes)
 			reply.ServiceNodes = []*structs.ServiceNode{
-				&structs.ServiceNode{ServiceTags: req.ServiceTags},
+				{ServiceTags: req.ServiceTags},
 			}
 			reply.QueryMeta.Index = 48
 			resp = reply

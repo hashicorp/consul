@@ -2,6 +2,8 @@ package flags
 
 import (
 	"flag"
+	"io/ioutil"
+	"strings"
 
 	"github.com/hashicorp/consul/api"
 )
@@ -10,6 +12,7 @@ type HTTPFlags struct {
 	// client api flags
 	address       StringValue
 	token         StringValue
+	tokenFile     StringValue
 	caFile        StringValue
 	caPath        StringValue
 	certFile      StringValue
@@ -19,6 +22,9 @@ type HTTPFlags struct {
 	// server flags
 	datacenter StringValue
 	stale      BoolValue
+
+	// namespace flags
+	namespace StringValue
 }
 
 func (f *HTTPFlags) ClientFlags() *flag.FlagSet {
@@ -33,6 +39,10 @@ func (f *HTTPFlags) ClientFlags() *flag.FlagSet {
 		"ACL token to use in the request. This can also be specified via the "+
 			"CONSUL_HTTP_TOKEN environment variable. If unspecified, the query will "+
 			"default to the token of the Consul agent at the HTTP address.")
+	fs.Var(&f.tokenFile, "token-file",
+		"File containing the ACL token to use in the request instead of one specified "+
+			"via the -token argument or CONSUL_HTTP_TOKEN environment variable. "+
+			"This can also be specified via the CONSUL_HTTP_TOKEN_FILE environment variable.")
 	fs.Var(&f.caFile, "ca-file",
 		"Path to a CA file to use for TLS when communicating with Consul. This "+
 			"can also be specified via the CONSUL_CACERT environment variable.")
@@ -48,7 +58,6 @@ func (f *HTTPFlags) ClientFlags() *flag.FlagSet {
 	fs.Var(&f.tlsServerName, "tls-server-name",
 		"The server name to use as the SNI host when connecting via TLS. This "+
 			"can also be specified via the CONSUL_TLS_SERVER_NAME environment variable.")
-
 	return fs
 }
 
@@ -62,6 +71,15 @@ func (f *HTTPFlags) ServerFlags() *flag.FlagSet {
 			"allows for lower latency and higher throughput, but can result in "+
 			"stale data. This option has no effect on non-read operations. The "+
 			"default value is false.")
+	return fs
+}
+
+func (f *HTTPFlags) NamespaceFlags() *flag.FlagSet {
+	fs := flag.NewFlagSet("", flag.ContinueOnError)
+	fs.Var(&f.namespace, "namespace",
+		"Specifies the namespace to query. If not provided, the namespace will be inferred "+
+			"from the request's ACL token, or will default to the `default` namespace. "+
+			"Namespaces are a Consul Enterprise feature.")
 	return fs
 }
 
@@ -88,6 +106,28 @@ func (f *HTTPFlags) SetToken(v string) error {
 	return f.token.Set(v)
 }
 
+func (f *HTTPFlags) TokenFile() string {
+	return f.tokenFile.String()
+}
+
+func (f *HTTPFlags) SetTokenFile(v string) error {
+	return f.tokenFile.Set(v)
+}
+
+func (f *HTTPFlags) ReadTokenFile() (string, error) {
+	tokenFile := f.tokenFile.String()
+	if tokenFile == "" {
+		return "", nil
+	}
+
+	data, err := ioutil.ReadFile(tokenFile)
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(string(data)), nil
+}
+
 func (f *HTTPFlags) APIClient() (*api.Client, error) {
 	c := api.DefaultConfig()
 
@@ -99,10 +139,12 @@ func (f *HTTPFlags) APIClient() (*api.Client, error) {
 func (f *HTTPFlags) MergeOntoConfig(c *api.Config) {
 	f.address.Merge(&c.Address)
 	f.token.Merge(&c.Token)
+	f.tokenFile.Merge(&c.TokenFile)
 	f.caFile.Merge(&c.TLSConfig.CAFile)
 	f.caPath.Merge(&c.TLSConfig.CAPath)
 	f.certFile.Merge(&c.TLSConfig.CertFile)
 	f.keyFile.Merge(&c.TLSConfig.KeyFile)
 	f.tlsServerName.Merge(&c.TLSConfig.Address)
 	f.datacenter.Merge(&c.Datacenter)
+	f.namespace.Merge(&c.Namespace)
 }

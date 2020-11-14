@@ -1,18 +1,17 @@
 package tokenread
 
 import (
+	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTokenReadCommand_noTabs(t *testing.T) {
@@ -23,14 +22,11 @@ func TestTokenReadCommand_noTabs(t *testing.T) {
 	}
 }
 
-func TestTokenReadCommand(t *testing.T) {
+func TestTokenReadCommand_Pretty(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 
-	testDir := testutil.TempDir(t, "acl")
-	defer os.RemoveAll(testDir)
-
-	a := agent.NewTestAgent(t, t.Name(), `
+	a := agent.NewTestAgent(t, `
 	primary_datacenter = "dc1"
 	acl {
 		enabled = true
@@ -38,8 +34,6 @@ func TestTokenReadCommand(t *testing.T) {
 			master = "root"
 		}
 	}`)
-
-	a.Agent.LogWriter = logger.NewLogWriter(512)
 
 	defer a.Shutdown()
 	testrpc.WaitForLeader(t, a.RPC, "dc1")
@@ -70,4 +64,48 @@ func TestTokenReadCommand(t *testing.T) {
 	assert.Contains(output, fmt.Sprintf("test"))
 	assert.Contains(output, token.AccessorID)
 	assert.Contains(output, token.SecretID)
+}
+
+func TestTokenReadCommand_JSON(t *testing.T) {
+	t.Parallel()
+	assert := assert.New(t)
+
+	a := agent.NewTestAgent(t, `
+	primary_datacenter = "dc1"
+	acl {
+		enabled = true
+		tokens {
+			master = "root"
+		}
+	}`)
+
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+	ui := cli.NewMockUi()
+	cmd := New(ui)
+
+	// Create a token
+	client := a.Client()
+
+	token, _, err := client.ACL().TokenCreate(
+		&api.ACLToken{Description: "test"},
+		&api.WriteOptions{Token: "root"},
+	)
+	assert.NoError(err)
+
+	args := []string{
+		"-http-addr=" + a.HTTPAddr(),
+		"-token=root",
+		"-id=" + token.AccessorID,
+		"-format=json",
+	}
+
+	code := cmd.Run(args)
+	assert.Equal(code, 0)
+	assert.Empty(ui.ErrorWriter.String())
+
+	var jsonOutput json.RawMessage
+	err = json.Unmarshal([]byte(ui.OutputWriter.String()), &jsonOutput)
+	require.NoError(t, err, "token unmarshalling error")
 }

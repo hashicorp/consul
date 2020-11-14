@@ -3,10 +3,11 @@ package create
 import (
 	"flag"
 	"fmt"
-	"os"
 
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/tls"
+	"github.com/hashicorp/consul/lib/file"
+	"github.com/hashicorp/consul/tlsutil"
 	"github.com/mitchellh/cli"
 )
 
@@ -61,34 +62,38 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	sn, err := tls.GenerateSerialNumber()
+	sn, err := tlsutil.GenerateSerialNumber()
 	if err != nil {
 		c.UI.Error(err.Error())
 		return 1
 	}
-	s, pk, err := tls.GeneratePrivateKey()
+	s, pk, err := tlsutil.GeneratePrivateKey()
 	if err != nil {
 		c.UI.Error(err.Error())
+		return 1
 	}
+
 	constraints := []string{}
 	if c.constraint {
 		constraints = append(c.additionalConstraints, []string{c.domain, "localhost"}...)
 	}
-	ca, err := tls.GenerateCA(s, sn, c.days, constraints)
+
+	ca, err := tlsutil.GenerateCA(s, sn, c.days, constraints)
 	if err != nil {
 		c.UI.Error(err.Error())
+		return 1
 	}
-	caFile, err := os.Create(certFileName)
-	if err != nil {
+
+	if err := file.WriteAtomicWithPerms(certFileName, []byte(ca), 0755, 0666); err != nil {
 		c.UI.Error(err.Error())
+		return 1
 	}
-	caFile.WriteString(ca)
 	c.UI.Output("==> Saved " + certFileName)
-	pkFile, err := os.Create(pkFileName)
-	if err != nil {
+
+	if err := file.WriteAtomicWithPerms(pkFileName, []byte(pk), 0755, 0666); err != nil {
 		c.UI.Error(err.Error())
+		return 1
 	}
-	pkFile.WriteString(pk)
 	c.UI.Output("==> Saved " + pkFileName)
 
 	return 0

@@ -1,0 +1,29 @@
+{{yield}}
+{{#if (gt items.length 0)}}
+  <TabularCollection
+      data-test-tokens
+      class="token-list"
+      @rows={{5}}
+      @items={{sort-by 'AccessorID:asc' items}} as |item index|
+  >
+  {{#if caption}}
+    <BlockSlot @name="caption">{{caption}}</BlockSlot>
+  {{/if}}
+      <BlockSlot @name="header">
+          <th>AccessorID</th>
+          <th>Scope</th>
+          <th>Description</th>
+      </BlockSlot>
+      <BlockSlot @name="row">
+          <td data-test-token={{item.AccessorID}}>
+            <a href={{href-to 'dc.acls.tokens.edit' item.AccessorID}} target={{or target ''}}>{{truncate item.AccessorID 8 false}}</a>
+          </td>
+          <td>
+            {{if item.Local 'local' 'global'}}
+          </td>
+          <td>
+            <p>{{item.Description}}</p>
+          </td>
+      </BlockSlot>
+  </TabularCollection>
+{{/if}}

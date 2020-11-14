@@ -1,0 +1,352 @@
+${
+	[1].map(() => {
+
+  	const namespaces = ['default'];
+  	const ns = location.search.ns || 'default';
+  	const dc = location.search.dc;
+  	const service = location.pathname.get(2);
+
+    const routeCount = env(
+      'CONSUL_ROUTE_COUNT',
+      Math.floor(
+        (
+          Math.random() * env('CONSUL_ROUTE_MAX', 10)
+        ) + parseInt(env('CONSUL_ROUTE_MIN', 1))
+      )
+    );
+    const headerCount = env(
+      'CONSUL_HEADER_COUNT',
+      Math.floor(
+        (
+          Math.random() * env('CONSUL_HEADER_MAX', 3)
+        ) + parseInt(env('CONSUL_HEADER_MIN', 1))
+      )
+    );
+
+    const queryParamCount = env(
+      'CONSUL_QUERYPARAM_COUNT',
+      Math.floor(
+        (
+          Math.random() * env('CONSUL_QUERYPARAM_MAX', 3)
+        ) + parseInt(env('CONSUL_QUERYPARAM_MIN', 1))
+      )
+    );
+
+    const resolverCount = env(
+      'CONSUL_RESOLVER_COUNT',
+      Math.floor(
+        (
+          Math.random() * env('CONSUL_RESOLVER_MAX', 10)
+        ) + parseInt(env('CONSUL_RESOLVER_MIN', 1))
+      )
+    );
+    const redirectCount = env(
+      'CONSUL_REDIRECT_COUNT',
+      Math.floor(
+        (
+          Math.random() * env('CONSUL_REDIRECT_MAX', resolverCount)
+        ) + parseInt(env('CONSUL_REDIRECT_MIN', 0))
+      )
+    );
+    const splitterCount = env(
+      'CONSUL_SPLITTER_COUNT',
+      Math.floor(
+        (
+          Math.random() * env('CONSUL_SPLITTER_MAX', 5)
+        ) + parseInt(env('CONSUL_SPLITTER_MIN', 1))
+      )
+    );
+    const splitCount = env(
+      'CONSUL_SPLIT_COUNT',
+      Math.floor(
+        (
+          Math.random() * env('CONSUL_SPLIT_MAX', 10)
+        ) + parseInt(env('CONSUL_SPLIT_MIN', 1))
+      )
+    );
+
+
+
+
+    // make some resolvers
+		let resolvers = range(
+  	  resolverCount
+  	).map(() => {
+  	  const service = fake.hacker.noun().split(' ').join('-');
+  	  return {
+  	    ServiceName: service,
+			  Name: `${service}.${ns}.${dc}`,
+			  Subsets: range(
+    			  env(
+      			  'CONSUL_SUBSET_COUNT',
+      			  Math.floor(
+        			  (
+          			  Math.random() * env('CONSUL_SUBSET_MAX', 3)
+        			  ) + parseInt(env('CONSUL_SUBSET_MIN', 1))
+      			  )
+    			  )
+  			  ).map((item) => `v${item + 1}`)
+  	  };
+  	});
+
+    // make some redirects
+		const redirects = range(
+  	  redirectCount
+  	).map((item, i) => {
+  	  const service = resolvers[i].ServiceName;
+  	  return {
+  	    ServiceName: service,
+			  Name: `${service}.${ns}.redirect-${dc}`,
+			  Subsets: []
+  	  };
+  	});
+
+    // make some resolver targets with possible subsets
+		let resolverTargets = resolvers.reduce(
+			function(prev, resolver) {
+				const targets = [`${resolver.Name}`];
+				return prev.concat(targets.concat(
+					resolver.Subsets.map(
+						function(item) {
+							return `${item}.${targets[0]}`
+						}
+					)
+				).map(
+					(item) => `resolver:${item}`
+				));
+			},
+			[]
+		);
+		const redirectTargets = redirects.map(
+			function(item) {
+				return `resolver:${item.Name}`;
+			}
+		);
+
+    resolverTargets = resolverTargets.concat(redirectTargets);
+  	resolvers = resolvers.concat(redirects);
+
+		const splitters = range(
+  	  splitterCount
+  	).map(() => ({
+			Name: `${service}-${fake.hacker.noun()}.${ns}`,
+			Splits: range(
+  		  splitCount
+  		).map((item, i, arr) => ({
+        "Weight": 100 / arr.length,
+        "NextNode": fake.helpers.randomize(resolverTargets)
+      }))
+		}));
+
+
+		const splitterTargets = splitters.map(
+			function(item) {
+				return `splitter:${item.Name}`;
+			}
+		);
+
+		const nextNodes = resolverTargets.concat(splitterTargets);
+		return `
+{
+  "Chain": {
+    "ServiceName": "${service}",
+    "Namespace": "${ns}",
+    "Datacenter": "${dc}",
+    "Protocol": "http",
+    "StartNode": "router:${service}",
+    "Nodes": {
+
+      "router:${service}": {
+        "Type": "router",
+        "Name": "${service}",
+        "Routes": [
+${
+  range(
+    routeCount
+  ).map((item, i) => {
+		const path = fake.helpers.randomize(['PathExact', 'PathPrefix', 'PathRegex', '']);
+		const splitter = fake.helpers.randomize(splitters);
+		const nextNode = fake.helpers.randomize(nextNodes);
+		return `
+          {
+            "NextNode": "${nextNode}",
+            "Definition": {
+              "Match": {
+                "HTTP": {
+${ path !== '' ? `
+                  "${path}": "${path === 'PathRegex' ? `${fake.helpers.randomize(['^[0-9]{1,3}?$', '(\w+)\s(\w+)'])}` : `/${fake.lorem.words(fake.random.number({min: 1, max: 5})).split(' ').join('/')}${fake.random.boolean() ? fake.system.fileName() : ''}`}"
+` : `"": ""`}
+${ fake.random.boolean() ? `
+                  ,"Header": [
+${
+	range(
+	  headerCount
+	).map(item => `
+										{
+											"Name": "X-${fake.hacker.noun().split(' ').map(item => `${item.substr(0, 1).toUpperCase()}${item.substr(1)}`).join('-')}",
+	${fake.random.boolean() ? `
+											"Invert": true,
+			` : ``
+	}
+	${fake.helpers.randomize([
+											'"Present": true',
+											'"Exact": true',
+											'"Prefix": "abc"',
+											'"Suffix": "xyz"',
+											'"Regex": "[abc]"'
+	])}
+										}
+	`)}
+                  ]
+` : ``}
+${ fake.random.boolean() ? `
+                  ,"QueryParam": [
+${
+	range(
+	  queryParamCount
+	).map(item => `
+										{
+											"Name": "${fake.hacker.noun().split(' ').join('-')}",
+	${fake.helpers.randomize([
+											'"Present": true',
+											'"Exact": true',
+											'"Prefix": "abc"',
+											'"Suffix": "xyz"',
+											'"Regex": "[abc]"'
+	])}
+										}
+	`)}
+                  ]
+` : ``}
+${ fake.random.boolean() ? `
+                  ,"Methods": [
+										${
+											fake.helpers.shuffle(
+												["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"]
+											).filter(item => fake.random.boolean()).map(item => `
+												"${item}"
+											`)
+										}
+									]
+` : ``}
+                }
+              },
+              "Destination": {
+                "Service": "${nextNode}",
+                "PrefixRewrite": "/"
+              }
+            }
+          }
+`;})}
+        ]
+      },
+${resolvers.map((resolver) => {
+	const failoverCount = env(
+    'CONSUL_FAILOVER_COUNT',
+    fake.helpers.randomize([0, 0, 0, 0, 0, 1, 2, 3])
+  );
+	const failover = ({
+	  Datacenter: `${resolver.Name.replace(`.${dc}`, `.fail-${dc}`).replace(`.redirect-${dc}`, `.fail-${dc}`)}`,
+	  Namespace: `${resolver.Name.replace(`.${ns}.`, `.fail-${ns}.`).replace(`.redirect-${ns}.`, `.fail-${ns}.`)}`,
+	})[env('CONSUL_FAILOVER_TYPE', 'Datacenter')];
+
+	return `
+			"resolver:${resolver.Name}": {
+        "Type": "resolver",
+      	"Name": "${resolver.Name}",
+        "Resolver": {
+          "ConnectTimeout": "5s",
+${failoverCount > 0 ? `
+          "Failover": {
+            "Targets": [
+  ${range(failoverCount).map(item => `
+              "${failover.replace('fail-', `fail-${item + 1}-`)}"
+	`)}
+            ]
+          },
+` : `` }
+          "Target": "${resolver.Name}"
+        }
+			}${resolver.Subsets.length > 0 ? ',' : ''}
+${resolver.Subsets.map((subset) => {
+		const id = `${subset}.${resolver.Name}`;
+	  const failover = ({
+	    Datacenter: `${subset}.${resolver.Name.replace(`.${dc}`, `.fail-${dc}`)}`,
+	    Namespace: `${subset}.${resolver.Name.replace(`.${ns}.`, `.fail-${ns}.`)}`,
+	  })[env('CONSUL_FAILOVER_TYPE', 'Datacenter')];
+
+				return `
+      		"resolver:${id}": {
+        		"Type": "resolver",
+        		"Name": "${id}",
+        		"Resolver": {
+          		"ConnectTimeout": "5s",
+${failoverCount > 0 ? `
+              "Failover": {
+                "Targets": [
+  ${range(failoverCount).map(item => `
+                  "${failover.replace('fail-', `fail-${item + 1}-`)}"
+	`)}
+                ]
+              },
+` : `` }
+          		"Target": "${id}"
+        		}
+      		}
+				`;
+			})}
+`})},
+${splitters.map((item, i) => `
+      "splitter:${item.Name}": {
+        "Type": "splitter",
+        "Name": "${item.Name}",
+        "Splits": [
+  ${item.Splits.map(item => `
+    			{
+      			"Weight": ${item.Weight},
+      			"NextNode": "${item.NextNode}"
+    			}
+	`)}
+        ]
+      }
+`)}
+    },
+    "Targets": {
+${resolvers.map(item => {
+  const uuid = fake.random.uuid();
+  const domain = 'consul';
+	const name = `${item.Name}.internal.${uuid}.${domain}`;
+	return `
+		"${item.Name}": {
+      	"ID": "${item.Name}",
+      	"Service": "${item.ServiceName}",
+      	"Namespace": "${ns}",
+      	"Datacenter": "${dc}",
+      	"MeshGateway": {},
+      	"SNI": "${name}",
+      	"Name": "${name}"
+		}${item.Subsets.length > 0 ? ',' : ''}
+${item.Subsets.map(ktem => {
+		const id = `${ktem}.${item.Name}`;
+		const name = `${id}.internal.${uuid}.${domain}`;
+			return `
+      		"${id}": {
+        		"ID": "${id}",
+        		"Service": "${item.ServiceName}",
+        		"ServiceSubset": "${ktem}",
+        		"Namespace": "${ns}",
+        		"Datacenter": "${dc}",
+        		"MeshGateway": {
+        		},
+        		"Subset": {
+          		"Filter": "Service.Meta.value == ${ktem}"
+        		},
+        		"SNI": "${name}",
+        		"Name": "${name}"
+      		}
+			`})}
+`})}
+    }
+  }
+}
+`})}

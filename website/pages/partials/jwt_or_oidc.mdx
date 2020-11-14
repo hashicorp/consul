@@ -1,0 +1,18 @@
+## JWT vs OIDC Auth Methods
+
+Since both the `oidc` and `jwt` auth methods ultimately operate on JWTs as
+bearer tokens, it may be confusing to know which is right for a given use case.
+
+- **JWT**: The user or application performing the Consul login must already be
+  in possession of a valid JWT to begin. There is no browser interaction
+  required. This is ideal for machine-oriented headless login where an operator
+  may have already arranged for a valid JWT to be dropped on a VM or provided
+  to a container.
+
+- **OIDC**: The user performing the Consul login does not have a JWT nor do
+  they even need to know what that means. This is ideal for human-oriented
+  interactive login where an operator or administrator may have deployed SSO
+  widely and doesn't want to have the burden of tracking and distributing
+  Consul ACL tokens to any authorized coworker who may need to have access to a
+  Consul instance. Browser interaction is required. **This is only available in
+  [Consul Enterprise](https://www.hashicorp.com/products/consul/)**.

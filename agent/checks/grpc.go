@@ -10,9 +10,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	hv1 "google.golang.org/grpc/health/grpc_health_v1"
+	"google.golang.org/grpc/resolver"
 )
-
-var ErrGRPCUnhealthy = fmt.Errorf("gRPC application didn't report service healthy")
 
 // GrpcHealthProbe connects to gRPC application and queries health service for application/service status.
 type GrpcHealthProbe struct {
@@ -28,7 +27,6 @@ type GrpcHealthProbe struct {
 func NewGrpcHealthProbe(target string, timeout time.Duration, tlsConfig *tls.Config) *GrpcHealthProbe {
 	serverAndService := strings.SplitN(target, "/", 2)
 
-	server := serverAndService[0]
 	request := hv1.HealthCheckRequest{}
 	if len(serverAndService) > 1 {
 		request.Service = serverAndService[1]
@@ -43,7 +41,6 @@ func NewGrpcHealthProbe(target string, timeout time.Duration, tlsConfig *tls.Con
 	}
 
 	return &GrpcHealthProbe{
-		server:      server,
 		request:     &request,
 		timeout:     timeout,
 		dialOptions: dialOptions,
@@ -52,11 +49,14 @@ func NewGrpcHealthProbe(target string, timeout time.Duration, tlsConfig *tls.Con
 
 // Check if the target of this GrpcHealthProbe is healthy
 // If nil is returned, target is healthy, otherwise target is not healthy
-func (probe *GrpcHealthProbe) Check() error {
+func (probe *GrpcHealthProbe) Check(target string) error {
+	serverAndService := strings.SplitN(target, "/", 2)
+	serverWithScheme := fmt.Sprintf("%s:///%s", resolver.GetDefaultScheme(), serverAndService[0])
+
 	ctx, cancel := context.WithTimeout(context.Background(), probe.timeout)
 	defer cancel()
 
-	connection, err := grpc.DialContext(ctx, probe.server, probe.dialOptions...)
+	connection, err := grpc.DialContext(ctx, serverWithScheme, probe.dialOptions...)
 	if err != nil {
 		return err
 	}
@@ -67,8 +67,8 @@ func (probe *GrpcHealthProbe) Check() error {
 	if err != nil {
 		return err
 	}
-	if response == nil || (response != nil && response.Status != hv1.HealthCheckResponse_SERVING) {
-		return ErrGRPCUnhealthy
+	if response.Status != hv1.HealthCheckResponse_SERVING {
+		return fmt.Errorf("gRPC %s serving status: %s", target, response.Status)
 	}
 
 	return nil

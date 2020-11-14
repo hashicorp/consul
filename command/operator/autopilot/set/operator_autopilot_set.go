@@ -25,6 +25,7 @@ type cmd struct {
 	// flags
 	cleanupDeadServers      flags.BoolValue
 	maxTrailingLogs         flags.UintValue
+	minQuorum               flags.UintValue
 	lastContactThreshold    flags.DurationValue
 	serverStabilizationTime flags.DurationValue
 	redundancyZoneTag       flags.StringValue
@@ -40,6 +41,9 @@ func (c *cmd) init() {
 	c.flags.Var(&c.maxTrailingLogs, "max-trailing-logs",
 		"Controls the maximum number of log entries that a server can trail the "+
 			"leader by before being considered unhealthy.")
+	c.flags.Var(&c.minQuorum, "min-quorum",
+		"Sets the minimum number of servers required in a cluster before autopilot "+
+			"is allowed to prune dead servers.")
 	c.flags.Var(&c.lastContactThreshold, "last-contact-threshold",
 		"Controls the maximum amount of time a server can go without contact "+
 			"from the leader before being considered unhealthy. Must be a duration value "+
@@ -94,6 +98,7 @@ func (c *cmd) Run(args []string) int {
 	c.redundancyZoneTag.Merge(&conf.RedundancyZoneTag)
 	c.disableUpgradeMigration.Merge(&conf.DisableUpgradeMigration)
 	c.upgradeVersionTag.Merge(&conf.UpgradeVersionTag)
+	c.minQuorum.Merge(&conf.MinQuorum)
 
 	trailing := uint(conf.MaxTrailingLogs)
 	c.maxTrailingLogs.Merge(&trailing)

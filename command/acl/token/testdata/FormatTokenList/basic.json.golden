@@ -1,0 +1,12 @@
+[
+    {
+        "CreateIndex": 42,
+        "ModifyIndex": 100,
+        "AccessorID": "fbd2447f-7479-4329-ad13-b021d74f86ba",
+        "Description": "test token",
+        "Local": false,
+        "CreateTime": "2020-05-22T18:52:31Z",
+        "Hash": "YWJjZGVmZ2g=",
+        "Legacy": false
+    }
+]

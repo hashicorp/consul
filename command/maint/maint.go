@@ -72,13 +72,14 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 	a := client.Agent()
-	nodeName, err := a.NodeName()
-	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error querying Consul agent: %s", err))
-		return 1
-	}
 
 	if !c.enable && !c.disable {
+		nodeName, err := a.NodeName()
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error querying Consul agent: %s", err))
+			return 1
+		}
+
 		// List mode - list nodes/services in maintenance mode
 		checks, err := a.Checks()
 		if err != nil {
@@ -92,7 +93,7 @@ func (c *cmd) Run(args []string) int {
 				c.UI.Output("  Name:   " + nodeName)
 				c.UI.Output("  Reason: " + check.Notes)
 				c.UI.Output("")
-			} else if strings.HasPrefix(string(check.CheckID), "_service_maintenance:") {
+			} else if strings.HasPrefix(check.CheckID, "_service_maintenance:") {
 				c.UI.Output("Service:")
 				c.UI.Output("  ID:     " + check.ServiceID)
 				c.UI.Output("  Reason: " + check.Notes)

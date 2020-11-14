@@ -1,5 +1,7 @@
 package api
 
+import "context"
+
 func (c *Sys) GenerateRootStatus() (*GenerateRootStatusResponse, error) {
 	return c.generateRootStatusCommon("/v1/sys/generate-root/attempt")
 }
@@ -8,9 +10,16 @@ func (c *Sys) GenerateDROperationTokenStatus() (*GenerateRootStatusResponse, err
 	return c.generateRootStatusCommon("/v1/sys/replication/dr/secondary/generate-operation-token/attempt")
 }
 
+func (c *Sys) GenerateRecoveryOperationTokenStatus() (*GenerateRootStatusResponse, error) {
+	return c.generateRootStatusCommon("/v1/sys/generate-recovery-token/attempt")
+}
+
 func (c *Sys) generateRootStatusCommon(path string) (*GenerateRootStatusResponse, error) {
 	r := c.c.NewRequest("GET", path)
-	resp, err := c.c.RawRequest(r)
+
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	defer cancelFunc()
+	resp, err := c.c.RawRequestWithContext(ctx, r)
 	if err != nil {
 		return nil, err
 	}
@@ -29,6 +38,10 @@ func (c *Sys) GenerateDROperationTokenInit(otp, pgpKey string) (*GenerateRootSta
 	return c.generateRootInitCommon("/v1/sys/replication/dr/secondary/generate-operation-token/attempt", otp, pgpKey)
 }
 
+func (c *Sys) GenerateRecoveryOperationTokenInit(otp, pgpKey string) (*GenerateRootStatusResponse, error) {
+	return c.generateRootInitCommon("/v1/sys/generate-recovery-token/attempt", otp, pgpKey)
+}
+
 func (c *Sys) generateRootInitCommon(path, otp, pgpKey string) (*GenerateRootStatusResponse, error) {
 	body := map[string]interface{}{
 		"otp":     otp,
@@ -40,7 +53,9 @@ func (c *Sys) generateRootInitCommon(path, otp, pgpKey string) (*GenerateRootSta
 		return nil, err
 	}
 
-	resp, err := c.c.RawRequest(r)
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	defer cancelFunc()
+	resp, err := c.c.RawRequestWithContext(ctx, r)
 	if err != nil {
 		return nil, err
 	}
@@ -59,9 +74,16 @@ func (c *Sys) GenerateDROperationTokenCancel() error {
 	return c.generateRootCancelCommon("/v1/sys/replication/dr/secondary/generate-operation-token/attempt")
 }
 
+func (c *Sys) GenerateRecoveryOperationTokenCancel() error {
+	return c.generateRootCancelCommon("/v1/sys/generate-recovery-token/attempt")
+}
+
 func (c *Sys) generateRootCancelCommon(path string) error {
 	r := c.c.NewRequest("DELETE", path)
-	resp, err := c.c.RawRequest(r)
+
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	defer cancelFunc()
+	resp, err := c.c.RawRequestWithContext(ctx, r)
 	if err == nil {
 		defer resp.Body.Close()
 	}
@@ -76,6 +98,10 @@ func (c *Sys) GenerateDROperationTokenUpdate(shard, nonce string) (*GenerateRoot
 	return c.generateRootUpdateCommon("/v1/sys/replication/dr/secondary/generate-operation-token/update", shard, nonce)
 }
 
+func (c *Sys) GenerateRecoveryOperationTokenUpdate(shard, nonce string) (*GenerateRootStatusResponse, error) {
+	return c.generateRootUpdateCommon("/v1/sys/generate-recovery-token/update", shard, nonce)
+}
+
 func (c *Sys) generateRootUpdateCommon(path, shard, nonce string) (*GenerateRootStatusResponse, error) {
 	body := map[string]interface{}{
 		"key":   shard,
@@ -87,7 +113,9 @@ func (c *Sys) generateRootUpdateCommon(path, shard, nonce string) (*GenerateRoot
 		return nil, err
 	}
 
-	resp, err := c.c.RawRequest(r)
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	defer cancelFunc()
+	resp, err := c.c.RawRequestWithContext(ctx, r)
 	if err != nil {
 		return nil, err
 	}
@@ -107,4 +135,6 @@ type GenerateRootStatusResponse struct {
 	EncodedToken     string `json:"encoded_token"`
 	EncodedRootToken string `json:"encoded_root_token"`
 	PGPFingerprint   string `json:"pgp_fingerprint"`
+	OTP              string `json:"otp"`
+	OTPLength        int    `json:"otp_length"`
 }

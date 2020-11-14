@@ -3,9 +3,11 @@ package tokenread
 import (
 	"flag"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/acl"
+	"github.com/hashicorp/consul/command/acl/token"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
 )
@@ -25,6 +27,7 @@ type cmd struct {
 	tokenID  string
 	self     bool
 	showMeta bool
+	format   string
 }
 
 func (c *cmd) init() {
@@ -36,9 +39,16 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.tokenID, "id", "", "The Accessor ID of the token to read. "+
 		"It may be specified as a unique ID prefix but will error if the prefix "+
 		"matches multiple token Accessor IDs")
+	c.flags.StringVar(
+		&c.format,
+		"format",
+		token.PrettyFormat,
+		fmt.Sprintf("Output format {%s}", strings.Join(token.GetSupportedFormats(), "|")),
+	)
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
+	flags.Merge(c.flags, c.http.NamespaceFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -58,7 +68,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	var token *api.ACLToken
+	var t *api.ACLToken
 	if !c.self {
 		tokenID, err := acl.GetTokenIDFromPartial(client, c.tokenID)
 		if err != nil {
@@ -66,20 +76,33 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 
-		token, _, err = client.ACL().TokenRead(tokenID, nil)
+		t, _, err = client.ACL().TokenRead(tokenID, nil)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error reading token %q: %v", tokenID, err))
 			return 1
 		}
 	} else {
-		token, _, err = client.ACL().TokenReadSelf(nil)
+		t, _, err = client.ACL().TokenReadSelf(nil)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error reading token: %v", err))
 			return 1
 		}
 	}
 
-	acl.PrintToken(token, c.UI, c.showMeta)
+	formatter, err := token.NewFormatter(c.format, c.showMeta)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+	out, err := formatter.FormatToken(t)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+	if out != "" {
+		c.UI.Info(out)
+	}
+
 	return 0
 }
 
@@ -91,7 +114,7 @@ func (c *cmd) Help() string {
 	return flags.Usage(c.help, nil)
 }
 
-const synopsis = "Read an ACL Token"
+const synopsis = "Read an ACL token"
 const help = `
 Usage: consul acl token read [options] -id TOKENID
 

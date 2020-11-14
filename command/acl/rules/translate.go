@@ -53,6 +53,11 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
+	if c.tokenSecret && c.tokenAccessor {
+		c.UI.Error(fmt.Sprintf("Error - cannot specify both -token-secret and -token-accessor"))
+		return 1
+	}
+
 	data, err := c.dataFromArgs(c.flags.Args())
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error! %v", err))
@@ -69,6 +74,8 @@ func (c *cmd) Run(args []string) int {
 		// Trim whitespace and newlines (e.g. from echo without -n)
 		data = strings.TrimSpace(data)
 
+		// It is not a bug that this doesn't look at tokenAccessor. We already know that we want the rules from
+		// a token and just need to tell the helper function whether it should be retrieved by its secret or accessor
 		if rules, err := aclhelpers.GetRulesFromLegacyToken(client, data, c.tokenSecret); err != nil {
 			c.UI.Error(err.Error())
 			return 1

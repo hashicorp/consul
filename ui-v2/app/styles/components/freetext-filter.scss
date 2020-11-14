@@ -1,8 +1,0 @@
-@import './freetext-filter/index';
-@import './icons/index';
-.freetext-filter {
-  @extend %freetext-filter;
-}
-%freetext-filter span {
-  @extend %with-magnifier;
-}

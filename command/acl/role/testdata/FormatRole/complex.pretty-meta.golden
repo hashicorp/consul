@@ -1,0 +1,14 @@
+ID:           c29c4ee4-bca6-474e-be37-7d9606f9582a
+Name:         complex
+Namespace:    foo
+Description:  test role complex
+Hash:         6162636465666768
+Create Index: 5
+Modify Index: 10
+Policies:
+   beb04680-815b-4d7c-9e33-3d707c24672c - hobbiton
+   18788457-584c-4812-80d3-23d403148a90 - bywater
+Service Identities:
+   gardener (Datacenters: middleearth-northwest)
+Node Identities:
+   bagend (Datacenter: middleearth-northwest)

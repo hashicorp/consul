@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/hashicorp/consul/acl"
@@ -10,9 +11,14 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
+// TODO(rb/intentions): this should move back into the agent endpoint since
+// there is no ext_authz implementation anymore.
+//
 // ConnectAuthorize implements the core authorization logic for Connect. It's in
 // a separate agent method here because we need to re-use this both in our own
 // HTTP API authz endpoint and in the gRPX xDS/ext_authz API for envoy.
+//
+// NOTE: This treats any L7 intentions as DENY.
 //
 // The ACL token and the auth request are provided and the auth decision (true
 // means authorized) and reason string are returned.
@@ -22,7 +28,7 @@ import (
 // error is returned, otherwise error indicates an unexpected server failure. If
 // access is denied, no error is returned but the first return value is false.
 func (a *Agent) ConnectAuthorize(token string,
-	req *structs.ConnectAuthorizeRequest) (authz bool, reason string, m *cache.ResultMeta, err error) {
+	req *structs.ConnectAuthorizeRequest) (allowed bool, reason string, m *cache.ResultMeta, err error) {
 
 	// Helper to make the error cases read better without resorting to named
 	// returns which get messy and prone to mistakes in a method this long.
@@ -53,11 +59,13 @@ func (a *Agent) ConnectAuthorize(token string,
 	// We need to verify service:write permissions for the given token.
 	// We do this manually here since the RPC request below only verifies
 	// service:read.
-	rule, err := a.resolveToken(token)
+	var authzContext acl.AuthorizerContext
+	authz, err := a.resolveTokenAndDefaultMeta(token, &req.EnterpriseMeta, &authzContext)
 	if err != nil {
 		return returnErr(err)
 	}
-	if rule != nil && !rule.ServiceWrite(req.Target, nil) {
+
+	if authz != nil && authz.ServiceWrite(req.Target, &authzContext) != acl.Allow {
 		return returnErr(acl.ErrPermissionDenied)
 	}
 
@@ -73,7 +81,7 @@ func (a *Agent) ConnectAuthorize(token string,
 			Type: structs.IntentionMatchDestination,
 			Entries: []structs.IntentionMatchEntry{
 				{
-					Namespace: structs.IntentionDefaultNamespace,
+					Namespace: req.TargetNamespace(),
 					Name:      req.Target,
 				},
 			},
@@ -81,7 +89,7 @@ func (a *Agent) ConnectAuthorize(token string,
 		QueryOptions: structs.QueryOptions{Token: token},
 	}
 
-	raw, meta, err := a.cache.Get(cachetype.IntentionMatchName, args)
+	raw, meta, err := a.cache.Get(context.TODO(), cachetype.IntentionMatchName, args)
 	if err != nil {
 		return returnErr(err)
 	}
@@ -94,26 +102,36 @@ func (a *Agent) ConnectAuthorize(token string,
 		return returnErr(fmt.Errorf("Internal error loading matches"))
 	}
 
-	// Test the authorization for each match
+	// Figure out which source matches this request.
+	var ixnMatch *structs.Intention
 	for _, ixn := range reply.Matches[0] {
-		if auth, ok := uriService.Authorize(ixn); ok {
-			reason = fmt.Sprintf("Matched intention: %s", ixn.String())
-			return auth, reason, &meta, nil
+		if _, ok := uriService.Authorize(ixn); ok {
+			ixnMatch = ixn
+			break
 		}
 	}
 
+	if ixnMatch != nil {
+		if len(ixnMatch.Permissions) == 0 {
+			// This is an L4 intention.
+			reason = fmt.Sprintf("Matched L4 intention: %s", ixnMatch.String())
+			auth := ixnMatch.Action == structs.IntentionActionAllow
+			return auth, reason, &meta, nil
+		}
+
+		// This is an L7 intention, so DENY.
+		reason = fmt.Sprintf("Matched L7 intention: %s", ixnMatch.String())
+		return false, reason, &meta, nil
+	}
+
 	// No match, we need to determine the default behavior. We do this by
-	// specifying the anonymous token, which will get the default behavior. The
+	// fetching the default intention behavior from the resolved authorizer. The
 	// default behavior if ACLs are disabled is to allow connections to mimic the
 	// behavior of Consul itself: everything is allowed if ACLs are disabled.
-	rule, err = a.resolveToken("")
-	if err != nil {
-		return returnErr(err)
-	}
-	if rule == nil {
+	if authz == nil {
 		// ACLs not enabled at all, the default is allow all.
 		return true, "ACLs disabled, access is allowed by default", &meta, nil
 	}
 	reason = "Default behavior configured by ACLs"
-	return rule.IntentionDefaultAllow(), reason, &meta, nil
+	return authz.IntentionDefaultAllow(nil) == acl.Allow, reason, &meta, nil
 }

@@ -8,8 +8,11 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/stringslice"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/hashicorp/consul/types"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -536,7 +539,7 @@ func TestHealth_ServiceNodes(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db",
 			Service: "db",
-			Tags:    []string{"master"},
+			Tags:    []string{"primary"},
 		},
 		Check: &structs.HealthCheck{
 			Name:      "db connect",
@@ -556,7 +559,7 @@ func TestHealth_ServiceNodes(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db",
 			Service: "db",
-			Tags:    []string{"slave"},
+			Tags:    []string{"replica"},
 		},
 		Check: &structs.HealthCheck{
 			Name:      "db connect",
@@ -572,7 +575,7 @@ func TestHealth_ServiceNodes(t *testing.T) {
 	req := structs.ServiceSpecificRequest{
 		Datacenter:  "dc1",
 		ServiceName: "db",
-		ServiceTags: []string{"master"},
+		ServiceTags: []string{"primary"},
 		TagFilter:   false,
 	}
 	if err := msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &out2); err != nil {
@@ -589,10 +592,10 @@ func TestHealth_ServiceNodes(t *testing.T) {
 	if nodes[1].Node.Node != "foo" {
 		t.Fatalf("Bad: %v", nodes[1])
 	}
-	if !lib.StrContains(nodes[0].Service.Tags, "slave") {
+	if !stringslice.Contains(nodes[0].Service.Tags, "replica") {
 		t.Fatalf("Bad: %v", nodes[0])
 	}
-	if !lib.StrContains(nodes[1].Service.Tags, "master") {
+	if !stringslice.Contains(nodes[1].Service.Tags, "primary") {
 		t.Fatalf("Bad: %v", nodes[1])
 	}
 	if nodes[0].Checks[0].Status != api.HealthWarning {
@@ -610,7 +613,7 @@ func TestHealth_ServiceNodes(t *testing.T) {
 		req := structs.ServiceSpecificRequest{
 			Datacenter:  "dc1",
 			ServiceName: "db",
-			ServiceTag:  "master",
+			ServiceTag:  "primary",
 			TagFilter:   false,
 		}
 		if err := msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &out2); err != nil {
@@ -627,10 +630,10 @@ func TestHealth_ServiceNodes(t *testing.T) {
 		if nodes[1].Node.Node != "foo" {
 			t.Fatalf("Bad: %v", nodes[1])
 		}
-		if !lib.StrContains(nodes[0].Service.Tags, "slave") {
+		if !stringslice.Contains(nodes[0].Service.Tags, "replica") {
 			t.Fatalf("Bad: %v", nodes[0])
 		}
-		if !lib.StrContains(nodes[1].Service.Tags, "master") {
+		if !stringslice.Contains(nodes[1].Service.Tags, "primary") {
 			t.Fatalf("Bad: %v", nodes[1])
 		}
 		if nodes[0].Checks[0].Status != api.HealthWarning {
@@ -659,7 +662,7 @@ func TestHealth_ServiceNodes_MultipleServiceTags(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db",
 			Service: "db",
-			Tags:    []string{"master", "v2"},
+			Tags:    []string{"primary", "v2"},
 		},
 		Check: &structs.HealthCheck{
 			Name:      "db connect",
@@ -677,7 +680,7 @@ func TestHealth_ServiceNodes_MultipleServiceTags(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db",
 			Service: "db",
-			Tags:    []string{"slave", "v2"},
+			Tags:    []string{"replica", "v2"},
 		},
 		Check: &structs.HealthCheck{
 			Name:      "db connect",
@@ -691,7 +694,7 @@ func TestHealth_ServiceNodes_MultipleServiceTags(t *testing.T) {
 	req := structs.ServiceSpecificRequest{
 		Datacenter:  "dc1",
 		ServiceName: "db",
-		ServiceTags: []string{"master", "v2"},
+		ServiceTags: []string{"primary", "v2"},
 		TagFilter:   true,
 	}
 	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &out2))
@@ -700,7 +703,7 @@ func TestHealth_ServiceNodes_MultipleServiceTags(t *testing.T) {
 	require.Len(t, nodes, 1)
 	require.Equal(t, nodes[0].Node.Node, "foo")
 	require.Contains(t, nodes[0].Service.Tags, "v2")
-	require.Contains(t, nodes[0].Service.Tags, "master")
+	require.Contains(t, nodes[0].Service.Tags, "primary")
 	require.Equal(t, nodes[0].Checks[0].Status, api.HealthPassing)
 }
 
@@ -933,14 +936,13 @@ func TestHealth_ServiceNodes_ConnectProxy_ACL(t *testing.T) {
 		c.ACLsEnabled = true
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
-		c.ACLEnforceVersion8 = false
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 
-	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s1.RPC, "dc1", testrpc.WithToken("root"))
 
 	// Create the ACL.
 	arg := structs.ACLRequest{
@@ -951,6 +953,9 @@ func TestHealth_ServiceNodes_ConnectProxy_ACL(t *testing.T) {
 			Type: structs.ACLTokenTypeClient,
 			Rules: `
 service "foo" {
+	policy = "write"
+}
+node "foo" {
 	policy = "write"
 }
 `,
@@ -1023,6 +1028,348 @@ service "foo" {
 	}
 	assert.Nil(msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &resp))
 	assert.Len(resp.Nodes, 1)
+}
+
+func TestHealth_ServiceNodes_Gateway(t *testing.T) {
+	t.Parallel()
+
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+	{
+		var out struct{}
+
+		// Register a service "api"
+		args := structs.TestRegisterRequest(t)
+		args.Service.Service = "api"
+		args.Check = &structs.HealthCheck{
+			Name:      "api",
+			Status:    api.HealthPassing,
+			ServiceID: args.Service.Service,
+		}
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+		// Register a proxy for api
+		args = structs.TestRegisterRequestProxy(t)
+		args.Service.Service = "api-proxy"
+		args.Service.Proxy.DestinationServiceName = "api"
+		args.Check = &structs.HealthCheck{
+			Name:      "api-proxy",
+			Status:    api.HealthPassing,
+			ServiceID: args.Service.Service,
+		}
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+		// Register a service "web"
+		args = structs.TestRegisterRequest(t)
+		args.Check = &structs.HealthCheck{
+			Name:      "web",
+			Status:    api.HealthPassing,
+			ServiceID: args.Service.Service,
+		}
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+		// Register a proxy for web
+		args = structs.TestRegisterRequestProxy(t)
+		args.Check = &structs.HealthCheck{
+			Name:      "proxy",
+			Status:    api.HealthPassing,
+			ServiceID: args.Service.Service,
+		}
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+		// Register a gateway for web
+		args = &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				Kind:    structs.ServiceKindTerminatingGateway,
+				Service: "gateway",
+				Port:    443,
+			},
+			Check: &structs.HealthCheck{
+				Name:      "gateway",
+				Status:    api.HealthPassing,
+				ServiceID: args.Service.Service,
+			},
+		}
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &args, &out))
+
+		entryArgs := &structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry: &structs.TerminatingGatewayConfigEntry{
+				Kind: "terminating-gateway",
+				Name: "gateway",
+				Services: []structs.LinkedService{
+					{
+						Name: "web",
+					},
+				},
+			},
+		}
+		var entryResp bool
+		assert.Nil(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &entryArgs, &entryResp))
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		// List should return both the terminating-gateway and the connect-proxy associated with web
+		req := structs.ServiceSpecificRequest{
+			Connect:     true,
+			Datacenter:  "dc1",
+			ServiceName: "web",
+		}
+		var resp structs.IndexedCheckServiceNodes
+		assert.Nil(r, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &resp))
+		assert.Len(r, resp.Nodes, 2)
+
+		// Check sidecar
+		assert.Equal(r, structs.ServiceKindConnectProxy, resp.Nodes[0].Service.Kind)
+		assert.Equal(r, "foo", resp.Nodes[0].Node.Node)
+		assert.Equal(r, "web-proxy", resp.Nodes[0].Service.Service)
+		assert.Equal(r, "web-proxy", resp.Nodes[0].Service.ID)
+		assert.Equal(r, "web", resp.Nodes[0].Service.Proxy.DestinationServiceName)
+		assert.Equal(r, 2222, resp.Nodes[0].Service.Port)
+
+		// Check gateway
+		assert.Equal(r, structs.ServiceKindTerminatingGateway, resp.Nodes[1].Service.Kind)
+		assert.Equal(r, "foo", resp.Nodes[1].Node.Node)
+		assert.Equal(r, "gateway", resp.Nodes[1].Service.Service)
+		assert.Equal(r, "gateway", resp.Nodes[1].Service.ID)
+		assert.Equal(r, 443, resp.Nodes[1].Service.Port)
+	})
+}
+func TestHealth_ServiceNodes_Ingress(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	arg := structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			ID:      "ingress-gateway",
+			Service: "ingress-gateway",
+			Kind:    structs.ServiceKindIngressGateway,
+		},
+		Check: &structs.HealthCheck{
+			Name:      "ingress connect",
+			Status:    api.HealthPassing,
+			ServiceID: "ingress-gateway",
+		},
+	}
+	var out struct{}
+	require.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out))
+
+	arg = structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "bar",
+		Address:    "127.0.0.2",
+		Service: &structs.NodeService{
+			ID:      "ingress-gateway",
+			Service: "ingress-gateway",
+			Kind:    structs.ServiceKindIngressGateway,
+		},
+		Check: &structs.HealthCheck{
+			Name:      "ingress connect",
+			Status:    api.HealthWarning,
+			ServiceID: "ingress-gateway",
+		},
+	}
+	require.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out))
+
+	// Register ingress-gateway config entry
+	{
+		args := &structs.IngressGatewayConfigEntry{
+			Name: "ingress-gateway",
+			Kind: structs.IngressGateway,
+			Listeners: []structs.IngressListener{
+				{
+					Port: 8888,
+					Services: []structs.IngressService{
+						{Name: "db"},
+					},
+				},
+			},
+		}
+
+		req := structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry:      args,
+		}
+		var out bool
+		require.Nil(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &req, &out))
+		require.True(t, out)
+	}
+
+	var out2 structs.IndexedCheckServiceNodes
+	req := structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: "db",
+		Ingress:     true,
+	}
+	require.Nil(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &out2))
+
+	nodes := out2.Nodes
+	require.Len(t, nodes, 2)
+	require.Equal(t, nodes[0].Node.Node, "bar")
+	require.Equal(t, nodes[0].Checks[0].Status, api.HealthWarning)
+	require.Equal(t, nodes[1].Node.Node, "foo")
+	require.Equal(t, nodes[1].Checks[0].Status, api.HealthPassing)
+}
+
+func TestHealth_ServiceNodes_Ingress_ACL(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1", testrpc.WithToken("root"))
+
+	// Create the ACL.
+	token, err := upsertTestTokenWithPolicyRules(codec, "root", "dc1", `
+  service "db" { policy = "read" }
+	service "ingress-gateway" { policy = "read" }
+	node_prefix "" { policy = "read" }`)
+	require.NoError(t, err)
+
+	arg := structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			ID:      "ingress-gateway",
+			Service: "ingress-gateway",
+		},
+		Check: &structs.HealthCheck{
+			Name:      "ingress connect",
+			Status:    api.HealthPassing,
+			ServiceID: "ingress-gateway",
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var out struct{}
+	require.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out))
+
+	arg = structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "bar",
+		Address:    "127.0.0.2",
+		Service: &structs.NodeService{
+			ID:      "ingress-gateway",
+			Service: "ingress-gateway",
+		},
+		Check: &structs.HealthCheck{
+			Name:      "ingress connect",
+			Status:    api.HealthWarning,
+			ServiceID: "ingress-gateway",
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	require.Nil(t, msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out))
+
+	// Register proxy-defaults with 'http' protocol
+	{
+		req := structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry: &structs.ProxyConfigEntry{
+				Kind: structs.ProxyDefaults,
+				Name: structs.ProxyConfigGlobal,
+				Config: map[string]interface{}{
+					"protocol": "http",
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		var out bool
+		require.Nil(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &req, &out))
+		require.True(t, out)
+	}
+
+	// Register ingress-gateway config entry
+	{
+		args := &structs.IngressGatewayConfigEntry{
+			Name: "ingress-gateway",
+			Kind: structs.IngressGateway,
+			Listeners: []structs.IngressListener{
+				{
+					Port:     8888,
+					Protocol: "http",
+					Services: []structs.IngressService{
+						{Name: "db"},
+						{Name: "another"},
+					},
+				},
+			},
+		}
+
+		req := structs.ConfigEntryRequest{
+			Op:           structs.ConfigEntryUpsert,
+			Datacenter:   "dc1",
+			Entry:        args,
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		var out bool
+		require.Nil(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &req, &out))
+		require.True(t, out)
+	}
+
+	// No token used
+	var out2 structs.IndexedCheckServiceNodes
+	req := structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: "db",
+		Ingress:     true,
+	}
+	require.Nil(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &out2))
+	require.Len(t, out2.Nodes, 0)
+
+	// Requesting a service that is not covered by the token's policy
+	req = structs.ServiceSpecificRequest{
+		Datacenter:   "dc1",
+		ServiceName:  "another",
+		Ingress:      true,
+		QueryOptions: structs.QueryOptions{Token: token.SecretID},
+	}
+	require.Nil(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &out2))
+	require.Len(t, out2.Nodes, 0)
+
+	// Requesting service covered by the token's policy
+	req = structs.ServiceSpecificRequest{
+		Datacenter:   "dc1",
+		ServiceName:  "db",
+		Ingress:      true,
+		QueryOptions: structs.QueryOptions{Token: token.SecretID},
+	}
+	require.Nil(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &out2))
+
+	nodes := out2.Nodes
+	require.Len(t, nodes, 2)
+	require.Equal(t, nodes[0].Node.Node, "bar")
+	require.Equal(t, nodes[0].Checks[0].Status, api.HealthWarning)
+	require.Equal(t, nodes[1].Node.Node, "foo")
+	require.Equal(t, nodes[1].Checks[0].Status, api.HealthPassing)
 }
 
 func TestHealth_NodeChecks_FilterACL(t *testing.T) {
@@ -1175,4 +1522,116 @@ func TestHealth_ChecksInState_FilterACL(t *testing.T) {
 	// that we respect the version 8 ACL flag, since the test server sets
 	// that to false (the regression value of *not* changing this is better
 	// for now until we change the sense of the version 8 ACL flag).
+}
+
+func TestHealth_RPC_Filter(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// prep the cluster with some data we can use in our filters
+	registerTestCatalogEntries(t, codec)
+
+	// Run the tests against the test server
+
+	t.Run("NodeChecks", func(t *testing.T) {
+		args := structs.NodeSpecificRequest{
+			Datacenter:   "dc1",
+			Node:         "foo",
+			QueryOptions: structs.QueryOptions{Filter: "ServiceName == redis and v1 in ServiceTags"},
+		}
+
+		out := new(structs.IndexedHealthChecks)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.NodeChecks", &args, out))
+		require.Len(t, out.HealthChecks, 1)
+		require.Equal(t, types.CheckID("foo:redisV1"), out.HealthChecks[0].CheckID)
+
+		args.Filter = "ServiceID == ``"
+		out = new(structs.IndexedHealthChecks)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.NodeChecks", &args, out))
+		require.Len(t, out.HealthChecks, 2)
+	})
+
+	t.Run("ServiceChecks", func(t *testing.T) {
+		args := structs.ServiceSpecificRequest{
+			Datacenter:   "dc1",
+			ServiceName:  "redis",
+			QueryOptions: structs.QueryOptions{Filter: "Node == foo"},
+		}
+
+		out := new(structs.IndexedHealthChecks)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceChecks", &args, out))
+		// 1 service check for each instance
+		require.Len(t, out.HealthChecks, 2)
+
+		args.Filter = "Node == bar"
+		out = new(structs.IndexedHealthChecks)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceChecks", &args, out))
+		// 1 service check for each instance
+		require.Len(t, out.HealthChecks, 1)
+
+		args.Filter = "Node == foo and v1 in ServiceTags"
+		out = new(structs.IndexedHealthChecks)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceChecks", &args, out))
+		// 1 service check for the matching instance
+		require.Len(t, out.HealthChecks, 1)
+	})
+
+	t.Run("ServiceNodes", func(t *testing.T) {
+		args := structs.ServiceSpecificRequest{
+			Datacenter:   "dc1",
+			ServiceName:  "redis",
+			QueryOptions: structs.QueryOptions{Filter: "Service.Meta.version == 2"},
+		}
+
+		out := new(structs.IndexedCheckServiceNodes)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &args, out))
+		require.Len(t, out.Nodes, 1)
+
+		args.ServiceName = "web"
+		args.Filter = "Node.Meta.os == linux"
+		out = new(structs.IndexedCheckServiceNodes)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &args, out))
+		require.Len(t, out.Nodes, 2)
+		require.Equal(t, "baz", out.Nodes[0].Node.Node)
+		require.Equal(t, "baz", out.Nodes[1].Node.Node)
+
+		args.Filter = "Node.Meta.os == linux and Service.Meta.version == 1"
+		out = new(structs.IndexedCheckServiceNodes)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &args, out))
+		require.Len(t, out.Nodes, 1)
+	})
+
+	t.Run("ChecksInState", func(t *testing.T) {
+		args := structs.ChecksInStateRequest{
+			Datacenter:   "dc1",
+			State:        api.HealthAny,
+			QueryOptions: structs.QueryOptions{Filter: "Node == baz"},
+		}
+
+		out := new(structs.IndexedHealthChecks)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ChecksInState", &args, out))
+		require.Len(t, out.HealthChecks, 6)
+
+		args.Filter = "Status == warning or Status == critical"
+		out = new(structs.IndexedHealthChecks)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ChecksInState", &args, out))
+		require.Len(t, out.HealthChecks, 2)
+
+		args.State = api.HealthCritical
+		args.Filter = "Node == baz"
+		out = new(structs.IndexedHealthChecks)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ChecksInState", &args, out))
+		require.Len(t, out.HealthChecks, 1)
+
+		args.State = api.HealthWarning
+		out = new(structs.IndexedHealthChecks)
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Health.ChecksInState", &args, out))
+		require.Len(t, out.HealthChecks, 1)
+	})
 }

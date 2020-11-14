@@ -59,24 +59,24 @@ type Rlimit struct {
 type _Gid_t uint32
 
 type Stat_t struct {
-	Dev           int32
-	Mode          uint16
-	Nlink         uint16
-	Ino           uint64
-	Uid           uint32
-	Gid           uint32
-	Rdev          int32
-	Atimespec     Timespec
-	Mtimespec     Timespec
-	Ctimespec     Timespec
-	Birthtimespec Timespec
-	Size          int64
-	Blocks        int64
-	Blksize       int32
-	Flags         uint32
-	Gen           uint32
-	Lspare        int32
-	Qspare        [2]int64
+	Dev     int32
+	Mode    uint16
+	Nlink   uint16
+	Ino     uint64
+	Uid     uint32
+	Gid     uint32
+	Rdev    int32
+	Atim    Timespec
+	Mtim    Timespec
+	Ctim    Timespec
+	Btim    Timespec
+	Size    int64
+	Blocks  int64
+	Blksize int32
+	Flags   uint32
+	Gen     uint32
+	Lspare  int32
+	Qspare  [2]int64
 }
 
 type Statfs_t struct {
@@ -92,9 +92,9 @@ type Statfs_t struct {
 	Type        uint32
 	Flags       uint32
 	Fssubtype   uint32
-	Fstypename  [16]int8
-	Mntonname   [1024]int8
-	Mntfromname [1024]int8
+	Fstypename  [16]byte
+	Mntonname   [1024]byte
+	Mntfromname [1024]byte
 	Reserved    [8]uint32
 }
 
@@ -144,6 +144,10 @@ type Dirent struct {
 	Name    [1024]int8
 	_       [3]byte
 }
+
+const (
+	PathMax = 0x400
+)
 
 type RawSockaddrInet4 struct {
 	Len    uint8
@@ -301,7 +305,6 @@ type IfMsghdr struct {
 	Addrs   int32
 	Flags   int32
 	Index   uint16
-	_       [2]byte
 	Data    IfData
 }
 
@@ -344,7 +347,6 @@ type IfaMsghdr struct {
 	Addrs   int32
 	Flags   int32
 	Index   uint16
-	_       [2]byte
 	Metric  int32
 }
 
@@ -365,7 +367,6 @@ type IfmaMsghdr2 struct {
 	Addrs    int32
 	Flags    int32
 	Index    uint16
-	_        [2]byte
 	Refcount int32
 }
 
@@ -374,7 +375,6 @@ type RtMsghdr struct {
 	Version uint8
 	Type    uint8
 	Index   uint16
-	_       [2]byte
 	Flags   int32
 	Addrs   int32
 	Pid     int32
@@ -396,7 +396,8 @@ type RtMetrics struct {
 	Rtt      uint32
 	Rttvar   uint32
 	Pksent   uint32
-	Filler   [4]uint32
+	State    uint32
+	Filler   [3]uint32
 }
 
 const (
@@ -486,4 +487,19 @@ type Utsname struct {
 	Release  [256]byte
 	Version  [256]byte
 	Machine  [256]byte
+}
+
+const SizeofClockinfo = 0x14
+
+type Clockinfo struct {
+	Hz      int32
+	Tick    int32
+	Tickadj int32
+	Stathz  int32
+	Profhz  int32
+}
+
+type CtlInfo struct {
+	Id   uint32
+	Name [96]byte
 }

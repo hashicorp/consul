@@ -1,42 +1,57 @@
 package testutil
 
 import (
-	"fmt"
+	"bytes"
 	"io"
-	"log"
 	"os"
-	"strings"
+	"sync"
 	"testing"
+
+	"github.com/hashicorp/go-hclog"
 )
 
-var sendTestLogsToStdout bool
-
-func init() {
-	sendTestLogsToStdout = os.Getenv("NOLOGBUFFER") == "1"
+func Logger(t TestingTB) hclog.InterceptLogger {
+	return LoggerWithOutput(t, NewLogBuffer(t))
 }
 
-func TestLogger(t testing.TB) *log.Logger {
-	return log.New(&testWriter{t}, "test: ", log.LstdFlags)
+func LoggerWithOutput(t TestingTB, output io.Writer) hclog.InterceptLogger {
+	return hclog.NewInterceptLogger(&hclog.LoggerOptions{
+		Name:   t.Name(),
+		Level:  hclog.Trace,
+		Output: output,
+	})
 }
 
-func TestLoggerWithName(t testing.TB, name string) *log.Logger {
-	return log.New(&testWriter{t}, "test["+name+"]: ", log.LstdFlags)
-}
+var sendTestLogsToStdout = os.Getenv("NOLOGBUFFER") == "1"
 
-func TestWriter(t testing.TB) io.Writer {
-	return &testWriter{t}
-}
-
-type testWriter struct {
-	t testing.TB
-}
-
-func (tw *testWriter) Write(p []byte) (n int, err error) {
-	tw.t.Helper()
+// NewLogBuffer returns an io.Writer which buffers all writes. When the test
+// ends, t.Failed is checked. If the test has failed or has been run in verbose
+// mode all log output is printed to stdout.
+//
+// Set the env var NOLOGBUFFER=1 to disable buffering, resulting in all log
+// output being written immediately to stdout.
+func NewLogBuffer(t TestingTB) io.Writer {
 	if sendTestLogsToStdout {
-		fmt.Fprint(os.Stdout, strings.TrimSpace(string(p))+"\n")
-	} else {
-		tw.t.Log(strings.TrimSpace(string(p)))
+		return os.Stdout
 	}
-	return len(p), nil
+	buf := &logBuffer{buf: new(bytes.Buffer)}
+	t.Cleanup(func() {
+		if t.Failed() || testing.Verbose() {
+			buf.Lock()
+			defer buf.Unlock()
+			buf.buf.WriteTo(os.Stdout)
+		}
+	})
+	return buf
+}
+
+type logBuffer struct {
+	buf *bytes.Buffer
+	sync.Mutex
+}
+
+func (lb *logBuffer) Write(p []byte) (n int, err error) {
+	lb.Lock()
+	defer lb.Unlock()
+	return lb.buf.Write(p)
 }

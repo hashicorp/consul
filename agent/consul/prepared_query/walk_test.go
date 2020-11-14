@@ -8,6 +8,7 @@ import (
 	"sort"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/stretchr/testify/require"
 )
 
 func TestWalk_ServiceQuery(t *testing.T) {
@@ -22,9 +23,10 @@ func TestWalk_ServiceQuery(t *testing.T) {
 		Failover: structs.QueryDatacenterOptions{
 			Datacenters: []string{"dc1", "dc2"},
 		},
-		Near:     "_agent",
-		Tags:     []string{"tag1", "tag2", "tag3"},
-		NodeMeta: map[string]string{"foo": "bar", "role": "server"},
+		Near:           "_agent",
+		Tags:           []string{"tag1", "tag2", "tag3"},
+		NodeMeta:       map[string]string{"foo": "bar", "role": "server"},
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
 	if err := walk(service, fn); err != nil {
 		t.Fatalf("err: %v", err)
@@ -41,10 +43,10 @@ func TestWalk_ServiceQuery(t *testing.T) {
 		".Tags[1]:tag2",
 		".Tags[2]:tag3",
 	}
+	expected = append(expected, entMetaWalkFields...)
+	sort.Strings(expected)
 	sort.Strings(actual)
-	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("bad: %#v", actual)
-	}
+	require.Equal(t, expected, actual)
 }
 
 func TestWalk_Visitor_Errors(t *testing.T) {

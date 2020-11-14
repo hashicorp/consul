@@ -1,0 +1,30 @@
+[
+  ${
+    range(
+      env(
+        'CONSUL_NODE_COUNT',
+        Math.floor(
+          (
+            Math.random() * env('CONSUL_NODE_MAX', 10)
+          ) + parseInt(env('CONSUL_NODE_MIN', 1))
+        )
+      )
+    ).map(
+      function(item, i)
+      {
+        return `
+          {
+            "Node":"node-${i}",
+            "Segment":"",
+            "Coord":{
+              "Vec":[${range(7).map((item, i) => fake.random.number())}],
+              "Error":1.5,
+              "Adjustment":0,
+              "Height":0.0000${fake.random.number()}
+            }
+          }
+        `;
+      }
+    )
+  }
+]

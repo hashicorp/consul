@@ -30,11 +30,9 @@ type Type interface {
 	// metadata even when there is no result.
 	Fetch(FetchOptions, Request) (FetchResult, error)
 
-	// SupportsBlocking should return true if the type supports blocking queries.
-	// Types that do not support blocking queries will not be able to use
-	// background refresh nor will the cache attempt blocking fetches if the
-	// client requests them with MinIndex.
-	SupportsBlocking() bool
+	// RegisterOptions are used when the type is registered to configure the
+	// behaviour of cache entries for this type.
+	RegisterOptions() RegisterOptions
 }
 
 // FetchOptions are various settable options when a Fetch is called.
@@ -80,4 +78,8 @@ type FetchResult struct {
 
 	// Index is the corresponding index value for this data.
 	Index uint64
+
+	// NotModified indicates that the Value has not changed since LastResult, and
+	// the LastResult value should be used instead of Value.
+	NotModified bool
 }

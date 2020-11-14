@@ -119,11 +119,11 @@ func (r *rexecWriter) Flush() {
 
 // handleRemoteExec is invoked when a new remote exec request is received
 func (a *Agent) handleRemoteExec(msg *UserEvent) {
-	a.logger.Printf("[DEBUG] agent: received remote exec event (ID: %s)", msg.ID)
+	a.logger.Debug("received remote exec event", "id", msg.ID)
 	// Decode the event payload
 	var event remoteExecEvent
 	if err := json.Unmarshal(msg.Payload, &event); err != nil {
-		a.logger.Printf("[ERR] agent: failed to decode remote exec event: %v", err)
+		a.logger.Error("failed to decode remote exec event", "error", err)
 		return
 	}
 
@@ -147,7 +147,7 @@ func (a *Agent) handleRemoteExec(msg *UserEvent) {
 	if len(spec.Script) != 0 {
 		tmpFile, err := ioutil.TempFile("", "rexec")
 		if err != nil {
-			a.logger.Printf("[DEBUG] agent: failed to make tmp file: %v", err)
+			a.logger.Debug("failed to make tmp file", "error", err)
 			exitCode = 255
 			return
 		}
@@ -161,7 +161,7 @@ func (a *Agent) handleRemoteExec(msg *UserEvent) {
 	}
 
 	// Create the exec.Cmd
-	a.logger.Printf("[INFO] agent: remote exec '%s'", script)
+	a.logger.Info("remote exec script", "script", script)
 	var cmd *osexec.Cmd
 	var err error
 	if len(spec.Args) > 0 {
@@ -170,7 +170,7 @@ func (a *Agent) handleRemoteExec(msg *UserEvent) {
 		cmd, err = exec.Script(script)
 	}
 	if err != nil {
-		a.logger.Printf("[DEBUG] agent: failed to start remote exec: %v", err)
+		a.logger.Debug("failed to start remote exec", "error", err)
 		exitCode = 255
 		return
 	}
@@ -187,7 +187,7 @@ func (a *Agent) handleRemoteExec(msg *UserEvent) {
 
 	// Start execution
 	if err := cmd.Start(); err != nil {
-		a.logger.Printf("[DEBUG] agent: failed to start remote exec: %v", err)
+		a.logger.Debug("failed to start remote exec", "error", err)
 		exitCode = 255
 		return
 	}
@@ -254,22 +254,22 @@ func (a *Agent) remoteExecGetSpec(event *remoteExecEvent, spec *remoteExecSpec) 
 	var out structs.IndexedDirEntries
 QUERY:
 	if err := a.RPC("KVS.Get", &get, &out); err != nil {
-		a.logger.Printf("[ERR] agent: failed to get remote exec job: %v", err)
+		a.logger.Error("failed to get remote exec job", "error", err)
 		return false
 	}
 	if len(out.Entries) == 0 {
 		// If the initial read was stale and had no data, retry as a consistent read
 		if get.QueryOptions.AllowStale {
-			a.logger.Printf("[DEBUG] agent: trying consistent fetch of remote exec job spec")
+			a.logger.Debug("trying consistent fetch of remote exec job spec")
 			get.QueryOptions.AllowStale = false
 			goto QUERY
 		} else {
-			a.logger.Printf("[DEBUG] agent: remote exec aborted, job spec missing")
+			a.logger.Debug("remote exec aborted, job spec missing")
 			return false
 		}
 	}
 	if err := json.Unmarshal(out.Entries[0].Value, &spec); err != nil {
-		a.logger.Printf("[ERR] agent: failed to decode remote exec spec: %v", err)
+		a.logger.Error("failed to decode remote exec spec", "error", err)
 		return false
 	}
 	return true
@@ -279,7 +279,7 @@ QUERY:
 // continue.
 func (a *Agent) remoteExecWriteAck(event *remoteExecEvent) bool {
 	if err := a.remoteExecWriteKey(event, remoteExecAckSuffix, nil); err != nil {
-		a.logger.Printf("[ERR] agent: failed to ack remote exec job: %v", err)
+		a.logger.Error("failed to ack remote exec job", "error", err)
 		return false
 	}
 	return true
@@ -289,7 +289,7 @@ func (a *Agent) remoteExecWriteAck(event *remoteExecEvent) bool {
 func (a *Agent) remoteExecWriteOutput(event *remoteExecEvent, num int, output []byte) bool {
 	suffix := path.Join(remoteExecOutputDivider, fmt.Sprintf("%05x", num))
 	if err := a.remoteExecWriteKey(event, suffix, output); err != nil {
-		a.logger.Printf("[ERR] agent: failed to write output for remote exec job: %v", err)
+		a.logger.Error("failed to write output for remote exec job", "error", err)
 		return false
 	}
 	return true
@@ -299,7 +299,7 @@ func (a *Agent) remoteExecWriteOutput(event *remoteExecEvent, num int, output []
 func (a *Agent) remoteExecWriteExitCode(event *remoteExecEvent, exitCode *int) bool {
 	val := []byte(strconv.FormatInt(int64(*exitCode), 10))
 	if err := a.remoteExecWriteKey(event, remoteExecExitSuffix, val); err != nil {
-		a.logger.Printf("[ERR] agent: failed to write exit code for remote exec job: %v", err)
+		a.logger.Error("failed to write exit code for remote exec job", "error", err)
 		return false
 	}
 	return true

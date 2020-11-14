@@ -1,0 +1,3 @@
+```release-note:feature
+cli: snapshot inspect command provides KV usage breakdown
+```

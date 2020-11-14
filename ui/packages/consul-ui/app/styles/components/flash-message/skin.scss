@@ -1,0 +1,25 @@
+%flash-message p {
+  border-width: 1px;
+  border-radius: $decor-radius-100;
+}
+%flash-message p strong::before {
+  @extend %as-pseudo;
+}
+%flash-message p.success strong::before {
+  @extend %with-check-circle-fill-color-icon;
+}
+%flash-message p.warning strong::before {
+  @extend %with-alert-triangle-color-icon;
+}
+%flash-message p.error strong::before {
+  @extend %with-cancel-square-fill-color-icon;
+}
+%flash-message p.success {
+  @extend %frame-green-500;
+}
+%flash-message p.warning {
+  @extend %frame-yellow-500;
+}
+%flash-message p.error {
+  @extend %frame-red-500;
+}

@@ -13,13 +13,8 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-const (
-	// maxQueryTime is used to bound the limit of a blocking query
-	maxQueryTime = 600 * time.Second
-)
-
 // EventFire is used to fire a new event
-func (s *HTTPServer) EventFire(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) EventFire(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 
 	// Get the datacenter
 	var dc string
@@ -73,7 +68,7 @@ func (s *HTTPServer) EventFire(resp http.ResponseWriter, req *http.Request) (int
 }
 
 // EventList is used to retrieve the recent list of events
-func (s *HTTPServer) EventList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) EventList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Parse the query options, since we simulate a blocking query
 	var b structs.QueryOptions
 	if parseWait(resp, req, &b) {
@@ -83,7 +78,7 @@ func (s *HTTPServer) EventList(resp http.ResponseWriter, req *http.Request) (int
 	// Fetch the ACL token, if any.
 	var token string
 	s.parseToken(req, &token)
-	acl, err := s.agent.resolveToken(token)
+	authz, err := s.agent.resolveToken(token)
 	if err != nil {
 		return nil, err
 	}
@@ -133,13 +128,13 @@ RUN_QUERY:
 	events := s.agent.UserEvents()
 
 	// Filter the events using the ACL, if present
-	if acl != nil {
+	if authz != nil {
 		for i := 0; i < len(events); i++ {
 			name := events[i].Name
-			if acl.EventRead(name) {
+			if authz.EventRead(name, nil) == acl.Allow {
 				continue
 			}
-			s.agent.logger.Printf("[DEBUG] agent: dropping event %q from result due to ACLs", name)
+			s.agent.logger.Debug("dropping event from result due to ACLs", "event", name)
 			events = append(events[:i], events[i+1:]...)
 			i--
 		}

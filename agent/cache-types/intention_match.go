@@ -12,6 +12,7 @@ const IntentionMatchName = "intention-match"
 
 // IntentionMatch supports fetching the intentions via match queries.
 type IntentionMatch struct {
+	RegisterOptionsBlockingRefresh
 	RPC RPC
 }
 
@@ -24,6 +25,10 @@ func (c *IntentionMatch) Fetch(opts cache.FetchOptions, req cache.Request) (cach
 		return result, fmt.Errorf(
 			"Internal cache failure: request wrong type: %T", req)
 	}
+
+	// Lightweight copy this object so that manipulating QueryOptions doesn't race.
+	dup := *reqReal
+	reqReal = &dup
 
 	// Set the minimum query index to our current index so we block
 	reqReal.MinQueryIndex = opts.MinIndex
@@ -38,8 +43,4 @@ func (c *IntentionMatch) Fetch(opts cache.FetchOptions, req cache.Request) (cach
 	result.Value = &reply
 	result.Index = reply.Index
 	return result, nil
-}
-
-func (c *IntentionMatch) SupportsBlocking() bool {
-	return true
 }

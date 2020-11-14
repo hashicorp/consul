@@ -1,0 +1,173 @@
+<div
+  class="consul-intention"
+  ...attributes
+>
+<DataForm
+  @type="intention"
+  @dc={{@dc}}
+  @nspace={{@nspace}}
+  @autofill={{@autofill}}
+  @item={{@item}}
+  @src={{@src}}
+  @onchange={{action this.change}}
+  @onsubmit={{action this.onsubmit}}
+as |api|>
+
+    <BlockSlot @name="error" as |Notification|>
+      <Notification>
+        <p data-notification role="alert" class="error notification-update">
+  {{#if (starts-with 'duplicate intention found:' api.error.detail)}}
+          <strong>Intention exists</strong>
+          An intention already exists for this Source-Destination pair. Please enter a different combination of Services, or search the intentions to edit an existing intention.
+  {{else}}
+          <strong>Error!</strong>
+          There was an error saving your intention.
+        {{#if (and api.error.status api.error.detail)}}
+          <br />{{api.error.status}}: {{api.error.detail}}
+        {{/if}}
+  {{/if}}
+        </p>
+      </Notification>
+    </BlockSlot>
+
+    <BlockSlot @name="form">
+{{#let api.data as |item|}}
+  {{#if item.IsEditable}}
+
+{{#if this.warn}}
+  {{#let (changeset-get item 'Action') as |newAction|}}
+      <ModalDialog
+        class="consul-intention-action-warn-modal warning"
+        data-test-action-warning
+        @onclose={{action (mut this.warn) false}}
+      >
+        <BlockSlot @name="header">
+          <h2>Set intention to {{newAction}}?</h2>
+        </BlockSlot>
+        <BlockSlot @name="body">
+          <p>
+            When you change this Intention to {{newAction}}, you will remove all the L7 policy permissions currently saved to this Intention. Are you sure you want to set it to {{newAction}}?
+          </p>
+        </BlockSlot>
+        <BlockSlot @name="actions" as |close|>
+          <button
+            data-test-action-warning-confirm
+            type="button"
+            class="dangerous"
+            {{on 'click' api.submit}}
+          >
+            Set to {{capitalize newAction}}
+          </button>
+          <button
+            data-test-action-warning-cancel
+            type="button"
+            class="type-cancel"
+            onclick={{close}}
+          >
+            No, Cancel
+          </button>
+        </BlockSlot>
+      </ModalDialog>
+  {{/let}}
+{{/if}}
+
+      <DataSource
+        @src={{concat '/' @nspace '/' @dc '/services'}}
+        @onchange={{action this.createServices item}}
+      />
+    {{#if (env 'CONSUL_NSPACES_ENABLED')}}
+        <DataSource
+          @src="/*/*/namespaces"
+          @onchange={{action this.createNspaces item}}
+        />
+    {{/if}}
+    {{#if (and api.isCreate this.isManagedByCRDs)}}
+        <Consul::Intention::Notice::CustomResource @type="warning" />
+    {{/if}}
+      <form
+        {{on 'submit' (fn this.submit item api.submit)}}
+      >
+        <Consul::Intention::Form::Fieldsets
+          @nspaces={{this.nspaces}}
+          @services={{this.services}}
+          @SourceName={{this.SourceName}}
+          @SourceNS={{this.SourceNS}}
+          @DestinationName={{this.DestinationName}}
+          @DestinationNS={{this.DestinationNS}}
+          @item={{item}}
+          @disabled={{api.disabled}}
+          @create={{api.isCreate}}
+          @onchange={{api.change}}
+        />
+        <div>
+          <button
+            type="submit"
+            disabled={{or item.isInvalid api.disabled}}
+          >
+            Save
+          </button>
+          <button
+            type="reset"
+            disabled={{api.disabled}}
+            {{on 'click' (fn this.oncancel item)}}
+          >
+            Cancel
+          </button>
+{{#if (not api.isCreate)}}
+  {{#if (not-eq item.ID 'anonymous') }}
+          <ConfirmationDialog @message="Are you sure you want to delete this Intention?">
+            <BlockSlot @name="action" as |confirm|>
+              <button
+                data-test-delete
+                type="button"
+                class="type-delete"
+                disabled={{api.disabled}}
+                {{on 'click' (fn confirm api.delete)}}
+              >
+                Delete
+              </button>
+            </BlockSlot>
+            <BlockSlot @name="dialog" as |execute cancel message|>
+              <DeleteConfirmation
+                @message={{message}}
+                @execute={{execute}}
+                @cancel={{cancel}}
+              />
+            </BlockSlot>
+          </ConfirmationDialog>
+  {{/if}}
+{{/if}}
+        </div>
+      </form>
+  {{else}}
+    {{#if item.IsManagedByCRD}}
+      <Notice
+        class="crd"
+        @type="warning"
+      as |notice|>
+        <notice.Header>
+          <h3>
+            Intention Custom Resource
+          </h3>
+        </notice.Header>
+        <notice.Body>
+          <p>
+            This Intention is view only because it is managed through an Intention Custom Resource in your Kubernetes cluster.
+          </p>
+        </notice.Body>
+        <notice.Footer>
+          <p>
+            <a href="{{env 'CONSUL_DOCS_URL'}}/k8s/crds" target="_blank" rel="noopener noreferrer">Learn more about CRDs</a>
+          </p>
+        </notice.Footer>
+      </Notice>
+    {{/if}}
+    <Consul::Intention::View
+      @item={{item}}
+    />
+  {{/if}}
+{{/let}}
+
+  </BlockSlot>
+</DataForm>
+</div>

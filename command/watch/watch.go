@@ -12,8 +12,9 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/exec"
+	"github.com/hashicorp/consul/api"
+	consulwatch "github.com/hashicorp/consul/api/watch"
 	"github.com/hashicorp/consul/command/flags"
-	consulwatch "github.com/hashicorp/consul/watch"
 	"github.com/mitchellh/cli"
 )
 
@@ -36,7 +37,7 @@ type cmd struct {
 	key         string
 	prefix      string
 	service     string
-	tag         string
+	tag         []string
 	passingOnly string
 	state       string
 	name        string
@@ -55,8 +56,8 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.service, "service", "",
 		"Specifies the service to watch. Required for 'service' type, "+
 			"optional for 'checks' type.")
-	c.flags.StringVar(&c.tag, "tag", "",
-		"Specifies the service tag to filter on. Optional for 'service' type.")
+	c.flags.Var((*flags.AppendSliceValue)(&c.tag), "tag", "Specifies the service tag(s) to filter on. "+
+		"Optional for 'service' type. May be specified multiple times")
 	c.flags.StringVar(&c.passingOnly, "passingonly", "",
 		"Specifies if only hosts passing all checks are displayed. "+
 			"Optional for 'service' type, must be one of `[true|false]`. Defaults false.")
@@ -74,6 +75,17 @@ func (c *cmd) init() {
 	c.help = flags.Usage(help, c.flags)
 }
 
+func (c *cmd) loadToken() (string, error) {
+	httpCfg := api.DefaultConfig()
+	c.http.MergeOntoConfig(httpCfg)
+	// Trigger the Client init to do any last-minute updates to the Config.
+	if _, err := api.NewClient(httpCfg); err != nil {
+		return "", err
+	}
+
+	return httpCfg.Token, nil
+}
+
 func (c *cmd) Run(args []string) int {
 	if err := c.flags.Parse(args); err != nil {
 		return 1
@@ -87,6 +99,12 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
+	token, err := c.loadToken()
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+
 	// Compile the watch parameters
 	params := make(map[string]interface{})
 	if c.watchType != "" {
@@ -95,8 +113,8 @@ func (c *cmd) Run(args []string) int {
 	if c.http.Datacenter() != "" {
 		params["datacenter"] = c.http.Datacenter()
 	}
-	if c.http.Token() != "" {
-		params["token"] = c.http.Token()
+	if token != "" {
+		params["token"] = token
 	}
 	if c.key != "" {
 		params["key"] = c.key
@@ -107,7 +125,7 @@ func (c *cmd) Run(args []string) int {
 	if c.service != "" {
 		params["service"] = c.service
 	}
-	if c.tag != "" {
+	if len(c.tag) > 0 {
 		params["tag"] = c.tag
 	}
 	if c.http.Stale() {

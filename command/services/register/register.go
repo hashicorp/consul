@@ -23,12 +23,14 @@ type cmd struct {
 	help  string
 
 	// flags
-	flagId      string
-	flagName    string
-	flagAddress string
-	flagPort    int
-	flagTags    []string
-	flagMeta    map[string]string
+	flagKind            string
+	flagId              string
+	flagName            string
+	flagAddress         string
+	flagPort            int
+	flagTags            []string
+	flagMeta            map[string]string
+	flagTaggedAddresses map[string]string
 }
 
 func (c *cmd) init() {
@@ -43,15 +45,20 @@ func (c *cmd) init() {
 	c.flags.IntVar(&c.flagPort, "port", 0,
 		"Port of the service to register for arg-based registration.")
 	c.flags.Var((*flags.FlagMapValue)(&c.flagMeta), "meta",
-		"Metadata to set on the intention, formatted as key=value. This flag "+
+		"Metadata to set on the service, formatted as key=value. This flag "+
 			"may be specified multiple times to set multiple meta fields.")
 	c.flags.Var((*flags.AppendSliceValue)(&c.flagTags), "tag",
 		"Tag to add to the service. This flag can be specified multiple "+
 			"times to set multiple tags.")
+	c.flags.Var((*flags.FlagMapValue)(&c.flagTaggedAddresses), "tagged-address",
+		"Tagged address to set on the service, formatted as key=value. This flag "+
+			"may be specified multiple times to set multiple addresses.")
+	c.flags.StringVar(&c.flagKind, "kind", "", "The services 'kind'")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
+	flags.Merge(c.flags, c.http.NamespaceFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -60,13 +67,28 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	svcs := []*api.AgentServiceRegistration{&api.AgentServiceRegistration{
-		ID:      c.flagId,
-		Name:    c.flagName,
-		Address: c.flagAddress,
-		Port:    c.flagPort,
-		Tags:    c.flagTags,
-		Meta:    c.flagMeta,
+	var taggedAddrs map[string]api.ServiceAddress
+	if len(c.flagTaggedAddresses) > 0 {
+		taggedAddrs = make(map[string]api.ServiceAddress)
+		for k, v := range c.flagTaggedAddresses {
+			addr, err := api.ParseServiceAddr(v)
+			if err != nil {
+				c.UI.Error(fmt.Sprintf("Invalid Tagged Address: %v", err))
+				return 1
+			}
+			taggedAddrs[k] = addr
+		}
+	}
+
+	svcs := []*api.AgentServiceRegistration{{
+		Kind:            api.ServiceKind(c.flagKind),
+		ID:              c.flagId,
+		Name:            c.flagName,
+		Address:         c.flagAddress,
+		Port:            c.flagPort,
+		Tags:            c.flagTags,
+		Meta:            c.flagMeta,
+		TaggedAddresses: taggedAddrs,
 	}}
 
 	// Check for arg validation
@@ -81,7 +103,7 @@ func (c *cmd) Run(args []string) int {
 
 	if len(args) > 0 {
 		var err error
-		svcs, err = services.ServicesFromFiles(args)
+		svcs, err = services.ServicesFromFiles(c.UI, args)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error: %s", err))
 			return 1

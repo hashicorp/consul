@@ -1,0 +1,33 @@
+---
+layout: commands
+page_title: 'Commands: Leave'
+sidebar_title: leave
+description: >-
+  The `leave` command triggers a graceful leave and shutdown of the agent. It is
+  used to ensure other nodes see the agent as left instead of failed. Nodes that
+  leave will not attempt to re-join the cluster on restarting with a snapshot.
+---
+
+# Consul Leave
+
+Command: `consul leave`
+
+The `leave` command triggers a graceful leave and shutdown of the agent.
+It is used to ensure other nodes see the agent as "left" instead of
+"failed". Nodes that leave will not attempt to re-join the cluster
+on restarting with a snapshot.
+
+For nodes in server mode, the node is removed from the Raft peer set
+in a graceful manner. This is critical, as in certain situations a
+non-graceful leave can affect cluster availability.
+
+Running `consul leave` on a server explicitly will reduce the quorum size. Even if the cluster used `bootstrap_expect` to set a quorum size initially, issuing `consul leave` on a server will reconfigure the cluster to have fewer servers.
+This means you could end up with just one server that is still able to commit writes because quorum is only 1, but those writes might be lost if that server fails before more are added.
+
+## Usage
+
+Usage: `consul leave [options]`
+
+#### API Options
+
+@include 'http_api_options_client.mdx'

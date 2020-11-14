@@ -14,7 +14,10 @@ func (d *dirEntFilter) Len() int {
 	return len(d.ent)
 }
 func (d *dirEntFilter) Filter(i int) bool {
-	return !d.authorizer.KeyRead(d.ent[i].Key)
+	var entCtx acl.AuthorizerContext
+	d.ent[i].FillAuthzContext(&entCtx)
+
+	return d.authorizer.KeyRead(d.ent[i].Key, &entCtx) != acl.Allow
 }
 func (d *dirEntFilter) Move(dst, src, span int) {
 	copy(d.ent[dst:dst+span], d.ent[src:src+span])
@@ -25,29 +28,6 @@ func (d *dirEntFilter) Move(dst, src, span int) {
 func FilterDirEnt(authorizer acl.Authorizer, ent structs.DirEntries) structs.DirEntries {
 	df := dirEntFilter{authorizer: authorizer, ent: ent}
 	return ent[:FilterEntries(&df)]
-}
-
-type keyFilter struct {
-	authorizer acl.Authorizer
-	keys       []string
-}
-
-func (k *keyFilter) Len() int {
-	return len(k.keys)
-}
-func (k *keyFilter) Filter(i int) bool {
-	return !k.authorizer.KeyRead(k.keys[i])
-}
-
-func (k *keyFilter) Move(dst, src, span int) {
-	copy(k.keys[dst:dst+span], k.keys[src:src+span])
-}
-
-// FilterKeys is used to filter a list of keys by
-// applying an ACL policy
-func FilterKeys(authorizer acl.Authorizer, keys []string) []string {
-	kf := keyFilter{authorizer: authorizer, keys: keys}
-	return keys[:FilterEntries(&kf)]
 }
 
 type txnResultsFilter struct {
@@ -61,18 +41,23 @@ func (t *txnResultsFilter) Len() int {
 
 func (t *txnResultsFilter) Filter(i int) bool {
 	result := t.results[i]
+	var authzContext acl.AuthorizerContext
 	switch {
 	case result.KV != nil:
-		return !t.authorizer.KeyRead(result.KV.Key)
+		result.KV.EnterpriseMeta.FillAuthzContext(&authzContext)
+		return t.authorizer.KeyRead(result.KV.Key, &authzContext) != acl.Allow
 	case result.Node != nil:
-		return !t.authorizer.NodeRead(result.Node.Node)
+		structs.WildcardEnterpriseMeta().FillAuthzContext(&authzContext)
+		return t.authorizer.NodeRead(result.Node.Node, &authzContext) != acl.Allow
 	case result.Service != nil:
-		return !t.authorizer.ServiceRead(result.Service.Service)
+		result.Service.EnterpriseMeta.FillAuthzContext(&authzContext)
+		return t.authorizer.ServiceRead(result.Service.Service, &authzContext) != acl.Allow
 	case result.Check != nil:
+		result.Check.EnterpriseMeta.FillAuthzContext(&authzContext)
 		if result.Check.ServiceName != "" {
-			return !t.authorizer.ServiceRead(result.Check.ServiceName)
+			return t.authorizer.ServiceRead(result.Check.ServiceName, &authzContext) != acl.Allow
 		}
-		return !t.authorizer.NodeRead(result.Check.Node)
+		return t.authorizer.NodeRead(result.Check.Node, &authzContext) != acl.Allow
 	}
 	return false
 }

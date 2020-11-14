@@ -1,9 +1,0 @@
-{{yield}}
-{{#if (eq state 'success') }}
-    {{#yield-slot 'success' (block-params transition)}}{{yield}}{{/yield-slot}}
-{{else if (eq state 'error') }}
-    {{#yield-slot 'error' (block-params transition)}}{{yield}}{{/yield-slot}}
-{{/if}}
-{{#if (or permanent (eq state 'ready')) }}
-    {{#yield-slot 'action' (block-params success error)}}{{yield}}{{message}}{{/yield-slot}}
-{{/if}}

@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
@@ -157,7 +157,7 @@ func TestResetSessionTimerLocked(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	s1.createSessionTimer("foo", 5*time.Millisecond)
+	s1.createSessionTimer("foo", 5*time.Millisecond, nil)
 	if s1.sessionTimers.Get("foo") == nil {
 		t.Fatalf("missing timer")
 	}
@@ -170,51 +170,52 @@ func TestResetSessionTimerLocked(t *testing.T) {
 }
 
 func TestResetSessionTimerLocked_Renew(t *testing.T) {
-	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
 	ttl := 100 * time.Millisecond
 
-	// create the timer
-	s1.createSessionTimer("foo", ttl)
-	if s1.sessionTimers.Get("foo") == nil {
-		t.Fatalf("missing timer")
-	}
-
-	// wait until it is "expired" but at this point
-	// the session still exists.
-	time.Sleep(ttl)
-	if s1.sessionTimers.Get("foo") == nil {
-		t.Fatal("missing timer")
-	}
-
-	// renew the session which will reset the TTL to 2*ttl
-	// since that is the current SessionTTLMultiplier
-	s1.createSessionTimer("foo", ttl)
-
-	// Watch for invalidation
-	renew := time.Now()
-	deadline := renew.Add(2 * structs.SessionTTLMultiplier * ttl)
-	for {
-		now := time.Now()
-		if now.After(deadline) {
-			t.Fatal("should have expired by now")
+	retry.Run(t, func(r *retry.R) {
+		// create the timer and make verify it was created
+		s1.createSessionTimer("foo", ttl, nil)
+		if s1.sessionTimers.Get("foo") == nil {
+			r.Fatalf("missing timer")
 		}
 
-		// timer still exists
-		if s1.sessionTimers.Get("foo") != nil {
-			time.Sleep(time.Millisecond)
-			continue
+		// wait until it is "expired" but still exists
+		// the session will exist until 2*ttl
+		time.Sleep(ttl)
+		if s1.sessionTimers.Get("foo") == nil {
+			r.Fatal("missing timer")
 		}
+	})
 
-		// timer gone
-		if now.Sub(renew) < ttl {
-			t.Fatalf("early invalidate")
+	retry.Run(t, func(r *retry.R) {
+		// renew the session which will reset the TTL to 2*ttl
+		// since that is the current SessionTTLMultiplier
+		s1.createSessionTimer("foo", ttl, nil)
+		if s1.sessionTimers.Get("foo") == nil {
+			r.Fatal("missing timer")
 		}
-		break
-	}
+		renew := time.Now()
+
+		// Ensure invalidation happens after ttl
+		for {
+			// if timer still exists, sleep and continue
+			if s1.sessionTimers.Get("foo") != nil {
+				time.Sleep(time.Millisecond)
+				continue
+			}
+
+			// fail if timer gone before ttl passes
+			now := time.Now()
+			if now.Sub(renew) < ttl {
+				r.Fatalf("early invalidate")
+			}
+			break
+		}
+	})
 }
 
 func TestInvalidateSession(t *testing.T) {
@@ -230,6 +231,7 @@ func TestInvalidateSession(t *testing.T) {
 	if err := state.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"}); err != nil {
 		t.Fatalf("err: %s", err)
 	}
+
 	session := &structs.Session{
 		ID:   generateUUID(),
 		Node: "foo",
@@ -240,10 +242,10 @@ func TestInvalidateSession(t *testing.T) {
 	}
 
 	// This should cause a destroy
-	s1.invalidateSession(session.ID)
+	s1.invalidateSession(session.ID, nil)
 
 	// Check it is gone
-	_, sess, err := state.SessionGet(nil, session.ID)
+	_, sess, err := state.SessionGet(nil, session.ID, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -258,7 +260,7 @@ func TestClearSessionTimer(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	s1.createSessionTimer("foo", 5*time.Millisecond)
+	s1.createSessionTimer("foo", 5*time.Millisecond, nil)
 
 	err := s1.clearSessionTimer("foo")
 	if err != nil {
@@ -276,14 +278,11 @@ func TestClearAllSessionTimers(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	s1.createSessionTimer("foo", 10*time.Millisecond)
-	s1.createSessionTimer("bar", 10*time.Millisecond)
-	s1.createSessionTimer("baz", 10*time.Millisecond)
+	s1.createSessionTimer("foo", 10*time.Millisecond, nil)
+	s1.createSessionTimer("bar", 10*time.Millisecond, nil)
+	s1.createSessionTimer("baz", 10*time.Millisecond, nil)
 
-	err := s1.clearAllSessionTimers()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	s1.clearAllSessionTimers()
 
 	// sessionTimers is guarded by the lock
 	if s1.sessionTimers.Len() != 0 {

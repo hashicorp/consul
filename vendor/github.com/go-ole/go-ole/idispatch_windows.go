@@ -3,6 +3,7 @@
 package ole
 
 import (
+	"math/big"
 	"syscall"
 	"time"
 	"unsafe"
@@ -60,6 +61,10 @@ func invoke(disp *IDispatch, dispid int32, dispatch int16, params ...interface{}
 	var dispparams DISPPARAMS
 
 	if dispatch&DISPATCH_PROPERTYPUT != 0 {
+		dispnames := [1]int32{DISPID_PROPERTYPUT}
+		dispparams.rgdispidNamedArgs = uintptr(unsafe.Pointer(&dispnames[0]))
+		dispparams.cNamedArgs = 1
+	} else if dispatch&DISPATCH_PROPERTYPUTREF != 0 {
 		dispnames := [1]int32{DISPID_PROPERTYPUT}
 		dispparams.rgdispidNamedArgs = uintptr(unsafe.Pointer(&dispnames[0]))
 		dispparams.cNamedArgs = 1
@@ -128,6 +133,8 @@ func invoke(disp *IDispatch, dispid int32, dispatch int16, params ...interface{}
 				vargs[n] = NewVariant(VT_R8, *(*int64)(unsafe.Pointer(&vv)))
 			case *float64:
 				vargs[n] = NewVariant(VT_R8|VT_BYREF, int64(uintptr(unsafe.Pointer(v.(*float64)))))
+			case *big.Int:
+				vargs[n] = NewVariant(VT_DECIMAL, v.(*big.Int).Int64())
 			case string:
 				vargs[n] = NewVariant(VT_BSTR, int64(uintptr(unsafe.Pointer(SysAllocStringLen(v.(string))))))
 			case *string:

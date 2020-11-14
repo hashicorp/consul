@@ -20,7 +20,10 @@ func visit(path string, v reflect.Value, t reflect.Type, fn visitor) error {
 		for i := 0; i < v.NumField(); i++ {
 			vf := v.Field(i)
 			tf := t.Field(i)
-			newPath := fmt.Sprintf("%s.%s", path, tf.Name)
+			newPath := path
+			if !tf.Anonymous {
+				newPath = fmt.Sprintf("%s.%s", path, tf.Name)
+			}
 			if err := visit(newPath, vf, tf.Type, fn); err != nil {
 				return err
 			}

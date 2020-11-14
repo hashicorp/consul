@@ -24,7 +24,7 @@ type inmemPipeline struct {
 
 	shutdown     bool
 	shutdownCh   chan struct{}
-	shutdownLock sync.Mutex
+	shutdownLock sync.RWMutex
 }
 
 type inmemPipelineInflight struct {
@@ -43,9 +43,11 @@ type InmemTransport struct {
 	timeout    time.Duration
 }
 
-// NewInmemTransport is used to initialize a new transport
-// and generates a random local address if none is specified
-func NewInmemTransport(addr ServerAddress) (ServerAddress, *InmemTransport) {
+// NewInmemTransportWithTimeout is used to initialize a new transport and
+// generates a random local address if none is specified. The given timeout
+// will be used to decide how long to wait for a connected peer to process the
+// RPCs that we're sending it. See also Connect() and Consumer().
+func NewInmemTransportWithTimeout(addr ServerAddress, timeout time.Duration) (ServerAddress, *InmemTransport) {
 	if string(addr) == "" {
 		addr = NewInmemAddr()
 	}
@@ -53,9 +55,15 @@ func NewInmemTransport(addr ServerAddress) (ServerAddress, *InmemTransport) {
 		consumerCh: make(chan RPC, 16),
 		localAddr:  addr,
 		peers:      make(map[ServerAddress]*InmemTransport),
-		timeout:    50 * time.Millisecond,
+		timeout:    timeout,
 	}
 	return addr, trans
+}
+
+// NewInmemTransport is used to initialize a new transport
+// and generates a random local address if none is specified
+func NewInmemTransport(addr ServerAddress) (ServerAddress, *InmemTransport) {
+	return NewInmemTransportWithTimeout(addr, 500*time.Millisecond)
 }
 
 // SetHeartbeatHandler is used to set optional fast-path for
@@ -76,16 +84,15 @@ func (i *InmemTransport) LocalAddr() ServerAddress {
 // AppendEntriesPipeline returns an interface that can be used to pipeline
 // AppendEntries requests.
 func (i *InmemTransport) AppendEntriesPipeline(id ServerID, target ServerAddress) (AppendPipeline, error) {
-	i.RLock()
+	i.Lock()
+	defer i.Unlock()
+
 	peer, ok := i.peers[target]
-	i.RUnlock()
 	if !ok {
 		return nil, fmt.Errorf("failed to connect to peer: %v", target)
 	}
 	pipeline := newInmemPipeline(i, peer, target)
-	i.Lock()
 	i.pipelines = append(i.pipelines, pipeline)
-	i.Unlock()
 	return pipeline, nil
 }
 
@@ -128,6 +135,19 @@ func (i *InmemTransport) InstallSnapshot(id ServerID, target ServerAddress, args
 	return nil
 }
 
+// TimeoutNow implements the Transport interface.
+func (i *InmemTransport) TimeoutNow(id ServerID, target ServerAddress, args *TimeoutNowRequest, resp *TimeoutNowResponse) error {
+	rpcResp, err := i.makeRPC(target, args, nil, 10*i.timeout)
+	if err != nil {
+		return err
+	}
+
+	// Copy the result back
+	out := rpcResp.Response.(*TimeoutNowResponse)
+	*resp = *out
+	return nil
+}
+
 func (i *InmemTransport) makeRPC(target ServerAddress, args interface{}, r io.Reader, timeout time.Duration) (rpcResp RPCResponse, err error) {
 	i.RLock()
 	peer, ok := i.peers[target]
@@ -139,11 +159,17 @@ func (i *InmemTransport) makeRPC(target ServerAddress, args interface{}, r io.Re
 	}
 
 	// Send the RPC over
-	respCh := make(chan RPCResponse)
-	peer.consumerCh <- RPC{
+	respCh := make(chan RPCResponse, 1)
+	req := RPC{
 		Command:  args,
 		Reader:   r,
 		RespChan: respCh,
+	}
+	select {
+	case peer.consumerCh <- req:
+	case <-time.After(timeout):
+		err = fmt.Errorf("send timed out")
+		return
 	}
 
 	// Wait for a response
@@ -288,6 +314,17 @@ func (i *inmemPipeline) AppendEntries(args *AppendEntriesRequest, resp *AppendEn
 		Command:  args,
 		RespChan: respCh,
 	}
+
+	// Check if we have been already shutdown, otherwise the random choose
+	// made by select statement below might pick consumerCh even if
+	// shutdownCh was closed.
+	i.shutdownLock.RLock()
+	shutdown := i.shutdown
+	i.shutdownLock.RUnlock()
+	if shutdown {
+		return nil, ErrPipelineShutdown
+	}
+
 	select {
 	case i.peer.consumerCh <- rpc:
 	case <-timeout:

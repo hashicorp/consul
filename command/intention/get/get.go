@@ -1,6 +1,7 @@
 package get
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -8,7 +9,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/command/flags"
-	"github.com/hashicorp/consul/command/intention/finder"
+	"github.com/hashicorp/consul/command/intention"
 	"github.com/mitchellh/cli"
 	"github.com/ryanuber/columnize"
 )
@@ -34,6 +35,7 @@ func (c *cmd) init() {
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
+	flags.Merge(c.flags, c.http.NamespaceFlags())
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -49,30 +51,25 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	// Get the intention ID to load
-	f := &finder.Finder{Client: client}
-	id, err := f.IDFromArgs(c.flags.Args())
+	ixn, err := intention.GetFromArgs(client, c.flags.Args())
 	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error: %s", err))
-		return 1
-	}
-
-	// Read the intention
-	ixn, _, err := client.Connect().IntentionGet(id, nil)
-	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error reading the intention: %s", err))
+		c.UI.Error(err.Error())
 		return 1
 	}
 
 	// Format the tabular data
 	data := []string{
-		fmt.Sprintf("Source:|%s", ixn.SourceString()),
-		fmt.Sprintf("Destination:|%s", ixn.DestinationString()),
-		fmt.Sprintf("Action:|%s", ixn.Action),
-		fmt.Sprintf("ID:|%s", ixn.ID),
+		fmt.Sprintf("Source:\x1f%s", ixn.SourceString()),
+		fmt.Sprintf("Destination:\x1f%s", ixn.DestinationString()),
+	}
+	if ixn.Action != "" {
+		data = append(data, fmt.Sprintf("Action:\x1f%s", ixn.Action))
+	}
+	if ixn.ID != "" {
+		data = append(data, fmt.Sprintf("ID:\x1f%s", ixn.ID))
 	}
 	if v := ixn.Description; v != "" {
-		data = append(data, fmt.Sprintf("Description:|%s", v))
+		data = append(data, fmt.Sprintf("Description:\x1f%s", v))
 	}
 	if len(ixn.Meta) > 0 {
 		var keys []string
@@ -81,14 +78,23 @@ func (c *cmd) Run(args []string) int {
 		}
 		sort.Strings(keys)
 		for _, k := range keys {
-			data = append(data, fmt.Sprintf("Meta[%s]:|%s", k, ixn.Meta[k]))
+			data = append(data, fmt.Sprintf("Meta[%s]:\x1f%s", k, ixn.Meta[k]))
 		}
 	}
 	data = append(data,
-		fmt.Sprintf("Created At:|%s", ixn.CreatedAt.Local().Format(time.RFC850)),
+		fmt.Sprintf("Created At:\x1f%s", ixn.CreatedAt.Local().Format(time.RFC850)),
 	)
 
-	c.UI.Output(columnize.SimpleFormat(data))
+	c.UI.Output(columnize.Format(data, &columnize.Config{Delim: string([]byte{0x1f})}))
+
+	if len(ixn.Permissions) > 0 {
+		b, err := json.MarshalIndent(ixn.Permissions, "", "  ")
+		if err != nil {
+			c.UI.Error(err.Error())
+			return 1
+		}
+		c.UI.Output("Permissions:\n" + string(b))
+	}
 	return 0
 }
 

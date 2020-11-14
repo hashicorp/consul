@@ -72,7 +72,10 @@ func QueryNamespace(query string, dst interface{}, namespace string) error {
 //
 // Query is a wrapper around DefaultClient.Query.
 func Query(query string, dst interface{}, connectServerArgs ...interface{}) error {
-	return DefaultClient.Query(query, dst, connectServerArgs...)
+	if DefaultClient.SWbemServicesClient == nil {
+		return DefaultClient.Query(query, dst, connectServerArgs...)
+	}
+	return DefaultClient.SWbemServicesClient.Query(query, dst, connectServerArgs...)
 }
 
 // A Client is an WMI query client.
@@ -99,6 +102,11 @@ type Client struct {
 	// Setting this to true allows custom queries to be used with full
 	// struct definitions instead of having to define multiple structs.
 	AllowMissingFields bool
+
+	// SWbemServiceClient is an optional SWbemServices object that can be
+	// initialized and then reused across multiple queries. If it is null
+	// then the method will initialize a new temporary client each time.
+	SWbemServicesClient *SWbemServices
 }
 
 // DefaultClient is the default Client and is used by Query, QueryNamespace
@@ -277,6 +285,10 @@ func (c *Client) loadEntity(dst interface{}, src *ole.IDispatch) (errFieldMismat
 		}
 		defer prop.Clear()
 
+		if prop.VT == 0x1 { //VT_NULL
+			continue
+		}
+
 		switch val := prop.Value().(type) {
 		case int8, int16, int32, int64, int:
 			v := reflect.ValueOf(val).Int()
@@ -362,17 +374,61 @@ func (c *Client) loadEntity(dst interface{}, src *ole.IDispatch) (errFieldMismat
 				}
 			}
 		default:
-			typeof := reflect.TypeOf(val)
-			if typeof == nil && (isPtr || c.NonePtrZero) {
-				if (isPtr && c.PtrNil) || (!isPtr && c.NonePtrZero) {
-					of.Set(reflect.Zero(of.Type()))
+			if f.Kind() == reflect.Slice {
+				switch f.Type().Elem().Kind() {
+				case reflect.String:
+					safeArray := prop.ToArray()
+					if safeArray != nil {
+						arr := safeArray.ToValueArray()
+						fArr := reflect.MakeSlice(f.Type(), len(arr), len(arr))
+						for i, v := range arr {
+							s := fArr.Index(i)
+							s.SetString(v.(string))
+						}
+						f.Set(fArr)
+					}
+				case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
+					safeArray := prop.ToArray()
+					if safeArray != nil {
+						arr := safeArray.ToValueArray()
+						fArr := reflect.MakeSlice(f.Type(), len(arr), len(arr))
+						for i, v := range arr {
+							s := fArr.Index(i)
+							s.SetUint(reflect.ValueOf(v).Uint())
+						}
+						f.Set(fArr)
+					}
+				case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int:
+					safeArray := prop.ToArray()
+					if safeArray != nil {
+						arr := safeArray.ToValueArray()
+						fArr := reflect.MakeSlice(f.Type(), len(arr), len(arr))
+						for i, v := range arr {
+							s := fArr.Index(i)
+							s.SetInt(reflect.ValueOf(v).Int())
+						}
+						f.Set(fArr)
+					}
+				default:
+					return &ErrFieldMismatch{
+						StructType: of.Type(),
+						FieldName:  n,
+						Reason:     fmt.Sprintf("unsupported slice type (%T)", val),
+					}
 				}
-				break
-			}
-			return &ErrFieldMismatch{
-				StructType: of.Type(),
-				FieldName:  n,
-				Reason:     fmt.Sprintf("unsupported type (%T)", val),
+			} else {
+				typeof := reflect.TypeOf(val)
+				if typeof == nil && (isPtr || c.NonePtrZero) {
+					if (isPtr && c.PtrNil) || (!isPtr && c.NonePtrZero) {
+						of.Set(reflect.Zero(of.Type()))
+					}
+					break
+				}
+				return &ErrFieldMismatch{
+					StructType: of.Type(),
+					FieldName:  n,
+					Reason:     fmt.Sprintf("unsupported type (%T)", val),
+				}
 			}
 		}
 	}

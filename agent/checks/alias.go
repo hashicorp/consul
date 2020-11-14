@@ -7,7 +7,6 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/types"
 )
 
 // Constants related to alias check backoff.
@@ -22,10 +21,10 @@ const (
 // then this check is warning, and if a service has only passing checks, then
 // this check is passing.
 type CheckAlias struct {
-	Node      string // Node name of the service. If empty, assumed to be this node.
-	ServiceID string // ID (not name) of the service to alias
+	Node      string            // Node name of the service. If empty, assumed to be this node.
+	ServiceID structs.ServiceID // ID (not name) of the service to alias
 
-	CheckID types.CheckID               // ID of this check
+	CheckID structs.CheckID             // ID of this check
 	RPC     RPC                         // Used to query remote server if necessary
 	RPCReq  structs.NodeSpecificRequest // Base request
 	Notify  AliasNotifier               // For updating the check state
@@ -33,6 +32,9 @@ type CheckAlias struct {
 	stop     bool
 	stopCh   chan struct{}
 	stopLock sync.Mutex
+	stopWg   sync.WaitGroup
+
+	structs.EnterpriseMeta
 }
 
 // AliasNotifier is a CheckNotifier specifically for the Alias check.
@@ -41,9 +43,9 @@ type CheckAlias struct {
 type AliasNotifier interface {
 	CheckNotifier
 
-	AddAliasCheck(types.CheckID, string, chan<- struct{}) error
-	RemoveAliasCheck(types.CheckID, string)
-	Checks() map[types.CheckID]*structs.HealthCheck
+	AddAliasCheck(structs.CheckID, structs.ServiceID, chan<- struct{}) error
+	RemoveAliasCheck(structs.CheckID, structs.ServiceID)
+	Checks(*structs.EnterpriseMeta) map[structs.CheckID]*structs.HealthCheck
 }
 
 // Start is used to start the check, runs until Stop() func (c *CheckAlias) Start() {
@@ -52,21 +54,30 @@ func (c *CheckAlias) Start() {
 	defer c.stopLock.Unlock()
 	c.stop = false
 	c.stopCh = make(chan struct{})
+	c.stopWg.Add(1)
 	go c.run(c.stopCh)
 }
 
 // Stop is used to stop the check.
 func (c *CheckAlias) Stop() {
 	c.stopLock.Lock()
-	defer c.stopLock.Unlock()
 	if !c.stop {
 		c.stop = true
 		close(c.stopCh)
 	}
+	c.stopLock.Unlock()
+
+	// Wait until the associated goroutine is definitely complete before
+	// returning to the caller. This is to prevent the new and old checks from
+	// both updating the state of the alias check using possibly stale
+	// information.
+	c.stopWg.Wait()
 }
 
 // run is invoked in a goroutine until Stop() is called.
 func (c *CheckAlias) run(stopCh chan struct{}) {
+	defer c.stopWg.Done()
+
 	// If we have a specific node set, then use a blocking query
 	if c.Node != "" {
 		c.runQuery(stopCh)
@@ -85,13 +96,27 @@ func (c *CheckAlias) runLocal(stopCh chan struct{}) {
 	c.Notify.AddAliasCheck(c.CheckID, c.ServiceID, notifyCh)
 	defer c.Notify.RemoveAliasCheck(c.CheckID, c.ServiceID)
 
+	// maxDurationBetweenUpdates is maximum time we go between explicit
+	// notifications before we re-query the aliased service checks anyway. This
+	// helps in the case we miss an edge triggered event and the alias does not
+	// accurately reflect the underlying service health status.
+	const maxDurationBetweenUpdates = 1 * time.Minute
+
+	var refreshTimer <-chan time.Time
+	extendRefreshTimer := func() {
+		refreshTimer = time.After(maxDurationBetweenUpdates)
+	}
+
 	updateStatus := func() {
-		checks := c.Notify.Checks()
+		checks := c.Notify.Checks(structs.WildcardEnterpriseMeta())
 		checksList := make([]*structs.HealthCheck, 0, len(checks))
 		for _, chk := range checks {
 			checksList = append(checksList, chk)
 		}
-		c.processChecks(checksList)
+		c.processChecks(checksList, func(serviceID *structs.ServiceID) bool {
+			return c.Notify.ServiceExists(*serviceID)
+		})
+		extendRefreshTimer()
 	}
 
 	// Immediately run to get the current state of the target service
@@ -99,6 +124,8 @@ func (c *CheckAlias) runLocal(stopCh chan struct{}) {
 
 	for {
 		select {
+		case <-refreshTimer:
+			updateStatus()
 		case <-notifyCh:
 			updateStatus()
 		case <-stopCh:
@@ -107,11 +134,44 @@ func (c *CheckAlias) runLocal(stopCh chan struct{}) {
 	}
 }
 
+// CheckIfServiceIDExists is used to determine if a service exists
+type CheckIfServiceIDExists func(*structs.ServiceID) bool
+
+func (c *CheckAlias) checkServiceExistsOnRemoteServer(serviceID *structs.ServiceID) (bool, error) {
+	args := c.RPCReq
+	args.Node = c.Node
+	args.AllowStale = true
+	args.EnterpriseMeta = c.EnterpriseMeta
+	// We are late at maximum of 15s compared to leader
+	args.MaxStaleDuration = 15 * time.Second
+	attempts := 0
+RETRY_CALL:
+	var out structs.IndexedNodeServices
+	attempts++
+	if err := c.RPC.RPC("Catalog.NodeServices", &args, &out); err != nil {
+		if attempts <= 3 {
+			time.Sleep(time.Duration(attempts) * time.Second)
+			goto RETRY_CALL
+		}
+		return false, err
+	}
+	for _, srv := range out.NodeServices.Services {
+		sid := srv.CompoundServiceID()
+		if serviceID.Matches(&sid) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 func (c *CheckAlias) runQuery(stopCh chan struct{}) {
 	args := c.RPCReq
 	args.Node = c.Node
 	args.AllowStale = true
 	args.MaxQueryTime = 1 * time.Minute
+	args.EnterpriseMeta = c.EnterpriseMeta
+	// We are late at maximum of 15s compared to leader
+	args.MaxStaleDuration = 15 * time.Second
 
 	var attempt uint
 	for {
@@ -145,6 +205,7 @@ func (c *CheckAlias) runQuery(stopCh chan struct{}) {
 		// but for blocking queries isn't that much more efficient since the checks
 		// index is global to the cluster.
 		var out structs.IndexedHealthChecks
+
 		if err := c.RPC.RPC("Health.NodeChecks", &args, &out); err != nil {
 			attempt++
 			if attempt > 1 {
@@ -167,27 +228,37 @@ func (c *CheckAlias) runQuery(stopCh chan struct{}) {
 		if args.MinQueryIndex < 1 {
 			args.MinQueryIndex = 1
 		}
-
-		c.processChecks(out.HealthChecks)
+		c.processChecks(out.HealthChecks, func(serviceID *structs.ServiceID) bool {
+			ret, err := c.checkServiceExistsOnRemoteServer(serviceID)
+			if err != nil {
+				// We cannot determine if node has the check, let's assume it exists
+				return true
+			}
+			return ret
+		})
 	}
 }
 
 // processChecks is a common helper for taking a set of health checks and
 // using them to update our alias. This is abstracted since the checks can
 // come from both the remote server as well as local state.
-func (c *CheckAlias) processChecks(checks []*structs.HealthCheck) {
+func (c *CheckAlias) processChecks(checks []*structs.HealthCheck, CheckIfServiceIDExists CheckIfServiceIDExists) {
 	health := api.HealthPassing
 	msg := "No checks found."
+	serviceFound := false
 	for _, chk := range checks {
-		if c.Node != "" && chk.Node != c.Node {
+		if c.Node != "" && c.Node != chk.Node {
 			continue
 		}
-
-		// We allow ServiceID == "" so that we also check node checks
-		if chk.ServiceID != "" && chk.ServiceID != c.ServiceID {
+		sid := chk.CompoundServiceID()
+		serviceMatch := c.ServiceID.Matches(&sid)
+		if chk.ServiceID != "" && !serviceMatch {
 			continue
 		}
-
+		// We have at least one healthcheck for this service
+		if serviceMatch {
+			serviceFound = true
+		}
 		if chk.Status == api.HealthCritical || chk.Status == api.HealthWarning {
 			health = chk.Status
 			msg = fmt.Sprintf("Aliased check %q failing: %s", chk.Name, chk.Output)
@@ -198,11 +269,18 @@ func (c *CheckAlias) processChecks(checks []*structs.HealthCheck) {
 			if chk.Status == api.HealthCritical {
 				break
 			}
+		} else {
+			// if current health is warning, don't overwrite it
+			if health == api.HealthPassing {
+				msg = "All checks passing."
+			}
 		}
-
-		msg = "All checks passing."
 	}
-
-	// Update our check value
+	if !serviceFound {
+		if !CheckIfServiceIDExists(&c.ServiceID) {
+			msg = fmt.Sprintf("Service %s could not be found on node %s", c.ServiceID.ID, c.Node)
+			health = api.HealthCritical
+		}
+	}
 	c.Notify.UpdateCheck(c.CheckID, health, msg)
 }

@@ -109,10 +109,10 @@ func TestAPI_LockForceInvalidate(t *testing.T) {
 		// Should work
 		leaderCh, err := lock.Lock(nil)
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			r.Fatalf("err: %v", err)
 		}
 		if leaderCh == nil {
-			t.Fatalf("not leader")
+			r.Fatalf("not leader")
 		}
 		defer lock.Unlock()
 
@@ -127,7 +127,7 @@ func TestAPI_LockForceInvalidate(t *testing.T) {
 		select {
 		case <-leaderCh:
 		case <-time.After(time.Second):
-			t.Fatalf("should not be leader")
+			r.Fatalf("should not be leader")
 		}
 	})
 }
@@ -189,10 +189,12 @@ func TestAPI_LockContend(t *testing.T) {
 			// Should work eventually, will contend
 			leaderCh, err := lock.Lock(nil)
 			if err != nil {
-				t.Fatalf("err: %v", err)
+				t.Errorf("err: %v", err)
+				return
 			}
 			if leaderCh == nil {
-				t.Fatalf("not leader")
+				t.Errorf("not leader")
+				return
 			}
 			defer lock.Unlock()
 			log.Printf("Contender %d acquired", idx)
@@ -358,7 +360,7 @@ func TestAPI_LockReclaimLock(t *testing.T) {
 	go func() {
 		l2Ch, err := l2.Lock(nil)
 		if err != nil {
-			t.Fatalf("not locked: %v", err)
+			t.Errorf("not locked: %v", err)
 		}
 		reclaimed <- l2Ch
 	}()
@@ -480,6 +482,7 @@ func TestAPI_LockMonitorRetry(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	pair.Value = []byte{1}
 	if _, err := raw.KV().Put(pair, &WriteOptions{}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -496,6 +499,7 @@ func TestAPI_LockMonitorRetry(t *testing.T) {
 	mutex.Lock()
 	errors = 10
 	mutex.Unlock()
+	pair.Value = []byte{2}
 	if _, err := raw.KV().Put(pair, &WriteOptions{}); err != nil {
 		t.Fatalf("err: %v", err)
 	}

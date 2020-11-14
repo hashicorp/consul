@@ -1,11 +1,11 @@
 package consul
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/raft"
+	"github.com/stretchr/testify/require"
 )
 
 type testAddr struct {
@@ -46,11 +46,8 @@ func TestServerLookup(t *testing.T) {
 
 	lookup.RemoveServer(svr)
 
-	got, err = lookup.ServerAddr("1")
-	expectedErr := fmt.Errorf("Could not find address for server id 1")
-	if expectedErr.Error() != err.Error() {
-		t.Fatalf("Unexpected error, got %v wanted %v", err, expectedErr)
-	}
+	_, err = lookup.ServerAddr("1")
+	require.EqualError(t, err, "Could not find address for server id 1")
 
 	svr2 := &metadata.Server{ID: "2", Addr: &testAddr{"123.4.5.6"}}
 	lookup.RemoveServer(svr2)

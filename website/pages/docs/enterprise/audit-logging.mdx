@@ -1,0 +1,19 @@
+---
+layout: docs
+page_title: Consul Enterprise Audit Logging
+sidebar_title: Audit Logging
+description: >-
+  Consul Enterprise provides the ability to write events of user behavior with Consul’s API so operations and security users can perform legal compliance auditing.
+---
+
+# Audit Logging
+
+<EnterpriseAlert>
+  This feature requires <a href="https://www.hashicorp.com/products/consul/">Consul Enterprise</a> with the Governance and Policy module.
+</EnterpriseAlert>
+
+Consul Enterprise v1.8.0 adds audit logging as a feature that captures a clear and actionable log of authenticated events (both attempted and committed) that Consul processes and compiles them into a JSON format for easy export. These events contain a timestamp, the operation performed, and the user who initiated the action.
+
+Audit logging enables security and compliance teams within an organization to get greater insight into Consul access and usage patterns.
+
+For more details, review the [Consul Server Configuration](https://www.consul.io/docs/agent/options) documentation and the [Audit](https://www.consul.io/docs/agent/options#audit) configuration.

@@ -1,7 +1,0 @@
-@import './tabs/index';
-main header nav:last-of-type:not(:first-of-type) {
-  @extend %tab-nav;
-}
-.tab-section {
-  @extend %tab-section;
-}
