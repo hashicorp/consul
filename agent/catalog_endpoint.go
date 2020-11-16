@@ -18,71 +18,71 @@ var CatalogCounters = []prometheus.CounterDefinition{
 	},
 	{
 		Name: []string{"client", "rpc", "error", "catalog_register"},
-		Help: "This increments whenever a Consul agent receives an RPC error for a catalog register request.",
+		Help: "Increments whenever a Consul agent receives an RPC error for a catalog register request.",
 	},
 	{
 		Name: []string{"client", "api", "success", "catalog_register"},
-		Help: "This increments whenever a Consul agent successfully responds to a catalog register request.",
+		Help: "Increments whenever a Consul agent successfully responds to a catalog register request.",
 	},
 	{
 		Name: []string{"client", "api", "catalog_deregister"},
-		Help: "This increments whenever a Consul agent receives a catalog deregister request.",
+		Help: "Increments whenever a Consul agent receives a catalog deregister request.",
 	},
 	{
 		Name: []string{"client", "api", "catalog_datacenters"},
-		Help: "This increments whenever a Consul agent receives a request to list datacenters in the catalog.",
+		Help: "Increments whenever a Consul agent receives a request to list datacenters in the catalog.",
 	},
 	{
 		Name: []string{"client", "rpc", "error", "catalog_deregister"},
-		Help: "This increments whenever a Consul agent receives an RPC error for a catalog deregister request.",
+		Help: "Increments whenever a Consul agent receives an RPC error for a catalog deregister request.",
 	},
 	{
 		Name: []string{"client", "api", "success", "catalog_nodes"},
-		Help: "This increments whenever a Consul agent successfully responds to a request to list nodes.",
+		Help: "Increments whenever a Consul agent successfully responds to a request to list nodes.",
 	},
 	{
 		Name: []string{"client", "rpc", "error", "catalog_nodes"},
-		Help: "This increments whenever a Consul agent receives an RPC error for a request to list nodes.",
+		Help: "Increments whenever a Consul agent receives an RPC error for a request to list nodes.",
 	},
 	{
 		Name: []string{"client", "api", "success", "catalog_deregister"},
-		Help: "This increments whenever a Consul agent successfully responds to a catalog deregister request.",
+		Help: "Increments whenever a Consul agent successfully responds to a catalog deregister request.",
 	},
 	{
 		Name: []string{"client", "rpc", "error", "catalog_datacenters"},
-		Help: "This increments whenever a Consul agent receives an RPC error for a request to list datacenters.",
+		Help: "Increments whenever a Consul agent receives an RPC error for a request to list datacenters.",
 	},
 	{
 		Name: []string{"client", "api", "success", "catalog_datacenters"},
-		Help: "This increments whenever a Consul agent successfully responds to a request to list datacenters.",
+		Help: "Increments whenever a Consul agent successfully responds to a request to list datacenters.",
 	},
 	{
 		Name: []string{"client", "api", "catalog_nodes"},
-		Help: "This increments whenever a Consul agent receives a request to list nodes from the catalog.",
+		Help: "Increments whenever a Consul agent receives a request to list nodes from the catalog.",
 	},
 	{
 		Name: []string{"client", "api", "catalog_services"},
-		Help: "This increments whenever a Consul agent receives a request to list services from the catalog.",
+		Help: "Increments whenever a Consul agent receives a request to list services from the catalog.",
 	},
 	{
 		Name: []string{"client", "rpc", "error", "catalog_services"},
-		Help: "This increments whenever a Consul agent receives an RPC error for a request to list services.",
+		Help: "Increments whenever a Consul agent receives an RPC error for a request to list services.",
 	},
 	{
 		Name: []string{"client", "api", "success", "catalog_services"},
-		Help: "This increments whenever a Consul agent successfully responds to a request to list services.",
+		Help: "Increments whenever a Consul agent successfully responds to a request to list services.",
 	},
 	{
 		Name: []string{"client", "api", "catalog_service_nodes"},
-		Help: "This increments whenever a Consul agent receives a request to list nodes offering a service.",
+		Help: "Increments whenever a Consul agent receives a request to list nodes offering a service.",
 	},
 	{
 		Name: []string{"client", "rpc", "error", "catalog_service_nodes"},
-		Help: "This increments whenever a Consul agent receives an RPC error for a request to list nodes offering a service.",
+		Help: "Increments whenever a Consul agent receives an RPC error for a request to list nodes offering a service.",
 	},
 	{
 		Name: []string{"client", "api", "success", "catalog_service_nodes"},
-		Help: "This increments whenever a Consul agent successfully responds to a request to list nodes offering a service.",
+		Help: "Increments whenever a Consul agent successfully responds to a request to list nodes offering a service.",
 	},
 	{
 		Name: []string{"client", "api", "error", "catalog_service_nodes"},
@@ -90,15 +90,15 @@ var CatalogCounters = []prometheus.CounterDefinition{
 	},
 	{
 		Name: []string{"client", "api", "catalog_node_services"},
-		Help: "This increments whenever a Consul agent successfully responds to a request to list nodes offering a service.",
+		Help: "Increments whenever a Consul agent successfully responds to a request to list nodes offering a service.",
 	},
 	{
 		Name: []string{"client", "api", "success", "catalog_node_services"},
-		Help: "This increments whenever a Consul agent successfully responds to a request to list services in a node.",
+		Help: "Increments whenever a Consul agent successfully responds to a request to list services in a node.",
 	},
 	{
 		Name: []string{"client", "rpc", "error", "catalog_node_services"},
-		Help: "This increments whenever a Consul agent receives an RPC error for a request to list services in a node.",
+		Help: "Increments whenever a Consul agent receives an RPC error for a request to list services in a node.",
 	},
 	{
 		Name: []string{"client", "api", "catalog_node_service_list"},
@@ -114,15 +114,15 @@ var CatalogCounters = []prometheus.CounterDefinition{
 	},
 	{
 		Name: []string{"client", "api", "catalog_gateway_services"},
-		Help: "This increments whenever a Consul agent receives a request to list services associated with a gateway.",
+		Help: "Increments whenever a Consul agent receives a request to list services associated with a gateway.",
 	},
 	{
 		Name: []string{"client", "rpc", "error", "catalog_gateway_services"},
-		Help: "This increments whenever a Consul agent receives an RPC error for a request to list services associated with a gateway.",
+		Help: "Increments whenever a Consul agent receives an RPC error for a request to list services associated with a gateway.",
 	},
 	{
 		Name: []string{"client", "api", "success", "catalog_gateway_services"},
-		Help: "This increments whenever a Consul agent successfully responds to a request to list services associated with a gateway.",
+		Help: "Increments whenever a Consul agent successfully responds to a request to list services associated with a gateway.",
 	},
 }
 

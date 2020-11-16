@@ -31,18 +31,18 @@ import (
 var DNSCounters = []prometheus.CounterDefinition{
 	{
 		Name: []string{"dns", "stale_queries"},
-		Help: "This increments when an agent serves a query within the allowed stale threshold.",
+		Help: "Increments when an agent serves a query within the allowed stale threshold.",
 	},
 }
 
 var DNSSummaries = []prometheus.SummaryDefinition{
 	{
 		Name: []string{"dns", "ptr_query"},
-		Help: "This measures the time spent handling a reverse DNS query for the given node.",
+		Help: "Measures the time spent handling a reverse DNS query for the given node.",
 	},
 	{
 		Name: []string{"dns", "domain_query"},
-		Help: "This measures the time spent handling a domain query for the given node.",
+		Help: "Measures the time spent handling a domain query for the given node.",
 	},
 }
 

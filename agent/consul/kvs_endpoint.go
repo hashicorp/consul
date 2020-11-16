@@ -18,7 +18,7 @@ import (
 var KVSummaries = []prometheus.SummaryDefinition{
 	{
 		Name: []string{"kvs", "apply"},
-		Help: "This measures the time it takes to complete an update to the KV store.",
+		Help: "Measures the time it takes to complete an update to the KV store.",
 	},
 }
 

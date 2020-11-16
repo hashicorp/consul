@@ -12,7 +12,7 @@ import (
 var SessionGauges = []prometheus.GaugeDefinition{
 	{
 		Name: []string{"session_ttl", "active"},
-		Help: "This tracks the active number of sessions being tracked.",
+		Help: "Tracks the active number of sessions being tracked.",
 	},
 	{
 		Name: []string{"raft", "applied_index"},
@@ -27,7 +27,7 @@ var SessionGauges = []prometheus.GaugeDefinition{
 var SessionSummaries = []prometheus.SummaryDefinition{
 	{
 		Name: []string{"session_ttl", "invalidate"},
-		Help: "This measures the time spent invalidating an expired session.",
+		Help: "Measures the time spent invalidating an expired session.",
 	},
 }
 

@@ -16,15 +16,15 @@ import (
 var Gauges = []prometheus.GaugeDefinition{
 	{
 		Name: []string{"consul", "state", "nodes"},
-		Help: "This measures the current number of nodes registered with Consul. It is only emitted by Consul servers. Added in v1.9.0.",
+		Help: "Measures the current number of nodes registered with Consul. It is only emitted by Consul servers. Added in v1.9.0.",
 	},
 	{
 		Name: []string{"consul", "state", "services"},
-		Help: "This measures the current number of unique services registered with Consul, based on service name. It is only emitted by Consul servers. Added in v1.9.0.",
+		Help: "Measures the current number of unique services registered with Consul, based on service name. It is only emitted by Consul servers. Added in v1.9.0.",
 	},
 	{
 		Name: []string{"consul", "state", "service_instances"},
-		Help: "This measures the current number of unique services registered with Consul, based on service name. It is only emitted by Consul servers. Added in v1.9.0.",
+		Help: "Measures the current number of unique services registered with Consul, based on service name. It is only emitted by Consul servers. Added in v1.9.0.",
 	},
 }
 

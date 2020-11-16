@@ -21,7 +21,7 @@ import (
 var CatalogCounters = []prometheus.CounterDefinition{
 	{
 		Name: []string{"catalog", "service", "query"},
-		Help: "This increments for each catalog query for the given service.",
+		Help: "Increments for each catalog query for the given service.",
 	},
 	{
 		Name: []string{"catalog", "connect", "query"},
@@ -29,7 +29,7 @@ var CatalogCounters = []prometheus.CounterDefinition{
 	},
 	{
 		Name: []string{"catalog", "service", "query-tag"},
-		Help: "This increments for each catalog query for the given service with the given tag.",
+		Help: "Increments for each catalog query for the given service with the given tag.",
 	},
 	{
 		Name: []string{"catalog", "connect", "query-tag"},
@@ -37,7 +37,7 @@ var CatalogCounters = []prometheus.CounterDefinition{
 	},
 	{
 		Name: []string{"catalog", "service", "query-tags"},
-		Help: "This increments for each catalog query for the given service with the given tags.",
+		Help: "Increments for each catalog query for the given service with the given tags.",
 	},
 	{
 		Name: []string{"catalog", "connect", "query-tags"},
@@ -45,7 +45,7 @@ var CatalogCounters = []prometheus.CounterDefinition{
 	},
 	{
 		Name: []string{"catalog", "service", "not-found"},
-		Help: "This increments for each catalog query where the given service could not be found.",
+		Help: "Increments for each catalog query where the given service could not be found.",
 	},
 	{
 		Name: []string{"catalog", "connect", "not-found"},
@@ -56,11 +56,11 @@ var CatalogCounters = []prometheus.CounterDefinition{
 var CatalogSummaries = []prometheus.SummaryDefinition{
 	{
 		Name: []string{"catalog", "deregister"},
-		Help: "This measures the time it takes to complete a catalog deregister operation.",
+		Help: "Measures the time it takes to complete a catalog deregister operation.",
 	},
 	{
 		Name: []string{"catalog", "register"},
-		Help: "This measures the time it takes to complete a catalog register operation.",
+		Help: "Measures the time it takes to complete a catalog register operation.",
 	},
 }
 

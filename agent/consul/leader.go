@@ -31,15 +31,15 @@ import (
 var LeaderSummaries = []prometheus.SummaryDefinition{
 	{
 		Name: []string{"leader", "barrier"},
-		Help: "This measures the time spent waiting for the raft barrier upon gaining leadership.",
+		Help: "Measures the time spent waiting for the raft barrier upon gaining leadership.",
 	},
 	{
 		Name: []string{"leader", "reconcileMember"},
-		Help: "This measures the time spent updating the raft store for a single serf member's information.",
+		Help: "Measures the time spent updating the raft store for a single serf member's information.",
 	},
 	{
 		Name: []string{"leader", "reapTombstones"},
-		Help: "This measures the time spent clearing tombstones.",
+		Help: "Measures the time spent clearing tombstones.",
 	},
 }
 

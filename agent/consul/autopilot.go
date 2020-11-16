@@ -16,11 +16,11 @@ import (
 var AutopilotGauges = []prometheus.GaugeDefinition{
 	{
 		Name: []string{"autopilot", "failure_tolerance"},
-		Help: "This tracks the number of voting servers that the cluster can lose while continuing to function.",
+		Help: "Tracks the number of voting servers that the cluster can lose while continuing to function.",
 	},
 	{
 		Name: []string{"autopilot", "healthy"},
-		Help: "This tracks the overall health of the local server cluster. 1 if all servers are healthy, 0 if one or more are unhealthy.",
+		Help: "Tracks the overall health of the local server cluster. 1 if all servers are healthy, 0 if one or more are unhealthy.",
 	},
 }
 

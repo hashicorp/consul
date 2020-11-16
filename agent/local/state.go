@@ -23,27 +23,27 @@ import (
 var StateCounters = []prometheus.CounterDefinition{
 	{
 		Name: []string{"acl", "blocked", "service", "registration"},
-		Help: "This increments whenever a registration fails for a service (blocked by an ACL)",
+		Help: "Increments whenever a registration fails for a service (blocked by an ACL)",
 	},
 	{
 		Name: []string{"acl", "blocked", "service", "deregistration"},
-		Help: "This increments whenever a deregistration fails for a service (blocked by an ACL)",
+		Help: "Increments whenever a deregistration fails for a service (blocked by an ACL)",
 	},
 	{
 		Name: []string{"acl", "blocked", "check", "registration"},
-		Help: "This increments whenever a registration fails for a check (blocked by an ACL)",
+		Help: "Increments whenever a registration fails for a check (blocked by an ACL)",
 	},
 	{
 		Name: []string{"acl", "blocked", "check", "deregistration"},
-		Help: "This increments whenever a deregistration fails for a check (blocked by an ACL)",
+		Help: "Increments whenever a deregistration fails for a check (blocked by an ACL)",
 	},
 	{
 		Name: []string{"acl", "blocked", "node", "registration"},
-		Help: "This increments whenever a registration fails for a node (blocked by an ACL)",
+		Help: "Increments whenever a registration fails for a node (blocked by an ACL)",
 	},
 	{
 		Name: []string{"acl", "blocked", "node", "deregistration"},
-		Help: "This increments whenever a deregistration fails for a node (blocked by an ACL)",
+		Help: "Increments whenever a deregistration fails for a node (blocked by an ACL)",
 	},
 }
 

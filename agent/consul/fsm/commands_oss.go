@@ -13,43 +13,43 @@ import (
 var CommandsSummaries = []prometheus.SummaryDefinition{
 	{
 		Name: []string{"fsm", "register"},
-		Help: "This measures the time it takes to apply a catalog register operation to the FSM.",
+		Help: "Measures the time it takes to apply a catalog register operation to the FSM.",
 	},
 	{
 		Name: []string{"fsm", "deregister"},
-		Help: "This measures the time it takes to apply a catalog deregister operation to the FSM.",
+		Help: "Measures the time it takes to apply a catalog deregister operation to the FSM.",
 	},
 	{
 		Name: []string{"fsm", "kvs"},
-		Help: "This measures the time it takes to apply the given KV operation to the FSM.",
+		Help: "Measures the time it takes to apply the given KV operation to the FSM.",
 	},
 	{
 		Name: []string{"fsm", "session"},
-		Help: "This measures the time it takes to apply the given session operation to the FSM.",
+		Help: "Measures the time it takes to apply the given session operation to the FSM.",
 	},
 	{
 		Name: []string{"fsm", "acl"},
-		Help: "This measures the time it takes to apply the given ACL operation to the FSM.",
+		Help: "Measures the time it takes to apply the given ACL operation to the FSM.",
 	},
 	{
 		Name: []string{"fsm", "tombstone"},
-		Help: "This measures the time it takes to apply the given tombstone operation to the FSM.",
+		Help: "Measures the time it takes to apply the given tombstone operation to the FSM.",
 	},
 	{
 		Name: []string{"fsm", "coordinate", "batch-update"},
-		Help: "This measures the time it takes to apply the given batch coordinate update to the FSM.",
+		Help: "Measures the time it takes to apply the given batch coordinate update to the FSM.",
 	},
 	{
 		Name: []string{"fsm", "prepared-query"},
-		Help: "This measures the time it takes to apply the given prepared query update operation to the FSM.",
+		Help: "Measures the time it takes to apply the given prepared query update operation to the FSM.",
 	},
 	{
 		Name: []string{"fsm", "txn"},
-		Help: "This measures the time it takes to apply the given transaction update to the FSM.",
+		Help: "Measures the time it takes to apply the given transaction update to the FSM.",
 	},
 	{
 		Name: []string{"fsm", "autopilot"},
-		Help: "This measures the time it takes to apply the given autopilot update to the FSM.",
+		Help: "Measures the time it takes to apply the given autopilot update to the FSM.",
 	},
 	{
 		Name: []string{"consul", "fsm", "intention"},

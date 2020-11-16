@@ -16,7 +16,7 @@ import (
 var SnapshotSummaries = []prometheus.SummaryDefinition{
 	{
 		Name: []string{"fsm", "persist"},
-		Help: "This measures the time it takes to persist the FSM to a raft snapshot.",
+		Help: "Measures the time it takes to persist the FSM to a raft snapshot.",
 	},
 }
 

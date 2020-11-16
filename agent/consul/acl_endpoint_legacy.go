@@ -16,7 +16,7 @@ import (
 var ACLEndpointLegacySummaries = []prometheus.SummaryDefinition{
 	{
 		Name: []string{"acl", "apply"},
-		Help: "This measures the time it takes to complete an update to the ACL store.",
+		Help: "Measures the time it takes to complete an update to the ACL store.",
 	},
 }
 

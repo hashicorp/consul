@@ -15,7 +15,7 @@ import (
 var SegmentOSSSummaries = []prometheus.SummaryDefinition{
 	{
 		Name: []string{"leader", "reconcile"},
-		Help: "This measures the time spent updating the raft store from the serf member information.",
+		Help: "Measures the time spent updating the raft store from the serf member information.",
 	},
 }
 

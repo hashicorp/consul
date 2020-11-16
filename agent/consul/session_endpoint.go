@@ -17,11 +17,11 @@ import (
 var SessionEndpointSummaries = []prometheus.SummaryDefinition{
 	{
 		Name: []string{"session", "apply"},
-		Help: "This measures the time spent applying a session update.",
+		Help: "Measures the time spent applying a session update.",
 	},
 	{
 		Name: []string{"session", "renew"},
-		Help: "This measures the time spent renewing a session.",
+		Help: "Measures the time spent renewing a session.",
 	},
 }
 
