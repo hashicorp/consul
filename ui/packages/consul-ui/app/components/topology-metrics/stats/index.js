@@ -14,7 +14,11 @@ export default class TopologyMetricsStats extends Component {
     } else {
       // For up/downstreams we need to pull out the stats for the service we
       // represent.
-      this.stats = event.data.stats[this.args.item];
+      if ((this.args.nspace || '').length === 0) {
+        this.args.nspace = 'default';
+      }
+      let entity = `${this.args.item}.${this.args.nspace}.${this.args.dc}`;
+      this.stats = event.data.stats[entity];
     }
     // Limit to 4 metrics for now.
     this.stats = (this.stats || []).slice(0, 4);
