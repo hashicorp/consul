@@ -202,6 +202,7 @@ type TelemetryConfig struct {
 
 // MergeDefaults copies any non-zero field from defaults into the current
 // config.
+// TODO(kit): We no longer use this function and can probably delete it
 func (c *TelemetryConfig) MergeDefaults(defaults *TelemetryConfig) {
 	if defaults == nil {
 		return
