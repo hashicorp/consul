@@ -377,12 +377,12 @@ func InitTelemetry(cfg TelemetryConfig) (*metrics.InmemSink, error) {
 	if err := addSink(circonusSink); err != nil {
 		return nil, err
 	}
-
-	promSink, err := prometheusSink(cfg, metricsConf.HostName)
-	if err != nil {
+	if err := addSink(circonusSink); err != nil {
 		return nil, err
 	}
-	sinks = append(sinks, promSink)
+	if err := addSink(prometheusSink); err != nil {
+		return nil, err
+	}
 
 	if len(sinks) > 0 {
 		sinks = append(sinks, memSink)
