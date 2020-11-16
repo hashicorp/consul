@@ -659,7 +659,6 @@
         // no result as a zero not a missing stat.
         promql += ' OR on() vector(0)';
       }
-      //console.log(promql)
       var params = {
         query: promql,
         time: new Date().getTime() / 1000,
@@ -671,7 +670,7 @@
           return {
             label: label,
             desc: desc,
-            value: formatter(v),
+            value: isNaN(v) ? '-' : formatter(v),
           };
         }
 
@@ -683,7 +682,7 @@
           data[groupName] = {
             label: label,
             desc: desc.replace('{{GROUP}}', groupName),
-            value: formatter(v),
+            value: isNaN(v) ? '-' : formatter(v),
           };
         }
         return data;
