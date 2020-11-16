@@ -11,7 +11,7 @@
     {{#each stats as |stat|}}
     <dl>
       <dt>
-        {{stat.value}}
+        {{if (is-empty stat.value) '-' stat.value}}
       </dt>
       <dd>
         {{stat.label}}
