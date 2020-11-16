@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-multierror"
@@ -942,13 +943,15 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 			DisableHostname:                    b.boolVal(c.Telemetry.DisableHostname),
 			DogstatsdAddr:                      b.stringVal(c.Telemetry.DogstatsdAddr),
 			DogstatsdTags:                      c.Telemetry.DogstatsdTags,
-			PrometheusRetentionTime:            b.durationVal("prometheus_retention_time", c.Telemetry.PrometheusRetentionTime),
 			FilterDefault:                      b.boolVal(c.Telemetry.FilterDefault),
 			AllowedPrefixes:                    telemetryAllowedPrefixes,
 			BlockedPrefixes:                    telemetryBlockedPrefixes,
 			MetricsPrefix:                      b.stringVal(c.Telemetry.MetricsPrefix),
 			StatsdAddr:                         b.stringVal(c.Telemetry.StatsdAddr),
 			StatsiteAddr:                       b.stringVal(c.Telemetry.StatsiteAddr),
+			PrometheusOpts: prometheus.PrometheusOpts{
+				Expiration: b.durationVal("prometheus_retention_time", c.Telemetry.PrometheusRetentionTime),
+			},
 		},
 
 		// Agent

@@ -154,14 +154,6 @@ type TelemetryConfig struct {
 	// hcl: telemetry { dogstatsd_tags = []string }
 	DogstatsdTags []string `json:"dogstatsd_tags,omitempty" mapstructure:"dogstatsd_tags"`
 
-	// PrometheusRetentionTime is the retention time for prometheus metrics if greater than 0.
-	// A value of 0 disable Prometheus support. Regarding Prometheus, it is considered a good
-	// practice to put large values here (such as a few days), and at least the interval between
-	// prometheus requests.
-	//
-	// hcl: telemetry { prometheus_retention_time = "duration" }
-	PrometheusRetentionTime time.Duration `json:"prometheus_retention_time,omitempty" mapstructure:"prometheus_retention_time"`
-
 	// FilterDefault is the default for whether to allow a metric that's not
 	// covered by the filter.
 	//
@@ -199,6 +191,13 @@ type TelemetryConfig struct {
 	//
 	// hcl: telemetry { statsite_address = string }
 	StatsiteAddr string `json:"statsite_address,omitempty" mapstructure:"statsite_address"`
+
+	// PrometheusOpts provides configuration for the PrometheusSink. Currently the only configuration
+	// we acquire from hcl is the retention time. We also use definition slices that are set in agent setup
+	// before being passed to InitTelemmetry.
+	//
+	// hcl: telemetry { prometheus_retention_time = "duration" }
+	PrometheusOpts prometheus.PrometheusOpts
 }
 
 // MergeDefaults copies any non-zero field from defaults into the current
@@ -276,17 +275,17 @@ func dogstatdSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, err
 	return sink, nil
 }
 
-func prometheusSink(cfg TelemetryConfig, hostname string, defs PrometheusDefs) (metrics.MetricSink, error) {
+func prometheusSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, error) {
 
-	if cfg.PrometheusRetentionTime.Nanoseconds() < 1 {
+	if cfg.PrometheusOpts.Expiration.Nanoseconds() < 1 {
 		return nil, nil
 	}
 
 	prometheusOpts := prometheus.PrometheusOpts{
-		Expiration:         cfg.PrometheusRetentionTime,
-		GaugeDefinitions:   defs.Gauges,
-		CounterDefinitions: defs.Counters,
-		SummaryDefinitions: defs.Summaries,
+		Expiration:         cfg.PrometheusOpts.Expiration,
+		GaugeDefinitions:   cfg.PrometheusOpts.GaugeDefinitions,
+		CounterDefinitions: cfg.PrometheusOpts.CounterDefinitions,
+		SummaryDefinitions: cfg.PrometheusOpts.SummaryDefinitions,
 	}
 	sink, err := prometheus.NewPrometheusSinkFrom(prometheusOpts)
 	if err != nil {
@@ -337,25 +336,9 @@ func circonusSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, err
 	return sink, nil
 }
 
-// PrometheusDefs wraps collections of metric definitions to pass into the PrometheusSink
-type PrometheusDefs struct {
-	Gauges    []prometheus.GaugeDefinition
-	Counters  []prometheus.CounterDefinition
-	Summaries []prometheus.SummaryDefinition
-}
-
-// EmptyPrometheusDefs returns a PrometheusDefs struct where each of the slices have zero elements, but not nil.
-func EmptyPrometheusDefs() PrometheusDefs {
-	return PrometheusDefs{
-		Gauges:    []prometheus.GaugeDefinition{},
-		Counters:  []prometheus.CounterDefinition{},
-		Summaries: []prometheus.SummaryDefinition{},
-	}
-}
-
 // InitTelemetry configures go-metrics based on map of telemetry config
 // values as returned by Runtimecfg.Config().
-func InitTelemetry(cfg TelemetryConfig, defs PrometheusDefs) (*metrics.InmemSink, error) {
+func InitTelemetry(cfg TelemetryConfig) (*metrics.InmemSink, error) {
 	if cfg.Disable {
 		return nil, nil
 	}
@@ -395,7 +378,7 @@ func InitTelemetry(cfg TelemetryConfig, defs PrometheusDefs) (*metrics.InmemSink
 		return nil, err
 	}
 
-	promSink, err := prometheusSink(cfg, metricsConf.HostName, defs)
+	promSink, err := prometheusSink(cfg, metricsConf.HostName)
 	if err != nil {
 		return nil, err
 	}

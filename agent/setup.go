@@ -78,7 +78,11 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 		return d, fmt.Errorf("failed to setup node ID: %w", err)
 	}
 
-	d.MetricsHandler, err = lib.InitTelemetry(cfg.Telemetry, getPrometheusDefs())
+	gauges, counters, summaries := getPrometheusDefs()
+	cfg.Telemetry.PrometheusOpts.GaugeDefinitions = gauges
+	cfg.Telemetry.PrometheusOpts.CounterDefinitions = counters
+	cfg.Telemetry.PrometheusOpts.SummaryDefinitions = summaries
+	d.MetricsHandler, err = lib.InitTelemetry(cfg.Telemetry)
 	if err != nil {
 		return d, fmt.Errorf("failed to initialize telemetry: %w", err)
 	}
@@ -186,7 +190,7 @@ func registerWithGRPC(b grpcresolver.Builder) {
 
 // getPrometheusDefs reaches into every slice of prometheus defs we've defined in each part of the agent, and appends
 //  all of our slices into one nice slice of definitions per metric type for the Consul agent to pass to go-metrics.
-func getPrometheusDefs() lib.PrometheusDefs {
+func getPrometheusDefs() ([]prometheus.GaugeDefinition, []prometheus.CounterDefinition, []prometheus.SummaryDefinition) {
 	serviceName := []string{"consul"}
 	var gauges = [][]prometheus.GaugeDefinition{
 		cache.Gauges,
@@ -290,9 +294,5 @@ func getPrometheusDefs() lib.PrometheusDefs {
 		summaryDefs = append(summaryDefs, withService...)
 	}
 
-	return lib.PrometheusDefs{
-		Gauges:    gaugeDefs,
-		Counters:  counterDefs,
-		Summaries: summaryDefs,
-	}
+	return gaugeDefs, counterDefs, summaryDefs
 }
