@@ -220,6 +220,10 @@ func (c *TelemetryConfig) MergeDefaults(defaults *TelemetryConfig) {
 		// implementing this for the types we actually have for now. Test failure
 		// should catch the case where we add new types later.
 		switch f.Kind() {
+		case reflect.Struct:
+			if f.Type() == reflect.TypeOf(prometheus.PrometheusOpts{}) {
+				continue
+			}
 		case reflect.Slice:
 			if !f.IsNil() {
 				continue
@@ -281,13 +285,7 @@ func prometheusSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, e
 		return nil, nil
 	}
 
-	prometheusOpts := prometheus.PrometheusOpts{
-		Expiration:         cfg.PrometheusOpts.Expiration,
-		GaugeDefinitions:   cfg.PrometheusOpts.GaugeDefinitions,
-		CounterDefinitions: cfg.PrometheusOpts.CounterDefinitions,
-		SummaryDefinitions: cfg.PrometheusOpts.SummaryDefinitions,
-	}
-	sink, err := prometheus.NewPrometheusSinkFrom(prometheusOpts)
+	sink, err := prometheus.NewPrometheusSinkFrom(cfg.PrometheusOpts)
 	if err != nil {
 		return nil, err
 	}

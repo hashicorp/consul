@@ -8,7 +8,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/armon/go-metrics/prometheus"
 	"io/ioutil"
 	"net"
 	"os"
@@ -18,6 +17,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/armon/go-metrics/prometheus"
 
 	"github.com/stretchr/testify/require"
 
@@ -7817,9 +7818,15 @@ func TestSanitize(t *testing.T) {
 			"DogstatsdTags": [],
 			"FilterDefault": false,
 			"MetricsPrefix": "",
-			"PrometheusRetentionTime": "0s",
 			"StatsdAddr": "",
-			"StatsiteAddr": ""
+			"StatsiteAddr": "",
+			"PrometheusOpts": {
+				"Expiration": "0s",
+				"Registerer": null,
+				"GaugeDefinitions": [],
+				"CounterDefinitions": [],
+				"SummaryDefinitions": []
+			}
 		},
 		"TranslateWANAddrs": false,
 		"TxnMaxReqLen": 5678000000000000,
