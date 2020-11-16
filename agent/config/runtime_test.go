@@ -19,7 +19,6 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics/prometheus"
-
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/cache"
