@@ -18,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -7103,9 +7104,11 @@ func TestFullConfig(t *testing.T) {
 			AllowedPrefixes:                    []string{"oJotS8XJ"},
 			BlockedPrefixes:                    []string{"cazlEhGn"},
 			MetricsPrefix:                      "ftO6DySn",
-			PrometheusRetentionTime:            15 * time.Second,
 			StatsdAddr:                         "drce87cy",
 			StatsiteAddr:                       "HpFwKB8R",
+			PrometheusOpts: prometheus.PrometheusOpts{
+				Expiration: 15 * time.Second,
+			},
 		},
 		TLSCipherSuites:             []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256},
 		TLSMinVersion:               "pAOWafkR",
@@ -7814,9 +7817,15 @@ func TestSanitize(t *testing.T) {
 			"DogstatsdTags": [],
 			"FilterDefault": false,
 			"MetricsPrefix": "",
-			"PrometheusRetentionTime": "0s",
 			"StatsdAddr": "",
-			"StatsiteAddr": ""
+			"StatsiteAddr": "",
+			"PrometheusOpts": {
+				"Expiration": "0s",
+				"Registerer": null,
+				"GaugeDefinitions": [],
+				"CounterDefinitions": [],
+				"SummaryDefinitions": []
+			}
 		},
 		"TranslateWANAddrs": false,
 		"TxnMaxReqLen": 5678000000000000,

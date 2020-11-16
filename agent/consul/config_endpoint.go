@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/armon/go-metrics/prometheus"
+
 	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -11,6 +13,33 @@ import (
 	memdb "github.com/hashicorp/go-memdb"
 	"github.com/mitchellh/copystructure"
 )
+
+var ConfigSummaries = []prometheus.SummaryDefinition{
+	{
+		Name: []string{"config_entry", "apply"},
+		Help: "",
+	},
+	{
+		Name: []string{"config_entry", "get"},
+		Help: "",
+	},
+	{
+		Name: []string{"config_entry", "list"},
+		Help: "",
+	},
+	{
+		Name: []string{"config_entry", "listAll"},
+		Help: "",
+	},
+	{
+		Name: []string{"config_entry", "delete"},
+		Help: "",
+	},
+	{
+		Name: []string{"config_entry", "resolve_service_config"},
+		Help: "",
+	},
+}
 
 // The ConfigEntry endpoint is used to query centralized config information
 type ConfigEntry struct {
