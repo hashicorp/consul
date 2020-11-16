@@ -136,7 +136,7 @@ func (s *HTTPHandlers) AgentMetrics(resp http.ResponseWriter, req *http.Request)
 		return nil, acl.ErrPermissionDenied
 	}
 	if enablePrometheusOutput(req) {
-		if s.agent.config.Telemetry.PrometheusRetentionTime < 1 {
+		if s.agent.config.Telemetry.PrometheusOpts.Expiration < 1 {
 			resp.WriteHeader(http.StatusUnsupportedMediaType)
 			fmt.Fprint(resp, "Prometheus is not enabled since its retention time is not positive")
 			return nil, nil

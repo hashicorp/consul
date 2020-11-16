@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
@@ -14,6 +15,25 @@ import (
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
 )
+
+var PreparedQuerySummaries = []prometheus.SummaryDefinition{
+	{
+		Name: []string{"prepared-query", "apply"},
+		Help: "Measures the time it takes to apply a prepared query update.",
+	},
+	{
+		Name: []string{"prepared-query", "explain"},
+		Help: "Measures the time it takes to process a prepared query explain request.",
+	},
+	{
+		Name: []string{"prepared-query", "execute"},
+		Help: "Measures the time it takes to process a prepared query execute request.",
+	},
+	{
+		Name: []string{"prepared-query", "execute_remote"},
+		Help: "Measures the time it takes to process a prepared query execute request that was forwarded to another datacenter.",
+	},
+}
 
 // PreparedQuery manages the prepared query endpoint.
 type PreparedQuery struct {

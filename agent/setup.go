@@ -8,6 +8,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/consul/agent/consul/fsm"
+
+	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/consul/agent/consul/usagemetrics"
+	"github.com/hashicorp/consul/agent/local"
+
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc/grpclog"
 	grpcresolver "google.golang.org/grpc/resolver"
@@ -72,6 +78,10 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 		return d, fmt.Errorf("failed to setup node ID: %w", err)
 	}
 
+	gauges, counters, summaries := getPrometheusDefs(cfg.Telemetry)
+	cfg.Telemetry.PrometheusOpts.GaugeDefinitions = gauges
+	cfg.Telemetry.PrometheusOpts.CounterDefinitions = counters
+	cfg.Telemetry.PrometheusOpts.SummaryDefinitions = summaries
 	d.MetricsHandler, err = lib.InitTelemetry(cfg.Telemetry)
 	if err != nil {
 		return d, fmt.Errorf("failed to initialize telemetry: %w", err)
@@ -176,4 +186,120 @@ func registerWithGRPC(b grpcresolver.Builder) {
 	registerLock.Lock()
 	defer registerLock.Unlock()
 	grpcresolver.Register(b)
+}
+
+// getPrometheusDefs reaches into every slice of prometheus defs we've defined in each part of the agent, and appends
+//  all of our slices into one nice slice of definitions per metric type for the Consul agent to pass to go-metrics.
+func getPrometheusDefs(cfg lib.TelemetryConfig) ([]prometheus.GaugeDefinition, []prometheus.CounterDefinition, []prometheus.SummaryDefinition) {
+	// Build slice of slices for all gauge definitions
+	var gauges = [][]prometheus.GaugeDefinition{
+		cache.Gauges,
+		consul.AutopilotGauges,
+		consul.RPCGauges,
+		consul.SessionGauges,
+		grpc.StatsGauges,
+		usagemetrics.Gauges,
+	}
+	// Flatten definitions
+	// NOTE(kit): Do we actually want to create a set here so we can ensure definition names are unique?
+	var gaugeDefs []prometheus.GaugeDefinition
+	for _, g := range gauges {
+		// Set Consul to each definition's namespace
+		// TODO(kit): Prepending the service to each definition should be handled by go-metrics
+		var withService []prometheus.GaugeDefinition
+		for _, gauge := range g {
+			gauge.Name = append([]string{cfg.MetricsPrefix}, gauge.Name...)
+			withService = append(withService, gauge)
+		}
+		gaugeDefs = append(gaugeDefs, withService...)
+	}
+
+	raftCounters := []prometheus.CounterDefinition{
+		// TODO(kit): "raft..." metrics come from the raft lib and we should migrate these to a telemetry
+		//  package within. In the mean time, we're going to define a few here because they're key to monitoring Consul.
+		{
+			Name: []string{"raft", "apply"},
+			Help: "This counts the number of Raft transactions occurring over the interval.",
+		},
+		{
+			Name: []string{"raft", "state", "candidate"},
+			Help: "This increments whenever a Consul server starts an election.",
+		},
+		{
+			Name: []string{"raft", "state", "leader"},
+			Help: "This increments whenever a Consul server becomes a leader.",
+		},
+	}
+
+	var counters = [][]prometheus.CounterDefinition{
+		CatalogCounters,
+		cache.Counters,
+		consul.ACLCounters,
+		consul.CatalogCounters,
+		consul.ClientCounters,
+		consul.RPCCounters,
+		grpc.StatsCounters,
+		local.StateCounters,
+		raftCounters,
+	}
+	// Flatten definitions
+	// NOTE(kit): Do we actually want to create a set here so we can ensure definition names are unique?
+	var counterDefs []prometheus.CounterDefinition
+	for _, c := range counters {
+		// TODO(kit): Prepending the service to each definition should be handled by go-metrics
+		var withService []prometheus.CounterDefinition
+		for _, counter := range c {
+			counter.Name = append([]string{cfg.MetricsPrefix}, counter.Name...)
+			withService = append(withService, counter)
+		}
+		counterDefs = append(counterDefs, withService...)
+	}
+
+	raftSummaries := []prometheus.SummaryDefinition{
+		// TODO(kit): "raft..." metrics come from the raft lib and we should migrate these to a telemetry
+		//  package within. In the mean time, we're going to define a few here because they're key to monitoring Consul.
+		{
+			Name: []string{"raft", "commitTime"},
+			Help: "This measures the time it takes to commit a new entry to the Raft log on the leader.",
+		},
+		{
+			Name: []string{"raft", "leader", "lastContact"},
+			Help: "Measures the time since the leader was last able to contact the follower nodes when checking its leader lease.",
+		},
+	}
+
+	var summaries = [][]prometheus.SummaryDefinition{
+		HTTPSummaries,
+		consul.ACLSummaries,
+		consul.ACLEndpointSummaries,
+		consul.ACLEndpointLegacySummaries,
+		consul.CatalogSummaries,
+		consul.FederationStateSummaries,
+		consul.IntentionSummaries,
+		consul.KVSummaries,
+		consul.LeaderSummaries,
+		consul.PreparedQuerySummaries,
+		consul.RPCSummaries,
+		consul.SegmentOSSSummaries,
+		consul.SessionSummaries,
+		consul.SessionEndpointSummaries,
+		consul.TxnSummaries,
+		fsm.CommandsSummaries,
+		fsm.SnapshotSummaries,
+		raftSummaries,
+	}
+	// Flatten definitions
+	// NOTE(kit): Do we actually want to create a set here so we can ensure definition names are unique?
+	var summaryDefs []prometheus.SummaryDefinition
+	for _, s := range summaries {
+		// TODO(kit): Prepending the service to each definition should be handled by go-metrics
+		var withService []prometheus.SummaryDefinition
+		for _, summary := range s {
+			summary.Name = append([]string{cfg.MetricsPrefix}, summary.Name...)
+			withService = append(withService, summary)
+		}
+		summaryDefs = append(summaryDefs, withService...)
+	}
+
+	return gaugeDefs, counterDefs, summaryDefs
 }

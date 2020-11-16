@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
@@ -20,6 +21,21 @@ import (
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/time/rate"
 )
+
+var ClientCounters = []prometheus.CounterDefinition{
+	{
+		Name: []string{"client", "rpc"},
+		Help: "Increments whenever a Consul agent in client mode makes an RPC request to a Consul server.",
+	},
+	{
+		Name: []string{"client", "rpc", "exceeded"},
+		Help: "Increments whenever a Consul agent in client mode makes an RPC request to a Consul server gets rate limited by that agent's limits configuration.",
+	},
+	{
+		Name: []string{"client", "rpc", "failed"},
+		Help: "Increments whenever a Consul agent in client mode makes an RPC request to a Consul server and fails.",
+	},
+}
 
 const (
 	// serfEventBacklog is the maximum number of unprocessed Serf Events

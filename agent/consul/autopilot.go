@@ -5,12 +5,24 @@ import (
 	"fmt"
 
 	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/raft"
 	autopilot "github.com/hashicorp/raft-autopilot"
 	"github.com/hashicorp/serf/serf"
 )
+
+var AutopilotGauges = []prometheus.GaugeDefinition{
+	{
+		Name: []string{"autopilot", "failure_tolerance"},
+		Help: "Tracks the number of voting servers that the cluster can lose while continuing to function.",
+	},
+	{
+		Name: []string{"autopilot", "healthy"},
+		Help: "Tracks the overall health of the local server cluster. 1 if all servers are healthy, 0 if one or more are unhealthy.",
+	},
+}
 
 // AutopilotDelegate is a Consul delegate for autopilot operations.
 type AutopilotDelegate struct {

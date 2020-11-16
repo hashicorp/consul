@@ -9,8 +9,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	metrics "github.com/armon/go-metrics"
-
+	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
@@ -19,6 +19,33 @@ import (
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-hclog"
 )
+
+var StateCounters = []prometheus.CounterDefinition{
+	{
+		Name: []string{"acl", "blocked", "service", "registration"},
+		Help: "Increments whenever a registration fails for a service (blocked by an ACL)",
+	},
+	{
+		Name: []string{"acl", "blocked", "service", "deregistration"},
+		Help: "Increments whenever a deregistration fails for a service (blocked by an ACL)",
+	},
+	{
+		Name: []string{"acl", "blocked", "check", "registration"},
+		Help: "Increments whenever a registration fails for a check (blocked by an ACL)",
+	},
+	{
+		Name: []string{"acl", "blocked", "check", "deregistration"},
+		Help: "Increments whenever a deregistration fails for a check (blocked by an ACL)",
+	},
+	{
+		Name: []string{"acl", "blocked", "node", "registration"},
+		Help: "Increments whenever a registration fails for a node (blocked by an ACL)",
+	},
+	{
+		Name: []string{"acl", "blocked", "node", "deregistration"},
+		Help: "Increments whenever a deregistration fails for a node (blocked by an ACL)",
+	},
+}
 
 const fullSyncReadMaxStale = 2 * time.Second
 

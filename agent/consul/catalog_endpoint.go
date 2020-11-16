@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
@@ -16,6 +17,52 @@ import (
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
 )
+
+var CatalogCounters = []prometheus.CounterDefinition{
+	{
+		Name: []string{"catalog", "service", "query"},
+		Help: "Increments for each catalog query for the given service.",
+	},
+	{
+		Name: []string{"catalog", "connect", "query"},
+		Help: "",
+	},
+	{
+		Name: []string{"catalog", "service", "query-tag"},
+		Help: "Increments for each catalog query for the given service with the given tag.",
+	},
+	{
+		Name: []string{"catalog", "connect", "query-tag"},
+		Help: "",
+	},
+	{
+		Name: []string{"catalog", "service", "query-tags"},
+		Help: "Increments for each catalog query for the given service with the given tags.",
+	},
+	{
+		Name: []string{"catalog", "connect", "query-tags"},
+		Help: "",
+	},
+	{
+		Name: []string{"catalog", "service", "not-found"},
+		Help: "Increments for each catalog query where the given service could not be found.",
+	},
+	{
+		Name: []string{"catalog", "connect", "not-found"},
+		Help: "",
+	},
+}
+
+var CatalogSummaries = []prometheus.SummaryDefinition{
+	{
+		Name: []string{"catalog", "deregister"},
+		Help: "Measures the time it takes to complete a catalog deregister operation.",
+	},
+	{
+		Name: []string{"catalog", "register"},
+		Help: "Measures the time it takes to complete a catalog register operation.",
+	},
+}
 
 // Catalog endpoint is used to manipulate the service catalog
 type Catalog struct {
