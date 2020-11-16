@@ -28,7 +28,7 @@
                             },
                         "route_config_name": "9191"
                       },
-                  "stat_prefix": "ingress_upstream_9191_http",
+                  "stat_prefix": "ingress_upstream.9191",
                   "tracing": {
                         "operation_name": "EGRESS",
                         "random_sampling": {
