@@ -410,8 +410,12 @@ type nodePayload struct {
 	node *structs.ServiceNode
 }
 
-func (p nodePayload) FilterByKey(key, _ string) bool {
+func (p nodePayload) MatchesKey(key, _ string) bool {
 	return p.key == key
+}
+
+func (p nodePayload) HasReadPermission(acl.Authorizer) bool {
+	return true
 }
 
 func createTokenAndWaitForACLEventPublish(t *testing.T, s *Store) *structs.ACLToken {
