@@ -1,0 +1,3 @@
+```release-note:bug
+autopilot: Prevent panic when requesting the autopilot health immediately after a leader is elected.
+```
