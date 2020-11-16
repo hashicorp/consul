@@ -8,7 +8,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/armon/go-metrics/prometheus"
 	"io/ioutil"
 	"net"
 	"os"
@@ -19,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/cache"
