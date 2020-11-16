@@ -48,7 +48,7 @@ func sessionDeleteWithSession(tx WriteTxn, session *structs.Session, idx uint64)
 	return nil
 }
 
-func insertSessionTxn(tx *txn, session *structs.Session, idx uint64, updateMax bool) error {
+func insertSessionTxn(tx *txn, session *structs.Session, idx uint64, updateMax bool, _ bool) error {
 	if err := tx.Insert("sessions", session); err != nil {
 		return err
 	}

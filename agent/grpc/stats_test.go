@@ -113,11 +113,14 @@ func patchGlobalMetrics(t *testing.T) (*fakeMetricsSink, func()) {
 		FilterDefault:    true,
 	}
 	var err error
-	defaultMetrics, err = metrics.New(cfg, sink)
+	defaultMetrics = func() *metrics.Metrics {
+		m, _ := metrics.New(cfg, sink)
+		return m
+	}
 	require.NoError(t, err)
 	reset := func() {
 		t.Helper()
-		defaultMetrics, err = metrics.New(cfg, &metrics.BlackholeSink{})
+		defaultMetrics = metrics.Default
 		require.NoError(t, err, "failed to reset global metrics")
 	}
 	return sink, reset

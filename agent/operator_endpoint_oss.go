@@ -11,6 +11,8 @@ func autopilotToAPIServerEnterprise(_ *autopilot.ServerState, _ *api.AutopilotSe
 	// noop in oss
 }
 
-func autopilotToAPIStateEnterprise(_ *autopilot.State, _ *api.AutopilotState) {
-	// noop in oss
+func autopilotToAPIStateEnterprise(state *autopilot.State, apiState *api.AutopilotState) {
+	// without the enterprise features there is no different between these two and we don't want to
+	// alarm anyone by leaving this as the zero value.
+	apiState.OptimisticFailureTolerance = state.FailureTolerance
 }

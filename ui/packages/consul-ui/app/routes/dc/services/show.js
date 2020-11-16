@@ -2,13 +2,27 @@ import { inject as service } from '@ember/service';
 import Route from 'consul-ui/routing/route';
 import { hash } from 'rsvp';
 import { get } from '@ember/object';
+import { action, setProperties } from '@ember/object';
 
 export default class ShowRoute extends Route {
-  @service('data-source/service')
-  data;
+  @service('data-source/service') data;
+  @service('repository/intention') repo;
+  @service('ui-config') config;
 
-  @service('ui-config')
-  config;
+  @action
+  async createIntention(source, destination) {
+    const intention = service.Intention;
+    const model = this.repo.create({
+      Datacenter: source.Datacenter,
+      SourceName: source.Name,
+      SourceNS: source.Namespace || 'default',
+      DestinationName: destination.Name,
+      DestinationNS: destination.Namespace || 'default',
+      Action: 'allow',
+    });
+    await this.repo.persist(model);
+    this.refresh();
+  }
 
   model(params, transition) {
     const dc = this.modelFor('dc').dc.Name;

@@ -1,4 +1,4 @@
-export default () => (term) => (item) => {
+export default () => term => item => {
   const source = item.SourceName.toLowerCase();
   const destination = item.DestinationName.toLowerCase();
   const allLabel = 'All Services (*)'.toLowerCase();
@@ -9,4 +9,4 @@ export default () => (term) => (item) => {
     (source === '*' && allLabel.indexOf(lowerTerm) !== -1) ||
     (destination === '*' && allLabel.indexOf(lowerTerm) !== -1)
   );
-}
+};

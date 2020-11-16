@@ -84,3 +84,7 @@ func migrateIntentionsToConfigEntries(ixns structs.Intentions) []*structs.Servic
 
 	return structs.MigrateIntentions(output)
 }
+
+func (s *Server) filterMigratedLegacyIntentions(entries []structs.ConfigEntry) ([]structs.ConfigEntry, error) {
+	return entries, nil
+}

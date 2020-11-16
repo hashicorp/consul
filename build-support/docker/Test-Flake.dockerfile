@@ -1,6 +1,6 @@
 FROM travisci/ci-garnet:packer-1512502276-986baf0
 
-ENV GOLANG_VERSION 1.14.11
+ENV GOLANG_VERSION 1.15.5
 
 RUN mkdir -p /home/travis/go && chown -R travis /home/travis/go
 

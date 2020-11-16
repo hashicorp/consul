@@ -1,23 +1,30 @@
 {{on-window 'resize' (action this.calculate)}}
 
-<div {{did-insert (action this.calculate)}} {{did-update (action this.calculate) @topology}} class="topology-container">
+<div
+  {{did-insert (action this.calculate)}}
+  {{did-update (action this.calculate) @topology.Upstreams @topology.Downstreams}}
+  class="topology-container"
+>
 {{#if (gt @topology.Downstreams.length 0)}}
   <div id="downstream-container">
     <div>
-      <p>{{@topology.Datacenter}}</p>
+      <p>{{@dc}}</p>
       <span>
         <Tooltip>
           Only showing downstreams within the current datacenter for {{@service.Service.Service}}.
         </Tooltip>
       </span>
     </div>
+  {{#each @topology.Downstreams as |item|}}
     <TopologyMetrics::Card
-      @items={{@topology.Downstreams}}
+      @nspace={{@nspace}}
+      @dc={{@dc}}
       @service={{@service.Service}}
-      @dc={{@topology.Datacenter}}
+      @item={{item}}
       @hasMetricsProvider={{this.hasMetricsProvider}}
       @noMetricsReason={{this.noMetricsReason}}
     />
+  {{/each}}
   </div>
 {{/if}}
   <div id="metrics-container">
@@ -26,16 +33,18 @@
     </div>
     {{#if this.hasMetricsProvider }}
       <TopologyMetrics::Series
+        @nspace={{@nspace}}
+        @dc={{@dc}}
         @service={{@service.Service.Service}}
-        @dc={{@topology.Datacenter}}
         @protocol={{@topology.Protocol}}
         @noMetricsReason={{this.noMetricsReason}}
       />
       {{#if (not-eq @service.Service.Kind 'ingress-gateway')}}
       <TopologyMetrics::Stats
+        @nspace={{@nspace}}
+        @dc={{@dc}}
         @endpoint='summary-for-service'
         @service={{@service.Service.Service}}
-        @dc={{@topology.Datacenter}}
         @protocol={{@topology.Protocol}}
         @noMetricsReason={{this.noMetricsReason}}
       />
@@ -52,25 +61,30 @@
   <div id="downstream-lines">
     <TopologyMetrics::DownLines
       @type='downstream'
+      @service={{@service}}
       @view={{this.downView}}
       @center={{this.centerDimensions}}
       @lines={{this.downLines}}
       @items={{@topology.Downstreams}}
-     />
+      @oncreate={{action @oncreate}}
+    />
   </div>
 {{#if (gt @topology.Upstreams.length 0)}}
   <div id="upstream-column">
   {{#each-in (group-by "Datacenter" @topology.Upstreams) as |dc upstreams|}}
     <div id="upstream-container">
       <p>{{dc}}</p>
+    {{#each upstreams as |item|}}
       <TopologyMetrics::Card
-        @items={{upstreams}}
+        @nspace={{@nspace}}
+        @dc={{@dc}}
+        @item={{item}}
         @service={{@service.Service}}
-        @dc={{@topology.Datacenter}}
         @type='upstream'
         @hasMetricsProvider={{this.hasMetricsProvider}}
         @noMetricsReason={{this.noMetricsReason}}
       />
+    {{/each}}
     </div>
   {{/each-in}}
   </div>
@@ -78,10 +92,12 @@
   <div id="upstream-lines">
     <TopologyMetrics::UpLines
       @type='upstream'
+      @service={{@service}}
       @view={{this.upView}}
       @center={{this.centerDimensions}}
       @lines={{this.upLines}}
       @items={{@topology.Upstreams}}
-     />
+      @oncreate={{action @oncreate}}
+    />
   </div>
 </div>

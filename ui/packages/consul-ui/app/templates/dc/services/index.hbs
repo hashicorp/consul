@@ -2,7 +2,7 @@
 <EventSource @src={{items}} />
 {{#let (hash
   statuses=(if status (split status ',') undefined)
-  types=(if type (split type ',') undefined)
+  kinds=(if kind (split kind ',') undefined)
   sources=(if source (split source ',') undefined)
 ) as |filters|}}
   {{#let (or sortBy "Name:asc") as |sort|}}
@@ -32,7 +32,7 @@
             @filter={{filters}}
             @onfilter={{hash
               status=(action (mut status) value="target.selectedItems")
-              type=(action (mut type) value="target.selectedItems")
+              kind=(action (mut kind) value="target.selectedItems")
               source=(action (mut source) value="target.selectedItems")
             }}
           />

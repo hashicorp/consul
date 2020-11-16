@@ -4,7 +4,6 @@ import { PRIMARY_KEY } from 'consul-ui/models/intention';
 
 const modelName = 'intention';
 export default class IntentionRepository extends RepositoryService {
-
   managedByCRDs = false;
 
   getModelName() {
@@ -24,9 +23,11 @@ export default class IntentionRepository extends RepositoryService {
   }
 
   isManagedByCRDs() {
-    if(!this.managedByCRDs) {
-      this.managedByCRDs = this.store.peekAll(this.getModelName())
-        .toArray().some(item => item.IsManagedByCRD);
+    if (!this.managedByCRDs) {
+      this.managedByCRDs = this.store
+        .peekAll(this.getModelName())
+        .toArray()
+        .some(item => item.IsManagedByCRD);
     }
     return this.managedByCRDs;
   }

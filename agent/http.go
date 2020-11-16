@@ -365,6 +365,7 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 	return func(resp http.ResponseWriter, req *http.Request) {
 		setHeaders(resp, s.agent.config.HTTPResponseHeaders)
 		setTranslateAddr(resp, s.agent.config.TranslateWANAddrs)
+		setACLDefaultPolicy(resp, s.agent.config.ACLDefaultPolicy)
 
 		// Obfuscate any tokens from appearing in the logs
 		formVals, err := url.ParseQuery(req.URL.RawQuery)
@@ -702,6 +703,12 @@ func setKnownLeader(resp http.ResponseWriter, known bool) {
 func setConsistency(resp http.ResponseWriter, consistency string) {
 	if consistency != "" {
 		resp.Header().Set("X-Consul-Effective-Consistency", consistency)
+	}
+}
+
+func setACLDefaultPolicy(resp http.ResponseWriter, aclDefaultPolicy string) {
+	if aclDefaultPolicy != "" {
+		resp.Header().Set("X-Consul-Default-ACL-Policy", aclDefaultPolicy)
 	}
 }
 

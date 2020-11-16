@@ -1,6 +1,8 @@
 import Service from '@ember/service';
 
 import intention from 'consul-ui/search/predicates/intention';
+import upstreamInstance from 'consul-ui/search/predicates/upstream-instance';
+
 import token from 'consul-ui/search/filters/token';
 import policy from 'consul-ui/search/filters/policy';
 import role from 'consul-ui/search/filters/role';
@@ -29,6 +31,7 @@ const searchables = {
 };
 const predicates = {
   intention: intention(),
+  ['upstream-instance']: upstreamInstance(),
 };
 export default class SearchService extends Service {
   searchable(name) {

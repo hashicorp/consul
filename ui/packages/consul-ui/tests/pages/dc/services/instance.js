@@ -1,4 +1,4 @@
-export default function(visitable, attribute, collection, text, tabs) {
+export default function(visitable, alias, attribute, collection, text, tabs, upstreams) {
   return {
     visit: visitable('/:dc/services/:service/instances/:node/:id'),
     externalSource: attribute('data-test-external-source', '[data-test-external-source]', {
@@ -6,9 +6,8 @@ export default function(visitable, attribute, collection, text, tabs) {
     }),
     tabs: tabs('tab', ['health-checks', 'upstreams', 'exposed-paths', 'addresses', 'tags-&-meta']),
     checks: collection('[data-test-checks] li'),
-    upstreams: collection('[data-test-proxy-upstreams] > li', {
-      name: text('[data-test-destination-name]'),
-    }),
+    upstreams: alias('upstreamInstances.item'),
+    upstreamInstances: upstreams(),
     exposedPaths: collection('[data-test-proxy-exposed-paths] > tbody tr', {
       combinedAddress: text('[data-test-combined-address]'),
     }),

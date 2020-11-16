@@ -77,8 +77,8 @@ type RuntimeConfig struct {
 
 	// ACLDefaultPolicy is used to control the ACL interaction when
 	// there is no defined policy. This can be "allow" which means
-	// ACLs are used to black-list, or "deny" which means ACLs are
-	// white-lists.
+	// ACLs are used to deny-list, or "deny" which means ACLs are
+	// allow-lists.
 	//
 	// hcl: acl.default_policy = ("allow"|"deny")
 	ACLDefaultPolicy string

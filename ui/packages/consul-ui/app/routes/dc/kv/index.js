@@ -5,15 +5,15 @@ import { get, action } from '@ember/object';
 import isFolder from 'consul-ui/utils/isFolder';
 
 export default class IndexRoute extends Route {
+  @service('repository/kv') repo;
+
   queryParams = {
+    sortBy: 'sort',
     search: {
       as: 'filter',
       replace: true,
     },
   };
-
-  @service('repository/kv')
-  repo;
 
   beforeModel() {
     // we are index or folder, so if the key doesn't have a trailing slash

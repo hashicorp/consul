@@ -1230,63 +1230,133 @@ func TestLeader_ConfigEntryBootstrap(t *testing.T) {
 func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
 	t.Parallel()
 
-	pr, pw := io.Pipe()
-	defer pw.Close()
+	type testcase struct {
+		name          string
+		entries       []structs.ConfigEntry
+		serverCB      func(c *Config)
+		expectMessage string
+	}
 
-	ch := make(chan string, 1)
-	go func() {
-		defer pr.Close()
-		scan := bufio.NewScanner(pr)
-		for scan.Scan() {
-			line := scan.Text()
-
-			if strings.Contains(line, "failed to establish leadership") {
-				ch <- ""
-				return
-			}
-			if strings.Contains(line, "successfully established leadership") {
-				ch <- "leadership should not have gotten here if config entries properly failed"
-				return
-			}
-		}
-
-		if scan.Err() != nil {
-			ch <- fmt.Sprintf("ERROR: %v", scan.Err())
-		} else {
-			ch <- "should not get here"
-		}
-	}()
-
-	_, config := testServerConfig(t)
-	config.Build = "1.6.0"
-	config.ConfigEntryBootstrap = []structs.ConfigEntry{
-		&structs.ServiceSplitterConfigEntry{
-			Kind: structs.ServiceSplitter,
-			Name: "web",
-			Splits: []structs.ServiceSplit{
-				{Weight: 100, Service: "web"},
+	cases := []testcase{
+		{
+			name: "service-splitter without L7 protocol",
+			entries: []structs.ConfigEntry{
+				&structs.ServiceSplitterConfigEntry{
+					Kind: structs.ServiceSplitter,
+					Name: "web",
+					Splits: []structs.ServiceSplit{
+						{Weight: 100, Service: "web"},
+					},
+				},
 			},
+			expectMessage: `Failed to apply configuration entry "service-splitter" / "web": discovery chain "web" uses a protocol "tcp" that does not permit advanced routing or splitting behavior"`,
+		},
+		{
+			name: "service-intentions without migration",
+			entries: []structs.ConfigEntry{
+				&structs.ServiceIntentionsConfigEntry{
+					Kind: structs.ServiceIntentions,
+					Name: "web",
+					Sources: []*structs.SourceIntention{
+						{
+							Name:   "debug",
+							Action: structs.IntentionActionAllow,
+						},
+					},
+				},
+			},
+			serverCB: func(c *Config) {
+				c.OverrideInitialSerfTags = func(tags map[string]string) {
+					tags["ft_si"] = "0"
+				}
+			},
+			expectMessage: `Refusing to apply configuration entry "service-intentions" / "web" because intentions are still being migrated to config entries`,
+		},
+		{
+			name: "service-intentions without Connect",
+			entries: []structs.ConfigEntry{
+				&structs.ServiceIntentionsConfigEntry{
+					Kind: structs.ServiceIntentions,
+					Name: "web",
+					Sources: []*structs.SourceIntention{
+						{
+							Name:   "debug",
+							Action: structs.IntentionActionAllow,
+						},
+					},
+				},
+			},
+			serverCB: func(c *Config) {
+				c.ConnectEnabled = false
+			},
+			expectMessage: `Refusing to apply configuration entry "service-intentions" / "web" because Connect must be enabled to bootstrap intentions"`,
 		},
 	}
 
-	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
-		Name:   config.NodeName,
-		Level:  hclog.Debug,
-		Output: io.MultiWriter(pw, testutil.NewLogBuffer(t)),
-	})
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			pr, pw := io.Pipe()
+			defer pw.Close()
 
-	deps := newDefaultDeps(t, config)
-	deps.Logger = logger
+			var (
+				ch             = make(chan string, 1)
+				applyErrorLine string
+			)
+			go func() {
+				defer pr.Close()
+				scan := bufio.NewScanner(pr)
+				for scan.Scan() {
+					line := scan.Text()
 
-	srv, err := NewServer(config, deps)
-	require.NoError(t, err)
-	defer srv.Shutdown()
+					if strings.Contains(line, "failed to establish leadership") {
+						applyErrorLine = line
+						ch <- ""
+						return
+					}
+					if strings.Contains(line, "successfully established leadership") {
+						ch <- "leadership should not have gotten here if config entries properly failed"
+						return
+					}
+				}
 
-	select {
-	case result := <-ch:
-		require.Empty(t, result)
-	case <-time.After(time.Second):
-		t.Fatal("timeout waiting for a result from tailing logs")
+				if scan.Err() != nil {
+					ch <- fmt.Sprintf("ERROR: %v", scan.Err())
+				} else {
+					ch <- "should not get here"
+				}
+			}()
+
+			_, config := testServerConfig(t)
+			config.Build = "1.6.0"
+			config.ConfigEntryBootstrap = tc.entries
+			if tc.serverCB != nil {
+				tc.serverCB(config)
+			}
+
+			logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
+				Name:   config.NodeName,
+				Level:  hclog.Debug,
+				Output: io.MultiWriter(pw, testutil.NewLogBuffer(t)),
+			})
+
+			deps := newDefaultDeps(t, config)
+			deps.Logger = logger
+
+			srv, err := NewServer(config, deps)
+			require.NoError(t, err)
+			defer srv.Shutdown()
+
+			select {
+			case result := <-ch:
+				require.Empty(t, result)
+				if tc.expectMessage != "" {
+					require.Contains(t, applyErrorLine, tc.expectMessage)
+				}
+			case <-time.After(time.Second):
+				t.Fatal("timeout waiting for a result from tailing logs")
+			}
+		})
 	}
 }
 

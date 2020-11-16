@@ -13,5 +13,13 @@
          "Count": 2
       }
    ],
-   "TotalSize": 1
+   "StatsKV": [
+      {
+         "Name": "msgKV",
+         "Sum": 1,
+         "Count": 2
+      }
+   ],
+   "TotalSize": 1,
+   "TotalSizeKV": 1
 }

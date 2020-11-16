@@ -29,7 +29,6 @@
 @import './components/auth-form';
 @import './components/auth-modal';
 @import './components/oidc-select';
-@import './components/discovery-chain';
 @import './components/empty-state';
 @import './components/tabular-details';
 @import './components/tabular-collection';
@@ -56,12 +55,16 @@
 @import 'consul-ui/components/notice';
 @import 'consul-ui/components/modal-dialog';
 
+@import 'consul-ui/components/consul/discovery-chain';
+@import 'consul-ui/components/consul/upstream-instance/list';
 @import 'consul-ui/components/consul/exposed-path/list';
 @import 'consul-ui/components/consul/external-source';
 @import 'consul-ui/components/consul/kind';
 @import 'consul-ui/components/consul/intention';
+
 @import 'consul-ui/components/role-selector';
 @import 'consul-ui/components/topology-metrics';
+@import 'consul-ui/components/topology-metrics/popover';
 @import 'consul-ui/components/topology-metrics/series';
 @import 'consul-ui/components/topology-metrics/stats';
 @import 'consul-ui/components/topology-metrics/status';

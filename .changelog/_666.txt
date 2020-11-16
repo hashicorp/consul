@@ -1,0 +1,3 @@
+```release-note:bug
+namespace: **(Enterprise Only)** Fixed an issue where namespaced services and checks were not being deleted when the containing namespace was deleted. 
+```

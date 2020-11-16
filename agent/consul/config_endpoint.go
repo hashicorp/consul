@@ -48,10 +48,6 @@ type ConfigEntry struct {
 
 // Apply does an upsert of the given config entry.
 func (c *ConfigEntry) Apply(args *structs.ConfigEntryRequest, reply *bool) error {
-	return c.applyInternal(args, reply, nil)
-}
-
-func (c *ConfigEntry) applyInternal(args *structs.ConfigEntryRequest, reply *bool, normalizeAndValidateFn func(structs.ConfigEntry) error) error {
 	if err := c.srv.validateEnterpriseRequest(args.Entry.GetEnterpriseMeta(), true); err != nil {
 		return err
 	}
@@ -76,17 +72,11 @@ func (c *ConfigEntry) applyInternal(args *structs.ConfigEntryRequest, reply *boo
 	}
 
 	// Normalize and validate the incoming config entry as if it came from a user.
-	if normalizeAndValidateFn == nil {
-		if err := args.Entry.Normalize(); err != nil {
-			return err
-		}
-		if err := args.Entry.Validate(); err != nil {
-			return err
-		}
-	} else {
-		if err := normalizeAndValidateFn(args.Entry); err != nil {
-			return err
-		}
+	if err := args.Entry.Normalize(); err != nil {
+		return err
+	}
+	if err := args.Entry.Validate(); err != nil {
+		return err
 	}
 
 	if authz != nil && !args.Entry.CanWrite(authz) {
@@ -483,6 +473,11 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 func (c *ConfigEntry) preflightCheck(kind string) error {
 	switch kind {
 	case structs.ServiceIntentions:
+		// Exit early if Connect hasn't been enabled.
+		if !c.srv.config.ConnectEnabled {
+			return ErrConnectNotEnabled
+		}
+
 		usingConfigEntries, err := c.srv.fsm.State().AreIntentionsInConfigEntries()
 		if err != nil {
 			return fmt.Errorf("system metadata lookup failed: %v", err)

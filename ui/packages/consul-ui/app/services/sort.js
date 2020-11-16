@@ -1,6 +1,7 @@
 import Service from '@ember/service';
 import service from 'consul-ui/sort/comparators/service';
 import serviceInstance from 'consul-ui/sort/comparators/service-instance';
+import upstreamInstance from 'consul-ui/sort/comparators/upstream-instance';
 import kv from 'consul-ui/sort/comparators/kv';
 import check from 'consul-ui/sort/comparators/check';
 import intention from 'consul-ui/sort/comparators/intention';
@@ -13,6 +14,7 @@ import node from 'consul-ui/sort/comparators/node';
 const comparators = {
   service: service(),
   serviceInstance: serviceInstance(),
+  ['upstream-instance']: upstreamInstance(),
   kv: kv(),
   check: check(),
   intention: intention(),

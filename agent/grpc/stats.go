@@ -10,7 +10,6 @@ import (
 	"google.golang.org/grpc/stats"
 )
 
-var defaultMetrics = metrics.Default()
 var StatsGauges = []prometheus.GaugeDefinition{
 	{
 		Name: []string{"grpc", "server", "connections"},
@@ -47,6 +46,8 @@ var StatsCounters = []prometheus.CounterDefinition{
 		Help: "This metric counts the number of new gRPC streams received by the server.",
 	},
 }
+
+var defaultMetrics = metrics.Default
 
 // statsHandler is a grpc/stats.StatsHandler which emits connection and
 // request metrics to go-metrics.

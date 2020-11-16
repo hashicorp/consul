@@ -40,6 +40,7 @@ import popoverSelectFactory from 'consul-ui/components/popover-select/pageobject
 import morePopoverMenuFactory from 'consul-ui/components/more-popover-menu/pageobject';
 
 import tokenListFactory from 'consul-ui/components/token-list/pageobject';
+import consulUpstreamInstanceListFactory from 'consul-ui/components/consul/upstream-instance/list/pageobject';
 import consulTokenListFactory from 'consul-ui/components/consul/token/list/pageobject';
 import consulRoleListFactory from 'consul-ui/components/consul/role/list/pageobject';
 import consulPolicyListFactory from 'consul-ui/components/consul/policy/list/pageobject';
@@ -94,6 +95,7 @@ const morePopoverMenu = morePopoverMenuFactory(clickable);
 const popoverSelect = popoverSelectFactory(clickable, collection);
 const emptyState = emptyStateFactory(isPresent);
 
+const consulUpstreamInstanceList = consulUpstreamInstanceListFactory(collection, text);
 const consulIntentionList = consulIntentionListFactory(
   collection,
   clickable,
@@ -159,7 +161,9 @@ export default {
   service: create(
     service(visitable, attribute, collection, text, consulIntentionList, catalogToolbar, tabgroup)
   ),
-  instance: create(instance(visitable, attribute, collection, text, tabgroup)),
+  instance: create(
+    instance(visitable, alias, attribute, collection, text, tabgroup, consulUpstreamInstanceList)
+  ),
   nodes: create(nodes(visitable, text, clickable, attribute, collection, popoverSelect)),
   node: create(node(visitable, deletable, clickable, attribute, collection, tabgroup, text)),
   kvs: create(kvs(visitable, creatable, consulKvList)),

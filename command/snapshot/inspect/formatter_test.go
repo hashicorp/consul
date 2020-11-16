@@ -13,6 +13,11 @@ func TestFormat(t *testing.T) {
 		Sum:   1,
 		Count: 2,
 	}}
+	mkv := []typeStats{{
+		Name:  "msgKV",
+		Sum:   1,
+		Count: 2,
+	}}
 	info := OutputFormat{
 		Meta: &MetadataInfo{
 			ID:      "one",
@@ -21,8 +26,10 @@ func TestFormat(t *testing.T) {
 			Term:    4,
 			Version: 1,
 		},
-		Stats:     m,
-		TotalSize: 1,
+		Stats:       m,
+		StatsKV:     mkv,
+		TotalSize:   1,
+		TotalSizeKV: 1,
 	}
 
 	formatters := map[string]Formatter{

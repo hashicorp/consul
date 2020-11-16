@@ -415,6 +415,54 @@ func TestHTTPAPI_TranslateAddrHeader(t *testing.T) {
 	}
 }
 
+func TestHTTPAPI_DefaultACLPolicy(t *testing.T) {
+	t.Parallel()
+
+	type testcase struct {
+		name   string
+		hcl    string
+		expect string
+	}
+
+	cases := []testcase{
+		{
+			name:   "default is allow",
+			hcl:    ``,
+			expect: "allow",
+		},
+		{
+			name:   "explicit allow",
+			hcl:    `acl { default_policy = "allow" }`,
+			expect: "allow",
+		},
+		{
+			name:   "explicit deny",
+			hcl:    `acl { default_policy = "deny" }`,
+			expect: "deny",
+		},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			a := NewTestAgent(t, tc.hcl)
+			defer a.Shutdown()
+
+			resp := httptest.NewRecorder()
+			handler := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+				return nil, nil
+			}
+
+			req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
+			a.srv.wrap(handler, []string{"GET"})(resp, req)
+
+			require.Equal(t, tc.expect, resp.Header().Get("X-Consul-Default-ACL-Policy"))
+		})
+	}
+}
+
 func TestHTTPAPIResponseHeaders(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, `

@@ -2,6 +2,9 @@ import Route from 'consul-ui/routing/route';
 
 export default class InstancesRoute extends Route {
   queryParams = {
+    sortBy: 'sort',
+    status: 'status',
+    source: 'source',
     search: {
       as: 'filter',
       replace: true,
