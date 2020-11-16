@@ -548,6 +548,36 @@ jobs:
           paths:
             - ./agent/bindata_assetfs.go
 
+  # commits static assets to git
+  publish-static-assets:
+    docker:
+      - image: *GOLANG_IMAGE
+    steps:
+      - checkout
+      - add_ssh_keys: # needs a key to push updated static asset commit back to github
+          fingerprints:
+            - "c9:04:b7:85:bf:0e:ce:93:5f:b8:0e:68:8e:16:f3:71"
+      - attach_workspace:
+          at: .
+      - run:
+          name: commit agent/bindata_assetfs.go if there are UI changes
+          command: |
+            # check if there are any changes in ui-v2/
+            # if there are, we commit the ui static asset file
+            # HEAD^! is shorthand for HEAD^..HEAD (parent of HEAD and HEAD)
+            if ! git diff --quiet --exit-code HEAD^! ui-v2/; then
+              git config --local user.email "hashicorp-ci@users.noreply.github.com"
+              git config --local user.name "hashicorp-ci"
+
+              short_sha=$(git rev-parse --short HEAD)
+              git add agent/bindata_assetfs.go
+              git commit -m "auto-updated agent/bindata_assetfs.go from commit ${short_sha}"
+              git push origin master
+            else
+              echo "no UI changes so no static assets to publish"
+            fi
+      - run: *notify-slack-failure
+
   # run ember frontend tests
   ember-test-oss:
     docker:
@@ -717,7 +747,6 @@ workflows:
       - go-test-api:
           requires: [dev-build]
       - go-test-sdk: *filter-ignore-non-go-branches
-
   build-distros:
     jobs:
       - check-vendor: *filter-ignore-non-go-branches
@@ -739,6 +768,14 @@ workflows:
       - build-static-assets:
           requires:
             - ember-build-prod
+      - publish-static-assets:
+          filters:
+            branches:
+              only:
+                - master
+                - /release\/\d+\.\d+\.x$/
+          requires:
+            - build-static-assets
       - dev-build:
           requires:
             - build-static-assets
@@ -782,7 +819,6 @@ workflows:
       - envoy-integration-test-1.14.5:
           requires:
             - dev-build
-
   website:
     jobs:
       - build-website-docker-image:
