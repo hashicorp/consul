@@ -100,6 +100,12 @@ func (op *Operator) ServerHealth(args *structs.DCSpecificRequest, reply *structs
 
 	state := op.srv.autopilot.GetState()
 
+	if state == nil {
+		// this behavior seems odd but its functionally equivalent to 1.8.5 where if
+		// autopilot didn't have a health reply yet it would just return no error
+		return nil
+	}
+
 	health := structs.AutopilotHealthReply{
 		Healthy:          state.Healthy,
 		FailureTolerance: state.FailureTolerance,
