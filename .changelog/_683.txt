@@ -1,0 +1,3 @@
+```release-note:bug
+license: **(Enterprise only)** Fixed an issue where warnings about Namespaces being unlicensed would be emitted erroneously.
+```
