@@ -46,10 +46,10 @@ export default class MetricsService extends RepositoryService {
       return Promise.reject(this.error);
     }
     const promises = [
-      this.provider.serviceRecentSummarySeries(dc, nspace, slug, protocol, {}),
-      this.provider.serviceRecentSummaryStats(dc, nspace, slug, protocol, {}),
+      this.provider.serviceRecentSummarySeries(slug, dc, nspace, protocol, {}),
+      this.provider.serviceRecentSummaryStats(slug, dc, nspace, protocol, {}),
     ];
-    return Promise.all(promises).then(function(results) {
+    return Promise.all(promises).then(function (results) {
       return {
         meta: meta,
         series: results[0],
@@ -62,7 +62,7 @@ export default class MetricsService extends RepositoryService {
     if (this.error) {
       return Promise.reject(this.error);
     }
-    return this.provider.upstreamRecentSummaryStats(dc, nspace, slug, {}).then(function(result) {
+    return this.provider.upstreamRecentSummaryStats(slug, dc, nspace, {}).then(function (result) {
       result.meta = meta;
       return result;
     });
@@ -72,7 +72,7 @@ export default class MetricsService extends RepositoryService {
     if (this.error) {
       return Promise.reject(this.error);
     }
-    return this.provider.downstreamRecentSummaryStats(dc, nspace, slug, {}).then(function(result) {
+    return this.provider.downstreamRecentSummaryStats(slug, dc, nspace, {}).then(function (result) {
       result.meta = meta;
       return result;
     });

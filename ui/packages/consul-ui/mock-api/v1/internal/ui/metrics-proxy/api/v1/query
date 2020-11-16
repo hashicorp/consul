@@ -40,10 +40,10 @@
           // Match the relabel arguments since "downstream" appears in both
           // "service" and "upstream" type queries' metric names while
           // "upstream" appears in downstream query metric names (confusingly).
-          if (q.match('"upstream"')) {
-            type = 'upstream';
-          } else if (q.match('"downstream"')) {
-            type = 'downstream';
+          if (q.match('consul_destination_service=')) {
+            type = "downstream";
+          } else if (q.match('consul_upstream_service')) {
+            type = "upstream";
           }
 
           if (q.match('envoy_http_')) {
@@ -66,19 +66,45 @@
           }
 
           // Figure out the actual name for the target service
-          let targetService = 'invalid-local-cluster';
-          let m = q.match(/local_cluster="([^"]*)"/);
-          if (m && m.length >= 2 && m[1] !== '') {
+          var targetService = "invalid-local-cluster";
+          var m = q.match(/consul_source_service="([^"]*)"/);
+          if (m && m.length >= 2 && m[1] != "") {
             targetService = m[1];
           }
-          m = q.match(/consul_service="([^"]*)"/);
-          if (type === 'downstream' && m && m.length >= 2 && m[1] !== '') {
+          m = q.match(/consul_destination_service="([^"]*)"/);
+          if (type == "downstream" && m && m.length >= 2 && m[1] != "") {
             // downstreams don't have the same selector for the main service
             // name.
             targetService = m[1];
           }
 
-          let targets = [];
+          // Figure out the actual namespace for the target service
+          var targetNS = "invalid-local-ns";
+          var m = q.match(/consul_source_namespace="([^"]*)"/);
+          if (m && m.length >= 2 && m[1] != "") {
+            targetNS = m[1];
+          }
+          m = q.match(/consul_destination_namespace="([^"]*)"/);
+          if (type == "downstream" && m && m.length >= 2 && m[1] != "") {
+            // downstreams don't have the same selector for the main service
+            // name.
+            targetNS = m[1];
+          }
+
+          // Figure out the actual datacenter for the target service
+          var targetDC = "invalid-local-dc";
+          var m = q.match(/consul_source_datacenter="([^"]*)"/);
+          if (m && m.length >= 2 && m[1] != "") {
+            targetDC = m[1];
+          }
+          m = q.match(/consul_destination_datacenter="([^"]*)"/);
+          if (type == "downstream" && m && m.length >= 2 && m[1] != "") {
+            // downstreams don't have the same selector for the main service
+            // name.
+            targetDC = m[1];
+          }
+
+          var serviceNames = [];
           switch(type) {
             case 'downstream': // fallthrough
             case 'upstream':
@@ -156,12 +182,10 @@
             let metric = `{}`;
             switch(type) {
               case 'upstream':
-                // TODO: this should really return tcp proxy label for tcp
-                // metrics but we don't look at that for now.
-                metric = `{"upstream": "${item.Name}", "envoy_http_conn_manager_prefix": "${item.Name}"}`;
+                metric = `{"consul_upstream_service": "${item.Name}", "consul_upstream_datacenter": "${targetDC}", "consul_upstream_namespace": "${targetNS}"}`;
                 break;
-              case 'downstream':
-                metric = `{"downstream": "${item.Name}", "local_cluster": "${item.Name}"}`;
+              case "downstream":
+                metric = `{"consul_source_service": "${item.Name}", "consul_source_datacenter": "${targetDC}", "consul_source_namespace": "${targetNS}"}`;
                 break;
             }
             const timestamp = Date.now() / 1000;
