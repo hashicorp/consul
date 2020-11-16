@@ -17,7 +17,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	metrics "github.com/armon/go-metrics"
+	"github.com/armon/go-metrics"
 	connlimit "github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -49,6 +49,8 @@ import (
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 )
+
+// NOTE The "consul.client.rpc" and "consul.client.rpc.exceeded" counters are defined in consul/client.go
 
 // These are the protocol versions that Consul can _understand_. These are
 // Consul-level protocol versions, that are used to configure the Serf

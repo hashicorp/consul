@@ -11,7 +11,8 @@ import (
 	"regexp"
 	"time"
 
-	metrics "github.com/armon/go-metrics"
+	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -29,6 +30,73 @@ const (
 	// should be the reset index
 	aclBootstrapReset = "acl-bootstrap-reset"
 )
+
+var ACLEndpointSummaries = []prometheus.SummaryDefinition{
+	{
+		Name: []string{"acl", "token", "clone"},
+		Help: "",
+	},
+	{
+		Name: []string{"acl", "token", "upsert"},
+		Help: "",
+	},
+	{
+		Name: []string{"acl", "token", "delete"},
+		Help: "",
+	},
+	{
+		Name: []string{"acl", "policy", "upsert"},
+		Help: "",
+	},
+	{
+		Name: []string{"acl", "policy", "delete"},
+		Help: "",
+	},
+	{
+		Name: []string{"acl", "policy", "delete"},
+		Help: "",
+	},
+	{
+		Name: []string{"acl", "role", "upsert"},
+		Help: "",
+	},
+	{
+		Name: []string{"acl", "role", "delete"},
+		Help: "",
+	},
+	{
+		Name: []string{"acl", "bindingrule", "upsert"},
+		Help: "",
+	},
+	{
+		Name: []string{"acl", "bindingrule", "delete"},
+		Help: "",
+	},
+	{
+		Name: []string{"acl", "authmethod", "upsert"},
+		Help: "",
+	},
+	{
+		Name: []string{"acl", "authmethod", "delete"},
+		Help: "",
+	},
+	{
+		Name: []string{"acl", "login"},
+		Help: "",
+	},
+	{
+		Name: []string{"acl", "login"},
+		Help: "",
+	},
+	{
+		Name: []string{"acl", "logout"},
+		Help: "",
+	},
+	{
+		Name: []string{"acl", "logout"},
+		Help: "",
+	},
+}
 
 // Regex for matching
 var (

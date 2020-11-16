@@ -5,12 +5,32 @@ import (
 	"fmt"
 	"time"
 
-	metrics "github.com/armon/go-metrics"
+	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	memdb "github.com/hashicorp/go-memdb"
 )
+
+var FederationStateSummaries = []prometheus.SummaryDefinition{
+	{
+		Name: []string{"federation_state", "apply"},
+		Help: "",
+	},
+	{
+		Name: []string{"federation_state", "get"},
+		Help: "",
+	},
+	{
+		Name: []string{"federation_state", "list"},
+		Help: "",
+	},
+	{
+		Name: []string{"federation_state", "list_mesh_gateways"},
+		Help: "",
+	},
+}
 
 var (
 	errFederationStatesNotEnabled = errors.New("Federation states are currently disabled until all servers in the datacenter support the feature")

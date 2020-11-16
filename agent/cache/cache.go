@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/lib"
@@ -31,6 +32,34 @@ import (
 )
 
 //go:generate mockery -all -inpkg
+
+// TODO(kit): remove the namespace from these once the metrics themselves change
+var Gauges = []prometheus.GaugeDefinition{
+	{
+		Name: []string{"consul", "cache", "entries_count"},
+		Help: "",
+	},
+}
+
+// TODO(kit): remove the namespace from these once the metrics themselves change
+var Counters = []prometheus.CounterDefinition{
+	{
+		Name: []string{"consul", "cache", "bypass"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "cache", "fetch_success"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "cache", "fetch_error"},
+		Help: "",
+	},
+	{
+		Name: []string{"consul", "cache", "evict_expired"},
+		Help: "",
+	},
+}
 
 // Constants related to refresh backoff. We probably don't ever need to
 // make these configurable knobs since they primarily exist to lower load.
@@ -629,6 +658,7 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 		// Error handling
 		if err == nil {
 			labels := []metrics.Label{{Name: "result_not_modified", Value: strconv.FormatBool(result.NotModified)}}
+			// TODO(kit): move tEntry.Name to a label on the first write here and deprecate the second write
 			metrics.IncrCounterWithLabels([]string{"consul", "cache", "fetch_success"}, 1, labels)
 			metrics.IncrCounterWithLabels([]string{"consul", "cache", tEntry.Name, "fetch_success"}, 1, labels)
 
@@ -658,6 +688,7 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 				newEntry.RefreshLostContact = time.Time{}
 			}
 		} else {
+			// TODO(kit): Add tEntry.Name to label on fetch_error and deprecate second write
 			metrics.IncrCounter([]string{"consul", "cache", "fetch_error"}, 1)
 			metrics.IncrCounter([]string{"consul", "cache", tEntry.Name, "fetch_error"}, 1)
 

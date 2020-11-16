@@ -5,9 +5,47 @@ import (
 	"sync/atomic"
 
 	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/stats"
 )
+
+var StatsGauges = []prometheus.GaugeDefinition{
+	{
+		Name: []string{"grpc", "server", "connections"},
+		Help: "Measures the number of active gRPC connections open on the server.",
+	},
+	{
+		Name: []string{"grpc", "client", "connections"},
+		Help: "Measures the number of active gRPC connections open from the client agent to any Consul servers.",
+	},
+	{
+		Name: []string{"grpc", "server", "streams"},
+		Help: "Measures the number of active gRPC streams handled by the server.",
+	},
+}
+var StatsCounters = []prometheus.CounterDefinition{
+	{
+		Name: []string{"grpc", "client", "request", "count"},
+		Help: "Counts the number of gRPC requests made by the client agent to a Consul server.",
+	},
+	{
+		Name: []string{"grpc", "server", "request", "count"},
+		Help: "Counts the number of gRPC requests received by the server.",
+	},
+	{
+		Name: []string{"grpc", "client", "connection", "count"},
+		Help: "Counts the number of new gRPC connections opened by the client agent to a Consul server.",
+	},
+	{
+		Name: []string{"grpc", "server", "connection", "count"},
+		Help: "Counts the number of new gRPC connections received by the server.",
+	},
+	{
+		Name: []string{"grpc", "server", "stream", "count"},
+		Help: "Counts the number of new gRPC streams received by the server.",
+	},
+}
 
 var defaultMetrics = metrics.Default
 

@@ -5,11 +5,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/armon/go-metrics/prometheus"
+
 	"github.com/stretchr/testify/require"
 )
 
 func makeFullTelemetryConfig(t *testing.T) TelemetryConfig {
 	var (
+		promOpts    = prometheus.PrometheusOpts{}
 		strSliceVal = []string{"foo"}
 		strVal      = "foo"
 		intVal      = int64(1 * time.Second)
@@ -27,6 +30,12 @@ func makeFullTelemetryConfig(t *testing.T) TelemetryConfig {
 		// now for brevity but will fail the test if a new field type is added since
 		// this is likely not implemented in MergeDefaults either.
 		switch f.Kind() {
+		case reflect.Struct:
+			if f.Type() != reflect.TypeOf(promOpts) {
+				t.Fatalf("unknown struct type in TelemetryConfig: actual %v, expected: %v", f.Type(), reflect.TypeOf(promOpts))
+			}
+			// TODO(kit): This should delve into the fields and set them individually rather than using an empty struct
+			f.Set(reflect.ValueOf(promOpts))
 		case reflect.Slice:
 			if f.Type() != reflect.TypeOf(strSliceVal) {
 				t.Fatalf("unknown slice type in TelemetryConfig." +

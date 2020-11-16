@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"time"
 
-	metrics "github.com/armon/go-metrics"
+	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/circonus"
 	"github.com/armon/go-metrics/datadog"
 	"github.com/armon/go-metrics/prometheus"
@@ -154,14 +154,6 @@ type TelemetryConfig struct {
 	// hcl: telemetry { dogstatsd_tags = []string }
 	DogstatsdTags []string `json:"dogstatsd_tags,omitempty" mapstructure:"dogstatsd_tags"`
 
-	// PrometheusRetentionTime is the retention time for prometheus metrics if greater than 0.
-	// A value of 0 disable Prometheus support. Regarding Prometheus, it is considered a good
-	// practice to put large values here (such as a few days), and at least the interval between
-	// prometheus requests.
-	//
-	// hcl: telemetry { prometheus_retention_time = "duration" }
-	PrometheusRetentionTime time.Duration `json:"prometheus_retention_time,omitempty" mapstructure:"prometheus_retention_time"`
-
 	// FilterDefault is the default for whether to allow a metric that's not
 	// covered by the filter.
 	//
@@ -199,10 +191,18 @@ type TelemetryConfig struct {
 	//
 	// hcl: telemetry { statsite_address = string }
 	StatsiteAddr string `json:"statsite_address,omitempty" mapstructure:"statsite_address"`
+
+	// PrometheusOpts provides configuration for the PrometheusSink. Currently the only configuration
+	// we acquire from hcl is the retention time. We also use definition slices that are set in agent setup
+	// before being passed to InitTelemmetry.
+	//
+	// hcl: telemetry { prometheus_retention_time = "duration" }
+	PrometheusOpts prometheus.PrometheusOpts
 }
 
 // MergeDefaults copies any non-zero field from defaults into the current
 // config.
+// TODO(kit): We no longer use this function and can probably delete it
 func (c *TelemetryConfig) MergeDefaults(defaults *TelemetryConfig) {
 	if defaults == nil {
 		return
@@ -221,6 +221,10 @@ func (c *TelemetryConfig) MergeDefaults(defaults *TelemetryConfig) {
 		// implementing this for the types we actually have for now. Test failure
 		// should catch the case where we add new types later.
 		switch f.Kind() {
+		case reflect.Struct:
+			if f.Type() == reflect.TypeOf(prometheus.PrometheusOpts{}) {
+				continue
+			}
 		case reflect.Slice:
 			if !f.IsNil() {
 				continue
@@ -277,80 +281,12 @@ func dogstatdSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, err
 }
 
 func prometheusSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, error) {
-	if cfg.PrometheusRetentionTime.Nanoseconds() < 1 {
+
+	if cfg.PrometheusOpts.Expiration.Nanoseconds() < 1 {
 		return nil, nil
 	}
 
-	// TODO(kit) define these in vars in the package/file they're used
-	gaugeDefs := []prometheus.GaugeDefinition{
-		{
-			Name: []string{"consul", "autopilot", "healthy"},
-			Help: "This tracks the overall health of the local server cluster. 1 if all servers are healthy, 0 if one or more are unhealthy.",
-		},
-	}
-
-	// TODO(kit) define these in vars in the package/file they're used
-	counterDefs := []prometheus.CounterDefinition{
-		{
-			Name: []string{"consul", "raft", "apply"},
-			Help: "This counts the number of Raft transactions occurring over the interval.",
-		},
-		{
-			Name: []string{"consul", "raft", "state", "candidate"},
-			Help: "This increments whenever a Consul server starts an election.",
-		},
-		{
-			Name: []string{"consul", "raft", "state", "leader"},
-			Help: "This increments whenever a Consul server becomes a leader.",
-		},
-		{
-			Name: []string{"consul", "client", "api", "catalog_register"},
-			Help: "Increments whenever a Consul agent receives a catalog register request.",
-		},
-		{
-			Name: []string{"consul", "runtime", "total_gc_pause_ns"},
-			Help: "Number of nanoseconds consumed by stop-the-world garbage collection (GC) pauses since Consul started.",
-		},
-		{
-			Name: []string{"consul", "client", "rpc"},
-			Help: "Increments whenever a Consul agent in client mode makes an RPC request to a Consul server.",
-		},
-		{
-			Name: []string{"consul", "client", "rpc", "exceeded"},
-			Help: "Increments whenever a Consul agent in client mode makes an RPC request to a Consul server gets rate limited by that agent's limits configuration.",
-		},
-		{
-			Name: []string{"consul", "client", "rpc", "failed"},
-			Help: "Increments whenever a Consul agent in client mode makes an RPC request to a Consul server and fails.",
-		},
-	}
-
-	// TODO(kit) define these in vars in the package/file they're used
-	summaryDefs := []prometheus.SummaryDefinition{
-		{
-			Name: []string{"consul", "kvs", "apply"},
-			Help: "This measures the time it takes to complete an update to the KV store.",
-		},
-		{
-			Name: []string{"consul", "txn", "apply"},
-			Help: "This measures the time spent applying a transaction operation.",
-		},
-		{
-			Name: []string{"consul", "raft", "commitTime"},
-			Help: "This measures the time it takes to commit a new entry to the Raft log on the leader.",
-		},
-		{
-			Name: []string{"consul", "raft", "leader", "lastContact"},
-			Help: "Measures the time since the leader was last able to contact the follower nodes when checking its leader lease.",
-		},
-	}
-	prometheusOpts := prometheus.PrometheusOpts{
-		Expiration:         cfg.PrometheusRetentionTime,
-		GaugeDefinitions:   gaugeDefs,
-		CounterDefinitions: counterDefs,
-		SummaryDefinitions: summaryDefs,
-	}
-	sink, err := prometheus.NewPrometheusSinkFrom(prometheusOpts)
+	sink, err := prometheus.NewPrometheusSinkFrom(cfg.PrometheusOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -435,6 +371,9 @@ func InitTelemetry(cfg TelemetryConfig) (*metrics.InmemSink, error) {
 		return nil, err
 	}
 	if err := addSink(dogstatdSink); err != nil {
+		return nil, err
+	}
+	if err := addSink(circonusSink); err != nil {
 		return nil, err
 	}
 	if err := addSink(circonusSink); err != nil {
