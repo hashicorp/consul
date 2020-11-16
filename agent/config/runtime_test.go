@@ -8,6 +8,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/armon/go-metrics/prometheus"
 	"io/ioutil"
 	"net"
 	"os"
@@ -7103,9 +7104,11 @@ func TestFullConfig(t *testing.T) {
 			AllowedPrefixes:                    []string{"oJotS8XJ"},
 			BlockedPrefixes:                    []string{"cazlEhGn"},
 			MetricsPrefix:                      "ftO6DySn",
-			PrometheusRetentionTime:            15 * time.Second,
 			StatsdAddr:                         "drce87cy",
 			StatsiteAddr:                       "HpFwKB8R",
+			PrometheusOpts: prometheus.PrometheusOpts{
+				Expiration: 15 * time.Second,
+			},
 		},
 		TLSCipherSuites:             []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256},
 		TLSMinVersion:               "pAOWafkR",
