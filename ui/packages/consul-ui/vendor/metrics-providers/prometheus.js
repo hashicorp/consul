@@ -670,7 +670,7 @@
           return {
             label: label,
             desc: desc,
-            value: isNaN(v) ? undefined : formatter(v),
+            value: isNaN(v) ? '-' : formatter(v),
           };
         }
 
@@ -682,7 +682,7 @@
           data[groupName] = {
             label: label,
             desc: desc.replace('{{GROUP}}', groupName),
-            value: isNaN(v) ? undefined : formatter(v),
+            value: isNaN(v) ? '-' : formatter(v),
           };
         }
         return data;
