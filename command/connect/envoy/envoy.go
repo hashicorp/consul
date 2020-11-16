@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"os/exec"
@@ -30,7 +31,10 @@ func New(ui cli.Ui) *cmd {
 		Ui:           ui,
 	}
 
-	c := &cmd{UI: ui}
+	c := &cmd{
+		UI:        ui,
+		directOut: os.Stdout,
+	}
 	c.init()
 	return c
 }
@@ -43,6 +47,9 @@ type cmd struct {
 	http   *flags.HTTPFlags
 	help   string
 	client *api.Client
+	// DirectOut defaults to os.stdout but is a property to allow capture during
+	// tests to have more useful output.
+	directOut io.Writer
 
 	// flags
 	meshGateway          bool
@@ -64,6 +71,7 @@ type cmd struct {
 	deregAfterCritical string
 	bindAddresses      ServiceAddressMapValue
 	exposeServers      bool
+	omitDeprecatedTags bool
 
 	gatewaySvcName string
 	gatewayKind    api.ServiceKind
@@ -151,6 +159,11 @@ func (c *cmd) init() {
 
 	c.flags.StringVar(&c.deregAfterCritical, "deregister-after-critical", "6h",
 		"The amount of time the gateway services health check can be failing before being deregistered")
+
+	c.flags.BoolVar(&c.omitDeprecatedTags, "omit-deprecated-tags", false,
+		"In Consul 1.9.0 the format of metric tags for Envoy clusters was updated from consul.[service|dc|...] to "+
+			"consul.destination.[service|dc|...]. The old tags were preserved for backward compatibility,"+
+			"but can be disabled with this flag.")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -364,7 +377,7 @@ func (c *cmd) run(args []string) int {
 
 	if c.bootstrap {
 		// Just output it and we are done
-		os.Stdout.Write(bootstrapJson)
+		c.directOut.Write(bootstrapJson)
 		return 0
 	}
 
@@ -431,10 +444,13 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 	// know service name yet, we will after we resolve the proxy's config in a bit
 	// and will update this then.
 	cluster := c.proxyID
+	proxySourceService := ""
 	if c.sidecarFor != "" {
 		cluster = c.sidecarFor
+		proxySourceService = c.sidecarFor
 	} else if c.gateway != "" && c.gatewaySvcName != "" {
 		cluster = c.gatewaySvcName
+		proxySourceService = c.gatewaySvcName
 	}
 
 	adminAccessLogPath := c.adminAccessLogPath
@@ -453,6 +469,7 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		GRPC:                  grpcAddr,
 		ProxyCluster:          cluster,
 		ProxyID:               c.proxyID,
+		ProxySourceService:    proxySourceService,
 		AgentCAPEM:            caPEM,
 		AdminAccessLogPath:    adminAccessLogPath,
 		AdminBindAddress:      adminBindIP.String(),
@@ -483,29 +500,53 @@ func (c *cmd) generateConfig() ([]byte, error) {
 		bsCfg.ReadyBindAddr = lanAddr
 	}
 
+	// Fetch any customization from the registration
+	svc, _, err := c.client.Agent().Service(c.proxyID, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed fetch proxy config from local agent: %s", err)
+	}
+	if svc.Proxy == nil {
+		return nil, errors.New("service is not a Connect proxy or gateway")
+	}
+
+	if svc.Proxy.DestinationServiceName != "" {
+		// Override cluster now we know the actual service name
+		args.ProxyCluster = svc.Proxy.DestinationServiceName
+		args.ProxySourceService = svc.Proxy.DestinationServiceName
+	} else {
+		// Set the source service name from the proxy's own registration
+		args.ProxySourceService = svc.Service
+	}
+	if svc.Namespace != "" {
+		// In most cases where namespaces are enabled this will already be set
+		// correctly because the http client that fetched this will need to have
+		// had the namespace set on it which is also how we initially populate
+		// this. However in the case of "default" namespace being accessed because
+		// there was no namespace argument, args.Namespace will be empty even
+		// though Namespaces are actually being used and the namespace of the request was
+		// inferred from the ACL token or defaulted to the "default" namespace.
+		// Overriding it here ensures that we always set the Namespace arg if the
+		// cluster is using namespaces regardless.
+		args.Namespace = svc.Namespace
+	}
+	agent, err := c.client.Agent().Self()
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch agent config: %v", err)
+	}
+	dc, ok := agent["Config"]["Datacenter"].(string)
+	if !ok {
+		return nil, fmt.Errorf("failed to fetch datacenter from agent. DC is: %T", agent["Config"]["Datacenter"])
+	}
+	args.Datacenter = dc
+
 	if !c.disableCentralConfig {
-		// Fetch any customization from the registration
-		svc, _, err := c.client.Agent().Service(c.proxyID, nil)
-		if err != nil {
-			return nil, fmt.Errorf("failed fetch proxy config from local agent: %s", err)
-		}
-
-		if svc.Proxy == nil {
-			return nil, errors.New("service is not a Connect proxy or gateway")
-		}
-
 		// Parse the bootstrap config
 		if err := mapstructure.WeakDecode(svc.Proxy.Config, &bsCfg); err != nil {
 			return nil, fmt.Errorf("failed parsing Proxy.Config: %s", err)
 		}
-
-		if svc.Proxy.DestinationServiceName != "" {
-			// Override cluster now we know the actual service name
-			args.ProxyCluster = svc.Proxy.DestinationServiceName
-		}
 	}
 
-	return bsCfg.GenerateJSON(args)
+	return bsCfg.GenerateJSON(args, c.omitDeprecatedTags)
 }
 
 // TODO: make method a function
