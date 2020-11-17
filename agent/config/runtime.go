@@ -845,12 +845,12 @@ type RuntimeConfig struct {
 	// flag: -node-meta "key:value" -node-meta "key:value" ...
 	NodeMeta map[string]string
 
-	// NonVotingServer is whether this server will act as a non-voting member
+	// ReadReplica is whether this server will act as a non-voting member
 	// of the cluster to help provide read scalability. (Enterprise-only)
 	//
 	// hcl: non_voting_server = (true|false)
 	// flag: -non-voting-server
-	NonVotingServer bool
+	ReadReplica bool
 
 	// PidFile is the file to store our PID in.
 	//

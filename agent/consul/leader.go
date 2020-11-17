@@ -1230,7 +1230,9 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 				Warning: 1,
 			},
 			Meta: map[string]string{
+				// DEPRECATED - remove nonvoter in favor of read_replica in a future version of consul
 				"non_voter":             strconv.FormatBool(member.Tags["nonvoter"] == "1"),
+				"read_replica":          strconv.FormatBool(member.Tags["read_replica"] == "1"),
 				"raft_version":          strconv.Itoa(parts.RaftVersion),
 				"serf_protocol_current": strconv.FormatUint(uint64(member.ProtocolCur), 10),
 				"serf_protocol_min":     strconv.FormatUint(uint64(member.ProtocolMin), 10),
