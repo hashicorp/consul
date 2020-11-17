@@ -8,12 +8,13 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/go-hclog"
 	"golang.org/x/sync/singleflight"
 	"golang.org/x/time/rate"
+
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/logging"
 )
 
 var ACLCounters = []prometheus.CounterDefinition{
@@ -1037,11 +1038,6 @@ func (r *ACLResolver) collectRolesForIdentity(identity structs.ACLIdentity, role
 	}
 
 	return roles, nil
-}
-
-func (r *ACLResolver) resolveTokenToPolicies(token string) (structs.ACLPolicies, error) {
-	_, policies, err := r.resolveTokenToIdentityAndPolicies(token)
-	return policies, err
 }
 
 func (r *ACLResolver) resolveTokenToIdentityAndPolicies(token string) (structs.ACLIdentity, structs.ACLPolicies, error) {

@@ -7,6 +7,9 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/serf/serf"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
@@ -15,8 +18,6 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/serf/serf"
 
 	"github.com/stretchr/testify/require"
 )
@@ -519,6 +520,7 @@ func TestACL_filterChecks(t *testing.T) {
 	require.False(t, ok)
 }
 
+// TODO: remove?
 func TestACL_ResolveIdentity(t *testing.T) {
 	t.Parallel()
 	a := NewTestACLAgent(t, t.Name(), TestACLConfig(), nil, catalogIdent)
@@ -526,7 +528,7 @@ func TestACL_ResolveIdentity(t *testing.T) {
 	// this test is meant to ensure we are calling the correct function
 	// which is ResolveTokenToIdentity on the Agent delegate. Our
 	// nil authz resolver will cause it to emit an error if used
-	ident, err := a.resolveIdentityFromToken(nodeROSecret)
+	ident, err := a.delegate.ResolveTokenToIdentity(nodeROSecret)
 	require.NoError(t, err)
 	require.NotNil(t, ident)
 
