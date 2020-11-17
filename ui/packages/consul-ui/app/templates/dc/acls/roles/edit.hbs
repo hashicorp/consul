@@ -1,11 +1,11 @@
 {{#if isAuthorized }}
   {{#if item.ID}}
-    {{title 'Edit Role'}}
+    {{page-title 'Edit Role'}}
   {{else}}
-    {{title 'New Role'}}
+    {{page-title 'New Role'}}
   {{/if}}
 {{else}}
-  {{title 'Access Controls'}}
+  {{page-title 'Access Controls'}}
 {{/if}}
 <AppView
   @authorized={{isAuthorized}}

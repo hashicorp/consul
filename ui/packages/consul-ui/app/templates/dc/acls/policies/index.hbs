@@ -1,7 +1,7 @@
 {{#if isAuthorized }}
-  {{title 'Policies'}}
+  {{page-title 'Policies'}}
 {{else}}
-  {{title 'Access Controls'}}
+  {{page-title 'Access Controls'}}
 {{/if}}
 {{#let (hash
   kinds=(if kind (split kind ',') undefined)

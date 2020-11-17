@@ -4,7 +4,7 @@
 <EventSource @src={{proxies}} />
 <EventSource @src={{gatewayServices}} />
 <EventSource @src={{topology}} />
-{{title item.Service.Service}}
+{{page-title item.Service.Service}}
 <AppView>
   <BlockSlot @name="notification" as |status type|>
     <Consul::Service::Notifications
