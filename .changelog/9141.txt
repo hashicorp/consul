@@ -1,0 +1,7 @@
+```release-note:improvement
+ui: Moves the Proxy health checks to be displayed with the Service health check under the Health Checks tab
+```
+
+```release-note:improvement
+ui: Add the Upstreams and Exposed Paths tabs for services in mesh
+```
