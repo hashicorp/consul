@@ -289,7 +289,7 @@ type Config struct {
 	// Enterprise Only
 	Audit *Audit `json:"audit,omitempty" hcl:"audit" mapstructure:"audit"`
 	// Enterprise Only
-	NonVotingServer *bool `json:"non_voting_server,omitempty" hcl:"non_voting_server" mapstructure:"non_voting_server"`
+	ReadReplica *bool `json:"read_replica,omitempty" hcl:"read_replica" mapstructure:"read_replica" alias:"non_voting_server"`
 	// Enterprise Only
 	SegmentName *string `json:"segment,omitempty" hcl:"segment" mapstructure:"segment"`
 	// Enterprise Only

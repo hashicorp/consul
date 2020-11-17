@@ -1034,7 +1034,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		NodeID:                      types.NodeID(b.stringVal(c.NodeID)),
 		NodeMeta:                    c.NodeMeta,
 		NodeName:                    b.nodeName(c.NodeName),
-		NonVotingServer:             b.boolVal(c.NonVotingServer),
+		ReadReplica:                 b.boolVal(c.ReadReplica),
 		PidFile:                     b.stringVal(c.PidFile),
 		PrimaryDatacenter:           primaryDatacenter,
 		PrimaryGateways:             b.expandAllOptionalAddrs("primary_gateways", c.PrimaryGateways),

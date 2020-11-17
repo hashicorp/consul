@@ -1110,8 +1110,8 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	if runtimeCfg.SessionTTLMin != 0 {
 		cfg.SessionTTLMin = runtimeCfg.SessionTTLMin
 	}
-	if runtimeCfg.NonVotingServer {
-		cfg.NonVoter = runtimeCfg.NonVotingServer
+	if runtimeCfg.ReadReplica {
+		cfg.ReadReplica = runtimeCfg.ReadReplica
 	}
 
 	// These are fully specified in the agent defaults, so we can simply
