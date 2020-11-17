@@ -59,7 +59,7 @@ This section addresses some frequently asked questions about Consul's architectu
 
 ### How does eventually-consistent gossip relate to the Raft consensus protocol?
 
-When you query Consul for information about a service, such as via the [DNS interface](https://www.consul.io/docs/agent/dns.html), the agent will always make an internal RPC request to a Consul server that will query the consistent state store. Even though an agent might learn that another agent is down via gossip, that won't be reflected in service discovery until the current Raft leader server perceives that through gossip and updates the catalog using Raft. You can see an example of where these layers are plumbed together here - https://github.com/hashicorp/consul/blob/v1.0.5/agent/consul/leader.go#L559-L602.
+When you query Consul for information about a service, such as via the [DNS interface](https://www.consul.io/docs/discovery/dns), the agent will always make an internal RPC request to a Consul server that will query the consistent state store. Even though an agent might learn that another agent is down via gossip, that won't be reflected in service discovery until the current Raft leader server perceives that through gossip and updates the catalog using Raft. You can see an example of where these layers are plumbed together here - https://github.com/hashicorp/consul/blob/v1.0.5/agent/consul/leader.go#L559-L602.
 
 ## Why does a blocking query sometimes return with identical results?
 
