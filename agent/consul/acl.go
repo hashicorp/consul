@@ -1187,11 +1187,6 @@ func (r *ACLResolver) ResolveTokenToIdentityAndAuthorizer(token string) (structs
 	return identity, acl.NewChainedAuthorizer(chain), nil
 }
 
-func (r *ACLResolver) ResolveToken(token string) (acl.Authorizer, error) {
-	_, authz, err := r.ResolveTokenToIdentityAndAuthorizer(token)
-	return authz, err
-}
-
 func (r *ACLResolver) ResolveTokenToIdentity(token string) (structs.ACLIdentity, error) {
 	if !r.ACLsEnabled() {
 		return nil, nil
@@ -1975,7 +1970,7 @@ func (r *ACLResolver) filterACLWithAuthorizer(authorizer acl.Authorizer, subj in
 // rules configured for the provided token.
 func (r *ACLResolver) filterACL(token string, subj interface{}) error {
 	// Get the ACL from the token
-	authorizer, err := r.ResolveToken(token)
+	_, authorizer, err := r.ResolveTokenToIdentityAndAuthorizer(token)
 	if err != nil {
 		return err
 	}
