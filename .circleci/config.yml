@@ -236,16 +236,15 @@ jobs:
           name: go test -race
           command: |
             mkdir -p $TEST_RESULTS_DIR /tmp/jsonfile
+            pkgs="$(go list ./... | \
+              grep -E -v '^github.com/hashicorp/consul/agent(/consul|/local|/xds|/routine-leak-checker)?$' | \
+              grep -E -v '^github.com/hashicorp/consul/command/')"
             gotestsum \
-              --format=short-verbose \
               --jsonfile /tmp/jsonfile/go-test-race.log \
               --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- \
               -tags="$GOTAGS" -p 2 \
               -race -gcflags=all=-d=checkptr=0 \
-              ./agent/{ae,cache,cache-types,checks,config,pool,proxycfg,router}/... \
-              ./agent/consul/{authmethod,fsm,state,stream}/... \
-              ./agent/{grpc,rpc,rpcclient,submatview}/... \
-              ./snapshot
+              $pkgs
 
       - store_test_results:
           path: *TEST_RESULTS_DIR
