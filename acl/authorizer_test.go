@@ -195,8 +195,6 @@ func (m *mockAuthorizer) Snapshot(ctx *AuthorizerContext) EnforcementDecision {
 }
 
 func TestACL_Enforce(t *testing.T) {
-	t.Parallel()
-
 	type testCase struct {
 		method   string
 		resource Resource

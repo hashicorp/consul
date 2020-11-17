@@ -94,11 +94,7 @@ func (authz testAuthorizer) Snapshot(*AuthorizerContext) EnforcementDecision {
 }
 
 func TestChainedAuthorizer(t *testing.T) {
-	t.Parallel()
-
 	t.Run("No Authorizers", func(t *testing.T) {
-		t.Parallel()
-
 		authz := NewChainedAuthorizer([]Authorizer{})
 		checkDenyACLRead(t, authz, "foo", nil)
 		checkDenyACLWrite(t, authz, "foo", nil)
@@ -129,8 +125,6 @@ func TestChainedAuthorizer(t *testing.T) {
 	})
 
 	t.Run("Authorizer Defaults", func(t *testing.T) {
-		t.Parallel()
-
 		authz := NewChainedAuthorizer([]Authorizer{testAuthorizer(Default)})
 		checkDenyACLRead(t, authz, "foo", nil)
 		checkDenyACLWrite(t, authz, "foo", nil)
@@ -161,8 +155,6 @@ func TestChainedAuthorizer(t *testing.T) {
 	})
 
 	t.Run("Authorizer No Defaults", func(t *testing.T) {
-		t.Parallel()
-
 		authz := NewChainedAuthorizer([]Authorizer{testAuthorizer(Allow)})
 		checkAllowACLRead(t, authz, "foo", nil)
 		checkAllowACLWrite(t, authz, "foo", nil)
@@ -193,8 +185,6 @@ func TestChainedAuthorizer(t *testing.T) {
 	})
 
 	t.Run("First Found", func(t *testing.T) {
-		t.Parallel()
-
 		authz := NewChainedAuthorizer([]Authorizer{testAuthorizer(Deny), testAuthorizer(Allow)})
 		checkDenyACLRead(t, authz, "foo", nil)
 		checkDenyACLWrite(t, authz, "foo", nil)

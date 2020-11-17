@@ -14,13 +14,13 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/stretchr/testify/require"
 )
 
 // Assert io.Closer implementation
@@ -89,8 +89,8 @@ func TestService_Dial(t *testing.T) {
 					err := testSvr.Serve()
 					require.NoError(err)
 				}()
-				defer testSvr.Close()
 				<-testSvr.Listening
+				defer testSvr.Close()
 			}
 
 			// Always expect to be connecting to a "DB"
