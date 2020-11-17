@@ -14,7 +14,7 @@ Filter expressions refine data queries for some API listing endpoints, as notate
 To create a filter expression, you will write one or more expressions. Each expression has a matching operators composed of selectors and values.
 
 ```shell
-curl -G <path> --data-urlencode 'filter=<"filter expression">'
+curl --get <path> --data-urlencode 'filter="<filter expression>"'
 ```
 
 Filtering is executed on the Consul server, before data is returned, reducing the network load. To pass a
@@ -43,8 +43,8 @@ those endpoints.
 <Selector> is not empty
 
 // Contains checks or Substring Matching
-<"Value"> in <Selector>
-<"Value"> not in <Selector>
+"<Value>" in <Selector>
+"<Value>" not in <Selector>
 <Selector> contains "<Value>"
 <Selector> not contains "<Value>"
 
@@ -83,7 +83,7 @@ they may either be enclosed in double quotes or backticks. When enclosed in
 backticks they are treated as raw strings and escape sequences such as `\n`
 will not be expanded.
 
-## Connect Expressions
+## Connecting Expressions
 
 There are several methods for connecting expressions, including
 
@@ -200,7 +200,7 @@ curl -X GET localhost:8500/v1/agent/services
 **Command - Filtered**
 
 ```shell
-curl -G localhost:8500/v1/agent/services --data-urlencode 'filter=Meta.env == "qa"'
+curl --get localhost:8500/v1/agent/services --data-urlencode 'filter=Meta.env == "qa"'
 ```
 
 **Response - Filtered**
@@ -331,7 +331,7 @@ curl -X GET localhost:8500/v1/catalog/service/api-internal
 **Command - Filtered**
 
 ```shell
-curl -G localhost:8500/v1/catalog/service/api-internal --data-urlencode 'filter=NodeMeta.os == "linux"'
+curl --get localhost:8500/v1/catalog/service/api-internal --data-urlencode 'filter=NodeMeta.os == "linux"'
 ```
 
 **Response - Filtered**
