@@ -797,18 +797,7 @@ func (a *Agent) listenHTTP() ([]apiServer, error) {
 				httpServer.ConnState = connLimitFn
 			}
 
-			servers = append(servers, apiServer{
-				Protocol: proto,
-				Addr:     l.Addr(),
-				Shutdown: httpServer.Shutdown,
-				Run: func() error {
-					err := httpServer.Serve(l)
-					if err == nil || err == http.ErrServerClosed {
-						return nil
-					}
-					return fmt.Errorf("%s server %s failed: %w", proto, l.Addr(), err)
-				},
-			})
+			servers = append(servers, newAPIServerHTTP(proto, l, httpServer))
 		}
 		return nil
 	}
