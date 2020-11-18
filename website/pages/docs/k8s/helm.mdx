@@ -753,6 +753,8 @@ and consider if they're appropriate for your deployment.
 
     - `reconcilePeriod` ((#v-connectinject-healthchecks-reconcileperiod)) (`string: "1m"`) - If `healthChecks.enabled` is set to true, reconcilePeriod defines how often a full state reconcile is done after the initial reconcile at startup is completed.
 
+  - `envoyExtraArgs` (((#v-connectinject-envoyextraargs))) (`string: ""`) - Pass [arguments](https://www.envoyproxy.io/docs/envoy/latest/operations/cli) to the injected envoy sidecar, e.g `"--log-level debug --disable-hot-restart"`
+
   - `imageConsul` ((#v-connectinject-imageconsul)) (`string: global.image`) - The name of the Docker
     image (including any tag) for Consul. This is used for proxy service registration, Envoy configuration, etc.
 
