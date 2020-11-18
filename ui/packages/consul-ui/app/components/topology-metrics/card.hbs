@@ -7,7 +7,7 @@
     {{@item.Name}}
   </p>
   <div class="details">
-  {{#if (and (and @nspace (env 'CONSUL_NSPACES_ENABLED')) @type)}}
+  {{#if (and (env 'CONSUL_NSPACES_ENABLED') (not-eq @item.Namespace @service.Namespace))}}
     <dl class="nspace">
       <dt>
         <Tooltip>
