@@ -3,18 +3,13 @@ import { computed, get, set } from '@ember/object';
 import CollectionComponent from 'ember-collection/components/ember-collection';
 import needsRevalidate from 'ember-collection/utils/needs-revalidate';
 import Grid from 'ember-collection/layouts/grid';
-import style from 'ember-computed-style';
 import Slotted from 'block-slots';
 
 const formatItemStyle = Grid.prototype.formatItemStyle;
 
 export default CollectionComponent.extend(Slotted, {
-  tagName: 'table',
-  classNames: ['dom-recycling'],
-  classNameBindings: ['hasActions'],
-  attributeBindings: ['style'],
+  tagName: '',
   dom: service('dom'),
-  style: style('getStyle'),
   width: 1150,
   rowHeight: 50,
   maxHeight: 500,
@@ -22,6 +17,7 @@ export default CollectionComponent.extend(Slotted, {
   hasCaption: false,
   init: function() {
     this._super(...arguments);
+    this.guid = this.dom.guid(this);
     // TODO: The row height should auto calculate properly from the CSS
     const o = this;
     this['cell-layout'] = new Grid(get(this, 'width'), get(this, 'rowHeight'));
@@ -35,9 +31,10 @@ export default CollectionComponent.extend(Slotted, {
   },
   didInsertElement: function() {
     this._super(...arguments);
+    this.$element = this.dom.element(`#${this.guid}`);
     this.actions.resize.apply(this, [{ target: this.dom.viewport() }]);
   },
-  getStyle: computed('rowHeight', '_items', 'maxRows', 'maxHeight', function() {
+  style: computed('rowHeight', '_items', 'maxRows', 'maxHeight', function() {
     const maxRows = get(this, 'rows');
     let height = get(this, 'maxHeight');
     if (maxRows) {
@@ -68,7 +65,7 @@ export default CollectionComponent.extend(Slotted, {
   },
   actions: {
     resize: function(e) {
-      const $tbody = this.element;
+      const $tbody = this.$element;
       const $appContent = this.dom.element('.app-view');
       if ($appContent) {
         const border = 1;

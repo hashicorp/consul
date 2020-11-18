@@ -1,6 +1,8 @@
 <div
   class="list-collection list-collection-scroll-{{scroll}}"
-  style={{{style}}}
+  style={{{concat
+    'height:' style.height 'px'
+  }}}
   id={{guid}}
   ...attributes
 >
