@@ -17,7 +17,7 @@
     </div>
   {{#each @topology.Downstreams as |item|}}
     <TopologyMetrics::Card
-      @nspace={{or @service.Service.Namespace 'default'}}
+      @nspace={{@nspace}}
       @dc={{@dc}}
       @service={{@service.Service}}
       @item={{item}}
