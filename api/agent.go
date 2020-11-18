@@ -92,8 +92,9 @@ type AgentService struct {
 	// NOTE: If we ever set the ContentHash outside of singular service lookup then we may need
 	// to include the Namespace in the hash. When we do, then we are in for lots of fun with tests.
 	// For now though, ignoring it works well enough.
-	Namespace  string `json:",omitempty" bexpr:"-" hash:"ignore"`
-	Datacenter string `hash:"ignore"`
+	Namespace string `json:",omitempty" bexpr:"-" hash:"ignore"`
+	// Datacenter is only ever returned and is ignored if presented.
+	Datacenter string `json:"-" hash:"ignore"`
 }
 
 // AgentServiceChecksInfo returns information about a Service and its checks
