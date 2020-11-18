@@ -1,5 +1,7 @@
 ## UNRELEASED
 
+## 1.9.0-rc1 (November 17, 2020)
+
 BREAKING CHANGES:
 
 * connect: Update Envoy metrics names and labels for proxy listeners so that attributes like datacenter and namespace can be extracted. [[GH-9207](https://github.com/hashicorp/consul/issues/9207)]
