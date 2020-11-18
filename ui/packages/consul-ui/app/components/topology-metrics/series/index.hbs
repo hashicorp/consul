@@ -8,20 +8,22 @@
 
 {{on-window 'resize' (action 'redraw')}}
 
-{{#if data.labels}}
-<a class="sparkline-key-link" {{action (mut shouldShowKey) true}}>Key</a>
+{{#if (not empty)}}
+  {{#if data.labels}}
+  <a class="sparkline-key-link" {{action (mut shouldShowKey) true}}>Key</a>
+  {{/if}}
 {{/if}}
 
 <div class="sparkline-wrapper">
   <div class="tooltip">
     <div class="sparkline-time">Timestamp</div>
   </div>
-  {{#unless data}}
+  {{#if empty}}
     <TopologyMetrics::Status
       @noMetricsReason={{@noMetricsReason}}
       @error={{error}}
     />
-  {{/unless}}
+  {{/if}}
   <svg class="sparkline"></svg>
 </div>
 
