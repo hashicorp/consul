@@ -7935,13 +7935,6 @@ ember-composable-helpers@~4.0.0:
     ember-cli-babel "^7.11.1"
     resolve "^1.10.0"
 
-ember-computed-style@^0.3.0:
-  version "0.3.0"
-  resolved "https://registry.yarnpkg.com/ember-computed-style/-/ember-computed-style-0.3.0.tgz#a04375f8b48fbf72fd61e76da3358075bd195ae9"
-  integrity sha512-EMMlKa8HKUCUapkJVgi/2VPyqUTWxIGs/rNsxMcMiOLFErHv6D1Mw8tvByuXeCtW8KrbwAFX3vaCMNYsAZAjvQ==
-  dependencies:
-    ember-cli-babel "^6.6.0"
-
 ember-concurrency-decorators@^2.0.0:
   version "2.0.1"
   resolved "https://registry.yarnpkg.com/ember-concurrency-decorators/-/ember-concurrency-decorators-2.0.1.tgz#f5465785e6cf44684fb158ae6ab3aa1b131fae43"

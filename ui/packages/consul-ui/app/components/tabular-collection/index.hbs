@@ -1,3 +1,11 @@
+<table
+  class="tabular-collection dom-recycling {{if hasActions 'has-actions' ''}}"
+  id={{guid}}
+  style={{{concat
+    'height:' style.height 'px'
+  }}}
+  ...attributes
+>
 {{on-window 'resize' (action "resize") }}
 {{yield}}
 {{#if hasCaption}}
@@ -26,3 +34,4 @@
     </tr>
 {{~/each~}}
   </EmberNativeScrollable>
+</table>
