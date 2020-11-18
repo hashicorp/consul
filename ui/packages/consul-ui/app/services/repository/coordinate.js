@@ -30,7 +30,7 @@ export default class CoordinateService extends RepositoryService {
       if (get(coordinates, 'length') > 1) {
         results = tomography(
           node,
-          coordinates.map(item => get(item, 'data'))
+          coordinates
         );
       }
       results.meta = get(coordinates, 'meta');
