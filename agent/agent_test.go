@@ -4714,6 +4714,10 @@ func TestSharedRPCRouter(t *testing.T) {
 }
 
 func TestAgent_ListenHTTP_MultipleAddresses(t *testing.T) {
+	ports, err := freeport.Take(2)
+	require.NoError(t, err)
+	t.Cleanup(func() { freeport.Return(ports) })
+
 	caConfig := tlsutil.Config{}
 	tlsConf, err := tlsutil.NewConfigurator(caConfig, hclog.New(nil))
 	require.NoError(t, err)
@@ -4725,8 +4729,8 @@ func TestAgent_ListenHTTP_MultipleAddresses(t *testing.T) {
 		},
 		RuntimeConfig: &config.RuntimeConfig{
 			HTTPAddrs: []net.Addr{
-				&net.TCPAddr{IP: net.ParseIP("127.0.0.1")},
-				&net.TCPAddr{IP: net.ParseIP("127.0.0.1")},
+				&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: ports[0]},
+				&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: ports[1]},
 			},
 		},
 		Cache: cache.New(cache.Options{}),
