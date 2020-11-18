@@ -478,6 +478,7 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		LocalAgentClusterName: xds.LocalAgentClusterName,
 		Namespace:             httpCfg.Namespace,
 		EnvoyVersion:          c.envoyVersion,
+		Datacenter:            httpCfg.Datacenter,
 	}, nil
 }
 
@@ -529,15 +530,11 @@ func (c *cmd) generateConfig() ([]byte, error) {
 		// cluster is using namespaces regardless.
 		args.Namespace = svc.Namespace
 	}
-	agent, err := c.client.Agent().Self()
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch agent config: %v", err)
+
+	if svc.Datacenter != "" {
+		// The agent will definitely have the definitive answer here.
+		args.Datacenter = svc.Datacenter
 	}
-	dc, ok := agent["Config"]["Datacenter"].(string)
-	if !ok {
-		return nil, fmt.Errorf("failed to fetch datacenter from agent. DC is: %T", agent["Config"]["Datacenter"])
-	}
-	args.Datacenter = dc
 
 	if !c.disableCentralConfig {
 		// Parse the bootstrap config

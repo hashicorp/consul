@@ -991,9 +991,10 @@ func testMockAgentGatewayConfig(namespacesEnabled bool) http.HandlerFunc {
 
 		svc := map[string]*api.AgentService{
 			string(kind): {
-				Kind:    kind,
-				ID:      string(kind),
-				Service: string(kind),
+				Kind:       kind,
+				ID:         string(kind),
+				Service:    string(kind),
+				Datacenter: "dc1",
 			},
 		}
 
@@ -1036,6 +1037,7 @@ func testMockAgentProxyConfig(cfg map[string]interface{}, namespacesEnabled bool
 				DestinationServiceID:   serviceID,
 				Config:                 cfg,
 			},
+			Datacenter: "dc1",
 		}
 
 		if namespacesEnabled {
