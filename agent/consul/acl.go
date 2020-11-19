@@ -19,11 +19,11 @@ import (
 var ACLCounters = []prometheus.CounterDefinition{
 	{
 		Name: []string{"acl", "token", "cache_hit"},
-		Help: "",
+		Help: "Increments if Consul is able to resolve a token's identity, or a legacy token, from the cache.",
 	},
 	{
 		Name: []string{"acl", "token", "cache_miss"},
-		Help: "",
+		Help: "Increments if Consul cannot resolve a token's identity, or a legacy token, from the cache.",
 	},
 }
 
@@ -38,7 +38,7 @@ var ACLSummaries = []prometheus.SummaryDefinition{
 	},
 	{
 		Name: []string{"acl", "ResolveTokenToIdentity"},
-		Help: "",
+		Help: "This measures the time it takes to resolve an ACL token to an Identity.",
 	},
 }
 
