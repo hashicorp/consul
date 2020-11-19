@@ -4,7 +4,7 @@
 {{#let (hash
   instances=(if instance (split instance ',') undefined)
 ) as |filters|}}
-  {{#let (or sortBy "Name:asc") as |sort|}}
+  {{#let (or sortBy "Status:asc") as |sort|}}
 {{#if (gt gatewayServices.length 0)}}
     <input type="checkbox" id="toolbar-toggle" />
     <Consul::Upstream::SearchBar
