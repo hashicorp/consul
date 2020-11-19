@@ -12,13 +12,19 @@
     </BlockSlot>
 {{/if}}
     <BlockSlot @name="body">
-      <p>
-        You may have visited a URL that is loading an unknown resource, so you can try going back to the root or try re-submitting your ACL Token/SecretID by going back to ACLs.
-      </p>
+      {{#if error.detail}}
+        <p>
+          {{error.detail}}
+        </p>
+      {{else}}
+        <p>
+          You may have visited a URL that is loading an unknown resource, so you can try going back to the root or try re-submitting your ACL Token/SecretID by going back to ACLs.
+        </p>
+      {{/if}}
     </BlockSlot>
     <BlockSlot @name="actions">
       <li class="back-link">
-        <a data-test-home rel="home" href={{href-to 'index'}}>Go back to root</a>
+        <a data-test-home rel="home" href={{href-to 'index'}}>Go back</a>
       </li>
       <li class="docs-link">
         <a href="{{env 'CONSUL_DOCS_URL'}}" rel="noopener noreferrer" target="_blank">Read the documentation</a>
