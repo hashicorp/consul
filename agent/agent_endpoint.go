@@ -170,7 +170,7 @@ func (s *HTTPHandlers) AgentReload(resp http.ResponseWriter, req *http.Request) 
 	return nil, s.agent.ReloadConfig()
 }
 
-func buildAgentService(s *structs.NodeService) api.AgentService {
+func buildAgentService(s *structs.NodeService, dc string) api.AgentService {
 	weights := api.AgentWeights{Passing: 1, Warning: 1}
 	if s.Weights != nil {
 		if s.Weights.Passing > 0 {
@@ -200,6 +200,7 @@ func buildAgentService(s *structs.NodeService) api.AgentService {
 		CreateIndex:       s.CreateIndex,
 		ModifyIndex:       s.ModifyIndex,
 		Weights:           weights,
+		Datacenter:        dc,
 	}
 
 	if as.Tags == nil {
@@ -253,9 +254,11 @@ func (s *HTTPHandlers) AgentServices(resp http.ResponseWriter, req *http.Request
 	// anyway.
 	agentSvcs := make(map[string]*api.AgentService)
 
+	dc := s.agent.config.Datacenter
+
 	// Use empty list instead of nil
 	for id, s := range services {
-		agentService := buildAgentService(s)
+		agentService := buildAgentService(s, dc)
 		agentSvcs[id.ID] = &agentService
 	}
 
@@ -303,6 +306,8 @@ func (s *HTTPHandlers) AgentService(resp http.ResponseWriter, req *http.Request)
 
 	sid := structs.NewServiceID(id, &entMeta)
 
+	dc := s.agent.config.Datacenter
+
 	resultHash, service, err := s.agent.LocalBlockingQuery(false, hash, queryOpts.MaxQueryTime,
 		func(ws memdb.WatchSet) (string, interface{}, error) {
 
@@ -330,7 +335,7 @@ func (s *HTTPHandlers) AgentService(resp http.ResponseWriter, req *http.Request)
 			}
 
 			// Calculate the content hash over the response, minus the hash field
-			aSvc := buildAgentService(svc)
+			aSvc := buildAgentService(svc, dc)
 			reply := &aSvc
 
 			rawHash, err := hashstructure.Hash(reply, nil)
@@ -768,6 +773,8 @@ func (s *HTTPHandlers) AgentHealthServiceByID(resp http.ResponseWriter, req *htt
 
 	sid := structs.NewServiceID(serviceID, &entMeta)
 
+	dc := s.agent.config.Datacenter
+
 	if service := s.agent.State.Service(sid); service != nil {
 		if authz != nil && authz.ServiceRead(service.Service, &authzContext) != acl.Allow {
 			return nil, acl.ErrPermissionDenied
@@ -776,7 +783,7 @@ func (s *HTTPHandlers) AgentHealthServiceByID(resp http.ResponseWriter, req *htt
 		if returnTextPlain(req) {
 			return status, CodeWithPayloadError{StatusCode: code, Reason: status, ContentType: "text/plain"}
 		}
-		serviceInfo := buildAgentService(service)
+		serviceInfo := buildAgentService(service, dc)
 		result := &api.AgentServiceChecksInfo{
 			AggregatedStatus: status,
 			Checks:           healthChecks,
@@ -822,6 +829,8 @@ func (s *HTTPHandlers) AgentHealthServiceByName(resp http.ResponseWriter, req *h
 		return nil, acl.ErrPermissionDenied
 	}
 
+	dc := s.agent.config.Datacenter
+
 	code := http.StatusNotFound
 	status := fmt.Sprintf("ServiceName %s Not Found", serviceName)
 	services := s.agent.State.Services(&entMeta)
@@ -831,7 +840,7 @@ func (s *HTTPHandlers) AgentHealthServiceByName(resp http.ResponseWriter, req *h
 			sid := structs.NewServiceID(service.ID, &entMeta)
 
 			scode, sstatus, healthChecks := agentHealthService(sid, s)
-			serviceInfo := buildAgentService(service)
+			serviceInfo := buildAgentService(service, dc)
 			res := api.AgentServiceChecksInfo{
 				AggregatedStatus: sstatus,
 				Checks:           healthChecks,

@@ -365,8 +365,9 @@ func TestAgent_Service(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
-		Meta: map[string]string{},
-		Tags: []string{},
+		Meta:       map[string]string{},
+		Tags:       []string{},
+		Datacenter: "dc1",
 	}
 	fillAgentServiceEnterpriseMeta(expectedResponse, structs.DefaultEnterpriseMeta())
 
@@ -391,8 +392,9 @@ func TestAgent_Service(t *testing.T) {
 				Port:    1818,
 			},
 		},
-		Meta: map[string]string{},
-		Tags: []string{},
+		Meta:       map[string]string{},
+		Tags:       []string{},
+		Datacenter: "dc1",
 	}
 	fillAgentServiceEnterpriseMeta(expectWebResponse, structs.DefaultEnterpriseMeta())
 
