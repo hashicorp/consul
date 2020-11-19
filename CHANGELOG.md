@@ -1,5 +1,25 @@
 ## UNRELEASED
 
+## 1.7.10 (November 19, 2020)
+
+SECURITY:
+
+* Increase the permissions to read from the `/connect/ca/configuration` endpoint to `operator:write`. Previously Connect CA configuration, including the private key, set via this endpoint could be read back by an operator with `operator:read` privileges. [CVE-2020-28053](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-28053) [[GH-9240](https://github.com/hashicorp/consul/issues/9240)]
+
+## 1.7.9 (October 26, 2020)
+
+SECURITY:
+
+* Fix Consul Enterprise Namespace Config Entry Replication DoS. Previously an operator with service:write ACL permissions in a Consul Enterprise cluster could write a malicious config entry that caused infinite raft writes due to issues with the namespace replication logic. [CVE-2020-25201] (https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-25201) [[GH-9024](https://github.com/hashicorp/consul/issues/9024)]
+
+IMPROVEMENTS:
+
+* connect: update supported envoy releases to 1.13.6, 1.12.7, 1.11.2, 1.10.0 for 1.7.x [[GH-9000](https://github.com/hashicorp/consul/issues/9000)]
+
+BUG FIXES:
+
+* agent: when enable_central_service_config is enabled ensure agent reload doesn't revert check state to critical [[GH-8747](https://github.com/hashicorp/consul/issues/8747)]
+
 ## 1.7.8 (September 11, 2020)
 
 FEATURES:
