@@ -66,7 +66,7 @@ Feature: dc / services / show: Show Service
     And 1 service model from yaml
     ---
     - Checks:
-        - Status: passing
+        - Status: critical
       Service:
         Kind: ~
         ID: passing-service-8080
@@ -74,14 +74,18 @@ Feature: dc / services / show: Show Service
         Address: 1.1.1.1
       Node:
         Address: 1.2.2.2
-    - Service:
+    - Checks:
+        - Status: warning
+      Service:
         Kind: ~
         ID: service-8000
         Port: 8000
         Address: 2.2.2.2
       Node:
         Address: 2.3.3.3
-    - Service:
+    - Checks:
+        - Status: passing
+      Service:
         Kind: ~
         ID: service-8888
         Port: 8888

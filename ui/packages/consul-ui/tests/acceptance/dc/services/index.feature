@@ -7,33 +7,51 @@ Feature: dc / services / index: List Services
       - Name: Service-0
         ExternalSources:
           - consul
+        ChecksPassing: 0
+        ChecksWarning: 0
+        ChecksCritical: 10
         Kind: ~
       - Name: Service-0-proxy
         Kind: 'connect-proxy'
       - Name: Service-1
         ExternalSources:
           - nomad
+        ChecksPassing: 0
+        ChecksWarning: 0
+        ChecksCritical: 9
         Kind: ~
       - Name: Service-1-proxy
         Kind: 'connect-proxy'
       - Name: Service-2
         ExternalSources:
           - terraform
+        ChecksPassing: 0
+        ChecksWarning: 0
+        ChecksCritical: 8
         Kind: ~
       - Name: Service-2-proxy
         Kind: 'connect-proxy'
       - Name: Service-3
         ExternalSources:
           - kubernetes
+        ChecksPassing: 0
+        ChecksWarning: 0
+        ChecksCritical: 7
         Kind: ~
       - Name: Service-3-proxy
         Kind: 'connect-proxy'
       - Name: Service-4
         ExternalSources:
           - aws
+        ChecksPassing: 0
+        ChecksWarning: 0
+        ChecksCritical: 6
         Kind: ~
       - Name: Service-4-proxy
         Kind: 'connect-proxy'
+        ChecksPassing: 0
+        ChecksWarning: 0
+        ChecksCritical: 5
     ---
 
     When I visit the services page for yaml
@@ -57,10 +75,19 @@ Feature: dc / services / index: List Services
     ---
       - Name: Service-0-proxy
         Kind: 'connect-proxy'
+        ChecksPassing: 0
+        ChecksWarning: 0
+        ChecksCritical: 3
       - Name: Service-1-ingress-gateway
         Kind: 'ingress-gateway'
+        ChecksPassing: 0
+        ChecksWarning: 0
+        ChecksCritical: 2
       - Name: Service-2-terminating-gateway
         Kind: 'terminating-gateway'
+        ChecksPassing: 0
+        ChecksWarning: 0
+        ChecksCritical: 1
     ---
 
     When I visit the services page for yaml
@@ -83,12 +110,18 @@ Feature: dc / services / index: List Services
         Kind: ~
         ConnectedWithProxy: true
         ConnectedWithGateway: true
+        ChecksPassing: 0
+        ChecksWarning: 0
+        ChecksCritical: 2
       - Name: Service-0-proxy
         Kind: connect-proxy
       - Name: Service-1
         Kind: ~
         ConnectedWithProxy: false
         ConnectedWithGateway: false
+        ChecksPassing: 0
+        ChecksWarning: 0
+        ChecksCritical: 1
     ---
 
     When I visit the services page for yaml
@@ -106,10 +139,19 @@ Feature: dc / services / index: List Services
     ---
       - Name: Service-0
         Kind: ~
+        ChecksPassing: 0
+        ChecksWarning: 0
+        ChecksCritical: 2
       - Name: Service-0-proxy
         Kind: connect-proxy
+        ChecksPassing: 0
+        ChecksWarning: 0
+        ChecksCritical: 1
       - Name: Service-1
         Kind: 'ingress-gateway'
+        ChecksPassing: 0
+        ChecksWarning: 0
+        ChecksCritical: 1
         GatewayConfig:
         - AssociatedServiceCount: 345
     ---
