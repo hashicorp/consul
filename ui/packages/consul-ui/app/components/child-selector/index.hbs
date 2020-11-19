@@ -12,6 +12,7 @@
       />
     {{/if}}
       <PowerSelect
+          @searchEnabled={{true}}
           @search={{action "search"}}
           @options={{options}}
           @loadingMessage="Loading..."
