@@ -1,5 +1,45 @@
 ## UNRELEASED
 
+## 1.9.0-rc1 (November 17, 2020)
+
+BREAKING CHANGES:
+
+* connect: Update Envoy metrics names and labels for proxy listeners so that attributes like datacenter and namespace can be extracted. [[GH-9207](https://github.com/hashicorp/consul/issues/9207)]
+* server: **(Enterprise only)** Pre-existing intentions defined with
+non-existent destination namespaces were non-functional and are erased during
+the upgrade process. This should not matter as these intentions had nothing to
+enforce. [[GH-9186](https://github.com/hashicorp/consul/issues/9186)]
+* server: **(OSS only)** Pre-existing intentions defined with either a source or
+destination namespace value that is not "default" are rewritten or deleted
+during the upgrade process. Wildcards first attempt to downgrade to "default"
+unless an intention already exists, otherwise these non-functional intentions
+are deleted. [[GH-9186](https://github.com/hashicorp/consul/issues/9186)]
+
+FEATURES:
+
+* agent: return the default ACL policy to callers as a header [[GH-9101](https://github.com/hashicorp/consul/issues/9101)]
+* autopilot: Added a new `consul operator autopilot state` command to retrieve and view the Autopilot state from consul. [[GH-9142](https://github.com/hashicorp/consul/issues/9142)]
+
+IMPROVEMENTS:
+
+* agent: All metrics should be present and available to prometheus scrapers when Consul starts. If any non-deprecated metrics are missing please submit an issue with its name. [[GH-9198](https://github.com/hashicorp/consul/issues/9198)]
+* server: break up Intention.Apply monolithic method [[GH-9007](https://github.com/hashicorp/consul/issues/9007)]
+* server: remove config entry CAS in legacy intention API bridge code [[GH-9151](https://github.com/hashicorp/consul/issues/9151)]
+* ui: Add the Upstreams and Exposed Paths tabs for services in mesh [[GH-9141](https://github.com/hashicorp/consul/issues/9141)]
+* ui: Moves the Proxy health checks to be displayed with the Service health check under the Health Checks tab [[GH-9141](https://github.com/hashicorp/consul/issues/9141)]
+
+DEPRECATIONS:
+
+* telemetry: the disable_compat_1.9 config will cover more metrics deprecations in future 1.9 point releases. These metrics will be emitted twice for backwards compatibility - if the flag is true, only the new metric name will be written. [[GH-9181](https://github.com/hashicorp/consul/issues/9181)]
+
+BUG FIXES:
+
+* autopilot: Prevent panic when requesting the autopilot health immediately after a leader is elected. [[GH-9204](https://github.com/hashicorp/consul/issues/9204)]
+* license: **(Enterprise only)** Fixed an issue where warnings about Namespaces being unlicensed would be emitted erroneously.
+* namespace: **(Enterprise Only)** Fixed a bug that could case snapshot restoration to fail when it contained a namespace marked for deletion while still containing other resources in that namespace. [[GH-9156](https://github.com/hashicorp/consul/issues/9156)]
+* namespace: **(Enterprise Only)** Fixed an issue where namespaced services and checks were not being deleted when the containing namespace was deleted.
+* server: skip deleted and deleting namespaces when migrating intentions to config entries [[GH-9186](https://github.com/hashicorp/consul/issues/9186)]
+
 ## 1.9.0-beta3 (November 10, 2020)
 
 BREAKING CHANGES:
