@@ -21,10 +21,14 @@ Feature: dc / nodes / index
     ---
       - Address: 211.245.86.75
         Checks:
-          - Status: warning
+          - Status: critical
             Name: Warning check
       - Address: 10.0.0.1
+        Checks:
+          - Status: passing
       - Address: 10.0.0.3
+        Checks:
+          - Status: passing
     ---
     When I visit the nodes page for yaml
     ---

@@ -5,7 +5,7 @@
   kinds=(if kind (split kind ',') undefined)
   sources=(if source (split source ',') undefined)
 ) as |filters|}}
-  {{#let (or sortBy "Name:asc") as |sort|}}
+  {{#let (or sortBy "Status:asc") as |sort|}}
     <AppView>
       <BlockSlot @name="notification" as |status type|>
         <Consul::Service::Notifications
