@@ -26,9 +26,8 @@ export default class DcService extends RepositoryService {
         });
       }
     }
-    const e = new Error();
+    const e = new Error('Page not found');
     e.status = '404';
-    e.detail = 'Page not found';
     return Promise.reject({ errors: [e] });
   }
 
