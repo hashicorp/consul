@@ -1,3 +1,9 @@
+## UNRELEASED
+
+SECURITY:
+
+* Increase the permissions to read from the `/connect/ca/configuration` endpoint to `operator:write`. Previously Connect CA configuration, including the private key, set via this endpoint could be read back by an operator with `operator:read` privileges. [CVE-2020-28053](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-28053) [[GH-9240](https://github.com/hashicorp/consul/issues/9240)]
+
 ## 1.8.5 (October 23, 2020)
 
 SECURITY:
