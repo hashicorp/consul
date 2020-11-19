@@ -22,10 +22,12 @@ Feature: dc / acls / policies / as many / add existing: Add existing policy
     ---
     Then the url should be /datacenter/acls/[Model]s/key
     And I click "form > #policies .ember-power-select-trigger"
+    And I type "Policy 1" into ".ember-power-select-search-input"
     And I click ".ember-power-select-option:first-child"
     And I see 1 policy model on the policies component
     And I click "form > #policies .ember-power-select-trigger"
-    And I click ".ember-power-select-option:nth-child(1)"
+    And I type "Policy 2" into ".ember-power-select-search-input"
+    And I click ".ember-power-select-option:first-child"
     And I see 2 policy models on the policies component
     And I submit
     Then a PUT request was made to "/v1/acl/[Model]/key?dc=datacenter" with the body from yaml
