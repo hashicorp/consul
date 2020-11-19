@@ -4,7 +4,7 @@
   statuses=(if status (split status ',') undefined)
   sources=(if source (split source ',') undefined)
 ) as |filters|}}
-  {{#let (or sortBy "Name:asc") as |sort|}}
+  {{#let (or sortBy "Status:asc") as |sort|}}
     {{#if (gt items.length 0) }}
     <input type="checkbox" id="toolbar-toggle" />
     <Consul::ServiceInstance::SearchBar
