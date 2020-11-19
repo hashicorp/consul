@@ -11,18 +11,33 @@ import policy from 'consul-ui/sort/comparators/policy';
 import nspace from 'consul-ui/sort/comparators/nspace';
 import node from 'consul-ui/sort/comparators/node';
 
+// returns an array of Property:asc, Property:desc etc etc
+const directionify = arr => {
+  return arr.reduce((prev, item) => prev.concat([`${item}:asc`, `${item}:desc`]), []);
+};
+// Specify a list of sortable properties, when called with a property
+// returns an array ready to be passed to ember @sort
+// properties(['Potential', 'Sortable', 'Properties'])('Sortable:asc') => ['Sortable:asc']
+const properties = (props = []) => key => {
+  const comparables = directionify(props);
+  return [comparables.find(item => item === key) || comparables[0]];
+};
+const options = {
+  properties,
+  directionify,
+};
 const comparators = {
-  service: service(),
-  serviceInstance: serviceInstance(),
-  ['upstream-instance']: upstreamInstance(),
-  kv: kv(),
-  check: check(),
-  intention: intention(),
-  token: token(),
-  role: role(),
-  policy: policy(),
-  nspace: nspace(),
-  node: node(),
+  service: service(options),
+  serviceInstance: serviceInstance(options),
+  ['upstream-instance']: upstreamInstance(options),
+  kv: kv(options),
+  check: check(options),
+  intention: intention(options),
+  token: token(options),
+  role: role(options),
+  policy: policy(options),
+  nspace: nspace(options),
+  node: node(options),
 };
 export default class SortService extends Service {
   comparator(type) {
