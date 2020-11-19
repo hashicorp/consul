@@ -59,12 +59,12 @@ function init_workdir {
     find ${CASE_DIR}/${DC} -type f -name '*.hcl' -exec cp -f {} workdir/${DC}/consul \;
     find ${CASE_DIR}/${DC} -type f -name '*.bats' -exec cp -f {} workdir/${DC}/bats \;
   fi
-  
+
   if test -d "${CASE_DIR}/data"
   then
     cp -r ${CASE_DIR}/data/* workdir/${DC}/data
   fi
-  
+
   return 0
 }
 

@@ -1,4 +1,4 @@
-FROM alpine:latest
+FROM docker.mirror.hashicorp.services/alpine:latest
 
 RUN apk add --no-cache tcpdump
 VOLUME  [ "/data" ]

@@ -14,8 +14,7 @@ SECURITY:
 
 IMPROVEMENTS:
 
-* api: The `v1/connect/ca/roots` endpoint now accepts a `pem=true` query parameter and will return a PEM encoded certificate chain of
-     all the certificates that would normally be in the JSON version of the response. [[GH-8774](https://github.com/hashicorp/consul/issues/8774)]
+* api: The `v1/connect/ca/roots` endpoint now accepts a `pem=true` query parameter and will return a PEM encoded certificate chain of all the certificates that would normally be in the JSON version of the response. [[GH-8774](https://github.com/hashicorp/consul/issues/8774)]
 * connect: The Vault provider will now automatically renew the lease of the token used, if supported. [[GH-8560](https://github.com/hashicorp/consul/issues/8560)]
 * connect: update supported envoy releases to 1.14.5, 1.13.6, 1.12.7, 1.11.2 for 1.8.x [[GH-8999](https://github.com/hashicorp/consul/issues/8999)]
 
@@ -26,6 +25,7 @@ BUG FIXES:
 * connect: fix Vault provider not respecting IntermediateCertTTL [[GH-8646](https://github.com/hashicorp/consul/issues/8646)]
 * connect: fix connect sidecars registered via the API not being automatically deregistered with their parent service after an agent restart by persisting the LocallyRegisteredAsSidecar property. [[GH-8924](https://github.com/hashicorp/consul/issues/8924)]
 * fixed a bug that caused logs to be flooded with `[WARN] agent.router: Non-server in server-only area` [[GH-8685](https://github.com/hashicorp/consul/issues/8685)]
+* license: (Enterprise only) Fixed an issue where the UI would see Namespaces and SSO as licensed when they were not.
 * ui: show correct datacenter for gateways [[GH-8704](https://github.com/hashicorp/consul/issues/8704)]
 
 ## 1.8.4 (September 11, 2020)
