@@ -4,7 +4,7 @@
 {{#let (hash
   statuses=(if status (split status ',') undefined)
 ) as |filters|}}
-{{#let (or sortBy "Node:asc") as |sort|}}
+{{#let (or sortBy "Status:asc") as |sort|}}
   <AppView>
     <BlockSlot @name="header">
       <h1>
