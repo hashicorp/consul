@@ -119,7 +119,7 @@ func (s *ConnectCA) ConfigurationGet(
 	if err != nil {
 		return err
 	}
-	if rule != nil && !rule.OperatorRead() {
+	if rule != nil && !rule.OperatorWrite() {
 		return acl.ErrPermissionDenied
 	}
 
