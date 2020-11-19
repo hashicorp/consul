@@ -20,8 +20,7 @@
 }
 %filter-bar,
 %filter-bar > * {
-  /* frame-gray */
-  background-color: $gray-050;
+  background-color: $gray-010;
 }
 %filter-bar > *,
 %filter-bar label:not(:last-child) {
