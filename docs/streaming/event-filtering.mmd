@@ -1,0 +1,11 @@
+graph TD
+
+    state.Store -->|events in different topics| EventPublisher.Publish
+    EventPublisher.Publish -->|group by topic| EventPublisher.topicBuffer
+
+    EventPublisher.topicBuffer --> Subscription
+    Subscription -->|filter by key and namespace| SubscribeEndpoint
+    SubscribeEndpoint -->|"filter by auth (acl token)"| ProtobufEvents[/ grpc /]
+    ProtobufEvents -->|filter with bexpr| MaterializedView
+    MaterializedView --> HTTPEndpoint
+
