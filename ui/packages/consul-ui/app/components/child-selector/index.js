@@ -1,6 +1,6 @@
 import Component from '@ember/component';
 import { get, set, computed } from '@ember/object';
-import { alias } from '@ember/object/computed';
+import { alias, sort } from '@ember/object/computed';
 import { inject as service } from '@ember/service';
 
 import { task } from 'ember-concurrency';
@@ -15,7 +15,8 @@ export default Component.extend(Slotted, {
   type: '',
 
   dom: service('dom'),
-  container: service('search'),
+  search: service('search'),
+  sort: service('sort'),
   formContainer: service('form'),
 
   item: alias('form.data'),
@@ -25,7 +26,7 @@ export default Component.extend(Slotted, {
   init: function() {
     this._super(...arguments);
     this._listeners = this.dom.listeners();
-    this.searchable = this.container.searchable(this.type);
+    this.searchable = this.search.searchable(this.type);
     this.form = this.formContainer.form(this.type);
     this.form.clear({ Datacenter: this.dc, Namespace: this.nspace });
   },
@@ -33,16 +34,22 @@ export default Component.extend(Slotted, {
     this._super(...arguments);
     this._listeners.remove();
   },
-  options: computed('selectedOptions.[]', 'allOptions.[]', function() {
+  sortedOptions: sort('allOptions.[]', 'comparator'),
+  comparator: computed(function() {
+    return this.sort.comparator(this.type)();
+  }),
+  options: computed('selectedOptions.[]', 'sortedOptions.[]', function() {
     // It's not massively important here that we are defaulting `items` and
     // losing reference as its just to figure out the diff
-    let options = this.allOptions || [];
+    let options = this.sortedOptions || [];
     const items = this.selectedOptions || [];
     if (get(items, 'length') > 0) {
-      // find a proper ember-data diff
+      // filter out any items from the available options that have already been
+      // selected/added
+      // TODO: find a proper ember-data diff
       options = options.filter(item => !items.findBy('ID', get(item, 'ID')));
-      this.searchable.add(options);
     }
+    this.searchable.add(options);
     return options;
   }),
   save: task(function*(item, items, success = function() {}) {
