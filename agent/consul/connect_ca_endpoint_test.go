@@ -9,8 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
-
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	ca "github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/structs"
@@ -18,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func testParseCert(t *testing.T, pemValue string) *x509.Certificate {
@@ -142,6 +142,93 @@ func TestConnectCAConfig_GetSet(t *testing.T) {
 		assert.Equal(actual, expected)
 		assert.Equal(testState, reply.State)
 	}
+}
+
+func TestConnectCAConfig_GetSet_ACLDeny(t *testing.T) {
+	t.Parallel()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = TestDefaultMasterToken
+		c.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	opReadToken, err := upsertTestTokenWithPolicyRules(
+		codec, TestDefaultMasterToken, "dc1", `operator = "read"`)
+	require.NoError(t, err)
+
+	opWriteToken, err := upsertTestTokenWithPolicyRules(
+		codec, TestDefaultMasterToken, "dc1", `operator = "write"`)
+	require.NoError(t, err)
+
+	// Update a config value
+	newConfig := &structs.CAConfiguration{
+		Provider: "consul",
+		Config: map[string]interface{}{
+			"PrivateKey": `
+-----BEGIN EC PRIVATE KEY-----
+MHcCAQEEIMoTkpRggp3fqZzFKh82yS4LjtJI+XY+qX/7DefHFrtdoAoGCCqGSM49
+AwEHoUQDQgAEADPv1RHVNRfa2VKRAB16b6rZnEt7tuhaxCFpQXPj7M2omb0B9Fav
+q5E0ivpNtv1QnFhxtPd7d5k4e+T7SkW1TQ==
+-----END EC PRIVATE KEY-----`,
+			"RootCert": `
+-----BEGIN CERTIFICATE-----
+MIICjDCCAjKgAwIBAgIIC5llxGV1gB8wCgYIKoZIzj0EAwIwFDESMBAGA1UEAxMJ
+VGVzdCBDQSAyMB4XDTE5MDMyMjEzNTgyNloXDTI5MDMyMjEzNTgyNlowDjEMMAoG
+A1UEAxMDd2ViMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEADPv1RHVNRfa2VKR
+AB16b6rZnEt7tuhaxCFpQXPj7M2omb0B9Favq5E0ivpNtv1QnFhxtPd7d5k4e+T7
+SkW1TaOCAXIwggFuMA4GA1UdDwEB/wQEAwIDuDAdBgNVHSUEFjAUBggrBgEFBQcD
+AgYIKwYBBQUHAwEwDAYDVR0TAQH/BAIwADBoBgNVHQ4EYQRfN2Q6MDc6ODc6M2E6
+NDA6MTk6NDc6YzM6NWE6YzA6YmE6NjI6ZGY6YWY6NGI6ZDQ6MDU6MjU6NzY6M2Q6
+NWE6OGQ6MTY6OGQ6Njc6NWU6MmU6YTA6MzQ6N2Q6ZGM6ZmYwagYDVR0jBGMwYYBf
+ZDE6MTE6MTE6YWM6MmE6YmE6OTc6YjI6M2Y6YWM6N2I6YmQ6ZGE6YmU6YjE6OGE6
+ZmM6OWE6YmE6YjU6YmM6ODM6ZTc6NWU6NDE6NmY6ZjI6NzM6OTU6NTg6MGM6ZGIw
+WQYDVR0RBFIwUIZOc3BpZmZlOi8vMTExMTExMTEtMjIyMi0zMzMzLTQ0NDQtNTU1
+NTU1NTU1NTU1LmNvbnN1bC9ucy9kZWZhdWx0L2RjL2RjMS9zdmMvd2ViMAoGCCqG
+SM49BAMCA0gAMEUCIGC3TTvvjj76KMrguVyFf4tjOqaSCRie3nmHMRNNRav7AiEA
+pY0heYeK9A6iOLrzqxSerkXXQyj5e9bE4VgUnxgPU6g=
+-----END CERTIFICATE-----`,
+		},
+	}
+
+	args := &structs.CARequest{
+		Datacenter:   "dc1",
+		Config:       newConfig,
+		WriteRequest: structs.WriteRequest{Token: TestDefaultMasterToken},
+	}
+	var reply interface{}
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply))
+
+	t.Run("deny get with operator:read", func(t *testing.T) {
+		args := &structs.DCSpecificRequest{
+			Datacenter:   "dc1",
+			QueryOptions: structs.QueryOptions{Token: opReadToken.SecretID},
+		}
+
+		var reply structs.CAConfiguration
+		err = msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationGet", args, &reply)
+		assert.True(t, acl.IsErrPermissionDenied(err))
+	})
+
+	t.Run("allow get with operator:write", func(t *testing.T) {
+		args := &structs.DCSpecificRequest{
+			Datacenter:   "dc1",
+			QueryOptions: structs.QueryOptions{Token: opWriteToken.SecretID},
+		}
+
+		var reply structs.CAConfiguration
+		err = msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationGet", args, &reply)
+		assert.False(t, acl.IsErrPermissionDenied(err))
+		assert.Equal(t, newConfig.Config, reply.Config)
+	})
 }
 
 // This test case tests that the logic around forcing a rotation without cross
