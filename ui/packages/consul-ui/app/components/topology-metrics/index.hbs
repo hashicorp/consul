@@ -33,7 +33,7 @@
     </div>
     {{#if this.hasMetricsProvider }}
       <TopologyMetrics::Series
-        @nspace={{@service.Service.Namespace}}
+        @nspace={{or @service.Service.Namespace 'default'}}
         @dc={{@dc}}
         @service={{@service.Service.Service}}
         @protocol={{@topology.Protocol}}
@@ -41,7 +41,7 @@
       />
       {{#if (not-eq @service.Service.Kind 'ingress-gateway')}}
       <TopologyMetrics::Stats
-        @nspace={{@service.Service.Namespace}}
+        @nspace={{or @service.Service.Namespace 'default'}}
         @dc={{@dc}}
         @endpoint='summary-for-service'
         @service={{@service.Service.Service}}

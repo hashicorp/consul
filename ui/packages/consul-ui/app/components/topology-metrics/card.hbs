@@ -47,7 +47,7 @@
   {{#if (and @hasMetricsProvider (not-eq @service.Kind 'ingress-gateway'))}}
     {{#if (eq @type 'upstream')}}
       <TopologyMetrics::Stats
-        @nspace={{@item.Namespace}}
+        @nspace={{or @item.Namespace 'default'}}
         @dc={{@item.Datacenter}}
         @endpoint='upstream-summary-for-service'
         @service={{@service.Service}}
@@ -56,7 +56,7 @@
       />
     {{else}}
       <TopologyMetrics::Stats
-        @nspace={{@item.Namespace}}
+        @nspace={{or @item.Namespace 'default'}}
         @dc={{@item.Datacenter}}
         @endpoint='downstream-summary-for-service'
         @service={{@service.Service}}
