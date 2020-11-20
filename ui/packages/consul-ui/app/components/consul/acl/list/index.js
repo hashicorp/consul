@@ -1,15 +1,15 @@
 import Component from '@glimmer/component';
 import { inject as service } from '@ember/service';
 import { sort } from '@ember/object/computed';
-import { action, defineProperty } from '@ember/object';
 
-export default class ConsulServiceList extends Component {
+export default class ConsulAclList extends Component {
   @service('filter') filter;
   @service('sort') sort;
   @service('search') search;
 
+  @sort('searched', 'comparator') sorted;
+
   get items() {
-    defineProperty(this, 'sorted', sort('searched', this.comparator));
     return this.sorted;
   }
 
@@ -17,23 +17,18 @@ export default class ConsulServiceList extends Component {
     if (typeof this.args.search === 'undefined') {
       return this.filtered;
     }
-    const predicate = this.search.predicate('service');
+    const predicate = this.search.predicate('acl');
     return this.filtered.filter(
-      predicate(this.args.search, {properties: this.args.filters.searchproperties})
+      predicate(this.args.search)
     );
   }
 
   get filtered() {
-    const predicate = this.filter.predicate('service');
+    const predicate = this.filter.predicate('acl');
     return this.args.items.filter(predicate(this.args.filters));
   }
 
   get comparator() {
-    return this.sort.comparator('service')(this.args.sort);
-  }
-
-  @action
-  isLinkable (item) {
-    return item.InstanceCount > 0
+    return this.sort.comparator('acl')(this.args.sort);
   }
 }

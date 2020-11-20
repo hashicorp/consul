@@ -1,5 +1,6 @@
 import Service from '@ember/service';
 
+import acl from 'consul-ui/filter/predicates/acl';
 import service from 'consul-ui/filter/predicates/service';
 import serviceInstance from 'consul-ui/filter/predicates/service-instance';
 import node from 'consul-ui/filter/predicates/node';
@@ -8,6 +9,7 @@ import token from 'consul-ui/filter/predicates/token';
 import policy from 'consul-ui/filter/predicates/policy';
 
 const predicates = {
+  acl: acl(),
   service: service(),
   serviceInstance: serviceInstance(),
   node: node(),

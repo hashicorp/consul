@@ -8,9 +8,6 @@
   overflow: visible !important;
 }
 
-%app-view header form {
-  @extend %filter-bar;
-}
 %app-view-actions a,
 %app-view-actions button {
   @extend %button-compact;

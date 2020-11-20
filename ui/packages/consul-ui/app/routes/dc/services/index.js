@@ -10,6 +10,10 @@ export default class IndexRoute extends Route {
     status: 'status',
     source: 'source',
     kind: 'kind',
+    searchproperty: {
+      as: 'searchproperty',
+      empty: [['Name', 'Tags']],
+    },
     search: {
       as: 'filter',
       replace: true,

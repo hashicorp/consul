@@ -20,8 +20,6 @@
 @import './components/tooltip';
 @import './components/tag-list';
 @import './components/healthcheck-output';
-@import './components/freetext-filter';
-@import './components/filter-bar';
 @import './components/flash-message';
 @import './components/code-editor';
 @import './components/confirmation-dialog';
@@ -53,6 +51,8 @@
 
 @import 'consul-ui/components/notice';
 @import 'consul-ui/components/modal-dialog';
+@import 'consul-ui/components/filter-bar';
+@import 'consul-ui/components/freetext-filter';
 
 @import 'consul-ui/components/consul/tomography/graph';
 @import 'consul-ui/components/consul/discovery-chain';
