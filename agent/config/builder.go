@@ -121,7 +121,7 @@ func NewBuilder(opts BuilderOpts) (*Builder, error) {
 		Head: []Source{DefaultSource(), DefaultEnterpriseSource()},
 	}
 
-	if b.boolVal(opts.DevMode) {
+	if boolVal(opts.DevMode) {
 		b.Head = append(b.Head, DevSource())
 	}
 
@@ -148,7 +148,7 @@ func NewBuilder(opts BuilderOpts) (*Builder, error) {
 		})
 	}
 	b.Tail = append(b.Tail, NonUserSource(), DefaultConsulSource(), OverrideEnterpriseSource(), defaultVersionSource())
-	if b.boolVal(opts.DevMode) {
+	if boolVal(opts.DevMode) {
 		b.Tail = append(b.Tail, DevConsulSource())
 	}
 	return b, nil
@@ -350,14 +350,14 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		}
 	}
 
-	leaveOnTerm := !b.boolVal(c.ServerMode)
+	leaveOnTerm := !boolVal(c.ServerMode)
 	if c.LeaveOnTerm != nil {
-		leaveOnTerm = b.boolVal(c.LeaveOnTerm)
+		leaveOnTerm = boolVal(c.LeaveOnTerm)
 	}
 
-	skipLeaveOnInt := b.boolVal(c.ServerMode)
+	skipLeaveOnInt := boolVal(c.ServerMode)
 	if c.SkipLeaveOnInt != nil {
-		skipLeaveOnInt = b.boolVal(c.SkipLeaveOnInt)
+		skipLeaveOnInt = boolVal(c.SkipLeaveOnInt)
 	}
 
 	// ----------------------------------------------------------------
@@ -433,15 +433,15 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	if !isIPAddr(bindAddrs[0]) {
 		return RuntimeConfig{}, fmt.Errorf("bind_addr must be an ip address")
 	}
-	if ipaddr.IsAny(b.stringVal(c.AdvertiseAddrLAN)) {
+	if ipaddr.IsAny(stringVal(c.AdvertiseAddrLAN)) {
 		return RuntimeConfig{}, fmt.Errorf("Advertise address cannot be 0.0.0.0, :: or [::]")
 	}
-	if ipaddr.IsAny(b.stringVal(c.AdvertiseAddrWAN)) {
+	if ipaddr.IsAny(stringVal(c.AdvertiseAddrWAN)) {
 		return RuntimeConfig{}, fmt.Errorf("Advertise WAN address cannot be 0.0.0.0, :: or [::]")
 	}
 
 	bindAddr := bindAddrs[0].(*net.IPAddr)
-	advertiseAddr := b.makeIPAddr(b.expandFirstIP("advertise_addr", c.AdvertiseAddrLAN), bindAddr)
+	advertiseAddr := makeIPAddr(b.expandFirstIP("advertise_addr", c.AdvertiseAddrLAN), bindAddr)
 
 	if ipaddr.IsAny(advertiseAddr) {
 
@@ -487,7 +487,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	}
 
 	// derive other advertise addresses from the advertise address
-	advertiseAddrLAN := b.makeIPAddr(b.expandFirstIP("advertise_addr", c.AdvertiseAddrLAN), advertiseAddr)
+	advertiseAddrLAN := makeIPAddr(b.expandFirstIP("advertise_addr", c.AdvertiseAddrLAN), advertiseAddr)
 	advertiseAddrIsV6 := advertiseAddr.IP.To4() == nil
 	var advertiseAddrV4, advertiseAddrV6 *net.IPAddr
 	if !advertiseAddrIsV6 {
@@ -495,16 +495,16 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	} else {
 		advertiseAddrV6 = advertiseAddr
 	}
-	advertiseAddrLANIPv4 := b.makeIPAddr(b.expandFirstIP("advertise_addr_ipv4", c.AdvertiseAddrLANIPv4), advertiseAddrV4)
+	advertiseAddrLANIPv4 := makeIPAddr(b.expandFirstIP("advertise_addr_ipv4", c.AdvertiseAddrLANIPv4), advertiseAddrV4)
 	if advertiseAddrLANIPv4 != nil && advertiseAddrLANIPv4.IP.To4() == nil {
 		return RuntimeConfig{}, fmt.Errorf("advertise_addr_ipv4 must be an ipv4 address")
 	}
-	advertiseAddrLANIPv6 := b.makeIPAddr(b.expandFirstIP("advertise_addr_ipv6", c.AdvertiseAddrLANIPv6), advertiseAddrV6)
+	advertiseAddrLANIPv6 := makeIPAddr(b.expandFirstIP("advertise_addr_ipv6", c.AdvertiseAddrLANIPv6), advertiseAddrV6)
 	if advertiseAddrLANIPv6 != nil && advertiseAddrLANIPv6.IP.To4() != nil {
 		return RuntimeConfig{}, fmt.Errorf("advertise_addr_ipv6 must be an ipv6 address")
 	}
 
-	advertiseAddrWAN := b.makeIPAddr(b.expandFirstIP("advertise_addr_wan", c.AdvertiseAddrWAN), advertiseAddrLAN)
+	advertiseAddrWAN := makeIPAddr(b.expandFirstIP("advertise_addr_wan", c.AdvertiseAddrWAN), advertiseAddrLAN)
 	advertiseAddrWANIsV6 := advertiseAddrWAN.IP.To4() == nil
 	var advertiseAddrWANv4, advertiseAddrWANv6 *net.IPAddr
 	if !advertiseAddrWANIsV6 {
@@ -512,11 +512,11 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	} else {
 		advertiseAddrWANv6 = advertiseAddrWAN
 	}
-	advertiseAddrWANIPv4 := b.makeIPAddr(b.expandFirstIP("advertise_addr_wan_ipv4", c.AdvertiseAddrWANIPv4), advertiseAddrWANv4)
+	advertiseAddrWANIPv4 := makeIPAddr(b.expandFirstIP("advertise_addr_wan_ipv4", c.AdvertiseAddrWANIPv4), advertiseAddrWANv4)
 	if advertiseAddrWANIPv4 != nil && advertiseAddrWANIPv4.IP.To4() == nil {
 		return RuntimeConfig{}, fmt.Errorf("advertise_addr_wan_ipv4 must be an ipv4 address")
 	}
-	advertiseAddrWANIPv6 := b.makeIPAddr(b.expandFirstIP("advertise_addr_wan_ipv6", c.AdvertiseAddrWANIPv6), advertiseAddrWANv6)
+	advertiseAddrWANIPv6 := makeIPAddr(b.expandFirstIP("advertise_addr_wan_ipv6", c.AdvertiseAddrWANIPv6), advertiseAddrWANv6)
 	if advertiseAddrWANIPv6 != nil && advertiseAddrWANIPv6.IP.To4() != nil {
 		return RuntimeConfig{}, fmt.Errorf("advertise_addr_wan_ipv6 must be an ipv6 address")
 	}
@@ -562,8 +562,8 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		}
 	}
 
-	datacenter := strings.ToLower(b.stringVal(c.Datacenter))
-	altDomain := b.stringVal(c.DNSAltDomain)
+	datacenter := strings.ToLower(stringVal(c.Datacenter))
+	altDomain := stringVal(c.DNSAltDomain)
 
 	// Create the default set of tagged addresses.
 	if c.TaggedAddresses == nil {
@@ -589,7 +589,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	// segments
 	var segments []structs.NetworkSegment
 	for _, s := range c.Segments {
-		name := b.stringVal(s.Name)
+		name := stringVal(s.Name)
 		port := b.portVal(fmt.Sprintf("segments[%s].port", name), s.Port)
 		if port <= 0 {
 			return RuntimeConfig{}, fmt.Errorf("Port for segment %q cannot be <= 0", name)
@@ -611,7 +611,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 			Name:        name,
 			Bind:        bind,
 			Advertise:   advertise,
-			RPCListener: b.boolVal(s.RPCListener),
+			RPCListener: boolVal(s.RPCListener),
 		})
 	}
 
@@ -633,7 +633,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	}
 
 	// raft performance scaling
-	performanceRaftMultiplier := b.intVal(c.Performance.RaftMultiplier)
+	performanceRaftMultiplier := intVal(c.Performance.RaftMultiplier)
 	if performanceRaftMultiplier < 1 || uint(performanceRaftMultiplier) > consul.MaxRaftMultiplier {
 		return RuntimeConfig{}, fmt.Errorf("performance.raft_multiplier cannot be %d. Must be between 1 and %d", performanceRaftMultiplier, consul.MaxRaftMultiplier)
 	}
@@ -642,13 +642,13 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	consulRaftLeaderLeaseTimeout := b.durationVal("consul.raft.leader_lease_timeout", c.Consul.Raft.LeaderLeaseTimeout) * time.Duration(performanceRaftMultiplier)
 
 	// Connect
-	connectEnabled := b.boolVal(c.Connect.Enabled)
-	connectCAProvider := b.stringVal(c.Connect.CAProvider)
+	connectEnabled := boolVal(c.Connect.Enabled)
+	connectCAProvider := stringVal(c.Connect.CAProvider)
 	connectCAConfig := c.Connect.CAConfig
 
 	// autoEncrypt and autoConfig implicitly turns on connect which is why
 	// they need to be above other settings that rely on connect.
-	autoEncryptTLS := b.boolVal(c.AutoEncrypt.TLS)
+	autoEncryptTLS := boolVal(c.AutoEncrypt.TLS)
 	autoEncryptDNSSAN := []string{}
 	for _, d := range c.AutoEncrypt.DNSSAN {
 		autoEncryptDNSSAN = append(autoEncryptDNSSAN, d)
@@ -663,7 +663,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		autoEncryptIPSAN = append(autoEncryptIPSAN, ip)
 
 	}
-	autoEncryptAllowTLS := b.boolVal(c.AutoEncrypt.AllowTLS)
+	autoEncryptAllowTLS := boolVal(c.AutoEncrypt.AllowTLS)
 
 	if autoEncryptAllowTLS {
 		connectEnabled = true
@@ -675,7 +675,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	}
 
 	// Connect proxy defaults
-	connectMeshGatewayWANFederationEnabled := b.boolVal(c.Connect.MeshGatewayWANFederationEnabled)
+	connectMeshGatewayWANFederationEnabled := boolVal(c.Connect.MeshGatewayWANFederationEnabled)
 	if connectMeshGatewayWANFederationEnabled && !connectEnabled {
 		return RuntimeConfig{}, fmt.Errorf("'connect.enable_mesh_gateway_wan_federation=true' requires 'connect.enabled=true'")
 	}
@@ -714,12 +714,12 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	}
 
 	aclsEnabled := false
-	primaryDatacenter := strings.ToLower(b.stringVal(c.PrimaryDatacenter))
+	primaryDatacenter := strings.ToLower(stringVal(c.PrimaryDatacenter))
 	if c.ACLDatacenter != nil {
 		b.warn("The 'acl_datacenter' field is deprecated. Use the 'primary_datacenter' field instead.")
 
 		if primaryDatacenter == "" {
-			primaryDatacenter = strings.ToLower(b.stringVal(c.ACLDatacenter))
+			primaryDatacenter = strings.ToLower(stringVal(c.ACLDatacenter))
 		}
 
 		// when the acl_datacenter config is used it implicitly enables acls
@@ -727,7 +727,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	}
 
 	if c.ACL.Enabled != nil {
-		aclsEnabled = b.boolVal(c.ACL.Enabled)
+		aclsEnabled = boolVal(c.ACL.Enabled)
 	}
 
 	// Set the primary DC if it wasn't set.
@@ -740,14 +740,14 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		enableTokenReplication = true
 	}
 
-	b.boolValWithDefault(c.ACL.TokenReplication, b.boolValWithDefault(c.EnableACLReplication, enableTokenReplication))
+	boolValWithDefault(c.ACL.TokenReplication, boolValWithDefault(c.EnableACLReplication, enableTokenReplication))
 
-	enableRemoteScriptChecks := b.boolVal(c.EnableScriptChecks)
-	enableLocalScriptChecks := b.boolValWithDefault(c.EnableLocalScriptChecks, enableRemoteScriptChecks)
+	enableRemoteScriptChecks := boolVal(c.EnableScriptChecks)
+	enableLocalScriptChecks := boolValWithDefault(c.EnableLocalScriptChecks, enableRemoteScriptChecks)
 
 	// VerifyServerHostname implies VerifyOutgoing
-	verifyServerName := b.boolVal(c.VerifyServerHostname)
-	verifyOutgoing := b.boolVal(c.VerifyOutgoing)
+	verifyServerName := boolVal(c.VerifyServerHostname)
+	verifyOutgoing := boolVal(c.VerifyOutgoing)
 	if verifyServerName {
 		// Setting only verify_server_hostname is documented to imply
 		// verify_outgoing. If it doesn't then we risk sending communication over TCP
@@ -807,24 +807,24 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 	// ----------------------------------------------------------------
 	// build runtime config
 	//
-	dataDir := b.stringVal(c.DataDir)
+	dataDir := stringVal(c.DataDir)
 	rt = RuntimeConfig{
 		// non-user configurable values
 		ACLDisabledTTL:             b.durationVal("acl.disabled_ttl", c.ACL.DisabledTTL),
 		AEInterval:                 b.durationVal("ae_interval", c.AEInterval),
 		CheckDeregisterIntervalMin: b.durationVal("check_deregister_interval_min", c.CheckDeregisterIntervalMin),
 		CheckReapInterval:          b.durationVal("check_reap_interval", c.CheckReapInterval),
-		Revision:                   b.stringVal(c.Revision),
-		SegmentLimit:               b.intVal(c.SegmentLimit),
-		SegmentNameLimit:           b.intVal(c.SegmentNameLimit),
+		Revision:                   stringVal(c.Revision),
+		SegmentLimit:               intVal(c.SegmentLimit),
+		SegmentNameLimit:           intVal(c.SegmentNameLimit),
 		SyncCoordinateIntervalMin:  b.durationVal("sync_coordinate_interval_min", c.SyncCoordinateIntervalMin),
-		SyncCoordinateRateTarget:   b.float64Val(c.SyncCoordinateRateTarget),
-		Version:                    b.stringVal(c.Version),
-		VersionPrerelease:          b.stringVal(c.VersionPrerelease),
+		SyncCoordinateRateTarget:   float64Val(c.SyncCoordinateRateTarget),
+		Version:                    stringVal(c.Version),
+		VersionPrerelease:          stringVal(c.VersionPrerelease),
 
 		// consul configuration
-		ConsulCoordinateUpdateBatchSize:  b.intVal(c.Consul.Coordinate.UpdateBatchSize),
-		ConsulCoordinateUpdateMaxBatches: b.intVal(c.Consul.Coordinate.UpdateMaxBatches),
+		ConsulCoordinateUpdateBatchSize:  intVal(c.Consul.Coordinate.UpdateBatchSize),
+		ConsulCoordinateUpdateMaxBatches: intVal(c.Consul.Coordinate.UpdateMaxBatches),
 		ConsulCoordinateUpdatePeriod:     b.durationVal("consul.coordinate.update_period", c.Consul.Coordinate.UpdatePeriod),
 		ConsulRaftElectionTimeout:        consulRaftElectionTimeout,
 		ConsulRaftHeartbeatTimeout:       consulRaftHeartbeatTimeout,
@@ -833,68 +833,68 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 
 		// gossip configuration
 		GossipLANGossipInterval: b.durationVal("gossip_lan..gossip_interval", c.GossipLAN.GossipInterval),
-		GossipLANGossipNodes:    b.intVal(c.GossipLAN.GossipNodes),
+		GossipLANGossipNodes:    intVal(c.GossipLAN.GossipNodes),
 		GossipLANProbeInterval:  b.durationVal("gossip_lan..probe_interval", c.GossipLAN.ProbeInterval),
 		GossipLANProbeTimeout:   b.durationVal("gossip_lan..probe_timeout", c.GossipLAN.ProbeTimeout),
-		GossipLANSuspicionMult:  b.intVal(c.GossipLAN.SuspicionMult),
-		GossipLANRetransmitMult: b.intVal(c.GossipLAN.RetransmitMult),
+		GossipLANSuspicionMult:  intVal(c.GossipLAN.SuspicionMult),
+		GossipLANRetransmitMult: intVal(c.GossipLAN.RetransmitMult),
 		GossipWANGossipInterval: b.durationVal("gossip_wan..gossip_interval", c.GossipWAN.GossipInterval),
-		GossipWANGossipNodes:    b.intVal(c.GossipWAN.GossipNodes),
+		GossipWANGossipNodes:    intVal(c.GossipWAN.GossipNodes),
 		GossipWANProbeInterval:  b.durationVal("gossip_wan..probe_interval", c.GossipWAN.ProbeInterval),
 		GossipWANProbeTimeout:   b.durationVal("gossip_wan..probe_timeout", c.GossipWAN.ProbeTimeout),
-		GossipWANSuspicionMult:  b.intVal(c.GossipWAN.SuspicionMult),
-		GossipWANRetransmitMult: b.intVal(c.GossipWAN.RetransmitMult),
+		GossipWANSuspicionMult:  intVal(c.GossipWAN.SuspicionMult),
+		GossipWANRetransmitMult: intVal(c.GossipWAN.RetransmitMult),
 
 		// ACL
 		ACLsEnabled:            aclsEnabled,
 		ACLDatacenter:          primaryDatacenter,
-		ACLDefaultPolicy:       b.stringValWithDefault(c.ACL.DefaultPolicy, b.stringVal(c.ACLDefaultPolicy)),
-		ACLDownPolicy:          b.stringValWithDefault(c.ACL.DownPolicy, b.stringVal(c.ACLDownPolicy)),
-		ACLEnableKeyListPolicy: b.boolValWithDefault(c.ACL.EnableKeyListPolicy, b.boolVal(c.ACLEnableKeyListPolicy)),
-		ACLMasterToken:         b.stringValWithDefault(c.ACL.Tokens.Master, b.stringVal(c.ACLMasterToken)),
+		ACLDefaultPolicy:       stringValWithDefault(c.ACL.DefaultPolicy, stringVal(c.ACLDefaultPolicy)),
+		ACLDownPolicy:          stringValWithDefault(c.ACL.DownPolicy, stringVal(c.ACLDownPolicy)),
+		ACLEnableKeyListPolicy: boolValWithDefault(c.ACL.EnableKeyListPolicy, boolVal(c.ACLEnableKeyListPolicy)),
+		ACLMasterToken:         stringValWithDefault(c.ACL.Tokens.Master, stringVal(c.ACLMasterToken)),
 		ACLTokenTTL:            b.durationValWithDefault("acl.token_ttl", c.ACL.TokenTTL, b.durationVal("acl_ttl", c.ACLTTL)),
 		ACLPolicyTTL:           b.durationVal("acl.policy_ttl", c.ACL.PolicyTTL),
 		ACLRoleTTL:             b.durationVal("acl.role_ttl", c.ACL.RoleTTL),
-		ACLTokenReplication:    b.boolValWithDefault(c.ACL.TokenReplication, b.boolValWithDefault(c.EnableACLReplication, enableTokenReplication)),
+		ACLTokenReplication:    boolValWithDefault(c.ACL.TokenReplication, boolValWithDefault(c.EnableACLReplication, enableTokenReplication)),
 
 		ACLTokens: token.Config{
 			DataDir:             dataDir,
-			EnablePersistence:   b.boolValWithDefault(c.ACL.EnableTokenPersistence, false),
-			ACLDefaultToken:     b.stringValWithDefault(c.ACL.Tokens.Default, b.stringVal(c.ACLToken)),
-			ACLAgentToken:       b.stringValWithDefault(c.ACL.Tokens.Agent, b.stringVal(c.ACLAgentToken)),
-			ACLAgentMasterToken: b.stringValWithDefault(c.ACL.Tokens.AgentMaster, b.stringVal(c.ACLAgentMasterToken)),
-			ACLReplicationToken: b.stringValWithDefault(c.ACL.Tokens.Replication, b.stringVal(c.ACLReplicationToken)),
+			EnablePersistence:   boolValWithDefault(c.ACL.EnableTokenPersistence, false),
+			ACLDefaultToken:     stringValWithDefault(c.ACL.Tokens.Default, stringVal(c.ACLToken)),
+			ACLAgentToken:       stringValWithDefault(c.ACL.Tokens.Agent, stringVal(c.ACLAgentToken)),
+			ACLAgentMasterToken: stringValWithDefault(c.ACL.Tokens.AgentMaster, stringVal(c.ACLAgentMasterToken)),
+			ACLReplicationToken: stringValWithDefault(c.ACL.Tokens.Replication, stringVal(c.ACLReplicationToken)),
 		},
 
 		// Autopilot
-		AutopilotCleanupDeadServers:      b.boolVal(c.Autopilot.CleanupDeadServers),
-		AutopilotDisableUpgradeMigration: b.boolVal(c.Autopilot.DisableUpgradeMigration),
+		AutopilotCleanupDeadServers:      boolVal(c.Autopilot.CleanupDeadServers),
+		AutopilotDisableUpgradeMigration: boolVal(c.Autopilot.DisableUpgradeMigration),
 		AutopilotLastContactThreshold:    b.durationVal("autopilot.last_contact_threshold", c.Autopilot.LastContactThreshold),
-		AutopilotMaxTrailingLogs:         b.intVal(c.Autopilot.MaxTrailingLogs),
-		AutopilotMinQuorum:               b.uintVal(c.Autopilot.MinQuorum),
-		AutopilotRedundancyZoneTag:       b.stringVal(c.Autopilot.RedundancyZoneTag),
+		AutopilotMaxTrailingLogs:         intVal(c.Autopilot.MaxTrailingLogs),
+		AutopilotMinQuorum:               uintVal(c.Autopilot.MinQuorum),
+		AutopilotRedundancyZoneTag:       stringVal(c.Autopilot.RedundancyZoneTag),
 		AutopilotServerStabilizationTime: b.durationVal("autopilot.server_stabilization_time", c.Autopilot.ServerStabilizationTime),
-		AutopilotUpgradeVersionTag:       b.stringVal(c.Autopilot.UpgradeVersionTag),
+		AutopilotUpgradeVersionTag:       stringVal(c.Autopilot.UpgradeVersionTag),
 
 		// DNS
 		DNSAddrs:              dnsAddrs,
-		DNSAllowStale:         b.boolVal(c.DNS.AllowStale),
-		DNSARecordLimit:       b.intVal(c.DNS.ARecordLimit),
-		DNSDisableCompression: b.boolVal(c.DNS.DisableCompression),
-		DNSDomain:             b.stringVal(c.DNSDomain),
+		DNSAllowStale:         boolVal(c.DNS.AllowStale),
+		DNSARecordLimit:       intVal(c.DNS.ARecordLimit),
+		DNSDisableCompression: boolVal(c.DNS.DisableCompression),
+		DNSDomain:             stringVal(c.DNSDomain),
 		DNSAltDomain:          altDomain,
-		DNSEnableTruncate:     b.boolVal(c.DNS.EnableTruncate),
+		DNSEnableTruncate:     boolVal(c.DNS.EnableTruncate),
 		DNSMaxStale:           b.durationVal("dns_config.max_stale", c.DNS.MaxStale),
 		DNSNodeTTL:            b.durationVal("dns_config.node_ttl", c.DNS.NodeTTL),
-		DNSOnlyPassing:        b.boolVal(c.DNS.OnlyPassing),
+		DNSOnlyPassing:        boolVal(c.DNS.OnlyPassing),
 		DNSPort:               dnsPort,
 		DNSRecursorTimeout:    b.durationVal("recursor_timeout", c.DNS.RecursorTimeout),
 		DNSRecursors:          dnsRecursors,
 		DNSServiceTTL:         dnsServiceTTL,
 		DNSSOA:                soa,
-		DNSUDPAnswerLimit:     b.intVal(c.DNS.UDPAnswerLimit),
-		DNSNodeMetaTXT:        b.boolValWithDefault(c.DNS.NodeMetaTXT, true),
-		DNSUseCache:           b.boolVal(c.DNS.UseCache),
+		DNSUDPAnswerLimit:     intVal(c.DNS.UDPAnswerLimit),
+		DNSNodeMetaTXT:        boolValWithDefault(c.DNS.NodeMetaTXT, true),
+		DNSUseCache:           boolVal(c.DNS.UseCache),
 		DNSCacheMaxAge:        b.durationVal("dns_config.cache_max_age", c.DNS.CacheMaxAge),
 
 		// HTTP
@@ -903,36 +903,36 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		HTTPAddrs:           httpAddrs,
 		HTTPSAddrs:          httpsAddrs,
 		HTTPBlockEndpoints:  c.HTTPConfig.BlockEndpoints,
-		HTTPMaxHeaderBytes:  b.intVal(c.HTTPConfig.MaxHeaderBytes),
+		HTTPMaxHeaderBytes:  intVal(c.HTTPConfig.MaxHeaderBytes),
 		HTTPResponseHeaders: c.HTTPConfig.ResponseHeaders,
 		AllowWriteHTTPFrom:  b.cidrsVal("allow_write_http_from", c.HTTPConfig.AllowWriteHTTPFrom),
-		HTTPUseCache:        b.boolValWithDefault(c.HTTPConfig.UseCache, true),
+		HTTPUseCache:        boolValWithDefault(c.HTTPConfig.UseCache, true),
 
 		// Telemetry
 		Telemetry: lib.TelemetryConfig{
-			CirconusAPIApp:                     b.stringVal(c.Telemetry.CirconusAPIApp),
-			CirconusAPIToken:                   b.stringVal(c.Telemetry.CirconusAPIToken),
-			CirconusAPIURL:                     b.stringVal(c.Telemetry.CirconusAPIURL),
-			CirconusBrokerID:                   b.stringVal(c.Telemetry.CirconusBrokerID),
-			CirconusBrokerSelectTag:            b.stringVal(c.Telemetry.CirconusBrokerSelectTag),
-			CirconusCheckDisplayName:           b.stringVal(c.Telemetry.CirconusCheckDisplayName),
-			CirconusCheckForceMetricActivation: b.stringVal(c.Telemetry.CirconusCheckForceMetricActivation),
-			CirconusCheckID:                    b.stringVal(c.Telemetry.CirconusCheckID),
-			CirconusCheckInstanceID:            b.stringVal(c.Telemetry.CirconusCheckInstanceID),
-			CirconusCheckSearchTag:             b.stringVal(c.Telemetry.CirconusCheckSearchTag),
-			CirconusCheckTags:                  b.stringVal(c.Telemetry.CirconusCheckTags),
-			CirconusSubmissionInterval:         b.stringVal(c.Telemetry.CirconusSubmissionInterval),
-			CirconusSubmissionURL:              b.stringVal(c.Telemetry.CirconusSubmissionURL),
-			DisableCompatOneNine:               b.boolVal(c.Telemetry.DisableCompatOneNine),
-			DisableHostname:                    b.boolVal(c.Telemetry.DisableHostname),
-			DogstatsdAddr:                      b.stringVal(c.Telemetry.DogstatsdAddr),
+			CirconusAPIApp:                     stringVal(c.Telemetry.CirconusAPIApp),
+			CirconusAPIToken:                   stringVal(c.Telemetry.CirconusAPIToken),
+			CirconusAPIURL:                     stringVal(c.Telemetry.CirconusAPIURL),
+			CirconusBrokerID:                   stringVal(c.Telemetry.CirconusBrokerID),
+			CirconusBrokerSelectTag:            stringVal(c.Telemetry.CirconusBrokerSelectTag),
+			CirconusCheckDisplayName:           stringVal(c.Telemetry.CirconusCheckDisplayName),
+			CirconusCheckForceMetricActivation: stringVal(c.Telemetry.CirconusCheckForceMetricActivation),
+			CirconusCheckID:                    stringVal(c.Telemetry.CirconusCheckID),
+			CirconusCheckInstanceID:            stringVal(c.Telemetry.CirconusCheckInstanceID),
+			CirconusCheckSearchTag:             stringVal(c.Telemetry.CirconusCheckSearchTag),
+			CirconusCheckTags:                  stringVal(c.Telemetry.CirconusCheckTags),
+			CirconusSubmissionInterval:         stringVal(c.Telemetry.CirconusSubmissionInterval),
+			CirconusSubmissionURL:              stringVal(c.Telemetry.CirconusSubmissionURL),
+			DisableCompatOneNine:               boolVal(c.Telemetry.DisableCompatOneNine),
+			DisableHostname:                    boolVal(c.Telemetry.DisableHostname),
+			DogstatsdAddr:                      stringVal(c.Telemetry.DogstatsdAddr),
 			DogstatsdTags:                      c.Telemetry.DogstatsdTags,
-			FilterDefault:                      b.boolVal(c.Telemetry.FilterDefault),
+			FilterDefault:                      boolVal(c.Telemetry.FilterDefault),
 			AllowedPrefixes:                    telemetryAllowedPrefixes,
 			BlockedPrefixes:                    telemetryBlockedPrefixes,
-			MetricsPrefix:                      b.stringVal(c.Telemetry.MetricsPrefix),
-			StatsdAddr:                         b.stringVal(c.Telemetry.StatsdAddr),
-			StatsiteAddr:                       b.stringVal(c.Telemetry.StatsiteAddr),
+			MetricsPrefix:                      stringVal(c.Telemetry.MetricsPrefix),
+			StatsdAddr:                         stringVal(c.Telemetry.StatsdAddr),
+			StatsiteAddr:                       stringVal(c.Telemetry.StatsiteAddr),
 			PrometheusOpts: prometheus.PrometheusOpts{
 				Expiration: b.durationVal("prometheus_retention_time", c.Telemetry.PrometheusRetentionTime),
 			},
@@ -943,21 +943,21 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		AdvertiseAddrWAN:          advertiseAddrWAN,
 		AdvertiseReconnectTimeout: b.durationVal("advertise_reconnect_timeout", c.AdvertiseReconnectTimeout),
 		BindAddr:                  bindAddr,
-		Bootstrap:                 b.boolVal(c.Bootstrap),
-		BootstrapExpect:           b.intVal(c.BootstrapExpect),
+		Bootstrap:                 boolVal(c.Bootstrap),
+		BootstrapExpect:           intVal(c.BootstrapExpect),
 		Cache: cache.Options{
 			EntryFetchRate: rate.Limit(
-				b.float64ValWithDefault(c.Cache.EntryFetchRate, float64(cache.DefaultEntryFetchRate)),
+				float64ValWithDefault(c.Cache.EntryFetchRate, float64(cache.DefaultEntryFetchRate)),
 			),
-			EntryFetchMaxBurst: b.intValWithDefault(
+			EntryFetchMaxBurst: intValWithDefault(
 				c.Cache.EntryFetchMaxBurst, cache.DefaultEntryFetchMaxBurst,
 			),
 		},
-		CAFile:                                 b.stringVal(c.CAFile),
-		CAPath:                                 b.stringVal(c.CAPath),
-		CertFile:                               b.stringVal(c.CertFile),
+		CAFile:                                 stringVal(c.CAFile),
+		CAPath:                                 stringVal(c.CAPath),
+		CertFile:                               stringVal(c.CertFile),
 		CheckUpdateInterval:                    b.durationVal("check_update_interval", c.CheckUpdateInterval),
-		CheckOutputMaxSize:                     b.intValWithDefault(c.CheckOutputMaxSize, 4096),
+		CheckOutputMaxSize:                     intValWithDefault(c.CheckOutputMaxSize, 4096),
 		Checks:                                 checks,
 		ClientAddrs:                            clientAddrs,
 		ConfigEntryBootstrap:                   configEntries,
@@ -978,48 +978,49 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		DataDir:                                dataDir,
 		Datacenter:                             datacenter,
 		DefaultQueryTime:                       b.durationVal("default_query_time", c.DefaultQueryTime),
-		DevMode:                                b.boolVal(b.opts.DevMode),
-		DisableAnonymousSignature:              b.boolVal(c.DisableAnonymousSignature),
-		DisableCoordinates:                     b.boolVal(c.DisableCoordinates),
-		DisableHostNodeID:                      b.boolVal(c.DisableHostNodeID),
-		DisableHTTPUnprintableCharFilter:       b.boolVal(c.DisableHTTPUnprintableCharFilter),
-		DisableKeyringFile:                     b.boolVal(c.DisableKeyringFile),
-		DisableRemoteExec:                      b.boolVal(c.DisableRemoteExec),
-		DisableUpdateCheck:                     b.boolVal(c.DisableUpdateCheck),
-		DiscardCheckOutput:                     b.boolVal(c.DiscardCheckOutput),
-		DiscoveryMaxStale:                      b.durationVal("discovery_max_stale", c.DiscoveryMaxStale),
-		EnableAgentTLSForChecks:                b.boolVal(c.EnableAgentTLSForChecks),
-		EnableCentralServiceConfig:             b.boolVal(c.EnableCentralServiceConfig),
-		EnableDebug:                            b.boolVal(c.EnableDebug),
-		EnableRemoteScriptChecks:               enableRemoteScriptChecks,
-		EnableLocalScriptChecks:                enableLocalScriptChecks,
-		EncryptKey:                             b.stringVal(c.EncryptKey),
-		EncryptVerifyIncoming:                  b.boolVal(c.EncryptVerifyIncoming),
-		EncryptVerifyOutgoing:                  b.boolVal(c.EncryptVerifyOutgoing),
-		GRPCPort:                               grpcPort,
-		GRPCAddrs:                              grpcAddrs,
-		HTTPMaxConnsPerClient:                  b.intVal(c.Limits.HTTPMaxConnsPerClient),
-		HTTPSHandshakeTimeout:                  b.durationVal("limits.https_handshake_timeout", c.Limits.HTTPSHandshakeTimeout),
-		KeyFile:                                b.stringVal(c.KeyFile),
-		KVMaxValueSize:                         b.uint64Val(c.Limits.KVMaxValueSize),
-		LeaveDrainTime:                         b.durationVal("performance.leave_drain_time", c.Performance.LeaveDrainTime),
-		LeaveOnTerm:                            leaveOnTerm,
+		DevMode:                                boolVal(b.opts.DevMode),
+		DisableAnonymousSignature:              boolVal(c.DisableAnonymousSignature),
+		DisableCoordinates:                     boolVal(c.DisableCoordinates),
+		DisableHostNodeID:                      boolVal(c.DisableHostNodeID),
+		DisableHTTPUnprintableCharFilter:       boolVal(c.DisableHTTPUnprintableCharFilter),
+		DisableKeyringFile:                     boolVal(c.DisableKeyringFile),
+		DisableRemoteExec:                      boolVal(c.DisableRemoteExec),
+		DisableUpdateCheck:                     boolVal(c.DisableUpdateCheck),
+		DiscardCheckOutput:                     boolVal(c.DiscardCheckOutput),
+
+		DiscoveryMaxStale:          b.durationVal("discovery_max_stale", c.DiscoveryMaxStale),
+		EnableAgentTLSForChecks:    boolVal(c.EnableAgentTLSForChecks),
+		EnableCentralServiceConfig: boolVal(c.EnableCentralServiceConfig),
+		EnableDebug:                boolVal(c.EnableDebug),
+		EnableRemoteScriptChecks:   enableRemoteScriptChecks,
+		EnableLocalScriptChecks:    enableLocalScriptChecks,
+		EncryptKey:                 stringVal(c.EncryptKey),
+		EncryptVerifyIncoming:      boolVal(c.EncryptVerifyIncoming),
+		EncryptVerifyOutgoing:      boolVal(c.EncryptVerifyOutgoing),
+		GRPCPort:                   grpcPort,
+		GRPCAddrs:                  grpcAddrs,
+		HTTPMaxConnsPerClient:      intVal(c.Limits.HTTPMaxConnsPerClient),
+		HTTPSHandshakeTimeout:      b.durationVal("limits.https_handshake_timeout", c.Limits.HTTPSHandshakeTimeout),
+		KeyFile:                    stringVal(c.KeyFile),
+		KVMaxValueSize:             uint64Val(c.Limits.KVMaxValueSize),
+		LeaveDrainTime:             b.durationVal("performance.leave_drain_time", c.Performance.LeaveDrainTime),
+		LeaveOnTerm:                leaveOnTerm,
 		Logging: logging.Config{
-			LogLevel:          b.stringVal(c.LogLevel),
-			LogJSON:           b.boolVal(c.LogJSON),
-			LogFilePath:       b.stringVal(c.LogFile),
-			EnableSyslog:      b.boolVal(c.EnableSyslog),
-			SyslogFacility:    b.stringVal(c.SyslogFacility),
+			LogLevel:          stringVal(c.LogLevel),
+			LogJSON:           boolVal(c.LogJSON),
+			LogFilePath:       stringVal(c.LogFile),
+			EnableSyslog:      boolVal(c.EnableSyslog),
+			SyslogFacility:    stringVal(c.SyslogFacility),
 			LogRotateDuration: b.durationVal("log_rotate_duration", c.LogRotateDuration),
-			LogRotateBytes:    b.intVal(c.LogRotateBytes),
-			LogRotateMaxFiles: b.intVal(c.LogRotateMaxFiles),
+			LogRotateBytes:    intVal(c.LogRotateBytes),
+			LogRotateMaxFiles: intVal(c.LogRotateMaxFiles),
 		},
 		MaxQueryTime:                b.durationVal("max_query_time", c.MaxQueryTime),
-		NodeID:                      types.NodeID(b.stringVal(c.NodeID)),
+		NodeID:                      types.NodeID(stringVal(c.NodeID)),
 		NodeMeta:                    c.NodeMeta,
 		NodeName:                    b.nodeName(c.NodeName),
-		ReadReplica:                 b.boolVal(c.ReadReplica),
-		PidFile:                     b.stringVal(c.PidFile),
+		ReadReplica:                 boolVal(c.ReadReplica),
+		PidFile:                     stringVal(c.PidFile),
 		PrimaryDatacenter:           primaryDatacenter,
 		PrimaryGateways:             b.expandAllOptionalAddrs("primary_gateways", c.PrimaryGateways),
 		PrimaryGatewaysInterval:     b.durationVal("primary_gateways_interval", c.PrimaryGatewaysInterval),
@@ -1027,25 +1028,25 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		RPCBindAddr:                 rpcBindAddr,
 		RPCHandshakeTimeout:         b.durationVal("limits.rpc_handshake_timeout", c.Limits.RPCHandshakeTimeout),
 		RPCHoldTimeout:              b.durationVal("performance.rpc_hold_timeout", c.Performance.RPCHoldTimeout),
-		RPCMaxBurst:                 b.intVal(c.Limits.RPCMaxBurst),
-		RPCMaxConnsPerClient:        b.intVal(c.Limits.RPCMaxConnsPerClient),
-		RPCProtocol:                 b.intVal(c.RPCProtocol),
-		RPCRateLimit:                rate.Limit(b.float64Val(c.Limits.RPCRate)),
-		RPCConfig:                   consul.RPCConfig{EnableStreaming: b.boolVal(c.RPC.EnableStreaming)},
-		RaftProtocol:                b.intVal(c.RaftProtocol),
-		RaftSnapshotThreshold:       b.intVal(c.RaftSnapshotThreshold),
+		RPCMaxBurst:                 intVal(c.Limits.RPCMaxBurst),
+		RPCMaxConnsPerClient:        intVal(c.Limits.RPCMaxConnsPerClient),
+		RPCProtocol:                 intVal(c.RPCProtocol),
+		RPCRateLimit:                rate.Limit(float64Val(c.Limits.RPCRate)),
+		RPCConfig:                   consul.RPCConfig{EnableStreaming: boolVal(c.RPC.EnableStreaming)},
+		RaftProtocol:                intVal(c.RaftProtocol),
+		RaftSnapshotThreshold:       intVal(c.RaftSnapshotThreshold),
 		RaftSnapshotInterval:        b.durationVal("raft_snapshot_interval", c.RaftSnapshotInterval),
-		RaftTrailingLogs:            b.intVal(c.RaftTrailingLogs),
+		RaftTrailingLogs:            intVal(c.RaftTrailingLogs),
 		ReconnectTimeoutLAN:         b.durationVal("reconnect_timeout", c.ReconnectTimeoutLAN),
 		ReconnectTimeoutWAN:         b.durationVal("reconnect_timeout_wan", c.ReconnectTimeoutWAN),
-		RejoinAfterLeave:            b.boolVal(c.RejoinAfterLeave),
+		RejoinAfterLeave:            boolVal(c.RejoinAfterLeave),
 		RetryJoinIntervalLAN:        b.durationVal("retry_interval", c.RetryJoinIntervalLAN),
 		RetryJoinIntervalWAN:        b.durationVal("retry_interval_wan", c.RetryJoinIntervalWAN),
 		RetryJoinLAN:                b.expandAllOptionalAddrs("retry_join", c.RetryJoinLAN),
-		RetryJoinMaxAttemptsLAN:     b.intVal(c.RetryJoinMaxAttemptsLAN),
-		RetryJoinMaxAttemptsWAN:     b.intVal(c.RetryJoinMaxAttemptsWAN),
+		RetryJoinMaxAttemptsLAN:     intVal(c.RetryJoinMaxAttemptsLAN),
+		RetryJoinMaxAttemptsWAN:     intVal(c.RetryJoinMaxAttemptsWAN),
 		RetryJoinWAN:                b.expandAllOptionalAddrs("retry_join_wan", c.RetryJoinWAN),
-		SegmentName:                 b.stringVal(c.SegmentName),
+		SegmentName:                 stringVal(c.SegmentName),
 		Segments:                    segments,
 		SerfAdvertiseAddrLAN:        serfAdvertiseAddrLAN,
 		SerfAdvertiseAddrWAN:        serfAdvertiseAddrWAN,
@@ -1055,8 +1056,8 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		SerfBindAddrWAN:             serfBindAddrWAN,
 		SerfPortLAN:                 serfPortLAN,
 		SerfPortWAN:                 serfPortWAN,
-		ServerMode:                  b.boolVal(c.ServerMode),
-		ServerName:                  b.stringVal(c.ServerName),
+		ServerMode:                  boolVal(c.ServerMode),
+		ServerName:                  stringVal(c.ServerName),
 		ServerPort:                  serverPort,
 		Services:                    services,
 		SessionTTLMin:               b.durationVal("session_ttl_min", c.SessionTTLMin),
@@ -1064,24 +1065,24 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		StartJoinAddrsLAN:           b.expandAllOptionalAddrs("start_join", c.StartJoinAddrsLAN),
 		StartJoinAddrsWAN:           b.expandAllOptionalAddrs("start_join_wan", c.StartJoinAddrsWAN),
 		TLSCipherSuites:             b.tlsCipherSuites("tls_cipher_suites", c.TLSCipherSuites),
-		TLSMinVersion:               b.stringVal(c.TLSMinVersion),
-		TLSPreferServerCipherSuites: b.boolVal(c.TLSPreferServerCipherSuites),
+		TLSMinVersion:               stringVal(c.TLSMinVersion),
+		TLSPreferServerCipherSuites: boolVal(c.TLSPreferServerCipherSuites),
 		TaggedAddresses:             c.TaggedAddresses,
-		TranslateWANAddrs:           b.boolVal(c.TranslateWANAddrs),
-		TxnMaxReqLen:                b.uint64Val(c.Limits.TxnMaxReqLen),
+		TranslateWANAddrs:           boolVal(c.TranslateWANAddrs),
+		TxnMaxReqLen:                uint64Val(c.Limits.TxnMaxReqLen),
 		UIConfig:                    b.uiConfigVal(c.UIConfig),
-		UnixSocketGroup:             b.stringVal(c.UnixSocket.Group),
-		UnixSocketMode:              b.stringVal(c.UnixSocket.Mode),
-		UnixSocketUser:              b.stringVal(c.UnixSocket.User),
-		VerifyIncoming:              b.boolVal(c.VerifyIncoming),
-		VerifyIncomingHTTPS:         b.boolVal(c.VerifyIncomingHTTPS),
-		VerifyIncomingRPC:           b.boolVal(c.VerifyIncomingRPC),
+		UnixSocketGroup:             stringVal(c.UnixSocket.Group),
+		UnixSocketMode:              stringVal(c.UnixSocket.Mode),
+		UnixSocketUser:              stringVal(c.UnixSocket.User),
+		VerifyIncoming:              boolVal(c.VerifyIncoming),
+		VerifyIncomingHTTPS:         boolVal(c.VerifyIncomingHTTPS),
+		VerifyIncomingRPC:           boolVal(c.VerifyIncomingRPC),
 		VerifyOutgoing:              verifyOutgoing,
 		VerifyServerHostname:        verifyServerName,
 		Watches:                     c.Watches,
 	}
 
-	rt.UseStreamingBackend = b.boolVal(c.UseStreamingBackend)
+	rt.UseStreamingBackend = boolVal(c.UseStreamingBackend)
 
 	if rt.Cache.EntryFetchMaxBurst <= 0 {
 		return RuntimeConfig{}, fmt.Errorf("cache.entry_fetch_max_burst must be strictly positive, was: %v", rt.Cache.EntryFetchMaxBurst)
@@ -1509,35 +1510,35 @@ func (b *Builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		return nil
 	}
 
-	id := types.CheckID(b.stringVal(v.ID))
+	id := types.CheckID(stringVal(v.ID))
 
 	return &structs.CheckDefinition{
 		ID:                             id,
-		Name:                           b.stringVal(v.Name),
-		Notes:                          b.stringVal(v.Notes),
-		ServiceID:                      b.stringVal(v.ServiceID),
-		Token:                          b.stringVal(v.Token),
-		Status:                         b.stringVal(v.Status),
+		Name:                           stringVal(v.Name),
+		Notes:                          stringVal(v.Notes),
+		ServiceID:                      stringVal(v.ServiceID),
+		Token:                          stringVal(v.Token),
+		Status:                         stringVal(v.Status),
 		ScriptArgs:                     v.ScriptArgs,
-		HTTP:                           b.stringVal(v.HTTP),
+		HTTP:                           stringVal(v.HTTP),
 		Header:                         v.Header,
-		Method:                         b.stringVal(v.Method),
-		Body:                           b.stringVal(v.Body),
-		TCP:                            b.stringVal(v.TCP),
+		Method:                         stringVal(v.Method),
+		Body:                           stringVal(v.Body),
+		TCP:                            stringVal(v.TCP),
 		Interval:                       b.durationVal(fmt.Sprintf("check[%s].interval", id), v.Interval),
-		DockerContainerID:              b.stringVal(v.DockerContainerID),
-		Shell:                          b.stringVal(v.Shell),
-		GRPC:                           b.stringVal(v.GRPC),
-		GRPCUseTLS:                     b.boolVal(v.GRPCUseTLS),
-		TLSSkipVerify:                  b.boolVal(v.TLSSkipVerify),
-		AliasNode:                      b.stringVal(v.AliasNode),
-		AliasService:                   b.stringVal(v.AliasService),
+		DockerContainerID:              stringVal(v.DockerContainerID),
+		Shell:                          stringVal(v.Shell),
+		GRPC:                           stringVal(v.GRPC),
+		GRPCUseTLS:                     boolVal(v.GRPCUseTLS),
+		TLSSkipVerify:                  boolVal(v.TLSSkipVerify),
+		AliasNode:                      stringVal(v.AliasNode),
+		AliasService:                   stringVal(v.AliasService),
 		Timeout:                        b.durationVal(fmt.Sprintf("check[%s].timeout", id), v.Timeout),
 		TTL:                            b.durationVal(fmt.Sprintf("check[%s].ttl", id), v.TTL),
-		SuccessBeforePassing:           b.intVal(v.SuccessBeforePassing),
-		FailuresBeforeCritical:         b.intVal(v.FailuresBeforeCritical),
+		SuccessBeforePassing:           intVal(v.SuccessBeforePassing),
+		FailuresBeforeCritical:         intVal(v.FailuresBeforeCritical),
 		DeregisterCriticalServiceAfter: b.durationVal(fmt.Sprintf("check[%s].deregister_critical_service_after", id), v.DeregisterCriticalServiceAfter),
-		OutputMaxSize:                  b.intValWithDefault(v.OutputMaxSize, checks.DefaultBufSize),
+		OutputMaxSize:                  intValWithDefault(v.OutputMaxSize, checks.DefaultBufSize),
 		EnterpriseMeta:                 v.EnterpriseMeta.ToStructs(),
 	}
 }
@@ -1579,7 +1580,7 @@ func (b *Builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 
 	meta := make(map[string]string)
 	if err := structs.ValidateServiceMetadata(kind, v.Meta, false); err != nil {
-		b.err = multierror.Append(fmt.Errorf("invalid meta for service %s: %v", b.stringVal(v.Name), err))
+		b.err = multierror.Append(fmt.Errorf("invalid meta for service %s: %v", stringVal(v.Name), err))
 	} else {
 		meta = v.Meta
 	}
@@ -1594,19 +1595,19 @@ func (b *Builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 	}
 
 	if err := structs.ValidateWeights(serviceWeights); err != nil {
-		b.err = multierror.Append(fmt.Errorf("Invalid weight definition for service %s: %s", b.stringVal(v.Name), err))
+		b.err = multierror.Append(fmt.Errorf("Invalid weight definition for service %s: %s", stringVal(v.Name), err))
 	}
 	return &structs.ServiceDefinition{
 		Kind:              kind,
-		ID:                b.stringVal(v.ID),
-		Name:              b.stringVal(v.Name),
+		ID:                stringVal(v.ID),
+		Name:              stringVal(v.Name),
 		Tags:              v.Tags,
-		Address:           b.stringVal(v.Address),
+		Address:           stringVal(v.Address),
 		TaggedAddresses:   b.svcTaggedAddresses(v.TaggedAddresses),
 		Meta:              meta,
-		Port:              b.intVal(v.Port),
-		Token:             b.stringVal(v.Token),
-		EnableTagOverride: b.boolVal(v.EnableTagOverride),
+		Port:              intVal(v.Port),
+		Token:             stringVal(v.Token),
+		EnableTagOverride: boolVal(v.EnableTagOverride),
 		Weights:           serviceWeights,
 		Checks:            checks,
 		Proxy:             b.serviceProxyVal(v.Proxy),
@@ -1639,10 +1640,10 @@ func (b *Builder) serviceProxyVal(v *ServiceProxy) *structs.ConnectProxyConfig {
 	}
 
 	return &structs.ConnectProxyConfig{
-		DestinationServiceName: b.stringVal(v.DestinationServiceName),
-		DestinationServiceID:   b.stringVal(v.DestinationServiceID),
-		LocalServiceAddress:    b.stringVal(v.LocalServiceAddress),
-		LocalServicePort:       b.intVal(v.LocalServicePort),
+		DestinationServiceName: stringVal(v.DestinationServiceName),
+		DestinationServiceID:   stringVal(v.DestinationServiceID),
+		LocalServiceAddress:    stringVal(v.LocalServiceAddress),
+		LocalServicePort:       intVal(v.LocalServicePort),
 		Config:                 v.Config,
 		Upstreams:              b.upstreamsVal(v.Upstreams),
 		MeshGateway:            b.meshGatewayConfVal(v.MeshGateway),
@@ -1654,12 +1655,12 @@ func (b *Builder) upstreamsVal(v []Upstream) structs.Upstreams {
 	ups := make(structs.Upstreams, len(v))
 	for i, u := range v {
 		ups[i] = structs.Upstream{
-			DestinationType:      b.stringVal(u.DestinationType),
-			DestinationNamespace: b.stringVal(u.DestinationNamespace),
-			DestinationName:      b.stringVal(u.DestinationName),
-			Datacenter:           b.stringVal(u.Datacenter),
-			LocalBindAddress:     b.stringVal(u.LocalBindAddress),
-			LocalBindPort:        b.intVal(u.LocalBindPort),
+			DestinationType:      stringVal(u.DestinationType),
+			DestinationNamespace: stringVal(u.DestinationNamespace),
+			DestinationName:      stringVal(u.DestinationName),
+			Datacenter:           stringVal(u.Datacenter),
+			LocalBindAddress:     stringVal(u.LocalBindAddress),
+			LocalBindPort:        intVal(u.LocalBindPort),
 			Config:               u.Config,
 			MeshGateway:          b.meshGatewayConfVal(u.MeshGateway),
 		}
@@ -1693,7 +1694,7 @@ func (b *Builder) exposeConfVal(v *ExposeConfig) structs.ExposeConfig {
 		return out
 	}
 
-	out.Checks = b.boolVal(v.Checks)
+	out.Checks = boolVal(v.Checks)
 	out.Paths = b.pathsVal(v.Paths)
 	return out
 }
@@ -1702,10 +1703,10 @@ func (b *Builder) pathsVal(v []ExposePath) []structs.ExposePath {
 	paths := make([]structs.ExposePath, len(v))
 	for i, p := range v {
 		paths[i] = structs.ExposePath{
-			ListenerPort:  b.intVal(p.ListenerPort),
-			Path:          b.stringVal(p.Path),
-			LocalPathPort: b.intVal(p.LocalPathPort),
-			Protocol:      b.stringVal(p.Protocol),
+			ListenerPort:  intVal(p.ListenerPort),
+			Path:          stringVal(p.Path),
+			LocalPathPort: intVal(p.LocalPathPort),
+			Protocol:      stringVal(p.Protocol),
 		}
 	}
 	return paths
@@ -1732,19 +1733,19 @@ func (b *Builder) serviceConnectVal(v *ServiceConnect) *structs.ServiceConnect {
 	}
 
 	return &structs.ServiceConnect{
-		Native:         b.boolVal(v.Native),
+		Native:         boolVal(v.Native),
 		SidecarService: sidecar,
 	}
 }
 
 func (b *Builder) uiConfigVal(v RawUIConfig) UIConfig {
 	return UIConfig{
-		Enabled:                    b.boolVal(v.Enabled),
-		Dir:                        b.stringVal(v.Dir),
-		ContentPath:                UIPathBuilder(b.stringVal(v.ContentPath)),
-		MetricsProvider:            b.stringVal(v.MetricsProvider),
+		Enabled:                    boolVal(v.Enabled),
+		Dir:                        stringVal(v.Dir),
+		ContentPath:                UIPathBuilder(stringVal(v.ContentPath)),
+		MetricsProvider:            stringVal(v.MetricsProvider),
 		MetricsProviderFiles:       v.MetricsProviderFiles,
-		MetricsProviderOptionsJSON: b.stringVal(v.MetricsProviderOptionsJSON),
+		MetricsProviderOptionsJSON: stringVal(v.MetricsProviderOptionsJSON),
 		MetricsProxy:               b.uiMetricsProxyVal(v.MetricsProxy),
 		DashboardURLTemplates:      v.DashboardURLTemplates,
 	}
@@ -1755,28 +1756,30 @@ func (b *Builder) uiMetricsProxyVal(v RawUIMetricsProxy) UIMetricsProxy {
 
 	for _, hdr := range v.AddHeaders {
 		hdrs = append(hdrs, UIMetricsProxyAddHeader{
-			Name:  b.stringVal(hdr.Name),
-			Value: b.stringVal(hdr.Value),
+			Name:  stringVal(hdr.Name),
+			Value: stringVal(hdr.Value),
 		})
 	}
 
 	return UIMetricsProxy{
-		BaseURL:       b.stringVal(v.BaseURL),
+		BaseURL:       stringVal(v.BaseURL),
 		AddHeaders:    hdrs,
 		PathAllowlist: v.PathAllowlist,
 	}
 }
 
-func (b *Builder) boolValWithDefault(v *bool, defaultVal bool) bool {
+func boolValWithDefault(v *bool, defaultVal bool) bool {
 	if v == nil {
 		return defaultVal
 	}
-
 	return *v
 }
 
-func (b *Builder) boolVal(v *bool) bool {
-	return b.boolValWithDefault(v, false)
+func boolVal(v *bool) bool {
+	if v == nil {
+		return false
+	}
+	return *v
 }
 
 func (b *Builder) durationValWithDefault(name string, v *string, defaultVal time.Duration) (d time.Duration) {
@@ -1794,37 +1797,32 @@ func (b *Builder) durationVal(name string, v *string) (d time.Duration) {
 	return b.durationValWithDefault(name, v, 0)
 }
 
-func (b *Builder) intValWithDefault(v *int, defaultVal int) int {
+func intValWithDefault(v *int, defaultVal int) int {
 	if v == nil {
 		return defaultVal
 	}
 	return *v
 }
 
-func (b *Builder) intVal(v *int) int {
-	return b.intValWithDefault(v, 0)
-}
-
-func (b *Builder) uintVal(v *uint) uint {
-	return b.uintValWithDefault(v, 0)
-}
-
-func (b *Builder) uintValWithDefault(v *uint, defaultVal uint) uint {
+func intVal(v *int) int {
 	if v == nil {
-		return defaultVal
+		return 0
 	}
 	return *v
 }
 
-func (b *Builder) uint64ValWithDefault(v *uint64, defaultVal uint64) uint64 {
+func uintVal(v *uint) uint {
 	if v == nil {
-		return defaultVal
+		return 0
 	}
 	return *v
 }
 
-func (b *Builder) uint64Val(v *uint64) uint64 {
-	return b.uint64ValWithDefault(v, 0)
+func uint64Val(v *uint64) uint64 {
+	if v == nil {
+		return 0
+	}
+	return *v
 }
 
 func (b *Builder) portVal(name string, v *int) int {
@@ -1837,18 +1835,11 @@ func (b *Builder) portVal(name string, v *int) int {
 	return *v
 }
 
-func (b *Builder) stringValWithDefault(v *string, defaultVal string) string {
+func stringValWithDefault(v *string, defaultVal string) string {
 	if v == nil {
 		return defaultVal
 	}
 	return *v
-}
-
-// Deprecated: use the stringVal() function instead of this Builder method. This
-// method is being left here temporarily as there are many callers. It will be
-// removed in the future.
-func (b *Builder) stringVal(v *string) string {
-	return b.stringValWithDefault(v, "")
 }
 
 func stringVal(v *string) string {
@@ -1858,16 +1849,15 @@ func stringVal(v *string) string {
 	return *v
 }
 
-func (b *Builder) float64ValWithDefault(v *float64, defaultVal float64) float64 {
+func float64ValWithDefault(v *float64, defaultVal float64) float64 {
 	if v == nil {
 		return defaultVal
 	}
-
 	return *v
 }
 
-func (b *Builder) float64Val(v *float64) float64 {
-	return b.float64ValWithDefault(v, 0)
+func float64Val(v *float64) float64 {
+	return float64ValWithDefault(v, 0)
 }
 
 func (b *Builder) cidrsVal(name string, v []string) (nets []*net.IPNet) {
@@ -1900,7 +1890,7 @@ func (b *Builder) tlsCipherSuites(name string, v *string) []uint16 {
 }
 
 func (b *Builder) nodeName(v *string) string {
-	nodeName := b.stringVal(v)
+	nodeName := stringVal(v)
 	if nodeName == "" {
 		fn := b.opts.hostname
 		if fn == nil {
@@ -2061,7 +2051,7 @@ func (b *Builder) expandFirstIP(name string, s *string) *net.IPAddr {
 	}
 }
 
-func (b *Builder) makeIPAddr(pri *net.IPAddr, sec *net.IPAddr) *net.IPAddr {
+func makeIPAddr(pri *net.IPAddr, sec *net.IPAddr) *net.IPAddr {
 	if pri != nil {
 		return pri
 	}
@@ -2129,17 +2119,11 @@ func (b *Builder) makeAddrs(pri []net.Addr, sec []*net.IPAddr, port int) []net.A
 	return x
 }
 
-// isUnixAddr returns true when the given address is a unix socket address type.
-func (b *Builder) isUnixAddr(a net.Addr) bool {
-	_, ok := a.(*net.UnixAddr)
-	return a != nil && ok
-}
-
 func (b *Builder) autoConfigVal(raw AutoConfigRaw) AutoConfig {
 	var val AutoConfig
 
-	val.Enabled = b.boolValWithDefault(raw.Enabled, false)
-	val.IntroToken = b.stringVal(raw.IntroToken)
+	val.Enabled = boolValWithDefault(raw.Enabled, false)
+	val.IntroToken = stringVal(raw.IntroToken)
 
 	// default the IntroToken to the env variable if specified.
 	if envToken := os.Getenv("CONSUL_INTRO_TOKEN"); envToken != "" {
@@ -2149,7 +2133,7 @@ func (b *Builder) autoConfigVal(raw AutoConfigRaw) AutoConfig {
 
 		val.IntroToken = envToken
 	}
-	val.IntroTokenFile = b.stringVal(raw.IntroTokenFile)
+	val.IntroTokenFile = stringVal(raw.IntroTokenFile)
 	// These can be go-discover values and so don't have to resolve fully yet
 	val.ServerAddresses = b.expandAllOptionalAddrs("auto_config.server_addresses", raw.ServerAddresses)
 	val.DNSSANs = raw.DNSSANs
@@ -2176,9 +2160,9 @@ func (b *Builder) autoConfigAuthorizerVal(raw AutoConfigAuthorizationRaw) AutoCo
 	// needed right now so the configuration types will remain simplistic until they need to be otherwise.
 	var val AutoConfigAuthorizer
 
-	val.Enabled = b.boolValWithDefault(raw.Enabled, false)
+	val.Enabled = boolValWithDefault(raw.Enabled, false)
 	val.ClaimAssertions = raw.Static.ClaimAssertions
-	val.AllowReuse = b.boolValWithDefault(raw.Static.AllowReuse, false)
+	val.AllowReuse = boolValWithDefault(raw.Static.AllowReuse, false)
 	val.AuthMethod = structs.ACLAuthMethod{
 		Name:           "Auto Config Authorizer",
 		Type:           "jwt",
@@ -2188,12 +2172,12 @@ func (b *Builder) autoConfigAuthorizerVal(raw AutoConfigAuthorizationRaw) AutoCo
 			"BoundAudiences":       raw.Static.BoundAudiences,
 			"ClaimMappings":        raw.Static.ClaimMappings,
 			"ListClaimMappings":    raw.Static.ListClaimMappings,
-			"OIDCDiscoveryURL":     b.stringVal(raw.Static.OIDCDiscoveryURL),
-			"OIDCDiscoveryCACert":  b.stringVal(raw.Static.OIDCDiscoveryCACert),
-			"JWKSURL":              b.stringVal(raw.Static.JWKSURL),
-			"JWKSCACert":           b.stringVal(raw.Static.JWKSCACert),
+			"OIDCDiscoveryURL":     stringVal(raw.Static.OIDCDiscoveryURL),
+			"OIDCDiscoveryCACert":  stringVal(raw.Static.OIDCDiscoveryCACert),
+			"JWKSURL":              stringVal(raw.Static.JWKSURL),
+			"JWKSCACert":           stringVal(raw.Static.JWKSCACert),
 			"JWTValidationPubKeys": raw.Static.JWTValidationPubKeys,
-			"BoundIssuer":          b.stringVal(raw.Static.BoundIssuer),
+			"BoundIssuer":          stringVal(raw.Static.BoundIssuer),
 			"ExpirationLeeway":     b.durationVal("auto_config.authorization.static.expiration_leeway", raw.Static.ExpirationLeeway),
 			"NotBeforeLeeway":      b.durationVal("auto_config.authorization.static.not_before_leeway", raw.Static.NotBeforeLeeway),
 			"ClockSkewLeeway":      b.durationVal("auto_config.authorization.static.clock_skew_leeway", raw.Static.ClockSkewLeeway),
@@ -2206,7 +2190,7 @@ func (b *Builder) autoConfigAuthorizerVal(raw AutoConfigAuthorizationRaw) AutoCo
 func (b *Builder) validateAutoConfig(rt RuntimeConfig) error {
 	autoconf := rt.AutoConfig
 
-	if err := b.validateAutoConfigAuthorizer(rt); err != nil {
+	if err := validateAutoConfigAuthorizer(rt); err != nil {
 		return err
 	}
 
@@ -2241,7 +2225,7 @@ func (b *Builder) validateAutoConfig(rt RuntimeConfig) error {
 	return nil
 }
 
-func (b *Builder) validateAutoConfigAuthorizer(rt RuntimeConfig) error {
+func validateAutoConfigAuthorizer(rt RuntimeConfig) error {
 	authz := rt.AutoConfig.Authorizer
 
 	if !authz.Enabled {
