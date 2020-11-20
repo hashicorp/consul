@@ -172,13 +172,13 @@ func TestBuilder_BuildAndValidate_NodeName(t *testing.T) {
 }
 
 func patchBuilderShims(b *Builder) {
-	b.hostname = func() (string, error) {
+	b.opts.hostname = func() (string, error) {
 		return "thehostname", nil
 	}
-	b.getPrivateIPv4 = func() ([]*net.IPAddr, error) {
+	b.opts.getPrivateIPv4 = func() ([]*net.IPAddr, error) {
 		return []*net.IPAddr{ipAddr("10.0.0.1")}, nil
 	}
-	b.getPublicIPv6 = func() ([]*net.IPAddr, error) {
+	b.opts.getPublicIPv6 = func() ([]*net.IPAddr, error) {
 		return []*net.IPAddr{ipAddr("dead:beef::1")}, nil
 	}
 }
