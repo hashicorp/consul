@@ -4876,13 +4876,13 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 
 				patchBuilderShims(b)
 				if tt.hostname != nil {
-					b.hostname = tt.hostname
+					b.opts.hostname = tt.hostname
 				}
 				if tt.privatev4 != nil {
-					b.getPrivateIPv4 = tt.privatev4
+					b.opts.getPrivateIPv4 = tt.privatev4
 				}
 				if tt.publicv6 != nil {
-					b.getPublicIPv6 = tt.publicv6
+					b.opts.getPublicIPv6 = tt.publicv6
 				}
 
 				// read the source fragments
@@ -4926,9 +4926,7 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				x.hostname = b.hostname
-				x.getPrivateIPv4 = func() ([]*net.IPAddr, error) { return []*net.IPAddr{ipAddr("10.0.0.1")}, nil }
-				x.getPublicIPv6 = func() ([]*net.IPAddr, error) { return []*net.IPAddr{ipAddr("dead:beef::1")}, nil }
+				patchBuilderShims(x)
 				expected, err := x.Build()
 				require.NoError(t, err)
 				if tt.patch != nil {
