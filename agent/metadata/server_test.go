@@ -66,7 +66,7 @@ func TestIsConsulServer(t *testing.T) {
 			"expect":        "3",
 			"raft_vsn":      "3",
 			"use_tls":       "1",
-			"nonvoter":      "1",
+			"read_replica":  "1",
 		},
 		Status: serf.StatusLeft,
 	}
@@ -101,7 +101,7 @@ func TestIsConsulServer(t *testing.T) {
 	if !parts.UseTLS {
 		t.Fatalf("bad: %v", parts.UseTLS)
 	}
-	if !parts.NonVoter {
+	if !parts.ReadReplica {
 		t.Fatalf("unexpected voter")
 	}
 	m.Tags["bootstrap"] = "1"
@@ -130,10 +130,16 @@ func TestIsConsulServer(t *testing.T) {
 		t.Fatalf("unexpected bootstrap")
 	}
 
-	delete(m.Tags, "nonvoter")
+	delete(m.Tags, "read_replica")
 	ok, parts = metadata.IsConsulServer(m)
-	if !ok || parts.NonVoter {
-		t.Fatalf("unexpected nonvoter")
+	if !ok || parts.ReadReplica {
+		t.Fatalf("unexpected read replica")
+	}
+
+	m.Tags["nonvoter"] = "1"
+	ok, parts = metadata.IsConsulServer(m)
+	if !ok || !parts.ReadReplica {
+		t.Fatalf("expected read replica")
 	}
 
 	delete(m.Tags, "role")

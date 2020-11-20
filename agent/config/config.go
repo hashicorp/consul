@@ -103,9 +103,6 @@ type Cache struct {
 	EntryFetchMaxBurst *int `json:"entry_fetch_max_burst,omitempty" hcl:"entry_fetch_max_burst" mapstructure:"entry_fetch_max_burst"`
 	// EntryFetchRate represents the max calls/sec for a single cache entry
 	EntryFetchRate *float64 `json:"entry_fetch_rate,omitempty" hcl:"entry_fetch_rate" mapstructure:"entry_fetch_rate"`
-	// UseStreamingBackend instead of blocking queries to populate the cache.
-	// Only supported by some cache types.
-	UseStreamingBackend *bool `json:"use_streaming_backend" hcl:"use_streaming_backend" mapstructure:"use_streaming_backend"`
 }
 
 // Config defines the format of a configuration file in either JSON or
@@ -264,6 +261,10 @@ type Config struct {
 
 	RPC RPC `mapstructure:"rpc"`
 
+	// UseStreamingBackend instead of blocking queries for service health and
+	// any other endpoints which support streaming.
+	UseStreamingBackend *bool `json:"use_streaming_backend" hcl:"use_streaming_backend" mapstructure:"use_streaming_backend"`
+
 	// This isn't used by Consul but we've documented a feature where users
 	// can deploy their snapshot agent configs alongside their Consul configs
 	// so we have a placeholder here so it can be parsed but this doesn't
@@ -288,7 +289,7 @@ type Config struct {
 	// Enterprise Only
 	Audit *Audit `json:"audit,omitempty" hcl:"audit" mapstructure:"audit"`
 	// Enterprise Only
-	NonVotingServer *bool `json:"non_voting_server,omitempty" hcl:"non_voting_server" mapstructure:"non_voting_server"`
+	ReadReplica *bool `json:"read_replica,omitempty" hcl:"read_replica" mapstructure:"read_replica" alias:"non_voting_server"`
 	// Enterprise Only
 	SegmentName *string `json:"segment,omitempty" hcl:"segment" mapstructure:"segment"`
 	// Enterprise Only
@@ -797,8 +798,9 @@ type RawUIConfig struct {
 }
 
 type RawUIMetricsProxy struct {
-	BaseURL    *string                      `json:"base_url,omitempty" hcl:"base_url" mapstructure:"base_url"`
-	AddHeaders []RawUIMetricsProxyAddHeader `json:"add_headers,omitempty" hcl:"add_headers" mapstructure:"add_headers"`
+	BaseURL       *string                      `json:"base_url,omitempty" hcl:"base_url" mapstructure:"base_url"`
+	AddHeaders    []RawUIMetricsProxyAddHeader `json:"add_headers,omitempty" hcl:"add_headers" mapstructure:"add_headers"`
+	PathAllowlist []string                     `json:"path_allowlist,omitempty" hcl:"path_allowlist" mapstructure:"path_allowlist"`
 }
 
 type RawUIMetricsProxyAddHeader struct {

@@ -50,4 +50,8 @@ A task is executed when any change of information for services the task is confi
 
 Consul-Terraform-Sync automatically generates any files needed to execute the network driver for each task. See [network drivers](/docs/nia/network-drivers) for more details on the files generated for the Terraform driver.
 
-A [buffer period](/docs/nia/installation/configuration#buffer_period-1) can be configured for tasks to accumulate changes before executing the task. This helps reduce number of times a task is immediately executed by batching changes for a short duration of time.
+## Task Automation
+
+Consul-Terraform-Sync will attempt to execute each task once upon startup to synchronize infrastructure with the current state of Consul. The daemon will stop and exit if any error occurs while preparing the automation environment or executing a task for the first time. This helps ensure all tasks have proper configuration and are executable before the daemon transitions into running tasks in full automation as service changes are discovered over time. After all tasks have successfully executed once, task failures during automation will be logged and retried or attempted again after a subsequent change.
+
+Tasks are executed near-real time when service changes are detected. For services or environments that are prone to flapping, it may be useful to configure a [buffer period](/docs/nia/installation/configuration#buffer_period-1) for a task to accumulate changes before it is executed. The buffer period would reduce the number of consecutive network calls to infrastructure by batching changes for a task over a short duration of time.

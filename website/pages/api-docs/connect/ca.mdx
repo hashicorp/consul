@@ -121,7 +121,9 @@ The table below shows this endpoint's support for
 
 | Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
 | ---------------- | ----------------- | ------------- | --------------- |
-| `YES`            | `all`             | `none`        | `operator:read` |
+| `YES`            | `all`             | `none`        | `operator:write` <sup>1</sup> |
+
+<sup>1</sup> ACL required was <code>operator:read</code> prior to versions 1.8.6, 1.7.10, and 1.6.10.
 
 ### Sample Request
 

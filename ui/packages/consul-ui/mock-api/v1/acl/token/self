@@ -1,0 +1,42 @@
+${ env('CONSUL_ACLS_LEGACY', false) ? `rpc error making call: rpc: can't find method ACL.Method` : `
+{
+  "AccessorID": "${fake.random.uuid()}",
+  "SecretID": ${typeof headers['X-Consul-Token'] !== 'undefined' ? '"' + headers['X-Consul-Token'] + '"' : null},
+  "Namespace": "${
+    typeof location.search.ns !== 'undefined' ? location.search.ns :
+      typeof http.body.Namespace !== 'undefined' ? http.body.Namespace : 'default'
+  }",
+  "Local": false,
+  "Description": "${fake.lorem.sentence()}",
+  "Policies": [
+    ${
+      range(env('CONSUL_POLICY_COUNT', 3)).map(
+        function(item, i) {
+          return `
+            {
+              "ID": "${fake.random.uuid()}-${i}",
+              "Name": "${location.search.policy || fake.hacker.noun()}"
+            }
+          `;
+        }
+      )
+    }
+  ],
+  "Roles": [
+    ${
+      range(env('CONSUL_ROLE_COUNT', 10)).map(
+        function(item, j) {
+          return `
+            {
+              "ID": "${fake.random.uuid()}",
+              "Name": "${location.search.role || fake.hacker.noun()}"
+            }
+          `;
+        }
+      )
+    }
+  ],
+  "CreateTime": "2019-10-11T11:24:06.1385039Z"
+}
+`}
+

@@ -152,6 +152,12 @@ func (c *ChainedAuthorizer) NodeRead(node string, entCtx *AuthorizerContext) Enf
 	})
 }
 
+func (c *ChainedAuthorizer) NodeReadAll(entCtx *AuthorizerContext) EnforcementDecision {
+	return c.executeChain(func(authz Authorizer) EnforcementDecision {
+		return authz.NodeReadAll(entCtx)
+	})
+}
+
 // NodeWrite checks for permission to create or update (register) a
 // given node.
 func (c *ChainedAuthorizer) NodeWrite(node string, entCtx *AuthorizerContext) EnforcementDecision {
@@ -196,6 +202,12 @@ func (c *ChainedAuthorizer) PreparedQueryWrite(query string, entCtx *AuthorizerC
 func (c *ChainedAuthorizer) ServiceRead(name string, entCtx *AuthorizerContext) EnforcementDecision {
 	return c.executeChain(func(authz Authorizer) EnforcementDecision {
 		return authz.ServiceRead(name, entCtx)
+	})
+}
+
+func (c *ChainedAuthorizer) ServiceReadAll(entCtx *AuthorizerContext) EnforcementDecision {
+	return c.executeChain(func(authz Authorizer) EnforcementDecision {
+		return authz.ServiceReadAll(entCtx)
 	})
 }
 

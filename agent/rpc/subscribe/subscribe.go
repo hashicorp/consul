@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbservice"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
@@ -35,15 +36,13 @@ type Logger interface {
 var _ pbsubscribe.StateChangeSubscriptionServer = (*Server)(nil)
 
 type Backend interface {
-	// TODO(streaming): Use ResolveTokenAndDefaultMeta instead once SubscribeRequest
-	// has an EnterpriseMeta.
-	ResolveToken(token string) (acl.Authorizer, error)
+	ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error)
 	Forward(dc string, f func(*grpc.ClientConn) error) (handled bool, err error)
 	Subscribe(req *stream.SubscribeRequest) (*stream.Subscription, error)
 }
 
 func (h *Server) Subscribe(req *pbsubscribe.SubscribeRequest, serverStream pbsubscribe.StateChangeSubscription_SubscribeServer) error {
-	logger := h.newLoggerForRequest(req)
+	logger := newLoggerForRequest(h.Logger, req)
 	handled, err := h.Backend.Forward(req.Datacenter, forwardToDC(req, serverStream, logger))
 	if handled || err != nil {
 		return err
@@ -52,13 +51,13 @@ func (h *Server) Subscribe(req *pbsubscribe.SubscribeRequest, serverStream pbsub
 	logger.Trace("new subscription")
 	defer logger.Trace("subscription closed")
 
-	// Resolve the token and create the ACL filter.
-	authz, err := h.Backend.ResolveToken(req.Token)
+	entMeta := structs.EnterpriseMetaInitializer(req.Namespace)
+	authz, err := h.Backend.ResolveTokenAndDefaultMeta(req.Token, &entMeta, nil)
 	if err != nil {
 		return err
 	}
 
-	sub, err := h.Backend.Subscribe(toStreamSubscribeRequest(req))
+	sub, err := h.Backend.Subscribe(toStreamSubscribeRequest(req, entMeta))
 	if err != nil {
 		return err
 	}
@@ -69,7 +68,7 @@ func (h *Server) Subscribe(req *pbsubscribe.SubscribeRequest, serverStream pbsub
 	for {
 		event, err := sub.Next(ctx)
 		switch {
-		case errors.Is(err, stream.ErrSubscriptionClosed):
+		case errors.Is(err, stream.ErrSubForceClosed):
 			logger.Trace("subscription reset by server")
 			return status.Error(codes.Aborted, err.Error())
 		case err != nil:
@@ -83,20 +82,20 @@ func (h *Server) Subscribe(req *pbsubscribe.SubscribeRequest, serverStream pbsub
 		}
 
 		elog.Trace(event)
-		e := newEventFromStreamEvent(req.Topic, event)
+		e := newEventFromStreamEvent(event)
 		if err := serverStream.Send(e); err != nil {
 			return err
 		}
 	}
 }
 
-// TODO: can be replaced by mog conversion
-func toStreamSubscribeRequest(req *pbsubscribe.SubscribeRequest) *stream.SubscribeRequest {
+func toStreamSubscribeRequest(req *pbsubscribe.SubscribeRequest, entMeta structs.EnterpriseMeta) *stream.SubscribeRequest {
 	return &stream.SubscribeRequest{
-		Topic: req.Topic,
-		Key:   req.Key,
-		Token: req.Token,
-		Index: req.Index,
+		Topic:     req.Topic,
+		Key:       req.Key,
+		Token:     req.Token,
+		Index:     req.Index,
+		Namespace: entMeta.GetNamespace(),
 	}
 }
 
@@ -133,18 +132,12 @@ func filterByAuth(authz acl.Authorizer, event stream.Event) (stream.Event, bool)
 	if authz == nil {
 		return event, true
 	}
-	fn := func(e stream.Event) bool {
-		return enforceACL(authz, e) == acl.Allow
-	}
-	return event.Filter(fn)
+
+	return event, event.Payload.HasReadPermission(authz)
 }
 
-func newEventFromStreamEvent(topic pbsubscribe.Topic, event stream.Event) *pbsubscribe.Event {
-	e := &pbsubscribe.Event{
-		Topic: topic,
-		Key:   event.Key,
-		Index: event.Index,
-	}
+func newEventFromStreamEvent(event stream.Event) *pbsubscribe.Event {
+	e := &pbsubscribe.Event{Index: event.Index}
 	switch {
 	case event.IsEndOfSnapshot():
 		e.Payload = &pbsubscribe.Event_EndOfSnapshot{EndOfSnapshot: true}
@@ -157,12 +150,12 @@ func newEventFromStreamEvent(topic pbsubscribe.Topic, event stream.Event) *pbsub
 	return e
 }
 
-func setPayload(e *pbsubscribe.Event, payload interface{}) {
+func setPayload(e *pbsubscribe.Event, payload stream.Payload) {
 	switch p := payload.(type) {
-	case []stream.Event:
+	case *stream.PayloadEvents:
 		e.Payload = &pbsubscribe.Event_EventBatch{
 			EventBatch: &pbsubscribe.EventBatch{
-				Events: batchEventsFromEventSlice(p),
+				Events: batchEventsFromEventSlice(p.Items),
 			},
 		}
 	case state.EventPayloadCheckServiceNode:
@@ -182,7 +175,7 @@ func batchEventsFromEventSlice(events []stream.Event) []*pbsubscribe.Event {
 	result := make([]*pbsubscribe.Event, len(events))
 	for i := range events {
 		event := events[i]
-		result[i] = &pbsubscribe.Event{Key: event.Key, Index: event.Index}
+		result[i] = &pbsubscribe.Event{Index: event.Index}
 		setPayload(result[i], event.Payload)
 	}
 	return result

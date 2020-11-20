@@ -2,6 +2,8 @@
 
 set -euo pipefail
 
+register_services primary
+
 # wait for service registration
 wait_for_agent_service_register s1
 wait_for_agent_service_register s2

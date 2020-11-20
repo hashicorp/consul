@@ -59,6 +59,59 @@ func (e *ServiceIntentionsConfigEntry) DestinationServiceName() ServiceName {
 	return NewServiceName(e.Name, &e.EnterpriseMeta)
 }
 
+func (e *ServiceIntentionsConfigEntry) UpdateSourceByLegacyID(legacyID string, update *SourceIntention) bool {
+	for i, src := range e.Sources {
+		if src.LegacyID == legacyID {
+			e.Sources[i] = update
+			return true
+		}
+	}
+	return false
+}
+
+func (e *ServiceIntentionsConfigEntry) UpsertSourceByName(sn ServiceName, upsert *SourceIntention) {
+	for i, src := range e.Sources {
+		if src.SourceServiceName() == sn {
+			e.Sources[i] = upsert
+			return
+		}
+	}
+
+	e.Sources = append(e.Sources, upsert)
+}
+
+func (e *ServiceIntentionsConfigEntry) DeleteSourceByLegacyID(legacyID string) bool {
+	for i, src := range e.Sources {
+		if src.LegacyID == legacyID {
+			// Delete slice element: https://github.com/golang/go/wiki/SliceTricks#delete
+			//    a = append(a[:i], a[i+1:]...)
+			e.Sources = append(e.Sources[:i], e.Sources[i+1:]...)
+
+			if len(e.Sources) == 0 {
+				e.Sources = nil
+			}
+			return true
+		}
+	}
+	return false
+}
+
+func (e *ServiceIntentionsConfigEntry) DeleteSourceByName(sn ServiceName) bool {
+	for i, src := range e.Sources {
+		if src.SourceServiceName() == sn {
+			// Delete slice element: https://github.com/golang/go/wiki/SliceTricks#delete
+			//    a = append(a[:i], a[i+1:]...)
+			e.Sources = append(e.Sources[:i], e.Sources[i+1:]...)
+
+			if len(e.Sources) == 0 {
+				e.Sources = nil
+			}
+			return true
+		}
+	}
+	return false
+}
+
 func (e *ServiceIntentionsConfigEntry) ToIntention(src *SourceIntention) *Intention {
 	meta := e.Meta
 	if src.LegacyID != "" {
@@ -352,6 +405,9 @@ func (e *ServiceIntentionsConfigEntry) normalize(legacyWrite bool) error {
 		return fmt.Errorf("config entry is nil")
 	}
 
+	// NOTE: this function must be deterministic so that the raft log doesn't
+	// diverge. This means no ID assignments or time.Now() usage!
+
 	e.Kind = ServiceIntentions
 
 	e.EnterpriseMeta.Normalize()
@@ -377,11 +433,6 @@ func (e *ServiceIntentionsConfigEntry) normalize(legacyWrite bool) error {
 			if src.LegacyMeta == nil {
 				src.LegacyMeta = make(map[string]string)
 			}
-			// Set the created/updated times. If this is an update instead of an insert
-			// the UpdateOver() will fix it up appropriately.
-			now := time.Now().UTC()
-			src.LegacyCreateTime = timePointer(now)
-			src.LegacyUpdateTime = timePointer(now)
 		} else {
 			// Legacy fields are cleared, except LegacyMeta which we leave
 			// populated so that we can later fail the write in Validate() and
@@ -541,11 +592,25 @@ func (e *ServiceIntentionsConfigEntry) validate(legacyWrite bool) error {
 					)
 				}
 			}
+
+			if src.LegacyCreateTime == nil {
+				return fmt.Errorf("Sources[%d].LegacyCreateTime must be set", i)
+			}
+			if src.LegacyUpdateTime == nil {
+				return fmt.Errorf("Sources[%d].LegacyUpdateTime must be set", i)
+			}
 		} else {
 			if len(src.LegacyMeta) > 0 {
 				return fmt.Errorf("Sources[%d].LegacyMeta must be omitted", i)
 			}
 			src.LegacyMeta = nil // ensure it's completely unset
+
+			if src.LegacyCreateTime != nil {
+				return fmt.Errorf("Sources[%d].LegacyCreateTime must be omitted", i)
+			}
+			if src.LegacyUpdateTime != nil {
+				return fmt.Errorf("Sources[%d].LegacyUpdateTime must be omitted", i)
+			}
 		}
 
 		if legacyWrite {

@@ -9,17 +9,15 @@ import (
 	"github.com/hashicorp/consul/types"
 )
 
-func newEndOfSnapshotEvent(topic pbsubscribe.Topic, index uint64) *pbsubscribe.Event {
+func newEndOfSnapshotEvent(index uint64) *pbsubscribe.Event {
 	return &pbsubscribe.Event{
-		Topic:   topic,
 		Index:   index,
 		Payload: &pbsubscribe.Event_EndOfSnapshot{EndOfSnapshot: true},
 	}
 }
 
-func newNewSnapshotToFollowEvent(topic pbsubscribe.Topic) *pbsubscribe.Event {
+func newNewSnapshotToFollowEvent() *pbsubscribe.Event {
 	return &pbsubscribe.Event{
-		Topic:   topic,
 		Payload: &pbsubscribe.Event_NewSnapshotToFollow{NewSnapshotToFollow: true},
 	}
 }
@@ -37,8 +35,6 @@ func newEventServiceHealthRegister(index uint64, nodeNum int, svc string) *pbsub
 	addr := fmt.Sprintf("10.10.%d.%d", nodeNum/256, nodeNum%256)
 
 	return &pbsubscribe.Event{
-		Topic: pbsubscribe.Topic_ServiceHealth,
-		Key:   svc,
 		Index: index,
 		Payload: &pbsubscribe.Event_ServiceHealth{
 			ServiceHealth: &pbsubscribe.ServiceHealthUpdate{
@@ -117,8 +113,6 @@ func newEventServiceHealthDeregister(index uint64, nodeNum int, svc string) *pbs
 	node := fmt.Sprintf("node%d", nodeNum)
 
 	return &pbsubscribe.Event{
-		Topic: pbsubscribe.Topic_ServiceHealth,
-		Key:   svc,
 		Index: index,
 		Payload: &pbsubscribe.Event_ServiceHealth{
 			ServiceHealth: &pbsubscribe.ServiceHealthUpdate{
@@ -164,7 +158,6 @@ func newEventBatchWithEvents(first *pbsubscribe.Event, evs ...*pbsubscribe.Event
 		events[i+1] = evs[i]
 	}
 	return &pbsubscribe.Event{
-		Topic: first.Topic,
 		Index: first.Index,
 		Payload: &pbsubscribe.Event_EventBatch{
 			EventBatch: &pbsubscribe.EventBatch{Events: events},

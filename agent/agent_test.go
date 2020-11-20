@@ -13,6 +13,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -23,12 +24,23 @@ import (
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/google/tcpproxy"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/serf/coordinate"
+	"github.com/hashicorp/serf/serf"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"golang.org/x/sync/errgroup"
+	"golang.org/x/time/rate"
+	"gopkg.in/square/go-jose.v2/jwt"
+
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
 	"github.com/hashicorp/consul/ipaddr"
@@ -38,13 +50,8 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/serf/coordinate"
-	"github.com/hashicorp/serf/serf"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"golang.org/x/time/rate"
-	"gopkg.in/square/go-jose.v2/jwt"
 )
 
 func getService(a *TestAgent, id string) *structs.NodeService {
@@ -2499,6 +2506,75 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 	require.Equal(t, expected, result)
 }
 
+func TestAgent_DeregisterPersistedSidecarAfterRestart(t *testing.T) {
+	t.Parallel()
+	nodeID := NodeID()
+	a := StartTestAgent(t, TestAgent{
+		HCL: `
+	    node_id = "` + nodeID + `"
+	    node_name = "Node ` + nodeID + `"
+		server = false
+		bootstrap = false
+		enable_central_service_config = false
+	`})
+	defer a.Shutdown()
+
+	srv := &structs.NodeService{
+		ID:      "svc",
+		Service: "svc",
+		Weights: &structs.Weights{
+			Passing: 2,
+			Warning: 1,
+		},
+		Tags:           []string{"tag2"},
+		Port:           8200,
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+
+		Connect: structs.ServiceConnect{
+			SidecarService: &structs.ServiceDefinition{},
+		},
+	}
+
+	connectSrv, _, _, err := a.sidecarServiceFromNodeService(srv, "")
+	require.NoError(t, err)
+
+	// First persist the check
+	err = a.AddService(srv, nil, true, "", ConfigSourceLocal)
+	require.NoError(t, err)
+	err = a.AddService(connectSrv, nil, true, "", ConfigSourceLocal)
+	require.NoError(t, err)
+
+	// check both services were registered
+	require.NotNil(t, a.State.Service(srv.CompoundServiceID()))
+	require.NotNil(t, a.State.Service(connectSrv.CompoundServiceID()))
+
+	a.Shutdown()
+
+	// Start again with the check registered in config
+	a2 := StartTestAgent(t, TestAgent{
+		Name:    "Agent2",
+		DataDir: a.DataDir,
+		HCL: `
+	    node_id = "` + nodeID + `"
+	    node_name = "Node ` + nodeID + `"
+		server = false
+		bootstrap = false
+		enable_central_service_config = false
+	`})
+	defer a2.Shutdown()
+
+	// check both services were restored
+	require.NotNil(t, a2.State.Service(srv.CompoundServiceID()))
+	require.NotNil(t, a2.State.Service(connectSrv.CompoundServiceID()))
+
+	err = a2.RemoveService(srv.CompoundServiceID())
+	require.NoError(t, err)
+
+	// check both services were deregistered
+	require.Nil(t, a2.State.Service(srv.CompoundServiceID()))
+	require.Nil(t, a2.State.Service(connectSrv.CompoundServiceID()))
+}
+
 func TestAgent_loadChecks_token(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, `
@@ -4692,4 +4768,69 @@ func TestSharedRPCRouter(t *testing.T) {
 	mgr, server = client.Agent.baseDeps.Router.FindLANRoute()
 	require.NotNil(t, mgr)
 	require.NotNil(t, server)
+}
+
+func TestAgent_ListenHTTP_MultipleAddresses(t *testing.T) {
+	ports, err := freeport.Take(2)
+	require.NoError(t, err)
+	t.Cleanup(func() { freeport.Return(ports) })
+
+	caConfig := tlsutil.Config{}
+	tlsConf, err := tlsutil.NewConfigurator(caConfig, hclog.New(nil))
+	require.NoError(t, err)
+	bd := BaseDeps{
+		Deps: consul.Deps{
+			Logger:          hclog.NewInterceptLogger(nil),
+			Tokens:          new(token.Store),
+			TLSConfigurator: tlsConf,
+		},
+		RuntimeConfig: &config.RuntimeConfig{
+			HTTPAddrs: []net.Addr{
+				&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: ports[0]},
+				&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: ports[1]},
+			},
+		},
+		Cache: cache.New(cache.Options{}),
+	}
+	agent, err := New(bd)
+	require.NoError(t, err)
+
+	srvs, err := agent.listenHTTP()
+	require.NoError(t, err)
+	defer func() {
+		ctx := context.Background()
+		for _, srv := range srvs {
+			srv.Shutdown(ctx)
+		}
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	t.Cleanup(cancel)
+
+	g := new(errgroup.Group)
+	for _, s := range srvs {
+		g.Go(s.Run)
+	}
+
+	require.Len(t, srvs, 2)
+	require.Len(t, uniqueAddrs(srvs), 2)
+
+	client := &http.Client{}
+	for _, s := range srvs {
+		u := url.URL{Scheme: s.Protocol, Host: s.Addr.String()}
+		req, err := http.NewRequest(http.MethodGet, u.String(), nil)
+		require.NoError(t, err)
+
+		resp, err := client.Do(req.WithContext(ctx))
+		require.NoError(t, err)
+		require.Equal(t, 200, resp.StatusCode)
+	}
+}
+
+func uniqueAddrs(srvs []apiServer) map[string]struct{} {
+	result := make(map[string]struct{}, len(srvs))
+	for _, s := range srvs {
+		result[s.Addr.String()] = struct{}{}
+	}
+	return result
 }

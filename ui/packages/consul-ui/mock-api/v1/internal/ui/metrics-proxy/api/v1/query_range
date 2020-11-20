@@ -1,0 +1,91 @@
+{
+  "status": "success",
+  "data": {
+    "resultType": "matrix",
+    "result": [
+      ${
+        // We need 15 minutes worth of data at 10 second resoution. Currently we
+        // always query for two series together so loop twice over this.
+        [0, 1].map((i) => {
+          const timePeriodMins = 15;
+          const resolutionSecs = 10;
+          const numPoints = (timePeriodMins * 60) / resolutionSecs;
+          let time = (Date.now() / 1000) - (timePeriodMins * 60);
+
+          const q = location.search.query;
+          let proto = 'tcp';
+          let max = 1000;
+          let riseBias = 10;
+          let fallBias = 10;
+          let volatility = 0.2;
+          let label = '';
+
+          if (q.match('envoy_listener_http_downstream_rq_xx')) {
+            proto = 'http'
+            // Switch random value ranges for total vs error rates
+            switch(i) {
+              case 0:
+                max = 1000; // up to 1000 rps for success
+                label = 'Successes';
+                break;
+              case 1:
+                max = 500; // up to 500 errors per second
+                fallBias = 1; // fall quicker than we rise
+                riseBias = 30; // start low generally
+                volatility = 1;
+                label = 'Errors';
+                break;
+            }
+          } else {
+            // Type tcp
+            switch(i) {
+              case 0:
+                max = 0.5 * 1e9; // up to 500 mbps recieved
+                label = 'Inbound';
+                break;
+              case 1:
+                max = 1e9; // up to 1 gbps
+                label = 'Outbound';
+                break;
+            }
+          }
+
+          const randExp = function(max, lambda) {
+            return (-Math.log(1-(1-Math.exp(-lambda))*Math.random())/lambda) * max;
+          }
+
+          // Starting value
+          let value = randExp(max, riseBias);
+          if (value > max) {
+            value = max;
+          }
+
+          const points = [];
+          let rising;
+          for (var i = 0; i < numPoints; i++) {
+            points.push(`[${time}, "${value}"]`);
+            time = time + resolutionSecs;
+            rising = (Math.random() > 0.5);
+            delta = volatility * randExp(max, rising ? riseBias : fallBias);
+            if (!rising) {
+              // Make it a negative change
+              delta = 0 - delta;
+            }
+            value = value + delta
+            if (value > max) {
+              value = max;
+            }
+            if (value < 0) {
+              value = 0;
+            }
+          }
+          return `
+          {
+            "metric": {"label": "${label}"},
+            "values": [${points.join(",")}]
+          }`;
+        })
+      }
+    ]
+  }
+}

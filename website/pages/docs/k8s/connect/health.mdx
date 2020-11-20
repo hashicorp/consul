@@ -1,0 +1,47 @@
+---
+layout: docs
+page_title: Kubernetes Health Checks
+sidebar_title: Health Checks
+description: Configuring Kubernetes Health Checks
+---
+
+# Kubernetes Health Checks in Consul on Kubernetes
+
+-> 0.26+: This feature is available in consul-helm versions 0.26 and higher and is defaulted on.
+To disable it, set `connectInject.healthChecks.enabled: false`.
+
+~> This topic requires familiarity with [Kubernetes Health Checks](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/).
+
+This page describes how to enable Consul on Kubernetes to sync the Kubernetes readiness status to Consul for service mesh uses cases.
+
+When deploying your Helm chart, you can provide Helm with a custom yaml file that contains your environment configuration.
+Enabling health checks is done via the `healthChecks` stanza under `connectInject`.
+
+The minimal configuration required to enable health check synchronization with Consul for service mesh traffic is:
+
+```yaml
+global:
+  name: consul
+connectInject:
+  enabled: true
+  healthChecks:
+    enabled: true
+```
+
+When `enabled: true` is set, a [TTL health check](https://www.consul.io/docs/discovery/checks#ttl) will be registered within
+Consul for each Kubernetes pod that is connect-injected. The Consul health check's state will reflect the pod's readiness
+status, which is the combination of all Kubernetes probes registered with the pod.
+
+When readiness probes are set for a pod, the status of the pod will be reflected within Consul and will cause Consul to redirect service
+mesh traffic to the pod based on the pod's health. If the pod has failing health checks, Consul will no longer use
+the service instance associated with the pod for service mesh traffic. When the pod passes its health checks, Consul will
+then use the respective service instance for service mesh traffic.
+
+In the case where no user defined health checks are assigned to a pod, the default behavior is that the Consul health check will
+be marked `passing` until the pod becomes unready.
+
+To disable the health check controller, set the configuration for `healthChecks` to `enabled: false`.
+In this state no health checks will be associated with Consul for Kubernetes pods regardless of the pod's health probes.
+
+-> It is highly recommended to [enable TLS](/docs/k8s/helm#v-global-tls-enabled) for all configurations which use healthChecks to mitigate any
+security concerns should the pod network ever be compromised. The health checks controller makes calls across the network to Consul agents on all nodes so an attacker could potentially sniff ACL tokens if those calls are not encrypted.

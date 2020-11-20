@@ -97,6 +97,12 @@ type ServiceConfigEntry struct {
 	RaftIndex
 }
 
+func (e *ServiceConfigEntry) Clone() *ServiceConfigEntry {
+	e2 := *e
+	e2.Expose = e.Expose.Clone()
+	return &e2
+}
+
 func (e *ServiceConfigEntry) GetKind() string {
 	return ServiceDefaults
 }

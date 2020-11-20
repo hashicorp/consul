@@ -334,7 +334,9 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 	versionToExpect := "19.7.9"
 
 	retry.Run(t, func(r *retry.R) {
+		// DEPRECATED - remove nonvoter tag in favor of read_replica in a future version of consul
 		member.Tags["nonvoter"] = "1"
+		member.Tags["read_replica"] = "1"
 		member.Tags["build"] = versionToExpect
 		err := s1.handleAliveMember(member)
 		if err != nil {
@@ -347,8 +349,12 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 		if service == nil {
 			r.Fatal("client not registered")
 		}
+		// DEPRECATED - remove non_voter in favor of read_replica in a future version of consul
 		if service.Meta["non_voter"] != "true" {
 			r.Fatalf("Expected to be non_voter == true, was: %s", service.Meta["non_voter"])
+		}
+		if service.Meta["read_replica"] != "true" {
+			r.Fatalf("Expected to be read_replica == true, was: %s", service.Meta["non_voter"])
 		}
 		newVersion := service.Meta["version"]
 		if newVersion != versionToExpect {
@@ -741,7 +747,7 @@ func TestLeader_MultiBootstrap(t *testing.T) {
 
 	// Ensure we don't have multiple raft peers
 	for _, s := range servers {
-		peers, _ := s.numPeers()
+		peers, _ := s.autopilot.NumVoters()
 		if peers != 1 {
 			t.Fatalf("should only have 1 raft peer!")
 		}
@@ -886,7 +892,6 @@ func TestLeader_RollRaftServer(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = true
 		c.Datacenter = "dc1"
-		c.RaftConfig.ProtocolVersion = 2
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -894,7 +899,6 @@ func TestLeader_RollRaftServer(t *testing.T) {
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = false
 		c.Datacenter = "dc1"
-		c.RaftConfig.ProtocolVersion = 1
 	})
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
@@ -902,7 +906,6 @@ func TestLeader_RollRaftServer(t *testing.T) {
 	dir3, s3 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = false
 		c.Datacenter = "dc1"
-		c.RaftConfig.ProtocolVersion = 2
 	})
 	defer os.RemoveAll(dir3)
 	defer s3.Shutdown()
@@ -922,21 +925,15 @@ func TestLeader_RollRaftServer(t *testing.T) {
 
 	for _, s := range []*Server{s1, s3} {
 		retry.Run(t, func(r *retry.R) {
-			minVer, err := s.autopilot.MinRaftProtocol()
-			if err != nil {
-				r.Fatal(err)
-			}
-			if got, want := minVer, 2; got != want {
-				r.Fatalf("got min raft version %d want %d", got, want)
-			}
+			// autopilot should force removal of the shutdown node
+			r.Check(wantPeers(s, 2))
 		})
 	}
 
-	// Replace the dead server with one running raft protocol v3
+	// Replace the dead server with a new one
 	dir4, s4 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = false
 		c.Datacenter = "dc1"
-		c.RaftConfig.ProtocolVersion = 3
 	})
 	defer os.RemoveAll(dir4)
 	defer s4.Shutdown()
@@ -946,25 +943,7 @@ func TestLeader_RollRaftServer(t *testing.T) {
 	// Make sure the dead server is removed and we're back to 3 total peers
 	for _, s := range servers {
 		retry.Run(t, func(r *retry.R) {
-			addrs := 0
-			ids := 0
-			future := s.raft.GetConfiguration()
-			if err := future.Error(); err != nil {
-				r.Fatal(err)
-			}
-			for _, server := range future.Configuration().Servers {
-				if string(server.ID) == string(server.Address) {
-					addrs++
-				} else {
-					ids++
-				}
-			}
-			if got, want := addrs, 2; got != want {
-				r.Fatalf("got %d server addresses want %d", got, want)
-			}
-			if got, want := ids, 1; got != want {
-				r.Fatalf("got %d server ids want %d", got, want)
-			}
+			r.Check(wantPeers(s, 3))
 		})
 	}
 }
@@ -1257,63 +1236,133 @@ func TestLeader_ConfigEntryBootstrap(t *testing.T) {
 func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
 	t.Parallel()
 
-	pr, pw := io.Pipe()
-	defer pw.Close()
+	type testcase struct {
+		name          string
+		entries       []structs.ConfigEntry
+		serverCB      func(c *Config)
+		expectMessage string
+	}
 
-	ch := make(chan string, 1)
-	go func() {
-		defer pr.Close()
-		scan := bufio.NewScanner(pr)
-		for scan.Scan() {
-			line := scan.Text()
-
-			if strings.Contains(line, "failed to establish leadership") {
-				ch <- ""
-				return
-			}
-			if strings.Contains(line, "successfully established leadership") {
-				ch <- "leadership should not have gotten here if config entries properly failed"
-				return
-			}
-		}
-
-		if scan.Err() != nil {
-			ch <- fmt.Sprintf("ERROR: %v", scan.Err())
-		} else {
-			ch <- "should not get here"
-		}
-	}()
-
-	_, config := testServerConfig(t)
-	config.Build = "1.6.0"
-	config.ConfigEntryBootstrap = []structs.ConfigEntry{
-		&structs.ServiceSplitterConfigEntry{
-			Kind: structs.ServiceSplitter,
-			Name: "web",
-			Splits: []structs.ServiceSplit{
-				{Weight: 100, Service: "web"},
+	cases := []testcase{
+		{
+			name: "service-splitter without L7 protocol",
+			entries: []structs.ConfigEntry{
+				&structs.ServiceSplitterConfigEntry{
+					Kind: structs.ServiceSplitter,
+					Name: "web",
+					Splits: []structs.ServiceSplit{
+						{Weight: 100, Service: "web"},
+					},
+				},
 			},
+			expectMessage: `Failed to apply configuration entry "service-splitter" / "web": discovery chain "web" uses a protocol "tcp" that does not permit advanced routing or splitting behavior"`,
+		},
+		{
+			name: "service-intentions without migration",
+			entries: []structs.ConfigEntry{
+				&structs.ServiceIntentionsConfigEntry{
+					Kind: structs.ServiceIntentions,
+					Name: "web",
+					Sources: []*structs.SourceIntention{
+						{
+							Name:   "debug",
+							Action: structs.IntentionActionAllow,
+						},
+					},
+				},
+			},
+			serverCB: func(c *Config) {
+				c.OverrideInitialSerfTags = func(tags map[string]string) {
+					tags["ft_si"] = "0"
+				}
+			},
+			expectMessage: `Refusing to apply configuration entry "service-intentions" / "web" because intentions are still being migrated to config entries`,
+		},
+		{
+			name: "service-intentions without Connect",
+			entries: []structs.ConfigEntry{
+				&structs.ServiceIntentionsConfigEntry{
+					Kind: structs.ServiceIntentions,
+					Name: "web",
+					Sources: []*structs.SourceIntention{
+						{
+							Name:   "debug",
+							Action: structs.IntentionActionAllow,
+						},
+					},
+				},
+			},
+			serverCB: func(c *Config) {
+				c.ConnectEnabled = false
+			},
+			expectMessage: `Refusing to apply configuration entry "service-intentions" / "web" because Connect must be enabled to bootstrap intentions"`,
 		},
 	}
 
-	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
-		Name:   config.NodeName,
-		Level:  hclog.Debug,
-		Output: io.MultiWriter(pw, testutil.NewLogBuffer(t)),
-	})
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			pr, pw := io.Pipe()
+			defer pw.Close()
 
-	deps := newDefaultDeps(t, config)
-	deps.Logger = logger
+			var (
+				ch             = make(chan string, 1)
+				applyErrorLine string
+			)
+			go func() {
+				defer pr.Close()
+				scan := bufio.NewScanner(pr)
+				for scan.Scan() {
+					line := scan.Text()
 
-	srv, err := NewServer(config, deps)
-	require.NoError(t, err)
-	defer srv.Shutdown()
+					if strings.Contains(line, "failed to establish leadership") {
+						applyErrorLine = line
+						ch <- ""
+						return
+					}
+					if strings.Contains(line, "successfully established leadership") {
+						ch <- "leadership should not have gotten here if config entries properly failed"
+						return
+					}
+				}
 
-	select {
-	case result := <-ch:
-		require.Empty(t, result)
-	case <-time.After(time.Second):
-		t.Fatal("timeout waiting for a result from tailing logs")
+				if scan.Err() != nil {
+					ch <- fmt.Sprintf("ERROR: %v", scan.Err())
+				} else {
+					ch <- "should not get here"
+				}
+			}()
+
+			_, config := testServerConfig(t)
+			config.Build = "1.6.0"
+			config.ConfigEntryBootstrap = tc.entries
+			if tc.serverCB != nil {
+				tc.serverCB(config)
+			}
+
+			logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
+				Name:   config.NodeName,
+				Level:  hclog.Debug,
+				Output: io.MultiWriter(pw, testutil.NewLogBuffer(t)),
+			})
+
+			deps := newDefaultDeps(t, config)
+			deps.Logger = logger
+
+			srv, err := NewServer(config, deps)
+			require.NoError(t, err)
+			defer srv.Shutdown()
+
+			select {
+			case result := <-ch:
+				require.Empty(t, result)
+				if tc.expectMessage != "" {
+					require.Contains(t, applyErrorLine, tc.expectMessage)
+				}
+			case <-time.After(time.Second):
+				t.Fatal("timeout waiting for a result from tailing logs")
+			}
+		})
 	}
 }
 

@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -28,6 +28,21 @@ import (
 	"golang.org/x/time/rate"
 )
 
+var LeaderSummaries = []prometheus.SummaryDefinition{
+	{
+		Name: []string{"leader", "barrier"},
+		Help: "Measures the time spent waiting for the raft barrier upon gaining leadership.",
+	},
+	{
+		Name: []string{"leader", "reconcileMember"},
+		Help: "Measures the time spent updating the raft store for a single serf member's information.",
+	},
+	{
+		Name: []string{"leader", "reapTombstones"},
+		Help: "Measures the time spent clearing tombstones.",
+	},
+}
+
 const (
 	newLeaderEvent      = "consul:new-leader"
 	barrierWriteTimeout = 2 * time.Minute
@@ -36,10 +51,6 @@ const (
 var (
 	// caRootPruneInterval is how often we check for stale CARoots to remove.
 	caRootPruneInterval = time.Hour
-
-	// minAutopilotVersion is the minimum Consul version in which Autopilot features
-	// are supported.
-	minAutopilotVersion = version.Must(version.NewVersion("0.8.0"))
 
 	// minCentralizedConfigVersion is the minimum Consul version in which centralized
 	// config is supported
@@ -151,6 +162,8 @@ func (s *Server) leadershipTransfer() error {
 // leaderLoop runs as long as we are the leader to run various
 // maintenance activities
 func (s *Server) leaderLoop(stopCh chan struct{}) {
+	stopCtx := &lib.StopChannelContext{StopCh: stopCh}
+
 	// Fire a user event indicating a new leader
 	payload := []byte(s.config.NodeName)
 	for name, segment := range s.LANSegments() {
@@ -183,7 +196,7 @@ RECONCILE:
 
 	// Check if we need to handle initial leadership actions
 	if !establishedLeader {
-		if err := s.establishLeadership(); err != nil {
+		if err := s.establishLeadership(stopCtx); err != nil {
 			s.logger.Error("failed to establish leadership", "error", err)
 			// Immediately revoke leadership since we didn't successfully
 			// establish leadership.
@@ -256,7 +269,7 @@ WAIT:
 			// leader, which means revokeLeadership followed by an
 			// establishLeadership().
 			s.revokeLeadership()
-			err := s.establishLeadership()
+			err := s.establishLeadership(stopCtx)
 			errCh <- err
 
 			// in case establishLeadership failed, we will try to
@@ -289,7 +302,7 @@ WAIT:
 // to invoke an initial barrier. The barrier is used to ensure any
 // previously inflight transactions have been committed and that our
 // state is up-to-date.
-func (s *Server) establishLeadership() error {
+func (s *Server) establishLeadership(ctx context.Context) error {
 	start := time.Now()
 	// check for the upgrade here - this helps us transition to new ACLs much
 	// quicker if this is a new cluster or this is a test agent
@@ -328,7 +341,7 @@ func (s *Server) establishLeadership() error {
 	}
 
 	s.getOrCreateAutopilotConfig()
-	s.autopilot.Start()
+	s.autopilot.Start(ctx)
 
 	// todo(kyhavlov): start a goroutine here for handling periodic CA rotation
 	if err := s.initializeCA(); err != nil {
@@ -978,7 +991,7 @@ func (s *Server) stopFederationStateReplication() {
 }
 
 // getOrCreateAutopilotConfig is used to get the autopilot config, initializing it if necessary
-func (s *Server) getOrCreateAutopilotConfig() *autopilot.Config {
+func (s *Server) getOrCreateAutopilotConfig() *structs.AutopilotConfig {
 	logger := s.loggers.Named(logging.Autopilot)
 	state := s.fsm.State()
 	_, config, err := state.AutopilotConfig()
@@ -988,11 +1001,6 @@ func (s *Server) getOrCreateAutopilotConfig() *autopilot.Config {
 	}
 	if config != nil {
 		return config
-	}
-
-	if ok, _ := ServersInDCMeetMinimumVersion(s, s.config.Datacenter, minAutopilotVersion); !ok {
-		logger.Warn("can't initialize until all servers are >= " + minAutopilotVersion.String())
-		return nil
 	}
 
 	config = s.config.AutopilotConfig
@@ -1025,18 +1033,32 @@ func (s *Server) bootstrapConfigEntries(entries []structs.ConfigEntry) error {
 
 	state := s.fsm.State()
 
-	// Do a quick preflight check to see if someone is trying to upgrade from
-	// an older pre-1.9.0 version of consul with intentions AND are trying to
-	// bootstrap a service-intentions config entry at the same time.
+	// Do some quick preflight checks to see if someone is doing something
+	// that's not allowed at this time:
+	//
+	// - Trying to upgrade from an older pre-1.9.0 version of consul with
+	// intentions AND are trying to bootstrap a service-intentions config entry
+	// at the same time.
+	//
+	// - Trying to insert service-intentions config entries when connect is
+	// disabled.
+
 	usingConfigEntries, err := s.fsm.State().AreIntentionsInConfigEntries()
 	if err != nil {
 		return fmt.Errorf("Failed to determine if we are migrating intentions yet: %v", err)
 	}
-	if !usingConfigEntries {
+
+	if !usingConfigEntries || !s.config.ConnectEnabled {
 		for _, entry := range entries {
 			if entry.GetKind() == structs.ServiceIntentions {
-				return fmt.Errorf("Refusing to apply configuration entry %q / %q because intentions are still being migrated to config entries: %v",
-					entry.GetKind(), entry.GetName(), err)
+				if !s.config.ConnectEnabled {
+					return fmt.Errorf("Refusing to apply configuration entry %q / %q because Connect must be enabled to bootstrap intentions",
+						entry.GetKind(), entry.GetName())
+				}
+				if !usingConfigEntries {
+					return fmt.Errorf("Refusing to apply configuration entry %q / %q because intentions are still being migrated to config entries",
+						entry.GetKind(), entry.GetName())
+				}
 			}
 		}
 	}
@@ -1208,7 +1230,9 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 				Warning: 1,
 			},
 			Meta: map[string]string{
+				// DEPRECATED - remove nonvoter in favor of read_replica in a future version of consul
 				"non_voter":             strconv.FormatBool(member.Tags["nonvoter"] == "1"),
+				"read_replica":          strconv.FormatBool(member.Tags["read_replica"] == "1"),
 				"raft_version":          strconv.Itoa(parts.RaftVersion),
 				"serf_protocol_current": strconv.FormatUint(uint64(member.ProtocolCur), 10),
 				"serf_protocol_min":     strconv.FormatUint(uint64(member.ProtocolMin), 10),
@@ -1362,8 +1386,8 @@ func (s *Server) handleDeregisterMember(reason string, member serf.Member) error
 	}
 
 	// Remove from Raft peers if this was a server
-	if valid, parts := metadata.IsConsulServer(member); valid {
-		if err := s.removeConsulServer(member, parts.Port); err != nil {
+	if valid, _ := metadata.IsConsulServer(member); valid {
+		if err := s.removeConsulServer(member); err != nil {
 			return err
 		}
 	}
@@ -1405,135 +1429,31 @@ func (s *Server) joinConsulServer(m serf.Member, parts *metadata.Server) error {
 		}
 	}
 
-	// Processing ourselves could result in trying to remove ourselves to
-	// fix up our address, which would make us step down. This is only
-	// safe to attempt if there are multiple servers available.
-	configFuture := s.raft.GetConfiguration()
-	if err := configFuture.Error(); err != nil {
-		s.logger.Error("failed to get raft configuration", "error", err)
-		return err
-	}
-	if m.Name == s.config.NodeName {
-		if l := len(configFuture.Configuration().Servers); l < 3 {
-			s.logger.Debug("Skipping self join check for node since the cluster is too small", "node", m.Name)
-			return nil
-		}
-	}
+	// We used to do a check here and prevent adding the server if the cluster size was too small (1 or 2 servers) as a means
+	// of preventing the case where we may remove ourselves and cause a loss of leadership. The Autopilot AddServer function
+	// will now handle simple address updates better and so long as the address doesn't conflict with another node
+	// it will not require a removal but will instead just update the address. If it would require a removal of other nodes
+	// due to conflicts then the logic regarding cluster sizes will kick in and prevent doing anything dangerous that could
+	// cause loss of leadership.
 
-	// See if it's already in the configuration. It's harmless to re-add it
-	// but we want to avoid doing that if possible to prevent useless Raft
-	// log entries. If the address is the same but the ID changed, remove the
-	// old server before adding the new one.
-	addr := (&net.TCPAddr{IP: m.Addr, Port: parts.Port}).String()
-	minRaftProtocol, err := s.autopilot.MinRaftProtocol()
+	// get the autpilot library version of a server from the serf member
+	apServer, err := s.autopilotServer(m)
 	if err != nil {
 		return err
 	}
-	for _, server := range configFuture.Configuration().Servers {
-		// No-op if the raft version is too low
-		if server.Address == raft.ServerAddress(addr) && (minRaftProtocol < 2 || parts.RaftVersion < 3) {
-			return nil
-		}
 
-		// If the address or ID matches an existing server, see if we need to remove the old one first
-		if server.Address == raft.ServerAddress(addr) || server.ID == raft.ServerID(parts.ID) {
-			// Exit with no-op if this is being called on an existing server
-			if server.Address == raft.ServerAddress(addr) && server.ID == raft.ServerID(parts.ID) {
-				return nil
-			}
-			future := s.raft.RemoveServer(server.ID, 0, 0)
-			if server.Address == raft.ServerAddress(addr) {
-				if err := future.Error(); err != nil {
-					return fmt.Errorf("error removing server with duplicate address %q: %s", server.Address, err)
-				}
-				s.logger.Info("removed server with duplicate address", "address", server.Address)
-			} else {
-				if err := future.Error(); err != nil {
-					return fmt.Errorf("error removing server with duplicate ID %q: %s", server.ID, err)
-				}
-				s.logger.Info("removed server with duplicate ID", "id", server.ID)
-			}
-		}
-	}
-
-	// Attempt to add as a peer
-	switch {
-	case minRaftProtocol >= 3:
-		addFuture := s.raft.AddNonvoter(raft.ServerID(parts.ID), raft.ServerAddress(addr), 0, 0)
-		if err := addFuture.Error(); err != nil {
-			s.logger.Error("failed to add raft peer", "error", err)
-			return err
-		}
-	case minRaftProtocol == 2 && parts.RaftVersion >= 3:
-		addFuture := s.raft.AddVoter(raft.ServerID(parts.ID), raft.ServerAddress(addr), 0, 0)
-		if err := addFuture.Error(); err != nil {
-			s.logger.Error("failed to add raft peer", "error", err)
-			return err
-		}
-	default:
-		addFuture := s.raft.AddPeer(raft.ServerAddress(addr))
-		if err := addFuture.Error(); err != nil {
-			s.logger.Error("failed to add raft peer", "error", err)
-			return err
-		}
-	}
-
-	// Trigger a check to remove dead servers
-	s.autopilot.RemoveDeadServers()
-
-	return nil
+	// now ask autopilot to add it
+	return s.autopilot.AddServer(apServer)
 }
 
 // removeConsulServer is used to try to remove a consul server that has left
-func (s *Server) removeConsulServer(m serf.Member, port int) error {
-	addr := (&net.TCPAddr{IP: m.Addr, Port: port}).String()
-
-	// See if it's already in the configuration. It's harmless to re-remove it
-	// but we want to avoid doing that if possible to prevent useless Raft
-	// log entries.
-	configFuture := s.raft.GetConfiguration()
-	if err := configFuture.Error(); err != nil {
-		s.logger.Error("failed to get raft configuration", "error", err)
+func (s *Server) removeConsulServer(m serf.Member) error {
+	server, err := s.autopilotServer(m)
+	if err != nil || server == nil {
 		return err
 	}
 
-	minRaftProtocol, err := s.autopilot.MinRaftProtocol()
-	if err != nil {
-		return err
-	}
-
-	_, parts := metadata.IsConsulServer(m)
-
-	// Pick which remove API to use based on how the server was added.
-	for _, server := range configFuture.Configuration().Servers {
-		// If we understand the new add/remove APIs and the server was added by ID, use the new remove API
-		if minRaftProtocol >= 2 && server.ID == raft.ServerID(parts.ID) {
-			s.logger.Info("removing server by ID", "id", server.ID)
-			future := s.raft.RemoveServer(raft.ServerID(parts.ID), 0, 0)
-			if err := future.Error(); err != nil {
-				s.logger.Error("failed to remove raft peer",
-					"id", server.ID,
-					"error", err,
-				)
-				return err
-			}
-			break
-		} else if server.Address == raft.ServerAddress(addr) {
-			// If not, use the old remove API
-			s.logger.Info("removing server by address", "address", server.Address)
-			future := s.raft.RemovePeer(raft.ServerAddress(addr))
-			if err := future.Error(); err != nil {
-				s.logger.Error("failed to remove raft peer",
-					"address", addr,
-					"error", err,
-				)
-				return err
-			}
-			break
-		}
-	}
-
-	return nil
+	return s.autopilot.RemoveServer(server.ID)
 }
 
 // reapTombstones is invoked by the current leader to manage garbage

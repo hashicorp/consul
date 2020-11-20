@@ -9,7 +9,7 @@ import (
 )
 
 // TestState returns a configured *State for testing.
-func TestState(t testing.T) *State {
+func TestState(_ testing.T) *State {
 	logger := hclog.New(&hclog.LoggerOptions{
 		Output: os.Stderr,
 	})

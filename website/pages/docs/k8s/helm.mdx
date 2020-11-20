@@ -380,6 +380,12 @@ and consider if they're appropriate for your deployment.
         "annotation-key": "annotation-value"
       ```
 
+  - `extraEnvironmentVars` ((#v-server-extra-environment-vars (`string: "{}"`) - extraEnvironmentVars
+    is a list of extra environment variables to set within the stateful set.
+    These could be used to include proxy settings required for cloud auto-join
+    feature, in case kubernetes cluster is behind egress http proxies. Additionally,
+    it could be used to configure custom consul parameters.
+
 - `externalServers` ((#v-externalservers)) - Configuration for Consul servers when the servers are running outside of Kubernetes.
   When running external servers, configuring these values is recommended
   if setting `global.tls.enableAutoEncrypt` to true (requires consul-k8s >= 0.13.0)
@@ -512,6 +518,9 @@ and consider if they're appropriate for your deployment.
       beta.kubernetes.io/arch: amd64
     ```
 
+  - `affinity` ((#v-client-affinity)) (`string`) - This value defines the [affinity](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity)
+    for client pods, formatted as a multi-line YAML string.
+
   - `priorityClassName` ((#v-client-priorityclassname)) (`string: ""`) - This value references an
     existing Kubernetes [priorityClassName](https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/#pod-priority) that can be assigned to client pods.
 
@@ -523,6 +532,12 @@ and consider if they're appropriate for your deployment.
       "sample/annotation1": "foo"
       "sample/annotation2": "bar"
     ```
+
+  - `extraEnvironmentVars` ((#v-client-extra-environment-vars (`string: "{}"`) - extraEnvironmentVars
+    is a list of extra environment variables to set with the pod. These could be
+    used to include proxy settings required for cloud auto-join feature,
+    in case kubernetes cluster is behind egress http proxies. Additionally, it
+    could be used to configure custom consul parameters.
 
   - `dnsPolicy` ((#v-client-dnspolicy)) (`string: null`) - This value defines the [Pod DNS policy](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-s-dns-policy)
     for client pods to use.
@@ -616,6 +631,7 @@ and consider if they're appropriate for your deployment.
     `namespace1` and `namespace2` to be synced and registered with Consul. All other
     k8s namespaces will be ignored. Note: `k8sDenyNamespaces` takes precedence over
     values defined here. Requires consul-k8s v0.12+
+
   - `k8sDenyNamespaces` ((#v-synccatalog-k8sdenynamespaces)) (`[]string: ["kube-system", "kube-public"]` - list of k8s namespaces that should not have their services synced. This list takes precedence over `k8sAllowNamespaces`. `*` is not supported because then nothing would be allowed to sync. Requires consul-k8s v0.12+.
 
     For example, if `k8sAllowNamespaces` is `["*"]` and `k8sDenyNamespaces` is `["namespace1", "namespace2"]`, then all k8s namespaces besides `namespace1` and `namespace2` will be synced.
@@ -731,10 +747,16 @@ and consider if they're appropriate for your deployment.
     to opt-in to Connect injection. If this is true, pods can use the same annotation
     to explicitly opt-out of injection.
 
+  - `healthChecks` ((#v-connectinject-healthchecks)) - Synchronization of Kubernetes health probes status with Consul.
+
+    - `enabled` ((#v-connectinject-healthchecks-enabled)) (`boolean: true`) - Enables the Consul health check controller which syncs the readiness status of connect-injected pods with Consul.
+
+    - `reconcilePeriod` ((#v-connectinject-healthchecks-reconcileperiod)) (`string: "1m"`) - If `healthChecks.enabled` is set to true, reconcilePeriod defines how often a full state reconcile is done after the initial reconcile at startup is completed.
+
+  - `envoyExtraArgs` (((#v-connectinject-envoyextraargs))) (`string: ""`) - Pass [arguments](https://www.envoyproxy.io/docs/envoy/latest/operations/cli) to the injected envoy sidecar, e.g `"--log-level debug --disable-hot-restart"`
+
   - `imageConsul` ((#v-connectinject-imageconsul)) (`string: global.image`) - The name of the Docker
     image (including any tag) for Consul. This is used for proxy service registration, Envoy configuration, etc.
-
-  - `imageEnvoy` ((#v-connectinject-imageenvoy)) (`string: ""`) - The name of the Docker image (including any tag) for the Envoy sidecar. `envoy` must be on the executable path within this image. This Envoy version must be compatible with the Consul version used by the injector. If not specified this defaults to letting the injector choose the Envoy image. Check [supported Envoy versions](/docs/connect/proxies/envoy#supported-versions) to ensure the version you are using is compatible with Consul.
 
   - `namespaceSelector` ((#v-connectinject-namespaceselector)) (`string: ""`) - A [selector](https://
     kubernetes.io/docs/concepts/overview/working-with-objects/labels/)
@@ -964,8 +986,6 @@ and consider if they're appropriate for your deployment.
       ```
 
     - `additionalspec` ((#v-meshgateway-service-additionalspec)) (`string: null`) - Optional YAML string that will be appended to the Service spec.
-
-  - `imageEnvoy` ((#v-meshgateway-imageenvoy)) (`string: "envoyproxy/envoy:v1.13.0"`) - Envoy image to use. For Consul v1.7+, Envoy version 1.13+ is required.
 
   - `hostNetwork` ((#v-meshgateway-hostnetwork)) (`boolean: false`) - If set to true, gateway Pods will run on the host network.
 

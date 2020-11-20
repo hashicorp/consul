@@ -1,0 +1,92 @@
+@import 'layouts/index';
+
+/* all forms have a margin below the header */
+html[data-route$='create'] .app-view > header + div > *:first-child,
+html[data-route$='edit'] .app-view > header + div > *:first-child {
+  margin-top: 1.8em;
+}
+/* most tabs have margin after the tab bar, unless the tab has a filter bar */
+/* if it is a filter bar and the thing after the filter bar is a p then it also */
+/* needs a top margun :S */
+%app-view-content [role='tabpanel'] > *:first-child:not(.filter-bar):not(table),
+%app-view-content [role='tabpanel'] > .filter-bar + p {
+  margin-top: 1.25em;
+}
+.consul-upstream-instance-list,
+.consul-lock-session-list {
+  margin-top: 0 !important;
+}
+/* turn off top borders for things flush up to a filter bar */
+html[data-route='dc.services.index'] .consul-service-list ul,
+.consul-nspace-list ul,
+.consul-service-instance-list ul,
+.consul-node-list ul,
+.consul-lock-session-list ul,
+.consul-role-list ul,
+.consul-policy-list ul,
+.consul-token-list ul {
+  border-top-width: 0 !important;
+}
+.notice + .consul-token-list ul {
+  border-top-width: 1px !important;
+}
+
+// TODO: This shouldn't be done here, decide the best way to do this
+// %main-decoration ? %main-skin ? %content-skin ?
+// it includes layouts of components, but not layout of itself?
+// %main-components? What about %app-view-content
+main,
+%modal-window {
+  @extend %main-content;
+}
+html.template-with-vertical-menu,
+html.template-with-vertical-menu body {
+  overflow: hidden;
+}
+html:not(.has-nspaces) [class*='nspace-'] {
+  display: none;
+}
+#wrapper {
+  @extend %viewport-container;
+}
+#wrapper {
+  @extend %with-sticky-footer;
+}
+main {
+  @extend %with-sticky-footer-content;
+  position: relative;
+}
+main,
+#wrapper > footer {
+  @extend %content-container;
+}
+html[data-route$='create'] main,
+html[data-route$='edit'] main {
+  @extend %content-container-restricted;
+}
+
+@media #{$--lt-spacious-page-header} {
+  html[data-route$='.index']:not([data-route^='dc.kv']) .app-view {
+    margin-top: 10px;
+  }
+}
+@media #{$--lt-spacious-page-header} {
+  .actions button.copy-btn {
+    margin-top: -56px;
+    padding: 0;
+  }
+}
+%main-content p:not(:last-child) {
+  margin-bottom: 1em;
+}
+/* TODO: keep margin below forms, move elsewhere? */
+%main-content form:not(.filter-bar),
+%main-content form + div .with-confirmation {
+  margin-bottom: 2em;
+}
+@media #{$--lt-wide-form} {
+  main form [type='reset'] {
+    float: right;
+    margin-right: 0 !important;
+  }
+}

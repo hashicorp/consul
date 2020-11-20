@@ -5,11 +5,28 @@ import (
 	"errors"
 	"time"
 
+	"github.com/armon/go-metrics/prometheus"
+
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/go-hclog"
 )
+
+var Gauges = []prometheus.GaugeDefinition{
+	{
+		Name: []string{"consul", "state", "nodes"},
+		Help: "Measures the current number of nodes registered with Consul. It is only emitted by Consul servers. Added in v1.9.0.",
+	},
+	{
+		Name: []string{"consul", "state", "services"},
+		Help: "Measures the current number of unique services registered with Consul, based on service name. It is only emitted by Consul servers. Added in v1.9.0.",
+	},
+	{
+		Name: []string{"consul", "state", "service_instances"},
+		Help: "Measures the current number of unique services registered with Consul, based on service name. It is only emitted by Consul servers. Added in v1.9.0.",
+	},
+}
 
 // Config holds the settings for various parameters for the
 // UsageMetricsReporter

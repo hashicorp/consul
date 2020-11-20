@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"reflect"
 	"regexp"
@@ -16,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-multierror"
@@ -942,13 +944,15 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 			DisableHostname:                    b.boolVal(c.Telemetry.DisableHostname),
 			DogstatsdAddr:                      b.stringVal(c.Telemetry.DogstatsdAddr),
 			DogstatsdTags:                      c.Telemetry.DogstatsdTags,
-			PrometheusRetentionTime:            b.durationVal("prometheus_retention_time", c.Telemetry.PrometheusRetentionTime),
 			FilterDefault:                      b.boolVal(c.Telemetry.FilterDefault),
 			AllowedPrefixes:                    telemetryAllowedPrefixes,
 			BlockedPrefixes:                    telemetryBlockedPrefixes,
 			MetricsPrefix:                      b.stringVal(c.Telemetry.MetricsPrefix),
 			StatsdAddr:                         b.stringVal(c.Telemetry.StatsdAddr),
 			StatsiteAddr:                       b.stringVal(c.Telemetry.StatsiteAddr),
+			PrometheusOpts: prometheus.PrometheusOpts{
+				Expiration: b.durationVal("prometheus_retention_time", c.Telemetry.PrometheusRetentionTime),
+			},
 		},
 
 		// Agent
@@ -1031,7 +1035,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		NodeID:                      types.NodeID(b.stringVal(c.NodeID)),
 		NodeMeta:                    c.NodeMeta,
 		NodeName:                    b.nodeName(c.NodeName),
-		NonVotingServer:             b.boolVal(c.NonVotingServer),
+		ReadReplica:                 b.boolVal(c.ReadReplica),
 		PidFile:                     b.stringVal(c.PidFile),
 		PrimaryDatacenter:           primaryDatacenter,
 		PrimaryGateways:             b.expandAllOptionalAddrs("primary_gateways", c.PrimaryGateways),
@@ -1094,13 +1098,23 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		Watches:                     c.Watches,
 	}
 
-	rt.CacheUseStreamingBackend = b.boolVal(c.Cache.UseStreamingBackend)
+	rt.UseStreamingBackend = b.boolVal(c.UseStreamingBackend)
 
 	if rt.Cache.EntryFetchMaxBurst <= 0 {
 		return RuntimeConfig{}, fmt.Errorf("cache.entry_fetch_max_burst must be strictly positive, was: %v", rt.Cache.EntryFetchMaxBurst)
 	}
 	if rt.Cache.EntryFetchRate <= 0 {
 		return RuntimeConfig{}, fmt.Errorf("cache.entry_fetch_rate must be strictly positive, was: %v", rt.Cache.EntryFetchRate)
+	}
+
+	if rt.UIConfig.MetricsProvider == "prometheus" {
+		// Handle defaulting for the built-in version of prometheus.
+		if len(rt.UIConfig.MetricsProxy.PathAllowlist) == 0 {
+			rt.UIConfig.MetricsProxy.PathAllowlist = []string{
+				"/api/v1/query",
+				"/api/v1/query_range",
+			}
+		}
 	}
 
 	if err := b.BuildEnterpriseRuntimeConfig(&rt, &c); err != nil {
@@ -1144,6 +1158,10 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 	// check required params we cannot recover from first
 	//
 
+	if rt.RaftProtocol != 3 {
+		return fmt.Errorf("raft_protocol version %d is not supported by this version of Consul", rt.RaftProtocol)
+	}
+
 	if err := validateBasicName("datacenter", rt.Datacenter, false); err != nil {
 		return err
 	}
@@ -1179,6 +1197,11 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 			return fmt.Errorf("ui_config.metrics_proxy.base_url must be a valid http"+
 				" or https URL. received: %q",
 				rt.UIConfig.MetricsProxy.BaseURL)
+		}
+	}
+	for _, allowedPath := range rt.UIConfig.MetricsProxy.PathAllowlist {
+		if err := validateAbsoluteURLPath(allowedPath); err != nil {
+			return fmt.Errorf("ui_config.metrics_proxy.path_allowlist: %v", err)
 		}
 	}
 	for k, v := range rt.UIConfig.DashboardURLTemplates {
@@ -1747,8 +1770,9 @@ func (b *Builder) uiMetricsProxyVal(v RawUIMetricsProxy) UIMetricsProxy {
 	}
 
 	return UIMetricsProxy{
-		BaseURL:    b.stringVal(v.BaseURL),
-		AddHeaders: hdrs,
+		BaseURL:       b.stringVal(v.BaseURL),
+		AddHeaders:    hdrs,
+		PathAllowlist: v.PathAllowlist,
 	}
 }
 
@@ -2324,5 +2348,26 @@ func validateRemoteScriptsChecks(conf RuntimeConfig) error {
 	if conf.EnableRemoteScriptChecks && !conf.ACLsEnabled && len(conf.AllowWriteHTTPFrom) == 0 {
 		return errors.New(remoteScriptCheckSecurityWarning)
 	}
+	return nil
+}
+
+func validateAbsoluteURLPath(p string) error {
+	if !path.IsAbs(p) {
+		return fmt.Errorf("path %q is not an absolute path", p)
+	}
+
+	// A bit more extra validation that these are actually paths.
+	u, err := url.Parse(p)
+	if err != nil ||
+		u.Scheme != "" ||
+		u.Opaque != "" ||
+		u.User != nil ||
+		u.Host != "" ||
+		u.RawQuery != "" ||
+		u.Fragment != "" ||
+		u.Path != p {
+		return fmt.Errorf("path %q is not an absolute path", p)
+	}
+
 	return nil
 }

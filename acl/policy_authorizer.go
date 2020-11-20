@@ -350,7 +350,7 @@ type enforceCallback func(raw interface{}, prefixOnly bool) EnforcementDecision
 func anyAllowed(tree *radix.Tree, enforceFn enforceCallback) EnforcementDecision {
 	decision := Default
 
-	// special case for handling a catch-all prefix rule. If the rule woul Deny access then our default decision
+	// special case for handling a catch-all prefix rule. If the rule would Deny access then our default decision
 	// should be to Deny, but this decision should still be overridable with other more specific rules.
 	if raw, found := tree.Get(""); found {
 		decision = enforceFn(raw, true)
@@ -686,6 +686,10 @@ func (p *policyAuthorizer) NodeRead(name string, _ *AuthorizerContext) Enforceme
 	return Default
 }
 
+func (p *policyAuthorizer) NodeReadAll(_ *AuthorizerContext) EnforcementDecision {
+	return p.allAllowed(p.nodeRules, AccessRead)
+}
+
 // NodeWrite checks if writing (registering) a node is allowed
 func (p *policyAuthorizer) NodeWrite(name string, _ *AuthorizerContext) EnforcementDecision {
 	if rule, ok := getPolicy(name, p.nodeRules); ok {
@@ -718,6 +722,10 @@ func (p *policyAuthorizer) ServiceRead(name string, _ *AuthorizerContext) Enforc
 		return enforce(rule.access, AccessRead)
 	}
 	return Default
+}
+
+func (p *policyAuthorizer) ServiceReadAll(_ *AuthorizerContext) EnforcementDecision {
+	return p.allAllowed(p.serviceRules, AccessRead)
 }
 
 // ServiceWrite checks if writing (registering) a service is allowed

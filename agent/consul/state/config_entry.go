@@ -180,7 +180,7 @@ func (s *Store) EnsureConfigEntry(idx uint64, conf structs.ConfigEntry, entMeta 
 }
 
 // ensureConfigEntryTxn upserts a config entry inside of a transaction.
-func ensureConfigEntryTxn(tx *txn, idx uint64, conf structs.ConfigEntry, entMeta *structs.EnterpriseMeta) error {
+func ensureConfigEntryTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry, entMeta *structs.EnterpriseMeta) error {
 	// Check for existing configuration.
 	existing, err := firstConfigEntryWithTxn(tx, conf.GetKind(), conf.GetName(), entMeta)
 	if err != nil {
@@ -254,6 +254,14 @@ func (s *Store) DeleteConfigEntry(idx uint64, kind, name string, entMeta *struct
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
+	if err := deleteConfigEntryTxn(tx, idx, kind, name, entMeta); err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func deleteConfigEntryTxn(tx WriteTxn, idx uint64, kind, name string, entMeta *structs.EnterpriseMeta) error {
 	// Try to retrieve the existing config entry.
 	existing, err := firstConfigEntryWithTxn(tx, kind, name, entMeta)
 	if err != nil {
@@ -298,10 +306,10 @@ func (s *Store) DeleteConfigEntry(idx uint64, kind, name string, entMeta *struct
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	return tx.Commit()
+	return nil
 }
 
-func insertConfigEntryWithTxn(tx *txn, idx uint64, conf structs.ConfigEntry) error {
+func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry) error {
 	if conf == nil {
 		return fmt.Errorf("cannot insert nil config entry")
 	}

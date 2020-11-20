@@ -91,7 +91,8 @@ func NewEventPublisher(handlers SnapshotHandlers, snapCacheTTL time.Duration) *E
 	return e
 }
 
-// Publish events to all subscribers of the event Topic.
+// Publish events to all subscribers of the event Topic. The events will be shared
+// with all subscriptions, so the Payload used in Event.Payload must be immutable.
 func (e *EventPublisher) Publish(events []Event) {
 	if len(events) > 0 {
 		e.publishCh <- events
@@ -185,7 +186,6 @@ func (e *EventPublisher) Subscribe(req *SubscribeRequest) (*Subscription, error)
 	if req.Index > 0 {
 		snap.buffer.Append([]Event{{
 			Topic:   req.Topic,
-			Key:     req.Key,
 			Payload: newSnapshotToFollow{},
 		}})
 
@@ -268,7 +268,7 @@ func (e *EventPublisher) getCachedSnapshotLocked(req *SubscribeRequest) *eventSn
 		e.snapCache[req.Topic] = topicSnaps
 	}
 
-	snap, ok := topicSnaps[req.Key]
+	snap, ok := topicSnaps[snapCacheKey(req)]
 	if ok && snap.err() == nil {
 		return snap
 	}
@@ -280,12 +280,16 @@ func (e *EventPublisher) setCachedSnapshotLocked(req *SubscribeRequest, snap *ev
 	if e.snapCacheTTL == 0 {
 		return
 	}
-	e.snapCache[req.Topic][req.Key] = snap
+	e.snapCache[req.Topic][snapCacheKey(req)] = snap
 
 	// Setup a cache eviction
 	time.AfterFunc(e.snapCacheTTL, func() {
 		e.lock.Lock()
 		defer e.lock.Unlock()
-		delete(e.snapCache[req.Topic], req.Key)
+		delete(e.snapCache[req.Topic], snapCacheKey(req))
 	})
+}
+
+func snapCacheKey(req *SubscribeRequest) string {
+	return fmt.Sprintf(req.Namespace + "/" + req.Key)
 }

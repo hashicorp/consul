@@ -5,14 +5,17 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/go-hclog"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/grpc/internal/testservice"
 	"github.com/hashicorp/consul/agent/grpc/resolver"
 	"github.com/hashicorp/consul/agent/metadata"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/stretchr/testify/require"
+	"github.com/hashicorp/consul/tlsutil"
 )
 
 func TestNewDialer_WithTLSWrapper(t *testing.T) {
@@ -42,14 +45,43 @@ func TestNewDialer_WithTLSWrapper(t *testing.T) {
 	require.True(t, called, "expected TLSWrapper to be called")
 }
 
-// TODO: integration test TestNewDialer with TLS and rcp server, when the rpc
-// exists as an isolated component.
+func TestNewDialer_IntegrationWithTLSEnabledHandler(t *testing.T) {
+	res := resolver.NewServerResolverBuilder(newConfig(t))
+	registerWithGRPC(t, res)
+
+	srv := newTestServer(t, "server-1", "dc1")
+	tlsConf, err := tlsutil.NewConfigurator(tlsutil.Config{
+		VerifyIncoming: true,
+		VerifyOutgoing: true,
+		CAFile:         "../../test/hostname/CertAuth.crt",
+		CertFile:       "../../test/hostname/Alice.crt",
+		KeyFile:        "../../test/hostname/Alice.key",
+	}, hclog.New(nil))
+	require.NoError(t, err)
+	srv.rpc.tlsConf = tlsConf
+
+	res.AddServer(srv.Metadata())
+	t.Cleanup(srv.shutdown)
+
+	pool := NewClientConnPool(res, TLSWrapper(tlsConf.OutgoingRPCWrapper()))
+
+	conn, err := pool.ClientConn("dc1")
+	require.NoError(t, err)
+	client := testservice.NewSimpleClient(conn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	t.Cleanup(cancel)
+
+	resp, err := client.Something(ctx, &testservice.Req{})
+	require.NoError(t, err)
+	require.Equal(t, "server-1", resp.ServerName)
+	require.True(t, atomic.LoadInt32(&srv.rpc.tlsConnEstablished) > 0)
+}
 
 func TestClientConnPool_IntegrationWithGRPCResolver_Failover(t *testing.T) {
 	count := 4
-	cfg := resolver.Config{Scheme: newScheme(t.Name())}
-	res := resolver.NewServerResolverBuilder(cfg)
-	resolver.RegisterWithGRPC(res)
+	res := resolver.NewServerResolverBuilder(newConfig(t))
+	registerWithGRPC(t, res)
 	pool := NewClientConnPool(res, nil)
 
 	for i := 0; i < count; i++ {
@@ -76,17 +108,17 @@ func TestClientConnPool_IntegrationWithGRPCResolver_Failover(t *testing.T) {
 	require.NotEqual(t, resp.ServerName, first.ServerName)
 }
 
-func newScheme(n string) string {
+func newConfig(t *testing.T) resolver.Config {
+	n := t.Name()
 	s := strings.Replace(n, "/", "", -1)
 	s = strings.Replace(s, "_", "", -1)
-	return strings.ToLower(s)
+	return resolver.Config{Scheme: strings.ToLower(s)}
 }
 
 func TestClientConnPool_IntegrationWithGRPCResolver_Rebalance(t *testing.T) {
-	count := 4
-	cfg := resolver.Config{Scheme: newScheme(t.Name())}
-	res := resolver.NewServerResolverBuilder(cfg)
-	resolver.RegisterWithGRPC(res)
+	count := 5
+	res := resolver.NewServerResolverBuilder(newConfig(t))
+	registerWithGRPC(t, res)
 	pool := NewClientConnPool(res, nil)
 
 	for i := 0; i < count; i++ {
@@ -117,22 +149,25 @@ func TestClientConnPool_IntegrationWithGRPCResolver_Rebalance(t *testing.T) {
 	t.Run("rebalance the dc", func(t *testing.T) {
 		// Rebalance is random, but if we repeat it a few times it should give us a
 		// new server.
-		retry.RunWith(fastRetry, t, func(r *retry.R) {
+		attempts := 100
+		for i := 0; i < attempts; i++ {
 			res.NewRebalancer("dc1")()
 
 			resp, err := client.Something(ctx, &testservice.Req{})
-			require.NoError(r, err)
-			require.NotEqual(r, resp.ServerName, first.ServerName)
-		})
+			require.NoError(t, err)
+			if resp.ServerName != first.ServerName {
+				return
+			}
+		}
+		t.Fatalf("server was not rebalanced after %v attempts", attempts)
 	})
 }
 
 func TestClientConnPool_IntegrationWithGRPCResolver_MultiDC(t *testing.T) {
 	dcs := []string{"dc1", "dc2", "dc3"}
 
-	cfg := resolver.Config{Scheme: newScheme(t.Name())}
-	res := resolver.NewServerResolverBuilder(cfg)
-	resolver.RegisterWithGRPC(res)
+	res := resolver.NewServerResolverBuilder(newConfig(t))
+	registerWithGRPC(t, res)
 	pool := NewClientConnPool(res, nil)
 
 	for _, dc := range dcs {

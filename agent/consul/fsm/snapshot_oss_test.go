@@ -7,7 +7,6 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -168,7 +167,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	}
 	require.NoError(t, fsm.state.PreparedQuerySet(14, &query))
 
-	autopilotConf := &autopilot.Config{
+	autopilotConf := &structs.AutopilotConfig{
 		CleanupDeadServers:   true,
 		LastContactThreshold: 100 * time.Millisecond,
 		MaxTrailingLogs:      222,

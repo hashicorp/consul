@@ -12,7 +12,6 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/agent/checks"
-	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/structs"
 	libserf "github.com/hashicorp/consul/lib/serf"
 	"github.com/hashicorp/consul/tlsutil"
@@ -111,9 +110,9 @@ type Config struct {
 	// RaftConfig is the configuration used for Raft in the local DC
 	RaftConfig *raft.Config
 
-	// (Enterprise-only) NonVoter is used to prevent this server from being added
+	// (Enterprise-only) ReadReplica is used to prevent this server from being added
 	// as a voting member of the Raft cluster.
-	NonVoter bool
+	ReadReplica bool
 
 	// NotifyListen is called after the RPC listener has been configured.
 	// RPCAdvertise will be set to the listener address if it hasn't been
@@ -269,8 +268,8 @@ type Config struct {
 
 	// ACLDefaultPolicy is used to control the ACL interaction when
 	// there is no defined policy. This can be "allow" which means
-	// ACLs are used to black-list, or "deny" which means ACLs are
-	// white-lists.
+	// ACLs are used to deny-list, or "deny" which means ACLs are
+	// allow-lists.
 	ACLDefaultPolicy string
 
 	// ACLDownPolicy controls the behavior of ACLs if the ACLDatacenter
@@ -438,7 +437,7 @@ type Config struct {
 
 	// AutopilotConfig is used to apply the initial autopilot config when
 	// bootstrapping.
-	AutopilotConfig *autopilot.Config
+	AutopilotConfig *structs.AutopilotConfig
 
 	// ServerHealthInterval is the frequency with which the health of the
 	// servers in the cluster will be updated.
@@ -590,7 +589,7 @@ func DefaultConfig() *Config {
 
 		// TODO (slackpad) - Until #3744 is done, we need to keep these
 		// in sync with agent/config/default.go.
-		AutopilotConfig: &autopilot.Config{
+		AutopilotConfig: &structs.AutopilotConfig{
 			CleanupDeadServers:      true,
 			LastContactThreshold:    200 * time.Millisecond,
 			MaxTrailingLogs:         250,

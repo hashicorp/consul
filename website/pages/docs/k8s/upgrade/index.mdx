@@ -281,9 +281,9 @@ to be stopped and restarted with the new image.
    This can be confirmed by issuing `consul members` on one of the previous servers,
    and ensuring that all servers are listed and are `alive`.
 
-Decrease `updatePartition` by one and upgrade again. Continue until
-`updatePartition` is `0`. At this point, you may remove the
-`updatePartition` configuration. Your server upgrade is complete.
+1. Decrease `updatePartition` by one and upgrade again. Continue until
+   `updatePartition` is `0`. At this point, you may remove the
+   `updatePartition` configuration. Your server upgrade is complete.
 
 ## Upgrading Consul Clients
 

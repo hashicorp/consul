@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
@@ -12,6 +13,17 @@ import (
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/go-uuid"
 )
+
+var SessionEndpointSummaries = []prometheus.SummaryDefinition{
+	{
+		Name: []string{"session", "apply"},
+		Help: "Measures the time spent applying a session update.",
+	},
+	{
+		Name: []string{"session", "renew"},
+		Help: "Measures the time spent renewing a session.",
+	},
+}
 
 // Session endpoint is used to manipulate sessions for KV
 type Session struct {

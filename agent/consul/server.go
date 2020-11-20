@@ -17,12 +17,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	metrics "github.com/armon/go-metrics"
+	"github.com/armon/go-metrics"
 	connlimit "github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
+	autopilot "github.com/hashicorp/raft-autopilot"
 	raftboltdb "github.com/hashicorp/raft-boltdb"
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/time/rate"
@@ -32,7 +33,6 @@ import (
 	ca "github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
-	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
@@ -49,6 +49,8 @@ import (
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 )
+
+// NOTE The "consul.client.rpc" and "consul.client.rpc.exceeded" counters are defined in consul/client.go
 
 // These are the protocol versions that Consul can _understand_. These are
 // Consul-level protocol versions, that are used to configure the Serf
@@ -136,9 +138,6 @@ type Server struct {
 
 	// autopilot is the Autopilot instance for this server.
 	autopilot *autopilot.Autopilot
-
-	// autopilotWaitGroup is used to block until Autopilot shuts down.
-	autopilotWaitGroup sync.WaitGroup
 
 	// caProviderReconfigurationLock guards the provider reconfiguration.
 	caProviderReconfigurationLock sync.Mutex
@@ -391,6 +390,7 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 		shutdownCh:              shutdownCh,
 		leaderRoutineManager:    NewLeaderRoutineManager(logger),
 		aclAuthMethodValidators: authmethod.NewCache(),
+		fsm:                     newFSMFromConfig(flat.Logger, gc, config),
 	}
 
 	if s.config.ConnectMeshGatewayWANFederationEnabled {
@@ -616,6 +616,21 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 	return s, nil
 }
 
+func newFSMFromConfig(logger hclog.Logger, gc *state.TombstoneGC, config *Config) *fsm.FSM {
+	deps := fsm.Deps{Logger: logger}
+	if config.RPCConfig.EnableStreaming {
+		deps.NewStateStore = func() *state.Store {
+			return state.NewStateStoreWithEventPublisher(gc)
+		}
+		return fsm.NewFromDeps(deps)
+	}
+
+	deps.NewStateStore = func() *state.Store {
+		return state.NewStateStore(gc)
+	}
+	return fsm.NewFromDeps(deps)
+}
+
 func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler {
 	if !config.RPCConfig.EnableStreaming {
 		return agentgrpc.NoOpHandler{Logger: deps.Logger}
@@ -664,13 +679,6 @@ func (s *Server) setupRaft() error {
 			}
 		}
 	}()
-
-	// Create the FSM.
-	var err error
-	s.fsm, err = fsm.New(s.tombstoneGC, s.logger)
-	if err != nil {
-		return err
-	}
 
 	var serverAddressProvider raft.ServerAddressProvider = nil
 	if s.config.RaftConfig.ProtocolVersion >= 3 { //ServerAddressProvider needs server ids to work correctly, which is only supported in protocol version 3 or higher
@@ -772,10 +780,12 @@ func (s *Server) setupRaft() error {
 				return fmt.Errorf("recovery failed to parse peers.json: %v", err)
 			}
 
-			tmpFsm, err := fsm.New(s.tombstoneGC, s.logger)
-			if err != nil {
-				return fmt.Errorf("recovery failed to make temp FSM: %v", err)
-			}
+			tmpFsm := fsm.NewFromDeps(fsm.Deps{
+				Logger: s.logger,
+				NewStateStore: func() *state.Store {
+					return state.NewStateStore(s.tombstoneGC)
+				},
+			})
 			if err := raft.RecoverCluster(s.config.RaftConfig, tmpFsm,
 				log, stable, snap, trans, configuration); err != nil {
 				return fmt.Errorf("recovery failed: %v", err)
@@ -817,11 +827,9 @@ func (s *Server) setupRaft() error {
 	s.raftNotifyCh = raftNotifyCh
 
 	// Setup the Raft store.
+	var err error
 	s.raft, err = raft.NewRaft(s.config.RaftConfig, s.fsm.ChunkingFSM(), log, stable, snap, trans)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 // endpointFactory is a function that returns an RPC endpoint bound to the given
@@ -984,7 +992,7 @@ func (s *Server) Leave() error {
 	s.logger.Info("server starting leave")
 
 	// Check the number of known peers
-	numPeers, err := s.numPeers()
+	numPeers, err := s.autopilot.NumVoters()
 	if err != nil {
 		s.logger.Error("failed to check raft peers", "error", err)
 		return err
@@ -998,21 +1006,8 @@ func (s *Server) Leave() error {
 	// removed for some sane period of time.
 	isLeader := s.IsLeader()
 	if isLeader && numPeers > 1 {
-		minRaftProtocol, err := s.autopilot.MinRaftProtocol()
-		if err != nil {
-			return err
-		}
-
-		if minRaftProtocol >= 2 && s.config.RaftConfig.ProtocolVersion >= 3 {
-			future := s.raft.RemoveServer(raft.ServerID(s.config.NodeID), 0, 0)
-			if err := future.Error(); err != nil {
-				s.logger.Error("failed to remove ourself as raft peer", "error", err)
-			}
-		} else {
-			future := s.raft.RemovePeer(addr)
-			if err := future.Error(); err != nil {
-				s.logger.Error("failed to remove ourself as raft peer", "error", err)
-			}
+		if err := s.autopilot.RemoveServer(raft.ServerID(s.config.NodeID)); err != nil {
+			s.logger.Error("failed to remove ourself as a Raft peer", "error", err)
 		}
 	}
 
@@ -1089,18 +1084,6 @@ func (s *Server) Leave() error {
 	}
 
 	return nil
-}
-
-// numPeers is used to check on the number of known peers, including potentially
-// the local node. We count only voters, since others can't actually become
-// leader, so aren't considered peers.
-func (s *Server) numPeers() (int, error) {
-	future := s.raft.GetConfiguration()
-	if err := future.Error(); err != nil {
-		return 0, err
-	}
-
-	return autopilot.NumPeers(future.Configuration()), nil
 }
 
 // JoinLAN is used to have Consul join the inner-DC pool
@@ -1185,17 +1168,21 @@ func (s *Server) RemoveFailedNode(node string, prune bool) error {
 	if err := removeFn(s.serfLAN, node); err != nil {
 		return err
 	}
+
+	wanNode := node
+
 	// The Serf WAN pool stores members as node.datacenter
 	// so the dc is appended if not present
 	if !strings.HasSuffix(node, "."+s.config.Datacenter) {
-		node = node + "." + s.config.Datacenter
+		wanNode = node + "." + s.config.Datacenter
 	}
 	if s.serfWAN != nil {
-		if err := removeFn(s.serfWAN, node); err != nil {
+		if err := removeFn(s.serfWAN, wanNode); err != nil {
 			return err
 		}
 	}
-	return nil
+
+	return s.removeFailedNodeEnterprise(removeFn, node, wanNode)
 }
 
 // IsLeader checks if this server is the cluster leader

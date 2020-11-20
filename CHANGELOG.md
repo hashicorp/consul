@@ -1,5 +1,93 @@
 ## UNRELEASED
 
+## 1.9.0-rc1 (November 17, 2020)
+
+BREAKING CHANGES:
+
+* connect: Update Envoy metrics names and labels for proxy listeners so that attributes like datacenter and namespace can be extracted. [[GH-9207](https://github.com/hashicorp/consul/issues/9207)]
+* server: **(Enterprise only)** Pre-existing intentions defined with
+non-existent destination namespaces were non-functional and are erased during
+the upgrade process. This should not matter as these intentions had nothing to
+enforce. [[GH-9186](https://github.com/hashicorp/consul/issues/9186)]
+* server: **(OSS only)** Pre-existing intentions defined with either a source or
+destination namespace value that is not "default" are rewritten or deleted
+during the upgrade process. Wildcards first attempt to downgrade to "default"
+unless an intention already exists, otherwise these non-functional intentions
+are deleted. [[GH-9186](https://github.com/hashicorp/consul/issues/9186)]
+
+FEATURES:
+
+* agent: return the default ACL policy to callers as a header [[GH-9101](https://github.com/hashicorp/consul/issues/9101)]
+* autopilot: Added a new `consul operator autopilot state` command to retrieve and view the Autopilot state from consul. [[GH-9142](https://github.com/hashicorp/consul/issues/9142)]
+
+IMPROVEMENTS:
+
+* agent: All metrics should be present and available to prometheus scrapers when Consul starts. If any non-deprecated metrics are missing please submit an issue with its name. [[GH-9198](https://github.com/hashicorp/consul/issues/9198)]
+* server: break up Intention.Apply monolithic method [[GH-9007](https://github.com/hashicorp/consul/issues/9007)]
+* server: remove config entry CAS in legacy intention API bridge code [[GH-9151](https://github.com/hashicorp/consul/issues/9151)]
+* ui: Add the Upstreams and Exposed Paths tabs for services in mesh [[GH-9141](https://github.com/hashicorp/consul/issues/9141)]
+* ui: Moves the Proxy health checks to be displayed with the Service health check under the Health Checks tab [[GH-9141](https://github.com/hashicorp/consul/issues/9141)]
+
+DEPRECATIONS:
+
+* telemetry: the disable_compat_1.9 config will cover more metrics deprecations in future 1.9 point releases. These metrics will be emitted twice for backwards compatibility - if the flag is true, only the new metric name will be written. [[GH-9181](https://github.com/hashicorp/consul/issues/9181)]
+
+BUG FIXES:
+
+* autopilot: Prevent panic when requesting the autopilot health immediately after a leader is elected. [[GH-9204](https://github.com/hashicorp/consul/issues/9204)]
+* license: **(Enterprise only)** Fixed an issue where warnings about Namespaces being unlicensed would be emitted erroneously.
+* namespace: **(Enterprise Only)** Fixed a bug that could case snapshot restoration to fail when it contained a namespace marked for deletion while still containing other resources in that namespace. [[GH-9156](https://github.com/hashicorp/consul/issues/9156)]
+* namespace: **(Enterprise Only)** Fixed an issue where namespaced services and checks were not being deleted when the containing namespace was deleted.
+* server: skip deleted and deleting namespaces when migrating intentions to config entries [[GH-9186](https://github.com/hashicorp/consul/issues/9186)]
+
+## 1.9.0-beta3 (November 10, 2020)
+
+BREAKING CHANGES:
+
+* connect: Switch the default gateway port from 443 to 8443 to avoid assumption of Envoy running as root. [[GH-9113](https://github.com/hashicorp/consul/issues/9113)]
+* raft: Raft protocol v2 is no longer supported. If currently using protocol v2 then an intermediate upgrade to a version supporting both v2 and v3 protocols will be necessary (1.0.0 - 1.8.x). Note that the Raft protocol configured with the `raft_protocol` setting and the Consul RPC protocol configured with the `protocol` setting and output by the `consul version` command are distinct and supported Consul RPC protocol versions are not altered. [[GH-9103](https://github.com/hashicorp/consul/issues/9103)]
+
+FEATURES:
+
+* autopilot: A new `/v1/operator/autopilot/state` HTTP API was created to give greater visibility into what autopilot is doing and how it has classified all the servers it is tracking. [[GH-9103](https://github.com/hashicorp/consul/issues/9103)]
+
+IMPROVEMENTS:
+
+* autopilot: **(Enterprise Only)** Autopilot now supports using both Redundancy Zones and Automated Upgrades together. [[GH-9103](https://github.com/hashicorp/consul/issues/9103)]
+* chore: update to Go 1.14.11 with mitigation for [golang/go#42138](https://github.com/golang/go/issues/42138) [[GH-9119](https://github.com/hashicorp/consul/issues/9119)]
+
+BUG FIXES:
+
+* autopilot: **(Enterprise Only)** Previously servers in other zones would not be promoted when all servers in a second zone had failed. Now the actual behavior matches the docs and autopilot will promote a healthy non-voter from any zone to replace failure of an entire zone. [[GH-9103](https://github.com/hashicorp/consul/issues/9103)]
+
+## 1.9.0-beta2 (November 07, 2020)
+
+BREAKING CHANGES:
+
+* sentinel: **(Consul Enterprise only)** update to v0.16.0, which replaces `whitelist` and `blacklist` with `allowlist` and `denylist`
+
+SECURITY:
+
+* Fix Consul Enterprise Namespace Config Entry Replication DoS. Previously an operator with service:write ACL permissions in a Consul Enterprise cluster could write a malicious config entry that caused infinite raft writes due to issues with the namespace replication logic. [[CVE-2020-25201](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-25201)] [[GH-9024](https://github.com/hashicorp/consul/issues/9024)]
+
+FEATURES:
+
+* agent: Add a new RPC endpoint for streaming cluster state change events to clients.
+* telemetry: add initialization and definition for non-expiring key metrics in Prometheus [[GH-9088](https://github.com/hashicorp/consul/issues/9088)]
+
+IMPROVEMENTS:
+
+* agent: add path_allowlist config option to restrict metrics proxy queries [[GH-9059](https://github.com/hashicorp/consul/issues/9059)]
+* agent: protect the metrics proxy behind ACLs [[GH-9099](https://github.com/hashicorp/consul/issues/9099)]
+* ui: add dashboard_url_template config option for external dashboard links [[GH-9002](https://github.com/hashicorp/consul/issues/9002)]
+
+BUG FIXES:
+
+* api: Fixed a bug where the Check.GRPCUseTLS field could not be set using snake case. [[GH-8771](https://github.com/hashicorp/consul/issues/8771)]
+* connect: fix connect sidecars registered via the API not being automatically deregistered with their parent service after an agent restart by persisting the LocallyRegisteredAsSidecar property. [[GH-8924](https://github.com/hashicorp/consul/issues/8924)]
+* ui: hide metrics for ingress gateways until full support can be implemented [[GH-9081](https://github.com/hashicorp/consul/issues/9081)]
+* ui: only show topology tab for services that exist [[GH-9008](https://github.com/hashicorp/consul/issues/9008)]
+
 ## 1.9.0-beta1 (October 12, 2020)
 
 BREAKING CHANGES:
@@ -55,6 +143,33 @@ BUG FIXES:
 * fixed a bug that caused logs to be flooded with `[WARN] agent.router: Non-server in server-only area` [[GH-8685](https://github.com/hashicorp/consul/issues/8685)]
 * license: (Enterprise only) Fixed an issue where the UI would see Namespaces and SSO as licensed when they were not.
 * raft: (Enterprise only) properly update consul server meta non_voter for non-voting Enterprise Consul servers [[GH-8731](https://github.com/hashicorp/consul/issues/8731)]
+* ui: show correct datacenter for gateways [[GH-8704](https://github.com/hashicorp/consul/issues/8704)]
+
+## 1.8.6 (November 19, 2020)
+
+SECURITY:
+
+* Increase the permissions to read from the `/connect/ca/configuration` endpoint to `operator:write`. Previously Connect CA configuration, including the private key, set via this endpoint could be read back by an operator with `operator:read` privileges. [CVE-2020-28053](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-28053) [[GH-9240](https://github.com/hashicorp/consul/issues/9240)]
+
+## 1.8.5 (October 23, 2020)
+
+SECURITY:
+
+* Fix Consul Enterprise Namespace Config Entry Replication DoS. Previously an operator with service:write ACL permissions in a Consul Enterprise cluster could write a malicious config entry that caused infinite raft writes due to issues with the namespace replication logic. [[CVE-2020-25201](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-25201)] [[GH-9024](https://github.com/hashicorp/consul/issues/9024)]
+
+IMPROVEMENTS:
+
+* api: The `v1/connect/ca/roots` endpoint now accepts a `pem=true` query parameter and will return a PEM encoded certificate chain of all the certificates that would normally be in the JSON version of the response. [[GH-8774](https://github.com/hashicorp/consul/issues/8774)]
+* connect: The Vault provider will now automatically renew the lease of the token used, if supported. [[GH-8560](https://github.com/hashicorp/consul/issues/8560)]
+* connect: update supported envoy releases to 1.14.5, 1.13.6, 1.12.7, 1.11.2 for 1.8.x [[GH-8999](https://github.com/hashicorp/consul/issues/8999)]
+
+BUG FIXES:
+
+* agent: when enable_central_service_config is enabled ensure agent reload doesn't revert check state to critical [[GH-8747](https://github.com/hashicorp/consul/issues/8747)]
+* connect: Fixed an issue where the Vault intermediate was not renewed in the primary datacenter. [[GH-8784](https://github.com/hashicorp/consul/issues/8784)]
+* connect: fix Vault provider not respecting IntermediateCertTTL [[GH-8646](https://github.com/hashicorp/consul/issues/8646)]
+* connect: fix connect sidecars registered via the API not being automatically deregistered with their parent service after an agent restart by persisting the LocallyRegisteredAsSidecar property. [[GH-8924](https://github.com/hashicorp/consul/issues/8924)]
+* fixed a bug that caused logs to be flooded with `[WARN] agent.router: Non-server in server-only area` [[GH-8685](https://github.com/hashicorp/consul/issues/8685)]
 * ui: show correct datacenter for gateways [[GH-8704](https://github.com/hashicorp/consul/issues/8704)]
 
 ## 1.8.4 (September 11, 2020)
@@ -201,6 +316,26 @@ BUGFIXES:
 * ui: Quote service names when filtering intentions to prevent 500 errors when accessing a service [[GH-7896](https://github.com/hashicorp/consul/issues/7896)] [[GH-7888](https://github.com/hashicorp/consul/pull/7888)]
 * ui: Miscellaneous amends for Safari and Firefox [[GH-7904](https://github.com/hashicorp/consul/issues/7904)] [[GH-7907](https://github.com/hashicorp/consul/pull/7907)]
 * ui: Ensure a value is always passed to CONSUL_SSO_ENABLED [[GH-7913](https://github.com/hashicorp/consul/pull/7913)]
+
+## 1.7.10 (November 19, 2020)
+
+SECURITY:
+
+* Increase the permissions to read from the `/connect/ca/configuration` endpoint to `operator:write`. Previously Connect CA configuration, including the private key, set via this endpoint could be read back by an operator with `operator:read` privileges. [CVE-2020-28053](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-28053) [[GH-9240](https://github.com/hashicorp/consul/issues/9240)]
+
+## 1.7.9 (October 26, 2020)
+
+SECURITY:
+
+* Fix Consul Enterprise Namespace Config Entry Replication DoS. Previously an operator with service:write ACL permissions in a Consul Enterprise cluster could write a malicious config entry that caused infinite raft writes due to issues with the namespace replication logic. [CVE-2020-25201] (https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-25201) [[GH-9024](https://github.com/hashicorp/consul/issues/9024)]
+
+IMPROVEMENTS:
+
+* connect: update supported envoy releases to 1.13.6, 1.12.7, 1.11.2, 1.10.0 for 1.7.x [[GH-9000](https://github.com/hashicorp/consul/issues/9000)]
+
+BUG FIXES:
+
+* agent: when enable_central_service_config is enabled ensure agent reload doesn't revert check state to critical [[GH-8747](https://github.com/hashicorp/consul/issues/8747)]
 
 ## 1.7.8 (September 11, 2020)
 
@@ -436,6 +571,12 @@ BUGFIXES:
 * ui: Fix positioning of active icon in the selected menu item [[GH-7148](https://github.com/hashicorp/consul/pull/7148)]
 * ui: Discovery-Chain: Improve parsing of redirects [[GH-7174](https://github.com/hashicorp/consul/pull/7174)]
 * ui: Fix styling of ‘duplicate intention’ error message [[GH6936]](https://github.com/hashicorp/consul/pull/6936)
+
+## 1.6.10 (November 19, 2020)
+
+SECURITY:
+
+* Increase the permissions to read from the `/connect/ca/configuration` endpoint to `operator:write`. Previously Connect CA configuration, including the private key, set via this endpoint could be read back by an operator with `operator:read` privileges. [CVE-2020-28053](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-28053) [[GH-9240](https://github.com/hashicorp/consul/issues/9240)]
 
 ## 1.6.9 (September 11, 2020)
 

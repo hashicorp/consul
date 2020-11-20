@@ -11,11 +11,46 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	bexpr "github.com/hashicorp/go-bexpr"
+	"github.com/mitchellh/pointerstructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 var dumpFieldConfig = flag.Bool("dump-field-config", false, "generate field config dump file")
+
+func TestPointerStructure(t *testing.T) {
+	csn := CheckServiceNode{
+		Node: &Node{
+			ID:      "f18f3a10-2153-40ae-af7d-68db0e856498",
+			Node:    "node1",
+			Address: "198.18.0.1",
+		},
+		Service: &NodeService{
+			ID:      "test",
+			Service: "test",
+			Port:    1234,
+			TaggedAddresses: map[string]ServiceAddress{
+				"wan": {
+					Address: "1.1.1.1",
+					Port:    443,
+				},
+			},
+		},
+	}
+
+	ptr := pointerstructure.Pointer{
+		Parts: []string{
+			"Service",
+			"TaggedAddresses",
+			"wan",
+			"Address",
+		},
+	}
+
+	val, err := ptr.Get(csn)
+	require.NoError(t, err)
+	require.Equal(t, "1.1.1.1", val)
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 //

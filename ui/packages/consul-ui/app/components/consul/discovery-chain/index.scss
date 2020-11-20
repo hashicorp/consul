@@ -1,0 +1,5 @@
+@import './skin';
+@import './layout';
+.discovery-chain {
+  @extend %discovery-chain;
+}

@@ -18,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -620,10 +621,10 @@ func TestBuilder_BuildAndValidate_ConfigFlagsAndEdgecases(t *testing.T) {
 				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
-				rt.NonVotingServer = true
+				rt.ReadReplica = true
 				rt.DataDir = dataDir
 			},
-			warns: enterpriseNonVotingServerWarnings,
+			warns: enterpriseReadReplicaWarnings,
 		},
 		{
 			desc: "-pid-file",
@@ -673,13 +674,21 @@ func TestBuilder_BuildAndValidate_ConfigFlagsAndEdgecases(t *testing.T) {
 		{
 			desc: "-raft-protocol",
 			args: []string{
-				`-raft-protocol=1`,
+				`-raft-protocol=3`,
 				`-data-dir=` + dataDir,
 			},
 			patch: func(rt *RuntimeConfig) {
-				rt.RaftProtocol = 1
+				rt.RaftProtocol = 3
 				rt.DataDir = dataDir
 			},
+		},
+		{
+			desc: "-raft-protocol unsupported",
+			args: []string{
+				`-raft-protocol=2`,
+				`-data-dir=` + dataDir,
+			},
+			err: "raft_protocol version 2 is not supported by this version of Consul",
 		},
 		{
 			desc: "-recursor",
@@ -4557,6 +4566,189 @@ func TestBuilder_BuildAndValidate_ConfigFlagsAndEdgecases(t *testing.T) {
 			err: `ui_config.metrics_proxy.base_url must be a valid http or https URL.`,
 		},
 		{
+			desc: "metrics_proxy.path_allowlist invalid (empty)",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"ui_config": {
+					"metrics_proxy": {
+						"path_allowlist": ["", "/foo"]
+					}
+				}
+			}`},
+			hcl: []string{`
+			ui_config {
+				metrics_proxy {
+					path_allowlist = ["", "/foo"]
+				}
+			}
+			`},
+			err: `ui_config.metrics_proxy.path_allowlist: path "" is not an absolute path`,
+		},
+		{
+			desc: "metrics_proxy.path_allowlist invalid (relative)",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"ui_config": {
+					"metrics_proxy": {
+						"path_allowlist": ["bar/baz", "/foo"]
+					}
+				}
+			}`},
+			hcl: []string{`
+			ui_config {
+				metrics_proxy {
+					path_allowlist = ["bar/baz", "/foo"]
+				}
+			}
+			`},
+			err: `ui_config.metrics_proxy.path_allowlist: path "bar/baz" is not an absolute path`,
+		},
+		{
+			desc: "metrics_proxy.path_allowlist invalid (weird)",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"ui_config": {
+					"metrics_proxy": {
+						"path_allowlist": ["://bar/baz", "/foo"]
+					}
+				}
+			}`},
+			hcl: []string{`
+			ui_config {
+				metrics_proxy {
+					path_allowlist = ["://bar/baz", "/foo"]
+				}
+			}
+			`},
+			err: `ui_config.metrics_proxy.path_allowlist: path "://bar/baz" is not an absolute path`,
+		},
+		{
+			desc: "metrics_proxy.path_allowlist invalid (fragment)",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"ui_config": {
+					"metrics_proxy": {
+						"path_allowlist": ["/bar/baz#stuff", "/foo"]
+					}
+				}
+			}`},
+			hcl: []string{`
+			ui_config {
+				metrics_proxy {
+					path_allowlist = ["/bar/baz#stuff", "/foo"]
+				}
+			}
+			`},
+			err: `ui_config.metrics_proxy.path_allowlist: path "/bar/baz#stuff" is not an absolute path`,
+		},
+		{
+			desc: "metrics_proxy.path_allowlist invalid (querystring)",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"ui_config": {
+					"metrics_proxy": {
+						"path_allowlist": ["/bar/baz?stu=ff", "/foo"]
+					}
+				}
+			}`},
+			hcl: []string{`
+			ui_config {
+				metrics_proxy {
+					path_allowlist = ["/bar/baz?stu=ff", "/foo"]
+				}
+			}
+			`},
+			err: `ui_config.metrics_proxy.path_allowlist: path "/bar/baz?stu=ff" is not an absolute path`,
+		},
+		{
+			desc: "metrics_proxy.path_allowlist invalid (encoded slash)",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"ui_config": {
+					"metrics_proxy": {
+						"path_allowlist": ["/bar%2fbaz", "/foo"]
+					}
+				}
+			}`},
+			hcl: []string{`
+			ui_config {
+				metrics_proxy {
+					path_allowlist = ["/bar%2fbaz", "/foo"]
+				}
+			}
+			`},
+			err: `ui_config.metrics_proxy.path_allowlist: path "/bar%2fbaz" is not an absolute path`,
+		},
+		{
+			desc: "metrics_proxy.path_allowlist ok",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"ui_config": {
+					"metrics_proxy": {
+						"path_allowlist": ["/bar/baz", "/foo"]
+					}
+				}
+			}`},
+			hcl: []string{`
+			ui_config {
+				metrics_proxy {
+					path_allowlist = ["/bar/baz", "/foo"]
+				}
+			}
+			`},
+			patch: func(rt *RuntimeConfig) {
+				rt.UIConfig.MetricsProxy.PathAllowlist = []string{"/bar/baz", "/foo"}
+				rt.DataDir = dataDir
+			},
+		},
+		{
+			desc: "metrics_proxy.path_allowlist defaulted for prometheus",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"ui_config": {
+					"metrics_provider": "prometheus"
+				}
+			}`},
+			hcl: []string{`
+			ui_config {
+				metrics_provider = "prometheus"
+			}
+			`},
+			patch: func(rt *RuntimeConfig) {
+				rt.UIConfig.MetricsProvider = "prometheus"
+				rt.UIConfig.MetricsProxy.PathAllowlist = []string{
+					"/api/v1/query",
+					"/api/v1/query_range",
+				}
+				rt.DataDir = dataDir
+			},
+		},
+		{
+			desc: "metrics_proxy.path_allowlist not overridden with defaults for prometheus",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{
+				"ui_config": {
+					"metrics_provider": "prometheus",
+					"metrics_proxy": {
+						"path_allowlist": ["/bar/baz", "/foo"]
+					}
+				}
+			}`},
+			hcl: []string{`
+			ui_config {
+				metrics_provider = "prometheus"
+				metrics_proxy {
+					path_allowlist = ["/bar/baz", "/foo"]
+				}
+			}
+			`},
+			patch: func(rt *RuntimeConfig) {
+				rt.UIConfig.MetricsProvider = "prometheus"
+				rt.UIConfig.MetricsProxy.PathAllowlist = []string{"/bar/baz", "/foo"}
+				rt.DataDir = dataDir
+			},
+		},
+		{
 			desc: "metrics_proxy.base_url http(s)",
 			args: []string{`-data-dir=` + dataDir},
 			json: []string{`{
@@ -4906,9 +5098,9 @@ func TestFullConfig(t *testing.T) {
 			"bootstrap_expect": 53,
 			"cache": {
 				"entry_fetch_max_burst": 42,
-				"entry_fetch_rate": 0.334,
-				"use_streaming_backend": true
+				"entry_fetch_rate": 0.334
 			},
+			"use_streaming_backend": true,
 			"ca_file": "erA7T0PM",
 			"ca_path": "mQEN1Mfp",
 			"cert_file": "7s4QAzDk",
@@ -5131,10 +5323,11 @@ func TestFullConfig(t *testing.T) {
 			"primary_datacenter": "ejtmd43d",
 			"primary_gateways": [ "aej8eeZo", "roh2KahS" ],
 			"primary_gateways_interval": "18866s",
-			"raft_protocol": 19016,
+			"raft_protocol": 3,
 			"raft_snapshot_threshold": 16384,
 			"raft_snapshot_interval": "30s",
 			"raft_trailing_logs": 83749,
+			"read_replica": true,
 			"reconnect_timeout": "23739s",
 			"reconnect_timeout_wan": "26694s",
 			"recursors": [ "63.38.39.58", "92.49.18.18" ],
@@ -5471,7 +5664,8 @@ func TestFullConfig(t *testing.T) {
 							"name": "p3nynwc9",
 							"value": "TYBgnN2F"
 						}
-					]
+					],
+					"path_allowlist": ["/aSh3cu", "/eiK/2Th"]
 				},
 				"dashboard_url_templates": {
 					"u2eziu2n_lower_case": "http://lkjasd.otr"
@@ -5593,8 +5787,8 @@ func TestFullConfig(t *testing.T) {
 			cache = {
 				entry_fetch_max_burst = 42
 				entry_fetch_rate = 0.334
-				use_streaming_backend = true
 			},
+            use_streaming_backend = true
 			ca_file = "erA7T0PM"
 			ca_path = "mQEN1Mfp"
 			cert_file = "7s4QAzDk"
@@ -5820,10 +6014,11 @@ func TestFullConfig(t *testing.T) {
 			primary_datacenter = "ejtmd43d"
 			primary_gateways = [ "aej8eeZo", "roh2KahS" ]
 			primary_gateways_interval = "18866s"
-			raft_protocol = 19016
+			raft_protocol = 3
 			raft_snapshot_threshold = 16384
 			raft_snapshot_interval = "30s"
 			raft_trailing_logs = 83749
+			read_replica = true
 			reconnect_timeout = "23739s"
 			reconnect_timeout_wan = "26694s"
 			recursors = [ "63.38.39.58", "92.49.18.18" ]
@@ -6162,6 +6357,7 @@ func TestFullConfig(t *testing.T) {
 							value = "TYBgnN2F"
 						}
 					]
+					path_allowlist = ["/aSh3cu", "/eiK/2Th"]
 				}
 			 	dashboard_url_templates {
 					u2eziu2n_lower_case = "http://lkjasd.otr"
@@ -6569,7 +6765,7 @@ func TestFullConfig(t *testing.T) {
 		NodeID:                  types.NodeID("AsUIlw99"),
 		NodeMeta:                map[string]string{"5mgGQMBk": "mJLtVMSG", "A7ynFMJB": "0Nx6RGab"},
 		NodeName:                "otlLxGaI",
-		NonVotingServer:         true,
+		ReadReplica:             true,
 		PidFile:                 "43xN80Km",
 		PrimaryDatacenter:       "ejtmd43d",
 		PrimaryGateways:         []string{"aej8eeZo", "roh2KahS"},
@@ -6582,7 +6778,7 @@ func TestFullConfig(t *testing.T) {
 		RPCRateLimit:            12029.43,
 		RPCMaxBurst:             44848,
 		RPCMaxConnsPerClient:    2954,
-		RaftProtocol:            19016,
+		RaftProtocol:            3,
 		RaftSnapshotThreshold:   16384,
 		RaftSnapshotInterval:    30 * time.Second,
 		RaftTrailingLogs:        83749,
@@ -6891,17 +7087,17 @@ func TestFullConfig(t *testing.T) {
 				},
 			},
 		},
-		CacheUseStreamingBackend: true,
-		SerfAdvertiseAddrLAN:     tcpAddr("17.99.29.16:8301"),
-		SerfAdvertiseAddrWAN:     tcpAddr("78.63.37.19:8302"),
-		SerfBindAddrLAN:          tcpAddr("99.43.63.15:8301"),
-		SerfBindAddrWAN:          tcpAddr("67.88.33.19:8302"),
-		SerfAllowedCIDRsLAN:      []net.IPNet{},
-		SerfAllowedCIDRsWAN:      []net.IPNet{},
-		SessionTTLMin:            26627 * time.Second,
-		SkipLeaveOnInt:           true,
-		StartJoinAddrsLAN:        []string{"LR3hGDoG", "MwVpZ4Up"},
-		StartJoinAddrsWAN:        []string{"EbFSc3nA", "kwXTh623"},
+		UseStreamingBackend:  true,
+		SerfAdvertiseAddrLAN: tcpAddr("17.99.29.16:8301"),
+		SerfAdvertiseAddrWAN: tcpAddr("78.63.37.19:8302"),
+		SerfBindAddrLAN:      tcpAddr("99.43.63.15:8301"),
+		SerfBindAddrWAN:      tcpAddr("67.88.33.19:8302"),
+		SerfAllowedCIDRsLAN:  []net.IPNet{},
+		SerfAllowedCIDRsWAN:  []net.IPNet{},
+		SessionTTLMin:        26627 * time.Second,
+		SkipLeaveOnInt:       true,
+		StartJoinAddrsLAN:    []string{"LR3hGDoG", "MwVpZ4Up"},
+		StartJoinAddrsWAN:    []string{"EbFSc3nA", "kwXTh623"},
 		Telemetry: lib.TelemetryConfig{
 			CirconusAPIApp:                     "p4QOTe9j",
 			CirconusAPIToken:                   "E3j35V23",
@@ -6924,9 +7120,11 @@ func TestFullConfig(t *testing.T) {
 			AllowedPrefixes:                    []string{"oJotS8XJ"},
 			BlockedPrefixes:                    []string{"cazlEhGn"},
 			MetricsPrefix:                      "ftO6DySn",
-			PrometheusRetentionTime:            15 * time.Second,
 			StatsdAddr:                         "drce87cy",
 			StatsiteAddr:                       "HpFwKB8R",
+			PrometheusOpts: prometheus.PrometheusOpts{
+				Expiration: 15 * time.Second,
+			},
 		},
 		TLSCipherSuites:             []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256},
 		TLSMinVersion:               "pAOWafkR",
@@ -6956,6 +7154,7 @@ func TestFullConfig(t *testing.T) {
 						Value: "TYBgnN2F",
 					},
 				},
+				PathAllowlist: []string{"/aSh3cu", "/eiK/2Th"},
 			},
 			DashboardURLTemplates: map[string]string{"u2eziu2n_lower_case": "http://lkjasd.otr"},
 		},
@@ -7262,6 +7461,7 @@ func TestSanitize(t *testing.T) {
 			EntryFetchRate:     0.334,
 		},
 		ConsulCoordinateUpdatePeriod: 15 * time.Second,
+		RaftProtocol:                 3,
 		RetryJoinLAN: []string{
 			"foo=bar key=baz secret=boom bang=bar",
 		},
@@ -7298,6 +7498,13 @@ func TestSanitize(t *testing.T) {
 			*parseCIDR(t, "127.0.0.0/8"),
 		},
 		TxnMaxReqLen: 5678000000000000,
+		UIConfig: UIConfig{
+			MetricsProxy: UIMetricsProxy{
+				AddHeaders: []UIMetricsProxyAddHeader{
+					{Name: "foo", Value: "secret"},
+				},
+			},
+		},
 	}
 
 	rtJSON := `{
@@ -7493,13 +7700,13 @@ func TestSanitize(t *testing.T) {
 		"NodeID": "",
 		"NodeMeta": {},
 		"NodeName": "",
-		"NonVotingServer": false,
 		"PidFile": "",
 		"PrimaryDatacenter": "",
 		"PrimaryGateways": [
 			"pmgw_foo=bar pmgw_key=baz pmgw_secret=boom pmgw_bang=bar"
 		],
 		"PrimaryGatewaysInterval": "0s",
+		"ReadReplica": false,
 		"RPCAdvertiseAddr": "",
 		"RPCBindAddr": "",
 		"RPCHandshakeTimeout": "0s",
@@ -7511,7 +7718,7 @@ func TestSanitize(t *testing.T) {
 		"RPCConfig": {
 			"EnableStreaming": false
 		},
-		"RaftProtocol": 0,
+		"RaftProtocol": 3,
 		"RaftSnapshotInterval": "0s",
 		"RaftSnapshotThreshold": 0,
 		"RaftTrailingLogs": 0,
@@ -7541,7 +7748,7 @@ func TestSanitize(t *testing.T) {
 		"SerfBindAddrWAN": "",
 		"SerfPortLAN": 0,
 		"SerfPortWAN": 0,
-		"CacheUseStreamingBackend": false,
+		"UseStreamingBackend": false,
 		"ServerMode": false,
 		"ServerName": "",
 		"ServerPort": 0,
@@ -7626,9 +7833,15 @@ func TestSanitize(t *testing.T) {
 			"DogstatsdTags": [],
 			"FilterDefault": false,
 			"MetricsPrefix": "",
-			"PrometheusRetentionTime": "0s",
 			"StatsdAddr": "",
-			"StatsiteAddr": ""
+			"StatsiteAddr": "",
+			"PrometheusOpts": {
+				"Expiration": "0s",
+				"Registerer": null,
+				"GaugeDefinitions": [],
+				"CounterDefinitions": [],
+				"SummaryDefinitions": []
+			}
 		},
 		"TranslateWANAddrs": false,
 		"TxnMaxReqLen": 5678000000000000,
@@ -7640,8 +7853,14 @@ func TestSanitize(t *testing.T) {
 			"MetricsProviderFiles": [],
 			"MetricsProviderOptionsJSON": "",
 			"MetricsProxy": {
-				"AddHeaders": [],
-				"BaseURL": ""
+				"AddHeaders": [
+					{
+						"Name": "foo",
+						"Value": "hidden"
+					}
+				],
+				"BaseURL": "",
+				"PathAllowlist": []
 			},
 			"DashboardURLTemplates": {}
 		},

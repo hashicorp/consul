@@ -37,11 +37,12 @@ func (s *streamID) String() string {
 	return s.id
 }
 
-func (h *Server) newLoggerForRequest(req *pbsubscribe.SubscribeRequest) Logger {
-	return h.Logger.With(
+func newLoggerForRequest(l Logger, req *pbsubscribe.SubscribeRequest) Logger {
+	return l.With(
 		"topic", req.Topic.String(),
 		"dc", req.Datacenter,
 		"key", req.Key,
+		"namespace", req.Namespace,
 		"index", req.Index,
 		"stream_id", &streamID{})
 }
@@ -57,12 +58,20 @@ func (l *eventLogger) Trace(e stream.Event) {
 	case e.IsEndOfSnapshot():
 		l.snapshotDone = true
 		l.logger.Trace("snapshot complete", "index", e.Index, "sent", l.count)
+		return
 	case e.IsNewSnapshotToFollow():
 		l.logger.Trace("starting new snapshot", "sent", l.count)
 		return
-	case l.snapshotDone:
-		l.logger.Trace("sending events", "index", e.Index, "sent", l.count, "batch_size", e.Len())
 	}
 
-	l.count += uint64(e.Len())
+	size := 1
+	if l, ok := e.Payload.(length); ok {
+		size = l.Len()
+	}
+	l.logger.Trace("sending events", "index", e.Index, "sent", l.count, "batch_size", size)
+	l.count += uint64(size)
+}
+
+type length interface {
+	Len() int
 }

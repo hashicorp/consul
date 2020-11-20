@@ -196,7 +196,7 @@ The options below are all specified on the command-line.
   the data directory. This is useful when running multiple Consul agents on the same
   host for testing. This defaults to false in Consul prior to version 0.8.5 and in
   0.8.5 and later defaults to true, so you must opt-in for host-based IDs. Host-based
-  IDs are generated using [gopsutil](https://github.com/shirou/gopsutil/tree/master/host), which
+  IDs are generated using [gopsutil](https://github.com/shirou/gopsutil/tree/master/v3/host), which
   is shared with HashiCorp's [Nomad](https://www.nomadproject.io/), so if you opt-in
   to host-based IDs then Consul and Nomad will use information on the host to automatically
   assign the same ID in both systems.
@@ -479,7 +479,10 @@ The options below are all specified on the command-line.
   This overrides the default server RPC port 8300. This is available in Consul 1.2.2
   and later.
 
-- `-non-voting-server` ((#\_non_voting_server)) <EnterpriseAlert inline /> - This
+- `-non-voting-server` ((#\_non_voting_server)) <EnterpriseAlert inline /> - **This field 
+  is deprecated in Consul 1.9.1. See the [`-read-replica`](#_read_replica) flag instead.**
+
+- `-read-replica` ((#\_read_replica)) <EnterpriseAlert inline /> - This
   flag is used to make the server not participate in the Raft quorum, and have it
   only receive the data replication stream. This can be used to add read scalability
   to a cluster in cases where a high volume of reads to servers are needed.
@@ -1151,13 +1154,6 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     The default value is "No limit" and should be tuned on large
     clusters to avoid performing too many RPCs on entries changing a lot.
 
-  - `use_streaming_backend` when enabled Consul client agents will use streaming rpc to
-    populate the cache, instead of the traditional blocking queries. All servers must
-    have [`rpc.enable_streaming`](#rpc_enable_streaming) enabled before any client can enable `use_streaming_backend`.
-    At least one of [`dns.use_cache`](#dns_use_cache) or
-    [`http_config.use_cache`](#http_config_use_cache) must be enabled, otherwise
-    this setting has no effect.
-
 - `ca_file` This provides a file path to a PEM-encoded certificate
   authority. The certificate authority is used to check the authenticity of client
   and server connections with the appropriate [`verify_incoming`](#verify_incoming)
@@ -1459,7 +1455,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     When set to true, in a DNS query for a service, the label between the domain
     and the `service` label will be treated as a namespace name instead of a datacenter.
     When set to false, the default, the behavior will be the same as non-Enterprise
-    versions and will assume the label is the datacenter. See: [this section](/docs/agent/dns#namespaced-services)
+    versions and will assume the label is the datacenter. See: [this section](/docs/discovery/dns#namespaced-services)
     for more details.
 
 - `domain` Equivalent to the [`-domain` command-line flag](#_domain).
@@ -1834,7 +1830,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
   - `enable_streaming` ((#rpc_enable_streaming)) enables the gRPC subscribe endpoint on a Consul Server. All
     servers in all federated datacenters must have this enabled before any client can use
-    [`cache.use_streaming_backend`](#use_streaming_backend). This setting will default to true in a future release of Consul.
+    [`use_streaming_backend`](#use_streaming_backend). This setting will default to true in a future release of Consul.
 
 - `segment` <EnterpriseAlert inline /> - Equivalent to the [`-segment` command-line flag](#_segment).
 
@@ -1859,7 +1855,9 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
 - `server` Equivalent to the [`-server` command-line flag](#_server).
 
-- `non_voting_server` - Equivalent to the [`-non-voting-server` command-line flag](#_non_voting_server).
+- `non_voting_server` - **This field is deprecated in Consul 1.9.1. See the [`read_replica`](#read_replica) field instead.**
+
+- `read_replica` - Equivalent to the [`-read-replica` command-line flag](#_read_replica).
 
 - `server_name` When provided, this overrides the [`node_name`](#_node)
   for the TLS certificate. It can be used to ensure that the certificate name matches
@@ -2107,11 +2105,20 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
   - `metrics_proxy` ((#ui_config_metrics_proxy)) - This object configures an
     internal agent API endpoint that will proxy GET requests to a metrics
-    backend to allow querying metrics data in the UI. It simplifies deployment
-    where the metrics backend is not exposed externally to UI user's browsers.
+    backend to allow querying metrics data in the UI. This simplifies deployment
+    where the metrics backend is not exposed externally to UI users' browsers.
     It may also be used to augment requests with API credentials to allow
     serving graphs to UI users without them needing individual access tokens for
     the metrics backend.
+
+    ~> **Security Note:** Exposing your metrics backend via Consul in this way
+    should be carefully considered in production. As Consul doesn't understand
+    the requests, it can't limit access to only specific resources. For example
+    **this might make it possible for a malicious user on the network to query
+    for arbitrary metrics about any server or workload in your infrastructure,
+    or overload the metrics infrastructure with queries**. See [Metrics Proxy
+    Security](/docs/connect/observability/ui-visualization#metrics-proxy-security)
+    for more details.
 
     The following sub-keys are available:
 
@@ -2123,6 +2130,17 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
       which will then not be necessary in provider requests to the backend and
       the proxy will prevent any access to paths without that prefix on the
       backend.
+
+    - `path_allowlist` ((#ui_config_metrics_provider_path_allowlist)) - This
+      specifies the paths that may be proxies to when appended to the
+      `base_url`. It will defaults to `["/api/v1/query_range", "/api/v1/query"]`
+      which are the endpoints required for the built-in Prometheus provider. If
+      a [custom
+      provider](/docs/connect/observability/ui-visualization#custom-metrics-providers)
+      is used that requires the metrics proxy, the correct allowlist must be
+      specified to enable proxying to necessary endpoints. See [Path
+      Allowlist](/docs/connect/observability/ui-visualization#path-allowlist)
+      for more information.
 
     - `add_headers` ((#ui_config_metrics_proxy_add_headers)) - This is an
       optional list if headers to add to requests that are proxied to the
@@ -2136,6 +2154,30 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
 
       - `value` ((#ui_config_metrics_proxy_add_headers_value)) - Specifies the
         value in inject into proxied requests.
+
+  - `dashboard_url_templates` ((#ui_config_dashboard_url_templates)) - This map
+    specifies URL templates that may be used to render links to external
+    dashboards in various contexts in the UI. It is a map with the name of the
+    template as a key. The value is a string URL with optional placeholders.
+
+    Each template may contain placeholders which will be substituted for the
+    correct values in content when rendered in the UI. The placeholders
+    available are listed for each template.
+
+    For more information and examples see [UI
+      Visualization](/docs/connect/observability/ui-visualization#configuring-dashboard-urls)
+
+    The following named templates are defined:
+
+    - `service` ((#ui_config_dashboard_url_templates_service)) - This is the URL
+      to use when linking to the dashboard for a specific service. It is shown
+      as part of the [Topology
+      Visualization](/docs/connect/observability/ui-visualization).
+
+      The placeholders available are:
+       - `{{Service.Name}}` - Replaced with the current service's name.
+       - `{{Service.Namespace}}` - Replaced with the current service's namespace or empty if namespaces are not enabled.
+       - `{{Datacenter}}` - Replaced with the current service's datacenter.
 
 
 - `ui_dir` - **This field is deprecated in Consul 1.9.0. See the [`ui_config.dir`](#ui_config_dir) field instead.**
@@ -2161,6 +2203,14 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   - `group` - The group ID ownership of the socket file. This option
     currently only supports numeric IDs.
   - `mode` - The permission bits to set on the file.
+
+- `use_streaming_backend` when enabled Consul client agents will use streaming rpc to
+  populate, instead of the traditional blocking queries, for endpoints which support
+  streaming. All servers must have [`rpc.enable_streaming`](#rpc_enable_streaming)
+  enabled before any client can enable `use_streaming_backend`.
+  At least one of [`dns.use_cache`](#dns_use_cache) or
+  [`http_config.use_cache`](#http_config_use_cache) must be enabled, otherwise
+  this setting has no effect.
 
 - `verify_incoming` - If set to true, Consul
   requires that all incoming connections make use of TLS and that the client

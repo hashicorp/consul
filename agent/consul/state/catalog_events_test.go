@@ -4,12 +4,17 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/proto/pbcommon"
+
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/consul/types"
-	"github.com/stretchr/testify/require"
 )
 
 func TestServiceHealthEventsFromChanges(t *testing.T) {
@@ -35,7 +40,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			Name: "service reg, new node",
 			Mutate: func(s *Store, tx *txn) error {
 				return s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web"))
+					testServiceRegistration(t, "web"), false)
 			},
 			WantEvents: []stream.Event{
 				testServiceHealthEvent(t, "web"),
@@ -46,11 +51,11 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			Name: "service reg, existing node",
 			Setup: func(s *Store, tx *txn) error {
 				return s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "db"))
+					testServiceRegistration(t, "db"), false)
 			},
 			Mutate: func(s *Store, tx *txn) error {
 				return s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web"))
+					testServiceRegistration(t, "web"), false)
 			},
 			WantEvents: []stream.Event{
 				// Should only publish new service
@@ -62,11 +67,11 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			Name: "service dereg, existing node",
 			Setup: func(s *Store, tx *txn) error {
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "db")); err != nil {
+					testServiceRegistration(t, "db"), false); err != nil {
 					return err
 				}
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web")); err != nil {
+					testServiceRegistration(t, "web"), false); err != nil {
 					return err
 				}
 				return nil
@@ -83,10 +88,10 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 		{
 			Name: "node dereg",
 			Setup: func(s *Store, tx *txn) error {
-				if err := s.ensureRegistrationTxn(tx, tx.Index, false, testServiceRegistration(t, "db")); err != nil {
+				if err := s.ensureRegistrationTxn(tx, tx.Index, false, testServiceRegistration(t, "db"), false); err != nil {
 					return err
 				}
-				if err := s.ensureRegistrationTxn(tx, tx.Index, false, testServiceRegistration(t, "web")); err != nil {
+				if err := s.ensureRegistrationTxn(tx, tx.Index, false, testServiceRegistration(t, "web"), false); err != nil {
 					return err
 				}
 				return nil
@@ -104,7 +109,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 		{
 			Name: "connect native reg, new node",
 			Mutate: func(s *Store, tx *txn) error {
-				return s.ensureRegistrationTxn(tx, tx.Index, false, testServiceRegistration(t, "web", regConnectNative))
+				return s.ensureRegistrationTxn(tx, tx.Index, false, testServiceRegistration(t, "web", regConnectNative), false)
 			},
 			WantEvents: []stream.Event{
 				// We should see both a regular service health event as well as a connect
@@ -117,10 +122,10 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 		{
 			Name: "connect native reg, existing node",
 			Setup: func(s *Store, tx *txn) error {
-				return s.ensureRegistrationTxn(tx, tx.Index, false, testServiceRegistration(t, "db"))
+				return s.ensureRegistrationTxn(tx, tx.Index, false, testServiceRegistration(t, "db"), false)
 			},
 			Mutate: func(s *Store, tx *txn) error {
-				return s.ensureRegistrationTxn(tx, tx.Index, false, testServiceRegistration(t, "web", regConnectNative))
+				return s.ensureRegistrationTxn(tx, tx.Index, false, testServiceRegistration(t, "web", regConnectNative), false)
 			},
 			WantEvents: []stream.Event{
 				// We should see both a regular service health event as well as a connect
@@ -138,11 +143,11 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 		{
 			Name: "connect native dereg, existing node",
 			Setup: func(s *Store, tx *txn) error {
-				if err := s.ensureRegistrationTxn(tx, tx.Index, false, testServiceRegistration(t, "db")); err != nil {
+				if err := s.ensureRegistrationTxn(tx, tx.Index, false, testServiceRegistration(t, "db"), false); err != nil {
 					return err
 				}
 
-				return s.ensureRegistrationTxn(tx, tx.Index, false, testServiceRegistration(t, "web", regConnectNative))
+				return s.ensureRegistrationTxn(tx, tx.Index, false, testServiceRegistration(t, "web", regConnectNative), false)
 			},
 			Mutate: func(s *Store, tx *txn) error {
 				return s.deleteServiceTxn(tx, tx.Index, "node1", "web", nil)
@@ -157,10 +162,10 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 		{
 			Name: "connect sidecar reg, new node",
 			Mutate: func(s *Store, tx *txn) error {
-				if err := s.ensureRegistrationTxn(tx, tx.Index, false, testServiceRegistration(t, "web")); err != nil {
+				if err := s.ensureRegistrationTxn(tx, tx.Index, false, testServiceRegistration(t, "web"), false); err != nil {
 					return err
 				}
-				return s.ensureRegistrationTxn(tx, tx.Index, false, testServiceRegistration(t, "web", regSidecar))
+				return s.ensureRegistrationTxn(tx, tx.Index, false, testServiceRegistration(t, "web", regSidecar), false)
 			},
 			WantEvents: []stream.Event{
 				// We should see both a regular service health event for the web service
@@ -175,15 +180,15 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			Name: "connect sidecar reg, existing node",
 			Setup: func(s *Store, tx *txn) error {
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "db")); err != nil {
+					testServiceRegistration(t, "db"), false); err != nil {
 					return err
 				}
 				return s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web"))
+					testServiceRegistration(t, "web"), false)
 			},
 			Mutate: func(s *Store, tx *txn) error {
 				return s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web", regSidecar))
+					testServiceRegistration(t, "web", regSidecar), false)
 			},
 			WantEvents: []stream.Event{
 				// We should see both a regular service health event for the proxy
@@ -197,15 +202,15 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			Name: "connect sidecar dereg, existing node",
 			Setup: func(s *Store, tx *txn) error {
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "db")); err != nil {
+					testServiceRegistration(t, "db"), false); err != nil {
 					return err
 				}
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web")); err != nil {
+					testServiceRegistration(t, "web"), false); err != nil {
 					return err
 				}
 				return s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web", regSidecar))
+					testServiceRegistration(t, "web", regSidecar), false)
 			},
 			Mutate: func(s *Store, tx *txn) error {
 				// Delete only the sidecar
@@ -222,20 +227,20 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			Name: "connect sidecar mutate svc",
 			Setup: func(s *Store, tx *txn) error {
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "db")); err != nil {
+					testServiceRegistration(t, "db"), false); err != nil {
 					return err
 				}
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web")); err != nil {
+					testServiceRegistration(t, "web"), false); err != nil {
 					return err
 				}
 				return s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web", regSidecar))
+					testServiceRegistration(t, "web", regSidecar), false)
 			},
 			Mutate: func(s *Store, tx *txn) error {
 				// Change port of the target service instance
 				return s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web", regMutatePort))
+					testServiceRegistration(t, "web", regMutatePort), false)
 			},
 			WantEvents: []stream.Event{
 				// We should see the service topic update but not connect since proxy
@@ -253,20 +258,20 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			Name: "connect sidecar mutate sidecar",
 			Setup: func(s *Store, tx *txn) error {
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "db")); err != nil {
+					testServiceRegistration(t, "db"), false); err != nil {
 					return err
 				}
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web")); err != nil {
+					testServiceRegistration(t, "web"), false); err != nil {
 					return err
 				}
 				return s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web", regSidecar))
+					testServiceRegistration(t, "web", regSidecar), false)
 			},
 			Mutate: func(s *Store, tx *txn) error {
 				// Change port of the sidecar service instance
 				return s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web", regSidecar, regMutatePort))
+					testServiceRegistration(t, "web", regSidecar, regMutatePort), false)
 			},
 			WantEvents: []stream.Event{
 				// We should see the proxy service topic update and a connect update
@@ -290,24 +295,24 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			Name: "connect sidecar rename service",
 			Setup: func(s *Store, tx *txn) error {
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "db")); err != nil {
+					testServiceRegistration(t, "db"), false); err != nil {
 					return err
 				}
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web")); err != nil {
+					testServiceRegistration(t, "web"), false); err != nil {
 					return err
 				}
 				return s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web", regSidecar))
+					testServiceRegistration(t, "web", regSidecar), false)
 			},
 			Mutate: func(s *Store, tx *txn) error {
 				// Change service name but not ID, update proxy too
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web", regRenameService)); err != nil {
+					testServiceRegistration(t, "web", regRenameService), false); err != nil {
 					return err
 				}
 				return s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web", regSidecar, regRenameService))
+					testServiceRegistration(t, "web", regSidecar, regRenameService), false)
 			},
 			WantEvents: []stream.Event{
 				// We should see events to deregister the old service instance and the
@@ -348,25 +353,25 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			Setup: func(s *Store, tx *txn) error {
 				// Register a web_changed service
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web_changed")); err != nil {
+					testServiceRegistration(t, "web_changed"), false); err != nil {
 					return err
 				}
 				// Also a web
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web")); err != nil {
+					testServiceRegistration(t, "web"), false); err != nil {
 					return err
 				}
 				// And a sidecar initially for web, will be moved to target web_changed
 				// in Mutate.
 				return s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web", regSidecar))
+					testServiceRegistration(t, "web", regSidecar), false)
 			},
 			Mutate: func(s *Store, tx *txn) error {
 				// Change only the destination service of the proxy without a service
 				// rename or deleting and recreating the proxy. This is far fetched but
 				// still valid.
 				return s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web", regSidecar, regRenameService))
+					testServiceRegistration(t, "web", regSidecar, regRenameService), false)
 			},
 			WantEvents: []stream.Event{
 				// We should only see service health events for the sidecar service
@@ -400,17 +405,17 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			Setup: func(s *Store, tx *txn) error {
 				// Register a db service
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "db")); err != nil {
+					testServiceRegistration(t, "db"), false); err != nil {
 					return err
 				}
 				// Also a web
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web")); err != nil {
+					testServiceRegistration(t, "web"), false); err != nil {
 					return err
 				}
 				// With a connect sidecar
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web", regSidecar)); err != nil {
+					testServiceRegistration(t, "web", regSidecar), false); err != nil {
 					return err
 				}
 				return nil
@@ -418,7 +423,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			Mutate: func(s *Store, tx *txn) error {
 				// Change only the node meta.
 				return s.ensureRegistrationTxn(tx, tx.Index, false,
-					testNodeRegistration(t, regNodeMeta))
+					testNodeRegistration(t, regNodeMeta), false)
 			},
 			WantEvents: []stream.Event{
 				// We should see updates for all services and a connect update for the
@@ -458,17 +463,17 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			Setup: func(s *Store, tx *txn) error {
 				// Register a db service
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "db")); err != nil {
+					testServiceRegistration(t, "db"), false); err != nil {
 					return err
 				}
 				// Also a web
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web")); err != nil {
+					testServiceRegistration(t, "web"), false); err != nil {
 					return err
 				}
 				// With a connect sidecar
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web", regSidecar)); err != nil {
+					testServiceRegistration(t, "web", regSidecar), false); err != nil {
 					return err
 				}
 				return nil
@@ -480,17 +485,17 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				// services registered afterwards.
 				// Register a db service
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "db", regRenameNode)); err != nil {
+					testServiceRegistration(t, "db", regRenameNode), false); err != nil {
 					return err
 				}
 				// Also a web
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web", regRenameNode)); err != nil {
+					testServiceRegistration(t, "web", regRenameNode), false); err != nil {
 					return err
 				}
 				// With a connect sidecar
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web", regSidecar, regRenameNode)); err != nil {
+					testServiceRegistration(t, "web", regSidecar, regRenameNode), false); err != nil {
 					return err
 				}
 				return nil
@@ -535,17 +540,17 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			Setup: func(s *Store, tx *txn) error {
 				// Register a db service
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "db")); err != nil {
+					testServiceRegistration(t, "db"), false); err != nil {
 					return err
 				}
 				// Also a web
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web")); err != nil {
+					testServiceRegistration(t, "web"), false); err != nil {
 					return err
 				}
 				// With a connect sidecar
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web", regSidecar)); err != nil {
+					testServiceRegistration(t, "web", regSidecar), false); err != nil {
 					return err
 				}
 				return nil
@@ -553,7 +558,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			Mutate: func(s *Store, tx *txn) error {
 				// Change only the node-level check status
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web", regNodeCheckFail)); err != nil {
+					testServiceRegistration(t, "web", regNodeCheckFail), false); err != nil {
 					return err
 				}
 				return nil
@@ -595,17 +600,17 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			Setup: func(s *Store, tx *txn) error {
 				// Register a db service
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "db")); err != nil {
+					testServiceRegistration(t, "db"), false); err != nil {
 					return err
 				}
 				// Also a web
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web")); err != nil {
+					testServiceRegistration(t, "web"), false); err != nil {
 					return err
 				}
 				// With a connect sidecar
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web", regSidecar)); err != nil {
+					testServiceRegistration(t, "web", regSidecar), false); err != nil {
 					return err
 				}
 				return nil
@@ -613,7 +618,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			Mutate: func(s *Store, tx *txn) error {
 				// Change the service-level check status
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web", regServiceCheckFail)); err != nil {
+					testServiceRegistration(t, "web", regServiceCheckFail), false); err != nil {
 					return err
 				}
 				// Also change the service-level check status for the proxy. This is
@@ -621,7 +626,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				// - the proxies check would get updated at roughly the same time as the
 				// target service check updates.
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web", regSidecar, regServiceCheckFail)); err != nil {
+					testServiceRegistration(t, "web", regSidecar, regServiceCheckFail), false); err != nil {
 					return err
 				}
 				return nil
@@ -658,17 +663,17 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			Setup: func(s *Store, tx *txn) error {
 				// Register a db service
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "db")); err != nil {
+					testServiceRegistration(t, "db"), false); err != nil {
 					return err
 				}
 				// Also a web
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web")); err != nil {
+					testServiceRegistration(t, "web"), false); err != nil {
 					return err
 				}
 				// With a connect sidecar
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web", regSidecar)); err != nil {
+					testServiceRegistration(t, "web", regSidecar), false); err != nil {
 					return err
 				}
 				return nil
@@ -712,17 +717,17 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			Setup: func(s *Store, tx *txn) error {
 				// Register a db service
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "db")); err != nil {
+					testServiceRegistration(t, "db"), false); err != nil {
 					return err
 				}
 				// Also a web
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web")); err != nil {
+					testServiceRegistration(t, "web"), false); err != nil {
 					return err
 				}
 				// With a connect sidecar
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web", regSidecar)); err != nil {
+					testServiceRegistration(t, "web", regSidecar), false); err != nil {
 					return err
 				}
 				return nil
@@ -772,19 +777,19 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 
 				// Register a db service
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "db")); err != nil {
+					testServiceRegistration(t, "db"), false); err != nil {
 					return err
 				}
 
 				// Node2
 				// Also a web
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web", regNode2)); err != nil {
+					testServiceRegistration(t, "web", regNode2), false); err != nil {
 					return err
 				}
 				// With a connect sidecar
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web", regSidecar, regNode2)); err != nil {
+					testServiceRegistration(t, "web", regSidecar, regNode2), false); err != nil {
 					return err
 				}
 
@@ -803,22 +808,23 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 
 				// Register those on node1
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web")); err != nil {
+					testServiceRegistration(t, "web"), false); err != nil {
 					return err
 				}
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "web", regSidecar)); err != nil {
+					testServiceRegistration(t, "web", regSidecar), false); err != nil {
 					return err
 				}
 
 				// And for good measure, add a new connect-native service to node2
 				if err := s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "api", regConnectNative, regNode2)); err != nil {
+					testServiceRegistration(t, "api", regConnectNative, regNode2), false); err != nil {
 					return err
 				}
 
 				return nil
 			},
+
 			WantEvents: []stream.Event{
 				// We should see:
 				//  - service dereg for web and proxy on node2
@@ -829,29 +835,15 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				//  - connect reg for api on node2
 				testServiceHealthDeregistrationEvent(t, "web", evNode2),
 				testServiceHealthDeregistrationEvent(t, "web", evNode2, evSidecar),
-				testServiceHealthDeregistrationEvent(t, "web",
-					evConnectTopic,
-					evNode2,
-					evSidecar,
-				),
+				testServiceHealthDeregistrationEvent(t, "web", evConnectTopic, evNode2, evSidecar),
 
 				testServiceHealthEvent(t, "web", evNodeUnchanged),
 				testServiceHealthEvent(t, "web", evSidecar, evNodeUnchanged),
 				testServiceHealthEvent(t, "web", evConnectTopic, evSidecar, evNodeUnchanged),
 
-				testServiceHealthEvent(t, "api",
-					evNode2,
-					evConnectNative,
-					evNodeUnchanged,
-				),
-				testServiceHealthEvent(t, "api",
-					evNode2,
-					evConnectTopic,
-					evConnectNative,
-					evNodeUnchanged,
-				),
+				testServiceHealthEvent(t, "api", evNode2, evConnectNative, evNodeUnchanged),
+				testServiceHealthEvent(t, "api", evNode2, evConnectTopic, evConnectNative, evNodeUnchanged),
 			},
-			WantErr: false,
 		},
 	}
 
@@ -884,15 +876,34 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			}
 			require.NoError(t, err)
 
-			// Make sure we have the right events, only taking ordering into account
-			// where it matters to account for non-determinism.
-			requireEventsInCorrectPartialOrder(t, tc.WantEvents, got, func(e stream.Event) string {
-				// We need events affecting unique registrations to be ordered, within a topic
-				csn := getPayloadCheckServiceNode(e.Payload)
-				return fmt.Sprintf("%s/%s/%s", e.Topic, csn.Node.Node, csn.Service.Service)
-			})
+			assertDeepEqual(t, tc.WantEvents, got, cmpPartialOrderEvents)
 		})
 	}
+}
+
+func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
+	t.Helper()
+	if diff := cmp.Diff(x, y, opts...); diff != "" {
+		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
+	}
+}
+
+// cmpPartialOrderEvents returns a compare option which sorts events so that
+// all events for a particular node/service are grouped together. The sort is
+// stable so events with the same node/service retain their relative order.
+var cmpPartialOrderEvents = cmp.Options{
+	cmpopts.SortSlices(func(i, j stream.Event) bool {
+		key := func(e stream.Event) string {
+			csn := getPayloadCheckServiceNode(e.Payload)
+			return fmt.Sprintf("%s/%s/%s", e.Topic, csn.Node.Node, csn.Service.Service)
+		}
+		return key(i) < key(j)
+	}),
+	cmpEvents,
+}
+
+var cmpEvents = cmp.Options{
+	cmp.AllowUnexported(EventPayloadCheckServiceNode{}),
 }
 
 type regOption func(req *structs.RegisterRequest) error
@@ -1170,10 +1181,10 @@ func evSidecar(e *stream.Event) error {
 		csn.Checks[1].ServiceName = svc + "_sidecar_proxy"
 	}
 
-	// Update event key to be the proxy service name, but only if this is not
-	// already in the connect topic
-	if e.Topic != topicServiceHealthConnect {
-		e.Key = csn.Service.Service
+	if e.Topic == topicServiceHealthConnect {
+		payload := e.Payload.(EventPayloadCheckServiceNode)
+		payload.key = svc
+		e.Payload = payload
 	}
 	return nil
 }
@@ -1242,15 +1253,13 @@ func evChecksUnchanged(e *stream.Event) error {
 // name but not ID simulating an in-place service rename.
 func evRenameService(e *stream.Event) error {
 	csn := getPayloadCheckServiceNode(e.Payload)
-	isSidecar := csn.Service.Kind == structs.ServiceKindConnectProxy
 
-	if !isSidecar {
+	if csn.Service.Kind != structs.ServiceKindConnectProxy {
 		csn.Service.Service += "_changed"
 		// Update service checks
 		if len(csn.Checks) >= 2 {
 			csn.Checks[1].ServiceName += "_changed"
 		}
-		e.Key += "_changed"
 		return nil
 	}
 	// This is a sidecar, it's not really realistic but lets only update the
@@ -1258,12 +1267,13 @@ func evRenameService(e *stream.Event) error {
 	// we get the right result. This is certainly possible if not likely so a
 	// valid case.
 
-	// We don't need to update out own details, only the name of the destination
+	// We don't need to update our own details, only the name of the destination
 	csn.Service.Proxy.DestinationServiceName += "_changed"
 
-	// If this is the connect topic we need to change the key too
 	if e.Topic == topicServiceHealthConnect {
-		e.Key += "_changed"
+		payload := e.Payload.(EventPayloadCheckServiceNode)
+		payload.key = csn.Service.Proxy.DestinationServiceName
+		e.Payload = payload
 	}
 	return nil
 }
@@ -1337,48 +1347,6 @@ func evServiceCheckDelete(e *stream.Event) error {
 	return nil
 }
 
-// requireEventsInCorrectPartialOrder compares that the expected set of events
-// was emitted. It allows for _independent_ events to be emitted in any order -
-// this can be important because even though the transaction processing is all
-// strictly ordered up until the processing func, grouping multiple updates that
-// affect the same logical entity may be necessary and may impose random
-// ordering changes on the eventual events if a map is used. We only care that
-// events _affecting the same topic and key_ are ordered correctly with respect
-// to the "expected" set of events so this helper asserts that.
-//
-// The caller provides a func that can return a partition key for the given
-// event types and we assert that all events with the same partition key are
-// deliveries in the same order. Note that this is not necessarily the same as
-// topic/key since for example in Catalog only events about a specific service
-// _instance_ need to be ordered while topic and key are more general.
-func requireEventsInCorrectPartialOrder(t *testing.T, want, got []stream.Event,
-	partKey func(stream.Event) string) {
-	t.Helper()
-
-	// Partion both arrays by topic/key
-	wantParts := make(map[string][]stream.Event)
-	gotParts := make(map[string][]stream.Event)
-
-	for _, e := range want {
-		k := partKey(e)
-		wantParts[k] = append(wantParts[k], e)
-	}
-	for _, e := range got {
-		k := partKey(e)
-		gotParts[k] = append(gotParts[k], e)
-	}
-
-	for k, want := range wantParts {
-		require.Equal(t, want, gotParts[k], "got incorrect events for partition: %s", k)
-	}
-
-	for k, got := range gotParts {
-		if _, ok := wantParts[k]; !ok {
-			require.Equal(t, nil, got, "got unwanted events for partition: %s", k)
-		}
-	}
-}
-
 // newTestEventServiceHealthRegister returns a realistically populated service
 // health registration event. The nodeNum is a
 // logical node and is used to create the node name ("node%d") but also change
@@ -1393,7 +1361,6 @@ func newTestEventServiceHealthRegister(index uint64, nodeNum int, svc string) st
 
 	return stream.Event{
 		Topic: topicServiceHealth,
-		Key:   svc,
 		Index: index,
 		Payload: EventPayloadCheckServiceNode{
 			Op: pbsubscribe.CatalogOp_Register,
@@ -1464,7 +1431,6 @@ func newTestEventServiceHealthRegister(index uint64, nodeNum int, svc string) st
 func newTestEventServiceHealthDeregister(index uint64, nodeNum int, svc string) stream.Event {
 	return stream.Event{
 		Topic: topicServiceHealth,
-		Key:   svc,
 		Index: index,
 		Payload: EventPayloadCheckServiceNode{
 			Op: pbsubscribe.CatalogOp_Deregister,
@@ -1493,5 +1459,100 @@ func newTestEventServiceHealthDeregister(index uint64, nodeNum int, svc string) 
 				},
 			},
 		},
+	}
+}
+
+func TestEventPayloadCheckServiceNode_FilterByKey(t *testing.T) {
+	type testCase struct {
+		name      string
+		payload   EventPayloadCheckServiceNode
+		key       string
+		namespace string
+		expected  bool
+	}
+
+	fn := func(t *testing.T, tc testCase) {
+		if tc.namespace != "" && pbcommon.DefaultEnterpriseMeta.Namespace == "" {
+			t.Skip("cant test namespace matching without namespace support")
+		}
+
+		require.Equal(t, tc.expected, tc.payload.MatchesKey(tc.key, tc.namespace))
+	}
+
+	var testCases = []testCase{
+		{
+			name:     "no key or namespace",
+			payload:  newPayloadCheckServiceNode("srv1", "ns1"),
+			expected: true,
+		},
+		{
+			name:      "no key, with namespace match",
+			payload:   newPayloadCheckServiceNode("srv1", "ns1"),
+			namespace: "ns1",
+			expected:  true,
+		},
+		{
+			name:     "no namespace, with key match",
+			payload:  newPayloadCheckServiceNode("srv1", "ns1"),
+			key:      "srv1",
+			expected: true,
+		},
+		{
+			name:      "key match, namespace mismatch",
+			payload:   newPayloadCheckServiceNode("srv1", "ns1"),
+			key:       "srv1",
+			namespace: "ns2",
+			expected:  false,
+		},
+		{
+			name:      "key mismatch, namespace match",
+			payload:   newPayloadCheckServiceNode("srv1", "ns1"),
+			key:       "srv2",
+			namespace: "ns1",
+			expected:  false,
+		},
+		{
+			name:      "override key match",
+			payload:   newPayloadCheckServiceNodeWithKey("proxy", "ns1", "srv1"),
+			key:       "srv1",
+			namespace: "ns1",
+			expected:  true,
+		},
+		{
+			name:      "override key match",
+			payload:   newPayloadCheckServiceNodeWithKey("proxy", "ns1", "srv2"),
+			key:       "proxy",
+			namespace: "ns1",
+			expected:  false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			fn(t, tc)
+		})
+	}
+}
+
+func newPayloadCheckServiceNode(service, namespace string) EventPayloadCheckServiceNode {
+	return EventPayloadCheckServiceNode{
+		Value: &structs.CheckServiceNode{
+			Service: &structs.NodeService{
+				Service:        service,
+				EnterpriseMeta: structs.EnterpriseMetaInitializer(namespace),
+			},
+		},
+	}
+}
+
+func newPayloadCheckServiceNodeWithKey(service, namespace, key string) EventPayloadCheckServiceNode {
+	return EventPayloadCheckServiceNode{
+		Value: &structs.CheckServiceNode{
+			Service: &structs.NodeService{
+				Service:        service,
+				EnterpriseMeta: structs.EnterpriseMetaInitializer(namespace),
+			},
+		},
+		key: key,
 	}
 }

@@ -1,0 +1,36 @@
+{{page-title "Settings"}}
+<AppView>
+  <BlockSlot @name="header">
+    <h1>
+      Settings
+    </h1>
+  </BlockSlot>
+  <BlockSlot @name="content">
+    <Notice
+      @type="info"
+    as |notice|>
+      <notice.Header>
+        <h3>Local Storage</h3>
+      </notice.Header>
+      <notice.Body>
+        <p>
+          These settings are immediately saved to local storage and persisted through browser usage.
+        </p>
+      </notice.Body>
+    </Notice>
+    <form>
+    {{#if (not (env 'CONSUL_UI_DISABLE_REALTIME'))}}
+      <fieldset data-test-blocking-queries>
+        <h2>Blocking Queries</h2>
+        <p>Keep catalog info up-to-date without refreshing the page. Any changes made to services, nodes and intentions would be reflected in real time.</p>
+        <div class="type-toggle">
+          <label>
+            <input type="checkbox" name="client[blocking]" checked={{if item.client.blocking 'checked'}} onchange={{action 'change'}} />
+            <span>{{if item.client.blocking 'On' 'Off'}}</span>
+          </label>
+        </div>
+      </fieldset>
+    {{/if}}
+    </form>
+  </BlockSlot>
+</AppView>

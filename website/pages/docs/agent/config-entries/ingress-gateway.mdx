@@ -38,7 +38,7 @@ gateway:
 - The ingress gateway will route traffic based on the host/authority header,
   expecting a value matching `<service-name>.ingress.*`, or if using namespaces,
   `<service-name>.ingress.<namespace>.*`. This matches the [Consul DNS
-  ingress subdomain](/docs/agent/dns#ingress-service-lookups).
+  ingress subdomain](/docs/discovery/dns#ingress-service-lookups).
 
 A wildcard specifier cannot be set on a listener of protocol `tcp`.
 

@@ -360,10 +360,16 @@ func New(bd BaseDeps) (*Agent, error) {
 	}
 
 	cacheName := cachetype.HealthServicesName
-	if bd.RuntimeConfig.CacheUseStreamingBackend {
+	if bd.RuntimeConfig.UseStreamingBackend {
 		cacheName = cachetype.StreamingHealthServicesName
 	}
-	a.rpcClientHealth = &health.Client{Cache: bd.Cache, NetRPC: &a, CacheName: cacheName}
+	a.rpcClientHealth = &health.Client{
+		Cache:     bd.Cache,
+		NetRPC:    &a,
+		CacheName: cacheName,
+		// Temporarily until streaming supports all connect events
+		CacheNameConnect: cachetype.HealthServicesName,
+	}
 
 	a.serviceManager = NewServiceManager(&a)
 
@@ -792,19 +798,7 @@ func (a *Agent) listenHTTP() ([]apiServer, error) {
 				httpServer.ConnState = connLimitFn
 			}
 
-			servers = append(servers, apiServer{
-				Protocol: proto,
-				Addr:     l.Addr(),
-				Shutdown: httpServer.Shutdown,
-				Run: func() error {
-					err := httpServer.Serve(l)
-					if err == nil || err == http.ErrServerClosed {
-						return nil
-					}
-					return fmt.Errorf("%s server %s failed: %w", proto, l.Addr(), err)
-				},
-				MaxHeaderBytes: a.config.HTTPMaxHeaderBytes,
-			})
+			servers = append(servers, newAPIServerHTTP(proto, l, httpServer))
 		}
 		return nil
 	}
@@ -1106,8 +1100,8 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	if runtimeCfg.SessionTTLMin != 0 {
 		cfg.SessionTTLMin = runtimeCfg.SessionTTLMin
 	}
-	if runtimeCfg.NonVotingServer {
-		cfg.NonVoter = runtimeCfg.NonVotingServer
+	if runtimeCfg.ReadReplica {
+		cfg.ReadReplica = runtimeCfg.ReadReplica
 	}
 
 	// These are fully specified in the agent defaults, so we can simply
@@ -1723,6 +1717,11 @@ type persistedService struct {
 	Token   string
 	Service *structs.NodeService
 	Source  string
+	// whether this service was registered as a sidecar, see structs.NodeService
+	// we store this field here because it is excluded from json serialization
+	// to exclude it from API output, but we need it to properly deregister
+	// persisted sidecars.
+	LocallyRegisteredAsSidecar bool `json:",omitempty"`
 }
 
 // persistService saves a service definition to a JSON file in the data dir
@@ -1731,9 +1730,10 @@ func (a *Agent) persistService(service *structs.NodeService, source configSource
 	svcPath := filepath.Join(a.config.DataDir, servicesDir, svcID.StringHash())
 
 	wrapped := persistedService{
-		Token:   a.State.ServiceToken(service.CompoundServiceID()),
-		Service: service,
-		Source:  source.String(),
+		Token:                      a.State.ServiceToken(service.CompoundServiceID()),
+		Service:                    service,
+		Source:                     source.String(),
+		LocallyRegisteredAsSidecar: service.LocallyRegisteredAsSidecar,
 	}
 	encoded, err := json.Marshal(wrapped)
 	if err != nil {
@@ -3182,6 +3182,10 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 				continue
 			}
 		}
+
+		// Restore LocallyRegisteredAsSidecar, see persistedService.LocallyRegisteredAsSidecar
+		p.Service.LocallyRegisteredAsSidecar = p.LocallyRegisteredAsSidecar
+
 		serviceID := p.Service.CompoundServiceID()
 
 		source, ok := ConfigSourceFromName(p.Source)

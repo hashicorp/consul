@@ -1,0 +1,30 @@
+{{#unless @noMetricsReason}}
+  <DataSource
+    @src={{uri @nspace @dc 'metrics' @endpoint @service @protocol}}
+    @onchange={{action 'statsUpdate'}}
+    @onerror={{action (mut error) value="error"}}
+  />
+{{/unless}}
+
+<div class="stats">
+  {{#if hasLoaded }}
+    {{#each stats as |stat|}}
+    <dl>
+      <dt>
+        {{stat.value}}
+      </dt>
+      <dd>
+        {{stat.label}}
+      </dd>
+      <Tooltip>{{{stat.desc}}}</Tooltip>
+    </dl>
+    {{else}}
+      <span>No Metrics Available</span>
+    {{/each}}
+  {{else}}
+    <TopologyMetrics::Status
+      @noMetricsReason={{@noMetricsReason}}
+      @error={{error}}
+    />
+  {{/if}}
+</div>

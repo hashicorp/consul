@@ -1,0 +1,62 @@
+{{#unless @noMetricsReason}}
+  <DataSource
+    @src={{uri @nspace @dc 'metrics' 'summary-for-service' @service @protocol}}
+    @onchange={{action 'change'}}
+    @onerror={{action (mut error) value="error"}}
+  />
+{{/unless}}
+
+{{on-window 'resize' (action 'redraw')}}
+
+{{#if (not empty)}}
+  {{#if data.labels}}
+  <a class="sparkline-key-link" {{action (mut shouldShowKey) true}}>Key</a>
+  {{/if}}
+{{/if}}
+
+<div class="sparkline-wrapper">
+  <div class="tooltip">
+    <div class="sparkline-time">Timestamp</div>
+  </div>
+  {{#if empty}}
+    <TopologyMetrics::Status
+      @noMetricsReason={{@noMetricsReason}}
+      @error={{error}}
+    />
+  {{/if}}
+  <svg class="sparkline"></svg>
+</div>
+
+{{#if shouldShowKey}}
+<ModalDialog
+  class="sparkline-key"
+  @onclose={{action (mut shouldShowKey) false}}
+  as |modal|>
+    <BlockSlot @name="header">
+      <h3>Metrics Key</h3>
+    </BlockSlot>
+    <BlockSlot @name="body">
+      <div class="sparkline-key-content">
+        <p>This key describes the metrics corresponding to the graph tooltip labels in more detail.</p>
+        <dl>
+          {{#each-in data.labels as |label desc| }}
+            <dt>{{label}}</dt>
+            <dd>{{desc}}</dd>
+          {{/each-in}}
+        </dl>
+        {{#unless data.labels}}
+          <span class="no-data">No metrics loaded.</span>
+        {{/unless}}
+      </div>
+    </BlockSlot>
+    <BlockSlot @name="actions">
+      <button
+        type="button"
+        class="type-cancel"
+        onclick={{action modal.close}}
+      >
+        Close
+      </button>
+    </BlockSlot>
+</ModalDialog>
+{{/if}}

@@ -100,6 +100,11 @@ func (s *Server) legacyIntentionMigration(ctx context.Context) error {
 			return err
 		}
 
+		entries, err = s.filterMigratedLegacyIntentions(entries)
+		if err != nil {
+			return err
+		}
+
 		// Totally cheat and repurpose one part of config entry replication
 		// here so we automatically get our writes rate limited.
 		_, err = s.reconcileLocalConfig(ctx, entries, structs.ConfigEntryUpsert)

@@ -13,6 +13,9 @@ var (
 		"non_voting_server": func(c *Config) {
 			// to maintain existing compatibility we don't nullify the value
 		},
+		"read_replica": func(c *Config) {
+			// to maintain existing compatibility we don't nullify the value
+		},
 		"segment": func(c *Config) {
 			// to maintain existing compatibility we don't nullify the value
 		},

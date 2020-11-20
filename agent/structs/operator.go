@@ -3,7 +3,6 @@ package structs
 import (
 	"net"
 
-	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/raft"
 )
 
@@ -72,7 +71,7 @@ type AutopilotSetConfigRequest struct {
 	Datacenter string
 
 	// Config is the new Autopilot configuration to use.
-	Config autopilot.Config
+	Config AutopilotConfig
 
 	// CAS controls whether to use check-and-set semantics for this request.
 	CAS bool

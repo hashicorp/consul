@@ -5,11 +5,7 @@ import (
 )
 
 func TestStaticAuthorizer(t *testing.T) {
-	t.Parallel()
-
 	t.Run("AllowAll", func(t *testing.T) {
-		t.Parallel()
-
 		authz := AllowAll()
 		checkDenyACLRead(t, authz, "foo", nil)
 		checkDenyACLWrite(t, authz, "foo", nil)
@@ -40,7 +36,6 @@ func TestStaticAuthorizer(t *testing.T) {
 	})
 
 	t.Run("DenyAll", func(t *testing.T) {
-		t.Parallel()
 		authz := DenyAll()
 		checkDenyACLRead(t, authz, "foo", nil)
 		checkDenyACLWrite(t, authz, "foo", nil)
@@ -71,7 +66,6 @@ func TestStaticAuthorizer(t *testing.T) {
 	})
 
 	t.Run("ManageAll", func(t *testing.T) {
-		t.Parallel()
 		authz := ManageAll()
 		checkAllowACLRead(t, authz, "foo", nil)
 		checkAllowACLWrite(t, authz, "foo", nil)

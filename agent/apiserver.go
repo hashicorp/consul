@@ -2,7 +2,9 @@ package agent
 
 import (
 	"context"
+	"fmt"
 	"net"
+	"net/http"
 	"sync"
 	"time"
 
@@ -37,8 +39,6 @@ type apiServer struct {
 	Run func() error
 	// Shutdown function used to stop the server
 	Shutdown func(context.Context) error
-
-	MaxHeaderBytes int
 }
 
 // NewAPIServers returns an empty apiServers that is ready to Start servers.
@@ -93,4 +93,19 @@ func (s *apiServers) Shutdown(ctx context.Context) {
 // must be called before WaitForShutdown, otherwise it will block forever.
 func (s *apiServers) WaitForShutdown() error {
 	return s.group.Wait()
+}
+
+func newAPIServerHTTP(proto string, l net.Listener, httpServer *http.Server) apiServer {
+	return apiServer{
+		Protocol: proto,
+		Addr:     l.Addr(),
+		Shutdown: httpServer.Shutdown,
+		Run: func() error {
+			err := httpServer.Serve(l)
+			if err == nil || err == http.ErrServerClosed {
+				return nil
+			}
+			return fmt.Errorf("%s server %s failed: %w", proto, l.Addr(), err)
+		},
+	}
 }

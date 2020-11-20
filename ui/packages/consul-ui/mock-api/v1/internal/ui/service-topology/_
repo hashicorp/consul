@@ -1,0 +1,108 @@
+${
+  [1].map(() => {
+    const dc = location.search.dc;
+    const generateTargets = function(num) {
+      // Seed faker by the number of results we want to make it deterministic
+      // here and in other correlated endpoints.
+      fake.seed(num);
+      return range(num).map(i => {
+        const nspace = i === 0 ? `default` : `${fake.hacker.noun()}-ns-${i}`;
+        return {
+          Name: `service-${fake.random.number({min:0, max:99})}`,
+          Datacenter: `${dc}`,
+          Namespace: `${nspace}`
+        }
+      })
+    };
+
+    // little helper to get a deterministic number from the target service
+    // name string. NOTE: this should be the same as in metrics-proxy/.../query
+    // endpoint so metrics match what is requested.
+    const hashStr = function(s) {
+      for(var i = 0, h = 0xdeadbeef; i < s.length; i++)
+          h = Math.imul(h ^ s.charCodeAt(i), 2654435761);
+      return (h ^ h >>> 16) >>> 0;
+    };
+
+
+    // NOTE!!! The logic below to pick the upstream/downstream service
+    // names must exactly match the logic in internal/ui/metrics-proxy/.../query
+    // If you change this, change it there too!
+
+    // Pick a number of down/upstreams to return based on the cookie variable.
+    // If you change anything about this variable or it's default, you'll need
+    // to change the topology endpoint to match.
+    const numUp = parseInt(env('CONSUL_UPSTREAM_COUNT', 3));
+    const numDown = parseInt(env('CONSUL_DOWNSTREAM_COUNT', 5));
+
+    const index = parseInt(location.search.index || 0);
+    const targetService = location.pathname.get(4)
+
+    const upstreams = generateTargets(numUp);
+    const downstreams = generateTargets(numDown);
+
+    // Randomly pick the serviceProtocol which will affect which types of
+    // stats we return for downstream clusters. But we need it to be
+    // deterministic for a given service name so that all the downstream
+    // stats are consistently typed.
+    let serviceProto = 'tcp';
+    fake.seed(hashStr(targetService))
+    if (fake.random.number(1) > 0.5) {
+      serviceProto = 'http';
+    }
+    fake.seed(index);
+
+    return `
+{
+  "Protocol": "${serviceProto}",
+  "FilteredByACLs": ${fake.random.boolean()},
+  "Upstreams": [
+    ${
+      upstreams.map((item, i) => {
+        const hasPerms = fake.random.boolean();
+        // if hasPerms is true allowed is always false as some restrictions apply
+        const allowed = hasPerms ? false : fake.random.boolean();
+        return `
+    {
+      "Name": "${item.Name}",
+      "Datacenter": "${item.Datacenter}",
+      "Namespace": "${item.Namespace}",
+      "ChecksPassing":${fake.random.number({min: 1, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
+      "ChecksWarning":${fake.random.number({min: 0, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
+      "ChecksCritical":${fake.random.number({min: 0, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
+      "Intention": {
+        "Allowed": ${allowed},
+        "HasPermissions": ${hasPerms},
+        "ExternalSource": "${fake.helpers.randomize(['nomad', 'kubernetes', ''])}",
+        "HasExact": ${fake.random.boolean()}
+      }
+    }
+    `})}
+  ],
+  "Downstreams": [
+    ${
+      downstreams.map((item, i) => {
+        const hasPerms = fake.random.boolean();
+        // if hasPerms is true allowed is always false as some restrictions apply
+        const allowed = hasPerms ? false : fake.random.boolean();
+        return `
+    {
+      "Name": "${item.Name}",
+      "Datacenter": "${item.Datacenter}",
+      "Namespace": "${item.Namespace}",
+      "ChecksPassing":${fake.random.number({min: 1, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
+      "ChecksWarning":${fake.random.number({min: 0, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
+      "ChecksCritical":${fake.random.number({min: 0, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
+      "Intention": {
+        "Allowed": ${allowed},
+        "HasPermissions": ${hasPerms},
+        "ExternalSource": "${fake.helpers.randomize(['nomad', 'kubernetes', ''])}",
+        "HasExact": ${fake.random.boolean()}
+      }
+    }
+    `})}
+  ]
+}`
+
+  })
+}

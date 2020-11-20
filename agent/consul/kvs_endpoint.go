@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
@@ -13,6 +14,13 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 )
+
+var KVSummaries = []prometheus.SummaryDefinition{
+	{
+		Name: []string{"kvs", "apply"},
+		Help: "Measures the time it takes to complete an update to the KV store.",
+	},
+}
 
 // KVS endpoint is used to manipulate the Key-Value store
 type KVS struct {

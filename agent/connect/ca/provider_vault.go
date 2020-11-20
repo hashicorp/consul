@@ -79,7 +79,7 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 	v.spiffeID = connect.SpiffeIDSigningForCluster(&structs.CAConfiguration{ClusterID: v.clusterID})
 
 	// Look up the token to see if we can auto-renew its lease.
-	secret, err := client.Auth().Token().Lookup(config.Token)
+	secret, err := client.Auth().Token().LookupSelf()
 	if err != nil {
 		return err
 	}

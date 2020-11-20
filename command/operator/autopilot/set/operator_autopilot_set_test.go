@@ -8,7 +8,6 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 
 	"github.com/hashicorp/consul/agent"
-	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/mitchellh/cli"
 )
@@ -49,7 +48,7 @@ func TestOperatorAutopilotSetConfigCommand(t *testing.T) {
 	req := structs.DCSpecificRequest{
 		Datacenter: "dc1",
 	}
-	var reply autopilot.Config
+	var reply structs.AutopilotConfig
 	if err := a.RPC("Operator.AutopilotGetConfiguration", &req, &reply); err != nil {
 		t.Fatalf("err: %v", err)
 	}

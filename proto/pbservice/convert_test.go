@@ -108,8 +108,3 @@ func randInterface(m *interface{}, c fuzz.Continue) {
 		}
 	}
 }
-
-// TODO(streaming): this is a quick fix to get the tests passing in enterprise.
-// This needs to use a real random value once enterprise support is complete.
-func randEnterpriseMeta(_ *structs.EnterpriseMeta, _ fuzz.Continue) {
-}

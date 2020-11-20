@@ -7,14 +7,15 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/stretchr/testify/require"
 )
 
 func newStateStore() (*state.Store, error) {
-	return state.NewStateStore(nil)
+	return state.NewStateStore(nil), nil
 }
 
 func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
@@ -91,8 +92,7 @@ func TestUsageReporter_emitServiceUsage_OSS(t *testing.T) {
 			metrics.NewGlobal(cfg, sink)
 
 			mockStateProvider := &mockStateProvider{}
-			s, err := newStateStore()
-			require.NoError(t, err)
+			s := state.NewStateStore(nil)
 			if tcase.modfiyStateStore != nil {
 				tcase.modfiyStateStore(t, s)
 			}

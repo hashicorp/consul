@@ -13,9 +13,10 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/go-hclog"
 )
 
 // parseLeafX509Cert will parse an X509 certificate
@@ -460,5 +461,7 @@ func (cfg *dynamicTLSConfig) Ready() bool {
 // method will not stop returning a nil chan in that case. It is only useful
 // for initial startup. For ongoing health Ready() should be used.
 func (cfg *dynamicTLSConfig) ReadyWait() <-chan struct{} {
+	cfg.RLock()
+	defer cfg.RUnlock()
 	return cfg.readyCh
 }

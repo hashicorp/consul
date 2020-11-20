@@ -77,8 +77,8 @@ type RuntimeConfig struct {
 
 	// ACLDefaultPolicy is used to control the ACL interaction when
 	// there is no defined policy. This can be "allow" which means
-	// ACLs are used to black-list, or "deny" which means ACLs are
-	// white-lists.
+	// ACLs are used to deny-list, or "deny" which means ACLs are
+	// allow-lists.
 	//
 	// hcl: acl.default_policy = ("allow"|"deny")
 	ACLDefaultPolicy string
@@ -853,12 +853,12 @@ type RuntimeConfig struct {
 	// flag: -node-meta "key:value" -node-meta "key:value" ...
 	NodeMeta map[string]string
 
-	// NonVotingServer is whether this server will act as a non-voting member
+	// ReadReplica is whether this server will act as a non-voting member
 	// of the cluster to help provide read scalability. (Enterprise-only)
 	//
 	// hcl: non_voting_server = (true|false)
 	// flag: -non-voting-server
-	NonVotingServer bool
+	ReadReplica bool
 
 	// PidFile is the file to store our PID in.
 	//
@@ -945,7 +945,9 @@ type RuntimeConfig struct {
 
 	RPCConfig consul.RPCConfig
 
-	CacheUseStreamingBackend bool
+	// UseStreamingBackend enables streaming as a replacement for agent/cache
+	// in the client agent for endpoints which support streaming.
+	UseStreamingBackend bool
 
 	// RaftProtocol sets the Raft protocol version to use on this server.
 	// Defaults to 3.
@@ -1546,8 +1548,9 @@ type UIConfig struct {
 }
 
 type UIMetricsProxy struct {
-	BaseURL    string
-	AddHeaders []UIMetricsProxyAddHeader
+	BaseURL       string
+	AddHeaders    []UIMetricsProxyAddHeader
+	PathAllowlist []string
 }
 
 type UIMetricsProxyAddHeader struct {
@@ -1848,6 +1851,21 @@ func sanitize(name string, v reflect.Value) reflect.Value {
 
 	case isArray(typ) || isSlice(typ):
 		ma := make([]interface{}, 0, v.Len())
+
+		if name == "AddHeaders" {
+			// must be UIConfig.MetricsProxy.AddHeaders
+			for i := 0; i < v.Len(); i++ {
+				addr := v.Index(i).Addr()
+				hdr := addr.Interface().(*UIMetricsProxyAddHeader)
+				hm := map[string]interface{}{
+					"Name":  hdr.Name,
+					"Value": "hidden",
+				}
+				ma = append(ma, hm)
+			}
+			return reflect.ValueOf(ma)
+		}
+
 		if strings.HasPrefix(name, "SerfAllowedCIDRs") {
 			for i := 0; i < v.Len(); i++ {
 				addr := v.Index(i).Addr()

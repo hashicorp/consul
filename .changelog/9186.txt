@@ -1,0 +1,18 @@
+```release-note:bug
+server: skip deleted and deleting namespaces when migrating intentions to config entries
+```
+
+```release-note:breaking-change
+server: **(Enterprise only)** Pre-existing intentions defined with
+non-existent destination namespaces were non-functional and are erased during
+the upgrade process. This should not matter as these intentions had nothing to
+enforce.
+```
+
+```release-note:breaking-change
+server: **(OSS only)** Pre-existing intentions defined with either a source or
+destination namespace value that is not "default" are rewritten or deleted
+during the upgrade process. Wildcards first attempt to downgrade to "default"
+unless an intention already exists, otherwise these non-functional intentions
+are deleted.
+```

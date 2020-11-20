@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
 
+	"github.com/hashicorp/consul/lib/ttlcache"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -1000,6 +1001,9 @@ func (t *testPartitionType) RegisterOptions() RegisterOptions {
 // Test that background refreshing reports correct Age in failure and happy
 // states.
 func TestCacheGet_refreshAge(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for -short run")
+	}
 	t.Parallel()
 
 	require := require.New(t)
@@ -1402,3 +1406,73 @@ OUT:
 		}
 	}
 }
+
+func TestCache_ExpiryLoop_ExitsWhenStopped(t *testing.T) {
+	c := &Cache{
+		stopCh:            make(chan struct{}),
+		entries:           make(map[string]cacheEntry),
+		entriesExpiryHeap: ttlcache.NewExpiryHeap(),
+	}
+	chStart := make(chan struct{})
+	chDone := make(chan struct{})
+	go func() {
+		close(chStart)
+		c.runExpiryLoop()
+		close(chDone)
+	}()
+
+	<-chStart
+	close(c.stopCh)
+
+	select {
+	case <-chDone:
+	case <-time.After(50 * time.Millisecond):
+		t.Fatalf("expected loop to exit when stopped")
+	}
+}
+
+func TestCache_Prepopulate(t *testing.T) {
+	typ := &fakeType{index: 5}
+	c := New(Options{})
+	c.RegisterType("t", typ)
+
+	c.Prepopulate("t", FetchResult{Value: 17, Index: 1}, "dc1", "token", "v1")
+
+	ctx := context.Background()
+	req := fakeRequest{
+		info: RequestInfo{
+			Key:        "v1",
+			Token:      "token",
+			Datacenter: "dc1",
+			MinIndex:   1,
+		},
+	}
+	result, _, err := c.Get(ctx, "t", req)
+	require.NoError(t, err)
+	require.Equal(t, 17, result)
+}
+
+type fakeType struct {
+	index uint64
+}
+
+func (f fakeType) Fetch(_ FetchOptions, _ Request) (FetchResult, error) {
+	idx := atomic.LoadUint64(&f.index)
+	return FetchResult{Value: int(idx * 2), Index: idx}, nil
+}
+
+func (f fakeType) RegisterOptions() RegisterOptions {
+	return RegisterOptions{Refresh: true}
+}
+
+var _ Type = (*fakeType)(nil)
+
+type fakeRequest struct {
+	info RequestInfo
+}
+
+func (f fakeRequest) CacheInfo() RequestInfo {
+	return f.info
+}
+
+var _ Request = (*fakeRequest)(nil)

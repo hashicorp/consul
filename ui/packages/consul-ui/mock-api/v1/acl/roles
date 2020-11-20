@@ -1,0 +1,90 @@
+${ env('CONSUL_ACLS_LEGACY', false) ? `rpc error making call: rpc: can't find method ACL.Method` : `
+[
+  ${
+    range(
+      env(
+        'CONSUL_ROLE_COUNT',
+        Math.floor(
+          (
+            Math.random() * env('CONSUL_ROLE_MAX', 10)
+          ) + parseInt(env('CONSUL_ROLE_MIN', 1))
+        )
+      )
+    ).map(
+      function(item, i) {
+        return `
+          {
+            "ID": "${fake.random.uuid()}",
+            "Name": "${fake.hacker.noun()}-${i}",
+${typeof location.search.ns !== 'undefined' ? `
+            "Namespace": "${location.search.ns}",
+` : ``}
+            "Description": "${fake.lorem.sentence()}",
+            "Policies": [
+              ${
+                range(env('CONSUL_POLICY_COUNT', 10)).map(
+                  function(item, j) {
+                    if(i == 1 && j == 0) {
+                      return `
+                        {
+                          "ID": "00000000-0000-0000-0000-000000000001",
+                          "Name": "global-management"
+                        }
+                      `;
+                    }
+                    return `
+                      {
+                        "ID": "${fake.random.uuid()}",
+                        "Name": "${fake.hacker.noun()}"
+                      }
+                    `;
+                  }
+                )
+              }
+            ],
+            "ServiceIdentities": [
+              ${
+                range(env('CONSUL_SERVICE_IDENTITY_COUNT', env('CONSUL_IDENTITY_COUNT', 1))).map(
+                  function(item, i) {
+                    return `
+                      {
+                        "ServiceName": "${fake.hacker.noun()}"${ fake.random.boolean() ? `,
+                        "Datacenters": [
+                          ${
+                            range(env('CONSUL_DATACENTER_COUNT', fake.random.number({min: 1, max: 10}))).map(
+                                function(item, i) {
+                                    return `"${fake.address.countryCode().toLowerCase()} ${ i % 2 ? "west" : "east"}-${i}"`;
+                                }
+                            )
+                          }
+                        ]
+                        ` : ``}
+                      }
+                    `;
+                  }
+                )
+              }
+            ],
+            "NodeIdentities": [
+              ${
+                range(env('CONSUL_NODE_IDENTITY_COUNT', 1)).map(
+                  function(item, i) {
+                    return `
+                      {
+                        "NodeName": "${fake.hacker.noun()}",
+                        "Datacenter":"${fake.address.countryCode().toLowerCase()} ${ i % 2 ? "west" : "east"}-${i}"
+                      }
+                    `;
+                  }
+                )
+              }
+            ],
+            "CreateIndex": ${fake.random.number()},
+            "ModifyIndex": 10
+          }
+        `
+      }
+    )
+  }
+]
+`}

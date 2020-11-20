@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -316,8 +317,8 @@ RPC:
 	downstreams, _ := summarizeServices(out.ServiceTopology.Downstreams.ToServiceDump(), nil, "")
 
 	var (
-		upstreamResp   []*ServiceTopologySummary
-		downstreamResp []*ServiceTopologySummary
+		upstreamResp   = make([]*ServiceTopologySummary, 0)
+		downstreamResp = make([]*ServiceTopologySummary, 0)
 	)
 
 	// Sort and attach intention data for upstreams and downstreams
@@ -566,6 +567,33 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 		return nil, NotFoundError{Reason: "Metrics proxy is not enabled"}
 	}
 
+	// Fetch the ACL token, if provided, but ONLY from headers since other
+	// metrics proxies might use a ?token query string parameter for something.
+	var token string
+	s.parseTokenFromHeaders(req, &token)
+
+	// Clear the token from the headers so we don't end up proxying it.
+	s.clearTokenFromHeaders(req)
+
+	var entMeta structs.EnterpriseMeta
+	authz, err := s.agent.resolveTokenAndDefaultMeta(token, &entMeta, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if authz != nil {
+		// This endpoint requires wildcard read on all services and all nodes.
+		//
+		// In enterprise it requires this _in all namespaces_ too.
+		wildMeta := structs.WildcardEnterpriseMeta()
+		var authzContext acl.AuthorizerContext
+		wildMeta.FillAuthzContext(&authzContext)
+
+		if authz.NodeReadAll(&authzContext) != acl.Allow || authz.ServiceReadAll(&authzContext) != acl.Allow {
+			return nil, acl.ErrPermissionDenied
+		}
+	}
+
 	log := s.agent.logger.Named(logging.UIMetricsProxy)
 
 	// Construct the new URL from the path and the base path. Note we do this here
@@ -588,6 +616,29 @@ func (s *HTTPHandlers) UIMetricsProxy(resp http.ResponseWriter, req *http.Reques
 	// Clean the new URL path to prevent path traversal attacks and remove any
 	// double slashes etc.
 	u.Path = path.Clean(u.Path)
+
+	if len(cfg.PathAllowlist) > 0 {
+		// This could be done better with a map, but for the prometheus default
+		// integration this list has two items in it, so the straight iteration
+		// isn't awful.
+		denied := true
+		for _, allowedPath := range cfg.PathAllowlist {
+			if u.Path == allowedPath {
+				denied = false
+				break
+			}
+		}
+		if denied {
+			log.Error("target URL path is not allowed",
+				"base_url", cfg.BaseURL,
+				"path", subPath,
+				"target_url", u.String(),
+				"path_allowlist", cfg.PathAllowlist,
+			)
+			resp.WriteHeader(http.StatusForbidden)
+			return nil, nil
+		}
+	}
 
 	// Pass through query params
 	u.RawQuery = req.URL.RawQuery
