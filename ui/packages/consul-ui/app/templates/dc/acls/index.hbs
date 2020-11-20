@@ -42,6 +42,10 @@
       @filters={{filters}}
       @search={{search}}
       @items={{items}}
+
+      @ondelete={{route-action 'delete'}}
+      @onuse={{route-action 'use'}}
+      @onclone={{route-action 'clone'}}
     >
       <:empty>
         <EmptyState @allowLogin={{true}}>

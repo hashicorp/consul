@@ -71,7 +71,14 @@
                     </div>
                     <ul>
                       <li class="dangerous">
-                        <button data-test-confirm-use tabindex="-1" type="button" onclick={{action send 'use' item}}>Use</button>
+                        <button
+                          {{on 'click' (fn @onuse item)}}
+                          data-test-confirm-use
+                          tabindex="-1"
+                          type="button"
+                        >
+                          Use
+                        </button>
                       </li>
                       <li>
                         <label for={{concat confirm 'use'}}>Cancel</label>
@@ -82,7 +89,7 @@
               </li>
     {{/if}}
               <li role="none">
-                  <button role="menuitem" tabindex="-1" type="button" data-test-clone {{action 'sendClone' item}}>Duplicate</button>
+                  <button role="menuitem" tabindex="-1" type="button" data-test-clone {{action @onclone item}}>Duplicate</button>
               </li>
     {{# if (not-eq item.ID 'anonymous') }}
               <li role="none" class="dangerous">
@@ -99,7 +106,7 @@
                     </div>
                     <ul>
                       <li class="dangerous">
-                        <button tabindex="-1" type="button" class="type-delete" onclick={{action send 'delete' item}}>Delete</button>
+                        <button tabindex="-1" type="button" class="type-delete" onclick={{action @ondelete item}}>Delete</button>
                       </li>
                       <li>
                         <label for={{concat confirm 'delete'}}>Cancel</label>
