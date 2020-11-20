@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"strconv"
 
 	"github.com/hashicorp/raft"
@@ -206,22 +205,24 @@ func NonUserSource() Source {
 	}
 }
 
-// VersionSource creates a config source for the version parameters.
+// versionSource creates a config source for the version parameters.
 // This should be merged in the tail since these values are not
 // user configurable.
-// TODO: return a LiteralSource (no decoding) instead of a FileSource
-func VersionSource(rev, ver, verPre string) Source {
-	return FileSource{
-		Name:   "version",
-		Format: "hcl",
-		Data:   fmt.Sprintf(`revision = %q version = %q version_prerelease = %q`, rev, ver, verPre),
+func versionSource(rev, ver, verPre string) Source {
+	return LiteralSource{
+		Name: "version",
+		Config: Config{
+			Revision:          &rev,
+			Version:           &ver,
+			VersionPrerelease: &verPre,
+		},
 	}
 }
 
-// DefaultVersionSource returns the version config source for the embedded
+// defaultVersionSource returns the version config source for the embedded
 // version numbers.
-func DefaultVersionSource() Source {
-	return VersionSource(version.GitCommit, version.Version, version.VersionPrerelease)
+func defaultVersionSource() Source {
+	return versionSource(version.GitCommit, version.Version, version.VersionPrerelease)
 }
 
 // DefaultConsulSource returns the default configuration for the consul agent.
@@ -255,27 +256,18 @@ func DefaultConsulSource() Source {
 
 // DevConsulSource returns the consul agent configuration for the dev mode.
 // This should be merged in the tail after the DefaultConsulSource.
-// TODO: return a LiteralSource (no decoding) instead of a FileSource
 func DevConsulSource() Source {
-	return FileSource{
-		Name:   "consul-dev",
-		Format: "hcl",
-		Data: `
-		consul = {
-			coordinate = {
-				update_period = "100ms"
-			}
-			raft = {
-				election_timeout = "52ms"
-				heartbeat_timeout = "35ms"
-				leader_lease_timeout = "20ms"
-			}
-			server = {
-				health_interval = "10ms"
-			}
-		}
-	`,
-	}
+	c := Config{}
+	c.Consul.Coordinate.UpdatePeriod = strPtr("100ms")
+	c.Consul.Raft.ElectionTimeout = strPtr("52ms")
+	c.Consul.Raft.HeartbeatTimeout = strPtr("35ms")
+	c.Consul.Raft.LeaderLeaseTimeout = strPtr("20ms")
+	c.Consul.Server.HealthInterval = strPtr("10ms")
+	return LiteralSource{Name: "consul-dev", Config: c}
+}
+
+func strPtr(v string) *string {
+	return &v
 }
 
 func DefaultRuntimeConfig(hcl string) *RuntimeConfig {

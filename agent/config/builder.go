@@ -157,7 +157,7 @@ func NewBuilder(opts BuilderOpts) (*Builder, error) {
 			Data:   s,
 		})
 	}
-	b.Tail = append(b.Tail, NonUserSource(), DefaultConsulSource(), OverrideEnterpriseSource(), DefaultVersionSource())
+	b.Tail = append(b.Tail, NonUserSource(), DefaultConsulSource(), OverrideEnterpriseSource(), defaultVersionSource())
 	if b.boolVal(opts.DevMode) {
 		b.Tail = append(b.Tail, DevConsulSource())
 	}

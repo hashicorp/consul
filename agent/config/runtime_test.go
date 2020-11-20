@@ -7202,7 +7202,7 @@ func TestFullConfig(t *testing.T) {
 			}
 			b.Sources = append(b.Sources, FileSource{Name: "full." + format, Data: data, Format: format})
 			b.Tail = append(b.Tail, tail[format]...)
-			b.Tail = append(b.Tail, VersionSource("JNtPSav3", "R909Hblt", "ZT1JOQLn"))
+			b.Tail = append(b.Tail, versionSource("JNtPSav3", "R909Hblt", "ZT1JOQLn"))
 
 			// construct the runtime config
 			rt, err := b.Build()
