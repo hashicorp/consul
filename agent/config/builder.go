@@ -148,7 +148,7 @@ func NewBuilder(opts BuilderOpts) (*Builder, error) {
 	// we need to merge all slice values defined in flags before we
 	// merge the config files since the flag values for slices are
 	// otherwise appended instead of prepended.
-	slices, values := b.splitSlicesAndValues(opts.Config)
+	slices, values := splitSlicesAndValues(opts.Config)
 	b.Head = append(b.Head, newSource("flags.slices", slices))
 	for _, path := range opts.ConfigFiles {
 		sources, err := b.sourcesFromPath(path, opts.ConfigFormat)
@@ -1494,7 +1494,7 @@ func addrsUnique(inuse map[string]string, name string, addrs []net.Addr) error {
 
 // splitSlicesAndValues moves all slice values defined in c to 'slices'
 // and all other values to 'values'.
-func (b *Builder) splitSlicesAndValues(c Config) (slices, values Config) {
+func splitSlicesAndValues(c Config) (slices, values Config) {
 	v, t := reflect.ValueOf(c), reflect.TypeOf(c)
 	rs, rv := reflect.New(t), reflect.New(t)
 

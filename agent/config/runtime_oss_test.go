@@ -12,7 +12,7 @@ var entTokenConfigSanitize = `"EnterpriseConfig": {},`
 
 func entFullRuntimeConfig(rt *RuntimeConfig) {}
 
-var enterpriseReadReplicaWarnings []string = []string{enterpriseConfigKeyError{key: "read_replica"}.Error()}
+var enterpriseReadReplicaWarnings = []string{enterpriseConfigKeyError{key: "read_replica"}.Error()}
 
 var enterpriseConfigKeyWarnings []string
 
