@@ -128,7 +128,7 @@ func (c *CARoot) Clone() *CARoot {
 	}
 
 	newCopy := *c
-	copy(c.IntermediateCerts, newCopy.IntermediateCerts)
+	newCopy.IntermediateCerts = CloneStringSlice(c.IntermediateCerts)
 	return &newCopy
 }
 

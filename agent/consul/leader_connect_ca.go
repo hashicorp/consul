@@ -11,8 +11,8 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/connect/ca"
+	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/go-hclog"
 	uuid "github.com/hashicorp/go-uuid"
 )
@@ -27,12 +27,27 @@ const (
 	CAStateReconfig                  = "RECONFIGURING"
 )
 
+// caServerDelegate is an interface for server operations for facilitating
+// easier testing.
+type caServerDelegate interface {
+	State() *state.Store
+	IsLeader() bool
+
+	createCAProvider(conf *structs.CAConfiguration) (ca.Provider, error)
+	forwardDC(method, dc string, args interface{}, reply interface{}) error
+	generateCASignRequest(csr string) *structs.CASignRequest
+	raftApply(t structs.MessageType, msg interface{}) (interface{}, error)
+
+	checkServersProvider
+}
+
 // CAManager is a wrapper around CA operations such as updating roots, an intermediate
 // or the configuration. All operations should go through the CAManager in order to
 // avoid data races.
 type CAManager struct {
-	srv    *Server
-	logger hclog.Logger
+	delegate   caServerDelegate
+	serverConf *Config
+	logger     hclog.Logger
 
 	providerLock sync.RWMutex
 	// provider is the current CA provider in use for Connect. This is
@@ -51,12 +66,28 @@ type CAManager struct {
 	actingSecondaryCA bool                   // True if this datacenter has been initialized as a secondary CA.
 }
 
-func NewCAManager(srv *Server) *CAManager {
+type caDelegateWithState struct {
+	*Server
+}
+
+func (c *caDelegateWithState) State() *state.Store {
+	return c.fsm.State()
+}
+
+func NewCAManager(delegate caServerDelegate, logger hclog.Logger, config *Config) *CAManager {
 	return &CAManager{
-		srv:    srv,
-		logger: srv.loggers.Named(logging.Connect),
-		state:  CAStateUninitialized,
+		delegate:   delegate,
+		logger:     logger,
+		serverConf: config,
+		state:      CAStateUninitialized,
 	}
+}
+
+func (c *CAManager) reset() {
+	c.state = CAStateUninitialized
+	c.primaryRoots = structs.IndexedCARoots{}
+	c.actingSecondaryCA = false
+	c.setCAProvider(nil, nil)
 }
 
 // setState attempts to update the CA state to the given state.
@@ -98,13 +129,13 @@ func (c *CAManager) getPrimaryRoots() structs.IndexedCARoots {
 // when setting up the CA during establishLeadership. The state should be set to
 // non-ready before calling this.
 func (c *CAManager) initializeCAConfig() (*structs.CAConfiguration, error) {
-	state := c.srv.fsm.State()
+	state := c.delegate.State()
 	_, config, err := state.CAConfig(nil)
 	if err != nil {
 		return nil, err
 	}
 	if config == nil {
-		config = c.srv.config.CAConfig
+		config = c.serverConf.CAConfig
 		if config.ClusterID == "" {
 			id, err := uuid.GenerateUUID()
 			if err != nil {
@@ -129,7 +160,7 @@ func (c *CAManager) initializeCAConfig() (*structs.CAConfiguration, error) {
 		Op:     structs.CAOpSetConfig,
 		Config: config,
 	}
-	if resp, err := c.srv.raftApply(structs.ConnectCARequestType, req); err != nil {
+	if resp, err := c.delegate.raftApply(structs.ConnectCARequestType, req); err != nil {
 		return nil, err
 	} else if respErr, ok := resp.(error); ok {
 		return nil, respErr
@@ -182,7 +213,7 @@ func (c *CAManager) getCAProvider() (ca.Provider, *structs.CARoot) {
 		// In cases where an agent is started with managed proxies, we may ask
 		// for the provider before establishLeadership completes. If we're the
 		// leader, then wait and get the provider again
-		if result == nil && c.srv.IsLeader() && retries < 10 {
+		if result == nil && c.delegate.IsLeader() && retries < 10 {
 			retries++
 			time.Sleep(50 * time.Millisecond)
 			continue
@@ -208,7 +239,7 @@ func (c *CAManager) setCAProvider(newProvider ca.Provider, root *structs.CARoot)
 // if this is a secondary DC.
 func (c *CAManager) InitializeCA() error {
 	// Bail if connect isn't enabled.
-	if !c.srv.config.ConnectEnabled {
+	if !c.serverConf.ConnectEnabled {
 		return nil
 	}
 
@@ -224,7 +255,7 @@ func (c *CAManager) InitializeCA() error {
 	if err != nil {
 		return err
 	}
-	provider, err := c.srv.createCAProvider(conf)
+	provider, err := c.delegate.createCAProvider(conf)
 	if err != nil {
 		return err
 	}
@@ -232,12 +263,12 @@ func (c *CAManager) InitializeCA() error {
 	c.setCAProvider(provider, nil)
 
 	// Run the root CA initialization if this is the primary DC.
-	if c.srv.config.PrimaryDatacenter == c.srv.config.Datacenter {
+	if c.serverConf.PrimaryDatacenter == c.serverConf.Datacenter {
 		return c.initializeRootCA(provider, conf)
 	}
 
 	// If this isn't the primary DC, run the secondary DC routine if the primary has already been upgraded to at least 1.6.0
-	versionOk, foundPrimary := ServersInDCMeetMinimumVersion(c.srv, c.srv.config.PrimaryDatacenter, minMultiDCConnectVersion)
+	versionOk, foundPrimary := ServersInDCMeetMinimumVersion(c.delegate, c.serverConf.PrimaryDatacenter, minMultiDCConnectVersion)
 	if !foundPrimary {
 		c.logger.Warn("primary datacenter is configured but unreachable - deferring initialization of the secondary datacenter CA")
 		// return nil because we will initialize the secondary CA later
@@ -252,10 +283,10 @@ func (c *CAManager) InitializeCA() error {
 
 	// Get the root CA to see if we need to refresh our intermediate.
 	args := structs.DCSpecificRequest{
-		Datacenter: c.srv.config.PrimaryDatacenter,
+		Datacenter: c.serverConf.PrimaryDatacenter,
 	}
 	var roots structs.IndexedCARoots
-	if err := c.srv.forwardDC("ConnectCA.Roots", c.srv.config.PrimaryDatacenter, &args, &roots); err != nil {
+	if err := c.delegate.forwardDC("ConnectCA.Roots", c.serverConf.PrimaryDatacenter, &args, &roots); err != nil {
 		return err
 	}
 	if err := c.setPrimaryRoots(roots); err != nil {
@@ -279,7 +310,7 @@ func (c *CAManager) InitializeCA() error {
 func (c *CAManager) initializeRootCA(provider ca.Provider, conf *structs.CAConfiguration) error {
 	pCfg := ca.ProviderConfig{
 		ClusterID:  conf.ClusterID,
-		Datacenter: c.srv.config.Datacenter,
+		Datacenter: c.serverConf.Datacenter,
 		IsPrimary:  true,
 		RawConfig:  conf.Config,
 		State:      conf.State,
@@ -324,7 +355,7 @@ func (c *CAManager) initializeRootCA(provider ca.Provider, conf *structs.CAConfi
 			Op:     structs.CAOpSetConfig,
 			Config: conf,
 		}
-		if _, err = c.srv.raftApply(structs.ConnectCARequestType, req); err != nil {
+		if _, err = c.delegate.raftApply(structs.ConnectCARequestType, req); err != nil {
 			return fmt.Errorf("error persisting provider state: %v", err)
 		}
 	}
@@ -334,7 +365,7 @@ func (c *CAManager) initializeRootCA(provider ca.Provider, conf *structs.CAConfi
 	// tied to the provider.
 	// Every change to the CA after this initial bootstrapping should
 	// be done through the rotation process.
-	state := c.srv.fsm.State()
+	state := c.delegate.State()
 	_, activeRoot, err := state.CARootActive(nil)
 	if err != nil {
 		return err
@@ -359,7 +390,7 @@ func (c *CAManager) initializeRootCA(provider ca.Provider, conf *structs.CAConfi
 	}
 
 	// Store the root cert in raft
-	resp, err := c.srv.raftApply(structs.ConnectCARequestType, &structs.CARequest{
+	resp, err := c.delegate.raftApply(structs.ConnectCARequestType, &structs.CARequest{
 		Op:    structs.CAOpSetRoots,
 		Index: idx,
 		Roots: []*structs.CARoot{rootCA},
@@ -424,7 +455,7 @@ func (c *CAManager) initializeSecondaryCA(provider ca.Provider, config *structs.
 		// This will fetch the secondary's exact current representation of the
 		// active root. Note that this data should only be used if the IDs
 		// match, otherwise it's out of date and should be regenerated.
-		_, activeSecondaryRoot, err = c.srv.fsm.State().CARootActive(nil)
+		_, activeSecondaryRoot, err = c.delegate.State().CARootActive(nil)
 		if err != nil {
 			return err
 		}
@@ -474,7 +505,7 @@ func (c *CAManager) initializeSecondaryCA(provider ca.Provider, config *structs.
 	}
 
 	// Update the roots list in the state store if there's a new active root.
-	state := c.srv.fsm.State()
+	state := c.delegate.State()
 	_, activeRoot, err := state.CARootActive(nil)
 	if err != nil {
 		return err
@@ -498,7 +529,7 @@ func (c *CAManager) initializeSecondaryCA(provider ca.Provider, config *structs.
 // If newActiveRoot is non-nil, it will be appended to the current roots list.
 // If config is non-nil, it will be used to overwrite the existing config.
 func (c *CAManager) persistNewRootAndConfig(provider ca.Provider, newActiveRoot *structs.CARoot, config *structs.CAConfiguration) error {
-	state := c.srv.fsm.State()
+	state := c.delegate.State()
 	idx, oldRoots, err := state.CARoots(nil)
 	if err != nil {
 		return err
@@ -554,7 +585,7 @@ func (c *CAManager) persistNewRootAndConfig(provider ca.Provider, newActiveRoot 
 		Roots:  newRoots,
 		Config: &newConf,
 	}
-	resp, err := c.srv.raftApply(structs.ConnectCARequestType, &args)
+	resp, err := c.delegate.raftApply(structs.ConnectCARequestType, args)
 	if err != nil {
 		return err
 	}
@@ -577,7 +608,7 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) error {
 	defer c.setState(CAStateReady, false)
 
 	// Exit early if it's a no-op change
-	state := c.srv.fsm.State()
+	state := c.delegate.State()
 	confIdx, config, err := state.CAConfig(nil)
 	if err != nil {
 		return err
@@ -610,15 +641,15 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) error {
 	// and get the current active root CA. This acts as a good validation
 	// of the config and makes sure the provider is functioning correctly
 	// before we commit any changes to Raft.
-	newProvider, err := c.srv.createCAProvider(args.Config)
+	newProvider, err := c.delegate.createCAProvider(args.Config)
 	if err != nil {
 		return fmt.Errorf("could not initialize provider: %v", err)
 	}
 	pCfg := ca.ProviderConfig{
 		ClusterID:  args.Config.ClusterID,
-		Datacenter: c.srv.config.Datacenter,
+		Datacenter: c.serverConf.Datacenter,
 		// This endpoint can be called in a secondary DC too so set this correctly.
-		IsPrimary: c.srv.config.Datacenter == c.srv.config.PrimaryDatacenter,
+		IsPrimary: c.serverConf.Datacenter == c.serverConf.PrimaryDatacenter,
 		RawConfig: args.Config.Config,
 		State:     args.Config.State,
 	}
@@ -637,8 +668,8 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) error {
 	}()
 
 	// If this is a secondary, just check if the intermediate needs to be regenerated.
-	if c.srv.config.Datacenter != c.srv.config.PrimaryDatacenter {
-		if err := c.srv.caManager.initializeSecondaryCA(newProvider, args.Config); err != nil {
+	if c.serverConf.Datacenter != c.serverConf.PrimaryDatacenter {
+		if err := c.initializeSecondaryCA(newProvider, args.Config); err != nil {
 			return fmt.Errorf("Error updating secondary datacenter CA config: %v", err)
 		}
 		cleanupNewProvider = false
@@ -678,7 +709,7 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) error {
 	// If the root didn't change, just update the config and return.
 	if root != nil && root.ID == newActiveRoot.ID {
 		args.Op = structs.CAOpSetConfig
-		resp, err := c.srv.raftApply(structs.ConnectCARequestType, args)
+		resp, err := c.delegate.raftApply(structs.ConnectCARequestType, args)
 		if err != nil {
 			return err
 		}
@@ -771,7 +802,7 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) error {
 	args.Index = idx
 	args.Config.ModifyIndex = confIdx
 	args.Roots = newRoots
-	resp, err := c.srv.raftApply(structs.ConnectCARequestType, args)
+	resp, err := c.delegate.raftApply(structs.ConnectCARequestType, args)
 	if err != nil {
 		return err
 	}
@@ -829,7 +860,7 @@ func (c *CAManager) getIntermediateCASigned(provider ca.Provider, newActiveRoot 
 	}
 
 	var intermediatePEM string
-	if err := c.srv.forwardDC("ConnectCA.SignIntermediate", c.srv.config.PrimaryDatacenter, c.srv.generateCASignRequest(csr), &intermediatePEM); err != nil {
+	if err := c.delegate.forwardDC("ConnectCA.SignIntermediate", c.serverConf.PrimaryDatacenter, c.delegate.generateCASignRequest(csr), &intermediatePEM); err != nil {
 		// this is a failure in the primary and shouldn't be capable of erroring out our establishing leadership
 		c.logger.Warn("Primary datacenter refused to sign our intermediate CA certificate", "error", err)
 		return nil
@@ -855,7 +886,7 @@ func (c *CAManager) getIntermediateCASigned(provider ca.Provider, newActiveRoot 
 
 // intermediateCertRenewalWatch periodically attempts to renew the intermediate cert.
 func (c *CAManager) intermediateCertRenewalWatch(ctx context.Context) error {
-	isPrimary := c.srv.config.Datacenter == c.srv.config.PrimaryDatacenter
+	isPrimary := c.serverConf.Datacenter == c.serverConf.PrimaryDatacenter
 
 	for {
 		select {
@@ -863,7 +894,7 @@ func (c *CAManager) intermediateCertRenewalWatch(ctx context.Context) error {
 			return nil
 		case <-time.After(structs.IntermediateCertRenewInterval):
 			retryLoopBackoffAbortOnSuccess(ctx, func() error {
-				return c.RenewIntermediate(isPrimary)
+				return c.RenewIntermediate(ctx, isPrimary)
 			}, func(err error) {
 				c.logger.Error("error renewing intermediate certs",
 					"routine", intermediateCertRenewWatchRoutineName,
@@ -877,7 +908,7 @@ func (c *CAManager) intermediateCertRenewalWatch(ctx context.Context) error {
 // RenewIntermediate checks the intermediate cert for
 // expiration. If more than half the time a cert is valid has passed,
 // it will try to renew it.
-func (c *CAManager) RenewIntermediate(isPrimary bool) error {
+func (c *CAManager) RenewIntermediate(ctx context.Context, isPrimary bool) error {
 	// Grab the 'lock' right away so the provider/config can't be changed out while we check
 	// the intermediate.
 	if err := c.setState(CAStateRenewIntermediate, true); err != nil {
@@ -895,7 +926,7 @@ func (c *CAManager) RenewIntermediate(isPrimary bool) error {
 		return fmt.Errorf("secondary CA is not yet configured.")
 	}
 
-	state := c.srv.fsm.State()
+	state := c.delegate.State()
 	_, root, err := state.CARootActive(nil)
 	if err != nil {
 		return err
@@ -939,8 +970,19 @@ func (c *CAManager) RenewIntermediate(isPrimary bool) error {
 	if !isPrimary {
 		renewalFunc = c.getIntermediateCASigned
 	}
-	if err := renewalFunc(provider, activeRoot); err != nil {
-		return err
+	errCh := make(chan error)
+	go func() {
+		errCh <- renewalFunc(provider, activeRoot)
+	}()
+
+	// Wait for the renewal func to return or for the context to be canceled.
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case err := <-errCh:
+		if err != nil {
+			return err
+		}
 	}
 
 	if err := c.persistNewRootAndConfig(provider, activeRoot, nil); err != nil {
@@ -956,18 +998,18 @@ func (c *CAManager) RenewIntermediate(isPrimary bool) error {
 // intermediate certificate.
 func (c *CAManager) secondaryCARootWatch(ctx context.Context) error {
 	args := structs.DCSpecificRequest{
-		Datacenter: c.srv.config.PrimaryDatacenter,
+		Datacenter: c.serverConf.PrimaryDatacenter,
 		QueryOptions: structs.QueryOptions{
 			// the maximum time the primary roots watch query can block before returning
-			MaxQueryTime: c.srv.config.MaxQueryTime,
+			MaxQueryTime: c.serverConf.MaxQueryTime,
 		},
 	}
 
-	c.logger.Debug("starting Connect CA root replication from primary datacenter", "primary", c.srv.config.PrimaryDatacenter)
+	c.logger.Debug("starting Connect CA root replication from primary datacenter", "primary", c.serverConf.PrimaryDatacenter)
 
 	retryLoopBackoff(ctx, func() error {
 		var roots structs.IndexedCARoots
-		if err := c.srv.forwardDC("ConnectCA.Roots", c.srv.config.PrimaryDatacenter, &args, &roots); err != nil {
+		if err := c.delegate.forwardDC("ConnectCA.Roots", c.serverConf.PrimaryDatacenter, &args, &roots); err != nil {
 			return fmt.Errorf("Error retrieving the primary datacenter's roots: %v", err)
 		}
 
@@ -1016,7 +1058,7 @@ func (c *CAManager) UpdateRoots(roots structs.IndexedCARoots) error {
 		return nil
 	}
 	if !c.configuredSecondaryCA() {
-		versionOk, primaryFound := ServersInDCMeetMinimumVersion(c.srv, c.srv.config.PrimaryDatacenter, minMultiDCConnectVersion)
+		versionOk, primaryFound := ServersInDCMeetMinimumVersion(c.delegate, c.serverConf.PrimaryDatacenter, minMultiDCConnectVersion)
 		if !primaryFound {
 			return fmt.Errorf("Primary datacenter is unreachable - deferring secondary CA initialization")
 		}
@@ -1046,14 +1088,14 @@ func (c *CAManager) initializeSecondaryProvider(provider ca.Provider, roots stru
 	}
 
 	clusterID := strings.Split(roots.TrustDomain, ".")[0]
-	_, conf, err := c.srv.fsm.State().CAConfig(nil)
+	_, conf, err := c.delegate.State().CAConfig(nil)
 	if err != nil {
 		return err
 	}
 
 	pCfg := ca.ProviderConfig{
 		ClusterID:  clusterID,
-		Datacenter: c.srv.config.Datacenter,
+		Datacenter: c.serverConf.Datacenter,
 		IsPrimary:  false,
 		RawConfig:  conf.Config,
 		State:      conf.State,

@@ -375,6 +375,7 @@ func (s *Server) revokeLeadership() {
 	s.stopConnectLeader()
 
 	s.caManager.setCAProvider(nil, nil)
+	s.caManager.setState(CAStateUninitialized, false)
 
 	s.stopACLTokenReaping()
 
