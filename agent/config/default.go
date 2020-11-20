@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/hashicorp/raft"
+
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/version"
-	"github.com/hashicorp/raft"
 )
 
 // DefaultSource is the default agent configuration.

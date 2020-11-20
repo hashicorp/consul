@@ -4,47 +4,55 @@ package config
 
 import (
 	"fmt"
-
-	"github.com/hashicorp/go-multierror"
 )
 
-var (
-	enterpriseConfigMap map[string]func(*Config) = map[string]func(c *Config){
-		"non_voting_server": func(c *Config) {
-			// to maintain existing compatibility we don't nullify the value
-		},
-		"read_replica": func(c *Config) {
-			// to maintain existing compatibility we don't nullify the value
-		},
-		"segment": func(c *Config) {
-			// to maintain existing compatibility we don't nullify the value
-		},
-		"segments": func(c *Config) {
-			// to maintain existing compatibility we don't nullify the value
-		},
-		"autopilot.redundancy_zone_tag": func(c *Config) {
-			// to maintain existing compatibility we don't nullify the value
-		},
-		"autopilot.upgrade_version_tag": func(c *Config) {
-			// to maintain existing compatibility we don't nullify the value
-		},
-		"autopilot.disable_upgrade_migration": func(c *Config) {
-			// to maintain existing compatibility we don't nullify the value
-		},
-		"dns_config.prefer_namespace": func(c *Config) {
-			c.DNS.PreferNamespace = nil
-		},
-		"acl.msp_disable_bootstrap": func(c *Config) {
-			c.ACL.MSPDisableBootstrap = nil
-		},
-		"acl.tokens.managed_service_provider": func(c *Config) {
-			c.ACL.Tokens.ManagedServiceProvider = nil
-		},
-		"audit": func(c *Config) {
-			c.Audit = nil
-		},
+// validateEnterpriseConfig is a function to validate the enterprise specific
+// configuration items after Parsing but before merging into the overall
+// configuration. The original intent is to use it to ensure that we warn
+// for enterprise configurations used in OSS.
+func validateEnterpriseConfigKeys(config *Config) []error {
+	var result []error
+	add := func(k string) {
+		result = append(result, enterpriseConfigKeyError{key: k})
 	}
-)
+
+	if config.ReadReplica != nil {
+		add(`read_replica (or the deprecated non_voting_server)`)
+	}
+	if stringVal(config.SegmentName) != "" {
+		add("segment")
+	}
+	if len(config.Segments) > 0 {
+		add("segments")
+	}
+	if stringVal(config.Autopilot.RedundancyZoneTag) != "" {
+		add("autopilot.redundancy_zone_tag")
+	}
+	if stringVal(config.Autopilot.UpgradeVersionTag) != "" {
+		add("autopilot.upgrade_version_tag")
+	}
+	if config.Autopilot.DisableUpgradeMigration != nil {
+		add("autopilot.disable_upgrade_migration")
+	}
+	if config.DNS.PreferNamespace != nil {
+		add("dns_config.prefer_namespace")
+		config.DNS.PreferNamespace = nil
+	}
+	if config.ACL.MSPDisableBootstrap != nil {
+		add("acl.msp_disable_bootstrap")
+		config.ACL.MSPDisableBootstrap = nil
+	}
+	if len(config.ACL.Tokens.ManagedServiceProvider) > 0 {
+		add("acl.tokens.managed_service_provider")
+		config.ACL.Tokens.ManagedServiceProvider = nil
+	}
+	if config.Audit != nil {
+		add("audit")
+		config.Audit = nil
+	}
+
+	return result
+}
 
 type enterpriseConfigKeyError struct {
 	key string
@@ -60,24 +68,4 @@ func (*Builder) BuildEnterpriseRuntimeConfig(_ *RuntimeConfig, _ *Config) error 
 
 func (*Builder) validateEnterpriseConfig(_ RuntimeConfig) error {
 	return nil
-}
-
-// validateEnterpriseConfig is a function to validate the enterprise specific
-// configuration items after Parsing but before merging into the overall
-// configuration. The original intent is to use it to ensure that we warn
-// for enterprise configurations used in OSS.
-func (b *Builder) validateEnterpriseConfigKeys(config *Config, keys []string) error {
-	var err error
-
-	for _, k := range keys {
-		if unset, ok := enterpriseConfigMap[k]; ok {
-			keyErr := enterpriseConfigKeyError{key: k}
-
-			b.warn(keyErr.Error())
-			err = multierror.Append(err, keyErr)
-			unset(config)
-		}
-	}
-
-	return err
 }
