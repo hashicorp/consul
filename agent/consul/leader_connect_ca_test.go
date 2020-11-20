@@ -100,6 +100,7 @@ func (m *mockCAServerDelegate) raftApply(t structs.MessageType, msg interface{})
 
 		act, err = m.store.CACheckAndSetConfig(1, req.Config.ModifyIndex, req.Config)
 		require.NoError(m.t, err)
+		require.True(m.t, act)
 	}
 	m.callbackCh <- fmt.Sprintf("raftApply/%s", t)
 	return nil, nil

@@ -535,6 +535,7 @@ func (c *CAManager) persistNewRootAndConfig(provider ca.Provider, newActiveRoot 
 		return err
 	}
 
+	// Look up the existing CA config if a new one wasn't provided.
 	var newConf structs.CAConfiguration
 	_, storedConfig, err := state.CAConfig(nil)
 	if err != nil {
@@ -543,14 +544,28 @@ func (c *CAManager) persistNewRootAndConfig(provider ca.Provider, newActiveRoot 
 	if storedConfig == nil {
 		return fmt.Errorf("local CA not initialized yet")
 	}
+	// Exit early if the change is a no-op.
+	if newActiveRoot == nil && config != nil && config.Provider == storedConfig.Provider && reflect.DeepEqual(config.Config, storedConfig.Config) {
+		return nil
+	}
+
 	if config != nil {
 		newConf = *config
 	} else {
 		newConf = *storedConfig
 	}
+
+	// Update the trust domain for the config if there's a new root, or keep the old
+	// one if the root isn't being updated.
 	newConf.ModifyIndex = storedConfig.ModifyIndex
 	if newActiveRoot != nil {
 		newConf.ClusterID = newActiveRoot.ExternalTrustDomain
+	} else {
+		_, activeRoot, err := state.CARootActive(nil)
+		if err != nil {
+			return err
+		}
+		newConf.ClusterID = activeRoot.ExternalTrustDomain
 	}
 
 	// Persist any state the provider needs us to
@@ -562,21 +577,19 @@ func (c *CAManager) persistNewRootAndConfig(provider ca.Provider, newActiveRoot 
 	// If there's a new active root, copy the root list and append it, updating
 	// the old root with the time it was rotated out.
 	var newRoots structs.CARoots
-	if newActiveRoot != nil {
-		for _, r := range oldRoots {
-			newRoot := *r
-			if newRoot.Active {
-				newRoot.Active = false
-				newRoot.RotatedOutAt = time.Now()
-			}
-			if newRoot.ExternalTrustDomain == "" {
-				newRoot.ExternalTrustDomain = newConf.ClusterID
-			}
-			newRoots = append(newRoots, &newRoot)
+	for _, r := range oldRoots {
+		newRoot := *r
+		if newRoot.Active {
+			newRoot.Active = false
+			newRoot.RotatedOutAt = time.Now()
 		}
+		if newRoot.ExternalTrustDomain == "" {
+			newRoot.ExternalTrustDomain = newConf.ClusterID
+		}
+		newRoots = append(newRoots, &newRoot)
+	}
+	if newActiveRoot != nil {
 		newRoots = append(newRoots, newActiveRoot)
-	} else {
-		newRoots = oldRoots
 	}
 
 	args := &structs.CARequest{
