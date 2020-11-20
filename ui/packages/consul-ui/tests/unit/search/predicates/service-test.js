@@ -1,8 +1,9 @@
-import getFilter from 'consul-ui/search/filters/service';
+import { search } from 'consul-ui/services/search';
+import spec from 'consul-ui/search/predicates/service';
 import { module, test } from 'qunit';
 
 module('Unit | Search | Filter | service', function() {
-  const filter = getFilter(cb => cb);
+  const predicate = search(spec);
   test('items are found by properties', function(assert) {
     [
       {
@@ -14,9 +15,7 @@ module('Unit | Search | Filter | service', function() {
         Tags: ['tag', 'tag-withHiT'],
       },
     ].forEach(function(item) {
-      const actual = filter(item, {
-        s: 'hit',
-      });
+      const actual = predicate('hit')(item);
       assert.ok(actual);
     });
   });
@@ -30,9 +29,7 @@ module('Unit | Search | Filter | service', function() {
         Tags: ['one', 'two'],
       },
     ].forEach(function(item) {
-      const actual = filter(item, {
-        s: 'hit',
-      });
+      const actual = predicate('hit')(item);
       assert.notOk(actual);
     });
   });
@@ -50,9 +47,7 @@ module('Unit | Search | Filter | service', function() {
         Tags: [],
       },
     ].forEach(function(item) {
-      const actual = filter(item, {
-        s: 'hit',
-      });
+      const actual = predicate('hit')(item);
       assert.notOk(actual);
     });
   });

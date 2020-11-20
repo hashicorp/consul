@@ -28,7 +28,7 @@ const searchables = {
   nodeservice: nodeService(filterable),
   nspace: nspace(filterable),
 };
-const search = (spec) => {
+export const search = (spec) => {
   let possible = Object.keys(spec);
   return (term, options = {}) => {
     const actual = [...setHelpers.intersection(new Set(possible), new Set(options.properties || possible))];
