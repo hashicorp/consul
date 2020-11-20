@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/go-bexpr"
@@ -206,6 +208,21 @@ func (noopFilterEvaluator) Evaluate(_ interface{}) (bool, error) {
 	return true, nil
 }
 
+// cachedHealResultSorter sorts the results to match memdb semantics
+// Sort results by Node.Node, if 2 instances match, order by Service.ID
+// Will allow result to be stable sorted and match queries without cache
+func cachedHealResultSorter(serviceNodes *structs.IndexedCheckServiceNodes) {
+	sort.SliceStable(serviceNodes.Nodes, func(i, j int) bool {
+		left := serviceNodes.Nodes[i]
+		right := serviceNodes.Nodes[j]
+		res := strings.Compare(left.Node.Node, right.Node.Node)
+		if res != 0 {
+			return res < 0
+		}
+		return strings.Compare(left.Service.ID, right.Service.ID) < 0
+	})
+}
+
 // Result returns the structs.IndexedCheckServiceNodes stored by this view.
 func (s *healthView) Result(index uint64) (interface{}, error) {
 	result := structs.IndexedCheckServiceNodes{
@@ -217,6 +234,8 @@ func (s *healthView) Result(index uint64) (interface{}, error) {
 	for _, node := range s.state {
 		result.Nodes = append(result.Nodes, node)
 	}
+	cachedHealResultSorter(&result)
+
 	return &result, nil
 }
 
