@@ -86,7 +86,7 @@ var CatalogCounters = []prometheus.CounterDefinition{
 	},
 	{
 		Name: []string{"client", "api", "error", "catalog_service_nodes"},
-		Help: "",
+		Help: "Increments whenever a Consul agent receives an RPC error for request to list nodes offering a service.",
 	},
 	{
 		Name: []string{"client", "api", "catalog_node_services"},
@@ -102,15 +102,15 @@ var CatalogCounters = []prometheus.CounterDefinition{
 	},
 	{
 		Name: []string{"client", "api", "catalog_node_service_list"},
-		Help: "",
+		Help: "Increments whenever a Consul agent receives a request to list a node's registered services.",
 	},
 	{
 		Name: []string{"client", "rpc", "error", "catalog_node_service_list"},
-		Help: "",
+		Help: "Increments whenever a Consul agent receives an RPC error for request to list a node's registered services.",
 	},
 	{
 		Name: []string{"client", "api", "success", "catalog_node_service_list"},
-		Help: "",
+		Help: "Increments whenever a Consul agent successfully responds to a request to list a node's registered services.",
 	},
 	{
 		Name: []string{"client", "api", "catalog_gateway_services"},
