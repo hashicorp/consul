@@ -131,7 +131,7 @@ func NewBuilder(opts BuilderOpts) (*Builder, error) {
 	// merge the config files since the flag values for slices are
 	// otherwise appended instead of prepended.
 	slices, values := splitSlicesAndValues(opts.Config)
-	b.Head = append(b.Head, LiteralSource{Name: "flags.slices", Config: slices})
+	b.Head = append(b.Head, newSource("flags.slices", slices))
 	for _, path := range opts.ConfigFiles {
 		sources, err := b.sourcesFromPath(path, opts.ConfigFormat)
 		if err != nil {
