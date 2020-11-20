@@ -126,14 +126,6 @@ func NewBuilder(opts BuilderOpts) (*Builder, error) {
 		return nil, fmt.Errorf("config: -config-format must be either 'hcl' or 'json'")
 	}
 
-	newSource := func(name string, v interface{}) Source {
-		b, err := json.MarshalIndent(v, "", "    ")
-		if err != nil {
-			panic(err)
-		}
-		return FileSource{Name: name, Format: "json", Data: string(b)}
-	}
-
 	b := &Builder{
 		devMode: opts.DevMode,
 		Head:    []Source{DefaultSource(), DefaultEnterpriseSource()},
@@ -149,7 +141,7 @@ func NewBuilder(opts BuilderOpts) (*Builder, error) {
 	// merge the config files since the flag values for slices are
 	// otherwise appended instead of prepended.
 	slices, values := splitSlicesAndValues(opts.Config)
-	b.Head = append(b.Head, newSource("flags.slices", slices))
+	b.Head = append(b.Head, LiteralSource{Name: "flags.slices", Config: slices})
 	for _, path := range opts.ConfigFiles {
 		sources, err := b.sourcesFromPath(path, opts.ConfigFormat)
 		if err != nil {
@@ -157,7 +149,7 @@ func NewBuilder(opts BuilderOpts) (*Builder, error) {
 		}
 		b.Sources = append(b.Sources, sources...)
 	}
-	b.Tail = append(b.Tail, newSource("flags.values", values))
+	b.Tail = append(b.Tail, LiteralSource{Name: "flags.values", Config: values})
 	for i, s := range opts.HCL {
 		b.Tail = append(b.Tail, FileSource{
 			Name:   fmt.Sprintf("flags-%d.hcl", i),
