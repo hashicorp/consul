@@ -10,11 +10,6 @@ import (
 	"github.com/hashicorp/consul/lib/decode"
 )
 
-const (
-	SerfLANKeyring = "serf/local.keyring"
-	SerfWANKeyring = "serf/remote.keyring"
-)
-
 // Source parses configuration from some source.
 type Source interface {
 	// Source returns an identifier for the Source that can be used in error message
