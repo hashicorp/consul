@@ -97,9 +97,3 @@ Feature: components / catalog-filter
     ---
     s: 'tag:two'
     ---
-    And I see 2 service models
-    Then I fill in with yaml
-    ---
-    s: 'status:critical'
-    ---
-    And I see 1 service model
