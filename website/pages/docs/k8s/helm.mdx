@@ -380,7 +380,7 @@ and consider if they're appropriate for your deployment.
         "annotation-key": "annotation-value"
       ```
 
-  - `extraEnvironmentVars` ((#v-server-extra-environment-vars (`string: "{}"`) - extraEnvironmentVars
+  - `extraEnvironmentVars` ((#v-server-extra-environment-vars)) (`map`) - extraEnvironmentVars
     is a list of extra environment variables to set within the stateful set.
     These could be used to include proxy settings required for cloud auto-join
     feature, in case kubernetes cluster is behind egress http proxies. Additionally,
@@ -533,7 +533,7 @@ and consider if they're appropriate for your deployment.
       "sample/annotation2": "bar"
     ```
 
-  - `extraEnvironmentVars` ((#v-client-extra-environment-vars (`string: "{}"`) - extraEnvironmentVars
+  - `extraEnvironmentVars` ((#v-client-extra-environment-vars)) (`map`) - extraEnvironmentVars
     is a list of extra environment variables to set with the pod. These could be
     used to include proxy settings required for cloud auto-join feature,
     in case kubernetes cluster is behind egress http proxies. Additionally, it
@@ -758,8 +758,8 @@ and consider if they're appropriate for your deployment.
   - `imageConsul` ((#v-connectinject-imageconsul)) (`string: global.image`) - The name of the Docker
     image (including any tag) for Consul. This is used for proxy service registration, Envoy configuration, etc.
 
-  - `namespaceSelector` ((#v-connectinject-namespaceselector)) (`string: ""`) - A [selector](https://
-    kubernetes.io/docs/concepts/overview/working-with-objects/labels/)
+  - `namespaceSelector` ((#v-connectinject-namespaceselector)) (`string: ""`) - A
+    [selector](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/)
     for restricting injection to only matching namespaces. By default all namespaces
     except `kube-system` and `kube-public` will have injection enabled.
 
