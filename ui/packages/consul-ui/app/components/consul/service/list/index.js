@@ -8,8 +8,14 @@ export default class ConsulServiceList extends Component {
   @service('sort') sort;
   @service('search') search;
 
+  type = 'service';
+
   get items() {
-    defineProperty(this, 'sorted', sort('searched', this.comparator));
+    let comparator = 'comparator';
+    if (typeof this.comparator === 'function') {
+      comparator = this.comparator;
+    }
+    defineProperty(this, 'sorted', sort('searched', comparator));
     return this.sorted;
   }
 
@@ -17,14 +23,16 @@ export default class ConsulServiceList extends Component {
     if (typeof this.args.search === 'undefined') {
       return this.filtered;
     }
-    const predicate = this.search.predicate('service');
-    return this.filtered.filter(
-      predicate(this.args.search, {properties: this.args.filters.searchproperties})
-    );
+    const predicate = this.search.predicate(this.type);
+    const options = {};
+    if (typeof this.args.filters.searchproperties !== 'undefined') {
+      options.properties = this.args.filters.searchproperties;
+    }
+    return this.filtered.filter(predicate(this.args.search, options));
   }
 
   get filtered() {
-    const predicate = this.filter.predicate('service');
+    const predicate = this.filter.predicate(this.type);
     return this.args.items.filter(predicate(this.args.filters));
   }
 
@@ -33,7 +41,7 @@ export default class ConsulServiceList extends Component {
   }
 
   @action
-  isLinkable (item) {
-    return item.InstanceCount > 0
+  isLinkable(item) {
+    return item.InstanceCount > 0;
   }
 }

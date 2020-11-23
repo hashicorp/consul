@@ -3,8 +3,20 @@ import Route from 'consul-ui/routing/route';
 import { hash } from 'rsvp';
 
 export default class ServicesRoute extends Route {
-  @service('data-source/service')
-  data;
+  @service('data-source/service') data;
+
+  queryParams = {
+    sortBy: 'sort',
+    instance: 'instance',
+    searchproperty: {
+      as: 'searchproperty',
+      empty: [['Name', 'Tags']],
+    },
+    search: {
+      as: 'filter',
+      replace: true,
+    },
+  };
 
   model() {
     const dc = this.modelFor('dc').dc.Name;

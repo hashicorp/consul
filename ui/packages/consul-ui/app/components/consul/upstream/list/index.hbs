@@ -1,64 +1,74 @@
-<ListCollection @items={{items}} @linkable={{action "isLinkable"}} class="consul-upstream-list" as |item index|>
-  <BlockSlot @name="header">
-  {{#if (gt item.InstanceCount 0)}}
-    <dl class={{item.MeshStatus}}>
-      <dt>
-        Health
-      </dt>
-      <dd>
-        <Tooltip @position="top-start">
-          {{#if (eq 'critical' item.MeshStatus)}}
-            At least one health check on one instance is failing.
-          {{else if (eq 'warning' item.MeshStatus)}}
-            At least one health check on one instance has a warning.
-          {{else if (eq 'passing' item.MeshStatus)}}
-            All health checks are passing.
-          {{else}}
-            There are no health checks.
-          {{/if}}
-        </Tooltip>
-      </dd>
-    </dl>
-    {{#if (and (env 'CONSUL_NSPACES_ENABLED') (not-eq item.Namespace nspace))}}
-      <a data-test-service-name href={{href-to 'nspace.dc.services.show' (concat '~' item.Namespace) dc item.Name }}>
-        {{item.Name}}
-      </a>
+{{#if (gt this.items.length 0)}}
+  <ListCollection
+    class="consul-upstream-list"
+    ...attributes
+    @items={{this.items}}
+    @linkable={{action this.isLinkable}}
+  as |item index|>
+    <BlockSlot @name="header">
+    {{#if (gt item.InstanceCount 0)}}
+      <dl class={{item.MeshStatus}}>
+        <dt>
+          Health
+        </dt>
+        <dd>
+          <Tooltip @position="top-start">
+            {{#if (eq 'critical' item.MeshStatus)}}
+              At least one health check on one instance is failing.
+            {{else if (eq 'warning' item.MeshStatus)}}
+              At least one health check on one instance has a warning.
+            {{else if (eq 'passing' item.MeshStatus)}}
+              All health checks are passing.
+            {{else}}
+              There are no health checks.
+            {{/if}}
+          </Tooltip>
+        </dd>
+      </dl>
+      {{#if (and (env 'CONSUL_NSPACES_ENABLED') (not-eq item.Namespace nspace))}}
+        <a data-test-service-name href={{href-to 'nspace.dc.services.show' (concat '~' item.Namespace) dc item.Name }}>
+          {{item.Name}}
+        </a>
+      {{else}}
+        <a data-test-service-name href={{href-to 'dc.services.show' item.Name}}>
+          {{item.Name}}
+        </a>
+      {{/if}}
     {{else}}
-      <a data-test-service-name href={{href-to 'dc.services.show' item.Name}}>
+      <p data-test-service-name>
         {{item.Name}}
-      </a>
+      </p>
     {{/if}}
-  {{else}}
-    <p data-test-service-name>
-      {{item.Name}}
-    </p>
-  {{/if}}
-  </BlockSlot>
-  <BlockSlot @name="details">
-  {{#if (and (env 'CONSUL_NSPACES_ENABLED') (not-eq item.Namespace nspace))}}
-    <dl class="nspace">
-      <dt>
-        <Tooltip>
+    </BlockSlot>
+    <BlockSlot @name="details">
+    {{#if (and (env 'CONSUL_NSPACES_ENABLED') (not-eq item.Namespace nspace))}}
+      <dl class="nspace">
+        <dt>
+          <Tooltip>
             Namespace
-        </Tooltip>
-      </dt>
-      <dd>
-        {{item.Namespace}}
-      </dd>
-    </dl>
-  {{/if}}
-{{#if (gt item.GatewayConfig.Addresses.length 0)}}
-  {{#each item.GatewayConfig.Addresses as |address|}}
-    <dl>
-      <dt>
-        <CopyButton
-          @value={{address}}
-          @name="Address"
-        />
-      </dt>
-      <dd>{{address}}</dd>
-    </dl>
-  {{/each}}
+          </Tooltip>
+        </dt>
+        <dd>
+          {{item.Namespace}}
+        </dd>
+      </dl>
+    {{/if}}
+    {{#each item.GatewayConfig.Addresses as |address|}}
+      <dl>
+        <dt>
+          <span>Address</span>
+        </dt>
+        <dd>
+          <CopyButton
+            @value={{address}}
+            @name="Address"
+          />
+          {{address}}
+        </dd>
+      </dl>
+    {{/each}}
+    </BlockSlot>
+  </ListCollection>
+{{else}}
+  {{yield to="empty"}}
 {{/if}}
-  </BlockSlot>
-</ListCollection>
