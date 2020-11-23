@@ -6,12 +6,12 @@ import upstreamInstance from 'consul-ui/search/predicates/upstream-instance';
 import serviceInstance from 'consul-ui/search/predicates/service-instance';
 import acl from 'consul-ui/search/predicates/acl';
 import service from 'consul-ui/search/predicates/service';
+import node from 'consul-ui/search/predicates/node';
 
 import token from 'consul-ui/search/filters/token';
 import policy from 'consul-ui/search/filters/policy';
 import role from 'consul-ui/search/filters/role';
 import kv from 'consul-ui/search/filters/kv';
-import node from 'consul-ui/search/filters/node';
 // service instance
 import nodeService from 'consul-ui/search/filters/node/service';
 import serviceNode from 'consul-ui/search/filters/service/node';
@@ -24,7 +24,6 @@ const searchables = {
   policy: policy(filterable),
   role: role(filterable),
   kv: kv(filterable),
-  node: node(filterable),
   serviceInstance: serviceNode(filterable),
   nodeservice: nodeService(filterable),
   nspace: nspace(filterable),
@@ -47,6 +46,7 @@ export const search = spec => {
 const predicates = {
   intention: intention(),
   service: search(service),
+  node: search(node),
   ['service-instance']: search(serviceInstance),
   acl: search(acl),
   ['upstream-instance']: upstreamInstance(),

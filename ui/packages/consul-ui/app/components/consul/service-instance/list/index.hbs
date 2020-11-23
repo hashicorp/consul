@@ -15,9 +15,9 @@ as |item index|>
     {{/if}}
   </BlockSlot>
   <BlockSlot @name="details">
-  {{#if checks}}
+  {{#if @checks}}
     <Consul::ExternalSource @item={{item}} />
-    <Consul::InstanceChecks @type="service" @items={{get checks item.Service}} />
+    <Consul::InstanceChecks @type="service" @items={{get @checks item.Service}} />
   {{else}}
     <Consul::ExternalSource @item={{item.Service}} />
     <Consul::InstanceChecks @type="service" @items={{filter-by 'ServiceID' '' item.Checks}} />
@@ -63,7 +63,7 @@ as |item index|>
       </dd>
     </dl>
 {{/if}}
-{{#if (and checks item.Port)}}
+{{#if (and @checks item.Port)}}
     <dl class="port">
       <dt>
         Port
