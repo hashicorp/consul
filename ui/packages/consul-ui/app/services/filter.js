@@ -11,7 +11,7 @@ import policy from 'consul-ui/filter/predicates/policy';
 const predicates = {
   acl: acl(),
   service: service(),
-  serviceInstance: serviceInstance(),
+  ['service-instance']: serviceInstance(),
   node: node(),
   intention: intention(),
   token: token(),

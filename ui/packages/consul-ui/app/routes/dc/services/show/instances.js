@@ -5,6 +5,10 @@ export default class InstancesRoute extends Route {
     sortBy: 'sort',
     status: 'status',
     source: 'source',
+    searchproperty: {
+      as: 'searchproperty',
+      empty: [['Name', 'Tags', 'ID', 'Port']],
+    },
     search: {
       as: 'filter',
       replace: true,

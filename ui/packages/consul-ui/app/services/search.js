@@ -3,6 +3,7 @@ import setHelpers from 'mnemonist/set';
 
 import intention from 'consul-ui/search/predicates/intention';
 import upstreamInstance from 'consul-ui/search/predicates/upstream-instance';
+import serviceInstance from 'consul-ui/search/predicates/service-instance';
 import acl from 'consul-ui/search/predicates/acl';
 import service from 'consul-ui/search/predicates/service';
 
@@ -28,22 +29,25 @@ const searchables = {
   nodeservice: nodeService(filterable),
   nspace: nspace(filterable),
 };
-export const search = (spec) => {
+export const search = spec => {
   let possible = Object.keys(spec);
   return (term, options = {}) => {
-    const actual = [...setHelpers.intersection(new Set(possible), new Set(options.properties || possible))];
-    return (item) => {
-      return typeof actual.find(
-        (key) => {
-          return spec[key](item, term)
-        }
-      ) !== 'undefined';
-    }
-  }
-}
+    const actual = [
+      ...setHelpers.intersection(new Set(possible), new Set(options.properties || possible)),
+    ];
+    return item => {
+      return (
+        typeof actual.find(key => {
+          return spec[key](item, term);
+        }) !== 'undefined'
+      );
+    };
+  };
+};
 const predicates = {
   intention: intention(),
   service: search(service),
+  ['service-instance']: search(serviceInstance),
   acl: search(acl),
   ['upstream-instance']: upstreamInstance(),
 };
