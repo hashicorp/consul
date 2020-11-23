@@ -144,6 +144,9 @@ func (s *Intention) Apply(args *structs.IntentionRequest, reply *string) error {
 	if err != nil {
 		return err
 	}
+	if mut == nil {
+		return nil // short circuit
+	}
 
 	if legacyWrite {
 		*reply = args.Intention.ID
