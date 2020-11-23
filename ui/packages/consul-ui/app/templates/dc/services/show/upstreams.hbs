@@ -28,24 +28,31 @@
       <p>
         Upstreams are services that may receive traffic from this gateway. Learn more about configuring gateways in our <a href="{{env 'CONSUL_DOCS_URL'}}/connect/ingress-gateway" target="_blank" rel="noopener noreferrer">documentation</a>.
       </p>
+      <DataCollection
+        @type="service"
+        @sort={{sort}}
+        @filters={{filters}}
+        @search={{search}}
+        @items={{gatewayServices}}
+      as |collection|>
+        <collection.Collection>
           <Consul::Upstream::List
-            @items={{gatewayServices}}
+            @items={{collection.items}}
             @dc={{dc}}
             @nspace={{nspace}}
-            @sort={{sort}}
-            @filters={{filters}}
-            @search={{search}}
           >
-            <:empty>
-              <EmptyState>
-                <BlockSlot @name="body">
-                  <p>
-                    There are no upstreams{{#if (gt gatewayServices.length 0)}} matching that search{{/if}}.
-                  </p>
-                </BlockSlot>
-              </EmptyState>
-            </:empty>
           </Consul::Upstream::List>
+        </collection.Collection>
+        <collection.Empty>
+          <EmptyState>
+            <BlockSlot @name="body">
+              <p>
+                There are no upstreams{{#if (gt gatewayServices.length 0)}} matching that search{{/if}}.
+              </p>
+            </BlockSlot>
+          </EmptyState>
+        </collection.Empty>
+      </DataCollection>
   {{/let}}
 {{/let}}
   </div>

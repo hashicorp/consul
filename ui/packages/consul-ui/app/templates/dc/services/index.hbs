@@ -45,13 +45,23 @@
         {{/if}}
       </BlockSlot>
       <BlockSlot @name="content">
-          <Consul::Service::List
-            @sort={{sort}}
-            @filters={{filters}}
-            @search={{search}}
-            @items={{services}}
-          >
-            <:empty>
+        <DataCollection
+          @type="service"
+          @sort={{sort}}
+          @filters={{filters}}
+          @search={{search}}
+          @items={{services}}
+        as |collection|>
+          <collection.Collection>
+            <Consul::Service::List
+              @sort={{sort}}
+              @filters={{filters}}
+              @search={{search}}
+              @items={{collection.items}}
+            >
+            </Consul::Service::List>
+          </collection.Collection>
+          <collection.Empty>
               <EmptyState @allowLogin={{true}}>
                 <BlockSlot @name="header">
                   <h2>
@@ -80,8 +90,8 @@
                   </li>
                 </BlockSlot>
               </EmptyState>
-            </:empty>
-          </Consul::Service::List>
+            </collection.Empty>
+          </DataCollection>
       </BlockSlot>
     </AppView>
   {{/let}}

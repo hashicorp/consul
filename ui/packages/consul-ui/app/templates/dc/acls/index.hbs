@@ -37,17 +37,24 @@
     {{/if}}
   </BlockSlot>
   <BlockSlot @name="content">
-    <Consul::Acl::List
+    <DataCollection
+      @type="service"
       @sort={{sort}}
       @filters={{filters}}
       @search={{search}}
       @items={{items}}
+    as |collection|>
+      <collection.Collection>
+        <Consul::Acl::List
+          @items={{collection.items}}
 
-      @ondelete={{route-action 'delete'}}
-      @onuse={{route-action 'use'}}
-      @onclone={{route-action 'clone'}}
-    >
-      <:empty>
+          @ondelete={{route-action 'delete'}}
+          @onuse={{route-action 'use'}}
+          @onclone={{route-action 'clone'}}
+        >
+        </Consul::Acl::List>
+      </collection.Collection>
+      <collection.Empty>
         <EmptyState @allowLogin={{true}}>
           <BlockSlot @name="header">
             <h2>
@@ -68,8 +75,8 @@
             </p>
           </BlockSlot>
         </EmptyState>
-        </:empty>
-      </Consul::Acl::List>
+      </collection.Empty>
+    </DataCollection>
   </BlockSlot>
 </AppView>
   {{/let}}
