@@ -41,6 +41,9 @@ export default class DataCollectionComponent extends Component {
       return this.args.items;
     }
     const predicate = this.filter.predicate(this.type);
+    if (typeof predicate === 'undefined') {
+      return this.args.items;
+    }
     return this.args.items.filter(predicate(this.args.filters));
   }
 
@@ -48,6 +51,6 @@ export default class DataCollectionComponent extends Component {
     if (typeof this.args.sort === 'undefined') {
       return [];
     }
-    return this.sort.comparator('service')(this.args.sort);
+    return this.sort.comparator(this.type)(this.args.sort);
   }
 }
