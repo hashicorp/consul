@@ -18,7 +18,8 @@ else
 /home/ubuntu/scripts/install-consul --version "${consul_version}"
 fi
 
+# Update User:Group on this file really quick
+chown consul:consul /opt/consul/config/telemetry.json
+
 # These variables are passed in via Terraform template interplation
 /opt/consul/bin/run-consul --client --cluster-tag-key "${cluster_tag_key}" --cluster-tag-value "${cluster_tag_value}"
-
-# You could add commands to boot your other apps here
