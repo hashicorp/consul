@@ -1,6 +1,6 @@
-```release-note:feature
+```release-note:improvement
 connect: intentions are now managed as a new config entry kind "service-intentions"
 ```
 ```release-note:breaking-change
-connect: intention destinations can no longer be renamed
+connect: intention destinations can no longer be reassigned
 ```

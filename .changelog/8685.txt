@@ -1,3 +1,3 @@
 ```release-note:bug
-fixed a bug that caused logs to be flooded with `[WARN] agent.router: Non-server in server-only area`
+telemetry: fixed a bug that caused logs to be flooded with `[WARN] agent.router: Non-server in server-only area`
 ```
