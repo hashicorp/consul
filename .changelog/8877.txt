@@ -1,9 +1,9 @@
 ```release-note:improvement
-agent: add counter `consul.api.http` with labels for each HTTP path and method. This is intended to replace `consul.http...`
+telemetry: add counter `consul.api.http` with labels for each HTTP path and method. This is intended to replace `consul.http...`
 ```
 ```release-note:improvement
-agent: add config flag `telemetry { disable_compat_1.9 = (true|false) }` to disable deprecated metrics in 1.9
+telemetry: add config flag `telemetry { disable_compat_1.9 = (true|false) }` to disable deprecated metrics in 1.9
 ```
 ```release-note:deprecation
-agent: The measurements in all of the `consul.http...` prefixed metrics have been migrated to `consul.api.http`. `consul.http...` prefixed metrics will be removed in a future version of Consul.
+telemetry: The measurements in all of the `consul.http...` prefixed metrics have been migrated to `consul.api.http`. `consul.http...` prefixed metrics will be removed in a future version of Consul.
 ```
