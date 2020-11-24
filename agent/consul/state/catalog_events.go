@@ -3,6 +3,7 @@ package state
 import (
 	memdb "github.com/hashicorp/go-memdb"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
@@ -10,6 +11,10 @@ import (
 
 // EventPayloadCheckServiceNode is used as the Payload for a stream.Event to
 // indicates changes to a CheckServiceNode for service health.
+//
+// The stream.Payload methods implemented by EventPayloadCheckServiceNode are
+// do not mutate the payload, making it safe to use in an Event sent to
+// stream.EventPublisher.Publish.
 type EventPayloadCheckServiceNode struct {
 	Op    pbsubscribe.CatalogOp
 	Value *structs.CheckServiceNode
@@ -19,7 +24,11 @@ type EventPayloadCheckServiceNode struct {
 	key string
 }
 
-func (e EventPayloadCheckServiceNode) FilterByKey(key, namespace string) bool {
+func (e EventPayloadCheckServiceNode) HasReadPermission(authz acl.Authorizer) bool {
+	return e.Value.CanRead(authz) == acl.Allow
+}
+
+func (e EventPayloadCheckServiceNode) MatchesKey(key, namespace string) bool {
 	if key == "" && namespace == "" {
 		return true
 	}

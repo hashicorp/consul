@@ -22,7 +22,6 @@
 @import './components/healthcheck-output';
 @import './components/freetext-filter';
 @import './components/filter-bar';
-@import './components/tomography-graph';
 @import './components/flash-message';
 @import './components/code-editor';
 @import './components/confirmation-dialog';
@@ -55,6 +54,7 @@
 @import 'consul-ui/components/notice';
 @import 'consul-ui/components/modal-dialog';
 
+@import 'consul-ui/components/consul/tomography/graph';
 @import 'consul-ui/components/consul/discovery-chain';
 @import 'consul-ui/components/consul/upstream-instance/list';
 @import 'consul-ui/components/consul/exposed-path/list';

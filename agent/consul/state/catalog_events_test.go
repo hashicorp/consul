@@ -1476,7 +1476,7 @@ func TestEventPayloadCheckServiceNode_FilterByKey(t *testing.T) {
 			t.Skip("cant test namespace matching without namespace support")
 		}
 
-		require.Equal(t, tc.expected, tc.payload.FilterByKey(tc.key, tc.namespace))
+		require.Equal(t, tc.expected, tc.payload.MatchesKey(tc.key, tc.namespace))
 	}
 
 	var testCases = []testCase{

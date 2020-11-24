@@ -5,7 +5,7 @@ import (
 	"net"
 	"testing"
 
-	"github.com/hashicorp/consul/testrpc"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent"
 	agConnect "github.com/hashicorp/consul/agent/connect"
@@ -14,12 +14,10 @@ import (
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/stretchr/testify/require"
+	"github.com/hashicorp/consul/testrpc"
 )
 
 func TestProxy_public(t *testing.T) {
-	t.Parallel()
-
 	require := require.New(t)
 
 	ports := freeport.MustTake(1)

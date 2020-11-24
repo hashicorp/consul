@@ -101,8 +101,8 @@ func (s *Subscription) Next(ctx context.Context) (Event, error) {
 		if len(next.Events) == 0 {
 			continue
 		}
-		event, ok := filterByKey(s.req, next.Events)
-		if !ok {
+		event := newEventFromBatch(s.req, next.Events)
+		if !event.Payload.MatchesKey(s.req.Key, s.req.Namespace) {
 			continue
 		}
 		return event, nil
@@ -128,20 +128,8 @@ func newEventFromBatch(req SubscribeRequest, events []Event) Event {
 	return Event{
 		Topic:   req.Topic,
 		Index:   first.Index,
-		Payload: PayloadEvents(events),
+		Payload: newPayloadEvents(events...),
 	}
-}
-
-func filterByKey(req SubscribeRequest, events []Event) (Event, bool) {
-	event := newEventFromBatch(req, events)
-	if req.Key == "" && req.Namespace == "" {
-		return event, true
-	}
-
-	fn := func(e Event) bool {
-		return e.Payload.FilterByKey(req.Key, req.Namespace)
-	}
-	return event.Filter(fn)
 }
 
 // Close the subscription. Subscribers will receive an error when they call Next,

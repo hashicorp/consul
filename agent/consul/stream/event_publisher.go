@@ -91,7 +91,8 @@ func NewEventPublisher(handlers SnapshotHandlers, snapCacheTTL time.Duration) *E
 	return e
 }
 
-// Publish events to all subscribers of the event Topic.
+// Publish events to all subscribers of the event Topic. The events will be shared
+// with all subscriptions, so the Payload used in Event.Payload must be immutable.
 func (e *EventPublisher) Publish(events []Event) {
 	if len(events) > 0 {
 		e.publishCh <- events

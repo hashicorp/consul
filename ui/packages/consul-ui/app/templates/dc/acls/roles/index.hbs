@@ -1,7 +1,7 @@
 {{#if isAuthorized }}
-  {{title 'Roles'}}
+  {{page-title 'Roles'}}
 {{else}}
-  {{title 'Access Controls'}}
+  {{page-title 'Access Controls'}}
 {{/if}}
 
 {{#let (or sortBy "Name:asc") as |sort|}}

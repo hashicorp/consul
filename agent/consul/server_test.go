@@ -240,7 +240,7 @@ func testServerDCExpectNonVoter(t *testing.T, dc string, expect int) (string, *S
 		c.Datacenter = dc
 		c.Bootstrap = false
 		c.BootstrapExpect = expect
-		c.NonVoter = true
+		c.ReadReplica = true
 	})
 }
 
