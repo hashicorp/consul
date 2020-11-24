@@ -307,6 +307,14 @@ func TestIntentionApply_deleteGood(t *testing.T) {
 	}
 	var reply string
 
+	// Delete a non existent intention should return an error
+	testutil.RequireErrorContains(t, msgpackrpc.CallWithCodec(codec, "Intention.Apply", &structs.IntentionRequest{
+		Op: structs.IntentionOpDelete,
+		Intention: &structs.Intention{
+			ID: generateUUID(),
+		},
+	}, &reply), "Cannot delete non-existent intention")
+
 	// Create
 	require.Nil(msgpackrpc.CallWithCodec(codec, "Intention.Apply", &ixn, &reply))
 	require.NotEmpty(reply)
@@ -616,6 +624,15 @@ func TestIntentionApply_WithoutIDs(t *testing.T) {
 
 		require.Equal(t, expect, entry)
 	}
+
+	// Delete a non existent intention should return an error
+	testutil.RequireErrorContains(t, opApply(&structs.IntentionRequest{
+		Op: structs.IntentionOpDelete,
+		Intention: &structs.Intention{
+			SourceName:      "ghost",
+			DestinationName: "phantom",
+		},
+	}), "Cannot delete non-existent intention")
 
 	// Delete the original
 	require.NoError(t, opApply(&structs.IntentionRequest{
