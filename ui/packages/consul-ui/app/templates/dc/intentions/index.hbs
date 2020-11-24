@@ -9,6 +9,10 @@
 {{#let api.data as |items|}}
   {{#let (hash
     accesses=(if access (split access ',') undefined)
+    searchproperties=(if (not-eq searchproperty undefined)
+      (split searchproperty ',')
+      (array 'SourceName' 'DestinationName')
+    )
   ) as |filters|}}
     {{#let (or sortBy "Action:asc") as |sort|}}
       <AppView>
@@ -33,6 +37,7 @@
 
             @filter={{filters}}
             @onfilter={{hash
+              searchproperty=(action (mut searchproperty) value="target.selectedItems")
               access=(action (mut access) value="target.selectedItems")
             }}
           />
@@ -40,18 +45,23 @@
 
         </BlockSlot>
         <BlockSlot @name="content">
-          <Consul::Intention::List
+          <DataCollection
+            @type="intention"
             @sort={{sort}}
             @filters={{filters}}
             @search={{search}}
             @items={{items}}
-            @ondelete={{refresh-route}}
-          >
-            <:idle as |list|>
-              <list.CustomResourceNotice />
-              <list.Table />
-            </:idle>
-            <:empty as |list|>
+          as |collection|>
+            <collection.Collection>
+              <Consul::Intention::List
+                @items={{collection.items}}
+                @ondelete={{refresh-route}}
+              as |list|>
+                  <list.CustomResourceNotice />
+                  <list.Table />
+              </Consul::Intention::List>
+            </collection.Collection>
+            <collection.Empty>
               <EmptyState @allowLogin={{true}}>
                 <BlockSlot @name="header">
                   <h2>
@@ -80,8 +90,8 @@
                   </li>
                 </BlockSlot>
               </EmptyState>
-            </:empty>
-          </Consul::Intention::List>
+            </collection.Empty>
+          </DataCollection>
         </BlockSlot>
       </AppView>
     {{/let}}

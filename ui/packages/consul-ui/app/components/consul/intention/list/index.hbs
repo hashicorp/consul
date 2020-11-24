@@ -9,8 +9,7 @@
     @ondelete={{action @ondelete}}
   as |writer|>
     <BlockSlot @name="content">
-
-{{#let (hash
+{{yield (hash
   Table=(component 'consul/intention/list/table' delete=writer.delete items=this.items)
   CheckNotice=(if this.checkedItem
     (component 'consul/intention/list/check' item=this.checkedItem)
@@ -20,15 +19,7 @@
     (component 'consul/intention/notice/custom-resource')
     ''
   )
-) as |api|}}
-
-  {{#if (gt this.items.length 0)}}
-    {{yield api to="idle"}}
-  {{else}}
-    {{yield api to="empty"}}
-  {{/if}}
-{{/let}}
-
+)}}
     </BlockSlot>
   </DataWriter>
 </div>

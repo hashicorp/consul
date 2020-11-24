@@ -44,7 +44,7 @@ export const search = spec => {
   };
 };
 const predicates = {
-  intention: intention(),
+  intention: search(intention),
   service: search(service),
   node: search(node),
   ['service-instance']: search(serviceInstance),
