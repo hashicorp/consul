@@ -11,10 +11,12 @@ set -e
 # From: https://alestic.com/2010/12/ec2-user-data-output/
 exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
 
-echo "Hello World"
 # Install Consul
-/home/ubuntu/scripts/install-consul --version "$consul_version"
-
+if [[ -n "${consul_download_url}" ]]; then
+/home/ubuntu/scripts/install-consul --download-url "${consul_download_url}"
+else
+/home/ubuntu/scripts/install-consul --version "${consul_version}"
+fi
 
 # These variables are passed in via Terraform template interplation
 /opt/consul/bin/run-consul --client --cluster-tag-key "${cluster_tag_key}" --cluster-tag-value "${cluster_tag_value}"

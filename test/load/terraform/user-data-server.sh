@@ -12,9 +12,11 @@ set -e
 exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
 
 # Install Consul
-echo "Hello World"
-/home/ubuntu/scripts/install-consul --version "$consul_version"
-
+if [[ -n "${consul_download_url}" ]]; then
+/home/ubuntu/scripts/install-consul --download-url "${consul_download_url}"
+else
+/home/ubuntu/scripts/install-consul --version "${consul_version}"
+fi
 
 # These variables are passed in via Terraform template interplation
 /opt/consul/bin/run-consul --server --cluster-tag-key "${cluster_tag_key}" --cluster-tag-value "${cluster_tag_value}"
