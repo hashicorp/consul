@@ -8,7 +8,7 @@ resource "aws_security_group" "test-servers" {
   ingress {
     from_port       = 8500
     to_port         = 8500
-    security_groups = [module.consul.security_group_id_clients]
+    security_groups = [module.consul_clients.security_group_id]
     protocol        = "6"
     cidr_blocks     = ["0.0.0.0/0"]
   }
@@ -37,6 +37,7 @@ resource "aws_launch_configuration" "test-servers" {
   lifecycle {
     create_before_destroy = true
   }
+
   user_data = templatefile(
     "./start-k6.sh",
     {

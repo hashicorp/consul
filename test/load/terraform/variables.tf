@@ -115,11 +115,11 @@ variable "ami_owners" {
 variable "consul_download_url" {
   type        = string
   description = "URL to download the Consul binary from"
-  default = ""
 }
 
 variable "consul_version" {
   type        = string
   description = "URL to download the Consul binary from"
+  default     = "1.9.0"
 }
 
