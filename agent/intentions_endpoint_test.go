@@ -515,6 +515,17 @@ func TestIntentionDeleteExact(t *testing.T) {
 	ixn := structs.TestIntention(t)
 	ixn.SourceName = "foo"
 
+	t.Run("cannot delete non-existent intention", func(t *testing.T) {
+		// Delete the intention
+		req, err := http.NewRequest("DELETE", "/v1/connect/intentions/exact?source=foo&destination=db", nil)
+		require.NoError(t, err)
+
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.IntentionExact(resp, req)
+		require.Nil(t, obj)
+		testutil.RequireErrorContains(t, err, "Cannot delete non-existent intention")
+	})
+
 	exact := ixn.ToExact()
 
 	// Create an intention directly
