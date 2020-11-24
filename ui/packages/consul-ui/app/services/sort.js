@@ -29,7 +29,7 @@ const options = {
 };
 const comparators = {
   service: service(options),
-  serviceInstance: serviceInstance(options),
+  ['service-instance']: serviceInstance(options),
   ['upstream-instance']: upstreamInstance(options),
   acl: acl(options),
   kv: kv(options),
