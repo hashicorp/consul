@@ -9,9 +9,9 @@ import service from 'consul-ui/search/predicates/service';
 import node from 'consul-ui/search/predicates/node';
 import kv from 'consul-ui/search/predicates/kv';
 import token from 'consul-ui/search/predicates/token';
+import role from 'consul-ui/search/predicates/role';
 
 import policy from 'consul-ui/search/filters/policy';
-import role from 'consul-ui/search/filters/role';
 // service instance
 import nodeService from 'consul-ui/search/filters/node/service';
 import serviceNode from 'consul-ui/search/filters/service/node';
@@ -21,7 +21,6 @@ import filterableFactory from 'consul-ui/utils/search/filterable';
 const filterable = filterableFactory();
 const searchables = {
   policy: policy(filterable),
-  role: role(filterable),
   serviceInstance: serviceNode(filterable),
   nodeservice: nodeService(filterable),
   nspace: nspace(filterable),
@@ -50,6 +49,7 @@ const predicates = {
   kv: search(kv),
   acl: search(acl),
   token: search(token),
+  role: search(role),
 };
 export default class SearchService extends Service {
   searchable(name) {

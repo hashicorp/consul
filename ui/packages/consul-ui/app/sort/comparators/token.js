@@ -1,3 +1,3 @@
 export default ({ properties }) => key => {
-  return properties(['CreatedDate'])(key);
+  return properties(['CreateIndex'])(key);
 };
