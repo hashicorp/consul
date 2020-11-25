@@ -1,8 +1,6 @@
-import { andOr } from 'consul-ui/utils/filter';
-
-export default andOr({
+export default {
   kinds: {
     folder: (item, value) => item.isFolder,
     key: (item, value) => !item.isFolder,
   },
-});
+};

@@ -1,4 +1,5 @@
 import Service from '@ember/service';
+import { andOr } from 'consul-ui/utils/filter';
 
 import acl from 'consul-ui/filter/predicates/acl';
 import service from 'consul-ui/filter/predicates/service';
@@ -10,14 +11,14 @@ import token from 'consul-ui/filter/predicates/token';
 import policy from 'consul-ui/filter/predicates/policy';
 
 const predicates = {
-  acl: acl(),
-  service: service(),
-  ['service-instance']: serviceInstance(),
-  node: node(),
-  kv: kv(),
-  intention: intention(),
-  token: token(),
-  policy: policy(),
+  acl: andOr(acl),
+  service: andOr(service),
+  ['service-instance']: andOr(serviceInstance),
+  node: andOr(node),
+  kv: andOr(kv),
+  intention: andOr(intention),
+  token: andOr(token),
+  policy: andOr(policy),
 };
 
 export default class FilterService extends Service {
