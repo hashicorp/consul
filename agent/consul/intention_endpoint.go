@@ -413,9 +413,7 @@ func (s *Intention) computeApplyChangesDelete(
 		return nil, fmt.Errorf("Intention lookup failed: %v", err)
 	}
 	if ixn == nil {
-		src := structs.NewServiceName(exactIxn.SourceName, exactIxn.SourceEnterpriseMeta())
-		dst := structs.NewServiceName(exactIxn.DestinationName, exactIxn.DestinationEnterpriseMeta())
-		return nil, fmt.Errorf("Cannot delete non-existent intention: source=%q, destination=%q", src.String(), dst.String())
+		return nil, nil // by-name deletions are idempotent
 	}
 
 	return &structs.IntentionMutation{
