@@ -1,0 +1,3 @@
+```release-note:improvement
+server: deletions of intentions by name using the intention API is now idempotent
+```
