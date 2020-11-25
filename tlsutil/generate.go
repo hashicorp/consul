@@ -3,6 +3,7 @@ package tlsutil
 import (
 	"bytes"
 	"crypto"
+	"crypto/rsa"
 	"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/sha256"
@@ -130,6 +131,7 @@ func GenerateCert(signer crypto.Signer, ca string, sn *big.Int, name string, day
 func keyID(raw interface{}) ([]byte, error) {
 	switch raw.(type) {
 	case *ecdsa.PublicKey:
+	case *rsa.PublicKey:
 	default:
 		return nil, fmt.Errorf("invalid key type: %T", raw)
 	}
@@ -173,6 +175,8 @@ func ParseSigner(pemValue string) (crypto.Signer, error) {
 	switch block.Type {
 	case "EC PRIVATE KEY":
 		return x509.ParseECPrivateKey(block.Bytes)
+	case "RSA PRIVATE KEY":
+		return x509.ParsePKCS1PrivateKey(block.Bytes)
 	default:
 		return nil, fmt.Errorf("unknown PEM block type for signing key: %s", block.Type)
 	}
