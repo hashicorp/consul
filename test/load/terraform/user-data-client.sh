@@ -13,9 +13,9 @@ exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
 
 # Install Consul
 if [[ -n "${consul_download_url}" ]]; then
-/home/ubuntu/scripts/install-consul --download-url "${consul_download_url}"
+    /home/ubuntu/scripts/install-consul --download-url "${consul_download_url}"
 else
-/home/ubuntu/scripts/install-consul --version "${consul_version}"
+    /home/ubuntu/scripts/install-consul --version "${consul_version}"
 fi
 
 # Update User:Group on this file really quick
