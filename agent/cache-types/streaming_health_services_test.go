@@ -273,11 +273,9 @@ func TestOrderingConsistentWithMemDb(t *testing.T) {
 			Index: index,
 		},
 	}
-	cachedHealResultSorter(&result)
-	require.Equal(t, result.Nodes[0], zero)
-	require.Equal(t, result.Nodes[1], one)
-	require.Equal(t, result.Nodes[2], two)
-	require.Equal(t, result.Nodes[3], three)
+	sortCheckServiceNodes(&result)
+	expected := structs.CheckServiceNodes{zero, one, two, three}
+	require.Equal(t, expected, result.Nodes)
 }
 
 func TestStreamingHealthServices_FullSnapshot(t *testing.T) {
