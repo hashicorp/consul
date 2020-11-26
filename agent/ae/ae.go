@@ -80,6 +80,7 @@ type StateSyncer struct {
 	// paused stores whether sync runs are temporarily disabled.
 	pauseLock sync.Mutex
 	paused    int
+	chPaused  chan struct{}
 
 	// serverUpInterval is the max time after which a full sync is
 	// performed when a server has been added to the cluster.
@@ -319,6 +320,10 @@ func (s *StateSyncer) staggerFn(d time.Duration) time.Duration {
 func (s *StateSyncer) Pause() {
 	s.pauseLock.Lock()
 	s.paused++
+
+	if s.chPaused == nil {
+		s.chPaused = make(chan struct{})
+	}
 	s.pauseLock.Unlock()
 }
 
@@ -337,10 +342,25 @@ func (s *StateSyncer) Resume() bool {
 	if s.paused < 0 {
 		panic("unbalanced pause/resume")
 	}
-	trigger := s.paused == 0
+	resumed := s.paused == 0
+
+	if resumed {
+		close(s.chPaused)
+		s.chPaused = nil
+	}
 	s.pauseLock.Unlock()
-	if trigger {
+
+	if resumed {
 		s.SyncChanges.Trigger()
 	}
-	return trigger
+	return resumed
+}
+
+// WaitResume returns a channel which blocks until the StateSyncer has been
+// resumed.
+// If StateSyncer is not paused, WaitResume returns nil.
+func (s *StateSyncer) WaitResume() <-chan struct{} {
+	s.pauseLock.Lock()
+	defer s.pauseLock.Unlock()
+	return s.chPaused
 }

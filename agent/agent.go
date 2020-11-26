@@ -177,11 +177,6 @@ type Agent struct {
 	// and the remote state.
 	sync *ae.StateSyncer
 
-	// syncMu and syncCh are used to coordinate agent endpoints that are blocking
-	// on local state during a config reload.
-	syncMu sync.Mutex
-	syncCh chan struct{}
-
 	// cache is the in-memory cache for data the Agent requests.
 	cache *cache.Cache
 
@@ -1541,55 +1536,6 @@ func (a *Agent) StartSync() {
 	a.logger.Info("started state syncer")
 }
 
-// PauseSync is used to pause anti-entropy while bulk changes are made. It also
-// sets state that agent-local watches use to "ride out" config reloads and bulk
-// updates which might spuriously unload state and reload it again.
-func (a *Agent) PauseSync() {
-	// Do this outside of lock as it has it's own locking
-	a.sync.Pause()
-
-	// Coordinate local state watchers
-	a.syncMu.Lock()
-	defer a.syncMu.Unlock()
-	if a.syncCh == nil {
-		a.syncCh = make(chan struct{})
-	}
-}
-
-// ResumeSync is used to unpause anti-entropy after bulk changes are make
-func (a *Agent) ResumeSync() {
-	// a.sync maintains a stack/ref count of Pause calls since we call
-	// Pause/Resume in nested way during a reload and AddService. We only want to
-	// trigger local state watchers if this Resume call actually started sync back
-	// up again (i.e. was the last resume on the stack). We could check that
-	// separately with a.sync.Paused but that is racey since another Pause call
-	// might be made between our Resume and checking Paused.
-	resumed := a.sync.Resume()
-
-	if !resumed {
-		// Return early so we don't notify local watchers until we are actually
-		// resumed.
-		return
-	}
-
-	// Coordinate local state watchers
-	a.syncMu.Lock()
-	defer a.syncMu.Unlock()
-
-	if a.syncCh != nil {
-		close(a.syncCh)
-		a.syncCh = nil
-	}
-}
-
-// SyncPausedCh returns either a channel or nil. If nil sync is not paused. If
-// non-nil, the channel will be closed when sync resumes.
-func (a *Agent) SyncPausedCh() <-chan struct{} {
-	a.syncMu.Lock()
-	defer a.syncMu.Unlock()
-	return a.syncCh
-}
-
 // GetLANCoordinate returns the coordinates of this node in the local pools
 // (assumes coordinates are enabled, so check that before calling).
 func (a *Agent) GetLANCoordinate() (lib.CoordinateSet, error) {
@@ -1983,8 +1929,8 @@ func (a *Agent) addServiceInternal(req *addServiceRequest) error {
 	)
 
 	// Pause the service syncs during modification
-	a.PauseSync()
-	defer a.ResumeSync()
+	a.sync.Pause()
+	defer a.sync.Resume()
 
 	// Set default tagged addresses
 	serviceIP := net.ParseIP(service.Address)
@@ -3536,8 +3482,8 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 	}
 
 	// Bulk update the services and checks
-	a.PauseSync()
-	defer a.ResumeSync()
+	a.sync.Pause()
+	defer a.sync.Resume()
 
 	a.stateLock.Lock()
 	defer a.stateLock.Unlock()
@@ -3689,9 +3635,9 @@ func (a *Agent) LocalBlockingQuery(alwaysBlock bool, hash string, wait time.Dura
 		// case it's likely that local state just got unloaded and may or may not be
 		// reloaded yet. Wait a short amount of time for Sync to resume to ride out
 		// typical config reloads.
-		if syncPauseCh := a.SyncPausedCh(); syncPauseCh != nil {
+		if resume := a.sync.WaitResume(); resume != nil {
 			select {
-			case <-syncPauseCh:
+			case <-resume:
 			case <-ctx.Done():
 			}
 		}
