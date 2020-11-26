@@ -171,7 +171,7 @@ func (s *StateSyncer) runFSM(fs fsmState, next func(fsmState) fsmState) {
 func (s *StateSyncer) nextFSMState(fs fsmState) fsmState {
 	switch fs {
 	case fullSyncState:
-		if s.Paused() {
+		if s.isPaused() {
 			return retryFullSyncState
 		}
 
@@ -200,7 +200,7 @@ func (s *StateSyncer) nextFSMState(fs fsmState) fsmState {
 			return fullSyncState
 
 		case syncChangesNotifEvent:
-			if s.Paused() {
+			if s.isPaused() {
 				return partialSyncState
 			}
 
@@ -323,7 +323,7 @@ func (s *StateSyncer) Pause() {
 }
 
 // Paused returns whether sync runs are temporarily disabled.
-func (s *StateSyncer) Paused() bool {
+func (s *StateSyncer) isPaused() bool {
 	s.pauseLock.Lock()
 	defer s.pauseLock.Unlock()
 	return s.paused != 0

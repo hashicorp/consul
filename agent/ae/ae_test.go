@@ -8,10 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func TestAE_scaleFactor(t *testing.T) {
@@ -37,24 +38,24 @@ func TestAE_scaleFactor(t *testing.T) {
 func TestAE_Pause_nestedPauseResume(t *testing.T) {
 	t.Parallel()
 	l := NewStateSyncer(nil, 0, nil, nil)
-	if l.Paused() != false {
+	if l.isPaused() != false {
 		t.Fatal("syncer should be unPaused after init")
 	}
 	l.Pause()
-	if l.Paused() != true {
+	if l.isPaused() != true {
 		t.Fatal("syncer should be Paused after first call to Pause()")
 	}
 	l.Pause()
-	if l.Paused() != true {
+	if l.isPaused() != true {
 		t.Fatal("syncer should STILL be Paused after second call to Pause()")
 	}
 	gotR := l.Resume()
-	if l.Paused() != true {
+	if l.isPaused() != true {
 		t.Fatal("syncer should STILL be Paused after FIRST call to Resume()")
 	}
 	assert.False(t, gotR)
 	gotR = l.Resume()
-	if l.Paused() != false {
+	if l.isPaused() != false {
 		t.Fatal("syncer should NOT be Paused after SECOND call to Resume()")
 	}
 	assert.True(t, gotR)
