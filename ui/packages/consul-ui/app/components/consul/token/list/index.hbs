@@ -3,7 +3,7 @@
   @items={{@items}}
 as |item|>
     <BlockSlot @name="header">
-{{#if (eq item.AccessorID token.AccessorID)}}
+{{#if (eq item.AccessorID @token.AccessorID)}}
         <dl rel="me">
           <dd>
             <Tooltip @position="top-start">
@@ -86,7 +86,7 @@ as |item|>
           </BlockSlot>
         </Action>
   {{/if}}
-  {{#if (not (or (token/is-anonymous item) (eq item.AccessorID token.AccessorID)))}}
+  {{#if (not (or (token/is-anonymous item) (eq item.AccessorID @token.AccessorID)))}}
         <Action data-test-delete-action @onclick={{action @ondelete item}} class="dangerous">
           <BlockSlot @name="label">
             Delete
