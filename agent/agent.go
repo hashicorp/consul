@@ -487,7 +487,9 @@ func (a *Agent) Start(ctx context.Context) error {
 	}
 
 	// the staggering of the state syncing depends on the cluster size.
-	a.sync.ClusterSize = func() int { return len(a.delegate.LANMembers()) }
+	a.sync.Delayer = ae.NewClusterSizeDelayer(func() int {
+		return len(a.delegate.LANMembers())
+	})
 
 	// link the state with the consul server/client and the state syncer
 	// via callbacks. After several attempts this was easier than using

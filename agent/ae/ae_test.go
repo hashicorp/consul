@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -83,18 +84,22 @@ func TestAE_Pause_ResumeTriggersSyncChanges(t *testing.T) {
 	}
 }
 
-func TestAE_staggerDependsOnClusterSize(t *testing.T) {
+func TestDelayer_Jitter(t *testing.T) {
 	libRandomStagger = func(d time.Duration) time.Duration { return d }
 	defer func() { libRandomStagger = lib.RandomStagger }()
 
-	l := testSyncer(t)
-	if got, want := l.staggerFn(10*time.Millisecond), 10*time.Millisecond; got != want {
-		t.Fatalf("got %v want %v", got, want)
-	}
-	l.ClusterSize = func() int { return 256 }
-	if got, want := l.staggerFn(10*time.Millisecond), 20*time.Millisecond; got != want {
-		t.Fatalf("got %v want %v", got, want)
-	}
+	t.Run("cluster size 1", func(t *testing.T) {
+
+		delayer := NewClusterSizeDelayer(func() int { return 1 })
+		actual := delayer.Jitter(10 * time.Millisecond)
+		require.Equal(t, 10*time.Millisecond, actual)
+	})
+
+	t.Run("cluster size 256", func(t *testing.T) {
+		delayer := NewClusterSizeDelayer(func() int { return 256 })
+		actual := delayer.Jitter(10 * time.Millisecond)
+		require.Equal(t, 20*time.Millisecond, actual)
+	})
 }
 
 func TestAE_Run_SyncFullBeforeChanges(t *testing.T) {
@@ -126,17 +131,6 @@ func TestAE_Run_SyncFullBeforeChanges(t *testing.T) {
 }
 
 func TestAE_Run_Quit(t *testing.T) {
-	t.Run("Run panics without ClusterSize", func(t *testing.T) {
-		defer func() {
-			err := recover()
-			if err == nil {
-				t.Fatal("Run should panic")
-			}
-		}()
-		l := testSyncer(t)
-		l.ClusterSize = nil
-		l.Run()
-	})
 	t.Run("runFSM quits", func(t *testing.T) {
 		// start timer which explodes if runFSM does not quit
 		tm := time.AfterFunc(time.Second, func() { panic("timeout") })
@@ -399,8 +393,13 @@ func testSyncer(t *testing.T) *StateSyncer {
 	})
 
 	l := NewStateSyncer(nil, time.Second, nil, logger)
-	l.stagger = func(d time.Duration) time.Duration { return d }
-	l.ClusterSize = func() int { return 1 }
+	l.Delayer = constDelayer{}
 	l.resetNextFullSyncCh()
 	return l
+}
+
+type constDelayer struct{}
+
+func (constDelayer) Jitter(d time.Duration) time.Duration {
+	return d
 }
