@@ -104,10 +104,9 @@ func NewStateSyncer(state SyncState, intv time.Duration, shutdownCh chan struct{
 type fsmState string
 
 const (
-	doneState          fsmState = "done"
-	fullSyncState      fsmState = "fullSync"
-	partialSyncState   fsmState = "partialSync"
-	retryFullSyncState fsmState = "retryFullSync"
+	doneState        fsmState = "done"
+	fullSyncState    fsmState = "fullSync"
+	partialSyncState fsmState = "partialSync"
 )
 
 // Run is the long running method to perform state synchronization
@@ -131,52 +130,20 @@ func (s *StateSyncer) nextFSMState(fs fsmState) fsmState {
 	case fullSyncState:
 		s.waitNextFullSync = time.After(s.Interval + s.Delayer.Jitter(s.Interval))
 		if s.isPaused() {
-			return retryFullSyncState
+			return s.retryFullSync()
 		}
 
 		if err := s.State.SyncFull(); err != nil {
 			s.Logger.Error("failed to sync remote state", "error", err)
-			return retryFullSyncState
+			return s.retryFullSync()
 		}
 
 		return partialSyncState
 
-	case retryFullSyncState:
-		// FIXME: We enter this state if StateSyncer.isPaused, but Resume does
-		// not SyncFull.Trigger. It only calls SyncChanges.Trigger. This seems
-		// like an oversight. Entering this loop will block until a server is
-		// added (rare), an acl token is changed (rare), or after waiting
-		// for the retryFailInterval.
-		select {
-		case <-s.SyncFull.wait():
-			select {
-			case <-time.After(s.Delayer.Jitter(s.serverUpInterval)):
-				return fullSyncState
-			case <-s.ShutdownCh:
-				return doneState
-			}
-
-		// retry full sync after some time
-		// it is using retryFailInterval because it is retrying the sync
-		case <-time.After(s.retryFailInterval + s.Delayer.Jitter(s.retryFailInterval)):
-			return fullSyncState
-
-		case <-s.ShutdownCh:
-			return doneState
-		}
-
 	case partialSyncState:
 		select {
-		// trigger a full sync immediately
-		// this is usually called when a consul server was added to the cluster.
-		// stagger the delay to avoid a thundering herd.
 		case <-s.SyncFull.wait():
-			select {
-			case <-time.After(s.Delayer.Jitter(s.serverUpInterval)):
-				return fullSyncState
-			case <-s.ShutdownCh:
-				return doneState
-			}
+			return s.waitFullSyncDelay()
 
 		case <-s.waitNextFullSync:
 			return fullSyncState
@@ -186,8 +153,7 @@ func (s *StateSyncer) nextFSMState(fs fsmState) fsmState {
 				return partialSyncState
 			}
 
-			err := s.State.SyncChanges()
-			if err != nil {
+			if err := s.State.SyncChanges(); err != nil {
 				s.Logger.Error("failed to sync changes", "error", err)
 			}
 			return partialSyncState
@@ -198,6 +164,35 @@ func (s *StateSyncer) nextFSMState(fs fsmState) fsmState {
 
 	default:
 		panic(fmt.Sprintf("invalid state: %s", fs))
+	}
+}
+
+func (s *StateSyncer) retryFullSync() fsmState {
+	// FIXME: We enter this state if StateSyncer.isPaused, but Resume does
+	// not SyncFull.Trigger. It only calls SyncChanges.Trigger. This seems
+	// like an oversight. Entering this loop will block until a server is
+	// added (rare), an acl token is changed (rare), or after waiting
+	// for the retryFailInterval.
+	select {
+	case <-s.SyncFull.Wait():
+		return s.waitFullSyncDelay()
+
+	// retry full sync after some time
+	// it is using retryFailInterval because it is retrying the sync
+	case <-time.After(s.retryFailInterval + s.Delayer.Jitter(s.retryFailInterval)):
+		return fullSyncState
+
+	case <-s.ShutdownCh:
+		return doneState
+	}
+}
+
+func (s *StateSyncer) waitFullSyncDelay() fsmState {
+	select {
+	case <-time.After(s.Delayer.Jitter(s.serverUpInterval)):
+		return fullSyncState
+	case <-s.ShutdownCh:
+		return doneState
 	}
 }
 
