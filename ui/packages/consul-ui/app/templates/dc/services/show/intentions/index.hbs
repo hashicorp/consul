@@ -33,34 +33,42 @@
             />
 {{/if}}
 
-            <DataCollection
-              @type="intention"
-              @sort={{sort}}
-              @filters={{filters}}
-              @search={{search}}
-              @items={{items}}
-            as |collection|>
-              <collection.Collection>
-                <Consul::Intention::List
-                  @items={{collection.items}}
-                  @check={{search}}
-                  @ondelete={{refresh-route}}
-                as |list|>
-                  <list.CustomResourceNotice />
-                  <list.CheckNotice />
-                  <list.Table @routeName="dc.services.show.intentions.edit" />
-                </Consul::Intention::List>
-              </collection.Collection>
-              <collection.Empty>
-                <EmptyState>
-                  <BlockSlot @name="body">
-                    <p>
-                        There are no intentions {{if (gt items.length 0) 'found '}} for this service.
-                    </p>
-                  </BlockSlot>
-                </EmptyState>
-              </collection.Empty>
-            </DataCollection>
+          <DataWriter
+            @sink={{concat '/' dc '/' nspace '/intention/'}}
+            @type="intention"
+            @ondelete={{refresh-route}}
+          as |writer|>
+            <BlockSlot @name="content">
+              <DataCollection
+                @type="intention"
+                @sort={{sort}}
+                @filters={{filters}}
+                @search={{search}}
+                @items={{items}}
+              as |collection|>
+                <collection.Collection>
+                  <Consul::Intention::List
+                    @items={{collection.items}}
+                    @check={{search}}
+                    @delete={{writer.delete}}
+                  as |list|>
+                    <list.CustomResourceNotice />
+                    <list.CheckNotice />
+                    <list.Table @routeName="dc.services.show.intentions.edit" />
+                  </Consul::Intention::List>
+                </collection.Collection>
+                <collection.Empty>
+                  <EmptyState>
+                    <BlockSlot @name="body">
+                      <p>
+                          There are no intentions {{if (gt items.length 0) 'found '}} for this service.
+                      </p>
+                    </BlockSlot>
+                  </EmptyState>
+                </collection.Empty>
+              </DataCollection>
+            </BlockSlot>
+          </DataWriter>
         </div>
       </div>
     {{/let}}
