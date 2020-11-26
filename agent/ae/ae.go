@@ -65,10 +65,6 @@ type StateSyncer struct {
 	// when the state machine is trying to retry a full state sync.
 	retrySyncFullEvent func() event
 
-	// syncChangesEvent generates an event based on multiple conditions
-	// when the state machine is performing partial state syncs.
-	syncChangesEvent func() event
-
 	// nextFullSyncCh is a chan that receives a time.Time when the next
 	// full sync should occur.
 	nextFullSyncCh <-chan time.Time
@@ -108,7 +104,6 @@ func NewStateSyncer(state SyncState, intv time.Duration, shutdownCh chan struct{
 	// retain these methods as member variables so that
 	// we can mock them for testing.
 	s.retrySyncFullEvent = s.retrySyncFullEventFn
-	s.syncChangesEvent = s.syncChangesEventFn
 
 	return s
 }
@@ -166,12 +161,24 @@ func (s *StateSyncer) nextFSMState(fs fsmState) fsmState {
 		}
 
 	case partialSyncState:
-		e := s.syncChangesEvent()
-		switch e {
-		case syncFullNotifEvent, syncFullTimerEvent:
+		select {
+		// trigger a full sync immediately
+		// this is usually called when a consul server was added to the cluster.
+		// stagger the delay to avoid a thundering herd.
+		case <-s.SyncFull.wait():
+			select {
+			case <-time.After(s.Delayer.Jitter(s.serverUpInterval)):
+				s.resetNextFullSyncCh()
+				return fullSyncState
+			case <-s.ShutdownCh:
+				return doneState
+			}
+
+		case <-s.nextFullSyncCh:
+			s.resetNextFullSyncCh()
 			return fullSyncState
 
-		case syncChangesNotifEvent:
+		case <-s.SyncChanges.wait():
 			if s.isPaused() {
 				return partialSyncState
 			}
@@ -182,11 +189,8 @@ func (s *StateSyncer) nextFSMState(fs fsmState) fsmState {
 			}
 			return partialSyncState
 
-		case shutdownEvent:
+		case <-s.ShutdownCh:
 			return doneState
-
-		default:
-			panic(fmt.Sprintf("invalid event: %s", e))
 		}
 
 	default:
@@ -227,38 +231,6 @@ func (s *StateSyncer) retrySyncFullEventFn() event {
 	case <-time.After(s.retryFailInterval + s.Delayer.Jitter(s.retryFailInterval)):
 		s.resetNextFullSyncCh()
 		return syncFullTimerEvent
-
-	case <-s.ShutdownCh:
-		return shutdownEvent
-	}
-}
-
-// syncChangesEventFn waits for a event which either triggers a full
-// or a partial sync or a termination signal. This function should not
-// be called directly but through s.syncChangesEvent to allow mocking
-// for testing.
-func (s *StateSyncer) syncChangesEventFn() event {
-	select {
-	// trigger a full sync immediately
-	// this is usually called when a consul server was added to the cluster.
-	// stagger the delay to avoid a thundering herd.
-	case <-s.SyncFull.wait():
-		select {
-		case <-time.After(s.Delayer.Jitter(s.serverUpInterval)):
-			s.resetNextFullSyncCh()
-			return syncFullNotifEvent
-		case <-s.ShutdownCh:
-			return shutdownEvent
-		}
-
-	// time for a full sync again
-	case <-s.nextFullSyncCh:
-		s.resetNextFullSyncCh()
-		return syncFullTimerEvent
-
-	// do partial syncs on demand
-	case <-s.SyncChanges.wait():
-		return syncChangesNotifEvent
 
 	case <-s.ShutdownCh:
 		return shutdownEvent
