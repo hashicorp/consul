@@ -112,15 +112,9 @@ const (
 // Run is the long running method to perform state synchronization
 // between local and remote servers.
 func (s *StateSyncer) Run() {
-	s.runFSM(fullSyncState, s.nextFSMState)
-}
-
-// runFSM runs the state machine.
-func (s *StateSyncer) runFSM(fs fsmState, next func(fsmState) fsmState) {
-	for {
-		if fs = next(fs); fs == doneState {
-			return
-		}
+	state := fullSyncState
+	for state != doneState {
+		state = s.nextFSMState(state)
 	}
 }
 
