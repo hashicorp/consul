@@ -214,7 +214,7 @@ func (s *StateSyncer) retrySyncFullEventFn() event {
 	// trigger a full sync immediately.
 	// this is usually called when a consul server was added to the cluster.
 	// stagger the delay to avoid a thundering herd.
-	case <-s.SyncFull.Notif():
+	case <-s.SyncFull.wait():
 		select {
 		case <-time.After(s.Delayer.Jitter(s.serverUpInterval)):
 			return syncFullNotifEvent
@@ -242,7 +242,7 @@ func (s *StateSyncer) syncChangesEventFn() event {
 	// trigger a full sync immediately
 	// this is usually called when a consul server was added to the cluster.
 	// stagger the delay to avoid a thundering herd.
-	case <-s.SyncFull.Notif():
+	case <-s.SyncFull.wait():
 		select {
 		case <-time.After(s.Delayer.Jitter(s.serverUpInterval)):
 			s.resetNextFullSyncCh()
@@ -257,7 +257,7 @@ func (s *StateSyncer) syncChangesEventFn() event {
 		return syncFullTimerEvent
 
 	// do partial syncs on demand
-	case <-s.SyncChanges.Notif():
+	case <-s.SyncChanges.wait():
 		return syncChangesNotifEvent
 
 	case <-s.ShutdownCh:

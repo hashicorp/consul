@@ -18,6 +18,7 @@ func (t Trigger) Trigger() {
 	}
 }
 
-func (t Trigger) Notif() <-chan struct{} {
+// wait returns a channel that blocks until Trigger is called.
+func (t Trigger) wait() <-chan struct{} {
 	return t.ch
 }
