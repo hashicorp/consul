@@ -61,10 +61,6 @@ type StateSyncer struct {
 	// retryFailInterval is the time after which a failed full sync is retried.
 	retryFailInterval time.Duration
 
-	// retrySyncFullEvent generates an event based on multiple conditions
-	// when the state machine is trying to retry a full state sync.
-	retrySyncFullEvent func() event
-
 	// nextFullSyncCh is a chan that receives a time.Time when the next
 	// full sync should occur.
 	nextFullSyncCh <-chan time.Time
@@ -100,10 +96,6 @@ func NewStateSyncer(state SyncState, intv time.Duration, shutdownCh chan struct{
 		serverUpInterval:  serverUpIntv,
 		retryFailInterval: retryFailIntv,
 	}
-
-	// retain these methods as member variables so that
-	// we can mock them for testing.
-	s.retrySyncFullEvent = s.retrySyncFullEventFn
 
 	return s
 }
@@ -150,14 +142,26 @@ func (s *StateSyncer) nextFSMState(fs fsmState) fsmState {
 		return partialSyncState
 
 	case retryFullSyncState:
-		e := s.retrySyncFullEvent()
-		switch e {
-		case syncFullNotifEvent, syncFullTimerEvent:
+		select {
+		// trigger a full sync immediately.
+		// this is usually called when a consul server was added to the cluster.
+		// stagger the delay to avoid a thundering herd.
+		case <-s.SyncFull.wait():
+			select {
+			case <-time.After(s.Delayer.Jitter(s.serverUpInterval)):
+				return fullSyncState
+			case <-s.ShutdownCh:
+				return doneState
+			}
+
+		// retry full sync after some time
+		// it is using retryFailInterval because it is retrying the sync
+		case <-time.After(s.retryFailInterval + s.Delayer.Jitter(s.retryFailInterval)):
+			s.resetNextFullSyncCh()
 			return fullSyncState
-		case shutdownEvent:
+
+		case <-s.ShutdownCh:
 			return doneState
-		default:
-			panic(fmt.Sprintf("invalid event: %s", e))
 		}
 
 	case partialSyncState:
@@ -195,45 +199,6 @@ func (s *StateSyncer) nextFSMState(fs fsmState) fsmState {
 
 	default:
 		panic(fmt.Sprintf("invalid state: %s", fs))
-	}
-}
-
-// event defines a timing or notification event from multiple timers and
-// channels.
-type event string
-
-const (
-	shutdownEvent         event = "shutdown"
-	syncFullNotifEvent    event = "syncFullNotif"
-	syncFullTimerEvent    event = "syncFullTimer"
-	syncChangesNotifEvent event = "syncChangesNotif"
-)
-
-// retrySyncFullEventFn waits for an event which triggers a retry
-// of a full sync or a termination signal. This function should not be
-// called directly but through s.retryFullSyncState to allow mocking for
-// testing.
-func (s *StateSyncer) retrySyncFullEventFn() event {
-	select {
-	// trigger a full sync immediately.
-	// this is usually called when a consul server was added to the cluster.
-	// stagger the delay to avoid a thundering herd.
-	case <-s.SyncFull.wait():
-		select {
-		case <-time.After(s.Delayer.Jitter(s.serverUpInterval)):
-			return syncFullNotifEvent
-		case <-s.ShutdownCh:
-			return shutdownEvent
-		}
-
-	// retry full sync after some time
-	// it is using retryFailInterval because it is retrying the sync
-	case <-time.After(s.retryFailInterval + s.Delayer.Jitter(s.retryFailInterval)):
-		s.resetNextFullSyncCh()
-		return syncFullTimerEvent
-
-	case <-s.ShutdownCh:
-		return shutdownEvent
 	}
 }
 
