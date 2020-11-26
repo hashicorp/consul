@@ -19,7 +19,7 @@ const directionify = arr => {
 // Specify a list of sortable properties, when called with a property
 // returns an array ready to be passed to ember @sort
 // properties(['Potential', 'Sortable', 'Properties'])('Sortable:asc') => ['Sortable:asc']
-const properties = (props = []) => key => {
+export const properties = (props = []) => key => {
   const comparables = directionify(props);
   return [comparables.find(item => item === key) || comparables[0]];
 };
