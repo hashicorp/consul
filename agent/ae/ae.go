@@ -61,9 +61,9 @@ type StateSyncer struct {
 	// retryFailInterval is the time after which a failed full sync is retried.
 	retryFailInterval time.Duration
 
-	// nextFullSyncCh is a chan that receives a time.Time when the next
+	// waitNextFullSync is a chan that receives a time.Time when the next
 	// full sync should occur.
-	nextFullSyncCh <-chan time.Time
+	waitNextFullSync <-chan time.Time
 }
 
 // Delayer calculates a duration used to delay the next sync operation after a sync
@@ -113,7 +113,6 @@ const (
 // Run is the long running method to perform state synchronization
 // between local and remote servers.
 func (s *StateSyncer) Run() {
-	s.resetNextFullSyncCh()
 	s.runFSM(fullSyncState, s.nextFSMState)
 }
 
@@ -130,6 +129,7 @@ func (s *StateSyncer) runFSM(fs fsmState, next func(fsmState) fsmState) {
 func (s *StateSyncer) nextFSMState(fs fsmState) fsmState {
 	switch fs {
 	case fullSyncState:
+		s.waitNextFullSync = time.After(s.Interval + s.Delayer.Jitter(s.Interval))
 		if s.isPaused() {
 			return retryFullSyncState
 		}
@@ -159,7 +159,6 @@ func (s *StateSyncer) nextFSMState(fs fsmState) fsmState {
 		// retry full sync after some time
 		// it is using retryFailInterval because it is retrying the sync
 		case <-time.After(s.retryFailInterval + s.Delayer.Jitter(s.retryFailInterval)):
-			s.resetNextFullSyncCh()
 			return fullSyncState
 
 		case <-s.ShutdownCh:
@@ -174,14 +173,12 @@ func (s *StateSyncer) nextFSMState(fs fsmState) fsmState {
 		case <-s.SyncFull.wait():
 			select {
 			case <-time.After(s.Delayer.Jitter(s.serverUpInterval)):
-				s.resetNextFullSyncCh()
 				return fullSyncState
 			case <-s.ShutdownCh:
 				return doneState
 			}
 
-		case <-s.nextFullSyncCh:
-			s.resetNextFullSyncCh()
+		case <-s.waitNextFullSync:
 			return fullSyncState
 
 		case <-s.SyncChanges.wait():
@@ -202,12 +199,6 @@ func (s *StateSyncer) nextFSMState(fs fsmState) fsmState {
 	default:
 		panic(fmt.Sprintf("invalid state: %s", fs))
 	}
-}
-
-// resetNextFullSyncCh resets nextFullSyncCh and sets it to interval+stagger.
-// Call this function everytime a full sync is performed.
-func (s *StateSyncer) resetNextFullSyncCh() {
-	s.nextFullSyncCh = time.After(s.Interval + s.Delayer.Jitter(s.Interval))
 }
 
 // shim for testing
