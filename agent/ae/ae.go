@@ -142,10 +142,12 @@ func (s *StateSyncer) nextFSMState(fs fsmState) fsmState {
 		return partialSyncState
 
 	case retryFullSyncState:
+		// FIXME: We enter this state if StateSyncer.isPaused, but Resume does
+		// not SyncFull.Trigger. It only calls SyncChanges.Trigger. This seems
+		// like an oversight. Entering this loop will block until a server is
+		// added (rare), an acl token is changed (rare), or after waiting
+		// for the retryFailInterval.
 		select {
-		// trigger a full sync immediately.
-		// this is usually called when a consul server was added to the cluster.
-		// stagger the delay to avoid a thundering herd.
 		case <-s.SyncFull.wait():
 			select {
 			case <-time.After(s.Delayer.Jitter(s.serverUpInterval)):

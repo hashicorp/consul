@@ -147,7 +147,7 @@ func TestAE_Run_Quit(t *testing.T) {
 	})
 }
 
-func TestAE_FSM(t *testing.T) {
+func TestStateSyncer_NextFSMState(t *testing.T) {
 	t.Run("fullSyncState", func(t *testing.T) {
 		t.Run("Paused -> retryFullSyncState", func(t *testing.T) {
 			l := testSyncer(t)
