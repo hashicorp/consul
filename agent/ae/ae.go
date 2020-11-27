@@ -104,7 +104,7 @@ func NewStateSyncer(state SyncState, intv time.Duration, shutdownCh chan struct{
 // between local and remote servers.
 func (s *StateSyncer) Run() {
 	var err error
-	if err = s.doFullSync(); err != nil {
+	if err = s.fullSync(0); err != nil {
 		return
 	}
 	for err == nil {
@@ -115,10 +115,10 @@ func (s *StateSyncer) Run() {
 func (s *StateSyncer) sync() error {
 	select {
 	case <-s.SyncFull.wait():
-		return s.waitFullSyncDelay()
+		return s.fullSync(s.Delayer.Jitter(s.serverUpInterval))
 
 	case <-s.timerNextFullSync:
-		return s.doFullSync()
+		return s.fullSync(0)
 
 	case <-s.SyncChanges.wait():
 		if s.isPaused() {
@@ -137,40 +137,39 @@ func (s *StateSyncer) sync() error {
 
 var errShutdown = fmt.Errorf("shutdown")
 
-func (s *StateSyncer) retryFullSync() error {
-	select {
-	case <-time.After(s.retryFailInterval + s.Delayer.Jitter(s.retryFailInterval)):
-		return s.doFullSync()
-
-	case <-s.SyncFull.wait():
-		return s.waitFullSyncDelay()
-
-	case <-s.ShutdownCh:
-		return errShutdown
-	}
-}
-
-func (s *StateSyncer) waitFullSyncDelay() error {
-	select {
-	case <-time.After(s.Delayer.Jitter(s.serverUpInterval)):
-		return s.doFullSync()
-	case <-s.ShutdownCh:
-		return errShutdown
-	}
-}
-
-func (s *StateSyncer) doFullSync() error {
-	s.timerNextFullSync = time.After(s.Interval + s.Delayer.Jitter(s.Interval))
-	if s.isPaused() {
-		return s.retryFullSync()
+func (s *StateSyncer) fullSync(delay time.Duration) error {
+	retryDelay := func() time.Duration {
+		return s.retryFailInterval + s.Delayer.Jitter(s.retryFailInterval)
 	}
 
-	if err := s.State.SyncFull(); err != nil {
-		s.Logger.Error("failed to sync remote state", "error", err)
-		return s.retryFullSync()
-	}
+	for {
+		if delay == 0 {
+			s.timerNextFullSync = time.After(s.Interval + s.Delayer.Jitter(s.Interval))
+			if s.isPaused() {
+				delay = retryDelay()
+				continue
+			}
 
-	return nil
+			if err := s.State.SyncFull(); err != nil {
+				s.Logger.Error("failed to sync remote state", "error", err)
+				delay = retryDelay()
+				continue
+			}
+			return nil
+		}
+
+		select {
+		case <-time.After(delay):
+			delay = 0
+			continue
+
+		case <-s.SyncFull.wait():
+			delay = s.Delayer.Jitter(s.serverUpInterval)
+
+		case <-s.ShutdownCh:
+			return errShutdown
+		}
+	}
 }
 
 // shim for testing

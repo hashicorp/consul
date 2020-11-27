@@ -163,7 +163,7 @@ func TestStateSyncer_Run_PauseSyncFull(t *testing.T) {
 	logger := hclog.New(nil)
 	l := NewStateSyncer(state, time.Millisecond, shutdownCh, logger)
 	l.Delayer = constDelayer{}
-	l.retryFailInterval = time.Nanosecond
+	l.retryFailInterval = time.Millisecond
 
 	l.Pause()
 
