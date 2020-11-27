@@ -3,10 +3,6 @@
 /* the styling there almost 100% uses our CSS vars */
 /* defined in our CSS files, but be sure to */
 /* take a look in the discovery-chain.hbs */
-%discovery-chain .tooltip,
-%chain-group > header span {
-  @extend %with-tooltip;
-}
 %route-card > header ul li {
   @extend %pill-500, %frame-gray-900;
 }
@@ -62,14 +58,6 @@
   width: 1.2em;
   height: 1.2em;
   opacity: 0.6;
-}
-/* TODO: this is tooltip related, we also do this elsewhere */
-/* so would be good to look and see if we can centralize this */
-%chain-group > header span em {
-  text-transform: none;
-  width: 250px;
-  font-style: normal;
-  white-space: normal !important;
 }
 %chain-node {
   @extend %discovery-chain-tween;
