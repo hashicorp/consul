@@ -1561,22 +1561,22 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   - `gossip_nodes` - The number of random nodes to send
     gossip messages to per gossip_interval. Increasing this number causes the gossip
     messages to propagate across the cluster more quickly at the expense of increased
-    bandwidth. The default is 3.
+    bandwidth. The default is 4.
 
   - `gossip_interval` - The interval between sending
     messages that need to be gossiped that haven't been able to piggyback on probing
     messages. If this is set to zero, non-piggyback gossip is disabled. By lowering
     this value (more frequent) gossip messages are propagated across the cluster
-    more quickly at the expense of increased bandwidth. The default is 200ms.
+    more quickly at the expense of increased bandwidth. The default is 500ms.
 
   - `probe_interval` - The interval between random
     node probes. Setting this lower (more frequent) will cause the cluster to detect
     failed nodes more quickly at the expense of increased bandwidth usage. The default
-    is 1s.
+    is 5s.
 
   - `probe_timeout` - The timeout to wait for an ack
     from a probed node before assuming it is unhealthy. This should be at least the
-    99-percentile of RTT (round-trip time) on your network. The default is 500ms
+    99-percentile of RTT (round-trip time) on your network. The default is 3s 
     and is a conservative value suitable for almost all realistic deployments.
 
   - `retransmit_mult` - The multiplier for the number
@@ -1591,7 +1591,7 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     the timeout to scale properly with expected propagation delay with a larger cluster
     size. The higher the multiplier, the longer an inaccessible node is considered
     part of the cluster before declaring it dead, giving that suspect node more time
-    to refute if it is indeed still alive. The default is 4.
+    to refute if it is indeed still alive. The default is 6.
 
 - `key_file` This provides a the file path to a PEM-encoded
   private key. The key is used with the certificate to verify the agent's authenticity.
