@@ -7,8 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/go-hclog"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/config"
@@ -17,9 +18,8 @@ import (
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func unNilMap(in map[string]string) map[string]string {
@@ -28,6 +28,7 @@ func unNilMap(in map[string]string) map[string]string {
 	}
 	return in
 }
+
 func TestAgentAntiEntropy_Services(t *testing.T) {
 	t.Parallel()
 	a := agent.NewTestAgent(t, "")
@@ -2194,4 +2195,53 @@ func drainCh(ch chan struct{}) {
 			return
 		}
 	}
+}
+
+func TestState_SyncChanges_DuplicateAddServiceOnlySyncsOnce(t *testing.T) {
+	state := local.NewState(local.Config{}, hclog.New(nil), new(token.Store))
+	rpc := &fakeRPC{}
+	state.Delegate = rpc
+	state.TriggerSyncChanges = func() {}
+
+	srv := &structs.NodeService{
+		Kind:           structs.ServiceKindTypical,
+		ID:             "the-service-id",
+		Service:        "web",
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+	}
+	checks := []*structs.HealthCheck{
+		{Node: "this-node", CheckID: "the-id-1", Name: "check-healthy-1"},
+		{Node: "this-node", CheckID: "the-id-2", Name: "check-healthy-2"},
+	}
+	tok := "the-token"
+	err := state.AddServiceWithChecks(srv, checks, tok)
+	require.NoError(t, err)
+	require.NoError(t, state.SyncChanges())
+	// 4 rpc calls, one node register, one service register, two checks
+	require.Len(t, rpc.calls, 4)
+
+	// adding the service again should not catalog register
+	err = state.AddServiceWithChecks(srv, checks, tok)
+	require.NoError(t, err)
+	require.NoError(t, state.SyncChanges())
+	require.Len(t, rpc.calls, 4)
+}
+
+type fakeRPC struct {
+	calls []callRPC
+}
+
+type callRPC struct {
+	method string
+	args   interface{}
+	reply  interface{}
+}
+
+func (f *fakeRPC) RPC(method string, args interface{}, reply interface{}) error {
+	f.calls = append(f.calls, callRPC{method: method, args: args, reply: reply})
+	return nil
+}
+
+func (f *fakeRPC) ResolveTokenToIdentity(_ string) (structs.ACLIdentity, error) {
+	return nil, nil
 }
