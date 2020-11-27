@@ -24,8 +24,9 @@ as |item index|>
         </Tooltip>
       </dd>
     </dl>
-    {{#if (and (env 'CONSUL_NSPACES_ENABLED') (not-eq item.Namespace nspace))}}
-      <a data-test-service-name href={{href-to 'nspace.dc.services.show' (concat '~' item.Namespace) dc item.Name }}>
+    {{#if (and (env 'CONSUL_NSPACES_ENABLED') (not-eq item.Namespace @nspace))}}
+    {{item.Namespace}}
+      <a data-test-service-name href={{href-to 'nspace.dc.services.show' (concat '~' item.Namespace) @dc item.Name }}>
         {{item.Name}}
       </a>
     {{else}}
@@ -40,7 +41,7 @@ as |item index|>
   {{/if}}
   </BlockSlot>
   <BlockSlot @name="details">
-  {{#if (and (env 'CONSUL_NSPACES_ENABLED') (not-eq item.Namespace nspace))}}
+  {{#if (and (env 'CONSUL_NSPACES_ENABLED') (not-eq item.Namespace @nspace))}}
     <dl class="nspace">
       <dt>
         <Tooltip>
