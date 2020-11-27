@@ -1,26 +1,28 @@
 [data-tippy-root] {
   @extend %tooltip-layer;
 }
-.tippy-box {
-  @extend %tooltip-bubble;
-}
-.tippy-arrow {
-  @extend %tooltip-tail;
-}
-.tippy-box[data-placement^=bottom] > .tippy-arrow {
-  @extend %tooltip-tail-bottom;
-}
-.tippy-box[data-placement^=top] > .tippy-arrow {
-  @extend %tooltip-tail-top;
-}
-.tippy-box[data-placement^=left] > .tippy-arrow {
-  @extend %tooltip-tail-left;
-}
-.tippy-box[data-placement^=right] > .tippy-arrow {
-  @extend %tooltip-tail-right;
-}
-.tippy-content {
-  @extend %tooltip-content;
+.tippy-box[data-theme=tooltip] {
+  & {
+    @extend %tooltip-bubble;
+  }
+  .tippy-arrow {
+    @extend %tooltip-tail;
+  }
+  .tippy-content {
+    @extend %tooltip-content;
+  }
+  [data-placement^=bottom] > .tippy-arrow {
+    @extend %tooltip-tail-bottom;
+  }
+  [data-placement^=top] > .tippy-arrow {
+    @extend %tooltip-tail-top;
+  }
+  [data-placement^=left] > .tippy-arrow {
+    @extend %tooltip-tail-left;
+  }
+  [data-placement^=right] > .tippy-arrow {
+    @extend %tooltip-tail-right;
+  }
 }
 
 %tooltip-layer {
