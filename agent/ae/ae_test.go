@@ -1,10 +1,7 @@
 package ae
 
 import (
-	"errors"
 	"fmt"
-	"reflect"
-	"sync"
 	"testing"
 	"time"
 
@@ -12,7 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func TestScaleFactor(t *testing.T) {
@@ -71,7 +67,7 @@ func isBlocked(t *testing.T, ch <-chan struct{}) {
 	select {
 	case <-ch:
 		t.Fatal("expected channel to be blocked")
-	case <-time.After(20 * time.Millisecond):
+	case <-time.After(50 * time.Millisecond):
 	}
 }
 
@@ -107,304 +103,155 @@ func TestDelayer_Jitter(t *testing.T) {
 	})
 }
 
-func TestAE_Run_SyncFullBeforeChanges(t *testing.T) {
+func TestStateSyncer_Run_SyncFullBeforeChanges(t *testing.T) {
 	shutdownCh := make(chan struct{})
-	state := &mock{
+	state := &fakeState{
 		syncChanges: func() error {
 			close(shutdownCh)
 			return nil
 		},
 	}
 
-	// indicate that we have partial changes before starting Run
-	l := testSyncer(t)
-	l.State = state
-	l.ShutdownCh = shutdownCh
-	l.SyncChanges.Trigger()
+	logger := hclog.New(nil)
 
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		l.Run()
-	}()
-	wg.Wait()
-
-	if got, want := state.seq, []string{"full", "changes"}; !reflect.DeepEqual(got, want) {
-		t.Fatalf("got call sequence %v want %v", got, want)
-	}
-}
-
-func TestAE_Run_Quit(t *testing.T) {
-	t.Run("runFSM quits", func(t *testing.T) {
-		// start timer which explodes if runFSM does not quit
-		tm := time.AfterFunc(time.Second, func() { panic("timeout") })
-
-		l := testSyncer(t)
-		l.runFSM(fullSyncState, func(fsmState) fsmState { return doneState })
-		// should just quit
-		tm.Stop()
-	})
-}
-
-func TestStateSyncer_NextFSMState(t *testing.T) {
-	t.Run("fullSyncState", func(t *testing.T) {
-		t.Run("Paused -> retryFullSyncState", func(t *testing.T) {
-			l := testSyncer(t)
-			l.Pause()
-			fs := l.nextFSMState(fullSyncState)
-			if got, want := fs, retryFullSyncState; got != want {
-				t.Fatalf("got state %v want %v", got, want)
-			}
-		})
-		t.Run("SyncFull() error -> retryFullSyncState", func(t *testing.T) {
-			l := testSyncer(t)
-			l.State = &mock{syncFull: func() error { return errors.New("boom") }}
-			fs := l.nextFSMState(fullSyncState)
-			if got, want := fs, retryFullSyncState; got != want {
-				t.Fatalf("got state %v want %v", got, want)
-			}
-		})
-		t.Run("SyncFull() OK -> partialSyncState", func(t *testing.T) {
-			l := testSyncer(t)
-			l.State = &mock{}
-			fs := l.nextFSMState(fullSyncState)
-			if got, want := fs, partialSyncState; got != want {
-				t.Fatalf("got state %v want %v", got, want)
-			}
-		})
-	})
-
-	t.Run("retryFullSyncState", func(t *testing.T) {
-		// helper for testing state transitions from retrySyncFullState
-		test := func(ev event, to fsmState) {
-			l := testSyncer(t)
-			l.retrySyncFullEvent = func() event { return ev }
-			fs := l.nextFSMState(retryFullSyncState)
-			if got, want := fs, to; got != want {
-				t.Fatalf("got state %v want %v", got, want)
-			}
-		}
-		t.Run("shutdownEvent -> doneState", func(t *testing.T) {
-			test(shutdownEvent, doneState)
-		})
-		t.Run("syncFullNotifEvent -> fullSyncState", func(t *testing.T) {
-			test(syncFullNotifEvent, fullSyncState)
-		})
-		t.Run("syncFullTimerEvent -> fullSyncState", func(t *testing.T) {
-			test(syncFullTimerEvent, fullSyncState)
-		})
-		t.Run("invalid event -> panic ", func(t *testing.T) {
-			defer func() {
-				err := recover()
-				if err == nil {
-					t.Fatal("invalid event should panic")
-				}
-			}()
-			test(event("invalid"), fsmState(""))
-		})
-	})
-
-	t.Run("partialSyncState", func(t *testing.T) {
-		// helper for testing state transitions from partialSyncState
-		test := func(ev event, to fsmState) {
-			l := testSyncer(t)
-			l.syncChangesEvent = func() event { return ev }
-			fs := l.nextFSMState(partialSyncState)
-			if got, want := fs, to; got != want {
-				t.Fatalf("got state %v want %v", got, want)
-			}
-		}
-		t.Run("shutdownEvent -> doneState", func(t *testing.T) {
-			test(shutdownEvent, doneState)
-		})
-		t.Run("syncFullNotifEvent -> fullSyncState", func(t *testing.T) {
-			test(syncFullNotifEvent, fullSyncState)
-		})
-		t.Run("syncFullTimerEvent -> fullSyncState", func(t *testing.T) {
-			test(syncFullTimerEvent, fullSyncState)
-		})
-		t.Run("syncChangesEvent+Paused -> partialSyncState", func(t *testing.T) {
-			l := testSyncer(t)
-			l.Pause()
-			l.syncChangesEvent = func() event { return syncChangesNotifEvent }
-			fs := l.nextFSMState(partialSyncState)
-			if got, want := fs, partialSyncState; got != want {
-				t.Fatalf("got state %v want %v", got, want)
-			}
-		})
-		t.Run("syncChangesEvent+SyncChanges() error -> partialSyncState", func(t *testing.T) {
-			l := testSyncer(t)
-			l.State = &mock{syncChanges: func() error { return errors.New("boom") }}
-			l.syncChangesEvent = func() event { return syncChangesNotifEvent }
-			fs := l.nextFSMState(partialSyncState)
-			if got, want := fs, partialSyncState; got != want {
-				t.Fatalf("got state %v want %v", got, want)
-			}
-		})
-		t.Run("syncChangesEvent+SyncChanges() OK -> partialSyncState", func(t *testing.T) {
-			l := testSyncer(t)
-			l.State = &mock{}
-			l.syncChangesEvent = func() event { return syncChangesNotifEvent }
-			fs := l.nextFSMState(partialSyncState)
-			if got, want := fs, partialSyncState; got != want {
-				t.Fatalf("got state %v want %v", got, want)
-			}
-		})
-		t.Run("invalid event -> panic ", func(t *testing.T) {
-			defer func() {
-				err := recover()
-				if err == nil {
-					t.Fatal("invalid event should panic")
-				}
-			}()
-			test(event("invalid"), fsmState(""))
-		})
-	})
-	t.Run("invalid state -> panic ", func(t *testing.T) {
-		defer func() {
-			err := recover()
-			if err == nil {
-				t.Fatal("invalid state should panic")
-			}
-		}()
-		l := testSyncer(t)
-		l.nextFSMState(fsmState("invalid"))
-	})
-}
-
-func TestAE_RetrySyncFullEvent(t *testing.T) {
-	t.Run("trigger shutdownEvent", func(t *testing.T) {
-		l := testSyncer(t)
-		l.ShutdownCh = make(chan struct{})
-		evch := make(chan event)
-		go func() { evch <- l.retrySyncFullEvent() }()
-		close(l.ShutdownCh)
-		if got, want := <-evch, shutdownEvent; got != want {
-			t.Fatalf("got event %q want %q", got, want)
-		}
-	})
-	t.Run("trigger shutdownEvent during FullNotif", func(t *testing.T) {
-		l := testSyncer(t)
-		l.ShutdownCh = make(chan struct{})
-		evch := make(chan event)
-		go func() { evch <- l.retrySyncFullEvent() }()
-		l.SyncFull.Trigger()
-		time.Sleep(100 * time.Millisecond)
-		close(l.ShutdownCh)
-		if got, want := <-evch, shutdownEvent; got != want {
-			t.Fatalf("got event %q want %q", got, want)
-		}
-	})
-	t.Run("trigger syncFullNotifEvent", func(t *testing.T) {
-		l := testSyncer(t)
-		l.serverUpInterval = 10 * time.Millisecond
-		evch := make(chan event)
-		go func() { evch <- l.retrySyncFullEvent() }()
-		l.SyncFull.Trigger()
-		if got, want := <-evch, syncFullNotifEvent; got != want {
-			t.Fatalf("got event %q want %q", got, want)
-		}
-	})
-	t.Run("trigger syncFullTimerEvent", func(t *testing.T) {
-		l := testSyncer(t)
-		l.retryFailInterval = 10 * time.Millisecond
-		evch := make(chan event)
-		go func() { evch <- l.retrySyncFullEvent() }()
-		if got, want := <-evch, syncFullTimerEvent; got != want {
-			t.Fatalf("got event %q want %q", got, want)
-		}
-	})
-}
-
-func TestAE_SyncChangesEvent(t *testing.T) {
-	t.Run("trigger shutdownEvent", func(t *testing.T) {
-		l := testSyncer(t)
-		l.ShutdownCh = make(chan struct{})
-		evch := make(chan event)
-		go func() { evch <- l.syncChangesEvent() }()
-		close(l.ShutdownCh)
-		if got, want := <-evch, shutdownEvent; got != want {
-			t.Fatalf("got event %q want %q", got, want)
-		}
-	})
-	t.Run("trigger shutdownEvent during FullNotif", func(t *testing.T) {
-		l := testSyncer(t)
-		l.ShutdownCh = make(chan struct{})
-		evch := make(chan event)
-		go func() { evch <- l.syncChangesEvent() }()
-		l.SyncFull.Trigger()
-		time.Sleep(100 * time.Millisecond)
-		close(l.ShutdownCh)
-		if got, want := <-evch, shutdownEvent; got != want {
-			t.Fatalf("got event %q want %q", got, want)
-		}
-	})
-	t.Run("trigger syncFullNotifEvent", func(t *testing.T) {
-		l := testSyncer(t)
-		l.serverUpInterval = 10 * time.Millisecond
-		evch := make(chan event)
-		go func() { evch <- l.syncChangesEvent() }()
-		l.SyncFull.Trigger()
-		if got, want := <-evch, syncFullNotifEvent; got != want {
-			t.Fatalf("got event %q want %q", got, want)
-		}
-	})
-	t.Run("trigger syncFullTimerEvent", func(t *testing.T) {
-		l := testSyncer(t)
-		l.Interval = 10 * time.Millisecond
-		evch := make(chan event)
-		go func() { evch <- l.syncChangesEvent() }()
-		if got, want := <-evch, syncFullTimerEvent; got != want {
-			t.Fatalf("got event %q want %q", got, want)
-		}
-	})
-	t.Run("trigger syncChangesNotifEvent", func(t *testing.T) {
-		l := testSyncer(t)
-		evch := make(chan event)
-		go func() { evch <- l.syncChangesEvent() }()
-		l.SyncChanges.Trigger()
-		if got, want := <-evch, syncChangesNotifEvent; got != want {
-			t.Fatalf("got event %q want %q", got, want)
-		}
-	})
-}
-
-type mock struct {
-	seq                   []string
-	syncFull, syncChanges func() error
-}
-
-func (m *mock) SyncFull() error {
-	m.seq = append(m.seq, "full")
-	if m.syncFull != nil {
-		return m.syncFull()
-	}
-	return nil
-}
-
-func (m *mock) SyncChanges() error {
-	m.seq = append(m.seq, "changes")
-	if m.syncChanges != nil {
-		return m.syncChanges()
-	}
-	return nil
-}
-
-func testSyncer(t *testing.T) *StateSyncer {
-	logger := hclog.New(&hclog.LoggerOptions{
-		Level:  0,
-		Output: testutil.NewLogBuffer(t),
-	})
-
-	l := NewStateSyncer(nil, time.Second, nil, logger)
+	l := NewStateSyncer(state, time.Millisecond, shutdownCh, logger)
 	l.Delayer = constDelayer{}
-	l.resetNextFullSyncCh()
-	return l
+
+	l.SyncChanges.Trigger()
+	l.Run()
+
+	require.Equal(t, []string{"full", "changes"}, state.calls)
+}
+
+func TestStateSyncer_Run_SyncFullTrigger(t *testing.T) {
+	shutdownCh := make(chan struct{})
+	var counter int
+	state := &fakeState{
+		syncFull: func() error {
+			counter++
+			if counter == 2 {
+				close(shutdownCh)
+			}
+			return nil
+		},
+	}
+
+	logger := hclog.New(nil)
+	l := NewStateSyncer(state, time.Millisecond, shutdownCh, logger)
+	l.Delayer = constDelayer{}
+	l.serverUpInterval = time.Millisecond
+
+	l.SyncFull.Trigger()
+	l.Run()
+
+	require.Equal(t, []string{"full", "full"}, state.calls)
+}
+
+func TestStateSyncer_Run_PauseSyncFull(t *testing.T) {
+	shutdownCh := make(chan struct{})
+	var counter int
+	state := &fakeState{
+		syncFull: func() error {
+			counter++
+			if counter == 2 {
+				close(shutdownCh)
+			}
+			return nil
+		},
+	}
+
+	logger := hclog.New(nil)
+	l := NewStateSyncer(state, time.Millisecond, shutdownCh, logger)
+	l.Delayer = constDelayer{}
+	l.retryFailInterval = time.Nanosecond
+
+	l.Pause()
+
+	chDone := make(chan struct{})
+	chStarted := make(chan struct{})
+	go func() {
+		close(chStarted)
+		l.Run()
+		close(chDone)
+	}()
+
+	<-chStarted
+	isBlocked(t, chDone)
+	l.Resume()
+	<-chDone
+
+	require.Equal(t, []string{"full", "changes", "full"}, state.calls)
+}
+
+func TestStateSyncer_Run_PauseSyncChanges(t *testing.T) {
+	shutdownCh := make(chan struct{})
+	var counter int
+	chStarted := make(chan struct{})
+
+	state := &fakeState{
+		syncFull: func() error {
+			if counter == 0 {
+				close(chStarted)
+			}
+			return nil
+		},
+		syncChanges: func() error {
+			counter++
+			if counter == 2 {
+				close(shutdownCh)
+			}
+			return nil
+		},
+	}
+
+	logger := hclog.New(nil)
+	l := NewStateSyncer(state, time.Second, shutdownCh, logger)
+	l.Delayer = constDelayer{}
+	l.retryFailInterval = time.Second
+
+	chDone := make(chan struct{})
+	go func() {
+		l.Run()
+		close(chDone)
+	}()
+
+	<-chStarted
+	l.Pause()
+	l.SyncChanges.Trigger()
+	isBlocked(t, chDone)
+	l.Resume()
+
+	time.Sleep(50 * time.Millisecond)
+	l.SyncChanges.Trigger()
+	<-chDone
+
+	require.Equal(t, []string{"full", "changes", "changes"}, state.calls)
 }
 
 type constDelayer struct{}
 
 func (constDelayer) Jitter(d time.Duration) time.Duration {
 	return d
+}
+
+type fakeState struct {
+	calls       []string
+	syncFull    func() error
+	syncChanges func() error
+}
+
+func (m *fakeState) SyncFull() error {
+	m.calls = append(m.calls, "full")
+	if m.syncFull != nil {
+		return m.syncFull()
+	}
+	return nil
+}
+
+func (m *fakeState) SyncChanges() error {
+	m.calls = append(m.calls, "changes")
+	if m.syncChanges != nil {
+		return m.syncChanges()
+	}
+	return nil
 }

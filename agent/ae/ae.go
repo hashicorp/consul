@@ -61,9 +61,9 @@ type StateSyncer struct {
 	// retryFailInterval is the time after which a failed full sync is retried.
 	retryFailInterval time.Duration
 
-	// waitNextFullSync is a chan that receives a time.Time when the next
+	// timerNextFullSync is a chan that receives a time.Time when the next
 	// full sync should occur.
-	waitNextFullSync <-chan time.Time
+	timerNextFullSync <-chan time.Time
 }
 
 // Delayer calculates a duration used to delay the next sync operation after a sync
@@ -100,94 +100,77 @@ func NewStateSyncer(state SyncState, intv time.Duration, shutdownCh chan struct{
 	return s
 }
 
-// fsmState defines states for the state machine.
-type fsmState string
-
-const (
-	doneState        fsmState = "done"
-	fullSyncState    fsmState = "fullSync"
-	partialSyncState fsmState = "partialSync"
-)
-
 // Run is the long running method to perform state synchronization
 // between local and remote servers.
 func (s *StateSyncer) Run() {
-	state := fullSyncState
-	for state != doneState {
-		state = s.nextFSMState(state)
+	var err error
+	if err = s.doFullSync(); err != nil {
+		return
+	}
+	for err == nil {
+		err = s.sync()
 	}
 }
 
-// nextFSMState determines the next state based on the current state.
-func (s *StateSyncer) nextFSMState(fs fsmState) fsmState {
-	switch fs {
-	case fullSyncState:
-		s.waitNextFullSync = time.After(s.Interval + s.Delayer.Jitter(s.Interval))
-		if s.isPaused() {
-			return s.retryFullSync()
-		}
-
-		if err := s.State.SyncFull(); err != nil {
-			s.Logger.Error("failed to sync remote state", "error", err)
-			return s.retryFullSync()
-		}
-
-		return partialSyncState
-
-	case partialSyncState:
-		select {
-		case <-s.SyncFull.wait():
-			return s.waitFullSyncDelay()
-
-		case <-s.waitNextFullSync:
-			return fullSyncState
-
-		case <-s.SyncChanges.wait():
-			if s.isPaused() {
-				return partialSyncState
-			}
-
-			if err := s.State.SyncChanges(); err != nil {
-				s.Logger.Error("failed to sync changes", "error", err)
-			}
-			return partialSyncState
-
-		case <-s.ShutdownCh:
-			return doneState
-		}
-
-	default:
-		panic(fmt.Sprintf("invalid state: %s", fs))
-	}
-}
-
-func (s *StateSyncer) retryFullSync() fsmState {
-	// FIXME: We enter this state if StateSyncer.isPaused, but Resume does
-	// not SyncFull.Trigger. It only calls SyncChanges.Trigger. This seems
-	// like an oversight. Entering this loop will block until a server is
-	// added (rare), an acl token is changed (rare), or after waiting
-	// for the retryFailInterval.
+func (s *StateSyncer) sync() error {
 	select {
-	case <-s.SyncFull.Wait():
+	case <-s.SyncFull.wait():
 		return s.waitFullSyncDelay()
 
-	// retry full sync after some time
-	// it is using retryFailInterval because it is retrying the sync
-	case <-time.After(s.retryFailInterval + s.Delayer.Jitter(s.retryFailInterval)):
-		return fullSyncState
+	case <-s.timerNextFullSync:
+		return s.doFullSync()
+
+	case <-s.SyncChanges.wait():
+		if s.isPaused() {
+			return nil
+		}
+
+		if err := s.State.SyncChanges(); err != nil {
+			s.Logger.Error("failed to sync changes", "error", err)
+		}
+		return nil
 
 	case <-s.ShutdownCh:
-		return doneState
+		return errShutdown
 	}
 }
 
-func (s *StateSyncer) waitFullSyncDelay() fsmState {
+var errShutdown = fmt.Errorf("shutdown")
+
+func (s *StateSyncer) retryFullSync() error {
+	select {
+	case <-time.After(s.retryFailInterval + s.Delayer.Jitter(s.retryFailInterval)):
+		return s.doFullSync()
+
+	case <-s.SyncFull.wait():
+		return s.waitFullSyncDelay()
+
+	case <-s.ShutdownCh:
+		return errShutdown
+	}
+}
+
+func (s *StateSyncer) waitFullSyncDelay() error {
 	select {
 	case <-time.After(s.Delayer.Jitter(s.serverUpInterval)):
-		return fullSyncState
+		return s.doFullSync()
 	case <-s.ShutdownCh:
-		return doneState
+		return errShutdown
 	}
+}
+
+func (s *StateSyncer) doFullSync() error {
+	s.timerNextFullSync = time.After(s.Interval + s.Delayer.Jitter(s.Interval))
+	if s.isPaused() {
+		return s.retryFullSync()
+	}
+
+	if err := s.State.SyncFull(); err != nil {
+		s.Logger.Error("failed to sync remote state", "error", err)
+		return s.retryFullSync()
+	}
+
+	return nil
 }
 
 // shim for testing
