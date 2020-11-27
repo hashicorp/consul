@@ -1,7 +1,7 @@
 [data-tippy-root] {
   @extend %tooltip-layer;
 }
-.tippy-box[data-theme=tooltip] {
+.tippy-box[data-theme~=tooltip] {
   & {
     @extend %tooltip-bubble;
   }
