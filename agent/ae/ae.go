@@ -61,17 +61,9 @@ type StateSyncer struct {
 	// retryFailInterval is the time after which a failed full sync is retried.
 	retryFailInterval time.Duration
 
-	// retrySyncFullEvent generates an event based on multiple conditions
-	// when the state machine is trying to retry a full state sync.
-	retrySyncFullEvent func() event
-
-	// syncChangesEvent generates an event based on multiple conditions
-	// when the state machine is performing partial state syncs.
-	syncChangesEvent func() event
-
-	// nextFullSyncCh is a chan that receives a time.Time when the next
+	// timerNextFullSync is a chan that receives a time.Time when the next
 	// full sync should occur.
-	nextFullSyncCh <-chan time.Time
+	timerNextFullSync <-chan time.Time
 }
 
 // Delayer calculates a duration used to delay the next sync operation after a sync
@@ -105,170 +97,79 @@ func NewStateSyncer(state SyncState, intv time.Duration, shutdownCh chan struct{
 		retryFailInterval: retryFailIntv,
 	}
 
-	// retain these methods as member variables so that
-	// we can mock them for testing.
-	s.retrySyncFullEvent = s.retrySyncFullEventFn
-	s.syncChangesEvent = s.syncChangesEventFn
-
 	return s
 }
-
-// fsmState defines states for the state machine.
-type fsmState string
-
-const (
-	doneState          fsmState = "done"
-	fullSyncState      fsmState = "fullSync"
-	partialSyncState   fsmState = "partialSync"
-	retryFullSyncState fsmState = "retryFullSync"
-)
 
 // Run is the long running method to perform state synchronization
 // between local and remote servers.
 func (s *StateSyncer) Run() {
-	s.resetNextFullSyncCh()
-	s.runFSM(fullSyncState, s.nextFSMState)
-}
-
-// runFSM runs the state machine.
-func (s *StateSyncer) runFSM(fs fsmState, next func(fsmState) fsmState) {
-	for {
-		if fs = next(fs); fs == doneState {
-			return
-		}
+	var err error
+	if err = s.fullSync(0); err != nil {
+		return
+	}
+	for err == nil {
+		err = s.sync()
 	}
 }
 
-// nextFSMState determines the next state based on the current state.
-func (s *StateSyncer) nextFSMState(fs fsmState) fsmState {
-	switch fs {
-	case fullSyncState:
+func (s *StateSyncer) sync() error {
+	select {
+	case <-s.SyncFull.wait():
+		return s.fullSync(s.Delayer.Jitter(s.serverUpInterval))
+
+	case <-s.timerNextFullSync:
+		return s.fullSync(0)
+
+	case <-s.SyncChanges.wait():
 		if s.isPaused() {
-			return retryFullSyncState
+			return nil
 		}
 
-		if err := s.State.SyncFull(); err != nil {
-			s.Logger.Error("failed to sync remote state", "error", err)
-			return retryFullSyncState
+		if err := s.State.SyncChanges(); err != nil {
+			s.Logger.Error("failed to sync changes", "error", err)
 		}
+		return nil
 
-		return partialSyncState
+	case <-s.ShutdownCh:
+		return errShutdown
+	}
+}
 
-	case retryFullSyncState:
-		e := s.retrySyncFullEvent()
-		switch e {
-		case syncFullNotifEvent, syncFullTimerEvent:
-			return fullSyncState
-		case shutdownEvent:
-			return doneState
-		default:
-			panic(fmt.Sprintf("invalid event: %s", e))
-		}
+var errShutdown = fmt.Errorf("shutdown")
 
-	case partialSyncState:
-		e := s.syncChangesEvent()
-		switch e {
-		case syncFullNotifEvent, syncFullTimerEvent:
-			return fullSyncState
+func (s *StateSyncer) fullSync(delay time.Duration) error {
+	retryDelay := func() time.Duration {
+		return s.retryFailInterval + s.Delayer.Jitter(s.retryFailInterval)
+	}
 
-		case syncChangesNotifEvent:
+	for {
+		if delay == 0 {
+			s.timerNextFullSync = time.After(s.Interval + s.Delayer.Jitter(s.Interval))
 			if s.isPaused() {
-				return partialSyncState
+				delay = retryDelay()
+				continue
 			}
 
-			err := s.State.SyncChanges()
-			if err != nil {
-				s.Logger.Error("failed to sync changes", "error", err)
+			if err := s.State.SyncFull(); err != nil {
+				s.Logger.Error("failed to sync remote state", "error", err)
+				delay = retryDelay()
+				continue
 			}
-			return partialSyncState
-
-		case shutdownEvent:
-			return doneState
-
-		default:
-			panic(fmt.Sprintf("invalid event: %s", e))
+			return nil
 		}
 
-	default:
-		panic(fmt.Sprintf("invalid state: %s", fs))
-	}
-}
-
-// event defines a timing or notification event from multiple timers and
-// channels.
-type event string
-
-const (
-	shutdownEvent         event = "shutdown"
-	syncFullNotifEvent    event = "syncFullNotif"
-	syncFullTimerEvent    event = "syncFullTimer"
-	syncChangesNotifEvent event = "syncChangesNotif"
-)
-
-// retrySyncFullEventFn waits for an event which triggers a retry
-// of a full sync or a termination signal. This function should not be
-// called directly but through s.retryFullSyncState to allow mocking for
-// testing.
-func (s *StateSyncer) retrySyncFullEventFn() event {
-	select {
-	// trigger a full sync immediately.
-	// this is usually called when a consul server was added to the cluster.
-	// stagger the delay to avoid a thundering herd.
-	case <-s.SyncFull.Notif():
 		select {
-		case <-time.After(s.Delayer.Jitter(s.serverUpInterval)):
-			return syncFullNotifEvent
+		case <-time.After(delay):
+			delay = 0
+			continue
+
+		case <-s.SyncFull.wait():
+			delay = s.Delayer.Jitter(s.serverUpInterval)
+
 		case <-s.ShutdownCh:
-			return shutdownEvent
+			return errShutdown
 		}
-
-	// retry full sync after some time
-	// it is using retryFailInterval because it is retrying the sync
-	case <-time.After(s.retryFailInterval + s.Delayer.Jitter(s.retryFailInterval)):
-		s.resetNextFullSyncCh()
-		return syncFullTimerEvent
-
-	case <-s.ShutdownCh:
-		return shutdownEvent
 	}
-}
-
-// syncChangesEventFn waits for a event which either triggers a full
-// or a partial sync or a termination signal. This function should not
-// be called directly but through s.syncChangesEvent to allow mocking
-// for testing.
-func (s *StateSyncer) syncChangesEventFn() event {
-	select {
-	// trigger a full sync immediately
-	// this is usually called when a consul server was added to the cluster.
-	// stagger the delay to avoid a thundering herd.
-	case <-s.SyncFull.Notif():
-		select {
-		case <-time.After(s.Delayer.Jitter(s.serverUpInterval)):
-			s.resetNextFullSyncCh()
-			return syncFullNotifEvent
-		case <-s.ShutdownCh:
-			return shutdownEvent
-		}
-
-	// time for a full sync again
-	case <-s.nextFullSyncCh:
-		s.resetNextFullSyncCh()
-		return syncFullTimerEvent
-
-	// do partial syncs on demand
-	case <-s.SyncChanges.Notif():
-		return syncChangesNotifEvent
-
-	case <-s.ShutdownCh:
-		return shutdownEvent
-	}
-}
-
-// resetNextFullSyncCh resets nextFullSyncCh and sets it to interval+stagger.
-// Call this function everytime a full sync is performed.
-func (s *StateSyncer) resetNextFullSyncCh() {
-	s.nextFullSyncCh = time.After(s.Interval + s.Delayer.Jitter(s.Interval))
 }
 
 // shim for testing
