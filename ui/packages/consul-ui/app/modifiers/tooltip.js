@@ -9,26 +9,27 @@ import tippy, { followCursor } from 'tippy.js';
  */
 export default modifier(($element, [content], hash = {}) => {
   const options = hash.options || {};
-  let $target = $element;
+
+  let $anchor = $element;
 
   // make it easy to specify the modified element as the actual tooltip
   if (typeof options.triggerTarget === 'string') {
-    const $el = $target;
+    const $el = $anchor;
     switch (options.triggerTarget) {
       case 'parentNode':
-        $target = $target.parentNode;
+        $anchor = $anchor.parentNode;
         break;
       default:
-        $target = $target.querySelectorAll(options.triggerTarget);
+        $anchor = $anchor.querySelectorAll(options.triggerTarget);
     }
-    content = $target.cloneNode(true);
+    content = $anchor.cloneNode(true);
     $el.remove();
     hash.options.triggerTarget = undefined;
   }
   // {{tooltip}} will just use the HTML content
   if (typeof content === 'undefined') {
-    content = $target.innerHTML;
-    $target.innerHTML = '';
+    content = $anchor.innerHTML;
+    $anchor.innerHTML = '';
   }
   let interval;
   if (options.trigger === 'manual') {
@@ -44,10 +45,11 @@ export default modifier(($element, [content], hash = {}) => {
       };
     }
   }
-  const tooltip = tippy($target, {
+  let $trigger = $anchor;
+  const tooltip = tippy($anchor, {
     theme: 'tooltip',
-    triggerTarget: $target,
-    content: $reference => content,
+    triggerTarget: $trigger,
+    content: $anchor => content,
     // showOnCreate: true,
     // hideOnClick: false,
     plugins: [typeof options.followCursor !== 'undefined' ? followCursor : undefined].filter(item =>
