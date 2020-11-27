@@ -5,23 +5,23 @@
   & {
     @extend %tooltip-bubble;
   }
+  &[data-placement^=bottom] > .tippy-arrow {
+    @extend %tooltip-tail-bottom;
+  }
+  &[data-placement^=top] > .tippy-arrow {
+    @extend %tooltip-tail-top;
+  }
+  &[data-placement^=left] > .tippy-arrow {
+    @extend %tooltip-tail-left;
+  }
+  &[data-placement^=right] > .tippy-arrow {
+    @extend %tooltip-tail-right;
+  }
   .tippy-arrow {
     @extend %tooltip-tail;
   }
   .tippy-content {
     @extend %tooltip-content;
-  }
-  [data-placement^=bottom] > .tippy-arrow {
-    @extend %tooltip-tail-bottom;
-  }
-  [data-placement^=top] > .tippy-arrow {
-    @extend %tooltip-tail-top;
-  }
-  [data-placement^=left] > .tippy-arrow {
-    @extend %tooltip-tail-left;
-  }
-  [data-placement^=right] > .tippy-arrow {
-    @extend %tooltip-tail-right;
   }
 }
 
