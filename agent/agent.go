@@ -28,7 +28,6 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/ae"
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/checks"
@@ -36,6 +35,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/local"
+	"github.com/hashicorp/consul/agent/local/ae"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/rpcclient/health"
 	"github.com/hashicorp/consul/agent/structs"
