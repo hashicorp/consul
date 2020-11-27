@@ -37,7 +37,8 @@ export default modifier(($element, [content], hash = {}) => {
     const delay = options.delay || [];
     if (typeof delay[1] !== 'undefined') {
       hash.options.onShown = tooltip => {
-        setTimeout(() => {
+        clearInterval(interval);
+        interval = setTimeout(() => {
           tooltip.hide();
         }, delay[1]);
       };
