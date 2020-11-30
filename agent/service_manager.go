@@ -134,7 +134,10 @@ func (s *ServiceManager) AddService(req addServiceLockedRequest) error {
 		agent:        s.agent,
 		registerCh:   s.registerCh,
 	}
-	if err := watch.RegisterAndStart(s.ctx, &s.running); err != nil {
+	if err := watch.register(s.ctx); err != nil {
+		return err
+	}
+	if err := watch.start(s.ctx, &s.running); err != nil {
 		return err
 	}
 
@@ -178,7 +181,7 @@ type serviceConfigWatch struct {
 }
 
 // NOTE: this is called while holding the Agent.stateLock
-func (w *serviceConfigWatch) RegisterAndStart(ctx context.Context, wg *sync.WaitGroup) error {
+func (w *serviceConfigWatch) register(ctx context.Context) error {
 	serviceDefaults, err := w.registration.serviceDefaults(ctx)
 	if err != nil {
 		return fmt.Errorf("could not retrieve initial service_defaults config for service %q: %v",
@@ -204,10 +207,7 @@ func (w *serviceConfigWatch) RegisterAndStart(ctx context.Context, wg *sync.Wait
 	if err != nil {
 		return fmt.Errorf("error updating service registration: %v", err)
 	}
-
-	// Start the config watch, which starts a blocking query for the
-	// resolved service config in the background.
-	return w.start(ctx, wg)
+	return nil
 }
 
 func serviceDefaultsFromStruct(v *structs.ServiceConfigResponse) func(context.Context) (*structs.ServiceConfigResponse, error) {
@@ -256,13 +256,7 @@ func (w *serviceConfigWatch) start(ctx context.Context, wg *sync.WaitGroup) erro
 	// context before we cancel and so might still deliver the old event. Using
 	// the cacheKey allows us to ignore updates from the old cache watch and makes
 	// even this rare edge case safe.
-	err := w.agent.cache.Notify(
-		ctx,
-		cachetype.ResolvedServiceConfigName,
-		req,
-		w.cacheKey,
-		updateCh,
-	)
+	err := w.agent.cache.Notify(ctx, cachetype.ResolvedServiceConfigName, req, w.cacheKey, updateCh)
 	if err != nil {
 		w.cancelFunc()
 		return err
