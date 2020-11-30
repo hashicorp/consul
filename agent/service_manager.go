@@ -122,15 +122,6 @@ func (s *ServiceManager) registerOnce(args addServiceInternalRequest) error {
 //
 // NOTE: the caller must hold the Agent.stateLock!
 func (s *ServiceManager) AddService(req AddServiceRequest) error {
-	req.Service.EnterpriseMeta.Normalize()
-
-	// For now only proxies have anything that can be configured
-	// centrally. So bypass the whole manager for regular services.
-	if !req.Service.IsSidecarProxy() && !req.Service.IsGateway() {
-		req.persistServiceConfig = false
-		return s.agent.addServiceInternal(addServiceInternalRequest{AddServiceRequest: req})
-	}
-
 	// TODO: replace serviceRegistration with AddServiceRequest
 	reg := &serviceRegistration{
 		service:               req.Service,
