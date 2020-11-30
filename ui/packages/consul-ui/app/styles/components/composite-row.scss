@@ -15,8 +15,8 @@
 .consul-lock-session-list ul > li:not(:first-child) {
   @extend %with-one-action-row;
 }
-/*TODO: This hides the icons-less dt's in the below lists as */
-/* they don't have tooltips */
+// TODO: This hides the icons-less dt's in the below lists as they don't have
+// tooltips the todo would be to wrap these texts in spans
 .consul-nspace-list > ul > li:not(:first-child) dt,
 .consul-token-list > ul > li:not(:first-child) dt,
 .consul-policy-list > ul li:not(:first-child) dl:not(.datacenter) dt,
@@ -57,13 +57,11 @@
   padding: 0 !important;
   margin: 0 !important;
 }
-/* buttons need to be displayed in order for the tooltip */
-/* to track them */
 %composite-row-header .copy-button button {
-  opacity: 0;
+  display: none;
 }
 %composite-row-header:hover .copy-button button {
-  opacity: 1;
+  display: block;
 }
 %composite-row .copy-button button:hover {
   background-color: transparent !important;
