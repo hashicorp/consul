@@ -84,7 +84,7 @@ func (s *ServiceManager) Start() {
 }
 
 // runOnce will process a single registration request
-func (s *ServiceManager) registerOnce(args *AddServiceRequest) error {
+func (s *ServiceManager) registerOnce(args addServiceInternalRequest) error {
 	s.agent.stateLock.Lock()
 	defer s.agent.stateLock.Unlock()
 
@@ -121,19 +121,14 @@ func (s *ServiceManager) registerOnce(args *AddServiceRequest) error {
 // merged with the global defaults before registration.
 //
 // NOTE: the caller must hold the Agent.stateLock!
-func (s *ServiceManager) AddService(req *AddServiceRequest) error {
-	req.fixupForAddServiceLocked()
-
+func (s *ServiceManager) AddService(req AddServiceRequest) error {
 	req.Service.EnterpriseMeta.Normalize()
 
 	// For now only proxies have anything that can be configured
 	// centrally. So bypass the whole manager for regular services.
 	if !req.Service.IsSidecarProxy() && !req.Service.IsGateway() {
-		// previousDefaults are ignored here because they are only relevant for central config.
-		req.persistService = nil
-		req.persistDefaults = nil
 		req.persistServiceConfig = false
-		return s.agent.addServiceInternal(req)
+		return s.agent.addServiceInternal(addServiceInternalRequest{AddServiceRequest: req})
 	}
 
 	var (
@@ -268,17 +263,19 @@ func (w *serviceConfigWatch) RegisterAndStart(
 	// The first time we do this interactively, we need to know if it
 	// failed for validation reasons which we only get back from the
 	// initial underlying add service call.
-	err = w.agent.addServiceInternal(&AddServiceRequest{
-		Service:               merged,
-		chkTypes:              w.registration.chkTypes,
-		persistService:        w.registration.service,
-		persistDefaults:       serviceDefaults,
-		persist:               w.registration.persist,
-		persistServiceConfig:  persistServiceConfig,
-		token:                 w.registration.token,
-		replaceExistingChecks: w.registration.replaceExistingChecks,
-		Source:                w.registration.source,
-		snap:                  w.agent.snapshotCheckState(),
+	err = w.agent.addServiceInternal(addServiceInternalRequest{
+		AddServiceRequest: AddServiceRequest{
+			Service:               merged,
+			chkTypes:              w.registration.chkTypes,
+			persist:               w.registration.persist,
+			persistServiceConfig:  persistServiceConfig,
+			token:                 w.registration.token,
+			replaceExistingChecks: w.registration.replaceExistingChecks,
+			Source:                w.registration.source,
+			snap:                  w.agent.snapshotCheckState(),
+		},
+		persistService:  w.registration.service,
+		persistDefaults: serviceDefaults,
 	})
 	if err != nil {
 		return fmt.Errorf("error updating service registration: %v", err)
@@ -409,16 +406,18 @@ func (w *serviceConfigWatch) handleUpdate(ctx context.Context, event cache.Updat
 	}
 
 	registerReq := &asyncRegisterRequest{
-		Args: &AddServiceRequest{
-			Service:               merged,
-			chkTypes:              w.registration.chkTypes,
-			persistService:        w.registration.service,
-			persistDefaults:       serviceDefaults,
-			persist:               w.registration.persist,
-			persistServiceConfig:  true,
-			token:                 w.registration.token,
-			replaceExistingChecks: w.registration.replaceExistingChecks,
-			Source:                w.registration.source,
+		Args: addServiceInternalRequest{
+			AddServiceRequest: AddServiceRequest{
+				Service:               merged,
+				chkTypes:              w.registration.chkTypes,
+				persist:               w.registration.persist,
+				persistServiceConfig:  true,
+				token:                 w.registration.token,
+				replaceExistingChecks: w.registration.replaceExistingChecks,
+				Source:                w.registration.source,
+			},
+			persistService:  w.registration.service,
+			persistDefaults: serviceDefaults,
 		},
 		Reply: make(chan error, 1),
 	}
@@ -442,7 +441,7 @@ func (w *serviceConfigWatch) handleUpdate(ctx context.Context, event cache.Updat
 }
 
 type asyncRegisterRequest struct {
-	Args  *AddServiceRequest
+	Args  addServiceInternalRequest
 	Reply chan error
 }
 
