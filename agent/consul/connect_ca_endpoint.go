@@ -3,14 +3,12 @@ package consul
 import (
 	"errors"
 	"fmt"
-	"reflect"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
@@ -103,216 +101,7 @@ func (s *ConnectCA) ConfigurationSet(
 		return acl.ErrPermissionDenied
 	}
 
-	// Exit early if it's a no-op change
-	state := s.srv.fsm.State()
-	confIdx, config, err := state.CAConfig(nil)
-	if err != nil {
-		return err
-	}
-
-	// Don't allow state changes. Either it needs to be empty or the same to allow
-	// read-modify-write loops that don't touch the State field.
-	if len(args.Config.State) > 0 &&
-		!reflect.DeepEqual(args.Config.State, config.State) {
-		return ErrStateReadOnly
-	}
-
-	// Don't allow users to change the ClusterID.
-	args.Config.ClusterID = config.ClusterID
-	if args.Config.Provider == config.Provider && reflect.DeepEqual(args.Config.Config, config.Config) {
-		return nil
-	}
-
-	// If the provider hasn't changed, we need to load the current Provider state
-	// so it can decide if it needs to change resources or not based on the config
-	// change.
-	if args.Config.Provider == config.Provider {
-		// Note this is a shallow copy since the State method doc requires the
-		// provider return a map that will not be further modified and should not
-		// modify the one we pass to Configure.
-		args.Config.State = config.State
-	}
-
-	// Create a new instance of the provider described by the config
-	// and get the current active root CA. This acts as a good validation
-	// of the config and makes sure the provider is functioning correctly
-	// before we commit any changes to Raft.
-	newProvider, err := s.srv.createCAProvider(args.Config)
-	if err != nil {
-		return fmt.Errorf("could not initialize provider: %v", err)
-	}
-	pCfg := ca.ProviderConfig{
-		ClusterID:  args.Config.ClusterID,
-		Datacenter: s.srv.config.Datacenter,
-		// This endpoint can be called in a secondary DC too so set this correctly.
-		IsPrimary: s.srv.config.Datacenter == s.srv.config.PrimaryDatacenter,
-		RawConfig: args.Config.Config,
-		State:     args.Config.State,
-	}
-	if err := newProvider.Configure(pCfg); err != nil {
-		return fmt.Errorf("error configuring provider: %v", err)
-	}
-
-	// Set up a defer to clean up the new provider if we exit early due to an error.
-	cleanupNewProvider := true
-	defer func() {
-		if cleanupNewProvider {
-			if err := newProvider.Cleanup(); err != nil {
-				s.logger.Warn("failed to clean up CA provider while handling startup failure", "provider", newProvider, "error", err)
-			}
-		}
-	}()
-
-	if err := newProvider.GenerateRoot(); err != nil {
-		return fmt.Errorf("error generating CA root certificate: %v", err)
-	}
-
-	newRootPEM, err := newProvider.ActiveRoot()
-	if err != nil {
-		return err
-	}
-
-	newActiveRoot, err := parseCARoot(newRootPEM, args.Config.Provider, args.Config.ClusterID)
-	if err != nil {
-		return err
-	}
-
-	// See if the provider needs to persist any state along with the config
-	pState, err := newProvider.State()
-	if err != nil {
-		return fmt.Errorf("error getting provider state: %v", err)
-	}
-	args.Config.State = pState
-
-	// Compare the new provider's root CA ID to the current one. If they
-	// match, just update the existing provider with the new config.
-	// If they don't match, begin the root rotation process.
-	_, root, err := state.CARootActive(nil)
-	if err != nil {
-		return err
-	}
-
-	// If the root didn't change or if this is a secondary DC, just update the
-	// config and return.
-	if (s.srv.config.Datacenter != s.srv.config.PrimaryDatacenter) ||
-		root != nil && root.ID == newActiveRoot.ID {
-		args.Op = structs.CAOpSetConfig
-		resp, err := s.srv.raftApply(structs.ConnectCARequestType, args)
-		if err != nil {
-			return err
-		}
-		if respErr, ok := resp.(error); ok {
-			return respErr
-		}
-
-		// If the config has been committed, update the local provider instance
-		cleanupNewProvider = false
-		s.srv.setCAProvider(newProvider, newActiveRoot)
-
-		s.logger.Info("CA provider config updated")
-
-		return nil
-	}
-
-	// At this point, we know the config change has trigged a root rotation,
-	// either by swapping the provider type or changing the provider's config
-	// to use a different root certificate.
-
-	// First up, sanity check that the current provider actually supports
-	// cross-signing.
-	oldProvider, _ := s.srv.getCAProvider()
-	if oldProvider == nil {
-		return fmt.Errorf("internal error: CA provider is nil")
-	}
-	canXSign, err := oldProvider.SupportsCrossSigning()
-	if err != nil {
-		return fmt.Errorf("CA provider error: %s", err)
-	}
-	if !canXSign && !args.Config.ForceWithoutCrossSigning {
-		return errors.New("The current CA Provider does not support cross-signing. " +
-			"You can try again with ForceWithoutCrossSigningSet but this may cause " +
-			"disruption - see documentation for more.")
-	}
-	if !canXSign && args.Config.ForceWithoutCrossSigning {
-		s.logger.Warn("current CA doesn't support cross signing but " +
-			"CA reconfiguration forced anyway with ForceWithoutCrossSigning")
-	}
-
-	// If it's a config change that would trigger a rotation (different provider/root):
-	// 1. Get the root from the new provider.
-	// 2. Call CrossSignCA on the old provider to sign the new root with the old one to
-	// get a cross-signed certificate.
-	// 3. Take the active root for the new provider and append the intermediate from step 2
-	// to its list of intermediates.
-	newRoot, err := connect.ParseCert(newRootPEM)
-	if err != nil {
-		return err
-	}
-
-	if canXSign {
-		// Have the old provider cross-sign the new root
-		xcCert, err := oldProvider.CrossSignCA(newRoot)
-		if err != nil {
-			return err
-		}
-
-		// Add the cross signed cert to the new CA's intermediates (to be attached
-		// to leaf certs).
-		newActiveRoot.IntermediateCerts = []string{xcCert}
-	}
-
-	intermediate, err := newProvider.GenerateIntermediate()
-	if err != nil {
-		return err
-	}
-	if intermediate != newRootPEM {
-		newActiveRoot.IntermediateCerts = append(newActiveRoot.IntermediateCerts, intermediate)
-	}
-
-	// Update the roots and CA config in the state store at the same time
-	idx, roots, err := state.CARoots(nil)
-	if err != nil {
-		return err
-	}
-
-	var newRoots structs.CARoots
-	for _, r := range roots {
-		newRoot := *r
-		if newRoot.Active {
-			newRoot.Active = false
-			newRoot.RotatedOutAt = time.Now()
-		}
-		newRoots = append(newRoots, &newRoot)
-	}
-	newRoots = append(newRoots, newActiveRoot)
-
-	args.Op = structs.CAOpSetRootsAndConfig
-	args.Index = idx
-	args.Config.ModifyIndex = confIdx
-	args.Roots = newRoots
-	resp, err := s.srv.raftApply(structs.ConnectCARequestType, args)
-	if err != nil {
-		return err
-	}
-	if respErr, ok := resp.(error); ok {
-		return respErr
-	}
-	if respOk, ok := resp.(bool); ok && !respOk {
-		return fmt.Errorf("could not atomically update roots and config")
-	}
-
-	// If the config has been committed, update the local provider instance
-	// and call teardown on the old provider
-	cleanupNewProvider = false
-	s.srv.setCAProvider(newProvider, newActiveRoot)
-
-	if err := oldProvider.Cleanup(); err != nil {
-		s.logger.Warn("failed to clean up old provider", "provider", config.Provider)
-	}
-
-	s.logger.Info("CA rotated to new root under provider", "provider", args.Config.Provider)
-
-	return nil
+	return s.srv.caManager.UpdateConfiguration(args)
 }
 
 // Roots returns the currently trusted root certificates.
@@ -438,7 +227,7 @@ func (s *ConnectCA) SignIntermediate(
 		return acl.ErrPermissionDenied
 	}
 
-	provider, _ := s.srv.getCAProvider()
+	provider, _ := s.srv.caManager.getCAProvider()
 	if provider == nil {
 		return fmt.Errorf("internal error: CA provider is nil")
 	}

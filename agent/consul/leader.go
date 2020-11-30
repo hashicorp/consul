@@ -334,8 +334,7 @@ func (s *Server) establishLeadership() error {
 	s.getOrCreateAutopilotConfig()
 	s.autopilot.Start()
 
-	// todo(kyhavlov): start a goroutine here for handling periodic CA rotation
-	if err := s.initializeCA(); err != nil {
+	if err := s.caManager.InitializeCA(); err != nil {
 		return err
 	}
 
@@ -371,7 +370,8 @@ func (s *Server) revokeLeadership() {
 
 	s.stopConnectLeader()
 
-	s.setCAProvider(nil, nil)
+	s.caManager.setCAProvider(nil, nil)
+	s.caManager.setState(CAStateUninitialized, false)
 
 	s.stopACLTokenReaping()
 
