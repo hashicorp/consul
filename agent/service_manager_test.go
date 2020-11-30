@@ -8,10 +8,11 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/stretchr/testify/require"
 )
 
 func TestServiceManager_RegisterService(t *testing.T) {
@@ -47,7 +48,7 @@ func TestServiceManager_RegisterService(t *testing.T) {
 		Port:           8000,
 		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
-	require.NoError(a.AddService(svc, nil, false, "", ConfigSourceLocal))
+	require.NoError(a.AddServiceFromSource(svc, nil, false, "", ConfigSourceLocal))
 
 	// Verify both the service and sidecar.
 	redisService := a.State.Service(structs.NewServiceID("redis", nil))
@@ -118,7 +119,7 @@ func TestServiceManager_RegisterSidecar(t *testing.T) {
 		},
 		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
-	require.NoError(a.AddService(svc, nil, false, "", ConfigSourceLocal))
+	require.NoError(a.AddServiceFromSource(svc, nil, false, "", ConfigSourceLocal))
 
 	// Verify sidecar got global config loaded
 	sidecarService := a.State.Service(structs.NewServiceID("web-sidecar-proxy", nil))
@@ -191,7 +192,7 @@ func TestServiceManager_RegisterMeshGateway(t *testing.T) {
 		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
 
-	require.NoError(a.AddService(svc, nil, false, "", ConfigSourceLocal))
+	require.NoError(a.AddServiceFromSource(svc, nil, false, "", ConfigSourceLocal))
 
 	// Verify gateway got global config loaded
 	gateway := a.State.Service(structs.NewServiceID("mesh-gateway", nil))
@@ -251,7 +252,7 @@ func TestServiceManager_RegisterTerminatingGateway(t *testing.T) {
 		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
 
-	require.NoError(a.AddService(svc, nil, false, "", ConfigSourceLocal))
+	require.NoError(a.AddServiceFromSource(svc, nil, false, "", ConfigSourceLocal))
 
 	// Verify gateway got global config loaded
 	gateway := a.State.Service(structs.NewServiceID("terminating-gateway", nil))
@@ -386,12 +387,12 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 	configFile := filepath.Join(a.Config.DataDir, serviceConfigDir, svcID.StringHash())
 
 	// Service is not persisted unless requested, but we always persist service configs.
-	require.NoError(a.AddService(svc, nil, false, "", ConfigSourceRemote))
+	require.NoError(a.AddServiceFromSource(svc, nil, false, "", ConfigSourceRemote))
 	requireFileIsAbsent(t, svcFile)
 	requireFileIsPresent(t, configFile)
 
 	// Persists to file if requested
-	require.NoError(a.AddService(svc, nil, true, "mytoken", ConfigSourceRemote))
+	require.NoError(a.AddServiceFromSource(svc, nil, true, "mytoken", ConfigSourceRemote))
 	requireFileIsPresent(t, svcFile)
 	requireFileIsPresent(t, configFile)
 
@@ -432,7 +433,7 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 
 	// Updates service definition on disk
 	svc.Proxy.LocalServicePort = 8001
-	require.NoError(a.AddService(svc, nil, true, "mytoken", ConfigSourceRemote))
+	require.NoError(a.AddServiceFromSource(svc, nil, true, "mytoken", ConfigSourceRemote))
 	requireFileIsPresent(t, svcFile)
 	requireFileIsPresent(t, configFile)
 
@@ -720,7 +721,7 @@ func TestServiceManager_Disabled(t *testing.T) {
 		},
 		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 	}
-	require.NoError(a.AddService(svc, nil, false, "", ConfigSourceLocal))
+	require.NoError(a.AddServiceFromSource(svc, nil, false, "", ConfigSourceLocal))
 
 	// Verify sidecar got global config loaded
 	sidecarService := a.State.Service(structs.NewServiceID("web-sidecar-proxy", nil))

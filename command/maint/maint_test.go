@@ -4,9 +4,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mitchellh/cli"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/mitchellh/cli"
 )
 
 func TestMaintCommand_noTabs(t *testing.T) {
@@ -53,7 +54,7 @@ func TestMaintCommand_NoArgs(t *testing.T) {
 		ID:      "test",
 		Service: "test",
 	}
-	if err := a.AddService(service, nil, false, "", agent.ConfigSourceLocal); err != nil {
+	if err := a.AddServiceFromSource(service, nil, false, "", agent.ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if err := a.EnableServiceMaintenance(structs.NewServiceID("test", nil), "broken 1", ""); err != nil {
@@ -161,7 +162,7 @@ func TestMaintCommand_EnableServiceMaintenance(t *testing.T) {
 		ID:      "test",
 		Service: "test",
 	}
-	if err := a.AddService(service, nil, false, "", agent.ConfigSourceLocal); err != nil {
+	if err := a.AddServiceFromSource(service, nil, false, "", agent.ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -199,7 +200,7 @@ func TestMaintCommand_DisableServiceMaintenance(t *testing.T) {
 		ID:      "test",
 		Service: "test",
 	}
-	if err := a.AddService(service, nil, false, "", agent.ConfigSourceLocal); err != nil {
+	if err := a.AddServiceFromSource(service, nil, false, "", agent.ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 

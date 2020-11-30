@@ -1890,10 +1890,10 @@ func (a *Agent) readPersistedServiceConfigs() (map[structs.ServiceID]*structs.Se
 	return out, nil
 }
 
-// AddServiceAndReplaceChecks is used to add a service entry and its check. Any check for this service missing from chkTypes will be deleted.
+// AddService is used to add a service entry and its check. Any check for this service missing from chkTypes will be deleted.
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered
-func (a *Agent) AddServiceAndReplaceChecks(service *structs.NodeService, chkTypes []*structs.CheckType, persist bool, token string, source configSource) error {
+func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.CheckType, persist bool, token string, source configSource) error {
 	a.stateLock.Lock()
 	defer a.stateLock.Unlock()
 	return a.addServiceLocked(&addServiceRequest{
@@ -1910,10 +1910,12 @@ func (a *Agent) AddServiceAndReplaceChecks(service *structs.NodeService, chkType
 	})
 }
 
-// AddService is used to add a service entry.
+// AddServiceFromSource is used to add a service entry.
 // This entry is persistent and the agent will make a best effort to
-// ensure it is registered
-func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.CheckType, persist bool, token string, source configSource) error {
+// ensure it is registered.
+// TODO: move to _test.go
+// Deprecated: use AddService
+func (a *Agent) AddServiceFromSource(service *structs.NodeService, chkTypes []*structs.CheckType, persist bool, token string, source configSource) error {
 	a.stateLock.Lock()
 	defer a.stateLock.Unlock()
 	return a.addServiceLocked(&addServiceRequest{
