@@ -151,7 +151,7 @@ type ACLServiceIdentity struct {
 
 func (s *ACLServiceIdentity) Clone() *ACLServiceIdentity {
 	s2 := *s
-	s2.Datacenters = cloneStringSlice(s.Datacenters)
+	s2.Datacenters = CloneStringSlice(s.Datacenters)
 	return &s2
 }
 
@@ -666,7 +666,7 @@ func (t *ACLPolicy) UnmarshalJSON(data []byte) error {
 
 func (p *ACLPolicy) Clone() *ACLPolicy {
 	p2 := *p
-	p2.Datacenters = cloneStringSlice(p.Datacenters)
+	p2.Datacenters = CloneStringSlice(p.Datacenters)
 	return &p2
 }
 
@@ -1460,7 +1460,7 @@ type ACLPolicyBatchDeleteRequest struct {
 	PolicyIDs []string
 }
 
-func cloneStringSlice(s []string) []string {
+func CloneStringSlice(s []string) []string {
 	if len(s) == 0 {
 		return nil
 	}

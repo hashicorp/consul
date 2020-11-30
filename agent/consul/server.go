@@ -30,7 +30,6 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/acl"
-	ca "github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
 	"github.com/hashicorp/consul/agent/consul/fsm"
@@ -139,17 +138,8 @@ type Server struct {
 	// autopilot is the Autopilot instance for this server.
 	autopilot *autopilot.Autopilot
 
-	// caProviderReconfigurationLock guards the provider reconfiguration.
-	caProviderReconfigurationLock sync.Mutex
-	// caProvider is the current CA provider in use for Connect. This is
-	// only non-nil when we are the leader.
-	caProvider ca.Provider
-	// caProviderRoot is the CARoot that was stored along with the ca.Provider
-	// active. It's only updated in lock-step with the caProvider. This prevents
-	// races between state updates to active roots and the fetch of the provider
-	// instance.
-	caProviderRoot *structs.CARoot
-	caProviderLock sync.RWMutex
+	// caManager is used to synchronize CA operations across the leader and RPC functions.
+	caManager *CAManager
 
 	// rate limiter to use when signing leaf certificates
 	caLeafLimiter connectSignRateLimiter
@@ -299,10 +289,6 @@ type Server struct {
 	shutdown     bool
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
-
-	// State for whether this datacenter is acting as a secondary CA.
-	actingSecondaryCA   bool
-	actingSecondaryLock sync.RWMutex
 
 	// dcSupportsIntentionsAsConfigEntries is used to determine whether we can
 	// migrate old intentions into service-intentions config entries. All
@@ -482,6 +468,7 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 		return nil, fmt.Errorf("Failed to start Raft: %v", err)
 	}
 
+	s.caManager = NewCAManager(&caDelegateWithState{s}, s.loggers.Named(logging.Connect), s.config)
 	if s.config.ConnectEnabled && (s.config.AutoEncryptAllowTLS || s.config.AutoConfigAuthzEnabled) {
 		go s.connectCARootsMonitor(&lib.StopChannelContext{StopCh: s.shutdownCh})
 	}

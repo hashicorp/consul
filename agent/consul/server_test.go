@@ -1483,7 +1483,7 @@ func TestServer_CALogging(t *testing.T) {
 	defer s1.Shutdown()
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	if _, ok := s1.caProvider.(ca.NeedsLogger); !ok {
+	if _, ok := s1.caManager.provider.(ca.NeedsLogger); !ok {
 		t.Fatalf("provider does not implement NeedsLogger")
 	}
 
