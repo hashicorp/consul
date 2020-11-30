@@ -983,7 +983,7 @@ func (c *CAManager) RenewIntermediate(ctx context.Context, isPrimary bool) error
 	if !isPrimary {
 		renewalFunc = c.getIntermediateCASigned
 	}
-	errCh := make(chan error)
+	errCh := make(chan error, 1)
 	go func() {
 		errCh <- renewalFunc(provider, activeRoot)
 	}()
