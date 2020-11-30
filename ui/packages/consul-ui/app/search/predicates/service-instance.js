@@ -1,6 +1,5 @@
 export default {
   Name: (item, value) => {
-    console.log(item, value);
     return item.Name.toLowerCase().indexOf(value.toLowerCase()) !== -1;
   },
   Tags: (item, value) =>
