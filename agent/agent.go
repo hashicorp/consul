@@ -1894,7 +1894,6 @@ func (a *Agent) readPersistedServiceConfigs() (map[structs.ServiceID]*structs.Se
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered
 func (a *Agent) AddService(req AddServiceRequest) error {
-	// service *structs.NodeService, chkTypes []*structs.CheckType, persist bool, token string, source configSource
 	req.waitForCentralConfig = true
 	req.persistServiceConfig = true
 	a.stateLock.Lock()
@@ -1952,18 +1951,7 @@ type addServiceInternalRequest struct {
 
 // addServiceInternal adds the given service and checks to the local state.
 func (a *Agent) addServiceInternal(req addServiceInternalRequest) error {
-	var (
-		service               = req.Service
-		chkTypes              = req.chkTypes
-		persistService        = req.persistService
-		persistDefaults       = req.persistDefaults
-		persist               = req.persist
-		persistServiceConfig  = req.persistServiceConfig
-		token                 = req.token
-		replaceExistingChecks = req.replaceExistingChecks
-		source                = req.Source
-		snap                  = req.snap
-	)
+	service := req.Service
 
 	// Pause the service syncs during modification
 	a.PauseSync()
@@ -1999,11 +1987,11 @@ func (a *Agent) addServiceInternal(req addServiceInternalRequest) error {
 	}
 
 	// Create an associated health check
-	for i, chkType := range chkTypes {
+	for i, chkType := range req.chkTypes {
 		checkID := string(chkType.CheckID)
 		if checkID == "" {
 			checkID = fmt.Sprintf("service:%s", service.ID)
-			if len(chkTypes) > 1 {
+			if len(req.chkTypes) > 1 {
 				checkID += fmt.Sprintf(":%d", i+1)
 			}
 		}
@@ -2032,7 +2020,7 @@ func (a *Agent) addServiceInternal(req addServiceInternalRequest) error {
 		}
 
 		// Restore the fields from the snapshot.
-		prev, ok := snap[cid]
+		prev, ok := req.snap[cid]
 		if ok {
 			check.Output = prev.Output
 			check.Status = prev.Status
@@ -2059,20 +2047,22 @@ func (a *Agent) addServiceInternal(req addServiceInternalRequest) error {
 		}
 	}
 
-	err := a.State.AddServiceWithChecks(service, checks, token)
+	err := a.State.AddServiceWithChecks(service, checks, req.token)
 	if err != nil {
 		a.cleanupRegistration(cleanupServices, cleanupChecks)
 		return err
 	}
 
+	source := req.Source
+	persist := req.persist
 	for i := range checks {
-		if err := a.addCheck(checks[i], chkTypes[i], service, token, source); err != nil {
+		if err := a.addCheck(checks[i], req.chkTypes[i], service, req.token, source); err != nil {
 			a.cleanupRegistration(cleanupServices, cleanupChecks)
 			return err
 		}
 
 		if persist && a.config.DataDir != "" {
-			if err := a.persistCheck(checks[i], chkTypes[i], source); err != nil {
+			if err := a.persistCheck(checks[i], req.chkTypes[i], source); err != nil {
 				a.cleanupRegistration(cleanupServices, cleanupChecks)
 				return err
 
@@ -2095,10 +2085,10 @@ func (a *Agent) addServiceInternal(req addServiceInternalRequest) error {
 		a.resetExposedChecks(psid)
 	}
 
-	if persistServiceConfig && a.config.DataDir != "" {
+	if req.persistServiceConfig && a.config.DataDir != "" {
 		var err error
-		if persistDefaults != nil {
-			err = a.persistServiceConfig(service.CompoundServiceID(), persistDefaults)
+		if req.persistDefaults != nil {
+			err = a.persistServiceConfig(service.CompoundServiceID(), req.persistDefaults)
 		} else {
 			err = a.purgeServiceConfig(service.CompoundServiceID())
 		}
@@ -2111,17 +2101,17 @@ func (a *Agent) addServiceInternal(req addServiceInternalRequest) error {
 
 	// Persist the service to a file
 	if persist && a.config.DataDir != "" {
-		if persistService == nil {
-			persistService = service
+		if req.persistService == nil {
+			req.persistService = service
 		}
 
-		if err := a.persistService(persistService, source); err != nil {
+		if err := a.persistService(req.persistService, source); err != nil {
 			a.cleanupRegistration(cleanupServices, cleanupChecks)
 			return err
 		}
 	}
 
-	if replaceExistingChecks {
+	if req.replaceExistingChecks {
 		for checkID, keep := range existingChecks {
 			if !keep {
 				a.removeCheckLocked(checkID, persist)

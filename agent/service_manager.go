@@ -131,31 +131,20 @@ func (s *ServiceManager) AddService(req AddServiceRequest) error {
 		return s.agent.addServiceInternal(addServiceInternalRequest{AddServiceRequest: req})
 	}
 
-	var (
-		service               = req.Service
-		chkTypes              = req.chkTypes
-		previousDefaults      = req.previousDefaults
-		waitForCentralConfig  = req.waitForCentralConfig
-		persist               = req.persist
-		persistServiceConfig  = req.persistServiceConfig
-		token                 = req.token
-		replaceExistingChecks = req.replaceExistingChecks
-		source                = req.Source
-	)
-
+	// TODO: replace serviceRegistration with AddServiceRequest
 	reg := &serviceRegistration{
-		service:               service,
-		chkTypes:              chkTypes,
-		persist:               persist,
-		token:                 token,
-		replaceExistingChecks: replaceExistingChecks,
-		source:                source,
+		service:               req.Service,
+		chkTypes:              req.chkTypes,
+		persist:               req.persist,
+		token:                 req.token,
+		replaceExistingChecks: req.replaceExistingChecks,
+		source:                req.Source,
 	}
 
 	s.servicesLock.Lock()
 	defer s.servicesLock.Unlock()
 
-	sid := service.CompoundServiceID()
+	sid := req.Service.CompoundServiceID()
 
 	// If a service watch already exists, shut it down and replace it.
 	oldWatch, updating := s.services[sid]
@@ -174,9 +163,9 @@ func (s *ServiceManager) AddService(req AddServiceRequest) error {
 
 	err := watch.RegisterAndStart(
 		s.ctx,
-		previousDefaults,
-		waitForCentralConfig,
-		persistServiceConfig,
+		req.previousDefaults,
+		req.waitForCentralConfig,
+		req.persistServiceConfig,
 		&s.running,
 	)
 	if err != nil {
@@ -186,9 +175,9 @@ func (s *ServiceManager) AddService(req AddServiceRequest) error {
 	s.services[sid] = watch
 
 	if updating {
-		s.agent.logger.Debug("updated local registration for service", "service", service.ID)
+		s.agent.logger.Debug("updated local registration for service", "service", req.Service.ID)
 	} else {
-		s.agent.logger.Debug("added local registration for service", "service", service.ID)
+		s.agent.logger.Debug("added local registration for service", "service", req.Service.ID)
 	}
 
 	return nil
