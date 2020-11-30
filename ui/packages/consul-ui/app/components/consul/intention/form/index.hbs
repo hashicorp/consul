@@ -16,7 +16,7 @@ as |api|>
     <BlockSlot @name="error" as |Notification|>
       <Notification>
         <p data-notification role="alert" class="error notification-update">
-  {{#if (starts-with 'duplicate intention found:' api.error.detail)}}
+  {{#if (string-starts-with api.error.detail 'duplicate intention found:')}}
           <strong>Intention exists</strong>
           An intention already exists for this Source-Destination pair. Please enter a different combination of Services, or search the intentions to edit an existing intention.
   {{else}}
