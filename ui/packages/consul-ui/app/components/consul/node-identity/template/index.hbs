@@ -1,6 +1,6 @@
 {{#if (env "CONSUL_NSPACES_ENABLED")}}
 namespace "default" {
-  node "{{name}}" {
+  node "{{@name}}" {
 	  policy = "write"
   }
 }
@@ -10,7 +10,7 @@ namespace_prefix "" {
   }
 }
 {{else}}
-node "{{name}}" {
+node "{{@name}}" {
 	policy = "write"
 }
 service_prefix "" {
