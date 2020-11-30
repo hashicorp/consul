@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/hashicorp/consul/agent/cache"
-	cachetype "github.com/hashicorp/consul/agent/cache-types"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/imdario/mergo"
 	"github.com/mitchellh/copystructure"
 	"golang.org/x/net/context"
+
+	"github.com/hashicorp/consul/agent/cache"
+	cachetype "github.com/hashicorp/consul/agent/cache-types"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 // The ServiceManager is a layer for service registration in between the agent
@@ -83,7 +84,7 @@ func (s *ServiceManager) Start() {
 }
 
 // runOnce will process a single registration request
-func (s *ServiceManager) registerOnce(args *addServiceRequest) error {
+func (s *ServiceManager) registerOnce(args *AddServiceRequest) error {
 	s.agent.stateLock.Lock()
 	defer s.agent.stateLock.Unlock()
 
@@ -120,14 +121,14 @@ func (s *ServiceManager) registerOnce(args *addServiceRequest) error {
 // merged with the global defaults before registration.
 //
 // NOTE: the caller must hold the Agent.stateLock!
-func (s *ServiceManager) AddService(req *addServiceRequest) error {
+func (s *ServiceManager) AddService(req *AddServiceRequest) error {
 	req.fixupForAddServiceLocked()
 
-	req.service.EnterpriseMeta.Normalize()
+	req.Service.EnterpriseMeta.Normalize()
 
 	// For now only proxies have anything that can be configured
 	// centrally. So bypass the whole manager for regular services.
-	if !req.service.IsSidecarProxy() && !req.service.IsGateway() {
+	if !req.Service.IsSidecarProxy() && !req.Service.IsGateway() {
 		// previousDefaults are ignored here because they are only relevant for central config.
 		req.persistService = nil
 		req.persistDefaults = nil
@@ -136,7 +137,7 @@ func (s *ServiceManager) AddService(req *addServiceRequest) error {
 	}
 
 	var (
-		service               = req.service
+		service               = req.Service
 		chkTypes              = req.chkTypes
 		previousDefaults      = req.previousDefaults
 		waitForCentralConfig  = req.waitForCentralConfig
@@ -144,7 +145,7 @@ func (s *ServiceManager) AddService(req *addServiceRequest) error {
 		persistServiceConfig  = req.persistServiceConfig
 		token                 = req.token
 		replaceExistingChecks = req.replaceExistingChecks
-		source                = req.source
+		source                = req.Source
 	)
 
 	reg := &serviceRegistration{
@@ -267,8 +268,8 @@ func (w *serviceConfigWatch) RegisterAndStart(
 	// The first time we do this interactively, we need to know if it
 	// failed for validation reasons which we only get back from the
 	// initial underlying add service call.
-	err = w.agent.addServiceInternal(&addServiceRequest{
-		service:               merged,
+	err = w.agent.addServiceInternal(&AddServiceRequest{
+		Service:               merged,
 		chkTypes:              w.registration.chkTypes,
 		persistService:        w.registration.service,
 		persistDefaults:       serviceDefaults,
@@ -276,7 +277,7 @@ func (w *serviceConfigWatch) RegisterAndStart(
 		persistServiceConfig:  persistServiceConfig,
 		token:                 w.registration.token,
 		replaceExistingChecks: w.registration.replaceExistingChecks,
-		source:                w.registration.source,
+		Source:                w.registration.source,
 		snap:                  w.agent.snapshotCheckState(),
 	})
 	if err != nil {
@@ -408,8 +409,8 @@ func (w *serviceConfigWatch) handleUpdate(ctx context.Context, event cache.Updat
 	}
 
 	registerReq := &asyncRegisterRequest{
-		Args: &addServiceRequest{
-			service:               merged,
+		Args: &AddServiceRequest{
+			Service:               merged,
 			chkTypes:              w.registration.chkTypes,
 			persistService:        w.registration.service,
 			persistDefaults:       serviceDefaults,
@@ -417,7 +418,7 @@ func (w *serviceConfigWatch) handleUpdate(ctx context.Context, event cache.Updat
 			persistServiceConfig:  true,
 			token:                 w.registration.token,
 			replaceExistingChecks: w.registration.replaceExistingChecks,
-			source:                w.registration.source,
+			Source:                w.registration.source,
 		},
 		Reply: make(chan error, 1),
 	}
@@ -441,7 +442,7 @@ func (w *serviceConfigWatch) handleUpdate(ctx context.Context, event cache.Updat
 }
 
 type asyncRegisterRequest struct {
-	Args  *addServiceRequest
+	Args  *AddServiceRequest
 	Reply chan error
 }
 

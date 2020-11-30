@@ -736,21 +736,21 @@ func TestAgent_HealthServiceByID(t *testing.T) {
 		ID:      "mysql",
 		Service: "mysql",
 	}
-	if err := a.AddServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
+	if err := a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	service = &structs.NodeService{
 		ID:      "mysql2",
 		Service: "mysql2",
 	}
-	if err := a.AddServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
+	if err := a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	service = &structs.NodeService{
 		ID:      "mysql3",
 		Service: "mysql3",
 	}
-	if err := a.AddServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
+	if err := a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -934,42 +934,42 @@ func TestAgent_HealthServiceByName(t *testing.T) {
 		ID:      "mysql1",
 		Service: "mysql-pool-r",
 	}
-	if err := a.AddServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
+	if err := a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	service = &structs.NodeService{
 		ID:      "mysql2",
 		Service: "mysql-pool-r",
 	}
-	if err := a.AddServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
+	if err := a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	service = &structs.NodeService{
 		ID:      "mysql3",
 		Service: "mysql-pool-rw",
 	}
-	if err := a.AddServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
+	if err := a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	service = &structs.NodeService{
 		ID:      "mysql4",
 		Service: "mysql-pool-rw",
 	}
-	if err := a.AddServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
+	if err := a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	service = &structs.NodeService{
 		ID:      "httpd1",
 		Service: "httpd",
 	}
-	if err := a.AddServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
+	if err := a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	service = &structs.NodeService{
 		ID:      "httpd2",
 		Service: "httpd",
 	}
-	if err := a.AddServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
+	if err := a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1181,13 +1181,13 @@ func TestAgent_HealthServicesACLEnforcement(t *testing.T) {
 		ID:      "mysql1",
 		Service: "mysql",
 	}
-	require.NoError(t, a.AddServiceFromSource(service, nil, false, "", ConfigSourceLocal))
+	require.NoError(t, a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal))
 
 	service = &structs.NodeService{
 		ID:      "foo1",
 		Service: "foo",
 	}
-	require.NoError(t, a.AddServiceFromSource(service, nil, false, "", ConfigSourceLocal))
+	require.NoError(t, a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal))
 
 	// no token
 	t.Run("no-token-health-by-id", func(t *testing.T) {
@@ -4015,10 +4015,10 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 			testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 			if tt.preRegister != nil {
-				require.NoError(a.AddServiceFromSource(tt.preRegister, nil, false, "", ConfigSourceLocal))
+				require.NoError(a.addServiceFromSource(tt.preRegister, nil, false, "", ConfigSourceLocal))
 			}
 			if tt.preRegister2 != nil {
-				require.NoError(a.AddServiceFromSource(tt.preRegister2, nil, false, "", ConfigSourceLocal))
+				require.NoError(a.addServiceFromSource(tt.preRegister2, nil, false, "", ConfigSourceLocal))
 			}
 
 			// Create an ACL token with require policy
@@ -4320,7 +4320,7 @@ func TestAgent_DeregisterService(t *testing.T) {
 		ID:      "test",
 		Service: "test",
 	}
-	if err := a.AddServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
+	if err := a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -4352,7 +4352,7 @@ func TestAgent_DeregisterService_ACLDeny(t *testing.T) {
 		ID:      "test",
 		Service: "test",
 	}
-	if err := a.AddServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
+	if err := a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -4430,7 +4430,7 @@ func TestAgent_ServiceMaintenance_Enable(t *testing.T) {
 		ID:      "test",
 		Service: "test",
 	}
-	if err := a.AddServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
+	if err := a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -4477,7 +4477,7 @@ func TestAgent_ServiceMaintenance_Disable(t *testing.T) {
 		ID:      "test",
 		Service: "test",
 	}
-	if err := a.AddServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
+	if err := a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -4518,7 +4518,7 @@ func TestAgent_ServiceMaintenance_ACLDeny(t *testing.T) {
 		ID:      "test",
 		Service: "test",
 	}
-	if err := a.AddServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
+	if err := a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 

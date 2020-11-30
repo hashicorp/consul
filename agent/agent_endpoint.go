@@ -992,12 +992,12 @@ func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.
 		replaceExistingChecks = true
 	}
 
-	addReq := addServiceRequest{
-		service:               ns,
+	addReq := AddServiceRequest{
+		Service:               ns,
 		chkTypes:              chkTypes,
 		persist:               true,
 		token:                 token,
-		source:                ConfigSourceRemote,
+		Source:                ConfigSourceRemote,
 		replaceExistingChecks: replaceExistingChecks,
 	}
 	if err := s.agent.AddService(addReq); err != nil {
@@ -1005,12 +1005,12 @@ func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.
 	}
 
 	if sidecar != nil {
-		addReq := addServiceRequest{
-			service:               sidecar,
+		addReq := AddServiceRequest{
+			Service:               sidecar,
 			chkTypes:              sidecarChecks,
 			persist:               true,
 			token:                 sidecarToken,
-			source:                ConfigSourceRemote,
+			Source:                ConfigSourceRemote,
 			replaceExistingChecks: replaceExistingChecks,
 		}
 		if err := s.agent.AddService(addReq); err != nil {

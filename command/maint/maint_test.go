@@ -50,11 +50,14 @@ func TestMaintCommand_NoArgs(t *testing.T) {
 	defer a.Shutdown()
 
 	// Register the service and put it into maintenance mode
-	service := &structs.NodeService{
-		ID:      "test",
-		Service: "test",
+	addReq := agent.AddServiceRequest{
+		Service: &structs.NodeService{
+			ID:      "test",
+			Service: "test",
+		},
+		Source: agent.ConfigSourceLocal,
 	}
-	if err := a.AddServiceFromSource(service, nil, false, "", agent.ConfigSourceLocal); err != nil {
+	if err := a.AddService(addReq); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if err := a.EnableServiceMaintenance(structs.NewServiceID("test", nil), "broken 1", ""); err != nil {
@@ -158,11 +161,14 @@ func TestMaintCommand_EnableServiceMaintenance(t *testing.T) {
 	defer a.Shutdown()
 
 	// Register the service
-	service := &structs.NodeService{
-		ID:      "test",
-		Service: "test",
+	addReq := agent.AddServiceRequest{
+		Service: &structs.NodeService{
+			ID:      "test",
+			Service: "test",
+		},
+		Source: agent.ConfigSourceLocal,
 	}
-	if err := a.AddServiceFromSource(service, nil, false, "", agent.ConfigSourceLocal); err != nil {
+	if err := a.AddService(addReq); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -196,11 +202,14 @@ func TestMaintCommand_DisableServiceMaintenance(t *testing.T) {
 	defer a.Shutdown()
 
 	// Register the service
-	service := &structs.NodeService{
-		ID:      "test",
-		Service: "test",
+	addReq := agent.AddServiceRequest{
+		Service: &structs.NodeService{
+			ID:      "test",
+			Service: "test",
+		},
+		Source: agent.ConfigSourceLocal,
 	}
-	if err := a.AddServiceFromSource(service, nil, false, "", agent.ConfigSourceLocal); err != nil {
+	if err := a.AddService(addReq); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
