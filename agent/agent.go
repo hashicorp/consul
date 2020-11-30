@@ -1894,7 +1894,7 @@ func (a *Agent) readPersistedServiceConfigs() (map[structs.ServiceID]*structs.Se
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered
 func (a *Agent) AddService(req AddServiceRequest) error {
-	req.waitForCentralConfig = true
+	req.serviceDefaults = serviceDefaultsFromCache(a.baseDeps, req)
 	req.persistServiceConfig = true
 	a.stateLock.Lock()
 	defer a.stateLock.Unlock()
@@ -1933,14 +1933,21 @@ func (a *Agent) addServiceLocked(req AddServiceRequest) error {
 type AddServiceRequest struct {
 	Service               *structs.NodeService
 	chkTypes              []*structs.CheckType
-	previousDefaults      *structs.ServiceConfigResponse // just for: addServiceLocked
-	waitForCentralConfig  bool                           // just for: addServiceLocked
 	persist               bool
 	persistServiceConfig  bool
 	token                 string
 	replaceExistingChecks bool
 	Source                configSource
 	snap                  map[structs.CheckID]*structs.HealthCheck
+
+	// serviceDefaults is a function which will return centralized service
+	// configuration.
+	// When loading service definitions from disk this will return a copy
+	// loaded from a persisted file. Otherwise it will query a Server for the
+	// centralized config.
+	// serviceDefaults is called when the Agent.stateLock is held, so it must
+	// never attempt to acquire that lock.
+	serviceDefaults func(context.Context) (*structs.ServiceConfigResponse, error)
 }
 
 type addServiceInternalRequest struct {
@@ -3080,8 +3087,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 		err = a.addServiceLocked(AddServiceRequest{
 			Service:               ns,
 			chkTypes:              chkTypes,
-			previousDefaults:      persistedServiceConfigs[sid],
-			waitForCentralConfig:  false, // exclusively use cached values
+			serviceDefaults:       serviceDefaultsFromStruct(persistedServiceConfigs[sid]),
 			persist:               false, // don't rewrite the file with the same data we just read
 			persistServiceConfig:  false, // don't rewrite the file with the same data we just read
 			token:                 service.Token,
@@ -3099,8 +3105,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 			err = a.addServiceLocked(AddServiceRequest{
 				Service:               sidecar,
 				chkTypes:              sidecarChecks,
-				previousDefaults:      persistedServiceConfigs[sidecarServiceID],
-				waitForCentralConfig:  false, // exclusively use cached values
+				serviceDefaults:       serviceDefaultsFromStruct(persistedServiceConfigs[sidecarServiceID]),
 				persist:               false, // don't rewrite the file with the same data we just read
 				persistServiceConfig:  false, // don't rewrite the file with the same data we just read
 				token:                 sidecarToken,
@@ -3196,8 +3201,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 			err = a.addServiceLocked(AddServiceRequest{
 				Service:               p.Service,
 				chkTypes:              nil,
-				previousDefaults:      persistedServiceConfigs[serviceID],
-				waitForCentralConfig:  false, // exclusively use cached values
+				serviceDefaults:       serviceDefaultsFromStruct(persistedServiceConfigs[serviceID]),
 				persist:               false, // don't rewrite the file with the same data we just read
 				persistServiceConfig:  false, // don't rewrite the file with the same data we just read
 				token:                 p.Token,
