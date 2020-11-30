@@ -132,7 +132,7 @@ func (s *Server) getCARoots(ws memdb.WatchSet, state *state.Store) (*structs.Ind
 }
 
 func (s *Server) SignCertificate(csr *x509.CertificateRequest, spiffeID connect.CertURI) (*structs.IssuedCert, error) {
-	provider, caRoot := s.getCAProvider()
+	provider, caRoot := s.caManager.getCAProvider()
 	if provider == nil {
 		return nil, fmt.Errorf("internal error: CA provider is nil")
 	} else if caRoot == nil {

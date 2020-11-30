@@ -80,10 +80,10 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 			s2.tokens.UpdateAgentToken(masterToken, token.TokenSourceConfig)
 			s2.tokens.UpdateReplicationToken(masterToken, token.TokenSourceConfig)
 
-			testrpc.WaitForLeader(t, s2.RPC, "secondary")
-
 			// Create the WAN link
 			joinWAN(t, s2, s1)
+
+			testrpc.WaitForLeader(t, s2.RPC, "secondary")
 
 			waitForNewACLs(t, s1)
 			waitForNewACLs(t, s2)
@@ -175,9 +175,7 @@ func waitForActiveCARoot(t *testing.T, srv *Server, expect *structs.CARoot) {
 }
 
 func getCAProviderWithLock(s *Server) (ca.Provider, *structs.CARoot) {
-	s.caProviderReconfigurationLock.Lock()
-	defer s.caProviderReconfigurationLock.Unlock()
-	return s.getCAProvider()
+	return s.caManager.getCAProvider()
 }
 
 func TestLeader_Vault_PrimaryCA_IntermediateRenew(t *testing.T) {
@@ -701,22 +699,6 @@ func TestLeader_SecondaryCA_TransitionFromPrimary(t *testing.T) {
 	var dc2PrimaryRoots structs.IndexedCARoots
 	require.NoError(t, s2.RPC("ConnectCA.Roots", &args, &dc2PrimaryRoots))
 	require.Len(t, dc2PrimaryRoots.Roots, 1)
-
-	// Set the ExternalTrustDomain to a blank string to simulate an old version (pre-1.4.0)
-	// it's fine to change the roots struct directly here because the RPC endpoint already
-	// makes a copy to return.
-	dc2PrimaryRoots.Roots[0].ExternalTrustDomain = ""
-	rootSetArgs := structs.CARequest{
-		Op:         structs.CAOpSetRoots,
-		Datacenter: "dc2",
-		Index:      dc2PrimaryRoots.Index,
-		Roots:      dc2PrimaryRoots.Roots,
-	}
-	resp, err := s2.raftApply(structs.ConnectCARequestType, rootSetArgs)
-	require.NoError(t, err)
-	if respErr, ok := resp.(error); ok {
-		t.Fatal(respErr)
-	}
 
 	// Shutdown s2 and restart it with the dc1 as the primary
 	s2.Shutdown()

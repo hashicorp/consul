@@ -135,7 +135,7 @@ func (v *VaultProvider) renewToken(ctx context.Context, watcher *vaultapi.Lifeti
 			go watcher.Start()
 
 		case <-watcher.RenewCh():
-			v.logger.Error("Successfully renewed token for Vault provider")
+			v.logger.Info("Successfully renewed token for Vault provider")
 		}
 	}
 }
