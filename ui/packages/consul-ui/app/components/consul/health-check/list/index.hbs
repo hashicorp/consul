@@ -1,7 +1,10 @@
-<div ...attributes>
+<div
+  class="consul-health-check-list"
+  ...attributes
+>
   <ul>
-{{#each items as |item| }}
-    <li class={{concat 'healthcheck-output ' item.Status}}>
+{{#each @items as |item|}}
+    <li class={{concat 'health-check-output ' item.Status}}>
       <div>
         <header>
           <h3>{{item.Name}}</h3>
@@ -23,7 +26,7 @@
           <dt>Type</dt>
           <dd>
             {{item.Type}}
-  {{#if (and exposed (contains item.Type (array 'http' 'grpc')))}}
+  {{#if (and @exposed (contains item.Type (array 'http' 'grpc')))}}
             <em
               data-test-exposed="true"
               {{tooltip "Expose.checks is set to true, so all registered HTTP and gRPC check paths are exposed through Envoy for the Consul agent."}}
