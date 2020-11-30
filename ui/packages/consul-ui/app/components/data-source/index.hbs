@@ -1,4 +1,24 @@
-{{#if (eq loading "lazy")}}
-{{! in order to use intersection observer we need a DOM element on the page}}
-  <data id={{guid}} aria-hidden="true" style="width: 0;height: 0;font-size: 0;padding: 0;margin: 0;" />
+{{#if (not this.disabled)}}
+  {{#if (eq this.loading "lazy")}}
+    {{! in order to use intersection observer we need a DOM element on the page}}
+    <data
+      {{did-insert this.connect}}
+      aria-hidden="true"
+      style="width: 0;height: 0;font-size: 0;padding: 0;margin: 0;"
+    />
+  {{else}}
+    {{did-insert this.connect}}
+  {{/if}}
+  {{did-update this.attributeChanged 'src' @src}}
+  {{did-update this.attributeChanged 'loading' @loading}}
+  {{will-destroy this.disconnect}}
 {{/if}}
+{{did-update this.attributeChanged 'disabled' @disabled}}
+{{yield (hash
+  data=this.data
+  error=this.error
+  Source=(if this.data
+    (component 'data-source' disabled=(not (eq this.error undefined)))
+    ''
+  )
+)}}
