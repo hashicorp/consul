@@ -9,14 +9,18 @@
 <div class="stats">
   {{#if hasLoaded }}
     {{#each stats as |stat|}}
-    <dl>
+    <dl {{tooltip
+      stat.desc
+      options=(hash
+        allowHTML=true
+      )
+    }}>
       <dt>
         {{stat.value}}
       </dt>
       <dd>
         {{stat.label}}
       </dd>
-      <Tooltip>{{{stat.desc}}}</Tooltip>
     </dl>
     {{else}}
       <span>No Metrics Available</span>

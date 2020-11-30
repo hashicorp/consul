@@ -32,7 +32,6 @@ fieldset > header,
 %healthcheck-output dt,
 %table th,
 %table td strong,
-%tooltip-bubble,
 %sliding-toggle label span {
   @extend %h6;
 }
@@ -132,9 +131,4 @@ pre code,
   input {
     font-size: 16px !important;
   }
-}
-
-//Ember Tooltip
-.ember-tooltip {
-  font-size: $typo-size-800;
 }

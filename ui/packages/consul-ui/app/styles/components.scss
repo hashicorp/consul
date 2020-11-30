@@ -17,7 +17,6 @@
 @import './components/tabs';
 @import './components/pill';
 @import './components/table';
-@import './components/tooltip';
 @import './components/tag-list';
 @import './components/healthcheck-output';
 @import './components/freetext-filter';
@@ -46,11 +45,12 @@
 @import './components/loader';
 @import './components/main-header-horizontal';
 @import './components/main-nav-horizontal';
-@import './components/app-view';
 @import './components/footer';
 
 /**/
 
+@import './components/app-view';
+@import 'consul-ui/components/tooltip';
 @import 'consul-ui/components/notice';
 @import 'consul-ui/components/modal-dialog';
 

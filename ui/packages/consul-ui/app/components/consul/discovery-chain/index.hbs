@@ -20,8 +20,9 @@
   <header>
     <h2>
       {{chain.ServiceName}} Router
-      <span>
-        <em role="tooltip">Use routers to intercept traffic using L7 criteria such as path prefixes or http headers.</em>
+      <span
+        {{tooltip 'Use routers to intercept traffic using L7 criteria such as path prefixes or http headers.'}}
+      >
       </span>
     </h2>
   </header>
@@ -38,8 +39,9 @@
   <header>
     <h2>
       Splitters
-      <span>
-        <em role="tooltip">Splitters are configured to split incoming requests across different services or subsets of a single service.</em>
+      <span
+        {{tooltip 'Splitters are configured to split incoming requests across different services or subsets of a single service.'}}
+      >
       </span>
     </h2>
   </header>
@@ -56,8 +58,8 @@
   <header>
     <h2>
       Resolvers
-      <span>
-        <em role="tooltip">Resolvers are used to define which instances of a service should satisfy discovery requests.</em>
+      <span {{tooltip "Resolvers are used to define which instances of a service should satisfy discovery requests."}}>
+
       </span>
     </h2>
   </header>
@@ -70,10 +72,15 @@
     {{/each}}
   </div>
 </div>
-<svg width="100%" height="100%" viewBox={{concat '0 0 ' width ' ' height}} preserveAspectRatio="none">
+<svg class="edges"
+  width="100%"
+  height="100%"
+  viewBox={{concat '0 0 ' width ' ' height}}
+  preserveAspectRatio="none"
+>
   {{#each routes as |item|}}
-    {{#let (dom-position (concat '#' item.ID)) as |src|}}
-      {{#let (dom-position (concat '#' item.NextNode)) as |destRect|}}
+    {{#let (dom-position (concat '#' item.ID) '.edges') as |src|}}
+      {{#let (dom-position (concat '#' item.NextNode) '.edges') as |destRect|}}
         {{#let (tween-to (hash
           x=destRect.x
           y=(add destRect.y (div destRect.height 2))
@@ -93,17 +100,17 @@
     {{/let}}
   {{/each}}
   {{#each splitters as |splitter|}}
-    {{#let (dom-position (concat '#' splitter.ID)) as |src|}}
+    {{#let (dom-position (concat '#' splitter.ID) '.edges') as |src|}}
       {{#each splitter.Splits as |item index|}}
-        {{#let (dom-position (concat '#' item.NextNode)) as |destRect|}}
+        {{#let (dom-position (concat '#' item.NextNode) '.edges') as |destRect|}}
         {{#let (tween-to (hash
           x=destRect.x
           y=(add destRect.y (div destRect.height 2))
         ) (concat splitter.ID '-' index)) as |dest|}}
     <path
+      {{tooltip (concat (round (or item.Weight 0) decimals=2) '%') options=(hash followCursor=true)}}
       id={{concat 'splitter:' splitter.Name '>' item.NextNode}}
       class="split"
-      data-percentage={{or item.Weight 0}}
       d={{
         svg-curve (hash
           x=dest.x
@@ -121,14 +128,14 @@
 <svg class="resolver-inlets" viewBox={{concat '0 0 10 ' height}}>
   {{#each routes as |item|}}
     {{#if (starts-with 'resolver:' item.NextNode) }}
-      {{#let (dom-position (concat '#' item.NextNode)) as |dest|}}
+      {{#let (dom-position (concat '#' item.NextNode) '.edges') as |dest|}}
         <circle r="2.5" cx="5" cy={{add dest.y (div dest.height 2)}} />
       {{/let}}
     {{/if}}
   {{/each}}
   {{#each splitters as |item|}}
       {{#each item.Splits as |item|}}
-        {{#let (dom-position (concat '#' item.NextNode)) as |dest|}}
+        {{#let (dom-position (concat '#' item.NextNode) '.edges') as |dest|}}
           <circle r="2.5" cx="5" cy={{add dest.y (div dest.height 2)}} />
         {{/let}}
       {{/each}}
@@ -137,12 +144,9 @@
 <svg class="splitter-inlets" viewBox={{concat '0 0 10 ' height}}>
   {{#each routes as |item|}}
     {{#if (starts-with 'splitter:' item.NextNode) }}
-      {{#let (dom-position (concat '#' item.NextNode)) as |dest|}}
+      {{#let (dom-position (concat '#' item.NextNode) '.edges') as |dest|}}
         <circle r="2.5" cx="5" cy={{add dest.y (div dest.height 2)}} />
       {{/let}}
     {{/if}}
   {{/each}}
 </svg>
-<div class={{concat 'tooltip' (if activeTooltip ' active' '')}} style={{{ concat 'top:' y 'px;left:' x 'px;'}}}>
-  <span role="tooltip">{{round tooltip decimals=2}}%</span>
-</div>
