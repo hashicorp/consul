@@ -86,12 +86,7 @@ func (s *ServiceManager) registerOnce(args addServiceInternalRequest) error {
 	s.agent.stateLock.Lock()
 	defer s.agent.stateLock.Unlock()
 
-	if args.snap == nil {
-		args.snap = s.agent.snapshotCheckState()
-	}
-
-	err := s.agent.addServiceInternal(args)
-	if err != nil {
+	if err := s.agent.addServiceInternal(args); err != nil {
 		return fmt.Errorf("error updating service registration: %v", err)
 	}
 	return nil
@@ -200,10 +195,6 @@ func (w *serviceConfigWatch) RegisterAndStart(ctx context.Context, wg *sync.Wait
 	// make a copy of the AddServiceRequest
 	req := w.registration
 	req.Service = merged
-
-	// TODO: move this line? it seems out of place. Maybe this default should
-	// be set in addServiceInternal
-	req.snap = w.agent.snapshotCheckState() // requires Agent.stateLock
 
 	err = w.agent.addServiceInternal(addServiceInternalRequest{
 		addServiceLockedRequest: req,

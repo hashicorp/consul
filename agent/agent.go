@@ -515,7 +515,8 @@ func (a *Agent) Start(ctx context.Context) error {
 	a.serviceManager.Start()
 
 	// Load checks/services/metadata.
-	if err := a.loadServices(c, nil); err != nil {
+	emptyCheckSnapshot := map[structs.CheckID]*structs.HealthCheck{}
+	if err := a.loadServices(c, emptyCheckSnapshot); err != nil {
 		return err
 	}
 	if err := a.loadChecks(c, nil); err != nil {
@@ -1894,15 +1895,14 @@ func (a *Agent) readPersistedServiceConfigs() (map[structs.ServiceID]*structs.Se
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered
 func (a *Agent) AddService(req AddServiceRequest) error {
+	a.stateLock.Lock()
+	defer a.stateLock.Unlock()
+
 	rl := addServiceLockedRequest{
 		AddServiceRequest:    req,
 		serviceDefaults:      serviceDefaultsFromCache(a.baseDeps, req),
 		persistServiceConfig: true,
 	}
-	a.stateLock.Lock()
-	defer a.stateLock.Unlock()
-
-	rl.snap = a.State.Checks(structs.WildcardEnterpriseMeta())
 	return a.addServiceLocked(rl)
 }
 
@@ -1936,6 +1936,11 @@ type addServiceLockedRequest struct {
 	// serviceDefaults is called when the Agent.stateLock is held, so it must
 	// never attempt to acquire that lock.
 	serviceDefaults func(context.Context) (*structs.ServiceConfigResponse, error)
+
+	// checkStateSnapshot may optionally be set to a snapshot of the checks in
+	// the local.State. If checkStateSnapshot is nil, addServiceInternal will
+	// callState.Checks to get the snapshot.
+	checkStateSnapshot map[structs.CheckID]*structs.HealthCheck
 }
 
 // AddServiceRequest is the union of arguments for calling both
@@ -1955,7 +1960,6 @@ type AddServiceRequest struct {
 	token                 string
 	replaceExistingChecks bool
 	Source                configSource
-	snap                  map[structs.CheckID]*structs.HealthCheck
 }
 
 type addServiceInternalRequest struct {
@@ -2001,6 +2005,13 @@ func (a *Agent) addServiceInternal(req addServiceInternalRequest) error {
 		existingChecks[check.CompoundCheckID()] = false
 	}
 
+	// Note, this is explicitly a nil check instead of len() == 0 because
+	// Agent.Start does not have a snapshot, and we don't want to query
+	// State.Checks each time.
+	if req.checkStateSnapshot == nil {
+		req.checkStateSnapshot = a.State.Checks(structs.WildcardEnterpriseMeta())
+	}
+
 	// Create an associated health check
 	for i, chkType := range req.chkTypes {
 		checkID := string(chkType.CheckID)
@@ -2035,7 +2046,7 @@ func (a *Agent) addServiceInternal(req addServiceInternalRequest) error {
 		}
 
 		// Restore the fields from the snapshot.
-		prev, ok := req.snap[cid]
+		prev, ok := req.checkStateSnapshot[cid]
 		if ok {
 			check.Output = prev.Output
 			check.Status = prev.Status
@@ -3100,10 +3111,10 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 				token:                 service.Token,
 				replaceExistingChecks: false, // do default behavior
 				Source:                ConfigSourceLocal,
-				snap:                  snap,
 			},
 			serviceDefaults:      serviceDefaultsFromStruct(persistedServiceConfigs[sid]),
 			persistServiceConfig: false, // don't rewrite the file with the same data we just read
+			checkStateSnapshot:   snap,
 		})
 		if err != nil {
 			return fmt.Errorf("Failed to register service %q: %v", service.Name, err)
@@ -3120,10 +3131,10 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 					token:                 sidecarToken,
 					replaceExistingChecks: false, // do default behavior
 					Source:                ConfigSourceLocal,
-					snap:                  snap,
 				},
 				serviceDefaults:      serviceDefaultsFromStruct(persistedServiceConfigs[sidecarServiceID]),
 				persistServiceConfig: false, // don't rewrite the file with the same data we just read
+				checkStateSnapshot:   snap,
 			})
 			if err != nil {
 				return fmt.Errorf("Failed to register sidecar for service %q: %v", service.Name, err)
@@ -3218,10 +3229,10 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 					token:                 p.Token,
 					replaceExistingChecks: false, // do default behavior
 					Source:                source,
-					snap:                  snap,
 				},
 				serviceDefaults:      serviceDefaultsFromStruct(persistedServiceConfigs[serviceID]),
 				persistServiceConfig: false, // don't rewrite the file with the same data we just read
+				checkStateSnapshot:   snap,
 			})
 			if err != nil {
 				return fmt.Errorf("failed adding service %q: %s", serviceID, err)
