@@ -1,10 +1,10 @@
-{{#unless @noMetricsReason}}
+{{#if (not @noMetricsReason)}}
   <DataSource
     @src={{uri @nspace @dc 'metrics' 'summary-for-service' @service @protocol}}
     @onchange={{action 'change'}}
     @onerror={{action (mut error) value="error"}}
   />
-{{/unless}}
+{{/if}}
 
 {{on-window 'resize' (action 'redraw')}}
 

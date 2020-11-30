@@ -23,7 +23,18 @@
       @item={{item}}
       @hasMetricsProvider={{this.hasMetricsProvider}}
       @noMetricsReason={{this.noMetricsReason}}
-    />
+    >
+    {{#if (and this.hasMetricsProvider (not-eq @service.Service.Kind 'ingress-gateway'))}}
+      <TopologyMetrics::Stats
+        @nspace={{or item.Namespace 'default'}}
+        @dc={{item.Datacenter}}
+        @endpoint='downstream-summary-for-service'
+        @service={{@service.Service.Service}}
+        @item={{item.Name}}
+        @noMetricsReason={{this.noMetricsReason}}
+      />
+    {{/if}}
+    </TopologyMetrics::Card>
   {{/each}}
   </div>
 {{/if}}
@@ -76,14 +87,21 @@
       <p>{{dc}}</p>
     {{#each upstreams as |item|}}
       <TopologyMetrics::Card
-        @nspace={{@nspace}}
         @dc={{@dc}}
         @item={{item}}
         @service={{@service.Service}}
-        @type='upstream'
-        @hasMetricsProvider={{this.hasMetricsProvider}}
-        @noMetricsReason={{this.noMetricsReason}}
-      />
+      >
+      {{#if (and this.hasMetricsProvider (not-eq @service.Service.Kind 'ingress-gateway'))}}
+        <TopologyMetrics::Stats
+          @nspace={{or item.Namespace 'default'}}
+          @dc={{item.Datacenter}}
+          @endpoint='upstream-summary-for-service'
+          @service={{@service.Service.Service}}
+          @item={{item.Name}}
+          @noMetricsReason={{this.noMetricsReason}}
+        />
+      {{/if}}
+      </TopologyMetrics::Card>
     {{/each}}
     </div>
   {{/each-in}}
