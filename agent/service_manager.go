@@ -119,7 +119,7 @@ func (s *ServiceManager) registerOnce(args addServiceInternalRequest) error {
 // merged with the global defaults before registration.
 //
 // NOTE: the caller must hold the Agent.stateLock!
-func (s *ServiceManager) AddService(req AddServiceRequest) error {
+func (s *ServiceManager) AddService(req addServiceLockedRequest) error {
 	s.servicesLock.Lock()
 	defer s.servicesLock.Unlock()
 
@@ -169,7 +169,7 @@ func (s *ServiceManager) RemoveService(serviceID structs.ServiceID) {
 // for a given service from both the local registration and the global
 // service/proxy defaults.
 type serviceConfigWatch struct {
-	registration AddServiceRequest
+	registration addServiceLockedRequest
 
 	agent      *Agent
 	registerCh chan<- *asyncRegisterRequest
@@ -206,9 +206,9 @@ func (w *serviceConfigWatch) RegisterAndStart(ctx context.Context, wg *sync.Wait
 	req.snap = w.agent.snapshotCheckState() // requires Agent.stateLock
 
 	err = w.agent.addServiceInternal(addServiceInternalRequest{
-		AddServiceRequest: req,
-		persistService:    w.registration.Service,
-		persistDefaults:   serviceDefaults,
+		addServiceLockedRequest: req,
+		persistService:          w.registration.Service,
+		persistDefaults:         serviceDefaults,
 	})
 	if err != nil {
 		return fmt.Errorf("error updating service registration: %v", err)
@@ -254,7 +254,7 @@ func (w *serviceConfigWatch) start(ctx context.Context, wg *sync.WaitGroup) erro
 
 	// Configure and start a cache.Notify goroutine to run a continuous
 	// blocking query on the resolved service config for this service.
-	req := makeConfigRequest(w.agent.baseDeps, w.registration)
+	req := makeConfigRequest(w.agent.baseDeps, w.registration.AddServiceRequest)
 	w.cacheKey = req.CacheInfo().Key
 
 	updateCh := make(chan cache.UpdateEvent, 1)
@@ -353,9 +353,9 @@ func (w *serviceConfigWatch) handleUpdate(ctx context.Context, event cache.Updat
 
 	registerReq := &asyncRegisterRequest{
 		Args: addServiceInternalRequest{
-			AddServiceRequest: req,
-			persistService:    w.registration.Service,
-			persistDefaults:   serviceDefaults,
+			addServiceLockedRequest: req,
+			persistService:          w.registration.Service,
+			persistDefaults:         serviceDefaults,
 		},
 		Reply: make(chan error, 1),
 	}
