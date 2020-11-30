@@ -1,9 +1,9 @@
 {{#if (env "CONSUL_NSPACES_ENABLED")}}
-namespace "{{nspace}}" {
-  service "{{name}}" {
+namespace "{{@nspace}}" {
+  service "{{@name}}" {
 	  policy = "write"
   }
-  service "{{name}}-sidecar-proxy" {
+  service "{{@name}}-sidecar-proxy" {
 	  policy = "write"
   }
   service_prefix "" {
@@ -14,10 +14,10 @@ namespace "{{nspace}}" {
   }
 }
 {{else}}
-service "{{name}}" {
+service "{{@name}}" {
 	policy = "write"
 }
-service "{{name}}-sidecar-proxy" {
+service "{{@name}}-sidecar-proxy" {
 	policy = "write"
 }
 service_prefix "" {

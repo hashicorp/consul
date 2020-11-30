@@ -35,15 +35,32 @@
     <label class="type-text" data-test-rules>
         <span>Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
 {{#if (eq item.template 'service-identity')}}
-        <CodeEditor @readonly={{true}} @name={{concat name "[Rules]"}} @syntax="hcl" @oninput={{action "change" (concat name "[Rules]")}}>
-          {{~component 'service-identity' nspace=nspace name=item.Name~}}
-        </CodeEditor>
+        <CodeEditor
+          @readonly={{true}}
+          @name={{concat name "[Rules]"}}
+          @syntax="hcl"
+          @oninput={{action "change" (concat name "[Rules]")}}
+        ><Consul::ServiceIdentity::Template
+          @nspace={{nspace}}
+          @name={{item.Name}}
+        /></CodeEditor>
 {{else if (eq item.template 'node-identity')}}
-        <CodeEditor @readonly={{true}} @name={{concat name "[Rules]"}} @syntax="hcl" @oninput={{action "change" (concat name "[Rules]")}}>
-          {{~component 'node-identity' name=item.Name~}}
-        </CodeEditor>
+        <CodeEditor
+          @readonly={{true}}
+          @name={{concat name "[Rules]"}}
+          @syntax="hcl"
+          @oninput={{action "change" (concat name "[Rules]")}}
+        ><Consul::NodeIdentity::Template
+          @name={{item.Name}}
+        /></CodeEditor>
 {{else}}
-        <CodeEditor @syntax="hcl" @class={{if item.error.Rules "error"}} @name={{concat name "[Rules]"}} @value={{item.Rules}} @onkeyup={{action "change" (concat name "[Rules]")}} />
+        <CodeEditor
+          @syntax="hcl"
+          @class={{if item.error.Rules "error"}}
+          @name={{concat name "[Rules]"}}
+          @value={{item.Rules}}
+          @onkeyup={{action "change" (concat name "[Rules]")}}
+        />
         {{#if item.error.Rules}}
           <strong>{{item.error.Rules.validation}}</strong>
         {{/if}}
