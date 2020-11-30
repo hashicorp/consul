@@ -1,7 +1,7 @@
 <div id="health-checks" class="tab-section">
   <div role="tabpanel">
     {{#if (gt item.Checks.length 0) }}
-      <HealthcheckList @items={{sort-by (comparator 'check' 'Status:asc') item.Checks}} />
+      <Consul::HealthCheck::List @items={{sort-by (comparator 'check' 'Status:asc') item.Checks}} />
     {{else}}
       <EmptyState>
         <BlockSlot @name="body">

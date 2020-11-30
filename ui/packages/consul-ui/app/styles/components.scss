@@ -18,7 +18,6 @@
 @import './components/pill';
 @import './components/table';
 @import './components/tag-list';
-@import './components/healthcheck-output';
 @import './components/freetext-filter';
 @import './components/filter-bar';
 @import './components/flash-message';
@@ -57,6 +56,7 @@
 @import 'consul-ui/components/consul/tomography/graph';
 @import 'consul-ui/components/consul/discovery-chain';
 @import 'consul-ui/components/consul/upstream-instance/list';
+@import 'consul-ui/components/consul/health-check/list';
 @import 'consul-ui/components/consul/exposed-path/list';
 @import 'consul-ui/components/consul/external-source';
 @import 'consul-ui/components/consul/kind';
