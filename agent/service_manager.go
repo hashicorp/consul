@@ -199,7 +199,7 @@ func (w *serviceConfigWatch) RegisterAndStart(ctx context.Context, wg *sync.Wait
 	err = w.agent.addServiceInternal(addServiceInternalRequest{
 		addServiceLockedRequest: req,
 		persistService:          w.registration.Service,
-		persistDefaults:         serviceDefaults,
+		persistServiceDefaults:  serviceDefaults,
 	})
 	if err != nil {
 		return fmt.Errorf("error updating service registration: %v", err)
@@ -346,7 +346,7 @@ func (w *serviceConfigWatch) handleUpdate(ctx context.Context, event cache.Updat
 		Args: addServiceInternalRequest{
 			addServiceLockedRequest: req,
 			persistService:          w.registration.Service,
-			persistDefaults:         serviceDefaults,
+			persistServiceDefaults:  serviceDefaults,
 		},
 		Reply: make(chan error, 1),
 	}

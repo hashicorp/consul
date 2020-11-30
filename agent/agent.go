@@ -1943,16 +1943,8 @@ type addServiceLockedRequest struct {
 	checkStateSnapshot map[structs.CheckID]*structs.HealthCheck
 }
 
-// AddServiceRequest is the union of arguments for calling both
-// addServiceLocked and addServiceInternal. The overlap was significant enough
-// to warrant merging them and indicating which fields are meant to be set only
-// in one of the two contexts.
-//
-// Before using the request struct one of the fixupFor*() methods should be
-// invoked to clear irrelevant fields.
-//
-// The ServiceManager.AddService signature is largely just a passthrough for
-// addServiceLocked and should be treated as such.
+// AddServiceRequest contains the fields used to register a service on the local
+// agent using Agent.AddService.
 type AddServiceRequest struct {
 	Service               *structs.NodeService
 	chkTypes              []*structs.CheckType
@@ -1964,8 +1956,16 @@ type AddServiceRequest struct {
 
 type addServiceInternalRequest struct {
 	addServiceLockedRequest
-	persistService  *structs.NodeService
-	persistDefaults *structs.ServiceConfigResponse
+
+	// persistService may be set to a NodeService definition to indicate to
+	// addServiceInternal that if persist=true, it should persist this definition
+	// of the service, not the one from the Service field. This is necessary so
+	// that the service is persisted without the serviceDefaults.
+	persistService *structs.NodeService
+
+	// persistServiceDefaults may be set to a ServiceConfigResponse to indicate to
+	// addServiceInternal that it should persist the value in a file.
+	persistServiceDefaults *structs.ServiceConfigResponse
 }
 
 // addServiceInternal adds the given service and checks to the local state.
@@ -2113,8 +2113,8 @@ func (a *Agent) addServiceInternal(req addServiceInternalRequest) error {
 
 	if req.persistServiceConfig && a.config.DataDir != "" {
 		var err error
-		if req.persistDefaults != nil {
-			err = a.persistServiceConfig(service.CompoundServiceID(), req.persistDefaults)
+		if req.persistServiceDefaults != nil {
+			err = a.persistServiceConfig(service.CompoundServiceID(), req.persistServiceDefaults)
 		} else {
 			err = a.purgeServiceConfig(service.CompoundServiceID())
 		}
