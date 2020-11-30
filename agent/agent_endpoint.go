@@ -992,25 +992,29 @@ func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.
 		replaceExistingChecks = true
 	}
 
-	if replaceExistingChecks {
-		if err := s.agent.AddService(ns, chkTypes, true, token, ConfigSourceRemote); err != nil {
-			return nil, err
-		}
-	} else {
-		if err := s.agent.AddServiceFromSource(ns, chkTypes, true, token, ConfigSourceRemote); err != nil {
-			return nil, err
-		}
+	addReq := addServiceRequest{
+		service:               ns,
+		chkTypes:              chkTypes,
+		persist:               true,
+		token:                 token,
+		source:                ConfigSourceRemote,
+		replaceExistingChecks: replaceExistingChecks,
 	}
-	// Add sidecar.
+	if err := s.agent.AddService(addReq); err != nil {
+		return nil, err
+	}
+
 	if sidecar != nil {
-		if replaceExistingChecks {
-			if err := s.agent.AddService(sidecar, sidecarChecks, true, sidecarToken, ConfigSourceRemote); err != nil {
-				return nil, err
-			}
-		} else {
-			if err := s.agent.AddServiceFromSource(sidecar, sidecarChecks, true, sidecarToken, ConfigSourceRemote); err != nil {
-				return nil, err
-			}
+		addReq := addServiceRequest{
+			service:               sidecar,
+			chkTypes:              sidecarChecks,
+			persist:               true,
+			token:                 sidecarToken,
+			source:                ConfigSourceRemote,
+			replaceExistingChecks: replaceExistingChecks,
+		}
+		if err := s.agent.AddService(addReq); err != nil {
+			return nil, err
 		}
 	}
 	s.syncChanges()

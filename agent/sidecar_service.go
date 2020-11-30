@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-func (a *Agent) sidecarServiceID(serviceID string) string {
+func sidecarServiceID(serviceID string) string {
 	return serviceID + "-sidecar-proxy"
 }
 
@@ -29,6 +29,7 @@ func (a *Agent) sidecarServiceID(serviceID string) string {
 // The third return argument is the effective Token to use for the sidecar
 // registration. This will be the same as the token parameter passed unless the
 // SidecarService definition contains a distinct one.
+// TODO: return addServiceRequest
 func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token string) (*structs.NodeService, []*structs.CheckType, string, error) {
 	if ns.Connect.SidecarService == nil {
 		return nil, nil, "", nil
@@ -39,7 +40,7 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 
 	// Override the ID which must always be consistent for a given outer service
 	// ID. We rely on this for lifecycle management of the nested definition.
-	sidecar.ID = a.sidecarServiceID(ns.ID)
+	sidecar.ID = sidecarServiceID(ns.ID)
 
 	// for now at least these must be identical
 	sidecar.EnterpriseMeta = ns.EnterpriseMeta

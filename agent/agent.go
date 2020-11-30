@@ -1893,21 +1893,15 @@ func (a *Agent) readPersistedServiceConfigs() (map[structs.ServiceID]*structs.Se
 // AddService is used to add a service entry and its check. Any check for this service missing from chkTypes will be deleted.
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered
-func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.CheckType, persist bool, token string, source configSource) error {
+func (a *Agent) AddService(req addServiceRequest) error {
+	// service *structs.NodeService, chkTypes []*structs.CheckType, persist bool, token string, source configSource
+	req.waitForCentralConfig = true
+	req.persistServiceConfig = true
 	a.stateLock.Lock()
 	defer a.stateLock.Unlock()
-	return a.addServiceLocked(&addServiceRequest{
-		service:               service,
-		chkTypes:              chkTypes,
-		previousDefaults:      nil,
-		waitForCentralConfig:  true,
-		persist:               persist,
-		persistServiceConfig:  true,
-		token:                 token,
-		replaceExistingChecks: true,
-		source:                source,
-		snap:                  a.snapshotCheckState(),
-	})
+
+	req.snap = a.State.Checks(structs.WildcardEnterpriseMeta())
+	return a.addServiceLocked(&req)
 }
 
 // AddServiceFromSource is used to add a service entry.
@@ -2374,7 +2368,7 @@ func (a *Agent) removeServiceLocked(serviceID structs.ServiceID, persist bool) e
 }
 
 func (a *Agent) removeServiceSidecars(serviceID structs.ServiceID, persist bool) error {
-	sidecarSID := structs.NewServiceID(a.sidecarServiceID(serviceID.ID), &serviceID.EnterpriseMeta)
+	sidecarSID := structs.NewServiceID(sidecarServiceID(serviceID.ID), &serviceID.EnterpriseMeta)
 	if sidecar := a.State.Service(sidecarSID); sidecar != nil {
 		// Double check that it's not just an ID collision and we actually added
 		// this from a sidecar.
