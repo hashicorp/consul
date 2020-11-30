@@ -4,8 +4,9 @@ import { clearRender, render, waitUntil } from '@ember/test-helpers';
 import hbs from 'htmlbars-inline-precompile';
 
 import test from 'ember-sinon-qunit/test-support/test';
-import Service from '@ember/service';
+import Service, { inject as service } from '@ember/service';
 
+import DataSourceComponent from 'consul-ui/components/data-source/index';
 import { BlockingEventSource as RealEventSource } from 'consul-ui/utils/dom/event-source';
 
 const createFakeBlockingEventSource = function() {
@@ -43,8 +44,9 @@ module('Integration | Component | data-source', function(hooks) {
     const addEventListener = this.stub();
     const removeEventListener = this.stub();
     let count = 0;
-    const fakeService = Service.extend({
-      open: function(uri, obj) {
+    const fakeService = class extends Service {
+      close = close;
+      open(uri, obj) {
         open(uri);
         const source = new BlockingEventSource();
         source.getCurrentEvent = function() {
@@ -53,17 +55,23 @@ module('Integration | Component | data-source', function(hooks) {
         source.addEventListener = addEventListener;
         source.removeEventListener = removeEventListener;
         return source;
-      },
-      close: close,
-    });
+      }
+    };
     this.owner.register('service:data-source/fake-service', fakeService);
-    this.owner.inject('component:data-source', 'data', 'service:data-source/fake-service');
+    this.owner.register(
+      'component:data-source',
+      class extends DataSourceComponent {
+        @service('data-source/fake-service') dataSource;
+      }
+    );
     this.actions.change = data => {
       count++;
       switch (count) {
         case 1:
           assert.equal(data, 'a', 'change was called first with "a"');
-          setTimeout(() => this.set('src', 'b'), 0);
+          setTimeout(() => {
+            this.set('src', 'b');
+          }, 0);
           break;
         case 2:
           assert.equal(data, 'b', 'change was called second with "b"');
@@ -92,17 +100,22 @@ module('Integration | Component | data-source', function(hooks) {
     const source = new RealEventSource();
     const error = this.stub();
     const close = this.stub();
-    const fakeService = Service.extend({
-      open: function(uri, obj) {
+    const fakeService = class extends Service {
+      close = close;
+      open(uri, obj) {
         source.getCurrentEvent = function() {
           return {};
         };
         return source;
-      },
-      close: close,
-    });
+      }
+    };
     this.owner.register('service:data-source/fake-service', fakeService);
-    this.owner.inject('component:data-source', 'data', 'service:data-source/fake-service');
+    this.owner.register(
+      'component:data-source',
+      class extends DataSourceComponent {
+        @service('data-source/fake-service') dataSource;
+      }
+    );
     this.actions.change = data => {
       source.dispatchEvent({ type: 'error', error: {} });
     };
