@@ -126,7 +126,7 @@
 </svg>
 <svg class="resolver-inlets" viewBox={{concat '0 0 10 ' height}}>
   {{#each routes as |item|}}
-    {{#if (starts-with 'resolver:' item.NextNode) }}
+    {{#if (string-starts-with item.NextNode 'resolver:') }}
       {{#let (dom-position (concat '#' item.NextNode) '.edges') as |dest|}}
         <circle r="2.5" cx="5" cy={{add dest.y (div dest.height 2)}} />
       {{/let}}
@@ -142,7 +142,7 @@
 </svg>
 <svg class="splitter-inlets" viewBox={{concat '0 0 10 ' height}}>
   {{#each routes as |item|}}
-    {{#if (starts-with 'splitter:' item.NextNode) }}
+    {{#if (string-starts-with item.NextNode 'splitter:') }}
       {{#let (dom-position (concat '#' item.NextNode) '.edges') as |dest|}}
         <circle r="2.5" cx="5" cy={{add dest.y (div dest.height 2)}} />
       {{/let}}
