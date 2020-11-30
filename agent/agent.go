@@ -512,7 +512,6 @@ func (a *Agent) Start(ctx context.Context) error {
 	if err := a.baseDeps.AutoConfig.Start(&lib.StopChannelContext{StopCh: a.shutdownCh}); err != nil {
 		return fmt.Errorf("AutoConf failed to start certificate monitor: %w", err)
 	}
-	a.serviceManager.Start()
 
 	// Load checks/services/metadata.
 	emptyCheckSnapshot := map[structs.CheckID]*structs.HealthCheck{}
