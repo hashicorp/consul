@@ -40,10 +40,7 @@ export default Component.extend(Slotted, {
         this.dom.setEventTargetProperties(e, {
           selected: target => value,
           selectedItems: target => {
-            const opts = [...options];
-            if (opts.length > 0) {
-              return opts.join(',');
-            }
+            return [...options].join(',');
           },
         })
       );

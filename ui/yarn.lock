@@ -7541,7 +7541,7 @@ ember-cli-htmlbars@^3.0.0, ember-cli-htmlbars@^3.0.1:
     json-stable-stringify "^1.0.1"
     strip-bom "^3.0.0"
 
-ember-cli-htmlbars@^4.0.5, ember-cli-htmlbars@^4.2.0, ember-cli-htmlbars@^4.3.1:
+ember-cli-htmlbars@^4.0.5, ember-cli-htmlbars@^4.2.0, ember-cli-htmlbars@^4.2.3, ember-cli-htmlbars@^4.3.1:
   version "4.4.0"
   resolved "https://registry.yarnpkg.com/ember-cli-htmlbars/-/ember-cli-htmlbars-4.4.0.tgz#7ca17d5ca8f7550984346d9e6e93da0c3323f8d9"
   integrity sha512-ohgctqk7dXIZR4TgN0xRoUYltWhghFJgqmtuswQTpZ7p74RxI9PKx+E8WV/95mGcPzraesvMNBg5utQNvcqgNg==
@@ -8287,6 +8287,14 @@ ember-runtime-enumerable-includes-polyfill@^2.0.0:
   dependencies:
     ember-cli-babel "^6.9.0"
     ember-cli-version-checker "^2.1.0"
+
+ember-set-helper@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/ember-set-helper/-/ember-set-helper-2.0.0.tgz#afdb6cf2f5750f6f69e38a387f19615560f30a0f"
+  integrity sha512-cnKbQEkPi+plRI9eWj76zt4pjRKM/PsKIlYP2ZcSI7R83c1Zig5DLDUft+1PJI/1/fnPGLB8s3E6hjFBQo+T9g==
+  dependencies:
+    ember-cli-babel "^7.18.0"
+    ember-cli-htmlbars "^4.2.3"
 
 ember-sinon-qunit@5.0.0:
   version "5.0.0"

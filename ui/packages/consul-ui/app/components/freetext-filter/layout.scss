@@ -1,0 +1,28 @@
+.freetext-filter {
+  --height: 2.2rem;
+  & {
+    display: flex;
+    position: relative;
+    height: var(--height);
+  }
+  &_input,
+  & > label {
+    flex-grow: 1;
+  }
+  &_input,
+  &_label {
+    height: 100%;
+  }
+  &_input {
+    padding: 8px 10px;
+    padding-left: var(--height);
+    min-width: 12.7rem;
+    width: 100%;
+  }
+  &_label {
+    visibility: hidden;
+    position: absolute;
+    z-index: 1;
+    width: var(--height);
+  }
+}

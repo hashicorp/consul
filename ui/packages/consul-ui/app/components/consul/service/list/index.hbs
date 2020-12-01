@@ -1,5 +1,10 @@
-{{#if (gt items.length 0)}}
-<ListCollection @items={{items}} @linkable={{action "isLinkable"}} class="consul-service-list" as |item index|>
+<ListCollection
+  class="consul-service-list"
+  ...attributes
+  @items={{@items}}
+  @linkable={{action this.isLinkable}}
+  as |item index|
+>
   <BlockSlot @name="header">
     <dl class={{item.MeshStatus}}>
       <dt>
@@ -85,4 +90,3 @@
     <TagList @item={{item}} />
   </BlockSlot>
 </ListCollection>
-{{/if}}

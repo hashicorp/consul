@@ -25,6 +25,11 @@ export default class Kv extends Model {
   @attr('number') ModifyIndex;
   @attr('string') Session;
 
+  @computed('isFolder')
+  get Kind() {
+    return this.isFolder ? 'folder' : 'key';
+  }
+
   @computed('Key')
   get isFolder() {
     return isFolder(this.Key || '');

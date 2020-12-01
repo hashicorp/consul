@@ -1,9 +1,10 @@
 $ideal-width: 1260px;
-$--horizontal-filters: '(min-width: 910px)';
-$--lt-horizontal-filters: '(max-width: 909px)';
 
-$--horizontal-selects: '(min-width: 670px)';
-$--lt-horizontal-selects: '(max-width: 669px)';
+$--horizontal-filters: '(min-width: 1080px)';
+$--lt-horizontal-filters: '(max-width: 1079px)';
+
+$--horizontal-selects: '(min-width: 696px)';
+$--lt-horizontal-selects: '(max-width: 695px)';
 
 $--horizontal-nav: '(min-width: 850px)';
 $--lt-horizontal-nav: '(max-width: 849px)';

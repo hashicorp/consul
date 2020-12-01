@@ -1,0 +1,5 @@
+{{yield (hash
+  items=this.items
+  Collection=(if (gt this.items.length 0) (component 'anonymous') '')
+  Empty=(if (eq this.items.length 0) (component 'anonymous') '')
+)}}

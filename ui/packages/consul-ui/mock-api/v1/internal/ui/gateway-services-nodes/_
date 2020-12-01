@@ -37,7 +37,7 @@ ${i === 1 ? `
         )
       }
     ],
-    "InstanceCount": ${fake.helpers.randomize([fake.random.number({min: 1, max: 100})])},
+    "InstanceCount": ${ i === 0 ? 0 : fake.helpers.randomize([fake.random.number({min: 0, max: 100})])},
     "ChecksPassing":${fake.random.number({min: 1, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
     "ChecksWarning":${fake.random.number({min: 0, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
     "ChecksCritical":${fake.random.number({min: 0, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
