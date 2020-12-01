@@ -25,7 +25,6 @@
     "@hashicorp/react-search": "^2.1.0",
     "@hashicorp/react-section-header": "2.0.2",
     "@hashicorp/react-subnav": "3.2.6",
-    "@hashicorp/react-text-and-content": "4.1.4",
     "@hashicorp/react-text-split": "0.4.0",
     "@hashicorp/react-text-split-with-code": "^1.0.2-alpha.15",
     "@hashicorp/react-text-split-with-image": "1.4.0",
