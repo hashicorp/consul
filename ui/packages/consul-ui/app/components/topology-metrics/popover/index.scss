@@ -1,87 +1,27 @@
 .topology-metrics-popover {
-  .deny-target,
-  .L7-target {
-    transform: translate(-50%,-50%);
+  > button {
     position: absolute;
+    transform: translate(-50%,-50%);
     background-color: $white;
-    padding: 1px 2px;
+    padding: 1px 1px;
+    &:hover {
+      cursor:pointer;
+    }
+    &:active, &:focus {
+      outline: none;
+    }
   }
-  .deny-target:hover,
-  .L7-target:hover {
-    cursor:pointer;
+  &.deny .informed-action header::before {
+    display: none;
   }
-  .deny-target:active,
-  .deny-target:focus,
-  .L7-target:active,
-  .L7-target:focus {
-    outline: none;
-  }
-  .deny-target::before {
+  &.deny > button::before,
+  &.deny .tippy-arrow::after {
     @extend %with-cancel-square-fill-color-mask, %as-pseudo;
     background-color: $red-500;
   }
-  .L7-target::before {
+  &.l7 > button::before,
+  &.l7 .tippy-arrow::after {
     @extend %with-layers-mask, %as-pseudo;
     background-color: $gray-300;
-  }
-  .body {
-    padding: 12px 12px 16px 25px;
-    h3 {
-      font-size: 14px;
-      padding-bottom: 4px;
-    }
-    p {
-      font-size: 12px;
-    }
-  }
-  .actions {
-    border-top: 1px solid $gray-300;
-    width: 100%;
-    display: inline-flex;
-    a,
-    button {
-      width: 50%;
-      height: 36px;
-      padding: 10px 0;
-      font-weight: $typo-weight-medium;
-      text-align: center;
-      line-height: normal;
-    }
-    button:first-child {
-      color: $blue-500;
-    }
-    button:nth-child(2) {
-      color: $gray-800;
-    }
-    button:hover {
-      cursor: pointer;
-    }
-  }
-  .ember-popover {
-    padding: 0;
-    width: 200px;
-    z-index: 3 !important;
-  }
-}
-.L7-popover {
-  .body {
-    background-color: $white;
-  }
-  h3 {
-    margin-left: -20px;
-    color: $blue-500;
-  }
-  h3::before {
-    @extend %with-info-circle-fill-mask, %as-pseudo;
-    color: $blue-500;
-    margin-right: 4px;
-  }
-}
-.deny-popover {
-  .body {
-    background-color: $white;
-  }
-  h3 {
-    color: $red-800;
   }
 }

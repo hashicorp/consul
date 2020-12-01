@@ -15,8 +15,8 @@ export default class TopologyMetricsUpLines extends Component {
       const partLen = item.getPointAtLength(Math.ceil(pathLen * 0.666));
       return {
         id: item.id,
-        x: partLen.x - center.x,
-        y: partLen.y - center.y * 0.81,
+        x: Math.round(partLen.x - center.x),
+        y: Math.round(partLen.y - center.y * 0.81),
       };
     });
   }
