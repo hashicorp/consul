@@ -1,13 +1,39 @@
-<form class="filter-bar">
-  <FreetextFilter
-    @onsearch={{action onsearch}}
-    @value={{search}}
-    @placeholder="Search"
-  />
+<form
+  class="consul-token-search-bar filter-bar"
+  ...attributes
+>
+  <div class="search">
+    <FreetextFilter
+      @onsearch={{action @onsearch}}
+      @value={{@search}}
+      @placeholder="Search"
+    >
+      <PopoverSelect
+        class="type-search-properties"
+        @position="right"
+        @onchange={{action @onfilter.searchproperty}}
+        @multiple={{true}}
+      as |components|>
+        <BlockSlot @name="selected">
+          <span>
+            Search across
+          </span>
+        </BlockSlot>
+        <BlockSlot @name="options">
+  {{#let components.Optgroup components.Option as |Optgroup Option|}}
+          <Option @value="AccessorID" @selected={{contains 'AccessorID' @filter.searchproperties}}>AccessorID</Option>
+          <Option @value="Description" @selected={{contains 'Description' @filter.searchproperties}}>Description</Option>
+          <Option @value="Policy" @selected={{contains 'Policy' @filter.searchproperties}}>Policy</Option>
+          <Option @value="Role" @selected={{contains 'Role' @filter.searchproperties}}>Role</Option>
+  {{/let}}
+        </BlockSlot>
+      </PopoverSelect>
+    </FreetextFilter>
+  </div>
   <div class="filters">
     <PopoverSelect
       @position="left"
-      @onchange={{action onfilter.kind}}
+      @onchange={{action @onfilter.kind}}
       @multiple={{true}}
     as |components|>
       <BlockSlot @name="selected">
@@ -17,9 +43,9 @@
       </BlockSlot>
       <BlockSlot @name="options">
 {{#let components.Optgroup components.Option as |Optgroup Option|}}
-        <Option @value="global-management" @selected={{contains 'global-management' filter.kinds}}>Global Management</Option>
-        <Option @value="global" @selected={{contains 'global' filter.kinds}}>Global</Option>
-        <Option @value="local" @selected={{contains 'local' filter.kinds}}>Local</Option>
+        <Option @value="global-management" @selected={{contains 'global-management' @filter.kinds}}>Global Management</Option>
+        <Option @value="global" @selected={{contains 'global' @filter.kinds}}>Global Scope</Option>
+        <Option @value="local" @selected={{contains 'local' @filter.kinds}}>Local Scope</Option>
 {{/let}}
       </BlockSlot>
     </PopoverSelect>
@@ -29,7 +55,7 @@
       class="type-sort"
       data-test-sort-control
       @position="right"
-      @onchange={{action onsort}}
+      @onchange={{action @onsort}}
       @multiple={{false}}
     as |components|>
       <BlockSlot @name="selected">
@@ -40,15 +66,15 @@
               ))
             as |selectable|
           }}
-            {{get selectable sort}}
+            {{get selectable @sort}}
           {{/let}}
         </span>
       </BlockSlot>
       <BlockSlot @name="options">
 {{#let components.Optgroup components.Option as |Optgroup Option|}}
         <Optgroup @label="Creation">
-          <Option @value="CreateTime:desc" @selected={{eq "CreateTime:desc" sort}}>Newest to oldest</Option>
-          <Option @value="CreateTime:asc" @selected={{eq "CreateTime:asc" sort}}>Oldest to newest</Option>
+          <Option @value="CreateTime:desc" @selected={{eq "CreateTime:desc" @sort}}>Newest to oldest</Option>
+          <Option @value="CreateTime:asc" @selected={{eq "CreateTime:asc" @sort}}>Oldest to newest</Option>
         </Optgroup>
 {{/let}}
       </BlockSlot>

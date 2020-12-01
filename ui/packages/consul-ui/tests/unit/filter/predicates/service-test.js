@@ -1,8 +1,9 @@
-import factory from 'consul-ui/filter/predicates/service';
+import predicates from 'consul-ui/filter/predicates/service';
+import { andOr } from 'consul-ui/utils/filter';
 import { module, test } from 'qunit';
 
 module('Unit | Filter | Predicates | service', function() {
-  const predicate = factory();
+  const predicate = andOr(predicates);
 
   test('it returns registered/unregistered items depending on instance count', function(assert) {
     const items = [

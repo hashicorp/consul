@@ -9,6 +9,10 @@ export default class IndexRoute extends Route.extend(WithNspaceActions) {
 
   queryParams = {
     sortBy: 'sort',
+    searchproperty: {
+      as: 'searchproperty',
+      empty: [['Name', 'Description', 'Role', 'Policy']],
+    },
     search: {
       as: 'filter',
       replace: true,

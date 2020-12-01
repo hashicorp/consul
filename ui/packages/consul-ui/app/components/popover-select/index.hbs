@@ -1,4 +1,9 @@
-<PopoverMenu @position={{or position "left"}} class="popover-select" ...attributes as |components menu|>
+<PopoverMenu
+  class="popover-select"
+  ...attributes
+  @position={{or position "left"}}
+  as |components menu|
+>
   {{yield}}
   {{#let
     (component 'popover-select/optgroup' components=components)
@@ -28,4 +33,4 @@
       </YieldSlot>
     </BlockSlot>
   {{/let}}
-  </PopoverMenu>
+</PopoverMenu>

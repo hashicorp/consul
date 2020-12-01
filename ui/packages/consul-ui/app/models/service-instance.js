@@ -20,6 +20,8 @@ export default class ServiceInstance extends Model {
   @attr() meta;
 
   @or('Service.ID', 'Service.Service') Name;
+  @or('Service.Address', 'Node.Service') Address;
+
   @alias('Service.Tags') Tags;
   @alias('Service.Meta') Meta;
   @alias('Service.Namespace') Namespace;

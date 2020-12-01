@@ -1,12 +1,8 @@
-{{#let (filter-by "Type" "client" items) as |client|}}
-  {{#let (selectable-key-values
-      (array "" (concat "All (" items.length ")"))
-      (array "management" (concat "Management (" (sub items.length client.length) ")"))
-      (array "client" (concat "Client (" client.length ")"))
-        selected=filterBy
-    )
-    as |filter|
-  }}
+{{page-title 'ACLs'}}
+{{#let (hash
+  kinds=(if kind (split kind ',') undefined)
+) as |filters|}}
+  {{#let (or sortBy "Name:asc") as |sort|}}
 <AppView>
   <BlockSlot @name="notification" as |status type item error|>
     <Consul::Acl::Notifications
@@ -25,129 +21,40 @@
     <a data-test-create href="{{href-to 'dc.acls.create'}}" class="type-create">Create</a>
   </BlockSlot>
   <BlockSlot @name="toolbar">
-{{#if (gt items.length 0) }}
-    <SearchBar
-      data-test-acl-filter="true"
-      @value={{search}}
-      @onsearch={{action (mut search) value="target.value"}}
-      @selected={{filter.selected}}
-      @options={{filter.items}}
-      @onchange={{action (mut filterBy) value='target.value'}}
-    />
-{{/if}}
+    {{#if (gt items.length 0) }}
+      <Consul::Acl::SearchBar
+        @search={{search}}
+        @onsearch={{action (mut search) value="target.value"}}
+
+        @sort={{sort}}
+        @onsort={{action (mut sortBy) value="target.selected"}}
+
+        @filter={{filters}}
+        @onfilter={{hash
+          kind=(action (mut kind) value="target.selectedItems")
+        }}
+      />
+    {{/if}}
   </BlockSlot>
   <BlockSlot @name="content">
-    <ChangeableSet @dispatcher={{searchable 'acl' (if (eq filter.selected.key "") items (filter-by "Type" filter.selected.key items))}} @terms={{search}}>
-      <BlockSlot @name="set" as |filtered|>
-        <TabularCollection @items={{sort-by "Name:asc" filtered}} as |item index|>
-          <BlockSlot @name="header">
-            <th>Name</th>
-            <th>Type</th>
-          </BlockSlot>
-          <BlockSlot @name="row">
-            <td data-test-acl="{{item.Name}}">
-              <a href={{href-to 'dc.acls.edit' item.ID}}>{{item.Name}}</a>
-            </td>
-            <td>
-              {{#if (eq item.Type 'management')}}
-                <strong>{{item.Type}}</strong>
-              {{else}}
-                <span>{{item.Type}}</span>
-              {{/if}}
-            </td>
-          </BlockSlot>
-          <BlockSlot @name="actions" as |index change checked|>
-            <PopoverMenu @expanded={{if (eq checked index) true false}} @onchange={{action change index}} @keyboardAccess={{false}} @submenus={{array "logout" "use" "delete"}}>
-              <BlockSlot @name="trigger">
-                More
-              </BlockSlot>
-              <BlockSlot @name="menu" as |confirm send keypressClick|>
-                  <li role="none">
-                    <a data-test-edit role="menuitem" tabindex="-1" href={{href-to 'dc.acls.edit' item.ID}}>Edit</a>
-                  </li>
-      {{#if (eq item.ID token.SecretID) }}
-                  <li role="none">
-                    <label for={{concat confirm 'logout'}} role="menuitem" tabindex="-1" onkeypress={{keypressClick}} data-test-logout>Stop using</label>
-                    <div role="menu">
-                      <div class="confirmation-alert warning">
-                        <div>
-                          <header>
-                            Confirm logout
-                          </header>
-                          <p>
-                            Are you sure you want to stop using this ACL token? This will log you out.
-                          </p>
-                        </div>
-                        <ul>
-                          <li class="dangerous">
-                            <button tabindex="-1" type="button" onclick={{action send 'logout' item}}>Logout</button>
-                          </li>
-                          <li>
-                            <label for={{concat confirm 'logout'}}>Cancel</label>
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
-                  </li>
-      {{else}}
-                  <li role="none">
-                    <label for={{concat confirm 'use'}} role="menuitem" tabindex="-1" onkeypress={{keypressClick}} data-test-use>Use</label>
-                    <div role="menu">
-                      <div class="confirmation-alert warning">
-                        <div>
-                          <header>
-                            Confirm use
-                          </header>
-                          <p>
-                            Are you sure you want to use this ACL token?
-                          </p>
-                        </div>
-                        <ul>
-                          <li class="dangerous">
-                            <button data-test-confirm-use tabindex="-1" type="button" onclick={{action send 'use' item}}>Use</button>
-                          </li>
-                          <li>
-                            <label for={{concat confirm 'use'}}>Cancel</label>
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
-                  </li>
-      {{/if}}
-                  <li role="none">
-                      <button role="menuitem" tabindex="-1" type="button" data-test-clone {{action 'sendClone' item}}>Duplicate</button>
-                  </li>
-      {{# if (not-eq item.ID 'anonymous') }}
-                  <li role="none" class="dangerous">
-                    <label for={{concat confirm 'delete'}} role="menuitem" tabindex="-1" onkeypress={{keypressClick}} data-test-delete>Delete</label>
-                    <div role="menu">
-                      <div class="confirmation-alert warning">
-                        <div>
-                          <header>
-                            Confirm Delete
-                          </header>
-                          <p>
-                            Are you sure you want to delete this token?
-                          </p>
-                        </div>
-                        <ul>
-                          <li class="dangerous">
-                            <button tabindex="-1" type="button" class="type-delete" onclick={{action send 'delete' item}}>Delete</button>
-                          </li>
-                          <li>
-                            <label for={{concat confirm 'delete'}}>Cancel</label>
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
-                  </li>
-      {{/if}}
-              </BlockSlot>
-            </PopoverMenu>
-          </BlockSlot>
-        </TabularCollection>
-      </BlockSlot>
-      <BlockSlot @name="empty">
+    <DataCollection
+      @type="acl"
+      @sort={{sort}}
+      @filters={{filters}}
+      @search={{search}}
+      @items={{items}}
+    as |collection|>
+      <collection.Collection>
+        <Consul::Acl::List
+          @items={{collection.items}}
+
+          @ondelete={{route-action 'delete'}}
+          @onuse={{route-action 'use'}}
+          @onclone={{route-action 'clone'}}
+        >
+        </Consul::Acl::List>
+      </collection.Collection>
+      <collection.Empty>
         <EmptyState @allowLogin={{true}}>
           <BlockSlot @name="header">
             <h2>
@@ -168,8 +75,8 @@
             </p>
           </BlockSlot>
         </EmptyState>
-      </BlockSlot>
-    </ChangeableSet>
+      </collection.Empty>
+    </DataCollection>
   </BlockSlot>
 </AppView>
   {{/let}}

@@ -1,36 +1,37 @@
-import getPredicate from 'consul-ui/search/predicates/intention';
+import predicates from 'consul-ui/search/predicates/intention';
+import { search as create } from 'consul-ui/services/search';
 import { module, test } from 'qunit';
 
 module('Unit | Search | Predicate | intention', function() {
-  const predicate = getPredicate();
+  const search = create(predicates);
   test('items are found by properties', function(assert) {
-    [
+    const actual = [
       {
         SourceName: 'Hit',
         DestinationName: 'destination',
       },
       {
         SourceName: 'source',
+        DestinationName: 'destination',
+      },
+      {
+        SourceName: 'source',
         DestinationName: 'hiT',
       },
-    ].forEach(function(item) {
-      const actual = predicate('hit')(item);
-      assert.ok(actual);
-    });
+    ].filter(search('hit'));
+    assert.equal(actual.length, 2);
   });
   test('items are not found', function(assert) {
-    [
+    const actual = [
       {
         SourceName: 'source',
         DestinationName: 'destination',
       },
-    ].forEach(function(item) {
-      const actual = predicate('*')(item);
-      assert.notOk(actual);
-    });
+    ].filter(search('hit'));
+    assert.equal(actual.length, 0);
   });
   test('items are found by *', function(assert) {
-    [
+    const actual = [
       {
         SourceName: '*',
         DestinationName: 'destination',
@@ -39,26 +40,22 @@ module('Unit | Search | Predicate | intention', function() {
         SourceName: 'source',
         DestinationName: '*',
       },
-    ].forEach(function(item) {
-      const actual = predicate('*')(item);
-      assert.ok(actual);
-    });
+    ].filter(search('*'));
+    assert.equal(actual.length, 2);
   });
   test("* items are found by searching anything in 'All Services (*)'", function(assert) {
-    [
-      {
-        SourceName: '*',
-        DestinationName: 'destination',
-      },
-      {
-        SourceName: 'source',
-        DestinationName: '*',
-      },
-    ].forEach(function(item) {
-      ['All Services (*)', 'SerVices', '(*)', '*', 'vIces', 'lL Ser'].forEach(function(term) {
-        const actual = predicate(term)(item);
-        assert.ok(actual);
-      });
+    ['All Services (*)', 'SerVices', '(*)', '*', 'vIces', 'lL Ser'].forEach(term => {
+      const actual = [
+        {
+          SourceName: '*',
+          DestinationName: 'destination',
+        },
+        {
+          SourceName: 'source',
+          DestinationName: '*',
+        },
+      ].filter(search(term));
+      assert.equal(actual.length, 2);
     });
   });
 });
