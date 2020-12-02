@@ -56,9 +56,12 @@
 {{/if}}
 
 {{#each @items as |item|}}
-  <TopologyMetrics::Popover
-    @position={{find-by 'id' (concat item.Namespace item.Name) this.iconPositions}}
-    @item={{item}}
-    @oncreate={{action @oncreate @service item}}
-  />
+  {{#if (or (not item.Intention.Allowed) item.Intention.HasPermissions)}}
+    <TopologyMetrics::Popover
+      @type={{if item.Intention.HasPermissions 'l7' 'deny'}}
+      @position={{find-by 'id' (concat item.Namespace item.Name) this.iconPositions}}
+      @item={{item}}
+      @oncreate={{action @oncreate @service item}}
+    />
+  {{/if}}
 {{/each}}

@@ -16,8 +16,8 @@ export default class TopoloyMetricsDownLines extends Component {
 
       return {
         id: item.id,
-        x: thirdLen.x - view.x,
-        y: thirdLen.y - view.y,
+        x: Math.round(thirdLen.x - view.x),
+        y: Math.round(thirdLen.y - view.y),
       };
     });
   }

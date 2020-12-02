@@ -32,7 +32,6 @@
 @import './components/tooltip-panel';
 @import './components/menu-panel';
 @import './components/more-popover-menu';
-@import './components/confirmation-alert';
 @import './components/definition-table';
 @import './components/radio-card';
 
@@ -47,11 +46,13 @@
 /**/
 
 @import './components/app-view';
+@import 'consul-ui/components/overlay';
 @import 'consul-ui/components/tooltip';
 @import 'consul-ui/components/notice';
 @import 'consul-ui/components/modal-dialog';
 @import 'consul-ui/components/filter-bar';
 @import 'consul-ui/components/freetext-filter';
+@import 'consul-ui/components/informed-action';
 
 @import 'consul-ui/components/consul/tomography/graph';
 @import 'consul-ui/components/consul/discovery-chain';

@@ -1,0 +1,51 @@
+[data-theme~="square-tail"] {
+  .tippy-arrow {
+    --size: 18px;
+    left: calc(0px - (var(--size) / 2)) !important;
+  }
+  .tippy-arrow::before {
+    background-color: $white;
+    width: calc(1px + var(--size));
+    height: calc(1px + var(--size));
+    border: $decor-border-100;
+    border-color: $gray-300;
+  }
+  // potential icon
+  .tippy-arrow::after {
+    position: absolute;
+    left: 1px;
+  }
+  &[data-placement^=top] {
+    & {
+      bottom: -10px;
+    }
+    .informed-action {
+      border-bottom-left-radius: 0 !important;
+    }
+    .tippy-arrow::before {
+      border-bottom-left-radius: $decor-radius-200;
+      border-bottom-right-radius: $decor-radius-200;
+      border-top: 0 !important;
+    }
+    .tippy-arrow::after {
+      bottom: calc(0px - var(--size));
+    }
+  }
+  &[data-placement^=bottom] {
+    & {
+      top: -10px;
+    }
+    .informed-action {
+      border-top-left-radius: 0 !important;
+    }
+    .tippy-arrow::before {
+      border-top-left-radius: $decor-radius-200;
+      border-top-right-radius: $decor-radius-200;
+      border-bottom: 0 !important;
+    }
+    .tippy-arrow::after {
+      top: calc(0px - var(--size));
+    }
+  }
+}
+

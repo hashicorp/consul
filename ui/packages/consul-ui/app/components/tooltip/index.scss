@@ -1,9 +1,12 @@
-[data-tippy-root] {
-  @extend %tooltip-layer;
-}
 .tippy-box[data-theme~=tooltip] {
   & {
     @extend %tooltip-bubble;
+  }
+  .tippy-content {
+    @extend %tooltip-content;
+  }
+  .tippy-arrow {
+    @extend %tooltip-tail;
   }
   &[data-placement^=bottom] > .tippy-arrow {
     @extend %tooltip-tail-bottom;
@@ -17,33 +20,19 @@
   &[data-placement^=right] > .tippy-arrow {
     @extend %tooltip-tail-right;
   }
-  .tippy-arrow {
-    @extend %tooltip-tail;
-  }
-  .tippy-content {
-    @extend %tooltip-content;
-  }
+}
+%tooltip-content {
+  @extend %p3;
+  padding: 12px;
+  max-width: 192px;
+  position: relative;
+  z-index: 1;
 }
 
-%tooltip-layer {
-  max-width: calc(100vw - 10px);
-}
 %tooltip-bubble {
   & {
-    position: relative;
-    outline: 0;
-
     background-color: $gray-700;
     color: $white;
-    border-radius: $decor-radius-100;
-    box-shadow: $decor-elevation-400;
-    transition-property: transform, visibility, opacity;
-  }
-  &[data-animation=fade][data-state=hidden] {
-    opacity: 0;
-  }
-  &[data-inertia][data-state=visible] {
-    transition-timing-function: cubic-bezier(.54, 1.5, .38, 1.11);
   }
 }
 %tooltip-tail {
@@ -54,66 +43,32 @@
     height: calc(var(--size) * 2);
   }
   &::before {
-    content: "";
-    position: absolute;
-
     border-color: $transparent;
     border-style: solid;
   }
 }
-%tooltip-tail-top {
-  & {
-    bottom: 0;
-  }
-  &::before {
-    bottom: calc(0px - var(--size));
-    left: 0;
 
+%tooltip-tail-top {
+  &::before {
     border-width: var(--size) var(--size) 0;
     border-top-color: initial;
-    transform-origin: center top;
   }
 }
 %tooltip-tail-bottom {
-  & {
-    top: 0
-  }
   &::before {
-    top: calc(0px - var(--size));
-    left: 0;
     border-width: 0 var(--size) var(--size);
     border-bottom-color: initial;
-    transform-origin: center bottom;
   }
 }
 %tooltip-tail-left {
-  & {
-    right: 0;
-  }
   &::before {
-    right: calc(0px - var(--size));
     border-width: var(--size) 0 var(--size) var(--size);
     border-left-color: initial;
-    transform-origin: center left;
   }
 }
 %tooltip-tail-right {
-  & {
-    left: 0
-  }
   &::before {
-    left: calc(0px - var(--size));
     border-width: var(--size) var(--size) var(--size) 0;
     border-right-color: initial;
-    transform-origin: center right;
   }
 }
-
-%tooltip-content {
-  @extend %p3;
-  padding: 12px;
-  max-width: 192px;
-  position: relative;
-  z-index: 1;
-}
-
