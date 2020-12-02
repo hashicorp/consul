@@ -4,6 +4,7 @@ import setHelpers from 'mnemonist/set';
 import intention from 'consul-ui/search/predicates/intention';
 import upstreamInstance from 'consul-ui/search/predicates/upstream-instance';
 import serviceInstance from 'consul-ui/search/predicates/service-instance';
+import healthCheck from 'consul-ui/search/predicates/health-check';
 import acl from 'consul-ui/search/predicates/acl';
 import service from 'consul-ui/search/predicates/service';
 import node from 'consul-ui/search/predicates/node';
@@ -47,6 +48,7 @@ const predicates = {
   service: search(service),
   ['service-instance']: search(serviceInstance),
   ['upstream-instance']: upstreamInstance(),
+  ['health-check']: search(healthCheck),
   node: search(node),
   kv: search(kv),
   acl: search(acl),

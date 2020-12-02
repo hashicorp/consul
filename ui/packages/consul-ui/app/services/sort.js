@@ -4,7 +4,7 @@ import serviceInstance from 'consul-ui/sort/comparators/service-instance';
 import upstreamInstance from 'consul-ui/sort/comparators/upstream-instance';
 import acl from 'consul-ui/sort/comparators/acl';
 import kv from 'consul-ui/sort/comparators/kv';
-import check from 'consul-ui/sort/comparators/check';
+import healthCheck from 'consul-ui/sort/comparators/health-check';
 import intention from 'consul-ui/sort/comparators/intention';
 import token from 'consul-ui/sort/comparators/token';
 import role from 'consul-ui/sort/comparators/role';
@@ -31,9 +31,9 @@ const comparators = {
   service: service(options),
   ['service-instance']: serviceInstance(options),
   ['upstream-instance']: upstreamInstance(options),
+  ['health-check']: healthCheck(options),
   acl: acl(options),
   kv: kv(options),
-  check: check(options),
   intention: intention(options),
   token: token(options),
   role: role(options),
