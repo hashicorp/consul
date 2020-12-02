@@ -19,7 +19,7 @@ export default class ServiceInstance extends Model {
   @attr('number') SyncTime;
   @attr() meta;
 
-  // The name is the Name of the Service (the grouoing of instances)
+  // The name is the Name of the Service (the grouping of instances)
   @alias('Service.Service') Name;
 
   // If the ID is blank fallback to the Service.Service (the Name)
