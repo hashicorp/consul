@@ -125,6 +125,7 @@
     "ember-resolver": "^8.0.0",
     "ember-route-action-helper": "^2.0.8",
     "ember-router-helpers": "^0.4.0",
+    "ember-set-helper": "^2.0.0",
     "ember-sinon-qunit": "5.0.0",
     "ember-source": "~3.20.5",
     "ember-stargate": "^0.2.0",

@@ -3,6 +3,10 @@
   <div role="tabpanel">
 {{#let (hash
   instances=(if instance (split instance ',') undefined)
+  searchproperties=(if (not-eq searchproperty undefined)
+    (split searchproperty ',')
+    (array 'Name' 'Tags')
+  )
 ) as |filters|}}
   {{#let (or sortBy "Name:asc") as |sort|}}
 {{#if (gt gatewayServices.length 0)}}
@@ -16,6 +20,7 @@
 
       @filter={{filters}}
       @onfilter={{hash
+        searchproperty=(action (mut searchproperty) value="target.selectedItems")
         instance=(action (mut instance) value="target.selectedItems")
       }}
       />
@@ -24,27 +29,30 @@
       The following services may receive traffic from external services through this gateway. Learn more about configuring gateways in our
       <a href="{{env 'CONSUL_DOCS_URL'}}/connect/terminating-gateway" target="_blank" rel="noopener noreferrer">step-by-step guide</a>.
     </p>
-{{#let (filter (filter-predicate 'service' filters) gatewayServices) as |filtered|}}
-  {{#let (sort-by (comparator 'service' sort) filtered) as |sorted|}}
-      <ChangeableSet @dispatcher={{searchable 'service' sorted}} @terms={{search}}>
-        <BlockSlot @name="set" as |searched|>
-          <Consul::Service::List
-            @items={{searched}}
-            @nspace={{nspace}}
-          />
-        </BlockSlot>
-        <BlockSlot @name="empty">
-          <EmptyState>
-            <BlockSlot @name="body">
-              <p>
-                There are no linked services.
-              </p>
-            </BlockSlot>
-          </EmptyState>
-        </BlockSlot>
-      </ChangeableSet>
-  {{/let}}
-{{/let}}
+    <DataCollection
+      @type="service"
+      @sort={{sort}}
+      @filters={{filters}}
+      @search={{search}}
+      @items={{gatewayServices}}
+    as |collection|>
+      <collection.Collection>
+        <Consul::Service::List
+          @nspace={{nspace}}
+          @items={{collection.items}}
+        >
+        </Consul::Service::List>
+      </collection.Collection>
+      <collection.Empty>
+        <EmptyState>
+          <BlockSlot @name="body">
+            <p>
+              There are no linked services{{#if (gt gatewayServices.length 0)}} matching that search{{/if}}.
+            </p>
+          </BlockSlot>
+        </EmptyState>
+      </collection.Empty>
+    </DataCollection>
   {{/let}}
 {{/let}}
   </div>

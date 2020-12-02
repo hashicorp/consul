@@ -6,13 +6,13 @@ import { get } from '@ember/object';
 import WithAclActions from 'consul-ui/mixins/acl/with-actions';
 
 export default class IndexRoute extends Route.extend(WithAclActions) {
-  @service('repository/acl')
-  repo;
+  @service('repository/acl') repo;
 
-  @service('settings')
-  settings;
+  @service('settings') settings;
 
   queryParams = {
+    sortBy: 'sort',
+    kind: 'kind',
     search: {
       as: 'filter',
       replace: true,

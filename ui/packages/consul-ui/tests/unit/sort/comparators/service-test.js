@@ -1,8 +1,9 @@
-import comparatorFactory from 'consul-ui/sort/comparators/service';
+import comparators from 'consul-ui/sort/comparators/service';
+import { properties } from 'consul-ui/services/sort';
 import { module, test } from 'qunit';
 
 module('Unit | Sort | Comparator | service', function() {
-  const comparator = comparatorFactory();
+  const comparator = comparators({ properties });
   test('Passing anything but Status: just returns what you gave it', function(assert) {
     const expected = 'Name:asc';
     const actual = comparator(expected);
