@@ -15,7 +15,7 @@ export default {
       item.ServiceID.toLowerCase().indexOf(lower) !== -1
     );
   },
-  ID: (item, value) => (item.Service.ID || '').toLowerCase().indexOf(value.toLowerCase()) !== -1,
+  CheckID: (item, value) => (item.CheckID || '').toLowerCase().indexOf(value.toLowerCase()) !== -1,
   Notes: (item, value) =>
     item.Notes.toString()
       .toLowerCase()
