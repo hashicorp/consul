@@ -5,6 +5,16 @@ export default {
   Name: (item, value) => {
     return item.Name.toLowerCase().indexOf(value.toLowerCase()) !== -1;
   },
+  Node: (item, value) => {
+    return item.Node.toLowerCase().indexOf(value.toLowerCase()) !== -1;
+  },
+  Service: (item, value) => {
+    const lower = value.toLowerCase();
+    return (
+      item.ServiceName.toLowerCase().indexOf(lower) !== -1 ||
+      item.ServiceID.toLowerCase().indexOf(lower) !== -1
+    );
+  },
   ID: (item, value) => (item.Service.ID || '').toLowerCase().indexOf(value.toLowerCase()) !== -1,
   Notes: (item, value) =>
     item.Notes.toString()

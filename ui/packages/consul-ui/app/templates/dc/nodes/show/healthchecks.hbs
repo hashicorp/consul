@@ -4,7 +4,7 @@
   checks=(if check (split check ',') undefined)
   searchproperties=(if (not-eq searchproperty undefined)
     (split searchproperty ',')
-    (array 'Name' 'CheckID' 'Notes' 'Output' 'ServiceTags')
+    searchProperties
   )
 ) as |filters|}}
   {{#let (or sortBy "Status:asc") as |sort|}}
@@ -13,8 +13,10 @@
         {{#if (gt item.Checks.length 0) }}
           <input type="checkbox" id="toolbar-toggle" />
           <Consul::HealthCheck::SearchBar
+
             @search={{search}}
             @onsearch={{action (mut search) value="target.value"}}
+            @searchproperties={{searchProperties}}
 
             @sort={{sort}}
             @onsort={{action (mut sortBy) value="target.selected"}}

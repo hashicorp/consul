@@ -8,7 +8,7 @@ export default class HealthchecksRoute extends Route {
     check: 'check',
     searchproperty: {
       as: 'searchproperty',
-      empty: [['Name', 'CheckID', 'Notes', 'Output', 'ServiceTags']],
+      empty: [['Name', 'Node', 'CheckID', 'Notes', 'Output', 'ServiceTags']],
     },
     search: {
       as: 'filter',
@@ -21,7 +21,10 @@ export default class HealthchecksRoute extends Route {
       .split('.')
       .slice(0, -1)
       .join('.');
-    return this.modelFor(parent);
+    return {
+      ...this.modelFor(parent),
+      searchProperties: this.queryParams.searchproperty.empty[0],
+    };
   }
 
   setupController(controller, model) {
