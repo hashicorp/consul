@@ -10,7 +10,7 @@
           <h3>{{item.Name}}</h3>
         </header>
         <dl>
-        {{#if (eq item.ServiceName "")}}
+        {{#if (eq item.Kind "node")}}
           <dt>NodeName</dt>
           <dd>{{item.Node}}</dd>
         {{else}}
@@ -24,9 +24,9 @@
         </dl>
         <dl>
           <dt>Type</dt>
-          <dd>
-            {{item.Type}}
-  {{#if (and @exposed (contains item.Type (array 'http' 'grpc')))}}
+          <dd data-health-check-type>
+            {{or item.Type 'serf'}}
+  {{#if item.Exposed}}
             <em
               data-test-exposed="true"
               {{tooltip "Expose.checks is set to true, so all registered HTTP and gRPC check paths are exposed through Envoy for the Consul agent."}}
