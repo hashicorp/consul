@@ -1,5 +1,4 @@
 import Service from '@ember/service';
-import setHelpers from 'mnemonist/set';
 
 import intention from 'consul-ui/search/predicates/intention';
 import upstreamInstance from 'consul-ui/search/predicates/upstream-instance';
@@ -14,21 +13,7 @@ import role from 'consul-ui/search/predicates/role';
 import policy from 'consul-ui/search/predicates/policy';
 import nspace from 'consul-ui/search/predicates/nspace';
 
-export const search = spec => {
-  let possible = Object.keys(spec);
-  return (term, options = {}) => {
-    const actual = [
-      ...setHelpers.intersection(new Set(possible), new Set(options.properties || possible)),
-    ];
-    return item => {
-      return (
-        typeof actual.find(key => {
-          return spec[key](item, term);
-        }) !== 'undefined'
-      );
-    };
-  };
-};
+const search = spec => spec;
 const predicates = {
   intention: search(intention),
   service: search(service),

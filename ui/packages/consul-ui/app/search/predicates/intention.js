@@ -1,9 +1,7 @@
-const allLabel = 'All Services (*)'.toLowerCase();
+const allLabel = 'All Services (*)';
 export default {
-  SourceName: (item, value) =>
-    item.SourceName.toLowerCase().indexOf(value.toLowerCase()) !== -1 ||
-    (item.SourceName === '*' && allLabel.indexOf(value.toLowerCase()) !== -1),
-  DestinationName: (item, value) =>
-    item.DestinationName.toLowerCase().indexOf(value.toLowerCase()) !== -1 ||
-    (item.DestinationName === '*' && allLabel.indexOf(value.toLowerCase()) !== -1),
+  SourceName: item =>
+    [item.SourceName, item.SourceName === '*' ? allLabel : undefined].filter(item => Boolean),
+  DestinationName: item =>
+    [item.SourceName, item.DestinationName === '*' ? allLabel : undefined].filter(item => Boolean),
 };
