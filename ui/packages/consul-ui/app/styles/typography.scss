@@ -20,7 +20,6 @@ fieldset > header,
 %app-view-content div > dl > dt,
 %table caption,
 %tbody-th,
-%confirmation-alert header,
 %form-element > span {
   @extend %h4;
 }

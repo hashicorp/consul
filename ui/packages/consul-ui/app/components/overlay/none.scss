@@ -1,0 +1,94 @@
+.tippy-box {
+  @extend %overlay;
+}
+[data-tippy-root] {
+  @extend %overlay-layer;
+}
+%overlay-layer {
+  max-width: calc(100vw - 10px);
+}
+%overlay {
+  & {
+    position: relative;
+    outline: 0;
+    transition-property: transform, visibility, opacity;
+  }
+  &[data-animation=fade][data-state=hidden] {
+    opacity: 0;
+  }
+  &[data-inertia][data-state=visible] {
+    transition-timing-function: cubic-bezier(.54, 1.5, .38, 1.11);
+  }
+  &[data-animation=fade][data-state=hidden] {
+    opacity: 0;
+  }
+  &[data-inertia][data-state=visible] {
+    transition-timing-function: cubic-bezier(.54, 1.5, .38, 1.11);
+  }
+  & {
+    background-color: $white;
+    border-radius: $decor-radius-100;
+    box-shadow: $decor-elevation-400;
+  }
+  .tippy-arrow {
+    @extend %overlay-tail;
+  }
+  &[data-placement^=bottom] > .tippy-arrow {
+    @extend %overlay-tail-bottom;
+  }
+  &[data-placement^=top] > .tippy-arrow {
+    @extend %overlay-tail-top;
+  }
+  &[data-placement^=left] > .tippy-arrow {
+    @extend %overlay-tail-left;
+  }
+  &[data-placement^=right] > .tippy-arrow {
+    @extend %overlay-tail-right;
+  }
+}
+%overlay-tail {
+  --size: 5px;
+  &::before {
+    content: "";
+    position: absolute;
+  }
+}
+%overlay-tail-top {
+  & {
+    bottom: 0;
+  }
+  &::before {
+    left: 0;
+    bottom: calc(0px - var(--size));
+    transform-origin: center top;
+  }
+}
+%overlay-tail-bottom {
+  & {
+    top: 0
+  }
+  &::before {
+    left: 0;
+    top: calc(0px - var(--size));
+    transform-origin: center bottom;
+  }
+}
+%overlay-tail-left {
+  & {
+    right: 0;
+  }
+  &::before {
+    right: calc(0px - var(--size));
+    transform-origin: center left;
+  }
+}
+%overlay-tail-right {
+  & {
+    left: 0
+  }
+  &::before {
+    left: calc(0px - var(--size));
+    transform-origin: center right;
+  }
+}
+

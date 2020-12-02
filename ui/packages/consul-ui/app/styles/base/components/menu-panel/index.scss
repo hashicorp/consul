@@ -14,3 +14,6 @@
 %menu-panel > ul > li.dangerous > *:not(div) {
   @extend %internal-button-dangerous;
 }
+%menu-panel .informed-action {
+  border: 0 !important;
+}
