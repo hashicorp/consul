@@ -624,6 +624,27 @@ func TestConnectCAConfig_UpdateSecondary(t *testing.T) {
 		assert.Equal("web", reply.Service)
 		assert.Equal(spiffeId.URI().String(), reply.ServiceURI)
 	}
+
+	// Update a minor field in the config that doesn't trigger an intermediate refresh.
+	{
+		newConfig := &structs.CAConfiguration{
+			Provider: "consul",
+			Config: map[string]interface{}{
+				"PrivateKey":     newKey,
+				"RootCert":       "",
+				"RotationPeriod": 180 * 24 * time.Hour,
+			},
+		}
+		{
+			args := &structs.CARequest{
+				Datacenter: "secondary",
+				Config:     newConfig,
+			}
+			var reply interface{}
+
+			require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply))
+		}
+	}
 }
 
 // Test CA signing
