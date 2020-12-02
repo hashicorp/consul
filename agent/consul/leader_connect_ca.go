@@ -579,7 +579,7 @@ func (c *CAManager) persistNewRootAndConfig(provider ca.Provider, newActiveRoot 
 	var newRoots structs.CARoots
 	for _, r := range oldRoots {
 		newRoot := *r
-		if newRoot.Active {
+		if newRoot.Active && newActiveRoot != nil {
 			newRoot.Active = false
 			newRoot.RotatedOutAt = time.Now()
 		}
