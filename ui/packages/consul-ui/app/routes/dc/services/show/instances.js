@@ -15,7 +15,7 @@ export default class InstancesRoute extends Route {
     },
   };
 
-  model() {
+  async model() {
     const parent = this.routeName
       .split('.')
       .slice(0, -1)

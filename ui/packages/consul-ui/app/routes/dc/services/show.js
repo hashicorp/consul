@@ -1,68 +1,51 @@
 import { inject as service } from '@ember/service';
 import Route from 'consul-ui/routing/route';
 import { get } from '@ember/object';
-import { action } from '@ember/object';
 
 export default class ShowRoute extends Route {
   @service('data-source/service') data;
-  @service('repository/intention') repo;
   @service('ui-config') config;
 
-  @action
-  async createIntention(source, destination) {
-    const model = this.repo.create({
-      Datacenter: source.Datacenter,
-      SourceName: source.Name,
-      SourceNS: source.Namespace || 'default',
-      DestinationName: destination.Name,
-      DestinationNS: destination.Namespace || 'default',
-      Action: 'allow',
-    });
-    await this.repo.persist(model);
-    this.refresh();
-  }
-
   async model(params, transition) {
-    const dc = this.modelFor('dc').dc.Name;
+    const dc = this.modelFor('dc').dc;
     const nspace = this.modelFor('nspace').nspace.substr(1);
     const slug = params.name;
 
-    let chain = null;
-    let topology = null;
     let proxies = [];
 
     const urls = this.config.get().dashboard_url_templates;
     const items = await this.data.source(
-      uri => uri`/${nspace}/${dc}/service-instances/for-service/${params.name}`
+      uri => uri`/${nspace}/${dc.Name}/service-instances/for-service/${params.name}`
     );
 
     const item = get(items, 'firstObject');
     if (get(item, 'IsOrigin')) {
-      chain = await this.data.source(uri => uri`/${nspace}/${dc}/discovery-chain/${params.name}`);
-      proxies = await this.data.source(
-        uri => uri`/${nspace}/${dc}/proxies/for-service/${params.name}`
+      proxies = this.data.source(
+        uri => uri`/${nspace}/${dc.Name}/proxies/for-service/${params.name}`
       );
-
-      if (get(item, 'IsMeshOrigin')) {
-        let kind = get(item, 'Service.Kind');
-        if (typeof kind === 'undefined') {
-          kind = '';
-        }
-        topology = await this.data.source(
-          uri => uri`/${nspace}/${dc}/topology/${params.name}/${kind}`
-        );
-      }
+      // TODO: Temporary ping to see if a dc is MeshEnabled which we use in
+      // order to decide whether to show certain tabs in the template. This is
+      // a bit of a weird place to do this but we are trying to avoid wasting
+      // HTTP requests and as disco chain is the most likely to be reused, we
+      // use that endpoint here. Eventually if we have an endpoint specific to
+      // a dc that gives us more DC specific info we can use that instead
+      // higher up the routing hierarchy instead.
+      let chain = this.data.source(
+        uri => uri`/${nspace}/${dc.Name}/discovery-chain/${params.name}`
+      );
+      [chain, proxies] = await Promise.all([chain, proxies]);
+      // we close the chain for now, if you enter the routing tab before the
+      // EventSource comes around to request again, this one will just be
+      // reopened and reused
+      chain.close();
     }
-
     return {
       dc,
       nspace,
       slug,
       items,
       urls,
-      chain,
       proxies,
-      topology,
     };
   }
 
