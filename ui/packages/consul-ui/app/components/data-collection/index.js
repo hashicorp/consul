@@ -15,9 +15,13 @@ export default class DataCollectionComponent extends Component {
 
   @computed('args.items', 'args.items.content')
   get content() {
-    return typeof this.args.items.content !== 'undefined'
-      ? this.args.items.content
-      : this.args.items;
+    // TODO: Temporary little hack to ensure we detect DataSource proxy
+    // objects but not any other special Ember Proxy object like ember-data
+    // things. Remove this once we no longer need the Proxies
+    if (this.args.items.dispatchEvent === 'function') {
+      return this.args.items.content;
+    }
+    return this.args.items;
   }
 
   @computed('comparator', 'searched')
