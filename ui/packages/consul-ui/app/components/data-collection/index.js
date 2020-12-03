@@ -13,6 +13,13 @@ export default class DataCollectionComponent extends Component {
     return this.args.type;
   }
 
+  @computed('args.items', 'args.items.content')
+  get content() {
+    return typeof this.args.items.content !== 'undefined'
+      ? this.args.items.content
+      : this.args.items;
+  }
+
   @computed('comparator', 'searched')
   get items() {
     // the ember sort computed accepts either:
@@ -39,16 +46,16 @@ export default class DataCollectionComponent extends Component {
     return this.filtered.filter(predicate(this.args.search, options));
   }
 
-  @computed('type', 'args.items', 'args.filters')
+  @computed('type', 'content', 'args.filters')
   get filtered() {
     if (typeof this.args.filters === 'undefined') {
-      return this.args.items;
+      return this.content;
     }
     const predicate = this.filter.predicate(this.type);
     if (typeof predicate === 'undefined') {
-      return this.args.items;
+      return this.content;
     }
-    return this.args.items.filter(predicate(this.args.filters));
+    return this.content.filter(predicate(this.args.filters));
   }
 
   @computed('type', 'args.sort')
