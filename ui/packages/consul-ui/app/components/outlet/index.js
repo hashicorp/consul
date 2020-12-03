@@ -12,56 +12,17 @@ class State {
   }
 }
 
-class Outlets {
-  constructor() {
-    this.map = new Map();
-  }
-  sort() {
-    this.sorted = [...this.map.keys()];
-    this.sorted.sort((a, b) => {
-      const al = a.split('.').length;
-      const bl = b.split('.').length;
-      switch (true) {
-        case al > bl:
-          return -1;
-        case al < bl:
-          return 1;
-        default:
-          return 0;
-      }
-    });
-  }
-  set(name, value) {
-    this.map.set(name, value);
-    this.sort();
-  }
-  get(name) {
-    return this.map.get(name);
-  }
-  delete(name) {
-    this.map.delete(name);
-    this.sort();
-  }
-  keys() {
-    return this.sorted;
-  }
-}
-const outlets = new Outlets();
-
 export default class Outlet extends Component {
+  @service('routlet') routlet;
   @service('router') router;
-  @service('dom') dom;
 
-  @tracked route;
+  @tracked element;
+  @tracked routeName;
   @tracked state;
   @tracked previousState;
 
-  constructor() {
-    super(...arguments);
-    if (this.args.name === 'application') {
-      this.setAppState('loading');
-      this.setAppRoute(this.router.currentRouteName);
-    }
+  get model() {
+    return this.args.model || {};
   }
 
   setAppRoute(name) {
@@ -70,7 +31,7 @@ export default class Outlet extends Component {
       name = name.substr(nspace.length);
     }
     if (name !== 'loading') {
-      const doc = this.dom.root();
+      const doc = this.element.ownerDocument.documentElement;
       if (doc.classList.contains('ember-loading')) {
         doc.classList.remove('ember-loading');
       }
@@ -80,28 +41,26 @@ export default class Outlet extends Component {
   }
 
   setAppState(state) {
-    this.dom.root().dataset.state = state;
+    const doc = this.element.ownerDocument.documentElement;
+    doc.dataset.state = state;
   }
 
-  setOutletRoutes(route) {
-    const keys = [...outlets.keys()];
-    const pos = keys.indexOf(this.name);
-    const key = pos + 1;
-    const parent = outlets.get(keys[key]);
-    parent.route = this.args.name;
-
-    this.route = route;
+  @action
+  attributeChanged(prop, value) {
+    switch (prop) {
+      case 'element':
+        this.element = value;
+        if (this.args.name === 'application') {
+          this.setAppState('loading');
+          this.setAppRoute(this.router.currentRouteName);
+        }
+        break;
+    }
   }
 
   @action
   startLoad(transition) {
-    const keys = [...outlets.keys()];
-
-    const outlet =
-      keys.find(item => {
-        return transition.to.name.indexOf(item) !== -1;
-      }) || 'application';
-
+    const outlet = this.routlet.findOutlet(transition.to.name) || 'application';
     if (this.args.name === outlet) {
       this.previousState = this.state;
       this.state = new State('loading');
@@ -114,8 +73,6 @@ export default class Outlet extends Component {
   @action
   endLoad(transition) {
     if (this.state.matches('loading')) {
-      this.setOutletRoutes(transition.to.name);
-
       this.previousState = this.state;
       this.state = new State('idle');
     }
@@ -126,7 +83,7 @@ export default class Outlet extends Component {
 
   @action
   connect() {
-    outlets.set(this.args.name, this);
+    this.routlet.addOutlet(this.args.name, this);
     this.previousState = this.state = new State('idle');
     this.router.on('routeWillChange', this.startLoad);
     this.router.on('routeDidChange', this.endLoad);
@@ -134,7 +91,7 @@ export default class Outlet extends Component {
 
   @action
   disconnect() {
-    outlets.delete(this.args.name);
+    this.routlet.removeOutlet(this.args.name);
     this.router.off('routeWillChange', this.startLoad);
     this.router.off('routeDidChange', this.endLoad);
   }

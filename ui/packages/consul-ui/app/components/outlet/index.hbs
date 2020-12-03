@@ -1,9 +1,10 @@
-  {{did-insert this.connect}}
-  {{will-destroy this.disconnect}}
+{{did-insert this.connect}}
+{{will-destroy this.disconnect}}
 <section
+  {{did-insert (fn this.attributeChanged 'element')}}
   class="outlet"
   data-outlet={{@name}}
-  data-route={{this.route}}
+  data-route={{this.routeName}}
   data-state={{this.state.name}}
   data-transition={{concat this.previousState.name ' ' this.state.name}}
 >
