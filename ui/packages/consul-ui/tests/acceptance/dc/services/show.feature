@@ -112,4 +112,5 @@ Feature: dc / services / show: Show Service
       dc: dc1
       service: service-0
     ---
-    And I see href on the metricsAnchor like "https://example.com?service-0-with-id&dc1"
+    # The Metrics dashboard should use the Service.Name not the ID
+    And I see href on the metricsAnchor like "https://example.com?service-0&dc1"
