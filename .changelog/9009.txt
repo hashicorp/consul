@@ -1,0 +1,6 @@
+```release-note:bug
+connect: fixes a case when updating the CA config in a secondary datacenter to correctly trigger the creation of a new intermediate certificate
+```
+```release-note:bug
+connect: only unset the active root in a secondary datacenter when a new one is replacing it
+```
