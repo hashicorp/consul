@@ -1,5 +1,14 @@
 ## UNRELEASED
 
+BUG FIXES:
+
+* connect: fixes a case when updating the CA config in a secondary datacenter to correctly trigger the creation of a new intermediate certificate [[GH-9009](https://github.com/hashicorp/consul/issues/9009)]
+* connect: only unset the active root in a secondary datacenter when a new one is replacing it [[GH-9318](https://github.com/hashicorp/consul/issues/9318)]
+* license: (Enterprise only) Fixed an issue where the UI would see Namespaces and SSO as licensed when they were not.
+* license: **(Enterprise only)** Fixed an issue where warnings about Namespaces being unlicensed would be emitted erroneously.
+* namespace: **(Enterprise Only)** Fixed a bug that could case snapshot restoration to fail when it contained a namespace marked for deletion while still containing other resources in that namespace. [[GH-9156](https://github.com/hashicorp/consul/issues/9156)]
+* namespace: **(Enterprise Only)** Fixed an issue where namespaced services and checks were not being deleted when the containing namespace was deleted.
+
 ## 1.8.6 (November 19, 2020)
 
 SECURITY:
