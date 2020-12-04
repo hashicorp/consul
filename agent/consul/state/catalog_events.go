@@ -64,11 +64,17 @@ func serviceHealthSnapshot(db ReadDB, topic stream.Topic) stream.SnapshotFunc {
 			event := stream.Event{
 				Index: idx,
 				Topic: topic,
-				Payload: EventPayloadCheckServiceNode{
-					Op:    pbsubscribe.CatalogOp_Register,
-					Value: &n,
-				},
 			}
+			payload := EventPayloadCheckServiceNode{
+				Op:    pbsubscribe.CatalogOp_Register,
+				Value: &n,
+			}
+
+			if connect && n.Service.Kind == structs.ServiceKindConnectProxy {
+				payload.key = n.Service.Proxy.DestinationServiceName
+			}
+
+			event.Payload = payload
 
 			// append each event as a separate item so that they can be serialized
 			// separately, to prevent the encoding of one massive message.
