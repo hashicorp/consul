@@ -3,7 +3,7 @@
   sources=(if source (split source ',') undefined)
   searchproperties=(if (not-eq searchproperty undefined)
     (split searchproperty ',')
-    (array 'Name' 'Tags' 'ID' 'Address' 'Port' 'Service.Meta' 'Node.Meta')
+    searchProperties
   )
 ) as |filters|}}
   {{#let (or sortBy "Status:asc") as |sort|}}
@@ -16,6 +16,7 @@
       @sources={{externalSources}}
       @search={{search}}
       @onsearch={{action (mut search) value="target.value"}}
+      @searchproperties={{searchProperties}}
 
       @sort={{sort}}
       @onsort={{action (mut sortBy) value="target.selected"}}

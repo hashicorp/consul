@@ -21,13 +21,9 @@
         </BlockSlot>
         <BlockSlot @name="options">
   {{#let components.Optgroup components.Option as |Optgroup Option|}}
-          <Option @value="Name" @selected={{contains 'Name' @filter.searchproperties}}>Name</Option>
-          <Option @value="Tags" @selected={{contains 'Tags' @filter.searchproperties}}>Tags</Option>
-          <Option @value="ID" @selected={{contains 'ID' @filter.searchproperties}}>Service ID</Option>
-          <Option @value="Address" @selected={{contains 'Address' @filter.searchproperties}}>Address</Option>
-          <Option @value="Port" @selected={{contains 'Port' @filter.searchproperties}}>Port</Option>
-          <Option @value="Service.Meta" @selected={{contains 'Service.Meta' @filter.searchproperties}}>Service Meta</Option>
-          <Option @value="Node.Meta" @selected={{contains 'Node.Meta' @filter.searchproperties}}>Node Meta</Option>
+    {{#each @searchproperties as |prop|}}
+          <Option @value={{prop}} @selected={{contains prop @filter.searchproperties}}>{{string-replace-all prop '\.' ' '}}</Option>
+    {{/each}}
   {{/let}}
         </BlockSlot>
       </PopoverSelect>

@@ -7,7 +7,7 @@ export default class ServicesRoute extends Route {
     source: 'source',
     searchproperty: {
       as: 'searchproperty',
-      empty: [['Name', 'Tags', 'ID', 'Address', 'Port', 'Service.Meta', 'Node.Meta']],
+      empty: [['Name', 'Tags', 'ID', 'Address', 'Port', 'Service.Meta']],
     },
     search: {
       as: 'filter',
@@ -20,7 +20,10 @@ export default class ServicesRoute extends Route {
       .split('.')
       .slice(0, -1)
       .join('.');
-    return this.modelFor(parent);
+    return {
+      ...this.modelFor(parent),
+      searchProperties: this.queryParams.searchproperty.empty[0],
+    };
   }
 
   setupController(controller, model) {
