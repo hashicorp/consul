@@ -13,14 +13,16 @@ export default function(foreignKey, nspaceKey, hash = JSON.stringify) {
         return get(item, slugKey);
       });
       const nspaceValue = get(item, nspaceKey) || 'default';
-      return {
-        ...item,
-        ...{
-          [nspaceKey]: nspaceValue,
-          [foreignKey]: foreignKeyValue,
-          [primaryKey]: hash([nspaceValue, foreignKeyValue].concat(slugValues)),
-        },
-      };
+      if (typeof item[nspaceKey] === 'undefined') {
+        item[nspaceKey] = nspaceValue;
+      }
+      if (typeof item[foreignKey] === 'undefined') {
+        item[foreignKey] = foreignKeyValue;
+      }
+      if (typeof item[primaryKey] === 'undefined') {
+        item[primaryKey] = hash([nspaceValue, foreignKeyValue].concat(slugValues));
+      }
+      return item;
     };
   };
 }
