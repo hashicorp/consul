@@ -262,7 +262,7 @@ BUGFIXES:
 * agent: rewrite checks with proxy address, not local service address [[GH-7518](https://github.com/hashicorp/consul/pull/7518)]
 * agent: Preserve ModifyIndex for unchanged entry in KV transaciton [[GH-7832](https://github.com/hashicorp/consul/pull/7832)]
 * agent: use default resolver scheme for gRPC dialing [[GH-7617](https://github.com/hashicorp/consul/pull/7617)]
-* cache: Fix go routine leak in the agent cache. [[GH-8092](https://github.com/hashicorp/consul/pull/8092)]
+* cache: Fix go routine leak in the agent cache which could cause increasing memory usage. [[GH-8092](https://github.com/hashicorp/consul/pull/8092)]
 * cli: enable TLS when `CONSUL_HTTP_ADDR` has an `https` scheme [[GH-7608](https://github.com/hashicorp/consul/pull/7608)]
 * connect: Internal refactoring to allow Connect proxy config to contain lists of structured configuration [[GH-7963](https://github.com/hashicorp/consul/issues/7963)][[GH-7964](https://github.com/hashicorp/consul/issues/7964)]
 * license: **(Consul Enterprise only)** Fixed a bug that would cause a license reset request to only be applied on the leader server.
