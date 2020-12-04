@@ -1,19 +1,50 @@
-{{#let item.Services as |items|}}
-<div id="services" class="tab-section">
+{{#let (hash
+  statuses=(if status (split status ',') undefined)
+  sources=(if source (split source ',') undefined)
+  searchproperties=(if (not-eq searchproperty undefined)
+    (split searchproperty ',')
+    (array 'Name' 'Tags' 'ID' 'Address' 'Port' 'Service.Meta' 'Node.Meta')
+  )
+) as |filters|}}
+  {{#let (or sortBy "Status:asc") as |sort|}}
+    {{#let item.Services as |items|}}
+<div class="tab-section">
   <div role="tabpanel">
   {{#if (gt items.length 0) }}
     <input type="checkbox" id="toolbar-toggle" />
-    <SearchBar
-      @placeholder="Search by name/port"
-      @value={{search}}
+    <Consul::ServiceInstance::SearchBar
+      @sources={{externalSources}}
+      @search={{search}}
       @onsearch={{action (mut search) value="target.value"}}
-    />
-  {{/if}}
-     <ChangeableSet @dispatcher={{searchable 'nodeservice' items}} @terms={{search}}>
-      <BlockSlot @name="set" as |filtered|>
-        <Consul::ServiceInstance::List @routeName="dc.services.show" @items={{filtered}} @checks={{checks}}/>
-      </BlockSlot>
-      <BlockSlot @name="empty">
+
+      @sort={{sort}}
+      @onsort={{action (mut sortBy) value="target.selected"}}
+
+      @filter={{filters}}
+      @onfilter={{hash
+        searchproperty=(action (mut searchproperty) value="target.selectedItems")
+        status=(action (mut status) value="target.selectedItems")
+        source=(action (mut source) value="target.selectedItems")
+      }}
+      />
+    {{/if}}
+    {{! filter out any sidecar proxies }}
+    <DataCollection
+      @type="service-instance"
+      @sort={{sort}}
+      @filters={{filters}}
+      @search={{search}}
+      @items={{reject-by 'Service.Kind' 'connect-proxy' items}}
+    as |collection|>
+      <collection.Collection>
+        <Consul::ServiceInstance::List
+          @node={{item}}
+          @routeName="dc.services.show"
+          @items={{collection.items}}
+          @checks={{checks}}
+        />
+      </collection.Collection>
+      <collection.Empty>
         <EmptyState>
           <BlockSlot @name="body">
             <p>
@@ -21,8 +52,10 @@
             </p>
           </BlockSlot>
         </EmptyState>
-      </BlockSlot>
-    </ChangeableSet>
+      </collection.Empty>
+    </DataCollection>
   </div>
 </div>
+    {{/let}}
+  {{/let}}
 {{/let}}
