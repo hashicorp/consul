@@ -48,6 +48,7 @@ import (
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/file"
+	"github.com/hashicorp/consul/lib/mutex"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
@@ -222,7 +223,7 @@ type Agent struct {
 	exposedPorts map[string]int
 
 	// stateLock protects the agent state
-	stateLock sync.Mutex
+	stateLock *mutex.Mutex
 
 	// dockerClient is the client for performing docker health checks.
 	dockerClient *checks.DockerClient
@@ -358,6 +359,7 @@ func New(bd BaseDeps) (*Agent, error) {
 		retryJoinCh:     make(chan error),
 		shutdownCh:      make(chan struct{}),
 		endpoints:       make(map[string]string),
+		stateLock:       mutex.New(),
 
 		baseDeps:        bd,
 		tokens:          bd.Tokens,

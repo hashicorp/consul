@@ -292,11 +292,12 @@ func (w *serviceConfigWatch) handleUpdate(ctx context.Context, event cache.Updat
 		persistServiceDefaults:  serviceDefaults,
 	}
 
-	w.agent.stateLock.Lock()
+	if err := w.agent.stateLock.TryLock(ctx); err != nil {
+		return nil
+	}
 	defer w.agent.stateLock.Unlock()
 
-	// While we were waiting on the agent state lock we may have been shutdown.
-	// So avoid doing a registration in that case.
+	// The context may have been cancelled after the lock was acquired.
 	if err := ctx.Err(); err != nil {
 		return nil
 	}
