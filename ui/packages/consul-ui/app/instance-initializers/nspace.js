@@ -101,22 +101,6 @@ export function initialize(container) {
         }
         register(container, route, item);
       });
-
-    // tell the view we have nspaces enabled
-    container
-      .lookup('service:dom')
-      .root()
-      .classList.add('has-nspaces');
-  }
-  // TODO: This needs to live in its own initializer, either:
-  // 1. Make it be about adding classes to the root dom node
-  // 2. Make it be about config and things to do on initialization re: config
-  // If we go with 1 then we need to move both this and the above nspaces class
-  if (env('CONSUL_ACLS_ENABLED')) {
-    container
-      .lookup('service:dom')
-      .root()
-      .classList.add('has-acls');
   }
 }
 

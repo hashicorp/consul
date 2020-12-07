@@ -4,6 +4,7 @@
 ) as |filters|}}
   {{#let (or sortBy "Kind:asc") as |sort|}}
     <AppView>
+    {{#if (not-eq parent.Key '/') }}
       <BlockSlot @name="breadcrumbs">
         <ol>
     {{#if (not-eq parent.Key '/') }}
@@ -14,6 +15,7 @@
     {{/each}}
         </ol>
       </BlockSlot>
+    {{/if}}
       <BlockSlot @name="header">
           <h1>
             {{#if (eq parent.Key '/')}}
