@@ -53,7 +53,7 @@
     <Consul::ExternalSource @item={{item}} />
   {{#if (and (not-eq item.InstanceCount 0) (and (not-eq item.Kind 'terminating-gateway') (not-eq item.Kind 'ingress-gateway'))) }}
     <span>
-      {{format-number item.InstanceCount}} {{pluralize item.InstanceCount 'Instance' without-count=true}}
+      {{format-number item.InstanceCount}} {{pluralize item.InstanceCount 'instance' without-count=true}}
     </span>
   {{/if}}
   {{#if (eq item.Kind 'terminating-gateway')}}
