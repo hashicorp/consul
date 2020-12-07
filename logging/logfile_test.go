@@ -14,6 +14,10 @@ import (
 )
 
 func TestLogFile_Rotation_MaxDuration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	tempDir := testutil.TempDir(t, "")
 	logFile := LogFile{
 		fileName: "consul.log",

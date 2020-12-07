@@ -25,6 +25,10 @@ func TestDebugCommand_noTabs(t *testing.T) {
 }
 
 func TestDebugCommand(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	testDir := testutil.TempDir(t, "debug")
@@ -61,6 +65,10 @@ func TestDebugCommand(t *testing.T) {
 }
 
 func TestDebugCommand_Archive(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	testDir := testutil.TempDir(t, "debug")
@@ -142,6 +150,10 @@ func TestDebugCommand_ArgsBad(t *testing.T) {
 }
 
 func TestDebugCommand_OutputPathBad(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := agent.NewTestAgent(t, "")
@@ -171,6 +183,10 @@ func TestDebugCommand_OutputPathBad(t *testing.T) {
 }
 
 func TestDebugCommand_OutputPathExists(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	testDir := testutil.TempDir(t, "debug")
@@ -208,6 +224,10 @@ func TestDebugCommand_OutputPathExists(t *testing.T) {
 }
 
 func TestDebugCommand_CaptureTargets(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	cases := map[string]struct {
@@ -316,6 +336,10 @@ func TestDebugCommand_CaptureTargets(t *testing.T) {
 }
 
 func TestDebugCommand_ProfilesExist(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	testDir := testutil.TempDir(t, "debug")
@@ -362,6 +386,10 @@ func TestDebugCommand_ProfilesExist(t *testing.T) {
 }
 
 func TestDebugCommand_ValidateTiming(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	cases := map[string]struct {
@@ -422,6 +450,10 @@ func TestDebugCommand_ValidateTiming(t *testing.T) {
 }
 
 func TestDebugCommand_DebugDisabled(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	testDir := testutil.TempDir(t, "debug")

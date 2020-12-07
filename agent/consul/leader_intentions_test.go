@@ -15,6 +15,10 @@ import (
 )
 
 func TestLeader_ReplicateIntentions(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	// This setup is a little hacky, but should work. We spin up BOTH servers with
 	// no intentions and force them to think they're not eligible for intentions
 	// config entries yet by overriding serf tags.
@@ -361,6 +365,10 @@ func TestLeader_batchLegacyIntentionUpdates(t *testing.T) {
 }
 
 func TestLeader_LegacyIntentionMigration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	// This setup is a little hacky, but should work. We spin up a server with
 	// no intentions and force it to think it's not eligible for intentions
 	// config entries yet by overriding serf tags.

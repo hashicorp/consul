@@ -65,6 +65,10 @@ func TestSnapshotRestoreCommand_Validation(t *testing.T) {
 }
 
 func TestSnapshotRestoreCommand(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -105,6 +109,10 @@ func TestSnapshotRestoreCommand(t *testing.T) {
 }
 
 func TestSnapshotRestoreCommand_TruncatedSnapshot(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()

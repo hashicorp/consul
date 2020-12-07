@@ -22,6 +22,10 @@ func TestRulesTranslateCommand_noTabs(t *testing.T) {
 }
 
 func TestRulesTranslateCommand(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	testDir := testutil.TempDir(t, "acl")

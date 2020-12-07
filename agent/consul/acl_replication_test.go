@@ -291,6 +291,10 @@ func TestACLReplication_diffACLTokens(t *testing.T) {
 }
 
 func TestACLReplication_Tokens(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -473,6 +477,10 @@ func TestACLReplication_Tokens(t *testing.T) {
 }
 
 func TestACLReplication_Policies(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -594,6 +602,10 @@ func TestACLReplication_Policies(t *testing.T) {
 }
 
 func TestACLReplication_TokensRedacted(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -740,6 +752,10 @@ func TestACLReplication_TokensRedacted(t *testing.T) {
 }
 
 func TestACLReplication_AllTypes(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"

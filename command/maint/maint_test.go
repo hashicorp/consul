@@ -40,6 +40,10 @@ func TestMaintCommand_ConflictingArgs(t *testing.T) {
 }
 
 func TestMaintCommand_NoArgs(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -89,6 +93,10 @@ func TestMaintCommand_NoArgs(t *testing.T) {
 }
 
 func TestMaintCommand_EnableNodeMaintenance(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -113,6 +121,10 @@ func TestMaintCommand_EnableNodeMaintenance(t *testing.T) {
 }
 
 func TestMaintCommand_DisableNodeMaintenance(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -136,6 +148,10 @@ func TestMaintCommand_DisableNodeMaintenance(t *testing.T) {
 }
 
 func TestMaintCommand_EnableServiceMaintenance(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -170,6 +186,10 @@ func TestMaintCommand_EnableServiceMaintenance(t *testing.T) {
 }
 
 func TestMaintCommand_DisableServiceMaintenance(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -203,6 +223,10 @@ func TestMaintCommand_DisableServiceMaintenance(t *testing.T) {
 }
 
 func TestMaintCommand_ServiceMaintenance_NoService(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()

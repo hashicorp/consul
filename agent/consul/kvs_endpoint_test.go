@@ -14,6 +14,10 @@ import (
 )
 
 func TestKVS_Apply(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -71,6 +75,10 @@ func TestKVS_Apply(t *testing.T) {
 }
 
 func TestKVS_Apply_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -135,6 +143,10 @@ func TestKVS_Apply_ACLDeny(t *testing.T) {
 }
 
 func TestKVS_Get(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -183,6 +195,10 @@ func TestKVS_Get(t *testing.T) {
 }
 
 func TestKVS_Get_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -224,6 +240,10 @@ func TestKVS_Get_ACLDeny(t *testing.T) {
 }
 
 func TestKVSEndpoint_List(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -296,6 +316,10 @@ func TestKVSEndpoint_List(t *testing.T) {
 }
 
 func TestKVSEndpoint_List_Blocking(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -392,6 +416,10 @@ func TestKVSEndpoint_List_Blocking(t *testing.T) {
 }
 
 func TestKVSEndpoint_List_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -478,6 +506,10 @@ func TestKVSEndpoint_List_ACLDeny(t *testing.T) {
 }
 
 func TestKVSEndpoint_List_ACLEnableKeyListPolicy(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -603,6 +635,10 @@ key "zip" {
 }
 
 func TestKVSEndpoint_ListKeys(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -673,6 +709,10 @@ func TestKVSEndpoint_ListKeys(t *testing.T) {
 }
 
 func TestKVSEndpoint_ListKeys_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -753,6 +793,10 @@ func TestKVSEndpoint_ListKeys_ACLDeny(t *testing.T) {
 }
 
 func TestKVS_Apply_LockDelay(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -825,6 +869,10 @@ func TestKVS_Apply_LockDelay(t *testing.T) {
 }
 
 func TestKVS_Issue_1626(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)

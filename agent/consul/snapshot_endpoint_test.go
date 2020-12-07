@@ -154,6 +154,10 @@ func verifySnapshot(t *testing.T, s *Server, dc, token string) {
 }
 
 func TestSnapshot(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -164,6 +168,10 @@ func TestSnapshot(t *testing.T) {
 }
 
 func TestSnapshot_LeaderState(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -247,6 +255,10 @@ func TestSnapshot_LeaderState(t *testing.T) {
 }
 
 func TestSnapshot_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -294,6 +306,10 @@ func TestSnapshot_ACLDeny(t *testing.T) {
 }
 
 func TestSnapshot_Forward_Leader(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = true
 		c.SerfWANConfig = nil
@@ -340,6 +356,10 @@ func TestSnapshot_Forward_Leader(t *testing.T) {
 }
 
 func TestSnapshot_Forward_Datacenter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerDC(t, "dc1")
 	defer os.RemoveAll(dir1)

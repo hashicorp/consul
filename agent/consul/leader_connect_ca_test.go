@@ -193,6 +193,10 @@ func initTestManager(t *testing.T, manager *CAManager, delegate *mockCAServerDel
 }
 
 func TestCAManager_Initialize(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	conf := DefaultConfig()
 	conf.ConnectEnabled = true
 	conf.PrimaryDatacenter = "dc1"
@@ -228,6 +232,10 @@ func TestCAManager_Initialize(t *testing.T) {
 }
 
 func TestCAManager_UpdateConfigWhileRenewIntermediate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	// No parallel execution because we change globals
 	// Set the interval and drift buffer low for renewing the cert.
 	origInterval := structs.IntermediateCertRenewInterval

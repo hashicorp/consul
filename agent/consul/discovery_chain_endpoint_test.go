@@ -15,6 +15,10 @@ import (
 )
 
 func TestDiscoveryChainEndpoint_Get(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {

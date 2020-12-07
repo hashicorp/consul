@@ -92,6 +92,10 @@ func signJWTWithStandardClaims(t *testing.T, privKey string, claims interface{})
 //  * Each of the individual config generation functions. These can be unit tested separately and should NOT
 //    require running test servers
 func TestAutoConfigInitialConfiguration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	gossipKey := make([]byte, 32)
 	// this is not cryptographic randomness and is not secure but for the sake of this test its all we need.
 	n, err := rand.Read(gossipKey)

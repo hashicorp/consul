@@ -1477,6 +1477,10 @@ func TestFSM_ConfigEntry(t *testing.T) {
 // FSM, and applies the rest. The goal is to verify that chunking snapshotting
 // works as expected.
 func TestFSM_Chunking_Lifecycle(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	require := require.New(t)
 	assert := assert.New(t)

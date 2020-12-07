@@ -61,6 +61,10 @@ func TestCommand_Validation(t *testing.T) {
 }
 
 func TestCommand_File_id(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -98,6 +102,10 @@ func TestCommand_File_id(t *testing.T) {
 }
 
 func TestCommand_File_nameOnly(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -135,6 +143,10 @@ func TestCommand_File_nameOnly(t *testing.T) {
 }
 
 func TestCommand_Flag(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)

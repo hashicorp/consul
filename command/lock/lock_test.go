@@ -41,6 +41,10 @@ func TestLockCommand_BadArgs(t *testing.T) {
 }
 
 func TestLockCommand(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -66,6 +70,10 @@ func TestLockCommand(t *testing.T) {
 }
 
 func TestLockCommand_NoShell(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -91,6 +99,10 @@ func TestLockCommand_NoShell(t *testing.T) {
 }
 
 func TestLockCommand_TryLock(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -125,6 +137,10 @@ func TestLockCommand_TryLock(t *testing.T) {
 }
 
 func TestLockCommand_TrySemaphore(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -159,6 +175,10 @@ func TestLockCommand_TrySemaphore(t *testing.T) {
 }
 
 func TestLockCommand_MonitorRetry_Lock_Default(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -194,6 +214,10 @@ func TestLockCommand_MonitorRetry_Lock_Default(t *testing.T) {
 }
 
 func TestLockCommand_MonitorRetry_Semaphore_Default(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -229,6 +253,10 @@ func TestLockCommand_MonitorRetry_Semaphore_Default(t *testing.T) {
 }
 
 func TestLockCommand_MonitorRetry_Lock_Arg(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -264,6 +292,10 @@ func TestLockCommand_MonitorRetry_Lock_Arg(t *testing.T) {
 }
 
 func TestLockCommand_MonitorRetry_Semaphore_Arg(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -299,6 +331,10 @@ func TestLockCommand_MonitorRetry_Semaphore_Arg(t *testing.T) {
 }
 
 func TestLockCommand_ChildExitCode(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()

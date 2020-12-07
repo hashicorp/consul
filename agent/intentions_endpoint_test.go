@@ -14,6 +14,10 @@ import (
 )
 
 func TestIntentionList(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, "")
@@ -85,6 +89,10 @@ func TestIntentionList(t *testing.T) {
 }
 
 func TestIntentionMatch(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, "")
@@ -221,6 +229,10 @@ func TestIntentionMatch(t *testing.T) {
 }
 
 func TestIntentionCheck(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, "")
@@ -301,6 +313,10 @@ func TestIntentionCheck(t *testing.T) {
 }
 
 func TestIntentionPutExact(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, "")
@@ -368,6 +384,10 @@ func TestIntentionPutExact(t *testing.T) {
 }
 
 func TestIntentionCreate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, "")
@@ -410,6 +430,10 @@ func TestIntentionCreate(t *testing.T) {
 }
 
 func TestIntentionSpecificGet(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, "")
@@ -460,6 +484,10 @@ func TestIntentionSpecificGet(t *testing.T) {
 }
 
 func TestIntentionSpecificUpdate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, "")
@@ -506,6 +534,10 @@ func TestIntentionSpecificUpdate(t *testing.T) {
 }
 
 func TestIntentionDeleteExact(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, "")
@@ -597,6 +629,10 @@ func TestIntentionDeleteExact(t *testing.T) {
 }
 
 func TestIntentionSpecificDelete(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, "")

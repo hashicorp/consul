@@ -227,6 +227,10 @@ func TestACLReplication_reconcileACLs(t *testing.T) {
 }
 
 func TestACLReplication_updateLocalACLs_RateLimit(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
@@ -278,6 +282,10 @@ func TestACLReplication_updateLocalACLs_RateLimit(t *testing.T) {
 }
 
 func TestACLReplication_IsACLReplicationEnabled(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	// ACLs not enabled.
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
@@ -340,6 +348,10 @@ func TestACLReplication_IsACLReplicationEnabled(t *testing.T) {
 //
 // Actually testing legacy replication is difficult to do without old binaries.
 func TestACLReplication_LegacyTokens(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"

@@ -97,6 +97,10 @@ func requireCheckMissingMap(t *testing.T, m interface{}, id types.CheckID) {
 }
 
 func TestAgent_MultiStartStop(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	for i := 0; i < 10; i++ {
 		t.Run("", func(t *testing.T) {
 			t.Parallel()
@@ -108,6 +112,10 @@ func TestAgent_MultiStartStop(t *testing.T) {
 }
 
 func TestAgent_ConnectClusterIDConfig(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	tests := []struct {
 		name          string
 		hcl           string
@@ -159,6 +167,10 @@ func TestAgent_ConnectClusterIDConfig(t *testing.T) {
 }
 
 func TestAgent_StartStop(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -178,6 +190,10 @@ func TestAgent_StartStop(t *testing.T) {
 }
 
 func TestAgent_RPCPing(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -190,6 +206,10 @@ func TestAgent_RPCPing(t *testing.T) {
 }
 
 func TestAgent_TokenStore(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, `
@@ -211,6 +231,10 @@ func TestAgent_TokenStore(t *testing.T) {
 }
 
 func TestAgent_ReconnectConfigSettings(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	func() {
 		a := NewTestAgent(t, "")
@@ -247,6 +271,10 @@ func TestAgent_ReconnectConfigSettings(t *testing.T) {
 }
 
 func TestAgent_ReconnectConfigWanDisabled(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, `
@@ -260,6 +288,10 @@ func TestAgent_ReconnectConfigWanDisabled(t *testing.T) {
 }
 
 func TestAgent_AddService(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
 		testAgent_AddService(t, "enable_central_service_config = false")
@@ -456,6 +488,10 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 }
 
 func TestAgent_AddServices_AliasUpdateCheckNotReverted(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
 		testAgent_AddServices_AliasUpdateCheckNotReverted(t, "enable_central_service_config = false")
@@ -571,6 +607,10 @@ func test_createAlias(t *testing.T, agent *TestAgent, chk *structs.CheckType, ex
 // in CheckAlias.runQuery() waits for 1 min, so Shutdoww the agent might take time
 // So, we ensure the agent will update regularilly the index
 func TestAgent_CheckAliasRPC(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Helper()
 
 	a := NewTestAgent(t, `
@@ -674,6 +714,10 @@ func TestAgent_CheckAliasRPC(t *testing.T) {
 }
 
 func TestAgent_AddServiceNoExec(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
 		testAgent_AddServiceNoExec(t, "enable_central_service_config = false")
@@ -716,6 +760,10 @@ func testAgent_AddServiceNoExec(t *testing.T, extraHCL string) {
 }
 
 func TestAgent_AddServiceNoRemoteExec(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
 		testAgent_AddServiceNoRemoteExec(t, "enable_central_service_config = false")
@@ -753,8 +801,12 @@ func testAgent_AddServiceNoRemoteExec(t *testing.T, extraHCL string) {
 	}
 }
 
-func TestCacheRateLimit(test *testing.T) {
-	test.Parallel()
+func TestCacheRateLimit(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
 	tests := []struct {
 		// count := number of updates performed (1 every 10ms)
 		count int
@@ -770,7 +822,7 @@ func TestCacheRateLimit(test *testing.T) {
 		{300, 2, 2},
 	}
 	for _, currentTest := range tests {
-		test.Run(fmt.Sprintf("rate_limit_at_%v", currentTest.rateLimit), func(t *testing.T) {
+		t.Run(fmt.Sprintf("rate_limit_at_%v", currentTest.rateLimit), func(t *testing.T) {
 			tt := currentTest
 			t.Parallel()
 			a := NewTestAgent(t, "cache = { entry_fetch_rate = 1, entry_fetch_max_burst = 100 }")
@@ -854,6 +906,10 @@ func TestCacheRateLimit(test *testing.T) {
 }
 
 func TestAddServiceIPv4TaggedDefault(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Helper()
 
 	a := NewTestAgent(t, "")
@@ -883,6 +939,10 @@ func TestAddServiceIPv4TaggedDefault(t *testing.T) {
 }
 
 func TestAddServiceIPv6TaggedDefault(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Helper()
 
 	a := NewTestAgent(t, "")
@@ -912,6 +972,10 @@ func TestAddServiceIPv6TaggedDefault(t *testing.T) {
 }
 
 func TestAddServiceIPv4TaggedSet(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Helper()
 
 	a := NewTestAgent(t, "")
@@ -947,6 +1011,10 @@ func TestAddServiceIPv4TaggedSet(t *testing.T) {
 }
 
 func TestAddServiceIPv6TaggedSet(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Helper()
 
 	a := NewTestAgent(t, "")
@@ -982,6 +1050,10 @@ func TestAddServiceIPv6TaggedSet(t *testing.T) {
 }
 
 func TestAgent_RemoveService(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
 		testAgent_RemoveService(t, "enable_central_service_config = false")
@@ -1093,6 +1165,10 @@ func testAgent_RemoveService(t *testing.T, extraHCL string) {
 }
 
 func TestAgent_RemoveServiceRemovesAllChecks(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
 		testAgent_RemoveServiceRemovesAllChecks(t, "enable_central_service_config = false")
@@ -1164,6 +1240,10 @@ func testAgent_RemoveServiceRemovesAllChecks(t *testing.T, extraHCL string) {
 // we would have unnecessary catalog churn from anti-entropy. See issues
 // #3259, #3642, #3845, and #3866.
 func TestAgent_IndexChurn(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	t.Run("no tags", func(t *testing.T) {
@@ -1269,6 +1349,10 @@ func verifyIndexChurn(t *testing.T, tags []string) {
 }
 
 func TestAgent_AddCheck(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, `
 		enable_script_checks = true
@@ -1303,6 +1387,10 @@ func TestAgent_AddCheck(t *testing.T) {
 }
 
 func TestAgent_AddCheck_StartPassing(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, `
 		enable_script_checks = true
@@ -1337,6 +1425,10 @@ func TestAgent_AddCheck_StartPassing(t *testing.T) {
 }
 
 func TestAgent_AddCheck_MinInterval(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, `
 		enable_script_checks = true
@@ -1370,6 +1462,10 @@ func TestAgent_AddCheck_MinInterval(t *testing.T) {
 }
 
 func TestAgent_AddCheck_MissingService(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, `
 		enable_script_checks = true
@@ -1393,6 +1489,10 @@ func TestAgent_AddCheck_MissingService(t *testing.T) {
 }
 
 func TestAgent_AddCheck_RestoreState(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -1432,6 +1532,10 @@ func TestAgent_AddCheck_RestoreState(t *testing.T) {
 }
 
 func TestAgent_AddCheck_ExecDisable(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, "")
@@ -1465,6 +1569,10 @@ func TestAgent_AddCheck_ExecDisable(t *testing.T) {
 }
 
 func TestAgent_AddCheck_ExecRemoteDisable(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, `
@@ -1493,6 +1601,10 @@ func TestAgent_AddCheck_ExecRemoteDisable(t *testing.T) {
 }
 
 func TestAgent_AddCheck_GRPC(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -1696,6 +1808,10 @@ func launchHTTPCheckServer(t *testing.T, ctx context.Context) (srv *httptest.Ser
 }
 
 func TestAgent_AddCheck_Alias(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -1728,6 +1844,10 @@ func TestAgent_AddCheck_Alias(t *testing.T) {
 }
 
 func TestAgent_AddCheck_Alias_setToken(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -1756,6 +1876,10 @@ func TestAgent_AddCheck_Alias_setToken(t *testing.T) {
 }
 
 func TestAgent_AddCheck_Alias_userToken(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -1786,6 +1910,10 @@ acl_token = "hello"
 }
 
 func TestAgent_AddCheck_Alias_userAndSetToken(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -1816,6 +1944,10 @@ acl_token = "hello"
 }
 
 func TestAgent_RemoveCheck(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, `
 		enable_script_checks = true
@@ -1860,6 +1992,10 @@ func TestAgent_RemoveCheck(t *testing.T) {
 }
 
 func TestAgent_HTTPCheck_TLSSkipVerify(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1901,6 +2037,10 @@ func TestAgent_HTTPCheck_TLSSkipVerify(t *testing.T) {
 }
 
 func TestAgent_HTTPCheck_EnableAgentTLSForChecks(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	run := func(t *testing.T, ca string) {
@@ -1966,6 +2106,10 @@ func TestAgent_HTTPCheck_EnableAgentTLSForChecks(t *testing.T) {
 }
 
 func TestAgent_updateTTLCheck(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -2014,6 +2158,10 @@ func TestAgent_updateTTLCheck(t *testing.T) {
 }
 
 func TestAgent_PersistService(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
 		testAgent_PersistService(t, "enable_central_service_config = false")
@@ -2113,6 +2261,10 @@ func testAgent_PersistService(t *testing.T, extraHCL string) {
 }
 
 func TestAgent_persistedService_compat(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
 		testAgent_persistedService_compat(t, "enable_central_service_config = false")
@@ -2167,6 +2319,10 @@ func testAgent_persistedService_compat(t *testing.T, extraHCL string) {
 }
 
 func TestAgent_PurgeService(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
 		testAgent_PurgeService(t, "enable_central_service_config = false")
@@ -2222,6 +2378,10 @@ func testAgent_PurgeService(t *testing.T, extraHCL string) {
 }
 
 func TestAgent_PurgeServiceOnDuplicate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
 		testAgent_PurgeServiceOnDuplicate(t, "enable_central_service_config = false")
@@ -2275,6 +2435,10 @@ func testAgent_PurgeServiceOnDuplicate(t *testing.T, extraHCL string) {
 }
 
 func TestAgent_PersistCheck(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	cfg := `
 		server = false
@@ -2352,6 +2516,10 @@ func TestAgent_PersistCheck(t *testing.T) {
 }
 
 func TestAgent_PurgeCheck(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -2386,6 +2554,10 @@ func TestAgent_PurgeCheck(t *testing.T) {
 }
 
 func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	nodeID := NodeID()
 	a := StartTestAgent(t, TestAgent{
@@ -2450,6 +2622,10 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 }
 
 func TestAgent_DeregisterPersistedSidecarAfterRestart(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	nodeID := NodeID()
 	a := StartTestAgent(t, TestAgent{
@@ -2519,6 +2695,10 @@ func TestAgent_DeregisterPersistedSidecarAfterRestart(t *testing.T) {
 }
 
 func TestAgent_loadChecks_token(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, `
 		check = {
@@ -2535,6 +2715,10 @@ func TestAgent_loadChecks_token(t *testing.T) {
 }
 
 func TestAgent_unloadChecks(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -2575,6 +2759,10 @@ func TestAgent_unloadChecks(t *testing.T) {
 }
 
 func TestAgent_loadServices_token(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
 		testAgent_loadServices_token(t, "enable_central_service_config = false")
@@ -2605,6 +2793,10 @@ func testAgent_loadServices_token(t *testing.T, extraHCL string) {
 }
 
 func TestAgent_loadServices_sidecar(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
 		testAgent_loadServices_sidecar(t, "enable_central_service_config = false")
@@ -2646,6 +2838,10 @@ func testAgent_loadServices_sidecar(t *testing.T, extraHCL string) {
 }
 
 func TestAgent_loadServices_sidecarSeparateToken(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
 		testAgent_loadServices_sidecarSeparateToken(t, "enable_central_service_config = false")
@@ -2685,6 +2881,10 @@ func testAgent_loadServices_sidecarSeparateToken(t *testing.T, extraHCL string) 
 }
 
 func TestAgent_loadServices_sidecarInheritMeta(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
 		testAgent_loadServices_sidecarInheritMeta(t, "enable_central_service_config = false")
@@ -2729,6 +2929,10 @@ func testAgent_loadServices_sidecarInheritMeta(t *testing.T, extraHCL string) {
 }
 
 func TestAgent_loadServices_sidecarOverrideMeta(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
 		testAgent_loadServices_sidecarOverrideMeta(t, "enable_central_service_config = false")
@@ -2777,6 +2981,10 @@ func testAgent_loadServices_sidecarOverrideMeta(t *testing.T, extraHCL string) {
 }
 
 func TestAgent_unloadServices(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
 		testAgent_unloadServices(t, "enable_central_service_config = false")
@@ -2817,6 +3025,10 @@ func testAgent_unloadServices(t *testing.T, extraHCL string) {
 }
 
 func TestAgent_Service_MaintenanceMode(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -2883,6 +3095,10 @@ func TestAgent_Service_MaintenanceMode(t *testing.T) {
 }
 
 func TestAgent_Service_Reap(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	// t.Parallel() // timing test. no parallel
 	a := StartTestAgent(t, TestAgent{Overrides: `
 		check_reap_interval = "50ms"
@@ -2938,6 +3154,10 @@ func TestAgent_Service_Reap(t *testing.T) {
 }
 
 func TestAgent_Service_NoReap(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	// t.Parallel() // timing test. no parallel
 	a := StartTestAgent(t, TestAgent{Overrides: `
 		check_reap_interval = "50ms"
@@ -2979,6 +3199,10 @@ func TestAgent_Service_NoReap(t *testing.T) {
 }
 
 func TestAgent_AddService_restoresSnapshot(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
 		testAgent_AddService_restoresSnapshot(t, "enable_central_service_config = false")
@@ -3023,6 +3247,10 @@ func testAgent_AddService_restoresSnapshot(t *testing.T, extraHCL string) {
 }
 
 func TestAgent_AddCheck_restoresSnapshot(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -3063,6 +3291,10 @@ func TestAgent_AddCheck_restoresSnapshot(t *testing.T) {
 }
 
 func TestAgent_NodeMaintenanceMode(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -3100,6 +3332,10 @@ func TestAgent_NodeMaintenanceMode(t *testing.T) {
 }
 
 func TestAgent_checkStateSnapshot(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -3151,6 +3387,10 @@ func TestAgent_checkStateSnapshot(t *testing.T) {
 }
 
 func TestAgent_loadChecks_checkFails(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -3186,6 +3426,10 @@ func TestAgent_loadChecks_checkFails(t *testing.T) {
 }
 
 func TestAgent_persistCheckState(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -3234,6 +3478,10 @@ func TestAgent_persistCheckState(t *testing.T) {
 }
 
 func TestAgent_loadCheckState(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -3295,6 +3543,10 @@ func TestAgent_loadCheckState(t *testing.T) {
 }
 
 func TestAgent_purgeCheckState(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -3328,6 +3580,10 @@ func TestAgent_purgeCheckState(t *testing.T) {
 }
 
 func TestAgent_GetCoordinate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	a := NewTestAgent(t, ``)
 	defer a.Shutdown()
 
@@ -3344,6 +3600,10 @@ func TestAgent_GetCoordinate(t *testing.T) {
 }
 
 func TestAgent_reloadWatches(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -3402,6 +3662,10 @@ func TestAgent_reloadWatches(t *testing.T) {
 }
 
 func TestAgent_reloadWatchesHTTPS(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := TestAgent{UseTLS: true}
 	if err := a.Start(t); err != nil {
@@ -3424,6 +3688,10 @@ func TestAgent_reloadWatchesHTTPS(t *testing.T) {
 }
 
 func TestAgent_SecurityChecks(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	hcl := `
 		enable_script_checks = true
@@ -3439,6 +3707,10 @@ func TestAgent_SecurityChecks(t *testing.T) {
 }
 
 func TestAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
 	hcl := `
@@ -3473,6 +3745,10 @@ func TestAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
 }
 
 func TestAgent_ReloadConfigAndKeepChecksStatus(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
 		testAgent_ReloadConfigAndKeepChecksStatus(t, "enable_central_service_config = false")
@@ -3513,6 +3789,10 @@ func testAgent_ReloadConfigAndKeepChecksStatus(t *testing.T, extraHCL string) {
 }
 
 func TestAgent_ReloadConfigIncomingRPCConfig(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
 	hcl := `
@@ -3552,6 +3832,10 @@ func TestAgent_ReloadConfigIncomingRPCConfig(t *testing.T) {
 }
 
 func TestAgent_ReloadConfigTLSConfigFailure(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
 	hcl := `
@@ -3580,6 +3864,10 @@ func TestAgent_ReloadConfigTLSConfigFailure(t *testing.T) {
 }
 
 func TestAgent_consulConfig_AutoEncryptAllowTLS(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
 	hcl := `
@@ -3596,6 +3884,10 @@ func TestAgent_consulConfig_AutoEncryptAllowTLS(t *testing.T) {
 }
 
 func TestAgent_consulConfig_RaftTrailingLogs(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	hcl := `
 		raft_trailing_logs = 812345
@@ -3842,6 +4134,10 @@ func TestConfigSourceFromName(t *testing.T) {
 }
 
 func TestAgent_RerouteExistingHTTPChecks(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, "")
@@ -3971,6 +4267,10 @@ func TestAgent_RerouteExistingHTTPChecks(t *testing.T) {
 }
 
 func TestAgent_RerouteNewHTTPChecks(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, "")
@@ -4080,6 +4380,10 @@ func TestAgent_RerouteNewHTTPChecks(t *testing.T) {
 }
 
 func TestAgentCache_serviceInConfigFile_initialFetchErrors_Issue6521(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	// Ensure that initial failures to fetch the discovery chain via the agent
@@ -4177,6 +4481,10 @@ LOOP:
 
 // This is a mirror of a similar test in agent/consul/server_test.go
 func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	gwPort := freeport.MustTake(1)
@@ -4446,6 +4754,10 @@ func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
 }
 
 func TestAutoConfig_Integration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	// eventually this test should really live with integration tests
 	// the goal here is to have one test server and another test client
 	// spin up both agents and allow the server to authorize the auto config
@@ -4609,6 +4921,10 @@ func TestAutoConfig_Integration(t *testing.T) {
 }
 
 func TestAgent_AutoEncrypt(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	// eventually this test should really live with integration tests
 	// the goal here is to have one test server and another test client
 	// spin up both agents and allow the server to authorize the auto encrypt
@@ -4684,6 +5000,10 @@ func TestAgent_AutoEncrypt(t *testing.T) {
 }
 
 func TestSharedRPCRouter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	// this test runs both a server and client and ensures that the shared
 	// router is being used. It would be possible for the Client and Server
 	// types to create and use their own routers and for RPCs such as the
@@ -4714,6 +5034,10 @@ func TestSharedRPCRouter(t *testing.T) {
 }
 
 func TestAgent_ListenHTTP_MultipleAddresses(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	ports, err := freeport.Take(2)
 	require.NoError(t, err)
 	t.Cleanup(func() { freeport.Return(ports) })

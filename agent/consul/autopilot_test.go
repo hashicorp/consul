@@ -15,6 +15,10 @@ import (
 )
 
 func TestAutopilot_IdempotentShutdown(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	dir1, s1 := testServerWithConfig(t, nil)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -29,6 +33,10 @@ func TestAutopilot_IdempotentShutdown(t *testing.T) {
 }
 
 func TestAutopilot_CleanupDeadServer(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	dc := "dc1"
 	conf := func(c *Config) {
 		c.Datacenter = dc
@@ -113,6 +121,10 @@ func TestAutopilot_CleanupDeadServer(t *testing.T) {
 }
 
 func TestAutopilot_CleanupDeadNonvoter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.AutopilotConfig = &structs.AutopilotConfig{
 			CleanupDeadServers:      true,
@@ -146,6 +158,10 @@ func TestAutopilot_CleanupDeadNonvoter(t *testing.T) {
 }
 
 func TestAutopilot_CleanupDeadServerPeriodic(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
@@ -203,6 +219,10 @@ func TestAutopilot_CleanupDeadServerPeriodic(t *testing.T) {
 }
 
 func TestAutopilot_RollingUpdate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
@@ -282,6 +302,10 @@ func TestAutopilot_RollingUpdate(t *testing.T) {
 }
 
 func TestAutopilot_CleanupStaleRaftServer(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerDCBootstrap(t, "dc1", true)
 	defer os.RemoveAll(dir1)
@@ -334,6 +358,10 @@ func TestAutopilot_CleanupStaleRaftServer(t *testing.T) {
 }
 
 func TestAutopilot_PromoteNonVoter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
@@ -406,6 +434,10 @@ func TestAutopilot_PromoteNonVoter(t *testing.T) {
 }
 
 func TestAutopilot_MinQuorum(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	dc := "dc1"
 	conf := func(c *Config) {
 		c.Datacenter = dc

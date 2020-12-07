@@ -21,6 +21,10 @@ import (
 )
 
 func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	namespace := pbcommon.DefaultEnterpriseMeta.Namespace
 	client := NewTestStreamingClient(namespace)
 	typ := StreamingHealthServices{deps: MaterializerDeps{
@@ -279,6 +283,10 @@ func TestOrderingConsistentWithMemDb(t *testing.T) {
 }
 
 func TestStreamingHealthServices_FullSnapshot(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	namespace := getNamespace("ns2")
 	client := NewTestStreamingClient(namespace)
 	typ := StreamingHealthServices{deps: MaterializerDeps{

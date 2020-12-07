@@ -640,6 +640,10 @@ func setupLogin(t *testing.T, iat, exp, nbf time.Time, issuer string) string {
 }
 
 func TestParsePublicKeyPEM(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	getPublicPEM := func(t *testing.T, pub interface{}) string {
 		derBytes, err := x509.MarshalPKIXPublicKey(pub)
 		require.NoError(t, err)

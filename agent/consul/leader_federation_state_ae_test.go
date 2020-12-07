@@ -14,6 +14,10 @@ import (
 )
 
 func TestLeader_FederationStateAntiEntropy_BlockingQuery(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
@@ -190,6 +194,10 @@ func TestLeader_FederationStateAntiEntropy_BlockingQuery(t *testing.T) {
 }
 
 func TestLeader_FederationStateAntiEntropyPruning(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
@@ -263,6 +271,10 @@ func TestLeader_FederationStateAntiEntropyPruning(t *testing.T) {
 }
 
 func TestLeader_FederationStateAntiEntropyPruning_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {

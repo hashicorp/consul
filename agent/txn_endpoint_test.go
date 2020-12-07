@@ -18,6 +18,10 @@ import (
 )
 
 func TestTxnEndpoint_Bad_JSON(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -37,6 +41,10 @@ func TestTxnEndpoint_Bad_JSON(t *testing.T) {
 }
 
 func TestTxnEndpoint_Bad_Size_Item(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	testIt := func(t *testing.T, agent *TestAgent, wantPass bool) {
 		value := strings.Repeat("X", 3*raft.SuggestedMaxDataSize)
@@ -95,6 +103,10 @@ limits = {
 }
 
 func TestTxnEndpoint_Bad_Size_Net(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	testIt := func(agent *TestAgent, wantPass bool) {
@@ -174,6 +186,10 @@ limits = {
 }
 
 func TestTxnEndpoint_Bad_Size_Ops(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -201,6 +217,10 @@ func TestTxnEndpoint_Bad_Size_Ops(t *testing.T) {
 }
 
 func TestTxnEndpoint_KV_Actions(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	t.Run("", func(t *testing.T) {
 		a := NewTestAgent(t, "")
@@ -482,6 +502,10 @@ func TestTxnEndpoint_KV_Actions(t *testing.T) {
 }
 
 func TestTxnEndpoint_UpdateCheck(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()

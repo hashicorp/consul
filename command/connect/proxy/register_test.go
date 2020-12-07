@@ -13,6 +13,10 @@ import (
 )
 
 func TestRegisterMonitor_good(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	require := require.New(t)
 
@@ -37,6 +41,10 @@ func TestRegisterMonitor_good(t *testing.T) {
 }
 
 func TestRegisterMonitor_heartbeat(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := agent.NewTestAgent(t, ``)

@@ -274,6 +274,10 @@ func TestAE_FSM(t *testing.T) {
 }
 
 func TestAE_RetrySyncFullEvent(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Run("trigger shutdownEvent", func(t *testing.T) {
 		l := testSyncer(t)
 		l.ShutdownCh = make(chan struct{})
@@ -318,6 +322,10 @@ func TestAE_RetrySyncFullEvent(t *testing.T) {
 }
 
 func TestAE_SyncChangesEvent(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Run("trigger shutdownEvent", func(t *testing.T) {
 		l := testSyncer(t)
 		l.ShutdownCh = make(chan struct{})

@@ -10,6 +10,10 @@ import (
 )
 
 func TestLeader_SystemMetadata_CRUD(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	// This test is a little strange because it is testing behavior that
 	// doesn't have an exposed RPC. We're just testing the full round trip of
 	// raft+fsm For now,

@@ -44,6 +44,10 @@ func TestStateCommand_noTabs(t *testing.T) {
 }
 
 func TestStateCommand_Pretty(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, `
 		node_id = "f0427127-7531-455a-b651-f1ea1d8451f0"
@@ -71,6 +75,10 @@ func TestStateCommand_Pretty(t *testing.T) {
 }
 
 func TestStateCommand_JSON(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, "")
 

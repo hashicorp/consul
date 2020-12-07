@@ -1426,6 +1426,10 @@ func TestACLResolver_DatacenterScoping(t *testing.T) {
 
 // TODO(rb): replicate this sort of test but for roles
 func TestACLResolver_Client(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	t.Run("Racey-Token-Mod-Policy-Resolve", func(t *testing.T) {
@@ -3376,6 +3380,10 @@ func TestACL_filterPreparedQueries(t *testing.T) {
 }
 
 func TestACL_unhandledFilterType(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	defer func(t *testing.T) {
 		if recover() == nil {

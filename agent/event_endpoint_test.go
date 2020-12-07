@@ -17,6 +17,10 @@ import (
 )
 
 func TestEventFire(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -57,6 +61,10 @@ func TestEventFire(t *testing.T) {
 }
 
 func TestEventFire_token(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, TestACLConfig()+`
 		acl_default_policy = "deny"
@@ -119,6 +127,10 @@ func TestEventFire_token(t *testing.T) {
 }
 
 func TestEventList(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -152,6 +164,10 @@ func TestEventList(t *testing.T) {
 }
 
 func TestEventList_Filter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -190,6 +206,10 @@ func TestEventList_Filter(t *testing.T) {
 }
 
 func TestEventList_ACLFilter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, TestACLConfig())
 	defer a.Shutdown()
@@ -241,6 +261,10 @@ func TestEventList_ACLFilter(t *testing.T) {
 }
 
 func TestEventList_Blocking(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -293,6 +317,10 @@ func TestEventList_Blocking(t *testing.T) {
 }
 
 func TestEventList_EventBufOrder(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()

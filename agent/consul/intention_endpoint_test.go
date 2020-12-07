@@ -15,6 +15,10 @@ import (
 
 // Test basic creation
 func TestIntentionApply_new(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	dir1, s1 := testServer(t)
@@ -98,6 +102,10 @@ func TestIntentionApply_new(t *testing.T) {
 
 // Test the source type defaults
 func TestIntentionApply_defaultSourceType(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -144,6 +152,10 @@ func TestIntentionApply_defaultSourceType(t *testing.T) {
 
 // Shouldn't be able to create with an ID set
 func TestIntentionApply_createWithID(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -174,6 +186,10 @@ func TestIntentionApply_createWithID(t *testing.T) {
 
 // Test basic updating
 func TestIntentionApply_updateGood(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	dir1, s1 := testServer(t)
@@ -254,6 +270,10 @@ func TestIntentionApply_updateGood(t *testing.T) {
 
 // Shouldn't be able to update a non-existent intention
 func TestIntentionApply_updateNonExist(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -284,6 +304,10 @@ func TestIntentionApply_updateNonExist(t *testing.T) {
 
 // Test basic deleting
 func TestIntentionApply_deleteGood(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -339,6 +363,10 @@ func TestIntentionApply_deleteGood(t *testing.T) {
 }
 
 func TestIntentionApply_WithoutIDs(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	dir1, s1 := testServer(t)
@@ -823,6 +851,10 @@ func TestIntentionApply_WithoutIDs(t *testing.T) {
 
 // Test apply with a deny ACL
 func TestIntentionApply_aclDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -903,6 +935,10 @@ service "foo" {
 }
 
 func TestIntention_WildcardACLEnforcement(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
@@ -1220,6 +1256,10 @@ func TestIntention_WildcardACLEnforcement(t *testing.T) {
 
 // Test apply with delete and a default deny ACL
 func TestIntentionApply_aclDelete(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -1297,6 +1337,10 @@ service "foo" {
 
 // Test apply with update and a default deny ACL
 func TestIntentionApply_aclUpdate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -1362,6 +1406,10 @@ service "foo" {
 
 // Test apply with a management token
 func TestIntentionApply_aclManagement(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -1403,6 +1451,10 @@ func TestIntentionApply_aclManagement(t *testing.T) {
 
 // Test update changing the name where an ACL won't allow it
 func TestIntentionApply_aclUpdateChange(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -1465,6 +1517,10 @@ service "foo" {
 
 // Test reading with ACLs
 func TestIntentionGet_acl(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
@@ -1562,6 +1618,10 @@ func TestIntentionGet_acl(t *testing.T) {
 }
 
 func TestIntentionList(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -1587,6 +1647,10 @@ func TestIntentionList(t *testing.T) {
 
 // Test listing with ACLs
 func TestIntentionList_acl(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, testServerACLConfig(nil))
@@ -1668,6 +1732,10 @@ func TestIntentionList_acl(t *testing.T) {
 // Test basic matching. We don't need to exhaustively test inputs since this
 // is tested in the agent/consul/state package.
 func TestIntentionMatch_good(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	dir1, s1 := testServer(t)
@@ -1737,6 +1805,10 @@ func TestIntentionMatch_good(t *testing.T) {
 
 // Test matching with ACLs
 func TestIntentionMatch_acl(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
@@ -1819,6 +1891,10 @@ func TestIntentionMatch_acl(t *testing.T) {
 
 // Test the Check method defaults to allow with no ACL set.
 func TestIntentionCheck_defaultNoACL(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	dir1, s1 := testServer(t)
@@ -1845,6 +1921,10 @@ func TestIntentionCheck_defaultNoACL(t *testing.T) {
 
 // Test the Check method defaults to deny with allowlist ACLs.
 func TestIntentionCheck_defaultACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
@@ -1877,6 +1957,10 @@ func TestIntentionCheck_defaultACLDeny(t *testing.T) {
 
 // Test the Check method defaults to deny with denylist ACLs.
 func TestIntentionCheck_defaultACLAllow(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
@@ -1909,6 +1993,10 @@ func TestIntentionCheck_defaultACLAllow(t *testing.T) {
 
 // Test the Check method requires service:read permission.
 func TestIntentionCheck_aclDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
@@ -1962,6 +2050,10 @@ service "bar" {
 
 // Test the Check method returns allow/deny properly.
 func TestIntentionCheck_match(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	_, srv, codec := testACLServerWithConfig(t, nil, false)

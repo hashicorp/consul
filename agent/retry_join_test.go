@@ -20,6 +20,10 @@ func TestAgentRetryNewDiscover(t *testing.T) {
 }
 
 func TestAgentRetryJoinAddrs(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	d, err := newDiscover()
 	require.NoError(t, err)
 
