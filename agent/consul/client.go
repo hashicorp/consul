@@ -191,6 +191,37 @@ func (c *Client) Shutdown() error {
 	return nil
 }
 
+func (c *Client) ReconnectSerfWithNewNodeName(oldNodeName string) error {
+	c.logger.Info("client changing node name")
+
+	if err := c.Leave(); err != nil {
+		return fmt.Errorf("Failed to leave LAN Serf cluster: %v", err)
+	}
+
+	c.shutdownLock.Lock()
+	defer c.shutdownLock.Unlock()
+
+	// Leave the LAN pool
+	if c.serf != nil {
+		if err := c.serf.Shutdown(); err != nil {
+			return fmt.Errorf("Failed to shutdown serf member: %v", err)
+		}
+	}
+
+	c.logger.Info("Setup new membership with name", "nodename", c.config.NodeName)
+	s, err := c.setupSerf(c.config.SerfLANConfig, c.eventCh, serfLANSnapshot)
+	if err != nil {
+		c.Shutdown()
+		return fmt.Errorf("Failed to start lan serf: %v", err)
+	}
+	c.serf = s
+
+	// The event handler has been shut due to the call to Shutdown so we need to
+	// restart it to handle the events.
+	go c.lanEventHandler()
+	return nil
+}
+
 // Leave is used to prepare for a graceful shutdown
 func (c *Client) Leave() error {
 	c.logger.Info("client starting leave")
@@ -405,5 +436,8 @@ func (c *Client) GetLANCoordinate() (lib.CoordinateSet, error) {
 // relevant configuration information
 func (c *Client) ReloadConfig(config *Config) error {
 	c.rpcLimiter.Store(rate.NewLimiter(config.RPCRate, config.RPCMaxBurst))
+
+	// The node name could have been changed thus impacting the membership within the serf cluster.
+	c.config.NodeName = config.NodeName
 	return nil
 }

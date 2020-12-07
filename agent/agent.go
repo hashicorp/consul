@@ -123,6 +123,7 @@ func ConfigSourceFromName(name string) (configSource, bool) {
 // consul.Client and consul.Server.
 type delegate interface {
 	GetLANCoordinate() (lib.CoordinateSet, error)
+	ReconnectSerfWithNewNodeName(oldNodeName string) error
 	Leave() error
 	LANMembers() []serf.Member
 	LANMembersAllSegments() ([]serf.Member, error)
@@ -1311,6 +1312,43 @@ func (a *Agent) RPC(method string, args interface{}, reply interface{}) error {
 	}
 	a.endpointsLock.RUnlock()
 	return a.delegate.RPC(method, args, reply)
+}
+
+// ReconnectSerfWithNewNodeName is used to prepare reconnect to the serf cluster with the new node name
+func (a *Agent) ReconnectSerfWithNewNodeName(oldNodeName string) error {
+	oldMembers := a.delegate.LANMembers()
+
+	if err := a.delegate.ReconnectSerfWithNewNodeName(oldNodeName); err != nil {
+		return err
+	}
+
+	joinAddrs := []string{}
+	for _, m := range oldMembers {
+		// We take 10 addresses out of the pool of known members to start joining the cluster.
+		if len(joinAddrs) < 10 && m.Name != oldNodeName && m.Status == serf.StatusAlive {
+			joinAddrs = append(joinAddrs, net.JoinHostPort(m.Addr.String(), fmt.Sprint(m.Port)))
+		}
+
+		if len(joinAddrs) == 10 {
+			break
+		}
+	}
+
+	// If the node knows nobody, then use the start addresses provided in the config.
+	if len(joinAddrs) == 0 {
+		joinAddrs = a.config.StartJoinAddrsLAN
+	}
+
+	if len(joinAddrs) > 0 {
+		// Only join LAN, not WAN because node name hot reload is only supported on agents.
+		if _, err := a.JoinLAN(joinAddrs); err != nil {
+			return err
+		}
+	}
+
+	// start retry join
+	go a.retryJoinLAN()
+	return nil
 }
 
 // Leave is used to prepare the agent for a graceful shutdown
@@ -3625,6 +3663,17 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 		return err
 	}
 
+	_, isServer := a.delegate.(*consul.Server)
+	nodeNameChanged := a.config.NodeName != newCfg.NodeName
+	oldNodeName := a.config.NodeName
+
+	if nodeNameChanged && !isServer {
+		a.config.NodeName = newCfg.NodeName
+	} else if nodeNameChanged && isServer {
+		a.logger.Warn("Dynamic reloading of the node name is not yet supported by nodes in server mode. " +
+			"The node name will remain until you restart the server.")
+	}
+
 	// create the config for the rpc server/client
 	consulCfg, err := newConsulConfig(a.config, a.logger)
 	if err != nil {
@@ -3633,6 +3682,20 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 
 	if err := a.delegate.ReloadConfig(consulCfg); err != nil {
 		return err
+	}
+
+	if nodeNameChanged && !isServer {
+		a.logger.Warn("Node name has been modified, leave and join with the new name is requested")
+
+		// Update the cached configuration, otherwise the state will keep propagating
+		// service registrations attached to the old nodes which produces an infinite
+		// loop of registration/deregistration of the old node.
+		a.State.SetConfig(LocalConfig(newCfg))
+
+		err := a.ReconnectSerfWithNewNodeName(oldNodeName)
+		if err != nil {
+			return fmt.Errorf("Unable to reconnect to Serf cluster with new name: %v", err)
+		}
 	}
 
 	if a.cache.ReloadOptions(newCfg.Cache) {

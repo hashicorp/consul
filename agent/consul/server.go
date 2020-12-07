@@ -974,6 +974,11 @@ func (s *Server) Shutdown() error {
 	return nil
 }
 
+// ReconnectSerfWithNewNodeName change of node name is not yet supported for servers
+func (s *Server) ReconnectSerfWithNewNodeName(oldNodeName string) error {
+	return nil
+}
+
 // Leave is used to prepare for a graceful shutdown of the server
 func (s *Server) Leave() error {
 	s.logger.Info("server starting leave")

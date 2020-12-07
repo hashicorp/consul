@@ -227,6 +227,10 @@ func (l *State) SetDiscardCheckOutput(b bool) {
 	l.discardCheckOutput.Store(b)
 }
 
+func (l *State) SetConfig(config Config) {
+	l.config = config
+}
+
 // ServiceToken returns the configured ACL token for the given
 // service ID. If none is present, the agent's token is returned.
 func (l *State) ServiceToken(id structs.ServiceID) string {

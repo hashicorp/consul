@@ -1,0 +1,3 @@
+```release-note:improvement
+config reload: dynamically reload node name of consul agents.
+```

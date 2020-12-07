@@ -3791,6 +3791,251 @@ func TestAgent_SecurityChecks(t *testing.T) {
 	assert.Contains(t, bytesBuffer.String(), "using enable-script-checks without ACLs and without allow_write_http_from is DANGEROUS")
 }
 
+func TestAgent_ReloadConfigNodeName(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Agent node name reloaded if client", func(t *testing.T) {
+		dataDir := testutil.TempDir(t, "agent") // we manage the data dir
+		hcl := `
+		data_dir = "` + dataDir + `"
+		node_name = "name1"
+		server = false
+		bootstrap = false
+	`
+		a := NewTestAgent(t, hcl)
+		defer a.Shutdown()
+		require.Equal(t, "name1", a.config.NodeName)
+
+		hcl = `
+		data_dir = "` + dataDir + `"
+		node_name = "name2"
+		server = false
+		bootstrap = false
+	`
+		c := TestConfig(testutil.Logger(t), config.FileSource{Name: t.Name(), Format: "hcl", Data: hcl})
+		require.NoError(t, a.reloadConfigInternal(c))
+		require.Equal(t, "name2", a.config.NodeName)
+	})
+
+	t.Run("Agent node name not reloaded if server", func(t *testing.T) {
+		dataDir := testutil.TempDir(t, "agent") // we manage the data dir
+		hcl := `
+		data_dir = "` + dataDir + `"
+		node_name = "name1"
+	`
+		a := NewTestAgent(t, hcl)
+		defer a.Shutdown()
+		require.Equal(t, "name1", a.config.NodeName)
+
+		hcl = `
+		data_dir = "` + dataDir + `"
+		node_name = "name2"
+	`
+		c := TestConfig(testutil.Logger(t), config.FileSource{Name: t.Name(), Format: "hcl", Data: hcl})
+		require.NoError(t, a.reloadConfigInternal(c))
+		require.Equal(t, "name1", a.config.NodeName)
+	})
+}
+
+type MemberMatcher struct {
+	Name   string
+	Status serf.MemberStatus
+}
+
+func AssertContainsMembers(t *testing.T, members []serf.Member, expMembers ...MemberMatcher) {
+	if len(members) != len(expMembers) {
+		require.Fail(t, fmt.Sprintf("Unexpected number of elements: %d items while %d expected", len(members), len(expMembers)))
+	}
+
+	for _, em := range expMembers {
+		exists := false
+		for _, m := range members {
+			if em.Name == m.Name && em.Status == m.Status {
+				exists = true
+			}
+
+			if exists {
+				break
+			}
+		}
+		if !exists {
+			assert.Fail(t, fmt.Sprintf("Element %s with status %d not found", em.Name, em.Status))
+		}
+	}
+}
+
+func TestAgent_ReloadConfigNodeName_JoinSerfWithStartJoinAddresses(t *testing.T) {
+	t.Parallel()
+	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
+
+	a1 := NewTestAgent(t, `node_name = "server1"`)
+	defer a1.Shutdown()
+	testrpc.WaitForLeader(t, a1.RPC, "dc1")
+
+	addr := fmt.Sprintf("127.0.0.1:%d", a1.Config.SerfPortLAN)
+	hcl := `
+		data_dir = "` + dataDir + `"
+		node_name = "name1"
+		server = false
+		bootstrap = false
+		start_join = ["` + addr + `"]
+	`
+
+	a2 := NewTestAgent(t, hcl)
+	defer a2.Shutdown()
+
+	a2.JoinLAN([]string{addr})
+
+	AssertContainsMembers(t, a1.LANMembers(),
+		MemberMatcher{Name: "server1", Status: serf.StatusAlive},
+		MemberMatcher{Name: "name1", Status: serf.StatusAlive})
+
+	hcl = `
+		data_dir = "` + dataDir + `"
+		node_name = "name2"
+		server = false
+		bootstrap = false
+		start_join = ["` + addr + `"]
+	`
+	c := TestConfig(testutil.Logger(t), config.FileSource{Name: t.Name(), Format: "hcl", Data: hcl})
+	require.NoError(t, a2.reloadConfigInternal(c))
+
+	AssertContainsMembers(t, a1.LANMembers(),
+		MemberMatcher{Name: "server1", Status: serf.StatusAlive},
+		MemberMatcher{Name: "name1", Status: serf.StatusLeft},
+		MemberMatcher{Name: "name2", Status: serf.StatusAlive})
+}
+
+func TestAgent_ReloadConfigNodeName_JoinSerfWithKnownMembers(t *testing.T) {
+	t.Parallel()
+	dataDir1 := testutil.TempDir(t, "agent1") // we manage the data dir
+	dataDir2 := testutil.TempDir(t, "agent2") // we manage the data dir
+
+	a1 := NewTestAgent(t, `node_name = "server1"`)
+	defer a1.Shutdown()
+	testrpc.WaitForLeader(t, a1.RPC, "dc1")
+
+	a2 := NewTestAgent(t, `
+	data_dir = "`+dataDir1+`"
+	node_name = "name1"
+	server = false
+	bootstrap = false`)
+	defer a2.Shutdown()
+
+	a2.JoinLAN([]string{fmt.Sprintf("127.0.0.1:%d", a1.Config.SerfPortLAN)})
+
+	a3 := NewTestAgent(t, `
+	data_dir = "`+dataDir2+`"
+	node_name = "name2"
+	server = false
+	bootstrap = false`)
+	defer a3.Shutdown()
+
+	a3.JoinLAN([]string{fmt.Sprintf("127.0.0.1:%d", a2.Config.SerfPortLAN)})
+
+	testrpc.WaitForTestAgent(t, a2.RPC, "dc1")
+	testrpc.WaitForTestAgent(t, a3.RPC, "dc1")
+
+	retry.Run(t, func(r *retry.R) {
+		if got, want := len(a1.LANMembers()), 3; got != want {
+			r.Fatalf("got %d LAN members want at least %d", got, want)
+		}
+	})
+
+	AssertContainsMembers(t, a1.LANMembers(),
+		MemberMatcher{Name: "server1", Status: serf.StatusAlive},
+		MemberMatcher{Name: "name1", Status: serf.StatusAlive},
+		MemberMatcher{Name: "name2", Status: serf.StatusAlive})
+
+	hcl := `
+	data_dir = "` + dataDir2 + `"
+	node_name = "name3"
+	server = false
+	bootstrap = false`
+
+	c := TestConfig(testutil.Logger(t), config.FileSource{Name: t.Name(), Format: "hcl", Data: hcl})
+	require.NoError(t, a3.reloadConfigInternal(c))
+
+	retry.Run(t, func(r *retry.R) {
+		if got, want := len(a1.LANMembers()), 4; got != want {
+			r.Fatalf("got %d LAN members want at least %d", got, want)
+		}
+	})
+
+	AssertContainsMembers(t, a1.LANMembers(),
+		MemberMatcher{Name: "server1", Status: serf.StatusAlive},
+		MemberMatcher{Name: "name1", Status: serf.StatusAlive},
+		MemberMatcher{Name: "name2", Status: serf.StatusLeft},
+		MemberMatcher{Name: "name3", Status: serf.StatusAlive})
+}
+
+func TestAgent_ReloadConfigNodeName_StateIsKept(t *testing.T) {
+	t.Parallel()
+	dataDir := testutil.TempDir(t, "agent1") // we manage the data dir
+
+	a1 := NewTestAgent(t, `node_name = "server1"`)
+	defer a1.Shutdown()
+	testrpc.WaitForLeader(t, a1.RPC, "dc1")
+
+	a2 := NewTestAgent(t, `
+	data_dir = "`+dataDir+`"
+	node_name = "name1"
+	server = false
+	bootstrap = false`)
+	defer a2.Shutdown()
+
+	a2.JoinLAN([]string{fmt.Sprintf("127.0.0.1:%d", a1.Config.SerfPortLAN)})
+
+	testrpc.WaitForTestAgent(t, a2.RPC, "dc1")
+
+	srv := &structs.NodeService{
+		Service: "my_service",
+		ID:      "my_service_id",
+		Port:    8100,
+		Address: "::5",
+	}
+
+	err := a2.AddService(srv, []*structs.CheckType{}, true, "", ConfigSourceRemote)
+	require.NoError(t, err)
+
+	health := &structs.HealthCheck{
+		Node:    "foo",
+		CheckID: "http-check",
+		Name:    "http-check",
+		Status:  api.HealthCritical,
+	}
+	chk := &structs.CheckType{
+		CheckID:       "http",
+		HTTP:          "http://localhost:8080/mypath?query",
+		Interval:      20 * time.Millisecond,
+		TLSSkipVerify: true,
+	}
+	err = a2.AddCheck(health, chk, true, "", ConfigSourceLocal)
+	require.NoError(t, err)
+
+	hcl := `
+	data_dir = "` + dataDir + `"
+	node_name = "name2"
+	server = false
+	bootstrap = false`
+
+	c := TestConfig(testutil.Logger(t), config.FileSource{Name: t.Name(), Format: "hcl", Data: hcl})
+	require.NoError(t, a2.reloadConfigInternal(c))
+
+	retry.Run(t, func(r *retry.R) {
+		if got, want := len(a1.LANMembers()), 3; got != want {
+			r.Fatalf("got %d LAN members want at least %d", got, want)
+		}
+
+		// Verify that persisted services and checks are reloaded after the rename.
+		svc := getService(a2, srv.ID)
+		require.NotNil(r, svc, "missing service %q", srv.ID)
+
+		chk := getCheck(a2, health.CheckID)
+		require.NotNil(r, chk, "missing check %q", health.CheckID)
+	})
+}
+
 func TestAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
