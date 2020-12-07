@@ -1,5 +1,6 @@
 import Model, { attr, belongsTo } from '@ember-data/model';
-import { computed } from '@ember/object';
+import { fragmentArray } from 'ember-data-model-fragments/attributes';
+import { computed, get, set } from '@ember/object';
 import { or, filter, alias } from '@ember/object/computed';
 
 export const PRIMARY_KEY = 'uid';
@@ -15,7 +16,7 @@ export default class ServiceInstance extends Model {
   @attr() Proxy;
   @attr() Node;
   @attr() Service;
-  @attr() Checks;
+  @fragmentArray('health-check') Checks;
   @attr('number') SyncTime;
   @attr() meta;
 
@@ -29,8 +30,35 @@ export default class ServiceInstance extends Model {
   @alias('Service.Tags') Tags;
   @alias('Service.Meta') Meta;
   @alias('Service.Namespace') Namespace;
-  @filter('Checks.[]', (item, i, arr) => item.ServiceID !== '') ServiceChecks;
-  @filter('Checks.[]', (item, i, arr) => item.ServiceID === '') NodeChecks;
+
+  @filter('Checks.@each.Kind', (item, i, arr) => item.Kind === 'service') ServiceChecks;
+  @filter('Checks.@each.Kind', (item, i, arr) => item.Kind === 'node') NodeChecks;
+
+  // MeshChecks are a concatenation of Checks for the Instance and Checks for
+  // the ProxyInstance. Checks is an ember-data-model-fragment, so we can't just
+  // concat it, we have to loop through all the items in order to merge
+  @computed('Checks', 'ProxyInstance.Checks', 'ProxyInstance.ServiceProxy.Expose.Checks')
+  get MeshChecks() {
+    return (get(this, 'Checks') || [])
+      .map(item => {
+        set(
+          item,
+          'Exposed',
+          get(this, 'ProxyInstance.ServiceProxy.Expose.Checks') && get(item, 'Exposable')
+        );
+        return item;
+      })
+      .concat(
+        (get(this, 'ProxyInstance.Checks') || []).map(item => {
+          set(
+            item,
+            'Exposed',
+            get(this, 'ProxyInstance.ServiceProxy.Expose.Checks') && get(item, 'Exposable')
+          );
+          return item;
+        })
+      );
+  }
 
   @computed('Service.Meta')
   get ExternalSources() {

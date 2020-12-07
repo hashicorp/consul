@@ -27,6 +27,9 @@ export default class HttpService extends Service {
   'service-instance';
 
   @service('repository/service-instance')
+  'proxy-service-instance';
+
+  @service('repository/service-instance')
   'service-instances';
 
   @service('repository/proxy')
@@ -191,6 +194,11 @@ export default class HttpService extends Service {
         // id, node, service
         find = configuration =>
           repo.findBySlug(rest[0], rest[1], rest[2], dc, nspace, configuration);
+        break;
+      case 'proxy-service-instance':
+        // id, node, service
+        find = configuration =>
+          repo.findProxyBySlug(rest[0], rest[1], rest[2], dc, nspace, configuration);
         break;
       case 'proxy-instance':
         // id, node, service

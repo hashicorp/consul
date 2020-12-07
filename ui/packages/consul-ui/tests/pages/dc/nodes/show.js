@@ -1,4 +1,13 @@
-export default function(visitable, deletable, clickable, attribute, collection, tabs, text) {
+export default function(
+  visitable,
+  deletable,
+  clickable,
+  attribute,
+  collection,
+  tabs,
+  text,
+  healthChecks
+) {
   return {
     visit: visitable('/:dc/nodes/:node'),
     tabs: tabs('tab', [
@@ -8,9 +17,7 @@ export default function(visitable, deletable, clickable, attribute, collection, 
       'lock-sessions',
       'metadata',
     ]),
-    healthchecks: collection('[data-test-node-healthcheck]', {
-      name: attribute('data-test-node-healthcheck'),
-    }),
+    healthChecks: healthChecks(),
     services: collection('.consul-service-instance-list > ul > li:not(:first-child)', {
       name: text('[data-test-service-name]'),
       port: attribute('data-test-service-port', '[data-test-service-port]'),

@@ -1,5 +1,5 @@
 <form
-  class="consul-node-search-bar filter-bar"
+  class="consul-health-check-search-bar filter-bar"
   ...attributes
 >
   <div class="search">
@@ -21,9 +21,9 @@
         </BlockSlot>
         <BlockSlot @name="options">
   {{#let components.Optgroup components.Option as |Optgroup Option|}}
-          <Option @value="Node" @selected={{contains 'Node' @filter.searchproperties}}>Node Name</Option>
-          <Option @value="Address" @selected={{contains 'Address' @filter.searchproperties}}>Address</Option>
-          <Option @value="Meta" @selected={{contains 'Meta' @filter.searchproperties}}>Node Meta</Option>
+    {{#each @searchproperties as |prop|}}
+          <Option @value={{prop}} @selected={{contains prop @filter.searchproperties}}>{{prop}}</Option>
+    {{/each}}
   {{/let}}
         </BlockSlot>
       </PopoverSelect>
@@ -50,6 +50,50 @@
 {{/let}}
       </BlockSlot>
     </PopoverSelect>
+
+    <PopoverSelect
+      class="type-kind"
+      @position="left"
+      @onchange={{action @onfilter.kind}}
+      @multiple={{true}}
+    as |components|>
+      <BlockSlot @name="selected">
+        <span>
+          Kind
+        </span>
+      </BlockSlot>
+      <BlockSlot @name="options">
+{{#let components.Optgroup components.Option as |Optgroup Option|}}
+        <Option @value="service" @selected={{contains 'service' @filter.kinds}}>Service Check</Option>
+        <Option @value="node" @selected={{contains 'node' @filter.kinds}}>Node Check</Option>
+{{/let}}
+      </BlockSlot>
+    </PopoverSelect>
+
+    <PopoverSelect
+      class="type-check"
+      @position="left"
+      @onchange={{action @onfilter.check}}
+      @multiple={{true}}
+    as |components|>
+      <BlockSlot @name="selected">
+        <span>
+          Type
+        </span>
+      </BlockSlot>
+      <BlockSlot @name="options">
+{{#let components.Optgroup components.Option as |Optgroup Option|}}
+        <Option @value="alias" @selected={{contains 'alias' @filter.checks}}>alias</Option>
+        <Option @value="docker" @selected={{contains 'docker' @filter.checks}}>Docker</Option>
+        <Option @value="grpc" @selected={{contains 'grpc' @filter.checks}}>gRPC</Option>
+        <Option @value="http" @selected={{contains 'http' @filter.checks}}>HTTP</Option>
+        <Option @value="serf" @selected={{contains 'serf' @filter.checks}}>Serf</Option>
+        <Option @value="tcp" @selected={{contains 'tcp' @filter.checks}}>TCP</Option>
+        <Option @value="ttl" @selected={{contains 'ttl' @filter.checks}}>TTL</Option>
+{{/let}}
+      </BlockSlot>
+    </PopoverSelect>
+
   </div>
   <div class="sort">
     <PopoverSelect
@@ -62,10 +106,12 @@
       <BlockSlot @name="selected">
         <span>
           {{#let (from-entries (array
-                (array "Node:asc" "A to Z")
-                (array "Node:desc" "Z to A")
+                (array "Name:asc" "A to Z")
+                (array "Name:desc" "Z to A")
                 (array "Status:asc" "Unhealthy to Healthy")
                 (array "Status:desc" "Healthy to Unhealthy")
+                (array "Kind:asc" "Service to Node")
+                (array "Kind:desc" "Node to Service")
               ))
             as |selectable|
           }}
@@ -79,9 +125,13 @@
           <Option @value="Status:asc" @selected={{eq "Status:asc" @sort}}>Unhealthy to Healthy</Option>
           <Option @value="Status:desc" @selected={{eq "Status:desc" @sort}}>Healthy to Unhealthy</Option>
         </Optgroup>
-        <Optgroup @label="Service Name">
-          <Option @value="Node:asc" @selected={{eq "Node:asc" @sort}}>A to Z</Option>
-          <Option @value="Node:desc" @selected={{eq "Node:desc" @sort}}>Z to A</Option>
+        <Optgroup @label="Check Name">
+          <Option @value="Name:asc" @selected={{eq "Name:asc" @sort}}>A to Z</Option>
+          <Option @value="Name:desc" @selected={{eq "Name:desc" @sort}}>Z to A</Option>
+        </Optgroup>
+        <Optgroup @label="Check Type">
+          <Option @value="Kind:asc" @selected={{eq "Kind:asc" @sort}}>Service to Node</Option>
+          <Option @value="Kind:desc" @selected={{eq "Kind:desc" @sort}}>Node to Service</Option>
         </Optgroup>
 {{/let}}
       </BlockSlot>
