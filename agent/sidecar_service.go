@@ -69,6 +69,14 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 		sidecar.Tags = append(sidecar.Tags, ns.Tags...)
 	}
 
+	// Copy weights from the original service
+	if ns.Weights != nil {
+		sidecar.Weights = &structs.Weights{
+			Passing: ns.Weights.Passing,
+			Warning: ns.Weights.Warning,
+		}
+	}
+
 	// Flag this as a sidecar - this is not persisted in catalog but only needed
 	// in local agent state to disambiguate lineage when deregistering the parent
 	// service later.
