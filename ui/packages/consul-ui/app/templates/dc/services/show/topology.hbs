@@ -13,7 +13,8 @@
         Datacenter=dc
         Service=items.firstObject
       )}}
-
+      @isRemoteDC={{isRemoteDC}}
+      @hasMetricsProvider={{hasMetricsProvider}}
       @oncreate={{route-action 'createIntention'}}
     />
   {{else}}
