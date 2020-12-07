@@ -18,6 +18,7 @@ export default class DocumentAttrsHelper extends Helper {
 
   willDestroy() {
     this.synchronize(this.document.documentElement);
+    wm.delete(this);
   }
 
   synchronize(root, hash) {
