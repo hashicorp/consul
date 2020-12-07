@@ -1,4 +1,4 @@
-export default () => key => {
+export default ({ properties }) => (key = 'Status:asc') => {
   if (key.startsWith('Status:')) {
     return function(itemA, itemB) {
       const [, dir] = key.split(':');
@@ -38,5 +38,5 @@ export default () => key => {
       return 0;
     };
   }
-  return key;
+  return properties(['Name', 'Kind'])(key);
 };

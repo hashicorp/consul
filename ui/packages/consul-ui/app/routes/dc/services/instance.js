@@ -29,7 +29,7 @@ export default class InstanceRoute extends Route {
         // the proxy itself is just a normal service model
         proxy = await this.data.source(
           uri =>
-            uri`/${nspace}/${dc}/service-instance/${proxyParams.id}/${proxyParams.node}/${proxyParams.name}`
+            uri`/${nspace}/${dc}/proxy-service-instance/${proxyParams.id}/${proxyParams.node}/${proxyParams.name}`
         );
       }
     }

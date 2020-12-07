@@ -28,18 +28,10 @@ test('findByDatacenter returns the correct data for list endpoint', function(ass
       return service.findAllByDatacenter(dc);
     },
     function performAssertion(actual, expected) {
-      assert.deepEqual(
-        actual,
-        expected(function(payload) {
-          return payload.map(item =>
-            Object.assign({}, item, {
-              SyncTime: now,
-              Datacenter: dc,
-              uid: `["${nspace}","${dc}","${item.ID}"]`,
-            })
-          );
-        })
-      );
+      actual.forEach(item => {
+        assert.equal(item.uid, `["${nspace}","${dc}","${item.ID}"]`);
+        assert.equal(item.Datacenter, dc);
+      });
     }
   );
 });
@@ -55,22 +47,8 @@ test('findBySlug returns the correct data for item endpoint', function(assert) {
       return service.findBySlug(id, dc);
     },
     function(actual, expected) {
-      assert.deepEqual(
-        actual,
-        expected(function(payload) {
-          const item = payload;
-          return Object.assign({}, item, {
-            Datacenter: dc,
-            uid: `["${nspace}","${dc}","${item.ID}"]`,
-            meta: {
-              cacheControl: undefined,
-              cursor: undefined,
-              dc: dc,
-              nspace: nspace,
-            },
-          });
-        })
-      );
+      assert.equal(actual.uid, `["${nspace}","${dc}","${actual.ID}"]`);
+      assert.equal(actual.Datacenter, dc);
     }
   );
 });
