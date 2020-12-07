@@ -58,11 +58,11 @@
   {{/if}}
   {{#if (eq item.Kind 'terminating-gateway')}}
     <span data-test-associated-service-count>
-      {{format-number item.GatewayConfig.AssociatedServiceCount}} linked services
+      {{format-number item.GatewayConfig.AssociatedServiceCount}} {{pluralize item.GatewayConfig.AssociatedServiceCount 'linked service' without-count=true}}
     </span>
   {{else if (eq item.Kind 'ingress-gateway')}}
     <span data-test-associated-service-count>
-      {{format-number item.GatewayConfig.AssociatedServiceCount}} upstreams
+      {{format-number item.GatewayConfig.AssociatedServiceCount}} {{pluralize item.GatewayConfig.AssociatedServiceCount 'upstream' without-count=true}}
     </span>
   {{/if}}
   {{#if (or item.ConnectedWithGateway item.ConnectedWithProxy)}}
