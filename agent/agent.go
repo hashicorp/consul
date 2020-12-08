@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -621,6 +622,13 @@ func (a *Agent) Start(ctx context.Context) error {
 	})
 
 	return nil
+}
+
+var Gauges = []prometheus.GaugeDefinition{
+	{
+		Name: []string{"version"},
+		Help: "Represents the Consul version.",
+	},
 }
 
 // Failed returns a channel which is closed when the first server goroutine exits
