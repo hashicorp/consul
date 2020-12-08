@@ -1,9 +1,31 @@
 import Service from '@ember/service';
+import { get } from '@ember/object';
+import { runInDebug } from '@ember/debug';
 import atob from 'consul-ui/utils/atob';
 import btoa from 'consul-ui/utils/btoa';
 
+const createRegExpEncoder = function(re, encoder = str => str, strict = true) {
+  return (template = '', vars = {}) => {
+    if (template !== '') {
+      return template.replace(re, (match, group) => {
+        const value = get(vars, group);
+        runInDebug(() => {
+          if (strict && typeof value === 'undefined') {
+            console.error(new Error(`${group} is undefined in ${template}`));
+          }
+        });
+        return encoder(value || '');
+      });
+    }
+    return '';
+  };
+};
 export default class EncoderService extends Service {
   uriComponent = encodeURIComponent;
+
+  createRegExpEncoder(re, encoder) {
+    return createRegExpEncoder(re, encoder);
+  }
 
   atob() {
     return atob(...arguments);
