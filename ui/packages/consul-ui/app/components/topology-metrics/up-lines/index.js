@@ -8,6 +8,7 @@ export default class TopologyMetricsUpLines extends Component {
   @action
   getIconPositions() {
     const center = this.args.center;
+    const view = this.args.view;
     const lines = [...document.querySelectorAll('#upstream-lines path')];
 
     this.iconPositions = lines.map(item => {
@@ -16,7 +17,7 @@ export default class TopologyMetricsUpLines extends Component {
       return {
         id: item.id,
         x: Math.round(partLen.x - center.x),
-        y: Math.round(partLen.y - center.y * 0.81),
+        y: Math.round(partLen.y - view.y),
       };
     });
   }
