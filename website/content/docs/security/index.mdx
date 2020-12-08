@@ -1,0 +1,34 @@
+---
+layout: docs
+page_title: Security
+sidebar_title: Security
+description: >-
+  Consul relies on both a lightweight gossip mechanism and an RPC system to
+  provide various features. Both of the systems have different security
+  mechanisms that stem from their designs. However, the security mechanisms of
+  Consul have a common goal: to provide confidentiality, integrity, and
+  authentication.
+---
+
+# Security Model
+
+Requirements and recommendations for operating a secure Consul deployment may vary drastically depending on your
+intended workloads, operating system, and environment. You can find detailed information about the various personas,
+recommendations, requirements, and threats [here](/docs/security/security-models).
+
+The [gossip protocol](/docs/internals/gossip) is powered by [Serf](https://www.serf.io/),
+which uses a symmetric key, or shared secret, cryptosystem. There are more
+details on the security of [Serf here](https://www.serf.io/docs/internals/security.html).
+For details on how to enable Serf's gossip encryption in Consul, see the
+[encryption doc here](/docs/agent/encryption).
+
+Consul provides an optional [Access Control List (ACL) system](/docs/security/acl) which can be used to control access
+to data and APIs.
+
+This means Consul communication is protected against eavesdropping, tampering,
+and spoofing. This makes it possible to run Consul over untrusted networks such
+as EC2 and other shared hosting providers.
+
+The Consul agent supports encrypting all of its network traffic. The exact method of encryption is described on the
+[encryption security page](/docs/security/encryption). There are two separate encryption systems, one for gossip
+traffic and one for HTTP + RPC.
