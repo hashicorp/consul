@@ -1,4 +1,13 @@
-<DataLoader @src={{uri nspace dc 'intentions' 'for-service' slug}} as |api|>
+<DataLoader
+  @src={{uri
+    '/${nspace}/${dc}/intentions/for-service/${slug}'
+    (hash
+      nspace=nspace
+      dc=dc
+      slug=slug
+    )
+  }}
+as |api|>
   <BlockSlot @name="error">
     <ErrorState @error={{api.error}} />
   </BlockSlot>

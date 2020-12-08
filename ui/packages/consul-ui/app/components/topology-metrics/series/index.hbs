@@ -1,6 +1,14 @@
 {{#unless @noMetricsReason}}
   <DataSource
-    @src={{uri @nspace @dc 'metrics' 'summary-for-service' @service @protocol}}
+    @src={{uri
+      '/${nspace}/${dc}/metrics/summary-for-service/${service}/${protocol}'
+      (hash
+        nspace=@nspace
+        dc=@dc
+        service=@service
+        protocol=@protocol
+      )
+    }}
     @onchange={{action 'change'}}
     @onerror={{action (mut error) value="error"}}
   />
