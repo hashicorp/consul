@@ -930,10 +930,27 @@ func (sn *ServiceNode) CompoundServiceName() ServiceName {
 	}
 }
 
-// Weights represent the weight used by DNS for a given status
+const (
+	DefaultWeightPassing = 1
+	DefaultWeightWarning = 1
+)
+
+// Weights represent the weight used by DNS & XDS for a given status
 type Weights struct {
 	Passing int
 	Warning int
+}
+
+// IsEqual compares Weights values
+func (w *Weights) IsEqual(other *Weights) bool {
+	return w.Passing == other.Passing && w.Warning == other.Warning
+}
+
+func DefaultServiceWeights() *Weights {
+	return &Weights{
+		Passing: DefaultWeightPassing,
+		Warning: DefaultWeightWarning,
+	}
 }
 
 type ServiceNodes []*ServiceNode

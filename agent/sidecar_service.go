@@ -69,8 +69,8 @@ func (a *Agent) sidecarServiceFromNodeService(ns *structs.NodeService, token str
 		sidecar.Tags = append(sidecar.Tags, ns.Tags...)
 	}
 
-	// Copy weights from the original service
-	if ns.Weights != nil {
+	// Override sidecar weights with the ones the service it represents only if sidecar is using default ones
+	if ns.Weights != nil && (sidecar.Weights == nil || sidecar.Weights.IsEqual(structs.DefaultServiceWeights())) {
 		sidecar.Weights = &structs.Weights{
 			Passing: ns.Weights.Passing,
 			Warning: ns.Weights.Warning,

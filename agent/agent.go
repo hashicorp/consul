@@ -2167,7 +2167,7 @@ func (a *Agent) validateService(service *structs.NodeService, chkTypes []*struct
 	// Set default weights if not specified. This is important as it ensures AE
 	// doesn't consider the service different since it has nil weights.
 	if service.Weights == nil {
-		service.Weights = &structs.Weights{Passing: 1, Warning: 1}
+		service.Weights = structs.DefaultServiceWeights()
 	}
 
 	// Warn if the service name is incompatible with DNS

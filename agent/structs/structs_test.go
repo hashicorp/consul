@@ -2298,3 +2298,64 @@ func TestGatewayService_IsSame(t *testing.T) {
 		t.Fatalf("should be equal, was %#v VS %#v", g, other)
 	}
 }
+
+func TestDefaultServiceWeights(t *testing.T) {
+	w := DefaultServiceWeights()
+
+	require.Equal(t, DefaultWeightPassing, w.Passing)
+	require.Equal(t, DefaultWeightWarning, w.Warning)
+}
+
+func TestWeights_IsEqual(t *testing.T) {
+	t.Run("When passing and warning are equal", func(t *testing.T) {
+		var passing = 22
+		var warning = 11
+		w1 := &Weights{
+			Passing: passing,
+			Warning: warning,
+		}
+		w2 := &Weights{
+			Passing: passing,
+			Warning: warning,
+		}
+		require.True(t, w1.IsEqual(w2))
+	})
+
+	t.Run("When passing and warning are not equal", func(t *testing.T) {
+		w1 := &Weights{
+			Passing: 8,
+			Warning: 9,
+		}
+		w2 := &Weights{
+			Passing: 9,
+			Warning: 8,
+		}
+		require.False(t, w1.IsEqual(w2))
+	})
+
+	t.Run("When passing is equal but warning is not", func(t *testing.T) {
+		var passing = 33
+		w1 := &Weights{
+			Passing: passing,
+			Warning: 2,
+		}
+		w2 := &Weights{
+			Passing: passing,
+			Warning: 3,
+		}
+		require.False(t, w1.IsEqual(w2))
+	})
+
+	t.Run("When warning is equal but passing is not", func(t *testing.T) {
+		var warning = 44
+		w1 := &Weights{
+			Passing: 5,
+			Warning: warning,
+		}
+		w2 := &Weights{
+			Passing: 6,
+			Warning: warning,
+		}
+		require.False(t, w1.IsEqual(w2))
+	})
+}

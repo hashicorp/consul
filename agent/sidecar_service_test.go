@@ -212,7 +212,56 @@ func TestAgent_sidecarServiceFromNodeService(t *testing.T) {
 			},
 		},
 		{
-			name: "inherit weights",
+			name: "use sidecar service defined weights",
+			sd: &structs.ServiceDefinition{
+				ID:   "web3",
+				Name: "web",
+				Port: 1313,
+				Weights: &structs.Weights{
+					Passing: 50,
+					Warning: 2,
+				},
+				Connect: &structs.ServiceConnect{
+					SidecarService: &structs.ServiceDefinition{
+						Weights: &structs.Weights{
+							Passing: 51,
+							Warning: 3,
+						},
+					},
+				},
+			},
+			wantNS: &structs.NodeService{
+				EnterpriseMeta:             *structs.DefaultEnterpriseMeta(),
+				Kind:                       structs.ServiceKindConnectProxy,
+				ID:                         "web3-sidecar-proxy",
+				Service:                    "web-sidecar-proxy",
+				Port:                       2222,
+				LocallyRegisteredAsSidecar: true,
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "web",
+					DestinationServiceID:   "web3",
+					LocalServiceAddress:    "127.0.0.1",
+					LocalServicePort:       1313,
+				},
+				Weights: &structs.Weights{
+					Passing: 51,
+					Warning: 3,
+				},
+			},
+			wantChecks: []*structs.CheckType{
+				{
+					Name:     "Connect Sidecar Listening",
+					TCP:      "127.0.0.1:2222",
+					Interval: 10 * time.Second,
+				},
+				{
+					Name:         "Connect Sidecar Aliasing web3",
+					AliasService: "web3",
+				},
+			},
+		},
+		{
+			name: "inherit service weights when sidecar has default ones",
 			sd: &structs.ServiceDefinition{
 				ID:   "web2",
 				Name: "web",
