@@ -6,6 +6,7 @@
 
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
+- [Yarn Commands](#yarn-commands)
 - [Running / Development](#running--development)
   - [Browser 'Environment' Variables](#browser-environment-variables)
   - [Code Generators](#code-generators)
@@ -33,7 +34,29 @@ You will need the following things properly installed on your computer.
 * `cd ui-v2`
 * `yarn install`
 
-All tooling scripts below primarily use `make` which in turn call node package scripts.
+
+## Yarn Commands
+
+Most used tooling scripts below primarily use `make` which will `yarn install`
+and in turn call node package scripts.
+
+List of available project commands.  `yarn run <command-name>`
+
+| Command | Description |
+| ------- | ----------- |
+| build:staging | Builds the UI in staging mode (ready for PR preview site). |
+| build:ci | Builds the UI for CI. |
+| build | Builds the UI for production. |
+| lint | Runs all lint commands. |
+| lint:hbs | Lints `hbs` template files. |
+| lint:js | Lints `js` files. |
+| format | Runs all auto-formatters. |
+| format:js | Auto-formats `js` files using Prettier. |
+| format:sass | Auto-formats `scss` files using Prettier. |
+| start | Runs the development app on a local server using the mock API. |
+| start:consul | Runs the development app local server using a real consul instance as the backend. |
+| start:staging | Runs the staging app local server. |
+| doc:toc | Automatically generates a table of contents for this README file. |
 
 ## Running / Development
 
