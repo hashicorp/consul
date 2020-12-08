@@ -7,9 +7,7 @@
     {{#if (not-eq parent.Key '/') }}
       <BlockSlot @name="breadcrumbs">
         <ol>
-    {{#if (not-eq parent.Key '/') }}
           <li><a href={{href-to 'dc.kv'}}>Key / Values</a></li>
-    {{/if}}
     {{#each (slice 0 -2 (split parent.Key '/')) as |breadcrumb index|}}
           <li><a href={{href-to 'dc.kv.folder' (join '/' (append (slice 0 (add index 1) (split parent.Key '/')) ''))}}>{{breadcrumb}}</a></li>
     {{/each}}
