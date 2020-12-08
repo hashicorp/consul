@@ -127,7 +127,7 @@ See `./mock-api` for more details.
 
 ### Code Generators
 
-Make use of the many generators for code, try `ember help generate` for more details
+Many classes used in the UI can be generated with ember generators, try `ember help generate` for more details
 
 ### Running Tests
 
