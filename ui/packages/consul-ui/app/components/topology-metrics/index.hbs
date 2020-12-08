@@ -30,7 +30,6 @@
         @dc={{item.Datacenter}}
         @endpoint='downstream-summary-for-service'
         @service={{@service.Service.Service}}
-        @item={{item.Name}}
         @noMetricsReason={{this.noMetricsReason}}
       />
     {{/if}}
@@ -97,7 +96,6 @@
           @dc={{item.Datacenter}}
           @endpoint='upstream-summary-for-service'
           @service={{@service.Service.Service}}
-          @item={{item.Name}}
           @noMetricsReason={{this.noMetricsReason}}
         />
       {{/if}}
