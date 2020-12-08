@@ -1,4 +1,4 @@
-import UseCaseLayout from '../../layouts/use-cases'
+import UseCaseLayout from 'components/use-cases-layout'
 import TextSplitWithImage from '@hashicorp/react-text-split-with-image'
 
 export default function NetworkInfrastructureAutomationPage() {
