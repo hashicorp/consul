@@ -39,7 +39,7 @@ and sent to any active subscriptions.
 
 ## Event Publisher
 
-The [EventPublisher] in at the core of streaming. It receives published events, and
+The [EventPublisher] is at the core of streaming. It receives published events, and
 subscription requests, and forwards events to the appropriate subscriptions. The diagram
 below illustrates how events are stored by the [EventPublisher].
 
@@ -67,7 +67,7 @@ period of time, without any hard coded limit on the number of events to cache.
 A subscription provides a stream of events on a single topic. Most of the events contain
 data for a change in state, but there are a few special "framing" events that are used to
 communicate something to the client. The diagram below helps illustrate the logic in
-`EventPublusher.Subscribe` and the [materialized view].
+`EventPublisher.Subscribe` and the [materialized view].
 
 
 ![Framing events](./framing-events.svg)
@@ -96,5 +96,4 @@ and filtering happens.
 ![event filtering](./event-filtering.svg)
 
 <sup>[source](./event-filtering.mmd)</sup>
-
 
