@@ -7,14 +7,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/lib/stringslice"
-	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-memdb"
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/lib/stringslice"
+	"github.com/hashicorp/consul/types"
 )
 
 func makeRandomNodeID(t *testing.T) types.NodeID {
@@ -199,7 +200,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 		Address: "1.1.1.1",
 		Port:    8080,
 		Meta:    map[string]string{strings.Repeat("a", 129): "somevalue"},
-		Tags:    []string{"master"},
+		Tags:    []string{"primary"},
 	}
 	if err := s.EnsureRegistration(9, req); err == nil {
 		t.Fatalf("Service should not have been registered since Meta is invalid")
@@ -211,7 +212,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 		Service: "redis",
 		Address: "1.1.1.1",
 		Port:    8080,
-		Tags:    []string{"master"},
+		Tags:    []string{"primary"},
 		Weights: &structs.Weights{Passing: 1, Warning: 1},
 	}
 	if err := s.EnsureRegistration(2, req); err != nil {
@@ -226,7 +227,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 				Service:        "redis",
 				Address:        "1.1.1.1",
 				Port:           8080,
-				Tags:           []string{"master"},
+				Tags:           []string{"primary"},
 				Weights:        &structs.Weights{Passing: 1, Warning: 1},
 				RaftIndex:      structs.RaftIndex{CreateIndex: 2, ModifyIndex: 2},
 				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
@@ -321,7 +322,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 				Status:         "critical",
 				ServiceID:      "redis1",
 				ServiceName:    "redis",
-				ServiceTags:    []string{"master"},
+				ServiceTags:    []string{"primary"},
 				RaftIndex:      structs.RaftIndex{CreateIndex: 4, ModifyIndex: 4},
 				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 			},
@@ -543,7 +544,7 @@ func deprecatedEnsureNodeWithoutIDCanRegister(t *testing.T, s *Store, nodeName s
 		Node:    nodeName,
 		Address: "1.1.1.9",
 		Meta: map[string]string{
-			"version": string(txIdx),
+			"version": fmt.Sprint(txIdx),
 		},
 	}
 	if err := s.EnsureNode(txIdx, in); err != nil {
@@ -1080,10 +1081,7 @@ func TestStateStore_GetNodes(t *testing.T) {
 }
 
 func BenchmarkGetNodes(b *testing.B) {
-	s, err := NewStateStore(nil)
-	if err != nil {
-		b.Fatalf("err: %s", err)
-	}
+	s := NewStateStore(nil)
 
 	if err := s.EnsureNode(100, &structs.Node{Node: "foo", Address: "127.0.0.1"}); err != nil {
 		b.Fatalf("err: %v", err)
@@ -1568,7 +1566,7 @@ func TestStateStore_Services(t *testing.T) {
 	ns1 := &structs.NodeService{
 		ID:      "service1",
 		Service: "redis",
-		Tags:    []string{"prod", "master"},
+		Tags:    []string{"prod", "primary"},
 		Address: "1.1.1.1",
 		Port:    1111,
 	}
@@ -1580,7 +1578,7 @@ func TestStateStore_Services(t *testing.T) {
 	ns2 := &structs.NodeService{
 		ID:      "service3",
 		Service: "redis",
-		Tags:    []string{"prod", "slave"},
+		Tags:    []string{"prod", "replica"},
 		Address: "1.1.1.1",
 		Port:    1111,
 	}
@@ -1604,7 +1602,7 @@ func TestStateStore_Services(t *testing.T) {
 	// Verify the result. We sort the lists since the order is
 	// non-deterministic (it's built using a map internally).
 	expected := structs.Services{
-		"redis": []string{"prod", "master", "slave"},
+		"redis": []string{"prod", "primary", "replica"},
 		"dogs":  []string{},
 	}
 	sort.Strings(expected["redis"])
@@ -1648,7 +1646,7 @@ func TestStateStore_ServicesByNodeMeta(t *testing.T) {
 	ns1 := &structs.NodeService{
 		ID:      "service1",
 		Service: "redis",
-		Tags:    []string{"prod", "master"},
+		Tags:    []string{"prod", "primary"},
 		Address: "1.1.1.1",
 		Port:    1111,
 	}
@@ -1658,7 +1656,7 @@ func TestStateStore_ServicesByNodeMeta(t *testing.T) {
 	ns2 := &structs.NodeService{
 		ID:      "service1",
 		Service: "redis",
-		Tags:    []string{"prod", "slave"},
+		Tags:    []string{"prod", "replica"},
 		Address: "1.1.1.1",
 		Port:    1111,
 	}
@@ -1677,7 +1675,7 @@ func TestStateStore_ServicesByNodeMeta(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 		expected := structs.Services{
-			"redis": []string{"master", "prod"},
+			"redis": []string{"primary", "prod"},
 		}
 		sort.Strings(res["redis"])
 		require.Equal(t, expected, res)
@@ -1689,7 +1687,7 @@ func TestStateStore_ServicesByNodeMeta(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 		expected := structs.Services{
-			"redis": []string{"master", "prod", "slave"},
+			"redis": []string{"primary", "prod", "replica"},
 		}
 		sort.Strings(res["redis"])
 		require.Equal(t, expected, res)
@@ -1710,7 +1708,7 @@ func TestStateStore_ServicesByNodeMeta(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 		expected := structs.Services{
-			"redis": []string{"master", "prod"},
+			"redis": []string{"primary", "prod"},
 		}
 		sort.Strings(res["redis"])
 		require.Equal(t, expected, res)
@@ -1788,13 +1786,13 @@ func TestStateStore_ServiceNodes(t *testing.T) {
 	if err := s.EnsureService(13, "bar", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s.EnsureService(14, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"master"}, Address: "", Port: 8000}); err != nil {
+	if err := s.EnsureService(14, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"primary"}, Address: "", Port: 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s.EnsureService(15, "bar", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"slave"}, Address: "", Port: 8000}); err != nil {
+	if err := s.EnsureService(15, "bar", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"replica"}, Address: "", Port: 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s.EnsureService(16, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"slave"}, Address: "", Port: 8001}); err != nil {
+	if err := s.EnsureService(16, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"replica"}, Address: "", Port: 8001}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if !watchFired(ws) {
@@ -1822,7 +1820,7 @@ func TestStateStore_ServiceNodes(t *testing.T) {
 	if nodes[0].ServiceID != "db" {
 		t.Fatalf("bad: %v", nodes)
 	}
-	if !stringslice.Contains(nodes[0].ServiceTags, "slave") {
+	if !stringslice.Contains(nodes[0].ServiceTags, "replica") {
 		t.Fatalf("bad: %v", nodes)
 	}
 	if nodes[0].ServicePort != 8000 {
@@ -1837,7 +1835,7 @@ func TestStateStore_ServiceNodes(t *testing.T) {
 	if nodes[1].ServiceID != "db2" {
 		t.Fatalf("bad: %v", nodes)
 	}
-	if !stringslice.Contains(nodes[1].ServiceTags, "slave") {
+	if !stringslice.Contains(nodes[1].ServiceTags, "replica") {
 		t.Fatalf("bad: %v", nodes)
 	}
 	if nodes[1].ServicePort != 8001 {
@@ -1852,7 +1850,7 @@ func TestStateStore_ServiceNodes(t *testing.T) {
 	if nodes[2].ServiceID != "db" {
 		t.Fatalf("bad: %v", nodes)
 	}
-	if !stringslice.Contains(nodes[2].ServiceTags, "master") {
+	if !stringslice.Contains(nodes[2].ServiceTags, "primary") {
 		t.Fatalf("bad: %v", nodes)
 	}
 	if nodes[2].ServicePort != 8000 {
@@ -1907,7 +1905,7 @@ func TestStateStore_ServiceTagNodes(t *testing.T) {
 
 	// Listing with no results returns an empty list.
 	ws := memdb.NewWatchSet()
-	idx, nodes, err := s.ServiceTagNodes(ws, "db", []string{"master"}, nil)
+	idx, nodes, err := s.ServiceTagNodes(ws, "db", []string{"primary"}, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1925,13 +1923,13 @@ func TestStateStore_ServiceTagNodes(t *testing.T) {
 	if err := s.EnsureNode(16, &structs.Node{Node: "bar", Address: "127.0.0.2"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s.EnsureService(17, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"master"}, Address: "", Port: 8000}); err != nil {
+	if err := s.EnsureService(17, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"primary"}, Address: "", Port: 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s.EnsureService(18, "foo", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"slave"}, Address: "", Port: 8001}); err != nil {
+	if err := s.EnsureService(18, "foo", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"replica"}, Address: "", Port: 8001}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s.EnsureService(19, "bar", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"slave"}, Address: "", Port: 8000}); err != nil {
+	if err := s.EnsureService(19, "bar", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"replica"}, Address: "", Port: 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if !watchFired(ws) {
@@ -1940,7 +1938,7 @@ func TestStateStore_ServiceTagNodes(t *testing.T) {
 
 	// Read everything back.
 	ws = memdb.NewWatchSet()
-	idx, nodes, err = s.ServiceTagNodes(ws, "db", []string{"master"}, nil)
+	idx, nodes, err = s.ServiceTagNodes(ws, "db", []string{"primary"}, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1956,7 +1954,7 @@ func TestStateStore_ServiceTagNodes(t *testing.T) {
 	if nodes[0].Address != "127.0.0.1" {
 		t.Fatalf("bad: %v", nodes)
 	}
-	if !stringslice.Contains(nodes[0].ServiceTags, "master") {
+	if !stringslice.Contains(nodes[0].ServiceTags, "primary") {
 		t.Fatalf("bad: %v", nodes)
 	}
 	if nodes[0].ServicePort != 8000 {
@@ -1969,7 +1967,7 @@ func TestStateStore_ServiceTagNodes(t *testing.T) {
 		t.Fatalf("bad")
 	}
 
-	// But removing a node with the "db:master" service should fire the watch.
+	// But removing a node with the "db:primary" service should fire the watch.
 	if err := s.DeleteNode(21, "foo"); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1989,25 +1987,25 @@ func TestStateStore_ServiceTagNodes_MultipleTags(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := s.EnsureService(17, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"master", "v2"}, Address: "", Port: 8000}); err != nil {
+	if err := s.EnsureService(17, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"primary", "v2"}, Address: "", Port: 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := s.EnsureService(18, "foo", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"slave", "v2", "dev"}, Address: "", Port: 8001}); err != nil {
+	if err := s.EnsureService(18, "foo", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"replica", "v2", "dev"}, Address: "", Port: 8001}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := s.EnsureService(19, "bar", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"slave", "v2"}, Address: "", Port: 8000}); err != nil {
+	if err := s.EnsureService(19, "bar", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"replica", "v2"}, Address: "", Port: 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	idx, nodes, err := s.ServiceTagNodes(nil, "db", []string{"master"}, nil)
+	idx, nodes, err := s.ServiceTagNodes(nil, "db", []string{"primary"}, nil)
 	require.NoError(t, err)
 	require.Equal(t, int(idx), 19)
 	require.Len(t, nodes, 1)
 	require.Equal(t, nodes[0].Node, "foo")
 	require.Equal(t, nodes[0].Address, "127.0.0.1")
-	require.Contains(t, nodes[0].ServiceTags, "master")
+	require.Contains(t, nodes[0].ServiceTags, "primary")
 	require.Equal(t, nodes[0].ServicePort, 8000)
 
 	idx, nodes, err = s.ServiceTagNodes(nil, "db", []string{"v2"}, nil)
@@ -2016,14 +2014,14 @@ func TestStateStore_ServiceTagNodes_MultipleTags(t *testing.T) {
 	require.Len(t, nodes, 3)
 
 	// Test filtering on multiple tags
-	idx, nodes, err = s.ServiceTagNodes(nil, "db", []string{"v2", "slave"}, nil)
+	idx, nodes, err = s.ServiceTagNodes(nil, "db", []string{"v2", "replica"}, nil)
 	require.NoError(t, err)
 	require.Equal(t, int(idx), 19)
 	require.Len(t, nodes, 2)
 	require.Contains(t, nodes[0].ServiceTags, "v2")
-	require.Contains(t, nodes[0].ServiceTags, "slave")
+	require.Contains(t, nodes[0].ServiceTags, "replica")
 	require.Contains(t, nodes[1].ServiceTags, "v2")
-	require.Contains(t, nodes[1].ServiceTags, "slave")
+	require.Contains(t, nodes[1].ServiceTags, "replica")
 
 	idx, nodes, err = s.ServiceTagNodes(nil, "db", []string{"dev"}, nil)
 	require.NoError(t, err)
@@ -2110,7 +2108,7 @@ func TestStateStore_ConnectServiceNodes(t *testing.T) {
 	assert.Nil(s.EnsureService(14, "foo", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
 	assert.Nil(s.EnsureService(15, "bar", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
 	assert.Nil(s.EnsureService(16, "bar", &structs.NodeService{ID: "native-db", Service: "db", Connect: structs.ServiceConnect{Native: true}}))
-	assert.Nil(s.EnsureService(17, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"slave"}, Address: "", Port: 8001}))
+	assert.Nil(s.EnsureService(17, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"replica"}, Address: "", Port: 8001}))
 	assert.True(watchFired(ws))
 
 	// Read everything back.
@@ -3562,7 +3560,7 @@ func TestStateStore_CheckConnectServiceNodes(t *testing.T) {
 	assert.Nil(s.EnsureService(13, "bar", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}))
 	assert.Nil(s.EnsureService(14, "foo", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
 	assert.Nil(s.EnsureService(15, "bar", &structs.NodeService{Kind: structs.ServiceKindConnectProxy, ID: "proxy", Service: "proxy", Proxy: structs.ConnectProxyConfig{DestinationServiceName: "db"}, Port: 8000}))
-	assert.Nil(s.EnsureService(16, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"slave"}, Address: "", Port: 8001}))
+	assert.Nil(s.EnsureService(16, "bar", &structs.NodeService{ID: "db2", Service: "db", Tags: []string{"replica"}, Address: "", Port: 8001}))
 	assert.True(watchFired(ws))
 
 	// Register node checks
@@ -3710,15 +3708,12 @@ func TestStateStore_CheckConnectServiceNodes_Gateways(t *testing.T) {
 }
 
 func BenchmarkCheckServiceNodes(b *testing.B) {
-	s, err := NewStateStore(nil)
-	if err != nil {
-		b.Fatalf("err: %s", err)
-	}
+	s := NewStateStore(nil)
 
 	if err := s.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"}); err != nil {
 		b.Fatalf("err: %v", err)
 	}
-	if err := s.EnsureService(2, "foo", &structs.NodeService{ID: "db1", Service: "db", Tags: []string{"master"}, Address: "", Port: 8000}); err != nil {
+	if err := s.EnsureService(2, "foo", &structs.NodeService{ID: "db1", Service: "db", Tags: []string{"primary"}, Address: "", Port: 8000}); err != nil {
 		b.Fatalf("err: %v", err)
 	}
 	check := &structs.HealthCheck{
@@ -3753,7 +3748,7 @@ func TestStateStore_CheckServiceTagNodes(t *testing.T) {
 	if err := s.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s.EnsureService(2, "foo", &structs.NodeService{ID: "db1", Service: "db", Tags: []string{"master"}, Address: "", Port: 8000}); err != nil {
+	if err := s.EnsureService(2, "foo", &structs.NodeService{ID: "db1", Service: "db", Tags: []string{"primary"}, Address: "", Port: 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	check := &structs.HealthCheck{
@@ -3777,7 +3772,7 @@ func TestStateStore_CheckServiceTagNodes(t *testing.T) {
 	}
 
 	ws := memdb.NewWatchSet()
-	idx, nodes, err := s.CheckServiceTagNodes(ws, "db", []string{"master"}, nil)
+	idx, nodes, err := s.CheckServiceTagNodes(ws, "db", []string{"primary"}, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -4415,12 +4410,12 @@ func TestStateStore_ensureServiceCASTxn(t *testing.T) {
 	require.NoError(t, tx.Commit())
 
 	// ensure no update happened
-	tx = s.db.Txn(false)
+	roTxn := s.db.Txn(false)
 	_, nsRead, err := s.NodeService("node1", "foo", nil)
 	require.NoError(t, err)
 	require.NotNil(t, nsRead)
 	require.Equal(t, uint64(2), nsRead.ModifyIndex)
-	require.NoError(t, tx.Commit())
+	roTxn.Commit()
 
 	ns.ModifyIndex = 99
 	// attempt to update with a non-matching index
@@ -4430,12 +4425,12 @@ func TestStateStore_ensureServiceCASTxn(t *testing.T) {
 	require.NoError(t, tx.Commit())
 
 	// ensure no update happened
-	tx = s.db.Txn(false)
+	roTxn = s.db.Txn(false)
 	_, nsRead, err = s.NodeService("node1", "foo", nil)
 	require.NoError(t, err)
 	require.NotNil(t, nsRead)
 	require.Equal(t, uint64(2), nsRead.ModifyIndex)
-	require.NoError(t, tx.Commit())
+	roTxn.Commit()
 
 	ns.ModifyIndex = 2
 	// update with the matching modify index
@@ -4445,12 +4440,12 @@ func TestStateStore_ensureServiceCASTxn(t *testing.T) {
 	require.NoError(t, tx.Commit())
 
 	// ensure the update happened
-	tx = s.db.Txn(false)
+	roTxn = s.db.Txn(false)
 	_, nsRead, err = s.NodeService("node1", "foo", nil)
 	require.NoError(t, err)
 	require.NotNil(t, nsRead)
 	require.Equal(t, uint64(7), nsRead.ModifyIndex)
-	require.NoError(t, tx.Commit())
+	roTxn.Commit()
 }
 
 func TestStateStore_GatewayServices_Terminating(t *testing.T) {
@@ -5701,4 +5696,1663 @@ func setupIngressState(t *testing.T, s *Store) memdb.WatchSet {
 	assert.True(t, watchFired(ws))
 
 	return ws
+}
+
+func TestStateStore_DumpGatewayServices(t *testing.T) {
+	s := testStateStore(t)
+
+	// Listing with no results returns an empty list.
+	ws := memdb.NewWatchSet()
+	idx, nodes, err := s.DumpGatewayServices(ws)
+	assert.Nil(t, err)
+	assert.Equal(t, idx, uint64(0))
+	assert.Len(t, nodes, 0)
+
+	// Create some nodes
+	assert.Nil(t, s.EnsureNode(10, &structs.Node{Node: "foo", Address: "127.0.0.1"}))
+	assert.Nil(t, s.EnsureNode(11, &structs.Node{Node: "bar", Address: "127.0.0.2"}))
+	assert.Nil(t, s.EnsureNode(12, &structs.Node{Node: "baz", Address: "127.0.0.2"}))
+
+	// Typical services and some consul services spread across two nodes
+	assert.Nil(t, s.EnsureService(13, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: nil, Address: "", Port: 5000}))
+	assert.Nil(t, s.EnsureService(15, "bar", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}))
+	assert.Nil(t, s.EnsureService(16, "bar", &structs.NodeService{ID: "consul", Service: "consul", Tags: nil}))
+	assert.Nil(t, s.EnsureService(17, "bar", &structs.NodeService{ID: "consul", Service: "consul", Tags: nil}))
+
+	ingressNS := &structs.NodeService{
+		Kind:    structs.ServiceKindIngressGateway,
+		ID:      "ingress",
+		Service: "ingress",
+		Port:    8443,
+	}
+	assert.Nil(t, s.EnsureService(18, "baz", ingressNS))
+
+	// Register a gateway
+	terminatingNS := &structs.NodeService{
+		Kind:    structs.ServiceKindTerminatingGateway,
+		ID:      "gateway",
+		Service: "gateway",
+		Port:    443,
+	}
+	assert.Nil(t, s.EnsureService(20, "baz", terminatingNS))
+
+	t.Run("add-tgw-config", func(t *testing.T) {
+		// Associate gateway with db and api
+		assert.Nil(t, s.EnsureConfigEntry(21, &structs.TerminatingGatewayConfigEntry{
+			Kind: "terminating-gateway",
+			Name: "gateway",
+			Services: []structs.LinkedService{
+				{
+					Name:     "api",
+					CAFile:   "api/ca.crt",
+					CertFile: "api/client.crt",
+					KeyFile:  "api/client.key",
+					SNI:      "my-domain",
+				},
+				{
+					Name: "db",
+				},
+				{
+					Name:     "*",
+					CAFile:   "ca.crt",
+					CertFile: "client.crt",
+					KeyFile:  "client.key",
+					SNI:      "my-alt-domain",
+				},
+			},
+		}, nil))
+		assert.True(t, watchFired(ws))
+
+		// Read everything back.
+		ws = memdb.NewWatchSet()
+		idx, out, err := s.DumpGatewayServices(ws)
+		assert.Nil(t, err)
+		assert.Equal(t, idx, uint64(21))
+		assert.Len(t, out, 2)
+
+		expect := structs.GatewayServices{
+			{
+				Service:     structs.NewServiceName("api", nil),
+				Gateway:     structs.NewServiceName("gateway", nil),
+				GatewayKind: structs.ServiceKindTerminatingGateway,
+				CAFile:      "api/ca.crt",
+				CertFile:    "api/client.crt",
+				KeyFile:     "api/client.key",
+				SNI:         "my-domain",
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 21,
+					ModifyIndex: 21,
+				},
+			},
+			{
+				Service:     structs.NewServiceName("db", nil),
+				Gateway:     structs.NewServiceName("gateway", nil),
+				GatewayKind: structs.ServiceKindTerminatingGateway,
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 21,
+					ModifyIndex: 21,
+				},
+			},
+		}
+		assert.Equal(t, expect, out)
+	})
+
+	t.Run("no-op", func(t *testing.T) {
+		// Check watch doesn't fire on same exact config
+		assert.Nil(t, s.EnsureConfigEntry(21, &structs.TerminatingGatewayConfigEntry{
+			Kind: "terminating-gateway",
+			Name: "gateway",
+			Services: []structs.LinkedService{
+				{
+					Name:     "api",
+					CAFile:   "api/ca.crt",
+					CertFile: "api/client.crt",
+					KeyFile:  "api/client.key",
+					SNI:      "my-domain",
+				},
+				{
+					Name: "db",
+				},
+				{
+					Name:     "*",
+					CAFile:   "ca.crt",
+					CertFile: "client.crt",
+					KeyFile:  "client.key",
+					SNI:      "my-alt-domain",
+				},
+			},
+		}, nil))
+		assert.False(t, watchFired(ws))
+
+		idx, out, err := s.DumpGatewayServices(ws)
+		assert.Nil(t, err)
+		assert.Equal(t, idx, uint64(21))
+		assert.Len(t, out, 2)
+
+		expect := structs.GatewayServices{
+			{
+				Service:     structs.NewServiceName("api", nil),
+				Gateway:     structs.NewServiceName("gateway", nil),
+				GatewayKind: structs.ServiceKindTerminatingGateway,
+				CAFile:      "api/ca.crt",
+				CertFile:    "api/client.crt",
+				KeyFile:     "api/client.key",
+				SNI:         "my-domain",
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 21,
+					ModifyIndex: 21,
+				},
+			},
+			{
+				Service:     structs.NewServiceName("db", nil),
+				Gateway:     structs.NewServiceName("gateway", nil),
+				GatewayKind: structs.ServiceKindTerminatingGateway,
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 21,
+					ModifyIndex: 21,
+				},
+			},
+		}
+		assert.Equal(t, expect, out)
+	})
+
+	// Add a service covered by wildcard
+	t.Run("add-wc-service", func(t *testing.T) {
+		assert.Nil(t, s.EnsureService(22, "bar", &structs.NodeService{ID: "redis", Service: "redis", Tags: nil, Address: "", Port: 6379}))
+		assert.True(t, watchFired(ws))
+
+		ws = memdb.NewWatchSet()
+		idx, out, err := s.DumpGatewayServices(ws)
+		assert.Nil(t, err)
+		assert.Equal(t, idx, uint64(22))
+		assert.Len(t, out, 3)
+
+		expect := structs.GatewayServices{
+			{
+				Service:     structs.NewServiceName("api", nil),
+				Gateway:     structs.NewServiceName("gateway", nil),
+				GatewayKind: structs.ServiceKindTerminatingGateway,
+				CAFile:      "api/ca.crt",
+				CertFile:    "api/client.crt",
+				KeyFile:     "api/client.key",
+				SNI:         "my-domain",
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 21,
+					ModifyIndex: 21,
+				},
+			},
+			{
+				Service:     structs.NewServiceName("db", nil),
+				Gateway:     structs.NewServiceName("gateway", nil),
+				GatewayKind: structs.ServiceKindTerminatingGateway,
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 21,
+					ModifyIndex: 21,
+				},
+			},
+			{
+				Service:      structs.NewServiceName("redis", nil),
+				Gateway:      structs.NewServiceName("gateway", nil),
+				GatewayKind:  structs.ServiceKindTerminatingGateway,
+				CAFile:       "ca.crt",
+				CertFile:     "client.crt",
+				KeyFile:      "client.key",
+				SNI:          "my-alt-domain",
+				FromWildcard: true,
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 22,
+					ModifyIndex: 22,
+				},
+			},
+		}
+		assert.Equal(t, expect, out)
+	})
+
+	// Delete a service covered by wildcard
+	t.Run("delete-wc-service", func(t *testing.T) {
+		assert.Nil(t, s.DeleteService(23, "bar", "redis", nil))
+		assert.True(t, watchFired(ws))
+
+		ws = memdb.NewWatchSet()
+		idx, out, err := s.DumpGatewayServices(ws)
+		assert.Nil(t, err)
+		assert.Equal(t, idx, uint64(23))
+		assert.Len(t, out, 2)
+
+		expect := structs.GatewayServices{
+			{
+				Service:     structs.NewServiceName("api", nil),
+				Gateway:     structs.NewServiceName("gateway", nil),
+				GatewayKind: structs.ServiceKindTerminatingGateway,
+				CAFile:      "api/ca.crt",
+				CertFile:    "api/client.crt",
+				KeyFile:     "api/client.key",
+				SNI:         "my-domain",
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 21,
+					ModifyIndex: 21,
+				},
+			},
+			{
+				Service:     structs.NewServiceName("db", nil),
+				Gateway:     structs.NewServiceName("gateway", nil),
+				GatewayKind: structs.ServiceKindTerminatingGateway,
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 21,
+					ModifyIndex: 21,
+				},
+			},
+		}
+		assert.Equal(t, expect, out)
+	})
+
+	t.Run("delete-config-entry-svc", func(t *testing.T) {
+		// Update the entry that only leaves one service
+		assert.Nil(t, s.EnsureConfigEntry(24, &structs.TerminatingGatewayConfigEntry{
+			Kind: "terminating-gateway",
+			Name: "gateway",
+			Services: []structs.LinkedService{
+				{
+					Name: "db",
+				},
+			},
+		}, nil))
+		assert.True(t, watchFired(ws))
+
+		idx, out, err := s.DumpGatewayServices(ws)
+		assert.Nil(t, err)
+		assert.Equal(t, idx, uint64(24))
+		assert.Len(t, out, 1)
+
+		// previously associated service (api) should not be present
+		expect := structs.GatewayServices{
+			{
+				Service:     structs.NewServiceName("db", nil),
+				Gateway:     structs.NewServiceName("gateway", nil),
+				GatewayKind: structs.ServiceKindTerminatingGateway,
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 24,
+					ModifyIndex: 24,
+				},
+			},
+		}
+		assert.Equal(t, expect, out)
+	})
+
+	t.Run("add-ingress-config", func(t *testing.T) {
+		svcDefault := &structs.ServiceConfigEntry{
+			Name:     "web",
+			Kind:     structs.ServiceDefaults,
+			Protocol: "http",
+		}
+		assert.NoError(t, s.EnsureConfigEntry(25, svcDefault, nil))
+
+		// Associate gateway with db and api
+		assert.Nil(t, s.EnsureConfigEntry(26, &structs.IngressGatewayConfigEntry{
+			Kind: "ingress-gateway",
+			Name: "ingress",
+			Listeners: []structs.IngressListener{
+				{
+					Port:     1111,
+					Protocol: "tcp",
+					Services: []structs.IngressService{
+						{
+							Name: "api",
+						},
+					},
+				},
+				{
+					Port:     2222,
+					Protocol: "http",
+					Services: []structs.IngressService{
+						{
+							Name:  "web",
+							Hosts: []string{"web.example.com"},
+						},
+					},
+				},
+			},
+		}, nil))
+		assert.True(t, watchFired(ws))
+
+		// Read everything back.
+		ws = memdb.NewWatchSet()
+		idx, out, err := s.DumpGatewayServices(ws)
+		assert.Nil(t, err)
+		assert.Equal(t, idx, uint64(26))
+		assert.Len(t, out, 3)
+
+		expect := structs.GatewayServices{
+			{
+				Service:     structs.NewServiceName("db", nil),
+				Gateway:     structs.NewServiceName("gateway", nil),
+				GatewayKind: structs.ServiceKindTerminatingGateway,
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 24,
+					ModifyIndex: 24,
+				},
+			},
+			{
+				Service:     structs.NewServiceName("api", nil),
+				Gateway:     structs.NewServiceName("ingress", nil),
+				GatewayKind: structs.ServiceKindIngressGateway,
+				Protocol:    "tcp",
+				Port:        1111,
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 26,
+					ModifyIndex: 26,
+				},
+			},
+			{
+				Service:     structs.NewServiceName("web", nil),
+				Gateway:     structs.NewServiceName("ingress", nil),
+				GatewayKind: structs.ServiceKindIngressGateway,
+				Protocol:    "http",
+				Port:        2222,
+				Hosts:       []string{"web.example.com"},
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 26,
+					ModifyIndex: 26,
+				},
+			},
+		}
+		assert.Equal(t, expect, out)
+	})
+
+	t.Run("delete-tgw-entry", func(t *testing.T) {
+		// Deleting the config entry should remove existing mappings
+		assert.Nil(t, s.DeleteConfigEntry(27, "terminating-gateway", "gateway", nil))
+		assert.True(t, watchFired(ws))
+
+		idx, out, err := s.DumpGatewayServices(ws)
+		assert.Nil(t, err)
+		assert.Equal(t, idx, uint64(27))
+		assert.Len(t, out, 2)
+
+		// Only ingress entries should remain
+		expect := structs.GatewayServices{
+			{
+				Service:     structs.NewServiceName("api", nil),
+				Gateway:     structs.NewServiceName("ingress", nil),
+				GatewayKind: structs.ServiceKindIngressGateway,
+				Protocol:    "tcp",
+				Port:        1111,
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 26,
+					ModifyIndex: 26,
+				},
+			},
+			{
+				Service:     structs.NewServiceName("web", nil),
+				Gateway:     structs.NewServiceName("ingress", nil),
+				GatewayKind: structs.ServiceKindIngressGateway,
+				Protocol:    "http",
+				Port:        2222,
+				Hosts:       []string{"web.example.com"},
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 26,
+					ModifyIndex: 26,
+				},
+			},
+		}
+		assert.Equal(t, expect, out)
+	})
+
+	t.Run("delete-ingress-entry", func(t *testing.T) {
+		// Deleting the config entry should remove existing mappings
+		assert.Nil(t, s.DeleteConfigEntry(28, "ingress-gateway", "ingress", nil))
+		assert.True(t, watchFired(ws))
+
+		idx, out, err := s.DumpGatewayServices(ws)
+		assert.Nil(t, err)
+		assert.Equal(t, idx, uint64(28))
+		assert.Len(t, out, 0)
+	})
+}
+
+func TestCatalog_catalogDownstreams_Watches(t *testing.T) {
+	type expect struct {
+		idx   uint64
+		names []structs.ServiceName
+	}
+
+	s := testStateStore(t)
+
+	require.NoError(t, s.EnsureNode(0, &structs.Node{
+		ID:   "c73b8fdf-4ef8-4e43-9aa2-59e85cc6a70c",
+		Node: "foo",
+	}))
+
+	defaultMeta := structs.DefaultEnterpriseMeta()
+
+	admin := structs.NewServiceName("admin", defaultMeta)
+	cache := structs.NewServiceName("cache", defaultMeta)
+
+	// Watch should fire since the admin <-> web-proxy pairing was inserted into the topology table
+	ws := memdb.NewWatchSet()
+	tx := s.db.ReadTxn()
+	idx, names, err := downstreamsFromRegistrationTxn(tx, ws, admin)
+	require.NoError(t, err)
+	assert.Zero(t, idx)
+	assert.Len(t, names, 0)
+
+	svc := structs.NodeService{
+		Kind:    structs.ServiceKindConnectProxy,
+		ID:      "web-proxy",
+		Service: "web-proxy",
+		Address: "127.0.0.2",
+		Port:    443,
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "web",
+			Upstreams: structs.Upstreams{
+				structs.Upstream{
+					DestinationName: "db",
+				},
+				structs.Upstream{
+					DestinationName: "admin",
+				},
+			},
+		},
+		EnterpriseMeta: *defaultMeta,
+	}
+	require.NoError(t, s.EnsureService(1, "foo", &svc))
+	assert.True(t, watchFired(ws))
+
+	ws = memdb.NewWatchSet()
+	tx = s.db.ReadTxn()
+	idx, names, err = downstreamsFromRegistrationTxn(tx, ws, admin)
+	require.NoError(t, err)
+
+	exp := expect{
+		idx: 1,
+		names: []structs.ServiceName{
+			{Name: "web", EnterpriseMeta: *defaultMeta},
+		},
+	}
+	require.Equal(t, exp.idx, idx)
+	require.ElementsMatch(t, exp.names, names)
+
+	// Now replace the admin upstream to verify watch fires and mapping is removed
+	svc.Proxy.Upstreams = structs.Upstreams{
+		structs.Upstream{
+			DestinationName: "db",
+		},
+		structs.Upstream{
+			DestinationName: "not-admin",
+		},
+		structs.Upstream{
+			DestinationName: "cache",
+		},
+	}
+	require.NoError(t, s.EnsureService(2, "foo", &svc))
+	assert.True(t, watchFired(ws))
+
+	ws = memdb.NewWatchSet()
+	tx = s.db.ReadTxn()
+	idx, _, err = downstreamsFromRegistrationTxn(tx, ws, admin)
+	require.NoError(t, err)
+
+	exp = expect{
+		// Expect index where the upstream was replaced
+		idx: 2,
+	}
+	require.Equal(t, exp.idx, idx)
+	require.Empty(t, exp.names)
+
+	// Should still be able to get downstream for one of the other upstreams
+	ws = memdb.NewWatchSet()
+	tx = s.db.ReadTxn()
+	idx, names, err = downstreamsFromRegistrationTxn(tx, ws, cache)
+	require.NoError(t, err)
+
+	exp = expect{
+		idx: 2,
+		names: []structs.ServiceName{
+			{Name: "web", EnterpriseMeta: *defaultMeta},
+		},
+	}
+	require.Equal(t, exp.idx, idx)
+	require.ElementsMatch(t, exp.names, names)
+
+	// Now delete the web-proxy service and the result should be empty
+	require.NoError(t, s.DeleteService(3, "foo", "web-proxy", defaultMeta))
+	assert.True(t, watchFired(ws))
+
+	ws = memdb.NewWatchSet()
+	tx = s.db.ReadTxn()
+	idx, _, err = downstreamsFromRegistrationTxn(tx, ws, cache)
+
+	require.NoError(t, err)
+
+	exp = expect{
+		// Expect deletion index
+		idx: 3,
+	}
+	require.Equal(t, exp.idx, idx)
+	require.Empty(t, exp.names)
+}
+
+func TestCatalog_catalogDownstreams(t *testing.T) {
+	defaultMeta := structs.DefaultEnterpriseMeta()
+
+	type expect struct {
+		idx   uint64
+		names []structs.ServiceName
+	}
+	tt := []struct {
+		name     string
+		services []*structs.NodeService
+		expect   expect
+	}{
+		{
+			name: "single proxy with multiple upstreams",
+			services: []*structs.NodeService{
+				{
+					Kind:    structs.ServiceKindConnectProxy,
+					ID:      "api-proxy",
+					Service: "api-proxy",
+					Address: "127.0.0.1",
+					Port:    443,
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "api",
+						Upstreams: structs.Upstreams{
+							structs.Upstream{
+								DestinationName: "cache",
+							},
+							structs.Upstream{
+								DestinationName: "db",
+							},
+							structs.Upstream{
+								DestinationName: "admin",
+							},
+						},
+					},
+					EnterpriseMeta: *defaultMeta,
+				},
+			},
+			expect: expect{
+				idx: 1,
+				names: []structs.ServiceName{
+					{Name: "api", EnterpriseMeta: *defaultMeta},
+				},
+			},
+		},
+		{
+			name: "multiple proxies with multiple upstreams",
+			services: []*structs.NodeService{
+				{
+					Kind:    structs.ServiceKindConnectProxy,
+					ID:      "api-proxy",
+					Service: "api-proxy",
+					Address: "127.0.0.1",
+					Port:    443,
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "api",
+						Upstreams: structs.Upstreams{
+							structs.Upstream{
+								DestinationName: "cache",
+							},
+							structs.Upstream{
+								DestinationName: "db",
+							},
+							structs.Upstream{
+								DestinationName: "admin",
+							},
+						},
+					},
+					EnterpriseMeta: *defaultMeta,
+				},
+				{
+					Kind:    structs.ServiceKindConnectProxy,
+					ID:      "web-proxy",
+					Service: "web-proxy",
+					Address: "127.0.0.2",
+					Port:    443,
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "web",
+						Upstreams: structs.Upstreams{
+							structs.Upstream{
+								DestinationName: "db",
+							},
+							structs.Upstream{
+								DestinationName: "admin",
+							},
+						},
+					},
+					EnterpriseMeta: *defaultMeta,
+				},
+			},
+			expect: expect{
+				idx: 2,
+				names: []structs.ServiceName{
+					{Name: "api", EnterpriseMeta: *defaultMeta},
+					{Name: "web", EnterpriseMeta: *defaultMeta},
+				},
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			s := testStateStore(t)
+			ws := memdb.NewWatchSet()
+
+			require.NoError(t, s.EnsureNode(0, &structs.Node{
+				ID:   "c73b8fdf-4ef8-4e43-9aa2-59e85cc6a70c",
+				Node: "foo",
+			}))
+
+			var i uint64 = 1
+			for _, svc := range tc.services {
+				require.NoError(t, s.EnsureService(i, "foo", svc))
+				i++
+			}
+
+			tx := s.db.ReadTxn()
+			idx, names, err := downstreamsFromRegistrationTxn(tx, ws, structs.NewServiceName("admin", structs.DefaultEnterpriseMeta()))
+			require.NoError(t, err)
+
+			require.Equal(t, tc.expect.idx, idx)
+			require.ElementsMatch(t, tc.expect.names, names)
+		})
+	}
+}
+
+func TestCatalog_upstreamsFromRegistration(t *testing.T) {
+	defaultMeta := structs.DefaultEnterpriseMeta()
+
+	type expect struct {
+		idx   uint64
+		names []structs.ServiceName
+	}
+	tt := []struct {
+		name     string
+		services []*structs.NodeService
+		expect   expect
+	}{
+		{
+			name: "single proxy with multiple upstreams",
+			services: []*structs.NodeService{
+				{
+					Kind:    structs.ServiceKindConnectProxy,
+					ID:      "api-proxy",
+					Service: "api-proxy",
+					Address: "127.0.0.1",
+					Port:    443,
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "api",
+						Upstreams: structs.Upstreams{
+							structs.Upstream{
+								DestinationName: "cache",
+							},
+							structs.Upstream{
+								DestinationName: "db",
+							},
+							structs.Upstream{
+								DestinationName: "admin",
+							},
+						},
+					},
+					EnterpriseMeta: *defaultMeta,
+				},
+			},
+			expect: expect{
+				idx: 1,
+				names: []structs.ServiceName{
+					{Name: "cache", EnterpriseMeta: *defaultMeta},
+					{Name: "db", EnterpriseMeta: *defaultMeta},
+					{Name: "admin", EnterpriseMeta: *defaultMeta},
+				},
+			},
+		},
+		{
+			name: "multiple proxies with multiple upstreams",
+			services: []*structs.NodeService{
+				{
+					Kind:    structs.ServiceKindConnectProxy,
+					ID:      "api-proxy",
+					Service: "api-proxy",
+					Address: "127.0.0.1",
+					Port:    443,
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "api",
+						Upstreams: structs.Upstreams{
+							structs.Upstream{
+								DestinationName: "cache",
+							},
+							structs.Upstream{
+								DestinationName: "db",
+							},
+							structs.Upstream{
+								DestinationName: "admin",
+							},
+						},
+					},
+					EnterpriseMeta: *defaultMeta,
+				},
+				{
+					Kind:    structs.ServiceKindConnectProxy,
+					ID:      "api-proxy-2",
+					Service: "api-proxy",
+					Address: "127.0.0.2",
+					Port:    443,
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "api",
+						Upstreams: structs.Upstreams{
+							structs.Upstream{
+								DestinationName: "cache",
+							},
+							structs.Upstream{
+								DestinationName: "db",
+							},
+							structs.Upstream{
+								DestinationName: "new-admin",
+							},
+						},
+					},
+					EnterpriseMeta: *defaultMeta,
+				},
+				{
+					Kind:    structs.ServiceKindConnectProxy,
+					ID:      "different-api-proxy",
+					Service: "different-api-proxy",
+					Address: "127.0.0.4",
+					Port:    443,
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "api",
+						Upstreams: structs.Upstreams{
+							structs.Upstream{
+								DestinationName: "elasticache",
+							},
+							structs.Upstream{
+								DestinationName: "db",
+							},
+							structs.Upstream{
+								DestinationName: "admin",
+							},
+						},
+					},
+					EnterpriseMeta: *defaultMeta,
+				},
+				{
+					Kind:    structs.ServiceKindConnectProxy,
+					ID:      "web-proxy",
+					Service: "web-proxy",
+					Address: "127.0.0.3",
+					Port:    80,
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "web",
+						Upstreams: structs.Upstreams{
+							structs.Upstream{
+								DestinationName: "db",
+							},
+							structs.Upstream{
+								DestinationName: "billing",
+							},
+						},
+					},
+					EnterpriseMeta: *defaultMeta,
+				},
+			},
+			expect: expect{
+				idx: 4,
+				names: []structs.ServiceName{
+					{Name: "cache", EnterpriseMeta: *defaultMeta},
+					{Name: "db", EnterpriseMeta: *defaultMeta},
+					{Name: "admin", EnterpriseMeta: *defaultMeta},
+					{Name: "new-admin", EnterpriseMeta: *defaultMeta},
+					{Name: "elasticache", EnterpriseMeta: *defaultMeta},
+				},
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			s := testStateStore(t)
+			ws := memdb.NewWatchSet()
+
+			require.NoError(t, s.EnsureNode(0, &structs.Node{
+				ID:   "c73b8fdf-4ef8-4e43-9aa2-59e85cc6a70c",
+				Node: "foo",
+			}))
+
+			var i uint64 = 1
+			for _, svc := range tc.services {
+				require.NoError(t, s.EnsureService(i, "foo", svc))
+				i++
+			}
+
+			tx := s.db.ReadTxn()
+			idx, names, err := upstreamsFromRegistrationTxn(tx, ws, structs.NewServiceName("api", structs.DefaultEnterpriseMeta()))
+			require.NoError(t, err)
+
+			require.Equal(t, tc.expect.idx, idx)
+			require.ElementsMatch(t, tc.expect.names, names)
+		})
+	}
+}
+
+func TestCatalog_upstreamsFromRegistration_Watches(t *testing.T) {
+	type expect struct {
+		idx   uint64
+		names []structs.ServiceName
+	}
+
+	s := testStateStore(t)
+
+	require.NoError(t, s.EnsureNode(0, &structs.Node{
+		ID:   "c73b8fdf-4ef8-4e43-9aa2-59e85cc6a70c",
+		Node: "foo",
+	}))
+
+	defaultMeta := structs.DefaultEnterpriseMeta()
+	web := structs.NewServiceName("web", defaultMeta)
+
+	ws := memdb.NewWatchSet()
+	tx := s.db.ReadTxn()
+	idx, names, err := upstreamsFromRegistrationTxn(tx, ws, web)
+	require.NoError(t, err)
+	assert.Zero(t, idx)
+	assert.Len(t, names, 0)
+
+	// Watch should fire since the admin <-> web pairing was inserted into the topology table
+	svc := structs.NodeService{
+		Kind:    structs.ServiceKindConnectProxy,
+		ID:      "web-proxy",
+		Service: "web-proxy",
+		Address: "127.0.0.2",
+		Port:    443,
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "web",
+			Upstreams: structs.Upstreams{
+				structs.Upstream{
+					DestinationName: "db",
+				},
+				structs.Upstream{
+					DestinationName: "admin",
+				},
+			},
+		},
+		EnterpriseMeta: *defaultMeta,
+	}
+	require.NoError(t, s.EnsureService(1, "foo", &svc))
+	assert.True(t, watchFired(ws))
+
+	ws = memdb.NewWatchSet()
+	tx = s.db.ReadTxn()
+	idx, names, err = upstreamsFromRegistrationTxn(tx, ws, web)
+	require.NoError(t, err)
+
+	exp := expect{
+		idx: 1,
+		names: []structs.ServiceName{
+			{Name: "db", EnterpriseMeta: *defaultMeta},
+			{Name: "admin", EnterpriseMeta: *defaultMeta},
+		},
+	}
+	require.Equal(t, exp.idx, idx)
+	require.ElementsMatch(t, exp.names, names)
+
+	// Now edit the upstreams list to verify watch fires and mapping is removed
+	svc.Proxy.Upstreams = structs.Upstreams{
+		structs.Upstream{
+			DestinationName: "db",
+		},
+		structs.Upstream{
+			DestinationName: "not-admin",
+		},
+	}
+	require.NoError(t, s.EnsureService(2, "foo", &svc))
+	assert.True(t, watchFired(ws))
+
+	ws = memdb.NewWatchSet()
+	tx = s.db.ReadTxn()
+	idx, names, err = upstreamsFromRegistrationTxn(tx, ws, web)
+	require.NoError(t, err)
+
+	exp = expect{
+		// Expect index where the upstream was replaced
+		idx: 2,
+		names: []structs.ServiceName{
+			{Name: "db", EnterpriseMeta: *defaultMeta},
+			{Name: "not-admin", EnterpriseMeta: *defaultMeta},
+		},
+	}
+	require.Equal(t, exp.idx, idx)
+	require.ElementsMatch(t, exp.names, names)
+
+	// Adding a new instance with distinct upstreams should result in a list that joins both
+	svc = structs.NodeService{
+		Kind:    structs.ServiceKindConnectProxy,
+		ID:      "web-proxy-2",
+		Service: "web-proxy",
+		Address: "127.0.0.3",
+		Port:    443,
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "web",
+			Upstreams: structs.Upstreams{
+				structs.Upstream{
+					DestinationName: "db",
+				},
+				structs.Upstream{
+					DestinationName: "also-not-admin",
+				},
+				structs.Upstream{
+					DestinationName: "cache",
+				},
+			},
+		},
+		EnterpriseMeta: *defaultMeta,
+	}
+	require.NoError(t, s.EnsureService(3, "foo", &svc))
+	assert.True(t, watchFired(ws))
+
+	ws = memdb.NewWatchSet()
+	tx = s.db.ReadTxn()
+	idx, names, err = upstreamsFromRegistrationTxn(tx, ws, web)
+	require.NoError(t, err)
+
+	exp = expect{
+		idx: 3,
+		names: []structs.ServiceName{
+			{Name: "db", EnterpriseMeta: *defaultMeta},
+			{Name: "not-admin", EnterpriseMeta: *defaultMeta},
+			{Name: "also-not-admin", EnterpriseMeta: *defaultMeta},
+			{Name: "cache", EnterpriseMeta: *defaultMeta},
+		},
+	}
+	require.Equal(t, exp.idx, idx)
+	require.ElementsMatch(t, exp.names, names)
+
+	// Now delete the web-proxy service and the result should mirror the one of the remaining instance
+	require.NoError(t, s.DeleteService(4, "foo", "web-proxy", defaultMeta))
+	assert.True(t, watchFired(ws))
+
+	ws = memdb.NewWatchSet()
+	tx = s.db.ReadTxn()
+	idx, names, err = upstreamsFromRegistrationTxn(tx, ws, web)
+	require.NoError(t, err)
+
+	exp = expect{
+		idx: 4,
+		names: []structs.ServiceName{
+			{Name: "db", EnterpriseMeta: *defaultMeta},
+			{Name: "also-not-admin", EnterpriseMeta: *defaultMeta},
+			{Name: "cache", EnterpriseMeta: *defaultMeta},
+		},
+	}
+	require.Equal(t, exp.idx, idx)
+	require.ElementsMatch(t, exp.names, names)
+
+	// Now delete the last web-proxy instance and the mappings should be cleared
+	require.NoError(t, s.DeleteService(5, "foo", "web-proxy-2", defaultMeta))
+	assert.True(t, watchFired(ws))
+
+	ws = memdb.NewWatchSet()
+	tx = s.db.ReadTxn()
+	idx, _, err = upstreamsFromRegistrationTxn(tx, ws, web)
+
+	require.NoError(t, err)
+
+	exp = expect{
+		// Expect deletion index
+		idx: 5,
+	}
+	require.Equal(t, exp.idx, idx)
+	require.Empty(t, exp.names)
+}
+
+func TestCatalog_upstreamsFromRegistration_Ingress(t *testing.T) {
+	type expect struct {
+		idx   uint64
+		names []structs.ServiceName
+	}
+
+	s := testStateStore(t)
+
+	require.NoError(t, s.EnsureNode(0, &structs.Node{
+		ID:   "c73b8fdf-4ef8-4e43-9aa2-59e85cc6a70c",
+		Node: "foo",
+	}))
+	require.NoError(t, s.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: structs.ProxyConfigGlobal,
+		Config: map[string]interface{}{
+			"protocol": "http",
+		},
+	}, nil))
+
+	defaultMeta := structs.DefaultEnterpriseMeta()
+	ingress := structs.NewServiceName("ingress", defaultMeta)
+
+	ws := memdb.NewWatchSet()
+	tx := s.db.ReadTxn()
+	idx, names, err := upstreamsFromRegistrationTxn(tx, ws, ingress)
+	require.NoError(t, err)
+	assert.Zero(t, idx)
+	assert.Len(t, names, 0)
+
+	// Watch should fire since the ingress -> [web, api] mappings were inserted into the topology table
+	require.NoError(t, s.EnsureConfigEntry(2, &structs.IngressGatewayConfigEntry{
+		Kind: "ingress-gateway",
+		Name: "ingress",
+		Listeners: []structs.IngressListener{
+			{
+				Port:     1111,
+				Protocol: "http",
+				Services: []structs.IngressService{
+					{
+						Name:           "api",
+						EnterpriseMeta: *defaultMeta,
+					},
+					{
+						Name:           "web",
+						EnterpriseMeta: *defaultMeta,
+					},
+				},
+			},
+		},
+	}, nil))
+	assert.True(t, watchFired(ws))
+
+	ws = memdb.NewWatchSet()
+	tx = s.db.ReadTxn()
+
+	idx, names, err = upstreamsFromRegistrationTxn(tx, ws, ingress)
+	require.NoError(t, err)
+
+	exp := expect{
+		idx: 2,
+		names: []structs.ServiceName{
+			{Name: "api", EnterpriseMeta: *defaultMeta},
+			{Name: "web", EnterpriseMeta: *defaultMeta},
+		},
+	}
+	require.Equal(t, exp.idx, idx)
+	require.ElementsMatch(t, exp.names, names)
+
+	// Now delete a gateway service and topology table should be updated
+	require.NoError(t, s.EnsureConfigEntry(3, &structs.IngressGatewayConfigEntry{
+		Kind: "ingress-gateway",
+		Name: "ingress",
+		Listeners: []structs.IngressListener{
+			{
+				Port:     1111,
+				Protocol: "http",
+				Services: []structs.IngressService{
+					{
+						Name:           "api",
+						EnterpriseMeta: *defaultMeta,
+					},
+				},
+			},
+		},
+	}, nil))
+	assert.True(t, watchFired(ws))
+
+	ws = memdb.NewWatchSet()
+	tx = s.db.ReadTxn()
+	idx, names, err = upstreamsFromRegistrationTxn(tx, ws, ingress)
+	require.NoError(t, err)
+
+	exp = expect{
+		// Expect index where the upstream was replaced
+		idx: 3,
+		names: []structs.ServiceName{
+			{Name: "api", EnterpriseMeta: *defaultMeta},
+		},
+	}
+	require.Equal(t, exp.idx, idx)
+	require.ElementsMatch(t, exp.names, names)
+
+	// Now replace api with a wildcard and no services should be returned because none are registered
+	require.NoError(t, s.EnsureConfigEntry(4, &structs.IngressGatewayConfigEntry{
+		Kind: "ingress-gateway",
+		Name: "ingress",
+		Listeners: []structs.IngressListener{
+			{
+				Port:     1111,
+				Protocol: "http",
+				Services: []structs.IngressService{
+					{
+						Name:           "*",
+						EnterpriseMeta: *defaultMeta,
+					},
+				},
+			},
+		},
+	}, nil))
+	assert.True(t, watchFired(ws))
+
+	ws = memdb.NewWatchSet()
+	tx = s.db.ReadTxn()
+	idx, names, err = upstreamsFromRegistrationTxn(tx, ws, ingress)
+	require.NoError(t, err)
+	require.Equal(t, uint64(4), idx)
+	require.Len(t, names, 0)
+
+	// Adding a service will be covered by the ingress wildcard and added to the topology
+	svc := structs.NodeService{
+		ID:             "db",
+		Service:        "db",
+		Address:        "127.0.0.3",
+		Port:           443,
+		EnterpriseMeta: *defaultMeta,
+	}
+	require.NoError(t, s.EnsureService(5, "foo", &svc))
+	assert.True(t, watchFired(ws))
+
+	ws = memdb.NewWatchSet()
+	tx = s.db.ReadTxn()
+	idx, names, err = upstreamsFromRegistrationTxn(tx, ws, ingress)
+	require.NoError(t, err)
+
+	exp = expect{
+		// Expect index where the upstream was replaced
+		idx: 5,
+		names: []structs.ServiceName{
+			{Name: "db", EnterpriseMeta: *defaultMeta},
+		},
+	}
+	require.Equal(t, exp.idx, idx)
+	require.ElementsMatch(t, exp.names, names)
+
+	// Deleting a service covered by a wildcard should delete its mapping
+	require.NoError(t, s.DeleteService(6, "foo", svc.ID, &svc.EnterpriseMeta))
+	assert.True(t, watchFired(ws))
+
+	ws = memdb.NewWatchSet()
+	tx = s.db.ReadTxn()
+	idx, names, err = upstreamsFromRegistrationTxn(tx, ws, ingress)
+	require.NoError(t, err)
+	require.Equal(t, uint64(6), idx)
+	require.Len(t, names, 0)
+
+	// Now add a service again, to test the effect of deleting the config entry itself
+	require.NoError(t, s.EnsureConfigEntry(7, &structs.IngressGatewayConfigEntry{
+		Kind: "ingress-gateway",
+		Name: "ingress",
+		Listeners: []structs.IngressListener{
+			{
+				Port:     1111,
+				Protocol: "http",
+				Services: []structs.IngressService{
+					{
+						Name:           "api",
+						EnterpriseMeta: *defaultMeta,
+					},
+				},
+			},
+		},
+	}, nil))
+	assert.True(t, watchFired(ws))
+
+	ws = memdb.NewWatchSet()
+	tx = s.db.ReadTxn()
+	idx, names, err = upstreamsFromRegistrationTxn(tx, ws, ingress)
+	require.NoError(t, err)
+
+	exp = expect{
+		// Expect index where the upstream was replaced
+		idx: 7,
+		names: []structs.ServiceName{
+			{Name: "api", EnterpriseMeta: *defaultMeta},
+		},
+	}
+	require.Equal(t, exp.idx, idx)
+	require.ElementsMatch(t, exp.names, names)
+
+	// Deleting the config entry should remove the mapping
+	require.NoError(t, s.DeleteConfigEntry(8, "ingress-gateway", "ingress", defaultMeta))
+	assert.True(t, watchFired(ws))
+
+	ws = memdb.NewWatchSet()
+	tx = s.db.ReadTxn()
+	idx, names, err = upstreamsFromRegistrationTxn(tx, ws, ingress)
+	require.NoError(t, err)
+	require.Equal(t, uint64(8), idx)
+	require.Len(t, names, 0)
+}
+
+func TestCatalog_DownstreamsForService(t *testing.T) {
+	defaultMeta := structs.DefaultEnterpriseMeta()
+
+	type expect struct {
+		idx   uint64
+		names []structs.ServiceName
+	}
+	tt := []struct {
+		name     string
+		services []*structs.NodeService
+		entries  []structs.ConfigEntry
+		expect   expect
+	}{
+		{
+			name: "kitchen sink",
+			services: []*structs.NodeService{
+				{
+					Kind:    structs.ServiceKindConnectProxy,
+					ID:      "api-proxy",
+					Service: "api-proxy",
+					Address: "127.0.0.1",
+					Port:    443,
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "api",
+						Upstreams: structs.Upstreams{
+							structs.Upstream{
+								DestinationName: "cache",
+							},
+							structs.Upstream{
+								DestinationName: "db",
+							},
+							structs.Upstream{
+								DestinationName: "old-admin",
+							},
+						},
+					},
+					EnterpriseMeta: *defaultMeta,
+				},
+				{
+					Kind:    structs.ServiceKindConnectProxy,
+					ID:      "web-proxy",
+					Service: "web-proxy",
+					Address: "127.0.0.2",
+					Port:    443,
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "web",
+						Upstreams: structs.Upstreams{
+							structs.Upstream{
+								DestinationName: "db",
+							},
+							structs.Upstream{
+								DestinationName: "admin",
+							},
+						},
+					},
+					EnterpriseMeta: *defaultMeta,
+				},
+			},
+			entries: []structs.ConfigEntry{
+				&structs.ProxyConfigEntry{
+					Kind: structs.ProxyDefaults,
+					Name: structs.ProxyConfigGlobal,
+					Config: map[string]interface{}{
+						"protocol": "http",
+					},
+				},
+				&structs.ServiceRouterConfigEntry{
+					Kind: structs.ServiceRouter,
+					Name: "old-admin",
+					Routes: []structs.ServiceRoute{
+						{
+							Match: &structs.ServiceRouteMatch{
+								HTTP: &structs.ServiceRouteHTTPMatch{
+									PathExact: "/v2",
+								},
+							},
+							Destination: &structs.ServiceRouteDestination{
+								Service: "admin",
+							},
+						},
+					},
+				},
+			},
+			expect: expect{
+				idx: 4,
+				names: []structs.ServiceName{
+					// get web from listing admin directly as an upstream
+					{Name: "web", EnterpriseMeta: *defaultMeta},
+					// get api from old-admin routing to admin and web listing old-admin as an upstream
+					{Name: "api", EnterpriseMeta: *defaultMeta},
+				},
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			s := testStateStore(t)
+
+			require.NoError(t, s.EnsureNode(0, &structs.Node{
+				ID:   "c73b8fdf-4ef8-4e43-9aa2-59e85cc6a70c",
+				Node: "foo",
+			}))
+
+			var i uint64 = 1
+			for _, svc := range tc.services {
+				require.NoError(t, s.EnsureService(i, "foo", svc))
+				i++
+			}
+
+			ca := &structs.CAConfiguration{
+				Provider: "consul",
+			}
+			err := s.CASetConfig(0, ca)
+			require.NoError(t, err)
+
+			for _, entry := range tc.entries {
+				require.NoError(t, entry.Normalize())
+				require.NoError(t, s.EnsureConfigEntry(i, entry, nil))
+				i++
+			}
+
+			tx := s.db.ReadTxn()
+			defer tx.Abort()
+
+			ws := memdb.NewWatchSet()
+			sn := structs.NewServiceName("admin", structs.DefaultEnterpriseMeta())
+			idx, names, err := s.downstreamsForServiceTxn(tx, ws, "dc1", sn)
+			require.NoError(t, err)
+
+			require.Equal(t, tc.expect.idx, idx)
+			require.ElementsMatch(t, tc.expect.names, names)
+		})
+	}
+}
+
+func TestCatalog_DownstreamsForService_Updates(t *testing.T) {
+	var (
+		defaultMeta = structs.DefaultEnterpriseMeta()
+		target      = structs.NewServiceName("admin", defaultMeta)
+	)
+
+	s := testStateStore(t)
+	ca := &structs.CAConfiguration{
+		Provider: "consul",
+	}
+	err := s.CASetConfig(1, ca)
+	require.NoError(t, err)
+
+	require.NoError(t, s.EnsureNode(2, &structs.Node{
+		ID:   "c73b8fdf-4ef8-4e43-9aa2-59e85cc6a70c",
+		Node: "foo",
+	}))
+
+	// Register a service with our target as an upstream, and it should show up as a downstream
+	web := structs.NodeService{
+		Kind:    structs.ServiceKindConnectProxy,
+		ID:      "web-proxy",
+		Service: "web-proxy",
+		Address: "127.0.0.2",
+		Port:    443,
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "web",
+			Upstreams: structs.Upstreams{
+				structs.Upstream{
+					DestinationName: "db",
+				},
+				structs.Upstream{
+					DestinationName: "admin",
+				},
+			},
+		},
+		EnterpriseMeta: *defaultMeta,
+	}
+	require.NoError(t, s.EnsureService(3, "foo", &web))
+
+	ws := memdb.NewWatchSet()
+	tx := s.db.ReadTxn()
+	idx, names, err := s.downstreamsForServiceTxn(tx, ws, "dc1", target)
+	require.NoError(t, err)
+	tx.Abort()
+
+	expect := []structs.ServiceName{
+		{Name: "web", EnterpriseMeta: *defaultMeta},
+	}
+	require.Equal(t, uint64(3), idx)
+	require.ElementsMatch(t, expect, names)
+
+	// Register a service WITHOUT our target as an upstream, and the watch should not fire
+	api := structs.NodeService{
+		Kind:    structs.ServiceKindConnectProxy,
+		ID:      "api-proxy",
+		Service: "api-proxy",
+		Address: "127.0.0.1",
+		Port:    443,
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "api",
+			Upstreams: structs.Upstreams{
+				structs.Upstream{
+					DestinationName: "cache",
+				},
+				structs.Upstream{
+					DestinationName: "db",
+				},
+				structs.Upstream{
+					DestinationName: "old-admin",
+				},
+			},
+		},
+		EnterpriseMeta: *defaultMeta,
+	}
+	require.NoError(t, s.EnsureService(4, "foo", &api))
+	require.False(t, watchFired(ws))
+
+	// Update the routing so that api's upstream routes to our target and watches should fire
+	defaults := structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: structs.ProxyConfigGlobal,
+		Config: map[string]interface{}{
+			"protocol": "http",
+		},
+	}
+	require.NoError(t, defaults.Normalize())
+	require.NoError(t, s.EnsureConfigEntry(5, &defaults, nil))
+
+	router := structs.ServiceRouterConfigEntry{
+		Kind: structs.ServiceRouter,
+		Name: "old-admin",
+		Routes: []structs.ServiceRoute{
+			{
+				Match: &structs.ServiceRouteMatch{
+					HTTP: &structs.ServiceRouteHTTPMatch{
+						PathExact: "/v2",
+					},
+				},
+				Destination: &structs.ServiceRouteDestination{
+					Service: "admin",
+				},
+			},
+		},
+	}
+	require.NoError(t, router.Normalize())
+	require.NoError(t, s.EnsureConfigEntry(6, &router, nil))
+
+	// We updated a relevant config entry
+	require.True(t, watchFired(ws))
+
+	ws = memdb.NewWatchSet()
+	tx = s.db.ReadTxn()
+	idx, names, err = s.downstreamsForServiceTxn(tx, ws, "dc1", target)
+	require.NoError(t, err)
+	tx.Abort()
+
+	expect = []structs.ServiceName{
+		// get web from listing admin directly as an upstream
+		{Name: "web", EnterpriseMeta: *defaultMeta},
+		// get api from old-admin routing to admin and web listing old-admin as an upstream
+		{Name: "api", EnterpriseMeta: *defaultMeta},
+	}
+	require.Equal(t, uint64(6), idx)
+	require.ElementsMatch(t, expect, names)
+}
+
+func TestProtocolForIngressGateway(t *testing.T) {
+	tt := []struct {
+		name    string
+		idx     uint64
+		entries []structs.ConfigEntry
+		expect  string
+	}{
+		{
+			name: "all http like",
+			idx:  uint64(5),
+			entries: []structs.ConfigEntry{
+				&structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "h1-svc",
+					Protocol: "http",
+				},
+				&structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "h2-svc",
+					Protocol: "http2",
+				},
+				&structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "g-svc",
+					Protocol: "grpc",
+				},
+				&structs.IngressGatewayConfigEntry{
+					Kind: structs.IngressGateway,
+					Name: "ingress",
+					Listeners: []structs.IngressListener{
+						{
+							Port:     1111,
+							Protocol: "http",
+							Services: []structs.IngressService{
+								{
+									Name: "h1-svc",
+								},
+							},
+						},
+						{
+							Port:     2222,
+							Protocol: "http2",
+							Services: []structs.IngressService{
+								{
+									Name: "h2-svc",
+								},
+							},
+						},
+						{
+							Port:     3333,
+							Protocol: "grpc",
+							Services: []structs.IngressService{
+								{
+									Name: "g-svc",
+								},
+							},
+						},
+					},
+				},
+			},
+			expect: "http",
+		},
+		{
+			name: "all tcp",
+			idx:  uint64(6),
+			entries: []structs.ConfigEntry{
+				&structs.IngressGatewayConfigEntry{
+					Kind: structs.IngressGateway,
+					Name: "ingress",
+					Listeners: []structs.IngressListener{
+						{
+							Port:     1111,
+							Protocol: "tcp",
+							Services: []structs.IngressService{
+								{
+									Name: "zip",
+								},
+							},
+						},
+						{
+							Port:     2222,
+							Protocol: "tcp",
+							Services: []structs.IngressService{
+								{
+									Name: "zop",
+								},
+							},
+						},
+						{
+							Port:     3333,
+							Protocol: "tcp",
+							Services: []structs.IngressService{
+								{
+									Name: "zap",
+								},
+							},
+						},
+					},
+				},
+			},
+			expect: "tcp",
+		},
+		{
+			name: "mix of both",
+			idx:  uint64(7),
+			entries: []structs.ConfigEntry{
+				&structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "h1-svc",
+					Protocol: "http",
+				},
+				&structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "g-svc",
+					Protocol: "grpc",
+				},
+				&structs.IngressGatewayConfigEntry{
+					Kind: structs.IngressGateway,
+					Name: "ingress",
+					Listeners: []structs.IngressListener{
+						{
+							Port:     1111,
+							Protocol: "http",
+							Services: []structs.IngressService{
+								{
+									Name: "h1-svc",
+								},
+							},
+						},
+						{
+							Port:     2222,
+							Protocol: "tcp",
+							Services: []structs.IngressService{
+								{
+									Name: "zop",
+								},
+							},
+						},
+						{
+							Port:     3333,
+							Protocol: "grpc",
+							Services: []structs.IngressService{
+								{
+									Name: "g-svc",
+								},
+							},
+						},
+					},
+				},
+			},
+			expect: "tcp",
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			s := testStateStore(t)
+
+			for _, entry := range tc.entries {
+				require.NoError(t, entry.Normalize())
+				require.NoError(t, entry.Validate())
+
+				require.NoError(t, s.EnsureConfigEntry(tc.idx, entry, structs.DefaultEnterpriseMeta()))
+			}
+
+			tx := s.db.ReadTxn()
+			defer tx.Abort()
+
+			ws := memdb.NewWatchSet()
+			sn := structs.NewServiceName("ingress", structs.DefaultEnterpriseMeta())
+
+			idx, protocol, err := metricsProtocolForIngressGateway(tx, ws, sn)
+			require.NoError(t, err)
+			require.Equal(t, tc.idx, idx)
+			require.Equal(t, tc.expect, protocol)
+		})
+	}
 }

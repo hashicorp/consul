@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -15,6 +16,17 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 )
+
+var IntentionSummaries = []prometheus.SummaryDefinition{
+	{
+		Name: []string{"consul", "intention", "apply"},
+		Help: "",
+	},
+	{
+		Name: []string{"intention", "apply"},
+		Help: "",
+	},
+}
 
 var (
 	// ErrIntentionNotFound is returned if the intention lookup failed.
@@ -30,7 +42,7 @@ type Intention struct {
 
 func (s *Intention) checkIntentionID(id string) (bool, error) {
 	state := s.srv.fsm.State()
-	if _, ixn, err := state.IntentionGet(nil, id); err != nil {
+	if _, _, ixn, err := state.IntentionGet(nil, id); err != nil {
 		return false, err
 	} else if ixn != nil {
 		return false, nil
@@ -39,169 +51,48 @@ func (s *Intention) checkIntentionID(id string) (bool, error) {
 	return true, nil
 }
 
-// prepareApplyCreate validates that the requester has permissions to create the new intention,
-// generates a new uuid for the intention and generally validates that the request is well-formed
-func (s *Intention) prepareApplyCreate(ident structs.ACLIdentity, authz acl.Authorizer, entMeta *structs.EnterpriseMeta, args *structs.IntentionRequest) error {
-	if !args.Intention.CanWrite(authz) {
-		var accessorID string
-		if ident != nil {
-			accessorID = ident.ID()
-		}
-		// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
-		s.logger.Warn("Intention creation denied due to ACLs", "intention", args.Intention.ID, "accessorID", accessorID)
-		return acl.ErrPermissionDenied
-	}
+var ErrIntentionsNotUpgradedYet = errors.New("Intentions are read only while being upgraded to config entries")
 
-	// If no ID is provided, generate a new ID. This must be done prior to
-	// appending to the Raft log, because the ID is not deterministic. Once
-	// the entry is in the log, the state update MUST be deterministic or
-	// the followers will not converge.
-	if args.Intention.ID != "" {
-		return fmt.Errorf("ID must be empty when creating a new intention")
-	}
-
-	var err error
-	args.Intention.ID, err = lib.GenerateUUID(s.checkIntentionID)
+// legacyUpgradeCheck fast fails a write request using the legacy intention
+// RPCs if the system is known to be mid-upgrade. This is purely a perf
+// optimization and the actual real enforcement happens in the FSM. It would be
+// wasteful to round trip all the way through raft to have it fail for
+// known-up-front reasons, hence why we check it twice.
+func (s *Intention) legacyUpgradeCheck() error {
+	usingConfigEntries, err := s.srv.fsm.State().AreIntentionsInConfigEntries()
 	if err != nil {
-		return err
+		return fmt.Errorf("system metadata lookup failed: %v", err)
 	}
-	// Set the created at
-	args.Intention.CreatedAt = time.Now().UTC()
-	args.Intention.UpdatedAt = args.Intention.CreatedAt
-
-	// Default source type
-	if args.Intention.SourceType == "" {
-		args.Intention.SourceType = structs.IntentionSourceConsul
+	if !usingConfigEntries {
+		return ErrIntentionsNotUpgradedYet
 	}
-
-	args.Intention.DefaultNamespaces(entMeta)
-
-	if err := s.validateEnterpriseIntention(args.Intention); err != nil {
-		return err
-	}
-
-	// Validate. We do not validate on delete since it is valid to only
-	// send an ID in that case.
-	// Set the precedence
-	args.Intention.UpdatePrecedence()
-
-	if err := args.Intention.Validate(); err != nil {
-		return err
-	}
-
-	// make sure we set the hash prior to raft application
-	args.Intention.SetHash()
-
-	return nil
-}
-
-// prepareApplyUpdate validates that the requester has permissions on both the updated and existing
-// intention as well as generally validating that the request is well-formed
-func (s *Intention) prepareApplyUpdate(ident structs.ACLIdentity, authz acl.Authorizer, entMeta *structs.EnterpriseMeta, args *structs.IntentionRequest) error {
-	if !args.Intention.CanWrite(authz) {
-		var accessorID string
-		if ident != nil {
-			accessorID = ident.ID()
-		}
-		// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
-		s.logger.Warn("Update operation on intention denied due to ACLs", "intention", args.Intention.ID, "accessorID", accessorID)
-		return acl.ErrPermissionDenied
-	}
-
-	_, ixn, err := s.srv.fsm.State().IntentionGet(nil, args.Intention.ID)
-	if err != nil {
-		return fmt.Errorf("Intention lookup failed: %v", err)
-	}
-	if ixn == nil {
-		return fmt.Errorf("Cannot modify non-existent intention: '%s'", args.Intention.ID)
-	}
-
-	// Perform the ACL check that we have write to the old intention too,
-	// which must be true to perform any rename. This is the only ACL enforcement
-	// done for deletions and a secondary enforcement for updates.
-	if !ixn.CanWrite(authz) {
-		var accessorID string
-		if ident != nil {
-			accessorID = ident.ID()
-		}
-		// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
-		s.logger.Warn("Update operation on intention denied due to ACLs", "intention", args.Intention.ID, "accessorID", accessorID)
-		return acl.ErrPermissionDenied
-	}
-
-	// We always update the updatedat field.
-	args.Intention.UpdatedAt = time.Now().UTC()
-
-	// Default source type
-	if args.Intention.SourceType == "" {
-		args.Intention.SourceType = structs.IntentionSourceConsul
-	}
-
-	args.Intention.DefaultNamespaces(entMeta)
-
-	if err := s.validateEnterpriseIntention(args.Intention); err != nil {
-		return err
-	}
-
-	// Set the precedence
-	args.Intention.UpdatePrecedence()
-
-	// Validate. We do not validate on delete since it is valid to only
-	// send an ID in that case.
-	if err := args.Intention.Validate(); err != nil {
-		return err
-	}
-
-	// make sure we set the hash prior to raft application
-	args.Intention.SetHash()
-
-	return nil
-}
-
-// prepareApplyDelete ensures that the intention specified by the ID in the request exists
-// and that the requester is authorized to delete it
-func (s *Intention) prepareApplyDelete(ident structs.ACLIdentity, authz acl.Authorizer, args *structs.IntentionRequest) error {
-	// If this is not a create, then we have to verify the ID.
-	state := s.srv.fsm.State()
-	_, ixn, err := state.IntentionGet(nil, args.Intention.ID)
-	if err != nil {
-		return fmt.Errorf("Intention lookup failed: %v", err)
-	}
-	if ixn == nil {
-		return fmt.Errorf("Cannot delete non-existent intention: '%s'", args.Intention.ID)
-	}
-
-	// Perform the ACL check that we have write to the old intention too,
-	// which must be true to perform any rename. This is the only ACL enforcement
-	// done for deletions and a secondary enforcement for updates.
-	if !ixn.CanWrite(authz) {
-		var accessorID string
-		if ident != nil {
-			accessorID = ident.ID()
-		}
-		// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
-		s.logger.Warn("Deletion operation on intention denied due to ACLs", "intention", args.Intention.ID, "accessorID", accessorID)
-		return acl.ErrPermissionDenied
-	}
-
 	return nil
 }
 
 // Apply creates or updates an intention in the data store.
-func (s *Intention) Apply(
-	args *structs.IntentionRequest,
-	reply *string) error {
-
-	// Forward this request to the primary DC if we're a secondary that's replicating intentions.
-	if s.srv.intentionReplicationEnabled() {
-		args.Datacenter = s.srv.config.PrimaryDatacenter
+func (s *Intention) Apply(args *structs.IntentionRequest, reply *string) error {
+	// Exit early if Connect hasn't been enabled.
+	if !s.srv.config.ConnectEnabled {
+		return ErrConnectNotEnabled
 	}
+
+	// Ensure that all service-intentions config entry writes go to the primary
+	// datacenter. These will then be replicated to all the other datacenters.
+	args.Datacenter = s.srv.config.PrimaryDatacenter
 
 	if done, err := s.srv.ForwardRPC("Intention.Apply", args, args, reply); done {
 		return err
 	}
 	defer metrics.MeasureSince([]string{"consul", "intention", "apply"}, time.Now())
 	defer metrics.MeasureSince([]string{"intention", "apply"}, time.Now())
+
+	if err := s.legacyUpgradeCheck(); err != nil {
+		return err
+	}
+
+	if args.Mutation != nil {
+		return fmt.Errorf("Mutation field is internal only and must not be set via RPC")
+	}
 
 	// Always set a non-nil intention to avoid nil-access below
 	if args.Intention == nil {
@@ -215,30 +106,60 @@ func (s *Intention) Apply(
 		return err
 	}
 
+	var accessorID string
+	if ident != nil {
+		accessorID = ident.ID()
+	}
+
+	var (
+		mut         *structs.IntentionMutation
+		legacyWrite bool
+	)
 	switch args.Op {
 	case structs.IntentionOpCreate:
-		if err := s.prepareApplyCreate(ident, authz, &entMeta, args); err != nil {
-			return err
-		}
+		legacyWrite = true
+		mut, err = s.computeApplyChangesLegacyCreate(accessorID, authz, &entMeta, args)
 	case structs.IntentionOpUpdate:
-		if err := s.prepareApplyUpdate(ident, authz, &entMeta, args); err != nil {
-			return err
-		}
+		legacyWrite = true
+		mut, err = s.computeApplyChangesLegacyUpdate(accessorID, authz, &entMeta, args)
+	case structs.IntentionOpUpsert:
+		legacyWrite = false
+		mut, err = s.computeApplyChangesUpsert(accessorID, authz, &entMeta, args)
 	case structs.IntentionOpDelete:
-		if err := s.prepareApplyDelete(ident, authz, args); err != nil {
-			return err
+		if args.Intention.ID == "" {
+			legacyWrite = false
+			mut, err = s.computeApplyChangesDelete(accessorID, authz, &entMeta, args)
+		} else {
+			legacyWrite = true
+			mut, err = s.computeApplyChangesLegacyDelete(accessorID, authz, &entMeta, args)
 		}
+	case structs.IntentionOpDeleteAll:
+		// This is an internal operation initiated by the leader and is not
+		// exposed for general RPC use.
+		return fmt.Errorf("Invalid Intention operation: %v", args.Op)
 	default:
 		return fmt.Errorf("Invalid Intention operation: %v", args.Op)
 	}
 
-	// setup the reply which will have been filled in by one of the 3 preparedApply* funcs
-	*reply = args.Intention.ID
+	if err != nil {
+		return err
+	}
+	if mut == nil {
+		return nil // short circuit
+	}
 
-	// Commit
+	if legacyWrite {
+		*reply = args.Intention.ID
+	} else {
+		*reply = ""
+	}
+
+	// Switch to the config entry manipulating flavor:
+	args.Mutation = mut
+	args.Intention = nil
+
 	resp, err := s.srv.raftApply(structs.IntentionRequestType, args)
 	if err != nil {
-		s.logger.Error("Raft apply failed", "error", err)
 		return err
 	}
 	if respErr, ok := resp.(error); ok {
@@ -248,10 +169,268 @@ func (s *Intention) Apply(
 	return nil
 }
 
+func (s *Intention) computeApplyChangesLegacyCreate(
+	accessorID string,
+	authz acl.Authorizer,
+	entMeta *structs.EnterpriseMeta,
+	args *structs.IntentionRequest,
+) (*structs.IntentionMutation, error) {
+	// This variant is just for legacy UUID-based intentions.
+
+	args.Intention.DefaultNamespaces(entMeta)
+
+	if !args.Intention.CanWrite(authz) {
+		sn := args.Intention.SourceServiceName()
+		dn := args.Intention.DestinationServiceName()
+		// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
+		s.logger.Warn("Intention creation denied due to ACLs",
+			"source", sn.String(),
+			"destination", dn.String(),
+			"accessorID", accessorID)
+		return nil, acl.ErrPermissionDenied
+	}
+
+	// If no ID is provided, generate a new ID. This must be done prior to
+	// appending to the Raft log, because the ID is not deterministic. Once
+	// the entry is in the log, the state update MUST be deterministic or
+	// the followers will not converge.
+	if args.Intention.ID != "" {
+		return nil, fmt.Errorf("ID must be empty when creating a new intention")
+	}
+
+	var err error
+	args.Intention.ID, err = lib.GenerateUUID(s.checkIntentionID)
+	if err != nil {
+		return nil, err
+	}
+	// Set the created at
+	args.Intention.CreatedAt = time.Now().UTC()
+	args.Intention.UpdatedAt = args.Intention.CreatedAt
+
+	// Default source type
+	if args.Intention.SourceType == "" {
+		args.Intention.SourceType = structs.IntentionSourceConsul
+	}
+
+	if err := s.validateEnterpriseIntention(args.Intention); err != nil {
+		return nil, err
+	}
+
+	//nolint:staticcheck
+	if err := args.Intention.Validate(); err != nil {
+		return nil, err
+	}
+
+	// NOTE: if the append of this source causes a duplicate source name the
+	// config entry validation will fail so we don't have to check that
+	// explicitly here.
+
+	mut := &structs.IntentionMutation{
+		Destination: args.Intention.DestinationServiceName(),
+		Value:       args.Intention.ToSourceIntention(true),
+	}
+
+	// Set the created/updated times. If this is an update instead of an insert
+	// the UpdateOver() will fix it up appropriately.
+	now := time.Now().UTC()
+	mut.Value.LegacyCreateTime = timePointer(now)
+	mut.Value.LegacyUpdateTime = timePointer(now)
+
+	return mut, nil
+}
+
+func (s *Intention) computeApplyChangesLegacyUpdate(
+	accessorID string,
+	authz acl.Authorizer,
+	entMeta *structs.EnterpriseMeta,
+	args *structs.IntentionRequest,
+) (*structs.IntentionMutation, error) {
+	// This variant is just for legacy UUID-based intentions.
+
+	_, _, ixn, err := s.srv.fsm.State().IntentionGet(nil, args.Intention.ID)
+	if err != nil {
+		return nil, fmt.Errorf("Intention lookup failed: %v", err)
+	}
+	if ixn == nil {
+		return nil, fmt.Errorf("Cannot modify non-existent intention: '%s'", args.Intention.ID)
+	}
+
+	if !ixn.CanWrite(authz) {
+		// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
+		s.logger.Warn("Update operation on intention denied due to ACLs", "intention", args.Intention.ID, "accessorID", accessorID)
+		return nil, acl.ErrPermissionDenied
+	}
+
+	args.Intention.DefaultNamespaces(entMeta)
+
+	// Prior to v1.9.0 renames of the destination side of an intention were
+	// allowed, but that behavior doesn't work anymore.
+	if ixn.DestinationServiceName() != args.Intention.DestinationServiceName() {
+		return nil, fmt.Errorf("Cannot modify DestinationNS or DestinationName for an intention once it exists.")
+	}
+
+	// Default source type
+	if args.Intention.SourceType == "" {
+		args.Intention.SourceType = structs.IntentionSourceConsul
+	}
+
+	if err := s.validateEnterpriseIntention(args.Intention); err != nil {
+		return nil, err
+	}
+
+	// Validate. We do not validate on delete since it is valid to only
+	// send an ID in that case.
+	//nolint:staticcheck
+	if err := args.Intention.Validate(); err != nil {
+		return nil, err
+	}
+
+	mut := &structs.IntentionMutation{
+		ID:    args.Intention.ID,
+		Value: args.Intention.ToSourceIntention(true),
+	}
+
+	// Set the created/updated times. If this is an update instead of an insert
+	// the UpdateOver() will fix it up appropriately.
+	now := time.Now().UTC()
+	mut.Value.LegacyCreateTime = timePointer(now)
+	mut.Value.LegacyUpdateTime = timePointer(now)
+
+	return mut, nil
+}
+
+func (s *Intention) computeApplyChangesUpsert(
+	accessorID string,
+	authz acl.Authorizer,
+	entMeta *structs.EnterpriseMeta,
+	args *structs.IntentionRequest,
+) (*structs.IntentionMutation, error) {
+	// This variant is just for config-entry based intentions.
+
+	if args.Intention.ID != "" {
+		// This is a new-style only endpoint
+		return nil, fmt.Errorf("ID must not be specified")
+	}
+
+	args.Intention.DefaultNamespaces(entMeta)
+
+	if !args.Intention.CanWrite(authz) {
+		sn := args.Intention.SourceServiceName()
+		dn := args.Intention.DestinationServiceName()
+		// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
+		s.logger.Warn("Intention upsert denied due to ACLs",
+			"source", sn.String(),
+			"destination", dn.String(),
+			"accessorID", accessorID)
+		return nil, acl.ErrPermissionDenied
+	}
+
+	_, prevEntry, err := s.srv.fsm.State().ConfigEntry(nil, structs.ServiceIntentions, args.Intention.DestinationName, args.Intention.DestinationEnterpriseMeta())
+	if err != nil {
+		return nil, fmt.Errorf("Intention lookup failed: %v", err)
+	}
+
+	if prevEntry == nil {
+		// Meta is NOT permitted here, as it would need to be persisted on
+		// the enclosing config entry.
+		if len(args.Intention.Meta) > 0 {
+			return nil, fmt.Errorf("Meta must not be specified")
+		}
+	} else {
+		if len(args.Intention.Meta) > 0 {
+			// Meta is NOT permitted here, but there is one exception. If
+			// you are updating a previous record, but that record lives
+			// within a config entry that itself has Meta, then you may
+			// incidentally ship the Meta right back to consul.
+			//
+			// In that case if Meta is provided, it has to be a perfect
+			// match for what is already on the enclosing config entry so
+			// it's safe to discard.
+			if !equalStringMaps(prevEntry.GetMeta(), args.Intention.Meta) {
+				return nil, fmt.Errorf("Meta must not be specified, or should be unchanged during an update.")
+			}
+
+			// Now it is safe to discard
+			args.Intention.Meta = nil
+		}
+	}
+
+	return &structs.IntentionMutation{
+		Destination: args.Intention.DestinationServiceName(),
+		Source:      args.Intention.SourceServiceName(),
+		Value:       args.Intention.ToSourceIntention(false),
+	}, nil
+}
+
+func (s *Intention) computeApplyChangesLegacyDelete(
+	accessorID string,
+	authz acl.Authorizer,
+	entMeta *structs.EnterpriseMeta,
+	args *structs.IntentionRequest,
+) (*structs.IntentionMutation, error) {
+	_, _, ixn, err := s.srv.fsm.State().IntentionGet(nil, args.Intention.ID)
+	if err != nil {
+		return nil, fmt.Errorf("Intention lookup failed: %v", err)
+	}
+	if ixn == nil {
+		return nil, fmt.Errorf("Cannot delete non-existent intention: '%s'", args.Intention.ID)
+	}
+
+	if !ixn.CanWrite(authz) {
+		// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
+		s.logger.Warn("Deletion operation on intention denied due to ACLs", "intention", args.Intention.ID, "accessorID", accessorID)
+		return nil, acl.ErrPermissionDenied
+	}
+
+	return &structs.IntentionMutation{
+		ID: args.Intention.ID,
+	}, nil
+}
+
+func (s *Intention) computeApplyChangesDelete(
+	accessorID string,
+	authz acl.Authorizer,
+	entMeta *structs.EnterpriseMeta,
+	args *structs.IntentionRequest,
+) (*structs.IntentionMutation, error) {
+	args.Intention.DefaultNamespaces(entMeta)
+
+	if !args.Intention.CanWrite(authz) {
+		sn := args.Intention.SourceServiceName()
+		dn := args.Intention.DestinationServiceName()
+		// todo(kit) Migrate intention access denial logging over to audit logging when we implement it
+		s.logger.Warn("Intention delete denied due to ACLs",
+			"source", sn.String(),
+			"destination", dn.String(),
+			"accessorID", accessorID)
+		return nil, acl.ErrPermissionDenied
+	}
+
+	// Pre-flight to avoid pointless raft operations.
+	exactIxn := args.Intention.ToExact()
+	_, _, ixn, err := s.srv.fsm.State().IntentionGetExact(nil, exactIxn)
+	if err != nil {
+		return nil, fmt.Errorf("Intention lookup failed: %v", err)
+	}
+	if ixn == nil {
+		src := structs.NewServiceName(exactIxn.SourceName, exactIxn.SourceEnterpriseMeta())
+		dst := structs.NewServiceName(exactIxn.DestinationName, exactIxn.DestinationEnterpriseMeta())
+		return nil, fmt.Errorf("Cannot delete non-existent intention: source=%q, destination=%q", src.String(), dst.String())
+	}
+
+	return &structs.IntentionMutation{
+		Destination: args.Intention.DestinationServiceName(),
+		Source:      args.Intention.SourceServiceName(),
+	}, nil
+}
+
 // Get returns a single intention by ID.
-func (s *Intention) Get(
-	args *structs.IntentionQueryRequest,
-	reply *structs.IndexedIntentions) error {
+func (s *Intention) Get(args *structs.IntentionQueryRequest, reply *structs.IndexedIntentions) error {
+	// Exit early if Connect hasn't been enabled.
+	if !s.srv.config.ConnectEnabled {
+		return ErrConnectNotEnabled
+	}
+
 	// Forward if necessary
 	if done, err := s.srv.ForwardRPC("Intention.Get", args, args, reply); done {
 		return err
@@ -290,9 +469,9 @@ func (s *Intention) Get(
 				err   error
 			)
 			if args.IntentionID != "" {
-				index, ixn, err = state.IntentionGet(ws, args.IntentionID)
+				index, _, ixn, err = state.IntentionGet(ws, args.IntentionID)
 			} else if args.Exact != nil {
-				index, ixn, err = state.IntentionGetExact(ws, args.Exact)
+				index, _, ixn, err = state.IntentionGetExact(ws, args.Exact)
 			}
 
 			if err != nil {
@@ -324,9 +503,12 @@ func (s *Intention) Get(
 }
 
 // List returns all the intentions.
-func (s *Intention) List(
-	args *structs.DCSpecificRequest,
-	reply *structs.IndexedIntentions) error {
+func (s *Intention) List(args *structs.IntentionListRequest, reply *structs.IndexedIntentions) error {
+	// Exit early if Connect hasn't been enabled.
+	if !s.srv.config.ConnectEnabled {
+		return ErrConnectNotEnabled
+	}
+
 	// Forward if necessary
 	if done, err := s.srv.ForwardRPC("Intention.List", args, args, reply); done {
 		return err
@@ -349,7 +531,17 @@ func (s *Intention) List(
 	return s.srv.blockingQuery(
 		&args.QueryOptions, &reply.QueryMeta,
 		func(ws memdb.WatchSet, state *state.Store) error {
-			index, ixns, err := state.Intentions(ws, &args.EnterpriseMeta)
+			var (
+				index      uint64
+				ixns       structs.Intentions
+				fromConfig bool
+				err        error
+			)
+			if args.Legacy {
+				index, ixns, err = state.LegacyIntentions(ws, &args.EnterpriseMeta)
+			} else {
+				index, ixns, fromConfig, err = state.Intentions(ws, &args.EnterpriseMeta)
+			}
 			if err != nil {
 				return err
 			}
@@ -357,6 +549,12 @@ func (s *Intention) List(
 			reply.Index, reply.Intentions = index, ixns
 			if reply.Intentions == nil {
 				reply.Intentions = make(structs.Intentions, 0)
+			}
+
+			if fromConfig {
+				reply.DataOrigin = structs.IntentionDataOriginConfigEntries
+			} else {
+				reply.DataOrigin = structs.IntentionDataOriginLegacy
 			}
 
 			if err := s.srv.filterACL(args.Token, reply); err != nil {
@@ -375,9 +573,12 @@ func (s *Intention) List(
 }
 
 // Match returns the set of intentions that match the given source/destination.
-func (s *Intention) Match(
-	args *structs.IntentionQueryRequest,
-	reply *structs.IndexedIntentionMatches) error {
+func (s *Intention) Match(args *structs.IntentionQueryRequest, reply *structs.IndexedIntentionMatches) error {
+	// Exit early if Connect hasn't been enabled.
+	if !s.srv.config.ConnectEnabled {
+		return ErrConnectNotEnabled
+	}
+
 	// Forward if necessary
 	if done, err := s.srv.ForwardRPC("Intention.Match", args, args, reply); done {
 		return err
@@ -441,12 +642,17 @@ func (s *Intention) Match(
 // Check tests a source/destination and returns whether it would be allowed
 // or denied based on the current ACL configuration.
 //
+// NOTE: This endpoint treats any L7 intentions as DENY.
+//
 // Note: Whenever the logic for this method is changed, you should take
 // a look at the agent authorize endpoint (agent/agent_endpoint.go) since
 // the logic there is similar.
-func (s *Intention) Check(
-	args *structs.IntentionQueryRequest,
-	reply *structs.IntentionQueryCheckResponse) error {
+func (s *Intention) Check(args *structs.IntentionQueryRequest, reply *structs.IntentionQueryCheckResponse) error {
+	// Exit early if Connect hasn't been enabled.
+	if !s.srv.config.ConnectEnabled {
+		return ErrConnectNotEnabled
+	}
+
 	// Forward maybe
 	if done, err := s.srv.ForwardRPC("Intention.Check", args, args, reply); done {
 		return err
@@ -510,37 +716,11 @@ func (s *Intention) Check(
 		}
 	}
 
-	// Get the matches for this destination
-	state := s.srv.fsm.State()
-	_, matches, err := state.IntentionMatch(nil, &structs.IntentionQueryMatch{
-		Type: structs.IntentionMatchDestination,
-		Entries: []structs.IntentionMatchEntry{
-			{
-				Namespace: query.DestinationNS,
-				Name:      query.DestinationName,
-			},
-		},
-	})
-	if err != nil {
-		return err
-	}
-	if len(matches) != 1 {
-		// This should never happen since the documented behavior of the
-		// Match call is that it'll always return exactly the number of results
-		// as entries passed in. But we guard against misbehavior.
-		return errors.New("internal error loading matches")
-	}
-
-	// Check the authorization for each match
-	for _, ixn := range matches[0] {
-		if auth, ok := uri.Authorize(ixn); ok {
-			reply.Allowed = auth
-			return nil
-		}
-	}
+	// Note: the default intention policy is like an intention with a
+	// wildcarded destination in that it is limited to L4-only.
 
 	// No match, we need to determine the default behavior. We do this by
-	// specifying the anonymous token token, which will get that behavior.
+	// fetching the default intention behavior from the resolved authorizer.
 	// The default behavior if ACLs are disabled is to allow connections
 	// to mimic the behavior of Consul itself: everything is allowed if
 	// ACLs are disabled.
@@ -548,15 +728,18 @@ func (s *Intention) Check(
 	// NOTE(mitchellh): This is the same behavior as the agent authorize
 	// endpoint. If this behavior is incorrect, we should also change it there
 	// which is much more important.
-	authz, err = s.srv.ResolveToken("")
-	if err != nil {
-		return err
+	defaultDecision := acl.Allow
+	if authz != nil {
+		defaultDecision = authz.IntentionDefaultAllow(nil)
 	}
 
-	reply.Allowed = true
-	if authz != nil {
-		reply.Allowed = authz.IntentionDefaultAllow(nil) == acl.Allow
+	state := s.srv.fsm.State()
+	decision, err := state.IntentionDecision(uri, query.DestinationName, query.DestinationNS, defaultDecision)
+	if err != nil {
+		return fmt.Errorf("failed to get intention decision from (%s/%s) to (%s/%s): %v",
+			query.SourceNS, query.SourceName, query.DestinationNS, query.DestinationName, err)
 	}
+	reply.Allowed = decision.Allowed
 
 	return nil
 }
@@ -587,4 +770,19 @@ func (s *Intention) validateEnterpriseIntention(ixn *structs.Intention) error {
 		return fmt.Errorf("Invalid destination namespace %q: %v", ixn.DestinationNS, err)
 	}
 	return nil
+}
+
+func equalStringMaps(a, b map[string]string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	for k := range a {
+		v, ok := b[k]
+		if !ok || a[k] != v {
+			return false
+		}
+	}
+
+	return true
 }

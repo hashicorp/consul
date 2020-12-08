@@ -2,15 +2,19 @@ package ca
 
 import (
 	"bytes"
+	"context"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-hclog"
 	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/mitchellh/mapstructure"
 )
@@ -21,12 +25,20 @@ var ErrBackendNotMounted = fmt.Errorf("backend not mounted")
 var ErrBackendNotInitialized = fmt.Errorf("backend not initialized")
 
 type VaultProvider struct {
-	config                       *structs.VaultCAProviderConfig
-	client                       *vaultapi.Client
+	config *structs.VaultCAProviderConfig
+	client *vaultapi.Client
+
+	shutdown func()
+
 	isPrimary                    bool
 	clusterID                    string
 	spiffeID                     *connect.SpiffeIDSigning
 	setupIntermediatePKIPathDone bool
+	logger                       hclog.Logger
+}
+
+func NewVaultProvider() *VaultProvider {
+	return &VaultProvider{shutdown: func() {}}
 }
 
 func vaultTLSConfig(config *structs.VaultCAProviderConfig) *vaultapi.TLSConfig {
@@ -66,7 +78,74 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 	v.clusterID = cfg.ClusterID
 	v.spiffeID = connect.SpiffeIDSigningForCluster(&structs.CAConfiguration{ClusterID: v.clusterID})
 
+	// Look up the token to see if we can auto-renew its lease.
+	secret, err := client.Auth().Token().LookupSelf()
+	if err != nil {
+		return err
+	}
+	var token struct {
+		Renewable bool
+		TTL       int
+	}
+	if err := mapstructure.Decode(secret.Data, &token); err != nil {
+		return err
+	}
+
+	// Set up a renewer to renew the token automatically, if supported.
+	if token.Renewable {
+		lifetimeWatcher, err := client.NewLifetimeWatcher(&vaultapi.LifetimeWatcherInput{
+			Secret: &vaultapi.Secret{
+				Auth: &vaultapi.SecretAuth{
+					ClientToken:   config.Token,
+					Renewable:     token.Renewable,
+					LeaseDuration: secret.LeaseDuration,
+				},
+			},
+			Increment:     token.TTL,
+			RenewBehavior: vaultapi.RenewBehaviorIgnoreErrors,
+		})
+		if err != nil {
+			return fmt.Errorf("Error beginning Vault provider token renewal: %v", err)
+		}
+
+		ctx, cancel := context.WithCancel(context.TODO())
+		v.shutdown = cancel
+		go v.renewToken(ctx, lifetimeWatcher)
+	}
+
 	return nil
+}
+
+// renewToken uses a vaultapi.Renewer to repeatedly renew our token's lease.
+func (v *VaultProvider) renewToken(ctx context.Context, watcher *vaultapi.LifetimeWatcher) {
+	go watcher.Start()
+	defer watcher.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+
+		case err := <-watcher.DoneCh():
+			if err != nil {
+				v.logger.Error("Error renewing token for Vault provider", "error", err)
+			}
+
+			// Watcher routine has finished, so start it again.
+			go watcher.Start()
+
+		case <-watcher.RenewCh():
+			v.logger.Info("Successfully renewed token for Vault provider")
+		}
+	}
+}
+
+// SetLogger implements the NeedsLogger interface so the provider can log important messages.
+func (v *VaultProvider) SetLogger(logger hclog.Logger) {
+	v.logger = logger.
+		ResetNamed(logging.Connect).
+		Named(logging.CA).
+		Named(logging.Vault)
 }
 
 // State implements Provider. Vault provider needs no state other than the
@@ -153,7 +232,7 @@ func (v *VaultProvider) setupIntermediatePKIPath() error {
 			Type:        "pki",
 			Description: "intermediate CA backend for Consul Connect",
 			Config: vaultapi.MountConfigInput{
-				MaxLeaseTTL: "2160h",
+				MaxLeaseTTL: v.config.IntermediateCertTTL.String(),
 			},
 		})
 
@@ -306,6 +385,7 @@ func (v *VaultProvider) GenerateIntermediate() (string, error) {
 		"csr":            csr,
 		"use_csr_values": true,
 		"format":         "pem_bundle",
+		"ttl":            v.config.IntermediateCertTTL.String(),
 	})
 	if err != nil {
 		return "", err
@@ -378,6 +458,7 @@ func (v *VaultProvider) SignIntermediate(csr *x509.CertificateRequest) (string, 
 		"use_csr_values":  true,
 		"format":          "pem_bundle",
 		"max_path_length": 0,
+		"ttl":             v.config.IntermediateCertTTL.String(),
 	})
 	if err != nil {
 		return "", err
@@ -397,8 +478,20 @@ func (v *VaultProvider) SignIntermediate(csr *x509.CertificateRequest) (string, 
 // CrossSignCA takes a CA certificate and cross-signs it to form a trust chain
 // back to our active root.
 func (v *VaultProvider) CrossSignCA(cert *x509.Certificate) (string, error) {
+	rootPEM, err := v.ActiveRoot()
+	if err != nil {
+		return "", err
+	}
+	rootCert, err := connect.ParseCert(rootPEM)
+	if err != nil {
+		return "", fmt.Errorf("error parsing root cert: %v", err)
+	}
+	if rootCert.NotAfter.Before(time.Now()) {
+		return "", fmt.Errorf("root certificate is expired")
+	}
+
 	var pemBuf bytes.Buffer
-	err := pem.Encode(&pemBuf, &pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})
+	err = pem.Encode(&pemBuf, &pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})
 	if err != nil {
 		return "", err
 	}
@@ -431,7 +524,14 @@ func (c *VaultProvider) SupportsCrossSigning() (bool, error) {
 // this down and recreate it on small config changes because the intermediate
 // certs get bundled with the leaf certs, so there's no cost to the CA changing.
 func (v *VaultProvider) Cleanup() error {
+	v.Stop()
+
 	return v.client.Sys().Unmount(v.config.IntermediatePKIPath)
+}
+
+// Stop shuts down the token renew goroutine.
+func (v *VaultProvider) Stop() {
+	v.shutdown()
 }
 
 func ParseVaultCAConfig(raw map[string]interface{}) (*structs.VaultCAProviderConfig, error) {

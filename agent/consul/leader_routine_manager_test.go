@@ -36,7 +36,9 @@ func TestLeaderRoutineManager(t *testing.T) {
 		require.Equal(r, uint32(1), atomic.LoadUint32(&runs))
 		require.Equal(r, uint32(1), atomic.LoadUint32(&running))
 	})
-	require.NoError(t, mgr.Stop("run"))
+	doneCh := mgr.Stop("run")
+	require.NotNil(t, doneCh)
+	<-doneCh
 
 	// ensure the background go routine was actually cancelled
 	retry.Run(t, func(r *retry.R) {
@@ -51,7 +53,10 @@ func TestLeaderRoutineManager(t *testing.T) {
 		require.Equal(r, uint32(1), atomic.LoadUint32(&running))
 	})
 
-	require.NoError(t, mgr.Stop("run"))
+	doneCh = mgr.Stop("run")
+	require.NotNil(t, doneCh)
+	<-doneCh
+
 	retry.Run(t, func(r *retry.R) {
 		require.Equal(r, uint32(0), atomic.LoadUint32(&running))
 	})

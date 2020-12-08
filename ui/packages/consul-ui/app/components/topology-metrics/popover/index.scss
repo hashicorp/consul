@@ -1,0 +1,27 @@
+.topology-metrics-popover {
+  > button {
+    position: absolute;
+    transform: translate(-50%,-50%);
+    background-color: $white;
+    padding: 1px 1px;
+    &:hover {
+      cursor:pointer;
+    }
+    &:active, &:focus {
+      outline: none;
+    }
+  }
+  &.deny .informed-action header::before {
+    display: none;
+  }
+  &.deny > button::before,
+  &.deny .tippy-arrow::after {
+    @extend %with-cancel-square-fill-color-mask, %as-pseudo;
+    background-color: $red-500;
+  }
+  &.l7 > button::before,
+  &.l7 .tippy-arrow::after {
+    @extend %with-layers-mask, %as-pseudo;
+    background-color: $gray-300;
+  }
+}

@@ -10,7 +10,6 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -1163,7 +1162,7 @@ func TestFSM_Autopilot(t *testing.T) {
 	// Set the autopilot config using a request.
 	req := structs.AutopilotSetConfigRequest{
 		Datacenter: "dc1",
-		Config: autopilot.Config{
+		Config: structs.AutopilotConfig{
 			CleanupDeadServers:   true,
 			LastContactThreshold: 10 * time.Second,
 			MaxTrailingLogs:      300,
@@ -1230,6 +1229,7 @@ func TestFSM_Intention_CRUD(t *testing.T) {
 		Intention:  structs.TestIntention(t),
 	}
 	ixn.Intention.ID = generateUUID()
+	//nolint:staticcheck
 	ixn.Intention.UpdatePrecedence()
 
 	{
@@ -1240,7 +1240,7 @@ func TestFSM_Intention_CRUD(t *testing.T) {
 
 	// Verify it's in the state store.
 	{
-		_, actual, err := fsm.state.IntentionGet(nil, ixn.Intention.ID)
+		_, _, actual, err := fsm.state.IntentionGet(nil, ixn.Intention.ID)
 		assert.Nil(err)
 
 		actual.CreateIndex, actual.ModifyIndex = 0, 0
@@ -1260,7 +1260,7 @@ func TestFSM_Intention_CRUD(t *testing.T) {
 
 	// Verify the update.
 	{
-		_, actual, err := fsm.state.IntentionGet(nil, ixn.Intention.ID)
+		_, _, actual, err := fsm.state.IntentionGet(nil, ixn.Intention.ID)
 		assert.Nil(err)
 
 		actual.CreateIndex, actual.ModifyIndex = 0, 0
@@ -1279,7 +1279,7 @@ func TestFSM_Intention_CRUD(t *testing.T) {
 
 	// Make sure it's gone.
 	{
-		_, actual, err := fsm.state.IntentionGet(nil, ixn.Intention.ID)
+		_, _, actual, err := fsm.state.IntentionGet(nil, ixn.Intention.ID)
 		assert.Nil(err)
 		assert.Nil(actual)
 	}

@@ -7,18 +7,17 @@ import (
 	"time"
 
 	metrics "github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/go-hclog"
 	"golang.org/x/time/rate"
+
+	"github.com/hashicorp/consul/lib/retry"
+	"github.com/hashicorp/consul/logging"
 )
 
 const (
 	// replicationMaxRetryWait is the maximum number of seconds to wait between
 	// failed blocking queries when backing off.
 	replicationDefaultMaxRetryWait = 120 * time.Second
-
-	replicationDefaultRate = 1
 )
 
 type ReplicatorDelegate interface {
@@ -35,7 +34,7 @@ type ReplicatorConfig struct {
 	// The number of replication rounds that can be done in a burst
 	Burst int
 	// Minimum number of RPC failures to ignore before backing off
-	MinFailures int
+	MinFailures uint
 	// Maximum wait time between failing RPCs
 	MaxRetryWait time.Duration
 	// Where to send our logs
@@ -46,7 +45,7 @@ type ReplicatorConfig struct {
 
 type Replicator struct {
 	limiter          *rate.Limiter
-	waiter           *lib.RetryWaiter
+	waiter           *retry.Waiter
 	delegate         ReplicatorDelegate
 	logger           hclog.Logger
 	lastRemoteIndex  uint64
@@ -70,12 +69,11 @@ func NewReplicator(config *ReplicatorConfig) (*Replicator, error) {
 	if maxWait == 0 {
 		maxWait = replicationDefaultMaxRetryWait
 	}
-
-	minFailures := config.MinFailures
-	if minFailures < 0 {
-		minFailures = 0
+	waiter := &retry.Waiter{
+		MinFailures: config.MinFailures,
+		MaxWait:     maxWait,
+		Jitter:      retry.NewJitter(10),
 	}
-	waiter := lib.NewRetryWaiter(minFailures, 0*time.Second, maxWait, lib.NewJitterRandomStagger(10))
 	return &Replicator{
 		limiter:          limiter,
 		waiter:           waiter,
@@ -99,10 +97,8 @@ func (r *Replicator) Run(ctx context.Context) error {
 		// Perform a single round of replication
 		index, exit, err := r.delegate.Replicate(ctx, atomic.LoadUint64(&r.lastRemoteIndex), r.logger)
 		if exit {
-			// the replication function told us to exit
 			return nil
 		}
-
 		if err != nil {
 			// reset the lastRemoteIndex when there is an RPC failure. This should cause a full sync to be done during
 			// the next round of replication
@@ -111,18 +107,16 @@ func (r *Replicator) Run(ctx context.Context) error {
 			if r.suppressErrorLog != nil && !r.suppressErrorLog(err) {
 				r.logger.Warn("replication error (will retry if still leader)", "error", err)
 			}
-		} else {
-			atomic.StoreUint64(&r.lastRemoteIndex, index)
-			r.logger.Debug("replication completed through remote index", "index", index)
+
+			if err := r.waiter.Wait(ctx); err != nil {
+				return nil
+			}
+			continue
 		}
 
-		select {
-		case <-ctx.Done():
-			return nil
-		// wait some amount of time to prevent churning through many replication rounds while replication is failing
-		case <-r.waiter.WaitIfErr(err):
-			// do nothing
-		}
+		atomic.StoreUint64(&r.lastRemoteIndex, index)
+		r.logger.Debug("replication completed through remote index", "index", index)
+		r.waiter.Reset()
 	}
 }
 

@@ -1,0 +1,48 @@
+Healthy:                      true
+Failure Tolerance:            1
+Optimistic Failure Tolerance: 0
+Leader:                       79324811-9588-4311-b208-f272e38aaabf
+Voters:
+   79324811-9588-4311-b208-f272e38aaabf
+   ef8aee9a-f9d6-4ec4-b383-aac956bdb80f
+   ae84aefb-a303-4734-8739-5c102d4ee2d9
+Servers:
+   79324811-9588-4311-b208-f272e38aaabf
+      Name:            node1
+      Address:         198.18.0.1:8300
+      Version:         1.9.0
+      Status:          leader
+      Node Type:       voter
+      Node Status:     alive
+      Healthy:         true
+      Last Contact:    0s
+      Last Term:       3
+      Last Index:      42
+      Meta
+         "foo": "bar"
+   ae84aefb-a303-4734-8739-5c102d4ee2d9
+      Name:            node3
+      Address:         198.18.0.3:8300
+      Version:         1.9.0
+      Status:          voter
+      Node Type:       voter
+      Node Status:     alive
+      Healthy:         true
+      Last Contact:    2ms
+      Last Term:       3
+      Last Index:      39
+      Meta
+         "baz": "foo"
+   ef8aee9a-f9d6-4ec4-b383-aac956bdb80f
+      Name:            node2
+      Address:         198.18.0.2:8300
+      Version:         1.9.0
+      Status:          voter
+      Node Type:       voter
+      Node Status:     alive
+      Healthy:         true
+      Last Contact:    1ms
+      Last Term:       3
+      Last Index:      41
+      Meta
+         "bar": "baz"

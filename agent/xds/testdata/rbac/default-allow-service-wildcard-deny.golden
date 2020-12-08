@@ -4,7 +4,7 @@
       "rules": {
             "action": "DENY",
             "policies": {
-                  "consul-intentions": {
+                  "consul-intentions-layer4": {
                         "permissions": [
                               {
                                     "any": true

@@ -116,7 +116,7 @@ func (s *Store) CAConfig(ws memdb.WatchSet) (uint64, *structs.CAConfiguration, e
 	return caConfigTxn(tx, ws)
 }
 
-func caConfigTxn(tx *txn, ws memdb.WatchSet) (uint64, *structs.CAConfiguration, error) {
+func caConfigTxn(tx ReadTxn, ws memdb.WatchSet) (uint64, *structs.CAConfiguration, error) {
 	// Get the CA config
 	ch, c, err := tx.FirstWatch(caConfigTableName, "id")
 	if err != nil {
@@ -236,7 +236,7 @@ func (s *Store) CARoots(ws memdb.WatchSet) (uint64, structs.CARoots, error) {
 	return caRootsTxn(tx, ws)
 }
 
-func caRootsTxn(tx *txn, ws memdb.WatchSet) (uint64, structs.CARoots, error) {
+func caRootsTxn(tx ReadTxn, ws memdb.WatchSet) (uint64, structs.CARoots, error) {
 	// Get the index
 	idx := maxIndexTxn(tx, caRootTableName)
 

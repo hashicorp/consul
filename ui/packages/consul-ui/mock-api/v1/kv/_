@@ -1,0 +1,50 @@
+${
+    http.method == "GET" ?
+      typeof location.search.keys !== 'undefined' ? `
+[
+  ${
+    range(
+      env(
+        'CONSUL_KV_COUNT',
+        Math.floor(
+          (
+            Math.random() * env('CONSUL_KV_MAX', 10)
+          ) + parseInt(env('CONSUL_KV_MIN', 1))
+        )
+      )
+    ).map(
+        function(item, i) {
+            return `"${
+                range(
+                    fake.random.number(
+                        {max: env('CONSUL_KV_MAX_DEPTH', 0)}
+                    )
+                ).reduce(
+                    function(prev, item, i, arr) {
+                        return `${prev}/${fake.lorem.word()}-${i}`
+                    },
+                  `${i}-${i === 0 ? 'key-value' : fake.lorem.word()}`
+                )}"`;
+        }
+    )
+  }
+]
+      ` : `
+[
+    {
+        "LockIndex":0,
+        "Key":"${
+            location.pathname.slice(3)
+        }",
+${typeof location.search.ns !== 'undefined' ? `
+        "Namespace": "${location.search.ns}",
+` : ``}
+        "Flags":0,
+        "Value":"VHVlIEZlYiAgNiAxMzoxOToyMiBVVEMgMjAxOA==",
+        "CreateIndex":467034,
+        "ModifyIndex":467499,
+        "Session": "${fake.random.uuid()}"
+    }
+]
+` : "true"
+}

@@ -1,0 +1,20 @@
+<HeadLayout />
+{{page-title 'Consul' separator=' - '}}
+{{#if (not-eq router.currentRouteName 'application')}}
+  <HashicorpConsul
+    id="wrapper"
+    @permissions={{permissions}}
+    @dcs={{dcs}}
+    @dc={{or dc dcs.firstObject}}
+    @nspaces={{nspaces}}
+    @nspace={{or nspace nspaces.firstObject}}
+    @onchange={{action "reauthorize"}}
+  >
+  <Outlet
+  @name="application"
+  as |o|>
+    {{outlet}}
+  </Outlet>
+    <Consul::Loader class="view-loader" />
+  </HashicorpConsul>
+{{/if}}

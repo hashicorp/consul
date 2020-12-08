@@ -49,7 +49,7 @@ func TestACL_Legacy_Disabled_Response(t *testing.T) {
 	}
 }
 
-func makeTestACL(t *testing.T, srv *HTTPServer) string {
+func makeTestACL(t *testing.T, srv *HTTPHandlers) string {
 	body := bytes.NewBuffer(nil)
 	enc := json.NewEncoder(body)
 	raw := map[string]interface{}{

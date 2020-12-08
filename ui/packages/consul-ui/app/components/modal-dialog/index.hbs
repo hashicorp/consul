@@ -1,0 +1,52 @@
+{{on-window 'resize' (action "resize") }}
+<Portal @target="modal">
+  {{yield}}
+  <div
+    class="modal-dialog"
+    {{ref this 'modal'}}
+    ...attributes
+  >
+    <input
+      class="modal-dialog-control"
+      id={{name}}
+      type="radio"
+      name="modal"
+      data-checked="{{checked}}"
+      checked={{checked}}
+      onchange={{action 'change'}}
+    />
+    <div
+      class="modal-dialog-modal"
+      role="dialog"
+      aria-modal="true"
+    >
+      <label for="modal_close"></label>
+      <div>
+        <div class="modal-dialog-window">
+          <header class="modal-dialog-header">
+            <label for="modal_close"></label>
+            <YieldSlot @name="header">
+              {{yield (hash
+                close=(action "close")
+              )}}
+            </YieldSlot>
+          </header>
+          <div class="modal-dialog-body">
+            <YieldSlot @name="body">
+              {{yield (hash
+                close=(action "close")
+              )}}
+            </YieldSlot>
+          </div>
+          <footer class="modal-dialog-footer">
+            <YieldSlot @name="actions" @params={{block-params (action "close")}}>
+              {{yield (hash
+                close=(action "close")
+              )}}
+            </YieldSlot>
+          </footer>
+        </div>
+      </div>
+    </div>
+  </div>
+</Portal>

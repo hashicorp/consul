@@ -1,7 +1,7 @@
 ---
 layout: docs
-page_title: Connect Service Mesh - Kubernetes
-sidebar_title: Connect Service Mesh
+page_title: Service Mesh - Kubernetes
+sidebar_title: Service Mesh
 description: >-
   Connect is a feature built into to Consul that enables automatic
   service-to-service authorization and connection encryption across your Consul
@@ -21,7 +21,7 @@ your cluster, making configuration for Kubernetes automatic.
 This functionality is provided by the
 [consul-k8s project](https://github.com/hashicorp/consul-k8s) and can be
 automatically installed and configured using the
-[Consul Helm chart](/docs/k8s/installation).
+[Consul Helm chart](/docs/k8s/installation/install).
 
 ## Usage
 
@@ -161,7 +161,7 @@ $ kubectl exec static-client -- curl -s http://127.0.0.1:1234/
 ```
 
 We can control access to the server using [intentions](/docs/connect/intentions).
-If you use the Consul UI or [CLI](/docs/commands/intention/create) to
+If you use the Consul UI or [CLI](/commands/intention/create) to
 create a deny [intention](/docs/connect/intentions) between
 "static-client" and "static-server", connections are immediately rejected
 without updating either of the running pods. You can then remove this
@@ -249,12 +249,20 @@ Annotations can be used to configure the injection behavior.
     ```
 
 - `consul.hashicorp.com/connect-service-protocol` - For pods that will be
-  registered with Consul's [central configuration](/docs/agent/config_entries)
+  registered with Consul's [central configuration](/docs/agent/config-entries)
   feature, information about the protocol the service uses is required. Users
   can define the protocol directly using this annotation on the pod spec, or by
   defining a default value for all services using the Helm chart's
   [defaultProtocol](/docs/k8s/helm#v-connectinject-centralconfig-defaultprotocol)
   option. Specific annotations will always override the default value.
+
+- `consul.hashicorp.com/envoy-extra-args` - A space-separated list of [arguments](https://www.envoyproxy.io/docs/envoy/latest/operations/cli)
+  to be passed to the injected envoy binary.
+
+  ```yaml
+  annotations:
+    consul.hashicorp.com/envoy-extra-args: "--log-level debug --disable-hot-restart"
+  ```
 
 - `consul.hashicorp.com/service-tags` - A comma separated list of tags that will
   be applied to the Consul service and its sidecar.
@@ -332,7 +340,7 @@ provided by the
 [consul-k8s project](https://github.com/hashicorp/consul-k8s).
 This enables the automatic pod mutation shown in the usage section above.
 Installation of the mutating admission webhook is automated using the
-[Helm chart](/docs/k8s/installation).
+[Helm chart](/docs/k8s/installation/install).
 
 To install the Connect injector, enable the Connect injection feature using
 [Helm values](/docs/k8s/helm#configuration-values) and

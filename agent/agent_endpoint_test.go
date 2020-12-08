@@ -39,7 +39,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func makeReadOnlyAgentACL(t *testing.T, srv *HTTPServer) string {
+func makeReadOnlyAgentACL(t *testing.T, srv *HTTPHandlers) string {
 	args := map[string]interface{}{
 		"Name":  "User Token",
 		"Type":  "client",
@@ -365,8 +365,9 @@ func TestAgent_Service(t *testing.T) {
 			Passing: 1,
 			Warning: 1,
 		},
-		Meta: map[string]string{},
-		Tags: []string{},
+		Meta:       map[string]string{},
+		Tags:       []string{},
+		Datacenter: "dc1",
 	}
 	fillAgentServiceEnterpriseMeta(expectedResponse, structs.DefaultEnterpriseMeta())
 
@@ -391,8 +392,9 @@ func TestAgent_Service(t *testing.T) {
 				Port:    1818,
 			},
 		},
-		Meta: map[string]string{},
-		Tags: []string{},
+		Meta:       map[string]string{},
+		Tags:       []string{},
+		Datacenter: "dc1",
 	}
 	fillAgentServiceEnterpriseMeta(expectWebResponse, structs.DefaultEnterpriseMeta())
 
@@ -2694,7 +2696,7 @@ func TestAgent_UpdateCheck_ACLDeny(t *testing.T) {
 func TestAgent_RegisterService(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService(t, "")
+		testAgent_RegisterService(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -2780,7 +2782,7 @@ func testAgent_RegisterService(t *testing.T, extraHCL string) {
 func TestAgent_RegisterService_ReRegister(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_ReRegister(t, "")
+		testAgent_RegisterService_ReRegister(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -2856,7 +2858,7 @@ func testAgent_RegisterService_ReRegister(t *testing.T, extraHCL string) {
 func TestAgent_RegisterService_ReRegister_ReplaceExistingChecks(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_ReRegister_ReplaceExistingChecks(t, "")
+		testAgent_RegisterService_ReRegister_ReplaceExistingChecks(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -2931,7 +2933,7 @@ func testAgent_RegisterService_ReRegister_ReplaceExistingChecks(t *testing.T, ex
 func TestAgent_RegisterService_TranslateKeys(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_ACLDeny(t, "")
+		testAgent_RegisterService_ACLDeny(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -3147,7 +3149,7 @@ func testAgent_RegisterService_TranslateKeys(t *testing.T, extraHCL string) {
 func TestAgent_RegisterService_ACLDeny(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_ACLDeny(t, "")
+		testAgent_RegisterService_ACLDeny(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -3197,7 +3199,7 @@ func testAgent_RegisterService_ACLDeny(t *testing.T, extraHCL string) {
 func TestAgent_RegisterService_InvalidAddress(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_UnmanagedConnectProxy(t, "")
+		testAgent_RegisterService_InvalidAddress(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -3241,7 +3243,7 @@ func testAgent_RegisterService_InvalidAddress(t *testing.T, extraHCL string) {
 func TestAgent_RegisterService_UnmanagedConnectProxy(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_UnmanagedConnectProxy(t, "")
+		testAgent_RegisterService_UnmanagedConnectProxy(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -3375,7 +3377,7 @@ func testCreatePolicy(t *testing.T, a *TestAgent, name, rules string) string {
 func TestAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterServiceDeregisterService_Sidecar(t, "")
+		testAgent_RegisterServiceDeregisterService_Sidecar(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -3871,7 +3873,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 func TestAgent_RegisterService_UnmanagedConnectProxyInvalid(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_UnmanagedConnectProxyInvalid(t, "")
+		testAgent_RegisterService_UnmanagedConnectProxyInvalid(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -3914,7 +3916,7 @@ func testAgent_RegisterService_UnmanagedConnectProxyInvalid(t *testing.T, extraH
 func TestAgent_RegisterService_ConnectNative(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_ConnectNative(t, "")
+		testAgent_RegisterService_ConnectNative(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -3959,7 +3961,7 @@ func testAgent_RegisterService_ConnectNative(t *testing.T, extraHCL string) {
 func TestAgent_RegisterService_ScriptCheck_ExecDisable(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_ScriptCheck_ExecDisable(t, "")
+		testAgent_RegisterService_ScriptCheck_ExecDisable(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -4005,7 +4007,7 @@ func testAgent_RegisterService_ScriptCheck_ExecDisable(t *testing.T, extraHCL st
 func TestAgent_RegisterService_ScriptCheck_ExecRemoteDisable(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RegisterService_ScriptCheck_ExecRemoteDisable(t, "")
+		testAgent_RegisterService_ScriptCheck_ExecRemoteDisable(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -4774,13 +4776,14 @@ func TestAgent_Token(t *testing.T) {
 		init        tokens
 		raw         tokens
 		effective   tokens
+		expectedErr error
 	}{
 		{
-			name:   "bad token name",
-			method: "PUT",
-			url:    "nope?token=root",
-			body:   body("X"),
-			code:   http.StatusNotFound,
+			name:        "bad token name",
+			method:      "PUT",
+			url:         "nope?token=root",
+			body:        body("X"),
+			expectedErr: NotFoundError{Reason: `Token "nope" is unknown`},
 		},
 		{
 			name:   "bad JSON",
@@ -4942,7 +4945,12 @@ func TestAgent_Token(t *testing.T) {
 			url := fmt.Sprintf("/v1/agent/token/%s", tt.url)
 			resp := httptest.NewRecorder()
 			req, _ := http.NewRequest(tt.method, url, tt.body)
+
 			_, err := a.srv.AgentToken(resp, req)
+			if tt.expectedErr != nil {
+				require.Equal(t, tt.expectedErr, err)
+				return
+			}
 			require.NoError(t, err)
 			require.Equal(t, tt.code, resp.Code)
 			require.Equal(t, tt.effective.user, a.tokens.UserToken())
@@ -5609,7 +5617,7 @@ func TestAgentConnectCALeafCert_secondaryDC_good(t *testing.T) {
 	})
 }
 
-func waitForActiveCARoot(t *testing.T, srv *HTTPServer, expect *structs.CARoot) {
+func waitForActiveCARoot(t *testing.T, srv *HTTPHandlers, expect *structs.CARoot) {
 	retry.Run(t, func(r *retry.R) {
 		req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/roots", nil)
 		resp := httptest.NewRecorder()

@@ -38,11 +38,13 @@ gateway:
 - The ingress gateway will route traffic based on the host/authority header,
   expecting a value matching `<service-name>.ingress.*`, or if using namespaces,
   `<service-name>.ingress.<namespace>.*`. This matches the [Consul DNS
-  ingress subdomain](/docs/agent/dns#ingress-service-lookups).
+  ingress subdomain](/docs/discovery/dns#ingress-service-lookups).
 
 A wildcard specifier cannot be set on a listener of protocol `tcp`.
 
 ## Sample Config Entries
+
+### TCP listener
 
 <Tabs>
 <Tab heading="HCL">
@@ -143,6 +145,8 @@ to proxy traffic to the "db" service in the ops namespace:
 </Tab>
 </Tabs>
 
+### Wildcard HTTP listener
+
 <Tabs>
 <Tab heading="HCL">
 
@@ -318,6 +322,250 @@ Also make two services in the frontend namespace available over a custom port wi
 </Tab>
 </Tabs>
 
+### HTTP listener with path-based routing
+
+<Tabs>
+<Tab heading="HCL">
+
+Set up a HTTP listener on an ingress gateway named "us-east-ingress" to proxy
+traffic to a virtual service named "api".
+
+```hcl
+Kind = "ingress-gateway"
+Name = "us-east-ingress"
+
+Listeners = [
+  {
+    Port     = 80
+    Protocol = "http"
+    Services = [
+      {
+        Name = "api"
+      }
+    ]
+  }
+]
+```
+
+</Tab>
+<Tab heading="HCL (Consul Enterprise)">
+
+Set up a HTTP listener on an ingress gateway named "us-east-ingress" in the
+default namespace to proxy traffic to a virtual service named "api".
+
+```hcl
+Kind = "ingress-gateway"
+Name = "us-east-ingress"
+Namespace = "default"
+
+Listeners = [
+  {
+    Port     = 80
+    Protocol = "http"
+    Services = [
+      {
+        Name = "api"
+        Namespace = "frontend"
+      }
+    ]
+  }
+]
+```
+
+</Tab>
+<Tab heading="JSON">
+
+Set up a HTTP listener on an ingress gateway named "us-east-ingress" to proxy
+traffic to a virtual service named "api".
+
+```json
+{
+  "Kind": "ingress-gateway",
+  "Name": "us-east-ingress",
+  "Listeners": [
+    {
+      "Port": 80,
+      "Protocol": "http",
+      "Services": [
+        {
+          "Name": "api",
+        }
+      ]
+    }
+  ]
+}
+```
+
+</Tab>
+<Tab heading="JSON (Consul Enterprise)">
+
+Set up a HTTP listener on an ingress gateway named "us-east-ingress" in the
+default namespace to proxy traffic to a virtual service named "api".
+
+```json
+{
+  "Kind": "ingress-gateway",
+  "Name": "us-east-ingress",
+  "Namespace": "default",
+  "Listeners": [
+    {
+      "Port": 80,
+      "Protocol": "http",
+      "Services": [
+        {
+          "Name": "api",
+          "Namespace": "frontend"
+        }
+      ]
+    }
+  ]
+}
+```
+
+</Tab>
+</Tabs>
+
+The `api` service is not an actual registered service. It exist as a "virtual"
+service for L7 configuration only. A `service-router` is defined for this
+virtual service which uses path-based routing to route requests to different
+backend services.
+
+<Tabs>
+<Tab heading="HCL">
+
+```hcl
+Kind = "service-router"
+Name = "api"
+Routes = [
+  {
+    Match {
+      HTTP {
+        PathPrefix = "/billing"
+      }
+    }
+
+    Destination {
+      Service = "billing-api"
+    }
+  },
+  {
+    Match {
+      HTTP {
+        PathPrefix = "/payments"
+      }
+    }
+
+    Destination {
+      Service = "payments-api"
+    }
+  }
+]
+```
+
+</Tab>
+<Tab heading="HCL (Consul Enterprise)">
+
+```hcl
+Kind = "service-router"
+Name = "api"
+Namespace = "default"
+Routes = [
+  {
+    Match {
+      HTTP {
+        PathPrefix = "/billing"
+      }
+    }
+
+    Destination {
+      Service = "billing-api"
+      Namespace = "frontend"
+    }
+  },
+  {
+    Match {
+      HTTP {
+        PathPrefix = "/payments"
+      }
+    }
+
+    Destination {
+      Service = "payments-api"
+      Namespace = "frontend"
+    }
+  }
+]
+```
+
+</Tab>
+<Tab heading="JSON">
+
+```json
+{
+  "Kind": "service-router",
+  "Name": "api",
+  "Routes": [
+    {
+      "Match": {
+        "HTTP": {
+          "PathPrefix": "/billing"
+        }
+      },
+      "Destination": {
+        "Service": "billing-api"
+      }
+    },
+    {
+      "Match": {
+        "HTTP": {
+          "PathPrefix": "/payments"
+        }
+      },
+      "Destination": {
+        "Service": "payments-api"
+      }
+    }
+  ]
+}
+```
+
+</Tab>
+<Tab heading="JSON (Consul Enterprise)">
+
+```json
+{
+  "Kind": "service-router",
+  "Name": "api",
+  "Namespace": "default",
+  "Routes": [
+    {
+      "Match": {
+        "HTTP": {
+          "PathPrefix": "/billing"
+        }
+      },
+      "Destination": {
+        "Service": "billing-api",
+        "Namespace": "frontend"
+      }
+    },
+    {
+      "Match": {
+        "HTTP": {
+          "PathPrefix": "/payments"
+        }
+      },
+      "Destination": {
+        "Service": "payments-api",
+        "Namespace": "frontend"
+      }
+    }
+  ]
+}
+```
+</Tab>
+</Tabs>
+
 ## Available Fields
 
 - `Kind` - Must be set to `ingress-gateway`
@@ -328,6 +576,8 @@ Also make two services in the frontend namespace available over a custom port wi
   the namespace the config entry will apply to. This must be the namespace
   the gateway is registered in. If omitted, the namespace will be inherited
   from [the request](/api/config#ns) or will default to the `default` namespace.
+
+- `Meta` `(map<string|string>: nil)` - Specifies arbitrary KV metadata pairs. Added in Consul 1.8.4.
 
 - `TLS` `(TLSConfig: <optional>)` - TLS configuration for this gateway.
 
@@ -386,8 +636,7 @@ Also make two services in the frontend namespace available over a custom port wi
 
 ## ACLs
 
-Configuration entries may be protected by
-[ACLs](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production).
+Configuration entries may be protected by [ACLs](/docs/security/acl).
 
 Reading an `ingress-gateway` config entry requires `service:read` on the `Name`
 field of the config entry.

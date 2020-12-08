@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/wanfed"
@@ -30,6 +31,47 @@ import (
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/yamux"
 )
+
+var RPCCounters = []prometheus.CounterDefinition{
+	{
+		Name: []string{"rpc", "accept_conn"},
+		Help: "Increments when a server accepts an RPC connection.",
+	},
+	{
+		Name: []string{"rpc", "raft_handoff"},
+		Help: "Increments when a server accepts a Raft-related RPC connection.",
+	},
+	{
+		Name: []string{"rpc", "request_error"},
+		Help: "Increments when a server returns an error from an RPC request.",
+	},
+	{
+		Name: []string{"rpc", "request"},
+		Help: "Increments when a server receives a Consul-related RPC request.",
+	},
+	{
+		Name: []string{"rpc", "cross-dc"},
+		Help: "Increments when a server sends a (potentially blocking) cross datacenter RPC query.",
+	},
+	{
+		Name: []string{"rpc", "query"},
+		Help: "Increments when a server receives a new blocking RPC request, indicating the rate of new blocking query calls.",
+	},
+}
+
+var RPCGauges = []prometheus.GaugeDefinition{
+	{
+		Name: []string{"rpc", "queries_blocking"},
+		Help: "Shows the current number of in-flight blocking queries the server is handling.",
+	},
+}
+
+var RPCSummaries = []prometheus.SummaryDefinition{
+	{
+		Name: []string{"rpc", "consistentRead"},
+		Help: "Measures the time spent confirming that a consistent read can be performed.",
+	},
+}
 
 const (
 	// jitterFraction is a the limit to the amount of jitter we apply
@@ -188,6 +230,9 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 		conn = tls.Server(conn, s.tlsConfigurator.IncomingInsecureRPCConfig())
 		s.handleInsecureConn(conn)
 
+	case pool.RPCGRPC:
+		s.grpcHandler.Handle(conn)
+
 	default:
 		if !s.handleEnterpriseRPCConn(typ, conn, isTLS) {
 			s.rpcLogger().Error("unrecognized RPC byte",
@@ -253,6 +298,9 @@ func (s *Server) handleNativeTLS(conn net.Conn) {
 
 	case pool.ALPN_RPCSnapshot:
 		s.handleSnapshotConn(tlsConn)
+
+	case pool.ALPN_RPCGRPC:
+		s.grpcHandler.Handle(conn)
 
 	case pool.ALPN_WANGossipPacket:
 		if err := s.handleALPN_WANGossipPacketStream(tlsConn); err != nil && err != io.EOF {

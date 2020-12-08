@@ -1,0 +1,22 @@
+.stats {
+  padding: 12px 12px 0 12px;
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: space-between;
+  align-items: stretch;
+  width: 100%;
+  dl {
+    display:flex;
+    padding-bottom: 12px;
+  }
+  dt {
+    margin-right: 5px;
+    line-height: 1.5em !important;
+  }
+  dd {
+    color: $gray-400 !important;
+  }
+  span {
+    padding-bottom: 12px;
+  }
+}

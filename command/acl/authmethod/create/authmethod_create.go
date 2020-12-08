@@ -269,6 +269,6 @@ Usage: consul acl auth-method create -name NAME -type TYPE [options]
                             -name "my-k8s" \
                             -description "This is an example kube method" \
                             -kubernetes-host "https://apiserver.example.com:8443" \
-                            -kubernetes-ca-file /path/to/kube.ca.crt \
+                            -kubernetes-ca-cert @/path/to/kube.ca.crt \
                             -kubernetes-service-account-jwt "JWT_CONTENTS"
 `

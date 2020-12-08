@@ -1,0 +1,22 @@
+%tooltip-panel,
+%tooltip-panel dt {
+  display: flex;
+  flex-direction: column;
+}
+%tooltip-panel dd > div.menu-panel {
+  top: auto;
+  overflow: visible;
+}
+%tooltip-panel dd {
+  display: none;
+  position: relative;
+  z-index: 1;
+  padding-top: 10px;
+  margin-bottom: -10px;
+}
+%tooltip-panel:hover dd {
+  display: block;
+}
+%tooltip-panel dd > div {
+  width: 250px;
+}

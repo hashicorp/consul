@@ -215,7 +215,6 @@ func TestConfigurator_outgoingWrapperALPN_OK(t *testing.T) {
 	tlsConn := tlsClient.(*tls.Conn)
 	cs := tlsConn.ConnectionState()
 	require.Equal(t, "foo", cs.NegotiatedProtocol)
-	require.True(t, cs.NegotiatedProtocolIsMutual)
 
 	err = <-errc
 	require.NoError(t, err)
@@ -519,7 +518,7 @@ func TestConfigurator_ErrorPropagation(t *testing.T) {
 		if !v.excludeCheck {
 			cert, err := v.config.KeyPair()
 			require.NoError(t, err, info)
-			pems, err := loadCAs(v.config.CAFile, v.config.CAPath)
+			pems, err := LoadCAs(v.config.CAFile, v.config.CAPath)
 			require.NoError(t, err, info)
 			pool, err := pool(pems)
 			require.NoError(t, err, info)
@@ -562,7 +561,7 @@ func TestConfigurator_CommonTLSConfigServerNameNodeName(t *testing.T) {
 	}
 }
 
-func TestConfigurator_loadCAs(t *testing.T) {
+func TestConfigurator_LoadCAs(t *testing.T) {
 	type variant struct {
 		cafile, capath string
 		shouldErr      bool
@@ -579,7 +578,7 @@ func TestConfigurator_loadCAs(t *testing.T) {
 		{"../test/ca/root.cer", "../test/ca_path", false, false, 1},
 	}
 	for i, v := range variants {
-		pems, err1 := loadCAs(v.cafile, v.capath)
+		pems, err1 := LoadCAs(v.cafile, v.capath)
 		pool, err2 := pool(pems)
 		info := fmt.Sprintf("case %d", i)
 		if v.shouldErr {

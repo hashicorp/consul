@@ -183,10 +183,10 @@ $ consul config write l7_config/api_service_defaults.json
 ```
 
 Find more information on `service-defaults` configuration entries in the
-[documentation](https://www.consul.io/docs/agent/config-entries/service-defaults.html).
+[documentation](/docs/agent/config-entries/service-defaults).
 
 -> **Automation Tip:** To automate interactions with configuration entries, use
-the HTTP API endpoint [`http://localhost:8500/v1/config`](https://www.consul.io/api/config.html).
+the HTTP API endpoint [`http://localhost:8500/v1/config`](/api/config).
 
 ### Configuring the Service Resolver
 
@@ -232,7 +232,7 @@ $ consul config write l7_config/api_service_resolver.json
 ```
 
 Find more information about service resolvers in the
-[documentation](https://www.consul.io/docs/agent/config-entries/service-resolver.html).
+[documentation](/docs/agent/config-entries/service-resolver).
 
 ### Configure Service Splitting - 100% of traffic to Version 1
 
@@ -248,7 +248,7 @@ The configuration entry for service splitting has the `kind` of
 act on. The `splits` field takes an array which defines the different splits; in
 this example, there are only two splits; however, it is [possible to configure
 multiple sequential
-splits](https://www.consul.io/docs/connect/l7-traffic-management.html#splitting).
+splits](/docs/connect/l7-traffic-management#splitting).
 
 Each split has a `weight` which defines the percentage of traffic to distribute
 to each service subset. The total weights for all splits must equal 100. For
@@ -457,4 +457,4 @@ In this guide, we walked you through the steps required to perform Canary
 deployments using traffic splitting and resolution.
 
 Find out more about L7 traffic management settings in the
-[documentation](https://www.consul.io/docs/connect/l7-traffic-management.html).
+[documentation](/docs/connect/l7-traffic-management).

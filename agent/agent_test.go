@@ -13,6 +13,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -23,12 +24,23 @@ import (
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/google/tcpproxy"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/serf/coordinate"
+	"github.com/hashicorp/serf/serf"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"golang.org/x/sync/errgroup"
+	"golang.org/x/time/rate"
+	"gopkg.in/square/go-jose.v2/jwt"
+
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
 	"github.com/hashicorp/consul/ipaddr"
@@ -38,13 +50,8 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/serf/coordinate"
-	"github.com/hashicorp/serf/serf"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"golang.org/x/time/rate"
-	"gopkg.in/square/go-jose.v2/jwt"
 )
 
 func getService(a *TestAgent, id string) *structs.NodeService {
@@ -255,7 +262,7 @@ func TestAgent_ReconnectConfigWanDisabled(t *testing.T) {
 func TestAgent_AddService(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_AddService(t, "")
+		testAgent_AddService(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -451,7 +458,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 func TestAgent_AddServices_AliasUpdateCheckNotReverted(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_AddServices_AliasUpdateCheckNotReverted(t, "")
+		testAgent_AddServices_AliasUpdateCheckNotReverted(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -669,7 +676,7 @@ func TestAgent_CheckAliasRPC(t *testing.T) {
 func TestAgent_AddServiceNoExec(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_AddServiceNoExec(t, "")
+		testAgent_AddServiceNoExec(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -711,7 +718,7 @@ func testAgent_AddServiceNoExec(t *testing.T, extraHCL string) {
 func TestAgent_AddServiceNoRemoteExec(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_AddServiceNoRemoteExec(t, "")
+		testAgent_AddServiceNoRemoteExec(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -977,7 +984,7 @@ func TestAddServiceIPv6TaggedSet(t *testing.T) {
 func TestAgent_RemoveService(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RemoveService(t, "")
+		testAgent_RemoveService(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -1088,7 +1095,7 @@ func testAgent_RemoveService(t *testing.T, extraHCL string) {
 func TestAgent_RemoveServiceRemovesAllChecks(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_RemoveServiceRemovesAllChecks(t, "")
+		testAgent_RemoveServiceRemovesAllChecks(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -1917,13 +1924,15 @@ func TestAgent_HTTPCheck_EnableAgentTLSForChecks(t *testing.T) {
 			Status:  api.HealthCritical,
 		}
 
-		url := fmt.Sprintf("https://%s/v1/agent/self", a.srv.ln.Addr().String())
+		addr, err := firstAddr(a.Agent.apiServers, "https")
+		require.NoError(t, err)
+		url := fmt.Sprintf("https://%s/v1/agent/self", addr.String())
 		chk := &structs.CheckType{
 			HTTP:     url,
 			Interval: 20 * time.Millisecond,
 		}
 
-		err := a.AddCheck(health, chk, false, "", ConfigSourceLocal)
+		err = a.AddCheck(health, chk, false, "", ConfigSourceLocal)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -2007,7 +2016,7 @@ func TestAgent_updateTTLCheck(t *testing.T) {
 func TestAgent_PersistService(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_PersistService(t, "")
+		testAgent_PersistService(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -2106,7 +2115,7 @@ func testAgent_PersistService(t *testing.T, extraHCL string) {
 func TestAgent_persistedService_compat(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_persistedService_compat(t, "")
+		testAgent_persistedService_compat(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -2160,7 +2169,7 @@ func testAgent_persistedService_compat(t *testing.T, extraHCL string) {
 func TestAgent_PurgeService(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_PurgeService(t, "")
+		testAgent_PurgeService(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -2215,7 +2224,7 @@ func testAgent_PurgeService(t *testing.T, extraHCL string) {
 func TestAgent_PurgeServiceOnDuplicate(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_PurgeServiceOnDuplicate(t, "")
+		testAgent_PurgeServiceOnDuplicate(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -2440,6 +2449,75 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 	require.Equal(t, expected, result)
 }
 
+func TestAgent_DeregisterPersistedSidecarAfterRestart(t *testing.T) {
+	t.Parallel()
+	nodeID := NodeID()
+	a := StartTestAgent(t, TestAgent{
+		HCL: `
+	    node_id = "` + nodeID + `"
+	    node_name = "Node ` + nodeID + `"
+		server = false
+		bootstrap = false
+		enable_central_service_config = false
+	`})
+	defer a.Shutdown()
+
+	srv := &structs.NodeService{
+		ID:      "svc",
+		Service: "svc",
+		Weights: &structs.Weights{
+			Passing: 2,
+			Warning: 1,
+		},
+		Tags:           []string{"tag2"},
+		Port:           8200,
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+
+		Connect: structs.ServiceConnect{
+			SidecarService: &structs.ServiceDefinition{},
+		},
+	}
+
+	connectSrv, _, _, err := a.sidecarServiceFromNodeService(srv, "")
+	require.NoError(t, err)
+
+	// First persist the check
+	err = a.AddService(srv, nil, true, "", ConfigSourceLocal)
+	require.NoError(t, err)
+	err = a.AddService(connectSrv, nil, true, "", ConfigSourceLocal)
+	require.NoError(t, err)
+
+	// check both services were registered
+	require.NotNil(t, a.State.Service(srv.CompoundServiceID()))
+	require.NotNil(t, a.State.Service(connectSrv.CompoundServiceID()))
+
+	a.Shutdown()
+
+	// Start again with the check registered in config
+	a2 := StartTestAgent(t, TestAgent{
+		Name:    "Agent2",
+		DataDir: a.DataDir,
+		HCL: `
+	    node_id = "` + nodeID + `"
+	    node_name = "Node ` + nodeID + `"
+		server = false
+		bootstrap = false
+		enable_central_service_config = false
+	`})
+	defer a2.Shutdown()
+
+	// check both services were restored
+	require.NotNil(t, a2.State.Service(srv.CompoundServiceID()))
+	require.NotNil(t, a2.State.Service(connectSrv.CompoundServiceID()))
+
+	err = a2.RemoveService(srv.CompoundServiceID())
+	require.NoError(t, err)
+
+	// check both services were deregistered
+	require.Nil(t, a2.State.Service(srv.CompoundServiceID()))
+	require.Nil(t, a2.State.Service(connectSrv.CompoundServiceID()))
+}
+
 func TestAgent_loadChecks_token(t *testing.T) {
 	t.Parallel()
 	a := NewTestAgent(t, `
@@ -2499,7 +2577,7 @@ func TestAgent_unloadChecks(t *testing.T) {
 func TestAgent_loadServices_token(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_loadServices_token(t, "")
+		testAgent_loadServices_token(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -2529,7 +2607,7 @@ func testAgent_loadServices_token(t *testing.T, extraHCL string) {
 func TestAgent_loadServices_sidecar(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_loadServices_sidecar(t, "")
+		testAgent_loadServices_sidecar(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -2570,7 +2648,7 @@ func testAgent_loadServices_sidecar(t *testing.T, extraHCL string) {
 func TestAgent_loadServices_sidecarSeparateToken(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_loadServices_sidecarSeparateToken(t, "")
+		testAgent_loadServices_sidecarSeparateToken(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -2609,7 +2687,7 @@ func testAgent_loadServices_sidecarSeparateToken(t *testing.T, extraHCL string) 
 func TestAgent_loadServices_sidecarInheritMeta(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_loadServices_sidecarInheritMeta(t, "")
+		testAgent_loadServices_sidecarInheritMeta(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -2653,7 +2731,7 @@ func testAgent_loadServices_sidecarInheritMeta(t *testing.T, extraHCL string) {
 func TestAgent_loadServices_sidecarOverrideMeta(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_loadServices_sidecarOverrideMeta(t, "")
+		testAgent_loadServices_sidecarOverrideMeta(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -2701,7 +2779,7 @@ func testAgent_loadServices_sidecarOverrideMeta(t *testing.T, extraHCL string) {
 func TestAgent_unloadServices(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_unloadServices(t, "")
+		testAgent_unloadServices(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -2903,7 +2981,7 @@ func TestAgent_Service_NoReap(t *testing.T) {
 func TestAgent_AddService_restoresSnapshot(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		t.Parallel()
-		testAgent_AddService_restoresSnapshot(t, "")
+		testAgent_AddService_restoresSnapshot(t, "enable_central_service_config = false")
 	})
 	t.Run("service manager", func(t *testing.T) {
 		t.Parallel()
@@ -3345,163 +3423,6 @@ func TestAgent_reloadWatchesHTTPS(t *testing.T) {
 	}
 }
 
-func TestAgent_loadTokens(t *testing.T) {
-	t.Parallel()
-	a := NewTestAgent(t, `
-		acl = {
-			enabled = true
-			tokens = {
-				agent = "alfa"
-				agent_master = "bravo",
-				default = "charlie"
-				replication = "delta"
-			}
-		}
-
-	`)
-	defer a.Shutdown()
-	require := require.New(t)
-
-	tokensFullPath := filepath.Join(a.config.DataDir, tokensPath)
-
-	t.Run("original-configuration", func(t *testing.T) {
-		require.Equal("alfa", a.tokens.AgentToken())
-		require.Equal("bravo", a.tokens.AgentMasterToken())
-		require.Equal("charlie", a.tokens.UserToken())
-		require.Equal("delta", a.tokens.ReplicationToken())
-	})
-
-	t.Run("updated-configuration", func(t *testing.T) {
-		cfg := &config.RuntimeConfig{
-			ACLToken:            "echo",
-			ACLAgentToken:       "foxtrot",
-			ACLAgentMasterToken: "golf",
-			ACLReplicationToken: "hotel",
-		}
-		// ensures no error for missing persisted tokens file
-		require.NoError(a.loadTokens(cfg))
-		require.Equal("echo", a.tokens.UserToken())
-		require.Equal("foxtrot", a.tokens.AgentToken())
-		require.Equal("golf", a.tokens.AgentMasterToken())
-		require.Equal("hotel", a.tokens.ReplicationToken())
-	})
-
-	t.Run("persisted-tokens", func(t *testing.T) {
-		cfg := &config.RuntimeConfig{
-			ACLToken:            "echo",
-			ACLAgentToken:       "foxtrot",
-			ACLAgentMasterToken: "golf",
-			ACLReplicationToken: "hotel",
-		}
-
-		tokens := `{
-			"agent" : "india",
-			"agent_master" : "juliett",
-			"default": "kilo",
-			"replication" : "lima"
-		}`
-
-		require.NoError(ioutil.WriteFile(tokensFullPath, []byte(tokens), 0600))
-		require.NoError(a.loadTokens(cfg))
-
-		// no updates since token persistence is not enabled
-		require.Equal("echo", a.tokens.UserToken())
-		require.Equal("foxtrot", a.tokens.AgentToken())
-		require.Equal("golf", a.tokens.AgentMasterToken())
-		require.Equal("hotel", a.tokens.ReplicationToken())
-
-		a.config.ACLEnableTokenPersistence = true
-		require.NoError(a.loadTokens(cfg))
-
-		require.Equal("india", a.tokens.AgentToken())
-		require.Equal("juliett", a.tokens.AgentMasterToken())
-		require.Equal("kilo", a.tokens.UserToken())
-		require.Equal("lima", a.tokens.ReplicationToken())
-	})
-
-	t.Run("persisted-tokens-override", func(t *testing.T) {
-		tokens := `{
-			"agent" : "mike",
-			"agent_master" : "november",
-			"default": "oscar",
-			"replication" : "papa"
-		}`
-
-		cfg := &config.RuntimeConfig{
-			ACLToken:            "quebec",
-			ACLAgentToken:       "romeo",
-			ACLAgentMasterToken: "sierra",
-			ACLReplicationToken: "tango",
-		}
-
-		require.NoError(ioutil.WriteFile(tokensFullPath, []byte(tokens), 0600))
-		require.NoError(a.loadTokens(cfg))
-
-		require.Equal("mike", a.tokens.AgentToken())
-		require.Equal("november", a.tokens.AgentMasterToken())
-		require.Equal("oscar", a.tokens.UserToken())
-		require.Equal("papa", a.tokens.ReplicationToken())
-	})
-
-	t.Run("partial-persisted", func(t *testing.T) {
-		tokens := `{
-			"agent" : "uniform",
-			"agent_master" : "victor"
-		}`
-
-		cfg := &config.RuntimeConfig{
-			ACLToken:            "whiskey",
-			ACLAgentToken:       "xray",
-			ACLAgentMasterToken: "yankee",
-			ACLReplicationToken: "zulu",
-		}
-
-		require.NoError(ioutil.WriteFile(tokensFullPath, []byte(tokens), 0600))
-		require.NoError(a.loadTokens(cfg))
-
-		require.Equal("uniform", a.tokens.AgentToken())
-		require.Equal("victor", a.tokens.AgentMasterToken())
-		require.Equal("whiskey", a.tokens.UserToken())
-		require.Equal("zulu", a.tokens.ReplicationToken())
-	})
-
-	t.Run("persistence-error-not-json", func(t *testing.T) {
-		cfg := &config.RuntimeConfig{
-			ACLToken:            "one",
-			ACLAgentToken:       "two",
-			ACLAgentMasterToken: "three",
-			ACLReplicationToken: "four",
-		}
-
-		require.NoError(ioutil.WriteFile(tokensFullPath, []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}, 0600))
-		err := a.loadTokens(cfg)
-		require.Error(err)
-
-		require.Equal("one", a.tokens.UserToken())
-		require.Equal("two", a.tokens.AgentToken())
-		require.Equal("three", a.tokens.AgentMasterToken())
-		require.Equal("four", a.tokens.ReplicationToken())
-	})
-
-	t.Run("persistence-error-wrong-top-level", func(t *testing.T) {
-		cfg := &config.RuntimeConfig{
-			ACLToken:            "alfa",
-			ACLAgentToken:       "bravo",
-			ACLAgentMasterToken: "charlie",
-			ACLReplicationToken: "foxtrot",
-		}
-
-		require.NoError(ioutil.WriteFile(tokensFullPath, []byte("[1,2,3]"), 0600))
-		err := a.loadTokens(cfg)
-		require.Error(err)
-
-		require.Equal("alfa", a.tokens.UserToken())
-		require.Equal("bravo", a.tokens.AgentToken())
-		require.Equal("charlie", a.tokens.AgentMasterToken())
-		require.Equal("foxtrot", a.tokens.ReplicationToken())
-	})
-}
-
 func TestAgent_SecurityChecks(t *testing.T) {
 	t.Parallel()
 	hcl := `
@@ -3552,14 +3473,24 @@ func TestAgent_ReloadConfigOutgoingRPCConfig(t *testing.T) {
 }
 
 func TestAgent_ReloadConfigAndKeepChecksStatus(t *testing.T) {
-	t.Parallel()
+	t.Run("normal", func(t *testing.T) {
+		t.Parallel()
+		testAgent_ReloadConfigAndKeepChecksStatus(t, "enable_central_service_config = false")
+	})
+	t.Run("service manager", func(t *testing.T) {
+		t.Parallel()
+		testAgent_ReloadConfigAndKeepChecksStatus(t, "enable_central_service_config = true")
+	})
+}
+
+func testAgent_ReloadConfigAndKeepChecksStatus(t *testing.T, extraHCL string) {
 	dataDir := testutil.TempDir(t, "agent") // we manage the data dir
 	hcl := `data_dir = "` + dataDir + `"
 		enable_local_script_checks=true
 		services=[{
 		  name="webserver1",
 		  check{id="check1", ttl="30s"}
-		}]`
+		}] ` + extraHCL
 	a := NewTestAgent(t, hcl)
 	defer a.Shutdown()
 
@@ -3574,6 +3505,7 @@ func TestAgent_ReloadConfigAndKeepChecksStatus(t *testing.T) {
 
 	c := TestConfig(testutil.Logger(t), config.FileSource{Name: t.Name(), Format: "hcl", Data: hcl})
 	require.NoError(t, a.reloadConfigInternal(c))
+
 	// After reload, should be passing directly (no critical state)
 	for id, check := range a.State.Checks(nil) {
 		require.Equal(t, "passing", check.Status, "check %q is wrong", id)
@@ -4764,7 +4696,7 @@ func TestSharedRPCRouter(t *testing.T) {
 
 	testrpc.WaitForTestAgent(t, srv.RPC, "dc1")
 
-	mgr, server := srv.Agent.router.FindLANRoute()
+	mgr, server := srv.Agent.baseDeps.Router.FindLANRoute()
 	require.NotNil(t, mgr)
 	require.NotNil(t, server)
 
@@ -4776,7 +4708,72 @@ func TestSharedRPCRouter(t *testing.T) {
 
 	testrpc.WaitForTestAgent(t, client.RPC, "dc1")
 
-	mgr, server = client.Agent.router.FindLANRoute()
+	mgr, server = client.Agent.baseDeps.Router.FindLANRoute()
 	require.NotNil(t, mgr)
 	require.NotNil(t, server)
+}
+
+func TestAgent_ListenHTTP_MultipleAddresses(t *testing.T) {
+	ports, err := freeport.Take(2)
+	require.NoError(t, err)
+	t.Cleanup(func() { freeport.Return(ports) })
+
+	caConfig := tlsutil.Config{}
+	tlsConf, err := tlsutil.NewConfigurator(caConfig, hclog.New(nil))
+	require.NoError(t, err)
+	bd := BaseDeps{
+		Deps: consul.Deps{
+			Logger:          hclog.NewInterceptLogger(nil),
+			Tokens:          new(token.Store),
+			TLSConfigurator: tlsConf,
+		},
+		RuntimeConfig: &config.RuntimeConfig{
+			HTTPAddrs: []net.Addr{
+				&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: ports[0]},
+				&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: ports[1]},
+			},
+		},
+		Cache: cache.New(cache.Options{}),
+	}
+	agent, err := New(bd)
+	require.NoError(t, err)
+
+	srvs, err := agent.listenHTTP()
+	require.NoError(t, err)
+	defer func() {
+		ctx := context.Background()
+		for _, srv := range srvs {
+			srv.Shutdown(ctx)
+		}
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	t.Cleanup(cancel)
+
+	g := new(errgroup.Group)
+	for _, s := range srvs {
+		g.Go(s.Run)
+	}
+
+	require.Len(t, srvs, 2)
+	require.Len(t, uniqueAddrs(srvs), 2)
+
+	client := &http.Client{}
+	for _, s := range srvs {
+		u := url.URL{Scheme: s.Protocol, Host: s.Addr.String()}
+		req, err := http.NewRequest(http.MethodGet, u.String(), nil)
+		require.NoError(t, err)
+
+		resp, err := client.Do(req.WithContext(ctx))
+		require.NoError(t, err)
+		require.Equal(t, 200, resp.StatusCode)
+	}
+}
+
+func uniqueAddrs(srvs []apiServer) map[string]struct{} {
+	result := make(map[string]struct{}, len(srvs))
+	for _, s := range srvs {
+		result[s.Addr.String()] = struct{}{}
+	}
+	return result
 }

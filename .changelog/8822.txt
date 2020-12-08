@@ -1,0 +1,3 @@
+```release-note:improvement
+raft: Update raft to v1.2.0 to prevent non-voters from becoming eligible for leader elections and adding peer id as metric label to reduce cardinality in metric names
+```

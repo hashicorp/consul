@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	libserf "github.com/hashicorp/consul/lib/serf"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/memberlist"
@@ -60,8 +61,11 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	if s.config.BootstrapExpect != 0 {
 		conf.Tags["expect"] = fmt.Sprintf("%d", s.config.BootstrapExpect)
 	}
-	if s.config.NonVoter {
+	if s.config.ReadReplica {
+		// DEPRECATED - This tag should be removed when we no longer want to support
+		// upgrades from 1.8.x and below
 		conf.Tags["nonvoter"] = "1"
+		conf.Tags["read_replica"] = "1"
 	}
 	if s.config.UseTLS {
 		conf.Tags["use_tls"] = "1"
@@ -76,6 +80,9 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 
 	// feature flag: advertise support for federation states
 	conf.Tags["ft_fs"] = "1"
+
+	// feature flag: advertise support for service-intentions
+	conf.Tags["ft_si"] = "1"
 
 	var subLoggerName string
 	if wan {
@@ -165,7 +172,13 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 		return nil, err
 	}
 
+	conf.ReconnectTimeoutOverride = libserf.NewReconnectOverride(s.logger)
+
 	s.addEnterpriseSerfTags(conf.Tags)
+
+	if s.config.OverrideInitialSerfTags != nil {
+		s.config.OverrideInitialSerfTags(conf.Tags)
+	}
 
 	return serf.Create(conf)
 }
@@ -341,7 +354,7 @@ func (s *Server) maybeBootstrap() {
 			s.logger.Error("Member has bootstrap mode. Expect disabled.", "member", member)
 			return
 		}
-		if !p.NonVoter {
+		if !p.ReadReplica {
 			voters++
 		}
 		servers = append(servers, *p)
@@ -393,22 +406,14 @@ func (s *Server) maybeBootstrap() {
 	// Attempt a live bootstrap!
 	var configuration raft.Configuration
 	var addrs []string
-	minRaftVersion, err := s.autopilot.MinRaftProtocol()
-	if err != nil {
-		s.logger.Error("Failed to read server raft versions", "error", err)
-	}
 
 	for _, server := range servers {
 		addr := server.Addr.String()
 		addrs = append(addrs, addr)
-		var id raft.ServerID
-		if minRaftVersion >= 3 {
-			id = raft.ServerID(server.ID)
-		} else {
-			id = raft.ServerID(addr)
-		}
+		id := raft.ServerID(server.ID)
+
 		suffrage := raft.Voter
-		if server.NonVoter {
+		if server.ReadReplica {
 			suffrage = raft.Nonvoter
 		}
 		peer := raft.Server{

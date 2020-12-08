@@ -1,0 +1,17 @@
+{
+  "private": true,
+  "description": "Monorepo for Consul UI, packages and addons.",
+  "license": "MPL-2.0",
+  "author": "HashiCorp",
+  "workspaces": {
+    "packages": [
+      "packages/*"
+    ]
+  },
+  "scripts": {
+    "doc:toc": "doctoc README.md"
+  },
+  "devDependencies": {
+    "doctoc": "^1.4.0"
+  }
+}

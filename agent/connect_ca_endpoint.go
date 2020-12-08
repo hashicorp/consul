@@ -3,16 +3,26 @@ package agent
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
 // GET /v1/connect/ca/roots
-func (s *HTTPServer) ConnectCARoots(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ConnectCARoots(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args structs.DCSpecificRequest
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
+	}
+
+	pemResponse := false
+	if pemParam := req.URL.Query().Get("pem"); pemParam != "" {
+		val, err := strconv.ParseBool(pemParam)
+		if err != nil {
+			return nil, BadRequestError{Reason: "The 'pem' query parameter must be a boolean value"}
+		}
+		pemResponse = val
 	}
 
 	var reply structs.IndexedCARoots
@@ -21,11 +31,28 @@ func (s *HTTPServer) ConnectCARoots(resp http.ResponseWriter, req *http.Request)
 		return nil, err
 	}
 
-	return reply, nil
+	if !pemResponse {
+		return reply, nil
+	}
+
+	// defined in RFC 8555 and registered with the IANA
+	resp.Header().Set("Content-Type", "application/pem-certificate-chain")
+	for _, root := range reply.Roots {
+		if _, err := resp.Write([]byte(root.RootCert)); err != nil {
+			return nil, err
+		}
+		for _, intermediate := range root.IntermediateCerts {
+			if _, err := resp.Write([]byte(intermediate)); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return nil, nil
 }
 
 // /v1/connect/ca/configuration
-func (s *HTTPServer) ConnectCAConfiguration(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ConnectCAConfiguration(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	switch req.Method {
 	case "GET":
 		return s.ConnectCAConfigurationGet(resp, req)
@@ -39,7 +66,7 @@ func (s *HTTPServer) ConnectCAConfiguration(resp http.ResponseWriter, req *http.
 }
 
 // GEt /v1/connect/ca/configuration
-func (s *HTTPServer) ConnectCAConfigurationGet(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ConnectCAConfigurationGet(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Method is tested in ConnectCAConfiguration
 	var args structs.DCSpecificRequest
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
@@ -56,7 +83,7 @@ func (s *HTTPServer) ConnectCAConfigurationGet(resp http.ResponseWriter, req *ht
 }
 
 // PUT /v1/connect/ca/configuration
-func (s *HTTPServer) ConnectCAConfigurationSet(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ConnectCAConfigurationSet(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Method is tested in ConnectCAConfiguration
 
 	var args structs.CARequest

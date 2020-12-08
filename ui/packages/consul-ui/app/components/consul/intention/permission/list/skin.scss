@@ -1,0 +1,14 @@
+.consul-intention-permission-list {
+  dt::before {
+    @extend %with-glyph-icon;
+  }
+  dl.permission-methods dt::before {
+    content: 'M';
+  }
+  dl.permission-path dt::before {
+    content: 'P';
+  }
+  dl.permission-header dt::before {
+    content: 'H';
+  }
+}

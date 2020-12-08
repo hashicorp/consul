@@ -31,12 +31,12 @@ func TestServiceAddressValue_Value(t *testing.T) {
 func TestServiceAddressValue_String(t *testing.T) {
 	t.Run("nil receiver", func(t *testing.T) {
 		var addr *ServiceAddressValue
-		require.Equal(t, addr.String(), ":443")
+		require.Equal(t, addr.String(), ":8443")
 	})
 
 	t.Run("default value", func(t *testing.T) {
 		addr := &ServiceAddressValue{}
-		require.Equal(t, addr.String(), ":443")
+		require.Equal(t, addr.String(), ":8443")
 	})
 
 	t.Run("set value", func(t *testing.T) {

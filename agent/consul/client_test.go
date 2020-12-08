@@ -2,13 +2,17 @@ package consul
 
 import (
 	"bytes"
+	"fmt"
 	"net"
 	"os"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent/pool"
+	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -64,18 +68,8 @@ func testClientWithConfigWithErr(t *testing.T, cb func(c *Config)) (string, *Cli
 	if cb != nil {
 		cb(config)
 	}
-	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
-		Name:   config.NodeName,
-		Level:  hclog.Debug,
-		Output: testutil.NewLogBuffer(t),
-	})
 
-	tlsConf, err := tlsutil.NewConfigurator(config.ToTLSUtilConfig(), logger)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	client, err := NewClient(config, WithLogger(logger), WithTLSConfigurator(tlsConf))
+	client, err := NewClient(config, newDefaultDeps(t, config))
 	return dir, client, err
 }
 
@@ -151,8 +145,8 @@ func TestClient_LANReap(t *testing.T) {
 	// Check the router has both
 	retry.Run(t, func(r *retry.R) {
 		server := c1.router.FindLANServer()
-		require.NotNil(t, server)
-		require.Equal(t, s1.config.NodeName, server.Name)
+		require.NotNil(r, server)
+		require.Equal(r, s1.config.NodeName, server.Name)
 	})
 
 	// shutdown the second dc
@@ -466,19 +460,45 @@ func TestClient_RPC_TLS(t *testing.T) {
 func newClient(t *testing.T, config *Config) *Client {
 	t.Helper()
 
-	c, err := tlsutil.NewConfigurator(config.ToTLSUtilConfig(), nil)
-	require.NoError(t, err, "failed to create tls configuration")
-
-	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
-		Level:  hclog.Debug,
-		Output: testutil.NewLogBuffer(t),
-	})
-	client, err := NewClient(config, WithLogger(logger), WithTLSConfigurator(c))
+	client, err := NewClient(config, newDefaultDeps(t, config))
 	require.NoError(t, err, "failed to create client")
 	t.Cleanup(func() {
 		client.Shutdown()
 	})
 	return client
+}
+
+func newDefaultDeps(t *testing.T, c *Config) Deps {
+	t.Helper()
+
+	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
+		Name:   c.NodeName,
+		Level:  hclog.Debug,
+		Output: testutil.NewLogBuffer(t),
+	})
+
+	tls, err := tlsutil.NewConfigurator(c.ToTLSUtilConfig(), logger)
+	require.NoError(t, err, "failed to create tls configuration")
+
+	r := router.NewRouter(logger, c.Datacenter, fmt.Sprintf("%s.%s", c.NodeName, c.Datacenter), nil)
+
+	connPool := &pool.ConnPool{
+		Server:          false,
+		SrcAddr:         c.RPCSrcAddr,
+		Logger:          logger.StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true}),
+		MaxTime:         2 * time.Minute,
+		MaxStreams:      4,
+		TLSConfigurator: tls,
+		Datacenter:      c.Datacenter,
+	}
+
+	return Deps{
+		Logger:          logger,
+		TLSConfigurator: tls,
+		Tokens:          new(token.Store),
+		Router:          r,
+		ConnPool:        connPool,
+	}
 }
 
 func TestClient_RPC_RateLimit(t *testing.T) {
@@ -726,4 +746,35 @@ func TestClient_Reload(t *testing.T) {
 	limiter = c.rpcLimiter.Load().(*rate.Limiter)
 	require.Equal(t, rate.Limit(1000), limiter.Limit())
 	require.Equal(t, 10000, limiter.Burst())
+}
+
+func TestClient_ShortReconnectTimeout(t *testing.T) {
+	cluster := newTestCluster(t, &testClusterConfig{
+		Datacenter: "dc1",
+		Servers:    1,
+		Clients:    2,
+		ServerConf: func(c *Config) {
+			c.SerfLANConfig.ReapInterval = 50 * time.Millisecond
+		},
+		ClientConf: func(c *Config) {
+			c.SerfLANConfig.ReapInterval = 50 * time.Millisecond
+			c.AdvertiseReconnectTimeout = 100 * time.Millisecond
+		},
+	})
+
+	// shutdown the client
+	cluster.Clients[1].Shutdown()
+
+	// Now wait for it to be reaped. We set the advertised reconnect
+	// timeout to 100ms so we are going to check every 50 ms and allow
+	// up to 10x the time in the case of slow CI.
+	require.Eventually(t,
+		func() bool {
+			return len(cluster.Servers[0].LANMembers()) == 2 &&
+				len(cluster.Clients[0].LANMembers()) == 2
+
+		},
+		time.Second,
+		50*time.Millisecond,
+		"The client node was not reaped within the alotted time")
 }

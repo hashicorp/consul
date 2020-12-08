@@ -5,8 +5,31 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul/agent/structs"
 )
+
+var SessionGauges = []prometheus.GaugeDefinition{
+	{
+		Name: []string{"session_ttl", "active"},
+		Help: "Tracks the active number of sessions being tracked.",
+	},
+	{
+		Name: []string{"raft", "applied_index"},
+		Help: "Represents the raft applied index.",
+	},
+	{
+		Name: []string{"raft", "last_index"},
+		Help: "Represents the raft last index.",
+	},
+}
+
+var SessionSummaries = []prometheus.SummaryDefinition{
+	{
+		Name: []string{"session_ttl", "invalidate"},
+		Help: "Measures the time spent invalidating an expired session.",
+	},
+}
 
 const (
 	// maxInvalidateAttempts limits how many invalidate attempts are made
@@ -130,7 +153,7 @@ func (s *Server) clearAllSessionTimers() {
 	s.sessionTimers.StopAll()
 }
 
-// updateMetrics is a long running routine used to uddate a
+// updateMetrics is a long running routine used to update a
 // number of server periodic metrics
 func (s *Server) updateMetrics() {
 	for {

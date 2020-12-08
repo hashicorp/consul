@@ -56,3 +56,13 @@ func (msg *QueryMeta) MarshalBinary() ([]byte, error) {
 func (msg *QueryMeta) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *EnterpriseMeta) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *EnterpriseMeta) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}

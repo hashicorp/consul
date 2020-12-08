@@ -4,10 +4,101 @@ import (
 	"fmt"
 	"time"
 
-	metrics "github.com/armon/go-metrics"
+	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 )
+
+var CommandsSummaries = []prometheus.SummaryDefinition{
+	{
+		Name: []string{"fsm", "register"},
+		Help: "Measures the time it takes to apply a catalog register operation to the FSM.",
+	},
+	{
+		Name: []string{"fsm", "deregister"},
+		Help: "Measures the time it takes to apply a catalog deregister operation to the FSM.",
+	},
+	{
+		Name: []string{"fsm", "kvs"},
+		Help: "Measures the time it takes to apply the given KV operation to the FSM.",
+	},
+	{
+		Name: []string{"fsm", "session"},
+		Help: "Measures the time it takes to apply the given session operation to the FSM.",
+	},
+	{
+		Name: []string{"fsm", "acl"},
+		Help: "Measures the time it takes to apply the given ACL operation to the FSM.",
+	},
+	{
+		Name: []string{"fsm", "tombstone"},
+		Help: "Measures the time it takes to apply the given tombstone operation to the FSM.",
+	},
+	{
+		Name: []string{"fsm", "coordinate", "batch-update"},
+		Help: "Measures the time it takes to apply the given batch coordinate update to the FSM.",
+	},
+	{
+		Name: []string{"fsm", "prepared-query"},
+		Help: "Measures the time it takes to apply the given prepared query update operation to the FSM.",
+	},
+	{
+		Name: []string{"fsm", "txn"},
+		Help: "Measures the time it takes to apply the given transaction update to the FSM.",
+	},
+	{
+		Name: []string{"fsm", "autopilot"},
+		Help: "Measures the time it takes to apply the given autopilot update to the FSM.",
+	},
+	{
+		Name: []string{"consul", "fsm", "intention"},
+		Help: "Deprecated - use fsm_intention instead",
+	},
+	{
+		Name: []string{"fsm", "intention"},
+		Help: "Measures the time it takes to apply an intention operation to the FSM.",
+	},
+	{
+		Name: []string{"consul", "fsm", "ca"},
+		Help: "Deprecated - use fsm_ca instead",
+	},
+	{
+		Name: []string{"fsm", "ca"},
+		Help: "Measures the time it takes to apply CA configuration operations to the FSM.",
+	},
+	{
+		Name: []string{"fsm", "ca", "leaf"},
+		Help: "Measures the time it takes to apply an operation while signing a leaf certificate.",
+	},
+	{
+		Name: []string{"fsm", "acl", "token"},
+		Help: "Measures the time it takes to apply an ACL token operation to the FSM.",
+	},
+	{
+		Name: []string{"fsm", "acl", "policy"},
+		Help: "Measures the time it takes to apply an ACL policy operation to the FSM.",
+	},
+	{
+		Name: []string{"fsm", "acl", "bindingrule"},
+		Help: "Measures the time it takes to apply an ACL binding rule operation to the FSM.",
+	},
+	{
+		Name: []string{"fsm", "acl", "authmethod"},
+		Help: "Measures the time it takes to apply an ACL authmethod operation to the FSM.",
+	},
+	{
+		Name: []string{"fsm", "system_metadata"},
+		Help: "Measures the time it takes to apply a system metadata operation to the FSM.",
+	},
+	// TODO(kit): We generate the config-entry fsm summaries by reading off of the request. It is
+	//  possible to statically declare these when we know all of the names, but I didn't get to it
+	//  in this patch. Config-entries are known though and we should add these in the future.
+	// {
+	// 	Name:        []string{"fsm", "config_entry", req.Entry.GetKind()},
+	// 	Help:        "",
+	// },
+}
 
 func init() {
 	registerCommand(structs.RegisterRequestType, (*FSM).applyRegister)
@@ -37,6 +128,7 @@ func init() {
 	registerCommand(structs.ACLAuthMethodSetRequestType, (*FSM).applyACLAuthMethodSetOperation)
 	registerCommand(structs.ACLAuthMethodDeleteRequestType, (*FSM).applyACLAuthMethodDeleteOperation)
 	registerCommand(structs.FederationStateRequestType, (*FSM).applyFederationStateOperation)
+	registerCommand(structs.SystemMetadataRequestType, (*FSM).applySystemMetadataOperation)
 }
 
 func (c *FSM) applyRegister(buf []byte, index uint64) interface{} {
@@ -286,15 +378,30 @@ func (c *FSM) applyIntentionOperation(buf []byte, index uint64) interface{} {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
 
+	// TODO(kit): We should deprecate this first metric that writes the metrics_prefix itself,
+	//  the config we use to flag this out, telemetry.disable_compat_1.9 is on the agent - how do
+	//  we access it here?
 	defer metrics.MeasureSinceWithLabels([]string{"consul", "fsm", "intention"}, time.Now(),
 		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
+
 	defer metrics.MeasureSinceWithLabels([]string{"fsm", "intention"}, time.Now(),
 		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
+
+	if req.Mutation != nil {
+		return c.state.IntentionMutation(index, req.Op, req.Mutation)
+	}
+
 	switch req.Op {
 	case structs.IntentionOpCreate, structs.IntentionOpUpdate:
-		return c.state.IntentionSet(index, req.Intention)
+		//nolint:staticcheck
+		return c.state.LegacyIntentionSet(index, req.Intention)
 	case structs.IntentionOpDelete:
-		return c.state.IntentionDelete(index, req.Intention.ID)
+		//nolint:staticcheck
+		return c.state.LegacyIntentionDelete(index, req.Intention.ID)
+	case structs.IntentionOpDeleteAll:
+		return c.state.LegacyIntentionDeleteAll(index)
+	case structs.IntentionOpUpsert:
+		fallthrough // unsupported
 	default:
 		c.logger.Warn("Invalid Intention operation", "operation", req.Op)
 		return fmt.Errorf("Invalid Intention operation '%s'", req.Op)
@@ -371,6 +478,7 @@ func (c *FSM) applyConnectCAOperation(buf []byte, index uint64) interface{} {
 	}
 }
 
+// applyConnectCALeafOperation applies an operation while signing a leaf certificate.
 func (c *FSM) applyConnectCALeafOperation(buf []byte, index uint64) interface{} {
 	var req structs.CALeafRequest
 	if err := structs.Decode(buf, &req); err != nil {
@@ -566,5 +674,28 @@ func (c *FSM) applyFederationStateOperation(buf []byte, index uint64) interface{
 		return c.state.FederationStateDelete(index, req.State.Datacenter)
 	default:
 		return fmt.Errorf("invalid federation state operation type: %v", req.Op)
+	}
+}
+
+func (c *FSM) applySystemMetadataOperation(buf []byte, index uint64) interface{} {
+	var req structs.SystemMetadataRequest
+	if err := structs.Decode(buf, &req); err != nil {
+		panic(fmt.Errorf("failed to decode request: %v", err))
+	}
+
+	switch req.Op {
+	case structs.SystemMetadataUpsert:
+		defer metrics.MeasureSinceWithLabels([]string{"fsm", "system_metadata"}, time.Now(),
+			[]metrics.Label{{Name: "op", Value: "upsert"}})
+		if err := c.state.SystemMetadataSet(index, req.Entry); err != nil {
+			return err
+		}
+		return true
+	case structs.SystemMetadataDelete:
+		defer metrics.MeasureSinceWithLabels([]string{"fsm", "system_metadata"}, time.Now(),
+			[]metrics.Label{{Name: "op", Value: "delete"}})
+		return c.state.SystemMetadataDelete(index, req.Entry)
+	default:
+		return fmt.Errorf("invalid system metadata operation type: %v", req.Op)
 	}
 }

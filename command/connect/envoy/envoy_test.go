@@ -1,6 +1,7 @@
 package envoy
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"io/ioutil"
@@ -103,21 +104,24 @@ func testSetAndResetEnv(t *testing.T, env []string) func() {
 	}
 }
 
+type generateConfigTestCase struct {
+	Name              string
+	Flags             []string
+	Env               []string
+	Files             map[string]string
+	ProxyConfig       map[string]interface{}
+	NamespacesEnabled bool
+	GRPCPort          int // only used for testing custom-configured grpc port
+	WantArgs          BootstrapTplArgs
+	WantErr           string
+}
+
 // This tests the args we use to generate the template directly because they
 // encapsulate all the argument and default handling code which is where most of
 // the logic is. We also allow generating golden files but only for cases that
 // pass the test of having their template args generated as expected.
 func TestGenerateConfig(t *testing.T) {
-	cases := []struct {
-		Name        string
-		Flags       []string
-		Env         []string
-		Files       map[string]string
-		ProxyConfig map[string]interface{}
-		GRPCPort    int // only used for testing custom-configured grpc port
-		WantArgs    BootstrapTplArgs
-		WantErr     string
-	}{
+	cases := []generateConfigTestCase{
 		{
 			Name:    "no-args",
 			Flags:   []string{},
@@ -131,6 +135,9 @@ func TestGenerateConfig(t *testing.T) {
 				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
 					AgentPort:    "8502", // Note this is the gRPC port
@@ -149,6 +156,9 @@ func TestGenerateConfig(t *testing.T) {
 				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
 					AgentPort:    "8502", // Note this is the gRPC port
@@ -170,6 +180,9 @@ func TestGenerateConfig(t *testing.T) {
 				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
 					AgentPort:    "8502", // Note this is the gRPC port
@@ -193,6 +206,9 @@ func TestGenerateConfig(t *testing.T) {
 				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
 					AgentPort:    "8502", // Note this is the gRPC port
@@ -217,6 +233,9 @@ func TestGenerateConfig(t *testing.T) {
 				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
 					AgentPort:    "8502", // Note this is the gRPC port
@@ -236,6 +255,9 @@ func TestGenerateConfig(t *testing.T) {
 				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
 				// Should resolve IP, note this might not resolve the same way
 				// everywhere which might make this test brittle but not sure what else
 				// to do.
@@ -259,6 +281,9 @@ func TestGenerateConfig(t *testing.T) {
 				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
 				// Should resolve IP, note this might not resolve the same way
 				// everywhere which might make this test brittle but not sure what else
 				// to do.
@@ -280,6 +305,9 @@ func TestGenerateConfig(t *testing.T) {
 				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
 				GRPC: GRPC{
 					AgentSocket: "/var/run/consul.sock",
 				},
@@ -297,6 +325,9 @@ func TestGenerateConfig(t *testing.T) {
 				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
 				// Should resolve IP, note this might not resolve the same way
 				// everywhere which might make this test brittle but not sure what else
 				// to do.
@@ -317,6 +348,9 @@ func TestGenerateConfig(t *testing.T) {
 				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
 				// Should resolve IP, note this might not resolve the same way
 				// everywhere which might make this test brittle but not sure what else
 				// to do.
@@ -337,6 +371,9 @@ func TestGenerateConfig(t *testing.T) {
 				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
 				// Should resolve IP, note this might not resolve the same way
 				// everywhere which might make this test brittle but not sure what else
 				// to do.
@@ -355,6 +392,9 @@ func TestGenerateConfig(t *testing.T) {
 				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
 				// Should resolve IP, note this might not resolve the same way
 				// everywhere which might make this test brittle but not sure what else
 				// to do.
@@ -364,6 +404,52 @@ func TestGenerateConfig(t *testing.T) {
 					AgentTLS:     true,
 				},
 				AgentCAPEM:            `-----BEGIN CERTIFICATE-----\nMIIEtzCCA5+gAwIBAgIJAIewRMI8OnvTMA0GCSqGSIb3DQEBBQUAMIGYMQswCQYD\nVQQGEwJVUzELMAkGA1UECBMCQ0ExFjAUBgNVBAcTDVNhbiBGcmFuY2lzY28xHDAa\nBgNVBAoTE0hhc2hpQ29ycCBUZXN0IENlcnQxDDAKBgNVBAsTA0RldjEWMBQGA1UE\nAxMNdGVzdC5pbnRlcm5hbDEgMB4GCSqGSIb3DQEJARYRdGVzdEBpbnRlcm5hbC5j\nb20wHhcNMTQwNDA3MTkwMTA4WhcNMjQwNDA0MTkwMTA4WjCBmDELMAkGA1UEBhMC\nVVMxCzAJBgNVBAgTAkNBMRYwFAYDVQQHEw1TYW4gRnJhbmNpc2NvMRwwGgYDVQQK\nExNIYXNoaUNvcnAgVGVzdCBDZXJ0MQwwCgYDVQQLEwNEZXYxFjAUBgNVBAMTDXRl\nc3QuaW50ZXJuYWwxIDAeBgkqhkiG9w0BCQEWEXRlc3RAaW50ZXJuYWwuY29tMIIB\nIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxrs6JK4NpiOItxrpNR/1ppUU\nmH7p2BgLCBZ6eHdclle9J56i68adt8J85zaqphCfz6VDP58DsFx+N50PZyjQaDsU\nd0HejRqfHRMtg2O+UQkv4Z66+Vo+gc6uGuANi2xMtSYDVTAqqzF48OOPQDgYkzcG\nxcFZzTRFFZt2vPnyHj8cHcaFo/NMNVh7C3yTXevRGNm9u2mrbxCEeiHzFC2WUnvg\nU2jQuC7Fhnl33Zd3B6d3mQH6O23ncmwxTcPUJe6xZaIRrDuzwUcyhLj5Z3faag/f\npFIIcHSiHRfoqHLGsGg+3swId/zVJSSDHr7pJUu7Cre+vZa63FqDaooqvnisrQID\nAQABo4IBADCB/TAdBgNVHQ4EFgQUo/nrOfqvbee2VklVKIFlyQEbuJUwgc0GA1Ud\nIwSBxTCBwoAUo/nrOfqvbee2VklVKIFlyQEbuJWhgZ6kgZswgZgxCzAJBgNVBAYT\nAlVTMQswCQYDVQQIEwJDQTEWMBQGA1UEBxMNU2FuIEZyYW5jaXNjbzEcMBoGA1UE\nChMTSGFzaGlDb3JwIFRlc3QgQ2VydDEMMAoGA1UECxMDRGV2MRYwFAYDVQQDEw10\nZXN0LmludGVybmFsMSAwHgYJKoZIhvcNAQkBFhF0ZXN0QGludGVybmFsLmNvbYIJ\nAIewRMI8OnvTMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEFBQADggEBADa9fV9h\ngjapBlkNmu64WX0Ufub5dsJrdHS8672P30S7ILB7Mk0W8sL65IezRsZnG898yHf9\n2uzmz5OvNTM9K380g7xFlyobSVq+6yqmmSAlA/ptAcIIZT727P5jig/DB7fzJM3g\njctDlEGOmEe50GQXc25VKpcpjAsNQi5ER5gowQ0v3IXNZs+yU+LvxLHc0rUJ/XSp\nlFCAMOqd5uRoMOejnT51G6krvLNzPaQ3N9jQfNVY4Q0zfs0M+6dRWvqfqB9Vyq8/\nPOLMld+HyAZEBk9zK3ZVIXx6XS4dkDnSNR91njLq7eouf6M7+7s/oMQZZRtAfQ6r\nwlW975rYa1ZqEdA=\n-----END CERTIFICATE-----\n`,
+				AdminAccessLogPath:    "/dev/null",
+				AdminBindAddress:      "127.0.0.1",
+				AdminBindPort:         "19000",
+				LocalAgentClusterName: xds.LocalAgentClusterName,
+			},
+		},
+		{
+			Name:  "missing-ca-path",
+			Flags: []string{"-proxy-id", "test-proxy", "-ca-path", "some/path"},
+			WantArgs: BootstrapTplArgs{
+				EnvoyVersion: defaultEnvoyVersion,
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
+				// Should resolve IP, note this might not resolve the same way
+				// everywhere which might make this test brittle but not sure what else
+				// to do.
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502",
+				},
+			},
+			WantErr: "lstat some/path: no such file or directory",
+		},
+		{
+			Name:  "existing-ca-path",
+			Flags: []string{"-proxy-id", "test-proxy", "-ca-path", "../../../test/ca_path/"},
+			Env:   []string{"CONSUL_HTTP_SSL=1"},
+			WantArgs: BootstrapTplArgs{
+				EnvoyVersion: defaultEnvoyVersion,
+				ProxyCluster: "test-proxy",
+				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
+				// Should resolve IP, note this might not resolve the same way
+				// everywhere which might make this test brittle but not sure what else
+				// to do.
+				GRPC: GRPC{
+					AgentAddress: "127.0.0.1",
+					AgentPort:    "8502",
+					AgentTLS:     true,
+				},
+				AgentCAPEM:            `-----BEGIN CERTIFICATE-----\nMIIFADCCAuqgAwIBAgIBATALBgkqhkiG9w0BAQswEzERMA8GA1UEAxMIQ2VydEF1\ndGgwHhcNMTUwNTExMjI0NjQzWhcNMjUwNTExMjI0NjU0WjATMREwDwYDVQQDEwhD\nZXJ0QXV0aDCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIBALcMByyynHsA\n+K4PJwo5+XHygaEZAhPGvHiKQK2Cbc9NDm0ZTzx0rA/dRTZlvouhDyzcJHm+6R1F\nj6zQv7iaSC3qQtJiPnPsfZ+/0XhFZ3fQWMnfDiGbZpF1kJF01ofB6vnsuocFC0zG\naGC+SZiLAzs+QMP3Bebw1elCBIeoN+8NWnRYmLsYIaYGJGBSbNo/lCpLTuinofUn\nL3ehWEGv1INwpHnSVeN0Ml2GFe23d7PUlj/wNIHgUdpUR+KEJxIP3klwtsI3QpSH\nc4VjWdf4aIcka6K3IFuw+K0PUh3xAAPnMpAQOtCZk0AhF5rlvUbevC6jADxpKxLp\nOONmvCTer4LtyNURAoBH52vbK0r/DNcTpPEFV0IP66nXUFgkk0mRKsu8HTb4IOkC\nX3K4mp18EiWUUtrHZAnNct0iIniDBqKK0yhSNhztG6VakVt/1WdQY9Ey3mNtxN1O\nthqWFKdpKUzPKYC3P6PfVpiE7+VbWTLLXba+8BPe8BxWPsVkjJqGSGnCte4COusz\nM8/7bbTgifwJfsepwFtZG53tvwjWlO46Exl30VoDNTaIGvs1fO0GqJlh2A7FN5F2\nS1rS5VYHtPK8QdmUSvyq+7JDBc1HNT5I2zsIQbNcLwDTZ5EsbU6QR7NHDJKxjv/w\nbs3eTXJSSNcFD74wRU10pXjgE5wOFu9TAgMBAAGjYzBhMA4GA1UdDwEB/wQEAwIA\nBjAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBQHazgZ3Puiuc6K2LzgcX5b6fAC\nPzAfBgNVHSMEGDAWgBQHazgZ3Puiuc6K2LzgcX5b6fACPzALBgkqhkiG9w0BAQsD\nggIBAEmeNrSUhpHg1I8dtfqu9hCU/6IZThjtcFA+QcPkkMa+Z1k0SOtsgW8MdlcA\ngCf5g5yQZ0DdpWM9nDB6xDIhQdccm91idHgf8wmpEHUj0an4uyn2ESCt8eqrAWf7\nAClYORCASTYfguJCxcfvwtI1uqaOeCxSOdmFay79UVitVsWeonbCRGsVgBDifJxw\nG2oCQqoYAmXPM4J6syk5GHhB1O9MMq+g1+hOx9s+XHyTui9FL4V+IUO1ygVqEQB5\nPSiRBvcIsajSGVao+vK0gf2XfcXzqr3y3NhBky9rFMp1g+ykb2yWekV4WiROJlCj\nTsWwWZDRyjiGahDbho/XW8JciouHZhJdjhmO31rqW3HdFviCTdXMiGk3GQIzz/Jg\nP+enOaHXoY9lcxzDvY9z1BysWBgNvNrMnVge/fLP9o+a0a0PRIIVl8T0Ef3zeg1O\nCLCSy/1Vae5Tx63ZTFvGFdOSusYkG9rlAUHXZE364JRCKzM9Bz0bM+t+LaO0MaEb\nYoxcXEPU+gB2IvmARpInN3oHexR6ekuYHVTRGdWrdmuHFzc7eFwygRqTFdoCCU+G\nQZEkd+lOEyv0zvQqYg+Jp0AEGz2B2zB53uBVECtn0EqrSdPtRzUBSByXVs6QhSXn\neVmy+z3U3MecP63X6oSPXekqSyZFuegXpNNuHkjNoL4ep2ix\n-----END CERTIFICATE-----\n-----BEGIN CERTIFICATE-----\nMIIEtzCCA5+gAwIBAgIJAIewRMI8OnvTMA0GCSqGSIb3DQEBBQUAMIGYMQswCQYD\nVQQGEwJVUzELMAkGA1UECBMCQ0ExFjAUBgNVBAcTDVNhbiBGcmFuY2lzY28xHDAa\nBgNVBAoTE0hhc2hpQ29ycCBUZXN0IENlcnQxDDAKBgNVBAsTA0RldjEWMBQGA1UE\nAxMNdGVzdC5pbnRlcm5hbDEgMB4GCSqGSIb3DQEJARYRdGVzdEBpbnRlcm5hbC5j\nb20wHhcNMTQwNDA3MTkwMTA4WhcNMjQwNDA0MTkwMTA4WjCBmDELMAkGA1UEBhMC\nVVMxCzAJBgNVBAgTAkNBMRYwFAYDVQQHEw1TYW4gRnJhbmNpc2NvMRwwGgYDVQQK\nExNIYXNoaUNvcnAgVGVzdCBDZXJ0MQwwCgYDVQQLEwNEZXYxFjAUBgNVBAMTDXRl\nc3QuaW50ZXJuYWwxIDAeBgkqhkiG9w0BCQEWEXRlc3RAaW50ZXJuYWwuY29tMIIB\nIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxrs6JK4NpiOItxrpNR/1ppUU\nmH7p2BgLCBZ6eHdclle9J56i68adt8J85zaqphCfz6VDP58DsFx+N50PZyjQaDsU\nd0HejRqfHRMtg2O+UQkv4Z66+Vo+gc6uGuANi2xMtSYDVTAqqzF48OOPQDgYkzcG\nxcFZzTRFFZt2vPnyHj8cHcaFo/NMNVh7C3yTXevRGNm9u2mrbxCEeiHzFC2WUnvg\nU2jQuC7Fhnl33Zd3B6d3mQH6O23ncmwxTcPUJe6xZaIRrDuzwUcyhLj5Z3faag/f\npFIIcHSiHRfoqHLGsGg+3swId/zVJSSDHr7pJUu7Cre+vZa63FqDaooqvnisrQID\nAQABo4IBADCB/TAdBgNVHQ4EFgQUo/nrOfqvbee2VklVKIFlyQEbuJUwgc0GA1Ud\nIwSBxTCBwoAUo/nrOfqvbee2VklVKIFlyQEbuJWhgZ6kgZswgZgxCzAJBgNVBAYT\nAlVTMQswCQYDVQQIEwJDQTEWMBQGA1UEBxMNU2FuIEZyYW5jaXNjbzEcMBoGA1UE\nChMTSGFzaGlDb3JwIFRlc3QgQ2VydDEMMAoGA1UECxMDRGV2MRYwFAYDVQQDEw10\nZXN0LmludGVybmFsMSAwHgYJKoZIhvcNAQkBFhF0ZXN0QGludGVybmFsLmNvbYIJ\nAIewRMI8OnvTMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEFBQADggEBADa9fV9h\ngjapBlkNmu64WX0Ufub5dsJrdHS8672P30S7ILB7Mk0W8sL65IezRsZnG898yHf9\n2uzmz5OvNTM9K380g7xFlyobSVq+6yqmmSAlA/ptAcIIZT727P5jig/DB7fzJM3g\njctDlEGOmEe50GQXc25VKpcpjAsNQi5ER5gowQ0v3IXNZs+yU+LvxLHc0rUJ/XSp\nlFCAMOqd5uRoMOejnT51G6krvLNzPaQ3N9jQfNVY4Q0zfs0M+6dRWvqfqB9Vyq8/\nPOLMld+HyAZEBk9zK3ZVIXx6XS4dkDnSNR91njLq7eouf6M7+7s/oMQZZRtAfQ6r\nwlW975rYa1ZqEdA=\n-----END CERTIFICATE-----\n`,
 				AdminAccessLogPath:    "/dev/null",
 				AdminBindAddress:      "127.0.0.1",
 				AdminBindPort:         "19000",
@@ -399,6 +485,9 @@ func TestGenerateConfig(t *testing.T) {
 				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
 					AgentPort:    "8502",
@@ -433,6 +522,9 @@ func TestGenerateConfig(t *testing.T) {
 				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
 					AgentPort:    "8502",
@@ -472,6 +564,9 @@ func TestGenerateConfig(t *testing.T) {
 				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
 					AgentPort:    "8502",
@@ -498,6 +593,9 @@ func TestGenerateConfig(t *testing.T) {
 				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
 					AgentPort:    "8502",
@@ -554,6 +652,9 @@ func TestGenerateConfig(t *testing.T) {
 				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
 					AgentPort:    "8502",
@@ -572,6 +673,9 @@ func TestGenerateConfig(t *testing.T) {
 				EnvoyVersion: defaultEnvoyVersion,
 				ProxyCluster: "test-proxy",
 				ProxyID:      "test-proxy",
+				// We don't know this til after the lookup so it will be empty in the
+				// initial args call we are testing here.
+				ProxySourceService: "",
 				// Should resolve IP, note this might not resolve the same way
 				// everywhere which might make this test brittle but not sure what else
 				// to do.
@@ -590,9 +694,10 @@ func TestGenerateConfig(t *testing.T) {
 			Name:  "ingress-gateway",
 			Flags: []string{"-proxy-id", "ingress-gateway-1", "-gateway", "ingress"},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
-				ProxyCluster: "ingress-gateway",
-				ProxyID:      "ingress-gateway-1",
+				EnvoyVersion:       defaultEnvoyVersion,
+				ProxyCluster:       "ingress-gateway",
+				ProxyID:            "ingress-gateway-1",
+				ProxySourceService: "ingress-gateway",
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
 					AgentPort:    "8502",
@@ -607,9 +712,10 @@ func TestGenerateConfig(t *testing.T) {
 			Name:  "ingress-gateway-address-specified",
 			Flags: []string{"-proxy-id", "ingress-gateway", "-gateway", "ingress", "-address", "1.2.3.4:7777"},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
-				ProxyCluster: "ingress-gateway",
-				ProxyID:      "ingress-gateway",
+				EnvoyVersion:       defaultEnvoyVersion,
+				ProxyCluster:       "ingress-gateway",
+				ProxyID:            "ingress-gateway",
+				ProxySourceService: "ingress-gateway",
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
 					AgentPort:    "8502",
@@ -624,9 +730,10 @@ func TestGenerateConfig(t *testing.T) {
 			Name:  "ingress-gateway-register-with-service-without-proxy-id",
 			Flags: []string{"-gateway", "ingress", "-register", "-service", "my-gateway", "-address", "127.0.0.1:7777"},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
-				ProxyCluster: "my-gateway",
-				ProxyID:      "my-gateway",
+				EnvoyVersion:       defaultEnvoyVersion,
+				ProxyCluster:       "my-gateway",
+				ProxyID:            "my-gateway",
+				ProxySourceService: "my-gateway",
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
 					AgentPort:    "8502",
@@ -641,9 +748,10 @@ func TestGenerateConfig(t *testing.T) {
 			Name:  "ingress-gateway-register-with-service-and-proxy-id",
 			Flags: []string{"-gateway", "ingress", "-register", "-service", "my-gateway", "-proxy-id", "my-gateway-123", "-address", "127.0.0.1:7777"},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
-				ProxyCluster: "my-gateway",
-				ProxyID:      "my-gateway-123",
+				EnvoyVersion:       defaultEnvoyVersion,
+				ProxyCluster:       "my-gateway",
+				ProxyID:            "my-gateway-123",
+				ProxySourceService: "my-gateway",
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
 					AgentPort:    "8502",
@@ -658,9 +766,10 @@ func TestGenerateConfig(t *testing.T) {
 			Name:  "ingress-gateway-no-auto-register",
 			Flags: []string{"-gateway", "ingress", "-address", "127.0.0.1:7777"},
 			WantArgs: BootstrapTplArgs{
-				EnvoyVersion: defaultEnvoyVersion,
-				ProxyCluster: "ingress-gateway",
-				ProxyID:      "ingress-gateway",
+				EnvoyVersion:       defaultEnvoyVersion,
+				ProxyCluster:       "ingress-gateway",
+				ProxyID:            "ingress-gateway",
+				ProxySourceService: "ingress-gateway",
 				GRPC: GRPC{
 					AgentAddress: "127.0.0.1",
 					AgentPort:    "8502",
@@ -672,6 +781,8 @@ func TestGenerateConfig(t *testing.T) {
 			},
 		},
 	}
+
+	cases = append(cases, enterpriseGenerateConfigTestCases()...)
 
 	copyAndReplaceAll := func(s []string, old, new string) []string {
 		out := make([]string, len(s))
@@ -696,7 +807,7 @@ func TestGenerateConfig(t *testing.T) {
 
 			// Run a mock agent API that just always returns the proxy config in the
 			// test.
-			srv := httptest.NewServer(testMockAgent(tc.ProxyConfig, tc.GRPCPort))
+			srv := httptest.NewServer(testMockAgent(tc.ProxyConfig, tc.GRPCPort, tc.NamespacesEnabled))
 			defer srv.Close()
 			client, err := api.NewClient(&api.Config{Address: srv.URL})
 			require.NoError(err)
@@ -709,6 +820,11 @@ func TestGenerateConfig(t *testing.T) {
 			c := New(ui)
 			// explicitly set the client to one which can connect to the httptest.Server
 			c.client = client
+
+			var outBuf bytes.Buffer
+			// Capture output since it clutters test output and we can assert on what
+			// was actually printed this way.
+			c.directOut = &outBuf
 
 			// Run the command
 			myFlags := copyAndReplaceAll(tc.Flags, "@@TEMPDIR@@", testDirPrefix)
@@ -730,10 +846,7 @@ func TestGenerateConfig(t *testing.T) {
 			require.NoError(err) // Error cases should have returned above
 			require.Equal(&tc.WantArgs, got)
 
-			// Actual template output goes to stdout direct to avoid prefix in UI, so
-			// generate it again here to assert on.
-			actual, err := c.generateConfig()
-			require.NoError(err)
+			actual := outBuf.Bytes()
 
 			// If we got the arg handling write, verify output
 			golden := filepath.Join("testdata", tc.Name+".golden")
@@ -840,15 +953,15 @@ func TestEnvoy_GatewayRegistration(t *testing.T) {
 // testMockAgent combines testMockAgentProxyConfig and testMockAgentSelf,
 // routing /agent/service/... requests to testMockAgentProxyConfig and
 // routing /agent/self requests to testMockAgentSelf.
-func testMockAgent(agentCfg map[string]interface{}, grpcPort int) http.HandlerFunc {
+func testMockAgent(agentCfg map[string]interface{}, grpcPort int, namespacesEnabled bool) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.Path, "/agent/services") {
-			testMockAgentGatewayConfig()(w, r)
+			testMockAgentGatewayConfig(namespacesEnabled)(w, r)
 			return
 		}
 
 		if strings.Contains(r.URL.Path, "/agent/service") {
-			testMockAgentProxyConfig(agentCfg)(w, r)
+			testMockAgentProxyConfig(agentCfg, namespacesEnabled)(w, r)
 			return
 		}
 
@@ -861,7 +974,7 @@ func testMockAgent(agentCfg map[string]interface{}, grpcPort int) http.HandlerFu
 	})
 }
 
-func testMockAgentGatewayConfig() http.HandlerFunc {
+func testMockAgentGatewayConfig(namespacesEnabled bool) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Parse the proxy-id from the end of the URL (blindly assuming it's correct
 		// format)
@@ -878,10 +991,15 @@ func testMockAgentGatewayConfig() http.HandlerFunc {
 
 		svc := map[string]*api.AgentService{
 			string(kind): {
-				Kind:    kind,
-				ID:      string(kind),
-				Service: string(kind),
+				Kind:       kind,
+				ID:         string(kind),
+				Service:    string(kind),
+				Datacenter: "dc1",
 			},
+		}
+
+		if namespacesEnabled {
+			svc[string(kind)].Namespace = namespaceFromQuery(r)
 		}
 
 		cfgJSON, err := json.Marshal(svc)
@@ -894,7 +1012,16 @@ func testMockAgentGatewayConfig() http.HandlerFunc {
 	})
 }
 
-func testMockAgentProxyConfig(cfg map[string]interface{}) http.HandlerFunc {
+func namespaceFromQuery(r *http.Request) string {
+	// Use the namespace in the request if there is one, otherwise
+	// use-default.
+	if queryNs := r.URL.Query().Get("ns"); queryNs != "" {
+		return queryNs
+	}
+	return "default"
+}
+
+func testMockAgentProxyConfig(cfg map[string]interface{}, namespacesEnabled bool) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Parse the proxy-id from the end of the URL (blindly assuming it's correct
 		// format)
@@ -910,6 +1037,11 @@ func testMockAgentProxyConfig(cfg map[string]interface{}) http.HandlerFunc {
 				DestinationServiceID:   serviceID,
 				Config:                 cfg,
 			},
+			Datacenter: "dc1",
+		}
+
+		if namespacesEnabled {
+			svc.Namespace = namespaceFromQuery(r)
 		}
 
 		cfgJSON, err := json.Marshal(svc)
@@ -1023,6 +1155,9 @@ func TestEnvoyCommand_canBindInternal(t *testing.T) {
 func testMockAgentSelf(wantGRPCPort int) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resp := agent.Self{
+			Config: map[string]interface{}{
+				"Datacenter": "dc1",
+			},
 			DebugConfig: map[string]interface{}{
 				"GRPCPort": wantGRPCPort,
 			},

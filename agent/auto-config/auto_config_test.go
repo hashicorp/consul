@@ -11,6 +11,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/config"
@@ -18,13 +21,11 @@ import (
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/consul/proto/pbautoconf"
 	"github.com/hashicorp/consul/proto/pbconfig"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
+	testretry "github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 type configLoader struct {
@@ -412,7 +413,7 @@ func TestInitialConfiguration_retries(t *testing.T) {
 	mcfg.Config.Loader = loader.Load
 
 	// reduce the retry wait times to make this test run faster
-	mcfg.Config.Waiter = lib.NewRetryWaiter(2, 0, 1*time.Millisecond, nil)
+	mcfg.Config.Waiter = &retry.Waiter{MinFailures: 2, MaxWait: time.Millisecond}
 
 	indexedRoots, cert, extraCerts := mcfg.setupInitialTLS(t, "autoconf", "dc1", "secret")
 
@@ -633,6 +634,7 @@ type testAutoConfig struct {
 	ac            *AutoConfig
 	tokenUpdates  chan struct{}
 	originalToken string
+	stop          func()
 
 	initialRoots *structs.IndexedCARoots
 	initialCert  *structs.IssuedCert
@@ -834,6 +836,7 @@ func startedAutoConfig(t *testing.T, autoEncrypt bool) testAutoConfig {
 		initialRoots:  indexedRoots,
 		initialCert:   cert,
 		extraCerts:    extraCerts,
+		stop:          cancel,
 	}
 }
 
@@ -927,7 +930,7 @@ func TestRootsUpdate(t *testing.T) {
 	// however there is no deterministic way to know once its been written outside of maybe a filesystem
 	// event notifier. That seems a little heavy handed just for this and especially to do in any sort
 	// of cross platform way.
-	retry.Run(t, func(r *retry.R) {
+	testretry.Run(t, func(r *testretry.R) {
 		resp, err := testAC.ac.readPersistedAutoConfig()
 		require.NoError(r, err)
 		require.Equal(r, secondRoots.ActiveRootID, resp.CARoots.GetActiveRootID())
@@ -972,7 +975,7 @@ func TestCertUpdate(t *testing.T) {
 	// persisting these to disk happens after all the things we would wait for in assertCertUpdated
 	// will have fired. There is no deterministic way to know once its been written so we wrap
 	// this in a retry.
-	retry.Run(t, func(r *retry.R) {
+	testretry.Run(t, func(r *testretry.R) {
 		resp, err := testAC.ac.readPersistedAutoConfig()
 		require.NoError(r, err)
 
@@ -1097,16 +1100,15 @@ func TestFallback(t *testing.T) {
 	// now wait for the fallback routine to be invoked
 	require.True(t, waitForChans(100*time.Millisecond, fallbackCtx.Done()), "fallback routines did not get invoked within the alotted time")
 
-	// persisting these to disk happens after the RPC we waited on above will have fired
-	// There is no deterministic way to know once its been written so we wrap this in a retry.
-	retry.Run(t, func(r *retry.R) {
-		resp, err := testAC.ac.readPersistedAutoConfig()
-		require.NoError(r, err)
+	testAC.stop()
+	<-testAC.ac.done
 
-		// ensure the roots got persisted to disk
-		require.Equal(r, thirdCert.CertPEM, resp.Certificate.GetCertPEM())
-		require.Equal(r, secondRoots.ActiveRootID, resp.CARoots.GetActiveRootID())
-	})
+	resp, err := testAC.ac.readPersistedAutoConfig()
+	require.NoError(t, err)
+
+	// ensure the roots got persisted to disk
+	require.Equal(t, thirdCert.CertPEM, resp.Certificate.GetCertPEM())
+	require.Equal(t, secondRoots.ActiveRootID, resp.CARoots.GetActiveRootID())
 }
 
 func TestIntroToken(t *testing.T) {

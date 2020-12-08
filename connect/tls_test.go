@@ -173,6 +173,7 @@ func TestServerSideVerifier(t *testing.T) {
 		SourceType:      api.IntentionSourceConsul,
 		Meta:            map[string]string{},
 	}
+	//nolint:staticcheck
 	id, _, err := connect.IntentionCreate(ixn, nil)
 	require.NoError(t, err)
 	require.NotEmpty(t, id)
@@ -186,6 +187,7 @@ func TestServerSideVerifier(t *testing.T) {
 		SourceType:      api.IntentionSourceConsul,
 		Meta:            map[string]string{},
 	}
+	//nolint:staticcheck
 	id, _, err = connect.IntentionCreate(ixn, nil)
 	require.NoError(t, err)
 	require.NotEmpty(t, id)

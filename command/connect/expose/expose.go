@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
-	"github.com/hashicorp/consul/command/intention/create"
+	"github.com/hashicorp/consul/command/intention"
 	"github.com/mitchellh/cli"
 )
 
@@ -79,7 +79,7 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error("A service name must be given via the -service flag.")
 		return 1
 	}
-	svc, svcNamespace, err := create.ParseIntentionTarget(c.service)
+	svc, svcNamespace, err := intention.ParseIntentionTarget(c.service)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Invalid service name: %s", err))
 		return 1
@@ -89,7 +89,7 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error("An ingress gateway service must be given via the -ingress-gateway flag.")
 		return 1
 	}
-	gateway, gatewayNamespace, err := create.ParseIntentionTarget(c.ingressGateway)
+	gateway, gatewayNamespace, err := intention.ParseIntentionTarget(c.ingressGateway)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Invalid ingress gateway name: %s", err))
 		return 1
@@ -201,18 +201,9 @@ func (c *cmd) Run(args []string) int {
 		SourceType:      api.IntentionSourceConsul,
 		Action:          api.IntentionActionAllow,
 	}
-	if existing == nil {
-		_, _, err = client.Connect().IntentionCreate(ixn, nil)
-		if err != nil {
-			c.UI.Error(fmt.Sprintf("Error creating intention: %s", err))
-			return 1
-		}
-	} else {
-		_, err = client.Connect().IntentionUpdate(ixn, nil)
-		if err != nil {
-			c.UI.Error(fmt.Sprintf("Error updating intention: %s", err))
-			return 1
-		}
+	if _, err = client.Connect().IntentionUpsert(ixn, nil); err != nil {
+		c.UI.Error(fmt.Sprintf("Error upserting intention: %s", err))
+		return 1
 	}
 
 	c.UI.Output(fmt.Sprintf("Successfully set up intention for %q -> %q", c.ingressGateway, c.service))

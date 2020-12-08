@@ -17,26 +17,27 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/consul/agent/dns"
-	"github.com/hashicorp/consul/agent/router"
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
-
+	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/raft"
+	"github.com/hashicorp/serf/serf"
+	"golang.org/x/net/http2"
 	"google.golang.org/grpc"
 
-	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/ae"
-	autoconf "github.com/hashicorp/consul/agent/auto-config"
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/local"
-	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/proxycfg"
+	"github.com/hashicorp/consul/agent/rpcclient/health"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/systemd"
 	"github.com/hashicorp/consul/agent/token"
@@ -49,10 +50,6 @@ import (
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/raft"
-	"github.com/hashicorp/serf/serf"
-	"golang.org/x/net/http2"
 )
 
 const (
@@ -66,9 +63,6 @@ const (
 	// Path to save local agent checks
 	checksDir     = "checks"
 	checkStateDir = "checks/state"
-
-	// Name of the file tokens will be persisted within
-	tokensPath = "acl-tokens.json"
 
 	// Default reasons for node/service maintenance mode
 	defaultNodeMaintReason = "Maintenance mode is enabled for this node, " +
@@ -159,16 +153,14 @@ type notifier interface {
 // mode, it runs a full Consul server. In client-only mode, it only forwards
 // requests to other Consul servers.
 type Agent struct {
-	autoConf *autoconf.AutoConfig
+	// TODO: remove fields that are already in BaseDeps
+	baseDeps BaseDeps
 
 	// config is the agent configuration.
 	config *config.RuntimeConfig
 
 	// Used for writing our logs
 	logger hclog.InterceptLogger
-
-	// In-memory sink used for collecting metrics
-	MemSink MetricsHandler
 
 	// delegate is either a *consul.Server or *consul.Client
 	// depending on the configuration
@@ -259,10 +251,29 @@ type Agent struct {
 	// dnsServer provides the DNS API
 	dnsServers []*DNSServer
 
-	// httpServers provides the HTTP API on various endpoints
-	httpServers []*HTTPServer
+	// apiServers listening for connections. If any of these server goroutines
+	// fail, the agent will be shutdown.
+	apiServers *apiServers
+
+	// httpHandlers provides direct access to (one of) the HTTPHandlers started by
+	// this agent. This is used in tests to test HTTP endpoints without overhead
+	// of TCP connections etc.
+	//
+	// TODO: this is a temporary re-introduction after we removed a list of
+	// HTTPServers in favour of apiServers abstraction. Now that HTTPHandlers is
+	// stateful and has config reloading though it's not OK to just use a
+	// different instance of handlers in tests to the ones that the agent is wired
+	// up to since then config reloads won't actually affect the handlers under
+	// test while plumbing the external handlers in the TestAgent through bypasses
+	// testing that the agent itself is actually reloading the state correctly.
+	// Once we move `apiServers` to be a passed-in dependency for NewAgent, we
+	// should be able to remove this and have the Test Agent create the
+	// HTTPHandlers and pass them in removing the need to pull them back out
+	// again.
+	httpHandlers *HTTPHandlers
 
 	// wgServers is the wait group for all HTTP and DNS servers
+	// TODO: remove once dnsServers are handled by apiServers
 	wgServers sync.WaitGroup
 
 	// watchPlans tracks all the currently-running watch plans for the
@@ -292,20 +303,17 @@ type Agent struct {
 	// based on the current consul configuration.
 	tlsConfigurator *tlsutil.Configurator
 
-	// persistedTokensLock is used to synchronize access to the persisted token
-	// store within the data directory. This will prevent loading while writing as
-	// well as multiple concurrent writes.
-	persistedTokensLock sync.RWMutex
-
 	// httpConnLimiter is used to limit connections to the HTTP server by client
 	// IP.
 	httpConnLimiter connlimit.Limiter
 
-	// Connection Pool
-	connPool *pool.ConnPool
+	// configReloaders are subcomponents that need to be notified on a reload so
+	// they can update their internal state.
+	configReloaders []ConfigReloader
 
-	// Shared RPC Router
-	router *router.Router
+	// TODO: pass directly to HTTPHandlers and DNSServer once those are passed
+	// into Agent, which will allow us to remove this field.
+	rpcClientHealth *health.Client
 
 	// enterpriseAgent embeds fields that we only access in consul-enterprise builds
 	enterpriseAgent
@@ -343,16 +351,24 @@ func New(bd BaseDeps) (*Agent, error) {
 		shutdownCh:      make(chan struct{}),
 		endpoints:       make(map[string]string),
 
-		// TODO: store the BaseDeps instead of copying them over to Agent
+		baseDeps:        bd,
 		tokens:          bd.Tokens,
 		logger:          bd.Logger,
 		tlsConfigurator: bd.TLSConfigurator,
 		config:          bd.RuntimeConfig,
 		cache:           bd.Cache,
-		MemSink:         bd.MetricsHandler,
-		connPool:        bd.ConnPool,
-		autoConf:        bd.AutoConfig,
-		router:          bd.Router,
+	}
+
+	cacheName := cachetype.HealthServicesName
+	if bd.RuntimeConfig.UseStreamingBackend {
+		cacheName = cachetype.StreamingHealthServicesName
+	}
+	a.rpcClientHealth = &health.Client{
+		Cache:     bd.Cache,
+		NetRPC:    &a,
+		CacheName: cacheName,
+		// Temporarily until streaming supports all connect events
+		CacheNameConnect: cachetype.HealthServicesName,
 	}
 
 	a.serviceManager = NewServiceManager(&a)
@@ -370,10 +386,11 @@ func New(bd BaseDeps) (*Agent, error) {
 	// pass the agent itself so its safe to move here.
 	a.registerCache()
 
-	// TODO: move to newBaseDeps
-	// TODO: handle error
-	a.loadTokens(a.config)
-	a.loadEnterpriseTokens(a.config)
+	// TODO: why do we ignore failure to load persisted tokens?
+	_ = a.tokens.Load(bd.RuntimeConfig.ACLTokens, a.logger)
+
+	// TODO: pass in a fully populated apiServers into Agent.New
+	a.apiServers = NewAPIServers(a.logger)
 
 	return &a, nil
 }
@@ -412,7 +429,7 @@ func (a *Agent) Start(ctx context.Context) error {
 
 	// This needs to be done early on as it will potentially alter the configuration
 	// and then how other bits are brought up
-	c, err := a.autoConf.InitialConfiguration(ctx)
+	c, err := a.baseDeps.AutoConfig.InitialConfiguration(ctx)
 	if err != nil {
 		return err
 	}
@@ -459,23 +476,15 @@ func (a *Agent) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to start Consul enterprise component: %v", err)
 	}
 
-	options := []consul.ConsulOption{
-		consul.WithLogger(a.logger),
-		consul.WithTokenStore(a.tokens),
-		consul.WithTLSConfigurator(a.tlsConfigurator),
-		consul.WithConnectionPool(a.connPool),
-		consul.WithRouter(a.router),
-	}
-
 	// Setup either the client or the server.
 	if c.ServerMode {
-		server, err := consul.NewServer(consulCfg, options...)
+		server, err := consul.NewServer(consulCfg, a.baseDeps.Deps)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul server: %v", err)
 		}
 		a.delegate = server
 	} else {
-		client, err := consul.NewClient(consulCfg, options...)
+		client, err := consul.NewClient(consulCfg, a.baseDeps.Deps)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul client: %v", err)
 		}
@@ -492,7 +501,7 @@ func (a *Agent) Start(ctx context.Context) error {
 	a.State.Delegate = a.delegate
 	a.State.TriggerSyncChanges = a.sync.SyncChanges.Trigger
 
-	if err := a.autoConf.Start(&lib.StopChannelContext{StopCh: a.shutdownCh}); err != nil {
+	if err := a.baseDeps.AutoConfig.Start(&lib.StopChannelContext{StopCh: a.shutdownCh}); err != nil {
 		return fmt.Errorf("AutoConf failed to start certificate monitor: %w", err)
 	}
 	a.serviceManager.Start()
@@ -580,10 +589,7 @@ func (a *Agent) Start(ctx context.Context) error {
 
 	// Start HTTP and HTTPS servers.
 	for _, srv := range servers {
-		if err := a.serveHTTP(srv); err != nil {
-			return err
-		}
-		a.httpServers = append(a.httpServers, srv)
+		a.apiServers.Start(srv)
 	}
 
 	// Start gRPC server.
@@ -602,13 +608,19 @@ func (a *Agent) Start(ctx context.Context) error {
 		go a.retryJoinWAN()
 	}
 
-	// consul version metric with labels
-	metrics.SetGaugeWithLabels([]string{"version"}, 1, []metrics.Label{
-		{Name: "version", Value: a.config.Version},
-		{Name: "pre_release", Value: a.config.VersionPrerelease},
-	})
-
+	// DEPRECATED: Warn users if they're emitting deprecated metrics. Remove this warning and the flagged metrics in a
+	// future release of Consul.
+	if !a.config.Telemetry.DisableCompatOneNine {
+		a.logger.Warn("DEPRECATED Backwards compatibility with pre-1.9 metrics enabled. These metrics will be removed in a future version of Consul. Set `telemetry { disable_compat_1.9 = true }` to disable them.")
+	}
+  
 	return nil
+}
+
+// Failed returns a channel which is closed when the first server goroutine exits
+// with a non-nil error.
+func (a *Agent) Failed() <-chan struct{} {
+	return a.apiServers.failed
 }
 
 func (a *Agent) listenAndServeGRPC() error {
@@ -743,14 +755,16 @@ func (a *Agent) startListeners(addrs []net.Addr) ([]net.Listener, error) {
 //
 // This approach should ultimately be refactored to the point where we just
 // start the server and any error should trigger a proper shutdown of the agent.
-func (a *Agent) listenHTTP() ([]*HTTPServer, error) {
+func (a *Agent) listenHTTP() ([]apiServer, error) {
 	var ln []net.Listener
-	var servers []*HTTPServer
+	var servers []apiServer
+
 	start := func(proto string, addrs []net.Addr) error {
 		listeners, err := a.startListeners(addrs)
 		if err != nil {
 			return err
 		}
+		ln = append(ln, listeners...)
 
 		for _, l := range listeners {
 			var tlscfg *tls.Config
@@ -760,18 +774,17 @@ func (a *Agent) listenHTTP() ([]*HTTPServer, error) {
 				l = tls.NewListener(l, tlscfg)
 			}
 
+			srv := &HTTPHandlers{
+				agent:    a,
+				denylist: NewDenylist(a.config.HTTPBlockEndpoints),
+			}
+			a.configReloaders = append(a.configReloaders, srv.ReloadConfig)
+			a.httpHandlers = srv
 			httpServer := &http.Server{
 				Addr:      l.Addr().String(),
 				TLSConfig: tlscfg,
+				Handler:   srv.handler(a.config.EnableDebug),
 			}
-			srv := &HTTPServer{
-				Server:   httpServer,
-				ln:       l,
-				agent:    a,
-				denylist: NewDenylist(a.config.HTTPBlockEndpoints),
-				proto:    proto,
-			}
-			httpServer.Handler = srv.handler(a.config.EnableDebug)
 
 			// Load the connlimit helper into the server
 			connLimitFn := a.httpConnLimiter.HTTPConnStateFuncWithDefault429Handler(10 * time.Millisecond)
@@ -784,25 +797,26 @@ func (a *Agent) listenHTTP() ([]*HTTPServer, error) {
 				httpServer.ConnState = connLimitFn
 			}
 
-			ln = append(ln, l)
-			servers = append(servers, srv)
+			servers = append(servers, newAPIServerHTTP(proto, l, httpServer))
 		}
 		return nil
 	}
 
 	if err := start("http", a.config.HTTPAddrs); err != nil {
-		for _, l := range ln {
-			l.Close()
-		}
+		closeListeners(ln)
 		return nil, err
 	}
 	if err := start("https", a.config.HTTPSAddrs); err != nil {
-		for _, l := range ln {
-			l.Close()
-		}
+		closeListeners(ln)
 		return nil, err
 	}
 	return servers, nil
+}
+
+func closeListeners(lns []net.Listener) {
+	for _, l := range lns {
+		l.Close()
+	}
 }
 
 // setupHTTPS adds HTTP/2 support, ConnState, and a connection handshake timeout
@@ -864,43 +878,6 @@ func (a *Agent) listenSocket(path string) (net.Listener, error) {
 		return nil, fmt.Errorf("Failed setting up socket: %s", err)
 	}
 	return l, nil
-}
-
-func (a *Agent) serveHTTP(srv *HTTPServer) error {
-	// https://github.com/golang/go/issues/20239
-	//
-	// In go.8.1 there is a race between Serve and Shutdown. If
-	// Shutdown is called before the Serve go routine was scheduled then
-	// the Serve go routine never returns. This deadlocks the agent
-	// shutdown for some tests since it will wait forever.
-	notif := make(chan net.Addr)
-	a.wgServers.Add(1)
-	go func() {
-		defer a.wgServers.Done()
-		notif <- srv.ln.Addr()
-		err := srv.Server.Serve(srv.ln)
-		if err != nil && err != http.ErrServerClosed {
-			a.logger.Error("error closing server", "error", err)
-		}
-	}()
-
-	select {
-	case addr := <-notif:
-		if srv.proto == "https" {
-			a.logger.Info("Started HTTPS server",
-				"address", addr.String(),
-				"network", addr.Network(),
-			)
-		} else {
-			a.logger.Info("Started HTTP server",
-				"address", addr.String(),
-				"network", addr.Network(),
-			)
-		}
-		return nil
-	case <-time.After(time.Second):
-		return fmt.Errorf("agent: timeout starting HTTP servers")
-	}
 }
 
 // stopAllWatches stops all the currently running watches
@@ -1053,6 +1030,8 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 		cfg.SerfWANConfig = nil
 	}
 
+	cfg.AdvertiseReconnectTimeout = runtimeCfg.AdvertiseReconnectTimeout
+
 	cfg.RPCAddr = runtimeCfg.RPCBindAddr
 	cfg.RPCAdvertise = runtimeCfg.RPCAdvertiseAddr
 
@@ -1120,8 +1099,8 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	if runtimeCfg.SessionTTLMin != 0 {
 		cfg.SessionTTLMin = runtimeCfg.SessionTTLMin
 	}
-	if runtimeCfg.NonVotingServer {
-		cfg.NonVoter = runtimeCfg.NonVotingServer
+	if runtimeCfg.ReadReplica {
+		cfg.ReadReplica = runtimeCfg.ReadReplica
 	}
 
 	// These are fully specified in the agent defaults, so we can simply
@@ -1159,6 +1138,8 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	// RPC-related performance configs. We allow explicit zero value to disable so
 	// copy it whatever the value.
 	cfg.RPCHoldTimeout = runtimeCfg.RPCHoldTimeout
+
+	cfg.RPCConfig = runtimeCfg.RPCConfig
 
 	if runtimeCfg.LeaveDrainTime > 0 {
 		cfg.LeaveDrainTime = runtimeCfg.LeaveDrainTime
@@ -1331,7 +1312,7 @@ func (a *Agent) ShutdownAgent() error {
 
 	// this would be cancelled anyways (by the closing of the shutdown ch) but
 	// this should help them to be stopped more quickly
-	a.autoConf.Stop()
+	a.baseDeps.AutoConfig.Stop()
 
 	// Stop the service manager (must happen before we take the stateLock to avoid deadlock)
 	if a.serviceManager != nil {
@@ -1401,13 +1382,12 @@ func (a *Agent) ShutdownAgent() error {
 
 // ShutdownEndpoints terminates the HTTP and DNS servers. Should be
 // preceded by ShutdownAgent.
+// TODO: remove this method, move to ShutdownAgent
 func (a *Agent) ShutdownEndpoints() {
 	a.shutdownLock.Lock()
 	defer a.shutdownLock.Unlock()
 
-	if len(a.dnsServers) == 0 && len(a.httpServers) == 0 {
-		return
-	}
+	ctx := context.TODO()
 
 	for _, srv := range a.dnsServers {
 		if srv.Server != nil {
@@ -1421,27 +1401,11 @@ func (a *Agent) ShutdownEndpoints() {
 	}
 	a.dnsServers = nil
 
-	for _, srv := range a.httpServers {
-		a.logger.Info("Stopping server",
-			"protocol", strings.ToUpper(srv.proto),
-			"address", srv.ln.Addr().String(),
-			"network", srv.ln.Addr().Network(),
-		)
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-		defer cancel()
-		srv.Server.Shutdown(ctx)
-		if ctx.Err() == context.DeadlineExceeded {
-			a.logger.Warn("Timeout stopping server",
-				"protocol", strings.ToUpper(srv.proto),
-				"address", srv.ln.Addr().String(),
-				"network", srv.ln.Addr().Network(),
-			)
-		}
-	}
-	a.httpServers = nil
-
+	a.apiServers.Shutdown(ctx)
 	a.logger.Info("Waiting for endpoints to shut down")
-	a.wgServers.Wait()
+	if err := a.apiServers.WaitForShutdown(); err != nil {
+		a.logger.Error(err.Error())
+	}
 	a.logger.Info("Endpoints down")
 }
 
@@ -1752,6 +1716,11 @@ type persistedService struct {
 	Token   string
 	Service *structs.NodeService
 	Source  string
+	// whether this service was registered as a sidecar, see structs.NodeService
+	// we store this field here because it is excluded from json serialization
+	// to exclude it from API output, but we need it to properly deregister
+	// persisted sidecars.
+	LocallyRegisteredAsSidecar bool `json:",omitempty"`
 }
 
 // persistService saves a service definition to a JSON file in the data dir
@@ -1760,9 +1729,10 @@ func (a *Agent) persistService(service *structs.NodeService, source configSource
 	svcPath := filepath.Join(a.config.DataDir, servicesDir, svcID.StringHash())
 
 	wrapped := persistedService{
-		Token:   a.State.ServiceToken(service.CompoundServiceID()),
-		Service: service,
-		Source:  source.String(),
+		Token:                      a.State.ServiceToken(service.CompoundServiceID()),
+		Service:                    service,
+		Source:                     source.String(),
+		LocallyRegisteredAsSidecar: service.LocallyRegisteredAsSidecar,
 	}
 	encoded, err := json.Marshal(wrapped)
 	if err != nil {
@@ -1914,7 +1884,8 @@ func (a *Agent) AddServiceAndReplaceChecks(service *structs.NodeService, chkType
 		token:                 token,
 		replaceExistingChecks: true,
 		source:                source,
-	}, a.snapshotCheckState())
+		snap:                  a.snapshotCheckState(),
+	})
 }
 
 // AddService is used to add a service entry.
@@ -1933,12 +1904,13 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.Che
 		token:                 token,
 		replaceExistingChecks: false,
 		source:                source,
-	}, a.snapshotCheckState())
+		snap:                  a.snapshotCheckState(),
+	})
 }
 
 // addServiceLocked adds a service entry to the service manager if enabled, or directly
 // to the local state if it is not. This function assumes the state lock is already held.
-func (a *Agent) addServiceLocked(req *addServiceRequest, snap map[structs.CheckID]*structs.HealthCheck) error {
+func (a *Agent) addServiceLocked(req *addServiceRequest) error {
 	req.fixupForAddServiceLocked()
 
 	req.service.EnterpriseMeta.Normalize()
@@ -1956,7 +1928,7 @@ func (a *Agent) addServiceLocked(req *addServiceRequest, snap map[structs.CheckI
 	req.persistDefaults = nil
 	req.persistServiceConfig = false
 
-	return a.addServiceInternal(req, snap)
+	return a.addServiceInternal(req)
 }
 
 // addServiceRequest is the union of arguments for calling both
@@ -1981,6 +1953,7 @@ type addServiceRequest struct {
 	token                 string
 	replaceExistingChecks bool
 	source                configSource
+	snap                  map[structs.CheckID]*structs.HealthCheck
 }
 
 func (r *addServiceRequest) fixupForAddServiceLocked() {
@@ -1994,7 +1967,7 @@ func (r *addServiceRequest) fixupForAddServiceInternal() {
 }
 
 // addServiceInternal adds the given service and checks to the local state.
-func (a *Agent) addServiceInternal(req *addServiceRequest, snap map[structs.CheckID]*structs.HealthCheck) error {
+func (a *Agent) addServiceInternal(req *addServiceRequest) error {
 	req.fixupForAddServiceInternal()
 	var (
 		service               = req.service
@@ -2006,6 +1979,7 @@ func (a *Agent) addServiceInternal(req *addServiceRequest, snap map[structs.Chec
 		token                 = req.token
 		replaceExistingChecks = req.replaceExistingChecks
 		source                = req.source
+		snap                  = req.snap
 	)
 
 	// Pause the service syncs during modification
@@ -3140,7 +3114,8 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 			token:                 service.Token,
 			replaceExistingChecks: false, // do default behavior
 			source:                ConfigSourceLocal,
-		}, snap)
+			snap:                  snap,
+		})
 		if err != nil {
 			return fmt.Errorf("Failed to register service %q: %v", service.Name, err)
 		}
@@ -3158,7 +3133,8 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 				token:                 sidecarToken,
 				replaceExistingChecks: false, // do default behavior
 				source:                ConfigSourceLocal,
-			}, snap)
+				snap:                  snap,
+			})
 			if err != nil {
 				return fmt.Errorf("Failed to register sidecar for service %q: %v", service.Name, err)
 			}
@@ -3205,6 +3181,10 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 				continue
 			}
 		}
+
+		// Restore LocallyRegisteredAsSidecar, see persistedService.LocallyRegisteredAsSidecar
+		p.Service.LocallyRegisteredAsSidecar = p.LocallyRegisteredAsSidecar
+
 		serviceID := p.Service.CompoundServiceID()
 
 		source, ok := ConfigSourceFromName(p.Source)
@@ -3250,7 +3230,8 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 				token:                 p.Token,
 				replaceExistingChecks: false, // do default behavior
 				source:                source,
-			}, snap)
+				snap:                  snap,
+			})
 			if err != nil {
 				return fmt.Errorf("failed adding service %q: %s", serviceID, err)
 			}
@@ -3393,90 +3374,6 @@ func (a *Agent) unloadChecks() error {
 	return nil
 }
 
-type persistedTokens struct {
-	Replication string `json:"replication,omitempty"`
-	AgentMaster string `json:"agent_master,omitempty"`
-	Default     string `json:"default,omitempty"`
-	Agent       string `json:"agent,omitempty"`
-}
-
-func (a *Agent) getPersistedTokens() (*persistedTokens, error) {
-	persistedTokens := &persistedTokens{}
-	if !a.config.ACLEnableTokenPersistence {
-		return persistedTokens, nil
-	}
-
-	a.persistedTokensLock.RLock()
-	defer a.persistedTokensLock.RUnlock()
-
-	tokensFullPath := filepath.Join(a.config.DataDir, tokensPath)
-
-	buf, err := ioutil.ReadFile(tokensFullPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			// non-existence is not an error we care about
-			return persistedTokens, nil
-		}
-		return persistedTokens, fmt.Errorf("failed reading tokens file %q: %s", tokensFullPath, err)
-	}
-
-	if err := json.Unmarshal(buf, persistedTokens); err != nil {
-		return persistedTokens, fmt.Errorf("failed to decode tokens file %q: %s", tokensFullPath, err)
-	}
-
-	return persistedTokens, nil
-}
-
-func (a *Agent) loadTokens(conf *config.RuntimeConfig) error {
-	persistedTokens, persistenceErr := a.getPersistedTokens()
-
-	if persistenceErr != nil {
-		a.logger.Warn("unable to load persisted tokens", "error", persistenceErr)
-	}
-
-	if persistedTokens.Default != "" {
-		a.tokens.UpdateUserToken(persistedTokens.Default, token.TokenSourceAPI)
-
-		if conf.ACLToken != "" {
-			a.logger.Warn("\"default\" token present in both the configuration and persisted token store, using the persisted token")
-		}
-	} else {
-		a.tokens.UpdateUserToken(conf.ACLToken, token.TokenSourceConfig)
-	}
-
-	if persistedTokens.Agent != "" {
-		a.tokens.UpdateAgentToken(persistedTokens.Agent, token.TokenSourceAPI)
-
-		if conf.ACLAgentToken != "" {
-			a.logger.Warn("\"agent\" token present in both the configuration and persisted token store, using the persisted token")
-		}
-	} else {
-		a.tokens.UpdateAgentToken(conf.ACLAgentToken, token.TokenSourceConfig)
-	}
-
-	if persistedTokens.AgentMaster != "" {
-		a.tokens.UpdateAgentMasterToken(persistedTokens.AgentMaster, token.TokenSourceAPI)
-
-		if conf.ACLAgentMasterToken != "" {
-			a.logger.Warn("\"agent_master\" token present in both the configuration and persisted token store, using the persisted token")
-		}
-	} else {
-		a.tokens.UpdateAgentMasterToken(conf.ACLAgentMasterToken, token.TokenSourceConfig)
-	}
-
-	if persistedTokens.Replication != "" {
-		a.tokens.UpdateReplicationToken(persistedTokens.Replication, token.TokenSourceAPI)
-
-		if conf.ACLReplicationToken != "" {
-			a.logger.Warn("\"replication\" token present in both the configuration and persisted token store, using the persisted token")
-		}
-	} else {
-		a.tokens.UpdateReplicationToken(conf.ACLReplicationToken, token.TokenSourceConfig)
-	}
-
-	return persistenceErr
-}
-
 // snapshotCheckState is used to snapshot the current state of the health
 // checks. This is done before we reload our checks, so that we can properly
 // restore into the same state.
@@ -3607,7 +3504,7 @@ func (a *Agent) loadLimits(conf *config.RuntimeConfig) {
 // all services, checks, tokens, metadata, dnsServer configs, etc.
 // It will also reload all ongoing watches.
 func (a *Agent) ReloadConfig() error {
-	newCfg, err := a.autoConf.ReadConfig()
+	newCfg, err := a.baseDeps.AutoConfig.ReadConfig()
 	if err != nil {
 		return err
 	}
@@ -3616,6 +3513,12 @@ func (a *Agent) ReloadConfig() error {
 	// changed while running anyways but this prevents
 	// breaking some existing behavior.
 	newCfg.NodeID = a.config.NodeID
+
+	// DEPRECATED: Warn users on reload if they're emitting deprecated metrics. Remove this warning and the flagged
+	// metrics in a future release of Consul.
+	if !a.config.Telemetry.DisableCompatOneNine {
+		a.logger.Warn("DEPRECATED Backwards compatibility with pre-1.9 metrics enabled. These metrics will be removed in a future version of Consul. Set `telemetry { disable_compat_1.9 = true }` to disable them.")
+	}
 
 	return a.reloadConfigInternal(newCfg)
 }
@@ -3656,8 +3559,7 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 	// Reload tokens - should be done before all the other loading
 	// to ensure the correct tokens are available for attaching to
 	// the checks and service registrations.
-	a.loadTokens(newCfg)
-	a.loadEnterpriseTokens(newCfg)
+	a.tokens.Load(newCfg.ACLTokens, a.logger)
 
 	if err := a.tlsConfigurator.Update(newCfg.ToTLSUtilConfig()); err != nil {
 		return fmt.Errorf("Failed reloading tls configuration: %s", err)
@@ -3722,6 +3624,12 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 		newCfg.Telemetry.BlockedPrefixes)
 
 	a.State.SetDiscardCheckOutput(newCfg.DiscardCheckOutput)
+
+	for _, r := range a.configReloaders {
+		if err := r(newCfg); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -3790,10 +3698,11 @@ func (a *Agent) LocalBlockingQuery(alwaysBlock bool, hash string, wait time.Dura
 	}
 }
 
-// registerCache configures the cache and registers all the supported
-// types onto the cache. This is NOT safe to call multiple times so
-// care should be taken to call this exactly once after the cache
-// field has been initialized.
+// registerCache types on a.cache.
+// This function may only be called once from New.
+//
+// Note: this function no longer registered all cache-types. Newer cache-types
+// that do not depend on Agent are registered from registerCacheTypes.
 func (a *Agent) registerCache() {
 	// Note that you should register the _agent_ as the RPC implementation and not
 	// the a.delegate directly, otherwise tests that rely on overriding RPC

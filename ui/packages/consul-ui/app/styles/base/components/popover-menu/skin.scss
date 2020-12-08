@@ -1,0 +1,12 @@
+%popover-menu-trigger > * {
+  cursor: pointer;
+}
+%popover-menu-trigger > *::after {
+  @extend %with-chevron-down-mask, %as-pseudo;
+  width: 16px;
+  height: 16px;
+  position: relative;
+}
+%popover-menu-toggle:checked + label > *::after {
+  @extend %with-chevron-up-mask;
+}

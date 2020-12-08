@@ -51,7 +51,7 @@ can reference these secrets in the customized Helm chart values file.
   used with the official image, `hashicorp/consul-enterprise:1.5.0-ent`.
 
 - Enable
-  [encryption](https://www.consul.io/docs/agent/encryption.html#gossip-encryption) to secure gossip traffic within the Consul cluster.
+  [encryption](/docs/agent/encryption#gossip-encryption) to secure gossip traffic within the Consul cluster.
 
 ~> Note, depending on your environment, the previous secrets may not be
 necessary.
@@ -87,10 +87,10 @@ parameters based on your specific environment requirements.
 
 For security, set the `bootstrapACLs` parameter to true. This will enable
 Kubernetes to initially setup Consul's [ACL
-system](https://www.consul.io/docs/acl/acl-system.html).
+system](/docs/acl/acl-system).
 
 Read the Consul Helm chart documentation to review all the [global
-parameters](https://www.consul.io/docs/platform/k8s/helm.html#v-global).
+parameters](/docs/platform/k8s/helm#v-global).
 
 ### Consul UI
 
@@ -104,7 +104,7 @@ or other service type in Kubernetes to make it easier to access the UI.
 ### Consul Servers
 
 For production deployments, you will need to deploy [3 or 5 Consul
-servers](https://www.consul.io/docs/internals/consensus.html#deployment-table)
+servers](/docs/internals/consensus#deployment-table)
 for quorum and failure tolerance. For most deployments, 3 servers are adequate.
 
 In the server section set both `replicas` and `bootstrapExpect` to 3. This will
@@ -126,7 +126,7 @@ license](https://www.hashicorp.com/products/consul/enterprise) you should
 reference the Kubernetes secret in the `enterpriseLicense` parameter.
 
 Read the Consul Helm chart documentation to review all the [server
-parameters](https://www.consul.io/docs/platform/k8s/helm.html#v-server)
+parameters](/docs/platform/k8s/helm#v-server)
 
 ### Consul Clients
 
@@ -139,7 +139,7 @@ horizontal scalability. Enabling `grpc` enables the GRPC listener on port 8502
 and exposes it to the host. It is required to use Consul Connect.
 
 Read the Consul Helm chart documentation to review all the [client
-parameters](https://www.consul.io/docs/platform/k8s/helm.html#v-client)
+parameters](/docs/platform/k8s/helm#v-client)
 
 ### Consul Connect Injection Security
 
@@ -153,14 +153,14 @@ same token if you are only using a default service account. This setting is
 only necessary if you have enabled ACLs in the global section.
 
 Read more about the [Connect Inject
-parameters](https://www.consul.io/docs/platform/k8s/helm.html#v-connectinject).
+parameters](/docs/platform/k8s/helm#v-connectinject).
 
 ## Complete Example
 
 Your finished values file should resemble the following example. For more
 complete descriptions of all the available parameters see the `values.yaml`
 file provided with the Helm chart and the [reference
-documentation](https://www.consul.io/docs/platform/k8s/helm.html).
+documentation](/docs/platform/k8s/helm).
 
 ```yaml
 # Configure global settings in this section.

@@ -7,15 +7,18 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-uuid"
+	"golang.org/x/time/rate"
+
 	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-uuid"
-	"golang.org/x/time/rate"
 )
 
 type RuntimeSOAConfig struct {
@@ -63,19 +66,7 @@ type RuntimeConfig struct {
 	// hcl: acl.enabled = boolean
 	ACLsEnabled bool
 
-	// ACLAgentMasterToken is a special token that has full read and write
-	// privileges for this agent, and can be used to call agent endpoints
-	// when no servers are available.
-	//
-	// hcl: acl.tokens.agent_master = string
-	ACLAgentMasterToken string
-
-	// ACLAgentToken is the default token used to make requests for the agent
-	// itself, such as for registering itself with the catalog. If not
-	// configured, the 'acl_token' will be used.
-	//
-	// hcl: acl.tokens.agent = string
-	ACLAgentToken string
+	ACLTokens token.Config
 
 	// ACLDatacenter is the central datacenter that holds authoritative
 	// ACL records. This must be the same for the entire cluster.
@@ -86,8 +77,8 @@ type RuntimeConfig struct {
 
 	// ACLDefaultPolicy is used to control the ACL interaction when
 	// there is no defined policy. This can be "allow" which means
-	// ACLs are used to black-list, or "deny" which means ACLs are
-	// white-lists.
+	// ACLs are used to deny-list, or "deny" which means ACLs are
+	// allow-lists.
 	//
 	// hcl: acl.default_policy = ("allow"|"deny")
 	ACLDefaultPolicy string
@@ -123,16 +114,6 @@ type RuntimeConfig struct {
 	// hcl: acl.tokens.master = string
 	ACLMasterToken string
 
-	// ACLReplicationToken is used to replicate data locally from the
-	// PrimaryDatacenter. Replication is only available on servers in
-	// datacenters other than the PrimaryDatacenter
-	//
-	// DEPRECATED (ACL-Legacy-Compat): Setting this to a non-empty value
-	// also enables legacy ACL replication if ACLs are enabled and in legacy mode.
-	//
-	// hcl: acl.tokens.replication = string
-	ACLReplicationToken string
-
 	// ACLtokenReplication is used to indicate that both tokens and policies
 	// should be replicated instead of just policies
 	//
@@ -156,16 +137,6 @@ type RuntimeConfig struct {
 	//
 	// hcl: acl.role_ttl = "duration"
 	ACLRoleTTL time.Duration
-
-	// ACLToken is the default token used to make requests if a per-request
-	// token is not provided. If not configured the 'anonymous' token is used.
-	//
-	// hcl: acl.tokens.default = string
-	ACLToken string
-
-	// ACLEnableTokenPersistence determines whether or not tokens set via the agent HTTP API
-	// should be persisted to disk and reloaded when an agent restarts.
-	ACLEnableTokenPersistence bool
 
 	// AutopilotCleanupDeadServers enables the automatic cleanup of dead servers when new ones
 	// are added to the peer list. Defaults to true.
@@ -725,13 +696,6 @@ type RuntimeConfig struct {
 	// flag: -enable-script-checks
 	EnableRemoteScriptChecks bool
 
-	// EnableUI enables the statically-compiled assets for the Consul web UI and
-	// serves them at the default /ui/ endpoint automatically.
-	//
-	// hcl: enable_ui = (true|false)
-	// flag: -ui
-	EnableUI bool
-
 	// EncryptKey contains the encryption key to use for the Serf communication.
 	//
 	// hcl: encrypt = string
@@ -881,12 +845,12 @@ type RuntimeConfig struct {
 	// flag: -node-meta "key:value" -node-meta "key:value" ...
 	NodeMeta map[string]string
 
-	// NonVotingServer is whether this server will act as a non-voting member
+	// ReadReplica is whether this server will act as a non-voting member
 	// of the cluster to help provide read scalability. (Enterprise-only)
 	//
 	// hcl: non_voting_server = (true|false)
 	// flag: -non-voting-server
-	NonVotingServer bool
+	ReadReplica bool
 
 	// PidFile is the file to store our PID in.
 	//
@@ -971,6 +935,12 @@ type RuntimeConfig struct {
 	// hcl: protocol = int
 	RPCProtocol int
 
+	RPCConfig consul.RPCConfig
+
+	// UseStreamingBackend enables streaming as a replacement for agent/cache
+	// in the client agent for endpoints which support streaming.
+	UseStreamingBackend bool
+
 	// RaftProtocol sets the Raft protocol version to use on this server.
 	// Defaults to 3.
 	//
@@ -1017,6 +987,13 @@ type RuntimeConfig struct {
 	//
 	// hcl: reconnect_timeout = "duration"
 	ReconnectTimeoutWAN time.Duration
+
+	// AdvertiseReconnectTimeout specifies the amount of time other agents should
+	// wait for us to reconnect before deciding we are permanently gone. This
+	// should only be set for client agents that are run in a stateless or
+	// ephemeral manner in order to realize their deletion sooner than we
+	// would otherwise.
+	AdvertiseReconnectTimeout time.Duration
 
 	// RejoinAfterLeave controls our interaction with the cluster after leave.
 	// When set to false (default), a leave causes Consul to not rejoin
@@ -1249,7 +1226,7 @@ type RuntimeConfig struct {
 	// the cluster more quickly at the expense of increased bandwidth. This
 	// configuration only applies to WAN gossip communications
 	//
-	// The default is: 200ms
+	// The default is: 500ms
 	//
 	// hcl: gossip_wan { gossip_interval = duration}
 	GossipWANGossipInterval time.Duration
@@ -1259,7 +1236,7 @@ type RuntimeConfig struct {
 	// propagate across the cluster more quickly at the expense of increased
 	// bandwidth. This configuration only applies to WAN gossip communications
 	//
-	// The default is: 3
+	// The default is: 4
 	//
 	// hcl: gossip_wan { gossip_nodes = int }
 	GossipWANGossipNodes int
@@ -1269,7 +1246,7 @@ type RuntimeConfig struct {
 	// failed nodes more quickly at the expense of increased bandwidth usage.
 	// This configuration only applies to WAN gossip communications
 	//
-	// The default is: 1s
+	// The default is: 5s
 	//
 	// hcl: gossip_wan { probe_interval = duration }
 	GossipWANProbeInterval time.Duration
@@ -1279,7 +1256,7 @@ type RuntimeConfig struct {
 	// of RTT (round-trip time) on your network. This configuration
 	// only applies to the WAN gossip communications
 	//
-	// The default is: 500ms
+	// The default is: 3s
 	//
 	// hcl: gossip_wan { probe_timeout = duration }
 	GossipWANProbeTimeout time.Duration
@@ -1298,7 +1275,7 @@ type RuntimeConfig struct {
 	// it dead, giving that suspect node more time to refute if it is indeed
 	// still alive.
 	//
-	// The default is: 4
+	// The default is: 6
 	//
 	// hcl: gossip_wan { suspicion_mult = int }
 	GossipWANSuspicionMult int
@@ -1442,16 +1419,18 @@ type RuntimeConfig struct {
 	// hcl: limits { txn_max_req_len = uint64 }
 	TxnMaxReqLen uint64
 
-	// UIDir is the directory containing the Web UI resources.
-	// If provided, the UI endpoints will be enabled.
+	// UIConfig holds various runtime options that control both the agent's
+	// behavior while serving the UI (e.g. whether it's enabled, what path it's
+	// mounted on) as well as options that enable or disable features within the
+	// UI.
 	//
-	// hcl: ui_dir = string
-	// flag: -ui-dir string
-	UIDir string
-
-	//UIContentPath is a string that sets the external
-	// path to a string. Default: /ui/
-	UIContentPath string
+	// NOTE: Never read from this field directly once the agent has started up
+	// since the UI config is reloadable. The on in the agent's config field may
+	// be out of date. Use the agent.getUIConfig() method to get the latest config
+	// in a thread-safe way.
+	//
+	// hcl: ui_config { ... }
+	UIConfig UIConfig
 
 	// UnixSocketGroup contains the group of the file permissions when
 	// Consul binds to UNIX sockets.
@@ -1547,6 +1526,28 @@ type AutoConfigAuthorizer struct {
 	// AuthMethodConfig ssoauth.Config
 	ClaimAssertions []string
 	AllowReuse      bool
+}
+
+type UIConfig struct {
+	Enabled                    bool
+	Dir                        string
+	ContentPath                string
+	MetricsProvider            string
+	MetricsProviderFiles       []string
+	MetricsProviderOptionsJSON string
+	MetricsProxy               UIMetricsProxy
+	DashboardURLTemplates      map[string]string
+}
+
+type UIMetricsProxy struct {
+	BaseURL       string
+	AddHeaders    []UIMetricsProxyAddHeader
+	PathAllowlist []string
+}
+
+type UIMetricsProxyAddHeader struct {
+	Name  string
+	Value string
 }
 
 func (c *RuntimeConfig) apiAddresses(maxPerType int) (unixAddrs, httpAddrs, httpsAddrs []string) {
@@ -1842,6 +1843,21 @@ func sanitize(name string, v reflect.Value) reflect.Value {
 
 	case isArray(typ) || isSlice(typ):
 		ma := make([]interface{}, 0, v.Len())
+
+		if name == "AddHeaders" {
+			// must be UIConfig.MetricsProxy.AddHeaders
+			for i := 0; i < v.Len(); i++ {
+				addr := v.Index(i).Addr()
+				hdr := addr.Interface().(*UIMetricsProxyAddHeader)
+				hm := map[string]interface{}{
+					"Name":  hdr.Name,
+					"Value": "hidden",
+				}
+				ma = append(ma, hm)
+			}
+			return reflect.ValueOf(ma)
+		}
+
 		if strings.HasPrefix(name, "SerfAllowedCIDRs") {
 			for i := 0; i < v.Len(); i++ {
 				addr := v.Index(i).Addr()

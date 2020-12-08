@@ -782,7 +782,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 					events: []cache.UpdateEvent{
 						{
 							CorrelationID: "mesh-gateway:dc4",
-							Result: &structs.IndexedCheckServiceNodes{
+							Result: &structs.IndexedNodesWithGateways{
 								Nodes: TestGatewayNodesDC4Hostname(t),
 							},
 							Err: nil,

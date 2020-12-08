@@ -6,10 +6,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/stretchr/testify/require"
 )
 
 type consulCAMockDelegate struct {
@@ -21,37 +22,11 @@ func (c *consulCAMockDelegate) State() *state.Store {
 }
 
 func (c *consulCAMockDelegate) ApplyCARequest(req *structs.CARequest) (interface{}, error) {
-	idx, _, err := c.state.CAConfig(nil)
-	if err != nil {
-		return nil, err
-	}
-
-	switch req.Op {
-	case structs.CAOpSetProviderState:
-		_, err := c.state.CASetProviderState(idx+1, req.ProviderState)
-		if err != nil {
-			return nil, err
-		}
-
-		return true, nil
-	case structs.CAOpDeleteProviderState:
-		if err := c.state.CADeleteProviderState(idx+1, req.ProviderState.ID); err != nil {
-			return nil, err
-		}
-
-		return true, nil
-	case structs.CAOpIncrementProviderSerialNumber:
-		return uint64(2), nil
-	default:
-		return nil, fmt.Errorf("Invalid CA operation '%s'", req.Op)
-	}
+	return ApplyCARequestToStore(c.state, req)
 }
 
 func newMockDelegate(t *testing.T, conf *structs.CAConfiguration) *consulCAMockDelegate {
-	s, err := state.NewStateStore(nil)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	s := state.NewStateStore(nil)
 	if s == nil {
 		t.Fatalf("missing state store")
 	}

@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"time"
 
-	metrics "github.com/armon/go-metrics"
+	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/circonus"
 	"github.com/armon/go-metrics/datadog"
 	"github.com/armon/go-metrics/prometheus"
@@ -132,6 +132,11 @@ type TelemetryConfig struct {
 	// hcl: telemetry { circonus_submission_url = string }
 	CirconusSubmissionURL string `json:"circonus_submission_url,omitempty" mapstructure:"circonus_submission_url"`
 
+	// DisableCompatOneNine is a flag to stop emitting metrics that have been deprecated in version 1.9.
+	//
+	// hcl: telemetry { disable_compat_1.9 = (true|false) }
+	DisableCompatOneNine bool `json:"disable_compat_1.9,omitempty" mapstructure:"disable_compat_1.9"`
+
 	// DisableHostname will disable hostname prefixing for all metrics.
 	//
 	// hcl: telemetry { disable_hostname = (true|false)
@@ -148,14 +153,6 @@ type TelemetryConfig struct {
 	//
 	// hcl: telemetry { dogstatsd_tags = []string }
 	DogstatsdTags []string `json:"dogstatsd_tags,omitempty" mapstructure:"dogstatsd_tags"`
-
-	// PrometheusRetentionTime is the retention time for prometheus metrics if greater than 0.
-	// A value of 0 disable Prometheus support. Regarding Prometheus, it is considered a good
-	// practice to put large values here (such as a few days), and at least the interval between
-	// prometheus requests.
-	//
-	// hcl: telemetry { prometheus_retention_time = "duration" }
-	PrometheusRetentionTime time.Duration `json:"prometheus_retention_time,omitempty" mapstructure:"prometheus_retention_time"`
 
 	// FilterDefault is the default for whether to allow a metric that's not
 	// covered by the filter.
@@ -194,10 +191,18 @@ type TelemetryConfig struct {
 	//
 	// hcl: telemetry { statsite_address = string }
 	StatsiteAddr string `json:"statsite_address,omitempty" mapstructure:"statsite_address"`
+
+	// PrometheusOpts provides configuration for the PrometheusSink. Currently the only configuration
+	// we acquire from hcl is the retention time. We also use definition slices that are set in agent setup
+	// before being passed to InitTelemmetry.
+	//
+	// hcl: telemetry { prometheus_retention_time = "duration" }
+	PrometheusOpts prometheus.PrometheusOpts
 }
 
 // MergeDefaults copies any non-zero field from defaults into the current
 // config.
+// TODO(kit): We no longer use this function and can probably delete it
 func (c *TelemetryConfig) MergeDefaults(defaults *TelemetryConfig) {
 	if defaults == nil {
 		return
@@ -216,6 +221,10 @@ func (c *TelemetryConfig) MergeDefaults(defaults *TelemetryConfig) {
 		// implementing this for the types we actually have for now. Test failure
 		// should catch the case where we add new types later.
 		switch f.Kind() {
+		case reflect.Struct:
+			if f.Type() == reflect.TypeOf(prometheus.PrometheusOpts{}) {
+				continue
+			}
 		case reflect.Slice:
 			if !f.IsNil() {
 				continue
@@ -272,13 +281,12 @@ func dogstatdSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, err
 }
 
 func prometheusSink(cfg TelemetryConfig, hostname string) (metrics.MetricSink, error) {
-	if cfg.PrometheusRetentionTime.Nanoseconds() < 1 {
+
+	if cfg.PrometheusOpts.Expiration.Nanoseconds() < 1 {
 		return nil, nil
 	}
-	prometheusOpts := prometheus.PrometheusOpts{
-		Expiration: cfg.PrometheusRetentionTime,
-	}
-	sink, err := prometheus.NewPrometheusSinkFrom(prometheusOpts)
+
+	sink, err := prometheus.NewPrometheusSinkFrom(cfg.PrometheusOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -363,6 +371,9 @@ func InitTelemetry(cfg TelemetryConfig) (*metrics.InmemSink, error) {
 		return nil, err
 	}
 	if err := addSink(dogstatdSink); err != nil {
+		return nil, err
+	}
+	if err := addSink(circonusSink); err != nil {
 		return nil, err
 	}
 	if err := addSink(circonusSink); err != nil {

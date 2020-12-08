@@ -5,12 +5,128 @@ import (
 	"net/http"
 	"strings"
 
-	metrics "github.com/armon/go-metrics"
+	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-func (s *HTTPServer) CatalogRegister(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+var CatalogCounters = []prometheus.CounterDefinition{
+	{
+		Name: []string{"client", "api", "catalog_register"},
+		Help: "Increments whenever a Consul agent receives a catalog register request.",
+	},
+	{
+		Name: []string{"client", "rpc", "error", "catalog_register"},
+		Help: "Increments whenever a Consul agent receives an RPC error for a catalog register request.",
+	},
+	{
+		Name: []string{"client", "api", "success", "catalog_register"},
+		Help: "Increments whenever a Consul agent successfully responds to a catalog register request.",
+	},
+	{
+		Name: []string{"client", "api", "catalog_deregister"},
+		Help: "Increments whenever a Consul agent receives a catalog deregister request.",
+	},
+	{
+		Name: []string{"client", "api", "catalog_datacenters"},
+		Help: "Increments whenever a Consul agent receives a request to list datacenters in the catalog.",
+	},
+	{
+		Name: []string{"client", "rpc", "error", "catalog_deregister"},
+		Help: "Increments whenever a Consul agent receives an RPC error for a catalog deregister request.",
+	},
+	{
+		Name: []string{"client", "api", "success", "catalog_nodes"},
+		Help: "Increments whenever a Consul agent successfully responds to a request to list nodes.",
+	},
+	{
+		Name: []string{"client", "rpc", "error", "catalog_nodes"},
+		Help: "Increments whenever a Consul agent receives an RPC error for a request to list nodes.",
+	},
+	{
+		Name: []string{"client", "api", "success", "catalog_deregister"},
+		Help: "Increments whenever a Consul agent successfully responds to a catalog deregister request.",
+	},
+	{
+		Name: []string{"client", "rpc", "error", "catalog_datacenters"},
+		Help: "Increments whenever a Consul agent receives an RPC error for a request to list datacenters.",
+	},
+	{
+		Name: []string{"client", "api", "success", "catalog_datacenters"},
+		Help: "Increments whenever a Consul agent successfully responds to a request to list datacenters.",
+	},
+	{
+		Name: []string{"client", "api", "catalog_nodes"},
+		Help: "Increments whenever a Consul agent receives a request to list nodes from the catalog.",
+	},
+	{
+		Name: []string{"client", "api", "catalog_services"},
+		Help: "Increments whenever a Consul agent receives a request to list services from the catalog.",
+	},
+	{
+		Name: []string{"client", "rpc", "error", "catalog_services"},
+		Help: "Increments whenever a Consul agent receives an RPC error for a request to list services.",
+	},
+	{
+		Name: []string{"client", "api", "success", "catalog_services"},
+		Help: "Increments whenever a Consul agent successfully responds to a request to list services.",
+	},
+	{
+		Name: []string{"client", "api", "catalog_service_nodes"},
+		Help: "Increments whenever a Consul agent receives a request to list nodes offering a service.",
+	},
+	{
+		Name: []string{"client", "rpc", "error", "catalog_service_nodes"},
+		Help: "Increments whenever a Consul agent receives an RPC error for a request to list nodes offering a service.",
+	},
+	{
+		Name: []string{"client", "api", "success", "catalog_service_nodes"},
+		Help: "Increments whenever a Consul agent successfully responds to a request to list nodes offering a service.",
+	},
+	{
+		Name: []string{"client", "api", "error", "catalog_service_nodes"},
+		Help: "Increments whenever a Consul agent receives an RPC error for request to list nodes offering a service.",
+	},
+	{
+		Name: []string{"client", "api", "catalog_node_services"},
+		Help: "Increments whenever a Consul agent successfully responds to a request to list nodes offering a service.",
+	},
+	{
+		Name: []string{"client", "api", "success", "catalog_node_services"},
+		Help: "Increments whenever a Consul agent successfully responds to a request to list services in a node.",
+	},
+	{
+		Name: []string{"client", "rpc", "error", "catalog_node_services"},
+		Help: "Increments whenever a Consul agent receives an RPC error for a request to list services in a node.",
+	},
+	{
+		Name: []string{"client", "api", "catalog_node_service_list"},
+		Help: "Increments whenever a Consul agent receives a request to list a node's registered services.",
+	},
+	{
+		Name: []string{"client", "rpc", "error", "catalog_node_service_list"},
+		Help: "Increments whenever a Consul agent receives an RPC error for request to list a node's registered services.",
+	},
+	{
+		Name: []string{"client", "api", "success", "catalog_node_service_list"},
+		Help: "Increments whenever a Consul agent successfully responds to a request to list a node's registered services.",
+	},
+	{
+		Name: []string{"client", "api", "catalog_gateway_services"},
+		Help: "Increments whenever a Consul agent receives a request to list services associated with a gateway.",
+	},
+	{
+		Name: []string{"client", "rpc", "error", "catalog_gateway_services"},
+		Help: "Increments whenever a Consul agent receives an RPC error for a request to list services associated with a gateway.",
+	},
+	{
+		Name: []string{"client", "api", "success", "catalog_gateway_services"},
+		Help: "Increments whenever a Consul agent successfully responds to a request to list services associated with a gateway.",
+	},
+}
+
+func (s *HTTPHandlers) CatalogRegister(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_register"}, 1,
 		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
 
@@ -43,7 +159,7 @@ func (s *HTTPServer) CatalogRegister(resp http.ResponseWriter, req *http.Request
 	return true, nil
 }
 
-func (s *HTTPServer) CatalogDeregister(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) CatalogDeregister(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_deregister"}, 1,
 		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
 
@@ -75,7 +191,7 @@ func (s *HTTPServer) CatalogDeregister(resp http.ResponseWriter, req *http.Reque
 	return true, nil
 }
 
-func (s *HTTPServer) CatalogDatacenters(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) CatalogDatacenters(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_datacenters"}, 1,
 		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
 
@@ -111,7 +227,7 @@ func (s *HTTPServer) CatalogDatacenters(resp http.ResponseWriter, req *http.Requ
 	return out, nil
 }
 
-func (s *HTTPServer) CatalogNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) CatalogNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_nodes"}, 1,
 		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
 
@@ -149,7 +265,7 @@ RETRY_ONCE:
 	return out.Nodes, nil
 }
 
-func (s *HTTPServer) CatalogServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) CatalogServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_services"}, 1,
 		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
 
@@ -205,15 +321,15 @@ func (s *HTTPServer) CatalogServices(resp http.ResponseWriter, req *http.Request
 	return out.Services, nil
 }
 
-func (s *HTTPServer) CatalogConnectServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) CatalogConnectServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	return s.catalogServiceNodes(resp, req, true)
 }
 
-func (s *HTTPServer) CatalogServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) CatalogServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	return s.catalogServiceNodes(resp, req, false)
 }
 
-func (s *HTTPServer) catalogServiceNodes(resp http.ResponseWriter, req *http.Request, connect bool) (interface{}, error) {
+func (s *HTTPHandlers) catalogServiceNodes(resp http.ResponseWriter, req *http.Request, connect bool) (interface{}, error) {
 	metricsKey := "catalog_service_nodes"
 	pathPrefix := "/v1/catalog/service/"
 	if connect {
@@ -302,7 +418,7 @@ func (s *HTTPServer) catalogServiceNodes(resp http.ResponseWriter, req *http.Req
 	return out.ServiceNodes, nil
 }
 
-func (s *HTTPServer) CatalogNodeServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) CatalogNodeServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_node_services"}, 1,
 		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
 
@@ -365,7 +481,7 @@ RETRY_ONCE:
 	return out.NodeServices, nil
 }
 
-func (s *HTTPServer) CatalogNodeServiceList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) CatalogNodeServiceList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_node_service_list"}, 1,
 		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
 
@@ -415,7 +531,7 @@ RETRY_ONCE:
 	return &out.NodeServices, nil
 }
 
-func (s *HTTPServer) CatalogGatewayServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) CatalogGatewayServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_gateway_services"}, 1,
 		[]metrics.Label{{Name: "node", Value: s.nodeName()}})
 

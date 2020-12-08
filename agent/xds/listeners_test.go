@@ -436,19 +436,9 @@ func TestListenersFromSnapshot(t *testing.T) {
 							},
 						},
 					},
-					structs.NewServiceName("web", nil): {
-						Kind: structs.ServiceResolver,
-						Name: "web",
-						Subsets: map[string]structs.ServiceResolverSubset{
-							"v1": {
-								Filter: "Service.Meta.version == 1",
-							},
-							"v2": {
-								Filter:      "Service.Meta.version == 2",
-								OnlyPassing: true,
-							},
-						},
-					},
+				}
+				snap.TerminatingGateway.ServiceConfigs[structs.NewServiceName("web", nil)] = &structs.ServiceConfigResponse{
+					ProxyConfig: map[string]interface{}{"protocol": "http"},
 				}
 			},
 		},
@@ -587,7 +577,7 @@ func expectListenerJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot) ma
 								"name": "envoy.tcp_proxy",
 								"config": {
 									"cluster": "local_app",
-									"stat_prefix": "public_listener_tcp"
+									"stat_prefix": "public_listener"
 								}
 							}
 						]
@@ -610,7 +600,7 @@ func expectListenerJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot) ma
 							"name": "envoy.tcp_proxy",
 							"config": {
 								"cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-								"stat_prefix": "upstream_db_tcp"
+								"stat_prefix": "upstream.db.default.dc1"
 							}
 						}
 					]
@@ -633,7 +623,7 @@ func expectListenerJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot) ma
 							"name": "envoy.tcp_proxy",
 							"config": {
 								"cluster": "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
-								"stat_prefix": "upstream_prepared_query_geo-cache_tcp"
+								"stat_prefix": "upstream.prepared_query_geo-cache"
 							}
 						}
 					]

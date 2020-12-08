@@ -1,0 +1,57 @@
+---
+layout: docs
+page_title: Tasks
+sidebar_title: Tasks
+description: >-
+  Consul-Terraform-Sync Tasks
+---
+
+# Tasks
+
+A task is the translation of dynamic service information from the Consul Catalog into network infrastructure changes downstream. Consul-Terraform-Sync carries out automation for executing tasks using network drivers. For a Terraform driver, the scope of a task is a Terraform module.
+
+Below is an example task configuration:
+
+```hcl
+task {
+  name = "frontend-firewall-policies"
+  description = "Add firewall policy rules for frontend services"
+  providers = ["fake-firewall", "null"]
+  services = ["web", "image"]
+  source = "example/firewall-policy/module"
+  version = "1.0.0"
+}
+```
+
+In the example task above, the "fake-firewall" and "null" providers, listed in the `providers` field, are used. These providers themselves should be configured in their own separate [provider blocks](/docs/nia/installation/configuration#provider). These providers are used in the Terraform module "example/firewall-policy/module", configured in the `source` field, to create, update, and destroy resources. This module may do something like use the providers to create and destroy firewall policy objects based on IP addresses. The IP addresses come from the "web" and "image" service instances configured in the `services` field. This service-level information is retrieved by Consul-Terraform-Sync which watches Consul catalog for changes.
+
+See [task configuration](/docs/nia/installation/configuration#task) for more details on how to configure a task.
+
+## Task Execution
+
+A task is executed when any change of information for services the task is configured for is detected from the Consul catalog. Execution could include one or more changes to service values, like IP address, added or removed service instance, or tags. A complete list of values that would cause a task to run are expanded below:
+
+| Attribute | Description |
+| -- | -- |
+| `id` | A unique Consul ID for this service. This is unique per Consul agent. |
+| `name` | The logical name of the service. Many service instances may share the same logical service name. |
+| `address` | IP address of the service host -- if empty, node address should be used. |
+| `port` | Port number of the service |
+| `meta` | List of user-defined metadata key/value pairs for the service |
+| `tags` | List of tags for the service |
+| `namespace` | Consul Enterprise namespace of the service instance |
+| `status` | Representative status for the service instance based on an aggregate of the list of health checks |
+| `node` | Name of the Consul node on which the service is registered |
+| `node_id` | ID of the node on which the service is registered. |
+| `node_address` | The IP address of the Consul node on which the service is registered. |
+| `node_datacenter` | Data center of the Consul node on which the service is registered. |
+| `node_tagged_addresses` | List of explicit LAN and WAN IP addresses for the agent |
+| `node_meta` | List of user-defined metadata key/value pairs for the node |
+
+Consul-Terraform-Sync automatically generates any files needed to execute the network driver for each task. See [network drivers](/docs/nia/network-drivers) for more details on the files generated for the Terraform driver.
+
+## Task Automation
+
+Consul-Terraform-Sync will attempt to execute each task once upon startup to synchronize infrastructure with the current state of Consul. The daemon will stop and exit if any error occurs while preparing the automation environment or executing a task for the first time. This helps ensure all tasks have proper configuration and are executable before the daemon transitions into running tasks in full automation as service changes are discovered over time. After all tasks have successfully executed once, task failures during automation will be logged and retried or attempted again after a subsequent change.
+
+Tasks are executed near-real time when service changes are detected. For services or environments that are prone to flapping, it may be useful to configure a [buffer period](/docs/nia/installation/configuration#buffer_period-1) for a task to accumulate changes before it is executed. The buffer period would reduce the number of consecutive network calls to infrastructure by batching changes for a task over a short duration of time.

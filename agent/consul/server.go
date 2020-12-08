@@ -17,32 +17,39 @@ import (
 	"sync/atomic"
 	"time"
 
-	metrics "github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/acl"
-	ca "github.com/hashicorp/consul/agent/connect/ca"
-	"github.com/hashicorp/consul/agent/consul/authmethod"
-	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
-	"github.com/hashicorp/consul/agent/consul/autopilot"
-	"github.com/hashicorp/consul/agent/consul/fsm"
-	"github.com/hashicorp/consul/agent/consul/state"
-	"github.com/hashicorp/consul/agent/metadata"
-	"github.com/hashicorp/consul/agent/pool"
-	"github.com/hashicorp/consul/agent/router"
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/tlsutil"
-	"github.com/hashicorp/consul/types"
+	"github.com/armon/go-metrics"
 	connlimit "github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
+	autopilot "github.com/hashicorp/raft-autopilot"
 	raftboltdb "github.com/hashicorp/raft-boltdb"
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/time/rate"
+	"google.golang.org/grpc"
+
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/consul/authmethod"
+	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
+	"github.com/hashicorp/consul/agent/consul/fsm"
+	"github.com/hashicorp/consul/agent/consul/state"
+	"github.com/hashicorp/consul/agent/consul/usagemetrics"
+	agentgrpc "github.com/hashicorp/consul/agent/grpc"
+	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/consul/agent/pool"
+	"github.com/hashicorp/consul/agent/router"
+	"github.com/hashicorp/consul/agent/rpc/subscribe"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
+	"github.com/hashicorp/consul/tlsutil"
+	"github.com/hashicorp/consul/types"
 )
+
+// NOTE The "consul.client.rpc" and "consul.client.rpc.exceeded" counters are defined in consul/client.go
 
 // These are the protocol versions that Consul can _understand_. These are
 // Consul-level protocol versions, that are used to configure the Serf
@@ -67,14 +74,6 @@ const (
 	serfWANSnapshot   = "serf/remote.snapshot"
 	raftState         = "raft/"
 	snapshotsRetained = 2
-
-	// serverRPCCache controls how long we keep an idle connection
-	// open to a server
-	serverRPCCache = 2 * time.Minute
-
-	// serverMaxStreams controls how many idle streams we keep
-	// open to a server
-	serverMaxStreams = 64
 
 	// raftLogCacheSize is the maximum number of logs to cache in-memory.
 	// This is used to reduce disk I/O for the recently committed entries.
@@ -106,9 +105,9 @@ const (
 	federationStateReplicationRoutineName = "federation state replication"
 	federationStateAntiEntropyRoutineName = "federation state anti-entropy"
 	federationStatePruningRoutineName     = "federation state pruning"
-	intentionReplicationRoutineName       = "intention replication"
+	intentionMigrationRoutineName         = "intention config entry migration"
 	secondaryCARootWatchRoutineName       = "secondary CA roots watch"
-	secondaryCertRenewWatchRoutineName    = "secondary cert renew watch"
+	intermediateCertRenewWatchRoutineName = "intermediate cert renew watch"
 )
 
 var (
@@ -139,20 +138,8 @@ type Server struct {
 	// autopilot is the Autopilot instance for this server.
 	autopilot *autopilot.Autopilot
 
-	// autopilotWaitGroup is used to block until Autopilot shuts down.
-	autopilotWaitGroup sync.WaitGroup
-
-	// caProviderReconfigurationLock guards the provider reconfiguration.
-	caProviderReconfigurationLock sync.Mutex
-	// caProvider is the current CA provider in use for Connect. This is
-	// only non-nil when we are the leader.
-	caProvider ca.Provider
-	// caProviderRoot is the CARoot that was stored along with the ca.Provider
-	// active. It's only updated in lock-step with the caProvider. This prevents
-	// races between state updates to active roots and the fetch of the provider
-	// instance.
-	caProviderRoot *structs.CARoot
-	caProviderLock sync.RWMutex
+	// caManager is used to synchronize CA operations across the leader and RPC functions.
+	caManager *CAManager
 
 	// rate limiter to use when signing leaf certificates
 	caLeafLimiter connectSignRateLimiter
@@ -238,8 +225,9 @@ type Server struct {
 	rpcConnLimiter connlimit.Limiter
 
 	// Listener is used to listen for incoming connections
-	Listener  net.Listener
-	rpcServer *rpc.Server
+	Listener    net.Listener
+	grpcHandler connHandler
+	rpcServer   *rpc.Server
 
 	// insecureRPCServer is a RPC server that is configure with
 	// IncomingInsecureRPCConfig to allow clients to call AutoEncrypt.Sign
@@ -302,9 +290,11 @@ type Server struct {
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
 
-	// State for whether this datacenter is acting as a secondary CA.
-	actingSecondaryCA   bool
-	actingSecondaryLock sync.RWMutex
+	// dcSupportsIntentionsAsConfigEntries is used to determine whether we can
+	// migrate old intentions into service-intentions config entries. All
+	// servers in the local DC must be on a version of Consul supporting
+	// service-intentions before this will get enabled.
+	dcSupportsIntentionsAsConfigEntries int32
 
 	// Manager to handle starting/stopping go routines when establishing/revoking raft leadership
 	leaderRoutineManager *LeaderRoutineManager
@@ -313,17 +303,16 @@ type Server struct {
 	EnterpriseServer
 }
 
+type connHandler interface {
+	Run() error
+	Handle(conn net.Conn)
+	Shutdown() error
+}
+
 // NewServer is used to construct a new Consul server from the configuration
 // and extra options, potentially returning an error.
-func NewServer(config *Config, options ...ConsulOption) (*Server, error) {
-	flat := flattenConsulOptions(options)
-
-	logger := flat.logger
-	tokens := flat.tokens
-	tlsConfigurator := flat.tlsConfigurator
-	connPool := flat.connPool
-	rpcRouter := flat.router
-
+func NewServer(config *Config, flat Deps) (*Server, error) {
+	logger := flat.Logger
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
 	}
@@ -332,9 +321,6 @@ func NewServer(config *Config, options ...ConsulOption) (*Server, error) {
 	}
 	if err := config.CheckACL(); err != nil {
 		return nil, err
-	}
-	if logger == nil {
-		return nil, fmt.Errorf("logger is required")
 	}
 
 	// Check if TLS is enabled
@@ -364,40 +350,24 @@ func NewServer(config *Config, options ...ConsulOption) (*Server, error) {
 	// Create the shutdown channel - this is closed but never written to.
 	shutdownCh := make(chan struct{})
 
-	if connPool == nil {
-		connPool = &pool.ConnPool{
-			Server:          true,
-			SrcAddr:         config.RPCSrcAddr,
-			Logger:          logger.StandardLogger(&hclog.StandardLoggerOptions{InferLevels: true}),
-			MaxTime:         serverRPCCache,
-			MaxStreams:      serverMaxStreams,
-			TLSConfigurator: tlsConfigurator,
-			Datacenter:      config.Datacenter,
-		}
-	}
-
-	serverLogger := logger.NamedIntercept(logging.ConsulServer)
+	serverLogger := flat.Logger.NamedIntercept(logging.ConsulServer)
 	loggers := newLoggerStore(serverLogger)
-
-	if rpcRouter == nil {
-		rpcRouter = router.NewRouter(serverLogger, config.Datacenter, fmt.Sprintf("%s.%s", config.NodeName, config.Datacenter))
-	}
 
 	// Create server.
 	s := &Server{
 		config:                  config,
-		tokens:                  tokens,
-		connPool:                connPool,
+		tokens:                  flat.Tokens,
+		connPool:                flat.ConnPool,
 		eventChLAN:              make(chan serf.Event, serfEventChSize),
 		eventChWAN:              make(chan serf.Event, serfEventChSize),
 		logger:                  serverLogger,
 		loggers:                 loggers,
 		leaveCh:                 make(chan struct{}),
 		reconcileCh:             make(chan serf.Member, reconcileChSize),
-		router:                  rpcRouter,
+		router:                  flat.Router,
 		rpcServer:               rpc.NewServer(),
 		insecureRPCServer:       rpc.NewServer(),
-		tlsConfigurator:         tlsConfigurator,
+		tlsConfigurator:         flat.TLSConfigurator,
 		reassertLeaderCh:        make(chan chan error),
 		segmentLAN:              make(map[string]*serf.Serf, len(config.Segments)),
 		sessionTimers:           NewSessionTimers(),
@@ -406,6 +376,7 @@ func NewServer(config *Config, options ...ConsulOption) (*Server, error) {
 		shutdownCh:              shutdownCh,
 		leaderRoutineManager:    NewLeaderRoutineManager(logger),
 		aclAuthMethodValidators: authmethod.NewCache(),
+		fsm:                     newFSMFromConfig(flat.Logger, gc, config),
 	}
 
 	if s.config.ConnectMeshGatewayWANFederationEnabled {
@@ -446,11 +417,11 @@ func NewServer(config *Config, options ...ConsulOption) (*Server, error) {
 				srv:            s,
 				gatewayLocator: s.gatewayLocator,
 			},
-			Logger: s.logger,
+			Logger: s.loggers.Named(logging.Replication).Named(logging.FederationState),
 		},
 		Rate:             s.config.FederationStateReplicationRate,
 		Burst:            s.config.FederationStateReplicationBurst,
-		Logger:           logger,
+		Logger:           s.logger,
 		SuppressErrorLog: isErrFederationStatesNotSupported,
 	}
 	s.federationStateReplicator, err = NewReplicator(&federationStateReplicatorConfig)
@@ -497,6 +468,7 @@ func NewServer(config *Config, options ...ConsulOption) (*Server, error) {
 		return nil, fmt.Errorf("Failed to start Raft: %v", err)
 	}
 
+	s.caManager = NewCAManager(&caDelegateWithState{s}, s.loggers.Named(logging.Connect), s.config)
 	if s.config.ConnectEnabled && (s.config.AutoEncryptAllowTLS || s.config.AutoConfigAuthzEnabled) {
 		go s.connectCARootsMonitor(&lib.StopChannelContext{StopCh: s.shutdownCh})
 	}
@@ -589,6 +561,21 @@ func NewServer(config *Config, options ...ConsulOption) (*Server, error) {
 		return nil, err
 	}
 
+	reporter, err := usagemetrics.NewUsageMetricsReporter(
+		new(usagemetrics.Config).
+			WithStateProvider(s.fsm).
+			WithLogger(s.logger).
+			WithDatacenter(s.config.Datacenter).
+			WithReportingInterval(s.config.MetricsReportingInterval),
+	)
+	if err != nil {
+		s.Shutdown()
+		return nil, fmt.Errorf("Failed to start usage metrics reporter: %v", err)
+	}
+	go reporter.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
+
+	s.grpcHandler = newGRPCHandlerFromConfig(flat, config, s)
+
 	// Initialize Autopilot. This must happen before starting leadership monitoring
 	// as establishing leadership could attempt to use autopilot and cause a panic.
 	s.initAutopilot(config)
@@ -598,6 +585,11 @@ func NewServer(config *Config, options ...ConsulOption) (*Server, error) {
 	go s.monitorLeadership()
 
 	// Start listening for RPC requests.
+	go func() {
+		if err := s.grpcHandler.Run(); err != nil {
+			s.logger.Error("gRPC server failed", "error", err)
+		}
+	}()
 	go s.listen(s.Listener)
 
 	// Start listeners for any segments with separate RPC listeners.
@@ -609,6 +601,34 @@ func NewServer(config *Config, options ...ConsulOption) (*Server, error) {
 	go s.updateMetrics()
 
 	return s, nil
+}
+
+func newFSMFromConfig(logger hclog.Logger, gc *state.TombstoneGC, config *Config) *fsm.FSM {
+	deps := fsm.Deps{Logger: logger}
+	if config.RPCConfig.EnableStreaming {
+		deps.NewStateStore = func() *state.Store {
+			return state.NewStateStoreWithEventPublisher(gc)
+		}
+		return fsm.NewFromDeps(deps)
+	}
+
+	deps.NewStateStore = func() *state.Store {
+		return state.NewStateStore(gc)
+	}
+	return fsm.NewFromDeps(deps)
+}
+
+func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler {
+	if !config.RPCConfig.EnableStreaming {
+		return agentgrpc.NoOpHandler{Logger: deps.Logger}
+	}
+
+	register := func(srv *grpc.Server) {
+		pbsubscribe.RegisterStateChangeSubscriptionServer(srv, subscribe.NewServer(
+			&subscribeBackend{srv: s, connPool: deps.GRPCConnPool},
+			deps.Logger.Named("grpc-api.subscription")))
+	}
+	return agentgrpc.NewHandler(config.RPCAddr, register)
 }
 
 func (s *Server) connectCARootsMonitor(ctx context.Context) {
@@ -646,13 +666,6 @@ func (s *Server) setupRaft() error {
 			}
 		}
 	}()
-
-	// Create the FSM.
-	var err error
-	s.fsm, err = fsm.New(s.tombstoneGC, s.logger)
-	if err != nil {
-		return err
-	}
 
 	var serverAddressProvider raft.ServerAddressProvider = nil
 	if s.config.RaftConfig.ProtocolVersion >= 3 { //ServerAddressProvider needs server ids to work correctly, which is only supported in protocol version 3 or higher
@@ -754,10 +767,12 @@ func (s *Server) setupRaft() error {
 				return fmt.Errorf("recovery failed to parse peers.json: %v", err)
 			}
 
-			tmpFsm, err := fsm.New(s.tombstoneGC, s.logger)
-			if err != nil {
-				return fmt.Errorf("recovery failed to make temp FSM: %v", err)
-			}
+			tmpFsm := fsm.NewFromDeps(fsm.Deps{
+				Logger: s.logger,
+				NewStateStore: func() *state.Store {
+					return state.NewStateStore(s.tombstoneGC)
+				},
+			})
 			if err := raft.RecoverCluster(s.config.RaftConfig, tmpFsm,
 				log, stable, snap, trans, configuration); err != nil {
 				return fmt.Errorf("recovery failed: %v", err)
@@ -799,11 +814,9 @@ func (s *Server) setupRaft() error {
 	s.raftNotifyCh = raftNotifyCh
 
 	// Setup the Raft store.
+	var err error
 	s.raft, err = raft.NewRaft(s.config.RaftConfig, s.fsm.ChunkingFSM(), log, stable, snap, trans)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 // endpointFactory is a function that returns an RPC endpoint bound to the given
@@ -911,6 +924,10 @@ func (s *Server) Shutdown() error {
 		s.serfLAN.Shutdown()
 	}
 
+	for _, segment := range s.segmentLAN {
+		segment.Shutdown()
+	}
+
 	if s.serfWAN != nil {
 		s.serfWAN.Shutdown()
 		if err := s.router.RemoveArea(types.AreaWAN); err != nil {
@@ -935,6 +952,12 @@ func (s *Server) Shutdown() error {
 		s.Listener.Close()
 	}
 
+	if s.grpcHandler != nil {
+		if err := s.grpcHandler.Shutdown(); err != nil {
+			s.logger.Warn("failed to stop gRPC server", "error", err)
+		}
+	}
+
 	// Close the connection pool
 	if s.connPool != nil {
 		s.connPool.Shutdown()
@@ -956,7 +979,7 @@ func (s *Server) Leave() error {
 	s.logger.Info("server starting leave")
 
 	// Check the number of known peers
-	numPeers, err := s.numPeers()
+	numPeers, err := s.autopilot.NumVoters()
 	if err != nil {
 		s.logger.Error("failed to check raft peers", "error", err)
 		return err
@@ -970,21 +993,8 @@ func (s *Server) Leave() error {
 	// removed for some sane period of time.
 	isLeader := s.IsLeader()
 	if isLeader && numPeers > 1 {
-		minRaftProtocol, err := s.autopilot.MinRaftProtocol()
-		if err != nil {
-			return err
-		}
-
-		if minRaftProtocol >= 2 && s.config.RaftConfig.ProtocolVersion >= 3 {
-			future := s.raft.RemoveServer(raft.ServerID(s.config.NodeID), 0, 0)
-			if err := future.Error(); err != nil {
-				s.logger.Error("failed to remove ourself as raft peer", "error", err)
-			}
-		} else {
-			future := s.raft.RemovePeer(addr)
-			if err := future.Error(); err != nil {
-				s.logger.Error("failed to remove ourself as raft peer", "error", err)
-			}
+		if err := s.autopilot.RemoveServer(raft.ServerID(s.config.NodeID)); err != nil {
+			s.logger.Error("failed to remove ourself as a Raft peer", "error", err)
 		}
 	}
 
@@ -1061,18 +1071,6 @@ func (s *Server) Leave() error {
 	}
 
 	return nil
-}
-
-// numPeers is used to check on the number of known peers, including potentially
-// the local node. We count only voters, since others can't actually become
-// leader, so aren't considered peers.
-func (s *Server) numPeers() (int, error) {
-	future := s.raft.GetConfiguration()
-	if err := future.Error(); err != nil {
-		return 0, err
-	}
-
-	return autopilot.NumPeers(future.Configuration()), nil
 }
 
 // JoinLAN is used to have Consul join the inner-DC pool
@@ -1157,17 +1155,21 @@ func (s *Server) RemoveFailedNode(node string, prune bool) error {
 	if err := removeFn(s.serfLAN, node); err != nil {
 		return err
 	}
+
+	wanNode := node
+
 	// The Serf WAN pool stores members as node.datacenter
 	// so the dc is appended if not present
 	if !strings.HasSuffix(node, "."+s.config.Datacenter) {
-		node = node + "." + s.config.Datacenter
+		wanNode = node + "." + s.config.Datacenter
 	}
 	if s.serfWAN != nil {
-		if err := removeFn(s.serfWAN, node); err != nil {
+		if err := removeFn(s.serfWAN, wanNode); err != nil {
 			return err
 		}
 	}
-	return nil
+
+	return s.removeFailedNodeEnterprise(removeFn, node, wanNode)
 }
 
 // IsLeader checks if this server is the cluster leader
@@ -1410,10 +1412,6 @@ func (s *Server) resetConsistentReadReady() {
 // Returns true if this server is ready to serve consistent reads
 func (s *Server) isReadyForConsistentReads() bool {
 	return atomic.LoadInt32(&s.readyForConsistentReads) == 1
-}
-
-func (s *Server) intentionReplicationEnabled() bool {
-	return s.config.ConnectEnabled && s.config.Datacenter != s.config.PrimaryDatacenter
 }
 
 // CreateACLToken will create an ACL token from the given template

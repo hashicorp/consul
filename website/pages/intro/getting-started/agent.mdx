@@ -77,7 +77,7 @@ the name of your node with the `-node` flag.
 
 ## Cluster Members
 
-If you run [`consul members`](/docs/commands/members) in another terminal, you
+If you run [`consul members`](/commands/members) in another terminal, you
 can see the members of the Consul cluster. We'll cover joining clusters in the next
 section, but for now, you should only see one member (yourself):
 
@@ -91,7 +91,7 @@ The output shows our own node, the address it is running on, its
 health state, its role in the cluster, and some version information.
 Additional metadata can be viewed by providing the `-detailed` flag.
 
-The output of the [`members`](/docs/commands/members) command is based on
+The output of the [`members`](/commands/members) command is based on
 the [gossip protocol](/docs/internals/gossip) and is eventually consistent.
 That is, at any point in time, the view of the world as seen by your local
 agent may not exactly match the state on the servers. For a strongly consistent
@@ -103,7 +103,7 @@ $ curl localhost:8500/v1/catalog/nodes
 [{"Node":"Armons-MacBook-Air","Address":"127.0.0.1","TaggedAddresses":{"lan":"127.0.0.1","wan":"127.0.0.1"},"CreateIndex":4,"ModifyIndex":110}]
 ```
 
-In addition to the HTTP API, the [DNS interface](/docs/agent/dns) can
+In addition to the HTTP API, the [DNS interface](/docs/discovery/dns) can
 be used to query the node. Note that you have to make sure to point your DNS
 lookups to the Consul agent's DNS server which runs on port 8600 by default.
 The format of the DNS entries (such as "Armons-MacBook-Air.node.consul") will
@@ -120,7 +120,7 @@ $ dig @127.0.0.1 -p 8600 Armons-MacBook-Air.node.consul
 Armons-MacBook-Air.node.consul.	0 IN	A	127.0.0.1
 ```
 
-## <a name="stopping"></a>Stopping the Agent
+## Stopping the Agent ((#stopping))
 
 You can use `Ctrl-C` (the interrupt signal) to gracefully halt the agent.
 After interrupting the agent, you should see it leave the cluster

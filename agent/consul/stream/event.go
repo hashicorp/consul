@@ -4,7 +4,11 @@ to the state store.
 */
 package stream
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/hashicorp/consul/acl"
+)
 
 // Topic is an identifier that partitions events. A subscription will only receive
 // events which match the Topic.
@@ -14,31 +18,129 @@ type Topic fmt.Stringer
 // EventPublisher and returned to Subscribers.
 type Event struct {
 	Topic   Topic
-	Key     string
 	Index   uint64
-	Payload interface{}
+	Payload Payload
+}
+
+// A Payload contains the topic-specific data in an event. The payload methods
+// should not modify the state of the payload if the Event is being submitted to
+// EventPublisher.Publish.
+type Payload interface {
+	// MatchesKey must return true if the Payload should be included in a subscription
+	// requested with the key and namespace.
+	// Generally this means that the payload matches the key and namespace or
+	// the payload is a special framing event that should be returned to every
+	// subscription.
+	MatchesKey(key, namespace string) bool
+
+	// HasReadPermission uses the acl.Authorizer to determine if the items in the
+	// Payload are visible to the request. It returns true if the payload is
+	// authorized for Read, otherwise returns false.
+	HasReadPermission(authz acl.Authorizer) bool
+}
+
+// PayloadEvents is a Payload that may be returned by Subscription.Next when
+// there are multiple events at an index.
+//
+// Note that unlike most other Payload, PayloadEvents is mutable and it is NOT
+// safe to send to EventPublisher.Publish.
+type PayloadEvents struct {
+	Items []Event
+}
+
+func newPayloadEvents(items ...Event) *PayloadEvents {
+	return &PayloadEvents{Items: items}
+}
+
+func (p *PayloadEvents) filter(f func(Event) bool) bool {
+	items := p.Items
+
+	// To avoid extra allocations, iterate over the list of events first and
+	// get a count of the total desired size. This trades off some extra cpu
+	// time in the worse case (when not all items match the filter), for
+	// fewer memory allocations.
+	var size int
+	for idx := range items {
+		if f(items[idx]) {
+			size++
+		}
+	}
+	if len(items) == size || size == 0 {
+		return size != 0
+	}
+
+	filtered := make([]Event, 0, size)
+	for idx := range items {
+		event := items[idx]
+		if f(event) {
+			filtered = append(filtered, event)
+		}
+	}
+	p.Items = filtered
+	return true
+}
+
+// MatchesKey filters the PayloadEvents to those which match the key and namespace.
+func (p *PayloadEvents) MatchesKey(key, namespace string) bool {
+	return p.filter(func(event Event) bool {
+		return event.Payload.MatchesKey(key, namespace)
+	})
+}
+
+func (p *PayloadEvents) Len() int {
+	return len(p.Items)
+}
+
+// HasReadPermission filters the PayloadEvents to those which are authorized
+// for reading by authz.
+func (p *PayloadEvents) HasReadPermission(authz acl.Authorizer) bool {
+	return p.filter(func(event Event) bool {
+		return event.Payload.HasReadPermission(authz)
+	})
 }
 
 // IsEndOfSnapshot returns true if this is a framing event that indicates the
-// snapshot has completed. Future events from Subscription.Next will be
-// change events.
+// snapshot has completed. Subsequent events from Subscription.Next will be
+// streamed as they occur.
 func (e Event) IsEndOfSnapshot() bool {
 	return e.Payload == endOfSnapshot{}
 }
 
-// IsEndOfEmptySnapshot returns true if this is a framing event that indicates
-// there is no snapshot. Future events from Subscription.Next will be
-// change events.
-func (e Event) IsEndOfEmptySnapshot() bool {
-	return e.Payload == endOfEmptySnapshot{}
+// IsNewSnapshotToFollow returns true if this is a framing event that indicates
+// that the clients view is stale, and must be reset. Subsequent events from
+// Subscription.Next will be a new snapshot, followed by an EndOfSnapshot event.
+func (e Event) IsNewSnapshotToFollow() bool {
+	return e.Payload == newSnapshotToFollow{}
 }
 
-type endOfSnapshot struct{}
+type framingEvent struct{}
 
-type endOfEmptySnapshot struct{}
+func (framingEvent) MatchesKey(string, string) bool {
+	return true
+}
+
+func (framingEvent) HasReadPermission(acl.Authorizer) bool {
+	return true
+}
+
+type endOfSnapshot struct {
+	framingEvent
+}
+
+type newSnapshotToFollow struct {
+	framingEvent
+}
 
 type closeSubscriptionPayload struct {
 	tokensSecretIDs []string
+}
+
+func (closeSubscriptionPayload) MatchesKey(string, string) bool {
+	return false
+}
+
+func (closeSubscriptionPayload) HasReadPermission(acl.Authorizer) bool {
+	return false
 }
 
 // NewCloseSubscriptionEvent returns a special Event that is handled by the

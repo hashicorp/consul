@@ -36,7 +36,7 @@ a 500 is returned as normal.
 To allow clients to maintain fresh results in normal operation but allow stale
 ones if the servers are unavailable, the `stale-if-error=<seconds>` directive
 may be additionally provided in the `Cache-Control` header. This will return the
-cached value anyway even it it's older than `max-age` (provided it's not older
+cached value anyway even if it's older than `max-age` (provided it's not older
 than `stale-if-error`) rather than a 500. It must be provided along with a
 `max-age` or `must-revalidate`. The `Age` response header, if larger than
 `max-age` can be used to determine if the server was unreachable and a cached

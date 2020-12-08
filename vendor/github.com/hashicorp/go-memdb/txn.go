@@ -536,10 +536,45 @@ func (txn *Txn) FirstWatch(table, index string, args ...interface{}) (<-chan str
 	return watch, value, nil
 }
 
+// LastWatch is used to return the last matching object for
+// the given constraints on the index along with the watch channel
+func (txn *Txn) LastWatch(table, index string, args ...interface{}) (<-chan struct{}, interface{}, error) {
+	// Get the index value
+	indexSchema, val, err := txn.getIndexValue(table, index, args...)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Get the index itself
+	indexTxn := txn.readableIndex(table, indexSchema.Name)
+
+	// Do an exact lookup
+	if indexSchema.Unique && val != nil && indexSchema.Name == index {
+		watch, obj, ok := indexTxn.GetWatch(val)
+		if !ok {
+			return watch, nil, nil
+		}
+		return watch, obj, nil
+	}
+
+	// Handle non-unique index by using an iterator and getting the last value
+	iter := indexTxn.Root().ReverseIterator()
+	watch := iter.SeekPrefixWatch(val)
+	_, value, _ := iter.Previous()
+	return watch, value, nil
+}
+
 // First is used to return the first matching object for
 // the given constraints on the index
 func (txn *Txn) First(table, index string, args ...interface{}) (interface{}, error) {
 	_, val, err := txn.FirstWatch(table, index, args...)
+	return val, err
+}
+
+// Last is used to return the last matching object for
+// the given constraints on the index
+func (txn *Txn) Last(table, index string, args ...interface{}) (interface{}, error) {
+	_, val, err := txn.LastWatch(table, index, args...)
 	return val, err
 }
 
@@ -654,6 +689,26 @@ func (txn *Txn) Get(table, index string, args ...interface{}) (ResultIterator, e
 	return iter, nil
 }
 
+// GetReverse is used to construct a Reverse ResultIterator over all the
+// rows that match the given constraints of an index.
+// The returned ResultIterator's Next() will return the next Previous value
+func (txn *Txn) GetReverse(table, index string, args ...interface{}) (ResultIterator, error) {
+	indexIter, val, err := txn.getIndexIteratorReverse(table, index, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	// Seek the iterator to the appropriate sub-set
+	watchCh := indexIter.SeekPrefixWatch(val)
+
+	// Create an iterator
+	iter := &radixReverseIterator{
+		iter:    indexIter,
+		watchCh: watchCh,
+	}
+	return iter, nil
+}
+
 // LowerBound is used to construct a ResultIterator over all the the range of
 // rows that have an index value greater than or equal to the provide args.
 // Calling this then iterating until the rows are larger than required allows
@@ -671,6 +726,29 @@ func (txn *Txn) LowerBound(table, index string, args ...interface{}) (ResultIter
 
 	// Create an iterator
 	iter := &radixIterator{
+		iter: indexIter,
+	}
+	return iter, nil
+}
+
+// ReverseLowerBound is used to construct a Reverse ResultIterator over all the
+// the range of rows that have an index value less than or equal to the
+// provide args.  Calling this then iterating until the rows are lower than
+// required allows range scans within an index. It is not possible to watch the
+// resulting iterator since the radix tree doesn't efficiently allow watching
+// on lower bound changes. The WatchCh returned will be nill and so will block
+// forever.
+func (txn *Txn) ReverseLowerBound(table, index string, args ...interface{}) (ResultIterator, error) {
+	indexIter, val, err := txn.getIndexIteratorReverse(table, index, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	// Seek the iterator to the appropriate sub-set
+	indexIter.SeekReverseLowerBound(val)
+
+	// Create an iterator
+	iter := &radixReverseIterator{
 		iter: indexIter,
 	}
 	return iter, nil
@@ -744,6 +822,15 @@ func (txn *Txn) Changes() Changes {
 			// case it's different. Note that m is not a pointer so we are not
 			// modifying the txn.changeSet here - it's already a copy.
 			m.Before = mi.firstBefore
+
+			// Edge case - if the object was inserted and then eventually deleted in
+			// the same transaction, then the net affect on that key is a no-op. Don't
+			// emit a mutation with nil for before and after as it's meaningless and
+			// might violate expectations and cause a panic in code that assumes at
+			// least one must be set.
+			if m.Before == nil && m.After == nil {
+				continue
+			}
 			cs = append(cs, m)
 		}
 	}
@@ -765,6 +852,22 @@ func (txn *Txn) getIndexIterator(table, index string, args ...interface{}) (*ira
 
 	// Get an interator over the index
 	indexIter := indexRoot.Iterator()
+	return indexIter, val, nil
+}
+
+func (txn *Txn) getIndexIteratorReverse(table, index string, args ...interface{}) (*iradix.ReverseIterator, []byte, error) {
+	// Get the index value to scan
+	indexSchema, val, err := txn.getIndexValue(table, index, args...)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Get the index itself
+	indexTxn := txn.readableIndex(table, indexSchema.Name)
+	indexRoot := indexTxn.Root()
+
+	// Get an interator over the index
+	indexIter := indexRoot.ReverseIterator()
 	return indexIter, val, nil
 }
 
@@ -794,4 +897,44 @@ func (r *radixIterator) Next() interface{} {
 		return nil
 	}
 	return value
+}
+
+type radixReverseIterator struct {
+	iter    *iradix.ReverseIterator
+	watchCh <-chan struct{}
+}
+
+func (r *radixReverseIterator) Next() interface{} {
+	_, value, ok := r.iter.Previous()
+	if !ok {
+		return nil
+	}
+	return value
+}
+
+func (r *radixReverseIterator) WatchCh() <-chan struct{} {
+	return r.watchCh
+}
+
+// Snapshot creates a snapshot of the current state of the transaction.
+// Returns a new read-only transaction or nil if the transaction is already
+// aborted or committed.
+func (txn *Txn) Snapshot() *Txn {
+	if txn.rootTxn == nil {
+		return nil
+	}
+
+	snapshot := &Txn{
+		db:      txn.db,
+		rootTxn: txn.rootTxn.Clone(),
+	}
+
+	// Commit sub-transactions into the snapshot
+	for key, subTxn := range txn.modified {
+		path := indexPath(key.Table, key.Index)
+		final := subTxn.CommitOnly()
+		snapshot.rootTxn.Insert(path, final)
+	}
+
+	return snapshot
 }

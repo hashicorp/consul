@@ -7,7 +7,6 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -168,21 +167,22 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	}
 	require.NoError(t, fsm.state.PreparedQuerySet(14, &query))
 
-	autopilotConf := &autopilot.Config{
+	autopilotConf := &structs.AutopilotConfig{
 		CleanupDeadServers:   true,
 		LastContactThreshold: 100 * time.Millisecond,
 		MaxTrailingLogs:      222,
 	}
 	require.NoError(t, fsm.state.AutopilotSetConfig(15, autopilotConf))
 
-	// Intentions
+	// Legacy Intentions
 	ixn := structs.TestIntention(t)
 	ixn.ID = generateUUID()
 	ixn.RaftIndex = structs.RaftIndex{
 		CreateIndex: 14,
 		ModifyIndex: 14,
 	}
-	require.NoError(t, fsm.state.IntentionSet(14, ixn))
+	//nolint:staticcheck
+	require.NoError(t, fsm.state.LegacyIntentionSet(14, ixn))
 
 	// CA Roots
 	roots := []*structs.CARoot{
@@ -399,6 +399,25 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		ServiceID: "web",
 	}))
 
+	// system metadata
+	systemMetadataEntry := &structs.SystemMetadataEntry{
+		Key: "key1", Value: "val1",
+	}
+	require.NoError(t, fsm.state.SystemMetadataSet(25, systemMetadataEntry))
+
+	// service-intentions
+	serviceIxn := &structs.ServiceIntentionsConfigEntry{
+		Kind: structs.ServiceIntentions,
+		Name: "foo",
+		Sources: []*structs.SourceIntention{
+			{
+				Name:   "bar",
+				Action: structs.IntentionActionAllow,
+			},
+		},
+	}
+	require.NoError(t, fsm.state.EnsureConfigEntry(26, serviceIxn, structs.DefaultEnterpriseMeta()))
+
 	// Snapshot
 	snap, err := fsm.Snapshot()
 	require.NoError(t, err)
@@ -603,8 +622,8 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, autopilotConf, restoredConf)
 
-	// Verify intentions are restored.
-	_, ixns, err := fsm2.state.Intentions(nil, structs.WildcardEnterpriseMeta())
+	// Verify legacy intentions are restored.
+	_, ixns, err := fsm2.state.LegacyIntentions(nil, structs.WildcardEnterpriseMeta())
 	require.NoError(t, err)
 	require.Len(t, ixns, 1)
 	require.Equal(t, ixn, ixns[0])
@@ -653,6 +672,23 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	_, fedStateLoaded2, err := fsm2.state.FederationStateGet(nil, "dc2")
 	require.NoError(t, err)
 	require.Equal(t, fedState2, fedStateLoaded2)
+
+	// Verify usage data is correctly updated
+	idx, nodeCount, err := fsm2.state.NodeCount()
+	require.NoError(t, err)
+	require.Equal(t, len(nodes), nodeCount)
+	require.NotZero(t, idx)
+
+	// Verify system metadata is restored.
+	_, systemMetadataLoaded, err := fsm2.state.SystemMetadataList(nil)
+	require.NoError(t, err)
+	require.Len(t, systemMetadataLoaded, 1)
+	require.Equal(t, systemMetadataEntry, systemMetadataLoaded[0])
+
+	// Verify service-intentions is restored
+	_, serviceIxnEntry, err := fsm2.state.ConfigEntry(nil, structs.ServiceIntentions, "foo", structs.DefaultEnterpriseMeta())
+	require.NoError(t, err)
+	require.Equal(t, serviceIxn, serviceIxnEntry)
 
 	// Snapshot
 	snap, err = fsm2.Snapshot()

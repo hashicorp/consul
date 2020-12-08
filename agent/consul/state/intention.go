@@ -1,11 +1,15 @@
 package state
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
+
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 const (
@@ -97,8 +101,11 @@ func init() {
 	registerSchema(intentionsTableSchema)
 }
 
-// Intentions is used to pull all the intentions from the snapshot.
-func (s *Snapshot) Intentions() (structs.Intentions, error) {
+// LegacyIntentions is used to pull all the intentions from the snapshot.
+//
+// Deprecated: service-intentions config entries are handled as config entries
+// in the snapshot.
+func (s *Snapshot) LegacyIntentions() (structs.Intentions, error) {
 	ixns, err := s.tx.Get(intentionsTableName, "id")
 	if err != nil {
 		return nil, err
@@ -112,8 +119,11 @@ func (s *Snapshot) Intentions() (structs.Intentions, error) {
 	return ret, nil
 }
 
-// Intention is used when restoring from a snapshot.
-func (s *Restore) Intention(ixn *structs.Intention) error {
+// LegacyIntention is used when restoring from a snapshot.
+//
+// Deprecated: service-intentions config entries are handled as config entries
+// in the snapshot.
+func (s *Restore) LegacyIntention(ixn *structs.Intention) error {
 	// Insert the intention
 	if err := s.tx.Insert(intentionsTableName, ixn); err != nil {
 		return fmt.Errorf("failed restoring intention: %s", err)
@@ -125,11 +135,51 @@ func (s *Restore) Intention(ixn *structs.Intention) error {
 	return nil
 }
 
-// Intentions returns the list of all intentions.
-func (s *Store) Intentions(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.Intentions, error) {
+// AreIntentionsInConfigEntries determines which table is the canonical store
+// for intentions data.
+func (s *Store) AreIntentionsInConfigEntries() (bool, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+	return areIntentionsInConfigEntries(tx, nil)
+}
+
+func areIntentionsInConfigEntries(tx ReadTxn, ws memdb.WatchSet) (bool, error) {
+	_, entry, err := systemMetadataGetTxn(tx, ws, structs.SystemMetadataIntentionFormatKey)
+	if err != nil {
+		return false, fmt.Errorf("failed system metadatalookup: %s", err)
+	}
+	if entry == nil {
+		return false, nil
+	}
+	return entry.Value == structs.SystemMetadataIntentionFormatConfigValue, nil
+}
+
+// LegacyIntentions is like Intentions() but only returns legacy intentions.
+// This is exposed for migration purposes.
+func (s *Store) LegacyIntentions(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.Intentions, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
+	idx, results, _, err := s.legacyIntentionsListTxn(tx, ws, entMeta)
+	return idx, results, err
+}
+
+// Intentions returns the list of all intentions. The boolean response value is true if it came from config entries.
+func (s *Store) Intentions(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.Intentions, bool, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	usingConfigEntries, err := areIntentionsInConfigEntries(tx, ws)
+	if err != nil {
+		return 0, nil, false, err
+	}
+	if !usingConfigEntries {
+		return s.legacyIntentionsListTxn(tx, ws, entMeta)
+	}
+	return s.configIntentionsListTxn(tx, ws, entMeta)
+}
+
+func (s *Store) legacyIntentionsListTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.Intentions, bool, error) {
 	// Get the index
 	idx := maxIndexTxn(tx, intentionsTableName)
 	if idx < 1 {
@@ -138,7 +188,7 @@ func (s *Store) Intentions(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (
 
 	iter, err := intentionListTxn(tx, entMeta)
 	if err != nil {
-		return 0, nil, fmt.Errorf("failed intention lookup: %s", err)
+		return 0, nil, false, fmt.Errorf("failed intention lookup: %s", err)
 	}
 
 	ws.Add(iter.WatchCh())
@@ -152,30 +202,331 @@ func (s *Store) Intentions(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (
 	// want for presentation.
 	sort.Sort(structs.IntentionPrecedenceSorter(results))
 
-	return idx, results, nil
+	return idx, results, false, nil
 }
 
-// IntentionSet creates or updates an intention.
-func (s *Store) IntentionSet(idx uint64, ixn *structs.Intention) error {
+var ErrLegacyIntentionsAreDisabled = errors.New("Legacy intention modifications are disabled after the config entry migration.")
+
+func (s *Store) IntentionMutation(idx uint64, op structs.IntentionOp, mut *structs.IntentionMutation) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
-	if err := intentionSetTxn(tx, idx, ixn); err != nil {
+	usingConfigEntries, err := areIntentionsInConfigEntries(tx, nil)
+	if err != nil {
+		return err
+	}
+	if !usingConfigEntries {
+		return errors.New("state: IntentionMutation() is not allowed when intentions are not stored in config entries")
+	}
+
+	switch op {
+	case structs.IntentionOpCreate:
+		if err := s.intentionMutationLegacyCreate(tx, idx, mut.Destination, mut.Value); err != nil {
+			return err
+		}
+	case structs.IntentionOpUpdate:
+		if err := s.intentionMutationLegacyUpdate(tx, idx, mut.ID, mut.Value); err != nil {
+			return err
+		}
+	case structs.IntentionOpDelete:
+		if mut.ID == "" {
+			if err := s.intentionMutationDelete(tx, idx, mut.Destination, mut.Source); err != nil {
+				return err
+			}
+		} else {
+			if err := s.intentionMutationLegacyDelete(tx, idx, mut.ID); err != nil {
+				return err
+			}
+		}
+	case structs.IntentionOpUpsert:
+		if err := s.intentionMutationUpsert(tx, idx, mut.Destination, mut.Source, mut.Value); err != nil {
+			return err
+		}
+	case structs.IntentionOpDeleteAll:
+		// This is an internal operation initiated by the leader and is not
+		// exposed for general RPC use.
+		return fmt.Errorf("Invalid Intention mutation operation '%s'", op)
+	default:
+		return fmt.Errorf("Invalid Intention mutation operation '%s'", op)
+	}
+
+	return tx.Commit()
+}
+
+func (s *Store) intentionMutationLegacyCreate(
+	tx WriteTxn,
+	idx uint64,
+	dest structs.ServiceName,
+	value *structs.SourceIntention,
+) error {
+	_, configEntry, err := configEntryTxn(tx, nil, structs.ServiceIntentions, dest.Name, &dest.EnterpriseMeta)
+	if err != nil {
+		return fmt.Errorf("service-intentions config entry lookup failed: %v", err)
+	}
+
+	var upsertEntry *structs.ServiceIntentionsConfigEntry
+	if configEntry == nil {
+		upsertEntry = &structs.ServiceIntentionsConfigEntry{
+			Kind:           structs.ServiceIntentions,
+			Name:           dest.Name,
+			EnterpriseMeta: dest.EnterpriseMeta,
+			Sources:        []*structs.SourceIntention{value},
+		}
+	} else {
+		prevEntry := configEntry.(*structs.ServiceIntentionsConfigEntry)
+
+		if err := checkLegacyIntentionApplyAllowed(prevEntry); err != nil {
+			return err
+		}
+
+		upsertEntry = prevEntry.Clone()
+		upsertEntry.Sources = append(upsertEntry.Sources, value)
+	}
+
+	if err := upsertEntry.LegacyNormalize(); err != nil {
+		return err
+	}
+	if err := upsertEntry.LegacyValidate(); err != nil {
+		return err
+	}
+
+	if err := ensureConfigEntryTxn(tx, idx, upsertEntry, upsertEntry.GetEnterpriseMeta()); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Store) intentionMutationLegacyUpdate(
+	tx WriteTxn,
+	idx uint64,
+	legacyID string,
+	value *structs.SourceIntention,
+) error {
+	// This variant is just for legacy UUID-based intentions.
+
+	_, prevEntry, ixn, err := s.IntentionGet(nil, legacyID)
+	if err != nil {
+		return fmt.Errorf("Intention lookup failed: %v", err)
+	}
+	if ixn == nil || prevEntry == nil {
+		return fmt.Errorf("Cannot modify non-existent intention: '%s'", legacyID)
+	}
+
+	if err := checkLegacyIntentionApplyAllowed(prevEntry); err != nil {
+		return err
+	}
+
+	upsertEntry := prevEntry.Clone()
+
+	foundMatch := upsertEntry.UpdateSourceByLegacyID(
+		legacyID,
+		value,
+	)
+	if !foundMatch {
+		return fmt.Errorf("Cannot modify non-existent intention: '%s'", legacyID)
+	}
+
+	if err := upsertEntry.LegacyNormalize(); err != nil {
+		return err
+	}
+	if err := upsertEntry.LegacyValidate(); err != nil {
+		return err
+	}
+
+	if err := ensureConfigEntryTxn(tx, idx, upsertEntry, upsertEntry.GetEnterpriseMeta()); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Store) intentionMutationDelete(
+	tx WriteTxn,
+	idx uint64,
+	dest structs.ServiceName,
+	src structs.ServiceName,
+) error {
+	_, configEntry, err := configEntryTxn(tx, nil, structs.ServiceIntentions, dest.Name, &dest.EnterpriseMeta)
+	if err != nil {
+		return fmt.Errorf("service-intentions config entry lookup failed: %v", err)
+	}
+	if configEntry == nil {
+		return nil
+	}
+
+	prevEntry := configEntry.(*structs.ServiceIntentionsConfigEntry)
+	upsertEntry := prevEntry.Clone()
+
+	deleted := upsertEntry.DeleteSourceByName(src)
+	if !deleted {
+		return nil
+	}
+
+	if upsertEntry == nil || len(upsertEntry.Sources) == 0 {
+		return deleteConfigEntryTxn(
+			tx,
+			idx,
+			structs.ServiceIntentions,
+			dest.Name,
+			&dest.EnterpriseMeta,
+		)
+	}
+
+	if err := upsertEntry.Normalize(); err != nil {
+		return err
+	}
+	if err := upsertEntry.Validate(); err != nil {
+		return err
+	}
+
+	if err := ensureConfigEntryTxn(tx, idx, upsertEntry, upsertEntry.GetEnterpriseMeta()); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Store) intentionMutationLegacyDelete(
+	tx WriteTxn,
+	idx uint64,
+	legacyID string,
+) error {
+	_, prevEntry, ixn, err := s.IntentionGet(nil, legacyID)
+	if err != nil {
+		return fmt.Errorf("Intention lookup failed: %v", err)
+	}
+	if ixn == nil || prevEntry == nil {
+		return fmt.Errorf("Cannot delete non-existent intention: '%s'", legacyID)
+	}
+
+	if err := checkLegacyIntentionApplyAllowed(prevEntry); err != nil {
+		return err
+	}
+
+	upsertEntry := prevEntry.Clone()
+
+	deleted := upsertEntry.DeleteSourceByLegacyID(legacyID)
+	if !deleted {
+		return fmt.Errorf("Cannot delete non-existent intention: '%s'", legacyID)
+	}
+
+	if upsertEntry == nil || len(upsertEntry.Sources) == 0 {
+		return deleteConfigEntryTxn(
+			tx,
+			idx,
+			structs.ServiceIntentions,
+			prevEntry.Name,
+			&prevEntry.EnterpriseMeta,
+		)
+	}
+
+	if err := upsertEntry.LegacyNormalize(); err != nil {
+		return err
+	}
+	if err := upsertEntry.LegacyValidate(); err != nil {
+		return err
+	}
+
+	if err := ensureConfigEntryTxn(tx, idx, upsertEntry, upsertEntry.GetEnterpriseMeta()); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Store) intentionMutationUpsert(
+	tx WriteTxn,
+	idx uint64,
+	dest structs.ServiceName,
+	src structs.ServiceName,
+	value *structs.SourceIntention,
+) error {
+	// This variant is just for config-entry based intentions.
+
+	_, configEntry, err := configEntryTxn(tx, nil, structs.ServiceIntentions, dest.Name, &dest.EnterpriseMeta)
+	if err != nil {
+		return fmt.Errorf("service-intentions config entry lookup failed: %v", err)
+	}
+
+	var prevEntry *structs.ServiceIntentionsConfigEntry
+	if configEntry != nil {
+		prevEntry = configEntry.(*structs.ServiceIntentionsConfigEntry)
+	}
+
+	var upsertEntry *structs.ServiceIntentionsConfigEntry
+
+	if prevEntry == nil {
+		upsertEntry = &structs.ServiceIntentionsConfigEntry{
+			Kind:           structs.ServiceIntentions,
+			Name:           dest.Name,
+			EnterpriseMeta: dest.EnterpriseMeta,
+			Sources:        []*structs.SourceIntention{value},
+		}
+	} else {
+		upsertEntry = prevEntry.Clone()
+
+		upsertEntry.UpsertSourceByName(src, value)
+	}
+
+	if err := upsertEntry.Normalize(); err != nil {
+		return err
+	}
+	if err := upsertEntry.Validate(); err != nil {
+		return err
+	}
+
+	if err := ensureConfigEntryTxn(tx, idx, upsertEntry, upsertEntry.GetEnterpriseMeta()); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func checkLegacyIntentionApplyAllowed(prevEntry *structs.ServiceIntentionsConfigEntry) error {
+	if prevEntry == nil {
+		return nil
+	}
+	if prevEntry.LegacyIDFieldsAreAllSet() {
+		return nil
+	}
+
+	sn := prevEntry.DestinationServiceName()
+	return fmt.Errorf("cannot use legacy intention API to edit intentions with a destination of %q after editing them via a service-intentions config entry", sn.String())
+}
+
+// LegacyIntentionSet creates or updates an intention.
+//
+// Deprecated: Edit service-intentions config entries directly.
+func (s *Store) LegacyIntentionSet(idx uint64, ixn *structs.Intention) error {
+	tx := s.db.WriteTxn(idx)
+	defer tx.Abort()
+
+	usingConfigEntries, err := areIntentionsInConfigEntries(tx, nil)
+	if err != nil {
+		return err
+	}
+	if usingConfigEntries {
+		return ErrLegacyIntentionsAreDisabled
+	}
+
+	if err := legacyIntentionSetTxn(tx, idx, ixn); err != nil {
 		return err
 	}
 
 	return tx.Commit()
 }
 
-// intentionSetTxn is the inner method used to insert an intention with
+// legacyIntentionSetTxn is the inner method used to insert an intention with
 // the proper indexes into the state store.
-func intentionSetTxn(tx *txn, idx uint64, ixn *structs.Intention) error {
+func legacyIntentionSetTxn(tx WriteTxn, idx uint64, ixn *structs.Intention) error {
 	// ID is required
 	if ixn.ID == "" {
 		return ErrMissingIntentionID
 	}
 
 	// Ensure Precedence is populated correctly on "write"
+	//nolint:staticcheck
 	ixn.UpdatePrecedence()
 
 	// Check for an existing intention
@@ -224,10 +575,22 @@ func intentionSetTxn(tx *txn, idx uint64, ixn *structs.Intention) error {
 }
 
 // IntentionGet returns the given intention by ID.
-func (s *Store) IntentionGet(ws memdb.WatchSet, id string) (uint64, *structs.Intention, error) {
+func (s *Store) IntentionGet(ws memdb.WatchSet, id string) (uint64, *structs.ServiceIntentionsConfigEntry, *structs.Intention, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
+	usingConfigEntries, err := areIntentionsInConfigEntries(tx, ws)
+	if err != nil {
+		return 0, nil, nil, err
+	}
+	if !usingConfigEntries {
+		idx, ixn, err := s.legacyIntentionGetTxn(tx, ws, id)
+		return idx, nil, ixn, err
+	}
+	return s.configIntentionGetTxn(tx, ws, id)
+}
+
+func (s *Store) legacyIntentionGetTxn(tx ReadTxn, ws memdb.WatchSet, id string) (uint64, *structs.Intention, error) {
 	// Get the table index.
 	idx := maxIndexTxn(tx, intentionsTableName)
 	if idx < 1 {
@@ -251,10 +614,22 @@ func (s *Store) IntentionGet(ws memdb.WatchSet, id string) (uint64, *structs.Int
 }
 
 // IntentionGetExact returns the given intention by it's full unique name.
-func (s *Store) IntentionGetExact(ws memdb.WatchSet, args *structs.IntentionQueryExact) (uint64, *structs.Intention, error) {
+func (s *Store) IntentionGetExact(ws memdb.WatchSet, args *structs.IntentionQueryExact) (uint64, *structs.ServiceIntentionsConfigEntry, *structs.Intention, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
+	usingConfigEntries, err := areIntentionsInConfigEntries(tx, ws)
+	if err != nil {
+		return 0, nil, nil, err
+	}
+	if !usingConfigEntries {
+		idx, ixn, err := s.legacyIntentionGetExactTxn(tx, ws, args)
+		return idx, nil, ixn, err
+	}
+	return s.configIntentionGetExactTxn(tx, ws, args)
+}
+
+func (s *Store) legacyIntentionGetExactTxn(tx ReadTxn, ws memdb.WatchSet, args *structs.IntentionQueryExact) (uint64, *structs.Intention, error) {
 	if err := args.Validate(); err != nil {
 		return 0, nil, err
 	}
@@ -282,21 +657,31 @@ func (s *Store) IntentionGetExact(ws memdb.WatchSet, args *structs.IntentionQuer
 	return idx, result, nil
 }
 
-// IntentionDelete deletes the given intention by ID.
-func (s *Store) IntentionDelete(idx uint64, id string) error {
+// LegacyIntentionDelete deletes the given intention by ID.
+//
+// Deprecated: Edit service-intentions config entries directly.
+func (s *Store) LegacyIntentionDelete(idx uint64, id string) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
-	if err := intentionDeleteTxn(tx, idx, id); err != nil {
+	usingConfigEntries, err := areIntentionsInConfigEntries(tx, nil)
+	if err != nil {
+		return err
+	}
+	if usingConfigEntries {
+		return ErrLegacyIntentionsAreDisabled
+	}
+
+	if err := legacyIntentionDeleteTxn(tx, idx, id); err != nil {
 		return fmt.Errorf("failed intention delete: %s", err)
 	}
 
 	return tx.Commit()
 }
 
-// intentionDeleteTxn is the inner method used to delete a intention
+// legacyIntentionDeleteTxn is the inner method used to delete a legacy intention
 // with the proper indexes into the state store.
-func intentionDeleteTxn(tx *txn, idx uint64, queryID string) error {
+func legacyIntentionDeleteTxn(tx WriteTxn, idx uint64, queryID string) error {
 	// Pull the query.
 	wrapped, err := tx.First(intentionsTableName, "id", queryID)
 	if err != nil {
@@ -317,6 +702,102 @@ func intentionDeleteTxn(tx *txn, idx uint64, queryID string) error {
 	return nil
 }
 
+// LegacyIntentionDeleteAll deletes all legacy intentions. This is part of the
+// config entry migration code.
+func (s *Store) LegacyIntentionDeleteAll(idx uint64) error {
+	tx := s.db.WriteTxn(idx)
+	defer tx.Abort()
+
+	// Delete the table and update the index.
+	if _, err := tx.DeleteAll(intentionsTableName, "id"); err != nil {
+		return fmt.Errorf("failed intention delete-all: %s", err)
+	}
+	if err := tx.Insert("index", &IndexEntry{intentionsTableName, idx}); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
+	}
+	// Also bump the index for the config entry table so that
+	// secondaries can correctly know when they've replicated all of the service-intentions
+	// config entries that USED to exist in the old intentions table.
+	if err := tx.Insert("index", &IndexEntry{configTableName, idx}); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
+	}
+
+	// Also set a system metadata flag indicating the transition has occurred.
+	metadataEntry := &structs.SystemMetadataEntry{
+		Key:   structs.SystemMetadataIntentionFormatKey,
+		Value: structs.SystemMetadataIntentionFormatConfigValue,
+		RaftIndex: structs.RaftIndex{
+			CreateIndex: idx,
+			ModifyIndex: idx,
+		},
+	}
+	if err := systemMetadataSetTxn(tx, idx, metadataEntry); err != nil {
+		return fmt.Errorf("failed updating system metadata key %q: %s", metadataEntry.Key, err)
+	}
+
+	return tx.Commit()
+}
+
+// IntentionDecision returns whether a connection should be allowed from a source URI to some destination
+// It returns true or false for the enforcement, and also a boolean for whether
+func (s *Store) IntentionDecision(
+	srcURI connect.CertURI, dstName, dstNS string, defaultDecision acl.EnforcementDecision,
+) (structs.IntentionDecisionSummary, error) {
+
+	_, matches, err := s.IntentionMatch(nil, &structs.IntentionQueryMatch{
+		Type: structs.IntentionMatchDestination,
+		Entries: []structs.IntentionMatchEntry{
+			{
+				Namespace: dstNS,
+				Name:      dstName,
+			},
+		},
+	})
+	if err != nil {
+		return structs.IntentionDecisionSummary{}, err
+	}
+	if len(matches) != 1 {
+		// This should never happen since the documented behavior of the
+		// Match call is that it'll always return exactly the number of results
+		// as entries passed in. But we guard against misbehavior.
+		return structs.IntentionDecisionSummary{}, errors.New("internal error loading matches")
+	}
+
+	// Figure out which source matches this request.
+	var ixnMatch *structs.Intention
+	for _, ixn := range matches[0] {
+		if _, ok := srcURI.Authorize(ixn); ok {
+			ixnMatch = ixn
+			break
+		}
+	}
+
+	var resp structs.IntentionDecisionSummary
+	if ixnMatch == nil {
+		// No intention found, fall back to default
+		resp.Allowed = defaultDecision == acl.Allow
+		return resp, nil
+	}
+
+	// Intention found, combine action + permissions
+	resp.Allowed = ixnMatch.Action == structs.IntentionActionAllow
+	if len(ixnMatch.Permissions) > 0 {
+		// If there are L7 permissions, DENY.
+		// We are only evaluating source and destination, not the request that will be sent.
+		resp.Allowed = false
+		resp.HasPermissions = true
+	}
+	resp.ExternalSource = ixnMatch.Meta[structs.MetaExternalSource]
+
+	// Intentions with wildcard namespaces but specific names are not allowed (*/web -> */api)
+	// So we don't check namespaces to see if there's an exact intention
+	if ixnMatch.SourceName != structs.WildcardSpecifier && ixnMatch.DestinationName != structs.WildcardSpecifier {
+		resp.HasExact = true
+	}
+
+	return resp, nil
+}
+
 // IntentionMatch returns the list of intentions that match the namespace and
 // name for either a source or destination. This applies the resolution rules
 // so wildcards will match any value.
@@ -329,6 +810,17 @@ func (s *Store) IntentionMatch(ws memdb.WatchSet, args *structs.IntentionQueryMa
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
+	usingConfigEntries, err := areIntentionsInConfigEntries(tx, ws)
+	if err != nil {
+		return 0, nil, err
+	}
+	if !usingConfigEntries {
+		return s.legacyIntentionMatchTxn(tx, ws, args)
+	}
+	return s.configIntentionMatchTxn(tx, ws, args)
+}
+
+func (s *Store) legacyIntentionMatchTxn(tx ReadTxn, ws memdb.WatchSet, args *structs.IntentionQueryMatch) (uint64, []structs.Intentions, error) {
 	// Get the table index.
 	idx := maxIndexTxn(tx, intentionsTableName)
 	if idx < 1 {
@@ -338,7 +830,7 @@ func (s *Store) IntentionMatch(ws memdb.WatchSet, args *structs.IntentionQueryMa
 	// Make all the calls and accumulate the results
 	results := make([]structs.Intentions, len(args.Entries))
 	for i, entry := range args.Entries {
-		ixns, err := s.intentionMatchOneTxn(tx, ws, entry, args.Type)
+		ixns, err := intentionMatchOneTxn(tx, ws, entry, args.Type)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -359,18 +851,37 @@ func (s *Store) IntentionMatch(ws memdb.WatchSet, args *structs.IntentionQueryMa
 //
 // The returned intentions are sorted based on the intention precedence rules.
 // i.e. result[0] is the highest precedent rule to match
-func (s *Store) IntentionMatchOne(ws memdb.WatchSet,
-	entry structs.IntentionMatchEntry, matchType structs.IntentionMatchType) (uint64, structs.Intentions, error) {
+func (s *Store) IntentionMatchOne(
+	ws memdb.WatchSet,
+	entry structs.IntentionMatchEntry,
+	matchType structs.IntentionMatchType,
+) (uint64, structs.Intentions, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
+	usingConfigEntries, err := areIntentionsInConfigEntries(tx, ws)
+	if err != nil {
+		return 0, nil, err
+	}
+	if !usingConfigEntries {
+		return legacyIntentionMatchOneTxn(tx, ws, entry, matchType)
+	}
+	return configIntentionMatchOneTxn(tx, ws, entry, matchType)
+}
+
+func legacyIntentionMatchOneTxn(
+	tx ReadTxn,
+	ws memdb.WatchSet,
+	entry structs.IntentionMatchEntry,
+	matchType structs.IntentionMatchType,
+) (uint64, structs.Intentions, error) {
 	// Get the table index.
 	idx := maxIndexTxn(tx, intentionsTableName)
 	if idx < 1 {
 		idx = 1
 	}
 
-	results, err := s.intentionMatchOneTxn(tx, ws, entry, matchType)
+	results, err := intentionMatchOneTxn(tx, ws, entry, matchType)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -380,7 +891,7 @@ func (s *Store) IntentionMatchOne(ws memdb.WatchSet,
 	return idx, results, nil
 }
 
-func (s *Store) intentionMatchOneTxn(tx ReadTxn, ws memdb.WatchSet,
+func intentionMatchOneTxn(tx ReadTxn, ws memdb.WatchSet,
 	entry structs.IntentionMatchEntry, matchType structs.IntentionMatchType) (structs.Intentions, error) {
 
 	// Each search entry may require multiple queries to memdb, so this

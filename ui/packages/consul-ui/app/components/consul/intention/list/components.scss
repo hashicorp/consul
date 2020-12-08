@@ -1,0 +1,27 @@
+.consul-intention-list {
+  td.source,
+  td.destination {
+    @extend %tbody-th;
+  }
+  td strong {
+    @extend %pill-700;
+  }
+  td.intent-allow strong {
+    @extend %pill-allow;
+  }
+  td.intent-deny strong {
+    @extend %pill-deny;
+  }
+  td.intent- strong {
+    @extend %pill-l7;
+  }
+  .notice.allow {
+    @extend %notice-success;
+  }
+  .notice.deny {
+    @extend %notice-error;
+  }
+  .notice.permissions {
+    @extend %notice-info;
+  }
+}

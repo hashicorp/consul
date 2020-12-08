@@ -765,6 +765,10 @@ func TestConfigSnapshotDiscoveryChainWithRouter(t testing.T) *ConfigSnapshot {
 	return testConfigSnapshotDiscoveryChain(t, "chain-and-router")
 }
 
+func TestConfigSnapshotDiscoveryChainWithLB(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshotDiscoveryChain(t, "lb-resolver")
+}
+
 func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalEntries ...structs.ConfigEntry) *ConfigSnapshot {
 	roots, leaf := TestCerts(t)
 
@@ -1250,6 +1254,55 @@ func setupTestVariationConfigEntriesAndSnapshot(
 				},
 			},
 		)
+	case "lb-resolver":
+		entries = append(entries,
+			&structs.ProxyConfigEntry{
+				Kind: structs.ProxyDefaults,
+				Name: structs.ProxyConfigGlobal,
+				Config: map[string]interface{}{
+					"protocol": "http",
+				},
+			},
+			&structs.ServiceSplitterConfigEntry{
+				Kind: structs.ServiceSplitter,
+				Name: "db",
+				Splits: []structs.ServiceSplit{
+					{Weight: 95.5, Service: "something-else"},
+					{Weight: 4.5, Service: "db"},
+				},
+			},
+			&structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: "db",
+				LoadBalancer: &structs.LoadBalancer{
+					Policy: "ring_hash",
+					RingHashConfig: &structs.RingHashConfig{
+						MinimumRingSize: 20,
+						MaximumRingSize: 30,
+					},
+					HashPolicies: []structs.HashPolicy{
+						{
+							Field:      "cookie",
+							FieldValue: "chocolate-chip",
+							Terminal:   true,
+						},
+						{
+							Field:        "cookie",
+							FieldValue:   "chocolate-chip",
+							CookieConfig: &structs.CookieConfig{Session: true},
+						},
+						{
+							Field:      "header",
+							FieldValue: "x-user-id",
+						},
+						{
+							SourceIP: true,
+							Terminal: true,
+						},
+					},
+				},
+			},
+		)
 	case "http-multiple-services":
 	default:
 		t.Fatalf("unexpected variation: %q", variation)
@@ -1348,6 +1401,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 		snap.WatchedUpstreamEndpoints["bar"] = map[string]structs.CheckServiceNodes{
 			"bar.default.dc1": TestUpstreamNodesAlternate(t),
 		}
+	case "lb-resolver":
 	default:
 		t.Fatalf("unexpected variation: %q", variation)
 		return ConfigSnapshotUpstreams{}
@@ -1556,6 +1610,10 @@ func TestConfigSnapshotIngressGateway(t testing.T) *ConfigSnapshot {
 
 func TestConfigSnapshotIngressGatewayNoServices(t testing.T) *ConfigSnapshot {
 	return testConfigSnapshotIngressGateway(t, false, "tcp", "default")
+}
+
+func TestConfigSnapshotIngressWithLB(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshotIngressGateway(t, true, "http", "lb-resolver")
 }
 
 func TestConfigSnapshotIngressDiscoveryChainWithEntries(t testing.T, additionalEntries ...structs.ConfigEntry) *ConfigSnapshot {

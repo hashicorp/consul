@@ -2,13 +2,14 @@ package consul
 
 import (
 	"context"
+	"net"
 	"sync"
 
-	"github.com/hashicorp/consul/agent/consul/autopilot"
-	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/serf/serf"
+	"github.com/hashicorp/raft"
+	autopilot "github.com/hashicorp/raft-autopilot"
 )
 
 // StatsFetcher has two functions for autopilot. First, lets us fetch all the
@@ -22,7 +23,7 @@ type StatsFetcher struct {
 	logger       hclog.Logger
 	pool         *pool.ConnPool
 	datacenter   string
-	inflight     map[string]struct{}
+	inflight     map[raft.ServerID]struct{}
 	inflightLock sync.Mutex
 }
 
@@ -32,7 +33,7 @@ func NewStatsFetcher(logger hclog.Logger, pool *pool.ConnPool, datacenter string
 		logger:     logger,
 		pool:       pool,
 		datacenter: datacenter,
-		inflight:   make(map[string]struct{}),
+		inflight:   make(map[raft.ServerID]struct{}),
 	}
 }
 
@@ -40,35 +41,43 @@ func NewStatsFetcher(logger hclog.Logger, pool *pool.ConnPool, datacenter string
 // cancel this when the context is canceled because we only want one in-flight
 // RPC to each server, so we let it finish and then clean up the in-flight
 // tracking.
-func (f *StatsFetcher) fetch(server *metadata.Server, replyCh chan *autopilot.ServerStats) {
+func (f *StatsFetcher) fetch(server *autopilot.Server, replyCh chan *autopilot.ServerStats) {
 	var args struct{}
-	var reply autopilot.ServerStats
-	err := f.pool.RPC(f.datacenter, server.ShortName, server.Addr, "Status.RaftStats", &args, &reply)
+	var reply structs.RaftStats
+
+	// defer some cleanup to notify everything else that the fetching is no longer occurring
+	// this is easier than trying to make the conditionals line up just right.
+	defer func() {
+		f.inflightLock.Lock()
+		delete(f.inflight, server.ID)
+		f.inflightLock.Unlock()
+	}()
+
+	addr, err := net.ResolveTCPAddr("tcp", string(server.Address))
+	if err != nil {
+		f.logger.Warn("error resolving TCP address for server",
+			"address", server.Address,
+			"error", err)
+		return
+	}
+
+	err = f.pool.RPC(f.datacenter, server.Name, addr, "Status.RaftStats", &args, &reply)
 	if err != nil {
 		f.logger.Warn("error getting server health from server",
 			"server", server.Name,
 			"error", err,
 		)
-	} else {
-		replyCh <- &reply
+		return
 	}
 
-	f.inflightLock.Lock()
-	delete(f.inflight, server.ID)
-	f.inflightLock.Unlock()
+	replyCh <- reply.ToAutopilotServerStats()
 }
 
 // Fetch will attempt to query all the servers in parallel.
-func (f *StatsFetcher) Fetch(ctx context.Context, members []serf.Member) map[string]*autopilot.ServerStats {
+func (f *StatsFetcher) Fetch(ctx context.Context, servers map[raft.ServerID]*autopilot.Server) map[raft.ServerID]*autopilot.ServerStats {
 	type workItem struct {
-		server  *metadata.Server
+		server  *autopilot.Server
 		replyCh chan *autopilot.ServerStats
-	}
-	var servers []*metadata.Server
-	for _, s := range members {
-		if ok, parts := metadata.IsConsulServer(s); ok {
-			servers = append(servers, parts)
-		}
 	}
 
 	// Skip any servers that have inflight requests.
@@ -94,7 +103,7 @@ func (f *StatsFetcher) Fetch(ctx context.Context, members []serf.Member) map[str
 
 	// Now wait for the results to come in, or for the context to be
 	// canceled.
-	replies := make(map[string]*autopilot.ServerStats)
+	replies := make(map[raft.ServerID]*autopilot.ServerStats)
 	for _, workItem := range work {
 		// Drain the reply first if there is one.
 		select {

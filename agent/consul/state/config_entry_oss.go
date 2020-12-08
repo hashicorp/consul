@@ -45,6 +45,18 @@ func configTableSchema() *memdb.TableSchema {
 				Unique:       false,
 				Indexer:      &ConfigEntryLinkIndex{},
 			},
+			"intention-legacy-id": {
+				Name:         "intention-legacy-id",
+				AllowMissing: true,
+				Unique:       true,
+				Indexer:      &ServiceIntentionLegacyIDIndex{},
+			},
+			"intention-source": {
+				Name:         "intention-source",
+				AllowMissing: true,
+				Unique:       false,
+				Indexer:      &ServiceIntentionSourceIndex{},
+			},
 		},
 	}
 }
@@ -72,4 +84,15 @@ func getAllConfigEntriesWithTxn(tx ReadTxn, _ *structs.EnterpriseMeta) (memdb.Re
 
 func getConfigEntryKindsWithTxn(tx ReadTxn, kind string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get(configTableName, "kind", kind)
+}
+
+func configIntentionsConvertToList(iter memdb.ResultIterator, _ *structs.EnterpriseMeta) structs.Intentions {
+	var results structs.Intentions
+	for v := iter.Next(); v != nil; v = iter.Next() {
+		entry := v.(*structs.ServiceIntentionsConfigEntry)
+		for _, src := range entry.Sources {
+			results = append(results, entry.ToIntention(src))
+		}
+	}
+	return results
 }

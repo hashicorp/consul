@@ -87,9 +87,8 @@ func TestEventSnapshot(t *testing.T) {
 				tb.Append([]Event{newDefaultHealthEvent(index, 10000+i)})
 			}
 
-			// Create eventSnapshot, (will call snFn in another goroutine). The
-			// Request is ignored by the snapFunc so doesn't matter for now.
-			es := newEventSnapshot(&SubscribeRequest{}, tbHead, snFn)
+			es := newEventSnapshot()
+			es.appendAndSplice(SubscribeRequest{}, snFn, tbHead)
 
 			// Deliver any post-snapshot events simulating updates that occur
 			// logically after snapshot. It doesn't matter that these might actually
@@ -112,7 +111,7 @@ func TestEventSnapshot(t *testing.T) {
 			snapIDs := make([]string, 0, tc.snapshotSize)
 			updateIDs := make([]string, 0, tc.updatesAfterSnap)
 			snapDone := false
-			curItem := es.Head
+			curItem := es.First
 			var err error
 		RECV:
 			for {
@@ -130,9 +129,9 @@ func TestEventSnapshot(t *testing.T) {
 				e := curItem.Events[0]
 				switch {
 				case snapDone:
-					payload, ok := e.Payload.(string)
+					payload, ok := e.Payload.(simplePayload)
 					require.True(t, ok, "want health event got: %#v", e.Payload)
-					updateIDs = append(updateIDs, payload)
+					updateIDs = append(updateIDs, payload.value)
 					if len(updateIDs) == tc.updatesAfterSnap {
 						// We're done!
 						break RECV
@@ -140,9 +139,9 @@ func TestEventSnapshot(t *testing.T) {
 				case e.IsEndOfSnapshot():
 					snapDone = true
 				default:
-					payload, ok := e.Payload.(string)
+					payload, ok := e.Payload.(simplePayload)
 					require.True(t, ok, "want health event got: %#v", e.Payload)
-					snapIDs = append(snapIDs, payload)
+					snapIDs = append(snapIDs, payload.value)
 				}
 			}
 
@@ -161,8 +160,8 @@ func genSequentialIDs(start, end int) []string {
 	return ids
 }
 
-func testHealthConsecutiveSnapshotFn(size int, index uint64) snapFunc {
-	return func(req *SubscribeRequest, buf SnapshotAppender) (uint64, error) {
+func testHealthConsecutiveSnapshotFn(size int, index uint64) SnapshotFunc {
+	return func(req SubscribeRequest, buf SnapshotAppender) (uint64, error) {
 		for i := 0; i < size; i++ {
 			// Event content is arbitrary we are just using Health because it's the
 			// first type defined. We just want a set of things with consecutive
@@ -177,6 +176,6 @@ func newDefaultHealthEvent(index uint64, n int) Event {
 	return Event{
 		Index:   index,
 		Topic:   testTopic,
-		Payload: fmt.Sprintf("test-event-%03d", n),
+		Payload: simplePayload{value: fmt.Sprintf("test-event-%03d", n)},
 	}
 }

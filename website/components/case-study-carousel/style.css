@@ -3,7 +3,8 @@
   flex-direction: column;
   align-items: center;
   position: relative;
-  padding-top: 128px;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
 
   & h2 {
     margin-bottom: 30px;

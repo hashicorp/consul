@@ -1,0 +1,29 @@
+{{yield}}
+<InformedAction
+  class="confirmation-alert warning"
+  ...attributes
+>
+  <:header>
+    <YieldSlot @name="header">{{yield}}</YieldSlot>
+  </:header>
+  <:body>
+    <YieldSlot @name="body">{{yield}}</YieldSlot>
+  </:body>
+  <:actions as |Actions|>
+    <Actions.Action class="dangerous">
+      <YieldSlot @name="confirm" @params={{
+          block-params (component 'action'
+            onclick=(action @onclick)
+          )
+        }}
+      >
+        {{yield}}
+      </YieldSlot>
+    </Actions.Action>
+    <Actions.Action>
+      <Action @for={{@name}}>
+        Cancel
+      </Action>
+    </Actions.Action>
+  </:actions>
+</InformedAction>

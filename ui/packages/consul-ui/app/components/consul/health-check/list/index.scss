@@ -1,0 +1,5 @@
+@import './skin';
+@import './layout';
+.consul-health-check-list .health-check-output {
+  @extend %healthcheck-output;
+}

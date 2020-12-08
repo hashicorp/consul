@@ -1,0 +1,70 @@
+---
+layout: docs
+page_title: Install Consul and Consul-Terraform-Sync
+sidebar_title: Installation
+description: >-
+  Consul-Terraform-Sync is a daemon that runs alongside Consul. Consul-Terraform-Sync is not included with the Consul binary and will need to be installed separately.
+---
+
+# Install Consul-Terraform-Sync
+
+## Installing Consul-Terraform-Sync
+
+To install Consul-Terraform-Sync, find the [appropriate package](https://releases.hashicorp.com/consul-terraform-sync/) for your system and download it as a zip archive. Unzip the package to extract the binary named consul-terraform-sync. Move the consul-terraform-sync binary to a location available on your PATH.
+
+```shell-session
+$ mv ~/Downloads/consul-terraform-sync /usr/local/bin/consul-terraform-sync
+```
+
+You can also install Consul-Terraform-Sync as a [Docker container](https://hub.docker.com/u/hashicorp/consul-terraform-sync) or build the binary from [source](https://github.com/hashicorp/consul-terraform-sync).
+
+Once installed, verify the installation works by prompting the help option.
+
+```shell-session
+$ consul-terraform-sync -h
+Usage of consul-terraform-sync:
+  -config-dir value
+      A directory to load files for configuring Sync. Configuration files
+      require an .hcl or .json file extention in order to specify their format.
+      This option can be specified multiple times to load different directories.
+  -config-file value
+      A file to load for configuring Sync. Configuration file requires an
+      .hcl or .json extension in order to specify their format. This option can
+      be specified multiple times to load different configuration files.
+  -once
+      Render templates and run tasks once. Does not run the process as a daemon
+      and disables wait timers.
+  -version
+      Print the version of this daemon.
+```
+
+## Connect your Consul Cluster
+
+Consul-Terraform-Sync connects with your Consul cluster in order to monitor the Consul catalog for service changes. These service changes lead to downstream updates to your network devices. You can configure your Consul cluster in Consul-Terraform-Sync with the [Consul block](/docs/nia/installation/configuration#consul). Below is an example:
+
+```hcl
+consul {
+  address = "localhost:8500"
+  token = "my-consul-acl-token"
+}
+```
+
+## Connect your Network Device
+
+Consul-Terraform-Sync interacts with your network device through a network driver. For the Terraform network driver, Consul-Terraform-Sync uses Terraform providers to make changes to your network infrastructure resources. You can reference existing provider docs on the Terraform Registry to configure each provider or create a new Terraform provider.
+
+Once you have identified a Terraform provider for all of your network devices, you can configure them in Consul-Terraform-Sync with a [provider block](/docs/nia/installation/configuration#provider) for each network device. Below is an example:
+
+```hcl
+provider "fake-firewall" {
+  address = "10.10.10.10"
+  username = "admin"
+  password = "password123"
+}
+```
+
+This provider is then used by task(s) to execute a Terraform module that will update the related network device.
+
+### Multiple Instances per Provider
+
+You might have multiple instances of the same type of network device; for example, multiple instances of a firewall or load balancer. You can configure each instance with its own provider block and distinguish it by the `alias` meta-argument. See [multiple provider configurations](/docs/nia/installation/configuration#multiple-provider-configurations) for more details and an example of the configuration.

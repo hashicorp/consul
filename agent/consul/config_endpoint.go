@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/armon/go-metrics/prometheus"
+
 	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -11,6 +13,33 @@ import (
 	memdb "github.com/hashicorp/go-memdb"
 	"github.com/mitchellh/copystructure"
 )
+
+var ConfigSummaries = []prometheus.SummaryDefinition{
+	{
+		Name: []string{"config_entry", "apply"},
+		Help: "",
+	},
+	{
+		Name: []string{"config_entry", "get"},
+		Help: "",
+	},
+	{
+		Name: []string{"config_entry", "list"},
+		Help: "",
+	},
+	{
+		Name: []string{"config_entry", "listAll"},
+		Help: "",
+	},
+	{
+		Name: []string{"config_entry", "delete"},
+		Help: "",
+	},
+	{
+		Name: []string{"config_entry", "resolve_service_config"},
+		Help: "",
+	},
+}
 
 // The ConfigEntry endpoint is used to query centralized config information
 type ConfigEntry struct {
@@ -38,7 +67,11 @@ func (c *ConfigEntry) Apply(args *structs.ConfigEntryRequest, reply *bool) error
 		return err
 	}
 
-	// Normalize and validate the incoming config entry.
+	if err := c.preflightCheck(args.Entry.GetKind()); err != nil {
+		return err
+	}
+
+	// Normalize and validate the incoming config entry as if it came from a user.
 	if err := args.Entry.Normalize(); err != nil {
 		return err
 	}
@@ -159,8 +192,18 @@ func (c *ConfigEntry) List(args *structs.ConfigEntryQuery, reply *structs.Indexe
 		})
 }
 
+var configEntryKindsFromConsul_1_8_0 = []string{
+	structs.ServiceDefaults,
+	structs.ProxyDefaults,
+	structs.ServiceRouter,
+	structs.ServiceSplitter,
+	structs.ServiceResolver,
+	structs.IngressGateway,
+	structs.TerminatingGateway,
+}
+
 // ListAll returns all the known configuration entries
-func (c *ConfigEntry) ListAll(args *structs.DCSpecificRequest, reply *structs.IndexedGenericConfigEntries) error {
+func (c *ConfigEntry) ListAll(args *structs.ConfigEntryListAllRequest, reply *structs.IndexedGenericConfigEntries) error {
 	if err := c.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
 		return err
 	}
@@ -175,6 +218,15 @@ func (c *ConfigEntry) ListAll(args *structs.DCSpecificRequest, reply *structs.In
 		return err
 	}
 
+	if len(args.Kinds) == 0 {
+		args.Kinds = configEntryKindsFromConsul_1_8_0
+	}
+
+	kindMap := make(map[string]struct{})
+	for _, kind := range args.Kinds {
+		kindMap[kind] = struct{}{}
+	}
+
 	return c.srv.blockingQuery(
 		&args.QueryOptions,
 		&reply.QueryMeta,
@@ -184,10 +236,19 @@ func (c *ConfigEntry) ListAll(args *structs.DCSpecificRequest, reply *structs.In
 				return err
 			}
 
-			// Filter the entries returned by ACL permissions.
+			// Filter the entries returned by ACL permissions or by the provided kinds.
 			filteredEntries := make([]structs.ConfigEntry, 0, len(entries))
 			for _, entry := range entries {
 				if authz != nil && !entry.CanRead(authz) {
+					continue
+				}
+				// Doing this filter outside of memdb isn't terribly
+				// performant. This kind filter is currently only used across
+				// version upgrades, so in the common case we are going to
+				// always return all of the data anyway, so it should be fine.
+				// If that changes at some point, then we should move this down
+				// into memdb.
+				if _, ok := kindMap[entry.GetKind()]; !ok {
 					continue
 				}
 				filteredEntries = append(filteredEntries, entry)
@@ -216,6 +277,10 @@ func (c *ConfigEntry) Delete(args *structs.ConfigEntryRequest, reply *struct{}) 
 
 	authz, err := c.srv.ResolveTokenAndDefaultMeta(args.Token, args.Entry.GetEnterpriseMeta(), nil)
 	if err != nil {
+		return err
+	}
+
+	if err := c.preflightCheck(args.Entry.GetKind()); err != nil {
 		return err
 	}
 
@@ -400,4 +465,27 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 
 			return nil
 		})
+}
+
+// preflightCheck is meant to have kind-specific system validation outside of
+// content validation. The initial use case is restricting the ability to do
+// writes of service-intentions until the system is finished migration.
+func (c *ConfigEntry) preflightCheck(kind string) error {
+	switch kind {
+	case structs.ServiceIntentions:
+		// Exit early if Connect hasn't been enabled.
+		if !c.srv.config.ConnectEnabled {
+			return ErrConnectNotEnabled
+		}
+
+		usingConfigEntries, err := c.srv.fsm.State().AreIntentionsInConfigEntries()
+		if err != nil {
+			return fmt.Errorf("system metadata lookup failed: %v", err)
+		}
+		if !usingConfigEntries {
+			return ErrIntentionsNotUpgradedYet
+		}
+	}
+
+	return nil
 }

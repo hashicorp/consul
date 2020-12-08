@@ -3,7 +3,7 @@
   "config": {
       "rules": {
             "policies": {
-                  "consul-intentions": {
+                  "consul-intentions-layer4": {
                         "permissions": [
                               {
                                     "any": true

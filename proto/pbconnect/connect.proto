@@ -6,7 +6,6 @@ option go_package = "github.com/hashicorp/consul/proto/pbconnect";
 
 import "google/protobuf/timestamp.proto";
 import "proto/pbcommon/common.proto";
-import "proto/pbcommon/common_oss.proto";
 
 // CARoots is the list of all currently trusted CA Roots.
 message CARoots {

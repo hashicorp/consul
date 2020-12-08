@@ -10,11 +10,12 @@ import (
 	"net/http"
 	"sync/atomic"
 
+	"github.com/hashicorp/go-hclog"
+	testing "github.com/mitchellh/go-testing-interface"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/freeport"
-	"github.com/hashicorp/go-hclog"
-	testing "github.com/mitchellh/go-testing-interface"
 )
 
 // TestService returns a Service instance based on a static TLS Config.
@@ -124,8 +125,8 @@ func (s *TestServer) Serve() error {
 	if err != nil {
 		return err
 	}
-	close(s.Listening)
 	s.l = l
+	close(s.Listening)
 	log.Printf("test connect service listening on %s", s.Addr)
 
 	for {

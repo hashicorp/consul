@@ -12,6 +12,9 @@ import (
 )
 
 func probeProtocolStack() int {
+	if runtime.GOOS == "netbsd" && runtime.GOARCH == "arm64" {
+		return 16
+	}
 	if (runtime.GOOS == "netbsd" || runtime.GOOS == "openbsd") && runtime.GOARCH == "arm" {
 		return 8
 	}

@@ -6,17 +6,17 @@ import (
 	"os"
 	"time"
 
-	"github.com/hashicorp/consul/agent/checks"
-	"github.com/hashicorp/consul/agent/consul/autopilot"
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/tlsutil"
-	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/consul/version"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/time/rate"
+
+	"github.com/hashicorp/consul/agent/checks"
+	"github.com/hashicorp/consul/agent/structs"
+	libserf "github.com/hashicorp/consul/lib/serf"
+	"github.com/hashicorp/consul/tlsutil"
+	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/consul/version"
 )
 
 const (
@@ -110,9 +110,9 @@ type Config struct {
 	// RaftConfig is the configuration used for Raft in the local DC
 	RaftConfig *raft.Config
 
-	// (Enterprise-only) NonVoter is used to prevent this server from being added
+	// (Enterprise-only) ReadReplica is used to prevent this server from being added
 	// as a voting member of the Raft cluster.
-	NonVoter bool
+	ReadReplica bool
 
 	// NotifyListen is called after the RPC listener has been configured.
 	// RPCAdvertise will be set to the listener address if it hasn't been
@@ -219,6 +219,11 @@ type Config struct {
 	// true, we ignore the leave, and rejoin the cluster on start.
 	RejoinAfterLeave bool
 
+	// AdvertiseReconnectTimeout is the duration after which this node should be
+	// assumed to not be returning and thus should be reaped within Serf. This
+	// can only be set for Client agents
+	AdvertiseReconnectTimeout time.Duration
+
 	// Build is a string that is gossiped around, and can be used to help
 	// operators track which versions are actively deployed
 	Build string
@@ -263,8 +268,8 @@ type Config struct {
 
 	// ACLDefaultPolicy is used to control the ACL interaction when
 	// there is no defined policy. This can be "allow" which means
-	// ACLs are used to black-list, or "deny" which means ACLs are
-	// white-lists.
+	// ACLs are used to deny-list, or "deny" which means ACLs are
+	// allow-lists.
 	ACLDefaultPolicy string
 
 	// ACLDownPolicy controls the behavior of ACLs if the ACLDatacenter
@@ -432,7 +437,7 @@ type Config struct {
 
 	// AutopilotConfig is used to apply the initial autopilot config when
 	// bootstrapping.
-	AutopilotConfig *autopilot.Config
+	AutopilotConfig *structs.AutopilotConfig
 
 	// ServerHealthInterval is the frequency with which the health of the
 	// servers in the cluster will be updated.
@@ -442,6 +447,10 @@ type Config struct {
 	// autopilot tasks, such as promoting eligible non-voters and removing
 	// dead servers.
 	AutopilotInterval time.Duration
+
+	// MetricsReportingInterval is the frequency with which the server will
+	// report usage metrics to the configured go-metrics Sinks.
+	MetricsReportingInterval time.Duration
 
 	// ConnectEnabled is whether to enable Connect features such as the CA.
 	ConnectEnabled bool
@@ -454,6 +463,11 @@ type Config struct {
 	// disable a background routine.
 	DisableFederationStateAntiEntropy bool
 
+	// OverrideInitialSerfTags solely exists for use in unit tests to ensure
+	// that a serf tag is initially set to a known value, rather than the
+	// default to test some consul upgrade scenarios with fewer races.
+	OverrideInitialSerfTags func(tags map[string]string)
+
 	// CAConfig is used to apply the initial Connect CA configuration when
 	// bootstrapping.
 	CAConfig *structs.CAConfiguration
@@ -465,6 +479,8 @@ type Config struct {
 	// AutoEncryptAllowTLS is whether to enable the server responding to
 	// AutoEncrypt.Sign requests.
 	AutoEncryptAllowTLS bool
+
+	RPCConfig RPCConfig
 
 	// Embedded Consul Enterprise specific configuration
 	*EnterpriseConfig
@@ -532,8 +548,8 @@ func DefaultConfig() *Config {
 		NodeName:                             hostname,
 		RPCAddr:                              DefaultRPCAddr,
 		RaftConfig:                           raft.DefaultConfig(),
-		SerfLANConfig:                        lib.SerfDefaultConfig(),
-		SerfWANConfig:                        lib.SerfDefaultConfig(),
+		SerfLANConfig:                        libserf.DefaultConfig(),
+		SerfWANConfig:                        libserf.DefaultConfig(),
 		SerfFloodInterval:                    60 * time.Second,
 		ReconcileInterval:                    60 * time.Second,
 		ProtocolVersion:                      ProtocolVersion2Compatible,
@@ -573,7 +589,7 @@ func DefaultConfig() *Config {
 
 		// TODO (slackpad) - Until #3744 is done, we need to keep these
 		// in sync with agent/config/default.go.
-		AutopilotConfig: &autopilot.Config{
+		AutopilotConfig: &structs.AutopilotConfig{
 			CleanupDeadServers:      true,
 			LastContactThreshold:    200 * time.Millisecond,
 			MaxTrailingLogs:         250,
@@ -589,11 +605,16 @@ func DefaultConfig() *Config {
 			},
 		},
 
-		ServerHealthInterval: 2 * time.Second,
-		AutopilotInterval:    10 * time.Second,
-		DefaultQueryTime:     300 * time.Second,
-		MaxQueryTime:         600 * time.Second,
-		EnterpriseConfig:     DefaultEnterpriseConfig(),
+		// Stay under the 10 second aggregation interval of
+		// go-metrics. This ensures we always report the
+		// usage metrics in each cycle.
+		MetricsReportingInterval: 9 * time.Second,
+		ServerHealthInterval:     2 * time.Second,
+		AutopilotInterval:        10 * time.Second,
+		DefaultQueryTime:         300 * time.Second,
+		MaxQueryTime:             600 * time.Second,
+
+		EnterpriseConfig: DefaultEnterpriseConfig(),
 	}
 
 	// Increase our reap interval to 3 days instead of 24h.
@@ -626,4 +647,11 @@ func DefaultConfig() *Config {
 	conf.RaftConfig.SnapshotThreshold = 16384
 
 	return conf
+}
+
+// RPCConfig settings for the RPC server
+//
+// TODO: move many settings to this struct.
+type RPCConfig struct {
+	EnableStreaming bool
 }

@@ -1,0 +1,68 @@
+---
+layout: commands
+page_title: 'Commands: Intention Create'
+sidebar_title: create
+---
+
+# Consul Intention Create
+
+-> **Deprecated** - This command is deprecated in Consul 1.9.0 in favor of
+using the [config entry CLI command](/commands/config/write). To create an
+intention, create or modify a
+[`service-intentions`](/docs/agent/config-entries/service-intentions) config
+entry for the destination.
+
+Command: `consul intention create`
+
+The `intention create` command creates or updates an L4 intention.
+
+## Usage
+
+- `consul intention create [options] SRC DST`
+- `consul intention create [options] -file FILE...`
+
+`SRC` and `DST` can both take [several forms](/commands/intention#source-and-destination-naming).
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+#### Enterprise Options
+
+@include 'http_api_namespace_options.mdx'
+
+#### Intention Create Options
+
+- `-allow` - Set the action to "allow" for intentions. This is the default.
+
+- `-deny` - Set the action to "deny" for intentions. This cannot be specified
+  with `-allow`.
+
+- `-file` - Read intention data one or more files specified by the command
+  line arguments, instead of source/destination pairs.
+
+- `-meta key=value` - Specify arbitrary KV metadata to associate with the
+  intention.
+
+- `-replace` - Replace any matching intention. The replacement is done
+  atomically per intention.
+
+## Examples
+
+Create an intention `web => db`:
+
+```shell-session
+$ consul intention create web db
+```
+
+Create intentions from a set of files:
+
+```shell-session
+$ consul intention create -file one.json two.json
+```
+
+Create intentions from a directory using shell expansion:
+
+```shell-session
+$ consul intention create -file intentions/*.json
+```

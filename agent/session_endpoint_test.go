@@ -372,7 +372,7 @@ func TestSessionCreate_NoCheck(t *testing.T) {
 	})
 }
 
-func makeTestSession(t *testing.T, srv *HTTPServer) string {
+func makeTestSession(t *testing.T, srv *HTTPHandlers) string {
 	t.Helper()
 	url := "/v1/session/create"
 	req, _ := http.NewRequest("PUT", url, nil)
@@ -385,7 +385,7 @@ func makeTestSession(t *testing.T, srv *HTTPServer) string {
 	return sessResp.ID
 }
 
-func makeTestSessionDelete(t *testing.T, srv *HTTPServer) string {
+func makeTestSessionDelete(t *testing.T, srv *HTTPHandlers) string {
 	t.Helper()
 	// Create Session with delete behavior
 	body := bytes.NewBuffer(nil)
@@ -406,7 +406,7 @@ func makeTestSessionDelete(t *testing.T, srv *HTTPServer) string {
 	return sessResp.ID
 }
 
-func makeTestSessionTTL(t *testing.T, srv *HTTPServer, ttl string) string {
+func makeTestSessionTTL(t *testing.T, srv *HTTPHandlers, ttl string) string {
 	t.Helper()
 	// Create Session with TTL
 	body := bytes.NewBuffer(nil)

@@ -1,0 +1,217 @@
+{
+  "status": "success",
+  "data": {
+    "resultType": "vector",
+    "result": [
+      ${
+        [1].map(item => {
+          const dc = 'dc1';
+          const generateTargets = function(num) {
+            // Seed faker by the number of results we want to make it deterministic
+            // here and in other correlated endpoints.
+            fake.seed(num);
+            return range(num).map(i => {
+              const nspace = i === 0 ? `default` : `${fake.hacker.noun()}-ns-${i}`;
+              return {
+                Name: `service-${fake.random.number({min:0, max:99})}`,
+                Datacenter: `${dc}`,
+                Namespace: `${nspace}`
+              }
+            })
+          };
+
+          // little helper to get a deterministic number from the target service
+          // name string. NOTE: this should be the same as in metrics-proxy/.../query
+          // endpoint so metrics match what is requested.
+          const hashStr = function(s) {
+            for(var i = 0, h = 0xdeadbeef; i < s.length; i++)
+                h = Math.imul(h ^ s.charCodeAt(i), 2654435761);
+            return (h ^ h >>> 16) >>> 0;
+          };
+
+          const randExp = function(max, lambda) {
+            return (-Math.log(1-(1-Math.exp(-lambda))*Math.random())/lambda) * max;
+          };
+
+          const q = location.search.query;
+          let type = 'service';
+          let proto = 'tcp';
+
+          // Match the relabel arguments since "downstream" appears in both
+          // "service" and "upstream" type queries' metric names while
+          // "upstream" appears in downstream query metric names (confusingly).
+          if (q.match('consul_destination_service=')) {
+            type = "downstream";
+          } else if (q.match('consul_upstream_service')) {
+            type = "upstream";
+          }
+
+          if (q.match('envoy_http_')) {
+            proto = 'http';
+          }
+
+          // NOTE!!! The logic below to pick the upstream/downstream service
+          // names must exactly match the logic in internal/ui/service-topology/_
+          // If you change this, change it there too!
+
+          // Pick a number of down/upstreams to return based on the cookie variable.
+          // If you change anything about this variable or it's default, you'll need
+          // to change the topology endpoint to match.
+          let numResults = 1;
+          if (type === 'upstream') {
+            numResults = parseInt(env('CONSUL_UPSTREAM_COUNT', 3));
+          }
+          if (type === 'downstream') {
+            numResults = parseInt(env('CONSUL_DOWNSTREAM_COUNT', 5));
+          }
+
+          // Figure out the actual name for the target service
+          var targetService = "invalid-local-cluster";
+          var m = q.match(/consul_source_service="([^"]*)"/);
+          if (m && m.length >= 2 && m[1] != "") {
+            targetService = m[1];
+          }
+          m = q.match(/consul_destination_service="([^"]*)"/);
+          if (type == "downstream" && m && m.length >= 2 && m[1] != "") {
+            // downstreams don't have the same selector for the main service
+            // name.
+            targetService = m[1];
+          }
+
+          // Figure out the actual namespace for the target service
+          var targetNS = "invalid-local-ns";
+          var m = q.match(/consul_source_namespace="([^"]*)"/);
+          if (m && m.length >= 2 && m[1] != "") {
+            targetNS = m[1];
+          }
+          m = q.match(/consul_destination_namespace="([^"]*)"/);
+          if (type == "downstream" && m && m.length >= 2 && m[1] != "") {
+            // downstreams don't have the same selector for the main service
+            // name.
+            targetNS = m[1];
+          }
+
+          // Figure out the actual datacenter for the target service
+          var targetDC = "invalid-local-dc";
+          var m = q.match(/consul_source_datacenter="([^"]*)"/);
+          if (m && m.length >= 2 && m[1] != "") {
+            targetDC = m[1];
+          }
+          m = q.match(/consul_destination_datacenter="([^"]*)"/);
+          if (type == "downstream" && m && m.length >= 2 && m[1] != "") {
+            // downstreams don't have the same selector for the main service
+            // name.
+            targetDC = m[1];
+          }
+
+          var serviceNames = [];
+          switch(type) {
+            case 'downstream': // fallthrough
+            case 'upstream':
+              targets = generateTargets(numResults);
+              break;
+            default:
+              // fallthrough
+            case 'service':
+              targets = [targetService];
+              break;
+          }
+
+          let serviceProto = 'tcp';
+          // Randomly pick the serviceProtocol which will affect which types of
+          // stats we return for downstream clusters. But we need it to be
+          // deterministic for a given service name so that all the downstream
+          // stats are consistently typed.
+          fake.seed(hashStr(targetService))
+          if (fake.random.number(1) > 0.5) {
+            serviceProto = 'http';
+          }
+
+          // For up/downstreams only return HTTP metrics half of the time.
+
+          // For upstreams it's based on the upstream's protocol which might be
+          // mixed so alternate protocols for upstreams.
+          if (type === "upstream") {
+            // Pretend all odd service indexes are tcp and even are http
+            const wantMod = proto === 'tcp' ? 1 : 0;
+            targets = targets.filter((item, i) => i % 2 === wantMod);
+          }
+          // For downstreams it's based on the target's protocol which we
+          // don't really know but all downstreams should be the same type
+          // so only return metrics for that protocol.
+          if (type === 'downstream' && proto === 'http' && serviceProto !== 'http') {
+            targets = [];
+          }
+
+          // Work out which metric is being queried to make them more realistic.
+          let max = 100;
+          switch(proto) {
+            case 'http':
+              if (q.match('envoy_response_code_class="5"')) {
+                // It's error rate make it a percentage
+                max = 30;
+              } else if (q.match("rq_completed")) {
+                // Requests per second
+                max = 1000;
+              } else if (q.match("quantile\\(0.99")) {
+                // 99 percentile time in ms make it longer than 50 percentile
+                max = 5000;
+              } else if (q.match("quantile\\(0.5")) {
+                // 50th percentile
+                max = 500;
+              }
+              break;
+            case 'tcp':
+              if (q.match('cx_total')) {
+                // New conns per second
+                max = 100;
+              } else if (q.match('cx_rx_bytes')) {
+                // inbound data rate tends to be lower than outbound
+                max = 0.5 * 1e9;
+              } else if (q.match('cx_tx_bytes')) {
+                // inbound data rate
+                max = 1e9;
+              }
+              // no route/connect failed are OK with default 0-100
+              break;
+          }
+
+
+          // Now generate the data points
+          return targets.map((item, i) => {
+            let metric = `{}`;
+            switch(type) {
+              case 'upstream':
+                metric = `{"consul_upstream_service": "${item.Name}", "consul_upstream_datacenter": "${targetDC}", "consul_upstream_namespace": "${targetNS}"}`;
+                break;
+              case "downstream":
+                metric = `{"consul_source_service": "${item.Name}", "consul_source_datacenter": "${targetDC}", "consul_source_namespace": "${targetNS}"}`;
+                break;
+            }
+            const timestamp = Date.now() / 1000;
+            let value = randExp(max, 20);
+
+            // prometheus can sometimes generate NaN and undefined strings, so
+            // replicate that randomly
+            const num = fake.random.number({min: 0, max: 10});
+            switch(true) {
+              case num > 8:
+                value = 'NaN';
+                break;
+              case num > 5:
+                value = 'undefined';
+                break;
+            }
+            return `{
+              "metric": ${metric},
+              "value": [
+                ${timestamp},
+                "${value}"
+              ]
+            }`;
+          })
+        })
+      }
+    ]
+  }
+}

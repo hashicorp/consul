@@ -1,0 +1,66 @@
+#metrics-container div .sparkline-wrapper {
+  position: relative;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  height: 70px;
+
+  svg.sparkline {
+    width: 100%;
+    height: 70px;
+    padding: 0;
+    margin: 0;
+  }
+
+  .tooltip {
+    visibility: hidden;
+    position: absolute;
+    z-index: 10;
+    bottom: 78px;
+    width: 217px;
+  }
+
+  .sparkline-tt-legend-color {
+    display: inline-block;
+  }
+
+  // extra padding for the status sub-component that's not needed for the stats
+  // status
+  .topology-metrics-error,
+  .topology-metrics-loader {
+    padding-top: 15px;
+  }
+}
+
+// Key modal
+.sparkline-key {
+  .sparkline-key-content {
+    width: 500px;
+    min-height: 100px;
+
+    dl {
+      padding: 10px 0 0 0;
+    }
+    dt {
+      width: 125px;
+      float: left;
+    }
+    dd {
+      margin: 0 0 12px 135px;
+    }
+  }
+}
+
+.sparkline-key-link {
+  visibility: hidden;
+  float: right;
+  // TODO: this is a massive hack but we want it to be actually outside of the
+  // bounding box of this component. We could move it into the parent component
+  // but it's pretty tied up to the state - should only show if we have metrics
+  // loaded etc. I expect there is a cleaner way to refactor this though.
+  margin-top: -35px;
+  margin-right: 12px;
+}
+#metrics-container:hover .sparkline-key-link {
+  visibility: visible;
+}

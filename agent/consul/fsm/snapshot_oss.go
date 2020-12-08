@@ -1,7 +1,6 @@
 package fsm
 
 import (
-	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-msgpack/codec"
@@ -20,7 +19,7 @@ func init() {
 	registerRestorer(structs.CoordinateBatchUpdateType, restoreCoordinates)
 	registerRestorer(structs.PreparedQueryRequestType, restorePreparedQuery)
 	registerRestorer(structs.AutopilotRequestType, restoreAutopilot)
-	registerRestorer(structs.IntentionRequestType, restoreIntention)
+	registerRestorer(structs.IntentionRequestType, restoreLegacyIntention)
 	registerRestorer(structs.ConnectCARequestType, restoreConnectCA)
 	registerRestorer(structs.ConnectCAProviderStateType, restoreConnectCAProviderState)
 	registerRestorer(structs.ConnectCAConfigType, restoreConnectCAConfig)
@@ -32,6 +31,7 @@ func init() {
 	registerRestorer(structs.ACLBindingRuleSetRequestType, restoreBindingRule)
 	registerRestorer(structs.ACLAuthMethodSetRequestType, restoreAuthMethod)
 	registerRestorer(structs.FederationStateRequestType, restoreFederationState)
+	registerRestorer(structs.SystemMetadataRequestType, restoreSystemMetadata)
 }
 
 func persistOSS(s *snapshot, sink raft.SnapshotSink, encoder *codec.Encoder) error {
@@ -56,7 +56,7 @@ func persistOSS(s *snapshot, sink raft.SnapshotSink, encoder *codec.Encoder) err
 	if err := s.persistAutopilot(sink, encoder); err != nil {
 		return err
 	}
-	if err := s.persistIntentions(sink, encoder); err != nil {
+	if err := s.persistLegacyIntentions(sink, encoder); err != nil {
 		return err
 	}
 	if err := s.persistConnectCA(sink, encoder); err != nil {
@@ -72,6 +72,9 @@ func persistOSS(s *snapshot, sink raft.SnapshotSink, encoder *codec.Encoder) err
 		return err
 	}
 	if err := s.persistFederationStates(sink, encoder); err != nil {
+		return err
+	}
+	if err := s.persistSystemMetadata(sink, encoder); err != nil {
 		return err
 	}
 	if err := s.persistIndex(sink, encoder); err != nil {
@@ -398,9 +401,10 @@ func (s *snapshot) persistConnectCAProviderState(sink raft.SnapshotSink,
 	return nil
 }
 
-func (s *snapshot) persistIntentions(sink raft.SnapshotSink,
+func (s *snapshot) persistLegacyIntentions(sink raft.SnapshotSink,
 	encoder *codec.Encoder) error {
-	ixns, err := s.state.Intentions()
+	//nolint:staticcheck
+	ixns, err := s.state.LegacyIntentions()
 	if err != nil {
 		return err
 	}
@@ -464,6 +468,23 @@ func (s *snapshot) persistFederationStates(sink raft.SnapshotSink, encoder *code
 	return nil
 }
 
+func (s *snapshot) persistSystemMetadata(sink raft.SnapshotSink, encoder *codec.Encoder) error {
+	entries, err := s.state.SystemMetadataEntries()
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range entries {
+		if _, err := sink.Write([]byte{byte(structs.SystemMetadataRequestType)}); err != nil {
+			return err
+		}
+		if err := encoder.Encode(entry); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (s *snapshot) persistIndex(sink raft.SnapshotSink, encoder *codec.Encoder) error {
 	// Get all the indexes
 	iter, err := s.state.Indexes()
@@ -484,7 +505,7 @@ func (s *snapshot) persistIndex(sink raft.SnapshotSink, encoder *codec.Encoder) 
 	return nil
 }
 
-func restoreRegistration(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+func restoreRegistration(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
 	var req structs.RegisterRequest
 	if err := decoder.Decode(&req); err != nil {
 		return err
@@ -495,7 +516,7 @@ func restoreRegistration(header *snapshotHeader, restore *state.Restore, decoder
 	return nil
 }
 
-func restoreKV(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+func restoreKV(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
 	var req structs.DirEntry
 	if err := decoder.Decode(&req); err != nil {
 		return err
@@ -506,7 +527,7 @@ func restoreKV(header *snapshotHeader, restore *state.Restore, decoder *codec.De
 	return nil
 }
 
-func restoreTombstone(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+func restoreTombstone(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
 	var req structs.DirEntry
 	if err := decoder.Decode(&req); err != nil {
 		return err
@@ -525,7 +546,7 @@ func restoreTombstone(header *snapshotHeader, restore *state.Restore, decoder *c
 	return nil
 }
 
-func restoreSession(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+func restoreSession(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
 	var req structs.Session
 	if err := decoder.Decode(&req); err != nil {
 		return err
@@ -536,7 +557,7 @@ func restoreSession(header *snapshotHeader, restore *state.Restore, decoder *cod
 	return nil
 }
 
-func restoreACL(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+func restoreACL(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
 	var req structs.ACL
 	if err := decoder.Decode(&req); err != nil {
 		return err
@@ -549,7 +570,7 @@ func restoreACL(header *snapshotHeader, restore *state.Restore, decoder *codec.D
 }
 
 // DEPRECATED (ACL-Legacy-Compat) - remove once v1 acl compat is removed
-func restoreACLBootstrap(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+func restoreACLBootstrap(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
 	var req structs.ACLBootstrap
 	if err := decoder.Decode(&req); err != nil {
 		return err
@@ -560,7 +581,7 @@ func restoreACLBootstrap(header *snapshotHeader, restore *state.Restore, decoder
 	return restore.IndexRestore(&state.IndexEntry{Key: "acl-token-bootstrap", Value: req.ModifyIndex})
 }
 
-func restoreCoordinates(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+func restoreCoordinates(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
 	var req structs.Coordinates
 	if err := decoder.Decode(&req); err != nil {
 		return err
@@ -571,7 +592,7 @@ func restoreCoordinates(header *snapshotHeader, restore *state.Restore, decoder 
 	return nil
 }
 
-func restorePreparedQuery(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+func restorePreparedQuery(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
 	var req structs.PreparedQuery
 	if err := decoder.Decode(&req); err != nil {
 		return err
@@ -582,8 +603,8 @@ func restorePreparedQuery(header *snapshotHeader, restore *state.Restore, decode
 	return nil
 }
 
-func restoreAutopilot(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
-	var req autopilot.Config
+func restoreAutopilot(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+	var req structs.AutopilotConfig
 	if err := decoder.Decode(&req); err != nil {
 		return err
 	}
@@ -593,18 +614,19 @@ func restoreAutopilot(header *snapshotHeader, restore *state.Restore, decoder *c
 	return nil
 }
 
-func restoreIntention(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+func restoreLegacyIntention(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
 	var req structs.Intention
 	if err := decoder.Decode(&req); err != nil {
 		return err
 	}
-	if err := restore.Intention(&req); err != nil {
+	//nolint:staticcheck
+	if err := restore.LegacyIntention(&req); err != nil {
 		return err
 	}
 	return nil
 }
 
-func restoreConnectCA(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+func restoreConnectCA(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
 	var req structs.CARoot
 	if err := decoder.Decode(&req); err != nil {
 		return err
@@ -615,7 +637,7 @@ func restoreConnectCA(header *snapshotHeader, restore *state.Restore, decoder *c
 	return nil
 }
 
-func restoreConnectCAProviderState(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+func restoreConnectCAProviderState(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
 	var req structs.CAConsulProviderState
 	if err := decoder.Decode(&req); err != nil {
 		return err
@@ -626,7 +648,7 @@ func restoreConnectCAProviderState(header *snapshotHeader, restore *state.Restor
 	return nil
 }
 
-func restoreConnectCAConfig(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+func restoreConnectCAConfig(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
 	var req structs.CAConfiguration
 	if err := decoder.Decode(&req); err != nil {
 		return err
@@ -637,7 +659,7 @@ func restoreConnectCAConfig(header *snapshotHeader, restore *state.Restore, deco
 	return nil
 }
 
-func restoreIndex(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+func restoreIndex(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
 	var req state.IndexEntry
 	if err := decoder.Decode(&req); err != nil {
 		return err
@@ -645,7 +667,7 @@ func restoreIndex(header *snapshotHeader, restore *state.Restore, decoder *codec
 	return restore.IndexRestore(&req)
 }
 
-func restoreToken(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+func restoreToken(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
 	var req structs.ACLToken
 	if err := decoder.Decode(&req); err != nil {
 		return err
@@ -665,7 +687,7 @@ func restoreToken(header *snapshotHeader, restore *state.Restore, decoder *codec
 	return restore.ACLToken(&req)
 }
 
-func restorePolicy(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+func restorePolicy(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
 	var req structs.ACLPolicy
 	if err := decoder.Decode(&req); err != nil {
 		return err
@@ -673,7 +695,7 @@ func restorePolicy(header *snapshotHeader, restore *state.Restore, decoder *code
 	return restore.ACLPolicy(&req)
 }
 
-func restoreConfigEntry(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+func restoreConfigEntry(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
 	var req structs.ConfigEntryRequest
 	if err := decoder.Decode(&req); err != nil {
 		return err
@@ -681,7 +703,7 @@ func restoreConfigEntry(header *snapshotHeader, restore *state.Restore, decoder 
 	return restore.ConfigEntry(req.Entry)
 }
 
-func restoreRole(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+func restoreRole(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
 	var req structs.ACLRole
 	if err := decoder.Decode(&req); err != nil {
 		return err
@@ -689,7 +711,7 @@ func restoreRole(header *snapshotHeader, restore *state.Restore, decoder *codec.
 	return restore.ACLRole(&req)
 }
 
-func restoreBindingRule(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+func restoreBindingRule(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
 	var req structs.ACLBindingRule
 	if err := decoder.Decode(&req); err != nil {
 		return err
@@ -697,7 +719,7 @@ func restoreBindingRule(header *snapshotHeader, restore *state.Restore, decoder 
 	return restore.ACLBindingRule(&req)
 }
 
-func restoreAuthMethod(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+func restoreAuthMethod(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
 	var req structs.ACLAuthMethod
 	if err := decoder.Decode(&req); err != nil {
 		return err
@@ -705,10 +727,18 @@ func restoreAuthMethod(header *snapshotHeader, restore *state.Restore, decoder *
 	return restore.ACLAuthMethod(&req)
 }
 
-func restoreFederationState(header *snapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+func restoreFederationState(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
 	var req structs.FederationStateRequest
 	if err := decoder.Decode(&req); err != nil {
 		return err
 	}
 	return restore.FederationState(req.State)
+}
+
+func restoreSystemMetadata(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
+	var req structs.SystemMetadataEntry
+	if err := decoder.Decode(&req); err != nil {
+		return err
+	}
+	return restore.SystemMetadataEntry(&req)
 }

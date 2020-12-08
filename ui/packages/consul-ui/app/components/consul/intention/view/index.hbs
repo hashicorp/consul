@@ -1,0 +1,34 @@
+<div class="consul-intention-view">
+
+  <div class="definition-table">
+      <dl>
+        <dt>Destination</dt>
+        <dd>
+          {{item.DestinationName}}{{#if (env "CONSUL_NSPACES_ENABLED")}} / {{item.DestinationNS}}{{/if}}
+        </dd>
+        <dt>Source</dt>
+        <dd>
+        {{item.SourceName}}{{#if (env "CONSUL_NSPACES_ENABLED")}} / {{item.SourceNS}}{{/if}}
+        </dd>
+{{#if item.Action}}
+        <dt>Action</dt>
+        <dd>
+          {{item.Action}}
+        </dd>
+{{/if}}
+        <dt>Description</dt>
+        <dd>
+          {{or item.Description 'N/A'}}
+        </dd>
+      </dl>
+  </div>
+
+{{#if (gt item.Permissions.length 0) }}
+  <h2>Permissions</h2>
+  <Consul::Intention::Notice::Permissions />
+  <Consul::Intention::Permission::List
+    @items={{item.Permissions}}
+  />
+{{/if}}
+
+</div>

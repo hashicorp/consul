@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"net"
 	"net/http/httptest"
 	"path/filepath"
 	"strconv"
@@ -73,9 +74,8 @@ type TestAgent struct {
 	// It is valid after Start().
 	dns *DNSServer
 
-	// srv is a reference to the first started HTTP endpoint.
-	// It is valid after Start().
-	srv *HTTPServer
+	// srv is an HTTPHandlers that may be used to test http endpoints.
+	srv *HTTPHandlers
 
 	// overrides is an hcl config source to use to override otherwise
 	// non-user settable configurations
@@ -213,6 +213,8 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 	// Start the anti-entropy syncer
 	a.Agent.StartSync()
 
+	a.srv = a.Agent.httpHandlers
+
 	if err := a.waitForUp(); err != nil {
 		a.Shutdown()
 		t.Logf("Error while waiting for test agent to start: %v", err)
@@ -220,7 +222,6 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 	}
 
 	a.dns = a.dnsServers[0]
-	a.srv = a.httpServers[0]
 	return nil
 }
 
@@ -233,7 +234,7 @@ func (a *TestAgent) waitForUp() error {
 	var retErr error
 	var out structs.IndexedNodes
 	for ; !time.Now().After(deadline); time.Sleep(timer.Wait) {
-		if len(a.httpServers) == 0 {
+		if len(a.apiServers.servers) == 0 {
 			retErr = fmt.Errorf("waiting for server")
 			continue // fail, try again
 		}
@@ -262,7 +263,7 @@ func (a *TestAgent) waitForUp() error {
 		} else {
 			req := httptest.NewRequest("GET", "/v1/agent/self", nil)
 			resp := httptest.NewRecorder()
-			_, err := a.httpServers[0].AgentSelf(resp, req)
+			_, err := a.srv.AgentSelf(resp, req)
 			if acl.IsErrPermissionDenied(err) || resp.Code == 403 {
 				// permission denied is enough to show that the client is
 				// connected to the servers as it would get a 503 if
@@ -313,10 +314,23 @@ func (a *TestAgent) DNSAddr() string {
 }
 
 func (a *TestAgent) HTTPAddr() string {
-	if a.srv == nil {
-		return ""
+	addr, err := firstAddr(a.Agent.apiServers, "http")
+	if err != nil {
+		// TODO: t.Fatal instead of panic
+		panic("no http server registered")
 	}
-	return a.srv.Server.Addr
+	return addr.String()
+}
+
+// firstAddr is used by tests to look up the address for the first server which
+// matches the protocol
+func firstAddr(s *apiServers, protocol string) (net.Addr, error) {
+	for _, srv := range s.servers {
+		if srv.Protocol == protocol {
+			return srv.Addr, nil
+		}
+	}
+	return nil, fmt.Errorf("no server registered with protocol %v", protocol)
 }
 
 func (a *TestAgent) SegmentAddr(name string) string {

@@ -1,0 +1,7 @@
+.consul-intention-permission-header-list {
+  dt::before {
+    @extend %with-glyph-icon;
+    content: 'H';
+  }
+}
+

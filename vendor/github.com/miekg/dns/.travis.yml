@@ -10,6 +10,7 @@ env:
   - GO111MODULE=on
 
 script:
+  - go generate ./... && test `git ls-files --modified | wc -l` = 0
   - go test -race -v -bench=. -coverprofile=coverage.txt -covermode=atomic ./...
 
 after_success:

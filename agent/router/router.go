@@ -5,14 +5,15 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/serf/coordinate"
+	"github.com/hashicorp/serf/serf"
+
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/serf/coordinate"
-	"github.com/hashicorp/serf/serf"
 )
 
 // Router keeps track of a set of network areas and their associated Serf
@@ -40,6 +41,10 @@ type Router struct {
 
 	// routeFn is a hook to actually do the routing.
 	routeFn func(datacenter string) (*Manager, *metadata.Server, bool)
+
+	// grpcServerTracker is used to balance grpc connections across servers,
+	// and has callbacks for adding or removing a server.
+	grpcServerTracker ServerTracker
 
 	// isShutdown prevents adding new routes to a router after it is shut
 	// down.
@@ -87,17 +92,21 @@ type areaInfo struct {
 }
 
 // NewRouter returns a new Router with the given configuration.
-func NewRouter(logger hclog.Logger, localDatacenter, serverName string) *Router {
+func NewRouter(logger hclog.Logger, localDatacenter, serverName string, tracker ServerTracker) *Router {
 	if logger == nil {
 		logger = hclog.New(&hclog.LoggerOptions{})
 	}
+	if tracker == nil {
+		tracker = NoOpServerTracker{}
+	}
 
 	router := &Router{
-		logger:          logger.Named(logging.Router),
-		localDatacenter: localDatacenter,
-		serverName:      serverName,
-		areas:           make(map[types.AreaID]*areaInfo),
-		managers:        make(map[string][]*Manager),
+		logger:            logger.Named(logging.Router),
+		localDatacenter:   localDatacenter,
+		serverName:        serverName,
+		areas:             make(map[types.AreaID]*areaInfo),
+		managers:          make(map[string][]*Manager),
+		grpcServerTracker: tracker,
 	}
 
 	// Hook the direct route lookup by default.
@@ -251,7 +260,8 @@ func (r *Router) maybeInitializeManager(area *areaInfo, dc string) *Manager {
 	}
 
 	shutdownCh := make(chan struct{})
-	manager := New(r.logger, shutdownCh, area.cluster, area.pinger, r.serverName)
+	rb := r.grpcServerTracker.NewRebalancer(dc)
+	manager := New(r.logger, shutdownCh, area.cluster, area.pinger, r.serverName, rb)
 	info = &managerInfo{
 		manager:    manager,
 		shutdownCh: shutdownCh,
@@ -260,7 +270,7 @@ func (r *Router) maybeInitializeManager(area *areaInfo, dc string) *Manager {
 
 	managers := r.managers[dc]
 	r.managers[dc] = append(managers, manager)
-	go manager.Start()
+	go manager.Run()
 
 	return manager
 }
@@ -278,6 +288,7 @@ func (r *Router) addServer(area *areaInfo, s *metadata.Server) error {
 	}
 
 	manager.AddServer(s)
+	r.grpcServerTracker.AddServer(s)
 	return nil
 }
 
@@ -313,6 +324,7 @@ func (r *Router) RemoveServer(areaID types.AreaID, s *metadata.Server) error {
 		return nil
 	}
 	info.manager.RemoveServer(s)
+	r.grpcServerTracker.RemoveServer(s)
 
 	// If this manager is empty then remove it so we don't accumulate cruft
 	// and waste time during request routing.
@@ -536,10 +548,13 @@ func (r *Router) GetDatacentersByDistance() ([]string, error) {
 		for _, m := range info.cluster.Members() {
 			ok, parts := metadata.IsConsulServer(m)
 			if !ok {
-				r.logger.Warn("Non-server in server-only area",
-					"non_server", m.Name,
-					"area", areaID,
-				)
+				if areaID != types.AreaLAN {
+					r.logger.Warn("Non-server in server-only area",
+						"non_server", m.Name,
+						"area", areaID,
+						"func", "GetDatacentersByDistance",
+					)
+				}
 				continue
 			}
 
@@ -547,6 +562,7 @@ func (r *Router) GetDatacentersByDistance() ([]string, error) {
 				r.logger.Debug("server in area left, skipping",
 					"server", m.Name,
 					"area", areaID,
+					"func", "GetDatacentersByDistance",
 				)
 				continue
 			}
@@ -607,10 +623,13 @@ func (r *Router) GetDatacenterMaps() ([]structs.DatacenterMap, error) {
 		for _, m := range info.cluster.Members() {
 			ok, parts := metadata.IsConsulServer(m)
 			if !ok {
-				r.logger.Warn("Non-server in server-only area",
-					"non_server", m.Name,
-					"area", areaID,
-				)
+				if areaID != types.AreaLAN {
+					r.logger.Warn("Non-server in server-only area",
+						"non_server", m.Name,
+						"area", areaID,
+						"func", "GetDatacenterMaps",
+					)
+				}
 				continue
 			}
 
@@ -618,6 +637,7 @@ func (r *Router) GetDatacenterMaps() ([]structs.DatacenterMap, error) {
 				r.logger.Debug("server in area left, skipping",
 					"server", m.Name,
 					"area", areaID,
+					"func", "GetDatacenterMaps",
 				)
 				continue
 			}

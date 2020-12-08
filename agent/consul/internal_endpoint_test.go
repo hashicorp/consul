@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib/stringslice"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
@@ -34,7 +35,7 @@ func TestInternal_NodeInfo(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db",
 			Service: "db",
-			Tags:    []string{"master"},
+			Tags:    []string{"primary"},
 		},
 		Check: &structs.HealthCheck{
 			Name:      "db connect",
@@ -63,7 +64,7 @@ func TestInternal_NodeInfo(t *testing.T) {
 	if nodes[0].Node != "foo" {
 		t.Fatalf("Bad: %v", nodes[0])
 	}
-	if !stringslice.Contains(nodes[0].Services[0].Tags, "master") {
+	if !stringslice.Contains(nodes[0].Services[0].Tags, "primary") {
 		t.Fatalf("Bad: %v", nodes[0])
 	}
 	if nodes[0].Checks[0].Status != api.HealthPassing {
@@ -88,7 +89,7 @@ func TestInternal_NodeDump(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db",
 			Service: "db",
-			Tags:    []string{"master"},
+			Tags:    []string{"primary"},
 		},
 		Check: &structs.HealthCheck{
 			Name:      "db connect",
@@ -108,7 +109,7 @@ func TestInternal_NodeDump(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db",
 			Service: "db",
-			Tags:    []string{"slave"},
+			Tags:    []string{"replica"},
 		},
 		Check: &structs.HealthCheck{
 			Name:      "db connect",
@@ -138,7 +139,7 @@ func TestInternal_NodeDump(t *testing.T) {
 		switch node.Node {
 		case "foo":
 			foundFoo = true
-			if !stringslice.Contains(node.Services[0].Tags, "master") {
+			if !stringslice.Contains(node.Services[0].Tags, "primary") {
 				t.Fatalf("Bad: %v", nodes[0])
 			}
 			if node.Checks[0].Status != api.HealthPassing {
@@ -147,7 +148,7 @@ func TestInternal_NodeDump(t *testing.T) {
 
 		case "bar":
 			foundBar = true
-			if !stringslice.Contains(node.Services[0].Tags, "slave") {
+			if !stringslice.Contains(node.Services[0].Tags, "replica") {
 				t.Fatalf("Bad: %v", nodes[1])
 			}
 			if node.Checks[0].Status != api.HealthWarning {
@@ -180,7 +181,7 @@ func TestInternal_NodeDump_Filter(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db",
 			Service: "db",
-			Tags:    []string{"master"},
+			Tags:    []string{"primary"},
 		},
 		Check: &structs.HealthCheck{
 			Name:      "db connect",
@@ -198,7 +199,7 @@ func TestInternal_NodeDump_Filter(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db",
 			Service: "db",
-			Tags:    []string{"slave"},
+			Tags:    []string{"replica"},
 		},
 		Check: &structs.HealthCheck{
 			Name:      "db connect",
@@ -212,7 +213,7 @@ func TestInternal_NodeDump_Filter(t *testing.T) {
 	var out2 structs.IndexedNodeDump
 	req := structs.DCSpecificRequest{
 		Datacenter:   "dc1",
-		QueryOptions: structs.QueryOptions{Filter: "master in Services.Tags"},
+		QueryOptions: structs.QueryOptions{Filter: "primary in Services.Tags"},
 	}
 	require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.NodeDump", &req, &out2))
 
@@ -568,35 +569,83 @@ func TestInternal_ServiceDump(t *testing.T) {
 	// prep the cluster with some data we can use in our filters
 	registerTestCatalogEntries(t, codec)
 
-	doRequest := func(t *testing.T, filter string) structs.CheckServiceNodes {
+	// Register a gateway config entry to ensure gateway-services is dumped
+	{
+		req := structs.ConfigEntryRequest{
+			Op:         structs.ConfigEntryUpsert,
+			Datacenter: "dc1",
+			Entry: &structs.TerminatingGatewayConfigEntry{
+				Name: "terminating-gateway",
+				Kind: structs.TerminatingGateway,
+				Services: []structs.LinkedService{
+					{
+						Name: "api",
+					},
+					{
+						Name: "cache",
+					},
+				},
+			},
+		}
+		var configOutput bool
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.Apply", &req, &configOutput))
+		require.True(t, configOutput)
+	}
+
+	doRequest := func(t *testing.T, filter string) structs.IndexedNodesWithGateways {
 		t.Helper()
 		args := structs.DCSpecificRequest{
 			Datacenter:   "dc1",
 			QueryOptions: structs.QueryOptions{Filter: filter},
 		}
 
-		var out structs.IndexedCheckServiceNodes
+		var out structs.IndexedNodesWithGateways
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.ServiceDump", &args, &out))
-		return out.Nodes
+
+		// The GatewayServices dump is currently cannot be bexpr filtered
+		// so the response should be the same in all subtests
+		expectedGW := structs.GatewayServices{
+			{
+				Service:     structs.NewServiceName("api", nil),
+				Gateway:     structs.NewServiceName("terminating-gateway", nil),
+				GatewayKind: structs.ServiceKindTerminatingGateway,
+			},
+			{
+				Service:     structs.NewServiceName("cache", nil),
+				Gateway:     structs.NewServiceName("terminating-gateway", nil),
+				GatewayKind: structs.ServiceKindTerminatingGateway,
+			},
+		}
+		assert.Len(t, out.Gateways, 2)
+		assert.Equal(t, expectedGW[0].Service, out.Gateways[0].Service)
+		assert.Equal(t, expectedGW[0].Gateway, out.Gateways[0].Gateway)
+		assert.Equal(t, expectedGW[0].GatewayKind, out.Gateways[0].GatewayKind)
+
+		assert.Equal(t, expectedGW[1].Service, out.Gateways[1].Service)
+		assert.Equal(t, expectedGW[1].Gateway, out.Gateways[1].Gateway)
+		assert.Equal(t, expectedGW[1].GatewayKind, out.Gateways[1].GatewayKind)
+
+		return out
 	}
 
 	// Run the tests against the test server
 	t.Run("No Filter", func(t *testing.T) {
 		nodes := doRequest(t, "")
 		// redis (3), web (3), critical (1), warning (1) and consul (1)
-		require.Len(t, nodes, 9)
+		require.Len(t, nodes.Nodes, 9)
+
 	})
 
 	t.Run("Filter Node foo and service version 1", func(t *testing.T) {
-		nodes := doRequest(t, "Node.Node == foo and Service.Meta.version == 1")
-		require.Len(t, nodes, 1)
-		require.Equal(t, "redis", nodes[0].Service.Service)
-		require.Equal(t, "redisV1", nodes[0].Service.ID)
+		resp := doRequest(t, "Node.Node == foo and Service.Meta.version == 1")
+		require.Len(t, resp.Nodes, 1)
+		require.Equal(t, "redis", resp.Nodes[0].Service.Service)
+		require.Equal(t, "redisV1", resp.Nodes[0].Service.ID)
 	})
 
 	t.Run("Filter service web", func(t *testing.T) {
-		nodes := doRequest(t, "Service.Service == web")
-		require.Len(t, nodes, 3)
+		resp := doRequest(t, "Service.Service == web")
+		require.Len(t, resp.Nodes, 3)
 	})
 }
 
@@ -622,7 +671,7 @@ func TestInternal_ServiceDump_Kind(t *testing.T) {
 			UseServiceKind: true,
 		}
 
-		var out structs.IndexedCheckServiceNodes
+		var out structs.IndexedNodesWithGateways
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.ServiceDump", &args, &out))
 		return out.Nodes
 	}
@@ -1556,4 +1605,207 @@ service_prefix "terminating-gateway" { policy = "read" }
 		reply.Intentions[1].DestinationName,
 	}
 	assert.ElementsMatch(t, expected, actual)
+}
+
+func TestInternal_ServiceTopology(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	// api and api-proxy on node foo - upstream: web
+	// web and web-proxy on node bar - upstream: redis
+	// web and web-proxy on node baz - upstream: redis
+	// redis and redis-proxy on node zip
+	// wildcard deny intention
+	// web -> redis exact intentino
+	registerTestTopologyEntries(t, codec, "")
+
+	var (
+		api   = structs.NewServiceName("api", structs.DefaultEnterpriseMeta())
+		web   = structs.NewServiceName("web", structs.DefaultEnterpriseMeta())
+		redis = structs.NewServiceName("redis", structs.DefaultEnterpriseMeta())
+	)
+
+	t.Run("api", func(t *testing.T) {
+		retry.Run(t, func(r *retry.R) {
+			args := structs.ServiceSpecificRequest{
+				Datacenter:  "dc1",
+				ServiceName: "api",
+			}
+			var out structs.IndexedServiceTopology
+			require.NoError(r, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
+			require.False(r, out.FilteredByACLs)
+			require.Equal(r, "http", out.ServiceTopology.MetricsProtocol)
+
+			// bar/web, bar/web-proxy, baz/web, baz/web-proxy
+			require.Len(r, out.ServiceTopology.Upstreams, 4)
+			require.Len(r, out.ServiceTopology.Downstreams, 0)
+
+			expectUp := map[string]structs.IntentionDecisionSummary{
+				web.String(): {
+					Allowed:        false,
+					HasPermissions: false,
+					ExternalSource: "nomad",
+
+					// From wildcard deny
+					HasExact: false,
+				},
+			}
+			require.Equal(r, expectUp, out.ServiceTopology.UpstreamDecisions)
+		})
+	})
+
+	t.Run("web", func(t *testing.T) {
+		retry.Run(t, func(r *retry.R) {
+			args := structs.ServiceSpecificRequest{
+				Datacenter:  "dc1",
+				ServiceName: "web",
+			}
+			var out structs.IndexedServiceTopology
+			require.NoError(r, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
+			require.False(r, out.FilteredByACLs)
+			require.Equal(r, "http", out.ServiceTopology.MetricsProtocol)
+
+			// foo/api, foo/api-proxy
+			require.Len(r, out.ServiceTopology.Downstreams, 2)
+
+			expectDown := map[string]structs.IntentionDecisionSummary{
+				api.String(): {
+					Allowed:        false,
+					HasPermissions: false,
+					ExternalSource: "nomad",
+
+					// From wildcard deny
+					HasExact: false,
+				},
+			}
+			require.Equal(r, expectDown, out.ServiceTopology.DownstreamDecisions)
+
+			// zip/redis, zip/redis-proxy
+			require.Len(r, out.ServiceTopology.Upstreams, 2)
+
+			expectUp := map[string]structs.IntentionDecisionSummary{
+				redis.String(): {
+					Allowed:        false,
+					HasPermissions: true,
+					HasExact:       true,
+				},
+			}
+			require.Equal(r, expectUp, out.ServiceTopology.UpstreamDecisions)
+		})
+	})
+
+	t.Run("redis", func(t *testing.T) {
+		retry.Run(t, func(r *retry.R) {
+			args := structs.ServiceSpecificRequest{
+				Datacenter:  "dc1",
+				ServiceName: "redis",
+			}
+			var out structs.IndexedServiceTopology
+			require.NoError(r, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
+			require.False(r, out.FilteredByACLs)
+			require.Equal(r, "http", out.ServiceTopology.MetricsProtocol)
+
+			require.Len(r, out.ServiceTopology.Upstreams, 0)
+
+			// bar/web, bar/web-proxy, baz/web, baz/web-proxy
+			require.Len(r, out.ServiceTopology.Downstreams, 4)
+
+			expectDown := map[string]structs.IntentionDecisionSummary{
+				web.String(): {
+					Allowed:        false,
+					HasPermissions: true,
+					HasExact:       true,
+				},
+			}
+			require.Equal(r, expectDown, out.ServiceTopology.DownstreamDecisions)
+		})
+	})
+}
+
+func TestInternal_ServiceTopology_ACL(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = TestDefaultMasterToken
+		c.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	// api and api-proxy on node foo - upstream: web
+	// web and web-proxy on node bar - upstream: redis
+	// web and web-proxy on node baz - upstream: redis
+	// redis and redis-proxy on node zip
+	registerTestTopologyEntries(t, codec, TestDefaultMasterToken)
+
+	// Token grants read to: foo/api, foo/api-proxy, bar/web, baz/web
+	userToken, err := upsertTestTokenWithPolicyRules(codec, TestDefaultMasterToken, "dc1", `
+node_prefix "" { policy = "read" }
+service_prefix "api" { policy = "read" }
+service "web" { policy = "read" }
+`)
+	require.NoError(t, err)
+
+	t.Run("api can't read web", func(t *testing.T) {
+		args := structs.ServiceSpecificRequest{
+			Datacenter:   "dc1",
+			ServiceName:  "api",
+			QueryOptions: structs.QueryOptions{Token: userToken.SecretID},
+		}
+		var out structs.IndexedServiceTopology
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
+
+		require.True(t, out.FilteredByACLs)
+		require.Equal(t, "http", out.ServiceTopology.MetricsProtocol)
+
+		// The web-proxy upstream gets filtered out from both bar and baz
+		require.Len(t, out.ServiceTopology.Upstreams, 2)
+		require.Equal(t, "web", out.ServiceTopology.Upstreams[0].Service.Service)
+		require.Equal(t, "web", out.ServiceTopology.Upstreams[1].Service.Service)
+
+		require.Len(t, out.ServiceTopology.Downstreams, 0)
+	})
+
+	t.Run("web can't read redis", func(t *testing.T) {
+		args := structs.ServiceSpecificRequest{
+			Datacenter:   "dc1",
+			ServiceName:  "web",
+			QueryOptions: structs.QueryOptions{Token: userToken.SecretID},
+		}
+		var out structs.IndexedServiceTopology
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out))
+
+		require.True(t, out.FilteredByACLs)
+		require.Equal(t, "http", out.ServiceTopology.MetricsProtocol)
+
+		// The redis upstream gets filtered out but the api and proxy downstream are returned
+		require.Len(t, out.ServiceTopology.Upstreams, 0)
+		require.Len(t, out.ServiceTopology.Downstreams, 2)
+	})
+
+	t.Run("redis can't read self", func(t *testing.T) {
+		args := structs.ServiceSpecificRequest{
+			Datacenter:   "dc1",
+			ServiceName:  "redis",
+			QueryOptions: structs.QueryOptions{Token: userToken.SecretID},
+		}
+		var out structs.IndexedServiceTopology
+		err := msgpackrpc.CallWithCodec(codec, "Internal.ServiceTopology", &args, &out)
+
+		// Can't read self, fails fast
+		require.True(t, acl.IsErrPermissionDenied(err))
+	})
 }

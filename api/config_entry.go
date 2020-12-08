@@ -7,6 +7,7 @@ import (
 	"io"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 )
@@ -19,6 +20,7 @@ const (
 	ServiceResolver    string = "service-resolver"
 	IngressGateway     string = "ingress-gateway"
 	TerminatingGateway string = "terminating-gateway"
+	ServiceIntentions  string = "service-intentions"
 
 	ProxyConfigGlobal string = "global"
 )
@@ -26,6 +28,8 @@ const (
 type ConfigEntry interface {
 	GetKind() string
 	GetName() string
+	GetNamespace() string
+	GetMeta() map[string]string
 	GetCreateIndex() uint64
 	GetModifyIndex() uint64
 }
@@ -95,6 +99,7 @@ type ServiceConfigEntry struct {
 	MeshGateway MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway"`
 	Expose      ExposeConfig      `json:",omitempty"`
 	ExternalSNI string            `json:",omitempty" alias:"external_sni"`
+	Meta        map[string]string `json:",omitempty"`
 	CreateIndex uint64
 	ModifyIndex uint64
 }
@@ -105,6 +110,14 @@ func (s *ServiceConfigEntry) GetKind() string {
 
 func (s *ServiceConfigEntry) GetName() string {
 	return s.Name
+}
+
+func (s *ServiceConfigEntry) GetNamespace() string {
+	return s.Namespace
+}
+
+func (s *ServiceConfigEntry) GetMeta() map[string]string {
+	return s.Meta
 }
 
 func (s *ServiceConfigEntry) GetCreateIndex() uint64 {
@@ -122,6 +135,7 @@ type ProxyConfigEntry struct {
 	Config      map[string]interface{} `json:",omitempty"`
 	MeshGateway MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
 	Expose      ExposeConfig           `json:",omitempty"`
+	Meta        map[string]string      `json:",omitempty"`
 	CreateIndex uint64
 	ModifyIndex uint64
 }
@@ -132,6 +146,14 @@ func (p *ProxyConfigEntry) GetKind() string {
 
 func (p *ProxyConfigEntry) GetName() string {
 	return p.Name
+}
+
+func (p *ProxyConfigEntry) GetNamespace() string {
+	return p.Namespace
+}
+
+func (p *ProxyConfigEntry) GetMeta() map[string]string {
+	return p.Meta
 }
 
 func (p *ProxyConfigEntry) GetCreateIndex() uint64 {
@@ -158,6 +180,8 @@ func makeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &IngressGatewayConfigEntry{Kind: kind, Name: name}, nil
 	case TerminatingGateway:
 		return &TerminatingGatewayConfigEntry{Kind: kind, Name: name}, nil
+	case ServiceIntentions:
+		return &ServiceIntentionsConfigEntry{Kind: kind, Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}
@@ -200,7 +224,10 @@ func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
 	}
 
 	decodeConf := &mapstructure.DecoderConfig{
-		DecodeHook:       mapstructure.StringToTimeDurationHookFunc(),
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			mapstructure.StringToTimeDurationHookFunc(),
+			mapstructure.StringToTimeHookFunc(time.RFC3339),
+		),
 		Result:           &entry,
 		WeaklyTypedInput: true,
 	}

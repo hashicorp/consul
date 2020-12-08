@@ -13,6 +13,9 @@ var (
 		"non_voting_server": func(c *Config) {
 			// to maintain existing compatibility we don't nullify the value
 		},
+		"read_replica": func(c *Config) {
+			// to maintain existing compatibility we don't nullify the value
+		},
 		"segment": func(c *Config) {
 			// to maintain existing compatibility we don't nullify the value
 		},
@@ -51,8 +54,12 @@ func (e enterpriseConfigKeyError) Error() string {
 	return fmt.Sprintf("%q is a Consul Enterprise configuration and will have no effect", e.key)
 }
 
-func (_ *Builder) BuildEnterpriseRuntimeConfig(_ *Config) (EnterpriseRuntimeConfig, error) {
-	return EnterpriseRuntimeConfig{}, nil
+func (*Builder) BuildEnterpriseRuntimeConfig(_ *RuntimeConfig, _ *Config) error {
+	return nil
+}
+
+func (*Builder) validateEnterpriseConfig(_ RuntimeConfig) error {
+	return nil
 }
 
 // validateEnterpriseConfig is a function to validate the enterprise specific

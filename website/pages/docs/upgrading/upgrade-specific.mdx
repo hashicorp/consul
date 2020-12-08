@@ -15,7 +15,75 @@ provided for their upgrades as a result of new features or changed behavior.
 This page is used to document those details separately from the standard
 upgrade flow.
 
+## Consul 1.9.0
+
+### Changes to Raft Protocol Support
+
+Consul 1.8 supported Raft protocols 2 and 3. Consul 1.9.0 now only supports
+Raft protocol 3 so before upgrading to Consul 1.9.0 users may have to first
+upgrade to a previous release supporting both protocol versions and upgrade
+the protocol in use to version 3.
+
+### Changes to Configuration Defaults
+
+The [`enable_central_service_config`](/docs/agent/options#enable_central_service_config)
+configuration now defaults to `true`.
+
+### Changes to Intentions
+
+#### Migration
+
+Upgrading to Consul 1.9.0 will trigger a one-time background migration of
+[intentions](/docs/connect/intentions) into an equivalent set of
+[`service-intentions`](/docs/agent/config-entries/service-intentions) config
+entries. This process will wait until all of the Consul servers in the primary
+datacenter are running Consul 1.9.0+.
+
+All write requests via either the [Intentions
+API](/api-docs/connect/intentions) endpoints or [Config Entry
+API](/api-docs/config) endpoints for a `service-intentions` kind will be
+blocked until the migration process is complete after the upgrade. Reads will
+function normally throughout the migration, so authorization enforcement will
+be unaffected.
+
+Secondary datacenters will perform their own one-time migration operations
+after the primary datacenter completes its migration and all of the Consul
+servers in the secondary datacenter are running Consul 1.9.0+. It is safe to
+upgrade the datacenters in any order.
+
+#### Deprecated Fields
+
+All old ID-based [Intentions API](/api-docs/connect/intentions) CRUD endpoints
+will retain all of their prior fields _as long as those endpoints are
+exclusively used to edit intentions_. Once the underlying config entry
+representation is edited it will transition the intention into the newer format
+where some fields are no longer present. Once this transition occurs those
+intentions can no longer be used with the ID-based endpoints unless they are
+re-created via the old endpoints. Fields that are being removed or changing
+behavior:
+
+- `Intention.ID` after migration is stored in the
+  [`LegacyID`](/docs/agent/config-entries/service-intentions#legacyid) field.
+  After transitioning this field is cleared.
+
+- `Intention.CreatedAt` after migration is stored in the
+  [`LegacyCreateTime`](/docs/agent/config-entries/service-intentions#legacycreatetime)
+  field. After transitioning this field is cleared.
+
+- `Intention.UpdatedAt` after migration is stored in the
+  [`LegacyUpdateTime`](/docs/agent/config-entries/service-intentions#legacyupdatetime)
+  field. After transitioning this field is cleared.
+
+- `Intention.Meta` after migration is stored in the
+  [`LegacyMeta`](/docs/agent/config-entries/service-intentions#legacymeta)
+  field. To complete the transition, this field **must be cleared manually**
+  and the metadata moved up to the enclosing config entry's
+  [`Meta`](/docs/agent/config-entries/service-intentions#meta) field. This is
+  not done automatically since it is potentially a lossy operation.
+
 ## Consul 1.8.0
+
+#### Removal of Deprecated Features
 
 The [`acl_enforce_version_8`](/docs/agent/options#acl_enforce_version_8)
 configuration has been removed (with version 8 ACL support by being on by
@@ -69,8 +137,8 @@ Starting with Consul 1.7.1 this is the new default.
 ### Vault: default `http_max_conns_per_client` too low to run Vault properly
 
 Consul 1.6.3 introduced [limiting of connections per client](/docs/agent/options#http_max_conns_per_client). The default value
-was 100, but Vault could use up to 128, which caused problems. If you want to use Vault with Consul 1.6.3, you should change the value to 200.
-Starting with Consul 1.6.4 this is the new default.
+was 100, but Vault could use up to 128, which caused problems. If you want to use Vault with Consul 1.6.3 through 1.7.0, you should change the value to 200.
+Starting with Consul 1.7.1 this is the new default.
 
 ## Consul 1.6.0
 
@@ -120,7 +188,7 @@ procedure](/docs/upgrading#standard-upgrades).
 
 When a 1.4.0 server first starts, it runs in "Legacy ACL mode". In this mode,
 bootstrap requests and new ACL APIs will not be functional yet and will return
-an error. The server advertises it's ability to support 1.4.0 ACLs via gossip
+an error. The server advertises its ability to support 1.4.0 ACLs via gossip
 and waits.
 
 In the primary datacenter, the servers all wait in legacy ACL mode until they
@@ -277,7 +345,7 @@ soon as they are stable, allowing Autopilot to remove old servers in a safer
 way.
 
 When upgrading from Consul 1.0, you may need to manually
-[force-leave](/docs/commands/force-leave) old servers as part of a rolling
+[force-leave](/commands/force-leave) old servers as part of a rolling
 update to Consul 1.0.1.
 
 ## Consul 1.0
@@ -525,6 +593,11 @@ as part of upgrading agents. If this is set to `true`, you should also enable
 to provide control over which users are allowed to register health checks that
 could potentially execute scripts on the agent machines.
 
+!> **Security Warning:** Using `enable_script_checks` without ACLs and without
+`allow_write_http_from` is _DANGEROUS_. Use the `enable_local_script_checks` setting
+introduced in v0.9.4 instead. See [this article](https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations/)
+for more information.
+
 #### Web UI Is No Longer Released Separately
 
 Consul releases will no longer include a `web_ui.zip` file with the compiled
@@ -579,7 +652,7 @@ agents would have to wait to contact a Consul server before learning that.
 The default for
 [`disable_remote_exec`](/docs/agent/options#disable_remote_exec) was
 changed to "true", so now operators need to opt-in to having agents support
-running commands remotely via [`consul exec`](/docs/commands/exec).
+running commands remotely via [`consul exec`](/commands/exec).
 
 #### Raft Protocol Version Compatibility
 
@@ -845,7 +918,7 @@ this:
 This automatic upgrade will only exist in Consul 0.5.1+ and it will
 be removed starting with Consul 0.6.0+. It will still be possible to upgrade directly
 from pre-0.5.1 versions by using the consul-migrate utility, which is available on the
-[Consul Tools page](/downloads_tools).
+[Consul Tools page](/docs/download-tools).
 
 ## Consul 0.5
 
