@@ -11,7 +11,13 @@ export default function(config = {}, win = window, doc = document) {
   // look at the hash in the URL and transfer anything after the hash into
   // cookies to enable linking of the UI with various settings enabled
   runInDebug(() => {
-    doc.cookie = win.location.hash.substr(1);
+    if (
+      typeof win.location !== 'undefined' &&
+      typeof win.location.hash === 'string' &&
+      win.location.hash.length > 0
+    ) {
+      doc.cookie = win.location.hash.substr(1);
+    }
   });
   const dev = function(str = doc.cookie) {
     return str
@@ -115,10 +121,11 @@ export default function(config = {}, win = window, doc = document) {
             case 'CONSUL_SSO_ENABLE':
               prev['CONSUL_SSO_ENABLED'] = !!JSON.parse(String(value).toLowerCase());
               break;
-            case 'CONSUL_UI_CONFIG':
-              prev['CONSUL_UI_CONFIG'] = JSON.parse(value);
             case 'CONSUL_METRICS_PROXY_ENABLE':
               prev['CONSUL_METRICS_PROXY_ENABLED'] = !!JSON.parse(String(value).toLowerCase());
+              break;
+            case 'CONSUL_UI_CONFIG':
+              prev['CONSUL_UI_CONFIG'] = JSON.parse(value);
               break;
             default:
               prev[key] = value;
@@ -144,7 +151,6 @@ export default function(config = {}, win = window, doc = document) {
       case 'CONSUL_UI_REALTIME_RUNNER':
         // these are strings
         return user(str) || ui(str);
-
       case 'CONSUL_UI_CONFIG':
       case 'CONSUL_METRICS_PROVIDER':
       case 'CONSUL_METRICS_PROXY_ENABLE':
