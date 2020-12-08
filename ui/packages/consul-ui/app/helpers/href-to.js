@@ -5,7 +5,7 @@
 // (dynamic or wildcard) and encode or not depending on the type
 import { inject as service } from '@ember/service';
 import Helper from '@ember/component/helper';
-import { observer } from '@ember/object';
+import { observes } from '@ember-decorators/object';
 import { hrefTo as _hrefTo } from 'ember-href-to/helpers/href-to';
 
 import wildcard from 'consul-ui/utils/routing/wildcard';
@@ -38,12 +38,15 @@ export const hrefTo = function(owned, router, [targetRouteName, ...rest], namedA
   }
 };
 
-export default Helper.extend({
-  router: service('router'),
+export default class HrefToHelper extends Helper {
+  @service('router') router;
+
   compute(params, hash) {
     return hrefTo(this, this.router, params, hash);
-  },
-  onURLChange: observer('router.currentURL', function() {
+  }
+
+  @observes('router.currentURL')
+  onURLChange() {
     this.recompute();
-  }),
-});
+  }
+}

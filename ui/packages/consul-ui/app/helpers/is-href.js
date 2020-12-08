@@ -2,17 +2,20 @@
 // TODO: Remove ^
 import Helper from '@ember/component/helper';
 import { inject as service } from '@ember/service';
-import { observer } from '@ember/object';
+import { observes } from '@ember-decorators/object';
 
-export default Helper.extend({
-  router: service('router'),
+export default class IsHrefHelper extends Helper {
+  @service('router') router;
+
   compute([targetRouteName, ...rest]) {
     if (this.router.currentRouteName.startsWith('nspace.') && targetRouteName.startsWith('dc.')) {
       targetRouteName = `nspace.${targetRouteName}`;
     }
     return this.router.isActive(...[targetRouteName, ...rest]);
-  },
-  onURLChange: observer('router.currentURL', function() {
+  }
+
+  @observes('router.currentURL')
+  onURLChange() {
     this.recompute();
-  }),
-});
+  }
+}
