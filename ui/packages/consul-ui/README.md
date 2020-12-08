@@ -56,6 +56,12 @@ List of available project commands.  `yarn run <command-name>`
 | start | Runs the development app on a local server using the mock API. |
 | start:consul | Runs the development app local server using a real consul instance as the backend. |
 | start:staging | Runs the staging app local server. |
+| test | Runs the ember tests in a headless browser. |
+| test:view | Runs the ember tests in a non-headless browser. |
+| test:oss | Runs only the OSS ember tests in a headless browser. |
+| test:oss:view | Runs only the OSS ember tests in a non-headless browser. |
+| test:coverage:view | Runs only the test specified for coverage in a non-headless browser. |
+| test:node | Runs tests that can't be run in ember using node. |
 | doc:toc | Automatically generates a table of contents for this README file. |
 
 ## Running / Development
