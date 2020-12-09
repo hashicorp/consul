@@ -8135,7 +8135,7 @@ ember-modifier-manager-polyfill@^1.1.0, ember-modifier-manager-polyfill@^1.2.0:
     ember-cli-version-checker "^2.1.2"
     ember-compatibility-helpers "^1.2.0"
 
-ember-modifier@^2.1.1:
+ember-modifier@^2.1.0, ember-modifier@^2.1.1:
   version "2.1.1"
   resolved "https://registry.yarnpkg.com/ember-modifier/-/ember-modifier-2.1.1.tgz#aa3a12e2d6cf1622f774f3f1eab4880982a43fa9"
   integrity sha512-g9mcpFWgw5lgNU40YNf0USNWqoGTJ+EqjDQKjm7556gaRNDeGnLylFKqx9O3opwLHEt6ZODnRDy9U0S5YEMREg==
@@ -8170,6 +8170,16 @@ ember-on-helper@^0.1.0:
   integrity sha512-jjafBnWfoA4VSSje476ft5G+urlvvuSDddwAJjKDCjKY9mbe3hAEsJiMBAaPObJRMm1FOglCuKjQZfwDDls6MQ==
   dependencies:
     ember-cli-babel "^7.7.3"
+
+ember-on-resize-modifier@^0.3.0:
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/ember-on-resize-modifier/-/ember-on-resize-modifier-0.3.0.tgz#6c8b0fda3cd77c9f51c5e8394ed7af13b2c20fcb"
+  integrity sha512-LUZcO3dYJXTcUFI2/8X+wyZXEp0p/xDZS3UHxwI/j99MprL4ZNxdYELQ5Rhq0sR/eGMBaJMEMzgM7I62+irOrg==
+  dependencies:
+    ember-cli-babel "^7.20.5"
+    ember-cli-htmlbars "^5.1.2"
+    ember-modifier "^2.1.0"
+    ember-resize-observer-service "^0.3.0"
 
 ember-page-title@^5.2.3:
   version "5.2.3"
@@ -8242,6 +8252,14 @@ ember-require-module@^0.3.0:
   integrity sha512-rYN4YoWbR9VlJISSmx0ZcYZOgMcXZLGR7kdvp3zDerjIvYmHm/3p+K56fEAYmJILA6W4F+cBe41Tq2HuQAZizA==
   dependencies:
     ember-cli-babel "^6.9.2"
+
+ember-resize-observer-service@^0.3.0:
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/ember-resize-observer-service/-/ember-resize-observer-service-0.3.0.tgz#69b6e29bd6d742001ebe0ec70249f20f46fedc4a"
+  integrity sha512-FrKPowJ9CwLBok+WZOhudoRXPg9xHArpotMdZ2FyztcBHIb8D1mVB6ELLw62KGa62Wf7RoRhfmkloZax/5WHwg==
+  dependencies:
+    ember-cli-babel "^7.20.5"
+    ember-cli-htmlbars "^5.1.2"
 
 ember-resolver@^8.0.0:
   version "8.0.2"
