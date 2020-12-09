@@ -47,7 +47,7 @@ driver "terraform" {
   }
 }
 
-provider "myprovider" {
+terraform_provider "myprovider" {
   address = "myprovider.example.com"
 }
 ```
@@ -150,10 +150,10 @@ task {
 
 * `description` - `(string: <none>)` The human readable text to describe the service.
 * `name` - `(string: <required>)` Name is the unique name of the task (required). A task name must start with a letter or underscore and may contain only letters, digits, underscores, and dashes.
-* `providers` - `(list(string): [])` Providers is the list of provider names the task is dependent on. This is used to map [provider configuration](#provider) to the task.
+* `providers` - `(list(string): [])` Providers is the list of provider names the task is dependent on. This is used to map [Terraform provider configuration](#terraform-provider) to the task.
 * `services` - `(list(string): [])` Services is the list of logical service names or service IDs the task executes on. Consul-Terraform-Sync monitors the Consul Catalog for changes to these services and triggers the task to run. Any service value not explicitly defined by a `service` block with a matching ID is assumed to be a logical service name in the default namespace.
 * `source` - `(string: <required>)` Source is the location the driver uses to fetch task dependencies. The source format is dependent on the driver. For the [Terraform driver](#terraform-driver), the source is the module path (local or remote). Read more on [Terraform module source here](https://www.terraform.io/docs/modules/sources.html).
-* `variable_files` - `(list(string): [])` A list of paths to files containing variables for the task. For the [Terraform driver](#terraform-driver), these are used as Terraform [variable defintion (`.tfvars`) files](https://www.terraform.io/docs/configuration/variables.html#variable-definitions-tfvars-files) and consists of only variable name assignments. The variable assignments must match the corresponding variable declarations available by the Terraform module for the task. Consul-Terraform-Sync will generate the intermediate variable declarations to pass as arguments from the auto-generated root module to the task's module. Variables are loaded in the same order as they appear in the order of the files. Duplicate variables are overwritten with the later value. *Note: unless specified by the module, configure arguments for providers using [provider blocks](#provider).*
+* `variable_files` - `(list(string): [])` A list of paths to files containing variables for the task. For the [Terraform driver](#terraform-driver), these are used as Terraform [variable defintion (`.tfvars`) files](https://www.terraform.io/docs/configuration/variables.html#variable-definitions-tfvars-files) and consists of only variable name assignments. The variable assignments must match the corresponding variable declarations available by the Terraform module for the task. Consul-Terraform-Sync will generate the intermediate variable declarations to pass as arguments from the auto-generated root module to the task's module. Variables are loaded in the same order as they appear in the order of the files. Duplicate variables are overwritten with the later value. *Note: unless specified by the module, configure arguments for Terraform providers using [`terraform_provider` blocks](#terraform-provider).*
   ```hcl
   address_group = "consul-services"
   tags = [
@@ -199,9 +199,9 @@ driver "terraform" {
 * `version` - `(string: optional)` The Terraform version to install and run in automation for task execution. If omittied, the driver will install the latest official release of Terraform. To change versions, remove the existing binary or change the path to install the desired version. Verify that the desired Terraform version is compatible across all Terraform modules used for Consul-Terraform-Sync automation.
 * `working_dir` - `(string: "sync-tasks")` The base working directory to manage Terraform configurations all tasks. The full path of each working directory will have the task identifier appended to the end of the path, e.g. `./sync-tasks/task-name`.
 
-## Provider
+## Terraform Provider
 
-A `provider` block configures the options to interface with network infrastructure. Define a block for each provider required by the set of Terraform modules across all tasks. This block resembles [provider blocks for Terraform configuration](https://www.terraform.io/docs/configuration/providers.html). To find details on how to configure a provider, refer to the corresponding documentation for the Terraform provider. The main directory of publicly available providers are hosted on the [Terraform Registry](https://registry.terraform.io/browse/providers).
+A `terraform_provider` block configures the options to interface with network infrastructure. Define a block for each provider required by the set of Terraform modules across all tasks. This block resembles [provider blocks for Terraform configuration](https://www.terraform.io/docs/configuration/providers.html). To find details on how to configure a provider, refer to the corresponding documentation for the Terraform provider. The main directory of publicly available providers are hosted on the [Terraform Registry](https://registry.terraform.io/browse/providers).
 
 The below configuration captures the general design of defining a provider using the [Vault Terraform provider](https://registry.terraform.io/providers/hashicorp/vault/latest/docs) as an example.
 
@@ -215,7 +215,7 @@ driver "terraform" {
   }
 }
 
-provider "vault" {
+terraform_provider "vault" {
   address = "vault.example.com"
 }
 
@@ -226,6 +226,67 @@ task {
 }
 ```
 
+### Securely Configure Terraform Providers
+
+The `terraform_provider` block supports dynamically loading arguments from other sources. This can be used to securely configure your Terraform provider from the shell environment, Consul KV, or Vault. Using the template syntax below, you can avoid including sensitive values or credentials in plain text within configuration files for Consul-Terraform-Sync.
+
+Template syntax is only supported within the `terraform_provider` block.
+
+#### Env
+
+`env` reads the given environment variable accessible to Consul-Terraform-Sync.
+
+```hcl
+terraform_provider "example" {
+  address = "{{ env \"EXAMPLE_HOSTNAME\" }}"
+}
+```
+
+#### Consul
+
+`key` queries the key's value in the KV store of the Consul server configured in the required [`consul` block](#consul).
+
+```hcl
+terraform_provider "example" {
+  value = "{{ key \"path/example/key\" }}"
+}
+```
+
+#### Vault
+
+`with secret` queries Vault secrets. Vault is an optional source that will require operators to configure the Vault client.
+
+```hcl
+vault {
+  address = "vault.example.com"
+}
+
+terraform_provider "example" {
+  token = "{{ with secret \"secret/my/path\" }}{{ .Data.data.foo }}{{ end }}"
+}
+```
+
+Access the secret using template dot notation `Data.data.<secret>`. To use the Vault KV Secrets Engine version 1 use the `secret/<path>` prefix, and `secret/data/<path>` prefix for version 2.
+
+##### Vault Configuration
+* `address` - `(string)` The URI of the Vault server. This can also be set via the `VAULT_ADDR` environment variable.
+* `enabled` - `(bool: false)` Enabled controls whether the Vault integration is active.
+* `namespace` - `(string)` Namespace is the Vault namespace to use for reading secrets. This can also be set via the `VAULT_NAMESPACE` environment variable.
+* `renew_token` - `(bool: false)` Renews the Vault token. This can also be set via the `VAULT_RENEW_TOKEN` environment variable.
+* `tls` - `(obj: optional)` TLS indicates the client should use a secure connection while talking to Vault. Same options as [`consul.tls`](#tls) above. Supports the environment variables:
+  * `VAULT_CACERT`
+  * `VAULT_CAPATH`
+  * `VAULT_CLIENT_CERT`
+  * `VAULT_CLIENT_KEY`
+  * `VAULT_SKIP_VERIFY`
+  * `VAULT_TLS_SERVER_NAME`
+* `token` - `(string)` Token is the Vault token to communicate with for requests. It may be a wrapped token or a real token. This can also be set via the `VAULT_TOKEN` environment variable, or via the `VaultAgentTokenFile`.
+* `vault_agent_token_file` - `(string: optional)` The path of the file that contains a Vault Agent token. If this is specified, Consul-Terraform-Sync will not try to renew the Vault token.
+* `transport` - `(obj: optional)` Transport configures the low-level network connection details.
+* `unwrap_token` - `(bool: false)` Unwraps the provided Vault token as a wrapped token.
+
+~> Note: Vault credentials are not accessible by tasks and the associated Terraform configurations, including automated Terraform modules. If the task requires Vault, you will need to seprately configure the Vault provider and explicitly include it in the `task.providers` list.
+
 ### Multiple Provider Configurations
 
 Consul-Terraform-Sync supports the [Terraform feature to define multiple configurations](https://www.terraform.io/docs/configuration/providers.html#alias-multiple-provider-configurations) for the same provider by utilizing the `alias` meta-argument. Define multiple provider blocks with the same provider name and set the `alias` to a unique value across a given provider. Select which provider configuration to use for a task by specifying the configuration with the provider name and alias (`<name>.<alias>`) within the list of providers in the [`task.provider`](#task) parameter. A task can use multiple providers, but only one provider instance of a provider is allowed per task.
@@ -233,19 +294,19 @@ Consul-Terraform-Sync supports the [Terraform feature to define multiple configu
 The example Consul-Terraform-Sync configuration below defines two similar tasks executing the same module with different instances of the Vault provider.
 
 ```hcl
-provider "vault" {
+terraform_provider "vault" {
   alias = "a"
   address = "vault.example.com"
   namespace = "team-a"
 }
 
-provider "vault" {
+terraform_provider "vault" {
   alias = "b"
   address = "vault.internal.com"
   namespace = "team-b"
 }
 
-provider "dns" {
+terraform_provider "dns" {
   // ...
 }
 
