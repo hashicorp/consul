@@ -86,7 +86,6 @@ export default function ServiceDiscoveryAndHealthCheckingPage() {
           ],
         }}
         codeBlock={{
-          options: { hideClipboard: true },
           code: `$ dig @127.0.0.1 -p 8600 web.service.consul
 
 ; <<>> DiG 9.10.6 <<>> @127.0.0.1 -p 8600 web.service.consul SRV
