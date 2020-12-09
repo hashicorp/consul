@@ -31,8 +31,8 @@ You will need the following things properly installed on your computer.
 ## Installation
 
 * `git clone https://github.com/hashicorp/consul.git` this repository
-* `cd ui-v2`
-* `yarn install`
+* `cd ui/packages/consul-ui`
+* `make start` or `yarn && yarn start`
 
 
 ## Yarn Commands
@@ -111,6 +111,7 @@ token/secret.
 | `CONSUL_SSO_ENABLE` | false | Enable/disable SSO support. |
 | `CONSUL_OIDC_PROVIDER_URL` | undefined | Provide a OIDC provider URL for SSO. |
 | `CONSUL_LATENCY` | 0 | Add a latency to network requests (milliseconds) |
+| `CONSUL_METRICS_POLL_INTERVAL` | 10000 | Change the interval between requests to the metrics provider (milliseconds) |
 | `CONSUL_SERVICE_COUNT` | (random) | Configure the number of services that the API returns. |
 | `CONSUL_NODE_COUNT` | (random) | Configure the number of nodes that the API returns. |
 | `CONSUL_KV_COUNT` | (random) | Configure the number of KV entires that the API returns. |
