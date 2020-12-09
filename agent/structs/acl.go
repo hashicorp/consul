@@ -1331,6 +1331,7 @@ type ACLTokenBatchSetRequest struct {
 	CAS                  bool
 	AllowMissingLinks    bool
 	ProhibitUnprivileged bool
+	FromReplication      bool
 }
 
 // ACLTokenBatchDeleteRequest is used only at the Raft layer
