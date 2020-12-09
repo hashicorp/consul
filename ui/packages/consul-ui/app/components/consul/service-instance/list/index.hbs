@@ -5,8 +5,8 @@
 as |item index|>
   <BlockSlot @name="header">
     {{#if (eq @routeName "dc.services.show")}}
-      <a data-test-service-name href={{href-to @routeName item.Service}}>
-        {{item.ID}}
+      <a data-test-service-name href={{href-to @routeName item.Service.Service}}>
+        {{item.Service.ID}}
       </a>
     {{else}}
       <a data-test-service-name href={{href-to @routeName item.Service.Service item.Node.Node (or item.Service.ID item.Service.Service)}}>
@@ -15,9 +15,9 @@ as |item index|>
     {{/if}}
   </BlockSlot>
   <BlockSlot @name="details">
-  {{#if @checks}}
-    <Consul::ExternalSource @item={{item}} />
-    <Consul::InstanceChecks @type="service" @items={{get @checks item.Service}} />
+  {{#if @node}}
+    <Consul::ExternalSource @item={{item.Service}} />
+    <Consul::InstanceChecks @type="service" @items={{item.Checks}} />
   {{else}}
     <Consul::ExternalSource @item={{item.Service}} />
     <Consul::InstanceChecks @type="service" @items={{filter-by 'ServiceID' '' item.Checks}} />
@@ -35,7 +35,7 @@ as |item index|>
       </dd>
     </dl>
 {{/if}}
-{{#if (gt item.Node.Node.length 0)}}
+{{#if (not @node)}}
     <dl class="node">
       <dt>
         <Tooltip>
@@ -63,24 +63,6 @@ as |item index|>
       </dd>
     </dl>
 {{/if}}
-{{#if (and @checks item.Port)}}
-    <dl class="port">
-      <dt>
-        Port
-      </dt>
-      <dd data-test-service-port={{item.Port}}>
-        <CopyButton
-          @value={{item.Port}}
-          @name="Port"
-        />
-        :{{item.Port}}
-      </dd>
-    </dl>
-{{/if}}
-{{#if checks}}
-    <TagList @item={{item}} />
-{{else}}
     <TagList @item={{item.Service}} />
-{{/if}}
   </BlockSlot>
 </ListCollection>
