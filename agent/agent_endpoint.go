@@ -253,6 +253,7 @@ func (s *HTTPHandlers) AgentServices(resp http.ResponseWriter, req *http.Request
 
 	wch := make(chan struct{})
 	s.agent.State.Notify(wch)
+	defer s.agent.State.StopNotify(wch)
 
 	// Parse hash specially. parseWait doesn't parse the hash currently
 	hash := req.URL.Query().Get("hash")
@@ -291,9 +292,7 @@ func (s *HTTPHandlers) AgentServices(resp http.ResponseWriter, req *http.Request
 				agentSvcs[id.ID] = &agentService
 			}
 
-			reply := &agentSvcs
-
-			rawHash, err := hashstructure.Hash(reply, nil)
+			rawHash, err := hashstructure.Hash(&agentSvcs, nil)
 			if err != nil {
 				return "", nil, err
 			}
@@ -301,8 +300,9 @@ func (s *HTTPHandlers) AgentServices(resp http.ResponseWriter, req *http.Request
 			return fmt.Sprintf("%x", rawHash), agentSvcs, nil
 		},
 	)
-
-	s.agent.State.StopNotify(wch)
+	if err != nil {
+		return nil, err
+	}
 
 	if resultHash != "" && resp != nil {
 		resp.Header().Set("X-Consul-ContentHash", resultHash)
