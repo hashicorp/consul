@@ -7,6 +7,10 @@ export default class UpstreamsRoute extends Route {
       as: 'filter',
       replace: true,
     },
+    searchproperty: {
+      as: 'searchproperty',
+      empty: [['DestinationName', 'LocalBindAddress', 'LocalBindPort']],
+    },
   };
 
   model() {
@@ -14,7 +18,10 @@ export default class UpstreamsRoute extends Route {
       .split('.')
       .slice(0, -1)
       .join('.');
-    return this.modelFor(parent);
+    return {
+      ...this.modelFor(parent),
+      searchProperties: this.queryParams.searchproperty.empty[0],
+    };
   }
 
   setupController(controller, model) {
