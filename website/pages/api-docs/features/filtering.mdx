@@ -11,14 +11,14 @@ description: |-
 
 Filter expressions refine data queries for some API listing endpoints, as notated in the individual API documentation.
 
-To create a filter expression, you will write one or more expressions. Each expression has a matching operators composed of selectors and values.
+To create a filter expression, you will write one or more expressions. Each expression has a matching operators composed with selectors and values.
 
 ```shell
 curl --get <path> --data-urlencode 'filter="<filter expression>"'
 ```
 
 Filtering is executed on the Consul server, before data is returned, reducing the network load. To pass a
-filter expression to Consul, with a data query, use the `filter` parameter.
+filter expression to Consul, use the `filter` query parameter when sending requests to HTTP API endpoints that support it.
 
 ## Creating Expressions
 
@@ -75,8 +75,7 @@ ServiceMeta["foo"]
 
 Values are used by matching operators to create an expression. Values can be any valid selector, a number, or a string. It is best practice to quote values. 
 
-Numbers can be any
-base 10 integers and floating point numbers are possible. 
+Numbers can be base 10 integers or floating point numbers. 
 
 When quoting strings,
 they may either be enclosed in double quotes or backticks. When enclosed in
