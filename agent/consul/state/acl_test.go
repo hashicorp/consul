@@ -3209,24 +3209,28 @@ func TestStateStore_ACLAuthMethod_Delete_RuleAndTokenCascade(t *testing.T) {
 			SecretID:    "7a1950c6-79dc-441c-acd2-e22cd3db0240",
 			Description: "test-m1-t1",
 			AuthMethod:  "test-1",
+			Local:       true,
 		},
 		&structs.ACLToken{
 			AccessorID:  method1_tok2,
 			SecretID:    "442cee4c-353f-4957-adbb-33db2f9e267f",
 			Description: "test-m1-t2",
 			AuthMethod:  "test-1",
+			Local:       true,
 		},
 		&structs.ACLToken{
 			AccessorID:  method2_tok1,
 			SecretID:    "d9399b7d-6c34-46bd-a675-c1352fadb6fd",
 			Description: "test-m2-t1",
 			AuthMethod:  "test-2",
+			Local:       true,
 		},
 		&structs.ACLToken{
 			AccessorID:  method2_tok2,
 			SecretID:    "3b72fc27-9230-42ab-a1e8-02cb489ab177",
 			Description: "test-m2-t2",
 			AuthMethod:  "test-2",
+			Local:       true,
 		},
 	}
 	require.NoError(t, s.ACLTokenBatchSet(4, tokens, ACLTokenSetOptions{}))
