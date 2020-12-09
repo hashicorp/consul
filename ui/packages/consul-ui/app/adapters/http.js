@@ -18,11 +18,11 @@ import {
 // the naming of things (serialized vs query etc)
 const read = function(adapter, modelName, type, query = {}) {
   return adapter.rpc(
-    function(adapter, request, query) {
-      return adapter[`requestFor${type}`](request, query);
+    function(adapter, ...rest) {
+      return adapter[`requestFor${type}`](...rest);
     },
-    function(serializer, respond, query) {
-      return serializer[`respondFor${type}`](respond, query);
+    function(serializer, ...rest) {
+      return serializer[`respondFor${type}`](...rest);
     },
     query,
     modelName
@@ -30,11 +30,11 @@ const read = function(adapter, modelName, type, query = {}) {
 };
 const write = function(adapter, modelName, type, snapshot) {
   return adapter.rpc(
-    function(adapter, request, serialized, unserialized) {
-      return adapter[`requestFor${type}`](request, serialized, unserialized);
+    function(adapter, ...rest) {
+      return adapter[`requestFor${type}`](...rest);
     },
-    function(serializer, respond, serialized, unserialized) {
-      return serializer[`respondFor${type}`](respond, serialized, unserialized);
+    function(serializer, ...rest) {
+      return serializer[`respondFor${type}`](...rest);
     },
     snapshot,
     modelName
@@ -50,6 +50,7 @@ export default class HttpAdapter extends Adapter {
 
     let unserialized, serialized;
     const serializer = store.serializerFor(modelName);
+    const modelClass = store.modelFor(modelName);
     // workable way to decide whether this is a snapshot
     // essentially 'is attributable'.
     // Snapshot is private so we can't do instanceof here
@@ -67,14 +68,14 @@ export default class HttpAdapter extends Adapter {
 
     return client
       .request(function(request) {
-        return req(adapter, request, serialized, unserialized);
+        return req(adapter, request, serialized, unserialized, modelClass);
       })
       .catch(function(e) {
         return adapter.error(e);
       })
       .then(function(respond) {
         // TODO: When HTTPAdapter:responder changes, this will also need to change
-        return resp(serializer, respond, serialized, unserialized);
+        return resp(serializer, respond, serialized, unserialized, modelClass);
       });
     // TODO: Potentially add specific serializer errors here
     // .catch(function(e) {

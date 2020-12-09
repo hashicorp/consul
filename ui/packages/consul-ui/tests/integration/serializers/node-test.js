@@ -10,21 +10,15 @@ module('Integration | Serializer | node', function(hooks) {
   setupTest(hooks);
   const nspace = 'default';
   test('respondForQuery returns the correct data for list endpoint', function(assert) {
+    const store = this.owner.lookup('service:store');
     const serializer = this.owner.lookup('serializer:node');
+    serializer.store = store;
+    const modelClass = store.modelFor('node');
     const dc = 'dc-1';
     const request = {
       url: `/v1/internal/ui/nodes?dc=${dc}`,
     };
     return get(request.url).then(function(payload) {
-      const expected = payload.map(item =>
-        Object.assign({}, item, {
-          Datacenter: dc,
-          // TODO: default isn't required here, once we've
-          // refactored out our Serializer this can go
-          Namespace: nspace,
-          uid: `["${nspace}","${dc}","${item.ID}"]`,
-        })
-      );
       const actual = serializer.respondForQuery(
         function(cb) {
           const headers = {};
@@ -33,13 +27,22 @@ module('Integration | Serializer | node', function(hooks) {
         },
         {
           dc: dc,
-        }
+        },
+        {
+          dc: dc,
+        },
+        modelClass
       );
-      assert.deepEqual(actual, expected);
+      assert.equal(actual[0].Datacenter, dc);
+      assert.equal(actual[0].Namespace, nspace);
+      assert.equal(actual[0].uid, `["${nspace}","${dc}","${actual[0].ID}"]`);
     });
   });
   test('respondForQueryRecord returns the correct data for item endpoint', function(assert) {
+    const store = this.owner.lookup('service:store');
     const serializer = this.owner.lookup('serializer:node');
+    serializer.store = store;
+    const modelClass = store.modelFor('node');
     const dc = 'dc-1';
     const id = 'node-name';
     const request = {
@@ -65,9 +68,15 @@ module('Integration | Serializer | node', function(hooks) {
         },
         {
           dc: dc,
-        }
+        },
+        {
+          dc: dc,
+        },
+        modelClass
       );
-      assert.deepEqual(actual, expected);
+      assert.equal(actual.Datacenter, dc);
+      assert.equal(actual.Namespace, nspace);
+      assert.equal(actual.uid, `["${nspace}","${dc}","${actual.ID}"]`);
     });
   });
   test('respondForQueryLeader returns the correct data', function(assert) {
