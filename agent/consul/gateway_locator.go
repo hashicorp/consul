@@ -59,11 +59,12 @@ type GatewayLocator struct {
 	// these are a collection of measurements that factor into deciding if we
 	// should directly dial the primary's mesh gateways or if we should try to
 	// route through our local gateways (if they are up).
-	lastReplLock      sync.Mutex
-	lastReplSuccess   time.Time
-	lastReplFailure   time.Time
-	lastReplSuccesses uint64
-	lastReplFailures  uint64
+	lastReplLock         sync.Mutex
+	lastReplSuccess      time.Time
+	lastReplFailure      time.Time
+	lastReplSuccesses    uint64
+	lastReplFailures     uint64
+	useReplicationSignal bool // this should be set to true on the leader
 }
 
 // SetLastFederationStateReplicationError is used to indicate if the federation
@@ -77,6 +78,10 @@ type GatewayLocator struct {
 func (g *GatewayLocator) SetLastFederationStateReplicationError(err error) {
 	g.lastReplLock.Lock()
 	defer g.lastReplLock.Unlock()
+
+	// If we get info from replication, assume replication is operating.
+	g.useReplicationSignal = true
+
 	oldChoice := g.dialPrimaryThroughLocalGateway()
 	if err == nil {
 		g.lastReplSuccess = time.Now().UTC()
@@ -91,6 +96,12 @@ func (g *GatewayLocator) SetLastFederationStateReplicationError(err error) {
 	if oldChoice != newChoice {
 		g.logPrimaryDialingMessage(newChoice)
 	}
+}
+
+func (g *GatewayLocator) SetUseReplicationSignal(newValue bool) {
+	g.lastReplLock.Lock()
+	g.useReplicationSignal = newValue
+	g.lastReplLock.Unlock()
 }
 
 func (g *GatewayLocator) logPrimaryDialingMessage(useLocal bool) {
@@ -140,6 +151,12 @@ func (g *GatewayLocator) DialPrimaryThroughLocalGateway() bool {
 const localFederationStateReplicatorFailuresBeforeDialingDirectly = 3
 
 func (g *GatewayLocator) dialPrimaryThroughLocalGateway() bool {
+	if !g.useReplicationSignal {
+		// Followers should blindly assume these gateways work. The leader will
+		// try to bypass them and correct the replicated fedreation state info
+		// that the followers will eventually pick up on.
+		return true
+	}
 	if g.lastReplSuccess.IsZero() && g.lastReplFailure.IsZero() {
 		return false // no data yet
 	}

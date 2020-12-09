@@ -18,6 +18,9 @@ import (
 func TestGatewayLocator(t *testing.T) {
 	state := state.NewStateStore(nil)
 
+	serverRoles := []string{"leader", "follower"}
+	now := time.Now().UTC()
+
 	dc1 := &structs.FederationState{
 		Datacenter: "dc1",
 		MeshGateways: []structs.CheckServiceNode{
@@ -44,67 +47,105 @@ func TestGatewayLocator(t *testing.T) {
 	}
 
 	t.Run("primary - no data", func(t *testing.T) {
-		logger := testutil.Logger(t)
-		tsd := &testServerDelegate{State: state, isLeader: true}
-		g := NewGatewayLocator(
-			logger,
-			tsd,
-			"dc1",
-			"dc1",
-		)
+		for _, role := range serverRoles {
+			t.Run(role, func(t *testing.T) {
+				isLeader := role == "leader"
 
-		idx, err := g.runOnce(0)
-		require.NoError(t, err)
-		assert.False(t, g.DialPrimaryThroughLocalGateway())
-		assert.Equal(t, uint64(1), idx)
-		assert.Len(t, tsd.Calls, 1)
-		assert.Equal(t, []string(nil), g.listGateways(false))
-		assert.Equal(t, []string(nil), g.listGateways(true))
+				logger := testutil.Logger(t)
+				tsd := &testServerDelegate{State: state, isLeader: isLeader}
+				if !isLeader {
+					tsd.lastContact = now
+				}
+				g := NewGatewayLocator(
+					logger,
+					tsd,
+					"dc1",
+					"dc1",
+				)
+				g.SetUseReplicationSignal(isLeader)
+
+				idx, err := g.runOnce(0)
+				require.NoError(t, err)
+				assert.False(t, g.DialPrimaryThroughLocalGateway())
+				assert.Equal(t, uint64(1), idx)
+				assert.Len(t, tsd.Calls, 1)
+				assert.Equal(t, []string(nil), g.listGateways(false))
+				assert.Equal(t, []string(nil), g.listGateways(true))
+			})
+		}
 	})
 
 	t.Run("secondary - no data", func(t *testing.T) {
-		logger := testutil.Logger(t)
-		tsd := &testServerDelegate{State: state, isLeader: true}
-		g := NewGatewayLocator(
-			logger,
-			tsd,
-			"dc2",
-			"dc1",
-		)
+		for _, role := range serverRoles {
+			t.Run(role, func(t *testing.T) {
+				isLeader := role == "leader"
 
-		idx, err := g.runOnce(0)
-		require.NoError(t, err)
-		assert.False(t, g.DialPrimaryThroughLocalGateway())
-		assert.Equal(t, uint64(1), idx)
-		assert.Len(t, tsd.Calls, 1)
-		assert.Equal(t, []string(nil), g.listGateways(false))
-		assert.Equal(t, []string(nil), g.listGateways(true))
+				logger := testutil.Logger(t)
+				tsd := &testServerDelegate{State: state, isLeader: isLeader}
+				if !isLeader {
+					tsd.lastContact = now
+				}
+				g := NewGatewayLocator(
+					logger,
+					tsd,
+					"dc2",
+					"dc1",
+				)
+				g.SetUseReplicationSignal(isLeader)
+
+				idx, err := g.runOnce(0)
+				require.NoError(t, err)
+				if isLeader {
+					assert.False(t, g.DialPrimaryThroughLocalGateway())
+				} else {
+					assert.True(t, g.DialPrimaryThroughLocalGateway())
+				}
+				assert.Equal(t, uint64(1), idx)
+				assert.Len(t, tsd.Calls, 1)
+				assert.Equal(t, []string(nil), g.listGateways(false))
+				assert.Equal(t, []string(nil), g.listGateways(true))
+			})
+		}
 	})
 
 	t.Run("secondary - just fallback", func(t *testing.T) {
-		logger := testutil.Logger(t)
-		tsd := &testServerDelegate{State: state, isLeader: true}
-		g := NewGatewayLocator(
-			logger,
-			tsd,
-			"dc2",
-			"dc1",
-		)
-		g.RefreshPrimaryGatewayFallbackAddresses([]string{
-			"7.7.7.7:7777",
-			"8.8.8.8:8888",
-		})
+		for _, role := range serverRoles {
+			t.Run(role, func(t *testing.T) {
+				isLeader := role == "leader"
 
-		idx, err := g.runOnce(0)
-		require.NoError(t, err)
-		assert.False(t, g.DialPrimaryThroughLocalGateway())
-		assert.Equal(t, uint64(1), idx)
-		assert.Len(t, tsd.Calls, 1)
-		assert.Equal(t, []string(nil), g.listGateways(false))
-		assert.Equal(t, []string{
-			"7.7.7.7:7777",
-			"8.8.8.8:8888",
-		}, g.listGateways(true))
+				logger := testutil.Logger(t)
+				tsd := &testServerDelegate{State: state, isLeader: isLeader}
+				if !isLeader {
+					tsd.lastContact = now
+				}
+				g := NewGatewayLocator(
+					logger,
+					tsd,
+					"dc2",
+					"dc1",
+				)
+				g.SetUseReplicationSignal(isLeader)
+				g.RefreshPrimaryGatewayFallbackAddresses([]string{
+					"7.7.7.7:7777",
+					"8.8.8.8:8888",
+				})
+
+				idx, err := g.runOnce(0)
+				require.NoError(t, err)
+				if isLeader {
+					assert.False(t, g.DialPrimaryThroughLocalGateway())
+				} else {
+					assert.True(t, g.DialPrimaryThroughLocalGateway())
+				}
+				assert.Equal(t, uint64(1), idx)
+				assert.Len(t, tsd.Calls, 1)
+				assert.Equal(t, []string(nil), g.listGateways(false))
+				assert.Equal(t, []string{
+					"7.7.7.7:7777",
+					"8.8.8.8:8888",
+				}, g.listGateways(true))
+			})
+		}
 	})
 
 	// Insert data for the dcs
@@ -112,56 +153,88 @@ func TestGatewayLocator(t *testing.T) {
 	require.NoError(t, state.FederationStateSet(2, dc2))
 
 	t.Run("primary - with data", func(t *testing.T) {
-		logger := testutil.Logger(t)
-		tsd := &testServerDelegate{State: state, isLeader: true}
-		g := NewGatewayLocator(
-			logger,
-			tsd,
-			"dc1",
-			"dc1",
-		)
+		for _, role := range serverRoles {
+			t.Run(role, func(t *testing.T) {
+				isLeader := role == "leader"
 
-		idx, err := g.runOnce(0)
-		require.NoError(t, err)
-		assert.False(t, g.DialPrimaryThroughLocalGateway())
-		assert.Equal(t, uint64(2), idx)
-		assert.Len(t, tsd.Calls, 1)
-		assert.Equal(t, []string{
-			"1.2.3.4:5555",
-			"4.3.2.1:9999",
-		}, g.listGateways(false))
-		assert.Equal(t, []string{
-			"1.2.3.4:5555",
-			"4.3.2.1:9999",
-		}, g.listGateways(true))
+				logger := testutil.Logger(t)
+				tsd := &testServerDelegate{State: state, isLeader: isLeader}
+				if !isLeader {
+					tsd.lastContact = now
+				}
+				g := NewGatewayLocator(
+					logger,
+					tsd,
+					"dc1",
+					"dc1",
+				)
+				g.SetUseReplicationSignal(isLeader)
+
+				idx, err := g.runOnce(0)
+				require.NoError(t, err)
+				assert.False(t, g.DialPrimaryThroughLocalGateway())
+				assert.Equal(t, uint64(2), idx)
+				assert.Len(t, tsd.Calls, 1)
+				assert.Equal(t, []string{
+					"1.2.3.4:5555",
+					"4.3.2.1:9999",
+				}, g.listGateways(false))
+				assert.Equal(t, []string{
+					"1.2.3.4:5555",
+					"4.3.2.1:9999",
+				}, g.listGateways(true))
+			})
+		}
 	})
 
 	t.Run("secondary - with data", func(t *testing.T) {
-		logger := testutil.Logger(t)
-		tsd := &testServerDelegate{State: state, isLeader: true}
-		g := NewGatewayLocator(
-			logger,
-			tsd,
-			"dc2",
-			"dc1",
-		)
+		for _, role := range serverRoles {
+			t.Run(role, func(t *testing.T) {
+				isLeader := role == "leader"
 
-		idx, err := g.runOnce(0)
-		require.NoError(t, err)
-		assert.False(t, g.DialPrimaryThroughLocalGateway())
-		assert.Equal(t, uint64(2), idx)
-		assert.Len(t, tsd.Calls, 1)
-		assert.Equal(t, []string{
-			"5.6.7.8:5555",
-			"8.7.6.5:9999",
-		}, g.listGateways(false))
-		assert.Equal(t, []string{
-			"1.2.3.4:5555",
-			"4.3.2.1:9999",
-		}, g.listGateways(true))
+				logger := testutil.Logger(t)
+				tsd := &testServerDelegate{State: state, isLeader: isLeader}
+				if !isLeader {
+					tsd.lastContact = now
+				}
+				g := NewGatewayLocator(
+					logger,
+					tsd,
+					"dc2",
+					"dc1",
+				)
+				g.SetUseReplicationSignal(isLeader)
+
+				idx, err := g.runOnce(0)
+				require.NoError(t, err)
+				if isLeader {
+					assert.False(t, g.DialPrimaryThroughLocalGateway())
+				} else {
+					assert.True(t, g.DialPrimaryThroughLocalGateway())
+				}
+				assert.Equal(t, uint64(2), idx)
+				assert.Len(t, tsd.Calls, 1)
+				assert.Equal(t, []string{
+					"5.6.7.8:5555",
+					"8.7.6.5:9999",
+				}, g.listGateways(false))
+				if isLeader {
+					assert.Equal(t, []string{
+						"1.2.3.4:5555",
+						"4.3.2.1:9999",
+					}, g.listGateways(true))
+				} else {
+					assert.Equal(t, []string{
+						"5.6.7.8:5555",
+						"8.7.6.5:9999",
+					}, g.listGateways(true))
+				}
+			})
+		}
 	})
 
 	t.Run("secondary - with data and fallback - no repl", func(t *testing.T) {
+		// Only run for the leader.
 		logger := testutil.Logger(t)
 		tsd := &testServerDelegate{State: state, isLeader: true}
 		g := NewGatewayLocator(
@@ -170,6 +243,7 @@ func TestGatewayLocator(t *testing.T) {
 			"dc2",
 			"dc1",
 		)
+		g.SetUseReplicationSignal(true)
 
 		g.RefreshPrimaryGatewayFallbackAddresses([]string{
 			"7.7.7.7:7777",
@@ -194,6 +268,7 @@ func TestGatewayLocator(t *testing.T) {
 	})
 
 	t.Run("secondary - with data and fallback - repl ok", func(t *testing.T) {
+		// Only run for the leader.
 		logger := testutil.Logger(t)
 		tsd := &testServerDelegate{State: state, isLeader: true}
 		g := NewGatewayLocator(
@@ -202,6 +277,7 @@ func TestGatewayLocator(t *testing.T) {
 			"dc2",
 			"dc1",
 		)
+		g.SetUseReplicationSignal(true)
 
 		g.RefreshPrimaryGatewayFallbackAddresses([]string{
 			"7.7.7.7:7777",
@@ -226,6 +302,7 @@ func TestGatewayLocator(t *testing.T) {
 	})
 
 	t.Run("secondary - with data and fallback - repl ok then failed 2 times", func(t *testing.T) {
+		// Only run for the leader.
 		logger := testutil.Logger(t)
 		tsd := &testServerDelegate{State: state, isLeader: true}
 		g := NewGatewayLocator(
@@ -234,6 +311,7 @@ func TestGatewayLocator(t *testing.T) {
 			"dc2",
 			"dc1",
 		)
+		g.SetUseReplicationSignal(true)
 
 		g.RefreshPrimaryGatewayFallbackAddresses([]string{
 			"7.7.7.7:7777",
@@ -260,6 +338,7 @@ func TestGatewayLocator(t *testing.T) {
 	})
 
 	t.Run("secondary - with data and fallback - repl ok then failed 3 times", func(t *testing.T) {
+		// Only run for the leader.
 		logger := testutil.Logger(t)
 		tsd := &testServerDelegate{State: state, isLeader: true}
 		g := NewGatewayLocator(
@@ -268,6 +347,7 @@ func TestGatewayLocator(t *testing.T) {
 			"dc2",
 			"dc1",
 		)
+		g.SetUseReplicationSignal(true)
 
 		g.RefreshPrimaryGatewayFallbackAddresses([]string{
 			"7.7.7.7:7777",
@@ -297,6 +377,7 @@ func TestGatewayLocator(t *testing.T) {
 	})
 
 	t.Run("secondary - with data and fallback - repl ok then failed 3 times then ok again", func(t *testing.T) {
+		// Only run for the leader.
 		logger := testutil.Logger(t)
 		tsd := &testServerDelegate{State: state, isLeader: true}
 		g := NewGatewayLocator(
@@ -305,6 +386,7 @@ func TestGatewayLocator(t *testing.T) {
 			"dc2",
 			"dc1",
 		)
+		g.SetUseReplicationSignal(true)
 
 		g.RefreshPrimaryGatewayFallbackAddresses([]string{
 			"7.7.7.7:7777",
