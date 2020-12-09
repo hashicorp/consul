@@ -4775,19 +4775,32 @@ func TestACLEndpoint_Login_with_MaxTokenTTL(t *testing.T) {
 func TestACLEndpoint_Login_with_TokenLocality(t *testing.T) {
 	go t.Parallel()
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.ACLDatacenter = "dc1"
-		c.ACLsEnabled = true
-		c.ACLMasterToken = "root"
-	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	codec := rpcClient(t, s1)
-	defer codec.Close()
+	_, s1, codec := testACLServerWithConfig(t, func(c *Config) {
+		c.ACLTokenMinExpirationTTL = 10 * time.Millisecond
+		c.ACLTokenMaxExpirationTTL = 5 * time.Second
+	}, false)
+
+	_, s2, _ := testACLServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc2"
+		c.ACLTokenMinExpirationTTL = 10 * time.Millisecond
+		c.ACLTokenMaxExpirationTTL = 5 * time.Second
+		// token replication is required to test deleting non-local tokens in secondary dc
+		c.ACLTokenReplication = true
+	}, true)
 
 	waitForLeaderEstablishment(t, s1)
+	waitForLeaderEstablishment(t, s2)
+
+	joinWAN(t, s2, s1)
+
+	waitForNewACLs(t, s1)
+	waitForNewACLs(t, s2)
+
+	// Ensure s2 is authoritative.
+	waitForNewACLReplication(t, s2, structs.ACLReplicateTokens, 1, 1, 0)
 
 	acl := ACL{srv: s1}
+	acl2 := ACL{srv: s2}
 
 	testSessionID := testauth.StartSession()
 	defer testauth.ResetSession(testSessionID)
@@ -4799,18 +4812,20 @@ func TestACLEndpoint_Login_with_TokenLocality(t *testing.T) {
 	)
 
 	cases := map[string]struct {
-		tokenLocality string
-		expectLocal   bool
+		tokenLocality     string
+		expectLocal       bool
+		deleteFromReplica bool
 	}{
-		"empty":  {tokenLocality: "", expectLocal: true},
-		"local":  {tokenLocality: "local", expectLocal: true},
-		"global": {tokenLocality: "global", expectLocal: false},
+		"empty":             {tokenLocality: "", expectLocal: true},
+		"local":             {tokenLocality: "local", expectLocal: true},
+		"global dc1 delete": {tokenLocality: "global", expectLocal: false, deleteFromReplica: false},
+		"global dc2 delete": {tokenLocality: "global", expectLocal: false, deleteFromReplica: true},
 	}
 
 	for name, tc := range cases {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
-			method, err := upsertTestCustomizedAuthMethod(codec, "root", "dc1", func(method *structs.ACLAuthMethod) {
+			method, err := upsertTestCustomizedAuthMethod(codec, TestDefaultMasterToken, "dc1", func(method *structs.ACLAuthMethod) {
 				method.TokenLocality = tc.tokenLocality
 				method.Config = map[string]interface{}{
 					"SessionID": testSessionID,
@@ -4819,7 +4834,7 @@ func TestACLEndpoint_Login_with_TokenLocality(t *testing.T) {
 			require.NoError(t, err)
 
 			_, err = upsertTestBindingRule(
-				codec, "root", "dc1", method.Name,
+				codec, TestDefaultMasterToken, "dc1", method.Name,
 				"",
 				structs.BindingRuleBindTypeService,
 				"web",
@@ -4841,7 +4856,7 @@ func TestACLEndpoint_Login_with_TokenLocality(t *testing.T) {
 
 			secretID := resp.SecretID
 
-			got := &resp
+			got := resp.Clone()
 			got.CreateIndex = 0
 			got.ModifyIndex = 0
 			got.AccessorID = ""
@@ -4863,13 +4878,38 @@ func TestACLEndpoint_Login_with_TokenLocality(t *testing.T) {
 			require.Equal(t, got, expect)
 
 			// Now turn around and nuke it.
+			var (
+				logoutACL ACL
+				logoutDC  string
+			)
+			if tc.deleteFromReplica {
+				// wait for it to show up
+				retry.Run(t, func(r *retry.R) {
+					var resp structs.ACLTokenResponse
+					require.NoError(r, acl2.TokenRead(&structs.ACLTokenGetRequest{
+						TokenID:        secretID,
+						TokenIDType:    structs.ACLTokenSecret,
+						Datacenter:     "dc2",
+						EnterpriseMeta: *defaultEntMeta,
+						QueryOptions:   structs.QueryOptions{Token: TestDefaultMasterToken},
+					}, &resp))
+					require.NotNil(r, resp.Token, "cannot lookup token with secretID %q", secretID)
+				})
+
+				logoutACL = acl2
+				logoutDC = "dc2"
+			} else {
+				logoutACL = acl
+				logoutDC = "dc1"
+			}
+
 			logoutReq := structs.ACLLogoutRequest{
-				Datacenter:   "dc1",
+				Datacenter:   logoutDC,
 				WriteRequest: structs.WriteRequest{Token: secretID},
 			}
 
 			var ignored bool
-			require.NoError(t, acl.Logout(&logoutReq, &ignored))
+			require.NoError(t, logoutACL.Logout(&logoutReq, &ignored))
 		})
 	}
 }
