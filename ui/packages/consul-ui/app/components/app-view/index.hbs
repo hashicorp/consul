@@ -52,7 +52,10 @@
           <div>
     {{#if authorized}}
               <nav aria-label="Breadcrumb">
-                  <YieldSlot @name="breadcrumbs">{{yield}}</YieldSlot>
+                  <YieldSlot @name="breadcrumbs">
+                    {{document-attrs class="with-breadcrumbs"}}
+                    {{yield}}
+                  </YieldSlot>
               </nav>
     {{/if}}
               <div class="title">
