@@ -6,6 +6,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 )
@@ -509,7 +510,14 @@ func (c *FSM) applyACLTokenSetOperation(buf []byte, index uint64) interface{} {
 	defer metrics.MeasureSinceWithLabels([]string{"fsm", "acl", "token"}, time.Now(),
 		[]metrics.Label{{Name: "op", Value: "upsert"}})
 
-	return c.state.ACLTokenBatchSet(index, req.Tokens, req.CAS, req.AllowMissingLinks, req.ProhibitUnprivileged)
+	opts := state.ACLTokenSetOptions{
+		CAS:                          req.CAS,
+		AllowMissingPolicyAndRoleIDs: req.AllowMissingLinks,
+		ProhibitUnprivileged:         req.ProhibitUnprivileged,
+		Legacy:                       false,
+		FromReplication:              req.FromReplication,
+	}
+	return c.state.ACLTokenBatchSet(index, req.Tokens, opts)
 }
 
 func (c *FSM) applyACLTokenDeleteOperation(buf []byte, index uint64) interface{} {

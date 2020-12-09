@@ -113,6 +113,7 @@ func (r *aclTokenReplicator) UpdateLocalBatch(ctx context.Context, srv *Server, 
 		Tokens:            r.updated[start:end],
 		CAS:               false,
 		AllowMissingLinks: true,
+		FromReplication:   true,
 	}
 
 	resp, err := srv.raftApply(structs.ACLTokenSetRequestType, &req)
