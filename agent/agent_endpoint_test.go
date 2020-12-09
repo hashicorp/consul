@@ -381,13 +381,17 @@ func TestAgent_Service(t *testing.T) {
 		ID:          "web",
 		Service:     "web",
 		Port:        8181,
-		ContentHash: "6c247f8ffa5d1fb2",
+		ContentHash: "856b2ec87047df0d",
 		Weights: api.AgentWeights{
 			Passing: 1,
 			Warning: 1,
 		},
 		TaggedAddresses: map[string]api.ServiceAddress{
 			"wan": {
+				Address: "198.18.0.1",
+				Port:    1818,
+			},
+			"wan_ipv4": {
 				Address: "198.18.0.1",
 				Port:    1818,
 			},
