@@ -27,7 +27,7 @@
     "@hashicorp/react-subnav": "3.2.6",
     "@hashicorp/react-text-split": "0.4.0",
     "@hashicorp/react-text-split-with-code": "^1.0.2-alpha.55",
-    "@hashicorp/react-text-split-with-image": "1.4.0",
+    "@hashicorp/react-text-split-with-image": "^2.0.2-alpha.55",
     "@hashicorp/react-text-split-with-logo-grid": "1.3.0",
     "@hashicorp/react-use-cases": "1.0.6",
     "@hashicorp/react-vertical-text-block-list": "2.0.3",
