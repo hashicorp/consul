@@ -1,3 +1,18 @@
+div.cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 32px;
+}
+
 .card {
-  color: blue;
+  margin: 0;
+  padding: 16px 20px;
+  border: 1px solid #dcdde0;
+  border-radius: 3px;
+  color: black;
+}
+
+div.card.consul {
+  border: 1px solid #e07eac;
+  background-color: #fff2f8;
 }
