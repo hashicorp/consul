@@ -9,5 +9,5 @@ export default {
   linkText: 'Register Now',
   // Set the `expirationDate prop with a datetime string (e.g. `2020-01-31T12:00:00-07:00`)
   // if you'd like the component to stop showing at or after a certain date
-  expirationDate: null,
+  expirationDate: '2020-12-17T12:00:00-05:00',
 }
