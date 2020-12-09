@@ -1,0 +1,47 @@
+## DataSource
+
+```handlebars
+<DataCollection
+  @search={{''}}
+  @sort={{''}}
+  @filter={{hash
+    searchproperties=(array)
+  }}
+  @items={{array}}
+as |collection|>
+  {{collection.items.length}}
+  <collection.Collection>
+    Has Results
+  </collection.Collection>
+  <collection.Empty>
+    Is Empty
+  </collection.Empty>
+</DataCollection>
+```
+
+### Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `items` | `Array` | [] | The collection of data to search/sort/filter |
+| `search` | `String` | '' | A search term to use for searching |
+| `sort` | `String` | '' | A sort term to use for sorting on ('Name:asc') |
+| `filter` | `Object` |  | An object whose properties are the properties/values to filter on |
+
+### Yields
+
+The DataCollection yields an object containing the following:
+
+| Property | Type | Description |
+| --- | --- | --- |
+| `items` | `Array` | The resulting collection of data after searching/sorting/filtering |
+| `search` | `Function` | An action used to perform a search - takes a single string argument that should be the search term |
+| `Collection` | `Component` | A slot-like component that only renders when the items in the collection is greater than 0 |
+| `Empty` | `Component` | A slot-like component that only renders when the items in the collection is 0 |
+
+### See
+
+- [Component Source Code](./index.js)
+- [Template Source Code](./index.hbs)
+
+---

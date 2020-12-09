@@ -14,20 +14,6 @@ import role from 'consul-ui/search/predicates/role';
 import policy from 'consul-ui/search/predicates/policy';
 import nspace from 'consul-ui/search/predicates/nspace';
 
-import filteredRole from 'consul-ui/search/filters/role';
-import filteredPolicy from 'consul-ui/search/filters/policy';
-// service instance
-import nodeService from 'consul-ui/search/filters/node/service';
-import serviceNode from 'consul-ui/search/filters/service/node';
-
-import filterableFactory from 'consul-ui/utils/search/filterable';
-const filterable = filterableFactory();
-const searchables = {
-  serviceInstance: serviceNode(filterable),
-  nodeservice: nodeService(filterable),
-  role: filteredRole(filterable),
-  policy: filteredPolicy(filterable),
-};
 export const search = spec => {
   let possible = Object.keys(spec);
   return (term, options = {}) => {
@@ -47,7 +33,7 @@ const predicates = {
   intention: search(intention),
   service: search(service),
   ['service-instance']: search(serviceInstance),
-  ['upstream-instance']: upstreamInstance(),
+  ['upstream-instance']: search(upstreamInstance),
   ['health-check']: search(healthCheck),
   node: search(node),
   kv: search(kv),
@@ -58,9 +44,6 @@ const predicates = {
   nspace: search(nspace),
 };
 export default class SearchService extends Service {
-  searchable(name) {
-    return searchables[name];
-  }
   predicate(name) {
     return predicates[name];
   }

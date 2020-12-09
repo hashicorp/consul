@@ -1,7 +1,0 @@
-{{yield}}
-  <YieldSlot @name="content" @params={{block-params items}}>{{yield}}</YieldSlot>
-{{#if (gt items.length 0)}}
-  <YieldSlot @name="set" @params={{block-params items}}>{{yield}}</YieldSlot>
-{{else}}
-  <YieldSlot @name="empty">{{yield}}</YieldSlot>
-{{/if}}

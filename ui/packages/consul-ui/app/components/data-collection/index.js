@@ -1,16 +1,30 @@
 import Component from '@glimmer/component';
 import { inject as service } from '@ember/service';
-import { computed } from '@ember/object';
+import { computed, get, action } from '@ember/object';
+import { tracked } from '@glimmer/tracking';
 import { sort } from '@ember/object/computed';
 import { defineProperty } from '@ember/object';
 
 export default class DataCollectionComponent extends Component {
   @service('filter') filter;
   @service('sort') sort;
-  @service('search') search;
+  @service('search') searchService;
+
+  @tracked term = '';
 
   get type() {
     return this.args.type;
+  }
+
+  @computed('term', 'args.search')
+  get searchTerm() {
+    return this.term || this.args.search || '';
+  }
+
+  @action
+  search(term) {
+    this.term = term;
+    return this.items;
   }
 
   @computed('args.items', 'args.items.content')
@@ -37,17 +51,17 @@ export default class DataCollectionComponent extends Component {
     return this.sorted;
   }
 
-  @computed('type', 'filtered', 'args.filters.searchproperties', 'args.search')
+  @computed('type', 'filtered', 'args.filters.searchproperties', 'searchTerm')
   get searched() {
-    if (typeof this.args.search === 'undefined') {
+    if (typeof this.searchTerm === '') {
       return this.filtered;
     }
-    const predicate = this.search.predicate(this.type);
+    const predicate = this.searchService.predicate(this.type);
     const options = {};
-    if (typeof this.args.filters.searchproperties !== 'undefined') {
+    if (typeof get(this, 'args.filters.searchproperties') !== 'undefined') {
       options.properties = this.args.filters.searchproperties;
     }
-    return this.filtered.filter(predicate(this.args.search, options));
+    return this.filtered.filter(predicate(this.searchTerm, options));
   }
 
   @computed('type', 'content', 'args.filters')
