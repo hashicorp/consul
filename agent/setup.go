@@ -199,6 +199,7 @@ func getPrometheusDefs(cfg lib.TelemetryConfig) ([]prometheus.GaugeDefinition, [
 		consul.SessionGauges,
 		grpc.StatsGauges,
 		usagemetrics.Gauges,
+		Gauges,
 	}
 	// Flatten definitions
 	// NOTE(kit): Do we actually want to create a set here so we can ensure definition names are unique?
