@@ -153,7 +153,7 @@ const localFederationStateReplicatorFailuresBeforeDialingDirectly = 3
 func (g *GatewayLocator) dialPrimaryThroughLocalGateway() bool {
 	if !g.useReplicationSignal {
 		// Followers should blindly assume these gateways work. The leader will
-		// try to bypass them and correct the replicated fedreation state info
+		// try to bypass them and correct the replicated federation state info
 		// that the followers will eventually pick up on.
 		return true
 	}
