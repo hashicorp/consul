@@ -888,6 +888,17 @@ type RuntimeConfig struct {
 	// hcl: primary_gateways_interval = "duration"
 	PrimaryGatewaysInterval time.Duration
 
+	// DisablePrimaryGatewayFallback disables the fallback mechanism that
+	// allows for servers in a secondary datacenter to directly dial the mesh
+	// gateways of the primary datacenter to re-establish replication.
+	//
+	// This should only be set to true if network connectivity between servers
+	// in a secondary datacenter and the mesh gateways of the primary
+	// datacenter are deliberately severed.
+	//
+	// hcl: disable_primary_gateway_fallback = bool
+	DisablePrimaryGatewayFallback bool
+
 	// RPCAdvertiseAddr is the TCP address Consul advertises for its RPC endpoint.
 	// By default this is the bind address on the default RPC Server port. If the
 	// advertise address is specified then it is used.
