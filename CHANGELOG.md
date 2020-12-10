@@ -1,4 +1,4 @@
-## UNRELEASED
+## 1.7.11 (December 10, 2020)
 
 BUG FIXES:
 
