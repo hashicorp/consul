@@ -53,10 +53,10 @@ consul {
 
 Consul-Terraform-Sync interacts with your network device through a network driver. For the Terraform network driver, Consul-Terraform-Sync uses Terraform providers to make changes to your network infrastructure resources. You can reference existing provider docs on the Terraform Registry to configure each provider or create a new Terraform provider.
 
-Once you have identified a Terraform provider for all of your network devices, you can configure them in Consul-Terraform-Sync with a [provider block](/docs/nia/installation/configuration#provider) for each network device. Below is an example:
+Once you have identified a Terraform provider for all of your network devices, you can configure them in Consul-Terraform-Sync with a [`terraform_provider` block](/docs/nia/installation/configuration#terraform-provider) for each network device. Below is an example:
 
 ```hcl
-provider "fake-firewall" {
+terraform_provider "fake-firewall" {
   address = "10.10.10.10"
   username = "admin"
   password = "password123"

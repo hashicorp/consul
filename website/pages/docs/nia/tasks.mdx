@@ -23,7 +23,7 @@ task {
 }
 ```
 
-In the example task above, the "fake-firewall" and "null" providers, listed in the `providers` field, are used. These providers themselves should be configured in their own separate [provider blocks](/docs/nia/installation/configuration#provider). These providers are used in the Terraform module "example/firewall-policy/module", configured in the `source` field, to create, update, and destroy resources. This module may do something like use the providers to create and destroy firewall policy objects based on IP addresses. The IP addresses come from the "web" and "image" service instances configured in the `services` field. This service-level information is retrieved by Consul-Terraform-Sync which watches Consul catalog for changes.
+In the example task above, the "fake-firewall" and "null" providers, listed in the `providers` field, are used. These providers themselves should be configured in their own separate [`terraform_provider` blocks](/docs/nia/installation/configuration#terraform-provider). These providers are used in the Terraform module "example/firewall-policy/module", configured in the `source` field, to create, update, and destroy resources. This module may do something like use the providers to create and destroy firewall policy objects based on IP addresses. The IP addresses come from the "web" and "image" service instances configured in the `services` field. This service-level information is retrieved by Consul-Terraform-Sync which watches Consul catalog for changes.
 
 See [task configuration](/docs/nia/installation/configuration#task) for more details on how to configure a task.
 
