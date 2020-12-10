@@ -1,4 +1,4 @@
-## UNRELEASED
+## 1.8.7 (December 10, 2020)
 
 BUG FIXES:
 
