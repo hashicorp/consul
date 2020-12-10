@@ -14,20 +14,41 @@ export default function() {
   const kv_address = `${ipaddress + kv_uri + key}`
   
   //Put valid K/V
-  http.put(kv_address, JSON.stringify(value));
+  let res = http.put(kv_address, JSON.stringify(value));
+  if (
+    !check(res, {
+      'kv status code MUST be 200': (res) => res.status == 200,
+    })
+  ) {
+    fail('kv status code was *not* 200');
+  }
 
   //Register Service
   data["ID"] = key;
   data["Name"] = key;
   const service_uri = '/v1/agent/service/register';
   const service_address = `${ipaddress + service_uri }`
-  http.put(service_address, JSON.stringify(data))
+  let res = http.put(service_address, JSON.stringify(data))
+  if (
+    !check(res, {
+      'register service status code MUST be 200': (res) => res.status == 200,
+    })
+  ) {
+    fail('register service status code was *not* 200');
+  }
 
   //Register Check
   check["ServiceID"] = key;
   const check_uri = '/v1/agent/check/register';
   const check_address = `${ipaddress + check_uri }`
-  http.put(check_address, JSON.stringify(check))
+  let res = http.put(check_address, JSON.stringify(check))
+  if (
+    !check(res, {
+      'register check status code MUST be 200': (res) => res.status == 200,
+    })
+  ) {
+    fail('register check status code was *not* 200');
+  }
 
 }
 
