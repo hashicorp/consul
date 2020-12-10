@@ -3,7 +3,7 @@ version: 2
 
 references:
   images:
-    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/circleci/golang:1.13.15
+    go: &GOLANG_IMAGE docker.mirror.hashicorp.services/circleci/golang:1.14.13
     middleman: &MIDDLEMAN_IMAGE docker.mirror.hashicorp.services/hashicorp/middleman-hashicorp:0.3.40
     ember: &EMBER_IMAGE docker.mirror.hashicorp.services/circleci/node:8-browsers
 
