@@ -180,6 +180,7 @@ export default [
         content: ['install', 'requirements', 'configuration', 'run'],
       },
       'architecture',
+      'api',
       'cli',
       'tasks',
       'network-drivers',

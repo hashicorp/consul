@@ -16,6 +16,7 @@ An example HCL configuration is shown below to automate a task to execute a Terr
 
 ```hcl
 log_level = "info"
+port = 8505
 
 consul {
   address = "consul.example.com"
@@ -58,6 +59,7 @@ Top level options are reserved for configuring Consul-Terraform-Sync.
 
 ```hcl
 log_level = "INFO"
+port = 8505
 syslog {}
 buffer_period {
   enabled = true
@@ -66,15 +68,16 @@ buffer_period {
 }
 ```
 
-* `log_level` - `(string: "WARN")` The log level to use for Consul-Terraform-Sync logging.
-* `syslog` - Specifies the syslog server for logging.
-  * `enabled` - `(bool: false)` Enable syslog logging. Specifying other option also enables syslog logging.
-  * `facility` - `(string: <none>)` Name of the syslog facility to log to.
-  * `name` - `(string: "consul-terraform-sync")` Name to use for the daemon process when logging to syslog.
 * `buffer_period` - Configures the default buffer period for all [tasks](#task) to dampen the affects of flapping services to downstream network devices. It defines the minimum and maximum amount of time to wait for the cluster to reach a consistent state and accumulate changes before triggering task executions. The default is enabled to reduce the number of times downstream infrastructure is updated within a short period of time. This is useful to enable in systems that have a lot of flapping.
   * `enabled` - `(bool: true)` Enable or disable buffer periods globally. Specifying `min` will also enable it.
   * `min` - `(string: 5s)` The minimum period of time to wait after changes are detected before triggering related tasks.
   * `max` - `(string: 20s)` The maximum period of time to wait after changes are detected before triggering related tasks. If `min` is set, the default period for `max` is 4 times the value of `min`.
+* `log_level` - `(string: "WARN")` The log level to use for Consul-Terraform-Sync logging.
+* `port` - `(int: 8501)` The port for Consul-Terraform-Sync to use to serve API requests.
+* `syslog` - Specifies the syslog server for logging.
+  * `enabled` - `(bool: false)` Enable syslog logging. Specifying other option also enables syslog logging.
+  * `facility` - `(string: <none>)` Name of the syslog facility to log to.
+  * `name` - `(string: "consul-terraform-sync")` Name to use for the daemon process when logging to syslog.
 
 ## Consul
 
