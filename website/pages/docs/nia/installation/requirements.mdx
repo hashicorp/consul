@@ -24,6 +24,8 @@ To install a local Consul agent, refer to the [Getting Started: Install Consul T
 
 The Consul agent must be running in order to dynamically update network devices. To run the local Consul agent, you can run Consul in development mode which can be started with `consul agent -dev` for simplicity. For more details on running Consul agent, refer to the [Getting Started: Run the Consul Agent Tutorial](https://learn.hashicorp.com/tutorials/consul/get-started-agent?in=consul/getting-started).
 
+When running a Consul agent with Consul-Terraform-Sync in production, we suggest to keep a few considerations in mind. Consul-Terraform-Sync uses [blocking queries](/api/features/blocking) to monitor task dependencies, like changes to registered services. This results in multiple long running TCP connections between Consul-Terraform-Sync and the agent to poll changes for each dependency. Monitoring a high number of services may quickly hit the default Consul agent connection limits. Configure [`limits.http_max_conns_per_client`](/docs/agent/options#http_max_conns_per_client) for the agent to a reasonable value proportional to the number of services monitored by Consul-Terraform-Sync.
+
 ### Register Services
 
 Consul-Terraform-Sync monitors Consul catalog for service changes which lead to downstream changes to your network devices. Without services, your Consul-Terraform-Sync daemon will be operational but idle. You can register services with your Consul agent either by loading a service definition or by HTTP API request.
