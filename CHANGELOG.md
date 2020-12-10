@@ -1,15 +1,15 @@
 ## UNRELEASED
 
-## 1.8.7-beta1 (December 03, 2020)
-
 BUG FIXES:
 
+* acl: global tokens created by auth methods now correctly replicate to secondary datacenters [[GH-9351](https://github.com/hashicorp/consul/issues/9351)]
 * connect: fixes a case when updating the CA config in a secondary datacenter to correctly trigger the creation of a new intermediate certificate [[GH-9009](https://github.com/hashicorp/consul/issues/9009)]
 * connect: only unset the active root in a secondary datacenter when a new one is replacing it [[GH-9318](https://github.com/hashicorp/consul/issues/9318)]
 * license: (Enterprise only) Fixed an issue where the UI would see Namespaces and SSO as licensed when they were not.
 * license: **(Enterprise only)** Fixed an issue where warnings about Namespaces being unlicensed would be emitted erroneously.
 * namespace: **(Enterprise Only)** Fixed a bug that could case snapshot restoration to fail when it contained a namespace marked for deletion while still containing other resources in that namespace. [[GH-9156](https://github.com/hashicorp/consul/issues/9156)]
 * namespace: **(Enterprise Only)** Fixed an issue where namespaced services and checks were not being deleted when the containing namespace was deleted.
+* namespaces: **(Enterprise only)** Prevent stalling of replication in secondary datacenters due to conflicts between the namespace replicator and other replicators. [[GH-9271](https://github.com/hashicorp/consul/issues/9271)]
 
 ## 1.8.6 (November 19, 2020)
 
