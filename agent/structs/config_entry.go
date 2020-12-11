@@ -6,14 +6,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/cache"
-	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/lib/decode"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/hashstructure"
 	"github.com/mitchellh/mapstructure"
+
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/cache"
+	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/decode"
 )
 
 const (
@@ -599,7 +600,7 @@ type UpstreamConfigs []UpstreamConfig
 
 func (configs UpstreamConfigs) GetUpstreamConfig(sid ServiceID) (config map[string]interface{}, found bool) {
 	for _, usconf := range configs {
-		if usconf.Upstream.Matches(&sid) {
+		if usconf.Upstream.Matches(sid) {
 			return usconf.Config, true
 		}
 	}

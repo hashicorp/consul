@@ -5,10 +5,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/mitchellh/hashstructure"
 	"github.com/mitchellh/mapstructure"
+
+	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 type CompileRequest struct {
@@ -721,7 +722,7 @@ func (c *compiler) getSplitterNode(sid structs.ServiceID) (*structs.DiscoveryGra
 		}
 
 		// Check to see if the split is eligible for additional splitting.
-		if !splitID.Matches(&sid) && split.ServiceSubset == "" {
+		if !splitID.Matches(sid) && split.ServiceSubset == "" {
 			nextNode, err := c.getSplitterNode(splitID)
 			if err != nil {
 				return nil, err
