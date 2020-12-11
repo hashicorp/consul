@@ -82,7 +82,6 @@ export default class DcRoute extends Route {
   // https://deprecations.emberjs.com/v3.x/#toc_deprecate-router-events
   @action
   willTransition(transition) {
-    undefined;
     if (
       typeof transition !== 'undefined' &&
       (transition.from.name.endsWith('nspaces.create') ||
