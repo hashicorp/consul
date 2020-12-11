@@ -1,0 +1,47 @@
+.card {
+  display: inline-block;
+  margin: 0;
+  padding: 16px 20px;
+  border: 1px solid #dcdde0;
+  border-radius: 3px;
+  color: black;
+  transition: transform 0.15s linear;
+}
+
+.card[data-brand='consul'] {
+  border: 1px solid #f8d9e7;
+  background-color: #fff2f8;
+}
+
+.card p.g-type-label.mt-zero.mb-zero {
+  color: var(--gray-4) !important;
+  background-color: yellow;
+}
+
+.label {
+  /* Supporting Styles/Label */
+  margin: 0 !important;
+  font-family: Gilmer, sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 18px;
+
+  /* identical to box height, or 150% */
+
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+
+  /* Brand/Gray 4 */
+
+  color: #76767d;
+}
+
+.card p strong {
+  color: var(--consul);
+}
+
+.card:hover {
+  box-shadow: 0 8px 12px rgba(37, 38, 45, 0.08);
+  transform: translateY(-2px);
+}
