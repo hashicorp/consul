@@ -1,8 +1,9 @@
 <div
   class="resolver-card"
-  ...attributes
 >
-  <header onclick={{optional @onclick}} id={{concat 'resolver:' @item.ID}}>
+  <header
+    ...attributes
+    onclick={{optional @onclick}} id={{concat 'resolver:' @item.ID}}>
     <a name="">
       <h3>{{@item.Name}}</h3>
 {{#if item.Failover}}
@@ -28,7 +29,11 @@
 {{#if (gt @item.Children.length 0)}}
     <ul>
   {{#each @item.Children as |child|}}
-      <li onclick={{optional @onclick}} id={{concat 'resolver:' child.ID}}>
+      <li
+        onclick={{optional @onclick}}
+        id={{concat 'resolver:' child.ID}}
+        {{on-resize (dom-position (set child 'rect') from=@edges)}}
+      >
         <a name="">
     {{#if child.Redirect}}
           <dl class="redirect">
