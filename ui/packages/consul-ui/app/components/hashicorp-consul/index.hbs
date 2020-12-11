@@ -160,9 +160,6 @@
                         </BlockSlot>
                       </PopoverMenu>
                     </li>
-                    <li data-test-main-nav-settings class={{if (is-href 'settings') 'is-active'}}>
-                        <a href={{href-to 'settings'}}>Settings</a>
-                    </li>
 {{#if (env 'CONSUL_ACLS_ENABLED')}}
                     <li data-test-main-nav-auth>
                       <AuthDialog
