@@ -2081,6 +2081,11 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
     that the web UI should be served from. Defaults to `/ui/`. Equivalent to the
     [`-ui-content-path`](#_ui_content_path) flag.
 
+  - `refresh` ((#ui_config_refresh)) - This specifies how the UI should refresh
+    data. Can be one of `blocking` or `off`. Defaults to `blocking`, meaning the
+    UI will use Consul's blocking query support for immediate updates to the UI.
+    For extremely busy clusters you may want to set this to 'off'.
+
   - `metrics_provider` ((#ui_config_metrics_provider)) - Specifies a named
     metrics provider implementation the UI should use to fetch service metrics.
     By default metrics are disabled. Consul 1.9.0 includes a built-in provider
