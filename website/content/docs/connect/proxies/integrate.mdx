@@ -51,9 +51,9 @@ Connection authorization can be performed one of two ways:
    and typically responds in microseconds. Therefore, the impact to the TLS
    handshake is typically microseconds.
 
-~> **Note:** This endpoint is only suited for networking layer 4 (e.g. TCP)
-integration. The endpoint will always treat intentions with Permissions
-defined (i.e., layer 7 criteria) as deny intentions during evaluation.
+   ~> **Note:** This endpoint is only suited for networking layer 4 (e.g. TCP)
+   integration. The endpoint will always treat intentions with Permissions
+   defined (i.e., layer 7 criteria) as deny intentions during evaluation.
 
 2. Alternatively, proxies may list intentions that match the destination by
    querying the [intention match
