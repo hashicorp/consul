@@ -90,6 +90,7 @@ variable "private_subnet_cidrs" {
 variable "test_server_ami" {
   type        = string
   description = "The AMI ID from the Packer generated image"
+  default     = null
 }
 
 variable "test_instance_type" {
@@ -111,3 +112,16 @@ variable "ami_owners" {
   type        = list(string)
   description = "The account owner number which the desired AMI is in"
 }
+
+variable "consul_download_url" {
+  type        = string
+  description = "URL to download the Consul binary from"
+  default     = ""
+}
+
+variable "consul_version" {
+  type        = string
+  description = "Version of the Consul binary to install"
+  default     = "1.9.0"
+}
+
