@@ -1,0 +1,8 @@
+key_prefix "foo" {
+   permission = "read"
+}
+
+operator {
+   permission = "read"
+}
+

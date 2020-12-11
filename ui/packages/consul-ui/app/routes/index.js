@@ -1,16 +1,19 @@
-import Route from 'consul-ui/routing/route';
 import { inject as service } from '@ember/service';
+import Route from 'consul-ui/routing/route';
 import { hash } from 'rsvp';
 import { get } from '@ember/object';
 
-export default Route.extend({
-  repo: service('repository/dc'),
-  model: function(params) {
+export default class IndexRoute extends Route {
+  @service('repository/dc')
+  repo;
+
+  model(params) {
     return hash({
       item: this.repo.getActive(),
     });
-  },
-  afterModel: function({ item }, transition) {
+  }
+
+  afterModel({ item }, transition) {
     this.transitionTo('dc.services', get(item, 'Name'));
-  },
-});
+  }
+}

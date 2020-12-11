@@ -1,5 +1,9 @@
-{{#if (gt items.length 0)}}
-<ListCollection @items={{items}} @linkable={{action "isLinkable"}} class="consul-nspace-list" as |item|>
+<ListCollection
+  class="consul-nspace-list"
+  ...attributes
+  @items={{@items}}
+  @linkable={{action this.isLinkable}}
+as |item|>
     <BlockSlot @name="header">
 {{#if item.DeletedAt}}
     <p>
@@ -29,7 +33,7 @@
           </BlockSlot>
         </Action>
       {{#if (not-eq item.Name 'default') }}
-        <Action data-test-delete-action @onclick={{action ondelete item}} class="dangerous">
+        <Action data-test-delete-action @onclick={{action @ondelete item}} class="dangerous">
           <BlockSlot @name="label">
             Delete
           </BlockSlot>
@@ -54,4 +58,3 @@
 {{/if}}
     </BlockSlot>
 </ListCollection>
-{{/if}}

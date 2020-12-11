@@ -103,6 +103,10 @@ func TestGraveyard_Lifecycle(t *testing.T) {
 }
 
 func TestGraveyard_GC_Trigger(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	// Set up a fast-expiring GC.
 	ttl, granularity := 100*time.Millisecond, 20*time.Millisecond
 	gc, err := NewTombstoneGC(ttl, granularity)

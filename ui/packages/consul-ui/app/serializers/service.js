@@ -2,15 +2,16 @@ import Serializer from './application';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/service';
 import { get } from '@ember/object';
 
-export default Serializer.extend({
-  primaryKey: PRIMARY_KEY,
-  slugKey: SLUG_KEY,
-  respondForQuery: function(respond, query) {
-    return this._super(
+export default class ServiceSerializer extends Serializer {
+  primaryKey = PRIMARY_KEY;
+  slugKey = SLUG_KEY;
+
+  respondForQuery(respond, query) {
+    return super.respondForQuery(
       cb =>
         respond((headers, body) => {
-          // Services and proxies all come together in the same list
-          // Here we map the proxies to their related services on a Service.Proxy
+          // Services and proxies all come together in the same list. Here we
+          // map the proxies to their related services on a Service.Proxy
           // property for easy access later on
           const services = {};
           body
@@ -25,8 +26,8 @@ export default Serializer.extend({
               return item.Kind === 'connect-proxy';
             })
             .forEach(item => {
-              // Iterating to cover the usecase of a proxy being
-              // used by more than one service
+              // Iterating to cover the usecase of a proxy being used by more
+              // than one service
               if (item.ProxyFor) {
                 item.ProxyFor.forEach(service => {
                   if (typeof services[service] !== 'undefined') {
@@ -39,11 +40,12 @@ export default Serializer.extend({
         }),
       query
     );
-  },
-  respondForQueryRecord: function(respond, query) {
+  }
+
+  respondForQueryRecord(respond, query) {
     // Name is added here from the query, which is used to make the uid
     // Datacenter gets added in the ApplicationSerializer
-    return this._super(
+    return super.respondForQueryRecord(
       cb =>
         respond((headers, body) => {
           return cb(headers, {
@@ -54,5 +56,5 @@ export default Serializer.extend({
         }),
       query
     );
-  },
-});
+  }
+}

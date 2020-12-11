@@ -142,6 +142,13 @@ func (s *staticAuthorizer) NodeRead(string, *AuthorizerContext) EnforcementDecis
 	return Deny
 }
 
+func (s *staticAuthorizer) NodeReadAll(*AuthorizerContext) EnforcementDecision {
+	if s.defaultAllow {
+		return Allow
+	}
+	return Deny
+}
+
 func (s *staticAuthorizer) NodeWrite(string, *AuthorizerContext) EnforcementDecision {
 	if s.defaultAllow {
 		return Allow
@@ -178,6 +185,13 @@ func (s *staticAuthorizer) PreparedQueryWrite(string, *AuthorizerContext) Enforc
 }
 
 func (s *staticAuthorizer) ServiceRead(string, *AuthorizerContext) EnforcementDecision {
+	if s.defaultAllow {
+		return Allow
+	}
+	return Deny
+}
+
+func (s *staticAuthorizer) ServiceReadAll(*AuthorizerContext) EnforcementDecision {
 	if s.defaultAllow {
 		return Allow
 	}

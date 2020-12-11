@@ -1,5 +1,5 @@
-import RepositoryService from 'consul-ui/services/repository';
 import { inject as service } from '@ember/service';
+import RepositoryService from 'consul-ui/services/repository';
 import { env } from 'consul-ui/env';
 
 // meta is used by DataSource to configure polling. The interval controls how
@@ -9,17 +9,25 @@ const meta = {
   interval: env('CONSUL_METRICS_POLL_INTERVAL') || 10000,
 };
 
-export default RepositoryService.extend({
-  cfg: service('ui-config'),
-  error: null,
+export default class MetricsService extends RepositoryService {
+  @service('ui-config')
+  cfg;
 
-  init: function() {
-    this._super(...arguments);
+  @service('client/http')
+  client;
+
+  error = null;
+
+  init() {
+    super.init(...arguments);
     const uiCfg = this.cfg.get();
     // Inject whether or not the proxy is enabled as an option into the opaque
     // JSON options the user provided.
     const opts = uiCfg.metrics_provider_options || {};
     opts.metrics_proxy_enabled = uiCfg.metrics_proxy_enabled;
+    // Inject a convenience function for dialing through the metrics proxy.
+    opts.fetch = (path, params) =>
+      this.client.fetchWithToken(`/v1/internal/ui/metrics-proxy${path}`, params);
     // Inject the base app URL
     const provider = uiCfg.metrics_provider || 'prometheus';
 
@@ -31,43 +39,42 @@ export default RepositoryService.extend({
       // Dev.
       console.error(this.error); // eslint-disable-line no-console
     }
-  },
+  }
 
-  findServiceSummary: function(protocol, slug, dc, nspace, configuration = {}) {
+  findServiceSummary(protocol, slug, dc, nspace, configuration = {}) {
     if (this.error) {
       return Promise.reject(this.error);
     }
     const promises = [
-      // TODO: support namespaces in providers
-      this.provider.serviceRecentSummarySeries(slug, protocol, {}),
-      this.provider.serviceRecentSummaryStats(slug, protocol, {}),
+      this.provider.serviceRecentSummarySeries(slug, dc, nspace, protocol, {}),
+      this.provider.serviceRecentSummaryStats(slug, dc, nspace, protocol, {}),
     ];
-    return Promise.all(promises).then(function(results) {
+    return Promise.all(promises).then(function (results) {
       return {
         meta: meta,
         series: results[0],
         stats: results[1].stats,
       };
     });
-  },
+  }
 
-  findUpstreamSummary: function(slug, dc, nspace, configuration = {}) {
+  findUpstreamSummary(slug, dc, nspace, configuration = {}) {
     if (this.error) {
       return Promise.reject(this.error);
     }
-    return this.provider.upstreamRecentSummaryStats(slug, {}).then(function(result) {
+    return this.provider.upstreamRecentSummaryStats(slug, dc, nspace, {}).then(function (result) {
       result.meta = meta;
       return result;
     });
-  },
+  }
 
-  findDownstreamSummary: function(slug, dc, nspace, configuration = {}) {
+  findDownstreamSummary(slug, dc, nspace, configuration = {}) {
     if (this.error) {
       return Promise.reject(this.error);
     }
-    return this.provider.downstreamRecentSummaryStats(slug, {}).then(function(result) {
+    return this.provider.downstreamRecentSummaryStats(slug, dc, nspace, {}).then(function (result) {
       result.meta = meta;
       return result;
     });
-  },
-});
+  }
+}

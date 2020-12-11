@@ -9,31 +9,38 @@
   <div class="auth-form" ...attributes>
     <State @matches="error">
       {{#if error.status}}
-        <p role="alert" class="notice error">
-          {{#if value.Name}}
-            {{#if (eq error.status '403')}}
-              <strong>Consul login failed</strong><br />
-              We received a token from your OIDC provider but could not log in to Consul with it.
-            {{else if (eq error.status '401')}}
-              <strong>Could not log in to provider</strong><br />
-              The OIDC provider has rejected this access token. Please have an administrator check your auth method configuration.
-            {{else if (eq error.status '499')}}
-              <strong>SSO log in window closed</strong><br />
-              The OIDC provider window was closed. Please try again.
-            {{else}}
-              <strong>Error</strong><br />
-              {{error.detail}}
-            {{/if}}
-          {{else}}
-            {{#if (eq error.status '403')}}
-              <strong>Invalid token</strong><br />
-              The token entered does not exist. Please enter a valid token to log in.
-            {{else}}
-              <strong>Error</strong><br />
-              {{error.detail}}
-            {{/if}}
-          {{/if}}
-        </p>
+        <Notice
+          @type="error"
+          role="alert"
+        as |notice|>
+          <notice.Body>
+            <p>
+              {{#if value.Name}}
+                {{#if (eq error.status '403')}}
+                  <strong>Consul login failed</strong><br />
+                  We received a token from your OIDC provider but could not log in to Consul with it.
+                {{else if (eq error.status '401')}}
+                  <strong>Could not log in to provider</strong><br />
+                  The OIDC provider has rejected this access token. Please have an administrator check your auth method configuration.
+                {{else if (eq error.status '499')}}
+                  <strong>SSO log in window closed</strong><br />
+                  The OIDC provider window was closed. Please try again.
+                {{else}}
+                  <strong>Error</strong><br />
+                  {{error.detail}}
+                {{/if}}
+              {{else}}
+                {{#if (eq error.status '403')}}
+                  <strong>Invalid token</strong><br />
+                  The token entered does not exist. Please enter a valid token to log in.
+                {{else}}
+                  <strong>Error</strong><br />
+                  {{error.detail}}
+                {{/if}}
+              {{/if}}
+            </p>
+          </notice.Body>
+        </Notice>
       {{/if}}
     </State>
     <form onsubmit={{action dispatch "SUBMIT"}}>

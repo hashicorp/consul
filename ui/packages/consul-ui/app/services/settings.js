@@ -8,22 +8,26 @@ export const ifNotBlocking = function(repo) {
     return typeof settings.blocking !== 'undefined' && !settings.blocking;
   });
 };
-export default Service.extend({
-  storage: storage,
-  findAll: function(key) {
+export default class SettingsService extends Service {
+  storage = storage;
+
+  findAll(key) {
     return Promise.resolve(this.storage.all());
-  },
-  findBySlug: function(slug) {
+  }
+
+  findBySlug(slug) {
     return Promise.resolve(this.storage.getValue(slug));
-  },
-  persist: function(obj) {
+  }
+
+  persist(obj) {
     const storage = this.storage;
     Object.keys(obj).forEach((item, i) => {
       storage.setValue(item, obj[item]);
     });
     return Promise.resolve(obj);
-  },
-  delete: function(obj) {
+  }
+
+  delete(obj) {
     // TODO: Loop through and delete the specified keys
     if (!Array.isArray(obj)) {
       obj = [obj];
@@ -34,5 +38,5 @@ export default Service.extend({
       return prev;
     }, {});
     return Promise.resolve(item);
-  },
-});
+  }
+}

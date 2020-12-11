@@ -1,12 +1,8 @@
 module.exports = {
   test_page: 'tests/index.html?hidepassed',
   disable_watching: true,
-  launch_in_ci: [
-    'Chrome'
-  ],
-  launch_in_dev: [
-    'Chrome'
-  ],
+  launch_in_ci: ['Chrome'],
+  launch_in_dev: ['Chrome'],
   browser_start_timeout: 120,
   browser_args: {
     Chrome: {
@@ -39,5 +35,5 @@ if (process.env.EMBER_TEST_REPORT) {
  * https://github.com/trentmwillis/ember-exam/issues/108
  */
 if (process.env.EMBER_EXAM_PARALLEL) {
-  module.exports.parallel = -1
+  module.exports.parallel = -1;
 }

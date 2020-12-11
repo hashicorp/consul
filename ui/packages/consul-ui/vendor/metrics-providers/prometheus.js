@@ -1,6 +1,6 @@
 /*eslint no-console: "off"*/
 (function () {
-  var emptySeries = { unitSuffix: "", labels: {}, data: [] }
+  var emptySeries = { unitSuffix: '', labels: {}, data: [] };
 
   var prometheusProvider = {
     options: {},
@@ -11,22 +11,57 @@
      * options.providerOptions contains any operator configured parameters
      * specified in the Consul agent config that is serving the UI.
      *
-     * Consul will provider a boolean options.metrics_proxy_enabled to indicate
-     * whether the agent has a metrics proxy configured.
+     * Consul will provide:
+     *
+     * 1. A boolean options.metrics_proxy_enabled to indicate whether the agent
+     * has a metrics proxy configured.
+     * 2. A fetch-like options.fetch which is a thin fetch wrapper that prefixes
+     * any url with the url of Consul's proxy endpoint and adds your current
+     * Consul ACL token to the request headers. Otherwise it functions like the
+     * browsers native fetch
      *
      * The provider should throw an Exception if the options are not valid for
      * example because it requires a metrics proxy and one is not configured.
      */
-    init: function(options) {
+    init: function (options) {
       this.options = options;
       if (!this.options.metrics_proxy_enabled) {
-        throw new Error("prometheus metrics provider currently requires the ui_config.metrics_proxy to be configured in the Consul agent.");
+        throw new Error(
+          'prometheus metrics provider currently requires the ui_config.metrics_proxy to be configured in the Consul agent.'
+        );
       }
+    },
+
+    // simple httpGet function that also encodes query parameters
+    // before passing the constructed url through to native fetch
+    // any errors should throw an error with a statusCode property
+    httpGet: function (url, queryParams, headers) {
+      if (queryParams) {
+        var separator = url.indexOf('?') !== -1 ? '&' : '?';
+        var qs = Object.keys(queryParams)
+          .map(function (key) {
+            return encodeURIComponent(key) + '=' + encodeURIComponent(queryParams[key]);
+          })
+          .join('&');
+        url = url + separator + qs;
+      }
+      // fetch the url along with any headers
+      return this.options.fetch(url, { headers: headers || {} }).then(function (response) {
+        if (response.ok) {
+          return response.json();
+        } else {
+          // throw a statusCode error if any errors are received
+          var e = new Error('HTTP Error: ' + response.statusText);
+          e.statusCode = response.status;
+          throw e;
+        }
+      });
     },
 
     /**
      * serviceRecentSummarySeries should return time series for a recent time
-     * period summarizing the usage of the named service.
+     * period summarizing the usage of the named service in the indicated
+     * datacenter. In Consul Enterprise a non-empty namespace is also provided.
      *
      * If these metrics aren't available then an empty series array may be
      * returned.
@@ -60,8 +95,8 @@
      *    // to explain exactly what the metrics mean.
      *    labels: {
      *      "Total": "Total inbound requests per second.",
-     *      "Successes": "Successful responses (with an HTTP response code not in the 5xx range) per second.",
-     *      "Errors": "Error responses (with an HTTP response code in the 5xx range) per second.",
+     *      "Successes": "Successful responses (with an HTTP response code ...",
+     *      "Errors": "Error responses (with an HTTP response code in the ...",
      *    },
      *
      *    data: [
@@ -77,28 +112,29 @@
      *  Every data point object should have a value for every series label
      *  (except for "Total") otherwise it will be assumed to be "0".
      */
-    serviceRecentSummarySeries: function(serviceName, protocol, options) {
+    serviceRecentSummarySeries: function (service, dc, nspace, protocol, options) {
       // Fetch time-series
-      var series = []
-      var labels = []
+      var series = [];
+      var labels = [];
 
       // Set the start and end range here so that all queries end up with
       // identical time axes. Later we might accept these as options.
-      var now = (new Date()).getTime()/1000;
-      options.start = now - (15*60);
+      var now = new Date().getTime() / 1000;
+      options.start = now - 15 * 60;
       options.end = now;
 
       if (this.hasL7Metrics(protocol)) {
-        return this.fetchRequestRateSeries(serviceName, options);
+        return this.fetchRequestRateSeries(service, dc, nspace, options);
       }
 
       // Fallback to just L4 metrics.
-      return this.fetchDataRateSeries(serviceName, options);
+      return this.fetchDataRateSeries(service, dc, nspace, options);
     },
 
     /**
      * serviceRecentSummaryStats should return four summary statistics for a
-     * recent time period for the named service.
+     * recent time period for the named service in the indicated datacenter. In
+     * Consul Enterprise a non-empty namespace is also provided.
      *
      * If these metrics aren't available then an empty array may be returned.
      *
@@ -118,8 +154,10 @@
      *      {
      *        // label should be 3 chars or fewer as an abbreviation
      *        label: "SR",
+     *
      *        // desc describes the stat in a tooltip
      *        desc: "Success Rate - the percentage of all requests that were not 5xx status",
+     *
      *        // value is a string allowing the provider to format it and add
      *        // units as appropriate. It should be as compact as possible.
      *        value: "98%",
@@ -127,27 +165,34 @@
      *    ]
      *  }
      */
-    serviceRecentSummaryStats: function(serviceName, protocol, options) {
+    serviceRecentSummaryStats: function (service, dc, nspace, protocol, options) {
       // Fetch stats
       var stats = [];
       if (this.hasL7Metrics(protocol)) {
-        stats.push(this.fetchRPS(serviceName, "service", options))
-        stats.push(this.fetchER(serviceName, "service", options))
-        stats.push(this.fetchPercentile(50, serviceName, "service", options))
-        stats.push(this.fetchPercentile(99, serviceName, "service", options))
+        stats.push(this.fetchRPS(service, dc, nspace, 'service', options));
+        stats.push(this.fetchER(service, dc, nspace, 'service', options));
+        stats.push(this.fetchPercentile(50, service, dc, nspace, 'service', options));
+        stats.push(this.fetchPercentile(99, service, dc, nspace, 'service', options));
       } else {
         // Fallback to just L4 metrics.
-        stats.push(this.fetchConnRate(serviceName, "service", options))
-        stats.push(this.fetchServiceRx(serviceName, "service", options))
-        stats.push(this.fetchServiceTx(serviceName, "service", options))
-        stats.push(this.fetchServiceNoRoute(serviceName, "service", options))
+        stats.push(this.fetchConnRate(service, dc, nspace, 'service', options));
+        stats.push(this.fetchServiceRx(service, dc, nspace, 'service', options));
+        stats.push(this.fetchServiceTx(service, dc, nspace, 'service', options));
+        stats.push(this.fetchServiceNoRoute(service, dc, nspace, 'service', options));
       }
-      return this.fetchStats(stats)
+      return this.fetchStats(stats);
     },
 
     /**
      * upstreamRecentSummaryStats should return four summary statistics for each
-     * upstream service over a recent time period.
+     * upstream service over a recent time period, relative to the named service
+     * in the indicated datacenter. In Consul Enterprise a non-empty namespace
+     * is also provided.
+     *
+     * Note that the upstreams themselves might be in different datacenters but
+     * we only pass the target service DC since typically these metrics should
+     * be from the outbound listener of the target service in this DC even if
+     * they eventually end up in another DC.
      *
      * If these metrics aren't available then an empty array may be returned.
      *
@@ -171,13 +216,25 @@
      *     }
      *   }
      */
-    upstreamRecentSummaryStats: function(serviceName, upstreamName, options) {
-      return this.fetchRecentSummaryStats(serviceName, "upstream", options)
+    upstreamRecentSummaryStats: function (service, dc, nspace, options) {
+      return this.fetchRecentSummaryStats(service, dc, nspace, 'upstream', options);
     },
 
     /**
      * downstreamRecentSummaryStats should return four summary statistics for
-     * each downstream service over a recent time period.
+     * each downstream service over a recent time period, relative to the named
+     * service in the indicated datacenter. In Consul Enterprise a non-empty
+     * namespace is also provided.
+     *
+     * Note that the service may have downstreams in different datacenters. For
+     * some metrics systems which are per-datacenter this makes it hard to query
+     * for all downstream metrics from one source. For now the UI will only show
+     * downstreams in the same datacenter as the target service. In the future
+     * this method may be called multiple times, once for each DC that contains
+     * downstream services to gather metrics from each. In that case a separate
+     * option for target datacenter will be used since the target service's DC
+     * is still needed to correctly identify the outbound clusters that will
+     * route to it from the remote DC.
      *
      * If these metrics aren't available then an empty array may be returned.
      *
@@ -188,13 +245,13 @@
      *
      *   {
      *     stats: {
-     *       // Each downstream will appear as an entry keyed by the downstream
-     *       // service name. The value is an array of stats with the same
+     *       // Each downstream will appear as an entry keyed by "service.namespace.dc".
+     *       // The value is an array of stats with the same
      *       // format as serviceRecentSummaryStats response.stats. Different
      *       // downstreams may display different stats if required although the
      *       // protocol should be the same for all as it is the target
      *       // service's protocol that matters here.
-     *       "downstream_name": [
+     *       "web.default.dc1": [
      *         {label: "SR", desc: "...", value: "99%"},
      *         ...
      *       ],
@@ -202,89 +259,87 @@
      *     }
      *   }
      */
-    downstreamRecentSummaryStats: function(serviceName, options) {
-      return this.fetchRecentSummaryStats(serviceName, "downstream", options)
+    downstreamRecentSummaryStats: function (service, dc, nspace, options) {
+      return this.fetchRecentSummaryStats(service, dc, nspace, 'downstream', options);
     },
 
-    fetchRecentSummaryStats: function(serviceName, type, options) {
+    fetchRecentSummaryStats: function (service, dc, nspace, type, options) {
       // Fetch stats
       var stats = [];
 
       // We don't know which upstreams are HTTP/TCP so just fetch all of them.
 
       // HTTP
-      stats.push(this.fetchRPS(serviceName, type, options))
-      stats.push(this.fetchER(serviceName, type, options))
-      stats.push(this.fetchPercentile(50, serviceName, type, options))
-      stats.push(this.fetchPercentile(99, serviceName, type, options))
+      stats.push(this.fetchRPS(service, dc, nspace, type, options));
+      stats.push(this.fetchER(service, dc, nspace, type, options));
+      stats.push(this.fetchPercentile(50, service, dc, nspace, type, options));
+      stats.push(this.fetchPercentile(99, service, dc, nspace, type, options));
 
       // L4
-      stats.push(this.fetchConnRate(serviceName, type, options))
-      stats.push(this.fetchServiceRx(serviceName, type, options))
-      stats.push(this.fetchServiceTx(serviceName, type, options))
-      stats.push(this.fetchServiceNoRoute(serviceName, type, options))
+      stats.push(this.fetchConnRate(service, dc, nspace, type, options));
+      stats.push(this.fetchServiceRx(service, dc, nspace, type, options));
+      stats.push(this.fetchServiceTx(service, dc, nspace, type, options));
+      stats.push(this.fetchServiceNoRoute(service, dc, nspace, type, options));
 
-      return this.fetchStatsGrouped(stats)
+      return this.fetchStatsGrouped(stats);
     },
 
-    hasL7Metrics: function(protocol) {
-      return protocol === "http" || protocol === "http2" || protocol === "grpc"
+    hasL7Metrics: function (protocol) {
+      return protocol === 'http' || protocol === 'http2' || protocol === 'grpc';
     },
 
-    fetchStats: function(statsPromises) {
-      var all = Promise.allSettled(statsPromises).
-        then(function(results){
+    fetchStats: function (statsPromises) {
+      var all = Promise.all(statsPromises).then(function (results) {
         var data = {
-          stats: []
-        }
+          stats: [],
+        };
         // Add all non-empty stats
         for (var i = 0; i < statsPromises.length; i++) {
           if (results[i].value) {
-            data.stats.push(results[i].value);
-          } else if (results[i].reason) {
-            console.log("ERROR processing stat", results[i].reason)
+            data.stats.push(results[i]);
           }
         }
-        return data
-      })
+        return data;
+      });
 
       // Fetch the metrics async, and return a promise to the result.
-      return all
+      return all;
     },
 
-    fetchStatsGrouped: function(statsPromises) {
-      var all = Promise.allSettled(statsPromises).
-        then(function(results){
+    fetchStatsGrouped: function (statsPromises) {
+      var all = Promise.all(statsPromises).then(function (results) {
         var data = {
-          stats: {}
-        }
+          stats: {},
+        };
         // Add all non-empty stats
         for (var i = 0; i < statsPromises.length; i++) {
-          if (results[i].value) {
-            for (var group in results[i].value) {
-              if (!results[i].value.hasOwnProperty(group)) continue;
+          if (results[i]) {
+            for (var group in results[i]) {
+              if (!results[i].hasOwnProperty(group)) continue;
               if (!data.stats[group]) {
-                data.stats[group] = []
+                data.stats[group] = [];
               }
-              data.stats[group].push(results[i].value[group])
+              data.stats[group].push(results[i][group]);
             }
-          } else if (results[i].reason) {
-            console.log("ERROR processing stat", results[i].reason)
           }
         }
-        return data
-      })
+        return data;
+      });
 
       // Fetch the metrics async, and return a promise to the result.
-      return all
+      return all;
     },
 
-    reformatSeries: function(unitSuffix, labelMap) {
-      return function(response) {
+    reformatSeries: function (unitSuffix, labelMap) {
+      return function (response) {
         // Handle empty result sets gracefully.
-        if (!response.data || !response.data.result || response.data.result.length == 0
-            || !response.data.result[0].values
-            || response.data.result[0].values.length == 0) {
+        if (
+          !response.data ||
+          !response.data.result ||
+          response.data.result.length == 0 ||
+          !response.data.result[0].values ||
+          response.data.result[0].values.length == 0
+        ) {
           return emptySeries;
         }
         // Reformat the prometheus data to be the format we want with stacked
@@ -292,7 +347,7 @@
 
         // Populate time values first based on first result since Prometheus will
         // always return all the same points for all series in the query.
-        let series = response.data.result[0].values.map(function(d, i) {
+        let series = response.data.result[0].values.map(function (d, i) {
           return {
             time: Math.round(d[0] * 1000),
           };
@@ -300,8 +355,8 @@
 
         // Then for each series returned populate the labels and values in the
         // points.
-        response.data.result.map(function(d) {
-          d.values.map(function(p, i) {
+        response.data.result.map(function (d) {
+          d.values.map(function (p, i) {
             series[i][d.metric.label] = parseFloat(p[1]);
           });
         });
@@ -309,391 +364,336 @@
         return {
           unitSuffix: unitSuffix,
           labels: labelMap,
-          data: series
+          data: series,
         };
       };
     },
 
-    fetchRequestRateSeries: function(serviceName, options){
+    fetchRequestRateSeries: function (service, dc, nspace, options) {
       // We need the sum of all non-500 error rates as one value and the 500
       // error rate as a separate series so that they stack to show the full
       // request rate. Some creative label replacement makes this possible in
       // one query.
-      var q = `sum by (label) (`+
+      var q =
+        `sum by (label) (` +
         // The outer label_replace catches 5xx error and relabels them as
         // err=yes
-        `label_replace(`+
-          // The inner label_replace relabels all !5xx rates as err=no so they
-          // will get summed together.
-          `label_replace(`+
-            // Get rate of requests to the service
-            `irate(envoy_listener_http_downstream_rq_xx{local_cluster="${serviceName}",envoy_http_conn_manager_prefix="public_listener_http"}[10m])`+
-          // ... inner replacement matches all code classes except "5" and
-          // applies err=no
-          `, "label", "Successes", "envoy_response_code_class", "[^5]")`+
-          // ... outer replacement matches code=5 and applies err=yes
-        `, "label", "Errors", "envoy_response_code_class", "5")`+
-      `)`
+        `label_replace(` +
+        // The inner label_replace relabels all !5xx rates as err=no so they
+        // will get summed together.
+        `label_replace(` +
+        // Get rate of requests to the service
+        `irate(envoy_listener_http_downstream_rq_xx{` +
+        `consul_source_service="${service}",` +
+        `consul_source_datacenter="${dc}",` +
+        `consul_source_namespace="${nspace}",` +
+        `envoy_http_conn_manager_prefix="public_listener"}[10m])` +
+        // ... inner replacement matches all code classes except "5" and
+        // applies err=no
+        `, "label", "Successes", "envoy_response_code_class", "[^5]")` +
+        // ... outer replacement matches code=5 and applies err=yes
+        `, "label", "Errors", "envoy_response_code_class", "5")` +
+        `)`;
       var labelMap = {
         Total: 'Total inbound requests per second',
-        Successes: 'Successful responses (with an HTTP response code not in the 5xx range) per second.',
+        Successes:
+          'Successful responses (with an HTTP response code not in the 5xx range) per second.',
         Errors: 'Error responses (with an HTTP response code in the 5xx range) per second.',
       };
-      return this.fetchSeries(q, options)
-        .then(this.reformatSeries(" rps", labelMap), function(xhr){
-        // Failure. log to console and return a blank result for now.
-        console.log('ERROR: failed to fetch requestRate', xhr.responseText)
-        return emptySeries;
-      })
+      return this.fetchSeries(q, options).then(this.reformatSeries(' rps', labelMap));
     },
 
-    fetchDataRateSeries: function(serviceName, options){
+    fetchDataRateSeries: function (service, dc, nspace, options) {
       // 8 * converts from bytes/second to bits/second
-      var q = `8 * sum by (label) (`+
+      var q =
+        `8 * sum by (label) (` +
         // Label replace generates a unique label per rx/tx metric to stop them
         // being summed together.
-        `label_replace(`+
-          // Get the tx rate
-          `irate(envoy_tcp_downstream_cx_tx_bytes_total{local_cluster="${serviceName}",envoy_tcp_prefix="public_listener_tcp"}[10m])`+
-          // Match all and apply the tx label
-          `, "label", "Outbound", "__name__", ".*"`+
+        `label_replace(` +
+        // Get the tx rate
+        `irate(envoy_tcp_downstream_cx_tx_bytes_total{` +
+        `consul_source_service="${service}",` +
+        `consul_source_datacenter="${dc}",` +
+        `consul_source_namespace="${nspace}",` +
+        `envoy_tcp_prefix="public_listener"}[10m])` +
+        // Match all and apply the tx label
+        `, "label", "Outbound", "__name__", ".*"` +
         // Union those vectors with the RX ones
-        `) or label_replace(`+
-          // Get the rx rate
-          `irate(envoy_tcp_downstream_cx_rx_bytes_total{local_cluster="${serviceName}",envoy_tcp_prefix="public_listener_tcp"}[10m])`+
-          // Match all and apply the rx label
-          `, "label", "Inbound", "__name__", ".*"`+
-        `)`+
-      `)`
+        `) or label_replace(` +
+        // Get the rx rate
+        `irate(envoy_tcp_downstream_cx_rx_bytes_total{` +
+        `consul_source_service="${service}",` +
+        `consul_source_datacenter="${dc}",` +
+        `consul_source_namespace="${nspace}",` +
+        `envoy_tcp_prefix="public_listener"}[10m])` +
+        // Match all and apply the rx label
+        `, "label", "Inbound", "__name__", ".*"` +
+        `)` +
+        `)`;
       var labelMap = {
         Total: 'Total bandwidth',
         Inbound: 'Inbound data rate (data recieved) from the network in bits per second.',
         Outbound: 'Outbound data rate (data transmitted) from the network in bits per second.',
       };
-      return this.fetchSeries(q, options)
-        .then(this.reformatSeries("bps", labelMap), function(xhr){
-        // Failure. log to console and return a blank result for now.
-        console.log('ERROR: failed to fetch requestRate', xhr.responseText)
-        return emptySeries;
-      })
+      return this.fetchSeries(q, options).then(this.reformatSeries('bps', labelMap));
     },
 
-    makeSubject: function(serviceName, type) {
-      if (type == "upstream") {
+    makeSubject: function (service, dc, nspace, type) {
+      var entity = `${nspace}/${service} (${dc})`;
+      if (type == 'upstream') {
         // {{GROUP}} is a placeholder that is replaced by the upstream name
-        return `${serviceName} &rarr; {{GROUP}}`;
+        return `${entity} &rarr; {{GROUP}}`;
       }
-      if (type == "downstream") {
+      if (type == 'downstream') {
         // {{GROUP}} is a placeholder that is replaced by the downstream name
-        return `{{GROUP}} &rarr; ${serviceName}`;
+        return `{{GROUP}} &rarr; ${entity}`;
       }
-      return serviceName
+      return entity;
     },
 
-    makeHTTPSelector: function(serviceName, type) {
+    makeHTTPSelector: function (service, dc, nspace, type) {
       // Downstreams are totally different
-      if (type == "downstream") {
-        return `consul_service="${serviceName}"`
+      if (type == 'downstream') {
+        return `consul_destination_service="${service}",consul_destination_datacenter="${dc}",consul_destination_namespace="${nspace}"`;
       }
-      var lc = `local_cluster="${serviceName}"`
-      if (type == "upstream") {
-        lc += `,envoy_http_conn_manager_prefix=~"upstream_.*"`;
+      var lc = `consul_source_service="${service}",consul_source_datacenter="${dc}",consul_source_namespace="${nspace}"`;
+      if (type == 'upstream') {
+        lc += `,envoy_http_conn_manager_prefix="upstream"`;
       } else {
         // Only care about inbound public listener
-        lc += `,envoy_http_conn_manager_prefix="public_listener_http"`
+        lc += `,envoy_http_conn_manager_prefix="public_listener"`;
       }
-      return lc
+      return lc;
     },
 
-    makeTCPSelector: function(serviceName, type) {
+    makeTCPSelector: function (service, dc, nspace, type) {
       // Downstreams are totally different
-      if (type == "downstream") {
-        return `consul_service="${serviceName}"`
+      if (type == 'downstream') {
+        return `consul_destination_service="${service}",consul_destination_datacenter="${dc}",consul_destination_namespace="${nspace}"`;
       }
-      var lc = `local_cluster="${serviceName}"`
-      if (type == "upstream") {
-        lc += `,envoy_tcp_prefix=~"upstream_.*"`;
+      var lc = `consul_source_service="${service}",consul_source_datacenter="${dc}",consul_source_namespace="${nspace}"`;
+      if (type == 'upstream') {
+        lc += `,envoy_tcp_prefix=~"upstream.*"`;
       } else {
         // Only care about inbound public listener
-        lc += `,envoy_tcp_prefix="public_listener_tcp"`
+        lc += `,envoy_tcp_prefix="public_listener"`;
       }
-      return lc
+      return lc;
     },
 
-    groupQueryHTTP: function(type, q) {
-      if (type == "upstream") {
-        q += " by (envoy_http_conn_manager_prefix)"
-        // Extract the raw upstream service name to group results by
-        q = this.upstreamRelabelQueryHTTP(q)
-      } else if (type == "downstream") {
-        q += " by (local_cluster)"
-        q = this.downstreamRelabelQuery(q)
+    groupQuery: function (type, q) {
+      if (type == 'upstream') {
+        q += ' by (consul_upstream_service,consul_upstream_datacenter,consul_upstream_namespace)';
+      } else if (type == 'downstream') {
+        q += ' by (consul_source_service,consul_source_datacenter,consul_source_namespace)';
       }
-      return q
+      return q;
     },
 
-    groupQueryTCP: function(type, q) {
-      if (type == "upstream") {
-        q += " by (envoy_tcp_prefix)"
-        // Extract the raw upstream service name to group results by
-        q = this.upstreamRelabelQueryTCP(q)
-      } else if (type == "downstream") {
-        q += " by (local_cluster)"
-        q = this.downstreamRelabelQuery(q)
+    groupByInfix: function (type) {
+      if (type == 'upstream') {
+        return 'upstream';
+      } else if (type == 'downstream') {
+        return 'source';
+      } else {
+        return false;
       }
-      return q
     },
 
-    upstreamRelabelQueryHTTP: function(q) {
-      return `label_replace(${q}, "upstream", "$1", "envoy_http_conn_manager_prefix", "upstream_(.*)_http")`
-    },
-
-    upstreamRelabelQueryTCP: function(q) {
-      return `label_replace(${q}, "upstream", "$1", "envoy_tcp_prefix", "upstream_(.*)_tcp")`
-    },
-
-    downstreamRelabelQuery: function(q) {
-      return `label_replace(${q}, "downstream", "$1", "local_cluster", "(.*)")`
-    },
-
-    groupBy: function(type) {
-      if (type == "service") {
-        return false
+    metricPrefixHTTP: function (type) {
+      if (type == 'downstream') {
+        return 'envoy_cluster_upstream_rq';
       }
-      return type;
+      return 'envoy_http_downstream_rq';
     },
 
-    metricPrefixHTTP: function(type) {
-      if (type == "downstream") {
-        return "envoy_cluster_upstream_rq"
+    metricPrefixTCP: function (type) {
+      if (type == 'downstream') {
+        return 'envoy_cluster_upstream_cx';
       }
-      return "envoy_http_downstream_rq";
+      return 'envoy_tcp_downstream_cx';
     },
 
-    metricPrefixTCP: function(type) {
-      if (type == "downstream") {
-        return "envoy_cluster_upstream_cx"
-      }
-      return "envoy_tcp_downstream_cx";
-    },
-
-    fetchRPS: function(serviceName, type, options){
-      var sel = this.makeHTTPSelector(serviceName, type)
-      var subject = this.makeSubject(serviceName, type)
-      var metricPfx = this.metricPrefixHTTP(type)
-      var q = `sum(rate(${metricPfx}_completed{${sel}}[15m]))`
-      return this.fetchStat(this.groupQueryHTTP(type, q),
-        "RPS",
+    fetchRPS: function (service, dc, nspace, type, options) {
+      var sel = this.makeHTTPSelector(service, dc, nspace, type);
+      var subject = this.makeSubject(service, dc, nspace, type);
+      var metricPfx = this.metricPrefixHTTP(type);
+      var q = `sum(rate(${metricPfx}_completed{${sel}}[15m]))`;
+      return this.fetchStat(
+        this.groupQuery(type, q),
+        'RPS',
         `<b>${subject}</b> request rate averaged over the last 15 minutes`,
         shortNumStr,
-        this.groupBy(type)
-        )
+        this.groupByInfix(type)
+      );
     },
 
-    fetchER: function(serviceName, type, options){
-      var sel = this.makeHTTPSelector(serviceName, type)
-      var subject = this.makeSubject(serviceName, type)
-      var groupBy = ""
-      if (type == "upstream") {
-        groupBy += " by (envoy_http_conn_manager_prefix)"
-      } else if (type == "downstream") {
-        groupBy += " by (local_cluster)"
+    fetchER: function (service, dc, nspace, type, options) {
+      var sel = this.makeHTTPSelector(service, dc, nspace, type);
+      var subject = this.makeSubject(service, dc, nspace, type);
+      var groupBy = '';
+      if (type == 'upstream') {
+        groupBy +=
+          ' by (consul_upstream_service,consul_upstream_datacenter,consul_upstream_namespace)';
+      } else if (type == 'downstream') {
+        groupBy += ' by (consul_source_service,consul_source_datacenter,consul_source_namespace)';
       }
-      var metricPfx = this.metricPrefixHTTP(type)
-      var q = `sum(rate(${metricPfx}_xx{${sel},envoy_response_code_class="5"}[15m]))${groupBy}/sum(rate(${metricPfx}_xx{${sel}}[15m]))${groupBy}`
-      if (type == "upstream") {
-        q = this.upstreamRelabelQueryHTTP(q)
-      } else if (type == "downstream") {
-        q = this.downstreamRelabelQuery(q)
-      }
-      return this.fetchStat(q,
-        "ER",
+      var metricPfx = this.metricPrefixHTTP(type);
+      var q = `sum(rate(${metricPfx}_xx{${sel},envoy_response_code_class="5"}[15m]))${groupBy}/sum(rate(${metricPfx}_xx{${sel}}[15m]))${groupBy}`;
+      return this.fetchStat(
+        q,
+        'ER',
         `Percentage of <b>${subject}</b> requests which were 5xx status over the last 15 minutes`,
-        function(val){
-          return shortNumStr(val)+"%"
+        function (val) {
+          return shortNumStr(val) + '%';
         },
-        this.groupBy(type)
-        )
+        this.groupByInfix(type)
+      );
     },
 
-    fetchPercentile: function(percentile, serviceName, type, options){
-      var sel = this.makeHTTPSelector(serviceName, type)
-      var subject = this.makeSubject(serviceName, type)
-      var groupBy = "le"
-      if (type == "upstream") {
-        groupBy += ",envoy_http_conn_manager_prefix"
-      } else if (type == "downstream") {
-        groupBy += ",local_cluster"
+    fetchPercentile: function (percentile, service, dc, nspace, type, options) {
+      var sel = this.makeHTTPSelector(service, dc, nspace, type);
+      var subject = this.makeSubject(service, dc, nspace, type);
+      var groupBy = 'le';
+      if (type == 'upstream') {
+        groupBy += ',consul_upstream_service,consul_upstream_datacenter,consul_upstream_namespace';
+      } else if (type == 'downstream') {
+        groupBy += ',consul_source_service,consul_source_datacenter,consul_source_namespace';
       }
-      var metricPfx = this.metricPrefixHTTP(type)
-      var q = `histogram_quantile(${percentile/100}, sum by(${groupBy}) (rate(${metricPfx}_time_bucket{${sel}}[15m])))`
-      if (type == "upstream") {
-        q = this.upstreamRelabelQueryHTTP(q)
-      } else if (type == "downstream") {
-        q = this.downstreamRelabelQuery(q)
-      }
-      return this.fetchStat(q,
+      var metricPfx = this.metricPrefixHTTP(type);
+      var q = `histogram_quantile(${percentile /
+        100}, sum by(${groupBy}) (rate(${metricPfx}_time_bucket{${sel}}[15m])))`;
+      return this.fetchStat(
+        q,
         `P${percentile}`,
         `<b>${subject}</b> ${percentile}th percentile request service time over the last 15 minutes`,
         shortTimeStr,
-        this.groupBy(type)
-        )
+        this.groupByInfix(type)
+      );
     },
 
-    fetchConnRate: function(serviceName, type, options) {
-      var sel = this.makeTCPSelector(serviceName, type)
-      var subject = this.makeSubject(serviceName, type)
-      var metricPfx = this.metricPrefixTCP(type)
-      var q = `sum(rate(${metricPfx}_total{${sel}}[15m]))`
-      return this.fetchStat(this.groupQueryTCP(type, q),
-        "CR",
+    fetchConnRate: function (service, dc, nspace, type, options) {
+      var sel = this.makeTCPSelector(service, dc, nspace, type);
+      var subject = this.makeSubject(service, dc, nspace, type);
+      var metricPfx = this.metricPrefixTCP(type);
+      var q = `sum(rate(${metricPfx}_total{${sel}}[15m]))`;
+      return this.fetchStat(
+        this.groupQuery(type, q),
+        'CR',
         `<b>${subject}</b> inbound TCP connections per second averaged over the last 15 minutes`,
         shortNumStr,
-        this.groupBy(type)
-        )
+        this.groupByInfix(type)
+      );
     },
 
-    fetchServiceRx: function(serviceName, type, options) {
-      var sel = this.makeTCPSelector(serviceName, type)
-      var subject = this.makeSubject(serviceName, type)
-      var metricPfx = this.metricPrefixTCP(type)
-      var q = `8 * sum(rate(${metricPfx}_rx_bytes_total{${sel}}[15m]))`
-      return this.fetchStat(this.groupQueryTCP(type, q),
-        "RX",
+    fetchServiceRx: function (service, dc, nspace, type, options) {
+      var sel = this.makeTCPSelector(service, dc, nspace, type);
+      var subject = this.makeSubject(service, dc, nspace, type);
+      var metricPfx = this.metricPrefixTCP(type);
+      var q = `8 * sum(rate(${metricPfx}_rx_bytes_total{${sel}}[15m]))`;
+      return this.fetchStat(
+        this.groupQuery(type, q),
+        'RX',
         `<b>${subject}</b> received bits per second averaged over the last 15 minutes`,
         shortNumStr,
-        this.groupBy(type)
-        )
+        this.groupByInfix(type)
+      );
     },
 
-    fetchServiceTx: function(serviceName, type, options) {
-      var sel = this.makeTCPSelector(serviceName, type)
-      var subject = this.makeSubject(serviceName, type)
-      var metricPfx = this.metricPrefixTCP(type)
-      var q = `8 * sum(rate(${metricPfx}_tx_bytes_total{${sel}}[15m]))`
-      var self = this
-      return this.fetchStat(this.groupQueryTCP(type, q),
-        "TX",
+    fetchServiceTx: function (service, dc, nspace, type, options) {
+      var sel = this.makeTCPSelector(service, dc, nspace, type);
+      var subject = this.makeSubject(service, dc, nspace, type);
+      var metricPfx = this.metricPrefixTCP(type);
+      var q = `8 * sum(rate(${metricPfx}_tx_bytes_total{${sel}}[15m]))`;
+      var self = this;
+      return this.fetchStat(
+        this.groupQuery(type, q),
+        'TX',
         `<b>${subject}</b> transmitted bits per second averaged over the last 15 minutes`,
         shortNumStr,
-        this.groupBy(type)
-        )
+        this.groupByInfix(type)
+      );
     },
 
-    fetchServiceNoRoute: function(serviceName, type, options) {
-      var sel = this.makeTCPSelector(serviceName, type)
-      var subject = this.makeSubject(serviceName, type)
-      var metricPfx = this.metricPrefixTCP(type)
-      var metric = "_no_route"
-      if (type == "downstream") {
-        metric = "_connect_fail"
+    fetchServiceNoRoute: function (service, dc, nspace, type, options) {
+      var sel = this.makeTCPSelector(service, dc, nspace, type);
+      var subject = this.makeSubject(service, dc, nspace, type);
+      var metricPfx = this.metricPrefixTCP(type);
+      var metric = '_no_route';
+      if (type == 'downstream') {
+        metric = '_connect_fail';
       }
-      var q = `sum(rate(${metricPfx}${metric}{${sel}}[15m]))`
-      return this.fetchStat(this.groupQueryTCP(type, q),
-        "NR",
+      var q = `sum(rate(${metricPfx}${metric}{${sel}}[15m]))`;
+      return this.fetchStat(
+        this.groupQuery(type, q),
+        'NR',
         `<b>${subject}</b> unroutable (failed) connections per second averaged over the last 15 minutes`,
         shortNumStr,
-        this.groupBy(type)
-        )
+        this.groupByInfix(type)
+      );
     },
 
-    fetchStat: function(promql, label, desc, formatter, groupBy) {
-      if (!groupBy) {
+    fetchStat: function (promql, label, desc, formatter, groupByInfix) {
+      if (!groupByInfix) {
         // If we don't have a grouped result and its just a single stat, return
         // no result as a zero not a missing stat.
-        promql += " OR on() vector(0)";
+        promql += ' OR on() vector(0)';
       }
-      //console.log(promql)
       var params = {
         query: promql,
-        time: (new Date).getTime()/1000
-      }
-      return this.httpGet("/api/v1/query", params).then(function(response){
-        if (!groupBy) {
+        time: new Date().getTime() / 1000,
+      };
+      return this.httpGet('/api/v1/query', params).then(function (response) {
+        if (!groupByInfix) {
           // Not grouped, expect just one stat value return that
-          var v = parseFloat(response.data.result[0].value[1])
+          var v = parseFloat(response.data.result[0].value[1]);
           return {
             label: label,
             desc: desc,
-            value: formatter(v)
-          }
+            value: isNaN(v) ? '-' : formatter(v),
+          };
         }
 
         var data = {};
         for (var i = 0; i < response.data.result.length; i++) {
           var res = response.data.result[i];
           var v = parseFloat(res.value[1]);
-          var groupName = res.metric[groupBy];
+          var service = res.metric['consul_' + groupByInfix + '_service'];
+          var nspace = res.metric['consul_' + groupByInfix + '_namespace'];
+          var datacenter = res.metric['consul_' + groupByInfix + '_datacenter'];
+          var groupName = `${service}.${nspace}.${datacenter}`;
           data[groupName] = {
             label: label,
             desc: desc.replace('{{GROUP}}', groupName),
-            value: formatter(v)
-          }
+            value: isNaN(v) ? '-' : formatter(v),
+          };
         }
         return data;
-      }, function(xhr){
-        // Failure. log to console and return an blank result for now.
-        console.log("ERROR: failed to fetch stat", label, xhr.responseText)
-        return {}
-      })
+      });
     },
 
-    fetchSeries: function(promql, options) {
+    fetchSeries: function (promql, options) {
       var params = {
         query: promql,
         start: options.start,
         end: options.end,
-        step: "10s",
-        timeout: "8s"
-      }
-      return this.httpGet("/api/v1/query_range", params)
+        step: '10s',
+        timeout: '8s',
+      };
+      return this.httpGet('/api/v1/query_range', params);
     },
-
-    httpGet: function(path, params) {
-      var xhr = new XMLHttpRequest();
-      var self = this
-      return new Promise(function(resolve, reject){
-        xhr.onreadystatechange = function(){
-          if (xhr.readyState !== 4) return;
-
-          if (xhr.status == 200) {
-            // Attempt to parse response as JSON and return the object
-            var o = JSON.parse(xhr.responseText)
-            resolve(o)
-          }
-          reject(xhr)
-        }
-
-        var url = self.baseURL()+path;
-        if (params) {
-          var qs = Object.keys(params).
-          map(function(key){
-            return encodeURIComponent(key)+"="+encodeURIComponent(params[key])
-          }).
-          join("&")
-          url = url+"?"+qs
-        }
-        xhr.open("GET", url, true);
-        xhr.send();
-      });
-    },
-
-    baseURL: function() {
-      // TODO support configuring a direct Prometheus via
-      // metrics_provider_options_json.
-      return "/v1/internal/ui/metrics-proxy"
-    }
-  }
+  };
 
   // Helper functions
   function shortNumStr(n) {
     if (n < 1e3) {
-      if (Number.isInteger(n)) return ""+n
+      if (Number.isInteger(n)) return '' + n;
       if (n >= 100) {
         // Go to 3 significant figures but wrap it in Number to avoid scientific
         // notation lie 2.3e+2 for 230.
-        return Number(n.toPrecision(3))
-      } if (n < 1) {
+        return Number(n.toPrecision(3));
+      }
+      if (n < 1) {
         // Very small numbers show with limited precision to prevent long string
         // of 0.000000.
         return Number(n.toFixed(2));
@@ -702,29 +702,28 @@
         return Number(n.toPrecision(2));
       }
     }
-    if (n >= 1e3 && n < 1e6) return +(n / 1e3).toPrecision(3) + "k";
-    if (n >= 1e6 && n < 1e9) return +(n / 1e6).toPrecision(3) + "m";
-    if (n >= 1e9 && n < 1e12) return +(n / 1e9).toPrecision(3) + "g";
-    if (n >= 1e12) return +(n / 1e12).toFixed(0) + "t";
+    if (n >= 1e3 && n < 1e6) return +(n / 1e3).toPrecision(3) + 'k';
+    if (n >= 1e6 && n < 1e9) return +(n / 1e6).toPrecision(3) + 'm';
+    if (n >= 1e9 && n < 1e12) return +(n / 1e9).toPrecision(3) + 'g';
+    if (n >= 1e12) return +(n / 1e12).toFixed(0) + 't';
   }
 
   function shortTimeStr(n) {
-    if (n < 1e3) return Math.round(n) + "ms";
+    if (n < 1e3) return Math.round(n) + 'ms';
 
-    var secs = n / 1e3
-    if (secs < 60) return secs.toFixed(1) + "s"
+    var secs = n / 1e3;
+    if (secs < 60) return secs.toFixed(1) + 's';
 
-    var mins = secs/60
-    if (mins < 60) return mins.toFixed(1) + "m"
+    var mins = secs / 60;
+    if (mins < 60) return mins.toFixed(1) + 'm';
 
-    var hours = mins/60
-    if (hours < 24) return hours.toFixed(1) + "h"
+    var hours = mins / 60;
+    if (hours < 24) return hours.toFixed(1) + 'h';
 
-    var days = hours/24
-    return days.toFixed(1) + "d"
+    var days = hours / 24;
+    return days.toFixed(1) + 'd';
   }
 
   /* global consul:writable */
-  window.consul.registerMetricsProvider("prometheus", prometheusProvider)
-
-}());
+  window.consul.registerMetricsProvider('prometheus', prometheusProvider);
+})();

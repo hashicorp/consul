@@ -24,6 +24,10 @@ import (
 )
 
 func TestUiIndex(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	// Make a test dir to serve UI files
 	uiDir := testutil.TempDir(t, "consul")
@@ -70,6 +74,10 @@ func TestUiIndex(t *testing.T) {
 }
 
 func TestUiNodes(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -108,6 +116,10 @@ func TestUiNodes(t *testing.T) {
 }
 
 func TestUiNodes_Filter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -150,6 +162,10 @@ func TestUiNodes_Filter(t *testing.T) {
 }
 
 func TestUiNodeInfo(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -198,6 +214,10 @@ func TestUiNodeInfo(t *testing.T) {
 }
 
 func TestUiServices(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -531,6 +551,10 @@ func TestUiServices(t *testing.T) {
 }
 
 func TestUIGatewayServiceNodes_Terminating(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, "")
@@ -654,6 +678,10 @@ func TestUIGatewayServiceNodes_Terminating(t *testing.T) {
 }
 
 func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, `alt_domain = "alt.consul."`)
@@ -825,6 +853,10 @@ func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
 }
 
 func TestUIGatewayIntentions(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, "")
@@ -934,6 +966,10 @@ func TestUIEndpoint_modifySummaryForGatewayService_UseRequestedDCInsteadOfConfig
 }
 
 func TestUIServiceTopology(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, "")
@@ -1369,9 +1405,11 @@ func TestUIServiceTopology(t *testing.T) {
 						Intention: structs.IntentionDecisionSummary{
 							Allowed:        true,
 							HasPermissions: false,
+							HasExact:       true,
 						},
 					},
 				},
+				Downstreams:    []*ServiceTopologySummary{},
 				FilteredByACLs: false,
 			}
 			result := obj.(ServiceTopology)
@@ -1410,6 +1448,7 @@ func TestUIServiceTopology(t *testing.T) {
 						Intention: structs.IntentionDecisionSummary{
 							Allowed:        true,
 							HasPermissions: false,
+							HasExact:       true,
 						},
 					},
 				},
@@ -1429,6 +1468,9 @@ func TestUIServiceTopology(t *testing.T) {
 							Allowed:        false,
 							HasPermissions: false,
 							ExternalSource: "nomad",
+
+							// From wildcard deny
+							HasExact: false,
 						},
 					},
 				},
@@ -1474,6 +1516,7 @@ func TestUIServiceTopology(t *testing.T) {
 						Intention: structs.IntentionDecisionSummary{
 							Allowed:        false,
 							HasPermissions: true,
+							HasExact:       true,
 						},
 					},
 				},
@@ -1491,6 +1534,9 @@ func TestUIServiceTopology(t *testing.T) {
 							Allowed:        false,
 							HasPermissions: false,
 							ExternalSource: "nomad",
+
+							// From wildcard deny
+							HasExact: false,
 						},
 					},
 				},
@@ -1521,7 +1567,8 @@ func TestUIServiceTopology(t *testing.T) {
 			require.NoError(r, checkIndex(resp))
 
 			expect := ServiceTopology{
-				Protocol: "http",
+				Protocol:  "http",
+				Upstreams: []*ServiceTopologySummary{},
 				Downstreams: []*ServiceTopologySummary{
 					{
 						ServiceSummary: ServiceSummary{
@@ -1537,6 +1584,7 @@ func TestUIServiceTopology(t *testing.T) {
 						Intention: structs.IntentionDecisionSummary{
 							Allowed:        false,
 							HasPermissions: true,
+							HasExact:       true,
 						},
 					},
 				},
@@ -1555,6 +1603,10 @@ func TestUIServiceTopology(t *testing.T) {
 }
 
 func TestUIEndpoint_MetricsProxy(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	var lastHeadersSent atomic.Value
@@ -1618,6 +1670,25 @@ func TestUIEndpoint_MetricsProxy(t *testing.T) {
 			config:   config.UIMetricsProxy{},
 			path:     endpointPath + "/ok",
 			wantCode: http.StatusNotFound,
+		},
+		{
+			name: "blocked path",
+			config: config.UIMetricsProxy{
+				BaseURL:       backendURL,
+				PathAllowlist: []string{"/some/other-prefix/ok"},
+			},
+			path:     endpointPath + "/ok",
+			wantCode: http.StatusForbidden,
+		},
+		{
+			name: "allowed path",
+			config: config.UIMetricsProxy{
+				BaseURL:       backendURL,
+				PathAllowlist: []string{"/some/prefix/ok"},
+			},
+			path:         endpointPath + "/ok",
+			wantCode:     http.StatusOK,
+			wantContains: "OK",
 		},
 		{
 			name: "basic proxying",

@@ -1,6 +1,7 @@
-import Component from '@ember/component';
+import Component from '@glimmer/component';
 import { inject as service } from '@ember/service';
-import { set, get } from '@ember/object';
+import { tracked } from '@glimmer/tracking';
+import { action, get } from '@ember/object';
 import { schedule } from '@ember/runloop';
 
 /**
@@ -22,119 +23,160 @@ const replace = function(
   if (prev !== value) {
     destroy(prev, value);
   }
-  return set(obj, prop, value);
+  return (obj[prop] = value);
 };
 
-export default Component.extend({
-  tagName: '',
+const noop = () => {};
+const optional = op => (typeof op === 'function' ? op : noop);
 
-  data: service('data-source/service'),
-  dom: service('dom'),
-  logger: service('logger'),
+// possible values for @loading=""
+const LOADING = ['eager', 'lazy'];
 
-  onchange: function(e) {},
-  onerror: function(e) {},
+export default class DataSource extends Component {
+  @service('data-source/service') dataSource;
+  @service('dom') dom;
+  @service('logger') logger;
 
-  loading: 'eager',
+  @tracked isIntersecting = false;
+  @tracked data;
+  @tracked error;
 
-  isIntersecting: false,
-
-  init: function() {
-    this._super(...arguments);
+  constructor(owner, args) {
+    super(...arguments);
     this._listeners = this.dom.listeners();
     this._lazyListeners = this.dom.listeners();
-    this.guid = this.dom.guid(this);
-  },
-  willDestroyElement: function() {
-    this.actions.close.apply(this);
-    this._listeners.remove();
-    this._lazyListeners.remove();
-    this._super(...arguments);
-  },
+  }
 
-  didInsertElement: function() {
-    this._super(...arguments);
-    if (this.loading === 'lazy') {
+  get loading() {
+    return LOADING.includes(this.args.loading) ? this.args.loading : LOADING[0];
+  }
+
+  get disabled() {
+    return typeof this.args.disabled !== 'undefined' ? this.args.disabled : false;
+  }
+
+  onchange(e) {
+    this.error = undefined;
+    this.data = e.data;
+    optional(this.args.onchange)(e);
+  }
+
+  onerror(e) {
+    this.error = e.error || e;
+    optional(this.args.onerror)(e);
+  }
+
+  @action
+  connect($el) {
+    // $el is only a DOM node when loading = lazy
+    // otherwise its an array from the did-insert-helper
+    if (!Array.isArray($el)) {
       this._lazyListeners.add(
-        this.dom.isInViewport(this.dom.element(`#${this.guid}`), inViewport => {
-          set(this, 'isIntersecting', inViewport);
+        this.dom.isInViewport($el, inViewport => {
+          this.isIntersecting = inViewport;
           if (!this.isIntersecting) {
-            this.actions.close.bind(this)();
+            this.close();
           } else {
-            this.actions.open.bind(this)();
+            this.open();
           }
         })
       );
-    }
-  },
-  didReceiveAttrs: function() {
-    this._super(...arguments);
-    if (this.loading === 'eager') {
+    } else {
       this._lazyListeners.remove();
+      this.open();
     }
-    if (this.loading === 'eager' || this.isIntersecting) {
-      this.actions.open.apply(this, []);
-    }
-  },
-  actions: {
-    // keep this argumentless
-    open: function() {
-      // get a new source and replace the old one, cleaning up as we go
-      const source = replace(
-        this,
-        'source',
-        this.data.open(this.src, this, this.open),
-        (prev, source) => {
-          // Makes sure any previous source (if different) is ALWAYS closed
-          this.data.close(prev, this);
+  }
+
+  @action
+  disconnect() {
+    this.close();
+    this._listeners.remove();
+    this._lazyListeners.remove();
+  }
+
+  @action
+  attributeChanged([name, value]) {
+    switch (name) {
+      case 'src':
+        if (this.loading === 'eager' || this.isIntersecting) {
+          this.open();
         }
-      );
-      const error = err => {
+        break;
+    }
+  }
+
+  // keep this argumentless
+  @action
+  open() {
+    const src = this.args.src;
+    // get a new source and replace the old one, cleaning up as we go
+    const source = replace(
+      this,
+      'source',
+      this.dataSource.open(src, this, this.open),
+      (prev, source) => {
+        // Makes sure any previous source (if different) is ALWAYS closed
+        this.dataSource.close(prev, this);
+      }
+    );
+    const error = err => {
+      try {
+        const error = get(err, 'error.errors.firstObject') || {};
+        if (get(error, 'status') !== '429') {
+          this.onerror(err);
+        }
+        this.logger.execute(err);
+      } catch (err) {
+        this.logger.execute(err);
+      }
+    };
+    // set up the listeners (which auto cleanup on component destruction)
+    const remove = this._listeners.add(this.source, {
+      message: e => {
         try {
-          const error = get(err, 'error.errors.firstObject');
-          if (get(error || {}, 'status') !== '429') {
-            this.onerror(err);
-          }
-          this.logger.execute(err);
+          this.onchange(e);
         } catch (err) {
-          this.logger.execute(err);
+          error(err);
         }
-      };
-      // set up the listeners (which auto cleanup on component destruction)
-      const remove = this._listeners.add(this.source, {
-        message: e => {
+      },
+      error: e => {
+        error(e);
+      },
+    });
+    replace(this, '_remove', remove);
+    // dispatch the current data of the source if we have any
+    if (typeof source.getCurrentEvent === 'function') {
+      const currentEvent = source.getCurrentEvent();
+      if (currentEvent) {
+        let method;
+        if (typeof currentEvent.error !== 'undefined') {
+          method = 'onerror';
+          this.error = currentEvent.error;
+        } else {
+          this.error = undefined;
+          this.data = currentEvent.data;
+          method = 'onchange';
+        }
+
+        // avoid the re-render error
+        schedule('afterRender', () => {
           try {
-            this.onchange(e);
+            this[method](currentEvent);
           } catch (err) {
             error(err);
           }
-        },
-        error: e => {
-          error(e);
-        },
-      });
-      replace(this, '_remove', remove);
-      // dispatch the current data of the source if we have any
-      if (typeof source.getCurrentEvent === 'function') {
-        const currentEvent = source.getCurrentEvent();
-        if (currentEvent) {
-          schedule('afterRender', () => {
-            try {
-              this.onchange(currentEvent);
-            } catch (err) {
-              error(err);
-            }
-          });
-        }
+        });
       }
-    },
-    // keep this argumentless
-    close: function() {
-      if (typeof this.source !== 'undefined') {
-        this.data.close(this.source, this);
-        replace(this, '_remove', undefined);
-        set(this, 'source', undefined);
-      }
-    },
-  },
-});
+    }
+  }
+
+  // keep this argumentless
+  @action
+  close() {
+    if (typeof this.source !== 'undefined') {
+      this.dataSource.close(this.source, this);
+      replace(this, '_remove', undefined);
+      this.source = undefined;
+    }
+  }
+}

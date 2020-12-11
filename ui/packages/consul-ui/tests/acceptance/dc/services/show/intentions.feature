@@ -37,11 +37,13 @@ Feature: dc / services / show / intentions: Intentions per service
     When I click intentions on the tabs
     And I see intentionsIsSelected on the tabs
   Scenario: I can see intentions
-    And I see 3 intention models
+    And I see 3 intention models on the intentionList component
+    And I click intention on the intentionList.intentions component
+    Then the url should be /dc1/services/service-0/intentions/default:name:default:destination
   Scenario: I can delete intentions
-    And I click actions on the intentions
-    And I click delete on the intentions
-    And I click confirmDelete on the intentions
+    And I click actions on the intentionList.intentions component
+    And I click delete on the intentionList.intentions component
+    And I click confirmDelete on the intentionList.intentions
     Then a DELETE request was made to "/v1/connect/intentions/exact?source=default%2Fname&destination=default%2Fdestination&dc=dc1"
     And "[data-notification]" has the "notification-delete" class
     And "[data-notification]" has the "success" class

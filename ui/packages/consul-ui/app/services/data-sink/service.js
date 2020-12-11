@@ -6,23 +6,28 @@ const parts = function(uri) {
   }
   return uri.split('://');
 };
-export default Service.extend({
-  consul: service('data-sink/protocols/http'),
-  settings: service('data-sink/protocols/local-storage'),
+export default class DataSinkService extends Service {
+  @service('data-sink/protocols/http')
+  consul;
 
-  prepare: function(uri, data, assign) {
+  @service('data-sink/protocols/local-storage')
+  settings;
+
+  prepare(uri, data, assign) {
     const [providerName, pathname] = parts(uri);
     const provider = this[providerName];
     return provider.prepare(pathname, data, assign);
-  },
-  persist: function(uri, data) {
+  }
+
+  persist(uri, data) {
     const [providerName, pathname] = parts(uri);
     const provider = this[providerName];
     return provider.persist(pathname, data);
-  },
-  remove: function(uri, data) {
+  }
+
+  remove(uri, data) {
     const [providerName, pathname] = parts(uri);
     const provider = this[providerName];
     return provider.remove(pathname, data);
-  },
-});
+  }
+}

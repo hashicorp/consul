@@ -1,14 +1,39 @@
-<form class="filter-bar">
-  <FreetextFilter
-    @onsearch={{action onsearch}}
-    @value={{search}}
-    @placeholder="Search"
-  />
+<form
+  class="consul-node-search-bar filter-bar"
+  ...attributes
+>
+  <div class="search">
+    <FreetextFilter
+      @onsearch={{action @onsearch}}
+      @value={{@search}}
+      @placeholder="Search"
+    >
+      <PopoverSelect
+        class="type-search-properties"
+        @position="right"
+        @onchange={{action @onfilter.searchproperty}}
+        @multiple={{true}}
+      as |components|>
+        <BlockSlot @name="selected">
+          <span>
+            Search across
+          </span>
+        </BlockSlot>
+        <BlockSlot @name="options">
+  {{#let components.Optgroup components.Option as |Optgroup Option|}}
+          <Option @value="Node" @selected={{contains 'Node' @filter.searchproperties}}>Node Name</Option>
+          <Option @value="Address" @selected={{contains 'Address' @filter.searchproperties}}>Address</Option>
+          <Option @value="Meta" @selected={{contains 'Meta' @filter.searchproperties}}>Node Meta</Option>
+  {{/let}}
+        </BlockSlot>
+      </PopoverSelect>
+    </FreetextFilter>
+  </div>
   <div class="filters">
     <PopoverSelect
       class="type-status"
       @position="left"
-      @onchange={{action onfilter.status}}
+      @onchange={{action @onfilter.status}}
       @multiple={{true}}
     as |components|>
       <BlockSlot @name="selected">
@@ -18,10 +43,10 @@
       </BlockSlot>
       <BlockSlot @name="options">
 {{#let components.Optgroup components.Option as |Optgroup Option|}}
-        <Option class="value-passing" @value="passing" @selected={{contains 'passing' filter.statuses}}>Passing</Option>
-        <Option class="value-warning" @value="warning" @selected={{contains 'warning' filter.statuses}}>Warning</Option>
-        <Option class="value-critical" @value="critical" @selected={{contains 'critical' filter.statuses}}>Failing</Option>
-        <Option class="value-empty" @value="empty" @selected={{contains 'empty' filter.statuses}}>No checks</Option>
+        <Option class="value-passing" @value="passing" @selected={{contains 'passing' @filter.statuses}}>Passing</Option>
+        <Option class="value-warning" @value="warning" @selected={{contains 'warning' @filter.statuses}}>Warning</Option>
+        <Option class="value-critical" @value="critical" @selected={{contains 'critical' @filter.statuses}}>Failing</Option>
+        <Option class="value-empty" @value="empty" @selected={{contains 'empty' @filter.statuses}}>No checks</Option>
 {{/let}}
       </BlockSlot>
     </PopoverSelect>
@@ -31,7 +56,7 @@
       class="type-sort"
       data-test-sort-control
       @position="right"
-      @onchange={{action onsort}}
+      @onchange={{action @onsort}}
       @multiple={{false}}
     as |components|>
       <BlockSlot @name="selected">
@@ -44,19 +69,19 @@
               ))
             as |selectable|
           }}
-            {{get selectable sort}}
+            {{get selectable @sort}}
           {{/let}}
         </span>
       </BlockSlot>
       <BlockSlot @name="options">
 {{#let components.Optgroup components.Option as |Optgroup Option|}}
         <Optgroup @label="Health Status">
-          <Option @value="Status:asc" @selected={{eq "Status:asc" sort}}>Unhealthy to Healthy</Option>
-          <Option @value="Status:desc" @selected={{eq "Status:desc" sort}}>Healthy to Unhealthy</Option>
+          <Option @value="Status:asc" @selected={{eq "Status:asc" @sort}}>Unhealthy to Healthy</Option>
+          <Option @value="Status:desc" @selected={{eq "Status:desc" @sort}}>Healthy to Unhealthy</Option>
         </Optgroup>
         <Optgroup @label="Service Name">
-          <Option @value="Node:asc" @selected={{eq "Node:asc" sort}}>A to Z</Option>
-          <Option @value="Node:desc" @selected={{eq "Node:desc" sort}}>Z to A</Option>
+          <Option @value="Node:asc" @selected={{eq "Node:asc" @sort}}>A to Z</Option>
+          <Option @value="Node:desc" @selected={{eq "Node:desc" @sort}}>Z to A</Option>
         </Optgroup>
 {{/let}}
       </BlockSlot>

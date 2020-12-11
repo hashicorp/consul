@@ -66,7 +66,10 @@ export default [
       },
       'intentions',
       'intentions-legacy',
-      'observability',
+      {
+        category: 'observability',
+        content: ['ui-visualization'],
+      },
       {
         category: 'l7-traffic',
         content: ['discovery-chain'],
@@ -114,7 +117,7 @@ export default [
               {
                 title: 'Kind',
                 href:
-                  'https://learn.hashicorp.com/tutorials/consul/kubernetes-kind?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=mk',
+                  'https://learn.hashicorp.com/tutorials/consul/kubernetes-kind?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=kind',
               },
               {
                 title: 'AKS (Azure)',
@@ -130,6 +133,11 @@ export default [
                 title: 'GKE (Google Cloud)',
                 href:
                   'https://learn.hashicorp.com/tutorials/consul/kubernetes-gke-google?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=gke',
+              },
+              {
+                title: 'Red Hat OpenShift',
+                href:
+                  'https://learn.hashicorp.com/tutorials/consul/kubernetes-openshift-red-hat?utm_source=consul.io&utm_medium=docs&utm_content=k8s&utm_term=openshift',
               },
               'self-hosted-kubernetes',
             ],
@@ -157,10 +165,14 @@ export default [
           'terminating-gateways',
           'connect-ca-provider',
           'ambassador',
+          'health',
         ],
       },
       'service-sync',
-      'crds',
+      {
+        category: 'crds',
+        content: ['upgrade-to-crds'],
+      },
       'dns',
       {
         category: 'upgrade',
@@ -225,6 +237,13 @@ export default [
         ],
       },
       'encryption',
+      {
+        category: 'security-models',
+        content: [
+          'core',
+          'nia',
+        ],
+      },
     ],
   },
   {

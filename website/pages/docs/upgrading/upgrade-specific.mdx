@@ -17,6 +17,15 @@ upgrade flow.
 
 ## Consul 1.9.0
 
+### Changes to Raft Protocol Support
+
+Consul 1.8 supported Raft protocols 2 and 3. Consul 1.9.0 now only supports
+Raft protocol 3 so before upgrading to Consul 1.9.0 users may have to first
+upgrade to a previous release supporting both protocol versions and upgrade
+the protocol in use to version 3.
+
+### Changes to Configuration Defaults
+
 The [`enable_central_service_config`](/docs/agent/options#enable_central_service_config)
 configuration now defaults to `true`.
 
@@ -128,8 +137,8 @@ Starting with Consul 1.7.1 this is the new default.
 ### Vault: default `http_max_conns_per_client` too low to run Vault properly
 
 Consul 1.6.3 introduced [limiting of connections per client](/docs/agent/options#http_max_conns_per_client). The default value
-was 100, but Vault could use up to 128, which caused problems. If you want to use Vault with Consul 1.6.3, you should change the value to 200.
-Starting with Consul 1.6.4 this is the new default.
+was 100, but Vault could use up to 128, which caused problems. If you want to use Vault with Consul 1.6.3 through 1.7.0, you should change the value to 200.
+Starting with Consul 1.7.1 this is the new default.
 
 ## Consul 1.6.0
 
@@ -583,6 +592,11 @@ as part of upgrading agents. If this is set to `true`, you should also enable
 [ACLs](https://learn.hashicorp.com/tutorials/consul/access-control-setup-production)
 to provide control over which users are allowed to register health checks that
 could potentially execute scripts on the agent machines.
+
+!> **Security Warning:** Using `enable_script_checks` without ACLs and without
+`allow_write_http_from` is _DANGEROUS_. Use the `enable_local_script_checks` setting
+introduced in v0.9.4 instead. See [this article](https://www.hashicorp.com/blog/protecting-consul-from-rce-risk-in-specific-configurations/)
+for more information.
 
 #### Web UI Is No Longer Released Separately
 

@@ -6,6 +6,10 @@ import (
 )
 
 func TestSessionTimers(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	m := NewSessionTimers()
 	ch := make(chan int)
 	newTm := func(d time.Duration) *time.Timer {

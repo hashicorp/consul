@@ -418,6 +418,17 @@ type ExposeConfig struct {
 	Paths []ExposePath `json:",omitempty"`
 }
 
+func (e ExposeConfig) Clone() ExposeConfig {
+	e2 := e
+	if len(e.Paths) > 0 {
+		e2.Paths = make([]ExposePath, 0, len(e.Paths))
+		for _, p := range e.Paths {
+			e2.Paths = append(e2.Paths, p)
+		}
+	}
+	return e2
+}
+
 type ExposePath struct {
 	// ListenerPort defines the port of the proxy's listener for exposed paths.
 	ListenerPort int `json:",omitempty" alias:"listener_port"`

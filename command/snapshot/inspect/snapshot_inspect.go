@@ -1,15 +1,12 @@
 package inspect
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
 	"io"
 	"os"
 	"sort"
-	"strconv"
 	"strings"
-	"text/tabwriter"
 
 	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/structs"
@@ -28,14 +25,62 @@ func New(ui cli.Ui) *cmd {
 }
 
 type cmd struct {
-	UI    cli.Ui
-	flags *flag.FlagSet
-	help  string
+	UI     cli.Ui
+	flags  *flag.FlagSet
+	help   string
+	format string
+
+	// flags
+	kvDetails bool
+	kvDepth   int
+	kvFilter  string
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
+	c.flags.BoolVar(&c.kvDetails, "kvdetails", false,
+		"Provides a detailed KV space usage breakdown for any KV data that's been stored.")
+	c.flags.IntVar(&c.kvDepth, "kvdepth", 2,
+		"Can only be used with -kvdetails. The key prefix depth used to breakdown KV store data. Defaults to 2.")
+	c.flags.StringVar(&c.kvFilter, "kvfilter", "",
+		"Can only be used with -kvdetails. Limits KV key breakdown using this prefix filter.")
+	c.flags.StringVar(
+		&c.format,
+		"format",
+		PrettyFormat,
+		fmt.Sprintf("Output format {%s}", strings.Join(GetSupportedFormats(), "|")))
+
 	c.help = flags.Usage(help, c.flags)
+}
+
+// MetadataInfo is used for passing information
+// through the formatter
+type MetadataInfo struct {
+	ID      string
+	Size    int64
+	Index   uint64
+	Term    uint64
+	Version raft.SnapshotVersion
+}
+
+// SnapshotInfo is used for passing snapshot stat
+// information between functions
+type SnapshotInfo struct {
+	Meta        MetadataInfo
+	Stats       map[structs.MessageType]typeStats
+	StatsKV     map[string]typeStats
+	TotalSize   int
+	TotalSizeKV int
+}
+
+// OutputFormat is used for passing information
+// through the formatter
+type OutputFormat struct {
+	Meta        *MetadataInfo
+	Stats       []typeStats
+	StatsKV     []typeStats
+	TotalSize   int
+	TotalSizeKV int
 }
 
 func (c *cmd) Run(args []string) int {
@@ -79,49 +124,101 @@ func (c *cmd) Run(args []string) int {
 		}
 	}()
 
-	stats, totalSize, err := enhance(readFile)
+	info, err := c.enhance(readFile)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error extracting snapshot data: %s", err))
 		return 1
 	}
-	// Outputs the original style of inspect information
-	legacy, err := c.legacyStats(meta)
-	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error outputting snapshot data: %s", err))
-	}
-	c.UI.Info(legacy.String())
 
-	// Outputs the more detailed snapshot information
-	enhanced, err := c.readStats(stats, totalSize)
+	formatter, err := NewFormatter(c.format)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error outputting enhanced snapshot data: %s", err))
 		return 1
 	}
-	c.UI.Info(enhanced.String())
-
-	return 0
-}
-
-// legacyStats outputs the expected stats from the original snapshot
-// inspect command
-func (c *cmd) legacyStats(meta *raft.SnapshotMeta) (bytes.Buffer, error) {
-	var b bytes.Buffer
-	tw := tabwriter.NewWriter(&b, 0, 2, 6, ' ', 0)
-	fmt.Fprintf(tw, "ID\t%s\n", meta.ID)
-	fmt.Fprintf(tw, "Size\t%d\n", meta.Size)
-	fmt.Fprintf(tw, "Index\t%d\n", meta.Index)
-	fmt.Fprintf(tw, "Term\t%d\n", meta.Term)
-	fmt.Fprintf(tw, "Version\t%d\n", meta.Version)
-	if err := tw.Flush(); err != nil {
-		return b, err
+	//Generate structs for the formatter with information we read in
+	metaformat := &MetadataInfo{
+		ID:      meta.ID,
+		Size:    meta.Size,
+		Index:   meta.Index,
+		Term:    meta.Term,
+		Version: meta.Version,
 	}
-	return b, nil
+
+	//Restructures stats given above to be human readable
+	formattedStats := generateStats(info)
+	formattedStatsKV := generateKVStats(info)
+
+	in := &OutputFormat{
+		Meta:        metaformat,
+		Stats:       formattedStats,
+		StatsKV:     formattedStatsKV,
+		TotalSize:   info.TotalSize,
+		TotalSizeKV: info.TotalSizeKV,
+	}
+
+	out, err := formatter.Format(in)
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+
+	c.UI.Output(out)
+	return 0
 }
 
 type typeStats struct {
 	Name  string
 	Sum   int
 	Count int
+}
+
+// generateStats formats the stats for the output struct
+// that's used to produce the printed output the user sees.
+func generateStats(info SnapshotInfo) []typeStats {
+	ss := make([]typeStats, 0, len(info.Stats))
+
+	for _, s := range info.Stats {
+		ss = append(ss, s)
+	}
+
+	ss = sortTypeStats(ss)
+
+	return ss
+}
+
+// generateKVStats reformats the KV stats to work with
+// the output struct that's used to produce the printed
+// output the user sees.
+func generateKVStats(info SnapshotInfo) []typeStats {
+	kvLen := len(info.StatsKV)
+	if kvLen > 0 {
+		ks := make([]typeStats, 0, kvLen)
+
+		for _, s := range info.StatsKV {
+			ks = append(ks, s)
+		}
+
+		ks = sortTypeStats(ks)
+
+		return ks
+	}
+
+	return nil
+}
+
+// sortTypeStats sorts the stat slice by size and then
+// alphabetically in the case the size is identical
+func sortTypeStats(stats []typeStats) []typeStats {
+	sort.Slice(stats, func(i, j int) bool {
+		// sort alphabetically if size is equal
+		if stats[i].Sum == stats[j].Sum {
+			return stats[i].Name < stats[j].Name
+		}
+
+		return stats[i].Sum > stats[j].Sum
+	})
+
+	return stats
 }
 
 // countingReader helps keep track of the bytes we have read
@@ -141,113 +238,87 @@ func (r *countingReader) Read(p []byte) (n int, err error) {
 
 // enhance utilizes ReadSnapshot to populate the struct with
 // all of the snapshot's itemized data
-func enhance(file io.Reader) (map[structs.MessageType]typeStats, int, error) {
-	stats := make(map[structs.MessageType]typeStats)
+func (c *cmd) enhance(file io.Reader) (SnapshotInfo, error) {
+	info := SnapshotInfo{
+		Stats:       make(map[structs.MessageType]typeStats),
+		StatsKV:     make(map[string]typeStats),
+		TotalSize:   0,
+		TotalSizeKV: 0,
+	}
 	cr := &countingReader{wrappedReader: file}
-	totalSize := 0
 	handler := func(header *fsm.SnapshotHeader, msg structs.MessageType, dec *codec.Decoder) error {
 		name := structs.MessageType.String(msg)
-		s := stats[msg]
+		s := info.Stats[msg]
 		if s.Name == "" {
 			s.Name = name
 		}
+
 		var val interface{}
 		err := dec.Decode(&val)
 		if err != nil {
 			return fmt.Errorf("failed to decode msg type %v, error %v", name, err)
 		}
 
-		size := cr.read - totalSize
+		size := cr.read - info.TotalSize
 		s.Sum += size
 		s.Count++
-		totalSize = cr.read
-		stats[msg] = s
+		info.TotalSize = cr.read
+		info.Stats[msg] = s
+
+		c.kvEnhance(s.Name, val, size, &info)
+
 		return nil
 	}
 	if err := fsm.ReadSnapshot(cr, handler); err != nil {
-		return nil, 0, err
+		return info, err
 	}
-	return stats, totalSize, nil
+	return info, nil
 
 }
 
-// readStats takes the information generated from enhance and creates human
-// readable output from it
-func (c *cmd) readStats(stats map[structs.MessageType]typeStats, totalSize int) (bytes.Buffer, error) {
-	// Output stats in size-order
-	ss := make([]typeStats, 0, len(stats))
+// kvEnhance populates the struct with all of the snapshot's
+// size information for KV data stored in it
+func (c *cmd) kvEnhance(keyType string, val interface{}, size int, info *SnapshotInfo) {
+	if c.kvDetails {
+		if keyType != "KVS" {
+			return
+		}
 
-	for _, s := range stats {
-		ss = append(ss, s)
+		// have to coerce this into a usable type here or this won't work
+		keyVal := val.(map[string]interface{})
+		for k, v := range keyVal {
+			// we only care about the entry on the key specifically
+			// related to the key name, so skip all others
+			if k != "Key" {
+				continue
+			}
+
+			// check for whether a filter is specified. if it is, skip
+			// any keys that don't match.
+			if len(c.kvFilter) > 0 && !strings.HasPrefix(v.(string), c.kvFilter) {
+				break
+			}
+
+			split := strings.Split(v.(string), "/")
+
+			// handle the situation where the key is shorter than
+			// the specified depth.
+			actualDepth := c.kvDepth
+			if c.kvDepth > len(split) {
+				actualDepth = len(split)
+			}
+			prefix := strings.Join(split[0:actualDepth], "/")
+			kvs := info.StatsKV[prefix]
+			if kvs.Name == "" {
+				kvs.Name = prefix
+			}
+
+			kvs.Sum += size
+			kvs.Count++
+			info.TotalSizeKV += size
+			info.StatsKV[prefix] = kvs
+		}
 	}
-
-	// Sort the stat slice
-	sort.Slice(ss, func(i, j int) bool { return ss[i].Sum > ss[j].Sum })
-
-	var b bytes.Buffer
-
-	tw := tabwriter.NewWriter(&b, 8, 8, 6, ' ', 0)
-	fmt.Fprintln(tw, "\n Type\tCount\tSize\t")
-	fmt.Fprintf(tw, " %s\t%s\t%s\t", "----", "----", "----")
-	// For each different type generate new output
-	for _, s := range ss {
-		fmt.Fprintf(tw, "\n %s\t%d\t%s\t", s.Name, s.Count, ByteSize(uint64(s.Sum)))
-	}
-	fmt.Fprintf(tw, "\n %s\t%s\t%s\t", "----", "----", "----")
-	fmt.Fprintf(tw, "\n Total\t\t%s\t", ByteSize(uint64(totalSize)))
-
-	if err := tw.Flush(); err != nil {
-		c.UI.Error(fmt.Sprintf("Error rendering snapshot info: %s", err))
-		return b, err
-	}
-
-	return b, nil
-
-}
-
-// ByteSize returns a human-readable byte string of the form 10MB, 12.5KB, and so forth.  The following units are available:
-//	TB: Terabyte
-//	GB: Gigabyte
-//	MB: Megabyte
-//	KB: Kilobyte
-//	B: Byte
-// The unit that results in the smallest number greater than or equal to 1 is always chosen.
-// From https://github.com/cloudfoundry/bytefmt/blob/master/bytes.go
-
-const (
-	BYTE = 1 << (10 * iota)
-	KILOBYTE
-	MEGABYTE
-	GIGABYTE
-	TERABYTE
-)
-
-func ByteSize(bytes uint64) string {
-	unit := ""
-	value := float64(bytes)
-
-	switch {
-	case bytes >= TERABYTE:
-		unit = "TB"
-		value = value / TERABYTE
-	case bytes >= GIGABYTE:
-		unit = "GB"
-		value = value / GIGABYTE
-	case bytes >= MEGABYTE:
-		unit = "MB"
-		value = value / MEGABYTE
-	case bytes >= KILOBYTE:
-		unit = "KB"
-		value = value / KILOBYTE
-	case bytes >= BYTE:
-		unit = "B"
-	case bytes == 0:
-		return "0"
-	}
-
-	result := strconv.FormatFloat(value, 'f', 1, 64)
-	result = strings.TrimSuffix(result, ".0")
-	return result + unit
 }
 
 func (c *cmd) Synopsis() string {

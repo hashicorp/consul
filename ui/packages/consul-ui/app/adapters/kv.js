@@ -1,16 +1,15 @@
 import Adapter from './application';
-
 import isFolder from 'consul-ui/utils/isFolder';
 import keyToArray from 'consul-ui/utils/keyToArray';
-
 import { SLUG_KEY } from 'consul-ui/models/kv';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 import { NSPACE_KEY } from 'consul-ui/models/nspace';
 
 // TODO: Update to use this.formatDatacenter()
 const API_KEYS_KEY = 'keys';
-export default Adapter.extend({
-  requestForQuery: function(request, { dc, ns, index, id, separator }) {
+
+export default class KvAdapter extends Adapter {
+  requestForQuery(request, { dc, ns, index, id, separator }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
@@ -22,8 +21,9 @@ export default Adapter.extend({
         index,
       }}
     `;
-  },
-  requestForQueryRecord: function(request, { dc, ns, index, id }) {
+  }
+
+  requestForQueryRecord(request, { dc, ns, index, id }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
@@ -35,10 +35,11 @@ export default Adapter.extend({
         index,
       }}
     `;
-  },
-  // TODO: Should we replace text/plain here with x-www-form-encoded?
-  // See https://github.com/hashicorp/consul/issues/3804
-  requestForCreateRecord: function(request, serialized, data) {
+  }
+
+  // TODO: Should we replace text/plain here with x-www-form-encoded? See
+  // https://github.com/hashicorp/consul/issues/3804
+  requestForCreateRecord(request, serialized, data) {
     const params = {
       ...this.formatDatacenter(data[DATACENTER_KEY]),
       ...this.formatNspace(data[NSPACE_KEY]),
@@ -49,8 +50,9 @@ export default Adapter.extend({
 
       ${serialized}
     `;
-  },
-  requestForUpdateRecord: function(request, serialized, data) {
+  }
+
+  requestForUpdateRecord(request, serialized, data) {
     const params = {
       ...this.formatDatacenter(data[DATACENTER_KEY]),
       flags: data.Flags,
@@ -62,8 +64,9 @@ export default Adapter.extend({
 
       ${serialized}
     `;
-  },
-  requestForDeleteRecord: function(request, serialized, data) {
+  }
+
+  requestForDeleteRecord(request, serialized, data) {
     let recurse;
     if (isFolder(data[SLUG_KEY])) {
       recurse = null;
@@ -76,5 +79,5 @@ export default Adapter.extend({
     return request`
       DELETE /v1/kv/${keyToArray(data[SLUG_KEY])}?${params}
     `;
-  },
-});
+  }
+}

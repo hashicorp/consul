@@ -5,7 +5,7 @@
 // (dynamic or wildcard) and encode or not depending on the type
 import { inject as service } from '@ember/service';
 import Helper from '@ember/component/helper';
-import { observer } from '@ember/object';
+import { observes } from '@ember-decorators/object';
 import { hrefTo as _hrefTo } from 'ember-href-to/helpers/href-to';
 
 import wildcard from 'consul-ui/utils/routing/wildcard';
@@ -30,19 +30,23 @@ export const hrefTo = function(owned, router, [targetRouteName, ...rest], namedA
 
     // this globally converts non-nspaced href-to's to nspace aware
     // href-to's only if you are within a namespace
-    if (router.currentRouteName.startsWith('nspace.') && targetRouteName.startsWith('dc.')) {
+    const currentRouteName = router.currentRouteName || '';
+    if (currentRouteName.startsWith('nspace.') && targetRouteName.startsWith('dc.')) {
       targetRouteName = `nspace.${targetRouteName}`;
     }
     return _hrefTo(owned, [targetRouteName, ...rest]);
   }
 };
 
-export default Helper.extend({
-  router: service('router'),
+export default class HrefToHelper extends Helper {
+  @service('router') router;
+
   compute(params, hash) {
     return hrefTo(this, this.router, params, hash);
-  },
-  onURLChange: observer('router.currentURL', function() {
+  }
+
+  @observes('router.currentURL')
+  onURLChange() {
     this.recompute();
-  }),
-});
+  }
+}

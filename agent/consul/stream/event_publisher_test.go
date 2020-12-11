@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/acl"
 )
 
 type intTopic int
@@ -30,6 +32,7 @@ func TestEventPublisher_SubscribeWithIndex0(t *testing.T) {
 
 	sub, err := publisher.Subscribe(req)
 	require.NoError(t, err)
+	defer sub.Unsubscribe()
 	eventCh := runSubscription(ctx, sub)
 
 	next := getNextEvent(t, eventCh)
@@ -42,22 +45,40 @@ func TestEventPublisher_SubscribeWithIndex0(t *testing.T) {
 
 	events := []Event{{
 		Topic:   testTopic,
-		Key:     "sub-key",
-		Payload: "the-published-event-payload",
+		Payload: simplePayload{key: "sub-key", value: "the-published-event-payload"},
 	}}
 	publisher.Publish(events)
 
 	// Subscriber should see the published event
 	next = getNextEvent(t, eventCh)
-	expected := Event{Payload: "the-published-event-payload", Key: "sub-key", Topic: testTopic}
+	expected := Event{
+		Topic:   testTopic,
+		Payload: simplePayload{key: "sub-key", value: "the-published-event-payload"},
+	}
 	require.Equal(t, expected, next)
 }
 
 var testSnapshotEvent = Event{
 	Topic:   testTopic,
-	Payload: "snapshot-event-payload",
-	Key:     "sub-key",
+	Payload: simplePayload{key: "sub-key", value: "snapshot-event-payload"},
 	Index:   1,
+}
+
+type simplePayload struct {
+	key        string
+	value      string
+	noReadPerm bool
+}
+
+func (p simplePayload) MatchesKey(key, _ string) bool {
+	if key == "" {
+		return true
+	}
+	return p.key == key
+}
+
+func (p simplePayload) HasReadPermission(acl.Authorizer) bool {
+	return !p.noReadPerm
 }
 
 func newTestSnapshotHandlers() SnapshotHandlers {
@@ -141,10 +162,10 @@ func TestEventPublisher_ShutdownClosesSubscriptions(t *testing.T) {
 	cancel() // Shutdown
 
 	err = consumeSub(context.Background(), sub1)
-	require.Equal(t, err, ErrSubscriptionClosed)
+	require.Equal(t, err, ErrSubForceClosed)
 
 	_, err = sub2.Next(context.Background())
-	require.Equal(t, err, ErrSubscriptionClosed)
+	require.Equal(t, err, ErrSubForceClosed)
 }
 
 func consumeSub(ctx context.Context, sub *Subscription) error {
@@ -169,14 +190,15 @@ func TestEventPublisher_SubscribeWithIndex0_FromCache(t *testing.T) {
 
 	publisher := NewEventPublisher(newTestSnapshotHandlers(), time.Second)
 	go publisher.Run(ctx)
-	_, err := publisher.Subscribe(req)
+	sub, err := publisher.Subscribe(req)
 	require.NoError(t, err)
+	sub.Unsubscribe()
 
 	publisher.snapshotHandlers[testTopic] = func(_ SubscribeRequest, _ SnapshotAppender) (uint64, error) {
 		return 0, fmt.Errorf("error should not be seen, cache should have been used")
 	}
 
-	sub, err := publisher.Subscribe(req)
+	sub, err = publisher.Subscribe(req)
 	require.NoError(t, err)
 
 	eventCh := runSubscription(ctx, sub)
@@ -191,8 +213,7 @@ func TestEventPublisher_SubscribeWithIndex0_FromCache(t *testing.T) {
 
 	expected := Event{
 		Topic:   testTopic,
-		Key:     "sub-key",
-		Payload: "the-published-event-payload",
+		Payload: simplePayload{key: "sub-key", value: "the-published-event-payload"},
 		Index:   3,
 	}
 	publisher.Publish([]Event{expected})
@@ -241,9 +262,8 @@ func TestEventPublisher_SubscribeWithIndexNotZero_CanResume(t *testing.T) {
 
 		expected := Event{
 			Topic:   testTopic,
-			Key:     "sub-key",
 			Index:   3,
-			Payload: "event-3",
+			Payload: simplePayload{key: "sub-key", value: "event-3"},
 		}
 		publisher.publishEvent([]Event{expected})
 
@@ -282,9 +302,8 @@ func TestEventPublisher_SubscribeWithIndexNotZero_NewSnapshot(t *testing.T) {
 
 	nextEvent := Event{
 		Topic:   testTopic,
-		Key:     "sub-key",
 		Index:   3,
-		Payload: "event-3",
+		Payload: simplePayload{key: "sub-key", value: "event-3"},
 	}
 
 	runStep(t, "publish an event while unsubed", func(t *testing.T) {
@@ -339,9 +358,8 @@ func TestEventPublisher_SubscribeWithIndexNotZero_NewSnapshotFromCache(t *testin
 
 	nextEvent := Event{
 		Topic:   testTopic,
-		Key:     "sub-key",
 		Index:   3,
-		Payload: "event-3",
+		Payload: simplePayload{key: "sub-key", value: "event-3"},
 	}
 
 	runStep(t, "publish an event while unsubed", func(t *testing.T) {
@@ -357,6 +375,7 @@ func TestEventPublisher_SubscribeWithIndexNotZero_NewSnapshotFromCache(t *testin
 		newReq.Index = 1
 		sub, err := publisher.Subscribe(&newReq)
 		require.NoError(t, err)
+		defer sub.Unsubscribe()
 
 		eventCh := runSubscription(ctx, sub)
 		next := getNextEvent(t, eventCh)
@@ -378,4 +397,26 @@ func runStep(t *testing.T, name string, fn func(t *testing.T)) {
 	if !t.Run(name, fn) {
 		t.FailNow()
 	}
+}
+
+func TestEventPublisher_Unsubscribe_ClosesSubscription(t *testing.T) {
+	req := &SubscribeRequest{
+		Topic: testTopic,
+		Key:   "sub-key",
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	publisher := NewEventPublisher(newTestSnapshotHandlers(), time.Second)
+
+	sub, err := publisher.Subscribe(req)
+	require.NoError(t, err)
+
+	_, err = sub.Next(ctx)
+	require.NoError(t, err)
+
+	sub.Unsubscribe()
+	_, err = sub.Next(ctx)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "subscription was closed by unsubscribe")
 }

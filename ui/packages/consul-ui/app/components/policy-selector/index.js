@@ -7,7 +7,7 @@ const ERROR_INVALID_POLICY = 'Invalid service policy';
 const ERROR_NAME_EXISTS = 'Invalid Policy: A Policy with Name';
 
 export default ChildSelectorComponent.extend({
-  repo: service('repository/policy/component'),
+  repo: service('repository/policy'),
   name: 'policy',
   type: 'policy',
   allowIdentity: true,
@@ -16,9 +16,10 @@ export default ChildSelectorComponent.extend({
     this._super(...arguments);
     const source = this.source;
     if (source) {
-      const event = 'save';
       this._listeners.add(source, {
-        save: e => this.actions[event].bind(this)(...e.data),
+        save: e => {
+          this.save.perform(...e.data);
+        },
       });
     }
   },

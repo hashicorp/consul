@@ -110,34 +110,15 @@ func (op *Operator) RaftRemovePeerByAddress(args *structs.RaftRemovePeerRequest,
 	}
 
 REMOVE:
-	// The Raft library itself will prevent various forms of foot-shooting,
-	// like making a configuration with no voters. Some consideration was
-	// given here to adding more checks, but it was decided to make this as
-	// low-level and direct as possible. We've got ACL coverage to lock this
-	// down, and if you are an operator, it's assumed you know what you are
-	// doing if you are calling this. If you remove a peer that's known to
-	// Serf, for example, it will come back when the leader does a reconcile
-	// pass.
-	minRaftProtocol, err := op.srv.autopilot.MinRaftProtocol()
-	if err != nil {
-		return err
-	}
-
-	var future raft.Future
-	if minRaftProtocol >= 2 {
-		future = op.srv.raft.RemoveServer(args.ID, 0, 0)
-	} else {
-		future = op.srv.raft.RemovePeer(args.Address)
-	}
-	if err := future.Error(); err != nil {
-		op.logger.Warn("Failed to remove Raft peer",
-			"peer", args.Address,
+	if err := op.srv.autopilot.RemoveServer(args.ID); err != nil {
+		op.logger.Warn("Failed to remove Raft server",
+			"address", args.Address,
 			"error", err,
 		)
 		return err
 	}
 
-	op.logger.Warn("Removed Raft peer", "peer", args.Address)
+	op.logger.Warn("Removed Raft server", "address", args.Address)
 	return nil
 }
 
@@ -190,18 +171,7 @@ REMOVE:
 	// doing if you are calling this. If you remove a peer that's known to
 	// Serf, for example, it will come back when the leader does a reconcile
 	// pass.
-	minRaftProtocol, err := op.srv.autopilot.MinRaftProtocol()
-	if err != nil {
-		return err
-	}
-
-	var future raft.Future
-	if minRaftProtocol >= 2 {
-		future = op.srv.raft.RemoveServer(args.ID, 0, 0)
-	} else {
-		future = op.srv.raft.RemovePeer(args.Address)
-	}
-	if err := future.Error(); err != nil {
+	if err := op.srv.autopilot.RemoveServer(args.ID); err != nil {
 		op.logger.Warn("Failed to remove Raft peer with id",
 			"peer_id", args.ID,
 			"error", err,

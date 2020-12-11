@@ -1,0 +1,24 @@
+%notice {
+  position: relative;
+  padding: 0.8rem;
+}
+%notice header {
+  margin-bottom: 0.1rem;
+}
+%notice header > * {
+  margin-bottom: 0;
+}
+%notice p {
+  margin-bottom: 0.3rem;
+  line-height: 1.4;
+}
+/* this is probably skin */
+%notice {
+  padding-left: calc(0.8rem + 1.4rem);
+}
+%notice::before {
+  position: absolute;
+  top: 0.8rem;
+  left: 0.6rem;
+  font-size: 1rem;
+}

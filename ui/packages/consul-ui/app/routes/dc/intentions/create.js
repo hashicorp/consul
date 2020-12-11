@@ -1,5 +1,5 @@
 import Route from './edit';
 
-export default Route.extend({
-  templateName: 'dc/intentions/edit',
-});
+export default class CreateRoute extends Route {
+  templateName = 'dc/intentions/edit';
+}

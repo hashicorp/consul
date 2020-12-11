@@ -18,6 +18,10 @@ func TestKeyringCommand_noTabs(t *testing.T) {
 }
 
 func TestKeyringCommand(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	key1 := "HS5lJ+XuTlYKWaeGYyG+/A=="
 	key2 := "kZyFABeAmc64UMTrm9XuKA=="

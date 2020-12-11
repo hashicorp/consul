@@ -26,6 +26,10 @@ func TestBindingRuleUpdateCommand_noTabs(t *testing.T) {
 }
 
 func TestBindingRuleUpdateCommand(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := agent.NewTestAgent(t, `
@@ -463,6 +467,10 @@ func TestBindingRuleUpdateCommand(t *testing.T) {
 }
 
 func TestBindingRuleUpdateCommand_noMerge(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := agent.NewTestAgent(t, `

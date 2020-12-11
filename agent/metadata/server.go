@@ -40,7 +40,7 @@ type Server struct {
 	RaftVersion  int
 	Addr         net.Addr
 	Status       serf.MemberStatus
-	NonVoter     bool
+	ReadReplica  bool
 	ACLs         structs.ACLMode
 	FeatureFlags map[string]int
 
@@ -160,7 +160,10 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 	}
 
 	// Check if the server is a non voter
+	// DEPRECATED - remove looking for the nonvoter tag eventually once we don't have to support
+	// read replicas running v1.8.x and below.
 	_, nonVoter := m.Tags["nonvoter"]
+	_, readReplica := m.Tags["read_replica"]
 
 	addr := &net.TCPAddr{IP: m.Addr, Port: port}
 
@@ -182,7 +185,8 @@ func IsConsulServer(m serf.Member) (bool, *Server) {
 		RaftVersion:  raftVsn,
 		Status:       m.Status,
 		UseTLS:       useTLS,
-		NonVoter:     nonVoter,
+		// DEPRECATED - remove nonVoter check once support for that tag is removed
+		ReadReplica:  nonVoter || readReplica,
 		ACLs:         acls,
 		FeatureFlags: featureFlags,
 	}

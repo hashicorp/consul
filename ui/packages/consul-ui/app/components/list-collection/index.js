@@ -2,17 +2,16 @@ import { inject as service } from '@ember/service';
 import { computed, get, set } from '@ember/object';
 import Component from 'ember-collection/components/ember-collection';
 import PercentageColumns from 'ember-collection/layouts/percentage-columns';
-import style from 'ember-computed-style';
 import Slotted from 'block-slots';
 
 const formatItemStyle = PercentageColumns.prototype.formatItemStyle;
 
 export default Component.extend(Slotted, {
+  tagName: '',
   dom: service('dom'),
   tagName: '',
   height: 500,
   cellHeight: 70,
-  style: style('getStyle'),
   checked: null,
   scroll: 'virtual',
   init: function() {
@@ -43,7 +42,7 @@ export default Component.extend(Slotted, {
       return style;
     };
   },
-  getStyle: computed('height', function() {
+  style: computed('height', function() {
     if (this.scroll !== 'virtual') {
       return {};
     }
@@ -71,7 +70,7 @@ export default Component.extend(Slotted, {
       return this.dom.clickFirstAnchor(e, '.list-collection > ul > li');
     },
     change: function(index, e = {}) {
-      if (e.target.checked && index != get(this, 'checked')) {
+      if (e.target.checked && index !== get(this, 'checked')) {
         set(this, 'checked', parseInt(index));
         this.$row = this.dom.closest('li', e.target);
         this.$row.style.zIndex = 1;

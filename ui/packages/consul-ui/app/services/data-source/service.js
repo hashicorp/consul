@@ -1,5 +1,6 @@
 import Service, { inject as service } from '@ember/service';
 import { proxy } from 'consul-ui/utils/dom/event-source';
+import { schedule } from '@ember/runloop';
 
 import MultiMap from 'mnemonist/multi-map';
 
@@ -11,33 +12,47 @@ let cache = null;
 let sources = null;
 // keeps a count of currently in use EventSources
 let usage = null;
-export default Service.extend({
-  dom: service('dom'),
-  encoder: service('encoder'),
-  consul: service('data-source/protocols/http'),
-  settings: service('data-source/protocols/local-storage'),
+export default class DataSourceService extends Service {
+  @service('dom')
+  dom;
 
-  init: function() {
-    this._super(...arguments);
+  @service('encoder')
+  encoder;
+
+  @service('data-source/protocols/http')
+  consul;
+
+  @service('data-source/protocols/local-storage')
+  settings;
+
+  init() {
+    super.init(...arguments);
     cache = new Map();
     sources = new Map();
     usage = new MultiMap(Set);
     this._listeners = this.dom.listeners();
-  },
-  resetCache: function() {
+  }
+
+  resetCache() {
     cache = new Map();
-  },
-  willDestroy: function() {
-    this._listeners.remove();
-    sources.forEach(function(item) {
-      item.close();
+  }
+
+  willDestroy() {
+    // the will-destroy helper will fire AFTER services have had willDestroy
+    // called on them, schedule any destroying to fire after the final render
+    schedule('afterRender', () => {
+      this._listeners.remove();
+      sources.forEach(function(item) {
+        item.close();
+      });
+      cache = null;
+      sources = null;
+      usage.clear();
+      usage = null;
     });
-    cache = null;
-    sources = null;
-    usage.clear();
-    usage = null;
-  },
-  source: function(cb, attrs) {
+  }
+
+  source(cb, attrs) {
     const src = cb(this.encoder.uriTag());
     return new Promise((resolve, reject) => {
       const ref = {};
@@ -61,15 +76,17 @@ export default Service.extend({
         source.dispatchEvent(source.getCurrentEvent());
       }
     });
-  },
-  unwrap: function(src, ref) {
+  }
+
+  unwrap(src, ref) {
     const source = src._source;
     usage.set(source, ref);
     usage.remove(source, source.configuration.ref);
     delete source.configuration.ref;
     return source;
-  },
-  open: function(uri, ref, open = false) {
+  }
+
+  open(uri, ref, open = false) {
     if (typeof uri !== 'string') {
       return this.unwrap(uri, ref);
     }
@@ -131,8 +148,9 @@ export default Service.extend({
     // set/increase the usage counter
     usage.set(source, ref);
     return source;
-  },
-  close: function(source, ref) {
+  }
+
+  close(source, ref) {
     // this close is called when the source has either left the page
     // or in the case of a proxied source, it errors
     if (source) {
@@ -151,13 +169,14 @@ export default Service.extend({
         }
       }
     }
-  },
-  closed: function() {
+  }
+
+  closed() {
     // anything that is closed or closing
     return [...sources.entries()]
       .filter(([key, item]) => {
         return item.readyState > 1;
       })
       .map(item => item[0]);
-  },
-});
+  }
+}

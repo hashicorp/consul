@@ -1,7 +1,6 @@
 import { inject as service } from '@ember/service';
-import Adapter from 'ember-data/adapter';
-import AdapterError from '@ember-data/adapter/error';
-import {
+import Adapter from '@ember-data/adapter';
+import AdapterError, {
   AbortError,
   TimeoutError,
   ServerError,
@@ -10,7 +9,7 @@ import {
   NotFoundError,
   ConflictError,
   InvalidError,
-} from 'ember-data/adapters/errors';
+} from '@ember-data/adapter/error';
 
 // TODO These are now exactly the same, apart from the fact that one uses
 // `serialized, unserialized` and the other just `query`
@@ -18,11 +17,11 @@ import {
 // the naming of things (serialized vs query etc)
 const read = function(adapter, modelName, type, query = {}) {
   return adapter.rpc(
-    function(adapter, request, query) {
-      return adapter[`requestFor${type}`](request, query);
+    function(adapter, ...rest) {
+      return adapter[`requestFor${type}`](...rest);
     },
-    function(serializer, respond, query) {
-      return serializer[`respondFor${type}`](respond, query);
+    function(serializer, ...rest) {
+      return serializer[`respondFor${type}`](...rest);
     },
     query,
     modelName
@@ -30,25 +29,27 @@ const read = function(adapter, modelName, type, query = {}) {
 };
 const write = function(adapter, modelName, type, snapshot) {
   return adapter.rpc(
-    function(adapter, request, serialized, unserialized) {
-      return adapter[`requestFor${type}`](request, serialized, unserialized);
+    function(adapter, ...rest) {
+      return adapter[`requestFor${type}`](...rest);
     },
-    function(serializer, respond, serialized, unserialized) {
-      return serializer[`respondFor${type}`](respond, serialized, unserialized);
+    function(serializer, ...rest) {
+      return serializer[`respondFor${type}`](...rest);
     },
     snapshot,
     modelName
   );
 };
-export default Adapter.extend({
-  client: service('client/http'),
-  rpc: function(req, resp, obj, modelName) {
+export default class HttpAdapter extends Adapter {
+  @service('client/http') client;
+
+  rpc(req, resp, obj, modelName) {
     const client = this.client;
     const store = this.store;
     const adapter = this;
 
     let unserialized, serialized;
     const serializer = store.serializerFor(modelName);
+    const modelClass = store.modelFor(modelName);
     // workable way to decide whether this is a snapshot
     // essentially 'is attributable'.
     // Snapshot is private so we can't do instanceof here
@@ -66,21 +67,22 @@ export default Adapter.extend({
 
     return client
       .request(function(request) {
-        return req(adapter, request, serialized, unserialized);
+        return req(adapter, request, serialized, unserialized, modelClass);
       })
       .catch(function(e) {
         return adapter.error(e);
       })
       .then(function(respond) {
         // TODO: When HTTPAdapter:responder changes, this will also need to change
-        return resp(serializer, respond, serialized, unserialized);
+        return resp(serializer, respond, serialized, unserialized, modelClass);
       });
     // TODO: Potentially add specific serializer errors here
     // .catch(function(e) {
     //   return Promise.reject(e);
     // });
-  },
-  error: function(err) {
+  }
+
+  error(err) {
     if (err instanceof TypeError) {
       throw err;
     }
@@ -132,23 +134,29 @@ export default Adapter.extend({
     // Consider changing this to return the error and then
     // throw from the call site instead
     throw error;
-  },
-  query: function(store, type, query) {
+  }
+
+  query(store, type, query) {
     return read(this, type.modelName, 'Query', query);
-  },
-  queryRecord: function(store, type, query) {
+  }
+
+  queryRecord(store, type, query) {
     return read(this, type.modelName, 'QueryRecord', query);
-  },
-  findAll: function(store, type) {
+  }
+
+  findAll(store, type) {
     return read(this, type.modelName, 'FindAll');
-  },
-  createRecord: function(store, type, snapshot) {
+  }
+
+  createRecord(store, type, snapshot) {
     return write(this, type.modelName, 'CreateRecord', snapshot);
-  },
-  updateRecord: function(store, type, snapshot) {
+  }
+
+  updateRecord(store, type, snapshot) {
     return write(this, type.modelName, 'UpdateRecord', snapshot);
-  },
-  deleteRecord: function(store, type, snapshot) {
+  }
+
+  deleteRecord(store, type, snapshot) {
     return write(this, type.modelName, 'DeleteRecord', snapshot);
-  },
-});
+  }
+}

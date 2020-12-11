@@ -1,0 +1,3 @@
+```release-note:bug
+connect: fixes a case when updating the CA config in a secondary datacenter to correctly trigger the creation of a new intermediate certificate
+```

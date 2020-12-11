@@ -1,3 +1,3 @@
 import Route from './create';
 
-export default Route.extend();
+export default class RootCreateRoute extends Route {}

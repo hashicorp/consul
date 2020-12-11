@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"time"
 
+	memdb "github.com/hashicorp/go-memdb"
+
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
-	memdb "github.com/hashicorp/go-memdb"
 )
 
 var (
@@ -122,7 +123,7 @@ type Store struct {
 // works by starting a read transaction against the whole state store.
 type Snapshot struct {
 	store     *Store
-	tx        *txn
+	tx        AbortTxn
 	lastIndex uint64
 }
 
@@ -152,36 +153,46 @@ type sessionCheck struct {
 }
 
 // NewStateStore creates a new in-memory state storage layer.
-func NewStateStore(gc *TombstoneGC) (*Store, error) {
+func NewStateStore(gc *TombstoneGC) *Store {
 	// Create the in-memory DB.
 	schema := stateStoreSchema()
 	db, err := memdb.NewMemDB(schema)
 	if err != nil {
-		return nil, fmt.Errorf("Failed setting up state store: %s", err)
+		// the only way for NewMemDB to error is if the schema is invalid. The
+		// scheme is static and tested to be correct, so any failure here would
+		// be a programming error, which should panic.
+		panic(fmt.Sprintf("failed to create state store: %v", err))
 	}
-
-	ctx, cancel := context.WithCancel(context.TODO())
 	s := &Store{
 		schema:             schema,
 		abandonCh:          make(chan struct{}),
 		kvsGraveyard:       NewGraveyard(gc),
 		lockDelay:          NewDelay(),
-		stopEventPublisher: cancel,
+		stopEventPublisher: func() {},
+		db: &changeTrackerDB{
+			db:             db,
+			publisher:      stream.NoOpEventPublisher{},
+			processChanges: processDBChanges,
+		},
 	}
-	pub := stream.NewEventPublisher(newSnapshotHandlers(s), 10*time.Second)
-	s.db = &changeTrackerDB{
-		db:             db,
-		publisher:      pub,
-		processChanges: processDBChanges,
-	}
+	return s
+}
+
+func NewStateStoreWithEventPublisher(gc *TombstoneGC) *Store {
+	store := NewStateStore(gc)
+	ctx, cancel := context.WithCancel(context.TODO())
+	store.stopEventPublisher = cancel
+
+	pub := stream.NewEventPublisher(newSnapshotHandlers((*readDB)(store.db.db)), 10*time.Second)
+	store.db.publisher = pub
 
 	go pub.Run(ctx)
-	return s, nil
+	return store
 }
 
 // EventPublisher returns the stream.EventPublisher used by the Store to
 // publish events.
-func (s *Store) EventPublisher() *stream.EventPublisher {
+func (s *Store) EventPublisher() EventPublisher {
 	return s.db.publisher
 }
 
@@ -288,7 +299,7 @@ func maxIndexWatchTxn(tx ReadTxn, ws memdb.WatchSet, tables ...string) uint64 {
 
 // indexUpdateMaxTxn is used when restoring entries and sets the table's index to
 // the given idx only if it's greater than the current index.
-func indexUpdateMaxTxn(tx *txn, idx uint64, table string) error {
+func indexUpdateMaxTxn(tx WriteTxn, idx uint64, table string) error {
 	ti, err := tx.First("index", "id", table)
 	if err != nil {
 		return fmt.Errorf("failed to retrieve existing index: %s", err)

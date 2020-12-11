@@ -1,14 +1,18 @@
-import Route from 'consul-ui/routing/route';
 import { inject as service } from '@ember/service';
+import Route from 'consul-ui/routing/route';
 import { hash } from 'rsvp';
 import { get } from '@ember/object';
 
 import ascend from 'consul-ui/utils/ascend';
 
-export default Route.extend({
-  repo: service('repository/kv'),
-  sessionRepo: service('repository/session'),
-  model: function(params) {
+export default class EditRoute extends Route {
+  @service('repository/kv')
+  repo;
+
+  @service('repository/session')
+  sessionRepo;
+
+  model(params) {
     const create =
       this.routeName
         .split('.')
@@ -46,9 +50,10 @@ export default Route.extend({
       }
       return model;
     });
-  },
-  setupController: function(controller, model) {
-    this._super(...arguments);
+  }
+
+  setupController(controller, model) {
+    super.setupController(...arguments);
     controller.setProperties(model);
-  },
-});
+  }
+}

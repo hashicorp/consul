@@ -7,9 +7,17 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/serf/serf"
 )
+
+var SegmentOSSSummaries = []prometheus.SummaryDefinition{
+	{
+		Name: []string{"leader", "reconcile"},
+		Help: "Measures the time spent updating the raft store from the serf member information.",
+	},
+}
 
 // LANMembersAllSegments returns members from all segments.
 func (s *Server) LANMembersAllSegments() ([]serf.Member, error) {

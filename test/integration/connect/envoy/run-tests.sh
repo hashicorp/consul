@@ -4,6 +4,8 @@ set -eEuo pipefail
 
 readonly self_name="$0"
 
+readonly HASHICORP_DOCKER_PROXY="docker.mirror.hashicorp.services"
+
 # DEBUG=1 enables set -x for this script so echos every command run
 DEBUG=${DEBUG:-}
 
@@ -49,10 +51,10 @@ function init_workdir {
   # don't wipe logs between runs as they are already split and we need them to
   # upload as artifacts later.
   rm -rf workdir/${DC}
-  mkdir -p workdir/${DC}/{consul,envoy,bats,statsd,data}
+  mkdir -p workdir/${DC}/{consul,register,envoy,bats,statsd,data}
 
   # Reload consul config from defaults
-  cp consul-base-cfg/* workdir/${DC}/consul/
+  cp consul-base-cfg/*.hcl workdir/${DC}/consul/
 
   # Add any overrides if there are any (no op if not)
   find ${CASE_DIR} -maxdepth 1 -name '*.hcl' -type f -exec cp -f {} workdir/${DC}/consul \;
@@ -68,12 +70,15 @@ function init_workdir {
     find ${CASE_DIR}/${DC} -type f -name '*.hcl' -exec cp -f {} workdir/${DC}/consul \;
     find ${CASE_DIR}/${DC} -type f -name '*.bats' -exec cp -f {} workdir/${DC}/bats \;
   fi
-  
+
+  # move all of the registration files OUT of the consul config dir now
+  find workdir/${DC}/consul -type f -name 'service_*.hcl' -exec mv -f {} workdir/${DC}/register \;
+
   if test -d "${CASE_DIR}/data"
   then
     cp -r ${CASE_DIR}/data/* workdir/${DC}/data
   fi
-  
+
   return 0
 }
 
@@ -223,9 +228,6 @@ function capture_logs {
 
 function stop_services {
   # Teardown
-  if [ -f "${CASE_DIR}/teardown.sh" ] ; then
-    source "${CASE_DIR}/teardown.sh"
-  fi
   docker_kill_rm $REQUIRED_SERVICES
 
   docker_kill_rm consul-primary consul-secondary
@@ -248,7 +250,7 @@ function wipe_volumes {
   docker run --rm -i \
     $WORKDIR_SNIPPET \
     --net=none \
-    alpine \
+    "${HASHICORP_DOCKER_PROXY}/alpine" \
     sh -c 'rm -rf /workdir/*'
 }
 
@@ -327,7 +329,8 @@ function suite_setup {
     docker run -d --name envoy_workdir_1 \
         $WORKDIR_SNIPPET \
         --net=none \
-        google/pause &>/dev/null
+        k8s.gcr.io/pause &>/dev/null
+    # TODO(rb): switch back to "${HASHICORP_DOCKER_PROXY}/google/pause" once that is cached
 
     # pre-build the verify container
     echo "Rebuilding 'bats-verify' image..."
@@ -378,7 +381,7 @@ function common_run_container_service {
   docker run -d --name $(container_name_prev) \
     -e "FORTIO_NAME=${service}" \
     $(network_snippet $DC) \
-    fortio/fortio \
+    "${HASHICORP_DOCKER_PROXY}/fortio/fortio" \
     server \
     -http-port ":$httpPort" \
     -grpc-port ":$grpcPort" \
@@ -435,7 +438,7 @@ function common_run_container_sidecar_proxy {
   docker run -d --name $(container_name_prev) \
     $WORKDIR_SNIPPET \
     $(network_snippet $DC) \
-    "envoyproxy/envoy:v${ENVOY_VERSION}" \
+    "${HASHICORP_DOCKER_PROXY}/envoyproxy/envoy:v${ENVOY_VERSION}" \
     envoy \
     -c /workdir/${DC}/envoy/${service}-bootstrap.json \
     -l debug \
@@ -498,7 +501,7 @@ function common_run_container_gateway {
   docker run -d --name $(container_name_prev) \
     $WORKDIR_SNIPPET \
     $(network_snippet $DC) \
-    "envoyproxy/envoy:v${ENVOY_VERSION}" \
+    "${HASHICORP_DOCKER_PROXY}/envoyproxy/envoy:v${ENVOY_VERSION}" \
     envoy \
     -c /workdir/${DC}/envoy/${name}-bootstrap.json \
     -l debug \
@@ -528,7 +531,7 @@ function run_container_fake-statsd {
   docker run -d --name $(container_name) \
     $WORKDIR_SNIPPET \
     $(network_snippet primary) \
-    alpine/socat \
+    "${HASHICORP_DOCKER_PROXY}/alpine/socat" \
     -u UDP-RECVFROM:8125,fork,reuseaddr \
     SYSTEM:'xargs -0 echo >> /workdir/primary/statsd/statsd.log'
 }
@@ -537,14 +540,14 @@ function run_container_zipkin {
   docker run -d --name $(container_name) \
     $WORKDIR_SNIPPET \
     $(network_snippet primary) \
-    openzipkin/zipkin
+    "${HASHICORP_DOCKER_PROXY}/openzipkin/zipkin"
 }
 
 function run_container_jaeger {
   docker run -d --name $(container_name) \
     $WORKDIR_SNIPPET \
     $(network_snippet primary) \
-    jaegertracing/all-in-one:1.11 \
+    "${HASHICORP_DOCKER_PROXY}/jaegertracing/all-in-one:1.11" \
     --collector.zipkin.http-port=9411
 }
 
@@ -561,7 +564,7 @@ function debug_dump_volumes {
     $WORKDIR_SNIPPET \
     -v ./:/cwd \
     --net=none \
-    alpine \
+    "${HASHICORP_DOCKER_PROXY}/alpine" \
     cp -r /workdir/. /cwd/workdir/
 }
 

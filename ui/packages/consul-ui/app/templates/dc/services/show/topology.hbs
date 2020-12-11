@@ -1,16 +1,21 @@
-<div id="tags" class="tab-section">
+<div id="topology" class="tab-section">
   <div role="tabpanel">
+  {{#if topology.FilteredByACLs}}
+    <TopologyMetrics::Notice::LimitedAccess />
+  {{/if}}
   {{#if topology}}
     <TopologyMetrics
+      @nspace={{nspace}}
+      @dc={{dc}}
       @service={{items.firstObject}}
-      @protocol={{topology.Protocol}}
-      @upstreams={{topology.Upstreams}}
-      @downstreams={{filter-by 'Datacenter' topology.Datacenter topology.Downstreams}}
-      @dc={{topology.Datacenter}}
+      @topology={{topology}}
       @metricsHref={{render-template urls.service (hash
         Datacenter=dc
-        Service=(hash Name=item.Service.Service)
+        Service=items.firstObject
       )}}
+      @isRemoteDC={{isRemoteDC}}
+      @hasMetricsProvider={{hasMetricsProvider}}
+      @oncreate={{route-action 'createIntention'}}
     />
   {{else}}
     <EmptyState>

@@ -6,6 +6,10 @@ import (
 )
 
 func TestDelay(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	d := NewDelay()
 
 	// An unknown key should have a time in the past.

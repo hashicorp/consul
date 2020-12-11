@@ -4,7 +4,9 @@ import Yadda from 'yadda';
 
 import { env } from '../../env';
 import api from './api';
-import getDictionary from '../dictionary';
+import utils from './page';
+import dictionary from '../dictionary';
+const getDictionary = dictionary(utils);
 
 const staticClassList = [...document.documentElement.classList];
 const reset = function() {
@@ -46,21 +48,22 @@ const checkAnnotations = function(annotations, isScenario) {
     if (env('CONSUL_NSPACES_ENABLED')) {
       if (!annotations.notnamespaceable) {
         return function(scenario, feature, yadda, yaddaAnnotations, library) {
+          const stepDefinitions = library.default;
           ['', 'default', 'team-1', undefined].forEach(function(item) {
             test(`Scenario: ${
               scenario.title
             } with the ${item === '' ? 'empty' : typeof item === 'undefined' ? 'undefined' : item} namespace set`, function(assert) {
-              const libraries = library.default({
-                assert: assert,
-                library: Yadda.localisation.English.library(getDictionary(annotations, item)),
-              });
               const scenarioContext = {
                 ctx: {
                   nspace: item,
                 },
               };
-              const result = runTest(this, libraries, scenario.steps, scenarioContext);
-              return result;
+              const libraries = stepDefinitions({
+                assert: assert,
+                utils: utils,
+                library: Yadda.localisation.English.library(getDictionary(annotations, item)),
+              });
+              return runTest(this, libraries, scenario.steps, scenarioContext);
             });
           });
         };
@@ -70,14 +73,16 @@ const checkAnnotations = function(annotations, isScenario) {
     } else {
       if (!annotations.onlynamespaceable) {
         return function(scenario, feature, yadda, yaddaAnnotations, library) {
+          const stepDefinitions = library.default;
           test(`Scenario: ${scenario.title}`, function(assert) {
-            const libraries = library.default({
-              assert: assert,
-              library: Yadda.localisation.English.library(getDictionary(annotations)),
-            });
             const scenarioContext = {
               ctx: {},
             };
+            const libraries = stepDefinitions({
+              assert: assert,
+              utils: utils,
+              library: Yadda.localisation.English.library(getDictionary(annotations)),
+            });
             return runTest(this, libraries, scenario.steps, scenarioContext);
           });
         };

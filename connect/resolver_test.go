@@ -41,6 +41,10 @@ func TestStaticResolver_Resolve(t *testing.T) {
 }
 
 func TestConsulResolver_Resolve(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	// Setup a local test agent to query
 	agent := agent.StartTestAgent(t, agent.TestAgent{Name: "test-consul"})
 	defer agent.Shutdown()

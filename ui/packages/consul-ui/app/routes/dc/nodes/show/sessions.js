@@ -1,13 +1,20 @@
-import Route from 'consul-ui/routing/route';
+import { action } from '@ember/object';
 import { inject as service } from '@ember/service';
+import Route from 'consul-ui/routing/route';
 import { hash } from 'rsvp';
 import WithBlockingActions from 'consul-ui/mixins/with-blocking-actions';
 
-export default Route.extend(WithBlockingActions, {
-  data: service('data-source/service'),
-  sessionRepo: service('repository/session'),
-  feedback: service('feedback'),
-  model: function() {
+export default class SessionsRoute extends Route.extend(WithBlockingActions) {
+  @service('data-source/service')
+  data;
+
+  @service('repository/session')
+  sessionRepo;
+
+  @service('feedback')
+  feedback;
+
+  model() {
     const parent = this.routeName
       .split('.')
       .slice(0, -1)
@@ -21,19 +28,20 @@ export default Route.extend(WithBlockingActions, {
       node: node,
       sessions: this.data.source(uri => uri`/${nspace}/${dc}/sessions/for-node/${node}`),
     });
-  },
-  setupController: function(controller, model) {
-    this._super(...arguments);
+  }
+
+  setupController(controller, model) {
+    super.setupController(...arguments);
     controller.setProperties(model);
-  },
-  actions: {
-    invalidateSession: function(item) {
-      const route = this;
-      return this.feedback.execute(() => {
-        return this.sessionRepo.remove(item).then(() => {
-          route.refresh();
-        });
-      }, 'delete');
-    },
-  },
-});
+  }
+
+  @action
+  invalidateSession(item) {
+    const route = this;
+    return this.feedback.execute(() => {
+      return this.sessionRepo.remove(item).then(() => {
+        route.refresh();
+      });
+    }, 'delete');
+  }
+}

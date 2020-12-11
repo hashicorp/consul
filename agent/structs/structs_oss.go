@@ -74,6 +74,11 @@ func (_ *EnterpriseMeta) FillAuthzContext(_ *acl.AuthorizerContext) {}
 
 func (_ *EnterpriseMeta) Normalize() {}
 
+// GetNamespace always returns the empty string.
+func (_ *EnterpriseMeta) GetNamespace() string {
+	return ""
+}
+
 // FillAuthzContext stub
 func (_ *DirEntry) FillAuthzContext(_ *acl.AuthorizerContext) {}
 

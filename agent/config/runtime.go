@@ -77,8 +77,8 @@ type RuntimeConfig struct {
 
 	// ACLDefaultPolicy is used to control the ACL interaction when
 	// there is no defined policy. This can be "allow" which means
-	// ACLs are used to black-list, or "deny" which means ACLs are
-	// white-lists.
+	// ACLs are used to deny-list, or "deny" which means ACLs are
+	// allow-lists.
 	//
 	// hcl: acl.default_policy = ("allow"|"deny")
 	ACLDefaultPolicy string
@@ -845,12 +845,12 @@ type RuntimeConfig struct {
 	// flag: -node-meta "key:value" -node-meta "key:value" ...
 	NodeMeta map[string]string
 
-	// NonVotingServer is whether this server will act as a non-voting member
+	// ReadReplica is whether this server will act as a non-voting member
 	// of the cluster to help provide read scalability. (Enterprise-only)
 	//
 	// hcl: non_voting_server = (true|false)
 	// flag: -non-voting-server
-	NonVotingServer bool
+	ReadReplica bool
 
 	// PidFile is the file to store our PID in.
 	//
@@ -937,7 +937,9 @@ type RuntimeConfig struct {
 
 	RPCConfig consul.RPCConfig
 
-	CacheUseStreamingBackend bool
+	// UseStreamingBackend enables streaming as a replacement for agent/cache
+	// in the client agent for endpoints which support streaming.
+	UseStreamingBackend bool
 
 	// RaftProtocol sets the Raft protocol version to use on this server.
 	// Defaults to 3.
@@ -1224,7 +1226,7 @@ type RuntimeConfig struct {
 	// the cluster more quickly at the expense of increased bandwidth. This
 	// configuration only applies to WAN gossip communications
 	//
-	// The default is: 200ms
+	// The default is: 500ms
 	//
 	// hcl: gossip_wan { gossip_interval = duration}
 	GossipWANGossipInterval time.Duration
@@ -1234,7 +1236,7 @@ type RuntimeConfig struct {
 	// propagate across the cluster more quickly at the expense of increased
 	// bandwidth. This configuration only applies to WAN gossip communications
 	//
-	// The default is: 3
+	// The default is: 4
 	//
 	// hcl: gossip_wan { gossip_nodes = int }
 	GossipWANGossipNodes int
@@ -1244,7 +1246,7 @@ type RuntimeConfig struct {
 	// failed nodes more quickly at the expense of increased bandwidth usage.
 	// This configuration only applies to WAN gossip communications
 	//
-	// The default is: 1s
+	// The default is: 5s
 	//
 	// hcl: gossip_wan { probe_interval = duration }
 	GossipWANProbeInterval time.Duration
@@ -1254,7 +1256,7 @@ type RuntimeConfig struct {
 	// of RTT (round-trip time) on your network. This configuration
 	// only applies to the WAN gossip communications
 	//
-	// The default is: 500ms
+	// The default is: 3s
 	//
 	// hcl: gossip_wan { probe_timeout = duration }
 	GossipWANProbeTimeout time.Duration
@@ -1273,7 +1275,7 @@ type RuntimeConfig struct {
 	// it dead, giving that suspect node more time to refute if it is indeed
 	// still alive.
 	//
-	// The default is: 4
+	// The default is: 6
 	//
 	// hcl: gossip_wan { suspicion_mult = int }
 	GossipWANSuspicionMult int
@@ -1538,8 +1540,9 @@ type UIConfig struct {
 }
 
 type UIMetricsProxy struct {
-	BaseURL    string
-	AddHeaders []UIMetricsProxyAddHeader
+	BaseURL       string
+	AddHeaders    []UIMetricsProxyAddHeader
+	PathAllowlist []string
 }
 
 type UIMetricsProxyAddHeader struct {
@@ -1840,6 +1843,21 @@ func sanitize(name string, v reflect.Value) reflect.Value {
 
 	case isArray(typ) || isSlice(typ):
 		ma := make([]interface{}, 0, v.Len())
+
+		if name == "AddHeaders" {
+			// must be UIConfig.MetricsProxy.AddHeaders
+			for i := 0; i < v.Len(); i++ {
+				addr := v.Index(i).Addr()
+				hdr := addr.Interface().(*UIMetricsProxyAddHeader)
+				hm := map[string]interface{}{
+					"Name":  hdr.Name,
+					"Value": "hidden",
+				}
+				ma = append(ma, hm)
+			}
+			return reflect.ValueOf(ma)
+		}
+
 		if strings.HasPrefix(name, "SerfAllowedCIDRs") {
 			for i := 0; i < v.Len(); i++ {
 				addr := v.Index(i).Addr()

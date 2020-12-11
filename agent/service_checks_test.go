@@ -16,6 +16,10 @@ import (
 // Integration test for ServiceHTTPBasedChecks cache-type
 // Placed in agent pkg rather than cache-types to avoid circular dependency when importing agent.TestAgent
 func TestAgent_ServiceHTTPChecksNotification(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, "")

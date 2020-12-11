@@ -6,6 +6,8 @@ import (
 
 type testAuthorizer EnforcementDecision
 
+var _ Authorizer = testAuthorizer(Allow)
+
 func (authz testAuthorizer) ACLRead(*AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
@@ -54,6 +56,9 @@ func (authz testAuthorizer) KeyringWrite(*AuthorizerContext) EnforcementDecision
 func (authz testAuthorizer) NodeRead(string, *AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
+func (authz testAuthorizer) NodeReadAll(*AuthorizerContext) EnforcementDecision {
+	return EnforcementDecision(authz)
+}
 func (authz testAuthorizer) NodeWrite(string, *AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
@@ -72,6 +77,9 @@ func (authz testAuthorizer) PreparedQueryWrite(string, *AuthorizerContext) Enfor
 func (authz testAuthorizer) ServiceRead(string, *AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
+func (authz testAuthorizer) ServiceReadAll(*AuthorizerContext) EnforcementDecision {
+	return EnforcementDecision(authz)
+}
 func (authz testAuthorizer) ServiceWrite(string, *AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
@@ -86,11 +94,7 @@ func (authz testAuthorizer) Snapshot(*AuthorizerContext) EnforcementDecision {
 }
 
 func TestChainedAuthorizer(t *testing.T) {
-	t.Parallel()
-
 	t.Run("No Authorizers", func(t *testing.T) {
-		t.Parallel()
-
 		authz := NewChainedAuthorizer([]Authorizer{})
 		checkDenyACLRead(t, authz, "foo", nil)
 		checkDenyACLWrite(t, authz, "foo", nil)
@@ -121,8 +125,6 @@ func TestChainedAuthorizer(t *testing.T) {
 	})
 
 	t.Run("Authorizer Defaults", func(t *testing.T) {
-		t.Parallel()
-
 		authz := NewChainedAuthorizer([]Authorizer{testAuthorizer(Default)})
 		checkDenyACLRead(t, authz, "foo", nil)
 		checkDenyACLWrite(t, authz, "foo", nil)
@@ -153,8 +155,6 @@ func TestChainedAuthorizer(t *testing.T) {
 	})
 
 	t.Run("Authorizer No Defaults", func(t *testing.T) {
-		t.Parallel()
-
 		authz := NewChainedAuthorizer([]Authorizer{testAuthorizer(Allow)})
 		checkAllowACLRead(t, authz, "foo", nil)
 		checkAllowACLWrite(t, authz, "foo", nil)
@@ -185,8 +185,6 @@ func TestChainedAuthorizer(t *testing.T) {
 	})
 
 	t.Run("First Found", func(t *testing.T) {
-		t.Parallel()
-
 		authz := NewChainedAuthorizer([]Authorizer{testAuthorizer(Deny), testAuthorizer(Allow)})
 		checkDenyACLRead(t, authz, "foo", nil)
 		checkDenyACLWrite(t, authz, "foo", nil)

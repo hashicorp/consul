@@ -1,10 +1,12 @@
 package consul
 
 import (
+	"context"
 	"os"
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/raft"
@@ -13,33 +15,33 @@ import (
 )
 
 func TestAutopilot_IdempotentShutdown(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	dir1, s1 := testServerWithConfig(t, nil)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	retry.Run(t, func(r *retry.R) { r.Check(waitForLeader(s1)) })
 
-	s1.autopilot.Start()
-	s1.autopilot.Start()
-	s1.autopilot.Start()
-	s1.autopilot.Stop()
-	s1.autopilot.Stop()
-	s1.autopilot.Stop()
+	s1.autopilot.Start(context.Background())
+	s1.autopilot.Start(context.Background())
+	s1.autopilot.Start(context.Background())
+	<-s1.autopilot.Stop()
+	<-s1.autopilot.Stop()
+	<-s1.autopilot.Stop()
 }
 
 func TestAutopilot_CleanupDeadServer(t *testing.T) {
-	t.Parallel()
-	for i := 1; i <= 3; i++ {
-		testCleanupDeadServer(t, i)
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
 	}
-}
 
-func testCleanupDeadServer(t *testing.T, raftVersion int) {
 	dc := "dc1"
 	conf := func(c *Config) {
 		c.Datacenter = dc
 		c.Bootstrap = false
 		c.BootstrapExpect = 5
-		c.RaftConfig.ProtocolVersion = raft.ProtocolVersion(raftVersion)
 	}
 	dir1, s1 := testServerWithConfig(t, conf)
 	defer os.RemoveAll(dir1)
@@ -119,9 +121,22 @@ func testCleanupDeadServer(t *testing.T, raftVersion int) {
 }
 
 func TestAutopilot_CleanupDeadNonvoter(t *testing.T) {
-	dir1, s1 := testServer(t)
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.AutopilotConfig = &structs.AutopilotConfig{
+			CleanupDeadServers:      true,
+			ServerStabilizationTime: 100 * time.Millisecond,
+		}
+	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
+
+	// we have to wait for autopilot to be running long enough for the server stabilization time
+	// to kick in for this test to work.
+	time.Sleep(100 * time.Millisecond)
 
 	dir2, s2 := testServerDCBootstrap(t, "dc1", false)
 	defer os.RemoveAll(dir2)
@@ -143,6 +158,10 @@ func TestAutopilot_CleanupDeadNonvoter(t *testing.T) {
 }
 
 func TestAutopilot_CleanupDeadServerPeriodic(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
@@ -200,6 +219,10 @@ func TestAutopilot_CleanupDeadServerPeriodic(t *testing.T) {
 }
 
 func TestAutopilot_RollingUpdate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
@@ -279,6 +302,10 @@ func TestAutopilot_RollingUpdate(t *testing.T) {
 }
 
 func TestAutopilot_CleanupStaleRaftServer(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerDCBootstrap(t, "dc1", true)
 	defer os.RemoveAll(dir1)
@@ -316,7 +343,7 @@ func TestAutopilot_CleanupStaleRaftServer(t *testing.T) {
 	}
 
 	// Verify we have 4 peers
-	peers, err := s1.numPeers()
+	peers, err := s1.autopilot.NumVoters()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -331,11 +358,14 @@ func TestAutopilot_CleanupStaleRaftServer(t *testing.T) {
 }
 
 func TestAutopilot_PromoteNonVoter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
 		c.Bootstrap = true
-		c.RaftConfig.ProtocolVersion = 3
 		c.AutopilotConfig.ServerStabilizationTime = 200 * time.Millisecond
 		c.ServerHealthInterval = 100 * time.Millisecond
 		c.AutopilotInterval = 100 * time.Millisecond
@@ -345,6 +375,10 @@ func TestAutopilot_PromoteNonVoter(t *testing.T) {
 	codec := rpcClient(t, s1)
 	defer codec.Close()
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// this may seem arbitrary but we need to get past the server stabilization time
+	// so that we start factoring in that time for newly connected nodes.
+	time.Sleep(100 * time.Millisecond)
 
 	dir2, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
@@ -370,7 +404,7 @@ func TestAutopilot_PromoteNonVoter(t *testing.T) {
 		if servers[1].Suffrage != raft.Nonvoter {
 			r.Fatalf("bad: %v", servers)
 		}
-		health := s1.autopilot.GetServerHealth(string(servers[1].ID))
+		health := s1.autopilot.GetServerHealth(servers[1].ID)
 		if health == nil {
 			r.Fatal("nil health")
 		}
@@ -400,13 +434,16 @@ func TestAutopilot_PromoteNonVoter(t *testing.T) {
 }
 
 func TestAutopilot_MinQuorum(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	dc := "dc1"
 	conf := func(c *Config) {
 		c.Datacenter = dc
 		c.Bootstrap = false
 		c.BootstrapExpect = 4
 		c.AutopilotConfig.MinQuorum = 3
-		c.RaftConfig.ProtocolVersion = raft.ProtocolVersion(2)
 		c.AutopilotInterval = 100 * time.Millisecond
 	}
 	dir1, s1 := testServerWithConfig(t, conf)

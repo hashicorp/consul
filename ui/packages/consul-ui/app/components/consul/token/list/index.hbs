@@ -1,7 +1,9 @@
-{{#if (gt items.length 0)}}
-<ListCollection @items={{items}} class="consul-token-list" as |item|>
+<ListCollection
+  class="consul-token-list"
+  @items={{@items}}
+as |item|>
     <BlockSlot @name="header">
-{{#if (eq item.AccessorID token.AccessorID)}}
+{{#if (eq item.AccessorID @token.AccessorID)}}
         <dl rel="me">
           <dd>
             <Tooltip @position="top-start">
@@ -35,14 +37,14 @@
           </BlockSlot>
         </Action>
   {{#if (not (token/is-legacy item))}}
-        <Action data-test-clone-action @onclick={{action onclone item}}>
+        <Action data-test-clone-action @onclick={{action @onclone item}}>
           <BlockSlot @name="label">
             Duplicate
           </BlockSlot>
         </Action>
   {{/if}}
   {{#if (eq item.AccessorID token.AccessorID)}}
-        <Action data-test-logout-action class="dangerous" @onclick={{action onclone item}}>
+        <Action data-test-logout-action class="dangerous" @onclick={{action @onlogout item}}>
           <BlockSlot @name="label">
             Logout
           </BlockSlot>
@@ -63,7 +65,7 @@
           </BlockSlot>
         </Action>
   {{else}}
-        <Action data-test-use-action @onclick={{action onuse item}}>
+        <Action data-test-use-action @onclick={{action @onuse item}}>
           <BlockSlot @name="label">
             Use
           </BlockSlot>
@@ -84,8 +86,8 @@
           </BlockSlot>
         </Action>
   {{/if}}
-  {{#if (not (or (token/is-anonymous item) (eq item.AccessorID token.AccessorID)))}}
-        <Action data-test-delete-action @onclick={{action ondelete item}} class="dangerous">
+  {{#if (not (or (token/is-anonymous item) (eq item.AccessorID @token.AccessorID)))}}
+        <Action data-test-delete-action @onclick={{action @ondelete item}} class="dangerous">
           <BlockSlot @name="label">
             Delete
           </BlockSlot>
@@ -109,4 +111,3 @@
       </Actions>
     </BlockSlot>
 </ListCollection>
-{{/if}}

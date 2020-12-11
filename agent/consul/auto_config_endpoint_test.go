@@ -92,6 +92,10 @@ func signJWTWithStandardClaims(t *testing.T, privKey string, claims interface{})
 //  * Each of the individual config generation functions. These can be unit tested separately and should NOT
 //    require running test servers
 func TestAutoConfigInitialConfiguration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	gossipKey := make([]byte, 32)
 	// this is not cryptographic randomness and is not secure but for the sake of this test its all we need.
 	n, err := rand.Read(gossipKey)
@@ -280,7 +284,7 @@ func TestAutoConfigInitialConfiguration(t *testing.T) {
 					},
 				},
 			},
-			patchResponse: func(t *testing.T, srv *Server, resp *pbautoconf.AutoConfigResponse) {
+			patchResponse: func(t *testing.T, _ *Server, resp *pbautoconf.AutoConfigResponse) {
 				// we are expecting an ACL token but cannot check anything for equality
 				// so here we check that it was set and overwrite it
 				require.NotNil(t, resp.Config)

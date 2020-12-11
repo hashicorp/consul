@@ -7,7 +7,11 @@ export default function(visitable, attribute, collection, text, intentions, filt
     dashboardAnchor: {
       href: attribute('href', '[data-test-dashboard-anchor]'),
     },
+    metricsAnchor: {
+      href: attribute('href', '[data-test-metrics-anchor]'),
+    },
     tabs: tabs('tab', [
+      'topology',
       'instances',
       'linked-services',
       'upstreams',
@@ -20,7 +24,7 @@ export default function(visitable, attribute, collection, text, intentions, filt
     instances: collection('.consul-service-instance-list > ul > li:not(:first-child)', {
       address: text('[data-test-address]'),
     }),
-    intentions: intentions(),
+    intentionList: intentions(),
   };
   page.tabs.upstreamsTab = {
     services: collection('.consul-upstream-list > ul > li:not(:first-child)', {

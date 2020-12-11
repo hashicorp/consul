@@ -66,7 +66,7 @@ Feature: dc / services / show: Show Service
     And 1 service model from yaml
     ---
     - Checks:
-        - Status: passing
+        - Status: critical
       Service:
         Kind: ~
         ID: passing-service-8080
@@ -74,14 +74,18 @@ Feature: dc / services / show: Show Service
         Address: 1.1.1.1
       Node:
         Address: 1.2.2.2
-    - Service:
+    - Checks:
+        - Status: warning
+      Service:
         Kind: ~
         ID: service-8000
         Port: 8000
         Address: 2.2.2.2
       Node:
         Address: 2.3.3.3
-    - Service:
+    - Checks:
+        - Status: passing
+      Service:
         Kind: ~
         ID: service-8888
         Port: 8888
@@ -103,14 +107,10 @@ Feature: dc / services / show: Show Service
     ---
   Scenario: Given a dashboard template has been set
     Given 1 datacenter model with the value "dc1"
-    And settings from yaml
-    ---
-    consul:urls:
-      service: https://consul.io?service-name={{Service.Name}}&dc={{Datacenter}}
-    ---
     When I visit the service page for yaml
     ---
       dc: dc1
       service: service-0
     ---
-    And I see href on the dashboardAnchor like "https://consul.io?service-name=service-0&dc=dc1"
+    # The Metrics dashboard should use the Service.Name not the ID
+    And I see href on the metricsAnchor like "https://example.com?service-0&dc1"

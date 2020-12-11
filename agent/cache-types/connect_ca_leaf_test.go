@@ -147,6 +147,10 @@ func TestCalculateSoftExpire(t *testing.T) {
 // Test that after an initial signing, new CA roots (new ID) will
 // trigger a blocking query to execute.
 func TestConnectCALeaf_changingRoots(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	if testingRace {
 		t.Skip("fails with -race because caRoot.Active is modified concurrently")
 	}
@@ -515,6 +519,10 @@ func TestConnectCALeaf_changingRootsBetweenBlockingCalls(t *testing.T) {
 }
 
 func TestConnectCALeaf_CSRRateLimiting(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -696,6 +704,10 @@ func TestConnectCALeaf_CSRRateLimiting(t *testing.T) {
 // This test runs multiple concurrent callers watching different leaf certs and
 // tries to ensure that the background root watch activity behaves correctly.
 func TestConnectCALeaf_watchRootsDedupingMultipleCallers(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	if testingRace {
 		t.Skip("fails with -race because caRoot.Active is modified concurrently")
 	}
@@ -891,6 +903,10 @@ func mustFetchResult(t *testing.T, result interface{}) cache.FetchResult {
 // Test that after an initial signing, an expiringLeaf will trigger a
 // blocking query to resign.
 func TestConnectCALeaf_expiringLeaf(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)

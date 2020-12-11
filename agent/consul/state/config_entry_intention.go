@@ -1,12 +1,12 @@
 package state
 
 import (
-	"encoding/json"
 	"fmt"
 	"sort"
 
-	"github.com/hashicorp/consul/agent/structs"
 	memdb "github.com/hashicorp/go-memdb"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 type ServiceIntentionLegacyIDIndex struct {
@@ -123,7 +123,7 @@ func (s *ServiceIntentionSourceIndex) FromArgs(args ...interface{}) ([]byte, err
 	return []byte(arg.String() + "\x00"), nil
 }
 
-func (s *Store) configIntentionsListTxn(tx *txn, ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.Intentions, bool, error) {
+func (s *Store) configIntentionsListTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.Intentions, bool, error) {
 	// unrolled part of configEntriesByKindTxn
 
 	idx := maxIndexTxn(tx, configTableName)
@@ -144,7 +144,7 @@ func (s *Store) configIntentionsListTxn(tx *txn, ws memdb.WatchSet, entMeta *str
 	return idx, results, true, nil
 }
 
-func (s *Store) configIntentionGetTxn(tx *txn, ws memdb.WatchSet, id string) (uint64, *structs.ServiceIntentionsConfigEntry, *structs.Intention, error) {
+func (s *Store) configIntentionGetTxn(tx ReadTxn, ws memdb.WatchSet, id string) (uint64, *structs.ServiceIntentionsConfigEntry, *structs.Intention, error) {
 	idx := maxIndexTxn(tx, configTableName)
 	if idx < 1 {
 		idx = 1
@@ -173,7 +173,7 @@ func (s *Store) configIntentionGetTxn(tx *txn, ws memdb.WatchSet, id string) (ui
 	return idx, nil, nil, nil // Shouldn't happen.
 }
 
-func (s *Store) configIntentionGetExactTxn(tx *txn, ws memdb.WatchSet, args *structs.IntentionQueryExact) (uint64, *structs.ServiceIntentionsConfigEntry, *structs.Intention, error) {
+func (s *Store) configIntentionGetExactTxn(tx ReadTxn, ws memdb.WatchSet, args *structs.IntentionQueryExact) (uint64, *structs.ServiceIntentionsConfigEntry, *structs.Intention, error) {
 	if err := args.Validate(); err != nil {
 		return 0, nil, nil, err
 	}
@@ -196,7 +196,7 @@ func (s *Store) configIntentionGetExactTxn(tx *txn, ws memdb.WatchSet, args *str
 	return idx, nil, nil, nil
 }
 
-func (s *Store) configIntentionMatchTxn(tx *txn, ws memdb.WatchSet, args *structs.IntentionQueryMatch) (uint64, []structs.Intentions, error) {
+func (s *Store) configIntentionMatchTxn(tx ReadTxn, ws memdb.WatchSet, args *structs.IntentionQueryMatch) (uint64, []structs.Intentions, error) {
 	maxIndex := uint64(1)
 
 	// Make all the calls and accumulate the results
@@ -207,7 +207,7 @@ func (s *Store) configIntentionMatchTxn(tx *txn, ws memdb.WatchSet, args *struct
 		// improving that in the future, the test cases shouldn't have to
 		// change for that.
 
-		index, ixns, err := s.configIntentionMatchOneTxn(tx, ws, entry, args.Type)
+		index, ixns, err := configIntentionMatchOneTxn(tx, ws, entry, args.Type)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -222,23 +222,23 @@ func (s *Store) configIntentionMatchTxn(tx *txn, ws memdb.WatchSet, args *struct
 	return maxIndex, results, nil
 }
 
-func (s *Store) configIntentionMatchOneTxn(
-	tx *txn,
+func configIntentionMatchOneTxn(
+	tx ReadTxn,
 	ws memdb.WatchSet,
 	matchEntry structs.IntentionMatchEntry,
 	matchType structs.IntentionMatchType,
 ) (uint64, structs.Intentions, error) {
 	switch matchType {
 	case structs.IntentionMatchSource:
-		return s.readSourceIntentionsFromConfigEntriesTxn(tx, ws, matchEntry.Name, matchEntry.GetEnterpriseMeta())
+		return readSourceIntentionsFromConfigEntriesTxn(tx, ws, matchEntry.Name, matchEntry.GetEnterpriseMeta())
 	case structs.IntentionMatchDestination:
-		return s.readDestinationIntentionsFromConfigEntriesTxn(tx, ws, matchEntry.Name, matchEntry.GetEnterpriseMeta())
+		return readDestinationIntentionsFromConfigEntriesTxn(tx, ws, matchEntry.Name, matchEntry.GetEnterpriseMeta())
 	default:
 		return 0, nil, fmt.Errorf("invalid intention match type: %s", matchType)
 	}
 }
 
-func (s *Store) readSourceIntentionsFromConfigEntriesTxn(tx *txn, ws memdb.WatchSet, serviceName string, entMeta *structs.EnterpriseMeta) (uint64, structs.Intentions, error) {
+func readSourceIntentionsFromConfigEntriesTxn(tx ReadTxn, ws memdb.WatchSet, serviceName string, entMeta *structs.EnterpriseMeta) (uint64, structs.Intentions, error) {
 	idx := maxIndexTxn(tx, configTableName)
 
 	var (
@@ -248,7 +248,7 @@ func (s *Store) readSourceIntentionsFromConfigEntriesTxn(tx *txn, ws memdb.Watch
 
 	names := getIntentionPrecedenceMatchServiceNames(serviceName, entMeta)
 	for _, sn := range names {
-		results, err = s.readSourceIntentionsFromConfigEntriesForServiceTxn(
+		results, err = readSourceIntentionsFromConfigEntriesForServiceTxn(
 			tx, ws, sn.Name, &sn.EnterpriseMeta, results,
 		)
 		if err != nil {
@@ -262,7 +262,7 @@ func (s *Store) readSourceIntentionsFromConfigEntriesTxn(tx *txn, ws memdb.Watch
 	return idx, results, nil
 }
 
-func (s *Store) readSourceIntentionsFromConfigEntriesForServiceTxn(tx *txn, ws memdb.WatchSet, serviceName string, entMeta *structs.EnterpriseMeta, results structs.Intentions) (structs.Intentions, error) {
+func readSourceIntentionsFromConfigEntriesForServiceTxn(tx ReadTxn, ws memdb.WatchSet, serviceName string, entMeta *structs.EnterpriseMeta, results structs.Intentions) (structs.Intentions, error) {
 	sn := structs.NewServiceName(serviceName, entMeta)
 
 	iter, err := tx.Get(configTableName, "intention-source", sn)
@@ -283,12 +283,7 @@ func (s *Store) readSourceIntentionsFromConfigEntriesForServiceTxn(tx *txn, ws m
 	return results, nil
 }
 
-func jd(v interface{}) string {
-	d, _ := json.MarshalIndent(v, "", "  ")
-	return string(d)
-}
-
-func (s *Store) readDestinationIntentionsFromConfigEntriesTxn(tx *txn, ws memdb.WatchSet, serviceName string, entMeta *structs.EnterpriseMeta) (uint64, structs.Intentions, error) {
+func readDestinationIntentionsFromConfigEntriesTxn(tx ReadTxn, ws memdb.WatchSet, serviceName string, entMeta *structs.EnterpriseMeta) (uint64, structs.Intentions, error) {
 	idx := maxIndexTxn(tx, configTableName)
 
 	var results structs.Intentions

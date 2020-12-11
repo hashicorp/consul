@@ -1,0 +1,64 @@
+{
+  "ID": "${location.pathname.get(3)}",
+  "Name": "${fake.hacker.noun() + '-role'}",
+  "Namespace": "${
+    typeof location.search.ns !== 'undefined' ? location.search.ns :
+      typeof http.body.Namespace !== 'undefined' ? http.body.Namespace : 'default'
+  }",
+  "Description": "${fake.lorem.sentence()}",
+  "Policies": [
+    ${
+      range(env('CONSUL_POLICY_COUNT', 3)).map(
+        function(item, i) {
+          return `
+            {
+              "ID": "${fake.random.uuid()}-${i}",
+              "Name": "${fake.hacker.noun()}"
+            }
+          `;
+        }
+      )
+    }
+  ],
+  "ServiceIdentities": [
+    ${
+      range(env('CONSUL_SERVICE_IDENTITY_COUNT', env('CONSUL_IDENTITY_COUNT', 1))).map(
+        function(item, i) {
+          return `
+            {
+              "ServiceName": "${fake.hacker.noun()}"${ fake.random.boolean() ? `,
+              "Datacenters": [
+                ${
+                  range(env('CONSUL_DATACENTER_COUNT', fake.random.number({min: 1, max: 10}))).map(
+                      function(item, i) {
+                          return `"${fake.address.countryCode().toLowerCase()} ${ i % 2 ? "west" : "east"}-${i}"`;
+                      }
+                  )
+                }
+              ]
+              ` : ``}
+            }
+          `;
+        }
+      )
+    }
+  ],
+  "NodeIdentities": [
+    ${
+      range(env('CONSUL_NODE_IDENTITY_COUNT', 1)).map(
+        function(item, i) {
+          return `
+            {
+              "NodeName": "${fake.hacker.noun()}",
+              "Datacenter":"${fake.address.countryCode().toLowerCase()} ${ i % 2 ? "west" : "east"}-${i}" 
+            }
+          `;
+        }
+      )
+    }
+  ],
+  "Hash": "${fake.internet.password(64)}=",
+  "CreateIndex": 57,
+  "ModifyIndex": 57
+}
+

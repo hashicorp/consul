@@ -20,7 +20,7 @@
               "name": "envoy.tcp_proxy",
               "config": {
                   "cluster": "",
-                  "stat_prefix": "mesh_gateway_local_default_tcp"
+                  "stat_prefix": "mesh_gateway_local.default"
                 }
             }
           ]

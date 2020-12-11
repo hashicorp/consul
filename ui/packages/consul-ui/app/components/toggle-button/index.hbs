@@ -1,12 +1,15 @@
 <input
   ...attributes
-  {{ref this "input"}}
+  {{did-insert (set this 'input')}}
   type="checkbox"
   checked={{if checked 'checked' undefined}}
   id={{concat 'toggle-button-' guid}}
   onchange={{action 'change'}}
 />
-<label {{ref this "label"}} for={{concat 'toggle-button-' guid}}>
+<label
+  {{did-insert (set this 'label')}}
+  for={{concat 'toggle-button-' guid}}
+>
   {{yield (hash
     click=(action 'click')
   )}}

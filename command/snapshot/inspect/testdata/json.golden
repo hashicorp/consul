@@ -1,0 +1,25 @@
+{
+   "Meta": {
+      "ID": "one",
+      "Size": 2,
+      "Index": 3,
+      "Term": 4,
+      "Version": 1
+   },
+   "Stats": [
+      {
+         "Name": "msg",
+         "Sum": 1,
+         "Count": 2
+      }
+   ],
+   "StatsKV": [
+      {
+         "Name": "msgKV",
+         "Sum": 1,
+         "Count": 2
+      }
+   ],
+   "TotalSize": 1,
+   "TotalSizeKV": 1
+}

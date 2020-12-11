@@ -14,15 +14,16 @@ import (
 // The register function will be called with the grpc.Server to register
 // gRPC services with the server.
 func NewHandler(addr net.Addr, register func(server *grpc.Server)) *Handler {
+	metrics := defaultMetrics()
 	// We don't need to pass tls.Config to the server since it's multiplexed
 	// behind the RPC listener, which already has TLS configured.
 	srv := grpc.NewServer(
-		grpc.StatsHandler(newStatsHandler()),
-		grpc.StreamInterceptor((&activeStreamCounter{}).Intercept),
+		grpc.StatsHandler(newStatsHandler(metrics)),
+		grpc.StreamInterceptor((&activeStreamCounter{metrics: metrics}).Intercept),
 	)
 	register(srv)
 
-	lis := &chanListener{addr: addr, conns: make(chan net.Conn)}
+	lis := &chanListener{addr: addr, conns: make(chan net.Conn), done: make(chan struct{})}
 	return &Handler{srv: srv, listener: lis}
 }
 
@@ -51,22 +52,22 @@ func (h *Handler) Shutdown() error {
 type chanListener struct {
 	conns chan net.Conn
 	addr  net.Addr
+	done  chan struct{}
 }
 
 // Accept blocks until a connection is received from Handle, and then returns the
 // connection. Accept implements part of the net.Listener interface for grpc.Server.
 func (l *chanListener) Accept() (net.Conn, error) {
 	select {
-	case c, ok := <-l.conns:
-		if !ok {
-			return nil, &net.OpError{
-				Op:   "accept",
-				Net:  l.addr.Network(),
-				Addr: l.addr,
-				Err:  fmt.Errorf("listener closed"),
-			}
-		}
+	case c := <-l.conns:
 		return c, nil
+	case <-l.done:
+		return nil, &net.OpError{
+			Op:   "accept",
+			Net:  l.addr.Network(),
+			Addr: l.addr,
+			Err:  fmt.Errorf("listener closed"),
+		}
 	}
 }
 
@@ -75,7 +76,7 @@ func (l *chanListener) Addr() net.Addr {
 }
 
 func (l *chanListener) Close() error {
-	close(l.conns)
+	close(l.done)
 	return nil
 }
 

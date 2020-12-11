@@ -25,6 +25,10 @@ func generateUUID() (ret string) {
 }
 
 func TestRexecWriter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	// t.Parallel() // timing test. no parallel
 	writer := &rexecWriter{
 		BufCh:    make(chan []byte, 16),
@@ -97,11 +101,19 @@ func TestRexecWriter(t *testing.T) {
 }
 
 func TestRemoteExecGetSpec(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	testRemoteExecGetSpec(t, "", "", true, "")
 }
 
 func TestRemoteExecGetSpec_ACLToken(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dc := "dc1"
 	testRemoteExecGetSpec(t, `
@@ -113,6 +125,10 @@ func TestRemoteExecGetSpec_ACLToken(t *testing.T) {
 }
 
 func TestRemoteExecGetSpec_ACLAgentToken(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dc := "dc1"
 	testRemoteExecGetSpec(t, `
@@ -124,6 +140,10 @@ func TestRemoteExecGetSpec_ACLAgentToken(t *testing.T) {
 }
 
 func TestRemoteExecGetSpec_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dc := "dc1"
 	testRemoteExecGetSpec(t, `
@@ -171,11 +191,19 @@ func testRemoteExecGetSpec(t *testing.T, hcl string, token string, shouldSucceed
 }
 
 func TestRemoteExecWrites(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	testRemoteExecWrites(t, "", "", true, "")
 }
 
 func TestRemoteExecWrites_ACLToken(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dc := "dc1"
 	testRemoteExecWrites(t, `
@@ -187,6 +215,10 @@ func TestRemoteExecWrites_ACLToken(t *testing.T) {
 }
 
 func TestRemoteExecWrites_ACLAgentToken(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dc := "dc1"
 	testRemoteExecWrites(t, `
@@ -198,6 +230,10 @@ func TestRemoteExecWrites_ACLAgentToken(t *testing.T) {
 }
 
 func TestRemoteExecWrites_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dc := "dc1"
 	testRemoteExecWrites(t, `
@@ -330,11 +366,19 @@ func testHandleRemoteExec(t *testing.T, command string, expectedSubstring string
 }
 
 func TestHandleRemoteExec(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	testHandleRemoteExec(t, "uptime", "load", "0")
 }
 
 func TestHandleRemoteExecFailed(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	testHandleRemoteExec(t, "echo failing;exit 2", "failing", "2")
 }

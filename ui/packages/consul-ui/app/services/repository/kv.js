@@ -4,15 +4,17 @@ import { get } from '@ember/object';
 import { PRIMARY_KEY } from 'consul-ui/models/kv';
 
 const modelName = 'kv';
-export default RepositoryService.extend({
-  getModelName: function() {
+export default class KvService extends RepositoryService {
+  getModelName() {
     return modelName;
-  },
-  getPrimaryKey: function() {
+  }
+
+  getPrimaryKey() {
     return PRIMARY_KEY;
-  },
+  }
+
   // this one gives you the full object so key,values and meta
-  findBySlug: function(key, dc, nspace, configuration = {}) {
+  findBySlug(key, dc, nspace, configuration = {}) {
     if (isFolder(key)) {
       // TODO: This very much shouldn't be here,
       // needs to eventually use ember-datas generateId thing
@@ -37,10 +39,11 @@ export default RepositoryService.extend({
       query.index = configuration.cursor;
     }
     return this.store.queryRecord(this.getModelName(), query);
-  },
+  }
+
   // this one only gives you keys
   // https://www.consul.io/api/kv.html
-  findAllBySlug: function(key, dc, nspace, configuration = {}) {
+  findAllBySlug(key, dc, nspace, configuration = {}) {
     if (key === '/') {
       key = '';
     }
@@ -76,5 +79,5 @@ export default RepositoryService.extend({
         }
         throw e;
       });
-  },
-});
+  }
+}

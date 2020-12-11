@@ -1,7 +1,8 @@
 import Adapter from './application';
+
 // TODO: Update to use this.formatDatacenter()
-export default Adapter.extend({
-  requestForQuery: function(request, { dc, ns, index, id, uri }) {
+export default class ServiceInstanceAdapter extends Adapter {
+  requestForQuery(request, { dc, ns, index, id, uri }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
@@ -15,10 +16,11 @@ export default Adapter.extend({
         index,
       }}
     `;
-  },
-  requestForQueryRecord: function(request, { dc, ns, index, id, uri }) {
+  }
+
+  requestForQueryRecord(request, { dc, ns, index, id, uri }) {
     // query and queryRecord both use the same endpoint
     // they are just serialized differently
     return this.requestForQuery(...arguments);
-  },
-});
+  }
+}

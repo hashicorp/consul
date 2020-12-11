@@ -17,6 +17,10 @@ import (
 )
 
 func TestOperator_RaftGetConfiguration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -59,6 +63,10 @@ func TestOperator_RaftGetConfiguration(t *testing.T) {
 }
 
 func TestOperator_RaftGetConfiguration_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -136,6 +144,10 @@ func TestOperator_RaftGetConfiguration_ACLDeny(t *testing.T) {
 }
 
 func TestOperator_RaftRemovePeerByAddress(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -199,6 +211,10 @@ func TestOperator_RaftRemovePeerByAddress(t *testing.T) {
 }
 
 func TestOperator_RaftRemovePeerByAddress_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -256,6 +272,10 @@ func TestOperator_RaftRemovePeerByAddress_ACLDeny(t *testing.T) {
 }
 
 func TestOperator_RaftRemovePeerByID(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.RaftConfig.ProtocolVersion = 3
@@ -320,6 +340,10 @@ func TestOperator_RaftRemovePeerByID(t *testing.T) {
 }
 
 func TestOperator_RaftRemovePeerByID_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"

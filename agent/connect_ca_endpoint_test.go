@@ -18,6 +18,10 @@ import (
 )
 
 func TestConnectCARoots_empty(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -33,6 +37,10 @@ func TestConnectCARoots_empty(t *testing.T) {
 }
 
 func TestConnectCARoots_list(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	assert := assert.New(t)
@@ -62,6 +70,10 @@ func TestConnectCARoots_list(t *testing.T) {
 }
 
 func TestConnectCAConfig(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	tests := []struct {
@@ -262,6 +274,10 @@ func TestConnectCAConfig(t *testing.T) {
 }
 
 func TestConnectCARoots_PEMEncoding(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	primary := NewTestAgent(t, "")
 	defer primary.Shutdown()
 	testrpc.WaitForActiveCARoot(t, primary.RPC, "dc1", nil)

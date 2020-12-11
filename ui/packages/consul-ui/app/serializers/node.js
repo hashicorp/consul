@@ -1,8 +1,10 @@
 import Serializer from './application';
+import { EmbeddedRecordsMixin } from '@ember-data/serializer/rest';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/node';
+import { classify } from '@ember/string';
 
-// TODO: Looks like ID just isn't used at all
-// consider just using .Node for the SLUG_KEY
+// TODO: Looks like ID just isn't used at all consider just using .Node for
+// the SLUG_KEY
 const fillSlug = function(item) {
   if (item[SLUG_KEY] === '') {
     item[SLUG_KEY] = item['Node'];
@@ -10,22 +12,73 @@ const fillSlug = function(item) {
   return item;
 };
 
-export default Serializer.extend({
-  primaryKey: PRIMARY_KEY,
-  slugKey: SLUG_KEY,
-  respondForQuery: function(respond, query) {
-    return this._super(cb => respond((headers, body) => cb(headers, body.map(fillSlug))), query);
-  },
-  respondForQueryRecord: function(respond, query) {
-    return this._super(
+export default class NodeSerializer extends Serializer.extend(EmbeddedRecordsMixin) {
+  primaryKey = PRIMARY_KEY;
+  slugKey = SLUG_KEY;
+
+  attrs = {
+    Services: {
+      embedded: 'always',
+    },
+  };
+
+  transformHasManyResponse(store, relationship, item, parent = null) {
+    switch (relationship.key) {
+      case 'Services':
+        const checks = {};
+        (item.Checks || [])
+          .filter(item => {
+            return item.ServiceID !== '';
+          })
+          .forEach(item => {
+            if (typeof checks[item.ServiceID] === 'undefined') {
+              checks[item.ServiceID] = [];
+            }
+            checks[item.ServiceID].push(item);
+          });
+        const serializer = this.store.serializerFor(relationship.type);
+        item.Services = item.Services.map(service =>
+          serializer.transformHasManyResponseFromNode(item, service, checks)
+        );
+        return item;
+    }
+    return super.transformHasManyResponse(...arguments);
+  }
+
+  respondForQuery(respond, query, data, modelClass) {
+    const body = super.respondForQuery(
+      cb => respond((headers, body) => cb(headers, body.map(fillSlug))),
+      query
+    );
+    modelClass.eachRelationship((key, relationship) => {
+      body.forEach(item =>
+        this[`transform${classify(relationship.kind)}Response`](
+          this.store,
+          relationship,
+          item,
+          body
+        )
+      );
+    });
+    return body;
+  }
+
+  respondForQueryRecord(respond, query, data, modelClass) {
+    const body = super.respondForQueryRecord(
       cb =>
         respond((headers, body) => {
           return cb(headers, fillSlug(body));
         }),
       query
     );
-  },
-  respondForQueryLeader: function(respond, query) {
+
+    modelClass.eachRelationship((key, relationship) => {
+      this[`transform${classify(relationship.kind)}Response`](this.store, relationship, body);
+    });
+    return body;
+  }
+
+  respondForQueryLeader(respond, query) {
     // don't call super here we don't care about
     // ids/fingerprinting
     return respond((headers, body) => {
@@ -45,5 +98,5 @@ export default Serializer.extend({
         query
       );
     });
-  },
-});
+  }
+}

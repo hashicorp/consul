@@ -1,9 +1,14 @@
 .consul-intention-search-bar {
-  .value-allow button::before {
-    @extend %with-arrow-right-color-mask, %as-pseudo;
-    color: $green-500;
+  li button span {
+    @extend %pill-700;
   }
-  .value-deny button::before {
-    @extend %with-deny-color-icon, %as-pseudo;
+  .value-allow span {
+    @extend %pill-allow;
+  }
+  .value-deny span {
+    @extend %pill-deny;
+  }
+  .value- span {
+    @extend %pill-l7;
   }
 }

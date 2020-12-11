@@ -1,0 +1,17 @@
+ ID           one
+ Size         2
+ Index        3
+ Term         4
+ Version      1
+
+ Type       Count      Size
+ ----       ----       ----
+ msg        2          1B
+ ----       ----       ----
+ Total                 1B
+
+ Key Name      Count      Size
+ ----          ----       ----
+ msgKV         2          1B
+ ----          ----       ----
+ Total                    1B

@@ -14,6 +14,10 @@ import (
 )
 
 func TestConfigEntry_Apply(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	dir1, s1 := testServer(t)
@@ -103,6 +107,10 @@ func TestConfigEntry_Apply(t *testing.T) {
 }
 
 func TestConfigEntry_ProxyDefaultsMeshGateway(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	dir1, s1 := testServer(t)
@@ -133,6 +141,10 @@ func TestConfigEntry_ProxyDefaultsMeshGateway(t *testing.T) {
 }
 
 func TestConfigEntry_Apply_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -221,6 +233,10 @@ operator = "write"
 }
 
 func TestConfigEntry_Get(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -254,6 +270,10 @@ func TestConfigEntry_Get(t *testing.T) {
 }
 
 func TestConfigEntry_Get_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -326,6 +346,10 @@ operator = "read"
 }
 
 func TestConfigEntry_List(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -366,6 +390,10 @@ func TestConfigEntry_List(t *testing.T) {
 }
 
 func TestConfigEntry_ListAll(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	dir1, s1 := testServer(t)
@@ -455,6 +483,10 @@ func TestConfigEntry_ListAll(t *testing.T) {
 }
 
 func TestConfigEntry_List_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -536,6 +568,10 @@ operator = "read"
 }
 
 func TestConfigEntry_ListAll_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -617,6 +653,10 @@ operator = "read"
 }
 
 func TestConfigEntry_Delete(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	dir1, s1 := testServer(t)
@@ -687,6 +727,10 @@ func TestConfigEntry_Delete(t *testing.T) {
 }
 
 func TestConfigEntry_Delete_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -782,6 +826,10 @@ operator = "write"
 }
 
 func TestConfigEntry_ResolveServiceConfig(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -844,6 +892,10 @@ func TestConfigEntry_ResolveServiceConfig(t *testing.T) {
 }
 
 func TestConfigEntry_ResolveServiceConfig_Blocking(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -1010,6 +1062,10 @@ func TestConfigEntry_ResolveServiceConfig_Blocking(t *testing.T) {
 }
 
 func TestConfigEntry_ResolveServiceConfig_UpstreamProxyDefaultsProtocol(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -1080,6 +1136,10 @@ func TestConfigEntry_ResolveServiceConfig_UpstreamProxyDefaultsProtocol(t *testi
 }
 
 func TestConfigEntry_ResolveServiceConfig_ProxyDefaultsProtocol_UsedForAllUpstreams(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -1124,6 +1184,10 @@ func TestConfigEntry_ResolveServiceConfig_ProxyDefaultsProtocol_UsedForAllUpstre
 }
 
 func TestConfigEntry_ResolveServiceConfigNoConfig(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -1154,6 +1218,10 @@ func TestConfigEntry_ResolveServiceConfigNoConfig(t *testing.T) {
 }
 
 func TestConfigEntry_ResolveServiceConfig_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -1225,6 +1293,10 @@ operator = "write"
 }
 
 func TestConfigEntry_ProxyDefaultsExposeConfig(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	dir1, s1 := testServer(t)

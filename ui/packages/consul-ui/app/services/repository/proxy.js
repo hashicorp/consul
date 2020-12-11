@@ -2,14 +2,16 @@ import RepositoryService from 'consul-ui/services/repository';
 import { PRIMARY_KEY } from 'consul-ui/models/proxy';
 import { get, set } from '@ember/object';
 const modelName = 'proxy';
-export default RepositoryService.extend({
-  getModelName: function() {
+export default class ProxyService extends RepositoryService {
+  getModelName() {
     return modelName;
-  },
-  getPrimaryKey: function() {
+  }
+
+  getPrimaryKey() {
     return PRIMARY_KEY;
-  },
-  findAllBySlug: function(slug, dc, nspace, configuration = {}) {
+  }
+
+  findAllBySlug(slug, dc, nspace, configuration = {}) {
     const query = {
       id: slug,
       ns: nspace,
@@ -33,8 +35,9 @@ export default RepositoryService.extend({
       });
       return items;
     });
-  },
-  findInstanceBySlug: function(id, node, slug, dc, nspace, configuration) {
+  }
+
+  findInstanceBySlug(id, node, slug, dc, nspace, configuration) {
     return this.findAllBySlug(slug, dc, nspace, configuration).then(function(items) {
       let res = {};
       if (get(items, 'length') > 0) {
@@ -51,5 +54,5 @@ export default RepositoryService.extend({
       set(res, 'meta', get(items, 'meta'));
       return res;
     });
-  },
-});
+  }
+}

@@ -15,22 +15,24 @@ as |group|>
   )}}
 
   <fieldset>
-    <span class="label">
-      Should this permission allow the source connect to the destination?
-    </span>
-    <div role="radiogroup" class={{if changeset.error.Action ' has-error'}}>
-      {{#each intents as |intent|}}
-        <label>
-          <span>{{capitalize intent}}</span>
-          <input
-            type="radio"
-            name="Action"
-            value={{intent}}
-            checked={{if (eq changeset.Action intent) 'checked'}}
-            onchange={{action (changeset-set changeset 'Action') value="target.value"}}
-          />
-        </label>
-      {{/each}}
+    <div data-property="action">
+      <span class="label">
+        Should this permission allow the source connect to the destination?
+      </span>
+      <div role="radiogroup" class={{if changeset.error.Action ' has-error'}}>
+        {{#each intents as |intent|}}
+          <label>
+            <span>{{capitalize intent}}</span>
+            <input
+              type="radio"
+              name="Action"
+              value={{intent}}
+              checked={{if (eq changeset.Action intent) 'checked'}}
+              onchange={{action (changeset-set changeset 'Action') value="target.value"}}
+            />
+          </label>
+        {{/each}}
+      </div>
     </div>
   </fieldset>
 
@@ -133,6 +135,7 @@ as |group|>
     </Consul::Intention::Permission::Header::Form>
 
     <button
+      data-test-add-header
       type="button"
       class="type-submit"
       disabled={{if (not this.headerForm.isDirty) 'disabled'}}

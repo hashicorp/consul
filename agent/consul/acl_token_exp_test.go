@@ -11,6 +11,10 @@ import (
 )
 
 func TestACLTokenReap_Primary(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	t.Run("global", func(t *testing.T) {

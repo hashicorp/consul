@@ -24,7 +24,6 @@ Feature: dc / list-blocking
     ------------------------------------------------
     | Page       | Model       | Url               |
     | nodes      | node        | nodes             |
-    | intentions | intention   | intentions        |
     ------------------------------------------------
   Scenario: Viewing detail pages with a listing for [Page]
     Given 3 [Model] models

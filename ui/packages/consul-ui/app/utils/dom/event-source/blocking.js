@@ -7,8 +7,11 @@ const pause = 2000;
 export const createErrorBackoff = function(ms = 3000, P = Promise, wait = setTimeout) {
   // This expects an ember-data like error
   return function(err) {
-    const status = get(err, 'errors.firstObject.status');
+    // expect and ember-data error or a http-like error (e.statusCode)
+    let status = get(err, 'errors.firstObject.status') || get(err, 'statusCode');
     if (typeof status !== 'undefined') {
+      // ember-data errors are strings, http errors are numbers
+      status = status.toString();
       switch (true) {
         // Any '5xx' (not 500) errors should back off and try again
         case status.indexOf('5') === 0 && status.length === 3 && status !== '500':

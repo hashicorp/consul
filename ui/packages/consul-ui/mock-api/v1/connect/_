@@ -1,0 +1,115 @@
+${
+  location.pathname.get(2) === 'intentions' && http.method === 'GET' ? `
+[
+  ${
+    range(
+      env(
+        'CONSUL_INTENTION_COUNT',
+        Math.floor(
+          (
+            Math.random() * env('CONSUL_INTENTION_MAX', 10)
+          ) + parseInt(env('CONSUL_INTENTION_MIN', 1))
+        )
+      )
+    ).map(
+      function(item, i)
+      {
+        const legacy = fake.random.boolean();
+        return `
+          {
+${legacy ? `
+            "ID": "${fake.random.uuid()}",
+            "Action": "${fake.helpers.randomize(['allow', 'deny'])}",
+`:``}
+            "Description": "${fake.lorem.sentence()}",
+            "SourceNS": "default",
+            "SourceName": "${fake.hacker.noun()}-${i}",
+            "DestinationNS": "default",
+            "DestinationName": "${fake.hacker.noun()}",
+            "SourceType": "${fake.helpers.randomize(['consul', 'externaluri'])}",
+${!legacy ? `
+            "Permissions": [
+${range(
+  env(
+    'CONSUL_INTENTION_PERMISSION_COUNT',
+    Math.floor(
+      (
+        Math.random() * env('CONSUL_INTENTION_PERMISSION_MAX', 10)
+      ) + parseInt(env('CONSUL_INTENTION_PERMISSION_MIN', 1))
+    )
+  )
+).map((item, i) => {
+  const headerCount = env(
+    'CONSUL_HEADER_COUNT',
+    Math.floor(
+      (
+        Math.random() * env('CONSUL_HEADER_MAX', 3)
+      ) + parseInt(env('CONSUL_HEADER_MIN', 1))
+    )
+  );
+  const path = fake.helpers.randomize(['PathExact', 'PathPrefix', 'PathRegex', '']);
+  return `
+              {
+                "Action": "${fake.helpers.randomize(['allow', 'deny'])}",
+                "HTTP": {
+
+${path !== '' ? `
+                    "${path}": "${path === 'PathRegex' ? `${fake.helpers.randomize(['^[0-9]{1,3}?$', '(\w+)\s(\w+)'])}` : `/${fake.lorem.words(fake.random.number({min: 1, max: 5})).split(' ').join('/')}${fake.random.boolean() ? fake.system.fileName() : ''}`}",
+`:``}
+
+${ fake.random.boolean() ? `
+                      "Methods": [
+										    ${
+											    fake.helpers.shuffle(
+												    ["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"]
+											    ).filter(item => fake.random.boolean()).map(item => `
+												    "${item}"
+											    `)
+										    }
+									    ],
+` : ``}
+                    "Header": [
+${range(headerCount).map(item => `
+                      {
+											    "Name": "X-${fake.hacker.noun().split(' ').map(item => `${item.substr(0, 1).toUpperCase()}${item.substr(1)}`).join('-')}",
+${fake.random.boolean() ? `
+											    "Invert": true,
+` : ``}
+${fake.helpers.randomize([
+											    '"Present": true',
+											    '"Exact": "abc"',
+											    '"Prefix": "abc"',
+											    '"Suffix": "xyz"',
+											    '"Regex": "[abc]"'
+])}
+									    }
+`)}
+                    ]
+                  }
+                }
+
+`})}
+            ],
+`:``}
+            "Precedence": ${i + 1},
+${ fake.random.number({min: 1, max: 10}) > 2 ? `
+            "Meta": {
+              "external-source": "${fake.helpers.randomize(['kubernetes'])}"
+            },
+` : `` }
+            "CreatedAt": "2018-05-21T16:41:27.977155457Z",
+            "UpdatedAt": "2018-05-21T16:41:27.977157724Z",
+            "CreateIndex": 11,
+            "ModifyIndex": 11
+          }
+        `;
+      }
+    )
+  }
+]
+  ` : location.pathname.get(2) === 'intentions' && http.method === 'POST' ? `
+{
+  "ID": "${ location.pathname.get(3) }"
+}
+  ` : ``
+}

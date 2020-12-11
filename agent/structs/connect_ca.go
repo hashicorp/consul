@@ -122,6 +122,16 @@ type CARoot struct {
 	RaftIndex
 }
 
+func (c *CARoot) Clone() *CARoot {
+	if c == nil {
+		return nil
+	}
+
+	newCopy := *c
+	newCopy.IntermediateCerts = CloneStringSlice(c.IntermediateCerts)
+	return &newCopy
+}
+
 // CARoots is a list of CARoot structures.
 type CARoots []*CARoot
 

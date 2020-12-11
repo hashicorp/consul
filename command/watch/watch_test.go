@@ -22,6 +22,10 @@ func TestWatchCommand_noTabs(t *testing.T) {
 }
 
 func TestWatchCommand(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -42,6 +46,10 @@ func TestWatchCommand(t *testing.T) {
 }
 
 func TestWatchCommand_loadToken(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	a := agent.NewTestAgent(t, ` `)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -135,6 +143,10 @@ func TestWatchCommand_loadToken(t *testing.T) {
 }
 
 func TestWatchCommandNoConnect(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -156,6 +168,10 @@ func TestWatchCommandNoConnect(t *testing.T) {
 }
 
 func TestWatchCommandNoAgentService(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()

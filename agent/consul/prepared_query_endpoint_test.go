@@ -26,6 +26,10 @@ import (
 )
 
 func TestPreparedQuery_Apply(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -187,6 +191,10 @@ func TestPreparedQuery_Apply(t *testing.T) {
 }
 
 func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -470,6 +478,10 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 }
 
 func TestPreparedQuery_Apply_ForwardLeader(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = false
@@ -625,6 +637,10 @@ func TestPreparedQuery_parseQuery(t *testing.T) {
 }
 
 func TestPreparedQuery_ACLDeny_Catchall_Template(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -840,6 +856,10 @@ func TestPreparedQuery_ACLDeny_Catchall_Template(t *testing.T) {
 }
 
 func TestPreparedQuery_Get(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -1094,6 +1114,10 @@ func TestPreparedQuery_Get(t *testing.T) {
 }
 
 func TestPreparedQuery_List(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -1303,6 +1327,10 @@ func TestPreparedQuery_List(t *testing.T) {
 }
 
 func TestPreparedQuery_Explain(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -1440,6 +1468,10 @@ func TestPreparedQuery_Explain(t *testing.T) {
 // walk through the different cases once we have it up. This is broken into
 // sections so it's still pretty easy to read.
 func TestPreparedQuery_Execute(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -2360,6 +2392,10 @@ func TestPreparedQuery_Execute(t *testing.T) {
 }
 
 func TestPreparedQuery_Execute_ForwardLeader(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -2489,6 +2525,10 @@ func TestPreparedQuery_Execute_ForwardLeader(t *testing.T) {
 }
 
 func TestPreparedQuery_Execute_ConnectExact(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -2734,6 +2774,10 @@ func TestPreparedQuery_tagFilter(t *testing.T) {
 }
 
 func TestPreparedQuery_Wrapper(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -2900,7 +2944,7 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 	{
 		mock := &mockQueryServer{
 			Datacenters: []string{"dc1", "dc2", "dc3", "xxx", "dc4"},
-			QueryFn: func(dc string, args interface{}, reply interface{}) error {
+			QueryFn: func(dc string, _ interface{}, reply interface{}) error {
 				ret := reply.(*structs.PreparedQueryExecuteResponse)
 				if dc == "dc1" {
 					ret.Nodes = nodes()
@@ -2928,7 +2972,7 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 	{
 		mock := &mockQueryServer{
 			Datacenters: []string{"dc1", "dc2", "dc3", "xxx", "dc4"},
-			QueryFn: func(dc string, args interface{}, reply interface{}) error {
+			QueryFn: func(dc string, _ interface{}, reply interface{}) error {
 				ret := reply.(*structs.PreparedQueryExecuteResponse)
 				if dc == "dc3" {
 					ret.Nodes = nodes()
@@ -2978,7 +3022,7 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 	{
 		mock := &mockQueryServer{
 			Datacenters: []string{"dc1", "dc2", "dc3", "xxx", "dc4"},
-			QueryFn: func(dc string, args interface{}, reply interface{}) error {
+			QueryFn: func(dc string, _ interface{}, reply interface{}) error {
 				ret := reply.(*structs.PreparedQueryExecuteResponse)
 				if dc == "dc4" {
 					ret.Nodes = nodes()
@@ -3007,7 +3051,7 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 	{
 		mock := &mockQueryServer{
 			Datacenters: []string{"dc1", "dc2", "dc3", "xxx", "dc4"},
-			QueryFn: func(dc string, args interface{}, reply interface{}) error {
+			QueryFn: func(dc string, _ interface{}, reply interface{}) error {
 				ret := reply.(*structs.PreparedQueryExecuteResponse)
 				if dc == "dc4" {
 					ret.Nodes = nodes()
@@ -3036,7 +3080,7 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 	{
 		mock := &mockQueryServer{
 			Datacenters: []string{"dc1", "dc2", "dc3", "xxx", "dc4"},
-			QueryFn: func(dc string, args interface{}, reply interface{}) error {
+			QueryFn: func(dc string, _ interface{}, reply interface{}) error {
 				ret := reply.(*structs.PreparedQueryExecuteResponse)
 				if dc == "dc4" {
 					ret.Nodes = nodes()
@@ -3069,7 +3113,7 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 	{
 		mock := &mockQueryServer{
 			Datacenters: []string{"dc1", "dc2", "dc3", "xxx", "dc4"},
-			QueryFn: func(dc string, args interface{}, reply interface{}) error {
+			QueryFn: func(dc string, _ interface{}, reply interface{}) error {
 				ret := reply.(*structs.PreparedQueryExecuteResponse)
 				if dc == "dc1" {
 					return fmt.Errorf("XXX")
@@ -3103,7 +3147,7 @@ func TestPreparedQuery_queryFailover(t *testing.T) {
 	{
 		mock := &mockQueryServer{
 			Datacenters: []string{"dc1", "dc2", "dc3", "xxx", "dc4"},
-			QueryFn: func(dc string, args interface{}, reply interface{}) error {
+			QueryFn: func(dc string, _ interface{}, reply interface{}) error {
 				ret := reply.(*structs.PreparedQueryExecuteResponse)
 				if dc == "xxx" {
 					ret.Nodes = nodes()

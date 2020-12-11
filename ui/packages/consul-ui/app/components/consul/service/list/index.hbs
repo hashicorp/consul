@@ -1,5 +1,10 @@
-{{#if (gt items.length 0)}}
-<ListCollection @items={{items}} @linkable={{action "isLinkable"}} class="consul-service-list" as |item index|>
+<ListCollection
+  class="consul-service-list"
+  ...attributes
+  @items={{@items}}
+  @linkable={{action this.isLinkable}}
+  as |item index|
+>
   <BlockSlot @name="header">
     <dl class={{item.MeshStatus}}>
       <dt>
@@ -48,16 +53,16 @@
     <Consul::ExternalSource @item={{item}} />
   {{#if (and (not-eq item.InstanceCount 0) (and (not-eq item.Kind 'terminating-gateway') (not-eq item.Kind 'ingress-gateway'))) }}
     <span>
-      {{format-number item.InstanceCount}} {{pluralize item.InstanceCount 'Instance' without-count=true}}
+      {{format-number item.InstanceCount}} {{pluralize item.InstanceCount 'instance' without-count=true}}
     </span>
   {{/if}}
   {{#if (eq item.Kind 'terminating-gateway')}}
     <span data-test-associated-service-count>
-      {{format-number item.GatewayConfig.AssociatedServiceCount}} linked services
+      {{format-number item.GatewayConfig.AssociatedServiceCount}} {{pluralize item.GatewayConfig.AssociatedServiceCount 'linked service' without-count=true}}
     </span>
   {{else if (eq item.Kind 'ingress-gateway')}}
     <span data-test-associated-service-count>
-      {{format-number item.GatewayConfig.AssociatedServiceCount}} upstreams
+      {{format-number item.GatewayConfig.AssociatedServiceCount}} {{pluralize item.GatewayConfig.AssociatedServiceCount 'upstream' without-count=true}}
     </span>
   {{/if}}
   {{#if (or item.ConnectedWithGateway item.ConnectedWithProxy)}}
@@ -85,4 +90,3 @@
     <TagList @item={{item}} />
   </BlockSlot>
 </ListCollection>
-{{/if}}

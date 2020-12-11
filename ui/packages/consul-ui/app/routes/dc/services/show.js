@@ -1,62 +1,74 @@
-import Route from 'consul-ui/routing/route';
 import { inject as service } from '@ember/service';
-import { hash } from 'rsvp';
+import Route from 'consul-ui/routing/route';
 import { get } from '@ember/object';
+import { action, setProperties } from '@ember/object';
 
-export default Route.extend({
-  data: service('data-source/service'),
-  settings: service('settings'),
-  model: function(params, transition) {
+export default class ShowRoute extends Route {
+  @service('data-source/service') data;
+  @service('repository/intention') repo;
+  @service('ui-config') config;
+
+  @action
+  async createIntention(source, destination) {
+    const intention = service.Intention;
+    const model = this.repo.create({
+      Datacenter: source.Datacenter,
+      SourceName: source.Name,
+      SourceNS: source.Namespace || 'default',
+      DestinationName: destination.Name,
+      DestinationNS: destination.Namespace || 'default',
+      Action: 'allow',
+    });
+    await this.repo.persist(model);
+    this.refresh();
+  }
+
+  async model(params, transition) {
     const dc = this.modelFor('dc').dc.Name;
     const nspace = this.modelFor('nspace').nspace.substr(1);
-    return hash({
-      slug: params.name,
-      dc: dc,
-      nspace: nspace,
-      items: this.data.source(
-        uri => uri`/${nspace}/${dc}/service-instances/for-service/${params.name}`
-      ),
-      urls: this.settings.findBySlug('urls'),
-      chain: null,
-      proxies: [],
-      topology: null,
-    })
-      .then(model => {
-        return ['connect-proxy', 'mesh-gateway', 'ingress-gateway', 'terminating-gateway'].includes(
-          get(model, 'items.firstObject.Service.Kind')
-        )
-          ? model
-          : hash({
-              ...model,
-              chain: this.data.source(uri => uri`/${nspace}/${dc}/discovery-chain/${params.name}`),
-              // Whilst `proxies` isn't used anywhere in the show templates
-              // it provides a relationship of ProxyInstance on the ServiceInstance
-              // which can respond at a completely different blocking rate to
-              // the ServiceInstance itself
-              proxies: this.data.source(
-                uri => uri`/${nspace}/${dc}/proxies/for-service/${params.name}`
-              ),
-            });
-      })
-      .then(model => {
-        let kind = get(model, 'items.firstObject.Service.Kind');
+    const slug = params.name;
+
+    let chain = null;
+    let topology = null;
+    let proxies = [];
+
+    const urls = this.config.get().dashboard_url_templates;
+    const items = await this.data.source(
+      uri => uri`/${nspace}/${dc}/service-instances/for-service/${params.name}`
+    );
+
+    const item = get(items, 'firstObject');
+    if (get(item, 'IsOrigin')) {
+      chain = await this.data.source(uri => uri`/${nspace}/${dc}/discovery-chain/${params.name}`);
+      proxies = await this.data.source(
+        uri => uri`/${nspace}/${dc}/proxies/for-service/${params.name}`
+      );
+
+      if (get(item, 'IsMeshOrigin')) {
+        let kind = get(item, 'Service.Kind');
         if (typeof kind === 'undefined') {
           kind = '';
         }
-        return ['mesh-gateway', 'terminating-gateway'].includes(
-          get(model, 'items.firstObject.Service.Kind')
-        )
-          ? model
-          : hash({
-              ...model,
-              topology: this.data.source(
-                uri => uri`/${nspace}/${dc}/topology/${params.name}/${kind}`
-              ),
-            });
-      });
-  },
-  setupController: function(controller, model) {
-    this._super(...arguments);
+        topology = await this.data.source(
+          uri => uri`/${nspace}/${dc}/topology/${params.name}/${kind}`
+        );
+      }
+    }
+
+    return {
+      dc,
+      nspace,
+      slug,
+      items,
+      urls,
+      chain,
+      proxies,
+      topology,
+    };
+  }
+
+  setupController(controller, model) {
+    super.setupController(...arguments);
     controller.setProperties(model);
-  },
-});
+  }
+}

@@ -1,0 +1,3 @@
+```release-note:bug
+acl: global tokens created by auth methods now correctly replicate to secondary datacenters
+```

@@ -1,8 +1,8 @@
 import Route from 'consul-ui/routing/route';
 import { get } from '@ember/object';
 
-export default Route.extend({
-  afterModel: function(model, transition) {
+export default class IndexRoute extends Route {
+  afterModel(model, transition) {
     const parent = this.routeName
       .split('.')
       .slice(0, -1)
@@ -11,5 +11,5 @@ export default Route.extend({
     // so check the length here.
     const to = get(model, 'item.Checks.length') > 0 ? 'healthchecks' : 'services';
     this.replaceWith(`${parent}.${to}`, model);
-  },
-});
+  }
+}

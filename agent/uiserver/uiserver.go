@@ -251,15 +251,38 @@ func (h *Handler) renderIndex(cfg *config.RuntimeConfig, fs http.FileSystem) ([]
 	// have to match the encoded double quotes around the JSON string value that
 	// is there as a placeholder so the end result is an actual JSON bool not a
 	// string containing "false" etc.
-	re := regexp.MustCompile(`%22__RUNTIME_BOOL_[A-Za-z0-9-_]+__%22`)
+	re := regexp.MustCompile(`%22__RUNTIME_(BOOL|STRING)_([A-Za-z0-9-_]+)__%22`)
 
 	content = []byte(re.ReplaceAllStringFunc(string(content), func(str string) string {
-		// Trim the prefix and __ suffix
-		varName := strings.TrimSuffix(strings.TrimPrefix(str, "%22__RUNTIME_BOOL_"), "__%22")
-		if v, ok := tplData[varName].(bool); ok && v {
-			return "true"
+		// Trim the prefix and suffix
+		pair := strings.TrimSuffix(strings.TrimPrefix(str, "%22__RUNTIME_"), "__%22")
+		parts := strings.SplitN(pair, "_", 2)
+		switch parts[0] {
+		case "BOOL":
+			if v, ok := tplData[parts[1]].(bool); ok && v {
+				return "true"
+			}
+			return "false"
+		case "STRING":
+			if v, ok := tplData[parts[1]].(string); ok {
+				if bs, err := json.Marshal(v); err == nil {
+					return url.PathEscape(string(bs))
+				}
+				// Error!
+				h.logger.Error("Encoding JSON value for UI template failed",
+					"placeholder", str,
+					"value", v,
+				)
+				// Fall through to return the empty string to make JSON parse
+			}
+			return `""` // Empty JSON string
 		}
-		return "false"
+		// Unknown type is likely an error
+		h.logger.Error("Unknown placeholder type in UI template",
+			"placeholder", str,
+		)
+		// Return a literal empty string so the JSON still parses
+		return `""`
 	}))
 
 	tpl, err := template.New("index").Funcs(template.FuncMap{

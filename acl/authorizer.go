@@ -107,6 +107,9 @@ type Authorizer interface {
 	// NodeRead checks for permission to read (discover) a given node.
 	NodeRead(string, *AuthorizerContext) EnforcementDecision
 
+	// NodeReadAll checks for permission to read (discover) all nodes.
+	NodeReadAll(*AuthorizerContext) EnforcementDecision
+
 	// NodeWrite checks for permission to create or update (register) a
 	// given node.
 	NodeWrite(string, *AuthorizerContext) EnforcementDecision
@@ -129,6 +132,9 @@ type Authorizer interface {
 
 	// ServiceRead checks for permission to read a given service
 	ServiceRead(string, *AuthorizerContext) EnforcementDecision
+
+	// ServiceReadAll checks for permission to read all services
+	ServiceReadAll(*AuthorizerContext) EnforcementDecision
 
 	// ServiceWrite checks for permission to create or update a given
 	// service

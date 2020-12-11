@@ -26,6 +26,10 @@ func TestAuthMethodListCommand_noTabs(t *testing.T) {
 }
 
 func TestAuthMethodListCommand(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := agent.NewTestAgent(t, `
@@ -103,6 +107,10 @@ func TestAuthMethodListCommand(t *testing.T) {
 }
 
 func TestAuthMethodListCommand_JSON(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := agent.NewTestAgent(t, `

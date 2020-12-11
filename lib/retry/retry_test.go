@@ -108,6 +108,10 @@ func TestWaiter_Delay(t *testing.T) {
 }
 
 func TestWaiter_Wait(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	ctx := context.Background()
 
 	t.Run("first failure", func(t *testing.T) {

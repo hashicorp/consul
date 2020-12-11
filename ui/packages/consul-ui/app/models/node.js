@@ -1,27 +1,28 @@
-import Model from 'ember-data/model';
-import attr from 'ember-data/attr';
+import Model, { attr, hasMany } from '@ember-data/model';
 import { computed } from '@ember/object';
+import { fragmentArray } from 'ember-data-model-fragments/attributes';
 
 export const PRIMARY_KEY = 'uid';
 export const SLUG_KEY = 'ID';
 
-export default Model.extend({
-  [PRIMARY_KEY]: attr('string'),
-  [SLUG_KEY]: attr('string'),
-  Address: attr('string'),
-  Node: attr('string'),
-  Meta: attr(),
-  Services: attr(),
-  Checks: attr(),
-  CreateIndex: attr('number'),
-  ModifyIndex: attr('number'),
-  TaggedAddresses: attr(),
-  Datacenter: attr('string'),
-  Segment: attr(),
-  Coord: attr(),
-  SyncTime: attr('number'),
-  meta: attr(),
-  Status: computed('Checks.[]', 'ChecksCritical', 'ChecksPassing', 'ChecksWarning', function() {
+export default class Node extends Model {
+  @attr('string') uid;
+  @attr('string') ID;
+
+  @attr('string') Datacenter;
+  @attr('string') Address;
+  @attr('string') Node;
+  @attr('number') SyncTime;
+  @attr('number') CreateIndex;
+  @attr('number') ModifyIndex;
+  @attr() meta; // {}
+  @attr() Meta; // {}
+  @attr() TaggedAddresses; // {lan, wan}
+  @hasMany('service-instance') Services; // TODO: Rename to ServiceInstances
+  @fragmentArray('health-check') Checks;
+
+  @computed('Checks.[]', 'ChecksCritical', 'ChecksPassing', 'ChecksWarning')
+  get Status() {
     switch (true) {
       case this.ChecksCritical !== 0:
         return 'critical';
@@ -32,14 +33,20 @@ export default Model.extend({
       default:
         return 'empty';
     }
-  }),
-  ChecksCritical: computed('Checks.[]', function() {
+  }
+
+  @computed('Checks.[]')
+  get ChecksCritical() {
     return this.Checks.filter(item => item.Status === 'critical').length;
-  }),
-  ChecksPassing: computed('Checks.[]', function() {
+  }
+
+  @computed('Checks.[]')
+  get ChecksPassing() {
     return this.Checks.filter(item => item.Status === 'passing').length;
-  }),
-  ChecksWarning: computed('Checks.[]', function() {
+  }
+
+  @computed('Checks.[]')
+  get ChecksWarning() {
     return this.Checks.filter(item => item.Status === 'warning').length;
-  }),
-});
+  }
+}

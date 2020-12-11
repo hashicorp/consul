@@ -31,9 +31,5 @@ load helpers
 }
 
 @test "s1 upstream should NOT be able to connect to s2" {
-  run retry_default must_fail_tcp_connection localhost:5000
-
-  echo "OUTPUT $output"
-
-  [ "$status" == "0" ]
+  retry_default must_fail_tcp_connection localhost:5000
 }

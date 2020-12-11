@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
 
+	"github.com/hashicorp/consul/lib/ttlcache"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -88,6 +89,10 @@ func TestCacheGet_initError(t *testing.T) {
 // Test a cached error is replaced by a successful result. See
 // https://github.com/hashicorp/consul/issues/4480
 func TestCacheGet_cachedErrorsDontStick(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -323,6 +328,10 @@ func TestCacheGet_cancellation(t *testing.T) {
 // Test a get with an index set will timeout if the fetch doesn't return
 // anything.
 func TestCacheGet_blockingIndexTimeout(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	typ := TestType(t)
@@ -359,6 +368,10 @@ func TestCacheGet_blockingIndexTimeout(t *testing.T) {
 // Test a get with an index set with requests returning an error
 // will return that error.
 func TestCacheGet_blockingIndexError(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	typ := TestType(t)
@@ -394,6 +407,10 @@ func TestCacheGet_blockingIndexError(t *testing.T) {
 // Test that if a Type returns an empty value on Fetch that the previous
 // value is preserved.
 func TestCacheGet_emptyFetchResult(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -462,6 +479,10 @@ func TestCacheGet_emptyFetchResult(t *testing.T) {
 // Test that a type registered with a periodic refresh will perform
 // that refresh after the timer is up.
 func TestCacheGet_periodicRefresh(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	typ := &MockType{}
@@ -502,6 +523,10 @@ func TestCacheGet_periodicRefresh(t *testing.T) {
 // Test that a type registered with a periodic refresh will perform
 // that refresh after the timer is up.
 func TestCacheGet_periodicRefreshMultiple(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	typ := &MockType{}
@@ -551,6 +576,10 @@ func TestCacheGet_periodicRefreshMultiple(t *testing.T) {
 
 // Test that a refresh performs a backoff.
 func TestCacheGet_periodicRefreshErrorBackoff(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	typ := &MockType{}
@@ -593,6 +622,10 @@ func TestCacheGet_periodicRefreshErrorBackoff(t *testing.T) {
 
 // Test that a badly behaved RPC that returns 0 index will perform a backoff.
 func TestCacheGet_periodicRefreshBadRPCZeroIndexErrorBackoff(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	typ := &MockType{}
@@ -637,6 +670,10 @@ func TestCacheGet_periodicRefreshBadRPCZeroIndexErrorBackoff(t *testing.T) {
 // immediately on the initial request if there is no data written to that table
 // yet.
 func TestCacheGet_noIndexSetsOne(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	typ := &MockType{}
@@ -733,6 +770,10 @@ func TestCacheGet_fetchTimeout(t *testing.T) {
 
 // Test that entries expire
 func TestCacheGet_expire(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -789,6 +830,10 @@ func TestCacheGet_expire(t *testing.T) {
 
 // Test that entries reset their TTL on Get
 func TestCacheGet_expireResetGet(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -844,6 +889,10 @@ func TestCacheGet_expireResetGet(t *testing.T) {
 
 // Test that entries with state that satisfies io.Closer get cleaned up
 func TestCacheGet_expireClose(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -1000,6 +1049,13 @@ func (t *testPartitionType) RegisterOptions() RegisterOptions {
 // Test that background refreshing reports correct Age in failure and happy
 // states.
 func TestCacheGet_refreshAge(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	if testing.Short() {
+		t.Skip("too slow for -short run")
+	}
 	t.Parallel()
 
 	require := require.New(t)
@@ -1118,6 +1174,10 @@ func TestCacheGet_refreshAge(t *testing.T) {
 }
 
 func TestCacheGet_nonRefreshAge(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -1348,6 +1408,10 @@ func TestCacheReload(t *testing.T) {
 // are arriving at similar times, which wouldn't be the case if they use a
 // shared limiter.
 func TestCacheThrottle(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	typ1 := TestType(t)
@@ -1402,3 +1466,73 @@ OUT:
 		}
 	}
 }
+
+func TestCache_ExpiryLoop_ExitsWhenStopped(t *testing.T) {
+	c := &Cache{
+		stopCh:            make(chan struct{}),
+		entries:           make(map[string]cacheEntry),
+		entriesExpiryHeap: ttlcache.NewExpiryHeap(),
+	}
+	chStart := make(chan struct{})
+	chDone := make(chan struct{})
+	go func() {
+		close(chStart)
+		c.runExpiryLoop()
+		close(chDone)
+	}()
+
+	<-chStart
+	close(c.stopCh)
+
+	select {
+	case <-chDone:
+	case <-time.After(50 * time.Millisecond):
+		t.Fatalf("expected loop to exit when stopped")
+	}
+}
+
+func TestCache_Prepopulate(t *testing.T) {
+	typ := &fakeType{index: 5}
+	c := New(Options{})
+	c.RegisterType("t", typ)
+
+	c.Prepopulate("t", FetchResult{Value: 17, Index: 1}, "dc1", "token", "v1")
+
+	ctx := context.Background()
+	req := fakeRequest{
+		info: RequestInfo{
+			Key:        "v1",
+			Token:      "token",
+			Datacenter: "dc1",
+			MinIndex:   1,
+		},
+	}
+	result, _, err := c.Get(ctx, "t", req)
+	require.NoError(t, err)
+	require.Equal(t, 17, result)
+}
+
+type fakeType struct {
+	index uint64
+}
+
+func (f fakeType) Fetch(_ FetchOptions, _ Request) (FetchResult, error) {
+	idx := atomic.LoadUint64(&f.index)
+	return FetchResult{Value: int(idx * 2), Index: idx}, nil
+}
+
+func (f fakeType) RegisterOptions() RegisterOptions {
+	return RegisterOptions{Refresh: true}
+}
+
+var _ Type = (*fakeType)(nil)
+
+type fakeRequest struct {
+	info RequestInfo
+}
+
+func (f fakeRequest) CacheInfo() RequestInfo {
+	return f.info
+}
+
+var _ Request = (*fakeRequest)(nil)

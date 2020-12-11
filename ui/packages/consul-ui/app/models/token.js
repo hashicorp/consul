@@ -1,56 +1,41 @@
-import Model from 'ember-data/model';
-import attr from 'ember-data/attr';
+import Model, { attr } from '@ember-data/model';
 import { computed } from '@ember/object';
 import { MANAGEMENT_ID } from 'consul-ui/models/policy';
 
 export const PRIMARY_KEY = 'uid';
 export const SLUG_KEY = 'AccessorID';
 
-export default Model.extend({
-  [PRIMARY_KEY]: attr('string'),
-  [SLUG_KEY]: attr('string'),
-  IDPName: attr('string'),
-  SecretID: attr('string'),
+export default class Token extends Model {
+  @attr('string') uid;
+  @attr('string') AccessorID;
+
+  @attr('string') Datacenter;
+  @attr('string') Namespace;
+  @attr('string') IDPName;
+  @attr('string') SecretID;
+
+  @attr('boolean') Legacy;
+  @attr('boolean') Local;
+  @attr('string', { defaultValue: () => '' }) Description;
+  @attr() meta; // {}
+
+  @attr({ defaultValue: () => [] }) Policies;
+  @attr({ defaultValue: () => [] }) Roles;
+  @attr({ defaultValue: () => [] }) ServiceIdentities;
+  @attr({ defaultValue: () => [] }) NodeIdentities;
+  @attr('date') CreateTime;
+  @attr('string') Hash;
+  @attr('number') CreateIndex;
+  @attr('number') ModifyIndex;
+
   // Legacy
-  Type: attr('string'),
-  Name: attr('string', {
-    defaultValue: '',
-  }),
-  Rules: attr('string'),
+  @attr('string') Type;
+  @attr('string', { defaultValue: () => '' }) Name;
+  @attr('string') Rules;
   // End Legacy
-  Legacy: attr('boolean'),
-  Description: attr('string', {
-    defaultValue: '',
-  }),
-  meta: attr(),
-  Datacenter: attr('string'),
-  Namespace: attr('string'),
-  Local: attr('boolean'),
-  isGlobalManagement: computed('Policies.[]', function() {
+
+  @computed('Policies.[]')
+  get isGlobalManagement() {
     return (this.Policies || []).find(item => item.ID === MANAGEMENT_ID);
-  }),
-  Policies: attr({
-    defaultValue: function() {
-      return [];
-    },
-  }),
-  Roles: attr({
-    defaultValue: function() {
-      return [];
-    },
-  }),
-  ServiceIdentities: attr({
-    defaultValue: function() {
-      return [];
-    },
-  }),
-  NodeIdentities: attr({
-    defaultValue: function() {
-      return [];
-    },
-  }),
-  CreateTime: attr('date'),
-  Hash: attr('string'),
-  CreateIndex: attr('number'),
-  ModifyIndex: attr('number'),
-});
+  }
+}

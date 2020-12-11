@@ -37,7 +37,6 @@ func (s *eventSnapshot) appendAndSplice(req SubscribeRequest, fn SnapshotFunc, t
 	}
 	s.buffer.Append([]Event{{
 		Topic:   req.Topic,
-		Key:     req.Key,
 		Index:   idx,
 		Payload: endOfSnapshot{},
 	}})

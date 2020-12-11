@@ -7,6 +7,7 @@ import { scaleLinear, scaleTime, scaleOrdinal } from 'd3-scale';
 import { schemeTableau10 } from 'd3-scale-chromatic';
 import { area, stack, stackOrderReverse } from 'd3-shape';
 import { max, extent, bisector } from 'd3-array';
+import { set } from '@ember/object';
 
 dayjs.extend(Calendar);
 
@@ -21,14 +22,13 @@ function niceTimeWithSeconds(d) {
 
 export default Component.extend({
   data: null,
-
+  empty: false,
   actions: {
     redraw: function(evt) {
       this.drawGraphs();
     },
     change: function(evt) {
       this.set('data', evt.data.series);
-      this.element.querySelector('.sparkline-loader').style.display = 'none';
       this.drawGraphs();
       this.rerender();
     },
@@ -36,6 +36,7 @@ export default Component.extend({
 
   drawGraphs: function() {
     if (!this.data) {
+      set(this, 'empty', true);
       return;
     }
 
@@ -60,10 +61,10 @@ export default Component.extend({
     if (series.length == 0 || keys.length == 0) {
       // Put the graph in an error state that might get fixed if metrics show up
       // on next poll.
-      let loader = this.element.querySelector('.sparkline-loader');
-      loader.innerHTML = 'No Metrics Available';
-      loader.style.display = 'block';
+      set(this, 'empty', true);
       return;
+    } else {
+      set(this, 'empty', false);
     }
 
     let st = stack()

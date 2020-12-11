@@ -10,6 +10,10 @@ import (
 )
 
 func TestMonitorCommand_exitsOnSignalBeforeLinesArrive(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.StartTestAgent(t, agent.TestAgent{})
 	defer a.Shutdown()
@@ -63,6 +67,10 @@ func TestMonitorCommand_exitsOnSignalBeforeLinesArrive(t *testing.T) {
 }
 
 func TestMonitorCommand_LogJSONValidFlag(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.StartTestAgent(t, agent.TestAgent{})
 	defer a.Shutdown()

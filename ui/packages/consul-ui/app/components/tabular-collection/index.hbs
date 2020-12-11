@@ -1,3 +1,11 @@
+<table
+  class="tabular-collection dom-recycling {{if hasActions 'has-actions' ''}}"
+  id={{guid}}
+  style={{{concat
+    'height:' style.height 'px'
+  }}}
+  ...attributes
+>
 {{on-window 'resize' (action "resize") }}
 {{yield}}
 {{#if hasCaption}}
@@ -18,7 +26,7 @@
       <YieldSlot @name="row">{{yield cell.item index}}</YieldSlot>
 {{#if hasActions }}
       <td class="actions">
-        <YieldSlot @name="actions" @params={{block-params (concat cell.index) (action "change") checked}}>
+        <YieldSlot @name="actions" @params={{block-params cell.index (action "change") checked}}>
           {{yield cell.item index}}
         </YieldSlot>
       </td>
@@ -26,3 +34,4 @@
     </tr>
 {{~/each~}}
   </EmberNativeScrollable>
+</table>

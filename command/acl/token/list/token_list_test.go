@@ -23,6 +23,10 @@ func TestTokenListCommand_noTabs(t *testing.T) {
 }
 
 func TestTokenListCommand_Pretty(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	assert := assert.New(t)
 
@@ -74,6 +78,10 @@ func TestTokenListCommand_Pretty(t *testing.T) {
 }
 
 func TestTokenListCommand_JSON(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	assert := assert.New(t)
 

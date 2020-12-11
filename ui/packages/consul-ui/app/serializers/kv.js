@@ -1,25 +1,31 @@
 import Serializer from './application';
 import { inject as service } from '@ember/service';
-
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/kv';
 import { NSPACE_KEY } from 'consul-ui/models/nspace';
 import { NSPACE_QUERY_PARAM as API_NSPACE_KEY } from 'consul-ui/adapters/application';
 import removeNull from 'consul-ui/utils/remove-null';
 
-export default Serializer.extend({
-  primaryKey: PRIMARY_KEY,
-  slugKey: SLUG_KEY,
-  decoder: service('atob'),
+export default class KvSerializer extends Serializer {
+  @service('atob') decoder;
+
+  primaryKey = PRIMARY_KEY;
+  slugKey = SLUG_KEY;
+
   // TODO: Would undefined be better instead of null?
-  serialize: function(snapshot, options) {
+  serialize(snapshot, options) {
     const value = snapshot.attr('Value');
     return typeof value === 'string' ? this.decoder.execute(value) : null;
-  },
-  respondForQueryRecord: function(respond, query) {
-    return this._super(cb => respond((headers, body) => cb(headers, removeNull(body[0]))), query);
-  },
-  respondForQuery: function(respond, query) {
-    return this._super(
+  }
+
+  respondForQueryRecord(respond, query) {
+    return super.respondForQueryRecord(
+      cb => respond((headers, body) => cb(headers, removeNull(body[0]))),
+      query
+    );
+  }
+
+  respondForQuery(respond, query) {
+    return super.respondForQuery(
       cb =>
         respond((headers, body) => {
           return cb(
@@ -34,5 +40,5 @@ export default Serializer.extend({
         }),
       query
     );
-  },
-});
+  }
+}

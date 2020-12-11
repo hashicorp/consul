@@ -170,13 +170,13 @@ func newBufferItem(events []Event) *bufferItem {
 
 // Next return the next buffer item in the buffer. It may block until ctx is
 // cancelled or until the next item is published.
-func (i *bufferItem) Next(ctx context.Context, forceClose <-chan struct{}) (*bufferItem, error) {
+func (i *bufferItem) Next(ctx context.Context, closed <-chan struct{}) (*bufferItem, error) {
 	// See if there is already a next value, block if so. Note we don't rely on
 	// state change (chan nil) as that's not threadsafe but detecting close is.
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
-	case <-forceClose:
+	case <-closed:
 		return nil, fmt.Errorf("subscription closed")
 	case <-i.link.ch:
 	}

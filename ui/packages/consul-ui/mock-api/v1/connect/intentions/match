@@ -1,0 +1,38 @@
+{
+  "db": [
+    {
+      "ID": "ed16f6a6-d863-1bec-af45-96bbdcbe02be",
+      "Description": "",
+      "SourceNS": "default",
+      "SourceName": "billing",
+      "DestinationNS": "default",
+      "DestinationName": "db",
+      "SourceType": "consul",
+      "Action": "deny",
+      "DefaultAddr": "",
+      "DefaultPort": 0,
+      "Meta": {},
+      "CreatedAt": "2018-05-21T16:41:33.296693825Z",
+      "UpdatedAt": "2018-05-21T16:41:33.296694288Z",
+      "CreateIndex": 12,
+      "ModifyIndex": 12
+    },
+    {
+      "ID": "e9ebc19f-d481-42b1-4871-4d298d3acd5c",
+      "Description": "",
+      "SourceNS": "default",
+      "SourceName": "web",
+      "DestinationNS": "default",
+      "DestinationName": "db",
+      "SourceType": "consul",
+      "Action": "allow",
+      "DefaultAddr": "",
+      "DefaultPort": 0,
+      "Meta": {},
+      "CreatedAt": "2018-05-21T16:41:27.977155457Z",
+      "UpdatedAt": "2018-05-21T16:41:27.977157724Z",
+      "CreateIndex": 11,
+      "ModifyIndex": 11
+    }
+  ]
+}

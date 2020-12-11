@@ -1,0 +1,98 @@
+{
+  "AccessorID": "${location.pathname.get(3)}",
+  "SecretID":"${fake.random.uuid()}",
+  "IDPName": "${fake.hacker.noun()}",
+  "Namespace": "${
+    typeof location.search.ns !== 'undefined' ? location.search.ns :
+      typeof http.body.Namespace !== 'undefined' ? http.body.Namespace : 'default'
+  }",
+  ${ location.pathname.get(3) === '00000000-0000-0000-0000-000000000002' ?
+    `
+      "Name": "${fake.hacker.noun()}",
+      "Type":"${fake.helpers.randomize(['client', 'management'])}",
+      "Rules": ${
+            JSON.stringify(
+`agent "${fake.hacker.noun()}" {
+    policy = "write"
+}
+node "node-0" {
+    policy = "read"
+}`
+            )
+      },
+    `
+    :
+    `
+      "Policies": [
+        ${
+          range(env('CONSUL_POLICY_COUNT', 3)).map(
+            function(item, i) {
+              return `
+                {
+                  "ID": "${fake.random.uuid()}-${i}",
+                  "Name": "${fake.hacker.noun()}"
+                }
+              `;
+            }
+          )
+        }
+      ],
+      "Roles": [
+        ${
+          range(env('CONSUL_ROLE_COUNT', 10)).map(
+            function(item, j) {
+              return `
+                {
+                  "ID": "${fake.random.uuid()}",
+                  "Name": "${fake.hacker.noun()}"
+                }
+              `;
+            }
+          )
+        }
+      ],
+      "ServiceIdentities": [
+        ${
+          range(env('CONSUL_SERVICE_IDENTITY_COUNT', env('CONSUL_IDENTITY_COUNT', 1))).map(
+            function(item, i) {
+              return `
+                {
+                  "ServiceName": "${fake.hacker.noun()}"${ fake.random.boolean() ? `,
+                  "Datacenters": [
+                    ${
+                      range(env('CONSUL_DATACENTER_COUNT', fake.random.number({min: 1, max: 10}))).map(
+                          function(item, i) {
+                              return `"${fake.address.countryCode().toLowerCase()} ${ i % 2 ? "west" : "east"}-${i}"`;
+                          }
+                      )
+                    }
+                  ]
+                  ` : ``}
+                }
+              `;
+            }
+          )
+        }
+      ],
+      "NodeIdentities": [
+        ${
+          range(env('CONSUL_NODE_IDENTITY_COUNT', 1)).map(
+            function(item, i) {
+              return `
+                {
+                  "NodeName": "${fake.hacker.noun()}",
+                  "Datacenter":"${fake.address.countryCode().toLowerCase()} ${ i % 2 ? "west" : "east"}-${i}"
+                }
+              `;
+            }
+          )
+        }
+      ],
+      ${ fake.random.boolean() ? '"Local": true,' : "" }
+    `
+  }
+  "CreateTime":"2017-08-23T22:47:14.695408057Z",
+  "CreateIndex":7,
+  "ModifyIndex":7
+}
+

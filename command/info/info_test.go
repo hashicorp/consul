@@ -16,6 +16,10 @@ func TestInfoCommand_noTabs(t *testing.T) {
 }
 
 func TestInfoCommand(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a1 := agent.NewTestAgent(t, ``)
 	defer a1.Shutdown()

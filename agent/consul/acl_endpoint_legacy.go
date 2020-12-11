@@ -5,12 +5,20 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/go-memdb"
 )
+
+var ACLEndpointLegacySummaries = []prometheus.SummaryDefinition{
+	{
+		Name: []string{"acl", "apply"},
+		Help: "Measures the time it takes to complete an update to the ACL store.",
+	},
+}
 
 // Bootstrap is used to perform a one-time ACL bootstrap operation on
 // a cluster to get the first management token.

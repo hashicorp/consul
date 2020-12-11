@@ -11,6 +11,10 @@ import (
 )
 
 func TestConnectExpose(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	require := require.New(t)
 	a := agent.NewTestAgent(t, ``)
@@ -141,6 +145,10 @@ func TestConnectExpose(t *testing.T) {
 }
 
 func TestConnectExpose_invalidFlags(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	require := require.New(t)
 	a := agent.NewTestAgent(t, ``)
@@ -192,6 +200,10 @@ func TestConnectExpose_invalidFlags(t *testing.T) {
 }
 
 func TestConnectExpose_existingConfig(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	require := require.New(t)
 	a := agent.NewTestAgent(t, ``)

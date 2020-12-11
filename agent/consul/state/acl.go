@@ -305,7 +305,7 @@ func (s *Store) ACLBootstrap(idx, resetIndex uint64, token *structs.ACLToken, le
 		}
 	}
 
-	if err := aclTokenSetTxn(tx, idx, token, false, false, false, legacy); err != nil {
+	if err := aclTokenSetTxn(tx, idx, token, ACLTokenSetOptions{Legacy: legacy}); err != nil {
 		return fmt.Errorf("failed inserting bootstrap token: %v", err)
 	}
 	if err := tx.Insert("index", &IndexEntry{"acl-token-bootstrap", idx}); err != nil {
@@ -434,7 +434,7 @@ func resolveTokenPolicyLinks(tx *txn, token *structs.ACLToken, allowMissing bool
 // stale when a linked policy was deleted or renamed. This will correct them and generate a newly allocated
 // token only when fixes are needed. If the policy links are still accurate then we just return the original
 // token.
-func fixupTokenPolicyLinks(tx *txn, original *structs.ACLToken) (*structs.ACLToken, error) {
+func fixupTokenPolicyLinks(tx ReadTxn, original *structs.ACLToken) (*structs.ACLToken, error) {
 	owned := false
 	token := original
 
@@ -508,7 +508,7 @@ func resolveTokenRoleLinks(tx *txn, token *structs.ACLToken, allowMissing bool) 
 // stale when a linked role was deleted or renamed. This will correct them and generate a newly allocated
 // token only when fixes are needed. If the role links are still accurate then we just return the original
 // token.
-func fixupTokenRoleLinks(tx *txn, original *structs.ACLToken) (*structs.ACLToken, error) {
+func fixupTokenRoleLinks(tx ReadTxn, original *structs.ACLToken) (*structs.ACLToken, error) {
 	owned := false
 	token := original
 
@@ -632,19 +632,31 @@ func (s *Store) ACLTokenSet(idx uint64, token *structs.ACLToken, legacy bool) er
 	defer tx.Abort()
 
 	// Call set on the ACL
-	if err := aclTokenSetTxn(tx, idx, token, false, false, false, legacy); err != nil {
+	if err := aclTokenSetTxn(tx, idx, token, ACLTokenSetOptions{Legacy: legacy}); err != nil {
 		return err
 	}
 
 	return tx.Commit()
 }
 
-func (s *Store) ACLTokenBatchSet(idx uint64, tokens structs.ACLTokens, cas, allowMissingPolicyAndRoleIDs, prohibitUnprivileged bool) error {
+type ACLTokenSetOptions struct {
+	CAS                          bool
+	AllowMissingPolicyAndRoleIDs bool
+	ProhibitUnprivileged         bool
+	Legacy                       bool
+	FromReplication              bool
+}
+
+func (s *Store) ACLTokenBatchSet(idx uint64, tokens structs.ACLTokens, opts ACLTokenSetOptions) error {
+	if opts.Legacy {
+		return fmt.Errorf("failed inserting acl token: cannot use this endpoint to persist legacy tokens")
+	}
+
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	for _, token := range tokens {
-		if err := aclTokenSetTxn(tx, idx, token, cas, allowMissingPolicyAndRoleIDs, prohibitUnprivileged, false); err != nil {
+		if err := aclTokenSetTxn(tx, idx, token, opts); err != nil {
 			return err
 		}
 	}
@@ -654,14 +666,18 @@ func (s *Store) ACLTokenBatchSet(idx uint64, tokens structs.ACLTokens, cas, allo
 
 // aclTokenSetTxn is the inner method used to insert an ACL token with the
 // proper indexes into the state store.
-func aclTokenSetTxn(tx *txn, idx uint64, token *structs.ACLToken, cas, allowMissingPolicyAndRoleIDs, prohibitUnprivileged, legacy bool) error {
+func aclTokenSetTxn(tx *txn, idx uint64, token *structs.ACLToken, opts ACLTokenSetOptions) error {
 	// Check that the ID is set
 	if token.SecretID == "" {
 		return ErrMissingACLTokenSecret
 	}
 
-	if !legacy && token.AccessorID == "" {
+	if !opts.Legacy && token.AccessorID == "" {
 		return ErrMissingACLTokenAccessor
+	}
+
+	if opts.FromReplication && token.Local {
+		return fmt.Errorf("Cannot replicate local tokens")
 	}
 
 	// DEPRECATED (ACL-Legacy-Compat)
@@ -688,7 +704,7 @@ func aclTokenSetTxn(tx *txn, idx uint64, token *structs.ACLToken, cas, allowMiss
 		original = existing.(*structs.ACLToken)
 	}
 
-	if cas {
+	if opts.CAS {
 		// set-if-unset case
 		if token.ModifyIndex == 0 && original != nil {
 			return nil
@@ -703,7 +719,7 @@ func aclTokenSetTxn(tx *txn, idx uint64, token *structs.ACLToken, cas, allowMiss
 		}
 	}
 
-	if legacy && original != nil {
+	if opts.Legacy && original != nil {
 		if original.UsesNonLegacyFields() {
 			return fmt.Errorf("failed inserting acl token: cannot use legacy endpoint to modify a non-legacy token")
 		}
@@ -716,16 +732,16 @@ func aclTokenSetTxn(tx *txn, idx uint64, token *structs.ACLToken, cas, allowMiss
 	}
 
 	var numValidPolicies int
-	if numValidPolicies, err = resolveTokenPolicyLinks(tx, token, allowMissingPolicyAndRoleIDs); err != nil {
+	if numValidPolicies, err = resolveTokenPolicyLinks(tx, token, opts.AllowMissingPolicyAndRoleIDs); err != nil {
 		return err
 	}
 
 	var numValidRoles int
-	if numValidRoles, err = resolveTokenRoleLinks(tx, token, allowMissingPolicyAndRoleIDs); err != nil {
+	if numValidRoles, err = resolveTokenRoleLinks(tx, token, opts.AllowMissingPolicyAndRoleIDs); err != nil {
 		return err
 	}
 
-	if token.AuthMethod != "" {
+	if token.AuthMethod != "" && !opts.FromReplication {
 		method, err := getAuthMethodWithTxn(tx, nil, token.AuthMethod, token.ACLAuthMethodEnterpriseMeta.ToEnterpriseMeta())
 		if err != nil {
 			return err
@@ -749,7 +765,7 @@ func aclTokenSetTxn(tx *txn, idx uint64, token *structs.ACLToken, cas, allowMiss
 		}
 	}
 
-	if prohibitUnprivileged {
+	if opts.ProhibitUnprivileged {
 		if numValidRoles == 0 && numValidPolicies == 0 && len(token.ServiceIdentities) == 0 && len(token.NodeIdentities) == 0 {
 			return ErrTokenHasNoPrivileges
 		}
@@ -824,7 +840,7 @@ func (s *Store) ACLTokenBatchGet(ws memdb.WatchSet, accessors []string) (uint64,
 	return idx, tokens, nil
 }
 
-func aclTokenGetTxn(tx *txn, ws memdb.WatchSet, value, index string, entMeta *structs.EnterpriseMeta) (*structs.ACLToken, error) {
+func aclTokenGetTxn(tx ReadTxn, ws memdb.WatchSet, value, index string, entMeta *structs.EnterpriseMeta) (*structs.ACLToken, error) {
 	watchCh, rawToken, err := aclTokenGetFromIndex(tx, value, index, entMeta)
 	if err != nil {
 		return nil, fmt.Errorf("failed acl token lookup: %v", err)
@@ -1059,7 +1075,7 @@ func aclTokenDeleteTxn(tx *txn, idx uint64, value, index string, entMeta *struct
 	return aclTokenDeleteWithToken(tx, token.(*structs.ACLToken), idx)
 }
 
-func aclTokenDeleteAllForAuthMethodTxn(tx *txn, idx uint64, methodName string, methodMeta *structs.EnterpriseMeta) error {
+func aclTokenDeleteAllForAuthMethodTxn(tx *txn, idx uint64, methodName string, methodGlobalLocality bool, methodMeta *structs.EnterpriseMeta) error {
 	// collect all the tokens linked with the given auth method.
 	iter, err := aclTokenListByAuthMethod(tx, methodName, methodMeta, structs.WildcardEnterpriseMeta())
 	if err != nil {
@@ -1069,7 +1085,15 @@ func aclTokenDeleteAllForAuthMethodTxn(tx *txn, idx uint64, methodName string, m
 	var tokens structs.ACLTokens
 	for raw := iter.Next(); raw != nil; raw = iter.Next() {
 		token := raw.(*structs.ACLToken)
-		tokens = append(tokens, token)
+		tokenIsGlobal := !token.Local
+
+		// Need to ensure that if we have an auth method named "blah" in the
+		// primary and secondary datacenters, and the primary instance has
+		// TokenLocality==global that when we delete the secondary instance we
+		// don't also blow away replicated tokens from the primary.
+		if methodGlobalLocality == tokenIsGlobal {
+			tokens = append(tokens, token)
+		}
 	}
 
 	if len(tokens) > 0 {
@@ -1794,7 +1818,7 @@ func (s *Store) aclAuthMethodGet(ws memdb.WatchSet, name string, entMeta *struct
 	return idx, method, nil
 }
 
-func getAuthMethodWithTxn(tx *txn, ws memdb.WatchSet, name string, entMeta *structs.EnterpriseMeta) (*structs.ACLAuthMethod, error) {
+func getAuthMethodWithTxn(tx ReadTxn, ws memdb.WatchSet, name string, entMeta *structs.EnterpriseMeta) (*structs.ACLAuthMethod, error) {
 	watchCh, rawMethod, err := aclAuthMethodGetByName(tx, name, entMeta)
 	if err != nil {
 		return nil, fmt.Errorf("failed acl auth method lookup: %v", err)
@@ -1877,7 +1901,7 @@ func aclAuthMethodDeleteTxn(tx *txn, idx uint64, name string, entMeta *structs.E
 		return err
 	}
 
-	if err := aclTokenDeleteAllForAuthMethodTxn(tx, idx, method.Name, entMeta); err != nil {
+	if err := aclTokenDeleteAllForAuthMethodTxn(tx, idx, method.Name, method.TokenLocality == "global", entMeta); err != nil {
 		return err
 	}
 

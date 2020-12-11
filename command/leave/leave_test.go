@@ -16,6 +16,10 @@ func TestLeaveCommand_noTabs(t *testing.T) {
 }
 
 func TestLeaveCommand(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -35,6 +39,10 @@ func TestLeaveCommand(t *testing.T) {
 }
 
 func TestLeaveCommand_FailOnNonFlagArgs(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()

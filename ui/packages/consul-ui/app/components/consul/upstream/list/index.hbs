@@ -1,4 +1,9 @@
-<ListCollection @items={{items}} @linkable={{action "isLinkable"}} class="consul-upstream-list" as |item index|>
+<ListCollection
+  class="consul-upstream-list"
+  ...attributes
+  @items={{@items}}
+  @linkable={{action this.isLinkable}}
+as |item index|>
   <BlockSlot @name="header">
   {{#if (gt item.InstanceCount 0)}}
     <dl class={{item.MeshStatus}}>
@@ -19,8 +24,9 @@
         </Tooltip>
       </dd>
     </dl>
-    {{#if (and (env 'CONSUL_NSPACES_ENABLED') (not-eq item.Namespace nspace))}}
-      <a data-test-service-name href={{href-to 'nspace.dc.services.show' (concat '~' item.Namespace) dc item.Name }}>
+    {{#if (and (env 'CONSUL_NSPACES_ENABLED') (not-eq item.Namespace @nspace))}}
+    {{item.Namespace}}
+      <a data-test-service-name href={{href-to 'nspace.dc.services.show' (concat '~' item.Namespace) @dc item.Name }}>
         {{item.Name}}
       </a>
     {{else}}
@@ -35,11 +41,11 @@
   {{/if}}
   </BlockSlot>
   <BlockSlot @name="details">
-  {{#if (and (env 'CONSUL_NSPACES_ENABLED') (not-eq item.Namespace nspace))}}
+  {{#if (and (env 'CONSUL_NSPACES_ENABLED') (not-eq item.Namespace @nspace))}}
     <dl class="nspace">
       <dt>
         <Tooltip>
-            Namespace
+          Namespace
         </Tooltip>
       </dt>
       <dd>
@@ -47,18 +53,19 @@
       </dd>
     </dl>
   {{/if}}
-{{#if (gt item.GatewayConfig.Addresses.length 0)}}
   {{#each item.GatewayConfig.Addresses as |address|}}
     <dl>
       <dt>
+        <span>Address</span>
+      </dt>
+      <dd>
         <CopyButton
           @value={{address}}
           @name="Address"
         />
-      </dt>
-      <dd>{{address}}</dd>
+        {{address}}
+      </dd>
     </dl>
   {{/each}}
-{{/if}}
   </BlockSlot>
 </ListCollection>

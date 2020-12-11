@@ -3,15 +3,26 @@ package consul
 import (
 	"context"
 	"fmt"
-	"net"
-	"strconv"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/agent/consul/autopilot"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/raft"
+	autopilot "github.com/hashicorp/raft-autopilot"
 	"github.com/hashicorp/serf/serf"
 )
+
+var AutopilotGauges = []prometheus.GaugeDefinition{
+	{
+		Name: []string{"autopilot", "failure_tolerance"},
+		Help: "Tracks the number of voting servers that the cluster can lose while continuing to function.",
+	},
+	{
+		Name: []string{"autopilot", "healthy"},
+		Help: "Tracks the overall health of the local server cluster. 1 if all servers are healthy, 0 if one or more are unhealthy.",
+	},
+}
 
 // AutopilotDelegate is a Consul delegate for autopilot operations.
 type AutopilotDelegate struct {
@@ -19,44 +30,22 @@ type AutopilotDelegate struct {
 }
 
 func (d *AutopilotDelegate) AutopilotConfig() *autopilot.Config {
-	return d.server.getOrCreateAutopilotConfig()
+	return d.server.getOrCreateAutopilotConfig().ToAutopilotLibraryConfig()
 }
 
-func (d *AutopilotDelegate) FetchStats(ctx context.Context, servers []serf.Member) map[string]*autopilot.ServerStats {
+func (d *AutopilotDelegate) KnownServers() map[raft.ServerID]*autopilot.Server {
+	return d.server.autopilotServers()
+}
+
+func (d *AutopilotDelegate) FetchServerStats(ctx context.Context, servers map[raft.ServerID]*autopilot.Server) map[raft.ServerID]*autopilot.ServerStats {
 	return d.server.statsFetcher.Fetch(ctx, servers)
 }
 
-func (d *AutopilotDelegate) IsServer(m serf.Member) (*autopilot.ServerInfo, error) {
-	if m.Tags["role"] != "consul" {
-		return nil, nil
-	}
-
-	portStr := m.Tags["port"]
-	port, err := strconv.Atoi(portStr)
-	if err != nil {
-		return nil, err
-	}
-
-	buildVersion, err := metadata.Build(&m)
-	if err != nil {
-		return nil, err
-	}
-
-	server := &autopilot.ServerInfo{
-		Name:   m.Name,
-		ID:     m.Tags["id"],
-		Addr:   &net.TCPAddr{IP: m.Addr, Port: port},
-		Build:  *buildVersion,
-		Status: m.Status,
-	}
-	return server, nil
-}
-
-// Heartbeat a metric for monitoring if we're the leader
-func (d *AutopilotDelegate) NotifyHealth(health autopilot.OperatorHealthReply) {
+func (d *AutopilotDelegate) NotifyState(state *autopilot.State) {
+	// emit metrics if we are the leader regarding overall healthiness and the failure tolerance
 	if d.server.raft.State() == raft.Leader {
-		metrics.SetGauge([]string{"autopilot", "failure_tolerance"}, float32(health.FailureTolerance))
-		if health.Healthy {
+		metrics.SetGauge([]string{"autopilot", "failure_tolerance"}, float32(state.FailureTolerance))
+		if state.Healthy {
 			metrics.SetGauge([]string{"autopilot", "healthy"}, 1)
 		} else {
 			metrics.SetGauge([]string{"autopilot", "healthy"}, 0)
@@ -64,23 +53,88 @@ func (d *AutopilotDelegate) NotifyHealth(health autopilot.OperatorHealthReply) {
 	}
 }
 
-func (d *AutopilotDelegate) PromoteNonVoters(conf *autopilot.Config, health autopilot.OperatorHealthReply) ([]raft.Server, error) {
-	future := d.server.raft.GetConfiguration()
-	if err := future.Error(); err != nil {
-		return nil, fmt.Errorf("failed to get raft configuration: %v", err)
+func (d *AutopilotDelegate) RemoveFailedServer(srv *autopilot.Server) {
+	go func() {
+		if err := d.server.RemoveFailedNode(srv.Name, false); err != nil {
+			d.server.logger.Error("failedto remove server", "name", srv.Name, "id", srv.ID, "error", err)
+		}
+	}()
+}
+
+func (s *Server) initAutopilot(config *Config) {
+	apDelegate := &AutopilotDelegate{s}
+
+	s.autopilot = autopilot.New(
+		s.raft,
+		apDelegate,
+		autopilot.WithLogger(s.logger),
+		autopilot.WithReconcileInterval(config.AutopilotInterval),
+		autopilot.WithUpdateInterval(config.ServerHealthInterval),
+		autopilot.WithPromoter(s.autopilotPromoter()),
+	)
+}
+
+func (s *Server) autopilotServers() map[raft.ServerID]*autopilot.Server {
+	servers := make(map[raft.ServerID]*autopilot.Server)
+	for _, member := range s.serfLAN.Members() {
+		srv, err := s.autopilotServer(member)
+		if err != nil {
+			s.logger.Warn("Error parsing server info", "name", member.Name, "error", err)
+			continue
+		} else if srv == nil {
+			// this member was a client
+			continue
+		}
+
+		servers[srv.ID] = srv
 	}
 
-	return autopilot.PromoteStableServers(conf, health, future.Configuration().Servers), nil
+	return servers
 }
 
-func (d *AutopilotDelegate) Raft() *raft.Raft {
-	return d.server.raft
+func (s *Server) autopilotServer(m serf.Member) (*autopilot.Server, error) {
+	ok, srv := metadata.IsConsulServer(m)
+	if !ok {
+		return nil, nil
+	}
+
+	return s.autopilotServerFromMetadata(srv)
 }
 
-func (d *AutopilotDelegate) SerfLAN() *serf.Serf {
-	return d.server.serfLAN
-}
+func (s *Server) autopilotServerFromMetadata(srv *metadata.Server) (*autopilot.Server, error) {
+	server := &autopilot.Server{
+		Name:        srv.ShortName,
+		ID:          raft.ServerID(srv.ID),
+		Address:     raft.ServerAddress(srv.Addr.String()),
+		Version:     srv.Build.String(),
+		RaftVersion: srv.RaftVersion,
+		Ext:         s.autopilotServerExt(srv),
+	}
 
-func (d *AutopilotDelegate) SerfWAN() *serf.Serf {
-	return d.server.serfWAN
+	switch srv.Status {
+	case serf.StatusLeft:
+		server.NodeStatus = autopilot.NodeLeft
+	case serf.StatusAlive, serf.StatusLeaving:
+		// we want to treat leaving as alive to prevent autopilot from
+		// prematurely removing the node.
+		server.NodeStatus = autopilot.NodeAlive
+	case serf.StatusFailed:
+		server.NodeStatus = autopilot.NodeFailed
+	default:
+		server.NodeStatus = autopilot.NodeUnknown
+	}
+
+	// populate the node meta if there is any. When a node first joins or if
+	// there are ACL issues then this could be empty if the server has not
+	// yet been able to register itself in the catalog
+	_, node, err := s.fsm.State().GetNodeID(types.NodeID(srv.ID))
+	if err != nil {
+		return nil, fmt.Errorf("error retrieving node from state store: %w", err)
+	}
+
+	if node != nil {
+		server.Meta = node.Meta
+	}
+
+	return server, nil
 }

@@ -256,6 +256,14 @@ Annotations can be used to configure the injection behavior.
   [defaultProtocol](/docs/k8s/helm#v-connectinject-centralconfig-defaultprotocol)
   option. Specific annotations will always override the default value.
 
+- `consul.hashicorp.com/envoy-extra-args` - A space-separated list of [arguments](https://www.envoyproxy.io/docs/envoy/latest/operations/cli)
+  to be passed to the injected envoy binary.
+
+  ```yaml
+  annotations:
+    consul.hashicorp.com/envoy-extra-args: "--log-level debug --disable-hot-restart"
+  ```
+
 - `consul.hashicorp.com/service-tags` - A comma separated list of tags that will
   be applied to the Consul service and its sidecar.
 

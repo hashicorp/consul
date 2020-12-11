@@ -1,0 +1,3 @@
+```release-note:improvement
+telemetry: All metrics should be present and available to prometheus scrapers when Consul starts. If any non-deprecated metrics are missing please submit an issue with its name.
+```

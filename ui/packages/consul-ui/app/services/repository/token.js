@@ -8,20 +8,24 @@ const isValidServerError = isValidServerErrorFactory();
 const status = statusFactory(isValidServerError, Promise);
 const MODEL_NAME = 'token';
 
-export default RepositoryService.extend({
-  getModelName: function() {
+export default class TokenService extends RepositoryService {
+  getModelName() {
     return MODEL_NAME;
-  },
-  getPrimaryKey: function() {
+  }
+
+  getPrimaryKey() {
     return PRIMARY_KEY;
-  },
-  getSlugKey: function() {
+  }
+
+  getSlugKey() {
     return SLUG_KEY;
-  },
-  status: function(obj) {
+  }
+
+  status(obj) {
     return status(obj);
-  },
-  self: function(secret, dc) {
+  }
+
+  self(secret, dc) {
     return this.store
       .self(this.getModelName(), {
         secret: secret,
@@ -38,22 +42,25 @@ export default RepositoryService.extend({
         }
         return Promise.reject(e);
       });
-  },
-  clone: function(item) {
+  }
+
+  clone(item) {
     return this.store.clone(this.getModelName(), get(item, PRIMARY_KEY));
-  },
-  findByPolicy: function(id, dc, nspace) {
+  }
+
+  findByPolicy(id, dc, nspace) {
     return this.store.query(this.getModelName(), {
       policy: id,
       dc: dc,
       ns: nspace,
     });
-  },
-  findByRole: function(id, dc, nspace) {
+  }
+
+  findByRole(id, dc, nspace) {
     return this.store.query(this.getModelName(), {
       role: id,
       dc: dc,
       ns: nspace,
     });
-  },
-});
+  }
+}
