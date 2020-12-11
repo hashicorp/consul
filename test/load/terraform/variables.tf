@@ -90,7 +90,7 @@ variable "private_subnet_cidrs" {
 variable "test_server_ami" {
   type        = string
   description = "The AMI ID from the Packer generated image"
-  default = null
+  default     = null
 }
 
 variable "test_instance_type" {

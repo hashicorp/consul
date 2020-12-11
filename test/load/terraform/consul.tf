@@ -31,7 +31,7 @@ module "consul_servers" {
   instance_type     = var.instance_type
   cluster_tag_value = var.cluster_name
 
-  ami_id    = var.consul_ami_id == null ?  data.aws_ami.consul.id : var.consul_ami_id
+  ami_id    = var.consul_ami_id == null ? data.aws_ami.consul.id : var.consul_ami_id
   user_data = data.template_file.user_data_server.rendered
 
   vpc_id                  = module.vpc.vpc_id
@@ -51,7 +51,7 @@ module "consul_clients" {
 
   cluster_tag_value = var.cluster_name
 
-  ami_id    = var.consul_ami_id == null ?  data.aws_ami.consul.id : var.consul_ami_id
+  ami_id    = var.consul_ami_id == null ? data.aws_ami.consul.id : var.consul_ami_id
   user_data = data.template_file.user_data_client.rendered
 
   vpc_id                  = module.vpc.vpc_id
