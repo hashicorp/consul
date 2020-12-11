@@ -9,42 +9,40 @@ import order from '../data/intro-navigation.js'
 
 const MDXProvider = createMdxProvider({ product: 'consul' })
 
-function IntroLayoutWrapper(pageMeta) {
-  function IntroLayout(props) {
-    const { children, ...propsWithoutChildren } = props
-    return (
-      <MDXProvider>
-        <DocsPage
-          {...propsWithoutChildren}
-          product="consul"
-          head={{
-            is: Head,
-            title: `${pageMeta.page_title} | Consul by HashiCorp`,
-            description: pageMeta.description,
-            siteName: 'Consul by HashiCorp',
-          }}
-          sidenav={{
-            Link,
-            category: 'intro',
-            currentPage: props.path,
-            data,
-            disableFilter: true,
-            order,
-          }}
-          resourceURL={`https://github.com/hashicorp/consul/blob/master/website/pages/${pageMeta.__resourcePath}`}
-        >
-          <SearchProvider>
-            <SearchBar />
-            {children}
-          </SearchProvider>
-        </DocsPage>
-      </MDXProvider>
-    )
-  }
-
-  IntroLayout.getInitialProps = ({ asPath }) => ({ path: asPath })
-
-  return IntroLayout
+export default function IntroLayout({
+  children,
+  frontMatter,
+  path,
+  ...propsWithoutChildren
+}) {
+  return (
+    <MDXProvider>
+      <DocsPage
+        {...propsWithoutChildren}
+        product="consul"
+        head={{
+          is: Head,
+          title: `${frontMatter.page_title} | Consul by HashiCorp`,
+          description: frontMatter.description,
+          siteName: 'Consul by HashiCorp',
+        }}
+        sidenav={{
+          Link,
+          category: 'intro',
+          currentPage: path,
+          data,
+          disableFilter: true,
+          order,
+        }}
+        resourceURL={`https://github.com/hashicorp/consul/blob/master/website/pages/${frontMatter.__resourcePath}`}
+      >
+        <SearchProvider>
+          <SearchBar />
+          {children}
+        </SearchProvider>
+      </DocsPage>
+    </MDXProvider>
+  )
 }
 
-export default IntroLayoutWrapper
+IntroLayout.getInitialProps = ({ asPath }) => ({ path: asPath })
