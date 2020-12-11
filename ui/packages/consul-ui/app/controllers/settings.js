@@ -3,26 +3,8 @@ import { get, set } from '@ember/object';
 import { inject as service } from '@ember/service';
 
 export default Controller.extend({
-  repo: service('settings'),
   dom: service('dom'),
-  timeout: service('timeout'),
-  confirming: false,
-  applyTransition: function() {
-    const tick = this.timeout.tick;
-    set(this, 'confirming', true);
-    tick().then(() => {
-      set(this, 'confirming', false);
-    });
-  },
   actions: {
-    key: function(e) {
-      this.applyTransition();
-      switch (true) {
-        case e.keyCode === 13:
-          // disable ENTER
-          e.preventDefault();
-      }
-    },
     change: function(e, value, item) {
       const event = this.dom.normalizeEvent(e, value);
       // TODO: Switch to using forms like the rest of the app
