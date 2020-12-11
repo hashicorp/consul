@@ -6,52 +6,68 @@ description: >-
   for all available features and options of Consul.
 ---
 
-# Consul Documentation
+import Button from '@hashicorp/react-button'
+import Introduction from '../../components/introduction'
+import Card from '../../components/card'
 
-Welcome to the Consul documentation! The documentation is reference material
-for all available features and options of Consul
+<p className="g-type-display-2 mt-xl">Consul Documentation</p>
+<p className="g-type-body-large">
+  Documentation, guides, and help topics for{' '}
+  <span className="note">add personas/titles.</span> Covers using{' '}
+  <span className="note">add most common features</span>, and everything you
+  need to make the most of Consul.
+</p>
 
-In the Quick Links below, you will find the most commonly used documentation
-and a link to our guides that walk you through common tasks. Note that the
-guides are located on the HashiCorp Learn site.
+<Introduction
+  brand="Consul"
+  description="Consul is a service mesh solution providing a full featured control plane with service discovery, configuration, and segmentation functionality."
+/>
 
-- Follow the documentation to [install Consul]() either with a precompiled binary or from source.
-- Read more about the [configuration options]() for Consul servers and clients.
-- Get started using Consul with our step-by-step guides at [HashiCorp Learn]().
-
-#### Take the next step with Vault
-
-## Getting started
-
+<p className="g-type-display-4 mt-xl">Getting started with Consul</p>
 <div className="cards">
-  <div className="card consul">
-    <a href="/docs/install">View tutorial</a> to install and use Consul on your
-    local machine.
-  </div>
-  <div className="card consul">
-    <a href="https://learn.hashicorp.com/consul">Install Consul</a> using a
-    precompiled binary, from source or on Kubernetes.
-  </div>
+  <Card
+    icon="video"
+    url="//learn.hashicorp.com/tutorials/consul/get-started-install"
+    brand="consul"
+  >
+    <strong>View tutorial</strong> to use Consul on your local machine.
+  </Card>
+  <Card icon="download" url="/docs/install" brand="consul">
+    <strong>Install Consul</strong> using precompiled binaries or source.
+  </Card>
 </div>
 
-## Explore resources
-
-<div className="cards">
-  <div className="card">
-    Cars, Kubernetes, and HashiCorp Consul. How Mercedes-Benz delivers on
-    service networking to accelerate delivery of its next-gen connected
-    vehicles.
-  </div>
-  <div className="card">
-    <a href="https://www.hashicorp.com/resources?product=Consul">
-      Explore Consul resources
-    </a>{' '}
-    using a precompiled binary, from source or on Kubernetes.
-  </div>
-  <div className="card">
-    <a href="https://www.hashicorp.com/resources?product=Consul">
-      Explore Consul resources
-    </a>{' '}
-    using a precompiled binary, from source or on Kubernetes.
-  </div>
+<p className="g-type-display-4 mt-xl">Featured resources</p>
+<div className="cards mb-m">
+  <Card
+    type="Certification"
+    url="https://www.hashicorp.com/certification/consul-associate"
+  >
+    <strong>Become certified</strong> with HashiCorp Networking Automation
+    Certification.
+  </Card>
+  <Card
+    type="Customer Story"
+    url="https://www.hashicorp.com/case-studies/mercedes"
+  >
+    <strong>Learn how</strong> Mercedes-Benz deployed Consul for service
+    networking.
+  </Card>
+  <Card
+    type="Demo"
+    url="https://www.hashicorp.com/resources/connecting-apps-across-the-cloud"
+  >
+    <strong>Learn how</strong> to connect apps across a multi-cloud environment
+    using Consul.
+  </Card>
 </div>
+
+<Button
+  title="View all Consul recources"
+  url="https://www.hashicorp.com/resources?product=Consul&language=English"
+  linkType="inbound"
+  theme={{
+    variant: 'tertiary-neutral',
+    brand: 'consul',
+  }}
+/>

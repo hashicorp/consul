@@ -1,18 +1,47 @@
 div.cards {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 32px;
+  gap: 24px;
 }
 
-.card {
-  margin: 0;
-  padding: 16px 20px;
-  border: 1px solid #dcdde0;
-  border-radius: 3px;
-  color: black;
+div.card p.label {
+  margin-bottom: 1em !important;
+  color: var(--gray-4);
 }
 
-div.card.consul {
-  border: 1px solid #e07eac;
-  background-color: #fff2f8;
+p.g-type-display-4.mt-xl {
+  margin-top: 3em !important;
+}
+
+hr.short {
+  margin: 3em 0;
+  width: 2em;
+  height: 4px;
+  color: #bdbec2;
+  background-color: #bdbec2;
+}
+
+.note {
+  /* font-style: italic; */
+  color: #f0f;
+}
+
+.mt-zero {
+  margin-top: 0 !important;
+}
+
+.mt-s {
+  margin-top: 8px !important;
+}
+
+.mb-m {
+  margin-bottom: 12px !important;
+}
+
+.mt-xl {
+  margin-top: 48px !important;
+}
+
+.mb-zero {
+  margin-bottom: 0 !important;
 }
