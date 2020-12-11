@@ -1,4 +1,5 @@
 import Helper from '@ember/component/helper';
+import { get } from '@ember/object';
 
 import { Collection as Service } from 'consul-ui/models/service';
 import { Collection as ServiceInstance } from 'consul-ui/models/service-instance';
@@ -12,7 +13,7 @@ export default class CollectionHelper extends Helper {
   compute([collection, str], hash) {
     if (collection.length > 0) {
       // TODO: Looksee if theres ever going to be a public way to get this
-      const modelName = collection[0]._internalModel.modelName;
+      const modelName = get(collection, 'firstObject')._internalModel.modelName;
       const Collection = collections[modelName];
       return new Collection(collection);
     } else {
