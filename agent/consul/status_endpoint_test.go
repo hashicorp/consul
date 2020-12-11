@@ -60,6 +60,10 @@ func insecureRPCClient(s *Server, c tlsutil.Config) (rpc.ClientCodec, error) {
 }
 
 func TestStatusLeader(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -87,6 +91,10 @@ func TestStatusLeader(t *testing.T) {
 }
 
 func TestStatusLeader_ForwardDC(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerDC(t, "primary")
 	defer os.RemoveAll(dir1)
@@ -131,6 +139,10 @@ func TestStatusPeers(t *testing.T) {
 }
 
 func TestStatusPeers_ForwardDC(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerDC(t, "primary")
 	defer os.RemoveAll(dir1)

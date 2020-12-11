@@ -45,6 +45,10 @@ func TestRTTCommand_BadArgs(t *testing.T) {
 }
 
 func TestRTTCommand_LAN(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, `
 		consul = {
@@ -154,6 +158,10 @@ func TestRTTCommand_LAN(t *testing.T) {
 }
 
 func TestRTTCommand_WAN(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()

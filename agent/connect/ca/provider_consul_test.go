@@ -113,6 +113,10 @@ func TestConsulCAProvider_Bootstrap_WithCert(t *testing.T) {
 }
 
 func TestConsulCAProvider_SignLeaf(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	for _, tc := range KeyTestCases {
@@ -221,6 +225,10 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 }
 
 func TestConsulCAProvider_CrossSignCA(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	tests := CASigningKeyTypeCases()
@@ -339,6 +347,10 @@ func testCrossSignProviders(t *testing.T, provider1, provider2 Provider) {
 }
 
 func TestConsulProvider_SignIntermediate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	tests := CASigningKeyTypeCases()

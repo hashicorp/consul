@@ -24,6 +24,10 @@ func TestRoleUpdateCommand_noTabs(t *testing.T) {
 }
 
 func TestRoleUpdateCommand(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := agent.NewTestAgent(t, `
@@ -194,6 +198,10 @@ func TestRoleUpdateCommand(t *testing.T) {
 }
 
 func TestRoleUpdateCommand_JSON(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := agent.NewTestAgent(t, `
@@ -273,6 +281,10 @@ func TestRoleUpdateCommand_JSON(t *testing.T) {
 }
 
 func TestRoleUpdateCommand_noMerge(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := agent.NewTestAgent(t, `

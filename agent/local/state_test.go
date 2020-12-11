@@ -30,6 +30,10 @@ func unNilMap(in map[string]string) map[string]string {
 }
 
 func TestAgentAntiEntropy_Services(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -250,6 +254,10 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 }
 
 func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	assert := assert.New(t)
@@ -414,6 +422,10 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 }
 
 func TestAgent_ServiceWatchCh(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -498,6 +510,10 @@ func TestAgent_ServiceWatchCh(t *testing.T) {
 }
 
 func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -629,6 +645,10 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 }
 
 func TestAgentAntiEntropy_Services_WithChecks(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -759,6 +779,10 @@ var testRegisterRules = `
  `
 
 func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, `
 		acl_datacenter = "dc1"
@@ -906,6 +930,10 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 }
 
 func TestAgentAntiEntropy_Checks(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -1098,6 +1126,10 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 }
 
 func TestAgentAntiEntropy_RemovingServiceAndCheck(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -1173,6 +1205,10 @@ func TestAgentAntiEntropy_RemovingServiceAndCheck(t *testing.T) {
 }
 
 func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dc := "dc1"
 	a := &agent.TestAgent{HCL: `
@@ -1392,6 +1428,10 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 }
 
 func TestAgent_UpdateCheck_DiscardOutput(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, `
 		discard_check_output = true
@@ -1443,6 +1483,10 @@ func TestAgent_UpdateCheck_DiscardOutput(t *testing.T) {
 }
 
 func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := &agent.TestAgent{HCL: `
 		check_update_interval = "500ms"
@@ -1647,6 +1691,10 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 }
 
 func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	nodeID := types.NodeID("40e4a748-2192-161a-0510-9bf59fe950b5")
 	nodeMeta := map[string]string{
@@ -1967,6 +2015,10 @@ func TestAgent_AliasCheck_ServiceNotification(t *testing.T) {
 }
 
 func TestAgent_sendCoordinate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.StartTestAgent(t, agent.TestAgent{Overrides: `
 		sync_coordinate_interval_min = "1ms"
@@ -2098,6 +2150,10 @@ func TestState_Notify(t *testing.T) {
 
 // Test that alias check is updated after AddCheck, UpdateCheck, and RemoveCheck for the same service id
 func TestAliasNotifications_local(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := agent.NewTestAgent(t, "")

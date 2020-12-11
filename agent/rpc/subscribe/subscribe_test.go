@@ -584,6 +584,10 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 
 func TestServer_Subscribe_IntegrationWithBackend_FilterEventsByACLToken(t *testing.T) {
 	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	if testing.Short() {
 		t.Skip("too slow for -short run")
 	}
 

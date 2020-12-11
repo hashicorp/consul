@@ -16,6 +16,10 @@ import (
 )
 
 func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	s := testStateStore(t)
 
 	// SessionGet returns nil if the session doesn't exist

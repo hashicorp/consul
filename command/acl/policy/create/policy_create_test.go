@@ -23,6 +23,10 @@ func TestPolicyCreateCommand_noTabs(t *testing.T) {
 }
 
 func TestPolicyCreateCommand(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	require := require.New(t)
 
@@ -60,6 +64,10 @@ func TestPolicyCreateCommand(t *testing.T) {
 }
 
 func TestPolicyCreateCommand_JSON(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	require := require.New(t)
 

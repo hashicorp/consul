@@ -17,6 +17,10 @@ func TestMembersCommand_noTabs(t *testing.T) {
 }
 
 func TestMembersCommand(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -49,6 +53,10 @@ func TestMembersCommand(t *testing.T) {
 }
 
 func TestMembersCommand_WAN(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -70,6 +78,10 @@ func TestMembersCommand_WAN(t *testing.T) {
 }
 
 func TestMembersCommand_statusFilter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -94,6 +106,10 @@ func TestMembersCommand_statusFilter(t *testing.T) {
 }
 
 func TestMembersCommand_statusFilter_failed(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -122,6 +138,10 @@ func TestMembersCommand_statusFilter_failed(t *testing.T) {
 }
 
 func TestMembersCommand_verticalBar(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	nodeName := "name|with|bars"

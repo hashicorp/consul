@@ -74,6 +74,10 @@ func (m *MockPreparedQuery) Explain(args *structs.PreparedQueryExecuteRequest,
 }
 
 func TestPreparedQuery_Create(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -162,6 +166,10 @@ func TestPreparedQuery_Create(t *testing.T) {
 }
 
 func TestPreparedQuery_List(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	t.Run("", func(t *testing.T) {
 		a := NewTestAgent(t, "")
@@ -245,6 +253,10 @@ func TestPreparedQuery_List(t *testing.T) {
 }
 
 func TestPreparedQuery_Execute(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	t.Run("", func(t *testing.T) {
 		a := NewTestAgent(t, "")
@@ -618,6 +630,10 @@ func TestPreparedQuery_Execute(t *testing.T) {
 }
 
 func TestPreparedQuery_ExecuteCached(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, "")
@@ -675,6 +691,10 @@ func TestPreparedQuery_ExecuteCached(t *testing.T) {
 }
 
 func TestPreparedQuery_Explain(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	t.Run("", func(t *testing.T) {
 		a := NewTestAgent(t, "")
@@ -770,6 +790,10 @@ func TestPreparedQuery_Explain(t *testing.T) {
 }
 
 func TestPreparedQuery_Get(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	t.Run("", func(t *testing.T) {
 		a := NewTestAgent(t, "")
@@ -836,6 +860,10 @@ func TestPreparedQuery_Get(t *testing.T) {
 }
 
 func TestPreparedQuery_Update(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -914,6 +942,10 @@ func TestPreparedQuery_Update(t *testing.T) {
 }
 
 func TestPreparedQuery_Delete(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -991,6 +1023,10 @@ func TestPreparedQuery_parseLimit(t *testing.T) {
 // this is just a basic end-to-end sanity check to make sure things are wired
 // correctly when calling through to the real endpoints.
 func TestPreparedQuery_Integration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()

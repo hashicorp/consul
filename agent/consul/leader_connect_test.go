@@ -25,6 +25,10 @@ import (
 )
 
 func TestLeader_SecondaryCA_Initialize(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	tests := []struct {
@@ -292,6 +296,10 @@ func TestLeader_Vault_PrimaryCA_IntermediateRenew(t *testing.T) {
 }
 
 func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	// no parallel execution because we change globals
 	origInterval := structs.IntermediateCertRenewInterval
 	origMinTTL := structs.MinLeafCertTTL
@@ -420,6 +428,10 @@ func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
 }
 
 func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -567,6 +579,10 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 }
 
 func TestLeader_SecondaryCA_FixSigningKeyID_via_IntermediateRefresh(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
@@ -666,6 +682,10 @@ func TestLeader_SecondaryCA_FixSigningKeyID_via_IntermediateRefresh(t *testing.T
 }
 
 func TestLeader_SecondaryCA_TransitionFromPrimary(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	// Initialize dc1 as the primary DC
@@ -754,6 +774,10 @@ func TestLeader_SecondaryCA_TransitionFromPrimary(t *testing.T) {
 }
 
 func TestLeader_SecondaryCA_UpgradeBeforePrimary(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	// Initialize dc1 as the primary DC
@@ -895,6 +919,10 @@ func TestLeader_GenerateCASignRequest(t *testing.T) {
 }
 
 func TestLeader_CARootPruning(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	caRootPruneInterval = 200 * time.Millisecond
@@ -957,6 +985,10 @@ func TestLeader_CARootPruning(t *testing.T) {
 }
 
 func TestLeader_PersistIntermediateCAs(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -1130,6 +1162,10 @@ func TestLeader_lessThanHalfTimePassed(t *testing.T) {
 }
 
 func TestLeader_retryLoopBackoffHandleSuccess(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	type test struct {
 		desc     string
 		loopFn   func() error

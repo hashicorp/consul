@@ -16,6 +16,10 @@ func TestKVImportCommand_noTabs(t *testing.T) {
 }
 
 func TestKVImportCommand(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()

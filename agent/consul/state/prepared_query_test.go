@@ -35,6 +35,10 @@ func TestStateStore_PreparedQuery_isUUID(t *testing.T) {
 }
 
 func TestStateStore_PreparedQuerySet_PreparedQueryGet(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	s := testStateStore(t)
 
 	// Querying with no results returns nil.

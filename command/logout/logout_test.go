@@ -24,6 +24,10 @@ func TestLogout_noTabs(t *testing.T) {
 }
 
 func TestLogoutCommand(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := agent.NewTestAgent(t, `
@@ -150,6 +154,10 @@ func TestLogoutCommand(t *testing.T) {
 }
 
 func TestLogoutCommand_k8s(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := agent.NewTestAgent(t, `

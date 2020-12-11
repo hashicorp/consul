@@ -96,6 +96,10 @@ func setupPrimaryServer(t *testing.T) *agent.TestAgent {
 }
 
 func TestTestAgentLeaks_Server(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	/*
 		Eventually go routine leak checking should be moved into other packages such as the agent
 		and agent/consul packages. However there are too many leaks for the test to run properly.

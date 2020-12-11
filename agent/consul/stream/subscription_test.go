@@ -11,6 +11,10 @@ import (
 func noopUnSub() {}
 
 func TestSubscription(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	eb := newEventBuffer()
 
 	index := uint64(100)
@@ -87,6 +91,10 @@ func TestSubscription(t *testing.T) {
 }
 
 func TestSubscription_Close(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	eb := newEventBuffer()
 	index := uint64(100)
 	startHead := eb.Head()

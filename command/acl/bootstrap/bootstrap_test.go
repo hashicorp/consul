@@ -22,6 +22,10 @@ func TestBootstrapCommand_noTabs(t *testing.T) {
 }
 
 func TestBootstrapCommand_Pretty(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	assert := assert.New(t)
 
@@ -50,6 +54,10 @@ func TestBootstrapCommand_Pretty(t *testing.T) {
 }
 
 func TestBootstrapCommand_JSON(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	assert := assert.New(t)
 

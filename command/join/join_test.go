@@ -16,6 +16,10 @@ func TestJoinCommand_noTabs(t *testing.T) {
 }
 
 func TestJoinCommandJoin_lan(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a1 := agent.NewTestAgent(t, ``)
 	a2 := agent.NewTestAgent(t, ``)
@@ -40,6 +44,10 @@ func TestJoinCommandJoin_lan(t *testing.T) {
 }
 
 func TestJoinCommand_wan(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a1 := agent.NewTestAgent(t, ``)
 	a2 := agent.NewTestAgent(t, ``)

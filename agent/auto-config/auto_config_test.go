@@ -229,6 +229,10 @@ func TestInitialConfiguration_disabled(t *testing.T) {
 }
 
 func TestInitialConfiguration_cancelled(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	mcfg := newMockedConfig(t)
 
 	loader := setupRuntimeConfig(t)

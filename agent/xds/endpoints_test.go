@@ -218,6 +218,9 @@ func Test_makeLoadAssignment(t *testing.T) {
 }
 
 func Test_endpointsFromSnapshot(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
 
 	tests := []struct {
 		name   string

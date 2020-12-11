@@ -49,6 +49,10 @@ func assertLastReqArgs(t *testing.T, types *TestCacheTypes, token string, source
 }
 
 func TestManager_BasicLifecycle(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	// Create a bunch of common data for the various test cases.
 	roots, leaf := TestCerts(t)
 

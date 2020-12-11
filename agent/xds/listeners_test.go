@@ -18,6 +18,9 @@ import (
 )
 
 func TestListenersFromSnapshot(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
 
 	tests := []struct {
 		name   string

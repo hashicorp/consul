@@ -30,6 +30,10 @@ func testParseCert(t *testing.T, pemValue string) *x509.Certificate {
 
 // Test listing root CAs.
 func TestConnectCARoots(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	assert := assert.New(t)
@@ -74,6 +78,10 @@ func TestConnectCARoots(t *testing.T) {
 }
 
 func TestConnectCAConfig_GetSet(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	assert := assert.New(t)
@@ -145,6 +153,10 @@ func TestConnectCAConfig_GetSet(t *testing.T) {
 }
 
 func TestConnectCAConfig_GetSet_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
@@ -235,6 +247,10 @@ pY0heYeK9A6iOLrzqxSerkXXQyj5e9bE4VgUnxgPU6g=
 // signing works when requested (and is denied when not requested). This occurs
 // if the current CA is not able to cross sign external CA certificates.
 func TestConnectCAConfig_GetSetForceNoCrossSigning(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -338,6 +354,10 @@ func TestConnectCAConfig_GetSetForceNoCrossSigning(t *testing.T) {
 }
 
 func TestConnectCAConfig_TriggerRotation(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	assert := assert.New(t)
@@ -493,6 +513,10 @@ func TestConnectCAConfig_TriggerRotation(t *testing.T) {
 }
 
 func TestConnectCAConfig_UpdateSecondary(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	assert := assert.New(t)
@@ -649,6 +673,10 @@ func TestConnectCAConfig_UpdateSecondary(t *testing.T) {
 
 // Test CA signing
 func TestConnectCASign(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	tests := []struct {
@@ -751,6 +779,10 @@ func BenchmarkConnectCASign(b *testing.B) {
 }
 
 func TestConnectCASign_rateLimit(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -812,6 +844,10 @@ func TestConnectCASign_rateLimit(t *testing.T) {
 }
 
 func TestConnectCASign_concurrencyLimit(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -916,6 +952,10 @@ func TestConnectCASign_concurrencyLimit(t *testing.T) {
 }
 
 func TestConnectCASignValidation(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
