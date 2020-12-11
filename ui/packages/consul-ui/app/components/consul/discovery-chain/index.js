@@ -73,6 +73,37 @@ export default Component.extend({
     }
     return routes;
   }),
+  nodes: computed('routes', 'splitters', 'resolvers', function() {
+    let nodes = this.resolvers.reduce((prev, item) => {
+      prev[`resolver:${item.ID}`] = item;
+      item.Children.reduce((prev, item) => {
+        prev[`resolver:${item.ID}`] = item;
+        return prev;
+      }, prev);
+      return prev;
+    }, {});
+    nodes = this.splitters.reduce((prev, item) => {
+      prev[item.ID] = item;
+      return prev;
+    }, nodes);
+    nodes = this.routes.reduce((prev, item) => {
+      prev[item.ID] = item;
+      return prev;
+    }, nodes);
+    Object.entries(nodes).forEach(([key, value]) => {
+      if (typeof value.NextNode !== 'undefined') {
+        value.NextItem = nodes[value.NextNode];
+      }
+      if (typeof value.Splits !== 'undefined') {
+        value.Splits.forEach(item => {
+          if (typeof item.NextNode !== 'undefined') {
+            item.NextItem = nodes[item.NextNode];
+          }
+        });
+      }
+    });
+    return '';
+  }),
   resolvers: computed('chain.{Nodes,Targets}', function() {
     return getResolvers(
       this.chain.Datacenter,
@@ -116,12 +147,6 @@ export default Component.extend({
       nodes: nodes.map(item => `#${CSS.escape(item)}`),
       edges: edges.map(item => `#${CSS.escape(item)}`),
     };
-  }),
-  width: computed('chain.{Nodes,Targets}', function() {
-    return this.element.offsetWidth;
-  }),
-  height: computed('chain.{Nodes,Targets}', function() {
-    return this.element.offsetHeight;
   }),
   actions: {
     click: function(e) {

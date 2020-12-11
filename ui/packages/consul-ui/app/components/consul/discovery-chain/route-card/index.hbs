@@ -2,6 +2,7 @@
   class="route-card"
   onclick={{@onclick}}
   id={{@item.ID}}
+  ...attributes
 >
   <header class={{if (eq this.path.value '/') 'short'}}>
 {{#if (gt @item.Definition.Match.HTTP.Methods.length 0) }}
