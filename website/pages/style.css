@@ -11,7 +11,7 @@
 @import '~@hashicorp/react-alert-banner/style.css';
 @import '~@hashicorp/react-button/styles/index.css';
 @import '~@hashicorp/react-call-to-action/style.css';
-@import '~@hashicorp/react-code-block/dist/style.css';
+@import '~@hashicorp/react-code-block/style.css';
 @import '~@hashicorp/react-consent-manager/dist/style.css';
 @import '~@hashicorp/react-content/style.css';
 @import '~@hashicorp/react-docs-page/style.css';
@@ -24,7 +24,6 @@
 @import '~@hashicorp/react-section-header/style.css';
 @import '~@hashicorp/react-subnav/style.css';
 @import '~@hashicorp/react-tabs/dist/style.css';
-@import '~@hashicorp/react-text-split-with-code/style.css';
 @import '~@hashicorp/react-text-split/style.css';
 @import '~@hashicorp/react-toggle/dist/style.css';
 @import '~@hashicorp/react-use-cases/dist/style.css';
