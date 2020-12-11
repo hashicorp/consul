@@ -1119,23 +1119,23 @@ Valid time units are 'ns', 'us' (or 'µs'), 'ms', 's', 'm', 'h'."
   within a double quoted string value must be escaped with a backslash `\`.
   Some example templates:
 
-    <Tabs>
+<Tabs>
 <Tab heading="HCL">
 
-  ```hcl
-  bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr \"address\" }}"
-  ```
+```hcl
+bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr \"address\" }}"
+```
 
-    </Tab>
+</Tab>
 <Tab heading="JSON">
 
-  ```json
-  {
-    "bind_addr": "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr \"address\" }}"
-  }
-  ```
+```json
+{
+  "bind_addr": "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr \"address\" }}"
+}
+```
 
-    </Tab>
+</Tab>
 </Tabs>
 
 - `cache` configuration for client agents. The configurable values are the following:
