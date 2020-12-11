@@ -1,5 +1,10 @@
 import Service from '@ember/service';
 
+// promise aware assertion
+export const ifNotBlocking = function(repo) {
+  return Promise.resolve(repo.get().refresh === 'off');
+};
+
 export default class UiConfigService extends Service {
   config = undefined;
 

@@ -2,25 +2,22 @@ import Service, { inject as service } from '@ember/service';
 import { get } from '@ember/object';
 
 import { BlockingEventSource as EventSource } from 'consul-ui/utils/dom/event-source';
-import { ifNotBlocking } from 'consul-ui/services/settings';
+import { ifNotBlocking } from 'consul-ui/services/ui-config';
 import { restartWhenAvailable } from 'consul-ui/services/client/http';
 import maybeCall from 'consul-ui/utils/maybe-call';
 
 export default class BlockingService extends Service {
-  @service('client/http')
-  client;
-
-  @service('settings')
-  settings;
+  @service('client/http') client;
+  @service('ui-config') config;
 
   source(find, configuration) {
     return new EventSource((configuration, source) => {
       const close = source.close.bind(source);
       const deleteCursor = () => (configuration.cursor = undefined);
       //
-      return maybeCall(deleteCursor, ifNotBlocking(this.settings))().then(() => {
+      return maybeCall(deleteCursor, ifNotBlocking(this.config))().then(() => {
         return find(configuration)
-          .then(maybeCall(close, ifNotBlocking(this.settings)))
+          .then(maybeCall(close, ifNotBlocking(this.config)))
           .then(function(res = {}) {
             const meta = get(res, 'meta') || {};
             if (typeof meta.cursor === 'undefined' && typeof meta.interval === 'undefined') {
