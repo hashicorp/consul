@@ -3,14 +3,9 @@ import { alias } from '@ember/object/computed';
 import Controller from '@ember/controller';
 import { get, action } from '@ember/object';
 export default class ShowController extends Controller {
-  @service('dom')
-  dom;
+  @service('flashMessages') notify;
 
-  @service('flashMessages')
-  notify;
-
-  @alias('items.firstObject')
-  item;
+  @alias('items.firstObject') item;
 
   @action
   error(e) {
