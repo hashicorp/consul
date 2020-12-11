@@ -1,3 +1,24 @@
+data "aws_ami" "test" {
+  most_recent = true
+
+  owners = var.ami_owners
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  filter {
+    name   = "is-public"
+    values = ["false"]
+  }
+
+  filter {
+    name   = "name"
+    values = ["consul-test-*"]
+  }
+}
+
 # ---------------------------------------------------------------------------------------------------------------------
 # Start up test servers to run tests from
 # ---------------------------------------------------------------------------------------------------------------------
@@ -27,7 +48,7 @@ resource "aws_security_group" "test-servers" {
 }
 
 resource "aws_instance" "test-server" {
-  ami                         = var.test_server_ami
+  ami                         = var.test_server_ami == null ? data.aws_ami.test.id: var.test_server_ami
   instance_type               = var.test_instance_type
   key_name                    = module.keys.key_name
   vpc_security_group_ids      = toset([aws_security_group.test-servers.id])
