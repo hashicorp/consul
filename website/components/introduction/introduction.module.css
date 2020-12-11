@@ -1,0 +1,19 @@
+.video {
+  display: grid;
+  grid-template-columns: 96px auto;
+  gap: 24px;
+}
+
+.content {
+  align-self: end;
+}
+
+.button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 96px;
+  height: 96px;
+  border-radius: 3px;
+  background-color: #ca2171;
+}
