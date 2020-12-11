@@ -788,6 +788,7 @@ type AutoConfigAuthorizerRaw struct {
 type RawUIConfig struct {
 	Enabled                    *bool             `json:"enabled,omitempty" hcl:"enabled" mapstructure:"enabled"`
 	Dir                        *string           `json:"dir,omitempty" hcl:"dir" mapstructure:"dir"`
+	Refresh                    *string           `json:"refresh,omitempty" hcl:"refresh" mapstructure:"refresh"`
 	ContentPath                *string           `json:"content_path,omitempty" hcl:"content_path" mapstructure:"content_path"`
 	MetricsProvider            *string           `json:"metrics_provider,omitempty" hcl:"metrics_provider" mapstructure:"metrics_provider"`
 	MetricsProviderFiles       []string          `json:"metrics_provider_files,omitempty" hcl:"metrics_provider_files" mapstructure:"metrics_provider_files"`

@@ -1531,6 +1531,7 @@ type AutoConfigAuthorizer struct {
 type UIConfig struct {
 	Enabled                    bool
 	Dir                        string
+	Refresh                    string
 	ContentPath                string
 	MetricsProvider            string
 	MetricsProviderFiles       []string

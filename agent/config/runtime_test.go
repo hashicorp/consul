@@ -5642,6 +5642,7 @@ func TestFullConfig(t *testing.T) {
 				"enabled": true,
 				"dir": "pVncV4Ey",
 				"content_path": "qp1WRhYH",
+				"refresh": "blocking",
 				"metrics_provider": "sgnaoa_lower_case",
 				"metrics_provider_files": ["sgnaMFoa", "dicnwkTH"],
 				"metrics_provider_options_json": "{\"DIbVQadX\": 1}",
@@ -6333,6 +6334,7 @@ func TestFullConfig(t *testing.T) {
 				enabled = true
 				dir = "pVncV4Ey"
 				content_path = "qp1WRhYH"
+				refresh = "blocking"
 				metrics_provider = "sgnaoa_lower_case"
 				metrics_provider_files = ["sgnaMFoa", "dicnwkTH"]
 				metrics_provider_options_json = "{\"DIbVQadX\": 1}"
@@ -7129,6 +7131,7 @@ func TestFullConfig(t *testing.T) {
 			Enabled:                    true,
 			Dir:                        "pVncV4Ey",
 			ContentPath:                "/qp1WRhYH/", // slashes are added in parsing
+			Refresh:                    "blocking",
 			MetricsProvider:            "sgnaoa_lower_case",
 			MetricsProviderFiles:       []string{"sgnaMFoa", "dicnwkTH"},
 			MetricsProviderOptionsJSON: "{\"DIbVQadX\": 1}",
@@ -7833,6 +7836,7 @@ func TestSanitize(t *testing.T) {
 		"TxnMaxReqLen": 5678000000000000,
 		"UIConfig": {
 			"ContentPath": "",
+			"Refresh": "",
 			"Dir": "",
 			"Enabled": false,
 			"MetricsProvider": "",

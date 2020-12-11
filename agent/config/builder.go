@@ -1133,6 +1133,14 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 // underscore and dash and is non-empty.
 var reBasicName = regexp.MustCompile("^[a-z0-9_-]+$")
 
+func validateUIConfigRefresh(value string) error {
+	if value == "blocking" || value == "off" {
+		return nil
+	}
+	return fmt.Errorf("ui_config.refresh can only be one of 'blocking' or 'off'."+
+			" received: %q", value)
+}
+
 func validateBasicName(field, value string, allowEmpty bool) error {
 	if value == "" {
 		if allowEmpty {
@@ -1174,6 +1182,10 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 
 	if hasVersion.MatchString(rt.UIConfig.ContentPath) {
 		return fmt.Errorf("ui-content-path cannot have 'v[0-9]'. received: %q", rt.UIConfig.ContentPath)
+	}
+
+	if err := validateUIConfigRefresh(rt.UIConfig.Refresh); err != nil {
+		return err
 	}
 
 	if err := validateBasicName("ui_config.metrics_provider", rt.UIConfig.MetricsProvider, true); err != nil {
@@ -1749,6 +1761,7 @@ func (b *Builder) uiConfigVal(v RawUIConfig) UIConfig {
 	return UIConfig{
 		Enabled:                    b.boolVal(v.Enabled),
 		Dir:                        b.stringVal(v.Dir),
+		Refresh:                    b.stringValWithDefault(v.Refresh, "blocking"),
 		ContentPath:                UIPathBuilder(b.stringVal(v.ContentPath)),
 		MetricsProvider:            b.stringVal(v.MetricsProvider),
 		MetricsProviderFiles:       v.MetricsProviderFiles,
@@ -1757,6 +1770,8 @@ func (b *Builder) uiConfigVal(v RawUIConfig) UIConfig {
 		DashboardURLTemplates:      v.DashboardURLTemplates,
 	}
 }
+
+
 
 func (b *Builder) uiMetricsProxyVal(v RawUIMetricsProxy) UIMetricsProxy {
 	var hdrs []UIMetricsProxyAddHeader
