@@ -1754,7 +1754,7 @@ func NewCheckID(id types.CheckID, entMeta *EnterpriseMeta) CheckID {
 
 // StringHash is used mainly to populate part of the filename of a check
 // definition persisted on the local agent
-func (cid *CheckID) StringHash() string {
+func (cid CheckID) StringHash() string {
 	hasher := md5.New()
 	hasher.Write([]byte(cid.ID))
 	cid.EnterpriseMeta.addToHash(hasher, true)
@@ -1778,33 +1778,17 @@ func NewServiceID(id string, entMeta *EnterpriseMeta) ServiceID {
 	return sid
 }
 
-func (sid *ServiceID) Matches(other *ServiceID) bool {
-	if sid == nil && other == nil {
-		return true
-	}
-
-	if sid == nil || other == nil || sid.ID != other.ID || !sid.EnterpriseMeta.Matches(&other.EnterpriseMeta) {
-		return false
-	}
-
-	return true
+func (sid ServiceID) Matches(other ServiceID) bool {
+	return sid.ID == other.ID && sid.EnterpriseMeta.Matches(&other.EnterpriseMeta)
 }
 
 // StringHash is used mainly to populate part of the filename of a service
 // definition persisted on the local agent
-func (sid *ServiceID) StringHash() string {
+func (sid ServiceID) StringHash() string {
 	hasher := md5.New()
 	hasher.Write([]byte(sid.ID))
 	sid.EnterpriseMeta.addToHash(hasher, true)
 	return fmt.Sprintf("%x", hasher.Sum(nil))
-}
-
-func (sid *ServiceID) LessThan(other *ServiceID) bool {
-	if sid.EnterpriseMeta.LessThan(&other.EnterpriseMeta) {
-		return true
-	}
-
-	return sid.ID < other.ID
 }
 
 type IndexedNodes struct {
@@ -1837,28 +1821,12 @@ func NewServiceName(name string, entMeta *EnterpriseMeta) ServiceName {
 	return ret
 }
 
-func (n *ServiceName) Matches(o *ServiceName) bool {
-	if n == nil && o == nil {
-		return true
-	}
-
-	if n == nil || o == nil || n.Name != o.Name || !n.EnterpriseMeta.Matches(&o.EnterpriseMeta) {
-		return false
-	}
-
-	return true
+func (n ServiceName) Matches(o ServiceName) bool {
+	return n.Name == o.Name && n.EnterpriseMeta.Matches(&o.EnterpriseMeta)
 }
 
-func (n *ServiceName) ToServiceID() ServiceID {
+func (n ServiceName) ToServiceID() ServiceID {
 	return ServiceID{ID: n.Name, EnterpriseMeta: n.EnterpriseMeta}
-}
-
-func (n *ServiceName) LessThan(other *ServiceName) bool {
-	if n.EnterpriseMeta.LessThan(&other.EnterpriseMeta) {
-		return true
-	}
-
-	return n.Name < other.Name
 }
 
 type ServiceList []ServiceName

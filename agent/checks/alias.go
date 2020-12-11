@@ -156,8 +156,7 @@ RETRY_CALL:
 		return false, err
 	}
 	for _, srv := range out.NodeServices.Services {
-		sid := srv.CompoundServiceID()
-		if serviceID.Matches(&sid) {
+		if serviceID.Matches(srv.CompoundServiceID()) {
 			return true, nil
 		}
 	}
@@ -250,8 +249,7 @@ func (c *CheckAlias) processChecks(checks []*structs.HealthCheck, CheckIfService
 		if c.Node != "" && c.Node != chk.Node {
 			continue
 		}
-		sid := chk.CompoundServiceID()
-		serviceMatch := c.ServiceID.Matches(&sid)
+		serviceMatch := c.ServiceID.Matches(chk.CompoundServiceID())
 		if chk.ServiceID != "" && !serviceMatch {
 			continue
 		}

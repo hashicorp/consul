@@ -687,7 +687,7 @@ func (l *State) ChecksForService(serviceID structs.ServiceID, includeNodeChecks 
 
 		if c.Check.ServiceID != "" {
 			sid := c.Check.CompoundServiceID()
-			if !serviceID.Matches(&sid) {
+			if !serviceID.Matches(sid) {
 				continue
 			}
 		} else if !includeNodeChecks {
@@ -1150,7 +1150,7 @@ func (l *State) deleteService(key structs.ServiceID) error {
 		for _, c := range l.checks {
 			if c.Deleted && c.Check != nil {
 				sid := c.Check.CompoundServiceID()
-				if sid.Matches(&key) {
+				if sid.Matches(key) {
 					l.pruneCheck(c.Check.CompoundCheckID())
 				}
 			}
@@ -1239,8 +1239,7 @@ func (l *State) syncService(key structs.ServiceID) error {
 		if c.Deleted || c.InSync {
 			continue
 		}
-		sid := c.Check.CompoundServiceID()
-		if !key.Matches(&sid) {
+		if !key.Matches(c.Check.CompoundServiceID()) {
 			continue
 		}
 		if st != l.checkToken(checkKey) {
