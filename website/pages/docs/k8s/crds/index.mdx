@@ -18,21 +18,21 @@ cluster-wide defaults for the service mesh.
 
 We currently support the follow configuration entry kinds:
 
-- [`proxy-defaults`](/docs/agent/config-entries/proxy-defaults)
-- [`service-defaults`](/docs/agent/config-entries/service-defaults)
-- [`service-splitter`](/docs/agent/config-entries/service-splitter)
-- [`service-router`](/docs/agent/config-entries/service-router)
-- [`service-resolver`](/docs/agent/config-entries/service-resolver)
-- [`service-intentions`](/docs/agent/config-entries/service-intentions) (requires Consul >= 1.9.0)
+- [`ProxyDefaults`](/docs/agent/config-entries/proxy-defaults)
+- [`ServiceDefaults`](/docs/agent/config-entries/service-defaults)
+- [`ServiceSplitter`](/docs/agent/config-entries/service-splitter)
+- [`ServiceRouter`](/docs/agent/config-entries/service-router)
+- [`ServiceResolver`](/docs/agent/config-entries/service-resolver)
+- [`ServiceIntentions`](/docs/agent/config-entries/service-intentions) (requires Consul >= 1.9.0)
 
 The following kinds are **not** currently supported:
 
-- [`ingress-gateway`](/docs/agent/config-entries/ingress-gateway)
-- [`terminating-gateway`](/docs/agent/config-entries/terminating-gateway)
+- [`IngressGateway`](/docs/agent/config-entries/ingress-gateway)
+- [`TerminatingGateway`](/docs/agent/config-entries/terminating-gateway)
 
 ## Installation
 
-Ensure you have version `0.26.0` of the helm chart:
+Ensure you have version `0.26.0` of the helm chart or greater:
 
 ```shell-session
 $ helm search repo hashicorp/consul
@@ -40,7 +40,7 @@ NAME            	CHART VERSION	APP VERSION	DESCRIPTION
 hashicorp/consul	0.26.0       	1.8.5      	Official HashiCorp Consul Chart
 ```
 
-If you don't have `0.26.0`, you will need to update your helm repository cache:
+If you don't have `0.26.0` or greater, you will need to update your helm repository cache:
 
 ```shell-session
 $ helm repo update
@@ -55,8 +55,7 @@ and enable the controller that acts on them:
 ```yaml
 global:
   name: consul
-  image: 'consul:1.9.0-beta1' # consul >= 1.8.4 must be used
-  imageK8S: 'hashicorp/consul-k8s:0.20.0'
+  image: 'consul:1.9.0' # consul >= 1.8.4 must be used
 
 controller:
   enabled: true
@@ -69,7 +68,6 @@ Note that:
 
 1. `controller.enabled: true` installs the CRDs and enables the controller.
 1. `global.image` must be a Consul version `>= 1.8.4`, e.g. `consul:1.8.4` or `consul:1.9.0-beta1`.
-1. `global.imageK8S` must be `>= 0.20.0`
 1. Configuration entries are used to configure Consul service mesh so it's also
    expected that `connectInject` will be enabled.
 
