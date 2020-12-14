@@ -5642,7 +5642,7 @@ func TestFullConfig(t *testing.T) {
 				"enabled": true,
 				"dir": "pVncV4Ey",
 				"content_path": "qp1WRhYH",
-				"refresh": "blocking",
+				"refresh": "off",
 				"metrics_provider": "sgnaoa_lower_case",
 				"metrics_provider_files": ["sgnaMFoa", "dicnwkTH"],
 				"metrics_provider_options_json": "{\"DIbVQadX\": 1}",
@@ -6334,7 +6334,7 @@ func TestFullConfig(t *testing.T) {
 				enabled = true
 				dir = "pVncV4Ey"
 				content_path = "qp1WRhYH"
-				refresh = "blocking"
+				refresh = "off"
 				metrics_provider = "sgnaoa_lower_case"
 				metrics_provider_files = ["sgnaMFoa", "dicnwkTH"]
 				metrics_provider_options_json = "{\"DIbVQadX\": 1}"
@@ -7131,7 +7131,7 @@ func TestFullConfig(t *testing.T) {
 			Enabled:                    true,
 			Dir:                        "pVncV4Ey",
 			ContentPath:                "/qp1WRhYH/", // slashes are added in parsing
-			Refresh:                    "blocking",
+			Refresh:                    "off",
 			MetricsProvider:            "sgnaoa_lower_case",
 			MetricsProviderFiles:       []string{"sgnaMFoa", "dicnwkTH"},
 			MetricsProviderOptionsJSON: "{\"DIbVQadX\": 1}",
