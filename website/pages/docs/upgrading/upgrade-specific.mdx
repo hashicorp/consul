@@ -31,6 +31,16 @@ configuration now defaults to `true`.
 
 ### Changes to Intentions
 
+#### Namespaced Intentions <EnterpriseAlert inline />
+
+The API endpoint to [list
+intentions](/api-docs/connect/intentions#list-intentions) now accepts the same
+`ns` query parameter (or `X-Consul-Namespace` header) used on other API
+endpoints. By default this will now only list the intentions in a specific
+namespace, rather than listing all intentions across all namespaces. To achieve
+the same results as Consul versions prior to 1.9.0 request the wildcard
+namespace with a query parameter of `?ns=*`.
+
 #### Migration
 
 Upgrading to Consul 1.9.0 will trigger a one-time background migration of
