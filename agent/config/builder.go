@@ -1138,8 +1138,8 @@ func validateUIConfigRefresh(value string) error {
 	case UIRefreshBlocking, UIRefreshOff:
 		return nil
 	}
-	return fmt.Errorf("ui_config.refresh can only be one of either \"%s\" or \"%s\"'."+
-			" received: %q", UIRefreshBlocking, UIRefreshOff, value)
+	return fmt.Errorf("ui_config.refresh can only be one of either \"%s\" or \"%s\"."+
+		" received: %q", UIRefreshBlocking, UIRefreshOff, value)
 }
 
 func validateBasicName(field, value string, allowEmpty bool) error {
@@ -1776,8 +1776,6 @@ func (b *Builder) uiConfigVal(v RawUIConfig) UIConfig {
 		DashboardURLTemplates:      v.DashboardURLTemplates,
 	}
 }
-
-
 
 func (b *Builder) uiMetricsProxyVal(v RawUIMetricsProxy) UIMetricsProxy {
 	var hdrs []UIMetricsProxyAddHeader

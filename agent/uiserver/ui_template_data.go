@@ -11,7 +11,7 @@ import (
 func uiTemplateDataFromConfig(cfg *config.RuntimeConfig) (map[string]interface{}, error) {
 
 	uiCfg := map[string]interface{}{
-		"refresh": cfg.UIConfig.Refresh,
+		"refresh":          cfg.UIConfig.Refresh,
 		"metrics_provider": cfg.UIConfig.MetricsProvider,
 		// We explicitly MUST NOT pass the metrics_proxy object since it might
 		// contain add_headers with secrets that the UI shouldn't know e.g. API

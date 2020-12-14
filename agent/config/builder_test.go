@@ -173,7 +173,7 @@ func TestBuilder_BuildAndValidate_NodeName(t *testing.T) {
 func TestBuilder_BuildAndValidate_UIRefresh(t *testing.T) {
 	b, err := NewBuilder(BuilderOpts{
 		Config: Config{
-			DataDir:  pString("dir"),
+			DataDir: pString("dir"),
 			UIConfig: RawUIConfig{
 				Refresh: pString("invalid-value"),
 			},
