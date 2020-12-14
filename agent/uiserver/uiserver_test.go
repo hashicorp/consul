@@ -81,7 +81,8 @@ func TestUIServerIndex(t *testing.T) {
 					"a-very-unlikely-string":1
 				},
 				"metrics_proxy_enabled": false,
-				"dashboard_url_templates": null
+				"dashboard_url_templates": null,
+				"refresh": "blocking"
 			}`,
 		},
 		{
@@ -116,7 +117,8 @@ func TestUIServerIndex(t *testing.T) {
 			wantUICfgJSON: `{
 				"metrics_provider": "bar",
 				"metrics_proxy_enabled": false,
-				"dashboard_url_templates": null
+				"dashboard_url_templates": null,
+				"refresh": "blocking"
 			}`,
 		},
 		{
@@ -206,6 +208,7 @@ func basicUIEnabledConfig(opts ...cfgFunc) *config.RuntimeConfig {
 		UIConfig: config.UIConfig{
 			Enabled:     true,
 			ContentPath: "/ui/",
+			Refresh:     "blocking",
 		},
 		Datacenter: "dc1",
 	}
