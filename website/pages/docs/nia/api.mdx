@@ -12,13 +12,13 @@ When running in [daemon mode](/docs/nia/cli#daemon-mode), Consul-Terraform-Sync 
 
 ### Port
 
-The API is served at the default port `8501` or a different port if set with [`port` configuration](/docs/nia/installation/configuration#port)
+The API is served at the default port `8558` or a different port if set with [`port` configuration](/docs/nia/installation/configuration#port)
 
 ### Version Prefix
 
 All API routes are prefixed with `/v1/`. This documentation is for v1 of the API, which is the only version currently.
 
-Example: `curl localhost:8501/v1/status`
+Example: `localhost:8558/v1/status`
 
 ### Error
 
@@ -68,7 +68,7 @@ Currently no request parameters are offered for the overall status API.
 
 Request:
 ```shell-session
-curl localhost:8501/v1/status
+$ curl localhost:8558/v1/status
 ```
 
 Response:
@@ -129,7 +129,7 @@ Event represents the process of updating network infrastructure of a task. The d
 
 Request:
 ```shell-session
-curl localhost:8501/v1/status/tasks
+$ curl localhost:8558/v1/status/tasks
 ```
 
 Response:
@@ -164,7 +164,7 @@ Response:
 
 Request:
 ```shell-session
-curl localhost:8501/v1/status/tasks/task_b?include=events
+$ curl localhost:8558/v1/status/tasks/task_b?include=events
 ```
 
 Response:
