@@ -170,6 +170,21 @@ func TestBuilder_BuildAndValidate_NodeName(t *testing.T) {
 		})
 	}
 }
+func TestBuilder_BuildAndValidate_UIRefresh(t *testing.T) {
+	b, err := NewBuilder(BuilderOpts{
+		Config: Config{
+			DataDir:  pString("dir"),
+			UIConfig: RawUIConfig{
+				Refresh: pString("invalid-value"),
+			},
+		},
+	})
+	patchBuilderShims(b)
+	require.NoError(t, err)
+	_, err = b.BuildAndValidate()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "ui_config.refresh can only be one of either")
+}
 
 func patchBuilderShims(b *Builder) {
 	b.hostname = func() (string, error) {
