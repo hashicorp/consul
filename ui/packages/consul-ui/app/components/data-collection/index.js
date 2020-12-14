@@ -27,7 +27,7 @@ export default class DataCollectionComponent extends Component {
     return this.items;
   }
 
-  @computed('args.items', 'args.items.content')
+  @computed('args{items,.items.content}')
   get content() {
     // TODO: Temporary little hack to ensure we detect DataSource proxy
     // objects but not any other special Ember Proxy object like ember-data
@@ -53,7 +53,7 @@ export default class DataCollectionComponent extends Component {
 
   @computed('type', 'filtered', 'args.filters.searchproperties', 'searchTerm')
   get searched() {
-    if (typeof this.searchTerm === '') {
+    if (this.searchTerm === '') {
       return this.filtered;
     }
     const predicate = this.searchService.predicate(this.type);

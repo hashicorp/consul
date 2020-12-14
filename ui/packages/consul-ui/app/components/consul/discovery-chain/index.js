@@ -1,7 +1,6 @@
 import Component from '@ember/component';
 import { inject as service } from '@ember/service';
 import { set, get, computed } from '@ember/object';
-import { schedule } from '@ember/runloop';
 
 import { createRoute, getSplitters, getRoutes, getResolvers } from './utils';
 

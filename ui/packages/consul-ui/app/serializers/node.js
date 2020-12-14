@@ -23,9 +23,10 @@ export default class NodeSerializer extends Serializer.extend(EmbeddedRecordsMix
   };
 
   transformHasManyResponse(store, relationship, item, parent = null) {
+    let checks = {};
+    let serializer;
     switch (relationship.key) {
       case 'Services':
-        const checks = {};
         (item.Checks || [])
           .filter(item => {
             return item.ServiceID !== '';
@@ -36,7 +37,7 @@ export default class NodeSerializer extends Serializer.extend(EmbeddedRecordsMix
             }
             checks[item.ServiceID].push(item);
           });
-        const serializer = this.store.serializerFor(relationship.type);
+        serializer = this.store.serializerFor(relationship.type);
         item.Services = item.Services.map(service =>
           serializer.transformHasManyResponseFromNode(item, service, checks)
         );

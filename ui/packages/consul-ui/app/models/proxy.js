@@ -1,4 +1,4 @@
-import Model, { attr } from '@ember-data/model';
+import { attr } from '@ember-data/model';
 import ServiceInstanceModel from './service-instance';
 
 export const PRIMARY_KEY = 'uid';

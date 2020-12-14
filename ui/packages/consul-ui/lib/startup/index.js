@@ -1,4 +1,5 @@
 /* eslint-env node */
+/*eslint node/no-extraneous-require: "off"*/
 'use strict';
 //
 const $ = process.env;

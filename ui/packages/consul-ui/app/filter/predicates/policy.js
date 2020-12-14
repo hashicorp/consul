@@ -1,3 +1,5 @@
+import setHelpers from 'mnemonist/set';
+
 export default {
   kinds: {
     'global-management': (item, value) => item.isGlobalManagement,
