@@ -1,3 +1,4 @@
+/*eslint node/no-extraneous-require: "off"*/
 'use strict';
 
 const Funnel = require('broccoli-funnel');

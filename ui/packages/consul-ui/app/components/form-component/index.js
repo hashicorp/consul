@@ -37,13 +37,8 @@ export default Component.extend(Slotted, {
       } else {
         name = prop;
       }
-      const form = this.form;
-      try {
-        form.handleEvent(event, name);
-        this.onchange({ target: this });
-      } catch (err) {
-        throw err;
-      }
+      this.form.handleEvent(event, name);
+      this.onchange({ target: this });
     },
   },
 });

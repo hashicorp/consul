@@ -7,7 +7,6 @@ import Slotted from 'block-slots';
 const formatItemStyle = PercentageColumns.prototype.formatItemStyle;
 
 export default Component.extend(Slotted, {
-  tagName: '',
   dom: service('dom'),
   tagName: '',
   height: 500,

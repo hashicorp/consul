@@ -4,6 +4,7 @@ module.exports = {
   extends: 'octane',
   rules: {
     'no-partial': false,
+    'table-groups': false,
 
     'no-invalid-interactive': false,
     'simple-unless': false,
