@@ -69,10 +69,10 @@ test-parallel: deps
 	yarn run test:parallel
 
 lint: deps
-	yarn run lint:hbs && yarn run lint:js
+	yarn run lint
 
 format: deps
-	yarn run format:js
+	yarn run format
 
 steps:
 	yarn run steps:list

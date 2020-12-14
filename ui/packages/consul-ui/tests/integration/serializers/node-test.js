@@ -49,17 +49,6 @@ module('Integration | Serializer | node', function(hooks) {
       url: `/v1/internal/ui/node/${id}?dc=${dc}`,
     };
     return get(request.url).then(function(payload) {
-      const expected = Object.assign({}, payload, {
-        Datacenter: dc,
-        [META]: {
-          [DC.toLowerCase()]: dc,
-          [NSPACE.toLowerCase()]: nspace,
-        },
-        // TODO: default isn't required here, once we've
-        // refactored out our Serializer this can go
-        Namespace: nspace,
-        uid: `["${nspace}","${dc}","${id}"]`,
-      });
       const actual = serializer.respondForQueryRecord(
         function(cb) {
           const headers = {};

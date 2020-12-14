@@ -37,41 +37,37 @@ export default function(scenario, find, fillIn, triggerKeyEvent, currentPage) {
         `I${dont} fill in the $property on the $component component with yaml\n$yaml`,
       ],
       function(negative, property, component, data, next) {
-        try {
-          switch (true) {
-            case typeof component === 'string':
-              property = `${component}.${property}`;
-            // fallthrough
-            case typeof data === 'undefined':
-              data = component;
-            // // fallthrough
-            // case typeof property !== 'string':
-            // data = property;
-          }
-          let obj;
-          try {
-            obj = find(property);
-          } catch (e) {
-            obj = currentPage();
-          }
-          return Object.keys(data).reduce(function(prev, item, i, arr) {
-            const name = `${obj.prefix || property}[${item}]`;
-            if (negative) {
-              try {
-                fillInElement(prev, name, data[item]);
-                throw new TypeError(`${item} is editable`);
-              } catch (e) {
-                if (e instanceof TypeError) {
-                  throw e;
-                }
-              }
-            } else {
-              return fillInElement(prev, name, data[item]);
-            }
-          }, obj);
-        } catch (e) {
-          throw e;
+        switch (true) {
+          case typeof component === 'string':
+            property = `${component}.${property}`;
+          // fallthrough
+          case typeof data === 'undefined':
+            data = component;
+          // // fallthrough
+          // case typeof property !== 'string':
+          // data = property;
         }
+        let obj;
+        try {
+          obj = find(property);
+        } catch (e) {
+          obj = currentPage();
+        }
+        return Object.keys(data).reduce(function(prev, item, i, arr) {
+          const name = `${obj.prefix || property}[${item}]`;
+          if (negative) {
+            try {
+              fillInElement(prev, name, data[item]);
+              throw new TypeError(`${item} is editable`);
+            } catch (e) {
+              if (e instanceof TypeError) {
+                throw e;
+              }
+            }
+          } else {
+            return fillInElement(prev, name, data[item]);
+          }
+        }, obj);
       }
     )
     .then(['I type "$text" into "$selector"'], function(text, selector) {

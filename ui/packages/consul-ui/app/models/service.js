@@ -1,5 +1,5 @@
 import Model, { attr } from '@ember-data/model';
-import { computed, get } from '@ember/object';
+import { computed } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 
 export const PRIMARY_KEY = 'uid';

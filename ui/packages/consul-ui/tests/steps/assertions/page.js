@@ -189,14 +189,12 @@ export default function(scenario, assert, find, currentPage, $) {
       ],
       function(property, component, containsLike, value) {
         let target;
-        try {
-          if (typeof component === 'string') {
-            property = `${component}.${property}`;
-          }
-          target = find(property);
-        } catch (e) {
-          throw e;
+
+        if (typeof component === 'string') {
+          property = `${component}.${property}`;
         }
+        target = find(property);
+
         if (containsLike === 'like') {
           assert.equal(
             target,

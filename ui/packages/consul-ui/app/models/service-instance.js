@@ -41,7 +41,7 @@ export default class ServiceInstance extends Model {
   @alias('Service.Service') Name;
 
   // If the ID is blank fallback to the Service.Service (the Name)
-  @or('Service.ID', 'Service.Service') ID;
+  @or('Service.{ID,Service}') ID;
   @or('Service.Address', 'Node.Service') Address;
 
   @alias('Service.Tags') Tags;
@@ -54,7 +54,7 @@ export default class ServiceInstance extends Model {
   // MeshChecks are a concatenation of Checks for the Instance and Checks for
   // the ProxyInstance. Checks is an ember-data-model-fragment, so we can't just
   // concat it, we have to loop through all the items in order to merge
-  @computed('Checks', 'ProxyInstance.Checks', 'ProxyInstance.ServiceProxy.Expose.Checks')
+  @computed('Checks', 'ProxyInstance{Checks,ServiceProxy.Expose.Checks}')
   get MeshChecks() {
     return (get(this, 'Checks') || [])
       .map(item => {

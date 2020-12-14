@@ -2,7 +2,6 @@ import Component from '@glimmer/component';
 import { inject as service } from '@ember/service';
 import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
-import { sort } from '@ember/object/computed';
 
 export default class ConsulIntentionList extends Component {
   @service('repository/intention') repo;
