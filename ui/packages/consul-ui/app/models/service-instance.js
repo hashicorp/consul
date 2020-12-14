@@ -2,9 +2,26 @@ import Model, { attr, belongsTo } from '@ember-data/model';
 import { fragmentArray } from 'ember-data-model-fragments/attributes';
 import { computed, get, set } from '@ember/object';
 import { or, filter, alias } from '@ember/object/computed';
+import { tracked } from '@glimmer/tracking';
 
 export const PRIMARY_KEY = 'uid';
 export const SLUG_KEY = 'Node.Node,Service.ID';
+
+export const Collection = class Collection {
+  @tracked items;
+
+  constructor(items) {
+    this.items = items;
+  }
+
+  get ExternalSources() {
+    const sources = this.items.reduce(function(prev, item) {
+      return prev.concat(item.ExternalSources || []);
+    }, []);
+    // unique, non-empty values, alpha sort
+    return [...new Set(sources)].filter(Boolean).sort();
+  }
+};
 
 export default class ServiceInstance extends Model {
   @attr('string') uid;
