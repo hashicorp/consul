@@ -1,98 +1,106 @@
 {{page-title 'Services'}}
+
 <EventSource @src={{items}} />
-{{#let (hash
-  statuses=(if status (split status ',') undefined)
-  kinds=(if kind (split kind ',') undefined)
-  sources=(if source (split source ',') undefined)
-  searchproperties=(if (not-eq searchproperty undefined)
-    (split searchproperty ',')
-    (array 'Name' 'Tags')
+
+{{#let
+
+  (or sortBy "Status:asc")
+
+  (hash
+    statuses=(if status (split status ',') undefined)
+    kinds=(if kind (split kind ',') undefined)
+    sources=(if source (split source ',') undefined)
+    searchproperties=(if (not-eq searchproperty undefined)
+      (split searchproperty ',')
+      (array 'Name' 'Tags')
+    )
   )
-) as |filters|}}
-  {{#let (or sortBy "Status:asc") as |sort|}}
-    <AppView>
-      <BlockSlot @name="notification" as |status type|>
-        <Consul::Service::Notifications
-          @type={{type}}
-          @status={{status}}
-        />
-      </BlockSlot>
-      <BlockSlot @name="header">
-          <h1>
-            Services <em>{{format-number services.length}} total</em>
-          </h1>
-          <label for="toolbar-toggle"></label>
-      </BlockSlot>
-      <BlockSlot @name="toolbar">
-        {{#if (gt services.length 0) }}
-          <Consul::Service::SearchBar
-            @sources={{externalSources}}
 
-            @search={{search}}
-            @onsearch={{action (mut search) value="target.value"}}
+  (reject-by 'Kind' 'connect-proxy' items)
 
-            @sort={{sort}}
-            @onsort={{action (mut sortBy) value="target.selected"}}
+as |sort filters items|}}
 
-            @filter={{filters}}
-            @onfilter={{hash
-              searchproperty=(action (mut searchproperty) value="target.selectedItems")
-              status=(action (mut status) value="target.selectedItems")
-              kind=(action (mut kind) value="target.selectedItems")
-              source=(action (mut source) value="target.selectedItems")
-            }}
-          />
-        {{/if}}
-      </BlockSlot>
-      <BlockSlot @name="content">
-        <DataCollection
-          @type="service"
-          @sort={{sort}}
-          @filters={{filters}}
+  <AppView>
+    <BlockSlot @name="notification" as |status type|>
+      <Consul::Service::Notifications
+        @type={{type}}
+        @status={{status}}
+      />
+    </BlockSlot>
+    <BlockSlot @name="header">
+        <h1>
+          Services <em>{{format-number items.length}} total</em>
+        </h1>
+        <label for="toolbar-toggle"></label>
+    </BlockSlot>
+    <BlockSlot @name="toolbar">
+      {{#if (gt items.length 0) }}
+        <Consul::Service::SearchBar
+          @sources={{get (collection items) 'ExternalSources'}}
+
           @search={{search}}
-          @items={{services}}
-        as |collection|>
-          <collection.Collection>
-            <Consul::Service::List
-              @sort={{sort}}
-              @filters={{filters}}
-              @search={{search}}
-              @items={{collection.items}}
-            >
-            </Consul::Service::List>
-          </collection.Collection>
-          <collection.Empty>
-              <EmptyState @allowLogin={{true}}>
-                <BlockSlot @name="header">
-                  <h2>
-                    {{#if (gt services.length 0)}}
-                      No services found
-                    {{else}}
-                      Welcome to Services
-                    {{/if}}
-                  </h2>
-                </BlockSlot>
-                <BlockSlot @name="body">
-                  <p>
-                    {{#if (gt services.length 0)}}
-                      No services where found matching that search, or you may not have access to view the services you are searching for.
-                    {{else}}
-                      There don't seem to be any registered services, or you may not have access to view services yet.
-                    {{/if}}
-                  </p>
-                </BlockSlot>
-                <BlockSlot @name="actions">
-                  <li class="docs-link">
-                    <a href="{{env 'CONSUL_DOCS_URL'}}/commands/services" rel="noopener noreferrer" target="_blank">Documentation on services</a>
-                  </li>
-                  <li class="learn-link">
-                    <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/getting-started/services" rel="noopener noreferrer" target="_blank">Read the guide</a>
-                  </li>
-                </BlockSlot>
-              </EmptyState>
-            </collection.Empty>
-          </DataCollection>
-      </BlockSlot>
-    </AppView>
-  {{/let}}
+          @onsearch={{action (mut search) value="target.value"}}
+
+          @sort={{sort}}
+          @onsort={{action (mut sortBy) value="target.selected"}}
+
+          @filter={{filters}}
+          @onfilter={{hash
+            searchproperty=(action (mut searchproperty) value="target.selectedItems")
+            status=(action (mut status) value="target.selectedItems")
+            kind=(action (mut kind) value="target.selectedItems")
+            source=(action (mut source) value="target.selectedItems")
+          }}
+        />
+      {{/if}}
+    </BlockSlot>
+    <BlockSlot @name="content">
+      <DataCollection
+        @type="service"
+        @sort={{sort}}
+        @filters={{filters}}
+        @search={{search}}
+        @items={{items}}
+      as |collection|>
+        <collection.Collection>
+          <Consul::Service::List
+            @items={{collection.items}}
+          >
+          </Consul::Service::List>
+        </collection.Collection>
+        <collection.Empty>
+            <EmptyState @allowLogin={{true}}>
+              <BlockSlot @name="header">
+                <h2>
+                  {{#if (gt services.length 0)}}
+                    No services found
+                  {{else}}
+                    Welcome to Services
+                  {{/if}}
+                </h2>
+              </BlockSlot>
+              <BlockSlot @name="body">
+                <p>
+                  {{#if (gt services.length 0)}}
+                    No services where found matching that search, or you may not have access to view the services you are searching for.
+                  {{else}}
+                    There don't seem to be any registered services, or you may not have access to view services yet.
+                  {{/if}}
+                </p>
+              </BlockSlot>
+              <BlockSlot @name="actions">
+                <li class="docs-link">
+                  <a href="{{env 'CONSUL_DOCS_URL'}}/commands/services" rel="noopener noreferrer" target="_blank">Documentation on services</a>
+                </li>
+                <li class="learn-link">
+                  <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/getting-started/services" rel="noopener noreferrer" target="_blank">Read the guide</a>
+                </li>
+              </BlockSlot>
+            </EmptyState>
+          </collection.Empty>
+        </DataCollection>
+    </BlockSlot>
+
+  </AppView>
+
 {{/let}}

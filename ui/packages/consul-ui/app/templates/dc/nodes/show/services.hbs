@@ -7,13 +7,13 @@
   )
 ) as |filters|}}
   {{#let (or sortBy "Status:asc") as |sort|}}
-    {{#let item.Services as |items|}}
+  {{#let (reject-by 'Service.Kind' 'connect-proxy' item.Services) as |items|}}
 <div class="tab-section">
   <div role="tabpanel">
   {{#if (gt items.length 0) }}
     <input type="checkbox" id="toolbar-toggle" />
     <Consul::ServiceInstance::SearchBar
-      @sources={{externalSources}}
+      @sources={{get (collection items) 'ExternalSources'}}
       @search={{search}}
       @onsearch={{action (mut search) value="target.value"}}
       @searchproperties={{searchProperties}}
