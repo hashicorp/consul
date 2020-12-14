@@ -1134,11 +1134,12 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 var reBasicName = regexp.MustCompile("^[a-z0-9_-]+$")
 
 func validateUIConfigRefresh(value string) error {
-	if value == "blocking" || value == "off" {
+	switch value {
+	case UIRefreshBlocking, UIRefreshOff:
 		return nil
 	}
-	return fmt.Errorf("ui_config.refresh can only be one of 'blocking' or 'off'."+
-			" received: %q", value)
+	return fmt.Errorf("ui_config.refresh can only be one of either \"%s\" or \"%s\"'."+
+			" received: %q", UIRefreshBlocking, UIRefreshOff, value)
 }
 
 func validateBasicName(field, value string, allowEmpty bool) error {
@@ -1757,11 +1758,16 @@ func (b *Builder) serviceConnectVal(v *ServiceConnect) *structs.ServiceConnect {
 	}
 }
 
+const (
+	UIRefreshBlocking = "blocking"
+	UIRefreshOff      = "off"
+)
+
 func (b *Builder) uiConfigVal(v RawUIConfig) UIConfig {
 	return UIConfig{
 		Enabled:                    b.boolVal(v.Enabled),
 		Dir:                        b.stringVal(v.Dir),
-		Refresh:                    b.stringValWithDefault(v.Refresh, "blocking"),
+		Refresh:                    b.stringValWithDefault(v.Refresh, UIRefreshBlocking),
 		ContentPath:                UIPathBuilder(b.stringVal(v.ContentPath)),
 		MetricsProvider:            b.stringVal(v.MetricsProvider),
 		MetricsProviderFiles:       v.MetricsProviderFiles,
