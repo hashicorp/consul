@@ -76,7 +76,7 @@ buffer_period {
 * `port` - (int: 8501) The port for Consul-Terraform-Sync to use to serve API requests.
 * `syslog` - Specifies the syslog server for logging.
   * `enabled` - (bool: false) Enable syslog logging. Specifying other option also enables syslog logging.
-  * `facility` - (string: <none\>) Name of the syslog facility to log to.
+  * `facility` - (string) Name of the syslog facility to log to.
   * `name` - (string: "consul-terraform-sync") Name to use for the daemon process when logging to syslog.
 
 ## Consul
@@ -98,17 +98,17 @@ consul {
 * `address` - (string: "localhost:8500") Address is the address of the Consul agent. It may be an IP or FQDN.
 * `auth` - Auth is the HTTP basic authentication for communicating with Consul.
   * `enabled` - (bool: false)
-  * `username` - (string: <none\>)
-  * `password` - (string: <none\>)
+  * `username` - (string)
+  * `password` - (string)
 * `tls` - Configure TLS to use a secure client connection with Consul. This option is required for Consul-Terraform-Sync when connecting to a [Consul agent with TLS verification enabled for HTTPS connections](/docs/agent/options#verify_incoming).
   * `enabled` - (bool: false) Enable TLS. Specifying any option for TLS will also enable it.
   * `verify` - (bool: true) Enables TLS peer verification. The default is enabled, which will check the global CA chain to make sure the given certificates are valid. If you are using a self-signed certificate that you have not added to the CA chain, you may want to disable SSL verification. However, please understand this is a potential security vulnerability.
-  * `key` - (string: <none\>) The client key file to use for talking to Consul over TLS. The key also be provided through the `CONSUL_CLIENT_KEY` environment variable.
-  * `ca_cert` - (string: <none\>) The CA file to use for talking to Consul over TLS. Can also be provided though the `CONSUL_CACERT` environment variable.
-  * `ca_path` - (string: <none\>) The path to a directory of CA certs to use for talking to Consul over TLS. Can also be provided through the `CONSUL_CAPATH` environment variable.
-  * `cert` - (string: <none\>) The client cert file to use for talking to Consul over TLS. Can also be provided through the `CONSUL_CLIENT_CERT` environment variable.
-  * `server_name` - (string: <none\>) The server name to use as the SNI host when connecting via TLS. Can also be provided through the `CONSUL_TLS_SERVER_NAME` environment variable.
-* `token` - (string: <none\>) The ACL token to use for client communication with the local Consul agent. The token can also be provided through the `CONSUL_TOKEN` or `CONSUL_HTTP_TOKEN` environment variables.
+  * `key` - (string) The client key file to use for talking to Consul over TLS. The key also be provided through the `CONSUL_CLIENT_KEY` environment variable.
+  * `ca_cert` - (string) The CA file to use for talking to Consul over TLS. Can also be provided though the `CONSUL_CACERT` environment variable.
+  * `ca_path` - (string) The path to a directory of CA certs to use for talking to Consul over TLS. Can also be provided through the `CONSUL_CAPATH` environment variable.
+  * `cert` - (string) The client cert file to use for talking to Consul over TLS. Can also be provided through the `CONSUL_CLIENT_CERT` environment variable.
+  * `server_name` - (string) The server name to use as the SNI host when connecting via TLS. Can also be provided through the `CONSUL_TLS_SERVER_NAME` environment variable.
+* `token` - (string) The ACL token to use for client communication with the local Consul agent. The token can also be provided through the `CONSUL_TOKEN` or `CONSUL_HTTP_TOKEN` environment variables.
 * `transport` - Transport configures the low-level network connection details.
   * `dial_keep_alive` - (string: "30s") The amount of time for keep-alives.
   * `dial_timeout` - (string: "30s") The amount of time to wait to establish a connection.
@@ -130,12 +130,12 @@ service {
 }
 ```
 
-* `datacenter` - (string: <none\>) The datacenter the service is deployed in.
-* `description` - (string: <none\>) The human readable text to describe the service.
-* `id` - (string: <none\>) ID identifies the service for Consul-Terraform-Sync. This is used to explicitly identify the service config for a task to use. If no ID is provided, the service is identified by the service name within a [task definition](#task).
+* `datacenter` - (string) The datacenter the service is deployed in.
+* `description` - (string) The human readable text to describe the service.
+* `id` - (string) ID identifies the service for Consul-Terraform-Sync. This is used to explicitly identify the service config for a task to use. If no ID is provided, the service is identified by the service name within a [task definition](#task).
 * `name` - (string: <required\>) The Consul logical name of the service (required).
 * `namespace` <EnterpriseAlert inline /> - (string: "default") The namespace of the service. If not provided, the namespace will be inferred from the Consul-Terraform-Sync ACL token, or default to the `default` namespace.
-* `tag` - (string: <none\>) Tag is used to filter nodes based on the tag for the service.
+* `tag` - (string) Tag is used to filter nodes based on the tag for the service.
 
 ## Task
 
@@ -153,7 +153,7 @@ task {
 }
 ```
 
-* `description` - (string: <none\>) The human readable text to describe the service.
+* `description` - (string) The human readable text to describe the service.
 * `name` - (string: <required\>) Name is the unique name of the task (required). A task name must start with a letter or underscore and may contain only letters, digits, underscores, and dashes.
 * `providers` - (list[string]: []) Providers is the list of provider names the task is dependent on. This is used to map [Terraform provider configuration](#terraform-provider) to the task.
 * `services` - (list[string]: []) Services is the list of logical service names or service IDs the task executes on. Consul-Terraform-Sync monitors the Consul Catalog for changes to these services and triggers the task to run. Any service value not explicitly defined by a `service` block with a matching ID is assumed to be a logical service name in the default namespace.
@@ -166,7 +166,7 @@ task {
     "terraform"
   ]
   ```
-* `version` - (string: <none\>) The version of the provided source the task will use. For the [Terraform driver](#terraform-driver), this is the module version. The latest version will be used as the default if omitted.
+* `version` - (string) The version of the provided source the task will use. For the [Terraform driver](#terraform-driver), this is the module version. The latest version will be used as the default if omitted.
 * `buffer_period` - Configures the buffer period for the task to dampen the affects of flapping services to downstream network devices. It defines the minimum and maximum amount of time to wait for the cluster to reach a consistent state and accumulate changes before triggering task execution. The default is inherited from the top level [`buffer_period` block](#global-config-options). If configured, these values will take precedence over the global buffer period. This is useful to enable for a task that is dependent on services that have a lot of flapping.
   * `enabled` - (bool: false) Enable or disable buffer periods for this task. Specifying `min` will also enable it.
   * `min` - (string: 5s) The minimum period of time to wait after changes are detected before triggering related tasks.
