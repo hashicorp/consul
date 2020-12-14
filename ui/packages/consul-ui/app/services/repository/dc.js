@@ -5,8 +5,8 @@ import Error from '@ember/error';
 
 const modelName = 'dc';
 export default class DcService extends RepositoryService {
-  @service('settings')
-  settings;
+  @service('settings') settings;
+  @service('env') env;
 
   getModelName() {
     return modelName;
@@ -35,8 +35,10 @@ export default class DcService extends RepositoryService {
     const settings = this.settings;
     return Promise.all([name || settings.findBySlug('dc'), items || this.findAll()]).then(
       ([name, items]) => {
-        return this.findBySlug(name, items).catch(function() {
-          const item = get(items, 'firstObject');
+        return this.findBySlug(name, items).catch(e => {
+          const item =
+            items.findBy('Name', this.env.var('CONSUL_DATACENTER_LOCAL')) ||
+            get(items, 'firstObject');
           settings.persist({ dc: get(item, 'Name') });
           return item;
         });
