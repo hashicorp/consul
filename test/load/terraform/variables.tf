@@ -96,7 +96,7 @@ variable "test_server_ami" {
 variable "test_instance_type" {
   type        = string
   description = "AWS Instance type for all test servers"
-  default = "t2.small"
+  default     = "t2.small"
 }
 
 variable "test_public_ip" {
@@ -107,7 +107,7 @@ variable "test_public_ip" {
 variable "instance_type" {
   type        = string
   description = "Instance Type for all instances in the Consul Cluster"
-  default = "m5n.large"
+  default     = "m5n.large"
 }
 
 variable "ami_owners" {
