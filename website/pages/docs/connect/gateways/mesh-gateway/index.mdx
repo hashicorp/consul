@@ -79,14 +79,15 @@ your network, the proxy's connection to the gateway can happen in one of the fol
 
 Mesh gateways are defined similarly to other services registered with Consul, with two exceptions.
 The first is that the [service kind](/api/agent/service#kind) must be "mesh-gateway". Second,
-the mesh gateway service definition may contain a `Proxy.Config` entry just like a
+the mesh gateway service definition may contain a `Proxy.Config` entry, just like a
 Connect proxy service, to define opaque configuration parameters useful for the actual proxy software.
 For Envoy there are some supported [gateway options](/docs/connect/proxies/envoy#gateway-options) as well as
 [escape-hatch overrides](/docs/connect/proxies/envoy#escape-hatch-overrides).
 
--> **Note:** If ACLs are enabled, a token granting `service:write` for the gateways service name
-and `service:read` for all services in the datacenter. These permissions authorize the token to route
-communications for other Connect services but does not allow decrypting any of their communications.
+-> **Note:** If ACLs are enabled, a token granting `service:write` for the gateway's service name
+and `service:read` for all services in the datacenter must be added to the gateway's service definition.
+These permissions authorize the token to route communications for other Connect services but does not
+allow decrypting any of their communications.
 
 ## Connect Proxy Configuration
 
