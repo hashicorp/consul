@@ -57,7 +57,7 @@ resource "aws_instance" "test-server" {
   provisioner "remote-exec" {
     inline = [
       "export LB_ENDPOINT=${module.alb.this_lb_dns_name}",
-      "k6 run /home/ubuntu/scripts/loadtest.js"
+      "k6 run -q /home/ubuntu/scripts/loadtest.js"
     ]
     connection {
       type        = "ssh"
