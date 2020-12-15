@@ -9,11 +9,12 @@ const getEntriesByType = function(type) {
     },
   ];
 };
-const makeGetElementsByTagName = function(src) {
+const makeGetElementsBy = function(str) {
   return function(name) {
     return [
       {
-        src: src,
+        src: str,
+        content: str,
       },
     ];
   };
@@ -22,13 +23,17 @@ const win = {
   performance: {
     getEntriesByType: getEntriesByType,
   },
+  location: {
+    hash: '',
+  },
   localStorage: {
     getItem: function(key) {},
   },
 };
 const doc = {
   cookie: '',
-  getElementsByTagName: makeGetElementsByTagName(''),
+  getElementsByTagName: makeGetElementsBy(''),
+  getElementsByName: makeGetElementsBy('{}'),
 };
 module('Unit | Utility | getEnvironment', function() {
   test('it returns a function', function(assert) {
@@ -55,14 +60,16 @@ module('Unit | Utility | getEnvironment', function() {
     let expected = 'http://localhost/ui';
     let doc = {
       cookie: '',
-      getElementsByTagName: makeGetElementsByTagName(`${expected}/assets/consul-ui.js`),
+      getElementsByTagName: makeGetElementsBy(`${expected}/assets/consul-ui.js`),
+      getElementsByName: makeGetElementsBy('{}'),
     };
     let env = getEnvironment(config, win, doc);
     assert.equal(env('CONSUL_BASE_UI_URL'), expected);
     expected = 'http://localhost/somewhere/else';
     doc = {
       cookie: '',
-      getElementsByTagName: makeGetElementsByTagName(`${expected}/assets/consul-ui.js`),
+      getElementsByTagName: makeGetElementsBy(`${expected}/assets/consul-ui.js`),
+      getElementsByName: makeGetElementsBy('{}'),
     };
     env = getEnvironment(config, win, doc);
     assert.equal(env('CONSUL_BASE_UI_URL'), expected);
@@ -135,7 +142,8 @@ module('Unit | Utility | getEnvironment', function() {
     };
     let doc = {
       cookie: 'CONSUL_NSPACES_ENABLE=1',
-      getElementsByTagName: makeGetElementsByTagName(''),
+      getElementsByTagName: makeGetElementsBy(''),
+      getElementsByName: makeGetElementsBy('{}'),
     };
     let env = getEnvironment(config, win, doc);
     assert.ok(env('CONSUL_NSPACES_ENABLED'));
@@ -145,7 +153,8 @@ module('Unit | Utility | getEnvironment', function() {
     };
     doc = {
       cookie: 'CONSUL_NSPACES_ENABLE=0',
-      getElementsByTagName: makeGetElementsByTagName(''),
+      getElementsByTagName: makeGetElementsBy(''),
+      getElementsByName: makeGetElementsBy('{}'),
     };
     env = getEnvironment(config, win, doc);
     assert.notOk(env('CONSUL_NSPACES_ENABLED'));
@@ -169,7 +178,8 @@ module('Unit | Utility | getEnvironment', function() {
     };
     let doc = {
       cookie: 'CONSUL_NSPACES_ENABLE=1',
-      getElementsByTagName: makeGetElementsByTagName(''),
+      getElementsByTagName: makeGetElementsBy(''),
+      getElementsByName: makeGetElementsBy('{}'),
     };
     let env = getEnvironment(config, win, doc);
     assert.notOk(env('CONSUL_NSPACES_ENABLED'));
@@ -179,7 +189,8 @@ module('Unit | Utility | getEnvironment', function() {
     };
     doc = {
       cookie: 'CONSUL_NSPACES_ENABLE=0',
-      getElementsByTagName: makeGetElementsByTagName(''),
+      getElementsByTagName: makeGetElementsBy(''),
+      getElementsByName: makeGetElementsBy('{}'),
     };
     env = getEnvironment(config, win, doc);
     assert.ok(env('CONSUL_NSPACES_ENABLED'));

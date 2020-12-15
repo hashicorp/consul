@@ -1,15 +1,14 @@
-import Service from '@ember/service';
+import Service, { inject as service } from '@ember/service';
+import { get } from '@ember/object';
 
 export default class UiConfigService extends Service {
-  config = undefined;
+  @service('env') env;
+
+  async findByPath(path, configuration = {}) {
+    return get(this.get(), path);
+  }
 
   get() {
-    if (this.config === undefined) {
-      // Load config from our special meta tag for now. Later it might come from
-      // an API instead/as well.
-      var meta = unescape(document.getElementsByName('consul-ui/ui_config')[0].content);
-      this.config = JSON.parse(meta);
-    }
-    return this.config;
+    return this.env.var('CONSUL_UI_CONFIG');
   }
 }

@@ -1,4 +1,4 @@
-export default function(scenario, create) {
+export default function(scenario, create, win = window, doc = document) {
   scenario
     .given(['an external edit results in $number $model model[s]?'], function(number, model) {
       return create(number, model);
@@ -17,7 +17,10 @@ export default function(scenario, create) {
     )
     .given(['settings from yaml\n$yaml'], function(data) {
       return Object.keys(data).forEach(function(key) {
-        window.localStorage[key] = JSON.stringify(data[key]);
+        win.localStorage[key] = JSON.stringify(data[key]);
       });
+    })
+    .given(['ui_config from yaml\n$yaml'], function(data) {
+      doc.cookie = `CONSUL_UI_CONFIG=${JSON.stringify(data)}`;
     });
 }
