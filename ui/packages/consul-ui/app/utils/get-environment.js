@@ -1,6 +1,26 @@
+import { runInDebug } from '@ember/debug';
+// 'environment' getter
+// there are currently 3 levels of environment variables:
+// 1. Those that can be set by the user by setting localStorage values
+// 2. Those that can be set by the operator either via ui_config, or inferring
+// from other server type properties (protocol)
+// 3. Those that can be set only during development by adding cookie values
+// via the browsers Web Inspector, or via the browsers hash (#COOKIE_NAME=1),
+// which is useful for showing the UI with various settings enabled/disabled
 export default function(config = {}, win = window, doc = document) {
-  const dev = function() {
-    return doc.cookie
+  // look at the hash in the URL and transfer anything after the hash into
+  // cookies to enable linking of the UI with various settings enabled
+  runInDebug(() => {
+    if (
+      typeof win.location !== 'undefined' &&
+      typeof win.location.hash === 'string' &&
+      win.location.hash.length > 0
+    ) {
+      doc.cookie = win.location.hash.substr(1);
+    }
+  });
+  const dev = function(str = doc.cookie) {
+    return str
       .split(';')
       .filter(item => item !== '')
       .map(item => item.trim().split('='));
@@ -20,6 +40,7 @@ export default function(config = {}, win = window, doc = document) {
       return {};
     }
   };
+  const ui_config = JSON.parse(unescape(doc.getElementsByName('consul-ui/ui_config')[0].content));
   const scripts = doc.getElementsByTagName('script');
   // we use the currently executing script as a reference
   // to figure out where we are for other things such as
@@ -33,6 +54,21 @@ export default function(config = {}, win = window, doc = document) {
   const operator = function(str, env) {
     let protocol;
     switch (str) {
+      case 'CONSUL_UI_CONFIG':
+        const dashboards = {};
+        const provider = env('CONSUL_METRICS_PROVIDER');
+        const proxy = env('CONSUL_METRICS_PROXY_ENABLED');
+        dashboards.service = env('CONSUL_SERVICE_DASHBOARD_URL');
+        if (provider) {
+          ui_config.metrics_provider = provider;
+        }
+        if (proxy) {
+          ui_config.metrics_proxy_enabled = proxy;
+        }
+        if (dashboards.service) {
+          ui_config.dashboard_url_templates = dashboards;
+        }
+        return ui_config;
       case 'CONSUL_BASE_UI_URL':
         return currentSrc
           .split('/')
@@ -85,6 +121,12 @@ export default function(config = {}, win = window, doc = document) {
             case 'CONSUL_SSO_ENABLE':
               prev['CONSUL_SSO_ENABLED'] = !!JSON.parse(String(value).toLowerCase());
               break;
+            case 'CONSUL_METRICS_PROXY_ENABLE':
+              prev['CONSUL_METRICS_PROXY_ENABLED'] = !!JSON.parse(String(value).toLowerCase());
+              break;
+            case 'CONSUL_UI_CONFIG':
+              prev['CONSUL_UI_CONFIG'] = JSON.parse(value);
+              break;
             default:
               prev[key] = value;
           }
@@ -109,7 +151,10 @@ export default function(config = {}, win = window, doc = document) {
       case 'CONSUL_UI_REALTIME_RUNNER':
         // these are strings
         return user(str) || ui(str);
-
+      case 'CONSUL_UI_CONFIG':
+      case 'CONSUL_METRICS_PROVIDER':
+      case 'CONSUL_METRICS_PROXY_ENABLE':
+      case 'CONSUL_SERVICE_DASHBOARD_URL':
       case 'CONSUL_BASE_UI_URL':
       case 'CONSUL_HTTP_PROTOCOL':
       case 'CONSUL_HTTP_MAX_CONNECTIONS':
