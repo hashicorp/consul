@@ -95,7 +95,7 @@ export default function HomePage() {
             time: '45 mins',
             link:
               'https://learn.hashicorp.com/collections/consul/vault-secure',
-            image: require('./img/learn/getting-started.svg?url'),
+            image: require('./img/learn/Vault.svg?url'),
           },
         ]}
       />
