@@ -30,7 +30,7 @@ export default class RepositoryService extends Service {
         if (dc === meta.dc) {
           if (checkNspace) {
             const nspace = get(item, 'Namespace');
-            if (nspace !== meta.namespace) {
+            if (typeof nspace !== 'undefined' && nspace !== meta.nspace) {
               return;
             }
           }

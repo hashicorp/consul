@@ -2,12 +2,16 @@ import Adapter, { DATACENTER_QUERY_PARAM as API_DATACENTER_KEY } from './applica
 import { get } from '@ember/object';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 
-// Intentions use SourceNS and DestinationNS properties for namespacing so we
-// don't need to add the `?ns=` anywhere here
+// Intentions have different namespacing to the rest of the UI in that the don't
+// have a Namespace property, the DestinationNS is essentially its namespace.
+// Listing of intentions still requires the `ns` query string parameter which
+// will give us all the intentions that have the `ns` as either the SourceNS or
+// the DestinationNS.
+// We currently list intentions by the * wildcard namespace for back compat reasons
 
 // TODO: Update to use this.formatDatacenter()
 export default class IntentionAdapter extends Adapter {
-  requestForQuery(request, { dc, filter, index, uri }) {
+  requestForQuery(request, { dc, ns, filter, index, uri }) {
     return request`
       GET /v1/connect/intentions?${{ dc }}
       X-Request-ID: ${uri}${
@@ -18,6 +22,7 @@ export default class IntentionAdapter extends Adapter {
     }
 
       ${{
+        ...this.formatNspace('*'),
         index,
         filter,
       }}

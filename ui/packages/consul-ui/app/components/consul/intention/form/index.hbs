@@ -72,7 +72,7 @@ as |api|>
 {{/if}}
 
       <DataSource
-        @src={{concat '/' @nspace '/' @dc '/services'}}
+        @src={{concat '/*/' @dc '/services'}}
         @onchange={{action this.createServices item}}
       />
     {{#if (env 'CONSUL_NSPACES_ENABLED')}}

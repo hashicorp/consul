@@ -17,7 +17,7 @@ export default class IndexRoute extends Route {
   model(params) {
     return {
       dc: this.modelFor('dc').dc.Name,
-      nspace: this.modelFor('nspace').nspace.substr(1) || 'default',
+      nspace: this.modelFor('nspace').nspace.substr(1),
     };
   }
 
