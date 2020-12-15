@@ -57,6 +57,10 @@
       @extend %with-cancel-square-fill-color-mask, %as-pseudo;
       background-color: $red-500;
     }
+    .empty::before {
+      @extend %with-minus-square-fill-mask, %as-pseudo;
+      color: $gray-500;
+    }
   }
   div:nth-child(3) {
     border-top: 1px solid $gray-200;

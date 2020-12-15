@@ -25,6 +25,9 @@
   {{/if}}
 {{#if (eq @item.Datacenter @dc)}}
   {{#let (service/health-percentage @item) as |percentage|}}
+  {{#if (eq percentage '')}}
+    <span class="empty">No health checks</span>
+  {{else}}
     {{#if (not-eq percentage.passing 0)}}
       <span class="passing">{{percentage.passing}}%</span>
     {{/if}}
@@ -34,6 +37,7 @@
     {{#if (not-eq percentage.critical 0)}}
       <span class="critical">{{percentage.critical}}%</span>
     {{/if}}
+  {{/if}}
   {{/let}}
 {{else}}
     <dl class="health">
