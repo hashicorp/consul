@@ -75,7 +75,7 @@ IMPROVEMENTS:
 DEPRECATIONS:
 
 * Go 1.15 has dropped support for 32-bit binaries for Darwin, so darwin_386 builds will not be available for any 1.9.x+ releases. [[GH-9036](https://github.com/hashicorp/consul/issues/9036)]
-* agent: `ui`, `ui_dir` and `ui_content_path` are now deprecated for use in agent configuration files. Use `ui_config.{enable, dir, content_path}` instead. The command arguments `-ui`, `-ui-dir`, and `-ui-content-path` remain supported. [[GH-8694](https://github.com/hashicorp/consul/issues/8694)]
+* agent: `ui`, `ui_dir` and `ui_content_path` are now deprecated for use in agent configuration files. Use `ui_config.{enabled, dir, content_path}` instead. The command arguments `-ui`, `-ui-dir`, and `-ui-content-path` remain supported. [[GH-8694](https://github.com/hashicorp/consul/issues/8694)]
 * telemetry: The measurements in all of the `consul.http...` prefixed metrics have been migrated to `consul.api.http`. `consul.http...` prefixed metrics will be removed in a future version of Consul. [[GH-8877](https://github.com/hashicorp/consul/issues/8877)]
 * telemetry: the disable_compat_1.9 config will cover more metrics deprecations in future 1.9 point releases. These metrics will be emitted twice for backwards compatibility - if the flag is true, only the new metric name will be written. [[GH-9181](https://github.com/hashicorp/consul/issues/9181)]
 
