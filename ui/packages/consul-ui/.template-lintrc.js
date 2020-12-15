@@ -31,5 +31,7 @@ module.exports = {
 
     'no-unnecessary-component-helper': false,
     'link-href-attributes': false,
+
+    'no-bare-strings': false,
   },
 };

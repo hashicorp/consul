@@ -153,7 +153,7 @@ Feature: dc / services / index: List Services
         ChecksWarning: 0
         ChecksCritical: 1
         GatewayConfig:
-        - AssociatedServiceCount: 345
+          AssociatedServiceCount: 345
     ---
 
     When I visit the services page for yaml
