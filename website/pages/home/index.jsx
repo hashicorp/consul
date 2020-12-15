@@ -82,20 +82,20 @@ export default function HomePage() {
         brand="consul"
         items={[
           {
-            title: 'Deploy Consul Service Mesh on Kubernetes',
-            category: 'Step-by-Step Tutorial',
-            time: '10 mins',
-            link:
-              'https://learn.hashicorp.com/tutorials/consul/service-mesh-deploy',
-            image: require('./img/learn/getting-started.svg?url'),
-          },
-          {
-            title: 'Observe Layer 7 Traffic',
+            title: 'Try Consul Service Mesh on kind',
             category: 'Step-by-Step Tutorial',
             time: '15 mins',
             link:
-              'https://learn.hashicorp.com/tutorials/consul/service-mesh-features',
-            image: require('./img/learn/kubernetes.svg?url'),
+              'https://learn.hashicorp.com/tutorials/consul/kubernetes-kind',
+            image: require('./img/learn/getting-started.svg?url'),
+          },
+          {
+            title: 'Secure Consul with Vault',
+            category: 'Step-by-Step Tutorials',
+            time: '45 mins',
+            link:
+              'https://learn.hashicorp.com/collections/consul/vault-secure',
+            image: require('./img/learn/Vault.svg?url'),
           },
         ]}
       />
