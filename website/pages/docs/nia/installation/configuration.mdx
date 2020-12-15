@@ -16,7 +16,7 @@ An example HCL configuration is shown below to automate a task to execute a Terr
 
 ```hcl
 log_level = "info"
-port = 8505
+port = 8558
 
 consul {
   address = "consul.example.com"
@@ -59,7 +59,7 @@ Top level options are reserved for configuring Consul-Terraform-Sync.
 
 ```hcl
 log_level = "INFO"
-port = 8505
+port = 8558
 syslog {}
 buffer_period {
   enabled = true
@@ -73,7 +73,7 @@ buffer_period {
   * `min` - (string: "5s") The minimum period of time to wait after changes are detected before triggering related tasks.
   * `max` - (string: "20s") The maximum period of time to wait after changes are detected before triggering related tasks. If `min` is set, the default period for `max` is 4 times the value of `min`.
 * `log_level` - (string: "WARN") The log level to use for Consul-Terraform-Sync logging.
-* `port` - (int: 8501) The port for Consul-Terraform-Sync to use to serve API requests.
+* `port` - (int: 8558) The port for Consul-Terraform-Sync to use to serve API requests.
 * `syslog` - Specifies the syslog server for logging.
   * `enabled` - (bool) Enable syslog logging. Specifying other option also enables syslog logging.
   * `facility` - (string) Name of the syslog facility to log to.
