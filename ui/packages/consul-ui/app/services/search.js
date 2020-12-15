@@ -14,20 +14,19 @@ import role from 'consul-ui/search/predicates/role';
 import policy from 'consul-ui/search/predicates/policy';
 import nspace from 'consul-ui/search/predicates/nspace';
 
-const search = spec => spec;
 const predicates = {
-  intention: search(intention),
-  service: search(service),
-  ['service-instance']: search(serviceInstance),
-  ['upstream-instance']: search(upstreamInstance),
-  ['health-check']: search(healthCheck),
-  node: search(node),
-  kv: search(kv),
-  acl: search(acl),
-  token: search(token),
-  role: search(role),
-  policy: search(policy),
-  nspace: search(nspace),
+  intention: intention,
+  service: service,
+  ['service-instance']: serviceInstance,
+  ['upstream-instance']: upstreamInstance,
+  ['health-check']: healthCheck,
+  node: node,
+  kv: kv,
+  acl: acl,
+  token: token,
+  role: role,
+  policy: policy,
+  nspace: nspace,
 };
 
 class FuzzySearch {
@@ -47,7 +46,6 @@ class FuzzySearch {
   search(s) {
     return this.fuse.search(s).map(item => item.item);
   }
-
 }
 
 class PredicateSearch {
