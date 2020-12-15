@@ -63,7 +63,7 @@ Status-related information is collected and offered via [status API](/docs/nia/a
  - Task status
  - Overall status
 
-These three levels form a hierarchy where each level of data informs the one higher. The lowest-level, event data, is collected each time a task runs to update network infrastructure. This event data is then aggregated to inform individual task statuses. The aggregation of all the task statuses inform the overall status.
+These three levels form a hierarchy where each level of data informs the one higher. The lowest-level, event data, is collected each time a task runs to update network infrastructure. This event data is then aggregated to inform individual task statuses. The count distribution of all the task statuses inform the overall status's task summary.
 
 ### Event
 
@@ -88,13 +88,13 @@ For complete information on the event structure, see [events in our API document
 
 ### Task Status
 
-Each time a task runs to update network infrastructure, event data is stored for that run. Currently, only the 5 most recent events are stored for each task. The stored events are used to determine the task status. For example, if a task has 5 events stored and 3 are success and 2 are not, then the task's health status is "degraded".
+Each time a task runs to update network infrastructure, event data is stored for that run. 5 most recent events are stored for each task, and these stored events are used to determine task status. For example, if the most recent stored event is not successful but the others are, then the task's health status is "errored".
 
 Sample task status:
 ```json
 {
     "task_name": "task_b",
-    "status": "degraded",
+    "status": "errored",
     "providers": [
       "null"
     ],
@@ -109,12 +109,16 @@ Task status information can be retrieved with [task status API](/docs/nia/api#ta
 
 ### Overall Status
 
-Overall status is determined by looking at the health status of all task statuses. For example, if Consul-Terraform-Sync is configured with 10 tasks and 8 are critical and 2 are degraded, then the overall health status is "critical".
+Overall status returns a summary of the health statuses across all tasks. The summary is the count of tasks in each health status category.
 
 Sample overall status:
 ```json
 {
-  "status": "critical"
+  "task_summary": {
+    "successful": 28,
+    "errored": 5,
+    "critical": 1
+  }
 }
 ```
 
