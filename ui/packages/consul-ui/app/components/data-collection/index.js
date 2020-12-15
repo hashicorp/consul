@@ -23,7 +23,7 @@ export default class DataCollectionComponent extends Component {
   }
 
   get searchMethod() {
-    return this.args.searchable || 'fuzzy';
+    return this.args.searchable || 'exact';
   }
 
   get searchProperties() {
