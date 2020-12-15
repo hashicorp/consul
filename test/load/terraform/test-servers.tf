@@ -56,7 +56,6 @@ resource "aws_instance" "test-server" {
   subnet_id                   = (module.vpc.public_subnets)[0]
   provisioner "remote-exec" {
     inline = [
-      "sleep 2m",
       "export LB_ENDPOINT=${module.alb.this_lb_dns_name}",
       "k6 run -q /home/ubuntu/scripts/loadtest.js"
     ]

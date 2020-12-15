@@ -113,6 +113,13 @@ module "alb" {
       backend_protocol = "HTTP"
       backend_port     = 8500
       target_type      = "instance"
+      health_check = {
+        interval          = 5
+        timeout           = 3
+        protocol          = "HTTP"
+        healthy_threshold = 2
+        path              = "/v1/status/leader"
+      }
     }
   ]
 
