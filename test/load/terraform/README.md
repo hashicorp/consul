@@ -30,7 +30,7 @@ If `consul_version` or `consul_download_url` is not set within the Terraform var
 6. Upon completion k6 should run and push metrics to desired Datadog dashboard. 
 
 # Customization 
-All customization for infrastructure that is available can be found by looking through the `variables.tf` file. However, if customization of tests is desired then the `start-k6.sh` leverages user-data to place a `puts_script.js` onto the loadtest servers for k6 to run. This can be customized.
+All customization for infrastructure that is available can be found by looking through the `variables.tf` file.
 
 # How to SSH
 After `terraform apply` is ran Terraform should create a `keys/` directory which will give access to all instances created. 
