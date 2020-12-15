@@ -40,7 +40,7 @@ export default function() {
 
 export let options = {
   // 10 virtual user
-  vus: 10,
+  vus: 25,
   // 10 minute
   duration: "10m",
   // 95% of requests must complete below 2s
