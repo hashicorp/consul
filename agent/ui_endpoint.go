@@ -205,7 +205,8 @@ RPC:
 	summaries, hasProxy := summarizeServices(out.Nodes.ToServiceDump(), nil, "")
 	sorted := prepSummaryOutput(summaries, false)
 
-	var result []*ServiceListingSummary
+	// Ensure at least a zero length slice
+	result := make([]*ServiceListingSummary, 0)
 	for _, svc := range sorted {
 		sum := ServiceListingSummary{ServiceSummary: *svc}
 
