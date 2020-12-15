@@ -88,13 +88,13 @@ For complete information on the event structure, see [events in our API document
 
 ### Task Status
 
-Each time a task runs to update network infrastructure, event data is stored for that run. Currently, only the 5 most recent events are stored for each task. The stored events are used to determine the task status. For example, if a task has 5 events stored and the most recent is not successful but all previous ones are, then the task's health status is "degraded".
+Each time a task runs to update network infrastructure, event data is stored for that run. 5 most recent events are stored for each task, and these stored events are used to determine task status. For example, if the most recent stored event is not successful but the others are, then the task's health status is "errored".
 
 Sample task status:
 ```json
 {
     "task_name": "task_b",
-    "status": "degraded",
+    "status": "errored",
     "providers": [
       "null"
     ],

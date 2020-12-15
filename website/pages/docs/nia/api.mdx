@@ -81,7 +81,7 @@ This endpoint returns the individual task status information for a single specif
 Task health status value is determined by the success or failure of all stored [event data](/docs/nia/tasks#event) on the process of updating network infrastructure for a task. Currently only the 5 most recent events are stored per task.
  - Successful: The most recent stored event is successful.
  - Errored: The most recent stored event is not successful but all previous stored events are successful.
- - Critical: The most recent stored event is not successful and more than one previous stored event is also not successful.
+ - Critical: The most recent stored event is not successful and one or more previous stored events are also not successful.
  - Unknown: No event data is stored for the task.
 
 | Method | Path                | Produces           |
