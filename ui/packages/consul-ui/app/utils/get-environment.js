@@ -52,12 +52,12 @@ export default function(config = {}, win = window, doc = document) {
   // forcing/providing amount of possible HTTP connections
   // re-setting the base url for the API etc
   const operator = function(str, env) {
-    let protocol;
+    let protocol, dashboards, provider, proxy;
     switch (str) {
       case 'CONSUL_UI_CONFIG':
-        const dashboards = {};
-        const provider = env('CONSUL_METRICS_PROVIDER');
-        const proxy = env('CONSUL_METRICS_PROXY_ENABLED');
+        dashboards = {};
+        provider = env('CONSUL_METRICS_PROVIDER');
+        proxy = env('CONSUL_METRICS_PROXY_ENABLED');
         dashboards.service = env('CONSUL_SERVICE_DASHBOARD_URL');
         if (provider) {
           ui_config.metrics_provider = provider;
