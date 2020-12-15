@@ -33,24 +33,13 @@ Example: Status 400 Bad Request
 
 ## Status
 
-The `/status` endpoints share status-related information for tasks. This information is available for understanding the status of individuals tasks and across tasks. The health status value is determined by aggregating the success or failure of the event of a task detecting changes in Consul services and then updating network infrastructure. Currently, only the 5 most recent events are stored in Consul-Terraform-Sync. For more information on the hierarchy of status information and how it is collected, see [Status Information](/docs/nia/tasks#status-information).
+The `/status` endpoints share status-related information for tasks. This information is available for understanding the status of individual tasks and across tasks.
 
-Below are all possible values for health status. See individual endpoints below for details on how each health status value is determined:
- - Healthy
- - Degraded
- - Critical
- - Undetermined
+The health status value is determined by aggregating the success or failure of the event of a task detecting changes in Consul services and then updating network infrastructure. Currently, only the 5 most recent events are stored in Consul-Terraform-Sync. For more information on the hierarchy of status information and how it is collected, see [Status Information](/docs/nia/tasks#status-information).
 
 ### Overall Status
 
-This endpoint returns the overall status information across all tasks.
-
-Overall health status value is determined by the [health status values of all individual tasks](/docs/nia/api#task-status)
- - Healthy: All tasks have health status "healthy".
- - Degraded: At least one task has health status "degraded" but none are "critical".
- - Critical: At least one task has health status "critical".
- - Undetermined: No tasks have health status information at the moment.
-
+This endpoint currently returns the overall status information for all tasks.
 
 | Method | Path                | Produces           |
 | ------ | ------------------- | ------------------ |
@@ -61,7 +50,10 @@ Currently no request parameters are offered for the overall status API.
 
 #### Response Fields
 
-* `status` - (string) Values are "healthy", "degraded", "critical", or "undetermined". This is determined by the health status values of all individual tasks, as described above.
+* `task_summary` - Summary of the count of tasks for each health status. See [Task Status API](/docs/nia/api#task-status) to learn more about how health status is determined.
+  * `successful` - (int) The number of tasks that have a 'successful' health status
+  * `errored` - (int) The number of tasks that have a 'errored' health status
+  * `critical` - (int) The number of tasks that have a 'critical' health status
 
 
 #### Example
@@ -74,7 +66,11 @@ $ curl localhost:8558/v1/status
 Response:
 ```json
 {
-  "status": "healthy"
+  "task_summary": {
+    "successful": 28,
+    "errored": 5,
+    "critical": 1
+  }
 }
 ```
 
@@ -83,10 +79,10 @@ Response:
 This endpoint returns the individual task status information for a single specified task or for all tasks.
 
 Task health status value is determined by the success or failure of all stored [event data](/docs/nia/tasks#event) on the process of updating network infrastructure for a task. Currently only the 5 most recent events are stored per task.
- - Healthy: All stored events of the task are successful.
- - Degraded: More than half of the stored events are successful _or_ less than half of the stored events are successful but the most recent event is successful.
- - Critical: Half or less of the stored events are successful and the most recent event is not successful.
- - Undetermined: No event data is stored for the task.
+ - Successful: The most recent stored event is successful.
+ - Errored: The most recent stored event is not successful but all previous stored events are successful.
+ - Critical: The most recent stored event is not successful and more than one previous stored event is also not successful.
+ - Unknown: No event data is stored for the task.
 
 | Method | Path                | Produces           |
 | ------ | ------------------- | ------------------ |
@@ -96,14 +92,14 @@ Task health status value is determined by the success or failure of all stored [
 
 * `task` - (string) Option to specify the name of the task to return in the response. If not specified, all tasks are returned in the response.
 * `include` - (string) Only accepts the value "events". Use to include stored event information in response.
-* `status` - (string) Only accepts health status values "healthy", "degraded", "critical", or "undetermined". Use to filter response by tasks that have the specified health status value. Recommend setting this parameter when requesting all tasks i.e. no `task` parameter is set.
+* `status` - (string) Only accepts health status values "successful", "errored", "critical", or "unknown". Use to filter response by tasks that have the specified health status value. Recommend setting this parameter when requesting all tasks i.e. no `task` parameter is set.
 
 #### Response Fields
 
 The response is a JSON map of task name to a status information structure with the following fields.
 
 * `task_name` - (string) Name that task is configured with in Consul-Terraform-Sync.
-* `status` - (string) Values are "healthy", "degraded", "critical", or "undetermined". This is determined by the success or failure of all stored events on the network infrastructure update process for the task, as described earlier.
+* `status` - (string) Values are "successful", "errored", "critical", or "unknown". This is determined by the success or failure of all stored events on the network infrastructure update process for the task, as described earlier.
 * `services` - (list[string]) List of the services configured for the task.
 * `providers` - (list[string]) List of the providers configured for the task.
 * `events_url` - (string) Relative URL to retrieve the event data stored for the task.
@@ -137,7 +133,7 @@ Response:
 {
   "task_a": {
     "task_name": "task_a",
-    "status": "healthy",
+    "status": "successful",
     "providers": [
       "local"
     ],
@@ -148,7 +144,7 @@ Response:
   },
   "task_b": {
     "task_name": "task_b",
-    "status": "degraded",
+    "status": "errored",
     "providers": [
       "null"
     ],
@@ -172,7 +168,7 @@ Response:
 {
   "task_b": {
     "task_name": "task_b",
-    "status": "degraded",
+    "status": "errored",
     "providers": [
       "null"
     ],
@@ -183,11 +179,13 @@ Response:
     "events": [
       {
         "id": "44137ba2-8fc9-6cbe-0e0e-e9305ee4f7f9",
-        "success": true,
+        "success": false,
         "start_time": "2020-11-24T12:06:51.858292-05:00",
         "end_time": "2020-11-24T12:06:52.770165-05:00",
         "task_name": "task_b",
-        "error": null,
+        "error": {
+          "message": "example error: terraform-apply error"
+        },
         "config": {
           "providers": [
             "null"
@@ -200,13 +198,11 @@ Response:
       },
       {
         "id": "ef202675-502f-431f-b133-ed64d15b0e0e",
-        "success": false,
+        "success": true,
         "start_time": "2020-11-24T12:04:18.651231-05:00",
         "end_time": "2020-11-24T12:04:20.900115-05:00",
         "task_name": "task_b",
-        "error": {
-          "message": "example error: terraform-apply error"
-        },
+        "error": null,
         "config": {
           "providers": [
             "null"
