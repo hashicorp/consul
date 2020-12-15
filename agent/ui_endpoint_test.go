@@ -548,6 +548,21 @@ func TestUiServices(t *testing.T) {
 		}
 		require.ElementsMatch(t, expected, summary)
 	})
+	t.Run("Filtered without results", func(t *testing.T) {
+		filterQuery := url.QueryEscape("Service.Service == absent")
+		req, _ := http.NewRequest("GET", "/v1/internal/ui/services?filter="+filterQuery, nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.UIServices(resp, req)
+		require.NoError(t, err)
+		assertIndex(t, resp)
+
+		// Ensure the ServiceSummary doesn't output a `null` response when there
+		// are no matching summaries
+		require.NotNil(t, obj)
+
+		summary := obj.([]*ServiceListingSummary)
+		require.Len(t, summary, 0)
+	})
 }
 
 func TestUIGatewayServiceNodes_Terminating(t *testing.T) {
