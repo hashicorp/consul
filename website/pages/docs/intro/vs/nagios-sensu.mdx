@@ -20,12 +20,18 @@ difficult to use with modern DevOps and configuration management tools,
 as local configurations must be updated when remote servers are added
 or removed.
 
-Sensu has a much more modern design, relying on local agents to run
-checks and pushing results to an AMQP broker. A number of servers
-ingest and handle the result of the health checks from the broker. This model
-is more scalable than Nagios, as it allows for much more horizontal scaling
-and a weaker coupling between the servers and agents. However, the central broker
-has scaling limits and acts as a single point of failure in the system.
+Sensu has a much more modern design as a DevOps Observability Pipeline
+for DevOps and SRE, relying on local agents to run checks and pushing
+results to a cluster of Sensu backends which ingest and handle the results
+of the health checks from the agents. This model is more scalable than Nagios,
+as it allows for much more horizontal scaling and a weaker coupling between 
+the servers and agents. Sensu’s primary advantage is in heterogeneous ephemeral
+cloud environments, or to integrate existing best-of-breed monitoring solutions.
+
+Sensu’s monitoring-as-code approach and clean handling of ephemeral cloud 
+environments integrates well with Consul’s architecture for dynamic cloud
+deployments. For more about this integration between Sensu and Consul,
+please see our Partners section.
 
 Consul provides the same health checking abilities as both Nagios and Sensu,
 is friendly to modern DevOps, and avoids the scaling issues inherent in the
