@@ -21,12 +21,6 @@
 as |sort filters items|}}
 
   <AppView>
-    <BlockSlot @name="notification" as |status type|>
-      <Consul::Service::Notifications
-        @type={{type}}
-        @status={{status}}
-      />
-    </BlockSlot>
     <BlockSlot @name="header">
         <h1>
           Services <em>{{format-number items.length}} total</em>
