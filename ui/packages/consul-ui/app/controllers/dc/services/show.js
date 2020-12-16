@@ -1,11 +1,9 @@
 import { inject as service } from '@ember/service';
-import { alias } from '@ember/object/computed';
 import Controller from '@ember/controller';
 import { get, action } from '@ember/object';
+
 export default class ShowController extends Controller {
   @service('flashMessages') notify;
-
-  @alias('items.firstObject') item;
 
   @action
   error(e) {
@@ -19,14 +17,7 @@ export default class ShowController extends Controller {
           action: 'update',
         });
       }
-      [
-        e.target,
-        this.intentions,
-        this.chain,
-        this.proxies,
-        this.gatewayServices,
-        this.topology,
-      ].forEach(function(item) {
+      [e.target, this.proxies].forEach(function(item) {
         if (item && typeof item.close === 'function') {
           item.close();
         }

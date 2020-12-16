@@ -1,3 +1,4 @@
+<EventSource @src={{topology}} />
 <div id="topology" class="tab-section">
   <div role="tabpanel">
   {{#if topology.FilteredByACLs}}
@@ -6,11 +7,11 @@
   {{#if topology}}
     <TopologyMetrics
       @nspace={{nspace}}
-      @dc={{dc}}
+      @dc={{dc.Name}}
       @service={{items.firstObject}}
       @topology={{topology}}
       @metricsHref={{render-template urls.service (hash
-        Datacenter=dc
+        Datacenter=dc.Name
         Service=items.firstObject
       )}}
       @isRemoteDC={{isRemoteDC}}
