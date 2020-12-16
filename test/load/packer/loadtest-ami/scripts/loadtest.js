@@ -44,5 +44,5 @@ export let options = {
   // 10 minute
   duration: "10m",
   // 95% of requests must complete below 2s
-  thresholds: { http_req_duration: ["p(95)<2000"] },
+  thresholds: { http_req_duration: ["p(95)<2500"] },
 };
