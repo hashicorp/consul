@@ -16,7 +16,11 @@
     </:header>
     <:body>
       <p>
-        Add an intention that allows these two services to connect.
+        {{#if @item.Intention.HasExact}}
+          Change the action of this intention to allow.
+        {{else}}
+          Add an intention that allows these two services to connect.
+        {{/if}}
       </p>
     </:body>
     <:actions as |Actions|>
@@ -25,7 +29,11 @@
           {{on "click" @oncreate}}
           type="button"
         >
-          Create
+          {{#if @item.Intention.HasExact}}
+            Allow
+          {{else}}
+            Create
+          {{/if}}
         </button>
       </Actions.Action>
       <Actions.Action>
