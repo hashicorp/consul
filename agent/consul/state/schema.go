@@ -35,6 +35,7 @@ func stateStoreSchema() *memdb.DBSchema {
 		}
 		db.Tables[schema.Name] = schema
 	}
+	withEnterpriseSchema(db)
 	return db
 }
 
