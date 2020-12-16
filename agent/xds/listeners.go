@@ -665,13 +665,8 @@ func (s *Server) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSnapshot, clus
 		return nil, err
 	}
 
-	chain := &envoylistener.FilterChain{
-		Filters: []*envoylistener.Filter{f},
-	}
-
 	// For registered checks restrict traffic sources to localhost and Consul's advertise addr
 	if path.ParsedFromCheck {
-
 		// For the advertise addr we use a CidrRange that only matches one address
 		advertise := s.CfgFetcher.AdvertiseAddrLAN()
 
@@ -682,16 +677,29 @@ func (s *Server) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSnapshot, clus
 			advertiseLen = 128
 		}
 
-		chain.FilterChainMatch = &envoylistener.FilterChainMatch{
-			SourcePrefixRanges: []*envoycore.CidrRange{
-				{AddressPrefix: "127.0.0.1", PrefixLen: &wrappers.UInt32Value{Value: 8}},
-				{AddressPrefix: "::1", PrefixLen: &wrappers.UInt32Value{Value: 128}},
-				{AddressPrefix: advertise, PrefixLen: &wrappers.UInt32Value{Value: uint32(advertiseLen)}},
+		l.FilterChains = []*envoylistener.FilterChain{
+			{
+				FilterChainMatch: &envoylistener.FilterChainMatch{
+					SourceType: envoylistener.FilterChainMatch_LOCAL,
+				},
+				Filters: []*envoylistener.Filter{f},
+			},
+			{
+				FilterChainMatch: &envoylistener.FilterChainMatch{
+					SourcePrefixRanges: []*envoycore.CidrRange{
+						{AddressPrefix: advertise, PrefixLen: &wrappers.UInt32Value{Value: uint32(advertiseLen)}},
+					},
+				},
+				Filters: []*envoylistener.Filter{f},
+			},
+		}
+	} else {
+		l.FilterChains = []*envoylistener.FilterChain{
+			{
+				Filters: []*envoylistener.Filter{f},
 			},
 		}
 	}
-
-	l.FilterChains = []*envoylistener.FilterChain{chain}
 
 	return l, err
 }

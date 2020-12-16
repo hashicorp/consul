@@ -17,6 +17,22 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type mockConfigFetcher struct {
+	advertiseAddrLAN string
+}
+
+func (f *mockConfigFetcher) AdvertiseAddrLAN() string {
+	return f.advertiseAddrLAN
+}
+
+type mockCheckFetcher struct {
+	checks []structs.CheckType
+}
+
+func (f *mockCheckFetcher) ServiceHTTPBasedChecks(_ structs.ServiceID) []structs.CheckType {
+	return f.checks
+}
+
 func TestListenersFromSnapshot(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -283,6 +299,10 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotExposeConfig,
 		},
 		{
+			name:   "expose-paths-checks",
+			create: proxycfg.TestConfigSnapshotExposeConfigChecks,
+		},
+		{
 			name:   "expose-paths-new-cluster-http2",
 			create: proxycfg.TestConfigSnapshotExposeConfig,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
@@ -511,6 +531,17 @@ func TestListenersFromSnapshot(t *testing.T) {
 					logger := testutil.Logger(t)
 					s := Server{
 						Logger: logger,
+						CheckFetcher: &mockCheckFetcher{
+							checks: []structs.CheckType{
+								{
+									HTTP:      "http://127.0.0.1:8080/health",
+									ProxyHTTP: "http://1.2.3.4:20050/health",
+								},
+							},
+						},
+						CfgFetcher: &mockConfigFetcher{
+							advertiseAddrLAN: "1.2.3.4",
+						},
 					}
 
 					cInfo := connectionInfo{

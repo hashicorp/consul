@@ -1,0 +1,144 @@
+{
+  "versionInfo": "00000001",
+  "resources": [
+    {
+      "@type": "type.googleapis.com/envoy.api.v2.Listener",
+      "name": "exposed_path_health:1.2.3.4:20050",
+      "address": {
+        "socketAddress": {
+          "address": "1.2.3.4",
+          "portValue": 20050
+        }
+      },
+      "filterChains": [
+        {
+          "filterChainMatch": {
+            "sourceType": "LOCAL"
+          },
+          "filters": [
+            {
+              "name": "envoy.http_connection_manager",
+              "config": {
+                  "http_filters": [
+                        {
+                              "name": "envoy.router"
+                            }
+                      ],
+                  "route_config": {
+                        "name": "exposed_path_filter_health_20050",
+                        "virtual_hosts": [
+                              {
+                                    "domains": [
+                                          "*"
+                                        ],
+                                    "name": "exposed_path_filter_health_20050",
+                                    "routes": [
+                                          {
+                                                "match": {
+                                                      "path": "/health"
+                                                    },
+                                                "route": {
+                                                      "cluster": "local_app"
+                                                    }
+                                              }
+                                        ]
+                                  }
+                            ]
+                      },
+                  "stat_prefix": "exposed_path_filter_health_20050",
+                  "tracing": {
+                        "random_sampling": {
+                            }
+                      }
+                }
+            }
+          ]
+        },
+        {
+          "filterChainMatch": {
+            "sourcePrefixRanges": [
+              {
+                "addressPrefix": "1.2.3.4",
+                "prefixLen": 32
+              }
+            ]
+          },
+          "filters": [
+            {
+              "name": "envoy.http_connection_manager",
+              "config": {
+                  "http_filters": [
+                        {
+                              "name": "envoy.router"
+                            }
+                      ],
+                  "route_config": {
+                        "name": "exposed_path_filter_health_20050",
+                        "virtual_hosts": [
+                              {
+                                    "domains": [
+                                          "*"
+                                        ],
+                                    "name": "exposed_path_filter_health_20050",
+                                    "routes": [
+                                          {
+                                                "match": {
+                                                      "path": "/health"
+                                                    },
+                                                "route": {
+                                                      "cluster": "local_app"
+                                                    }
+                                              }
+                                        ]
+                                  }
+                            ]
+                      },
+                  "stat_prefix": "exposed_path_filter_health_20050",
+                  "tracing": {
+                        "random_sampling": {
+                            }
+                      }
+                }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "type.googleapis.com/envoy.api.v2.Listener",
+      "name": "public_listener:1.2.3.4:8080",
+      "address": {
+        "socketAddress": {
+          "address": "1.2.3.4",
+          "portValue": 8080
+        }
+      },
+      "filterChains": [
+        {
+          "tlsContext": {
+            "requireClientCertificate": true
+          },
+          "filters": [
+            {
+              "name": "envoy.filters.network.rbac",
+              "config": {
+                  "rules": {
+                      },
+                  "stat_prefix": "connect_authz"
+                }
+            },
+            {
+              "name": "envoy.tcp_proxy",
+              "config": {
+                  "cluster": "local_app",
+                  "stat_prefix": "public_listener"
+                }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "typeUrl": "type.googleapis.com/envoy.api.v2.Listener",
+  "nonce": "00000001"
+}

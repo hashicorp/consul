@@ -1684,6 +1684,25 @@ func TestConfigSnapshotExposeConfig(t testing.T) *ConfigSnapshot {
 	}
 }
 
+func TestConfigSnapshotExposeConfigChecks(t testing.T) *ConfigSnapshot {
+	return &ConfigSnapshot{
+		Kind:    structs.ServiceKindConnectProxy,
+		Service: "web-proxy",
+		ProxyID: structs.NewServiceID("web-proxy", nil),
+		Address: "1.2.3.4",
+		Port:    8080,
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "web",
+			DestinationServiceID:   "web",
+			LocalServicePort:       8080,
+			Expose: structs.ExposeConfig{
+				Checks: true,
+			},
+		},
+		Datacenter: "dc1",
+	}
+}
+
 func TestConfigSnapshotTerminatingGateway(t testing.T) *ConfigSnapshot {
 	return testConfigSnapshotTerminatingGateway(t, true)
 }
