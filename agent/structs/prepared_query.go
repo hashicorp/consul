@@ -42,6 +42,10 @@ type ServiceQuery struct {
 	// discarded)
 	OnlyPassing bool
 
+	// If NeverExclude is true then we will only all nodes, even with failing
+	// health checks. Otherwise we use OnlyPassing behavior.
+	NeverExclude bool
+
 	// IgnoreCheckIDs is an optional list of health check IDs to ignore when
 	// considering which nodes are healthy. It is useful as an emergency measure
 	// to temporarily override some health check that is producing false negatives

@@ -197,8 +197,9 @@ func (e *ServiceResolverConfigEntry) GetCreateIndex() uint64     { return e.Crea
 func (e *ServiceResolverConfigEntry) GetModifyIndex() uint64     { return e.ModifyIndex }
 
 type ServiceResolverSubset struct {
-	Filter      string `json:",omitempty"`
-	OnlyPassing bool   `json:",omitempty" alias:"only_passing"`
+	Filter       string `json:",omitempty"`
+	OnlyPassing  bool   `json:",omitempty" alias:"only_passing"`
+	NeverExclude bool   `json:",omitempty" alias:"never_exclude"`
 }
 
 type ServiceResolverRedirect struct {
