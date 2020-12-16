@@ -10,7 +10,7 @@ description: >-
 
 # Custom Resource Definitions
 
--> This feature requires consul-helm >= 0.26.0, consul-k8s >= 0.20.0 and consul >= 1.8.4.
+-> This feature requires consul-helm >= 0.28.0, consul-k8s >= 0.22.0 and consul >= 1.8.4.
 
 We support managing Consul [configuration entries](/docs/agent/config-entries)
 via Kubernetes Custom Resources. Configuration entries are used to provide
@@ -18,29 +18,26 @@ cluster-wide defaults for the service mesh.
 
 We currently support the follow configuration entry kinds:
 
-- [`proxy-defaults`](/docs/agent/config-entries/proxy-defaults)
-- [`service-defaults`](/docs/agent/config-entries/service-defaults)
-- [`service-splitter`](/docs/agent/config-entries/service-splitter)
-- [`service-router`](/docs/agent/config-entries/service-router)
-- [`service-resolver`](/docs/agent/config-entries/service-resolver)
-- [`service-intentions`](/docs/agent/config-entries/service-intentions) (requires Consul >= 1.9.0)
-
-The following kinds are **not** currently supported:
-
-- [`ingress-gateway`](/docs/agent/config-entries/ingress-gateway)
-- [`terminating-gateway`](/docs/agent/config-entries/terminating-gateway)
+- [`ProxyDefaults`](/docs/agent/config-entries/proxy-defaults)
+- [`ServiceDefaults`](/docs/agent/config-entries/service-defaults)
+- [`ServiceSplitter`](/docs/agent/config-entries/service-splitter)
+- [`ServiceRouter`](/docs/agent/config-entries/service-router)
+- [`ServiceResolver`](/docs/agent/config-entries/service-resolver)
+- [`ServiceIntentions`](/docs/agent/config-entries/service-intentions) (requires Consul >= 1.9.0)
+- [`IngressGateway`](/docs/agent/config-entries/ingress-gateway)
+- [`TerminatingGateway`](/docs/agent/config-entries/terminating-gateway)
 
 ## Installation
 
-Ensure you have version `0.26.0` of the helm chart:
+Ensure you have at least version `0.28.0` of the helm chart:
 
 ```shell-session
 $ helm search repo hashicorp/consul
 NAME            	CHART VERSION	APP VERSION	DESCRIPTION
-hashicorp/consul	0.26.0       	1.8.5      	Official HashiCorp Consul Chart
+hashicorp/consul	0.28.0       	1.9.1      	Official HashiCorp Consul Chart
 ```
 
-If you don't have `0.26.0`, you will need to update your helm repository cache:
+If you don't have `0.28.0`, you will need to update your helm repository cache:
 
 ```shell-session
 $ helm repo update
@@ -55,8 +52,6 @@ and enable the controller that acts on them:
 ```yaml
 global:
   name: consul
-  image: 'consul:1.9.0' # consul >= 1.8.4 must be used
-  imageK8S: 'hashicorp/consul-k8s:0.20.0'
 
 controller:
   enabled: true
@@ -68,8 +63,6 @@ connectInject:
 Note that:
 
 1. `controller.enabled: true` installs the CRDs and enables the controller.
-1. `global.image` must be a Consul version `>= 1.8.4`, e.g. `consul:1.8.4` or `consul:1.9.0`.
-1. `global.imageK8S` must be `>= 0.20.0`
 1. Configuration entries are used to configure Consul service mesh so it's also
    expected that `connectInject` will be enabled.
 
@@ -102,7 +95,7 @@ EOF
 servicedefaults.consul.hashicorp.com/foo created
 ```
 
-See [Specifications](#specifications) for detailed schema documentation.
+See [Configuration Entries](/docs/agent/config-entries) for detailed schema documentation.
 
 ### Get
 
@@ -180,306 +173,3 @@ to be deleted since that would put Consul into a broken state.
 
 In order to delete the `ServiceDefaults` config, you would need to first delete
 the `ServiceSplitter`.
-
-## Specifications
-
-### ProxyDefaults
-
-A [proxy-defaults](/docs/agent/config-entries/proxy-defaults)
-entry configures global defaults across all proxies.
-
-```yaml
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: ProxyDefaults
-metadata:
-  name: global
-spec:
-  config:
-    envoy_tracing_json: '{"http":{"config":{"collector_cluster":"jaeger_9411","collector_endpoint":"/api/v2/spans"},"name":"envoy.zipkin"}}'
-  expose:
-    checks: true
-    paths:
-      - listenerPort: 80
-        localPathPort: 42
-        path: /test/path
-        protocol: http
-      - listenerPort: 8080
-        localPathPort: 4201
-        path: /root/test/path
-        protocol: http2
-  meshGateway:
-    mode: local
-```
-
-Notes:
-
-1. There can only be one `ProxyDefaults` resource and its name **must** be `global`.
-1. Keys under `spec.config` will need to use `snake_case`, not `camelCase`, because
-   this config is passed directly to Envoy which uses `snake_case`, e.g.
-   ```yaml
-   spec:
-     config:
-       envoy_statsd_url: 'udp://127.0.0.1:8125'
-   ```
-1. See [proxy-defaults](/docs/agent/config-entries/proxy-defaults) for full
-   documentation on this config entry.
-
-### ServiceDefaults
-
-A [service-defaults](/docs/agent/config-entries/service-defaults)
-entry configures a specific service.
-
-```yaml
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: ServiceDefaults
-metadata:
-  name: your-service-name
-spec:
-  protocol: https
-  meshGateway:
-    mode: local
-  expose:
-    checks: true
-    paths:
-      - listenerPort: 80
-        path: /path
-        localPathPort: 9000
-        protocol: http
-      - listenerPort: 8080
-        path: /another-path
-        localPathPort: 9091
-        protocol: http2
-  externalSNI: external-sni
-```
-
-Notes:
-
-1. The name of the service that this `ServiceDefaults` configures is set by
-   `metadata.name`.
-1. See [service-defaults](/docs/agent/config-entries/service-defaults) for full
-   documentation on this config entry.
-
-### ServiceIntentions
-
-A [service-intentions](/docs/agent/config-entries/service-intentions)
-entry configures traffic authorization for a destination service.
-
-```yaml
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: ServiceIntentions
-metadata:
-  name: my-intention
-spec:
-  destination:
-    name: your-service-name
-  sources:
-    - name: svc1
-      namespace: test
-      action: allow
-      permissions: []
-      description: allow access from svc1
-    - name: '*'
-      namespace: not-test
-      action: deny
-      permissions: []
-      description: disallow access from namespace not-test
-    - name: svc-2
-      namespace: bar
-      action: ''
-      permissions:
-        - action: allow
-          http:
-            pathExact: /foo
-            pathPrefix: /bar
-            pathRegex: /baz
-            header:
-              - name: header
-                present: true
-                exact: exact
-                prefix: prefix
-                suffix: suffix
-                regex: regex
-                invert: true
-            methods:
-              - GET
-              - PUT
-      description: an L7 config
-```
-
-Notes:
-
-1. This resource is only supported in Consul 1.9.0.
-1. **Unlike the other configuration entries**, the value of `metadata.name` does not
-   define which service the intention applies to.
-   Instead, the name of the service this intention
-   is configuring is set in `spec.destination.name`.
-
-   The `metadata.name` field can be set to any value,
-   however, we recommend setting it to the name of the destination service the
-   intention is configuring.
-
-1. Wildcard intentions can be created by setting `spec.destination.name` to `*` and/or
-   `spec.sources[].name` to `*`. For example to create a `deny` intention that applies
-   to all services:
-
-   ```yaml
-   apiVersion: consul.hashicorp.com/v1alpha1
-   kind: ServiceIntentions
-   metadata:
-    name: deny-all
-   spec:
-    destination:
-      name: *
-    sources:
-      - name: *
-        action: deny
-   ```
-
-1. See [service-intentions](/docs/agent/config-entries/service-intentions) for full
-   documentation on this config entry.
-
-### ServiceResolver
-
-A [service-resolver](/docs/agent/config-entries/service-resolver)
-entry configures which service instances should satisfy Connect upstream discovery requests for a given service name.
-
-```yaml
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: ServiceResolver
-metadata:
-  name: your-service-name
-spec:
-  defaultSubset: default_subset
-  subsets:
-    subset1:
-      filter: filter1
-      onlyPassing: true
-    subset2:
-      filter: filter2
-  redirect:
-    service: redirect
-    serviceSubset: redirect_subset
-    namespace: redirect_namespace
-    datacenter: redirect_datacenter
-  failover:
-    failover1:
-      service: failover1
-      serviceSubset: failover_subset1
-      namespaces: failover_namespace1
-      datacenters:
-        - failover1_dc1
-        - failover1_dc2
-    failover2:
-      service: failover2
-      serviceSubset: failover_subset2
-      namespaces: failover_namespace2
-      datacenters:
-        - failover2_dc1
-        - failover2_dc2
-  connectTimeout: 1000000000
-  loadBalancer:
-    policy: policy
-    ringHashConfig:
-      minimumRingSize: 1
-      maximumRingSize: 2
-    leastRequestConfig:
-      choiceCount: 1
-    hashPolicies:
-      - field: field
-        fieldValue: value
-        cookieConfig:
-          session: true
-          ttl: 1
-          path: path
-        sourceIP: true
-        terminal: true
-```
-
-Notes:
-
-1. The name of the service that this `ServiceResolver` configures is set by
-   `metadata.name`.
-1. See [service-resolver](/docs/agent/config-entries/service-resolver) for full
-   documentation on this config entry.
-
-### ServiceRouter
-
-A [service-router](/docs/agent/config-entries/service-router)
-entry configures traffic routing and manipulation at networking layer 7 (e.g. HTTP).
-
-```yaml
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: ServiceRouter
-metadata:
-  name: your-service-name
-spec:
-  routes:
-    - match:
-        http:
-          pathExact: pathExact
-          pathPrefix: pathPrefix
-          pathRegex: pathRegex
-          header:
-            - name: name
-              present: true
-              exact: exact
-              prefix: prefix
-              suffix: suffix
-              regex: regex
-              invert: true
-          queryParam:
-            - name: name
-              present: true
-              exact: exact
-              regex: regex
-          methods:
-            - method1
-            - method2
-      destination:
-        service: service
-        serviceSubset: serviceSubset
-        namespace: namespace
-        prefixRewrite: prefixRewrite
-        requestTimeout: 1000000000
-        numRetries: 1
-        retryOnConnectFailure: true
-        retryOnStatusCodes:
-          - 500
-          - 400
-```
-
-Notes:
-
-1. The name of the service that this `ServiceRouter` configures is set by
-   `metadata.name`.
-1. See [service-router](/docs/agent/config-entries/service-router) for full
-   documentation on this config entry.
-
-### ServiceSplitter
-
-A [service-splitter](/docs/agent/config-entries/service-splitter)
-entry configures splitting incoming requests across different subsets of a single service.
-
-```yaml
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: ServiceSplitter
-metadata:
-  name: your-service-name
-spec:
-  splits:
-    - weight: 25.5
-      service: foo
-      serviceSubset: v1
-      namespace: baz
-    - weight: 74.5
-      service: foo
-      serviceSubset: v2
-      namespace: baz
-```
-
-Notes:
-
-1. The name of the service that this `ServiceSplitter` configures is set by
-   `metadata.name`.
-1. See [service-splitter](/docs/agent/config-entries/service-splitter) for full
-   documentation on this config entry.
