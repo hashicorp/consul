@@ -95,7 +95,7 @@ export default class DataCollectionComponent extends Component {
     return this.content.filter(predicate(this.args.filters));
   }
 
-  @computed('args{items,items.content}')
+  @computed('args.{items.[],items.content.[]}')
   get content() {
     // TODO: Temporary little hack to ensure we detect DataSource proxy
     // objects but not any other special Ember Proxy object like ember-data
