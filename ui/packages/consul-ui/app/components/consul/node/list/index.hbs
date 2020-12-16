@@ -29,11 +29,9 @@ as |item index|>
   {{#if (eq item.Address @leader.Address)}}
     <span class="leader" data-test-leader={{@leader.Address}}>Leader</span>
   {{/if}}
-  {{#if (gt item.Services.length 0)}}
     <span>
-      {{item.Services.length}} {{pluralize item.Services.length 'Service' without-count=true}}
+      {{format-number item.Services.length}} {{pluralize item.Services.length 'Service' without-count=true}}
     </span>
-  {{/if}}
     <dl>
       <dt>
         <span>Address</span>
