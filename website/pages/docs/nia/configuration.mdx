@@ -131,7 +131,7 @@ task {
 
 ## Terraform Driver
 
-The `driver` block configures the subprocess for Consul-Terraform-Sync to propagate infrastructure change. The Terraform driver does not need to be explicitly configured and has reasonable default values.
+The `driver` block configures the subprocess for Consul-Terraform-Sync to propagate infrastructure change. The Terraform driver is a required configuration for Consul-Terraform-Sync to relay provider discovery and installation information to Terraform, specifically the `required_providers` stanza. Other driver options do not need to be explicitly configured and has reasonable default values.
 
 ```hcl
 driver "terraform" {
@@ -153,7 +153,8 @@ driver "terraform" {
 }
 ```
 
-* `backend` - (obj) The backend stores [Terraform state files](https://www.terraform.io/docs/state/index.html) for each task. This option is similar to the [Terraform backend configuration](https://www.terraform.io/docs/backends/types/consul.html). Consul backend is the only supported backend at this time. If omitted, Consul-Terraform-Sync will generate default values and use configuration from the [`consul` block](#consul). The Consul KV path is the base path to store state files for tasks. The full path of each state file will have the task identifer appended to the end of the path, e.g. `consul-terraform-sync/terraform-env:task-name`.
+* `backend` - (obj) The backend stores [Terraform state files](https://www.terraform.io/docs/state/index.html) for each task. This option is similar to the [Terraform backend configuration](https://www.terraform.io/docs/configuration/backend.html). Consul-Terraform-Sync supports Terraform backends used as a state store and currently does not support enhanced backends. If omitted, Consul-Terraform-Sync will generate default values and use configuration from the [`consul` block](#consul) to configure [Consul as the backend](https://www.terraform.io/docs/backends/types/consul.html). The Consul KV path is the base path to store state files for tasks. The full path of each state file will have the task identifer appended to the end of the path, e.g. `consul-terraform-sync/terraform-env:task-name`.
+  * Supported backend options: [azurerm](https://www.terraform.io/docs/backends/types/azurerm.html), [consul](https://www.terraform.io/docs/backends/types/consul.html), [cos](https://www.terraform.io/docs/backends/types/cos.html), [gcs](https://www.terraform.io/docs/backends/types/gcs.html), [kubernetes](https://www.terraform.io/docs/backends/types/kubernetes.html), [local](https://www.terraform.io/docs/backends/types/local.html), [manta](https://www.terraform.io/docs/backends/types/manta.html), [pg](https://www.terraform.io/docs/backends/types/pg.html) (Terraform v0.14+), [s3](https://www.terraform.io/docs/backends/types/s3.html)
 * `log` - (bool) Enable all Terraform output (stderr and stdout) to be included in the Consul-Terraform-Sync log. This is useful for debugging and development purposes. It may be difficult to work with log aggregators that expect uniform log format.
 * `path` - (string) The file path to install Terraform or discover an existing Terraform binary. If omitted, Terraform will be installed in the same directory as the Consul-Terraform-Sync daemon. To resolve an incompatible Terraform version or to change versions will require removing the existing binary or change to a different path.
 * `persist_log` - (bool) Enable trace logging for each Terraform client to disk per task. This is equivalent to setting `TF_LOG_PATH=<work_dir>/terraform.log`. Trace log level results in verbose logging and may be useful for debugging and development purposes. We do not recommend enabling this for production. There is no log rotation and may quickly result in large files.
