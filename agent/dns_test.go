@@ -7370,6 +7370,7 @@ func TestDNS_ConfigReload(t *testing.T) {
 	for _, s := range a.dnsServers {
 		cfg := s.config.Load().(*dnsConfig)
 		require.Equal(t, []string{"8.8.8.8:53"}, cfg.Recursors)
+		require.False(t, cfg.RecursorRandomize)
 		require.False(t, cfg.AllowStale)
 		require.Equal(t, 20*time.Second, cfg.MaxStale)
 		require.Equal(t, 10*time.Second, cfg.NodeTTL)
@@ -7415,6 +7416,7 @@ func TestDNS_ConfigReload(t *testing.T) {
 	for _, s := range a.dnsServers {
 		cfg := s.config.Load().(*dnsConfig)
 		require.Equal(t, []string{"1.1.1.1:53"}, cfg.Recursors)
+		require.False(t, cfg.RecursorRandomize)
 		require.True(t, cfg.AllowStale)
 		require.Equal(t, 21*time.Second, cfg.MaxStale)
 		require.Equal(t, 11*time.Second, cfg.NodeTTL)

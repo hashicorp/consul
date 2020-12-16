@@ -906,6 +906,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		DNSOnlyPassing:        b.boolVal(c.DNS.OnlyPassing),
 		DNSPort:               dnsPort,
 		DNSRecursorTimeout:    b.durationVal("recursor_timeout", c.DNS.RecursorTimeout),
+		DNSRecursorRandomize:  b.boolValWithDefault(c.DNS.RecursorRandomize, false),
 		DNSRecursors:          dnsRecursors,
 		DNSServiceTTL:         dnsServiceTTL,
 		DNSSOA:                soa,
