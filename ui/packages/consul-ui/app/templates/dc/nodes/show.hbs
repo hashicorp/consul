@@ -1,17 +1,19 @@
 {{page-title item.Node}}
-<DataLoader as |api|>
+<DataLoader as |loader|>
 
   <BlockSlot @name="data">
-    <EventSource @src={{tomography}} />
-    <EventSource @src={{item}} @onerror={{queue (action api.dispatchError)}} />
+    <EventSource @src={{item}} @onerror={{action loader.dispatchError}} />
+    {{#if (not loader.error)}}
+      <EventSource @src={{tomography}} />
+    {{/if}}
   </BlockSlot>
 
   <BlockSlot @name="error">
-    <AppError @error={{api.error}} />
+    <AppError @error={{loader.error}} />
   </BlockSlot>
 
   <BlockSlot @name="disconnected" as |Notification|>
-    {{#if (eq api.error.status "404")}}
+    {{#if (eq loader.error.status "404")}}
       <Notification @sticky={{true}}>
         <p data-notification role="alert" class="warning notification-update">
           <strong>Warning!</strong>
