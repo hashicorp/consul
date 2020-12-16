@@ -10,14 +10,20 @@ description: >-
 
 1. Move the `consul-terraform-sync` binary to a location available on your `PATH`.
 
-```
-$ mv ~/Downloads/consul-terraform-sync /usr/local/bin/consul-terraform-sync
-```
+  ```shell-session
+  $ mv ~/Downloads/consul-terraform-sync /usr/local/bin/consul-terraform-sync
+  ```
 
 2. Create the config.hcl file, all the options are available [here](/docs/nia/installation/configuration).
 
 3. Run consul-terraform-sync.
 
-```
-./consul-terraform-sync -config-file <config.hcl>
-```
+  ```shell-session
+  $ consul-terraform-sync -config-file <config.hcl>
+  ```
+
+4. Check status of tasks. Replace port number if configured in Step 2. See additional API endpoints [here](/docs/nia/api)
+
+  ```shell-session
+  $ curl localhost:8558/status/tasks
+  ```

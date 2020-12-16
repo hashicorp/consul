@@ -30,6 +30,22 @@ Behavior: This is the default mode in which Consul-Terraform-Sync passes through
 
 Usage: Intended to be run as a long running process after running once-mode successfully for given configuration and tasks.
 
+### Inspect Mode
+
+Flag: `-inspect`
+
+Behavior: Consul-Terraform-Sync will display the proposed state changes for all tasks once and exit. No changes are applied in this mode. On encountering an error before completing, Consul-Terraform-Sync will exit with a non-zero status.
+
+Usage: Intended to be run before daemon-mode in order to confirm configuration is accurate and tasks would update network infrastructure as expected.
+
+-----
+
+Flag: `-inspect-task [task-name]`
+
+Behavior: This has similar behavior as `-inspect` mode for the selected task. The flag can be specified multiple times to inspect multiple tasks. No changes are applied in this mode.
+
+Usage: Useful to debug one or more tasks to confirm configuration is accurate and the selected tasks would update network infrastructure as expected.
+
 ### Once Mode
 
 Flag: `-once`
