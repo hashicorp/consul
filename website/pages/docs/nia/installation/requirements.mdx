@@ -43,7 +43,7 @@ $ echo '{
 $ curl --request PUT --data @payload.json http://localhost:8500/v1/agent/service/register
 ```
 
-The above example registers a service named "web" with your Consul agent. This represents a non-existent web service running at 10.10.10.10:8000. Your web service is now available for Consul-Terraform-Sync to consume. In Consul-Terraform-Sync, you can optionally configure the web service with a [service block](/docs/nia/installation/configuration#service) if it has any non-default values. You can also have Consul-Terraform-Sync monitor the web service to execute a task and update network device(s) by configuring "web" in [`task.services`](/docs/nia/installation/configuration#services) of a task block.
+The above example registers a service named "web" with your Consul agent. This represents a non-existent web service running at 10.10.10.10:8000. Your web service is now available for Consul-Terraform-Sync to consume. In Consul-Terraform-Sync, you can optionally configure the web service with a [service block](/docs/nia/configuration#service) if it has any non-default values. You can also have Consul-Terraform-Sync monitor the web service to execute a task and update network device(s) by configuring "web" in [`task.services`](/docs/nia/configuration#services) of a task block.
 
 For more details on registering a service by HTTP API request, refer to the [register service API docs](https://www.consul.io/api-docs/agent/service#register-service).
 
@@ -164,7 +164,7 @@ Network infrastructure differs vastly across teams and organizations, and the au
 3. Include descriptions to capture what the variables are and how they are used, and specify [custom validation rules for variables](https://www.terraform.io/docs/configuration/variables.html#custom-validation-rules) to provide context to users the expected format and conditions for the variables.
 4. Set reasonable default values for variables that are optional, and omit default values for variables that are required module arguments.
 
-Terraform is an explicit configuration language and requires variables to be declared, typed, and passed explicitly through as module arguments. Consul-Terraform-Sync abstracts this by creating intermediate variables at the root level from values intended for the module. These values are configured by practitioners within the [`task` block](/docs/nia/installation/configuration#variable_files). Value assignments are parsed to interpolate the corresponding variable declaration and are written to the appropriate Terraform files. A few assumptions are made for the intermediate variables: the variables users provide Consul-Terraform-Sync are declared and supported by the module, matching name and type.
+Terraform is an explicit configuration language and requires variables to be declared, typed, and passed explicitly through as module arguments. Consul-Terraform-Sync abstracts this by creating intermediate variables at the root level from values intended for the module. These values are configured by practitioners within the [`task` block](/docs/nia/configuration#variable_files). Value assignments are parsed to interpolate the corresponding variable declaration and are written to the appropriate Terraform files. A few assumptions are made for the intermediate variables: the variables users provide Consul-Terraform-Sync are declared and supported by the module, matching name and type.
 
 #### Module Guidelines
 

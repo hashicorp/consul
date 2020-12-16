@@ -394,6 +394,8 @@
 /docs/platform/k8s/uninstalling                     /docs/k8s/operations/upgrading                                                     301!
 /docs/platform/k8s/*                                /docs/k8s/:splat                                                                   301!
 
+/docs/nia/installation/configuration                /docs/nia/configuration                       301!
+
 /docs/partnerships/index.html                       /docs/partnerships                            301!
 /docs/enterprise/backups/index.html                 /docs/enterprise/backups                      301!
 /docs/enterprise/upgrades/index.html                /docs/enterprise/upgrades                     301!
