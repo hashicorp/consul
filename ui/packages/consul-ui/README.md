@@ -112,6 +112,10 @@ token/secret.
 | `CONSUL_OIDC_PROVIDER_URL` | undefined | Provide a OIDC provider URL for SSO. |
 | `CONSUL_LATENCY` | 0 | Add a latency to network requests (milliseconds) |
 | `CONSUL_METRICS_POLL_INTERVAL` | 10000 | Change the interval between requests to the metrics provider (milliseconds) |
+| `CONSUL_METRICS_PROXY_ENABLE` | false | Enable/disable the metrics proxy |
+| `CONSUL_METRICS_PROVIDER` | | Set the metrics provider to use for the Topology Tab |
+| `CONSUL_SERVICE_DASHBOARD_URL` | | Set the template URL to use for Service Dashboard links |
+| `CONSUL_UI_CONFIG` | | Set the entire `ui_config` for the UI as JSON if you don't want to use the above singular variables |
 | `CONSUL_SERVICE_COUNT` | (random) | Configure the number of services that the API returns. |
 | `CONSUL_NODE_COUNT` | (random) | Configure the number of nodes that the API returns. |
 | `CONSUL_KV_COUNT` | (random) | Configure the number of KV entires that the API returns. |
