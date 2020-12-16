@@ -23,17 +23,45 @@ data "aws_ami" "consul" {
 # Deploy consul cluster
 # ---------------------------------------------------------------------------------------------------------------------
 
-module "consul" {
-  source       = "hashicorp/consul/aws"
-  version      = "0.7.9"
-  depends_on   = [module.vpc.vpc_id]
-  ami_id       = var.consul_ami_id
-  ssh_key_name = module.keys.key_name
-  vpc_id       = module.vpc.vpc_id
-  cluster_name = var.cluster_name
-  num_clients  = var.num_clients
-  num_servers  = var.num_servers
+module "consul_servers" {
+  source = "git::git@github.com:hashicorp/terraform-aws-consul.git//modules/consul-cluster?ref=v0.8.0"
+
+  cluster_name      = "${var.cluster_name}-server"
+  cluster_size      = var.num_servers
+  instance_type     = var.instance_type
+  cluster_tag_value = var.cluster_name
+
+  ami_id    = var.consul_ami_id == null ? data.aws_ami.consul.id : var.consul_ami_id
+  user_data = data.template_file.user_data_server.rendered
+
+  vpc_id                  = module.vpc.vpc_id
+  subnet_ids              = module.vpc.public_subnets
+  allowed_ssh_cidr_blocks = ["0.0.0.0/0"]
+
+  allowed_inbound_cidr_blocks = ["0.0.0.0/0"]
+  ssh_key_name                = module.keys.key_name
+
 }
+
+module "consul_clients" {
+  source        = "git::git@github.com:hashicorp/terraform-aws-consul.git//modules/consul-cluster?ref=v0.8.0"
+  cluster_name  = "${var.cluster_name}-client"
+  cluster_size  = var.num_clients
+  instance_type = var.instance_type
+
+  cluster_tag_value = var.cluster_name
+
+  ami_id    = var.consul_ami_id == null ? data.aws_ami.consul.id : var.consul_ami_id
+  user_data = data.template_file.user_data_client.rendered
+
+  vpc_id                  = module.vpc.vpc_id
+  subnet_ids              = module.vpc.public_subnets
+  allowed_ssh_cidr_blocks = ["0.0.0.0/0"]
+
+  allowed_inbound_cidr_blocks = ["0.0.0.0/0"]
+  ssh_key_name                = module.keys.key_name
+}
+
 
 # ---------------------------------------------------------------------------------------------------------------------
 # This script will configure and start Consul agents
@@ -43,8 +71,10 @@ data "template_file" "user_data_server" {
   template = file("${path.module}/user-data-server.sh")
 
   vars = {
-    cluster_tag_key   = var.cluster_tag_key
-    cluster_tag_value = var.cluster_name
+    consul_version      = var.consul_version
+    consul_download_url = var.consul_download_url
+    cluster_tag_key     = var.cluster_tag_key
+    cluster_tag_value   = var.cluster_name
   }
 }
 
@@ -52,8 +82,10 @@ data "template_file" "user_data_client" {
   template = file("${path.module}/user-data-client.sh")
 
   vars = {
-    cluster_tag_key   = var.cluster_tag_key
-    cluster_tag_value = var.cluster_name
+    consul_version      = var.consul_version
+    consul_download_url = var.consul_download_url
+    cluster_tag_key     = var.cluster_tag_key
+    cluster_tag_value   = var.cluster_name
   }
 }
 
@@ -65,13 +97,13 @@ module "alb" {
   source  = "terraform-aws-modules/alb/aws"
   version = "~> 5.0"
 
-  name = "${var.cluster_name}-${local.random_name}-alb"
+  name = "${var.cluster_name}-alb"
 
   load_balancer_type = "application"
 
   vpc_id          = module.vpc.vpc_id
   subnets         = module.vpc.public_subnets
-  security_groups = [module.consul.security_group_id_clients]
+  security_groups = [module.consul_clients.security_group_id]
   internal        = true
 
   target_groups = [
@@ -81,6 +113,13 @@ module "alb" {
       backend_protocol = "HTTP"
       backend_port     = 8500
       target_type      = "instance"
+      health_check = {
+        interval          = 5
+        timeout           = 3
+        protocol          = "HTTP"
+        healthy_threshold = 2
+        path              = "/v1/status/leader"
+      }
     }
   ]
 
@@ -95,6 +134,6 @@ module "alb" {
 
 # Attach ALB to Consul clients
 resource "aws_autoscaling_attachment" "asg_attachment_bar" {
-  autoscaling_group_name = module.consul.asg_name_clients
+  autoscaling_group_name = module.consul_clients.asg_name
   alb_target_group_arn   = module.alb.target_group_arns[0]
 }

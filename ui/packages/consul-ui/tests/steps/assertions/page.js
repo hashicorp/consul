@@ -47,7 +47,7 @@ export default function(scenario, assert, find, currentPage, $) {
         setTimeout(() => next());
       }
     )
-    .then(`the $pageObject object is(n't) $state`, function(element, negative, state, next) {
+    .then(`the $pageObject object is(n't)? $state`, function(element, negative, state, next) {
       assert[negative ? 'notOk' : 'ok'](element[state]);
       setTimeout(() => next());
     })
@@ -189,14 +189,12 @@ export default function(scenario, assert, find, currentPage, $) {
       ],
       function(property, component, containsLike, value) {
         let target;
-        try {
-          if (typeof component === 'string') {
-            property = `${component}.${property}`;
-          }
-          target = find(property);
-        } catch (e) {
-          throw e;
+
+        if (typeof component === 'string') {
+          property = `${component}.${property}`;
         }
+        target = find(property);
+
         if (containsLike === 'like') {
           assert.equal(
             target,

@@ -1,9 +1,7 @@
 import Adapter from './application';
-
 import { SLUG_KEY } from 'consul-ui/models/role';
 import { FOREIGN_KEY as DATACENTER_KEY } from 'consul-ui/models/dc';
 import { NSPACE_KEY } from 'consul-ui/models/nspace';
-
 import { env } from 'consul-ui/env';
 import nonEmptySet from 'consul-ui/utils/non-empty-set';
 
@@ -13,9 +11,10 @@ if (env('CONSUL_NSPACES_ENABLED')) {
 } else {
   Namespace = () => ({});
 }
+
 // TODO: Update to use this.formatDatacenter()
-export default Adapter.extend({
-  requestForQuery: function(request, { dc, ns, index, id }) {
+export default class RoleAdapter extends Adapter {
+  requestForQuery(request, { dc, ns, index, id }) {
     return request`
       GET /v1/acl/roles?${{ dc }}
 
@@ -24,8 +23,9 @@ export default Adapter.extend({
         index,
       }}
     `;
-  },
-  requestForQueryRecord: function(request, { dc, ns, index, id }) {
+  }
+
+  requestForQueryRecord(request, { dc, ns, index, id }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
@@ -37,8 +37,9 @@ export default Adapter.extend({
         index,
       }}
     `;
-  },
-  requestForCreateRecord: function(request, serialized, data) {
+  }
+
+  requestForCreateRecord(request, serialized, data) {
     const params = {
       ...this.formatDatacenter(data[DATACENTER_KEY]),
     };
@@ -54,8 +55,9 @@ export default Adapter.extend({
         ...Namespace(serialized.Namespace),
       }}
     `;
-  },
-  requestForUpdateRecord: function(request, serialized, data) {
+  }
+
+  requestForUpdateRecord(request, serialized, data) {
     const params = {
       ...this.formatDatacenter(data[DATACENTER_KEY]),
     };
@@ -71,8 +73,9 @@ export default Adapter.extend({
         ...Namespace(serialized.Namespace),
       }}
     `;
-  },
-  requestForDeleteRecord: function(request, serialized, data) {
+  }
+
+  requestForDeleteRecord(request, serialized, data) {
     const params = {
       ...this.formatDatacenter(data[DATACENTER_KEY]),
       ...this.formatNspace(data[NSPACE_KEY]),
@@ -80,5 +83,5 @@ export default Adapter.extend({
     return request`
       DELETE /v1/acl/role/${data[SLUG_KEY]}?${params}
     `;
-  },
-});
+  }
+}

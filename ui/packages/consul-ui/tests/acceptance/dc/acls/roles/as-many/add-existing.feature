@@ -22,10 +22,12 @@ Feature: dc / acls / roles / as many / add existing: Add existing
     ---
     Then the url should be /datacenter/acls/tokens/key
     And I click "form > #roles .ember-power-select-trigger"
+    And I type "Role 1" into ".ember-power-select-search-input"
     And I click ".ember-power-select-option:first-child"
     And I see 1 role model on the roles component
     And I click "form > #roles .ember-power-select-trigger"
-    And I click ".ember-power-select-option:nth-child(1)"
+    And I type "Role 2" into ".ember-power-select-search-input"
+    And I click ".ember-power-select-option:first-child"
     And I see 2 role models on the roles component
     Then I fill in with yaml
     ---

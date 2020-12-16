@@ -1,20 +1,22 @@
-import Model from 'ember-data/model';
-import attr from 'ember-data/attr';
+import Model, { attr } from '@ember-data/model';
 
 export const PRIMARY_KEY = 'Name';
-// keep this for consistency
 export const SLUG_KEY = 'Name';
 export const NSPACE_KEY = 'Namespace';
-export default Model.extend({
-  [PRIMARY_KEY]: attr('string'),
-  [SLUG_KEY]: attr('string'),
 
-  Description: attr('string', { defaultValue: '' }),
+export default class Nspace extends Model {
+  @attr('string') uid;
+  @attr('string') Name;
+
+  @attr('number') SyncTime;
+  @attr('string', { defaultValue: () => '' }) Description;
   // TODO: Is there some sort of date we can use here
-  DeletedAt: attr('string'),
-  ACLs: attr(undefined, function() {
-    return { defaultValue: { PolicyDefaults: [], RoleDefaults: [] } };
-  }),
-
-  SyncTime: attr('number'),
-});
+  @attr('string') DeletedAt;
+  @attr({
+    defaultValue: () => ({
+      PolicyDefaults: [],
+      RoleDefaults: [],
+    }),
+  })
+  ACLs;
+}

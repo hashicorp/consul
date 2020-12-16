@@ -157,6 +157,7 @@ function assert_envoy_http_rbac_policy_count {
   local EXPECT_COUNT=$2
 
   GOT_COUNT=$(get_envoy_http_rbac_once $HOSTPORT | jq '.rules.policies | length')
+  echo "GOT_COUNT = $GOT_COUNT"
   [ "${GOT_COUNT:-0}" -eq $EXPECT_COUNT ]
 }
 
@@ -172,6 +173,7 @@ function assert_envoy_network_rbac_policy_count {
   local EXPECT_COUNT=$2
 
   GOT_COUNT=$(get_envoy_network_rbac_once $HOSTPORT | jq '.rules.policies | length')
+  echo "GOT_COUNT = $GOT_COUNT"
   [ "${GOT_COUNT:-0}" -eq $EXPECT_COUNT ]
 }
 
@@ -222,11 +224,12 @@ function snapshot_envoy_admin {
   local ENVOY_NAME=$2
   local DC=${3:-primary}
   local OUTDIR="${LOG_DIR}/envoy-snapshots/${DC}/${ENVOY_NAME}"
-  
+
   mkdir -p "${OUTDIR}"
   docker_wget "$DC" "http://${HOSTPORT}/config_dump" -q -O - > "${OUTDIR}/config_dump.json"
   docker_wget "$DC" "http://${HOSTPORT}/clusters?format=json" -q -O - > "${OUTDIR}/clusters.json"
   docker_wget "$DC" "http://${HOSTPORT}/stats" -q -O - > "${OUTDIR}/stats.txt"
+  docker_wget "$DC" "http://${HOSTPORT}/stats/prometheus" -q -O - > "${OUTDIR}/stats_prometheus.txt"
 }
 
 function reset_envoy_metrics {
@@ -456,7 +459,7 @@ function docker_consul {
 function docker_wget {
   local DC=$1
   shift 1
-  docker run --rm --network container:envoy_consul-${DC}_1 alpine:3.9 wget "$@"
+  docker run --rm --network container:envoy_consul-${DC}_1 docker.mirror.hashicorp.services/alpine:3.9 wget "$@"
 }
 
 function docker_curl {
@@ -685,7 +688,9 @@ function read_config_entry {
 }
 
 function wait_for_namespace {
-  retry_default curl -sL -f "http://127.0.0.1:8500/v1/namespace/${1}" >/dev/null
+  local NS="${1}"
+  local DC=${2:-primary}
+  retry_default docker_curl "$DC" -sLf "http://127.0.0.1:8500/v1/namespace/${NS}" >/dev/null
 }
 
 function wait_for_config_entry {
@@ -696,6 +701,11 @@ function delete_config_entry {
   local KIND=$1
   local NAME=$2
   retry_default curl -sL -XDELETE "http://127.0.0.1:8500/v1/config/${KIND}/${NAME}"
+}
+
+function register_services {
+  local DC=${1:-primary}
+  docker_consul_exec ${DC} sh -c "consul services register /workdir/${DC}/register/service_*.hcl"
 }
 
 function setup_upsert_l4_intention {

@@ -289,7 +289,7 @@ type Config struct {
 	// Enterprise Only
 	Audit *Audit `json:"audit,omitempty" hcl:"audit" mapstructure:"audit"`
 	// Enterprise Only
-	NonVotingServer *bool `json:"non_voting_server,omitempty" hcl:"non_voting_server" mapstructure:"non_voting_server"`
+	ReadReplica *bool `json:"read_replica,omitempty" hcl:"read_replica" mapstructure:"read_replica" alias:"non_voting_server"`
 	// Enterprise Only
 	SegmentName *string `json:"segment,omitempty" hcl:"segment" mapstructure:"segment"`
 	// Enterprise Only
@@ -797,8 +797,9 @@ type RawUIConfig struct {
 }
 
 type RawUIMetricsProxy struct {
-	BaseURL    *string                      `json:"base_url,omitempty" hcl:"base_url" mapstructure:"base_url"`
-	AddHeaders []RawUIMetricsProxyAddHeader `json:"add_headers,omitempty" hcl:"add_headers" mapstructure:"add_headers"`
+	BaseURL       *string                      `json:"base_url,omitempty" hcl:"base_url" mapstructure:"base_url"`
+	AddHeaders    []RawUIMetricsProxyAddHeader `json:"add_headers,omitempty" hcl:"add_headers" mapstructure:"add_headers"`
+	PathAllowlist []string                     `json:"path_allowlist,omitempty" hcl:"path_allowlist" mapstructure:"path_allowlist"`
 }
 
 type RawUIMetricsProxyAddHeader struct {

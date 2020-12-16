@@ -7,7 +7,7 @@
   <div role="menu">
     <YieldSlot @name="confirmation" @params={{
       block-params (component 'confirmation-alert'
-        onclick=(queue (action onclick) (action menu.clickTrigger))
+        onclick=(queue (action menu.clickTrigger) (action onclick))
         name=(concat menu.confirm guid)
       )
     }}>{{yield}}</YieldSlot>

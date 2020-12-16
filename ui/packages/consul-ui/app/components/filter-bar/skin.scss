@@ -1,0 +1,13 @@
+.filter-bar {
+  & {
+    background-color: $gray-010;
+    border-bottom: $decor-border-100;
+    border-color: $gray-200;
+  }
+  .filters, .sort {
+    .popover-menu > [type='checkbox']:checked + label button {
+      color: $blue-500;
+      background-color: $gray-100;
+    }
+  }
+}

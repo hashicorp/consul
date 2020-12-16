@@ -6,10 +6,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mitchellh/mapstructure"
+
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/decode"
-	"github.com/mitchellh/mapstructure"
 )
 
 func (s *HTTPHandlers) DiscoveryChainRead(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -59,7 +60,7 @@ func (s *HTTPHandlers) DiscoveryChainRead(resp http.ResponseWriter, req *http.Re
 	var out structs.DiscoveryChainResponse
 	defer setMeta(resp, &out.QueryMeta)
 
-	if s.agent.config.HTTPUseCache && args.QueryOptions.UseCache {
+	if args.QueryOptions.UseCache {
 		raw, m, err := s.agent.cache.Get(req.Context(), cachetype.CompiledDiscoveryChainName, &args)
 		if err != nil {
 			return nil, err

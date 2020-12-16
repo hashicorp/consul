@@ -21,6 +21,14 @@ func generateUUID() (ret string) {
 }
 
 func TestServiceIntentionsConfigEntry(t *testing.T) {
+	var (
+		testLocation = time.FixedZone("UTC-8", -8*60*60)
+
+		testTimeA = time.Date(1955, 11, 5, 6, 15, 0, 0, testLocation)
+		testTimeB = time.Date(1985, 10, 26, 1, 35, 0, 0, testLocation)
+		testTimeC = time.Date(2015, 10, 21, 16, 29, 0, 0, testLocation)
+	)
+
 	type testcase struct {
 		entry        *ServiceIntentionsConfigEntry
 		legacy       bool
@@ -126,9 +134,11 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 				Name: "test",
 				Sources: []*SourceIntention{
 					{
-						LegacyID: legacyIDs[0],
-						Name:     "foo",
-						Action:   IntentionActionAllow,
+						LegacyID:         legacyIDs[0],
+						Name:             "foo",
+						Action:           IntentionActionAllow,
+						LegacyCreateTime: &testTimeA,
+						LegacyUpdateTime: &testTimeA,
 					},
 				},
 				Meta: map[string]string{
@@ -198,10 +208,12 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 				Name: "test",
 				Sources: []*SourceIntention{
 					{
-						LegacyID:    legacyIDs[0],
-						Name:        "foo",
-						Action:      IntentionActionAllow,
-						Description: strings.Repeat("x", 512),
+						LegacyID:         legacyIDs[0],
+						Name:             "foo",
+						Action:           IntentionActionAllow,
+						Description:      strings.Repeat("x", 512),
+						LegacyCreateTime: &testTimeA,
+						LegacyUpdateTime: &testTimeA,
 						LegacyMeta: map[string]string{ // stray Meta will be dropped
 							"old": "data",
 						},
@@ -217,10 +229,12 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 				Name: "test",
 				Sources: []*SourceIntention{
 					{
-						LegacyID:   legacyIDs[0],
-						Name:       "foo",
-						Action:     IntentionActionAllow,
-						LegacyMeta: makeStringMap(65, 5, 5),
+						LegacyID:         legacyIDs[0],
+						Name:             "foo",
+						Action:           IntentionActionAllow,
+						LegacyCreateTime: &testTimeA,
+						LegacyUpdateTime: &testTimeA,
+						LegacyMeta:       makeStringMap(65, 5, 5),
 					},
 				},
 			},
@@ -233,10 +247,12 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 				Name: "test",
 				Sources: []*SourceIntention{
 					{
-						LegacyID:   legacyIDs[0],
-						Name:       "foo",
-						Action:     IntentionActionAllow,
-						LegacyMeta: makeStringMap(64, 129, 5),
+						LegacyID:         legacyIDs[0],
+						Name:             "foo",
+						Action:           IntentionActionAllow,
+						LegacyCreateTime: &testTimeA,
+						LegacyUpdateTime: &testTimeA,
+						LegacyMeta:       makeStringMap(64, 129, 5),
 					},
 				},
 			},
@@ -249,10 +265,12 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 				Name: "test",
 				Sources: []*SourceIntention{
 					{
-						LegacyID:   legacyIDs[0],
-						Name:       "foo",
-						Action:     IntentionActionAllow,
-						LegacyMeta: makeStringMap(64, 128, 513),
+						LegacyID:         legacyIDs[0],
+						Name:             "foo",
+						Action:           IntentionActionAllow,
+						LegacyCreateTime: &testTimeA,
+						LegacyUpdateTime: &testTimeA,
+						LegacyMeta:       makeStringMap(64, 128, 513),
 					},
 				},
 			},
@@ -265,10 +283,12 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 				Name: "test",
 				Sources: []*SourceIntention{
 					{
-						LegacyID:   legacyIDs[0],
-						Name:       "foo",
-						Action:     IntentionActionAllow,
-						LegacyMeta: makeStringMap(64, 128, 512),
+						LegacyID:         legacyIDs[0],
+						Name:             "foo",
+						Action:           IntentionActionAllow,
+						LegacyCreateTime: &testTimeA,
+						LegacyUpdateTime: &testTimeA,
+						LegacyMeta:       makeStringMap(64, 128, 512),
 					},
 				},
 			},
@@ -280,9 +300,11 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 				Name: "test",
 				Sources: []*SourceIntention{
 					{
-						Name:        "foo",
-						Action:      IntentionActionAllow,
-						Description: strings.Repeat("x", 512),
+						Name:             "foo",
+						Action:           IntentionActionAllow,
+						Description:      strings.Repeat("x", 512),
+						LegacyCreateTime: &testTimeA,
+						LegacyUpdateTime: &testTimeA,
 					},
 				},
 			},
@@ -1008,8 +1030,10 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 						Action:   IntentionActionDeny,
 					},
 					{
-						Name:   "foo",
-						Action: IntentionActionAllow,
+						Name:             "foo",
+						Action:           IntentionActionAllow,
+						LegacyCreateTime: &testTimeA, // stray times will be dropped
+						LegacyUpdateTime: &testTimeA,
 					},
 					{
 						Name:   "bar",
@@ -1059,9 +1083,11 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 				Name: "test",
 				Sources: []*SourceIntention{
 					{
-						Name:     WildcardSpecifier,
-						Action:   IntentionActionDeny,
-						LegacyID: legacyIDs[0],
+						Name:             WildcardSpecifier,
+						Action:           IntentionActionDeny,
+						LegacyID:         legacyIDs[0],
+						LegacyCreateTime: &testTimeA,
+						LegacyUpdateTime: &testTimeA,
 					},
 					{
 						Name:     "foo",
@@ -1071,23 +1097,27 @@ func TestServiceIntentionsConfigEntry(t *testing.T) {
 							"key1": "val1",
 							"key2": "val2",
 						},
+						LegacyCreateTime: &testTimeB,
+						LegacyUpdateTime: &testTimeB,
 					},
 					{
-						Name:     "bar",
-						Action:   IntentionActionDeny,
-						LegacyID: legacyIDs[2],
+						Name:             "bar",
+						Action:           IntentionActionDeny,
+						LegacyID:         legacyIDs[2],
+						LegacyCreateTime: &testTimeC,
+						LegacyUpdateTime: &testTimeC,
 					},
 				},
 			},
 			check: func(t *testing.T, entry *ServiceIntentionsConfigEntry) {
 				require.Len(t, entry.Sources, 3)
 
-				assert.False(t, entry.Sources[0].LegacyCreateTime.IsZero())
-				assert.False(t, entry.Sources[0].LegacyUpdateTime.IsZero())
-				assert.False(t, entry.Sources[1].LegacyCreateTime.IsZero())
-				assert.False(t, entry.Sources[1].LegacyUpdateTime.IsZero())
-				assert.False(t, entry.Sources[2].LegacyCreateTime.IsZero())
-				assert.False(t, entry.Sources[2].LegacyUpdateTime.IsZero())
+				// assert.False(t, entry.Sources[0].LegacyCreateTime.IsZero())
+				// assert.False(t, entry.Sources[0].LegacyUpdateTime.IsZero())
+				// assert.False(t, entry.Sources[1].LegacyCreateTime.IsZero())
+				// assert.False(t, entry.Sources[1].LegacyUpdateTime.IsZero())
+				// assert.False(t, entry.Sources[2].LegacyCreateTime.IsZero())
+				// assert.False(t, entry.Sources[2].LegacyUpdateTime.IsZero())
 
 				assert.Equal(t, []*SourceIntention{
 					{
@@ -1299,6 +1329,8 @@ func TestMigrateIntentions(t *testing.T) {
 							LegacyMeta: map[string]string{
 								"key1": "val1",
 							},
+							LegacyCreateTime: &anyTime,
+							LegacyUpdateTime: &anyTime,
 						},
 					},
 				},
@@ -1349,6 +1381,8 @@ func TestMigrateIntentions(t *testing.T) {
 							LegacyMeta: map[string]string{
 								"key1": "val1",
 							},
+							LegacyCreateTime: &anyTime,
+							LegacyUpdateTime: &anyTime,
 						},
 						{
 							LegacyID:    legacyIDs[1],
@@ -1359,6 +1393,8 @@ func TestMigrateIntentions(t *testing.T) {
 							LegacyMeta: map[string]string{
 								"key2": "val2",
 							},
+							LegacyCreateTime: &anyTime,
+							LegacyUpdateTime: &anyTime,
 						},
 					},
 				},
@@ -1409,6 +1445,8 @@ func TestMigrateIntentions(t *testing.T) {
 							LegacyMeta: map[string]string{
 								"key1": "val1",
 							},
+							LegacyCreateTime: &anyTime,
+							LegacyUpdateTime: &anyTime,
 						},
 					},
 				},
@@ -1425,6 +1463,8 @@ func TestMigrateIntentions(t *testing.T) {
 							LegacyMeta: map[string]string{
 								"key2": "val2",
 							},
+							LegacyCreateTime: &anyTime,
+							LegacyUpdateTime: &anyTime,
 						},
 					},
 				},

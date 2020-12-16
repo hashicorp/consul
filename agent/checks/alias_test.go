@@ -17,6 +17,10 @@ import (
 
 // Test that we do a backoff on error.
 func TestCheckAlias_remoteErrBackoff(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	notify := newMockAliasNotify()
@@ -49,6 +53,10 @@ func TestCheckAlias_remoteErrBackoff(t *testing.T) {
 
 // No remote health checks should result in passing on the check.
 func TestCheckAlias_remoteNoChecks(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	notify := newMockAliasNotify()
@@ -75,6 +83,10 @@ func TestCheckAlias_remoteNoChecks(t *testing.T) {
 
 // If the node is critical then the check is critical
 func TestCheckAlias_remoteNodeFailure(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	notify := newMockAliasNotify()

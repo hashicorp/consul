@@ -1,6 +1,9 @@
+<EventSource @src={{chain}} />
 <div id="routing" class="tab-section">
   <div role="tabpanel">
-    <DiscoveryChain @chain={{chain.Chain}} />
+    <Consul::DiscoveryChain
+      @chain={{chain.Chain}}
+    />
   </div>
 </div>
 

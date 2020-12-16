@@ -59,6 +59,10 @@ func TestIntentionDelete_Validation(t *testing.T) {
 }
 
 func TestIntentionDelete(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := agent.NewTestAgent(t, ``)

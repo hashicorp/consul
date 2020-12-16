@@ -85,7 +85,7 @@ endpoint](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-identity-d
 ### Microsoft Azure
 
 This returns the first private IP address of all servers in the given region
-which have the given `tag_key` and `tag_value` applied to their virtual NIC in the tenant and subscription, or in
+which have the given `tag_name` and `tag_value` applied to their virtual NIC in the tenant and subscription, or in
 the given `resource_group` of a `vm_scale_set` for Virtual Machine Scale Sets.
 
 ```shell-session
@@ -95,7 +95,7 @@ $ consul agent -retry-join "provider=azure tag_key=... tag_value=... tenant_id=.
 ```json
 {
   "retry_join": [
-    "provider=azure tag_key=... tag_value=... tenant_id=... client_id=... subscription_id=... secret_access_key=..."
+    "provider=azure tag_name=... tag_value=... tenant_id=... client_id=... subscription_id=... secret_access_key=..."
   ]
 }
 ```

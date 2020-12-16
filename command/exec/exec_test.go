@@ -21,6 +21,10 @@ func TestExecCommand_noTabs(t *testing.T) {
 }
 
 func TestExecCommand(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, `
 		disable_remote_exec = false
@@ -44,6 +48,10 @@ func TestExecCommand(t *testing.T) {
 }
 
 func TestExecCommand_NoShell(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, `
 		disable_remote_exec = false
@@ -67,6 +75,10 @@ func TestExecCommand_NoShell(t *testing.T) {
 }
 
 func TestExecCommand_CrossDC(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a1 := agent.NewTestAgent(t, `
 		disable_remote_exec = false
@@ -149,6 +161,10 @@ func TestExecCommand_Validate(t *testing.T) {
 }
 
 func TestExecCommand_Sessions(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, `
 		disable_remote_exec = false
@@ -189,6 +205,10 @@ func TestExecCommand_Sessions(t *testing.T) {
 }
 
 func TestExecCommand_Sessions_Foreign(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, `
 		disable_remote_exec = false
@@ -239,6 +259,10 @@ func TestExecCommand_Sessions_Foreign(t *testing.T) {
 }
 
 func TestExecCommand_UploadDestroy(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, `
 		disable_remote_exec = false
@@ -296,6 +320,10 @@ func TestExecCommand_UploadDestroy(t *testing.T) {
 }
 
 func TestExecCommand_StreamResults(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, `
 		disable_remote_exec = false

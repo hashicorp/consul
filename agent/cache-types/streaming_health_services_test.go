@@ -3,22 +3,30 @@ package cachetype
 import (
 	"errors"
 	"fmt"
-	"sort"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/pbcommon"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
+	"github.com/hashicorp/consul/types"
 )
 
 func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
-	client := NewTestStreamingClient()
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	namespace := pbcommon.DefaultEnterpriseMeta.Namespace
+	client := NewTestStreamingClient(namespace)
 	typ := StreamingHealthServices{deps: MaterializerDeps{
 		Client: client,
 		Logger: hclog.Default(),
@@ -26,15 +34,16 @@ func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
 
 	// Initially there are no services registered. Server should send an
 	// EndOfSnapshot message immediately with index of 1.
-	client.QueueEvents(newEndOfSnapshotEvent(pbsubscribe.Topic_ServiceHealth, 1))
+	client.QueueEvents(newEndOfSnapshotEvent(1))
 
 	opts := cache.FetchOptions{
 		MinIndex: 0,
 		Timeout:  time.Second,
 	}
 	req := &structs.ServiceSpecificRequest{
-		Datacenter:  "dc1",
-		ServiceName: "web",
+		Datacenter:     "dc1",
+		ServiceName:    "web",
+		EnterpriseMeta: structs.EnterpriseMetaInitializer(namespace),
 	}
 	empty := &structs.IndexedCheckServiceNodes{
 		Nodes: structs.CheckServiceNodes{},
@@ -215,8 +224,71 @@ func requireResultsSame(t *testing.T, want, got *structs.IndexedCheckServiceNode
 	require.ElementsMatch(t, wantIDs, gotIDs)
 }
 
+// getNamespace returns a namespace if namespace support exists, otherwise
+// returns the empty string. It allows the same tests to work in both oss and ent
+// without duplicating the tests.
+func getNamespace(ns string) string {
+	meta := structs.EnterpriseMetaInitializer(ns)
+	return meta.GetNamespace()
+}
+
+func TestOrderingConsistentWithMemDb(t *testing.T) {
+	index := uint64(42)
+	buildTestNode := func(nodeName string, serviceID string) structs.CheckServiceNode {
+		newID, err := uuid.GenerateUUID()
+		require.NoError(t, err)
+		return structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         types.NodeID(strings.ToUpper(newID)),
+				Node:       nodeName,
+				Address:    nodeName,
+				Datacenter: "dc1",
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: index,
+					ModifyIndex: index,
+				},
+			},
+			Service: &structs.NodeService{
+				ID:      serviceID,
+				Service: "testService",
+				Port:    8080,
+				Weights: &structs.Weights{
+					Passing: 1,
+					Warning: 1,
+				},
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: index,
+					ModifyIndex: index,
+				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			},
+			Checks: []*structs.HealthCheck{},
+		}
+	}
+	zero := buildTestNode("a-zero-node", "testService:1")
+	one := buildTestNode("node1", "testService:1")
+	two := buildTestNode("node1", "testService:2")
+	three := buildTestNode("node2", "testService")
+	result := structs.IndexedCheckServiceNodes{
+		Nodes: structs.CheckServiceNodes{
+			three, two, zero, one,
+		},
+		QueryMeta: structs.QueryMeta{
+			Index: index,
+		},
+	}
+	sortCheckServiceNodes(&result)
+	expected := structs.CheckServiceNodes{zero, one, two, three}
+	require.Equal(t, expected, result.Nodes)
+}
+
 func TestStreamingHealthServices_FullSnapshot(t *testing.T) {
-	client := NewTestStreamingClient()
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	namespace := getNamespace("ns2")
+	client := NewTestStreamingClient(namespace)
 	typ := StreamingHealthServices{deps: MaterializerDeps{
 		Client: client,
 		Logger: hclog.Default(),
@@ -230,7 +302,7 @@ func TestStreamingHealthServices_FullSnapshot(t *testing.T) {
 		registerServiceWeb(5, 1),
 		registerServiceWeb(5, 2),
 		registerServiceWeb(5, 3),
-		newEndOfSnapshotEvent(pbsubscribe.Topic_ServiceHealth, 5))
+		newEndOfSnapshotEvent(5))
 
 	// This contains the view state so important we share it between calls.
 	opts := cache.FetchOptions{
@@ -238,8 +310,9 @@ func TestStreamingHealthServices_FullSnapshot(t *testing.T) {
 		Timeout:  1 * time.Second,
 	}
 	req := &structs.ServiceSpecificRequest{
-		Datacenter:  "dc1",
-		ServiceName: "web",
+		Datacenter:     "dc1",
+		ServiceName:    "web",
+		EnterpriseMeta: structs.EnterpriseMetaInitializer(namespace),
 	}
 
 	gatherNodes := func(res interface{}) []string {
@@ -248,7 +321,7 @@ func TestStreamingHealthServices_FullSnapshot(t *testing.T) {
 		for _, csn := range r.Nodes {
 			nodes = append(nodes, csn.Node.Node)
 		}
-		sort.Strings(nodes)
+		// Result will be sorted alphabetically the same way as memdb
 		return nodes
 	}
 
@@ -301,7 +374,7 @@ func TestStreamingHealthServices_FullSnapshot(t *testing.T) {
 			registerServiceWeb(50, 3), // overlap existing node
 			registerServiceWeb(50, 4),
 			registerServiceWeb(50, 5),
-			newEndOfSnapshotEvent(pbsubscribe.Topic_ServiceHealth, 50))
+			newEndOfSnapshotEvent(50))
 
 		// Make another blocking query with THE SAME index. It should immediately
 		// return the new snapshot.
@@ -324,11 +397,11 @@ func TestStreamingHealthServices_FullSnapshot(t *testing.T) {
 		client.QueueErr(tempError("temporary connection error"))
 
 		client.QueueEvents(
-			newNewSnapshotToFollowEvent(pbsubscribe.Topic_ServiceHealth),
+			newNewSnapshotToFollowEvent(),
 			registerServiceWeb(50, 3), // overlap existing node
 			registerServiceWeb(50, 4),
 			registerServiceWeb(50, 5),
-			newEndOfSnapshotEvent(pbsubscribe.Topic_ServiceHealth, 50))
+			newEndOfSnapshotEvent(50))
 
 		start := time.Now()
 		opts.MinIndex = 49
@@ -345,7 +418,8 @@ func TestStreamingHealthServices_FullSnapshot(t *testing.T) {
 }
 
 func TestStreamingHealthServices_EventBatches(t *testing.T) {
-	client := NewTestStreamingClient()
+	namespace := getNamespace("ns3")
+	client := NewTestStreamingClient(namespace)
 	typ := StreamingHealthServices{deps: MaterializerDeps{
 		Client: client,
 		Logger: hclog.Default(),
@@ -358,7 +432,7 @@ func TestStreamingHealthServices_EventBatches(t *testing.T) {
 		newEventServiceHealthRegister(5, 3, "web"))
 	client.QueueEvents(
 		batchEv,
-		newEndOfSnapshotEvent(pbsubscribe.Topic_ServiceHealth, 5))
+		newEndOfSnapshotEvent(5))
 
 	// This contains the view state so important we share it between calls.
 	opts := cache.FetchOptions{
@@ -366,8 +440,9 @@ func TestStreamingHealthServices_EventBatches(t *testing.T) {
 		Timeout:  1 * time.Second,
 	}
 	req := &structs.ServiceSpecificRequest{
-		Datacenter:  "dc1",
-		ServiceName: "web",
+		Datacenter:     "dc1",
+		ServiceName:    "web",
+		EnterpriseMeta: structs.EnterpriseMetaInitializer(namespace),
 	}
 
 	gatherNodes := func(res interface{}) []string {
@@ -415,7 +490,8 @@ func TestStreamingHealthServices_EventBatches(t *testing.T) {
 }
 
 func TestStreamingHealthServices_Filtering(t *testing.T) {
-	client := NewTestStreamingClient()
+	namespace := getNamespace("ns3")
+	client := NewTestStreamingClient(namespace)
 	typ := StreamingHealthServices{deps: MaterializerDeps{
 		Client: client,
 		Logger: hclog.Default(),
@@ -428,7 +504,7 @@ func TestStreamingHealthServices_Filtering(t *testing.T) {
 		newEventServiceHealthRegister(5, 3, "web"))
 	client.QueueEvents(
 		batchEv,
-		newEndOfSnapshotEvent(pbsubscribe.Topic_ServiceHealth, 5))
+		newEndOfSnapshotEvent(5))
 
 	// This contains the view state so important we share it between calls.
 	opts := cache.FetchOptions{
@@ -436,8 +512,9 @@ func TestStreamingHealthServices_Filtering(t *testing.T) {
 		Timeout:  1 * time.Second,
 	}
 	req := &structs.ServiceSpecificRequest{
-		Datacenter:  "dc1",
-		ServiceName: "web",
+		Datacenter:     "dc1",
+		ServiceName:    "web",
+		EnterpriseMeta: structs.EnterpriseMetaInitializer(namespace),
 		QueryOptions: structs.QueryOptions{
 			Filter: `Node.Node == "node2"`,
 		},

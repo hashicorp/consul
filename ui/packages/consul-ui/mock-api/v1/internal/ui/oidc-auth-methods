@@ -1,0 +1,23 @@
+[
+  ${
+    range(
+      env(
+        'CONSUL_OIDC_PROVIDER_COUNT',
+        Math.floor(
+          (
+            Math.random() * env('CONSUL_OIDC_PROVIDER_MAX', 10)
+          ) + parseInt(env('CONSUL_OIDC_PROVIDER_MIN', 1))
+        )
+      )
+    ).map((item, i) => {
+      const name = `${fake.company.companyName()}`;
+return `
+  {
+    "Name": "${name.split(' ').join('-').toLowerCase()}",
+    "DisplayName": "${name}",
+    "Kind": "${fake.helpers.randomize(['no-icon', 'google', 'okta', 'auth0', 'microsoft'])}",
+    "Namespace": "default"
+  }
+`})
+  }
+]

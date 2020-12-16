@@ -58,6 +58,10 @@ func TestTokenCloneCommand_noTabs(t *testing.T) {
 }
 
 func TestTokenCloneCommand_Pretty(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	req := require.New(t)
 
@@ -162,6 +166,10 @@ func TestTokenCloneCommand_Pretty(t *testing.T) {
 }
 
 func TestTokenCloneCommand_JSON(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	req := require.New(t)
 

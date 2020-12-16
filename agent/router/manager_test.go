@@ -275,6 +275,10 @@ func TestServers_NumServers(t *testing.T) {
 
 // func (m *Manager) RebalanceServers() {
 func TestServers_RebalanceServers(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	const failPct = 0.5
 	m := testManagerFailProb(t, failPct)
 	const maxServers = 100

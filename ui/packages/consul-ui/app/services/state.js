@@ -3,13 +3,16 @@ import { set } from '@ember/object';
 import flat from 'flat';
 import { createMachine, interpret } from '@xstate/fsm';
 
-export default Service.extend({
-  logger: service('logger'),
+export default class StateService extends Service {
+  @service('logger')
+  logger;
+
   // @xstate/fsm
-  log: function(chart, state) {
+  log(chart, state) {
     // this.logger.execute(`${chart.id} > ${state.value}`);
-  },
-  addGuards: function(chart, options) {
+  }
+
+  addGuards(chart, options) {
     this.guards(chart).forEach(function([path, name]) {
       // xstate/fsm has no guard lookup
       set(chart, path, function() {
@@ -17,11 +20,13 @@ export default Service.extend({
       });
     });
     return [chart, options];
-  },
-  machine: function(chart, options = {}) {
+  }
+
+  machine(chart, options = {}) {
     return createMachine(...this.addGuards(chart, options));
-  },
-  prepareChart: function(chart) {
+  }
+
+  prepareChart(chart) {
     // xstate/fsm has no guard lookup so we clone the chart here
     // for when we replace the string based guards with functions
     // further down
@@ -42,9 +47,10 @@ export default Service.extend({
       });
     }
     return chart;
-  },
+  }
+
   // abstract
-  matches: function(state, matches) {
+  matches(state, matches) {
     if (typeof state === 'undefined') {
       return false;
     }
@@ -52,13 +58,15 @@ export default Service.extend({
     return values.some(item => {
       return state.matches(item);
     });
-  },
-  state: function(cb) {
+  }
+
+  state(cb) {
     return {
       matches: cb,
     };
-  },
-  interpret: function(chart, options) {
+  }
+
+  interpret(chart, options) {
     chart = this.prepareChart(chart);
     const service = interpret(this.machine(chart, options));
     // returns subscription
@@ -69,8 +77,9 @@ export default Service.extend({
       }
     });
     return service;
-  },
-  guards: function(chart) {
+  }
+
+  guards(chart) {
     return Object.entries(flat(chart)).filter(([key]) => key.endsWith('.cond'));
-  },
-});
+  }
+}

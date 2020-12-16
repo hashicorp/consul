@@ -4,7 +4,6 @@ import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 
 export default class ConsulIntentionForm extends Component {
-
   @tracked services;
   @tracked SourceName;
   @tracked DestinationName;
@@ -15,6 +14,8 @@ export default class ConsulIntentionForm extends Component {
 
   @tracked isManagedByCRDs;
 
+  @tracked warn = false;
+
   @service('repository/intention') repo;
 
   constructor(owner, args) {
@@ -23,7 +24,7 @@ export default class ConsulIntentionForm extends Component {
   }
 
   ondelete() {
-    if(this.args.ondelete) {
+    if (this.args.ondelete) {
       this.args.ondelete(...arguments);
     } else {
       this.onsubmit(...arguments);
@@ -31,7 +32,7 @@ export default class ConsulIntentionForm extends Component {
   }
 
   oncancel() {
-    if(this.args.oncancel) {
+    if (this.args.oncancel) {
       this.args.oncancel(...arguments);
     } else {
       this.onsubmit(...arguments);
@@ -39,7 +40,7 @@ export default class ConsulIntentionForm extends Component {
   }
 
   onsubmit() {
-    if(this.args.onsubmit) {
+    if (this.args.onsubmit) {
       this.args.onsubmit(...arguments);
     }
   }
@@ -48,9 +49,19 @@ export default class ConsulIntentionForm extends Component {
   updateCRDManagement() {
     this.isManagedByCRDs = this.repo.isManagedByCRDs();
   }
-
   @action
-  createServices (item, e) {
+  submit(item, submit, e) {
+    e.preventDefault();
+    // if the action of the intention has changed and its non-empty then warn
+    // the user
+    if (typeof item.change.Action !== 'undefined' && typeof item.data.Action === 'undefined') {
+      this.warn = true;
+    } else {
+      submit();
+    }
+  }
+  @action
+  createServices(item, e) {
     // Services in the menus should:
     // 1. Be unique (they potentially could be duplicated due to services from different namespaces)
     // 2. Only include services that shold have intentions
@@ -59,9 +70,7 @@ export default class ConsulIntentionForm extends Component {
     let items = e.data
       .uniqBy('Name')
       .toArray()
-      .filter(
-        item => !['connect-proxy', 'mesh-gateway', 'terminating-gateway'].includes(item.Kind)
-      )
+      .filter(item => !['connect-proxy', 'mesh-gateway', 'terminating-gateway'].includes(item.Kind))
       .sort((a, b) => a.Name.localeCompare(b.Name));
     items = [{ Name: '*' }].concat(items);
     let source = items.findBy('Name', item.SourceName);
@@ -80,7 +89,7 @@ export default class ConsulIntentionForm extends Component {
   }
 
   @action
-  createNspaces (item, e) {
+  createNspaces(item, e) {
     // Nspaces in the menus should:
     // 1. Include an 'All Namespaces' option
     // 2. Include the current SourceNS and DestinationNS incase they don't exist yet

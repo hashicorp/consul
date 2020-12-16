@@ -6,7 +6,8 @@ import (
 	"sync"
 	"time"
 
-	metrics "github.com/armon/go-metrics"
+	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/logging"
@@ -14,6 +15,32 @@ import (
 	"golang.org/x/sync/singleflight"
 	"golang.org/x/time/rate"
 )
+
+var ACLCounters = []prometheus.CounterDefinition{
+	{
+		Name: []string{"acl", "token", "cache_hit"},
+		Help: "Increments if Consul is able to resolve a token's identity, or a legacy token, from the cache.",
+	},
+	{
+		Name: []string{"acl", "token", "cache_miss"},
+		Help: "Increments if Consul cannot resolve a token's identity, or a legacy token, from the cache.",
+	},
+}
+
+var ACLSummaries = []prometheus.SummaryDefinition{
+	{
+		Name: []string{"acl", "resolveTokenLegacy"},
+		Help: "This measures the time it takes to resolve an ACL token using the legacy ACL system.",
+	},
+	{
+		Name: []string{"acl", "ResolveToken"},
+		Help: "This measures the time it takes to resolve an ACL token.",
+	},
+	{
+		Name: []string{"acl", "ResolveTokenToIdentity"},
+		Help: "This measures the time it takes to resolve an ACL token to an Identity.",
+	},
+}
 
 // These must be kept in sync with the constants in command/agent/acl.go.
 const (

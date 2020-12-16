@@ -1,7 +1,6 @@
 package fsm
 
 import (
-	"github.com/hashicorp/consul/agent/consul/autopilot"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-msgpack/codec"
@@ -605,7 +604,7 @@ func restorePreparedQuery(header *SnapshotHeader, restore *state.Restore, decode
 }
 
 func restoreAutopilot(header *SnapshotHeader, restore *state.Restore, decoder *codec.Decoder) error {
-	var req autopilot.Config
+	var req structs.AutopilotConfig
 	if err := decoder.Decode(&req); err != nil {
 		return err
 	}

@@ -8,20 +8,24 @@ const isValidServerError = isValidServerErrorFactory();
 const status = statusFactory(isValidServerError, Promise);
 const MODEL_NAME = 'policy';
 
-export default RepositoryService.extend({
-  getModelName: function() {
+export default class PolicyService extends RepositoryService {
+  getModelName() {
     return MODEL_NAME;
-  },
-  getPrimaryKey: function() {
+  }
+
+  getPrimaryKey() {
     return PRIMARY_KEY;
-  },
-  getSlugKey: function() {
+  }
+
+  getSlugKey() {
     return SLUG_KEY;
-  },
-  status: function(obj) {
+  }
+
+  status(obj) {
     return status(obj);
-  },
-  persist: function(item) {
+  }
+
+  persist(item) {
     // only if a policy doesn't have a template, save it
     // right now only ServiceIdentities have templates and
     // are not saveable themselves (but can be saved to a Role/Token)
@@ -30,8 +34,9 @@ export default RepositoryService.extend({
         return item.save();
     }
     return Promise.resolve(item);
-  },
-  translate: function(item) {
+  }
+
+  translate(item) {
     return this.store.translate('policy', get(item, 'Rules'));
-  },
-});
+  }
+}

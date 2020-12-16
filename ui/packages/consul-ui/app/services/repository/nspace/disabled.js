@@ -3,25 +3,30 @@ import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/nspace';
 
 const modelName = 'nspace';
 const DEFAULT_NSPACE = 'default';
-export default RepositoryService.extend({
-  getPrimaryKey: function() {
+export default class DisabledService extends RepositoryService {
+  getPrimaryKey() {
     return PRIMARY_KEY;
-  },
-  getSlugKey: function() {
+  }
+
+  getSlugKey() {
     return SLUG_KEY;
-  },
-  getModelName: function() {
+  }
+
+  getModelName() {
     return modelName;
-  },
-  findAll: function(configuration = {}) {
+  }
+
+  findAll(configuration = {}) {
     return Promise.resolve([]);
-  },
-  getActive: function() {
+  }
+
+  getActive() {
     return {
       Name: DEFAULT_NSPACE,
     };
-  },
-  authorize: function(dc, nspace) {
+  }
+
+  authorize(dc, nspace) {
     return Promise.resolve([]);
-  },
-});
+  }
+}

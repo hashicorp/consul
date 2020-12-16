@@ -12,8 +12,17 @@ import (
 type LeaderRoutine func(ctx context.Context) error
 
 type leaderRoutine struct {
-	running bool
-	cancel  context.CancelFunc
+	cancel    context.CancelFunc
+	stoppedCh chan struct{} // closed when no longer running
+}
+
+func (r *leaderRoutine) running() bool {
+	select {
+	case <-r.stoppedCh:
+		return false
+	default:
+		return true
+	}
 }
 
 type LeaderRoutineManager struct {
@@ -41,7 +50,7 @@ func (m *LeaderRoutineManager) IsRunning(name string) bool {
 	defer m.lock.Unlock()
 
 	if routine, ok := m.routines[name]; ok {
-		return routine.running
+		return routine.running()
 	}
 
 	return false
@@ -55,7 +64,7 @@ func (m *LeaderRoutineManager) StartWithContext(parentCtx context.Context, name 
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
-	if instance, ok := m.routines[name]; ok && instance.running {
+	if instance, ok := m.routines[name]; ok && instance.running() {
 		return nil
 	}
 
@@ -65,11 +74,15 @@ func (m *LeaderRoutineManager) StartWithContext(parentCtx context.Context, name 
 
 	ctx, cancel := context.WithCancel(parentCtx)
 	instance := &leaderRoutine{
-		running: true,
-		cancel:  cancel,
+		cancel:    cancel,
+		stoppedCh: make(chan struct{}),
 	}
 
 	go func() {
+		defer func() {
+			close(instance.stoppedCh)
+		}()
+
 		err := routine(ctx)
 		if err != nil && err != context.DeadlineExceeded && err != context.Canceled {
 			m.logger.Error("routine exited with error",
@@ -79,10 +92,6 @@ func (m *LeaderRoutineManager) StartWithContext(parentCtx context.Context, name 
 		} else {
 			m.logger.Debug("stopped routine", "routine", name)
 		}
-
-		m.lock.Lock()
-		instance.running = false
-		m.lock.Unlock()
 	}()
 
 	m.routines[name] = instance
@@ -90,7 +99,19 @@ func (m *LeaderRoutineManager) StartWithContext(parentCtx context.Context, name 
 	return nil
 }
 
-func (m *LeaderRoutineManager) Stop(name string) error {
+func (m *LeaderRoutineManager) Stop(name string) <-chan struct{} {
+	instance := m.stopInstance(name)
+	if instance == nil {
+		// Fabricate a closed channel so it won't block forever.
+		ch := make(chan struct{})
+		close(ch)
+		return ch
+	}
+
+	return instance.stoppedCh
+}
+
+func (m *LeaderRoutineManager) stopInstance(name string) *leaderRoutine {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
@@ -100,15 +121,16 @@ func (m *LeaderRoutineManager) Stop(name string) error {
 		return nil
 	}
 
-	if !instance.running {
-		return nil
+	if !instance.running() {
+		return instance
 	}
 
 	m.logger.Debug("stopping routine", "routine", name)
 	instance.cancel()
 
 	delete(m.routines, name)
-	return nil
+
+	return instance
 }
 
 func (m *LeaderRoutineManager) StopAll() {
@@ -116,7 +138,7 @@ func (m *LeaderRoutineManager) StopAll() {
 	defer m.lock.Unlock()
 
 	for name, routine := range m.routines {
-		if !routine.running {
+		if !routine.running() {
 			continue
 		}
 		m.logger.Debug("stopping routine", "routine", name)

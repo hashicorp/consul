@@ -76,6 +76,10 @@ func testGenerateECDSAKey(t *testing.T, bits int) {
 
 // Tests to make sure we are able to generate every type of private key supported by the x509 lib.
 func TestGenerateKeys(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	for _, params := range goodParams {
 		t.Run(fmt.Sprintf("TestGenerateKeys-%s-%d", params.keyType, params.keyBits),
@@ -121,6 +125,10 @@ func TestValidateBadConfigs(t *testing.T) {
 // Tests the ability of a CA to sign a CSR using a different key type. This is
 // allowed by TLS 1.2 and should succeed in all combinations.
 func TestSignatureMismatches(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	r := require.New(t)
 	for _, p1 := range goodParams {

@@ -6,9 +6,126 @@ import (
 	"strings"
 
 	metrics "github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
+
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
 )
+
+var CatalogCounters = []prometheus.CounterDefinition{
+	{
+		Name: []string{"client", "api", "catalog_register"},
+		Help: "Increments whenever a Consul agent receives a catalog register request.",
+	},
+	{
+		Name: []string{"client", "rpc", "error", "catalog_register"},
+		Help: "Increments whenever a Consul agent receives an RPC error for a catalog register request.",
+	},
+	{
+		Name: []string{"client", "api", "success", "catalog_register"},
+		Help: "Increments whenever a Consul agent successfully responds to a catalog register request.",
+	},
+	{
+		Name: []string{"client", "api", "catalog_deregister"},
+		Help: "Increments whenever a Consul agent receives a catalog deregister request.",
+	},
+	{
+		Name: []string{"client", "api", "catalog_datacenters"},
+		Help: "Increments whenever a Consul agent receives a request to list datacenters in the catalog.",
+	},
+	{
+		Name: []string{"client", "rpc", "error", "catalog_deregister"},
+		Help: "Increments whenever a Consul agent receives an RPC error for a catalog deregister request.",
+	},
+	{
+		Name: []string{"client", "api", "success", "catalog_nodes"},
+		Help: "Increments whenever a Consul agent successfully responds to a request to list nodes.",
+	},
+	{
+		Name: []string{"client", "rpc", "error", "catalog_nodes"},
+		Help: "Increments whenever a Consul agent receives an RPC error for a request to list nodes.",
+	},
+	{
+		Name: []string{"client", "api", "success", "catalog_deregister"},
+		Help: "Increments whenever a Consul agent successfully responds to a catalog deregister request.",
+	},
+	{
+		Name: []string{"client", "rpc", "error", "catalog_datacenters"},
+		Help: "Increments whenever a Consul agent receives an RPC error for a request to list datacenters.",
+	},
+	{
+		Name: []string{"client", "api", "success", "catalog_datacenters"},
+		Help: "Increments whenever a Consul agent successfully responds to a request to list datacenters.",
+	},
+	{
+		Name: []string{"client", "api", "catalog_nodes"},
+		Help: "Increments whenever a Consul agent receives a request to list nodes from the catalog.",
+	},
+	{
+		Name: []string{"client", "api", "catalog_services"},
+		Help: "Increments whenever a Consul agent receives a request to list services from the catalog.",
+	},
+	{
+		Name: []string{"client", "rpc", "error", "catalog_services"},
+		Help: "Increments whenever a Consul agent receives an RPC error for a request to list services.",
+	},
+	{
+		Name: []string{"client", "api", "success", "catalog_services"},
+		Help: "Increments whenever a Consul agent successfully responds to a request to list services.",
+	},
+	{
+		Name: []string{"client", "api", "catalog_service_nodes"},
+		Help: "Increments whenever a Consul agent receives a request to list nodes offering a service.",
+	},
+	{
+		Name: []string{"client", "rpc", "error", "catalog_service_nodes"},
+		Help: "Increments whenever a Consul agent receives an RPC error for a request to list nodes offering a service.",
+	},
+	{
+		Name: []string{"client", "api", "success", "catalog_service_nodes"},
+		Help: "Increments whenever a Consul agent successfully responds to a request to list nodes offering a service.",
+	},
+	{
+		Name: []string{"client", "api", "error", "catalog_service_nodes"},
+		Help: "Increments whenever a Consul agent receives an RPC error for request to list nodes offering a service.",
+	},
+	{
+		Name: []string{"client", "api", "catalog_node_services"},
+		Help: "Increments whenever a Consul agent successfully responds to a request to list nodes offering a service.",
+	},
+	{
+		Name: []string{"client", "api", "success", "catalog_node_services"},
+		Help: "Increments whenever a Consul agent successfully responds to a request to list services in a node.",
+	},
+	{
+		Name: []string{"client", "rpc", "error", "catalog_node_services"},
+		Help: "Increments whenever a Consul agent receives an RPC error for a request to list services in a node.",
+	},
+	{
+		Name: []string{"client", "api", "catalog_node_service_list"},
+		Help: "Increments whenever a Consul agent receives a request to list a node's registered services.",
+	},
+	{
+		Name: []string{"client", "rpc", "error", "catalog_node_service_list"},
+		Help: "Increments whenever a Consul agent receives an RPC error for request to list a node's registered services.",
+	},
+	{
+		Name: []string{"client", "api", "success", "catalog_node_service_list"},
+		Help: "Increments whenever a Consul agent successfully responds to a request to list a node's registered services.",
+	},
+	{
+		Name: []string{"client", "api", "catalog_gateway_services"},
+		Help: "Increments whenever a Consul agent receives a request to list services associated with a gateway.",
+	},
+	{
+		Name: []string{"client", "rpc", "error", "catalog_gateway_services"},
+		Help: "Increments whenever a Consul agent receives an RPC error for a request to list services associated with a gateway.",
+	},
+	{
+		Name: []string{"client", "api", "success", "catalog_gateway_services"},
+		Help: "Increments whenever a Consul agent successfully responds to a request to list services associated with a gateway.",
+	},
+}
 
 func (s *HTTPHandlers) CatalogRegister(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_register"}, 1,
@@ -84,7 +201,7 @@ func (s *HTTPHandlers) CatalogDatacenters(resp http.ResponseWriter, req *http.Re
 	parseCacheControl(resp, req, &args.QueryOptions)
 	var out []string
 
-	if s.agent.config.HTTPUseCache && args.QueryOptions.UseCache {
+	if args.QueryOptions.UseCache {
 		raw, m, err := s.agent.cache.Get(req.Context(), cachetype.CatalogDatacentersName, &args)
 		if err != nil {
 			metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_datacenters"}, 1,
@@ -166,7 +283,7 @@ func (s *HTTPHandlers) CatalogServices(resp http.ResponseWriter, req *http.Reque
 	var out structs.IndexedServices
 	defer setMeta(resp, &out.QueryMeta)
 
-	if s.agent.config.HTTPUseCache && args.QueryOptions.UseCache {
+	if args.QueryOptions.UseCache {
 		raw, m, err := s.agent.cache.Get(req.Context(), cachetype.CatalogListServicesName, &args)
 		if err != nil {
 			metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_services"}, 1,
@@ -255,7 +372,7 @@ func (s *HTTPHandlers) catalogServiceNodes(resp http.ResponseWriter, req *http.R
 	var out structs.IndexedServiceNodes
 	defer setMeta(resp, &out.QueryMeta)
 
-	if s.agent.config.HTTPUseCache && args.QueryOptions.UseCache {
+	if args.QueryOptions.UseCache {
 		raw, m, err := s.agent.cache.Get(req.Context(), cachetype.CatalogServicesName, &args)
 		if err != nil {
 			metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_service_nodes"}, 1,

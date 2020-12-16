@@ -38,7 +38,7 @@ func waitForLeader(servers ...*Server) error {
 // wantPeers determines whether the server has the given
 // number of voting raft peers.
 func wantPeers(s *Server, peers int) error {
-	n, err := s.numPeers()
+	n, err := s.autopilot.NumVoters()
 	if err != nil {
 		return err
 	}

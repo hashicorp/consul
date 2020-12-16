@@ -1,24 +1,30 @@
-{{#if (not-eq error.status "403")}}
+{{#if (not-eq @error.status "403")}}
   <EmptyState
-    class={{concat "status-" error.status}}
+    class={{concat "status-" @error.status}}
     @allowLogin={{@allowLogin}}
   >
     <BlockSlot @name="header">
-      <h2>{{or error.message "Consul returned an error"}}</h2>
+      <h2>{{or @error.message "Consul returned an error"}}</h2>
     </BlockSlot>
-{{#if error.status }}
+{{#if @error.status }}
     <BlockSlot @name="subheader">
-      <h3 data-test-status={{error.status}}>Error {{error.status}}</h3>
+      <h3 data-test-status={{@error.status}}>Error {{@error.status}}</h3>
     </BlockSlot>
 {{/if}}
     <BlockSlot @name="body">
-      <p>
-        You may have visited a URL that is loading an unknown resource, so you can try going back to the root or try re-submitting your ACL Token/SecretID by going back to ACLs.
-      </p>
+      {{#if error.detail}}
+        <p>
+          {{error.detail}}
+        </p>
+      {{else}}
+        <p>
+          You may have visited a URL that is loading an unknown resource, so you can try going back to the root or try re-submitting your ACL Token/SecretID by going back to ACLs.
+        </p>
+      {{/if}}
     </BlockSlot>
     <BlockSlot @name="actions">
       <li class="back-link">
-        <a data-test-home rel="home" href={{href-to 'index'}}>Go back to root</a>
+        <a data-test-home rel="home" href={{href-to 'index'}}>Go back</a>
       </li>
       <li class="docs-link">
         <a href="{{env 'CONSUL_DOCS_URL'}}" rel="noopener noreferrer" target="_blank">Read the documentation</a>
@@ -31,7 +37,7 @@
     @allowLogin={{@allowLogin}}
   >
     <BlockSlot @name="header">
-      <h2 data-test-status={{error.status}}>You are not authorized</h2>
+      <h2 data-test-status={{@error.status}}>You are not authorized</h2>
     </BlockSlot>
     <BlockSlot @name="subheader">
       <h3>Error 403</h3>

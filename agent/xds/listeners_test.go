@@ -18,6 +18,9 @@ import (
 )
 
 func TestListenersFromSnapshot(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
 
 	tests := []struct {
 		name   string
@@ -577,7 +580,7 @@ func expectListenerJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot) ma
 								"name": "envoy.tcp_proxy",
 								"config": {
 									"cluster": "local_app",
-									"stat_prefix": "public_listener_tcp"
+									"stat_prefix": "public_listener"
 								}
 							}
 						]
@@ -600,7 +603,7 @@ func expectListenerJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot) ma
 							"name": "envoy.tcp_proxy",
 							"config": {
 								"cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-								"stat_prefix": "upstream_db_tcp"
+								"stat_prefix": "upstream.db.default.dc1"
 							}
 						}
 					]
@@ -623,7 +626,7 @@ func expectListenerJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot) ma
 							"name": "envoy.tcp_proxy",
 							"config": {
 								"cluster": "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
-								"stat_prefix": "upstream_prepared_query_geo-cache_tcp"
+								"stat_prefix": "upstream.prepared_query_geo-cache"
 							}
 						}
 					]

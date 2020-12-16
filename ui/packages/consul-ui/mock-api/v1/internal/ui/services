@@ -1,0 +1,109 @@
+${[0].map(
+  () => {
+    let prevKind;
+    let name;
+    const gateways = ['mesh-gateway', 'ingress-gateway', 'terminating-gateway'];
+    return `
+[
+  ${
+    range(
+      env(
+        'CONSUL_SERVICE_COUNT',
+        Math.floor(
+          (
+            Math.random() * env('CONSUL_SERVICE_MAX', 10)
+          ) + parseInt(env('CONSUL_SERVICE_MIN', 1))
+        )
+      )
+    ).map(
+      function(item, i)
+      {
+        let kind;
+        switch(i) {
+          case 0:
+            kind = '';
+            break;
+          case 1:
+            kind = 'connect-proxy';
+            break;
+          case 2:
+          case 3:
+          case 4:
+            kind = gateways[i - 2];
+            break;
+          default:
+            kind = prevKind === '' ? fake.helpers.randomize(['connect-proxy', '']) : fake.helpers.randomize(['', '', '', ''].concat(gateways));
+        }
+        prevKind = kind;
+        if(kind === 'connect-proxy') {
+          name = `${name}-proxy`;
+        } else {
+          name = `service-${i}${ kind !== '' ? `-${kind.replace('connect-', '')}` : '' }`;
+        }
+        return `
+          {
+            "Name":"${name}",
+${typeof location.search.ns !== 'undefined' ? `
+            "Namespace": "${location.search.ns}",
+` : ``}
+            "Tags": [
+                ${
+                    range(
+                      env(
+                        'CONSUL_TAG_COUNT',
+                        Math.floor(
+                          (
+                            Math.random() * env('CONSUL_TAG_MAX', 10)
+                          ) + parseInt(env('CONSUL_TAG_MIN', 1))
+                        )
+                      )
+                    ).map(
+                      function(item, i)
+                      {
+                          return `"${fake.hacker.noun()}"`;
+                      }
+                    )
+                }
+            ],
+            "ConnectedWithProxy":${fake.random.boolean()},
+            "ConnectedWithGateway":${fake.random.boolean()},
+            "GatewayConfig": {
+              "AssociatedServiceCount": ${fake.random.number({min: 1, max: 4000})}
+            },
+${kind !== '' ? `
+            "Kind": "${kind}",
+` : `` }
+            "InstanceCount": ${fake.helpers.randomize([fake.random.number({min: 1, max: 4000}), fake.random.number({min: 1, max: 90}), fake.random.number({min: 1, max: 10})])},
+${ fake.random.number({min: 1, max: 10}) > 2 ? `
+            "ExternalSources": [
+                ${
+                    range(fake.random.number({min: 1, max: 1})).map(
+                        function(item, i)
+                        {
+                            return `"${fake.helpers.randomize(['consul', 'nomad', 'terraform', 'kubernetes', 'aws', ''])}"`;
+                        }
+                    )
+                }
+
+            ],
+` : `` }
+            "Nodes":[
+              ${
+                range(env('CONSUL_NODE_COUNT', 100)).map(
+                  function(item, i)
+                  {
+                    return `"node-${i}"`;
+                  }
+                )
+              }
+            ],
+            "ChecksPassing":${fake.random.number({min: 1, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
+            "ChecksWarning":${fake.random.number({min: 0, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})},
+            "ChecksCritical":${fake.random.number({min: 0, max: env('CONSUL_CHECK_COUNT', fake.random.number(10))})}
+          }
+        `;
+      }
+    )
+  }
+]
+`})}

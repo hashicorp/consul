@@ -12,6 +12,4 @@ sudo apt-get update
 sudo apt-get install k6
 
 # move service file
-mv /home/ubuntu/scripts/loadtest.service /etc/systemd/system/loadtest.service
-chmod 755 /home/ubuntu/scripts/puts_script.js
-chmod 755 /home/ubuntu/scripts/run-k6.sh
+chmod 755 /home/ubuntu/scripts/loadtest.js

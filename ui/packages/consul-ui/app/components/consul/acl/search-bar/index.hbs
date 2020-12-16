@@ -1,0 +1,59 @@
+<form
+  class="consul-acl-search-bar filter-bar"
+  ...attributes
+>
+  <div class="search">
+    <FreetextFilter
+      @onsearch={{action @onsearch}}
+      @value={{@search}}
+      @placeholder="Search"
+    />
+  </div>
+  <div class="filters">
+    <PopoverSelect
+      @position="left"
+      @onchange={{action @onfilter.kind}}
+      @multiple={{true}}
+    as |components|>
+      <BlockSlot @name="selected">
+        <span>
+          Type
+        </span>
+      </BlockSlot>
+      <BlockSlot @name="options">
+{{#let components.Optgroup components.Option as |Optgroup Option|}}
+        <Option @value="management" @selected={{contains 'management' @filter.kinds}}>Management</Option>
+        <Option @value="client" @selected={{contains 'service' @filter.kinds}}>Client</Option>
+{{/let}}
+      </BlockSlot>
+    </PopoverSelect>
+  </div>
+  <div class="sort">
+    <PopoverSelect
+      class="type-sort"
+      data-test-sort-control
+      @position="right"
+      @onchange={{action @onsort}}
+      @multiple={{false}}
+    as |components|>
+      <BlockSlot @name="selected">
+        <span>
+          {{#let (from-entries (array
+                (array "Name:asc" "A to Z")
+                (array "Name:desc" "Z to A")
+              ))
+            as |selectable|
+          }}
+            {{get selectable @sort}}
+          {{/let}}
+        </span>
+      </BlockSlot>
+      <BlockSlot @name="options">
+{{#let components.Optgroup components.Option as |Optgroup Option|}}
+        <Option @value="Name:asc" @selected={{eq "Name:asc" @sort}}>A to Z</Option>
+        <Option @value="Name:desc" @selected={{eq "Name:desc" @sort}}>Z to A</Option>
+{{/let}}
+      </BlockSlot>
+    </PopoverSelect>
+  </div>
+</form>

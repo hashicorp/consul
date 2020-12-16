@@ -93,8 +93,9 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 	runStep(t, "setup a client and subscribe to a topic", func(t *testing.T) {
 		streamClient := pbsubscribe.NewStateChangeSubscriptionClient(conn)
 		streamHandle, err := streamClient.Subscribe(ctx, &pbsubscribe.SubscribeRequest{
-			Topic: pbsubscribe.Topic_ServiceHealth,
-			Key:   "redis",
+			Topic:     pbsubscribe.Topic_ServiceHealth,
+			Key:       "redis",
+			Namespace: pbcommon.DefaultEnterpriseMeta.Namespace,
 		})
 		require.NoError(t, err)
 
@@ -107,8 +108,6 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 	runStep(t, "receive the initial snapshot of events", func(t *testing.T) {
 		expected := []*pbsubscribe.Event{
 			{
-				Topic: pbsubscribe.Topic_ServiceHealth,
-				Key:   "redis",
 				Index: ids.For("reg3"),
 				Payload: &pbsubscribe.Event_ServiceHealth{
 					ServiceHealth: &pbsubscribe.ServiceHealthUpdate{
@@ -132,15 +131,13 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 									Expose:      pbservice.ExposeConfig{},
 								},
 								RaftIndex:      raftIndex(ids, "reg2", "reg2"),
-								EnterpriseMeta: pbcommon.EnterpriseMeta{},
+								EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
 							},
 						},
 					},
 				},
 			},
 			{
-				Topic: pbsubscribe.Topic_ServiceHealth,
-				Key:   "redis",
 				Index: ids.For("reg3"),
 				Payload: &pbsubscribe.Event_ServiceHealth{
 					ServiceHealth: &pbsubscribe.ServiceHealthUpdate{
@@ -164,15 +161,13 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 									Expose:      pbservice.ExposeConfig{},
 								},
 								RaftIndex:      raftIndex(ids, "reg3", "reg3"),
-								EnterpriseMeta: pbcommon.EnterpriseMeta{},
+								EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
 							},
 						},
 					},
 				},
 			},
 			{
-				Topic:   pbsubscribe.Topic_ServiceHealth,
-				Key:     "redis",
 				Index:   ids.For("reg3"),
 				Payload: &pbsubscribe.Event_EndOfSnapshot{EndOfSnapshot: true},
 			},
@@ -192,8 +187,6 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 
 		event := getEvent(t, chEvents)
 		expectedEvent := &pbsubscribe.Event{
-			Topic: pbsubscribe.Topic_ServiceHealth,
-			Key:   "redis",
 			Index: ids.Last(),
 			Payload: &pbsubscribe.Event_ServiceHealth{
 				ServiceHealth: &pbsubscribe.ServiceHealthUpdate{
@@ -217,7 +210,7 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 								Expose:      pbservice.ExposeConfig{},
 							},
 							RaftIndex:      raftIndex(ids, "reg3", "reg3"),
-							EnterpriseMeta: pbcommon.EnterpriseMeta{},
+							EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
 						},
 						Checks: []*pbservice.HealthCheck{
 							{
@@ -228,7 +221,7 @@ func TestServer_Subscribe_IntegrationWithBackend(t *testing.T) {
 								ServiceID:      "redis1",
 								ServiceName:    "redis",
 								RaftIndex:      raftIndex(ids, "update", "update"),
-								EnterpriseMeta: pbcommon.EnterpriseMeta{},
+								EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
 							},
 						},
 					},
@@ -269,7 +262,7 @@ func getEvent(t *testing.T, ch chan eventOrError) *pbsubscribe.Event {
 	case item := <-ch:
 		require.NoError(t, item.err)
 		return item.event
-	case <-time.After(10 * time.Second):
+	case <-time.After(2 * time.Second):
 		t.Fatalf("timeout waiting on event from server")
 	}
 	return nil
@@ -288,7 +281,11 @@ type testBackend struct {
 	forwardConn *gogrpc.ClientConn
 }
 
-func (b testBackend) ResolveToken(token string) (acl.Authorizer, error) {
+func (b testBackend) ResolveTokenAndDefaultMeta(
+	token string,
+	_ *structs.EnterpriseMeta,
+	_ *acl.AuthorizerContext,
+) (acl.Authorizer, error) {
 	return b.authorizer(token), nil
 }
 
@@ -448,6 +445,7 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 			Topic:      pbsubscribe.Topic_ServiceHealth,
 			Key:        "redis",
 			Datacenter: "dc2",
+			Namespace:  pbcommon.DefaultEnterpriseMeta.Namespace,
 		})
 		require.NoError(t, err)
 		go recvEvents(chEvents, streamHandle)
@@ -460,8 +458,6 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 	runStep(t, "receive the initial snapshot of events", func(t *testing.T) {
 		expected := []*pbsubscribe.Event{
 			{
-				Topic: pbsubscribe.Topic_ServiceHealth,
-				Key:   "redis",
 				Index: ids.Last(),
 				Payload: &pbsubscribe.Event_ServiceHealth{
 					ServiceHealth: &pbsubscribe.ServiceHealthUpdate{
@@ -484,7 +480,7 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 									MeshGateway: pbservice.MeshGatewayConfig{},
 									Expose:      pbservice.ExposeConfig{},
 								},
-								EnterpriseMeta: pbcommon.EnterpriseMeta{},
+								EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
 								RaftIndex:      raftIndex(ids, "reg2", "reg2"),
 							},
 						},
@@ -492,8 +488,6 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 				},
 			},
 			{
-				Topic: pbsubscribe.Topic_ServiceHealth,
-				Key:   "redis",
 				Index: ids.Last(),
 				Payload: &pbsubscribe.Event_ServiceHealth{
 					ServiceHealth: &pbsubscribe.ServiceHealthUpdate{
@@ -516,7 +510,7 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 									MeshGateway: pbservice.MeshGatewayConfig{},
 									Expose:      pbservice.ExposeConfig{},
 								},
-								EnterpriseMeta: pbcommon.EnterpriseMeta{},
+								EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
 								RaftIndex:      raftIndex(ids, "reg3", "reg3"),
 							},
 						},
@@ -524,8 +518,6 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 				},
 			},
 			{
-				Topic:   pbsubscribe.Topic_ServiceHealth,
-				Key:     "redis",
 				Index:   ids.Last(),
 				Payload: &pbsubscribe.Event_EndOfSnapshot{EndOfSnapshot: true},
 			},
@@ -545,8 +537,6 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 
 		event := getEvent(t, chEvents)
 		expectedEvent := &pbsubscribe.Event{
-			Topic: pbsubscribe.Topic_ServiceHealth,
-			Key:   "redis",
 			Index: ids.Last(),
 			Payload: &pbsubscribe.Event_ServiceHealth{
 				ServiceHealth: &pbsubscribe.ServiceHealthUpdate{
@@ -570,7 +560,7 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 								MeshGateway: pbservice.MeshGatewayConfig{},
 								Expose:      pbservice.ExposeConfig{},
 							},
-							EnterpriseMeta: pbcommon.EnterpriseMeta{},
+							EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
 						},
 						Checks: []*pbservice.HealthCheck{
 							{
@@ -581,7 +571,7 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 								ServiceID:      "redis1",
 								ServiceName:    "redis",
 								RaftIndex:      raftIndex(ids, "update", "update"),
-								EnterpriseMeta: pbcommon.EnterpriseMeta{},
+								EnterpriseMeta: pbcommon.DefaultEnterpriseMeta,
 							},
 						},
 					},
@@ -593,6 +583,10 @@ func TestServer_Subscribe_IntegrationWithBackend_ForwardToDC(t *testing.T) {
 }
 
 func TestServer_Subscribe_IntegrationWithBackend_FilterEventsByACLToken(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	if testing.Short() {
 		t.Skip("too slow for -short run")
 	}
@@ -611,10 +605,8 @@ node "node1" {
 	policy = "write"
 }
 `
-		authorizer, err := acl.NewAuthorizerFromRules(
-			"1", 0, rules, acl.SyntaxCurrent,
-			&acl.Config{WildcardName: structs.WildcardSpecifier},
-			nil)
+		cfg := &acl.Config{WildcardName: structs.WildcardSpecifier}
+		authorizer, err := acl.NewAuthorizerFromRules("1", 0, rules, acl.SyntaxCurrent, cfg, nil)
 		require.NoError(t, err)
 		authorizer = acl.NewChainedAuthorizer([]acl.Authorizer{authorizer, acl.DenyAll()})
 		require.Equal(t, acl.Deny, authorizer.NodeRead("denied", nil))
@@ -692,9 +684,10 @@ node "node1" {
 
 	runStep(t, "setup a client, subscribe to a topic, and receive a snapshot", func(t *testing.T) {
 		streamHandle, err := streamClient.Subscribe(ctx, &pbsubscribe.SubscribeRequest{
-			Topic: pbsubscribe.Topic_ServiceHealth,
-			Key:   "foo",
-			Token: token,
+			Topic:     pbsubscribe.Topic_ServiceHealth,
+			Key:       "foo",
+			Token:     token,
+			Namespace: pbcommon.DefaultEnterpriseMeta.Namespace,
 		})
 		require.NoError(t, err)
 
@@ -902,11 +895,9 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 		expected pbsubscribe.Event
 	}
 
-	testTopic := pbsubscribe.Topic_ServiceHealthConnect
 	fn := func(t *testing.T, tc testCase) {
 		expected := tc.expected
-		expected.Topic = testTopic
-		actual := newEventFromStreamEvent(testTopic, tc.event)
+		actual := newEventFromStreamEvent(tc.event)
 		assertDeepEqual(t, &expected, actual, cmpopts.EquateEmpty())
 	}
 
@@ -929,11 +920,9 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 		{
 			name: "event batch",
 			event: stream.Event{
-				Key:   "web1",
 				Index: 2002,
-				Payload: []stream.Event{
-					{
-						Key:   "web1",
+				Payload: newPayloadEvents(
+					stream.Event{
 						Index: 2002,
 						Payload: state.EventPayloadCheckServiceNode{
 							Op: pbsubscribe.CatalogOp_Register,
@@ -943,8 +932,7 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 							},
 						},
 					},
-					{
-						Key:   "web1",
+					stream.Event{
 						Index: 2002,
 						Payload: state.EventPayloadCheckServiceNode{
 							Op: pbsubscribe.CatalogOp_Deregister,
@@ -953,17 +941,14 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 								Service: &structs.NodeService{Service: "web1"},
 							},
 						},
-					},
-				},
+					}),
 			},
 			expected: pbsubscribe.Event{
-				Key:   "web1",
 				Index: 2002,
 				Payload: &pbsubscribe.Event_EventBatch{
 					EventBatch: &pbsubscribe.EventBatch{
 						Events: []*pbsubscribe.Event{
 							{
-								Key:   "web1",
 								Index: 2002,
 								Payload: &pbsubscribe.Event_ServiceHealth{
 									ServiceHealth: &pbsubscribe.ServiceHealthUpdate{
@@ -976,7 +961,6 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 								},
 							},
 							{
-								Key:   "web1",
 								Index: 2002,
 								Payload: &pbsubscribe.Event_ServiceHealth{
 									ServiceHealth: &pbsubscribe.ServiceHealthUpdate{
@@ -996,7 +980,6 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 		{
 			name: "event payload CheckServiceNode",
 			event: stream.Event{
-				Key:   "web1",
 				Index: 2002,
 				Payload: state.EventPayloadCheckServiceNode{
 					Op: pbsubscribe.CatalogOp_Register,
@@ -1007,7 +990,6 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 				},
 			},
 			expected: pbsubscribe.Event{
-				Key:   "web1",
 				Index: 2002,
 				Payload: &pbsubscribe.Event_ServiceHealth{
 					ServiceHealth: &pbsubscribe.ServiceHealthUpdate{
@@ -1027,6 +1009,10 @@ func TestNewEventFromSteamEvent(t *testing.T) {
 			fn(t, tc)
 		})
 	}
+}
+
+func newPayloadEvents(items ...stream.Event) *stream.PayloadEvents {
+	return &stream.PayloadEvents{Items: items}
 }
 
 // newEventFromSubscription is used to return framing events. EndOfSnapshot and

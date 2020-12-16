@@ -13,6 +13,10 @@ import (
 )
 
 func TestStore_IntegrationWithEventPublisher_ACLTokenUpdate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	require := require.New(t)
 	s := testACLTokensStateStore(t)
@@ -97,6 +101,10 @@ func TestStore_IntegrationWithEventPublisher_ACLTokenUpdate(t *testing.T) {
 }
 
 func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	require := require.New(t)
 	s := testACLTokensStateStore(t)
@@ -215,6 +223,10 @@ func TestStore_IntegrationWithEventPublisher_ACLPolicyUpdate(t *testing.T) {
 }
 
 func TestStore_IntegrationWithEventPublisher_ACLRoleUpdate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	require := require.New(t)
 	s := testACLTokensStateStore(t)
@@ -395,15 +407,27 @@ func newTestSnapshotHandlers(s *Store) stream.SnapshotHandlers {
 			for _, node := range nodes {
 				event := stream.Event{
 					Topic:   req.Topic,
-					Key:     req.Key,
 					Index:   node.ModifyIndex,
-					Payload: node,
+					Payload: nodePayload{node: node, key: req.Key},
 				}
 				snap.Append([]stream.Event{event})
 			}
 			return idx, nil
 		},
 	}
+}
+
+type nodePayload struct {
+	key  string
+	node *structs.ServiceNode
+}
+
+func (p nodePayload) MatchesKey(key, _ string) bool {
+	return p.key == key
+}
+
+func (p nodePayload) HasReadPermission(acl.Authorizer) bool {
+	return true
 }
 
 func createTokenAndWaitForACLEventPublish(t *testing.T, s *Store) *structs.ACLToken {

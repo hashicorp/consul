@@ -17,6 +17,10 @@ func TestOperatorRaftListPeersCommand_noTabs(t *testing.T) {
 }
 
 func TestOperatorRaftListPeersCommand(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -40,6 +44,10 @@ func TestOperatorRaftListPeersCommand(t *testing.T) {
 }
 
 func TestOperatorRaftListPeersCommand_verticalBar(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	nodeName := "name|with|bars"

@@ -263,7 +263,7 @@ func (s *Snapshot) Checks(node string) (memdb.ResultIterator, error) {
 // performed within a single transaction to avoid race conditions on state
 // updates.
 func (s *Restore) Registration(idx uint64, req *structs.RegisterRequest) error {
-	return s.store.ensureRegistrationTxn(s.tx, idx, true, req)
+	return s.store.ensureRegistrationTxn(s.tx, idx, true, req, true)
 }
 
 // EnsureRegistration is used to make sure a node, service, and check
@@ -273,7 +273,7 @@ func (s *Store) EnsureRegistration(idx uint64, req *structs.RegisterRequest) err
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
-	if err := s.ensureRegistrationTxn(tx, idx, false, req); err != nil {
+	if err := s.ensureRegistrationTxn(tx, idx, false, req, false); err != nil {
 		return err
 	}
 
@@ -294,8 +294,8 @@ func (s *Store) ensureCheckIfNodeMatches(tx WriteTxn, idx uint64, preserveIndexe
 // ensureRegistrationTxn is used to make sure a node, service, and check
 // registration is performed within a single transaction to avoid race
 // conditions on state updates.
-func (s *Store) ensureRegistrationTxn(tx WriteTxn, idx uint64, preserveIndexes bool, req *structs.RegisterRequest) error {
-	if _, err := validateRegisterRequestTxn(tx, req); err != nil {
+func (s *Store) ensureRegistrationTxn(tx WriteTxn, idx uint64, preserveIndexes bool, req *structs.RegisterRequest, restore bool) error {
+	if _, err := validateRegisterRequestTxn(tx, req, restore); err != nil {
 		return err
 	}
 

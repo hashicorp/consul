@@ -4,7 +4,6 @@
   padding: 0;
   margin: 0;
   height: 70px;
-  z-index: 2;
 
   svg.sparkline {
     width: 100%;
@@ -16,7 +15,7 @@
   .tooltip {
     visibility: hidden;
     position: absolute;
-    z-index: 100;
+    z-index: 10;
     bottom: 78px;
     width: 217px;
   }

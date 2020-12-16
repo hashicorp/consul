@@ -1,0 +1,35 @@
+[
+  ${
+    [0].map(
+      item => {
+      const segment = env('CONSUL_NSPACES_ENABLE', false) ? fake.hacker.noun() : '';
+        return range(
+          env(
+            'CONSUL_NODE_COUNT',
+            Math.floor(
+              (
+                Math.random() * env('CONSUL_NODE_MAX', 10)
+              ) + parseInt(env('CONSUL_NODE_MIN', 1))
+            )
+          )
+        ).map(
+          function(item, i)
+          {
+            return `
+              {
+                "Node":"node-${i}",
+                "Segment":"${segment}",
+                "Coord":{
+                  "Vec":[${range(8).map((item, i) => (fake.random.number() * 1e-9) * (fake.random.boolean() ? -1 : 1))}],
+                  "Error": ${(fake.random.number() * 1e-3) * (fake.random.boolean() ? -1 : 1)},
+                  "Adjustment":${(fake.random.number() * 1e-9) * (fake.random.boolean() ? -1 : 1)},
+                  "Height": ${(fake.random.number() * 1e-9) * (fake.random.boolean() ? -1 : 1)}
+                }
+              }
+            `;
+          }
+        )
+      }
+    )
+  }
+]

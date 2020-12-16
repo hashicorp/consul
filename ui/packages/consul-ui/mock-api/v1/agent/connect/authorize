@@ -1,0 +1,13 @@
+${
+    true ? `
+{
+  "Authorized": true,
+  "Reason": "matches intention XXX"
+}
+    ` : `
+{
+  "Authorized": false,
+  "Reason": "denied by intention XXX"
+}
+    `
+}

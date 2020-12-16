@@ -23,6 +23,10 @@ func TestRoleListCommand_noTabs(t *testing.T) {
 }
 
 func TestRoleListCommand(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	require := require.New(t)
 
@@ -77,6 +81,10 @@ func TestRoleListCommand(t *testing.T) {
 }
 
 func TestRoleListCommand_JSON(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	require := require.New(t)
 

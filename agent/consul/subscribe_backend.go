@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/stream"
 	agentgrpc "github.com/hashicorp/consul/agent/grpc"
 	"github.com/hashicorp/consul/agent/rpc/subscribe"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 type subscribeBackend struct {
@@ -16,8 +17,12 @@ type subscribeBackend struct {
 
 // TODO: refactor Resolve methods to an ACLBackend that can be used by all
 // the endpoints.
-func (s subscribeBackend) ResolveToken(token string) (acl.Authorizer, error) {
-	return s.srv.ResolveToken(token)
+func (s subscribeBackend) ResolveTokenAndDefaultMeta(
+	token string,
+	entMeta *structs.EnterpriseMeta,
+	authzContext *acl.AuthorizerContext,
+) (acl.Authorizer, error) {
+	return s.srv.ResolveTokenAndDefaultMeta(token, entMeta, authzContext)
 }
 
 var _ subscribe.Backend = (*subscribeBackend)(nil)

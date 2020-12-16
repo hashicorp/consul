@@ -2,34 +2,39 @@
   display: grid;
   height: 100%;
   align-items: start;
-  grid-template-columns: 2fr 20px 1fr 20px 2fr 20px 1fr 20px 2fr;
+  grid-template-columns: 2fr 1fr 2fr 1fr 2fr;
   grid-template-rows: 50px 1fr 50px;
+  grid-template-areas:
+    "down-cards down-lines . up-lines up-cards"
+    "down-cards down-lines metrics up-lines up-cards"
+    "down-cards down-lines . up-lines up-cards";
 }
 
 // Grid Layout
 #downstream-container {
-  grid-row: 1 / 3;
-  grid-column: 1 / 3;
+  grid-area: down-cards;
 }
 #downstream-lines {
-  grid-row: 1 / 3;
-  grid-column: 2 / 5;
+  grid-area: down-lines;
 }
 #upstream-lines {
-  grid-row: 1 / 3;
-  grid-column: 6 / 9;
+  grid-area: up-lines;
 }
 #upstream-column {
-  grid-row: 1 / 3;
-  grid-column: 8 / 10;
+  grid-area: up-cards;
 }
 
 // Columns/Containers & Lines
 #downstream-lines,
 #upstream-lines {
-  z-index: 1;
   position: relative;
   height: 100%;
+}
+#downstream-lines {
+  margin-left: -20px;
+}
+#upstream-lines {
+  margin-right: -20px;
 }
 #downstream-container,
 #upstream-container {
@@ -86,8 +91,7 @@
 
 // Metrics Container
 #metrics-container {
-  grid-row: 2 / 3;
-  grid-column: 4 / 7;
+  grid-area: metrics;
 
   div:first-child {
     padding: 12px;

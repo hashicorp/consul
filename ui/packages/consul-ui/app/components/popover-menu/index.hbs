@@ -1,6 +1,9 @@
-  {{yield}}
-  <div class="popover-menu" ...attributes>
-    <AriaMenu @keyboardAccess={{keyboardAccess}} as |change keypress keypressClick aria|>
+{{yield}}
+<div
+  class="popover-menu"
+  ...attributes
+>
+  <AriaMenu @keyboardAccess={{keyboardAccess}} as |change keypress keypressClick aria|>
 
 {{#let (hash
   MenuItem=(component
@@ -18,46 +21,46 @@
   )
 )
 as |components|}}
-  {{#let (hash
-    toggle=this.toggle.click
-  )
-  as |api|}}
+{{#let (hash
+  toggle=this.toggle.click
+)
+as |api|}}
 
-      <ToggleButton
-        @checked={{if keyboardAccess aria.expanded expanded}}
-        @onchange={{queue change (action "change")}}
-      as |toggle|>
-        <Ref @target={{this}} @name="toggle" @value={{toggle}} />
-        <button type="button" aria-haspopup="menu" onkeydown={{keypress}} onclick={{this.toggle.click}} id={{aria.labelledBy}} aria-controls={{aria.controls}}>
-          <YieldSlot @name="trigger">
-            {{yield components api}}
-          </YieldSlot>
-        </button>
-      </ToggleButton>
+    <ToggleButton
+      @checked={{if keyboardAccess aria.expanded expanded}}
+      @onchange={{queue change (action "change")}}
+    as |toggle|>
+      <Ref @target={{this}} @name="toggle" @value={{toggle}} />
+      <button type="button" aria-haspopup="menu" onkeydown={{keypress}} onclick={{this.toggle.click}} id={{aria.labelledBy}} aria-controls={{aria.controls}}>
+        <YieldSlot @name="trigger">
+          {{yield components api}}
+        </YieldSlot>
+      </button>
+    </ToggleButton>
 
-      <MenuPanel @position={{position}} id={{aria.controls}} aria-labelledby={{aria.labelledBy}} aria-expanded={{aria.expanded}} as |menu|>
-        <Ref @target={{this}} @name="menu" @value={{menu}} />
-        <BlockSlot @name="controls">
-          <input type="checkbox" id={{concat 'popover-menu-' guid '-'}} />
-        {{#each submenus as |sub|}}
-          <input type="checkbox" id={{concat 'popover-menu-' guid '-' sub}} onchange={{menu.change}} />
-        {{/each}}
+    <MenuPanel @position={{position}} id={{aria.controls}} aria-labelledby={{aria.labelledBy}} aria-expanded={{aria.expanded}} as |menu|>
+      <Ref @target={{this}} @name="menu" @value={{menu}} />
+      <BlockSlot @name="controls">
+        <input type="checkbox" id={{concat 'popover-menu-' guid '-'}} />
+      {{#each submenus as |sub|}}
+        <input type="checkbox" id={{concat 'popover-menu-' guid '-' sub}} onchange={{menu.change}} />
+      {{/each}}
+      </BlockSlot>
+      {{#if hasHeader}}
+        <BlockSlot @name="header">
+          {{yield components api}}
+          {{#yield-slot name="header"}}{{else}}{{/yield-slot}}
         </BlockSlot>
-        {{#if hasHeader}}
-          <BlockSlot @name="header">
-            {{yield components api}}
-            {{#yield-slot name="header"}}{{else}}{{/yield-slot}}
-          </BlockSlot>
-        {{/if}}
-        <BlockSlot @name="menu">
-          <YieldSlot @name="menu" @params={{block-params (concat "popover-menu-" guid "-") send keypressClick this.toggle.click}}>
-            {{yield components api}}
-          </YieldSlot>
-        </BlockSlot>
-      </MenuPanel>
+      {{/if}}
+      <BlockSlot @name="menu">
+        <YieldSlot @name="menu" @params={{block-params (concat "popover-menu-" guid "-") send keypressClick this.toggle.click}}>
+          {{yield components api}}
+        </YieldSlot>
+      </BlockSlot>
+    </MenuPanel>
 
-  {{/let}}
+{{/let}}
 {{/let}}
 
-    </AriaMenu>
-  </div>
+  </AriaMenu>
+</div>

@@ -7,11 +7,12 @@ import HTTPError from 'consul-ui/utils/http/error';
 
 const xhr = createXHR(createHeaders());
 
-export default Service.extend({
-  xhr: function(options) {
+export default class XhrService extends Service {
+  xhr(options) {
     return xhr(options);
-  },
-  request: function(params) {
+  }
+
+  request(params) {
     const request = new Request(params.method, params.url, {
       ['x-request-id']: params.clientHeaders['x-request-id'],
       body: params.data || {},
@@ -57,5 +58,5 @@ export default Service.extend({
       return request;
     };
     return request;
-  },
-});
+  }
+}

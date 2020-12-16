@@ -15,6 +15,10 @@ import (
 )
 
 func TestLeader_ReplicateIntentions(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	// This setup is a little hacky, but should work. We spin up BOTH servers with
 	// no intentions and force them to think they're not eligible for intentions
 	// config entries yet by overriding serf tags.
@@ -361,6 +365,10 @@ func TestLeader_batchLegacyIntentionUpdates(t *testing.T) {
 }
 
 func TestLeader_LegacyIntentionMigration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	// This setup is a little hacky, but should work. We spin up a server with
 	// no intentions and force it to think it's not eligible for intentions
 	// config entries yet by overriding serf tags.
@@ -425,6 +433,11 @@ func TestLeader_LegacyIntentionMigration(t *testing.T) {
 		makeIxn("contractor", "*", false),
 		makeIxn("*", "*", true),
 	}
+	ixns = appendLegacyIntentionsForMigrationTestEnterprise(t, s1pre, ixns)
+
+	testLeader_LegacyIntentionMigrationHookEnterprise(t, s1pre, true)
+
+	var retained []*structs.Intention
 	for _, ixn := range ixns {
 		ixn2 := *ixn
 		resp, err := s1pre.raftApply(structs.IntentionRequestType, &structs.IntentionRequest{
@@ -434,6 +447,10 @@ func TestLeader_LegacyIntentionMigration(t *testing.T) {
 		require.NoError(t, err)
 		if respErr, ok := resp.(error); ok {
 			t.Fatalf("respErr: %v", respErr)
+		}
+
+		if _, present := ixn.Meta["unit-test-discarded"]; !present {
+			retained = append(retained, ixn)
 		}
 	}
 
@@ -465,7 +482,7 @@ func TestLeader_LegacyIntentionMigration(t *testing.T) {
 			for k, expectV := range expect {
 				gotV, ok := gotM[k]
 				if !ok {
-					r.Errorf("results are missing key %q", k)
+					r.Errorf("results are missing key %q: %v", k, expectV)
 					continue
 				}
 
@@ -483,8 +500,14 @@ func TestLeader_LegacyIntentionMigration(t *testing.T) {
 	}
 
 	expectM := mapify(ixns)
-	checkIntentions(t, s1pre, false, expectM)
-	checkIntentions(t, s1pre, true, expectM)
+	expectRetainedM := mapify(retained)
+
+	require.True(t, t.Run("check initial intentions", func(t *testing.T) {
+		checkIntentions(t, s1pre, false, expectM)
+	}))
+	require.True(t, t.Run("check initial legacy intentions", func(t *testing.T) {
+		checkIntentions(t, s1pre, true, expectM)
+	}))
 
 	// Shutdown s1pre and restart it to trigger migration.
 	s1pre.Shutdown()
@@ -500,8 +523,7 @@ func TestLeader_LegacyIntentionMigration(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	// check that all 7 intentions are present before migration
-	checkIntentions(t, s1, false, expectM)
+	testLeader_LegacyIntentionMigrationHookEnterprise(t, s1, false)
 
 	// Wait until the migration routine is complete.
 	retry.Run(t, func(r *retry.R) {
@@ -513,9 +535,13 @@ func TestLeader_LegacyIntentionMigration(t *testing.T) {
 	})
 
 	// check that all 7 intentions are present the general way after migration
-	checkIntentions(t, s1, false, expectM)
-	// check that no intentions exist in the legacy table
-	checkIntentions(t, s1, true, map[string]*structs.Intention{})
+	require.True(t, t.Run("check migrated intentions", func(t *testing.T) {
+		checkIntentions(t, s1, false, expectRetainedM)
+	}))
+	require.True(t, t.Run("check migrated legacy intentions", func(t *testing.T) {
+		// check that no intentions exist in the legacy table
+		checkIntentions(t, s1, true, map[string]*structs.Intention{})
+	}))
 
 	mapifyConfigs := func(entries interface{}) map[structs.ConfigEntryKindName]*structs.ServiceIntentionsConfigEntry {
 		m := make(map[structs.ConfigEntryKindName]*structs.ServiceIntentionsConfigEntry)
@@ -541,7 +567,7 @@ func TestLeader_LegacyIntentionMigration(t *testing.T) {
 	require.NoError(t, err)
 	gotConfigsM := mapifyConfigs(gotConfigs)
 
-	expectConfigs := structs.MigrateIntentions(ixns)
+	expectConfigs := structs.MigrateIntentions(retained)
 	for _, entry := range expectConfigs {
 		require.NoError(t, entry.LegacyNormalize()) // tidy them up the same way the write would
 	}

@@ -22,6 +22,10 @@ func TestPolicyListCommand_noTabs(t *testing.T) {
 }
 
 func TestPolicyListCommand(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	assert := assert.New(t)
 
@@ -73,6 +77,10 @@ func TestPolicyListCommand(t *testing.T) {
 }
 
 func TestPolicyListCommand_JSON(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	assert := assert.New(t)
 

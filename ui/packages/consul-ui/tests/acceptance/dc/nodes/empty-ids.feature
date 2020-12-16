@@ -6,14 +6,24 @@ Feature: dc / nodes / empty-ids: Hedge for if nodes come in over the API with no
     ---
     - ID: id-1
       Node: name-1
+      Checks:
+      - Status: passing
     - ID: ""
       Node: name-2
+      Checks:
+      - Status: passing
     - ID: ""
       Node: name-3
+      Checks:
+      - Status: passing
     - ID: ""
       Node: name-4
+      Checks:
+      - Status: passing
     - ID: ""
       Node: name-5
+      Checks:
+      - Status: passing
     ---
     When I visit the nodes page for yaml
     ---

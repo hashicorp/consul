@@ -24,7 +24,10 @@
           <PolicyForm @form={{form}} @nspace={{nspace}} @dc={{dc}} @allowServiceIdentity={{allowServiceIdentity}} />
         </BlockSlot>
         <BlockSlot @name="actions" as |close|>
-          <button type="submit" {{action 'save' item items (queue (action close) (action 'reset'))}} disabled={{if (or item.isSaving item.isPristine item.isInvalid) 'disabled'}}>
+          <button type="submit"
+            onclick={{perform this.save item items (queue (action close) (action 'reset'))}}
+            disabled={{if (or item.isSaving item.isPristine item.isInvalid) 'disabled'}}
+          >
             {{#if item.isSaving }}
               <div class="progress indeterminate"></div>
             {{/if}}
@@ -82,15 +85,26 @@
           <label class="type-text">
             <span>Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
 {{#if (eq item.template 'service-identity')}}
-            <CodeEditor @syntax="hcl" @readonly={{true}}>
-              {{~component 'service-identity' nspace=nspace name=item.Name~}}
-            </CodeEditor>
+            <CodeEditor
+              @syntax="hcl"
+              @readonly={{true}}
+            ><Consul::ServiceIdentity::Template
+              @nspace={{nspace}}
+              @name={{item.Name}}
+            /></CodeEditor>
 {{else if (eq item.template 'node-identity')}}
-            <CodeEditor @syntax="hcl" @readonly={{true}}>
-              {{~component 'node-identity' name=item.Name~}}
-            </CodeEditor>
+            <CodeEditor
+              @syntax="hcl"
+              @readonly={{true}}
+            ><Consul::NodeIdentity::Template
+              @name={{item.Name}}
+            /></CodeEditor>
 {{else}}
-            <CodeEditor @syntax="hcl" @readonly={{true}} @value={{or loadedItem.Rules item.Rules}} />
+            <CodeEditor
+              @syntax="hcl"
+              @readonly={{true}}
+              @value={{or loadedItem.Rules item.Rules}}
+            />
 {{/if}}
           </label>
           <div>

@@ -26,6 +26,10 @@ import (
 )
 
 func TestRPC_NoLeader_Fail(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.RPCHoldTimeout = 1 * time.Millisecond
@@ -58,6 +62,10 @@ func TestRPC_NoLeader_Fail(t *testing.T) {
 }
 
 func TestRPC_NoLeader_Fail_on_stale_read(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.RPCHoldTimeout = 1 * time.Millisecond
@@ -100,6 +108,10 @@ func TestRPC_NoLeader_Fail_on_stale_read(t *testing.T) {
 }
 
 func TestRPC_NoLeader_Retry(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.RPCHoldTimeout = 10 * time.Second
@@ -164,7 +176,7 @@ func TestRPC_blockingQuery(t *testing.T) {
 		var opts structs.QueryOptions
 		var meta structs.QueryMeta
 		var calls int
-		fn := func(ws memdb.WatchSet, state *state.Store) error {
+		fn := func(_ memdb.WatchSet, _ *state.Store) error {
 			calls++
 			return nil
 		}
@@ -183,7 +195,7 @@ func TestRPC_blockingQuery(t *testing.T) {
 		}
 		var meta structs.QueryMeta
 		var calls int
-		fn := func(ws memdb.WatchSet, state *state.Store) error {
+		fn := func(ws memdb.WatchSet, _ *state.Store) error {
 			if calls == 0 {
 				meta.Index = 3
 
@@ -219,7 +231,7 @@ func TestRPC_blockingQuery(t *testing.T) {
 		}
 		var meta structs.QueryMeta
 		var calls int
-		fn := func(ws memdb.WatchSet, state *state.Store) error {
+		fn := func(ws memdb.WatchSet, _ *state.Store) error {
 			if opts.MinQueryIndex > 0 {
 				// If client requested blocking, block forever. This is simulating
 				// waiting for the watched resource to be initialized/written to giving
@@ -261,7 +273,7 @@ func TestRPC_blockingQuery(t *testing.T) {
 		}
 		var meta structs.QueryMeta
 		var calls int
-		fn := func(ws memdb.WatchSet, state *state.Store) error {
+		fn := func(_ memdb.WatchSet, _ *state.Store) error {
 			if calls == 0 {
 				meta.Index = 3
 
@@ -294,6 +306,10 @@ func TestRPC_blockingQuery(t *testing.T) {
 }
 
 func TestRPC_ReadyForConsistentReads(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir, s := testServerWithConfig(t, func(c *Config) {
 		c.RPCHoldTimeout = 2 * time.Millisecond
@@ -326,6 +342,10 @@ func TestRPC_ReadyForConsistentReads(t *testing.T) {
 }
 
 func TestRPC_MagicByteTimeout(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.RPCHandshakeTimeout = 10 * time.Millisecond
@@ -362,6 +382,10 @@ func TestRPC_MagicByteTimeout(t *testing.T) {
 }
 
 func TestRPC_TLSHandshakeTimeout(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
@@ -411,6 +435,10 @@ func TestRPC_TLSHandshakeTimeout(t *testing.T) {
 }
 
 func TestRPC_PreventsTLSNesting(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	cases := []struct {
@@ -592,6 +620,10 @@ func connectClient(t *testing.T, s1 *Server, mb pool.RPCType, useTLS, wantOpen b
 }
 
 func TestRPC_RPCMaxConnsPerClient(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	cases := []struct {
@@ -737,6 +769,10 @@ func TestRPC_readUint32(t *testing.T) {
 }
 
 func TestRPC_LocalTokenStrippedOnForward(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"

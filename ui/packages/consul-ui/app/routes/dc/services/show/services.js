@@ -1,10 +1,23 @@
-import Route from 'consul-ui/routing/route';
 import { inject as service } from '@ember/service';
-import { hash } from 'rsvp';
+import Route from 'consul-ui/routing/route';
 
-export default Route.extend({
-  data: service('data-source/service'),
-  model: function() {
+export default class ServicesRoute extends Route {
+  @service('data-source/service') data;
+
+  queryParams = {
+    sortBy: 'sort',
+    instance: 'instance',
+    searchproperty: {
+      as: 'searchproperty',
+      empty: [['Name', 'Tags']],
+    },
+    search: {
+      as: 'filter',
+      replace: true,
+    },
+  };
+
+  async model(params, transition) {
     const dc = this.modelFor('dc').dc.Name;
     const nspace = this.modelFor('nspace').nspace.substr(1);
     const parent = this.routeName
@@ -12,14 +25,18 @@ export default Route.extend({
       .slice(0, -1)
       .join('.');
     const name = this.modelFor(parent).slug;
-    return hash({
-      dc: dc,
-      nspace: nspace,
-      gatewayServices: this.data.source(uri => uri`/${nspace}/${dc}/gateways/for-service/${name}`),
-    });
-  },
-  setupController: function(controller, model) {
-    this._super(...arguments);
+    const gatewayServices = await this.data.source(
+      uri => uri`/${nspace}/${dc}/gateways/for-service/${name}`
+    );
+    return {
+      dc,
+      nspace,
+      gatewayServices,
+    };
+  }
+
+  setupController(controller, model) {
+    super.setupController(...arguments);
     controller.setProperties(model);
-  },
-});
+  }
+}

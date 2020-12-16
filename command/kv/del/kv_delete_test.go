@@ -71,6 +71,10 @@ func TestKVDeleteCommand_Validation(t *testing.T) {
 }
 
 func TestKVDeleteCommand(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -108,6 +112,10 @@ func TestKVDeleteCommand(t *testing.T) {
 }
 
 func TestKVDeleteCommand_Recurse(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -152,6 +160,10 @@ func TestKVDeleteCommand_Recurse(t *testing.T) {
 }
 
 func TestKVDeleteCommand_CAS(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()

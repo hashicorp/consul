@@ -9,7 +9,23 @@ import dictionary from '../dictionary';
 const getDictionary = dictionary(utils);
 
 const staticClassList = [...document.documentElement.classList];
+const getCookies = () => {
+  return Object.fromEntries(document.cookie.split(';').map(item => item.split('=')));
+};
+const getResetCookies = function() {
+  const start = getCookies();
+  return () => {
+    const startKeys = Object.keys(start);
+    const endKeys = Object.keys(getCookies());
+    const diff = endKeys.filter(key => !startKeys.includes(key));
+    diff.forEach(item => {
+      document.cookie = `${item}= ; expires=${new Date(0)}`;
+    });
+  };
+};
+let resetCookies;
 const reset = function() {
+  resetCookies();
   window.localStorage.clear();
   api.server.reset();
   const list = document.documentElement.classList;
@@ -21,6 +37,7 @@ const reset = function() {
   });
 };
 const startup = function() {
+  resetCookies = getResetCookies();
   api.server.setCookie('CONSUL_LATENCY', 0);
 };
 

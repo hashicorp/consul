@@ -1,28 +1,18 @@
 import Helper from '@ember/component/helper';
-import { inject as service } from '@ember/service';
 
-export default Helper.extend({
-  dom: service('dom'),
-  compute: function([selector, id], hash) {
-    const $el = this.dom.element(selector);
-    const $refs = [$el.offsetParent, $el];
-    // TODO: helper probably needs to accept a `reference=` option
-    // with a selector to use as reference/root
-    if (selector.startsWith('#resolver:')) {
-      $refs.unshift($refs[0].offsetParent);
+export default class DomPosition extends Helper {
+  compute([target], { from }) {
+    if (typeof target === 'function') {
+      return entry => {
+        const $target = entry.target;
+        let rect = $target.getBoundingClientRect();
+        if (typeof from !== 'undefined') {
+          const fromRect = from.getBoundingClientRect();
+          rect.x = rect.x - fromRect.x;
+          rect.y = rect.y - fromRect.y;
+        }
+        return target(rect);
+      };
     }
-    return $refs.reduce(
-      function(prev, item) {
-        prev.x += item.offsetLeft;
-        prev.y += item.offsetTop;
-        return prev;
-      },
-      {
-        x: 0,
-        y: 0,
-        height: $el.offsetHeight,
-        width: $el.offsetWidth,
-      }
-    );
-  },
-});
+  }
+}

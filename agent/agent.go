@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -614,7 +615,20 @@ func (a *Agent) Start(ctx context.Context) error {
 		a.logger.Warn("DEPRECATED Backwards compatibility with pre-1.9 metrics enabled. These metrics will be removed in a future version of Consul. Set `telemetry { disable_compat_1.9 = true }` to disable them.")
 	}
 
+	// consul version metric with labels
+	metrics.SetGaugeWithLabels([]string{"version"}, 1, []metrics.Label{
+		{Name: "version", Value: a.config.Version},
+		{Name: "pre_release", Value: a.config.VersionPrerelease},
+	})
+
 	return nil
+}
+
+var Gauges = []prometheus.GaugeDefinition{
+	{
+		Name: []string{"version"},
+		Help: "Represents the Consul version.",
+	},
 }
 
 // Failed returns a channel which is closed when the first server goroutine exits
@@ -797,18 +811,7 @@ func (a *Agent) listenHTTP() ([]apiServer, error) {
 				httpServer.ConnState = connLimitFn
 			}
 
-			servers = append(servers, apiServer{
-				Protocol: proto,
-				Addr:     l.Addr(),
-				Shutdown: httpServer.Shutdown,
-				Run: func() error {
-					err := httpServer.Serve(l)
-					if err == nil || err == http.ErrServerClosed {
-						return nil
-					}
-					return fmt.Errorf("%s server %s failed: %w", proto, l.Addr(), err)
-				},
-			})
+			servers = append(servers, newAPIServerHTTP(proto, l, httpServer))
 		}
 		return nil
 	}
@@ -1110,8 +1113,8 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	if runtimeCfg.SessionTTLMin != 0 {
 		cfg.SessionTTLMin = runtimeCfg.SessionTTLMin
 	}
-	if runtimeCfg.NonVotingServer {
-		cfg.NonVoter = runtimeCfg.NonVotingServer
+	if runtimeCfg.ReadReplica {
+		cfg.ReadReplica = runtimeCfg.ReadReplica
 	}
 
 	// These are fully specified in the agent defaults, so we can simply

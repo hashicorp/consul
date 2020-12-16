@@ -1,4 +1,4 @@
-export default () => key => {
+export default ({ properties }) => (key = 'Status:asc') => {
   if (key.startsWith('Status:')) {
     return function(serviceA, serviceB) {
       const [, dir] = key.split(':');
@@ -33,5 +33,5 @@ export default () => key => {
       }
     };
   }
-  return key;
+  return properties(['Name'])(key);
 };

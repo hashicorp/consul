@@ -1,62 +1,56 @@
-import Route from 'consul-ui/routing/route';
 import { inject as service } from '@ember/service';
-import { hash } from 'rsvp';
+import Route from 'consul-ui/routing/route';
 import { get } from '@ember/object';
 
-export default Route.extend({
-  data: service('data-source/service'),
-  config: service('ui-config'),
-  model: function(params, transition) {
-    const dc = this.modelFor('dc').dc.Name;
+export default class ShowRoute extends Route {
+  @service('data-source/service') data;
+  @service('ui-config') config;
+
+  async model(params, transition) {
+    const dc = this.modelFor('dc').dc;
     const nspace = this.modelFor('nspace').nspace.substr(1);
-    return hash({
-      slug: params.name,
-      dc: dc,
-      nspace: nspace,
-      items: this.data.source(
-        uri => uri`/${nspace}/${dc}/service-instances/for-service/${params.name}`
-      ),
-      urls: this.config.get().dashboard_url_template,
-      chain: null,
-      proxies: [],
-      topology: null,
-    })
-      .then(model => {
-        return ['connect-proxy', 'mesh-gateway', 'ingress-gateway', 'terminating-gateway'].includes(
-          get(model, 'items.firstObject.Service.Kind')
-        )
-          ? model
-          : hash({
-              ...model,
-              chain: this.data.source(uri => uri`/${nspace}/${dc}/discovery-chain/${params.name}`),
-              // Whilst `proxies` isn't used anywhere in the show templates
-              // it provides a relationship of ProxyInstance on the ServiceInstance
-              // which can respond at a completely different blocking rate to
-              // the ServiceInstance itself
-              proxies: this.data.source(
-                uri => uri`/${nspace}/${dc}/proxies/for-service/${params.name}`
-              ),
-            });
-      })
-      .then(model => {
-        let kind = get(model, 'items.firstObject.Service.Kind');
-        if (typeof kind === 'undefined') {
-          kind = '';
-        }
-        return ['mesh-gateway', 'terminating-gateway'].includes(
-          get(model, 'items.firstObject.Service.Kind')
-        )
-          ? model
-          : hash({
-              ...model,
-              topology: this.data.source(
-                uri => uri`/${nspace}/${dc}/topology/${params.name}/${kind}`
-              ),
-            });
-      });
-  },
-  setupController: function(controller, model) {
-    this._super(...arguments);
+    const slug = params.name;
+
+    let proxies = [];
+
+    const urls = this.config.get().dashboard_url_templates;
+    const items = await this.data.source(
+      uri => uri`/${nspace}/${dc.Name}/service-instances/for-service/${params.name}`
+    );
+
+    const item = get(items, 'firstObject');
+    if (get(item, 'IsOrigin')) {
+      proxies = this.data.source(
+        uri => uri`/${nspace}/${dc.Name}/proxies/for-service/${params.name}`
+      );
+      // TODO: Temporary ping to see if a dc is MeshEnabled which we use in
+      // order to decide whether to show certain tabs in the template. This is
+      // a bit of a weird place to do this but we are trying to avoid wasting
+      // HTTP requests and as disco chain is the most likely to be reused, we
+      // use that endpoint here. Eventually if we have an endpoint specific to
+      // a dc that gives us more DC specific info we can use that instead
+      // higher up the routing hierarchy instead.
+      let chain = this.data.source(
+        uri => uri`/${nspace}/${dc.Name}/discovery-chain/${params.name}`
+      );
+      [chain, proxies] = await Promise.all([chain, proxies]);
+      // we close the chain for now, if you enter the routing tab before the
+      // EventSource comes around to request again, this one will just be
+      // reopened and reused
+      chain.close();
+    }
+    return {
+      dc,
+      nspace,
+      slug,
+      items,
+      urls,
+      proxies,
+    };
+  }
+
+  setupController(controller, model) {
+    super.setupController(...arguments);
     controller.setProperties(model);
-  },
-});
+  }
+}

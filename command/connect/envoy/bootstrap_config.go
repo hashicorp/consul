@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/hashicorp/consul/api"
 	"net"
 	"net/url"
 	"os"
@@ -157,8 +158,8 @@ func (c *BootstrapConfig) Template() string {
 	return bootstrapTemplate
 }
 
-func (c *BootstrapConfig) GenerateJSON(args *BootstrapTplArgs) ([]byte, error) {
-	if err := c.ConfigureArgs(args); err != nil {
+func (c *BootstrapConfig) GenerateJSON(args *BootstrapTplArgs, omitDeprecatedTags bool) ([]byte, error) {
+	if err := c.ConfigureArgs(args, omitDeprecatedTags); err != nil {
 		return nil, err
 	}
 	t, err := template.New("bootstrap").Parse(c.Template())
@@ -182,7 +183,7 @@ func (c *BootstrapConfig) GenerateJSON(args *BootstrapTplArgs) ([]byte, error) {
 
 // ConfigureArgs takes the basic template arguments generated from the command
 // arguments and environment and modifies them according to the BootstrapConfig.
-func (c *BootstrapConfig) ConfigureArgs(args *BootstrapTplArgs) error {
+func (c *BootstrapConfig) ConfigureArgs(args *BootstrapTplArgs, omitDeprecatedTags bool) error {
 
 	// Attempt to setup sink(s) from high-level config. Note the args are passed
 	// by ref and modified in place.
@@ -196,9 +197,11 @@ func (c *BootstrapConfig) ConfigureArgs(args *BootstrapTplArgs) error {
 	} else {
 		// Attempt to setup tags from high-level config. Note the args are passed by
 		// ref and modified in place.
-		if err := c.generateStatsConfig(args); err != nil {
+		stats, err := generateStatsTags(args, c.StatsTags, omitDeprecatedTags)
+		if err != nil {
 			return err
 		}
+		args.StatsConfigJSON = formatStatsTags(stats)
 	}
 
 	if c.StaticClustersJSON != "" {
@@ -305,36 +308,127 @@ func (c *BootstrapConfig) generateStatsSinkJSON(name string, addr string) (strin
 	}`, nil
 }
 
-var sniTagJSONs []string
+// resourceTagSpecifiers returns patterns used to generate tags from cluster and filter metric names.
+func resourceTagSpecifiers(omitDeprecatedTags bool) ([]string, error) {
+	const (
+		reSegment = `[^.]+`
+	)
 
-func init() {
-	// <subset>.<service>.<namespace>.<datacenter>.<internal|external>.<trustdomain>.consul
-	// - cluster.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.bind_errors: 0
-	// - cluster.f8f8f8f8~pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.bind_errors: 0
-	// - cluster.v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.bind_errors: 0
-	// - cluster.f8f8f8f8~v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.bind_errors: 0
-	const PART = `[^.]+`
+	// For all rules:
+	//   - The outer capture group is removed from the final metric name.
+	//   - The inner capture group is extracted into labels.
 	rules := [][]string{
-		{"consul.custom_hash",
-			fmt.Sprintf(`^cluster\.((?:(%s)~)?(?:%s\.)?%s\.%s\.%s\.%s\.%s\.consul\.)`, PART, PART, PART, PART, PART, PART, PART)},
-		{"consul.service_subset",
-			fmt.Sprintf(`^cluster\.((?:%s~)?(?:(%s)\.)?%s\.%s\.%s\.%s\.%s\.consul\.)`, PART, PART, PART, PART, PART, PART, PART)},
-		{"consul.service",
-			fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?(%s)\.%s\.%s\.%s\.%s\.consul\.)`, PART, PART, PART, PART, PART, PART, PART)},
-		{"consul.namespace",
-			fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.(%s)\.%s\.%s\.%s\.consul\.)`, PART, PART, PART, PART, PART, PART, PART)},
-		{"consul.datacenter",
-			fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.%s\.(%s)\.%s\.%s\.consul\.)`, PART, PART, PART, PART, PART, PART, PART)},
-		{"consul.routing_type",
-			fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.%s\.%s\.(%s)\.%s\.consul\.)`, PART, PART, PART, PART, PART, PART, PART)}, // internal:true/false would be idea
-		{"consul.trust_domain",
-			fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.%s\.%s\.%s\.(%s)\.consul\.)`, PART, PART, PART, PART, PART, PART, PART)},
-		{"consul.target",
-			fmt.Sprintf(`^cluster\.(((?:%s~)?(?:%s\.)?%s\.%s\.%s)\.%s\.%s\.consul\.)`, PART, PART, PART, PART, PART, PART, PART)},
-		{"consul.full_target",
-			fmt.Sprintf(`^cluster\.(((?:%s~)?(?:%s\.)?%s\.%s\.%s\.%s\.%s)\.consul\.)`, PART, PART, PART, PART, PART, PART, PART)},
+		// Cluster metrics are prefixed by consul.destination
+		//
+		// Cluster metric name format:
+		// <subset>.<service>.<namespace>.<datacenter>.<internal|external>.<trustdomain>.consul
+		//
+		// Examples:
+		// - cluster.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.bind_errors: 0
+		// - cluster.f8f8f8f8~pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.bind_errors: 0
+		// - cluster.v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.bind_errors: 0
+		// - cluster.f8f8f8f8~v2.pong.default.dc2.internal.e5b08d03-bfc3-c870-1833-baddb116e648.consul.bind_errors: 0
+		{"consul.destination.custom_hash",
+			fmt.Sprintf(`^cluster\.((?:(%s)~)?(?:%s\.)?%s\.%s\.%s\.%s\.%s\.consul\.)`,
+				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+
+		{"consul.destination.service_subset",
+			fmt.Sprintf(`^cluster\.((?:%s~)?(?:(%s)\.)?%s\.%s\.%s\.%s\.%s\.consul\.)`,
+				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+
+		{"consul.destination.service",
+			fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?(%s)\.%s\.%s\.%s\.%s\.consul\.)`,
+				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+
+		{"consul.destination.namespace",
+			fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.(%s)\.%s\.%s\.%s\.consul\.)`,
+				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+
+		{"consul.destination.datacenter",
+			fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.%s\.(%s)\.%s\.%s\.consul\.)`,
+				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+
+		{"consul.destination.routing_type",
+			fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.%s\.%s\.(%s)\.%s\.consul\.)`,
+				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+
+		{"consul.destination.trust_domain",
+			fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.%s\.%s\.%s\.(%s)\.consul\.)`,
+				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+
+		{"consul.destination.target",
+			fmt.Sprintf(`^cluster\.(((?:%s~)?(?:%s\.)?%s\.%s\.%s)\.%s\.%s\.consul\.)`,
+				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+
+		{"consul.destination.full_target",
+			fmt.Sprintf(`^cluster\.(((?:%s~)?(?:%s\.)?%s\.%s\.%s\.%s\.%s)\.consul\.)`,
+				reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+
+		// Upstream listener metrics are prefixed by consul.upstream
+		//
+		// Listener metric name format:
+		// <tcp|http>.upstream.<service>.<namespace>.<datacenter>
+		//
+		// Examples:
+		// - tcp.upstream.db.dc1.downstream_cx_total: 0
+		// - http.upstream.web.default.dc1.downstream_cx_total: 0
+		{"consul.upstream.service",
+			fmt.Sprintf(`^(?:tcp|http)\.upstream\.((%s)(?:\.%s)?\.%s\.)`,
+				reSegment, reSegment, reSegment)},
+
+		{"consul.upstream.datacenter",
+			fmt.Sprintf(`^(?:tcp|http)\.upstream\.(%s(?:\.%s)?\.(%s)\.)`,
+				reSegment, reSegment, reSegment)},
+
+		{"consul.upstream.namespace",
+			fmt.Sprintf(`^(?:tcp|http)\.upstream\.(%s(?:\.(%s))?\.%s\.)`,
+				reSegment, reSegment, reSegment)},
 	}
 
+	// These tags were deprecated in Consul 1.9.0
+	// We are leaving them enabled by default for backwards compatibility
+	if !omitDeprecatedTags {
+		deprecatedRules := [][]string{
+			{"consul.custom_hash",
+				fmt.Sprintf(`^cluster\.((?:(%s)~)?(?:%s\.)?%s\.%s\.%s\.%s\.%s\.consul\.)`,
+					reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+
+			{"consul.service_subset",
+				fmt.Sprintf(`^cluster\.((?:%s~)?(?:(%s)\.)?%s\.%s\.%s\.%s\.%s\.consul\.)`,
+					reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+
+			{"consul.service",
+				fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?(%s)\.%s\.%s\.%s\.%s\.consul\.)`,
+					reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+
+			{"consul.namespace",
+				fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.(%s)\.%s\.%s\.%s\.consul\.)`,
+					reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+
+			{"consul.datacenter",
+				fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.%s\.(%s)\.%s\.%s\.consul\.)`,
+					reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+
+			{"consul.routing_type",
+				fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.%s\.%s\.(%s)\.%s\.consul\.)`,
+					reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+
+			{"consul.trust_domain",
+				fmt.Sprintf(`^cluster\.((?:%s~)?(?:%s\.)?%s\.%s\.%s\.%s\.(%s)\.consul\.)`,
+					reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+
+			{"consul.target",
+				fmt.Sprintf(`^cluster\.(((?:%s~)?(?:%s\.)?%s\.%s\.%s)\.%s\.%s\.consul\.)`,
+					reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+
+			{"consul.full_target",
+				fmt.Sprintf(`^cluster\.(((?:%s~)?(?:%s\.)?%s\.%s\.%s\.%s\.%s)\.consul\.)`,
+					reSegment, reSegment, reSegment, reSegment, reSegment, reSegment, reSegment)},
+		}
+		rules = append(rules, deprecatedRules...)
+	}
+
+	var tags []string
 	for _, rule := range rules {
 		m := map[string]string{
 			"tag_name": rule[0],
@@ -342,24 +436,35 @@ func init() {
 		}
 		d, err := json.Marshal(m)
 		if err != nil {
-			panic("error pregenerating SNI envoy tags: " + err.Error())
+			return nil, err
 		}
-		sniTagJSONs = append(sniTagJSONs, string(d))
+		tags = append(tags, string(d))
 	}
+	return tags, nil
 }
 
-func (c *BootstrapConfig) generateStatsConfig(args *BootstrapTplArgs) error {
-	var tagJSONs []string
-
-	// Add some default tags if not already overridden
-	defaults := map[string]string{
-		"local_cluster": args.ProxyCluster,
+func formatStatsTags(tags []string) string {
+	var output string
+	if len(tags) > 0 {
+		// use_all_default_tags is true by default but we'll make it explicit!
+		output = `{
+			"stats_tags": [
+				` + strings.Join(tags, ",\n") + `
+			],
+			"use_all_default_tags": true
+		}`
 	}
+	return output
+}
 
-	// Explode SNI portions.
-	tagJSONs = append(tagJSONs, sniTagJSONs...)
+func generateStatsTags(args *BootstrapTplArgs, initialTags []string, omitDeprecatedTags bool) ([]string, error) {
+	var (
+		// Track tags we are setting explicitly to exclude them from defaults
+		tagNames = make(map[string]struct{})
+		tagJSONs []string
+	)
 
-	for _, tag := range c.StatsTags {
+	for _, tag := range initialTags {
 		parts := strings.SplitN(tag, "=", 2)
 		// If there is no equals, treat it as a boolean tag and just assign value of
 		// 1 e.g. "canary" will out put the tag "canary: 1"
@@ -373,33 +478,65 @@ func (c *BootstrapConfig) generateStatsConfig(args *BootstrapTplArgs) error {
 			"fixed_value": "` + v + `"
 		}`
 		tagJSONs = append(tagJSONs, tagJSON)
-		// Remove this in case we override a default
-		delete(defaults, k)
+		tagNames[k] = struct{}{}
 	}
 
-	for k, v := range defaults {
-		if v == "" {
-			// Skip stuff we just didn't have data for, this is only really the case
-			// in tests currently.
+	// Explode listener and cluster portions.
+	tags, err := resourceTagSpecifiers(omitDeprecatedTags)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate resource-specific envoy tags: %v", err)
+	}
+	tagJSONs = append(tagJSONs, tags...)
+
+	// Default the namespace here since it is also done for cluster SNI
+	ns := args.Namespace
+	if ns == "" {
+		ns = api.IntentionDefaultNamespace
+	}
+
+	// Add some default tags if not already overridden. Note this is a slice not a
+	// map since we need ordering to be deterministic.
+	defaults := []struct {
+		name string
+		val  string
+	}{
+		// local_cluster is for backwards compatibility. We originally choose this
+		// name as it matched a few other Envoy metrics examples given in docs but
+		// it's a little confusing in context of setting up metrics dashboards.
+		{
+			name: "local_cluster",
+			val:  args.ProxyCluster,
+		},
+		{
+			name: "consul.source.service",
+			val:  args.ProxySourceService,
+		},
+		{
+			name: "consul.source.namespace",
+			val:  ns,
+		},
+		{
+			name: "consul.source.datacenter",
+			val:  args.Datacenter,
+		},
+	}
+
+	for _, kv := range defaults {
+		if kv.val == "" {
+			// Skip stuff we just didn't have data for.
+			continue
+		}
+		if _, ok := tagNames[kv.name]; ok {
+			// Skip anything already set explicitly.
 			continue
 		}
 		tagJSON := `{
-			"tag_name": "` + k + `",
-			"fixed_value": "` + v + `"
+			"tag_name": "` + kv.name + `",
+			"fixed_value": "` + kv.val + `"
 		}`
 		tagJSONs = append(tagJSONs, tagJSON)
 	}
-
-	if len(tagJSONs) > 0 {
-		// use_all_default_tags is true by default but we'll make it explicit!
-		args.StatsConfigJSON = `{
-			"stats_tags": [
-				` + strings.Join(tagJSONs, ",\n") + `
-			],
-			"use_all_default_tags": true
-		}`
-	}
-	return nil
+	return tagJSONs, nil
 }
 
 func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAddr, name, matchType, matchValue, prefixRewrite string) error {

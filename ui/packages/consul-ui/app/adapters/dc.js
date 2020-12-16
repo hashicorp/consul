@@ -1,9 +1,9 @@
 import Adapter from './application';
 
-export default Adapter.extend({
-  requestForQuery: function(request) {
+export default class DcAdapter extends Adapter {
+  requestForQuery(request) {
     return request`
       GET /v1/catalog/datacenters
     `;
-  },
-});
+  }
+}

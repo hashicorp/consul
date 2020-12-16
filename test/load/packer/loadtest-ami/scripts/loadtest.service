@@ -1,7 +1,0 @@
-[Unit]
-Description=Execute run-k6.
-[Service]
-Type=simple
-ExecStart=/bin/bash -c 'exec /home/ubuntu/scripts/run-k6.sh'
-[Install]
-WantedBy=multi-user.target

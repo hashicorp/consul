@@ -4,15 +4,15 @@
  Term         2
  Version      1
 
- Type                        Count      Size       
- ----                        ----       ----       
- Register                    3          1.8KB      
- ConnectCA                   1          1.2KB      
- ConnectCAProviderState      1          1.1KB      
- Index                       11         313B       
- ConnectCAConfig             1          247B       
- Autopilot                   1          199B       
- SystemMetadata              1          68B        
- ChunkingState               1          12B        
- ----                        ----       ----       
+ Type                        Count      Size
+ ----                        ----       ----
+ Register                    3          1.8KB
+ ConnectCA                   1          1.2KB
+ ConnectCAProviderState      1          1.1KB
+ Index                       11         313B
+ ConnectCAConfig             1          247B
+ Autopilot                   1          199B
+ SystemMetadata              1          68B
+ ChunkingState               1          12B
+ ----                        ----       ----
  Total                                  5KB

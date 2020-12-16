@@ -74,6 +74,7 @@ $ curl \
     "Port": 8000,
     "Address": "",
     "EnableTagOverride": false,
+    "Datacenter": "dc1",
     "Weights": {
       "Passing": 10,
       "Warning": 1
@@ -185,6 +186,7 @@ $ curl \
     "Warning": 1
   },
   "EnableTagOverride": false,
+  "Datacenter": "dc1",
   "ContentHash": "4ecd29c7bc647ca8",
   "Proxy": {
     "DestinationServiceName": "web",
@@ -304,6 +306,7 @@ curl localhost:8500/v1/agent/health/service/name/web
       "Meta": null,
       "Port": 80,
       "EnableTagOverride": false,
+      "Datacenter": "dc1",
       "Connect": {
         "Native": false,
         "Proxy": null
@@ -331,6 +334,7 @@ curl localhost:8500/v1/agent/health/service/name/web
       "Meta": null,
       "Port": 80,
       "EnableTagOverride": false,
+      "Datacenter": "dc1",
       "Connect": {
         "Native": false,
         "Proxy": null
@@ -380,6 +384,7 @@ curl localhost:8500/v1/agent/health/service/id/web2
     "Meta": null,
     "Port": 80,
     "EnableTagOverride": false,
+    "Datacenter": "dc1",
     "Connect": {
       "Native": false,
       "Proxy": null
@@ -425,6 +430,7 @@ curl localhost:8500/v1/agent/health/service/id/web1
     "Meta": null,
     "Port": 80,
     "EnableTagOverride": false,
+    "Datacenter": "dc1",
     "Connect": {
       "Native": false,
       "Proxy": null

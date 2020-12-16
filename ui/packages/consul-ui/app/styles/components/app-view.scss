@@ -3,14 +3,7 @@
 .app-view {
   @extend %app-view;
 }
-%app-view-actions label + div {
-  /* We need this extra to allow tooltips to show */
-  overflow: visible !important;
-}
 
-%app-view header form {
-  @extend %filter-bar;
-}
 %app-view-actions a,
 %app-view-actions button {
   @extend %button-compact;

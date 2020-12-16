@@ -38,6 +38,8 @@ Feature: dc / services / show / intentions: Intentions per service
     And I see intentionsIsSelected on the tabs
   Scenario: I can see intentions
     And I see 3 intention models on the intentionList component
+    And I click intention on the intentionList.intentions component
+    Then the url should be /dc1/services/service-0/intentions/default:name:default:destination
   Scenario: I can delete intentions
     And I click actions on the intentionList.intentions component
     And I click delete on the intentionList.intentions component

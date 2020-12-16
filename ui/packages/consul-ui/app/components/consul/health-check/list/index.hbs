@@ -1,0 +1,52 @@
+<div
+  class="consul-health-check-list"
+  ...attributes
+>
+  <ul>
+{{#each @items as |item|}}
+    <li class={{concat 'health-check-output ' item.Status}}>
+      <div>
+        <header>
+          <h3>{{item.Name}}</h3>
+        </header>
+        <dl>
+        {{#if (eq item.Kind "node")}}
+          <dt>NodeName</dt>
+          <dd>{{item.Node}}</dd>
+        {{else}}
+          <dt>ServiceName</dt>
+          <dd>{{item.ServiceName}}</dd>
+        {{/if}}
+        </dl>
+        <dl>
+          <dt>CheckID</dt>
+          <dd>{{or item.CheckID '-'}}</dd>
+        </dl>
+        <dl>
+          <dt>Type</dt>
+          <dd data-health-check-type>
+            {{or item.Type 'serf'}}
+  {{#if item.Exposed}}
+            <em
+              data-test-exposed="true"
+              {{tooltip "Expose.checks is set to true, so all registered HTTP and gRPC check paths are exposed through Envoy for the Consul agent."}}
+            >Exposed</em>
+  {{/if}}
+          </dd>
+        </dl>
+        <dl>
+          <dt>Notes</dt>
+          <dd>{{or item.Notes '-'}}</dd>
+        </dl>
+        <dl>
+          <dt>Output</dt>
+          <dd>
+              <pre><code>{{item.Output}}</code></pre>
+              <CopyButton @value={{item.Output}} @name="output" />
+          </dd>
+        </dl>
+      </div>
+    </li>
+{{/each}}
+  </ul>
+</div>

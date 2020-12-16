@@ -1,84 +1,68 @@
-{{#if (gt items.length 0)}}
-  <ListCollection @items={{items}} class="consul-service-instance-list" as |item index|>
-    <BlockSlot @name="header">
-      {{#if (eq routeName "dc.services.show")}}
-        <a data-test-service-name href={{href-to routeName item.Service}}>
-          {{item.ID}}
-        </a>
-      {{else}}
-        <a data-test-service-name href={{href-to routeName item.Service.Service item.Node.Node (or item.Service.ID item.Service.Service)}}>
-          {{item.Service.ID}}
-        </a>
-      {{/if}}
-    </BlockSlot>
-    <BlockSlot @name="details">
-    {{#if checks}}
-      <Consul::ExternalSource @item={{item}} />
-      <Consul::InstanceChecks @type="service" @items={{get checks item.Service}} />
+<ListCollection
+  class="consul-service-instance-list"
+  ...attributes
+  @items={{@items}}
+as |item index|>
+  <BlockSlot @name="header">
+    {{#if (eq @routeName "dc.services.show")}}
+      <a data-test-service-name href={{href-to @routeName item.Service.Service}}>
+        {{item.Service.ID}}
+      </a>
     {{else}}
-      <Consul::ExternalSource @item={{item.Service}} />
-      <Consul::InstanceChecks @type="service" @items={{filter-by 'ServiceID' '' item.Checks}} />
-      <Consul::InstanceChecks @type="node" @items={{reject-by 'ServiceID' '' item.Checks}} />
+      <a data-test-service-name href={{href-to @routeName item.Service.Service item.Node.Node (or item.Service.ID item.Service.Service)}}>
+        {{item.Service.ID}}
+      </a>
     {{/if}}
+  </BlockSlot>
+  <BlockSlot @name="details">
+  {{#if @node}}
+    <Consul::ExternalSource @item={{item.Service}} />
+    <Consul::InstanceChecks @type="service" @items={{item.Checks}} />
+  {{else}}
+    <Consul::ExternalSource @item={{item.Service}} />
+    <Consul::InstanceChecks @type="service" @items={{filter-by 'ServiceID' '' item.Checks}} />
+    <Consul::InstanceChecks @type="node" @items={{reject-by 'ServiceID' '' item.Checks}} />
+  {{/if}}
 {{#if item.ProxyInstance}}
-      <dl class="mesh">
-        <dt>
-          <Tooltip>
-            This service uses a proxy for the Consul service mesh
-          </Tooltip>
-        </dt>
-        <dd data-test-mesh>
-          in service mesh with proxy
-        </dd>
-      </dl>
+    <dl class="mesh">
+      <dt>
+        <Tooltip>
+          This service uses a proxy for the Consul service mesh
+        </Tooltip>
+      </dt>
+      <dd data-test-mesh>
+        in service mesh with proxy
+      </dd>
+    </dl>
 {{/if}}
-{{#if (gt item.Node.Node.length 0)}}
-      <dl class="node">
-        <dt>
-          <Tooltip>
-            Node
-          </Tooltip>
-        </dt>
-        <dd>
-          <a href={{href-to 'dc.nodes.show' item.Node.Node}}>{{item.Node.Node}}</a>
-        </dd>
-      </dl>
+{{#if (not @node)}}
+    <dl class="node">
+      <dt>
+        <Tooltip>
+          Node
+        </Tooltip>
+      </dt>
+      <dd>
+        <a href={{href-to 'dc.nodes.show' item.Node.Node}}>{{item.Node.Node}}</a>
+      </dd>
+    </dl>
 {{/if}}
 {{#if item.Service.Port}}
-      <dl class="address" data-test-address>
-        <dt>
-          <Tooltip>
-            IP Address and Port
-          </Tooltip>
-        </dt>
-        <dd>
-          {{#if (not-eq item.Service.Address '')}}
-            {{item.Service.Address}}:{{item.Service.Port}}
-          {{else}}
-            {{item.Node.Address}}:{{item.Service.Port}}
-          {{/if}}
-        </dd>
-      </dl>
+    <dl class="address" data-test-address>
+      <dt>
+        <Tooltip>
+          IP Address and Port
+        </Tooltip>
+      </dt>
+      <dd>
+        {{#if (not-eq item.Service.Address '')}}
+          {{item.Service.Address}}:{{item.Service.Port}}
+        {{else}}
+          {{item.Node.Address}}:{{item.Service.Port}}
+        {{/if}}
+      </dd>
+    </dl>
 {{/if}}
-{{#if (and checks item.Port)}}
-      <dl class="port">
-        <dt>
-          Port
-        </dt>
-        <dd data-test-service-port={{item.Port}}>
-          <CopyButton
-            @value={{item.Port}}
-            @name="Port"
-          />
-          :{{item.Port}}
-        </dd>
-      </dl>
-{{/if}}
-{{#if checks}}
-      <TagList @item={{item}} />
-{{else}}
-      <TagList @item={{item.Service}} />
-{{/if}}
-    </BlockSlot>
-  </ListCollection>
-{{/if}}
+    <TagList @item={{item.Service}} />
+  </BlockSlot>
+</ListCollection>

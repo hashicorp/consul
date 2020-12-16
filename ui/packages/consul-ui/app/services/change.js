@@ -13,17 +13,20 @@ const validators = {
   'intention-permission-http-header': intentionPermissionHttpHeaderValidator,
 };
 
-export default Service.extend({
-  schema: service('schema'),
+export default class ChangeService extends Service {
+  @service('schema')
+  schema;
 
-  init: function() {
-    this._super(...arguments);
+  init() {
+    super.init(...arguments);
     this._validators = new Map();
-  },
-  willDestroy: function() {
+  }
+
+  willDestroy() {
     this._validators = null;
-  },
-  changesetFor: function(modelName, model, options = {}) {
+  }
+
+  changesetFor(modelName, model, options = {}) {
     const validator = this.validatorFor(modelName, options);
     let changeset;
     if (validator) {
@@ -36,8 +39,9 @@ export default Service.extend({
       changeset = createChangeset(model);
     }
     return changeset;
-  },
-  validatorFor: function(modelName, options = {}) {
+  }
+
+  validatorFor(modelName, options = {}) {
     if (!this._validators.has(modelName)) {
       const factory = validators[modelName];
       let validator;
@@ -47,5 +51,5 @@ export default Service.extend({
       this._validators.set(modelName, validator);
     }
     return this._validators.get(modelName);
-  },
-});
+  }
+}

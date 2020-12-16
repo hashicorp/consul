@@ -4,19 +4,24 @@ import { typeOf } from '@ember/utils';
 import { get } from '@ember/object';
 import { isChangeset } from 'validated-changeset';
 
-export default Service.extend({
-  getModelName: function() {
+export default class RepositoryService extends Service {
+  getModelName() {
     assert('RepositoryService.getModelName should be overridden', false);
-  },
-  getPrimaryKey: function() {
+  }
+
+  getPrimaryKey() {
     assert('RepositoryService.getPrimaryKey should be overridden', false);
-  },
-  getSlugKey: function() {
+  }
+
+  getSlugKey() {
     assert('RepositoryService.getSlugKey should be overridden', false);
-  },
+  }
+
   //
-  store: service('store'),
-  reconcile: function(meta = {}) {
+  @service('store')
+  store;
+
+  reconcile(meta = {}) {
     // unload anything older than our current sync date/time
     if (typeof meta.date !== 'undefined') {
       const checkNspace = meta.nspace !== '';
@@ -36,11 +41,13 @@ export default Service.extend({
         }
       });
     }
-  },
-  peekOne: function(id) {
+  }
+
+  peekOne(id) {
     return this.store.peekRecord(this.getModelName(), id);
-  },
-  findAllByDatacenter: function(dc, nspace, configuration = {}) {
+  }
+
+  findAllByDatacenter(dc, nspace, configuration = {}) {
     const query = {
       dc: dc,
       ns: nspace,
@@ -50,8 +57,9 @@ export default Service.extend({
       query.uri = configuration.uri;
     }
     return this.store.query(this.getModelName(), query);
-  },
-  findBySlug: function(slug, dc, nspace, configuration = {}) {
+  }
+
+  findBySlug(slug, dc, nspace, configuration = {}) {
     const query = {
       dc: dc,
       ns: nspace,
@@ -62,12 +70,14 @@ export default Service.extend({
       query.uri = configuration.uri;
     }
     return this.store.queryRecord(this.getModelName(), query);
-  },
-  create: function(obj) {
+  }
+
+  create(obj) {
     // TODO: This should probably return a Promise
     return this.store.createRecord(this.getModelName(), obj);
-  },
-  persist: function(item) {
+  }
+
+  persist(item) {
     // workaround for saving changesets that contain fragments
     // firstly commit the changes down onto the object if
     // its a changeset, then save as a normal object
@@ -76,8 +86,9 @@ export default Service.extend({
       item = item.data;
     }
     return item.save();
-  },
-  remove: function(obj) {
+  }
+
+  remove(obj) {
     let item = obj;
     if (typeof obj.destroyRecord === 'undefined') {
       item = obj.get('data');
@@ -91,9 +102,10 @@ export default Service.extend({
     return item.destroyRecord().then(item => {
       return this.store.unloadRecord(item);
     });
-  },
-  invalidate: function() {
+  }
+
+  invalidate() {
     // TODO: This should probably return a Promise
     this.store.unloadAll(this.getModelName());
-  },
-});
+  }
+}

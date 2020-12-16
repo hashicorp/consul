@@ -40,6 +40,8 @@ import popoverSelectFactory from 'consul-ui/components/popover-select/pageobject
 import morePopoverMenuFactory from 'consul-ui/components/more-popover-menu/pageobject';
 
 import tokenListFactory from 'consul-ui/components/token-list/pageobject';
+import consulHealthCheckListFactory from 'consul-ui/components/consul/health-check/list/pageobject';
+import consulUpstreamInstanceListFactory from 'consul-ui/components/consul/upstream-instance/list/pageobject';
 import consulTokenListFactory from 'consul-ui/components/consul/token/list/pageobject';
 import consulRoleListFactory from 'consul-ui/components/consul/role/list/pageobject';
 import consulPolicyListFactory from 'consul-ui/components/consul/policy/list/pageobject';
@@ -94,7 +96,15 @@ const morePopoverMenu = morePopoverMenuFactory(clickable);
 const popoverSelect = popoverSelectFactory(clickable, collection);
 const emptyState = emptyStateFactory(isPresent);
 
-const consulIntentionList = consulIntentionListFactory(collection, clickable, attribute, isPresent, deletable);
+const consulHealthCheckList = consulHealthCheckListFactory(collection, text);
+const consulUpstreamInstanceList = consulUpstreamInstanceListFactory(collection, text);
+const consulIntentionList = consulIntentionListFactory(
+  collection,
+  clickable,
+  attribute,
+  isPresent,
+  deletable
+);
 const consulNspaceList = consulNspaceListFactory(
   collection,
   clickable,
@@ -153,9 +163,31 @@ export default {
   service: create(
     service(visitable, attribute, collection, text, consulIntentionList, catalogToolbar, tabgroup)
   ),
-  instance: create(instance(visitable, attribute, collection, text, tabgroup)),
+  instance: create(
+    instance(
+      visitable,
+      alias,
+      attribute,
+      collection,
+      text,
+      tabgroup,
+      consulUpstreamInstanceList,
+      consulHealthCheckList
+    )
+  ),
   nodes: create(nodes(visitable, text, clickable, attribute, collection, popoverSelect)),
-  node: create(node(visitable, deletable, clickable, attribute, collection, tabgroup, text)),
+  node: create(
+    node(
+      visitable,
+      deletable,
+      clickable,
+      attribute,
+      collection,
+      tabgroup,
+      text,
+      consulHealthCheckList
+    )
+  ),
   kvs: create(kvs(visitable, creatable, consulKvList)),
   kv: create(kv(visitable, attribute, submitable, deletable, cancelable, clickable)),
   acls: create(acls(visitable, deletable, creatable, clickable, attribute, collection, aclFilter)),
@@ -176,6 +208,7 @@ export default {
     intention(
       visitable,
       clickable,
+      isPresent,
       submitable,
       deletable,
       cancelable,

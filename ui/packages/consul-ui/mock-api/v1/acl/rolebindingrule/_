@@ -1,0 +1,30 @@
+{
+  "ID": "${location.pathname.get(3)}",
+  "IDPName": "${fake.hacker.noun()}-idp",
+  "RoleName": "${ fake.random.boolean() ? `${fake.hacker.noun()}-role` : `${fake.hacker.noun()}-{{ serviceaccount.name }}`}",
+  "Description": "${fake.lorem.sentence()}",
+  "Matches": [
+    ${
+      range(env('CONSUL_MATCH_COUNT', 3)).map(
+        function(item, i) {
+          return `
+            {
+              "Selectors": [
+                ${
+                  range(env('CONSUL_SELECTOR_COUNT', fake.random.number({min: 1, max: 5}))).map(
+                    function(item, i) {
+                      return `"serviceaccount.name=${fake.hacker.noun()}"`;
+                    }
+                  )
+                }
+              ]
+            }
+          `;
+        }
+      )
+    }
+  ],
+  "MustExist": ${fake.helpers.randomize(['true', 'false'])},
+  "CreateIndex": 10,
+  "ModifyIndex": 10
+}

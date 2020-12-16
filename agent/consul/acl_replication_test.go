@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/consul/authmethod/testauth"
 	"github.com/hashicorp/consul/agent/structs"
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -291,6 +292,10 @@ func TestACLReplication_diffACLTokens(t *testing.T) {
 }
 
 func TestACLReplication_Tokens(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -349,6 +354,32 @@ func TestACLReplication_Tokens(t *testing.T) {
 		tokens = append(tokens, &token)
 	}
 
+	// Create an auth method in the primary that can create global tokens
+	// so that we ensure that these replicate correctly.
+	testSessionID := testauth.StartSession()
+	defer testauth.ResetSession(testSessionID)
+	testauth.InstallSessionToken(testSessionID, "fake-token", "default", "demo", "abc123")
+	method1, err := upsertTestCustomizedAuthMethod(client, "root", "dc1", func(method *structs.ACLAuthMethod) {
+		method.TokenLocality = "global"
+		method.Config = map[string]interface{}{
+			"SessionID": testSessionID,
+		}
+	})
+	require.NoError(t, err)
+	_, err = upsertTestBindingRule(client, "root", "dc1", method1.Name, "", structs.BindingRuleBindTypeService, "demo")
+	require.NoError(t, err)
+
+	// Create one token via this process.
+	methodToken := structs.ACLToken{}
+	require.NoError(t, s1.RPC("ACL.Login", &structs.ACLLoginRequest{
+		Auth: &structs.ACLLoginParams{
+			AuthMethod:  method1.Name,
+			BearerToken: "fake-token",
+		},
+		Datacenter: "dc1",
+	}, &methodToken))
+	tokens = append(tokens, &methodToken)
+
 	checkSame := func(t *retry.R) {
 		// only account for global tokens - local tokens shouldn't be replicated
 		index, remote, err := s1.fsm.State().ACLTokenList(nil, false, true, "", "", "", nil, nil)
@@ -359,6 +390,11 @@ func TestACLReplication_Tokens(t *testing.T) {
 		require.Len(t, local, len(remote))
 		for i, token := range remote {
 			require.Equal(t, token.Hash, local[i].Hash)
+
+			if token.AccessorID == methodToken.AccessorID {
+				require.Equal(t, method1.Name, token.AuthMethod)
+				require.Equal(t, method1.Name, local[i].AuthMethod)
+			}
 		}
 
 		s2.aclReplicationStatusLock.RLock()
@@ -473,6 +509,10 @@ func TestACLReplication_Tokens(t *testing.T) {
 }
 
 func TestACLReplication_Policies(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -594,6 +634,10 @@ func TestACLReplication_Policies(t *testing.T) {
 }
 
 func TestACLReplication_TokensRedacted(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -740,6 +784,10 @@ func TestACLReplication_TokensRedacted(t *testing.T) {
 }
 
 func TestACLReplication_AllTypes(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"

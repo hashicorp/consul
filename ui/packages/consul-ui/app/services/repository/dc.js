@@ -1,45 +1,49 @@
-import RepositoryService from 'consul-ui/services/repository';
 import { inject as service } from '@ember/service';
+import RepositoryService from 'consul-ui/services/repository';
 import { get } from '@ember/object';
 import Error from '@ember/error';
 
 const modelName = 'dc';
-export default RepositoryService.extend({
-  settings: service('settings'),
-  getModelName: function() {
+export default class DcService extends RepositoryService {
+  @service('settings') settings;
+  @service('env') env;
+
+  getModelName() {
     return modelName;
-  },
-  findAll: function() {
+  }
+
+  async findAll() {
     return this.store.query(this.getModelName(), {});
-  },
-  findBySlug: function(name, items) {
+  }
+
+  async findBySlug(name, items) {
     if (name != null) {
-      const item = items.findBy('Name', name);
-      if (item) {
-        return this.settings.persist({ dc: get(item, 'Name') }).then(function() {
-          // TODO: create a model
-          return { Name: get(item, 'Name') };
-        });
+      const item = await items.findBy('Name', name);
+      if (typeof item !== 'undefined') {
+        await this.settings.persist({ dc: get(item, 'Name') });
+        return item;
       }
     }
-    const e = new Error();
+    const e = new Error('Page not found');
     e.status = '404';
-    e.detail = 'Page not found';
     return Promise.reject({ errors: [e] });
-  },
-  getActive: function(name, items) {
-    const settings = this.settings;
-    return Promise.all([name || settings.findBySlug('dc'), items || this.findAll()]).then(
+  }
+
+  async getActive(name, items) {
+    return Promise.all([name || this.settings.findBySlug('dc'), items || this.findAll()]).then(
       ([name, items]) => {
-        return this.findBySlug(name, items).catch(function() {
-          const item = get(items, 'firstObject');
-          settings.persist({ dc: get(item, 'Name') });
+        return this.findBySlug(name, items).catch(async e => {
+          const item =
+            items.findBy('Name', this.env.var('CONSUL_DATACENTER_LOCAL')) ||
+            get(items, 'firstObject');
+          await this.settings.persist({ dc: get(item, 'Name') });
           return item;
         });
       }
     );
-  },
-  clearActive: function() {
+  }
+
+  async clearActive() {
     return this.settings.delete('dc');
-  },
-});
+  }
+}

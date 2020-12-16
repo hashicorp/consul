@@ -5,12 +5,20 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/go-raftchunking"
 	"github.com/hashicorp/raft"
 )
+
+var SnapshotSummaries = []prometheus.SummaryDefinition{
+	{
+		Name: []string{"fsm", "persist"},
+		Help: "Measures the time it takes to persist the FSM to a raft snapshot.",
+	},
+}
 
 // snapshot is used to provide a snapshot of the current
 // state in a way that can be accessed concurrently with operations

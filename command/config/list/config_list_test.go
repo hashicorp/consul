@@ -17,6 +17,10 @@ func TestConfigList_noTabs(t *testing.T) {
 }
 
 func TestConfigList(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()

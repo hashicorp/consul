@@ -1,15 +1,16 @@
-import Model from 'ember-data/model';
-import attr from 'ember-data/attr';
+import Model, { attr } from '@ember-data/model';
 
 export const PRIMARY_KEY = 'uid';
 export const SLUG_KEY = 'Name';
-export default Model.extend({
-  [PRIMARY_KEY]: attr('string'),
-  [SLUG_KEY]: attr('string'),
-  meta: attr(),
-  Datacenter: attr('string'),
-  DisplayName: attr('string'),
-  Kind: attr('string'),
-  Namespace: attr('string'),
-  AuthURL: attr('string'),
-});
+
+export default class OidcProvider extends Model {
+  @attr('string') uid;
+  @attr('string') Name;
+
+  @attr('string') Datacenter;
+  @attr('string') Namespace;
+  @attr('string') Kind;
+  @attr('string') AuthURL;
+  @attr('string') DisplayName;
+  @attr() meta; // {}
+}

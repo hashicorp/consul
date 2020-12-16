@@ -1,15 +1,58 @@
-<div id="health-checks" class="tab-section">
-  <div role="tabpanel">
-    {{#if (gt item.Checks.length 0) }}
-      <HealthcheckList @items={{sort-by (comparator 'check' 'Status:asc') item.Checks}} />
-    {{else}}
-      <EmptyState>
-        <BlockSlot @name="body">
-          <p>
-            This node has no health checks.
-          </p>
-        </BlockSlot>
-      </EmptyState>
-    {{/if}}
-  </div>
-</div>
+{{#let (hash
+  statuses=(if status (split status ',') undefined)
+  kinds=(if kind (split kind ',') undefined)
+  checks=(if check (split check ',') undefined)
+  searchproperties=(if (not-eq searchproperty undefined)
+    (split searchproperty ',')
+    searchProperties
+  )
+) as |filters|}}
+  {{#let (or sortBy "Status:asc") as |sort|}}
+    <div class="tab-section">
+      <div role="tabpanel">
+        {{#if (gt item.Checks.length 0) }}
+          <input type="checkbox" id="toolbar-toggle" />
+          <Consul::HealthCheck::SearchBar
+
+            @search={{search}}
+            @onsearch={{action (mut search) value="target.value"}}
+            @searchproperties={{searchProperties}}
+
+            @sort={{sort}}
+            @onsort={{action (mut sortBy) value="target.selected"}}
+
+            @filter={{filters}}
+            @onfilter={{hash
+              searchproperty=(action (mut searchproperty) value="target.selectedItems")
+              status=(action (mut status) value="target.selectedItems")
+              kind=(action (mut kind) value="target.selectedItems")
+              check=(action (mut check) value="target.selectedItems")
+            }}
+          />
+        {{/if}}
+        <DataCollection
+          @type="health-check"
+          @sort={{sort}}
+          @filters={{filters}}
+          @search={{search}}
+          @items={{item.Checks}}
+        as |collection|>
+          <collection.Collection>
+            <Consul::HealthCheck::List
+              @items={{collection.items}}
+            />
+          </collection.Collection>
+          <collection.Empty>
+            <EmptyState>
+              <BlockSlot @name="body">
+                <p>
+                  This node has no health checks{{#if (gt item.Checks.length 0)}} matching that search{{/if}}.
+                </p>
+              </BlockSlot>
+            </EmptyState>
+            </collection.Empty>
+          </DataCollection>
+      </div>
+    </div>
+  {{/let}}
+{{/let}}

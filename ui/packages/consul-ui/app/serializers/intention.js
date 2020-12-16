@@ -2,16 +2,20 @@ import Serializer from './application';
 import { inject as service } from '@ember/service';
 import { get } from '@ember/object';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/intention';
+import removeNull from 'consul-ui/utils/remove-null';
 
-export default Serializer.extend({
-  primaryKey: PRIMARY_KEY,
-  slugKey: SLUG_KEY,
-  encoder: service('encoder'),
-  init: function() {
-    this._super();
+export default class IntentionSerializer extends Serializer {
+  @service('encoder') encoder;
+
+  primaryKey = PRIMARY_KEY;
+  slugKey = SLUG_KEY;
+
+  init() {
+    super.init(...arguments);
     this.uri = this.encoder.uriTag();
-  },
-  ensureID: function(item) {
+  }
+
+  ensureID(item) {
     if (!get(item, 'ID.length')) {
       item.Legacy = false;
     } else {
@@ -21,30 +25,33 @@ export default Serializer.extend({
     item.ID = this
       .uri`${item.SourceNS}:${item.SourceName}:${item.DestinationNS}:${item.DestinationName}`;
     return item;
-  },
-  respondForQuery: function(respond, query) {
-    return this._super(
+  }
+
+  respondForQuery(respond, query) {
+    return super.respondForQuery(
       cb =>
         respond((headers, body) => {
           return cb(
             headers,
-            body.map(item => this.ensureID(item))
+            body.map(item => this.ensureID(removeNull(item)))
           );
         }),
       query
     );
-  },
-  respondForQueryRecord: function(respond, query) {
-    return this._super(
+  }
+
+  respondForQueryRecord(respond, query) {
+    return super.respondForQueryRecord(
       cb =>
         respond((headers, body) => {
-          body = this.ensureID(body);
+          body = this.ensureID(removeNull(body));
           return cb(headers, body);
         }),
       query
     );
-  },
-  respondForCreateRecord: function(respond, serialized, data) {
+  }
+
+  respondForCreateRecord(respond, serialized, data) {
     const slugKey = this.slugKey;
     const primaryKey = this.primaryKey;
     return respond((headers, body) => {
@@ -53,8 +60,9 @@ export default Serializer.extend({
         .uri`${serialized.SourceNS}:${serialized.SourceName}:${serialized.DestinationNS}:${serialized.DestinationName}`;
       return this.fingerprint(primaryKey, slugKey, body.Datacenter)(body);
     });
-  },
-  respondForUpdateRecord: function(respond, serialized, data) {
+  }
+
+  respondForUpdateRecord(respond, serialized, data) {
     const slugKey = this.slugKey;
     const primaryKey = this.primaryKey;
     return respond((headers, body) => {
@@ -63,5 +71,5 @@ export default Serializer.extend({
       body.ID = serialized.ID;
       return this.fingerprint(primaryKey, slugKey, body.Datacenter)(body);
     });
-  },
-});
+  }
+}

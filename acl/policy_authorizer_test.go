@@ -13,8 +13,6 @@ import (
 // ensure compatibility from version to version those tests have been only minimally altered. The tests in this
 // file are specific to the newer functionality.
 func TestPolicyAuthorizer(t *testing.T) {
-	t.Parallel()
-
 	type aclCheck struct {
 		name   string
 		prefix string
@@ -446,8 +444,6 @@ func TestPolicyAuthorizer(t *testing.T) {
 		name := name
 		tcase := tcase
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-
 			authz, err := NewPolicyAuthorizer([]*Policy{tcase.policy}, nil)
 			require.NoError(t, err)
 
@@ -458,7 +454,6 @@ func TestPolicyAuthorizer(t *testing.T) {
 				}
 				t.Run(checkName, func(t *testing.T) {
 					check := check
-					t.Parallel()
 
 					check.check(t, authz, check.prefix, nil)
 				})
@@ -468,8 +463,6 @@ func TestPolicyAuthorizer(t *testing.T) {
 }
 
 func TestAnyAllowed(t *testing.T) {
-	t.Parallel()
-
 	type radixInsertion struct {
 		segment string
 		value   *policyAuthorizerRadixLeaf
@@ -719,8 +712,6 @@ func TestAnyAllowed(t *testing.T) {
 }
 
 func TestAllAllowed(t *testing.T) {
-	t.Parallel()
-
 	type radixInsertion struct {
 		segment string
 		value   *policyAuthorizerRadixLeaf

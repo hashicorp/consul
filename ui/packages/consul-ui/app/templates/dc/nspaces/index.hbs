@@ -1,42 +1,59 @@
-{{title 'Namespaces'}}
-{{#let (or sortBy "Name:asc") as |sort|}}
-<EventSource @src={{items}} />
-<AppView>
-  <BlockSlot @name="notification" as |status type item error|>
-    <Consul::Nspace::Notifications
-      @type={{type}}
-      @status={{status}}
-      @error={{error}}
-    />
-  </BlockSlot>
-  <BlockSlot @name="header">
-    <h1>
-      Namespaces
-    </h1>
-  </BlockSlot>
-  <BlockSlot @name="actions">
-      <a data-test-create href="{{href-to 'dc.nspaces.create'}}" class="type-create">Create</a>
-  </BlockSlot>
-  <BlockSlot @name="toolbar">
-  {{#if (gt items.length 0)}}
-        <Consul::Nspace::SearchBar
-          @search={{search}}
-          @onsearch={{action (mut search) value="target.value"}}
+{{page-title 'Namespaces'}}
+{{#let (hash
+  searchproperties=(if (not-eq searchproperty undefined)
+    (split searchproperty ',')
+    (array 'Name' 'Description' 'Policy' 'Role')
+  )
+) as |filters|}}
+  {{#let (or sortBy "Name:asc") as |sort|}}
+  <EventSource @src={{items}} />
+  <AppView>
+    <BlockSlot @name="notification" as |status type item error|>
+      <Consul::Nspace::Notifications
+        @type={{type}}
+        @status={{status}}
+        @error={{error}}
+      />
+    </BlockSlot>
+    <BlockSlot @name="header">
+      <h1>
+        Namespaces
+      </h1>
+    </BlockSlot>
+    <BlockSlot @name="actions">
+        <a data-test-create href="{{href-to 'dc.nspaces.create'}}" class="type-create">Create</a>
+    </BlockSlot>
+    <BlockSlot @name="toolbar">
+    {{#if (gt items.length 0)}}
+      <Consul::Nspace::SearchBar
+        @search={{search}}
+        @onsearch={{action (mut search) value="target.value"}}
 
-          @sort={{sort}}
-          @onsort={{action (mut sortBy) value="target.selected"}}
+        @sort={{sort}}
+        @onsort={{action (mut sortBy) value="target.selected"}}
 
-        />
-  {{/if}}
-  </BlockSlot>
-  <BlockSlot @name="content">
-  {{#let (sort-by (comparator 'nspace' sort) items) as |sorted|}}
-    <ChangeableSet @dispatcher={{searchable 'nspace' sorted}} @terms={{search}}>
-      <BlockSlot @name="set" as |filtered|>
-        <Consul::Nspace::List
-          @items={{filtered}}
-          @ondelete={{queue (action send 'delete')}}
-        >
+        @filter={{filters}}
+        @onfilter={{hash
+          searchproperty=(action (mut searchproperty) value="target.selectedItems")
+        }}
+      />
+    {{/if}}
+    </BlockSlot>
+    <BlockSlot @name="content">
+      <DataCollection
+        @type="nspace"
+        @sort={{sort}}
+        @filters={{filters}}
+        @search={{search}}
+        @items={{items}}
+      as |collection|>
+        <collection.Collection>
+          <Consul::Nspace::List
+            @items={{collection.items}}
+            @ondelete={{route-action 'delete'}}
+          />
+        </collection.Collection>
+        <collection.Empty>
           <EmptyState @allowLogin={{true}}>
             <BlockSlot @name="header">
               <h2>
@@ -65,10 +82,9 @@
               </li>
             </BlockSlot>
           </EmptyState>
-        </Consul::Nspace::List>
-      </BlockSlot>
-    </ChangeableSet>
+        </collection.Empty>
+      </DataCollection>
+    </BlockSlot>
+  </AppView>
   {{/let}}
-  </BlockSlot>
-</AppView>
 {{/let}}

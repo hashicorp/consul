@@ -1,11 +1,12 @@
 import RepositoryService from 'consul-ui/services/repository';
 
 const modelName = 'node';
-export default RepositoryService.extend({
-  getModelName: function() {
+export default class NodeService extends RepositoryService {
+  getModelName() {
     return modelName;
-  },
-  findLeader: function(dc, configuration = {}) {
+  }
+
+  findLeader(dc, configuration = {}) {
     const query = {
       dc: dc,
     };
@@ -13,5 +14,5 @@ export default RepositoryService.extend({
       query.uri = configuration.uri;
     }
     return this.store.queryLeader(this.getModelName(), query);
-  },
-});
+  }
+}

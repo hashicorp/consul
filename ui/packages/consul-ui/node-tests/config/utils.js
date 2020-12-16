@@ -1,3 +1,5 @@
+/* eslint-env node */
+
 const test = require('tape');
 
 const utils = require('../../config/utils.js');

@@ -53,9 +53,21 @@ type Subscription struct {
 // SubscribeRequest identifies the types of events the subscriber would like to
 // receiver. Topic and Token are required.
 type SubscribeRequest struct {
+	// Topic to subscribe to
 	Topic Topic
-	Key   string
+	// Key used to filter events in the topic. Only events matching the key will
+	// be returned by the subscription. A blank key will return all events. Key
+	// is generally the name of the resource.
+	Key string
+	// Namespace used to filter events in the topic. Only events matching the
+	// namespace will be returned by the subscription.
+	Namespace string
+	// Token that was used to authenticate the request. If any ACL policy
+	// changes impact the token the subscription will be forcefully closed.
 	Token string
+	// Index is the last index the client received. If non-zero the
+	// subscription will be resumed from this index. If the index is out-of-date
+	// a NewSnapshotToFollow event will be sent.
 	Index uint64
 }
 
@@ -89,8 +101,8 @@ func (s *Subscription) Next(ctx context.Context) (Event, error) {
 		if len(next.Events) == 0 {
 			continue
 		}
-		event, ok := filterByKey(s.req, next.Events)
-		if !ok {
+		event := newEventFromBatch(s.req, next.Events)
+		if !event.Payload.MatchesKey(s.req.Key, s.req.Namespace) {
 			continue
 		}
 		return event, nil
@@ -115,22 +127,9 @@ func newEventFromBatch(req SubscribeRequest, events []Event) Event {
 	}
 	return Event{
 		Topic:   req.Topic,
-		Key:     req.Key,
 		Index:   first.Index,
-		Payload: events,
+		Payload: newPayloadEvents(events...),
 	}
-}
-
-func filterByKey(req SubscribeRequest, events []Event) (Event, bool) {
-	event := newEventFromBatch(req, events)
-	if req.Key == "" {
-		return event, true
-	}
-
-	fn := func(e Event) bool {
-		return req.Key == e.Key
-	}
-	return event.Filter(fn)
 }
 
 // Close the subscription. Subscribers will receive an error when they call Next,

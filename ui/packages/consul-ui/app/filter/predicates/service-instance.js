@@ -1,19 +1,12 @@
 import setHelpers from 'mnemonist/set';
-export default () => ({ sources = [], statuses = [] }) => {
-  const uniqueSources = new Set(sources);
-  return item => {
-    if (statuses.length > 0) {
-      if (statuses.includes(item.Status)) {
-        return true;
-      }
-      return false;
-    }
-    if (sources.length > 0) {
-      if (setHelpers.intersectionSize(uniqueSources, new Set(item.ExternalSources || [])) !== 0) {
-        return true;
-      }
-      return false;
-    }
-    return true;
-  };
+
+export default {
+  statuses: {
+    passing: (item, value) => item.Status === value,
+    warning: (item, value) => item.Status === value,
+    critical: (item, value) => item.Status === value,
+  },
+  sources: (item, values) => {
+    return setHelpers.intersectionSize(values, new Set(item.ExternalSources || [])) !== 0;
+  },
 };

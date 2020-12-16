@@ -1290,7 +1290,7 @@ func TestCheckServiceNodes_Filter(t *testing.T) {
 	}
 }
 
-func TestCheckServiceNodes_CanRead(t *testing.T) {
+func TestCheckServiceNode_CanRead(t *testing.T) {
 	type testCase struct {
 		name     string
 		csn      CheckServiceNode

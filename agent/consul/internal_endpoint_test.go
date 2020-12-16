@@ -19,6 +19,10 @@ import (
 )
 
 func TestInternal_NodeInfo(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -73,6 +77,10 @@ func TestInternal_NodeInfo(t *testing.T) {
 }
 
 func TestInternal_NodeDump(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -165,6 +173,10 @@ func TestInternal_NodeDump(t *testing.T) {
 }
 
 func TestInternal_NodeDump_Filter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -223,6 +235,10 @@ func TestInternal_NodeDump_Filter(t *testing.T) {
 }
 
 func TestInternal_KeyringOperation(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	key1 := "H1dfkSZOVnP/JUnaBfTzXg=="
 	keyBytes1, err := base64.StdEncoding.DecodeString(key1)
@@ -306,6 +322,10 @@ func TestInternal_KeyringOperation(t *testing.T) {
 }
 
 func TestInternal_KeyringOperationList_LocalOnly(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	key1 := "H1dfkSZOVnP/JUnaBfTzXg=="
 	keyBytes1, err := base64.StdEncoding.DecodeString(key1)
@@ -387,6 +407,10 @@ func TestInternal_KeyringOperationList_LocalOnly(t *testing.T) {
 }
 
 func TestInternal_KeyringOperationWrite_LocalOnly(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	key1 := "H1dfkSZOVnP/JUnaBfTzXg=="
 	keyBytes1, err := base64.StdEncoding.DecodeString(key1)
@@ -420,6 +444,10 @@ func TestInternal_KeyringOperationWrite_LocalOnly(t *testing.T) {
 }
 
 func TestInternal_NodeInfo_FilterACL(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir, token, srv, codec := testACLFilterServer(t)
 	defer os.RemoveAll(dir)
@@ -471,6 +499,10 @@ func TestInternal_NodeInfo_FilterACL(t *testing.T) {
 }
 
 func TestInternal_NodeDump_FilterACL(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir, token, srv, codec := testACLFilterServer(t)
 	defer os.RemoveAll(dir)
@@ -521,6 +553,10 @@ func TestInternal_NodeDump_FilterACL(t *testing.T) {
 }
 
 func TestInternal_EventFire_Token(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir, srv := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -557,6 +593,10 @@ func TestInternal_EventFire_Token(t *testing.T) {
 }
 
 func TestInternal_ServiceDump(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -650,6 +690,10 @@ func TestInternal_ServiceDump(t *testing.T) {
 }
 
 func TestInternal_ServiceDump_Kind(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -706,6 +750,10 @@ func TestInternal_ServiceDump_Kind(t *testing.T) {
 }
 
 func TestInternal_GatewayServiceDump_Terminating(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -904,6 +952,10 @@ func TestInternal_GatewayServiceDump_Terminating(t *testing.T) {
 }
 
 func TestInternal_GatewayServiceDump_Terminating_ACL(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -1030,6 +1082,10 @@ func TestInternal_GatewayServiceDump_Terminating_ACL(t *testing.T) {
 }
 
 func TestInternal_GatewayServiceDump_Ingress(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -1239,6 +1295,10 @@ func TestInternal_GatewayServiceDump_Ingress(t *testing.T) {
 }
 
 func TestInternal_GatewayServiceDump_Ingress_ACL(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -1380,6 +1440,10 @@ func TestInternal_GatewayServiceDump_Ingress_ACL(t *testing.T) {
 }
 
 func TestInternal_GatewayIntentions(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -1490,6 +1554,10 @@ func TestInternal_GatewayIntentions(t *testing.T) {
 }
 
 func TestInternal_GatewayIntentions_aclDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	dir1, s1 := testServerWithConfig(t, testServerACLConfig(nil))
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1608,6 +1676,10 @@ service_prefix "terminating-gateway" { policy = "read" }
 }
 
 func TestInternal_ServiceTopology(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -1730,6 +1802,10 @@ func TestInternal_ServiceTopology(t *testing.T) {
 }
 
 func TestInternal_ServiceTopology_ACL(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"

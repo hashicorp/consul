@@ -1,20 +1,24 @@
-import RepositoryService from 'consul-ui/services/repository';
 import { inject as service } from '@ember/service';
+import RepositoryService from 'consul-ui/services/repository';
 import { getOwner } from '@ember/application';
 import { set } from '@ember/object';
 
 const modelName = 'oidc-provider';
 const OAUTH_PROVIDER_NAME = 'oidc-with-url';
-export default RepositoryService.extend({
-  manager: service('torii'),
-  init: function() {
-    this._super(...arguments);
+export default class OidcProviderService extends RepositoryService {
+  @service('torii')
+  manager;
+
+  init() {
+    super.init(...arguments);
     this.provider = getOwner(this).lookup(`torii-provider:${OAUTH_PROVIDER_NAME}`);
-  },
-  getModelName: function() {
+  }
+
+  getModelName() {
     return modelName;
-  },
-  authorize: function(id, code, state, dc, nspace, configuration = {}) {
+  }
+
+  authorize(id, code, state, dc, nspace, configuration = {}) {
     const query = {
       id: id,
       code: code,
@@ -23,8 +27,9 @@ export default RepositoryService.extend({
       ns: nspace,
     };
     return this.store.authorize(this.getModelName(), query);
-  },
-  logout: function(id, code, state, dc, nspace, configuration = {}) {
+  }
+
+  logout(id, code, state, dc, nspace, configuration = {}) {
     // TODO: Temporarily call this secret, as we alreayd do that with
     // self in the `store` look to see whether we should just call it id like
     // the rest
@@ -32,11 +37,13 @@ export default RepositoryService.extend({
       id: id,
     };
     return this.store.logout(this.getModelName(), query);
-  },
-  close: function() {
+  }
+
+  close() {
     this.manager.close(OAUTH_PROVIDER_NAME);
-  },
-  findCodeByURL: function(src) {
+  }
+
+  findCodeByURL(src) {
     // TODO: Maybe move this to the provider itself
     set(this.provider, 'baseUrl', src);
     return this.manager.open(OAUTH_PROVIDER_NAME, {}).catch(e => {
@@ -52,5 +59,5 @@ export default RepositoryService.extend({
       }
       this.store.adapterFor(this.getModelName()).error(err);
     });
-  },
-});
+  }
+}

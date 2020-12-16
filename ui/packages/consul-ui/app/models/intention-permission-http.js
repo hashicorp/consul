@@ -1,9 +1,8 @@
-import attr from 'ember-data/attr';
-import { computed } from '@ember/object';
-import { or } from '@ember/object/computed';
-
 import Fragment from 'ember-data-model-fragments/fragment';
 import { fragmentArray, array } from 'ember-data-model-fragments/attributes';
+import { attr } from '@ember-data/model';
+import { computed } from '@ember/object';
+import { or } from '@ember/object/computed';
 
 export const schema = {
   PathType: {
@@ -14,16 +13,18 @@ export const schema = {
   },
 };
 
-export default Fragment.extend({
-  PathExact: attr('string'),
-  PathPrefix: attr('string'),
-  PathRegex: attr('string'),
+export default class IntentionPermissionHttp extends Fragment {
+  @attr('string') PathExact;
+  @attr('string') PathPrefix;
+  @attr('string') PathRegex;
 
-  Header: fragmentArray('intention-permission-http-header'),
-  Methods: array('string'),
+  @fragmentArray('intention-permission-http-header') Header;
+  @array('string') Methods;
 
-  Path: or(...schema.PathType.allowedValues),
-  PathType: computed(...schema.PathType.allowedValues, function() {
+  @or(...schema.PathType.allowedValues) Path;
+
+  @computed(...schema.PathType.allowedValues)
+  get PathType() {
     return schema.PathType.allowedValues.find(prop => typeof this[prop] === 'string');
-  }),
-});
+  }
+}

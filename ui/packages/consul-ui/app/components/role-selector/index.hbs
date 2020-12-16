@@ -35,7 +35,10 @@
   <BlockSlot @name="actions" as |close|>
 
 {{#if (eq state 'role')}}
-    <button type="submit" {{action 'save' item items (queue (action close) (action 'reset'))}} disabled={{if (or item.isSaving item.isPristine item.isInvalid) 'disabled'}}>
+    <button type="submit"
+      onclick={{perform this.save item items (queue (action close) (action 'reset'))}}
+      disabled={{if (or item.isSaving item.isPristine item.isInvalid) 'disabled'}}
+    >
       {{#if item.isSaving }}
         <div class="progress indeterminate"></div>
       {{/if}}

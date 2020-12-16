@@ -1,0 +1,3 @@
+```release-note:deprecation
+telemetry: the disable_compat_1.9 config will cover more metrics deprecations in future 1.9 point releases. These metrics will be emitted twice for backwards compatibility - if the flag is true, only the new metric name will be written.
+```
