@@ -4,7 +4,6 @@ import { get, action } from '@ember/object';
 
 export default class TopologyRoute extends Route {
   @service('ui-config') config;
-  @service('env') env;
   @service('data-source/service') data;
   @service('repository/intention') repo;
 
