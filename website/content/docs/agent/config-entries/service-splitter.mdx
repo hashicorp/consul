@@ -11,9 +11,10 @@ description: >-
 
 # Service Splitter
 
--> **1.6.0+:** This config entry is available in Consul versions 1.6.0 and newer.
+-> **v1.8.4+:** On Kubernetes, the `ServiceSplitter` custom resource is supported in Consul versions 1.8.4+.<br />
+**v1.6.0+:** On other platforms, this config entry is supported in Consul versions 1.6.0+.
 
-The `service-splitter` config entry kind controls how to split incoming Connect
+The `service-splitter` config entry kind (`ServiceSplitter` on Kubernetes) controls how to split incoming Connect
 requests across different subsets of a single service (like during staged
 canary rollouts), or perhaps across different services (like during a v2
 rewrite or other type of codebase migration).
@@ -41,6 +42,11 @@ resolution stage.
 
 ## Sample Config Entries
 
+### Two subsets of same service
+
+<Tabs>
+<Tab heading="HCL">
+
 Split traffic between two subsets of the same service:
 
 ```hcl
@@ -57,6 +63,32 @@ Splits = [
   },
 ]
 ```
+
+</Tab>
+<Tab heading="Kubernetes YAML">
+
+Split traffic between two subsets of the same service:
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceSplitter
+metadata:
+  name: web
+spec:
+  splits:
+    - weight: 90
+      serviceSubset: v1
+    - weight: 10
+      serviceSubset: v2
+```
+
+</Tab>
+</Tabs>
+
+### Two different services
+
+<Tabs>
+<Tab heading="HCL">
 
 Split traffic between two services:
 
@@ -75,33 +107,111 @@ Splits = [
 ]
 ```
 
+</Tab>
+<Tab heading="Kubernetes YAML">
+
+Split traffic between two services:
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceSplitter
+metadata:
+  name: web
+spec:
+  splits:
+    - weight: 50
+      # will default to service with same name as config entry ("web")
+    - weight: 10
+      service: web-rewrite
+```
+
+</Tab>
+</Tabs>
+
 ## Available Fields
 
-- `Kind` - Must be set to `service-splitter`
-
-- `Name` `(string: <required>)` - Set to the name of the service being configured.
-
-- `Namespace` `(string: "default")` <EnterpriseAlert inline /> - Specifies the namespace the config entry will apply to.
-
-- `Meta` `(map<string|string>: nil)` - Specifies arbitrary KV metadata pairs. Added in Consul 1.8.4.
-
-- `Splits` `(array<ServiceSplit>)` - Defines how much traffic to send to which
-  set of service instances during a traffic split. The sum of weights across
-  all splits must add up to 100.
-
-  - `Weight` `(float32: 0)` - A value between 0 and 100 reflecting what portion
-    of traffic should be directed to this split. The smallest representable
-    weight is 1/10000 or .01%
-
-  - `Service` `(string: "")` - The service to resolve instead of the default.
-
-  - `ServiceSubset` `(string: "")` - A named subset of the given service to
-    resolve instead of one defined as that service's `DefaultSubset`. If empty
-    the default subset is used.
-
-  - `Namespace` `(string: "")` - The namespace to resolve the service from
-    instead of the current namespace. If empty the current namespace is
-    assumed.
+<ConfigEntryReference
+  keys={[
+    {
+      name: 'apiVersion',
+      description: 'Must be set to `consul.hashicorp.com/v1alpha1`',
+      hcl: false,
+    },
+    {
+      name: 'Kind',
+      description: {
+        hcl: 'Must be set to `service-splitter`',
+        yaml: 'Must be set to `ServiceSplitter`',
+      },
+    },
+    {
+      name: 'Name',
+      description: 'Set to the name of the service being configured.',
+      type: 'string: <required>',
+      yaml: false,
+    },
+    {
+      name: 'Namespace',
+      type: `string: "default"`,
+      enterprise: true,
+      description: 'Specifies the namespace the config entry will apply to.',
+      yaml: false,
+    },
+    {
+      name: 'Meta',
+      type: 'map<string|string>: nil',
+      description:
+        'Specifies arbitrary KV metadata pairs. Added in Consul 1.8.4.',
+      yaml: false,
+    },
+    {
+      name: 'metadata',
+      children: [
+        {
+          name: 'name',
+          description: 'Set to the name of the service being configured.',
+        },
+      ],
+      hcl: false,
+    },
+    {
+      name: 'Splits',
+      type: 'array<ServiceSplit>',
+      description:
+        'Defines how much traffic to send to which set of service instances during a traffic split. The sum of weights across all splits must add up to 100.',
+      children: [
+        {
+          name: 'weight',
+          type: 'float32: 0',
+          description:
+            'A value between 0 and 100 reflecting what portion of traffic should be directed to this split. The smallest representable eight is 1/10000 or .01%',
+        },
+        {
+          name: 'Service',
+          type: 'string: ""',
+          description: 'The service to resolve instead of the default.',
+        },
+        {
+          name: 'ServiceSubset',
+          type: 'string: ""',
+          description: {
+            hcl:
+              "A named subset of the given service to resolve instead of one defined as that service's `DefaultSubset`. If empty the default subset is used.",
+            yaml:
+              "A named subset of the given service to resolve instead of one defined as that service's `defaultSubset`. If empty the default subset is used.",
+          },
+        },
+        {
+          name: 'Namespace',
+          enterprise: true,
+          type: 'string: ""',
+          description:
+            'The namespace to resolve the service from instead of the current namespace. If empty the current namespace is assumed.',
+        },
+      ],
+    },
+  ]}
+/>
 
 ## ACLs
 
