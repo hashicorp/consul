@@ -12,8 +12,9 @@ export default class ShowRoute extends Route {
     const slug = params.name;
 
     let proxies = [];
+    let chain;
 
-    const urls = this.config.get().dashboard_url_templates;
+    const urls = await this.config.findByPath('dashboard_url_templates');
     const items = await this.data.source(
       uri => uri`/${nspace}/${dc.Name}/service-instances/for-service/${params.name}`
     );

@@ -32,19 +32,20 @@ export default class TopologyRoute extends Route {
     const nspace = get(model, 'nspace');
 
     const item = get(model, 'items.firstObject');
-    if (get(item, 'IsMeshOrigin')) {
-      let kind = get(item, 'Service.Kind');
-      if (typeof kind === 'undefined') {
-        kind = '';
-      }
-      model.topology = await this.data.source(
-        uri => uri`/${nspace}/${dc.Name}/topology/${model.slug}/${kind}`
-      );
+    let kind = get(item, 'Service.Kind');
+    if (typeof kind === 'undefined') {
+      kind = '';
     }
+    const topology = await this.data.source(
+      uri => uri`/${nspace}/${dc.Name}/topology/${model.slug}/${kind}`
+    );
+    let hasMetricsProvider = await this.config.findByPath('metrics_provider');
+    hasMetricsProvider = !!hasMetricsProvider;
+
     return {
       ...model,
-      hasMetricsProvider: !!this.config.get().metrics_provider,
-      isRemoteDC: this.env.var('CONSUL_DATACENTER_LOCAL') !== this.modelFor('dc').dc.Name,
+      topology,
+      hasMetricsProvider,
     };
   }
 
