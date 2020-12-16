@@ -31,3 +31,7 @@ load helpers
 @test "terminating-gateway is used for the upstream connection" {
   assert_envoy_metric_at_least 127.0.0.1:20000 "s4.default.primary.*cx_total" 1
 }
+
+@test "terminating-gateway adds the Host header for connection to s3" {
+  assert_expected_fortio_host_header "localhost:8382" localhost 5000
+}

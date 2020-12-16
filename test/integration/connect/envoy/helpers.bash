@@ -835,3 +835,33 @@ function assert_expected_fortio_name_pattern {
     return 1
   fi
 }
+
+function get_upstream_fortio_host_header {
+  local HOST=$1
+  local PORT=$2
+  local PREFIX=$3
+  local DEBUG_HEADER_VALUE="${4:-""}"
+  local extra_args
+  if [[ -n "${DEBUG_HEADER_VALUE}" ]]; then
+      extra_args="-H x-test-debug:${DEBUG_HEADER_VALUE}"
+  fi
+  run retry_default curl -v -s -f -H"Host: ${HOST}" $extra_args \
+      "localhost:${PORT}${PREFIX}/debug"
+  [ "$status" == 0 ]
+  echo "$output" | grep -E "^Host: "
+}
+
+function assert_expected_fortio_host_header {
+  local EXPECT_HOST=$1
+  local HOST=${2:-"localhost"}
+  local PORT=${3:-5000}
+  local URL_PREFIX=${4:-""}
+  local DEBUG_HEADER_VALUE="${5:-""}"
+
+  GOT=$(get_upstream_fortio_host_header ${HOST} ${PORT} "${URL_PREFIX}" "${DEBUG_HEADER_VALUE}")
+
+  if [ "$GOT" != "Host: ${EXPECT_HOST}" ]; then
+    echo "expected Host header: $EXPECT_HOST, actual Host header: $GOT" 1>&2
+    return 1
+  fi
+}
