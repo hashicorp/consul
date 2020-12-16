@@ -31,5 +31,4 @@
 }
 %menu-panel .is-active > *::after {
   @extend %with-check-plain-mask, %as-pseudo;
-  background-color: var(--swatch-brand-600, $black);
 }
