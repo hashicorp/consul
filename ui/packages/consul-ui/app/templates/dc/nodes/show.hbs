@@ -3,9 +3,7 @@
 
   <BlockSlot @name="data">
     <EventSource @src={{item}} @onerror={{action loader.dispatchError}} />
-    {{#if (not loader.error)}}
-      <EventSource @src={{tomography}} />
-    {{/if}}
+    <EventSource @src={{tomography}} />
   </BlockSlot>
 
   <BlockSlot @name="error">
