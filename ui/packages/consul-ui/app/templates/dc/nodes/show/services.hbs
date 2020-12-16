@@ -35,7 +35,7 @@
       @sort={{sort}}
       @filters={{filters}}
       @search={{search}}
-      @items={{reject-by 'Service.Kind' 'connect-proxy' items}}
+      @items={{items}}
     as |collection|>
       <collection.Collection>
         <Consul::ServiceInstance::List
@@ -49,7 +49,7 @@
         <EmptyState>
           <BlockSlot @name="body">
             <p>
-              There are no services.
+              This node has no service instances{{#if (gt items.length 0)}} matching that search{{/if}}.
             </p>
           </BlockSlot>
         </EmptyState>
