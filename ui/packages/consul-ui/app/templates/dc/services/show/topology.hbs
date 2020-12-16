@@ -1,24 +1,7 @@
 <EventSource @src={{topology}} />
-<div id="topology" class="tab-section">
+<div class="tab-section">
   <div role="tabpanel">
-  {{#if topology.FilteredByACLs}}
-    <TopologyMetrics::Notice::LimitedAccess />
-  {{/if}}
-  {{#if topology}}
-    <TopologyMetrics
-      @nspace={{nspace}}
-      @dc={{dc.Name}}
-      @service={{items.firstObject}}
-      @topology={{topology}}
-      @metricsHref={{render-template urls.service (hash
-        Datacenter=dc.Name
-        Service=items.firstObject
-      )}}
-      @isRemoteDC={{isRemoteDC}}
-      @hasMetricsProvider={{hasMetricsProvider}}
-      @oncreate={{route-action 'createIntention'}}
-    />
-  {{else}}
+  {{#if (and (eq topology.Upstreams.length 0) (eq topology.Downstreams.length 0))}}
     <EmptyState>
       <BlockSlot @name="header">
         <h2>
@@ -36,6 +19,23 @@
         </li>
       </BlockSlot>
     </EmptyState>
+  {{else}}
+    {{#if topology.FilteredByACLs}}
+      <TopologyMetrics::Notice::LimitedAccess />
+    {{/if}}
+    <TopologyMetrics
+      @nspace={{nspace}}
+      @dc={{dc.Name}}
+      @service={{items.firstObject}}
+      @topology={{topology}}
+      @metricsHref={{render-template urls.service (hash
+        Datacenter=dc.Name
+        Service=items.firstObject
+      )}}
+      @isRemoteDC={{isRemoteDC}}
+      @hasMetricsProvider={{hasMetricsProvider}}
+      @oncreate={{route-action 'createIntention'}}
+    />
   {{/if}}
   </div>
 </div>
