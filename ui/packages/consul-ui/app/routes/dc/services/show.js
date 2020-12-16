@@ -44,6 +44,7 @@ export default class ShowRoute extends Route {
       slug,
       items,
       urls,
+      chain,
       proxies,
     };
   }
