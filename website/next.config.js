@@ -1,4 +1,5 @@
 const withHashicorp = require('@hashicorp/nextjs-scripts')
+const redirects = require('./redirects.next')
 
 module.exports = withHashicorp({
   defaultLayout: true,
@@ -11,6 +12,7 @@ module.exports = withHashicorp({
       destination: '/api-docs/:path*',
     },
   ],
+  redirects: () => redirects,
   // Note: These are meant to be public, it's not a mistake that they are here
   env: {
     HASHI_ENV: process.env.HASHI_ENV || 'development',
