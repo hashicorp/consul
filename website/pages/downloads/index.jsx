@@ -61,15 +61,27 @@ export default function DownloadsPage({ releases }) {
         productName="Consul"
         productId="consul"
         latestVersion={VERSION}
-        getStartedDescription="Follow step-by-step tutorials on AWS, Azure, GCP, and localhost."
+        getStartedDescription="Follow step-by-step tutorials to get hands on with Consul."
         getStartedLinks={[
           {
-            label: 'Placeholder',
-            href: '#',
+            label: 'Get Started',
+            href:
+              'https://learn.hashicorp.com/collections/consul/getting-started',
           },
           {
-            label: 'Placeholder',
-            href: '#',
+            label: 'Try Consul Service Mesh',
+            href:
+              'https://learn.hashicorp.com/tutorials/consul/service-mesh-with-envoy-proxy',
+          },
+          {
+            label: 'Add Health Checks',
+            href:
+              'https://learn.hashicorp.com/tutorials/consul/service-registration-health-checks',
+          },
+          {
+            label: 'Load Balance Services',
+            href:
+              'https://learn.hashicorp.com/collections/consul/load-balancing',
           },
         ]}
         logo={<img className={styles.logo} alt="Consul" src={logo} />}
