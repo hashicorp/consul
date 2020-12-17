@@ -5,7 +5,7 @@ import RepositoryService from 'consul-ui/services/repository';
 // metrics provider
 
 export default class MetricsService extends RepositoryService {
-  @service('ui-config') cfg;
+  @service('ui-config') config;
   @service('env') env;
   @service('client/http') client;
 
@@ -13,16 +13,16 @@ export default class MetricsService extends RepositoryService {
 
   init() {
     super.init(...arguments);
-    const uiCfg = this.cfg.get();
+    const config = this.config.get();
     // Inject whether or not the proxy is enabled as an option into the opaque
     // JSON options the user provided.
-    const opts = uiCfg.metrics_provider_options || {};
-    opts.metrics_proxy_enabled = uiCfg.metrics_proxy_enabled;
+    const opts = config.metrics_provider_options || {};
+    opts.metrics_proxy_enabled = config.metrics_proxy_enabled;
     // Inject a convenience function for dialing through the metrics proxy.
     opts.fetch = (path, params) =>
       this.client.fetchWithToken(`/v1/internal/ui/metrics-proxy${path}`, params);
     // Inject the base app URL
-    const provider = uiCfg.metrics_provider || 'prometheus';
+    const provider = config.metrics_provider || 'prometheus';
 
     try {
       this.provider = window.consul.getMetricsProvider(provider, opts);

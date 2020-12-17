@@ -1,64 +1,90 @@
 {{page-title item.Service.ID}}
-<EventSource @src={{item}} @onerror={{action "error"}} />
-<EventSource @src={{proxy}} />
-<EventSource @src={{proxyMeta}} />
-<AppView>
-    <BlockSlot @name="notification" as |status type|>
-      <Consul::Service::Notifications
-        @type={{type}}
-        @status={{status}}
-      />
+  <DataLoader as |loader|>
+
+    <BlockSlot @name="data">
+        <EventSource @src={{item}} @onerror={{action loader.dispatchError}} />
+      {{#if (not loader.error)}}
+        <EventSource @src={{proxy}} />
+        <EventSource @src={{proxyMeta}} />
+      {{/if}}
     </BlockSlot>
-    <BlockSlot @name="breadcrumbs">
-        <ol>
-            <li><a data-test-back href={{href-to 'dc.services'}}>All Services</a></li>
-            <li><a data-test-back href={{href-to 'dc.services.show'}}>Service ({{item.Service.Service}})</a></li>
-        </ol>
+
+    <BlockSlot @name="error">
+      <AppError @error={{loader.error}} />
     </BlockSlot>
-    <BlockSlot @name="header">
-      <h1>
-        {{ item.Service.ID }}
-      </h1>
-      <Consul::ExternalSource @item={{item}} />
-      <Consul::Kind @item={{item}} @withInfo={{true}} />
+
+    <BlockSlot @name="disconnected" as |Notification|>
+      {{#if (eq loader.error.status "404")}}
+        <Notification @sticky={{true}}>
+          <p data-notification role="alert" class="warning notification-update">
+            <strong>Warning!</strong>
+            This service has been deregistered and no longer exists in the catalog.
+          </p>
+        </Notification>
+      {{else}}
+        <Notification @sticky={{true}}>
+          <p data-notification role="alert" class="warning notification-update">
+            <strong>Warning!</strong>
+            An error was returned whilst loading this data, refresh to try again.
+          </p>
+        </Notification>
+      {{/if}}
     </BlockSlot>
-    <BlockSlot @name="nav">
-      <dl>
-        <dt>Service Name</dt>
-        <dd><a href="{{href-to 'dc.services.show' item.Service.Service}}">{{item.Service.Service}}</a></dd>
-      </dl>
-      <dl>
-        <dt>Node Name</dt>
-        <dd><a href="{{href-to 'dc.nodes.show' item.Node.Node}}">{{item.Node.Node}}</a></dd>
-      </dl>
+
+    <BlockSlot @name="loaded">
+      <AppView>
+          <BlockSlot @name="breadcrumbs">
+              <ol>
+                  <li><a data-test-back href={{href-to 'dc.services'}}>All Services</a></li>
+                  <li><a data-test-back href={{href-to 'dc.services.show'}}>Service ({{item.Service.Service}})</a></li>
+              </ol>
+          </BlockSlot>
+          <BlockSlot @name="header">
+            <h1>
+              {{ item.Service.ID }}
+            </h1>
+            <Consul::ExternalSource @item={{item}} />
+            <Consul::Kind @item={{item}} @withInfo={{true}} />
+          </BlockSlot>
+          <BlockSlot @name="nav">
+            <dl>
+              <dt>Service Name</dt>
+              <dd><a href="{{href-to 'dc.services.show' item.Service.Service}}">{{item.Service.Service}}</a></dd>
+            </dl>
+            <dl>
+              <dt>Node Name</dt>
+              <dd><a href="{{href-to 'dc.nodes.show' item.Node.Node}}">{{item.Node.Node}}</a></dd>
+            </dl>
+          </BlockSlot>
+          <BlockSlot @name="actions">
+            {{#let (or item.Service.Address item.Node.Address) as |address|}}
+              <CopyButton @value={{address}} @name="Address">{{address}}</CopyButton>
+            {{/let}}
+          </BlockSlot>
+          <BlockSlot @name="content">
+              <TabNav @items={{
+                compact
+                    (array
+                            (hash label="Health Checks" href=(href-to "dc.services.instance.healthchecks") selected=(is-href "dc.services.instance.healthchecks"))
+      (if
+        (eq item.Service.Kind 'mesh-gateway')
+                            (hash label="Addresses" href=(href-to "dc.services.instance.addresses") selected=(is-href "dc.services.instance.addresses")) ""
+      )
+      (if proxy
+                            (hash label="Upstreams" href=(href-to "dc.services.instance.upstreams") selected=(is-href "dc.services.instance.upstreams"))
+      )
+      (if proxy
+                            (hash label="Exposed Paths" href=(href-to "dc.services.instance.exposedpaths") selected=(is-href "dc.services.instance.exposedpaths"))
+      )
+                            (hash label="Tags & Meta" href=(href-to "dc.services.instance.metadata") selected=(is-href "dc.services.instance.metadata"))
+                    )
+              }}/>
+            <Outlet
+              @name={{routeName}}
+            as |o|>
+              {{outlet}}
+            </Outlet>
+          </BlockSlot>
+      </AppView>
     </BlockSlot>
-    <BlockSlot @name="actions">
-      {{#let (or item.Service.Address item.Node.Address) as |address|}}
-        <CopyButton @value={{address}} @name="Address">{{address}}</CopyButton>
-      {{/let}}
-    </BlockSlot>
-    <BlockSlot @name="content">
-        <TabNav @items={{
-          compact
-              (array
-                      (hash label="Health Checks" href=(href-to "dc.services.instance.healthchecks") selected=(is-href "dc.services.instance.healthchecks"))
-(if
-  (eq item.Service.Kind 'mesh-gateway')
-                      (hash label="Addresses" href=(href-to "dc.services.instance.addresses") selected=(is-href "dc.services.instance.addresses")) ""
-)
-(if proxy
-                      (hash label="Upstreams" href=(href-to "dc.services.instance.upstreams") selected=(is-href "dc.services.instance.upstreams"))
-)
-(if proxy
-                      (hash label="Exposed Paths" href=(href-to "dc.services.instance.exposedpaths") selected=(is-href "dc.services.instance.exposedpaths"))
-)
-                      (hash label="Tags & Meta" href=(href-to "dc.services.instance.metadata") selected=(is-href "dc.services.instance.metadata"))
-              )
-        }}/>
-      <Outlet
-        @name={{routeName}}
-      as |o|>
-        {{outlet}}
-      </Outlet>
-    </BlockSlot>
-</AppView>
+</DataLoader>

@@ -23,7 +23,10 @@ export default function(config = {}, win = window, doc = document) {
     return str
       .split(';')
       .filter(item => item !== '')
-      .map(item => item.trim().split('='));
+      .map(item => {
+        const [key, ...rest] = item.trim().split('=');
+        return [key, rest.join('=')];
+      });
   };
   const user = function(str) {
     const item = win.localStorage.getItem(str);

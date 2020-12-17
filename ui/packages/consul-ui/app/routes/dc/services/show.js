@@ -11,9 +11,10 @@ export default class ShowRoute extends Route {
     const nspace = this.modelFor('nspace').nspace.substr(1);
     const slug = params.name;
 
+    let chain;
     let proxies = [];
 
-    const urls = this.config.get().dashboard_url_templates;
+    const urls = await this.config.findByPath('dashboard_url_templates');
     const items = await this.data.source(
       uri => uri`/${nspace}/${dc.Name}/service-instances/for-service/${params.name}`
     );
@@ -30,9 +31,7 @@ export default class ShowRoute extends Route {
       // use that endpoint here. Eventually if we have an endpoint specific to
       // a dc that gives us more DC specific info we can use that instead
       // higher up the routing hierarchy instead.
-      let chain = this.data.source(
-        uri => uri`/${nspace}/${dc.Name}/discovery-chain/${params.name}`
-      );
+      chain = this.data.source(uri => uri`/${nspace}/${dc.Name}/discovery-chain/${params.name}`);
       [chain, proxies] = await Promise.all([chain, proxies]);
       // we close the chain for now, if you enter the routing tab before the
       // EventSource comes around to request again, this one will just be
@@ -45,6 +44,7 @@ export default class ShowRoute extends Route {
       slug,
       items,
       urls,
+      chain,
       proxies,
     };
   }
