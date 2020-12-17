@@ -1001,6 +1001,56 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				testServiceHealthEvent(t, "api", evNode2, evConnectTopic, evConnectNative, evNodeUnchanged),
 			},
 		},
+		{
+			Name: "terminating gateway registered with no config entry",
+			Mutate: func(s *Store, tx *txn) error {
+				return s.ensureRegistrationTxn(tx, tx.Index, false,
+					testServiceRegistration(t, "tgate1", regTerminatingGateway), false)
+			},
+			WantEvents: []stream.Event{
+				testServiceHealthEvent(t,
+					"tgate1",
+					evServiceTermingGateway("tgate1")),
+			},
+		},
+		{
+			Name: "terminating gateway registered after config entry exists",
+			Setup: func(s *Store, tx *txn) error {
+				configEntry := &structs.TerminatingGatewayConfigEntry{
+					Kind: structs.TerminatingGateway,
+					Name: "tgate1",
+					Services: []structs.LinkedService{
+						{
+							Name:           "srv1",
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+						{
+							Name:           "srv2",
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+					},
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				}
+				return ensureConfigEntryTxn(tx, tx.Index, configEntry, structs.DefaultEnterpriseMeta())
+			},
+			Mutate: func(s *Store, tx *txn) error {
+				return s.ensureRegistrationTxn(tx, tx.Index, false,
+					testServiceRegistration(t, "tgate1", regTerminatingGateway), false)
+			},
+			WantEvents: []stream.Event{
+				testServiceHealthEvent(t,
+					"tgate1",
+					evServiceTermingGateway("tgate1")),
+				testServiceHealthEvent(t,
+					"tgate1",
+					evConnectTopic,
+					evServiceTermingGateway("srv1")),
+				testServiceHealthEvent(t,
+					"tgate1",
+					evConnectTopic,
+					evServiceTermingGateway("srv2")),
+			},
+		},
 	}
 
 	for _, tc := range cases {
@@ -1034,6 +1084,39 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 
 			assertDeepEqual(t, tc.WantEvents, got, cmpPartialOrderEvents)
 		})
+	}
+}
+
+func regTerminatingGateway(req *structs.RegisterRequest) error {
+	req.Service.Service = "tgate1"
+	req.Service.Kind = structs.ServiceKindTerminatingGateway
+	req.Service.ID = "tgate1"
+	req.Service.Port = 22000
+	return nil
+}
+
+func evServiceTermingGateway(name string) func(e *stream.Event) error {
+	return func(e *stream.Event) error {
+		csn := getPayloadCheckServiceNode(e.Payload)
+
+		csn.Service.Kind = structs.ServiceKindTerminatingGateway
+		csn.Service.Port = 22000
+
+		// Convert the check to point to the right ID now. This isn't totally
+		// realistic - sidecars should have alias checks etc but this is good enough
+		// to test this code path.
+		//if len(csn.Checks) >= 2 {
+		//	csn.Checks[1].CheckID = types.CheckID("service:" + svc + "_terminating_gateway")
+		//	csn.Checks[1].ServiceID = svc + "_terminating_gateway"
+		//	csn.Checks[1].ServiceName = svc + "_terminating_gateway"
+		//}
+
+		if e.Topic == topicServiceHealthConnect {
+			payload := e.Payload.(EventPayloadCheckServiceNode)
+			payload.key = name
+			e.Payload = payload
+		}
+		return nil
 	}
 }
 
@@ -1302,7 +1385,7 @@ func evConnectNative(e *stream.Event) error {
 // evConnectTopic option converts the base event to the equivalent event that
 // should be published to the connect topic. When needed it should be applied
 // first as several other options (notable evSidecar) change behavior subtly
-// depending on which topic they are published to and they determin this from
+// depending on which topic they are published to and they determine this from
 // the event.
 func evConnectTopic(e *stream.Event) error {
 	e.Topic = topicServiceHealthConnect

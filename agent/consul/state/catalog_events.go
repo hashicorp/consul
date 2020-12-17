@@ -267,7 +267,11 @@ func ServiceHealthEventsFromChanges(tx ReadTxn, changes Changes) ([]stream.Event
 
 	// Duplicate any events that affected connect-enabled instances (proxies or
 	// native apps) to the relevant Connect topic.
-	events = append(events, serviceHealthToConnectEvents(events...)...)
+	connectEvents, err := serviceHealthToConnectEvents(tx, events...)
+	if err != nil {
+		return nil, err
+	}
+	events = append(events, connectEvents...)
 
 	return events, nil
 }
@@ -318,10 +322,13 @@ func changeTypeFromChange(change memdb.Change) changeType {
 // enabled and so of no interest to those subscribers but also involves
 // switching connection details to be the proxy instead of the actual instance
 // in case of a sidecar.
-func serviceHealthToConnectEvents(events ...stream.Event) []stream.Event {
+func serviceHealthToConnectEvents(
+	tx ReadTxn,
+	events ...stream.Event,
+) ([]stream.Event, error) {
 	var result []stream.Event
 	for _, event := range events {
-		if event.Topic != topicServiceHealth {
+		if event.Topic != topicServiceHealth { // event.Topic == topicServiceHealthConnect
 			// Skip non-health or any events already emitted to Connect topic
 			continue
 		}
@@ -343,13 +350,33 @@ func serviceHealthToConnectEvents(events ...stream.Event) []stream.Event {
 			connectEvent.Payload = payload
 			result = append(result, connectEvent)
 
+		case node.Service.Kind == structs.ServiceKindTerminatingGateway:
+			iter, err := gatewayServices(tx, node.Service.Service, &node.Service.EnterpriseMeta)
+			if err != nil {
+				return nil, err
+			}
+
+			// similar to checkServiceNodesTxn -> serviceGatewayNodes
+			for obj := iter.Next(); obj != nil; obj = iter.Next() {
+				result = append(result, copyEventForService(event, obj.(*structs.GatewayService).Service))
+			}
+
 		default:
-			// ServiceKindTerminatingGateway changes are handled separately.
 			// All other cases are not relevant to the connect topic
 		}
 	}
 
-	return result
+	return result, nil
+}
+
+func copyEventForService(event stream.Event, service structs.ServiceName) stream.Event {
+	event.Topic = topicServiceHealthConnect
+	payload := event.Payload.(EventPayloadCheckServiceNode)
+	payload.key = service.Name
+	event.Payload = payload
+	// FIXME: we need payload to have an override for namespace, so that it can be filtered
+	// properly by EventPayloadCheckServiceNode.MatchesKey
+	return event
 }
 
 func getPayloadCheckServiceNode(payload stream.Payload) *structs.CheckServiceNode {
