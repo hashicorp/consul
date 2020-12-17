@@ -1,4 +1,4 @@
-import UseCaseLayout from '../../layouts/use-cases'
+import UseCaseLayout from 'components/use-cases-layout'
 import FeaturedSlider from '@hashicorp/react-featured-slider'
 import TextSplitWithCode from '@hashicorp/react-text-split-with-code'
 import TextSplitWithImage from '@hashicorp/react-text-split-with-image'

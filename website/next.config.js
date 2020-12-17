@@ -1,21 +1,16 @@
 const withHashicorp = require('@hashicorp/nextjs-scripts')
-const path = require('path')
 
 module.exports = withHashicorp({
   defaultLayout: true,
   transpileModules: ['is-absolute-url', '@hashicorp/react-.*'],
-  mdx: { resolveIncludes: path.join(__dirname, 'pages/partials') },
 })({
   svgo: { plugins: [{ removeViewBox: false }] },
-  experimental: {
-    modern: true,
-    rewrites: () => [
-      {
-        source: '/api/:path*',
-        destination: '/api-docs/:path*',
-      },
-    ],
-  },
+  rewrites: () => [
+    {
+      source: '/api/:path*',
+      destination: '/api-docs/:path*',
+    },
+  ],
   // Note: These are meant to be public, it's not a mistake that they are here
   env: {
     HASHI_ENV: process.env.HASHI_ENV || 'development',
