@@ -143,7 +143,6 @@
     "eslint-plugin-ember": "^7.7.2",
     "eslint-plugin-node": "^11.0.0",
     "flat": "^5.0.0",
-    "fuse.js": "^6.4.3",
     "husky": "^4.2.5",
     "ivy-codemirror": "^2.1.0",
     "js-yaml": "^3.13.1",
