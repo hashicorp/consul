@@ -579,6 +579,111 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 	require.NoError(err)
 }
 
+func TestLeader_Vault_PrimaryCA_FixSigningKeyID_OnRestart(t *testing.T) {
+	ca.SkipIfVaultNotPresent(t)
+
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	testVault := ca.NewTestVaultServer(t)
+	defer testVault.Stop()
+
+	dir1pre, s1pre := testServerWithConfig(t, func(c *Config) {
+		c.Build = "1.6.0"
+		c.PrimaryDatacenter = "dc1"
+		c.CAConfig = &structs.CAConfiguration{
+			Provider: "vault",
+			Config: map[string]interface{}{
+				"Address":             testVault.Addr,
+				"Token":               testVault.RootToken,
+				"RootPKIPath":         "pki-root/",
+				"IntermediatePKIPath": "pki-intermediate/",
+			},
+		}
+	})
+	defer os.RemoveAll(dir1pre)
+	defer s1pre.Shutdown()
+
+	testrpc.WaitForLeader(t, s1pre.RPC, "dc1")
+
+	// Restore the pre-1.9.2/1.8.8/1.7.12 behavior of the SigningKeyID not being derived
+	// from the intermediates in the primary (which only matters for provider=vault).
+	var primaryRootSigningKeyID string
+	{
+		state := s1pre.fsm.State()
+
+		// Get the highest index
+		idx, activePrimaryRoot, err := state.CARootActive(nil)
+		require.NoError(t, err)
+		require.NotNil(t, activePrimaryRoot)
+
+		rootCert, err := connect.ParseCert(activePrimaryRoot.RootCert)
+		require.NoError(t, err)
+
+		// Force this to be derived just from the root, not the intermediate.
+		primaryRootSigningKeyID = connect.EncodeSigningKeyID(rootCert.SubjectKeyId)
+		activePrimaryRoot.SigningKeyID = primaryRootSigningKeyID
+
+		// Store the root cert in raft
+		resp, err := s1pre.raftApply(structs.ConnectCARequestType, &structs.CARequest{
+			Op:    structs.CAOpSetRoots,
+			Index: idx,
+			Roots: []*structs.CARoot{activePrimaryRoot},
+		})
+		require.NoError(t, err)
+		if respErr, ok := resp.(error); ok {
+			t.Fatalf("respErr: %v", respErr)
+		}
+	}
+
+	// Shutdown s2pre and restart it to trigger the secondary CA init to correct
+	// the SigningKeyID.
+	s1pre.Shutdown()
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.DataDir = s1pre.config.DataDir
+		c.Datacenter = "dc1"
+		c.PrimaryDatacenter = "dc1"
+		c.NodeName = s1pre.config.NodeName
+		c.NodeID = s1pre.config.NodeID
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Retry since it will take some time to init the primary CA fully and there
+	// isn't a super clean way to watch specifically until it's done than polling
+	// the CA provider anyway.
+	retry.Run(t, func(r *retry.R) {
+		// verify that the root is now corrected
+		provider, activeRoot := getCAProviderWithLock(s1)
+		require.NotNil(r, provider)
+		require.NotNil(r, activeRoot)
+
+		activeIntermediate, err := provider.ActiveIntermediate()
+		require.NoError(r, err)
+
+		intermediateCert, err := connect.ParseCert(activeIntermediate)
+		require.NoError(r, err)
+
+		// Force this to be derived just from the root, not the intermediate.
+		expect := connect.EncodeSigningKeyID(intermediateCert.SubjectKeyId)
+
+		// The in-memory representation was saw the correction via a setCAProvider call.
+		require.Equal(r, expect, activeRoot.SigningKeyID)
+
+		// The state store saw the correction, too.
+		_, activePrimaryRoot, err := s1.fsm.State().CARootActive(nil)
+		require.NoError(r, err)
+		require.NotNil(r, activePrimaryRoot)
+		require.Equal(r, expect, activePrimaryRoot.SigningKeyID)
+	})
+}
+
 func TestLeader_SecondaryCA_FixSigningKeyID_via_IntermediateRefresh(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

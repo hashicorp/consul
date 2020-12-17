@@ -671,6 +671,12 @@ func (s *state) run() {
 }
 
 func (s *state) handleUpdate(u cache.UpdateEvent, snap *ConfigSnapshot) error {
+	s.logger.Trace("handleUpdate saw cache event",
+		"correlationID", u.CorrelationID,
+		"kind", s.kind,
+		"error", u.Err,
+	)
+
 	switch s.kind {
 	case structs.ServiceKindConnectProxy:
 		return s.handleUpdateConnectProxy(u, snap)
