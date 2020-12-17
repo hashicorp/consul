@@ -19,16 +19,10 @@
   display: flex;
   justify-content: space-between;
 }
-%menu-panel .is-local [role='menuitem'] {
-  display: inline-block;
-}
 %menu-panel [role='menuitem']:after {
   @extend %as-pseudo;
   display: block !important;
   background-position: center right !important;
-}
-%menu-panel .is-local [role='menuitem']:after {
-  display: inline-flex !important;
 }
 %menu-panel-sub-panel {
   position: absolute;
@@ -109,9 +103,6 @@
   top: 50%;
   margin-top: -8px;
   right: 10px;
-}
-%menu-panel .is-local span:nth-child(2) {
-  @extend %pill-200, %frame-gray-600;
 }
 %menu-panel-header::before {
   position: absolute;
