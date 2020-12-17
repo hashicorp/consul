@@ -36,3 +36,8 @@
   }
 }
 /**/
+/* nav dropdown */
+%main-nav-horizontal .is-local span:nth-child(2) {
+  @extend %pill-200, %frame-gray-600;
+}
+/**/

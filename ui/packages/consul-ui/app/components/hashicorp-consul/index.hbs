@@ -94,7 +94,10 @@
                                 @href={{href-mut (hash dc=item.Name)}}
                               >
                                 <BlockSlot @name="label">
-                                  {{item.Name}}
+                                  <span>{{item.Name}}</span>
+                                {{#if item.Local}}
+                                  <span>Local</span>
+                                {{/if}}
                                 </BlockSlot>
                               </MenuItem>
                             {{/each}}
