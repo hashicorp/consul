@@ -1,6 +1,6 @@
 import Component from '@glimmer/component';
 import { inject as service } from '@ember/service';
-import { computed, get, action } from '@ember/object';
+import { computed, action } from '@ember/object';
 import { alias } from '@ember/object/computed';
 import { tracked } from '@glimmer/tracking';
 import { sort } from '@ember/object/computed';
@@ -13,12 +13,9 @@ export default class DataCollectionComponent extends Component {
 
   @tracked term = '';
 
-  constructor() {
-    super(...arguments);
-    this.searchableMap = this.searchService.searchables;
-  }
+  @alias('searchService.searchables') searchableMap;
 
-  get kind() {
+  get type() {
     return this.args.type;
   }
 
@@ -35,7 +32,7 @@ export default class DataCollectionComponent extends Component {
     return this.term || this.args.search || '';
   }
 
-  @computed('kind', 'searchMethod', 'filtered', 'searchProperties')
+  @computed('type', 'searchMethod', 'filtered', 'searchProperties')
   get searchable() {
     const Searchable =
       typeof this.searchMethod === 'string'
@@ -43,7 +40,7 @@ export default class DataCollectionComponent extends Component {
         : this.args.searchable;
     return new Searchable(this.filtered, {
       finders: Object.fromEntries(
-        Object.entries(this.searchService.predicate(this.kind)).filter(([key, value]) => {
+        Object.entries(this.searchService.predicate(this.type)).filter(([key, value]) => {
           return typeof this.searchProperties === 'undefined'
             ? true
             : this.searchProperties.includes(key);
@@ -52,12 +49,12 @@ export default class DataCollectionComponent extends Component {
     });
   }
 
-  @computed('kind', 'args.sort')
+  @computed('type', 'args.sort')
   get comparator() {
     if (typeof this.args.sort === 'undefined') {
       return [];
     }
-    return this.sort.comparator(this.kind)(this.args.sort);
+    return this.sort.comparator(this.type)(this.args.sort);
   }
 
   @computed('comparator', 'searched')
@@ -81,14 +78,14 @@ export default class DataCollectionComponent extends Component {
     return this.searchable.search(this.searchTerm);
   }
 
-  @computed('kind', 'content', 'args.filters')
+  @computed('type', 'content', 'args.filters')
   get filtered() {
     // if we don't filter, return a copy of the content so we end up with what
     // filter will return when filtering ED recordsets
     if (typeof this.args.filters === 'undefined') {
       return this.content.slice();
     }
-    const predicate = this.filter.predicate(this.kind);
+    const predicate = this.filter.predicate(this.type);
     if (typeof predicate === 'undefined') {
       return this.content.slice();
     }
