@@ -1,1 +1,34 @@
 common:
+  brand:
+    consul: Consul
+    terraform: Terraform
+    nomad: Nomad
+    vault: Vault
+    aws: AWS
+    kubernetes: Kubernetes
+  ui:
+    remove: Remove {item}
+    filtered-by: Filtered by {item}
+  consul:
+    name: Name
+    passing: Passing
+    warning: Warning
+    critical: Critical
+    empty: No checks
+    tags: Tags
+    service: Service
+    ingress-gateway: Ingress Gateway
+    terminating-gateway: Terminating Gateway
+    mesh-gateway: Mesh Gateway
+    status: Health Status
+  search:
+    searchproperty: Search Across
+    source: Source
+
+component:
+  consul:
+    service:
+      search-bar:
+        kind: Service Type
+        in-mesh: In service mesh
+        not-in-mesh: In service mesh
