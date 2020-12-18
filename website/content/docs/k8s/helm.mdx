@@ -429,7 +429,7 @@ and consider if they're appropriate for your deployment.
     Kubernetes `priorityClassName` (https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/#pod-priority)
     that can be assigned to server pods.
 
-  - `extraLabels` ((#v-server-extralabels)) - Extra labels to attach to the server pods. This should be a YAML map.
+  - `extraLabels` ((#v-server-extralabels)) (`map`) - Extra labels to attach to the server pods. This should be a YAML map.
 
     Example:
 
@@ -457,7 +457,7 @@ and consider if they're appropriate for your deployment.
         "annotation-key": "annotation-value"
       ```
 
-  - `extraEnvironmentVars` ((#v-server-extraenvironmentvars)) - A list of extra environment variables to set within the stateful set.
+  - `extraEnvironmentVars` ((#v-server-extraenvironmentvars)) (`map`) - A list of extra environment variables to set within the stateful set.
     These could be used to include proxy settings required for cloud auto-join
     feature, in case kubernetes cluster is behind egress http proxies. Additionally,
     it could be used to configure custom consul parameters.
@@ -648,7 +648,7 @@ and consider if they're appropriate for your deployment.
       "sample/annotation2": "bar"
     ```
 
-  - `extraEnvironmentVars` ((#v-client-extraenvironmentvars)) - A list of extra environment variables to set within the stateful set.
+  - `extraEnvironmentVars` ((#v-client-extraenvironmentvars)) (`map`) - A list of extra environment variables to set within the stateful set.
     These could be used to include proxy settings required for cloud auto-join
     feature, in case kubernetes cluster is behind egress http proxies. Additionally,
     it could be used to configure custom consul parameters.
