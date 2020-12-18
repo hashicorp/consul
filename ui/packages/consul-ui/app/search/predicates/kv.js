@@ -1,9 +1,8 @@
 import rightTrim from 'consul-ui/utils/right-trim';
 export default {
-  Key: (item, value) =>
+  Key: item =>
     rightTrim(item.Key.toLowerCase())
       .split('/')
       .filter(item => Boolean(item))
-      .pop()
-      .indexOf(value.toLowerCase()) !== -1,
+      .pop(),
 };

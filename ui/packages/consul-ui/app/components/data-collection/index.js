@@ -1,6 +1,7 @@
 import Component from '@glimmer/component';
 import { inject as service } from '@ember/service';
-import { computed, get, action } from '@ember/object';
+import { computed, action } from '@ember/object';
+import { alias } from '@ember/object/computed';
 import { tracked } from '@glimmer/tracking';
 import { sort } from '@ember/object/computed';
 import { defineProperty } from '@ember/object';
@@ -12,8 +13,18 @@ export default class DataCollectionComponent extends Component {
 
   @tracked term = '';
 
+  @alias('searchService.searchables') searchableMap;
+
   get type() {
     return this.args.type;
+  }
+
+  get searchMethod() {
+    return this.args.searchable || 'exact';
+  }
+
+  get searchProperties() {
+    return this.args.filters.searchproperties;
   }
 
   @computed('term', 'args.search')
@@ -21,21 +32,29 @@ export default class DataCollectionComponent extends Component {
     return this.term || this.args.search || '';
   }
 
-  @action
-  search(term) {
-    this.term = term;
-    return this.items;
+  @computed('type', 'searchMethod', 'filtered', 'searchProperties')
+  get searchable() {
+    const Searchable =
+      typeof this.searchMethod === 'string'
+        ? this.searchableMap[this.searchMethod]
+        : this.args.searchable;
+    return new Searchable(this.filtered, {
+      finders: Object.fromEntries(
+        Object.entries(this.searchService.predicate(this.type)).filter(([key, value]) => {
+          return typeof this.searchProperties === 'undefined'
+            ? true
+            : this.searchProperties.includes(key);
+        })
+      ),
+    });
   }
 
-  @computed('args{items,.items.content}')
-  get content() {
-    // TODO: Temporary little hack to ensure we detect DataSource proxy
-    // objects but not any other special Ember Proxy object like ember-data
-    // things. Remove this once we no longer need the Proxies
-    if (this.args.items.dispatchEvent === 'function') {
-      return this.args.items.content;
+  @computed('type', 'args.sort')
+  get comparator() {
+    if (typeof this.args.sort === 'undefined') {
+      return [];
     }
-    return this.args.items;
+    return this.sort.comparator(this.type)(this.args.sort);
   }
 
   @computed('comparator', 'searched')
@@ -51,36 +70,42 @@ export default class DataCollectionComponent extends Component {
     return this.sorted;
   }
 
-  @computed('type', 'filtered', 'args.filters.searchproperties', 'searchTerm')
+  @computed('searchTerm', 'searchable', 'filtered')
   get searched() {
     if (this.searchTerm === '') {
       return this.filtered;
     }
-    const predicate = this.searchService.predicate(this.type);
-    const options = {};
-    if (typeof get(this, 'args.filters.searchproperties') !== 'undefined') {
-      options.properties = this.args.filters.searchproperties;
-    }
-    return this.filtered.filter(predicate(this.searchTerm, options));
+    return this.searchable.search(this.searchTerm);
   }
 
   @computed('type', 'content', 'args.filters')
   get filtered() {
+    // if we don't filter, return a copy of the content so we end up with what
+    // filter will return when filtering ED recordsets
     if (typeof this.args.filters === 'undefined') {
-      return this.content;
+      return this.content.slice();
     }
     const predicate = this.filter.predicate(this.type);
     if (typeof predicate === 'undefined') {
-      return this.content;
+      return this.content.slice();
     }
     return this.content.filter(predicate(this.args.filters));
   }
 
-  @computed('type', 'args.sort')
-  get comparator() {
-    if (typeof this.args.sort === 'undefined') {
-      return [];
+  @computed('args.{items.[],items.content.[]}')
+  get content() {
+    // TODO: Temporary little hack to ensure we detect DataSource proxy
+    // objects but not any other special Ember Proxy object like ember-data
+    // things. Remove this once we no longer need the Proxies
+    if (this.args.items.dispatchEvent === 'function') {
+      return this.args.items.content;
     }
-    return this.sort.comparator(this.type)(this.args.sort);
+    return this.args.items;
+  }
+
+  @action
+  search(term) {
+    this.term = term;
+    return this.items;
   }
 }
