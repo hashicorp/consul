@@ -279,6 +279,27 @@ and consider if they're appropriate for your deployment.
 
     - `secretKey` ((#v-server-enterpriselicense-secretkey)) (`string: null`) - The key within the Kubernetes secret that holds the enterprise license.
 
+  - `exposeGossipAndRPCPorts` ((#v-server-exposegossipandrpcports)) (`boolean: false`) - Exposes the servers' gossip and RPC ports as hostPorts. To enable a client
+    agent outside of the k8s cluster to join the datacenter, you would need to
+    enable `server.exposeGossipAndRPCPorts`, `client.exposeGossipPorts`, and
+    set `server.ports.serflan.port` to a port not being used on the host. Since
+    `client.exposeGossipPorts` uses the hostPort 8301,
+    `server.ports.serflan.port` must be set to something other than 8301.
+
+  - `ports` ((#v-server-ports)) - Configures ports for the consul servers.
+
+    - `serflan` ((#v-server-ports-serflan)) - Configures the LAN gossip port for the consul servers. If you choose to
+      enable `server.exposeGossipAndRPCPorts` and `client.exposeGossipPorts`,
+      that will configure the LAN gossip ports on the servers and clients to be
+      hostPorts, so if you are running clients and servers on the same node the
+      ports will conflict if they are both 8301.  When you enable
+      `server.exposeGossipAndRPCPorts` and `client.exposeGossipPorts`, you must
+      change this from the default to an unused port on the host, e.g. 9301. By
+      default the LAN gossip port is 8301 and configured as a containerPort on
+      the consul server Pods.
+
+      - `port` ((#v-server-ports-serflan-port)) (`integer: 8301`)
+
   - `storage` ((#v-server-storage)) (`string: 10Gi`) - This defines the disk size for configuring the
     servers' StatefulSet storage. For dynamically provisioned storage classes, this is the
     desired size. For manually defined persistent volumes, this should be set to
