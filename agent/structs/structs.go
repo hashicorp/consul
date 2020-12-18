@@ -617,6 +617,7 @@ func (r *ServiceSpecificRequest) CacheInfo() cache.RequestInfo {
 		r.Connect,
 		r.Filter,
 		r.EnterpriseMeta,
+		r.Ingress,
 	}, nil)
 	if err == nil {
 		// If there is an error, we don't set the key. A blank key forces

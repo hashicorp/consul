@@ -1,0 +1,4 @@
+```release-note:bug
+cache: Fixed a bug where a DNS or API request for an ingress gateway would incorrectly
+return a cached result for a service request with the same name, and vice versa.
+``
