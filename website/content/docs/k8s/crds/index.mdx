@@ -55,7 +55,7 @@ and enable the controller that acts on them:
 ```yaml
 global:
   name: consul
-  image: 'consul:1.9.0-beta1' # consul >= 1.8.4 must be used
+  image: 'consul:1.9.0' # consul >= 1.8.4 must be used
   imageK8S: 'hashicorp/consul-k8s:0.20.0'
 
 controller:
@@ -68,7 +68,7 @@ connectInject:
 Note that:
 
 1. `controller.enabled: true` installs the CRDs and enables the controller.
-1. `global.image` must be a Consul version `>= 1.8.4`, e.g. `consul:1.8.4` or `consul:1.9.0-beta1`.
+1. `global.image` must be a Consul version `>= 1.8.4`, e.g. `consul:1.8.4` or `consul:1.9.0`.
 1. `global.imageK8S` must be `>= 0.20.0`
 1. Configuration entries are used to configure Consul service mesh so it's also
    expected that `connectInject` will be enabled.
@@ -259,7 +259,7 @@ Notes:
 1. See [service-defaults](/docs/agent/config-entries/service-defaults) for full
    documentation on this config entry.
 
-### ServiceIntentions <sup>(Beta)</sup>
+### ServiceIntentions
 
 A [service-intentions](/docs/agent/config-entries/service-intentions)
 entry configures traffic authorization for a destination service.
