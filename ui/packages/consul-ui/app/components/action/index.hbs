@@ -25,9 +25,9 @@
   {{/if}}
 {{else}}
   <button
-    tabindex="-1"
     type="button"
     {{on 'click' (optional @onclick)}}
+    tabindex={{@tabindex}}
     ...attributes
   >
     {{yield}}
