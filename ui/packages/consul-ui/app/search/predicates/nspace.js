@@ -1,16 +1,12 @@
 export default {
-  Name: (item, value) => item.Name.toLowerCase().indexOf(value.toLowerCase()) !== -1,
-  Description: (item, value) => item.Description.toLowerCase().indexOf(value.toLowerCase()) !== -1,
+  Name: (item, value) => item.Name,
+  Description: (item, value) => item.Description,
   Role: (item, value) => {
     const acls = item.ACLs || {};
-    return (acls.RoleDefaults || []).some(
-      item => item.Name.toLowerCase().indexOf(value.toLowerCase()) !== -1
-    );
+    return (acls.RoleDefaults || []).map(item => item.Name);
   },
   Policy: (item, value) => {
     const acls = item.ACLs || {};
-    return (acls.PolicyDefaults || []).some(
-      item => item.Name.toLowerCase().indexOf(value.toLowerCase()) !== -1
-    );
+    return (acls.PolicyDefaults || []).map(item => item.Name);
   },
 };

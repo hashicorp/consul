@@ -1,32 +1,42 @@
-import predicates from 'consul-ui/search/predicates/kv';
-import { search as create } from 'consul-ui/services/search';
 import { module, test } from 'qunit';
 
+import ExactSearch from 'consul-ui/utils/search/exact';
+import predicates from 'consul-ui/search/predicates/kv';
+
 module('Unit | Search | Predicate | kv', function() {
-  const search = create(predicates);
   test('items are found by properties', function(assert) {
-    const actual = [
+    const actual = new ExactSearch(
+      [
+        {
+          Key: 'HIT-here',
+        },
+        {
+          Key: 'folder-HIT/',
+        },
+        {
+          Key: 'excluded',
+        },
+        {
+          Key: 'really/long/path/HIT-here',
+        },
+      ],
       {
-        Key: 'HIT-here',
-      },
-      {
-        Key: 'folder-HIT/',
-      },
-      {
-        Key: 'excluded',
-      },
-      {
-        Key: 'really/long/path/HIT-here',
-      },
-    ].filter(search('hit'));
+        finders: predicates,
+      }
+    ).search('hit');
     assert.equal(actual.length, 3);
   });
   test('items are not found', function(assert) {
-    const actual = [
+    const actual = new ExactSearch(
+      [
+        {
+          Key: 'key',
+        },
+      ],
       {
-        Key: 'key',
-      },
-    ].filter(search('hit'));
+        finders: predicates,
+      }
+    ).search('hit');
     assert.equal(actual.length, 0);
   });
 });
