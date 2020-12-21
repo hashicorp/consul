@@ -6,7 +6,6 @@ import {
   collection,
   text,
   isPresent,
-  triggerable,
 } from 'ember-cli-page-object';
 
 import { alias } from 'ember-cli-page-object/macros';
@@ -26,7 +25,6 @@ import pageFactory from 'consul-ui/components/hashicorp-consul/pageobject';
 import radiogroup from 'consul-ui/components/radio-group/pageobject';
 import tabgroup from 'consul-ui/components/tab-nav/pageobject';
 import authFormFactory from 'consul-ui/components/auth-form/pageobject';
-import freetextFilterFactory from 'consul-ui/components/freetext-filter/pageobject';
 
 import emptyStateFactory from 'consul-ui/components/empty-state/pageobject';
 
@@ -81,7 +79,6 @@ const cancelable = createCancelable(clickable, is);
 // components
 const tokenList = tokenListFactory(clickable, attribute, collection, deletable);
 const authForm = authFormFactory(submitable, clickable, attribute);
-const freetextFilter = freetextFilterFactory(triggerable);
 const policyForm = policyFormFactory(submitable, cancelable, radiogroup, text);
 const policySelector = policySelectorFactory(clickable, deletable, collection, alias, policyForm);
 const roleForm = roleFormFactory(submitable, cancelable, policySelector);
