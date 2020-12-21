@@ -38,8 +38,10 @@ func New(ui cli.Ui, revision, version, versionPre, versionHuman string, shutdown
 		versionPrerelease: versionPre,
 		versionHuman:      versionHuman,
 		shutdownCh:        shutdownCh,
+		flags:             flag.NewFlagSet("", flag.ContinueOnError),
 	}
-	c.init()
+	config.AddFlags(c.flags, &c.configLoadOpts)
+	c.help = flags.Usage(help, c.flags)
 	return c
 }
 
@@ -59,12 +61,6 @@ type cmd struct {
 	shutdownCh        <-chan struct{}
 	configLoadOpts    config.LoadOpts
 	logger            hclog.InterceptLogger
-}
-
-func (c *cmd) init() {
-	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
-	config.AddFlags(c.flags, &c.configLoadOpts)
-	c.help = flags.Usage(help, c.flags)
 }
 
 func (c *cmd) Run(args []string) int {
