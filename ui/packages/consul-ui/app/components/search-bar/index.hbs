@@ -1,31 +1,51 @@
-{{yield}}
-<form class={{concat 'filter-bar' (if (eq secondary 'sort') ' with-sort')}} ...attributes>
-    {{#yield-slot name="primary"}}
-      <fieldset>
-        {{yield}}
-      </fieldset>
-    {{else}}
-      <FreetextFilter
-        @onsearch={{action onsearch}}
-        @value={{value}}
-        @placeholder={{or placeholder 'Search'}}
-      />
-    {{/yield-slot}}
-    {{#yield-slot name="secondary"}}
-      <fieldset>
-        {{yield}}
-      </fieldset>
-    {{else}}
-      {{#if options}}
-        {{#if (eq secondary 'sort')}}
-        {{else}}
-          <RadioGroup
-            @keyboardAccess={{true}}
-            @value={{selected.key}}
-            @items={{options}}
-            @onchange={{action onchange}}
-          />
-        {{/if}}
-      {{/if}}
-    {{/yield-slot}}
-</form>
+<div class="search-bar">
+  <form
+    class="filter-bar"
+  >
+    <div class="search">
+      {{yield to="search"}}
+    </div>
+    <div class="filters">
+      {{yield to="filter"}}
+    </div>
+    <div class="sort">
+      {{yield to="sort"}}
+    </div>
+  </form>
+{{#if this.isFiltered}}
+  <div class="search-bar-status">
+    <dl>
+      <dt>{{or (t "component.search-bar.header") (string-trim (t "common.ui.filtered-by" item=""))}}</dt>
+      <dd>
+        <ul>
+{{#each this.filters as |filter|}}
+          {{yield (hash
+            RemoveFilter=(component "search-bar/remove-filter" onclick=(action
+              (get (get @filter filter.key) "change")
+              (hash
+                target=(hash
+                  selectedItems=(join filter.selected ',')
+                )
+              ))
+            )
+            status=(hash
+              key=filter.key
+              value=(lowercase filter.value)
+            )
+          )
+            to="status"
+          }}
+{{/each}}
+          <li class="remove-all">
+            <Action
+              {{on "click" this.removeFilters}}
+            >
+              Remove filters
+            </Action>
+          </li>
+        </ul>
+      </dd>
+    </dl>
+  </div>
+{{/if}}
+</div>
