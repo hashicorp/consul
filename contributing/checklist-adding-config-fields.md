@@ -33,9 +33,9 @@ There are four specific cases covered with increasing complexity:
    `TestFullConfig` in `agent/config/runtime_test.go`, it should fail now, then
    add the same random value to the expected struct in that test so it passes
    again.
- - [ ] Add the new field and it's default value to `TestSanitize` in the same
-   file. (Running the test first gives you a nice diff which can save working
-   out where etc.)
+ - [ ] Run `go test -run TestRuntimeConfig_Sanitize ./agent/config -update` to update
+   the expected value for `TestRuntimeConfig_Sanitize`. Look at `git diff` to
+   make sure the value changed as you expect.
  - [ ] **If** your new config field needed some validation as it's only valid in
    some cases or with some values (often true).
       - [ ] Add validation to Validate in `agent/config/builder.go`.
