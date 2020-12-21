@@ -34,37 +34,33 @@ import (
 	"github.com/hashicorp/consul/types"
 )
 
-type configTest struct {
-	desc           string
-	args           []string
-	pre            func()
-	json, jsontail []string
-	hcl, hcltail   []string
-	privatev4      func() ([]*net.IPAddr, error)
-	publicv6       func() ([]*net.IPAddr, error)
-	patch          func(rt *RuntimeConfig)
-	patchActual    func(rt *RuntimeConfig)
-	err            string
-	warns          []string
-	hostname       func() (string, error)
+// testCase used to test different config loading and flag parsing scenarios.
+type testCase struct {
+	desc  string
+	args  []string
+	pre   func()
+	json  []string
+	hcl   []string
+	patch func(rt *RuntimeConfig) // expected
+	err   string                  // expectedErr
+	warns []string                // expectedWarnings
+
+	hcltail, jsontail []string
+	privatev4         func() ([]*net.IPAddr, error)
+	publicv6          func() ([]*net.IPAddr, error)
+	hostname          func() (string, error)
 }
 
 // TestConfigFlagsAndEdgecases tests the command line flags and
 // edgecases for the config parsing. It provides a test structure which
 // checks for warnings on deprecated fields and flags.  These tests
-// should check one option at a time if possible and should use generic
-// values, e.g. 'a' or 1 instead of 'servicex' or 3306.
-
+// should check one option at a time if possible
 func TestBuilder_BuildAndValidate_ConfigFlagsAndEdgecases(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
 	dataDir := testutil.TempDir(t, "consul")
 
 	defaultEntMeta := structs.DefaultEnterpriseMeta()
 
-	tests := []configTest{
+	tests := []testCase{
 		// ------------------------------------------------------------
 		// cmd line flags
 		//
@@ -3940,17 +3936,6 @@ func TestBuilder_BuildAndValidate_ConfigFlagsAndEdgecases(t *testing.T) {
 				}
 			`,
 			},
-			patchActual: func(rt *RuntimeConfig) {
-				// Wipe the time tracking fields to make comparison easier.
-				for _, raw := range rt.ConfigEntryBootstrap {
-					if entry, ok := raw.(*structs.ServiceIntentionsConfigEntry); ok {
-						for _, src := range entry.Sources {
-							src.LegacyCreateTime = nil
-							src.LegacyUpdateTime = nil
-						}
-					}
-				}
-			},
 			patch: func(rt *RuntimeConfig) {
 				rt.DataDir = dataDir
 				rt.ConfigEntryBootstrap = []structs.ConfigEntry{
@@ -4027,17 +4012,6 @@ func TestBuilder_BuildAndValidate_ConfigFlagsAndEdgecases(t *testing.T) {
 				  }
 				}
 			`,
-			},
-			patchActual: func(rt *RuntimeConfig) {
-				// Wipe the time tracking fields to make comparison easier.
-				for _, raw := range rt.ConfigEntryBootstrap {
-					if entry, ok := raw.(*structs.ServiceIntentionsConfigEntry); ok {
-						for _, src := range entry.Sources {
-							src.LegacyCreateTime = nil
-							src.LegacyUpdateTime = nil
-						}
-					}
-				}
 			},
 			patch: func(rt *RuntimeConfig) {
 				rt.DataDir = dataDir
@@ -4863,11 +4837,12 @@ func TestBuilder_BuildAndValidate_ConfigFlagsAndEdgecases(t *testing.T) {
 	testConfig(t, tests, dataDir)
 }
 
-func testConfig(t *testing.T, tests []configTest, dataDir string) {
+func testConfig(t *testing.T, tests []testCase, dataDir string) {
 	for _, tt := range tests {
 		for pass, format := range []string{"json", "hcl"} {
 			// clean data dir before every test
-			cleanDir(dataDir)
+			os.RemoveAll(dataDir)
+			os.MkdirAll(dataDir, 0755)
 
 			// when we test only flags then there are no JSON or HCL
 			// sources and we need to make only one pass over the
@@ -4980,9 +4955,6 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 				require.Equal(t, actual.DataDir, actual.ACLTokens.DataDir)
 				expected.ACLTokens.DataDir = actual.ACLTokens.DataDir
 
-				if tt.patchActual != nil {
-					tt.patchActual(&actual)
-				}
 				assertDeepEqual(t, expected, actual, cmpopts.EquateEmpty())
 			})
 		}
@@ -6339,19 +6311,6 @@ func writeFile(path string, data []byte) {
 		panic(err)
 	}
 	if err := ioutil.WriteFile(path, data, 0640); err != nil {
-		panic(err)
-	}
-}
-
-func cleanDir(path string) {
-	root := path
-	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		if path == root {
-			return nil
-		}
-		return os.RemoveAll(path)
-	})
-	if err != nil {
 		panic(err)
 	}
 }

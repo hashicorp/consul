@@ -11,7 +11,7 @@ import (
 func TestSegments(t *testing.T) {
 	dataDir := testutil.TempDir(t, "consul")
 
-	tests := []configTest{
+	tests := []testCase{
 		{
 			desc: "segment name not in OSS",
 			args: []string{
