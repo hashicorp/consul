@@ -52,17 +52,13 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	b, err := config.NewBuilder(config.LoadOpts{ConfigFiles: configFiles, ConfigFormat: c.configFormat})
+	result, err := config.Load(config.LoadOpts{ConfigFiles: configFiles, ConfigFormat: c.configFormat})
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Config validation failed: %v", err.Error()))
 		return 1
 	}
-	if _, err := b.BuildAndValidate(); err != nil {
-		c.UI.Error(fmt.Sprintf("Config validation failed: %v", err.Error()))
-		return 1
-	}
 	if !c.quiet {
-		for _, w := range b.Warnings {
+		for _, w := range result.Warnings {
 			c.UI.Warn(w)
 		}
 		c.UI.Output("Configuration is valid!")

@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -184,4 +185,36 @@ func patchBuilderShims(b *Builder) {
 	b.opts.getPublicIPv6 = func() ([]*net.IPAddr, error) {
 		return []*net.IPAddr{ipAddr("dead:beef::1")}, nil
 	}
+}
+
+func TestLoad_HTTPMaxConnsPerClientExceedsRLimit(t *testing.T) {
+	hcl := `
+		limits{
+			# We put a very high value to be sure to fail
+			# This value is more than max on Windows as well
+			http_max_conns_per_client = 16777217
+		}`
+
+	opts := LoadOpts{
+		DefaultConfig: FileSource{
+			Name:   "test",
+			Format: "hcl",
+			Data: `
+		    ae_interval = "1m"
+		    data_dir="/tmp/00000000001979"
+			bind_addr = "127.0.0.1"
+			advertise_addr = "127.0.0.1"
+			datacenter = "dc1"
+			bootstrap = true
+			server = true
+			node_id = "00000000001979"
+			node_name = "Node-00000000001979"
+		`,
+		},
+		HCL: []string{hcl},
+	}
+
+	_, err := Load(opts)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "but limits.http_max_conns_per_client: 16777217 needs at least 16777237")
 }
