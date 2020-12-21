@@ -38,17 +38,15 @@ import (
 type testCase struct {
 	desc  string
 	args  []string
-	pre   func() // setup(t *testing.T)
-	json  []string
-	hcl   []string
+	pre   func()                  // setup(t *testing.T)
 	patch func(rt *RuntimeConfig) // expected
 	err   string                  // expectedErr
 	warns []string                // expectedWarnings
 
 	opts LoadOpts
 
-	// TODO: move all of these to opts
-	hcltail, jsontail []string
+	json []string
+	hcl  []string
 }
 
 // TestConfigFlagsAndEdgecases tests the command line flags and
@@ -1720,18 +1718,14 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			err: "Multiple public IPv6 addresses found. Please configure one",
 		},
 		{
-			desc:     "ae_interval invalid == 0",
-			args:     []string{`-data-dir=` + dataDir},
-			jsontail: []string{`{ "ae_interval": "0s" }`},
-			hcltail:  []string{`ae_interval = "0s"`},
-			err:      `ae_interval cannot be 0s. Must be positive`,
-		},
-		{
-			desc:     "ae_interval invalid < 0",
-			args:     []string{`-data-dir=` + dataDir},
-			jsontail: []string{`{ "ae_interval": "-1s" }`},
-			hcltail:  []string{`ae_interval = "-1s"`},
-			err:      `ae_interval cannot be -1s. Must be positive`,
+			desc: "ae_interval is overridden by NonUserSource",
+			args: []string{`-data-dir=` + dataDir},
+			json: []string{`{ "ae_interval": "-1s" }`},
+			hcl:  []string{`ae_interval = "-1s"`},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.AEInterval = time.Minute
+			},
 		},
 		{
 			desc: "acl_datacenter invalid",
@@ -4876,9 +4870,10 @@ func testConfig(t *testing.T, tests []testCase, dataDir string) {
 				t.Fatal(tt.desc, ": JSON and HCL test case out of sync")
 			}
 
-			srcs, tails := tt.json, tt.jsontail
+			// select the source
+			srcs := tt.json
 			if format == "hcl" {
-				srcs, tails = tt.hcl, tt.hcltail
+				srcs = tt.hcl
 			}
 
 			// build the description
@@ -4910,13 +4905,6 @@ func testConfig(t *testing.T, tests []testCase, dataDir string) {
 				for i, data := range srcs {
 					b.Sources = append(b.Sources, FileSource{
 						Name:   fmt.Sprintf("src-%d.%s", i, format),
-						Format: format,
-						Data:   data,
-					})
-				}
-				for i, data := range tails {
-					b.Tail = append(b.Tail, FileSource{
-						Name:   fmt.Sprintf("tail-%d.%s", i, format),
 						Format: format,
 						Data:   data,
 					})
