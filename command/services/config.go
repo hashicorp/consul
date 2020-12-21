@@ -4,11 +4,12 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/mitchellh/cli"
+	"github.com/mitchellh/mapstructure"
+
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/mitchellh/cli"
-	"github.com/mitchellh/mapstructure"
 )
 
 // ServicesFromFiles returns the list of agent service registration structs
@@ -18,7 +19,7 @@ func ServicesFromFiles(ui cli.Ui, files []string) ([]*api.AgentServiceRegistrati
 	// configuration. devMode doesn't set any services by default so this
 	// is okay since we only look at services.
 	devMode := true
-	b, err := config.NewBuilder(config.BuilderOpts{
+	b, err := config.NewBuilder(config.LoadOpts{
 		ConfigFiles: files,
 		DevMode:     &devMode,
 	})

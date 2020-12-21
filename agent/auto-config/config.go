@@ -82,7 +82,7 @@ type Config struct {
 
 	// Loader merges source with the existing FileSources and returns the complete
 	// RuntimeConfig.
-	Loader func(source config.Source) (cfg *config.RuntimeConfig, warnings []string, err error)
+	Loader func(source config.Source) (config.LoadResult, error)
 
 	// TLSConfigurator is the shared TLS Configurator. AutoConfig will update the
 	// auto encrypt/auto config certs as they are renewed.

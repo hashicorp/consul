@@ -41,29 +41,70 @@ import (
 	"github.com/hashicorp/consul/types"
 )
 
-// Load will build the configuration including the extraHead source injected
+// LoadOpts used by Load to construct and validate a RuntimeConfig.
+type LoadOpts struct {
+	// FlagValues contains the command line arguments that can also be set
+	// in a config file.
+	FlagValues Config
+
+	// ConfigFiles is a slice of paths to config files and directories that will
+	// be loaded.
+	ConfigFiles []string
+
+	// ConfigFormat forces all config files to be interpreted as this format
+	// independent of their extension. Value may be `hcl` or `json`.
+	ConfigFormat string
+
+	// DevMode indicates whether the agent should be started in development
+	// mode. This cannot be configured in a config file.
+	DevMode *bool
+
+	// HCL is a slice of config data in hcl format. Each one will be loaded as
+	// if it were the source of a config file. Values from HCL will override
+	// values from ConfigFiles and FlagValues.
+	HCL []string
+
+	// DefaultConfig is an optional source that is applied after other defaults
+	// but before ConfigFiles and all other user specified config.
+	DefaultConfig Source
+
+	// Overrides are optional config sources that are applied as the very last
+	// config source so they can override any previous values.
+	Overrides []Source
+
+	// hostname is a shim for testing, allowing tests to specify a replacement
+	// for os.Hostname.
+	hostname func() (string, error)
+
+	// getPrivateIPv4 and getPublicIPv6 are shims for testing, allowing tests to
+	// specify a replacement for ipaddr.GetPrivateIPv4 and ipaddr.GetPublicIPv6.
+	getPrivateIPv4 func() ([]*net.IPAddr, error)
+	getPublicIPv6  func() ([]*net.IPAddr, error)
+}
+
+// Load will build the configuration including the config source injected
 // after all other defaults but before any user supplied configuration and the overrides
 // source injected as the final source in the configuration parsing chain.
-func Load(opts BuilderOpts, extraHead Source, overrides ...Source) (*RuntimeConfig, []string, error) {
+//
+// The caller is responsible for handling any warnings in LoadResult.Warnings.
+func Load(opts LoadOpts) (LoadResult, error) {
+	r := LoadResult{}
 	b, err := NewBuilder(opts)
 	if err != nil {
-		return nil, nil, err
+		return r, err
 	}
-
-	if extraHead != nil {
-		b.Head = append(b.Head, extraHead)
-	}
-
-	if len(overrides) != 0 {
-		b.Tail = append(b.Tail, overrides...)
-	}
-
 	cfg, err := b.BuildAndValidate()
 	if err != nil {
-		return nil, nil, err
+		return r, err
 	}
+	return LoadResult{RuntimeConfig: &cfg, Warnings: b.Warnings}, nil
+}
 
-	return &cfg, b.Warnings, nil
+// LoadResult is the result returned from Load. The caller is responsible for
+// handling any warnings.
+type LoadResult struct {
+	RuntimeConfig *RuntimeConfig
+	Warnings      []string
 }
 
 // Builder constructs a valid runtime configuration from multiple
@@ -92,7 +133,7 @@ func Load(opts BuilderOpts, extraHead Source, overrides ...Source) (*RuntimeConf
 // since not all pre-conditions have to be satisfied when performing
 // syntactical tests.
 type Builder struct {
-	opts BuilderOpts
+	opts LoadOpts
 
 	// Head, Sources, and Tail are used to manage the order of the
 	// config sources, as described in the comments above.
@@ -109,8 +150,8 @@ type Builder struct {
 	err error
 }
 
-// NewBuilder returns a new configuration Builder from the BuilderOpts.
-func NewBuilder(opts BuilderOpts) (*Builder, error) {
+// NewBuilder returns a new configuration Builder from the LoadOpts.
+func NewBuilder(opts LoadOpts) (*Builder, error) {
 	configFormat := opts.ConfigFormat
 	if configFormat != "" && configFormat != "json" && configFormat != "hcl" {
 		return nil, fmt.Errorf("config: -config-format must be either 'hcl' or 'json'")
@@ -130,8 +171,12 @@ func NewBuilder(opts BuilderOpts) (*Builder, error) {
 	// we need to merge all slice values defined in flags before we
 	// merge the config files since the flag values for slices are
 	// otherwise appended instead of prepended.
-	slices, values := splitSlicesAndValues(opts.Config)
+	slices, values := splitSlicesAndValues(opts.FlagValues)
 	b.Head = append(b.Head, LiteralSource{Name: "flags.slices", Config: slices})
+	if opts.DefaultConfig != nil {
+		b.Head = append(b.Head, opts.DefaultConfig)
+	}
+
 	for _, path := range opts.ConfigFiles {
 		sources, err := b.sourcesFromPath(path, opts.ConfigFormat)
 		if err != nil {
@@ -150,6 +195,9 @@ func NewBuilder(opts BuilderOpts) (*Builder, error) {
 	b.Tail = append(b.Tail, NonUserSource(), DefaultConsulSource(), OverrideEnterpriseSource(), defaultVersionSource())
 	if boolVal(opts.DevMode) {
 		b.Tail = append(b.Tail, DevConsulSource())
+	}
+	if len(opts.Overrides) != 0 {
+		b.Tail = append(b.Tail, opts.Overrides...)
 	}
 	return b, nil
 }

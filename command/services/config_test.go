@@ -4,10 +4,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/stretchr/testify/require"
 )
 
 // This test ensures that dev mode doesn't register services by default.
@@ -18,7 +19,7 @@ func TestDevModeHasNoServices(t *testing.T) {
 	require := require.New(t)
 
 	devMode := true
-	b, err := config.NewBuilder(config.BuilderOpts{
+	b, err := config.NewBuilder(config.LoadOpts{
 		DevMode: &devMode,
 	})
 	require.NoError(err)

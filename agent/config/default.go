@@ -271,7 +271,7 @@ func strPtr(v string) *string {
 }
 
 func DefaultRuntimeConfig(hcl string) *RuntimeConfig {
-	b, err := NewBuilder(BuilderOpts{HCL: []string{hcl}})
+	b, err := NewBuilder(LoadOpts{HCL: []string{hcl}})
 	if err != nil {
 		panic(err)
 	}

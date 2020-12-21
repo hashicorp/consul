@@ -29,11 +29,13 @@ import (
 )
 
 type configLoader struct {
-	opts config.BuilderOpts
+	opts config.LoadOpts
 }
 
-func (c *configLoader) Load(source config.Source) (*config.RuntimeConfig, []string, error) {
-	return config.Load(c.opts, source)
+func (c *configLoader) Load(source config.Source) (config.LoadResult, error) {
+	opts := c.opts
+	opts.DefaultConfig = source
+	return config.Load(opts)
 }
 
 func (c *configLoader) addConfigHCL(cfg string) {
@@ -131,8 +133,8 @@ func TestNew(t *testing.T) {
 	for name, tcase := range cases {
 		t.Run(name, func(t *testing.T) {
 			cfg := Config{
-				Loader: func(source config.Source) (cfg *config.RuntimeConfig, warnings []string, err error) {
-					return nil, nil, nil
+				Loader: func(source config.Source) (result config.LoadResult, err error) {
+					return config.LoadResult{}, nil
 				},
 				DirectRPC:       newMockDirectRPC(t),
 				Tokens:          newMockTokenStore(t),
@@ -168,15 +170,18 @@ func TestReadConfig(t *testing.T) {
 		},
 		logger: testutil.Logger(t),
 		acConfig: Config{
-			Loader: func(source config.Source) (*config.RuntimeConfig, []string, error) {
+			Loader: func(source config.Source) (config.LoadResult, error) {
+				r := config.LoadResult{}
 				cfg, _, err := source.Parse()
 				if err != nil {
-					return nil, nil, err
+					return r, err
 				}
-				return &config.RuntimeConfig{
+
+				r.RuntimeConfig = &config.RuntimeConfig{
 					DevMode:  true,
 					NodeName: *cfg.NodeName,
-				}, nil, nil
+				}
+				return r, nil
 			},
 		},
 	}
@@ -194,8 +199,8 @@ func setupRuntimeConfig(t *testing.T) *configLoader {
 
 	dataDir := testutil.TempDir(t, "auto-config")
 
-	opts := config.BuilderOpts{
-		Config: config.Config{
+	opts := config.LoadOpts{
+		FlagValues: config.Config{
 			DataDir:    &dataDir,
 			Datacenter: stringPointer("dc1"),
 			NodeName:   stringPointer("autoconf"),
@@ -225,7 +230,7 @@ func TestInitialConfiguration_disabled(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 	require.Equal(t, "primary", cfg.PrimaryDatacenter)
-	require.NoFileExists(t, filepath.Join(*loader.opts.Config.DataDir, autoConfigFileName))
+	require.NoFileExists(t, filepath.Join(*loader.opts.FlagValues.DataDir, autoConfigFileName))
 }
 
 func TestInitialConfiguration_cancelled(t *testing.T) {
@@ -286,7 +291,7 @@ func TestInitialConfiguration_restored(t *testing.T) {
 	indexedRoots, cert, extraCACerts := mcfg.setupInitialTLS(t, "autoconf", "dc1", "secret")
 
 	// persist an auto config response to the data dir where it is expected
-	persistedFile := filepath.Join(*loader.opts.Config.DataDir, autoConfigFileName)
+	persistedFile := filepath.Join(*loader.opts.FlagValues.DataDir, autoConfigFileName)
 	response := &pbautoconf.AutoConfigResponse{
 		Config: &pbconfig.Config{
 			PrimaryDatacenter: "primary",
@@ -394,7 +399,7 @@ func TestInitialConfiguration_success(t *testing.T) {
 	require.Equal(t, "primary", cfg.PrimaryDatacenter)
 
 	// the file was written to.
-	persistedFile := filepath.Join(*loader.opts.Config.DataDir, autoConfigFileName)
+	persistedFile := filepath.Join(*loader.opts.FlagValues.DataDir, autoConfigFileName)
 	require.FileExists(t, persistedFile)
 }
 
@@ -511,7 +516,7 @@ func TestInitialConfiguration_retries(t *testing.T) {
 	require.Equal(t, "primary", cfg.PrimaryDatacenter)
 
 	// the file was written to.
-	persistedFile := filepath.Join(*loader.opts.Config.DataDir, autoConfigFileName)
+	persistedFile := filepath.Join(*loader.opts.FlagValues.DataDir, autoConfigFileName)
 	require.FileExists(t, persistedFile)
 }
 

@@ -4,9 +4,10 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/mitchellh/cli"
+
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/command/flags"
-	"github.com/mitchellh/cli"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -51,7 +52,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	b, err := config.NewBuilder(config.BuilderOpts{ConfigFiles: configFiles, ConfigFormat: c.configFormat})
+	b, err := config.NewBuilder(config.LoadOpts{ConfigFiles: configFiles, ConfigFormat: c.configFormat})
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Config validation failed: %v", err.Error()))
 		return 1

@@ -287,7 +287,7 @@ func TestAutoEncrypt_InitialConfiguration(t *testing.T) {
 			tls = true
 		}
 	`)
-	loader.opts.Config.NodeName = &nodeName
+	loader.opts.FlagValues.NodeName = &nodeName
 	mcfg.Config.Loader = loader.Load
 
 	indexedRoots, cert, extraCerts := mcfg.setupInitialTLS(t, nodeName, datacenter, token)

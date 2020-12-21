@@ -4898,8 +4898,7 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 			}
 
 			t.Run(strings.Join(desc, ":"), func(t *testing.T) {
-				flags := BuilderOpts{}
-
+				flags := LoadOpts{}
 				fs := flag.NewFlagSet("", flag.ContinueOnError)
 				AddFlags(fs, &flags)
 				err := fs.Parse(tt.args)
@@ -4964,7 +4963,7 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 				// build a default configuration, then patch the fields we expect to change
 				// and compare it with the generated configuration. Since the expected
 				// runtime config has been validated we do not need to validate it again.
-				x, err := NewBuilder(BuilderOpts{})
+				x, err := NewBuilder(LoadOpts{})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -4998,7 +4997,7 @@ func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
 }
 
 func TestNewBuilder_InvalidConfigFormat(t *testing.T) {
-	_, err := NewBuilder(BuilderOpts{ConfigFormat: "yaml"})
+	_, err := NewBuilder(LoadOpts{ConfigFormat: "yaml"})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "-config-format must be either 'hcl' or 'json'")
 }
@@ -6496,7 +6495,7 @@ func TestFullConfig(t *testing.T) {
 		},
 	}
 
-	want := RuntimeConfig{
+	expected := RuntimeConfig{
 		// non-user configurable values
 		ACLDisabledTTL:             957 * time.Second,
 		AEInterval:                 10003 * time.Second,
@@ -7205,7 +7204,7 @@ func TestFullConfig(t *testing.T) {
 		},
 	}
 
-	entFullRuntimeConfig(&want)
+	entFullRuntimeConfig(&expected)
 
 	warns := []string{
 		`The 'acl_datacenter' field is deprecated. Use the 'primary_datacenter' field instead.`,
@@ -7220,7 +7219,7 @@ func TestFullConfig(t *testing.T) {
 	// todo(fs):  * move first check into the Check field
 	// todo(fs):  * ignore the Check field
 	// todo(fs): both feel like a hack
-	if err := nonZero("RuntimeConfig", nil, want); err != nil {
+	if err := nonZero("RuntimeConfig", nil, expected); err != nil {
 		t.Log(err)
 	}
 
@@ -7228,7 +7227,7 @@ func TestFullConfig(t *testing.T) {
 		t.Run(format, func(t *testing.T) {
 			// parse the flags since this is the only way we can set the
 			// DevMode flag
-			var flags BuilderOpts
+			var flags LoadOpts
 			fs := flag.NewFlagSet("", flag.ContinueOnError)
 			AddFlags(fs, &flags)
 			if err := fs.Parse(flagSrc); err != nil {
@@ -7250,7 +7249,7 @@ func TestFullConfig(t *testing.T) {
 				t.Fatalf("Build: %s", err)
 			}
 
-			require.Equal(t, want, rt)
+			require.Equal(t, expected, rt)
 
 			// at this point we have confirmed that the parsing worked
 			// for all fields but the validation will fail since certain

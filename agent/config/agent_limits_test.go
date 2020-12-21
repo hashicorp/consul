@@ -13,7 +13,7 @@ func TestBuildAndValidate_HTTPMaxConnsPerClientExceedsRLimit(t *testing.T) {
 			# This value is more than max on Windows as well
 			http_max_conns_per_client = 16777217
 		}`
-	b, err := NewBuilder(BuilderOpts{})
+	b, err := NewBuilder(LoadOpts{})
 	assert.NoError(t, err)
 	testsrc := FileSource{
 		Name:   "test",

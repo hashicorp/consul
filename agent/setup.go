@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/fsm"
 
 	"github.com/armon/go-metrics/prometheus"
+
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
 	"github.com/hashicorp/consul/agent/local"
 
@@ -52,15 +53,16 @@ type MetricsHandler interface {
 	DisplayMetrics(resp http.ResponseWriter, req *http.Request) (interface{}, error)
 }
 
-type ConfigLoader func(source config.Source) (cfg *config.RuntimeConfig, warnings []string, err error)
+type ConfigLoader func(source config.Source) (config.LoadResult, error)
 
 func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) {
 	d := BaseDeps{}
-	cfg, warnings, err := configLoader(nil)
+	result, err := configLoader(nil)
 	if err != nil {
 		return d, err
 	}
 
+	cfg := result.RuntimeConfig
 	logConf := cfg.Logging
 	logConf.Name = logging.Agent
 	d.Logger, err = logging.Setup(logConf, logOut)
@@ -69,7 +71,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 	}
 	grpclog.SetLoggerV2(logging.NewGRPCLogger(cfg.Logging.LogLevel, d.Logger))
 
-	for _, w := range warnings {
+	for _, w := range result.Warnings {
 		d.Logger.Warn(w)
 	}
 

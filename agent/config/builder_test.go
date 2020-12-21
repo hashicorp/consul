@@ -17,25 +17,28 @@ func TestLoad(t *testing.T) {
 	// Basically just testing that injection of the extra
 	// source works.
 	devMode := true
-	builderOpts := BuilderOpts{
+	builderOpts := LoadOpts{
 		// putting this in dev mode so that the config validates
 		// without having to specify a data directory
 		DevMode: &devMode,
+		DefaultConfig: FileSource{
+			Name:   "test",
+			Format: "hcl",
+			Data:   `node_name = "hobbiton"`,
+		},
+		Overrides: []Source{
+			FileSource{
+				Name:   "overrides",
+				Format: "json",
+				Data:   `{"check_reap_interval": "1ms"}`,
+			},
+		},
 	}
 
-	cfg, warnings, err := Load(builderOpts, FileSource{
-		Name:   "test",
-		Format: "hcl",
-		Data:   `node_name = "hobbiton"`,
-	},
-		FileSource{
-			Name:   "overrides",
-			Format: "json",
-			Data:   `{"check_reap_interval": "1ms"}`,
-		})
-
+	result, err := Load(builderOpts)
 	require.NoError(t, err)
-	require.Empty(t, warnings)
+	require.Empty(t, result.Warnings)
+	cfg := result.RuntimeConfig
 	require.NotNil(t, cfg)
 	require.Equal(t, "hobbiton", cfg.NodeName)
 	require.Equal(t, 1*time.Millisecond, cfg.CheckReapInterval)
@@ -65,7 +68,7 @@ func TestShouldParseFile(t *testing.T) {
 func TestNewBuilder_PopulatesSourcesFromConfigFiles(t *testing.T) {
 	paths := setupConfigFiles(t)
 
-	b, err := NewBuilder(BuilderOpts{ConfigFiles: paths})
+	b, err := NewBuilder(LoadOpts{ConfigFiles: paths})
 	require.NoError(t, err)
 
 	expected := []Source{
@@ -81,7 +84,7 @@ func TestNewBuilder_PopulatesSourcesFromConfigFiles(t *testing.T) {
 func TestNewBuilder_PopulatesSourcesFromConfigFiles_WithConfigFormat(t *testing.T) {
 	paths := setupConfigFiles(t)
 
-	b, err := NewBuilder(BuilderOpts{ConfigFiles: paths, ConfigFormat: "hcl"})
+	b, err := NewBuilder(LoadOpts{ConfigFiles: paths, ConfigFormat: "hcl"})
 	require.NoError(t, err)
 
 	expected := []Source{
@@ -132,8 +135,8 @@ func TestBuilder_BuildAndValidate_NodeName(t *testing.T) {
 	}
 
 	fn := func(t *testing.T, tc testCase) {
-		b, err := NewBuilder(BuilderOpts{
-			Config: Config{
+		b, err := NewBuilder(LoadOpts{
+			FlagValues: Config{
 				NodeName: pString(tc.nodeName),
 				DataDir:  pString("dir"),
 			},

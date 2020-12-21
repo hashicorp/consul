@@ -16,11 +16,12 @@ import (
 	"time"
 
 	metrics "github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-hclog"
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/sdk/testutil"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
@@ -168,23 +169,24 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 
 	// Create NodeID outside the closure, so that it does not change
 	testHCLConfig := TestConfigHCL(NodeID())
-	loader := func(source config.Source) (*config.RuntimeConfig, []string, error) {
-		opts := config.BuilderOpts{
-			HCL: []string{testHCLConfig, portsConfig, a.HCL, hclDataDir},
+	loader := func(source config.Source) (config.LoadResult, error) {
+		opts := config.LoadOpts{
+			DefaultConfig: source,
+			HCL:           []string{testHCLConfig, portsConfig, a.HCL, hclDataDir},
+			Overrides: []config.Source{
+				config.FileSource{
+					Name:   "test-overrides",
+					Format: "hcl",
+					Data:   a.Overrides},
+				config.DefaultConsulSource(),
+				config.DevConsulSource(),
+			},
 		}
-		overrides := []config.Source{
-			config.FileSource{
-				Name:   "test-overrides",
-				Format: "hcl",
-				Data:   a.Overrides},
-			config.DefaultConsulSource(),
-			config.DevConsulSource(),
+		result, err := config.Load(opts)
+		if result.RuntimeConfig != nil {
+			result.RuntimeConfig.Telemetry.Disable = true
 		}
-		cfg, warnings, err := config.Load(opts, source, overrides...)
-		if cfg != nil {
-			cfg.Telemetry.Disable = true
-		}
-		return cfg, warnings, err
+		return result, err
 	}
 	bd, err := NewBaseDeps(loader, logOutput)
 	require.NoError(t, err)
@@ -435,7 +437,7 @@ func TestConfig(logger hclog.Logger, sources ...config.Source) *config.RuntimeCo
 		`,
 	}
 
-	b, err := config.NewBuilder(config.BuilderOpts{})
+	b, err := config.NewBuilder(config.LoadOpts{})
 	if err != nil {
 		panic("NewBuilder failed: " + err.Error())
 	}
