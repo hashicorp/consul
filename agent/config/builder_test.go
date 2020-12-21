@@ -69,7 +69,7 @@ func TestShouldParseFile(t *testing.T) {
 func TestNewBuilder_PopulatesSourcesFromConfigFiles(t *testing.T) {
 	paths := setupConfigFiles(t)
 
-	b, err := NewBuilder(LoadOpts{ConfigFiles: paths})
+	b, err := newBuilder(LoadOpts{ConfigFiles: paths})
 	require.NoError(t, err)
 
 	expected := []Source{
@@ -85,7 +85,7 @@ func TestNewBuilder_PopulatesSourcesFromConfigFiles(t *testing.T) {
 func TestNewBuilder_PopulatesSourcesFromConfigFiles_WithConfigFormat(t *testing.T) {
 	paths := setupConfigFiles(t)
 
-	b, err := NewBuilder(LoadOpts{ConfigFiles: paths, ConfigFormat: "hcl"})
+	b, err := newBuilder(LoadOpts{ConfigFiles: paths, ConfigFormat: "hcl"})
 	require.NoError(t, err)
 
 	expected := []Source{
@@ -136,7 +136,7 @@ func TestBuilder_BuildAndValidate_NodeName(t *testing.T) {
 	}
 
 	fn := func(t *testing.T, tc testCase) {
-		b, err := NewBuilder(LoadOpts{
+		b, err := newBuilder(LoadOpts{
 			FlagValues: Config{
 				NodeName: pString(tc.nodeName),
 				DataDir:  pString("dir"),
@@ -175,7 +175,7 @@ func TestBuilder_BuildAndValidate_NodeName(t *testing.T) {
 	}
 }
 
-func patchBuilderShims(b *Builder) {
+func patchBuilderShims(b *builder) {
 	b.opts.hostname = func() (string, error) {
 		return "thehostname", nil
 	}

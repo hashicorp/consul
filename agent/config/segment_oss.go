@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-func (b *Builder) validateSegments(rt RuntimeConfig) error {
+func (b *builder) validateSegments(rt RuntimeConfig) error {
 	if rt.SegmentName != "" {
 		return structs.ErrSegmentsNotSupported
 	}
