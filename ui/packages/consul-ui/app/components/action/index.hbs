@@ -1,35 +1,27 @@
-{{#if @for}}
+{{#if @for~}}
   <label
     for={{@for}}
     ...attributes
-  >
-    {{yield}}
-  </label>
-{{else if @href}}
-  {{#if @external}}
+  >{{yield}}</label>
+{{~else if @href~}}
+  {{~#if @external~}}
     <a
       href={{@href}}
       target="_blank"
       rel="noopener noreferrer"
       ...attributes
-    >
-      {{yield}}
-    </a>
-  {{else}}
+    >{{yield}}</a>
+  {{~else~}}
     <a
       href={{@href}}
       ...attributes
-    >
-      {{yield}}
-    </a>
-  {{/if}}
-{{else}}
+    >{{yield}}</a>
+  {{~/if~}}
+{{~else~}}
   <button
     tabindex="-1"
     type="button"
     {{on 'click' (optional @onclick)}}
     ...attributes
-  >
-    {{yield}}
-  </button>
-{{/if}}
+  >{{yield}}</button>
+{{~/if}}
