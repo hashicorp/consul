@@ -42,11 +42,16 @@ type testCase struct {
 	patch func(rt *RuntimeConfig) // expected
 	err   string                  // expectedErr
 	warns []string                // expectedWarnings
+	opts  LoadOpts
+	json  []string
+	hcl   []string
+}
 
-	opts LoadOpts
-
-	json []string
-	hcl  []string
+func (tc testCase) source(format string) []string {
+	if format == "hcl" {
+		return tc.hcl
+	}
+	return tc.json
 }
 
 // TestConfigFlagsAndEdgecases tests the command line flags and
@@ -4846,108 +4851,85 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	}
 
-	testConfig(t, tests, dataDir)
-}
+	for _, tc := range tests {
+		if len(tc.json) == 0 && len(tc.hcl) == 0 {
+			testConfig(t, tc, "", dataDir)
+			continue
+		}
 
-func testConfig(t *testing.T, tests []testCase, dataDir string) {
-	for _, tt := range tests {
-		for pass, format := range []string{"json", "hcl"} {
-			// clean data dir before every test
-			os.RemoveAll(dataDir)
-			os.MkdirAll(dataDir, 0755)
-
-			// when we test only flags then there are no JSON or HCL
-			// sources and we need to make only one pass over the
-			// tests.
-			flagsOnly := len(tt.json) == 0 && len(tt.hcl) == 0
-			if flagsOnly && pass > 0 {
-				continue
-			}
-
-			// json and hcl sources need to be in sync
-			// to make sure we're generating the same config
-			if len(tt.json) != len(tt.hcl) {
-				t.Fatal(tt.desc, ": JSON and HCL test case out of sync")
-			}
-
-			// select the source
-			srcs := tt.json
-			if format == "hcl" {
-				srcs = tt.hcl
-			}
-
-			// build the description
-			var desc []string
-			if !flagsOnly {
-				desc = append(desc, format)
-			}
-			if tt.desc != "" {
-				desc = append(desc, tt.desc)
-			}
-
-			t.Run(strings.Join(desc, ":"), func(t *testing.T) {
-				opts := tt.opts
-				fs := flag.NewFlagSet("", flag.ContinueOnError)
-				AddFlags(fs, &opts)
-				require.NoError(t, fs.Parse(tt.args))
-				require.Len(t, fs.Args(), 0)
-
-				if tt.pre != nil {
-					tt.pre()
-				}
-
-				// Then create a builder with the flags.
-				patchLoadOptsShims(&opts)
-				b, err := newBuilder(opts)
-				require.NoError(t, err)
-
-				// read the source fragments
-				for i, data := range srcs {
-					b.Sources = append(b.Sources, FileSource{
-						Name:   fmt.Sprintf("src-%d.%s", i, format),
-						Format: format,
-						Data:   data,
-					})
-				}
-
-				actual, err := b.BuildAndValidate()
-				switch {
-				case err == nil && tt.err != "":
-					t.Fatalf("got nil want error to contain %q", tt.err)
-				case err != nil && tt.err == "":
-					t.Fatalf("got error %s want nil", err)
-				case err != nil && tt.err != "" && !strings.Contains(err.Error(), tt.err):
-					t.Fatalf("error %q does not contain %q", err.Error(), tt.err)
-				}
-				if tt.err != "" {
-					return
-				}
-				require.Equal(t, tt.warns, b.Warnings, "warnings")
-
-				// build a default configuration, then patch the fields we expect to change
-				// and compare it with the generated configuration. Since the expected
-				// runtime config has been validated we do not need to validate it again.
-				expectedOpts := LoadOpts{}
-				patchLoadOptsShims(&expectedOpts)
-				x, err := newBuilder(expectedOpts)
-				require.NoError(t, err)
-
-				expected, err := x.Build()
-				require.NoError(t, err)
-				if tt.patch != nil {
-					tt.patch(&expected)
-				}
-
-				// both DataDir fields should always be the same, so test for the
-				// invariant, and than updated the expected, so that every test
-				// case does not need to set this field.
-				require.Equal(t, actual.DataDir, actual.ACLTokens.DataDir)
-				expected.ACLTokens.DataDir = actual.ACLTokens.DataDir
-
-				assertDeepEqual(t, expected, actual, cmpopts.EquateEmpty())
-			})
+		for _, format := range []string{"json", "hcl"} {
+			testConfig(t, tc, format, dataDir)
 		}
 	}
+}
+
+func testConfig(t *testing.T, tc testCase, format string, dataDir string) {
+	t.Run(fmt.Sprintf("%v_%v", tc.desc, format), func(t *testing.T) {
+		// clean data dir before every test
+		os.RemoveAll(dataDir)
+		os.MkdirAll(dataDir, 0755)
+
+		if tc.pre != nil {
+			tc.pre()
+		}
+
+		opts := tc.opts
+		fs := flag.NewFlagSet("", flag.ContinueOnError)
+		AddFlags(fs, &opts)
+		require.NoError(t, fs.Parse(tc.args))
+		require.Len(t, fs.Args(), 0)
+
+		// Then create a builder with the flags.
+		patchLoadOptsShims(&opts)
+		b, err := newBuilder(opts)
+		require.NoError(t, err)
+
+		// read the source fragments
+		for i, data := range tc.source(format) {
+			b.Sources = append(b.Sources, FileSource{
+				Name:   fmt.Sprintf("src-%d.%s", i, format),
+				Format: format,
+				Data:   data,
+			})
+		}
+
+		// build/merge the config fragments
+		actual, err := b.BuildAndValidate()
+		switch {
+		case err == nil && tc.err != "":
+			t.Fatalf("got nil want error to contain %q", tc.err)
+		case err != nil && tc.err == "":
+			t.Fatalf("got error %s want nil", err)
+		case err != nil && tc.err != "" && !strings.Contains(err.Error(), tc.err):
+			t.Fatalf("error %q does not contain %q", err.Error(), tc.err)
+		}
+		if tc.err != "" {
+			return
+		}
+		require.Equal(t, tc.warns, b.Warnings, "warnings")
+
+		// build a default configuration, then patch the fields we expect to change
+		// and compare it with the generated configuration. Since the expected
+		// runtime config has been validated we do not need to validate it again.
+		expectedOpts := LoadOpts{}
+		patchLoadOptsShims(&expectedOpts)
+		x, err := newBuilder(expectedOpts)
+		require.NoError(t, err)
+
+		expected, err := x.Build()
+		require.NoError(t, err)
+		if tc.patch != nil {
+			tc.patch(&expected)
+		}
+
+		// both DataDir fields should always be the same, so test for the
+		// invariant, and than updated the expected, so that every test
+		// case does not need to set this field.
+		require.Equal(t, actual.DataDir, actual.ACLTokens.DataDir)
+		expected.ACLTokens.DataDir = actual.ACLTokens.DataDir
+
+		assertDeepEqual(t, expected, actual, cmpopts.EquateEmpty())
+	})
 }
 
 func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {

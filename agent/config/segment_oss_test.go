@@ -50,5 +50,9 @@ func TestSegments(t *testing.T) {
 		},
 	}
 
-	testConfig(t, tests, dataDir)
+	for _, tt := range tests {
+		for _, format := range []string{"json", "hcl"} {
+			testConfig(t, tt, format, dataDir)
+		}
+	}
 }
