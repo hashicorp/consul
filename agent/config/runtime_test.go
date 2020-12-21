@@ -38,25 +38,25 @@ import (
 type testCase struct {
 	desc  string
 	args  []string
-	pre   func()
+	pre   func() // setup(t *testing.T)
 	json  []string
 	hcl   []string
 	patch func(rt *RuntimeConfig) // expected
 	err   string                  // expectedErr
 	warns []string                // expectedWarnings
 
+	opts LoadOpts
+
+	// TODO: move all of these to opts
 	hcltail, jsontail []string
-	privatev4         func() ([]*net.IPAddr, error)
-	publicv6          func() ([]*net.IPAddr, error)
-	hostname          func() (string, error)
 }
 
 // TestConfigFlagsAndEdgecases tests the command line flags and
 // edgecases for the config parsing. It provides a test structure which
 // checks for warnings on deprecated fields and flags.  These tests
 // should check one option at a time if possible
-func TestBuilder_BuildAndValidate_ConfigFlagsAndEdgecases(t *testing.T) {
-	dataDir := testutil.TempDir(t, "consul")
+func TestLoad_IntegrationWithFlags(t *testing.T) {
+	dataDir := testutil.TempDir(t, "config")
 
 	defaultEntMeta := structs.DefaultEnterpriseMeta()
 
@@ -942,8 +942,10 @@ func TestBuilder_BuildAndValidate_ConfigFlagsAndEdgecases(t *testing.T) {
 				}
 				rt.DataDir = dataDir
 			},
-			publicv6: func() ([]*net.IPAddr, error) {
-				return []*net.IPAddr{ipAddr("dead:beef::1")}, nil
+			opts: LoadOpts{
+				getPublicIPv6: func() ([]*net.IPAddr, error) {
+					return []*net.IPAddr{ipAddr("dead:beef::1")}, nil
+				},
 			},
 		},
 		{
@@ -969,8 +971,10 @@ func TestBuilder_BuildAndValidate_ConfigFlagsAndEdgecases(t *testing.T) {
 				}
 				rt.DataDir = dataDir
 			},
-			privatev4: func() ([]*net.IPAddr, error) {
-				return nil, fmt.Errorf("should not detect advertise_addr")
+			opts: LoadOpts{
+				getPrivateIPv4: func() ([]*net.IPAddr, error) {
+					return nil, fmt.Errorf("should not detect advertise_addr")
+				},
 			},
 		},
 		{
@@ -1648,8 +1652,10 @@ func TestBuilder_BuildAndValidate_ConfigFlagsAndEdgecases(t *testing.T) {
 			args: []string{`-data-dir=` + dataDir},
 			json: []string{`{ "bind_addr": "0.0.0.0"}`},
 			hcl:  []string{`bind_addr = "0.0.0.0"`},
-			privatev4: func() ([]*net.IPAddr, error) {
-				return nil, errors.New("some error")
+			opts: LoadOpts{
+				getPrivateIPv4: func() ([]*net.IPAddr, error) {
+					return nil, errors.New("some error")
+				},
 			},
 			err: "Error detecting private IPv4 address: some error",
 		},
@@ -1658,8 +1664,10 @@ func TestBuilder_BuildAndValidate_ConfigFlagsAndEdgecases(t *testing.T) {
 			args: []string{`-data-dir=` + dataDir},
 			json: []string{`{ "bind_addr": "0.0.0.0"}`},
 			hcl:  []string{`bind_addr = "0.0.0.0"`},
-			privatev4: func() ([]*net.IPAddr, error) {
-				return nil, nil
+			opts: LoadOpts{
+				getPrivateIPv4: func() ([]*net.IPAddr, error) {
+					return nil, nil
+				},
 			},
 			err: "No private IPv4 address found",
 		},
@@ -1668,8 +1676,10 @@ func TestBuilder_BuildAndValidate_ConfigFlagsAndEdgecases(t *testing.T) {
 			args: []string{`-data-dir=` + dataDir},
 			json: []string{`{ "bind_addr": "0.0.0.0"}`},
 			hcl:  []string{`bind_addr = "0.0.0.0"`},
-			privatev4: func() ([]*net.IPAddr, error) {
-				return []*net.IPAddr{ipAddr("1.1.1.1"), ipAddr("2.2.2.2")}, nil
+			opts: LoadOpts{
+				getPrivateIPv4: func() ([]*net.IPAddr, error) {
+					return []*net.IPAddr{ipAddr("1.1.1.1"), ipAddr("2.2.2.2")}, nil
+				},
 			},
 			err: "Multiple private IPv4 addresses found. Please configure one",
 		},
@@ -1678,8 +1688,10 @@ func TestBuilder_BuildAndValidate_ConfigFlagsAndEdgecases(t *testing.T) {
 			args: []string{`-data-dir=` + dataDir},
 			json: []string{`{ "bind_addr": "::"}`},
 			hcl:  []string{`bind_addr = "::"`},
-			publicv6: func() ([]*net.IPAddr, error) {
-				return nil, errors.New("some error")
+			opts: LoadOpts{
+				getPublicIPv6: func() ([]*net.IPAddr, error) {
+					return nil, errors.New("some error")
+				},
 			},
 			err: "Error detecting public IPv6 address: some error",
 		},
@@ -1688,8 +1700,10 @@ func TestBuilder_BuildAndValidate_ConfigFlagsAndEdgecases(t *testing.T) {
 			args: []string{`-data-dir=` + dataDir},
 			json: []string{`{ "bind_addr": "::"}`},
 			hcl:  []string{`bind_addr = "::"`},
-			publicv6: func() ([]*net.IPAddr, error) {
-				return nil, nil
+			opts: LoadOpts{
+				getPublicIPv6: func() ([]*net.IPAddr, error) {
+					return nil, nil
+				},
 			},
 			err: "No public IPv6 address found",
 		},
@@ -1698,8 +1712,10 @@ func TestBuilder_BuildAndValidate_ConfigFlagsAndEdgecases(t *testing.T) {
 			args: []string{`-data-dir=` + dataDir},
 			json: []string{`{ "bind_addr": "::"}`},
 			hcl:  []string{`bind_addr = "::"`},
-			publicv6: func() ([]*net.IPAddr, error) {
-				return []*net.IPAddr{ipAddr("dead:beef::1"), ipAddr("dead:beef::2")}, nil
+			opts: LoadOpts{
+				getPublicIPv6: func() ([]*net.IPAddr, error) {
+					return []*net.IPAddr{ipAddr("dead:beef::1"), ipAddr("dead:beef::2")}, nil
+				},
 			},
 			err: "Multiple public IPv6 addresses found. Please configure one",
 		},
@@ -1999,8 +2015,10 @@ func TestBuilder_BuildAndValidate_ConfigFlagsAndEdgecases(t *testing.T) {
 				`-data-dir=` + dataDir,
 				`-node=`,
 			},
-			hostname: func() (string, error) { return "", nil },
-			err:      "node_name cannot be empty",
+			opts: LoadOpts{
+				hostname: func() (string, error) { return "", nil },
+			},
+			err: "node_name cannot be empty",
 		},
 		{
 			desc: "node_meta key too long",
@@ -4873,13 +4891,10 @@ func testConfig(t *testing.T, tests []testCase, dataDir string) {
 			}
 
 			t.Run(strings.Join(desc, ":"), func(t *testing.T) {
-				flags := LoadOpts{}
+				opts := tt.opts
 				fs := flag.NewFlagSet("", flag.ContinueOnError)
-				AddFlags(fs, &flags)
-				err := fs.Parse(tt.args)
-				if err != nil {
-					t.Fatalf("ParseFlags failed: %s", err)
-				}
+				AddFlags(fs, &opts)
+				require.NoError(t, fs.Parse(tt.args))
 				require.Len(t, fs.Args(), 0)
 
 				if tt.pre != nil {
@@ -4887,19 +4902,9 @@ func testConfig(t *testing.T, tests []testCase, dataDir string) {
 				}
 
 				// Then create a builder with the flags.
-				b, err := newBuilder(flags)
+				patchLoadOptsShims(&opts)
+				b, err := newBuilder(opts)
 				require.NoError(t, err)
-
-				patchBuilderShims(b)
-				if tt.hostname != nil {
-					b.opts.hostname = tt.hostname
-				}
-				if tt.privatev4 != nil {
-					b.opts.getPrivateIPv4 = tt.privatev4
-				}
-				if tt.publicv6 != nil {
-					b.opts.getPublicIPv6 = tt.publicv6
-				}
 
 				// read the source fragments
 				for i, data := range srcs {
@@ -4938,11 +4943,11 @@ func testConfig(t *testing.T, tests []testCase, dataDir string) {
 				// build a default configuration, then patch the fields we expect to change
 				// and compare it with the generated configuration. Since the expected
 				// runtime config has been validated we do not need to validate it again.
-				x, err := newBuilder(LoadOpts{})
-				if err != nil {
-					t.Fatal(err)
-				}
-				patchBuilderShims(x)
+				expectedOpts := LoadOpts{}
+				patchLoadOptsShims(&expectedOpts)
+				x, err := newBuilder(expectedOpts)
+				require.NoError(t, err)
+
 				expected, err := x.Build()
 				require.NoError(t, err)
 				if tt.patch != nil {

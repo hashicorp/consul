@@ -142,7 +142,7 @@ func TestBuilder_BuildAndValidate_NodeName(t *testing.T) {
 				DataDir:  pString("dir"),
 			},
 		})
-		patchBuilderShims(b)
+		patchLoadOptsShims(&b.opts)
 		require.NoError(t, err)
 		_, err = b.BuildAndValidate()
 		require.NoError(t, err)
@@ -175,15 +175,21 @@ func TestBuilder_BuildAndValidate_NodeName(t *testing.T) {
 	}
 }
 
-func patchBuilderShims(b *builder) {
-	b.opts.hostname = func() (string, error) {
-		return "thehostname", nil
+func patchLoadOptsShims(opts *LoadOpts) {
+	if opts.hostname == nil {
+		opts.hostname = func() (string, error) {
+			return "thehostname", nil
+		}
 	}
-	b.opts.getPrivateIPv4 = func() ([]*net.IPAddr, error) {
-		return []*net.IPAddr{ipAddr("10.0.0.1")}, nil
+	if opts.getPrivateIPv4 == nil {
+		opts.getPrivateIPv4 = func() ([]*net.IPAddr, error) {
+			return []*net.IPAddr{ipAddr("10.0.0.1")}, nil
+		}
 	}
-	b.opts.getPublicIPv6 = func() ([]*net.IPAddr, error) {
-		return []*net.IPAddr{ipAddr("dead:beef::1")}, nil
+	if opts.getPublicIPv6 == nil {
+		opts.getPublicIPv6 = func() ([]*net.IPAddr, error) {
+			return []*net.IPAddr{ipAddr("dead:beef::1")}, nil
+		}
 	}
 }
 
