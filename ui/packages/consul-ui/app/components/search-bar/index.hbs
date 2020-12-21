@@ -15,7 +15,12 @@
 {{#if this.isFiltered}}
   <div class="search-bar-status">
     <dl>
-      <dt>{{or (t "component.search-bar.header") (string-trim (t "common.ui.filtered-by" item=""))}}</dt>
+      <dt>{{string-trim
+            (t "component.search-bar.header"
+                default="common.ui.filtered-by"
+                  item=""
+            )
+        }}</dt>
       <dd>
         <ul>
 {{#each this.filters as |filter|}}
