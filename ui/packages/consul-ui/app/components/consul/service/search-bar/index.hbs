@@ -1,135 +1,163 @@
-<form
-  class="consul-service-search-bar filter-bar"
+<SearchBar
+  class="consul-service-search-bar"
   ...attributes
+  @filter={{@filter}}
 >
-  <div class="search">
-    <FreetextFilter
-      @onsearch={{action @onsearch}}
-      @value={{@search}}
-      @placeholder="Search"
-    >
+    <:status as |search|>
+{{#let
+  (or (t (concat "component.consul.service.search-bar." search.status.key))
+      (t (concat "common.search." search.status.key))
+      (t (concat "common.consul." search.status.key))
+      (t (concat "common.ui." search.status.key))
+  )
+  (or (t (concat "component.consul.service.search-bar." search.status.value))
+      (t (concat "common.search." search.status.value))
+      (t (concat "common.consul." search.status.value))
+      (t (concat "common.brand." search.status.value))
+      (t (concat "common.ui." search.status.value))
+  )
+as |key value|}}
+      <search.RemoveFilter
+        aria-label={{t "common.ui.remove" item=(concat key " " value)}}
+      >
+        <dl>
+          <dt>{{key}}</dt>
+          <dd>{{value}}</dd>
+        </dl>
+      </search.RemoveFilter>
+{{/let}}
+    </:status>
+    <:search>
+      <FreetextFilter
+        @onsearch={{action @onsearch}}
+        @value={{@search}}
+        @placeholder="Search"
+      >
+        <PopoverSelect
+          class="type-search-properties"
+          @position="right"
+          @onchange={{action @filter.searchproperty.change}}
+          @multiple={{true}}
+          @required={{true}}
+        as |components|>
+          <BlockSlot @name="selected">
+            <span>
+              Search across
+            </span>
+          </BlockSlot>
+          <BlockSlot @name="options">
+    {{#let components.Optgroup components.Option as |Optgroup Option|}}
+            {{#each @filter.searchproperty.default as |prop|}}
+              <Option @value={{prop}} @selected={{contains prop @filter.searchproperty.value}}>{{string-replace-all prop '\.' ' '}}</Option>
+            {{/each}}
+    {{/let}}
+          </BlockSlot>
+        </PopoverSelect>
+      </FreetextFilter>
+    </:search>
+    <:filter>
       <PopoverSelect
-        class="type-search-properties"
-        @position="right"
-        @onchange={{action @onfilter.searchproperty}}
+        class="type-status"
+        @position="left"
+        @onchange={{action @filter.status.change}}
         @multiple={{true}}
       as |components|>
         <BlockSlot @name="selected">
           <span>
-            Search across
+            Health Status
           </span>
         </BlockSlot>
         <BlockSlot @name="options">
   {{#let components.Optgroup components.Option as |Optgroup Option|}}
-          <Option @value="Name" @selected={{contains 'Name' @filter.searchproperties}}>Name</Option>
-          <Option @value="Tags" @selected={{contains 'Tags' @filter.searchproperties}}>Tags</Option>
+          <Option class="value-passing" @value="passing" @selected={{contains 'passing' @filter.status.value}}>Passing</Option>
+          <Option class="value-warning" @value="warning" @selected={{contains 'warning' @filter.status.value}}>Warning</Option>
+          <Option class="value-critical" @value="critical" @selected={{contains 'critical' @filter.status.value}}>Failing</Option>
+          <Option class="value-empty" @value="empty" @selected={{contains 'empty' @filter.status.value}}>No checks</Option>
   {{/let}}
         </BlockSlot>
       </PopoverSelect>
-    </FreetextFilter>
-  </div>
-  <div class="filters">
-    <PopoverSelect
-      class="type-status"
-      @position="left"
-      @onchange={{action @onfilter.status}}
-      @multiple={{true}}
-    as |components|>
-      <BlockSlot @name="selected">
-        <span>
-          Health Status
-        </span>
-      </BlockSlot>
-      <BlockSlot @name="options">
-{{#let components.Optgroup components.Option as |Optgroup Option|}}
-        <Option class="value-passing" @value="passing" @selected={{contains 'passing' @filter.statuses}}>Passing</Option>
-        <Option class="value-warning" @value="warning" @selected={{contains 'warning' @filter.statuses}}>Warning</Option>
-        <Option class="value-critical" @value="critical" @selected={{contains 'critical' @filter.statuses}}>Failing</Option>
-        <Option class="value-empty" @value="empty" @selected={{contains 'empty' @filter.statuses}}>No checks</Option>
-{{/let}}
-      </BlockSlot>
-    </PopoverSelect>
-    <PopoverSelect
-      @position="left"
-      @onchange={{action @onfilter.kind}}
-      @multiple={{true}}
-    as |components|>
-      <BlockSlot @name="selected">
-        <span>
-          Service Type
-        </span>
-      </BlockSlot>
-      <BlockSlot @name="options">
-{{#let components.Optgroup components.Option as |Optgroup Option|}}
-        <Option @value="service" @selected={{contains 'service' @filter.kinds}}>Service</Option>
-        <Optgroup @label="Gateway">
-          <Option @value="ingress-gateway" @selected={{contains 'ingress-gateway' @filter.kinds}}>Ingress Gateway</Option>
-          <Option @value="terminating-gateway" @selected={{contains 'terminating-gateway' @filter.kinds}}>Terminating Gateway</Option>
-          <Option @value="mesh-gateway" @selected={{contains 'mesh-gateway' @filter.kinds}}>Mesh Gateway</Option>
-        </Optgroup>
-        <Optgroup @label="Mesh">
-          <Option @value="in-mesh" @selected={{contains 'in-mesh' @filter.kinds}}>In service mesh</Option>
-          <Option @value="not-in-mesh" @selected={{contains 'not-in-mesh' @filter.kinds}}>Not in service mesh</Option>
-        </Optgroup>
-{{/let}}
-      </BlockSlot>
-    </PopoverSelect>
-{{#if (gt @sources.length 0)}}
-    <PopoverSelect
-      class="type-source"
-      @position="left"
-      @onchange={{action @onfilter.source}}
-      @multiple={{true}}
-    as |components|>
-      <BlockSlot @name="selected">
-        <span>
-          Source
-        </span>
-      </BlockSlot>
-      <BlockSlot @name="options">
-{{#let components.Optgroup components.Option as |Optgroup Option|}}
-{{#each @sources as |source|}}
-        <Option class={{source}} @value={{source}} @selected={{contains source @filter.sources}}>{{source}}</Option>
-{{/each}}
-{{/let}}
-      </BlockSlot>
-    </PopoverSelect>
-{{/if}}
-  </div>
-  <div class="sort">
-    <PopoverSelect
-      class="type-sort"
-      data-test-sort-control
-      @position="right"
-      @onchange={{action @onsort}}
-      @multiple={{false}}
-    as |components|>
-      <BlockSlot @name="selected">
-        <span>
-          {{#let (from-entries (array
-                (array "Name:asc" "A to Z")
-                (array "Name:desc" "Z to A")
-                (array "Status:asc" "Unhealthy to Healthy")
-                (array "Status:desc" "Healthy to Unhealthy")
-              ))
-            as |selectable|
-          }}
-            {{get selectable @sort}}
-          {{/let}}
-        </span>
-      </BlockSlot>
-      <BlockSlot @name="options">
-{{#let components.Optgroup components.Option as |Optgroup Option|}}
-        <Optgroup @label="Health Status">
-          <Option @value="Status:asc" @selected={{eq "Status:asc" @sort}}>Unhealthy to Healthy</Option>
-          <Option @value="Status:desc" @selected={{eq "Status:desc" @sort}}>Healthy to Unhealthy</Option>
-        </Optgroup>
-        <Optgroup @label="Service Name">
-          <Option @value="Name:asc" @selected={{eq "Name:asc" @sort}}>A to Z</Option>
-          <Option @value="Name:desc" @selected={{eq "Name:desc" @sort}}>Z to A</Option>
-        </Optgroup>
-{{/let}}
-      </BlockSlot>
-    </PopoverSelect>
-  </div>
-</form>
+      <PopoverSelect
+        @position="left"
+        @onchange={{action @filter.kind.change}}
+        @multiple={{true}}
+      as |components|>
+        <BlockSlot @name="selected">
+          <span>
+            Service Type
+          </span>
+        </BlockSlot>
+        <BlockSlot @name="options">
+  {{#let components.Optgroup components.Option as |Optgroup Option|}}
+          <Option @value="service" @selected={{contains 'service' @filter.kind.value}}>Service</Option>
+          <Optgroup @label="Gateway">
+            <Option @value="ingress-gateway" @selected={{contains 'ingress-gateway' @filter.kind.value}}>Ingress Gateway</Option>
+            <Option @value="terminating-gateway" @selected={{contains 'terminating-gateway' @filter.kind.value}}>Terminating Gateway</Option>
+            <Option @value="mesh-gateway" @selected={{contains 'mesh-gateway' @filter.kind.value}}>Mesh Gateway</Option>
+          </Optgroup>
+          <Optgroup @label="Mesh">
+            <Option @value="in-mesh" @selected={{contains 'in-mesh' @filter.kind.value}}>In service mesh</Option>
+            <Option @value="not-in-mesh" @selected={{contains 'not-in-mesh' @filter.kind.value}}>Not in service mesh</Option>
+          </Optgroup>
+  {{/let}}
+        </BlockSlot>
+      </PopoverSelect>
+  {{#if (gt @sources.length 0)}}
+      <PopoverSelect
+        class="type-source"
+        @position="left"
+        @onchange={{action @filter.source.change}}
+        @multiple={{true}}
+      as |components|>
+        <BlockSlot @name="selected">
+          <span>
+            Source
+          </span>
+        </BlockSlot>
+        <BlockSlot @name="options">
+  {{#let components.Optgroup components.Option as |Optgroup Option|}}
+    {{#each @sources as |source|}}
+          <Option class={{source}} @value={{source}} @selected={{contains source @filter.source.value}}>{{source}}</Option>
+    {{/each}}
+  {{/let}}
+        </BlockSlot>
+      </PopoverSelect>
+  {{/if}}
+    </:filter>
+    <:sort>
+      <PopoverSelect
+        class="type-sort"
+        data-test-sort-control
+        @position="right"
+        @onchange={{action @sort.change}}
+        @multiple={{false}}
+        @required={{true}}
+      as |components|>
+        <BlockSlot @name="selected">
+          <span>
+            {{#let (from-entries (array
+                  (array "Name:asc" "A to Z")
+                  (array "Name:desc" "Z to A")
+                  (array "Status:asc" "Unhealthy to Healthy")
+                  (array "Status:desc" "Healthy to Unhealthy")
+                ))
+              as |selectable|
+            }}
+              {{get selectable @sort.value}}
+            {{/let}}
+          </span>
+        </BlockSlot>
+        <BlockSlot @name="options">
+  {{#let components.Optgroup components.Option as |Optgroup Option|}}
+          <Optgroup @label="Health Status">
+            <Option @value="Status:asc" @selected={{eq "Status:asc" @sort.value}}>Unhealthy to Healthy</Option>
+            <Option @value="Status:desc" @selected={{eq "Status:desc" @sort.value}}>Healthy to Unhealthy</Option>
+          </Optgroup>
+          <Optgroup @label="Service Name">
+            <Option @value="Name:asc" @selected={{eq "Name:asc" @sort.value}}>A to Z</Option>
+            <Option @value="Name:desc" @selected={{eq "Name:desc" @sort.value}}>Z to A</Option>
+          </Optgroup>
+  {{/let}}
+        </BlockSlot>
+      </PopoverSelect>
+    </:sort>
+</SearchBar>
