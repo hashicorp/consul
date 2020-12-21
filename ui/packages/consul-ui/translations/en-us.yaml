@@ -17,13 +17,27 @@ common:
     empty: No checks
     tags: Tags
     service: Service
+    gateway: Gateway
+    mesh: Mesh
     ingress-gateway: Ingress Gateway
     terminating-gateway: Terminating Gateway
     mesh-gateway: Mesh Gateway
     status: Health Status
+    service-name: Service Name
   search:
+    search: Search
     searchproperty: Search Across
     source: Source
+    critical: Failing
+    in-mesh: In service mesh
+    not-in-mesh: Not in service mesh
+  sort:
+    name:
+      asc: A to Z
+      desc: Z to A
+    status:
+      asc: Unhealthy to Healthy
+      desc: Healthy to Unhealthy
 
 component:
   consul:
