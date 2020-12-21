@@ -4923,16 +4923,12 @@ func testConfig(t *testing.T, tests []testCase, dataDir string) {
 				}
 
 				actual, err := b.BuildAndValidate()
-				if err == nil && tt.err != "" {
-					t.Fatalf("got no error want %q", tt.err)
-				}
-				if err != nil && tt.err == "" {
-					t.Fatalf("got error %s want nil", err)
-				}
-				if err == nil && tt.err != "" {
+				switch {
+				case err == nil && tt.err != "":
 					t.Fatalf("got nil want error to contain %q", tt.err)
-				}
-				if err != nil && tt.err != "" && !strings.Contains(err.Error(), tt.err) {
+				case err != nil && tt.err == "":
+					t.Fatalf("got error %s want nil", err)
+				case err != nil && tt.err != "" && !strings.Contains(err.Error(), tt.err):
 					t.Fatalf("error %q does not contain %q", err.Error(), tt.err)
 				}
 				if tt.err != "" {
