@@ -28,7 +28,6 @@ import tabgroup from 'consul-ui/components/tab-nav/pageobject';
 import authFormFactory from 'consul-ui/components/auth-form/pageobject';
 import freetextFilterFactory from 'consul-ui/components/freetext-filter/pageobject';
 
-import searchBarFactory from 'consul-ui/components/search-bar/pageobject';
 import emptyStateFactory from 'consul-ui/components/empty-state/pageobject';
 
 import policyFormFactory from 'consul-ui/components/policy-form/pageobject';
@@ -83,10 +82,6 @@ const cancelable = createCancelable(clickable, is);
 const tokenList = tokenListFactory(clickable, attribute, collection, deletable);
 const authForm = authFormFactory(submitable, clickable, attribute);
 const freetextFilter = freetextFilterFactory(triggerable);
-const catalogToolbar = searchBarFactory(freetextFilter);
-const aclFilter = searchBarFactory(freetextFilter, () =>
-  radiogroup('type', ['', 'management', 'client'])
-);
 const policyForm = policyFormFactory(submitable, cancelable, radiogroup, text);
 const policySelector = policySelectorFactory(clickable, deletable, collection, alias, policyForm);
 const roleForm = roleFormFactory(submitable, cancelable, policySelector);
@@ -160,9 +155,7 @@ export default {
       radiogroup
     )
   ),
-  service: create(
-    service(visitable, attribute, collection, text, consulIntentionList, catalogToolbar, tabgroup)
-  ),
+  service: create(service(visitable, attribute, collection, text, consulIntentionList, tabgroup)),
   instance: create(
     instance(
       visitable,
@@ -190,7 +183,7 @@ export default {
   ),
   kvs: create(kvs(visitable, creatable, consulKvList)),
   kv: create(kv(visitable, attribute, submitable, deletable, cancelable, clickable)),
-  acls: create(acls(visitable, deletable, creatable, clickable, attribute, collection, aclFilter)),
+  acls: create(acls(visitable, deletable, creatable, clickable, attribute, collection)),
   acl: create(acl(visitable, submitable, deletable, cancelable, clickable)),
   policies: create(policies(visitable, creatable, consulPolicyList, popoverSelect)),
   policy: create(policy(visitable, submitable, deletable, cancelable, clickable, tokenList)),
