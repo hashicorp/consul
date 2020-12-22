@@ -6,11 +6,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/raft"
+
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/raft"
 )
 
 func TestStatsFetcher(t *testing.T) {
@@ -76,8 +77,14 @@ func TestStatsFetcher(t *testing.T) {
 	// from it.
 	func() {
 		retry.Run(t, func(r *retry.R) {
+			s1.statsFetcher.inflightLock.Lock()
 			s1.statsFetcher.inflight[raft.ServerID(s3.config.NodeID)] = struct{}{}
-			defer delete(s1.statsFetcher.inflight, raft.ServerID(s3.config.NodeID))
+			s1.statsFetcher.inflightLock.Unlock()
+			defer func() {
+				s1.statsFetcher.inflightLock.Lock()
+				delete(s1.statsFetcher.inflight, raft.ServerID(s3.config.NodeID))
+				s1.statsFetcher.inflightLock.Unlock()
+			}()
 
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
