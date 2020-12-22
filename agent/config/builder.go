@@ -346,10 +346,12 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		for _, err := range validateEnterpriseConfigKeys(&c2) {
 			b.warn("%s", err)
 		}
+		b.Warnings = append(b.Warnings, md.Warnings...)
 
 		// if we have a single 'check' or 'service' we need to add them to the
 		// list of checks and services first since we cannot merge them
 		// generically and later values would clobber earlier ones.
+		// TODO: move to applyDeprecatedConfig
 		if c2.Check != nil {
 			c2.Checks = append(c2.Checks, *c2.Check)
 			c2.Check = nil
@@ -733,16 +735,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 
 	aclsEnabled := false
 	primaryDatacenter := strings.ToLower(stringVal(c.PrimaryDatacenter))
-	if c.ACLDatacenter != nil {
-		b.warn("The 'acl_datacenter' field is deprecated. Use the 'primary_datacenter' field instead.")
-
-		if primaryDatacenter == "" {
-			primaryDatacenter = strings.ToLower(stringVal(c.ACLDatacenter))
-		}
-
-		// when the acl_datacenter config is used it implicitly enables acls
-		aclsEnabled = true
-	}
 
 	if c.ACL.Enabled != nil {
 		aclsEnabled = boolVal(c.ACL.Enabled)
@@ -887,7 +879,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			EnablePersistence:   boolValWithDefault(c.ACL.EnableTokenPersistence, false),
 			ACLDefaultToken:     stringValWithDefault(c.ACL.Tokens.Default, stringVal(c.ACLToken)),
 			ACLAgentToken:       stringValWithDefault(c.ACL.Tokens.Agent, stringVal(c.ACLAgentToken)),
-			ACLAgentMasterToken: stringValWithDefault(c.ACL.Tokens.AgentMaster, stringVal(c.ACLAgentMasterToken)),
+			ACLAgentMasterToken: stringVal(c.ACL.Tokens.AgentMaster),
 			ACLReplicationToken: stringValWithDefault(c.ACL.Tokens.Replication, stringVal(c.ACLReplicationToken)),
 		},
 
