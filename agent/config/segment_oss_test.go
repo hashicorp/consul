@@ -3,6 +3,7 @@
 package config
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -50,9 +51,10 @@ func TestSegments(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
+	for _, tc := range tests {
 		for _, format := range []string{"json", "hcl"} {
-			testConfig(t, tt, format, dataDir)
+			name := fmt.Sprintf("%v_%v", tc.desc, format)
+			t.Run(name, tc.run(format, dataDir))
 		}
 	}
 }
