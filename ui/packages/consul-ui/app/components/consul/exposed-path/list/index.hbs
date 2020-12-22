@@ -8,7 +8,7 @@
   {{#each @items as |path|}}
     <li>
       <div class="header">
-      {{#let (concat address ':' path.ListenerPort path.Path) as |combinedAddress|}}
+      {{#let (concat @address ':' path.ListenerPort path.Path) as |combinedAddress|}}
         <p class="combined-address">
           <span>
             {{combinedAddress}}
