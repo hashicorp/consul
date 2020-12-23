@@ -239,46 +239,11 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 		authTimer = time.After(s.AuthCheckFrequency)
 	}
 
-	checkStreamACLs := func(cfgSnap *proxycfg.ConfigSnapshot) error {
-		if cfgSnap == nil {
-			return status.Errorf(codes.Unauthenticated, "unauthenticated: no config snapshot")
-		}
-
-		rule, err := s.ResolveToken(tokenFromContext(stream.Context()))
-
-		if acl.IsErrNotFound(err) {
-			return status.Errorf(codes.Unauthenticated, "unauthenticated: %v", err)
-		} else if acl.IsErrPermissionDenied(err) {
-			return status.Errorf(codes.PermissionDenied, "permission denied: %v", err)
-		} else if err != nil {
-			return err
-		}
-
-		var authzContext acl.AuthorizerContext
-		switch cfgSnap.Kind {
-		case structs.ServiceKindConnectProxy:
-			cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
-			if rule != nil && rule.ServiceWrite(cfgSnap.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
-				return status.Errorf(codes.PermissionDenied, "permission denied")
-			}
-		case structs.ServiceKindMeshGateway, structs.ServiceKindTerminatingGateway, structs.ServiceKindIngressGateway:
-			cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
-			if rule != nil && rule.ServiceWrite(cfgSnap.Service, &authzContext) != acl.Allow {
-				return status.Errorf(codes.PermissionDenied, "permission denied")
-			}
-		default:
-			return status.Errorf(codes.Internal, "Invalid service kind")
-		}
-
-		// Authed OK!
-		return nil
-	}
-
 	for {
 		select {
 		case <-authTimer:
 			// It's been too long since a Discovery{Request,Response} so recheck ACLs.
-			if err := checkStreamACLs(cfgSnap); err != nil {
+			if err := s.authorize(tokenFromContext(stream.Context()), cfgSnap); err != nil {
 				return err
 			}
 			extendAuthTimer()
@@ -347,7 +312,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 			fallthrough
 		case stateRunning:
 			// Check ACLs on every Discovery{Request,Response}.
-			if err := checkStreamACLs(cfgSnap); err != nil {
+			if err := s.authorize(tokenFromContext(stream.Context()), cfgSnap); err != nil {
 				return err
 			}
 			// For the first time through the state machine, this is when the
@@ -372,6 +337,44 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 			}
 		}
 	}
+}
+
+// TODO: Server method receiver is only used for accessing ResolveToken function.
+// Extract this method into a new type to provides an authorization interface
+// for the Server instead of it being part of Server.
+func (s *Server) authorize(token string, cfgSnap *proxycfg.ConfigSnapshot) error {
+	if cfgSnap == nil {
+		return status.Errorf(codes.Unauthenticated, "unauthenticated: no config snapshot")
+	}
+
+	rule, err := s.ResolveToken(token)
+	switch {
+	case acl.IsErrNotFound(err):
+		return status.Errorf(codes.Unauthenticated, "unauthenticated: %v", err)
+	case acl.IsErrPermissionDenied(err):
+		return status.Errorf(codes.PermissionDenied, "permission denied: %v", err)
+	case err != nil:
+		return err
+	}
+
+	var authzContext acl.AuthorizerContext
+	switch cfgSnap.Kind {
+	case structs.ServiceKindConnectProxy:
+		cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
+		if rule != nil && rule.ServiceWrite(cfgSnap.Proxy.DestinationServiceName, &authzContext) != acl.Allow {
+			return status.Errorf(codes.PermissionDenied, "permission denied")
+		}
+	case structs.ServiceKindMeshGateway, structs.ServiceKindTerminatingGateway, structs.ServiceKindIngressGateway:
+		cfgSnap.ProxyID.EnterpriseMeta.FillAuthzContext(&authzContext)
+		if rule != nil && rule.ServiceWrite(cfgSnap.Service, &authzContext) != acl.Allow {
+			return status.Errorf(codes.PermissionDenied, "permission denied")
+		}
+	default:
+		return status.Errorf(codes.Internal, "Invalid service kind")
+	}
+
+	// Authed OK!
+	return nil
 }
 
 type xDSType struct {
