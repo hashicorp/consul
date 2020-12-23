@@ -328,7 +328,7 @@ func testManager_BasicLifecycle(
 	webProxy *structs.NodeService,
 	expectSnap *ConfigSnapshot,
 ) {
-	c := TestCacheWithTypes(t, types)
+	c := testCacheWithTypes(t, types)
 
 	require := require.New(t)
 	logger := testutil.Logger(t)
