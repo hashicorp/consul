@@ -622,7 +622,7 @@ func TestConfigSnapshot(t testing.T) *ConfigSnapshot {
 			Upstreams: structs.TestUpstreams(t),
 		},
 		Roots: roots,
-		ConnectProxy: configSnapshotConnectProxy{
+		ConnectProxy: ConfigSnapshotConnectProxy{
 			ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
 				Leaf: leaf,
 				DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
@@ -741,7 +741,7 @@ func testConfigSnapshotDiscoveryChain(t testing.T, variation string, additionalE
 			Upstreams: structs.TestUpstreams(t),
 		},
 		Roots: roots,
-		ConnectProxy: configSnapshotConnectProxy{
+		ConnectProxy: ConfigSnapshotConnectProxy{
 			ConfigSnapshotUpstreams: setupTestVariationConfigEntriesAndSnapshot(
 				t, variation, leaf, additionalEntries...,
 			),
@@ -1397,13 +1397,13 @@ func testConfigSnapshotMeshGateway(t testing.T, populateServices bool, useFedera
 		},
 		Roots:      roots,
 		Datacenter: "dc1",
-		MeshGateway: configSnapshotMeshGateway{
+		MeshGateway: ConfigSnapshotMeshGateway{
 			WatchedServicesSet: true,
 		},
 	}
 
 	if populateServices {
-		snap.MeshGateway = configSnapshotMeshGateway{
+		snap.MeshGateway = ConfigSnapshotMeshGateway{
 			WatchedServices: map[structs.ServiceName]context.CancelFunc{
 				structs.NewServiceName("foo", nil): nil,
 				structs.NewServiceName("bar", nil): nil,
@@ -1586,7 +1586,7 @@ func testConfigSnapshotIngressGateway(
 		Datacenter: "dc1",
 	}
 	if populateServices {
-		snap.IngressGateway = configSnapshotIngressGateway{
+		snap.IngressGateway = ConfigSnapshotIngressGateway{
 			ConfigSnapshotUpstreams: setupTestVariationConfigEntriesAndSnapshot(
 				t, variation, leaf, additionalEntries...,
 			),
@@ -1798,7 +1798,7 @@ func testConfigSnapshotTerminatingGateway(t testing.T, populateServices bool) *C
 			},
 		}
 
-		snap.TerminatingGateway = configSnapshotTerminatingGateway{
+		snap.TerminatingGateway = ConfigSnapshotTerminatingGateway{
 			ServiceGroups: map[structs.ServiceName]structs.CheckServiceNodes{
 				web:   webNodes,
 				api:   apiNodes,

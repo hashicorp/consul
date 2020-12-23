@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/mitchellh/copystructure"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 // TODO(ingress): Can we think of a better for this bag of data?
@@ -37,7 +38,7 @@ type ConfigSnapshotUpstreams struct {
 	WatchedGatewayEndpoints map[string]map[string]structs.CheckServiceNodes
 }
 
-type configSnapshotConnectProxy struct {
+type ConfigSnapshotConnectProxy struct {
 	ConfigSnapshotUpstreams
 
 	WatchedServiceChecks   map[structs.ServiceID][]structs.CheckType // TODO: missing garbage collection
@@ -50,7 +51,7 @@ type configSnapshotConnectProxy struct {
 	IntentionsSet bool
 }
 
-func (c *configSnapshotConnectProxy) IsEmpty() bool {
+func (c *ConfigSnapshotConnectProxy) IsEmpty() bool {
 	if c == nil {
 		return true
 	}
@@ -65,7 +66,7 @@ func (c *configSnapshotConnectProxy) IsEmpty() bool {
 		len(c.PreparedQueryEndpoints) == 0
 }
 
-type configSnapshotTerminatingGateway struct {
+type ConfigSnapshotTerminatingGateway struct {
 	// WatchedServices is a map of service name to a cancel function. This cancel
 	// function is tied to the watch of linked service instances for the given
 	// id. If the linked services watch would indicate the removal of
@@ -133,7 +134,7 @@ type configSnapshotTerminatingGateway struct {
 }
 
 // ValidServices returns the list of service keys that have enough data to be emitted.
-func (c *configSnapshotTerminatingGateway) ValidServices() []structs.ServiceName {
+func (c *ConfigSnapshotTerminatingGateway) ValidServices() []structs.ServiceName {
 	out := make([]structs.ServiceName, 0, len(c.ServiceGroups))
 	for svc := range c.ServiceGroups {
 		// It only counts if ALL of our watches have come back (with data or not).
@@ -164,7 +165,7 @@ func (c *configSnapshotTerminatingGateway) ValidServices() []structs.ServiceName
 	return out
 }
 
-func (c *configSnapshotTerminatingGateway) IsEmpty() bool {
+func (c *ConfigSnapshotTerminatingGateway) IsEmpty() bool {
 	if c == nil {
 		return true
 	}
@@ -183,7 +184,7 @@ func (c *configSnapshotTerminatingGateway) IsEmpty() bool {
 		len(c.HostnameServices) == 0
 }
 
-type configSnapshotMeshGateway struct {
+type ConfigSnapshotMeshGateway struct {
 	// WatchedServices is a map of service name to a cancel function. This cancel
 	// function is tied to the watch of connect enabled services for the given
 	// id. If the main datacenter services watch would indicate the removal of
@@ -228,7 +229,7 @@ type configSnapshotMeshGateway struct {
 	HostnameDatacenters map[string]structs.CheckServiceNodes
 }
 
-func (c *configSnapshotMeshGateway) Datacenters() []string {
+func (c *ConfigSnapshotMeshGateway) Datacenters() []string {
 	sz1, sz2 := len(c.GatewayGroups), len(c.FedStateGateways)
 
 	sz := sz1
@@ -248,7 +249,7 @@ func (c *configSnapshotMeshGateway) Datacenters() []string {
 	return dcs
 }
 
-func (c *configSnapshotMeshGateway) IsEmpty() bool {
+func (c *ConfigSnapshotMeshGateway) IsEmpty() bool {
 	if c == nil {
 		return true
 	}
@@ -263,7 +264,7 @@ func (c *configSnapshotMeshGateway) IsEmpty() bool {
 		len(c.HostnameDatacenters) == 0
 }
 
-type configSnapshotIngressGateway struct {
+type ConfigSnapshotIngressGateway struct {
 	ConfigSnapshotUpstreams
 
 	// TLSEnabled is whether this gateway's listeners should have TLS configured.
@@ -290,7 +291,7 @@ type configSnapshotIngressGateway struct {
 	WatchedDiscoveryChains map[string]context.CancelFunc
 }
 
-func (c *configSnapshotIngressGateway) IsEmpty() bool {
+func (c *ConfigSnapshotIngressGateway) IsEmpty() bool {
 	if c == nil {
 		return true
 	}
@@ -329,16 +330,16 @@ type ConfigSnapshot struct {
 	Roots       *structs.IndexedCARoots
 
 	// connect-proxy specific
-	ConnectProxy configSnapshotConnectProxy
+	ConnectProxy ConfigSnapshotConnectProxy
 
 	// terminating-gateway specific
-	TerminatingGateway configSnapshotTerminatingGateway
+	TerminatingGateway ConfigSnapshotTerminatingGateway
 
 	// mesh-gateway specific
-	MeshGateway configSnapshotMeshGateway
+	MeshGateway ConfigSnapshotMeshGateway
 
 	// ingress-gateway specific
-	IngressGateway configSnapshotIngressGateway
+	IngressGateway ConfigSnapshotIngressGateway
 }
 
 // Valid returns whether or not the snapshot has all required fields filled yet.

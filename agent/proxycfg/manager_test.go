@@ -206,7 +206,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 				ServiceMeta:     webProxy.Meta,
 				TaggedAddresses: make(map[string]structs.ServiceAddress),
 				Roots:           roots,
-				ConnectProxy: configSnapshotConnectProxy{
+				ConnectProxy: ConfigSnapshotConnectProxy{
 					ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
 						Leaf: leaf,
 						DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
@@ -255,7 +255,7 @@ func TestManager_BasicLifecycle(t *testing.T) {
 				ServiceMeta:     webProxy.Meta,
 				TaggedAddresses: make(map[string]structs.ServiceAddress),
 				Roots:           roots,
-				ConnectProxy: configSnapshotConnectProxy{
+				ConnectProxy: ConfigSnapshotConnectProxy{
 					ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
 						Leaf: leaf,
 						DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
