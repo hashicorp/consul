@@ -12,11 +12,12 @@ import (
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoyendpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
+	testinf "github.com/mitchellh/go-testing-interface"
+
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/sdk/testutil"
-	testinf "github.com/mitchellh/go-testing-interface"
 )
 
 func Test_makeLoadAssignment(t *testing.T) {
@@ -579,10 +580,7 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 					}
 
 					// Need server just for logger dependency
-					logger := testutil.Logger(t)
-					s := Server{
-						Logger: logger,
-					}
+					s := Server{Logger: testutil.Logger(t)}
 
 					cInfo := connectionInfo{
 						Token:         "my-token",
