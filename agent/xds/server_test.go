@@ -102,7 +102,6 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 		CfgMgr:       mgr,
 		ResolveToken: aclResolve,
 	}
-	s.Initialize()
 
 	sid := structs.NewServiceID("web-sidecar-proxy", nil)
 
@@ -454,7 +453,6 @@ func TestServer_StreamAggregatedResources_ACLEnforcement(t *testing.T) {
 				CfgMgr:       mgr,
 				ResolveToken: aclResolve,
 			}
-			s.Initialize()
 
 			errCh := make(chan error, 1)
 			go func() {
@@ -528,7 +526,6 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedDuring
 		ResolveToken:       aclResolve,
 		AuthCheckFrequency: 1 * time.Hour, // make sure this doesn't kick in
 	}
-	s.Initialize()
 
 	errCh := make(chan error, 1)
 	go func() {
@@ -622,7 +619,6 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedInBack
 		ResolveToken:       aclResolve,
 		AuthCheckFrequency: 100 * time.Millisecond, // Make this short.
 	}
-	s.Initialize()
 
 	errCh := make(chan error, 1)
 	go func() {
@@ -707,7 +703,6 @@ func TestServer_StreamAggregatedResources_IngressEmptyResponse(t *testing.T) {
 		CfgMgr:       mgr,
 		ResolveToken: aclResolve,
 	}
-	s.Initialize()
 
 	sid := structs.NewServiceID("ingress-gateway", nil)
 

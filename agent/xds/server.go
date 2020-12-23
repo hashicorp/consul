@@ -125,13 +125,6 @@ type Server struct {
 	CfgFetcher         ConfigFetcher
 }
 
-// Initialize will finish configuring the Server for first use.
-func (s *Server) Initialize() {
-	if s.AuthCheckFrequency == 0 {
-		s.AuthCheckFrequency = DefaultAuthCheckFrequency
-	}
-}
-
 // StreamAggregatedResources implements
 // envoydisco.AggregatedDiscoveryServiceServer. This is the ADS endpoint which is
 // the only xDS API we directly support for now.
