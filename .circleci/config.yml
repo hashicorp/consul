@@ -237,7 +237,7 @@ jobs:
           command: |
             mkdir -p $TEST_RESULTS_DIR /tmp/jsonfile
             pkgs="$(go list ./... | \
-              grep -E -v '^github.com/hashicorp/consul/agent(/consul|/local|/xds|/routine-leak-checker)?$' | \
+              grep -E -v '^github.com/hashicorp/consul/agent(/consul|/local|/routine-leak-checker)?$' | \
               grep -E -v '^github.com/hashicorp/consul/command/')"
             gotestsum \
               --jsonfile /tmp/jsonfile/go-test-race.log \
