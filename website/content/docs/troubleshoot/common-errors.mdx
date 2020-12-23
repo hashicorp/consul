@@ -10,6 +10,8 @@ When installing and running Consul, there are some common messages you might see
 
 If you are getting an error message you don't see listed on this page, please consider following our general [Troubleshooting Guide][troubleshooting].
 
+For common errors messages related to Kubernetes, please go to [Common errors on Kubernetes](#common-errors-on-kubernetes).
+
 ## Configuration file errors
 
 ### Multiple network interfaces
@@ -146,6 +148,40 @@ License: expiration time: YYYY-MM-DD HH:MM:SS -0500 EST, time left: 29m0s
 You have installed an Enterprise version of Consul. If you are an Enterprise customer, [provide a license key][license] to Consul before it shuts down. Otherwise, install the open-source Consul binary instead.
 
 -> **Note:** Enterprise binaries can be identified on our [download site][releases] by the `+ent` suffix.
+
+## Common errors on Kubernetes
+
+### Unable to connect to the Consul client on the same host
+
+```text
+Put http://10.20.62.49:8500/v1/catalog/register: dial tcp 10.20.62.49:8500: connect: connection refused
+```
+
+```text
+Put http://172.16.30.51:8500/v1/agent/service/register: dial tcp 172.16.30.51:8500: connect: connection refused
+```
+
+```text
+Get http://10.137.120.213:8500/v1/status/leader: dial tcp 10.137.120.213:8500: i/o timeout
+```
+
+If you're seeing `i/o timeout` or `connection refused` errors when connecting to the Consul client on the Kubernetes worker,
+this could be because the CNI (Container Networking Interface) does not [support](https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/network-plugins/#support-hostport)
+the use of `hostPort`. To work around this issue,
+enable [`hostNetwork`](/docs/k8s/helm#v-client-hostnetwork) in your Helm values.
+Using the host network will enable the pod to use the host's network namespace without
+the need for CNI to support port mappings between containers and the host.
+
+```yaml
+client:
+  hostNetwork: true
+  dnsPolicy: ClusterFirstWithHostNet
+```
+
+-> **Note:** Using host network has security implications
+as doing so gives the Consul client unnecessary access to all network traffic on the host.
+We recommend raising an issue with the CNI you're using to add support for `hostPort`
+and switching back to `hostPort` eventually.
 
 [troubleshooting]: https://learn.hashicorp.com/consul/day-2-operations/advanced-operations/troubleshooting
 [node_name]: /docs/agent/options#node_name
