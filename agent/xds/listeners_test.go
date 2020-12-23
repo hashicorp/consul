@@ -9,12 +9,13 @@ import (
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/proxycfg"
+	"github.com/hashicorp/consul/agent/proxycfg/proxycfgtest"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/sdk/testutil"
-	testinf "github.com/mitchellh/go-testing-interface"
-	"github.com/stretchr/testify/require"
 )
 
 func TestListenersFromSnapshot(t *testing.T) {
@@ -24,7 +25,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 
 	tests := []struct {
 		name   string
-		create func(t testinf.T) *proxycfg.ConfigSnapshot
+		create func(t *testing.T) *proxycfg.ConfigSnapshot
 		// Setup is called before the test starts. It is passed the snapshot from
 		// TestConfigSnapshot and is allowed to modify it in any way to setup the
 		// test input.
@@ -33,26 +34,26 @@ func TestListenersFromSnapshot(t *testing.T) {
 	}{
 		{
 			name:   "defaults",
-			create: proxycfg.TestConfigSnapshot,
+			create: proxycfgtest.TestConfigSnapshot,
 			setup:  nil, // Default snapshot
 		},
 		{
 			name:   "listener-bind-address",
-			create: proxycfg.TestConfigSnapshot,
+			create: proxycfgtest.TestConfigSnapshot,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Config["bind_address"] = "127.0.0.2"
 			},
 		},
 		{
 			name:   "listener-bind-port",
-			create: proxycfg.TestConfigSnapshot,
+			create: proxycfgtest.TestConfigSnapshot,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Config["bind_port"] = 8888
 			},
 		},
 		{
 			name:   "listener-bind-address-port",
-			create: proxycfg.TestConfigSnapshot,
+			create: proxycfgtest.TestConfigSnapshot,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Config["bind_address"] = "127.0.0.2"
 				snap.Proxy.Config["bind_port"] = 8888
@@ -60,21 +61,21 @@ func TestListenersFromSnapshot(t *testing.T) {
 		},
 		{
 			name:   "http-public-listener",
-			create: proxycfg.TestConfigSnapshot,
+			create: proxycfgtest.TestConfigSnapshot,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Config["protocol"] = "http"
 			},
 		},
 		{
 			name:   "http-upstream",
-			create: proxycfg.TestConfigSnapshot,
+			create: proxycfgtest.TestConfigSnapshot,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Upstreams[0].Config["protocol"] = "http"
 			},
 		},
 		{
 			name:   "custom-public-listener",
-			create: proxycfg.TestConfigSnapshot,
+			create: proxycfgtest.TestConfigSnapshot,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Config["envoy_public_listener_json"] =
 					customListenerJSON(t, customListenerJSONOptions{
@@ -85,7 +86,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		},
 		{
 			name:   "custom-public-listener-http",
-			create: proxycfg.TestConfigSnapshot,
+			create: proxycfgtest.TestConfigSnapshot,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Config["protocol"] = "http"
 				snap.Proxy.Config["envoy_public_listener_json"] =
@@ -96,7 +97,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		},
 		{
 			name:   "custom-public-listener-http-typed",
-			create: proxycfg.TestConfigSnapshot,
+			create: proxycfgtest.TestConfigSnapshot,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Config["protocol"] = "http"
 				snap.Proxy.Config["envoy_public_listener_json"] =
@@ -108,7 +109,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		},
 		{
 			name:   "custom-public-listener-http-2",
-			create: proxycfg.TestConfigSnapshot,
+			create: proxycfgtest.TestConfigSnapshot,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Config["protocol"] = "http"
 				snap.Proxy.Config["envoy_public_listener_json"] =
@@ -120,7 +121,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		},
 		{
 			name:   "custom-public-listener-http-2-typed",
-			create: proxycfg.TestConfigSnapshot,
+			create: proxycfgtest.TestConfigSnapshot,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Config["protocol"] = "http"
 				snap.Proxy.Config["envoy_public_listener_json"] =
@@ -133,7 +134,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		},
 		{
 			name:   "custom-public-listener-http-missing",
-			create: proxycfg.TestConfigSnapshot,
+			create: proxycfgtest.TestConfigSnapshot,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Config["protocol"] = "http"
 				snap.Proxy.Config["envoy_public_listener_json"] =
@@ -145,7 +146,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		},
 		{
 			name:               "custom-public-listener-typed",
-			create:             proxycfg.TestConfigSnapshot,
+			create:             proxycfgtest.TestConfigSnapshot,
 			overrideGoldenName: "custom-public-listener", // should be the same
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Config["envoy_public_listener_json"] =
@@ -157,7 +158,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		},
 		{
 			name:               "custom-public-listener-ignores-tls",
-			create:             proxycfg.TestConfigSnapshot,
+			create:             proxycfgtest.TestConfigSnapshot,
 			overrideGoldenName: "custom-public-listener", // should be the same
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Config["envoy_public_listener_json"] =
@@ -171,7 +172,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		},
 		{
 			name:   "custom-upstream",
-			create: proxycfg.TestConfigSnapshot,
+			create: proxycfgtest.TestConfigSnapshot,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Upstreams[0].Config["envoy_listener_json"] =
 					customListenerJSON(t, customListenerJSONOptions{
@@ -182,7 +183,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		},
 		{
 			name:               "custom-upstream-typed",
-			create:             proxycfg.TestConfigSnapshot,
+			create:             proxycfgtest.TestConfigSnapshot,
 			overrideGoldenName: "custom-upstream", // should be the same
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Upstreams[0].Config["envoy_listener_json"] =
@@ -194,7 +195,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		},
 		{
 			name:   "custom-upstream-typed-ignored-with-disco-chain",
-			create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailover,
+			create: proxycfgtest.TestConfigSnapshotDiscoveryChainWithFailover,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Upstreams[0].Config["envoy_listener_json"] =
 					customListenerJSON(t, customListenerJSONOptions{
@@ -205,18 +206,18 @@ func TestListenersFromSnapshot(t *testing.T) {
 		},
 		{
 			name:   "splitter-with-resolver-redirect",
-			create: proxycfg.TestConfigSnapshotDiscoveryChain_SplitterWithResolverRedirectMultiDC,
+			create: proxycfgtest.TestConfigSnapshotDiscoveryChain_SplitterWithResolverRedirectMultiDC,
 			setup:  nil,
 		},
 		{
 			name:   "connect-proxy-with-tcp-chain",
-			create: proxycfg.TestConfigSnapshotDiscoveryChain,
+			create: proxycfgtest.TestConfigSnapshotDiscoveryChain,
 			setup:  nil,
 		},
 		{
 			name: "connect-proxy-with-http-chain",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChainWithEntries(t,
+			create: func(t *testing.T) *proxycfg.ConfigSnapshot {
+				return proxycfgtest.TestConfigSnapshotDiscoveryChainWithEntries(t,
 					&structs.ProxyConfigEntry{
 						Kind: structs.ProxyDefaults,
 						Name: structs.ProxyConfigGlobal,
@@ -230,8 +231,8 @@ func TestListenersFromSnapshot(t *testing.T) {
 		},
 		{
 			name: "connect-proxy-with-http2-chain",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChainWithEntries(t,
+			create: func(t *testing.T) *proxycfg.ConfigSnapshot {
+				return proxycfgtest.TestConfigSnapshotDiscoveryChainWithEntries(t,
 					&structs.ProxyConfigEntry{
 						Kind: structs.ProxyDefaults,
 						Name: structs.ProxyConfigGlobal,
@@ -245,8 +246,8 @@ func TestListenersFromSnapshot(t *testing.T) {
 		},
 		{
 			name: "connect-proxy-with-grpc-chain",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChainWithEntries(t,
+			create: func(t *testing.T) *proxycfg.ConfigSnapshot {
+				return proxycfgtest.TestConfigSnapshotDiscoveryChainWithEntries(t,
 					&structs.ProxyConfigEntry{
 						Kind: structs.ProxyDefaults,
 						Name: structs.ProxyConfigGlobal,
@@ -260,31 +261,31 @@ func TestListenersFromSnapshot(t *testing.T) {
 		},
 		{
 			name:   "connect-proxy-with-chain-external-sni",
-			create: proxycfg.TestConfigSnapshotDiscoveryChainExternalSNI,
+			create: proxycfgtest.TestConfigSnapshotDiscoveryChainExternalSNI,
 			setup:  nil,
 		},
 		{
 			name:   "connect-proxy-with-chain-and-overrides",
-			create: proxycfg.TestConfigSnapshotDiscoveryChainWithOverrides,
+			create: proxycfgtest.TestConfigSnapshotDiscoveryChainWithOverrides,
 			setup:  nil,
 		},
 		{
 			name:   "connect-proxy-with-tcp-chain-failover-through-remote-gateway",
-			create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailoverThroughRemoteGateway,
+			create: proxycfgtest.TestConfigSnapshotDiscoveryChainWithFailoverThroughRemoteGateway,
 			setup:  nil,
 		},
 		{
 			name:   "connect-proxy-with-tcp-chain-failover-through-local-gateway",
-			create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailoverThroughLocalGateway,
+			create: proxycfgtest.TestConfigSnapshotDiscoveryChainWithFailoverThroughLocalGateway,
 			setup:  nil,
 		},
 		{
 			name:   "expose-paths-local-app-paths",
-			create: proxycfg.TestConfigSnapshotExposeConfig,
+			create: proxycfgtest.TestConfigSnapshotExposeConfig,
 		},
 		{
 			name:   "expose-paths-new-cluster-http2",
-			create: proxycfg.TestConfigSnapshotExposeConfig,
+			create: proxycfgtest.TestConfigSnapshotExposeConfig,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Expose.Paths[1] = structs.ExposePath{
 					LocalPathPort: 9090,
@@ -296,19 +297,19 @@ func TestListenersFromSnapshot(t *testing.T) {
 		},
 		{
 			name:   "mesh-gateway",
-			create: proxycfg.TestConfigSnapshotMeshGateway,
+			create: proxycfgtest.TestConfigSnapshotMeshGateway,
 		},
 		{
 			name:   "mesh-gateway-using-federation-states",
-			create: proxycfg.TestConfigSnapshotMeshGatewayUsingFederationStates,
+			create: proxycfgtest.TestConfigSnapshotMeshGatewayUsingFederationStates,
 		},
 		{
 			name:   "mesh-gateway-no-services",
-			create: proxycfg.TestConfigSnapshotMeshGatewayNoServices,
+			create: proxycfgtest.TestConfigSnapshotMeshGatewayNoServices,
 		},
 		{
 			name:   "mesh-gateway-tagged-addresses",
-			create: proxycfg.TestConfigSnapshotMeshGateway,
+			create: proxycfgtest.TestConfigSnapshotMeshGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Config = map[string]interface{}{
 					"envoy_mesh_gateway_no_default_bind":       true,
@@ -318,7 +319,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		},
 		{
 			name:   "mesh-gateway-custom-addresses",
-			create: proxycfg.TestConfigSnapshotMeshGateway,
+			create: proxycfgtest.TestConfigSnapshotMeshGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Config = map[string]interface{}{
 					"envoy_mesh_gateway_bind_addresses": map[string]structs.ServiceAddress{
@@ -340,12 +341,12 @@ func TestListenersFromSnapshot(t *testing.T) {
 		},
 		{
 			name:   "ingress-gateway",
-			create: proxycfg.TestConfigSnapshotIngressGateway,
+			create: proxycfgtest.TestConfigSnapshotIngressGateway,
 			setup:  nil,
 		},
 		{
 			name:   "ingress-gateway-bind-addrs",
-			create: proxycfg.TestConfigSnapshotIngressGateway,
+			create: proxycfgtest.TestConfigSnapshotIngressGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.TaggedAddresses = map[string]structs.ServiceAddress{
 					"lan": {Address: "10.0.0.1"},
@@ -362,47 +363,47 @@ func TestListenersFromSnapshot(t *testing.T) {
 		},
 		{
 			name:   "ingress-gateway-no-services",
-			create: proxycfg.TestConfigSnapshotIngressGatewayNoServices,
+			create: proxycfgtest.TestConfigSnapshotIngressGatewayNoServices,
 			setup:  nil,
 		},
 		{
 			name:   "ingress-with-chain-external-sni",
-			create: proxycfg.TestConfigSnapshotIngressExternalSNI,
+			create: proxycfgtest.TestConfigSnapshotIngressExternalSNI,
 			setup:  nil,
 		},
 		{
 			name:   "ingress-with-chain-and-overrides",
-			create: proxycfg.TestConfigSnapshotIngressWithOverrides,
+			create: proxycfgtest.TestConfigSnapshotIngressWithOverrides,
 			setup:  nil,
 		},
 		{
 			name:   "ingress-with-tcp-chain-failover-through-remote-gateway",
-			create: proxycfg.TestConfigSnapshotIngressWithFailoverThroughRemoteGateway,
+			create: proxycfgtest.TestConfigSnapshotIngressWithFailoverThroughRemoteGateway,
 			setup:  nil,
 		},
 		{
 			name:   "ingress-with-tcp-chain-failover-through-local-gateway",
-			create: proxycfg.TestConfigSnapshotIngressWithFailoverThroughLocalGateway,
+			create: proxycfgtest.TestConfigSnapshotIngressWithFailoverThroughLocalGateway,
 			setup:  nil,
 		},
 		{
 			name:   "ingress-splitter-with-resolver-redirect",
-			create: proxycfg.TestConfigSnapshotIngress_SplitterWithResolverRedirectMultiDC,
+			create: proxycfgtest.TestConfigSnapshotIngress_SplitterWithResolverRedirectMultiDC,
 			setup:  nil,
 		},
 		{
 			name:   "terminating-gateway",
-			create: proxycfg.TestConfigSnapshotTerminatingGateway,
+			create: proxycfgtest.TestConfigSnapshotTerminatingGateway,
 			setup:  nil,
 		},
 		{
 			name:   "terminating-gateway-no-services",
-			create: proxycfg.TestConfigSnapshotTerminatingGatewayNoServices,
+			create: proxycfgtest.TestConfigSnapshotTerminatingGatewayNoServices,
 			setup:  nil,
 		},
 		{
 			name:   "terminating-gateway-custom-and-tagged-addresses",
-			create: proxycfg.TestConfigSnapshotTerminatingGateway,
+			create: proxycfgtest.TestConfigSnapshotTerminatingGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Config = map[string]interface{}{
 					"envoy_gateway_no_default_bind":       true,
@@ -423,7 +424,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		},
 		{
 			name:   "terminating-gateway-service-subsets",
-			create: proxycfg.TestConfigSnapshotTerminatingGateway,
+			create: proxycfgtest.TestConfigSnapshotTerminatingGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.TerminatingGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
 					structs.NewServiceName("web", nil): {
@@ -447,7 +448,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		},
 		{
 			name:   "ingress-http-multiple-services",
-			create: proxycfg.TestConfigSnapshotIngress_HTTPMultipleServices,
+			create: proxycfgtest.TestConfigSnapshotIngress_HTTPMultipleServices,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.IngressGateway.Upstreams = map[proxycfg.IngressListenerKey]structs.Upstreams{
 					{Protocol: "http", Port: 8080}: {
@@ -475,14 +476,14 @@ func TestListenersFromSnapshot(t *testing.T) {
 		},
 		{
 			name:   "terminating-gateway-no-api-cert",
-			create: proxycfg.TestConfigSnapshotTerminatingGateway,
+			create: proxycfgtest.TestConfigSnapshotTerminatingGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.TerminatingGateway.ServiceLeaves[structs.NewServiceName("api", nil)] = nil
 			},
 		},
 		{
 			name:   "ingress-with-tls-listener",
-			create: proxycfg.TestConfigSnapshotIngressWithTLSListener,
+			create: proxycfgtest.TestConfigSnapshotIngressWithTLSListener,
 			setup:  nil,
 		},
 	}
