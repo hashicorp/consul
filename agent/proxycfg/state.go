@@ -9,13 +9,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
+	"github.com/mitchellh/copystructure"
+	"github.com/mitchellh/mapstructure"
+
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/go-hclog"
-	"github.com/mitchellh/copystructure"
-	"github.com/mitchellh/mapstructure"
 )
 
 type CacheNotifier interface {
@@ -1140,7 +1141,8 @@ func (s *state) handleUpdateTerminatingGateway(u cache.UpdateEvent, snap *Config
 
 		if len(resp.Nodes) > 0 {
 			snap.TerminatingGateway.ServiceGroups[sn] = resp.Nodes
-			snap.TerminatingGateway.HostnameServices[sn] = s.hostnameEndpoints(logging.TerminatingGateway, snap.Datacenter, resp.Nodes)
+			snap.TerminatingGateway.HostnameServices[sn] = hostnameEndpoints(
+				s.logger.Named(logging.TerminatingGateway), snap.Datacenter, resp.Nodes)
 		}
 
 	// Store leaf cert for watched service
@@ -1220,7 +1222,8 @@ func (s *state) handleUpdateMeshGateway(u cache.UpdateEvent, snap *ConfigSnapsho
 		snap.MeshGateway.FedStateGateways = dcIndexedNodes.DatacenterNodes
 
 		for dc, nodes := range dcIndexedNodes.DatacenterNodes {
-			snap.MeshGateway.HostnameDatacenters[dc] = s.hostnameEndpoints(logging.MeshGateway, snap.Datacenter, nodes)
+			snap.MeshGateway.HostnameDatacenters[dc] = hostnameEndpoints(
+				s.logger.Named(logging.MeshGateway), snap.Datacenter, nodes)
 		}
 
 		for dc := range snap.MeshGateway.HostnameDatacenters {
@@ -1389,7 +1392,8 @@ func (s *state) handleUpdateMeshGateway(u cache.UpdateEvent, snap *ConfigSnapsho
 
 			if len(resp.Nodes) > 0 {
 				snap.MeshGateway.GatewayGroups[dc] = resp.Nodes
-				snap.MeshGateway.HostnameDatacenters[dc] = s.hostnameEndpoints(logging.MeshGateway, snap.Datacenter, resp.Nodes)
+				snap.MeshGateway.HostnameDatacenters[dc] = hostnameEndpoints(
+					s.logger.Named(logging.MeshGateway), snap.Datacenter, resp.Nodes)
 			}
 		default:
 			// do nothing for now
@@ -1611,7 +1615,7 @@ func (s *state) Changed(ns *structs.NodeService, token string) bool {
 // Envoy cannot resolve hostnames provided through EDS, so we exclusively use CDS for these clusters.
 // If there is a mix of hostnames and addresses we exclusively use the hostnames, since clusters cannot discover
 // services with both EDS and DNS.
-func (s *state) hostnameEndpoints(loggerName string, localDC string, nodes structs.CheckServiceNodes) structs.CheckServiceNodes {
+func hostnameEndpoints(logger hclog.Logger, localDC string, nodes structs.CheckServiceNodes) structs.CheckServiceNodes {
 	var (
 		hasIP       bool
 		hasHostname bool
@@ -1632,9 +1636,8 @@ func (s *state) hostnameEndpoints(loggerName string, localDC string, nodes struc
 		dc := nodes[0].Node.Datacenter
 		sn := nodes[0].Service.CompoundServiceName()
 
-		s.logger.Named(loggerName).
-			Warn("service contains instances with mix of hostnames and IP addresses; only hostnames will be passed to Envoy",
-				"dc", dc, "service", sn.String())
+		logger.Warn("service contains instances with mix of hostnames and IP addresses; only hostnames will be passed to Envoy",
+			"dc", dc, "service", sn.String())
 	}
 	return resp
 }
