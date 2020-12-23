@@ -189,14 +189,8 @@ func (m *Manager) ensureProxyServiceLocked(ns *structs.NodeService, token string
 		state.Close()
 	}
 
-	var err error
-	state, err = newState(ns, token)
-	if err != nil {
-		return err
-	}
-
 	// TODO: move to a function that translates ManagerConfig->stateConfig
-	state.stateConfig = stateConfig{
+	stateConfig := stateConfig{
 		logger:                m.Logger.With("service_id", sid.String()),
 		cache:                 m.Cache,
 		health:                m.Health,
@@ -205,7 +199,13 @@ func (m *Manager) ensureProxyServiceLocked(ns *structs.NodeService, token string
 		intentionDefaultAllow: m.IntentionDefaultAllow,
 	}
 	if m.TLSConfigurator != nil {
-		state.serverSNIFn = m.TLSConfigurator.ServerSNI
+		stateConfig.serverSNIFn = m.TLSConfigurator.ServerSNI
+	}
+
+	var err error
+	state, err = newState(ns, token, stateConfig)
+	if err != nil {
+		return err
 	}
 
 	ch, err := state.Watch()
