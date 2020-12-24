@@ -20,7 +20,7 @@ func TestIntentionListCommand_noTabs(t *testing.T) {
 func TestIntentionListCommand(t *testing.T) {
 	t.Parallel()
 	require := require.New(t)
-	a := agent.NewTestAgent(t, t.Name(), ``)
+	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
 
@@ -28,6 +28,7 @@ func TestIntentionListCommand(t *testing.T) {
 	var id string
 	{
 		var err error
+		//nolint:staticcheck
 		id, _, err = client.Connect().IntentionCreate(&api.Intention{
 			SourceName:      "web",
 			DestinationName: "db",
