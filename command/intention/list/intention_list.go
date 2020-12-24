@@ -77,9 +77,9 @@ func (c *cmd) Help() string {
 	return c.help
 }
 
-const synopsis = "List connect intentions"
+const synopsis = "List intentions."
 const help = `
 Usage: consul intention list
 
-  List all consul connect intentions.
+  List all intentions.
 `
