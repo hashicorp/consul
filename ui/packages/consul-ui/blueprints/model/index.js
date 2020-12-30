@@ -1,7 +1,5 @@
-/*eslint node/no-extraneous-require: "off"*/
 'use strict';
 
-const path = require('path');
 module.exports = {
   description: 'Generates a Consul HTTP ember-data model',
 

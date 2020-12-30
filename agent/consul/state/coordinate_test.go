@@ -28,6 +28,10 @@ func generateRandomCoordinate() *coordinate.Coordinate {
 }
 
 func TestStateStore_Coordinate_Updates(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	s := testStateStore(t)
 
 	// Make sure the coordinates list starts out empty, and that a query for

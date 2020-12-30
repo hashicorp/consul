@@ -1,0 +1,11 @@
+@import './skin';
+@import './layout';
+
+.informed-action {
+  @extend %informed-action;
+}
+%informed-action {
+  & > ul > li > * {
+    @extend %internal-button;
+  }
+}

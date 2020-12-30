@@ -3,6 +3,10 @@
 <EventSource @src={{leader}} />
 {{#let (hash
   statuses=(if status (split status ',') undefined)
+  searchproperties=(if (not-eq searchproperty undefined)
+    (split searchproperty ',')
+    (array 'Node' 'Address' 'Meta')
+  )
 ) as |filters|}}
 {{#let (or sortBy "Status:asc") as |sort|}}
   <AppView>
@@ -23,19 +27,27 @@
 
           @filter={{filters}}
           @onfilter={{hash
+            searchproperty=(action (mut searchproperty) value="target.selectedItems")
             status=(action (mut status) value="target.selectedItems")
           }}
         />
     {{/if}}
     </BlockSlot>
     <BlockSlot @name="content">
-{{#let (filter (filter-predicate 'node' filters) items) as |filtered|}}
-  {{#let (sort-by (comparator 'node' sort) filtered) as |sorted|}}
-      <ChangeableSet @dispatcher={{searchable 'node' sorted}} @terms={{search}}>
-        <BlockSlot @name="set" as |searched|>
-          <Consul::Node::List @items={{searched}} @leader={{leader}} />
-        </BlockSlot>
-        <BlockSlot @name="empty">
+      <DataCollection
+        @type="node"
+        @sort={{sort}}
+        @filters={{filters}}
+        @search={{search}}
+        @items={{items}}
+      as |collection|>
+        <collection.Collection>
+          <Consul::Node::List
+            @items={{collection.items}}
+            @leader={{leader}}
+          />
+        </collection.Collection>
+        <collection.Empty>
           <EmptyState>
             <BlockSlot @name="body">
               <p>
@@ -43,10 +55,8 @@
               </p>
             </BlockSlot>
           </EmptyState>
-        </BlockSlot>
-      </ChangeableSet>
-  {{/let}}
-{{/let}}
+        </collection.Empty>
+      </DataCollection>
     </BlockSlot>
   </AppView>
   {{/let}}

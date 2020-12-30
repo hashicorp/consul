@@ -33,6 +33,10 @@ func TestService_Name(t *testing.T) {
 }
 
 func TestService_Dial(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	ca := connect.TestCA(t, nil)
 
 	tests := []struct {
@@ -125,6 +129,10 @@ func TestService_Dial(t *testing.T) {
 }
 
 func TestService_ServerTLSConfig(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	require := require.New(t)
 
 	a := agent.StartTestAgent(t, agent.TestAgent{Name: "007", Overrides: `

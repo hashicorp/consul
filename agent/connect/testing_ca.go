@@ -56,7 +56,7 @@ func ValidateLeaf(caPEM string, leafPEM string, intermediatePEMs []string) error
 	return err
 }
 
-func testCA(t testing.T, xc *structs.CARoot, keyType string, keyBits int) *structs.CARoot {
+func testCA(t testing.T, xc *structs.CARoot, keyType string, keyBits int, ttl time.Duration) *structs.CARoot {
 	var result structs.CARoot
 	result.Active = true
 	result.Name = fmt.Sprintf("Test CA %d", atomic.AddUint64(&testCACounter, 1))
@@ -76,6 +76,14 @@ func testCA(t testing.T, xc *structs.CARoot, keyType string, keyBits int) *struc
 	id := &SpiffeIDSigning{ClusterID: TestClusterID, Domain: "consul"}
 
 	// Create the CA cert
+	now := time.Now()
+	before := now
+	after := now
+	if ttl != 0 {
+		after = after.Add(ttl)
+	} else {
+		after = after.AddDate(10, 0, 0)
+	}
 	template := x509.Certificate{
 		SerialNumber:          sn,
 		Subject:               pkix.Name{CommonName: result.Name},
@@ -85,8 +93,8 @@ func testCA(t testing.T, xc *structs.CARoot, keyType string, keyBits int) *struc
 			x509.KeyUsageCRLSign |
 			x509.KeyUsageDigitalSignature,
 		IsCA:           true,
-		NotAfter:       time.Now().AddDate(10, 0, 0),
-		NotBefore:      time.Now(),
+		NotAfter:       after,
+		NotBefore:      before,
 		AuthorityKeyId: testKeyID(t, signer.Public()),
 		SubjectKeyId:   testKeyID(t, signer.Public()),
 	}
@@ -159,13 +167,19 @@ func testCA(t testing.T, xc *structs.CARoot, keyType string, keyBits int) *struc
 // that is cross-signed with the previous cert, and this will be set as
 // SigningCert.
 func TestCA(t testing.T, xc *structs.CARoot) *structs.CARoot {
-	return testCA(t, xc, DefaultPrivateKeyType, DefaultPrivateKeyBits)
+	return testCA(t, xc, DefaultPrivateKeyType, DefaultPrivateKeyBits, 0)
+}
+
+// TestCAWithTTL is similar to TestCA, except that it
+// takes a custom duration for the lifetime of the certificate.
+func TestCAWithTTL(t testing.T, xc *structs.CARoot, ttl time.Duration) *structs.CARoot {
+	return testCA(t, xc, DefaultPrivateKeyType, DefaultPrivateKeyBits, ttl)
 }
 
 // TestCAWithKeyType is similar to TestCA, except that it
 // takes two additional arguments to override the default private key type and size.
 func TestCAWithKeyType(t testing.T, xc *structs.CARoot, keyType string, keyBits int) *structs.CARoot {
-	return testCA(t, xc, keyType, keyBits)
+	return testCA(t, xc, keyType, keyBits, 0)
 }
 
 // testCertID is an interface to be implemented the various spiffe ID / CertURI types

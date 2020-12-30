@@ -18,6 +18,10 @@ import (
 )
 
 func TestHealth_ChecksInState(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -65,6 +69,10 @@ func TestHealth_ChecksInState(t *testing.T) {
 }
 
 func TestHealth_ChecksInState_NodeMetaFilter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -161,6 +169,10 @@ func TestHealth_ChecksInState_NodeMetaFilter(t *testing.T) {
 }
 
 func TestHealth_ChecksInState_DistanceSort(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -239,6 +251,10 @@ func TestHealth_ChecksInState_DistanceSort(t *testing.T) {
 }
 
 func TestHealth_NodeChecks(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -281,6 +297,10 @@ func TestHealth_NodeChecks(t *testing.T) {
 }
 
 func TestHealth_ServiceChecks(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -328,6 +348,10 @@ func TestHealth_ServiceChecks(t *testing.T) {
 }
 
 func TestHealth_ServiceChecks_NodeMetaFilter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -434,6 +458,10 @@ func TestHealth_ServiceChecks_NodeMetaFilter(t *testing.T) {
 }
 
 func TestHealth_ServiceChecks_DistanceSort(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -523,6 +551,10 @@ func TestHealth_ServiceChecks_DistanceSort(t *testing.T) {
 }
 
 func TestHealth_ServiceNodes(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -646,6 +678,10 @@ func TestHealth_ServiceNodes(t *testing.T) {
 }
 
 func TestHealth_ServiceNodes_MultipleServiceTags(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -708,6 +744,10 @@ func TestHealth_ServiceNodes_MultipleServiceTags(t *testing.T) {
 }
 
 func TestHealth_ServiceNodes_NodeMetaFilter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -839,6 +879,10 @@ func TestHealth_ServiceNodes_NodeMetaFilter(t *testing.T) {
 }
 
 func TestHealth_ServiceNodes_DistanceSort(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -928,6 +972,10 @@ func TestHealth_ServiceNodes_DistanceSort(t *testing.T) {
 }
 
 func TestHealth_ServiceNodes_ConnectProxy_ACL(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	assert := assert.New(t)
@@ -1031,6 +1079,10 @@ node "foo" {
 }
 
 func TestHealth_ServiceNodes_Gateway(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	dir1, s1 := testServer(t)
@@ -1146,6 +1198,10 @@ func TestHealth_ServiceNodes_Gateway(t *testing.T) {
 	})
 }
 func TestHealth_ServiceNodes_Ingress(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -1232,6 +1288,10 @@ func TestHealth_ServiceNodes_Ingress(t *testing.T) {
 }
 
 func TestHealth_ServiceNodes_Ingress_ACL(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -1373,6 +1433,10 @@ func TestHealth_ServiceNodes_Ingress_ACL(t *testing.T) {
 }
 
 func TestHealth_NodeChecks_FilterACL(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir, token, srv, codec := testACLFilterServer(t)
 	defer os.RemoveAll(dir)
@@ -1409,6 +1473,10 @@ func TestHealth_NodeChecks_FilterACL(t *testing.T) {
 }
 
 func TestHealth_ServiceChecks_FilterACL(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir, token, srv, codec := testACLFilterServer(t)
 	defer os.RemoveAll(dir)
@@ -1452,6 +1520,10 @@ func TestHealth_ServiceChecks_FilterACL(t *testing.T) {
 }
 
 func TestHealth_ServiceNodes_FilterACL(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir, token, srv, codec := testACLFilterServer(t)
 	defer os.RemoveAll(dir)
@@ -1488,6 +1560,10 @@ func TestHealth_ServiceNodes_FilterACL(t *testing.T) {
 }
 
 func TestHealth_ChecksInState_FilterACL(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir, token, srv, codec := testACLFilterServer(t)
 	defer os.RemoveAll(dir)
@@ -1525,6 +1601,10 @@ func TestHealth_ChecksInState_FilterACL(t *testing.T) {
 }
 
 func TestHealth_RPC_Filter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)

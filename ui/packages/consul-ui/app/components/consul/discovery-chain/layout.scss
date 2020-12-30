@@ -25,17 +25,6 @@
 %discovery-chain [id*=':']:not(path):hover {
   @extend %chain-node-active;
 }
-%discovery-chain .tooltip {
-  position: fixed;
-  z-index: 5;
-}
-%discovery-chain .tooltip.active > [role='tooltip'],
-%discovery-chain .tooltip.active > [role='tooltip']::after {
-  @extend %blink-in-fade-out-active;
-}
-%resolver-card dt {
-  @extend %with-pseudo-tooltip, %tooltip-right;
-}
 
 %discovery-chain {
   position: relative;
@@ -48,6 +37,9 @@
 %chain-group {
   padding: 10px 1% 10px 1%;
   width: 32%;
+}
+%chain-group > header {
+  height: 18px;
 }
 %chain-group > header span {
   position: relative;
@@ -102,7 +94,8 @@
 }
 %route-card section header {
   display: block;
-  width: 33px;
+  width: 19px;
+  margin-right: 14px
 }
 /**/
 /* resolver */

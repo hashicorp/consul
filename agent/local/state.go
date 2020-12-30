@@ -11,13 +11,14 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-hclog"
 )
 
 var StateCounters = []prometheus.CounterDefinition{
@@ -287,7 +288,6 @@ func (l *State) AddServiceWithChecks(service *structs.NodeService, checks []*str
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -399,12 +399,14 @@ func (l *State) SetServiceState(s *ServiceState) {
 }
 
 func (l *State) setServiceStateLocked(s *ServiceState) {
-	s.WatchCh = make(chan struct{}, 1)
-
 	key := s.Service.CompoundServiceID()
 	old, hasOld := l.services[key]
+	if hasOld {
+		s.InSync = s.Service.IsSame(old.Service)
+	}
 	l.services[key] = s
 
+	s.WatchCh = make(chan struct{}, 1)
 	if hasOld && old.WatchCh != nil {
 		close(old.WatchCh)
 	}
@@ -722,7 +724,13 @@ func (l *State) SetCheckState(c *CheckState) {
 }
 
 func (l *State) setCheckStateLocked(c *CheckState) {
-	l.checks[c.Check.CompoundCheckID()] = c
+	id := c.Check.CompoundCheckID()
+	existing := l.checks[id]
+	if existing != nil {
+		c.InSync = c.Check.IsSame(existing.Check)
+	}
+
+	l.checks[id] = c
 
 	// If this is a check for an aliased service, then notify the waiters.
 	l.notifyIfAliased(c.Check.CompoundServiceID())
@@ -868,8 +876,8 @@ func (l *State) Stats() map[string]string {
 	}
 }
 
-// updateSyncState does a read of the server state, and updates
-// the local sync status as appropriate
+// updateSyncState queries the server for all the services and checks in the catalog
+// registered to this node, and updates the local entries as InSync or Deleted.
 func (l *State) updateSyncState() error {
 	// Get all checks and services from the master
 	req := structs.NodeSpecificRequest{

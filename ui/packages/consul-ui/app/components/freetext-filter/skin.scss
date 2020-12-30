@@ -1,0 +1,49 @@
+.freetext-filter {
+  & {
+    border: $decor-border-100;
+    border-radius: $decor-radius-100;
+
+    background-color: $white;
+    border-color: $gray-200;
+    color: $gray-400;
+  }
+  &:hover,
+  &:hover * {
+    border-color: $gray-400;
+  }
+  & *,
+  &_input::placeholder {
+    cursor: inherit;
+    color: inherit;
+    border-color: inherit;
+  }
+
+  &_input {
+    -webkit-appearance: none;
+    border: none;
+  }
+  &_label::after {
+    @extend %as-pseudo;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 16px;
+    height: 16px;
+    margin-left: -8px;
+    margin-top: -8px;
+  }
+  &_label::after {
+    @extend %with-search-mask;
+  }
+  .popover-menu {
+    background-color: $gray-050;
+    color: $gray-800;
+  }
+  .popover-menu {
+    border-left: 1px solid;
+    border-color: inherit;
+  }
+  .popover-menu > [type='checkbox']:checked + label button {
+    background-color: $gray-200;
+  }
+}

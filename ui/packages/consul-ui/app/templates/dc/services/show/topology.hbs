@@ -1,22 +1,7 @@
-<div id="tags" class="tab-section">
+<EventSource @src={{topology}} />
+<div class="tab-section">
   <div role="tabpanel">
-  {{#if topology.FilteredByACLs}}
-    <TopologyMetrics::Notice::LimitedAccess />
-  {{/if}}
-  {{#if topology}}
-    <TopologyMetrics
-      @nspace={{nspace}}
-      @dc={{dc}}
-      @service={{items.firstObject}}
-      @topology={{topology}}
-      @metricsHref={{render-template urls.service (hash
-        Datacenter=dc
-        Service=items.firstObject
-      )}}
-
-      @oncreate={{route-action 'createIntention'}}
-    />
-  {{else}}
+  {{#if (and (eq topology.Upstreams.length 0) (eq topology.Downstreams.length 0))}}
     <EmptyState>
       <BlockSlot @name="header">
         <h2>
@@ -30,10 +15,27 @@
       </BlockSlot>
       <BlockSlot @name="actions">
         <li class="docs-link">
-          <a href="{{env 'CONSUL_DOCS_URL'}}/connect/registration/service-registration#upstream-configuration-reference" rel="noopener noreferrer" target="_blank">Documentation on upstreams</a>
+          <a href="{{env 'CONSUL_DOCS_URL'}}/connect/registration/service-registration#complete-configuration-example" rel="noopener noreferrer" target="_blank">Documentation on upstreams</a>
         </li>
       </BlockSlot>
     </EmptyState>
+  {{else}}
+    {{#if topology.FilteredByACLs}}
+      <TopologyMetrics::Notice::LimitedAccess />
+    {{/if}}
+    <TopologyMetrics
+      @nspace={{nspace}}
+      @dc={{dc.Name}}
+      @service={{items.firstObject}}
+      @topology={{topology}}
+      @metricsHref={{render-template urls.service (hash
+        Datacenter=dc.Name
+        Service=items.firstObject
+      )}}
+      @isRemoteDC={{not dc.Local}}
+      @hasMetricsProvider={{hasMetricsProvider}}
+      @oncreate={{route-action 'createIntention'}}
+    />
   {{/if}}
   </div>
 </div>

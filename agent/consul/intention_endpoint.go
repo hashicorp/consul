@@ -144,6 +144,9 @@ func (s *Intention) Apply(args *structs.IntentionRequest, reply *string) error {
 	if err != nil {
 		return err
 	}
+	if mut == nil {
+		return nil // short circuit
+	}
 
 	if legacyWrite {
 		*reply = args.Intention.ID
@@ -404,12 +407,15 @@ func (s *Intention) computeApplyChangesDelete(
 	}
 
 	// Pre-flight to avoid pointless raft operations.
-	_, _, ixn, err := s.srv.fsm.State().IntentionGetExact(nil, args.Intention.ToExact())
+	exactIxn := args.Intention.ToExact()
+	_, _, ixn, err := s.srv.fsm.State().IntentionGetExact(nil, exactIxn)
 	if err != nil {
 		return nil, fmt.Errorf("Intention lookup failed: %v", err)
 	}
 	if ixn == nil {
-		return nil, nil
+		src := structs.NewServiceName(exactIxn.SourceName, exactIxn.SourceEnterpriseMeta())
+		dst := structs.NewServiceName(exactIxn.DestinationName, exactIxn.DestinationEnterpriseMeta())
+		return nil, fmt.Errorf("Cannot delete non-existent intention: source=%q, destination=%q", src.String(), dst.String())
 	}
 
 	return &structs.IntentionMutation{

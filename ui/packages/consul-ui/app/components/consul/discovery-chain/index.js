@@ -1,7 +1,6 @@
 import Component from '@ember/component';
 import { inject as service } from '@ember/service';
 import { set, get, computed } from '@ember/object';
-import { schedule } from '@ember/runloop';
 
 import { createRoute, getSplitters, getRoutes, getResolvers } from './utils';
 
@@ -11,21 +10,22 @@ export default Component.extend({
   dataStructs: service('data-structs'),
   classNames: ['discovery-chain'],
   classNameBindings: ['active'],
-  isDisplayed: false,
   selectedId: '',
-  x: 0,
-  y: 0,
-  tooltip: '',
-  activeTooltip: false,
   init: function() {
     this._super(...arguments);
     this._listeners = this.dom.listeners();
   },
-  didReceiveAttrs: function() {
-    this._super(...arguments);
-    if (this.element) {
-      this.addPathListeners();
-    }
+  didInsertElement: function() {
+    this._listeners.add(this.dom.document(), {
+      click: e => {
+        // all route/splitter/resolver components currently
+        // have classes that end in '-card'
+        if (!this.dom.closest('[class$="-card"]', e.target)) {
+          set(this, 'active', false);
+          set(this, 'selectedId', '');
+        }
+      },
+    });
   },
   willDestroyElement: function() {
     this._super(...arguments);
@@ -72,6 +72,37 @@ export default Component.extend({
     }
     return routes;
   }),
+  nodes: computed('routes', 'splitters', 'resolvers', function() {
+    let nodes = this.resolvers.reduce((prev, item) => {
+      prev[`resolver:${item.ID}`] = item;
+      item.Children.reduce((prev, item) => {
+        prev[`resolver:${item.ID}`] = item;
+        return prev;
+      }, prev);
+      return prev;
+    }, {});
+    nodes = this.splitters.reduce((prev, item) => {
+      prev[item.ID] = item;
+      return prev;
+    }, nodes);
+    nodes = this.routes.reduce((prev, item) => {
+      prev[item.ID] = item;
+      return prev;
+    }, nodes);
+    Object.entries(nodes).forEach(([key, value]) => {
+      if (typeof value.NextNode !== 'undefined') {
+        value.NextItem = nodes[value.NextNode];
+      }
+      if (typeof value.Splits !== 'undefined') {
+        value.Splits.forEach(item => {
+          if (typeof item.NextNode !== 'undefined') {
+            item.NextItem = nodes[item.NextNode];
+          }
+        });
+      }
+    });
+    return '';
+  }),
   resolvers: computed('chain.{Nodes,Targets}', function() {
     return getResolvers(
       this.chain.Datacenter,
@@ -116,59 +147,7 @@ export default Component.extend({
       edges: edges.map(item => `#${CSS.escape(item)}`),
     };
   }),
-  width: computed('chain.{Nodes,Targets}', function() {
-    return this.element.offsetWidth;
-  }),
-  height: computed('chain.{Nodes,Targets}', function() {
-    return this.element.offsetHeight;
-  }),
-  // TODO(octane): ember has trouble adding mouse events to svg elements whilst giving
-  // the developer access to the mouse event therefore we just use JS to add our events
-  // revisit this post Octane
-  addPathListeners: function() {
-    schedule('afterRender', () => {
-      this._listeners.remove();
-      // as this is now afterRender, theoretically
-      // it could happen after the component is destroyed?
-      // watch for that incase
-      if (this.element && !this.isDestroyed) {
-        this._listeners.add(this.dom.document(), {
-          click: e => {
-            // all route/splitter/resolver components currently
-            // have classes that end in '-card'
-            if (!this.dom.closest('[class$="-card"]', e.target)) {
-              set(this, 'active', false);
-              set(this, 'selectedId', '');
-            }
-          },
-        });
-        [...this.dom.elements('path.split', this.element)].forEach(item => {
-          this._listeners.add(item, {
-            mouseover: e => this.actions.showSplit.apply(this, [e]),
-            mouseout: e => this.actions.hideSplit.apply(this, [e]),
-          });
-        });
-      }
-    });
-    // TODO: currently don't think there is a way to listen
-    // for an element being removed inside a component, possibly
-    // using IntersectionObserver. It's a tiny detail, but we just always
-    // remove the tooltip on component update as its so tiny, ideal
-    // the tooltip would stay if there was no change to the <path>
-    // set(this, 'activeTooltip', false);
-  },
   actions: {
-    showSplit: function(e) {
-      this.setProperties({
-        x: e.clientX,
-        y: e.clientY - 3,
-        tooltip: e.target.dataset.percentage,
-        activeTooltip: true,
-      });
-    },
-    hideSplit: function(e = null) {
-      set(this, 'activeTooltip', false);
-    },
     click: function(e) {
       const id = e.currentTarget.getAttribute('id');
       if (id === this.selectedId) {

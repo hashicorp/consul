@@ -189,10 +189,12 @@ export default [
       {
         category: 'installation',
         name: 'Get Started',
-        content: ['install', 'requirements', 'configuration', 'run'],
+        content: ['install', 'requirements', 'configure', 'run'],
       },
       'architecture',
+      'api',
       'cli',
+      'configuration',
       'tasks',
       'network-drivers',
     ],

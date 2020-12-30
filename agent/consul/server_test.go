@@ -328,6 +328,10 @@ func TestServer_StartStop(t *testing.T) {
 }
 
 func TestServer_fixupACLDatacenter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	_, s1 := testServerWithConfig(t, func(c *Config) {
@@ -452,6 +456,10 @@ func TestServer_JoinLAN_SerfAllowedCIDRs(t *testing.T) {
 }
 
 func TestServer_LANReap(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	configureServer := func(c *Config) {
@@ -549,6 +557,10 @@ func TestServer_JoinWAN(t *testing.T) {
 }
 
 func TestServer_WANReap(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc1"
@@ -590,6 +602,10 @@ func TestServer_WANReap(t *testing.T) {
 }
 
 func TestServer_JoinWAN_Flood(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	// Set up two servers in a WAN.
 	dir1, s1 := testServerDCBootstrap(t, "dc1", true)
@@ -629,6 +645,10 @@ func TestServer_JoinWAN_Flood(t *testing.T) {
 
 // This is a mirror of a similar test in agent/agent_test.go
 func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	gwPort := freeport.MustTake(1)
@@ -861,6 +881,10 @@ func TestServer_JoinWAN_viaMeshGateway(t *testing.T) {
 }
 
 func TestServer_JoinSeparateLanAndWanAddresses(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.NodeName = t.Name() + "-s1"
@@ -955,6 +979,10 @@ func TestServer_JoinSeparateLanAndWanAddresses(t *testing.T) {
 }
 
 func TestServer_LeaveLeader(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -1001,6 +1029,10 @@ func TestServer_LeaveLeader(t *testing.T) {
 }
 
 func TestServer_Leave(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -1051,6 +1083,10 @@ func TestServer_RPC(t *testing.T) {
 }
 
 func TestServer_JoinLAN_TLS(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	_, conf1 := testServerConfig(t)
 	conf1.VerifyIncoming = true
@@ -1085,6 +1121,10 @@ func TestServer_JoinLAN_TLS(t *testing.T) {
 }
 
 func TestServer_Expect(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	// All test servers should be in expect=3 mode, except for the 3rd one,
 	// but one with expect=0 can cause a bootstrap to occur from the other
 	// servers as currently implemented.
@@ -1134,6 +1174,10 @@ func TestServer_Expect(t *testing.T) {
 
 // Should not trigger bootstrap and new election when s3 joins, since cluster exists
 func TestServer_AvoidReBootstrap(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	dir1, s1 := testServerDCExpect(t, "dc1", 2)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -1170,6 +1214,10 @@ func TestServer_AvoidReBootstrap(t *testing.T) {
 }
 
 func TestServer_Expect_NonVoters(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerDCExpectNonVoter(t, "dc1", 2)
 	defer os.RemoveAll(dir1)
@@ -1296,6 +1344,10 @@ func testVerifyRPC(s1, s2 *Server, t *testing.T) (bool, error) {
 }
 
 func TestServer_TLSToNoTLS(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	// Set up a server with no TLS configured
 	dir1, s1 := testServer(t)
@@ -1324,6 +1376,10 @@ func TestServer_TLSToNoTLS(t *testing.T) {
 }
 
 func TestServer_TLSForceOutgoingToNoTLS(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	// Set up a server with no TLS configured
 	dir1, s1 := testServer(t)
@@ -1350,6 +1406,10 @@ func TestServer_TLSForceOutgoingToNoTLS(t *testing.T) {
 }
 
 func TestServer_TLSToFullVerify(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	// Set up a server with TLS and VerifyIncoming set
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
@@ -1383,6 +1443,10 @@ func TestServer_TLSToFullVerify(t *testing.T) {
 }
 
 func TestServer_RevokeLeadershipIdempotent(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -1395,6 +1459,10 @@ func TestServer_RevokeLeadershipIdempotent(t *testing.T) {
 }
 
 func TestServer_Reload(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	global_entry_init := &structs.ProxyConfigEntry{
@@ -1448,6 +1516,10 @@ func TestServer_Reload(t *testing.T) {
 }
 
 func TestServer_RPC_RateLimit(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	_, conf1 := testServerConfig(t)
 	conf1.RPCRate = 2
@@ -1468,6 +1540,10 @@ func TestServer_RPC_RateLimit(t *testing.T) {
 }
 
 func TestServer_CALogging(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	_, conf1 := testServerConfig(t)
 
@@ -1483,7 +1559,7 @@ func TestServer_CALogging(t *testing.T) {
 	defer s1.Shutdown()
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
-	if _, ok := s1.caProvider.(ca.NeedsLogger); !ok {
+	if _, ok := s1.caManager.provider.(ca.NeedsLogger); !ok {
 		t.Fatalf("provider does not implement NeedsLogger")
 	}
 
@@ -1499,6 +1575,10 @@ func TestServer_CALogging(t *testing.T) {
 }
 
 func TestServer_DatacenterJoinAddresses(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	conf := testClusterConfig{
 		Datacenter: "primary",
 		Servers:    3,
@@ -1517,6 +1597,10 @@ func TestServer_DatacenterJoinAddresses(t *testing.T) {
 }
 
 func TestServer_CreateACLToken(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	_, srv, codec := testACLServerWithConfig(t, nil, false)
 
 	waitForLeaderEstablishment(t, srv)

@@ -1,5 +1,6 @@
-import Model, { attr } from '@ember-data/model';
+import Model, { attr, hasMany } from '@ember-data/model';
 import { computed } from '@ember/object';
+import { fragmentArray } from 'ember-data-model-fragments/attributes';
 
 export const PRIMARY_KEY = 'uid';
 export const SLUG_KEY = 'ID';
@@ -17,8 +18,8 @@ export default class Node extends Model {
   @attr() meta; // {}
   @attr() Meta; // {}
   @attr() TaggedAddresses; // {lan, wan}
-  @attr() Services; // ServiceInstances[]
-  @attr() Checks; // Checks[]
+  @hasMany('service-instance') Services; // TODO: Rename to ServiceInstances
+  @fragmentArray('health-check') Checks;
 
   @computed('Checks.[]', 'ChecksCritical', 'ChecksPassing', 'ChecksWarning')
   get Status() {

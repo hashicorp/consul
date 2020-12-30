@@ -1,0 +1,86 @@
+%healthcheck-output {
+  display: flex;
+  padding: 20px 16px;
+  padding-right: 24px;
+}
+%healthcheck-output:not(:last-child) {
+  margin-bottom: 24px;
+}
+%healthcheck-output::before {
+  margin-right: 15px;
+}
+%healthcheck-output > div {
+  flex: 1 1 auto;
+}
+%healthcheck-output header,
+%healthcheck-output dl:last-of-type {
+  width: 100%;
+}
+%healthcheck-output header {
+  margin-bottom: 0.9em;
+}
+%healthcheck-output > div {
+  // 100% minus the width of the icon space (26)
+  width: calc(100% - 26px);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+%healthcheck-output dl {
+  min-width: 110px;
+}
+%healthcheck-output dl > * {
+  display: block;
+  width: auto;
+  position: static;
+  padding-left: 0;
+}
+%healthcheck-output dt {
+  margin-bottom: 0;
+}
+%healthcheck-output dd {
+  position: relative;
+}
+
+%healthcheck-output dl:nth-last-of-type(2) {
+  width: 50%;
+}
+%healthcheck-output dl:last-of-type {
+  margin-top: 1em;
+  margin-bottom: 0;
+}
+%healthcheck-output dl:last-of-type dt {
+  margin-bottom: 0.3em;
+}
+
+%healthcheck-output pre {
+  padding: 12px;
+  padding-right: 40px;
+  white-space: pre-wrap;
+  position: relative;
+}
+%healthcheck-output pre code {
+  word-wrap: break-word;
+}
+%healthcheck-output .copy-button {
+  position: absolute;
+  right: 0.5em;
+  top: 1em;
+}
+@media #{$--lt-spacious-healthcheck-output} {
+  %healthcheck-output {
+    padding-top: 15px;
+    padding-bottom: 15px;
+    padding-left: 14px;
+    padding-right: 19px;
+  }
+  %healthcheck-output::before {
+    margin-right: 8px;
+  }
+  %healthcheck-output dl:nth-last-of-type(2) {
+    width: 100%;
+  }
+  %healthcheck-output dl:not(:last-of-type) {
+    margin-right: 0;
+  }
+}

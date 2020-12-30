@@ -69,6 +69,10 @@ func TestSnapshotSaveCommand_Validation(t *testing.T) {
 }
 
 func TestSnapshotSaveCommand(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -101,6 +105,10 @@ func TestSnapshotSaveCommand(t *testing.T) {
 }
 
 func TestSnapshotSaveCommand_TruncatedStream(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()

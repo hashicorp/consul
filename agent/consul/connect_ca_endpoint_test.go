@@ -30,6 +30,10 @@ func testParseCert(t *testing.T, pemValue string) *x509.Certificate {
 
 // Test listing root CAs.
 func TestConnectCARoots(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	assert := assert.New(t)
@@ -74,6 +78,10 @@ func TestConnectCARoots(t *testing.T) {
 }
 
 func TestConnectCAConfig_GetSet(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	assert := assert.New(t)
@@ -145,6 +153,10 @@ func TestConnectCAConfig_GetSet(t *testing.T) {
 }
 
 func TestConnectCAConfig_GetSet_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
@@ -235,6 +247,10 @@ pY0heYeK9A6iOLrzqxSerkXXQyj5e9bE4VgUnxgPU6g=
 // signing works when requested (and is denied when not requested). This occurs
 // if the current CA is not able to cross sign external CA certificates.
 func TestConnectCAConfig_GetSetForceNoCrossSigning(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -338,6 +354,10 @@ func TestConnectCAConfig_GetSetForceNoCrossSigning(t *testing.T) {
 }
 
 func TestConnectCAConfig_TriggerRotation(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	assert := assert.New(t)
@@ -492,8 +512,171 @@ func TestConnectCAConfig_TriggerRotation(t *testing.T) {
 	}
 }
 
+func TestConnectCAConfig_UpdateSecondary(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	assert := assert.New(t)
+	require := require.New(t)
+
+	// Initialize primary as the primary DC
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "primary"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	testrpc.WaitForLeader(t, s1.RPC, "primary")
+
+	// secondary as a secondary DC
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "secondary"
+		c.PrimaryDatacenter = "primary"
+	})
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+	codec := rpcClient(t, s2)
+	defer codec.Close()
+
+	// Create the WAN link
+	joinWAN(t, s2, s1)
+	testrpc.WaitForLeader(t, s2.RPC, "secondary")
+
+	// Capture the current root
+	rootList, activeRoot, err := getTestRoots(s1, "primary")
+	require.NoError(err)
+	require.Len(rootList.Roots, 1)
+	rootCert := activeRoot
+
+	waitForActiveCARoot(t, s1, rootCert)
+	waitForActiveCARoot(t, s2, rootCert)
+
+	// Capture the current intermediate
+	rootList, activeRoot, err = getTestRoots(s2, "secondary")
+	require.NoError(err)
+	require.Len(rootList.Roots, 1)
+	require.Len(activeRoot.IntermediateCerts, 1)
+	oldIntermediatePEM := activeRoot.IntermediateCerts[0]
+
+	// Update the secondary CA config to use a new private key, which should
+	// cause a re-signing with a new intermediate.
+	_, newKey, err := connect.GeneratePrivateKey()
+	assert.NoError(err)
+	newConfig := &structs.CAConfiguration{
+		Provider: "consul",
+		Config: map[string]interface{}{
+			"PrivateKey":     newKey,
+			"RootCert":       "",
+			"RotationPeriod": 90 * 24 * time.Hour,
+		},
+	}
+	{
+		args := &structs.CARequest{
+			Datacenter: "secondary",
+			Config:     newConfig,
+		}
+		var reply interface{}
+
+		require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply))
+	}
+
+	// Make sure the new intermediate has replaced the old one in the active root,
+	// and that the root itself hasn't changed.
+	var newIntermediatePEM string
+	{
+		args := &structs.DCSpecificRequest{
+			Datacenter: "secondary",
+		}
+		var reply structs.IndexedCARoots
+		require.Nil(msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", args, &reply))
+		require.Len(reply.Roots, 1)
+		require.Len(reply.Roots[0].IntermediateCerts, 1)
+		newIntermediatePEM = reply.Roots[0].IntermediateCerts[0]
+		require.NotEqual(oldIntermediatePEM, newIntermediatePEM)
+		require.Equal(reply.Roots[0].RootCert, rootCert.RootCert)
+	}
+
+	// Verify the new config was set.
+	{
+		args := &structs.DCSpecificRequest{
+			Datacenter: "secondary",
+		}
+		var reply structs.CAConfiguration
+		require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationGet", args, &reply))
+
+		actual, err := ca.ParseConsulCAConfig(reply.Config)
+		require.NoError(err)
+		expected, err := ca.ParseConsulCAConfig(newConfig.Config)
+		require.NoError(err)
+		assert.Equal(reply.Provider, newConfig.Provider)
+		assert.Equal(actual, expected)
+	}
+
+	// Verify that new leaf certs get the new intermediate bundled
+	{
+		// Generate a CSR and request signing
+		spiffeId := connect.TestSpiffeIDServiceWithHostDC(t, "web", connect.TestClusterID+".consul", "secondary")
+		csr, _ := connect.TestCSR(t, spiffeId)
+		args := &structs.CASignRequest{
+			Datacenter: "secondary",
+			CSR:        csr,
+		}
+		var reply structs.IssuedCert
+		require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.Sign", args, &reply))
+
+		// Verify the leaf cert has the new intermediate.
+		{
+			roots := x509.NewCertPool()
+			assert.True(roots.AppendCertsFromPEM([]byte(rootCert.RootCert)))
+			leaf, err := connect.ParseCert(reply.CertPEM)
+			require.NoError(err)
+
+			intermediates := x509.NewCertPool()
+			require.True(intermediates.AppendCertsFromPEM([]byte(newIntermediatePEM)))
+
+			_, err = leaf.Verify(x509.VerifyOptions{
+				Roots:         roots,
+				Intermediates: intermediates,
+			})
+			require.NoError(err)
+		}
+
+		// Verify other fields
+		assert.Equal("web", reply.Service)
+		assert.Equal(spiffeId.URI().String(), reply.ServiceURI)
+	}
+
+	// Update a minor field in the config that doesn't trigger an intermediate refresh.
+	{
+		newConfig := &structs.CAConfiguration{
+			Provider: "consul",
+			Config: map[string]interface{}{
+				"PrivateKey":     newKey,
+				"RootCert":       "",
+				"RotationPeriod": 180 * 24 * time.Hour,
+			},
+		}
+		{
+			args := &structs.CARequest{
+				Datacenter: "secondary",
+				Config:     newConfig,
+			}
+			var reply interface{}
+
+			require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply))
+		}
+	}
+}
+
 // Test CA signing
 func TestConnectCASign(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	tests := []struct {
@@ -596,6 +779,10 @@ func BenchmarkConnectCASign(b *testing.B) {
 }
 
 func TestConnectCASign_rateLimit(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -657,6 +844,10 @@ func TestConnectCASign_rateLimit(t *testing.T) {
 }
 
 func TestConnectCASign_concurrencyLimit(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -761,6 +952,10 @@ func TestConnectCASign_concurrencyLimit(t *testing.T) {
 }
 
 func TestConnectCASignValidation(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {

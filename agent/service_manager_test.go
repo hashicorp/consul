@@ -15,6 +15,10 @@ import (
 )
 
 func TestServiceManager_RegisterService(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	require := require.New(t)
 
 	a := NewTestAgent(t, "")
@@ -62,6 +66,10 @@ func TestServiceManager_RegisterService(t *testing.T) {
 }
 
 func TestServiceManager_RegisterSidecar(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	require := require.New(t)
 
 	a := NewTestAgent(t, "")
@@ -149,6 +157,10 @@ func TestServiceManager_RegisterSidecar(t *testing.T) {
 }
 
 func TestServiceManager_RegisterMeshGateway(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	require := require.New(t)
 
 	a := NewTestAgent(t, "")
@@ -205,6 +217,10 @@ func TestServiceManager_RegisterMeshGateway(t *testing.T) {
 }
 
 func TestServiceManager_RegisterTerminatingGateway(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	require := require.New(t)
 
 	a := NewTestAgent(t, "")
@@ -261,6 +277,10 @@ func TestServiceManager_RegisterTerminatingGateway(t *testing.T) {
 }
 
 func TestServiceManager_PersistService_API(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	// This is the ServiceManager version of TestAgent_PersistService  and
 	// TestAgent_PurgeService.
 	t.Parallel()
@@ -475,6 +495,10 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 }
 
 func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	// This is the ServiceManager version of TestAgent_PersistService  and
 	// TestAgent_PurgeService but for config files.
 	t.Parallel()
@@ -644,6 +668,10 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 }
 
 func TestServiceManager_Disabled(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	require := require.New(t)
 
 	a := NewTestAgent(t, "enable_central_service_config = false")

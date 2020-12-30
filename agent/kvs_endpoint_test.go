@@ -14,6 +14,10 @@ import (
 )
 
 func TestKVSEndpoint_PUT_GET_DELETE(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -73,6 +77,10 @@ func TestKVSEndpoint_PUT_GET_DELETE(t *testing.T) {
 }
 
 func TestKVSEndpoint_Recurse(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -149,6 +157,10 @@ func TestKVSEndpoint_Recurse(t *testing.T) {
 }
 
 func TestKVSEndpoint_DELETE_CAS(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -215,6 +227,10 @@ func TestKVSEndpoint_DELETE_CAS(t *testing.T) {
 }
 
 func TestKVSEndpoint_CAS(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -291,6 +307,10 @@ func TestKVSEndpoint_CAS(t *testing.T) {
 }
 
 func TestKVSEndpoint_ListKeys(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -340,6 +360,10 @@ func TestKVSEndpoint_ListKeys(t *testing.T) {
 }
 
 func TestKVSEndpoint_AcquireRelease(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -399,6 +423,10 @@ func TestKVSEndpoint_AcquireRelease(t *testing.T) {
 }
 
 func TestKVSEndpoint_GET_Raw(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -429,6 +457,10 @@ func TestKVSEndpoint_GET_Raw(t *testing.T) {
 }
 
 func TestKVSEndpoint_PUT_ConflictingFlags(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -448,6 +480,10 @@ func TestKVSEndpoint_PUT_ConflictingFlags(t *testing.T) {
 }
 
 func TestKVSEndpoint_DELETE_ConflictingFlags(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()

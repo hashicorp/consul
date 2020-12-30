@@ -3,11 +3,12 @@ package cachetype
 import (
 	"errors"
 	"fmt"
-	"sort"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -16,9 +17,14 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbcommon"
 	"github.com/hashicorp/consul/proto/pbsubscribe"
+	"github.com/hashicorp/consul/types"
 )
 
 func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	namespace := pbcommon.DefaultEnterpriseMeta.Namespace
 	client := NewTestStreamingClient(namespace)
 	typ := StreamingHealthServices{deps: MaterializerDeps{
@@ -226,7 +232,61 @@ func getNamespace(ns string) string {
 	return meta.GetNamespace()
 }
 
+func TestOrderingConsistentWithMemDb(t *testing.T) {
+	index := uint64(42)
+	buildTestNode := func(nodeName string, serviceID string) structs.CheckServiceNode {
+		newID, err := uuid.GenerateUUID()
+		require.NoError(t, err)
+		return structs.CheckServiceNode{
+			Node: &structs.Node{
+				ID:         types.NodeID(strings.ToUpper(newID)),
+				Node:       nodeName,
+				Address:    nodeName,
+				Datacenter: "dc1",
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: index,
+					ModifyIndex: index,
+				},
+			},
+			Service: &structs.NodeService{
+				ID:      serviceID,
+				Service: "testService",
+				Port:    8080,
+				Weights: &structs.Weights{
+					Passing: 1,
+					Warning: 1,
+				},
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: index,
+					ModifyIndex: index,
+				},
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			},
+			Checks: []*structs.HealthCheck{},
+		}
+	}
+	zero := buildTestNode("a-zero-node", "testService:1")
+	one := buildTestNode("node1", "testService:1")
+	two := buildTestNode("node1", "testService:2")
+	three := buildTestNode("node2", "testService")
+	result := structs.IndexedCheckServiceNodes{
+		Nodes: structs.CheckServiceNodes{
+			three, two, zero, one,
+		},
+		QueryMeta: structs.QueryMeta{
+			Index: index,
+		},
+	}
+	sortCheckServiceNodes(&result)
+	expected := structs.CheckServiceNodes{zero, one, two, three}
+	require.Equal(t, expected, result.Nodes)
+}
+
 func TestStreamingHealthServices_FullSnapshot(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	namespace := getNamespace("ns2")
 	client := NewTestStreamingClient(namespace)
 	typ := StreamingHealthServices{deps: MaterializerDeps{
@@ -261,7 +321,7 @@ func TestStreamingHealthServices_FullSnapshot(t *testing.T) {
 		for _, csn := range r.Nodes {
 			nodes = append(nodes, csn.Node.Node)
 		}
-		sort.Strings(nodes)
+		// Result will be sorted alphabetically the same way as memdb
 		return nodes
 	}
 

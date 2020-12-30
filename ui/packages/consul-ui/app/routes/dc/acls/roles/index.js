@@ -9,6 +9,10 @@ export default class IndexRoute extends Route.extend(WithRoleActions) {
 
   queryParams = {
     sortBy: 'sort',
+    searchproperty: {
+      as: 'searchproperty',
+      empty: [['Name', 'Description', 'Policy']],
+    },
     search: {
       as: 'filter',
       replace: true,

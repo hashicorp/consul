@@ -1,8 +1,25 @@
 import Model, { attr } from '@ember-data/model';
-import { computed, get } from '@ember/object';
+import { computed } from '@ember/object';
+import { tracked } from '@glimmer/tracking';
 
 export const PRIMARY_KEY = 'uid';
 export const SLUG_KEY = 'Name';
+
+export const Collection = class Collection {
+  @tracked items;
+
+  constructor(items) {
+    this.items = items;
+  }
+
+  get ExternalSources() {
+    const sources = this.items.reduce(function(prev, item) {
+      return prev.concat(item.ExternalSources || []);
+    }, []);
+    // unique, non-empty values, alpha sort
+    return [...new Set(sources)].filter(Boolean).sort();
+  }
+};
 
 export default class Service extends Model {
   @attr('string') uid;

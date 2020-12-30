@@ -2,6 +2,7 @@
   class="route-card"
   onclick={{@onclick}}
   id={{@item.ID}}
+  ...attributes
 >
   <header class={{if (eq this.path.value '/') 'short'}}>
 {{#if (gt @item.Definition.Match.HTTP.Methods.length 0) }}
@@ -22,7 +23,7 @@
   </header>
 {{#if (gt @item.Definition.Match.HTTP.Header.length 0) }}
   <section class="match-headers">
-    <header data-tooltip="Header">
+    <header {{tooltip 'Header'}}>
       <h4>Headers</h4>
     </header>
     <dl>
@@ -39,7 +40,7 @@
 {{/if}}
 {{#if (gt @item.Definition.Match.HTTP.QueryParam.length 0) }}
   <section class="match-queryparams">
-    <header data-tooltip="Query Params">
+    <header {{tooltip 'Query Params'}}>
       <h4>Query Params</h4>
     </header>
     <dl>

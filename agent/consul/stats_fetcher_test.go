@@ -14,6 +14,10 @@ import (
 )
 
 func TestStatsFetcher(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	dir1, s1 := testServerDCExpect(t, "dc1", 3)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()

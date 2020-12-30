@@ -79,6 +79,10 @@ func TestUpstreamResolverFuncFromClient(t *testing.T) {
 }
 
 func TestAgentConfigWatcherSidecarProxy(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	a := agent.StartTestAgent(t, agent.TestAgent{Name: "agent_smith"})
 	defer a.Shutdown()
 

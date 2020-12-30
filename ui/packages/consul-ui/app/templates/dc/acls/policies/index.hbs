@@ -6,6 +6,10 @@
 {{#let (hash
   kinds=(if kind (split kind ',') undefined)
   dcs=(if dc (split dc ',') undefined)
+  searchproperties=(if (not-eq searchproperty undefined)
+    (split searchproperty ',')
+    (array 'Name' 'Description')
+  )
 ) as |filters|}}
   {{#let (or sortBy "Name:asc") as |sort|}}
     <AppView
@@ -44,6 +48,7 @@
 
           @filter={{filters}}
           @onfilter={{hash
+            searchproperty=(action (mut searchproperty) value="target.selectedItems")
             dc=(action (mut dc) value="target.selectedItems")
             kind=(action (mut kind) value="target.selectedItems")
           }}
@@ -51,16 +56,20 @@
       {{/if}}
       </BlockSlot>
       <BlockSlot @name="content">
-{{#let (filter (filter-predicate 'policy' filters) items) as |filtered|}}
-  {{#let (sort-by (comparator 'policy' sort) filtered) as |sorted|}}
-        <ChangeableSet @dispatcher={{searchable 'policy' sorted}} @terms={{search}}>
-          <BlockSlot @name="set" as |searched|>
+        <DataCollection
+          @type="role"
+          @sort={{sort}}
+          @filters={{filters}}
+          @search={{search}}
+          @items={{items}}
+        as |collection|>
+          <collection.Collection>
             <Consul::Policy::List
-              @items={{searched}}
-              @ondelete={{action send 'delete'}}
+              @items={{collection.items}}
+              @ondelete={{route-action 'delete'}}
             />
-          </BlockSlot>
-          <BlockSlot @name="empty">
+          </collection.Collection>
+          <collection.Empty>
             <EmptyState @allowLogin={{true}}>
               <BlockSlot @name="header">
                 <h2>
@@ -89,10 +98,8 @@
                 </li>
               </BlockSlot>
             </EmptyState>
-          </BlockSlot>
-        </ChangeableSet>
-  {{/let}}
-{{/let}}
+          </collection.Empty>
+        </DataCollection>
       </BlockSlot>
     </AppView>
   {{/let}}

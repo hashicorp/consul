@@ -23,7 +23,7 @@ export default class TomographyGraph extends Component {
   }
 
   get distances() {
-    const distances = this.args.distances || [];
+    let distances = this.args.distances || [];
     const max = distances.reduce((prev, d) => Math.max(prev, d.distance), this.max);
     const len = distances.length;
     if (len > 360) {
@@ -37,7 +37,7 @@ export default class TomographyGraph extends Component {
     return distances.map((d, i) => {
       return {
         rotate: (i * 360) / distances.length,
-        y2: -insetSize * (d.distance / max),
+        y2: insetSize * (d.distance / max),
         node: d.node,
         distance: d.distance,
         segment: d.segment,

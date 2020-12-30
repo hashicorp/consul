@@ -2,7 +2,7 @@
   (from-entries (array
     (array 'allow' 'Allowed')
     (array 'deny' 'Denied')
-    (array '' 'L7 Rules')
+    (array '' 'Layer 7 Rules')
   ))
 as |titles|}}
 <div
@@ -18,7 +18,7 @@ as |titles|}}
   {{else if (eq @item.Action 'deny')}}
     No, {{@item.SourceName}} is not allowed to connect to {{@item.DestinationName}} due to the highest precedence intention below:
   {{else}}
-    {{@item.SourceName}} may or may not be allowed to connect with {{@item.DestinationName}} through its L7 rules.
+    {{@item.SourceName}} may or may not be allowed to connect with {{@item.DestinationName}} through its Layer 7 rules.
   {{/if}}
   </p>
 </div>

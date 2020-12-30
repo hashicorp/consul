@@ -16,7 +16,7 @@ as |api|>
     <BlockSlot @name="error" as |Notification|>
       <Notification>
         <p data-notification role="alert" class="error notification-update">
-  {{#if (starts-with 'duplicate intention found:' api.error.detail)}}
+  {{#if (string-starts-with api.error.detail 'duplicate intention found:')}}
           <strong>Intention exists</strong>
           An intention already exists for this Source-Destination pair. Please enter a different combination of Services, or search the intentions to edit an existing intention.
   {{else}}
@@ -46,7 +46,7 @@ as |api|>
         </BlockSlot>
         <BlockSlot @name="body">
           <p>
-            When you change this Intention to {{newAction}}, you will remove all the L7 policy permissions currently saved to this Intention. Are you sure you want to set it to {{newAction}}?
+            When you change this Intention to {{newAction}}, you will remove all the Layer 7 policy permissions currently saved to this Intention. Are you sure you want to set it to {{newAction}}?
           </p>
         </BlockSlot>
         <BlockSlot @name="actions" as |close|>

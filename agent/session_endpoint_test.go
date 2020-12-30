@@ -62,6 +62,10 @@ func verifySession(t *testing.T, r *retry.R, a *TestAgent, want structs.Session)
 }
 
 func TestSessionCreate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -120,6 +124,10 @@ func TestSessionCreate(t *testing.T) {
 }
 
 func TestSessionCreate_NodeChecks(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -181,6 +189,10 @@ func TestSessionCreate_NodeChecks(t *testing.T) {
 }
 
 func TestSessionCreate_Delete(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -239,6 +251,10 @@ func TestSessionCreate_Delete(t *testing.T) {
 }
 
 func TestSessionCreate_DefaultCheck(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -273,6 +289,10 @@ func TestSessionCreate_DefaultCheck(t *testing.T) {
 }
 
 func TestSessionCreate_NoCheck(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -428,6 +448,10 @@ func makeTestSessionTTL(t *testing.T, srv *HTTPHandlers, ttl string) string {
 }
 
 func TestSessionDestroy(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -447,6 +471,10 @@ func TestSessionDestroy(t *testing.T) {
 }
 
 func TestSessionCustomTTL(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	ttl := 250 * time.Millisecond
 	a := NewTestAgent(t, `
@@ -490,6 +518,10 @@ func TestSessionCustomTTL(t *testing.T) {
 }
 
 func TestSessionTTLRenew(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	// t.Parallel() // timing test. no parallel
 	ttl := 250 * time.Millisecond
 	a := NewTestAgent(t, `
@@ -577,6 +609,10 @@ func TestSessionTTLRenew(t *testing.T) {
 }
 
 func TestSessionGet(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	t.Run("", func(t *testing.T) {
 		a := NewTestAgent(t, "")
@@ -624,6 +660,10 @@ func TestSessionGet(t *testing.T) {
 }
 
 func TestSessionList(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Run("", func(t *testing.T) {
 		a := NewTestAgent(t, "")
 		defer a.Shutdown()
@@ -673,6 +713,10 @@ func TestSessionList(t *testing.T) {
 }
 
 func TestSessionsForNode(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	t.Run("", func(t *testing.T) {
 		a := NewTestAgent(t, "")
@@ -723,6 +767,10 @@ func TestSessionsForNode(t *testing.T) {
 }
 
 func TestSessionDeleteDestroy(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()

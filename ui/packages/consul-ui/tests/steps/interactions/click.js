@@ -11,14 +11,10 @@ export default function(scenario, find, click) {
         'I click $property on the $component component',
       ],
       function(property, component, next) {
-        try {
-          if (typeof component === 'string') {
-            property = `${component}.${property}`;
-          }
-          return find(property)();
-        } catch (e) {
-          throw e;
+        if (typeof component === 'string') {
+          property = `${component}.${property}`;
         }
+        return find(property)();
       }
     );
 }

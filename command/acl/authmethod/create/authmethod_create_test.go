@@ -32,6 +32,10 @@ func TestAuthMethodCreateCommand_noTabs(t *testing.T) {
 }
 
 func TestAuthMethodCreateCommand(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := agent.NewTestAgent(t, `
@@ -182,6 +186,10 @@ func TestAuthMethodCreateCommand(t *testing.T) {
 }
 
 func TestAuthMethodCreateCommand_JSON(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := agent.NewTestAgent(t, `
@@ -347,6 +355,10 @@ func TestAuthMethodCreateCommand_JSON(t *testing.T) {
 }
 
 func TestAuthMethodCreateCommand_k8s(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	testDir := testutil.TempDir(t, "acl")
@@ -489,6 +501,10 @@ func TestAuthMethodCreateCommand_k8s(t *testing.T) {
 }
 
 func TestAuthMethodCreateCommand_config(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	testDir := testutil.TempDir(t, "auth-method")

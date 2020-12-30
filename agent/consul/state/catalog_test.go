@@ -1374,6 +1374,10 @@ func TestStateStore_Node_Snapshot(t *testing.T) {
 }
 
 func TestStateStore_EnsureService(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	s := testStateStore(t)
 
 	// Fetching services for a node with none returns nil.
@@ -2564,6 +2568,10 @@ func TestStateStore_ServiceChecks(t *testing.T) {
 }
 
 func TestStateStore_ServiceChecksByNodeMeta(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	s := testStateStore(t)
 
 	// Querying with no results returns nil.
@@ -2671,6 +2679,10 @@ func TestStateStore_ServiceChecksByNodeMeta(t *testing.T) {
 }
 
 func TestStateStore_ChecksInState(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	s := testStateStore(t)
 
 	// Querying with no results returns nil
@@ -2734,6 +2746,10 @@ func TestStateStore_ChecksInState(t *testing.T) {
 }
 
 func TestStateStore_ChecksInStateByNodeMeta(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	s := testStateStore(t)
 
 	// Querying with no results returns nil.
@@ -3036,6 +3052,10 @@ func TestStateStore_IndexIndependence(t *testing.T) {
 }
 
 func TestStateStore_ConnectQueryBlocking(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	tests := []struct {
 		name                   string
 		setupFn                func(s *Store)
@@ -3585,6 +3605,10 @@ func TestStateStore_CheckConnectServiceNodes(t *testing.T) {
 }
 
 func TestStateStore_CheckConnectServiceNodes_Gateways(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	assert := assert.New(t)
 	s := testStateStore(t)
 
@@ -5331,6 +5355,10 @@ func TestStateStore_GatewayServices_Ingress(t *testing.T) {
 }
 
 func TestStateStore_GatewayServices_WildcardAssociation(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	s := testStateStore(t)
 	setupIngressState(t, s)
 	require := require.New(t)

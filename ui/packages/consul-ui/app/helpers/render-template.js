@@ -1,18 +1,19 @@
-import { helper } from '@ember/component/helper';
-import { get } from '@ember/object';
+import Helper from '@ember/component/helper';
+import { inject as service } from '@ember/service';
 
-// Covers alpha-capitalized dot separated API keys such as
-// `{{Name}}`, `{{Service.Name}}` etc. but not `{{}}`
+// simple mustache regexp `/{{item.Name}}/`
 const templateRe = /{{([A-Za-z.0-9_-]+)}}/g;
-export default helper(function renderTemplate([template, vars]) {
-  if (typeof vars !== 'undefined' && typeof template !== 'undefined') {
-    return template.replace(templateRe, function(match, group) {
-      try {
-        return encodeURIComponent(get(vars, group) || '');
-      } catch (e) {
-        return '';
-      }
-    });
+let render;
+export default class RenderTemplateHelper extends Helper {
+  @service('encoder') encoder;
+  constructor() {
+    super(...arguments);
+    if (typeof render !== 'function') {
+      render = this.encoder.createRegExpEncoder(templateRe, encodeURIComponent, false);
+    }
   }
-  return '';
-});
+
+  compute([template, vars]) {
+    return render(template, vars);
+  }
+}

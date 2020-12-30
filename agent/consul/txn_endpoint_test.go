@@ -55,6 +55,10 @@ node "test-node" {
 var testNodeID = "9749a7df-fac5-46b4-8078-32a3d96c59f3"
 
 func TestTxn_CheckNotExists(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -107,6 +111,10 @@ func TestTxn_CheckNotExists(t *testing.T) {
 }
 
 func TestTxn_Apply(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -300,6 +308,10 @@ func TestTxn_Apply(t *testing.T) {
 }
 
 func TestTxn_Apply_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -614,6 +626,10 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 }
 
 func TestTxn_Apply_LockDelay(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -701,6 +717,10 @@ func TestTxn_Apply_LockDelay(t *testing.T) {
 }
 
 func TestTxn_Read(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -823,6 +843,10 @@ func TestTxn_Read(t *testing.T) {
 }
 
 func TestTxn_Read_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)

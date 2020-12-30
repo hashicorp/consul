@@ -1,120 +1,108 @@
 {{page-title 'Key/Value'}}
-{{#let (or sortBy "isFolder:asc") as |sort|}}
-  <AppView>
-    <BlockSlot @name="breadcrumbs">
-      <ol>
-  {{#if (not-eq parent.Key '/') }}
-        <li><a href={{href-to 'dc.kv'}}>Key / Values</a></li>
-  {{/if}}
-  {{#each (slice 0 -2 (split parent.Key '/')) as |breadcrumb index|}}
-        <li><a href={{href-to 'dc.kv.folder' (join '/' (append (slice 0 (add index 1) (split parent.Key '/')) ''))}}>{{breadcrumb}}</a></li>
-  {{/each}}
-      </ol>
-    </BlockSlot>
-    <BlockSlot @name="header">
-        <h1>
-          {{#if (eq parent.Key '/')}}
-            Key / Value
-          {{else}}
-            {{take 1 (drop 1 (reverse (split parent.Key '/')))}}
-          {{/if}}
-        </h1>
-        <label for="toolbar-toggle"></label>
-    </BlockSlot>
-    <BlockSlot @name="toolbar">
-  {{#if (gt items.length 0) }}
-          <form class="filter-bar with-sort">
-            <FreetextFilter
-              @onsearch={{action (mut search) value="target.value"}}
-              @value={{search}}
-              @placeholder="Search"
-            />
-            <div class="sort">
-              <PopoverSelect
-                class="type-sort"
-                @position="right"
-                @onchange={{action (mut sortBy) value='target.selected'}}
-                @multiple={{false}}
-              as |components|>
-                <BlockSlot @name="selected">
-                  <span>
-                    {{#let (from-entries (array
-                      (array "Key:asc" "A to Z")
-                      (array "Key:desc" "Z to A")
-                      (array "isFolder:desc" "Folders to Keys")
-                      (array "isFolder:asc" "Keys to Folders")
-                        ))
-                      as |selectable|
-                    }}
-                      {{get selectable sort}}
-                    {{/let}}
-                  </span>
-                </BlockSlot>
-                <BlockSlot @name="options">
-      {{#let components.Optgroup components.Option as |Optgroup Option|}}
-                  <Optgroup @label="Name">
-                    <Option @value="Key:asc" @selected={{eq "Key:asc" sort}}>A to Z</Option>
-                    <Option @value="Key:desc" @selected={{eq "Key:desc" sort}}>Z to A</Option>
-                  </Optgroup>
-                  <Optgroup @label="Type">
-                    <Option @value="isFolder:desc" @selected={{eq "isFolder:desc" sort}}>Folders to Keys</Option>
-                    <Option @value="isFolder:asc" @selected={{eq "isFolder:asc" sort}}>Keys to Folders</Option>
-                  </Optgroup>
-      {{/let}}
-                </BlockSlot>
-              </PopoverSelect>
-          </div>
-        </form>
-  {{/if}}
-    </BlockSlot>
-    <BlockSlot @name="actions">
-  {{#if (not-eq parent.Key '/') }}
-        <a data-test-create href="{{href-to 'dc.kv.create' parent.Key}}" class="type-create">Create</a>
-  {{else}}
-        <a data-test-create href="{{href-to 'dc.kv.root-create'}}" class="type-create">Create</a>
-  {{/if}}
-    </BlockSlot>
-    <BlockSlot @name="content">
-    {{#let (sort-by (comparator 'kv' sort) items) as |sorted|}}
-      <ChangeableSet @dispatcher={{searchable 'kv' sorted}} @terms={{search}}>
-        <BlockSlot @name="content" as |filtered|>
-          <Consul::Kv::List
-            @items={{filtered}}
-            @parent={{parent}}
-            @ondelete={{refresh-route}}
-          >
-            <EmptyState @allowLogin={{true}}>
-              <BlockSlot @name="header">
-                <h2>
-                  {{#if (gt items.length 0)}}
-                    No K/V pairs found
-                  {{else}}
-                    Welcome to Key/Value
-                  {{/if}}
-                </h2>
-              </BlockSlot>
-              <BlockSlot @name="body">
-                <p>
-                  {{#if (gt items.length 0)}}
-                    No K/V pairs where found matching that search, or you may not have access to view the K/V pairs you are searching for.
-                  {{else}}
-                    You don't have any K/V pairs, or you may not have access to view K/V pairs yet.
-                  {{/if}}
-                </p>
-              </BlockSlot>
-              <BlockSlot @name="actions">
-                <li class="docs-link">
-                  <a href="{{env 'CONSUL_DOCS_URL'}}/agent/kv" rel="noopener noreferrer" target="_blank">Documentation on K/V</a>
-                </li>
-                <li class="learn-link">
-                  <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/getting-started/kv" rel="noopener noreferrer" target="_blank">Read the guide</a>
-                </li>
-              </BlockSlot>
-            </EmptyState>
-          </Consul::Kv::List>
-        </BlockSlot>
-      </ChangeableSet>
-      {{/let}}
-    </BlockSlot>
-  </AppView>
+{{#let (hash
+  kinds=(if kind (split kind ',') undefined)
+) as |filters|}}
+  {{#let (or sortBy "Kind:asc") as |sort|}}
+    <AppView>
+    {{#if (not-eq parent.Key '/') }}
+      <BlockSlot @name="breadcrumbs">
+        <ol>
+          <li><a href={{href-to 'dc.kv'}}>Key / Values</a></li>
+    {{#each (slice 0 -2 (split parent.Key '/')) as |breadcrumb index|}}
+          <li><a href={{href-to 'dc.kv.folder' (join '/' (append (slice 0 (add index 1) (split parent.Key '/')) ''))}}>{{breadcrumb}}</a></li>
+    {{/each}}
+        </ol>
+      </BlockSlot>
+    {{/if}}
+      <BlockSlot @name="header">
+          <h1>
+            {{#if (eq parent.Key '/')}}
+              Key / Value
+            {{else}}
+              {{take 1 (drop 1 (reverse (split parent.Key '/')))}}
+            {{/if}}
+          </h1>
+          <label for="toolbar-toggle"></label>
+      </BlockSlot>
+      <BlockSlot @name="toolbar">
+    {{#if (gt items.length 0) }}
+        <Consul::Kv::SearchBar
+          @search={{search}}
+          @onsearch={{action (mut search) value="target.value"}}
+
+          @sort={{sort}}
+          @onsort={{action (mut sortBy) value="target.selected"}}
+
+          @filter={{filters}}
+          @onfilter={{hash
+            kind=(action (mut kind) value="target.selectedItems")
+          }}
+        />
+    {{/if}}
+      </BlockSlot>
+      <BlockSlot @name="actions">
+    {{#if (not-eq parent.Key '/') }}
+          <a data-test-create href="{{href-to 'dc.kv.create' parent.Key}}" class="type-create">Create</a>
+    {{else}}
+          <a data-test-create href="{{href-to 'dc.kv.root-create'}}" class="type-create">Create</a>
+    {{/if}}
+      </BlockSlot>
+      <BlockSlot @name="content">
+        <DataWriter
+          @sink={{concat '/' dc '/' nspace '/kv/'}}
+          @type="kv"
+          @label="key"
+          @ondelete={{refresh-route}}
+          as |writer|>
+          <BlockSlot @name="content">
+            <DataCollection
+              @type="kv"
+              @sort={{sort}}
+              @filters={{filters}}
+              @search={{search}}
+              @items={{items}}
+            as |collection|>
+              <collection.Collection>
+                <Consul::Kv::List
+                  @items={{collection.items}}
+                  @parent={{parent}}
+                  @delete={{writer.delete}}
+                />
+              </collection.Collection>
+              <collection.Empty>
+                <EmptyState @allowLogin={{true}}>
+                  <BlockSlot @name="header">
+                    <h2>
+                      {{#if (gt items.length 0)}}
+                        No K/V pairs found
+                      {{else}}
+                        Welcome to Key/Value
+                      {{/if}}
+                    </h2>
+                  </BlockSlot>
+                  <BlockSlot @name="body">
+                    <p>
+                      {{#if (gt items.length 0)}}
+                        No K/V pairs where found matching that search, or you may not have access to view the K/V pairs you are searching for.
+                      {{else}}
+                        You don't have any K/V pairs, or you may not have access to view K/V pairs yet.
+                      {{/if}}
+                    </p>
+                  </BlockSlot>
+                  <BlockSlot @name="actions">
+                    <li class="docs-link">
+                      <a href="{{env 'CONSUL_DOCS_URL'}}/agent/kv" rel="noopener noreferrer" target="_blank">Documentation on K/V</a>
+                    </li>
+                    <li class="learn-link">
+                      <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/getting-started/kv" rel="noopener noreferrer" target="_blank">Read the guide</a>
+                    </li>
+                  </BlockSlot>
+                </EmptyState>
+              </collection.Empty>
+            </DataCollection>
+          </BlockSlot>
+        </DataWriter>
+      </BlockSlot>
+    </AppView>
+  {{/let}}
 {{/let}}

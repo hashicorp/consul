@@ -1,3 +1,9 @@
+%typo-inherit {
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  font-style: inherit;
+}
 %typo-body {
   font-size: $typo-size-600;
   font-family: $typo-family-sans;

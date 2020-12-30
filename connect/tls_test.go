@@ -135,6 +135,10 @@ func TestClientSideVerifier(t *testing.T) {
 }
 
 func TestServerSideVerifier(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	ca1 := connect.TestCA(t, nil)
 	ca2 := connect.TestCA(t, ca1)
 

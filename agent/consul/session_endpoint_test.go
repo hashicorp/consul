@@ -13,6 +13,10 @@ import (
 )
 
 func TestSession_Apply(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -74,6 +78,10 @@ func TestSession_Apply(t *testing.T) {
 }
 
 func TestSession_DeleteApply(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -139,6 +147,10 @@ func TestSession_DeleteApply(t *testing.T) {
 }
 
 func TestSession_Apply_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -217,6 +229,10 @@ session "foo" {
 }
 
 func TestSession_Get(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -262,6 +278,10 @@ func TestSession_Get(t *testing.T) {
 }
 
 func TestSession_Get_Compat(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -308,6 +328,10 @@ func TestSession_Get_Compat(t *testing.T) {
 }
 
 func TestSession_List(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -361,6 +385,10 @@ func TestSession_List(t *testing.T) {
 }
 
 func TestSession_Get_List_NodeSessions_ACLFilter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -500,6 +528,10 @@ session "foo" {
 }
 
 func TestSession_ApplyTimers(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -543,6 +575,10 @@ func TestSession_ApplyTimers(t *testing.T) {
 }
 
 func TestSession_Renew(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	// This method is timing sensitive, disable Parallel
 	//t.Parallel()
 	ttl := 1 * time.Second
@@ -708,6 +744,10 @@ func TestSession_Renew(t *testing.T) {
 }
 
 func TestSession_Renew_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -781,6 +821,10 @@ session "foo" {
 }
 
 func TestSession_Renew_Compat(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	// This method is timing sensitive, disable Parallel
 	//t.Parallel()
 	ttl := 5 * time.Second
@@ -838,6 +882,10 @@ func TestSession_Renew_Compat(t *testing.T) {
 }
 
 func TestSession_NodeSessions(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -898,6 +946,10 @@ func TestSession_NodeSessions(t *testing.T) {
 }
 
 func TestSession_Apply_BadTTL(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)

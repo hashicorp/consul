@@ -1,0 +1,19 @@
+{{#if (env "CONSUL_NSPACES_ENABLED")}}
+namespace "default" {
+  node "{{@name}}" {
+	  policy = "write"
+  }
+}
+namespace_prefix "" {
+  service_prefix "" {
+	  policy = "read"
+  }
+}
+{{else}}
+node "{{@name}}" {
+	policy = "write"
+}
+service_prefix "" {
+	policy = "read"
+}
+{{/if}}

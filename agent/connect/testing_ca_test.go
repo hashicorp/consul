@@ -104,6 +104,10 @@ func testCAAndLeaf_xc(t *testing.T, keyType string, keyBits int) {
 }
 
 func TestTestCAAndLeaf(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	for _, params := range goodParams {
 		t.Run(fmt.Sprintf("TestTestCAAndLeaf-%s-%d", params.keyType, params.keyBits),
@@ -114,6 +118,10 @@ func TestTestCAAndLeaf(t *testing.T) {
 }
 
 func TestTestCAAndLeaf_xc(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	for _, params := range goodParams {
 		t.Run(fmt.Sprintf("TestTestCAAndLeaf_xc-%s-%d", params.keyType, params.keyBits),

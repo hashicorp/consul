@@ -13,12 +13,19 @@
           </g>
           <g class="lines">
       {{#each this.distances as |item|}}
-          <line
+          <rect
+            {{tooltip
+              (concat item.node ' - ' (format-number item.distance maximumFractionDigits=2) 'ms'
+            (if item.segment (concat '<br />(Segment: ' item.segment ')'))
+              )
+              options=(hash
+                followCursor=true
+                allowHTML=true
+              )
+            }}
             transform="rotate({{item.rotate}})"
-            y2={{item.y2}}
-            data-node={{item.d}}
-            data-distance={{item.distance}}
-            data-segment={{item.segment}}
+            width={{item.y2}}
+            height="1"
           />
       {{/each}}
           </g>

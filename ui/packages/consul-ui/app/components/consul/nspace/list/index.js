@@ -1,10 +1,7 @@
-import Component from '@ember/component';
+import Component from '@glimmer/component';
 
-export default Component.extend({
-  tagName: '',
-  actions: {
-    isLinkable: function(item) {
-      return !item.DeletedAt;
-    },
-  },
-});
+export default class ConsulNspaceList extends Component {
+  isLinkable(item) {
+    return !item.DeletedAt;
+  }
+}

@@ -60,6 +60,10 @@ func TestCommand_Validation(t *testing.T) {
 }
 
 func TestCommand_File(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -93,6 +97,10 @@ func TestCommand_File(t *testing.T) {
 }
 
 func TestCommand_Flags(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -119,6 +127,10 @@ func TestCommand_Flags(t *testing.T) {
 }
 
 func TestCommand_Flags_TaggedAddresses(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -154,6 +166,10 @@ func TestCommand_Flags_TaggedAddresses(t *testing.T) {
 }
 
 func TestCommand_FileWithUnnamedCheck(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)

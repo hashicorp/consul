@@ -1,0 +1,2 @@
+## Terraform Consul Load Testing
+Consul Load Testing is used to capture baseline performance metrics for Consul under stress. This will assist in ensuring there are no performance regressions during releases and substainal changes to Consul. Per the defaults, the test runs for 10 minutes with 25 virtual users spawned by k6. Instance sizes for test instance are `t2.small` and for the Consul cluster `m5n.large`.  As long as the thresholds stay under 2 seconds, it passes. All metrics from Consul are pushed to a datadog dashboard for user review.

@@ -226,6 +226,10 @@ func limitProcessLifetime(dur time.Duration) {
 }
 
 func TestForwardSignals(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	for _, s := range forwardSignals {
 		t.Run("signal-"+s.String(), func(t *testing.T) {
 			testForwardSignal(t, s)

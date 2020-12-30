@@ -1,6 +1,6 @@
 import Component from '@ember/component';
 import { get, set, computed } from '@ember/object';
-import { alias, sort } from '@ember/object/computed';
+import { alias } from '@ember/object/computed';
 import { inject as service } from '@ember/service';
 
 import { task } from 'ember-concurrency';
@@ -15,8 +15,6 @@ export default Component.extend(Slotted, {
   type: '',
 
   dom: service('dom'),
-  search: service('search'),
-  sort: service('sort'),
   formContainer: service('form'),
 
   item: alias('form.data'),
@@ -26,7 +24,6 @@ export default Component.extend(Slotted, {
   init: function() {
     this._super(...arguments);
     this._listeners = this.dom.listeners();
-    this.searchable = this.search.searchable(this.type);
     this.form = this.formContainer.form(this.type);
     this.form.clear({ Datacenter: this.dc, Namespace: this.nspace });
   },
@@ -34,14 +31,10 @@ export default Component.extend(Slotted, {
     this._super(...arguments);
     this._listeners.remove();
   },
-  sortedOptions: sort('allOptions.[]', 'comparator'),
-  comparator: computed(function() {
-    return this.sort.comparator(this.type)();
-  }),
-  options: computed('selectedOptions.[]', 'sortedOptions.[]', function() {
+  options: computed('selectedOptions.[]', 'allOptions.[]', function() {
     // It's not massively important here that we are defaulting `items` and
     // losing reference as its just to figure out the diff
-    let options = this.sortedOptions || [];
+    let options = this.allOptions || [];
     const items = this.selectedOptions || [];
     if (get(items, 'length') > 0) {
       // filter out any items from the available options that have already been
@@ -49,7 +42,6 @@ export default Component.extend(Slotted, {
       // TODO: find a proper ember-data diff
       options = options.filter(item => !items.findBy('ID', get(item, 'ID')));
     }
-    this.searchable.add(options);
     return options;
   }),
   save: task(function*(item, items, success = function() {}) {
@@ -72,19 +64,6 @@ export default Component.extend(Slotted, {
     }
   }),
   actions: {
-    search: function(term) {
-      // TODO: make sure we can either search before things are loaded
-      // or wait until we are loaded, guess power select take care of that
-      return new Promise(resolve => {
-        const remove = this._listeners.add(this.searchable, {
-          change: e => {
-            remove();
-            resolve(e.target.data);
-          },
-        });
-        this.searchable.search(term);
-      });
-    },
     reset: function() {
       this.form.clear({ Datacenter: this.dc, Namespace: this.nspace });
     },

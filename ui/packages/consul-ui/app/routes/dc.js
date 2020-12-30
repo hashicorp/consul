@@ -1,6 +1,5 @@
 import { inject as service } from '@ember/service';
 import Route from 'consul-ui/routing/route';
-import { hash, Promise } from 'rsvp';
 import { get, action } from '@ember/object';
 
 // TODO: We should potentially move all these nspace related things
@@ -24,49 +23,35 @@ const findActiveNspace = function(nspaces, nspace) {
   return found;
 };
 export default class DcRoute extends Route {
-  @service('repository/dc')
-  repo;
+  @service('repository/dc') repo;
+  @service('repository/nspace/disabled') nspacesRepo;
+  @service('settings') settingsRepo;
 
-  @service('repository/nspace/disabled')
-  nspacesRepo;
-
-  @service('settings')
-  settingsRepo;
-
-  model(params) {
+  async model(params) {
     const app = this.modelFor('application');
-    return hash({
-      nspace: this.nspacesRepo.getActive(),
-      token: this.settingsRepo.findBySlug('token'),
-      dc: this.repo.findBySlug(params.dc, app.dcs),
-    })
-      .then(function(model) {
-        return hash({
-          ...model,
-          ...{
-            // if there is only 1 namespace then use that
-            // otherwise find the namespace object that corresponds
-            // to the active one
-            nspace:
-              app.nspaces.length > 1
-                ? findActiveNspace(app.nspaces, model.nspace)
-                : app.nspaces.firstObject,
-          },
-        });
-      })
-      .then(model => {
-        if (get(model, 'token.SecretID')) {
-          return hash({
-            ...model,
-            ...{
-              // When disabled nspaces is [], so nspace is undefined
-              permissions: this.nspacesRepo.authorize(params.dc, get(model, 'nspace.Name')),
-            },
-          });
-        } else {
-          return model;
-        }
-      });
+
+    let [token, nspace, dc] = await Promise.all([
+      this.settingsRepo.findBySlug('token'),
+      this.nspacesRepo.getActive(),
+      this.repo.findBySlug(params.dc, app.dcs),
+    ]);
+    // if there is only 1 namespace then use that
+    // otherwise find the namespace object that corresponds
+    // to the active one
+    nspace =
+      app.nspaces.length > 1 ? findActiveNspace(app.nspaces, nspace) : app.nspaces.firstObject;
+
+    let permissions;
+    if (get(token, 'SecretID')) {
+      // When disabled nspaces is [], so nspace is undefined
+      permissions = await this.nspacesRepo.authorize(params.dc, get(nspace || {}, 'Name'));
+    }
+    return {
+      dc,
+      nspace,
+      token,
+      permissions,
+    };
   }
 
   setupController(controller, model) {
@@ -82,7 +67,6 @@ export default class DcRoute extends Route {
   // https://deprecations.emberjs.com/v3.x/#toc_deprecate-router-events
   @action
   willTransition(transition) {
-    undefined;
     if (
       typeof transition !== 'undefined' &&
       (transition.from.name.endsWith('nspaces.create') ||

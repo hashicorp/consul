@@ -1,8 +1,9 @@
-import factory from 'consul-ui/filter/predicates/intention';
+import { andOr } from 'consul-ui/utils/filter';
+import predicates from 'consul-ui/filter/predicates/intention';
 import { module, test } from 'qunit';
 
 module('Unit | Filter | Predicates | intention', function() {
-  const predicate = factory();
+  const predicate = andOr(predicates);
 
   test('it returns items depending on Action', function(assert) {
     const items = [

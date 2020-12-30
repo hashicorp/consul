@@ -18,6 +18,10 @@ func TestForceLeaveCommand_noTabs(t *testing.T) {
 }
 
 func TestForceLeaveCommand(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a1 := agent.NewTestAgent(t, ``)
 	a2 := agent.NewTestAgent(t, ``)
@@ -57,6 +61,10 @@ func TestForceLeaveCommand(t *testing.T) {
 }
 
 func TestForceLeaveCommand_NoNodeWithName(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a1 := agent.NewTestAgent(t, ``)
 	defer a1.Shutdown()
@@ -75,6 +83,10 @@ func TestForceLeaveCommand_NoNodeWithName(t *testing.T) {
 }
 
 func TestForceLeaveCommand_prune(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a1 := agent.StartTestAgent(t, agent.TestAgent{Name: "Agent1"})
 	defer a1.Shutdown()

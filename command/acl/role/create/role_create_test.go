@@ -22,6 +22,10 @@ func TestRoleCreateCommand_noTabs(t *testing.T) {
 }
 
 func TestRoleCreateCommand_Pretty(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := agent.NewTestAgent(t, `
@@ -111,6 +115,10 @@ func TestRoleCreateCommand_Pretty(t *testing.T) {
 }
 
 func TestRoleCreateCommand_JSON(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := agent.NewTestAgent(t, `

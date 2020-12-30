@@ -1,8 +1,28 @@
-<DataLoader @items={{item}} @src={{uri nspace dc type src}} @onchange={{action "setData"}} @once={{true}}>
+<DataLoader
+  @items={{item}}
+  @src={{uri
+    '/${nspace}/${dc}/${type}/${src}'
+    (hash
+      nspace=nspace
+      dc=dc
+      type=type
+      src=src
+    )
+  }}
+  @onchange={{action "setData"}}
+  @once={{true}}
+>
   <BlockSlot @name="loaded">
 
     <DataWriter
-      @sink={{uri nspace (or data.Datacenter dc) type}}
+      @sink={{uri
+        '/${nspace}/${dc}/${type}'
+        (hash
+          nspace=nspace
+          dc=(or data.Datacenter dc)
+          type=type
+        )
+      }}
       @type={{type}}
       @label={{label}}
       @ondelete={{action ondelete}}

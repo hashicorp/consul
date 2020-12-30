@@ -21,6 +21,10 @@ func TestTokenCreateCommand_noTabs(t *testing.T) {
 }
 
 func TestTokenCreateCommand_Pretty(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := agent.NewTestAgent(t, `
@@ -115,6 +119,10 @@ func TestTokenCreateCommand_Pretty(t *testing.T) {
 }
 
 func TestTokenCreateCommand_JSON(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	require := require.New(t)
 

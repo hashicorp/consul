@@ -2,7 +2,7 @@
 BREAKING CHANGES:
 
 {{range index .NotesByType "breaking-change" -}}
-* {{ template "note" .}}
+* {{ template "note" . }}
 {{ end -}}
 {{- end -}}
 
@@ -14,7 +14,7 @@ SECURITY:
 {{ end -}}
 {{- end -}}
 
-{{- if .NotesByType.feature -}}
+{{- if .NotesByType.feature }}
 FEATURES:
 
 {{range .NotesByType.feature -}}

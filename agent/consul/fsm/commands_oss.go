@@ -6,6 +6,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 )
@@ -53,43 +54,43 @@ var CommandsSummaries = []prometheus.SummaryDefinition{
 	},
 	{
 		Name: []string{"consul", "fsm", "intention"},
-		Help: "",
+		Help: "Deprecated - use fsm_intention instead",
 	},
 	{
 		Name: []string{"fsm", "intention"},
-		Help: "",
+		Help: "Measures the time it takes to apply an intention operation to the FSM.",
 	},
 	{
 		Name: []string{"consul", "fsm", "ca"},
-		Help: "",
+		Help: "Deprecated - use fsm_ca instead",
+	},
+	{
+		Name: []string{"fsm", "ca"},
+		Help: "Measures the time it takes to apply CA configuration operations to the FSM.",
 	},
 	{
 		Name: []string{"fsm", "ca", "leaf"},
-		Help: "",
+		Help: "Measures the time it takes to apply an operation while signing a leaf certificate.",
 	},
 	{
 		Name: []string{"fsm", "acl", "token"},
-		Help: "",
-	},
-	{
-		Name: []string{"fsm", "ca", "leaf"},
-		Help: "",
+		Help: "Measures the time it takes to apply an ACL token operation to the FSM.",
 	},
 	{
 		Name: []string{"fsm", "acl", "policy"},
-		Help: "",
+		Help: "Measures the time it takes to apply an ACL policy operation to the FSM.",
 	},
 	{
 		Name: []string{"fsm", "acl", "bindingrule"},
-		Help: "",
+		Help: "Measures the time it takes to apply an ACL binding rule operation to the FSM.",
 	},
 	{
 		Name: []string{"fsm", "acl", "authmethod"},
-		Help: "",
+		Help: "Measures the time it takes to apply an ACL authmethod operation to the FSM.",
 	},
 	{
 		Name: []string{"fsm", "system_metadata"},
-		Help: "",
+		Help: "Measures the time it takes to apply a system metadata operation to the FSM.",
 	},
 	// TODO(kit): We generate the config-entry fsm summaries by reading off of the request. It is
 	//  possible to statically declare these when we know all of the names, but I didn't get to it
@@ -378,8 +379,12 @@ func (c *FSM) applyIntentionOperation(buf []byte, index uint64) interface{} {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
 
+	// TODO(kit): We should deprecate this first metric that writes the metrics_prefix itself,
+	//  the config we use to flag this out, telemetry.disable_compat_1.9 is on the agent - how do
+	//  we access it here?
 	defer metrics.MeasureSinceWithLabels([]string{"consul", "fsm", "intention"}, time.Now(),
 		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
+
 	defer metrics.MeasureSinceWithLabels([]string{"fsm", "intention"}, time.Now(),
 		[]metrics.Label{{Name: "op", Value: string(req.Op)}})
 
@@ -474,6 +479,7 @@ func (c *FSM) applyConnectCAOperation(buf []byte, index uint64) interface{} {
 	}
 }
 
+// applyConnectCALeafOperation applies an operation while signing a leaf certificate.
 func (c *FSM) applyConnectCALeafOperation(buf []byte, index uint64) interface{} {
 	var req structs.CALeafRequest
 	if err := structs.Decode(buf, &req); err != nil {
@@ -504,7 +510,14 @@ func (c *FSM) applyACLTokenSetOperation(buf []byte, index uint64) interface{} {
 	defer metrics.MeasureSinceWithLabels([]string{"fsm", "acl", "token"}, time.Now(),
 		[]metrics.Label{{Name: "op", Value: "upsert"}})
 
-	return c.state.ACLTokenBatchSet(index, req.Tokens, req.CAS, req.AllowMissingLinks, req.ProhibitUnprivileged)
+	opts := state.ACLTokenSetOptions{
+		CAS:                          req.CAS,
+		AllowMissingPolicyAndRoleIDs: req.AllowMissingLinks,
+		ProhibitUnprivileged:         req.ProhibitUnprivileged,
+		Legacy:                       false,
+		FromReplication:              req.FromReplication,
+	}
+	return c.state.ACLTokenBatchSet(index, req.Tokens, opts)
 }
 
 func (c *FSM) applyACLTokenDeleteOperation(buf []byte, index uint64) interface{} {

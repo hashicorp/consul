@@ -1,13 +1,37 @@
-<form class="filter-bar">
-  <FreetextFilter
-    @onsearch={{action onsearch}}
-    @value={{search}}
-    @placeholder="Search"
-  />
+<form
+  class="consul-upstream-search-bar filter-bar"
+  ...attributes
+>
+  <div class="search">
+    <FreetextFilter
+      @onsearch={{action @onsearch}}
+      @value={{@search}}
+      @placeholder="Search"
+    >
+      <PopoverSelect
+        class="type-search-properties"
+        @position="right"
+        @onchange={{action @onfilter.searchproperty}}
+        @multiple={{true}}
+      as |components|>
+        <BlockSlot @name="selected">
+          <span>
+            Search across
+          </span>
+        </BlockSlot>
+        <BlockSlot @name="options">
+  {{#let components.Optgroup components.Option as |Optgroup Option|}}
+          <Option @value="Name" @selected={{contains 'Name' @filter.searchproperties}}>Name</Option>
+          <Option @value="Tags" @selected={{contains 'Tags' @filter.searchproperties}}>Tags</Option>
+  {{/let}}
+        </BlockSlot>
+      </PopoverSelect>
+    </FreetextFilter>
+  </div>
   <div class="filters">
     <PopoverSelect
       @position="left"
-      @onchange={{action onfilter.instance}}
+      @onchange={{action @onfilter.instance}}
       @multiple={{true}}
     as |components|>
       <BlockSlot @name="selected">
@@ -17,8 +41,8 @@
       </BlockSlot>
       <BlockSlot @name="options">
 {{#let components.Optgroup components.Option as |Optgroup Option|}}
-        <Option @value="registered" @selected={{contains 'registered' filter.instances}}>Registered</Option>
-        <Option @value="not-registered" @selected={{contains 'not-registered' filter.instances}}>Not Registered</Option>
+        <Option @value="registered" @selected={{contains 'registered' @filter.instances}}>Registered</Option>
+        <Option @value="not-registered" @selected={{contains 'not-registered' @filter.instances}}>Not Registered</Option>
 {{/let}}
       </BlockSlot>
     </PopoverSelect>
@@ -28,7 +52,7 @@
       class="type-sort"
       data-test-sort-control
       @position="right"
-      @onchange={{action onsort}}
+      @onchange={{action @onsort}}
       @multiple={{false}}
     as |components|>
       <BlockSlot @name="selected">
@@ -41,19 +65,19 @@
               ))
             as |selectable|
           }}
-            {{get selectable sort}}
+            {{get selectable @sort}}
           {{/let}}
         </span>
       </BlockSlot>
       <BlockSlot @name="options">
 {{#let components.Optgroup components.Option as |Optgroup Option|}}
         <Optgroup @label="Health Status">
-          <Option @value="Status:asc" @selected={{eq "Status:asc" sort}}>Unhealthy to Healthy</Option>
-          <Option @value="Status:desc" @selected={{eq "Status:desc" sort}}>Healthy to Unhealthy</Option>
+          <Option @value="Status:asc" @selected={{eq "Status:asc" @sort}}>Unhealthy to Healthy</Option>
+          <Option @value="Status:desc" @selected={{eq "Status:desc" @sort}}>Healthy to Unhealthy</Option>
         </Optgroup>
         <Optgroup @label="Service Name">
-          <Option @value="Name:asc" @selected={{eq "Name:asc" sort}}>A to Z</Option>
-          <Option @value="Name:desc" @selected={{eq "Name:desc" sort}}>Z to A</Option>
+          <Option @value="Name:asc" @selected={{eq "Name:asc" @sort}}>A to Z</Option>
+          <Option @value="Name:desc" @selected={{eq "Name:desc" @sort}}>Z to A</Option>
         </Optgroup>
 {{/let}}
       </BlockSlot>

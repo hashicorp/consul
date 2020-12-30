@@ -1,0 +1,6 @@
+```release-note:improvement
+chore: Update to Go 1.15 with mitigation for [golang/go#42138](https://github.com/golang/go/issues/42138)
+```
+```release-note:deprecation
+Go 1.15 has dropped support for 32-bit binaries for Darwin, so darwin_386 builds will not be available for any 1.9.x+ releases.
+```

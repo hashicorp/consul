@@ -21,6 +21,10 @@ import (
 )
 
 func TestLeader_RegisterMember(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -92,6 +96,10 @@ func TestLeader_RegisterMember(t *testing.T) {
 }
 
 func TestLeader_FailedMember(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -153,6 +161,10 @@ func TestLeader_FailedMember(t *testing.T) {
 }
 
 func TestLeader_LeftMember(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -199,6 +211,10 @@ func TestLeader_LeftMember(t *testing.T) {
 	})
 }
 func TestLeader_ReapMember(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -260,6 +276,10 @@ func TestLeader_ReapMember(t *testing.T) {
 }
 
 func TestLeader_CheckServersMeta(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -364,6 +384,10 @@ func TestLeader_CheckServersMeta(t *testing.T) {
 }
 
 func TestLeader_ReapServer(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -439,6 +463,10 @@ func TestLeader_ReapServer(t *testing.T) {
 }
 
 func TestLeader_Reconcile_ReapMember(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -488,6 +516,10 @@ func TestLeader_Reconcile_ReapMember(t *testing.T) {
 }
 
 func TestLeader_Reconcile(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -528,6 +560,10 @@ func TestLeader_Reconcile(t *testing.T) {
 }
 
 func TestLeader_Reconcile_Races(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -618,6 +654,10 @@ func TestLeader_Reconcile_Races(t *testing.T) {
 }
 
 func TestLeader_LeftServer(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -657,6 +697,10 @@ func TestLeader_LeftServer(t *testing.T) {
 }
 
 func TestLeader_LeftLeader(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -755,6 +799,10 @@ func TestLeader_MultiBootstrap(t *testing.T) {
 }
 
 func TestLeader_TombstoneGC_Reset(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -817,6 +865,10 @@ func TestLeader_TombstoneGC_Reset(t *testing.T) {
 }
 
 func TestLeader_ReapTombstones(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -888,6 +940,10 @@ func TestLeader_ReapTombstones(t *testing.T) {
 }
 
 func TestLeader_RollRaftServer(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.Bootstrap = true
@@ -949,6 +1005,10 @@ func TestLeader_RollRaftServer(t *testing.T) {
 }
 
 func TestLeader_ChangeServerID(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	conf := func(c *Config) {
 		c.Bootstrap = false
 		c.BootstrapExpect = 3
@@ -1026,6 +1086,10 @@ func TestLeader_ChangeServerID(t *testing.T) {
 }
 
 func TestLeader_ChangeNodeID(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -1089,6 +1153,10 @@ func TestLeader_ChangeNodeID(t *testing.T) {
 }
 
 func TestLeader_ACL_Initialization(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	tests := []struct {
@@ -1139,6 +1207,10 @@ func TestLeader_ACL_Initialization(t *testing.T) {
 }
 
 func TestLeader_ACLUpgrade(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLsEnabled = true
@@ -1201,6 +1273,10 @@ func TestLeader_ACLUpgrade(t *testing.T) {
 }
 
 func TestLeader_ConfigEntryBootstrap(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	global_entry_init := &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
@@ -1234,6 +1310,10 @@ func TestLeader_ConfigEntryBootstrap(t *testing.T) {
 }
 
 func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	type testcase struct {
@@ -1367,6 +1447,10 @@ func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
 }
 
 func TestLeader_ACLLegacyReplication(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	// This test relies on configuring a secondary DC with no route to the primary DC
@@ -1387,6 +1471,10 @@ func TestLeader_ACLLegacyReplication(t *testing.T) {
 }
 
 func TestDatacenterSupportsFederationStates(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	addGateway := func(t *testing.T, srv *Server, dc, node string) {
 		t.Helper()
 		arg := structs.RegisterRequest{
@@ -1683,6 +1771,10 @@ func TestDatacenterSupportsFederationStates(t *testing.T) {
 }
 
 func TestDatacenterSupportsIntentionsAsConfigEntries(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	addLegacyIntention := func(srv *Server, dc, src, dest string, allow bool) error {
 		ixn := &structs.Intention{
 			SourceNS:        structs.IntentionDefaultNamespace,

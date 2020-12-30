@@ -31,6 +31,10 @@ func TestLoginCommand_noTabs(t *testing.T) {
 }
 
 func TestLoginCommand(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	testDir := testutil.TempDir(t, "acl")
@@ -224,6 +228,10 @@ func TestLoginCommand(t *testing.T) {
 }
 
 func TestLoginCommand_k8s(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	testDir := testutil.TempDir(t, "acl")
@@ -318,6 +326,10 @@ func TestLoginCommand_k8s(t *testing.T) {
 }
 
 func TestLoginCommand_jwt(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	testDir := testutil.TempDir(t, "acl")

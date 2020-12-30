@@ -7,8 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/go-hclog"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/config"
@@ -17,9 +18,8 @@ import (
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func unNilMap(in map[string]string) map[string]string {
@@ -28,7 +28,12 @@ func unNilMap(in map[string]string) map[string]string {
 	}
 	return in
 }
+
 func TestAgentAntiEntropy_Services(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -249,6 +254,10 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 }
 
 func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	assert := assert.New(t)
@@ -413,6 +422,10 @@ func TestAgentAntiEntropy_Services_ConnectProxy(t *testing.T) {
 }
 
 func TestAgent_ServiceWatchCh(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -497,6 +510,10 @@ func TestAgent_ServiceWatchCh(t *testing.T) {
 }
 
 func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -628,6 +645,10 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 }
 
 func TestAgentAntiEntropy_Services_WithChecks(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -758,6 +779,10 @@ var testRegisterRules = `
  `
 
 func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, `
 		acl_datacenter = "dc1"
@@ -905,6 +930,10 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 }
 
 func TestAgentAntiEntropy_Checks(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -1097,6 +1126,10 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 }
 
 func TestAgentAntiEntropy_RemovingServiceAndCheck(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -1172,6 +1205,10 @@ func TestAgentAntiEntropy_RemovingServiceAndCheck(t *testing.T) {
 }
 
 func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dc := "dc1"
 	a := &agent.TestAgent{HCL: `
@@ -1391,6 +1428,10 @@ func TestAgentAntiEntropy_Checks_ACLDeny(t *testing.T) {
 }
 
 func TestAgent_UpdateCheck_DiscardOutput(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, `
 		discard_check_output = true
@@ -1442,6 +1483,10 @@ func TestAgent_UpdateCheck_DiscardOutput(t *testing.T) {
 }
 
 func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := &agent.TestAgent{HCL: `
 		check_update_interval = "500ms"
@@ -1646,6 +1691,10 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 }
 
 func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	nodeID := types.NodeID("40e4a748-2192-161a-0510-9bf59fe950b5")
 	nodeMeta := map[string]string{
@@ -1966,6 +2015,10 @@ func TestAgent_AliasCheck_ServiceNotification(t *testing.T) {
 }
 
 func TestAgent_sendCoordinate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.StartTestAgent(t, agent.TestAgent{Overrides: `
 		sync_coordinate_interval_min = "1ms"
@@ -2097,6 +2150,10 @@ func TestState_Notify(t *testing.T) {
 
 // Test that alias check is updated after AddCheck, UpdateCheck, and RemoveCheck for the same service id
 func TestAliasNotifications_local(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := agent.NewTestAgent(t, "")
@@ -2194,4 +2251,53 @@ func drainCh(ch chan struct{}) {
 			return
 		}
 	}
+}
+
+func TestState_SyncChanges_DuplicateAddServiceOnlySyncsOnce(t *testing.T) {
+	state := local.NewState(local.Config{}, hclog.New(nil), new(token.Store))
+	rpc := &fakeRPC{}
+	state.Delegate = rpc
+	state.TriggerSyncChanges = func() {}
+
+	srv := &structs.NodeService{
+		Kind:           structs.ServiceKindTypical,
+		ID:             "the-service-id",
+		Service:        "web",
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+	}
+	checks := []*structs.HealthCheck{
+		{Node: "this-node", CheckID: "the-id-1", Name: "check-healthy-1"},
+		{Node: "this-node", CheckID: "the-id-2", Name: "check-healthy-2"},
+	}
+	tok := "the-token"
+	err := state.AddServiceWithChecks(srv, checks, tok)
+	require.NoError(t, err)
+	require.NoError(t, state.SyncChanges())
+	// 4 rpc calls, one node register, one service register, two checks
+	require.Len(t, rpc.calls, 4)
+
+	// adding the service again should not catalog register
+	err = state.AddServiceWithChecks(srv, checks, tok)
+	require.NoError(t, err)
+	require.NoError(t, state.SyncChanges())
+	require.Len(t, rpc.calls, 4)
+}
+
+type fakeRPC struct {
+	calls []callRPC
+}
+
+type callRPC struct {
+	method string
+	args   interface{}
+	reply  interface{}
+}
+
+func (f *fakeRPC) RPC(method string, args interface{}, reply interface{}) error {
+	f.calls = append(f.calls, callRPC{method: method, args: args, reply: reply})
+	return nil
+}
+
+func (f *fakeRPC) ResolveTokenToIdentity(_ string) (structs.ACLIdentity, error) {
+	return nil, nil
 }

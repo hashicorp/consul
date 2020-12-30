@@ -22,30 +22,7 @@ func (c *consulCAMockDelegate) State() *state.Store {
 }
 
 func (c *consulCAMockDelegate) ApplyCARequest(req *structs.CARequest) (interface{}, error) {
-	idx, _, err := c.state.CAConfig(nil)
-	if err != nil {
-		return nil, err
-	}
-
-	switch req.Op {
-	case structs.CAOpSetProviderState:
-		_, err := c.state.CASetProviderState(idx+1, req.ProviderState)
-		if err != nil {
-			return nil, err
-		}
-
-		return true, nil
-	case structs.CAOpDeleteProviderState:
-		if err := c.state.CADeleteProviderState(idx+1, req.ProviderState.ID); err != nil {
-			return nil, err
-		}
-
-		return true, nil
-	case structs.CAOpIncrementProviderSerialNumber:
-		return uint64(2), nil
-	default:
-		return nil, fmt.Errorf("Invalid CA operation '%s'", req.Op)
-	}
+	return ApplyCARequestToStore(c.state, req)
 }
 
 func newMockDelegate(t *testing.T, conf *structs.CAConfiguration) *consulCAMockDelegate {
@@ -136,6 +113,10 @@ func TestConsulCAProvider_Bootstrap_WithCert(t *testing.T) {
 }
 
 func TestConsulCAProvider_SignLeaf(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	for _, tc := range KeyTestCases {
@@ -244,6 +225,10 @@ func TestConsulCAProvider_SignLeaf(t *testing.T) {
 }
 
 func TestConsulCAProvider_CrossSignCA(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	tests := CASigningKeyTypeCases()
@@ -362,6 +347,10 @@ func testCrossSignProviders(t *testing.T, provider1, provider2 Provider) {
 }
 
 func TestConsulProvider_SignIntermediate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	tests := CASigningKeyTypeCases()

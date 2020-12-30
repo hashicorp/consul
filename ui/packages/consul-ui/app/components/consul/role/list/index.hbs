@@ -1,5 +1,8 @@
-{{#if (gt items.length 0)}}
-<ListCollection @items={{items}} class="consul-role-list" as |item|>
+<ListCollection
+  class="consul-role-list"
+  ...attributes
+  @items={{@items}}
+as |item|>
     <BlockSlot @name="header">
       <a data-test-role={{item.Name}} href={{href-to 'dc.acls.roles.edit' item.ID}}>{{item.Name}}</a>
     </BlockSlot>
@@ -19,7 +22,7 @@
             Edit
           </BlockSlot>
         </Action>
-        <Action data-test-delete-action @onclick={{action ondelete item}} class="dangerous">
+        <Action data-test-delete-action @onclick={{action @ondelete item}} class="dangerous">
           <BlockSlot @name="label">
             Delete
           </BlockSlot>
@@ -42,4 +45,3 @@
       </Actions>
     </BlockSlot>
 </ListCollection>
-{{/if}}

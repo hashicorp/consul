@@ -1,14 +1,38 @@
-<form class="filter-bar">
-  <FreetextFilter
-    @onsearch={{action onsearch}}
-    @value={{search}}
-    @placeholder="Search"
-  />
+<form
+  class="consul-policy-search-bar filter-bar"
+  ...attributes
+>
+  <div class="search">
+    <FreetextFilter
+      @onsearch={{action @onsearch}}
+      @value={{@search}}
+      @placeholder="Search"
+    >
+      <PopoverSelect
+        class="type-search-properties"
+        @position="right"
+        @onchange={{action @onfilter.searchproperty}}
+        @multiple={{true}}
+      as |components|>
+        <BlockSlot @name="selected">
+          <span>
+            Search across
+          </span>
+        </BlockSlot>
+        <BlockSlot @name="options">
+  {{#let components.Optgroup components.Option as |Optgroup Option|}}
+          <Option @value="Name" @selected={{contains 'Name' @filter.searchproperties}}>Name</Option>
+          <Option @value="Description" @selected={{contains 'Description' @filter.searchproperties}}>Description</Option>
+  {{/let}}
+        </BlockSlot>
+      </PopoverSelect>
+    </FreetextFilter>
+  </div>
   <div class="filters">
     <PopoverSelect
       class="select-dcs"
       @position="left"
-      @onchange={{action onfilter.dc}}
+      @onchange={{action @onfilter.dc}}
       @multiple={{true}}
     as |components|>
       <BlockSlot @name="selected">
@@ -19,16 +43,16 @@
       <BlockSlot @name="options">
 {{#let components.Optgroup components.Option as |Optgroup Option|}}
   {{#each dcs as |dc|}}
-    <Option @value={{dc.Name}} @selected={{contains dc.Name filter.dcs}}>{{dc.Name}}</Option>
+    <Option @value={{@dc.Name}} @selected={{contains dc.Name @filter.dcs}}>{{dc.Name}}</Option>
   {{/each}}
 {{/let}}
-        <DataSource @src="/*/*/datacenters" @loading="lazy" @onchange={{action (mut dcs) value="data"}} />
+        <DataSource @src="/*/*/datacenters" @loading="lazy" @onchange={{action (mut this.dcs) value="data"}} />
       </BlockSlot>
     </PopoverSelect>
     <PopoverSelect
       class="select-type"
       @position="left"
-      @onchange={{action onfilter.kind}}
+      @onchange={{action @onfilter.kind}}
       @multiple={{true}}
     as |components|>
       <BlockSlot @name="selected">
@@ -38,8 +62,8 @@
       </BlockSlot>
       <BlockSlot @name="options">
 {{#let components.Optgroup components.Option as |Optgroup Option|}}
-        <Option @value="global-management" @selected={{contains 'global-management' filter.kinds}}>Global Management</Option>
-        <Option @value="standard" @selected={{contains 'standard' filter.kinds}}>Standard</Option>
+        <Option @value="global-management" @selected={{contains 'global-management' @filter.kinds}}>Global Management</Option>
+        <Option @value="standard" @selected={{contains 'standard' @filter.kinds}}>Standard</Option>
 {{/let}}
       </BlockSlot>
     </PopoverSelect>
@@ -49,7 +73,7 @@
       class="type-sort"
       data-test-sort-control
       @position="right"
-      @onchange={{action onsort}}
+      @onchange={{action @onsort}}
       @multiple={{false}}
     as |components|>
       <BlockSlot @name="selected">
@@ -60,15 +84,15 @@
               ))
             as |selectable|
           }}
-            {{get selectable sort}}
+            {{get selectable @sort}}
           {{/let}}
         </span>
       </BlockSlot>
       <BlockSlot @name="options">
 {{#let components.Optgroup components.Option as |Optgroup Option|}}
         <Optgroup @label="Name">
-          <Option @value="Name:asc" @selected={{eq "Name:asc" sort}}>A to Z</Option>
-          <Option @value="Name:desc" @selected={{eq "Name:desc" sort}}>Z to A</Option>
+          <Option @value="Name:asc" @selected={{eq "Name:asc" @sort}}>A to Z</Option>
+          <Option @value="Name:desc" @selected={{eq "Name:desc" @sort}}>Z to A</Option>
         </Optgroup>
 {{/let}}
       </BlockSlot>

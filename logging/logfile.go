@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -93,23 +94,28 @@ func (l *LogFile) pruneFiles() error {
 	if l.MaxFiles == 0 {
 		return nil
 	}
-	pattern := l.fileNamePattern()
-	//get all the files that match the log file pattern
-	globExpression := filepath.Join(l.logPath, fmt.Sprintf(pattern, "*"))
-	matches, err := filepath.Glob(globExpression)
+
+	pattern := filepath.Join(l.logPath, fmt.Sprintf(l.fileNamePattern(), "*"))
+	matches, err := filepath.Glob(pattern)
 	if err != nil {
 		return err
 	}
-	var stale int
-	if l.MaxFiles <= -1 {
-		// Prune everything
-		stale = len(matches)
-	} else {
-		// Prune if there are more files stored than the configured max
-		stale = len(matches) - l.MaxFiles
+
+	switch {
+	case l.MaxFiles < 0:
+		return removeFiles(matches)
+	case len(matches) < l.MaxFiles:
+		return nil
 	}
-	for i := 0; i < stale; i++ {
-		if err := os.Remove(matches[i]); err != nil {
+
+	sort.Strings(matches)
+	last := len(matches) - l.MaxFiles
+	return removeFiles(matches[:last])
+}
+
+func removeFiles(files []string) error {
+	for _, file := range files {
+		if err := os.Remove(file); err != nil {
 			return err
 		}
 	}

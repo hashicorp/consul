@@ -1,71 +1,96 @@
-<div class="topology-metrics-popover">
-{{#if (and (not @item.Intention.Allowed) (not @item.Intention.HasPermissions))}}
-  <button
-    {{on "click" this.togglePopover}}
-    type="button"
-    class="deny-target"
-    style={{{ concat 'top:' @position.y 'px;left:' @position.x 'px;'}}}
+<div
+  class="topology-metrics-popover {{@type}}"
+  ...attributes
+>
+
+{{#if (eq @type 'deny')}}
+
+  <InformedAction
+    class="dangerous"
+    {{did-insert (set this 'popover')}}
   >
-    <EmberPopover
-      @isShown={{this.showToggleablePopover}}
-      @event="none"
-      @hideOn="mouseleave"
-      @side="bottom-start"
-      @tooltipClass="deny-popover"
-    >
-      <div class="body">
-        <h3>Connection Denied</h3>
-        <p>Add an intention that allows these two services to connect.</p>
-      </div>
-      <div class="actions">
-      {{#if @item.Intention.HasExact}}
-        <a href={{href-to 'dc.services.show.intentions.edit' (concat @item.Intention.ID)}}>Edit</a>
-      {{else}}
+    <:header>
+      <h3>
+        Connection Denied
+      </h3>
+    </:header>
+    <:body>
+      <p>
+        Add an intention that allows these two services to connect.
+      </p>
+    </:body>
+    <:actions as |Actions|>
+      <Actions.Action class="action">
         <button
           {{on "click" @oncreate}}
           type="button"
         >
           Create
         </button>
-      {{/if}}
+      </Actions.Action>
+      <Actions.Action>
         <button
-          {{on "click" this.togglePopover}}
+          {{on 'click' (fn (optional this.popoverController.hide))}}
           class="cancel"
+          type="button"
         >
           Cancel
         </button>
-      </div>
-    </EmberPopover>
-  </button>
-{{else if @item.Intention.HasPermissions}}
-  <button
-    {{on "click" this.togglePopover}}
-    type="button"
-    class="L7-target"
-    style={{{ concat 'top:' @position.y 'px;left:' @position.x 'px;'}}}
+      </Actions.Action>
+    </:actions>
+  </InformedAction>
+
+{{else}}
+
+  <InformedAction
+    class="info"
+    {{did-insert (set this 'popover')}}
   >
-    <EmberPopover
-      @isShown={{this.showToggleablePopover}}
-      @event="none"
-      @hideOn="mouseleave"
-      @side="bottom-start"
-      @tooltipClass="L7-popover"
-    >
-      <div class="body">
-        <h3>Layer 7 permissions</h3>
-        <p>Certain HTTP request info must be identified.</p>
-      </div>
-      <div class="actions">
-        <a href={{href-to 'dc.services.show.intentions.edit' (concat @item.Intention.ID)}}>View</a>
+    <:header>
+      <h3>
+        Layer 7 permissions
+      </h3>
+    </:header>
+    <:body>
+      <p>
+        Certain HTTP request info must be identified.
+      </p>
+    </:body>
+    <:actions as |Actions|>
+      <Actions.Action class="action">
+        <a
+          href={{href-to 'dc.services.show.intentions.edit' (concat @item.Intention.ID)}}
+        >
+            View
+        </a>
+      </Actions.Action>
+      <Actions.Action>
         <button
-          {{on "click" this.togglePopover}}
+          {{on 'click' (fn (optional this.popoverController.hide))}}
+          class="cancel"
+          type="button"
         >
           Close
         </button>
-      </div>
-    </EmberPopover>
-  </button>
+      </Actions.Action>
+    </:actions>
+  </InformedAction>
+
 {{/if}}
+  <button
+    {{with-overlay
+      this.popover
+      options=(hash
+        theme="square-tail"
+        placement="bottom-start"
+      )
+      returns=(set this 'popoverController')
+    }}
+    type="button"
+    {{on 'click' (fn (optional this.popoverController.show))}}
+    style={{{concat 'top:' @position.y 'px;left:' @position.x 'px;'}}}
+  >
+  </button>
 </div>
 
 

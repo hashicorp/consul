@@ -7,6 +7,7 @@ export const SLUG_KEY = 'Name';
 export default class Datacenter extends Model {
   @attr('string') uid;
   @attr('string') Name;
+  @attr('boolean') Local;
 
   @attr('boolean', { defaultValue: () => true }) MeshEnabled;
 }

@@ -4,6 +4,7 @@ module.exports = {
   extends: 'octane',
   rules: {
     'no-partial': false,
+    'table-groups': false,
 
     'no-invalid-interactive': false,
     'simple-unless': false,
@@ -30,5 +31,7 @@ module.exports = {
 
     'no-unnecessary-component-helper': false,
     'link-href-attributes': false,
+
+    'no-bare-strings': false,
   },
 };

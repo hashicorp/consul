@@ -1,0 +1,17 @@
+graph TD
+
+    SubscribeIndex0[Subscribe, index = 0, no snapshot]
+    SubscribeIndexNot0[Subscribe, index > 0, with snapshot]
+
+    SubscribeIndex0 --->|if events in topic| Snapshot
+    Snapshot --> EndOfSnapshot
+    SubscribeIndex0 ------->|no events in topic| EndOfSnapshot
+    EndOfSnapshot --> EventStream
+
+    SubscribeIndexNot0 -->|if index != TopicBuffer.Head| NewSnapshotToFollow
+    NewSnapshotToFollow ---> Snapshot
+
+    SubscribeIndexNot0 -->|if index == TopicBuffer.Head| EventStream
+
+    class EndOfSnapshot,NewSnapshotToFollow framing
+    classDef framing fill:#FFD700,stroke:#333

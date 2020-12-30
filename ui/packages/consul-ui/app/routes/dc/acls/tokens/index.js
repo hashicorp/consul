@@ -11,6 +11,10 @@ export default class IndexRoute extends Route.extend(WithTokenActions) {
   queryParams = {
     sortBy: 'sort',
     kind: 'kind',
+    searchproperty: {
+      as: 'searchproperty',
+      empty: [['AccessorID', 'Description', 'Role', 'Policy']],
+    },
     search: {
       as: 'filter',
       replace: true,

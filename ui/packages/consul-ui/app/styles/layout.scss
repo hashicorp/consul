@@ -1,5 +1,14 @@
 @import 'layouts/index';
 
+.app-view {
+  margin-top: 50px;
+}
+@media #{$--lt-spacious-page-header} {
+  html:not(.with-breadcrumbs) .app-view {
+    margin-top: 10px;
+  }
+}
+
 /* all forms have a margin below the header */
 html[data-route$='create'] .app-view > header + div > *:first-child,
 html[data-route$='edit'] .app-view > header + div > *:first-child {
@@ -9,7 +18,8 @@ html[data-route$='edit'] .app-view > header + div > *:first-child {
 /* if it is a filter bar and the thing after the filter bar is a p then it also */
 /* needs a top margun :S */
 %app-view-content [role='tabpanel'] > *:first-child:not(.filter-bar):not(table),
-%app-view-content [role='tabpanel'] > .filter-bar + p {
+%app-view-content [role='tabpanel'] > .filter-bar + p,
+%app-view-content [role='tabpanel'] .consul-health-check-list {
   margin-top: 1.25em;
 }
 .consul-upstream-instance-list,
@@ -65,11 +75,6 @@ html[data-route$='edit'] main {
   @extend %content-container-restricted;
 }
 
-@media #{$--lt-spacious-page-header} {
-  html[data-route$='.index']:not([data-route^='dc.kv']) .app-view {
-    margin-top: 10px;
-  }
-}
 @media #{$--lt-spacious-page-header} {
   .actions button.copy-btn {
     margin-top: -56px;

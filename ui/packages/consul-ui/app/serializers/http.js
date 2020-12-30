@@ -1,6 +1,14 @@
 import Serializer from '@ember-data/serializer/rest';
 
 export default class HttpSerializer extends Serializer {
+  transformBelongsToResponse(store, relationship, parent, item) {
+    return item;
+  }
+
+  transformHasManyResponse(store, relationship, parent, item) {
+    return item;
+  }
+
   respondForQuery(respond, query) {
     return respond((headers, body) => body);
   }

@@ -1,19 +1,25 @@
-import Component from '@ember/component';
-import { inject as service } from '@ember/service';
+import Component from '@glimmer/component';
+import { action } from '@ember/object';
+
 const ENTER = 13;
-export default Component.extend({
-  dom: service('dom'),
-  tagName: '',
-  actions: {
-    change: function(e) {
-      this.onsearch(
-        this.dom.setEventTargetProperty(e, 'value', value => (value === '' ? undefined : value))
-      );
-    },
-    keydown: function(e) {
-      if (e.keyCode === ENTER) {
-        e.preventDefault();
-      }
-    },
-  },
-});
+export default class FreetextFilter extends Component {
+  get placeholder() {
+    return this.args.placeholder || 'Search';
+  }
+
+  get onsearch() {
+    return this.args.onsearch || (() => {});
+  }
+
+  @action
+  change(e) {
+    this.onsearch(e);
+  }
+
+  @action
+  keydown(e) {
+    if (e.keyCode === ENTER) {
+      e.preventDefault();
+    }
+  }
+}

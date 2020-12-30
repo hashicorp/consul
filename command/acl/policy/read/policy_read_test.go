@@ -22,6 +22,10 @@ func TestPolicyReadCommand_noTabs(t *testing.T) {
 }
 
 func TestPolicyReadCommand(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	assert := assert.New(t)
 
@@ -65,6 +69,10 @@ func TestPolicyReadCommand(t *testing.T) {
 }
 
 func TestPolicyReadCommand_JSON(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	assert := assert.New(t)
 

@@ -10,5 +10,15 @@ set -e
 # From: https://alestic.com/2010/12/ec2-user-data-output/
 exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
 
+# Install Consul
+if [[ -n "${consul_download_url}" ]]; then
+    /home/ubuntu/scripts/install-consul --download-url "${consul_download_url}"
+else
+    /home/ubuntu/scripts/install-consul --version "${consul_version}"
+fi
+
+# Update User:Group on this file really quick
+chown consul:consul /opt/consul/config/telemetry.json
+
 # These variables are passed in via Terraform template interplation
 /opt/consul/bin/run-consul --server --cluster-tag-key "${cluster_tag_key}" --cluster-tag-value "${cluster_tag_value}"

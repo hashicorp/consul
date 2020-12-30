@@ -5,8 +5,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/armon/go-metrics"
+	metrics "github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -86,7 +87,7 @@ var CatalogCounters = []prometheus.CounterDefinition{
 	},
 	{
 		Name: []string{"client", "api", "error", "catalog_service_nodes"},
-		Help: "",
+		Help: "Increments whenever a Consul agent receives an RPC error for request to list nodes offering a service.",
 	},
 	{
 		Name: []string{"client", "api", "catalog_node_services"},
@@ -102,15 +103,15 @@ var CatalogCounters = []prometheus.CounterDefinition{
 	},
 	{
 		Name: []string{"client", "api", "catalog_node_service_list"},
-		Help: "",
+		Help: "Increments whenever a Consul agent receives a request to list a node's registered services.",
 	},
 	{
 		Name: []string{"client", "rpc", "error", "catalog_node_service_list"},
-		Help: "",
+		Help: "Increments whenever a Consul agent receives an RPC error for request to list a node's registered services.",
 	},
 	{
 		Name: []string{"client", "api", "success", "catalog_node_service_list"},
-		Help: "",
+		Help: "Increments whenever a Consul agent successfully responds to a request to list a node's registered services.",
 	},
 	{
 		Name: []string{"client", "api", "catalog_gateway_services"},
@@ -200,7 +201,7 @@ func (s *HTTPHandlers) CatalogDatacenters(resp http.ResponseWriter, req *http.Re
 	parseCacheControl(resp, req, &args.QueryOptions)
 	var out []string
 
-	if s.agent.config.HTTPUseCache && args.QueryOptions.UseCache {
+	if args.QueryOptions.UseCache {
 		raw, m, err := s.agent.cache.Get(req.Context(), cachetype.CatalogDatacentersName, &args)
 		if err != nil {
 			metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_datacenters"}, 1,
@@ -282,7 +283,7 @@ func (s *HTTPHandlers) CatalogServices(resp http.ResponseWriter, req *http.Reque
 	var out structs.IndexedServices
 	defer setMeta(resp, &out.QueryMeta)
 
-	if s.agent.config.HTTPUseCache && args.QueryOptions.UseCache {
+	if args.QueryOptions.UseCache {
 		raw, m, err := s.agent.cache.Get(req.Context(), cachetype.CatalogListServicesName, &args)
 		if err != nil {
 			metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_services"}, 1,
@@ -371,7 +372,7 @@ func (s *HTTPHandlers) catalogServiceNodes(resp http.ResponseWriter, req *http.R
 	var out structs.IndexedServiceNodes
 	defer setMeta(resp, &out.QueryMeta)
 
-	if s.agent.config.HTTPUseCache && args.QueryOptions.UseCache {
+	if args.QueryOptions.UseCache {
 		raw, m, err := s.agent.cache.Get(req.Context(), cachetype.CatalogServicesName, &args)
 		if err != nil {
 			metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_service_nodes"}, 1,

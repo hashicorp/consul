@@ -17,7 +17,7 @@
     <section class="metadata">
       <h3>Meta</h3>
     {{#if item.Meta}}
-      <Consul::Metadata::List @items={{object-entries item.Meta}} />
+      <Consul::Metadata::List @items={{entries item.Meta}} />
     {{else}}
       <EmptyState>
         <BlockSlot @name="body">

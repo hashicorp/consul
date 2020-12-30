@@ -1,0 +1,26 @@
+%informed-action {
+  & {
+    min-width: 190px;
+  }
+  > div {
+    padding: 1rem;
+  }
+  header {
+    margin-bottom: 0.5em;
+  }
+  header::before {
+    float: left;
+    margin-right: 5px;
+  }
+  > ul {
+    display: flex;
+    margin: 0;
+    padding: 4px;
+  }
+  > ul > li {
+    width: 50%;
+  }
+  > ul > li > * {
+    width: 100%;
+  }
+}

@@ -4,8 +4,9 @@ import { hrefTo } from 'consul-ui/helpers/href-to';
 import { getOwner } from '@ember/application';
 import transitionable from 'consul-ui/utils/routing/transitionable';
 
-export default Helper.extend({
-  router: service('router'),
+export default class HrefMutHelper extends Helper {
+  @service('router') router;
+
   compute([params], hash) {
     return hrefTo(
       this,
@@ -13,5 +14,5 @@ export default Helper.extend({
       transitionable(this.router.currentRoute, params, getOwner(this)),
       hash
     );
-  },
-});
+  }
+}

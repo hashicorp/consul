@@ -17,6 +17,12 @@
 %main-nav-horizontal .popover-menu > label > button::after {
   top: 2px;
 }
+%main-nav-horizontal .is-local [role='menuitem'] {
+  display: inline-block;
+}
+%main-nav-horizontal .is-local [role='menuitem']:after {
+  display: inline-flex !important;
+}
 @media #{$--horizontal-nav} {
   %main-nav-horizontal > ul,
   %main-nav-horizontal-panel {

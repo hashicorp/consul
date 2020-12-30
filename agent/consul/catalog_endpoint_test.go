@@ -22,6 +22,10 @@ import (
 )
 
 func TestCatalog_Register(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -52,6 +56,10 @@ func TestCatalog_Register(t *testing.T) {
 }
 
 func TestCatalog_RegisterService_InvalidAddress(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -82,6 +90,10 @@ func TestCatalog_RegisterService_InvalidAddress(t *testing.T) {
 }
 
 func TestCatalog_RegisterService_SkipNodeUpdate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -121,6 +133,10 @@ func TestCatalog_RegisterService_SkipNodeUpdate(t *testing.T) {
 }
 
 func TestCatalog_Register_NodeID(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -157,6 +173,10 @@ func TestCatalog_Register_NodeID(t *testing.T) {
 }
 
 func TestCatalog_Register_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -252,6 +272,10 @@ node "foo" {
 }
 
 func TestCatalog_Register_ForwardLeader(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -296,6 +320,10 @@ func TestCatalog_Register_ForwardLeader(t *testing.T) {
 }
 
 func TestCatalog_Register_ForwardDC(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -329,6 +357,10 @@ func TestCatalog_Register_ForwardDC(t *testing.T) {
 }
 
 func TestCatalog_Register_ConnectProxy(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	assert := assert.New(t)
@@ -360,6 +392,10 @@ func TestCatalog_Register_ConnectProxy(t *testing.T) {
 // Test an invalid ConnectProxy. We don't need to exhaustively test because
 // this is all tested in structs on the Validate method.
 func TestCatalog_Register_ConnectProxy_invalid(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	assert := assert.New(t)
@@ -381,6 +417,10 @@ func TestCatalog_Register_ConnectProxy_invalid(t *testing.T) {
 
 // Test that write is required for the proxy destination to register a proxy.
 func TestCatalog_Register_ConnectProxy_ACLDestinationServiceName(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	assert := assert.New(t)
@@ -444,6 +484,10 @@ node "foo" {
 }
 
 func TestCatalog_Register_ConnectNative(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	assert := assert.New(t)
@@ -474,6 +518,10 @@ func TestCatalog_Register_ConnectNative(t *testing.T) {
 }
 
 func TestCatalog_Deregister(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -500,6 +548,10 @@ func TestCatalog_Deregister(t *testing.T) {
 }
 
 func TestCatalog_Deregister_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -671,6 +723,10 @@ service "service" {
 }
 
 func TestCatalog_ListDatacenters(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -705,6 +761,10 @@ func TestCatalog_ListDatacenters(t *testing.T) {
 }
 
 func TestCatalog_ListDatacenters_DistanceSort(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -744,6 +804,10 @@ func TestCatalog_ListDatacenters_DistanceSort(t *testing.T) {
 }
 
 func TestCatalog_ListNodes(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -801,6 +865,10 @@ func TestCatalog_ListNodes(t *testing.T) {
 }
 
 func TestCatalog_ListNodes_NodeMetaFilter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -864,6 +932,10 @@ func TestCatalog_ListNodes_NodeMetaFilter(t *testing.T) {
 }
 
 func TestCatalog_RPC_Filter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -940,6 +1012,10 @@ func TestCatalog_RPC_Filter(t *testing.T) {
 }
 
 func TestCatalog_ListNodes_StaleRead(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -1008,6 +1084,10 @@ func TestCatalog_ListNodes_StaleRead(t *testing.T) {
 }
 
 func TestCatalog_ListNodes_ConsistentRead_Fail(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -1064,6 +1144,10 @@ func TestCatalog_ListNodes_ConsistentRead_Fail(t *testing.T) {
 }
 
 func TestCatalog_ListNodes_ConsistentRead(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -1109,6 +1193,10 @@ func TestCatalog_ListNodes_ConsistentRead(t *testing.T) {
 }
 
 func TestCatalog_ListNodes_DistanceSort(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -1200,6 +1288,10 @@ func TestCatalog_ListNodes_DistanceSort(t *testing.T) {
 }
 
 func TestCatalog_ListNodes_ACLFilter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -1289,6 +1381,10 @@ func Benchmark_Catalog_ListNodes(t *testing.B) {
 }
 
 func TestCatalog_ListServices(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -1355,6 +1451,10 @@ func TestCatalog_ListServices(t *testing.T) {
 }
 
 func TestCatalog_ListServices_NodeMetaFilter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -1419,6 +1519,10 @@ func TestCatalog_ListServices_NodeMetaFilter(t *testing.T) {
 }
 
 func TestCatalog_ListServices_Blocking(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -1479,6 +1583,10 @@ func TestCatalog_ListServices_Blocking(t *testing.T) {
 }
 
 func TestCatalog_ListServices_Timeout(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -1521,6 +1629,10 @@ func TestCatalog_ListServices_Timeout(t *testing.T) {
 }
 
 func TestCatalog_ListServices_Stale(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -1605,6 +1717,10 @@ func TestCatalog_ListServices_Stale(t *testing.T) {
 }
 
 func TestCatalog_ListServiceNodes(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -1655,6 +1771,10 @@ func TestCatalog_ListServiceNodes(t *testing.T) {
 }
 
 func TestCatalog_ListServiceNodes_ByAddress(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -1738,6 +1858,10 @@ func TestCatalog_ListServiceNodes_ByAddress(t *testing.T) {
 // TestCatalog_ListServiceNodes_ServiceTags_V1_2_3Compat asserts the compatibility between <=v1.2.3 agents and >=v1.3.0 servers
 // see https://github.com/hashicorp/consul/issues/4922
 func TestCatalog_ListServiceNodes_ServiceTags_V1_2_3Compat(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -1815,6 +1939,10 @@ func TestCatalog_ListServiceNodes_ServiceTags_V1_2_3Compat(t *testing.T) {
 }
 
 func TestCatalog_ListServiceNodes_NodeMetaFilter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -1926,6 +2054,10 @@ func TestCatalog_ListServiceNodes_NodeMetaFilter(t *testing.T) {
 }
 
 func TestCatalog_ListServiceNodes_DistanceSort(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -2014,6 +2146,10 @@ func TestCatalog_ListServiceNodes_DistanceSort(t *testing.T) {
 }
 
 func TestCatalog_ListServiceNodes_ConnectProxy(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	assert := assert.New(t)
@@ -2045,6 +2181,10 @@ func TestCatalog_ListServiceNodes_ConnectProxy(t *testing.T) {
 }
 
 func TestCatalog_ServiceNodes_Gateway(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	dir1, s1 := testServer(t)
@@ -2161,6 +2301,10 @@ func TestCatalog_ServiceNodes_Gateway(t *testing.T) {
 }
 
 func TestCatalog_ListServiceNodes_ConnectDestination(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	assert := assert.New(t)
@@ -2214,6 +2358,10 @@ func TestCatalog_ListServiceNodes_ConnectDestination(t *testing.T) {
 // Test that calling ServiceNodes with Connect: true will return
 // Connect native services.
 func TestCatalog_ListServiceNodes_ConnectDestinationNative(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -2255,6 +2403,10 @@ func TestCatalog_ListServiceNodes_ConnectDestinationNative(t *testing.T) {
 }
 
 func TestCatalog_ListServiceNodes_ConnectProxy_ACL(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
@@ -2341,6 +2493,10 @@ node "" { policy = "read" }
 }
 
 func TestCatalog_ListServiceNodes_ConnectNative(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	assert := assert.New(t)
@@ -2372,6 +2528,10 @@ func TestCatalog_ListServiceNodes_ConnectNative(t *testing.T) {
 }
 
 func TestCatalog_NodeServices(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -2423,6 +2583,10 @@ func TestCatalog_NodeServices(t *testing.T) {
 }
 
 func TestCatalog_NodeServices_ConnectProxy(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	assert := assert.New(t)
@@ -2454,6 +2618,10 @@ func TestCatalog_NodeServices_ConnectProxy(t *testing.T) {
 }
 
 func TestCatalog_NodeServices_ConnectNative(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	assert := assert.New(t)
@@ -2485,6 +2653,10 @@ func TestCatalog_NodeServices_ConnectNative(t *testing.T) {
 
 // Used to check for a regression against a known bug
 func TestCatalog_Register_FailedCase1(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -2608,6 +2780,10 @@ node "" {
 }
 
 func TestCatalog_ListServices_FilterACL(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir, token, srv, codec := testACLFilterServer(t)
 	defer os.RemoveAll(dir)
@@ -2632,6 +2808,10 @@ func TestCatalog_ListServices_FilterACL(t *testing.T) {
 }
 
 func TestCatalog_ServiceNodes_FilterACL(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir, token, srv, codec := testACLFilterServer(t)
 	defer os.RemoveAll(dir)
@@ -2682,6 +2862,10 @@ func TestCatalog_ServiceNodes_FilterACL(t *testing.T) {
 }
 
 func TestCatalog_NodeServices_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -2749,6 +2933,10 @@ node "%s" {
 }
 
 func TestCatalog_NodeServices_FilterACL(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir, token, srv, codec := testACLFilterServer(t)
 	defer os.RemoveAll(dir)
@@ -2774,6 +2962,10 @@ func TestCatalog_NodeServices_FilterACL(t *testing.T) {
 }
 
 func TestCatalog_GatewayServices_TerminatingGateway(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	dir1, s1 := testServer(t)
@@ -2915,6 +3107,10 @@ func TestCatalog_GatewayServices_TerminatingGateway(t *testing.T) {
 }
 
 func TestCatalog_GatewayServices_BothGateways(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	dir1, s1 := testServer(t)
@@ -3078,6 +3274,10 @@ func TestCatalog_GatewayServices_BothGateways(t *testing.T) {
 }
 
 func TestCatalog_GatewayServices_ACLFiltering(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {

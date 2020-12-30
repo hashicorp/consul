@@ -11,7 +11,7 @@ as |item index|>
         <th class="permissions">
           Permissions
           <span>
-            <Tooltip>Permissions intercept an Intention's traffic using L7 criteria, such as path prefixes and http headers.</Tooltip>
+            <Tooltip>Permissions intercept an Intention's traffic using Layer 7 criteria, such as path prefixes and http headers.</Tooltip>
           </span>
         </th>
         <th class="meta">&nbsp;</th>
@@ -66,24 +66,36 @@ as |item index|>
             <li role="none" class="dangerous">
               <label for={{confirm}} role="menuitem" tabindex="-1" onkeypress={{keypressClick}} data-test-delete>Delete</label>
               <div role="menu">
-                <div class="confirmation-alert warning">
-                  <div>
-                    <header>
-                      Confirm Delete
-                    </header>
+                <InformedAction
+                  class="warning"
+                >
+                  <:header>
+                    Confirm Delete
+                  </:header>
+                  <:body>
                     <p>
                       Are you sure you want to delete this intention?
                     </p>
-                  </div>
-                  <ul>
-                    <li class="dangerous">
-                      <button tabindex="-1" type="button" class="type-delete" onclick={{queue (action change) (action @delete item)}}>Delete</button>
-                    </li>
-                    <li>
-                      <label for={{confirm}}>Cancel</label>
-                    </li>
-                  </ul>
-                </div>
+                  </:body>
+                  <:actions as |Actions|>
+                    <Actions.Action class="dangerous">
+                      <Action
+                        class="type-delete"
+                        tabindex="-1"
+                        {{on 'click' (queue (action change) (action @delete item))}}
+                      >
+                        Delete
+                      </Action>
+                    </Actions.Action>
+                    <Actions.Action>
+                      <Action
+                        @for={{confirm}}
+                      >
+                        Cancel
+                      </Action>
+                    </Actions.Action>
+                  </:actions>
+                </InformedAction>
               </div>
             </li>
           {{else}}

@@ -124,6 +124,10 @@ func makeRaft(t *testing.T, dir string) (*raft.Raft, *MockFSM) {
 }
 
 func TestSnapshot(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	dir := testutil.TempDir(t, "snapshot")
 
 	// Make a Raft and populate it with some data. We tee everything we
@@ -232,6 +236,10 @@ func TestSnapshot_BadVerify(t *testing.T) {
 }
 
 func TestSnapshot_TruncatedVerify(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	dir := testutil.TempDir(t, "snapshot")
 
 	// Make a Raft and populate it with some data. We tee everything we
@@ -277,6 +285,10 @@ func TestSnapshot_TruncatedVerify(t *testing.T) {
 }
 
 func TestSnapshot_BadRestore(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	dir := testutil.TempDir(t, "snapshot")
 
 	// Make a Raft and populate it with some data.

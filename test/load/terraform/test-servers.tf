@@ -1,3 +1,24 @@
+data "aws_ami" "test" {
+  most_recent = true
+
+  owners = var.ami_owners
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  filter {
+    name   = "is-public"
+    values = ["false"]
+  }
+
+  filter {
+    name   = "name"
+    values = ["consul-test-*"]
+  }
+}
+
 # ---------------------------------------------------------------------------------------------------------------------
 # Start up test servers to run tests from
 # ---------------------------------------------------------------------------------------------------------------------
@@ -8,7 +29,7 @@ resource "aws_security_group" "test-servers" {
   ingress {
     from_port       = 8500
     to_port         = 8500
-    security_groups = [module.consul.security_group_id_clients]
+    security_groups = [module.consul_clients.security_group_id]
     protocol        = "6"
     cidr_blocks     = ["0.0.0.0/0"]
   }
@@ -26,37 +47,24 @@ resource "aws_security_group" "test-servers" {
   }
 }
 
-resource "aws_launch_configuration" "test-servers" {
-  name_prefix     = "${var.cluster_name}-${local.random_name}-test-"
-  image_id        = var.test_server_ami
-  instance_type   = var.test_instance_type
-  key_name        = module.keys.key_name
-  security_groups = [aws_security_group.test-servers.id]
-
+resource "aws_instance" "test-server" {
+  ami                         = var.test_server_ami == null ? data.aws_ami.test.id : var.test_server_ami
+  instance_type               = var.test_instance_type
+  key_name                    = module.keys.key_name
+  vpc_security_group_ids      = toset([aws_security_group.test-servers.id])
   associate_public_ip_address = var.test_public_ip
-  lifecycle {
-    create_before_destroy = true
-  }
-  user_data = templatefile(
-    "./start-k6.sh",
-    {
-      lb_endpoint = module.alb.this_lb_dns_name
+  subnet_id                   = (module.vpc.public_subnets)[0]
+  provisioner "remote-exec" {
+    inline = [
+      "export LB_ENDPOINT=${module.alb.this_lb_dns_name}",
+      "k6 run -q /home/ubuntu/scripts/loadtest.js"
+    ]
+    connection {
+      type        = "ssh"
+      user        = "ubuntu"
+      timeout     = "1m"
+      private_key = module.keys.private_key_pem
+      host        = aws_instance.test-server.public_ip
     }
-  )
-}
-
-resource "aws_autoscaling_group" "test-servers" {
-  name                      = aws_launch_configuration.test-servers.name
-  launch_configuration      = aws_launch_configuration.test-servers.id
-  min_size                  = 2
-  max_size                  = 5
-  desired_capacity          = 2
-  wait_for_capacity_timeout = "480s"
-  health_check_grace_period = 15
-  health_check_type         = "EC2"
-  vpc_zone_identifier       = module.vpc.public_subnets
-
-  lifecycle {
-    create_before_destroy = true
   }
 }

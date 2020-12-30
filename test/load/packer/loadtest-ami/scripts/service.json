@@ -1,0 +1,16 @@
+{
+  "Address": "127.0.0.1",
+  "Port": 8000,
+  "Meta": {
+    "redis_version": "4.0"
+  },
+  "Check": {
+    "HTTP": "https://example.com:850040220",
+    "Method": "POST",
+    "Header": {"Content-Type": ["application/json"]},
+    "Body": "{\"method\":\"health\"}",
+    "Timeout": "5s",
+    "DeregisterCriticalServiceAfter": "2m",
+    "Interval": "10s"
+  }
+}

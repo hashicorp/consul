@@ -621,7 +621,7 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 			},
 		}
 
-		require.NoError(t, s.ACLTokenBatchSet(2, tokens, true, false, false))
+		require.NoError(t, s.ACLTokenBatchSet(2, tokens, ACLTokenSetOptions{CAS: true}))
 
 		_, token, err := s.ACLTokenGetByAccessor(nil, tokens[0].AccessorID, nil)
 		require.NoError(t, err)
@@ -642,7 +642,7 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 			},
 		}
 
-		require.NoError(t, s.ACLTokenBatchSet(5, tokens, true, false, false))
+		require.NoError(t, s.ACLTokenBatchSet(5, tokens, ACLTokenSetOptions{CAS: true}))
 
 		updated := structs.ACLTokens{
 			&structs.ACLToken{
@@ -653,7 +653,7 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 			},
 		}
 
-		require.NoError(t, s.ACLTokenBatchSet(6, updated, true, false, false))
+		require.NoError(t, s.ACLTokenBatchSet(6, updated, ACLTokenSetOptions{CAS: true}))
 
 		_, token, err := s.ACLTokenGetByAccessor(nil, tokens[0].AccessorID, nil)
 		require.NoError(t, err)
@@ -672,7 +672,7 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 			},
 		}
 
-		require.NoError(t, s.ACLTokenBatchSet(5, tokens, true, false, false))
+		require.NoError(t, s.ACLTokenBatchSet(5, tokens, ACLTokenSetOptions{CAS: true}))
 
 		updated := structs.ACLTokens{
 			&structs.ACLToken{
@@ -682,7 +682,7 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 			},
 		}
 
-		require.NoError(t, s.ACLTokenBatchSet(6, updated, true, false, false))
+		require.NoError(t, s.ACLTokenBatchSet(6, updated, ACLTokenSetOptions{CAS: true}))
 
 		_, token, err := s.ACLTokenGetByAccessor(nil, tokens[0].AccessorID, nil)
 		require.NoError(t, err)
@@ -705,7 +705,7 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 			},
 		}
 
-		require.NoError(t, s.ACLTokenBatchSet(2, tokens, false, false, false))
+		require.NoError(t, s.ACLTokenBatchSet(2, tokens, ACLTokenSetOptions{}))
 
 		idx, rtokens, err := s.ACLTokenBatchGet(nil, []string{
 			"a4f68bd6-3af5-4f56-b764-3c6f20247879",
@@ -736,7 +736,7 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 			},
 		}
 
-		require.NoError(t, s.ACLTokenBatchSet(2, tokens, false, false, false))
+		require.NoError(t, s.ACLTokenBatchSet(2, tokens, ACLTokenSetOptions{}))
 
 		updates := structs.ACLTokens{
 			&structs.ACLToken{
@@ -761,7 +761,7 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 			},
 		}
 
-		require.NoError(t, s.ACLTokenBatchSet(3, updates, false, false, false))
+		require.NoError(t, s.ACLTokenBatchSet(3, updates, ACLTokenSetOptions{}))
 
 		idx, rtokens, err := s.ACLTokenBatchGet(nil, []string{
 			"a4f68bd6-3af5-4f56-b764-3c6f20247879",
@@ -808,9 +808,9 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 			},
 		}
 
-		require.Error(t, s.ACLTokenBatchSet(2, tokens, false, false, false))
+		require.Error(t, s.ACLTokenBatchSet(2, tokens, ACLTokenSetOptions{}))
 
-		require.NoError(t, s.ACLTokenBatchSet(2, tokens, false, true, false))
+		require.NoError(t, s.ACLTokenBatchSet(2, tokens, ACLTokenSetOptions{AllowMissingPolicyAndRoleIDs: true}))
 
 		idx, rtokens, err := s.ACLTokenBatchGet(nil, []string{
 			"a4f68bd6-3af5-4f56-b764-3c6f20247879",
@@ -847,9 +847,9 @@ func TestStateStore_ACLTokens_UpsertBatchRead(t *testing.T) {
 			},
 		}
 
-		require.Error(t, s.ACLTokenBatchSet(2, tokens, false, false, false))
+		require.Error(t, s.ACLTokenBatchSet(2, tokens, ACLTokenSetOptions{}))
 
-		require.NoError(t, s.ACLTokenBatchSet(2, tokens, false, true, false))
+		require.NoError(t, s.ACLTokenBatchSet(2, tokens, ACLTokenSetOptions{AllowMissingPolicyAndRoleIDs: true}))
 
 		idx, rtokens, err := s.ACLTokenBatchGet(nil, []string{
 			"a4f68bd6-3af5-4f56-b764-3c6f20247879",
@@ -953,7 +953,7 @@ func TestStateStore_ACLTokens_ListUpgradeable(t *testing.T) {
 		},
 	}
 
-	require.NoError(t, s.ACLTokenBatchSet(7, updates, false, false, false))
+	require.NoError(t, s.ACLTokenBatchSet(7, updates, ACLTokenSetOptions{}))
 
 	tokens, _, err = s.ACLTokenListUpgradeable(10)
 	require.NoError(t, err)
@@ -1044,7 +1044,7 @@ func TestStateStore_ACLToken_List(t *testing.T) {
 		},
 	}
 
-	require.NoError(t, s.ACLTokenBatchSet(2, tokens, false, false, false))
+	require.NoError(t, s.ACLTokenBatchSet(2, tokens, ACLTokenSetOptions{}))
 
 	type testCase struct {
 		name       string
@@ -1565,7 +1565,7 @@ func TestStateStore_ACLToken_Delete(t *testing.T) {
 			},
 		}
 
-		require.NoError(t, s.ACLTokenBatchSet(2, tokens, false, false, false))
+		require.NoError(t, s.ACLTokenBatchSet(2, tokens, ACLTokenSetOptions{}))
 
 		_, rtoken, err := s.ACLTokenGetByAccessor(nil, "f1093997-b6c7-496d-bfb8-6b1b1895641b", nil)
 		require.NoError(t, err)
@@ -2829,6 +2829,123 @@ func TestStateStore_ACLAuthMethod_SetGet(t *testing.T) {
 	})
 }
 
+func TestStateStore_ACLAuthMethod_GlobalNameShadowing_TokenTest(t *testing.T) {
+	t.Parallel()
+
+	// This ensures that when a primary DC and secondary DC create identically
+	// named auth methods, and the primary instance has a tokenLocality==global
+	// that operations in the secondary correctly can target one or the other.
+
+	s := testACLStateStore(t)
+	lastIndex := uint64(1)
+
+	// For this test our state machine will simulate the SECONDARY(DC2), so
+	// we'll create our auth method here that shadows the global-token-minting
+	// one in the primary.
+
+	defaultEntMeta := structs.DefaultEnterpriseMeta()
+
+	lastIndex++
+	require.NoError(t, s.ACLAuthMethodSet(lastIndex, &structs.ACLAuthMethod{
+		Name:           "test",
+		Type:           "testing",
+		Description:    "test",
+		EnterpriseMeta: *defaultEntMeta,
+	}))
+
+	const ( // accessors
+		methodDC1_tok1 = "6d020c5d-c4fd-4348-ba79-beac37ed0b9c"
+		methodDC1_tok2 = "169160dc-34ab-45c6-aba7-ff65e9ace9cb"
+		methodDC2_tok1 = "8e14628e-7dde-4573-aca1-6386c0f2095d"
+		methodDC2_tok2 = "291e5af9-c68e-4dd3-8824-b2bdfdcc89e6"
+	)
+
+	lastIndex++
+	require.NoError(t, s.ACLTokenBatchSet(lastIndex, structs.ACLTokens{
+		&structs.ACLToken{
+			AccessorID:     methodDC2_tok1,
+			SecretID:       "d9399b7d-6c34-46bd-a675-c1352fadb6fd",
+			Description:    "test-dc2-t1",
+			AuthMethod:     "test",
+			Local:          true,
+			EnterpriseMeta: *defaultEntMeta,
+		},
+		&structs.ACLToken{
+			AccessorID:     methodDC2_tok2,
+			SecretID:       "3b72fc27-9230-42ab-a1e8-02cb489ab177",
+			Description:    "test-dc2-t2",
+			AuthMethod:     "test",
+			Local:          true,
+			EnterpriseMeta: *defaultEntMeta,
+		},
+	}, ACLTokenSetOptions{}))
+
+	lastIndex++
+	require.NoError(t, s.ACLTokenBatchSet(lastIndex, structs.ACLTokens{
+		&structs.ACLToken{
+			AccessorID:     methodDC1_tok1,
+			SecretID:       "7a1950c6-79dc-441c-acd2-e22cd3db0240",
+			Description:    "test-dc1-t1",
+			AuthMethod:     "test",
+			Local:          false,
+			EnterpriseMeta: *defaultEntMeta,
+		},
+		&structs.ACLToken{
+			AccessorID:     methodDC1_tok2,
+			SecretID:       "442cee4c-353f-4957-adbb-33db2f9e267f",
+			Description:    "test-dc1-t2",
+			AuthMethod:     "test",
+			Local:          false,
+			EnterpriseMeta: *defaultEntMeta,
+		},
+	}, ACLTokenSetOptions{FromReplication: true}))
+
+	toList := func(tokens structs.ACLTokens) []string {
+		var ret []string
+		for _, tok := range tokens {
+			ret = append(ret, tok.AccessorID)
+		}
+		return ret
+	}
+
+	require.True(t, t.Run("list local only", func(t *testing.T) {
+		_, got, err := s.ACLTokenList(nil, true, false, "", "", "test", defaultEntMeta, defaultEntMeta)
+		require.NoError(t, err)
+		require.ElementsMatch(t, []string{methodDC2_tok1, methodDC2_tok2}, toList(got))
+	}))
+	require.True(t, t.Run("list global only", func(t *testing.T) {
+		_, got, err := s.ACLTokenList(nil, false, true, "", "", "test", defaultEntMeta, defaultEntMeta)
+		require.NoError(t, err)
+		require.ElementsMatch(t, []string{methodDC1_tok1, methodDC1_tok2}, toList(got))
+	}))
+	require.True(t, t.Run("list both", func(t *testing.T) {
+		_, got, err := s.ACLTokenList(nil, true, true, "", "", "test", defaultEntMeta, defaultEntMeta)
+		require.NoError(t, err)
+		require.ElementsMatch(t, []string{methodDC1_tok1, methodDC1_tok2, methodDC2_tok1, methodDC2_tok2}, toList(got))
+	}))
+
+	lastIndex++
+	require.True(t, t.Run("delete dc2 auth method", func(t *testing.T) {
+		require.NoError(t, s.ACLAuthMethodDeleteByName(lastIndex, "test", nil))
+	}))
+
+	require.True(t, t.Run("list local only (after dc2 delete)", func(t *testing.T) {
+		_, got, err := s.ACLTokenList(nil, true, false, "", "", "test", defaultEntMeta, defaultEntMeta)
+		require.NoError(t, err)
+		require.Empty(t, got)
+	}))
+	require.True(t, t.Run("list global only (after dc2 delete)", func(t *testing.T) {
+		_, got, err := s.ACLTokenList(nil, false, true, "", "", "test", defaultEntMeta, defaultEntMeta)
+		require.NoError(t, err)
+		require.ElementsMatch(t, []string{methodDC1_tok1, methodDC1_tok2}, toList(got))
+	}))
+	require.True(t, t.Run("list both (after dc2 delete)", func(t *testing.T) {
+		_, got, err := s.ACLTokenList(nil, true, true, "", "", "test", defaultEntMeta, defaultEntMeta)
+		require.NoError(t, err)
+		require.ElementsMatch(t, []string{methodDC1_tok1, methodDC1_tok2}, toList(got))
+	}))
+}
+
 func TestStateStore_ACLAuthMethods_UpsertBatchRead(t *testing.T) {
 	t.Parallel()
 
@@ -3092,27 +3209,31 @@ func TestStateStore_ACLAuthMethod_Delete_RuleAndTokenCascade(t *testing.T) {
 			SecretID:    "7a1950c6-79dc-441c-acd2-e22cd3db0240",
 			Description: "test-m1-t1",
 			AuthMethod:  "test-1",
+			Local:       true,
 		},
 		&structs.ACLToken{
 			AccessorID:  method1_tok2,
 			SecretID:    "442cee4c-353f-4957-adbb-33db2f9e267f",
 			Description: "test-m1-t2",
 			AuthMethod:  "test-1",
+			Local:       true,
 		},
 		&structs.ACLToken{
 			AccessorID:  method2_tok1,
 			SecretID:    "d9399b7d-6c34-46bd-a675-c1352fadb6fd",
 			Description: "test-m2-t1",
 			AuthMethod:  "test-2",
+			Local:       true,
 		},
 		&structs.ACLToken{
 			AccessorID:  method2_tok2,
 			SecretID:    "3b72fc27-9230-42ab-a1e8-02cb489ab177",
 			Description: "test-m2-t2",
 			AuthMethod:  "test-2",
+			Local:       true,
 		},
 	}
-	require.NoError(t, s.ACLTokenBatchSet(4, tokens, false, false, false))
+	require.NoError(t, s.ACLTokenBatchSet(4, tokens, ACLTokenSetOptions{}))
 
 	// Delete one method.
 	require.NoError(t, s.ACLAuthMethodDeleteByName(4, "test-1", nil))
@@ -3570,7 +3691,7 @@ func TestStateStore_ACLTokens_Snapshot_Restore(t *testing.T) {
 		},
 	}
 
-	require.NoError(t, s.ACLTokenBatchSet(4, tokens, false, false, false))
+	require.NoError(t, s.ACLTokenBatchSet(4, tokens, ACLTokenSetOptions{}))
 
 	// Snapshot the ACLs.
 	snap := s.Snapshot()

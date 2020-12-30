@@ -1,5 +1,6 @@
 import Service, { inject as service } from '@ember/service';
 import { proxy } from 'consul-ui/utils/dom/event-source';
+import { schedule } from '@ember/runloop';
 
 import MultiMap from 'mnemonist/multi-map';
 
@@ -37,14 +38,18 @@ export default class DataSourceService extends Service {
   }
 
   willDestroy() {
-    this._listeners.remove();
-    sources.forEach(function(item) {
-      item.close();
+    // the will-destroy helper will fire AFTER services have had willDestroy
+    // called on them, schedule any destroying to fire after the final render
+    schedule('afterRender', () => {
+      this._listeners.remove();
+      sources.forEach(function(item) {
+        item.close();
+      });
+      cache = null;
+      sources = null;
+      usage.clear();
+      usage = null;
     });
-    cache = null;
-    sources = null;
-    usage.clear();
-    usage = null;
   }
 
   source(cb, attrs) {

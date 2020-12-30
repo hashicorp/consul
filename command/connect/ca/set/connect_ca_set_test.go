@@ -22,6 +22,10 @@ func TestConnectCASetConfigCommand_noTabs(t *testing.T) {
 }
 
 func TestConnectCASetConfigCommand(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	require := require.New(t)
 	a := agent.NewTestAgent(t, ``)

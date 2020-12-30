@@ -22,12 +22,15 @@ ami_owners           = ["******"]
 ## This is found from building the image in packer/consul-ami
 consul_ami_id        = "ami-016d80ff5472346f0"
 ```
+
+If `consul_version` or `consul_download_url` is not set within the Terraform variables it will default to utilziing Consul 1.9.0 
+
 4. AWS Variables are set off of environment variables. Make sure to export nessecary variables [shown here](https://registry.terraform.io/providers/hashicorp/aws/latest/docs#environment-variables).
 5. Run `terraform plan -var-file=vars.tfvars`, and then `terraform apply -var-file=vars.tfvars` when ready.
 6. Upon completion k6 should run and push metrics to desired Datadog dashboard. 
 
 # Customization 
-All customization for infrastructure that is available can be found by looking through the `variables.tf` file. However, if customization of tests is desired then the `start-k6.sh` leverages user-data to place a `puts_script.js` onto the loadtest servers for k6 to run. This can be customized.
+All customization for infrastructure that is available can be found by looking through the `variables.tf` file.
 
 # How to SSH
 After `terraform apply` is ran Terraform should create a `keys/` directory which will give access to all instances created. 

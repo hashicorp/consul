@@ -1,12 +1,7 @@
-export default () => term => item => {
-  const source = item.SourceName.toLowerCase();
-  const destination = item.DestinationName.toLowerCase();
-  const allLabel = 'All Services (*)'.toLowerCase();
-  const lowerTerm = term.toLowerCase();
-  return (
-    source.indexOf(lowerTerm) !== -1 ||
-    destination.indexOf(lowerTerm) !== -1 ||
-    (source === '*' && allLabel.indexOf(lowerTerm) !== -1) ||
-    (destination === '*' && allLabel.indexOf(lowerTerm) !== -1)
-  );
+const allLabel = 'All Services (*)';
+export default {
+  SourceName: item =>
+    [item.SourceName, item.SourceName === '*' ? allLabel : undefined].filter(Boolean),
+  DestinationName: item =>
+    [item.DestinationName, item.DestinationName === '*' ? allLabel : undefined].filter(Boolean),
 };

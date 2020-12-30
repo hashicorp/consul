@@ -1,13 +1,16 @@
 <div
   class="resolver-card"
-  ...attributes
 >
-  <header onclick={{optional @onclick}} id={{concat 'resolver:' @item.ID}}>
+  <header
+    ...attributes
+    onclick={{optional @onclick}} id={{concat 'resolver:' @item.ID}}>
     <a name="">
       <h3>{{@item.Name}}</h3>
 {{#if item.Failover}}
       <dl class="failover">
-        <dt data-tooltip={{concat @item.Failover.Type ' failover'}}>
+        <dt
+          {{tooltip (concat @item.Failover.Type ' failover')}}
+        >
           {{concat @item.Failover.Type ' failover'}}
         </dt>
         <dd>
@@ -26,18 +29,30 @@
 {{#if (gt @item.Children.length 0)}}
     <ul>
   {{#each @item.Children as |child|}}
-      <li onclick={{optional @onclick}} id={{concat 'resolver:' child.ID}}>
+      <li
+        onclick={{optional @onclick}}
+        id={{concat 'resolver:' child.ID}}
+        {{on-resize (dom-position (set child 'rect') from=@edges)}}
+      >
         <a name="">
     {{#if child.Redirect}}
           <dl class="redirect">
-            <dt data-tooltip="Redirect">Redirect</dt>
+            <dt
+              {{tooltip "Redirect"}}
+            >
+              Redirect
+            </dt>
             <dd>
               {{child.Name}}
             </dd>
           </dl>
           {{#if child.Failover}}
             <dl class="failover">
-              <dt data-tooltip={{concat child.Failover.Type ' failover'}}>{{concat child.Failover.Type ' failover'}}</dt>
+              <dt
+                {{tooltip (concat child.Failover.Type ' failover')}}
+              >
+                {{concat child.Failover.Type ' failover'}}
+              </dt>
               <dd>
                 <ol>
         {{#each child.Failover.Targets as |target|}}
@@ -52,7 +67,11 @@
     {{else if child.Failover}}
           {{child.Name}}
           <dl class="failover">
-            <dt data-tooltip={{concat child.Failover.Type ' failover'}}>{{concat child.Failover.Type ' failover'}}</dt>
+            <dt
+              {{tooltip (concat child.Failover.Type ' failover')}}
+            >
+              {{concat child.Failover.Type ' failover'}}
+            </dt>
             <dd>
               <ol>
       {{#each child.Failover.Targets as |target|}}

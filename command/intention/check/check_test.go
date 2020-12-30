@@ -66,6 +66,10 @@ func TestIntentionCheck_Validation(t *testing.T) {
 }
 
 func TestIntentionCheck(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)

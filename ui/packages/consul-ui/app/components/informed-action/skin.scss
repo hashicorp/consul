@@ -1,0 +1,79 @@
+%informed-action {
+  & {
+    border-radius: $decor-radius-200;
+    border: $decor-border-100;
+    border-color: $gray-300;
+    background-color: $white;
+  }
+  > div {
+    border-top-left-radius: $decor-radius-200;
+    border-top-right-radius: $decor-radius-200;
+    cursor: default;
+  }
+  header {
+    @extend %h4;
+  }
+  header > * {
+    @extend %typo-inherit;
+  }
+  p {
+    @extend %p2;
+    color: $black;
+  }
+  > ul {
+    list-style: none;
+  }
+  > ul > li > *:hover,
+  > ul > li > *:focus {
+    background-color: $gray-100;
+  }
+  /* variants */
+  &.info {
+    header {
+      color: $blue-700;
+    }
+    header::before {
+      @extend %with-info-circle-fill-mask, %as-pseudo;
+      background-color: $blue-500;
+      margin-right: 5px;
+    }
+    > div {
+      background-color: $blue-010;
+    }
+  }
+  &.dangerous {
+    header {
+      color: $red-700;
+    }
+    header::before {
+      @extend %with-alert-triangle-mask, %as-pseudo;
+      background-color: $red-500;
+    }
+    > div {
+      background-color: $red-010;
+    }
+  }
+  &.warning {
+    header {
+      color: $orange-700;
+    }
+    header::before {
+      @extend %with-alert-triangle-mask, %as-pseudo;
+      background-color: $yellow-500;
+      margin-right: 5px;
+    }
+    > div {
+      background-color: $yellow-050;
+    }
+  }
+  > ul > .action > * {
+    color: $blue-500;
+  }
+  > ul > .dangerous > * {
+    @extend %frame-red-300;
+  }
+  > ul > .dangerous > *:hover,
+  > ul > .dangerous > *:focus {
+    @extend %frame-red-700;
+  }
+}

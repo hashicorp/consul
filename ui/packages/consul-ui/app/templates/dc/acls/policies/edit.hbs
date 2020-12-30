@@ -42,6 +42,16 @@
         </h1>
     </BlockSlot>
     <BlockSlot @name="content">
+{{#if (not create) }}
+      <div class="definition-table">
+          <dl>
+            <dt>Policy ID</dt>
+            <dd>
+              <CopyButton @value={{item.ID}} @name="Policy ID" @position="top-start" /> {{item.ID}}
+            </dd>
+          </dl>
+      </div>
+{{/if}}
 {{#if (eq (policy/typeof item) 'policy-management')}}
       {{ partial 'dc/acls/policies/view'}}
 {{else}}

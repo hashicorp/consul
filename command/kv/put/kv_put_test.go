@@ -71,6 +71,10 @@ func TestKVPutCommand_Validation(t *testing.T) {
 }
 
 func TestKVPutCommand(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -100,6 +104,10 @@ func TestKVPutCommand(t *testing.T) {
 }
 
 func TestKVPutCommand_EmptyDataQuoted(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -129,6 +137,10 @@ func TestKVPutCommand_EmptyDataQuoted(t *testing.T) {
 }
 
 func TestKVPutCommand_Base64(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -166,6 +178,10 @@ func TestKVPutCommand_Base64(t *testing.T) {
 }
 
 func TestKVPutCommand_File(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -220,6 +236,10 @@ func TestKVPutCommand_FileNoExist(t *testing.T) {
 }
 
 func TestKVPutCommand_Stdin(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -257,6 +277,10 @@ func TestKVPutCommand_Stdin(t *testing.T) {
 }
 
 func TestKVPutCommand_NegativeVal(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -286,6 +310,10 @@ func TestKVPutCommand_NegativeVal(t *testing.T) {
 }
 
 func TestKVPutCommand_Flags(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -316,6 +344,10 @@ func TestKVPutCommand_Flags(t *testing.T) {
 }
 
 func TestKVPutCommand_CAS(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()

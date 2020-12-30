@@ -6,6 +6,10 @@
 
 {{#let (hash
   kinds=(if kind (split kind ',') undefined)
+  searchproperties=(if (not-eq searchproperty undefined)
+    (split searchproperty ',')
+    (array 'Description' 'Policy' 'Role')
+  )
 ) as |filters|}}
   {{#let (or sortBy "CreateTime:desc") as |sort|}}
     <AppView
@@ -44,6 +48,7 @@
 
           @filter={{filters}}
           @onfilter={{hash
+            searchproperty=(action (mut searchproperty) value="target.selectedItems")
             kind=(action (mut kind) value="target.selectedItems")
           }}
         />
@@ -51,31 +56,35 @@
       </BlockSlot>
       <BlockSlot @name="content">
     {{#if (token/is-legacy items)}}
-    <Notice
-      @type="info"
-    as |notice|>
-      <notice.Header>
-        <h3>Update</h3>
-      </notice.Header>
-      <notice.Body>
-        <p data-test-notification-update>We have upgraded our ACL System to allow the creation of reusable policies that can be applied to tokens. Read more about the changes and how to upgrade legacy tokens in our <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl-migrate-tokens.html" target="_blank" rel="noopener noreferrer">documentation</a>.</p>
-      </notice.Body>
-    </Notice>
+        <Notice
+          @type="info"
+        as |notice|>
+          <notice.Header>
+            <h3>Update</h3>
+          </notice.Header>
+          <notice.Body>
+            <p data-test-notification-update>We have upgraded our ACL System to allow the creation of reusable policies that can be applied to tokens. Read more about the changes and how to upgrade legacy tokens in our <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl-migrate-tokens.html" target="_blank" rel="noopener noreferrer">documentation</a>.</p>
+          </notice.Body>
+        </Notice>
     {{/if}}
-    {{#let (filter (filter-predicate 'token' filters) items) as |filtered|}}
-      {{#let (sort-by (comparator 'token' sort) filtered) as |sorted|}}
-        <ChangeableSet @dispatcher={{searchable 'token' sorted}} @terms={{search}}>
-          <BlockSlot @name="set" as |searched|>
+        <DataCollection
+          @type="token"
+          @sort={{sort}}
+          @filters={{filters}}
+          @search={{search}}
+          @items={{items}}
+        as |collection|>
+          <collection.Collection>
             <Consul::Token::List
-              @items={{searched}}
+              @items={{collection.items}}
               @token={{token}}
-              @onuse={{action send 'use'}}
-              @ondelete={{action send 'delete'}}
-              @onlogout={{action send 'logout'}}
-              @onclone={{action send 'clone'}}
-              />
-          </BlockSlot>
-          <BlockSlot @name="empty">
+              @onuse={{route-action 'use'}}
+              @ondelete={{route-action 'delete'}}
+              @onlogout={{route-action 'logout'}}
+              @onclone={{route-action 'clone'}}
+            />
+          </collection.Collection>
+          <collection.Empty>
             <EmptyState @allowLogin={{true}}>
               <BlockSlot @name="header">
                 <h2>
@@ -96,10 +105,8 @@
                 </p>
               </BlockSlot>
             </EmptyState>
-          </BlockSlot>
-        </ChangeableSet>
-      {{/let}}
-    {{/let}}
+          </collection.Empty>
+        </DataCollection>
       </BlockSlot>
     </AppView>
   {{/let}}

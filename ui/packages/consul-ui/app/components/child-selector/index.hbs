@@ -1,4 +1,5 @@
 <div
+  class="child-selector {{type}}-child-selector"
   ...attributes
 >
 {{yield}}
@@ -11,18 +12,28 @@
         @onchange={{action (mut allOptions) value="data"}}
       />
     {{/if}}
+    <DataCollection
+      @type={{type}}
+      @sort='Name:asc'
+      @filters={{hash
+        searchproperties=(array 'Name')
+      }}
+      @items={{options}}
+    as |collection|>
       <PowerSelect
-          @searchEnabled={{true}}
-          @search={{action "search"}}
-          @options={{options}}
-          @loadingMessage="Loading..."
-          @searchMessage="No possible options"
-          @searchPlaceholder={{placeholder}}
-          @onOpen={{action (mut isOpen) true}}
-          @onClose={{action (mut isOpen) false}}
-          @onChange={{action "change" "items[]" items}} as |item|>
+        @searchEnabled={{true}}
+        @search={{action collection.search}}
+        @options={{options}}
+        @loadingMessage="Loading..."
+        @searchMessage="No possible options"
+        @searchPlaceholder={{placeholder}}
+        @onOpen={{action (mut isOpen) true}}
+        @onClose={{action (mut isOpen) false}}
+        @onChange={{action "change" "items[]" items}}
+      as |item|>
         <YieldSlot @name="option" @params={{block-params item}}>{{yield}}</YieldSlot>
       </PowerSelect>
+    </DataCollection>
   </label>
 {{#if (gt items.length 0)}}
   <YieldSlot @name="set">{{yield}}</YieldSlot>

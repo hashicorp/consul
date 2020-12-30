@@ -9,6 +9,7 @@ export default class IndexRoute extends Route {
 
   queryParams = {
     sortBy: 'sort',
+    kind: 'kind',
     search: {
       as: 'filter',
       replace: true,

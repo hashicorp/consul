@@ -11,6 +11,10 @@ import (
 )
 
 func TestStatusLeader(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -28,6 +32,10 @@ func TestStatusLeader(t *testing.T) {
 }
 
 func TestStatusLeaderSecondary(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a1 := NewTestAgent(t, "datacenter = \"primary\"")
 	defer a1.Shutdown()
@@ -67,6 +75,10 @@ func TestStatusLeaderSecondary(t *testing.T) {
 }
 
 func TestStatusPeers(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -84,6 +96,10 @@ func TestStatusPeers(t *testing.T) {
 }
 
 func TestStatusPeersSecondary(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a1 := NewTestAgent(t, "datacenter = \"primary\"")
 	defer a1.Shutdown()

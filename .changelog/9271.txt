@@ -1,0 +1,3 @@
+```release-note:bug
+namespaces: **(Enterprise only)** Prevent stalling of replication in secondary datacenters due to conflicts between the namespace replicator and other replicators.
+```

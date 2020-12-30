@@ -92,6 +92,10 @@ func TestClient_StartStop(t *testing.T) {
 }
 
 func TestClient_JoinLAN(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -119,6 +123,10 @@ func TestClient_JoinLAN(t *testing.T) {
 }
 
 func TestClient_LANReap(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -267,6 +275,10 @@ func (l *leaderFailer) Once(args struct{}, reply *struct{}) error {
 }
 
 func TestClient_RPC_Retry(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	dir1, s1 := testServer(t)
@@ -356,6 +368,10 @@ func TestClient_RPC_Pool(t *testing.T) {
 }
 
 func TestClient_RPC_ConsulServerPing(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	var servers []*Server
 	const numServers = 5
@@ -502,6 +518,10 @@ func newDefaultDeps(t *testing.T, c *Config) Deps {
 }
 
 func TestClient_RPC_RateLimit(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	_, conf1 := testServerConfig(t)
 	s1, err := newServer(t, conf1)
@@ -526,6 +546,10 @@ func TestClient_RPC_RateLimit(t *testing.T) {
 }
 
 func TestClient_SnapshotRPC(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -567,6 +591,10 @@ func TestClient_SnapshotRPC(t *testing.T) {
 }
 
 func TestClient_SnapshotRPC_RateLimit(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	_, s1 := testServer(t)
 	defer s1.Shutdown()
@@ -597,6 +625,10 @@ func TestClient_SnapshotRPC_RateLimit(t *testing.T) {
 }
 
 func TestClient_SnapshotRPC_TLS(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	_, conf1 := testServerConfig(t)
 	conf1.VerifyIncoming = true
@@ -650,6 +682,10 @@ func TestClient_SnapshotRPC_TLS(t *testing.T) {
 }
 
 func TestClientServer_UserEvent(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	clientOut := make(chan serf.UserEvent, 2)
 	dir1, c1 := testClientWithConfig(t, func(conf *Config) {
@@ -749,6 +785,10 @@ func TestClient_Reload(t *testing.T) {
 }
 
 func TestClient_ShortReconnectTimeout(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	cluster := newTestCluster(t, &testClusterConfig{
 		Datacenter: "dc1",
 		Servers:    1,

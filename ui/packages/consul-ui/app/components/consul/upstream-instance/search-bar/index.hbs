@@ -2,11 +2,33 @@
   class="consul-upstream-instance-search-bar filter-bar"
   ...attributes
 >
-  <FreetextFilter
-    @onsearch={{action @onsearch}}
-    @value={{@search}}
-    @placeholder="Search"
-  />
+  <div class="search">
+    <FreetextFilter
+      @onsearch={{action @onsearch}}
+      @value={{@search}}
+      @placeholder="Search"
+    >
+      <PopoverSelect
+        class="type-search-properties"
+        @position="right"
+        @onchange={{action @onfilter.searchproperty}}
+        @multiple={{true}}
+      as |components|>
+        <BlockSlot @name="selected">
+          <span>
+            Search across
+          </span>
+        </BlockSlot>
+        <BlockSlot @name="options">
+  {{#let components.Optgroup components.Option as |Optgroup Option|}}
+    {{#each @searchproperties as |prop|}}
+          <Option @value={{prop}} @selected={{contains prop @filter.searchproperties}}>{{prop}}</Option>
+    {{/each}}
+  {{/let}}
+        </BlockSlot>
+      </PopoverSelect>
+    </FreetextFilter>
+  </div>
   <div class="sort">
 {{#let (or @sort 'DestinationName:asc') as |sort|}}
     <PopoverSelect

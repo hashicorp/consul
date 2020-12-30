@@ -1,64 +1,81 @@
-import getPredicate from 'consul-ui/search/predicates/intention';
 import { module, test } from 'qunit';
 
+import ExactSearch from 'consul-ui/utils/search/exact';
+import predicates from 'consul-ui/search/predicates/intention';
+
 module('Unit | Search | Predicate | intention', function() {
-  const predicate = getPredicate();
   test('items are found by properties', function(assert) {
-    [
+    const actual = new ExactSearch(
+      [
+        {
+          SourceName: 'Hit',
+          DestinationName: 'destination',
+        },
+        {
+          SourceName: 'source',
+          DestinationName: 'destination',
+        },
+        {
+          SourceName: 'source',
+          DestinationName: 'hiT',
+        },
+      ],
       {
-        SourceName: 'Hit',
-        DestinationName: 'destination',
-      },
-      {
-        SourceName: 'source',
-        DestinationName: 'hiT',
-      },
-    ].forEach(function(item) {
-      const actual = predicate('hit')(item);
-      assert.ok(actual);
-    });
+        finders: predicates,
+      }
+    ).search('hit');
+    assert.equal(actual.length, 2);
   });
   test('items are not found', function(assert) {
-    [
+    const actual = new ExactSearch(
+      [
+        {
+          SourceName: 'source',
+          DestinationName: 'destination',
+        },
+      ],
       {
-        SourceName: 'source',
-        DestinationName: 'destination',
-      },
-    ].forEach(function(item) {
-      const actual = predicate('*')(item);
-      assert.notOk(actual);
-    });
+        finders: predicates,
+      }
+    ).search('hit');
+    assert.equal(actual.length, 0);
   });
   test('items are found by *', function(assert) {
-    [
+    const actual = new ExactSearch(
+      [
+        {
+          SourceName: '*',
+          DestinationName: 'destination',
+        },
+        {
+          SourceName: 'source',
+          DestinationName: '*',
+        },
+      ],
       {
-        SourceName: '*',
-        DestinationName: 'destination',
-      },
-      {
-        SourceName: 'source',
-        DestinationName: '*',
-      },
-    ].forEach(function(item) {
-      const actual = predicate('*')(item);
-      assert.ok(actual);
-    });
+        finders: predicates,
+      }
+    ).search('*');
+    assert.equal(actual.length, 2);
   });
   test("* items are found by searching anything in 'All Services (*)'", function(assert) {
-    [
+    const actual = new ExactSearch(
+      [
+        {
+          SourceName: '*',
+          DestinationName: 'destination',
+        },
+        {
+          SourceName: 'source',
+          DestinationName: '*',
+        },
+      ],
       {
-        SourceName: '*',
-        DestinationName: 'destination',
-      },
-      {
-        SourceName: 'source',
-        DestinationName: '*',
-      },
-    ].forEach(function(item) {
-      ['All Services (*)', 'SerVices', '(*)', '*', 'vIces', 'lL Ser'].forEach(function(term) {
-        const actual = predicate(term)(item);
-        assert.ok(actual);
-      });
+        finders: predicates,
+      }
+    );
+    ['All Services (*)', 'SerVices', '(*)', '*', 'vIces', 'lL Ser'].forEach(term => {
+      assert.equal(actual.search(term).length, 2);
     });
   });
 });

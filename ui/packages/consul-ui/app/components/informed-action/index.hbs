@@ -1,0 +1,17 @@
+<div
+  class="informed-action"
+  ...attributes
+>
+  <div>
+    <header>
+      {{yield to="header"}}
+    </header>
+    {{yield to="body"}}
+  </div>
+  <ul>
+    {{yield (hash
+      Action=(component "anonymous" tagName="li")
+    )
+    to="actions"}}
+  </ul>
+</div>

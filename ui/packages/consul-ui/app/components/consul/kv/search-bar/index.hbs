@@ -1,0 +1,68 @@
+<form
+  class="consul-kv-search-bar filter-bar"
+  ...attributes
+>
+  <div class="search">
+    <FreetextFilter
+      @onsearch={{action @onsearch}}
+      @value={{@search}}
+      @placeholder="Search"
+    />
+  </div>
+  <div class="filters">
+    <PopoverSelect
+      class="type-kind"
+      @position="left"
+      @onchange={{action @onfilter.kind}}
+      @multiple={{true}}
+    as |components|>
+      <BlockSlot @name="selected">
+        <span>
+          Type
+        </span>
+      </BlockSlot>
+      <BlockSlot @name="options">
+{{#let components.Optgroup components.Option as |Optgroup Option|}}
+        <Option @value="folder" @selected={{contains 'folder' @filter.kinds}}>Folder</Option>
+        <Option @value="key" @selected={{contains 'key' @filter.kinds}}>Key</Option>
+{{/let}}
+      </BlockSlot>
+    </PopoverSelect>
+  </div>
+  <div class="sort">
+    <PopoverSelect
+      class="type-sort"
+      data-test-sort-control
+      @position="right"
+      @onchange={{action @onsort}}
+      @multiple={{false}}
+    as |components|>
+      <BlockSlot @name="selected">
+        <span>
+          {{#let (from-entries (array
+                (array "Key:asc" "A to Z")
+                (array "Key:desc" "Z to A")
+                (array "Kind:asc" "Folders to Keys")
+                (array "Kind:desc" "Keys to Folders")
+              ))
+            as |selectable|
+          }}
+            {{get selectable @sort}}
+          {{/let}}
+        </span>
+      </BlockSlot>
+      <BlockSlot @name="options">
+{{#let components.Optgroup components.Option as |Optgroup Option|}}
+        <Optgroup @label="Name">
+          <Option @value="Key:asc" @selected={{eq "Key:asc" @sort}}>A to Z</Option>
+          <Option @value="Key:desc" @selected={{eq "Key:desc" @sort}}>Z to A</Option>
+        </Optgroup>
+        <Optgroup @label="Type">
+          <Option @value="Kind:asc" @selected={{eq "Kind:asc" @sort}}>Folders to Keys</Option>
+          <Option @value="Kind:desc" @selected={{eq "Kind:desc" @sort}}>Keys to Folders</Option>
+        </Optgroup>
+{{/let}}
+      </BlockSlot>
+    </PopoverSelect>
+  </div>
+</form>

@@ -16,6 +16,9 @@ import (
 )
 
 func TestExecEnvoy(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
 
 	cases := []struct {
 		Name     string

@@ -1,0 +1,74 @@
+.tippy-box[data-theme~=tooltip] {
+  & {
+    @extend %tooltip-bubble;
+  }
+  .tippy-content {
+    @extend %tooltip-content;
+  }
+  .tippy-arrow {
+    @extend %tooltip-tail;
+  }
+  &[data-placement^=bottom] > .tippy-arrow {
+    @extend %tooltip-tail-bottom;
+  }
+  &[data-placement^=top] > .tippy-arrow {
+    @extend %tooltip-tail-top;
+  }
+  &[data-placement^=left] > .tippy-arrow {
+    @extend %tooltip-tail-left;
+  }
+  &[data-placement^=right] > .tippy-arrow {
+    @extend %tooltip-tail-right;
+  }
+}
+%tooltip-content {
+  @extend %p3;
+  padding: 12px;
+  max-width: 192px;
+  position: relative;
+  z-index: 1;
+}
+
+%tooltip-bubble {
+  & {
+    background-color: $gray-700;
+    color: $white;
+  }
+}
+%tooltip-tail {
+  --size: 5px;
+  & {
+    color: $gray-700;
+    width: calc(var(--size) * 2);
+    height: calc(var(--size) * 2);
+  }
+  &::before {
+    border-color: $transparent;
+    border-style: solid;
+  }
+}
+
+%tooltip-tail-top {
+  &::before {
+    border-width: var(--size) var(--size) 0;
+    border-top-color: initial;
+  }
+}
+%tooltip-tail-bottom {
+  &::before {
+    border-width: 0 var(--size) var(--size);
+    border-bottom-color: initial;
+  }
+}
+%tooltip-tail-left {
+  &::before {
+    border-width: var(--size) 0 var(--size) var(--size);
+    border-left-color: initial;
+  }
+}
+%tooltip-tail-right {
+  &::before {
+    border-width: var(--size) var(--size) var(--size) 0;
+    border-right-color: initial;
+  }
+}

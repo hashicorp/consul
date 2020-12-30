@@ -25,6 +25,10 @@ func TestAuthMethodDeleteCommand_noTabs(t *testing.T) {
 }
 
 func TestAuthMethodDeleteCommand(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := agent.NewTestAgent(t, `

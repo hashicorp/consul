@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -614,7 +615,20 @@ func (a *Agent) Start(ctx context.Context) error {
 		a.logger.Warn("DEPRECATED Backwards compatibility with pre-1.9 metrics enabled. These metrics will be removed in a future version of Consul. Set `telemetry { disable_compat_1.9 = true }` to disable them.")
 	}
 
+	// consul version metric with labels
+	metrics.SetGaugeWithLabels([]string{"version"}, 1, []metrics.Label{
+		{Name: "version", Value: a.config.Version},
+		{Name: "pre_release", Value: a.config.VersionPrerelease},
+	})
+
 	return nil
+}
+
+var Gauges = []prometheus.GaugeDefinition{
+	{
+		Name: []string{"version"},
+		Help: "Represents the Consul version.",
+	},
 }
 
 // Failed returns a channel which is closed when the first server goroutine exits

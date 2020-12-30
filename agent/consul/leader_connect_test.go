@@ -25,6 +25,10 @@ import (
 )
 
 func TestLeader_SecondaryCA_Initialize(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	tests := []struct {
@@ -80,10 +84,10 @@ func TestLeader_SecondaryCA_Initialize(t *testing.T) {
 			s2.tokens.UpdateAgentToken(masterToken, token.TokenSourceConfig)
 			s2.tokens.UpdateReplicationToken(masterToken, token.TokenSourceConfig)
 
-			testrpc.WaitForLeader(t, s2.RPC, "secondary")
-
 			// Create the WAN link
 			joinWAN(t, s2, s1)
+
+			testrpc.WaitForLeader(t, s2.RPC, "secondary")
 
 			waitForNewACLs(t, s1)
 			waitForNewACLs(t, s2)
@@ -175,9 +179,7 @@ func waitForActiveCARoot(t *testing.T, srv *Server, expect *structs.CARoot) {
 }
 
 func getCAProviderWithLock(s *Server) (ca.Provider, *structs.CARoot) {
-	s.caProviderReconfigurationLock.Lock()
-	defer s.caProviderReconfigurationLock.Unlock()
-	return s.getCAProvider()
+	return s.caManager.getCAProvider()
 }
 
 func TestLeader_Vault_PrimaryCA_IntermediateRenew(t *testing.T) {
@@ -294,6 +296,10 @@ func TestLeader_Vault_PrimaryCA_IntermediateRenew(t *testing.T) {
 }
 
 func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	// no parallel execution because we change globals
 	origInterval := structs.IntermediateCertRenewInterval
 	origMinTTL := structs.MinLeafCertTTL
@@ -422,6 +428,10 @@ func TestLeader_SecondaryCA_IntermediateRenew(t *testing.T) {
 }
 
 func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -569,6 +579,10 @@ func TestLeader_SecondaryCA_IntermediateRefresh(t *testing.T) {
 }
 
 func TestLeader_SecondaryCA_FixSigningKeyID_via_IntermediateRefresh(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
@@ -668,6 +682,10 @@ func TestLeader_SecondaryCA_FixSigningKeyID_via_IntermediateRefresh(t *testing.T
 }
 
 func TestLeader_SecondaryCA_TransitionFromPrimary(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	// Initialize dc1 as the primary DC
@@ -701,22 +719,6 @@ func TestLeader_SecondaryCA_TransitionFromPrimary(t *testing.T) {
 	var dc2PrimaryRoots structs.IndexedCARoots
 	require.NoError(t, s2.RPC("ConnectCA.Roots", &args, &dc2PrimaryRoots))
 	require.Len(t, dc2PrimaryRoots.Roots, 1)
-
-	// Set the ExternalTrustDomain to a blank string to simulate an old version (pre-1.4.0)
-	// it's fine to change the roots struct directly here because the RPC endpoint already
-	// makes a copy to return.
-	dc2PrimaryRoots.Roots[0].ExternalTrustDomain = ""
-	rootSetArgs := structs.CARequest{
-		Op:         structs.CAOpSetRoots,
-		Datacenter: "dc2",
-		Index:      dc2PrimaryRoots.Index,
-		Roots:      dc2PrimaryRoots.Roots,
-	}
-	resp, err := s2.raftApply(structs.ConnectCARequestType, rootSetArgs)
-	require.NoError(t, err)
-	if respErr, ok := resp.(error); ok {
-		t.Fatal(respErr)
-	}
 
 	// Shutdown s2 and restart it with the dc1 as the primary
 	s2.Shutdown()
@@ -772,6 +774,10 @@ func TestLeader_SecondaryCA_TransitionFromPrimary(t *testing.T) {
 }
 
 func TestLeader_SecondaryCA_UpgradeBeforePrimary(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	// Initialize dc1 as the primary DC
@@ -913,6 +919,10 @@ func TestLeader_GenerateCASignRequest(t *testing.T) {
 }
 
 func TestLeader_CARootPruning(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	caRootPruneInterval = 200 * time.Millisecond
@@ -975,6 +985,10 @@ func TestLeader_CARootPruning(t *testing.T) {
 }
 
 func TestLeader_PersistIntermediateCAs(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -1148,6 +1162,10 @@ func TestLeader_lessThanHalfTimePassed(t *testing.T) {
 }
 
 func TestLeader_retryLoopBackoffHandleSuccess(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	type test struct {
 		desc     string
 		loopFn   func() error

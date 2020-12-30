@@ -1,22 +1,35 @@
-{{#unless @noMetricsReason}}
+{{#if (not @noMetricsReason)}}
   <DataSource
-    @src={{uri @nspace @dc 'metrics' @endpoint @service @protocol}}
+    @src={{uri
+      '/${nspace}/${dc}/metrics/${endpoint}/${service}/${protocol}'
+      (hash
+        nspace=@nspace
+        dc=@dc
+        endpoint=@endpoint
+        service=@service
+        protocol=@protocol
+      )
+    }}
     @onchange={{action 'statsUpdate'}}
     @onerror={{action (mut error) value="error"}}
   />
-{{/unless}}
+{{/if}}
 
 <div class="stats">
   {{#if hasLoaded }}
     {{#each stats as |stat|}}
-    <dl>
+    <dl {{tooltip
+      stat.desc
+      options=(hash
+        allowHTML=true
+      )
+    }}>
       <dt>
         {{stat.value}}
       </dt>
       <dd>
         {{stat.label}}
       </dd>
-      <Tooltip>{{{stat.desc}}}</Tooltip>
     </dl>
     {{else}}
       <span>No Metrics Available</span>

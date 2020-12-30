@@ -2,65 +2,61 @@
   class="consul-upstream-instance-list"
   ...attributes
 >
-  {{#if (gt this.items.length 0)}}
-    <ul>
-    {{#each this.items as |item|}}
-      <li>
-        <div class="header">
-          <p>
-            {{item.DestinationName}}
-          </p>
-        </div>
-        <div class="detail">
-      {{#if (env 'CONSUL_NSPACES_ENABLED')}}
-        {{#if (not-eq item.DestinationType 'prepared_query')}}
-          <dl class="nspace">
-            <dt>
-              <Tooltip>
-                Namespace
-              </Tooltip>
-            </dt>
-            <dd>
-              {{or item.DestinationNamespace 'default'}}
-            </dd>
-          </dl>
-        {{/if}}
+  <ul>
+  {{#each @items as |item|}}
+    <li>
+      <div class="header">
+        <p>
+          {{item.DestinationName}}
+        </p>
+      </div>
+      <div class="detail">
+    {{#if (env 'CONSUL_NSPACES_ENABLED')}}
+      {{#if (not-eq item.DestinationType 'prepared_query')}}
+        <dl class="nspace">
+          <dt>
+            <Tooltip>
+              Namespace
+            </Tooltip>
+          </dt>
+          <dd>
+            {{or item.DestinationNamespace 'default'}}
+          </dd>
+        </dl>
       {{/if}}
-        {{#if (and (not-eq item.Datacenter @dc) (not-eq item.Datacenter ""))}}
-          <dl class="datacenter">
-            <dt>
-              <Tooltip>
-                Datacenter
-              </Tooltip>
-            </dt>
-            <dd>
-              {{item.Datacenter}}
-            </dd>
-          </dl>
-        {{/if}}
-        {{#if (gt item.LocalBindPort 0)}}
+    {{/if}}
+      {{#if (and (not-eq item.Datacenter @dc) (not-eq item.Datacenter ""))}}
+        <dl class="datacenter">
+          <dt>
+            <Tooltip>
+              Datacenter
+            </Tooltip>
+          </dt>
+          <dd>
+            {{item.Datacenter}}
+          </dd>
+        </dl>
+      {{/if}}
+      {{#if (gt item.LocalBindPort 0)}}
 {{#let (concat (or item.LocalBindAddress '127.0.0.1') ':' item.LocalBindPort) as |combinedAddress|}}
-          <dl class="local-bind-address">
-            <dt>
-              <span>
-                Address
-              </span>
-            </dt>
-            <dd>
-              <CopyButton
-                @value={{combinedAddress}}
-                @name="Address"
-              />
-                {{combinedAddress}}
-            </dd>
-          </dl>
+        <dl class="local-bind-address">
+          <dt>
+            <span>
+              Address
+            </span>
+          </dt>
+          <dd>
+            <CopyButton
+              @value={{combinedAddress}}
+              @name="Address"
+            />
+              {{combinedAddress}}
+          </dd>
+        </dl>
 {{/let}}
-        {{/if}}
-        </div>
-      </li>
-    {{/each}}
-    </ul>
-  {{else}}
-    {{yield api to="empty"}}
-  {{/if}}
+      {{/if}}
+      </div>
+    </li>
+  {{/each}}
+  </ul>
 </div>

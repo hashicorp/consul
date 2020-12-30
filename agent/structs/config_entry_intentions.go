@@ -300,7 +300,7 @@ func (p *IntentionHTTPPermission) Clone() *IntentionHTTPPermission {
 		}
 	}
 
-	p2.Methods = cloneStringSlice(p.Methods)
+	p2.Methods = CloneStringSlice(p.Methods)
 
 	return &p2
 }

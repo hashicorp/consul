@@ -16,6 +16,10 @@ import (
 )
 
 func TestOperator_Autopilot_GetConfiguration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.AutopilotConfig.CleanupDeadServers = false
@@ -41,6 +45,10 @@ func TestOperator_Autopilot_GetConfiguration(t *testing.T) {
 }
 
 func TestOperator_Autopilot_GetConfiguration_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -100,6 +108,10 @@ func TestOperator_Autopilot_GetConfiguration_ACLDeny(t *testing.T) {
 }
 
 func TestOperator_Autopilot_SetConfiguration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.AutopilotConfig.CleanupDeadServers = false
@@ -137,6 +149,10 @@ func TestOperator_Autopilot_SetConfiguration(t *testing.T) {
 }
 
 func TestOperator_Autopilot_SetConfiguration_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
@@ -206,6 +222,10 @@ func TestOperator_Autopilot_SetConfiguration_ACLDeny(t *testing.T) {
 }
 
 func TestOperator_ServerHealth(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	conf := func(c *Config) {
 		c.Datacenter = "dc1"
@@ -264,6 +284,10 @@ func TestOperator_ServerHealth(t *testing.T) {
 }
 
 func TestOperator_AutopilotState(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	conf := func(c *Config) {
 		c.Datacenter = "dc1"

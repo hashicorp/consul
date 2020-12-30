@@ -66,6 +66,10 @@ func TestIntentionMatch_Validation(t *testing.T) {
 }
 
 func TestIntentionMatch_matchDst(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -112,6 +116,10 @@ func TestIntentionMatch_matchDst(t *testing.T) {
 }
 
 func TestIntentionMatch_matchSource(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)

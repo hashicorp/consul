@@ -1234,7 +1234,7 @@ type RuntimeConfig struct {
 	// the cluster more quickly at the expense of increased bandwidth. This
 	// configuration only applies to WAN gossip communications
 	//
-	// The default is: 200ms
+	// The default is: 500ms
 	//
 	// hcl: gossip_wan { gossip_interval = duration}
 	GossipWANGossipInterval time.Duration
@@ -1244,7 +1244,7 @@ type RuntimeConfig struct {
 	// propagate across the cluster more quickly at the expense of increased
 	// bandwidth. This configuration only applies to WAN gossip communications
 	//
-	// The default is: 3
+	// The default is: 4
 	//
 	// hcl: gossip_wan { gossip_nodes = int }
 	GossipWANGossipNodes int
@@ -1254,7 +1254,7 @@ type RuntimeConfig struct {
 	// failed nodes more quickly at the expense of increased bandwidth usage.
 	// This configuration only applies to WAN gossip communications
 	//
-	// The default is: 1s
+	// The default is: 5s
 	//
 	// hcl: gossip_wan { probe_interval = duration }
 	GossipWANProbeInterval time.Duration
@@ -1264,7 +1264,7 @@ type RuntimeConfig struct {
 	// of RTT (round-trip time) on your network. This configuration
 	// only applies to the WAN gossip communications
 	//
-	// The default is: 500ms
+	// The default is: 3s
 	//
 	// hcl: gossip_wan { probe_timeout = duration }
 	GossipWANProbeTimeout time.Duration
@@ -1283,7 +1283,7 @@ type RuntimeConfig struct {
 	// it dead, giving that suspect node more time to refute if it is indeed
 	// still alive.
 	//
-	// The default is: 4
+	// The default is: 6
 	//
 	// hcl: gossip_wan { suspicion_mult = int }
 	GossipWANSuspicionMult int

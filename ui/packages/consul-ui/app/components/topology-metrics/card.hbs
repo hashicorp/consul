@@ -1,5 +1,9 @@
 <a class="card"
-  href={{href-to "dc.services.show.index" @item.Name}}
+  href={{if
+   (and (env 'CONSUL_NSPACES_ENABLED') (not-eq @item.Namespace @service.Namespace))
+    (href-to "nspace.dc.services.show.index" (concat '~' @item.Namespace) @item.Datacenter @item.Name)
+    (href-to "dc.services.show.index" @item.Name)
+  }}
   data-permission={{service/intention-permissions @item}}
   id="{{@item.Namespace}}{{@item.Name}}"
 >
@@ -21,6 +25,9 @@
   {{/if}}
 {{#if (eq @item.Datacenter @dc)}}
   {{#let (service/health-percentage @item) as |percentage|}}
+  {{#if (eq percentage '')}}
+    <span class="empty">No health checks</span>
+  {{else}}
     {{#if (not-eq percentage.passing 0)}}
       <span class="passing">{{percentage.passing}}%</span>
     {{/if}}
@@ -30,6 +37,7 @@
     {{#if (not-eq percentage.critical 0)}}
       <span class="critical">{{percentage.critical}}%</span>
     {{/if}}
+  {{/if}}
   {{/let}}
 {{else}}
     <dl class="health">
@@ -44,25 +52,5 @@
     </dl>
 {{/if}}
   </div>
-  {{#if (and @hasMetricsProvider (not-eq @service.Kind 'ingress-gateway'))}}
-    {{#if (eq @type 'upstream')}}
-      <TopologyMetrics::Stats
-        @nspace={{or @item.Namespace 'default'}}
-        @dc={{@item.Datacenter}}
-        @endpoint='upstream-summary-for-service'
-        @service={{@service.Service}}
-        @item={{@item.Name}}
-        @noMetricsReason={{@noMetricsReason}}
-      />
-    {{else}}
-      <TopologyMetrics::Stats
-        @nspace={{or @item.Namespace 'default'}}
-        @dc={{@item.Datacenter}}
-        @endpoint='downstream-summary-for-service'
-        @service={{@service.Service}}
-        @item={{@item.Name}}
-        @noMetricsReason={{@noMetricsReason}}
-      />
-    {{/if}}
-  {{/if}}
+  {{yield}}
 </a>

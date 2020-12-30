@@ -26,6 +26,10 @@ func HammerDynamic(sem *Dynamic, loops int) {
 // TestDynamic hammers the semaphore from all available cores to ensure we don't
 // hit a panic or race detector notice something wonky.
 func TestDynamic(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	n := runtime.GOMAXPROCS(0)

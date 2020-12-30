@@ -1,12 +1,10 @@
-export default () => term => item => {
-  const lowerTerm = term.toLowerCase();
-  return Object.entries(item)
-    .filter(([key, value]) => key !== 'DestinationType')
-    .some(
-      ([key, value]) =>
-        value
-          .toString()
-          .toLowerCase()
-          .indexOf(lowerTerm) !== -1
-    );
+export default {
+  DestinationName: (item, value) =>
+    item.DestinationName.toLowerCase().indexOf(value.toLowerCase()) !== -1,
+  LocalBindAddress: (item, value) =>
+    item.LocalBindAddress.toLowerCase().indexOf(value.toLowerCase()) !== -1,
+  LocalBindPort: (item, value) =>
+    item.LocalBindPort.toString()
+      .toLowerCase()
+      .indexOf(value.toLowerCase()) !== -1,
 };

@@ -15,6 +15,10 @@ import (
 )
 
 func TestUIEndpoint_MetricsProxy_ACLDeny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	var (

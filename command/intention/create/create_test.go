@@ -57,6 +57,10 @@ func TestIntentionCreate_Validation(t *testing.T) {
 }
 
 func TestIntentionCreate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -84,6 +88,10 @@ func TestIntentionCreate(t *testing.T) {
 }
 
 func TestIntentionCreate_deny(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -112,6 +120,10 @@ func TestIntentionCreate_deny(t *testing.T) {
 }
 
 func TestIntentionCreate_meta(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -140,6 +152,10 @@ func TestIntentionCreate_meta(t *testing.T) {
 }
 
 func TestIntentionCreate_File(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -175,6 +191,10 @@ func TestIntentionCreate_File(t *testing.T) {
 }
 
 func TestIntentionCreate_File_L7_fails(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -216,6 +236,10 @@ func TestIntentionCreate_File_L7_fails(t *testing.T) {
 }
 
 func TestIntentionCreate_FileNoExist(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -238,6 +262,10 @@ func TestIntentionCreate_FileNoExist(t *testing.T) {
 }
 
 func TestIntentionCreate_replace(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)

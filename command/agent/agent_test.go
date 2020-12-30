@@ -18,6 +18,10 @@ import (
 
 // TestConfigFail should test command line flags that lead to an immediate error.
 func TestConfigFail(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	dataDir := testutil.TempDir(t, "consul")
@@ -79,6 +83,10 @@ func TestConfigFail(t *testing.T) {
 }
 
 func TestRetryJoin(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	a := agent.NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -105,6 +113,10 @@ func TestRetryJoin(t *testing.T) {
 }
 
 func TestRetryJoinFail(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	tmpDir := testutil.TempDir(t, "consul")
 
@@ -125,6 +137,10 @@ func TestRetryJoinFail(t *testing.T) {
 }
 
 func TestRetryJoinWanFail(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	tmpDir := testutil.TempDir(t, "consul")
 

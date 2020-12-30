@@ -1,45 +1,57 @@
-<div id="instances" class="tab-section">
+<div class="tab-section">
   <div role="tabpanel">
 {{#let (hash
   statuses=(if status (split status ',') undefined)
   sources=(if source (split source ',') undefined)
+  searchproperties=(if (not-eq searchproperty undefined)
+    (split searchproperty ',')
+    searchProperties
+  )
 ) as |filters|}}
   {{#let (or sortBy "Status:asc") as |sort|}}
     {{#if (gt items.length 0) }}
     <input type="checkbox" id="toolbar-toggle" />
     <Consul::ServiceInstance::SearchBar
-      @sources={{externalSources}}
+      @sources={{get (collection items) 'ExternalSources'}}
       @search={{search}}
       @onsearch={{action (mut search) value="target.value"}}
+      @searchproperties={{searchProperties}}
 
       @sort={{sort}}
       @onsort={{action (mut sortBy) value="target.selected"}}
 
       @filter={{filters}}
       @onfilter={{hash
+        searchproperty=(action (mut searchproperty) value="target.selectedItems")
         status=(action (mut status) value="target.selectedItems")
         source=(action (mut source) value="target.selectedItems")
       }}
       />
     {{/if}}
-{{#let (filter (filter-predicate 'serviceInstance' filters) items) as |filtered|}}
-  {{#let (sort-by (comparator 'serviceInstance' sort) filtered) as |sorted|}}
-    <ChangeableSet @dispatcher={{searchable 'serviceInstance' sorted}} @terms={{search}}>
-      <BlockSlot @name="set" as |searched|>
-        <Consul::ServiceInstance::List @routeName="dc.services.instance" @items={{searched}}/>
-      </BlockSlot>
-      <BlockSlot @name="empty">
+    {{! Service > Service Instance view doesn't require filtering of proxies }}
+    <DataCollection
+      @type="service-instance"
+      @sort={{sort}}
+      @filters={{filters}}
+      @search={{search}}
+      @items={{items}}
+    as |collection|>
+      <collection.Collection>
+        <Consul::ServiceInstance::List
+          @routeName="dc.services.instance"
+          @items={{collection.items}}
+        />
+      </collection.Collection>
+      <collection.Empty>
         <EmptyState>
           <BlockSlot @name="body">
             <p>
-              There are no services.
+              There are no instances{{#if (gt items.length 0)}} matching that search{{/if}}.
             </p>
           </BlockSlot>
         </EmptyState>
-      </BlockSlot>
-    </ChangeableSet>
-  {{/let}}
-{{/let}}
+      </collection.Empty>
+    </DataCollection>
   {{/let}}
 {{/let}}
   </div>

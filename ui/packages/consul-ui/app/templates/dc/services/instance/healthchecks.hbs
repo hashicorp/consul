@@ -1,22 +1,60 @@
+{{#let (hash
+  statuses=(if status (split status ',') undefined)
+  kinds=(if kind (split kind ',') undefined)
+  checks=(if check (split check ',') undefined)
+  searchproperties=(if (not-eq searchproperty undefined)
+    (split searchproperty ',')
+    searchProperties
+  )
+) as |filters|}}
+  {{#let (or sortBy "Status:asc") as |sort|}}
 <div class="tab-section">
   <div role="tabpanel">
-  {{#let (append item.Checks (or proxy.Checks (array))) as |checks|}}
-    {{#if (gt checks.length 0) }}
-      <section data-test-checks>
-        <HealthcheckList
-          @items={{sort-by (comparator 'check' 'Status:asc') checks}}
-          @exposed={{proxyMeta.ServiceProxy.Expose.Checks}}
-        />
-      </section>
-    {{else}}
-      <EmptyState>
-        <BlockSlot @name="body">
-          <p>
-            This instance has no health checks.
-          </p>
-        </BlockSlot>
-      </EmptyState>
+
+    {{#if (gt item.MeshChecks.length 0) }}
+      <input type="checkbox" id="toolbar-toggle" />
+      <Consul::HealthCheck::SearchBar
+        @search={{search}}
+        @onsearch={{action (mut search) value="target.value"}}
+        @searchproperties={{searchProperties}}
+
+        @sort={{sort}}
+        @onsort={{action (mut sortBy) value="target.selected"}}
+
+        @filter={{filters}}
+        @onfilter={{hash
+          searchproperty=(action (mut searchproperty) value="target.selectedItems")
+          status=(action (mut status) value="target.selectedItems")
+          kind=(action (mut kind) value="target.selectedItems")
+          check=(action (mut check) value="target.selectedItems")
+        }}
+      />
     {{/if}}
-  {{/let}}
+
+    <DataCollection
+      @type="health-check"
+      @sort={{sort}}
+      @filters={{filters}}
+      @search={{search}}
+      @items={{item.MeshChecks}}
+    as |collection|>
+      <collection.Collection>
+        <Consul::HealthCheck::List
+          @items={{collection.items}}
+        />
+      </collection.Collection>
+      <collection.Empty>
+        <EmptyState>
+          <BlockSlot @name="body">
+            <p>
+              This instance has no health checks{{#if (gt item.MeshChecks.length 0)}} matching that search{{/if}}.
+            </p>
+          </BlockSlot>
+        </EmptyState>
+        </collection.Empty>
+      </DataCollection>
+
   </div>
 </div>
+  {{/let}}
+{{/let}}

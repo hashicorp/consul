@@ -11,6 +11,10 @@ export default class IndexRoute extends Route.extend(WithPolicyActions) {
     sortBy: 'sort',
     dc: 'dc',
     kind: 'kind',
+    searchproperty: {
+      as: 'searchproperty',
+      empty: [['Name', 'Description']],
+    },
     search: {
       as: 'filter',
       replace: true,

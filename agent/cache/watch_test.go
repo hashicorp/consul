@@ -161,6 +161,10 @@ func TestCacheNotify(t *testing.T) {
 }
 
 func TestCacheNotifyPolling(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	typ := TestTypeNonBlocking(t)
@@ -274,6 +278,10 @@ func TestCacheNotifyPolling(t *testing.T) {
 
 // Test that a refresh performs a backoff.
 func TestCacheWatch_ErrorBackoff(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	typ := TestType(t)
@@ -336,6 +344,10 @@ OUT:
 
 // Test that a refresh performs a backoff.
 func TestCacheWatch_ErrorBackoffNonBlocking(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	typ := TestTypeNonBlocking(t)

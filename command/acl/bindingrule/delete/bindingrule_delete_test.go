@@ -24,6 +24,10 @@ func TestBindingRuleDeleteCommand_noTabs(t *testing.T) {
 }
 
 func TestBindingRuleDeleteCommand(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := agent.NewTestAgent(t, `

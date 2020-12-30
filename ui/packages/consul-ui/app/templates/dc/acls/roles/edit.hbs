@@ -38,6 +38,16 @@
         </h1>
     </BlockSlot>
     <BlockSlot @name="content">
+{{#if (not create) }}
+      <div class="definition-table">
+          <dl>
+            <dt>Role ID</dt>
+            <dd>
+              <CopyButton @value={{item.ID}} @name="Role ID" @position="top-start" /> {{item.ID}}
+            </dd>
+          </dl>
+      </div>
+{{/if}}
       {{ partial 'dc/acls/roles/form'}}
     </BlockSlot>
 </AppView>

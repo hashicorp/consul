@@ -1,5 +1,7 @@
 import Serializer from './application';
+import { EmbeddedRecordsMixin } from '@ember-data/serializer/rest';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/node';
+import { classify } from '@ember/string';
 
 // TODO: Looks like ID just isn't used at all consider just using .Node for
 // the SLUG_KEY
@@ -10,25 +12,71 @@ const fillSlug = function(item) {
   return item;
 };
 
-export default class NodeSerializer extends Serializer {
+export default class NodeSerializer extends Serializer.extend(EmbeddedRecordsMixin) {
   primaryKey = PRIMARY_KEY;
   slugKey = SLUG_KEY;
 
-  respondForQuery(respond, query) {
-    return super.respondForQuery(
+  attrs = {
+    Services: {
+      embedded: 'always',
+    },
+  };
+
+  transformHasManyResponse(store, relationship, item, parent = null) {
+    let checks = {};
+    let serializer;
+    switch (relationship.key) {
+      case 'Services':
+        (item.Checks || [])
+          .filter(item => {
+            return item.ServiceID !== '';
+          })
+          .forEach(item => {
+            if (typeof checks[item.ServiceID] === 'undefined') {
+              checks[item.ServiceID] = [];
+            }
+            checks[item.ServiceID].push(item);
+          });
+        serializer = this.store.serializerFor(relationship.type);
+        item.Services = item.Services.map(service =>
+          serializer.transformHasManyResponseFromNode(item, service, checks)
+        );
+        return item;
+    }
+    return super.transformHasManyResponse(...arguments);
+  }
+
+  respondForQuery(respond, query, data, modelClass) {
+    const body = super.respondForQuery(
       cb => respond((headers, body) => cb(headers, body.map(fillSlug))),
       query
     );
+    modelClass.eachRelationship((key, relationship) => {
+      body.forEach(item =>
+        this[`transform${classify(relationship.kind)}Response`](
+          this.store,
+          relationship,
+          item,
+          body
+        )
+      );
+    });
+    return body;
   }
 
-  respondForQueryRecord(respond, query) {
-    return super.respondForQueryRecord(
+  respondForQueryRecord(respond, query, data, modelClass) {
+    const body = super.respondForQueryRecord(
       cb =>
         respond((headers, body) => {
           return cb(headers, fillSlug(body));
         }),
       query
     );
+
+    modelClass.eachRelationship((key, relationship) => {
+      this[`transform${classify(relationship.kind)}Response`](this.store, relationship, body);
+    });
+    return body;
   }
 
   respondForQueryLeader(respond, query) {

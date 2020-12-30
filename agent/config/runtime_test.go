@@ -55,6 +55,10 @@ type configTest struct {
 // values, e.g. 'a' or 1 instead of 'servicex' or 3306.
 
 func TestBuilder_BuildAndValidate_ConfigFlagsAndEdgecases(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	dataDir := testutil.TempDir(t, "consul")
 
 	defaultEntMeta := structs.DefaultEnterpriseMeta()

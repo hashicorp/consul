@@ -63,6 +63,10 @@ func TestCatalogListServices_badReqType(t *testing.T) {
 }
 
 func TestCatalogListServices_IntegrationWithCache_NotModifiedResponse(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	rpc := &MockRPC{}
 	typ := &CatalogListServices{RPC: rpc}
 

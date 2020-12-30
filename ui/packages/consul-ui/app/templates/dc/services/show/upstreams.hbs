@@ -3,6 +3,10 @@
   <div role="tabpanel">
 {{#let (hash
   instances=(if instance (split instance ',') undefined)
+  searchproperties=(if (not-eq searchproperty undefined)
+    (split searchproperty ',')
+    (array 'Name' 'Tags')
+  )
 ) as |filters|}}
   {{#let (or sortBy "Status:asc") as |sort|}}
 {{#if (gt gatewayServices.length 0)}}
@@ -16,6 +20,7 @@
 
       @filter={{filters}}
       @onfilter={{hash
+        searchproperty=(action (mut searchproperty) value="target.selectedItems")
         instance=(action (mut instance) value="target.selectedItems")
       }}
       />
@@ -23,28 +28,31 @@
       <p>
         Upstreams are services that may receive traffic from this gateway. Learn more about configuring gateways in our <a href="{{env 'CONSUL_DOCS_URL'}}/connect/ingress-gateway" target="_blank" rel="noopener noreferrer">documentation</a>.
       </p>
-{{#let (filter (filter-predicate 'service' filters) gatewayServices) as |filtered|}}
-  {{#let (sort-by (comparator 'service' sort) filtered) as |sorted|}}
-      <ChangeableSet @dispatcher={{searchable 'service' sorted}} @terms={{search}}>
-        <BlockSlot @name="set" as |searched|>
+      <DataCollection
+        @type="service"
+        @sort={{sort}}
+        @filters={{filters}}
+        @search={{search}}
+        @items={{gatewayServices}}
+      as |collection|>
+        <collection.Collection>
           <Consul::Upstream::List
-            @items={{searched}}
+            @items={{collection.items}}
             @dc={{dc}}
             @nspace={{nspace}}
-          />
-        </BlockSlot>
-        <BlockSlot @name="empty">
+          >
+          </Consul::Upstream::List>
+        </collection.Collection>
+        <collection.Empty>
           <EmptyState>
             <BlockSlot @name="body">
               <p>
-                There are no upstreams.
+                There are no upstreams{{#if (gt gatewayServices.length 0)}} matching that search{{/if}}.
               </p>
             </BlockSlot>
           </EmptyState>
-        </BlockSlot>
-      </ChangeableSet>
-  {{/let}}
-{{/let}}
+        </collection.Empty>
+      </DataCollection>
   {{/let}}
 {{/let}}
   </div>

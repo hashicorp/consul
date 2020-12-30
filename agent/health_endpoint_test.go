@@ -20,6 +20,10 @@ import (
 )
 
 func TestHealthChecksInState(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	t.Run("warning", func(t *testing.T) {
 		a := NewTestAgent(t, "")
@@ -69,6 +73,10 @@ func TestHealthChecksInState(t *testing.T) {
 }
 
 func TestHealthChecksInState_NodeMetaFilter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -109,6 +117,10 @@ func TestHealthChecksInState_NodeMetaFilter(t *testing.T) {
 }
 
 func TestHealthChecksInState_Filter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -155,6 +167,10 @@ func TestHealthChecksInState_Filter(t *testing.T) {
 }
 
 func TestHealthChecksInState_DistanceSort(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -229,6 +245,10 @@ func TestHealthChecksInState_DistanceSort(t *testing.T) {
 }
 
 func TestHealthNodeChecks(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -264,6 +284,10 @@ func TestHealthNodeChecks(t *testing.T) {
 }
 
 func TestHealthNodeChecks_Filtering(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -308,6 +332,10 @@ func TestHealthNodeChecks_Filtering(t *testing.T) {
 }
 
 func TestHealthServiceChecks(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -364,6 +392,10 @@ func TestHealthServiceChecks(t *testing.T) {
 }
 
 func TestHealthServiceChecks_NodeMetaFilter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -417,6 +449,10 @@ func TestHealthServiceChecks_NodeMetaFilter(t *testing.T) {
 }
 
 func TestHealthServiceChecks_Filtering(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -478,6 +514,10 @@ func TestHealthServiceChecks_Filtering(t *testing.T) {
 }
 
 func TestHealthServiceChecks_DistanceSort(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -558,6 +598,10 @@ func TestHealthServiceChecks_DistanceSort(t *testing.T) {
 }
 
 func TestHealthServiceNodes(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -684,6 +728,10 @@ func TestHealthServiceNodes(t *testing.T) {
 }
 
 func TestHealthServiceNodes_NodeMetaFilter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -737,6 +785,10 @@ func TestHealthServiceNodes_NodeMetaFilter(t *testing.T) {
 }
 
 func TestHealthServiceNodes_Filter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -799,6 +851,10 @@ func TestHealthServiceNodes_Filter(t *testing.T) {
 }
 
 func TestHealthServiceNodes_DistanceSort(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -878,6 +934,10 @@ func TestHealthServiceNodes_DistanceSort(t *testing.T) {
 }
 
 func TestHealthServiceNodes_PassingFilter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -975,6 +1035,10 @@ func TestHealthServiceNodes_PassingFilter(t *testing.T) {
 }
 
 func TestHealthServiceNodes_CheckType(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -1028,6 +1092,10 @@ func TestHealthServiceNodes_CheckType(t *testing.T) {
 }
 
 func TestHealthServiceNodes_WanTranslation(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a1 := NewTestAgent(t, `
 		datacenter = "dc1"
@@ -1114,6 +1182,10 @@ func TestHealthServiceNodes_WanTranslation(t *testing.T) {
 }
 
 func TestHealthConnectServiceNodes(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	assert := assert.New(t)
@@ -1140,6 +1212,10 @@ func TestHealthConnectServiceNodes(t *testing.T) {
 }
 
 func TestHealthIngressServiceNodes(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, "")
@@ -1210,6 +1286,10 @@ func TestHealthIngressServiceNodes(t *testing.T) {
 }
 
 func TestHealthConnectServiceNodes_Filter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, "")
@@ -1248,6 +1328,10 @@ func TestHealthConnectServiceNodes_Filter(t *testing.T) {
 }
 
 func TestHealthConnectServiceNodes_PassingFilter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, "")

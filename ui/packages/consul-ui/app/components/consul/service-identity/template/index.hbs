@@ -1,0 +1,29 @@
+{{#if (env "CONSUL_NSPACES_ENABLED")}}
+namespace "{{@nspace}}" {
+  service "{{@name}}" {
+	  policy = "write"
+  }
+  service "{{@name}}-sidecar-proxy" {
+	  policy = "write"
+  }
+  service_prefix "" {
+	  policy = "read"
+  }
+  node_prefix "" {
+	  policy = "read"
+  }
+}
+{{else}}
+service "{{@name}}" {
+	policy = "write"
+}
+service "{{@name}}-sidecar-proxy" {
+	policy = "write"
+}
+service_prefix "" {
+	policy = "read"
+}
+node_prefix "" {
+	policy = "read"
+}
+{{/if}}

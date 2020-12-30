@@ -1,0 +1,6 @@
+```release-note:deprecation
+api: the `tag`, `node-meta`, and `passing` query parameters for various health and catalog
+endpoints are now deprecated. The `filter` query parameter should be used as a replacement
+for all of the deprecated fields. The deprecated query parameters will be removed in a future
+version of Consul.
+```

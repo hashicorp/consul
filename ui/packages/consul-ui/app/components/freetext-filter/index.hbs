@@ -1,6 +1,19 @@
-<fieldset class="freetext-filter">
-    <label class="type-search">
-        <span>Search</span>
-        <input type="search" onsearch={{action "change"}} oninput={{action "change"}} onkeydown={{action "keydown"}} name="s" value={{value}} placeholder={{placeholder}} autofocus="autofocus" />
-    </label>
+<fieldset
+  class="freetext-filter"
+  ...attributes
+>
+  <label class="type-search">
+    <span class="freetext-filter_label">Search</span>
+    <input
+      class="freetext-filter_input"
+      type="search"
+      onsearch={{action this.change}}
+      oninput={{action this.change}}
+      onkeydown={{action this.keydown}}
+      name="s" value={{@value}}
+      placeholder={{this.placeholder}}
+      autofocus="autofocus"
+    />
+  </label>
+  {{yield}}
 </fieldset>

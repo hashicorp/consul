@@ -1,11 +1,15 @@
 import RepositoryService from 'consul-ui/services/repository';
+import { inject as service } from '@ember/service';
+import { set } from '@ember/object';
+
 const modelName = 'service-instance';
 export default class ServiceInstanceService extends RepositoryService {
+  @service('repository/proxy') proxyRepo;
   getModelName() {
     return modelName;
   }
 
-  findByService(slug, dc, nspace, configuration = {}) {
+  async findByService(slug, dc, nspace, configuration = {}) {
     const query = {
       dc: dc,
       ns: nspace,
@@ -18,7 +22,7 @@ export default class ServiceInstanceService extends RepositoryService {
     return this.store.query(this.getModelName(), query);
   }
 
-  findBySlug(serviceId, node, service, dc, nspace, configuration = {}) {
+  async findBySlug(serviceId, node, service, dc, nspace, configuration = {}) {
     const query = {
       dc: dc,
       ns: nspace,
@@ -31,5 +35,28 @@ export default class ServiceInstanceService extends RepositoryService {
       query.uri = configuration.uri;
     }
     return this.store.queryRecord(this.getModelName(), query);
+  }
+
+  async findProxyBySlug(serviceId, node, service, dc, nspace, configuration = {}) {
+    const instance = await this.findBySlug(...arguments);
+    let proxy = this.store.peekRecord('proxy', instance.uid);
+    // if(typeof proxy === 'undefined') {
+    //   await proxyRepo.create({})
+    // }
+
+    // Copy over all the things to the ProxyServiceInstance
+    ['Service', 'Node'].forEach(prop => {
+      set(proxy, prop, instance[prop]);
+    });
+    ['Checks'].forEach(prop => {
+      instance[prop].forEach(item => {
+        if (typeof item !== 'undefined') {
+          proxy[prop].addFragment(item.copy());
+        }
+      });
+    });
+    // delete the ServiceInstance record as we now have a ProxyServiceInstance
+    instance.unloadRecord();
+    return proxy;
   }
 }

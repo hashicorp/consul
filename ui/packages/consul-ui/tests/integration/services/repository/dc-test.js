@@ -24,7 +24,7 @@ test('findAll returns the correct data for list endpoint', function(assert) {
       assert.deepEqual(
         actual,
         expected(function(payload) {
-          return payload.map(item => ({ Name: item }));
+          return payload.map((item, i) => ({ Name: item, Local: i === 0 ? true : false }));
         })
       );
     }

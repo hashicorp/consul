@@ -1,4 +1,4 @@
-export default () => key => {
+export default ({ properties }) => key => {
   if (key.startsWith('Status:')) {
     const [, dir] = key.split(':');
     const props = [
@@ -19,5 +19,5 @@ export default () => key => {
       }
     };
   }
-  return key;
+  return properties(['Name'])(key);
 };

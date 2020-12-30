@@ -5,8 +5,8 @@
   },
   "builders": [{
     "name": "ubuntu18-ami",
-    "ami_name": "loadtest-ubuntu-{{isotime | clean_resource_name}}-{{uuid}}",
-    "ami_description": "An Ubuntu 18.04 AMI that has k6 installed.",
+    "ami_name": "consul-test-{{isotime | clean_resource_name}}-{{uuid}}",
+    "ami_description": "An Ubuntu 18.04 AMI that has hey installed.",
     "instance_type": "t2.micro",
     "region": "{{user `aws_region`}}",
     "associate_public_ip_address": true,

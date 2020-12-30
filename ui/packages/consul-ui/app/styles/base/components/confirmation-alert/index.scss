@@ -1,6 +1,0 @@
-@import './skin';
-@import './layout';
-
-%confirmation-alert > ul > li > * {
-  @extend %internal-button;
-}

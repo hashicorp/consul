@@ -107,9 +107,15 @@ Feature: dc / services / show: Show Service
     ---
   Scenario: Given a dashboard template has been set
     Given 1 datacenter model with the value "dc1"
+    And ui_config from yaml
+    ---
+    dashboard_url_templates:
+      service: https://something.com?{{Service.Name}}&{{Datacenter}}
+    ---
     When I visit the service page for yaml
     ---
       dc: dc1
       service: service-0
     ---
-    And I see href on the metricsAnchor like "https://example.com?service-0-with-id&dc1"
+    # The Metrics dashboard should use the Service.Name not the ID
+    And I see href on the metricsAnchor like "https://something.com?service-0&dc1"

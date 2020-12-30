@@ -34,6 +34,10 @@ import (
 )
 
 func TestHTTPServer_UnixSocket(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	if runtime.GOOS == "windows" {
 		t.SkipNow()
@@ -92,6 +96,10 @@ func TestHTTPServer_UnixSocket(t *testing.T) {
 }
 
 func TestHTTPServer_UnixSocket_FileExists(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	if runtime.GOOS == "windows" {
 		t.SkipNow()
@@ -130,6 +138,10 @@ func TestHTTPServer_UnixSocket_FileExists(t *testing.T) {
 }
 
 func TestSetupHTTPServer_HTTP2(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	// Fire up an agent with TLS enabled.
@@ -299,6 +311,10 @@ func TestSetMeta(t *testing.T) {
 }
 
 func TestHTTPAPI_BlockEndpoints(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, `
@@ -334,6 +350,10 @@ func TestHTTPAPI_BlockEndpoints(t *testing.T) {
 }
 
 func TestHTTPAPI_Ban_Nonprintable_Characters(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -353,6 +373,10 @@ func TestHTTPAPI_Ban_Nonprintable_Characters(t *testing.T) {
 }
 
 func TestHTTPAPI_Allow_Nonprintable_Characters_With_Flag(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	a := NewTestAgent(t, "disable_http_unprintable_char_filter = true")
 	defer a.Shutdown()
 
@@ -373,6 +397,10 @@ func TestHTTPAPI_Allow_Nonprintable_Characters_With_Flag(t *testing.T) {
 }
 
 func TestHTTPAPI_TranslateAddrHeader(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	// Header should not be present if address translation is off.
 	{
@@ -416,6 +444,10 @@ func TestHTTPAPI_TranslateAddrHeader(t *testing.T) {
 }
 
 func TestHTTPAPI_DefaultACLPolicy(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	type testcase struct {
@@ -464,6 +496,10 @@ func TestHTTPAPI_DefaultACLPolicy(t *testing.T) {
 }
 
 func TestHTTPAPIResponseHeaders(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, `
 		ui_config {
@@ -503,6 +539,10 @@ func requireHasHeadersSet(t *testing.T, a *TestAgent, path string) {
 }
 
 func TestUIResponseHeaders(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, `
 		http_config {
@@ -519,6 +559,10 @@ func TestUIResponseHeaders(t *testing.T) {
 }
 
 func TestAcceptEncodingGzip(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -558,6 +602,10 @@ func TestAcceptEncodingGzip(t *testing.T) {
 }
 
 func TestContentTypeIsJSON(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -579,6 +627,10 @@ func TestContentTypeIsJSON(t *testing.T) {
 }
 
 func TestHTTP_wrap_obfuscateLog(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	buf := new(bytes.Buffer)
 	a := StartTestAgent(t, TestAgent{LogOutput: buf})
@@ -632,11 +684,19 @@ func TestHTTP_wrap_obfuscateLog(t *testing.T) {
 }
 
 func TestPrettyPrint(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	testPrettyPrint("pretty=1", t)
 }
 
 func TestPrettyPrintBare(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	testPrettyPrint("pretty", t)
 }
@@ -669,6 +729,10 @@ func testPrettyPrint(pretty string, t *testing.T) {
 }
 
 func TestParseSource(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -867,6 +931,10 @@ func TestParseWait(t *testing.T) {
 }
 
 func TestHTTPServer_PProfHandlers_EnableDebug(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -881,6 +949,10 @@ func TestHTTPServer_PProfHandlers_EnableDebug(t *testing.T) {
 }
 
 func TestHTTPServer_PProfHandlers_DisableDebugNoACLs(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -895,6 +967,10 @@ func TestHTTPServer_PProfHandlers_DisableDebugNoACLs(t *testing.T) {
 }
 
 func TestHTTPServer_PProfHandlers_ACLs(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	assert := assert.New(t)
 	dc1 := "dc1"
@@ -996,6 +1072,10 @@ func TestParseWait_InvalidIndex(t *testing.T) {
 }
 
 func TestParseConsistency(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	resp := httptest.NewRecorder()
 	var b structs.QueryOptions
@@ -1053,6 +1133,10 @@ func ensureConsistency(t *testing.T, a *TestAgent, path string, maxStale time.Du
 }
 
 func TestParseConsistencyAndMaxStale(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
 
@@ -1084,6 +1168,10 @@ func TestParseConsistencyAndMaxStale(t *testing.T) {
 }
 
 func TestParseConsistency_Invalid(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	resp := httptest.NewRecorder()
 	var b structs.QueryOptions
@@ -1102,6 +1190,10 @@ func TestParseConsistency_Invalid(t *testing.T) {
 
 // Test ACL token is resolved in correct order
 func TestACLResolution(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	var token string
 	// Request without token
@@ -1239,6 +1331,10 @@ func TestACLResolution(t *testing.T) {
 }
 
 func TestEnableWebUI(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, `
 		ui_config {
@@ -1286,6 +1382,10 @@ func TestEnableWebUI(t *testing.T) {
 }
 
 func TestAllowedNets(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	type testVal struct {
 		nets     []string
 		ip       string
@@ -1409,6 +1509,10 @@ func jsonReader(v interface{}) io.Reader {
 }
 
 func TestHTTPServer_HandshakeTimeout(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	// Fire up an agent with TLS enabled.
@@ -1456,6 +1560,10 @@ func TestHTTPServer_HandshakeTimeout(t *testing.T) {
 }
 
 func TestRPC_HTTPSMaxConnsPerClient(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	cases := []struct {

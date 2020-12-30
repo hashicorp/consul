@@ -131,6 +131,10 @@ func seedCoordinates(t *testing.T, codec rpc.ClientCodec, server *Server) {
 }
 
 func TestRTT_sortNodesByDistanceFrom(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir, server := testServer(t)
 	defer os.RemoveAll(dir)
@@ -184,6 +188,10 @@ func TestRTT_sortNodesByDistanceFrom(t *testing.T) {
 }
 
 func TestRTT_sortNodesByDistanceFrom_Nodes(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir, server := testServer(t)
 	defer os.RemoveAll(dir)
@@ -234,6 +242,10 @@ func TestRTT_sortNodesByDistanceFrom_Nodes(t *testing.T) {
 }
 
 func TestRTT_sortNodesByDistanceFrom_ServiceNodes(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir, server := testServer(t)
 	defer os.RemoveAll(dir)
@@ -284,6 +296,10 @@ func TestRTT_sortNodesByDistanceFrom_ServiceNodes(t *testing.T) {
 }
 
 func TestRTT_sortNodesByDistanceFrom_HealthChecks(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir, server := testServer(t)
 	defer os.RemoveAll(dir)
@@ -334,6 +350,10 @@ func TestRTT_sortNodesByDistanceFrom_HealthChecks(t *testing.T) {
 }
 
 func TestRTT_sortNodesByDistanceFrom_CheckServiceNodes(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir, server := testServer(t)
 	defer os.RemoveAll(dir)

@@ -1,54 +1,46 @@
 import { inject as service } from '@ember/service';
 import Route from 'consul-ui/routing/route';
-import { hash } from 'rsvp';
 import { get } from '@ember/object';
 
 export default class InstanceRoute extends Route {
-  @service('data-source/service')
-  data;
+  @service('data-source/service') data;
 
-  model(params) {
+  async model(params, transition) {
     const dc = this.modelFor('dc').dc.Name;
-    const nspace = this.modelFor('nspace').nspace.substr(1) || 'default';
-    return hash({
-      dc: dc,
-      nspace: nspace,
-      item: this.data.source(
-        uri => uri`/${nspace}/${dc}/service-instance/${params.id}/${params.node}/${params.name}`
-      ),
-    }).then(model => {
-      // this will not be run in a blocking loop, but this is ok as
-      // its highly unlikely that a service will suddenly change to being a
-      // connect-proxy or vice versa so leave as is for now
-      return hash({
-        ...model,
-        proxyMeta:
-          // proxies and mesh-gateways can't have proxies themselves so don't even look
-          ['connect-proxy', 'mesh-gateway'].includes(get(model.item, 'Kind'))
-            ? null
-            : this.data.source(
-                uri =>
-                  uri`/${nspace}/${dc}/proxy-instance/${params.id}/${params.node}/${params.name}`
-              ),
-      }).then(model => {
-        if (typeof get(model, 'proxyMeta.ServiceID') === 'undefined') {
-          return model;
-        }
-        const proxy = {
-          id: get(model, 'proxyMeta.ServiceID'),
-          node: get(model, 'proxyMeta.Node'),
-          name: get(model, 'proxyMeta.ServiceName'),
+    const nspace = this.modelFor('nspace').nspace.substr(1);
+
+    const item = await this.data.source(
+      uri => uri`/${nspace}/${dc}/service-instance/${params.id}/${params.node}/${params.name}`
+    );
+
+    let proxyMeta, proxy;
+    if (get(item, 'IsOrigin')) {
+      proxyMeta = await this.data.source(
+        uri => uri`/${nspace}/${dc}/proxy-instance/${params.id}/${params.node}/${params.name}`
+      );
+      if (typeof get(proxyMeta, 'ServiceID') !== 'undefined') {
+        const proxyParams = {
+          id: get(proxyMeta, 'ServiceID'),
+          node: get(proxyMeta, 'Node'),
+          name: get(proxyMeta, 'ServiceName'),
         };
-        return hash({
-          ...model,
-          // Proxies have identical dc/nspace as their parent instance
-          // No need to use Proxy's dc/nspace response
-          proxy: this.data.source(
-            uri => uri`/${nspace}/${dc}/service-instance/${proxy.id}/${proxy.node}/${proxy.name}`
-          ),
-        });
-      });
-    });
+        // Proxies have identical dc/nspace as their parent instance
+        // so no need to use Proxy's dc/nspace response
+        // the proxy itself is just a normal service model
+        proxy = await this.data.source(
+          uri =>
+            uri`/${nspace}/${dc}/proxy-service-instance/${proxyParams.id}/${proxyParams.node}/${proxyParams.name}`
+        );
+      }
+    }
+
+    return {
+      dc,
+      nspace,
+      item,
+      proxyMeta,
+      proxy,
+    };
   }
 
   setupController(controller, model) {

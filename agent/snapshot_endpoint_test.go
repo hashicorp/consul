@@ -13,6 +13,10 @@ import (
 )
 
 func TestSnapshot(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	var snap io.Reader
 	t.Run("create snapshot", func(t *testing.T) {
@@ -56,6 +60,10 @@ func TestSnapshot(t *testing.T) {
 }
 
 func TestSnapshot_Options(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	for _, method := range []string{"GET", "PUT"} {
 		t.Run(method, func(t *testing.T) {

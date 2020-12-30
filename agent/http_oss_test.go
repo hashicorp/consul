@@ -60,6 +60,10 @@ func newHttpClient(timeout time.Duration) *http.Client {
 }
 
 func TestHTTPAPI_MethodNotAllowed_OSS(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	// To avoid actually triggering RPCs that are allowed, lock everything down
 	// with default-deny ACLs. This drops the test runtime from 11s to 0.6s.
 	a := NewTestAgent(t, `
@@ -124,6 +128,10 @@ func TestHTTPAPI_MethodNotAllowed_OSS(t *testing.T) {
 }
 
 func TestHTTPAPI_OptionMethod_OSS(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	a := NewTestAgent(t, `acl_datacenter = "dc1"`)
 	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
@@ -160,6 +168,10 @@ func TestHTTPAPI_OptionMethod_OSS(t *testing.T) {
 }
 
 func TestHTTPAPI_AllowedNets_OSS(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	a := NewTestAgent(t, `
 		acl_datacenter = "dc1"
 		http_config {

@@ -14,6 +14,10 @@ import (
 )
 
 func TestIntentionList(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, "")
@@ -85,6 +89,10 @@ func TestIntentionList(t *testing.T) {
 }
 
 func TestIntentionMatch(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, "")
@@ -221,6 +229,10 @@ func TestIntentionMatch(t *testing.T) {
 }
 
 func TestIntentionCheck(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, "")
@@ -301,6 +313,10 @@ func TestIntentionCheck(t *testing.T) {
 }
 
 func TestIntentionPutExact(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, "")
@@ -368,6 +384,10 @@ func TestIntentionPutExact(t *testing.T) {
 }
 
 func TestIntentionCreate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, "")
@@ -410,6 +430,10 @@ func TestIntentionCreate(t *testing.T) {
 }
 
 func TestIntentionSpecificGet(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, "")
@@ -460,6 +484,10 @@ func TestIntentionSpecificGet(t *testing.T) {
 }
 
 func TestIntentionSpecificUpdate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, "")
@@ -506,6 +534,10 @@ func TestIntentionSpecificUpdate(t *testing.T) {
 }
 
 func TestIntentionDeleteExact(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, "")
@@ -514,6 +546,17 @@ func TestIntentionDeleteExact(t *testing.T) {
 
 	ixn := structs.TestIntention(t)
 	ixn.SourceName = "foo"
+
+	t.Run("cannot delete non-existent intention", func(t *testing.T) {
+		// Delete the intention
+		req, err := http.NewRequest("DELETE", "/v1/connect/intentions/exact?source=foo&destination=db", nil)
+		require.NoError(t, err)
+
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.IntentionExact(resp, req)
+		require.Nil(t, obj)
+		testutil.RequireErrorContains(t, err, "Cannot delete non-existent intention")
+	})
 
 	exact := ixn.ToExact()
 
@@ -586,6 +629,10 @@ func TestIntentionDeleteExact(t *testing.T) {
 }
 
 func TestIntentionSpecificDelete(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, "")

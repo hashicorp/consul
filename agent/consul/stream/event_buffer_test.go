@@ -14,6 +14,10 @@ import (
 // correctness properties are not violated (and that -race doesn't complain).
 func TestEventBufferFuzz(t *testing.T) {
 	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	if testing.Short() {
 		t.Skip("too slow for short run")
 	}
 

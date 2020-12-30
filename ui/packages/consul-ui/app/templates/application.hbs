@@ -1,5 +1,11 @@
 <HeadLayout />
 {{page-title 'Consul' separator=' - '}}
+{{#if (env 'CONSUL_ACLS_ENABLED')}}
+  {{document-attrs class="has-acls"}}
+{{/if}}
+{{#if (env 'CONSUL_NSPACES_ENABLED')}}
+  {{document-attrs class="has-nspaces"}}
+{{/if}}
 {{#if (not-eq router.currentRouteName 'application')}}
   <HashicorpConsul
     id="wrapper"

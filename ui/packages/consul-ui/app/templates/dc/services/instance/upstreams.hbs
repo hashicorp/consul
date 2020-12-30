@@ -1,37 +1,53 @@
 <div class="tab-section">
   <div role="tabpanel">
-{{#let (or sortBy "DestinationName:asc") as |sort|}}
-  {{#if (gt proxy.Service.Proxy.Upstreams.length 0)}}
-    <input type="checkbox" id="toolbar-toggle" />
-    <Consul::UpstreamInstance::SearchBar
-      @search={{search}}
-      @onsearch={{action (mut search) value="target.value"}}
+{{#let (hash
+  searchproperties=(if (not-eq searchproperty undefined)
+    (split searchproperty ',')
+    searchProperties
+  )
+) as |filters|}}
+  {{#let (or sortBy "DestinationName:asc") as |sort|}}
+    {{#if (gt proxy.Service.Proxy.Upstreams.length 0)}}
+      <input type="checkbox" id="toolbar-toggle" />
+      <Consul::UpstreamInstance::SearchBar
+        @search={{search}}
+        @onsearch={{action (mut search) value="target.value"}}
+        @searchproperties={{searchProperties}}
 
-      @sort={{sort}}
-      @onsort={{action (mut sortBy) value="target.selected"}}
-    />
-    <Consul::UpstreamInstance::List
-      @search={{search}}
-      @sort={{sort}}
-      @items={{proxy.Service.Proxy.Upstreams}}
-      @dc={{dc}}
-      @nspace={{nspace}}
-    >
-      <:empty>
-        <EmptyState>
-          <BlockSlot @name="body">
-            <p>
-              {{#if search.length}}
-                No upstreams where found matching that search.
-              {{else}}
-                This service has no upstreams.
-              {{/if}}
-            </p>
-          </BlockSlot>
-        </EmptyState>
-      </:empty>
-    </Consul::UpstreamInstance::List>
-  {{/if}}
+        @sort={{sort}}
+        @onsort={{action (mut sortBy) value="target.selected"}}
+
+        @filter={{filters}}
+        @onfilter={{hash
+          searchproperty=(action (mut searchproperty) value="target.selectedItems")
+        }}
+      />
+      <DataCollection
+        @type="upstream-instance"
+        @sort={{sort}}
+        @filters={{filters}}
+        @search={{search}}
+        @items={{proxy.Service.Proxy.Upstreams}}
+      as |collection|>
+        <collection.Collection>
+          <Consul::UpstreamInstance::List
+            @items={{collection.items}}
+            @dc={{dc}}
+            @nspace={{nspace}}
+          />
+        </collection.Collection>
+        <collection.Empty>
+          <EmptyState>
+            <BlockSlot @name="body">
+              <p>
+                This service has no upstreams{{#if (gt proxy.Service.Proxy.Upstreams.length 0)}} matching that search{{/if}}.
+              </p>
+            </BlockSlot>
+          </EmptyState>
+        </collection.Empty>
+      </DataCollection>
+    {{/if}}
+  {{/let}}
 {{/let}}
   </div>
 </div>

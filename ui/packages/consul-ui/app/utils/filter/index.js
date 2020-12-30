@@ -43,7 +43,7 @@ const execute = function(item, values, predicates) {
 export const andOr = predicates => {
   // figure out all possible values from the hash of predicates
   const possibles = createPossibles(predicates);
-  return () => values => {
+  return values => {
     // this is what is called post injection
     // the actual user values are passed in here so 'sanitize' them which is
     // basically checking against the possibles

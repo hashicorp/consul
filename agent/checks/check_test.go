@@ -31,6 +31,10 @@ func uniqueID() string {
 }
 
 func TestCheckMonitor_Script(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	tests := []struct {
 		script, status string
 	}{
@@ -71,6 +75,10 @@ func TestCheckMonitor_Script(t *testing.T) {
 }
 
 func TestCheckMonitor_Args(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	tests := []struct {
 		args   []string
 		status string
@@ -112,6 +120,10 @@ func TestCheckMonitor_Args(t *testing.T) {
 }
 
 func TestCheckMonitor_Timeout(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	// t.Parallel() // timing test. no parallel
 	notif := mock.NewNotify()
 	logger := testutil.Logger(t)
@@ -143,6 +155,10 @@ func TestCheckMonitor_Timeout(t *testing.T) {
 }
 
 func TestCheckMonitor_RandomStagger(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	// t.Parallel() // timing test. no parallel
 	notif := mock.NewNotify()
 	logger := testutil.Logger(t)
@@ -202,6 +218,10 @@ func TestCheckMonitor_LimitOutput(t *testing.T) {
 }
 
 func TestCheckTTL(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	// t.Parallel() // timing test. no parallel
 	notif := mock.NewNotify()
 	logger := testutil.Logger(t)
@@ -250,6 +270,10 @@ func TestCheckTTL(t *testing.T) {
 }
 
 func TestCheckHTTP(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	tests := []struct {
@@ -727,6 +751,10 @@ func TestCheckHTTP_TLS_SkipVerify(t *testing.T) {
 }
 
 func TestCheckHTTP_TLS_BadVerify(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	server := httptest.NewTLSServer(largeBodyHandler(200))
 	defer server.Close()
@@ -937,6 +965,10 @@ func TestCheckTCPPassing(t *testing.T) {
 }
 
 func TestCheck_Docker(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	tests := []struct {
 		desc     string
 		handlers map[string]http.HandlerFunc

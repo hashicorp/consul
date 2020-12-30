@@ -92,6 +92,10 @@ func TestReplication_ConfigSort(t *testing.T) {
 }
 
 func TestReplication_ConfigEntries(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"

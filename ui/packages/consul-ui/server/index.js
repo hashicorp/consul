@@ -1,3 +1,4 @@
+/*eslint node/no-extraneous-require: "off"*/
 'use strict';
 const fs = require('fs');
 const promisify = require('util').promisify;

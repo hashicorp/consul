@@ -47,6 +47,10 @@ func TestValidateUserEventParams(t *testing.T) {
 }
 
 func TestShouldProcessUserEvent(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -116,6 +120,10 @@ func TestShouldProcessUserEvent(t *testing.T) {
 }
 
 func TestIngestUserEvent(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -147,6 +155,10 @@ func TestIngestUserEvent(t *testing.T) {
 }
 
 func TestFireReceiveEvent(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -183,6 +195,10 @@ func TestFireReceiveEvent(t *testing.T) {
 }
 
 func TestUserEventToken(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, TestACLConfig()+`
 		acl_default_policy = "deny"

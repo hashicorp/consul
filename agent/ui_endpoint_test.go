@@ -24,6 +24,10 @@ import (
 )
 
 func TestUiIndex(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	// Make a test dir to serve UI files
 	uiDir := testutil.TempDir(t, "consul")
@@ -70,6 +74,10 @@ func TestUiIndex(t *testing.T) {
 }
 
 func TestUiNodes(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -108,6 +116,10 @@ func TestUiNodes(t *testing.T) {
 }
 
 func TestUiNodes_Filter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -150,6 +162,10 @@ func TestUiNodes_Filter(t *testing.T) {
 }
 
 func TestUiNodeInfo(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -198,6 +214,10 @@ func TestUiNodeInfo(t *testing.T) {
 }
 
 func TestUiServices(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -528,9 +548,28 @@ func TestUiServices(t *testing.T) {
 		}
 		require.ElementsMatch(t, expected, summary)
 	})
+	t.Run("Filtered without results", func(t *testing.T) {
+		filterQuery := url.QueryEscape("Service.Service == absent")
+		req, _ := http.NewRequest("GET", "/v1/internal/ui/services?filter="+filterQuery, nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.UIServices(resp, req)
+		require.NoError(t, err)
+		assertIndex(t, resp)
+
+		// Ensure the ServiceSummary doesn't output a `null` response when there
+		// are no matching summaries
+		require.NotNil(t, obj)
+
+		summary := obj.([]*ServiceListingSummary)
+		require.Len(t, summary, 0)
+	})
 }
 
 func TestUIGatewayServiceNodes_Terminating(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, "")
@@ -654,6 +693,10 @@ func TestUIGatewayServiceNodes_Terminating(t *testing.T) {
 }
 
 func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, `alt_domain = "alt.consul."`)
@@ -825,6 +868,10 @@ func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
 }
 
 func TestUIGatewayIntentions(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, "")
@@ -934,6 +981,10 @@ func TestUIEndpoint_modifySummaryForGatewayService_UseRequestedDCInsteadOfConfig
 }
 
 func TestUIServiceTopology(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, "")
@@ -1567,6 +1618,10 @@ func TestUIServiceTopology(t *testing.T) {
 }
 
 func TestUIEndpoint_MetricsProxy(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	var lastHeadersSent atomic.Value

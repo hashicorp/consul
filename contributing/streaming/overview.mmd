@@ -1,0 +1,36 @@
+graph TD
+
+    subgraph ClientAgent[Client Agent]
+        HTTPEndpoint
+        DNSEndpoint
+        rpcClient.Health
+        AgentCache
+        MaterializedView
+    end
+
+    subgraph ServerAgent[Server Agent]
+        RPCEndpoint
+        raft.Apply
+        FSM.applyRegistration
+        state.Store.Register
+        SubscribeEndpoint
+        EventPublisher
+    end
+
+    Read --> HTTPEndpoint & DNSEndpoint
+
+    HTTPEndpoint & DNSEndpoint --> rpcClient.Health
+    rpcClient.Health --> AgentCache
+    AgentCache --> MaterializedView
+    MaterializedView --> SubscribeEndpoint
+    SubscribeEndpoint -->|Subscribe to topic| EventPublisher
+
+    Write --> RPCEndpoint
+    RPCEndpoint --> raft.Apply
+    raft.Apply --> FSM.applyRegistration
+    FSM.applyRegistration --> state.Store.Register
+    state.Store.Register -->|Publish event| EventPublisher
+
+    class Read,Write start
+    classDef start fill:transparent,stroke:transparent
+

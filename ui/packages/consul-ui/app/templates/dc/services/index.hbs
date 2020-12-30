@@ -1,51 +1,68 @@
 {{page-title 'Services'}}
+
 <EventSource @src={{items}} />
-{{#let (hash
-  statuses=(if status (split status ',') undefined)
-  kinds=(if kind (split kind ',') undefined)
-  sources=(if source (split source ',') undefined)
-) as |filters|}}
-  {{#let (or sortBy "Status:asc") as |sort|}}
-    <AppView>
-      <BlockSlot @name="notification" as |status type|>
-        <Consul::Service::Notifications
-          @type={{type}}
-          @status={{status}}
+
+{{#let
+
+  (or sortBy "Status:asc")
+
+  (hash
+    statuses=(if status (split status ',') undefined)
+    kinds=(if kind (split kind ',') undefined)
+    sources=(if source (split source ',') undefined)
+    searchproperties=(if (not-eq searchproperty undefined)
+      (split searchproperty ',')
+      (array 'Name' 'Tags')
+    )
+  )
+
+  (reject-by 'Kind' 'connect-proxy' items)
+
+as |sort filters items|}}
+
+  <AppView>
+    <BlockSlot @name="header">
+        <h1>
+          Services <em>{{format-number items.length}} total</em>
+        </h1>
+        <label for="toolbar-toggle"></label>
+    </BlockSlot>
+    <BlockSlot @name="toolbar">
+      {{#if (gt items.length 0) }}
+        <Consul::Service::SearchBar
+          @sources={{get (collection items) 'ExternalSources'}}
+
+          @search={{search}}
+          @onsearch={{action (mut search) value="target.value"}}
+
+          @sort={{sort}}
+          @onsort={{action (mut sortBy) value="target.selected"}}
+
+          @filter={{filters}}
+          @onfilter={{hash
+            searchproperty=(action (mut searchproperty) value="target.selectedItems")
+            status=(action (mut status) value="target.selectedItems")
+            kind=(action (mut kind) value="target.selectedItems")
+            source=(action (mut source) value="target.selectedItems")
+          }}
         />
-      </BlockSlot>
-      <BlockSlot @name="header">
-          <h1>
-            Services <em>{{format-number services.length}} total</em>
-          </h1>
-          <label for="toolbar-toggle"></label>
-      </BlockSlot>
-      <BlockSlot @name="toolbar">
-        {{#if (gt services.length 0) }}
-          <Consul::Service::SearchBar
-            @sources={{externalSources}}
-            @search={{search}}
-            @onsearch={{action (mut search) value="target.value"}}
-
-            @sort={{sort}}
-            @onsort={{action (mut sortBy) value="target.selected"}}
-
-            @filter={{filters}}
-            @onfilter={{hash
-              status=(action (mut status) value="target.selectedItems")
-              kind=(action (mut kind) value="target.selectedItems")
-              source=(action (mut source) value="target.selectedItems")
-            }}
-          />
-        {{/if}}
-      </BlockSlot>
-      <BlockSlot @name="content">
-{{#let (filter (filter-predicate 'service' filters) services) as |filtered|}}
-  {{#let (sort-by (comparator 'service' sort) filtered) as |sorted|}}
-        <ChangeableSet @dispatcher={{searchable 'service' sorted}} @terms={{search}}>
-          <BlockSlot @name="set" as |searched|>
-            <Consul::Service::List @items={{searched}} />
-          </BlockSlot>
-          <BlockSlot @name="empty">
+      {{/if}}
+    </BlockSlot>
+    <BlockSlot @name="content">
+      <DataCollection
+        @type="service"
+        @sort={{sort}}
+        @filters={{filters}}
+        @search={{search}}
+        @items={{items}}
+      as |collection|>
+        <collection.Collection>
+          <Consul::Service::List
+            @items={{collection.items}}
+          >
+          </Consul::Service::List>
+        </collection.Collection>
+        <collection.Empty>
             <EmptyState @allowLogin={{true}}>
               <BlockSlot @name="header">
                 <h2>
@@ -74,11 +91,10 @@
                 </li>
               </BlockSlot>
             </EmptyState>
-          </BlockSlot>
-        </ChangeableSet>
-  {{/let}}
-{{/let}}
-      </BlockSlot>
-    </AppView>
-  {{/let}}
+          </collection.Empty>
+        </DataCollection>
+    </BlockSlot>
+
+  </AppView>
+
 {{/let}}

@@ -2,27 +2,51 @@
   class="consul-intention-search-bar filter-bar"
   ...attributes
 >
-  <FreetextFilter
-    @onsearch={{action onsearch}}
-    @value={{search}}
-    @placeholder="Search"
-  />
+  <div class="search">
+    <FreetextFilter
+      @onsearch={{action @onsearch}}
+      @value={{@search}}
+      @placeholder="Search"
+    >
+      <PopoverSelect
+        class="type-search-properties"
+        @position="right"
+        @onchange={{action @onfilter.searchproperty}}
+        @multiple={{true}}
+      as |components|>
+        <BlockSlot @name="selected">
+          <span>
+            Search across
+          </span>
+        </BlockSlot>
+        <BlockSlot @name="options">
+  {{#let components.Optgroup components.Option as |Optgroup Option|}}
+          <Option @value="SourceName" @selected={{contains 'SourceName' @filter.searchproperties}}>Source Name</Option>
+          <Option @value="DestinationName" @selected={{contains 'DestinationName' @filter.searchproperties}}>Destination Name</Option>
+  {{/let}}
+        </BlockSlot>
+      </PopoverSelect>
+    </FreetextFilter>
+  </div>
   <div class="filters">
     <PopoverSelect
       @position="left"
-      @onchange={{action onfilter.access}}
+      @onchange={{action @onfilter.access}}
       @multiple={{true}}
     as |components|>
       <BlockSlot @name="selected">
         <span>
-          Intent
+          Permission
         </span>
       </BlockSlot>
       <BlockSlot @name="options">
 {{#let components.Optgroup components.Option as |Optgroup Option|}}
-        <Option class="value-allow" @value="allow" @selected={{contains 'allow' filter.accesses}}>Allow</Option>
-        <Option class="value-deny" @value="deny" @selected={{contains 'deny' filter.accesses}}>Deny</Option>
-        <Option class="value-" @value="app-aware" @selected={{contains 'app-aware' filter.accesses}}>App aware</Option>
+        <Option class="value-allow" @value="allow" @selected={{contains 'allow'
+        @filter.accesses}}><span>Allow</span></Option>
+        <Option class="value-deny" @value="deny" @selected={{contains 'deny'
+        @filter.accesses}}><span>Deny</span></Option>
+        <Option class="value-" @value="app-aware" @selected={{contains
+        'app-aware' @filter.accesses}}><span>App aware</span></Option>
 {{/let}}
       </BlockSlot>
     </PopoverSelect>
@@ -32,7 +56,7 @@
       class="type-sort"
       data-test-sort-control
       @position="right"
-      @onchange={{action onsort}}
+      @onchange={{action @onsort}}
       @multiple={{false}}
     as |components|>
       <BlockSlot @name="selected">
@@ -49,27 +73,27 @@
               ))
             as |selectable|
           }}
-            {{get selectable sort}}
+            {{get selectable @sort}}
           {{/let}}
         </span>
       </BlockSlot>
       <BlockSlot @name="options">
 {{#let components.Optgroup components.Option as |Optgroup Option|}}
         <Optgroup @label="Permission">
-          <Option @value="Action:asc" @selected={{eq "Action:asc" sort}}>Allow to Deny</Option>
-          <Option @value="Action:desc" @selected={{eq "Action:desc" sort}}>Deny to Allow</Option>
+          <Option @value="Action:asc" @selected={{eq "Action:asc" @sort}}>Allow to Deny</Option>
+          <Option @value="Action:desc" @selected={{eq "Action:desc" @sort}}>Deny to Allow</Option>
         </Optgroup>
         <Optgroup @label="Source">
-          <Option @value="SourceName:asc" @selected={{eq "SourceName:asc" sort}}>A to Z</Option>
-          <Option @value="SourceName:desc" @selected={{eq "SourceName:desc" sort}}>Z to A</Option>
+          <Option @value="SourceName:asc" @selected={{eq "SourceName:asc" @sort}}>A to Z</Option>
+          <Option @value="SourceName:desc" @selected={{eq "SourceName:desc" @sort}}>Z to A</Option>
         </Optgroup>
         <Optgroup @label="Destination">
-          <Option @value="DestinationName:asc" @selected={{eq "DestinationName:asc" sort}}>A to Z</Option>
-          <Option @value="DestinationName:desc" @selected={{eq "DestinationName:desc" sort}}>Z to A</Option>
+          <Option @value="DestinationName:asc" @selected={{eq "DestinationName:asc" @sort}}>A to Z</Option>
+          <Option @value="DestinationName:desc" @selected={{eq "DestinationName:desc" @sort}}>Z to A</Option>
         </Optgroup>
         <Optgroup @label="Precedence">
-          <Option @value="Precedence:asc" @selected={{eq "Precedence:asc" sort}}>Ascending</Option>
-          <Option @value="Precedence:desc" @selected={{eq "Precedence:desc" sort}}>Descending</Option>
+          <Option @value="Precedence:asc" @selected={{eq "Precedence:asc" @sort}}>Ascending</Option>
+          <Option @value="Precedence:desc" @selected={{eq "Precedence:desc" @sort}}>Descending</Option>
         </Optgroup>
 {{/let}}
       </BlockSlot>

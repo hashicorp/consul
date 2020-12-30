@@ -38,16 +38,6 @@
   },{
     "type": "shell",
     "inline": [
-      "if test -n \"{{user `download_url`}}\"; then",
-        "/home/ubuntu/scripts/install-consul --download-url {{user `download_url`}};",
-        "else",
-      "/home/ubuntu/scripts/install-consul --version {{user `consul_version`}};",
-      "fi"
-    ],
-    "pause_before": "30s"
-  },{
-    "type": "shell",
-    "inline": [
       "/home/ubuntu/scripts/setup-systemd-resolved"
     ],
     "pause_before": "30s"

@@ -20,28 +20,28 @@ func TestACLChangeUnsubscribeEvent(t *testing.T) {
 		{
 			Name: "token create",
 			Mutate: func(tx *txn) error {
-				return aclTokenSetTxn(tx, tx.Index, newACLToken(1), false, false, false, false)
+				return aclTokenSetTxn(tx, tx.Index, newACLToken(1), ACLTokenSetOptions{})
 			},
 			expected: stream.NewCloseSubscriptionEvent(newSecretIDs(1)),
 		},
 		{
 			Name: "token update",
 			Setup: func(tx *txn) error {
-				return aclTokenSetTxn(tx, tx.Index, newACLToken(1), false, false, false, false)
+				return aclTokenSetTxn(tx, tx.Index, newACLToken(1), ACLTokenSetOptions{})
 			},
 			Mutate: func(tx *txn) error {
 				// Add a policy to the token (never mind it doesn't exist for now) we
 				// allow it in the set command below.
 				token := newACLToken(1)
 				token.Policies = []structs.ACLTokenPolicyLink{{ID: "33333333-1111-1111-1111-111111111111"}}
-				return aclTokenSetTxn(tx, tx.Index, token, false, true, false, false)
+				return aclTokenSetTxn(tx, tx.Index, token, ACLTokenSetOptions{AllowMissingPolicyAndRoleIDs: true})
 			},
 			expected: stream.NewCloseSubscriptionEvent(newSecretIDs(1)),
 		},
 		{
 			Name: "token delete",
 			Setup: func(tx *txn) error {
-				return aclTokenSetTxn(tx, tx.Index, newACLToken(1), false, false, false, false)
+				return aclTokenSetTxn(tx, tx.Index, newACLToken(1), ACLTokenSetOptions{})
 			},
 			Mutate: func(tx *txn) error {
 				token := newACLToken(1)
@@ -144,7 +144,7 @@ func newACLRoleWithSingleToken(tx *txn) error {
 	}
 	token := newACLToken(1)
 	token.Roles = append(token.Roles, structs.ACLTokenRoleLink{ID: role.ID})
-	return aclTokenSetTxn(tx, tx.Index, token, false, false, false, false)
+	return aclTokenSetTxn(tx, tx.Index, token, ACLTokenSetOptions{})
 }
 
 func newACLPolicyWithSingleToken(tx *txn) error {
@@ -154,7 +154,7 @@ func newACLPolicyWithSingleToken(tx *txn) error {
 	}
 	token := newACLToken(1)
 	token.Policies = append(token.Policies, structs.ACLTokenPolicyLink{ID: policy.ID})
-	return aclTokenSetTxn(tx, tx.Index, token, false, false, false, false)
+	return aclTokenSetTxn(tx, tx.Index, token, ACLTokenSetOptions{})
 }
 
 func newSecretIDs(ids ...int) []string {

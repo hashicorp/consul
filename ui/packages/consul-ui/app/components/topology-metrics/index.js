@@ -1,38 +1,15 @@
 import Component from '@glimmer/component';
 import { tracked } from '@glimmer/tracking';
 import { action } from '@ember/object';
-import { inject as service } from '@ember/service';
 
 export default class TopologyMetrics extends Component {
-  @service('ui-config') cfg;
-  @service('env') env;
-
   // =attributes
   @tracked centerDimensions;
   @tracked downView;
   @tracked downLines = [];
   @tracked upView;
   @tracked upLines = [];
-  @tracked hasMetricsProvider = false;
-  @tracked noMetricsReason = null;
-
-  constructor(owner, args) {
-    super(owner, args);
-    this.hasMetricsProvider = !!this.cfg.get().metrics_provider;
-
-    // Disable metrics fetching if we are not in the local DC since we don't
-    // currently support that for all providers.
-    //
-    // TODO we can make the configurable even before we have a full solution for
-    // multi-DC forwarding for Prometheus so providers that are global for all
-    // DCs like an external managed APM can still load in all DCs.
-    if (
-      this.env.var('CONSUL_DATACENTER_LOCAL') !== this.args.topology.get('Datacenter') ||
-      this.args.service.Service.Kind === 'ingress-gateway'
-    ) {
-      this.noMetricsReason = 'Unable to fetch metrics for a remote datacenter';
-    }
-  }
+  @tracked noMetricsReason;
 
   // =methods
   drawDownLines(items) {
@@ -92,6 +69,14 @@ export default class TopologyMetrics extends Component {
   // =actions
   @action
   calculate() {
+    if (this.args.isRemoteDC) {
+      this.noMetricsReason = 'Unable to fetch metrics for a remote datacenter';
+    } else if (this.args.service.Service.Kind === 'ingress-gateway') {
+      this.noMetricsReason = 'Unable to fetch metrics for a ingress gateway';
+    } else {
+      this.noMetricsReason = null;
+    }
+
     // Calculate viewBox dimensions
     this.downView = document.querySelector('#downstream-lines').getBoundingClientRect();
     this.upView = document.querySelector('#upstream-lines').getBoundingClientRect();

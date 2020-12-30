@@ -27,6 +27,10 @@ import (
 //       functionality as that will be done with other tests.
 
 func TestACL_Disabled_Response(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, "")
 	defer a.Shutdown()
@@ -84,6 +88,10 @@ func jsonBody(v interface{}) io.Reader {
 }
 
 func TestACL_Bootstrap(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, TestACLConfig()+`
       acl_master_token = ""
@@ -132,6 +140,10 @@ func TestACL_Bootstrap(t *testing.T) {
 }
 
 func TestACL_HTTP(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := NewTestAgent(t, TestACLConfig())
 	defer a.Shutdown()
@@ -1124,6 +1136,10 @@ func TestACL_HTTP(t *testing.T) {
 }
 
 func TestACL_LoginProcedure_HTTP(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	// This tests AuthMethods, BindingRules, Login, and Logout.
 	t.Parallel()
 	a := NewTestAgent(t, TestACLConfig())
@@ -1625,6 +1641,10 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 }
 
 func TestACLEndpoint_LoginLogout_jwt(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := NewTestAgent(t, TestACLConfigWithParams(nil))
@@ -1787,6 +1807,10 @@ func TestACLEndpoint_LoginLogout_jwt(t *testing.T) {
 }
 
 func TestACL_Authorize(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a1 := NewTestAgent(t, TestACLConfigWithParams(nil))
 	defer a1.Shutdown()

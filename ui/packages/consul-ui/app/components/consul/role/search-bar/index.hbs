@@ -1,15 +1,40 @@
-<form class="filter-bar">
-  <FreetextFilter
-    @onsearch={{action onsearch}}
-    @value={{search}}
-    @placeholder="Search"
-  />
+<form
+  class="consul-role-search-bar filter-bar"
+  ...attributes
+>
+  <div class="search">
+    <FreetextFilter
+      @onsearch={{action @onsearch}}
+      @value={{@search}}
+      @placeholder="Search"
+    >
+      <PopoverSelect
+        class="type-search-properties"
+        @position="right"
+        @onchange={{action @onfilter.searchproperty}}
+        @multiple={{true}}
+      as |components|>
+        <BlockSlot @name="selected">
+          <span>
+            Search across
+          </span>
+        </BlockSlot>
+        <BlockSlot @name="options">
+  {{#let components.Optgroup components.Option as |Optgroup Option|}}
+          <Option @value="Name" @selected={{contains 'Name' @filter.searchproperties}}>Name</Option>
+          <Option @value="Description" @selected={{contains 'Description' @filter.searchproperties}}>Description</Option>
+          <Option @value="Policy" @selected={{contains 'Policy' @filter.searchproperties}}>Policy</Option>
+  {{/let}}
+        </BlockSlot>
+      </PopoverSelect>
+    </FreetextFilter>
+  </div>
   <div class="sort">
     <PopoverSelect
       class="type-sort"
       data-test-sort-control
       @position="right"
-      @onchange={{action onsort}}
+      @onchange={{action @onsort}}
       @multiple={{false}}
     as |components|>
       <BlockSlot @name="selected">
@@ -22,19 +47,19 @@
               ))
             as |selectable|
           }}
-            {{get selectable sort}}
+            {{get selectable @sort}}
           {{/let}}
         </span>
       </BlockSlot>
       <BlockSlot @name="options">
 {{#let components.Optgroup components.Option as |Optgroup Option|}}
         <Optgroup @label="Name">
-          <Option @value="Name:asc" @selected={{eq "Name:asc" sort}}>A to Z</Option>
-          <Option @value="Name:desc" @selected={{eq "Name:desc" sort}}>Z to A</Option>
+          <Option @value="Name:asc" @selected={{eq "Name:asc" @sort}}>A to Z</Option>
+          <Option @value="Name:desc" @selected={{eq "Name:desc" @sort}}>Z to A</Option>
         </Optgroup>
         <Optgroup @label="Creation">
-          <Option @value="CreateIndex:desc" @selected={{eq "CreateIndex:desc" sort}}>Newest to oldest</Option>
-          <Option @value="CreateIndex:asc" @selected={{eq "CreateIndex:asc" sort}}>Oldest to newest</Option>
+          <Option @value="CreateIndex:desc" @selected={{eq "CreateIndex:desc" @sort}}>Newest to oldest</Option>
+          <Option @value="CreateIndex:asc" @selected={{eq "CreateIndex:asc" @sort}}>Oldest to newest</Option>
         </Optgroup>
 {{/let}}
       </BlockSlot>

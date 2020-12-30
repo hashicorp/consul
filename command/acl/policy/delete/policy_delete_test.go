@@ -21,6 +21,10 @@ func TestPolicyDeleteCommand_noTabs(t *testing.T) {
 }
 
 func TestPolicyDeleteCommand(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	assert := assert.New(t)
 

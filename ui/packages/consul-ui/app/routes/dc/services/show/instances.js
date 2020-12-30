@@ -5,18 +5,25 @@ export default class InstancesRoute extends Route {
     sortBy: 'sort',
     status: 'status',
     source: 'source',
+    searchproperty: {
+      as: 'searchproperty',
+      empty: [['Name', 'Tags', 'ID', 'Address', 'Port', 'Service.Meta', 'Node.Meta']],
+    },
     search: {
       as: 'filter',
       replace: true,
     },
   };
 
-  model() {
+  async model() {
     const parent = this.routeName
       .split('.')
       .slice(0, -1)
       .join('.');
-    return this.modelFor(parent);
+    return {
+      ...this.modelFor(parent),
+      searchProperties: this.queryParams.searchproperty.empty[0],
+    };
   }
 
   setupController(controller, model) {

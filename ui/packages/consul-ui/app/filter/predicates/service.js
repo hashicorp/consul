@@ -1,7 +1,6 @@
 import setHelpers from 'mnemonist/set';
-import { andOr } from 'consul-ui/utils/filter';
 
-export default andOr({
+export default {
   kinds: {
     'ingress-gateway': (item, value) => item.Kind === value,
     'terminating-gateway': (item, value) => item.Kind === value,
@@ -22,4 +21,4 @@ export default andOr({
   sources: (item, values) => {
     return setHelpers.intersectionSize(values, new Set(item.ExternalSources || [])) !== 0;
   },
-});
+};

@@ -1,0 +1,45 @@
+import { Meta, Story, Canvas } from '@storybook/addon-docs/blocks';
+import { hbs } from 'ember-cli-htmlbars';
+
+<Meta title="Components/FreetextFilter" />
+
+# FreetextFilter
+
+<Canvas>
+  <Story
+    name="Basic"
+    argTypes={{
+    }}
+  >{(args) => ({
+    template: hbs`<FreetextFilter />`,
+    context: args
+  })}
+  </Story>
+  <Story
+    name="Search Across"
+    argTypes={{
+    }}
+  >{(args) => ({
+    template: hbs`<FreetextFilter>
+      <PopoverSelect
+        @position="right"
+        @multiple={{true}}
+      as |popover|>
+        <BlockSlot @name="selected">
+          <span>
+            Search across
+          </span>
+        </BlockSlot>
+        <BlockSlot @name="options">
+  {{#let popover.Optgroup popover.Option as |Optgroup Option|}}
+          <Option @value="Name" @selected={{true}}>Name</Option>
+          <Option @value="Tags">Tags</Option>
+  {{/let}}
+        </BlockSlot>
+      </PopoverSelect>
+    </FreetextFilter>`,
+    context: args
+  })}
+  </Story>
+</Canvas>
+

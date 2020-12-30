@@ -15,12 +15,15 @@
     stroke: $gray-400;
     fill: $magenta-600;
   }
-  .lines line {
-    stroke: $magenta-600;
+  .lines rect {
+    fill: $magenta-600;
+    stroke: transparent;
+    stroke-width: 5px;
   }
-  .lines line:hover {
-    stroke: $gray-300;
-    stroke-width: 2px;
+  .lines rect:hover {
+    fill: $gray-300;
+    height: 3px;
+    y: -1px;
   }
   .tick line {
     stroke: $gray-300;

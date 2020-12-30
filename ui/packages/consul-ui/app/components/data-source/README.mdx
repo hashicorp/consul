@@ -2,11 +2,14 @@
 
 ```handlebars
 <DataSource
-  @src="/dc/nspace/services"
+  @src="/nspace/dc/services"
   @loading="eager"
+  @disabled={{false}}
   @onchange={{action (mut items) value="data"}}
   @onerror={{action (mut error) value="error"}}
-/>
+as |source|>
+  <source.Source @src="" />
+</DataSource>
 ```
 
 ### Arguments
@@ -15,6 +18,7 @@
 | --- | --- | --- | --- |
 | `src` | `String` | | The source to subscribe to updates to, this should map to a string based URI |
 | `loading` | `String` | eager | Allows the browser to defer loading offscreen DataSources (`eager\|lazy`). Setting to `lazy` only loads the data when the DataSource is visible in the DOM (inc. `display: none\|block;`) |
+| `disabled` | `Boolean` | true | When disabled the DataSource is closed |
 | `open` | `Boolean` | false | Force the DataSource to open, used to force non-blocking data to refresh (has no effect for blocking data) |
 | `onchange` | `Function` |  | The action to fire when the data changes. Emits an Event-like object with a `data` property containing the data. |
 | `onerror` | `Function` |  | The action to fire when an error occurs. Emits ErrorEvent object with an `error` property containing the Error. |
@@ -30,28 +34,97 @@ Behind the scenes in the Consul UI we map URIs back to our `ember-data` backed `
 `DataSource` is not just restricted to HTTP API data, and can be configured to listen for data changes using a variety of methods and sources. For example we have also configured `DataSource` to listen to `LocalStorage` changes using the `settings://` pseudo-protocol in the URI (See examples below).
 
 
-### Example
+### Examples
 
-Straightforward usage can use `mut` to easily update data within a template
+Straightforward usage can use `mut` to easily update data within a template using an event handler approach.
 
 ```handlebars
   {{! listen for HTTP API changes}}
-  <DataSource @src="/dc/nspace/services"
+  <DataSource
+    @src="/nspace/dc/services"
     @onchange={{action (mut items) value="data"}}
     @onerror={{action (mut error) value="error"}}
   />
+  {{#if error}}
+    Something went wrong!
+  {{/if}}
+  {{#if (not items)}}
+    Loading...
+  {{/if}}
   {{! the value of items will change whenever the data changes}}
   {{#each items as |item|}}
     {{item.Name}} {{! < Prints the item name }}
   {{/each}}
 
   {{! listen for Settings (local storage) changes}}
-  <DataSource @src="settings://consul:token"
+  <DataSource
+    @src="settings://consul:token"
     @onchange={{action (mut token) value="data"}}
     @onerror={{action (mut error) value="error"}}
   />
   {{! the value of token will change whenever the data changes}}
   {{token.AccessorID}} {{! < Prints the token AccessorID }}
+```
+
+A property approach to easily update data within a template
+
+```handlebars
+  {{! listen for HTTP API changes}}
+  <DataSource
+    @src="/nspace/dc/services"
+  as |source|>
+    {{#if source.error}}
+      Something went wrong!
+    {{/if}}
+    {{#if (not source.data)}}
+      Loading...
+    {{/if}}
+    {{! the value of items will change whenever the data changes}}
+    {{#each source.data as |item|}}
+      {{item.Name}} {{! < Prints the item name }}
+    {{/each}}
+  </DataSource>
+```
+
+Both approaches can be used in tandem.
+
+DataSources can also be recursively nested for loading in series as opposed to in parallel. Nested DataSources will not start loading until the immediate parent has loaded (ie. it has data) as they are not placed into the DOM until this has happened. However, if a DataSource has started loading, and the immediate parent errors, the nested DataSource will stop receiving updates yet it and its properties will remain accessible within the DOM.
+
+```handlebars
+
+  {{! straightforwards error/loading states}}
+  {{#if error}}
+    Something went wrong!
+  {{else if (not loaded)}}
+    Loading...
+  {{/if}}
+
+  {{! listen for HTTP API changes}}
+  <DataSource
+    @src="/nspace/dc/services"
+    @onerror={{action (mut error) value="error"}}
+  as |source|>
+
+    <source.Source
+      @src="/nspace/dc/service/{{source.data.firstObject.Name}}"
+      @onerror={{action (mut error) value="error"}}
+    as |source|>
+
+      {{source.data.Service.Service.Name}} <== Detailed information for the first service
+
+      <source.Source
+        @src="/nspace/dc/proxy/for-service/{{source.data.Service.ID}}"
+        @onerror={{action (mut error) value="error"}}
+        @onchange={{action (mut loaded) true}}
+      as |source|>
+
+        {{source.data.DestinationName}}
+
+      </source.Source>
+
+    </source.Source>
+
+  </DataSource>
 ```
 
 ### See

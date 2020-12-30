@@ -23,6 +23,10 @@ func TestTokenUpdateCommand_noTabs(t *testing.T) {
 }
 
 func TestTokenUpdateCommand(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	a := agent.NewTestAgent(t, `
@@ -189,6 +193,10 @@ func TestTokenUpdateCommand(t *testing.T) {
 }
 
 func TestTokenUpdateCommand_JSON(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	assert := assert.New(t)
 	// Alias because we need to access require package in Retry below

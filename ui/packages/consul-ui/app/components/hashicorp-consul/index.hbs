@@ -90,11 +90,14 @@
                             {{#each (sort-by 'Name' dcs) as |item|}}
                               <MenuItem
                                 data-test-datacenter-picker
-                                class={{if (eq dc.Name item.Name) 'is-active'}}
+                                class={{concat (if (eq dc.Name item.Name) 'is-active') (if item.Local ' is-local') }}
                                 @href={{href-mut (hash dc=item.Name)}}
                               >
                                 <BlockSlot @name="label">
-                                  {{item.Name}}
+                                  <span>{{item.Name}}</span>
+                                {{#if item.Local}}
+                                  <span>Local</span>
+                                {{/if}}
                                 </BlockSlot>
                               </MenuItem>
                             {{/each}}

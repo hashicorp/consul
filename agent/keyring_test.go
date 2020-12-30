@@ -28,6 +28,10 @@ func checkForKey(key string, keyring *memberlist.Keyring) error {
 }
 
 func TestAgent_LoadKeyrings(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	key := "tbLJg26ZJyJ9pK3qhc9jig=="
 
@@ -124,6 +128,10 @@ func writeKeyRings(t *testing.T, key string, dataDir string) {
 }
 
 func TestAgent_InmemKeyrings(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	key := "tbLJg26ZJyJ9pK3qhc9jig=="
 
@@ -283,6 +291,10 @@ func TestAgent_InitKeyring(t *testing.T) {
 }
 
 func TestAgentKeyring_ACL(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	key1 := "tbLJg26ZJyJ9pK3qhc9jig=="
 	key2 := "4leC33rgtXKIVUr9Nr0snQ=="

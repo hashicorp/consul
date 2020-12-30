@@ -58,6 +58,10 @@ func TestKVGetCommand_Validation(t *testing.T) {
 }
 
 func TestKVGetCommand(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -92,6 +96,10 @@ func TestKVGetCommand(t *testing.T) {
 }
 
 func TestKVGetCommand_Base64(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -127,6 +135,10 @@ func TestKVGetCommand_Base64(t *testing.T) {
 }
 
 func TestKVGetCommand_Missing(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -146,6 +158,10 @@ func TestKVGetCommand_Missing(t *testing.T) {
 }
 
 func TestKVGetCommand_Empty(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -175,6 +191,10 @@ func TestKVGetCommand_Empty(t *testing.T) {
 }
 
 func TestKVGetCommand_Detailed(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -219,6 +239,10 @@ func TestKVGetCommand_Detailed(t *testing.T) {
 }
 
 func TestKVGetCommand_Keys(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -254,6 +278,10 @@ func TestKVGetCommand_Keys(t *testing.T) {
 }
 
 func TestKVGetCommand_Recurse(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -294,6 +322,10 @@ func TestKVGetCommand_Recurse(t *testing.T) {
 }
 
 func TestKVGetCommand_RecurseBase64(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
@@ -335,6 +367,10 @@ func TestKVGetCommand_RecurseBase64(t *testing.T) {
 }
 
 func TestKVGetCommand_DetailedBase64(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()

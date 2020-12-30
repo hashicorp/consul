@@ -1,59 +1,60 @@
-{{#if (gt items.length 0)}}
-  <ListCollection @items={{items}} @linkable={{action "isLinkable"}} class="consul-nspace-list" as |item|>
-      <BlockSlot @name="header">
-  {{#if item.DeletedAt}}
-      <p>
-        Deleting {{item.Name}}...
-      </p>
-  {{else}}
-        <a data-test-nspace={{item.Name}} href={{href-to 'dc.nspaces.edit' item.Name}}>{{item.Name}}</a>
-  {{/if}}
-      </BlockSlot>
-      <BlockSlot @name="details">
-        <dl>
-          <dt>Description</dt>
-          <dd data-test-description>
-            {{item.Description}}
-          </dd>
-        </dl>
-    {{#if (env 'CONSUL_ACLS_ENABLED')}}
-        <Consul::Token::Ruleset::List @item={{item}} />
-    {{/if}}
-      </BlockSlot>
-      <BlockSlot @name="actions" as |Actions|>
-  {{#if (not item.DeletedAt)}}
-        <Actions as |Action|>
-          <Action data-test-edit-action @href={{href-to 'dc.nspaces.edit' item.Name}}>
-            <BlockSlot @name="label">
-              Edit
-            </BlockSlot>
-          </Action>
-        {{#if (not-eq item.Name 'default') }}
-          <Action data-test-delete-action @onclick={{action ondelete item}} class="dangerous">
-            <BlockSlot @name="label">
-              Delete
-            </BlockSlot>
-            <BlockSlot @name="confirmation" as |Confirmation|>
-              <Confirmation class="warning">
-                <BlockSlot @name="header">
-                  Confirm delete
-                </BlockSlot>
-                <BlockSlot @name="body">
-                  <p>
-                    Are you sure you want to delete this namespace?
-                  </p>
-                </BlockSlot>
-                <BlockSlot @name="confirm" as |Confirm|>
-                  <Confirm>Delete</Confirm>
-                </BlockSlot>
-              </Confirmation>
-            </BlockSlot>
-          </Action>
-        {{/if}}
-        </Actions>
-  {{/if}}
-      </BlockSlot>
-  </ListCollection>
+<ListCollection
+  class="consul-nspace-list"
+  ...attributes
+  @items={{@items}}
+  @linkable={{action this.isLinkable}}
+as |item|>
+    <BlockSlot @name="header">
+{{#if item.DeletedAt}}
+    <p>
+      Deleting {{item.Name}}...
+    </p>
 {{else}}
-  {{yield to="empty"}}
+      <a data-test-nspace={{item.Name}} href={{href-to 'dc.nspaces.edit' item.Name}}>{{item.Name}}</a>
 {{/if}}
+    </BlockSlot>
+    <BlockSlot @name="details">
+      <dl>
+        <dt>Description</dt>
+        <dd data-test-description>
+          {{item.Description}}
+        </dd>
+      </dl>
+  {{#if (env 'CONSUL_ACLS_ENABLED')}}
+      <Consul::Token::Ruleset::List @item={{item}} />
+  {{/if}}
+    </BlockSlot>
+    <BlockSlot @name="actions" as |Actions|>
+{{#if (not item.DeletedAt)}}
+      <Actions as |Action|>
+        <Action data-test-edit-action @href={{href-to 'dc.nspaces.edit' item.Name}}>
+          <BlockSlot @name="label">
+            Edit
+          </BlockSlot>
+        </Action>
+      {{#if (not-eq item.Name 'default') }}
+        <Action data-test-delete-action @onclick={{action @ondelete item}} class="dangerous">
+          <BlockSlot @name="label">
+            Delete
+          </BlockSlot>
+          <BlockSlot @name="confirmation" as |Confirmation|>
+            <Confirmation class="warning">
+              <BlockSlot @name="header">
+                Confirm delete
+              </BlockSlot>
+              <BlockSlot @name="body">
+                <p>
+                  Are you sure you want to delete this namespace?
+                </p>
+              </BlockSlot>
+              <BlockSlot @name="confirm" as |Confirm|>
+                <Confirm>Delete</Confirm>
+              </BlockSlot>
+            </Confirmation>
+          </BlockSlot>
+        </Action>
+      {{/if}}
+      </Actions>
+{{/if}}
+    </BlockSlot>
+</ListCollection>

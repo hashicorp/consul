@@ -63,6 +63,10 @@ func TestIntentionGet_Validation(t *testing.T) {
 }
 
 func TestIntentionGet_id(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -98,6 +102,10 @@ func TestIntentionGet_id(t *testing.T) {
 }
 
 func TestIntentionGet_srcDst(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)
@@ -133,6 +141,10 @@ func TestIntentionGet_srcDst(t *testing.T) {
 }
 
 func TestIntentionGet_verticalBar(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
 	t.Parallel()
 
 	require := require.New(t)

@@ -1,0 +1,36 @@
+graph TB
+
+    subgraph ep[ ]
+        EventPublisher
+        subscriptions
+        snapshots
+        topicBuffers
+    end
+
+    EventPublisher --> snapshots & subscriptions & topicBuffers
+    
+    Subscription
+    Snapshot
+    Item0
+    Item1
+    Item2
+    Item3
+    Item4
+
+    topicBuffers ----->|head| Item4
+    subscriptions --> Subscription
+
+    snapshots --> Snapshot
+    
+    Subscription -->|next| Item0
+    Item0 --> Item1
+    Item1 --> Item2
+    Item2 --> Item3
+    Item3 --> Item4
+    Snapshot -->|first| Item0
+
+    Subscription -..->|next| Item1
+    Subscription -..->|next| Item2
+    Subscription -..->|next| Item3
+    Subscription -..->|next| Item4
+

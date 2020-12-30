@@ -85,15 +85,26 @@
           <label class="type-text">
             <span>Rules <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl.html#rule-specification" rel="help noopener noreferrer" target="_blank">(HCL Format)</a></span>
 {{#if (eq item.template 'service-identity')}}
-            <CodeEditor @syntax="hcl" @readonly={{true}}>
-              {{~component 'service-identity' nspace=nspace name=item.Name~}}
-            </CodeEditor>
+            <CodeEditor
+              @syntax="hcl"
+              @readonly={{true}}
+            ><Consul::ServiceIdentity::Template
+              @nspace={{nspace}}
+              @name={{item.Name}}
+            /></CodeEditor>
 {{else if (eq item.template 'node-identity')}}
-            <CodeEditor @syntax="hcl" @readonly={{true}}>
-              {{~component 'node-identity' name=item.Name~}}
-            </CodeEditor>
+            <CodeEditor
+              @syntax="hcl"
+              @readonly={{true}}
+            ><Consul::NodeIdentity::Template
+              @name={{item.Name}}
+            /></CodeEditor>
 {{else}}
-            <CodeEditor @syntax="hcl" @readonly={{true}} @value={{or loadedItem.Rules item.Rules}} />
+            <CodeEditor
+              @syntax="hcl"
+              @readonly={{true}}
+              @value={{or loadedItem.Rules item.Rules}}
+            />
 {{/if}}
           </label>
           <div>

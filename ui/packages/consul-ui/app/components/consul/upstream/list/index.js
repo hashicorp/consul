@@ -1,11 +1,9 @@
-import Component from '@ember/component';
-import { get } from '@ember/object';
+import Component from '@glimmer/component';
+import { action } from '@ember/object';
 
-export default Component.extend({
-  tagName: '',
-  actions: {
-    isLinkable: function(item) {
-      return get(item, 'InstanceCount') > 0;
-    },
-  },
-});
+export default class ConsulServiceList extends Component {
+  @action
+  isLinkable(item) {
+    return item.InstanceCount > 0;
+  }
+}

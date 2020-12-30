@@ -3,12 +3,14 @@ package ae
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/go-hclog"
 	"math"
 	"sync"
 	"time"
+
+	"github.com/hashicorp/go-hclog"
+
+	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/logging"
 )
 
 // scaleThreshold is the number of nodes after which regular sync runs are
@@ -173,8 +175,7 @@ func (s *StateSyncer) nextFSMState(fs fsmState) fsmState {
 			return retryFullSyncState
 		}
 
-		err := s.State.SyncFull()
-		if err != nil {
+		if err := s.State.SyncFull(); err != nil {
 			s.Logger.Error("failed to sync remote state", "error", err)
 			return retryFullSyncState
 		}
