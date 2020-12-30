@@ -250,57 +250,85 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 	tests := []struct {
 		name                 string
 		maxHeaderBytes       int
-		expectError          bool
 		expectedHTTPResponse int
 	}{
 		{
 			"max header bytes 1 returns 431 http response when too large headers are sent",
 			1,
-			false,
 			431,
 		},
 		{
 			"max header bytes 0 returns 200 http response, as the http.DefaultMaxHeaderBytes size of 1MB is used",
 			0,
-			false,
 			200,
 		},
 		{
 			"negative maxHeaderBytes returns 200 http response, as the http.DefaultMaxHeaderBytes size of 1MB is used",
 			-10,
-			false,
 			200,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			a := NewTestAgent(t, fmt.Sprintf(`
-				http_config {
-					max_header_bytes = %d
-				}
-			`, tt.maxHeaderBytes))
-			defer a.Shutdown()
+			ports, err := freeport.Take(1)
+			require.NoError(t, err)
+			t.Cleanup(func() { freeport.Return(ports) })
 
-			require.Equal(t, tt.maxHeaderBytes, a.Agent.config.HTTPMaxHeaderBytes)
+			caConfig := tlsutil.Config{}
+			tlsConf, err := tlsutil.NewConfigurator(caConfig, hclog.New(nil))
+			require.NoError(t, err)
 
-			req, err := http.NewRequest(http.MethodGet, "http://"+a.HTTPAddr()+"/v1/health/state/passing", nil)
-			require.NoError(t, err, "unexpected error creating new http request")
+			bd := BaseDeps{
+				Deps: consul.Deps{
+					Logger:          hclog.NewInterceptLogger(nil),
+					Tokens:          new(token.Store),
+					TLSConfigurator: tlsConf,
+				},
+				RuntimeConfig: &config.RuntimeConfig{
+					HTTPAddrs: []net.Addr{
+						&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: ports[0]},
+					},
+					HTTPMaxHeaderBytes: tt.maxHeaderBytes,
+				},
+				Cache: cache.New(cache.Options{}),
+			}
+			a, err := New(bd)
+			require.NoError(t, err)
 
-			// This is directly pulled from the testing of request limits in the net/http source
-			// https://github.com/golang/go/blob/go1.15.3/src/net/http/serve_test.go#L2897-L2900
-			var bytesPerHeader = len("header12345: val12345\r\n")
-			t.Logf("bytesPerHeader: %d", bytesPerHeader)
-			for i := 0; i < ((tt.maxHeaderBytes+4096)/bytesPerHeader)+1; i++ {
-				req.Header.Set(fmt.Sprintf("header%05d", i), fmt.Sprintf("val%05d", i))
+			srvs, err := a.listenHTTP()
+			require.NoError(t, err)
+
+			require.Equal(t, tt.maxHeaderBytes, a.config.HTTPMaxHeaderBytes)
+
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			t.Cleanup(cancel)
+
+			g := new(errgroup.Group)
+			for _, s := range srvs {
+				g.Go(s.Run)
 			}
 
-			var res *http.Response
-			res, err = http.DefaultClient.Do(req)
-			require.True(t, (tt.expectError && (err != nil)) || !tt.expectError && (err == nil))
-			require.Equal(t, tt.expectedHTTPResponse, res.StatusCode, "expected a '%d' http response, got '%d'", tt.expectedHTTPResponse, res.StatusCode)
+			require.Len(t, srvs, 1)
+
+			client := &http.Client{}
+			for _, s := range srvs {
+				u := url.URL{Scheme: s.Protocol, Host: s.Addr.String()}
+				req, err := http.NewRequest(http.MethodGet, u.String(), nil)
+				require.NoError(t, err)
+
+				// This is directly pulled from the testing of request limits in the net/http source
+				// https://github.com/golang/go/blob/go1.15.3/src/net/http/serve_test.go#L2897-L2900
+				var bytesPerHeader = len("header12345: val12345\r\n")
+				for i := 0; i < ((tt.maxHeaderBytes+4096)/bytesPerHeader)+1; i++ {
+					req.Header.Set(fmt.Sprintf("header%05d", i), fmt.Sprintf("val%05d", i))
+				}
+
+				resp, err := client.Do(req.WithContext(ctx))
+				require.NoError(t, err)
+				require.Equal(t, tt.expectedHTTPResponse, resp.StatusCode, "expected a '%d' http response, got '%d'", tt.expectedHTTPResponse, resp.StatusCode)
+			}
 		})
 	}
-
 }
 
 func TestAgent_ReconnectConfigWanDisabled(t *testing.T) {

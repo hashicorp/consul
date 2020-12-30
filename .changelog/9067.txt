@@ -1,0 +1,3 @@
+```release-note:feature
+agent: add config flag `MaxHeaderBytes` to control the maximum size of the http header per client request.
+```

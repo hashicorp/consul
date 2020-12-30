@@ -7675,6 +7675,7 @@ func TestSanitize(t *testing.T) {
 		],
 		"HTTPBlockEndpoints": [],
 		"HTTPMaxConnsPerClient": 0,
+		"HTTPMaxHeaderBytes": 0,
 		"HTTPPort": 0,
 		"HTTPResponseHeaders": {},
 		"HTTPUseCache": false,

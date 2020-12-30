@@ -75,7 +75,6 @@ func AddFlags(fs *flag.FlagSet, f *BuilderOpts) {
 	add(&f.Config.HTTPConfig.AllowWriteHTTPFrom, "allow-write-http-from", "Only allow write endpoint calls from given network. CIDR format, can be specified multiple times.")
 	add(&f.Config.EncryptKey, "encrypt", "Provides the gossip encryption key.")
 	add(&f.Config.Ports.GRPC, "grpc-port", "Sets the gRPC API port to listen on (currently needed for Envoy xDS only).")
-	add(&f.Config.HTTPConfig.MaxHeaderBytes, "http-max-header-bytes", "Sets the HTTP Server's Max Header Bytes.")
 	add(&f.Config.Ports.HTTP, "http-port", "Sets the HTTP API port to listen on.")
 	add(&f.Config.Ports.HTTPS, "https-port", "Sets the HTTPS API port to listen on.")
 	add(&f.Config.StartJoinAddrsLAN, "join", "Address of an agent to join at start time. Can be specified multiple times.")
