@@ -117,6 +117,11 @@ func (m *MockType) Static(r FetchResult, err error) *mock.Call {
 	return m.Mock.On("Fetch", mock.Anything, mock.Anything).Return(r, err)
 }
 
+// Static sets a static value to return for a call to Fetch.
+func (m *MockType) StaticAndWait(r FetchResult, err error, duration time.Duration) *mock.Call {
+	return m.Mock.On("Fetch", mock.Anything, mock.Anything).After(duration).Return(r, err)
+}
+
 func (m *MockRequest) Reset() {
 	m.Mock = mock.Mock{}
 }

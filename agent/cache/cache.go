@@ -27,7 +27,6 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/lib/ttlcache"
 )
 
 //go:generate mockery -all -inpkg
@@ -75,10 +74,7 @@ type Cache struct {
 	types     map[string]typeEntry
 
 	// entries contains the actual cache data. Access to entries and
-	// entriesExpiryHeap must be protected by entriesLock.
-	//
-	// entriesExpiryHeap is a heap of *cacheEntry values ordered by
-	// expiry, with the soonest to expire being first in the list (index 0).
+	// entriesExpiryMap must be protected by entriesLock.
 	//
 	// NOTE(mitchellh): The entry map key is currently a string in the format
 	// of "<DC>/<ACL token>/<Request key>" in order to properly partition
@@ -86,10 +82,9 @@ type Cache struct {
 	// big drawbacks: we can't evict by datacenter, ACL token, etc. For an
 	// initial implementation this works and the tests are agnostic to the
 	// internal storage format so changing this should be possible safely.
-	entriesLock       sync.RWMutex
-	entries           map[string]cacheEntry
-	entriesExpiryHeap *ttlcache.ExpiryHeap
-
+	entriesLock      sync.RWMutex
+	entries          map[string]cacheEntry
+	entriesExpiryMap map[string]time.Time
 	// stopped is used as an atomic flag to signal that the Cache has been
 	// discarded so background fetches and expiry processing should stop.
 	stopped uint32
@@ -168,17 +163,14 @@ func New(options Options) *Cache {
 	options = applyDefaultValuesOnOptions(options)
 	ctx, cancel := context.WithCancel(context.Background())
 	c := &Cache{
-		types:             make(map[string]typeEntry),
-		entries:           make(map[string]cacheEntry),
-		entriesExpiryHeap: ttlcache.NewExpiryHeap(),
-		stopCh:            make(chan struct{}),
-		options:           options,
-		rateLimitContext:  ctx,
-		rateLimitCancel:   cancel,
+		types:            make(map[string]typeEntry),
+		entries:          make(map[string]cacheEntry),
+		entriesExpiryMap: make(map[string]time.Time),
+		stopCh:           make(chan struct{}),
+		options:          options,
+		rateLimitContext: ctx,
+		rateLimitCancel:  cancel,
 	}
-
-	// Start the expiry watcher
-	go c.runExpiryLoop()
 
 	return c
 }
@@ -365,6 +357,23 @@ func (c *Cache) getWithIndex(ctx context.Context, r getOptions) (interface{}, Re
 
 	key := makeEntryKey(r.TypeEntry.Name, r.Info.Datacenter, r.Info.Token, r.Info.Key)
 
+	// Set the expire time
+	c.entriesLock.Lock()
+	//  check if no refresh and entry is expired
+	if expireTime, ok := c.entriesExpiryMap[key]; ok {
+		if expireTime.Before(time.Now()) && (r.TypeEntry.Opts.Refresh == false) {
+			// If no refresh and entry is expired, then remove it.
+			// If there is refresh, then the entry will be removed by fetch.
+			if closer, ok := c.entries[key].State.(io.Closer); ok {
+				closer.Close()
+			}
+			delete(c.entries, key)
+		}
+	}
+	// Expire time must be updated before getEntryLocked(), to avoid the entry be deleted after getEntryLocked().
+	c.entriesExpiryMap[key] = time.Now().Add(r.TypeEntry.Opts.LastGetTTL)
+	c.entriesLock.Unlock()
+
 	// First time through
 	first := true
 
@@ -398,11 +407,6 @@ RETRY_GET:
 				meta.Age = time.Since(entry.FetchedAt)
 			}
 		}
-
-		// Touch the expiration and fix the heap.
-		c.entriesLock.Lock()
-		c.entriesExpiryHeap.Update(entry.Expiry.Index(), r.TypeEntry.Opts.LastGetTTL)
-		c.entriesLock.Unlock()
 
 		// We purposely do not return an error here since the cache only works with
 		// fetching values that either have a value or have an error, but not both.
@@ -531,6 +535,23 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 	tEntry := r.TypeEntry
 	// The actual Fetch must be performed in a goroutine.
 	go func() {
+		c.entriesLock.Lock()
+		// If this entry was not queried in TTL time, then we stop the refresh
+		if expireTime, ok := c.entriesExpiryMap[key]; ok {
+			if expireTime.Before(time.Now()) {
+				// Remove the expire time and the entry
+				delete(c.entriesExpiryMap, key)
+				if closer, ok := c.entries[key].State.(io.Closer); ok {
+					closer.Close()
+				}
+				delete(c.entries, key)
+				c.entriesLock.Unlock()
+				// Stop the refresh
+				return
+			}
+		}
+		c.entriesLock.Unlock()
+
 		// If we have background refresh and currently are in "disconnected" state,
 		// waiting for a response might mean we mark our results as stale for up to
 		// 10 minutes (max blocking timeout) after connection is restored. To reduce
@@ -679,13 +700,6 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 		// Set our entry
 		c.entriesLock.Lock()
 
-		// If this is a new entry (not in the heap yet), then setup the
-		// initial expiry information and insert. If we're already in
-		// the heap we do nothing since we're reusing the same entry.
-		if newEntry.Expiry == nil || newEntry.Expiry.Index() == ttlcache.NotIndexed {
-			newEntry.Expiry = c.entriesExpiryHeap.Add(key, tEntry.Opts.LastGetTTL)
-		}
-
 		c.entries[key] = newEntry
 		c.entriesLock.Unlock()
 
@@ -735,43 +749,6 @@ func backOffWait(failures uint) time.Duration {
 		return waitTime + lib.RandomStagger(waitTime)
 	}
 	return 0
-}
-
-// runExpiryLoop is a blocking function that watches the expiration
-// heap and invalidates entries that have expired.
-func (c *Cache) runExpiryLoop() {
-	for {
-		c.entriesLock.RLock()
-		timer := c.entriesExpiryHeap.Next()
-		c.entriesLock.RUnlock()
-
-		select {
-		case <-c.stopCh:
-			timer.Stop()
-			return
-		case <-c.entriesExpiryHeap.NotifyCh:
-			timer.Stop()
-			continue
-
-		case <-timer.Wait():
-			c.entriesLock.Lock()
-
-			entry := timer.Entry
-			if closer, ok := c.entries[entry.Key()].State.(io.Closer); ok {
-				closer.Close()
-			}
-
-			// Entry expired! Remove it.
-			delete(c.entries, entry.Key())
-			c.entriesExpiryHeap.Remove(entry.Index())
-
-			// Set some metrics
-			metrics.IncrCounter([]string{"consul", "cache", "evict_expired"}, 1)
-			metrics.SetGauge([]string{"consul", "cache", "entries_count"}, float32(len(c.entries)))
-
-			c.entriesLock.Unlock()
-		}
-	}
 }
 
 // Close stops any background work and frees all resources for the cache.
