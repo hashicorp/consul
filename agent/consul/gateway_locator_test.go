@@ -284,7 +284,7 @@ func TestGatewayLocator(t *testing.T) {
 			"8.8.8.8:8888",
 		})
 
-		g.SetLastFederationStateReplicationError(nil)
+		g.SetLastFederationStateReplicationError(nil, true)
 
 		idx, err := g.runOnce(0)
 		require.NoError(t, err)
@@ -318,9 +318,9 @@ func TestGatewayLocator(t *testing.T) {
 			"8.8.8.8:8888",
 		})
 
-		g.SetLastFederationStateReplicationError(nil)
-		g.SetLastFederationStateReplicationError(errors.New("fake"))
-		g.SetLastFederationStateReplicationError(errors.New("fake"))
+		g.SetLastFederationStateReplicationError(nil, true)
+		g.SetLastFederationStateReplicationError(errors.New("fake"), true)
+		g.SetLastFederationStateReplicationError(errors.New("fake"), true)
 
 		idx, err := g.runOnce(0)
 		require.NoError(t, err)
@@ -354,10 +354,10 @@ func TestGatewayLocator(t *testing.T) {
 			"8.8.8.8:8888",
 		})
 
-		g.SetLastFederationStateReplicationError(nil)
-		g.SetLastFederationStateReplicationError(errors.New("fake"))
-		g.SetLastFederationStateReplicationError(errors.New("fake"))
-		g.SetLastFederationStateReplicationError(errors.New("fake"))
+		g.SetLastFederationStateReplicationError(nil, true)
+		g.SetLastFederationStateReplicationError(errors.New("fake"), true)
+		g.SetLastFederationStateReplicationError(errors.New("fake"), true)
+		g.SetLastFederationStateReplicationError(errors.New("fake"), true)
 
 		idx, err := g.runOnce(0)
 		require.NoError(t, err)
@@ -393,11 +393,11 @@ func TestGatewayLocator(t *testing.T) {
 			"8.8.8.8:8888",
 		})
 
-		g.SetLastFederationStateReplicationError(nil)
-		g.SetLastFederationStateReplicationError(errors.New("fake"))
-		g.SetLastFederationStateReplicationError(errors.New("fake"))
-		g.SetLastFederationStateReplicationError(errors.New("fake"))
-		g.SetLastFederationStateReplicationError(nil)
+		g.SetLastFederationStateReplicationError(nil, true)
+		g.SetLastFederationStateReplicationError(errors.New("fake"), true)
+		g.SetLastFederationStateReplicationError(errors.New("fake"), true)
+		g.SetLastFederationStateReplicationError(errors.New("fake"), true)
+		g.SetLastFederationStateReplicationError(nil, true)
 
 		idx, err := g.runOnce(0)
 		require.NoError(t, err)

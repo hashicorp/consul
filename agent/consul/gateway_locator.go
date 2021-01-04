@@ -75,7 +75,7 @@ type GatewayLocator struct {
 // our chosen mesh-gateway configuration can reach the primary's servers (like
 // a ping or status RPC) we cheat and use the federation state replicator
 // goroutine's success or failure as a proxy.
-func (g *GatewayLocator) SetLastFederationStateReplicationError(err error) {
+func (g *GatewayLocator) SetLastFederationStateReplicationError(err error, fromReplication bool) {
 	if g == nil {
 		return
 	}
@@ -83,8 +83,10 @@ func (g *GatewayLocator) SetLastFederationStateReplicationError(err error) {
 	g.lastReplLock.Lock()
 	defer g.lastReplLock.Unlock()
 
-	// If we get info from replication, assume replication is operating.
-	g.useReplicationSignal = true
+	if fromReplication {
+		// If we get info from replication, assume replication is operating.
+		g.useReplicationSignal = true
+	}
 
 	oldChoice := g.dialPrimaryThroughLocalGateway()
 	if err == nil {

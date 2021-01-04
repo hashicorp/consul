@@ -984,7 +984,7 @@ func (s *Server) startFederationStateReplication() {
 
 	if s.gatewayLocator != nil {
 		s.gatewayLocator.SetUseReplicationSignal(true)
-		s.gatewayLocator.SetLastFederationStateReplicationError(nil)
+		s.gatewayLocator.SetLastFederationStateReplicationError(nil, false)
 	}
 
 	s.leaderRoutineManager.Start(federationStateReplicationRoutineName, s.federationStateReplicator.Run)
@@ -996,7 +996,7 @@ func (s *Server) stopFederationStateReplication() {
 
 	if s.gatewayLocator != nil {
 		s.gatewayLocator.SetUseReplicationSignal(false)
-		s.gatewayLocator.SetLastFederationStateReplicationError(nil)
+		s.gatewayLocator.SetLastFederationStateReplicationError(nil, false)
 	}
 }
 
