@@ -13,8 +13,135 @@ description: >-
   with the Governance and Policy module.
 </EnterpriseAlert>
 
-Consul Enterprise v1.8.0 adds audit logging as a feature that captures a clear and actionable log of authenticated events (both attempted and committed) that Consul processes and compiles them into a JSON format for easy export. These events contain a timestamp, the operation performed, and the user who initiated the action.
+Consul Enterprise v1.8.0 adds audit logging as a feature that captures a clear and
+actionable log of authenticated events (both attempted and committed) that Consul
+processes and compiles them into a JSON format for easy export. These events contain
+a timestamp, the operation performed, and the user who initiated the action.
 
-Audit logging enables security and compliance teams within an organization to get greater insight into Consul access and usage patterns.
+Audit logging enables security and compliance teams within an organization to get
+greater insight into Consul access and usage patterns.
 
-For more experience leveraging Consul's audit logging functionality, we suggest you explore our HashiCorp Learn tutorial [Capture Consul Events with Audit Logging](https://learn.hashicorp.com/tutorials/consul/audit-logging). For detailed configuration information on configuring the Consul Enterprise's snapshot agent, review the Consul [Audit Log](https://www.consul.io/docs/agent/options#audit) documentation.
+## Example Configuration
+
+<Tabs>
+<Tab heading="Log to file">
+
+<Tabs>
+<Tab heading="HCL">
+
+```hcl
+audit {
+  enabled = true
+  sink "My sink" {
+    type   = "file"
+    format = "json"
+    path   = "/tmp/audit.json"
+    delivery_guarantee = "best-effort"
+    rotate_duration = "24h"
+    rotate_max_files = 15
+    rotate_bytes = 25165824
+  }
+}
+```
+</Tab>
+<Tab heading="JSON">
+
+```json
+{
+  "audit": {
+    "enabled": true,
+    "sink": {
+      "My sink": {
+        "type": "file",
+        "format": "json",
+        "path": "/tmp/audit.json",
+        "delivery_guarantee": "best-effort",
+        "rotate_duration": "24h",
+        "rotate_max_files": 15,
+        "rotate_bytes": 25165824
+      }
+    }
+  }
+}
+```
+</Tab>
+</Tabs>
+</Tab>
+
+<Tab heading="Log to standard out">
+
+<Tabs>
+<Tab heading="HCL">
+
+```hcl
+audit {
+  enabled = true
+  sink "My sink" {
+    type   = "file"
+    format = "json"
+    path   = "/dev/stdout"
+    delivery_guarantee = "best-effort"
+  }
+}
+```
+</Tab>
+<Tab heading="JSON">
+
+```json
+{
+  "audit": {
+    "enabled": true,
+    "sink": {
+      "My sink": {
+        "type": "file",
+        "format": "json",
+        "path": "/dev/stdout",
+        "delivery_guarantee": "best-effort"
+      }
+    }
+  }
+}
+```
+
+</Tab>
+</Tabs>
+</Tab>
+</Tabs>
+
+## Example Audit Log
+
+```json
+{
+  "created_at": "2020-12-07T03:34:19.995543507Z",
+  "event_type": "audit",
+  "payload": {
+    "id": "57a077a3-6cd7-f825-3da0-79ec78287ae2",
+    "version": "1",
+    "type": "HTTPEvent",
+    "timestamp": "2020-12-07T03:34:19.995459722Z",
+    "auth": {
+      "accessor_id": "38431d0e-a542-1efa-11fc-9f2985b3e05b",
+      "description": "Master Token",
+      "create_time": "2020-12-07T03:33:52.76502444Z"
+    },
+    "request": {
+      "operation": "GET",
+      "endpoint": "/v1/acl/policies",
+      "remote_addr": "127.0.0.1:46842",
+      "user_agent": "Go-http-client/1.1",
+      "host": "127.0.0.1:8500"
+    },
+    "response": {
+      "status": "200"
+    },
+    "stage": "OperationComplete"
+  }
+}
+```
+
+For more experience leveraging Consul's audit logging functionality, explore our
+HashiCorp Learn tutorial [Capture Consul Events with Audit Logging](https://learn.hashicorp.com/tutorials/consul/audit-logging).
+
+For detailed configuration information on configuring the Consul Enterprise's audit
+logging, review the Consul [Audit Log](https://www.consul.io/docs/agent/options#audit)
+documentation.
