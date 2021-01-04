@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/structs"
+	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -1270,6 +1271,99 @@ func TestLeader_ACLUpgrade(t *testing.T) {
 		require.Equal(t, structs.ACLTokenTypeClient, token.Type)
 		require.Equal(t, client.ACL.Rules, token.Rules)
 	})
+}
+
+func TestLeader_ACLUpgrade_IsStickyEvenIfSerfTagsRegress(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	// t.Parallel()
+
+	// We test this by having two datacenters with one server each. They
+	// initially come up and complete the migration, then we power them both
+	// off. We leave the primary off permanently, and then we stand up the
+	// secondary. Hopefully it should transition to ENABLED instead of being
+	// stuck in LEGACY.
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	waitForLeaderEstablishment(t, s1)
+
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc2"
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLTokenReplication = false
+		c.ACLReplicationRate = 100
+		c.ACLReplicationBurst = 100
+		c.ACLReplicationApplyLimit = 1000000
+	})
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+	codec2 := rpcClient(t, s2)
+	defer codec2.Close()
+
+	s2.tokens.UpdateReplicationToken("root", tokenStore.TokenSourceConfig)
+
+	testrpc.WaitForLeader(t, s2.RPC, "dc2")
+	waitForLeaderEstablishment(t, s2)
+
+	// Create the WAN link
+	joinWAN(t, s2, s1)
+	waitForLeaderEstablishment(t, s1)
+	waitForLeaderEstablishment(t, s2)
+
+	waitForNewACLs(t, s1)
+	waitForNewACLs(t, s2)
+	waitForNewACLReplication(t, s2, structs.ACLReplicatePolicies, 1, 0, 0)
+
+	// Everybody has the management policy.
+	retry.Run(t, func(r *retry.R) {
+		_, policy1, err := s1.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMeta())
+		require.NoError(r, err)
+		require.NotNil(r, policy1)
+
+		_, policy2, err := s2.fsm.State().ACLPolicyGetByID(nil, structs.ACLPolicyGlobalManagementID, structs.DefaultEnterpriseMeta())
+		require.NoError(r, err)
+		require.NotNil(r, policy2)
+	})
+
+	// Shutdown s1 and s2.
+	s1.Shutdown()
+	s2.Shutdown()
+
+	// Restart just s2
+
+	dir2new, s2new := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc2"
+		c.ACLDatacenter = "dc1"
+		c.ACLsEnabled = true
+		c.ACLTokenReplication = false
+		c.ACLReplicationRate = 100
+		c.ACLReplicationBurst = 100
+		c.ACLReplicationApplyLimit = 1000000
+
+		c.DataDir = s2.config.DataDir
+		c.NodeName = s2.config.NodeName
+		c.NodeID = s2.config.NodeID
+	})
+	defer os.RemoveAll(dir2new)
+	defer s2new.Shutdown()
+
+	waitForLeaderEstablishment(t, s2new)
+
+	// It should be able to transition without connectivity to the primary.
+	waitForNewACLs(t, s2new)
 }
 
 func TestLeader_ConfigEntryBootstrap(t *testing.T) {
