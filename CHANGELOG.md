@@ -1,5 +1,31 @@
 ## UNRELEASED
 
+## 1.9.1 (December 11, 2020)
+
+FEATURES:
+
+* ui: add copyable IDs to the Role and Policy views [[GH-9296](https://github.com/hashicorp/consul/issues/9296)]
+
+IMPROVEMENTS:
+
+* cli: **(Enterprise only)** A new `-read-replica` flag can now be used to enable running a server as a read only replica. Previously this was enabled with the now deprecated `-non-voting-server` flag. [[GH-9191](https://github.com/hashicorp/consul/issues/9191)]
+* config: **(Enterprise only)** A new `read_replica` configuration setting can now be used to enable running a server as a read only replica. Previously this was enabled with the now deprecated `non_voting_server` setting. [[GH-9191](https://github.com/hashicorp/consul/issues/9191)]
+
+DEPRECATIONS:
+
+* cli: **(Enterprise only)** The `-non-voting-server` flag is deprecated in favor of the new `-read-replica` flag. The `-non-voting-server` flag is still present along side the new flag but it will be removed in a future release. [[GH-9191](https://github.com/hashicorp/consul/issues/9191)]
+* config: **(Enterprise only)** The `non_voting_server` configuration setting is deprecated in favor of the new `read_replica` setting. The `non_voting_server` configuration setting is still present but will be removed in a future release. [[GH-9191](https://github.com/hashicorp/consul/issues/9191)]
+* gossip: **(Enterprise only)** Read replicas now advertise themselves by setting the `read_replica` tag. The old `nonvoter` tag is still present but is deprecated and will be removed in a future release. [[GH-9191](https://github.com/hashicorp/consul/issues/9191)]
+* server: **(Enterprise only)** Addition of the `nonvoter` tag to the service registration made for read replicas is deprecated in favor of the new tag name of `read_replica`. Both are present in the registration but the `nonvoter` tag will be completely removed in a future release. [[GH-9191](https://github.com/hashicorp/consul/issues/9191)]
+
+BUG FIXES:
+
+* agent: prevent duplicate services and check registrations from being synced to servers. [[GH-9284](https://github.com/hashicorp/consul/issues/9284)]
+* connect: fixes a case when updating the CA config in a secondary datacenter to correctly trigger the creation of a new intermediate certificate [[GH-9009](https://github.com/hashicorp/consul/issues/9009)]
+* connect: only unset the active root in a secondary datacenter when a new one is replacing it [[GH-9318](https://github.com/hashicorp/consul/issues/9318)]
+* namespaces: **(Enterprise only)** Prevent stalling of replication in secondary datacenters due to conflicts between the namespace replicator and other replicators. [[GH-9271](https://github.com/hashicorp/consul/issues/9271)]
+* streaming: ensure the order of results provided by /health/service/:serviceName is consistent with and without streaming enabled [[GH-9247](https://github.com/hashicorp/consul/issues/9247)]
+
 ## 1.9.0 (November 24, 2020)
 
 BREAKING CHANGES:
