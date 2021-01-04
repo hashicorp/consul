@@ -76,6 +76,10 @@ type GatewayLocator struct {
 // a ping or status RPC) we cheat and use the federation state replicator
 // goroutine's success or failure as a proxy.
 func (g *GatewayLocator) SetLastFederationStateReplicationError(err error) {
+	if g == nil {
+		return
+	}
+
 	g.lastReplLock.Lock()
 	defer g.lastReplLock.Unlock()
 
@@ -99,6 +103,10 @@ func (g *GatewayLocator) SetLastFederationStateReplicationError(err error) {
 }
 
 func (g *GatewayLocator) SetUseReplicationSignal(newValue bool) {
+	if g == nil {
+		return
+	}
+
 	g.lastReplLock.Lock()
 	g.useReplicationSignal = newValue
 	g.lastReplLock.Unlock()
