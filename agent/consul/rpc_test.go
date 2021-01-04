@@ -3,6 +3,7 @@ package consul
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"math"
 	"net"
 	"os"
@@ -118,7 +119,7 @@ func TestRPC_NoLeader_Retry(t *testing.T) {
 
 	// This isn't sure-fire but tries to check that we don't have a
 	// leader going into the RPC, so we exercise the retry logic.
-	if ok, _ := s1.getLeader(); ok {
+	if ok, _, _ := s1.getLeader(); ok {
 		t.Fatalf("should not have a leader yet")
 	}
 
@@ -128,6 +129,54 @@ func TestRPC_NoLeader_Retry(t *testing.T) {
 	if err != nil {
 		t.Fatalf("bad: %v", err)
 	}
+}
+
+func TestRPC_getLeader_ErrLeaderNotTracked(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	cluster := newTestCluster(t, &testClusterConfig{
+		Datacenter: "dc1",
+		Servers:    3,
+		ServerWait: func(t *testing.T, srv *Server) {
+			// The test cluster waits for a leader to be established
+			// but not for all the RPC tracking of all servers to be updated
+			// so we also want to wait for that here
+			retry.Run(t, func(r *retry.R) {
+				if !srv.IsLeader() {
+					_, _, err := srv.getLeader()
+					require.NoError(r, err)
+				}
+			})
+
+		},
+	})
+
+	// At this point we know we have a cluster with a leader and all followers are tracking that
+	// leader in the serverLookup struct. We need to find a follower to hack its server lookup
+	// to force the error we desire
+
+	var follower *Server
+	for _, srv := range cluster.Servers {
+		if !srv.IsLeader() {
+			follower = srv
+			break
+		}
+	}
+
+	_, leaderMeta, err := follower.getLeader()
+	require.NoError(t, err)
+
+	// now do some behind the scenes trickery on the followers server lookup
+	// to remove the leader from it so that we can force a ErrLeaderNotTracked error
+	follower.serverLookup.RemoveServer(leaderMeta)
+
+	isLeader, meta, err := follower.getLeader()
+	require.Error(t, err)
+	require.True(t, errors.Is(err, structs.ErrLeaderNotTracked))
+	require.Nil(t, meta)
+	require.False(t, isLeader)
 }
 
 type MockSink struct {
