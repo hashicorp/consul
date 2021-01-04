@@ -8,6 +8,22 @@ sidebar_title: 1.9.0
 
 ## Release Highlights
 
+- *Application-Aware Intentions:* A new set of capabilities that extends Consul’s intentions model to support Layer 7 constructs and provide the ability for operators to construct policies which, in addition to service identity, evaluate application-layer information such as HTTP Path, Headers, or Method when authorizing HTTP-based (HTTP/1.1, HTTP/2, gRPC) service-to-service communication.
+
+- *Service Mesh Visualization:* This addition to the Consul UI provides a new topology tab in the with topology diagrams and key service mesh metrics like request, error rates, and timing metrics. These new features will assist developers and operators in verifying configuration and troubleshooting issues within the service mesh. The UI will also include deep linking into your external metrics dashboards
+
+- *Improved Metrics and Grafana Dashboard:* Consul 1.9 additionally updates several metrics to reduce cardinality in metric names in favor of the best practice of using labels instead and will provide dashboard templates that expose the most important metrics associated with the Consul datacenter for operators.
+
+- *Custom Resources for Kubernetes:* In this release, we are providing a Kubernetes-first experience through CRDs to allow practitioners to easily configure Consul via Kubernetes-style objects. Specifically, we are providing the capability to manage Consul service mesh configuration for services via CRDs.
+
+- *Deploy Consul in OpenShift:* Enable installing Consul via Helm chart in OpenShift. We’ve now ensured that Consul Kubernetes runs on OpenShift securely by ensuring that Consul runs as non-root and also provided a set of SecurityContextConstraints to deploy Consul securely.
+  - Installing Consul on OpenShift should now be as simple as running a Helm install with the `global.openshift.enabled` set to `true`.
+
+- *Active Health Checks for Consul on Kubernetes:* IThis release will provide Consul service mesh integration with Kubernetes Readiness probes. This ability to natively detect health status from Kubernetes via Readiness probe is then used for directing service mesh traffic.
+
+- *Streaming:* In this release, we’ve introduced streaming, a major architectural enhancement in how update notifications for blocking queries are delivered within the cluster. Streaming results in very significant reduction of CPU and network bandwidth usage on Consul servers in large-scale deployments. Streaming is particularly helpful in scaling blocking queries in Consul clusters that have rapid changes in service state.
+  - Streaming is now available for the service health HTTP endpoint. It can be enabled through configuration flags and adding the `cached` URL parameter. In subsequent releases, we will continue to enable streaming in more endpoints. 
+
 ## What's Changed
 
 - Consul 1.9 is built with Go 1.15, which has dropped support for 32-bit binaries for Darwin, so we will no longer be issuing darwin_386 builds for Consul 1.9.x or newer.
