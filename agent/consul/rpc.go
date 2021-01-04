@@ -342,7 +342,7 @@ CHECK_LEADER:
 	}
 
 	// Find the leader
-	isLeader, leader := s.getLeader()
+	isLeader, leader, rpcErr := s.getLeader()
 
 	// Handle the case we are the leader
 	if isLeader {
@@ -350,7 +350,6 @@ CHECK_LEADER:
 	}
 
 	// Handle the case of a known leader
-	rpcErr := structs.ErrNoLeader
 	if leader != nil {
 		rpcErr = s.connPool.RPC(s.config.Datacenter, leader.Addr,
 			leader.Version, method, args, reply)
@@ -381,24 +380,38 @@ RETRY:
 
 // getLeader returns if the current node is the leader, and if not then it
 // returns the leader which is potentially nil if the cluster has not yet
-// elected a leader.
-func (s *Server) getLeader() (bool, *metadata.Server) {
+// elected a leader. In the case of not having a leader elected yet
+// then a NoClusterLeader error gets returned. In the case of Raft having
+// a leader but out internal tracking failing to find the leader we
+// return a LeaderNotTracked error. Therefore if the err is nil AND
+// the bool is false then the Server will be non-nil
+func (s *Server) getLeader() (bool, *metadata.Server, error) {
 	// Check if we are the leader
 	if s.IsLeader() {
-		return true, nil
+		return true, nil, nil
 	}
 
 	// Get the leader
 	leader := s.raft.Leader()
 	if leader == "" {
-		return false, nil
+		return false, nil, structs.ErrNoLeader
 	}
 
 	// Lookup the server
 	server := s.serverLookup.Server(leader)
 
-	// Server could be nil
-	return false, server
+	// if server is nil this indicates that while we have a Raft leader
+	// something has caused that node to be considered unhealthy which
+	// cascades into its removal from the serverLookup struct. In this case
+	// we should not report no cluster leader but instead report a different
+	// error so as not to confuse our users as to the what the root cause of
+	// an issue might be.
+	if server == nil {
+		s.logger.Warn("Raft has a leader but other tracking of the node would indicate that the node is unhealthy or does not exist. The network may be misconfigured.", "leader", leader)
+		return false, nil, structs.ErrLeaderNotTracked
+	}
+
+	return false, server, nil
 }
 
 // forwardDC is used to forward an RPC call to a remote DC, or fail if no servers
