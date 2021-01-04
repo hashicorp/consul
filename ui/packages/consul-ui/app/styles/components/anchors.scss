@@ -18,7 +18,7 @@ a[rel*='external']::after {
   margin-left: 0.2em;
 }
 
-[role='tabpanel'] > p:only-child [rel*='help']::after {
+.tab-section > p:only-child [rel*='help']::after {
   content: none;
 }
 %main-content p a,
