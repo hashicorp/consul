@@ -653,14 +653,14 @@ func TestIntentionApply_WithoutIDs(t *testing.T) {
 		require.Equal(t, expect, entry)
 	}
 
-	// Delete a non existent intention should return an error
-	testutil.RequireErrorContains(t, opApply(&structs.IntentionRequest{
+	// Delete a non existent intention should act like it did work
+	require.NoError(t, opApply(&structs.IntentionRequest{
 		Op: structs.IntentionOpDelete,
 		Intention: &structs.Intention{
 			SourceName:      "ghost",
 			DestinationName: "phantom",
 		},
-	}), "Cannot delete non-existent intention")
+	}))
 
 	// Delete the original
 	require.NoError(t, opApply(&structs.IntentionRequest{

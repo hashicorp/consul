@@ -554,8 +554,8 @@ func TestIntentionDeleteExact(t *testing.T) {
 
 		resp := httptest.NewRecorder()
 		obj, err := a.srv.IntentionExact(resp, req)
-		require.Nil(t, obj)
-		testutil.RequireErrorContains(t, err, "Cannot delete non-existent intention")
+		require.NoError(t, err) // by-name deletions are idempotent
+		require.Equal(t, true, obj)
 	})
 
 	exact := ixn.ToExact()
@@ -642,6 +642,18 @@ func TestIntentionSpecificDelete(t *testing.T) {
 	// The intention
 	ixn := structs.TestIntention(t)
 	ixn.SourceName = "foo"
+
+	t.Run("cannot delete non-existent intention", func(t *testing.T) {
+		fakeID := generateUUID()
+
+		req, err := http.NewRequest("DELETE", "/v1/connect/intentions/"+fakeID, nil)
+		require.NoError(t, err)
+
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.IntentionSpecific(resp, req)
+		testutil.RequireErrorContains(t, err, "Cannot delete non-existent intention")
+		require.Nil(t, obj)
+	})
 
 	// Create an intention directly
 	var reply string
