@@ -10,10 +10,10 @@ Feature: dc / acls / policies / as many / add existing: Add existing policy
     ---
     And 2 policy models from yaml
     ---
-    - ID: policy-1
-      Name: Policy 1
     - ID: policy-2
       Name: Policy 2
+    - ID: policy-1
+      Name: Policy 1
     ---
     When I visit the [Model] page for yaml
     ---
@@ -22,6 +22,7 @@ Feature: dc / acls / policies / as many / add existing: Add existing policy
     ---
     Then the url should be /datacenter/acls/[Model]s/key
     And I click "form > #policies .ember-power-select-trigger"
+    And I see the text "Policy 1" in ".ember-power-select-option:first-child"
     And I type "Policy 1" into ".ember-power-select-search-input"
     And I click ".ember-power-select-option:first-child"
     And I see 1 policy model on the policies component
