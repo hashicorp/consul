@@ -1,12 +1,9 @@
 <Route
   @name={{routeName}}
->
+as |route|>
   <Outlet
     @name={{routeName}}
-    @model={{hash
-      dc=dc
-      nspace=nspace
-    }}
+    @model={{route.model}}
   as |o|>
     {{outlet}}
   </Outlet>
