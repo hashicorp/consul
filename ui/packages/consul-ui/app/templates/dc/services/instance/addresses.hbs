@@ -2,6 +2,7 @@
   {{#if item.Service.TaggedAddresses }}
     <TabularCollection
       data-test-addresses
+      class="consul-tagged-addresses"
       @items={{entries item.Service.TaggedAddresses}} as |taggedAddress index|
     >
         <BlockSlot @name="header">
