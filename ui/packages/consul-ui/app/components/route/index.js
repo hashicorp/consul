@@ -12,4 +12,8 @@ export default class RouteComponent extends Component {
   connect() {
     this.routlet.addRoute(this.args.name, this);
   }
+  @action
+  disconnect() {
+    this.routlet.removeRoute(this.args.name, this);
+  }
 }

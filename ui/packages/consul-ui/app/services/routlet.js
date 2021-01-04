@@ -29,12 +29,16 @@ class Outlets {
   }
   set(name, value) {
     this.map.set(name, value);
+    // TODO: find, splice to insert at the correct index instead of sorting
+    // all the time
     this.sort();
   }
   get(name) {
     return this.map.get(name);
   }
   delete(name) {
+    // TODO: find, splice to delete at the correct index instead of sorting
+    // all the time
     this.map.delete(name);
     this.sort();
   }
@@ -58,6 +62,7 @@ export default class RoutletService extends Service {
     outlets.delete(name);
   }
 
+  // modelFor gets the model for Outlet specified by `name`, not the Route
   modelFor(name) {
     const outlet = outlets.get(name);
     if (typeof outlet !== 'undefined') {
@@ -79,4 +84,6 @@ export default class RoutletService extends Service {
       });
     }
   }
+
+  removeRoute(name, route) {}
 }
