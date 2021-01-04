@@ -981,8 +981,11 @@ func (s *Server) startFederationStateReplication() {
 		// replication shouldn't run in the primary DC
 		return
 	}
-	s.gatewayLocator.SetUseReplicationSignal(true)
-	s.gatewayLocator.SetLastFederationStateReplicationError(nil)
+
+	if s.gatewayLocator != nil {
+		s.gatewayLocator.SetUseReplicationSignal(true)
+		s.gatewayLocator.SetLastFederationStateReplicationError(nil)
+	}
 
 	s.leaderRoutineManager.Start(federationStateReplicationRoutineName, s.federationStateReplicator.Run)
 }
@@ -991,8 +994,10 @@ func (s *Server) stopFederationStateReplication() {
 	// will be a no-op when not started
 	s.leaderRoutineManager.Stop(federationStateReplicationRoutineName)
 
-	s.gatewayLocator.SetUseReplicationSignal(false)
-	s.gatewayLocator.SetLastFederationStateReplicationError(nil)
+	if s.gatewayLocator != nil {
+		s.gatewayLocator.SetUseReplicationSignal(false)
+		s.gatewayLocator.SetLastFederationStateReplicationError(nil)
+	}
 }
 
 // getOrCreateAutopilotConfig is used to get the autopilot config, initializing it if necessary
