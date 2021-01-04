@@ -15,6 +15,7 @@ const (
 	errRPCRateExceeded            = "RPC rate limit exceeded"
 	errServiceNotFound            = "Service not found: "
 	errQueryNotFound              = "Query not found"
+	errLeaderNotTracked           = "Raft leader not found in server lookup mapping"
 )
 
 var (
@@ -26,6 +27,7 @@ var (
 	ErrRPCRateExceeded            = errors.New(errRPCRateExceeded)
 	ErrDCNotAvailable             = errors.New(errDCNotAvailable)
 	ErrQueryNotFound              = errors.New(errQueryNotFound)
+	ErrLeaderNotTracked           = errors.New(errLeaderNotTracked)
 )
 
 func IsErrNoDCPath(err error) bool {
