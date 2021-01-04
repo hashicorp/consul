@@ -102,7 +102,7 @@ export default function({
   visit(library, pages, utils.setCurrentPage, reset);
   click(library, utils.find, helpers.click);
   form(library, utils.find, helpers.fillIn, helpers.triggerKeyEvent, utils.getCurrentPage);
-  debug(library, assert, utils.currentURL);
+  debug(library, assert, helpers.currentURL);
   assertHttp(library, assert, lastNthRequest);
   assertModel(library, assert, utils.find, utils.getCurrentPage, pauseUntil, pluralize);
   assertPage(library, assert, utils.find, utils.getCurrentPage, $);

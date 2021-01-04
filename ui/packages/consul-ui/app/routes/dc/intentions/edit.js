@@ -1,24 +1,30 @@
 import { inject as service } from '@ember/service';
 import Route from 'consul-ui/routing/route';
-import { hash } from 'rsvp';
 
 export default class EditRoute extends Route {
-  @service('repository/intention')
-  repo;
+  @service('repository/intention') repo;
+  @service('env') env;
 
-  model({ intention_id }, transition) {
+  async model({ intention_id }, transition) {
     const dc = this.modelFor('dc').dc.Name;
-    const nspace = '*';
-    return hash({
-      dc: dc,
-      nspace: nspace,
-      item:
-        typeof intention_id !== 'undefined'
-          ? this.repo.findBySlug(intention_id, dc, nspace)
-          : this.repo.create({
-              Datacenter: dc,
-            }),
-    });
+    const nspace = this.modelFor('nspace').nspace.substr(1);
+
+    let item;
+    if (typeof intention_id !== 'undefined') {
+      item = await this.repo.findBySlug(intention_id, dc, nspace);
+    } else {
+      const defaultNspace = this.env.var('CONSUL_NSPACES_ENABLED') ? '*' : 'default';
+      item = await this.repo.create({
+        SourceNS: nspace || defaultNspace,
+        DestinationNS: nspace || defaultNspace,
+        Datacenter: dc,
+      });
+    }
+    return {
+      dc,
+      nspace,
+      item,
+    };
   }
 
   setupController(controller, model) {

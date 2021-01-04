@@ -1,0 +1,4 @@
+```release-note:bug
+ui: request intention listing with ns=* parameter to retrieve all intentions
+across namespaces
+```
