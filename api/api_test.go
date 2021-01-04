@@ -808,6 +808,22 @@ func TestAPI_SetWriteOptions(t *testing.T) {
 	}
 }
 
+func TestAPI_Headers(t *testing.T) {
+	t.Parallel()
+	c, s := makeClientWithConfig(t, func(c *Config) {
+		c.Headers = map[string]string{
+			"Hello": "World",
+		}
+	}, nil)
+	defer s.Stop()
+
+	r := c.newRequest("GET", "/v1/kv/foo")
+
+	if r.header.Get("Hello") != "World" {
+		t.Fatalf("bad: %v", r.header)
+	}
+}
+
 func TestAPI_RequestToHTTP(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
