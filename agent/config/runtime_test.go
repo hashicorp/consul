@@ -515,17 +515,6 @@ func TestBuilder_BuildAndValidate_ConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 		{
-			desc: "-http-max-header-bytes",
-			args: []string{
-				`-http-max-header-bytes=1`,
-				`-data-dir=` + dataDir,
-			},
-			patch: func(rt *RuntimeConfig) {
-				rt.HTTPMaxHeaderBytes = 1
-				rt.DataDir = dataDir
-			},
-		},
-		{
 			desc: "-join",
 			args: []string{
 				`-join=a`,
