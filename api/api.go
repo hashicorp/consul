@@ -858,8 +858,9 @@ func (c *Client) newRequest(method, path string) *request {
 		header: make(http.Header),
 	}
 
-	r.header = c.config.Header
-
+	if c.config.Header != nil {
+		r.header = c.config.Header
+	}
 	if c.config.Datacenter != "" {
 		r.params.Set("dc", c.config.Datacenter)
 	}
