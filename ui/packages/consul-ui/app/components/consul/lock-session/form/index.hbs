@@ -7,7 +7,11 @@
   as |api|
 >
   <BlockSlot @name="form">
-      <div class="definition-table" data-test-session={{api.data.ID}}>
+      <div
+        class="consul-lock-session-form definition-table"
+        data-test-session={{api.data.ID}}
+        ...attributes
+      >
         <h2>
           <a href="{{env 'CONSUL_DOCS_URL'}}/internals/sessions.html#session-design" rel="help noopener noreferrer" target="_blank">Lock Session</a>
         </h2>

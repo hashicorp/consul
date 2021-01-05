@@ -10,10 +10,10 @@ Feature: dc / acls / roles / as many / add existing: Add existing
     ---
     And 2 role models from yaml
     ---
-    - ID: role-1
-      Name: Role 1
     - ID: role-2
       Name: Role 2
+    - ID: role-1
+      Name: Role 1
     ---
     When I visit the token page for yaml
     ---
@@ -22,6 +22,7 @@ Feature: dc / acls / roles / as many / add existing: Add existing
     ---
     Then the url should be /datacenter/acls/tokens/key
     And I click "form > #roles .ember-power-select-trigger"
+    And I see the text "Role 1" in ".ember-power-select-option:first-child"
     And I type "Role 1" into ".ember-power-select-search-input"
     And I click ".ember-power-select-option:first-child"
     And I see 1 role model on the roles component

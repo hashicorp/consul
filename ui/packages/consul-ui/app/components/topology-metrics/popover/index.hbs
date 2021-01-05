@@ -89,6 +89,7 @@
     type="button"
     {{on 'click' (fn (optional this.popoverController.show))}}
     style={{{concat 'top:' @position.y 'px;left:' @position.x 'px;'}}}
+    aria-label={{if (eq @type 'deny') 'Add intention' 'View intention'}}
   >
   </button>
 </div>

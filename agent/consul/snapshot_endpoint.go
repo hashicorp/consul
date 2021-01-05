@@ -48,9 +48,9 @@ func (s *Server) dispatchSnapshotRequest(args *structs.SnapshotRequest, in io.Re
 
 	// Perform leader forwarding if required.
 	if !args.AllowStale {
-		if isLeader, server := s.getLeader(); !isLeader {
-			if server == nil {
-				return nil, structs.ErrNoLeader
+		if isLeader, server, err := s.getLeader(); !isLeader {
+			if err != nil {
+				return nil, err
 			}
 			return SnapshotRPC(s.connPool, args.Datacenter, server.ShortName, server.Addr, args, in, reply)
 		}

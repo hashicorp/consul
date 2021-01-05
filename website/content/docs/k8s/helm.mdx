@@ -34,7 +34,7 @@ and consider if they're appropriate for your deployment.
     (see `-domain` (https://consul.io/docs/agent/options#_domain)) and the domain services synced from
     Consul into Kubernetes will have, e.g. `service-name.service.consul`.
 
-  - `image` ((#v-global-image)) (`string: hashicorp/consul:1.9.0`) - The name (and tag) of the Consul Docker image for clients and servers.
+  - `image` ((#v-global-image)) (`string: hashicorp/consul:<latest version>`) - The name (and tag) of the Consul Docker image for clients and servers.
     This can be overridden per component. This should be pinned to a specific
     version tag, otherwise you may inadvertently upgrade your Consul version.
 
@@ -59,7 +59,7 @@ and consider if they're appropriate for your deployment.
       - name: pull-secret-name-2
     ```
 
-  - `imageK8S` ((#v-global-imagek8s)) (`string: hashicorp/consul-k8s:0.21.0`) - The name (and tag) of the consul-k8s (https://github.com/hashicorp/consul-k8s)
+  - `imageK8S` ((#v-global-imagek8s)) (`string: hashicorp/consul-k8s:<latest version>`) - The name (and tag) of the consul-k8s (https://github.com/hashicorp/consul-k8s)
     Docker image that is used for functionality such the catalog sync.
     This can be overridden per component.
 
@@ -216,25 +216,11 @@ and consider if they're appropriate for your deployment.
       `<global.name>-federation` (if setting `global.name`), otherwise
       `<helm-release-name>-consul-federation`. Requires consul-k8s 0.15.0+.
 
-  - `lifecycleSidecarContainer` ((#v-global-lifecyclesidecarcontainer)) - The lifecycle sidecar ensures the Consul services
+  - `lifecycleSidecarContainer` ((#v-global-lifecyclesidecarcontainer)) (`map`) - The lifecycle sidecar ensures the Consul services
     are always registered with their local Consul clients and is used by the
     ingress/terminating/mesh gateways as well as with every Connect-injected service.
 
-    - `resources` ((#v-global-lifecyclesidecarcontainer-resources))
-
-      - `requests` ((#v-global-lifecyclesidecarcontainer-resources-requests))
-
-        - `memory` ((#v-global-lifecyclesidecarcontainer-resources-requests-memory)) (`string: 25Mi`)
-
-        - `cpu` ((#v-global-lifecyclesidecarcontainer-resources-requests-cpu)) (`string: 20m`)
-
-      - `limits` ((#v-global-lifecyclesidecarcontainer-resources-limits))
-
-        - `memory` ((#v-global-lifecyclesidecarcontainer-resources-limits-memory)) (`string: 50Mi`)
-
-        - `cpu` ((#v-global-lifecyclesidecarcontainer-resources-limits-cpu)) (`string: 20m`)
-
-  - `imageEnvoy` ((#v-global-imageenvoy)) (`string: envoyproxy/envoy-alpine:v1.16.0`) - The name (and tag) of the Envoy Docker image used for the
+  - `imageEnvoy` ((#v-global-imageenvoy)) (`string: envoyproxy/envoy-alpine:<latest supported version>`) - The name (and tag) of the Envoy Docker image used for the
     connect-injected sidecar proxies and mesh, terminating, and ingress gateways.
     See https://www.consul.io/docs/connect/proxies/envoy for full compatibility matrix between Consul and Envoy.
 
@@ -279,6 +265,27 @@ and consider if they're appropriate for your deployment.
 
     - `secretKey` ((#v-server-enterpriselicense-secretkey)) (`string: null`) - The key within the Kubernetes secret that holds the enterprise license.
 
+  - `exposeGossipAndRPCPorts` ((#v-server-exposegossipandrpcports)) (`boolean: false`) - Exposes the servers' gossip and RPC ports as hostPorts. To enable a client
+    agent outside of the k8s cluster to join the datacenter, you would need to
+    enable `server.exposeGossipAndRPCPorts`, `client.exposeGossipPorts`, and
+    set `server.ports.serflan.port` to a port not being used on the host. Since
+    `client.exposeGossipPorts` uses the hostPort 8301,
+    `server.ports.serflan.port` must be set to something other than 8301.
+
+  - `ports` ((#v-server-ports)) - Configures ports for the consul servers.
+
+    - `serflan` ((#v-server-ports-serflan)) - Configures the LAN gossip port for the consul servers. If you choose to
+      enable `server.exposeGossipAndRPCPorts` and `client.exposeGossipPorts`,
+      that will configure the LAN gossip ports on the servers and clients to be
+      hostPorts, so if you are running clients and servers on the same node the
+      ports will conflict if they are both 8301.  When you enable
+      `server.exposeGossipAndRPCPorts` and `client.exposeGossipPorts`, you must
+      change this from the default to an unused port on the host, e.g. 9301. By
+      default the LAN gossip port is 8301 and configured as a containerPort on
+      the consul server Pods.
+
+      - `port` ((#v-server-ports-serflan-port)) (`integer: 8301`)
+
   - `storage` ((#v-server-storage)) (`string: 10Gi`) - This defines the disk size for configuring the
     servers' StatefulSet storage. For dynamically provisioned storage classes, this is the
     desired size. For manually defined persistent volumes, this should be set to
@@ -298,7 +305,7 @@ and consider if they're appropriate for your deployment.
     a new CA and set of certificates. Additional Connect settings can be configured
     by setting the `server.extraConfig` value.
 
-  - `resources` ((#v-server-resources)) - The resource requests (CPU, memory, etc.)
+  - `resources` ((#v-server-resources)) (`map`) - The resource requests (CPU, memory, etc.)
     for each of the server agents. This should be a YAML map corresponding to a Kubernetes
     ResourceRequirements (https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.11/#resourcerequirements-v1-core)
     object. NOTE: The use of a YAML string is deprecated.
@@ -315,17 +322,12 @@ and consider if they're appropriate for your deployment.
         cpu: '100m'
     ```
 
-    - `requests` ((#v-server-resources-requests))
-
-      - `memory` ((#v-server-resources-requests-memory)) (`string: 100Mi`)
-
-      - `cpu` ((#v-server-resources-requests-cpu)) (`string: 100m`)
-
-    - `limits` ((#v-server-resources-limits))
-
-      - `memory` ((#v-server-resources-limits-memory)) (`string: 100Mi`)
-
-      - `cpu` ((#v-server-resources-limits-cpu)) (`string: 100m`)
+  - `securityContext` ((#v-server-securitycontext)) (`map`) - The security context for the server pods. This should be a YAML map corresponding to a
+    Kubernetes [SecurityContext](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/) object.
+    By default, servers will run as non-root, with user ID `100` and group ID `1000`,
+    which correspond to the consul user and group created by the Consul docker image.
+    Note: if running on OpenShift, this setting is ignored because the user and group are set automatically
+    by the OpenShift platform.
 
   - `updatePartition` ((#v-server-updatepartition)) (`integer: 0`) - This value is used to carefully
     control a rolling update of Consul server agents. This value specifies the
@@ -429,7 +431,7 @@ and consider if they're appropriate for your deployment.
     Kubernetes `priorityClassName` (https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/#pod-priority)
     that can be assigned to server pods.
 
-  - `extraLabels` ((#v-server-extralabels)) - Extra labels to attach to the server pods. This should be a YAML map.
+  - `extraLabels` ((#v-server-extralabels)) (`map`) - Extra labels to attach to the server pods. This should be a YAML map.
 
     Example:
 
@@ -457,7 +459,7 @@ and consider if they're appropriate for your deployment.
         "annotation-key": "annotation-value"
       ```
 
-  - `extraEnvironmentVars` ((#v-server-extraenvironmentvars)) - A list of extra environment variables to set within the stateful set.
+  - `extraEnvironmentVars` ((#v-server-extraenvironmentvars)) (`map`) - A list of extra environment variables to set within the stateful set.
     These could be used to include proxy settings required for cloud auto-join
     feature, in case kubernetes cluster is behind egress http proxies. Additionally,
     it could be used to configure custom consul parameters.
@@ -538,21 +540,16 @@ and consider if they're appropriate for your deployment.
     and the Consul servers are outside of the k8s cluster.
     This also changes the clients' advertised IP to the `hostIP` rather than `podIP`.
 
-  - `resources` ((#v-client-resources)) - Resource settings for Client agents.
+  - `resources` ((#v-client-resources)) (`map`) - Resource settings for Client agents.
     NOTE: The use of a YAML string is deprecated. Instead, set directly as a
     YAML map.
 
-    - `requests` ((#v-client-resources-requests))
-
-      - `memory` ((#v-client-resources-requests-memory)) (`string: 100Mi`)
-
-      - `cpu` ((#v-client-resources-requests-cpu)) (`string: 100m`)
-
-    - `limits` ((#v-client-resources-limits))
-
-      - `memory` ((#v-client-resources-limits-memory)) (`string: 100Mi`)
-
-      - `cpu` ((#v-client-resources-limits-cpu)) (`string: 100m`)
+  - `securityContext` ((#v-client-securitycontext)) (`map`) - The security context for the client pods. This should be a YAML map corresponding to a
+    Kubernetes [SecurityContext](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/) object.
+    By default, servers will run as non-root, with user ID `100` and group ID `1000`,
+    which correspond to the consul user and group created by the Consul docker image.
+    Note: if running on OpenShift, this setting is ignored because the user and group are set automatically
+    by the OpenShift platform.
 
   - `extraConfig` ((#v-client-extraconfig)) (`string: {}`) - A raw string of extra JSON configuration (https://consul.io/docs/agent/options) for Consul
     clients. This will be saved as-is into a ConfigMap that is read by the Consul
@@ -648,7 +645,7 @@ and consider if they're appropriate for your deployment.
       "sample/annotation2": "bar"
     ```
 
-  - `extraEnvironmentVars` ((#v-client-extraenvironmentvars)) - A list of extra environment variables to set within the stateful set.
+  - `extraEnvironmentVars` ((#v-client-extraenvironmentvars)) (`map`) - A list of extra environment variables to set within the stateful set.
     These could be used to include proxy settings required for cloud auto-join
     feature, in case kubernetes cluster is behind egress http proxies. Additionally,
     it could be used to configure custom consul parameters.
@@ -694,19 +691,7 @@ and consider if they're appropriate for your deployment.
 
       - `secretKey` ((#v-client-snapshotagent-configsecret-secretkey)) (`string: null`) - The key of the Kubernetes secret.
 
-    - `resources` ((#v-client-snapshotagent-resources)) - Resource settings for snapshot agent pods.
-
-      - `requests` ((#v-client-snapshotagent-resources-requests))
-
-        - `memory` ((#v-client-snapshotagent-resources-requests-memory)) (`string: 50Mi`)
-
-        - `cpu` ((#v-client-snapshotagent-resources-requests-cpu)) (`string: 50m`)
-
-      - `limits` ((#v-client-snapshotagent-resources-limits))
-
-        - `memory` ((#v-client-snapshotagent-resources-limits-memory)) (`string: 50Mi`)
-
-        - `cpu` ((#v-client-snapshotagent-resources-limits-cpu)) (`string: 50m`)
+    - `resources` ((#v-client-snapshotagent-resources)) (`map`) - Resource settings for snapshot agent pods.
 
     - `caCert` ((#v-client-snapshotagent-cacert)) (`string: null`) - Optional PEM-encoded CA certificate that will be added to the trusted system CAs.
       Useful if using an S3-compatible storage exposing a self-signed certificate.
@@ -920,19 +905,7 @@ and consider if they're appropriate for your deployment.
     This should be a multi-line string matching the Toleration array
     in a PodSpec.
 
-  - `resources` ((#v-synccatalog-resources)) - Resource settings for sync catalog pods.
-
-    - `requests` ((#v-synccatalog-resources-requests))
-
-      - `memory` ((#v-synccatalog-resources-requests-memory)) (`string: 50Mi`)
-
-      - `cpu` ((#v-synccatalog-resources-requests-cpu)) (`string: 50m`)
-
-    - `limits` ((#v-synccatalog-resources-limits))
-
-      - `memory` ((#v-synccatalog-resources-limits-memory)) (`string: 50Mi`)
-
-      - `cpu` ((#v-synccatalog-resources-limits-cpu)) (`string: 50m`)
+  - `resources` ((#v-synccatalog-resources)) (`map`) - Resource settings for sync catalog pods.
 
   - `logLevel` ((#v-synccatalog-loglevel)) (`string: info`) - Log verbosity level. One of "trace", "debug", "info", "warn", or "error".
 
@@ -973,19 +946,7 @@ and consider if they're appropriate for your deployment.
 
   - `logLevel` ((#v-connectinject-loglevel)) (`string: info`) - Log verbosity level. One of "debug", "info", "warn", or "error".
 
-  - `resources` ((#v-connectinject-resources)) - Resource settings for connect inject pods.
-
-    - `requests` ((#v-connectinject-resources-requests))
-
-      - `memory` ((#v-connectinject-resources-requests-memory)) (`string: 50Mi`)
-
-      - `cpu` ((#v-connectinject-resources-requests-cpu)) (`string: 50m`)
-
-    - `limits` ((#v-connectinject-resources-limits))
-
-      - `memory` ((#v-connectinject-resources-limits-memory)) (`string: 50Mi`)
-
-      - `cpu` ((#v-connectinject-resources-limits-cpu)) (`string: 50m`)
+  - `resources` ((#v-connectinject-resources)) (`map`) - Resource settings for connect inject pods.
 
   - `namespaceSelector` ((#v-connectinject-namespaceselector)) (`string: null`) - Selector for restricting the webhook to only
     specific namespaces. This should be set to a multiline string.
@@ -1109,9 +1070,9 @@ and consider if they're appropriate for your deployment.
     This token needs to have `operator = "write"` privileges to be able to
     create Consul namespaces.
 
-    - `secretName` ((#v-connectinject-aclinjecttoken-secretname)) (`string: null`)
+    - `secretName` ((#v-connectinject-aclinjecttoken-secretname)) (`string: null`) - The name of the Kubernetes secret.
 
-    - `secretKey` ((#v-connectinject-aclinjecttoken-secretkey)) (`string: null`)
+    - `secretKey` ((#v-connectinject-aclinjecttoken-secretkey)) (`string: null`) - The key of the Kubernetes secret.
 
   - `centralConfig` ((#v-connectinject-centralconfig)) - Requires Consul >= v1.5 and consul-k8s >= v0.8.1.
 
@@ -1134,7 +1095,7 @@ and consider if they're appropriate for your deployment.
 
   - `sidecarProxy` ((#v-connectinject-sidecarproxy))
 
-    - `resources` ((#v-connectinject-sidecarproxy-resources)) - Set default resources for sidecar proxy. If null, that resource won't
+    - `resources` ((#v-connectinject-sidecarproxy-resources)) (`map`) - Set default resources for sidecar proxy. If null, that resource won't
       be set.
       These settings can be overridden on a per-pod basis via these annotations:
 
@@ -1155,45 +1116,19 @@ and consider if they're appropriate for your deployment.
 
         - `cpu` ((#v-connectinject-sidecarproxy-resources-limits-cpu)) (`string: null`) - Recommended default: 100m
 
-  - `initContainer` ((#v-connectinject-initcontainer)) - Resource settings for the Connect injected init container.
-
-    - `resources` ((#v-connectinject-initcontainer-resources))
-
-      - `requests` ((#v-connectinject-initcontainer-resources-requests))
-
-        - `memory` ((#v-connectinject-initcontainer-resources-requests-memory)) (`string: 25Mi`)
-
-        - `cpu` ((#v-connectinject-initcontainer-resources-requests-cpu)) (`string: 50m`)
-
-      - `limits` ((#v-connectinject-initcontainer-resources-limits))
-
-        - `memory` ((#v-connectinject-initcontainer-resources-limits-memory)) (`string: 150Mi`)
-
-        - `cpu` ((#v-connectinject-initcontainer-resources-limits-cpu)) (`string: 50m`)
+  - `initContainer` ((#v-connectinject-initcontainer)) (`map`) - Resource settings for the Connect injected init container.
 
 - `controller` ((#v-controller)) - Controller handles config entry custom resources.
   Requires consul >= 1.8.4.
   ServiceIntentions require consul 1.9+.
 
-  - `enabled` ((#v-controller-enabled)) (`boolean: false`)
+  - `enabled` ((#v-controller-enabled)) (`boolean: false`) - Enables the controller for managing custom resources.
 
-  - `replicas` ((#v-controller-replicas)) (`integer: 1`)
+  - `replicas` ((#v-controller-replicas)) (`integer: 1`) - The number of deployment replicas.
 
   - `logLevel` ((#v-controller-loglevel)) (`string: info`) - Log verbosity level. One of "debug", "info", "warn", or "error".
 
-  - `resources` ((#v-controller-resources)) - Resource settings for controller pods.
-
-    - `limits` ((#v-controller-resources-limits))
-
-      - `cpu` ((#v-controller-resources-limits-cpu)) (`string: 100m`)
-
-      - `memory` ((#v-controller-resources-limits-memory)) (`string: 50Mi`)
-
-    - `requests` ((#v-controller-resources-requests))
-
-      - `cpu` ((#v-controller-resources-requests-cpu)) (`string: 100m`)
-
-      - `memory` ((#v-controller-resources-requests-memory)) (`string: 50Mi`)
+  - `resources` ((#v-controller-resources)) (`map`) - Resource settings for controller pods.
 
   - `nodeSelector` ((#v-controller-nodeselector)) (`string: null`) - Optional YAML string to specify a nodeSelector config.
 
@@ -1302,37 +1237,11 @@ and consider if they're appropriate for your deployment.
     NOTE: Cannot set to 8500 or 8502 because those are reserved for the Consul
     agent.
 
-  - `resources` ((#v-meshgateway-resources)) - Resource settings for mesh gateway pods.
+  - `resources` ((#v-meshgateway-resources)) (`map`) - Resource settings for mesh gateway pods.
     NOTE: The use of a YAML string is deprecated. Instead, set directly as a
     YAML map.
 
-    - `requests` ((#v-meshgateway-resources-requests))
-
-      - `memory` ((#v-meshgateway-resources-requests-memory)) (`string: 100Mi`)
-
-      - `cpu` ((#v-meshgateway-resources-requests-cpu)) (`string: 100m`)
-
-    - `limits` ((#v-meshgateway-resources-limits))
-
-      - `memory` ((#v-meshgateway-resources-limits-memory)) (`string: 100Mi`)
-
-      - `cpu` ((#v-meshgateway-resources-limits-cpu)) (`string: 100m`)
-
-  - `initCopyConsulContainer` ((#v-meshgateway-initcopyconsulcontainer)) - Resource settings for the `copy-consul-bin` init container.
-
-    - `resources` ((#v-meshgateway-initcopyconsulcontainer-resources))
-
-      - `requests` ((#v-meshgateway-initcopyconsulcontainer-resources-requests))
-
-        - `memory` ((#v-meshgateway-initcopyconsulcontainer-resources-requests-memory)) (`string: 25Mi`)
-
-        - `cpu` ((#v-meshgateway-initcopyconsulcontainer-resources-requests-cpu)) (`string: 50m`)
-
-      - `limits` ((#v-meshgateway-initcopyconsulcontainer-resources-limits))
-
-        - `memory` ((#v-meshgateway-initcopyconsulcontainer-resources-limits-memory)) (`string: 150Mi`)
-
-        - `cpu` ((#v-meshgateway-initcopyconsulcontainer-resources-limits-cpu)) (`string: 50m`)
+  - `initCopyConsulContainer` ((#v-meshgateway-initcopyconsulcontainer)) (`map`) - Resource settings for the `copy-consul-bin` init container.
 
   - `affinity` ((#v-meshgateway-affinity)) (`string`) - By default, we set an anti-affinity so that two gateway pods won't be
     on the same node. NOTE: Gateways require that Consul client agents are
@@ -1398,35 +1307,9 @@ and consider if they're appropriate for your deployment.
 
       - `additionalSpec` ((#v-ingressgateways-defaults-service-additionalspec)) (`string: null`) - Optional YAML string that will be appended to the Service spec.
 
-    - `resources` ((#v-ingressgateways-defaults-resources)) - Resource limits for all ingress gateway pods
+    - `resources` ((#v-ingressgateways-defaults-resources)) (`map`) - Resource limits for all ingress gateway pods
 
-      - `requests` ((#v-ingressgateways-defaults-resources-requests))
-
-        - `memory` ((#v-ingressgateways-defaults-resources-requests-memory)) (`string: 100Mi`)
-
-        - `cpu` ((#v-ingressgateways-defaults-resources-requests-cpu)) (`string: 100m`)
-
-      - `limits` ((#v-ingressgateways-defaults-resources-limits))
-
-        - `memory` ((#v-ingressgateways-defaults-resources-limits-memory)) (`string: 100Mi`)
-
-        - `cpu` ((#v-ingressgateways-defaults-resources-limits-cpu)) (`string: 100m`)
-
-    - `initCopyConsulContainer` ((#v-ingressgateways-defaults-initcopyconsulcontainer)) - Resource settings for the `copy-consul-bin` init container.
-
-      - `resources` ((#v-ingressgateways-defaults-initcopyconsulcontainer-resources))
-
-        - `requests` ((#v-ingressgateways-defaults-initcopyconsulcontainer-resources-requests))
-
-          - `memory` ((#v-ingressgateways-defaults-initcopyconsulcontainer-resources-requests-memory)) (`string: 25Mi`)
-
-          - `cpu` ((#v-ingressgateways-defaults-initcopyconsulcontainer-resources-requests-cpu)) (`string: 50m`)
-
-        - `limits` ((#v-ingressgateways-defaults-initcopyconsulcontainer-resources-limits))
-
-          - `memory` ((#v-ingressgateways-defaults-initcopyconsulcontainer-resources-limits-memory)) (`string: 150Mi`)
-
-          - `cpu` ((#v-ingressgateways-defaults-initcopyconsulcontainer-resources-limits-cpu)) (`string: 50m`)
+    - `initCopyConsulContainer` ((#v-ingressgateways-defaults-initcopyconsulcontainer)) (`map`) - Resource settings for the `copy-consul-bin` init container.
 
     - `affinity` ((#v-ingressgateways-defaults-affinity)) (`string`) - By default, we set an anti-affinity so that two of the same gateway pods
       won't be on the same node. NOTE: Gateways require that Consul client agents are
@@ -1494,35 +1377,9 @@ and consider if they're appropriate for your deployment.
               path: path # secret will now mount to /consul/userconfig/my-secret/path
       ```
 
-    - `resources` ((#v-terminatinggateways-defaults-resources)) - Resource limits for all terminating gateway pods
+    - `resources` ((#v-terminatinggateways-defaults-resources)) (`map`) - Resource limits for all terminating gateway pods
 
-      - `requests` ((#v-terminatinggateways-defaults-resources-requests))
-
-        - `memory` ((#v-terminatinggateways-defaults-resources-requests-memory)) (`string: 100Mi`)
-
-        - `cpu` ((#v-terminatinggateways-defaults-resources-requests-cpu)) (`string: 100m`)
-
-      - `limits` ((#v-terminatinggateways-defaults-resources-limits))
-
-        - `memory` ((#v-terminatinggateways-defaults-resources-limits-memory)) (`string: 100Mi`)
-
-        - `cpu` ((#v-terminatinggateways-defaults-resources-limits-cpu)) (`string: 100m`)
-
-    - `initCopyConsulContainer` ((#v-terminatinggateways-defaults-initcopyconsulcontainer)) - Resource settings for the `copy-consul-bin` init container.
-
-      - `resources` ((#v-terminatinggateways-defaults-initcopyconsulcontainer-resources))
-
-        - `requests` ((#v-terminatinggateways-defaults-initcopyconsulcontainer-resources-requests))
-
-          - `memory` ((#v-terminatinggateways-defaults-initcopyconsulcontainer-resources-requests-memory)) (`string: 25Mi`)
-
-          - `cpu` ((#v-terminatinggateways-defaults-initcopyconsulcontainer-resources-requests-cpu)) (`string: 50m`)
-
-        - `limits` ((#v-terminatinggateways-defaults-initcopyconsulcontainer-resources-limits))
-
-          - `memory` ((#v-terminatinggateways-defaults-initcopyconsulcontainer-resources-limits-memory)) (`string: 150Mi`)
-
-          - `cpu` ((#v-terminatinggateways-defaults-initcopyconsulcontainer-resources-limits-cpu)) (`string: 50m`)
+    - `initCopyConsulContainer` ((#v-terminatinggateways-defaults-initcopyconsulcontainer)) (`map`) - Resource settings for the `copy-consul-bin` init container.
 
     - `affinity` ((#v-terminatinggateways-defaults-affinity)) (`string`) - By default, we set an anti-affinity so that two of the same gateway pods
       won't be on the same node. NOTE: Gateways require that Consul client agents are

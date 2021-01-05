@@ -104,24 +104,24 @@
   circle {
     fill: $white;
   }
-  #allow-arrow {
+  .allow-arrow {
     fill: $gray-300;
     stroke-linejoin: round;
   }
   path,
-  #allow-dot,
-  #allow-arrow {
+  .allow-dot,
+  .allow-arrow {
     stroke: $gray-300;
     stroke-width: 2;
   }
   path[data-permission='deny'] {
     stroke: $red-500;
   }
-  #deny-dot {
+  .deny-dot {
     stroke: $red-500;
     stroke-width: 2;
   }
-  #deny-arrow {
+  .deny-arrow {
     fill: $red-500;
     stroke: $red-500;
     stroke-linejoin: round;

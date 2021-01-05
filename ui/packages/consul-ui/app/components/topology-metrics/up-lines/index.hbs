@@ -8,46 +8,76 @@
     preserveAspectRatio="none"
   >
     <defs>
-      <marker id="allow-dot" viewBox="-2 -2 15 15" refX="6" refY="6" markerWidth="6" markerHeight="6">
+      <marker
+        id={{concat this.guid '-allow-dot'}}
+        class="allow-dot"
+        viewBox="-2 -2 15 15"
+        refX="6"
+        refY="6"
+        markerWidth="6"
+        markerHeight="6"
+      >
         <circle
           cx="6"
           cy="6"
           r="6"
         />
       </marker>
-      <marker id="allow-arrow" viewBox="-1 -1 12 12" refX="5" refY="5"
-          markerWidth="6" markerHeight="6"
-          orient="auto-start-reverse">
+      <marker
+        id={{concat this.guid '-allow-arrow'}}
+        class="allow-arrow"
+        viewBox="-1 -1 12 12"
+        refX="5"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto-start-reverse"
+      >
         <polygon points="0 0 10 5 0 10" />
       </marker>
-      <marker id="deny-dot" viewBox="-2 -2 15 15" refX="6" refY="6" markerWidth="6" markerHeight="6">
+      <marker
+        id={{concat this.guid '-deny-dot'}}
+        class="deny-dot"
+        viewBox="-2 -2 15 15"
+        refX="6"
+        refY="6"
+        markerWidth="6"
+        markerHeight="6"
+      >
         <circle
           cx="6"
           cy="6"
           r="6"
         />
       </marker>
-      <marker id="deny-arrow" viewBox="-1 -1 12 12" refX="5" refY="5"
-          markerWidth="6" markerHeight="6"
-          orient="auto-start-reverse">
+      <marker
+        id={{concat this.guid '-deny-arrow'}}
+        class="deny-arrow"
+        viewBox="-1 -1 12 12"
+        refX="5"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto-start-reverse"
+      >
         <polygon points="0 0 10 5 0 10" />
       </marker>
     </defs>
 {{#each @lines as |line|}}
   {{#if (eq line.permission 'deny')}}
     <path
-      id={{line.id}}
+      id={{concat this.guid line.id}}
       d={{svg-curve line.dest src=line.src}}
-      marker-start="url(#deny-dot)"
-      marker-end="url(#deny-arrow)"
+      marker-start={{concat 'url(#' this.guid '-deny-dot)'}}
+      marker-end={{concat 'url(#' this.guid '-deny-arrow)'}}
       data-permission={{line.permission}}
     />
   {{else}}
      <path
-      id={{line.id}}
+      id={{concat this.guid line.id}}
       d={{svg-curve line.dest src=line.src}}
-      marker-start="url(#allow-dot)"
-      marker-end="url(#allow-arrow)"
+      marker-start={{concat 'url(#' this.guid '-allow-dot)'}}
+      marker-end={{concat 'url(#' this.guid '-allow-arrow)'}}
       data-permission={{line.permission}}
     />
   {{/if}}
@@ -59,7 +89,7 @@
   {{#if (or (not item.Intention.Allowed) item.Intention.HasPermissions)}}
     <TopologyMetrics::Popover
       @type={{if item.Intention.HasPermissions 'l7' 'deny'}}
-      @position={{find-by 'id' (concat item.Namespace item.Name) this.iconPositions}}
+      @position={{find-by 'id' (concat this.guid item.Namespace item.Name) this.iconPositions}}
       @item={{item}}
       @oncreate={{action @oncreate @service item}}
     />

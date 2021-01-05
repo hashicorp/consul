@@ -9,7 +9,6 @@
   {{#let (or sortBy "Status:asc") as |sort|}}
   {{#let (reject-by 'Service.Kind' 'connect-proxy' item.Services) as |items|}}
 <div class="tab-section">
-  <div role="tabpanel">
   {{#if (gt items.length 0) }}
     <input type="checkbox" id="toolbar-toggle" />
     <Consul::ServiceInstance::SearchBar
@@ -35,7 +34,7 @@
       @sort={{sort}}
       @filters={{filters}}
       @search={{search}}
-      @items={{reject-by 'Service.Kind' 'connect-proxy' items}}
+      @items={{items}}
     as |collection|>
       <collection.Collection>
         <Consul::ServiceInstance::List
@@ -49,13 +48,12 @@
         <EmptyState>
           <BlockSlot @name="body">
             <p>
-              There are no services.
+              This node has no service instances{{#if (gt items.length 0)}} matching that search{{/if}}.
             </p>
           </BlockSlot>
         </EmptyState>
       </collection.Empty>
     </DataCollection>
-  </div>
 </div>
     {{/let}}
   {{/let}}
