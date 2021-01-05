@@ -1,0 +1,3 @@
+```release-note:improvement
+acl: use the presence of a management policy in the state store as a sign that we already migrated to v2 acls
+```
