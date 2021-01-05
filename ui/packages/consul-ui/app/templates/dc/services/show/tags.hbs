@@ -1,5 +1,4 @@
-<div id="tags" class="tab-section">
-  <div role="tabpanel">
+<div class="tab-section">
 {{#let (flatten (map-by "Tags" items)) as |tags|}}
   {{#if (gt tags.length 0) }}
       <TagList @item={{hash Tags=tags}} />
@@ -13,5 +12,4 @@
       </EmptyState>
   {{/if}}
 {{/let}}
-  </div>
 </div>

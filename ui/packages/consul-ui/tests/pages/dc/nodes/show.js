@@ -29,6 +29,6 @@ export default function(
       actions: clickable('label'),
       ...deletable(),
     }),
-    metadata: collection('#metadata [data-test-tabular-row]', {}),
+    metadata: collection('.consul-metadata-list [data-test-tabular-row]', {}),
   };
 }

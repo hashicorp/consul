@@ -22,7 +22,6 @@ as |api|>
   ) as |filters|}}
     {{#let (or sortBy "Action:asc") as |sort|}}
       <div class="tab-section">
-        <div role="tabpanel">
           <Portal @target="app-view-actions">
             <a data-test-create href={{href-to 'dc.services.show.intentions.create'}} class="type-create">Create</a>
           </Portal>
@@ -78,7 +77,6 @@ as |api|>
               </DataCollection>
             </BlockSlot>
           </DataWriter>
-        </div>
       </div>
     {{/let}}
   {{/let}}

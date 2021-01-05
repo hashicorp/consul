@@ -14,6 +14,10 @@
     margin-right: 8px;
   }
 }
+%healthcheck-output header > * {
+  @extend %h3;
+  font-size: $typo-header-300;
+}
 %healthcheck-output dd em {
   @extend %pill;
   background-color: $gray-100;

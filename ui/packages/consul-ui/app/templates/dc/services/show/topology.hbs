@@ -1,6 +1,5 @@
 <EventSource @src={{topology}} />
 <div class="tab-section">
-  <div role="tabpanel">
   {{#if (and (eq topology.Upstreams.length 0) (eq topology.Downstreams.length 0))}}
     <EmptyState>
       <BlockSlot @name="header">
@@ -37,5 +36,4 @@
       @oncreate={{route-action 'createIntention'}}
     />
   {{/if}}
-  </div>
 </div>
