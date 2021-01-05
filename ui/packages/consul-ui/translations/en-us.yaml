@@ -24,6 +24,7 @@ common:
     mesh-gateway: Mesh Gateway
     status: Health Status
     service-name: Service Name
+    node-name: Node Name
   search:
     search: Search
     searchproperty: Search Across
@@ -32,17 +33,57 @@ common:
     in-mesh: In service mesh
     not-in-mesh: Not in service mesh
   sort:
-    name:
+    alpha:
       asc: A to Z
       desc: Z to A
+    numeric:
+      asc: Ascending
+      desc: Descending
     status:
       asc: Unhealthy to Healthy
       desc: Healthy to Unhealthy
 
-component:
+components:
   consul:
     service:
       search-bar:
         kind: Service Type
         in-mesh: In service mesh
-        not-in-mesh: In service mesh
+        not-in-mesh: Not in service mesh
+    kv:
+      search-bar:
+        kind:
+          name: Type
+          options:
+            folder: Folder
+            key: Key
+        sort:
+          kind:
+            asc: Folders to Keys
+            desc: Keys to Folders
+    intention:
+      search-bar:
+        access:
+          name: Permission
+          options:
+            allow: Allow
+            deny: Deny
+            app-aware: App aware
+        sort:
+          access:
+            name: Permission
+            asc: Allow to Deny
+            desc: Deny to Allow
+          source-name:
+            name: Source
+            asc: "Source: A to Z"
+            desc: "Source: Z to A"
+          destination-name:
+            name: Destination
+            asc: "Destination: A to Z"
+            desc: "Destination: Z to A"
+          precedence:
+            name: Precedence
+            asc: Ascending
+            desc: Descending
+
