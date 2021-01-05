@@ -5266,7 +5266,8 @@ func TestFullConfig(t *testing.T) {
 					"M6TKa9NP": "xjuxjOzQ",
 					"JRCrHZed": "rl0mTx81"
 				},
-				"use_cache": false
+				"use_cache": false,
+				"max_header_bytes": 10
 			},
 			"key_file": "IEkkwgIA",
 			"leave_on_terminate": true,
@@ -5955,6 +5956,7 @@ func TestFullConfig(t *testing.T) {
 					"JRCrHZed" = "rl0mTx81"
 				}
 				use_cache = false
+				max_header_bytes = 10
 			}
 			key_file = "IEkkwgIA"
 			leave_on_terminate = true
@@ -6734,6 +6736,7 @@ func TestFullConfig(t *testing.T) {
 		HTTPResponseHeaders:                    map[string]string{"M6TKa9NP": "xjuxjOzQ", "JRCrHZed": "rl0mTx81"},
 		HTTPSAddrs:                             []net.Addr{tcpAddr("95.17.17.19:15127")},
 		HTTPMaxConnsPerClient:                  100,
+		HTTPMaxHeaderBytes:                     10,
 		HTTPSHandshakeTimeout:                  2391 * time.Millisecond,
 		HTTPSPort:                              15127,
 		HTTPUseCache:                           false,
@@ -7661,6 +7664,7 @@ func TestSanitize(t *testing.T) {
 		],
 		"HTTPBlockEndpoints": [],
 		"HTTPMaxConnsPerClient": 0,
+		"HTTPMaxHeaderBytes": 0,
 		"HTTPPort": 0,
 		"HTTPResponseHeaders": {},
 		"HTTPUseCache": false,

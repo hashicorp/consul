@@ -920,6 +920,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		HTTPAddrs:           httpAddrs,
 		HTTPSAddrs:          httpsAddrs,
 		HTTPBlockEndpoints:  c.HTTPConfig.BlockEndpoints,
+		HTTPMaxHeaderBytes:  b.intVal(c.HTTPConfig.MaxHeaderBytes),
 		HTTPResponseHeaders: c.HTTPConfig.ResponseHeaders,
 		AllowWriteHTTPFrom:  b.cidrsVal("allow_write_http_from", c.HTTPConfig.AllowWriteHTTPFrom),
 		HTTPUseCache:        b.boolValWithDefault(c.HTTPConfig.UseCache, true),

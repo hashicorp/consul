@@ -614,6 +614,7 @@ type HTTPConfig struct {
 	AllowWriteHTTPFrom []string          `json:"allow_write_http_from,omitempty" hcl:"allow_write_http_from" mapstructure:"allow_write_http_from"`
 	ResponseHeaders    map[string]string `json:"response_headers,omitempty" hcl:"response_headers" mapstructure:"response_headers"`
 	UseCache           *bool             `json:"use_cache,omitempty" hcl:"use_cache" mapstructure:"use_cache"`
+	MaxHeaderBytes     *int              `json:"max_header_bytes,omitempty" hcl:"max_header_bytes" mapstructure:"max_header_bytes"`
 }
 
 type Performance struct {

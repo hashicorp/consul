@@ -779,6 +779,14 @@ type RuntimeConfig struct {
 	// hcl: limits{ http_max_conns_per_client = 200 }
 	HTTPMaxConnsPerClient int
 
+	// HTTPMaxHeaderBytes controls the maximum number of bytes the
+	// server will read parsing the request header's keys and
+	// values, including the request line. It does not limit the
+	// size of the request body.
+	//
+	// If zero, or negative, http.DefaultMaxHeaderBytes is used.
+	HTTPMaxHeaderBytes int
+
 	// HTTPSHandshakeTimeout is the time allowed for HTTPS client to complete the
 	// TLS handshake and send first bytes of the request.
 	//
