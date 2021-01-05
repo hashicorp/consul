@@ -1278,7 +1278,7 @@ func TestLeader_ACLUpgrade_IsStickyEvenIfSerfTagsRegress(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	// t.Parallel()
+	t.Parallel()
 
 	// We test this by having two datacenters with one server each. They
 	// initially come up and complete the migration, then we power them both
