@@ -14,6 +14,7 @@ const (
 	errSegmentsNotSupported       = "Network segments are not supported in this version of Consul"
 	errRPCRateExceeded            = "RPC rate limit exceeded"
 	errServiceNotFound            = "Service not found: "
+	errLeaderNotTracked           = "Raft leader not found in server lookup mapping"
 )
 
 var (
@@ -24,6 +25,7 @@ var (
 	ErrSegmentsNotSupported       = errors.New(errSegmentsNotSupported)
 	ErrRPCRateExceeded            = errors.New(errRPCRateExceeded)
 	ErrDCNotAvailable             = errors.New(errDCNotAvailable)
+	ErrLeaderNotTracked           = errors.New(errLeaderNotTracked)
 )
 
 func IsErrNoLeader(err error) bool {
