@@ -811,8 +811,8 @@ func TestAPI_SetWriteOptions(t *testing.T) {
 func TestAPI_Headers(t *testing.T) {
 	t.Parallel()
 	c, s := makeClientWithConfig(t, func(c *Config) {
-		c.Headers = map[string]string{
-			"Hello": "World",
+		c.Header = http.Header{
+			"Hello": []string{"World"},
 		}
 	}, nil)
 	defer s.Stop()

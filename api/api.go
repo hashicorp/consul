@@ -315,7 +315,7 @@ type Config struct {
 
 	TLSConfig TLSConfig
 
-	Headers map[string]string
+	Header http.Header
 }
 
 // TLSConfig is used to generate a TLSClientConfig that's useful for talking to
@@ -858,9 +858,8 @@ func (c *Client) newRequest(method, path string) *request {
 		header: make(http.Header),
 	}
 
-	for k, v := range c.config.Headers {
-		r.header.Set(k, v)
-	}
+	r.header = c.config.Header
+
 	if c.config.Datacenter != "" {
 		r.params.Set("dc", c.config.Datacenter)
 	}
