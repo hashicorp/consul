@@ -1,6 +1,5 @@
 import { inject as service } from '@ember/service';
 import Route from 'consul-ui/routing/route';
-import { hash } from 'rsvp';
 
 export default class IndexRoute extends Route {
   @service('data-source/service') data;
