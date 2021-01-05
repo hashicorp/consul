@@ -20,8 +20,8 @@ theme/connect:
     - agent/connect/**/*
 # theme/consul-nomad:
 theme/consul-terraform-sync:
-    - website/pages/docs/nia/**/*
-    - website/pages/docs/integrate/nia*
+    - website/content/docs/nia/**/*
+    - website/content/docs/integrate/nia*
 # theme/consul-vault:
 theme/contributing:
     - .github/**/*
