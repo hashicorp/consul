@@ -30,8 +30,9 @@ type ServerLocator interface {
 }
 
 // TLSWrapper wraps a non-TLS connection and returns a connection with TLS
-// enabled.
-type TLSWrapper func(dc string, conn net.Conn) (net.Conn, error)
+// possibly enabled.
+// The bool indicates whether the returned function will use TLS.
+type TLSWrapper func(dc string, conn net.Conn) (func(net.Conn) (net.Conn, error), bool)
 
 type dialer func(context.Context, string) (net.Conn, error)
 
@@ -74,7 +75,7 @@ func (c *ClientConnPool) ClientConn(datacenter string) (*grpc.ClientConn, error)
 
 // newDialer returns a gRPC dialer function that conditionally wraps the connection
 // with TLS based on the Server.useTLS value.
-func newDialer(servers ServerLocator, wrapper TLSWrapper) func(context.Context, string) (net.Conn, error) {
+func newDialer(servers ServerLocator, tlsWrapper TLSWrapper) func(context.Context, string) (net.Conn, error) {
 	return func(ctx context.Context, addr string) (net.Conn, error) {
 		d := net.Dialer{}
 		conn, err := d.DialContext(ctx, "tcp", addr)
@@ -87,27 +88,20 @@ func newDialer(servers ServerLocator, wrapper TLSWrapper) func(context.Context, 
 			conn.Close()
 			return nil, err
 		}
-
-		if server.UseTLS {
-			if wrapper == nil {
+		wrapper, tlsEnabled := tlsWrapper(server.Datacenter, conn)
+		if server.UseTLS && tlsEnabled {
+			// If connection is upgraded to TLS, mark the stream as RPCTLS
+			if _, err := conn.Write([]byte{byte(pool.RPCTLS)}); err != nil {
 				conn.Close()
-				return nil, fmt.Errorf("TLS enabled but got nil TLS wrapper")
+				return nil, err
 			}
-
 			// Wrap the connection in a TLS client, return same conn if TLS disabled
-			tlsConn, err := wrapper(server.Datacenter, conn)
+			tlsConn, err := wrapper(conn)
 			if err != nil {
 				conn.Close()
 				return nil, err
 			}
-			if tlsConn != conn {
-				// If connection is upgraded to TLS, mark the stream as RPCTLS
-				if _, err := conn.Write([]byte{byte(pool.RPCTLS)}); err != nil {
-					conn.Close()
-					return nil, err
-				}
-				conn = tlsConn
-			}
+			conn = tlsConn
 		}
 
 		_, err = conn.Write([]byte{pool.RPCGRPC})

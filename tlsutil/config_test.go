@@ -86,7 +86,9 @@ func TestConfigurator_outgoingWrapper_OK(t *testing.T) {
 	wrap := c.OutgoingRPCWrapper()
 	require.NotNil(t, wrap)
 
-	tlsClient, err := wrap("dc1", client)
+	tlsClientWrapper, useTLS := wrap("dc1", client)
+	require.True(t, useTLS)
+	tlsClient, err := tlsClientWrapper(client)
 	require.NoError(t, err)
 
 	defer tlsClient.Close()
@@ -116,7 +118,9 @@ func TestConfigurator_outgoingWrapper_noverify_OK(t *testing.T) {
 	wrap := c.OutgoingRPCWrapper()
 	require.NotNil(t, wrap)
 
-	tlsClient, err := wrap("dc1", client)
+	tlsClientWrapper, useTLS := wrap("dc1", client)
+	require.True(t, useTLS)
+	tlsClient, err := tlsClientWrapper(client)
 	require.NoError(t, err)
 
 	defer tlsClient.Close()
@@ -146,7 +150,9 @@ func TestConfigurator_outgoingWrapper_BadDC(t *testing.T) {
 	require.NoError(t, err)
 	wrap := c.OutgoingRPCWrapper()
 
-	tlsClient, err := wrap("dc2", client)
+	tlsClientWrapper, useTLS := wrap("dc2", client)
+	require.True(t, useTLS)
+	tlsClient, err := tlsClientWrapper(client)
 	require.NoError(t, err)
 
 	err = tlsClient.(*tls.Conn).Handshake()
@@ -176,7 +182,9 @@ func TestConfigurator_outgoingWrapper_BadCert(t *testing.T) {
 	require.NoError(t, err)
 	wrap := c.OutgoingRPCWrapper()
 
-	tlsClient, err := wrap("dc1", client)
+	tlsClientWrapper, useTLS := wrap("dc1", client)
+	require.True(t, useTLS)
+	tlsClient, err := tlsClientWrapper(client)
 	require.NoError(t, err)
 
 	err = tlsClient.(*tls.Conn).Handshake()
@@ -443,7 +451,11 @@ func TestConfigurator_loadKeyPair(t *testing.T) {
 
 func TestConfig_SpecifyDC(t *testing.T) {
 	require.Nil(t, SpecificDC("", nil))
-	dcwrap := func(dc string, conn net.Conn) (net.Conn, error) { return nil, nil }
+	dcwrap := func(dc string, conn net.Conn) (func(net.Conn) (net.Conn, error), bool) {
+		return func(net.Conn) (net.Conn, error) {
+			return conn, nil
+		}, false
+	}
 	wrap := SpecificDC("", dcwrap)
 	require.NotNil(t, wrap)
 	conn, err := wrap(nil)
@@ -964,7 +976,9 @@ func TestConfigurator_OutgoingRPCWrapper(t *testing.T) {
 	wrapper := c.OutgoingRPCWrapper()
 	require.NotNil(t, wrapper)
 	conn := &net.TCPConn{}
-	cWrap, err := wrapper("", conn)
+	cWrapper, ok := wrapper("", conn)
+	require.False(t, ok)
+	cWrap, err := cWrapper(conn)
 	require.NoError(t, err)
 	require.Equal(t, conn, cWrap)
 
@@ -976,7 +990,9 @@ func TestConfigurator_OutgoingRPCWrapper(t *testing.T) {
 
 	wrapper = c.OutgoingRPCWrapper()
 	require.NotNil(t, wrapper)
-	cWrap, err = wrapper("", conn)
+	cWrapper, ok = wrapper("", conn)
+	require.True(t, ok)
+	cWrap, err = cWrapper(conn)
 	require.EqualError(t, err, "invalid argument")
 	require.NotEqual(t, conn, cWrap)
 }
@@ -986,7 +1002,10 @@ func TestConfigurator_OutgoingALPNRPCWrapper(t *testing.T) {
 	wrapper := c.OutgoingRPCWrapper()
 	require.NotNil(t, wrapper)
 	conn := &net.TCPConn{}
-	cWrap, err := wrapper("", conn)
+	cWrapper, ok := wrapper("", conn)
+	require.False(t, ok)
+	cWrap, err := cWrapper(conn)
+
 	require.NoError(t, err)
 	require.Equal(t, conn, cWrap)
 
@@ -998,7 +1017,9 @@ func TestConfigurator_OutgoingALPNRPCWrapper(t *testing.T) {
 
 	wrapper = c.OutgoingRPCWrapper()
 	require.NotNil(t, wrapper)
-	cWrap, err = wrapper("", conn)
+	cWrapper, ok = wrapper("", conn)
+	require.True(t, ok)
+	cWrap, err = cWrapper(conn)
 	require.EqualError(t, err, "invalid argument")
 	require.NotEqual(t, conn, cWrap)
 }

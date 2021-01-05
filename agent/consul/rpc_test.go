@@ -560,7 +560,9 @@ func TestRPC_PreventsTLSNesting(t *testing.T) {
 
 			// Start tls client
 			tlsWrap := s1.tlsConfigurator.OutgoingRPCWrapper()
-			tlsConn, err := tlsWrap("dc1", conn)
+			tlsConnWrapper, useTLS := tlsWrap("dc1", conn)
+			require.True(t, useTLS)
+			tlsConn, err := tlsConnWrapper(conn)
 			require.NoError(t, err)
 
 			// Write Inner magic byte
@@ -617,7 +619,9 @@ func connectClient(t *testing.T, s1 *Server, mb pool.RPCType, useTLS, wantOpen b
 	require.NoError(t, err)
 
 	if useTLS {
-		tlsConn, err := tlsWrap(s1.config.Datacenter, conn)
+		tlsConnW, useTLS := tlsWrap(s1.config.Datacenter, conn)
+		require.Equal(t, useTLS, useTLS)
+		tlsConn, err := tlsConnW(conn)
 		// Subtly, tlsWrap will NOT actually do a handshake in this case - it only
 		// does so for some configs, so even if the server closed the conn before
 		// handshake this won't fail and it's only when we attempt to read or write

@@ -49,7 +49,8 @@ func insecureRPCClient(s *Server, c tlsutil.Config) (rpc.ClientCodec, error) {
 	}
 
 	// Wrap the connection in a TLS client
-	tlsConn, err := wrapper(s.config.Datacenter, conn)
+	tlsConnW, _ := wrapper(s.config.Datacenter, conn)
+	tlsConn, err := tlsConnW(conn)
 	if err != nil {
 		conn.Close()
 		return nil, err

@@ -345,7 +345,8 @@ func (p *ConnPool) dial(
 		}
 
 		// Wrap the connection in a TLS client
-		tlsConn, err := wrapper(dc, conn)
+		tlsConnBuilder, _ := wrapper(dc, conn)
+		tlsConn, err := tlsConnBuilder(conn)
 		if err != nil {
 			conn.Close()
 			return nil, nil, err

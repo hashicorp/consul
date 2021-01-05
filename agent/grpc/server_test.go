@@ -163,7 +163,7 @@ func (f *fakeRPCListener) handleConn(conn net.Conn) {
 		f.handleConn(conn)
 
 	default:
-		fmt.Println("ERROR: unexpected byte", typ)
+		fmt.Println("server_test ERROR: unexpected byte", typ)
 		conn.Close()
 	}
 }

@@ -27,7 +27,7 @@ type ALPNWrapper func(dc, nodeName, alpnProto string, conn net.Conn) (net.Conn, 
 // DCWrapper is a function that is used to wrap a non-TLS connection
 // and returns an appropriate TLS connection or error. This takes
 // a datacenter as an argument.
-type DCWrapper func(dc string, conn net.Conn) (net.Conn, error)
+type DCWrapper func(dc string, conn net.Conn) (func(conn net.Conn) (net.Conn, error), bool)
 
 // Wrapper is a variant of DCWrapper, where the DC is provided as
 // a constant value. This is usually done by currying DCWrapper.
@@ -153,7 +153,8 @@ func SpecificDC(dc string, tlsWrap DCWrapper) Wrapper {
 		return nil
 	}
 	return func(conn net.Conn) (net.Conn, error) {
-		return tlsWrap(dc, conn)
+		wrap, _ := tlsWrap(dc, conn)
+		return wrap(conn)
 	}
 }
 
@@ -759,18 +760,23 @@ func (c *Configurator) OutgoingALPNRPCConfig() *tls.Config {
 	return config
 }
 
+//type DCWrapper func(dc string, conn net.Conn) (func(conn net.Conn) (net.Conn, error), bool)
+
 // OutgoingRPCWrapper wraps the result of OutgoingRPCConfig in a DCWrapper. It
 // decides if verify server hostname should be used.
 func (c *Configurator) OutgoingRPCWrapper() DCWrapper {
 	c.log("OutgoingRPCWrapper")
-
-	// Generate the wrapper based on dc
-	return func(dc string, conn net.Conn) (net.Conn, error) {
-		if c.UseTLS(dc) {
-			return c.wrapTLSClient(dc, conn)
+	fn := func(dc string, conn net.Conn) (func(net.Conn) (net.Conn, error), bool) {
+		useTLS := c.UseTLS(dc)
+		wrapper := func(conn net.Conn) (net.Conn, error) {
+			if useTLS {
+				return c.wrapTLSClient(dc, conn)
+			}
+			return conn, nil
 		}
-		return conn, nil
+		return wrapper, useTLS
 	}
+	return fn
 }
 
 func (c *Configurator) UseTLS(dc string) bool {

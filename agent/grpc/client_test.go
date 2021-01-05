@@ -33,9 +33,12 @@ func TestNewDialer_WithTLSWrapper(t *testing.T) {
 	})
 
 	var called bool
-	wrapper := func(_ string, conn net.Conn) (net.Conn, error) {
+	wrapper := func(_ string, conn net.Conn) (func(net.Conn) (net.Conn, error), bool) {
 		called = true
-		return conn, nil
+		fn := func(conn net.Conn) (net.Conn, error) {
+			return conn, nil
+		}
+		return fn, true
 	}
 	dial := newDialer(builder, wrapper)
 	ctx := context.Background()
@@ -78,11 +81,20 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler(t *testing.T) {
 	require.True(t, atomic.LoadInt32(&srv.rpc.tlsConnEstablished) > 0)
 }
 
+// noOpTLSWrapper Generate a TLVWrapper that does not encypt anything, but is not nil
+func noOpTLSWrapper() func(dc string, conn net.Conn) (func(net.Conn) (net.Conn, error), bool) {
+	return func(dc string, conn net.Conn) (func(net.Conn) (net.Conn, error), bool) {
+		return func(net.Conn) (net.Conn, error) {
+			return conn, nil
+		}, false
+	}
+}
+
 func TestClientConnPool_IntegrationWithGRPCResolver_Failover(t *testing.T) {
 	count := 4
 	res := resolver.NewServerResolverBuilder(newConfig(t))
 	registerWithGRPC(t, res)
-	pool := NewClientConnPool(res, nil)
+	pool := NewClientConnPool(res, noOpTLSWrapper())
 
 	for i := 0; i < count; i++ {
 		name := fmt.Sprintf("server-%d", i)
@@ -119,7 +131,7 @@ func TestClientConnPool_IntegrationWithGRPCResolver_Rebalance(t *testing.T) {
 	count := 5
 	res := resolver.NewServerResolverBuilder(newConfig(t))
 	registerWithGRPC(t, res)
-	pool := NewClientConnPool(res, nil)
+	pool := NewClientConnPool(res, noOpTLSWrapper())
 
 	for i := 0; i < count; i++ {
 		name := fmt.Sprintf("server-%d", i)
@@ -168,7 +180,7 @@ func TestClientConnPool_IntegrationWithGRPCResolver_MultiDC(t *testing.T) {
 
 	res := resolver.NewServerResolverBuilder(newConfig(t))
 	registerWithGRPC(t, res)
-	pool := NewClientConnPool(res, nil)
+	pool := NewClientConnPool(res, noOpTLSWrapper())
 
 	for _, dc := range dcs {
 		name := "server-0-" + dc
