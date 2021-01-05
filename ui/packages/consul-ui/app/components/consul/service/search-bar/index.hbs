@@ -7,14 +7,14 @@
 
 {{#let
 
-  (t (concat "component.consul.service.search-bar." search.status.key)
+  (t (concat "components.consul.service.search-bar." search.status.key)
       default=(array
         (concat "common.search." search.status.key)
         (concat "common.consul." search.status.key)
       )
   )
 
-  (t (concat "component.consul.service.search-bar." search.status.value)
+  (t (concat "components.consul.service.search-bar." search.status.value)
       default=(array
         (concat "common.search." search.status.value)
         (concat "common.consul." search.status.value)
@@ -34,13 +34,13 @@ as |key value|}}
 {{/let}}
 
     </:status>
-    <:search>
-      <FreetextFilter
+    <:search as |search|>
+      <search.Search
         @onsearch={{action @onsearch}}
         @value={{@search}}
         @placeholder={{t "common.search.search"}}
       >
-        <PopoverSelect
+        <search.Select
           class="type-search-properties"
           @position="right"
           @onchange={{action @filter.searchproperty.change}}
@@ -61,11 +61,11 @@ as |key value|}}
             {{/each}}
     {{/let}}
           </BlockSlot>
-        </PopoverSelect>
-      </FreetextFilter>
+        </search.Select>
+      </search.Search>
     </:search>
-    <:filter>
-      <PopoverSelect
+    <:filter as |search|>
+      <search.Select
         class="type-status"
         @position="left"
         @onchange={{action @filter.status.change}}
@@ -89,15 +89,15 @@ as |key value|}}
     {{/each}}
   {{/let}}
         </BlockSlot>
-      </PopoverSelect>
-      <PopoverSelect
+      </search.Select>
+      <search.Select
         @position="left"
         @onchange={{action @filter.kind.change}}
         @multiple={{true}}
       as |components|>
         <BlockSlot @name="selected">
           <span>
-            {{t "component.consul.service.search-bar.kind"}}
+            {{t "components.consul.service.search-bar.kind"}}
           </span>
         </BlockSlot>
         <BlockSlot @name="options">
@@ -125,9 +125,9 @@ as |key value|}}
           </Optgroup>
   {{/let}}
         </BlockSlot>
-      </PopoverSelect>
+      </search.Select>
   {{#if (gt @sources.length 0)}}
-      <PopoverSelect
+      <search.Select
         class="type-source"
         @position="left"
         @onchange={{action @filter.source.change}}
@@ -147,11 +147,11 @@ as |key value|}}
     {{/each}}
   {{/let}}
         </BlockSlot>
-      </PopoverSelect>
+      </search.Select>
   {{/if}}
     </:filter>
-    <:sort>
-      <PopoverSelect
+    <:sort as |search|>
+      <search.Select
         class="type-sort"
         data-test-sort-control
         @position="right"
@@ -162,8 +162,8 @@ as |key value|}}
         <BlockSlot @name="selected">
           <span>
             {{#let (from-entries (array
-                  (array "Name:asc" (t "common.sort.name.asc"))
-                  (array "Name:desc" (t "common.sort.name.desc"))
+                  (array "Name:asc" (t "common.sort.alpha.asc"))
+                  (array "Name:desc" (t "common.sort.alpha.desc"))
                   (array "Status:asc" (t "common.sort.status.asc"))
                   (array "Status:desc" (t "common.sort.status.desc"))
                 ))
@@ -180,11 +180,11 @@ as |key value|}}
             <Option @value="Status:desc" @selected={{eq "Status:desc" @sort.value}}>{{t "common.sort.status.desc"}}</Option>
           </Optgroup>
           <Optgroup @label={{t "common.consul.service-name"}}>
-            <Option @value="Name:asc" @selected={{eq "Name:asc" @sort.value}}>{{t "common.sort.name.asc"}}</Option>
-            <Option @value="Name:desc" @selected={{eq "Name:desc" @sort.value}}>{{t "common.sort.name.desc"}}</Option>
+            <Option @value="Name:asc" @selected={{eq "Name:asc" @sort.value}}>{{t "common.sort.alpha.asc"}}</Option>
+            <Option @value="Name:desc" @selected={{eq "Name:desc" @sort.value}}>{{t "common.sort.alpha.desc"}}</Option>
           </Optgroup>
   {{/let}}
         </BlockSlot>
-      </PopoverSelect>
+      </search.Select>
     </:sort>
 </SearchBar>
