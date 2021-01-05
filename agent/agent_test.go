@@ -270,6 +270,91 @@ func TestAgent_ReconnectConfigSettings(t *testing.T) {
 	}()
 }
 
+func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
+	tests := []struct {
+		name                 string
+		maxHeaderBytes       int
+		expectedHTTPResponse int
+	}{
+		{
+			"max header bytes 1 returns 431 http response when too large headers are sent",
+			1,
+			431,
+		},
+		{
+			"max header bytes 0 returns 200 http response, as the http.DefaultMaxHeaderBytes size of 1MB is used",
+			0,
+			200,
+		},
+		{
+			"negative maxHeaderBytes returns 200 http response, as the http.DefaultMaxHeaderBytes size of 1MB is used",
+			-10,
+			200,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ports, err := freeport.Take(1)
+			require.NoError(t, err)
+			t.Cleanup(func() { freeport.Return(ports) })
+
+			caConfig := tlsutil.Config{}
+			tlsConf, err := tlsutil.NewConfigurator(caConfig, hclog.New(nil))
+			require.NoError(t, err)
+
+			bd := BaseDeps{
+				Deps: consul.Deps{
+					Logger:          hclog.NewInterceptLogger(nil),
+					Tokens:          new(token.Store),
+					TLSConfigurator: tlsConf,
+				},
+				RuntimeConfig: &config.RuntimeConfig{
+					HTTPAddrs: []net.Addr{
+						&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: ports[0]},
+					},
+					HTTPMaxHeaderBytes: tt.maxHeaderBytes,
+				},
+				Cache: cache.New(cache.Options{}),
+			}
+			a, err := New(bd)
+			require.NoError(t, err)
+
+			srvs, err := a.listenHTTP()
+			require.NoError(t, err)
+
+			require.Equal(t, tt.maxHeaderBytes, a.config.HTTPMaxHeaderBytes)
+
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			t.Cleanup(cancel)
+
+			g := new(errgroup.Group)
+			for _, s := range srvs {
+				g.Go(s.Run)
+			}
+
+			require.Len(t, srvs, 1)
+
+			client := &http.Client{}
+			for _, s := range srvs {
+				u := url.URL{Scheme: s.Protocol, Host: s.Addr.String()}
+				req, err := http.NewRequest(http.MethodGet, u.String(), nil)
+				require.NoError(t, err)
+
+				// This is directly pulled from the testing of request limits in the net/http source
+				// https://github.com/golang/go/blob/go1.15.3/src/net/http/serve_test.go#L2897-L2900
+				var bytesPerHeader = len("header12345: val12345\r\n")
+				for i := 0; i < ((tt.maxHeaderBytes+4096)/bytesPerHeader)+1; i++ {
+					req.Header.Set(fmt.Sprintf("header%05d", i), fmt.Sprintf("val%05d", i))
+				}
+
+				resp, err := client.Do(req.WithContext(ctx))
+				require.NoError(t, err)
+				require.Equal(t, tt.expectedHTTPResponse, resp.StatusCode, "expected a '%d' http response, got '%d'", tt.expectedHTTPResponse, resp.StatusCode)
+			}
+		})
+	}
+}
+
 func TestAgent_ReconnectConfigWanDisabled(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
