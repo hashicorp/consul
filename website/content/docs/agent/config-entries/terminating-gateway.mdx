@@ -592,6 +592,11 @@ and configure default certificates for mutual TLS. Also override the SNI and CA 
           name: 'name',
           description: 'Set to the name of the gateway being configured.',
         },
+        {
+          name: 'namespace',
+          description:
+            'If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/docs/k8s/crds#consul-enterprise) for more details.',
+        },
       ],
       hcl: false,
     },

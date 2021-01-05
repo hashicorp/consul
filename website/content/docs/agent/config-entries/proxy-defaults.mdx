@@ -156,7 +156,17 @@ spec:
     },
     {
       name: 'metadata',
-      children: [{ name: 'name', description: 'Must be set to `global`' }],
+      children: [
+        {
+          name: 'name',
+          description: 'Must be set to `global`',
+        },
+        {
+          name: 'namespace',
+          description:
+            'If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/docs/k8s/crds#consul-enterprise) for more details.',
+        },
+      ],
       hcl: false,
     },
     {
