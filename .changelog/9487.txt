@@ -1,0 +1,3 @@
+```release-note:bug
+rpc: Prevent misleading RPC error claiming the lack of a leader when Raft is ok but there are issues with client agents gossiping with the leader.
+```
