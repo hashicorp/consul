@@ -23,7 +23,7 @@ Feature: page-navigation
   Where:
     -------------------------------------------------------------------------------------
     | Link       | URL               | Endpoint                                         |
-    | nodes      | /dc-1/nodes       | /v1/internal/ui/nodes?dc=dc-1                    |
+    | nodes      | /dc-1/nodes       | /v1/internal/ui/nodes?dc=dc-1&ns=@namespace      |
     | kvs        | /dc-1/kv          | /v1/kv/?keys&dc=dc-1&separator=%2F&ns=@namespace |
     | acls       | /dc-1/acls/tokens | /v1/acl/tokens?dc=dc-1&ns=@namespace             |
     | intentions | /dc-1/intentions  | /v1/connect/intentions?dc=dc-1                   |
@@ -58,7 +58,7 @@ Feature: page-navigation
     ---
       - /v1/catalog/datacenters
       - /v1/namespaces
-      - /v1/internal/ui/node/node-0?dc=dc-1
+      - /v1/internal/ui/node/node-0?dc=dc-1&ns=@namespace
       - /v1/coordinate/nodes?dc=dc-1
       - /v1/session/node/node-0?dc=dc-1&ns=@namespace
     ---

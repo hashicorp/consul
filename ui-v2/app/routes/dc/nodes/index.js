@@ -13,7 +13,7 @@ export default Route.extend({
   },
   model: function(params) {
     const dc = this.modelFor('dc').dc.Name;
-    const nspace = '*';
+    const nspace = this.modelFor('nspace').nspace.substr(1);
     return hash({
       items: this.data.source(uri => uri`/${nspace}/${dc}/nodes`),
       leader: this.repo.findByLeader(dc),
