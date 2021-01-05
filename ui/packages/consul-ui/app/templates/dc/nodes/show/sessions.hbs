@@ -1,6 +1,5 @@
 <EventSource @src={{sessions}} />
-<div id="lock-sessions" class="tab-section">
-  <div role="tabpanel">
+<div class="tab-section">
 {{#if (gt sessions.length 0)}}
     <Consul::LockSession::List @items={{sessions}} @onInvalidate={{action send 'invalidateSession'}}/>
 {{else}}
@@ -12,5 +11,4 @@
       </BlockSlot>
     </EmptyState>
 {{/if}}
-  </div>
 </div>

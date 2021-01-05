@@ -9,7 +9,6 @@
 ) as |filters|}}
   {{#let (or sortBy "Status:asc") as |sort|}}
     <div class="tab-section">
-      <div role="tabpanel">
         {{#if (gt item.Checks.length 0) }}
           <input type="checkbox" id="toolbar-toggle" />
           <Consul::HealthCheck::SearchBar
@@ -52,7 +51,6 @@
             </EmptyState>
             </collection.Empty>
           </DataCollection>
-      </div>
     </div>
   {{/let}}
 {{/let}}

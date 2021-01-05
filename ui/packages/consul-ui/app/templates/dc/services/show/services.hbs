@@ -1,6 +1,5 @@
 <EventSource @src={{gatewayServices}} />
 <div class="tab-section">
-  <div role="tabpanel">
 {{#let (hash
   instances=(if instance (split instance ',') undefined)
   searchproperties=(if (not-eq searchproperty undefined)
@@ -55,5 +54,4 @@
     </DataCollection>
   {{/let}}
 {{/let}}
-  </div>
 </div>

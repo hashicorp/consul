@@ -9,7 +9,6 @@
   {{#let (or sortBy "Status:asc") as |sort|}}
   {{#let (reject-by 'Service.Kind' 'connect-proxy' item.Services) as |items|}}
 <div class="tab-section">
-  <div role="tabpanel">
   {{#if (gt items.length 0) }}
     <input type="checkbox" id="toolbar-toggle" />
     <Consul::ServiceInstance::SearchBar
@@ -55,7 +54,6 @@
         </EmptyState>
       </collection.Empty>
     </DataCollection>
-  </div>
 </div>
     {{/let}}
   {{/let}}

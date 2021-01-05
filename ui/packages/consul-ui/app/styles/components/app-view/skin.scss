@@ -4,12 +4,8 @@
 %app-view-title {
   border-bottom: $decor-border-100;
 }
-%app-view-content h2,
 %app-view-content form:not(.filter-bar) fieldset {
   border-bottom: $decor-border-200;
-}
-%app-view-content fieldset h2 {
-  border-bottom: none;
 }
 %app-view-header h1 > em {
   color: $gray-600;
@@ -21,7 +17,6 @@
   color: $gray-400;
 }
 %app-view-title,
-%app-view-content h2,
 %app-view-content form:not(.filter-bar) fieldset {
   border-color: $gray-200;
 }
