@@ -94,19 +94,20 @@ func newDialer(servers ServerLocator, wrapper TLSWrapper) func(context.Context, 
 				return nil, fmt.Errorf("TLS enabled but got nil TLS wrapper")
 			}
 
-			// Switch the connection into TLS mode
-			if _, err := conn.Write([]byte{byte(pool.RPCTLS)}); err != nil {
-				conn.Close()
-				return nil, err
-			}
-
-			// Wrap the connection in a TLS client
+			// Wrap the connection in a TLS client, return same conn if TLS disabled
 			tlsConn, err := wrapper(server.Datacenter, conn)
 			if err != nil {
 				conn.Close()
 				return nil, err
 			}
-			conn = tlsConn
+			if tlsConn != conn {
+				// If connection is upgraded to TLS, mark the stream as RPCTLS
+				if _, err := conn.Write([]byte{byte(pool.RPCTLS)}); err != nil {
+					conn.Close()
+					return nil, err
+				}
+				conn = tlsConn
+			}
 		}
 
 		_, err = conn.Write([]byte{pool.RPCGRPC})
