@@ -974,6 +974,8 @@ workflows:
       - ember-test-ent:
           requires:
             - ember-build-ent
+      # ember-coverage in CI uses the dist/ folder to run tests so it requires
+      # either/or ent/oss to be built first
       - ember-coverage:
           requires:
             - ember-build-ent
