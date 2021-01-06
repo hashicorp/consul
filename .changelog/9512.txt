@@ -1,0 +1,3 @@
+```release-note:bug
+client: properly set GRPC over RPC magic numbers when encryption was not set or partially set in the cluster with streaming enabled
+```

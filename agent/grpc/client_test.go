@@ -18,6 +18,11 @@ import (
 	"github.com/hashicorp/consul/tlsutil"
 )
 
+// useTLSForDcAlwaysTrue tell GRPC to always return the TLS is enabled
+func useTLSForDcAlwaysTrue(_ string) bool {
+	return true
+}
+
 func TestNewDialer_WithTLSWrapper(t *testing.T) {
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
@@ -37,7 +42,7 @@ func TestNewDialer_WithTLSWrapper(t *testing.T) {
 		called = true
 		return conn, nil
 	}
-	dial := newDialer(builder, wrapper)
+	dial := newDialer(builder, wrapper, useTLSForDcAlwaysTrue)
 	ctx := context.Background()
 	conn, err := dial(ctx, lis.Addr().String())
 	require.NoError(t, err)
@@ -63,7 +68,7 @@ func TestNewDialer_IntegrationWithTLSEnabledHandler(t *testing.T) {
 	res.AddServer(srv.Metadata())
 	t.Cleanup(srv.shutdown)
 
-	pool := NewClientConnPool(res, TLSWrapper(tlsConf.OutgoingRPCWrapper()))
+	pool := NewClientConnPool(res, TLSWrapper(tlsConf.OutgoingRPCWrapper()), tlsConf.UseTLS)
 
 	conn, err := pool.ClientConn("dc1")
 	require.NoError(t, err)
@@ -82,7 +87,7 @@ func TestClientConnPool_IntegrationWithGRPCResolver_Failover(t *testing.T) {
 	count := 4
 	res := resolver.NewServerResolverBuilder(newConfig(t))
 	registerWithGRPC(t, res)
-	pool := NewClientConnPool(res, nil)
+	pool := NewClientConnPool(res, nil, useTLSForDcAlwaysTrue)
 
 	for i := 0; i < count; i++ {
 		name := fmt.Sprintf("server-%d", i)
@@ -119,7 +124,7 @@ func TestClientConnPool_IntegrationWithGRPCResolver_Rebalance(t *testing.T) {
 	count := 5
 	res := resolver.NewServerResolverBuilder(newConfig(t))
 	registerWithGRPC(t, res)
-	pool := NewClientConnPool(res, nil)
+	pool := NewClientConnPool(res, nil, useTLSForDcAlwaysTrue)
 
 	for i := 0; i < count; i++ {
 		name := fmt.Sprintf("server-%d", i)
@@ -168,7 +173,7 @@ func TestClientConnPool_IntegrationWithGRPCResolver_MultiDC(t *testing.T) {
 
 	res := resolver.NewServerResolverBuilder(newConfig(t))
 	registerWithGRPC(t, res)
-	pool := NewClientConnPool(res, nil)
+	pool := NewClientConnPool(res, nil, useTLSForDcAlwaysTrue)
 
 	for _, dc := range dcs {
 		name := "server-0-" + dc
