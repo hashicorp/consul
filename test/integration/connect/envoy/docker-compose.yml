@@ -397,7 +397,7 @@ services:
   fake-statsd:
     depends_on:
       - consul-primary
-    image: "docker.mirror.hashicorp.services/alpine/socat"
+    image: "docker.mirror.hashicorp.services/alpine/socat:1.7.3.4-r1"
     command:
       - -u
       - UDP-RECVFROM:8125,fork,reuseaddr
