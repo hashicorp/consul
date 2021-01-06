@@ -27,6 +27,7 @@
       <Actions.Action class="action">
         <button
           {{on "click" @oncreate}}
+          data-test-confirm
           type="button"
         >
           {{#if @item.Intention.HasExact}}
@@ -94,10 +95,11 @@
       )
       returns=(set this 'popoverController')
     }}
-    type="button"
     {{on 'click' (fn (optional this.popoverController.show))}}
+    type="button"
     style={{{concat 'top:' @position.y 'px;left:' @position.x 'px;'}}}
     aria-label={{if (eq @type 'deny') 'Add intention' 'View intention'}}
+    data-test-action
   >
   </button>
 </div>
