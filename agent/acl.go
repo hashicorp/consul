@@ -3,9 +3,10 @@ package agent
 import (
 	"fmt"
 
+	"github.com/hashicorp/serf/serf"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/serf/serf"
 )
 
 // resolveToken is the primary interface used by ACL-checkers in the agent
@@ -36,16 +37,11 @@ func (a *Agent) resolveTokenAndDefaultMeta(id string, entMeta *structs.Enterpris
 	return a.delegate.ResolveTokenAndDefaultMeta(id, entMeta, authzContext)
 }
 
-// resolveIdentityFromToken is used to resolve an ACLToken's secretID to a structs.ACLIdentity
-func (a *Agent) resolveIdentityFromToken(secretID string) (structs.ACLIdentity, error) {
-	return a.delegate.ResolveTokenToIdentity(secretID)
-}
-
 // aclAccessorID is used to convert an ACLToken's secretID to its accessorID for non-
 // critical purposes, such as logging. Therefore we interpret all errors as empty-string
 // so we can safely log it without handling non-critical errors at the usage site.
 func (a *Agent) aclAccessorID(secretID string) string {
-	ident, err := a.resolveIdentityFromToken(secretID)
+	ident, err := a.delegate.ResolveTokenToIdentity(secretID)
 	if acl.IsErrNotFound(err) {
 		return ""
 	}

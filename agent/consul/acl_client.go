@@ -86,19 +86,11 @@ func (c *Client) ResolveRoleFromID(roleID string) (bool, *structs.ACLRole, error
 	return false, nil, nil
 }
 
-func (c *Client) ResolveToken(token string) (acl.Authorizer, error) {
-	return c.acls.ResolveToken(token)
-}
-
 func (c *Client) ResolveTokenToIdentity(token string) (structs.ACLIdentity, error) {
 	// not using ResolveTokenToIdentityAndAuthorizer because in this case we don't
 	// need to resolve the roles, policies and namespace but just want the identity
 	// information such as accessor id.
 	return c.acls.ResolveTokenToIdentity(token)
-}
-
-func (c *Client) ResolveTokenToIdentityAndAuthorizer(token string) (structs.ACLIdentity, acl.Authorizer, error) {
-	return c.acls.ResolveTokenToIdentityAndAuthorizer(token)
 }
 
 func (c *Client) ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error) {
