@@ -55,7 +55,7 @@ There are four specific cases covered with increasing complexity:
            state for client agent's RPC client.
       - [ ] Add a test to `agent/agent_test.go` similar to others with prefix
         `TestAgent_reloadConfig*`.
- - [ ] Add documentation to `website/pages/docs/agent/options.mdx`.
+ - [ ] Add documentation to `website/content/docs/agent/options.mdx`.
 
 Done! You can now use your new field in a client agent by accessing
 `s.agent.Config.<FieldName>`.
