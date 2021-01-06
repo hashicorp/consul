@@ -32,7 +32,7 @@ github.com/NYTimes/gziphandler
 github.com/StackExchange/wmi
 # github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e
 github.com/armon/circbuf
-# github.com/armon/go-metrics v0.3.5-0.20201104215618-6fd5a4ddf425
+# github.com/armon/go-metrics v0.3.6
 github.com/armon/go-metrics
 github.com/armon/go-metrics/circonus
 github.com/armon/go-metrics/datadog
