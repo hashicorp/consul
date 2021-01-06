@@ -889,13 +889,12 @@ workflows:
             - check-vendor
       - build-amd64: *require-check-vendor
       - build-arm: *require-check-vendor
-      # every commit on ui-staging and master will have a rebuilt UI
+      # every commit on master will have a rebuilt UI
       - frontend-cache:
           filters:
             branches:
               only:
                 - master
-                - ui-staging
       - ember-build-prod:
           requires:
             - frontend-cache
@@ -931,7 +930,6 @@ workflows:
               ignore:
                 - /^pull\/.*$/ # only push dev builds from non forks
                 - master # all master dev uploads will include a UI rebuild in build-distros
-                - ui-staging # all ui-staging dev uploads will include a UI rebuild in build-distros
       - dev-upload-docker:
           <<: *dev-upload
           context: consul-ci
@@ -974,7 +972,6 @@ workflows:
             branches:
               only:
                 - master
-                - ui-staging
                 - /^ui\/.*/
       - workspace-tests:
           requires:
@@ -994,6 +991,8 @@ workflows:
       - ember-test-ent:
           requires:
             - ember-build-ent
+      # ember-coverage in CI uses the dist/ folder to run tests so it requires
+      # either/or ent/oss to be built first
       - ember-coverage:
           requires:
             - ember-build-ent
