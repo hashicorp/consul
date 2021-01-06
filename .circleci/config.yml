@@ -557,7 +557,7 @@ jobs:
 
       - run:
           name: install yarn packages
-          command: cd ui/packages/consul-ui && yarn install --focus
+          command: cd ui && yarn install
 
       - save_cache:
           key: *YARN_CACHE_KEY
@@ -672,6 +672,20 @@ jobs:
       - run:
           working_directory: ui/packages/consul-ui
           command: make test-node
+      - run: *notify-slack-failure
+  # run yarn workspace wide checks/tests
+  workspace-tests:
+    docker:
+      - image: *EMBER_IMAGE
+    steps:
+      - checkout
+      - restore_cache:
+          key: *YARN_CACHE_KEY
+      - attach_workspace:
+          at: ui
+      - run:
+          working_directory: ui
+          command: make test-workspace
       - run: *notify-slack-failure
 
   # run ember frontend tests
@@ -962,6 +976,9 @@ workflows:
                 - master
                 - ui-staging
                 - /^ui\/.*/
+      - workspace-tests:
+          requires:
+            - frontend-cache
       - node-tests:
           requires:
             - frontend-cache

@@ -1,4 +1,10 @@
-.PHONY: clean dist dist-docker dist-netlify
+.PHONY: clean dist dist-docker dist-netlify test-workspace
+
+# Run from CI, should run any checks/tests for the workspace that we'd like to
+# be run for every PR
+test-workspace:
+	yarn run compliance
+
 # Called from the build ui docker image
 dist-docker: dist
 
