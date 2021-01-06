@@ -531,7 +531,7 @@ function run_container_fake-statsd {
   docker run -d --name $(container_name) \
     $WORKDIR_SNIPPET \
     $(network_snippet primary) \
-    "${HASHICORP_DOCKER_PROXY}/alpine/socat" \
+    "${HASHICORP_DOCKER_PROXY}/alpine/socat:1.7.3.4-r1" \
     -u UDP-RECVFROM:8125,fork,reuseaddr \
     SYSTEM:'xargs -0 echo >> /workdir/primary/statsd/statsd.log'
 }
