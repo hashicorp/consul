@@ -47,9 +47,10 @@ You will need the following things properly installed on your computer.
 
 List of available project commands.  `yarn run <command-name>`
 
-| Command             | Description |
-|---------------------|---|
-| doc:toc               | Re-builds the ToC for this README. |
+| Command             | Description                        |
+|---------------------|------------------------------------|
+| doc:toc             | Re-builds the ToC for this README. |
+| compliance:licenses | Checks that all dependencies have OSS-compatible licenses. |
 
 ## Contributing
 
