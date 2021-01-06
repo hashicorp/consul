@@ -1,4 +1,8 @@
-.PHONY: clean dist dist-docker dist-netlify
+.PHONY: clean dist dist-docker dist-netlify test-workspace
+
+test-workspace:
+	yarn run compliance
+
 # Called from the build ui docker image
 dist-docker: dist
 
