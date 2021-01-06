@@ -35,9 +35,10 @@ type TLSWrapper func(dc string, conn net.Conn) (net.Conn, error)
 
 type dialer func(context.Context, string) (net.Conn, error)
 
-func NewClientConnPool(servers ServerLocator, tls TLSWrapper) *ClientConnPool {
+// NewClientConnPool create new GRPC client pool to connect to servers using GRPC over RPC
+func NewClientConnPool(servers ServerLocator, tls TLSWrapper, useTLSForDC func(dc string) bool) *ClientConnPool {
 	return &ClientConnPool{
-		dialer:  newDialer(servers, tls),
+		dialer:  newDialer(servers, tls, useTLSForDC),
 		servers: servers,
 		conns:   make(map[string]*grpc.ClientConn),
 	}
@@ -74,7 +75,7 @@ func (c *ClientConnPool) ClientConn(datacenter string) (*grpc.ClientConn, error)
 
 // newDialer returns a gRPC dialer function that conditionally wraps the connection
 // with TLS based on the Server.useTLS value.
-func newDialer(servers ServerLocator, wrapper TLSWrapper) func(context.Context, string) (net.Conn, error) {
+func newDialer(servers ServerLocator, wrapper TLSWrapper, useTLSForDC func(dc string) bool) func(context.Context, string) (net.Conn, error) {
 	return func(ctx context.Context, addr string) (net.Conn, error) {
 		d := net.Dialer{}
 		conn, err := d.DialContext(ctx, "tcp", addr)
@@ -88,7 +89,7 @@ func newDialer(servers ServerLocator, wrapper TLSWrapper) func(context.Context, 
 			return nil, err
 		}
 
-		if server.UseTLS {
+		if server.UseTLS && useTLSForDC(server.Datacenter) {
 			if wrapper == nil {
 				conn.Close()
 				return nil, fmt.Errorf("TLS enabled but got nil TLS wrapper")
