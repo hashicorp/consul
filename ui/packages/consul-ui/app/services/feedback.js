@@ -13,54 +13,64 @@ const notificationDefaults = function() {
   };
 };
 export default class FeedbackService extends Service {
-  @service('flashMessages')
-  notify;
+  @service('flashMessages') notify;
+  @service('logger') logger;
 
-  @service('logger')
-  logger;
+  notification(action) {
+    return {
+      success: item => this.success(item, action),
+      error: e => this.error(e, action),
+    };
+  }
 
-  execute(handle, action, status = defaultStatus, controller) {
+  success(item, action, status = defaultStatus) {
     const getAction = callableType(action);
     const getStatus = callableType(status);
-    const notify = this.notify;
-    return (
-      handle()
-        //TODO: pass this through to getAction..
-        .then(item => {
-          // returning exactly `false` for a feedback action means even though
-          // its successful, please skip this notification and don't display it
-          if (item !== false) {
-            notify.clearMessages();
-            // TODO right now the majority of `item` is a Transition
-            // but you can resolve an object
-            notify.add({
-              ...notificationDefaults(),
-              type: getStatus(TYPE_SUCCESS),
-              // here..
-              action: getAction(),
-              item: item,
-            });
-          }
-        })
-        .catch(e => {
-          notify.clearMessages();
-          this.logger.execute(e);
-          if (e.name === 'TransitionAborted') {
-            notify.add({
-              ...notificationDefaults(),
-              type: getStatus(TYPE_SUCCESS),
-              // and here
-              action: getAction(),
-            });
-          } else {
-            notify.add({
-              ...notificationDefaults(),
-              type: getStatus(TYPE_ERROR, e),
-              action: getAction(),
-              error: e,
-            });
-          }
-        })
-    );
+    // returning exactly `false` for a feedback action means even though
+    // its successful, please skip this notification and don't display it
+    if (item !== false) {
+      this.notify.clearMessages();
+      // TODO right now the majority of `item` is a Transition
+      // but you can resolve an object
+      this.notify.add({
+        ...notificationDefaults(),
+        type: getStatus(TYPE_SUCCESS),
+        // here..
+        action: getAction(),
+        item: item,
+      });
+    }
+  }
+
+  error(e, action, status = defaultStatus) {
+    const getAction = callableType(action);
+    const getStatus = callableType(status);
+    this.notify.clearMessages();
+    this.logger.execute(e);
+    if (e.name === 'TransitionAborted') {
+      this.notify.add({
+        ...notificationDefaults(),
+        type: getStatus(TYPE_SUCCESS),
+        // and here
+        action: getAction(),
+      });
+    } else {
+      this.notify.add({
+        ...notificationDefaults(),
+        type: getStatus(TYPE_ERROR, e),
+        action: getAction(),
+        error: e,
+      });
+    }
+  }
+
+  async execute(handle, action, status) {
+    let result;
+    try {
+      result = await handle();
+      this.success(result, action, status);
+    } catch (e) {
+      this.error(e, action, status);
+    }
   }
 }
