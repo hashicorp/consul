@@ -12,7 +12,7 @@ require (
 	github.com/Microsoft/go-winio v0.4.3 // indirect
 	github.com/NYTimes/gziphandler v1.0.1
 	github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e
-	github.com/armon/go-metrics v0.3.5-0.20201104215618-6fd5a4ddf425
+	github.com/armon/go-metrics v0.3.6
 	github.com/armon/go-radix v1.0.0
 	github.com/aws/aws-sdk-go v1.25.41
 	github.com/coredns/coredns v1.1.2
