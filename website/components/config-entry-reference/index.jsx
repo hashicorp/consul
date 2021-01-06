@@ -31,12 +31,8 @@ import EnterpriseAlertBase from '@hashicorp/react-enterprise-alert'
  * - type <optional>: the type and default of this key, e.g. string: "default".
  */
 export default function ConfigEntryReference({ keys, topLevel = true }) {
-  let kubeKeys = keys
-  if (topLevel) {
-    // Kube needs to have its non-top-level keys nested under a "spec" key.
-    kubeKeys = toKubeKeys(keys)
-  }
-
+  // Kube needs to have its non-top-level keys nested under a "spec" key.
+  const kubeKeys = topLevel ? toKubeKeys(keys) : keys
   return (
     <Tabs>
       <Tab heading="HCL">{renderKeys(keys, true)}</Tab>
@@ -52,40 +48,23 @@ export default function ConfigEntryReference({ keys, topLevel = true }) {
  * @returns {JSX.Element|null}
  */
 function renderKeys(keys, isHCLTab) {
-  if (!keys) {
-    return null
-  }
-
-  return (
-    <ul>
-      {keys.map((key) => {
-        return renderKey(key, isHCLTab)
-      })}
-    </ul>
-  )
+  if (!keys) return null
+  return <ul>{keys.map((key) => renderKey(key, isHCLTab))}</ul>
 }
 
 /**
  * Renders a single key as its HTML element.
  *
  * @param {object} key
- * @param {boolea} isHCLTab
+ * @param {boolean} isHCLTab
  * @returns {JSX.Element|null}
  */
 function renderKey(key, isHCLTab) {
-  let keyName = key.name
-  if (!keyName) {
-    return null
-  }
-  if (!isHCLTab) {
-    keyName = toYAMLKeyName(keyName)
-  }
-  if (isHCLTab && key.hcl === false) {
-    return null
-  }
-  if (!isHCLTab && key.yaml === false) {
-    return null
-  }
+  if (!key.name) return null
+  if (isHCLTab && key.hcl === false) return null
+  if (!isHCLTab && key.yaml === false) return null
+
+  const keyName = isHCLTab ? key.name : toYAMLKeyName(key.name)
 
   let description = ''
   if (key.description) {
@@ -98,21 +77,9 @@ function renderKey(key, isHCLTab) {
     }
   }
 
-  let htmlDescription = ''
-  if (description !== '') {
-    htmlDescription = markdownToHtml(' - ' + description)
-  }
-
-  let type = ''
-  if (key.type) {
-    type = <code>{'(' + key.type + ')'}</code>
-  }
-
-  let enterpriseAlert = ''
-  if (key.enterprise) {
-    enterpriseAlert = <EnterpriseAlert inline />
-  }
-
+  const htmlDescription = description && markdownToHtml(' - ' + description)
+  const type = key.type && <code>{`(${key.type})`}</code>
+  const enterpriseAlert = key.enterprise && <EnterpriseAlert inline />
   const keyLower = keyName.toLowerCase()
 
   return (
@@ -144,12 +111,8 @@ function renderKey(key, isHCLTab) {
  * @returns {array}
  */
 function toKubeKeys(keys) {
-  const topLevelKeys = keys.filter((key) => {
-    return isTopLevelKubeKey(key.name)
-  })
-  const keysUnderSpec = keys.filter((key) => {
-    return !isTopLevelKubeKey(key.name)
-  })
+  const topLevelKeys = keys.filter((key) => isTopLevelKubeKey(key.name))
+  const keysUnderSpec = keys.filter((key) => !isTopLevelKubeKey(key.name))
   return topLevelKeys.concat([{ name: 'spec', children: keysUnderSpec }])
 }
 
@@ -171,26 +134,21 @@ function toYAMLKeyName(hclKey) {
     return hclKey.toLowerCase()
   }
 
-  let indexFirstLowercaseChar = 0
-  for (let i = 0; i < hclKey.length; i++) {
-    if (hclKey[i].toLowerCase() === hclKey[i]) {
-      indexFirstLowercaseChar = i
-      break
-    }
-  }
-
+  let indexFirstLowercaseChar = hclKey
+    .split('')
+    .findIndex((c) => c === c.toLowerCase())
   // Special case to handle something like ACLToken => aclToken.
   if (indexFirstLowercaseChar > 1) {
     indexFirstLowercaseChar--
   }
 
-  let yamlKey = ''
+  let lowercasePortion = ''
   for (let i = 0; i < indexFirstLowercaseChar; i++) {
-    yamlKey += hclKey[i].toLowerCase()
+    lowercasePortion += hclKey[i].toLowerCase()
   }
-  yamlKey += hclKey.split('').slice(indexFirstLowercaseChar).join('')
-
-  return yamlKey
+  return (
+    lowercasePortion + hclKey.split('').slice(indexFirstLowercaseChar).join('')
+  )
 }
 
 /**
