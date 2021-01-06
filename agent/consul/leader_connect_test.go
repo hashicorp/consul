@@ -639,7 +639,7 @@ func TestLeader_Vault_PrimaryCA_FixSigningKeyID_OnRestart(t *testing.T) {
 		}
 	}
 
-	// Shutdown s2pre and restart it to trigger the secondary CA init to correct
+	// Shutdown s1pre and restart it to trigger the secondary CA init to correct
 	// the SigningKeyID.
 	s1pre.Shutdown()
 
