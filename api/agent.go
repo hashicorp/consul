@@ -3,6 +3,7 @@ package api
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -266,12 +267,23 @@ type AgentServiceRegistration struct {
 	Namespace         string                          `json:",omitempty" bexpr:"-" hash:"ignore"`
 }
 
-//ServiceRegisterOpts is used to pass extra options to the service register.
+// ServiceRegisterOpts is used to pass extra options to the service register.
 type ServiceRegisterOpts struct {
 	//Missing healthchecks will be deleted from the agent.
 	//Using this parameter allows to idempotently register a service and its checks without
 	//having to manually deregister checks.
 	ReplaceExistingChecks bool
+
+	// ctx is an optional context pass through to the underlying HTTP
+	// request layer. Use WithContext() to set the context.
+	ctx context.Context
+}
+
+// WithContext sets the context to be used for the request on a new ServiceRegisterOpts,
+// and returns the opts.
+func (o ServiceRegisterOpts) WithContext(ctx context.Context) ServiceRegisterOpts {
+	o.ctx = ctx
+	return o
 }
 
 // AgentCheckRegistration is used to register a new check
@@ -688,6 +700,7 @@ func (a *Agent) ServiceRegisterOpts(service *AgentServiceRegistration, opts Serv
 func (a *Agent) serviceRegister(service *AgentServiceRegistration, opts ServiceRegisterOpts) error {
 	r := a.c.newRequest("PUT", "/v1/agent/service/register")
 	r.obj = service
+	r.ctx = opts.ctx
 	if opts.ReplaceExistingChecks {
 		r.params.Set("replace-existing-checks", "true")
 	}

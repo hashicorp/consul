@@ -1,7 +1,9 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -208,7 +210,9 @@ func TestAPI_AgentServiceAndReplaceChecks(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := agent.ServiceRegisterOpts(regupdate, ServiceRegisterOpts{ReplaceExistingChecks: true}); err != nil {
+	ctx := context.Background()
+	opts := ServiceRegisterOpts{ReplaceExistingChecks: true}.WithContext(ctx)
+	if err := agent.ServiceRegisterOpts(regupdate, opts); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -245,6 +249,18 @@ func TestAPI_AgentServiceAndReplaceChecks(t *testing.T) {
 	if err := agent.ServiceDeregister("foo"); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+}
+
+func TestAgent_ServiceRegisterOpts_WithContextTimeout(t *testing.T) {
+	c, err := NewClient(DefaultConfig())
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
+	t.Cleanup(cancel)
+
+	opts := ServiceRegisterOpts{}.WithContext(ctx)
+	err = c.Agent().ServiceRegisterOpts(&AgentServiceRegistration{}, opts)
+	require.True(t, errors.Is(err, context.DeadlineExceeded), "expected timeout")
 }
 
 func TestAPI_AgentServices(t *testing.T) {
