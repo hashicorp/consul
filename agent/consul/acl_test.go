@@ -9,14 +9,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mitchellh/copystructure"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/mitchellh/copystructure"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var testACLPolicy = `
@@ -61,8 +62,21 @@ func verifyAuthorizerChain(t *testing.T, expected acl.Authorizer, actual acl.Aut
 }
 
 func resolveTokenAsync(r *ACLResolver, token string, ch chan *asyncResolutionResult) {
-	authz, err := r.ResolveToken(token)
+	_, authz, err := r.ResolveTokenToIdentityAndAuthorizer(token)
 	ch <- &asyncResolutionResult{authz: authz, err: err}
+}
+
+// Deprecated: use resolveToken or ACLResolver.ResolveTokenToIdentityAndAuthorizer instead
+func (r *ACLResolver) ResolveToken(token string) (acl.Authorizer, error) {
+	_, authz, err := r.ResolveTokenToIdentityAndAuthorizer(token)
+	return authz, err
+}
+
+func resolveToken(t *testing.T, r *ACLResolver, token string) acl.Authorizer {
+	t.Helper()
+	_, authz, err := r.ResolveTokenToIdentityAndAuthorizer(token)
+	require.NoError(t, err)
+	return authz
 }
 
 func testIdentityForToken(token string) (bool, structs.ACLIdentity, error) {
@@ -1739,57 +1753,50 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 	})
 
 	runTwiceAndReset("Missing Policy", func(t *testing.T) {
-		authz, err := r.ResolveToken("missing-policy")
-		require.NoError(t, err)
+		authz := resolveToken(t, r, "missing-policy")
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Allow, authz.ACLRead(nil))
 		require.Equal(t, acl.Deny, authz.NodeWrite("foo", nil))
 	})
 
 	runTwiceAndReset("Missing Role", func(t *testing.T) {
-		authz, err := r.ResolveToken("missing-role")
-		require.NoError(t, err)
+		authz := resolveToken(t, r, "missing-role")
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Allow, authz.ACLRead(nil))
 		require.Equal(t, acl.Deny, authz.NodeWrite("foo", nil))
 	})
 
 	runTwiceAndReset("Missing Policy on Role", func(t *testing.T) {
-		authz, err := r.ResolveToken("missing-policy-on-role")
-		require.NoError(t, err)
+		authz := resolveToken(t, r, "missing-policy-on-role")
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Allow, authz.ACLRead(nil))
 		require.Equal(t, acl.Deny, authz.NodeWrite("foo", nil))
 	})
 
 	runTwiceAndReset("Normal with Policy", func(t *testing.T) {
-		authz, err := r.ResolveToken("found")
+		authz := resolveToken(t, r, "found")
 		require.NotNil(t, authz)
-		require.NoError(t, err)
 		require.Equal(t, acl.Deny, authz.ACLRead(nil))
 		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
 	})
 
 	runTwiceAndReset("Normal with Role", func(t *testing.T) {
-		authz, err := r.ResolveToken("found-role")
+		authz := resolveToken(t, r, "found-role")
 		require.NotNil(t, authz)
-		require.NoError(t, err)
 		require.Equal(t, acl.Deny, authz.ACLRead(nil))
 		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
 	})
 
 	runTwiceAndReset("Normal with Policy and Role", func(t *testing.T) {
-		authz, err := r.ResolveToken("found-policy-and-role")
+		authz := resolveToken(t, r, "found-policy-and-role")
 		require.NotNil(t, authz)
-		require.NoError(t, err)
 		require.Equal(t, acl.Deny, authz.ACLRead(nil))
 		require.Equal(t, acl.Allow, authz.NodeWrite("foo", nil))
 		require.Equal(t, acl.Allow, authz.ServiceRead("bar", nil))
 	})
 
 	runTwiceAndReset("Role With Node Identity", func(t *testing.T) {
-		authz, err := r.ResolveToken("found-role-node-identity")
-		require.NoError(t, err)
+		authz := resolveToken(t, r, "found-role-node-identity")
 		require.NotNil(t, authz)
 		require.Equal(t, acl.Allow, authz.NodeWrite("test-node", nil))
 		require.Equal(t, acl.Deny, authz.NodeWrite("test-node-dc2", nil))

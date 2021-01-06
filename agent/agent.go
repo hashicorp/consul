@@ -130,9 +130,16 @@ type delegate interface {
 	LocalMember() serf.Member
 	JoinLAN(addrs []string) (n int, err error)
 	RemoveFailedNode(node string, prune bool) error
-	ResolveToken(secretID string) (acl.Authorizer, error)
-	ResolveTokenToIdentity(secretID string) (structs.ACLIdentity, error)
-	ResolveTokenAndDefaultMeta(secretID string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error)
+
+	// TODO: replace this method with consul.ACLResolver
+	ResolveTokenToIdentity(token string) (structs.ACLIdentity, error)
+
+	// ResolveTokenAndDefaultMeta returns an acl.Authorizer which authorizes
+	// actions based on the permissions granted to the token.
+	// If either entMeta or authzContext are non-nil they will be populated with the
+	// default namespace from the token.
+	ResolveTokenAndDefaultMeta(token string, entMeta *structs.EnterpriseMeta, authzContext *acl.AuthorizerContext) (acl.Authorizer, error)
+
 	RPC(method string, args interface{}, reply interface{}) error
 	UseLegacyACLs() bool
 	SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn structs.SnapshotReplyFn) error

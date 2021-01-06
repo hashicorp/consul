@@ -8,12 +8,13 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/go-hclog"
 	"golang.org/x/sync/singleflight"
 	"golang.org/x/time/rate"
+
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/logging"
 )
 
 var ACLCounters = []prometheus.CounterDefinition{
@@ -1039,11 +1040,6 @@ func (r *ACLResolver) collectRolesForIdentity(identity structs.ACLIdentity, role
 	return roles, nil
 }
 
-func (r *ACLResolver) resolveTokenToPolicies(token string) (structs.ACLPolicies, error) {
-	_, policies, err := r.resolveTokenToIdentityAndPolicies(token)
-	return policies, err
-}
-
 func (r *ACLResolver) resolveTokenToIdentityAndPolicies(token string) (structs.ACLIdentity, structs.ACLPolicies, error) {
 	var lastErr error
 	var lastIdentity structs.ACLIdentity
@@ -1189,11 +1185,6 @@ func (r *ACLResolver) ResolveTokenToIdentityAndAuthorizer(token string) (structs
 
 	chain = append(chain, acl.RootAuthorizer(r.config.ACLDefaultPolicy))
 	return identity, acl.NewChainedAuthorizer(chain), nil
-}
-
-func (r *ACLResolver) ResolveToken(token string) (acl.Authorizer, error) {
-	_, authz, err := r.ResolveTokenToIdentityAndAuthorizer(token)
-	return authz, err
 }
 
 func (r *ACLResolver) ResolveTokenToIdentity(token string) (structs.ACLIdentity, error) {
@@ -1979,7 +1970,7 @@ func (r *ACLResolver) filterACLWithAuthorizer(authorizer acl.Authorizer, subj in
 // rules configured for the provided token.
 func (r *ACLResolver) filterACL(token string, subj interface{}) error {
 	// Get the ACL from the token
-	authorizer, err := r.ResolveToken(token)
+	_, authorizer, err := r.ResolveTokenToIdentityAndAuthorizer(token)
 	if err != nil {
 		return err
 	}
