@@ -277,18 +277,12 @@ spec:
       name: 'Redirect',
       type: 'ServiceResolverRedirect: <optional>',
       description: {
-        hcl: `When configured, all
-                      attempts to resolve the service this resolver defines will be substituted for
-                      the supplied redirect EXCEPT when the redirect has already been applied.
+        hcl: `When configured, all attempts to resolve the service this resolver defines will be substituted for the supplied redirect EXCEPT when the redirect has already been applied.
                       <br><br>
-                      When substituting the supplied redirect into the all other fields besides
-                      \`Kind\`, \`Name\`, and \`Redirect\` will be ignored.`,
-        yaml: `When configured, all
-                      attempts to resolve the service this resolver defines will be substituted for
-                      the supplied redirect EXCEPT when the redirect has already been applied.
+                      When \`Redirect\` is set, all other fields besides \`Kind\`, \`Name\`, \`Namespace\` and \`Redirect\` will be ignored.`,
+        yaml: `When configured, all attempts to resolve the service this resolver defines will be substituted for the supplied redirect EXCEPT when the redirect has already been applied.
                       <br><br>
-                      When substituting the supplied redirect into the all other fields besides
-                      \`redirect\` will be ignored.`,
+                      When \`redirect\` is set, all other fields besides \`redirect\` will be ignored.`,
       },
       children: [
         {
