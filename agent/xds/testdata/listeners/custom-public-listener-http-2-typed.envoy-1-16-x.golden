@@ -70,7 +70,7 @@
                       }
                   },
                   {
-                    "name": "envoy.router"
+                    "name": "envoy.filters.http.router"
                   }
                 ]
               }

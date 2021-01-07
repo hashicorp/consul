@@ -65,8 +65,8 @@ load helpers
   echo "PUB = $PUB"
   echo "UPS = $UPS"
 
-  [ "$PUB" = "envoy.filters.http.rbac,envoy.router" ]
-  [ "$UPS" = "envoy.router" ]
+  [ "$PUB" = "envoy.filters.http.rbac,envoy.filters.http.router" ]
+  [ "$UPS" = "envoy.filters.http.router" ]
 }
 
 @test "s2 proxy should have been configured with http rbac filters" {
@@ -76,5 +76,5 @@ load helpers
   echo "HTTP_FILTERS = $HTTP_FILTERS"
   echo "PUB = $PUB"
 
-  [ "$PUB" = "envoy.filters.http.rbac,envoy.router" ]
+  [ "$PUB" = "envoy.filters.http.rbac,envoy.filters.http.router" ]
 }

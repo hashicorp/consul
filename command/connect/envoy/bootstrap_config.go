@@ -608,7 +608,7 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 							},
 							"http_filters": [
 								{
-									"name": "envoy.router"
+									"name": "envoy.filters.http.router"
 								}
 							]
 						}

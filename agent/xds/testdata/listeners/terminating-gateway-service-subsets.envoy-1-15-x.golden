@@ -194,7 +194,7 @@
                               "name": "envoy.filters.http.rbac"
                             },
                         {
-                              "name": "envoy.router"
+                              "name": "envoy.filters.http.router"
                             }
                       ],
                   "rds": {
@@ -256,7 +256,7 @@
                               "name": "envoy.filters.http.rbac"
                             },
                         {
-                              "name": "envoy.router"
+                              "name": "envoy.filters.http.router"
                             }
                       ],
                   "rds": {
@@ -318,7 +318,7 @@
                               "name": "envoy.filters.http.rbac"
                             },
                         {
-                              "name": "envoy.router"
+                              "name": "envoy.filters.http.router"
                             }
                       ],
                   "rds": {

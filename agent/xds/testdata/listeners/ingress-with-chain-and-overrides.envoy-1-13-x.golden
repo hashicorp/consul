@@ -25,7 +25,7 @@
                               "name": "envoy.grpc_http1_bridge"
                             },
                         {
-                              "name": "envoy.router"
+                              "name": "envoy.filters.http.router"
                             }
                       ],
                   "rds": {

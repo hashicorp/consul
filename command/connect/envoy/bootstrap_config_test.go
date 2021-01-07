@@ -74,7 +74,7 @@ const (
 							},
 							"http_filters": [
 								{
-									"name": "envoy.router"
+									"name": "envoy.filters.http.router"
 								}
 							]
 						}
@@ -131,7 +131,7 @@ const (
 							},
 							"http_filters": [
 								{
-									"name": "envoy.router"
+									"name": "envoy.filters.http.router"
 								}
 							]
 						}
@@ -188,7 +188,7 @@ const (
 							},
 							"http_filters": [
 								{
-									"name": "envoy.router"
+									"name": "envoy.filters.http.router"
 								}
 							]
 						}

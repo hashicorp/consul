@@ -1170,7 +1170,7 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoylistener.Filter, error) {
 		CodecType:  envoyhttp.HttpConnectionManager_AUTO,
 		HttpFilters: []*envoyhttp.HttpFilter{
 			{
-				Name: "envoy.router",
+				Name: "envoy.filters.http.router",
 			},
 		},
 		Tracing: &envoyhttp.HttpConnectionManager_Tracing{
