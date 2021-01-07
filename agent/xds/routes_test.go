@@ -9,21 +9,22 @@ import (
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoyroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/proxycfg"
+	"github.com/hashicorp/consul/agent/proxycfg/proxycfgtest"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/sdk/testutil"
-	testinf "github.com/mitchellh/go-testing-interface"
-	"github.com/stretchr/testify/require"
 )
 
 func TestRoutesFromSnapshot(t *testing.T) {
 
 	tests := []struct {
 		name   string
-		create func(t testinf.T) *proxycfg.ConfigSnapshot
+		create func(t *testing.T) *proxycfg.ConfigSnapshot
 		// Setup is called before the test starts. It is passed the snapshot from
 		// create func and is allowed to modify it in any way to setup the
 		// test input.
@@ -32,99 +33,99 @@ func TestRoutesFromSnapshot(t *testing.T) {
 	}{
 		{
 			name:   "defaults-no-chain",
-			create: proxycfg.TestConfigSnapshot,
+			create: proxycfgtest.TestConfigSnapshot,
 			setup:  nil, // Default snapshot
 		},
 		{
 			name:   "connect-proxy-with-chain",
-			create: proxycfg.TestConfigSnapshotDiscoveryChain,
+			create: proxycfgtest.TestConfigSnapshotDiscoveryChain,
 			setup:  nil,
 		},
 		{
 			name:   "connect-proxy-with-chain-external-sni",
-			create: proxycfg.TestConfigSnapshotDiscoveryChainExternalSNI,
+			create: proxycfgtest.TestConfigSnapshotDiscoveryChainExternalSNI,
 			setup:  nil,
 		},
 		{
 			name:   "connect-proxy-with-chain-and-overrides",
-			create: proxycfg.TestConfigSnapshotDiscoveryChainWithOverrides,
+			create: proxycfgtest.TestConfigSnapshotDiscoveryChainWithOverrides,
 			setup:  nil,
 		},
 		{
 			name:   "splitter-with-resolver-redirect",
-			create: proxycfg.TestConfigSnapshotDiscoveryChain_SplitterWithResolverRedirectMultiDC,
+			create: proxycfgtest.TestConfigSnapshotDiscoveryChain_SplitterWithResolverRedirectMultiDC,
 			setup:  nil,
 		},
 		{
 			name:   "connect-proxy-with-chain-and-splitter",
-			create: proxycfg.TestConfigSnapshotDiscoveryChainWithSplitter,
+			create: proxycfgtest.TestConfigSnapshotDiscoveryChainWithSplitter,
 			setup:  nil,
 		},
 		{
 			name:   "connect-proxy-with-grpc-router",
-			create: proxycfg.TestConfigSnapshotDiscoveryChainWithGRPCRouter,
+			create: proxycfgtest.TestConfigSnapshotDiscoveryChainWithGRPCRouter,
 			setup:  nil,
 		},
 		{
 			name:   "connect-proxy-with-chain-and-router",
-			create: proxycfg.TestConfigSnapshotDiscoveryChainWithRouter,
+			create: proxycfgtest.TestConfigSnapshotDiscoveryChainWithRouter,
 			setup:  nil,
 		},
 		{
 			name:   "connect-proxy-lb-in-resolver",
-			create: proxycfg.TestConfigSnapshotDiscoveryChainWithLB,
+			create: proxycfgtest.TestConfigSnapshotDiscoveryChainWithLB,
 			setup:  nil,
 		},
 		// TODO(rb): test match stanza skipped for grpc
 		// Start ingress gateway test cases
 		{
 			name:   "ingress-defaults-no-chain",
-			create: proxycfg.TestConfigSnapshotIngressGateway,
+			create: proxycfgtest.TestConfigSnapshotIngressGateway,
 			setup:  nil, // Default snapshot
 		},
 		{
 			name:   "ingress-with-chain",
-			create: proxycfg.TestConfigSnapshotIngress,
+			create: proxycfgtest.TestConfigSnapshotIngress,
 			setup:  nil,
 		},
 		{
 			name:   "ingress-with-chain-external-sni",
-			create: proxycfg.TestConfigSnapshotIngressExternalSNI,
+			create: proxycfgtest.TestConfigSnapshotIngressExternalSNI,
 			setup:  nil,
 		},
 		{
 			name:   "ingress-with-chain-and-overrides",
-			create: proxycfg.TestConfigSnapshotIngressWithOverrides,
+			create: proxycfgtest.TestConfigSnapshotIngressWithOverrides,
 			setup:  nil,
 		},
 		{
 			name:   "ingress-splitter-with-resolver-redirect",
-			create: proxycfg.TestConfigSnapshotIngress_SplitterWithResolverRedirectMultiDC,
+			create: proxycfgtest.TestConfigSnapshotIngress_SplitterWithResolverRedirectMultiDC,
 			setup:  nil,
 		},
 		{
 			name:   "ingress-with-chain-and-splitter",
-			create: proxycfg.TestConfigSnapshotIngressWithSplitter,
+			create: proxycfgtest.TestConfigSnapshotIngressWithSplitter,
 			setup:  nil,
 		},
 		{
 			name:   "ingress-with-grpc-router",
-			create: proxycfg.TestConfigSnapshotIngressWithGRPCRouter,
+			create: proxycfgtest.TestConfigSnapshotIngressWithGRPCRouter,
 			setup:  nil,
 		},
 		{
 			name:   "ingress-with-chain-and-router",
-			create: proxycfg.TestConfigSnapshotIngressWithRouter,
+			create: proxycfgtest.TestConfigSnapshotIngressWithRouter,
 			setup:  nil,
 		},
 		{
 			name:   "ingress-lb-in-resolver",
-			create: proxycfg.TestConfigSnapshotIngressWithLB,
+			create: proxycfgtest.TestConfigSnapshotIngressWithLB,
 			setup:  nil,
 		},
 		{
 			name:   "ingress-http-multiple-services",
-			create: proxycfg.TestConfigSnapshotIngress_HTTPMultipleServices,
+			create: proxycfgtest.TestConfigSnapshotIngress_HTTPMultipleServices,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.IngressGateway.Upstreams = map[proxycfg.IngressListenerKey]structs.Upstreams{
 					{Protocol: "http", Port: 8080}: {
@@ -189,7 +190,7 @@ func TestRoutesFromSnapshot(t *testing.T) {
 		},
 		{
 			name:   "terminating-gateway-lb-config",
-			create: proxycfg.TestConfigSnapshotTerminatingGateway,
+			create: proxycfgtest.TestConfigSnapshotTerminatingGateway,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.TerminatingGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
 					structs.NewServiceName("web", nil): {

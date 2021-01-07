@@ -12,6 +12,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/hashicorp/consul/agent/proxycfg/proxycfgtest"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/proxycfg"
@@ -122,7 +124,7 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 	assertChanBlocked(t, envoy.stream.sendCh)
 
 	// Deliver a new snapshot
-	snap := proxycfg.TestConfigSnapshot(t)
+	snap := proxycfgtest.TestConfigSnapshot(t)
 	mgr.DeliverConfig(t, sid, snap)
 
 	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(snap, 1, 1))
@@ -424,7 +426,7 @@ func TestServer_StreamAggregatedResources_ACLEnforcement(t *testing.T) {
 			acl:         `service "not-ingress" { policy = "write" }`,
 			token:       "service-write-on-not-ingress",
 			wantDenied:  true,
-			cfgSnap:     proxycfg.TestConfigSnapshotIngressGateway(t),
+			cfgSnap:     proxycfgtest.TestConfigSnapshotIngressGateway(t),
 		},
 	}
 
@@ -470,7 +472,7 @@ func TestServer_StreamAggregatedResources_ACLEnforcement(t *testing.T) {
 			// Deliver a new snapshot
 			snap := tt.cfgSnap
 			if snap == nil {
-				snap = proxycfg.TestConfigSnapshot(t)
+				snap = proxycfgtest.TestConfigSnapshot(t)
 			}
 			mgr.DeliverConfig(t, sid, snap)
 
@@ -568,7 +570,7 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedDuring
 	}
 
 	// Deliver a new snapshot
-	snap := proxycfg.TestConfigSnapshot(t)
+	snap := proxycfgtest.TestConfigSnapshot(t)
 	mgr.DeliverConfig(t, sid, snap)
 
 	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(snap, 1, 1))
@@ -663,7 +665,7 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedInBack
 	}
 
 	// Deliver a new snapshot
-	snap := proxycfg.TestConfigSnapshot(t)
+	snap := proxycfgtest.TestConfigSnapshot(t)
 	mgr.DeliverConfig(t, sid, snap)
 
 	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(snap, 1, 1))
@@ -731,7 +733,7 @@ func TestServer_StreamAggregatedResources_IngressEmptyResponse(t *testing.T) {
 	assertChanBlocked(t, envoy.stream.sendCh)
 
 	// Deliver a new snapshot with no services
-	snap := proxycfg.TestConfigSnapshotIngressGatewayNoServices(t)
+	snap := proxycfgtest.TestConfigSnapshotIngressGatewayNoServices(t)
 	mgr.DeliverConfig(t, sid, snap)
 
 	emptyClusterJSON := `{
