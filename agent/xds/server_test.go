@@ -89,7 +89,6 @@ func (m *testManager) AssertWatchCancelled(t *testing.T, proxyID structs.Service
 }
 
 func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
-	logger := testutil.Logger(t)
 	mgr := newTestManager(t)
 	aclResolve := func(id string) (acl.Authorizer, error) {
 		// Allow all
@@ -99,11 +98,10 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 	defer envoy.Close()
 
 	s := Server{
-		Logger:       logger,
+		Logger:       testutil.Logger(t),
 		CfgMgr:       mgr,
 		ResolveToken: aclResolve,
 	}
-	s.Initialize()
 
 	sid := structs.NewServiceID("web-sidecar-proxy", nil)
 
@@ -430,7 +428,6 @@ func TestServer_StreamAggregatedResources_ACLEnforcement(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			logger := testutil.Logger(t)
 			mgr := newTestManager(t)
 			aclResolve := func(id string) (acl.Authorizer, error) {
 				if !tt.defaultDeny {
@@ -452,11 +449,10 @@ func TestServer_StreamAggregatedResources_ACLEnforcement(t *testing.T) {
 			defer envoy.Close()
 
 			s := Server{
-				Logger:       logger,
+				Logger:       testutil.Logger(t),
 				CfgMgr:       mgr,
 				ResolveToken: aclResolve,
 			}
-			s.Initialize()
 
 			errCh := make(chan error, 1)
 			go func() {
@@ -513,7 +509,6 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedDuring
 	var validToken atomic.Value
 	validToken.Store(token)
 
-	logger := testutil.Logger(t)
 	mgr := newTestManager(t)
 	aclResolve := func(id string) (acl.Authorizer, error) {
 		if token := validToken.Load(); token == nil || id != token.(string) {
@@ -526,12 +521,11 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedDuring
 	defer envoy.Close()
 
 	s := Server{
-		Logger:             logger,
+		Logger:             testutil.Logger(t),
 		CfgMgr:             mgr,
 		ResolveToken:       aclResolve,
 		AuthCheckFrequency: 1 * time.Hour, // make sure this doesn't kick in
 	}
-	s.Initialize()
 
 	errCh := make(chan error, 1)
 	go func() {
@@ -608,7 +602,6 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedInBack
 	var validToken atomic.Value
 	validToken.Store(token)
 
-	logger := testutil.Logger(t)
 	mgr := newTestManager(t)
 	aclResolve := func(id string) (acl.Authorizer, error) {
 		if token := validToken.Load(); token == nil || id != token.(string) {
@@ -621,12 +614,11 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedInBack
 	defer envoy.Close()
 
 	s := Server{
-		Logger:             logger,
+		Logger:             testutil.Logger(t),
 		CfgMgr:             mgr,
 		ResolveToken:       aclResolve,
 		AuthCheckFrequency: 100 * time.Millisecond, // Make this short.
 	}
-	s.Initialize()
 
 	errCh := make(chan error, 1)
 	go func() {
@@ -698,7 +690,6 @@ func TestServer_StreamAggregatedResources_ACLTokenDeleted_StreamTerminatedInBack
 }
 
 func TestServer_StreamAggregatedResources_IngressEmptyResponse(t *testing.T) {
-	logger := testutil.Logger(t)
 	mgr := newTestManager(t)
 	aclResolve := func(id string) (acl.Authorizer, error) {
 		// Allow all
@@ -708,11 +699,10 @@ func TestServer_StreamAggregatedResources_IngressEmptyResponse(t *testing.T) {
 	defer envoy.Close()
 
 	s := Server{
-		Logger:       logger,
+		Logger:       testutil.Logger(t),
 		CfgMgr:       mgr,
 		ResolveToken: aclResolve,
 	}
-	s.Initialize()
 
 	sid := structs.NewServiceID("ingress-gateway", nil)
 

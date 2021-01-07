@@ -189,7 +189,7 @@ func (e *TestEnvoy) Close() error {
 	// unblock the recv chan to simulate recv error when client disconnects
 	if e.stream != nil && e.stream.recvCh != nil {
 		close(e.stream.recvCh)
-		e.stream.recvCh = nil
+		e.stream = nil
 	}
 	if e.cancel != nil {
 		e.cancel()
