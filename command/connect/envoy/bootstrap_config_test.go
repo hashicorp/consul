@@ -14,6 +14,7 @@ import (
 const (
 	expectedSelfAdminCluster = `{
   "name": "self_admin",
+  "ignore_health_on_host_removal": false,
   "connect_timeout": "5s",
   "type": "STATIC",
   "http_protocol_options": {},
@@ -51,7 +52,7 @@ const (
         {
           "name": "envoy.filters.network.http_connection_manager",
           "typedConfig": {
-            "@type": "type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager",
+            "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
             "stat_prefix": "envoy_prometheus_metrics",
             "codec_type": "HTTP1",
             "route_config": {
@@ -109,7 +110,7 @@ const (
         {
           "name": "envoy.filters.network.http_connection_manager",
           "typedConfig": {
-            "@type": "type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager",
+            "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
             "stat_prefix": "envoy_metrics",
             "codec_type": "HTTP1",
             "route_config": {
@@ -167,7 +168,7 @@ const (
         {
           "name": "envoy.filters.network.http_connection_manager",
           "typedConfig": {
-            "@type": "type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager",
+            "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
             "stat_prefix": "envoy_ready",
             "codec_type": "HTTP1",
             "route_config": {
@@ -273,7 +274,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				StatsSinksJSON: `[{
 					"name": "envoy.stat_sinks.statsd",
 					"typedConfig": {
-						"@type": "type.googleapis.com/envoy.config.metrics.v2.StatsdSink",
+						"@type": "type.googleapis.com/envoy.config.metrics.v3.StatsdSink",
 						"address": {
 							"socket_address": {
 								"address": "127.0.0.1",
@@ -301,7 +302,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				StatsSinksJSON: `[{
 					"name": "envoy.stat_sinks.statsd",
 					"typedConfig": {
-						"@type": "type.googleapis.com/envoy.config.metrics.v2.StatsdSink",
+						"@type": "type.googleapis.com/envoy.config.metrics.v3.StatsdSink",
 						"address": {
 							"socket_address": {
 								"address": "127.0.0.1",
@@ -330,7 +331,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				StatsSinksJSON: `[{
 					"name": "envoy.stat_sinks.statsd",
 					"typedConfig": {
-						"@type": "type.googleapis.com/envoy.config.metrics.v2.StatsdSink",
+						"@type": "type.googleapis.com/envoy.config.metrics.v3.StatsdSink",
 						"address": {
 							"socket_address": {
 								"address": "127.0.0.1",
@@ -352,7 +353,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				StatsSinksJSON: `[{
 					"name": "envoy.stat_sinks.dog_statsd",
 					"typedConfig": {
-						"@type": "type.googleapis.com/envoy.config.metrics.v2.DogStatsdSink",
+						"@type": "type.googleapis.com/envoy.config.metrics.v3.DogStatsdSink",
 						"address": {
 							"socket_address": {
 								"address": "127.0.0.1",
@@ -374,7 +375,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				StatsSinksJSON: `[{
 					"name": "envoy.stat_sinks.dog_statsd",
 					"typedConfig": {
-						"@type": "type.googleapis.com/envoy.config.metrics.v2.DogStatsdSink",
+						"@type": "type.googleapis.com/envoy.config.metrics.v3.DogStatsdSink",
 						"address": {
 							"pipe": {
 								"path": "/var/run/dogstatsd.sock"
@@ -397,7 +398,7 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				StatsSinksJSON: `[{
 					"name": "envoy.stat_sinks.dog_statsd",
 					"typedConfig": {
-						"@type": "type.googleapis.com/envoy.config.metrics.v2.DogStatsdSink",
+						"@type": "type.googleapis.com/envoy.config.metrics.v3.DogStatsdSink",
 						"address": {
 							"socket_address": {
 								"address": "127.0.0.1",

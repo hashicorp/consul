@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
@@ -221,7 +221,7 @@ func expectEndpointsJSON(v, n uint64) string {
 		"versionInfo": "` + hexString(v) + `",
 		"resources": [
 			{
-				"@type": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
+				"@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
 				"clusterName": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
 				"endpoints": [
 					{
@@ -255,7 +255,7 @@ func expectEndpointsJSON(v, n uint64) string {
 				]
 			},
 			{
-				"@type": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
+				"@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
 				"clusterName": "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
 				"endpoints": [
 					{
@@ -289,17 +289,17 @@ func expectEndpointsJSON(v, n uint64) string {
 				]
 			}
 		],
-		"typeUrl": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
+		"typeUrl": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
 		"nonce": "` + hexString(n) + `"
 	}`
 }
 
 func expectedUpstreamTransportSocketJSON(snap *proxycfg.ConfigSnapshot, sni string) string {
-	return expectedTransportSocketJSON(snap, "type.googleapis.com/envoy.api.v2.auth.UpstreamTlsContext", false, sni)
+	return expectedTransportSocketJSON(snap, "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext", false, sni)
 }
 
 func expectedPublicTransportSocketJSON(snap *proxycfg.ConfigSnapshot) string {
-	return expectedTransportSocketJSON(snap, "type.googleapis.com/envoy.api.v2.auth.DownstreamTlsContext", true, "")
+	return expectedTransportSocketJSON(snap, "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext", true, "")
 }
 
 func expectedTransportSocketJSON(
@@ -350,7 +350,7 @@ func expectedTransportSocketJSON(
 	}`
 }
 
-func assertChanBlocked(t *testing.T, ch chan *envoy.DiscoveryResponse) {
+func assertChanBlocked(t *testing.T, ch chan *envoy_discovery_v3.DiscoveryResponse) {
 	t.Helper()
 	select {
 	case r := <-ch:
@@ -360,7 +360,7 @@ func assertChanBlocked(t *testing.T, ch chan *envoy.DiscoveryResponse) {
 	}
 }
 
-func assertResponseSent(t *testing.T, ch chan *envoy.DiscoveryResponse, wantJSON string) {
+func assertResponseSent(t *testing.T, ch chan *envoy_discovery_v3.DiscoveryResponse, wantJSON string) {
 	t.Helper()
 	select {
 	case r := <-ch:
@@ -374,9 +374,9 @@ func assertResponseSent(t *testing.T, ch chan *envoy.DiscoveryResponse, wantJSON
 // JSON representation we expect. We use JSON because the responses use protobuf
 // Any type which includes binary protobuf encoding and would make creating
 // expected structs require the same code that is under test!
-func assertResponse(t *testing.T, r *envoy.DiscoveryResponse, wantJSON string) {
+func assertResponse(t *testing.T, r *envoy_discovery_v3.DiscoveryResponse, wantJSON string) {
 	t.Helper()
-	gotJSON := responseToJSON(t, r)
+	gotJSON := protoToJSON(t, r)
 	require.JSONEqf(t, wantJSON, gotJSON, "got:\n%s", gotJSON)
 }
 
@@ -736,19 +736,19 @@ func TestServer_StreamAggregatedResources_IngressEmptyResponse(t *testing.T) {
 
 	emptyClusterJSON := `{
 		"versionInfo": "` + hexString(1) + `",
-		"typeUrl": "type.googleapis.com/envoy.api.v2.Cluster",
+		"typeUrl": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
 		"resources": [],
 		"nonce": "` + hexString(1) + `"
 		}`
 	emptyListenerJSON := `{
 		"versionInfo": "` + hexString(1) + `",
-		"typeUrl": "type.googleapis.com/envoy.api.v2.Listener",
+		"typeUrl": "type.googleapis.com/envoy.config.listener.v3.Listener",
 		"resources": [],
 		"nonce": "` + hexString(2) + `"
 		}`
 	emptyRouteJSON := `{
 		"versionInfo": "` + hexString(1) + `",
-		"typeUrl": "type.googleapis.com/envoy.api.v2.RouteConfiguration",
+		"typeUrl": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
 		"resources": [],
 		"nonce": "` + hexString(3) + `"
 		}`

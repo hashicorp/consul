@@ -819,17 +819,38 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
+  envoy-integration-test-1_14_6-v2compat:
+    <<: *ENVOY_TESTS
+    environment:
+      ENVOY_VERSION: "1.14.6"
+      TEST_V2_XDS: "1"
+
   envoy-integration-test-1_15_3:
     <<: *ENVOY_TESTS
     environment:
       ENVOY_VERSION: "1.15.3"
+
+  envoy-integration-test-1_15_3-v2compat:
+    <<: *ENVOY_TESTS
+    environment:
+      ENVOY_VERSION: "1.15.3"
+      TEST_V2_XDS: "1"
 
   envoy-integration-test-1_16_2:
     <<: *ENVOY_TESTS
     environment:
       ENVOY_VERSION: "1.16.2"
 
-  # TODO(rb): add in 1.17.0 support when v3 is ready
+  envoy-integration-test-1_16_2-v2compat:
+    <<: *ENVOY_TESTS
+    environment:
+      ENVOY_VERSION: "1.16.2"
+      TEST_V2_XDS: "1"
+
+  envoy-integration-test-1_17_0:
+    <<: *ENVOY_TESTS
+    environment:
+      ENVOY_VERSION: "1.17.0"
 
   # run integration tests for the connect ca providers
   test-connect-ca-providers:
@@ -1042,13 +1063,24 @@ workflows:
       - envoy-integration-test-1_14_6:
           requires:
             - dev-build
+      - envoy-integration-test-1_14_6-v2compat:
+          requires:
+            - dev-build
       - envoy-integration-test-1_15_3:
+          requires:
+            - dev-build
+      - envoy-integration-test-1_15_3-v2compat:
           requires:
             - dev-build
       - envoy-integration-test-1_16_2:
           requires:
             - dev-build
-  # TODO(rb): add in 1.17.0 support when v3 is ready
+      - envoy-integration-test-1_16_2-v2compat:
+          requires:
+            - dev-build
+      - envoy-integration-test-1_17_0:
+          requires:
+            - dev-build
 
   website:
     unless: << pipeline.parameters.trigger-load-test >>

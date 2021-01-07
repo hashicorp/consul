@@ -8,7 +8,7 @@ import (
 	"text/template"
 	"time"
 
-	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
 	testinf "github.com/mitchellh/go-testing-interface"
@@ -625,8 +625,6 @@ func TestClustersFromSnapshot(t *testing.T) {
 		t.Run("envoy-"+envoyVersion, func(t *testing.T) {
 			for _, tt := range tests {
 				t.Run(tt.name, func(t *testing.T) {
-					require := require.New(t)
-
 					// Sanity check default with no overrides first
 					snap := tt.create(t)
 
@@ -647,21 +645,41 @@ func TestClustersFromSnapshot(t *testing.T) {
 						ProxyFeatures: sf,
 					}
 					clusters, err := s.clustersFromSnapshot(cInfo, snap)
-					require.NoError(err)
+					require.NoError(t, err)
+
 					sort.Slice(clusters, func(i, j int) bool {
-						return clusters[i].(*envoy.Cluster).Name < clusters[j].(*envoy.Cluster).Name
+						return clusters[i].(*envoy_cluster_v3.Cluster).Name < clusters[j].(*envoy_cluster_v3.Cluster).Name
 					})
+
 					r, err := createResponse(ClusterType, "00000001", "00000001", clusters)
-					require.NoError(err)
+					require.NoError(t, err)
 
-					gotJSON := responseToJSON(t, r)
+					t.Run("current", func(t *testing.T) {
+						gotJSON := protoToJSON(t, r)
 
-					gName := tt.name
-					if tt.overrideGoldenName != "" {
-						gName = tt.overrideGoldenName
-					}
+						gName := tt.name
+						if tt.overrideGoldenName != "" {
+							gName = tt.overrideGoldenName
+						}
 
-					require.JSONEq(goldenEnvoy(t, filepath.Join("clusters", gName), envoyVersion, latestEnvoyVersion, gotJSON), gotJSON)
+						require.JSONEq(t, goldenEnvoy(t, filepath.Join("clusters", gName), envoyVersion, latestEnvoyVersion, gotJSON), gotJSON)
+					})
+
+					t.Run("v2-compat", func(t *testing.T) {
+						respV2, err := convertDiscoveryResponseToV2(r)
+						require.NoError(t, err)
+
+						gotJSON := protoToJSON(t, respV2)
+
+						gName := tt.name
+						if tt.overrideGoldenName != "" {
+							gName = tt.overrideGoldenName
+						}
+
+						gName += ".v2compat"
+
+						require.JSONEq(t, goldenEnvoy(t, filepath.Join("clusters", gName), envoyVersion, latestEnvoyVersion, gotJSON), gotJSON)
+					})
 				})
 			}
 		})
@@ -672,7 +690,7 @@ func expectClustersJSONResources(snap *proxycfg.ConfigSnapshot) map[string]strin
 	return map[string]string{
 		"local_app": `
 			{
-				"@type": "type.googleapis.com/envoy.api.v2.Cluster",
+				"@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
 				"name": "local_app",
 				"type": "STATIC",
 				"connectTimeout": "5s",
@@ -698,11 +716,12 @@ func expectClustersJSONResources(snap *proxycfg.ConfigSnapshot) map[string]strin
 			}`,
 		"db": `
 			{
-				"@type": "type.googleapis.com/envoy.api.v2.Cluster",
+				"@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
 				"name": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
 				"type": "EDS",
 				"edsClusterConfig": {
 					"edsConfig": {
+						"resourceApiVersion": "V3",
 						"ads": {
 
 						}
@@ -723,11 +742,12 @@ func expectClustersJSONResources(snap *proxycfg.ConfigSnapshot) map[string]strin
 			}`,
 		"prepared_query:geo-cache": `
 			{
-				"@type": "type.googleapis.com/envoy.api.v2.Cluster",
+				"@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
 				"name": "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
 				"type": "EDS",
 				"edsClusterConfig": {
 					"edsConfig": {
+						"resourceApiVersion": "V3",
 						"ads": {
 
 						}
@@ -768,7 +788,7 @@ func expectClustersJSONFromResources(snap *proxycfg.ConfigSnapshot, v, n uint64,
 	return `{
 		"versionInfo": "` + hexString(v) + `",
 		"resources": [` + resJSON + `],
-		"typeUrl": "type.googleapis.com/envoy.api.v2.Cluster",
+		"typeUrl": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
 		"nonce": "` + hexString(n) + `"
 		}`
 }
@@ -783,26 +803,37 @@ type customClusterJSONOptions struct {
 }
 
 var customAppClusterJSONTpl = `{
-	"@type": "type.googleapis.com/envoy.api.v2.Cluster",
+	"@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
 	{{ if .TLSContext -}}
 	"transport_socket": {
 		"name": "tls",
 		"typed_config": {
-			"@type": "type.googleapis.com/envoy.api.v2.auth.UpstreamTlsContext",
+			"@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
 			{{ .TLSContext }}
 		}
 	},
 	{{- end }}
 	"name": "{{ .Name }}",
 	"connectTimeout": "15s",
-	"hosts": [
-		{
-			"socketAddress": {
-				"address": "127.0.0.1", 
-				"portValue": 8080
+	"loadAssignment": {
+		"clusterName": "{{ .Name }}",
+		"endpoints": [
+			{
+				"lbEndpoints": [
+					{
+						"endpoint": {
+							"address": {
+								"socketAddress": {
+									"address": "127.0.0.1",
+									"portValue": 8080
+								}
+							}
+						}
+					}
+				]
 			}
-		}
-	]
+		]
+	}
 }`
 
 var customAppClusterJSONTemplate = template.Must(template.New("").Parse(customAppClusterJSONTpl))
@@ -835,35 +866,35 @@ func TestEnvoyLBConfig_InjectToCluster(t *testing.T) {
 	var tests = []struct {
 		name     string
 		lb       *structs.LoadBalancer
-		expected *envoy.Cluster
+		expected *envoy_cluster_v3.Cluster
 	}{
 		{
 			name: "skip empty",
 			lb: &structs.LoadBalancer{
 				Policy: "",
 			},
-			expected: &envoy.Cluster{},
+			expected: &envoy_cluster_v3.Cluster{},
 		},
 		{
 			name: "round robin",
 			lb: &structs.LoadBalancer{
 				Policy: structs.LBPolicyRoundRobin,
 			},
-			expected: &envoy.Cluster{LbPolicy: envoy.Cluster_ROUND_ROBIN},
+			expected: &envoy_cluster_v3.Cluster{LbPolicy: envoy_cluster_v3.Cluster_ROUND_ROBIN},
 		},
 		{
 			name: "random",
 			lb: &structs.LoadBalancer{
 				Policy: structs.LBPolicyRandom,
 			},
-			expected: &envoy.Cluster{LbPolicy: envoy.Cluster_RANDOM},
+			expected: &envoy_cluster_v3.Cluster{LbPolicy: envoy_cluster_v3.Cluster_RANDOM},
 		},
 		{
 			name: "maglev",
 			lb: &structs.LoadBalancer{
 				Policy: structs.LBPolicyMaglev,
 			},
-			expected: &envoy.Cluster{LbPolicy: envoy.Cluster_MAGLEV},
+			expected: &envoy_cluster_v3.Cluster{LbPolicy: envoy_cluster_v3.Cluster_MAGLEV},
 		},
 		{
 			name: "ring_hash",
@@ -874,10 +905,10 @@ func TestEnvoyLBConfig_InjectToCluster(t *testing.T) {
 					MaximumRingSize: 7,
 				},
 			},
-			expected: &envoy.Cluster{
-				LbPolicy: envoy.Cluster_RING_HASH,
-				LbConfig: &envoy.Cluster_RingHashLbConfig_{
-					RingHashLbConfig: &envoy.Cluster_RingHashLbConfig{
+			expected: &envoy_cluster_v3.Cluster{
+				LbPolicy: envoy_cluster_v3.Cluster_RING_HASH,
+				LbConfig: &envoy_cluster_v3.Cluster_RingHashLbConfig_{
+					RingHashLbConfig: &envoy_cluster_v3.Cluster_RingHashLbConfig{
 						MinimumRingSize: &wrappers.UInt64Value{Value: 3},
 						MaximumRingSize: &wrappers.UInt64Value{Value: 7},
 					},
@@ -892,10 +923,10 @@ func TestEnvoyLBConfig_InjectToCluster(t *testing.T) {
 					ChoiceCount: 3,
 				},
 			},
-			expected: &envoy.Cluster{
-				LbPolicy: envoy.Cluster_LEAST_REQUEST,
-				LbConfig: &envoy.Cluster_LeastRequestLbConfig_{
-					LeastRequestLbConfig: &envoy.Cluster_LeastRequestLbConfig{
+			expected: &envoy_cluster_v3.Cluster{
+				LbPolicy: envoy_cluster_v3.Cluster_LEAST_REQUEST,
+				LbConfig: &envoy_cluster_v3.Cluster_LeastRequestLbConfig_{
+					LeastRequestLbConfig: &envoy_cluster_v3.Cluster_LeastRequestLbConfig{
 						ChoiceCount: &wrappers.UInt32Value{Value: 3},
 					},
 				},
@@ -905,7 +936,7 @@ func TestEnvoyLBConfig_InjectToCluster(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			var c envoy.Cluster
+			var c envoy_cluster_v3.Cluster
 			err := injectLBToCluster(tc.lb, &c)
 			require.NoError(t, err)
 

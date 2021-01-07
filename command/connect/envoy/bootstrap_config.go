@@ -247,7 +247,7 @@ func (c *BootstrapConfig) generateStatsSinks(args *BootstrapTplArgs) error {
 	if c.StatsdURL != "" {
 		sinkJSON, err := c.generateStatsSinkJSON(
 			"envoy.stat_sinks.statsd",
-			"type.googleapis.com/envoy.config.metrics.v2.StatsdSink",
+			"type.googleapis.com/envoy.config.metrics.v3.StatsdSink",
 			c.StatsdURL,
 		)
 		if err != nil {
@@ -258,7 +258,7 @@ func (c *BootstrapConfig) generateStatsSinks(args *BootstrapTplArgs) error {
 	if c.DogstatsdURL != "" {
 		sinkJSON, err := c.generateStatsSinkJSON(
 			"envoy.stat_sinks.dog_statsd",
-			"type.googleapis.com/envoy.config.metrics.v2.DogStatsdSink",
+			"type.googleapis.com/envoy.config.metrics.v3.DogStatsdSink",
 			c.DogstatsdURL,
 		)
 		if err != nil {
@@ -276,7 +276,7 @@ func (c *BootstrapConfig) generateStatsSinks(args *BootstrapTplArgs) error {
 	return nil
 }
 
-func (c *BootstrapConfig) generateStatsSinkJSON(name, typeName, addr string) (string, error) {
+func (c *BootstrapConfig) generateStatsSinkJSON(name string, typeName string, addr string) (string, error) {
 	// Resolve address ENV var
 	if len(addr) > 2 && addr[0] == '$' {
 		addr = os.Getenv(addr[1:])
@@ -557,6 +557,7 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 
 	clusterJSON := `{
 		"name": "` + selfAdminName + `",
+		"ignore_health_on_host_removal": false,
 		"connect_timeout": "5s",
 		"type": "STATIC",
 		"http_protocol_options": {},
@@ -576,7 +577,7 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 							}
 						}
 					]
- 				}
+				}
 			]
 		}
 	}`
@@ -593,8 +594,8 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 				"filters": [
 					{
 						"name": "envoy.filters.network.http_connection_manager",
-						"typedConfig": {
-							"@type": "type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager",
+						 "typedConfig": {
+							"@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
 							"stat_prefix": "` + name + `",
 							"codec_type": "HTTP1",
 							"route_config": {

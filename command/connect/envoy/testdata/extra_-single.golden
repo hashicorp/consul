@@ -13,13 +13,14 @@
     "id": "test-proxy",
     "metadata": {
       "namespace": "default",
-      "envoy_version": "1.16.2"
+      "envoy_version": "1.17.0"
     }
   },
   "static_resources": {
     "clusters": [
       {
         "name": "local_agent",
+        "ignore_health_on_host_removal": false,
         "connect_timeout": "1s",
         "type": "STATIC",
         "http2_protocol_options": {},
@@ -165,13 +166,16 @@
   },
   "dynamic_resources": {
     "lds_config": {
-      "ads": {}
+      "ads": {},
+      "resource_api_version": "V3"
     },
     "cds_config": {
-      "ads": {}
+      "ads": {},
+      "resource_api_version": "V3"
     },
     "ads_config": {
       "api_type": "GRPC",
+      "transport_api_version": "V3",
       "grpc_services": {
         "initial_metadata": [
           {

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	envoycluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
+	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -217,8 +217,8 @@ type PassiveHealthCheck struct {
 // Return an envoy.OutlierDetection populated by the values from this struct.
 // If all values are zero a default empty OutlierDetection will be returned to
 // enable outlier detection with default values.
-func (p PassiveHealthCheck) AsOutlierDetection() *envoycluster.OutlierDetection {
-	od := &envoycluster.OutlierDetection{}
+func (p PassiveHealthCheck) AsOutlierDetection() *envoy_cluster_v3.OutlierDetection {
+	od := &envoy_cluster_v3.OutlierDetection{}
 	if p.Interval != 0 {
 		od.Interval = ptypes.DurationProto(p.Interval)
 	}
