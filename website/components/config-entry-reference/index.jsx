@@ -81,6 +81,9 @@ function renderKey(key, isHCLTab) {
   const enterpriseAlert = key.enterprise && <EnterpriseAlert inline />
   const keyLower = keyName.toLowerCase()
 
+  // NOTE: This code copies from https://github.com/hashicorp/remark-plugins/blob/df606efc844319a2532ec54e4cf6ff2d575108ff/plugins/anchor-links/index.js
+  // to ensure the styling of each bullet is correct. The two locations should be kept
+  // in sync.
   return (
     <li key={keyLower} className="g-type-long-body">
       <a id={keyLower} className="__target-lic" aria-hidden="" />
