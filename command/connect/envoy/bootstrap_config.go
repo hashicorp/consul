@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/consul/api"
 	"net"
 	"net/url"
 	"os"
 	"strings"
 	"text/template"
+
+	"github.com/hashicorp/consul/api"
 )
 
 const (
@@ -571,7 +572,7 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 			{
 				"filters": [
 					{
-						"name": "envoy.http_connection_manager",
+						"name": "envoy.filters.network.http_connection_manager",
 						"config": {
 							"stat_prefix": "` + name + `",
 							"codec_type": "HTTP1",

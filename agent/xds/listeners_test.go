@@ -8,7 +8,6 @@ import (
 	"text/template"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 
@@ -772,7 +771,7 @@ func customListenerJSON(t *testing.T, opts customListenerJSONOptions) string {
 func customHTTPListenerJSON(t *testing.T, opts customHTTPListenerJSONOptions) string {
 	t.Helper()
 	if opts.HTTPConnectionManagerName == "" {
-		opts.HTTPConnectionManagerName = wellknown.HTTPConnectionManager
+		opts.HTTPConnectionManagerName = httpConnectionManagerNewName
 	}
 	var buf bytes.Buffer
 	require.NoError(t, customHTTPListenerJSONTemplate.Execute(&buf, opts))

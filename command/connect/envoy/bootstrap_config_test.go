@@ -38,7 +38,7 @@ const (
 			{
 				"filters": [
 					{
-						"name": "envoy.http_connection_manager",
+						"name": "envoy.filters.network.http_connection_manager",
 						"config": {
 							"stat_prefix": "envoy_prometheus_metrics",
 							"codec_type": "HTTP1",
@@ -95,7 +95,7 @@ const (
 			{
 				"filters": [
 					{
-						"name": "envoy.http_connection_manager",
+						"name": "envoy.filters.network.http_connection_manager",
 						"config": {
 							"stat_prefix": "envoy_metrics",
 							"codec_type": "HTTP1",
@@ -152,7 +152,7 @@ const (
 			{
 				"filters": [
 					{
-						"name": "envoy.http_connection_manager",
+						"name": "envoy.filters.network.http_connection_manager",
 						"config": {
 							"stat_prefix": "envoy_ready",
 							"codec_type": "HTTP1",

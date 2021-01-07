@@ -426,7 +426,10 @@ func (s *Server) injectConnectFilters(_ connectionInfo, cfgSnap *proxycfg.Config
 	return nil
 }
 
-const httpConnectionManagerNewName = "envoy.filters.network.http_connection_manager"
+const (
+	httpConnectionManagerOldName = "envoy.http_connection_manager"
+	httpConnectionManagerNewName = "envoy.filters.network.http_connection_manager"
+)
 
 // Locate the existing http connect manager L4 filter and inject our RBAC filter at the top.
 func (s *Server) injectHTTPFilterOnFilterChains(
@@ -440,7 +443,7 @@ func (s *Server) injectHTTPFilterOnFilterChains(
 		)
 
 		for filterIdx, filter := range chain.Filters {
-			if filter.Name == wellknown.HTTPConnectionManager ||
+			if filter.Name == httpConnectionManagerOldName ||
 				filter.Name == httpConnectionManagerNewName {
 				hcmFilter = filter
 				hcmFilterIdx = filterIdx
@@ -451,7 +454,7 @@ func (s *Server) injectHTTPFilterOnFilterChains(
 			return fmt.Errorf(
 				"filter chain %d lacks either a %q or %q filter",
 				chainIdx,
-				wellknown.HTTPConnectionManager,
+				httpConnectionManagerOldName,
 				httpConnectionManagerNewName,
 			)
 		}
@@ -1257,7 +1260,7 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoylistener.Filter, error) {
 		}}, cfg.HttpFilters...)
 	}
 
-	return makeFilter("envoy.http_connection_manager", cfg, false)
+	return makeFilter("envoy.filters.network.http_connection_manager", cfg, false)
 }
 
 func makeFilter(name string, cfg proto.Message, typed bool) (*envoylistener.Filter, error) {
