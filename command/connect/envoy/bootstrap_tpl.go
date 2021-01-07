@@ -141,15 +141,18 @@ const bootstrapTemplate = `{
         "connect_timeout": "1s",
         "type": "STATIC",
         {{- if .AgentTLS -}}
-        "tls_context": {
-          "common_tls_context": {
-            "validation_context": {
-              "trusted_ca": {
-                "inline_string": "{{ .AgentCAPEM }}"
+		"transport_socket": {
+		  "name": "tls",
+		  "typed_config": {
+            "common_tls_context": {
+              "validation_context": {
+                "trusted_ca": {
+                  "inline_string": "{{ .AgentCAPEM }}"
+                }
               }
             }
-          }
-        },
+		  }
+		},
         {{- end }}
         "http2_protocol_options": {},
         "hosts": [
@@ -215,7 +218,6 @@ const bootstrapTemplate = `{
       {
         "name": "static_layer",
         "static_layer": {
-          "envoy.deprecated_features:envoy.api.v2.Cluster.tls_context": true,
           "envoy.deprecated_features:envoy.config.trace.v2.ZipkinConfig.HTTP_JSON_V1": true,
           "envoy.deprecated_features:envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager.Tracing.operation_name": true
         }
