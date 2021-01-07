@@ -810,17 +810,31 @@ func TestAPI_SetWriteOptions(t *testing.T) {
 
 func TestAPI_Headers(t *testing.T) {
 	t.Parallel()
-	c, s := makeClientWithConfig(t, func(c *Config) {
-		c.Header = http.Header{
-			"Hello": []string{"World"},
-		}
-	}, nil)
+	c, s := makeClient(t)
 	defer s.Stop()
 
+	if len(c.Headers()) != 0 {
+		t.Fatalf("expected headers to be empty: %v", c.Headers())
+	}
+
+	c.AddHeader("Hello", "World")
 	r := c.newRequest("GET", "/v1/kv/foo")
 
 	if r.header.Get("Hello") != "World" {
-		t.Fatalf("bad: %v", r.header)
+		t.Fatalf("Hello header not set : %v", r.header)
+	}
+
+	c.SetHeaders(http.Header{
+		"Auth": []string{"Token"},
+	})
+
+	r = c.newRequest("GET", "/v1/kv/foo")
+	if r.header.Get("Hello") != "" {
+		t.Fatalf("Hello header should not be set: %v", r.header)
+	}
+
+	if r.header.Get("Auth") != "Token" {
+		t.Fatalf("Auth header not set: %v", r.header)
 	}
 }
 
