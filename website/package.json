@@ -52,7 +52,7 @@
     "generate:component": "next-hashicorp generate component",
     "generate:readme": "next-hashicorp markdown-blocks README.md",
     "lint": "next-hashicorp lint",
-    "start": "rm -rf .next/cache/next-babel-loader/ && next dev",
+    "start": "next-remote-watch ./content/**/*.mdx",
     "static": "npm run build && npm run export && cp _redirects out/.",
     "linkcheck": "linkcheck https://consul.io"
   }
