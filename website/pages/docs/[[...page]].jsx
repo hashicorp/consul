@@ -5,8 +5,10 @@ import {
   generateStaticPaths,
   generateStaticProps,
 } from '@hashicorp/react-docs-page/server'
+import ConfigEntryReference from 'components/config-entry-reference'
 
 const subpath = 'docs'
+const additionalComponents = { ConfigEntryReference }
 
 export default function DocsLayout(props) {
   return (
@@ -15,6 +17,8 @@ export default function DocsLayout(props) {
       subpath={subpath}
       order={order}
       staticProps={props}
+      mainBranch="master"
+      additionalComponents={additionalComponents}
     />
   )
 }
@@ -28,5 +32,6 @@ export async function getStaticProps({ params }) {
     subpath,
     productName,
     params,
+    additionalComponents,
   })
 }
