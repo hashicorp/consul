@@ -47,6 +47,8 @@ traffic from the mesh to those services will be evenly load-balanced between the
 
 <Tabs>
 <Tab heading="HCL">
+<Tabs>
+<Tab heading="Consul OSS">
 
 Link gateway named "us-west-gateway" with the billing service:
 
@@ -62,7 +64,7 @@ Services = [
 ```
 
 </Tab>
-<Tab heading="HCL (Consul Enterprise)">
+<Tab heading="Consul Enterprise">
 
 Link gateway named "us-west-gateway" in the default namespace with the billing service in the finance namespace:
 
@@ -80,7 +82,11 @@ Services = [
 ```
 
 </Tab>
+</Tabs>
+</Tab>
 <Tab heading="Kubernetes YAML">
+<Tabs>
+<Tab heading="Consul OSS">
 
 Link gateway named "us-west-gateway" with the billing service:
 
@@ -95,7 +101,7 @@ spec:
 ```
 
 </Tab>
-<Tab heading="Kubernetes YAML (Consul Enterprise)">
+<Tab heading="Consul Enterprise">
 
 Link gateway named "us-west-gateway" in the default namespace with the billing service in the finance namespace:
 
@@ -111,7 +117,11 @@ spec:
 ```
 
 </Tab>
+</Tabs>
+</Tab>
 <Tab heading="JSON">
+<Tabs>
+<Tab heading="Consul OSS">
 
 Link gateway named "us-west-gateway" with the billing service:
 
@@ -128,7 +138,7 @@ Link gateway named "us-west-gateway" with the billing service:
 ```
 
 </Tab>
-<Tab heading="JSON (Consul Enterprise)">
+<Tab heading="Consul Enterprise">
 
 Link gateway named "us-west-gateway" in the default namespace with the billing service in the finance namespace:
 
@@ -148,9 +158,13 @@ Link gateway named "us-west-gateway" in the default namespace with the billing s
 
 </Tab>
 </Tabs>
+</Tab>
+</Tabs>
 
 <Tabs>
 <Tab heading="HCL">
+<Tabs>
+<Tab heading="Consul OSS">
 
 Link gateway named "us-west-gateway" with the billing service and specify a CA file for one-way TLS authentication:
 
@@ -167,7 +181,7 @@ Services = [
 ```
 
 </Tab>
-<Tab heading="HCL (Consul Enterprise)">
+<Tab heading="Consul Enterprise">
 
 Link gateway named "us-west-gateway" in the default namespace with the billing service in the finance namespace,
 and specify a CA file for one-way TLS authentication:
@@ -187,7 +201,11 @@ Services = [
 ```
 
 </Tab>
+</Tabs>
+</Tab>
 <Tab heading="Kubernetes YAML">
+<Tabs>
+<Tab heading="Consul OSS">
 
 Link gateway named "us-west-gateway" with the billing service and specify a CA file for one-way TLS authentication:
 
@@ -203,7 +221,7 @@ spec:
 ```
 
 </Tab>
-<Tab heading="Kubernetes YAML (Consul Enterprise)">
+<Tab heading="Consul Enterprise">
 
 Link gateway named "us-west-gateway" in the default namespace with the billing service in the finance namespace,
 and specify a CA file for one-way TLS authentication:
@@ -221,7 +239,11 @@ spec:
 ```
 
 </Tab>
+</Tabs>
+</Tab>
 <Tab heading="JSON">
+<Tabs>
+<Tab heading="Consul OSS">
 
 Link gateway named "us-west-gateway" with the billing service and specify a CA file for one-way TLS authentication:
 
@@ -239,7 +261,7 @@ Link gateway named "us-west-gateway" with the billing service and specify a CA f
 ```
 
 </Tab>
-<Tab heading="JSON (Consul Enterprise)">
+<Tab heading="Consul Enterprise">
 
 Link gateway named "us-west-gateway" in the default namespace with the billing service in the finance namespace,
 and specify a CA file for one-way TLS authentication:
@@ -261,9 +283,13 @@ and specify a CA file for one-way TLS authentication:
 
 </Tab>
 </Tabs>
+</Tab>
+</Tabs>
 
 <Tabs>
 <Tab heading="HCL">
+<Tabs>
+<Tab heading="Consul OSS">
 
 Link gateway named "us-west-gateway" with the payments service and specify a CA file, key file, and cert file for mutual TLS authentication:
 
@@ -282,7 +308,7 @@ Services = [
 ```
 
 </Tab>
-<Tab heading="HCL (Consul Enterprise)">
+<Tab heading="Consul Enterprise">
 
 Link gateway named "us-west-gateway" in the default namespace with the payments service in the finance namespace.
 Also specify a CA file, key file, and cert file for mutual TLS authentication:
@@ -304,7 +330,11 @@ Services = [
 ```
 
 </Tab>
+</Tabs>
+</Tab>
 <Tab heading="Kubernetes YAML">
+<Tabs>
+<Tab heading="Consul OSS">
 
 Link gateway named "us-west-gateway" with the payments service and specify a CA file, key file, and cert file for mutual TLS authentication:
 
@@ -322,7 +352,7 @@ spec:
 ```
 
 </Tab>
-<Tab heading="Kubernetes YAML (Consul Enterprise)">
+<Tab heading="Consul Enterprise">
 
 Link gateway named "us-west-gateway" in the default namespace with the payments service in the finance namespace.
 Also specify a CA file, key file, and cert file for mutual TLS authentication:
@@ -342,7 +372,11 @@ spec:
 ```
 
 </Tab>
+</Tabs>
+</Tab>
 <Tab heading="JSON">
+<Tabs>
+<Tab heading="Consul OSS">
 
 Link gateway named "us-west-gateway" with the payments service and specify a CA file, key file, and cert file for mutual TLS authentication:
 
@@ -362,7 +396,7 @@ Link gateway named "us-west-gateway" with the payments service and specify a CA 
 ```
 
 </Tab>
-<Tab heading="JSON (Consul Enterprise)">
+<Tab heading="Consul Enterprise">
 
 Link gateway named "us-west-gateway" in the default namespace with the payments service in the finance namespace.
 Also specify a CA file, key file, and cert file for mutual TLS authentication:
@@ -386,9 +420,13 @@ Also specify a CA file, key file, and cert file for mutual TLS authentication:
 
 </Tab>
 </Tabs>
+</Tab>
+</Tabs>
 
 <Tabs>
 <Tab heading="HCL">
+<Tabs>
+<Tab heading="Consul OSS">
 
 Link gateway named "us-west-gateway" with all services in the datacenter, and configure default certificates for mutual TLS.
 Also override the SNI and CA file used for connections to the billing service:
@@ -413,7 +451,7 @@ Services = [
 ```
 
 </Tab>
-<Tab heading="HCL (Consul Enterprise)">
+<Tab heading="Consul Enterprise">
 
 Link gateway named "us-west-gateway" in the default namespace with all services in the finance namespace,
 and configure default certificates for mutual TLS. Also override the SNI and CA file used for connections to the billing service:
@@ -441,7 +479,11 @@ Services = [
 ```
 
 </Tab>
+</Tabs>
+</Tab>
 <Tab heading="Kubernetes YAML">
+<Tabs>
+<Tab heading="Consul OSS">
 
 Link gateway named "us-west-gateway" with all services in the datacenter, and configure default certificates for mutual TLS.
 Also override the SNI and CA file used for connections to the billing service:
@@ -463,7 +505,7 @@ spec:
 ```
 
 </Tab>
-<Tab heading="Kubernetes YAML (Consul Enterprise)">
+<Tab heading="Consul Enterprise">
 
 Link gateway named "us-west-gateway" in the default namespace with all services in the finance namespace,
 and configure default certificates for mutual TLS. Also override the SNI and CA file used for connections to the billing service:
@@ -487,7 +529,11 @@ spec:
 ```
 
 </Tab>
+</Tabs>
+</Tab>
 <Tab heading="JSON">
+<Tabs>
+<Tab heading="Consul OSS">
 
 Link gateway named "us-west-gateway" with all services in the datacenter, and configure default certificates for mutual TLS.
 Also override the SNI and CA file used for connections to the billing service:
@@ -514,7 +560,7 @@ Also override the SNI and CA file used for connections to the billing service:
 ```
 
 </Tab>
-<Tab heading="JSON (Consul Enterprise)">
+<Tab heading="Consul Enterprise">
 
 Link gateway named "us-west-gateway" in the default namespace with all services in the finance namespace,
 and configure default certificates for mutual TLS. Also override the SNI and CA file used for connections to the billing service:
@@ -543,6 +589,8 @@ and configure default certificates for mutual TLS. Also override the SNI and CA 
 }
 ```
 
+</Tab>
+</Tabs>
 </Tab>
 </Tabs>
 
