@@ -251,26 +251,27 @@ func (h *Handler) renderIndex(cfg *config.RuntimeConfig, fs http.FileSystem) ([]
 	// have to match the encoded double quotes around the JSON string value that
 	// is there as a placeholder so the end result is an actual JSON bool not a
 	// string containing "false" etc.
-	re := regexp.MustCompile(`%22__RUNTIME_(BOOL|STRING)_([A-Za-z0-9-_]+)__%22`)
+	re := regexp.MustCompile(`%22(?:%2F)?__RUNTIME_(BOOL|STRING)_([A-Za-z0-9-_]+)__(?:%2F)?%22`)
 
-	content = []byte(re.ReplaceAllStringFunc(string(content), func(str string) string {
-		// Trim the prefix and suffix
-		pair := strings.TrimSuffix(strings.TrimPrefix(str, "%22__RUNTIME_"), "__%22")
-		parts := strings.SplitN(pair, "_", 2)
-		switch parts[0] {
+	content = []byte(ReplaceAllGroupStringFunc(re, string(content), func(groups []string) string {
+		placeholder := groups[0]
+		valueType := groups[1]
+		keyName := groups[2]
+
+		switch valueType {
 		case "BOOL":
-			if v, ok := tplData[parts[1]].(bool); ok && v {
+			if v, ok := tplData[keyName].(bool); ok && v {
 				return "true"
 			}
 			return "false"
 		case "STRING":
-			if v, ok := tplData[parts[1]].(string); ok {
+			if v, ok := tplData[keyName].(string); ok {
 				if bs, err := json.Marshal(v); err == nil {
 					return url.PathEscape(string(bs))
 				}
 				// Error!
 				h.logger.Error("Encoding JSON value for UI template failed",
-					"placeholder", str,
+					"placeholder", placeholder,
 					"value", v,
 				)
 				// Fall through to return the empty string to make JSON parse
@@ -279,7 +280,7 @@ func (h *Handler) renderIndex(cfg *config.RuntimeConfig, fs http.FileSystem) ([]
 		}
 		// Unknown type is likely an error
 		h.logger.Error("Unknown placeholder type in UI template",
-			"placeholder", str,
+			"placeholder", placeholder,
 		)
 		// Return a literal empty string so the JSON still parses
 		return `""`
@@ -306,4 +307,26 @@ func (h *Handler) renderIndex(cfg *config.RuntimeConfig, fs http.FileSystem) ([]
 	}
 
 	return buf.Bytes(), info, nil
+}
+
+func ReplaceAllGroupStringFunc(re *regexp.Regexp, str string, replace func([]string) string) string {
+	result := ""
+	lastIndex := 0
+
+	for _, v := range re.FindAllStringSubmatchIndex(str, -1) {
+		groups := []string{}
+		for i := 0; i < len(v); i += 2 {
+			group := ""
+			// some groups might not exist, make sure our index is 0 or more
+			if v[i] > -1 {
+				group = str[v[i]:v[i+1]]
+			}
+			groups = append(groups, group)
+		}
+
+		result += str[lastIndex:v[0]] + replace(groups)
+		lastIndex = v[1]
+	}
+
+	return result + str[lastIndex:]
 }
