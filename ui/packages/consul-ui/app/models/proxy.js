@@ -13,7 +13,7 @@ export default class Proxy extends ServiceInstanceModel {
   @attr('string') Namespace;
   @attr('string') ServiceName;
   @attr('string') ServiceID;
-  @attr('string') Node;
+  @attr('string') NodeName;
   @attr('number') SyncTime;
   @attr() ServiceProxy; // {}
 }
