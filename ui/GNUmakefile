@@ -1,5 +1,9 @@
 .PHONY: clean dist dist-docker dist-netlify test-workspace
 
+# make is run with no target from the consul root Makefile ui target but from
+# within docker during release, so that we keep that as the default target
+.DEFAULT_GOAL := dist-docker
+
 # Run from CI, should run any checks/tests for the workspace that we'd like to
 # be run for every PR
 test-workspace:
