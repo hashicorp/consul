@@ -132,6 +132,23 @@ func TestUIServerIndex(t *testing.T) {
 				`<script src="/ui/assets/compiled-metrics-providers.js">`,
 			},
 		},
+		{
+			name: "injecting content path",
+			// ember will always pre/append slashes if they don't exist so even if
+			// somebody configures them without our template file will have them
+			cfg: basicUIEnabledConfig(
+				withContentPath("/consul/"),
+			),
+			path:       "/",
+			wantStatus: http.StatusOK,
+			wantNotContains: []string{
+				"__RUNTIME_BOOL_",
+				"__RUNTIME_STRING_",
+			},
+			wantEnv: map[string]interface{}{
+				"rootURL": "/consul/",
+			},
+		},
 	}
 
 	for _, tc := range cases {
@@ -215,6 +232,11 @@ func basicUIEnabledConfig(opts ...cfgFunc) *config.RuntimeConfig {
 	return cfg
 }
 
+func withContentPath(path string) cfgFunc {
+	return func(cfg *config.RuntimeConfig) {
+		cfg.UIConfig.ContentPath = path
+	}
+}
 func withACLs() cfgFunc {
 	return func(cfg *config.RuntimeConfig) {
 		cfg.ACLDatacenter = "dc1"
