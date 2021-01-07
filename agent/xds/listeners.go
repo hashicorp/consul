@@ -1146,7 +1146,7 @@ func makeTCPProxyFilter(filterName, cluster, statPrefix string) (*envoylistener.
 		StatPrefix:       makeStatPrefix(statPrefix, filterName),
 		ClusterSpecifier: &envoytcp.TcpProxy_Cluster{Cluster: cluster},
 	}
-	return makeFilter("envoy.tcp_proxy", cfg, false)
+	return makeFilter("envoy.filters.network.tcp_proxy", cfg, false)
 }
 
 func makeStatPrefix(prefix, filterName string) string {

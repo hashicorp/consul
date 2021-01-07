@@ -575,7 +575,7 @@ func expectListenerJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot) ma
 									}
 							},
 							{
-								"name": "envoy.tcp_proxy",
+								"name": "envoy.filters.network.tcp_proxy",
 								"config": {
 									"cluster": "local_app",
 									"stat_prefix": "public_listener"
@@ -598,7 +598,7 @@ func expectListenerJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot) ma
 				{
 					"filters": [
 						{
-							"name": "envoy.tcp_proxy",
+							"name": "envoy.filters.network.tcp_proxy",
 							"config": {
 								"cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
 								"stat_prefix": "upstream.db.default.dc1"
@@ -621,7 +621,7 @@ func expectListenerJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot) ma
 				{
 					"filters": [
 						{
-							"name": "envoy.tcp_proxy",
+							"name": "envoy.filters.network.tcp_proxy",
 							"config": {
 								"cluster": "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
 								"stat_prefix": "upstream.prepared_query_geo-cache"
@@ -688,7 +688,7 @@ const customListenerJSONTpl = `{
 			{{- end }}
 			"filters": [
 				{
-					"name": "envoy.tcp_proxy",
+					"name": "envoy.filters.network.tcp_proxy",
 					"config": {
 							"cluster": "random-cluster",
 							"stat_prefix": "foo-stats"

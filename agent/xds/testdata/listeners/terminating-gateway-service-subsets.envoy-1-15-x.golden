@@ -50,7 +50,7 @@
                 }
             },
             {
-              "name": "envoy.tcp_proxy",
+              "name": "envoy.filters.network.tcp_proxy",
               "config": {
                   "cluster": "api.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
                   "stat_prefix": "terminating_gateway.default.api.default"
@@ -97,7 +97,7 @@
                 }
             },
             {
-              "name": "envoy.tcp_proxy",
+              "name": "envoy.filters.network.tcp_proxy",
               "config": {
                   "cluster": "cache.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
                   "stat_prefix": "terminating_gateway.default.cache.default"
@@ -144,7 +144,7 @@
                 }
             },
             {
-              "name": "envoy.tcp_proxy",
+              "name": "envoy.filters.network.tcp_proxy",
               "config": {
                   "cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
                   "stat_prefix": "terminating_gateway.default.db.default"
@@ -344,7 +344,7 @@
               "name": "envoy.filters.network.sni_cluster"
             },
             {
-              "name": "envoy.tcp_proxy",
+              "name": "envoy.filters.network.tcp_proxy",
               "config": {
                   "cluster": "",
                   "stat_prefix": "terminating_gateway.default"

@@ -129,7 +129,7 @@
                 }
             },
             {
-              "name": "envoy.tcp_proxy",
+              "name": "envoy.filters.network.tcp_proxy",
               "config": {
                   "cluster": "local_app",
                   "stat_prefix": "public_listener"
