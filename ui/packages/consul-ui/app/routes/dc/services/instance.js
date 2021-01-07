@@ -21,7 +21,7 @@ export default class InstanceRoute extends Route {
       if (typeof get(proxyMeta, 'ServiceID') !== 'undefined') {
         const proxyParams = {
           id: get(proxyMeta, 'ServiceID'),
-          node: get(proxyMeta, 'Node'),
+          node: get(proxyMeta, 'NodeName'),
           name: get(proxyMeta, 'ServiceName'),
         };
         // Proxies have identical dc/nspace as their parent instance
