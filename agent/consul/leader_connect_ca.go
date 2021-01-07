@@ -458,7 +458,6 @@ func (c *CAManager) initializeRootCA(provider ca.Provider, conf *structs.CAConfi
 	}
 	if activeRoot != nil && needsSigningKeyUpdate {
 		c.logger.Info("Correcting stored SigningKeyID value", "previous", rootCA.SigningKeyID, "updated", expectedSigningKeyID)
-		rootCA.SigningKeyID = expectedSigningKeyID
 
 	} else if activeRoot != nil && !needsSigningKeyUpdate {
 		// This state shouldn't be possible to get into because we update the root and
@@ -471,6 +470,10 @@ func (c *CAManager) initializeRootCA(provider ca.Provider, conf *structs.CAConfi
 		c.setCAProvider(provider, rootCA)
 
 		return nil
+	}
+
+	if needsSigningKeyUpdate {
+		rootCA.SigningKeyID = expectedSigningKeyID
 	}
 
 	// Get the highest index
