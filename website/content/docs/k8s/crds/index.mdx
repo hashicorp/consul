@@ -206,7 +206,7 @@ spec: ...
 ```
 
 ~> **NOTE:** If two custom resources of the same kind **and** the same name are attempted to
-be created in two Kubernetes namespaces, the one created last will not be synced.
+be created in different Kubernetes namespaces, the last one created will not be synced.
 
 #### ServiceIntentions Special Case
 
@@ -256,7 +256,7 @@ spec:
 ```
 
 ~> **NOTE:** If two `ServiceIntentions` resources set the same `spec.destination.name`, the
-one created last will not be synced.
+last one created will not be synced.
 
 ### Consul Enterprise <EnterpriseAlert inline />
 
@@ -328,7 +328,7 @@ The details on each configuration are:
    ```
 
    ~> **NOTE:** In this configuration, if two custom resources of the same kind **and** the same name are attempted to
-   be created in two Kubernetes namespaces, the one created last will not be synced.
+   be created in two Kubernetes namespaces, the last one created will not be synced.
 
 #### ServiceIntentions Special Case (Enterprise)
 
