@@ -567,6 +567,10 @@ func (e *ServiceIntentionsConfigEntry) validate(legacyWrite bool) error {
 			return fmt.Errorf("Sources[%d].%v", i, err)
 		}
 
+		if err := validateSourceIntentionEnterpriseMeta(&src.EnterpriseMeta); err != nil {
+			return fmt.Errorf("Sources[%d].%v", i, err)
+		}
+
 		// Length of opaque values
 		if len(src.Description) > metaValueMaxLength {
 			return fmt.Errorf(
