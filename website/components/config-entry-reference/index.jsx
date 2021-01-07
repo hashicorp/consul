@@ -1,5 +1,4 @@
-import TabsBase from '@hashicorp/react-tabs'
-import s from '@hashicorp/nextjs-scripts/lib/providers/docs/style.module.css'
+import { Tabs, Tab } from '@hashicorp/nextjs-scripts/lib/providers/docs'
 import EnterpriseAlertBase from '@hashicorp/react-enterprise-alert'
 
 /**
@@ -191,31 +190,6 @@ function isTopLevelKubeKey(name) {
     name.toLowerCase() === 'kind' ||
     name.toLowerCase() === 'apiversion'
   )
-}
-
-// Copied from https://github.com/hashicorp/nextjs-scripts/blob/04917da2191910d490182250d2828372aa1221c0/lib/providers/docs/index.jsx
-// because there's no way to import it right now.
-function Tabs({ children }) {
-  if (!Array.isArray(children))
-    throw new Error('Multiple <Tab> elements required')
-
-  return (
-    <span className={s.tabsRoot}>
-      <TabsBase
-        items={children.map((Block) => ({
-          heading: Block.props.heading,
-          // eslint-disable-next-line react/display-name
-          tabChildren: () => Block,
-        }))}
-      />
-    </span>
-  )
-}
-
-// Copied from https://github.com/hashicorp/nextjs-scripts/blob/04917da2191910d490182250d2828372aa1221c0/lib/providers/docs/index.jsx
-// because there's no way to import it right now.
-function Tab({ children }) {
-  return <>{children}</>
 }
 
 function EnterpriseAlert(props) {
