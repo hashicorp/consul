@@ -169,6 +169,7 @@ module.exports = function(environment, $ = process.env) {
         // __RUNTIME_STRING_Xxxx__ will be replaced with the literal string in
         // the named variable in the data returned from
         // `uiTemplateDataFromConfig`. It may be empty.
+        rootURL: '__RUNTIME_STRING_ContentPath__',
         CONSUL_ACLS_ENABLED: '__RUNTIME_BOOL_ACLsEnabled__',
         CONSUL_SSO_ENABLED: '__RUNTIME_BOOL_SSOEnabled__',
         CONSUL_NSPACES_ENABLED: '__RUNTIME_BOOL_NamespacesEnabled__',
