@@ -1426,7 +1426,11 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 		b.warn("bootstrap_expect > 0: expecting %d servers", rt.BootstrapExpect)
 	}
 
-	if rt.RPCConfig.EnableStreaming && !rt.ServerMode {
+	if rt.ServerMode {
+		if rt.UseStreamingBackend && !rt.RPCConfig.EnableStreaming {
+			b.warn("use_streaming_backend = true requires rpc.enable_streaming on servers to work properly")
+		}
+	} else if rt.RPCConfig.EnableStreaming {
 		b.warn("rpc.enable_streaming = true has no effect when not running in server mode")
 	}
 
