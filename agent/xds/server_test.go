@@ -294,14 +294,19 @@ func expectEndpointsJSON(v, n uint64) string {
 }
 
 func expectedUpstreamTransportSocketJSON(snap *proxycfg.ConfigSnapshot, sni string) string {
-	return expectedTransportSocketJSON(snap, false, sni)
+	return expectedTransportSocketJSON(snap, "type.googleapis.com/envoy.api.v2.auth.UpstreamTlsContext", false, sni)
 }
 
 func expectedPublicTransportSocketJSON(snap *proxycfg.ConfigSnapshot) string {
-	return expectedTransportSocketJSON(snap, true, "")
+	return expectedTransportSocketJSON(snap, "type.googleapis.com/envoy.api.v2.auth.DownstreamTlsContext", true, "")
 }
 
-func expectedTransportSocketJSON(snap *proxycfg.ConfigSnapshot, requireClientCert bool, sni string) string {
+func expectedTransportSocketJSON(
+	snap *proxycfg.ConfigSnapshot,
+	extType string,
+	requireClientCert bool,
+	sni string,
+) string {
 	// Assume just one root for now, can get fancier later if needed.
 	caPEM := snap.Roots.Roots[0].RootCert
 	reqClient := ""
@@ -319,6 +324,7 @@ func expectedTransportSocketJSON(snap *proxycfg.ConfigSnapshot, requireClientCer
 	return `{
         "name": "tls",
         "typedConfig": {
+			"@type": "` + extType + `",
 			"commonTlsContext": {
 				"tlsParams": {},
 				"tlsCertificates": [

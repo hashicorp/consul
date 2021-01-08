@@ -1,0 +1,73 @@
+{
+  "admin": {
+    "access_log_path": "/dev/null",
+    "address": {
+      "socket_address": {
+        "address": "127.0.0.1",
+        "port_value": 19000
+      }
+    }
+  },
+  "node": {
+    "cluster": "test-proxy",
+    "id": "test-proxy",
+    "metadata": {
+      "namespace": "default",
+      "envoy_version": "1.16.0"
+    }
+  },
+  "static_resources": {
+    "clusters": [
+      {
+        "name": "local_agent",
+        "connect_timeout": "1s",
+        "type": "STATIC",
+        "http2_protocol_options": {},
+        "hosts": [
+          {
+            "socket_address": {
+              "address": "127.0.0.1",
+              "port_value": 8502
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "stats_config": {
+    "name": "fake_config"
+  },
+  "dynamic_resources": {
+    "lds_config": {
+      "ads": {}
+    },
+    "cds_config": {
+      "ads": {}
+    },
+    "ads_config": {
+      "api_type": "GRPC",
+      "grpc_services": {
+        "initial_metadata": [
+          {
+            "key": "x-consul-token",
+            "value": ""
+          }
+        ],
+        "envoy_grpc": {
+          "cluster_name": "local_agent"
+        }
+      }
+    }
+  },
+  "layered_runtime": {
+    "layers": [
+      {
+        "name": "static_layer",
+        "static_layer": {
+          "envoy.deprecated_features:envoy.config.trace.v2.ZipkinConfig.HTTP_JSON_V1": true,
+          "envoy.deprecated_features:envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager.Tracing.operation_name": true
+        }
+      }
+    ]
+  }
+}
