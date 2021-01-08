@@ -116,14 +116,6 @@ func NewBuilder(opts BuilderOpts) (*Builder, error) {
 		return nil, fmt.Errorf("config: -config-format must be either 'hcl' or 'json'")
 	}
 
-	newSource := func(name string, v interface{}) Source {
-		b, err := json.MarshalIndent(v, "", "    ")
-		if err != nil {
-			panic(err)
-		}
-		return FileSource{Name: name, Format: "json", Data: string(b)}
-	}
-
 	b := &Builder{
 		opts: opts,
 		Head: []Source{DefaultSource(), DefaultEnterpriseSource()},
@@ -138,8 +130,8 @@ func NewBuilder(opts BuilderOpts) (*Builder, error) {
 	// we need to merge all slice values defined in flags before we
 	// merge the config files since the flag values for slices are
 	// otherwise appended instead of prepended.
-	slices, values := b.splitSlicesAndValues(opts.Config)
-	b.Head = append(b.Head, newSource("flags.slices", slices))
+	slices, values := splitSlicesAndValues(opts.Config)
+	b.Head = append(b.Head, LiteralSource{Name: "flags.slices", Config: slices})
 	for _, path := range opts.ConfigFiles {
 		sources, err := b.sourcesFromPath(path, opts.ConfigFormat)
 		if err != nil {
@@ -147,7 +139,7 @@ func NewBuilder(opts BuilderOpts) (*Builder, error) {
 		}
 		b.Sources = append(b.Sources, sources...)
 	}
-	b.Tail = append(b.Tail, newSource("flags.values", values))
+	b.Tail = append(b.Tail, LiteralSource{Name: "flags.values", Config: values})
 	for i, s := range opts.HCL {
 		b.Tail = append(b.Tail, FileSource{
 			Name:   fmt.Sprintf("flags-%d.hcl", i),
@@ -314,8 +306,9 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 			return RuntimeConfig{}, fmt.Errorf("failed to parse %v: %s", s.Source(), unusedErr)
 		}
 
-		// for now this is a soft failure that will cause warnings but not actual problems
-		b.validateEnterpriseConfigKeys(&c2, md.Keys)
+		for _, err := range validateEnterpriseConfigKeys(&c2) {
+			b.warn("%s", err)
+		}
 
 		// if we have a single 'check' or 'service' we need to add them to the
 		// list of checks and services first since we cannot merge them
@@ -1484,7 +1477,7 @@ func addrsUnique(inuse map[string]string, name string, addrs []net.Addr) error {
 
 // splitSlicesAndValues moves all slice values defined in c to 'slices'
 // and all other values to 'values'.
-func (b *Builder) splitSlicesAndValues(c Config) (slices, values Config) {
+func splitSlicesAndValues(c Config) (slices, values Config) {
 	v, t := reflect.ValueOf(c), reflect.TypeOf(c)
 	rs, rv := reflect.New(t), reflect.New(t)
 
@@ -1843,8 +1836,18 @@ func (b *Builder) stringValWithDefault(v *string, defaultVal string) string {
 	return *v
 }
 
+// Deprecated: use the stringVal() function instead of this Builder method. This
+// method is being left here temporarily as there are many callers. It will be
+// removed in the future.
 func (b *Builder) stringVal(v *string) string {
 	return b.stringValWithDefault(v, "")
+}
+
+func stringVal(v *string) string {
+	if v == nil {
+		return ""
+	}
+	return *v
 }
 
 func (b *Builder) float64ValWithDefault(v *float64, defaultVal float64) float64 {
