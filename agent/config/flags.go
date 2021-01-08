@@ -3,6 +3,7 @@ package config
 import (
 	"flag"
 	"fmt"
+	"net"
 	"time"
 )
 
@@ -26,6 +27,15 @@ type BuilderOpts struct {
 
 	// HCL contains an arbitrary config in hcl format.
 	HCL []string
+
+	// hostname is a shim for testing, allowing tests to specify a replacement
+	// for os.Hostname.
+	hostname func() (string, error)
+
+	// getPrivateIPv4 and getPublicIPv6 are shims for testing, allowing tests to
+	// specify a replacement for ipaddr.GetPrivateIPv4 and ipaddr.GetPublicIPv6.
+	getPrivateIPv4 func() ([]*net.IPAddr, error)
+	getPublicIPv6  func() ([]*net.IPAddr, error)
 }
 
 // AddFlags adds the command line flags for the agent.
