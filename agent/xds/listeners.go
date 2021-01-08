@@ -329,7 +329,7 @@ func (s *Server) makeIngressGatewayListeners(address string, cfgSnap *proxycfg.C
 				return nil, err
 			}
 
-			transportSocket, err := makeTransportSocket("tls", tlsContext)
+			transportSocket, err := makeDownstreamTLSTransportSocket(tlsContext)
 			if err != nil {
 				return nil, err
 			}
@@ -515,7 +515,7 @@ func (s *Server) injectConnectTLSOnFilterChains(_ connectionInfo, cfgSnap *proxy
 			CommonTlsContext:         makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.Leaf()),
 			RequireClientCertificate: &wrappers.BoolValue{Value: true},
 		}
-		transportSocket, err := makeTransportSocket("tls", tlsContext)
+		transportSocket, err := makeDownstreamTLSTransportSocket(tlsContext)
 		if err != nil {
 			return err
 		}
@@ -811,7 +811,7 @@ func (s *Server) makeFilterChainTerminatingGateway(
 		CommonTlsContext:         makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.TerminatingGateway.ServiceLeaves[service]),
 		RequireClientCertificate: &wrappers.BoolValue{Value: true},
 	}
-	transportSocket, err := makeTransportSocket("tls", tlsContext)
+	transportSocket, err := makeDownstreamTLSTransportSocket(tlsContext)
 	if err != nil {
 		return nil, err
 	}
@@ -1058,7 +1058,7 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 		return nil, err
 	}
 
-	transportSocket, err := makeTransportSocket("tls", tlsContext)
+	transportSocket, err := makeDownstreamTLSTransportSocket(tlsContext)
 	if err != nil {
 		return nil, err
 	}
@@ -1363,10 +1363,21 @@ func makeCommonTLSContextFromLeaf(cfgSnap *proxycfg.ConfigSnapshot, leaf *struct
 	}
 }
 
-func makeTransportSocket(name string, config proto.Message) (*envoycore.TransportSocket, error) {
-	if config == nil {
+func makeDownstreamTLSTransportSocket(tlsContext *envoyauth.DownstreamTlsContext) (*envoycore.TransportSocket, error) {
+	if tlsContext == nil {
 		return nil, nil
 	}
+	return makeTransportSocket("tls", tlsContext)
+}
+
+func makeUpstreamTLSTransportSocket(tlsContext *envoyauth.UpstreamTlsContext) (*envoycore.TransportSocket, error) {
+	if tlsContext == nil {
+		return nil, nil
+	}
+	return makeTransportSocket("tls", tlsContext)
+}
+
+func makeTransportSocket(name string, config proto.Message) (*envoycore.TransportSocket, error) {
 	any, err := pbtypes.MarshalAny(config)
 	if err != nil {
 		return nil, err

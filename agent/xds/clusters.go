@@ -277,7 +277,7 @@ func (s *Server) injectGatewayServiceAddons(cfgSnap *proxycfg.ConfigSnapshot, c 
 				tlsContext.Sni = mapping.SNI
 			}
 
-			transportSocket, err := makeTransportSocket("tls", tlsContext)
+			transportSocket, err := makeUpstreamTLSTransportSocket(tlsContext)
 			if err != nil {
 				return err
 			}
@@ -428,7 +428,7 @@ func (s *Server) makeUpstreamClusterForPreparedQuery(upstream structs.Upstream, 
 		Sni:              sni,
 	}
 
-	transportSocket, err := makeTransportSocket("tls", tlsContext)
+	transportSocket, err := makeUpstreamTLSTransportSocket(tlsContext)
 	if err != nil {
 		return nil, err
 	}
@@ -552,7 +552,7 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 			Sni:              sni,
 		}
 
-		transportSocket, err := makeTransportSocket("tls", tlsContext)
+		transportSocket, err := makeUpstreamTLSTransportSocket(tlsContext)
 		if err != nil {
 			return nil, err
 		}
