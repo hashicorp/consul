@@ -45,7 +45,7 @@ namespace with a query parameter of `?ns=*`.
 
 Upgrading to Consul 1.9.0 will trigger a one-time background migration of
 [intentions](/docs/connect/intentions) into an equivalent set of
-[`service-intentions`](/docs/agent/config-entries/service-intentions) config
+[`service-intentions`](/docs/connect/config-entries/service-intentions) config
 entries. This process will wait until all of the Consul servers in the primary
 datacenter are running Consul 1.9.0+.
 
@@ -73,22 +73,22 @@ re-created via the old endpoints. Fields that are being removed or changing
 behavior:
 
 - `Intention.ID` after migration is stored in the
-  [`LegacyID`](/docs/agent/config-entries/service-intentions#legacyid) field.
+  [`LegacyID`](/docs/connect/config-entries/service-intentions#legacyid) field.
   After transitioning this field is cleared.
 
 - `Intention.CreatedAt` after migration is stored in the
-  [`LegacyCreateTime`](/docs/agent/config-entries/service-intentions#legacycreatetime)
+  [`LegacyCreateTime`](/docs/connect/config-entries/service-intentions#legacycreatetime)
   field. After transitioning this field is cleared.
 
 - `Intention.UpdatedAt` after migration is stored in the
-  [`LegacyUpdateTime`](/docs/agent/config-entries/service-intentions#legacyupdatetime)
+  [`LegacyUpdateTime`](/docs/connect/config-entries/service-intentions#legacyupdatetime)
   field. After transitioning this field is cleared.
 
 - `Intention.Meta` after migration is stored in the
-  [`LegacyMeta`](/docs/agent/config-entries/service-intentions#legacymeta)
+  [`LegacyMeta`](/docs/connect/config-entries/service-intentions#legacymeta)
   field. To complete the transition, this field **must be cleared manually**
   and the metadata moved up to the enclosing config entry's
-  [`Meta`](/docs/agent/config-entries/service-intentions#meta) field. This is
+  [`Meta`](/docs/connect/config-entries/service-intentions#meta) field. This is
   not done automatically since it is potentially a lossy operation.
 
 ## Consul 1.8.0

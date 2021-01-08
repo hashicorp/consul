@@ -13,7 +13,7 @@ description: >-
 
 Layer 7 traffic management allows operators to divide L7 traffic between
 different
-[subsets](/docs/agent/config-entries/service-resolver#service-subsets) of
+[subsets](/docs/connect/config-entries/service-resolver#service-subsets) of
 service instances when using Connect.
 
 There are many ways you may wish to carve up a single datacenter's pool of
@@ -42,7 +42,7 @@ entry is missing, that stage will fall back on reasonable default behavior.
 
 ### Routing
 
-A [`service-router`](/docs/agent/config-entries/service-router) config
+A [`service-router`](/docs/connect/config-entries/service-router) config
 entry kind is the first configurable stage.
 
 A router config entry allows for a user to intercept traffic using L7 criteria
@@ -52,12 +52,12 @@ traffic to a different service or service subset.
 These config entries may only reference `service-splitter` or
 `service-resolver` entries.
 
-[Examples](/docs/agent/config-entries/service-router#sample-config-entries)
+[Examples](/docs/connect/config-entries/service-router#sample-config-entries)
 can be found in the `service-router` documentation.
 
 ### Splitting
 
-A [`service-splitter`](/docs/agent/config-entries/service-splitter) config
+A [`service-splitter`](/docs/connect/config-entries/service-splitter) config
 entry kind is the next stage after routing.
 
 A splitter config entry allows for a user to choose to split incoming requests
@@ -77,12 +77,12 @@ union. For instance:
     ---------------------
     splitter[effective_B]: A_v1=25%, A_v2=25%, B=50%
 
-[Examples](/docs/agent/config-entries/service-splitter#sample-config-entries)
+[Examples](/docs/connect/config-entries/service-splitter#sample-config-entries)
 can be found in the `service-splitter` documentation.
 
 ### Resolution
 
-A [`service-resolver`](/docs/agent/config-entries/service-resolver) config
+A [`service-resolver`](/docs/connect/config-entries/service-resolver) config
 entry kind is the last stage.
 
 A resolver config entry allows for a user to define which instances of a
@@ -114,7 +114,7 @@ not intended to be a drop-in replacement currently.
 
 These config entries may only reference other `service-resolver` entries.
 
-[Examples](/docs/agent/config-entries/service-resolver#sample-config-entries)
+[Examples](/docs/connect/config-entries/service-resolver#sample-config-entries)
 can be found in the `service-resolver` documentation.
 
 -> **Note:** `service-resolver` config entries kinds function at L4 (unlike
