@@ -116,9 +116,6 @@
       },
       "filterChains": [
         {
-          "tlsContext": {
-            "requireClientCertificate": true
-          },
           "filters": [
             {
               "name": "envoy.filters.network.rbac",
@@ -135,7 +132,14 @@
                   "stat_prefix": "public_listener"
                 }
             }
-          ]
+          ],
+          "transportSocket": {
+            "name": "tls",
+            "typedConfig": {
+              "@type": "type.googleapis.com/envoy.api.v2.auth.DownstreamTlsContext",
+              "requireClientCertificate": true
+            }
+          }
         }
       ]
     }

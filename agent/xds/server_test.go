@@ -293,15 +293,15 @@ func expectEndpointsJSON(v, n uint64) string {
 	}`
 }
 
-func expectedUpstreamTLSContextJSON(snap *proxycfg.ConfigSnapshot, sni string) string {
-	return expectedTLSContextJSON(snap, false, sni)
+func expectedUpstreamTransportSocketJSON(snap *proxycfg.ConfigSnapshot, sni string) string {
+	return expectedTransportSocketJSON(snap, false, sni)
 }
 
-func expectedPublicTLSContextJSON(t *testing.T, snap *proxycfg.ConfigSnapshot) string {
-	return expectedTLSContextJSON(snap, true, "")
+func expectedPublicTransportSocketJSON(snap *proxycfg.ConfigSnapshot) string {
+	return expectedTransportSocketJSON(snap, true, "")
 }
 
-func expectedTLSContextJSON(snap *proxycfg.ConfigSnapshot, requireClientCert bool, sni string) string {
+func expectedTransportSocketJSON(snap *proxycfg.ConfigSnapshot, requireClientCert bool, sni string) string {
 	// Assume just one root for now, can get fancier later if needed.
 	caPEM := snap.Roots.Roots[0].RootCert
 	reqClient := ""
@@ -317,26 +317,29 @@ func expectedTLSContextJSON(snap *proxycfg.ConfigSnapshot, requireClientCert boo
 	}
 
 	return `{
-		"commonTlsContext": {
-			"tlsParams": {},
-			"tlsCertificates": [
-				{
-					"certificateChain": {
-						"inlineString": "` + strings.Replace(snap.Leaf().CertPEM, "\n", "\\n", -1) + `"
-					},
-					"privateKey": {
-						"inlineString": "` + strings.Replace(snap.Leaf().PrivateKeyPEM, "\n", "\\n", -1) + `"
+        "name": "tls",
+        "typedConfig": {
+			"commonTlsContext": {
+				"tlsParams": {},
+				"tlsCertificates": [
+					{
+						"certificateChain": {
+							"inlineString": "` + strings.Replace(snap.Leaf().CertPEM, "\n", "\\n", -1) + `"
+						},
+						"privateKey": {
+							"inlineString": "` + strings.Replace(snap.Leaf().PrivateKeyPEM, "\n", "\\n", -1) + `"
+						}
+					}
+				],
+				"validationContext": {
+					"trustedCa": {
+						"inlineString": "` + strings.Replace(caPEM, "\n", "\\n", -1) + `"
 					}
 				}
-			],
-			"validationContext": {
-				"trustedCa": {
-					"inlineString": "` + strings.Replace(caPEM, "\n", "\\n", -1) + `"
-				}
 			}
+			` + reqClient + `
+			` + upstreamSNI + `
 		}
-		` + reqClient + `
-		` + upstreamSNI + `
 	}`
 }
 

@@ -550,7 +550,8 @@ func TestListenersFromSnapshot(t *testing.T) {
 	}
 }
 
-func expectListenerJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot) map[string]string {
+// TODO: remove testing.T
+func expectListenerJSONResources(_ *testing.T, snap *proxycfg.ConfigSnapshot) map[string]string {
 	return map[string]string{
 		"public_listener": `{
 				"@type": "type.googleapis.com/envoy.api.v2.Listener",
@@ -563,7 +564,7 @@ func expectListenerJSONResources(t *testing.T, snap *proxycfg.ConfigSnapshot) ma
 				},
 				"filterChains": [
 					{
-						"tlsContext": ` + expectedPublicTLSContextJSON(t, snap) + `,
+						"transportSocket": ` + expectedPublicTransportSocketJSON(snap) + `,
 						"filters": [
 							{
 								"name": "envoy.filters.network.rbac",
