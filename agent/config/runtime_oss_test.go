@@ -12,16 +12,17 @@ var entTokenConfigSanitize = `"EnterpriseConfig": {},`
 
 func entFullRuntimeConfig(rt *RuntimeConfig) {}
 
-var enterpriseReadReplicaWarnings []string = []string{enterpriseConfigKeyError{key: "read_replica"}.Error()}
+var enterpriseReadReplicaWarnings = []string{enterpriseConfigKeyError{key: "read_replica (or the deprecated non_voting_server)"}.Error()}
 
-var enterpriseConfigKeyWarnings []string
-
-func init() {
-	for k := range enterpriseConfigMap {
-		if k == "non_voting_server" {
-			// this is an alias for "read_replica" so we shouldn't see it in warnings
-			continue
-		}
-		enterpriseConfigKeyWarnings = append(enterpriseConfigKeyWarnings, enterpriseConfigKeyError{key: k}.Error())
-	}
+var enterpriseConfigKeyWarnings = []string{
+	enterpriseConfigKeyError{key: "read_replica (or the deprecated non_voting_server)"}.Error(),
+	enterpriseConfigKeyError{key: "segment"}.Error(),
+	enterpriseConfigKeyError{key: "segments"}.Error(),
+	enterpriseConfigKeyError{key: "autopilot.redundancy_zone_tag"}.Error(),
+	enterpriseConfigKeyError{key: "autopilot.upgrade_version_tag"}.Error(),
+	enterpriseConfigKeyError{key: "autopilot.disable_upgrade_migration"}.Error(),
+	enterpriseConfigKeyError{key: "dns_config.prefer_namespace"}.Error(),
+	enterpriseConfigKeyError{key: "acl.msp_disable_bootstrap"}.Error(),
+	enterpriseConfigKeyError{key: "acl.tokens.managed_service_provider"}.Error(),
+	enterpriseConfigKeyError{key: "audit"}.Error(),
 }

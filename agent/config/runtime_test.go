@@ -19,6 +19,8 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics/prometheus"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -35,10 +37,9 @@ import (
 type configTest struct {
 	desc           string
 	args           []string
-	pre, post      func()
+	pre            func()
 	json, jsontail []string
 	hcl, hcltail   []string
-	skipformat     bool
 	privatev4      func() ([]*net.IPAddr, error)
 	publicv6       func() ([]*net.IPAddr, error)
 	patch          func(rt *RuntimeConfig)
@@ -4821,7 +4822,6 @@ func TestBuilder_BuildAndValidate_ConfigFlagsAndEdgecases(t *testing.T) {
 }
 
 func testConfig(t *testing.T, tests []configTest, dataDir string) {
-	t.Helper()
 	for _, tt := range tests {
 		for pass, format := range []string{"json", "hcl"} {
 			// clean data dir before every test
@@ -4837,20 +4837,13 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 
 			// json and hcl sources need to be in sync
 			// to make sure we're generating the same config
-			if len(tt.json) != len(tt.hcl) && !tt.skipformat {
+			if len(tt.json) != len(tt.hcl) {
 				t.Fatal(tt.desc, ": JSON and HCL test case out of sync")
 			}
 
-			// select the source
 			srcs, tails := tt.json, tt.jsontail
 			if format == "hcl" {
 				srcs, tails = tt.hcl, tt.hcltail
-			}
-
-			// If we're skipping a format and the current format is empty,
-			// then skip it!
-			if tt.skipformat && len(srcs) == 0 {
-				continue
 			}
 
 			// build the description
@@ -4863,8 +4856,8 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 			}
 
 			t.Run(strings.Join(desc, ":"), func(t *testing.T) {
-				// first parse the flags
 				flags := BuilderOpts{}
+
 				fs := flag.NewFlagSet("", flag.ContinueOnError)
 				AddFlags(fs, &flags)
 				err := fs.Parse(tt.args)
@@ -4876,17 +4869,10 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 				if tt.pre != nil {
 					tt.pre()
 				}
-				defer func() {
-					if tt.post != nil {
-						tt.post()
-					}
-				}()
 
 				// Then create a builder with the flags.
 				b, err := NewBuilder(flags)
-				if err != nil {
-					t.Fatal("NewBuilder", err)
-				}
+				require.NoError(t, err)
 
 				patchBuilderShims(b)
 				if tt.hostname != nil {
@@ -4899,7 +4885,7 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 					b.opts.getPublicIPv6 = tt.publicv6
 				}
 
-				// read the source fragements
+				// read the source fragments
 				for i, data := range srcs {
 					b.Sources = append(b.Sources, FileSource{
 						Name:   fmt.Sprintf("src-%d.%s", i, format),
@@ -4915,7 +4901,6 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 					})
 				}
 
-				// build/merge the config fragments
 				actual, err := b.BuildAndValidate()
 				if err == nil && tt.err != "" {
 					t.Fatalf("got no error want %q", tt.err)
@@ -4943,9 +4928,7 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 				}
 				patchBuilderShims(x)
 				expected, err := x.Build()
-				if err != nil {
-					t.Fatalf("build default failed: %s", err)
-				}
+				require.NoError(t, err)
 				if tt.patch != nil {
 					tt.patch(&expected)
 				}
@@ -4959,9 +4942,16 @@ func testConfig(t *testing.T, tests []configTest, dataDir string) {
 				if tt.patchActual != nil {
 					tt.patchActual(&actual)
 				}
-				require.Equal(t, expected, actual)
+				assertDeepEqual(t, expected, actual, cmpopts.EquateEmpty())
 			})
 		}
+	}
+}
+
+func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
+	t.Helper()
+	if diff := cmp.Diff(x, y, opts...); diff != "" {
+		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
 	}
 }
 
@@ -7396,7 +7386,6 @@ func TestNonZero(t *testing.T) {
 }
 
 func TestConfigDecodeBytes(t *testing.T) {
-	t.Parallel()
 	// Test with some input
 	src := []byte("abc")
 	key := base64.StdEncoding.EncodeToString(src)

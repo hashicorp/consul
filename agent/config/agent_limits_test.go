@@ -7,7 +7,6 @@ import (
 )
 
 func TestBuildAndValidate_HTTPMaxConnsPerClientExceedsRLimit(t *testing.T) {
-	t.Parallel()
 	hcl := `
 		limits{
 			# We put a very high value to be sure to fail

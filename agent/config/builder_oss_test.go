@@ -5,15 +5,13 @@ package config
 import (
 	"testing"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/stretchr/testify/require"
 )
 
-func TestBuilder_validateEnterpriseConfigKeys(t *testing.T) {
+func TestValidateEnterpriseConfigKeys(t *testing.T) {
 	// ensure that all the enterprise configurations
 	type testCase struct {
 		config  Config
-		keys    []string
 		badKeys []string
 		check   func(t *testing.T, c *Config)
 	}
@@ -22,34 +20,22 @@ func TestBuilder_validateEnterpriseConfigKeys(t *testing.T) {
 	stringVal := "string"
 
 	cases := map[string]testCase{
-		"non_voting_server": {
-			config: Config{
-				ReadReplica: &boolVal,
-			},
-			keys:    []string{"non_voting_server"},
-			badKeys: []string{"non_voting_server"},
-		},
 		"read_replica": {
 			config: Config{
 				ReadReplica: &boolVal,
 			},
-			keys:    []string{"read_replica"},
-			badKeys: []string{"read_replica"},
+			badKeys: []string{"read_replica (or the deprecated non_voting_server)"},
 		},
 		"segment": {
 			config: Config{
 				SegmentName: &stringVal,
 			},
-			keys:    []string{"segment"},
 			badKeys: []string{"segment"},
 		},
 		"segments": {
 			config: Config{
-				Segments: []Segment{
-					{Name: &stringVal},
-				},
+				Segments: []Segment{{Name: &stringVal}},
 			},
-			keys:    []string{"segments"},
 			badKeys: []string{"segments"},
 		},
 		"autopilot.redundancy_zone_tag": {
@@ -58,7 +44,6 @@ func TestBuilder_validateEnterpriseConfigKeys(t *testing.T) {
 					RedundancyZoneTag: &stringVal,
 				},
 			},
-			keys:    []string{"autopilot.redundancy_zone_tag"},
 			badKeys: []string{"autopilot.redundancy_zone_tag"},
 		},
 		"autopilot.upgrade_version_tag": {
@@ -67,25 +52,18 @@ func TestBuilder_validateEnterpriseConfigKeys(t *testing.T) {
 					UpgradeVersionTag: &stringVal,
 				},
 			},
-			keys:    []string{"autopilot.upgrade_version_tag"},
 			badKeys: []string{"autopilot.upgrade_version_tag"},
 		},
 		"autopilot.disable_upgrade_migration": {
 			config: Config{
-				Autopilot: Autopilot{
-					DisableUpgradeMigration: &boolVal,
-				},
+				Autopilot: Autopilot{DisableUpgradeMigration: &boolVal},
 			},
-			keys:    []string{"autopilot.disable_upgrade_migration"},
 			badKeys: []string{"autopilot.disable_upgrade_migration"},
 		},
 		"dns_config.prefer_namespace": {
 			config: Config{
-				DNS: DNS{
-					PreferNamespace: &boolVal,
-				},
+				DNS: DNS{PreferNamespace: &boolVal},
 			},
-			keys:    []string{"dns_config.prefer_namespace"},
 			badKeys: []string{"dns_config.prefer_namespace"},
 			check: func(t *testing.T, c *Config) {
 				require.Nil(t, c.DNS.PreferNamespace)
@@ -93,11 +71,8 @@ func TestBuilder_validateEnterpriseConfigKeys(t *testing.T) {
 		},
 		"acl.msp_disable_bootstrap": {
 			config: Config{
-				ACL: ACL{
-					MSPDisableBootstrap: &boolVal,
-				},
+				ACL: ACL{MSPDisableBootstrap: &boolVal},
 			},
-			keys:    []string{"acl.msp_disable_bootstrap"},
 			badKeys: []string{"acl.msp_disable_bootstrap"},
 			check: func(t *testing.T, c *Config) {
 				require.Nil(t, c.ACL.MSPDisableBootstrap)
@@ -116,7 +91,6 @@ func TestBuilder_validateEnterpriseConfigKeys(t *testing.T) {
 					},
 				},
 			},
-			keys:    []string{"acl.tokens.managed_service_provider"},
 			badKeys: []string{"acl.tokens.managed_service_provider"},
 			check: func(t *testing.T, c *Config) {
 				require.Empty(t, c.ACL.Tokens.ManagedServiceProvider)
@@ -127,39 +101,28 @@ func TestBuilder_validateEnterpriseConfigKeys(t *testing.T) {
 			config: Config{
 				ReadReplica: &boolVal,
 				SegmentName: &stringVal,
+				ACL:         ACL{Tokens: Tokens{AgentMaster: &stringVal}},
 			},
-			keys:    []string{"non_voting_server", "read_replica", "segment", "acl.tokens.agent_master"},
-			badKeys: []string{"non_voting_server", "read_replica", "segment"},
+			badKeys: []string{"read_replica (or the deprecated non_voting_server)", "segment"},
 		},
 	}
 
 	for name, tcase := range cases {
 		t.Run(name, func(t *testing.T) {
-			b := &Builder{}
+			errs := validateEnterpriseConfigKeys(&tcase.config)
+			if len(tcase.badKeys) == 0 {
+				require.Len(t, errs, 0)
+				return
+			}
 
-			err := b.validateEnterpriseConfigKeys(&tcase.config, tcase.keys)
-			if len(tcase.badKeys) > 0 {
-				require.Error(t, err)
+			var expected []error
+			for _, k := range tcase.badKeys {
+				expected = append(expected, enterpriseConfigKeyError{key: k})
+			}
+			require.ElementsMatch(t, expected, errs)
 
-				multiErr, ok := err.(*multierror.Error)
-				require.True(t, ok)
-
-				var badKeys []string
-				for _, e := range multiErr.Errors {
-					if keyErr, ok := e.(enterpriseConfigKeyError); ok {
-						badKeys = append(badKeys, keyErr.key)
-						require.Contains(t, b.Warnings, keyErr.Error())
-					}
-				}
-
-				require.ElementsMatch(t, tcase.badKeys, badKeys)
-
-				if tcase.check != nil {
-					tcase.check(t, &tcase.config)
-				}
-
-			} else {
-				require.NoError(t, err)
+			if tcase.check != nil {
+				tcase.check(t, &tcase.config)
 			}
 		})
 	}
