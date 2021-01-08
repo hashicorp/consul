@@ -50,6 +50,13 @@ components:
         kind: Service Type
         in-mesh: In service mesh
         not-in-mesh: Not in service mesh
+    acl:
+      search-bar:
+        kind:
+          name: Type
+          options:
+            management: Management
+            client: Client
     kv:
       search-bar:
         kind:
