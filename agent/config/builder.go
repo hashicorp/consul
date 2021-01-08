@@ -92,8 +92,7 @@ func Load(opts BuilderOpts, extraHead Source, overrides ...Source) (*RuntimeConf
 // since not all pre-conditions have to be satisfied when performing
 // syntactical tests.
 type Builder struct {
-	// devMode stores the value of the -dev flag, and enables development mode.
-	devMode *bool
+	opts BuilderOpts
 
 	// Head, Sources, and Tail are used to manage the order of the
 	// config sources, as described in the comments above.
@@ -104,15 +103,6 @@ type Builder struct {
 	// Warnings contains the warnings encountered when
 	// parsing the configuration.
 	Warnings []string
-
-	// hostname is a shim for testing, allowing tests to specify a replacement
-	// for os.Hostname.
-	hostname func() (string, error)
-
-	// getPrivateIPv4 and getPublicIPv6 are shims for testing, allowing tests to
-	// specify a replacement for ipaddr.GetPrivateIPv4 and ipaddr.GetPublicIPv6.
-	getPrivateIPv4 func() ([]*net.IPAddr, error)
-	getPublicIPv6  func() ([]*net.IPAddr, error)
 
 	// err contains the first error that occurred during
 	// building the runtime configuration.
@@ -135,8 +125,8 @@ func NewBuilder(opts BuilderOpts) (*Builder, error) {
 	}
 
 	b := &Builder{
-		devMode: opts.DevMode,
-		Head:    []Source{DefaultSource(), DefaultEnterpriseSource()},
+		opts: opts,
+		Head: []Source{DefaultSource(), DefaultEnterpriseSource()},
 	}
 
 	if b.boolVal(opts.DevMode) {
@@ -165,7 +155,7 @@ func NewBuilder(opts BuilderOpts) (*Builder, error) {
 			Data:   s,
 		})
 	}
-	b.Tail = append(b.Tail, NonUserSource(), DefaultConsulSource(), OverrideEnterpriseSource(), DefaultVersionSource())
+	b.Tail = append(b.Tail, NonUserSource(), DefaultConsulSource(), OverrideEnterpriseSource(), defaultVersionSource())
 	if b.boolVal(opts.DevMode) {
 		b.Tail = append(b.Tail, DevConsulSource())
 	}
@@ -467,14 +457,14 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		switch {
 		case ipaddr.IsAnyV4(advertiseAddr):
 			addrtyp = "private IPv4"
-			detect = b.getPrivateIPv4
+			detect = b.opts.getPrivateIPv4
 			if detect == nil {
 				detect = ipaddr.GetPrivateIPv4
 			}
 
 		case ipaddr.IsAnyV6(advertiseAddr):
 			addrtyp = "public IPv6"
-			detect = b.getPublicIPv6
+			detect = b.opts.getPublicIPv6
 			if detect == nil {
 				detect = ipaddr.GetPublicIPv6
 			}
@@ -995,7 +985,7 @@ func (b *Builder) Build() (rt RuntimeConfig, err error) {
 		DataDir:                                dataDir,
 		Datacenter:                             datacenter,
 		DefaultQueryTime:                       b.durationVal("default_query_time", c.DefaultQueryTime),
-		DevMode:                                b.boolVal(b.devMode),
+		DevMode:                                b.boolVal(b.opts.DevMode),
 		DisableAnonymousSignature:              b.boolVal(c.DisableAnonymousSignature),
 		DisableCoordinates:                     b.boolVal(c.DisableCoordinates),
 		DisableHostNodeID:                      b.boolVal(c.DisableHostNodeID),
@@ -1901,7 +1891,7 @@ func (b *Builder) tlsCipherSuites(name string, v *string) []uint16 {
 func (b *Builder) nodeName(v *string) string {
 	nodeName := b.stringVal(v)
 	if nodeName == "" {
-		fn := b.hostname
+		fn := b.opts.hostname
 		if fn == nil {
 			fn = os.Hostname
 		}
