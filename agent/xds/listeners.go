@@ -24,7 +24,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	pbtypes "github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
-	pbstruct "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
@@ -312,7 +311,7 @@ func (s *Server) makeIngressGatewayListeners(address string, cfgSnap *proxycfg.C
 			resources = append(resources, upstreamListener)
 		} else {
 			// If multiple upstreams share this port, make a special listener for the protocol.
-			listener := makeListener(listenerKey.Protocol, address, listenerKey.Port)
+			listener := makeListener(listenerKey.Protocol, address, listenerKey.Port, envoycore.TrafficDirection_OUTBOUND)
 			opts := listenerFilterOpts{
 				useRDS:          true,
 				protocol:        listenerKey.Protocol,
@@ -321,7 +320,6 @@ func (s *Server) makeIngressGatewayListeners(address string, cfgSnap *proxycfg.C
 				cluster:         "",
 				statPrefix:      "ingress_upstream.",
 				routePath:       "",
-				ingress:         false,
 				httpAuthzFilter: nil,
 			}
 			filter, err := makeListenerFilter(opts)
@@ -360,10 +358,11 @@ func (s *Server) makeIngressGatewayListeners(address string, cfgSnap *proxycfg.C
 // changes them, we actually create a whole new listener on the new address and
 // port. Envoy should take care of closing the old one once it sees it's no
 // longer in the config.
-func makeListener(name, addr string, port int) *envoy.Listener {
+func makeListener(name, addr string, port int, trafficDirection envoycore.TrafficDirection) *envoy.Listener {
 	return &envoy.Listener{
-		Name:    fmt.Sprintf("%s:%s:%d", name, addr, port),
-		Address: makeAddress(addr, port),
+		Name:             fmt.Sprintf("%s:%s:%d", name, addr, port),
+		Address:          makeAddress(addr, port),
+		TrafficDirection: trafficDirection,
 	}
 }
 
@@ -565,7 +564,7 @@ func (s *Server) makePublicListener(cInfo connectionInfo, cfgSnap *proxycfg.Conf
 			port = cfg.BindPort
 		}
 
-		l = makeListener(PublicListenerName, addr, port)
+		l = makeListener(PublicListenerName, addr, port, envoycore.TrafficDirection_INBOUND)
 
 		opts := listenerFilterOpts{
 			useRDS:     false,
@@ -575,7 +574,6 @@ func (s *Server) makePublicListener(cInfo connectionInfo, cfgSnap *proxycfg.Conf
 			cluster:    LocalAppClusterName,
 			statPrefix: "",
 			routePath:  "",
-			ingress:    true,
 		}
 
 		if useHTTPFilter {
@@ -658,7 +656,7 @@ func (s *Server) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSnapshot, clus
 	strippedPath := r.ReplaceAllString(path.Path, "")
 	listenerName := fmt.Sprintf("exposed_path_%s", strippedPath)
 
-	l := makeListener(listenerName, addr, path.ListenerPort)
+	l := makeListener(listenerName, addr, path.ListenerPort, envoycore.TrafficDirection_INBOUND)
 
 	filterName := fmt.Sprintf("exposed_path_filter_%s_%d", strippedPath, path.ListenerPort)
 
@@ -670,7 +668,6 @@ func (s *Server) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSnapshot, clus
 		cluster:         cluster,
 		statPrefix:      "",
 		routePath:       path.Path,
-		ingress:         true,
 		httpAuthzFilter: nil,
 	}
 	f, err := makeListenerFilter(opts)
@@ -715,7 +712,7 @@ func (s *Server) makeTerminatingGatewayListener(
 	name, addr string,
 	port int,
 ) (*envoy.Listener, error) {
-	l := makeListener(name, addr, port)
+	l := makeListener(name, addr, port, envoycore.TrafficDirection_INBOUND)
 
 	tlsInspector, err := makeTLSInspectorListenerFilter()
 	if err != nil {
@@ -847,7 +844,6 @@ func (s *Server) makeFilterChainTerminatingGateway(
 		cluster:    cluster,
 		statPrefix: statPrefix,
 		routePath:  "",
-		ingress:    false,
 	}
 
 	if useHTTPFilter {
@@ -898,7 +894,7 @@ func (s *Server) makeMeshGatewayListener(name, addr string, port int, cfgSnap *p
 		},
 	}
 
-	l := makeListener(name, addr, port)
+	l := makeListener(name, addr, port, envoycore.TrafficDirection_UNSPECIFIED)
 	l.ListenerFilters = []*envoylistener.ListenerFilter{tlsInspector}
 
 	// TODO (mesh-gateway) - Do we need to create clusters for all the old trust domains as well?
@@ -986,7 +982,7 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 		address = "127.0.0.1"
 	}
 	upstreamID := u.Identifier()
-	l := makeListener(upstreamID, address, u.LocalBindPort)
+	l := makeListener(upstreamID, address, u.LocalBindPort, envoycore.TrafficDirection_OUTBOUND)
 
 	cfg := getAndModifyUpstreamConfigForListener(s.Logger, u, chain)
 	if cfg.ListenerJSON != "" {
@@ -1050,7 +1046,6 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 		cluster:         clusterName,
 		statPrefix:      "upstream.",
 		routePath:       "",
-		ingress:         false,
 		httpAuthzFilter: nil,
 	}
 	filter, err := makeListenerFilter(opts)
@@ -1129,7 +1124,6 @@ type listenerFilterOpts struct {
 	cluster         string
 	statPrefix      string
 	routePath       string
-	ingress         bool
 	httpAuthzFilter *envoyhttp.HttpFilter
 }
 
@@ -1169,7 +1163,7 @@ func makeTCPProxyFilter(filterName, cluster, statPrefix string) (*envoylistener.
 		StatPrefix:       makeStatPrefix(statPrefix, filterName),
 		ClusterSpecifier: &envoytcp.TcpProxy_Cluster{Cluster: cluster},
 	}
-	return makeFilter("envoy.filters.network.tcp_proxy", cfg, false)
+	return makeFilter("envoy.filters.network.tcp_proxy", cfg, true)
 }
 
 func makeStatPrefix(prefix, filterName string) string {
@@ -1180,11 +1174,6 @@ func makeStatPrefix(prefix, filterName string) string {
 }
 
 func makeHTTPFilter(opts listenerFilterOpts) (*envoylistener.Filter, error) {
-	op := envoyhttp.HttpConnectionManager_Tracing_INGRESS
-	if !opts.ingress {
-		op = envoyhttp.HttpConnectionManager_Tracing_EGRESS
-	}
-
 	cfg := &envoyhttp.HttpConnectionManager{
 		StatPrefix: makeStatPrefix(opts.statPrefix, opts.filterName),
 		CodecType:  envoyhttp.HttpConnectionManager_AUTO,
@@ -1194,7 +1183,6 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoylistener.Filter, error) {
 			},
 		},
 		Tracing: &envoyhttp.HttpConnectionManager_Tracing{
-			OperationName: op,
 			// Don't trace any requests by default unless the client application
 			// explicitly propagates trace headers that indicate this should be
 			// sampled.
@@ -1275,12 +1263,11 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoylistener.Filter, error) {
 	if opts.protocol == "grpc" {
 		// Add grpc bridge before router and authz
 		cfg.HttpFilters = append([]*envoyhttp.HttpFilter{{
-			Name:       "envoy.grpc_http1_bridge",
-			ConfigType: &envoyhttp.HttpFilter_Config{Config: &pbstruct.Struct{}},
+			Name: "envoy.grpc_http1_bridge",
 		}}, cfg.HttpFilters...)
 	}
 
-	return makeFilter("envoy.filters.network.http_connection_manager", cfg, false)
+	return makeFilter("envoy.filters.network.http_connection_manager", cfg, true)
 }
 
 func makeFilter(name string, cfg proto.Message, typed bool) (*envoylistener.Filter, error) {
@@ -1308,18 +1295,28 @@ func makeFilter(name string, cfg proto.Message, typed bool) (*envoylistener.Filt
 	return filter, nil
 }
 
-func makeEnvoyHTTPFilter(name string, cfg proto.Message) (*envoyhttp.HttpFilter, error) {
-	// Ridiculous dance to make that struct into pbstruct.Struct by... encoding it
-	// as JSON and decoding again!!
-	cfgStruct, err := conversion.MessageToStruct(cfg)
-	if err != nil {
-		return nil, err
+func makeEnvoyHTTPFilter(name string, cfg proto.Message, typed bool) (*envoyhttp.HttpFilter, error) {
+	filter := &envoyhttp.HttpFilter{
+		Name: name,
+	}
+	if typed {
+		any, err := pbtypes.MarshalAny(cfg)
+		if err != nil {
+			return nil, err
+		}
+
+		filter.ConfigType = &envoyhttp.HttpFilter_TypedConfig{TypedConfig: any}
+	} else {
+		// Ridiculous dance to make that struct into pbstruct.Struct by... encoding it
+		// as JSON and decoding again!!
+		cfgStruct, err := conversion.MessageToStruct(cfg)
+		if err != nil {
+			return nil, err
+		}
+		filter.ConfigType = &envoyhttp.HttpFilter_Config{Config: cfgStruct}
 	}
 
-	return &envoyhttp.HttpFilter{
-		Name:       name,
-		ConfigType: &envoyhttp.HttpFilter_Config{Config: cfgStruct},
-	}, nil
+	return filter, nil
 }
 
 func makeCommonTLSContextFromLeaf(cfgSnap *proxycfg.ConfigSnapshot, leaf *structs.IssuedCert) *envoyauth.CommonTlsContext {

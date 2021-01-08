@@ -18,10 +18,11 @@
             },
             {
               "name": "envoy.filters.network.tcp_proxy",
-              "config": {
-                  "cluster": "",
-                  "stat_prefix": "mesh_gateway_local.default"
-                }
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "statPrefix": "mesh_gateway_local.default",
+                "cluster": ""
+              }
             }
           ]
         }

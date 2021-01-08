@@ -25,7 +25,7 @@ func makeRBACNetworkFilter(intentions structs.Intentions, intentionDefaultAllow 
 		StatPrefix: "connect_authz",
 		Rules:      rules,
 	}
-	return makeFilter("envoy.filters.network.rbac", cfg, false)
+	return makeFilter("envoy.filters.network.rbac", cfg, true)
 }
 
 func makeRBACHTTPFilter(intentions structs.Intentions, intentionDefaultAllow bool) (*envoyhttp.HttpFilter, error) {
@@ -37,7 +37,7 @@ func makeRBACHTTPFilter(intentions structs.Intentions, intentionDefaultAllow boo
 	cfg := &envoyhttprbac.RBAC{
 		Rules: rules,
 	}
-	return makeEnvoyHTTPFilter("envoy.filters.http.rbac", cfg)
+	return makeEnvoyHTTPFilter("envoy.filters.http.rbac", cfg, true)
 }
 
 func intentionListToIntermediateRBACForm(intentions structs.Intentions, isHTTP bool) []*rbacIntention {

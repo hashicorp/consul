@@ -15,30 +15,33 @@
           "filters": [
             {
               "name": "envoy.filters.network.http_connection_manager",
-              "config": {
-                  "http_filters": [
-                        {
-                              "name": "envoy.filters.http.router"
-                            }
-                      ],
-                  "rds": {
-                        "config_source": {
-                              "ads": {
-                                  }
-                            },
-                        "route_config_name": "9191"
-                      },
-                  "stat_prefix": "ingress_upstream.9191",
-                  "tracing": {
-                        "operation_name": "EGRESS",
-                        "random_sampling": {
-                            }
-                      }
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager",
+                "statPrefix": "ingress_upstream.9191",
+                "rds": {
+                  "configSource": {
+                    "ads": {
+
+                    }
+                  },
+                  "routeConfigName": "9191"
+                },
+                "httpFilters": [
+                  {
+                    "name": "envoy.filters.http.router"
+                  }
+                ],
+                "tracing": {
+                  "randomSampling": {
+
+                  }
                 }
+              }
             }
           ]
         }
-      ]
+      ],
+      "trafficDirection": "OUTBOUND"
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.api.v2.Listener",

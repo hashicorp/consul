@@ -20,18 +20,21 @@
           "filters": [
             {
               "name": "envoy.filters.network.rbac",
-              "config": {
-                  "rules": {
-                      },
-                  "stat_prefix": "connect_authz"
-                }
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.rbac.v2.RBAC",
+                "rules": {
+
+                },
+                "statPrefix": "connect_authz"
+              }
             },
             {
               "name": "envoy.filters.network.tcp_proxy",
-              "config": {
-                  "cluster": "api.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-                  "stat_prefix": "terminating_gateway.default.api.default"
-                }
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "statPrefix": "terminating_gateway.default.api.default",
+                "cluster": "api.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
             }
           ],
           "transportSocket": {
@@ -71,18 +74,21 @@
           "filters": [
             {
               "name": "envoy.filters.network.rbac",
-              "config": {
-                  "rules": {
-                      },
-                  "stat_prefix": "connect_authz"
-                }
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.rbac.v2.RBAC",
+                "rules": {
+
+                },
+                "statPrefix": "connect_authz"
+              }
             },
             {
               "name": "envoy.filters.network.tcp_proxy",
-              "config": {
-                  "cluster": "cache.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-                  "stat_prefix": "terminating_gateway.default.cache.default"
-                }
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "statPrefix": "terminating_gateway.default.cache.default",
+                "cluster": "cache.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
             }
           ],
           "transportSocket": {
@@ -122,18 +128,21 @@
           "filters": [
             {
               "name": "envoy.filters.network.rbac",
-              "config": {
-                  "rules": {
-                      },
-                  "stat_prefix": "connect_authz"
-                }
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.rbac.v2.RBAC",
+                "rules": {
+
+                },
+                "statPrefix": "connect_authz"
+              }
             },
             {
               "name": "envoy.filters.network.tcp_proxy",
-              "config": {
-                  "cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-                  "stat_prefix": "terminating_gateway.default.db.default"
-                }
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "statPrefix": "terminating_gateway.default.db.default",
+                "cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
             }
           ],
           "transportSocket": {
@@ -173,33 +182,37 @@
           "filters": [
             {
               "name": "envoy.filters.network.http_connection_manager",
-              "config": {
-                  "http_filters": [
-                        {
-                              "config": {
-                                    "rules": {
-                                        }
-                                  },
-                              "name": "envoy.filters.http.rbac"
-                            },
-                        {
-                              "name": "envoy.filters.http.router"
-                            }
-                      ],
-                  "rds": {
-                        "config_source": {
-                              "ads": {
-                                  }
-                            },
-                        "route_config_name": "v1.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
-                      },
-                  "stat_prefix": "terminating_gateway.default.web.default",
-                  "tracing": {
-                        "operation_name": "EGRESS",
-                        "random_sampling": {
-                            }
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager",
+                "statPrefix": "terminating_gateway.default.web.default",
+                "rds": {
+                  "configSource": {
+                    "ads": {
+
+                    }
+                  },
+                  "routeConfigName": "v1.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                },
+                "httpFilters": [
+                  {
+                    "name": "envoy.filters.http.rbac",
+                    "typedConfig": {
+                      "@type": "type.googleapis.com/envoy.config.filter.http.rbac.v2.RBAC",
+                      "rules": {
+
                       }
+                    }
+                  },
+                  {
+                    "name": "envoy.filters.http.router"
+                  }
+                ],
+                "tracing": {
+                  "randomSampling": {
+
+                  }
                 }
+              }
             }
           ],
           "transportSocket": {
@@ -239,33 +252,37 @@
           "filters": [
             {
               "name": "envoy.filters.network.http_connection_manager",
-              "config": {
-                  "http_filters": [
-                        {
-                              "config": {
-                                    "rules": {
-                                        }
-                                  },
-                              "name": "envoy.filters.http.rbac"
-                            },
-                        {
-                              "name": "envoy.filters.http.router"
-                            }
-                      ],
-                  "rds": {
-                        "config_source": {
-                              "ads": {
-                                  }
-                            },
-                        "route_config_name": "v2.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
-                      },
-                  "stat_prefix": "terminating_gateway.default.web.default",
-                  "tracing": {
-                        "operation_name": "EGRESS",
-                        "random_sampling": {
-                            }
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager",
+                "statPrefix": "terminating_gateway.default.web.default",
+                "rds": {
+                  "configSource": {
+                    "ads": {
+
+                    }
+                  },
+                  "routeConfigName": "v2.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                },
+                "httpFilters": [
+                  {
+                    "name": "envoy.filters.http.rbac",
+                    "typedConfig": {
+                      "@type": "type.googleapis.com/envoy.config.filter.http.rbac.v2.RBAC",
+                      "rules": {
+
                       }
+                    }
+                  },
+                  {
+                    "name": "envoy.filters.http.router"
+                  }
+                ],
+                "tracing": {
+                  "randomSampling": {
+
+                  }
                 }
+              }
             }
           ],
           "transportSocket": {
@@ -305,33 +322,37 @@
           "filters": [
             {
               "name": "envoy.filters.network.http_connection_manager",
-              "config": {
-                  "http_filters": [
-                        {
-                              "config": {
-                                    "rules": {
-                                        }
-                                  },
-                              "name": "envoy.filters.http.rbac"
-                            },
-                        {
-                              "name": "envoy.filters.http.router"
-                            }
-                      ],
-                  "rds": {
-                        "config_source": {
-                              "ads": {
-                                  }
-                            },
-                        "route_config_name": "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
-                      },
-                  "stat_prefix": "terminating_gateway.default.web.default",
-                  "tracing": {
-                        "operation_name": "EGRESS",
-                        "random_sampling": {
-                            }
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager",
+                "statPrefix": "terminating_gateway.default.web.default",
+                "rds": {
+                  "configSource": {
+                    "ads": {
+
+                    }
+                  },
+                  "routeConfigName": "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+                },
+                "httpFilters": [
+                  {
+                    "name": "envoy.filters.http.rbac",
+                    "typedConfig": {
+                      "@type": "type.googleapis.com/envoy.config.filter.http.rbac.v2.RBAC",
+                      "rules": {
+
                       }
+                    }
+                  },
+                  {
+                    "name": "envoy.filters.http.router"
+                  }
+                ],
+                "tracing": {
+                  "randomSampling": {
+
+                  }
                 }
+              }
             }
           ],
           "transportSocket": {
@@ -369,10 +390,11 @@
             },
             {
               "name": "envoy.filters.network.tcp_proxy",
-              "config": {
-                  "cluster": "",
-                  "stat_prefix": "terminating_gateway.default"
-                }
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "statPrefix": "terminating_gateway.default",
+                "cluster": ""
+              }
             }
           ]
         }
@@ -381,7 +403,8 @@
         {
           "name": "envoy.listener.tls_inspector"
         }
-      ]
+      ],
+      "trafficDirection": "INBOUND"
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.api.v2.Listener",

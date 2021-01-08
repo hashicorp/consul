@@ -1,48 +1,51 @@
 {
   "name": "envoy.filters.http.rbac",
-  "config": {
-      "rules": {
-            "policies": {
-                  "consul-intentions-layer4": {
-                        "permissions": [
-                              {
-                                    "any": true
-                                  }
-                            ],
-                        "principals": [
-                              {
-                                    "and_ids": {
-                                          "ids": [
-                                                {
-                                                      "authenticated": {
-                                                            "principal_name": {
-                                                                  "safe_regex": {
-                                                                        "google_re2": {
-                                                                            },
-                                                                        "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/[^/]+$"
-                                                                      }
-                                                                }
-                                                          }
-                                                    },
-                                                {
-                                                      "not_id": {
-                                                            "authenticated": {
-                                                                  "principal_name": {
-                                                                        "safe_regex": {
-                                                                              "google_re2": {
-                                                                                  },
-                                                                              "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/web$"
-                                                                            }
-                                                                      }
-                                                                }
-                                                          }
-                                                    }
-                                              ]
-                                        }
-                                  }
-                            ]
+  "typedConfig": {
+    "@type": "type.googleapis.com/envoy.config.filter.http.rbac.v2.RBAC",
+    "rules": {
+      "policies": {
+        "consul-intentions-layer4": {
+          "permissions": [
+            {
+              "any": true
+            }
+          ],
+          "principals": [
+            {
+              "andIds": {
+                "ids": [
+                  {
+                    "authenticated": {
+                      "principalName": {
+                        "safeRegex": {
+                          "googleRe2": {
+
+                          },
+                          "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/[^/]+$"
+                        }
                       }
-                }
-          }
+                    }
+                  },
+                  {
+                    "notId": {
+                      "authenticated": {
+                        "principalName": {
+                          "safeRegex": {
+                            "googleRe2": {
+
+                            },
+                            "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/web$"
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
     }
+  }
 }

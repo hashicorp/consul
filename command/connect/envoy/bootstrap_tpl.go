@@ -141,10 +141,10 @@ const bootstrapTemplate = `{
         "connect_timeout": "1s",
         "type": "STATIC",
         {{- if .AgentTLS -}}
-		"transport_socket": {
-		  "name": "tls",
-		  "typed_config": {
-		    "@type": "type.googleapis.com/envoy.api.v2.auth.UpstreamTlsContext",
+        "transport_socket": {
+          "name": "tls",
+          "typed_config": {
+            "@type": "type.googleapis.com/envoy.api.v2.auth.UpstreamTlsContext",
             "common_tls_context": {
               "validation_context": {
                 "trusted_ca": {
@@ -152,26 +152,35 @@ const bootstrapTemplate = `{
                 }
               }
             }
-		  }
-		},
+          }
+        },
         {{- end }}
         "http2_protocol_options": {},
-        "hosts": [
-	  {{- if .AgentSocket -}}
-          {
-            "pipe": {
-              "path": "{{ .AgentSocket }}"
+        "loadAssignment": {
+          "clusterName": "{{ .LocalAgentClusterName }}",
+          "endpoints": [
+            {
+              "lbEndpoints": [
+                {
+                  "endpoint": {
+                    "address": {
+                      {{- if .AgentSocket -}}
+                      "pipe": {
+                        "path": "{{ .AgentSocket }}"
+                      }
+                      {{- else -}}
+                      "socket_address": {
+                        "address": "{{ .AgentAddress }}",
+                        "port_value": {{ .AgentPort }}
+                      }
+                      {{- end -}}
+                    }
+                  }
+                }
+              ]
             }
-          }
-	  {{- else -}}
-          {
-            "socket_address": {
-              "address": "{{ .AgentAddress }}",
-              "port_value": {{ .AgentPort }}
-            }
-          }
-	  {{- end -}}
-        ]
+          ]
+        }
       }
       {{- if .StaticClustersJSON -}}
       ,
@@ -213,17 +222,6 @@ const bootstrapTemplate = `{
         }
       }
     }
-  },
-  "layered_runtime":{
-    "layers": [
-      {
-        "name": "static_layer",
-        "static_layer": {
-          "envoy.deprecated_features:envoy.config.trace.v2.ZipkinConfig.HTTP_JSON_V1": true,
-          "envoy.deprecated_features:envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager.Tracing.operation_name": true
-        }
-      }
-    ]
   }
 }
 `

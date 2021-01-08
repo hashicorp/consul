@@ -15,30 +15,33 @@
           "filters": [
             {
               "name": "envoy.filters.network.http_connection_manager",
-              "config": {
-                  "http_filters": [
-                        {
-                              "name": "envoy.filters.http.router"
-                            }
-                      ],
-                  "rds": {
-                        "config_source": {
-                              "ads": {
-                                  }
-                            },
-                        "route_config_name": "db"
-                      },
-                  "stat_prefix": "upstream.db.default.dc1",
-                  "tracing": {
-                        "operation_name": "EGRESS",
-                        "random_sampling": {
-                            }
-                      }
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager",
+                "statPrefix": "upstream.db.default.dc1",
+                "rds": {
+                  "configSource": {
+                    "ads": {
+
+                    }
+                  },
+                  "routeConfigName": "db"
+                },
+                "httpFilters": [
+                  {
+                    "name": "envoy.filters.http.router"
+                  }
+                ],
+                "tracing": {
+                  "randomSampling": {
+
+                  }
                 }
+              }
             }
           ]
         }
-      ]
+      ],
+      "trafficDirection": "OUTBOUND"
     },
     {
       "@type": "type.googleapis.com/envoy.api.v2.Listener",
@@ -54,14 +57,16 @@
           "filters": [
             {
               "name": "envoy.filters.network.tcp_proxy",
-              "config": {
-                  "cluster": "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
-                  "stat_prefix": "upstream.prepared_query_geo-cache"
-                }
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "statPrefix": "upstream.prepared_query_geo-cache",
+                "cluster": "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul"
+              }
             }
           ]
         }
-      ]
+      ],
+      "trafficDirection": "OUTBOUND"
     },
     {
       "@type": "type.googleapis.com/envoy.api.v2.Listener",
@@ -77,18 +82,21 @@
           "filters": [
             {
               "name": "envoy.filters.network.rbac",
-              "config": {
-                  "rules": {
-                      },
-                  "stat_prefix": "connect_authz"
-                }
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.rbac.v2.RBAC",
+                "rules": {
+
+                },
+                "statPrefix": "connect_authz"
+              }
             },
             {
               "name": "envoy.filters.network.tcp_proxy",
-              "config": {
-                  "cluster": "local_app",
-                  "stat_prefix": "public_listener"
-                }
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "statPrefix": "public_listener",
+                "cluster": "local_app"
+              }
             }
           ],
           "transportSocket": {
@@ -119,7 +127,8 @@
             }
           }
         }
-      ]
+      ],
+      "trafficDirection": "INBOUND"
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.api.v2.Listener",

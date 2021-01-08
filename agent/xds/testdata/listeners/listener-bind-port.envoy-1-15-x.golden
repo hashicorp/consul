@@ -15,14 +15,16 @@
           "filters": [
             {
               "name": "envoy.filters.network.tcp_proxy",
-              "config": {
-                  "cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-                  "stat_prefix": "upstream.db.default.dc1"
-                }
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "statPrefix": "upstream.db.default.dc1",
+                "cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
             }
           ]
         }
-      ]
+      ],
+      "trafficDirection": "OUTBOUND"
     },
     {
       "@type": "type.googleapis.com/envoy.api.v2.Listener",
@@ -38,14 +40,16 @@
           "filters": [
             {
               "name": "envoy.filters.network.tcp_proxy",
-              "config": {
-                  "cluster": "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
-                  "stat_prefix": "upstream.prepared_query_geo-cache"
-                }
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "statPrefix": "upstream.prepared_query_geo-cache",
+                "cluster": "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul"
+              }
             }
           ]
         }
-      ]
+      ],
+      "trafficDirection": "OUTBOUND"
     },
     {
       "@type": "type.googleapis.com/envoy.api.v2.Listener",
@@ -61,18 +65,21 @@
           "filters": [
             {
               "name": "envoy.filters.network.rbac",
-              "config": {
-                  "rules": {
-                      },
-                  "stat_prefix": "connect_authz"
-                }
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.rbac.v2.RBAC",
+                "rules": {
+
+                },
+                "statPrefix": "connect_authz"
+              }
             },
             {
               "name": "envoy.filters.network.tcp_proxy",
-              "config": {
-                  "cluster": "local_app",
-                  "stat_prefix": "public_listener"
-                }
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "statPrefix": "public_listener",
+                "cluster": "local_app"
+              }
             }
           ],
           "transportSocket": {
@@ -103,7 +110,8 @@
             }
           }
         }
-      ]
+      ],
+      "trafficDirection": "INBOUND"
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.api.v2.Listener",

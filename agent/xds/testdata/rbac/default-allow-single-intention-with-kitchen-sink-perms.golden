@@ -1,31 +1,33 @@
 {
   "name": "envoy.filters.network.rbac",
-  "config": {
-      "rules": {
-            "action": "DENY",
-            "policies": {
-                  "consul-intentions-layer4": {
-                        "permissions": [
-                              {
-                                    "any": true
-                                  }
-                            ],
-                        "principals": [
-                              {
-                                    "authenticated": {
-                                          "principal_name": {
-                                                "safe_regex": {
-                                                      "google_re2": {
-                                                          },
-                                                      "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/web$"
-                                                    }
-                                              }
-                                        }
-                                  }
-                            ]
-                      }
+  "typedConfig": {
+    "@type": "type.googleapis.com/envoy.config.filter.network.rbac.v2.RBAC",
+    "rules": {
+      "action": "DENY",
+      "policies": {
+        "consul-intentions-layer4": {
+          "permissions": [
+            {
+              "any": true
+            }
+          ],
+          "principals": [
+            {
+              "authenticated": {
+                "principalName": {
+                  "safeRegex": {
+                    "googleRe2": {
+
+                    },
+                    "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/web$"
+                  }
                 }
-          },
-      "stat_prefix": "connect_authz"
-    }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "statPrefix": "connect_authz"
+  }
 }
