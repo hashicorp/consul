@@ -28,6 +28,7 @@ common:
     service-name: Service Name
     node-name: Node Name
     accessorid: AccessorID
+    datacenter: Datacenter
   search:
     search: Search
     searchproperty: Search Across
@@ -71,6 +72,13 @@ components:
             global-management: Global Management
             global: Global Scope
             local: Local Scope
+    policy:
+      search-bar:
+        kind:
+          name: Type
+          options:
+            global-management: Global Management
+            standard: Standard
     kv:
       search-bar:
         kind:
