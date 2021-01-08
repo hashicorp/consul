@@ -1426,6 +1426,14 @@ func (b *Builder) Validate(rt RuntimeConfig) error {
 		b.warn("bootstrap_expect > 0: expecting %d servers", rt.BootstrapExpect)
 	}
 
+	if rt.ServerMode {
+		if rt.UseStreamingBackend && !rt.RPCConfig.EnableStreaming {
+			b.warn("use_streaming_backend = true requires rpc.enable_streaming on servers to work properly")
+		}
+	} else if rt.RPCConfig.EnableStreaming {
+		b.warn("rpc.enable_streaming = true has no effect when not running in server mode")
+	}
+
 	if rt.AutoEncryptAllowTLS {
 		if !rt.VerifyIncoming && !rt.VerifyIncomingRPC {
 			b.warn("if auto_encrypt.allow_tls is turned on, either verify_incoming or verify_incoming_rpc should be enabled. It is necessary to turn it off during a migration to TLS, but it should definitely be turned on afterwards.")
