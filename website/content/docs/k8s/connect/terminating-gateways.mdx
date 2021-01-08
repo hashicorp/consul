@@ -7,23 +7,15 @@ description: Configuring Terminating Gateways on Kubernetes
 
 # Terminating Gateways on Kubernetes
 
--> 1.8.0+: This feature is available in Consul versions 1.8.0 and higher
-
--> 0.16.0+: This feature is available in consul-k8s versions 0.16.0 and higher
+-> 1.9.0+: This feature is available in Consul versions 1.9.0 and higher
 
 ~> This topic requires familiarity with [Terminating Gateways](/docs/connect/terminating-gateway).
-
-Terminating gateways are a new feature included in Consul 1.8. The correlating consul-k8s binary version is
-[0.16.0](https://github.com/hashicorp/consul-k8s/blob/master/CHANGELOG.md#0160-june-17-2020), and is required to enable
-terminating gateways. If you are using the latest official [consul-helm chart](https://github.com/hashicorp/consul-helm),
-and have not customized the [imageK8S](/docs/k8s/helm#v-global-imagek8s) configuration for any of
-your components, you should be running a compatible version by default.
 
 Adding a terminating gateway is a multi-step process:
 
 - Update the helm chart with terminating gateway config options
-- Deploying the helm chart
-- Accessing the Consul agent
+- Deploy the helm chart
+- Access the Consul agent
 - Register external services with Consul
 
 ## Update the helm chart with terminating gateway config options
@@ -34,6 +26,8 @@ Minimum required Helm options:
 global:
   name: consul
 connectInject:
+  enabled: true
+controller:
   enabled: true
 terminatingGateways:
   enabled: true
@@ -50,13 +44,13 @@ as previously discussed.
 You can access the Consul server directly from your host via `kubectl port-forward`. This is helpful for interacting with your Consul UI locally as well as to validate connectivity of the application.
 
 ```shell-session
-$ kubectl port-foward consul-server-0 8500 &
+$ kubectl port-forward consul-server-0 8500 &
 ```
 
 If TLS is enabled use port 8501:
 
 ```shell-session
-$ kubectl port-foward consul-server-0 8501 &
+$ kubectl port-forward consul-server-0 8501 &
 ```
 
 -> Be sure the latest consul binary is installed locally on your host.
@@ -85,8 +79,8 @@ Registering the external services with Consul is a multi-step process:
 
 - Register external services with Consul
 - Update the terminating gateway ACL token if ACLs are enabled
-- Create the configuration entry for the terminating gateway
-- Create intentions to allow access from services in the mesh to external service
+- Create a [`TerminatingGateway`](/docs/connect/config-entries/terminating-gateway) resource to configure the terminating gateway
+- Create a [`ServiceIntentions`](/docs/connect/config-entries/service-intentions) resource to allow access from services in the mesh to external service
 - Define upstream annotations for any services that need to talk to the external services
 
 ### Register external services with Consul
@@ -113,12 +107,14 @@ Register the external service with Consul:
 
 ```shell-session
 $ curl --request PUT --data @external.json -k $CONSUL_HTTP_ADDR/v1/catalog/register
+true
 ```
 
 If ACLs and TLS are enabled :
 
 ```shell-session
 $ curl --request PUT --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" --data @external.json -k $CONSUL_HTTP_ADDR/v1/catalog/register
+true
 ```
 
 ### Update terminating gateway ACL token if ACLs are enabled
@@ -140,18 +136,36 @@ service "example-https" {
 
 ```shell-session
 $ consul acl policy create -name "example-https-write-policy" -rules @write-policy.hcl
+ID:           xxxxxxxxxxxxxxx
+Name:         example-https-write-policy
+Description:
+Datacenters:
+Rules:
+service "example-https" {
+  policy = "write"
+}
 ```
 
 Now fetch the id of the terminating gateway token
 
 ```shell-session
-$ consul acl token list | grep terminating-gateway-terminating-gateway-token
+consul acl token list | grep -B 6 -- "- terminating-gateway-terminating-gateway-token" | grep AccessorID
+
+AccessorID:       <token id>
 ```
 
 Update the terminating gateway acl token with the new policy
 
 ```shell-session
 $ consul acl token update -id <token-id> -policy-name example-https-write-policy -merge-policies -merge-roles -merge-service-identities
+AccessorID:       <token id>
+SecretID:         <secret id>
+Description:      terminating-gateway-terminating-gateway-token Token
+Local:            true
+Create Time:      2021-01-08 21:18:47.957450486 +0000 UTC
+Policies:
+   63bf1d9b-a87d-8672-ddcb-d25e2d88adb8 - terminating-gateway-terminating-gateway-token
+   f63d1ae6-ffe7-44bd-bf7a-704a86939a63 - example-https-write-policy
 ```
 
 ### Create the configuration entry for the terminating gateway
@@ -160,29 +174,44 @@ Once the tokens have been updated, create the [TerminatingGateway](/docs/connect
 resource to configure the terminating gateway:
 
 ```hcl
-Kind = "terminating-gateway"
-Name = "terminating-gateway"
-Services = [
- {
-   Name = "example-https"
-   CAFile = "/etc/ssl/cert.pem"
- }
-]
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: TerminatingGateway
+metadata:
+  name: terminating-gateway
+spec:
+  services:
+    - name: example-https
+      caFile: /etc/ssl/cert.pem
 ```
 
-~> If TLS is enabled a `CAFile` must be provided, it must point to the system trust store of the terminating gateway
-container.
+~> If TLS is enabled a `caFile` must be provided, it must point to the system trust store of the terminating gateway
+container (`/etc/ssl/cert.pem`).
 
-Submit the terminating gateway entry with the Consul CLI using this command.
+Apply the `TerminatingGateway` resource with `kubectl apply`:
 
 ```shell-session
-$ consul config write terminating-gateway.hcl
+$ kubectl apply -f terminating-gateway.yaml
 ```
 
-If using ACLs and TLS, create intentions to allow access from services in the mesh to the external service
+If using ACLs and TLS, create a [`ServiceIntentions`](/docs/connect/config-entries/service-intentions) resource to allow access from services in the mesh to the external service
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+metadata:
+  name: example-https
+spec:
+  destination:
+    name: example-https
+  sources:
+    - name: static-client
+      action: allow
+```
+
+Apply the `ServiceIntentions` resource with `kubectl apply`:
 
 ```shell-session
-$ consul intention create -allow static-client example-https
+$ kubectl apply -f service-intentions.yaml
 ```
 
 ### Define the external services as upstreams for services in the mesh
@@ -228,6 +257,13 @@ Run the service via `kubectl apply`:
 
 ```shell-session
 $ kubectl apply -f static-client.yaml
+```
+
+Wait for the service to be ready:
+
+```shell-session
+$ kubectl rollout status deploy static-client --watch
+deployment "static-client" successfully rolled out
 ```
 
 You can verify connectivity of the static-client and terminating gateway via a curl command:
