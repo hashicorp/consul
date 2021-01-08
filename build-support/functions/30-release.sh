@@ -260,6 +260,7 @@ function check_release_one {
    expected_files+=("${CONSUL_PKG_NAME}_${2}_linux_amd64.zip")
    expected_files+=("${CONSUL_PKG_NAME}_${2}_linux_arm.zip")
    expected_files+=("${CONSUL_PKG_NAME}_${2}_linux_arm64.zip")
+   expected_files+=("${CONSUL_PKG_NAME}_${2}_linux_s390x.zip")
    expected_files+=("${CONSUL_PKG_NAME}_${2}_solaris_amd64.zip")
    expected_files+=("${CONSUL_PKG_NAME}_${2}_windows_386.zip")
    expected_files+=("${CONSUL_PKG_NAME}_${2}_windows_amd64.zip")

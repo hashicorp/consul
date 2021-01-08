@@ -386,6 +386,26 @@ jobs:
           path: ./pkg/bin
       - run: *notify-slack-failure
 
+  # build all s390x architecture supported OS binaries
+  build-s390x:
+    docker:
+      - image: *GOLANG_IMAGE
+    environment:
+      <<: *ENVIRONMENT
+      CGO_ENABLED: 1
+      GOOS: linux
+    steps:
+      - checkout
+      - run: sudo apt-get update && sudo apt-get install -y gcc-s390x-linux-gnu
+      - run:
+          environment:
+            CC: s390x-linux-gnu-gcc
+            GOARCH: s390x
+          command: go build -o ./pkg/bin/linux_s390x/consul -ldflags="-linkmode=external ${GOLDFLAGS}"
+      - store_artifacts:
+          path: ./pkg/bin
+      - run: *notify-slack-failure
+
   # create a development build
   dev-build:
     docker:
@@ -889,6 +909,7 @@ workflows:
             - check-vendor
       - build-amd64: *require-check-vendor
       - build-arm: *require-check-vendor
+      - build-s390x: *require-check-vendor
       # every commit on master will have a rebuilt UI
       - frontend-cache:
           filters:

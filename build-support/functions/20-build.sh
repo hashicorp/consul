@@ -275,7 +275,7 @@ function build_consul {
       fi
    fi
    XC_OS=${XC_OS:-"solaris darwin freebsd linux windows"}
-   XC_ARCH=${XC_ARCH:-"386 amd64 arm arm64"}
+   XC_ARCH=${XC_ARCH:-"386 amd64 arm arm64 s390x"}
 
    if test -n "${extra_dir_name}"
    then
@@ -386,7 +386,7 @@ function build_consul_local {
       fi
    fi
    XC_OS=${XC_OS:-"solaris darwin freebsd linux windows"}
-   XC_ARCH=${XC_ARCH:-"386 amd64 arm arm64"}
+   XC_ARCH=${XC_ARCH:-"386 amd64 arm arm64 s390x"}
 
    if test -z "${build_os}"
    then
@@ -411,22 +411,22 @@ function build_consul_local {
 
          case "${os}" in
             "darwin" )
-               # Do not build ARM binaries for macOS
-               if test "${arch}" == "arm" -o "${arch}" == "arm64"
+               # Do not build ARM/s390x binaries for macOS
+               if test "${arch}" == "arm" -o "${arch}" == "arm64" -o "${arch}" == "s390x"
                then
                   continue
                fi
                ;;
             "windows" )
-               # Do not build ARM binaries for Windows
-               if test "${arch}" == "arm" -o "${arch}" == "arm64"
+               # Do not build ARM/s390x binaries for Windows
+               if test "${arch}" == "arm" -o "${arch}" == "arm64" -o "${arch}" == "s390x"
                then
                   continue
                fi
                ;;
             "freebsd" )
-               # Do not build ARM binaries for FreeBSD
-               if test "${arch}" == "arm" -o "${arch}" == "arm64"
+               # Do not build ARM/s390x binaries for FreeBSD
+               if test "${arch}" == "arm" -o "${arch}" == "arm64" -o "${arch}" == "s390x"
                then
                   continue
                fi
