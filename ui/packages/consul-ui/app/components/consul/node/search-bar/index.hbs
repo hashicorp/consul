@@ -121,8 +121,8 @@ as |key value|}}
             <Option @value="Status:desc" @selected={{eq "Status:desc" @sort.value}}>{{t "common.sort.status.desc"}}</Option>
           </Optgroup>
           <Optgroup @label={{t "common.consul.node-name"}}>
-            <Option @value="Node:asc" @selected={{eq "Name:asc" @sort.value}}>{{t "common.sort.alpha.asc"}}</Option>
-            <Option @value="Node:desc" @selected={{eq "Name:desc" @sort.value}}>{{t "common.sort.alpha.desc"}}</Option>
+            <Option @value="Node:asc" @selected={{eq "Node:asc" @sort.value}}>{{t "common.sort.alpha.asc"}}</Option>
+            <Option @value="Node:desc" @selected={{eq "Node:desc" @sort.value}}>{{t "common.sort.alpha.desc"}}</Option>
           </Optgroup>
   {{/let}}
         </BlockSlot>
