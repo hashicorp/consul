@@ -18,22 +18,22 @@ a type of proxy and must be registered as a service in Consul, with the
 [kind](/api/agent/service#kind) set to "ingress-gateway". They are an
 entrypoint for outside traffic and allow you to define what services should be
 exposed and on what port. You configure an ingress gateway by defining a set of
-[listeners](/docs/agent/config-entries/ingress-gateway#listeners) that each map
+[listeners](/docs/connect/config-entries/ingress-gateway#listeners) that each map
 to a set of backing
-[services](/docs/agent/config-entries/ingress-gateway#services).
+[services](/docs/connect/config-entries/ingress-gateway#services).
 
 To enable easier service discovery, a new Consul [DNS
 subdomain](/docs/discovery/dns#ingress-service-lookups) is provided, on
 `<service>.ingress.<domain>`.
 
 For listeners with a
-[protocol](/docs/agent/config-entries/ingress-gateway#protocol) other than
+[protocol](/docs/connect/config-entries/ingress-gateway#protocol) other than
 `tcp`, multiple services can be specified for a single listener. In this
 case, the ingress gateway relies on host/authority headers to decide the
 service that should receive the traffic. The host used to match traffic
 defaults to the [Consul DNS ingress
 subdomain](/docs/discovery/dns#ingress-service-lookups), but can be changed using
-the [hosts](/docs/agent/config-entries/ingress-gateway#hosts) field.
+the [hosts](/docs/connect/config-entries/ingress-gateway#hosts) field.
 
 ![Ingress Gateway Architecture](/img/ingress-gateways.png)
 

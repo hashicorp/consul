@@ -33,10 +33,10 @@ hold certificates to decrypt Consul Connect traffic directed at them and may be 
 to linked services. Connections over the WAN or open internet should flow through [mesh gateways](/docs/connect/mesh-gateway)
 whenever possible since they are not capable of decrypting traffic or connecting directly to services.
 
-By specifying a path to a [CA file](/docs/agent/config-entries/terminating-gateway#cafile) connections
+By specifying a path to a [CA file](/docs/connect/config-entries/terminating-gateway#cafile) connections
 from the terminating gateway will be encrypted using one-way TLS authentication. If a path to a
-[client certificate](/docs/agent/config-entries/terminating-gateway#certfile)
-and [private key](/docs/agent/config-entries/terminating-gateway#keyfile) are also specified connections
+[client certificate](/docs/connect/config-entries/terminating-gateway#certfile)
+and [private key](/docs/connect/config-entries/terminating-gateway#keyfile) are also specified connections
 from the terminating gateway will be encrypted using mutual TLS authentication.
 
 If none of these are provided, Consul will **only** encrypt connections to the gateway and not
@@ -98,7 +98,7 @@ If the Consul client agent on the gateway's node is not configured to use the de
 must also provide `agent:read` for its node's name in order to discover the agent's gRPC port. gRPC is used to expose Envoy's xDS API to Envoy proxies.
 
 Linking services to a terminating gateway is done with a `terminating-gateway`
-[configuration entry](/docs/agent/config-entries/terminating-gateway). This config entry can be applied via the
+[configuration entry](/docs/connect/config-entries/terminating-gateway). This config entry can be applied via the
 [CLI](/commands/config/write) or [API](/api/config#apply-configuration).
 
 Gateways with the same name in Consul's service catalog are configured with a single configuration entry.

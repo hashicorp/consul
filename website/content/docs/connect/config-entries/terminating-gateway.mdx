@@ -25,10 +25,10 @@ See [Terminating Gateway](/docs/connect/terminating-gateway) for more informatio
 
 ## TLS Origination
 
-By specifying a path to a [CA file](/docs/agent/config-entries/terminating-gateway#cafile) connections
+By specifying a path to a [CA file](/docs/connect/config-entries/terminating-gateway#cafile) connections
 from the terminating gateway will be encrypted using one-way TLS authentication. If a path to a
-[client certificate](/docs/agent/config-entries/terminating-gateway#certfile)
-and [private key](/docs/agent/config-entries/terminating-gateway#keyfile) are also specified connections
+[client certificate](/docs/connect/config-entries/terminating-gateway#certfile)
+and [private key](/docs/connect/config-entries/terminating-gateway#keyfile) are also specified connections
 from the terminating gateway will be encrypted using mutual TLS authentication.
 
 If none of these are provided, Consul will **only** encrypt connections to the gateway and not
