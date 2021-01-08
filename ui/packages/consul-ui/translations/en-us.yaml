@@ -9,6 +9,8 @@ common:
   ui:
     remove: Remove {item}
     filtered-by: Filtered by {item}
+    name: Name
+    creation: Creation
   consul:
     name: Name
     passing: Passing
@@ -25,6 +27,7 @@ common:
     status: Health Status
     service-name: Service Name
     node-name: Node Name
+    accessorid: AccessorID
   search:
     search: Search
     searchproperty: Search Across
@@ -39,6 +42,9 @@ common:
     numeric:
       asc: Ascending
       desc: Descending
+    age:
+      asc: Oldest to Newest
+      desc: Newest to Oldest
     status:
       asc: Unhealthy to Healthy
       desc: Healthy to Unhealthy
@@ -57,6 +63,14 @@ components:
           options:
             management: Management
             client: Client
+    token:
+      search-bar:
+        kind:
+          name: Type
+          options:
+            global-management: Global Management
+            global: Global Scope
+            local: Local Scope
     kv:
       search-bar:
         kind:

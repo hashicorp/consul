@@ -1,83 +1,125 @@
-<form
-  class="consul-token-search-bar filter-bar"
+<SearchBar
+  class="consul-token-search-bar"
   ...attributes
+  @filter={{@filter}}
 >
-  <div class="search">
-    <FreetextFilter
-      @onsearch={{action @onsearch}}
-      @value={{@search}}
-      @placeholder="Search"
-    >
-      <PopoverSelect
-        class="type-search-properties"
-        @position="right"
-        @onchange={{action @onfilter.searchproperty}}
+    <:status as |search|>
+
+{{#let
+
+  (t (concat "components.consul.token.search-bar." search.status.key ".name")
+      default=(array
+        (concat "common.search." search.status.key)
+        (concat "common.consul." search.status.key)
+      )
+  )
+
+  (t (concat "components.consul.token.search-bar." search.status.key ".options." search.status.value)
+      default=(array
+        (concat "common.search." search.status.value)
+        (concat "common.consul." search.status.value)
+        (concat "common.brand." search.status.value)
+      )
+  )
+
+as |key value|}}
+      <search.RemoveFilter
+        aria-label={{t "common.ui.remove" item=(concat key " " value)}}
+      >
+        <dl>
+          <dt>{{key}}</dt>
+          <dd>{{value}}</dd>
+        </dl>
+      </search.RemoveFilter>
+{{/let}}
+
+    </:status>
+    <:search as |search|>
+      <search.Search
+        @onsearch={{action @onsearch}}
+        @value={{@search}}
+        @placeholder={{t "common.search.search"}}
+      >
+        <search.Select
+          class="type-search-properties"
+          @position="right"
+          @onchange={{action @filter.searchproperty.change}}
+          @multiple={{true}}
+          @required={{true}}
+        as |components|>
+          <BlockSlot @name="selected">
+            <span>
+              {{t "common.search.searchproperty"}}
+            </span>
+          </BlockSlot>
+          <BlockSlot @name="options">
+    {{#let components.Optgroup components.Option as |Optgroup Option|}}
+            {{#each @filter.searchproperty.default as |prop|}}
+              <Option @value={{prop}} @selected={{contains prop @filter.searchproperty.value}}>
+                {{t (concat "common.consul." (lowercase prop))}}
+              </Option>
+            {{/each}}
+    {{/let}}
+          </BlockSlot>
+        </search.Select>
+      </search.Search>
+    </:search>
+    <:filter as |search|>
+      <search.Select
+        class="type-status"
+        @position="left"
+        @onchange={{action @filter.kind.change}}
         @multiple={{true}}
       as |components|>
         <BlockSlot @name="selected">
           <span>
-            Search across
+            {{t "components.consul.token.search-bar.kind.name"}}
           </span>
         </BlockSlot>
         <BlockSlot @name="options">
   {{#let components.Optgroup components.Option as |Optgroup Option|}}
-          <Option @value="AccessorID" @selected={{contains 'AccessorID' @filter.searchproperties}}>AccessorID</Option>
-          <Option @value="Description" @selected={{contains 'Description' @filter.searchproperties}}>Description</Option>
-          <Option @value="Policy" @selected={{contains 'Policy' @filter.searchproperties}}>Policy</Option>
-          <Option @value="Role" @selected={{contains 'Role' @filter.searchproperties}}>Role</Option>
+    {{#each (array "global-management" "global" "local") as |state|}}
+          <Option class="value-{{state}}" @value={{state}} @selected={{contains state @filter.kind.value}}>
+            {{t (concat "components.consul.token.search-bar.kind.options." state)
+                default=(array
+                  (concat "common.search." state)
+                )
+            }}
+          </Option>
+    {{/each}}
   {{/let}}
         </BlockSlot>
-      </PopoverSelect>
-    </FreetextFilter>
-  </div>
-  <div class="filters">
-    <PopoverSelect
-      @position="left"
-      @onchange={{action @onfilter.kind}}
-      @multiple={{true}}
-    as |components|>
-      <BlockSlot @name="selected">
-        <span>
-          Type
-        </span>
-      </BlockSlot>
-      <BlockSlot @name="options">
-{{#let components.Optgroup components.Option as |Optgroup Option|}}
-        <Option @value="global-management" @selected={{contains 'global-management' @filter.kinds}}>Global Management</Option>
-        <Option @value="global" @selected={{contains 'global' @filter.kinds}}>Global Scope</Option>
-        <Option @value="local" @selected={{contains 'local' @filter.kinds}}>Local Scope</Option>
-{{/let}}
-      </BlockSlot>
-    </PopoverSelect>
-  </div>
-  <div class="sort">
-    <PopoverSelect
-      class="type-sort"
-      data-test-sort-control
-      @position="right"
-      @onchange={{action @onsort}}
-      @multiple={{false}}
-    as |components|>
-      <BlockSlot @name="selected">
-        <span>
-          {{#let (from-entries (array
-                (array "CreateTime:desc" "Newest to oldest")
-                (array "CreateTime:asc" "Oldest to newest")
-              ))
-            as |selectable|
-          }}
-            {{get selectable @sort}}
-          {{/let}}
-        </span>
-      </BlockSlot>
-      <BlockSlot @name="options">
-{{#let components.Optgroup components.Option as |Optgroup Option|}}
-        <Optgroup @label="Creation">
-          <Option @value="CreateTime:desc" @selected={{eq "CreateTime:desc" @sort}}>Newest to oldest</Option>
-          <Option @value="CreateTime:asc" @selected={{eq "CreateTime:asc" @sort}}>Oldest to newest</Option>
+      </search.Select>
+    </:filter>
+    <:sort as |search|>
+      <search.Select
+        class="type-sort"
+        data-test-sort-control
+        @position="right"
+        @onchange={{action @sort.change}}
+        @multiple={{false}}
+        @required={{true}}
+      as |components|>
+        <BlockSlot @name="selected">
+          <span>
+            {{#let (from-entries (array
+                  (array "CreateTime:desc" (t "common.sort.age.desc"))
+                  (array "CreateTime:asc" (t "common.sort.age.asc"))
+                ))
+              as |selectable|
+            }}
+              {{get selectable @sort.value}}
+            {{/let}}
+          </span>
+        </BlockSlot>
+        <BlockSlot @name="options">
+  {{#let components.Optgroup components.Option as |Optgroup Option|}}
+        <Optgroup @label={{t "common.ui.creation"}}>
+          <Option @value="CreateTime:desc" @selected={{eq "CreateTime:desc" @sort.value}}>{{t "common.sort.age.desc"}}</Option>
+          <Option @value="CreateTime:asc" @selected={{eq "CreateTime:asc" @sort.value}}>{{t "common.sort.age.asc"}}</Option>
         </Optgroup>
-{{/let}}
-      </BlockSlot>
-    </PopoverSelect>
-  </div>
-</form>
+  {{/let}}
+        </BlockSlot>
+      </search.Select>
+    </:sort>
+</SearchBar>
