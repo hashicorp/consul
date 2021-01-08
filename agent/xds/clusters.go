@@ -15,6 +15,7 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
+	pbtypes "github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/hashicorp/consul/agent/connect"
@@ -270,13 +271,21 @@ func (s *Server) injectGatewayServiceAddons(cfgSnap *proxycfg.ConfigSnapshot, c 
 	case structs.ServiceKindTerminatingGateway:
 		// Context used for TLS origination to the cluster
 		if mapping, ok := cfgSnap.TerminatingGateway.GatewayServices[svc]; ok && mapping.CAFile != "" {
-			context := envoyauth.UpstreamTlsContext{
+			context := &envoyauth.UpstreamTlsContext{
 				CommonTlsContext: makeCommonTLSContextFromFiles(mapping.CAFile, mapping.CertFile, mapping.KeyFile),
 			}
 			if mapping.SNI != "" {
 				context.Sni = mapping.SNI
 			}
-			c.TlsContext = &context
+
+			any, err := pbtypes.MarshalAny(context)
+			if err != nil {
+				return err
+			}
+			c.TransportSocket = &envoycore.TransportSocket{
+				Name:       "tls",
+				ConfigType: &envoycore.TransportSocket_TypedConfig{TypedConfig: any},
+			}
 		}
 		if err := injectLBToCluster(lb, c); err != nil {
 			return fmt.Errorf("failed to apply load balancer configuration to cluster %q: %v", c.Name, err)
@@ -418,9 +427,18 @@ func (s *Server) makeUpstreamClusterForPreparedQuery(upstream structs.Upstream, 
 	}
 
 	// Enable TLS upstream with the configured client certificate.
-	c.TlsContext = &envoyauth.UpstreamTlsContext{
+	context := &envoyauth.UpstreamTlsContext{
 		CommonTlsContext: makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.Leaf()),
 		Sni:              sni,
+	}
+
+	any, err := pbtypes.MarshalAny(context)
+	if err != nil {
+		return nil, err
+	}
+	c.TransportSocket = &envoycore.TransportSocket{
+		Name:       "tls",
+		ConfigType: &envoycore.TransportSocket_TypedConfig{TypedConfig: any},
 	}
 
 	return c, nil
@@ -536,9 +554,18 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 		}
 
 		// Enable TLS upstream with the configured client certificate.
-		c.TlsContext = &envoyauth.UpstreamTlsContext{
+		context := &envoyauth.UpstreamTlsContext{
 			CommonTlsContext: makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.Leaf()),
 			Sni:              sni,
+		}
+
+		any, err := pbtypes.MarshalAny(context)
+		if err != nil {
+			return nil, err
+		}
+		c.TransportSocket = &envoycore.TransportSocket{
+			Name:       "tls",
+			ConfigType: &envoycore.TransportSocket_TypedConfig{TypedConfig: any},
 		}
 
 		out = append(out, c)
@@ -551,7 +578,7 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 		defaultCluster := out[0]
 
 		// Overlay what the user provided.
-		escapeHatchCluster.TlsContext = defaultCluster.TlsContext
+		escapeHatchCluster.TransportSocket = defaultCluster.TransportSocket
 
 		out = []*envoy.Cluster{escapeHatchCluster}
 	}
@@ -724,18 +751,6 @@ func (s *Server) makeGatewayCluster(snap *proxycfg.ConfigSnapshot, opts gatewayC
 		},
 	}
 	return cluster
-}
-
-// injectTerminatingGatewayTLSContext adds an UpstreamTlsContext to a cluster for TLS origination
-func injectTerminatingGatewayTLSContext(cfgSnap *proxycfg.ConfigSnapshot, cluster *envoy.Cluster, service structs.ServiceName) {
-	if mapping, ok := cfgSnap.TerminatingGateway.GatewayServices[service]; ok && mapping.CAFile != "" {
-		cluster.TlsContext = &envoyauth.UpstreamTlsContext{
-			CommonTlsContext: makeCommonTLSContextFromFiles(mapping.CAFile, mapping.CertFile, mapping.KeyFile),
-
-			// TODO (gateways) (freddy) If mapping.SNI is empty, does Envoy behave any differently if TlsContext.Sni is excluded?
-			Sni: mapping.SNI,
-		}
-	}
 }
 
 func makeThresholdsIfNeeded(limits UpstreamLimits) []*envoycluster.CircuitBreakers_Thresholds {

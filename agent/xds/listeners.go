@@ -329,12 +329,20 @@ func (s *Server) makeIngressGatewayListeners(address string, cfgSnap *proxycfg.C
 				return nil, err
 			}
 
+			any, err := pbtypes.MarshalAny(tlsContext)
+			if err != nil {
+				return nil, err
+			}
+
 			listener.FilterChains = []*envoylistener.FilterChain{
 				{
 					Filters: []*envoylistener.Filter{
 						filter,
 					},
-					TlsContext: tlsContext,
+					TransportSocket: &envoycore.TransportSocket{
+						Name:       "tls",
+						ConfigType: &envoycore.TransportSocket_TypedConfig{TypedConfig: any},
+					},
 				},
 			}
 			resources = append(resources, listener)
@@ -506,9 +514,17 @@ func (s *Server) injectHTTPFilterOnFilterChains(
 // coming up with some complicated templating/merging solution.
 func (s *Server) injectConnectTLSOnFilterChains(_ connectionInfo, cfgSnap *proxycfg.ConfigSnapshot, listener *envoy.Listener) error {
 	for idx := range listener.FilterChains {
-		listener.FilterChains[idx].TlsContext = &envoyauth.DownstreamTlsContext{
+		context := &envoyauth.DownstreamTlsContext{
 			CommonTlsContext:         makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.Leaf()),
 			RequireClientCertificate: &wrappers.BoolValue{Value: true},
+		}
+		any, err := pbtypes.MarshalAny(context)
+		if err != nil {
+			return err
+		}
+		listener.FilterChains[idx].TransportSocket = &envoycore.TransportSocket{
+			Name:       "tls",
+			ConfigType: &envoycore.TransportSocket_TypedConfig{TypedConfig: any},
 		}
 	}
 	return nil
@@ -797,12 +813,20 @@ func (s *Server) makeFilterChainTerminatingGateway(
 	intentions structs.Intentions,
 	protocol string,
 ) (*envoylistener.FilterChain, error) {
+	tlsContext := &envoyauth.DownstreamTlsContext{
+		CommonTlsContext:         makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.TerminatingGateway.ServiceLeaves[service]),
+		RequireClientCertificate: &wrappers.BoolValue{Value: true},
+	}
+	anyTLSContext, err := pbtypes.MarshalAny(tlsContext)
+	if err != nil {
+		return nil, err
+	}
 	filterChain := &envoylistener.FilterChain{
 		FilterChainMatch: makeSNIFilterChainMatch(cluster),
 		Filters:          make([]*envoylistener.Filter, 0, 3),
-		TlsContext: &envoyauth.DownstreamTlsContext{
-			CommonTlsContext:         makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.TerminatingGateway.ServiceLeaves[service]),
-			RequireClientCertificate: &wrappers.BoolValue{Value: true},
+		TransportSocket: &envoycore.TransportSocket{
+			Name:       "tls",
+			ConfigType: &envoycore.TransportSocket_TypedConfig{TypedConfig: anyTLSContext},
 		},
 	}
 
@@ -1043,12 +1067,20 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 		return nil, err
 	}
 
+	anyTLSContext, err := pbtypes.MarshalAny(tlsContext)
+	if err != nil {
+		return nil, err
+	}
+
 	l.FilterChains = []*envoylistener.FilterChain{
 		{
 			Filters: []*envoylistener.Filter{
 				filter,
 			},
-			TlsContext: tlsContext,
+			TransportSocket: &envoycore.TransportSocket{
+				Name:       "tls",
+				ConfigType: &envoycore.TransportSocket_TypedConfig{TypedConfig: anyTLSContext},
+			},
 		},
 	}
 	return l, nil
