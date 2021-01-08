@@ -17,7 +17,9 @@ export default class Role extends Model {
   @attr('number') SyncTime;
   @attr('number') CreateIndex;
   @attr('number') ModifyIndex;
-  // frontend only for ordering where CreateIndex can't be used
+  // frontend only for ordering where CreateIndex can't be used i.e. for when
+  // we need to order items that aren't yet saved to the backend, for example
+  // in the role-selector
   @attr('number') CreateTime;
   // TODO: Figure out whether we need this or not
   @attr() Datacenters; // string[]

@@ -78,8 +78,8 @@ as |key value|}}
             {{#let (from-entries (array
                   (array "Name:asc" (t "common.sort.alpha.asc"))
                   (array "Name:desc" (t "common.sort.alpha.desc"))
-                  (array "CreateTime:desc" (t "common.sort.age.desc"))
-                  (array "CreateTime:asc" (t "common.sort.age.asc"))
+                  (array "CreateIndex:desc" (t "common.sort.age.desc"))
+                  (array "CreateIndex:asc" (t "common.sort.age.asc"))
                 ))
               as |selectable|
             }}
@@ -90,12 +90,12 @@ as |key value|}}
         <BlockSlot @name="options">
   {{#let components.Optgroup components.Option as |Optgroup Option|}}
         <Optgroup @label={{t "common.ui.name"}}>
-          <Option @value="Name:asc" @selected={{eq "Name:asc" @sort.value}}>{{t "common.sort.name.asc"}}</Option>
-          <Option @value="Name:desc" @selected={{eq "Name:desc" @sort.value}}>{{t "common.sort.name.desc"}}</Option>
+          <Option @value="Name:asc" @selected={{eq "Name:asc" @sort.value}}>{{t "common.sort.alpha.asc"}}</Option>
+          <Option @value="Name:desc" @selected={{eq "Name:desc" @sort.value}}>{{t "common.sort.alpha.desc"}}</Option>
         </Optgroup>
         <Optgroup @label={{t "common.ui.creation"}}>
-          <Option @value="CreateTime:desc" @selected={{eq "CreateTime:desc" @sort.value}}>{{t "common.sort.age.desc"}}</Option>
-          <Option @value="CreateTime:asc" @selected={{eq "CreateTime:asc" @sort.value}}>{{t "common.sort.age.asc"}}</Option>
+          <Option @value="CreateIndex:desc" @selected={{eq "CreateIndex:desc" @sort.value}}>{{t "common.sort.age.desc"}}</Option>
+          <Option @value="CreateIndex:asc" @selected={{eq "CreateIndex:asc" @sort.value}}>{{t "common.sort.age.asc"}}</Option>
         </Optgroup>
   {{/let}}
         </BlockSlot>
