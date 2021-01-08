@@ -2895,6 +2895,48 @@ func TestBuilder_BuildAndValidate_ConfigFlagsAndEdgecases(t *testing.T) {
 			},
 		},
 		{
+			desc: "rpc.enable_streaming = true has no effect when not running in server mode",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+			  "rpc": { "enable_streaming": true }
+			}`},
+			hcl: []string{`
+			  rpc { enable_streaming = true }
+			`},
+			warns: []string{"rpc.enable_streaming = true has no effect when not running in server mode"},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				// rpc.enable_streaming make no sense in not-server mode
+				rt.RPCConfig.EnableStreaming = true
+				rt.ServerMode = false
+			},
+		},
+		{
+			desc: "use_streaming_backend = true requires rpc.enable_streaming on servers to work properly",
+			args: []string{
+				`-data-dir=` + dataDir,
+			},
+			json: []string{`{
+			  "use_streaming_backend": true,
+			  "server": true
+			}`},
+			hcl: []string{`
+			  use_streaming_backend = true
+			  server = true
+			`},
+			warns: []string{"use_streaming_backend = true requires rpc.enable_streaming on servers to work properly"},
+			patch: func(rt *RuntimeConfig) {
+				rt.DataDir = dataDir
+				rt.UseStreamingBackend = true
+				// server things
+				rt.ServerMode = true
+				rt.LeaveOnTerm = false
+				rt.SkipLeaveOnInt = true
+			},
+		},
+		{
 			desc: "auto_encrypt.allow_tls errors in client mode",
 			args: []string{
 				`-data-dir=` + dataDir,
