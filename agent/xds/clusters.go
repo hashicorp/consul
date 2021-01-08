@@ -15,7 +15,6 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
-	pbtypes "github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/hashicorp/consul/agent/connect"
@@ -271,21 +270,18 @@ func (s *Server) injectGatewayServiceAddons(cfgSnap *proxycfg.ConfigSnapshot, c 
 	case structs.ServiceKindTerminatingGateway:
 		// Context used for TLS origination to the cluster
 		if mapping, ok := cfgSnap.TerminatingGateway.GatewayServices[svc]; ok && mapping.CAFile != "" {
-			context := &envoyauth.UpstreamTlsContext{
+			tlsContext := &envoyauth.UpstreamTlsContext{
 				CommonTlsContext: makeCommonTLSContextFromFiles(mapping.CAFile, mapping.CertFile, mapping.KeyFile),
 			}
 			if mapping.SNI != "" {
-				context.Sni = mapping.SNI
+				tlsContext.Sni = mapping.SNI
 			}
 
-			any, err := pbtypes.MarshalAny(context)
+			transportSocket, err := makeTransportSocket("tls", tlsContext)
 			if err != nil {
 				return err
 			}
-			c.TransportSocket = &envoycore.TransportSocket{
-				Name:       "tls",
-				ConfigType: &envoycore.TransportSocket_TypedConfig{TypedConfig: any},
-			}
+			c.TransportSocket = transportSocket
 		}
 		if err := injectLBToCluster(lb, c); err != nil {
 			return fmt.Errorf("failed to apply load balancer configuration to cluster %q: %v", c.Name, err)
@@ -427,19 +423,16 @@ func (s *Server) makeUpstreamClusterForPreparedQuery(upstream structs.Upstream, 
 	}
 
 	// Enable TLS upstream with the configured client certificate.
-	context := &envoyauth.UpstreamTlsContext{
+	tlsContext := &envoyauth.UpstreamTlsContext{
 		CommonTlsContext: makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.Leaf()),
 		Sni:              sni,
 	}
 
-	any, err := pbtypes.MarshalAny(context)
+	transportSocket, err := makeTransportSocket("tls", tlsContext)
 	if err != nil {
 		return nil, err
 	}
-	c.TransportSocket = &envoycore.TransportSocket{
-		Name:       "tls",
-		ConfigType: &envoycore.TransportSocket_TypedConfig{TypedConfig: any},
-	}
+	c.TransportSocket = transportSocket
 
 	return c, nil
 }
@@ -554,19 +547,16 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 		}
 
 		// Enable TLS upstream with the configured client certificate.
-		context := &envoyauth.UpstreamTlsContext{
+		tlsContext := &envoyauth.UpstreamTlsContext{
 			CommonTlsContext: makeCommonTLSContextFromLeaf(cfgSnap, cfgSnap.Leaf()),
 			Sni:              sni,
 		}
 
-		any, err := pbtypes.MarshalAny(context)
+		transportSocket, err := makeTransportSocket("tls", tlsContext)
 		if err != nil {
 			return nil, err
 		}
-		c.TransportSocket = &envoycore.TransportSocket{
-			Name:       "tls",
-			ConfigType: &envoycore.TransportSocket_TypedConfig{TypedConfig: any},
-		}
+		c.TransportSocket = transportSocket
 
 		out = append(out, c)
 	}
