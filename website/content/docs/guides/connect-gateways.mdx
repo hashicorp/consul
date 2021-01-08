@@ -234,7 +234,7 @@ $ consul connect envoy -mesh-gateway -register \
 ### Configure Sidecar Proxies to use Gateways
 
 Next, create a [centralized
-configuration](/docs/agent/config-entries/proxy-defaults)
+configuration](/docs/connect/config-entries/proxy-defaults)
 file for all the sidecar proxies in both datacenters called
 `proxy-defaults.json`. This file will instruct the sidecar proxies to send all
 their inter-datacenter traffic through the gateways. It should contain the

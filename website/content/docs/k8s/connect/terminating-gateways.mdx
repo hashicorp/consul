@@ -156,8 +156,8 @@ $ consul acl token update -id <token-id> -policy-name example-https-write-policy
 
 ### Create the configuration entry for the terminating gateway
 
-Once the tokens have been updated, next write the Consul [config](/docs/agent/config-entries/terminating-gateway)
-entry for the terminating gateway:
+Once the tokens have been updated, create the [TerminatingGateway](/docs/connect/config-entries/terminating-gateway)
+resource to configure the terminating gateway:
 
 ```hcl
 Kind = "terminating-gateway"

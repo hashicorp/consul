@@ -118,8 +118,16 @@
 /downloads_tools                                     /docs/download-tools                              301!
 /docs/k8s/ambassador                                 /docs/k8s/connect/ambassador                      301!
 /docs/k8s/installation/overview                      /docs/k8s/installation/install                    301!
-/docs/k8s/installation/muti-cluster/overview         /docs/k8s/installation/multi-cluster                    301!
+/docs/k8s/installation/multi-cluster/overview        /docs/k8s/installation/multi-cluster              301!
 /docs/partnerships                                   /docs/integrate/partnerships                      301!
+/docs/agent/config-entries/ingress-gateway           /docs/connect/config-entries/ingress-gateway      301!
+/docs/agent/config-entries/proxy-defaults            /docs/connect/config-entries/proxy-defaults       301!
+/docs/agent/config-entries/service-defaults          /docs/connect/config-entries/service-defaults     301!
+/docs/agent/config-entries/service-intentions        /docs/connect/config-entries/service-intentions   301!
+/docs/agent/config-entries/service-resolver          /docs/connect/config-entries/service-resolver     301!
+/docs/agent/config-entries/service-router            /docs/connect/config-entries/service-router       301!
+/docs/agent/config-entries/service-splitter          /docs/connect/config-entries/service-splitter     301!
+/docs/agent/config-entries/terminating-gateway       /docs/connect/config-entries/terminating-gateway  301!
 
 # CLI redirects
 /docs/commands                                       /commands                                         301!
