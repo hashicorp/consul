@@ -106,7 +106,7 @@ func ParseServiceIDString(input string) (string, *EnterpriseMeta) {
 	return input, DefaultEnterpriseMeta()
 }
 
-func (sid *ServiceID) String() string {
+func (sid ServiceID) String() string {
 	return sid.ID
 }
 
@@ -119,7 +119,7 @@ func ParseServiceNameString(input string) (string, *EnterpriseMeta) {
 	return input, DefaultEnterpriseMeta()
 }
 
-func (n *ServiceName) String() string {
+func (n ServiceName) String() string {
 	return n.Name
 }
 
@@ -128,7 +128,7 @@ func ServiceNameFromString(input string) ServiceName {
 	return ServiceName{Name: id}
 }
 
-func (cid *CheckID) String() string {
+func (cid CheckID) String() string {
 	return string(cid.ID)
 }
 

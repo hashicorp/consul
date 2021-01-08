@@ -5,9 +5,10 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/miekg/dns"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/lib/stringslice"
-	"github.com/miekg/dns"
 )
 
 // IngressGatewayConfigEntry manages the configuration for an ingress service
@@ -460,8 +461,8 @@ func (g *GatewayService) Addresses(defaultHosts []string) []string {
 }
 
 func (g *GatewayService) IsSame(o *GatewayService) bool {
-	return g.Gateway.Matches(&o.Gateway) &&
-		g.Service.Matches(&o.Service) &&
+	return g.Gateway.Matches(o.Gateway) &&
+		g.Service.Matches(o.Service) &&
 		g.GatewayKind == o.GatewayKind &&
 		g.Port == o.Port &&
 		g.Protocol == o.Protocol &&

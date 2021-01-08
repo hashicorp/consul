@@ -4,11 +4,12 @@ import (
 	"errors"
 	"fmt"
 
+	memdb "github.com/hashicorp/go-memdb"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	memdb "github.com/hashicorp/go-memdb"
 )
 
 const (
@@ -473,7 +474,7 @@ func (s *Store) discoveryChainSourcesTxn(tx ReadTxn, ws memdb.WatchSet, dc strin
 			em := structs.EnterpriseMetaInitializer(t.Namespace)
 			candidate := structs.NewServiceName(t.Service, &em)
 
-			if !candidate.Matches(&destination) {
+			if !candidate.Matches(destination) {
 				continue
 			}
 			if idx > maxIdx {
