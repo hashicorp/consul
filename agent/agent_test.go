@@ -702,8 +702,7 @@ func TestAgent_CheckAliasRPC(t *testing.T) {
 		foundService := false
 		lookup := structs.NewServiceID("svcid1", structs.WildcardEnterpriseMeta())
 		for _, srv := range out.NodeServices.Services {
-			sid := srv.CompoundServiceID()
-			if lookup.Matches(&sid) {
+			if lookup.Matches(srv.CompoundServiceID()) {
 				foundService = true
 			}
 		}
