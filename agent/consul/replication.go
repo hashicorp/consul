@@ -104,7 +104,7 @@ func (r *Replicator) Run(ctx context.Context) error {
 			// the next round of replication
 			atomic.StoreUint64(&r.lastRemoteIndex, 0)
 
-			if r.suppressErrorLog != nil && !r.suppressErrorLog(err) {
+			if r.suppressErrorLog == nil || !r.suppressErrorLog(err) {
 				r.logger.Warn("replication error (will retry if still leader)", "error", err)
 			}
 
