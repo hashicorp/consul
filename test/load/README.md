@@ -9,13 +9,13 @@ This relies on the (Gruntwork's Terraform AWS Consul Module)[https://github.com/
 [Terraform](https://www.terraform.io/downloads.html) and [Packer](https://www.packer.io/downloads), AWS and [Datadog](https://docs.datadoghq.com/getting_started/) are required to use this. All of this, except the AWS resources that will be utilized, are free. 
 
 This repo has the following folder structure: 
-packer: This contains all the nessecary stuff to make the load test and the Consul AMI to be utilized in Terraform.
+packer: This contains all the necessary stuff to make the load test and the Consul AMI to be utilized in Terraform.
 terraform: This contains all the relevant Terraform files
 
 
 # Getting Started  
 
-1) Download all nessecary tools listed (Terraform, Packer, Datadog) and set up an AWS account 
+1) Download all necessary tools listed (Terraform, Packer, Datadog) and set up an AWS account 
 2) Configure your AWS credentials using one of the [options supported by the AWS
    SDK](http://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html). Usually, the easiest option is to
    set the `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_DEFAULT_REGION` environment variables.
