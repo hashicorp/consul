@@ -141,7 +141,7 @@ driver "terraform" {
   working_dir = ""
 
   backend "consul" {
-    scheme = "https"
+    gzip = true
   }
 
   required_providers {
