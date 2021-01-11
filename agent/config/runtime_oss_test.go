@@ -2,13 +2,7 @@
 
 package config
 
-var authMethodEntFields = `{}`
-
-var entMetaJSON = `{}`
-
-var entRuntimeConfigSanitize = `{}`
-
-var entTokenConfigSanitize = `"EnterpriseConfig": {},`
+var testRuntimeConfigSanitizeExpectedFilename = "TestRuntimeConfig_Sanitize.golden"
 
 func entFullRuntimeConfig(rt *RuntimeConfig) {}
 
