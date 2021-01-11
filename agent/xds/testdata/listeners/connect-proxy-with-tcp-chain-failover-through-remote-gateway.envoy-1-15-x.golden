@@ -85,7 +85,7 @@
           "transportSocket": {
             "name": "tls",
             "typedConfig": {
-              "@type": "type.googleapis.com/envoy.api.v2.auth.DownstreamTlsContext",
+              "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
                 "tlsParams": {
 

@@ -29,7 +29,7 @@
       ],
       "listenerFilters": [
         {
-          "name": "envoy.listener.tls_inspector"
+          "name": "envoy.filters.listener.tls_inspector"
         }
       ]
     }

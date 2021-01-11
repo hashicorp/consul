@@ -94,8 +94,9 @@ github.com/circonus-labs/circonus-gometrics/api/config
 github.com/circonus-labs/circonus-gometrics/checkmgr
 # github.com/circonus-labs/circonusllhist v0.1.3
 github.com/circonus-labs/circonusllhist
-# github.com/cncf/udpa/go v0.0.0-20200313221541-5f7e5dd04533
+# github.com/cncf/udpa/go v0.0.0-20201120205902-5459f2c99403
 github.com/cncf/udpa/go/udpa/annotations
+github.com/cncf/udpa/go/xds/core/v3
 # github.com/coredns/coredns v1.1.2
 github.com/coredns/coredns/plugin/pkg/dnsutil
 # github.com/coreos/go-oidc v2.1.0+incompatible
@@ -116,30 +117,26 @@ github.com/dimchansky/utfbom
 github.com/docker/go-connections/sockets
 # github.com/elazarl/go-bindata-assetfs v0.0.0-20160803192304-e1a2a7ec64b0
 github.com/elazarl/go-bindata-assetfs
-# github.com/envoyproxy/go-control-plane v0.9.5
+# github.com/envoyproxy/go-control-plane v0.9.8
 github.com/envoyproxy/go-control-plane/envoy/annotations
-github.com/envoyproxy/go-control-plane/envoy/api/v2
-github.com/envoyproxy/go-control-plane/envoy/api/v2/auth
-github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster
-github.com/envoyproxy/go-control-plane/envoy/api/v2/core
-github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint
-github.com/envoyproxy/go-control-plane/envoy/api/v2/listener
-github.com/envoyproxy/go-control-plane/envoy/api/v2/route
-github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2
-github.com/envoyproxy/go-control-plane/envoy/config/filter/http/rbac/v2
-github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2
-github.com/envoyproxy/go-control-plane/envoy/config/filter/network/rbac/v2
-github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2
-github.com/envoyproxy/go-control-plane/envoy/config/listener/v2
-github.com/envoyproxy/go-control-plane/envoy/config/rbac/v2
-github.com/envoyproxy/go-control-plane/envoy/config/trace/v2
-github.com/envoyproxy/go-control-plane/envoy/service/auth/v2
-github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2
-github.com/envoyproxy/go-control-plane/envoy/type
-github.com/envoyproxy/go-control-plane/envoy/type/matcher
-github.com/envoyproxy/go-control-plane/envoy/type/metadata/v2
-github.com/envoyproxy/go-control-plane/envoy/type/tracing/v2
-github.com/envoyproxy/go-control-plane/pkg/conversion
+github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3
+github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3
+github.com/envoyproxy/go-control-plane/envoy/config/core/v3
+github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3
+github.com/envoyproxy/go-control-plane/envoy/config/listener/v3
+github.com/envoyproxy/go-control-plane/envoy/config/rbac/v3
+github.com/envoyproxy/go-control-plane/envoy/config/route/v3
+github.com/envoyproxy/go-control-plane/envoy/config/trace/v3
+github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/rbac/v3
+github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3
+github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/rbac/v3
+github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3
+github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3
+github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3
+github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3
+github.com/envoyproxy/go-control-plane/envoy/type/metadata/v3
+github.com/envoyproxy/go-control-plane/envoy/type/tracing/v3
+github.com/envoyproxy/go-control-plane/envoy/type/v3
 github.com/envoyproxy/go-control-plane/pkg/wellknown
 # github.com/envoyproxy/protoc-gen-validate v0.1.0
 github.com/envoyproxy/protoc-gen-validate/validate
@@ -154,7 +151,7 @@ github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/protoc-gen-gogo/descriptor
 github.com/gogo/protobuf/sortkeys
 github.com/gogo/protobuf/types
-# github.com/golang/protobuf v1.3.5
+# github.com/golang/protobuf v1.4.2
 github.com/golang/protobuf/jsonpb
 github.com/golang/protobuf/proto
 github.com/golang/protobuf/protoc-gen-go/descriptor
@@ -555,8 +552,9 @@ google.golang.org/appengine/urlfetch
 google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/api/expr/v1alpha1
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.25.1
+# google.golang.org/grpc v1.27.0
 google.golang.org/grpc
+google.golang.org/grpc/attributes
 google.golang.org/grpc/backoff
 google.golang.org/grpc/balancer
 google.golang.org/grpc/balancer/base
@@ -593,6 +591,44 @@ google.golang.org/grpc/serviceconfig
 google.golang.org/grpc/stats
 google.golang.org/grpc/status
 google.golang.org/grpc/tap
+# google.golang.org/protobuf v1.23.0
+google.golang.org/protobuf/encoding/protojson
+google.golang.org/protobuf/encoding/prototext
+google.golang.org/protobuf/encoding/protowire
+google.golang.org/protobuf/internal/descfmt
+google.golang.org/protobuf/internal/descopts
+google.golang.org/protobuf/internal/detectknown
+google.golang.org/protobuf/internal/detrand
+google.golang.org/protobuf/internal/encoding/defval
+google.golang.org/protobuf/internal/encoding/json
+google.golang.org/protobuf/internal/encoding/messageset
+google.golang.org/protobuf/internal/encoding/tag
+google.golang.org/protobuf/internal/encoding/text
+google.golang.org/protobuf/internal/errors
+google.golang.org/protobuf/internal/fieldnum
+google.golang.org/protobuf/internal/fieldsort
+google.golang.org/protobuf/internal/filedesc
+google.golang.org/protobuf/internal/filetype
+google.golang.org/protobuf/internal/flags
+google.golang.org/protobuf/internal/genname
+google.golang.org/protobuf/internal/impl
+google.golang.org/protobuf/internal/mapsort
+google.golang.org/protobuf/internal/pragma
+google.golang.org/protobuf/internal/set
+google.golang.org/protobuf/internal/strs
+google.golang.org/protobuf/internal/version
+google.golang.org/protobuf/proto
+google.golang.org/protobuf/reflect/protoreflect
+google.golang.org/protobuf/reflect/protoregistry
+google.golang.org/protobuf/runtime/protoiface
+google.golang.org/protobuf/runtime/protoimpl
+google.golang.org/protobuf/types/descriptorpb
+google.golang.org/protobuf/types/known/anypb
+google.golang.org/protobuf/types/known/durationpb
+google.golang.org/protobuf/types/known/emptypb
+google.golang.org/protobuf/types/known/structpb
+google.golang.org/protobuf/types/known/timestamppb
+google.golang.org/protobuf/types/known/wrapperspb
 # gopkg.in/inf.v0 v0.9.1
 gopkg.in/inf.v0
 # gopkg.in/resty.v1 v1.12.0

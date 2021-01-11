@@ -130,6 +130,7 @@ func execEnvoy(binary string, prefixArgs, suffixArgs []string, bootstrapJSON []b
 	if disableHotRestart {
 		envoyArgs = append(envoyArgs, "--disable-hot-restart")
 	}
+	envoyArgs = append(envoyArgs, "--bootstrap-version", "3") // TODO: is this required?
 	envoyArgs = append(envoyArgs, suffixArgs...)
 
 	// Exec

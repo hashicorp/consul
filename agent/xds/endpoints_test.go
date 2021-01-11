@@ -5,14 +5,12 @@ import (
 	"sort"
 	"testing"
 
+	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+
 	"github.com/mitchellh/copystructure"
-
-	"github.com/stretchr/testify/require"
-
-	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	envoyendpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	testinf "github.com/mitchellh/go-testing-interface"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
@@ -100,7 +98,7 @@ func Test_makeLoadAssignment(t *testing.T) {
 		name        string
 		clusterName string
 		endpoints   []loadAssignmentEndpointGroup
-		want        *envoy.ClusterLoadAssignment
+		want        *envoy_endpoint_v3.ClusterLoadAssignment
 	}{
 		{
 			name:        "no instances",
@@ -108,10 +106,10 @@ func Test_makeLoadAssignment(t *testing.T) {
 			endpoints: []loadAssignmentEndpointGroup{
 				{Endpoints: nil},
 			},
-			want: &envoy.ClusterLoadAssignment{
+			want: &envoy_endpoint_v3.ClusterLoadAssignment{
 				ClusterName: "service:test",
-				Endpoints: []*envoyendpoint.LocalityLbEndpoints{{
-					LbEndpoints: []*envoyendpoint.LbEndpoint{},
+				Endpoints: []*envoy_endpoint_v3.LocalityLbEndpoints{{
+					LbEndpoints: []*envoy_endpoint_v3.LbEndpoint{},
 				}},
 			},
 		},
@@ -121,24 +119,24 @@ func Test_makeLoadAssignment(t *testing.T) {
 			endpoints: []loadAssignmentEndpointGroup{
 				{Endpoints: testCheckServiceNodes},
 			},
-			want: &envoy.ClusterLoadAssignment{
+			want: &envoy_endpoint_v3.ClusterLoadAssignment{
 				ClusterName: "service:test",
-				Endpoints: []*envoyendpoint.LocalityLbEndpoints{{
-					LbEndpoints: []*envoyendpoint.LbEndpoint{
+				Endpoints: []*envoy_endpoint_v3.LocalityLbEndpoints{{
+					LbEndpoints: []*envoy_endpoint_v3.LbEndpoint{
 						{
-							HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
-								Endpoint: &envoyendpoint.Endpoint{
+							HostIdentifier: &envoy_endpoint_v3.LbEndpoint_Endpoint{
+								Endpoint: &envoy_endpoint_v3.Endpoint{
 									Address: makeAddress("10.10.10.10", 1234),
 								}},
-							HealthStatus:        envoycore.HealthStatus_HEALTHY,
+							HealthStatus:        envoy_core_v3.HealthStatus_HEALTHY,
 							LoadBalancingWeight: makeUint32Value(1),
 						},
 						{
-							HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
-								Endpoint: &envoyendpoint.Endpoint{
+							HostIdentifier: &envoy_endpoint_v3.LbEndpoint_Endpoint{
+								Endpoint: &envoy_endpoint_v3.Endpoint{
 									Address: makeAddress("10.10.10.20", 1234),
 								}},
-							HealthStatus:        envoycore.HealthStatus_HEALTHY,
+							HealthStatus:        envoy_core_v3.HealthStatus_HEALTHY,
 							LoadBalancingWeight: makeUint32Value(1),
 						},
 					},
@@ -151,24 +149,24 @@ func Test_makeLoadAssignment(t *testing.T) {
 			endpoints: []loadAssignmentEndpointGroup{
 				{Endpoints: testWeightedCheckServiceNodes},
 			},
-			want: &envoy.ClusterLoadAssignment{
+			want: &envoy_endpoint_v3.ClusterLoadAssignment{
 				ClusterName: "service:test",
-				Endpoints: []*envoyendpoint.LocalityLbEndpoints{{
-					LbEndpoints: []*envoyendpoint.LbEndpoint{
+				Endpoints: []*envoy_endpoint_v3.LocalityLbEndpoints{{
+					LbEndpoints: []*envoy_endpoint_v3.LbEndpoint{
 						{
-							HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
-								Endpoint: &envoyendpoint.Endpoint{
+							HostIdentifier: &envoy_endpoint_v3.LbEndpoint_Endpoint{
+								Endpoint: &envoy_endpoint_v3.Endpoint{
 									Address: makeAddress("10.10.10.10", 1234),
 								}},
-							HealthStatus:        envoycore.HealthStatus_HEALTHY,
+							HealthStatus:        envoy_core_v3.HealthStatus_HEALTHY,
 							LoadBalancingWeight: makeUint32Value(10),
 						},
 						{
-							HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
-								Endpoint: &envoyendpoint.Endpoint{
+							HostIdentifier: &envoy_endpoint_v3.LbEndpoint_Endpoint{
+								Endpoint: &envoy_endpoint_v3.Endpoint{
 									Address: makeAddress("10.10.10.20", 1234),
 								}},
-							HealthStatus:        envoycore.HealthStatus_HEALTHY,
+							HealthStatus:        envoy_core_v3.HealthStatus_HEALTHY,
 							LoadBalancingWeight: makeUint32Value(5),
 						},
 					},
@@ -181,24 +179,24 @@ func Test_makeLoadAssignment(t *testing.T) {
 			endpoints: []loadAssignmentEndpointGroup{
 				{Endpoints: testWarningCheckServiceNodes},
 			},
-			want: &envoy.ClusterLoadAssignment{
+			want: &envoy_endpoint_v3.ClusterLoadAssignment{
 				ClusterName: "service:test",
-				Endpoints: []*envoyendpoint.LocalityLbEndpoints{{
-					LbEndpoints: []*envoyendpoint.LbEndpoint{
+				Endpoints: []*envoy_endpoint_v3.LocalityLbEndpoints{{
+					LbEndpoints: []*envoy_endpoint_v3.LbEndpoint{
 						{
-							HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
-								Endpoint: &envoyendpoint.Endpoint{
+							HostIdentifier: &envoy_endpoint_v3.LbEndpoint_Endpoint{
+								Endpoint: &envoy_endpoint_v3.Endpoint{
 									Address: makeAddress("10.10.10.10", 1234),
 								}},
-							HealthStatus:        envoycore.HealthStatus_HEALTHY,
+							HealthStatus:        envoy_core_v3.HealthStatus_HEALTHY,
 							LoadBalancingWeight: makeUint32Value(1),
 						},
 						{
-							HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
-								Endpoint: &envoyendpoint.Endpoint{
+							HostIdentifier: &envoy_endpoint_v3.LbEndpoint_Endpoint{
+								Endpoint: &envoy_endpoint_v3.Endpoint{
 									Address: makeAddress("10.10.10.20", 1234),
 								}},
-							HealthStatus:        envoycore.HealthStatus_UNHEALTHY,
+							HealthStatus:        envoy_core_v3.HealthStatus_UNHEALTHY,
 							LoadBalancingWeight: makeUint32Value(1),
 						},
 					},
@@ -588,7 +586,7 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 					}
 					endpoints, err := s.endpointsFromSnapshot(cInfo, snap)
 					sort.Slice(endpoints, func(i, j int) bool {
-						return endpoints[i].(*envoy.ClusterLoadAssignment).ClusterName < endpoints[j].(*envoy.ClusterLoadAssignment).ClusterName
+						return endpoints[i].(*envoy_endpoint_v3.ClusterLoadAssignment).ClusterName < endpoints[j].(*envoy_endpoint_v3.ClusterLoadAssignment).ClusterName
 					})
 					require.NoError(err)
 					r, err := createResponse(EndpointType, "00000001", "00000001", endpoints)

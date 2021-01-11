@@ -46,6 +46,8 @@ func (m *StatusAnnotation) Validate() error {
 
 	// no validation rules for WorkInProgress
 
+	// no validation rules for PackageVersionStatus
+
 	return nil
 }
 

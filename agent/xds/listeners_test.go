@@ -7,7 +7,8 @@ import (
 	"testing"
 	"text/template"
 
-	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 
@@ -516,12 +517,12 @@ func TestListenersFromSnapshot(t *testing.T) {
 					}
 					listeners, err := s.listenersFromSnapshot(cInfo, snap)
 					sort.Slice(listeners, func(i, j int) bool {
-						return listeners[i].(*envoy.Listener).Name < listeners[j].(*envoy.Listener).Name
+						return listeners[i].(*envoy_listener_v3.Listener).Name < listeners[j].(*envoy_listener_v3.Listener).Name
 					})
 
 					// For terminating gateways we create filter chain matches for services/subsets from the ServiceGroups map
 					for i := 0; i < len(listeners); i++ {
-						l := listeners[i].(*envoy.Listener)
+						l := listeners[i].(*envoy_listener_v3.Listener)
 
 						if l.FilterChains != nil {
 							// Sort chains by the matched name with the exception of the last one

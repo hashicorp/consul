@@ -85,7 +85,7 @@ func (s *ServerResolverBuilder) ServerForAddr(addr string) (*metadata.Server, er
 
 // Build returns a new serverResolver for the given ClientConn. The resolver
 // will keep the ClientConn's state updated based on updates from Serf.
-func (s *ServerResolverBuilder) Build(target resolver.Target, cc resolver.ClientConn, _ resolver.BuildOption) (resolver.Resolver, error) {
+func (s *ServerResolverBuilder) Build(target resolver.Target, cc resolver.ClientConn, _ resolver.BuildOptions) (resolver.Resolver, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -227,4 +227,4 @@ func (r *serverResolver) Close() {
 }
 
 // ResolveNow is not used
-func (*serverResolver) ResolveNow(_ resolver.ResolveNowOption) {}
+func (*serverResolver) ResolveNow(_ resolver.ResolveNowOptions) {}

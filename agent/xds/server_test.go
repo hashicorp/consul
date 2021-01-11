@@ -7,7 +7,8 @@ import (
 	"testing"
 	"time"
 
-	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -294,11 +295,11 @@ func expectEndpointsJSON(v, n uint64) string {
 }
 
 func expectedUpstreamTransportSocketJSON(snap *proxycfg.ConfigSnapshot, sni string) string {
-	return expectedTransportSocketJSON(snap, "type.googleapis.com/envoy.api.v2.auth.UpstreamTlsContext", false, sni)
+	return expectedTransportSocketJSON(snap, "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext", false, sni)
 }
 
 func expectedPublicTransportSocketJSON(snap *proxycfg.ConfigSnapshot) string {
-	return expectedTransportSocketJSON(snap, "type.googleapis.com/envoy.api.v2.auth.DownstreamTlsContext", true, "")
+	return expectedTransportSocketJSON(snap, "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext", true, "")
 }
 
 func expectedTransportSocketJSON(
@@ -349,7 +350,7 @@ func expectedTransportSocketJSON(
 	}`
 }
 
-func assertChanBlocked(t *testing.T, ch chan *envoy.DiscoveryResponse) {
+func assertChanBlocked(t *testing.T, ch chan *envoy_discovery_v3.DiscoveryResponse) {
 	t.Helper()
 	select {
 	case r := <-ch:
@@ -359,7 +360,7 @@ func assertChanBlocked(t *testing.T, ch chan *envoy.DiscoveryResponse) {
 	}
 }
 
-func assertResponseSent(t *testing.T, ch chan *envoy.DiscoveryResponse, wantJSON string) {
+func assertResponseSent(t *testing.T, ch chan *envoy_discovery_v3.DiscoveryResponse, wantJSON string) {
 	t.Helper()
 	select {
 	case r := <-ch:
@@ -373,7 +374,7 @@ func assertResponseSent(t *testing.T, ch chan *envoy.DiscoveryResponse, wantJSON
 // JSON representation we expect. We use JSON because the responses use protobuf
 // Any type which includes binary protobuf encoding and would make creating
 // expected structs require the same code that is under test!
-func assertResponse(t *testing.T, r *envoy.DiscoveryResponse, wantJSON string) {
+func assertResponse(t *testing.T, r *envoy_discovery_v3.DiscoveryResponse, wantJSON string) {
 	t.Helper()
 	gotJSON := responseToJSON(t, r)
 	require.JSONEqf(t, wantJSON, gotJSON, "got:\n%s", gotJSON)
@@ -735,19 +736,16 @@ func TestServer_StreamAggregatedResources_IngressEmptyResponse(t *testing.T) {
 
 	emptyClusterJSON := `{
 		"versionInfo": "` + hexString(1) + `",
-		"resources": [],
 		"typeUrl": "type.googleapis.com/envoy.api.v2.Cluster",
 		"nonce": "` + hexString(1) + `"
 		}`
 	emptyListenerJSON := `{
 		"versionInfo": "` + hexString(1) + `",
-		"resources": [],
 		"typeUrl": "type.googleapis.com/envoy.api.v2.Listener",
 		"nonce": "` + hexString(2) + `"
 		}`
 	emptyRouteJSON := `{
 		"versionInfo": "` + hexString(1) + `",
-		"resources": [],
 		"typeUrl": "type.googleapis.com/envoy.api.v2.RouteConfiguration",
 		"nonce": "` + hexString(3) + `"
 		}`
