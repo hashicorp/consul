@@ -43,6 +43,6 @@ export let options = {
   vus: 25,
   // 10 minute
   duration: "10m",
-  // 95% of requests must complete below 2s
+  // 95% of requests must complete below 2.5s
   thresholds: { http_req_duration: ["p(95)<2500"] },
 };
