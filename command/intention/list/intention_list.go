@@ -55,15 +55,15 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	result := make([]string, 0, len(ixns))
-	header := "ID|Source|Action|Destination|Precedence"
+	header := "ID\x1fSource\x1fAction\x1fDestination\x1fPrecedence"
 	result = append(result, header)
 	for _, ixn := range ixns {
-		line := fmt.Sprintf("%s|%s|%s|%s|%d",
+		line := fmt.Sprintf("%s\x1f%s\x1f%s\x1f%s\x1f%d",
 			ixn.ID, ixn.SourceName, ixn.Action, ixn.DestinationName, ixn.Precedence)
 		result = append(result, line)
 	}
 
-	output := columnize.SimpleFormat(result)
+	output := columnize.Format(result, &columnize.Config{Delim: string([]byte{0x1f})})
 	c.UI.Output(output)
 
 	return 0
