@@ -174,6 +174,9 @@ func evIndexes(idx, create, modify uint64) func(e *stream.Event) error {
 }
 
 func TestServiceHealthEventsFromChanges(t *testing.T) {
+	setupIndex := uint64(10)
+	mutateIndex := uint64(100)
+
 	cases := []struct {
 		Name       string
 		Setup      func(s *Store, tx *txn) error
@@ -1051,6 +1054,48 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 					evServiceTermingGateway("srv2")),
 			},
 		},
+		{
+			Name: "terminating gateway config entry created after gateway exists",
+			Setup: func(s *Store, tx *txn) error {
+				return s.ensureRegistrationTxn(tx, tx.Index, false,
+					testServiceRegistration(t, "tgate1", regTerminatingGateway), false)
+			},
+			Mutate: func(s *Store, tx *txn) error {
+				configEntry := &structs.TerminatingGatewayConfigEntry{
+					Kind: structs.TerminatingGateway,
+					Name: "tgate1",
+					Services: []structs.LinkedService{
+						{
+							Name:           "srv1",
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+						{
+							Name:           "srv2",
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+					},
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				}
+				return ensureConfigEntryTxn(tx, tx.Index, configEntry, structs.DefaultEnterpriseMeta())
+			},
+			WantEvents: []stream.Event{
+				testServiceHealthEvent(t,
+					"tgate1",
+					evConnectTopic,
+					evServiceTermingGateway("srv1"),
+					evServiceIndex(setupIndex)),
+				testServiceHealthEvent(t,
+					"tgate1",
+					evConnectTopic,
+					evServiceTermingGateway("srv2"),
+					evServiceIndex(setupIndex)),
+			},
+		},
+		// terminating gateway with 2 instances
+		// changing config entry to add a linked service
+		// changing config entry to remove a linked service
+		// deleting a config entry
+		// deregistering a service behind a terminating gateway (should send no term gateway events)
 	}
 
 	for _, tc := range cases {
@@ -1061,7 +1106,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			if tc.Setup != nil {
 				// Bypass the publish mechanism for this test or we get into odd
 				// recursive stuff...
-				setupTx := s.db.WriteTxn(10)
+				setupTx := s.db.WriteTxn(setupIndex)
 				require.NoError(t, tc.Setup(s, setupTx))
 				// Commit the underlying transaction without using wrapped Commit so we
 				// avoid the whole event publishing system for setup here. It _should_
@@ -1070,7 +1115,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				setupTx.Txn.Commit()
 			}
 
-			tx := s.db.WriteTxn(100)
+			tx := s.db.WriteTxn(mutateIndex)
 			require.NoError(t, tc.Mutate(s, tx))
 
 			// Note we call the func under test directly rather than publishChanges so
@@ -1116,6 +1161,23 @@ func evServiceTermingGateway(name string) func(e *stream.Event) error {
 			payload.key = name
 			e.Payload = payload
 		}
+		return nil
+	}
+}
+
+func evServiceIndex(idx uint64) func(e *stream.Event) error {
+	return func(e *stream.Event) error {
+		payload := e.Payload.(EventPayloadCheckServiceNode)
+		payload.Value.Node.CreateIndex = idx
+		payload.Value.Node.ModifyIndex = idx
+		payload.Value.Service.CreateIndex = idx
+		payload.Value.Service.ModifyIndex = idx
+		for _, check := range payload.Value.Checks {
+			check.CreateIndex = idx
+			check.ModifyIndex = idx
+		}
+		e.Payload = payload
+
 		return nil
 	}
 }
