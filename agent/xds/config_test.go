@@ -124,6 +124,39 @@ func TestParseProxyConfig(t *testing.T) {
 				Protocol:              "tcp",
 			},
 		},
+		{
+			name: "local request timeout override, string",
+			input: map[string]interface{}{
+				"local_request_timeout_ms": "1000",
+			},
+			want: ProxyConfig{
+				LocalConnectTimeoutMs: 5000,
+				LocalRequestTimeoutMs: intPointer(1000),
+				Protocol:              "tcp",
+			},
+		},
+		{
+			name: "local request timeout override, float ",
+			input: map[string]interface{}{
+				"local_request_timeout_ms": float64(1000.0),
+			},
+			want: ProxyConfig{
+				LocalConnectTimeoutMs: 5000,
+				LocalRequestTimeoutMs: intPointer(1000),
+				Protocol:              "tcp",
+			},
+		},
+		{
+			name: "local request timeout override, int ",
+			input: map[string]interface{}{
+				"local_request_timeout_ms": 1000,
+			},
+			want: ProxyConfig{
+				LocalConnectTimeoutMs: 5000,
+				LocalRequestTimeoutMs: intPointer(1000),
+				Protocol:              "tcp",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

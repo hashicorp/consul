@@ -245,6 +245,11 @@ defaults that are inherited by all services.
   connections to the local application instance before timing out. Defaults to 5000
   (5 seconds).
 
+- `local_request_timeout_ms` - In milliseconds, the request timeout for HTTP requests
+  to the local application instance. Applies to HTTP based protocols only. If not
+  specified, inherits the Envoy default for route timeouts (15s). A value of 0 will
+  disable request timeouts.
+
 ### Proxy Upstream Config Options
 
 The following configuration items may be overridden directly in the
