@@ -513,6 +513,7 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 	c.entriesLock.Lock()
 	defer c.entriesLock.Unlock()
 	ok, entryValid, entry := c.getEntryLocked(r.TypeEntry, key, r.Info)
+	expiryTime := entry.Expiry.Expiry()
 
 	// This handles the case where a fetch succeeded after checking for its existence in
 	// getWithIndex. This ensures that we don't miss updates.
@@ -589,6 +590,22 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 			if fOpts.Timeout == 0 {
 				fOpts.Timeout = 10 * time.Minute
 			}
+			// We want to refresh before the TTL of cache entry in any case
+			refreshBefore := expiryTime.Sub(time.Now())
+			if refreshBefore <= 0 {
+				refreshBefore = tEntry.Opts.LastGetTTL
+			}
+
+			if refreshBefore > time.Second {
+				// Lets timeout at least 1 second before the cache entry ends
+				refreshBefore -= time.Second
+			} else {
+				// Less than 1 second, let's try to go fast
+				refreshBefore /= 2
+			}
+			if refreshBefore < fOpts.Timeout {
+				fOpts.Timeout = refreshBefore
+			}
 		}
 		if entry.Valid {
 			fOpts.LastResult = &FetchResult{
@@ -608,6 +625,9 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 		result, err := r.Fetch(fOpts)
 		if connectedTimer != nil {
 			connectedTimer.Stop()
+		}
+		if err == ErrCacheRefreshRoutineStopped {
+			return
 		}
 
 		// Copy the existing entry to start.

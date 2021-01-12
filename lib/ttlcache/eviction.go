@@ -35,6 +35,18 @@ func (e *Entry) Key() string {
 	return e.key
 }
 
+// ExpiryNotSet is return when Expiry() is not set
+var ExpiryNotSet = time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
+
+// Expiry returns the expiration time of entry in the heap.
+// If not set, will return ExpiryNotSet.
+func (e *Entry) Expiry() time.Time {
+	if e == nil {
+		return ExpiryNotSet
+	}
+	return e.expiry
+}
+
 // ExpiryHeap is a heap that is ordered by the expiry time of entries. It may
 // be used by a cache or storage to expiry items after a TTL.
 //

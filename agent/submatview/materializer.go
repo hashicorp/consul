@@ -276,10 +276,12 @@ func (m *Materializer) Fetch(done <-chan struct{}, opts cache.FetchOptions) (cac
 
 		case <-timeoutCh:
 			// Just return whatever we got originally, might still be empty
+			result.NotModified = true
 			return result, nil
 
 		case <-done:
-			return result, context.Canceled
+			// This happens when cache entry is cleared and will avoid repopulating cache
+			return result, cache.ErrCacheRefreshRoutineStopped
 		}
 	}
 }

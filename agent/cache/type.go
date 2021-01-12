@@ -4,6 +4,18 @@ import (
 	"time"
 )
 
+type cacheError string
+
+// Error describe the error.
+func (err cacheError) Error() string {
+	return string(err)
+}
+
+const (
+	// ErrCacheRefreshRoutineStopped to discard result from cache.
+	ErrCacheRefreshRoutineStopped = cacheError("Cache Refresh Routine Stopped")
+)
+
 // Type implements the logic to fetch certain types of data.
 type Type interface {
 	// Fetch fetches a single unique item.
