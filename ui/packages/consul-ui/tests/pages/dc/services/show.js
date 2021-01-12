@@ -1,4 +1,13 @@
-export default function(visitable, attribute, collection, text, intentions, filter, tabs) {
+export default function(
+  visitable,
+  clickable,
+  attribute,
+  collection,
+  text,
+  intentions,
+  filter,
+  tabs
+) {
   const page = {
     visit: visitable('/:dc/services/:service'),
     externalSource: attribute('data-test-external-source', '[data-test-external-source]', {
@@ -23,6 +32,7 @@ export default function(visitable, attribute, collection, text, intentions, filt
     // TODO: These need to somehow move to subpages
     instances: collection('.consul-service-instance-list > ul > li:not(:first-child)', {
       address: text('[data-test-address]'),
+      instance: clickable('a'),
     }),
     intentionList: intentions(),
   };

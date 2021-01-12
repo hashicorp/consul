@@ -40,6 +40,9 @@ export default class ServiceInstanceService extends RepositoryService {
   async findProxyBySlug(serviceId, node, service, dc, nspace, configuration = {}) {
     const instance = await this.findBySlug(...arguments);
     let proxy = this.store.peekRecord('proxy', instance.uid);
+    // Currently, we call the proxy endpoint before this endpoint
+    // therefore proxy is never undefined. If we ever call this endpoint
+    // first we'll need to do something like the following
     // if(typeof proxy === 'undefined') {
     //   await proxyRepo.create({})
     // }
