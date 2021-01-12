@@ -1,0 +1,17 @@
+{
+  "Name": "${location.pathname.get(3)}",
+  "Namespace": "${
+    typeof location.search.ns !== 'undefined' ? location.search.ns :
+      typeof http.body.Namespace !== 'undefined' ? http.body.Namespace : 'default'
+  }",
+  "Type": "${fake.helpers.randomize(['kubernetes', 'jwt', 'oidc'])}",
+  "Description": "${fake.lorem.sentence()}",
+  "DisplayName": "${fake.hacker.noun()}",
+  "MaxTokenTTL": "${fake.random.number({min: 0, max: 60})}m${fake.random.number({min: 0, max: 60})}s",
+  "TokenLocality": "${fake.helpers.randomize(['local', 'global', ''])}",
+  "Host": "https://${fake.internet.ip()}:8443",
+  "CACert": "-----BEGIN CERTIFICATE-----${fake.internet.password(1357)}-----END CERTIFICATE-----",
+  "ServiceAccountJWT": "eyJhbGciOiJ${fake.internet.password(25)}.eyJ${fake.internet.password(61)}.${fake.internet.password(32)}",
+  "CreateIndex": ${fake.random.number()},
+  "ModifyIndex": 10
+}

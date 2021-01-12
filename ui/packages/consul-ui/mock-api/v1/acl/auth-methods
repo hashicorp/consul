@@ -1,0 +1,35 @@
+[
+  ${
+    range(
+      env(
+        'CONSUL_AUTH_METHOD_COUNT',
+        Math.floor(
+          (
+            Math.random() * env('CONSUL_AUTH_METHOD_MAX', 10)
+          ) + parseInt(env('CONSUL_AUTH_METHOD_MIN', 1))
+        )
+      )
+    ).map(
+      function(item, i) {
+        return `
+          {
+            "Name": "${fake.hacker.noun()}-${i}",
+${typeof location.search.ns !== 'undefined' ? `
+            "Namespace": "${location.search.ns}",
+` : ``}
+            "Type": "${fake.helpers.randomize(['kubernetes', 'jwt', 'oidc'])}",
+            "Description": "${fake.lorem.sentence()}",
+            "DisplayName": "${fake.hacker.noun()}",
+            "MaxTokenTTL": "${fake.random.number({min: 0, max: 60})}m${fake.random.number({min: 0, max: 60})}s",
+            "TokenLocality": "${fake.helpers.randomize(['local', 'global', ''])}",
+            "Host": "https://${fake.internet.ip()}:8443",
+            "CACert": "-----BEGIN CERTIFICATE-----${fake.internet.password(1357)}-----END CERTIFICATE-----",
+            "ServiceAccountJWT": "eyJhbGciOiJ${fake.internet.password(25)}.eyJ${fake.internet.password(61)}.${fake.internet.password(32)}",
+            "CreateIndex": ${fake.random.number()},
+            "ModifyIndex": 10
+          }
+        `
+      }
+    )
+  }
+]
