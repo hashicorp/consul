@@ -2,7 +2,7 @@
   "versionInfo": "00000001",
   "resources": [
     {
-      "@type": "type.googleapis.com/envoy.api.v2.Cluster",
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
       "name": "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
       "type": "EDS",
       "edsClusterConfig": {
@@ -48,7 +48,7 @@
       }
     },
     {
-      "@type": "type.googleapis.com/envoy.api.v2.Cluster",
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
       "name": "local_app",
       "type": "STATIC",
       "connectTimeout": "5s",
@@ -73,21 +73,27 @@
       }
     },
     {
-      "@type": "type.googleapis.com/envoy.api.v2.Cluster",
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
       "name": "myservice",
       "connectTimeout": "15s",
-      "hosts": [
-        {
-          "socketAddress": {
-            "address": "127.0.0.1",
-            "portValue": 8080
+      "loadAssignment": {
+        "clusterName": "myservice",
+        "endpoints": [
+          {
+            "lbEndpoints": [
+              {
+                "endpoint": {
+                  "address": {
+                    "socketAddress": {
+                      "address": "127.0.0.1",
+                      "portValue": 8080
+                    }
+                  }
+                }
+              }
+            ]
           }
-        }
-      ],
-      "tlsContext": {
-        "commonTlsContext": {
-
-        }
+        ]
       },
       "transportSocket": {
         "name": "tls",
@@ -118,6 +124,6 @@
       }
     }
   ],
-  "typeUrl": "type.googleapis.com/envoy.api.v2.Cluster",
+  "typeUrl": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
   "nonce": "00000001"
 }

@@ -2,7 +2,7 @@
   "versionInfo": "00000001",
   "resources": [
     {
-      "@type": "type.googleapis.com/envoy.api.v2.Listener",
+      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
       "name": "db:1.2.3.4:9191",
       "address": {
         "socketAddress": {
@@ -16,7 +16,7 @@
             {
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
-                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
                 "statPrefix": "upstream.db.default.dc1",
                 "cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
@@ -27,6 +27,6 @@
       "trafficDirection": "OUTBOUND"
     }
   ],
-  "typeUrl": "type.googleapis.com/envoy.api.v2.Listener",
+  "typeUrl": "type.googleapis.com/envoy.config.listener.v3.Listener",
   "nonce": "00000001"
 }

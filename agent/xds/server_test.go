@@ -221,7 +221,7 @@ func expectEndpointsJSON(v, n uint64) string {
 		"versionInfo": "` + hexString(v) + `",
 		"resources": [
 			{
-				"@type": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
+				"@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
 				"clusterName": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
 				"endpoints": [
 					{
@@ -255,7 +255,7 @@ func expectEndpointsJSON(v, n uint64) string {
 				]
 			},
 			{
-				"@type": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
+				"@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
 				"clusterName": "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
 				"endpoints": [
 					{
@@ -289,7 +289,7 @@ func expectEndpointsJSON(v, n uint64) string {
 				]
 			}
 		],
-		"typeUrl": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
+		"typeUrl": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
 		"nonce": "` + hexString(n) + `"
 	}`
 }
@@ -736,17 +736,17 @@ func TestServer_StreamAggregatedResources_IngressEmptyResponse(t *testing.T) {
 
 	emptyClusterJSON := `{
 		"versionInfo": "` + hexString(1) + `",
-		"typeUrl": "type.googleapis.com/envoy.api.v2.Cluster",
+		"typeUrl": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
 		"nonce": "` + hexString(1) + `"
 		}`
 	emptyListenerJSON := `{
 		"versionInfo": "` + hexString(1) + `",
-		"typeUrl": "type.googleapis.com/envoy.api.v2.Listener",
+		"typeUrl": "type.googleapis.com/envoy.config.listener.v3.Listener",
 		"nonce": "` + hexString(2) + `"
 		}`
 	emptyRouteJSON := `{
 		"versionInfo": "` + hexString(1) + `",
-		"typeUrl": "type.googleapis.com/envoy.api.v2.RouteConfiguration",
+		"typeUrl": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
 		"nonce": "` + hexString(3) + `"
 		}`
 

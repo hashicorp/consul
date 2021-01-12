@@ -45,20 +45,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Config["envoy_local_cluster_json"] =
 					customAppClusterJSON(t, customClusterJSONOptions{
-						Name:        "mylocal",
-						IncludeType: false,
-					})
-			},
-		},
-		{
-			name:               "custom-local-app-typed",
-			create:             proxycfg.TestConfigSnapshot,
-			overrideGoldenName: "custom-local-app",
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.Config["envoy_local_cluster_json"] =
-					customAppClusterJSON(t, customClusterJSONOptions{
-						Name:        "mylocal",
-						IncludeType: true,
+						Name: "mylocal",
 					})
 			},
 		},
@@ -68,8 +55,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
 					customAppClusterJSON(t, customClusterJSONOptions{
-						Name:        "myservice",
-						IncludeType: false,
+						Name: "myservice",
 					})
 			},
 		},
@@ -79,20 +65,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
 					customAppClusterJSON(t, customClusterJSONOptions{
-						Name:        "myservice",
-						IncludeType: false,
-					})
-			},
-		},
-		{
-			name:               "custom-upstream-typed",
-			create:             proxycfg.TestConfigSnapshot,
-			overrideGoldenName: "custom-upstream",
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
-					customAppClusterJSON(t, customClusterJSONOptions{
-						Name:        "myservice",
-						IncludeType: true,
+						Name: "myservice",
 					})
 			},
 		},
@@ -103,10 +76,9 @@ func TestClustersFromSnapshot(t *testing.T) {
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
 					customAppClusterJSON(t, customClusterJSONOptions{
-						Name:        "myservice",
-						IncludeType: true,
+						Name: "myservice",
 						// Attempt to override the TLS context should be ignored
-						TLSContext: `{"commonTlsContext": {}}`,
+						TLSContext: `"commonTlsContext": {}`,
 					})
 			},
 		},
@@ -699,7 +671,7 @@ func expectClustersJSONResources(snap *proxycfg.ConfigSnapshot) map[string]strin
 	return map[string]string{
 		"local_app": `
 			{
-				"@type": "type.googleapis.com/envoy.api.v2.Cluster",
+				"@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
 				"name": "local_app",
 				"type": "STATIC",
 				"connectTimeout": "5s",
@@ -725,7 +697,7 @@ func expectClustersJSONResources(snap *proxycfg.ConfigSnapshot) map[string]strin
 			}`,
 		"db": `
 			{
-				"@type": "type.googleapis.com/envoy.api.v2.Cluster",
+				"@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
 				"name": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
 				"type": "EDS",
 				"edsClusterConfig": {
@@ -750,7 +722,7 @@ func expectClustersJSONResources(snap *proxycfg.ConfigSnapshot) map[string]strin
 			}`,
 		"prepared_query:geo-cache": `
 			{
-				"@type": "type.googleapis.com/envoy.api.v2.Cluster",
+				"@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
 				"name": "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
 				"type": "EDS",
 				"edsClusterConfig": {
@@ -795,7 +767,7 @@ func expectClustersJSONFromResources(snap *proxycfg.ConfigSnapshot, v, n uint64,
 	return `{
 		"versionInfo": "` + hexString(v) + `",
 		"resources": [` + resJSON + `],
-		"typeUrl": "type.googleapis.com/envoy.api.v2.Cluster",
+		"typeUrl": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
 		"nonce": "` + hexString(n) + `"
 		}`
 }
@@ -805,28 +777,42 @@ func expectClustersJSON(snap *proxycfg.ConfigSnapshot, v, n uint64) string {
 }
 
 type customClusterJSONOptions struct {
-	Name        string
-	IncludeType bool
-	TLSContext  string
+	Name       string
+	TLSContext string
 }
 
 var customAppClusterJSONTpl = `{
-	{{ if .IncludeType -}}
-	"@type": "type.googleapis.com/envoy.api.v2.Cluster",
-	{{- end }}
+	"@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
 	{{ if .TLSContext -}}
-	"tlsContext": {{ .TLSContext }},
+	"transport_socket": {
+		"name": "tls",
+		"typed_config": {
+			"@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
+			{{ .TLSContext }}
+		}
+	},
 	{{- end }}
 	"name": "{{ .Name }}",
 	"connectTimeout": "15s",
-	"hosts": [
-		{
-			"socketAddress": {
-				"address": "127.0.0.1", 
-				"portValue": 8080
+	"loadAssignment": {
+		"clusterName": "{{ .Name }}",
+		"endpoints": [
+			{
+				"lbEndpoints": [
+					{
+						"endpoint": {
+							"address": {
+								"socketAddress": {
+									"address": "127.0.0.1",
+									"portValue": 8080
+								}
+							}
+						}
+					}
+				]
 			}
-		}
-	]
+		]
+	}
 }`
 
 var customAppClusterJSONTemplate = template.Must(template.New("").Parse(customAppClusterJSONTpl))

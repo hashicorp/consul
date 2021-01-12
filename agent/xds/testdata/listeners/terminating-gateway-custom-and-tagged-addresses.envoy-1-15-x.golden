@@ -2,7 +2,7 @@
   "versionInfo": "00000001",
   "resources": [
     {
-      "@type": "type.googleapis.com/envoy.api.v2.Listener",
+      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
       "name": "foo:198.17.2.3:8080",
       "address": {
         "socketAddress": {
@@ -21,7 +21,7 @@
             {
               "name": "envoy.filters.network.rbac",
               "typedConfig": {
-                "@type": "type.googleapis.com/envoy.config.filter.network.rbac.v2.RBAC",
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
                 "rules": {
 
                 },
@@ -31,7 +31,7 @@
             {
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
-                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
                 "statPrefix": "terminating_gateway.default.api.foo",
                 "cluster": "api.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
@@ -75,7 +75,7 @@
             {
               "name": "envoy.filters.network.rbac",
               "typedConfig": {
-                "@type": "type.googleapis.com/envoy.config.filter.network.rbac.v2.RBAC",
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
                 "rules": {
 
                 },
@@ -85,7 +85,7 @@
             {
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
-                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
                 "statPrefix": "terminating_gateway.default.cache.foo",
                 "cluster": "cache.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
@@ -129,7 +129,7 @@
             {
               "name": "envoy.filters.network.rbac",
               "typedConfig": {
-                "@type": "type.googleapis.com/envoy.config.filter.network.rbac.v2.RBAC",
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
                 "rules": {
 
                 },
@@ -139,7 +139,7 @@
             {
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
-                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
                 "statPrefix": "terminating_gateway.default.db.foo",
                 "cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
@@ -183,7 +183,7 @@
             {
               "name": "envoy.filters.network.rbac",
               "typedConfig": {
-                "@type": "type.googleapis.com/envoy.config.filter.network.rbac.v2.RBAC",
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
                 "rules": {
 
                 },
@@ -193,7 +193,7 @@
             {
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
-                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
                 "statPrefix": "terminating_gateway.default.web.foo",
                 "cluster": "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
@@ -235,7 +235,7 @@
             {
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
-                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
                 "statPrefix": "terminating_gateway.foo",
                 "cluster": ""
               }
@@ -251,7 +251,7 @@
       "trafficDirection": "INBOUND"
     },
     {
-      "@type": "type.googleapis.com/envoy.api.v2.Listener",
+      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
       "name": "wan:198.18.0.1:443",
       "address": {
         "socketAddress": {
@@ -270,7 +270,7 @@
             {
               "name": "envoy.filters.network.rbac",
               "typedConfig": {
-                "@type": "type.googleapis.com/envoy.config.filter.network.rbac.v2.RBAC",
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
                 "rules": {
 
                 },
@@ -280,7 +280,7 @@
             {
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
-                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
                 "statPrefix": "terminating_gateway.default.api.wan",
                 "cluster": "api.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
@@ -324,7 +324,7 @@
             {
               "name": "envoy.filters.network.rbac",
               "typedConfig": {
-                "@type": "type.googleapis.com/envoy.config.filter.network.rbac.v2.RBAC",
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
                 "rules": {
 
                 },
@@ -334,7 +334,7 @@
             {
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
-                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
                 "statPrefix": "terminating_gateway.default.cache.wan",
                 "cluster": "cache.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
@@ -378,7 +378,7 @@
             {
               "name": "envoy.filters.network.rbac",
               "typedConfig": {
-                "@type": "type.googleapis.com/envoy.config.filter.network.rbac.v2.RBAC",
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
                 "rules": {
 
                 },
@@ -388,7 +388,7 @@
             {
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
-                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
                 "statPrefix": "terminating_gateway.default.db.wan",
                 "cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
@@ -432,7 +432,7 @@
             {
               "name": "envoy.filters.network.rbac",
               "typedConfig": {
-                "@type": "type.googleapis.com/envoy.config.filter.network.rbac.v2.RBAC",
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
                 "rules": {
 
                 },
@@ -442,7 +442,7 @@
             {
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
-                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
                 "statPrefix": "terminating_gateway.default.web.wan",
                 "cluster": "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
@@ -484,7 +484,7 @@
             {
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
-                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
                 "statPrefix": "terminating_gateway.wan",
                 "cluster": ""
               }
@@ -500,6 +500,6 @@
       "trafficDirection": "INBOUND"
     }
   ],
-  "typeUrl": "type.googleapis.com/envoy.api.v2.Listener",
+  "typeUrl": "type.googleapis.com/envoy.config.listener.v3.Listener",
   "nonce": "00000001"
 }

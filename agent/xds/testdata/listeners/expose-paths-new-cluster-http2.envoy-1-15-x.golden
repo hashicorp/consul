@@ -2,7 +2,7 @@
   "versionInfo": "00000001",
   "resources": [
     {
-      "@type": "type.googleapis.com/envoy.api.v2.Listener",
+      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
       "name": "exposed_path_grpchealthv1HealthCheck:1.2.3.4:21501",
       "address": {
         "socketAddress": {
@@ -16,7 +16,7 @@
             {
               "name": "envoy.filters.network.http_connection_manager",
               "typedConfig": {
-                "@type": "type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager",
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
                 "statPrefix": "exposed_path_filter_grpchealthv1HealthCheck_21501",
                 "routeConfig": {
                   "name": "exposed_path_filter_grpchealthv1HealthCheck_21501",
@@ -60,7 +60,7 @@
       "trafficDirection": "INBOUND"
     },
     {
-      "@type": "type.googleapis.com/envoy.api.v2.Listener",
+      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
       "name": "exposed_path_health1:1.2.3.4:21500",
       "address": {
         "socketAddress": {
@@ -74,7 +74,7 @@
             {
               "name": "envoy.filters.network.http_connection_manager",
               "typedConfig": {
-                "@type": "type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager",
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
                 "statPrefix": "exposed_path_filter_health1_21500",
                 "routeConfig": {
                   "name": "exposed_path_filter_health1_21500",
@@ -115,7 +115,7 @@
       "trafficDirection": "INBOUND"
     },
     {
-      "@type": "type.googleapis.com/envoy.api.v2.Listener",
+      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
       "name": "public_listener:1.2.3.4:8080",
       "address": {
         "socketAddress": {
@@ -129,7 +129,7 @@
             {
               "name": "envoy.filters.network.rbac",
               "typedConfig": {
-                "@type": "type.googleapis.com/envoy.config.filter.network.rbac.v2.RBAC",
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
                 "rules": {
 
                 },
@@ -139,7 +139,7 @@
             {
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
-                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
                 "statPrefix": "public_listener",
                 "cluster": "local_app"
               }
@@ -157,6 +157,6 @@
       "trafficDirection": "INBOUND"
     }
   ],
-  "typeUrl": "type.googleapis.com/envoy.api.v2.Listener",
+  "typeUrl": "type.googleapis.com/envoy.config.listener.v3.Listener",
   "nonce": "00000001"
 }

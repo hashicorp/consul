@@ -315,8 +315,7 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
 					customAppClusterJSON(t, customClusterJSONOptions{
-						Name:        "myservice",
-						IncludeType: false,
+						Name: "myservice",
 					})
 			},
 		},
