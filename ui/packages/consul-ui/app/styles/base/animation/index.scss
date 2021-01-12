@@ -17,3 +17,7 @@
   opacity: 1;
   pointer-events: auto;
 }
+%transition-pushover {
+  transition-timing-function: cubic-bezier(0.1, 0.1, 0.25, 0.9);
+  transition-duration: 0.1s;
+}
