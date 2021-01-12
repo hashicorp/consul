@@ -1,0 +1,40 @@
+@import './skin';
+@import './layout';
+/* things that should look like nav buttons */
+%main-nav-vertical > ul > li > a,
+%main-nav-vertical > ul > li > span {
+  @extend %main-nav-vertical-action;
+}
+%main-nav-vertical > ul > li > a:active,
+%main-nav-vertical > ul > li.is-active > a {
+  @extend %main-nav-vertical-action-active;
+}
+
+%main-nav-vertical-action-active:hover:not(:active),
+%main-nav-vertical-action-active:focus:not(:active) {
+  @extend %main-nav-vertical-action-active-intent;
+}
+/* old dropdowns, soon to be removed */
+
+/* Whilst we want spans to look the same as actions */
+/* we don't want them to act the same */
+%main-nav-vertical-action:not(span):hover,
+%main-nav-vertical-action:not(span):focus {
+  @extend %main-nav-vertical-action-intent;
+}
+
+%main-nav-vertical > ul > li > label,
+%main-nav-vertical > ul > li > .popover-menu > label > button {
+  @extend %main-nav-vertical-action;
+}
+%main-nav-vertical > ul > li > .popover-menu .menu-panel {
+  margin-left: 10px;
+  top: 28px;
+  z-index: 100;
+}
+/* menu-panels in the main navigation are treated slightly differently */
+%main-nav-vertical label + div {
+  @extend %main-nav-vertical-menu-panel;
+}
+
+/* end old dropdowns */

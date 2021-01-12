@@ -1,0 +1,22 @@
+%main-nav-vertical {
+  position: absolute;
+  left: 0;
+  top: var(--chrome-height, 47px);
+  width: var(--chrome-width);
+  height: calc(100vh - var(--chrome-height, 47px) - 35px);
+  padding-top: 35px;
+}
+%main-nav-vertical li.dcs {
+  margin-bottom: 25px;
+}
+%main-nav-vertical-action {
+  display: block;
+  padding: 7px 25px;
+}
+
+%main-nav-vertical .is-local [role='menuitem'] span:last-of-type {
+  margin-right: 20px;
+}
+%main-nav-vertical-menu-panel {
+  min-width: 266px;
+}

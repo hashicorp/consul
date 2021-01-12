@@ -1,0 +1,9 @@
+%main-header-horizontal::before {
+  background-color: var(--gray-tone-000);
+}
+
+%main-nav-horizontal-action,
+%main-nav-horizontal-toggle-button {
+  color: var(--gray-tone-600);
+}
+

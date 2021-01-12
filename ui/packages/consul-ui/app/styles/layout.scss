@@ -49,10 +49,6 @@ main,
 %modal-window {
   @extend %main-content;
 }
-html.template-with-vertical-menu,
-html.template-with-vertical-menu body {
-  overflow: hidden;
-}
 html:not(.has-nspaces) [class*='nspace-'] {
   display: none;
 }

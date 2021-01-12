@@ -38,13 +38,18 @@
 
 @import './components/brand-loader';
 @import './components/loader';
-@import './components/main-header-horizontal';
-@import './components/main-nav-horizontal';
 @import './components/footer';
 
 /**/
 
 @import './components/app-view';
+/* app chrome */
+@import 'consul-ui/components/main-header-horizontal';
+@import 'consul-ui/components/main-nav-horizontal';
+@import 'consul-ui/components/main-nav-vertical';
+@import 'consul-ui/components/hashicorp-consul';
+/**/
+
 @import 'consul-ui/components/overlay';
 @import 'consul-ui/components/tooltip';
 @import 'consul-ui/components/notice';
