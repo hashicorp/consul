@@ -1,0 +1,34 @@
+---
+layout: commands
+page_title: 'Commands: Intention List'
+sidebar_title: list
+---
+
+# Consul Intention List
+
+Command: `consul intention list`
+
+The `intention list` command shows all intentions including ID and precedence.
+
+## Usage
+
+Usage:
+
+- `consul intention list`
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+#### Enterprise Options
+
+@include 'http_api_namespace_options.mdx'
+
+## Examples
+
+```shell-session
+$ consul intention list
+ID                                    Source     Action  Destination  Precedence
+                                      web        allow   db           9
+36a6cf15-5f0e-a388-163e-0f608009704a  dashboard  allow   counting     9
+```

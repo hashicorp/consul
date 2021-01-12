@@ -1,0 +1,3 @@
+```release-note:feature
+cli: The `consul intention` command now has a new `list` subcommand to allow the listing of configured intentions. It also supports the `-namespace=` option.
+```
