@@ -1,0 +1,3 @@
+```release-note:bug
+state: fix computation of usage metrics to account for various places that can modify multiple services in a single transaction.
+```
