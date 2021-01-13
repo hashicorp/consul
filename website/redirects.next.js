@@ -223,11 +223,11 @@ module.exports = [
     destination: '/docs/architecture/coordinates',
     permanent: true,
   },
-  {
-    source: '/docs/glossary',
-    destination: '/docs/install/glossary',
-    permanent: true,
-  },
+  // {
+  //   source: '/docs/glossary',
+  //   destination: '/docs/install/glossary',
+  //   permanent: true,
+  // },
   {
     source: '/docs/connect/gateways/mesh-gateways',
     destination: '/docs/connect/gateways/mesh-gateway',
