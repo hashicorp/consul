@@ -1,7 +1,7 @@
 ## Terraform Consul Load Testing
 Consul Load Testing is used to capture baseline performance metrics for Consul under stress. This will assist in ensuring there are no performance regressions during releases and substantial changes to Consul. Per the defaults, the test runs for 10 minutes with 25 virtual users spawned by k6. Instance sizes for test instances are `t2.small` and for the Consul cluster `m5n.large`.  All metrics from Consul are pushed to a datadog dashboard for user review.
  
-This relies on the (Gruntwork's Terraform AWS Consul Module)[https://github.com/hashicorp/terraform-aws-consul] which *by default* creates 3 Consul servers across 3 availability zones. A load test instance which has an image that is configured with the necessary scripts and [k6](https://k6.io/) is created and sends traffic to a load balancer. The load balancer will distribute requests across the Consul clients who will ultimately forward the requests to the servers.
+This relies on the [Gruntwork's Terraform AWS Consul Module](https://github.com/hashicorp/terraform-aws-consul) which *by default* creates 3 Consul servers across 3 availability zones. A load test instance which has an image that is configured with the necessary scripts and [k6](https://k6.io/) is created and sends traffic to a load balancer. The load balancer will distribute requests across the Consul clients who will ultimately forward the requests to the servers.
  
 <img src="loadtestdiagram.png" width="500" height="300"/>
   
