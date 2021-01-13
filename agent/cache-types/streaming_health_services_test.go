@@ -1,6 +1,7 @@
 package cachetype
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -567,4 +568,79 @@ func runStep(t *testing.T, name string, fn func(t *testing.T)) {
 	if !t.Run(name, fn) {
 		t.FailNow()
 	}
+}
+
+func TestStreamingHealthServices_IntegrationWithCache_Expiry(t *testing.T) {
+	namespace := getNamespace("ns2")
+
+	client := NewTestStreamingClient(namespace)
+	typ := StreamingHealthServices{deps: MaterializerDeps{
+		Client: client,
+		Logger: hclog.Default(),
+	}}
+
+	c := cache.New(cache.Options{})
+	c.RegisterType(StreamingHealthServicesName, &shortTTL{typ})
+
+	batchEv := newEventBatchWithEvents(
+		newEventServiceHealthRegister(5, 1, "web"))
+	client.QueueEvents(
+		batchEv,
+		newEndOfSnapshotEvent(5))
+
+	req := &structs.ServiceSpecificRequest{
+		Datacenter:     "dc1",
+		ServiceName:    "web",
+		EnterpriseMeta: structs.EnterpriseMetaInitializer(namespace),
+	}
+	req.MinQueryIndex = 1
+	req.MaxQueryTime = time.Second
+
+	ctx := context.Background()
+
+	runStep(t, "initial fetch of results", func(t *testing.T) {
+		_, meta, err := c.Get(ctx, StreamingHealthServicesName, req)
+		require.NoError(t, err)
+		require.Equal(t, uint64(5), meta.Index)
+
+		req.MinQueryIndex = meta.Index
+	})
+
+	runStep(t, "request should block, and hit the cache TTL", func(t *testing.T) {
+		start := time.Now()
+		res, meta, err := c.Get(ctx, StreamingHealthServicesName, req)
+		require.NoError(t, err)
+		fmt.Println("Event=", res, "err:=", err, "meta:=", meta)
+		require.Equal(t, uint64(5), meta.Index)
+		require.Greater(t, uint64(time.Since(start)), uint64(req.MaxQueryTime))
+		req.MinQueryIndex = meta.Index - 1
+	})
+
+	runStep(t, "the next request should succeed", func(t *testing.T) {
+		_, meta, err := c.Get(ctx, StreamingHealthServicesName, req)
+		require.NoError(t, err)
+		require.Equal(t, uint64(5), meta.Index)
+	})
+
+	// Wait for cache TTL to expire
+	time.Sleep(1*time.Second + 200*time.Millisecond)
+	// Refill with streaming data
+	client.QueueEvents(
+		batchEv,
+		newEndOfSnapshotEvent(5))
+	runStep(t, "after cache cleaning, should work again", func(t *testing.T) {
+		_, meta, err := c.Get(ctx, StreamingHealthServicesName, req)
+		require.NoError(t, err)
+		require.Equal(t, uint64(5), meta.Index)
+	})
+}
+
+type shortTTL struct {
+	StreamingHealthServices
+}
+
+func (s *shortTTL) RegisterOptions() cache.RegisterOptions {
+	opts := s.RegisterOptionsBlockingRefresh.RegisterOptions()
+	opts.LastGetTTL = 1*time.Second + 100*time.Millisecond
+	return opts
 }
