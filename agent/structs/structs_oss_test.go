@@ -7,6 +7,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var enterpriseMetaField = "EnterpriseMeta"
+
 func TestServiceID_String(t *testing.T) {
 	t.Run("value", func(t *testing.T) {
 		sid := NewServiceID("the-id", &EnterpriseMeta{})

@@ -11,6 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	fuzz "github.com/google/gofuzz"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/api"
@@ -1526,6 +1528,82 @@ func TestStructs_validateMetaPair(t *testing.T) {
 			t.Fatalf("should have failed: %v, %v", pair, err)
 		}
 	}
+}
+
+func TestDCSpecificRequestCacheInfoKey(t *testing.T) {
+	assertCacheInfoKeyIsComplete(t, &DCSpecificRequest{}, nil)
+}
+
+func TestNodeSpecificRequestCacheInfoKey(t *testing.T) {
+	assertCacheInfoKeyIsComplete(t, &NodeSpecificRequest{}, nil)
+}
+
+func TestServiceSpecificRequestCacheInfoKey(t *testing.T) {
+	ignoredFields := map[string]bool{
+		// TODO: should this filed be included?
+		"ServiceKind": true,
+		// TODO: this filed should be included: github.com/hashicorp/consul/pull/9436
+		"Ingress": true,
+	}
+
+	assertCacheInfoKeyIsComplete(t, &ServiceSpecificRequest{}, ignoredFields)
+}
+
+func TestServiceDumpRequestCacheInfoKey(t *testing.T) {
+	ignoredFields := map[string]bool{
+		// ServiceKind is only included when UseServiceKind=true
+		"ServiceKind": true,
+	}
+
+	assertCacheInfoKeyIsComplete(t, &ServiceDumpRequest{}, ignoredFields)
+}
+
+// cacheInfoIgnoredFields are fields that can be ignored in all cache.Request types
+// because the cache itself includes these values in the cache key, or because
+// they are options used to specify the cache operation, and are not part of the
+// cache entry value.
+var cacheInfoIgnoredFields = map[string]bool{
+	// Datacenter is part of the cache key added by the cache itself.
+	"Datacenter": true,
+	// QuerySource is always the same for every request a single agent, so it
+	// is excluded from the key.
+	"Source": true,
+	// EnterpriseMeta is an empty struct, so can not be included.
+	enterpriseMetaField: true,
+}
+
+func assertCacheInfoKeyIsComplete(t *testing.T, request cache.Request, ignoredFields map[string]bool) {
+	fuzzer := fuzz.NewWithSeed(time.Now().UnixNano())
+	fuzzer.Funcs(randQueryOptions)
+	fuzzer.Fuzz(request)
+	requestValue := reflect.ValueOf(request).Elem()
+
+	for i := 0; i < requestValue.NumField(); i++ {
+		originalKey := request.CacheInfo().Key
+		field := requestValue.Field(i)
+		fieldName := requestValue.Type().Field(i).Name
+		originalValue := field.Interface()
+
+		if cacheInfoIgnoredFields[fieldName] || ignoredFields[fieldName] {
+			continue
+		}
+
+		for i := 0; reflect.DeepEqual(originalValue, field.Interface()) && i < 20; i++ {
+			fuzzer.Fuzz(field.Addr().Interface())
+		}
+
+		key := request.CacheInfo().Key
+		if originalKey == key {
+			t.Fatalf("expected field %v to be represented in the CacheInfo.Key, %v change to %v",
+				fieldName,
+				originalValue,
+				field.Interface())
+		}
+	}
+}
+
+func randQueryOptions(o *QueryOptions, c fuzz.Continue) {
+	c.Fuzz(&o.Filter)
 }
 
 func TestSpecificServiceRequest_CacheInfo(t *testing.T) {
