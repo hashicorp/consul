@@ -19,7 +19,7 @@ This repo has the following folder structure:
 2) Configure your AWS credentials using one of the [options supported by the AWS
   SDK](http://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html). Usually, the easiest option is to
   set the `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_DEFAULT_REGION` environment variables.
-3) Follow the [Packer README](https://github.com/hashicorp/consul/tree/master/test/load/packer) to generate your load test and Consul AMIs
+3) Follow the [Packer README](./packer/README.md) to generate your load test and Consul AMIs
 4) Follow the [Terraform README](https://github.com/hashicorp/consul/tree/master/test/load/terraform) to stand up the infrastructure in AWS
 5) Watch the results in either your datadog dashboard or in the output of your Terraform Apply
 
