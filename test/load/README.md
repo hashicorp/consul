@@ -9,7 +9,7 @@ This relies on the [Gruntwork's Terraform AWS Consul Module](https://github.com/
 [Terraform](https://www.terraform.io/downloads.html) and [Packer](https://www.packer.io/downloads), AWS and [Datadog](https://docs.datadoghq.com/getting_started/) are required to use this. All of this, except the AWS resources that will be utilized, are free.
  
 This repo has the following folder structure:
-packer: This contains all the necessary stuff to make the load test and the Consul AMI to be utilized in Terraform.
+* packer: This contains all the necessary stuff to make the load test and the Consul AMI to be utilized in Terraform.
 terraform: This contains all the relevant Terraform files
  
  
