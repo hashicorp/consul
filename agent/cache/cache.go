@@ -348,7 +348,7 @@ func (c *Cache) getEntryLocked(
 	info RequestInfo,
 ) (entryExists bool, entryValid bool, entry cacheEntry) {
 	entry, ok := c.entries[key]
-	if !entry.Valid {
+	if !entry.Valid || !ok {
 		return ok, false, entry
 	}
 
@@ -357,22 +357,22 @@ func (c *Cache) getEntryLocked(
 	if tEntry.Opts.SupportsBlocking && info.MinIndex > 0 && info.MinIndex >= entry.Index {
 		// MinIndex was given and matches or is higher than current value so we
 		// ignore the cache and fallthrough to blocking on a new value below.
-		return true, false, entry
+		return ok, false, entry
 	}
 
 	// Check MaxAge is not exceeded if this is not a background refreshing type
 	// and MaxAge was specified.
 	if !tEntry.Opts.Refresh && info.MaxAge > 0 && entryExceedsMaxAge(info.MaxAge, entry) {
-		return true, false, entry
+		return ok, false, entry
 	}
 
 	// Check if re-validate is requested. If so the first time round the
 	// loop is not a hit but subsequent ones should be treated normally.
 	if !tEntry.Opts.Refresh && info.MustRevalidate {
-		return true, false, entry
+		return ok, false, entry
 	}
 
-	return true, true, entry
+	return ok, ok, entry
 }
 
 func entryExceedsMaxAge(maxAge time.Duration, entry cacheEntry) bool {
