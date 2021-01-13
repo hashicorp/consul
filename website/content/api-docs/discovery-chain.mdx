@@ -65,7 +65,7 @@ The table below shows this endpoint's support for
 ### POST Body Parameters
 
 - `OverrideConnectTimeout` `(duration: 0s)` - Overrides the final [connect
-  timeout](/docs/agent/config-entries/service-resolver#connecttimeout) for
+  timeout](/docs/connect/config-entries/service-resolver#connecttimeout) for
   any service resolved in the compiled chain.
 
   This value comes from the `connect_timeout_ms` key in an [upstream
@@ -75,7 +75,7 @@ The table below shows this endpoint's support for
   parameter.
 
 - `OverrideProtocol` `(string: "")` - Overrides the final
-  [protocol](/docs/agent/config-entries/service-defaults#protocol) used in
+  [protocol](/docs/connect/config-entries/service-defaults#protocol) used in
   the compiled discovery chain.
 
   If the chain ordinarily would be TCP and an L7 protocol is passed here the

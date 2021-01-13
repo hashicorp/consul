@@ -115,7 +115,7 @@ the ability to control some parts of the bootstrap config via proxy
 configuration options.
 
 Users can add the following configuration items to the [global `proxy-defaults`
-configuration entry](/docs/agent/config-entries/proxy-defaults) or override them directly in the `proxy.config` field
+configuration entry](/docs/connect/config-entries/proxy-defaults) or override them directly in the `proxy.config` field
 of a [proxy service
 definition](/docs/connect/registration/service-registration) or
 [`sidecar_service`](/docs/connect/registration/sidecar-service) block.
@@ -124,7 +124,7 @@ definition](/docs/connect/registration/service-registration) or
   StatsD listener that Envoy should deliver metrics to. For example, this may be
   `udp://127.0.0.1:8125` if every host has a local StatsD listener. In this case
   users can configure this property once in the [global `proxy-defaults`
-  configuration entry](/docs/agent/config-entries/proxy-defaults) for convenience. Currently, TCP is not supported.
+  configuration entry](/docs/connect/config-entries/proxy-defaults) for convenience. Currently, TCP is not supported.
 
   ~> **Note:** currently the url **must use an ip address** not a dns name due
   to the way Envoy is setup for StatsD.
@@ -135,7 +135,7 @@ definition](/docs/connect/registration/service-registration) or
   pod in a Kubernetes cluster to learn of a pod-specific IP address for StatsD
   when the Envoy instance is bootstrapped while still allowing global
   configuration of all proxies to use StatsD in the [global `proxy-defaults`
-  configuration entry](/docs/agent/config-entries/proxy-defaults). The env variable must contain a full valid URL
+  configuration entry](/docs/connect/config-entries/proxy-defaults). The env variable must contain a full valid URL
   value as specified above and nothing else. It is not currently possible to use
   environment variables as only part of the URL.
 
@@ -179,7 +179,7 @@ to configure appropriate proxy settings for that service's proxies and also for
 the upstream listeners of any downstream service.
 
 One example is how users can define a service's protocol in a [`service-defaults` configuration
-entry](/docs/agent/config-entries/service-defaults). Agents with
+entry](/docs/connect/config-entries/service-defaults). Agents with
 [`enable_central_service_config`](/docs/agent/options#enable_central_service_config)
 set to true will automatically discover the protocol when configuring a proxy
 for a service. The proxy will discover the main protocol of the service it
@@ -200,7 +200,7 @@ To learn about other options that can be configured centrally see the
 These fields may also be overridden explicitly in the [proxy service
 definition](/docs/connect/registration/service-registration), or defined in
 the [global `proxy-defaults` configuration
-entry](/docs/agent/config-entries/proxy-defaults) to act as
+entry](/docs/connect/config-entries/proxy-defaults) to act as
 defaults that are inherited by all services.
 
 - `protocol` - The protocol the service speaks. Connect's Envoy integration
@@ -227,9 +227,9 @@ defaults that are inherited by all services.
     metrics with `gRPC-status` trailer codes.
 
     ~> **Note:** The protocol of a service should ideally be configured via the
-    [`protocol`](/docs/agent/config-entries/service-defaults#protocol)
+    [`protocol`](/docs/connect/config-entries/service-defaults#protocol)
     field of a
-    [`service-defaults`](/docs/agent/config-entries/service-defaults)
+    [`service-defaults`](/docs/connect/config-entries/service-defaults)
     config entry for the service. Configuring it in a
     proxy config will not fully enable some [L7
     features](/docs/connect/l7-traffic-management).
@@ -256,9 +256,9 @@ definition](/docs/connect/registration/service-registration) or
   the upstream.
 
   ~> **Note:** The protocol of a service should ideally be configured via the
-  [`protocol`](/docs/agent/config-entries/service-defaults#protocol)
+  [`protocol`](/docs/connect/config-entries/service-defaults#protocol)
   field of a
-  [`service-defaults`](/docs/agent/config-entries/service-defaults)
+  [`service-defaults`](/docs/connect/config-entries/service-defaults)
   config entry for the upstream destination service. Configuring it in a
   proxy upstream config will not fully enable some [L7
   features](/docs/connect/l7-traffic-management).
@@ -270,9 +270,9 @@ definition](/docs/connect/registration/service-registration) or
 
   ~> **Note:** The connection timeout for a service should ideally be
   configured via the
-  [`connect_timeout`](/docs/agent/config-entries/service-resolver#connecttimeout)
+  [`connect_timeout`](/docs/connect/config-entries/service-resolver#connecttimeout)
   field of a
-  [`service-resolver`](/docs/agent/config-entries/service-resolver)
+  [`service-resolver`](/docs/connect/config-entries/service-resolver)
   config entry for the upstream destination service. Configuring it in a
   proxy upstream config will override any values defined in config entries.
   It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
@@ -307,7 +307,7 @@ definition](/docs/connect/registration/service-registration) or
 These fields may also be overridden explicitly in the [proxy service
 definition](/docs/connect/registration/service-registration), or defined in
 the [global `proxy-defaults` configuration
-entry](/docs/agent/config-entries/proxy-defaults) to act as
+entry](/docs/connect/config-entries/proxy-defaults) to act as
 defaults that are inherited by all services.
 
 Prior to 1.8.0 these settings were specific to Mesh Gateways. The deprecated
@@ -317,7 +317,7 @@ will continue to be supported.
 - `connect_timeout_ms` - The number of milliseconds to allow when making upstream
   connections before timing out. Defaults to 5000 (5 seconds). If the upstream
   service has the configuration option
-  [`connect_timeout_ms`](/docs/agent/config-entries/service-resolver#connecttimeout)
+  [`connect_timeout_ms`](/docs/connect/config-entries/service-resolver#connecttimeout)
   set for the `service-resolver`, that timeout value will take precedence over
   this gateway option.
 
@@ -430,7 +430,7 @@ EOF
 
 Users may add the following configuration items to the [global `proxy-defaults`
 configuration
-entry](/docs/agent/config-entries/proxy-defaults) or
+entry](/docs/connect/config-entries/proxy-defaults) or
 override them directly in the `proxy.config` field of a [proxy service
 definition](/docs/connect/registration/service-registration) or
 [`sidecar_service`](/docs/connect/registration/sidecar-service) block.
@@ -466,7 +466,7 @@ definition](/docs/connect/registration/service-registration) or
 
 Users may add the following configuration items to the [global `proxy-defaults`
 configuration
-entry](/docs/agent/config-entries/proxy-defaults) or
+entry](/docs/connect/config-entries/proxy-defaults) or
 override them directly in the `proxy.config` field of a [proxy service
 definition](/docs/connect/registration/service-registration) or
 [`sidecar_service`](/docs/connect/registration/sidecar-service) block.
@@ -504,9 +504,9 @@ definition](/docs/connect/registration/service-registration) or
 [`sidecar_service`](/docs/connect/registration/sidecar-service) block.
 
 ~> **Note:** - When a
-[`service-router`](/docs/agent/config-entries/service-router),
-[`service-splitter`](/docs/agent/config-entries/service-splitter), or
-[`service-resolver`](/docs/agent/config-entries/service-resolver) config
+[`service-router`](/docs/connect/config-entries/service-router),
+[`service-splitter`](/docs/connect/config-entries/service-splitter), or
+[`service-resolver`](/docs/connect/config-entries/service-resolver) config
 entry exists for a service the below escape hatches are ignored and will log a
 warning.
 
@@ -525,6 +525,6 @@ warning.
   customization of timeouts, circuit breaking, rate limits, load balancing
   strategy etc.
 
-[protocol]: /docs/agent/config-entries/service-defaults#protocol
+[protocol]: /docs/connect/config-entries/service-defaults#protocol
 [intentions]: /docs/connect/intentions
 [intentions]: /docs/connect/intentions
