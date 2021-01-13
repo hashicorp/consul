@@ -90,14 +90,22 @@ func TestDetermineSupportedProxyFeaturesFromString(t *testing.T) {
 		"1.12.5": {expectErr: "Envoy 1.12.5 " + errTooOld},
 		"1.12.6": {expectErr: "Envoy 1.12.6 " + errTooOld},
 		"1.12.7": {expectErr: "Envoy 1.12.7 " + errTooOld},
-		"1.13.0": {expectErr: "Envoy 1.13.0 " + err1_13},
+		"1.13.0": {expectErr: "Envoy 1.13.0 " + errTooOld},
+		"1.13.1": {expectErr: "Envoy 1.13.1 " + errTooOld},
+		"1.13.2": {expectErr: "Envoy 1.13.2 " + errTooOld},
+		"1.13.3": {expectErr: "Envoy 1.13.3 " + errTooOld},
+		"1.13.4": {expectErr: "Envoy 1.13.4 " + errTooOld},
+		"1.13.5": {expectErr: "Envoy 1.13.5 " + errTooOld},
+		"1.13.6": {expectErr: "Envoy 1.13.6 " + errTooOld},
+		"1.13.7": {expectErr: "Envoy 1.13.7 " + errTooOld},
 	}
 
 	// Insert a bunch of valid versions.
 	for _, v := range []string{
-		"1.13.1", "1.13.2", "1.13.3", "1.13.4", "1.13.6", "1.14.1",
-		"1.14.2", "1.14.3", "1.14.4", "1.14.5",
-		"1.15.0", "1.15.1", "1.15.2", "1.16.0",
+		"1.14.1", "1.14.2", "1.14.3", "1.14.4", "1.14.5", "1.14.6",
+		"1.15.0", "1.15.1", "1.15.2", "1.15.3",
+		"1.16.0", "1.16.1", "1.16.2",
+		"1.17.0",
 	} {
 		cases[v] = testcase{expect: supportedProxyFeatures{}}
 	}

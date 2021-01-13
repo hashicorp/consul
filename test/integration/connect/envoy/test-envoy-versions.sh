@@ -30,13 +30,14 @@ cd "$(dirname "$0")"
 
 ### let's just assume we drop 1.13
     # 1.13.6
-	# 1.13.7
 versions=(
+	1.13.7
     1.14.5
     1.15.3
     1.16.2
 )
 
+set +e
 for v in "${versions[@]}"; do
     echo "ENVOY_VERSION=${v}"
     export ENVOY_VERSION="${v}"
