@@ -20,8 +20,8 @@ services {
 {
   "http": {
     "name": "envoy.tracers.zipkin",
-    "@type": "type.googleapis.com/envoy.config.trace.v3.ZipkinConfig",
     "typedConfig": {
+      "@type": "type.googleapis.com/envoy.config.trace.v3.ZipkinConfig",
       "collector_cluster": "zipkin",
       "collector_endpoint": "/api/v1/spans",
       "shared_span_context": false
