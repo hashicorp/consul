@@ -206,10 +206,17 @@ const bootstrapTemplate = `{
   "tracing": {{ .TracingConfigJSON }},
   {{- end }}
   "dynamic_resources": {
-    "lds_config": { "ads": {} },
-    "cds_config": { "ads": {} },
+    "lds_config": {
+      "ads": {},
+      "resource_api_version": "V3"
+    },
+    "cds_config": {
+      "ads": {},
+      "resource_api_version": "V3"
+    },
     "ads_config": {
       "api_type": "GRPC",
+      "transport_api_version": "V3",
       "grpc_services": {
         "initial_metadata": [
           {
