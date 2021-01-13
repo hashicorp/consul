@@ -548,6 +548,7 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 
 	clusterJSON := `{
 		"name": "` + selfAdminName + `",
+		"ignore_health_on_host_removal": false,
 		"connect_timeout": "5s",
 		"type": "STATIC",
 		"http_protocol_options": {},

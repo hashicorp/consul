@@ -14,6 +14,7 @@ import (
 const (
 	expectedSelfAdminCluster = `{
   "name": "self_admin",
+  "ignore_health_on_host_removal": false,
   "connect_timeout": "5s",
   "type": "STATIC",
   "http_protocol_options": {},

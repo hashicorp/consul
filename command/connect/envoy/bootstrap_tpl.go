@@ -138,6 +138,7 @@ const bootstrapTemplate = `{
     "clusters": [
       {
         "name": "{{ .LocalAgentClusterName }}",
+        "ignore_health_on_host_removal": false,
         "connect_timeout": "1s",
         "type": "STATIC",
         {{- if .AgentTLS -}}

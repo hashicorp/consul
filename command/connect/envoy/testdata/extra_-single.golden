@@ -20,6 +20,7 @@
     "clusters": [
       {
         "name": "local_agent",
+        "ignore_health_on_host_removal": false,
         "connect_timeout": "1s",
         "type": "STATIC",
         "http2_protocol_options": {},
