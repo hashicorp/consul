@@ -10,7 +10,7 @@ This relies on the [Gruntwork's Terraform AWS Consul Module](https://github.com/
  
 This repo has the following folder structure:
 * packer: This contains all the necessary stuff to make the load test and the Consul AMI to be utilized in Terraform.
-terraform: This contains all the relevant Terraform files
+* terraform: This contains all the relevant Terraform files
  
  
 # Getting Started 
