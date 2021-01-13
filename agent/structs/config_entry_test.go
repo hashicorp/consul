@@ -2216,3 +2216,25 @@ func requireContainsLower(t *testing.T, haystack, needle string) {
 func intPointer(i int) *int {
 	return &i
 }
+
+func TestConfigEntryQuery_CacheInfoKey(t *testing.T) {
+	assertCacheInfoKeyIsComplete(t, &ConfigEntryQuery{}, nil)
+}
+
+func TestServiceConfigRequest_CacheInfoKey(t *testing.T) {
+	ignoredFields := map[string]bool{
+		"QueryOptions": true,
+		// TODO: should this be included in the key?
+		"MeshGateway": true,
+		// TODO: should this be included in the key?
+		"Mode": true,
+	}
+	assertCacheInfoKeyIsComplete(t, &ServiceConfigRequest{}, ignoredFields)
+}
+
+func TestDiscoveryChainRequest_CacheInfoKey(t *testing.T) {
+	ignoredFields := map[string]bool{
+		"QueryOptions": true,
+	}
+	assertCacheInfoKeyIsComplete(t, &DiscoveryChainRequest{}, ignoredFields)
+}

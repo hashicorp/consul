@@ -1588,15 +1588,15 @@ func TestStructs_validateMetaPair(t *testing.T) {
 	}
 }
 
-func TestDCSpecificRequestCacheInfoKey(t *testing.T) {
+func TestDCSpecificRequest_CacheInfoKey(t *testing.T) {
 	assertCacheInfoKeyIsComplete(t, &DCSpecificRequest{}, nil)
 }
 
-func TestNodeSpecificRequestCacheInfoKey(t *testing.T) {
+func TestNodeSpecificRequest_CacheInfoKey(t *testing.T) {
 	assertCacheInfoKeyIsComplete(t, &NodeSpecificRequest{}, nil)
 }
 
-func TestServiceSpecificRequestCacheInfoKey(t *testing.T) {
+func TestServiceSpecificRequest_CacheInfoKey(t *testing.T) {
 	ignoredFields := map[string]bool{
 		// TODO: should this filed be included?
 		"ServiceKind": true,
@@ -1605,7 +1605,7 @@ func TestServiceSpecificRequestCacheInfoKey(t *testing.T) {
 	assertCacheInfoKeyIsComplete(t, &ServiceSpecificRequest{}, ignoredFields)
 }
 
-func TestServiceDumpRequestCacheInfoKey(t *testing.T) {
+func TestServiceDumpRequest_CacheInfoKey(t *testing.T) {
 	ignoredFields := map[string]bool{
 		// ServiceKind is only included when UseServiceKind=true
 		"ServiceKind": true,
@@ -1629,6 +1629,7 @@ var cacheInfoIgnoredFields = map[string]bool{
 }
 
 func assertCacheInfoKeyIsComplete(t *testing.T, request cache.Request, ignoredFields map[string]bool) {
+	t.Helper()
 	fuzzer := fuzz.NewWithSeed(time.Now().UnixNano())
 	fuzzer.Funcs(randQueryOptions)
 	fuzzer.Fuzz(request)
