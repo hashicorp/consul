@@ -10,7 +10,8 @@
         "edsConfig": {
           "ads": {
 
-          }
+          },
+          "resourceApiVersion": "V3"
         }
       },
       "connectTimeout": "66s",

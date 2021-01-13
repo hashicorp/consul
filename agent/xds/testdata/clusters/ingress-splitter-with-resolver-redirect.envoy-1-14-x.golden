@@ -10,7 +10,8 @@
         "edsConfig": {
           "ads": {
 
-          }
+          },
+          "resourceApiVersion": "V3"
         }
       },
       "connectTimeout": "5s",
@@ -62,7 +63,8 @@
         "edsConfig": {
           "ads": {
 
-          }
+          },
+          "resourceApiVersion": "V3"
         }
       },
       "connectTimeout": "5s",

@@ -13,190 +13,204 @@ import (
 
 const (
 	expectedSelfAdminCluster = `{
-		"name": "self_admin",
-		"connect_timeout": "5s",
-		"type": "STATIC",
-		"http_protocol_options": {},
-		"hosts": [
-			{
-				"socket_address": {
-					"address": "127.0.0.1",
-					"port_value": 19000
-				}
-			}
-		]
-	}`
+  "name": "self_admin",
+  "connect_timeout": "5s",
+  "type": "STATIC",
+  "http_protocol_options": {},
+  "loadAssignment": {
+    "clusterName": "self_admin",
+    "endpoints": [
+      {
+        "lbEndpoints": [
+          {
+            "endpoint": {
+              "address": {
+                "socket_address": {
+                  "address": "127.0.0.1",
+                  "port_value": 19000
+                }
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}`
 	expectedPromListener = `{
-		"name": "envoy_prometheus_metrics_listener",
-		"address": {
-			"socket_address": {
-				"address": "0.0.0.0",
-				"port_value": 9000
-			}
-		},
-		"filter_chains": [
-			{
-				"filters": [
-					{
-						"name": "envoy.filters.network.http_connection_manager",
-						"config": {
-							"stat_prefix": "envoy_prometheus_metrics",
-							"codec_type": "HTTP1",
-							"route_config": {
-								"name": "self_admin_route",
-								"virtual_hosts": [
-									{
-										"name": "self_admin",
-										"domains": [
-											"*"
-										],
-										"routes": [
-											{
-												"match": {
-													"path": "/metrics"
-												},
-												"route": {
-													"cluster": "self_admin",
-													"prefix_rewrite": "/stats/prometheus"
-												}
-											},
-											{
-												"match": {
-													"prefix": "/"
-												},
-												"direct_response": {
-													"status": 404
-												}
-											}
-										]
-									}
-								]
-							},
-							"http_filters": [
-								{
-									"name": "envoy.filters.http.router"
-								}
-							]
-						}
-					}
-				]
-			}
-		]
-	}`
+  "name": "envoy_prometheus_metrics_listener",
+  "address": {
+    "socket_address": {
+      "address": "0.0.0.0",
+      "port_value": 9000
+    }
+  },
+  "filter_chains": [
+    {
+      "filters": [
+        {
+          "name": "envoy.filters.network.http_connection_manager",
+          "typedConfig": {
+            "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
+            "stat_prefix": "envoy_prometheus_metrics",
+            "codec_type": "HTTP1",
+            "route_config": {
+              "name": "self_admin_route",
+              "virtual_hosts": [
+                {
+                  "name": "self_admin",
+                  "domains": [
+                    "*"
+                  ],
+                  "routes": [
+                    {
+                      "match": {
+                        "path": "/metrics"
+                      },
+                      "route": {
+                        "cluster": "self_admin",
+                        "prefix_rewrite": "/stats/prometheus"
+                      }
+                    },
+                    {
+                      "match": {
+                        "prefix": "/"
+                      },
+                      "direct_response": {
+                        "status": 404
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "http_filters": [
+              {
+                "name": "envoy.filters.http.router"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}`
 	expectedStatsListener = `{
-		"name": "envoy_metrics_listener",
-		"address": {
-			"socket_address": {
-				"address": "0.0.0.0",
-				"port_value": 9000
-			}
-		},
-		"filter_chains": [
-			{
-				"filters": [
-					{
-						"name": "envoy.filters.network.http_connection_manager",
-						"config": {
-							"stat_prefix": "envoy_metrics",
-							"codec_type": "HTTP1",
-							"route_config": {
-								"name": "self_admin_route",
-								"virtual_hosts": [
-									{
-										"name": "self_admin",
-										"domains": [
-											"*"
-										],
-										"routes": [
-											{
-												"match": {
-													"prefix": "/stats"
-												},
-												"route": {
-													"cluster": "self_admin",
-													"prefix_rewrite": "/stats"
-												}
-											},
-											{
-												"match": {
-													"prefix": "/"
-												},
-												"direct_response": {
-													"status": 404
-												}
-											}
-										]
-									}
-								]
-							},
-							"http_filters": [
-								{
-									"name": "envoy.filters.http.router"
-								}
-							]
-						}
-					}
-				]
-			}
-		]
-	}`
+  "name": "envoy_metrics_listener",
+  "address": {
+    "socket_address": {
+      "address": "0.0.0.0",
+      "port_value": 9000
+    }
+  },
+  "filter_chains": [
+    {
+      "filters": [
+        {
+          "name": "envoy.filters.network.http_connection_manager",
+          "typedConfig": {
+            "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
+            "stat_prefix": "envoy_metrics",
+            "codec_type": "HTTP1",
+            "route_config": {
+              "name": "self_admin_route",
+              "virtual_hosts": [
+                {
+                  "name": "self_admin",
+                  "domains": [
+                    "*"
+                  ],
+                  "routes": [
+                    {
+                      "match": {
+                        "prefix": "/stats"
+                      },
+                      "route": {
+                        "cluster": "self_admin",
+                        "prefix_rewrite": "/stats"
+                      }
+                    },
+                    {
+                      "match": {
+                        "prefix": "/"
+                      },
+                      "direct_response": {
+                        "status": 404
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "http_filters": [
+              {
+                "name": "envoy.filters.http.router"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}`
 	expectedReadyListener = `{
-		"name": "envoy_ready_listener",
-		"address": {
-			"socket_address": {
-				"address": "0.0.0.0",
-				"port_value": 4444
-			}
-		},
-		"filter_chains": [
-			{
-				"filters": [
-					{
-						"name": "envoy.filters.network.http_connection_manager",
-						"config": {
-							"stat_prefix": "envoy_ready",
-							"codec_type": "HTTP1",
-							"route_config": {
-								"name": "self_admin_route",
-								"virtual_hosts": [
-									{
-										"name": "self_admin",
-										"domains": [
-											"*"
-										],
-										"routes": [
-											{
-												"match": {
-													"path": "/ready"
-												},
-												"route": {
-													"cluster": "self_admin",
-													"prefix_rewrite": "/ready"
-												}
-											},
-											{
-												"match": {
-													"prefix": "/"
-												},
-												"direct_response": {
-													"status": 404
-												}
-											}
-										]
-									}
-								]
-							},
-							"http_filters": [
-								{
-									"name": "envoy.filters.http.router"
-								}
-							]
-						}
-					}
-				]
-			}
-		]
-	}`
+  "name": "envoy_ready_listener",
+  "address": {
+    "socket_address": {
+      "address": "0.0.0.0",
+      "port_value": 4444
+    }
+  },
+  "filter_chains": [
+    {
+      "filters": [
+        {
+          "name": "envoy.filters.network.http_connection_manager",
+          "typedConfig": {
+            "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
+            "stat_prefix": "envoy_ready",
+            "codec_type": "HTTP1",
+            "route_config": {
+              "name": "self_admin_route",
+              "virtual_hosts": [
+                {
+                  "name": "self_admin",
+                  "domains": [
+                    "*"
+                  ],
+                  "routes": [
+                    {
+                      "match": {
+                        "path": "/ready"
+                      },
+                      "route": {
+                        "cluster": "self_admin",
+                        "prefix_rewrite": "/ready"
+                      }
+                    },
+                    {
+                      "match": {
+                        "prefix": "/"
+                      },
+                      "direct_response": {
+                        "status": 404
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "http_filters": [
+              {
+                "name": "envoy.filters.http.router"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}`
 )
 
 func TestBootstrapConfig_ConfigureArgs(t *testing.T) {

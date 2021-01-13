@@ -702,6 +702,7 @@ func expectClustersJSONResources(snap *proxycfg.ConfigSnapshot) map[string]strin
 				"type": "EDS",
 				"edsClusterConfig": {
 					"edsConfig": {
+						"resourceApiVersion": "V3",
 						"ads": {
 
 						}
@@ -727,6 +728,7 @@ func expectClustersJSONResources(snap *proxycfg.ConfigSnapshot) map[string]strin
 				"type": "EDS",
 				"edsClusterConfig": {
 					"edsConfig": {
+						"resourceApiVersion": "V3",
 						"ads": {
 
 						}
