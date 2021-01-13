@@ -22,7 +22,8 @@
                   "configSource": {
                     "ads": {
 
-                    }
+                    },
+                    "resourceApiVersion": "V3"
                   },
                   "routeConfigName": "db"
                 },

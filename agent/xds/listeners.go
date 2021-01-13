@@ -1178,6 +1178,7 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 			Rds: &envoy_http_v3.Rds{
 				RouteConfigName: opts.routeName,
 				ConfigSource: &envoy_core_v3.ConfigSource{
+					ResourceApiVersion: envoy_core_v3.ApiVersion_V3,
 					ConfigSourceSpecifier: &envoy_core_v3.ConfigSource_Ads{
 						Ads: &envoy_core_v3.AggregatedConfigSource{},
 					},

@@ -22,7 +22,8 @@
                   "configSource": {
                     "ads": {
 
-                    }
+                    },
+                    "resourceApiVersion": "V3"
                   },
                   "routeConfigName": "443"
                 },
@@ -64,7 +65,8 @@
                   "configSource": {
                     "ads": {
 
-                    }
+                    },
+                    "resourceApiVersion": "V3"
                   },
                   "routeConfigName": "8080"
                 },

@@ -408,6 +408,7 @@ func (s *Server) makeUpstreamClusterForPreparedQuery(upstream structs.Upstream, 
 			ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_EDS},
 			EdsClusterConfig: &envoy_cluster_v3.Cluster_EdsClusterConfig{
 				EdsConfig: &envoy_core_v3.ConfigSource{
+					ResourceApiVersion: envoy_core_v3.ApiVersion_V3,
 					ConfigSourceSpecifier: &envoy_core_v3.ConfigSource_Ads{
 						Ads: &envoy_core_v3.AggregatedConfigSource{},
 					},

@@ -189,7 +189,8 @@
                   "configSource": {
                     "ads": {
 
-                    }
+                    },
+                    "resourceApiVersion": "V3"
                   },
                   "routeConfigName": "v1.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
                 },
@@ -259,7 +260,8 @@
                   "configSource": {
                     "ads": {
 
-                    }
+                    },
+                    "resourceApiVersion": "V3"
                   },
                   "routeConfigName": "v2.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
                 },
@@ -329,7 +331,8 @@
                   "configSource": {
                     "ads": {
 
-                    }
+                    },
+                    "resourceApiVersion": "V3"
                   },
                   "routeConfigName": "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
                 },

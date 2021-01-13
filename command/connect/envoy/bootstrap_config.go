@@ -551,14 +551,25 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 		"connect_timeout": "5s",
 		"type": "STATIC",
 		"http_protocol_options": {},
-		"hosts": [
-			{
+        "loadAssignment": {
+          "clusterName": "` + selfAdminName + `",
+          "endpoints": [
+            {
+              "lbEndpoints": [
+                {
+                  "endpoint": {
+                    "address": {
 				"socket_address": {
 					"address": "127.0.0.1",
 					"port_value": ` + args.AdminBindPort + `
 				}
-			}
-		]
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
 	}`
 	listenerJSON := `{
 		"name": "` + name + `_listener",
@@ -573,7 +584,8 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 				"filters": [
 					{
 						"name": "envoy.filters.network.http_connection_manager",
-						"config": {
+						 "typedConfig": {
+							"@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
 							"stat_prefix": "` + name + `",
 							"codec_type": "HTTP1",
 							"route_config": {
