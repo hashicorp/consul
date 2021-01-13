@@ -1,0 +1,20 @@
+{
+  "name": "micro-hcl",
+  "version": "0.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "build": "pegjs -o index.js src/hcl1.pegjs",
+    "dist": "uglifyjs --compress --mangle -- index.js > index.min.js",
+    "test": "tape ./tests/index.js",
+    "watch": "watch 'yarn run build && yarn run test' {./src,./tests}"
+  },
+  "devDependencies": {
+    "glob": "^7.1.6",
+    "glob-promise": "^3.4.0",
+    "pegjs": "^0.10.0",
+    "tape": "^5.1.1",
+    "uglify-js": "^3.12.4",
+    "watch": "^1.0.2"
+  }
+}
