@@ -272,8 +272,9 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 			wantArgs: BootstrapTplArgs{
 				StatsConfigJSON: defaultStatsConfigJSON,
 				StatsSinksJSON: `[{
-					"name": "envoy.statsd",
-					"config": {
+					"name": "envoy.stat_sinks.statsd",
+					"typedConfig": {
+						"@type": "type.googleapis.com/envoy.config.metrics.v3.StatsdSink",
 						"address": {
 							"socket_address": {
 								"address": "127.0.0.1",
@@ -299,8 +300,9 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 			wantArgs: BootstrapTplArgs{
 				StatsConfigJSON: defaultStatsConfigJSON,
 				StatsSinksJSON: `[{
-					"name": "envoy.statsd",
-					"config": {
+					"name": "envoy.stat_sinks.statsd",
+					"typedConfig": {
+						"@type": "type.googleapis.com/envoy.config.metrics.v3.StatsdSink",
 						"address": {
 							"socket_address": {
 								"address": "127.0.0.1",
@@ -327,8 +329,9 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 			wantArgs: BootstrapTplArgs{
 				StatsConfigJSON: defaultStatsConfigJSON,
 				StatsSinksJSON: `[{
-					"name": "envoy.statsd",
-					"config": {
+					"name": "envoy.stat_sinks.statsd",
+					"typedConfig": {
+						"@type": "type.googleapis.com/envoy.config.metrics.v3.StatsdSink",
 						"address": {
 							"socket_address": {
 								"address": "127.0.0.1",
@@ -348,8 +351,9 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 			wantArgs: BootstrapTplArgs{
 				StatsConfigJSON: defaultStatsConfigJSON,
 				StatsSinksJSON: `[{
-					"name": "envoy.dog_statsd",
-					"config": {
+					"name": "envoy.stat_sinks.dog_statsd",
+					"typedConfig": {
+						"@type": "type.googleapis.com/envoy.config.metrics.v3.DogStatsdSink",
 						"address": {
 							"socket_address": {
 								"address": "127.0.0.1",
@@ -369,8 +373,9 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 			wantArgs: BootstrapTplArgs{
 				StatsConfigJSON: defaultStatsConfigJSON,
 				StatsSinksJSON: `[{
-					"name": "envoy.dog_statsd",
-					"config": {
+					"name": "envoy.stat_sinks.dog_statsd",
+					"typedConfig": {
+						"@type": "type.googleapis.com/envoy.config.metrics.v3.DogStatsdSink",
 						"address": {
 							"pipe": {
 								"path": "/var/run/dogstatsd.sock"
@@ -391,8 +396,9 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 			wantArgs: BootstrapTplArgs{
 				StatsConfigJSON: defaultStatsConfigJSON,
 				StatsSinksJSON: `[{
-					"name": "envoy.dog_statsd",
-					"config": {
+					"name": "envoy.stat_sinks.dog_statsd",
+					"typedConfig": {
+						"@type": "type.googleapis.com/envoy.config.metrics.v3.DogStatsdSink",
 						"address": {
 							"socket_address": {
 								"address": "127.0.0.1",

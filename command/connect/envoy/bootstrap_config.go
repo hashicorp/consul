@@ -245,14 +245,22 @@ func (c *BootstrapConfig) generateStatsSinks(args *BootstrapTplArgs) error {
 	var stats_sinks []string
 
 	if c.StatsdURL != "" {
-		sinkJSON, err := c.generateStatsSinkJSON("envoy.statsd", c.StatsdURL)
+		sinkJSON, err := c.generateStatsSinkJSON(
+			"envoy.stat_sinks.statsd",
+			"type.googleapis.com/envoy.config.metrics.v3.StatsdSink",
+			c.StatsdURL,
+		)
 		if err != nil {
 			return err
 		}
 		stats_sinks = append(stats_sinks, sinkJSON)
 	}
 	if c.DogstatsdURL != "" {
-		sinkJSON, err := c.generateStatsSinkJSON("envoy.dog_statsd", c.DogstatsdURL)
+		sinkJSON, err := c.generateStatsSinkJSON(
+			"envoy.stat_sinks.dog_statsd",
+			"type.googleapis.com/envoy.config.metrics.v3.DogStatsdSink",
+			c.DogstatsdURL,
+		)
 		if err != nil {
 			return err
 		}
@@ -268,7 +276,7 @@ func (c *BootstrapConfig) generateStatsSinks(args *BootstrapTplArgs) error {
 	return nil
 }
 
-func (c *BootstrapConfig) generateStatsSinkJSON(name string, addr string) (string, error) {
+func (c *BootstrapConfig) generateStatsSinkJSON(name string, typeName string, addr string) (string, error) {
 	// Resolve address ENV var
 	if len(addr) > 2 && addr[0] == '$' {
 		addr = os.Getenv(addr[1:])
@@ -301,7 +309,8 @@ func (c *BootstrapConfig) generateStatsSinkJSON(name string, addr string) (strin
 
 	return `{
 		"name": "` + name + `",
-		"config": {
+		"typedConfig": {
+			"@type": "` + typeName + `",
 			"address": {
 				` + addrJSON + `
 			}
