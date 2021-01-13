@@ -551,25 +551,25 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 		"connect_timeout": "5s",
 		"type": "STATIC",
 		"http_protocol_options": {},
-        "loadAssignment": {
-          "clusterName": "` + selfAdminName + `",
-          "endpoints": [
-            {
-              "lbEndpoints": [
-                {
-                  "endpoint": {
-                    "address": {
-				"socket_address": {
-					"address": "127.0.0.1",
-					"port_value": ` + args.AdminBindPort + `
+		"loadAssignment": {
+			"clusterName": "` + selfAdminName + `",
+			"endpoints": [
+				{
+					"lbEndpoints": [
+						{
+							"endpoint": {
+								"address": {
+									"socket_address": {
+										"address": "127.0.0.1",
+										"port_value": ` + args.AdminBindPort + `
+									}
+								}
+							}
+						}
+					]
 				}
-                    }
-                  }
-                }
-              ]
-            }
-          ]
-        }
+			]
+		}
 	}`
 	listenerJSON := `{
 		"name": "` + name + `_listener",
