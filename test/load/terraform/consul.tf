@@ -29,6 +29,7 @@ module "consul_servers" {
   cluster_name      = "${var.cluster_name}-server"
   cluster_size      = var.num_servers
   instance_type     = var.instance_type
+  cluster_tag_key   = var.cluster_tag_key
   cluster_tag_value = var.cluster_name
 
   ami_id    = var.consul_ami_id == null ? data.aws_ami.consul.id : var.consul_ami_id
@@ -44,11 +45,11 @@ module "consul_servers" {
 }
 
 module "consul_clients" {
-  source        = "git::git@github.com:hashicorp/terraform-aws-consul.git//modules/consul-cluster?ref=v0.8.0"
-  cluster_name  = "${var.cluster_name}-client"
-  cluster_size  = var.num_clients
-  instance_type = var.instance_type
-
+  source            = "git::git@github.com:hashicorp/terraform-aws-consul.git//modules/consul-cluster?ref=v0.8.0"
+  cluster_name      = "${var.cluster_name}-client"
+  cluster_size      = var.num_clients
+  instance_type     = var.instance_type
+  cluster_tag_key   = var.cluster_tag_key
   cluster_tag_value = var.cluster_name
 
   ami_id    = var.consul_ami_id == null ? data.aws_ami.consul.id : var.consul_ami_id
