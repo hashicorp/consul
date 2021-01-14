@@ -4,10 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"sync/atomic"
 	"time"
 
+	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoy_discovery_v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 
 	"github.com/golang/protobuf/proto"
@@ -26,6 +29,7 @@ import (
 
 // ADSStream is a shorter way of referring to this thing...
 type ADSStream = envoy_discovery_v3.AggregatedDiscoveryService_StreamAggregatedResourcesServer
+type ADSStream_v2 = envoy_discovery_v2.AggregatedDiscoveryService_StreamAggregatedResourcesServer
 
 const (
 	// Resource types in xDS v3. These are copied from
@@ -148,7 +152,7 @@ func (s *Server) StreamAggregatedResources(stream ADSStream) error {
 
 	err := s.process(stream, reqCh)
 	if err != nil {
-		s.Logger.Error("Error handling ADS stream", "error", err)
+		s.Logger.Error("Error handling ADS stream", "xdsVersion", "v3", "error", err)
 	}
 
 	// prevents writing to a closed channel if send failed on blocked recv
@@ -482,5 +486,67 @@ func (s *Server) GRPCServer(tlsConfigurator *tlsutil.Configurator) (*grpc.Server
 	srv := grpc.NewServer(opts...)
 	envoy_discovery_v3.RegisterAggregatedDiscoveryServiceServer(srv, s)
 
+	if os.Getenv("ENABLE_XDS_V2_SHIM") == "1" {
+		envoy_discovery_v2.RegisterAggregatedDiscoveryServiceServer(srv, &adsServerV2Shim{srv: s})
+	}
+
 	return srv, nil
+}
+
+type adsServerV2Shim struct {
+	srv *Server
+}
+
+// StreamAggregatedResources implements
+// envoy_discovery_v2.AggregatedDiscoveryServiceServer. This is the ADS endpoint which is
+// the only xDS API we directly support for now.
+func (s *adsServerV2Shim) StreamAggregatedResources(stream ADSStream_v2) error {
+	shim := &adsStreamV3Shim{
+		stream:       stream,
+		ServerStream: stream,
+	}
+	return s.srv.StreamAggregatedResources(shim)
+}
+
+// DeltaAggregatedResources implements envoy_discovery_v2.AggregatedDiscoveryServiceServer
+func (s *adsServerV2Shim) DeltaAggregatedResources(_ envoy_discovery_v2.AggregatedDiscoveryService_DeltaAggregatedResourcesServer) error {
+	return errors.New("not implemented")
+}
+
+type adsStreamV3Shim struct {
+	stream ADSStream_v2
+	grpc.ServerStream
+}
+
+var _ ADSStream = (*adsStreamV3Shim)(nil)
+
+func (s *adsStreamV3Shim) Send(resp *envoy_discovery_v3.DiscoveryResponse) error {
+	respv2, err := convertDiscoveryResponseToV2(resp)
+	if err != nil {
+		return fmt.Errorf("Error converting a v3 DiscoveryResponse to v2: %w", err)
+	}
+
+	return s.stream.Send(respv2)
+}
+
+func (s *adsStreamV3Shim) Recv() (*envoy_discovery_v3.DiscoveryRequest, error) {
+	req, err := s.stream.Recv()
+	if err != nil {
+		return nil, err
+	}
+
+	reqv3, err := convertDiscoveryRequestToV3(req)
+	if err != nil {
+		return nil, fmt.Errorf("Error converting a v2 DiscoveryRequest to v3: %w", err)
+	}
+
+	return reqv3, nil
+}
+
+func convertDiscoveryRequestToV3(req *envoy_api_v2.DiscoveryRequest) (*envoy_discovery_v3.DiscoveryRequest, error) {
+	return nil, errors.New("TODO")
+}
+
+func convertDiscoveryResponseToV2(req *envoy_discovery_v3.DiscoveryResponse) (*envoy_api_v2.DiscoveryResponse, error) {
+	return nil, errors.New("TODO")
 }
