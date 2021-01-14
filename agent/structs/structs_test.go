@@ -1542,8 +1542,6 @@ func TestServiceSpecificRequestCacheInfoKey(t *testing.T) {
 	ignoredFields := map[string]bool{
 		// TODO: should this filed be included?
 		"ServiceKind": true,
-		// TODO: this filed should be included: github.com/hashicorp/consul/pull/9436
-		"Ingress": true,
 	}
 
 	assertCacheInfoKeyIsComplete(t, &ServiceSpecificRequest{}, ignoredFields)
@@ -1714,6 +1712,16 @@ func TestSpecificServiceRequest_CacheInfo(t *testing.T) {
 				req.ServiceTag = "bar"
 			},
 			wantSame: false,
+		},
+		{
+			name: "with integress=true",
+			req: ServiceSpecificRequest{
+				Datacenter:  "dc1",
+				ServiceName: "my-service",
+			},
+			mutate: func(req *ServiceSpecificRequest) {
+				req.Ingress = true
+			},
 		},
 	}
 
