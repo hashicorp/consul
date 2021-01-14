@@ -517,10 +517,15 @@ func makeEntryKey(t, dc, token, key string) string {
 // if the entry doesn't exist. This latter case is to support refreshing.
 func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ignoreExisting bool) <-chan struct{} {
 	// We acquire a write lock because we may have to set Fetching to true.
+	tEntry := r.TypeEntry
 	c.entriesLock.Lock()
 	defer c.entriesLock.Unlock()
 	ok, entryValid, entry := c.getEntryLocked(r.TypeEntry, key, r.Info)
 	expiryTime := entry.Expiry.Expiry()
+	if ok && entryValid && tEntry.Opts.SupportsBlocking && expiryTime.Sub(time.Now()) < time.Second {
+		// This will avoid that the entry does expires while performing streaming fetches
+		c.entriesExpiryHeap.Update(entry.Expiry.Index(), r.TypeEntry.Opts.LastGetTTL)
+	}
 
 	// This handles the case where a fetch succeeded after checking for its existence in
 	// getWithIndex. This ensures that we don't miss updates.
@@ -564,7 +569,7 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 	entry.Fetching = true
 	c.entries[key] = entry
 	metrics.SetGauge([]string{"consul", "cache", "entries_count"}, float32(len(c.entries)))
-	tEntry := r.TypeEntry
+
 	// The actual Fetch must be performed in a goroutine.
 	go func() {
 		// If we have background refresh and currently are in "disconnected" state,

@@ -608,9 +608,8 @@ func TestStreamingHealthServices_IntegrationWithCache_Expiry(t *testing.T) {
 
 	runStep(t, "request should block, and hit the cache TTL", func(t *testing.T) {
 		start := time.Now()
-		res, meta, err := c.Get(ctx, StreamingHealthServicesName, req)
+		_, meta, err := c.Get(ctx, StreamingHealthServicesName, req)
 		require.NoError(t, err)
-		fmt.Println("Event=", res, "err:=", err, "meta:=", meta)
 		require.Equal(t, uint64(5), meta.Index)
 		require.Greater(t, uint64(time.Since(start)), uint64(req.MaxQueryTime))
 		req.MinQueryIndex = meta.Index - 1
@@ -620,19 +619,33 @@ func TestStreamingHealthServices_IntegrationWithCache_Expiry(t *testing.T) {
 		_, meta, err := c.Get(ctx, StreamingHealthServicesName, req)
 		require.NoError(t, err)
 		require.Equal(t, uint64(5), meta.Index)
+		req.MinQueryIndex = meta.Index
 	})
 
-	// Wait for cache TTL to expire
-	time.Sleep(1*time.Second + 200*time.Millisecond)
-	// Refill with streaming data
-	client.QueueEvents(
-		batchEv,
-		newEndOfSnapshotEvent(5))
-	runStep(t, "after cache cleaning, should work again", func(t *testing.T) {
-		_, meta, err := c.Get(ctx, StreamingHealthServicesName, req)
+	// We sleep, so cache entry will expire during blocking query
+	time.Sleep(1 * time.Second)
+
+	runStep(t, "cache might expire during the blocking query", func(t *testing.T) {
+		start := time.Now()
+		res, meta, err := c.Get(ctx, StreamingHealthServicesName, req)
 		require.NoError(t, err)
+		fmt.Println("res := ", res, ", err:=", err)
+		require.Greater(t, uint64(time.Since(start)), uint64(req.MaxQueryTime))
 		require.Equal(t, uint64(5), meta.Index)
+		req.MinQueryIndex = meta.Index - 1
 	})
+	/*
+		// Wait for cache TTL to expire
+		time.Sleep(3 * time.Second)
+		// Refill with streaming data
+		client.QueueEvents(
+			batchEv,
+			newEndOfSnapshotEvent(5))
+		runStep(t, "after cache cleaning, should work again", func(t *testing.T) {
+			_, meta, err := c.Get(ctx, StreamingHealthServicesName, req)
+			require.NoError(t, err)
+			require.Equal(t, uint64(5), meta.Index)
+		})*/
 }
 
 type shortTTL struct {
