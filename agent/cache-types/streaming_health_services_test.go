@@ -599,53 +599,45 @@ func TestStreamingHealthServices_IntegrationWithCache_Expiry(t *testing.T) {
 	ctx := context.Background()
 
 	runStep(t, "initial fetch of results", func(t *testing.T) {
-		_, meta, err := c.Get(ctx, StreamingHealthServicesName, req)
+		res, meta, err := c.Get(ctx, StreamingHealthServicesName, req)
 		require.NoError(t, err)
 		require.Equal(t, uint64(5), meta.Index)
-
+		require.NotNil(t, res)
 		req.MinQueryIndex = meta.Index
 	})
 
 	runStep(t, "request should block, and hit the cache TTL", func(t *testing.T) {
 		start := time.Now()
-		_, meta, err := c.Get(ctx, StreamingHealthServicesName, req)
+		res, meta, err := c.Get(ctx, StreamingHealthServicesName, req)
 		require.NoError(t, err)
 		require.Equal(t, uint64(5), meta.Index)
 		require.Greater(t, uint64(time.Since(start)), uint64(req.MaxQueryTime))
+		require.NotNil(t, res)
+		// Will force immediate reponse for next call
 		req.MinQueryIndex = meta.Index - 1
 	})
 
 	runStep(t, "the next request should succeed", func(t *testing.T) {
-		_, meta, err := c.Get(ctx, StreamingHealthServicesName, req)
+		res, meta, err := c.Get(ctx, StreamingHealthServicesName, req)
 		require.NoError(t, err)
 		require.Equal(t, uint64(5), meta.Index)
+		require.NotNil(t, res)
 		req.MinQueryIndex = meta.Index
 	})
 
-	// We sleep, so cache entry will expire during blocking query
+	// We sleep, so cache entry will likely expire during blocking query
+	// If this test is unstable, probably a bug has been introduced
 	time.Sleep(1 * time.Second)
 
 	runStep(t, "cache might expire during the blocking query", func(t *testing.T) {
 		start := time.Now()
 		res, meta, err := c.Get(ctx, StreamingHealthServicesName, req)
 		require.NoError(t, err)
-		fmt.Println("res := ", res, ", err:=", err)
 		require.Greater(t, uint64(time.Since(start)), uint64(req.MaxQueryTime))
 		require.Equal(t, uint64(5), meta.Index)
+		require.NotNil(t, res)
 		req.MinQueryIndex = meta.Index - 1
 	})
-	/*
-		// Wait for cache TTL to expire
-		time.Sleep(3 * time.Second)
-		// Refill with streaming data
-		client.QueueEvents(
-			batchEv,
-			newEndOfSnapshotEvent(5))
-		runStep(t, "after cache cleaning, should work again", func(t *testing.T) {
-			_, meta, err := c.Get(ctx, StreamingHealthServicesName, req)
-			require.NoError(t, err)
-			require.Equal(t, uint64(5), meta.Index)
-		})*/
 }
 
 type shortTTL struct {
