@@ -8,7 +8,7 @@ description: >-
 
 # Upgrade An Existing Cluster to CRDs
 
-Upgrading to consul-helm versions >= `0.29.0` will require some changes if
+Upgrading to consul-helm versions >= `0.30.0` will require some changes if
 you utilize the following:
 
 - [`connectInject.centralConfig.enabled`](#central-config-enabled)
@@ -206,27 +206,27 @@ manage it from Kubernetes:
 
 1. Once you've determined the `kind` and `name`, query Consul to get its contents:
 
-```shell-session
-$ config config read -kind <kind> -name <name>
-```
+   ```shell-session
+   $ consul config read -kind <kind> -name <name>
+   ```
 
-This will require `kubectl exec`'ing into a Consul server or client pod. If
-you're using ACLs, you will also need an ACL token passed via the `-token` flag.
+   This will require `kubectl exec`'ing into a Consul server or client pod. If
+   you're using ACLs, you will also need an ACL token passed via the `-token` flag.
 
-For example:
+   For example:
 
-```shell-session
-$ kubectl exec consul-server-0 -- consul config read -name foo -kind service-defaults
-{
-    "Kind": "service-defaults",
-    "Name": "foo",
-    "Protocol": "http",
-    "MeshGateway": {},
-    "Expose": {},
-    "CreateIndex": 60,
-    "ModifyIndex": 60
-}
-```
+   ```shell-session
+   $ kubectl exec consul-server-0 -- consul config read -name foo -kind service-defaults
+   {
+       "Kind": "service-defaults",
+       "Name": "foo",
+       "Protocol": "http",
+       "MeshGateway": {},
+       "Expose": {},
+       "CreateIndex": 60,
+       "ModifyIndex": 60
+   }
+   ```
 
 1. Now we're ready to construct a Kubernetes resource for the config entry.
 
