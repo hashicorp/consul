@@ -778,7 +778,7 @@ jobs:
           command: bash <(curl -s https://codecov.io/bash) -v -c -C $CIRCLE_SHA1 -F ui
       - run: *notify-slack-failure
 
-  envoy-integration-test-1.13.6: &ENVOY_TESTS
+  envoy-integration-test-1_13_6: &ENVOY_TESTS
     docker:
       # We only really need bash and docker-compose which is installed on all
       # Circle images but pick Go since we have to pick one of them.
@@ -818,17 +818,17 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
-  envoy-integration-test-1.14.5:
+  envoy-integration-test-1_14_5:
     <<: *ENVOY_TESTS
     environment:
       ENVOY_VERSION: "1.14.5"
 
-  envoy-integration-test-1.15.2:
+  envoy-integration-test-1_15_2:
     <<: *ENVOY_TESTS
     environment:
       ENVOY_VERSION: "1.15.2"
 
-  envoy-integration-test-1.16.0:
+  envoy-integration-test-1_16_0:
     <<: *ENVOY_TESTS
     environment:
       ENVOY_VERSION: "1.16.0"
@@ -1031,16 +1031,16 @@ workflows:
       - nomad-integration-0_8:
           requires:
             - dev-build
-      - envoy-integration-test-1.13.6:
+      - envoy-integration-test-1_13_6:
           requires:
             - dev-build
-      - envoy-integration-test-1.14.5:
+      - envoy-integration-test-1_14_5:
           requires:
             - dev-build
-      - envoy-integration-test-1.15.2:
+      - envoy-integration-test-1_15_2:
           requires:
             - dev-build
-      - envoy-integration-test-1.16.0:
+      - envoy-integration-test-1_16_0:
           requires:
             - dev-build
   website:
