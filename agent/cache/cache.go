@@ -491,6 +491,13 @@ RETRY_GET:
 		goto RETRY_GET
 
 	case <-timeoutCh:
+		if entry.Index < 2 {
+			// This might happen with streaming: if fetch was stopped while
+			// not having fully received data (if fetch is very close from TTL end)
+			// In any case, looks like a legit safety guard because it avoids
+			// Returning index with empty result, will return an HTTP 500 instead
+			return nil, ResultMeta{}, ErrCacheFetchFailure
+		}
 		// Timeout on the cache read, just return whatever we have.
 		return entry.Value, ResultMeta{Index: entry.Index}, nil
 	}
@@ -557,7 +564,6 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 	entry.Fetching = true
 	c.entries[key] = entry
 	metrics.SetGauge([]string{"consul", "cache", "entries_count"}, float32(len(c.entries)))
-
 	tEntry := r.TypeEntry
 	// The actual Fetch must be performed in a goroutine.
 	go func() {

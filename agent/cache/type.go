@@ -12,6 +12,8 @@ func (err cacheError) Error() string {
 }
 
 const (
+	// ErrCacheFetchFailure when entry could not be retrived on time in cache
+	ErrCacheFetchFailure = cacheError("Could not fetch entry from cache")
 	// ErrCacheRefreshRoutineStopped to discard result from cache.
 	ErrCacheRefreshRoutineStopped = cacheError("Cache Refresh Routine Stopped")
 )
