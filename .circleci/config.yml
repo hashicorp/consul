@@ -1,6 +1,16 @@
 ---
 version: 2.1
 
+parameters:
+  commit:
+    type: string
+    default: ""
+    description: "Commit to run load tests against"
+  trigger-load-test:
+    type: boolean
+    default: false
+    description: "Boolean whether to run the load test workflow"
+
 references:
   images:
     go: &GOLANG_IMAGE docker.mirror.hashicorp.services/circleci/golang:1.15.6
@@ -876,9 +886,72 @@ jobs:
                     "https://circleci.com/api/v1.1/project/github/hashicorp/consul-enterprise/tree/${CIRCLE_BRANCH}" | jq -r '.build_url'
       - run: *notify-slack-failure
 
+  # Run load tests against a commit
+  load-test:
+    docker:
+      - image: hashicorp/terraform:latest
+    environment:
+      AWS_DEFAULT_REGION: us-east-2
+      BUCKET: consul-ci-load-tests
+    steps:
+      - checkout
+      - run: apk add jq curl bash
+      - run:
+          name: export load-test credentials
+          command: |
+            echo "export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID_LOAD_TEST" >> $BASH_ENV
+            echo "export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY_LOAD_TEST" >> $BASH_ENV
+      - run:
+          name: export role arn
+          command: |
+            echo "export TF_VAR_role_arn=$ROLE_ARN_LOAD_TEST" >> $BASH_ENV
+      - run:
+          name: setup TF_VARs
+          command: |
+            short_ref=$(git rev-parse --short << pipeline.parameters.commit>>)
+            echo "export TF_VAR_ami_owners=$LOAD_TEST_AMI_OWNERS" >> $BASH_ENV
+            echo "export TF_VAR_vpc_name=$short_ref" >> $BASH_ENV
+            echo "export TF_VAR_cluster_name=$short_ref" >> $BASH_ENV
+            echo "export TF_VAR_consul_download_url=https://${S3_ARTIFACT_BUCKET}.s3.${AWS_DEFAULT_REGION}.amazonaws.com/${S3_ARTIFACT_PATH}/<< pipeline.parameters.commit>>.zip" >> $BASH_ENV
+      - run:
+          name: wait for dev build from test-integrations workflow
+          shell: /usr/bin/env bash -euo pipefail -c
+          command: |
+            echo "curl-ing https://${S3_ARTIFACT_BUCKET}.s3.${AWS_DEFAULT_REGION}.amazonaws.com/${S3_ARTIFACT_PATH}/<< pipeline.parameters.commit>>.zip"
+            until [ $SECONDS -ge 300 ] && exit 1; do
+              curl -o /dev/null --fail --silent "https://${S3_ARTIFACT_BUCKET}.s3.${AWS_DEFAULT_REGION}.amazonaws.com/${S3_ARTIFACT_PATH}/<< pipeline.parameters.commit>>.zip" && exit
+              echo -n "."
+              sleep 2
+            done
+      - run:
+          working_directory: .circleci/terraform/load-test
+          name: terraform init
+          command: |
+            source $BASH_ENV
+            echo "commit is << pipeline.parameters.commit >>"
+            terraform init \
+            -backend-config="bucket=${BUCKET}" \
+            -backend-config="key=<< pipeline.parameters.commit >>" \
+            -backend-config="region=${AWS_DEFAULT_REGION}" \
+            -backend-config="role_arn=${ROLE_ARN_LOAD_TEST}"
+      - run:
+          working_directory: .circleci/terraform/load-test
+          name: run terraform apply
+          command: |
+            source $BASH_ENV
+            terraform apply -auto-approve
+      - run:
+          working_directory: .circleci/terraform/load-test
+          when: always
+          name: terraform destroy
+          command: |
+            source $BASH_ENV
+            terraform destroy -auto-approve
+
 workflows:
   version: 2
   go-tests:
+    unless: << pipeline.parameters.trigger-load-test >>
     jobs:
       - check-vendor: &filter-ignore-non-go-branches
           filters:
@@ -899,6 +972,7 @@ workflows:
       - go-test-race: *filter-ignore-non-go-branches
       - go-test-sdk: *filter-ignore-non-go-branches
   build-distros:
+    unless: << pipeline.parameters.trigger-load-test >>
     jobs:
       - check-vendor: *filter-ignore-non-go-branches
       - build-386: &require-check-vendor
@@ -937,6 +1011,7 @@ workflows:
             - dev-build
           context: consul-ci
   test-integrations:
+    unless: << pipeline.parameters.trigger-load-test >>
     jobs:
       - dev-build: *filter-ignore-non-go-branches
       - dev-upload-s3: &dev-upload
@@ -969,6 +1044,7 @@ workflows:
           requires:
             - dev-build
   website:
+    unless: << pipeline.parameters.trigger-load-test >>
     jobs:
       - build-website-docker-image:
           context: website-docker-image
@@ -983,6 +1059,7 @@ workflows:
               only:
                 - stable-website
   frontend:
+    unless: << pipeline.parameters.trigger-load-test >>
     jobs:
       - frontend-cache:
           filters:
@@ -1014,6 +1091,7 @@ workflows:
           requires:
             - ember-build-ent
   workflow-automation:
+    unless: << pipeline.parameters.trigger-load-test >>
     jobs:
       - trigger-oss-merge:
           context: team-consul
@@ -1028,3 +1106,7 @@ workflows:
             branches:
               only:
                 - master
+  load-test:
+    when: << pipeline.parameters.trigger-load-test >>
+    jobs:
+      - load-test
