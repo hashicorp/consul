@@ -438,14 +438,14 @@ jobs:
           at: bin/
       - run:
           name: package binary
-          command: tar -czf consul.tar.gz -C bin/ consul
+          command: zip -j consul.zip bin/consul
       - run:
           name: Upload to s3
           command: |
             if [ -n "${S3_ARTIFACT_PATH}" ]; then
               aws s3 cp \
               --metadata "CIRCLECI=${CIRCLECI},CIRCLE_BUILD_URL=${CIRCLE_BUILD_URL},CIRCLE_BRANCH=${CIRCLE_BRANCH}" \
-              "consul.tar.gz" "s3://${S3_ARTIFACT_BUCKET}/${S3_ARTIFACT_PATH}/${CIRCLE_SHA1}.tar.gz"
+              "consul.zip" "s3://${S3_ARTIFACT_BUCKET}/${S3_ARTIFACT_PATH}/${CIRCLE_SHA1}.zip" --acl public-read
             else
               echo "CircleCI - S3_ARTIFACT_PATH was not set"
               exit 1
