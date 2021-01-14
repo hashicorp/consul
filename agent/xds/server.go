@@ -637,13 +637,13 @@ func init() {
 
 	// primary resources
 	reg("type.googleapis.com/envoy.api.v2.Cluster",
-		"type.googleapis.com/envoy.config.cluster.v3.Cluster")
+		"type.googleapis.com/envoy.config.cluster.v3.Cluster") // CDS
 	reg("type.googleapis.com/envoy.api.v2.Listener",
-		"type.googleapis.com/envoy.config.listener.v3.Listener")
+		"type.googleapis.com/envoy.config.listener.v3.Listener") // LDS
 	reg("type.googleapis.com/envoy.api.v2.RouteConfiguration",
-		"type.googleapis.com/envoy.config.route.v3.RouteConfiguration")
+		"type.googleapis.com/envoy.config.route.v3.RouteConfiguration") // RDS
 	reg("type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
-		"type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment")
+		"type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment") // EDS
 
 	// net filters
 	reg("type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager",
