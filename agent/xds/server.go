@@ -14,6 +14,7 @@ import (
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes/any"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -544,9 +545,129 @@ func (s *adsStreamV3Shim) Recv() (*envoy_discovery_v3.DiscoveryRequest, error) {
 }
 
 func convertDiscoveryRequestToV3(req *envoy_api_v2.DiscoveryRequest) (*envoy_discovery_v3.DiscoveryRequest, error) {
-	return nil, errors.New("TODO")
+	// TODO: improve this
+	b, err := proto.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var reqV3 envoy_discovery_v3.DiscoveryRequest
+	if err := proto.Unmarshal(b, &reqV3); err != nil {
+		return nil, err
+	}
+
+	// only one field to munge
+	if err := convertTypeUrlsToV3(&reqV3.TypeUrl); err != nil {
+		return nil, err
+	}
+
+	return &reqV3, nil
 }
 
-func convertDiscoveryResponseToV2(req *envoy_discovery_v3.DiscoveryResponse) (*envoy_api_v2.DiscoveryResponse, error) {
-	return nil, errors.New("TODO")
+func convertTypeUrlsToV3(typeUrl *string) error {
+	// TODO
+	return fmt.Errorf("could not convert type url to v3: %s", *typeUrl)
+}
+
+func convertDiscoveryResponseToV2(resp *envoy_discovery_v3.DiscoveryResponse) (*envoy_api_v2.DiscoveryResponse, error) {
+	// TODO: improve this
+	b, err := proto.Marshal(resp)
+	if err != nil {
+		return nil, err
+	}
+
+	var respv2 envoy_api_v2.DiscoveryResponse
+	if err := proto.Unmarshal(b, &respv2); err != nil {
+		return nil, err
+	}
+
+	if err := convertTypedConfigsToV2(&respv2); err != nil {
+		return nil, err
+	}
+
+	return &respv2, nil
+}
+
+// Responses
+func convertTypedConfigsToV2(pb proto.Message) error {
+	switch x := pb.(type) {
+	case *envoy_api_v2.DiscoveryResponse:
+		if err := convertTypeUrlsToV3(&x.TypeUrl); err != nil {
+			return err
+		}
+		for _, res := range x.Resources {
+			if err := convertTypedConfigsToV2(res); err != nil {
+				return err
+			}
+		}
+		return nil
+	case *any.Any:
+		if err := convertTypeUrlsToV2(&x.TypeUrl); err != nil {
+			return err
+		}
+		// TODO: also dig down one layer
+		return nil
+	default:
+		return fmt.Errorf("could not convert unexpected type to v2: %T", pb)
+	}
+}
+
+func convertTypeUrlsToV2(typeUrl *string) error {
+	switch *typeUrl {
+	case "type.googleapis.com/envoy.config.listener.v3.Listener":
+		return nil
+	default:
+		return fmt.Errorf("could not convert type url to v3: %s", *typeUrl)
+	}
+}
+
+var (
+	typeConvert2to3 map[string]string
+	typeConvert3to2 map[string]string
+)
+
+func init() {
+	typeConvert2to3 := make(map[string]string)
+	typeConvert3to2 := make(map[string]string)
+
+	reg := func(type2, type3 string) {
+		typeConvert2to3[type2] = type3
+		typeConvert3to2[type3] = type2
+	}
+
+	// primary resources
+	reg("type.googleapis.com/envoy.api.v2.Cluster",
+		"type.googleapis.com/envoy.config.cluster.v3.Cluster")
+	reg("type.googleapis.com/envoy.api.v2.Listener",
+		"type.googleapis.com/envoy.config.listener.v3.Listener")
+	reg("type.googleapis.com/envoy.api.v2.RouteConfiguration",
+		"type.googleapis.com/envoy.config.route.v3.RouteConfiguration")
+	reg("type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
+		"type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment")
+
+	// net filters
+	reg("type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager",
+		"type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager")
+	// "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
+	// "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+
+	// "envoy.filters.network.rbac"
+	// "envoy.filters.network.tcp_proxy", cfg, true)
+	// "envoy.filters.network.http_connection_manager", cfg, true)
+
+	// http filters
+	// "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC",
+	// "envoy.filters.http.rbac
+
+	// cluster tls
+	reg("type.googleapis.com/envoy.api.v2.auth.UpstreamTlsContext",
+		"type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext")
+	reg("type.googleapis.com/envoy.api.v2.auth.DownstreamTlsContext",
+		"type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext")
+
+	// extension elements
+	// "type.googleapis.com/envoy.config.metrics.v3.DogStatsdSink",
+	// "type.googleapis.com/envoy.config.metrics.v3.StatsdSink",
+	// "type.googleapis.com/envoy.config.trace.v3.ZipkinConfig",
+
 }
