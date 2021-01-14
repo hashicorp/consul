@@ -11,7 +11,7 @@
     "@hashicorp/react-call-to-action": "1.0.3",
     "@hashicorp/react-docs-page": "10.4.0",
     "@hashicorp/react-featured-slider": "1.1.10",
-    "@hashicorp/react-hashi-stack-menu": "^1.0.11",
+    "@hashicorp/react-hashi-stack-menu": "^1.1.0",
     "@hashicorp/react-head": "1.1.6",
     "@hashicorp/react-image": "3.0.3",
     "@hashicorp/react-inline-svg": "5.0.0",
