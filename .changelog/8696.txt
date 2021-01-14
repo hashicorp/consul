@@ -1,0 +1,4 @@
+```release-note:bug
+config: Fixed a bug where `rpc_max_conns_per_client` could not be changed by reloading the
+config.
+```

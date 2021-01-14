@@ -16,9 +16,13 @@ import (
 	"time"
 
 	"github.com/google/tcpproxy"
+	"github.com/hashicorp/memberlist"
+
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/ipaddr"
-	"github.com/hashicorp/memberlist"
+
+	"github.com/hashicorp/go-uuid"
+	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/metadata"
@@ -30,8 +34,6 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-uuid"
-	"golang.org/x/time/rate"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1458,14 +1460,13 @@ func TestServer_RevokeLeadershipIdempotent(t *testing.T) {
 	s1.revokeLeadership()
 }
 
-func TestServer_Reload(t *testing.T) {
+func TestServer_ReloadConfig(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
-
 	t.Parallel()
 
-	global_entry_init := &structs.ProxyConfigEntry{
+	entryInit := &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
 		Name: structs.ProxyConfigGlobal,
 		Config: map[string]interface{}{
@@ -1478,7 +1479,7 @@ func TestServer_Reload(t *testing.T) {
 
 	dir1, s := testServerWithConfig(t, func(c *Config) {
 		c.Build = "1.5.0"
-		c.RPCRate = 500
+		c.RPCRateLimit = 500
 		c.RPCMaxBurst = 5000
 	})
 	defer os.RemoveAll(dir1)
@@ -1486,28 +1487,25 @@ func TestServer_Reload(t *testing.T) {
 
 	testrpc.WaitForTestAgent(t, s.RPC, "dc1")
 
-	s.config.ConfigEntryBootstrap = []structs.ConfigEntry{
-		global_entry_init,
-	}
-
 	limiter := s.rpcLimiter.Load().(*rate.Limiter)
 	require.Equal(t, rate.Limit(500), limiter.Limit())
 	require.Equal(t, 5000, limiter.Burst())
 
-	// Change rate limit
-	s.config.RPCRate = 1000
-	s.config.RPCMaxBurst = 10000
-
-	s.ReloadConfig(s.config)
+	rc := ReloadableConfig{
+		RPCRateLimit:         1000,
+		RPCMaxBurst:          10000,
+		ConfigEntryBootstrap: []structs.ConfigEntry{entryInit},
+	}
+	require.NoError(t, s.ReloadConfig(rc))
 
 	_, entry, err := s.fsm.State().ConfigEntry(nil, structs.ProxyDefaults, structs.ProxyConfigGlobal, structs.DefaultEnterpriseMeta())
 	require.NoError(t, err)
 	require.NotNil(t, entry)
 	global, ok := entry.(*structs.ProxyConfigEntry)
 	require.True(t, ok)
-	require.Equal(t, global_entry_init.Kind, global.Kind)
-	require.Equal(t, global_entry_init.Name, global.Name)
-	require.Equal(t, global_entry_init.Config, global.Config)
+	require.Equal(t, entryInit.Kind, global.Kind)
+	require.Equal(t, entryInit.Name, global.Name)
+	require.Equal(t, entryInit.Config, global.Config)
 
 	// Check rate limiter got updated
 	limiter = s.rpcLimiter.Load().(*rate.Limiter)
@@ -1522,7 +1520,7 @@ func TestServer_RPC_RateLimit(t *testing.T) {
 
 	t.Parallel()
 	_, conf1 := testServerConfig(t)
-	conf1.RPCRate = 2
+	conf1.RPCRateLimit = 2
 	conf1.RPCMaxBurst = 2
 	s1, err := newServer(t, conf1)
 	if err != nil {

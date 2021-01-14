@@ -162,7 +162,7 @@ func (a *TestACLAgent) Shutdown() error {
 func (a *TestACLAgent) Stats() map[string]map[string]string {
 	return nil
 }
-func (a *TestACLAgent) ReloadConfig(config *consul.Config) error {
+func (a *TestACLAgent) ReloadConfig(_ consul.ReloadableConfig) error {
 	return fmt.Errorf("Unimplemented")
 }
 

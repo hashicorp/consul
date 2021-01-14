@@ -145,7 +145,7 @@ type delegate interface {
 	SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn structs.SnapshotReplyFn) error
 	Shutdown() error
 	Stats() map[string]map[string]string
-	ReloadConfig(config *consul.Config) error
+	ReloadConfig(config consul.ReloadableConfig) error
 	enterpriseDelegate
 }
 
@@ -1143,7 +1143,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 
 	// Rate limiting for RPC calls.
 	if runtimeCfg.RPCRateLimit > 0 {
-		cfg.RPCRate = runtimeCfg.RPCRateLimit
+		cfg.RPCRateLimit = runtimeCfg.RPCRateLimit
 	}
 	if runtimeCfg.RPCMaxBurst > 0 {
 		cfg.RPCMaxBurst = runtimeCfg.RPCMaxBurst
@@ -3517,11 +3517,6 @@ func (a *Agent) DisableNodeMaintenance() {
 	a.logger.Info("Node left maintenance mode")
 }
 
-func (a *Agent) loadLimits(conf *config.RuntimeConfig) {
-	a.config.RPCRateLimit = conf.RPCRateLimit
-	a.config.RPCMaxBurst = conf.RPCMaxBurst
-}
-
 // ReloadConfig will atomically reload all configuration, including
 // all services, checks, tokens, metadata, dnsServer configs, etc.
 // It will also reload all ongoing watches.
@@ -3602,8 +3597,6 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 		return fmt.Errorf("Failed reloading watches: %v", err)
 	}
 
-	a.loadLimits(newCfg)
-
 	a.httpConnLimiter.SetConfig(connlimit.Config{
 		MaxConnsPerClientIP: newCfg.HTTPMaxConnsPerClient,
 	})
@@ -3614,24 +3607,18 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 		}
 	}
 
-	// this only gets used by the consulConfig function and since
-	// that is only ever done during init and reload here then
-	// an in place modification is safe as reloads cannot be
-	// concurrent due to both gaining a full lock on the stateLock
-	a.config.ConfigEntryBootstrap = newCfg.ConfigEntryBootstrap
-
 	err := a.reloadEnterprise(newCfg)
 	if err != nil {
 		return err
 	}
 
-	// create the config for the rpc server/client
-	consulCfg, err := newConsulConfig(a.config, a.logger)
-	if err != nil {
-		return err
+	cc := consul.ReloadableConfig{
+		RPCRateLimit:         newCfg.RPCRateLimit,
+		RPCMaxBurst:          newCfg.RPCMaxBurst,
+		RPCMaxConnsPerClient: newCfg.RPCMaxConnsPerClient,
+		ConfigEntryBootstrap: newCfg.ConfigEntryBootstrap,
 	}
-
-	if err := a.delegate.ReloadConfig(consulCfg); err != nil {
+	if err := a.delegate.ReloadConfig(cc); err != nil {
 		return err
 	}
 
