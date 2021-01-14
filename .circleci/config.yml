@@ -1,5 +1,5 @@
 ---
-version: 2
+version: 2.1
 
 references:
   images:
@@ -43,16 +43,6 @@ steps:
         unzip awscliv2.zip
         sudo ./aws/install
 
-  aws-assume-role: &aws-assume-role
-    run:
-      name: assume-role aws creds
-      command: |
-        # assume role has duration of 15 min (the minimum allowed)
-        CREDENTIALS="$(aws sts assume-role --duration-seconds 900 --role-arn ${ROLE_ARN} --role-session-name build-${CIRCLE_SHA1} | jq '.Credentials')"
-        echo "export AWS_ACCESS_KEY_ID=$(echo $CREDENTIALS | jq -r '.AccessKeyId')" >> $BASH_ENV
-        echo "export AWS_SECRET_ACCESS_KEY=$(echo $CREDENTIALS | jq -r '.SecretAccessKey')" >> $BASH_ENV
-        echo "export AWS_SESSION_TOKEN=$(echo $CREDENTIALS | jq -r '.SessionToken')" >> $BASH_ENV
-
   # This step MUST be at the end of any set of steps due to the 'when' condition
   notify-slack-failure: &notify-slack-failure
     name: notify-slack-failure
@@ -79,6 +69,30 @@ steps:
       else
         echo "Not posting slack failure notifications for non-master branch"
       fi
+
+commands:
+  assume-role:
+    description: "Assume role to an ARN"
+    parameters:
+      access-key:
+        type: env_var_name
+        default: AWS_ACCESS_KEY_ID
+      secret-key:
+        type: env_var_name
+        default: AWS_SECRET_ACCESS_KEY
+      role-arn:
+        type: env_var_name
+        default: ROLE_ARN
+    steps:
+      - run: |
+          export AWS_ACCESS_KEY_ID="${<< parameters.access-key >>}"
+          export AWS_SECRET_ACCESS_KEY="${<< parameters.secret-key >>}"
+          export ROLE_ARN="${<< parameters.role-arn >>}"
+          # assume role has duration of 15 min (the minimum allowed)
+          CREDENTIALS="$(aws sts assume-role --duration-seconds 900 --role-arn ${ROLE_ARN} --role-session-name build-${CIRCLE_SHA1} | jq '.Credentials')"
+          echo "export AWS_ACCESS_KEY_ID=$(echo $CREDENTIALS | jq -r '.AccessKeyId')" >> $BASH_ENV
+          echo "export AWS_SECRET_ACCESS_KEY=$(echo $CREDENTIALS | jq -r '.SecretAccessKey')" >> $BASH_ENV
+          echo "export AWS_SESSION_TOKEN=$(echo $CREDENTIALS | jq -r '.SessionToken')" >> $BASH_ENV
 
 jobs:
   # lint consul tests
@@ -415,7 +429,10 @@ jobs:
     steps:
       - checkout
       - *get-aws-cli
-      - *aws-assume-role
+      - assume-role:
+          access-key: AWS_ACCESS_KEY_ID_S3_UPLOAD
+          secret-key: AWS_SECRET_ACCESS_KEY_S3_UPLOAD
+          role-arn: ROLE_ARN_S3_UPLOAD
       # get consul binary
       - attach_workspace:
           at: bin/
