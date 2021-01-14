@@ -15,7 +15,8 @@ This repo has the following folder structure:
  
 # Getting Started 
  
-1) Download all necessary tools listed (Terraform, Packer, Datadog) and set up an AWS account
+1) Download all necessary tools listed (Terraform, Packer)
+1.5) Set up an [AWS account](https://aws.amazon.com/premiumsupport/knowledge-center/create-and-activate-aws-account/) and a [Datadog account](https://docs.datadoghq.com/getting_started/) - downloading the Datadog client is not necessary. 
 2) Configure your AWS credentials using one of the [options supported by the AWS
   SDK](http://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html). Usually, the easiest option is to
   set the `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_DEFAULT_REGION` environment variables.
