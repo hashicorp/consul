@@ -647,17 +647,15 @@ func init() {
 
 	// net filters
 	reg("type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager",
-		"type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager")
-	// "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
-	// "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-
-	// "envoy.filters.network.rbac"
-	// "envoy.filters.network.tcp_proxy", cfg, true)
-	// "envoy.filters.network.http_connection_manager", cfg, true)
+		"type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager") // "envoy.filters.network.http_connection_manager"
+	reg("type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+		"type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy") // "envoy.filters.network.tcp_proxy"
+	reg("type.googleapis.com/envoy.config.filter.network.rbac.v2.RBAC",
+		"type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC") // "envoy.filters.network.rbac"
 
 	// http filters
-	// "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC",
-	// "envoy.filters.http.rbac
+	reg("type.googleapis.com/envoy.config.filter.http.rbac.v2.RBAC",
+		"type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC") // "envoy.filters.http.rbac
 
 	// cluster tls
 	reg("type.googleapis.com/envoy.api.v2.auth.UpstreamTlsContext",
