@@ -1,5 +1,4 @@
 ## Terraform Consul Load Testing
- 
 # How to use
 1. Build an image with the desired Consul version and a load test image in the Packer folder [here](../packer).
 2. Create your own `vars.tfvars` file in this directory.
