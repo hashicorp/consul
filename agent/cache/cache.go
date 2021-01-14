@@ -491,7 +491,7 @@ RETRY_GET:
 		goto RETRY_GET
 
 	case <-timeoutCh:
-		if entry.Index < 2 {
+		if entry.Index == 0 {
 			// This might happen with streaming: if fetch was stopped while
 			// not having fully received data (if fetch is very close from TTL end)
 			// In any case, looks like a legit safety guard because it avoids
