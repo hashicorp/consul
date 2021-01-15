@@ -13,7 +13,7 @@
     "@hashicorp/react-docs-sidenav": "^6.0.2-alpha.47",
     "@hashicorp/react-featured-slider": "1.1.10",
     "@hashicorp/react-glossary-page": "0.0.2-alpha.288",
-    "@hashicorp/react-hashi-stack-menu": "^1.0.11",
+    "@hashicorp/react-hashi-stack-menu": "^1.1.0",
     "@hashicorp/react-head": "1.1.6",
     "@hashicorp/react-image": "3.0.3",
     "@hashicorp/react-inline-svg": "5.0.0",

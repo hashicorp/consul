@@ -57,6 +57,19 @@ export default [
       'connect-internals',
       'configuration',
       {
+        category: 'config-entries',
+        content: [
+          'ingress-gateway',
+          'proxy-defaults',
+          'service-defaults',
+          'service-intentions',
+          'service-resolver',
+          'service-router',
+          'service-splitter',
+          'terminating-gateway',
+        ],
+      },
+      {
         category: 'proxies',
         content: ['envoy', 'built-in', 'integrate'],
       },
@@ -207,23 +220,7 @@ export default [
   },
   {
     category: 'agent',
-    content: [
-      'options',
-      {
-        category: 'config-entries',
-        content: [
-          'ingress-gateway',
-          'proxy-defaults',
-          'service-defaults',
-          'service-intentions',
-          'service-resolver',
-          'service-router',
-          'service-splitter',
-          'terminating-gateway',
-        ],
-      },
-      'telemetry',
-    ],
+    content: ['options', 'config-entries', 'telemetry'],
   },
   {
     category: 'security',

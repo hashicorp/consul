@@ -26,16 +26,16 @@ service of the same name.
 
 - Service router config entries are restricted to only services that define
   their protocol as HTTP-based via a corresponding
-  [`service-defaults`](/docs/agent/config-entries/service-defaults) config
+  [`service-defaults`](/docs/connect/config-entries/service-defaults) config
   entry or globally via
-  [`proxy-defaults`](/docs/agent/config-entries/proxy-defaults) .
+  [`proxy-defaults`](/docs/connect/config-entries/proxy-defaults) .
 
 - Any route destination that omits the `ServiceSubset` field is eligible for
   splitting via a
-  [`service-splitter`](/docs/agent/config-entries/service-splitter) should
+  [`service-splitter`](/docs/connect/config-entries/service-splitter) should
   one be configured for that service, otherwise resolution proceeds according
   to any configured
-  [`service-resolver`](/docs/agent/config-entries/service-resolver).
+  [`service-resolver`](/docs/connect/config-entries/service-resolver).
 
 ## Sample Config Entries
 

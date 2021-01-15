@@ -729,9 +729,12 @@ func TestRPC_RPCMaxConnsPerClient(t *testing.T) {
 			defer conn4.Close()
 
 			// Reload config with higher limit
-			newCfg := *s1.config
-			newCfg.RPCMaxConnsPerClient = 10
-			require.NoError(t, s1.ReloadConfig(&newCfg))
+			rc := ReloadableConfig{
+				RPCRateLimit:         s1.config.RPCRateLimit,
+				RPCMaxBurst:          s1.config.RPCMaxBurst,
+				RPCMaxConnsPerClient: 10,
+			}
+			require.NoError(t, s1.ReloadConfig(rc))
 
 			// Now another conn should be allowed
 			conn5 := connectClient(t, s1, tc.magicByte, tc.tlsEnabled, true, "conn5")

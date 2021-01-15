@@ -1,6 +1,6 @@
 ---
 layout: docs
-page_title: Configuration Entry Definitions
+page_title: Configuration Entries
 sidebar_title: Configuration Entries
 description: >-
   Consul allows storing configuration entries centrally to be used as defaults
@@ -38,46 +38,10 @@ metadata:
   name: <name of entry>
 ```
 
-The supported `Kind`/`kind` names for configuration entries are:
+## Supported Config Entries
 
-- [`ingress-gateway`](/docs/agent/config-entries/ingress-gateway) - defines the
-  configuration for an ingress gateway
-
-  - Kubernetes kind: [`IngressGateway`](/docs/agent/config-entries/ingress-gateway)
-
-- [`proxy-defaults`](/docs/agent/config-entries/proxy-defaults) - controls
-  proxy configuration
-
-  - Kubernetes kind: [`ProxyDefaults`](/docs/agent/config-entries/proxy-defaults)
-
-- [`service-defaults`](/docs/agent/config-entries/service-defaults) - configures
-  defaults for all the instances of a given service
-
-  - Kubernetes kind: [`ServiceDefaults`](/docs/agent/config-entries/service-defaults)
-
-- [`service-intentions`](/docs/agent/config-entries/service-intentions) - defines
-  the [intentions](/docs/connect/intentions) for a destination service
-
-  - Kubernetes kind: [`ServiceIntentions`](/docs/agent/config-entries/service-intentions)
-
-- [`service-resolver`](/docs/agent/config-entries/service-resolver) - matches
-  service instances with a specific Connect upstream discovery requests
-
-  - Kubernetes kind: [`ServiceResolver`](/docs/agent/config-entries/service-resolver)
-
-- [`service-router`](/docs/agent/config-entries/service-router) - defines
-  where to send layer 7 traffic based on the HTTP route
-
-  - Kubernetes kind: [`ServiceRouter`](/docs/agent/config-entries/service-router)
-
-- [`service-splitter`](/docs/agent/config-entries/service-splitter) - defines
-  how to divide requests for a single HTTP route based on percentages
-
-  - Kubernetes kind: [`ServiceSplitter`](/docs/agent/config-entries/service-splitter)
-
-- [`terminating-gateway`](/docs/agent/config-entries/terminating-gateway) - defines the
-  services associated with terminating gateway
-  - Kubernetes kind: [`TerminatingGateway`](/docs/agent/config-entries/terminating-gateway)
+See [Service Mesh - Config Entries](/docs/connect/config-entries) for the list
+of supported config entries.
 
 ## Managing Configuration Entries In Kubernetes
 
@@ -194,13 +158,3 @@ server gains leadership, it will attempt to initialize the configuration entries
 If a configuration entry does not already exist outside of the servers
 configuration, then it will create it. If a configuration entry does exist, that
 matches both `kind` and `name`, then the server will do nothing.
-
-## Using Configuration Entries For Service Defaults
-
-Outside of Kubernetes, when the agent is
-[configured](/docs/agent/options#enable_central_service_config) to enable
-central service configurations, it will look for service configuration defaults
-that match a registering service instance. If it finds any, the agent will merge
-those defaults with the service instance configuration. This allows for things
-like service protocol or proxy configuration to be defined globally and
-inherited by any affected service registrations.
