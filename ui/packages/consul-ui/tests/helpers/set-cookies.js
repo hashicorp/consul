@@ -42,6 +42,9 @@ export default function(type, value) {
         key = 'CONSUL_TOKEN_COUNT';
         obj['CONSUL_ACLS_ENABLE'] = 1;
         break;
+      case 'auth-method':
+        key = 'CONSUL_AUTH_METHOD_COUNT';
+        break;
       case 'nspace':
         key = 'CONSUL_NSPACE_COUNT';
         break;
