@@ -359,6 +359,86 @@ func TestVaultProvider_SignIntermediateConsul(t *testing.T) {
 	})
 }
 
+func TestVaultProvider_Cleanup(t *testing.T) {
+	t.Parallel()
+
+	SkipIfVaultNotPresent(t)
+
+	testVault, err := runTestVault(t)
+	require.NoError(t, err)
+
+	testVault.WaitUntilReady(t)
+
+	t.Run("provider-change", func(t *testing.T) {
+		provider, err := createVaultProvider(t, true, testVault.Addr, testVault.RootToken, nil)
+		require.NoError(t, err)
+
+		// ensure that the intermediate PKI mount exists
+		mounts, err := provider.client.Sys().ListMounts()
+		require.NoError(t, err)
+		require.Contains(t, mounts, provider.config.IntermediatePKIPath)
+
+		// call cleanup with a provider change - this should cause removal of the mount
+		require.NoError(t, provider.Cleanup(true, nil))
+
+		// verify the mount was removed
+		mounts, err = provider.client.Sys().ListMounts()
+		require.NoError(t, err)
+		require.NotContains(t, mounts, provider.config.IntermediatePKIPath)
+	})
+
+	t.Run("pki-path-change", func(t *testing.T) {
+		provider, err := createVaultProvider(t, true, testVault.Addr, testVault.RootToken, nil)
+		require.NoError(t, err)
+
+		// ensure that the intermediate PKI mount exists
+		mounts, err := provider.client.Sys().ListMounts()
+		require.NoError(t, err)
+		require.Contains(t, mounts, provider.config.IntermediatePKIPath)
+
+		// call cleanup with an intermediate pki path change - this should cause removal of the mount
+		require.NoError(t, provider.Cleanup(false, map[string]interface{}{
+			"Address":     testVault.Addr,
+			"Token":       testVault.RootToken,
+			"RootPKIPath": "pki-root/",
+			//
+			"IntermediatePKIPath": "pki-intermediate2/",
+			// Tests duration parsing after msgpack type mangling during raft apply.
+			"LeafCertTTL": []uint8("72h"),
+		}))
+
+		// verify the mount was removed
+		mounts, err = provider.client.Sys().ListMounts()
+		require.NoError(t, err)
+		require.NotContains(t, mounts, provider.config.IntermediatePKIPath)
+	})
+
+	t.Run("pki-path-unchanged", func(t *testing.T) {
+		provider, err := createVaultProvider(t, true, testVault.Addr, testVault.RootToken, nil)
+		require.NoError(t, err)
+
+		// ensure that the intermediate PKI mount exists
+		mounts, err := provider.client.Sys().ListMounts()
+		require.NoError(t, err)
+		require.Contains(t, mounts, provider.config.IntermediatePKIPath)
+
+		// call cleanup with no config changes - this should not cause removal of the intermediate pki path
+		require.NoError(t, provider.Cleanup(false, map[string]interface{}{
+			"Address":             testVault.Addr,
+			"Token":               testVault.RootToken,
+			"RootPKIPath":         "pki-root/",
+			"IntermediatePKIPath": "pki-intermediate/",
+			// Tests duration parsing after msgpack type mangling during raft apply.
+			"LeafCertTTL": []uint8("72h"),
+		}))
+
+		// verify the mount was NOT removed
+		mounts, err = provider.client.Sys().ListMounts()
+		require.NoError(t, err)
+		require.Contains(t, mounts, provider.config.IntermediatePKIPath)
+	})
+}
+
 func getIntermediateCertTTL(t *testing.T, caConf *structs.CAConfiguration) time.Duration {
 	t.Helper()
 
