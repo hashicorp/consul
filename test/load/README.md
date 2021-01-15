@@ -5,8 +5,8 @@ This relies on the [Gruntwork's Terraform AWS Consul Module](https://github.com/
  
 <img src="loadtestdiagram.png" width="500" height="300"/>
 
-## Load Test Automation
-This can only be run on PRs that a Dev Build has been made for. When a PR has the `pr/load-test` Github Label applied this will kick off a Github Action. This Github Action will trigger Circle CI to run a Terraform Apply that runs a load test against the Dev Build Consul binary. CircleCI will create a comment that links that shows the output of what it is running.
+# Load Test Automation
+This can only be run on PRs that a Dev Build has been made for. When a PR has the `pr/load-test` Github Label applied this will kick off a Github Action. This Github Action will trigger Circle CI to run a Terraform Apply that runs a load test against the Dev Build Consul binary. The GitHub Action will paste the CircleCI load test workflow URL to the PR as a comment.
   
 ## How to use
 [Terraform](https://www.terraform.io/downloads.html) and [Packer](https://www.packer.io/downloads), AWS and [Datadog](https://docs.datadoghq.com/getting_started/) are required to use this. All of this, except the AWS resources that will be utilized, are free.
