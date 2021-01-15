@@ -7,7 +7,6 @@ moduleFor(`service:repository/${NAME}`, `Integration | Service | ${NAME}`, {
   // Specify the other units that are required for this test.
   integration: true,
 });
-
 const dc = 'dc-1';
 const id = 'auth-method-name';
 const undefinedNspace = 'default';
