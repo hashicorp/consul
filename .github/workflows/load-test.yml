@@ -6,7 +6,7 @@ on:
 
 jobs:
   trigger-load-test:
-    if: ${{ github.event.label.name == 'test/load' }}
+    if: ${{ github.event.label.name == 'pr/load-test' }}
     runs-on: ubuntu-latest
 
     steps:
