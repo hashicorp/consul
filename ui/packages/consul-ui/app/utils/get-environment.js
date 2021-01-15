@@ -43,7 +43,10 @@ export default function(config = {}, win = window, doc = document) {
       return {};
     }
   };
-  const ui_config = JSON.parse(unescape(doc.getElementsByName('consul-ui/ui_config')[0].content));
+  const binaryConfig = JSON.parse(
+    doc.querySelector(`[data-${config.modulePrefix}-config]`).textContent
+  );
+  const ui_config = binaryConfig.UIConfig || {};
   const scripts = doc.getElementsByTagName('script');
   // we use the currently executing script as a reference
   // to figure out where we are for other things such as
@@ -57,6 +60,16 @@ export default function(config = {}, win = window, doc = document) {
   const operator = function(str, env) {
     let protocol, dashboards, provider, proxy;
     switch (str) {
+      case 'CONSUL_NSPACES_ENABLED':
+        return typeof binaryConfig.NamespacesEnabled === 'undefined'
+          ? false
+          : binaryConfig.NamespacesEnabled;
+      case 'CONSUL_SSO_ENABLED':
+        return typeof binaryConfig.SSOEnabled === 'undefined' ? false : binaryConfig.SSOEnabled;
+      case 'CONSUL_ACLS_ENABLED':
+        return typeof binaryConfig.ACLsEnabled === 'undefined' ? false : binaryConfig.ACLsEnabled;
+      case 'CONSUL_DATACENTER_LOCAL':
+        return binaryConfig.LocalDatacenter;
       case 'CONSUL_UI_CONFIG':
         dashboards = {};
         provider = env('CONSUL_METRICS_PROVIDER');
