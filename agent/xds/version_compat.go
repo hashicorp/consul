@@ -5,7 +5,9 @@ import (
 	"fmt"
 
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	envoy_api_listener_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
+	envoy_core_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	envoy_listener_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
+	envoy_accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
 	envoy_http_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
@@ -13,6 +15,7 @@ import (
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"google.golang.org/grpc"
 )
@@ -106,14 +109,14 @@ func convertDiscoveryResponseToV2(resp *envoy_discovery_v3.DiscoveryResponse) (*
 	return &respV2, nil
 }
 
-func convertNetFilterToV2(filter *envoy_listener_v3.Filter) (*envoy_api_listener_v2.Filter, error) {
+func convertNetFilterToV2(filter *envoy_listener_v3.Filter) (*envoy_listener_v2.Filter, error) {
 	// TODO: improve this
 	b, err := proto.Marshal(filter)
 	if err != nil {
 		return nil, err
 	}
 
-	var filterV2 envoy_api_listener_v2.Filter
+	var filterV2 envoy_listener_v2.Filter
 	if err := proto.Unmarshal(b, &filterV2); err != nil {
 		return nil, err
 	}
@@ -161,17 +164,109 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 			}
 		}
 		return nil
-	case *envoy_api_listener_v2.Filter:
+	case *any.Any:
+		// first flip the any.Any to v2
+		if err := convertTypeUrlsToV2(&x.TypeUrl); err != nil {
+			return err
+		}
+
+		// now decode into a v2 type
+		var dynAny ptypes.DynamicAny
+		if err := ptypes.UnmarshalAny(x, &dynAny); err != nil {
+			return err
+		}
+
+		// handle the contents and then put them back in the any.Any
+		// handle contents first
+		if err := convertTypedConfigsToV2(dynAny.Message); err != nil {
+			return err
+		}
+		anyFixed, err := ptypes.MarshalAny(dynAny.Message)
+		if err != nil {
+			return err
+		}
+		x.Value = anyFixed.Value
+		return nil
+	case *envoy_api_v2.Listener:
+		for _, chain := range x.FilterChains {
+			if err := convertTypedConfigsToV2(chain); err != nil {
+				return err
+			}
+		}
+		for _, filter := range x.ListenerFilters {
+			if err := convertTypedConfigsToV2(filter); err != nil {
+				return err
+			}
+		}
+		if x.UdpListenerConfig != nil {
+			if err := convertTypedConfigsToV2(x.UdpListenerConfig); err != nil {
+				return err
+			}
+		}
+		for _, alog := range x.AccessLog {
+			if err := convertTypedConfigsToV2(alog); err != nil {
+				return err
+			}
+		}
+		return nil
+	case *envoy_accesslog_v2.AccessLog:
+		if x.ConfigType != nil {
+			if tc, ok := x.ConfigType.(*envoy_accesslog_v2.AccessLog_TypedConfig); ok {
+				if err := convertTypedConfigsToV2(tc.TypedConfig); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	case *envoy_listener_v2.ListenerFilter:
+		if x.ConfigType != nil {
+			if tc, ok := x.ConfigType.(*envoy_listener_v2.ListenerFilter_TypedConfig); ok {
+				if err := convertTypedConfigsToV2(tc.TypedConfig); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	case *envoy_listener_v2.UdpListenerConfig:
+		if x.ConfigType != nil {
+			if tc, ok := x.ConfigType.(*envoy_listener_v2.UdpListenerConfig_TypedConfig); ok {
+				if err := convertTypedConfigsToV2(tc.TypedConfig); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	case *envoy_listener_v2.FilterChain:
+		for _, filter := range x.Filters {
+			if err := convertTypedConfigsToV2(filter); err != nil {
+				return err
+			}
+		}
+		if err := convertTypedConfigsToV2(x.TransportSocket); err != nil {
+			return err
+		}
+		return nil
+	case *envoy_listener_v2.Filter:
+		// TODO
+		return nil
+	case *envoy_core_v2.TransportSocket:
+		// TODO
+		return nil
+	case *envoy_api_v2.Cluster:
+		// "type.googleapis.com/envoy.config.cluster.v3.Cluster") // CDS
+		// TransportSocketMatches []*Cluster_TransportSocketMatch `protobuf:"bytes,43,rep,name=transport_socket_matches,json=transportSocketMatches,proto3" json:"transport_socket_matches,omitempty"`
+		// TODO
+		return nil
+	case *envoy_api_v2.ClusterLoadAssignment:
+		// 	"type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment") // EDS
+		// TODO
+		return nil
+	case *envoy_api_v2.RouteConfiguration:
+		// "type.googleapis.com/envoy.config.route.v3.RouteConfiguration") // RDS
 		// TODO
 		return nil
 	case *envoy_http_v2.HttpFilter:
 		// TODO
-		return nil
-	case *any.Any:
-		if err := convertTypeUrlsToV2(&x.TypeUrl); err != nil {
-			return err
-		}
-		// TODO: also dig down one layer
 		return nil
 	default:
 		return fmt.Errorf("could not convert unexpected type to v2: %T", pb)
@@ -179,6 +274,10 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 }
 
 func convertTypeUrlsToV2(typeUrl *string) error {
+	if _, ok := typeConvert2to3[*typeUrl]; ok {
+		return nil // already happened
+	}
+
 	converted, ok := typeConvert3to2[*typeUrl]
 	if !ok {
 		return fmt.Errorf("could not convert type url to v2: %s", *typeUrl)
@@ -188,6 +287,10 @@ func convertTypeUrlsToV2(typeUrl *string) error {
 }
 
 func convertTypeUrlsToV3(typeUrl *string) error {
+	if _, ok := typeConvert3to2[*typeUrl]; ok {
+		return nil // already happened
+	}
+
 	converted, ok := typeConvert2to3[*typeUrl]
 	if !ok {
 		return fmt.Errorf("could not convert type url to v3: %s", *typeUrl)
