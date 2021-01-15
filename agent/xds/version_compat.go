@@ -159,12 +159,11 @@ func convertHttpFilterToV2(filter *envoy_http_v3.HttpFilter) (*envoy_http_v2.Htt
 	return &filterV2, nil
 }
 
-func convertAnyProtoToV2(anyV3 *any.Any) (*any.Any, error) {
-	return anyV3, nil // TODO
-}
-
 // Responses
 func convertTypedConfigsToV2(pb proto.Message) error {
+	// if true {
+	// 	return nil
+	// }
 	// TODO: api/resource version downgrades
 	// TODO: config sources and xDS things
 	switch x := pb.(type) {
