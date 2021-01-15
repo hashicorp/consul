@@ -11,13 +11,13 @@ import (
 	envoy_route_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
-	envoy_accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
 	envoy_http_rbac_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/rbac/v2"
 	envoy_http_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	envoy_network_rbac_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/rbac/v2"
 	envoy_tcp_proxy_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	envoy_trace_v2 "github.com/envoyproxy/go-control-plane/envoy/config/trace/v2"
 	envoy_http_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/rbac/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoy_network_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/rbac/v3"
@@ -179,13 +179,6 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 		}
 		return nil
 	case *any.Any:
-		{
-			// now decode into a v3 type
-			var dynAny ptypes.DynamicAny
-			if err := ptypes.UnmarshalAny(x, &dynAny); err != nil {
-				return fmt.Errorf("%T(%s) dynamic v3 unmarshal: %w", x, x.TypeUrl, err)
-			}
-		}
 		// first flip the any.Any to v2
 		if err := convertTypeUrlsToV2(&x.TypeUrl); err != nil {
 			return fmt.Errorf("%T(%s) convert type urls in envelope: %w", x, x.TypeUrl, err)
@@ -224,26 +217,14 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 				return fmt.Errorf("%T: %w", x, err)
 			}
 		}
-		for _, alog := range x.AccessLog {
-			if err := convertTypedConfigsToV2(alog); err != nil {
-				return fmt.Errorf("%T: %w", x, err)
-			}
-		}
-		return nil
-	case *envoy_accesslog_v2.AccessLog:
-		if x.ConfigType != nil {
-			if tc, ok := x.ConfigType.(*envoy_accesslog_v2.AccessLog_TypedConfig); ok {
-				if err := convertTypedConfigsToV2(tc.TypedConfig); err != nil {
-					return fmt.Errorf("%T: %w", x, err)
-				}
-			}
-		}
 		return nil
 	case *envoy_listener_v2.ListenerFilter:
 		if x.ConfigType != nil {
 			if tc, ok := x.ConfigType.(*envoy_listener_v2.ListenerFilter_TypedConfig); ok {
-				if err := convertTypedConfigsToV2(tc.TypedConfig); err != nil {
-					return fmt.Errorf("%T: %w", x, err)
+				if tc.TypedConfig != nil {
+					if err := convertTypedConfigsToV2(tc.TypedConfig); err != nil {
+						return fmt.Errorf("%T: %w", x, err)
+					}
 				}
 			}
 		}
@@ -251,8 +232,10 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 	case *envoy_listener_v2.UdpListenerConfig:
 		if x.ConfigType != nil {
 			if tc, ok := x.ConfigType.(*envoy_listener_v2.UdpListenerConfig_TypedConfig); ok {
-				if err := convertTypedConfigsToV2(tc.TypedConfig); err != nil {
-					return fmt.Errorf("%T: %w", x, err)
+				if tc.TypedConfig != nil {
+					if err := convertTypedConfigsToV2(tc.TypedConfig); err != nil {
+						return fmt.Errorf("%T: %w", x, err)
+					}
 				}
 			}
 		}
@@ -263,15 +246,19 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 				return fmt.Errorf("%T: %w", x, err)
 			}
 		}
-		if err := convertTypedConfigsToV2(x.TransportSocket); err != nil {
-			return fmt.Errorf("%T: %w", x, err)
+		if x.TransportSocket != nil {
+			if err := convertTypedConfigsToV2(x.TransportSocket); err != nil {
+				return fmt.Errorf("%T: %w", x, err)
+			}
 		}
 		return nil
 	case *envoy_listener_v2.Filter:
 		if x.ConfigType != nil {
 			if tc, ok := x.ConfigType.(*envoy_listener_v2.Filter_TypedConfig); ok {
-				if err := convertTypedConfigsToV2(tc.TypedConfig); err != nil {
-					return fmt.Errorf("%T: %w", x, err)
+				if tc.TypedConfig != nil {
+					if err := convertTypedConfigsToV2(tc.TypedConfig); err != nil {
+						return fmt.Errorf("%T: %w", x, err)
+					}
 				}
 			}
 		}
@@ -279,8 +266,10 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 	case *envoy_core_v2.TransportSocket:
 		if x.ConfigType != nil {
 			if tc, ok := x.ConfigType.(*envoy_core_v2.TransportSocket_TypedConfig); ok {
-				if err := convertTypedConfigsToV2(tc.TypedConfig); err != nil {
-					return fmt.Errorf("%T: %w", x, err)
+				if tc.TypedConfig != nil {
+					if err := convertTypedConfigsToV2(tc.TypedConfig); err != nil {
+						return fmt.Errorf("%T: %w", x, err)
+					}
 				}
 			}
 		}
@@ -302,15 +291,13 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 				return fmt.Errorf("%T: %w", x, err)
 			}
 		}
-		// Vhds *Vhds `protobuf:"bytes,9,opt,name=vhds,proto3" json:"vhds,omitempty"`
-		// TODO
-		return nil
-	case *envoy_route_v2.VirtualHost:
-		for _, v := range x.TypedPerFilterConfig {
-			if err := convertTypedConfigsToV2(v); err != nil {
+		if x.Vhds != nil && x.Vhds.ConfigSource != nil {
+			if err := convertTypedConfigsToV2(x.Vhds.ConfigSource); err != nil {
 				return fmt.Errorf("%T: %w", x, err)
 			}
 		}
+		return nil
+	case *envoy_route_v2.VirtualHost:
 		if x.RetryPolicy != nil {
 			if err := convertTypedConfigsToV2(x.RetryPolicy); err != nil {
 				return fmt.Errorf("%T: %w", x, err)
@@ -332,8 +319,11 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 	case *envoy_route_v2.RetryPolicy_RetryPriority:
 		if x.ConfigType != nil {
 			if tc, ok := x.ConfigType.(*envoy_route_v2.RetryPolicy_RetryPriority_TypedConfig); ok {
-				if err := convertTypedConfigsToV2(tc.TypedConfig); err != nil {
-					return fmt.Errorf("%T: %w", x, err)
+				if tc.TypedConfig != nil {
+					// TODO: add some of these?
+					if err := convertTypedConfigsToV2(tc.TypedConfig); err != nil {
+						return fmt.Errorf("%T: %w", x, err)
+					}
 				}
 			}
 		}
@@ -341,8 +331,11 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 	case *envoy_route_v2.RetryPolicy_RetryHostPredicate:
 		if x.ConfigType != nil {
 			if tc, ok := x.ConfigType.(*envoy_route_v2.RetryPolicy_RetryHostPredicate_TypedConfig); ok {
-				if err := convertTypedConfigsToV2(tc.TypedConfig); err != nil {
-					return fmt.Errorf("%T: %w", x, err)
+				if tc.TypedConfig != nil {
+					// TODO: add some of these?
+					if err := convertTypedConfigsToV2(tc.TypedConfig); err != nil {
+						return fmt.Errorf("%T: %w", x, err)
+					}
 				}
 			}
 		}
@@ -350,22 +343,29 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 	case *envoy_http_v2.HttpFilter:
 		if x.ConfigType != nil {
 			if tc, ok := x.ConfigType.(*envoy_http_v2.HttpFilter_TypedConfig); ok {
-				if err := convertTypedConfigsToV2(tc.TypedConfig); err != nil {
-					return fmt.Errorf("%T: %w", x, err)
+				if tc.TypedConfig != nil {
+					if err := convertTypedConfigsToV2(tc.TypedConfig); err != nil {
+						return fmt.Errorf("%T: %w", x, err)
+					}
 				}
 			}
 		}
 		return nil
 	case *envoy_core_v2.ConfigSource:
-		// TODO: trigger more of these?
 		if x.ConfigSourceSpecifier != nil {
 			switch spec := x.ConfigSourceSpecifier.(type) {
 			case *envoy_core_v2.ConfigSource_ApiConfigSource:
-				spec.ApiConfigSource.TransportApiVersion = envoy_core_v2.ApiVersion_V2
+				if spec.ApiConfigSource != nil {
+					spec.ApiConfigSource.TransportApiVersion = envoy_core_v2.ApiVersion_V2
+				}
 			case *envoy_core_v2.ConfigSource_Self:
-				spec.TransportApiVersion = envoy_core_v2.ApiVersion_V2
+				if spec.Self != nil {
+					spec.Self.TransportApiVersion = envoy_core_v2.ApiVersion_V2
+				}
 			case *envoy_core_v2.ConfigSource_Path:
 			case *envoy_core_v2.ConfigSource_Ads:
+			default:
+				return fmt.Errorf("%T: ConfigSourceSpecifier type %T not handled", x, spec)
 			}
 		}
 		x.ResourceApiVersion = envoy_core_v2.ApiVersion_V2
@@ -385,30 +385,32 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 						return fmt.Errorf("%T: %w", x, err)
 					}
 				}
-			case *envoy_http_v2.HttpConnectionManager_ScopedRoutes:
 			default:
+				return fmt.Errorf("%T: RouteSpecifier type %T not handled", x, spec)
 			}
 		}
-		// Types that are assignable to RouteSpecifier:
-		//	*HttpConnectionManager_Rds
-		//	*HttpConnectionManager_RouteConfig
-		//	*HttpConnectionManager_ScopedRoutes
-		// RouteSpecifier isHttpConnectionManager_RouteSpecifier `protobuf_oneof:"route_specifier"`
-		// HttpFilters []*HttpFilter `protobuf:"bytes,5,rep,name=http_filters,json=httpFilters,proto3" json:"http_filters,omitempty"`
-		// Tracing *HttpConnectionManager_Tracing `protobuf:"bytes,7,opt,name=tracing,proto3" json:"tracing,omitempty"`
-		// AccessLog []*v2.AccessLog `protobuf:"bytes,13,rep,name=access_log,json=accessLog,proto3" json:"access_log,omitempty"`
-		// UpgradeConfigs                             []*HttpConnectionManager_UpgradeConfig `protobuf:"bytes,23,rep,name=upgrade_configs,json=upgradeConfigs,proto3" json:"upgrade_configs,omitempty"`
-		// RequestIdExtension *RequestIDExtension `protobuf:"bytes,36,opt,name=request_id_extension,json=requestIdExtension,proto3" json:"request_id_extension,omitempty"`
-		// TODO:
+		for _, filter := range x.HttpFilters {
+			if err := convertTypedConfigsToV2(filter); err != nil {
+				return fmt.Errorf("%T: %w", x, err)
+			}
+		}
+		if x.Tracing != nil && x.Tracing.Provider != nil && x.Tracing.Provider.ConfigType != nil {
+			if tc, ok := x.Tracing.Provider.ConfigType.(*envoy_trace_v2.Tracing_Http_TypedConfig); ok {
+				if err := convertTypedConfigsToV2(tc.TypedConfig); err != nil {
+					return fmt.Errorf("%T: %w", x, err)
+				}
+			}
+		}
 		return nil
 	case *envoy_tcp_proxy_v2.TcpProxy:
-		// TODO:
 		return nil
 	case *envoy_network_rbac_v2.RBAC:
-		// TODO:
 		return nil
 	case *envoy_http_rbac_v2.RBAC:
-		// TODO:
+		return nil
+	case *envoy_tls_v2.UpstreamTlsContext:
+		return nil
+	case *envoy_tls_v2.DownstreamTlsContext:
 		return nil
 	default:
 		return fmt.Errorf("could not convert unexpected type to v2: %T", pb)
@@ -474,8 +476,8 @@ func init() {
 	}
 
 	// primary resources
-	reg2(&envoy_api_v2.Cluster{}, &envoy_cluster_v3.Cluster{})                              // CDS
 	reg2(&envoy_api_v2.Listener{}, &envoy_listener_v3.Listener{})                           // LDS
+	reg2(&envoy_api_v2.Cluster{}, &envoy_cluster_v3.Cluster{})                              // CDS
 	reg2(&envoy_api_v2.RouteConfiguration{}, &envoy_route_v3.RouteConfiguration{})          // RDS
 	reg2(&envoy_api_v2.ClusterLoadAssignment{}, &envoy_endpoint_v3.ClusterLoadAssignment{}) // EDS
 
