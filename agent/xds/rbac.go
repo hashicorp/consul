@@ -10,7 +10,7 @@ import (
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_http_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/rbac/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
-	envoy_network_rbac "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/rbac/v3"
+	envoy_network_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/rbac/v3"
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 
 	"github.com/hashicorp/consul/agent/structs"
@@ -22,7 +22,7 @@ func makeRBACNetworkFilter(intentions structs.Intentions, intentionDefaultAllow 
 		return nil, err
 	}
 
-	cfg := &envoy_network_rbac.RBAC{
+	cfg := &envoy_network_rbac_v3.RBAC{
 		StatPrefix: "connect_authz",
 		Rules:      rules,
 	}

@@ -8,10 +8,19 @@ import (
 	envoy_core_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoy_listener_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	envoy_route_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
+	envoy_http_rbac_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/rbac/v2"
 	envoy_http_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
+	envoy_network_rbac_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/rbac/v2"
+	envoy_tcp_proxy_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	envoy_http_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/rbac/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
+	envoy_network_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/rbac/v3"
+	envoy_tcp_proxy_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	envoy_discovery_v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 
@@ -168,25 +177,32 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 		}
 		return nil
 	case *any.Any:
+		{
+			// now decode into a v3 type
+			var dynAny ptypes.DynamicAny
+			if err := ptypes.UnmarshalAny(x, &dynAny); err != nil {
+				return fmt.Errorf("%T(%s) dynamic v3 unmarshal: %w", x, x.TypeUrl, err)
+			}
+		}
 		// first flip the any.Any to v2
 		if err := convertTypeUrlsToV2(&x.TypeUrl); err != nil {
-			return fmt.Errorf("%T(%s): %w", x, x.TypeUrl, err)
+			return fmt.Errorf("%T(%s) convert type urls in envelope: %w", x, x.TypeUrl, err)
 		}
 
 		// now decode into a v2 type
 		var dynAny ptypes.DynamicAny
 		if err := ptypes.UnmarshalAny(x, &dynAny); err != nil {
-			return fmt.Errorf("%T(%s): %w", x, x.TypeUrl, err)
+			return fmt.Errorf("%T(%s) dynamic unmarshal: %w", x, x.TypeUrl, err)
 		}
 
 		// handle the contents and then put them back in the any.Any
 		// handle contents first
 		if err := convertTypedConfigsToV2(dynAny.Message); err != nil {
-			return fmt.Errorf("%T(%s): %w", x, x.TypeUrl, err)
+			return fmt.Errorf("%T(%s) convert type urls in body: %w", x, x.TypeUrl, err)
 		}
 		anyFixed, err := ptypes.MarshalAny(dynAny.Message)
 		if err != nil {
-			return fmt.Errorf("%T(%s): %w", x, x.TypeUrl, err)
+			return fmt.Errorf("%T(%s) dynamic re-marshal: %w", x, x.TypeUrl, err)
 		}
 		x.Value = anyFixed.Value
 		return nil
@@ -382,28 +398,32 @@ func init() {
 		typeConvert2to3[type2] = type3
 		typeConvert3to2[type3] = type2
 	}
+	reg2 := func(pb2, pb3 proto.Message) {
+		any2, err := ptypes.MarshalAny(pb2)
+		if err != nil {
+			panic(err)
+		}
+		any3, err := ptypes.MarshalAny(pb3)
+		if err != nil {
+			panic(err)
+		}
+
+		reg(any2.TypeUrl, any3.TypeUrl)
+	}
 
 	// primary resources
-	reg("type.googleapis.com/envoy.api.v2.Cluster",
-		"type.googleapis.com/envoy.config.cluster.v3.Cluster") // CDS
-	reg("type.googleapis.com/envoy.api.v2.Listener",
-		"type.googleapis.com/envoy.config.listener.v3.Listener") // LDS
-	reg("type.googleapis.com/envoy.api.v2.RouteConfiguration",
-		"type.googleapis.com/envoy.config.route.v3.RouteConfiguration") // RDS
-	reg("type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
-		"type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment") // EDS
+	reg2(&envoy_api_v2.Cluster{}, &envoy_cluster_v3.Cluster{})                              // CDS
+	reg2(&envoy_api_v2.Listener{}, &envoy_listener_v3.Listener{})                           // LDS
+	reg2(&envoy_api_v2.RouteConfiguration{}, &envoy_route_v3.RouteConfiguration{})          // RDS
+	reg2(&envoy_api_v2.ClusterLoadAssignment{}, &envoy_endpoint_v3.ClusterLoadAssignment{}) // EDS
 
 	// net filters
-	reg("type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager",
-		"type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager") // "envoy.filters.network.http_connection_manager"
-	reg("type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
-		"type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy") // "envoy.filters.network.tcp_proxy"
-	reg("type.googleapis.com/envoy.config.filter.network.rbac.v2.RBAC",
-		"type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC") // "envoy.filters.network.rbac"
+	reg2(&envoy_http_v2.HttpConnectionManager{}, &envoy_http_v3.HttpConnectionManager{}) // "envoy.filters.network.http_connection_manager"
+	reg2(&envoy_tcp_proxy_v2.TcpProxy{}, &envoy_tcp_proxy_v3.TcpProxy{})                 // "envoy.filters.network.tcp_proxy"
+	reg2(&envoy_network_rbac_v2.RBAC{}, &envoy_network_rbac_v3.RBAC{})                   // "envoy.filters.network.rbac"
 
 	// http filters
-	reg("type.googleapis.com/envoy.config.filter.http.rbac.v2.RBAC",
-		"type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC") // "envoy.filters.http.rbac
+	reg2(&envoy_http_rbac_v2.RBAC{}, &envoy_http_rbac_v3.RBAC{}) // "envoy.filters.http.rbac
 
 	// cluster tls
 	reg("type.googleapis.com/envoy.api.v2.auth.UpstreamTlsContext",
@@ -418,5 +438,4 @@ func init() {
 		"type.googleapis.com/envoy.config.metrics.v3.StatsdSink")
 	reg("type.googleapis.com/envoy.config.trace.v2.ZipkinConfig",
 		"type.googleapis.com/envoy.config.trace.v3.ZipkinConfig")
-
 }
