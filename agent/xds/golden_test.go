@@ -7,8 +7,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-version"
@@ -54,10 +52,6 @@ func golden(t *testing.T, name, subname, got string) string {
 	require.NoError(t, err)
 
 	return string(expected)
-}
-
-func responseToJSON(t *testing.T, r *envoy_discovery_v3.DiscoveryResponse) string {
-	return protoToJSON(t, r)
 }
 
 func protoToJSON(t *testing.T, pb proto.Message) string {

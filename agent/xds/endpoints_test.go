@@ -591,7 +591,7 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 					r, err := createResponse(EndpointType, "00000001", "00000001", endpoints)
 					require.NoError(err)
 
-					gotJSON := responseToJSON(t, r)
+					gotJSON := protoToJSON(t, r)
 
 					gName := tt.name
 					if tt.overrideGoldenName != "" {

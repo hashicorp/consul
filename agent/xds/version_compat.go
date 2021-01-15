@@ -94,9 +94,9 @@ func convertDiscoveryResponseToV2(resp *envoy_discovery_v3.DiscoveryResponse) (*
 		return nil, err
 	}
 
-	if err := convertTypedConfigsToV2(&respv2); err != nil {
-		return nil, err
-	}
+	// if err := convertTypedConfigsToV2(&respv2); err != nil {
+	// 	return nil, err
+	// }
 
 	return &respv2, nil
 }
@@ -105,7 +105,7 @@ func convertDiscoveryResponseToV2(resp *envoy_discovery_v3.DiscoveryResponse) (*
 func convertTypedConfigsToV2(pb proto.Message) error {
 	switch x := pb.(type) {
 	case *envoy_api_v2.DiscoveryResponse:
-		if err := convertTypeUrlsToV3(&x.TypeUrl); err != nil {
+		if err := convertTypeUrlsToV2(&x.TypeUrl); err != nil {
 			return err
 		}
 		for _, res := range x.Resources {
@@ -149,8 +149,8 @@ var (
 )
 
 func init() {
-	typeConvert2to3 := make(map[string]string)
-	typeConvert3to2 := make(map[string]string)
+	typeConvert2to3 = make(map[string]string)
+	typeConvert3to2 = make(map[string]string)
 
 	reg := func(type2, type3 string) {
 		typeConvert2to3[type2] = type3

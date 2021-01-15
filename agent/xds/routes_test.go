@@ -270,7 +270,7 @@ func TestRoutesFromSnapshot(t *testing.T) {
 					r, err := createResponse(RouteType, "00000001", "00000001", routes)
 					require.NoError(err)
 
-					gotJSON := responseToJSON(t, r)
+					gotJSON := protoToJSON(t, r)
 
 					gName := tt.name
 					if tt.overrideGoldenName != "" {

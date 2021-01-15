@@ -376,7 +376,7 @@ func assertResponseSent(t *testing.T, ch chan *envoy_discovery_v3.DiscoveryRespo
 // expected structs require the same code that is under test!
 func assertResponse(t *testing.T, r *envoy_discovery_v3.DiscoveryResponse, wantJSON string) {
 	t.Helper()
-	gotJSON := responseToJSON(t, r)
+	gotJSON := protoToJSON(t, r)
 	require.JSONEqf(t, wantJSON, gotJSON, "got:\n%s", gotJSON)
 }
 

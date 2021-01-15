@@ -653,7 +653,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 					r, err := createResponse(ClusterType, "00000001", "00000001", clusters)
 					require.NoError(err)
 
-					gotJSON := responseToJSON(t, r)
+					gotJSON := protoToJSON(t, r)
 
 					gName := tt.name
 					if tt.overrideGoldenName != "" {
