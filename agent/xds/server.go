@@ -564,11 +564,6 @@ func convertDiscoveryRequestToV3(req *envoy_api_v2.DiscoveryRequest) (*envoy_dis
 	return &reqV3, nil
 }
 
-func convertTypeUrlsToV3(typeUrl *string) error {
-	// TODO
-	return fmt.Errorf("could not convert type url to v3: %s", *typeUrl)
-}
-
 func convertDiscoveryResponseToV2(resp *envoy_discovery_v3.DiscoveryResponse) (*envoy_api_v2.DiscoveryResponse, error) {
 	// TODO: improve this
 	b, err := proto.Marshal(resp)
@@ -613,12 +608,21 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 }
 
 func convertTypeUrlsToV2(typeUrl *string) error {
-	switch *typeUrl {
-	case "type.googleapis.com/envoy.config.listener.v3.Listener":
-		return nil
-	default:
+	converted, ok := typeConvert3to2[*typeUrl]
+	if !ok {
+		return fmt.Errorf("could not convert type url to v2: %s", *typeUrl)
+	}
+	*typeUrl = converted
+	return nil
+}
+
+func convertTypeUrlsToV3(typeUrl *string) error {
+	converted, ok := typeConvert2to3[*typeUrl]
+	if !ok {
 		return fmt.Errorf("could not convert type url to v3: %s", *typeUrl)
 	}
+	*typeUrl = converted
+	return nil
 }
 
 var (
@@ -664,8 +668,11 @@ func init() {
 		"type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext")
 
 	// extension elements
-	// "type.googleapis.com/envoy.config.metrics.v3.DogStatsdSink",
-	// "type.googleapis.com/envoy.config.metrics.v3.StatsdSink",
-	// "type.googleapis.com/envoy.config.trace.v3.ZipkinConfig",
+	reg("type.googleapis.com/envoy.config.metrics.v2.DogStatsdSink",
+		"type.googleapis.com/envoy.config.metrics.v3.DogStatsdSink")
+	reg("type.googleapis.com/envoy.config.metrics.v2.StatsdSink",
+		"type.googleapis.com/envoy.config.metrics.v3.StatsdSink")
+	reg("type.googleapis.com/envoy.config.trace.v2.ZipkinConfig",
+		"type.googleapis.com/envoy.config.trace.v3.ZipkinConfig")
 
 }
