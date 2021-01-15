@@ -42,24 +42,6 @@ variable "cluster_tag_key" {
   default     = "consul-servers"
 }
 
-variable "ssh_key_name" {
-  description = "The name of an EC2 Key Pair that can be used to SSH to the EC2 Instances in this cluster. Set to an empty string to not associate a Key Pair."
-  type        = string
-  default     = null
-}
-
-variable "vpc_id" {
-  description = "The ID of the VPC in which the nodes will be deployed.  Uses default VPC if not supplied."
-  type        = string
-  default     = null
-}
-
-variable "spot_price" {
-  description = "The maximum hourly price to pay for EC2 Spot Instances."
-  type        = number
-  default     = null
-}
-
 variable "vpc_az" {
   type        = list(string)
   description = "VPC Availability Zone"

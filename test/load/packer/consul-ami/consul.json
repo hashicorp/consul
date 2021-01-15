@@ -2,8 +2,6 @@
   "min_packer_version": "1.5.4",
   "variables": {
     "aws_region": "{{env `AWS_DEFAULT_REGION`}}",
-    "consul_version": "1.5.1",
-    "download_url": "{{env `CONSUL_DOWNLOAD_URL`}}",
     "dd_api_key": "{{env `DD_API_KEY`}}"
   },
   "builders": [{
