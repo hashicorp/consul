@@ -1,8 +1,10 @@
-## Terraform Consul Load Testing
-# How to use
+# Terraform Consul Load Testing
+## How to use
 1. Build an image with the desired Consul version and a load test image in the Packer folder [here](../packer).
 2. Create your own `vars.tfvars` file in this directory.
-3. Place the appropriate AMI IDs in the `consul_ami_id` and `test_server_ami` variables, here is an example of a `vars.tfvars`:
+3. Place the appropriate AMI IDs in the `consul_ami_id` and `test_server_ami` variables, here is an example of a `vars.tfvars`: 
+4. Set either `consul_version` or `consul_download_url`. If neither is set it will default to utilizing Consul 1.9.0
+
 ```
 vpc_name             = "consul-test-vpc"
 vpc_cidr             = "11.0.0.0/16"
@@ -22,16 +24,14 @@ ami_owners           = ["******"]
 consul_ami_id        = "ami-016d80ff5472346f0"
 ```
  
-If `consul_version` or `consul_download_url` is not set within the Terraform variables it will default to utilizing Consul 1.9.0
+5. AWS Variables are set off of environment variables. Make sure to export necessary variables [shown here](https://registry.terraform.io/providers/hashicorp/aws/latest/docs#environment-variables).
+6. Run `terraform plan -var-file=vars.tfvars`, and then `terraform apply -var-file=vars.tfvars` when ready.
+7. Upon completion k6 should run and push metrics to the desired Datadog dashboard.
  
-4. AWS Variables are set off of environment variables. Make sure to export necessary variables [shown here](https://registry.terraform.io/providers/hashicorp/aws/latest/docs#environment-variables).
-5. Run `terraform plan -var-file=vars.tfvars`, and then `terraform apply -var-file=vars.tfvars` when ready.
-6. Upon completion k6 should run and push metrics to the desired Datadog dashboard.
- 
-# Customization
+## Customization
 All customization for infrastructure that is available can be found by looking through the `variables.tf` file.
  
-# How to SSH
+## How to SSH
 After `terraform apply` is run Terraform should create a `keys/` directory which will give access to all instances created.
 For example, `ssh -i "keys/[cluster-name]-spicy-banana.pem" ubuntu@[IPADDRESS]`
 
