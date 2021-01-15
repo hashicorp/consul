@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	envoy_tls_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	envoy_core_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoy_listener_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	envoy_route_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
@@ -21,6 +22,7 @@ import (
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoy_network_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/rbac/v3"
 	envoy_tcp_proxy_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
+	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoy_discovery_v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 
@@ -417,19 +419,15 @@ func init() {
 	reg2(&envoy_api_v2.RouteConfiguration{}, &envoy_route_v3.RouteConfiguration{})          // RDS
 	reg2(&envoy_api_v2.ClusterLoadAssignment{}, &envoy_endpoint_v3.ClusterLoadAssignment{}) // EDS
 
-	// net filters
+	// filters
 	reg2(&envoy_http_v2.HttpConnectionManager{}, &envoy_http_v3.HttpConnectionManager{}) // "envoy.filters.network.http_connection_manager"
 	reg2(&envoy_tcp_proxy_v2.TcpProxy{}, &envoy_tcp_proxy_v3.TcpProxy{})                 // "envoy.filters.network.tcp_proxy"
 	reg2(&envoy_network_rbac_v2.RBAC{}, &envoy_network_rbac_v3.RBAC{})                   // "envoy.filters.network.rbac"
-
-	// http filters
-	reg2(&envoy_http_rbac_v2.RBAC{}, &envoy_http_rbac_v3.RBAC{}) // "envoy.filters.http.rbac
+	reg2(&envoy_http_rbac_v2.RBAC{}, &envoy_http_rbac_v3.RBAC{})                         // "envoy.filters.http.rbac
 
 	// cluster tls
-	reg("type.googleapis.com/envoy.api.v2.auth.UpstreamTlsContext",
-		"type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext")
-	reg("type.googleapis.com/envoy.api.v2.auth.DownstreamTlsContext",
-		"type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext")
+	reg2(&envoy_tls_v2.UpstreamTlsContext{}, &envoy_tls_v3.UpstreamTlsContext{})
+	reg2(&envoy_tls_v2.DownstreamTlsContext{}, &envoy_tls_v3.DownstreamTlsContext{})
 
 	// extension elements
 	reg("type.googleapis.com/envoy.config.metrics.v2.DogStatsdSink",
