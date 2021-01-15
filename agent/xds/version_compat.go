@@ -356,6 +356,60 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 			}
 		}
 		return nil
+	case *envoy_core_v2.ConfigSource:
+		// TODO: trigger more of these?
+		if x.ConfigSourceSpecifier != nil {
+			switch spec := x.ConfigSourceSpecifier.(type) {
+			case *envoy_core_v2.ConfigSource_ApiConfigSource:
+				spec.ApiConfigSource.TransportApiVersion = envoy_core_v2.ApiVersion_V2
+			case *envoy_core_v2.ConfigSource_Self:
+				spec.TransportApiVersion = envoy_core_v2.ApiVersion_V2
+			case *envoy_core_v2.ConfigSource_Path:
+			case *envoy_core_v2.ConfigSource_Ads:
+			}
+		}
+		x.ResourceApiVersion = envoy_core_v2.ApiVersion_V2
+		return nil
+	case *envoy_http_v2.HttpConnectionManager:
+		if x.RouteSpecifier != nil {
+			switch spec := x.RouteSpecifier.(type) {
+			case *envoy_http_v2.HttpConnectionManager_Rds:
+				if spec.Rds != nil && spec.Rds.ConfigSource != nil {
+					if err := convertTypedConfigsToV2(spec.Rds.ConfigSource); err != nil {
+						return fmt.Errorf("%T: %w", x, err)
+					}
+				}
+			case *envoy_http_v2.HttpConnectionManager_RouteConfig:
+				if spec.RouteConfig != nil {
+					if err := convertTypedConfigsToV2(spec.RouteConfig); err != nil {
+						return fmt.Errorf("%T: %w", x, err)
+					}
+				}
+			case *envoy_http_v2.HttpConnectionManager_ScopedRoutes:
+			default:
+			}
+		}
+		// Types that are assignable to RouteSpecifier:
+		//	*HttpConnectionManager_Rds
+		//	*HttpConnectionManager_RouteConfig
+		//	*HttpConnectionManager_ScopedRoutes
+		// RouteSpecifier isHttpConnectionManager_RouteSpecifier `protobuf_oneof:"route_specifier"`
+		// HttpFilters []*HttpFilter `protobuf:"bytes,5,rep,name=http_filters,json=httpFilters,proto3" json:"http_filters,omitempty"`
+		// Tracing *HttpConnectionManager_Tracing `protobuf:"bytes,7,opt,name=tracing,proto3" json:"tracing,omitempty"`
+		// AccessLog []*v2.AccessLog `protobuf:"bytes,13,rep,name=access_log,json=accessLog,proto3" json:"access_log,omitempty"`
+		// UpgradeConfigs                             []*HttpConnectionManager_UpgradeConfig `protobuf:"bytes,23,rep,name=upgrade_configs,json=upgradeConfigs,proto3" json:"upgrade_configs,omitempty"`
+		// RequestIdExtension *RequestIDExtension `protobuf:"bytes,36,opt,name=request_id_extension,json=requestIdExtension,proto3" json:"request_id_extension,omitempty"`
+		// TODO:
+		return nil
+	case *envoy_tcp_proxy_v2.TcpProxy:
+		// TODO:
+		return nil
+	case *envoy_network_rbac_v2.RBAC:
+		// TODO:
+		return nil
+	case *envoy_http_rbac_v2.RBAC:
+		// TODO:
+		return nil
 	default:
 		return fmt.Errorf("could not convert unexpected type to v2: %T", pb)
 	}
@@ -397,6 +451,12 @@ func init() {
 	typeConvert3to2 = make(map[string]string)
 
 	reg := func(type2, type3 string) {
+		if type2 == "" {
+			panic("v2 type is empty")
+		}
+		if type3 == "" {
+			panic("v3 type is empty")
+		}
 		typeConvert2to3[type2] = type3
 		typeConvert3to2[type3] = type2
 	}
