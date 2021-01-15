@@ -116,6 +116,9 @@ module.exports = function(defaults) {
   app.import('vendor/metrics-providers/prometheus.js', {
     outputFile: 'assets/metrics-providers/prometheus.js',
   });
+  app.import('vendor/init.js', {
+    outputFile: 'assets/init.js',
+  });
   let tree = app.toTree();
   return tree;
 };
