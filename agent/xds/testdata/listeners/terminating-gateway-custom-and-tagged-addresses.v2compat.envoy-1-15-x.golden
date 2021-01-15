@@ -2,7 +2,7 @@
   "versionInfo": "00000001",
   "resources": [
     {
-      "@type": "type.googleapis.com/envoy.api.v2.Listener",
+      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
       "name": "foo:198.17.2.3:8080",
       "address": {
         "socketAddress": {
@@ -251,7 +251,7 @@
       "trafficDirection": "INBOUND"
     },
     {
-      "@type": "type.googleapis.com/envoy.api.v2.Listener",
+      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
       "name": "wan:198.18.0.1:443",
       "address": {
         "socketAddress": {
@@ -500,6 +500,6 @@
       "trafficDirection": "INBOUND"
     }
   ],
-  "typeUrl": "type.googleapis.com/envoy.api.v2.Listener",
+  "typeUrl": "type.googleapis.com/envoy.config.listener.v3.Listener",
   "nonce": "00000001"
 }

@@ -2,7 +2,7 @@
   "versionInfo": "00000001",
   "resources": [
     {
-      "@type": "type.googleapis.com/envoy.api.v2.Listener",
+      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
       "name": "custom-public-listen",
       "address": {
         "socketAddress": {
@@ -86,7 +86,7 @@
       ]
     },
     {
-      "@type": "type.googleapis.com/envoy.api.v2.Listener",
+      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
       "name": "db:127.0.0.1:9191",
       "address": {
         "socketAddress": {
@@ -111,7 +111,7 @@
       "trafficDirection": "OUTBOUND"
     },
     {
-      "@type": "type.googleapis.com/envoy.api.v2.Listener",
+      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
       "name": "prepared_query:geo-cache:127.10.10.10:8181",
       "address": {
         "socketAddress": {
@@ -136,6 +136,6 @@
       "trafficDirection": "OUTBOUND"
     }
   ],
-  "typeUrl": "type.googleapis.com/envoy.api.v2.Listener",
+  "typeUrl": "type.googleapis.com/envoy.config.listener.v3.Listener",
   "nonce": "00000001"
 }

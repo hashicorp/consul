@@ -2,7 +2,7 @@
   "versionInfo": "00000001",
   "resources": [
     {
-      "@type": "type.googleapis.com/envoy.api.v2.Cluster",
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
       "name": "local_app",
       "type": "STATIC",
       "connectTimeout": "5s",
@@ -27,6 +27,6 @@
       }
     }
   ],
-  "typeUrl": "type.googleapis.com/envoy.api.v2.Cluster",
+  "typeUrl": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
   "nonce": "00000001"
 }

@@ -2,7 +2,7 @@
   "versionInfo": "00000001",
   "resources": [
     {
-      "@type": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
+      "@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
       "clusterName": "myservice",
       "endpoints": [
         {
@@ -36,6 +36,6 @@
       ]
     }
   ],
-  "typeUrl": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
+  "typeUrl": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
   "nonce": "00000001"
 }

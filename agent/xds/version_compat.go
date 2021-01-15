@@ -179,6 +179,9 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 }
 
 func convertTypeUrlsToV2(typeUrl *string) error {
+	if true {
+		return nil
+	}
 	converted, ok := typeConvert3to2[*typeUrl]
 	if !ok {
 		return fmt.Errorf("could not convert type url to v2: %s", *typeUrl)

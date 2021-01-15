@@ -2,7 +2,7 @@
   "versionInfo": "00000001",
   "resources": [
     {
-      "@type": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
+      "@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
       "clusterName": "bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "endpoints": [
         {
@@ -24,7 +24,7 @@
       ]
     },
     {
-      "@type": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
+      "@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
       "clusterName": "dc2.internal.11111111-2222-3333-4444-555555555555.consul",
       "endpoints": [
         {
@@ -58,7 +58,7 @@
       ]
     },
     {
-      "@type": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
+      "@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
       "clusterName": "foo.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "endpoints": [
         {
@@ -92,7 +92,7 @@
       ]
     },
     {
-      "@type": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
+      "@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
       "clusterName": "v1.bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "endpoints": [
         {
@@ -126,7 +126,7 @@
       ]
     },
     {
-      "@type": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
+      "@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
       "clusterName": "v1.foo.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "endpoints": [
         {
@@ -160,7 +160,7 @@
       ]
     },
     {
-      "@type": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
+      "@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
       "clusterName": "v2.bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "endpoints": [
         {
@@ -182,7 +182,7 @@
       ]
     },
     {
-      "@type": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
+      "@type": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
       "clusterName": "v2.foo.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
       "endpoints": [
         {
@@ -216,6 +216,6 @@
       ]
     }
   ],
-  "typeUrl": "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment",
+  "typeUrl": "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
   "nonce": "00000001"
 }
