@@ -2,7 +2,7 @@
   "versionInfo": "00000001",
   "resources": [
     {
-      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "@type": "type.googleapis.com/envoy.api.v2.Listener",
       "name": "bar:2001:db8::ff:9999",
       "address": {
         "socketAddress": {
@@ -85,7 +85,7 @@
       ]
     },
     {
-      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "@type": "type.googleapis.com/envoy.api.v2.Listener",
       "name": "baz:127.0.0.1:8765",
       "address": {
         "socketAddress": {
@@ -168,7 +168,7 @@
       ]
     },
     {
-      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "@type": "type.googleapis.com/envoy.api.v2.Listener",
       "name": "default:1.2.3.4:8443",
       "address": {
         "socketAddress": {
@@ -251,7 +251,7 @@
       ]
     },
     {
-      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "@type": "type.googleapis.com/envoy.api.v2.Listener",
       "name": "foo:198.17.2.3:8080",
       "address": {
         "socketAddress": {
@@ -334,6 +334,6 @@
       ]
     }
   ],
-  "typeUrl": "type.googleapis.com/envoy.config.listener.v3.Listener",
+  "typeUrl": "type.googleapis.com/envoy.api.v2.Listener",
   "nonce": "00000001"
 }
