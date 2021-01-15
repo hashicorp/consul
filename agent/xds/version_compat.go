@@ -7,6 +7,7 @@ import (
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_core_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoy_listener_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
+	envoy_route_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	envoy_accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
 	envoy_http_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
@@ -153,6 +154,8 @@ func convertAnyProtoToV2(anyV3 *any.Any) (*any.Any, error) {
 
 // Responses
 func convertTypedConfigsToV2(pb proto.Message) error {
+	// TODO: api/resource version downgrades
+	// TODO: config sources and xDS things
 	switch x := pb.(type) {
 	case *envoy_api_v2.DiscoveryResponse:
 		if err := convertTypeUrlsToV2(&x.TypeUrl); err != nil {
@@ -247,26 +250,93 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 		}
 		return nil
 	case *envoy_listener_v2.Filter:
-		// TODO
+		if x.ConfigType != nil {
+			if tc, ok := x.ConfigType.(*envoy_listener_v2.Filter_TypedConfig); ok {
+				if err := convertTypedConfigsToV2(tc.TypedConfig); err != nil {
+					return err
+				}
+			}
+		}
 		return nil
 	case *envoy_core_v2.TransportSocket:
-		// TODO
-		return nil
-	case *envoy_api_v2.Cluster:
-		// "type.googleapis.com/envoy.config.cluster.v3.Cluster") // CDS
-		// TransportSocketMatches []*Cluster_TransportSocketMatch `protobuf:"bytes,43,rep,name=transport_socket_matches,json=transportSocketMatches,proto3" json:"transport_socket_matches,omitempty"`
-		// TODO
+		if x.ConfigType != nil {
+			if tc, ok := x.ConfigType.(*envoy_core_v2.TransportSocket_TypedConfig); ok {
+				if err := convertTypedConfigsToV2(tc.TypedConfig); err != nil {
+					return err
+				}
+			}
+		}
 		return nil
 	case *envoy_api_v2.ClusterLoadAssignment:
-		// 	"type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment") // EDS
-		// TODO
+		return nil
+	case *envoy_api_v2.Cluster:
+		for _, tsm := range x.TransportSocketMatches {
+			if tsm.TransportSocket != nil {
+				if err := convertTypedConfigsToV2(tsm.TransportSocket); err != nil {
+					return err
+				}
+			}
+		}
 		return nil
 	case *envoy_api_v2.RouteConfiguration:
-		// "type.googleapis.com/envoy.config.route.v3.RouteConfiguration") // RDS
+		for _, vhost := range x.VirtualHosts {
+			if err := convertTypedConfigsToV2(vhost); err != nil {
+				return err
+			}
+		}
+		// Vhds *Vhds `protobuf:"bytes,9,opt,name=vhds,proto3" json:"vhds,omitempty"`
 		// TODO
 		return nil
+	case *envoy_route_v2.VirtualHost:
+		for _, v := range x.TypedPerFilterConfig {
+			if err := convertTypedConfigsToV2(v); err != nil {
+				return err
+			}
+		}
+		if x.RetryPolicy != nil {
+			if err := convertTypedConfigsToV2(x.RetryPolicy); err != nil {
+				return err
+			}
+		}
+		return nil
+	case *envoy_route_v2.RetryPolicy:
+		if x.RetryPriority != nil {
+			if err := convertTypedConfigsToV2(x.RetryPriority); err != nil {
+				return err
+			}
+		}
+		for _, pred := range x.RetryHostPredicate {
+			if err := convertTypedConfigsToV2(pred); err != nil {
+				return err
+			}
+		}
+		return nil
+	case *envoy_route_v2.RetryPolicy_RetryPriority:
+		if x.ConfigType != nil {
+			if tc, ok := x.ConfigType.(*envoy_route_v2.RetryPolicy_RetryPriority_TypedConfig); ok {
+				if err := convertTypedConfigsToV2(tc.TypedConfig); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	case *envoy_route_v2.RetryPolicy_RetryHostPredicate:
+		if x.ConfigType != nil {
+			if tc, ok := x.ConfigType.(*envoy_route_v2.RetryPolicy_RetryHostPredicate_TypedConfig); ok {
+				if err := convertTypedConfigsToV2(tc.TypedConfig); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
 	case *envoy_http_v2.HttpFilter:
-		// TODO
+		if x.ConfigType != nil {
+			if tc, ok := x.ConfigType.(*envoy_http_v2.HttpFilter_TypedConfig); ok {
+				if err := convertTypedConfigsToV2(tc.TypedConfig); err != nil {
+					return err
+				}
+			}
+		}
 		return nil
 	default:
 		return fmt.Errorf("could not convert unexpected type to v2: %T", pb)
