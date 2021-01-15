@@ -94,9 +94,9 @@ func convertDiscoveryResponseToV2(resp *envoy_discovery_v3.DiscoveryResponse) (*
 		return nil, err
 	}
 
-	// if err := convertTypedConfigsToV2(&respv2); err != nil {
-	// 	return nil, err
-	// }
+	if err := convertTypedConfigsToV2(&respv2); err != nil {
+		return nil, err
+	}
 
 	return &respv2, nil
 }

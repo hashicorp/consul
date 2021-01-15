@@ -2,7 +2,7 @@
   "versionInfo": "00000001",
   "resources": [
     {
-      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "@type": "type.googleapis.com/envoy.api.v2.Listener",
       "name": "exposed_path_grpchealthv1HealthCheck:1.2.3.4:21501",
       "address": {
         "socketAddress": {
@@ -60,7 +60,7 @@
       "trafficDirection": "INBOUND"
     },
     {
-      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "@type": "type.googleapis.com/envoy.api.v2.Listener",
       "name": "exposed_path_health1:1.2.3.4:21500",
       "address": {
         "socketAddress": {
@@ -115,7 +115,7 @@
       "trafficDirection": "INBOUND"
     },
     {
-      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "@type": "type.googleapis.com/envoy.api.v2.Listener",
       "name": "public_listener:1.2.3.4:8080",
       "address": {
         "socketAddress": {
@@ -157,6 +157,6 @@
       "trafficDirection": "INBOUND"
     }
   ],
-  "typeUrl": "type.googleapis.com/envoy.config.listener.v3.Listener",
+  "typeUrl": "type.googleapis.com/envoy.api.v2.Listener",
   "nonce": "00000001"
 }
