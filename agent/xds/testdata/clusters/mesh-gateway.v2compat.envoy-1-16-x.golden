@@ -10,7 +10,7 @@
           "ads": {
 
           },
-          "resourceApiVersion": "V3"
+          "resourceApiVersion": "V2"
         }
       },
       "connectTimeout": "5s",
@@ -27,7 +27,7 @@
           "ads": {
 
           },
-          "resourceApiVersion": "V3"
+          "resourceApiVersion": "V2"
         }
       },
       "connectTimeout": "5s",
@@ -108,7 +108,7 @@
           "ads": {
 
           },
-          "resourceApiVersion": "V3"
+          "resourceApiVersion": "V2"
         }
       },
       "connectTimeout": "5s",

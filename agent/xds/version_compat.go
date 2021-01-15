@@ -276,11 +276,28 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 	case *envoy_api_v2.ClusterLoadAssignment:
 		return nil
 	case *envoy_api_v2.Cluster:
+		if x.TransportSocket != nil {
+			if err := convertTypedConfigsToV2(x.TransportSocket); err != nil {
+				return fmt.Errorf("%T: %w", x, err)
+			}
+		}
 		for _, tsm := range x.TransportSocketMatches {
 			if tsm.TransportSocket != nil {
 				if err := convertTypedConfigsToV2(tsm.TransportSocket); err != nil {
 					return fmt.Errorf("%T: %w", x, err)
 				}
+			}
+		}
+		if x.EdsClusterConfig != nil {
+			if x.EdsClusterConfig.EdsConfig != nil {
+				if err := convertTypedConfigsToV2(x.EdsClusterConfig.EdsConfig); err != nil {
+					return fmt.Errorf("%T: %w", x, err)
+				}
+			}
+		}
+		if x.LrsServer != nil {
+			if err := convertTypedConfigsToV2(x.LrsServer); err != nil {
+				return fmt.Errorf("%T: %w", x, err)
 			}
 		}
 		return nil

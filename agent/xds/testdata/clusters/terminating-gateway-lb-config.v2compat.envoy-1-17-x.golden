@@ -35,7 +35,7 @@
       "transportSocket": {
         "name": "tls",
         "typedConfig": {
-          "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
+          "@type": "type.googleapis.com/envoy.api.v2.auth.UpstreamTlsContext",
           "commonTlsContext": {
             "tlsParams": {
 
@@ -132,7 +132,7 @@
           "ads": {
 
           },
-          "resourceApiVersion": "V3"
+          "resourceApiVersion": "V2"
         }
       },
       "connectTimeout": "5s",
@@ -147,7 +147,7 @@
       "transportSocket": {
         "name": "tls",
         "typedConfig": {
-          "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
+          "@type": "type.googleapis.com/envoy.api.v2.auth.UpstreamTlsContext",
           "commonTlsContext": {
             "tlsParams": {
 
@@ -170,7 +170,7 @@
           "ads": {
 
           },
-          "resourceApiVersion": "V3"
+          "resourceApiVersion": "V2"
         }
       },
       "connectTimeout": "5s",
@@ -185,7 +185,7 @@
       "transportSocket": {
         "name": "tls",
         "typedConfig": {
-          "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
+          "@type": "type.googleapis.com/envoy.api.v2.auth.UpstreamTlsContext",
           "commonTlsContext": {
             "tlsParams": {
 
@@ -208,7 +208,7 @@
           "ads": {
 
           },
-          "resourceApiVersion": "V3"
+          "resourceApiVersion": "V2"
         }
       },
       "connectTimeout": "5s",
@@ -223,7 +223,7 @@
       "transportSocket": {
         "name": "tls",
         "typedConfig": {
-          "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
+          "@type": "type.googleapis.com/envoy.api.v2.auth.UpstreamTlsContext",
           "commonTlsContext": {
             "tlsParams": {
 
