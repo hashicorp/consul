@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"sync/atomic"
 	"time"
 
@@ -126,6 +125,8 @@ type Server struct {
 	AuthCheckFrequency time.Duration
 	CheckFetcher       HTTPCheckFetcher
 	CfgFetcher         ConfigFetcher
+
+	DisableV2Protocol bool
 }
 
 // StreamAggregatedResources implements
@@ -485,7 +486,7 @@ func (s *Server) GRPCServer(tlsConfigurator *tlsutil.Configurator) (*grpc.Server
 	srv := grpc.NewServer(opts...)
 	envoy_discovery_v3.RegisterAggregatedDiscoveryServiceServer(srv, s)
 
-	if os.Getenv("ENABLE_XDS_V2_SHIM") == "1" {
+	if !s.DisableV2Protocol {
 		envoy_discovery_v2.RegisterAggregatedDiscoveryServiceServer(srv, &adsServerV2Shim{srv: s})
 	}
 
