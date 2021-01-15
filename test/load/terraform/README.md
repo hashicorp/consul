@@ -18,12 +18,12 @@ public_subnet_cidrs  = ["11.0.1.0/24", "11.0.3.0/24"]
 private_subnet_cidrs = ["11.0.2.0/24"]
 vpc_az               = ["us-east-2a", "us-east-2b"]
 test_instance_type   = "t2.micro"
- test_server_ami      = "ami-0ad7711e837ebe166"
+test_server_ami      = "ami-0ad7711e837ebe166"
 cluster_name         = "ctest"
 test_public_ip       = "true"
 instance_type        = "t2.micro"
 ami_owners           = ["******"]
- consul_ami_id        = "ami-016d80ff5472346f0"
+consul_ami_id        = "ami-016d80ff5472346f0"
 ````
  
 ## Customization
