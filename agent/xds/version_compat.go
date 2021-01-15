@@ -5,8 +5,13 @@ import (
 	"fmt"
 
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	envoy_api_listener_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
+	envoy_http_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
+	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoy_discovery_v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/any"
 	"google.golang.org/grpc"
@@ -89,16 +94,58 @@ func convertDiscoveryResponseToV2(resp *envoy_discovery_v3.DiscoveryResponse) (*
 		return nil, err
 	}
 
-	var respv2 envoy_api_v2.DiscoveryResponse
-	if err := proto.Unmarshal(b, &respv2); err != nil {
+	var respV2 envoy_api_v2.DiscoveryResponse
+	if err := proto.Unmarshal(b, &respV2); err != nil {
 		return nil, err
 	}
 
-	if err := convertTypedConfigsToV2(&respv2); err != nil {
+	if err := convertTypedConfigsToV2(&respV2); err != nil {
 		return nil, err
 	}
 
-	return &respv2, nil
+	return &respV2, nil
+}
+
+func convertNetFilterToV2(filter *envoy_listener_v3.Filter) (*envoy_api_listener_v2.Filter, error) {
+	// TODO: improve this
+	b, err := proto.Marshal(filter)
+	if err != nil {
+		return nil, err
+	}
+
+	var filterV2 envoy_api_listener_v2.Filter
+	if err := proto.Unmarshal(b, &filterV2); err != nil {
+		return nil, err
+	}
+
+	if err := convertTypedConfigsToV2(&filterV2); err != nil {
+		return nil, err
+	}
+
+	return &filterV2, nil
+}
+
+func convertHttpFilterToV2(filter *envoy_http_v3.HttpFilter) (*envoy_http_v2.HttpFilter, error) {
+	// TODO: improve this
+	b, err := proto.Marshal(filter)
+	if err != nil {
+		return nil, err
+	}
+
+	var filterV2 envoy_http_v2.HttpFilter
+	if err := proto.Unmarshal(b, &filterV2); err != nil {
+		return nil, err
+	}
+
+	if err := convertTypedConfigsToV2(&filterV2); err != nil {
+		return nil, err
+	}
+
+	return &filterV2, nil
+}
+
+func convertAnyProtoToV2(anyV3 *any.Any) (*any.Any, error) {
+	return anyV3, nil // TODO
 }
 
 // Responses
@@ -113,6 +160,12 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 				return err
 			}
 		}
+		return nil
+	case *envoy_api_listener_v2.Filter:
+		// TODO
+		return nil
+	case *envoy_http_v2.HttpFilter:
+		// TODO
 		return nil
 	case *any.Any:
 		if err := convertTypeUrlsToV2(&x.TypeUrl); err != nil {

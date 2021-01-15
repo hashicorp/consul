@@ -243,8 +243,6 @@ func TestRoutesFromSnapshot(t *testing.T) {
 		t.Run("envoy-"+envoyVersion, func(t *testing.T) {
 			for _, tt := range tests {
 				t.Run(tt.name, func(t *testing.T) {
-					require := require.New(t)
-
 					// Sanity check default with no overrides first
 					snap := tt.create(t)
 
@@ -263,21 +261,40 @@ func TestRoutesFromSnapshot(t *testing.T) {
 						ProxyFeatures: sf,
 					}
 					routes, err := s.routesFromSnapshot(cInfo, snap)
-					require.NoError(err)
+					require.NoError(t, err)
+
 					sort.Slice(routes, func(i, j int) bool {
 						return routes[i].(*envoy_route_v3.RouteConfiguration).Name < routes[j].(*envoy_route_v3.RouteConfiguration).Name
 					})
 					r, err := createResponse(RouteType, "00000001", "00000001", routes)
-					require.NoError(err)
+					require.NoError(t, err)
 
-					gotJSON := protoToJSON(t, r)
+					t.Run("current", func(t *testing.T) {
+						gotJSON := protoToJSON(t, r)
 
-					gName := tt.name
-					if tt.overrideGoldenName != "" {
-						gName = tt.overrideGoldenName
-					}
+						gName := tt.name
+						if tt.overrideGoldenName != "" {
+							gName = tt.overrideGoldenName
+						}
 
-					require.JSONEq(goldenEnvoy(t, filepath.Join("routes", gName), envoyVersion, gotJSON), gotJSON)
+						require.JSONEq(t, goldenEnvoy(t, filepath.Join("routes", gName), envoyVersion, gotJSON), gotJSON)
+					})
+
+					t.Run("v2-compat", func(t *testing.T) {
+						respV2, err := convertDiscoveryResponseToV2(r)
+						require.NoError(t, err)
+
+						gotJSON := protoToJSON(t, respV2)
+
+						gName := tt.name
+						if tt.overrideGoldenName != "" {
+							gName = tt.overrideGoldenName
+						}
+
+						gName += ".v2compat"
+
+						require.JSONEq(t, goldenEnvoy(t, filepath.Join("routes", gName), envoyVersion, gotJSON), gotJSON)
+					})
 				})
 			}
 		})

@@ -624,8 +624,6 @@ func TestClustersFromSnapshot(t *testing.T) {
 		t.Run("envoy-"+envoyVersion, func(t *testing.T) {
 			for _, tt := range tests {
 				t.Run(tt.name, func(t *testing.T) {
-					require := require.New(t)
-
 					// Sanity check default with no overrides first
 					snap := tt.create(t)
 
@@ -646,21 +644,41 @@ func TestClustersFromSnapshot(t *testing.T) {
 						ProxyFeatures: sf,
 					}
 					clusters, err := s.clustersFromSnapshot(cInfo, snap)
-					require.NoError(err)
+					require.NoError(t, err)
+
 					sort.Slice(clusters, func(i, j int) bool {
 						return clusters[i].(*envoy_cluster_v3.Cluster).Name < clusters[j].(*envoy_cluster_v3.Cluster).Name
 					})
+
 					r, err := createResponse(ClusterType, "00000001", "00000001", clusters)
-					require.NoError(err)
+					require.NoError(t, err)
 
-					gotJSON := protoToJSON(t, r)
+					t.Run("current", func(t *testing.T) {
+						gotJSON := protoToJSON(t, r)
 
-					gName := tt.name
-					if tt.overrideGoldenName != "" {
-						gName = tt.overrideGoldenName
-					}
+						gName := tt.name
+						if tt.overrideGoldenName != "" {
+							gName = tt.overrideGoldenName
+						}
 
-					require.JSONEq(goldenEnvoy(t, filepath.Join("clusters", gName), envoyVersion, gotJSON), gotJSON)
+						require.JSONEq(t, goldenEnvoy(t, filepath.Join("clusters", gName), envoyVersion, gotJSON), gotJSON)
+					})
+
+					t.Run("v2-compat", func(t *testing.T) {
+						respV2, err := convertDiscoveryResponseToV2(r)
+						require.NoError(t, err)
+
+						gotJSON := protoToJSON(t, respV2)
+
+						gName := tt.name
+						if tt.overrideGoldenName != "" {
+							gName = tt.overrideGoldenName
+						}
+
+						gName += ".v2compat"
+
+						require.JSONEq(t, goldenEnvoy(t, filepath.Join("clusters", gName), envoyVersion, gotJSON), gotJSON)
+					})
 				})
 			}
 		})

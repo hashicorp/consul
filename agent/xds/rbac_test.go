@@ -248,17 +248,39 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 				filter, err := makeRBACNetworkFilter(tt.intentions, tt.intentionDefaultAllow)
 				require.NoError(t, err)
 
-				gotJSON := protoToJSON(t, filter)
+				t.Run("current", func(t *testing.T) {
+					gotJSON := protoToJSON(t, filter)
 
-				require.JSONEq(t, golden(t, filepath.Join("rbac", name), "", gotJSON), gotJSON)
+					require.JSONEq(t, golden(t, filepath.Join("rbac", name), "", gotJSON), gotJSON)
+				})
+
+				t.Run("v2-compat", func(t *testing.T) {
+					filterV2, err := convertNetFilterToV2(filter)
+					require.NoError(t, err)
+
+					gotJSON := protoToJSON(t, filterV2)
+
+					require.JSONEq(t, golden(t, filepath.Join("rbac", name+".v2compat"), "", gotJSON), gotJSON)
+				})
 			})
 			t.Run("http filter", func(t *testing.T) {
 				filter, err := makeRBACHTTPFilter(tt.intentions, tt.intentionDefaultAllow)
 				require.NoError(t, err)
 
-				gotJSON := protoToJSON(t, filter)
+				t.Run("current", func(t *testing.T) {
+					gotJSON := protoToJSON(t, filter)
 
-				require.JSONEq(t, golden(t, filepath.Join("rbac", name+"--httpfilter"), "", gotJSON), gotJSON)
+					require.JSONEq(t, golden(t, filepath.Join("rbac", name+"--httpfilter"), "", gotJSON), gotJSON)
+				})
+
+				t.Run("v2-compat", func(t *testing.T) {
+					filterV2, err := convertHttpFilterToV2(filter)
+					require.NoError(t, err)
+
+					gotJSON := protoToJSON(t, filterV2)
+
+					require.JSONEq(t, golden(t, filepath.Join("rbac", name+"--httpfilter.v2compat"), "", gotJSON), gotJSON)
+				})
 			})
 		})
 	}
