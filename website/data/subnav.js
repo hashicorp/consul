@@ -1,5 +1,5 @@
 export default [
-  { text: 'Overview', url: '/docs/intro' },
+  { text: 'Overview', url: '/' },
   {
     text: 'Use Cases',
     submenu: [
@@ -39,10 +39,10 @@ export default [
     url: '/api-docs',
     type: 'inbound',
   },
-  { 
+  {
     text: 'CLI',
     url: '/commands',
-    type: 'inbound,'
+    type: 'inbound,',
   },
   {
     text: 'Community',
