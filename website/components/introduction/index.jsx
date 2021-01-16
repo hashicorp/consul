@@ -1,15 +1,29 @@
+import { useState } from 'react'
+
 import Icon from '../icon'
 import style from './introduction.module.css'
+import Modal from '../modal'
 
 function Introduction({ brand, description }) {
+  const [isModalShow, setIsModalShow] = useState(false)
+
   return (
     <div>
+      <Modal show={isModalShow} close={setIsModalShow}>
+        <iframe
+          width="100%"
+          height="100%"
+          src="https://www.youtube.com/embed/mxeMdl0KvBI"
+          frameborder="0"
+          allowfullscreen
+        ></iframe>
+      </Modal>
       <p className="g-type-display-3 mt-xl mb-zero">What is {brand}?</p>
       <p className="mt-zero">{description}</p>
-      <div className={style.video}>
-        <div className={style.button}>
+      <div id="btn-play-video" className={style.video}>
+        <button className={style.button} onClick={() => setIsModalShow(true)}>
           <Icon icon="play" />
-        </div>
+        </button>
         <div className={style.content}>
           <p className="g-type-display-5 mb-zero">
             Introduction to HashiCorp Consul

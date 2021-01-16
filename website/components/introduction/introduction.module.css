@@ -16,4 +16,13 @@
   height: 96px;
   border-radius: 3px;
   background-color: #ca2171;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  outline: none;
+
+&:hover {
+  /* Products/Consul L1 */
+  background-color: #e07eac;
+}
 }
