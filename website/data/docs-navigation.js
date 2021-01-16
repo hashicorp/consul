@@ -8,27 +8,6 @@
 
 export default [
   {
-    category: 'intro',
-    content: [
-      {
-        category: 'vs',
-        content: [
-          'zookeeper',
-          'chef-puppet',
-          'nagios-sensu',
-          'skydns',
-          'smartstack',
-          'serf',
-          'eureka',
-          'istio',
-          'proxies',
-          'custom',
-        ],
-      },
-    ],
-  },
-
-  {
     category: 'install',
     content: [
       { title: 'Consul Agent', href: '/docs/agent' },
