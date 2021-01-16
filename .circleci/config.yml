@@ -631,7 +631,7 @@ jobs:
       - store_test_results:
           path: ui-v2/test-results
 
-  envoy-integration-test-1.10.0:
+  envoy-integration-test-1_10_0:
     docker:
       # We only really need bash and docker-compose which is installed on all
       # Circle images but pick Go since we have to pick one of them.
@@ -656,21 +656,21 @@ jobs:
           path: ./test/integration/connect/envoy/workdir/logs
           destination: container-logs
 
-  envoy-integration-test-1.11.2:
+  envoy-integration-test-1_11_2:
     docker:
       - image: *GOLANG_IMAGE
     environment:
       ENVOY_VERSIONS: "1.11.2"
     steps: *ENVOY_INTEGRATION_TEST_STEPS
 
-  envoy-integration-test-1.12.7:
+  envoy-integration-test-1_12_7:
     docker:
       - image: *GOLANG_IMAGE
     environment:
       ENVOY_VERSIONS: "1.12.7"
     steps: *ENVOY_INTEGRATION_TEST_STEPS
 
-  envoy-integration-test-1.13.6:
+  envoy-integration-test-1_13_6:
     docker:
       - image: *GOLANG_IMAGE
     environment:
@@ -774,16 +774,16 @@ workflows:
       - nomad-integration-0_8:
           requires:
             - dev-build
-      - envoy-integration-test-1.10.0:
+      - envoy-integration-test-1_10_0:
           requires:
             - dev-build
-      - envoy-integration-test-1.11.2:
+      - envoy-integration-test-1_11_2:
           requires:
             - dev-build
-      - envoy-integration-test-1.12.7:
+      - envoy-integration-test-1_12_7:
           requires:
             - dev-build
-      - envoy-integration-test-1.13.6:
+      - envoy-integration-test-1_13_6:
           requires:
             - dev-build
       - vault-ca-provider:
