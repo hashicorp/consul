@@ -8,13 +8,6 @@ html[data-route^='dc.acls.index'] .filter-bar {
 html[data-route^='dc.acls.index'] .filter-bar [role='radiogroup'] {
   @extend %expanded-single-select;
 }
-@media #{$--horizontal-tabs} {
-  html[data-route^='dc.acls.policies.index'] main header .actions,
-  html[data-route^='dc.acls.policies.index'] main header .actions {
-    position: relative;
-    top: 42px;
-  }
-}
 
 @media #{$--lt-wide-form} {
   html[data-route^='dc.acls.create'] main header .actions,

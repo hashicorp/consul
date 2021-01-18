@@ -1,19 +1,21 @@
 %theme-light {
-  --gray-tone-000: #{$white};
-  --gray-tone-050: #{$gray-050};
-  --gray-tone-100: #{$gray-100};
-  --gray-tone-150: #{$gray-150};
-  --gray-tone-200: #{$gray-200};
-  --gray-tone-300: #{$gray-300};
-  --gray-tone-400: #{$gray-400};
-  --gray-tone-500: #{$gray-500};
-  --gray-tone-600: #{$gray-600};
-  --gray-tone-700: #{$gray-700};
-  --gray-tone-800: #{$gray-800};
-  --gray-tone-850: #{$gray-850};
-  --gray-tone-900: #{$gray-900};
-  --gray-tone-950: #{$gray-950};
-  --gray-tone-999: #{$black};
+  --gray-000: #{$white};
+  --gray-050: #{$gray-050};
+  --gray-100: #{$gray-100};
+  --gray-150: #{$gray-150};
+  --gray-200: #{$gray-200};
+  --gray-300: #{$gray-300};
+  --gray-400: #{$gray-400};
+  --gray-500: #{$gray-500};
+  --gray-600: #{$gray-600};
+  --gray-700: #{$gray-700};
+  --gray-800: #{$gray-800};
+  --gray-850: #{$gray-850};
+  --gray-900: #{$gray-900};
+  --gray-950: #{$gray-950};
+  --gray-999: #{$black};
+
+  --blue-500: #{$blue-500};
 
   --transparent: #{$transparent};
 }
@@ -30,59 +32,59 @@
   --transparent: #{$transparent};
 }
 %theme-light-high-contrast {
-  --gray-tone-000: #{$white};
-  --gray-tone-050: #{$white};
-  --gray-tone-100: #{$white};
-  --gray-tone-150: #{$white};
-  --gray-tone-200: #{$white};
-  --gray-tone-300: #{$white};
-  --gray-tone-400: #{$white};
-  --gray-tone-500: #{$gray-500};
-  --gray-tone-600: #{$black};
-  --gray-tone-700: #{$black};
-  --gray-tone-800: #{$black};
-  --gray-tone-850: #{$black};
-  --gray-tone-900: #{$black};
-  --gray-tone-950: #{$black};
-  --gray-tone-999: #{$black};
+  --gray-000: #{$white};
+  --gray-050: #{$white};
+  --gray-100: #{$white};
+  --gray-150: #{$white};
+  --gray-200: #{$white};
+  --gray-300: #{$white};
+  --gray-400: #{$white};
+  --gray-500: #{$gray-500};
+  --gray-600: #{$black};
+  --gray-700: #{$black};
+  --gray-800: #{$black};
+  --gray-850: #{$black};
+  --gray-900: #{$black};
+  --gray-950: #{$black};
+  --gray-999: #{$black};
 
   --transparent: #{$transparent};
 }
 %theme-dark-high-contrast {
-  --gray-tone-000: #{$black};
-  --gray-tone-050: #{$black};
-  --gray-tone-100: #{$black};
-  --gray-tone-150: #{$black};
-  --gray-tone-200: #{$black};
-  --gray-tone-300: #{$black};
-  --gray-tone-400: #{$black};
-  --gray-tone-500: #{$gray-500};
-  --gray-tone-600: #{$white};
-  --gray-tone-700: #{$white};
-  --gray-tone-800: #{$white};
-  --gray-tone-850: #{$white};
-  --gray-tone-900: #{$white};
-  --gray-tone-950: #{$white};
-  --gray-tone-999: #{$white};
+  --gray-000: #{$black};
+  --gray-050: #{$black};
+  --gray-100: #{$black};
+  --gray-150: #{$black};
+  --gray-200: #{$black};
+  --gray-300: #{$black};
+  --gray-400: #{$black};
+  --gray-500: #{$gray-500};
+  --gray-600: #{$white};
+  --gray-700: #{$white};
+  --gray-800: #{$white};
+  --gray-850: #{$white};
+  --gray-900: #{$white};
+  --gray-950: #{$white};
+  --gray-999: #{$white};
 
   --transparent: #{$transparent};
 }
 %theme-dark {
-  --gray-tone-000: #{$black};
-  --gray-tone-050: #{$gray-950};
-  --gray-tone-100: #{$gray-900};
-  --gray-tone-150: #{$gray-850};
-  --gray-tone-200: #{$gray-800};
-  --gray-tone-300: #{$gray-700};
-  --gray-tone-400: #{$gray-600};
-  --gray-tone-500: #{$gray-500};
-  --gray-tone-600: #{$gray-400};
-  --gray-tone-700: #{$gray-300};
-  --gray-tone-800: #{$gray-200};
-  --gray-tone-850: #{$gray-150};
-  --gray-tone-900: #{$gray-100};
-  --gray-tone-950: #{$gray-050};
-  --gray-tone-999: #{$white};
+  --gray-000: #{$black};
+  --gray-050: #{$gray-950};
+  --gray-100: #{$gray-900};
+  --gray-150: #{$gray-850};
+  --gray-200: #{$gray-800};
+  --gray-300: #{$gray-700};
+  --gray-400: #{$gray-600};
+  --gray-500: #{$gray-500};
+  --gray-600: #{$gray-400};
+  --gray-700: #{$gray-300};
+  --gray-800: #{$gray-200};
+  --gray-850: #{$gray-150};
+  --gray-900: #{$gray-100};
+  --gray-950: #{$gray-050};
+  --gray-999: #{$white};
 
   --transparent: #{$transparent};
 }

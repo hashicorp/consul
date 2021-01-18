@@ -9,7 +9,7 @@ strong {
 }
 /* %typo-body */
 body {
-  color: $gray-900;
+  color: var(--gray-900);
 }
 /* TODO: Consider changing this to 'p a, dd a, td a' etc etc*/
 a {

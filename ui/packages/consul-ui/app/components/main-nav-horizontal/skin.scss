@@ -16,11 +16,11 @@
   cursor: pointer;
 }
 %main-nav-horizontal-toggle-button::before {
-  background-color: var(--gray-tone-999);
+  background-color: var(--gray-800);
 }
 %main-nav-horizontal-action,
 %main-nav-horizontal-action-intent,
 %main-nav-horizontal-action-active {
-  color: var(--gray-tone-999);
+  color: var(--gray-600);
 }
 /**/

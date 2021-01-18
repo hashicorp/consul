@@ -14,7 +14,6 @@
 %main-nav-vertical-action-active:focus:not(:active) {
   @extend %main-nav-vertical-action-active-intent;
 }
-/* old dropdowns, soon to be removed */
 
 /* Whilst we want spans to look the same as actions */
 /* we don't want them to act the same */
@@ -23,12 +22,31 @@
   @extend %main-nav-vertical-action-intent;
 }
 
-%main-nav-vertical > ul > li > label,
-%main-nav-vertical > ul > li > .popover-menu > label > button {
+%main-nav-vertical > ul > li > label {
   @extend %main-nav-vertical-action;
 }
-%main-nav-vertical > ul > li > .popover-menu .menu-panel {
-  margin-left: 10px;
+%main-nav-vertical .popover-menu {
+  margin-top: .5rem;
+}
+%main-nav-vertical .popover-menu .menu-panel {
+  top: 37px !important;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+%main-nav-vertical .popover-menu > label > button {
+  border: $decor-border-100;
+  border-color: var(--gray-500);
+  color: var(--gray-999);
+  width: calc(100% - 20px);
+  z-index: 100;
+  text-align: left;
+  padding: 10px;
+  border-radius: $decor-radius-100;
+}
+%main-nav-vertical .popover-menu > label > button::after {
+  float: right;
+}
+%main-nav-vertical .popover-menu .menu-panel {
   top: 28px;
   z-index: 100;
 }
@@ -37,4 +55,3 @@
   @extend %main-nav-vertical-menu-panel;
 }
 
-/* end old dropdowns */

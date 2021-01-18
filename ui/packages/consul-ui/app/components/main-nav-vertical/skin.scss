@@ -1,6 +1,3 @@
-%main-nav-vertical .is-local span:last-of-type {
-  @extend %pill-200, %frame-gray-600;
-}
 %main-nav-vertical-action {
   cursor: pointer;
   border-right: $decor-border-400;
@@ -11,6 +8,9 @@
   color: inherit;
   font-size: inherit;
 }
+%main-nav-vertical [role="separator"] {
+  text-transform: uppercase;
+}
 %main-nav-vertical-action-intent {
   text-decoration: underline;
 }
@@ -18,21 +18,31 @@
   text-decoration: none;
 }
 %main-nav-vertical {
-  background-color: var(--gray-tone-050);
+  background-color: var(--gray-050);
+  color: var(--gray-700);
+}
+%main-nav-vertical [role="separator"] {
+  color: var(--gray-600);
 }
 %main-nav-vertical-action {
-  color: var(--gray-tone-800);
+  color: var(--gray-800);
 }
 %main-nav-vertical-action-intent,
 %main-nav-vertical-action-active {
-  color: var(--gray-tone-999);
+  color: var(--gray-999);
 }
 %main-nav-vertical-action-active {
-  background-color: var(--gray-tone-150);
-  border-color: var(--gray-tone-999);
+  background-color: var(--gray-150);
+  border-color: var(--gray-999);
+}
+%main-nav-vertical .is-local span:last-of-type {
+  @extend %pill-200;
+  color: var(--gray-000);
+  background-color: var(--gray-500);
 }
 %main-nav-vertical .nspaces .menu-panel > div {
-  background-color: $gray-050;
+  background-color: var(--gray-050);
+  color: var(--gray-999);
   padding-left: 36px;
 }
 %main-nav-vertical .nspaces .menu-panel > div::before {

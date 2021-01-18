@@ -25,14 +25,10 @@ $ideal-content-padding: 33px;
   max-width: $ideal-content-width;
 }
 %viewport-container {
-  padding-left: calc(#{$ideal-viewport-padding-num}% / (#{$ideal-viewport-width-num} / 100));
-  padding-right: calc(#{$ideal-viewport-padding-num}% / (#{$ideal-viewport-width-num} / 100));
-  padding-left: calc(#{$ideal-viewport-padding-num}vw / (#{$ideal-viewport-width-num} / 100));
+  padding-left: 25px;
   padding-right: calc(#{$ideal-viewport-padding-num}vw / (#{$ideal-viewport-width-num} / 100));
 }
 %content-container {
-  padding-left: calc(33% / (#{$ideal-viewport-width-num} / 100));
-  padding-right: calc(33% / (#{$ideal-viewport-width-num} / 100));
   padding-left: calc(24vw / (#{$ideal-viewport-width-num} / 100));
   padding-right: calc(24vw / (#{$ideal-viewport-width-num} / 100));
 }

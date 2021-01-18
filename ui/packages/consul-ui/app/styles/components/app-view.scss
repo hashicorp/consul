@@ -22,17 +22,17 @@
 #toolbar-toggle {
   display: none;
 }
-@media #{$--horizontal-selects} {
-  [for='toolbar-toggle'] {
-    display: none;
-  }
-}
 @media #{$--lt-spacious-page-header} {
   %app-view-actions {
     margin-top: 9px;
   }
 }
 // reduced search magnifying icon layout
+@media #{$--horizontal-selects} {
+  [for='toolbar-toggle'] {
+    display: none;
+  }
+}
 @media #{$--lt-horizontal-selects} {
   %app-view-header h1 {
     display: inline-block;

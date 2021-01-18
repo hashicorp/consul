@@ -3,10 +3,6 @@
 /* all variables and custom queries including generic base variables */
 @import 'variables';
 
-/*TODO: Move this to its own local component*/
-@import 'ember-power-select';
-/**/
-
 /* all components including generic base components */
 @import 'components';
 /* cascading typography */
@@ -15,43 +11,5 @@
 @import 'layout';
 /* pinpoint individual overwrites for those 'just on this page' problems */
 @import 'routes';
-
-:root {
-  @extend %theme-light;
-}
-:root.prefers-contrast-high {
-  @extend %theme-high-contrast;
-}
-:root.prefers-contrast-low {
-  @extend %theme-low-contrast;
-}
-:root.prefers-color-scheme-dark {
-  @extend %theme-dark;
-}
-:root.prefers-color-scheme-light {
-  @extend %theme-light;
-}
-:root.prefers-color-scheme-dark.prefers-contrast-high {
-  @extend %theme-dark-high-contrast;
-}
-:root.prefers-color-scheme-dark.prefers-contrast-low {
-  @extend %theme-dark-low-contrast;
-}
-:root.prefers-color-scheme-light.prefers-contrast-high {
-  @extend %theme-light-high-contrast;
-}
-:root.prefers-color-scheme-light.prefers-contrast-low {
-  @extend %theme-light-low-contrast;
-}
-%main-header-horizontal,
-%main-nav-vertical,
-%main-nav-horizontal {
-  @extend %theme-dark;
-}
-:root.prefers-contrast-high {
-  %main-header-horizontal,
-  %main-nav-vertical,
-  %main-nav-horizontal {
-    @extend %theme-dark-high-contrast;
-  }
-}
+/* global control of themeable components */
+@import 'themes';
