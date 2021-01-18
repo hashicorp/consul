@@ -5,6 +5,7 @@
   width: var(--chrome-width, 300px);
   height: calc(100vh - var(--chrome-height, 47px) - 35px);
   padding-top: 35px;
+  overflow: auto;
 }
 // disable tabbing when not visible
 %main-nav-vertical:not(.in-viewport) {

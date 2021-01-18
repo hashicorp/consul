@@ -1,5 +1,10 @@
 %main-header-horizontal {
   display: flex;
+  position: fixed;
+  z-index: 5;
+  left: 0;
+  padding: 0 25px;
+  width: calc(100% - 50px);
 }
 %main-header-horizontal,
 %main-header-horizontal::before {
