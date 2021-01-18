@@ -25,13 +25,8 @@
     </BlockSlot>
     <BlockSlot @name="header">
       <h1>
-        Access Controls
+        Roles
       </h1>
-    </BlockSlot>
-    <BlockSlot @name="nav">
-  {{#if isAuthorized }}
-      {{partial 'dc/acls/nav'}}
-  {{/if}}
     </BlockSlot>
     <BlockSlot @name="actions">
       <a data-test-create href="{{href-to 'dc.acls.roles.create'}}" class="type-create">Create</a>
