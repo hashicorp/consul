@@ -1,83 +1,14 @@
 .hashicorp-consul {
-  --chrome-width: 300px;
-  --chrome-height: 48px;
-}
-[role='banner'] {
-  @extend %main-header-horizontal;
-}
-[role="banner"] > label {
-  @extend %main-nav-horizontal-toggle-button;
-}
-.hashicorp-consul > input[id] {
-  @extend %main-nav-horizontal-toggle;
-}
-[role="banner"] a svg {
-  fill: var(--brand-600);
-}
-%theme-high-contrast {
   [role="banner"] a svg {
-    fill: var(--gray-tone-999);
+    fill: var(--brand-600);
   }
-}
-%main-header-horizontal > div {
-  @extend %main-nav-horizontal-panel;
-}
-
-%main-header-horizontal nav:first-of-type {
-  @extend %main-nav-vertical, %main-nav-sidebar;
-}
-%main-header-horizontal nav:last-of-type {
-  @extend %main-nav-horizontal;
-  margin-left: auto;
-}
-%main-nav-horizontal .docs-link a::after {
-  @extend %with-docs-mask, %as-pseudo;
-}
-%main-nav-horizontal .learn-link a::after {
-  @extend %with-learn-mask, %as-pseudo;
-}
-%main-nav-horizontal .feedback-link a::after {
-  @extend %with-logo-github-monochrome-mask, %as-pseudo;
-}
-
-%main-nav-sidebar,
-main {
-  @extend %transition-pushover;
-}
-%main-nav-sidebar {
-  transition-property: left;
-  z-index: 10;
-}
-main {
-  transition-property: margin-left;
-}
-
-
-@media #{$--sidebar-open} {
-  %main-nav-horizontal-toggle + header > div > nav:first-of-type {
-    left: 0;
+  .docs-link a::after {
+    @extend %with-docs-mask, %as-pseudo;
   }
-  %main-nav-horizontal-toggle:checked + header > div > nav:first-of-type {
-    left: calc(var(--chrome-width) * -1);
+  .learn-link a::after {
+    @extend %with-learn-mask, %as-pseudo;
   }
-  %main-nav-horizontal-toggle ~ main,
-  %main-nav-horizontal-toggle ~ footer {
-    margin-left: var(--chrome-width);
-  }
-  %main-nav-horizontal-toggle:checked ~ main,
-  %main-nav-horizontal-toggle:checked ~ footer {
-    margin-left: 0;
-  }
-}
-@media #{$--lt-sidebar-open} {
-  %main-nav-horizontal-toggle:checked + header > div > nav:first-of-type {
-    left: 0;
-  }
-  %main-nav-horizontal-toggle + header > div > nav:first-of-type {
-    left: calc(var(--chrome-width) * -1);
-  }
-  %main-nav-horizontal-toggle ~ main,
-  %main-nav-horizontal-toggle ~ footer {
-    margin-left: 0;
+  .feedback-link a::after {
+    @extend %with-logo-github-monochrome-mask, %as-pseudo;
   }
 }

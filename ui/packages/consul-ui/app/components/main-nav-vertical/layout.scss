@@ -2,9 +2,13 @@
   position: absolute;
   left: 0;
   top: var(--chrome-height, 47px);
-  width: var(--chrome-width);
+  width: var(--chrome-width, 300px);
   height: calc(100vh - var(--chrome-height, 47px) - 35px);
   padding-top: 35px;
+}
+// disable tabbing when not visible
+%main-nav-vertical:not(.in-viewport) {
+  visibility: hidden;
 }
 %main-nav-vertical li.dcs {
   margin-bottom: 25px;
