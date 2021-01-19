@@ -138,7 +138,7 @@ func (m *mockCAProvider) Sign(*x509.CertificateRequest) (string, error)         
 func (m *mockCAProvider) SignIntermediate(*x509.CertificateRequest) (string, error) { return "", nil }
 func (m *mockCAProvider) CrossSignCA(*x509.Certificate) (string, error)             { return "", nil }
 func (m *mockCAProvider) SupportsCrossSigning() (bool, error)                       { return false, nil }
-func (m *mockCAProvider) Cleanup() error                                            { return nil }
+func (m *mockCAProvider) Cleanup(_ bool, _ map[string]interface{}) error            { return nil }
 
 func waitForCh(t *testing.T, ch chan string, expected string) {
 	select {
@@ -202,18 +202,18 @@ func TestCAManager_Initialize(t *testing.T) {
 	conf.PrimaryDatacenter = "dc1"
 	conf.Datacenter = "dc2"
 	delegate := NewMockCAServerDelegate(t, conf)
-	manager := NewCAManager(delegate, testutil.Logger(t), conf)
+	manager := NewCAManager(delegate, nil, testutil.Logger(t), conf)
 
 	// Call InitializeCA and then confirm the RPCs and provider calls
 	// happen in the expected order.
-	require.EqualValues(t, CAStateUninitialized, manager.state)
+	require.EqualValues(t, caStateUninitialized, manager.state)
 	errCh := make(chan error)
 	go func() {
 		errCh <- manager.InitializeCA()
 	}()
 
 	waitForCh(t, delegate.callbackCh, "forwardDC/ConnectCA.Roots")
-	require.EqualValues(t, CAStateInitializing, manager.state)
+	require.EqualValues(t, caStateInitializing, manager.state)
 	waitForCh(t, delegate.callbackCh, "provider/GenerateIntermediateCSR")
 	waitForCh(t, delegate.callbackCh, "forwardDC/ConnectCA.SignIntermediate")
 	waitForCh(t, delegate.callbackCh, "provider/SetIntermediate")
@@ -228,7 +228,7 @@ func TestCAManager_Initialize(t *testing.T) {
 		t.Fatal("never got result from errCh")
 	}
 
-	require.EqualValues(t, CAStateReady, manager.state)
+	require.EqualValues(t, caStateInitialized, manager.state)
 }
 
 func TestCAManager_UpdateConfigWhileRenewIntermediate(t *testing.T) {
@@ -252,7 +252,7 @@ func TestCAManager_UpdateConfigWhileRenewIntermediate(t *testing.T) {
 	conf.PrimaryDatacenter = "dc1"
 	conf.Datacenter = "dc2"
 	delegate := NewMockCAServerDelegate(t, conf)
-	manager := NewCAManager(delegate, testutil.Logger(t), conf)
+	manager := NewCAManager(delegate, nil, testutil.Logger(t), conf)
 	initTestManager(t, manager, delegate)
 
 	// Wait half the TTL for the cert to need renewing.
@@ -270,7 +270,7 @@ func TestCAManager_UpdateConfigWhileRenewIntermediate(t *testing.T) {
 	// Call UpdateConfiguration while RenewIntermediate is still in-flight to
 	// make sure we get an error about the state being occupied.
 	go func() {
-		require.EqualValues(t, CAStateRenewIntermediate, manager.state)
+		require.EqualValues(t, caStateRenewIntermediate, manager.state)
 		require.Error(t, errors.New("already in state"), manager.UpdateConfiguration(&structs.CARequest{}))
 	}()
 
@@ -287,5 +287,5 @@ func TestCAManager_UpdateConfigWhileRenewIntermediate(t *testing.T) {
 		t.Fatal("never got result from errCh")
 	}
 
-	require.EqualValues(t, CAStateReady, manager.state)
+	require.EqualValues(t, caStateInitialized, manager.state)
 }

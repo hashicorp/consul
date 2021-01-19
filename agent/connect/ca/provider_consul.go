@@ -310,7 +310,11 @@ func (c *ConsulProvider) GenerateIntermediate() (string, error) {
 }
 
 // Remove the state store entry for this provider instance.
-func (c *ConsulProvider) Cleanup() error {
+func (c *ConsulProvider) Cleanup(_ bool, _ map[string]interface{}) error {
+	// This method only gets called for final cleanup. Therefore we don't
+	// need to worry about the case where a ca config update is made to
+	// change the cert ttls but leaving the private key and root cert the
+	// same. Changing those would change the id field on the provider.
 	args := &structs.CARequest{
 		Op:            structs.CAOpDeleteProviderState,
 		ProviderState: &structs.CAConsulProviderState{ID: c.id},

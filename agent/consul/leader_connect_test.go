@@ -1204,3 +1204,104 @@ func TestLeader_retryLoopBackoffHandleSuccess(t *testing.T) {
 		})
 	}
 }
+
+func TestLeader_Vault_BadCAConfigShouldntPreventLeaderEstablishment(t *testing.T) {
+	ca.SkipIfVaultNotPresent(t)
+
+	testVault := ca.NewTestVaultServer(t)
+	defer testVault.Stop()
+
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Build = "1.9.1"
+		c.PrimaryDatacenter = "dc1"
+		c.CAConfig = &structs.CAConfiguration{
+			Provider: "vault",
+			Config: map[string]interface{}{
+				"Address":             testVault.Addr,
+				"Token":               "not-the-root",
+				"RootPKIPath":         "pki-root/",
+				"IntermediatePKIPath": "pki-intermediate/",
+			},
+		}
+	})
+	defer s1.Shutdown()
+
+	waitForLeaderEstablishment(t, s1)
+
+	rootsList, activeRoot, err := getTestRoots(s1, "dc1")
+	require.NoError(t, err)
+	require.Empty(t, rootsList.Roots)
+	require.Nil(t, activeRoot)
+
+	// Now that the leader is up and we have verified that there are no roots / CA init failed,
+	// verify that we can reconfigure away from the bad configuration.
+	newConfig := &structs.CAConfiguration{
+		Provider: "vault",
+		Config: map[string]interface{}{
+			"Address":             testVault.Addr,
+			"Token":               testVault.RootToken,
+			"RootPKIPath":         "pki-root/",
+			"IntermediatePKIPath": "pki-intermediate/",
+		},
+	}
+	{
+		args := &structs.CARequest{
+			Datacenter: "dc1",
+			Config:     newConfig,
+		}
+		var reply interface{}
+
+		retry.Run(t, func(r *retry.R) {
+			require.NoError(r, s1.RPC("ConnectCA.ConfigurationSet", args, &reply))
+		})
+	}
+
+	rootsList, activeRoot, err = getTestRoots(s1, "dc1")
+	require.NoError(t, err)
+	require.NotEmpty(t, rootsList.Roots)
+	require.NotNil(t, activeRoot)
+}
+
+func TestLeader_Consul_BadCAConfigShouldntPreventLeaderEstablishment(t *testing.T) {
+	ca.SkipIfVaultNotPresent(t)
+
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Build = "1.9.1"
+		c.PrimaryDatacenter = "dc1"
+		c.CAConfig = &structs.CAConfiguration{
+			Provider: "consul",
+			Config: map[string]interface{}{
+				"RootCert": "garbage",
+			},
+		}
+	})
+	defer s1.Shutdown()
+
+	waitForLeaderEstablishment(t, s1)
+
+	rootsList, activeRoot, err := getTestRoots(s1, "dc1")
+	require.NoError(t, err)
+	require.Empty(t, rootsList.Roots)
+	require.Nil(t, activeRoot)
+
+	newConfig := &structs.CAConfiguration{
+		Provider: "consul",
+		Config:   map[string]interface{}{},
+	}
+	{
+		args := &structs.CARequest{
+			Datacenter: "dc1",
+			Config:     newConfig,
+		}
+		var reply interface{}
+
+		retry.Run(t, func(r *retry.R) {
+			require.NoError(r, s1.RPC("ConnectCA.ConfigurationSet", args, &reply))
+		})
+	}
+
+	rootsList, activeRoot, err = getTestRoots(s1, "dc1")
+	require.NoError(t, err)
+	require.NotEmpty(t, rootsList.Roots)
+	require.NotNil(t, activeRoot)
+}

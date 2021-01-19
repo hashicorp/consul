@@ -523,10 +523,31 @@ func (c *VaultProvider) SupportsCrossSigning() (bool, error) {
 // Cleanup unmounts the configured intermediate PKI backend. It's fine to tear
 // this down and recreate it on small config changes because the intermediate
 // certs get bundled with the leaf certs, so there's no cost to the CA changing.
-func (v *VaultProvider) Cleanup() error {
+func (v *VaultProvider) Cleanup(providerTypeChange bool, otherConfig map[string]interface{}) error {
 	v.Stop()
 
-	return v.client.Sys().Unmount(v.config.IntermediatePKIPath)
+	if !providerTypeChange {
+		newConfig, err := ParseVaultCAConfig(otherConfig)
+		if err != nil {
+			return err
+		}
+
+		// if the intermeidate PKI path isn't changing we don't want to delete it as
+		// Cleanup is called after initializing the new provider
+		if newConfig.IntermediatePKIPath == v.config.IntermediatePKIPath {
+			return nil
+		}
+	}
+
+	err := v.client.Sys().Unmount(v.config.IntermediatePKIPath)
+
+	switch err {
+	case ErrBackendNotMounted, ErrBackendNotInitialized:
+		// suppress these errors if we didn't finish initialization before
+		return nil
+	default:
+		return err
+	}
 }
 
 // Stop shuts down the token renew goroutine.
