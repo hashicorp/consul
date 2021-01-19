@@ -11,7 +11,7 @@
     cursor: default;
   }
   header {
-    @extend %h4;
+    @extend %h400;
   }
   header > * {
     @extend %typo-inherit;

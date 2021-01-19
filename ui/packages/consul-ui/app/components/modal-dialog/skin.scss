@@ -28,6 +28,9 @@
 %modal-window > header {
   @extend %frame-gray-800;
 }
+%modal-window > header > * {
+  @extend %h200;
+}
 
 .modal-dialog-body,
 %modal-window > footer,
