@@ -740,7 +740,11 @@ func (s *Store) deleteNodeTxn(tx WriteTxn, idx uint64, nodeName string) error {
 	if err != nil {
 		return fmt.Errorf("failed coordinate lookup: %s", err)
 	}
+	var coordsToDelete []interface{}
 	for coord := coords.Next(); coord != nil; coord = coords.Next() {
+		coordsToDelete = append(coordsToDelete, coord)
+	}
+	for _, coord := range coordsToDelete {
 		if err := tx.Delete("coordinates", coord); err != nil {
 			return fmt.Errorf("failed deleting coordinate: %s", err)
 		}
