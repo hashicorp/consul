@@ -34,13 +34,13 @@ func GeneratePrivateKey() (crypto.Signer, string, error) {
 }
 
 type CAOpts struct {
-	Signer      crypto.Signer
-	Serial      *big.Int
-	ClusterID   string
-	Days        int
-	Constraints []string
-	Domain      string
-	Name        string
+	Signer              crypto.Signer
+	Serial              *big.Int
+	ClusterID           string
+	Days                int
+	PermittedDNSDomains []string
+	Domain              string
+	Name                string
 }
 
 // GenerateCA generates a new CA for agent TLS (not to be confused with Connect TLS)
@@ -106,9 +106,9 @@ func GenerateCA(opts CAOpts) (string, string, error) {
 		SubjectKeyId:          id,
 	}
 
-	if len(opts.Constraints) > 0 {
+	if len(opts.PermittedDNSDomains) > 0 {
 		template.PermittedDNSDomainsCritical = true
-		template.PermittedDNSDomains = opts.Constraints
+		template.PermittedDNSDomains = opts.PermittedDNSDomains
 	}
 	bs, err := x509.CreateCertificate(
 		rand.Reader, &template, &template, signer.Public(), signer)

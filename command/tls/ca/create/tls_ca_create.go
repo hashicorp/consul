@@ -71,7 +71,7 @@ func (c *cmd) Run(args []string) int {
 		constraints = append(c.additionalConstraints, []string{c.domain, "localhost"}...)
 	}
 
-	ca, pk, err := tlsutil.GenerateCA(tlsutil.CAOpts{Name: c.commonName, Days: c.days, Domain: c.domain, Constraints: constraints, ClusterID: c.clusterID})
+	ca, pk, err := tlsutil.GenerateCA(tlsutil.CAOpts{Name: c.commonName, Days: c.days, Domain: c.domain, PermittedDNSDomains: constraints, ClusterID: c.clusterID})
 	if err != nil {
 		c.UI.Error(err.Error())
 		return 1
