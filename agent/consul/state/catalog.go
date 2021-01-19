@@ -3287,6 +3287,11 @@ func cleanupMeshTopology(tx WriteTxn, idx uint64, service *structs.ServiceNode) 
 			if err := indexUpdateMaxTxn(tx, idx, topologyTableName); err != nil {
 				return fmt.Errorf("failed updating %s index: %v", topologyTableName, err)
 			}
+			continue
+
+		}
+		if err := tx.Insert(topologyTableName, copy); err != nil {
+			return fmt.Errorf("failed inserting %s mapping: %s", topologyTableName, err)
 		}
 	}
 	return nil

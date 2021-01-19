@@ -6719,7 +6719,7 @@ func TestCatalog_upstreamsFromRegistration_Watches(t *testing.T) {
 
 	ws = memdb.NewWatchSet()
 	tx = s.db.ReadTxn()
-	idx, _, err = upstreamsFromRegistrationTxn(tx, ws, web)
+	idx, names, err = upstreamsFromRegistrationTxn(tx, ws, web)
 
 	require.NoError(t, err)
 
@@ -6728,7 +6728,7 @@ func TestCatalog_upstreamsFromRegistration_Watches(t *testing.T) {
 		idx: 5,
 	}
 	require.Equal(t, exp.idx, idx)
-	require.Empty(t, exp.names)
+	require.Equal(t, exp.names, names)
 }
 
 func TestCatalog_upstreamsFromRegistration_Ingress(t *testing.T) {
