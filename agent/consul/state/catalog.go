@@ -3278,8 +3278,11 @@ func cleanupMeshTopology(tx WriteTxn, idx uint64, service *structs.ServiceNode) 
 		if !ok {
 			return fmt.Errorf("unexpected topology type %T", rawCopy)
 		}
-		delete(copy.Refs, uid)
+		if _, ok := copy.Refs[uid]; !ok {
+			continue
+		}
 
+		delete(copy.Refs, uid)
 		if len(copy.Refs) == 0 {
 			if err := tx.Delete(topologyTableName, entry); err != nil {
 				return fmt.Errorf("failed to truncate %s table: %v", topologyTableName, err)
