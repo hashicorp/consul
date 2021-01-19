@@ -652,7 +652,7 @@ jobs:
           working_directory: ui-v2
           command: bash <(curl -s https://codecov.io/bash) -v -c -C $CIRCLE_SHA1 -F ui
 
-  envoy-integration-test-1.11.2:
+  envoy-integration-test-1_11_2:
     docker:
       # We only really need bash and docker-compose which is installed on all
       # Circle images but pick Go since we have to pick one of them.
@@ -686,21 +686,21 @@ jobs:
       - store_artifacts:
           path: *TEST_RESULTS_DIR
 
-  envoy-integration-test-1.12.7:
+  envoy-integration-test-1_12_7:
     docker:
       - image: *GOLANG_IMAGE
     environment:
       ENVOY_VERSION: "1.12.7"
     steps: *ENVOY_INTEGRATION_TEST_STEPS
 
-  envoy-integration-test-1.13.6:
+  envoy-integration-test-1_13_6:
     docker:
       - image: *GOLANG_IMAGE
     environment:
       ENVOY_VERSION: "1.13.6"
     steps: *ENVOY_INTEGRATION_TEST_STEPS
 
-  envoy-integration-test-1.14.5:
+  envoy-integration-test-1_14_5:
     docker:
       - image: *GOLANG_IMAGE
     environment:
@@ -839,16 +839,16 @@ workflows:
       - nomad-integration-0_8:
           requires:
             - dev-build
-      - envoy-integration-test-1.11.2:
+      - envoy-integration-test-1_11_2:
           requires:
             - dev-build
-      - envoy-integration-test-1.12.7:
+      - envoy-integration-test-1_12_7:
           requires:
             - dev-build
-      - envoy-integration-test-1.13.6:
+      - envoy-integration-test-1_13_6:
           requires:
             - dev-build
-      - envoy-integration-test-1.14.5:
+      - envoy-integration-test-1_14_5:
           requires:
             - dev-build
   website:
