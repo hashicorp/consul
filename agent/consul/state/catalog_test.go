@@ -6790,7 +6790,7 @@ func TestCatalog_topologyCleanupPanic(t *testing.T) {
 	require.NoError(t, s.EnsureService(2, "foo", &svc))
 	assert.True(t, watchFired(ws))
 
-	// Now delete the node Foo, and this would panic because the deletion within an iterator
+	// Now delete the node Foo, and this would panic because of the deletion within an iterator
 	require.NoError(t, s.DeleteNode(3, "foo"))
 	assert.True(t, watchFired(ws))
 
@@ -7006,6 +7006,75 @@ func TestCatalog_upstreamsFromRegistration_Ingress(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, uint64(8), idx)
 	require.Len(t, names, 0)
+}
+
+func TestCatalog_cleanupGatewayWildcards_panic(t *testing.T) {
+	s := testStateStore(t)
+
+	require.NoError(t, s.EnsureNode(0, &structs.Node{
+		ID:   "c73b8fdf-4ef8-4e43-9aa2-59e85cc6a70c",
+		Node: "foo",
+	}))
+	require.NoError(t, s.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: structs.ProxyConfigGlobal,
+		Config: map[string]interface{}{
+			"protocol": "http",
+		},
+	}, nil))
+
+	defaultMeta := structs.DefaultEnterpriseMeta()
+
+	// Register two different gateways that target services via wildcard
+	require.NoError(t, s.EnsureConfigEntry(2, &structs.TerminatingGatewayConfigEntry{
+		Kind: "terminating-gateway",
+		Name: "my-gateway-1-terminating",
+		Services: []structs.LinkedService{
+			{
+				Name:           "*",
+				EnterpriseMeta: *defaultMeta,
+			},
+		},
+	}, nil))
+
+	require.NoError(t, s.EnsureConfigEntry(3, &structs.IngressGatewayConfigEntry{
+		Kind: "ingress-gateway",
+		Name: "my-gateway-2-ingress",
+		Listeners: []structs.IngressListener{
+			{
+				Port:     1111,
+				Protocol: "http",
+				Services: []structs.IngressService{
+					{
+						Name:           "*",
+						EnterpriseMeta: *defaultMeta,
+					},
+				},
+			},
+		},
+	}, nil))
+
+	// Register two services that share a prefix, both will be covered by gateway wildcards above
+	api := structs.NodeService{
+		ID:             "api",
+		Service:        "api",
+		Address:        "127.0.0.2",
+		Port:           443,
+		EnterpriseMeta: *defaultMeta,
+	}
+	require.NoError(t, s.EnsureService(4, "foo", &api))
+
+	api2 := structs.NodeService{
+		ID:             "api-2",
+		Service:        "api-2",
+		Address:        "127.0.0.2",
+		Port:           443,
+		EnterpriseMeta: *defaultMeta,
+	}
+	require.NoError(t, s.EnsureService(5, "foo", &api2))
+
+	// Now delete the node "foo", and this would panic because of the deletion within an iterator
+	require.NoError(t, s.DeleteNode(6, "foo"))
 }
 
 func TestCatalog_DownstreamsForService(t *testing.T) {
