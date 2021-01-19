@@ -93,12 +93,12 @@ func TestGenerateCA(t *testing.T) {
 
 func TestGenerateCert(t *testing.T) {
 	t.Parallel()
-	ca, _, err := GenerateCA(CAOpts{})
+	signer, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	require.Nil(t, err)
+	ca, _, err := GenerateCA(CAOpts{Signer: signer})
 	require.Nil(t, err)
 
 	sn, err := GenerateSerialNumber()
-	require.Nil(t, err)
-	signer, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	require.Nil(t, err)
 	DNSNames := []string{"server.dc1.consul"}
 	IPAddresses := []net.IP{net.ParseIP("123.234.243.213")}

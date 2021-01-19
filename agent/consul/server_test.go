@@ -43,17 +43,17 @@ const (
 // testTLSCertificates Generates a TLS CA and server key/cert and returns them
 // in PEM encoded form.
 func testTLSCertificates(serverName string) (cert string, key string, cacert string, err error) {
-	ca, _, err := tlsutil.GenerateCA(tlsutil.CAOpts{})
+	signer, _, err := tlsutil.GeneratePrivateKey()
+	if err != nil {
+		return "", "", "", err
+	}
+
+	ca, _, err := tlsutil.GenerateCA(tlsutil.CAOpts{Signer: signer})
 	if err != nil {
 		return "", "", "", err
 	}
 
 	serial, err := tlsutil.GenerateSerialNumber()
-	if err != nil {
-		return "", "", "", err
-	}
-
-	signer, _, err := tlsutil.GeneratePrivateKey()
 	if err != nil {
 		return "", "", "", err
 	}
