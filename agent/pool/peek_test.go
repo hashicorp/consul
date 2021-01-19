@@ -1,9 +1,6 @@
 package pool
 
 import (
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
@@ -194,22 +191,18 @@ func deadlineNetPipe(deadline time.Time) (net.Conn, net.Conn, error) {
 }
 
 func generateTestCert(serverName string) (cert tls.Certificate, caPEM []byte, err error) {
-	// generate CA
-	serial, err := tlsutil.GenerateSerialNumber()
-	if err != nil {
-		return tls.Certificate{}, nil, err
-	}
-	signer, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		return tls.Certificate{}, nil, err
-	}
-	ca, err := tlsutil.GenerateCA(signer, serial, 365, nil)
+	ca, _, err := tlsutil.GenerateCA(tlsutil.CAOpts{})
 	if err != nil {
 		return tls.Certificate{}, nil, err
 	}
 
 	// generate leaf
-	serial, err = tlsutil.GenerateSerialNumber()
+	serial, err := tlsutil.GenerateSerialNumber()
+	if err != nil {
+		return tls.Certificate{}, nil, err
+	}
+
+	signer, _, err := tlsutil.GeneratePrivateKey()
 	if err != nil {
 		return tls.Certificate{}, nil, err
 	}

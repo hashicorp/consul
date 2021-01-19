@@ -62,22 +62,53 @@ func TestCACreateCommand(t *testing.T) {
 				require.ElementsMatch(t, cert.PermittedDNSDomains, []string{"foo", "localhost", "bar"})
 			},
 		},
+		{"with cluster-id",
+			[]string{
+				"-domain=foo",
+				"-cluster-id=uuid",
+			},
+			"foo-agent-ca.pem",
+			"foo-agent-ca-key.pem",
+			func(t *testing.T, cert *x509.Certificate) {
+				require.Len(t, cert.URIs, 1)
+				require.Equal(t, cert.URIs[0].String(), "spiffe://uuid.foo")
+			},
+		},
+		{"with common-name",
+			[]string{
+				"-common-name=foo",
+			},
+			"consul-agent-ca.pem",
+			"consul-agent-ca-key.pem",
+			func(t *testing.T, cert *x509.Certificate) {
+				require.Equal(t, cert.Subject.CommonName, "foo")
+			},
+		},
+		{"without common-name",
+			[]string{ },
+			"consul-agent-ca.pem",
+			"consul-agent-ca-key.pem",
+			func(t *testing.T, cert *x509.Certificate) {
+				require.True(t, strings.HasPrefix(cert.Subject.CommonName, "Consul Agent CA"))
+			},
+		},
 	}
 	for _, tc := range cases {
 		tc := tc
 		require.True(t, t.Run(tc.name, func(t *testing.T) {
 			ui := cli.NewMockUi()
 			cmd := New(ui)
-			require.Equal(t, 0, cmd.Run(tc.args))
+			require.Equal(t, 0, cmd.Run(tc.args), ui.ErrorWriter.String())
 			require.Equal(t, "", ui.ErrorWriter.String())
 
 			cert, _ := expectFiles(t, tc.caPath, tc.keyPath)
-			require.Contains(t, cert.Subject.CommonName, "Consul Agent CA")
 			require.True(t, cert.BasicConstraintsValid)
 			require.Equal(t, x509.KeyUsageCertSign|x509.KeyUsageCRLSign|x509.KeyUsageDigitalSignature, cert.KeyUsage)
 			require.True(t, cert.IsCA)
 			require.Equal(t, cert.AuthorityKeyId, cert.SubjectKeyId)
 			tc.extraCheck(t, cert)
+			require.NoError(t, os.Remove(tc.caPath))
+			require.NoError(t, os.Remove(tc.keyPath))
 		}))
 	}
 
