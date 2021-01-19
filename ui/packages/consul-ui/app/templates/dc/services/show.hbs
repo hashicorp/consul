@@ -34,6 +34,13 @@
 
     <BlockSlot @name="loaded">
       <AppView>
+        <BlockSlot @name="notification" as |status type item error|>
+          <TopologyMetrics::Notifications
+            @type={{type}}
+            @status={{status}}
+            @error={{error}}
+          />
+        </BlockSlot>
         <BlockSlot @name="breadcrumbs">
           <ol>
               <li><a data-test-back href={{href-to 'dc.services'}}>All Services</a></li>
