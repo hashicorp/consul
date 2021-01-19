@@ -14,10 +14,11 @@ export default class IndexRoute extends Route {
     },
   };
 
-  model(params) {
+  async model(params) {
     return {
       dc: this.modelFor('dc').dc.Name,
       nspace: this.modelFor('nspace').nspace.substr(1),
+      searchProperties: this.queryParams.searchproperty.empty[0],
     };
   }
 

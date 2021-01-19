@@ -7,6 +7,9 @@ const diff = (a, b) => {
 export default class SearchBar extends Component {
   get isFiltered() {
     const searchproperty = this.args.filter.searchproperty;
+    if (typeof searchproperty === 'undefined') {
+      return false;
+    }
     return (
       diff(searchproperty.default, searchproperty.value).length > 0 ||
       Object.entries(this.args.filter).some(([key, value]) => {

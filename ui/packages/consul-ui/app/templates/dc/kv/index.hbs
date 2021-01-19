@@ -1,8 +1,21 @@
 {{page-title 'Key/Value'}}
-{{#let (hash
-  kinds=(if kind (split kind ',') undefined)
-) as |filters|}}
-  {{#let (or sortBy "Kind:asc") as |sort|}}
+{{#let
+
+  (hash
+    value=(or sortBy "Kind:asc")
+    change=(action (mut sortBy) value="target.selected")
+  )
+
+  (hash
+    kind=(hash
+      value=(if kind (split kind ',') undefined)
+      change=(action (mut kind) value="target.selectedItems")
+    )
+  )
+
+  items
+
+as |sort filters items|}}
     <AppView>
     {{#if (not-eq parent.Key '/') }}
       <BlockSlot @name="breadcrumbs">
@@ -31,12 +44,8 @@
           @onsearch={{action (mut search) value="target.value"}}
 
           @sort={{sort}}
-          @onsort={{action (mut sortBy) value="target.selected"}}
 
           @filter={{filters}}
-          @onfilter={{hash
-            kind=(action (mut kind) value="target.selectedItems")
-          }}
         />
     {{/if}}
       </BlockSlot>
@@ -57,7 +66,7 @@
           <BlockSlot @name="content">
             <DataCollection
               @type="kv"
-              @sort={{sort}}
+              @sort={{sort.value}}
               @filters={{filters}}
               @search={{search}}
               @items={{items}}
@@ -104,5 +113,4 @@
         </DataWriter>
       </BlockSlot>
     </AppView>
-  {{/let}}
 {{/let}}
