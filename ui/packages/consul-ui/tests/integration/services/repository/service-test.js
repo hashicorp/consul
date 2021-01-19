@@ -36,19 +36,20 @@ const undefinedNspace = 'default';
         return service.findGatewayBySlug(gateway, dc, nspace || undefinedNspace, conf);
       },
       function performAssertion(actual, expected) {
-        assert.deepEqual(
-          actual,
-          expected(function(payload) {
-            return payload.map(item =>
-              Object.assign({}, item, {
-                SyncTime: now,
-                Datacenter: dc,
-                Namespace: item.Namespace || undefinedNspace,
-                uid: `["${item.Namespace || undefinedNspace}","${dc}","${item.Name}"]`,
-              })
-            );
-          })
-        );
+        const result = expected(function(payload) {
+          return payload.map(item =>
+            Object.assign({}, item, {
+              SyncTime: now,
+              Datacenter: dc,
+              Namespace: item.Namespace || undefinedNspace,
+              uid: `["${item.Namespace || undefinedNspace}","${dc}","${item.Name}"]`,
+            })
+          );
+        });
+        assert.equal(actual[0].SyncTime, result[0].SyncTime);
+        assert.equal(actual[0].Datacenter, result[0].Datacenter);
+        assert.equal(actual[0].Namespace, result[0].Namespace);
+        assert.equal(actual[0].uid, result[0].uid);
       }
     );
   });
