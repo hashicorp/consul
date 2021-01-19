@@ -20,7 +20,7 @@ module('Unit | Filter | Predicates | intention', function() {
     expected = [items[0]];
     actual = items.filter(
       predicate({
-        accesses: ['allow'],
+        access: ['allow'],
       })
     );
     assert.deepEqual(actual, expected);
@@ -28,7 +28,7 @@ module('Unit | Filter | Predicates | intention', function() {
     expected = [items[1]];
     actual = items.filter(
       predicate({
-        accesses: ['deny'],
+        access: ['deny'],
       })
     );
     assert.deepEqual(actual, expected);
@@ -36,7 +36,7 @@ module('Unit | Filter | Predicates | intention', function() {
     expected = items;
     actual = items.filter(
       predicate({
-        accesses: ['allow', 'deny'],
+        access: ['allow', 'deny'],
       })
     );
     assert.deepEqual(actual, expected);

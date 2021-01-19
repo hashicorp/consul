@@ -1,15 +1,27 @@
-<div class="search-bar">
+<div
+  class="search-bar"
+  ...attributes
+>
   <form
     class="filter-bar"
   >
     <div class="search">
-      {{yield to="search"}}
+      {{yield (hash
+        Search=(component "freetext-filter")
+        Select=(component "popover-select")
+      ) to="search"}}
     </div>
     <div class="filters">
-      {{yield to="filter"}}
+      {{yield (hash
+        Search=(component "freetext-filter")
+        Select=(component "popover-select")
+      ) to="filter"}}
     </div>
     <div class="sort">
-      {{yield to="sort"}}
+      {{yield (hash
+        Search=(component "freetext-filter")
+        Select=(component "popover-select")
+      ) to="sort"}}
     </div>
   </form>
 {{#if this.isFiltered}}

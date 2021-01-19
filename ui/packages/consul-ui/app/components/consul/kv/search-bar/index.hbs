@@ -1,68 +1,128 @@
-<form
-  class="consul-kv-search-bar filter-bar"
+<SearchBar
+  class="consul-kv-search-bar"
   ...attributes
+  @filter={{@filter}}
 >
-  <div class="search">
-    <FreetextFilter
-      @onsearch={{action @onsearch}}
-      @value={{@search}}
-      @placeholder="Search"
-    />
-  </div>
-  <div class="filters">
-    <PopoverSelect
-      class="type-kind"
-      @position="left"
-      @onchange={{action @onfilter.kind}}
-      @multiple={{true}}
-    as |components|>
-      <BlockSlot @name="selected">
-        <span>
-          Type
-        </span>
-      </BlockSlot>
-      <BlockSlot @name="options">
-{{#let components.Optgroup components.Option as |Optgroup Option|}}
-        <Option @value="folder" @selected={{contains 'folder' @filter.kinds}}>Folder</Option>
-        <Option @value="key" @selected={{contains 'key' @filter.kinds}}>Key</Option>
+    <:status as |search|>
+
+{{#let
+
+  (t (concat "components.consul.kv.search-bar." search.status.key)
+      default=(array
+        (concat "common.search." search.status.key)
+        (concat "common.consul." search.status.key)
+      )
+  )
+
+  (t (concat "components.consul.kv.search-bar." search.status.value)
+      default=(array
+        (concat "common.search." search.status.value)
+        (concat "common.consul." search.status.value)
+      )
+  )
+
+as |key value|}}
+      <search.RemoveFilter
+        aria-label={{t "common.ui.remove" item=(concat key " " value)}}
+      >
+        <dl>
+          <dt>{{key}}</dt>
+          <dd>{{value}}</dd>
+        </dl>
+      </search.RemoveFilter>
 {{/let}}
-      </BlockSlot>
-    </PopoverSelect>
-  </div>
-  <div class="sort">
-    <PopoverSelect
-      class="type-sort"
-      data-test-sort-control
-      @position="right"
-      @onchange={{action @onsort}}
-      @multiple={{false}}
-    as |components|>
-      <BlockSlot @name="selected">
-        <span>
-          {{#let (from-entries (array
-                (array "Key:asc" "A to Z")
-                (array "Key:desc" "Z to A")
-                (array "Kind:asc" "Folders to Keys")
-                (array "Kind:desc" "Keys to Folders")
-              ))
-            as |selectable|
-          }}
-            {{get selectable @sort}}
-          {{/let}}
-        </span>
-      </BlockSlot>
-      <BlockSlot @name="options">
-{{#let components.Optgroup components.Option as |Optgroup Option|}}
-        <Optgroup @label="Name">
-          <Option @value="Key:asc" @selected={{eq "Key:asc" @sort}}>A to Z</Option>
-          <Option @value="Key:desc" @selected={{eq "Key:desc" @sort}}>Z to A</Option>
-        </Optgroup>
-        <Optgroup @label="Type">
-          <Option @value="Kind:asc" @selected={{eq "Kind:asc" @sort}}>Folders to Keys</Option>
-          <Option @value="Kind:desc" @selected={{eq "Kind:desc" @sort}}>Keys to Folders</Option>
-        </Optgroup>
-{{/let}}
-      </BlockSlot>
-    </PopoverSelect>
-  </div>
-</form>
+
+    </:status>
+    <:search as |search|>
+      <search.Search
+        @onsearch={{action @onsearch}}
+        @value={{@search}}
+        @placeholder={{t "common.search.search"}}
+      >
+{{#if @filter.searchproperty}}
+        <search.Select
+          class="type-search-properties"
+          @position="right"
+          @onchange={{action @filter.searchproperty.change}}
+          @multiple={{true}}
+          @required={{true}}
+        as |components|>
+          <BlockSlot @name="selected">
+            <span>
+              {{t "common.search.searchproperty"}}
+            </span>
+          </BlockSlot>
+          <BlockSlot @name="options">
+    {{#let components.Optgroup components.Option as |Optgroup Option|}}
+            {{#each @filter.searchproperty.default as |prop|}}
+              <Option @value={{prop}} @selected={{contains prop @filter.searchproperty.value}}>
+                {{t (concat "common.consul." (lowercase prop))}}
+              </Option>
+            {{/each}}
+    {{/let}}
+          </BlockSlot>
+        </search.Select>
+  {{/if}}
+      </search.Search>
+    </:search>
+    <:filter as |search|>
+      <search.Select
+        class="type-kind"
+        @position="left"
+        @onchange={{action @filter.kind.change}}
+        @multiple={{true}}
+      as |components|>
+        <BlockSlot @name="selected">
+          <span>
+            {{t "components.consul.kv.search-bar.kind.name"}}
+          </span>
+        </BlockSlot>
+        <BlockSlot @name="options">
+  {{#let components.Optgroup components.Option as |Optgroup Option|}}
+    {{#each (array "folder" "key") as |item|}}
+          <Option class="value-{item}}" @value={{item}} @selected={{contains item @filter.kind.value}}>
+            {{t (concat "components.consul.kv.search-bar.kind.options." item)}}
+          </Option>
+    {{/each}}
+  {{/let}}
+        </BlockSlot>
+      </search.Select>
+    </:filter>
+    <:sort as |search|>
+      <search.Select
+        class="type-sort"
+        data-test-sort-control
+        @position="right"
+        @onchange={{action @sort.change}}
+        @multiple={{false}}
+        @required={{true}}
+      as |components|>
+        <BlockSlot @name="selected">
+          <span>
+            {{#let (from-entries (array
+                  (array "Key:asc" (t "common.sort.alpha.asc"))
+                  (array "Key:desc" (t "common.sort.alpha.desc"))
+                  (array "Kind:asc" (t "components.consul.kv.search-bar.sort.kind.asc"))
+                  (array "Kind:desc" (t "components.consul.kv.search-bar.sort.kind.desc"))
+                ))
+              as |selectable|
+            }}
+              {{get selectable @sort.value}}
+            {{/let}}
+          </span>
+        </BlockSlot>
+        <BlockSlot @name="options">
+  {{#let components.Optgroup components.Option as |Optgroup Option|}}
+          <Optgroup @label={{t "common.consul.name"}}>
+            <Option @value="Key:asc" @selected={{eq "Key:asc" @sort.value}}>{{t "common.sort.alpha.asc"}}</Option>
+            <Option @value="Key:desc" @selected={{eq "Key:desc" @sort.value}}>{{t "common.sort.alpha.desc"}}</Option>
+          </Optgroup>
+          <Optgroup @label={{t "components.consul.kv.search-bar.kind.name"}}>
+            <Option @value="Kind:asc" @selected={{eq "Kind:asc" @sort.value}}>{{t "components.consul.kv.search-bar.sort.kind.asc"}}</Option>
+            <Option @value="Kind:desc" @selected={{eq "Kind:desc" @sort.value}}>{{t "components.consul.kv.search-bar.sort.kind.desc"}}</Option>
+          </Optgroup>
+  {{/let}}
+        </BlockSlot>
+      </search.Select>
+    </:sort>
+</SearchBar>

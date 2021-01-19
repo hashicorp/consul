@@ -1,6 +1,5 @@
 import { inject as service } from '@ember/service';
 import Route from 'consul-ui/routing/route';
-import { hash } from 'rsvp';
 
 export default class IndexRoute extends Route {
   @service('data-source/service') data;
@@ -18,13 +17,16 @@ export default class IndexRoute extends Route {
     },
   };
 
-  model(params) {
+  async model(params) {
     const dc = this.modelFor('dc').dc.Name;
     const nspace = this.modelFor('nspace').nspace.substr(1);
-    return hash({
-      items: this.data.source(uri => uri`/${nspace}/${dc}/nodes`),
-      leader: this.data.source(uri => uri`/${nspace}/${dc}/leader`),
-    });
+    const items = this.data.source(uri => uri`/${nspace}/${dc}/nodes`);
+    const leader = this.data.source(uri => uri`/${nspace}/${dc}/leader`);
+    return {
+      items: await items,
+      leader: await leader,
+      searchProperties: this.queryParams.searchproperty.empty[0],
+    };
   }
 
   setupController(controller, model) {

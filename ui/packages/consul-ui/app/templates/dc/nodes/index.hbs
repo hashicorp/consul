@@ -1,14 +1,31 @@
 {{page-title 'Nodes'}}
 <EventSource @src={{items}} />
 <EventSource @src={{leader}} />
-{{#let (hash
-  statuses=(if status (split status ',') undefined)
-  searchproperties=(if (not-eq searchproperty undefined)
-    (split searchproperty ',')
-    (array 'Node' 'Address' 'Meta')
+{{#let
+
+  (hash
+    value=(or sortBy "Status:asc")
+    change=(action (mut sortBy) value="target.selected")
   )
-) as |filters|}}
-{{#let (or sortBy "Status:asc") as |sort|}}
+
+  (hash
+    status=(hash
+      value=(if status (split status ',') undefined)
+      change=(action (mut status) value="target.selectedItems")
+    )
+    searchproperty=(hash
+      value=(if (not-eq searchproperty undefined)
+        (split searchproperty ',')
+        searchProperties
+      )
+      change=(action (mut searchproperty) value="target.selectedItems")
+      default=searchProperties
+    )
+  )
+
+  items
+
+as |sort filters items|}}
   <AppView>
     <BlockSlot @name="header">
       <h1>
@@ -23,20 +40,15 @@
           @onsearch={{action (mut search) value="target.value"}}
 
           @sort={{sort}}
-          @onsort={{action (mut sortBy) value="target.selected"}}
 
           @filter={{filters}}
-          @onfilter={{hash
-            searchproperty=(action (mut searchproperty) value="target.selectedItems")
-            status=(action (mut status) value="target.selectedItems")
-          }}
         />
     {{/if}}
     </BlockSlot>
     <BlockSlot @name="content">
       <DataCollection
         @type="node"
-        @sort={{sort}}
+        @sort={{sort.value}}
         @filters={{filters}}
         @search={{search}}
         @items={{items}}
@@ -59,5 +71,4 @@
       </DataCollection>
     </BlockSlot>
   </AppView>
-  {{/let}}
 {{/let}}
