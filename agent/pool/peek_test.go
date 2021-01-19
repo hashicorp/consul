@@ -191,18 +191,18 @@ func deadlineNetPipe(deadline time.Time) (net.Conn, net.Conn, error) {
 }
 
 func generateTestCert(serverName string) (cert tls.Certificate, caPEM []byte, err error) {
-	ca, _, err := tlsutil.GenerateCA(tlsutil.CAOpts{})
+	signer, _, err := tlsutil.GeneratePrivateKey()
+	if err != nil {
+		return tls.Certificate{}, nil, err
+	}
+
+	ca, _, err := tlsutil.GenerateCA(tlsutil.CAOpts{Signer: signer})
 	if err != nil {
 		return tls.Certificate{}, nil, err
 	}
 
 	// generate leaf
 	serial, err := tlsutil.GenerateSerialNumber()
-	if err != nil {
-		return tls.Certificate{}, nil, err
-	}
-
-	signer, _, err := tlsutil.GeneratePrivateKey()
 	if err != nil {
 		return tls.Certificate{}, nil, err
 	}
