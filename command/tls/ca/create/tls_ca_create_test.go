@@ -85,7 +85,7 @@ func TestCACreateCommand(t *testing.T) {
 			},
 		},
 		{"without common-name",
-			[]string{ },
+			[]string{},
 			"consul-agent-ca.pem",
 			"consul-agent-ca-key.pem",
 			func(t *testing.T, cert *x509.Certificate) {

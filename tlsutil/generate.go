@@ -40,7 +40,7 @@ type CAOpts struct {
 	Days        int
 	Constraints []string
 	Domain      string
-	Name string
+	Name        string
 }
 
 // GenerateCA generates a new CA for agent TLS (not to be confused with Connect TLS)
