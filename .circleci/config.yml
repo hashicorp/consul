@@ -939,9 +939,6 @@ workflows:
       - nomad-integration-0_8:
           requires:
             - dev-build
-      - envoy-integration-test-1.13.7:
-          requires:
-            - dev-build
       - envoy-integration-test-1.14.6:
           requires:
             - dev-build
@@ -949,6 +946,9 @@ workflows:
           requires:
             - dev-build
       - envoy-integration-test-1.16.2:
+          requires:
+            - dev-build
+      - envoy-integration-test-1.17.0:
           requires:
             - dev-build
   website:
