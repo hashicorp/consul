@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
 )
@@ -19,7 +20,6 @@ func TestIntentionListCommand_noTabs(t *testing.T) {
 
 func TestIntentionListCommand(t *testing.T) {
 	t.Parallel()
-	require := require.New(t)
 	a := agent.NewTestAgent(t, ``)
 	defer a.Shutdown()
 	client := a.Client()
@@ -28,13 +28,17 @@ func TestIntentionListCommand(t *testing.T) {
 	var id string
 	{
 		var err error
-		//nolint:staticcheck
-		id, _, err = client.Connect().IntentionCreate(&api.Intention{
-			SourceName:      "web",
-			DestinationName: "db",
-			Action:          api.IntentionActionAllow,
-		}, nil)
-		require.NoError(err)
+		// This needs to be in a retry in 1.9+ due to the potential to get errors about
+		// intentions being read only during intention -> config entry migration.
+		retry.Run(t, func(r *retry.R) {
+			//nolint:staticcheck
+			id, _, err = client.Connect().IntentionCreate(&api.Intention{
+				SourceName:      "web",
+				DestinationName: "db",
+				Action:          api.IntentionActionAllow,
+			}, nil)
+			require.NoError(r, err)
+		})
 	}
 
 	// List all intentions
@@ -42,6 +46,6 @@ func TestIntentionListCommand(t *testing.T) {
 	cmd := New(ui)
 	args := []string{"-http-addr=" + a.HTTPAddr()}
 
-	require.Equal(0, cmd.Run(args), ui.ErrorWriter.String())
-	require.Contains(ui.OutputWriter.String(), id)
+	require.Equal(t, 0, cmd.Run(args), ui.ErrorWriter.String())
+	require.Contains(t, ui.OutputWriter.String(), id)
 }
