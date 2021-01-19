@@ -16,16 +16,25 @@
     </:header>
     <:body>
       <p>
-        Add an intention that allows these two services to connect.
+        {{#if @item.Intention.HasExact}}
+          Change the action of this intention to allow.
+        {{else}}
+          Add an intention that allows these two services to connect.
+        {{/if}}
       </p>
     </:body>
     <:actions as |Actions|>
       <Actions.Action class="action">
         <button
           {{on "click" @oncreate}}
+          data-test-confirm
           type="button"
         >
-          Create
+          {{#if @item.Intention.HasExact}}
+            Allow
+          {{else}}
+            Create
+          {{/if}}
         </button>
       </Actions.Action>
       <Actions.Action>
@@ -86,10 +95,11 @@
       )
       returns=(set this 'popoverController')
     }}
-    type="button"
     {{on 'click' (fn (optional this.popoverController.show))}}
+    type="button"
     style={{{concat 'top:' @position.y 'px;left:' @position.x 'px;'}}}
     aria-label={{if (eq @type 'deny') 'Add intention' 'View intention'}}
+    data-test-action
   >
   </button>
 </div>
