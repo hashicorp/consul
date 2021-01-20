@@ -1,15 +1,17 @@
 package uiserver
 
 import (
-	"encoding/json"
+	"bytes"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"os"
 	"path/filepath"
-	"regexp"
+	"strings"
 	"testing"
+
+	"golang.org/x/net/html"
 
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -34,14 +36,16 @@ func TestUIServerIndex(t *testing.T) {
 			path:         "/", // Note /index.html redirects to /
 			wantStatus:   http.StatusOK,
 			wantContains: []string{"<!-- CONSUL_VERSION:"},
-			wantNotContains: []string{
-				"__RUNTIME_BOOL_",
-				"__RUNTIME_STRING_",
-			},
-			wantEnv: map[string]interface{}{
-				"CONSUL_ACLS_ENABLED":     false,
-				"CONSUL_DATACENTER_LOCAL": "dc1",
-			},
+			wantUICfgJSON: `{
+				"ACLsEnabled": false,
+				"LocalDatacenter": "dc1",
+				"ContentPath": "/ui/",
+				"UIConfig": {
+					"metrics_provider": "",
+					"metrics_proxy_enabled": false,
+					"dashboard_url_templates": null
+				}
+			}`,
 		},
 		{
 			// We do this redirect just for UI dir since the app is a single page app
@@ -64,24 +68,18 @@ func TestUIServerIndex(t *testing.T) {
 			wantContains: []string{
 				"<!-- CONSUL_VERSION:",
 			},
-			wantNotContains: []string{
-				// This is a quick check to be sure that we actually URL encoded the
-				// JSON ui settings too. The assertions below could pass just fine even
-				// if we got that wrong because the decode would be a no-op if it wasn't
-				// URL encoded. But this just ensures that we don't see the raw values
-				// in the output because the quotes should be encoded.
-				`"a-very-unlikely-string"`,
-			},
-			wantEnv: map[string]interface{}{
-				"CONSUL_ACLS_ENABLED": false,
-			},
 			wantUICfgJSON: `{
-				"metrics_provider":         "foo",
-				"metrics_provider_options": {
-					"a-very-unlikely-string":1
-				},
-				"metrics_proxy_enabled": false,
-				"dashboard_url_templates": null
+				"ACLsEnabled": false,
+				"LocalDatacenter": "dc1",
+				"ContentPath": "/ui/",
+				"UIConfig": {
+					"metrics_provider": "foo",
+					"metrics_provider_options": {
+						"a-very-unlikely-string":1
+					},
+					"metrics_proxy_enabled": false,
+					"dashboard_url_templates": null
+				}
 			}`,
 		},
 		{
@@ -90,9 +88,16 @@ func TestUIServerIndex(t *testing.T) {
 			path:         "/",
 			wantStatus:   http.StatusOK,
 			wantContains: []string{"<!-- CONSUL_VERSION:"},
-			wantEnv: map[string]interface{}{
-				"CONSUL_ACLS_ENABLED": true,
-			},
+			wantUICfgJSON: `{
+				"ACLsEnabled": true,
+				"LocalDatacenter": "dc1",
+				"ContentPath": "/ui/",
+				"UIConfig": {
+					"metrics_provider": "",
+					"metrics_proxy_enabled": false,
+					"dashboard_url_templates": null
+				}
+			}`,
 		},
 		{
 			name: "external transformation",
@@ -110,13 +115,16 @@ func TestUIServerIndex(t *testing.T) {
 			wantContains: []string{
 				"<!-- CONSUL_VERSION:",
 			},
-			wantEnv: map[string]interface{}{
-				"CONSUL_SSO_ENABLED": true,
-			},
 			wantUICfgJSON: `{
-				"metrics_provider": "bar",
-				"metrics_proxy_enabled": false,
-				"dashboard_url_templates": null
+				"ACLsEnabled": false,
+				"SSOEnabled": true,
+				"LocalDatacenter": "dc1",
+				"ContentPath": "/ui/",
+				"UIConfig": {
+					"metrics_provider": "bar",
+					"metrics_proxy_enabled": false,
+					"dashboard_url_templates": null
+				}
 			}`,
 		},
 		{
@@ -148,13 +156,6 @@ func TestUIServerIndex(t *testing.T) {
 			for _, want := range tc.wantContains {
 				require.Contains(t, rec.Body.String(), want)
 			}
-			for _, wantNot := range tc.wantNotContains {
-				require.NotContains(t, rec.Body.String(), wantNot)
-			}
-			env := extractEnv(t, rec.Body.String())
-			for k, v := range tc.wantEnv {
-				require.Equal(t, v, env[k])
-			}
 			if tc.wantUICfgJSON != "" {
 				require.JSONEq(t, tc.wantUICfgJSON, extractUIConfig(t, rec.Body.String()))
 			}
@@ -162,41 +163,48 @@ func TestUIServerIndex(t *testing.T) {
 	}
 }
 
-func extractMetaJSON(t *testing.T, name, content string) string {
+func extractApplicationJSON(t *testing.T, attrName, content string) string {
 	t.Helper()
 
-	// Find and extract the env meta tag. Why yes I _am_ using regexp to parse
-	// HTML thanks for asking. In this case it's HTML with a very limited format
-	// so I don't feel too bad but maybe I should.
-	// https://stackoverflow.com/questions/1732348/regex-match-open-tags-except-xhtml-self-contained-tags/1732454#1732454
-	re := regexp.MustCompile(`<meta name="` + name + `+" content="([^"]*)"`)
+	var scriptContent *html.Node
+	var find func(node *html.Node)
 
-	matches := re.FindStringSubmatch(content)
-	require.Len(t, matches, 2, "didn't find the %s meta tag", name)
+	// recur down the tree and pick out <script attrName=ourAttrName>
+	find = func(node *html.Node) {
+		if node.Type == html.ElementNode && node.Data == "script" {
+			for i := 0; i < len(node.Attr); i++ {
+				attr := node.Attr[i]
+				if attr.Key == attrName {
+					// find the script and save off the content, which in this case is
+					// the JSON we are looking for, once we have it finish up
+					scriptContent = node.FirstChild
+					return
+				}
+			}
+		}
+		for child := node.FirstChild; child != nil; child = child.NextSibling {
+			find(child)
+		}
+	}
 
-	// Unescape the JSON
-	jsonStr, err := url.PathUnescape(matches[1])
+	doc, err := html.Parse(strings.NewReader(content))
 	require.NoError(t, err)
 
+	find(doc)
+
+	var buf bytes.Buffer
+	w := io.Writer(&buf)
+
+	renderErr := html.Render(w, scriptContent)
+	require.NoError(t, renderErr)
+
+	jsonStr := html.UnescapeString(buf.String())
 	return jsonStr
-}
-
-func extractEnv(t *testing.T, content string) map[string]interface{} {
-	t.Helper()
-
-	js := extractMetaJSON(t, "consul-ui/config/environment", content)
-
-	var env map[string]interface{}
-
-	err := json.Unmarshal([]byte(js), &env)
-	require.NoError(t, err)
-
-	return env
 }
 
 func extractUIConfig(t *testing.T, content string) string {
 	t.Helper()
-	return extractMetaJSON(t, "consul-ui/ui_config", content)
+	return extractApplicationJSON(t, "data-consul-ui-config", content)
 }
 
 type cfgFunc func(cfg *config.RuntimeConfig)
