@@ -43,7 +43,10 @@ export default function(config = {}, win = window, doc = document) {
       return {};
     }
   };
-  const ui_config = JSON.parse(unescape(doc.getElementsByName('consul-ui/ui_config')[0].content));
+  const operatorConfig = JSON.parse(
+    doc.querySelector(`[data-${config.modulePrefix}-config]`).textContent
+  );
+  const ui_config = operatorConfig.UIConfig || {};
   const scripts = doc.getElementsByTagName('script');
   // we use the currently executing script as a reference
   // to figure out where we are for other things such as
@@ -57,6 +60,18 @@ export default function(config = {}, win = window, doc = document) {
   const operator = function(str, env) {
     let protocol, dashboards, provider, proxy;
     switch (str) {
+      case 'CONSUL_NSPACES_ENABLED':
+        return typeof operatorConfig.NamespacesEnabled === 'undefined'
+          ? false
+          : operatorConfig.NamespacesEnabled;
+      case 'CONSUL_SSO_ENABLED':
+        return typeof operatorConfig.SSOEnabled === 'undefined' ? false : operatorConfig.SSOEnabled;
+      case 'CONSUL_ACLS_ENABLED':
+        return typeof operatorConfig.ACLsEnabled === 'undefined'
+          ? false
+          : operatorConfig.ACLsEnabled;
+      case 'CONSUL_DATACENTER_LOCAL':
+        return operatorConfig.LocalDatacenter;
       case 'CONSUL_UI_CONFIG':
         dashboards = {};
         provider = env('CONSUL_METRICS_PROVIDER');
@@ -155,6 +170,10 @@ export default function(config = {}, win = window, doc = document) {
         // these are strings
         return user(str) || ui(str);
       case 'CONSUL_UI_CONFIG':
+      case 'CONSUL_DATACENTER_LOCAL':
+      case 'CONSUL_ACLS_ENABLED':
+      case 'CONSUL_NSPACES_ENABLED':
+      case 'CONSUL_SSO_ENABLED':
       case 'CONSUL_METRICS_PROVIDER':
       case 'CONSUL_METRICS_PROXY_ENABLE':
       case 'CONSUL_SERVICE_DASHBOARD_URL':

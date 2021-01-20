@@ -92,11 +92,13 @@ module.exports = function(environment, $ = process.env) {
     CONSUL_UI_DISABLE_ANCHOR_SELECTION: env('CONSUL_UI_DISABLE_ANCHOR_SELECTION', false),
 
     // The following variables are runtime variables that are overwritten when
-    // the go binary services the index.html page
-    CONSUL_ACLS_ENABLED: false,
-    CONSUL_NSPACES_ENABLED: false,
-    CONSUL_SSO_ENABLED: false,
-    CONSUL_DATACENTER_LOCAL: env('CONSUL_DATACENTER_LOCAL', 'dc1'),
+    // the go binary serves the index.html page
+    operatorConfig: {
+      ACLsEnabled: false,
+      NamespacesEnabled: false,
+      SSOEnabled: false,
+      LocalDatacenter: env('CONSUL_DATACENTER_LOCAL', 'dc1'),
+    },
 
     // Static variables used in multiple places throughout the UI
     CONSUL_HOME_URL: 'https://www.consul.io',
@@ -112,9 +114,12 @@ module.exports = function(environment, $ = process.env) {
         locationType: 'none',
 
         // During testing ACLs default to being turned on
-        CONSUL_ACLS_ENABLED: env('CONSUL_ACLS_ENABLED', true),
-        CONSUL_NSPACES_ENABLED: env('CONSUL_NSPACES_ENABLED', false),
-        CONSUL_SSO_ENABLED: env('CONSUL_SSO_ENABLED', false),
+        operatorConfig: {
+          ACLsEnabled: env('CONSUL_ACLS_ENABLED', true),
+          NamespacesEnabled: env('CONSUL_NSPACES_ENABLED', false),
+          SSOEnabled: env('CONSUL_SSO_ENABLED', false),
+          LocalDatacenter: env('CONSUL_DATACENTER_LOCAL', 'dc1'),
+        },
 
         '@hashicorp/ember-cli-api-double': {
           'auto-import': false,
@@ -143,9 +148,12 @@ module.exports = function(environment, $ = process.env) {
         // different staging sites can be built with certain features disabled
         // by setting an environment variable to 0 during building (e.g.
         // CONSUL_NSPACES_ENABLED=0 make build)
-        CONSUL_ACLS_ENABLED: env('CONSUL_ACLS_ENABLED', true),
-        CONSUL_NSPACES_ENABLED: env('CONSUL_NSPACES_ENABLED', true),
-        CONSUL_SSO_ENABLED: env('CONSUL_SSO_ENABLED', true),
+        operatorConfig: {
+          ACLsEnabled: env('CONSUL_ACLS_ENABLED', true),
+          NamespacesEnabled: env('CONSUL_NSPACES_ENABLED', true),
+          SSOEnabled: env('CONSUL_SSO_ENABLED', true),
+          LocalDatacenter: env('CONSUL_DATACENTER_LOCAL', 'dc1'),
+        },
 
         '@hashicorp/ember-cli-api-double': {
           enabled: true,
@@ -157,22 +165,9 @@ module.exports = function(environment, $ = process.env) {
       break;
     case environment === 'production':
       ENV = Object.assign({}, ENV, {
-        // These values are placeholders that are replaced when Consul renders
-        // the index.html based on runtime config. They can't use Go template
-        // syntax since this object ends up JSON and URLencoded in an HTML meta
-        // tag which obscured the Go template tag syntax.
-        //
-        // __RUNTIME_BOOL_Xxxx__ will be replaced with either "true" or "false"
-        // depending on whether the named variable is true or false in the data
-        // returned from `uiTemplateDataFromConfig`.
-        //
-        // __RUNTIME_STRING_Xxxx__ will be replaced with the literal string in
-        // the named variable in the data returned from
-        // `uiTemplateDataFromConfig`. It may be empty.
-        CONSUL_ACLS_ENABLED: '__RUNTIME_BOOL_ACLsEnabled__',
-        CONSUL_SSO_ENABLED: '__RUNTIME_BOOL_SSOEnabled__',
-        CONSUL_NSPACES_ENABLED: '__RUNTIME_BOOL_NamespacesEnabled__',
-        CONSUL_DATACENTER_LOCAL: '__RUNTIME_STRING_LocalDatacenter__',
+        // in production operatorConfig is populated at consul runtime from
+        // operator configuration
+        operatorConfig: {},
       });
       break;
   }

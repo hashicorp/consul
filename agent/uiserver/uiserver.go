@@ -6,10 +6,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"os"
 	"path"
-	"regexp"
 	"strings"
 	"sync/atomic"
 	"text/template"
@@ -244,54 +242,13 @@ func (h *Handler) renderIndex(cfg *config.RuntimeConfig, fs http.FileSystem) ([]
 		}
 	}
 
-	// Sadly we can't perform all the replacements we need with Go template
-	// because some of them end up being rendered into an escaped json encoded
-	// meta tag by Ember build which messes up the Go template tags. After a few
-	// iterations of grossness, this seemed like the least bad for now. note we
-	// have to match the encoded double quotes around the JSON string value that
-	// is there as a placeholder so the end result is an actual JSON bool not a
-	// string containing "false" etc.
-	re := regexp.MustCompile(`%22__RUNTIME_(BOOL|STRING)_([A-Za-z0-9-_]+)__%22`)
-
-	content = []byte(re.ReplaceAllStringFunc(string(content), func(str string) string {
-		// Trim the prefix and suffix
-		pair := strings.TrimSuffix(strings.TrimPrefix(str, "%22__RUNTIME_"), "__%22")
-		parts := strings.SplitN(pair, "_", 2)
-		switch parts[0] {
-		case "BOOL":
-			if v, ok := tplData[parts[1]].(bool); ok && v {
-				return "true"
-			}
-			return "false"
-		case "STRING":
-			if v, ok := tplData[parts[1]].(string); ok {
-				if bs, err := json.Marshal(v); err == nil {
-					return url.PathEscape(string(bs))
-				}
-				// Error!
-				h.logger.Error("Encoding JSON value for UI template failed",
-					"placeholder", str,
-					"value", v,
-				)
-				// Fall through to return the empty string to make JSON parse
-			}
-			return `""` // Empty JSON string
-		}
-		// Unknown type is likely an error
-		h.logger.Error("Unknown placeholder type in UI template",
-			"placeholder", str,
-		)
-		// Return a literal empty string so the JSON still parses
-		return `""`
-	}))
-
 	tpl, err := template.New("index").Funcs(template.FuncMap{
-		"jsonEncodeAndEscape": func(data map[string]interface{}) (string, error) {
-			bs, err := json.Marshal(data)
+		"jsonEncode": func(data map[string]interface{}) (string, error) {
+			bs, err := json.MarshalIndent(data, "", "  ")
 			if err != nil {
-				return "", fmt.Errorf("failed jsonEncodeAndEscape: %w", err)
+				return "", fmt.Errorf("failed jsonEncode: %w", err)
 			}
-			return url.PathEscape(string(bs)), nil
+			return string(bs), nil
 		},
 	}).Parse(string(content))
 	if err != nil {

@@ -19,6 +19,11 @@ const makeGetElementsBy = function(str) {
     ];
   };
 };
+const makeOperatorConfig = function(json) {
+  return {
+    textContent: JSON.stringify(json),
+  };
+};
 const win = {
   performance: {
     getEntriesByType: getEntriesByType,
@@ -34,6 +39,7 @@ const doc = {
   cookie: '',
   getElementsByTagName: makeGetElementsBy(''),
   getElementsByName: makeGetElementsBy('{}'),
+  querySelector: () => makeOperatorConfig({}),
 };
 module('Unit | Utility | getEnvironment', function() {
   test('it returns a function', function(assert) {
@@ -62,6 +68,7 @@ module('Unit | Utility | getEnvironment', function() {
       cookie: '',
       getElementsByTagName: makeGetElementsBy(`${expected}/assets/consul-ui.js`),
       getElementsByName: makeGetElementsBy('{}'),
+      querySelector: () => makeOperatorConfig({}),
     };
     let env = getEnvironment(config, win, doc);
     assert.equal(env('CONSUL_BASE_UI_URL'), expected);
@@ -70,6 +77,7 @@ module('Unit | Utility | getEnvironment', function() {
       cookie: '',
       getElementsByTagName: makeGetElementsBy(`${expected}/assets/consul-ui.js`),
       getElementsByName: makeGetElementsBy('{}'),
+      querySelector: () => makeOperatorConfig({}),
     };
     env = getEnvironment(config, win, doc);
     assert.equal(env('CONSUL_BASE_UI_URL'), expected);
@@ -144,6 +152,7 @@ module('Unit | Utility | getEnvironment', function() {
       cookie: 'CONSUL_NSPACES_ENABLE=1',
       getElementsByTagName: makeGetElementsBy(''),
       getElementsByName: makeGetElementsBy('{}'),
+      querySelector: () => makeOperatorConfig({ NamespacesEnabled: true }),
     };
     let env = getEnvironment(config, win, doc);
     assert.ok(env('CONSUL_NSPACES_ENABLED'));
@@ -155,6 +164,7 @@ module('Unit | Utility | getEnvironment', function() {
       cookie: 'CONSUL_NSPACES_ENABLE=0',
       getElementsByTagName: makeGetElementsBy(''),
       getElementsByName: makeGetElementsBy('{}'),
+      querySelector: () => makeOperatorConfig({ NamespacesEnabled: false }),
     };
     env = getEnvironment(config, win, doc);
     assert.notOk(env('CONSUL_NSPACES_ENABLED'));
@@ -180,6 +190,7 @@ module('Unit | Utility | getEnvironment', function() {
       cookie: 'CONSUL_NSPACES_ENABLE=1',
       getElementsByTagName: makeGetElementsBy(''),
       getElementsByName: makeGetElementsBy('{}'),
+      querySelector: () => makeOperatorConfig({ NamespacesEnabled: false }),
     };
     let env = getEnvironment(config, win, doc);
     assert.notOk(env('CONSUL_NSPACES_ENABLED'));
@@ -191,6 +202,7 @@ module('Unit | Utility | getEnvironment', function() {
       cookie: 'CONSUL_NSPACES_ENABLE=0',
       getElementsByTagName: makeGetElementsBy(''),
       getElementsByName: makeGetElementsBy('{}'),
+      querySelector: () => makeOperatorConfig({ NamespacesEnabled: true }),
     };
     env = getEnvironment(config, win, doc);
     assert.ok(env('CONSUL_NSPACES_ENABLED'));
