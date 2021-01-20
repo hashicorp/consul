@@ -210,37 +210,28 @@ func ServiceHealthEventsFromChanges(tx ReadTxn, changes Changes) ([]stream.Event
 			}
 
 			gsChange := serviceChange{changeType: changeTypeFromChange(change), change: change}
+
 			if termGatewayChanges == nil {
 				termGatewayChanges = make(map[structs.ServiceName]map[structs.ServiceName]serviceChange)
 			}
 
-			gatewayChanges, ok := termGatewayChanges[gs.Gateway]
+			_, ok := termGatewayChanges[gs.Gateway]
 			if !ok {
 				termGatewayChanges[gs.Gateway] = map[structs.ServiceName]serviceChange{}
 			}
 
-			prevChange, ok := gatewayChanges[gs.Service]
-			if !ok {
+			switch gsChange.changeType {
+			case changeUpdate:
+				after := gsChange.change.After.(*structs.GatewayService)
+				if gsChange.change.Before.(*structs.GatewayService).IsSame(after) {
+					continue
+				}
 				termGatewayChanges[gs.Gateway][gs.Service] = gsChange
-				continue
-			}
-
-			if changeTypeFromChange(change) == changeDelete {
+			case changeDelete, changeCreate:
 				termGatewayChanges[gs.Gateway][gs.Service] = gsChange
-				continue
-			}
-
-			prevGs := changeObject(prevChange.change).(*structs.GatewayService)
-			if !gs.IsSame(prevGs) {
-				gsChange.changeType = changeUpdate
-				termGatewayChanges[gs.Gateway][gs.Service] = gsChange
-			} else {
-				delete(termGatewayChanges[gs.Gateway], gs.Service)
 			}
 		}
 	}
-
-	//fmt.Printf("term gateway map: %v", termGatewayChanges)
 
 	// Now act on those marked nodes/services
 	for node, changeType := range nodeChanges {
@@ -304,7 +295,7 @@ func ServiceHealthEventsFromChanges(tx ReadTxn, changes Changes) ([]stream.Event
 		for serviceName, gsChange := range serviceChanges {
 			gs := changeObject(gsChange.change).(*structs.GatewayService)
 
-			_, nodes, err := serviceGatewayNodes(tx, nil, serviceName.Name, gs.GatewayKind, &gatewayName.EnterpriseMeta)
+			_, nodes, err := serviceNodesTxn(tx, nil, gs.Gateway.Name, false, &gatewayName.EnterpriseMeta)
 			if err != nil {
 				return nil, err
 			}

@@ -1037,8 +1037,15 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 				return ensureConfigEntryTxn(tx, tx.Index, configEntry, structs.DefaultEnterpriseMeta())
 			},
 			Mutate: func(s *Store, tx *txn) error {
-				return s.ensureRegistrationTxn(tx, tx.Index, false,
-					testServiceRegistration(t, "tgate1", regTerminatingGateway), false)
+				if err := s.ensureRegistrationTxn(
+					tx, tx.Index, false,
+					testServiceRegistration(t, "tgate1", regTerminatingGateway), false,
+				); err != nil {
+					return err
+				}
+				return s.ensureRegistrationTxn(
+					tx, tx.Index, false,
+					testServiceRegistration(t, "tgate1", regTerminatingGateway, regNode2), false)
 			},
 			WantEvents: []stream.Event{
 				testServiceHealthEvent(t,
@@ -1052,6 +1059,20 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 					"tgate1",
 					evConnectTopic,
 					evServiceTermingGateway("srv2")),
+				testServiceHealthEvent(t,
+					"tgate1",
+					evServiceTermingGateway("tgate1"),
+					evNode2),
+				testServiceHealthEvent(t,
+					"tgate1",
+					evConnectTopic,
+					evServiceTermingGateway("srv1"),
+					evNode2),
+				testServiceHealthEvent(t,
+					"tgate1",
+					evConnectTopic,
+					evServiceTermingGateway("srv2"),
+					evNode2),
 			},
 		},
 		{
@@ -1091,9 +1112,100 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 					evServiceIndex(setupIndex)),
 			},
 		},
-		// terminating gateway with 2 instances
-		// changing config entry to add a linked service
-		// changing config entry to remove a linked service
+		{
+			Name: "change the terminating gateway config entry to add a linked service",
+			Setup: func(s *Store, tx *txn) error {
+				configEntry := &structs.TerminatingGatewayConfigEntry{
+					Kind: structs.TerminatingGateway,
+					Name: "tgate1",
+					Services: []structs.LinkedService{
+						{
+							Name:           "srv1",
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+					},
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				}
+				err := ensureConfigEntryTxn(tx, tx.Index, configEntry, structs.DefaultEnterpriseMeta())
+				if err != nil {
+					return err
+				}
+				return s.ensureRegistrationTxn(tx, tx.Index, false,
+					testServiceRegistration(t, "tgate1", regTerminatingGateway), false)
+			},
+			Mutate: func(s *Store, tx *txn) error {
+				configEntry := &structs.TerminatingGatewayConfigEntry{
+					Kind: structs.TerminatingGateway,
+					Name: "tgate1",
+					Services: []structs.LinkedService{
+						{
+							Name:           "srv1",
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+						{
+							Name:           "srv2",
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+					},
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				}
+				return ensureConfigEntryTxn(tx, tx.Index, configEntry, structs.DefaultEnterpriseMeta())
+			},
+			WantEvents: []stream.Event{
+				testServiceHealthEvent(t,
+					"tgate1",
+					evConnectTopic,
+					evServiceTermingGateway("srv2"),
+					evServiceIndex(setupIndex)),
+			},
+		},
+		{
+			Name: "change the terminating gateway config entry to remove a linked service",
+			Setup: func(s *Store, tx *txn) error {
+				configEntry := &structs.TerminatingGatewayConfigEntry{
+					Kind: structs.TerminatingGateway,
+					Name: "tgate1",
+					Services: []structs.LinkedService{
+						{
+							Name:           "srv1",
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+						{
+							Name:           "srv2",
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+					},
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				}
+				err := ensureConfigEntryTxn(tx, tx.Index, configEntry, structs.DefaultEnterpriseMeta())
+				if err != nil {
+					return err
+				}
+				return s.ensureRegistrationTxn(tx, tx.Index, false,
+					testServiceRegistration(t, "tgate1", regTerminatingGateway), false)
+			},
+			Mutate: func(s *Store, tx *txn) error {
+				configEntry := &structs.TerminatingGatewayConfigEntry{
+					Kind: structs.TerminatingGateway,
+					Name: "tgate1",
+					Services: []structs.LinkedService{
+						{
+							Name:           "srv2",
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+					},
+					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+				}
+				return ensureConfigEntryTxn(tx, tx.Index, configEntry, structs.DefaultEnterpriseMeta())
+			},
+			WantEvents: []stream.Event{
+				testServiceHealthDeregistrationEvent(t,
+					"tgate1",
+					evConnectTopic,
+					evServiceTermingGateway("srv1")),
+			},
+		},
+		// change the terminating gateway config entry to update a linked service (new SNI/CAFile/etc)
 		// deleting a config entry
 		// deregistering a service behind a terminating gateway (should send no term gateway events)
 	}
@@ -1127,15 +1239,13 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			}
 			require.NoError(t, err)
 
-			assertDeepEqual(t, tc.WantEvents, got, cmpPartialOrderEvents)
+			assertDeepEqual(t, tc.WantEvents, got, cmpPartialOrderEvents, cmpopts.EquateEmpty())
 		})
 	}
 }
 
 func regTerminatingGateway(req *structs.RegisterRequest) error {
-	req.Service.Service = "tgate1"
 	req.Service.Kind = structs.ServiceKindTerminatingGateway
-	req.Service.ID = "tgate1"
 	req.Service.Port = 22000
 	return nil
 }
