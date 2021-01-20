@@ -7,8 +7,12 @@ import {
 } from '@hashicorp/react-docs-page/server'
 import ConfigEntryReference from 'components/config-entry-reference'
 
+import Button from '@hashicorp/react-button'
+import Introduction from '../../components/introduction'
+import Card from '../../components/card'
+
 const subpath = 'docs'
-const additionalComponents = { ConfigEntryReference }
+const additionalComponents = { ConfigEntryReference, Button, Introduction, Card }
 
 export default function DocsLayout(props) {
   return (
