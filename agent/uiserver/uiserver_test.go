@@ -169,7 +169,7 @@ func extractApplicationJSON(t *testing.T, attrName, content string) string {
 	var scriptContent *html.Node
 	var find func(node *html.Node)
 
-	// recur down the tree and pick out <script attrName=ourAttrName>
+	// Recurse down the tree and pick out <script attrName=ourAttrName>
 	find = func(node *html.Node) {
 		if node.Type == html.ElementNode && node.Data == "script" {
 			for i := 0; i < len(node.Attr); i++ {
