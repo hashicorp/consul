@@ -1,5 +1,46 @@
 ## UNRELEASED
 
+FEATURES:
+
+* agent: add config flag `MaxHeaderBytes` to control the maximum size of the http header per client request. [[GH-9067](https://github.com/hashicorp/consul/issues/9067)]
+* cli: The `consul intention` command now has a new `list` subcommand to allow the listing of configured intentions. It also supports the `-namespace=` option. [[GH-9468](https://github.com/hashicorp/consul/issues/9468)]
+
+IMPROVEMENTS:
+
+* server: deletions of intentions by name using the intention API is now idempotent [[GH-9278](https://github.com/hashicorp/consul/issues/9278)]
+* streaming: display a warning on agent(s) when incompatible streaming parameters are used [[GH-9530](https://github.com/hashicorp/consul/issues/9530)]
+* ui: Various accessibility scan test improvements [[GH-9485](https://github.com/hashicorp/consul/issues/9485)]
+
+DEPRECATIONS:
+
+* api: the `tag`, `node-meta`, and `passing` query parameters for various health and catalog
+endpoints are now deprecated. The `filter` query parameter should be used as a replacement
+for all of the deprecated fields. The deprecated query parameters will be removed in a future
+version of Consul. [[GH-9262](https://github.com/hashicorp/consul/issues/9262)]
+
+BUG FIXES:
+
+* client: Help added in Prometheus in relases 1.9.0 does not generate warnings anymore in logs [[GH-9510](https://github.com/hashicorp/consul/issues/9510)]
+* client: properly set GRPC over RPC magic numbers when encryption was not set or partially set in the cluster with streaming enabled [[GH-9512](https://github.com/hashicorp/consul/issues/9512)]
+* connect: Fixed a bug in the AWS PCA Connect CA provider that could cause the intermediate PKI path to be deleted after reconfiguring the CA [[GH-9498](https://github.com/hashicorp/consul/issues/9498)]
+* connect: Fixed a bug in the Vault Connect CA provider that could cause the intermediate PKI path to be deleted after reconfiguring the CA [[GH-9498](https://github.com/hashicorp/consul/issues/9498)]
+* connect: Fixed an issue that would prevent updating the Connect CA configuration if the CA provider didn't complete initialization previously. [[GH-9498](https://github.com/hashicorp/consul/issues/9498)]
+* leader: Fixed a bug that could cause Connect CA initialization failures from allowing leader establishment to complete resulting in potentially infinite leader elections. [[GH-9498](https://github.com/hashicorp/consul/issues/9498)]
+* rpc: Prevent misleading RPC error claiming the lack of a leader when Raft is ok but there are issues with client agents gossiping with the leader. [[GH-9487](https://github.com/hashicorp/consul/issues/9487)]
+* server: Fixes a server panic introduced in 1.9.0 where Connect service mesh is
+being used. Node de-registration could panic if it hosted services with
+multiple upstreams. [[GH-9589](https://github.com/hashicorp/consul/issues/9589)]
+* state: fix computation of usage metrics to account for various places that can modify multiple services in a single transaction. [[GH-9440](https://github.com/hashicorp/consul/issues/9440)]
+* ui: Display LockDelay in nanoseconds as a temporary fix to the formatting [[GH-9594](https://github.com/hashicorp/consul/issues/9594)]
+* ui: Fix an issue where registering an ingress-gateway with no central config
+would result in a JS error due to the API reponse returning `null` [[GH-9593](https://github.com/hashicorp/consul/issues/9593)]
+* ui: Fixes an issue where clicking backwards and forwards between a service instance can result in a 404 error [[GH-9524](https://github.com/hashicorp/consul/issues/9524)]
+* ui: Fixes an issue where intention description or metadata could be overwritten if saved from the topology view. [[GH-9513](https://github.com/hashicorp/consul/issues/9513)]
+* ui: Fixes an issue with setting -ui-content-path flag/config [[GH-9569](https://github.com/hashicorp/consul/issues/9569)]
+* ui: ensure namespace is used for node API requests [[GH-9410](https://github.com/hashicorp/consul/issues/9410)]
+* ui: request intention listing with ns=* parameter to retrieve all intentions
+across namespaces [[GH-9432](https://github.com/hashicorp/consul/issues/9432)]
+
 ## 1.9.1 (December 11, 2020)
 
 FEATURES:
