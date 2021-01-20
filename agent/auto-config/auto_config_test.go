@@ -253,8 +253,8 @@ func TestInitialConfiguration_cancelled(t *testing.T) {
 		JWT:        "blarg",
 	}
 
-	mcfg.directRPC.On("RPC", "dc1", "autoconf", &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 8300}, "AutoConfig.InitialConfiguration", &expectedRequest, mock.Anything).Return(fmt.Errorf("injected error")).Times(0)
-	mcfg.serverProvider.On("FindLANServer").Return(nil).Times(0)
+	mcfg.directRPC.On("RPC", "dc1", "autoconf", &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 8300}, "AutoConfig.InitialConfiguration", &expectedRequest, mock.Anything).Return(fmt.Errorf("injected error")).Times(0).Maybe()
+	mcfg.serverProvider.On("FindLANServer").Return(nil).Times(0).Maybe()
 
 	ac, err := New(mcfg.Config)
 	require.NoError(t, err)
