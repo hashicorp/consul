@@ -1182,6 +1182,36 @@ module.exports = [
     destination: '/use-cases/network-infrastructure-automation',
     permanent: true,
   },
+  {
+    source: '/(/downloads?[-_]tools)',
+    destination: '/docs/download-tools',
+    permanent: true,
+  },
+  {
+    source: '/docs/k8s/ambassador',
+    destination: '/docs/k8s/connect/ambassador',
+    permanent: true,
+  },
+  {
+    source: '/docs/agent/config-entries/:path',
+    destination: '/docs/connect/config-entries/:path*',
+    permanent: true,
+  },
+  {
+    source: '/docs/partnerships',
+    destination: '/docs/integrate/partnerships',
+    permanent: true,
+  },
+  {
+    source: '/docs/k8s/installation/overview',
+    destination: '/docs/k8s/installation/install',
+    permanent: true,
+  },
+  {
+    source: '/docs/k8s/installation/multi-cluster/overview',
+    destination: '/docs/k8s/installation/multi-cluster',
+    permanent: true,
+  },
   // disallow '.html' or '/index.html' in favor of cleaner, simpler paths
   { source: '/:path*/index', destination: '/:path*', permanent: true },
   { source: '/:path*.html', destination: '/:path*', permanent: true },
