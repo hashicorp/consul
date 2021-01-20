@@ -1,0 +1,4 @@
+```release-note:bug
+ui: Fix an issue where registering an ingress-gateway with no central config
+would result in a JS error due to the API reponse returning `null`
+```
