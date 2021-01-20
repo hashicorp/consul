@@ -1,6 +1,7 @@
 import Model, { attr } from '@ember-data/model';
 import { computed } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
+import { fragment } from 'ember-data-model-fragments/attributes';
 
 export const PRIMARY_KEY = 'uid';
 export const SLUG_KEY = 'Name';
@@ -41,8 +42,8 @@ export default class Service extends Model {
 
   @attr() Nodes; // array
   @attr() Proxy; // Service
-  @attr() GatewayConfig; // {AssociatedServiceCount: 0}
   @attr() ExternalSources; // array
+  @fragment('gateway-config') GatewayConfig;
   @attr() Meta; // {}
 
   @attr() meta; // {}

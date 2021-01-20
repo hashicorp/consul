@@ -68,7 +68,9 @@ ${typeof location.search.ns !== 'undefined' ? `
             "ConnectedWithProxy":${fake.random.boolean()},
             "ConnectedWithGateway":${fake.random.boolean()},
             "GatewayConfig": {
+${fake.random.boolean() ? `
               "AssociatedServiceCount": ${fake.random.number({min: 1, max: 4000})}
+` : ``}
             },
 ${kind !== '' ? `
             "Kind": "${kind}",
