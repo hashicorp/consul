@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/consul/api"
 	"net"
 	"net/url"
 	"os"
 	"strings"
 	"text/template"
+
+	"github.com/hashicorp/consul/api"
 )
 
 const (
@@ -244,14 +245,22 @@ func (c *BootstrapConfig) generateStatsSinks(args *BootstrapTplArgs) error {
 	var stats_sinks []string
 
 	if c.StatsdURL != "" {
-		sinkJSON, err := c.generateStatsSinkJSON("envoy.statsd", c.StatsdURL)
+		sinkJSON, err := c.generateStatsSinkJSON(
+			"envoy.stat_sinks.statsd",
+			"type.googleapis.com/envoy.config.metrics.v2.StatsdSink",
+			c.StatsdURL,
+		)
 		if err != nil {
 			return err
 		}
 		stats_sinks = append(stats_sinks, sinkJSON)
 	}
 	if c.DogstatsdURL != "" {
-		sinkJSON, err := c.generateStatsSinkJSON("envoy.dog_statsd", c.DogstatsdURL)
+		sinkJSON, err := c.generateStatsSinkJSON(
+			"envoy.stat_sinks.dog_statsd",
+			"type.googleapis.com/envoy.config.metrics.v2.DogStatsdSink",
+			c.DogstatsdURL,
+		)
 		if err != nil {
 			return err
 		}
@@ -267,7 +276,7 @@ func (c *BootstrapConfig) generateStatsSinks(args *BootstrapTplArgs) error {
 	return nil
 }
 
-func (c *BootstrapConfig) generateStatsSinkJSON(name string, addr string) (string, error) {
+func (c *BootstrapConfig) generateStatsSinkJSON(name, typeName, addr string) (string, error) {
 	// Resolve address ENV var
 	if len(addr) > 2 && addr[0] == '$' {
 		addr = os.Getenv(addr[1:])
@@ -300,7 +309,8 @@ func (c *BootstrapConfig) generateStatsSinkJSON(name string, addr string) (strin
 
 	return `{
 		"name": "` + name + `",
-		"config": {
+		"typedConfig": {
+			"@type": "` + typeName + `",
 			"address": {
 				` + addrJSON + `
 			}
@@ -550,14 +560,25 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 		"connect_timeout": "5s",
 		"type": "STATIC",
 		"http_protocol_options": {},
-		"hosts": [
-			{
-				"socket_address": {
-					"address": "127.0.0.1",
-					"port_value": ` + args.AdminBindPort + `
-				}
-			}
-		]
+		"loadAssignment": {
+			"clusterName": "` + selfAdminName + `",
+			"endpoints": [
+				{
+					"lbEndpoints": [
+						{
+							"endpoint": {
+								"address": {
+									"socket_address": {
+										"address": "127.0.0.1",
+										"port_value": ` + args.AdminBindPort + `
+									}
+								}
+							}
+						}
+					]
+ 				}
+			]
+		}
 	}`
 	listenerJSON := `{
 		"name": "` + name + `_listener",
@@ -571,8 +592,9 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 			{
 				"filters": [
 					{
-						"name": "envoy.http_connection_manager",
-						"config": {
+						"name": "envoy.filters.network.http_connection_manager",
+						"typedConfig": {
+							"@type": "type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager",
 							"stat_prefix": "` + name + `",
 							"codec_type": "HTTP1",
 							"route_config": {
@@ -607,7 +629,7 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 							},
 							"http_filters": [
 								{
-									"name": "envoy.router"
+									"name": "envoy.filters.http.router"
 								}
 							]
 						}

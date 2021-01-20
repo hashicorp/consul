@@ -23,14 +23,25 @@
         "connect_timeout": "1s",
         "type": "STATIC",
         "http2_protocol_options": {},
-        "hosts": [
-          {
-            "socket_address": {
-              "address": "127.0.0.1",
-              "port_value": 8502
+        "loadAssignment": {
+          "clusterName": "local_agent",
+          "endpoints": [
+            {
+              "lbEndpoints": [
+                {
+                  "endpoint": {
+                    "address": {
+                      "socket_address": {
+                        "address": "127.0.0.1",
+                        "port_value": 8502
+                      }
+                    }
+                  }
+                }
+              ]
             }
-          }
-        ]
+          ]
+        }
       },
       {
         "name": "fake_cluster_1"
@@ -182,17 +193,5 @@
         }
       }
     }
-  },
-  "layered_runtime": {
-    "layers": [
-      {
-        "name": "static_layer",
-        "static_layer": {
-          "envoy.deprecated_features:envoy.api.v2.Cluster.tls_context": true,
-          "envoy.deprecated_features:envoy.config.trace.v2.ZipkinConfig.HTTP_JSON_V1": true,
-          "envoy.deprecated_features:envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager.Tracing.operation_name": true
-        }
-      }
-    ]
   }
 }

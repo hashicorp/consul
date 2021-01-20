@@ -1,97 +1,104 @@
 {
   "name": "envoy.filters.network.rbac",
-  "config": {
-      "rules": {
-            "policies": {
-                  "consul-intentions-layer4": {
-                        "permissions": [
-                              {
-                                    "any": true
-                                  }
-                            ],
-                        "principals": [
-                              {
-                                    "authenticated": {
-                                          "principal_name": {
-                                                "safe_regex": {
-                                                      "google_re2": {
-                                                          },
-                                                      "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/cron$"
-                                                    }
-                                              }
-                                        }
-                                  },
-                              {
-                                    "authenticated": {
-                                          "principal_name": {
-                                                "safe_regex": {
-                                                      "google_re2": {
-                                                          },
-                                                      "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/web$"
-                                                    }
-                                              }
-                                        }
-                                  },
-                              {
-                                    "and_ids": {
-                                          "ids": [
-                                                {
-                                                      "authenticated": {
-                                                            "principal_name": {
-                                                                  "safe_regex": {
-                                                                        "google_re2": {
-                                                                            },
-                                                                        "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/[^/]+$"
-                                                                      }
-                                                                }
-                                                          }
-                                                    },
-                                                {
-                                                      "not_id": {
-                                                            "authenticated": {
-                                                                  "principal_name": {
-                                                                        "safe_regex": {
-                                                                              "google_re2": {
-                                                                                  },
-                                                                              "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/web$"
-                                                                            }
-                                                                      }
-                                                                }
-                                                          }
-                                                    },
-                                                {
-                                                      "not_id": {
-                                                            "authenticated": {
-                                                                  "principal_name": {
-                                                                        "safe_regex": {
-                                                                              "google_re2": {
-                                                                                  },
-                                                                              "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/unsafe$"
-                                                                            }
-                                                                      }
-                                                                }
-                                                          }
-                                                    },
-                                                {
-                                                      "not_id": {
-                                                            "authenticated": {
-                                                                  "principal_name": {
-                                                                        "safe_regex": {
-                                                                              "google_re2": {
-                                                                                  },
-                                                                              "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/cron$"
-                                                                            }
-                                                                      }
-                                                                }
-                                                          }
-                                                    }
-                                              ]
-                                        }
-                                  }
-                            ]
-                      }
+  "typedConfig": {
+    "@type": "type.googleapis.com/envoy.config.filter.network.rbac.v2.RBAC",
+    "rules": {
+      "policies": {
+        "consul-intentions-layer4": {
+          "permissions": [
+            {
+              "any": true
+            }
+          ],
+          "principals": [
+            {
+              "authenticated": {
+                "principalName": {
+                  "safeRegex": {
+                    "googleRe2": {
+
+                    },
+                    "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/cron$"
+                  }
                 }
-          },
-      "stat_prefix": "connect_authz"
-    }
+              }
+            },
+            {
+              "authenticated": {
+                "principalName": {
+                  "safeRegex": {
+                    "googleRe2": {
+
+                    },
+                    "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/web$"
+                  }
+                }
+              }
+            },
+            {
+              "andIds": {
+                "ids": [
+                  {
+                    "authenticated": {
+                      "principalName": {
+                        "safeRegex": {
+                          "googleRe2": {
+
+                          },
+                          "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/[^/]+$"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "notId": {
+                      "authenticated": {
+                        "principalName": {
+                          "safeRegex": {
+                            "googleRe2": {
+
+                            },
+                            "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/web$"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "notId": {
+                      "authenticated": {
+                        "principalName": {
+                          "safeRegex": {
+                            "googleRe2": {
+
+                            },
+                            "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/unsafe$"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "notId": {
+                      "authenticated": {
+                        "principalName": {
+                          "safeRegex": {
+                            "googleRe2": {
+
+                            },
+                            "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/cron$"
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    "statPrefix": "connect_authz"
+  }
 }

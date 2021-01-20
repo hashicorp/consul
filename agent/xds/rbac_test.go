@@ -6,9 +6,10 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {

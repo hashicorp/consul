@@ -17,18 +17,19 @@
               "name": "envoy.filters.network.sni_cluster"
             },
             {
-              "name": "envoy.tcp_proxy",
-              "config": {
-                  "cluster": "",
-                  "stat_prefix": "mesh_gateway_local.default"
-                }
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "statPrefix": "mesh_gateway_local.default",
+                "cluster": ""
+              }
             }
           ]
         }
       ],
       "listenerFilters": [
         {
-          "name": "envoy.listener.tls_inspector"
+          "name": "envoy.filters.listener.tls_inspector"
         }
       ]
     }

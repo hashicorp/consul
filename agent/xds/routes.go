@@ -10,8 +10,10 @@ import (
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoyroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	envoymatcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"

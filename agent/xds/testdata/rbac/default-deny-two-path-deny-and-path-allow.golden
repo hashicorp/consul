@@ -1,8 +1,10 @@
 {
   "name": "envoy.filters.network.rbac",
-  "config": {
-      "rules": {
-          },
-      "stat_prefix": "connect_authz"
-    }
+  "typedConfig": {
+    "@type": "type.googleapis.com/envoy.config.filter.network.rbac.v2.RBAC",
+    "rules": {
+
+    },
+    "statPrefix": "connect_authz"
+  }
 }

@@ -5,9 +5,11 @@ import (
 
 	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoytype "github.com/envoyproxy/go-control-plane/envoy/type"
-	"github.com/hashicorp/consul/sdk/testutil"
+
 	"github.com/hashicorp/go-version"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func TestDetermineEnvoyVersionFromNode(t *testing.T) {
@@ -18,12 +20,6 @@ func TestDetermineEnvoyVersionFromNode(t *testing.T) {
 		"empty": {
 			node:   &envoycore.Node{},
 			expect: nil,
-		},
-		"only build version": {
-			node: &envoycore.Node{
-				BuildVersion: "1580db37e9a97c37e410bad0e1507ae1a0fd9e77/1.9.0/Clean/RELEASE/BoringSSL",
-			},
-			expect: version.Must(version.NewVersion("1.9.0")),
 		},
 		"user agent build version but no user agent": {
 			node: &envoycore.Node{
@@ -94,12 +90,18 @@ func TestDetermineSupportedProxyFeaturesFromString(t *testing.T) {
 		"1.12.5": {expectErr: "Envoy 1.12.5 " + errTooOld},
 		"1.12.6": {expectErr: "Envoy 1.12.6 " + errTooOld},
 		"1.12.7": {expectErr: "Envoy 1.12.7 " + errTooOld},
-		"1.13.0": {expectErr: "Envoy 1.13.0 " + err1_13},
+		"1.13.0": {expectErr: "Envoy 1.13.0 " + errTooOld},
+		"1.13.1": {expectErr: "Envoy 1.13.1 " + errTooOld},
+		"1.13.2": {expectErr: "Envoy 1.13.2 " + errTooOld},
+		"1.13.3": {expectErr: "Envoy 1.13.3 " + errTooOld},
+		"1.13.4": {expectErr: "Envoy 1.13.4 " + errTooOld},
+		"1.13.5": {expectErr: "Envoy 1.13.5 " + errTooOld},
+		"1.13.6": {expectErr: "Envoy 1.13.6 " + errTooOld},
+		"1.13.7": {expectErr: "Envoy 1.13.7 " + errTooOld},
 	}
 
 	// Insert a bunch of valid versions.
 	for _, v := range []string{
-		"1.13.1", "1.13.2", "1.13.3", "1.13.4", "1.13.6", "1.13.7",
 		"1.14.1", "1.14.2", "1.14.3", "1.14.4", "1.14.5", "1.14.6",
 		"1.15.0", "1.15.1", "1.15.2", "1.15.3",
 		"1.16.0", "1.16.1", "1.16.2",

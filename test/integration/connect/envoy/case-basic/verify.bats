@@ -45,6 +45,6 @@ load helpers
   echo "PUB = $PUB"
   echo "UPS = $UPS"
 
-  [ "$PUB" = "envoy.filters.network.rbac,envoy.tcp_proxy" ]
-  [ "$UPS" = "envoy.tcp_proxy" ]
+  [ "$PUB" = "envoy.filters.network.rbac,envoy.filters.network.tcp_proxy" ]
+  [ "$UPS" = "envoy.filters.network.tcp_proxy" ]
 }
