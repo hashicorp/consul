@@ -11,8 +11,7 @@ function Introduction({ brand, description }) {
     <div>
       <Modal show={isModalShow} close={setIsModalShow}>
         <iframe
-          width="100%"
-          height="100%"
+          className="video"
           src="https://www.youtube.com/embed/mxeMdl0KvBI"
           frameborder="0"
           allowfullscreen

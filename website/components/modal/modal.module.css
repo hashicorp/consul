@@ -28,26 +28,52 @@
   align-items: flex-start;
   gap: 16px;
   position: relative;
-  margin: 56px auto 0 auto;
-  width: 1040px;
-  height: 567px;
+  margin: 62px auto 0 auto;
+  width: 100%;
 }
 
 .contents {
-  width: 1008px;
-  height: 567px;
-  padding: 0;
+  width: 100%;
   background: #000;
   box-shadow: 0 8px 12px rgba(37, 38, 45, 0.08);
-  border-radius: 3px;
+  border-radius: 0;
   overflow: hidden;
+  position: relative;
+  padding-bottom: 56.25%;
 }
 
 .close {
-  outline: none;
-  border: none;
-  background: none;
-  padding: 0;
-  margin: 0;
-  cursor: pointer;
+  display: none;
+}
+
+@media only screen and (min-width: 410px) {
+  .grid {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    position: relative;
+    margin: 56px auto 0 auto;
+    width: 1040px;
+    height: 567px;
+  }
+
+  .contents {
+    width: 1008px;
+    height: 567px;
+    padding: 0;
+    background: #000;
+    box-shadow: 0 8px 12px rgba(37, 38, 45, 0.08);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .close {
+    display: block;
+    outline: none;
+    border: none;
+    background: none;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+  }
 }

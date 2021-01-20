@@ -32,6 +32,5 @@
     display: grid;
     grid-template-columns: 96px auto;
     gap: 24px;
-    background-color: red;
   }
 }
