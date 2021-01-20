@@ -1,7 +1,14 @@
 div.cards {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+
+  /* grid-template-rows: 1fr 1fr 1fr; */
   gap: 24px;
+
+  @media only screen and (min-width: 410px) {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 24px;
+  }
 }
 
 div.card p.label {

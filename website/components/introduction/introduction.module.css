@@ -1,7 +1,7 @@
 .video {
   display: grid;
-  grid-template-columns: 96px auto;
-  gap: 24px;
+  grid-template-rows: 96px auto;
+  gap: 0;
 }
 
 .content {
@@ -21,8 +21,17 @@
   transition: background-color 0.3s ease;
   outline: none;
 
-&:hover {
-  /* Products/Consul L1 */
-  background-color: #e07eac;
+  &:hover {
+    /* Products/Consul L1 */
+    background-color: #e07eac;
+  }
 }
+
+@media only screen and (min-width: 410px) {
+  .video {
+    display: grid;
+    grid-template-columns: 96px auto;
+    gap: 24px;
+    background-color: red;
+  }
 }
