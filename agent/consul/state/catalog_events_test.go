@@ -1196,7 +1196,7 @@ var cmpPartialOrderEvents = cmp.Options{
 	cmpopts.SortSlices(func(i, j stream.Event) bool {
 		key := func(e stream.Event) string {
 			csn := getPayloadCheckServiceNode(e.Payload)
-			return fmt.Sprintf("%s/%s/%s", e.Topic, csn.Node.Node, csn.Service.Service)
+			return fmt.Sprintf("%s/%s/%s/%s", e.Topic, csn.Node.Node, csn.Service.Service, e.Payload.(EventPayloadCheckServiceNode).key)
 		}
 		return key(i) < key(j)
 	}),

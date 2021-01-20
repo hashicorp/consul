@@ -24,6 +24,7 @@ type EventPayloadCheckServiceNode struct {
 	// events in the connect topic to specify the name of the underlying service
 	// when the change event is for a sidecar or gateway.
 	key string
+	// FIXME: we need to be able to override the namespace for some terminating gateway events
 }
 
 func (e EventPayloadCheckServiceNode) HasReadPermission(authz acl.Authorizer) bool {
@@ -454,9 +455,10 @@ func copyEventForService(event stream.Event, service structs.ServiceName) stream
 	event.Topic = topicServiceHealthConnect
 	payload := event.Payload.(EventPayloadCheckServiceNode)
 	payload.key = service.Name
-	event.Payload = payload
 	// FIXME: we need payload to have an override for namespace, so that it can be filtered
 	// properly by EventPayloadCheckServiceNode.MatchesKey
+	// payload.enterpriseMeta = service.EnterpriseMeta
+	event.Payload = payload
 	return event
 }
 
