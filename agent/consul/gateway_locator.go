@@ -83,16 +83,15 @@ func (g *GatewayLocator) SetLastFederationStateReplicationError(err error, fromR
 	g.lastReplLock.Lock()
 	defer g.lastReplLock.Unlock()
 
-	if fromReplication {
-		// If we get info from replication, assume replication is operating.
-		g.useReplicationSignal = true
-	}
-
 	oldChoice := g.dialPrimaryThroughLocalGateway()
 	if err == nil {
 		g.lastReplSuccess = time.Now().UTC()
 		g.lastReplSuccesses++
 		g.lastReplFailures = 0
+		if fromReplication {
+			// If we get info from replication, assume replication is operating.
+			g.useReplicationSignal = true
+		}
 	} else {
 		g.lastReplFailure = time.Now().UTC()
 		g.lastReplFailures++
