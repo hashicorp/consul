@@ -484,6 +484,8 @@ golang.org/x/lint/golint
 golang.org/x/net/bpf
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
+golang.org/x/net/html
+golang.org/x/net/html/atom
 golang.org/x/net/http/httpguts
 golang.org/x/net/http2
 golang.org/x/net/http2/hpack

@@ -11,16 +11,17 @@ test(
       {
         environment: 'production',
         CONSUL_BINARY_TYPE: 'oss',
-        CONSUL_ACLS_ENABLED: '__RUNTIME_BOOL_ACLsEnabled__',
-        CONSUL_SSO_ENABLED: '__RUNTIME_BOOL_SSOEnabled__',
-        CONSUL_NSPACES_ENABLED: '__RUNTIME_BOOL_NamespacesEnabled__',
+        operatorConfig: {}
       },
       {
         environment: 'test',
         CONSUL_BINARY_TYPE: 'oss',
-        CONSUL_ACLS_ENABLED: true,
-        CONSUL_NSPACES_ENABLED: false,
-        CONSUL_SSO_ENABLED: false,
+        operatorConfig: {
+          ACLsEnabled: true,
+          NamespacesEnabled: false,
+          SSOEnabled: false,
+          LocalDatacenter: 'dc1',
+        }
       },
       {
         $: {
@@ -28,9 +29,12 @@ test(
         },
         environment: 'test',
         CONSUL_BINARY_TYPE: 'oss',
-        CONSUL_ACLS_ENABLED: true,
-        CONSUL_NSPACES_ENABLED: true,
-        CONSUL_SSO_ENABLED: false,
+        operatorConfig: {
+          ACLsEnabled: true,
+          NamespacesEnabled: true,
+          SSOEnabled: false,
+          LocalDatacenter: 'dc1',
+        }
       },
       {
         $: {
@@ -38,16 +42,22 @@ test(
         },
         environment: 'test',
         CONSUL_BINARY_TYPE: 'oss',
-        CONSUL_ACLS_ENABLED: true,
-        CONSUL_NSPACES_ENABLED: false,
-        CONSUL_SSO_ENABLED: true,
+        operatorConfig: {
+          ACLsEnabled: true,
+          NamespacesEnabled: false,
+          SSOEnabled: true,
+          LocalDatacenter: 'dc1',
+        }
       },
       {
         environment: 'staging',
         CONSUL_BINARY_TYPE: 'oss',
-        CONSUL_ACLS_ENABLED: true,
-        CONSUL_NSPACES_ENABLED: true,
-        CONSUL_SSO_ENABLED: true,
+        operatorConfig: {
+          ACLsEnabled: true,
+          NamespacesEnabled: true,
+          SSOEnabled: true,
+          LocalDatacenter: 'dc1',
+        }
       }
     ].forEach(
       function(item) {
@@ -57,7 +67,7 @@ test(
             if(key === '$') {
               return;
             }
-            t.equal(
+            t.deepEqual(
               env[key],
               item[key],
               `Expect ${key} to equal ${item[key]} in the ${item.environment} environment ${typeof item.$ !== 'undefined' ? `(with ${JSON.stringify(item.$)})` : ''}`
