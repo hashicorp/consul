@@ -629,7 +629,18 @@ func TestUIGatewayServiceNodes_Terminating(t *testing.T) {
 			},
 		}
 		require.NoError(t, a.RPC("Catalog.Register", &arg, &regOutput))
+	}
 
+	{
+		// Request without having registered the config-entry, shouldn't respond with null
+		req, _ := http.NewRequest("GET", "/v1/internal/ui/gateway-services-nodes/terminating-gateway", nil)
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.UIGatewayServicesNodes(resp, req)
+		require.Nil(t, err)
+		require.NotNil(t, obj)
+	}
+
+	{
 		// Register terminating-gateway config entry, linking it to db and redis (does not exist)
 		args := &structs.TerminatingGatewayConfigEntry{
 			Name: "terminating-gateway",
