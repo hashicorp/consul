@@ -93,16 +93,12 @@ module.exports = function(environment, $ = process.env) {
 
     // The following variables are runtime variables that are overwritten when
     // the go binary serves the index.html page
-    binaryConfig: {
+    operatorConfig: {
       ACLsEnabled: false,
       NamespacesEnabled: false,
       SSOEnabled: false,
       LocalDatacenter: env('CONSUL_DATACENTER_LOCAL', 'dc1'),
     },
-    CONSUL_ACLS_ENABLED: false,
-    CONSUL_NSPACES_ENABLED: false,
-    CONSUL_SSO_ENABLED: false,
-    CONSUL_DATACENTER_LOCAL: env('CONSUL_DATACENTER_LOCAL', 'dc1'),
 
     // Static variables used in multiple places throughout the UI
     CONSUL_HOME_URL: 'https://www.consul.io',
@@ -118,7 +114,7 @@ module.exports = function(environment, $ = process.env) {
         locationType: 'none',
 
         // During testing ACLs default to being turned on
-        binaryConfig: {
+        operatorConfig: {
           ACLsEnabled: env('CONSUL_ACLS_ENABLED', true),
           NamespacesEnabled: env('CONSUL_NSPACES_ENABLED', false),
           SSOEnabled: env('CONSUL_SSO_ENABLED', false),
@@ -152,7 +148,7 @@ module.exports = function(environment, $ = process.env) {
         // different staging sites can be built with certain features disabled
         // by setting an environment variable to 0 during building (e.g.
         // CONSUL_NSPACES_ENABLED=0 make build)
-        binaryConfig: {
+        operatorConfig: {
           ACLsEnabled: env('CONSUL_ACLS_ENABLED', true),
           NamespacesEnabled: env('CONSUL_NSPACES_ENABLED', true),
           SSOEnabled: env('CONSUL_SSO_ENABLED', true),
@@ -169,7 +165,8 @@ module.exports = function(environment, $ = process.env) {
       break;
     case environment === 'production':
       ENV = Object.assign({}, ENV, {
-        // in production binaryConfig is populated via the consul binary
+        // in production operatorConfig is populated at consul runtime from
+        // operator configuration
       });
       break;
   }

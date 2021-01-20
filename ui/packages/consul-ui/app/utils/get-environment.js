@@ -43,10 +43,10 @@ export default function(config = {}, win = window, doc = document) {
       return {};
     }
   };
-  const binaryConfig = JSON.parse(
+  const operatorConfig = JSON.parse(
     doc.querySelector(`[data-${config.modulePrefix}-config]`).textContent
   );
-  const ui_config = binaryConfig.UIConfig || {};
+  const ui_config = operatorConfig.UIConfig || {};
   const scripts = doc.getElementsByTagName('script');
   // we use the currently executing script as a reference
   // to figure out where we are for other things such as
@@ -61,15 +61,17 @@ export default function(config = {}, win = window, doc = document) {
     let protocol, dashboards, provider, proxy;
     switch (str) {
       case 'CONSUL_NSPACES_ENABLED':
-        return typeof binaryConfig.NamespacesEnabled === 'undefined'
+        return typeof operatorConfig.NamespacesEnabled === 'undefined'
           ? false
-          : binaryConfig.NamespacesEnabled;
+          : operatorConfig.NamespacesEnabled;
       case 'CONSUL_SSO_ENABLED':
-        return typeof binaryConfig.SSOEnabled === 'undefined' ? false : binaryConfig.SSOEnabled;
+        return typeof operatorConfig.SSOEnabled === 'undefined' ? false : operatorConfig.SSOEnabled;
       case 'CONSUL_ACLS_ENABLED':
-        return typeof binaryConfig.ACLsEnabled === 'undefined' ? false : binaryConfig.ACLsEnabled;
+        return typeof operatorConfig.ACLsEnabled === 'undefined'
+          ? false
+          : operatorConfig.ACLsEnabled;
       case 'CONSUL_DATACENTER_LOCAL':
-        return binaryConfig.LocalDatacenter;
+        return operatorConfig.LocalDatacenter;
       case 'CONSUL_UI_CONFIG':
         dashboards = {};
         provider = env('CONSUL_METRICS_PROVIDER');
