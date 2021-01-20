@@ -2784,21 +2784,28 @@ func cleanupGatewayWildcards(tx WriteTxn, idx uint64, svc *structs.ServiceNode) 
 	if err != nil {
 		return fmt.Errorf("failed gateway lookup for %q: %s", svc.ServiceName, err)
 	}
+
+	mappings := make([]*structs.GatewayService, 0)
 	for mapping := gateways.Next(); mapping != nil; mapping = gateways.Next() {
 		if gs, ok := mapping.(*structs.GatewayService); ok && gs != nil {
-			// Only delete if association was created by a wildcard specifier.
-			// Otherwise the service was specified in the config entry, and the association should be maintained
-			// for when the service is re-registered
-			if gs.FromWildcard {
-				if err := tx.Delete(gatewayServicesTableName, gs); err != nil {
-					return fmt.Errorf("failed to truncate gateway services table: %v", err)
-				}
-				if err := indexUpdateMaxTxn(tx, idx, gatewayServicesTableName); err != nil {
-					return fmt.Errorf("failed updating gateway-services index: %v", err)
-				}
-				if err := deleteGatewayServiceTopologyMapping(tx, idx, gs); err != nil {
-					return fmt.Errorf("failed to reconcile mesh topology for gateway: %v", err)
-				}
+			mappings = append(mappings, gs)
+		}
+	}
+
+	// Do the updates in a separate loop so we don't trash the iterator.
+	for _, m := range mappings {
+		// Only delete if association was created by a wildcard specifier.
+		// Otherwise the service was specified in the config entry, and the association should be maintained
+		// for when the service is re-registered
+		if m.FromWildcard {
+			if err := tx.Delete(gatewayServicesTableName, m); err != nil {
+				return fmt.Errorf("failed to truncate gateway services table: %v", err)
+			}
+			if err := indexUpdateMaxTxn(tx, idx, gatewayServicesTableName); err != nil {
+				return fmt.Errorf("failed updating gateway-services index: %v", err)
+			}
+			if err := deleteGatewayServiceTopologyMapping(tx, idx, m); err != nil {
+				return fmt.Errorf("failed to reconcile mesh topology for gateway: %v", err)
 			}
 		}
 	}
@@ -3272,9 +3279,15 @@ func cleanupMeshTopology(tx WriteTxn, idx uint64, service *structs.ServiceNode) 
 	if err != nil {
 		return fmt.Errorf("%q lookup failed: %v", topologyTableName, err)
 	}
+
+	mappings := make([]*structs.UpstreamDownstream, 0)
 	for raw := iter.Next(); raw != nil; raw = iter.Next() {
-		entry := raw.(*structs.UpstreamDownstream)
-		rawCopy, err := copystructure.Copy(entry)
+		mappings = append(mappings, raw.(*structs.UpstreamDownstream))
+	}
+
+	// Do the updates in a separate loop so we don't trash the iterator.
+	for _, m := range mappings {
+		rawCopy, err := copystructure.Copy(m)
 		if err != nil {
 			return fmt.Errorf("failed to copy existing topology mapping: %v", err)
 		}
@@ -3282,15 +3295,25 @@ func cleanupMeshTopology(tx WriteTxn, idx uint64, service *structs.ServiceNode) 
 		if !ok {
 			return fmt.Errorf("unexpected topology type %T", rawCopy)
 		}
-		delete(copy.Refs, uid)
 
+		// Bail early if there's no reference to the proxy ID we're deleting
+		if _, ok := copy.Refs[uid]; !ok {
+			continue
+		}
+
+		delete(copy.Refs, uid)
 		if len(copy.Refs) == 0 {
-			if err := tx.Delete(topologyTableName, entry); err != nil {
+			if err := tx.Delete(topologyTableName, m); err != nil {
 				return fmt.Errorf("failed to truncate %s table: %v", topologyTableName, err)
 			}
 			if err := indexUpdateMaxTxn(tx, idx, topologyTableName); err != nil {
 				return fmt.Errorf("failed updating %s index: %v", topologyTableName, err)
 			}
+			continue
+
+		}
+		if err := tx.Insert(topologyTableName, copy); err != nil {
+			return fmt.Errorf("failed inserting %s mapping: %s", topologyTableName, err)
 		}
 	}
 	return nil
