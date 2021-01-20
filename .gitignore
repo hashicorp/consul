@@ -6,7 +6,6 @@
 *.test
 .envrc
 .gotools
-.netlify
 .vagrant/
 /pkg
 bin/

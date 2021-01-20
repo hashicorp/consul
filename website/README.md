@@ -1,7 +1,5 @@
 # Consul Website
 
-[![Netlify Status](https://img.shields.io/netlify/f7fa8963-0022-4a0e-9ccf-f5385355906b?style=flat-square)](https://app.netlify.com/sites/consul-docs-platform/deploys)
-
 This subdirectory contains the entire source for the [Consul Website](https://consul.io/). This is a [NextJS](https://nextjs.org/) project, which builds a static site from these source files.
 
 <!--
@@ -15,14 +13,28 @@ This subdirectory contains the entire source for the [Consul Website](https://co
 
 ## Table of Contents
 
-- [Contributions](#contributions-welcome)
-- [Running the Site Locally](#running-the-site-locally)
-- [Editing Markdown Content](#editing-markdown-content)
-- [Editing Navigation Sidebars](#editing-navigation-sidebars)
-- [Changing the Release Version](#changing-the-release-version)
-- [Redirects](#redirects)
-- [Browser Support](#browser-support)
-- [Deployment](#deployment)
+- [Consul Website](#consul-website)
+  - [Table of Contents](#table-of-contents)
+  - [Contributions Welcome!](#contributions-welcome)
+  - [Running the Site Locally](#running-the-site-locally)
+    - [With Docker](#with-docker)
+    - [With Node](#with-node)
+  - [Editing Markdown Content](#editing-markdown-content)
+    - [Creating New Pages](#creating-new-pages)
+    - [Markdown Enhancements](#markdown-enhancements)
+    - [Custom Components](#custom-components)
+      - [Tabs](#tabs)
+      - [Enterprise Alert](#enterprise-alert)
+      - [Other Components](#other-components)
+    - [Syntax Highlighting](#syntax-highlighting)
+  - [Editing Navigation Sidebars](#editing-navigation-sidebars)
+    - [Index-less Categories](#index-less-categories)
+    - [Custom or External Links](#custom-or-external-links)
+  - [Changing the Release Version](#changing-the-release-version)
+    - [Displaying a Prerelease](#displaying-a-prerelease)
+  - [Redirects](#redirects)
+  - [Browser Support](#browser-support)
+  - [Deployment](#deployment)
 
 <!-- BEGIN: contributions -->
 <!-- Generated text, do not edit directly -->
