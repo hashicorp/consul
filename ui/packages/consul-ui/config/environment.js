@@ -167,6 +167,7 @@ module.exports = function(environment, $ = process.env) {
       ENV = Object.assign({}, ENV, {
         // in production operatorConfig is populated at consul runtime from
         // operator configuration
+        operatorConfig: {},
       });
       break;
   }

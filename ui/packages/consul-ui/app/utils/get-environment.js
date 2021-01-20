@@ -170,6 +170,10 @@ export default function(config = {}, win = window, doc = document) {
         // these are strings
         return user(str) || ui(str);
       case 'CONSUL_UI_CONFIG':
+      case 'CONSUL_DATACENTER_LOCAL':
+      case 'CONSUL_ACLS_ENABLED':
+      case 'CONSUL_NSPACES_ENABLED':
+      case 'CONSUL_SSO_ENABLED':
       case 'CONSUL_METRICS_PROVIDER':
       case 'CONSUL_METRICS_PROXY_ENABLE':
       case 'CONSUL_SERVICE_DASHBOARD_URL':
