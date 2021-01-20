@@ -46,6 +46,6 @@ Feature: dc / nodes / sessions / list: List Lock Sessions
     Then I see lockSessionsIsSelected on the tabs
     Then I see delay on the sessions like yaml
     ---
-    - 2m
-    - 5h
+    - 120000
+    - 18000000
     ---
