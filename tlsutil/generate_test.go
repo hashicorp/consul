@@ -95,6 +95,25 @@ func TestGenerateCA(t *testing.T) {
 	require.WithinDuration(t, cert.NotAfter, time.Now().AddDate(0, 0, 365), time.Minute)
 
 	require.Equal(t, x509.KeyUsageCertSign|x509.KeyUsageCRLSign|x509.KeyUsageDigitalSignature, cert.KeyUsage)
+
+	// Test what happens with a correct RSA Key
+	s, err = rsa.GenerateKey(rand.Reader, 2048)
+	require.Nil(t, err)
+	ca, err = GenerateCA(s, sn, 365, nil)
+	require.Nil(t, err)
+	require.NotEmpty(t, ca)
+
+	cert, err = parseCert(ca)
+	require.Nil(t, err)
+	require.Equal(t, fmt.Sprintf("Consul Agent CA %d", sn), cert.Subject.CommonName)
+	require.Equal(t, true, cert.IsCA)
+	require.Equal(t, true, cert.BasicConstraintsValid)
+
+	require.WithinDuration(t, cert.NotBefore, time.Now(), time.Minute)
+	require.WithinDuration(t, cert.NotAfter, time.Now().AddDate(0, 0, 365), time.Minute)
+
+	require.Equal(t, x509.KeyUsageCertSign|x509.KeyUsageCRLSign|x509.KeyUsageDigitalSignature, cert.KeyUsage)
+
 }
 
 func TestGenerateCert(t *testing.T) {

@@ -166,34 +166,7 @@ func parseCert(pemValue string) (*x509.Certificate, error) {
 // ParseSigner parses a crypto.Signer from a PEM-encoded key. The private key
 // is expected to be the first block in the PEM value.
 func ParseSigner(pemValue string) (crypto.Signer, error) {
-	// The _ result below is not an error but the remaining PEM bytes.
-	block, _ := pem.Decode([]byte(pemValue))
-	if block == nil {
-		return nil, fmt.Errorf("no PEM-encoded data found")
-	}
-
-	switch block.Type {
-	case "EC PRIVATE KEY":
-		return x509.ParseECPrivateKey(block.Bytes)
-
-	case "RSA PRIVATE KEY":
-		return x509.ParsePKCS1PrivateKey(block.Bytes)
-
-	case "PRIVATE KEY":
-		signer, err := x509.ParsePKCS8PrivateKey(block.Bytes)
-		if err != nil {
-			return nil, err
-		}
-		pk, ok := signer.(crypto.Signer)
-		if !ok {
-			return nil, fmt.Errorf("private key is not a valid format")
-		}
-
-		return pk, nil
-
-	default:
-		return nil, fmt.Errorf("unknown PEM block type for signing key: %s", block.Type)
-	}
+	return connect.ParseSigner(pemValue)
 }
 
 func Verify(caString, certString, dns string) error {
