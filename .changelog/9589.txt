@@ -1,3 +1,5 @@
 ```release-note:bug
-server: Fixes a panic introduced in 1.9.0 where servers in a specific state may crash during node de-registration.
+server: Fixes a server panic introduced in 1.9.0 where Connect service mesh is
+being used. Node de-registration could panic if it hosted services with
+multiple upstreams.
 ```
