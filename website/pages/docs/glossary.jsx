@@ -13,6 +13,7 @@ export default function GlossaryLayout({ terms, content, docsPageData }) {
       order={order}
       product={{ name: productName, slug: productSlug }}
       terms={terms}
+      staticProps={{ terms, content, docsPageData }}
     />
   )
 }
