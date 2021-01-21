@@ -1,3 +1,8 @@
+/* hack to fix overflow scrollbar issue */
+#__next #p-docs #inner {
+  overflow: unset;
+}
+
 div.cards {
   display: grid;
   gap: 24px;
