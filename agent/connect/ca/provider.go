@@ -161,8 +161,13 @@ type Provider interface {
 
 	// Cleanup performs any necessary cleanup that should happen when the provider
 	// is shut down permanently, such as removing a temporary PKI backend in Vault
-	// created for an intermediate CA.
-	Cleanup() error
+	// created for an intermediate CA. Whether the CA provider type is changing
+	// and the other providers raw configuration is passed along so that the provider
+	// instance can determine which cleanup steps to perform. For example, when the
+	// Vault provider is in use and there is no type change occuring, the Vault
+	// provider should check if the intermediate PKI path is changing. If it is not
+	// changing then the provider should not remove that path from Vault.
+	Cleanup(providerTypeChange bool, otherConfig map[string]interface{}) error
 }
 
 // NeedsLogger is an optional interface that allows a CA provider to use the

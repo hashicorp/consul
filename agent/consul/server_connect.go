@@ -134,9 +134,9 @@ func (s *Server) getCARoots(ws memdb.WatchSet, state *state.Store) (*structs.Ind
 func (s *Server) SignCertificate(csr *x509.CertificateRequest, spiffeID connect.CertURI) (*structs.IssuedCert, error) {
 	provider, caRoot := s.caManager.getCAProvider()
 	if provider == nil {
-		return nil, fmt.Errorf("internal error: CA provider is nil")
+		return nil, fmt.Errorf("CA is uninitialized and unable to sign certificates yet: provider is nil")
 	} else if caRoot == nil {
-		return nil, fmt.Errorf("internal error: CA root is nil")
+		return nil, fmt.Errorf("CA is uninitialized and unable to sign certificates yet: no root certificate")
 	}
 
 	// Verify that the CSR entity is in the cluster's trust domain

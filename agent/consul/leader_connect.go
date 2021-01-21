@@ -41,19 +41,17 @@ func (s *Server) startConnectLeader() {
 
 	// Start the Connect secondary DC actions if enabled.
 	if s.config.Datacenter != s.config.PrimaryDatacenter {
-		s.leaderRoutineManager.Start(secondaryCARootWatchRoutineName, s.caManager.secondaryCARootWatch)
 		s.leaderRoutineManager.Start(intentionReplicationRoutineName, s.replicateIntentions)
 	}
 
-	s.leaderRoutineManager.Start(intermediateCertRenewWatchRoutineName, s.caManager.intermediateCertRenewalWatch)
+	s.caManager.Start()
 	s.leaderRoutineManager.Start(caRootPruningRoutineName, s.runCARootPruning)
 }
 
 // stopConnectLeader stops connect specific leader functions.
 func (s *Server) stopConnectLeader() {
-	s.leaderRoutineManager.Stop(secondaryCARootWatchRoutineName)
+	s.caManager.Stop()
 	s.leaderRoutineManager.Stop(intentionReplicationRoutineName)
-	s.leaderRoutineManager.Stop(intermediateCertRenewWatchRoutineName)
 	s.leaderRoutineManager.Stop(caRootPruningRoutineName)
 
 	// If the provider implements NeedsStop, we call Stop to perform any shutdown actions.

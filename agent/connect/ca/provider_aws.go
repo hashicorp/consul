@@ -649,10 +649,24 @@ func (a *AWSProvider) deletePCA() error {
 }
 
 // Cleanup implements Provider
-func (a *AWSProvider) Cleanup() error {
+func (a *AWSProvider) Cleanup(providerTypeChange bool, otherConfig map[string]interface{}) error {
 	old := atomic.SwapUint32(&a.stopped, 1)
 	if old == 0 {
 		close(a.stopCh)
+	}
+
+	if !providerTypeChange {
+		awsConfig, err := ParseAWSCAConfig(otherConfig)
+		if err != nil {
+			return err
+		}
+
+		// if the provider is being replaced and using an existing PCA instance
+		// then prevent deletion of that instance if the new provider uses
+		// the same instance.
+		if a.config.ExistingARN == awsConfig.ExistingARN {
+			return nil
+		}
 	}
 
 	if a.config.DeleteOnExit {

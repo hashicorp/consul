@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/acmpca"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/stretchr/testify/require"
@@ -39,7 +41,7 @@ func TestAWSBootstrapAndSignPrimary(t *testing.T) {
 				"PrivateKeyBits": tc.KeyBits,
 			}
 			provider := testAWSProvider(t, testProviderConfigPrimary(t, cfg))
-			defer provider.Cleanup()
+			defer provider.Cleanup(true, nil)
 
 			// Generate the root
 			require.NoError(provider.GenerateRoot())
@@ -89,12 +91,12 @@ func TestAWSBootstrapAndSignSecondary(t *testing.T) {
 	skipIfAWSNotConfigured(t)
 
 	p1 := testAWSProvider(t, testProviderConfigPrimary(t, nil))
-	defer p1.Cleanup()
+	defer p1.Cleanup(true, nil)
 	rootPEM, err := p1.ActiveRoot()
 	require.NoError(t, err)
 
 	p2 := testAWSProvider(t, testProviderConfigSecondary(t, nil))
-	defer p2.Cleanup()
+	defer p2.Cleanup(true, nil)
 
 	testSignIntermediateCrossDC(t, p1, p2)
 
@@ -191,14 +193,14 @@ func TestAWSBootstrapAndSignSecondaryConsul(t *testing.T) {
 		require.NoError(t, p1.GenerateRoot())
 
 		p2 := testAWSProvider(t, testProviderConfigSecondary(t, nil))
-		defer p2.Cleanup()
+		defer p2.Cleanup(true, nil)
 
 		testSignIntermediateCrossDC(t, p1, p2)
 	})
 
 	t.Run("pri=aws,sec=consul", func(t *testing.T) {
 		p1 := testAWSProvider(t, testProviderConfigPrimary(t, nil))
-		defer p1.Cleanup()
+		defer p1.Cleanup(true, nil)
 		require.NoError(t, p1.GenerateRoot())
 
 		conf := testConsulCAConfig()
@@ -217,7 +219,7 @@ func TestAWSNoCrossSigning(t *testing.T) {
 	skipIfAWSNotConfigured(t)
 
 	p1 := testAWSProvider(t, testProviderConfigPrimary(t, nil))
-	defer p1.Cleanup()
+	defer p1.Cleanup(true, nil)
 	// Don't bother initializing a PCA as that is slow and unnecessary for this
 	// test
 
@@ -233,6 +235,142 @@ func TestAWSNoCrossSigning(t *testing.T) {
 	_, err = p1.CrossSignCA(caCert)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "not implemented")
+}
+
+func TestAWSProvider_Cleanup(t *testing.T) {
+	// Note not parallel since we could easily hit AWS limits of too many CAs if
+	// all of these tests run at once.
+	skipIfAWSNotConfigured(t)
+
+	describeCA := func(t *testing.T, provider *AWSProvider) (bool, error) {
+		t.Helper()
+		state, err := provider.State()
+		require.NoError(t, err)
+
+		// Load from the resource.
+		input := &acmpca.DescribeCertificateAuthorityInput{
+			CertificateAuthorityArn: aws.String(state[AWSStateCAARNKey]),
+		}
+		output, err := provider.client.DescribeCertificateAuthority(input)
+		if err != nil {
+			return false, err
+		}
+		require.NotNil(t, output)
+		require.NotNil(t, output.CertificateAuthority)
+		require.NotNil(t, output.CertificateAuthority.Status)
+		return *output.CertificateAuthority.Status == acmpca.CertificateAuthorityStatusDeleted, nil
+	}
+
+	requirePCADeleted := func(t *testing.T, provider *AWSProvider) {
+		deleted, err := describeCA(t, provider)
+		require.True(t, err != nil || deleted, "The AWS PCA instance has not been deleted")
+	}
+
+	requirePCANotDeleted := func(t *testing.T, provider *AWSProvider) {
+		deleted, err := describeCA(t, provider)
+		require.NoError(t, err)
+		require.False(t, deleted, "The AWS PCA instance should not have been deleted")
+	}
+
+	t.Run("provider-change", func(t *testing.T) {
+		// create a provider with the default config which will create the CA
+		p1Conf := testProviderConfigPrimary(t, nil)
+		p1 := testAWSProvider(t, p1Conf)
+		p1.GenerateRoot()
+
+		t.Cleanup(func() {
+			// This is a fail safe just in case the Cleanup routine of the
+			// second provider fails to delete the CA. In that case we want
+			// to request that the main provider delete it during Cleanup.
+			if deleted, err := describeCA(t, p1); err == nil && deleted {
+				p1.Cleanup(false, p1Conf.RawConfig)
+			} else {
+				p1.Cleanup(true, nil)
+			}
+		})
+
+		// just ensure that it got created
+		requirePCANotDeleted(t, p1)
+
+		state, err := p1.State()
+		require.NoError(t, err)
+
+		p2Conf := testProviderConfigPrimary(t, map[string]interface{}{
+			"ExistingARN": state[AWSStateCAARNKey],
+		})
+		p2 := testAWSProvider(t, p2Conf)
+
+		// provider change should trigger deletion of the CA
+		require.NoError(t, p2.Cleanup(true, nil))
+
+		requirePCADeleted(t, p1)
+	})
+
+	t.Run("arn-change", func(t *testing.T) {
+		// create a provider with the default config which will create the CA
+		p1Conf := testProviderConfigPrimary(t, nil)
+		p1 := testAWSProvider(t, p1Conf)
+		p1.GenerateRoot()
+
+		t.Cleanup(func() {
+			// This is a fail safe just in case the Cleanup routine of the
+			// second provider fails to delete the CA. In that case we want
+			// to request that the main provider delete it during Cleanup.
+			if deleted, err := describeCA(t, p1); err == nil || deleted {
+				p1.Cleanup(false, p1Conf.RawConfig)
+			} else {
+				p1.Cleanup(true, nil)
+			}
+		})
+
+		// just ensure that it got created
+		requirePCANotDeleted(t, p1)
+
+		state, err := p1.State()
+		require.NoError(t, err)
+
+		p2Conf := testProviderConfigPrimary(t, map[string]interface{}{
+			"ExistingARN": state[AWSStateCAARNKey],
+		})
+		p2 := testAWSProvider(t, p2Conf)
+
+		// changing the ARN should cause the other CA to be deleted
+		p2ConfAltARN := testProviderConfigPrimary(t, map[string]interface{}{
+			"ExistingARN": "doesnt-need-to-be-real",
+		})
+		require.NoError(t, p2.Cleanup(false, p2ConfAltARN.RawConfig))
+
+		requirePCADeleted(t, p1)
+	})
+
+	t.Run("arn-not-changed", func(t *testing.T) {
+		// create a provider with the default config which will create the CA
+		p1Conf := testProviderConfigPrimary(t, nil)
+		p1 := testAWSProvider(t, p1Conf)
+		p1.GenerateRoot()
+
+		t.Cleanup(func() {
+			// the p2 provider should not remove the CA but we need to ensure that
+			// we do clean it up
+			p1.Cleanup(true, nil)
+		})
+
+		// just ensure that it got created
+		requirePCANotDeleted(t, p1)
+
+		state, err := p1.State()
+		require.NoError(t, err)
+
+		p2Conf := testProviderConfigPrimary(t, map[string]interface{}{
+			"ExistingARN": state[AWSStateCAARNKey],
+		})
+		p2 := testAWSProvider(t, p2Conf)
+
+		// because the ARN isn't changing we don't want to remove the CA
+		require.NoError(t, p2.Cleanup(false, p2Conf.RawConfig))
+
+		requirePCANotDeleted(t, p1)
+	})
 }
 
 func testAWSProvider(t *testing.T, cfg ProviderConfig) *AWSProvider {
