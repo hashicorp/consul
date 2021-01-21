@@ -8,7 +8,7 @@ const glob = require('glob-promise');
 const parser = require('../index');
 
 const fixtures = path.resolve(`${__dirname}/../hcl`);
-// const hclPath = `${fixtures}/test-fixtures/types.hcl`;
+// const hclPath = `${fixtures}/test-fixtures/block_assign.hcl`;
 const hclPath = `${__dirname}/in.hcl`;
 
 test(

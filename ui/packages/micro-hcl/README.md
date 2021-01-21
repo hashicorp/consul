@@ -16,7 +16,6 @@ make watch
 
 ### TODO
 
-- [ ] block assign
 - [ ] Heredoc / multiline
 - [ ] Certain, if not all, types of escaping
 - [ ] Unterminated things

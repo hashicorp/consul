@@ -27,7 +27,7 @@ start
   = Body 
 
 Body "body"
-  = __ body:(Attribute / Block)* { 
+  = __ body:(Block / Attribute)* { 
     return body.reduce(
       (prev, item) => {
         return Object.assign(
@@ -46,7 +46,7 @@ Body "body"
   }
 
 Selector "selector"
-  = head:IdentifierName tail:(_ IdentifierName)* { 
+  = head:IdentifierName (_ "=")? tail:(_ IdentifierName)* { 
     return [head, ...tail].map(item => (Array.isArray(item) ? item.join('') : item).trim()).join('.')
   }
 
@@ -200,7 +200,7 @@ PropertyNameAndValueList
     }
 
 ObjectPropertyAssignment
-  = key:IdentifierName __ ":" __ value:Expression {
+  = key:IdentifierName __ (":" / "=") __ value:Expression {
       return {[key]: value}
     }
 
