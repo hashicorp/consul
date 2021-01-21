@@ -3,13 +3,13 @@
   @items={{@items}}
 as |item|>
   <BlockSlot @name="header">
-    <p data-test-auth-method-name>
+    <p data-test-auth-method={{item.Name}}>
       {{item.Name}}
     </p>
   </BlockSlot>
   <BlockSlot @name="details">
     <Consul::AuthMethod::Type @item={{item}} />
-    <span>{{capitalize item.DisplayName}}</span>
+    <span data-test-display-name>{{item.DisplayName}}</span>
   {{#if (eq item.TokenLocality 'global')}}
     <span class="locality">creates global tokens</span>
   {{/if}}

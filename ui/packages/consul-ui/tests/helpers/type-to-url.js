@@ -35,7 +35,7 @@ export default function(type) {
     case 'token':
       requests = ['/v1/acl/tokens', '/v1/acl/token/'];
       break;
-    case 'auth-method':
+    case 'authMethod':
       requests = ['/v1/acl/auth-methods', '/v1/acl/auth-method/'];
       break;
     case 'nspace':

@@ -42,6 +42,7 @@ import consulUpstreamInstanceListFactory from 'consul-ui/components/consul/upstr
 import consulTokenListFactory from 'consul-ui/components/consul/token/list/pageobject';
 import consulRoleListFactory from 'consul-ui/components/consul/role/list/pageobject';
 import consulPolicyListFactory from 'consul-ui/components/consul/policy/list/pageobject';
+import consulAuthMethodListFactory from 'consul-ui/components/consul/auth-method/list/pageobject';
 import consulIntentionListFactory from 'consul-ui/components/consul/intention/list/pageobject';
 import consulNspaceListFactory from 'consul-ui/components/consul/nspace/list/pageobject';
 import consulKvListFactory from 'consul-ui/components/consul/kv/list/pageobject';
@@ -65,6 +66,7 @@ import roles from 'consul-ui/tests/pages/dc/acls/roles/index';
 import role from 'consul-ui/tests/pages/dc/acls/roles/edit';
 import tokens from 'consul-ui/tests/pages/dc/acls/tokens/index';
 import token from 'consul-ui/tests/pages/dc/acls/tokens/edit';
+import authMethods from 'consul-ui/tests/pages/dc/acls/auth-methods/index';
 import intentions from 'consul-ui/tests/pages/dc/intentions/index';
 import intention from 'consul-ui/tests/pages/dc/intentions/edit';
 import nspaces from 'consul-ui/tests/pages/dc/nspaces/index';
@@ -90,6 +92,7 @@ const emptyState = emptyStateFactory(isPresent);
 
 const consulHealthCheckList = consulHealthCheckListFactory(collection, text);
 const consulUpstreamInstanceList = consulUpstreamInstanceListFactory(collection, text);
+const consulAuthMethodList = consulAuthMethodListFactory(collection, attribute, text);
 const consulIntentionList = consulIntentionListFactory(
   collection,
   clickable,
@@ -191,6 +194,7 @@ export default {
   token: create(
     token(visitable, submitable, deletable, cancelable, clickable, policySelector, roleSelector)
   ),
+  authMethods: create(authMethods(visitable, creatable, consulAuthMethodList, popoverSelect)),
   intentions: create(
     intentions(visitable, creatable, clickable, consulIntentionList, popoverSelect)
   ),
