@@ -24,7 +24,6 @@ test(
   'hcl1 tests',
   async (t) => {
     const fixtures = `{${path.resolve(`${__dirname}/../hcl/test-fixtures`)},${path.resolve(`${__dirname}/../hcl/hcl/test-fixtures`)},${path.resolve(`${__dirname}/../hcl/hcl/parser/test-fixtures`)}}`;
-    console.log(fixtures);
     const files = (await glob(`${fixtures}/*.hcl`)).map(
       (file) => {
         const hcl = file.replace('.json', '.hcl');
