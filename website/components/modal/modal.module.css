@@ -4,7 +4,7 @@
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: 99999;
+  z-index: 9000;
 }
 
 .scrim {
@@ -15,12 +15,12 @@
   height: 100vh;
   background-color: #323339;
   opacity: 0.8;
-  z-index: 0;
+  z-index: 9001;
 }
 
 .contentsContainer {
   position: relative;
-  z-index: 1;
+  z-index: 9002;
 }
 
 .grid {
