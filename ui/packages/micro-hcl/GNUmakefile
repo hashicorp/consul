@@ -1,4 +1,4 @@
-.PHONY: install build test
+.PHONY: install build test watch
 
 .DEFAULT_GOAL=install
 
@@ -13,3 +13,6 @@ build: # install
 
 test: hcl build
 	yarn run test
+
+watch: hcl
+	yarn run watch

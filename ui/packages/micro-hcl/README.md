@@ -7,6 +7,8 @@ No, really. Please do not use.
 ## Contributing
 
 ```
-yarn
-yarn run watch
+make
+make test
+# or
+make watch
 ```
