@@ -137,32 +137,32 @@
         }
       }
     }
+  }
 
-    &.brand-consul {
-      & .content label {
-        color: var(--consul);
-      }
+  &.brand-consul {
+    & .content label {
+      color: var(--consul);
     }
+  }
 
-    /* Brand -- Nomad */
-    &.brand-nomad {
-      & .content label {
-        color: var(--nomad);
-      }
+  /* Brand -- Nomad */
+  &.brand-nomad {
+    & .content label {
+      color: var(--nomad);
     }
+  }
 
-    /* Brand -- Packer */
-    &.brand-packer {
-      & .content label {
-        color: var(--packer);
-      }
+  /* Brand -- Packer */
+  &.brand-packer {
+    & .content label {
+      color: var(--packer);
     }
+  }
 
-    /* Brand -- Terraform */
-    &.brand-terraform {
-      & .content label {
-        color: var(--terraform);
-      }
+  /* Brand -- Terraform */
+  &.brand-terraform {
+    & .content label {
+      color: var(--terraform);
     }
   }
 }
