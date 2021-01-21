@@ -77,7 +77,7 @@ Attribute "attribute"
   }
 
 Expression "expression"
-  = Literal;
+  = Literal
 
 IdentifierName "identifier"
   = PropertyName
