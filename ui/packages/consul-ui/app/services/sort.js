@@ -9,6 +9,7 @@ import intention from 'consul-ui/sort/comparators/intention';
 import token from 'consul-ui/sort/comparators/token';
 import role from 'consul-ui/sort/comparators/role';
 import policy from 'consul-ui/sort/comparators/policy';
+import authMethod from 'consul-ui/sort/comparators/auth-method';
 import nspace from 'consul-ui/sort/comparators/nspace';
 import node from 'consul-ui/sort/comparators/node';
 
@@ -32,6 +33,7 @@ const comparators = {
   ['service-instance']: serviceInstance(options),
   ['upstream-instance']: upstreamInstance(options),
   ['health-check']: healthCheck(options),
+  ['auth-method']: authMethod(options),
   acl: acl(options),
   kv: kv(options),
   intention: intention(options),

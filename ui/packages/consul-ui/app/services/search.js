@@ -13,6 +13,7 @@ import kv from 'consul-ui/search/predicates/kv';
 import token from 'consul-ui/search/predicates/token';
 import role from 'consul-ui/search/predicates/role';
 import policy from 'consul-ui/search/predicates/policy';
+import authMethod from 'consul-ui/search/predicates/auth-method';
 import nspace from 'consul-ui/search/predicates/nspace';
 
 const predicates = {
@@ -21,6 +22,7 @@ const predicates = {
   ['service-instance']: serviceInstance,
   ['upstream-instance']: upstreamInstance,
   ['health-check']: healthCheck,
+  ['auth-method']: authMethod,
   node: node,
   kv: kv,
   acl: acl,

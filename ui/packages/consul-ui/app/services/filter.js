@@ -10,12 +10,14 @@ import kv from 'consul-ui/filter/predicates/kv';
 import intention from 'consul-ui/filter/predicates/intention';
 import token from 'consul-ui/filter/predicates/token';
 import policy from 'consul-ui/filter/predicates/policy';
+import authMethod from 'consul-ui/filter/predicates/auth-method';
 
 const predicates = {
   acl: andOr(acl),
   service: andOr(service),
   ['service-instance']: andOr(serviceInstance),
   ['health-check']: andOr(healthCheck),
+  ['auth-method']: andOr(authMethod),
   node: andOr(node),
   kv: andOr(kv),
   intention: andOr(intention),

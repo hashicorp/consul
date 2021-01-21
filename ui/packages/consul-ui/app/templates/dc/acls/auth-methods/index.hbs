@@ -3,16 +3,88 @@
 {{else}}
   {{page-title 'Access Controls'}}
 {{/if}}
-  <AppView>
+{{#let (hash
+  types=(if type (split type ',') undefined)
+  searchproperties=(if (not-eq searchproperty undefined)
+    (split searchproperty ',')
+    (array 'Name' 'DisplayName')
+  )
+) as |filters|}}
+  {{#let (or sortBy "Name:asc") as |sort|}}
+  <AppView
+    @authorized={{isAuthorized}}
+    @enabled={{isEnabled}}
+    >
     <BlockSlot @name="header">
       <h1>
         Access Controls
       </h1>
     </BlockSlot>
     <BlockSlot @name="nav">
+    {{#if isAuthorized }}
       {{partial 'dc/acls/nav'}}
+    {{/if}}
+    </BlockSlot>
+    <BlockSlot @name="toolbar">
+   {{#if (gt items.length 0) }}
+      <Consul::AuthMethod::SearchBar
+        @search={{search}}
+        @onsearch={{action (mut search) value="target.value"}}
+
+        @sort={{sort}}
+        @onsort={{action (mut sortBy) value="target.selected"}}
+
+        @filter={{filters}}
+        @onfilter={{hash
+          searchproperty=(action (mut searchproperty) value="target.selectedItems")
+          type=(action (mut type) value="target.selectedItems")
+        }}
+      />
+    {{/if}}
     </BlockSlot>
     <BlockSlot @name="content">
-      <Consul::AuthMethod::List @items={{items}}/>
+      <DataCollection
+        @type="auth-method"
+        @sort={{sort}}
+        @filters={{filters}}
+        @search={{search}}
+        @items={{items}}
+      as |collection|>
+        <collection.Collection>
+          <Consul::AuthMethod::List @items={{collection.items}} />
+        </collection.Collection>
+        <collection.Empty>
+          <EmptyState @allowLogin={{true}}>
+            <BlockSlot @name="header">
+              <h2>
+                {{#if (gt items.length 0)}}
+                  No auth methods found
+                {{else}}
+                  Welcome to Auth Methods
+                {{/if}}
+              </h2>
+            </BlockSlot>
+            <BlockSlot @name="body">
+              <p>
+                {{#if (gt items.length 0)}}
+                  No auth methods where found matching that search, or you may not have access to view the auth methods you are searching for.
+                {{else}}
+                  There don't seem to be any auth methods, or you may not have access to view auth methods yet.
+                {{/if}}
+              </p>
+            </BlockSlot>
+            <BlockSlot @name="actions">
+              <li class="docs-link">
+                <a href="{{env 'CONSUL_DOCS_URL'}}/security/acl/auth-methods" rel="noopener noreferrer" target="_blank">Documentation on auth methods</a>
+              </li>
+              <li class="learn-link">
+                <a href="{{env 'CONSUL_DOCS_API_URL'}}/acl/auth-methods.html" rel="noopener noreferrer" target="_blank">Read the guide</a>
+              </li>
+            </BlockSlot>
+          </EmptyState>
+        </collection.Empty>
+      </DataCollection>
     </BlockSlot>
   </AppView>
+  {{/let}}
+{{/let}}

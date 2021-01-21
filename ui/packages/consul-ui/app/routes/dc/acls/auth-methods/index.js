@@ -5,6 +5,19 @@ import { hash } from 'rsvp';
 export default class IndexRoute extends Route {
   @service('repository/auth-method') repo;
 
+  queryParams = {
+    sortBy: 'sort',
+    kind: 'kind',
+    searchproperty: {
+      as: 'searchproperty',
+      empty: [['Name', 'DisplayName']],
+    },
+    search: {
+      as: 'filter',
+      replace: true,
+    },
+  };
+
   model(params) {
     return hash({
       ...this.repo.status({
