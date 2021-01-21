@@ -14,6 +14,17 @@ resource "aws_instance" "example" {
 
   array = [1, "two", false, null]
   object = {prop: "value"}
+  object2 = {"prop": 1}
+  object3 = {'prop': 1.34}
+
+  deepObject = {
+    prop: {
+      "prop": {
+        'prop': [''],
+        'prop2': ['']
+      }
+    }
+  }
 
   lifecycle {
     // slash_create_before_destroy = true

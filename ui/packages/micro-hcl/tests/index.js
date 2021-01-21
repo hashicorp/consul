@@ -7,10 +7,9 @@ const glob = require('glob-promise');
 
 const parser = require('../index');
 
-// for the moment, clone hashicorp/hcl into micro-hcl/hcl
-const fixtures = path.resolve(`${__dirname}/../hcl/test-fixtures`);
-// const hclPath = `${fixtures}/structure.hcl`;
-const hclPath = `${__dirname}/in.hcl`;
+const fixtures = path.resolve(`${__dirname}/../hcl`);
+const hclPath = `${fixtures}/hcl/test-fixtures/types.hcl`;
+// const hclPath = `${__dirname}/in.hcl`;
 
 test(
   'it works',
@@ -24,7 +23,8 @@ test(
 test(
   'hcl1 tests',
   async (t) => {
-    const fixtures = path.resolve(`${__dirname}/../hcl/test-fixtures`);
+    const fixtures = `{${path.resolve(`${__dirname}/../hcl/test-fixtures`)},${path.resolve(`${__dirname}/../hcl/hcl/test-fixtures`)}}`;
+    console.log(fixtures);
     const files = (await glob(`${fixtures}/*.hcl`)).map(
       (file) => {
         const hcl = file.replace('.json', '.hcl');

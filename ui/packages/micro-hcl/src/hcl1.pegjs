@@ -1,6 +1,6 @@
 // Significant parts taken from the PEGJS javascript example
-// http://github.com/pegjs/pegjs/examples/javascript.pegjs
-// MIT Licensed: http://github.com/pegjs/pegjs/LICENSE
+// https://github.com/pegjs/pegjs/blob/master/examples/javascript.pegjs
+// MIT Licensed: https://github.com/pegjs/pegjs/blob/master/LICENSE
 // Copyright (c) 2010-2016 David Majda
 // Copyright (c) 2017+ Futago-za Ryuu
 
@@ -15,6 +15,9 @@
   function extractList(list, index) {
     return list.map(function(element) { return element[index]; });
   }
+  function buildList(head, tail, index) {
+    return [head].concat(extractList(tail, index));
+  }
   function optionalList(value) {
     return value !== null ? value : [];
   }
@@ -24,7 +27,7 @@ start
   = Body 
 
 Body "body"
-  = body:(Attribute / Block)* { 
+  = __ body:(Attribute / Block)* { 
     return body.reduce(
       (prev, item) => {
         return Object.assign(
@@ -43,7 +46,7 @@ Body "body"
   }
 
 Selector "selector"
-  = head:IdentifierName tail:(_ StringLiteral)* { 
+  = head:IdentifierName tail:(_ IdentifierName)* { 
     return [head, ...tail].map(item => (Array.isArray(item) ? item.join('') : item).trim()).join('.')
   }
 
@@ -62,17 +65,25 @@ Block "block"
 
 Attribute "attribute"
   = _ identifier:IdentifierName _ '=' _ expression:Expression __ {
-    return {[identifier]: expression}
+    const obj = {};
+    identifier.split('.').reduce(
+      function(prev, item, i, arr) {
+        prev[item] = (i === arr.length - 1) ? expression : {};
+        return prev[item];
+      },
+      obj
+    );
+    return obj;
   }
 
 Expression "expression"
   = Literal;
 
-PropertyName
-  = IdentifierName
+IdentifierName "identifier"
+  = PropertyName
   / StringLiteral
 
-IdentifierName "identifier"
+PropertyName "property"
   = head:IdentifierStart tail:IdentifierPart* {
       return head + tail.join('')
     }
@@ -88,6 +99,7 @@ IdentifierPart
   / UnicodeCombiningMark
   / UnicodeDigit
   / UnicodeConnectorPunctuation
+  / "."
   / "\u200C"
   / "\u200D"
 
@@ -174,12 +186,17 @@ Elision
 
 ObjectLiteral
   = "{" __ "}" { return {}; }
-  / "{" __ properties:ObjectPropertyAssignment __ "}" {
+  / "{" __ properties:PropertyNameAndValueList __ "}" {
       return properties
      }
-  / "{" __ properties:ObjectPropertyAssignment __ "," __ "}" {
+  / "{" __ properties:PropertyNameAndValueList __ "," __ "}" {
       return properties;
      }
+
+PropertyNameAndValueList
+  = head:ObjectPropertyAssignment tail:(__ "," __ ObjectPropertyAssignment)* {
+      return buildList(head, tail, 3);
+    }
 
 ObjectPropertyAssignment
   = key:IdentifierName __ ":" __ value:Expression {
@@ -215,7 +232,7 @@ DecimalLiteral
 
 DecimalIntegerLiteral
   = "0"
-  / NonZeroDigit DecimalDigit*
+  / NonZeroDigit DecimalDigit* / SignedInteger
 
 HexIntegerLiteral
   = "0x"i digits:$HexDigit+ { return parseInt(digits, 16) }
