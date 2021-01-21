@@ -1,0 +1,18 @@
+{{#if isAuthorized }}
+  {{page-title 'Auth Methods'}}
+{{else}}
+  {{page-title 'Access Controls'}}
+{{/if}}
+  <AppView>
+    <BlockSlot @name="header">
+      <h1>
+        Access Controls
+      </h1>
+    </BlockSlot>
+    <BlockSlot @name="nav">
+      {{partial 'dc/acls/nav'}}
+    </BlockSlot>
+    <BlockSlot @name="content">
+      <Consul::AuthMethod::List @items={{items}}/>
+    </BlockSlot>
+  </AppView>
