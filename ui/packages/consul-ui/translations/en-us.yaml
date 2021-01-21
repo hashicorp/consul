@@ -6,6 +6,8 @@ common:
     vault: Vault
     aws: AWS
     kubernetes: Kubernetes
+    jwt: JWT
+    oidc: OIDC
   ui:
     remove: Remove {item}
     filtered-by: Filtered by {item}
