@@ -100,6 +100,7 @@ IdentifierPart
   / UnicodeDigit
   / UnicodeConnectorPunctuation
   / "."
+  / "-"
   / "\u200C"
   / "\u200D"
 
