@@ -2,7 +2,7 @@
   "name": "micro-hcl",
   "version": "0.0.0",
   "main": "index.js",
-  "license": "MIT",
+  "license": "MPL-2.0",
   "scripts": {
     "build": "pegjs -o index.js src/hcl1.pegjs",
     "dist": "uglifyjs --compress --mangle -- index.js > index.min.js",
