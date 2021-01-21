@@ -2,21 +2,40 @@
   position: absolute;
   left: 0;
   top: var(--chrome-height, 47px);
-  width: var(--chrome-width);
+  width: var(--chrome-width, 300px);
   height: calc(100vh - var(--chrome-height, 47px) - 35px);
   padding-top: 35px;
+  overflow: auto;
 }
+// disable tabbing when not visible
+%main-nav-vertical:not(.in-viewport) {
+  visibility: hidden;
+}
+%main-nav-vertical li.nspaces,
 %main-nav-vertical li.dcs {
   margin-bottom: 25px;
+  padding: 0 20px;
 }
-%main-nav-vertical-action {
+// TODO: We no longer have the rule that menu-panel buttons only contain two
+// items, left and right aligned. We should remove this and look to use
+// align-self for anything that needs right aligning instead.
+
+%main-nav-vertical [role="menuitem"] {
+  justify-content: flex-start !important;
+}
+%main-nav-vertical [role="menuitem"] span {
+  margin-left: .5rem;
+}
+%main-nav-vertical-action,
+%main-nav-vertical [role="separator"] {
   display: block;
   padding: 7px 25px;
 }
-
-%main-nav-vertical .is-local [role='menuitem'] span:last-of-type {
-  margin-right: 20px;
+%main-nav-vertical [role="separator"] {
+  margin-top: .7rem;
+  padding-bottom: 0;
 }
+
 %main-nav-vertical-menu-panel {
-  min-width: 266px;
+  min-width: 260px;
 }
