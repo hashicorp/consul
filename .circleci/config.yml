@@ -153,8 +153,9 @@ jobs:
       - run:
           command: make update-vendor
       - run: |
-          if ! git diff --exit-code; then
-            echo "Git directory has vendor changes"
+          if [[ -z $(git status -s) ]]; then
+            echo "Git directory has changes"
+            git status -s
             exit 1
           fi
       - run: *notify-slack-failure
