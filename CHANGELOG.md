@@ -1,5 +1,10 @@
 ## UNRELEASED
 
+BUG FIXES:
+
+* rpc: Prevent misleading RPC error claiming the lack of a leader when Raft is ok but there are issues with client agents gossiping with the leader. [[GH-9487](https://github.com/hashicorp/consul/issues/9487)]
+* ui: ensure namespace is used for node API requests [[GH-9488](https://github.com/hashicorp/consul/issues/9488)]
+
 ## 1.7.11 (December 10, 2020)
 
 BUG FIXES:
