@@ -1,4 +1,4 @@
-## UNRELEASED
+## 1.7.12 (January 22, 2021)
 
 BUG FIXES:
 
