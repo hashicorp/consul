@@ -1215,4 +1215,24 @@ module.exports = [
   // disallow '.html' or '/index.html' in favor of cleaner, simpler paths
   { source: '/:path*/index', destination: '/:path*', permanent: true },
   { source: '/:path*.html', destination: '/:path*', permanent: true },
+  {
+    source: '/docs/k8s/uninstall',
+    destination: '/docs/k8s/operations/uninstall',
+    permanent: true,
+  },
+  {
+    source: '/docs/k8s/upgrade',
+    destination: '/docs/k8s/operations/upgrade',
+    permanent: true,
+  },
+  {
+    source: '/docs/k8s/upgrade/compatibility',
+    destination: '/docs/k8s/operations/upgrade/compatibility',
+    permanent: true,
+  },
+  {
+    source: '/docs/k8s/tls-on-existing-cluster',
+    destination: '/docs/k8s/operations/tls-on-existing-cluster',
+    permanent: true,
+  },
 ]

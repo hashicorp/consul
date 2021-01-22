@@ -170,7 +170,6 @@ export default [
           },
         ],
       },
-      'tls-on-existing-cluster',
       {
         category: 'connect',
         content: [
@@ -188,10 +187,18 @@ export default [
       },
       'dns',
       {
-        category: 'upgrade',
-        content: ['compatibility'],
+        category: 'operations',
+        name: 'Operations',
+        content: [
+          {
+            category: 'upgrade',
+            content: ['compatibility'],
+          },
+          'uninstall',
+          'tls-on-existing-cluster',
+          'faq',
+        ],
       },
-      'uninstall',
       'helm',
     ],
   },
