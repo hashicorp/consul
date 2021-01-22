@@ -30,10 +30,10 @@ dist: clean
 # base-directory: ui
 # build command: make dist-netlify
 # publish directory: ui/dist
-dist-netlify: clean
+dist-vercel: clean
 	mkdir -p dist/ui && \
 	cd packages/consul-ui && \
 		CONSUL_UI_INSTALL_FLAGS=--focus \
 		$(MAKE) build-staging && \
 		mv dist/* ../../dist/ui && \
-		cp _redirects ../../dist/_redirects
+		cp vercel.json ../../dist/vercel.json

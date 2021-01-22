@@ -1,0 +1,12 @@
+{
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/ui/"
+    },
+    {
+      "source": "/ui/:path*",
+      "destination": "/ui/"
+    }
+  ]
+}
