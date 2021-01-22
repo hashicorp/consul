@@ -978,12 +978,22 @@ func (s *Server) startFederationStateReplication() {
 		return
 	}
 
+	if s.gatewayLocator != nil {
+		s.gatewayLocator.SetUseReplicationSignal(true)
+		s.gatewayLocator.SetLastFederationStateReplicationError(nil, false)
+	}
+
 	s.leaderRoutineManager.Start(federationStateReplicationRoutineName, s.federationStateReplicator.Run)
 }
 
 func (s *Server) stopFederationStateReplication() {
 	// will be a no-op when not started
 	s.leaderRoutineManager.Stop(federationStateReplicationRoutineName)
+
+	if s.gatewayLocator != nil {
+		s.gatewayLocator.SetUseReplicationSignal(false)
+		s.gatewayLocator.SetLastFederationStateReplicationError(nil, false)
+	}
 }
 
 // getOrCreateAutopilotConfig is used to get the autopilot config, initializing it if necessary
