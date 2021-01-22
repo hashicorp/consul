@@ -39,7 +39,7 @@ func (r *FederationStateReplicator) FetchRemote(lastRemoteIndex uint64) (int, in
 	}
 	lenRemote, remote, remoteIndex, err := r.fetchRemote(lastRemoteIndex)
 	if r.gatewayLocator != nil {
-		r.gatewayLocator.SetLastFederationStateReplicationError(err)
+		r.gatewayLocator.SetLastFederationStateReplicationError(err, true)
 	}
 	return lenRemote, remote, remoteIndex, err
 }
