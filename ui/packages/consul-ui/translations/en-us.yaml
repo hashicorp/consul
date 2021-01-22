@@ -57,6 +57,31 @@ components:
         kind: Service Type
         in-mesh: In service mesh
         not-in-mesh: Not in service mesh
+    health-check:
+      search-bar:
+        kind:
+          name: Kind
+          options:
+            service: Service Check
+            node: Node Check
+        check:
+          name: Type
+          options:
+            alias: alias
+            docker: docker
+            grpc: gRPC
+            http: HTTP
+            script: script
+            serf: serf
+            tcp: TCP
+            ttl: TTL
+        sort:
+          name:
+            name: Check Name
+          kind:
+            name: Check Type
+            asc: Service to Node
+            desc: Node to Service
     acl:
       search-bar:
         kind:
