@@ -759,6 +759,43 @@ and consider if they're appropriate for your deployment.
       This should be a multi-line string mapping directly to a Kubernetes
       ServiceSpec object.
 
+  - `ingress` ((#v-ui-ingress)) - Configure Ingress for the Consul UI.
+    If `global.tls.enabled` is set to `true`, the Ingress will expose
+    the port 443 on the UI service. Please ensure the Ingress Controller
+    supports SSL pass-through and it is enabled to ensure traffic forwarded
+    to port 443 has not been TLS terminated.
+
+    - `enabled` ((#v-ui-ingress-enabled)) (`boolean: false`) - This will create an Ingress resource for the Consul UI.
+
+    - `hosts` ((#v-ui-ingress-hosts)) (`array<map>`) - hosts is a list of host name to create Ingress rules.
+
+      ```yaml
+      hosts:
+        - host: foo.bar
+          paths:
+            - /example
+            - /test
+      ```
+
+    - `tls` ((#v-ui-ingress-tls)) (`array<map>`) - tls is a list of hosts and secret name in an Ingress
+      which tells the Ingress controller to secure the channel.
+
+      ```yaml
+      tls:
+        - hosts:
+          - chart-example.local
+          secretName: testsecret-tls
+      ```
+
+    - `annotations` ((#v-ui-ingress-annotations)) (`string: null`) - Annotations to apply to the UI ingress.
+
+      Example:
+
+      ```yaml
+      annotations: |
+        'annotation-key': annotation-value
+      ```
+
 - `syncCatalog` ((#v-synccatalog)) - Configure the catalog sync process to sync K8S with Consul
   services. This can run bidirectional (default) or unidirectionally (Consul
   to K8S or K8S to Consul only).
