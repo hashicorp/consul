@@ -1,0 +1,4 @@
+{
+  "redirects": [{ "source": "/", "destination": "/ui/" }],
+  "rewrites": [{ "source": "/ui/(.*)", "destination": "/ui/index.html" }]
+}
