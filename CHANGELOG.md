@@ -1,5 +1,14 @@
 ## UNRELEASED
 
+BUG FIXES:
+
+* connect: Fixed a bug in the AWS PCA Connect CA provider that could cause the intermediate PKI path to be deleted after reconfiguring the CA [[GH-9498](https://github.com/hashicorp/consul/issues/9498)]
+* connect: Fixed a bug in the Vault Connect CA provider that could cause the intermediate PKI path to be deleted after reconfiguring the CA [[GH-9498](https://github.com/hashicorp/consul/issues/9498)]
+* connect: Fixed an issue that would prevent updating the Connect CA configuration if the CA provider didn't complete initialization previously. [[GH-9498](https://github.com/hashicorp/consul/issues/9498)]
+* leader: Fixed a bug that could cause Connect CA initialization failures from allowing leader establishment to complete resulting in potentially infinite leader elections. [[GH-9498](https://github.com/hashicorp/consul/issues/9498)]
+* rpc: Prevent misleading RPC error claiming the lack of a leader when Raft is ok but there are issues with client agents gossiping with the leader. [[GH-9487](https://github.com/hashicorp/consul/issues/9487)]
+* ui: ensure namespace is used for node API requests [[GH-9488](https://github.com/hashicorp/consul/issues/9488)]
+
 ## 1.8.7 (December 10, 2020)
 
 BUG FIXES:
