@@ -15,7 +15,7 @@ export default [
         content: [
           'zookeeper',
           'chef-puppet',
-          'nagios-sensu',
+          'nagios',
           'skydns',
           'smartstack',
           'serf',

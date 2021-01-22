@@ -256,8 +256,8 @@ module.exports = [
     permanent: true,
   },
   {
-    source: '/intro/vs/nagios-sensu',
-    destination: '/docs/intro/vs/nagios-sensu',
+    source: '/intro/vs/nagios',
+    destination: '/docs/intro/vs/nagios',
     permanent: true,
   },
   {
