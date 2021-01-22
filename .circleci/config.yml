@@ -155,7 +155,7 @@ jobs:
           paths:
             - /go/pkg/mod
       - run: |
-          if [[ -z $(git status -s) ]]; then
+          if [[ -n $(git status -s) ]]; then
             echo "Git directory has changes"
             git status -s
             exit 1
