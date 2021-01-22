@@ -1,7 +1,11 @@
 import Route from 'consul-ui/routing/route';
+import { inject as service } from '@ember/service';
 
 export default class TagsRoute extends Route {
-  model() {
+  @service('routlet') routlet;
+  async model() {
+    await this.routlet.ready();
+
     const parent = this.routeName
       .split('.')
       .slice(0, -1)

@@ -5,6 +5,7 @@ import { get } from '@ember/object';
 export default class ShowRoute extends Route {
   @service('data-source/service') data;
   @service('ui-config') config;
+  @service('routlet') routlet;
 
   async model(params, transition) {
     const dc = this.modelFor('dc').dc;

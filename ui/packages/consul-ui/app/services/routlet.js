@@ -48,6 +48,18 @@ class Outlets {
 }
 const outlets = new Outlets();
 export default class RoutletService extends Service {
+  ready() {
+    return this._transition;
+  }
+
+  transition() {
+    let endTransition;
+    this._transition = new Promise(resolve => {
+      endTransition = resolve;
+    });
+    return endTransition;
+  }
+
   findOutlet(name) {
     const keys = [...outlets.keys()];
     const key = keys.find(item => name.indexOf(item) !== -1);

@@ -4,6 +4,7 @@ import { get } from '@ember/object';
 
 export default class RoutingRoute extends Route {
   @service('data-source/service') data;
+  @service('routlet') routlet;
 
   async model(params, transition) {
     const parent = this.routeName
@@ -13,6 +14,7 @@ export default class RoutingRoute extends Route {
     const model = this.modelFor(parent);
     return {
       ...model,
+      ready: await this.routlet.ready(),
       chain: await this.data.source(
         uri => uri`/${model.nspace}/${model.dc.Name}/discovery-chain/${model.slug}`
       ),

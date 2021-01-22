@@ -58,12 +58,19 @@ export default class Outlet extends Component {
     }
   }
 
+  @action transitionEnd($el) {
+    // if(typeof this.endTransition === 'function') {
+    this.endTransition();
+    // }
+  }
+
   @action
   startLoad(transition) {
     const outlet = this.routlet.findOutlet(transition.to.name) || 'application';
     if (this.args.name === outlet) {
       this.previousState = this.state;
       this.state = new State('loading');
+      this.endTransition = this.routlet.transition();
     }
     if (this.args.name === 'application') {
       this.setAppState('loading');

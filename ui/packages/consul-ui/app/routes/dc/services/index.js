@@ -3,6 +3,7 @@ import Route from 'consul-ui/routing/route';
 
 export default class IndexRoute extends Route {
   @service('data-source/service') data;
+  @service('routlet') routlet;
 
   queryParams = {
     sortBy: 'sort',

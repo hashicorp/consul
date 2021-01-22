@@ -7,6 +7,7 @@
   data-route={{this.routeName}}
   data-state={{this.state.name}}
   data-transition={{concat this.previousState.name ' ' this.state.name}}
+  {{on 'transitionend' this.transitionEnd}}
 >
   {{yield (hash
     state=this.state

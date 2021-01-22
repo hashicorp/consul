@@ -6,9 +6,18 @@
   fill: $magenta-100;
 }
 html.ember-loading .view-loader,
-html[data-state='idle'] .view-loader {
+.view-loader {
   display: none;
 }
+// .outlet[data-state='loading'] {
+//   display: none;
+// }
+.outlet {
+  transition-property: opacity, transform;
+  transition-duration: 100ms;
+  transition-timing-function: ease-out;
+}
 .outlet[data-state='loading'] {
-  display: none;
+  // transform: translateY(-10px);
+  opacity: 0;
 }

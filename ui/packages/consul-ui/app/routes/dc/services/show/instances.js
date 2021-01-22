@@ -1,6 +1,8 @@
 import Route from 'consul-ui/routing/route';
+import { inject as service } from '@ember/service';
 
 export default class InstancesRoute extends Route {
+  @service('routlet') routlet;
   queryParams = {
     sortBy: 'sort',
     status: 'status',
@@ -16,6 +18,7 @@ export default class InstancesRoute extends Route {
   };
 
   async model() {
+    await this.routlet.ready();
     const parent = this.routeName
       .split('.')
       .slice(0, -1)
