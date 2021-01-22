@@ -35,4 +35,5 @@ dist-vercel: clean
 	cd packages/consul-ui && \
 		CONSUL_UI_INSTALL_FLAGS=--focus \
 		$(MAKE) build-staging && \
-		mv dist/* ../../dist/ui
+		mv dist/* ../../dist/ui && \
+		cp vercel.json ../../dist/vercel.json
