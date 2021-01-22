@@ -57,6 +57,11 @@ components:
         kind: Service Type
         in-mesh: In service mesh
         not-in-mesh: Not in service mesh
+    service-instance:
+      search-bar:
+        sort:
+          name:
+            name: Service Name
     health-check:
       search-bar:
         kind:
