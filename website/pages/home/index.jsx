@@ -243,12 +243,12 @@ export default function HomePage() {
             },
             {
               image: require('./img/cloud/hcp.jpg?url'),
-              eyebrow: 'Private Beta',
+              eyebrow: 'General Availability',
               title: 'HCP Consul on AWS',
               description: 'HashiCorp Cloud Platform',
               link: {
-                text: 'Request Access',
-                url: 'https://www.hashicorp.com/cloud-platform/request-access/',
+                text: 'Get Started',
+                url: 'https://portal.cloud.hashicorp.com',
                 type: 'outbound',
               },
             },
