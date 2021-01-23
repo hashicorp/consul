@@ -153,21 +153,36 @@ You have installed an Enterprise version of Consul. If you are an Enterprise cus
 
 ### Unable to connect to the Consul client on the same host
 
+If the pods are unable to connect to a Consul client running on the same host,
+first check if the Consul clients are up and running with `kubectl get pods`.
+
+```shell-session
+$ kubectl get pods -l "component=client"
+NAME           READY   STATUS    RESTARTS   AGE
+consul-kzws6   1/1     Running   0          58s
+```
+
+If you are still unable to connect
+and see `i/o timeout` or `connection refused` errors when connecting to the Consul client on the Kubernetes worker,
+this could be because the CNI (Container Networking Interface)
+does not [support](https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/network-plugins/#support-hostport)
+the use of `hostPort`.
+
 ```text
-Put http://10.20.62.49:8500/v1/catalog/register: dial tcp 10.20.62.49:8500: connect: connection refused
+Put http://10.0.0.10:8500/v1/catalog/register: dial tcp 10.0.0.10:8500: connect: connection refused
 ```
 
 ```text
-Put http://172.16.30.51:8500/v1/agent/service/register: dial tcp 172.16.30.51:8500: connect: connection refused
+Put http://10.0.0.10:8500/v1/agent/service/register: dial tcp 10.0.0.10:8500: connect: connection refused
 ```
 
 ```text
-Get http://10.137.120.213:8500/v1/status/leader: dial tcp 10.137.120.213:8500: i/o timeout
+Get http://10.0.0.10:8500/v1/status/leader: dial tcp 10.0.0.10:8500: i/o timeout
 ```
 
-If you're seeing `i/o timeout` or `connection refused` errors when connecting to the Consul client on the Kubernetes worker,
-this could be because the CNI (Container Networking Interface) does not [support](https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/network-plugins/#support-hostport)
-the use of `hostPort`. To work around this issue,
+The IP `10.0.0.10` above refers to the IP of the host where the Consul client pods are running.
+
+To work around this issue,
 enable [`hostNetwork`](/docs/k8s/helm#v-client-hostnetwork) in your Helm values.
 Using the host network will enable the pod to use the host's network namespace without
 the need for CNI to support port mappings between containers and the host.
