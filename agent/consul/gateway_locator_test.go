@@ -2,6 +2,7 @@ package consul
 
 import (
 	"errors"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -64,13 +65,25 @@ func TestGatewayLocator(t *testing.T) {
 				)
 				g.SetUseReplicationSignal(isLeader)
 
+				t.Run("before first run", func(t *testing.T) {
+					assert.False(t, g.DialPrimaryThroughLocalGateway()) // not important
+					assert.Len(t, tsd.Calls, 0)
+					assert.Equal(t, []string(nil), g.listGateways(false))
+					assert.Equal(t, []string(nil), g.listGateways(true))
+					assert.False(t, tsd.datacenterSupportsFederationStates())
+				})
+
 				idx, err := g.runOnce(0)
 				require.NoError(t, err)
-				assert.False(t, g.DialPrimaryThroughLocalGateway())
 				assert.Equal(t, uint64(1), idx)
-				assert.Len(t, tsd.Calls, 1)
-				assert.Equal(t, []string(nil), g.listGateways(false))
-				assert.Equal(t, []string(nil), g.listGateways(true))
+
+				t.Run("after first run", func(t *testing.T) {
+					assert.False(t, g.DialPrimaryThroughLocalGateway()) // not important
+					assert.Len(t, tsd.Calls, 1)
+					assert.Equal(t, []string(nil), g.listGateways(false))
+					assert.Equal(t, []string(nil), g.listGateways(true))
+					assert.False(t, tsd.datacenterSupportsFederationStates()) // no results, so we don't flip the bit yet
+				})
 			})
 		}
 	})
@@ -93,17 +106,25 @@ func TestGatewayLocator(t *testing.T) {
 				)
 				g.SetUseReplicationSignal(isLeader)
 
+				t.Run("before first run", func(t *testing.T) {
+					assert.True(t, g.DialPrimaryThroughLocalGateway()) // defaults to sure!
+					assert.Len(t, tsd.Calls, 0)
+					assert.Equal(t, []string(nil), g.listGateways(false))
+					assert.Equal(t, []string(nil), g.listGateways(true))
+					assert.False(t, tsd.datacenterSupportsFederationStates())
+				})
+
 				idx, err := g.runOnce(0)
 				require.NoError(t, err)
-				if isLeader {
-					assert.False(t, g.DialPrimaryThroughLocalGateway())
-				} else {
-					assert.True(t, g.DialPrimaryThroughLocalGateway())
-				}
 				assert.Equal(t, uint64(1), idx)
-				assert.Len(t, tsd.Calls, 1)
-				assert.Equal(t, []string(nil), g.listGateways(false))
-				assert.Equal(t, []string(nil), g.listGateways(true))
+
+				t.Run("after first run", func(t *testing.T) {
+					assert.True(t, g.DialPrimaryThroughLocalGateway()) // defaults to sure!
+					assert.Len(t, tsd.Calls, 1)
+					assert.Equal(t, []string(nil), g.listGateways(false))
+					assert.Equal(t, []string(nil), g.listGateways(true))
+					assert.False(t, tsd.datacenterSupportsFederationStates()) // no results, so we don't flip the bit yet
+				})
 			})
 		}
 	})
@@ -130,20 +151,28 @@ func TestGatewayLocator(t *testing.T) {
 					"8.8.8.8:8888",
 				})
 
+				t.Run("before first run", func(t *testing.T) {
+					assert.True(t, g.DialPrimaryThroughLocalGateway()) // defaults to sure!
+					assert.Len(t, tsd.Calls, 0)
+					assert.Equal(t, []string(nil), g.listGateways(false))
+					assert.Equal(t, []string(nil), g.listGateways(true)) // don't return any data until we initialize
+					assert.False(t, tsd.datacenterSupportsFederationStates())
+				})
+
 				idx, err := g.runOnce(0)
 				require.NoError(t, err)
-				if isLeader {
-					assert.False(t, g.DialPrimaryThroughLocalGateway())
-				} else {
-					assert.True(t, g.DialPrimaryThroughLocalGateway())
-				}
 				assert.Equal(t, uint64(1), idx)
-				assert.Len(t, tsd.Calls, 1)
-				assert.Equal(t, []string(nil), g.listGateways(false))
-				assert.Equal(t, []string{
-					"7.7.7.7:7777",
-					"8.8.8.8:8888",
-				}, g.listGateways(true))
+
+				t.Run("after first run", func(t *testing.T) {
+					assert.True(t, g.DialPrimaryThroughLocalGateway()) // defaults to sure!
+					assert.Len(t, tsd.Calls, 1)
+					assert.Equal(t, []string(nil), g.listGateways(false))
+					assert.Equal(t, []string{
+						"7.7.7.7:7777",
+						"8.8.8.8:8888",
+					}, g.listGateways(true))
+					assert.False(t, tsd.datacenterSupportsFederationStates()) // no results, so we don't flip the bit yet
+				})
 			})
 		}
 	})
@@ -170,19 +199,31 @@ func TestGatewayLocator(t *testing.T) {
 				)
 				g.SetUseReplicationSignal(isLeader)
 
+				t.Run("before first run", func(t *testing.T) {
+					assert.False(t, g.DialPrimaryThroughLocalGateway()) // not important
+					assert.Len(t, tsd.Calls, 0)
+					assert.Equal(t, []string(nil), g.listGateways(false))
+					assert.Equal(t, []string(nil), g.listGateways(true)) // don't return any data until we initialize
+					assert.False(t, tsd.datacenterSupportsFederationStates())
+				})
+
 				idx, err := g.runOnce(0)
 				require.NoError(t, err)
-				assert.False(t, g.DialPrimaryThroughLocalGateway())
 				assert.Equal(t, uint64(2), idx)
-				assert.Len(t, tsd.Calls, 1)
-				assert.Equal(t, []string{
-					"1.2.3.4:5555",
-					"4.3.2.1:9999",
-				}, g.listGateways(false))
-				assert.Equal(t, []string{
-					"1.2.3.4:5555",
-					"4.3.2.1:9999",
-				}, g.listGateways(true))
+
+				t.Run("after first run", func(t *testing.T) {
+					assert.False(t, g.DialPrimaryThroughLocalGateway()) // not important
+					assert.Len(t, tsd.Calls, 1)
+					assert.Equal(t, []string{
+						"1.2.3.4:5555",
+						"4.3.2.1:9999",
+					}, g.listGateways(false))
+					assert.Equal(t, []string{
+						"1.2.3.4:5555",
+						"4.3.2.1:9999",
+					}, g.listGateways(true))
+					assert.True(t, tsd.datacenterSupportsFederationStates()) // have results, so we flip the bit
+				})
 			})
 		}
 	})
@@ -205,66 +246,34 @@ func TestGatewayLocator(t *testing.T) {
 				)
 				g.SetUseReplicationSignal(isLeader)
 
+				t.Run("before first run", func(t *testing.T) {
+					assert.True(t, g.DialPrimaryThroughLocalGateway()) // defaults to sure!
+					assert.Len(t, tsd.Calls, 0)
+					assert.Equal(t, []string(nil), g.listGateways(false))
+					assert.Equal(t, []string(nil), g.listGateways(true)) // don't return any data until we initialize
+					assert.False(t, tsd.datacenterSupportsFederationStates())
+				})
+
 				idx, err := g.runOnce(0)
 				require.NoError(t, err)
-				if isLeader {
-					assert.False(t, g.DialPrimaryThroughLocalGateway())
-				} else {
-					assert.True(t, g.DialPrimaryThroughLocalGateway())
-				}
 				assert.Equal(t, uint64(2), idx)
-				assert.Len(t, tsd.Calls, 1)
-				assert.Equal(t, []string{
-					"5.6.7.8:5555",
-					"8.7.6.5:9999",
-				}, g.listGateways(false))
-				if isLeader {
+
+				t.Run("after first run", func(t *testing.T) {
+					assert.True(t, g.DialPrimaryThroughLocalGateway()) // defaults to sure!
+					assert.Len(t, tsd.Calls, 1)
 					assert.Equal(t, []string{
-						"1.2.3.4:5555",
-						"4.3.2.1:9999",
-					}, g.listGateways(true))
-				} else {
+						"5.6.7.8:5555",
+						"8.7.6.5:9999",
+					}, g.listGateways(false))
 					assert.Equal(t, []string{
 						"5.6.7.8:5555",
 						"8.7.6.5:9999",
 					}, g.listGateways(true))
-				}
+					assert.True(t, tsd.datacenterSupportsFederationStates()) // have results, so we flip the bit
+				})
+
 			})
 		}
-	})
-
-	t.Run("secondary - with data and fallback - no repl", func(t *testing.T) {
-		// Only run for the leader.
-		logger := testutil.Logger(t)
-		tsd := &testServerDelegate{State: state, isLeader: true}
-		g := NewGatewayLocator(
-			logger,
-			tsd,
-			"dc2",
-			"dc1",
-		)
-		g.SetUseReplicationSignal(true)
-
-		g.RefreshPrimaryGatewayFallbackAddresses([]string{
-			"7.7.7.7:7777",
-			"8.8.8.8:8888",
-		})
-
-		idx, err := g.runOnce(0)
-		require.NoError(t, err)
-		assert.False(t, g.DialPrimaryThroughLocalGateway())
-		assert.Equal(t, uint64(2), idx)
-		assert.Len(t, tsd.Calls, 1)
-		assert.Equal(t, []string{
-			"5.6.7.8:5555",
-			"8.7.6.5:9999",
-		}, g.listGateways(false))
-		assert.Equal(t, []string{
-			"1.2.3.4:5555",
-			"4.3.2.1:9999",
-			"7.7.7.7:7777",
-			"8.8.8.8:8888",
-		}, g.listGateways(true))
 	})
 
 	t.Run("secondary - with data and fallback - repl ok", func(t *testing.T) {
@@ -286,19 +295,31 @@ func TestGatewayLocator(t *testing.T) {
 
 		g.SetLastFederationStateReplicationError(nil, true)
 
+		t.Run("before first run", func(t *testing.T) {
+			assert.True(t, g.DialPrimaryThroughLocalGateway()) // defaults to sure!
+			assert.Len(t, tsd.Calls, 0)
+			assert.Equal(t, []string(nil), g.listGateways(false))
+			assert.Equal(t, []string(nil), g.listGateways(true)) // don't return any data until we initialize
+			assert.False(t, tsd.datacenterSupportsFederationStates())
+		})
+
 		idx, err := g.runOnce(0)
 		require.NoError(t, err)
-		assert.True(t, g.DialPrimaryThroughLocalGateway())
 		assert.Equal(t, uint64(2), idx)
-		assert.Len(t, tsd.Calls, 1)
-		assert.Equal(t, []string{
-			"5.6.7.8:5555",
-			"8.7.6.5:9999",
-		}, g.listGateways(false))
-		assert.Equal(t, []string{
-			"5.6.7.8:5555",
-			"8.7.6.5:9999",
-		}, g.listGateways(true))
+
+		t.Run("after first run", func(t *testing.T) {
+			assert.True(t, g.DialPrimaryThroughLocalGateway())
+			assert.Len(t, tsd.Calls, 1)
+			assert.Equal(t, []string{
+				"5.6.7.8:5555",
+				"8.7.6.5:9999",
+			}, g.listGateways(false))
+			assert.Equal(t, []string{
+				"5.6.7.8:5555",
+				"8.7.6.5:9999",
+			}, g.listGateways(true))
+			assert.True(t, tsd.datacenterSupportsFederationStates()) // have results, so we flip the bit
+		})
 	})
 
 	t.Run("secondary - with data and fallback - repl ok then failed 2 times", func(t *testing.T) {
@@ -322,19 +343,31 @@ func TestGatewayLocator(t *testing.T) {
 		g.SetLastFederationStateReplicationError(errors.New("fake"), true)
 		g.SetLastFederationStateReplicationError(errors.New("fake"), true)
 
+		t.Run("before first run", func(t *testing.T) {
+			assert.True(t, g.DialPrimaryThroughLocalGateway()) // defaults to sure!
+			assert.Len(t, tsd.Calls, 0)
+			assert.Equal(t, []string(nil), g.listGateways(false))
+			assert.Equal(t, []string(nil), g.listGateways(true)) // don't return any data until we initialize
+			assert.False(t, tsd.datacenterSupportsFederationStates())
+		})
+
 		idx, err := g.runOnce(0)
 		require.NoError(t, err)
-		assert.True(t, g.DialPrimaryThroughLocalGateway())
 		assert.Equal(t, uint64(2), idx)
-		assert.Len(t, tsd.Calls, 1)
-		assert.Equal(t, []string{
-			"5.6.7.8:5555",
-			"8.7.6.5:9999",
-		}, g.listGateways(false))
-		assert.Equal(t, []string{
-			"5.6.7.8:5555",
-			"8.7.6.5:9999",
-		}, g.listGateways(true))
+
+		t.Run("after first run", func(t *testing.T) {
+			assert.True(t, g.DialPrimaryThroughLocalGateway())
+			assert.Len(t, tsd.Calls, 1)
+			assert.Equal(t, []string{
+				"5.6.7.8:5555",
+				"8.7.6.5:9999",
+			}, g.listGateways(false))
+			assert.Equal(t, []string{
+				"5.6.7.8:5555",
+				"8.7.6.5:9999",
+			}, g.listGateways(true))
+			assert.True(t, tsd.datacenterSupportsFederationStates()) // have results, so we flip the bit
+		})
 	})
 
 	t.Run("secondary - with data and fallback - repl ok then failed 3 times", func(t *testing.T) {
@@ -359,21 +392,33 @@ func TestGatewayLocator(t *testing.T) {
 		g.SetLastFederationStateReplicationError(errors.New("fake"), true)
 		g.SetLastFederationStateReplicationError(errors.New("fake"), true)
 
+		t.Run("before first run", func(t *testing.T) {
+			assert.False(t, g.DialPrimaryThroughLocalGateway()) // too many errors
+			assert.Len(t, tsd.Calls, 0)
+			assert.Equal(t, []string(nil), g.listGateways(false))
+			assert.Equal(t, []string(nil), g.listGateways(true)) // don't return any data until we initialize
+			assert.False(t, tsd.datacenterSupportsFederationStates())
+		})
+
 		idx, err := g.runOnce(0)
 		require.NoError(t, err)
-		assert.False(t, g.DialPrimaryThroughLocalGateway())
 		assert.Equal(t, uint64(2), idx)
-		assert.Len(t, tsd.Calls, 1)
-		assert.Equal(t, []string{
-			"5.6.7.8:5555",
-			"8.7.6.5:9999",
-		}, g.listGateways(false))
-		assert.Equal(t, []string{
-			"1.2.3.4:5555",
-			"4.3.2.1:9999",
-			"7.7.7.7:7777",
-			"8.8.8.8:8888",
-		}, g.listGateways(true))
+
+		t.Run("after first run", func(t *testing.T) {
+			assert.False(t, g.DialPrimaryThroughLocalGateway())
+			assert.Len(t, tsd.Calls, 1)
+			assert.Equal(t, []string{
+				"5.6.7.8:5555",
+				"8.7.6.5:9999",
+			}, g.listGateways(false))
+			assert.Equal(t, []string{
+				"1.2.3.4:5555",
+				"4.3.2.1:9999",
+				"7.7.7.7:7777",
+				"8.8.8.8:8888",
+			}, g.listGateways(true))
+			assert.True(t, tsd.datacenterSupportsFederationStates()) // have results, so we flip the bit
+		})
 	})
 
 	t.Run("secondary - with data and fallback - repl ok then failed 3 times then ok again", func(t *testing.T) {
@@ -399,29 +444,51 @@ func TestGatewayLocator(t *testing.T) {
 		g.SetLastFederationStateReplicationError(errors.New("fake"), true)
 		g.SetLastFederationStateReplicationError(nil, true)
 
+		t.Run("before first run", func(t *testing.T) {
+			assert.True(t, g.DialPrimaryThroughLocalGateway()) // all better again
+			assert.Len(t, tsd.Calls, 0)
+			assert.Equal(t, []string(nil), g.listGateways(false))
+			assert.Equal(t, []string(nil), g.listGateways(true)) // don't return any data until we initialize
+			assert.False(t, tsd.datacenterSupportsFederationStates())
+		})
+
 		idx, err := g.runOnce(0)
 		require.NoError(t, err)
-		assert.True(t, g.DialPrimaryThroughLocalGateway())
 		assert.Equal(t, uint64(2), idx)
-		assert.Len(t, tsd.Calls, 1)
-		assert.Equal(t, []string{
-			"5.6.7.8:5555",
-			"8.7.6.5:9999",
-		}, g.listGateways(false))
-		assert.Equal(t, []string{
-			"5.6.7.8:5555",
-			"8.7.6.5:9999",
-		}, g.listGateways(true))
+
+		t.Run("after first run", func(t *testing.T) {
+			assert.True(t, g.DialPrimaryThroughLocalGateway()) // all better again
+			assert.Len(t, tsd.Calls, 1)
+			assert.Equal(t, []string{
+				"5.6.7.8:5555",
+				"8.7.6.5:9999",
+			}, g.listGateways(false))
+			assert.Equal(t, []string{
+				"5.6.7.8:5555",
+				"8.7.6.5:9999",
+			}, g.listGateways(true))
+			assert.True(t, tsd.datacenterSupportsFederationStates()) // have results, so we flip the bit
+		})
 	})
 }
 
 type testServerDelegate struct {
+	dcSupportsFederationStates int32 // atomically accessed, at start to prevent alignment issues
+
 	State *state.Store
 
 	Calls []uint64
 
 	isLeader    bool
 	lastContact time.Time
+}
+
+func (d *testServerDelegate) setDatacenterSupportsFederationStates() {
+	atomic.StoreInt32(&d.dcSupportsFederationStates, 1)
+}
+
+func (d *testServerDelegate) datacenterSupportsFederationStates() bool {
+	return atomic.LoadInt32(&d.dcSupportsFederationStates) != 0
 }
 
 // This is just enough to exercise the logic.
