@@ -1,0 +1,3 @@
+```release-note:improvement
+server: **(Enterprise Only)** Validate source namespaces in service-intentions config entries.
+```
