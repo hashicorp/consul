@@ -67,6 +67,15 @@ func TestListenersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name:   "http-listener-with-timeouts",
+			create: proxycfg.TestConfigSnapshot,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.Proxy.Config["protocol"] = "http"
+				snap.Proxy.Config["local_connect_timeout_ms"] = 1234
+				snap.Proxy.Config["local_request_timeout_ms"] = 2345
+			},
+		},
+		{
 			name:   "http-upstream",
 			create: proxycfg.TestConfigSnapshot,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
