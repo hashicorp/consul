@@ -1,14 +1,14 @@
 export default {
-  statuses: {
+  status: {
     passing: (item, value) => item.Status === value,
     warning: (item, value) => item.Status === value,
     critical: (item, value) => item.Status === value,
   },
-  kinds: {
+  kind: {
     service: (item, value) => item.Kind === value,
     node: (item, value) => item.Kind === value,
   },
-  checks: {
+  check: {
     serf: (item, value) => item.Type === '',
     script: (item, value) => item.Type === value,
     http: (item, value) => item.Type === value,
