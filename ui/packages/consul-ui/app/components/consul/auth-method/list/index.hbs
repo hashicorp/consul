@@ -3,16 +3,23 @@
   @items={{@items}}
 as |item|>
   <BlockSlot @name="header">
-    <p data-test-auth-method={{item.Name}}>
-      {{item.Name}}
-    </p>
+    <p data-test-auth-method>{{item.Name}}</p>
   </BlockSlot>
   <BlockSlot @name="details">
     <Consul::AuthMethod::Type @item={{item}} />
+  {{#if (not-eq item.DisplayName '')}}
     <span data-test-display-name>{{item.DisplayName}}</span>
+  {{/if}}
   {{#if (eq item.TokenLocality 'global')}}
     <span class="locality">creates global tokens</span>
   {{/if}}
-    <span class="ttl">Max TTL: {{item.MaxTokenTTL}}</span>
+    <dl class="ttl">
+      <dt>
+        <Tooltip>
+          Maximum Time to Live: the maximum life of any token created by this auth method
+        </Tooltip>
+      </dt>
+      <dd>{{item.MaxTokenTTL}}</dd>
+    </dl>
   </BlockSlot>
 </ListCollection>

@@ -53,7 +53,7 @@
   @extend %with-jwt-logo-icon, %as-pseudo;
 }
 %popover-select .oidc button::before {
-  @extend %with-open-id-logo-icon, %as-pseudo;
+  @extend %with-oidc-logo-icon, %as-pseudo;
 }
 %popover-select .consul button::before {
   @extend %with-logo-consul-color-icon, %as-pseudo;

@@ -9,7 +9,4 @@
     @extend %with-public-default-mask, %as-pseudo;
     margin-right: 6px;
   }
-  .ttl::before {
-    @extend %with-delay-mask, %as-pseudo;
-  }
 }

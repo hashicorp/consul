@@ -5,13 +5,9 @@ Feature: dc / acls / auth-methods / sorting
     And 4 authMethod models from yaml
     ---
     - Name: "system-A"
-      CreateIndex: 3
     - Name: "system-D"
-      CreateIndex: 2
     - Name: "system-C"
-      CreateIndex: 1
     - Name: "system-B"
-      CreateIndex: 4
     ---
     When I visit the authMethods page for yaml
     ---

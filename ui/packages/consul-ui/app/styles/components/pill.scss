@@ -37,5 +37,5 @@ span.policy-service-identity::before {
   @extend %with-jwt-logo-icon, %as-pseudo;
 }
 %pill.oidc::before {
-  @extend %with-open-id-logo-icon, %as-pseudo;
+  @extend %with-oidc-logo-icon, %as-pseudo;
 }

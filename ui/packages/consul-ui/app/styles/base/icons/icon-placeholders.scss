@@ -1326,14 +1326,14 @@
   mask-image: $notification-outline-svg;
 }
 
-%with-open-id-logo-icon {
+%with-oidc-logo-icon {
   @extend %with-icon;
-  background-image: $open-id-logo-svg;
+  background-image: $oidc-logo-svg;
 }
-%with-open-id-logo-mask {
+%with-oidc-logo-mask {
   @extend %with-mask;
-  -webkit-mask-image: $open-id-logo-svg;
-  mask-image: $open-id-logo-svg;
+  -webkit-mask-image: $oidc-logo-svg;
+  mask-image: $oidc-logo-svg;
 }
 
 %with-outline-icon {

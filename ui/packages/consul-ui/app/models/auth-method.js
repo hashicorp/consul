@@ -11,7 +11,7 @@ export default class AuthMethod extends Model {
   @attr('string') Namespace;
   @attr('string', { defaultValue: () => '' }) Description;
   @attr('string', { defaultValue: () => '' }) DisplayName;
-  @attr('string', { defaultValue: () => '' }) TokenLocality;
+  @attr('string', { defaultValue: () => 'local' }) TokenLocality;
   @attr('string') Type;
   @attr('string') Host;
   @attr('string') ServiceAccountJWT;
