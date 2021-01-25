@@ -31,9 +31,10 @@ common:
     node-name: Node Name
     accessorid: AccessorID
     datacenter: Datacenter
-    localbindaddress: LocalBindAddress
-    localbindport: LocalBindPort
-    destinationname: DestinationName
+    localbindaddress: Local Bind Address
+    localbindport: Local Bind Port
+    destinationname: Destination Name
+    sourcename: Source Name
   search:
     search: Search
     searchproperty: Search Across
