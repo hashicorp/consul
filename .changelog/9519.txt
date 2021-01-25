@@ -1,0 +1,3 @@
+```release-note:improvement
+server: use the presense of stored federation state data as a sign that we already activated the federation state feature flag
+```

@@ -13,6 +13,83 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestLeader_FederationStateAntiEntropy_FeatureIsStickyEvenIfSerfTagsRegress(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	// We test this by having two datacenters with one server each. They
+	// initially come up and pass the serf barrier, then we power them both
+	// off. We leave the primary off permanently, and then we stand up the
+	// secondary. Hopefully it should transition to allow federation states.
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.PrimaryDatacenter = "dc1"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	waitForLeaderEstablishment(t, s1)
+
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc2"
+		c.PrimaryDatacenter = "dc1"
+		c.FederationStateReplicationRate = 100
+		c.FederationStateReplicationBurst = 100
+		c.FederationStateReplicationApplyLimit = 1000000
+	})
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+	codec2 := rpcClient(t, s2)
+	defer codec2.Close()
+
+	waitForLeaderEstablishment(t, s2)
+
+	// Create the WAN link
+	joinWAN(t, s2, s1)
+	waitForLeaderEstablishment(t, s1)
+	waitForLeaderEstablishment(t, s2)
+
+	waitForFederationStateFeature(t, s1)
+	waitForFederationStateFeature(t, s2)
+
+	// Wait for everybody's AE to complete.
+	retry.Run(t, func(r *retry.R) {
+		_, states, err := s1.fsm.State().FederationStateList(nil)
+		require.NoError(r, err)
+		require.Len(r, states, 2)
+	})
+
+	// Shutdown s1 and s2.
+	s1.Shutdown()
+	s2.Shutdown()
+
+	// Restart just s2
+
+	dir2new, s2new := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc2"
+		c.PrimaryDatacenter = "dc1"
+		c.FederationStateReplicationRate = 100
+		c.FederationStateReplicationBurst = 100
+		c.FederationStateReplicationApplyLimit = 1000000
+
+		c.DataDir = s2.config.DataDir
+		c.NodeName = s2.config.NodeName
+		c.NodeID = s2.config.NodeID
+	})
+	defer os.RemoveAll(dir2new)
+	defer s2new.Shutdown()
+
+	waitForLeaderEstablishment(t, s2new)
+
+	// It should be able to transition without connectivity to the primary.
+	waitForFederationStateFeature(t, s2new)
+}
+
 func TestLeader_FederationStateAntiEntropy_BlockingQuery(t *testing.T) {
 	t.Parallel()
 

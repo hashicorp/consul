@@ -17,6 +17,16 @@ const (
 )
 
 func (s *Server) startFederationStateAntiEntropy() {
+	// Check to see if we can skip waiting for serf feature detection below.
+	if !s.DatacenterSupportsFederationStates() {
+		_, fedStates, err := s.fsm.State().FederationStateList(nil)
+		if err != nil {
+			s.logger.Warn("Failed to check for existing federation states and activate the feature flag quicker; skipping this optimization", "error", err)
+		} else if len(fedStates) > 0 {
+			s.setDatacenterSupportsFederationStates()
+		}
+	}
+
 	if s.config.DisableFederationStateAntiEntropy {
 		return
 	}
