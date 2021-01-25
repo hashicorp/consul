@@ -473,14 +473,14 @@ func TestGatewayLocator(t *testing.T) {
 }
 
 type testServerDelegate struct {
+	dcSupportsFederationStates int32 // atomically accessed, at start to prevent alignment issues
+
 	State *state.Store
 
 	Calls []uint64
 
 	isLeader    bool
 	lastContact time.Time
-
-	dcSupportsFederationStates int32 // atomic
 }
 
 func (d *testServerDelegate) setDatacenterSupportsFederationStates() {
