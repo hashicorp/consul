@@ -27,6 +27,7 @@ export default class IndexRoute extends Route {
       dc,
       nspace,
       items,
+      searchProperties: this.queryParams.searchproperty.empty[0],
     };
   }
 

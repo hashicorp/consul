@@ -1,20 +1,16 @@
-import Component from '@ember/component';
-import { inject as service } from '@ember/service';
+import Component from '@glimmer/component';
+import { tracked } from '@glimmer/tracking';
+import { action } from '@ember/object';
 
-export default Component.extend({
-  tagName: '',
-  dom: service('dom'),
-  didInsertElement: function() {
-    this._super(...arguments);
-    this.select.addOption(this);
-  },
-  willDestroyElement: function() {
-    this._super(...arguments);
-    this.select.removeOption(this);
-  },
-  actions: {
-    click: function(e) {
-      this.onclick(e, this.value);
-    },
-  },
-});
+export default class Option extends Component {
+  @tracked selected;
+
+  @action
+  connect() {
+    this.args.select.addOption(this);
+  }
+  @action
+  disconnect() {
+    this.args.select.removeOption(this);
+  }
+}

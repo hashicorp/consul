@@ -1,7 +1,7 @@
-{{#let components.MenuSeparator as |MenuSeparator|}}
+{{#let @components.MenuSeparator as |MenuSeparator|}}
 <MenuSeparator>
   <BlockSlot @name="label">
-    {{label}}
+    {{@label}}
   </BlockSlot>
 </MenuSeparator>
 {{yield}}

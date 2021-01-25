@@ -31,6 +31,8 @@ module.exports = {
 
     'no-unnecessary-component-helper': false,
     'link-href-attributes': false,
+    // we need to be able to say tabindex={{@tabindex}}
+    'no-positive-tabindex': false,
 
     'no-bare-strings': false,
   },

@@ -9,7 +9,9 @@ export default class IndexRoute extends Route.extend(WithPolicyActions) {
 
   queryParams = {
     sortBy: 'sort',
-    dc: 'dc',
+    datacenter: {
+      as: 'dc',
+    },
     kind: 'kind',
     searchproperty: {
       as: 'searchproperty',
@@ -29,6 +31,7 @@ export default class IndexRoute extends Route.extend(WithPolicyActions) {
           this.modelFor('nspace').nspace.substr(1)
         ),
       }),
+      searchProperties: this.queryParams.searchproperty.empty[0],
     });
   }
 
