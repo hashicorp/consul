@@ -21,15 +21,15 @@ dist: clean
 		CONSUL_UI_INSTALL_FLAGS=--focus \
 		$(MAKE)
 
-# Build a distribution of the UI for Netlify previews.
+# Build a distribution of the UI for Vercel previews.
 # The distribution must be copied into the ui/ subfolder
 # in order to mirror the go binary
 #
-# Netlify Settings:
+# Vercel Settings:
 # ---
-# base-directory: ui
-# build command: make dist-netlify
-# publish directory: ui/dist
+# Base Directory: ui
+# Build Command: make dist-netlify
+# Publish Directory: ui/dist
 dist-vercel: clean
 	mkdir -p dist/ui && \
 	cd packages/consul-ui && \
