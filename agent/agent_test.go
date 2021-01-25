@@ -4374,6 +4374,7 @@ func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
 		}
 		# wanfed
 		primary_gateways = ["` + gwAddr + `"]
+		retry_interval_wan = "250ms"
 		connect {
 			enabled = true
 			enable_mesh_gateway_wan_federation = true
@@ -4399,6 +4400,7 @@ func TestAgent_JoinWAN_viaMeshGateway(t *testing.T) {
 		}
 		# wanfed
 		primary_gateways = ["` + gwAddr + `"]
+		retry_interval_wan = "250ms"
 		connect {
 			enabled = true
 			enable_mesh_gateway_wan_federation = true
