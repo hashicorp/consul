@@ -74,12 +74,12 @@ components:
           options:
             alias: alias
             docker: docker
-            grpc: gRPC
-            http: HTTP
+            grpc: grpc
+            http: http
             script: script
             serf: serf
-            tcp: TCP
-            ttl: TTL
+            tcp: tcp
+            ttl: ttl
         sort:
           name:
             name: Check Name
