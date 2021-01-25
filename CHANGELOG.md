@@ -169,6 +169,30 @@ BUG FIXES:
 * telemetry: fixed a bug that caused logs to be flooded with `[WARN] agent.router: Non-server in server-only area` [[GH-8685](https://github.com/hashicorp/consul/issues/8685)]
 * ui: show correct datacenter for gateways [[GH-8704](https://github.com/hashicorp/consul/issues/8704)]
 
+## 1.8.8 (January 22, 2021)
+
+BUG FIXES:
+
+* connect: Fixed a bug in the AWS PCA Connect CA provider that could cause the intermediate PKI path to be deleted after reconfiguring the CA [[GH-9498](https://github.com/hashicorp/consul/issues/9498)]
+* connect: Fixed a bug in the Vault Connect CA provider that could cause the intermediate PKI path to be deleted after reconfiguring the CA [[GH-9498](https://github.com/hashicorp/consul/issues/9498)]
+* connect: Fixed an issue that would prevent updating the Connect CA configuration if the CA provider didn't complete initialization previously. [[GH-9498](https://github.com/hashicorp/consul/issues/9498)]
+* leader: Fixed a bug that could cause Connect CA initialization failures from allowing leader establishment to complete resulting in potentially infinite leader elections. [[GH-9498](https://github.com/hashicorp/consul/issues/9498)]
+* rpc: Prevent misleading RPC error claiming the lack of a leader when Raft is ok but there are issues with client agents gossiping with the leader. [[GH-9487](https://github.com/hashicorp/consul/issues/9487)]
+* ui: ensure namespace is used for node API requests [[GH-9488](https://github.com/hashicorp/consul/issues/9488)]
+
+## 1.8.7 (December 10, 2020)
+
+BUG FIXES:
+
+* acl: global tokens created by auth methods now correctly replicate to secondary datacenters [[GH-9351](https://github.com/hashicorp/consul/issues/9351)]
+* connect: fixes a case when updating the CA config in a secondary datacenter to correctly trigger the creation of a new intermediate certificate [[GH-9009](https://github.com/hashicorp/consul/issues/9009)]
+* connect: only unset the active root in a secondary datacenter when a new one is replacing it [[GH-9318](https://github.com/hashicorp/consul/issues/9318)]
+* license: (Enterprise only) Fixed an issue where the UI would see Namespaces and SSO as licensed when they were not.
+* license: **(Enterprise only)** Fixed an issue where warnings about Namespaces being unlicensed would be emitted erroneously.
+* namespace: **(Enterprise Only)** Fixed a bug that could case snapshot restoration to fail when it contained a namespace marked for deletion while still containing other resources in that namespace. [[GH-9156](https://github.com/hashicorp/consul/issues/9156)]
+* namespace: **(Enterprise Only)** Fixed an issue where namespaced services and checks were not being deleted when the containing namespace was deleted.
+* namespaces: **(Enterprise only)** Prevent stalling of replication in secondary datacenters due to conflicts between the namespace replicator and other replicators. [[GH-9271](https://github.com/hashicorp/consul/issues/9271)]
+
 ## 1.8.6 (November 19, 2020)
 
 SECURITY:
@@ -340,6 +364,22 @@ BUGFIXES:
 * ui: Quote service names when filtering intentions to prevent 500 errors when accessing a service [[GH-7896](https://github.com/hashicorp/consul/issues/7896)] [[GH-7888](https://github.com/hashicorp/consul/pull/7888)]
 * ui: Miscellaneous amends for Safari and Firefox [[GH-7904](https://github.com/hashicorp/consul/issues/7904)] [[GH-7907](https://github.com/hashicorp/consul/pull/7907)]
 * ui: Ensure a value is always passed to CONSUL_SSO_ENABLED [[GH-7913](https://github.com/hashicorp/consul/pull/7913)]
+
+## 1.7.12 (January 22, 2021)
+
+BUG FIXES:
+
+* rpc: Prevent misleading RPC error claiming the lack of a leader when Raft is ok but there are issues with client agents gossiping with the leader. [[GH-9487](https://github.com/hashicorp/consul/issues/9487)]
+* ui: ensure namespace is used for node API requests [[GH-9488](https://github.com/hashicorp/consul/issues/9488)]
+
+## 1.7.11 (December 10, 2020)
+
+BUG FIXES:
+
+* license: **(Enterprise only)** Fixed an issue where warnings about Namespaces being unlicensed would be emitted erroneously.
+* namespace: **(Enterprise Only)** Fixed a bug that could case snapshot restoration to fail when it contained a namespace marked for deletion while still containing other resources in that namespace. [[GH-9156](https://github.com/hashicorp/consul/issues/9156)]
+* namespace: **(Enterprise Only)** Fixed an issue where namespaced services and checks were not being deleted when the containing namespace was deleted.
+* namespaces: **(Enterprise only)** Prevent stalling of replication in secondary datacenters due to conflicts between the namespace replicator and other replicators. [[GH-9271](https://github.com/hashicorp/consul/issues/9271)]
 
 ## 1.7.10 (November 19, 2020)
 
