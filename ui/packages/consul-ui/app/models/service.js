@@ -48,6 +48,16 @@ export default class Service extends Model {
 
   @attr() meta; // {}
 
+  @computed('ChecksPassing', 'ChecksWarning', 'ChecksCritical')
+  get ChecksTotal() {
+    return this.ChecksPassing + this.ChecksWarning + this.ChecksCritical;
+  }
+
+  @computed('MeshChecksPassing', 'MeshChecksWarning', 'MeshChecksCritical')
+  get MeshChecksTotal() {
+    return this.MeshChecksPassing + this.MeshChecksWarning + this.MeshChecksCritical;
+  }
+
   /* Mesh properties involve both the service and the associated proxy */
   @computed('ConnectedWithProxy', 'ConnectedWithGateway')
   get MeshEnabled() {

@@ -18,7 +18,7 @@ html[data-route$='edit'] .app-view > header + div > *:first-child {
 /* if it is a filter bar and the thing after the filter bar is a p then it also */
 /* needs a top margun :S */
 %app-view-content .tab-section > *:first-child:not(.filter-bar):not(table),
-%app-view-content .tab-section > .filter-bar + p,
+%app-view-content .tab-section > .search-bar + p,
 %app-view-content .tab-section .consul-health-check-list {
   margin-top: 1.25em;
 }

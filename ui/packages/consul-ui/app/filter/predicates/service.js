@@ -13,6 +13,7 @@ export default {
     passing: (item, value) => item.MeshStatus === value,
     warning: (item, value) => item.MeshStatus === value,
     critical: (item, value) => item.MeshStatus === value,
+    empty: (item, value) => item.MeshChecksTotal === 0,
   },
   instance: {
     registered: (item, value) => item.InstanceCount > 0,
