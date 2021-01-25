@@ -6,47 +6,50 @@ export default Component.extend(Slotted, {
   tagName: '',
   dom: service('dom'),
   multiple: false,
-  subtractive: false,
+  required: false,
   onchange: function() {},
   addOption: function(option) {
     if (typeof this._options === 'undefined') {
       this._options = new Set();
     }
-    if (this.subtractive) {
-      if (!option.selected) {
-        this._options.add(option.value);
-      }
-    } else {
-      if (option.selected) {
-        this._options.add(option.value);
-      }
-    }
+    this._options.add(option);
   },
   removeOption: function(option) {
-    this._options.delete(option.value);
+    this._options.delete(option);
   },
   actions: {
-    click: function(e, value) {
-      let options = [value];
-      if (this.multiple) {
-        if (this._options.has(value)) {
-          this._options.delete(value);
-        } else {
-          this._options.add(value);
+    click: function(option, e) {
+      // required={{true}} ?
+      if (!this.multiple) {
+        if (option.selected && this.required) {
+          return e;
         }
-        options = this._options;
+        [...this._options]
+          .filter(item => item !== option)
+          .forEach(item => {
+            item.selected = false;
+          });
+      } else {
+        if (option.selected && this.required) {
+          const other = [...this._options].find(item => item !== option && item.selected);
+          if (!other) {
+            return e;
+          }
+        }
       }
+      option.selected = !option.selected;
       this.onchange(
         this.dom.setEventTargetProperties(e, {
-          selected: target => value,
+          selected: target => option.args.value,
           selectedItems: target => {
-            return [...options].join(',');
+            return [...this._options]
+              .filter(item => item.selected)
+              .map(item => item.args.value)
+              .join(',');
           },
         })
       );
-    },
-    change: function(option, e) {
-      this.onchange(this.dom.setEventTargetProperty(e, 'selected', selected => option));
+      return e;
     },
   },
 });

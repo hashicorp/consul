@@ -1,140 +1,190 @@
-<form
-  class="consul-health-check-search-bar filter-bar"
+<SearchBar
+  class="consul-healthcheck-search-bar"
   ...attributes
+  @filter={{@filter}}
 >
-  <div class="search">
-    <FreetextFilter
-      @onsearch={{action @onsearch}}
-      @value={{@search}}
-      @placeholder="Search"
-    >
-      <PopoverSelect
-        class="type-search-properties"
-        @position="right"
-        @onchange={{action @onfilter.searchproperty}}
+    <:status as |search|>
+
+{{#let
+
+  (t (concat "components.consul.health-check.search-bar." search.status.key ".name")
+      default=(array
+        (concat "common.search." search.status.key)
+        (concat "common.consul." search.status.key)
+      )
+  )
+
+  (t (concat "components.consul.health-check.search-bar." search.status.key ".options." search.status.value)
+      default=(array
+        (concat "common.search." search.status.value)
+        (concat "common.consul." search.status.value)
+      )
+  )
+
+as |key value|}}
+      <search.RemoveFilter
+        aria-label={{t "common.ui.remove" item=(concat key " " value)}}
+      >
+        <dl>
+          <dt>{{key}}</dt>
+          <dd>{{value}}</dd>
+        </dl>
+      </search.RemoveFilter>
+{{/let}}
+
+    </:status>
+    <:search as |search|>
+      <search.Search
+        @onsearch={{action @onsearch}}
+        @value={{@search}}
+        @placeholder={{t "common.search.search"}}
+      >
+{{#if @filter.searchproperty}}
+        <search.Select
+          class="type-search-properties"
+          @position="right"
+          @onchange={{action @filter.searchproperty.change}}
+          @multiple={{true}}
+          @required={{true}}
+        as |components|>
+          <BlockSlot @name="selected">
+            <span>
+              {{t "common.search.searchproperty"}}
+            </span>
+          </BlockSlot>
+          <BlockSlot @name="options">
+    {{#let components.Optgroup components.Option as |Optgroup Option|}}
+            {{#each @filter.searchproperty.default as |prop|}}
+              <Option @value={{prop}} @selected={{contains prop @filter.searchproperty.value}}>
+                {{t (concat "common.consul." (lowercase prop))}}
+              </Option>
+            {{/each}}
+    {{/let}}
+          </BlockSlot>
+        </search.Select>
+  {{/if}}
+      </search.Search>
+    </:search>
+    <:filter as |search|>
+      <search.Select
+        class="type-status"
+        @position="left"
+        @onchange={{action @filter.status.change}}
         @multiple={{true}}
       as |components|>
         <BlockSlot @name="selected">
           <span>
-            Search across
+            {{t "common.consul.status"}}
           </span>
         </BlockSlot>
         <BlockSlot @name="options">
   {{#let components.Optgroup components.Option as |Optgroup Option|}}
-    {{#each @searchproperties as |prop|}}
-          <Option @value={{prop}} @selected={{contains prop @filter.searchproperties}}>{{prop}}</Option>
+    {{#each (array "passing" "warning" "critical" "empty") as |state|}}
+          <Option class="value-{{state}}" @value={{state}} @selected={{contains state @filter.status.value}}>
+            {{t (concat "common.consul." state)
+                default=(array
+                  (concat "common.search." state)
+                )
+            }}
+          </Option>
     {{/each}}
   {{/let}}
         </BlockSlot>
-      </PopoverSelect>
-    </FreetextFilter>
-  </div>
-  <div class="filters">
-    <PopoverSelect
-      class="type-status"
-      @position="left"
-      @onchange={{action @onfilter.status}}
-      @multiple={{true}}
-    as |components|>
-      <BlockSlot @name="selected">
-        <span>
-          Health Status
-        </span>
-      </BlockSlot>
-      <BlockSlot @name="options">
+      </search.Select>
+{{#if @filter.kind}}
+      <search.Select
+        class="type-kind"
+        @position="left"
+        @onchange={{action @filter.kind.change}}
+        @multiple={{true}}
+      as |components|>
+        <BlockSlot @name="selected">
+          <span>
+            {{t "components.consul.health-check.search-bar.kind.name"}}
+          </span>
+        </BlockSlot>
+        <BlockSlot @name="options">
+  {{#let components.Optgroup components.Option as |Optgroup Option|}}
+    {{#each (array "service" "node") as |item|}}
+          <Option @value={{item}} @selected={{contains item @filter.kind.value}}>
+            {{t (concat "components.consul.health-check.search-bar.kind.options." item)
+                default=(array
+                  (concat "common.search." item)
+                )
+            }}
+          </Option>
+    {{/each}}
+  {{/let}}
+        </BlockSlot>
+      </search.Select>
+{{/if}}
+      <search.Select
+        class="type-check"
+        @position="left"
+        @onchange={{action @filter.check.change}}
+        @multiple={{true}}
+      as |components|>
+        <BlockSlot @name="selected">
+          <span>
+            {{t "components.consul.health-check.search-bar.check.name"}}
+          </span>
+        </BlockSlot>
+        <BlockSlot @name="options">
+  {{#let components.Optgroup components.Option as |Optgroup Option|}}
+    {{#each (array "alias" "docker" "grpc" "http" "script" "serf" "tcp" "ttl") as |item|}}
+          <Option @value={{item}} @selected={{contains item @filter.check.value}}>
+            {{t (concat "components.consul.health-check.search-bar.check.options." item)
+                default=(array
+                  (concat "common.search." item)
+                )
+            }}
+          </Option>
+    {{/each}}
+  {{/let}}
+        </BlockSlot>
+      </search.Select>
+    </:filter>
+    <:sort as |search|>
+      <search.Select
+        class="type-sort"
+        data-test-sort-control
+        @position="right"
+        @onchange={{action @sort.change}}
+        @multiple={{false}}
+        @required={{true}}
+      as |components|>
+        <BlockSlot @name="selected">
+          <span>
+            {{#let (from-entries (array
+                (array "Name:asc" (t "common.sort.alpha.asc"))
+                (array "Name:desc" (t "common.sort.alpha.desc"))
+                (array "Status:asc" (t "common.sort.status.asc"))
+                (array "Status:desc" (t "common.sort.status.desc"))
+                (array "Kind:asc" (t "components.consul.health-check.search-bar.sort.kind.asc"))
+                (array "Kind:desc" (t "components.consul.health-check.search-bar.sort.kind.desc"))
+                ))
+              as |selectable|
+            }}
+              {{get selectable @sort.value}}
+            {{/let}}
+          </span>
+        </BlockSlot>
+        <BlockSlot @name="options">
 {{#let components.Optgroup components.Option as |Optgroup Option|}}
-        <Option class="value-passing" @value="passing" @selected={{contains 'passing' @filter.statuses}}>Passing</Option>
-        <Option class="value-warning" @value="warning" @selected={{contains 'warning' @filter.statuses}}>Warning</Option>
-        <Option class="value-critical" @value="critical" @selected={{contains 'critical' @filter.statuses}}>Failing</Option>
-        <Option class="value-empty" @value="empty" @selected={{contains 'empty' @filter.statuses}}>No checks</Option>
-{{/let}}
-      </BlockSlot>
-    </PopoverSelect>
-
-    <PopoverSelect
-      class="type-kind"
-      @position="left"
-      @onchange={{action @onfilter.kind}}
-      @multiple={{true}}
-    as |components|>
-      <BlockSlot @name="selected">
-        <span>
-          Kind
-        </span>
-      </BlockSlot>
-      <BlockSlot @name="options">
-{{#let components.Optgroup components.Option as |Optgroup Option|}}
-        <Option @value="service" @selected={{contains 'service' @filter.kinds}}>Service Check</Option>
-        <Option @value="node" @selected={{contains 'node' @filter.kinds}}>Node Check</Option>
-{{/let}}
-      </BlockSlot>
-    </PopoverSelect>
-
-    <PopoverSelect
-      class="type-check"
-      @position="left"
-      @onchange={{action @onfilter.check}}
-      @multiple={{true}}
-    as |components|>
-      <BlockSlot @name="selected">
-        <span>
-          Type
-        </span>
-      </BlockSlot>
-      <BlockSlot @name="options">
-{{#let components.Optgroup components.Option as |Optgroup Option|}}
-        <Option @value="alias" @selected={{contains 'alias' @filter.checks}}>alias</Option>
-        <Option @value="docker" @selected={{contains 'docker' @filter.checks}}>Docker</Option>
-        <Option @value="grpc" @selected={{contains 'grpc' @filter.checks}}>gRPC</Option>
-        <Option @value="http" @selected={{contains 'http' @filter.checks}}>HTTP</Option>
-        <Option @value="serf" @selected={{contains 'serf' @filter.checks}}>Serf</Option>
-        <Option @value="tcp" @selected={{contains 'tcp' @filter.checks}}>TCP</Option>
-        <Option @value="ttl" @selected={{contains 'ttl' @filter.checks}}>TTL</Option>
-{{/let}}
-      </BlockSlot>
-    </PopoverSelect>
-
-  </div>
-  <div class="sort">
-    <PopoverSelect
-      class="type-sort"
-      data-test-sort-control
-      @position="right"
-      @onchange={{action @onsort}}
-      @multiple={{false}}
-    as |components|>
-      <BlockSlot @name="selected">
-        <span>
-          {{#let (from-entries (array
-                (array "Name:asc" "A to Z")
-                (array "Name:desc" "Z to A")
-                (array "Status:asc" "Unhealthy to Healthy")
-                (array "Status:desc" "Healthy to Unhealthy")
-                (array "Kind:asc" "Service to Node")
-                (array "Kind:desc" "Node to Service")
-              ))
-            as |selectable|
-          }}
-            {{get selectable @sort}}
-          {{/let}}
-        </span>
-      </BlockSlot>
-      <BlockSlot @name="options">
-{{#let components.Optgroup components.Option as |Optgroup Option|}}
-        <Optgroup @label="Health Status">
-          <Option @value="Status:asc" @selected={{eq "Status:asc" @sort}}>Unhealthy to Healthy</Option>
-          <Option @value="Status:desc" @selected={{eq "Status:desc" @sort}}>Healthy to Unhealthy</Option>
+        <Optgroup @label={{t "common.consul.status"}}>
+            <Option @value="Status:asc" @selected={{eq "Status:asc" @sort.value}}>{{t "common.sort.status.asc"}}</Option>
+            <Option @value="Status:desc" @selected={{eq "Status:desc" @sort.value}}>{{t "common.sort.status.desc"}}</Option>
         </Optgroup>
-        <Optgroup @label="Check Name">
-          <Option @value="Name:asc" @selected={{eq "Name:asc" @sort}}>A to Z</Option>
-          <Option @value="Name:desc" @selected={{eq "Name:desc" @sort}}>Z to A</Option>
+        <Optgroup @label={{t "components.consul.health-check.search-bar.sort.name.name"}}>
+            <Option @value="Name:asc" @selected={{eq "Name:asc" @sort.value}}>{{t "common.sort.alpha.asc"}}</Option>
+            <Option @value="Name:desc" @selected={{eq "Name:desc" @sort.value}}>{{t "common.sort.alpha.desc"}}</Option>
         </Optgroup>
-        <Optgroup @label="Check Type">
+        <Optgroup @label={{t "components.consul.health-check.search-bar.sort.kind.name"}}>
           <Option @value="Kind:asc" @selected={{eq "Kind:asc" @sort}}>Service to Node</Option>
           <Option @value="Kind:desc" @selected={{eq "Kind:desc" @sort}}>Node to Service</Option>
         </Optgroup>
 {{/let}}
-      </BlockSlot>
-    </PopoverSelect>
-  </div>
-</form>
+        </BlockSlot>
+      </search.Select>
+    </:sort>
+</SearchBar>

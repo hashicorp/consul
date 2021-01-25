@@ -21,16 +21,15 @@ export default class IndexRoute extends Route.extend(WithTokenActions) {
     },
   };
 
-  beforeModel(transition) {
-    return this.settings.findBySlug('token').then(token => {
-      // If you have a token set with AccessorID set to null (legacy mode)
-      // then rewrite to the old acls
-      if (token && get(token, 'AccessorID') === null) {
-        // If you return here, you get a TransitionAborted error in the tests only
-        // everything works fine either way checking things manually
-        this.replaceWith('dc.acls');
-      }
-    });
+  async beforeModel(transition) {
+    const token = await this.settings.findBySlug('token');
+    // If you have a token set with AccessorID set to null (legacy mode)
+    // then rewrite to the old acls
+    if (token && get(token, 'AccessorID') === null) {
+      // If you return here, you get a TransitionAborted error in the tests only
+      // everything works fine either way checking things manually
+      this.replaceWith('dc.acls');
+    }
   }
 
   model(params) {
@@ -43,6 +42,7 @@ export default class IndexRoute extends Route.extend(WithTokenActions) {
       }),
       nspace: this.modelFor('nspace').nspace.substr(1),
       token: this.settings.findBySlug('token'),
+      searchProperties: this.queryParams.searchproperty.empty[0],
     });
   }
 

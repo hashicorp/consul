@@ -1,12 +1,27 @@
 {{page-title 'Namespaces'}}
-{{#let (hash
-  searchproperties=(if (not-eq searchproperty undefined)
-    (split searchproperty ',')
-    (array 'Name' 'Description' 'Policy' 'Role')
+<EventSource @src={{items}} />
+{{#let
+
+  (hash
+    value=(or sortBy "Name:asc")
+    change=(action (mut sortBy) value="target.selected")
   )
-) as |filters|}}
-  {{#let (or sortBy "Name:asc") as |sort|}}
-  <EventSource @src={{items}} />
+
+  (hash
+    searchproperty=(hash
+      value=(if (not-eq searchproperty undefined)
+        (split searchproperty ',')
+        searchProperties
+      )
+      change=(action (mut searchproperty) value="target.selectedItems")
+      default=searchProperties
+    )
+  )
+
+  items
+
+as |sort filters items|}}
+
   <AppView>
     <BlockSlot @name="notification" as |status type item error|>
       <Consul::Nspace::Notifications
@@ -30,19 +45,15 @@
         @onsearch={{action (mut search) value="target.value"}}
 
         @sort={{sort}}
-        @onsort={{action (mut sortBy) value="target.selected"}}
 
         @filter={{filters}}
-        @onfilter={{hash
-          searchproperty=(action (mut searchproperty) value="target.selectedItems")
-        }}
       />
     {{/if}}
     </BlockSlot>
     <BlockSlot @name="content">
       <DataCollection
         @type="nspace"
-        @sort={{sort}}
+        @sort={{sort.value}}
         @filters={{filters}}
         @search={{search}}
         @items={{items}}
@@ -86,5 +97,4 @@
       </DataCollection>
     </BlockSlot>
   </AppView>
-  {{/let}}
 {{/let}}

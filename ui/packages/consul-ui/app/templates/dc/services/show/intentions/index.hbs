@@ -12,74 +12,83 @@ as |api|>
     <ErrorState @error={{api.error}} />
   </BlockSlot>
   <BlockSlot @name="loaded">
-{{#let api.data as |items|}}
-  {{#let (hash
-    accesses=(if access (split access ',') undefined)
-    searchproperties=(if (not-eq searchproperty undefined)
-      (split searchproperty ',')
-      (array 'SourceName' 'DestinationName')
+{{#let
+
+  (hash
+    value=(or sortBy "Action:asc")
+    change=(action (mut sortBy) value="target.selected")
+  )
+
+  (hash
+    access=(hash
+      value=(if access (split access ',') undefined)
+      change=(action (mut access) value="target.selectedItems")
     )
-  ) as |filters|}}
-    {{#let (or sortBy "Action:asc") as |sort|}}
-      <div class="tab-section">
-          <Portal @target="app-view-actions">
-            <a data-test-create href={{href-to 'dc.services.show.intentions.create'}} class="type-create">Create</a>
-          </Portal>
+    searchproperty=(hash
+      value=(if (not-eq searchproperty undefined)
+        (split searchproperty ',')
+        searchProperties
+      )
+      change=(action (mut searchproperty) value="target.selectedItems")
+      default=searchProperties
+    )
+  )
+
+  api.data
+
+as |sort filters items|}}
+  <div class="tab-section">
+      <Portal @target="app-view-actions">
+        <a data-test-create href={{href-to 'dc.services.show.intentions.create'}} class="type-create">Create</a>
+      </Portal>
 {{#if (gt items.length 0) }}
-          <Consul::Intention::SearchBar
-            @search={{search}}
-            @onsearch={{action (mut search) value="target.value"}}
+      <Consul::Intention::SearchBar
+        @search={{search}}
+        @onsearch={{action (mut search) value="target.value"}}
 
-            @sort={{sort}}
-            @onsort={{action (mut sortBy) value="target.selected"}}
+        @sort={{sort}}
 
-            @filter={{filters}}
-            @onfilter={{hash
-              searchproperty=(action (mut searchproperty) value="target.selectedItems")
-              access=(action (mut access) value="target.selectedItems")
-            }}
-            />
+        @filter={{filters}}
+      />
 {{/if}}
 
-          <DataWriter
-            @sink={{concat '/' dc '/' nspace '/intention/'}}
+      <DataWriter
+        @sink={{concat '/' dc '/' nspace '/intention/'}}
+        @type="intention"
+        @ondelete={{refresh-route}}
+      as |writer|>
+        <BlockSlot @name="content">
+          <DataCollection
             @type="intention"
-            @ondelete={{refresh-route}}
-          as |writer|>
-            <BlockSlot @name="content">
-              <DataCollection
-                @type="intention"
-                @sort={{sort}}
-                @filters={{filters}}
-                @search={{search}}
-                @items={{items}}
-              as |collection|>
-                <collection.Collection>
-                  <Consul::Intention::List
-                    @items={{collection.items}}
-                    @check={{search}}
-                    @delete={{writer.delete}}
-                  as |list|>
-                    <list.CustomResourceNotice />
-                    <list.CheckNotice />
-                    <list.Table @routeName="dc.services.show.intentions.edit" />
-                  </Consul::Intention::List>
-                </collection.Collection>
-                <collection.Empty>
-                  <EmptyState>
-                    <BlockSlot @name="body">
-                      <p>
-                          There are no intentions {{if (gt items.length 0) 'found '}} for this service.
-                      </p>
-                    </BlockSlot>
-                  </EmptyState>
-                </collection.Empty>
-              </DataCollection>
-            </BlockSlot>
-          </DataWriter>
-      </div>
-    {{/let}}
-  {{/let}}
+            @sort={{sort.value}}
+            @filters={{filters}}
+            @search={{search}}
+            @items={{items}}
+          as |collection|>
+            <collection.Collection>
+              <Consul::Intention::List
+                @items={{collection.items}}
+                @check={{search}}
+                @delete={{writer.delete}}
+              as |list|>
+                <list.CustomResourceNotice />
+                <list.CheckNotice />
+                <list.Table @routeName="dc.services.show.intentions.edit" />
+              </Consul::Intention::List>
+            </collection.Collection>
+            <collection.Empty>
+              <EmptyState>
+                <BlockSlot @name="body">
+                  <p>
+                      There are no intentions {{if (gt items.length 0) 'found '}} for this service.
+                  </p>
+                </BlockSlot>
+              </EmptyState>
+            </collection.Empty>
+          </DataCollection>
+        </BlockSlot>
+      </DataWriter>
+  </div>
 {{/let}}
   </BlockSlot>
 </DataLoader>

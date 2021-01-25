@@ -1,6 +1,5 @@
 import { inject as service } from '@ember/service';
 import Route from 'consul-ui/routing/route';
-import { hash } from 'rsvp';
 
 import WithNspaceActions from 'consul-ui/mixins/nspace/with-actions';
 export default class IndexRoute extends Route.extend(WithNspaceActions) {
@@ -19,10 +18,11 @@ export default class IndexRoute extends Route.extend(WithNspaceActions) {
     },
   };
 
-  model(params) {
-    return hash({
-      items: this.data.source(uri => uri`/*/*/namespaces`),
-    });
+  async model(params) {
+    return {
+      items: await this.data.source(uri => uri`/*/*/namespaces`),
+      searchProperties: this.queryParams.searchproperty.empty[0],
+    };
   }
 
   setupController(controller, model) {
