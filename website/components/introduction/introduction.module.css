@@ -1,19 +1,15 @@
 .video {
   display: grid;
-  grid-template-rows: 96px auto;
+  grid-template-rows: 80px auto;
   gap: 0;
-}
-
-.content {
-  align-self: end;
 }
 
 .button {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 96px;
-  height: 96px;
+  width: 80px;
+  height: 80px;
   border-radius: 3px;
   background-color: #ca2171;
   border: none;
@@ -30,7 +26,7 @@
 @media only screen and (min-width: 410px) {
   .video {
     display: grid;
-    grid-template-columns: 96px auto;
-    gap: 24px;
+    grid-template-columns: 80px auto;
+    column-gap: 24px;
   }
 }

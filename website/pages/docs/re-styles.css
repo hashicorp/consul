@@ -10,7 +10,7 @@ div.cards {
   padding: 0;
   @media only screen and (min-width: 410px) {
     grid-template-columns: 1fr 1fr 1fr;
-    gap: 32px;
+    gap: 24px;
   }
 }
 
@@ -20,7 +20,7 @@ div.card p.label {
 }
 
 p.g-type-display-4.mt-xl {
-  margin-top: 3em !important;
+  margin-top: 2em !important;
 }
 
 hr.short {

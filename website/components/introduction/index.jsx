@@ -24,7 +24,7 @@ function Introduction({ brand, description }) {
           <Icon icon="play" />
         </button>
         <div className={style.content}>
-          <p className="g-type-display-5 mb-zero">
+          <p className="g-type-display-5 mt-zero mb-zero">
             Introduction to HashiCorp Consul
           </p>
           <p className="mt-zero mb-zero">Armon Dadgar</p>
