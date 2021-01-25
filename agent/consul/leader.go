@@ -1540,6 +1540,10 @@ func (s *Server) reapTombstones(index uint64) {
 	}
 }
 
+func (s *Server) setDatacenterSupportsFederationStates() {
+	atomic.StoreInt32(&s.dcSupportsFederationStates, 1)
+}
+
 func (s *Server) DatacenterSupportsFederationStates() bool {
 	if atomic.LoadInt32(&s.dcSupportsFederationStates) != 0 {
 		return true
@@ -1564,7 +1568,7 @@ func (s *Server) DatacenterSupportsFederationStates() bool {
 	s.router.CheckServers(s.config.Datacenter, state.update)
 
 	if state.supported && state.found {
-		atomic.StoreInt32(&s.dcSupportsFederationStates, 1)
+		s.setDatacenterSupportsFederationStates()
 		return true
 	}
 

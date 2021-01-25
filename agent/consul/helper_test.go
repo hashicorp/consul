@@ -186,6 +186,16 @@ func waitForNewACLReplication(t *testing.T, server *Server, expectedReplicationT
 	})
 }
 
+func waitForFederationStateFeature(t *testing.T, server *Server) {
+	t.Helper()
+
+	retry.Run(t, func(r *retry.R) {
+		require.True(r, server.DatacenterSupportsFederationStates())
+	})
+
+	require.True(t, server.DatacenterSupportsFederationStates())
+}
+
 func seeEachOther(a, b []serf.Member, addra, addrb string) bool {
 	return serfMembersContains(a, addrb) && serfMembersContains(b, addra)
 }
