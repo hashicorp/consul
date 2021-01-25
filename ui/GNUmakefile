@@ -1,4 +1,4 @@
-.PHONY: clean dist dist-docker dist-netlify test-workspace
+.PHONY: clean dist dist-docker dist-vercel test-workspace
 
 # make is run with no target from the consul root Makefile ui target but from
 # within docker during release, so that we keep that as the default target
@@ -28,7 +28,7 @@ dist: clean
 # Vercel Settings:
 # ---
 # Base Directory: ui
-# Build Command: make dist-netlify
+# Build Command: make dist-vercel
 # Publish Directory: ui/dist
 dist-vercel: clean
 	mkdir -p dist/ui && \
