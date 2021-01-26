@@ -1,0 +1,57 @@
+@import './skin';
+@import './layout';
+/* things that should look like nav buttons */
+%main-nav-vertical > ul > li > a,
+%main-nav-vertical > ul > li > span {
+  @extend %main-nav-vertical-action;
+}
+%main-nav-vertical > ul > li > a:active,
+%main-nav-vertical > ul > li.is-active > a {
+  @extend %main-nav-vertical-action-active;
+}
+
+%main-nav-vertical-action-active:hover:not(:active),
+%main-nav-vertical-action-active:focus:not(:active) {
+  @extend %main-nav-vertical-action-active-intent;
+}
+
+/* Whilst we want spans to look the same as actions */
+/* we don't want them to act the same */
+%main-nav-vertical-action:not(span):hover,
+%main-nav-vertical-action:not(span):focus {
+  @extend %main-nav-vertical-action-intent;
+}
+
+%main-nav-vertical > ul > li > label {
+  @extend %main-nav-vertical-action;
+}
+%main-nav-vertical .popover-menu {
+  margin-top: .5rem;
+}
+%main-nav-vertical .popover-menu .menu-panel {
+  top: 37px !important;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+%main-nav-vertical .popover-menu > label > button {
+  border: $decor-border-100;
+  border-color: var(--gray-500);
+  color: var(--gray-999);
+  width: calc(100% - 20px);
+  z-index: 100;
+  text-align: left;
+  padding: 10px;
+  border-radius: $decor-radius-100;
+}
+%main-nav-vertical .popover-menu > label > button::after {
+  float: right;
+}
+%main-nav-vertical .popover-menu .menu-panel {
+  top: 28px;
+  z-index: 100;
+}
+/* menu-panels in the main navigation are treated slightly differently */
+%main-nav-vertical label + div {
+  @extend %main-nav-vertical-menu-panel;
+}
+

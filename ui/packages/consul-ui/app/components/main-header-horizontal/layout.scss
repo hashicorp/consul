@@ -1,9 +1,17 @@
 %main-header-horizontal {
   display: flex;
+  position: fixed;
+  z-index: 5;
+  left: 0;
+  padding: 0 25px;
+  width: calc(100% - 50px);
+}
+%main-header-horizontal,
+%main-header-horizontal::before {
+  height: var(--chrome-height);
 }
 %main-header-horizontal {
   align-items: center;
-  height: 48px;
 }
 %main-header-horizontal::before {
   content: '';
@@ -11,11 +19,9 @@
   z-index: -1;
   left: 0;
   width: 100vw;
-  height: 48px;
 }
 %main-header-horizontal > a {
   display: block;
-  margin-right: 12px;
   line-height: 0;
   font-size: 0;
 }

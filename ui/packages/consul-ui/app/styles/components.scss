@@ -38,13 +38,23 @@
 
 @import './components/brand-loader';
 @import './components/loader';
-@import './components/main-header-horizontal';
-@import './components/main-nav-horizontal';
 @import './components/footer';
 
 /**/
 
 @import './components/app-view';
+@import 'consul-ui/components/skip-links';
+@import 'consul-ui/components/app';
+/* app chrome */
+@import 'consul-ui/components/main-header-horizontal';
+@import 'consul-ui/components/main-nav-horizontal';
+@import 'consul-ui/components/main-nav-vertical';
+@import 'consul-ui/components/hashicorp-consul';
+/**/
+@import 'ember-power-select';
+/**/
+@import 'consul-ui/components/menu-panel';
+
 @import 'consul-ui/components/overlay';
 @import 'consul-ui/components/tooltip';
 @import 'consul-ui/components/notice';

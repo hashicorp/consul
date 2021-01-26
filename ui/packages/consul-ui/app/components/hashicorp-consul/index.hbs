@@ -1,256 +1,274 @@
-    <ModalLayer />
-    <header role="banner" data-test-navigation>
-      <a data-test-main-nav-logo href={{href-to 'index'}}><svg width="28" height="27" xmlns="http://www.w3.org/2000/svg"><title>Consul</title><path d="M13.284 16.178a2.876 2.876 0 1 1-.008-5.751 2.876 2.876 0 0 1 .008 5.75zm5.596-1.547a1.333 1.333 0 1 1 0-2.667 1.333 1.333 0 0 1 0 2.667zm4.853 1.249a1.271 1.271 0 1 1 .027-.107c0 .031 0 .067-.027.107zm-.937-3.436a1.333 1.333 0 1 1 .986-1.595c.033.172.033.348 0 .52-.07.53-.465.96-.986 1.075zm4.72 3.29a1.333 1.333 0 1 1-1.076-1.538 1.333 1.333 0 0 1 1.116 1.417.342.342 0 0 0-.027.12h-.013zm-1.08-3.33a1.333 1.333 0 1 1 1.088-1.524c.014.114.014.229 0 .342a1.333 1.333 0 0 1-1.102 1.182h.014zm-.925 7.925a1.333 1.333 0 1 1 .165-.547c-.01.193-.067.38-.165.547zm-.48-12.191a1.333 1.333 0 1 1 .507-1.814c.14.237.198.514.164.787-.038.438-.289.828-.67 1.045v-.018zM13.333 26.667C5.97 26.667 0 20.697 0 13.333 0 5.97 5.97 0 13.333 0c2.929-.01 5.778.955 8.098 2.742L19.8 4.89a10.667 10.667 0 0 0-17.133 8.444 10.667 10.667 0 0 0 17.137 8.471l1.627 2.13a13.218 13.218 0 0 1-8.098 2.733z" fill="#FFF"/></svg></a>
-        <input type="checkbox" name="menu" id="main-nav-toggle" onchange={{action 'change'}} />
-        <label for="main-nav-toggle">
-          Toggle Menu
-        </label>
-        <div>
-            <label for="main-nav-toggle">
-                <span>Close</span>
-            </label>
-            <nav aria-label="Main">
-{{#if dc}}
-                <ul>
-  {{#if (and (env 'CONSUL_NSPACES_ENABLED') (gt nspaces.length 0))}}
-                    <li class="nspaces" data-test-nspace-menu>
-    {{#if (and (eq nspaces.length 1) (not canManageNspaces)) }}
-                        <span data-test-nspace-selected={{nspace.Name}}>{{nspace.Name}}</span>
-    {{ else }}
-                        <PopoverMenu @position="left" as |components api|>
-                          <BlockSlot @name="trigger">
-                            {{nspace.Name}}
-                          </BlockSlot>
-                        {{#if (is-href 'dc.nspaces')}}
-                          <BlockSlot @name="header">
-                            <p>
-					                    Namespaces themselves are not namespaced, so switching will not change the current view.
-                            </p>
-                          </BlockSlot>
-                        {{/if}}
-                          <BlockSlot @name="menu">
-                            {{#let components.MenuItem components.MenuSeparator as |MenuItem MenuSeparator|}}
-                              <MenuSeparator>
-                                <BlockSlot @name="label">
-                                  Namespaces
-                                  <DataSource
-                                    @src="/*/*/namespaces"
-                                    @onchange={{action (mut nspaces) value="data"}}
-                                    @loading="lazy"
-                                  />
-                                </BlockSlot>
-                              </MenuSeparator>
-                            {{#each (reject-by 'DeletedAt' nspaces) as |item|}}
-                              <MenuItem
-                                class={{if (eq nspace.Name item.Name) 'is-active'}}
-                                @href={{href-mut (hash nspace=(concat '~' item.Name))}}
-                              >
-                                <BlockSlot @name="label">
-                                  {{item.Name}}
-                                </BlockSlot>
-                              </MenuItem>
-                            {{/each}}
-                    {{#if canManageNspaces }}
-                              <MenuSeparator />
-                              <MenuItem
-                                data-test-main-nav-nspaces
-                                @href={{href-to 'dc.nspaces' dc.Name}}
-                              >
-                                <BlockSlot @name="label">
-                                  Manage Namespaces
-                                </BlockSlot>
-                              </MenuItem>
-                    {{/if}}
-                            {{/let}}
-                          </BlockSlot>
-                        </PopoverMenu>
-    {{/if}}
-                    </li>
-  {{/if}}
-                    <li data-test-datacenter-menu>
-  {{#if (or (not dcs) (eq dcs.length 1)) }}
-                        <span data-test-datacenter-selected={{dc.Name}}>{{dc.Name}}</span>
-  {{ else }}
-                        <PopoverMenu @position="left" as |components|>
-                          <BlockSlot @name="trigger">
-                            {{dc.Name}}
-                          </BlockSlot>
-                          <BlockSlot @name="menu">
-                            {{#let components.MenuItem components.MenuSeparator as |MenuItem MenuSeparator|}}
-                            <MenuSeparator>
-                              <BlockSlot @name="label">
-                                Datacenters
-                                <DataSource
-                                  @src="/*/*/datacenters"
-                                  @onchange={{action (mut dcs) value="data"}}
-                                  @loading="lazy"
-                                />
-                              </BlockSlot>
-                            </MenuSeparator>
-                            {{#each (sort-by 'Name' dcs) as |item|}}
-                              <MenuItem
-                                data-test-datacenter-picker
-                                class={{concat (if (eq dc.Name item.Name) 'is-active') (if item.Local ' is-local') }}
-                                @href={{href-mut (hash dc=item.Name)}}
-                              >
-                                <BlockSlot @name="label">
-                                  <span>{{item.Name}}</span>
-                                {{#if item.Local}}
-                                  <span>Local</span>
-                                {{/if}}
-                                </BlockSlot>
-                              </MenuItem>
-                            {{/each}}
-                            {{/let}}
-                          </BlockSlot>
-                        </PopoverMenu>
+<App
+  class="hashicorp-consul"
+  ...attributes
+>
 
-  {{/if}}
-                    </li>
-                    <li data-test-main-nav-services class={{if (is-href 'dc.services' dc.Name) 'is-active'}}>
-                        <a href={{href-to 'dc.services' dc.Name}}>Services</a>
-                    </li>
-                    <li data-test-main-nav-nodes class={{if (is-href 'dc.nodes' dc.Name) 'is-active'}}>
-                        <a href={{href-to 'dc.nodes' dc.Name}}>Nodes</a>
-                    </li>
-                    <li data-test-main-nav-kvs class={{if (is-href 'dc.kv' dc.Name) 'is-active'}}>
-                        <a href={{href-to 'dc.kv' dc.Name}}>Key/Value</a>
-                    </li>
-                    <li data-test-main-nav-acls class={{if (or (is-href 'dc.acls' dc.Name) (is-href 'dc.aclsdisabled') (is-href 'dc.unauthorized')) 'is-active'}}>
-                        <a href={{href-to 'dc.acls.tokens' dc.Name}}>ACL</a>
-                    </li>
-                    <li data-test-main-nav-intentions class={{if (is-href 'dc.intentions' dc.Name) 'is-active'}}>
-                        <a href={{href-to 'dc.intentions' dc.Name}}>Intentions</a>
-                    </li>
-                </ul>
-{{/if}}
-            </nav>
-            <nav>
-                <ul>
-                    <li data-test-main-nav-help>
-                      <PopoverMenu @position="right" as |components|>
-                        <BlockSlot @name="trigger">
-                          Help
-                        </BlockSlot>
-                        <BlockSlot @name="menu">
-                          {{#let components.MenuItem components.MenuSeparator as |MenuItem MenuSeparator|}}
-                            <MenuItem
-                              class="docs-link"
-                              @href={{env 'CONSUL_DOCS_URL'}}
-                            >
-                              <BlockSlot @name="label">
-                                Documentation
-                              </BlockSlot>
-                            </MenuItem>
-                            <MenuItem
-                              class="learn-link"
-                              @href={{concat (env 'CONSUL_DOCS_LEARN_URL') '/consul'}}
-                            >
-                              <BlockSlot @name="label">
-                                HashiCorp Learn
-                              </BlockSlot>
-                            </MenuItem>
-                            <MenuSeparator />
-                            <MenuItem
-                              class="feedback-link"
-                              @href={{env 'CONSUL_REPO_ISSUES_URL'}}
-                            >
-                              <BlockSlot @name="label">
-                                Provide Feedback
-                              </BlockSlot>
-                            </MenuItem>
-                          {{/let}}
-                        </BlockSlot>
-                      </PopoverMenu>
-                    </li>
-                    <li data-test-main-nav-settings class={{if (is-href 'settings') 'is-active'}}>
-                        <a href={{href-to 'settings'}}>Settings</a>
-                    </li>
-{{#if (env 'CONSUL_ACLS_ENABLED')}}
-                    <li data-test-main-nav-auth>
-                      <AuthDialog
-                        @dc={{dc.Name}}
-                        @nspace={{nspace.Name}}
-                        @onchange={{action "reauthorize"}} as |authDialog components|
-                      >
-                        {{#let components.AuthForm components.AuthProfile as |AuthForm AuthProfile|}}
-                          <BlockSlot @name="unauthorized">
-                            <label tabindex="0" for="login-toggle" onkeypress={{action 'keypressClick'}}>
-                              <span>Log in</span>
-                            </label>
-                            <ModalDialog @name="login-toggle" @onclose={{action 'close'}} @onopen={{action 'open'}} as |api|>
-                              <Ref @target={{this}} @name="modal" @value={{api}} />
-                              <BlockSlot @name="header">
-                                <h2>Log in to Consul</h2>
-                              </BlockSlot>
-                              <BlockSlot @name="body">
-                                <AuthForm as |api|>
-                                  <Ref @target={{this}} @name="authForm" @value={{api}} />
-                                </AuthForm>
-                              </BlockSlot>
-                              <BlockSlot @name="actions" as |close|>
-                                <button type="button" onclick={{action close}}>
-                                  Continue without logging in
-                                </button>
-                              </BlockSlot>
-                            </ModalDialog>
-                          </BlockSlot>
-                          <BlockSlot @name="authorized">
-                            <ModalDialog @name="login-toggle" @onclose={{action 'close'}} @onopen={{action 'open'}} as |api|>
-                              <Ref @target={{this}} @name="modal" @value={{api}} />
-                              <BlockSlot @name="header">
-                                <h2>Log in with a different token</h2>
-                              </BlockSlot>
-                              <BlockSlot @name="body">
-                                <AuthForm as |api|>
-                                  <Ref @target={{this}} @name="authForm" @value={{api}} />
-                                </AuthForm>
-                              </BlockSlot>
-                              <BlockSlot @name="actions" as |close|>
-                                <button type="button" onclick={{action close}}>
-                                  Continue without logging in
-                                </button>
-                              </BlockSlot>
-                            </ModalDialog>
-                            <PopoverMenu @position="right" as |components api|>
-                              <BlockSlot @name="trigger">
-                                Logout
-                              </BlockSlot>
-                              <BlockSlot @name="menu">
-                                {{#let components.MenuItem components.MenuSeparator as |MenuItem MenuSeparator|}}
-        {{!TODO: It might be nice to use one of our recursive components here}}
-        {{#if authDialog.token.AccessorID}}
-                                    <li role="none">
-                                      <AuthProfile />
-                                    </li>
-                                    <MenuSeparator />
+  <:home-nav>
+    <a
+      href={{href-to 'index'}}
+    ><svg width="28" height="27" xmlns="http://www.w3.org/2000/svg">
+      <title>Consul</title>
+      <path
+        d="M13.284 16.178a2.876 2.876 0 1 1-.008-5.751 2.876 2.876 0 0 1 .008 5.75zm5.596-1.547a1.333 1.333 0 1 1 0-2.667 1.333 1.333 0 0 1 0 2.667zm4.853 1.249a1.271 1.271 0 1 1 .027-.107c0 .031 0 .067-.027.107zm-.937-3.436a1.333 1.333 0 1 1 .986-1.595c.033.172.033.348 0 .52-.07.53-.465.96-.986 1.075zm4.72 3.29a1.333 1.333 0 1 1-1.076-1.538 1.333 1.333 0 0 1 1.116 1.417.342.342 0 0 0-.027.12h-.013zm-1.08-3.33a1.333 1.333 0 1 1 1.088-1.524c.014.114.014.229 0 .342a1.333 1.333 0 0 1-1.102 1.182h.014zm-.925 7.925a1.333 1.333 0 1 1 .165-.547c-.01.193-.067.38-.165.547zm-.48-12.191a1.333 1.333 0 1 1 .507-1.814c.14.237.198.514.164.787-.038.438-.289.828-.67 1.045v-.018zM13.333 26.667C5.97 26.667 0 20.697 0 13.333 0 5.97 5.97 0 13.333 0c2.929-.01 5.778.955 8.098 2.742L19.8 4.89a10.667 10.667 0 0 0-17.133 8.444 10.667 10.667 0 0 0 17.137 8.471l1.627 2.13a13.218 13.218 0 0 1-8.098 2.733z"/>
+      </svg></a>
+  </:home-nav>
+
+  <:main-nav>
+{{#if @dc}}
+    <ul>
+  {{#let (or this.nspaces @nspaces) as |nspaces|}}
+  {{#if (and (env 'CONSUL_NSPACES_ENABLED') (gt nspaces.length 0))}}
+        <li
+          class="nspaces"
+          data-test-nspace-menu
+        >
+            Namespace
+            <PopoverMenu @position="left" as |components api|>
+              <BlockSlot @name="trigger">
+                {{@nspace.Name}}
+              </BlockSlot>
+            {{#if (is-href 'dc.nspaces')}}
+              <BlockSlot @name="header">
+                <p>
+					        Namespaces themselves are not namespaced, so switching will not change the current view.
+                </p>
+              </BlockSlot>
+            {{/if}}
+              <BlockSlot @name="menu">
+                {{#let components.MenuItem components.MenuSeparator as |MenuItem MenuSeparator|}}
+                  <DataSource
+                    @src="/*/*/namespaces"
+                    @onchange={{action (mut this.nspaces) value="data"}}
+                    @loading="lazy"
+                  />
+                {{#each (reject-by 'DeletedAt' nspaces) as |item|}}
+                  <MenuItem
+                    class={{if (eq @nspace.Name item.Name) 'is-active'}}
+                    @href={{href-mut (hash nspace=(concat '~' item.Name))}}
+                  >
+                    <BlockSlot @name="label">
+                      {{item.Name}}
+                    </BlockSlot>
+                  </MenuItem>
+                {{/each}}
+        {{#if this.canManageNspaces}}
+                  <MenuSeparator />
+                  <MenuItem
+                    data-test-main-nav-nspaces
+                    @href={{href-to 'dc.nspaces' @dc.Name}}
+                  >
+                    <BlockSlot @name="label">
+                      Manage Namespaces
+                    </BlockSlot>
+                  </MenuItem>
         {{/if}}
-                                    <MenuItem
-                                      class="dangerous"
-                                      @onclick={{action authDialog.logout}}
-                                    >
-                                      <BlockSlot @name="label">
-                                        Logout
-                                      </BlockSlot>
-                                    </MenuItem>
-                                  {{/let}}
-                              </BlockSlot>
-                            </PopoverMenu>
-                          </BlockSlot>
-                        {{/let}}
-                      </AuthDialog>
-                    </li>
+                {{/let}}
+              </BlockSlot>
+            </PopoverMenu>
+        </li>
+  {{/if}}
+  {{/let}}
+        <li
+          class="dcs"
+          data-test-datacenter-menu
+        >
+            Datacenter
+            <PopoverMenu @position="left" as |components|>
+              <BlockSlot @name="trigger">
+                {{@dc.Name}}
+              </BlockSlot>
+              <BlockSlot @name="menu">
+                {{#let components.MenuItem components.MenuSeparator as |MenuItem MenuSeparator|}}
+                <DataSource
+                  @src="/*/*/datacenters"
+                  @onchange={{action (mut @dcs) value="data"}}
+                  @loading="lazy"
+                />
+                {{#each (sort-by 'Name' @dcs) as |item|}}
+                  <MenuItem
+                    data-test-datacenter-picker
+                    class={{concat (if (eq @dc.Name item.Name) 'is-active') (if item.Local ' is-local') }}
+                    @href={{href-mut (hash dc=item.Name)}}
+                  >
+                    <BlockSlot @name="label">
+                      {{item.Name}}
+                    {{#if item.Local}}
+                      <span>Local</span>
+                    {{/if}}
+                    </BlockSlot>
+                  </MenuItem>
+                {{/each}}
+                {{/let}}
+              </BlockSlot>
+            </PopoverMenu>
+
+        </li>
+        <li data-test-main-nav-services class={{if (is-href 'dc.services' @dc.Name) 'is-active'}}>
+            <a href={{href-to 'dc.services' @dc.Name}}>Services</a>
+        </li>
+        <li data-test-main-nav-nodes class={{if (is-href 'dc.nodes' @dc.Name) 'is-active'}}>
+            <a href={{href-to 'dc.nodes' @dc.Name}}>Nodes</a>
+        </li>
+        <li data-test-main-nav-kvs class={{if (is-href 'dc.kv' @dc.Name) 'is-active'}}>
+            <a href={{href-to 'dc.kv' @dc.Name}}>Key/Value</a>
+        </li>
+        <li data-test-main-nav-intentions class={{if (is-href 'dc.intentions' @dc.Name) 'is-active'}}>
+            <a href={{href-to 'dc.intentions' @dc.Name}}>Intentions</a>
+        </li>
+        <li role="separator">Access Controls</li>
+        <li data-test-main-nav-tokens class={{if (is-href 'dc.acls.tokens' @dc.Name) 'is-active'}}>
+            <a href={{href-to 'dc.acls.tokens' @dc.Name}}>Tokens</a>
+        </li>
+        <li data-test-main-nav-policies class={{if (is-href 'dc.acls.policies' @dc.Name) 'is-active'}}>
+            <a href={{href-to 'dc.acls.policies' @dc.Name}}>Policies</a>
+        </li>
+        <li data-test-main-nav-roles class={{if (is-href 'dc.acls.roles' @dc.Name) 'is-active'}}>
+            <a href={{href-to 'dc.acls.roles' @dc.Name}}>Roles</a>
+        </li>
+    </ul>
 {{/if}}
-                </ul>
-            </nav>
-        </div>
-    </header>
-    <main>
-{{yield}}
-    </main>
-    <footer role="contentinfo" data-test-footer>
-        <a data-test-footer-copyright href="{{env 'CONSUL_COPYRIGHT_URL'}}/" rel="noopener noreferrer" target="_blank">&copy; {{env 'CONSUL_COPYRIGHT_YEAR'}} HashiCorp</a>
-        <p data-test-footer-version>Consul {{env 'CONSUL_VERSION'}}</p>
-        <a data-test-footer-docs href="{{env 'CONSUL_DOCS_URL'}}" rel="help noopener noreferrer" target="_blank">Documentation</a>
-        {{{concat '<!-- ' (env 'CONSUL_GIT_SHA') '-->'}}}
-    </footer>
+
+  </:main-nav>
+
+  <:complementary-nav>
+    <ul>
+        <li data-test-main-nav-help>
+          <PopoverMenu @position="right" as |components|>
+            <BlockSlot @name="trigger">
+              Help
+            </BlockSlot>
+            <BlockSlot @name="menu">
+              {{#let components.MenuItem components.MenuSeparator as |MenuItem MenuSeparator|}}
+                <MenuItem
+                  class="docs-link"
+                  @href={{env 'CONSUL_DOCS_URL'}}
+                >
+                  <BlockSlot @name="label">
+                    Documentation
+                  </BlockSlot>
+                </MenuItem>
+                <MenuItem
+                  class="learn-link"
+                  @href={{concat (env 'CONSUL_DOCS_LEARN_URL') '/consul'}}
+                >
+                  <BlockSlot @name="label">
+                    HashiCorp Learn
+                  </BlockSlot>
+                </MenuItem>
+                <MenuSeparator />
+                <MenuItem
+                  class="learn-link"
+                  @href={{env 'CONSUL_REPO_ISSUES_URL'}}
+                >
+                  <BlockSlot @name="label">
+                    Provide Feedback
+                  </BlockSlot>
+                </MenuItem>
+              {{/let}}
+            </BlockSlot>
+          </PopoverMenu>
+        </li>
+        <li data-test-main-nav-settings class={{if (is-href 'settings') 'is-active'}}>
+            <a href={{href-to 'settings'}}>Settings</a>
+        </li>
+{{#if (env 'CONSUL_ACLS_ENABLED')}}
+        <li data-test-main-nav-auth>
+          <AuthDialog
+            @dc={{@dc.Name}}
+            @nspace={{@nspace.Name}}
+            @onchange={{this.reauthorize}} as |authDialog components|
+          >
+            {{#let components.AuthForm components.AuthProfile as |AuthForm AuthProfile|}}
+              <BlockSlot @name="unauthorized">
+                <label tabindex="0" for={{concat guid "-login-toggle"}} onkeypress={{this.keypressClick}}>
+                  <span>Log in</span>
+                </label>
+                <ModalDialog @name={{concat guid "-login-toggle"}} @onclose={{this.close}} @onopen={{this.open}} as |api|>
+                  <Ref @target={{this}} @name="modal" @value={{api}} />
+                  <BlockSlot @name="header">
+                    <h2>Log in to Consul</h2>
+                  </BlockSlot>
+                  <BlockSlot @name="body">
+                    <AuthForm as |api|>
+                      <Ref @target={{this}} @name="authForm" @value={{api}} />
+                    </AuthForm>
+                  </BlockSlot>
+                  <BlockSlot @name="actions" as |close|>
+                    <button type="button" onclick={{action close}}>
+                      Continue without logging in
+                    </button>
+                  </BlockSlot>
+                </ModalDialog>
+              </BlockSlot>
+              <BlockSlot @name="authorized">
+                <ModalDialog @name={{concat guid "-login-toggle"}} @onclose={{this.close}} @onopen={{this.open}} as |api|>
+                  <Ref @target={{this}} @name="modal" @value={{api}} />
+                  <BlockSlot @name="header">
+                    <h2>Log in with a different token</h2>
+                  </BlockSlot>
+                  <BlockSlot @name="body">
+                    <AuthForm as |api|>
+                      <Ref @target={{this}} @name="authForm" @value={{api}} />
+                    </AuthForm>
+                  </BlockSlot>
+                  <BlockSlot @name="actions" as |close|>
+                    <button type="button" onclick={{action close}}>
+                      Continue without logging in
+                    </button>
+                  </BlockSlot>
+                </ModalDialog>
+                <PopoverMenu @position="right" as |components api|>
+                  <BlockSlot @name="trigger">
+                    Logout
+                  </BlockSlot>
+                  <BlockSlot @name="menu">
+                    {{#let components.MenuItem components.MenuSeparator as |MenuItem MenuSeparator|}}
+{{!TODO: It might be nice to use one of our recursive components here}}
+{{#if authDialog.token.AccessorID}}
+                        <li role="none">
+                          <AuthProfile />
+                        </li>
+                        <MenuSeparator />
+{{/if}}
+                        <MenuItem
+                          class="dangerous"
+                          @onclick={{action authDialog.logout}}
+                        >
+                          <BlockSlot @name="label">
+                            Logout
+                          </BlockSlot>
+                        </MenuItem>
+                      {{/let}}
+                  </BlockSlot>
+                </PopoverMenu>
+              </BlockSlot>
+            {{/let}}
+          </AuthDialog>
+        </li>
+{{/if}}
+    </ul>
+  </:complementary-nav>
+
+  <:main>
+    {{yield}}
+  </:main>
+
+  <:content-info>
+    <Action
+      @href={{concat (env 'CONSUL_COPYRIGHT_URL') '/'}}
+      @external={{true}}
+    >
+      &copy; {{env 'CONSUL_COPYRIGHT_YEAR'}} HashiCorp
+    </Action>
+    <p>
+      Consul {{env 'CONSUL_VERSION'}}
+    </p>
+    <Action
+      @href={{env 'CONSUL_DOCS_URL'}}
+      @external={{true}}
+    >
+      Documentation
+    </Action>
+    {{{concat '<!-- ' (env 'CONSUL_GIT_SHA') '-->'}}}
+  </:content-info>
+</App>
