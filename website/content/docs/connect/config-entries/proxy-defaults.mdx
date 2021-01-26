@@ -84,6 +84,39 @@ spec:
 </Tab>
 </Tabs>
 
+### Prometheus
+
+<Tabs>
+<Tab heading="HCL">
+
+Expose prometheus metrics:
+
+```hcl
+Kind      = "proxy-defaults"
+Name      = "global"
+Config {
+  envoy_prometheus_bind_addr = "0.0.0.0:9102"
+}
+```
+
+</Tab>
+<Tab heading="Kubernetes YAML">
+
+Expose prometheus metrics:
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ProxyDefaults
+metadata:
+  name: global
+spec:
+  config:
+    envoy_prometheus_bind_addr: '0.0.0.0:9102'
+```
+
+</Tab>
+</Tabs>
+
 ### Proxy-specific defaults
 
 <Tabs>
