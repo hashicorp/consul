@@ -1,0 +1,4 @@
+
+```release-note:improvement
+license: **(Enterprise only)** Temporary client license duration was increased from 30m to 6h.
+```
