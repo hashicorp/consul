@@ -7,8 +7,7 @@
   @extend %as-pseudo;
 }
 %notice header > * {
-  @extend %h3;
-  font-size: $typo-header-300;
+  @extend %h300;
 }
 %notice footer * {
   @extend %p3;

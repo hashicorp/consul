@@ -1,6 +1,6 @@
 <div class="tab-section">
     <section class="tags">
-      <h3>Tags</h3>
+      <h2>Tags</h2>
     {{#if (gt item.Tags.length 0) }}
       <TagList @item={{item}} />
     {{else}}
@@ -14,7 +14,7 @@
     {{/if}}
     </section>
     <section class="metadata">
-      <h3>Meta</h3>
+      <h2>Meta</h2>
     {{#if item.Meta}}
       <Consul::Metadata::List @items={{entries item.Meta}} />
     {{else}}

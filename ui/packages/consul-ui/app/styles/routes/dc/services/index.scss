@@ -12,7 +12,7 @@ html[data-route^='dc.services.instance'] .tab-section section:not(:last-child) {
   padding-bottom: 24px;
   border-bottom: 1px solid $gray-200;
 }
-html[data-route^='dc.services.instance.metadata'] .tab-section section h3,
-html[data-route^='dc.services.instance.proxy'] .tab-section section h3 {
+html[data-route^='dc.services.instance.metadata'] .tab-section section h2 {
+  @extend %h300;
   margin: 24px 0 12px 0;
 }

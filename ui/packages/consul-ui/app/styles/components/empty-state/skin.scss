@@ -8,6 +8,9 @@
 %empty-state-header {
   border-bottom: none;
 }
+%empty-state-header {
+  @extend %h200;
+}
 /* Icons */
 %empty-state header::before {
   font-size: 2.6em;

@@ -1,6 +1,7 @@
 .consul-intention-permission-form {
   h2 {
     border-top: 1px solid $blue-500;
+    @extend %h200;
   }
   button.type-submit {
     @extend %frame-blue-300;
