@@ -193,7 +193,7 @@ export default [
       {
         category: 'operations',
         name: 'Operations',
-        content: ['uninstall', 'server-certificate-rotation', 'tls-on-existing-cluster'],
+        content: ['uninstall', 'certificate-rotation', 'tls-on-existing-cluster'],
       },
       {
         name: 'Troubleshoot',
