@@ -187,16 +187,26 @@ export default [
       },
       'dns',
       {
+        category: 'upgrade',
+        content: ['compatibility'],
+      },
+      {
         category: 'operations',
         name: 'Operations',
+        content: ['uninstall', 'tls-on-existing-cluster'],
+      },
+      {
+        name: 'Troubleshoot',
         content: [
           {
-            category: 'upgrade',
-            content: ['compatibility'],
+            title: 'Common Error Messages',
+            href:
+              '/docs/troubleshoot/common-errors#common-errors-on-kubernetes',
           },
-          'uninstall',
-          'tls-on-existing-cluster',
-          'faq',
+          {
+            title: 'FAQ',
+            href: '/docs/troubleshoot/faq#consul-on-kubernetes',
+          },
         ],
       },
       'helm',

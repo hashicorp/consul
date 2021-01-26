@@ -6,7 +6,24 @@ sidebar_title: FAQ
 
 # Frequently Asked Questions
 
-## Q: What is Checkpoint? / Does Consul call home?
+## Consul on Kubernetes
+
+### Q: Can I upgrade directly to a specific Helm chart version or should I upgrade one patch release at a time?
+
+It is safe to upgrade directly to a specific version. Be sure to read the release notes for all versions you're upgrading
+through and look for any breaking changes.
+
+### Q: Can I upgrade in place or should I spin up a new Kubernetes cluster?
+
+It is always safer to spin up a new Kubernetes cluster but that is not an
+option for most teams. Consul supports [upgrading in place](/docs/k8s/upgrade).
+
+Non-production environments should be upgraded first. If upgrading
+a Consul version, Consul data should be backed up.
+
+## Generic Consul Questions
+
+### Q: What is Checkpoint? / Does Consul call home?
 
 Consul makes use of a HashiCorp service called [Checkpoint](http://checkpoint.hashicorp.com)
 which is used to check for updates and critical security bulletins.
@@ -19,14 +36,14 @@ optional and can be disabled.
 See [`disable_anonymous_signature`](/docs/agent/options#disable_anonymous_signature)
 and [`disable_update_check`](/docs/agent/options#disable_update_check).
 
-## Q: Does Consul rely on UDP Broadcast or Multicast?
+### Q: Does Consul rely on UDP Broadcast or Multicast?
 
 Consul uses the [Serf](https://www.serf.io) gossip protocol which relies on
 TCP and UDP unicast. Broadcast and Multicast are rarely available in a
 multi-tenant or cloud network environment. For that reason, Consul and Serf
 were both designed to avoid any dependence on those capabilities.
 
-## Q: Is Consul eventually or strongly consistent?
+### Q: Is Consul eventually or strongly consistent?
 
 Consul has two important subsystems, the service catalog and the gossip
 protocol.
@@ -46,7 +63,7 @@ the catalog may come via the gossip protocol which is eventually consistent
 meaning the current state of the catalog can lag behind until the state is
 reconciled.
 
-## Q: Are _failed_ or _left_ nodes ever removed?
+### Q: Are _failed_ or _left_ nodes ever removed?
 
 To prevent an accumulation of dead nodes (nodes in either _failed_ or _left_
 states), Consul will automatically remove dead nodes out of the catalog. This
@@ -57,7 +74,7 @@ reasons to trim the number of _failed_ or _left_ nodes is not advised (nodes
 in the _failed_ or _left_ state do not cause any additional burden on
 Consul).
 
-## Q: Does Consul support delta updates for watchers or blocking queries?
+### Q: Does Consul support delta updates for watchers or blocking queries?
 
 Consul does not currently support sending a delta or a change only response
 to a watcher or a blocking query. The API simply allows for an edge-trigger
@@ -68,12 +85,12 @@ By design, Consul offloads this to clients instead of attempting to support
 the delta calculation. This avoids expensive state maintenance on the servers
 as well as race conditions between data updates and watch registrations.
 
-## Q: What network ports does Consul use?
+### Q: What network ports does Consul use?
 
 The [Ports Used](/docs/agent/options#ports) section of the Configuration
 documentation lists all ports that Consul uses.
 
-## Q: Does Consul require certain user process resource limits?
+### Q: Does Consul require certain user process resource limits?
 
 There should be only a small number of open file descriptors required for a
 Consul client agent. The gossip layers perform transient connections with
@@ -92,7 +109,7 @@ The default ulimits are usually sufficient for Consul, but you should closely
 scrutinize your own environment's specific needs and identify the root cause
 of any excessive resource utilization before arbitrarily increasing the limits.
 
-## Q: What is the per-key value size limitation for Consul's key/value store?
+### Q: What is the per-key value size limitation for Consul's key/value store?
 
 The limit on a key's value size is 512KB. This is strictly enforced and an
 HTTP 413 status will be returned to any client that attempts to store more
@@ -100,7 +117,7 @@ than that limit in a value. It should be noted that the Consul key/value store
 is not designed to be used as a general purpose database. See
 [Server Performance](/docs/install/performance) for more details.
 
-## Q: What data is replicated between Consul datacenters?
+### Q: What data is replicated between Consul datacenters?
 
 In general, data is not replicated between different Consul datacenters. When a
 request is made for a resource in another datacenter, the local Consul servers
@@ -114,7 +131,7 @@ can be replicated, such as with Consul's built-in
 capability, or external tools like
 [consul-replicate](https://github.com/hashicorp/consul-replicate).
 
-## Q: Can Consul natively handle protecting against other processes accessing Consul's memory state?
+### Q: Can Consul natively handle protecting against other processes accessing Consul's memory state?
 
 Consul does not provide built-in memory access protections, and doesn't
 interact with the host system to change or manipulate
@@ -127,7 +144,7 @@ normally do for individual processes, based on your operating system.
 Please see our
 [Security Model](/docs/internals/security) for more information.
 
-## Q: Are the Consul Docker Images OCI Compliant?
+### Q: Are the Consul Docker Images OCI Compliant?
 
 The official [Consul Docker image](https://hub.docker.com/_/consul/) uses
 [Docker image schema](https://docs.docker.com/registry/spec/manifest-v2-2/) V2,
@@ -136,7 +153,7 @@ command `docker manifest inspect consul` to inspect the manifest payload. The
 `docker manifest inspect` may require you to enable experimental features to
 use.
 
-## What browsers are supported by the Consul UI?
+### Q: What browsers are supported by the Consul UI?
 
 Consul currently supports all 'evergreen' browsers, as they are generally on
 up-to-date versions. This means we support:
