@@ -37,10 +37,11 @@ import (
 // gateway to ultimately forward the request through a remote mesh gateway to
 // reach its destination.
 type GatewayLocator struct {
-	logger            hclog.Logger
-	srv               serverDelegate
-	datacenter        string // THIS dc
-	primaryDatacenter string
+	logger                        hclog.Logger
+	srv                           serverDelegate
+	datacenter                    string // THIS dc
+	primaryDatacenter             string
+	disablePrimaryGatewayFallback bool
 
 	// these ONLY contain ones that have the wanfed:1 meta
 	gatewaysLock      sync.Mutex
@@ -214,6 +215,8 @@ func (g *GatewayLocator) listGateways(primary bool) []string {
 	if primary {
 		if g.datacenter == g.primaryDatacenter {
 			addrs = g.primaryGateways
+		} else if g.disablePrimaryGatewayFallback {
+			addrs = g.localGateways
 		} else if g.DialPrimaryThroughLocalGateway() && len(g.localGateways) > 0 {
 			addrs = g.localGateways
 		} else {
@@ -280,13 +283,15 @@ func NewGatewayLocator(
 	srv serverDelegate,
 	datacenter string,
 	primaryDatacenter string,
+	disablePrimaryGatewayFallback bool,
 ) *GatewayLocator {
 	g := &GatewayLocator{
-		logger:                 logger.Named(logging.GatewayLocator),
-		srv:                    srv,
-		datacenter:             datacenter,
-		primaryDatacenter:      primaryDatacenter,
-		primaryGatewaysReadyCh: make(chan struct{}),
+		logger:                        logger.Named(logging.GatewayLocator),
+		srv:                           srv,
+		datacenter:                    datacenter,
+		primaryDatacenter:             primaryDatacenter,
+		disablePrimaryGatewayFallback: disablePrimaryGatewayFallback,
+		primaryGatewaysReadyCh:        make(chan struct{}),
 	}
 	g.logPrimaryDialingMessage(g.DialPrimaryThroughLocalGateway())
 	// initialize

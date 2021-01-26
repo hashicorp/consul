@@ -459,6 +459,11 @@ type Config struct {
 	// datacenters should exclusively traverse mesh gateways.
 	ConnectMeshGatewayWANFederationEnabled bool
 
+	// DisablePrimaryGatewayFallback disables the fallback mechanism that
+	// allows for servers in a secondary datacenter to directly dial the mesh
+	// gateways of the primary datacenter to re-establish replication.
+	DisablePrimaryGatewayFallback bool
+
 	// DisableFederationStateAntiEntropy solely exists for use in unit tests to
 	// disable a background routine.
 	DisableFederationStateAntiEntropy bool

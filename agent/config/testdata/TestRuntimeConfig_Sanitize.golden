@@ -164,6 +164,7 @@
     "DisableHTTPUnprintableCharFilter": false,
     "DisableHostNodeID": false,
     "DisableKeyringFile": false,
+    "DisablePrimaryGatewayFallback": false,
     "DisableRemoteExec": false,
     "DisableUpdateCheck": false,
     "DiscardCheckOutput": false,

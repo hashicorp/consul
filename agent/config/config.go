@@ -204,6 +204,7 @@ type Config struct {
 	PrimaryDatacenter                *string             `mapstructure:"primary_datacenter"`
 	PrimaryGateways                  []string            `mapstructure:"primary_gateways"`
 	PrimaryGatewaysInterval          *string             `mapstructure:"primary_gateways_interval"`
+	DisablePrimaryGatewayFallback    *bool               `mapstructure:"disable_primary_gateway_fallback"`
 	RPCProtocol                      *int                `mapstructure:"protocol"`
 	RaftProtocol                     *int                `mapstructure:"raft_protocol"`
 	RaftSnapshotThreshold            *int                `mapstructure:"raft_snapshot_threshold"`

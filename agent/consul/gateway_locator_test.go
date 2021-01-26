@@ -62,6 +62,7 @@ func TestGatewayLocator(t *testing.T) {
 					tsd,
 					"dc1",
 					"dc1",
+					false,
 				)
 				g.SetUseReplicationSignal(isLeader)
 
@@ -103,6 +104,7 @@ func TestGatewayLocator(t *testing.T) {
 					tsd,
 					"dc2",
 					"dc1",
+					false,
 				)
 				g.SetUseReplicationSignal(isLeader)
 
@@ -144,6 +146,7 @@ func TestGatewayLocator(t *testing.T) {
 					tsd,
 					"dc2",
 					"dc1",
+					false,
 				)
 				g.SetUseReplicationSignal(isLeader)
 				g.RefreshPrimaryGatewayFallbackAddresses([]string{
@@ -196,6 +199,7 @@ func TestGatewayLocator(t *testing.T) {
 					tsd,
 					"dc1",
 					"dc1",
+					false,
 				)
 				g.SetUseReplicationSignal(isLeader)
 
@@ -243,6 +247,7 @@ func TestGatewayLocator(t *testing.T) {
 					tsd,
 					"dc2",
 					"dc1",
+					false,
 				)
 				g.SetUseReplicationSignal(isLeader)
 
@@ -285,6 +290,7 @@ func TestGatewayLocator(t *testing.T) {
 			tsd,
 			"dc2",
 			"dc1",
+			false,
 		)
 		g.SetUseReplicationSignal(true)
 
@@ -331,6 +337,7 @@ func TestGatewayLocator(t *testing.T) {
 			tsd,
 			"dc2",
 			"dc1",
+			false,
 		)
 		g.SetUseReplicationSignal(true)
 
@@ -379,6 +386,7 @@ func TestGatewayLocator(t *testing.T) {
 			tsd,
 			"dc2",
 			"dc1",
+			false,
 		)
 		g.SetUseReplicationSignal(true)
 
@@ -430,6 +438,7 @@ func TestGatewayLocator(t *testing.T) {
 			tsd,
 			"dc2",
 			"dc1",
+			false,
 		)
 		g.SetUseReplicationSignal(true)
 

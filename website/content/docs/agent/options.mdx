@@ -1757,6 +1757,16 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
   between [`primary_gateways`](#primary_gateways) discovery attempts. Defaults to
   30s. This was added in Consul 1.8.0.
 
+- `disable_primary_gateway_fallback` Disables the fallback mechanism that
+  allows for servers in a secondary datacenter to directly dial the mesh
+  gateways of the primary datacenter to re-establish replication.
+
+  This should only be set to true if network connectivity between servers in a
+  secondary datacenter and the mesh gateways of the primary datacenter are
+  deliberately severed.
+
+  This was added in Consul 1.10.0.
+
 - `protocol` ((#protocol)) Equivalent to the [`-protocol` command-line
   flag](#_protocol).
 
