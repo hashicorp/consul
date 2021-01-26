@@ -3312,8 +3312,6 @@ func TestAgent_AddService_restoresSnapshot(t *testing.T) {
 }
 
 func testAgent_AddService_restoresSnapshot(t *testing.T, extraHCL string) {
-	t.Helper()
-
 	a := NewTestAgent(t, extraHCL)
 	defer a.Shutdown()
 

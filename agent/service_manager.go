@@ -13,11 +13,9 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-// The ServiceManager is a layer for service registration in between the agent
-// and the local state. Any services must be registered with the ServiceManager,
-// which then maintains a long-running watch of any globally-set service or proxy
-// configuration that applies to the service in order to register the final, merged
-// service configuration locally in the agent state.
+// ServiceManager watches changes to central service config for all services
+// registered with it. When a central config changes, the local service will
+// be updated with the correct values from the central config.
 type ServiceManager struct {
 	agent *Agent
 
@@ -88,12 +86,7 @@ func (s *ServiceManager) registerOnce(args addServiceInternalRequest) error {
 	s.agent.stateLock.Lock()
 	defer s.agent.stateLock.Unlock()
 
-	if args.snap == nil {
-		args.snap = s.agent.snapshotCheckState()
-	}
-
-	err := s.agent.addServiceInternal(args)
-	if err != nil {
+	if err := s.agent.addServiceInternal(args); err != nil {
 		return fmt.Errorf("error updating service registration: %v", err)
 	}
 	return nil
@@ -121,26 +114,7 @@ func (s *ServiceManager) registerOnce(args addServiceInternalRequest) error {
 // merged with the global defaults before registration.
 //
 // NOTE: the caller must hold the Agent.stateLock!
-func (s *ServiceManager) AddService(req AddServiceRequest) error {
-	req.Service.EnterpriseMeta.Normalize()
-
-	// For now only proxies have anything that can be configured
-	// centrally. So bypass the whole manager for regular services.
-	if !req.Service.IsSidecarProxy() && !req.Service.IsGateway() {
-		req.persistServiceConfig = false
-		return s.agent.addServiceInternal(addServiceInternalRequest{AddServiceRequest: req})
-	}
-
-	// TODO: replace serviceRegistration with AddServiceRequest
-	reg := &serviceRegistration{
-		service:               req.Service,
-		chkTypes:              req.chkTypes,
-		persist:               req.persist,
-		token:                 req.token,
-		replaceExistingChecks: req.replaceExistingChecks,
-		source:                req.Source,
-	}
-
+func (s *ServiceManager) AddService(req addServiceLockedRequest) error {
 	s.servicesLock.Lock()
 	defer s.servicesLock.Unlock()
 
@@ -156,19 +130,11 @@ func (s *ServiceManager) AddService(req AddServiceRequest) error {
 	// Get the existing global config and do the initial registration with the
 	// merged config.
 	watch := &serviceConfigWatch{
-		registration: reg,
+		registration: req,
 		agent:        s.agent,
 		registerCh:   s.registerCh,
 	}
-
-	err := watch.RegisterAndStart(
-		s.ctx,
-		req.previousDefaults,
-		req.waitForCentralConfig,
-		req.persistServiceConfig,
-		&s.running,
-	)
-	if err != nil {
+	if err := watch.RegisterAndStart(s.ctx, &s.running); err != nil {
 		return err
 	}
 
@@ -194,21 +160,11 @@ func (s *ServiceManager) RemoveService(serviceID structs.ServiceID) {
 	}
 }
 
-// serviceRegistration represents a locally registered service.
-type serviceRegistration struct {
-	service               *structs.NodeService
-	chkTypes              []*structs.CheckType
-	persist               bool
-	token                 string
-	replaceExistingChecks bool
-	source                configSource
-}
-
 // serviceConfigWatch is a long running helper for composing the end config
 // for a given service from both the local registration and the global
 // service/proxy defaults.
 type serviceConfigWatch struct {
-	registration *serviceRegistration
+	registration addServiceLockedRequest
 
 	agent      *Agent
 	registerCh chan<- *asyncRegisterRequest
@@ -222,49 +178,28 @@ type serviceConfigWatch struct {
 }
 
 // NOTE: this is called while holding the Agent.stateLock
-func (w *serviceConfigWatch) RegisterAndStart(
-	ctx context.Context,
-	serviceDefaults *structs.ServiceConfigResponse,
-	waitForCentralConfig bool,
-	persistServiceConfig bool,
-	wg *sync.WaitGroup,
-) error {
-	// Either we explicitly block waiting for defaults before registering,
-	// or we feed it some seed data (or NO data) and bypass the blocking
-	// operation. Either way the watcher will end up with something flagged
-	// as defaults even if they don't actually reflect actual defaults.
-	if waitForCentralConfig {
-		var err error
-		serviceDefaults, err = w.fetchDefaults(ctx)
-		if err != nil {
-			return fmt.Errorf("could not retrieve initial service_defaults config for service %q: %v",
-				w.registration.service.ID, err)
-		}
+func (w *serviceConfigWatch) RegisterAndStart(ctx context.Context, wg *sync.WaitGroup) error {
+	serviceDefaults, err := w.registration.serviceDefaults(ctx)
+	if err != nil {
+		return fmt.Errorf("could not retrieve initial service_defaults config for service %q: %v",
+			w.registration.Service.ID, err)
 	}
 
 	// Merge the local registration with the central defaults and update this service
 	// in the local state.
-	merged, err := mergeServiceConfig(serviceDefaults, w.registration.service)
+	merged, err := mergeServiceConfig(serviceDefaults, w.registration.Service)
 	if err != nil {
 		return err
 	}
 
-	// The first time we do this interactively, we need to know if it
-	// failed for validation reasons which we only get back from the
-	// initial underlying add service call.
+	// make a copy of the AddServiceRequest
+	req := w.registration
+	req.Service = merged
+
 	err = w.agent.addServiceInternal(addServiceInternalRequest{
-		AddServiceRequest: AddServiceRequest{
-			Service:               merged,
-			chkTypes:              w.registration.chkTypes,
-			persist:               w.registration.persist,
-			persistServiceConfig:  persistServiceConfig,
-			token:                 w.registration.token,
-			replaceExistingChecks: w.registration.replaceExistingChecks,
-			Source:                w.registration.source,
-			snap:                  w.agent.snapshotCheckState(),
-		},
-		persistService:  w.registration.service,
-		persistDefaults: serviceDefaults,
+		addServiceLockedRequest: req,
+		persistService:          w.registration.Service,
+		persistServiceDefaults:  serviceDefaults,
 	})
 	if err != nil {
 		return fmt.Errorf("error updating service registration: %v", err)
@@ -275,21 +210,29 @@ func (w *serviceConfigWatch) RegisterAndStart(
 	return w.start(ctx, wg)
 }
 
-// NOTE: this is called while holding the Agent.stateLock
-func (w *serviceConfigWatch) fetchDefaults(ctx context.Context) (*structs.ServiceConfigResponse, error) {
-	req := makeConfigRequest(w.agent, w.registration)
-
-	raw, _, err := w.agent.cache.Get(ctx, cachetype.ResolvedServiceConfigName, req)
-	if err != nil {
-		return nil, err
+func serviceDefaultsFromStruct(v *structs.ServiceConfigResponse) func(context.Context) (*structs.ServiceConfigResponse, error) {
+	return func(_ context.Context) (*structs.ServiceConfigResponse, error) {
+		return v, nil
 	}
+}
 
-	serviceConfig, ok := raw.(*structs.ServiceConfigResponse)
-	if !ok {
-		// This should never happen, but we want to protect against panics
-		return nil, fmt.Errorf("internal error: response type not correct")
+func serviceDefaultsFromCache(bd BaseDeps, req AddServiceRequest) func(context.Context) (*structs.ServiceConfigResponse, error) {
+	// NOTE: this is called while holding the Agent.stateLock
+	return func(ctx context.Context) (*structs.ServiceConfigResponse, error) {
+		req := makeConfigRequest(bd, req)
+
+		raw, _, err := bd.Cache.Get(ctx, cachetype.ResolvedServiceConfigName, req)
+		if err != nil {
+			return nil, err
+		}
+
+		serviceConfig, ok := raw.(*structs.ServiceConfigResponse)
+		if !ok {
+			// This should never happen, but we want to protect against panics
+			return nil, fmt.Errorf("internal error: response type not correct")
+		}
+		return serviceConfig, nil
 	}
-	return serviceConfig, nil
 }
 
 // Start starts the config watch and a goroutine to handle updates over the
@@ -302,7 +245,7 @@ func (w *serviceConfigWatch) start(ctx context.Context, wg *sync.WaitGroup) erro
 
 	// Configure and start a cache.Notify goroutine to run a continuous
 	// blocking query on the resolved service config for this service.
-	req := makeConfigRequest(w.agent, w.registration)
+	req := makeConfigRequest(w.agent.baseDeps, w.registration.AddServiceRequest)
 	w.cacheKey = req.CacheInfo().Key
 
 	updateCh := make(chan cache.UpdateEvent, 1)
@@ -383,7 +326,7 @@ func (w *serviceConfigWatch) handleUpdate(ctx context.Context, event cache.Updat
 
 	// Merge the local registration with the central defaults and update this service
 	// in the local state.
-	merged, err := mergeServiceConfig(serviceDefaults, w.registration.service)
+	merged, err := mergeServiceConfig(serviceDefaults, w.registration.Service)
 	if err != nil {
 		return err
 	}
@@ -394,19 +337,16 @@ func (w *serviceConfigWatch) handleUpdate(ctx context.Context, event cache.Updat
 		return nil
 	}
 
+	// make a copy of the AddServiceRequest
+	req := w.registration
+	req.Service = merged
+	req.persistServiceConfig = true
+
 	registerReq := &asyncRegisterRequest{
 		Args: addServiceInternalRequest{
-			AddServiceRequest: AddServiceRequest{
-				Service:               merged,
-				chkTypes:              w.registration.chkTypes,
-				persist:               w.registration.persist,
-				persistServiceConfig:  true,
-				token:                 w.registration.token,
-				replaceExistingChecks: w.registration.replaceExistingChecks,
-				Source:                w.registration.source,
-			},
-			persistService:  w.registration.service,
-			persistDefaults: serviceDefaults,
+			addServiceLockedRequest: req,
+			persistService:          w.registration.Service,
+			persistServiceDefaults:  serviceDefaults,
 		},
 		Reply: make(chan error, 1),
 	}
@@ -434,8 +374,8 @@ type asyncRegisterRequest struct {
 	Reply chan error
 }
 
-func makeConfigRequest(agent *Agent, registration *serviceRegistration) *structs.ServiceConfigRequest {
-	ns := registration.service
+func makeConfigRequest(bd BaseDeps, addReq AddServiceRequest) *structs.ServiceConfigRequest {
+	ns := addReq.Service
 	name := ns.Service
 	var upstreams []structs.ServiceID
 
@@ -459,13 +399,13 @@ func makeConfigRequest(agent *Agent, registration *serviceRegistration) *structs
 
 	req := &structs.ServiceConfigRequest{
 		Name:           name,
-		Datacenter:     agent.config.Datacenter,
-		QueryOptions:   structs.QueryOptions{Token: agent.tokens.AgentToken()},
+		Datacenter:     bd.RuntimeConfig.Datacenter,
+		QueryOptions:   structs.QueryOptions{Token: addReq.token},
 		UpstreamIDs:    upstreams,
 		EnterpriseMeta: ns.EnterpriseMeta,
 	}
-	if registration.token != "" {
-		req.QueryOptions.Token = registration.token
+	if req.QueryOptions.Token == "" {
+		req.QueryOptions.Token = bd.Tokens.AgentToken()
 	}
 	return req
 }
