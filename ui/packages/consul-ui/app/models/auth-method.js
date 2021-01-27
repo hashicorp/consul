@@ -13,9 +13,7 @@ export default class AuthMethod extends Model {
   @attr('string', { defaultValue: () => '' }) DisplayName;
   @attr('string', { defaultValue: () => 'local' }) TokenLocality;
   @attr('string') Type;
-  @attr('string') Host;
-  @attr('string') ServiceAccountJWT;
-  @attr('string') CACert;
+  @attr() Config;
   @attr('string') MaxTokenTTL;
   @attr('number') CreateIndex;
   @attr('number') ModifyIndex;
