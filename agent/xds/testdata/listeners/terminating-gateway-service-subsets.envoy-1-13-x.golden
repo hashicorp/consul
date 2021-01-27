@@ -209,7 +209,12 @@
                         "operation_name": "EGRESS",
                         "random_sampling": {
                             }
-                      }
+                      },
+                  "upgrade_configs": [
+                        {
+                              "upgrade_type": "websocket"
+                            }
+                      ]
                 }
             }
           ]
@@ -271,7 +276,12 @@
                         "operation_name": "EGRESS",
                         "random_sampling": {
                             }
-                      }
+                      },
+                  "upgrade_configs": [
+                        {
+                              "upgrade_type": "websocket"
+                            }
+                      ]
                 }
             }
           ]
@@ -333,7 +343,12 @@
                         "operation_name": "EGRESS",
                         "random_sampling": {
                             }
-                      }
+                      },
+                  "upgrade_configs": [
+                        {
+                              "upgrade_type": "websocket"
+                            }
+                      ]
                 }
             }
           ]

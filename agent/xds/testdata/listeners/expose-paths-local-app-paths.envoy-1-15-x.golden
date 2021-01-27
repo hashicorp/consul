@@ -46,7 +46,12 @@
                   "tracing": {
                         "random_sampling": {
                             }
-                      }
+                      },
+                  "upgrade_configs": [
+                        {
+                              "upgrade_type": "websocket"
+                            }
+                      ]
                 }
             }
           ]
@@ -98,7 +103,12 @@
                   "tracing": {
                         "random_sampling": {
                             }
-                      }
+                      },
+                  "upgrade_configs": [
+                        {
+                              "upgrade_type": "websocket"
+                            }
+                      ]
                 }
             }
           ]
