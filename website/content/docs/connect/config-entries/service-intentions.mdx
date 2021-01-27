@@ -108,7 +108,7 @@ spec:
 </Tab>
 </Tabs>
 
-## gRPC
+### gRPC
 
 <Tabs>
 <Tab heading="HCL">
@@ -196,7 +196,7 @@ spec:
 </Tab>
 </Tabs>
 
-## L4 and L7
+### L4 and L7
 
 <Tabs>
 <Tab heading="HCL">
@@ -306,7 +306,12 @@ spec:
         {
           name: 'name',
           description:
-            'Unlike other config entries, the `metadata.name` field is not used to set the name of the service being configured. Instead, that is set in `spec.destination.name`. Thus this name can be set to anything.',
+            'Unlike other config entries, the `metadata.name` field is not used to set the name of the service being configured. Instead, that is set in `spec.destination.name`. Thus this name can be set to anything. See [ServiceIntentions Special Case (OSS)](/docs/k8s/crds#serviceintentions-special-case) or [ServiceIntentions Special Case (Enterprise)](/docs/k8s/crds#serviceintentions-special-case-enterprise) for more details.',
+        },
+        {
+          name: 'namespace',
+          description:
+            'If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/docs/k8s/crds#consul-enterprise) for more details.',
         },
       ],
       hcl: false,
@@ -326,9 +331,9 @@ spec:
           name: 'namespace',
           hcl: false,
           enterprise: true,
-          type: 'string: <required>',
+          type: 'string: <optional>',
           description:
-            "Specifies the namespaces the config entry will apply to. This may be set to the wildcard character (`*`) to match all services in all namespaces that don't otherwise have intentions defined.",
+            "Specifies the namespaces the config entry will apply to. This may be set to the wildcard character (`*`) to match all services in all namespaces that don't otherwise have intentions defined. If not set, the namespace used will depend on the `connectInject.consulNamespaces` configuration. See [ServiceIntentions Special Case (Enterprise)](/docs/k8s/crds#serviceintentions-special-case-enterprise) for more details.",
         },
       ],
     },
