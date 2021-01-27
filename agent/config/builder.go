@@ -41,58 +41,87 @@ import (
 	"github.com/hashicorp/consul/types"
 )
 
-// Load will build the configuration including the extraHead source injected
-// after all other defaults but before any user supplied configuration and the overrides
-// source injected as the final source in the configuration parsing chain.
-func Load(opts BuilderOpts, extraHead Source, overrides ...Source) (*RuntimeConfig, []string, error) {
-	b, err := NewBuilder(opts)
-	if err != nil {
-		return nil, nil, err
-	}
+// LoadOpts used by Load to construct and validate a RuntimeConfig.
+type LoadOpts struct {
+	// FlagValues contains the command line arguments that can also be set
+	// in a config file.
+	FlagValues Config
 
-	if extraHead != nil {
-		b.Head = append(b.Head, extraHead)
-	}
+	// ConfigFiles is a slice of paths to config files and directories that will
+	// be loaded.
+	ConfigFiles []string
 
-	if len(overrides) != 0 {
-		b.Tail = append(b.Tail, overrides...)
-	}
+	// ConfigFormat forces all config files to be interpreted as this format
+	// independent of their extension. Value may be `hcl` or `json`.
+	ConfigFormat string
 
-	cfg, err := b.BuildAndValidate()
-	if err != nil {
-		return nil, nil, err
-	}
+	// DevMode indicates whether the agent should be started in development
+	// mode. This cannot be configured in a config file.
+	DevMode *bool
 
-	return &cfg, b.Warnings, nil
+	// HCL is a slice of config data in hcl format. Each one will be loaded as
+	// if it were the source of a config file. Values from HCL will override
+	// values from ConfigFiles and FlagValues.
+	HCL []string
+
+	// DefaultConfig is an optional source that is applied after other defaults
+	// but before ConfigFiles and all other user specified config.
+	DefaultConfig Source
+
+	// Overrides are optional config sources that are applied as the very last
+	// config source so they can override any previous values.
+	Overrides []Source
+
+	// hostname is a shim for testing, allowing tests to specify a replacement
+	// for os.Hostname.
+	hostname func() (string, error)
+
+	// getPrivateIPv4 and getPublicIPv6 are shims for testing, allowing tests to
+	// specify a replacement for ipaddr.GetPrivateIPv4 and ipaddr.GetPublicIPv6.
+	getPrivateIPv4 func() ([]*net.IPAddr, error)
+	getPublicIPv6  func() ([]*net.IPAddr, error)
 }
 
-// Builder constructs a valid runtime configuration from multiple
-// configuration sources.
+// Load will build the configuration including the config source injected
+// after all other defaults but before any user supplied configuration and the overrides
+// source injected as the final source in the configuration parsing chain.
 //
-// To build the runtime configuration first call Build() which merges
-// the sources in a pre-defined order, converts the data types and
-// structures into their final form and performs the syntactic
-// validation.
+// The caller is responsible for handling any warnings in LoadResult.Warnings.
+func Load(opts LoadOpts) (LoadResult, error) {
+	r := LoadResult{}
+	b, err := newBuilder(opts)
+	if err != nil {
+		return r, err
+	}
+	cfg, err := b.BuildAndValidate()
+	if err != nil {
+		return r, err
+	}
+	return LoadResult{RuntimeConfig: &cfg, Warnings: b.Warnings}, nil
+}
+
+// LoadResult is the result returned from Load. The caller is responsible for
+// handling any warnings.
+type LoadResult struct {
+	RuntimeConfig *RuntimeConfig
+	Warnings      []string
+}
+
+// builder constructs and validates a runtime configuration from multiple
+// configuration sources.
 //
 // The sources are merged in the following order:
 //
 //  * default configuration
 //  * config files in alphabetical order
 //  * command line arguments
+//  * overrides
 //
-// The config sources are merged sequentially and later values
-// overwrite previously set values. Slice values are merged by
-// concatenating the two slices. Map values are merged by over-
-// laying the later maps on top of earlier ones.
-//
-// Then call Validate() to perform the semantic validation to ensure
-// that the configuration is ready to be used.
-//
-// Splitting the construction into two phases greatly simplifies testing
-// since not all pre-conditions have to be satisfied when performing
-// syntactical tests.
-type Builder struct {
-	opts BuilderOpts
+// The config sources are merged sequentially and later values overwrite
+// previously set values. Slice values are merged by concatenating the two slices.
+// Map values are merged by over-laying the later maps on top of earlier ones.
+type builder struct {
+	opts LoadOpts
 
 	// Head, Sources, and Tail are used to manage the order of the
 	// config sources, as described in the comments above.
@@ -109,14 +138,14 @@ type Builder struct {
 	err error
 }
 
-// NewBuilder returns a new configuration Builder from the BuilderOpts.
-func NewBuilder(opts BuilderOpts) (*Builder, error) {
+// newBuilder returns a new configuration Builder from the LoadOpts.
+func newBuilder(opts LoadOpts) (*builder, error) {
 	configFormat := opts.ConfigFormat
 	if configFormat != "" && configFormat != "json" && configFormat != "hcl" {
 		return nil, fmt.Errorf("config: -config-format must be either 'hcl' or 'json'")
 	}
 
-	b := &Builder{
+	b := &builder{
 		opts: opts,
 		Head: []Source{DefaultSource(), DefaultEnterpriseSource()},
 	}
@@ -130,8 +159,12 @@ func NewBuilder(opts BuilderOpts) (*Builder, error) {
 	// we need to merge all slice values defined in flags before we
 	// merge the config files since the flag values for slices are
 	// otherwise appended instead of prepended.
-	slices, values := splitSlicesAndValues(opts.Config)
+	slices, values := splitSlicesAndValues(opts.FlagValues)
 	b.Head = append(b.Head, LiteralSource{Name: "flags.slices", Config: slices})
+	if opts.DefaultConfig != nil {
+		b.Head = append(b.Head, opts.DefaultConfig)
+	}
+
 	for _, path := range opts.ConfigFiles {
 		sources, err := b.sourcesFromPath(path, opts.ConfigFormat)
 		if err != nil {
@@ -151,13 +184,16 @@ func NewBuilder(opts BuilderOpts) (*Builder, error) {
 	if boolVal(opts.DevMode) {
 		b.Tail = append(b.Tail, DevConsulSource())
 	}
+	if len(opts.Overrides) != 0 {
+		b.Tail = append(b.Tail, opts.Overrides...)
+	}
 	return b, nil
 }
 
 // sourcesFromPath reads a single config file or all files in a directory (but
 // not its sub-directories) and returns Sources created from the
 // files.
-func (b *Builder) sourcesFromPath(path string, format string) ([]Source, error) {
+func (b *builder) sourcesFromPath(path string, format string) ([]Source, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("config: Open failed on %s. %s", path, err)
@@ -258,7 +294,7 @@ func (a byName) Len() int           { return len(a) }
 func (a byName) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a byName) Less(i, j int) bool { return a[i].Name() < a[j].Name() }
 
-func (b *Builder) BuildAndValidate() (RuntimeConfig, error) {
+func (b *builder) BuildAndValidate() (RuntimeConfig, error) {
 	rt, err := b.Build()
 	if err != nil {
 		return RuntimeConfig{}, err
@@ -275,7 +311,7 @@ func (b *Builder) BuildAndValidate() (RuntimeConfig, error) {
 // precedence over the other sources. If the error is nil then
 // warnings can still contain deprecation or format warnings that should
 // be presented to the user.
-func (b *Builder) Build() (rt RuntimeConfig, err error) {
+func (b *builder) Build() (rt RuntimeConfig, err error) {
 	srcs := make([]Source, 0, len(b.Head)+len(b.Sources)+len(b.Tail))
 	srcs = append(srcs, b.Head...)
 	srcs = append(srcs, b.Sources...)
@@ -1133,7 +1169,7 @@ func validateBasicName(field, value string, allowEmpty bool) error {
 }
 
 // Validate performs semantic validation of the runtime configuration.
-func (b *Builder) Validate(rt RuntimeConfig) error {
+func (b *builder) Validate(rt RuntimeConfig) error {
 
 	// validContentPath defines a regexp for a valid content path name.
 	var validContentPath = regexp.MustCompile(`^[A-Za-z0-9/_-]+$`)
@@ -1501,11 +1537,11 @@ func splitSlicesAndValues(c Config) (slices, values Config) {
 	return rs.Elem().Interface().(Config), rv.Elem().Interface().(Config)
 }
 
-func (b *Builder) warn(msg string, args ...interface{}) {
+func (b *builder) warn(msg string, args ...interface{}) {
 	b.Warnings = append(b.Warnings, fmt.Sprintf(msg, args...))
 }
 
-func (b *Builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
+func (b *builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 	if v == nil {
 		return nil
 	}
@@ -1543,7 +1579,7 @@ func (b *Builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 	}
 }
 
-func (b *Builder) svcTaggedAddresses(v map[string]ServiceAddress) map[string]structs.ServiceAddress {
+func (b *builder) svcTaggedAddresses(v map[string]ServiceAddress) map[string]structs.ServiceAddress {
 	if len(v) <= 0 {
 		return nil
 	}
@@ -1563,7 +1599,7 @@ func (b *Builder) svcTaggedAddresses(v map[string]ServiceAddress) map[string]str
 	return svcAddrs
 }
 
-func (b *Builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
+func (b *builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 	if v == nil {
 		return nil
 	}
@@ -1616,7 +1652,7 @@ func (b *Builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 	}
 }
 
-func (b *Builder) serviceKindVal(v *string) structs.ServiceKind {
+func (b *builder) serviceKindVal(v *string) structs.ServiceKind {
 	if v == nil {
 		return structs.ServiceKindTypical
 	}
@@ -1634,7 +1670,7 @@ func (b *Builder) serviceKindVal(v *string) structs.ServiceKind {
 	}
 }
 
-func (b *Builder) serviceProxyVal(v *ServiceProxy) *structs.ConnectProxyConfig {
+func (b *builder) serviceProxyVal(v *ServiceProxy) *structs.ConnectProxyConfig {
 	if v == nil {
 		return nil
 	}
@@ -1651,7 +1687,7 @@ func (b *Builder) serviceProxyVal(v *ServiceProxy) *structs.ConnectProxyConfig {
 	}
 }
 
-func (b *Builder) upstreamsVal(v []Upstream) structs.Upstreams {
+func (b *builder) upstreamsVal(v []Upstream) structs.Upstreams {
 	ups := make(structs.Upstreams, len(v))
 	for i, u := range v {
 		ups[i] = structs.Upstream{
@@ -1671,7 +1707,7 @@ func (b *Builder) upstreamsVal(v []Upstream) structs.Upstreams {
 	return ups
 }
 
-func (b *Builder) meshGatewayConfVal(mgConf *MeshGatewayConfig) structs.MeshGatewayConfig {
+func (b *builder) meshGatewayConfVal(mgConf *MeshGatewayConfig) structs.MeshGatewayConfig {
 	cfg := structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeDefault}
 	if mgConf == nil || mgConf.Mode == nil {
 		// return defaults
@@ -1688,7 +1724,7 @@ func (b *Builder) meshGatewayConfVal(mgConf *MeshGatewayConfig) structs.MeshGate
 	return cfg
 }
 
-func (b *Builder) exposeConfVal(v *ExposeConfig) structs.ExposeConfig {
+func (b *builder) exposeConfVal(v *ExposeConfig) structs.ExposeConfig {
 	var out structs.ExposeConfig
 	if v == nil {
 		return out
@@ -1699,7 +1735,7 @@ func (b *Builder) exposeConfVal(v *ExposeConfig) structs.ExposeConfig {
 	return out
 }
 
-func (b *Builder) pathsVal(v []ExposePath) []structs.ExposePath {
+func (b *builder) pathsVal(v []ExposePath) []structs.ExposePath {
 	paths := make([]structs.ExposePath, len(v))
 	for i, p := range v {
 		paths[i] = structs.ExposePath{
@@ -1712,7 +1748,7 @@ func (b *Builder) pathsVal(v []ExposePath) []structs.ExposePath {
 	return paths
 }
 
-func (b *Builder) serviceConnectVal(v *ServiceConnect) *structs.ServiceConnect {
+func (b *builder) serviceConnectVal(v *ServiceConnect) *structs.ServiceConnect {
 	if v == nil {
 		return nil
 	}
@@ -1738,7 +1774,7 @@ func (b *Builder) serviceConnectVal(v *ServiceConnect) *structs.ServiceConnect {
 	}
 }
 
-func (b *Builder) uiConfigVal(v RawUIConfig) UIConfig {
+func (b *builder) uiConfigVal(v RawUIConfig) UIConfig {
 	return UIConfig{
 		Enabled:                    boolVal(v.Enabled),
 		Dir:                        stringVal(v.Dir),
@@ -1751,7 +1787,7 @@ func (b *Builder) uiConfigVal(v RawUIConfig) UIConfig {
 	}
 }
 
-func (b *Builder) uiMetricsProxyVal(v RawUIMetricsProxy) UIMetricsProxy {
+func (b *builder) uiMetricsProxyVal(v RawUIMetricsProxy) UIMetricsProxy {
 	var hdrs []UIMetricsProxyAddHeader
 
 	for _, hdr := range v.AddHeaders {
@@ -1782,7 +1818,7 @@ func boolVal(v *bool) bool {
 	return *v
 }
 
-func (b *Builder) durationValWithDefault(name string, v *string, defaultVal time.Duration) (d time.Duration) {
+func (b *builder) durationValWithDefault(name string, v *string, defaultVal time.Duration) (d time.Duration) {
 	if v == nil {
 		return defaultVal
 	}
@@ -1793,7 +1829,7 @@ func (b *Builder) durationValWithDefault(name string, v *string, defaultVal time
 	return d
 }
 
-func (b *Builder) durationVal(name string, v *string) (d time.Duration) {
+func (b *builder) durationVal(name string, v *string) (d time.Duration) {
 	return b.durationValWithDefault(name, v, 0)
 }
 
@@ -1825,7 +1861,7 @@ func uint64Val(v *uint64) uint64 {
 	return *v
 }
 
-func (b *Builder) portVal(name string, v *int) int {
+func (b *builder) portVal(name string, v *int) int {
 	if v == nil || *v <= 0 {
 		return -1
 	}
@@ -1860,7 +1896,7 @@ func float64Val(v *float64) float64 {
 	return float64ValWithDefault(v, 0)
 }
 
-func (b *Builder) cidrsVal(name string, v []string) (nets []*net.IPNet) {
+func (b *builder) cidrsVal(name string, v []string) (nets []*net.IPNet) {
 	if v == nil {
 		return
 	}
@@ -1876,7 +1912,7 @@ func (b *Builder) cidrsVal(name string, v []string) (nets []*net.IPNet) {
 	return
 }
 
-func (b *Builder) tlsCipherSuites(name string, v *string) []uint16 {
+func (b *builder) tlsCipherSuites(name string, v *string) []uint16 {
 	if v == nil {
 		return nil
 	}
@@ -1889,7 +1925,7 @@ func (b *Builder) tlsCipherSuites(name string, v *string) []uint16 {
 	return a
 }
 
-func (b *Builder) nodeName(v *string) string {
+func (b *builder) nodeName(v *string) string {
 	nodeName := stringVal(v)
 	if nodeName == "" {
 		fn := b.opts.hostname
@@ -1908,7 +1944,7 @@ func (b *Builder) nodeName(v *string) string {
 
 // expandAddrs expands the go-sockaddr template in s and returns the
 // result as a list of *net.IPAddr and *net.UnixAddr.
-func (b *Builder) expandAddrs(name string, s *string) []net.Addr {
+func (b *builder) expandAddrs(name string, s *string) []net.Addr {
 	if s == nil || *s == "" {
 		return nil
 	}
@@ -1947,7 +1983,7 @@ func (b *Builder) expandAddrs(name string, s *string) []net.Addr {
 // error set. In contrast to expandAddrs, expandOptionalAddrs does not validate
 // if the result contains valid addresses and returns a list of strings.
 // However, if the expansion of the go-sockaddr template fails an error is set.
-func (b *Builder) expandOptionalAddrs(name string, s *string) []string {
+func (b *builder) expandOptionalAddrs(name string, s *string) []string {
 	if s == nil || *s == "" {
 		return nil
 	}
@@ -1967,7 +2003,7 @@ func (b *Builder) expandOptionalAddrs(name string, s *string) []string {
 	}
 }
 
-func (b *Builder) expandAllOptionalAddrs(name string, addrs []string) []string {
+func (b *builder) expandAllOptionalAddrs(name string, addrs []string) []string {
 	out := make([]string, 0, len(addrs))
 	for _, a := range addrs {
 		expanded := b.expandOptionalAddrs(name, &a)
@@ -1981,7 +2017,7 @@ func (b *Builder) expandAllOptionalAddrs(name string, addrs []string) []string {
 // expandIPs expands the go-sockaddr template in s and returns a list of
 // *net.IPAddr. If one of the expanded addresses is a unix socket
 // address an error is set and nil is returned.
-func (b *Builder) expandIPs(name string, s *string) []*net.IPAddr {
+func (b *builder) expandIPs(name string, s *string) []*net.IPAddr {
 	if s == nil || *s == "" {
 		return nil
 	}
@@ -2007,7 +2043,7 @@ func (b *Builder) expandIPs(name string, s *string) []*net.IPAddr {
 // first address which is either a *net.IPAddr or a *net.UnixAddr. If
 // the template expands to multiple addresses an error is set and nil
 // is returned.
-func (b *Builder) expandFirstAddr(name string, s *string) net.Addr {
+func (b *builder) expandFirstAddr(name string, s *string) net.Addr {
 	if s == nil || *s == "" {
 		return nil
 	}
@@ -2030,7 +2066,7 @@ func (b *Builder) expandFirstAddr(name string, s *string) net.Addr {
 // expandFirstIP expands the go-sockaddr template in s and returns the
 // first address if it is not a unix socket address. If the template
 // expands to multiple addresses an error is set and nil is returned.
-func (b *Builder) expandFirstIP(name string, s *string) *net.IPAddr {
+func (b *builder) expandFirstIP(name string, s *string) *net.IPAddr {
 	if s == nil || *s == "" {
 		return nil
 	}
@@ -2058,7 +2094,7 @@ func makeIPAddr(pri *net.IPAddr, sec *net.IPAddr) *net.IPAddr {
 	return sec
 }
 
-func (b *Builder) makeTCPAddr(pri *net.IPAddr, sec net.Addr, port int) *net.TCPAddr {
+func (b *builder) makeTCPAddr(pri *net.IPAddr, sec net.Addr, port int) *net.TCPAddr {
 	if pri == nil && reflect.ValueOf(sec).IsNil() || port <= 0 {
 		return nil
 	}
@@ -2079,7 +2115,7 @@ func (b *Builder) makeTCPAddr(pri *net.IPAddr, sec net.Addr, port int) *net.TCPA
 // makeAddr creates an *net.TCPAddr or a *net.UnixAddr from either the
 // primary or secondary address and the given port. If the port is <= 0
 // then the address is considered to be disabled and nil is returned.
-func (b *Builder) makeAddr(pri, sec net.Addr, port int) net.Addr {
+func (b *builder) makeAddr(pri, sec net.Addr, port int) net.Addr {
 	if reflect.ValueOf(pri).IsNil() && reflect.ValueOf(sec).IsNil() || port <= 0 {
 		return nil
 	}
@@ -2101,7 +2137,7 @@ func (b *Builder) makeAddr(pri, sec net.Addr, port int) net.Addr {
 // from either the primary or secondary addresses and the given port.
 // If the port is <= 0 then the address is considered to be disabled
 // and nil is returned.
-func (b *Builder) makeAddrs(pri []net.Addr, sec []*net.IPAddr, port int) []net.Addr {
+func (b *builder) makeAddrs(pri []net.Addr, sec []*net.IPAddr, port int) []net.Addr {
 	if len(pri) == 0 && len(sec) == 0 || port <= 0 {
 		return nil
 	}
@@ -2119,7 +2155,7 @@ func (b *Builder) makeAddrs(pri []net.Addr, sec []*net.IPAddr, port int) []net.A
 	return x
 }
 
-func (b *Builder) autoConfigVal(raw AutoConfigRaw) AutoConfig {
+func (b *builder) autoConfigVal(raw AutoConfigRaw) AutoConfig {
 	var val AutoConfig
 
 	val.Enabled = boolValWithDefault(raw.Enabled, false)
@@ -2152,7 +2188,7 @@ func (b *Builder) autoConfigVal(raw AutoConfigRaw) AutoConfig {
 	return val
 }
 
-func (b *Builder) autoConfigAuthorizerVal(raw AutoConfigAuthorizationRaw) AutoConfigAuthorizer {
+func (b *builder) autoConfigAuthorizerVal(raw AutoConfigAuthorizationRaw) AutoConfigAuthorizer {
 	// Our config file syntax wraps the static authorizer configuration in a "static" stanza. However
 	// internally we do not support multiple configured authorization types so the RuntimeConfig just
 	// inlines the static one. While we can and probably should extend the authorization types in the
@@ -2187,7 +2223,7 @@ func (b *Builder) autoConfigAuthorizerVal(raw AutoConfigAuthorizationRaw) AutoCo
 	return val
 }
 
-func (b *Builder) validateAutoConfig(rt RuntimeConfig) error {
+func (b *builder) validateAutoConfig(rt RuntimeConfig) error {
 	autoconf := rt.AutoConfig
 
 	if err := validateAutoConfigAuthorizer(rt); err != nil {

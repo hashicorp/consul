@@ -10,6 +10,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/serf/coordinate"
+	"github.com/miekg/dns"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/config"
 	agentdns "github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/structs"
@@ -17,9 +21,6 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/serf/coordinate"
-	"github.com/miekg/dns"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -6664,7 +6665,7 @@ func TestDNS_trimUDPResponse_NoTrim(t *testing.T) {
 		},
 	}
 
-	cfg := config.DefaultRuntimeConfig(`data_dir = "a" bind_addr = "127.0.0.1"`)
+	cfg := loadRuntimeConfig(t, `data_dir = "a" bind_addr = "127.0.0.1"`)
 	if trimmed := trimUDPResponse(req, resp, cfg.DNSUDPAnswerLimit); trimmed {
 		t.Fatalf("Bad %#v", *resp)
 	}
@@ -6698,7 +6699,7 @@ func TestDNS_trimUDPResponse_NoTrim(t *testing.T) {
 
 func TestDNS_trimUDPResponse_TrimLimit(t *testing.T) {
 	t.Parallel()
-	cfg := config.DefaultRuntimeConfig(`data_dir = "a" bind_addr = "127.0.0.1"`)
+	cfg := loadRuntimeConfig(t, `data_dir = "a" bind_addr = "127.0.0.1"`)
 
 	req, resp, expected := &dns.Msg{}, &dns.Msg{}, &dns.Msg{}
 	for i := 0; i < cfg.DNSUDPAnswerLimit+1; i++ {
@@ -6736,9 +6737,17 @@ func TestDNS_trimUDPResponse_TrimLimit(t *testing.T) {
 	}
 }
 
+func loadRuntimeConfig(t *testing.T, hcl string) *config.RuntimeConfig {
+	t.Helper()
+	result, err := config.Load(config.LoadOpts{HCL: []string{hcl}})
+	require.NoError(t, err)
+	require.Len(t, result.Warnings, 0)
+	return result.RuntimeConfig
+}
+
 func TestDNS_trimUDPResponse_TrimSize(t *testing.T) {
 	t.Parallel()
-	cfg := config.DefaultRuntimeConfig(`data_dir = "a" bind_addr = "127.0.0.1"`)
+	cfg := loadRuntimeConfig(t, `data_dir = "a" bind_addr = "127.0.0.1"`)
 
 	req, resp := &dns.Msg{}, &dns.Msg{}
 	for i := 0; i < 100; i++ {
@@ -6791,7 +6800,7 @@ func TestDNS_trimUDPResponse_TrimSize(t *testing.T) {
 
 func TestDNS_trimUDPResponse_TrimSizeEDNS(t *testing.T) {
 	t.Parallel()
-	cfg := config.DefaultRuntimeConfig(`data_dir = "a" bind_addr = "127.0.0.1"`)
+	cfg := loadRuntimeConfig(t, `data_dir = "a" bind_addr = "127.0.0.1"`)
 
 	req, resp := &dns.Msg{}, &dns.Msg{}
 
@@ -7094,7 +7103,7 @@ func TestDNS_syncExtra(t *testing.T) {
 
 func TestDNS_Compression_trimUDPResponse(t *testing.T) {
 	t.Parallel()
-	cfg := config.DefaultRuntimeConfig(`data_dir = "a" bind_addr = "127.0.0.1"`)
+	cfg := loadRuntimeConfig(t, `data_dir = "a" bind_addr = "127.0.0.1"`)
 
 	req, m := dns.Msg{}, dns.Msg{}
 	trimUDPResponse(&req, &m, cfg.DNSUDPAnswerLimit)

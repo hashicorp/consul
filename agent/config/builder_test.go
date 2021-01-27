@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -17,25 +18,28 @@ func TestLoad(t *testing.T) {
 	// Basically just testing that injection of the extra
 	// source works.
 	devMode := true
-	builderOpts := BuilderOpts{
+	builderOpts := LoadOpts{
 		// putting this in dev mode so that the config validates
 		// without having to specify a data directory
 		DevMode: &devMode,
+		DefaultConfig: FileSource{
+			Name:   "test",
+			Format: "hcl",
+			Data:   `node_name = "hobbiton"`,
+		},
+		Overrides: []Source{
+			FileSource{
+				Name:   "overrides",
+				Format: "json",
+				Data:   `{"check_reap_interval": "1ms"}`,
+			},
+		},
 	}
 
-	cfg, warnings, err := Load(builderOpts, FileSource{
-		Name:   "test",
-		Format: "hcl",
-		Data:   `node_name = "hobbiton"`,
-	},
-		FileSource{
-			Name:   "overrides",
-			Format: "json",
-			Data:   `{"check_reap_interval": "1ms"}`,
-		})
-
+	result, err := Load(builderOpts)
 	require.NoError(t, err)
-	require.Empty(t, warnings)
+	require.Empty(t, result.Warnings)
+	cfg := result.RuntimeConfig
 	require.NotNil(t, cfg)
 	require.Equal(t, "hobbiton", cfg.NodeName)
 	require.Equal(t, 1*time.Millisecond, cfg.CheckReapInterval)
@@ -65,7 +69,7 @@ func TestShouldParseFile(t *testing.T) {
 func TestNewBuilder_PopulatesSourcesFromConfigFiles(t *testing.T) {
 	paths := setupConfigFiles(t)
 
-	b, err := NewBuilder(BuilderOpts{ConfigFiles: paths})
+	b, err := newBuilder(LoadOpts{ConfigFiles: paths})
 	require.NoError(t, err)
 
 	expected := []Source{
@@ -81,7 +85,7 @@ func TestNewBuilder_PopulatesSourcesFromConfigFiles(t *testing.T) {
 func TestNewBuilder_PopulatesSourcesFromConfigFiles_WithConfigFormat(t *testing.T) {
 	paths := setupConfigFiles(t)
 
-	b, err := NewBuilder(BuilderOpts{ConfigFiles: paths, ConfigFormat: "hcl"})
+	b, err := newBuilder(LoadOpts{ConfigFiles: paths, ConfigFormat: "hcl"})
 	require.NoError(t, err)
 
 	expected := []Source{
@@ -132,8 +136,8 @@ func TestBuilder_BuildAndValidate_NodeName(t *testing.T) {
 	}
 
 	fn := func(t *testing.T, tc testCase) {
-		b, err := NewBuilder(BuilderOpts{
-			Config: Config{
+		b, err := newBuilder(LoadOpts{
+			FlagValues: Config{
 				NodeName: pString(tc.nodeName),
 				DataDir:  pString("dir"),
 			},
@@ -171,7 +175,7 @@ func TestBuilder_BuildAndValidate_NodeName(t *testing.T) {
 	}
 }
 
-func patchBuilderShims(b *Builder) {
+func patchBuilderShims(b *builder) {
 	b.opts.hostname = func() (string, error) {
 		return "thehostname", nil
 	}
@@ -181,4 +185,36 @@ func patchBuilderShims(b *Builder) {
 	b.opts.getPublicIPv6 = func() ([]*net.IPAddr, error) {
 		return []*net.IPAddr{ipAddr("dead:beef::1")}, nil
 	}
+}
+
+func TestLoad_HTTPMaxConnsPerClientExceedsRLimit(t *testing.T) {
+	hcl := `
+		limits{
+			# We put a very high value to be sure to fail
+			# This value is more than max on Windows as well
+			http_max_conns_per_client = 16777217
+		}`
+
+	opts := LoadOpts{
+		DefaultConfig: FileSource{
+			Name:   "test",
+			Format: "hcl",
+			Data: `
+		    ae_interval = "1m"
+		    data_dir="/tmp/00000000001979"
+			bind_addr = "127.0.0.1"
+			advertise_addr = "127.0.0.1"
+			datacenter = "dc1"
+			bootstrap = true
+			server = true
+			node_id = "00000000001979"
+			node_name = "Node-00000000001979"
+		`,
+		},
+		HCL: []string{hcl},
+	}
+
+	_, err := Load(opts)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "but limits.http_max_conns_per_client: 16777217 needs at least 16777237")
 }

@@ -4,28 +4,22 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/stretchr/testify/require"
 )
 
 // This test ensures that dev mode doesn't register services by default.
 // We depend on this behavior for ServiesFromFiles so we want to fail
 // tests if that ever changes.
 func TestDevModeHasNoServices(t *testing.T) {
-	t.Parallel()
-	require := require.New(t)
-
 	devMode := true
-	b, err := config.NewBuilder(config.BuilderOpts{
-		DevMode: &devMode,
-	})
-	require.NoError(err)
-
-	cfg, err := b.BuildAndValidate()
-	require.NoError(err)
-	require.Empty(cfg.Services)
+	result, err := config.Load(config.LoadOpts{DevMode: &devMode})
+	require.NoError(t, err)
+	require.Len(t, result.Warnings, 0)
+	require.Len(t, result.RuntimeConfig.Services, 0)
 }
 
 func TestStructsToAgentService(t *testing.T) {

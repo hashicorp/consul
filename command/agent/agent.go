@@ -11,15 +11,16 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/hashicorp/go-checkpoint"
+	"github.com/hashicorp/go-hclog"
+	"github.com/mitchellh/cli"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/service_os"
-	"github.com/hashicorp/go-checkpoint"
-	"github.com/hashicorp/go-hclog"
-	"github.com/mitchellh/cli"
 )
 
 func New(ui cli.Ui, revision, version, versionPre, versionHuman string, shutdownCh <-chan struct{}) *cmd {
@@ -56,13 +57,13 @@ type cmd struct {
 	versionPrerelease string
 	versionHuman      string
 	shutdownCh        <-chan struct{}
-	flagArgs          config.BuilderOpts
+	configLoadOpts    config.LoadOpts
 	logger            hclog.InterceptLogger
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
-	config.AddFlags(c.flags, &c.flagArgs)
+	config.AddFlags(c.flags, &c.configLoadOpts)
 	c.help = flags.Usage(help, c.flags)
 }
 
@@ -161,8 +162,9 @@ func (c *cmd) run(args []string) int {
 	}
 
 	logGate := &logging.GatedWriter{Writer: &cli.UiWriter{Ui: c.UI}}
-	loader := func(source config.Source) (cfg *config.RuntimeConfig, warnings []string, err error) {
-		return config.Load(c.flagArgs, source)
+	loader := func(source config.Source) (config.LoadResult, error) {
+		c.configLoadOpts.DefaultConfig = source
+		return config.Load(c.configLoadOpts)
 	}
 	bd, err := agent.NewBaseDeps(loader, logGate)
 	if err != nil {
