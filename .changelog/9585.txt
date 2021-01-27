@@ -1,0 +1,3 @@
+```release-note:improvement
+cli: Add new `-cluster-id` and `common-name` to `consul tls ca create` to support creating a CA for Consul Connect.
+```

@@ -3,8 +3,6 @@ package agent
 import (
 	"bytes"
 	"context"
-	"crypto/ecdsa"
-	"crypto/elliptic"
 	"crypto/x509"
 	"fmt"
 	"io"
@@ -569,22 +567,17 @@ func TestACLConfigWithParams(params *TestACLConfigParams) string {
 // testTLSCertificates Generates a TLS CA and server key/cert and returns them
 // in PEM encoded form.
 func testTLSCertificates(serverName string) (cert string, key string, cacert string, err error) {
-	// generate CA
-	serial, err := tlsutil.GenerateSerialNumber()
-	if err != nil {
-		return "", "", "", err
-	}
-	signer, err := ecdsa.GenerateKey(elliptic.P256(), rand.New(rand.NewSource(99)))
-	if err != nil {
-		return "", "", "", err
-	}
-	ca, err := tlsutil.GenerateCA(signer, serial, 365, nil)
+	signer, _, err := tlsutil.GeneratePrivateKey()
 	if err != nil {
 		return "", "", "", err
 	}
 
-	// generate leaf
-	serial, err = tlsutil.GenerateSerialNumber()
+	ca, _, err := tlsutil.GenerateCA(tlsutil.CAOpts{Signer: signer})
+	if err != nil {
+		return "", "", "", err
+	}
+
+	serial, err := tlsutil.GenerateSerialNumber()
 	if err != nil {
 		return "", "", "", err
 	}
