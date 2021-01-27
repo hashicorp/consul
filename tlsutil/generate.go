@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/connect"
+	"net/url"
 )
 
 // GenerateSerialNumber returns random bigint generated with crypto/rand
@@ -32,18 +33,61 @@ func GeneratePrivateKey() (crypto.Signer, string, error) {
 	return connect.GeneratePrivateKey()
 }
 
+type CAOpts struct {
+	Signer              crypto.Signer
+	Serial              *big.Int
+	ClusterID           string
+	Days                int
+	PermittedDNSDomains []string
+	Domain              string
+	Name                string
+}
+
 // GenerateCA generates a new CA for agent TLS (not to be confused with Connect TLS)
-func GenerateCA(signer crypto.Signer, sn *big.Int, days int, constraints []string) (string, error) {
-	id, err := keyID(signer.Public())
-	if err != nil {
-		return "", err
+func GenerateCA(opts CAOpts) (string, string, error) {
+	signer := opts.Signer
+	var pk string
+	if signer == nil {
+		var err error
+		signer, pk, err = GeneratePrivateKey()
+		if err != nil {
+			return "", "", err
+		}
 	}
 
-	name := fmt.Sprintf("Consul Agent CA %d", sn)
+	id, err := keyID(signer.Public())
+	if err != nil {
+		return "", "", err
+	}
+
+	sn := opts.Serial
+	if sn == nil {
+		var err error
+		sn, err = GenerateSerialNumber()
+		if err != nil {
+			return "", "", err
+		}
+	}
+	name := opts.Name
+	if name == "" {
+		name = fmt.Sprintf("Consul Agent CA %d", sn)
+	}
+
+	days := opts.Days
+	if opts.Days == 0 {
+		days = 365
+	}
+
+	var uris []*url.URL
+	if opts.ClusterID != "" {
+		spiffeID := connect.SpiffeIDSigning{ClusterID: opts.ClusterID, Domain: opts.Domain}
+		uris = []*url.URL{spiffeID.URI()}
+	}
 
 	// Create the CA cert
 	template := x509.Certificate{
 		SerialNumber: sn,
+		URIs:         uris,
 		Subject: pkix.Name{
 			Country:       []string{"US"},
 			PostalCode:    []string{"94105"},
@@ -62,23 +106,23 @@ func GenerateCA(signer crypto.Signer, sn *big.Int, days int, constraints []strin
 		SubjectKeyId:          id,
 	}
 
-	if len(constraints) > 0 {
+	if len(opts.PermittedDNSDomains) > 0 {
 		template.PermittedDNSDomainsCritical = true
-		template.PermittedDNSDomains = constraints
+		template.PermittedDNSDomains = opts.PermittedDNSDomains
 	}
 	bs, err := x509.CreateCertificate(
 		rand.Reader, &template, &template, signer.Public(), signer)
 	if err != nil {
-		return "", fmt.Errorf("error generating CA certificate: %s", err)
+		return "", "", fmt.Errorf("error generating CA certificate: %s", err)
 	}
 
 	var buf bytes.Buffer
 	err = pem.Encode(&buf, &pem.Block{Type: "CERTIFICATE", Bytes: bs})
 	if err != nil {
-		return "", fmt.Errorf("error encoding private key: %s", err)
+		return "", "", fmt.Errorf("error encoding private key: %s", err)
 	}
 
-	return buf.String(), nil
+	return buf.String(), pk, nil
 }
 
 // GenerateCert generates a new certificate for agent TLS (not to be confused with Connect TLS)

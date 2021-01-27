@@ -1,9 +1,6 @@
 package leakcheck
 
 import (
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
 	"crypto/x509"
 	"io/ioutil"
 	"os"
@@ -19,22 +16,18 @@ import (
 )
 
 func testTLSCertificates(serverName string) (cert string, key string, cacert string, err error) {
-	// generate CA
-	serial, err := tlsutil.GenerateSerialNumber()
-	if err != nil {
-		return "", "", "", err
-	}
-	signer, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		return "", "", "", err
-	}
-	ca, err := tlsutil.GenerateCA(signer, serial, 365, nil)
+	ca, _, err := tlsutil.GenerateCA(tlsutil.CAOpts{})
 	if err != nil {
 		return "", "", "", err
 	}
 
 	// generate leaf
-	serial, err = tlsutil.GenerateSerialNumber()
+	serial, err := tlsutil.GenerateSerialNumber()
+	if err != nil {
+		return "", "", "", err
+	}
+
+	signer, _, err := tlsutil.GeneratePrivateKey()
 	if err != nil {
 		return "", "", "", err
 	}
