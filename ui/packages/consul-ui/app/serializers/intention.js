@@ -2,7 +2,6 @@ import Serializer from './application';
 import { inject as service } from '@ember/service';
 import { get } from '@ember/object';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/intention';
-import removeNull from 'consul-ui/utils/remove-null';
 
 export default class IntentionSerializer extends Serializer {
   @service('encoder') encoder;
@@ -33,7 +32,7 @@ export default class IntentionSerializer extends Serializer {
         respond((headers, body) => {
           return cb(
             headers,
-            body.map(item => this.ensureID(removeNull(item)))
+            body.map(item => this.ensureID(item))
           );
         }),
       query
@@ -44,7 +43,7 @@ export default class IntentionSerializer extends Serializer {
     return super.respondForQueryRecord(
       cb =>
         respond((headers, body) => {
-          body = this.ensureID(removeNull(body));
+          body = this.ensureID(body);
           return cb(headers, body);
         }),
       query
