@@ -23,7 +23,9 @@ type cmd struct {
 	help                  string
 	days                  int
 	domain                string
+	clusterID             string
 	constraint            bool
+	commonName            string
 	additionalConstraints flags.AppendSliceValue
 }
 
@@ -36,6 +38,8 @@ func (c *cmd) init() {
 		"DNS. If the UI is going to be served over HTTPS its DNS has to be added with -additional-constraint. It is not "+
 		"possible to add that after the fact! Defaults to false.")
 	c.flags.StringVar(&c.domain, "domain", "consul", "Domain of consul cluster. Only used in combination with -name-constraint. Defaults to consul.")
+	c.flags.StringVar(&c.clusterID, "cluster-id", "", "ClusterID of the consul cluster, requires -domain to be set as well. When used will set URIs with spiffeid.")
+	c.flags.StringVar(&c.commonName, "common-name", "", "Common Name of CA. Defaults to Consul Agent CA.")
 	c.flags.Var(&c.additionalConstraints, "additional-name-constraint", "Add name constraints for the CA. Results in rejecting certificates "+
 		"for other DNS than specified. Can be used multiple times. Only used in combination with -name-constraint.")
 	c.help = flags.Usage(help, c.flags)
@@ -62,23 +66,12 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	sn, err := tlsutil.GenerateSerialNumber()
-	if err != nil {
-		c.UI.Error(err.Error())
-		return 1
-	}
-	s, pk, err := tlsutil.GeneratePrivateKey()
-	if err != nil {
-		c.UI.Error(err.Error())
-		return 1
-	}
-
 	constraints := []string{}
 	if c.constraint {
 		constraints = append(c.additionalConstraints, []string{c.domain, "localhost"}...)
 	}
 
-	ca, err := tlsutil.GenerateCA(s, sn, c.days, constraints)
+	ca, pk, err := tlsutil.GenerateCA(tlsutil.CAOpts{Name: c.commonName, Days: c.days, Domain: c.domain, PermittedDNSDomains: constraints, ClusterID: c.clusterID})
 	if err != nil {
 		c.UI.Error(err.Error())
 		return 1
