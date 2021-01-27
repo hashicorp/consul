@@ -19,7 +19,7 @@ sidebar_title: 1.9.0
 - *Deploy Consul in OpenShift:* Enable installing Consul via Helm chart in OpenShift. We’ve now ensured that Consul Kubernetes runs on OpenShift securely by ensuring that Consul runs as non-root and also provided a set of SecurityContextConstraints to deploy Consul securely.
   - Installing Consul on OpenShift should now be as simple as running a Helm install with the `global.openshift.enabled` set to `true`.
 
-- *Active Health Checks for Consul on Kubernetes:* IThis release will provide Consul service mesh integration with Kubernetes Readiness probes. This ability to natively detect health status from Kubernetes via Readiness probe is then used for directing service mesh traffic.
+- *Active Health Checks for Consul on Kubernetes:* Consul service mesh now integrates with Kubernetes Readiness probes. This provides the ability to natively detect health status from Kubernetes via Readiness probe, and is then used for directing service mesh traffic.
 
 - *Streaming:* In this release, we’ve introduced streaming, a major architectural enhancement in how update notifications for blocking queries are delivered within the cluster. Streaming results in very significant reduction of CPU and network bandwidth usage on Consul servers in large-scale deployments. Streaming is particularly helpful in scaling blocking queries in Consul clusters that have rapid changes in service state.
   - Streaming is now available for the service health HTTP endpoint. It can be enabled through configuration flags and adding the `cached` URL parameter. In subsequent releases, we will continue to enable streaming in more endpoints. 
