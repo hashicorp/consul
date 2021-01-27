@@ -246,8 +246,7 @@ func (s *Server) listenersFromSnapshotGateway(cInfo connectionInfo, cfgSnap *pro
 	// first one to ensure we generate one listener per address and it's
 	// stable.
 	sort.Slice(addrs, func(i, j int) bool {
-		return addrs[i].name <
-			addrs[j].name
+		return addrs[i].name < addrs[j].name
 	})
 
 	// Make listeners and deduplicate on the fly.
