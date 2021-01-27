@@ -525,24 +525,14 @@ func TestListenersFromSnapshot(t *testing.T) {
 						ProxyFeatures: sf,
 					}
 					listeners, err := s.listenersFromSnapshot(cInfo, snap)
+					require.NoError(err)
+
+					// The order of listeners returned via LDS isn't relevant, so it's safe
+					// to sort these for the purposes of test comparisons.
 					sort.Slice(listeners, func(i, j int) bool {
 						return listeners[i].(*envoy.Listener).Name < listeners[j].(*envoy.Listener).Name
 					})
 
-					// For terminating gateways we create filter chain matches for services/subsets from the ServiceGroups map
-					for i := 0; i < len(listeners); i++ {
-						l := listeners[i].(*envoy.Listener)
-
-						if l.FilterChains != nil {
-							// Sort chains by the matched name with the exception of the last one
-							// The last chain is a fallback and does not have a FilterChainMatch
-							sort.Slice(l.FilterChains[:len(l.FilterChains)-1], func(i, j int) bool {
-								return l.FilterChains[i].FilterChainMatch.ServerNames[0] < l.FilterChains[j].FilterChainMatch.ServerNames[0]
-							})
-						}
-					}
-
-					require.NoError(err)
 					r, err := createResponse(ListenerType, "00000001", "00000001", listeners)
 					require.NoError(err)
 
