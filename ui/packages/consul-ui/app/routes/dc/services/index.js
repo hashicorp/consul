@@ -23,11 +23,12 @@ export default class IndexRoute extends Route {
   async model(params, transition) {
     const nspace = this.modelFor('nspace').nspace.substr(1);
     const dc = this.modelFor('dc').dc.Name;
-    const items = await this.data.source(uri => uri`/${nspace}/${dc}/services`);
+    const items = this.data.source(uri => uri`/${nspace}/${dc}/services`);
+    await this.routlet.ready();
     return {
       dc,
       nspace,
-      items,
+      items: await items,
       searchProperties: this.queryParams.searchproperty.empty[0],
     };
   }

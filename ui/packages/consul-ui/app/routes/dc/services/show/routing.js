@@ -12,12 +12,13 @@ export default class RoutingRoute extends Route {
       .slice(0, -1)
       .join('.');
     const model = this.modelFor(parent);
+    const chain = this.data.source(
+      uri => uri`/${model.nspace}/${model.dc.Name}/discovery-chain/${model.slug}`
+    );
+    await this.routlet.ready();
     return {
       ...model,
-      ready: await this.routlet.ready(),
-      chain: await this.data.source(
-        uri => uri`/${model.nspace}/${model.dc.Name}/discovery-chain/${model.slug}`
-      ),
+      chain: await chain,
     };
   }
 

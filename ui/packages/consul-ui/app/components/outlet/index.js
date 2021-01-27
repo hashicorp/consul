@@ -20,6 +20,7 @@ export default class Outlet extends Component {
   @tracked routeName;
   @tracked state;
   @tracked previousState;
+  @tracked endTransition;
 
   get model() {
     return this.args.model || {};
@@ -59,9 +60,9 @@ export default class Outlet extends Component {
   }
 
   @action transitionEnd($el) {
-    // if(typeof this.endTransition === 'function') {
-    this.endTransition();
-    // }
+    if (typeof this.endTransition === 'function') {
+      this.endTransition();
+    }
   }
 
   @action
@@ -71,6 +72,13 @@ export default class Outlet extends Component {
       this.previousState = this.state;
       this.state = new State('loading');
       this.endTransition = this.routlet.transition();
+      // if we have no transition-duration set immediately end the transition
+      const duration = window
+        .getComputedStyle(this.element)
+        .getPropertyValue('transition-duration');
+      if (parseFloat(duration) === 0) {
+        this.endTransition();
+      }
     }
     if (this.args.name === 'application') {
       this.setAppState('loading');

@@ -5,7 +5,7 @@ export default class IntentionsRoute extends Route {
   @service('routlet') routlet;
 
   async model(params, transition) {
-    return this.routlet.ready();
+    await this.routlet.ready();
   }
 
   setupController(controller, model) {
