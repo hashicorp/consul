@@ -395,7 +395,9 @@ func (s *Server) revokeLeadership() {
 
 	s.resetConsistentReadReady()
 
-	s.autopilot.Stop()
+	// Stop returns a chan and we want to block until it is closed
+	// which indicates that autopilot is actually stopped.
+	<-s.autopilot.Stop()
 }
 
 // DEPRECATED (ACL-Legacy-Compat) - Remove once old ACL compatibility is removed

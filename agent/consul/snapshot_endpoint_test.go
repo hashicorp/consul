@@ -13,6 +13,8 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	autopilot "github.com/hashicorp/raft-autopilot"
+	"github.com/stretchr/testify/require"
 )
 
 // verifySnapshot is a helper that does a snapshot and restore.
@@ -161,6 +163,11 @@ func TestSnapshot(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 	verifySnapshot(t, s1, "dc1", "")
+
+	// ensure autopilot is still running
+	// https://github.com/hashicorp/consul/issues/9626
+	apstatus, _ := s1.autopilot.IsRunning()
+	require.Equal(t, autopilot.Running, apstatus)
 }
 
 func TestSnapshot_LeaderState(t *testing.T) {
