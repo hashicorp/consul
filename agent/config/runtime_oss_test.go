@@ -10,8 +10,6 @@ var enterpriseReadReplicaWarnings = []string{enterpriseConfigKeyError{key: "read
 
 var enterpriseConfigKeyWarnings = []string{
 	enterpriseConfigKeyError{key: "read_replica (or the deprecated non_voting_server)"}.Error(),
-	enterpriseConfigKeyError{key: "segment"}.Error(),
-	enterpriseConfigKeyError{key: "segments"}.Error(),
 	enterpriseConfigKeyError{key: "autopilot.redundancy_zone_tag"}.Error(),
 	enterpriseConfigKeyError{key: "autopilot.upgrade_version_tag"}.Error(),
 	enterpriseConfigKeyError{key: "autopilot.disable_upgrade_migration"}.Error(),

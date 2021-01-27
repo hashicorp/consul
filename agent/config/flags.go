@@ -6,7 +6,8 @@ import (
 	"time"
 )
 
-// AddFlags adds the command line flags for the agent.
+// AddFlags adds the command line flags to the FlagSet, and sets the appropriate field in
+// LoadOpts.FlagValues as the value receiver.
 func AddFlags(fs *flag.FlagSet, f *LoadOpts) {
 	add := func(p interface{}, name, help string) {
 		switch x := p.(type) {
