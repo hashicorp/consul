@@ -186,6 +186,8 @@ for label in $labels; do
         cherry_pick_with_slack_notification "$branch" "$CIRCLE_SHA1" "$pr_url"
         backport_failures=$((backport_failures + "$?"))
     fi
+    # reset the working directory for the next label
+    git reset --hard
 done
 
 if [ "$backport_failures" -ne 0 ]; then
