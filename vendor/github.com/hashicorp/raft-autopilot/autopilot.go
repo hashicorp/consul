@@ -75,6 +75,31 @@ func WithPromoter(promoter Promoter) Option {
 	}
 }
 
+// ExecutionStatus represents the current status of the autopilot background go routines
+type ExecutionStatus string
+
+const (
+	NotRunning   ExecutionStatus = "not-running"
+	Running      ExecutionStatus = "running"
+	ShuttingDown ExecutionStatus = "shutting-down"
+)
+
+type execInfo struct {
+	// status is the current state of autopilot executation
+	status ExecutionStatus
+
+	// shutdown is a function that can be execute to shutdown a running
+	// autopilot's go routines.
+	shutdown context.CancelFunc
+
+	// done is a chan that will be closed when the running autopilot go
+	// routines have exited. Technically closing it is the very last
+	// thing done in the go routine but at that point enough state has
+	// been cleaned up that we would then allow it to be started
+	// immediately afterward
+	done chan struct{}
+}
+
 // Autopilot is the type to manage a running Raft instance.
 //
 // Each Raft node in the cluster will have a corresponding Autopilot instance but
@@ -132,10 +157,6 @@ type Autopilot struct {
 	// brought up.
 	startTime time.Time
 
-	// running is a simple bool to indicate whether the go routines to actually
-	// execute autopilot are currently running
-	running bool
-
 	// removeDeadCh is used to trigger the running autopilot go routines to
 	// find and remove any dead/failed servers
 	removeDeadCh chan struct{}
@@ -143,20 +164,20 @@ type Autopilot struct {
 	// reconcileCh is used to trigger an immediate round of reconciliation.
 	reconcileCh chan struct{}
 
-	// shutdown is a function that can be execute to shutdown a running
-	// autopilot's go routines.
-	shutdown context.CancelFunc
-	// done is a chan that will be closed when the running autopilot go
-	// routines have exited. Technically closing it is the very last
-	// thing done in the go routine but at that point enough state has
-	// been cleaned up that we would then allow it to be started
-	// immediately afterward
-	done chan struct{}
+	// leaderLock implements a cancellable mutex that will be used to ensure
+	// that only one autopilot go routine is the "leader". The leader is
+	// the go routine that is currently responsible for updating the
+	// autopilot state and performing raft promotions/demotions.
+	leaderLock *mutex
 
-	// runLock is meant to protect all of the fields regarding coordination
-	// of whether the autopilot go routines are running and
-	// starting/stopping them.
-	runLock sync.Mutex
+	// execution is the information about the most recent autopilot execution.
+	// Start will initialize this with the most recent execution and it will
+	// be updated by Stop and by the go routines being executed when they are
+	// finished.
+	execution *execInfo
+
+	// execLock protects access to the execution field
+	execLock sync.Mutex
 }
 
 // New will create a new Autopilot instance utilizing the given Raft and Delegate.
@@ -166,6 +187,7 @@ func New(raft Raft, delegate ApplicationIntegration, options ...Option) *Autopil
 	a := &Autopilot{
 		raft:     raft,
 		delegate: delegate,
+		state:    &State{},
 		promoter: DefaultPromoter(),
 		logger:   hclog.Default().Named("autopilot"),
 		// should this be buffered?
@@ -173,6 +195,7 @@ func New(raft Raft, delegate ApplicationIntegration, options ...Option) *Autopil
 		reconcileInterval: DefaultReconcileInterval,
 		updateInterval:    DefaultUpdateInterval,
 		time:              &runtimeTimeProvider{},
+		leaderLock:        newMutex(),
 	}
 
 	for _, opt := range options {

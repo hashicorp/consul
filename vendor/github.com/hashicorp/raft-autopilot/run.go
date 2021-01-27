@@ -9,50 +9,100 @@ import (
 // When the context passed in is cancelled or the Stop method is called
 // then these routines will exit.
 func (a *Autopilot) Start(ctx context.Context) {
-	a.runLock.Lock()
-	defer a.runLock.Unlock()
+	a.execLock.Lock()
+	defer a.execLock.Unlock()
 
 	// already running so there is nothing to do
-	if a.running {
+	if a.execution != nil && a.execution.status == Running {
 		return
 	}
 
 	ctx, shutdown := context.WithCancel(ctx)
-	a.shutdown = shutdown
 	a.startTime = a.time.Now()
-	a.done = make(chan struct{})
 
-	// While a go routine executed by a.run below will periodically
-	// update the state, we want to go ahead and force updating it now
-	// so that during a leadership transfer we don't report an empty
-	// autopilot state. We put a pretty small timeout on this though
-	// so as to prevent leader establishment from taking too long
-	updateCtx, updateCancel := context.WithTimeout(ctx, time.Second)
-	defer updateCancel()
-	a.updateState(updateCtx)
+	exec := &execInfo{
+		status:   Running,
+		shutdown: shutdown,
+		done:     make(chan struct{}),
+	}
 
-	go a.run(ctx)
-	a.running = true
+	if a.execution == nil || a.execution.status == NotRunning {
+		// In theory with a nil execution or the current execution being in the not
+		// running state, we should be able to immediately gain the leader lock as
+		// nothing else should be running and holding the lock. While true we still
+		// gain the lock to ensure that only one thread may even attempt to be
+		// modifying the autopilot state at once.
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		if err := a.leaderLock.TryLock(ctx); err == nil {
+			a.updateState(ctx)
+			a.leaderLock.Unlock()
+		}
+	}
+
+	go a.beginExecution(ctx, exec)
+	a.execution = exec
+	return
 }
 
 // Stop will terminate the go routines being executed to perform autopilot.
 func (a *Autopilot) Stop() <-chan struct{} {
-	a.runLock.Lock()
-	defer a.runLock.Unlock()
+	a.execLock.Lock()
+	defer a.execLock.Unlock()
 
 	// Nothing to do
-	if !a.running {
+	if a.execution == nil || a.execution.status == NotRunning {
 		done := make(chan struct{})
 		close(done)
 		return done
 	}
 
-	a.shutdown()
-	return a.done
+	a.execution.shutdown()
+	a.execution.status = ShuttingDown
+	return a.execution.done
 }
 
-func (a *Autopilot) run(ctx context.Context) {
+// IsRunning returns the current execution status of the autopilot
+// go routines as well as a chan which will be closed when the
+// routines are no longer running
+func (a *Autopilot) IsRunning() (ExecutionStatus, <-chan struct{}) {
+	a.execLock.Lock()
+	defer a.execLock.Unlock()
+
+	if a.execution == nil || a.execution.status == NotRunning {
+		done := make(chan struct{})
+		close(done)
+		return NotRunning, done
+	}
+
+	return a.execution.status, a.execution.done
+}
+
+func (a *Autopilot) finishExecution(exec *execInfo) {
+	// need to gain the lock because if this was the active execution
+	// then these values may be read while they are updated.
+	a.execLock.Lock()
+	defer a.execLock.Unlock()
+
+	exec.shutdown = nil
+	exec.status = NotRunning
+	// this should be the final cleanup task as it is what notifies the rest
+	// of the world that we are now done
+	close(exec.done)
+	exec.done = nil
+}
+
+func (a *Autopilot) beginExecution(ctx context.Context, exec *execInfo) {
+	// This will wait for any other go routine to finish executing
+	// before running any code ourselves to prevent any conflicting
+	// activity between the two.
+	if err := a.leaderLock.TryLock(ctx); err != nil {
+		a.finishExecution(exec)
+		return
+	}
+
 	a.logger.Debug("autopilot is now running")
+
 	// autopilot needs to do 3 things
 	//
 	// 1. periodically update the cluster state
@@ -78,14 +128,8 @@ func (a *Autopilot) run(ctx context.Context) {
 
 		a.logger.Debug("autopilot is now stopped")
 
-		a.runLock.Lock()
-		a.shutdown = nil
-		a.running = false
-		// this should be the final cleanup task as it is what notifies the rest
-		// of the world that we are now done
-		close(a.done)
-		a.done = nil
-		a.runLock.Unlock()
+		a.finishExecution(exec)
+		a.leaderLock.Unlock()
 	}()
 
 	reconcileTicker := time.NewTicker(a.reconcileInterval)
