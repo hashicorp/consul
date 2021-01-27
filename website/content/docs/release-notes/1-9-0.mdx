@@ -14,7 +14,7 @@ sidebar_title: 1.9.0
 
 - *Improved Metrics and Grafana Dashboard:* Consul 1.9 additionally updates several metrics to reduce cardinality in metric names in favor of the best practice of using labels instead and provides a Grafana dashboard template that exposes the most important metrics associated with the Consul datacenter for operators.
 
-- *Custom Resources for Kubernetes:* In this release, we are providing a Kubernetes-first experience through CRDs to allow practitioners to easily configure Consul via Kubernetes-style objects. Specifically, we are providing the capability to manage Consul service mesh configuration for services via CRDs.
+- *Custom Resources for Kubernetes:* Consul now provides a Kubernetes-first experience through CRDs to allow practitioners to easily configure Consul service mesh via Kubernetes-style objects, or CRDs.
 
 - *Deploy Consul in OpenShift:* Enable installing Consul via Helm chart in OpenShift. We’ve now ensured that Consul Kubernetes runs on OpenShift securely by ensuring that Consul runs as non-root and also provided a set of SecurityContextConstraints to deploy Consul securely.
   - Installing Consul on OpenShift should now be as simple as running a Helm install with the `global.openshift.enabled` set to `true`.
