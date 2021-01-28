@@ -387,12 +387,19 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 	configFile := filepath.Join(a.Config.DataDir, serviceConfigDir, svcID.StringHash())
 
 	// Service is not persisted unless requested, but we always persist service configs.
-	require.NoError(a.addServiceFromSource(svc, nil, false, "", ConfigSourceRemote))
+	err = a.AddService(AddServiceRequest{Service: svc, Source: ConfigSourceRemote})
+	require.NoError(err)
 	requireFileIsAbsent(t, svcFile)
 	requireFileIsPresent(t, configFile)
 
 	// Persists to file if requested
-	require.NoError(a.addServiceFromSource(svc, nil, true, "mytoken", ConfigSourceRemote))
+	err = a.AddService(AddServiceRequest{
+		Service: svc,
+		persist: true,
+		token:   "mytoken",
+		Source:  ConfigSourceRemote,
+	})
+	require.NoError(err)
 	requireFileIsPresent(t, svcFile)
 	requireFileIsPresent(t, configFile)
 

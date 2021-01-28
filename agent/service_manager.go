@@ -26,13 +26,6 @@ type ServiceManager struct {
 	// services tracks all active watches for registered services
 	services map[structs.ServiceID]*serviceConfigWatch
 
-	// registerCh is a channel for receiving service registration requests from
-	// from serviceConfigWatchers.
-	// The registrations are handled in the background when watches are notified of
-	// changes. All sends and receives must also obey the ctx.Done() channel to
-	// avoid a deadlock during shutdown.
-	registerCh chan *asyncRegisterRequest
-
 	// ctx is the shared context for all goroutines launched
 	ctx context.Context
 
@@ -46,11 +39,10 @@ type ServiceManager struct {
 func NewServiceManager(agent *Agent) *ServiceManager {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &ServiceManager{
-		agent:      agent,
-		services:   make(map[structs.ServiceID]*serviceConfigWatch),
-		registerCh: make(chan *asyncRegisterRequest), // must be unbuffered
-		ctx:        ctx,
-		cancel:     cancel,
+		agent:    agent,
+		services: make(map[structs.ServiceID]*serviceConfigWatch),
+		ctx:      ctx,
+		cancel:   cancel,
 	}
 }
 
@@ -60,36 +52,6 @@ func NewServiceManager(agent *Agent) *ServiceManager {
 func (s *ServiceManager) Stop() {
 	s.cancel()
 	s.running.Wait()
-}
-
-// Start starts a background worker goroutine that writes back into the Agent
-// state. This only exists to keep the need to lock the agent state lock out of
-// the main AddService/RemoveService codepaths to avoid deadlocks.
-func (s *ServiceManager) Start() {
-	s.running.Add(1)
-
-	go func() {
-		defer s.running.Done()
-		for {
-			select {
-			case <-s.ctx.Done():
-				return
-			case req := <-s.registerCh:
-				req.Reply <- s.registerOnce(req.Args)
-			}
-		}
-	}()
-}
-
-// runOnce will process a single registration request
-func (s *ServiceManager) registerOnce(args addServiceInternalRequest) error {
-	s.agent.stateLock.Lock()
-	defer s.agent.stateLock.Unlock()
-
-	if err := s.agent.addServiceInternal(args); err != nil {
-		return fmt.Errorf("error updating service registration: %v", err)
-	}
-	return nil
 }
 
 // AddService will (re)create a serviceConfigWatch on the given service. For
@@ -129,12 +91,11 @@ func (s *ServiceManager) AddService(req addServiceLockedRequest) error {
 
 	// Get the existing global config and do the initial registration with the
 	// merged config.
-	watch := &serviceConfigWatch{
-		registration: req,
-		agent:        s.agent,
-		registerCh:   s.registerCh,
+	watch := &serviceConfigWatch{registration: req, agent: s.agent}
+	if err := watch.register(s.ctx); err != nil {
+		return err
 	}
-	if err := watch.RegisterAndStart(s.ctx, &s.running); err != nil {
+	if err := watch.start(s.ctx, &s.running); err != nil {
 		return err
 	}
 
@@ -165,9 +126,7 @@ func (s *ServiceManager) RemoveService(serviceID structs.ServiceID) {
 // service/proxy defaults.
 type serviceConfigWatch struct {
 	registration addServiceLockedRequest
-
-	agent      *Agent
-	registerCh chan<- *asyncRegisterRequest
+	agent        *Agent
 
 	// cacheKey stores the key of the current request, when registration changes
 	// we check to see if a new cache watch is needed.
@@ -178,7 +137,7 @@ type serviceConfigWatch struct {
 }
 
 // NOTE: this is called while holding the Agent.stateLock
-func (w *serviceConfigWatch) RegisterAndStart(ctx context.Context, wg *sync.WaitGroup) error {
+func (w *serviceConfigWatch) register(ctx context.Context) error {
 	serviceDefaults, err := w.registration.serviceDefaults(ctx)
 	if err != nil {
 		return fmt.Errorf("could not retrieve initial service_defaults config for service %q: %v",
@@ -204,10 +163,7 @@ func (w *serviceConfigWatch) RegisterAndStart(ctx context.Context, wg *sync.Wait
 	if err != nil {
 		return fmt.Errorf("error updating service registration: %v", err)
 	}
-
-	// Start the config watch, which starts a blocking query for the
-	// resolved service config in the background.
-	return w.start(ctx, wg)
+	return nil
 }
 
 func serviceDefaultsFromStruct(v *structs.ServiceConfigResponse) func(context.Context) (*structs.ServiceConfigResponse, error) {
@@ -256,13 +212,7 @@ func (w *serviceConfigWatch) start(ctx context.Context, wg *sync.WaitGroup) erro
 	// context before we cancel and so might still deliver the old event. Using
 	// the cacheKey allows us to ignore updates from the old cache watch and makes
 	// even this rare edge case safe.
-	err := w.agent.cache.Notify(
-		ctx,
-		cachetype.ResolvedServiceConfigName,
-		req,
-		w.cacheKey,
-		updateCh,
-	)
+	err := w.agent.cache.Notify(ctx, cachetype.ResolvedServiceConfigName, req, w.cacheKey, updateCh)
 	if err != nil {
 		w.cancelFunc()
 		return err
@@ -331,47 +281,31 @@ func (w *serviceConfigWatch) handleUpdate(ctx context.Context, event cache.Updat
 		return err
 	}
 
-	// While we were waiting on the agent state lock we may have been shutdown.
-	// So avoid doing a registration in that case.
-	if err := ctx.Err(); err != nil {
-		return nil
-	}
-
 	// make a copy of the AddServiceRequest
 	req := w.registration
 	req.Service = merged
 	req.persistServiceConfig = true
 
-	registerReq := &asyncRegisterRequest{
-		Args: addServiceInternalRequest{
-			addServiceLockedRequest: req,
-			persistService:          w.registration.Service,
-			persistServiceDefaults:  serviceDefaults,
-		},
-		Reply: make(chan error, 1),
+	args := addServiceInternalRequest{
+		addServiceLockedRequest: req,
+		persistService:          w.registration.Service,
+		persistServiceDefaults:  serviceDefaults,
 	}
 
-	select {
-	case <-ctx.Done():
-		return nil
-	case w.registerCh <- registerReq:
-	}
-
-	select {
-	case <-ctx.Done():
-		return nil
-
-	case err := <-registerReq.Reply:
-		if err != nil {
-			return fmt.Errorf("error updating service registration: %v", err)
-		}
+	if err := w.agent.stateLock.TryLock(ctx); err != nil {
 		return nil
 	}
-}
+	defer w.agent.stateLock.Unlock()
 
-type asyncRegisterRequest struct {
-	Args  addServiceInternalRequest
-	Reply chan error
+	// The context may have been cancelled after the lock was acquired.
+	if err := ctx.Err(); err != nil {
+		return nil
+	}
+
+	if err := w.agent.addServiceInternal(args); err != nil {
+		return fmt.Errorf("error updating service registration: %v", err)
+	}
+	return nil
 }
 
 func makeConfigRequest(bd BaseDeps, addReq AddServiceRequest) *structs.ServiceConfigRequest {
