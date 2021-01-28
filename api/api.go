@@ -14,6 +14,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/go-cleanhttp"
@@ -548,7 +549,46 @@ func (c *Config) GenerateEnv() []string {
 
 // Client provides a client to the Consul API
 type Client struct {
+	modifyLock sync.RWMutex
+	headers    http.Header
+
 	config Config
+}
+
+// Headers gets the current set of headers used for requests. This returns a
+// copy; to modify it call AddHeader or SetHeaders.
+func (c *Client) Headers() http.Header {
+	c.modifyLock.RLock()
+	defer c.modifyLock.RUnlock()
+
+	if c.headers == nil {
+		return nil
+	}
+
+	ret := make(http.Header)
+	for k, v := range c.headers {
+		for _, val := range v {
+			ret[k] = append(ret[k], val)
+		}
+	}
+
+	return ret
+}
+
+// AddHeader allows a single header key/value pair to be added
+// in a race-safe fashion.
+func (c *Client) AddHeader(key, value string) {
+	c.modifyLock.Lock()
+	defer c.modifyLock.Unlock()
+	c.headers.Add(key, value)
+}
+
+// SetHeaders clears all previous headers and uses only the given
+// ones going forward.
+func (c *Client) SetHeaders(headers http.Header) {
+	c.modifyLock.Lock()
+	defer c.modifyLock.Unlock()
+	c.headers = headers
 }
 
 // NewClient returns a new client
@@ -640,7 +680,7 @@ func NewClient(config *Config) (*Client, error) {
 		config.Token = defConfig.Token
 	}
 
-	return &Client{config: *config}, nil
+	return &Client{config: *config, headers: make(http.Header)}, nil
 }
 
 // NewHttpClient returns an http client configured with the given Transport and TLS
@@ -853,8 +893,9 @@ func (c *Client) newRequest(method, path string) *request {
 			Path:   path,
 		},
 		params: make(map[string][]string),
-		header: make(http.Header),
+		header: c.Headers(),
 	}
+
 	if c.config.Datacenter != "" {
 		r.params.Set("dc", c.config.Datacenter)
 	}
