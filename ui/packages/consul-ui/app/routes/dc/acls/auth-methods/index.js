@@ -26,6 +26,7 @@ export default class IndexRoute extends Route {
           this.modelFor('nspace').nspace.substr(1)
         ),
       }),
+      searchProperties: this.queryParams.searchproperty.empty[0],
     });
   }
 

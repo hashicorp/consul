@@ -3,14 +3,34 @@
 {{else}}
   {{page-title 'Access Controls'}}
 {{/if}}
-{{#let (hash
-  types=(if type (split type ',') undefined)
-  searchproperties=(if (not-eq searchproperty undefined)
-    (split searchproperty ',')
-    (array 'Name' 'DisplayName')
+
+{{#let
+
+  (hash
+    value=(or sortBy "Name:desc")
+    change=(action (mut sortBy) value="target.selected")
   )
-) as |filters|}}
-  {{#let (or sortBy "Name:asc") as |sort|}}
+
+  (hash
+    kind=(hash
+      value=(if kind (split kind ',') undefined)
+      change=(action (mut kind) value="target.selectedItems")
+    )
+    searchproperty=(hash
+      value=(if (not-eq searchproperty undefined)
+        (split searchproperty ',')
+        searchProperties
+      )
+      change=(action (mut searchproperty) value="target.selectedItems")
+      default=searchProperties
+    )
+  )
+
+  items
+
+as |sort filters items|}}
+
+
   <AppView
     @authorized={{isAuthorized}}
     @enabled={{isEnabled}}
@@ -20,32 +40,20 @@
         Access Controls
       </h1>
     </BlockSlot>
-    <BlockSlot @name="nav">
-    {{#if isAuthorized }}
-      {{partial 'dc/acls/nav'}}
-    {{/if}}
-    </BlockSlot>
     <BlockSlot @name="toolbar">
-   {{#if (gt items.length 0) }}
+    {{#if (gt items.length 0)}}
       <Consul::AuthMethod::SearchBar
         @search={{search}}
         @onsearch={{action (mut search) value="target.value"}}
-
         @sort={{sort}}
-        @onsort={{action (mut sortBy) value="target.selected"}}
-
         @filter={{filters}}
-        @onfilter={{hash
-          searchproperty=(action (mut searchproperty) value="target.selectedItems")
-          type=(action (mut type) value="target.selectedItems")
-        }}
       />
     {{/if}}
     </BlockSlot>
     <BlockSlot @name="content">
       <DataCollection
         @type="auth-method"
-        @sort={{sort}}
+        @sort={{sort.value}}
         @filters={{filters}}
         @search={{search}}
         @items={{items}}
@@ -86,5 +94,5 @@
       </DataCollection>
     </BlockSlot>
   </AppView>
-  {{/let}}
 {{/let}}
+
