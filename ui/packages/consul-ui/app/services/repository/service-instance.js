@@ -52,6 +52,9 @@ export default class ServiceInstanceService extends RepositoryService {
       set(proxy, prop, instance[prop]);
     });
     ['Checks'].forEach(prop => {
+      // completely wipe out any previous values so we don't accumulate things
+      // eternally
+      proxy.set(prop, []);
       instance[prop].forEach(item => {
         if (typeof item !== 'undefined') {
           proxy[prop].addFragment(item.copy());
