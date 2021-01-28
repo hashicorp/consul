@@ -1,3 +1,3 @@
 export default ({ properties }) => (key = 'Name:asc') => {
-  return properties(['Name'])(key);
+  return properties(['Name', 'MaxTokenTTL'])(key);
 };

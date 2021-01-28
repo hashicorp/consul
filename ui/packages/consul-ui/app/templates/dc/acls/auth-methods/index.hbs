@@ -16,6 +16,10 @@
       value=(if kind (split kind ',') undefined)
       change=(action (mut kind) value="target.selectedItems")
     )
+    source=(hash
+      value=(if source (split source ',') undefined)
+      change=(action (mut source) value="target.selectedItems")
+    )
     searchproperty=(hash
       value=(if (not-eq searchproperty undefined)
         (split searchproperty ',')

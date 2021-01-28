@@ -3,12 +3,16 @@
   @items={{@items}}
 as |item|>
   <BlockSlot @name="header">
+  {{#if (not-eq item.DisplayName '')}}
+    <p data-test-auth-method>{{item.DisplayName}}</p>
+  {{else}}
     <p data-test-auth-method>{{item.Name}}</p>
+  {{/if}}
   </BlockSlot>
   <BlockSlot @name="details">
     <Consul::AuthMethod::Type @item={{item}} />
   {{#if (not-eq item.DisplayName '')}}
-    <span data-test-display-name>{{item.DisplayName}}</span>
+    <span data-test-display-name>{{item.Name}}</span>
   {{/if}}
   {{#if (eq item.TokenLocality 'global')}}
     <span class="locality">creates global tokens</span>

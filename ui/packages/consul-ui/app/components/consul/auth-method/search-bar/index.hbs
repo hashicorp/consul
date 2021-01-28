@@ -41,7 +41,7 @@ as |key value|}}
         @placeholder={{t "common.search.search"}}
       >
         <search.Select
-          class="type-search-properties"
+          class="type-kind"
           @position="right"
           @onchange={{action @filter.searchproperty.change}}
           @multiple={{true}}
@@ -66,7 +66,7 @@ as |key value|}}
     </:search>
     <:filter as |search|>
       <search.Select
-        class="type-status"
+        class="type-kind"
         @position="left"
         @onchange={{action @filter.kind.change}}
         @multiple={{true}}
@@ -90,6 +90,24 @@ as |key value|}}
   {{/let}}
         </BlockSlot>
       </search.Select>
+      <search.Select
+        class="type-source"
+        @position="left"
+        @onchange={{action @filter.source.change}}
+        @multiple={{true}}
+      as |components|>
+        <BlockSlot @name="selected">
+          <span>
+            {{t "components.consul.auth-method.search-bar.source.name"}}
+          </span>
+        </BlockSlot>
+        <BlockSlot @name="options">
+        {{#let components.Optgroup components.Option as |Optgroup Option|}}
+          <Option class="local" @value="local" @selected={{contains 'local' @filter.types}}>Creates local tokens</Option>
+          <Option class="global" @value="global" @selected={{contains 'global' @filter.types}}>Creates global tokens</Option>
+        {{/let}}
+        </BlockSlot>
+      </search.Select>
     </:filter>
     <:sort as |search|>
       <search.Select
@@ -105,6 +123,8 @@ as |key value|}}
             {{#let (from-entries (array
                   (array "Name:asc" (t "common.sort.alpha.asc"))
                   (array "Name:desc" (t "common.sort.alpha.desc"))
+                  (array "MaxTokenTTL:desc" (t "common.sort.duration.asc"))
+                  (array "MaxTokenTTL:asc" (t "common.sort.duration.desc"))
                 ))
               as |selectable|
             }}
@@ -117,6 +137,10 @@ as |key value|}}
         <Optgroup @label={{t "common.ui.name"}}>
           <Option @value="Name:asc" @selected={{eq "Name:asc" @sort.value}}>{{t "common.sort.alpha.asc"}}</Option>
           <Option @value="Name:desc" @selected={{eq "Name:desc" @sort.value}}>{{t "common.sort.alpha.desc"}}</Option>
+        </Optgroup>
+        <Optgroup @label={{t "common.ui.maxttl"}}>
+          <Option @value="MaxTokenTTL:desc" @selected={{eq "MaxTokenTTL:desc" @sort.value}}>{{t "common.sort.duration.asc"}}</Option>
+          <Option @value="MaxTokenTTL:asc" @selected={{eq "MaxTokenTTL:asc" @sort.value}}>{{t "common.sort.duration.desc"}}</Option>
         </Optgroup>
   {{/let}}
         </BlockSlot>
