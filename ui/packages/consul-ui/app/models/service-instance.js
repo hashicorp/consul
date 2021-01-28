@@ -3,6 +3,7 @@ import { fragmentArray } from 'ember-data-model-fragments/attributes';
 import { computed, get, set } from '@ember/object';
 import { or, filter, alias } from '@ember/object/computed';
 import { tracked } from '@glimmer/tracking';
+import MultiMap from 'mnemonist/multi-map';
 
 export const PRIMARY_KEY = 'uid';
 export const SLUG_KEY = 'Node.Node,Service.ID';
@@ -54,10 +55,17 @@ export default class ServiceInstance extends Model {
   // MeshChecks are a concatenation of Checks for the Instance and Checks for
   // the ProxyInstance. Checks is an ember-data-model-fragment, so we can't just
   // concat it, we have to loop through all the items in order to merge
-  @computed('Checks', 'ProxyInstance{Checks,ServiceProxy.Expose.Checks}')
+  // We also need to avoid repeating Node checks here as the service and the
+  // proxy is likely to be on the same node, without adding something extra here
+  // the node check will likely end up in the list twice
+  @computed('Checks.[]', 'ProxyInstance{Checks,ServiceProxy.Expose.Checks}')
   get MeshChecks() {
-    return (get(this, 'Checks') || [])
+    const ids = new MultiMap();
+    const checks = (get(this, 'Checks') || [])
       .map(item => {
+        if (item.ServiceName === '') {
+          ids.set(item.Node, item.CheckID);
+        }
         set(
           item,
           'Exposed',
@@ -66,15 +74,22 @@ export default class ServiceInstance extends Model {
         return item;
       })
       .concat(
-        (get(this, 'ProxyInstance.Checks') || []).map(item => {
+        (get(this, 'ProxyInstance.Checks') || []).reduce((prev, item) => {
+          if (item.ServiceName === '') {
+            if ((ids.get(item.Node) || []).includes(item.CheckID)) {
+              return prev;
+            }
+          }
           set(
             item,
             'Exposed',
             get(this, 'ProxyInstance.ServiceProxy.Expose.Checks') && get(item, 'Exposable')
           );
-          return item;
-        })
+          prev.push(item);
+          return prev;
+        }, [])
       );
+    return checks;
   }
 
   @computed('Service.Meta')
