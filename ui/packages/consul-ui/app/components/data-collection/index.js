@@ -104,10 +104,11 @@ export default class DataCollectionComponent extends Component {
     // TODO: Temporary little hack to ensure we detect DataSource proxy
     // objects but not any other special Ember Proxy object like ember-data
     // things. Remove this once we no longer need the Proxies
-    if (this.args.items.dispatchEvent === 'function') {
-      return this.args.items.content;
+    const items = this.args.items || [];
+    if (typeof items.dispatchEvent === 'function') {
+      return items.content;
     }
-    return this.args.items;
+    return items;
   }
 
   @action
