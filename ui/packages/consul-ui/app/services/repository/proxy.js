@@ -41,7 +41,9 @@ export default class ProxyService extends RepositoryService {
     return this.findAllBySlug(slug, dc, nspace, configuration).then(function(items) {
       let res = {};
       if (get(items, 'length') > 0) {
-        let instance = items.filterBy('ServiceProxy.DestinationServiceID', id).findBy('Node', node);
+        let instance = items
+          .filterBy('ServiceProxy.DestinationServiceID', id)
+          .findBy('NodeName', node);
         if (instance) {
           res = instance;
         } else {
