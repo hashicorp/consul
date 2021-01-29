@@ -170,7 +170,6 @@ export default [
           },
         ],
       },
-      'tls-on-existing-cluster',
       {
         category: 'connect',
         content: [
@@ -191,7 +190,25 @@ export default [
         category: 'upgrade',
         content: ['compatibility'],
       },
-      'uninstall',
+      {
+        category: 'operations',
+        name: 'Operations',
+        content: ['uninstall', 'tls-on-existing-cluster'],
+      },
+      {
+        name: 'Troubleshoot',
+        content: [
+          {
+            title: 'Common Error Messages',
+            href:
+              '/docs/troubleshoot/common-errors#common-errors-on-kubernetes',
+          },
+          {
+            title: 'FAQ',
+            href: '/docs/troubleshoot/faq#consul-on-kubernetes',
+          },
+        ],
+      },
       'helm',
     ],
   },
