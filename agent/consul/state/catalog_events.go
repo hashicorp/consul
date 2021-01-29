@@ -23,8 +23,8 @@ type EventPayloadCheckServiceNode struct {
 	// key is used to override the key used to filter the payload. It is set for
 	// events in the connect topic to specify the name of the underlying service
 	// when the change event is for a sidecar or gateway.
-	key string
-	// FIXME: we need to be able to override the namespace for some terminating gateway events
+	overrideKey       string
+	overrideNamespace string
 }
 
 func (e EventPayloadCheckServiceNode) HasReadPermission(authz acl.Authorizer) bool {
@@ -41,11 +41,15 @@ func (e EventPayloadCheckServiceNode) MatchesKey(key, namespace string) bool {
 	}
 
 	name := e.Value.Service.Service
-	if e.key != "" {
-		name = e.key
+	if e.overrideKey != "" {
+		name = e.overrideKey
 	}
 	ns := e.Value.Service.EnterpriseMeta.GetNamespace()
-	return (key == "" || strings.EqualFold(key, name)) && (namespace == "" || namespace == ns)
+	if e.overrideNamespace != "" {
+		ns = e.overrideNamespace
+	}
+	return (key == "" || strings.EqualFold(key, name)) &&
+		(namespace == "" || strings.EqualFold(namespace, ns))
 }
 
 // serviceHealthSnapshot returns a stream.SnapshotFunc that provides a snapshot
@@ -74,7 +78,7 @@ func serviceHealthSnapshot(db ReadDB, topic stream.Topic) stream.SnapshotFunc {
 			}
 
 			if connect && n.Service.Kind == structs.ServiceKindConnectProxy {
-				payload.key = n.Service.Proxy.DestinationServiceName
+				payload.overrideKey = n.Service.Proxy.DestinationServiceName
 			}
 
 			event.Payload = payload
@@ -306,9 +310,9 @@ func ServiceHealthEventsFromChanges(tx ReadTxn, changes Changes) ([]stream.Event
 					e := newServiceHealthEventDeregister(changes.Index, sn)
 
 					e.Topic = topicServiceHealthConnect
-					// todo(streaming): make namespace-aware in enterprise
 					payload := e.Payload.(EventPayloadCheckServiceNode)
-					payload.key = serviceName.Name
+					payload.overrideKey = serviceName.Name
+					payload.overrideNamespace = serviceName.EnterpriseMeta.GetNamespace()
 					e.Payload = payload
 
 					events = append(events, e)
@@ -328,9 +332,9 @@ func ServiceHealthEventsFromChanges(tx ReadTxn, changes Changes) ([]stream.Event
 				}
 
 				e.Topic = topicServiceHealthConnect
-				// todo(streaming): make namespace-aware in enterprise
 				payload := e.Payload.(EventPayloadCheckServiceNode)
-				payload.key = serviceName.Name
+				payload.overrideKey = serviceName.Name
+				payload.overrideNamespace = serviceName.EnterpriseMeta.GetNamespace()
 				e.Payload = payload
 
 				events = append(events, e)
@@ -362,7 +366,7 @@ func isConnectProxyDestinationServiceChange(idx uint64, before, after *structs.S
 	e := newServiceHealthEventDeregister(idx, before)
 	e.Topic = topicServiceHealthConnect
 	payload := e.Payload.(EventPayloadCheckServiceNode)
-	payload.key = payload.Value.Service.Proxy.DestinationServiceName
+	payload.overrideKey = payload.Value.Service.Proxy.DestinationServiceName
 	e.Payload = payload
 	return e, true
 }
@@ -419,7 +423,7 @@ func serviceHealthToConnectEvents(
 
 		case node.Service.Kind == structs.ServiceKindConnectProxy:
 			payload := event.Payload.(EventPayloadCheckServiceNode)
-			payload.key = node.Service.Proxy.DestinationServiceName
+			payload.overrideKey = node.Service.Proxy.DestinationServiceName
 			connectEvent.Payload = payload
 			result = append(result, connectEvent)
 
@@ -445,10 +449,8 @@ func serviceHealthToConnectEvents(
 func copyEventForService(event stream.Event, service structs.ServiceName) stream.Event {
 	event.Topic = topicServiceHealthConnect
 	payload := event.Payload.(EventPayloadCheckServiceNode)
-	payload.key = service.Name
-	// FIXME: we need payload to have an override for namespace, so that it can be filtered
-	// properly by EventPayloadCheckServiceNode.MatchesKey
-	// payload.enterpriseMeta = service.EnterpriseMeta
+	payload.overrideKey = service.Name
+	payload.overrideNamespace = service.EnterpriseMeta.GetNamespace()
 	event.Payload = payload
 	return event
 }

@@ -98,7 +98,7 @@ func TestServiceHealthSnapshot_ConnectTopic(t *testing.T) {
 			testServiceHealthEvent(t, "web", evSidecar, evConnectTopic, func(e *stream.Event) error {
 				e.Index = counter.Last()
 				ep := e.Payload.(EventPayloadCheckServiceNode)
-				ep.key = "web"
+				ep.overrideKey = "web"
 				e.Payload = ep
 				csn := ep.Value
 				csn.Node.CreateIndex = 1
@@ -116,7 +116,7 @@ func TestServiceHealthSnapshot_ConnectTopic(t *testing.T) {
 			testServiceHealthEvent(t, "web", evNode2, evSidecar, evConnectTopic, func(e *stream.Event) error {
 				e.Index = counter.Last()
 				ep := e.Payload.(EventPayloadCheckServiceNode)
-				ep.key = "web"
+				ep.overrideKey = "web"
 				e.Payload = ep
 				csn := ep.Value
 				csn.Node.CreateIndex = 4
@@ -173,17 +173,19 @@ func evIndexes(idx, create, modify uint64) func(e *stream.Event) error {
 	}
 }
 
+type serviceHealthTestCase struct {
+	Name       string
+	Setup      func(s *Store, tx *txn) error
+	Mutate     func(s *Store, tx *txn) error
+	WantEvents []stream.Event
+	WantErr    bool
+}
+
 func TestServiceHealthEventsFromChanges(t *testing.T) {
 	setupIndex := uint64(10)
 	mutateIndex := uint64(100)
 
-	cases := []struct {
-		Name       string
-		Setup      func(s *Store, tx *txn) error
-		Mutate     func(s *Store, tx *txn) error
-		WantEvents []stream.Event
-		WantErr    bool
-	}{
+	cases := []serviceHealthTestCase{
 		{
 			Name: "irrelevant events",
 			Mutate: func(s *Store, tx *txn) error {
@@ -1543,6 +1545,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 			},
 		},
 	}
+	cases = withServiceHealthEnterpriseCases(cases)
 
 	for _, tc := range cases {
 		tc := tc
@@ -1602,7 +1605,7 @@ func evServiceTermingGateway(name string) func(e *stream.Event) error {
 
 		if e.Topic == topicServiceHealthConnect {
 			payload := e.Payload.(EventPayloadCheckServiceNode)
-			payload.key = name
+			payload.overrideKey = name
 			e.Payload = payload
 		}
 		return nil
@@ -1641,7 +1644,7 @@ var cmpPartialOrderEvents = cmp.Options{
 		key := func(e stream.Event) string {
 			csn := getPayloadCheckServiceNode(e.Payload)
 			// TODO: double check this sort key is correct.
-			return fmt.Sprintf("%s/%s/%s/%s", e.Topic, csn.Node.Node, csn.Service.Service, e.Payload.(EventPayloadCheckServiceNode).key)
+			return fmt.Sprintf("%s/%s/%s/%s", e.Topic, csn.Node.Node, csn.Service.Service, e.Payload.(EventPayloadCheckServiceNode).overrideKey)
 		}
 		return key(i) < key(j)
 	}),
@@ -1929,7 +1932,7 @@ func evSidecar(e *stream.Event) error {
 
 	if e.Topic == topicServiceHealthConnect {
 		payload := e.Payload.(EventPayloadCheckServiceNode)
-		payload.key = svc
+		payload.overrideKey = svc
 		e.Payload = payload
 	}
 	return nil
@@ -2018,7 +2021,7 @@ func evRenameService(e *stream.Event) error {
 
 	if e.Topic == topicServiceHealthConnect {
 		payload := e.Payload.(EventPayloadCheckServiceNode)
-		payload.key = csn.Service.Proxy.DestinationServiceName
+		payload.overrideKey = csn.Service.Proxy.DestinationServiceName
 		e.Payload = payload
 	}
 	return nil
@@ -2268,14 +2271,42 @@ func TestEventPayloadCheckServiceNode_FilterByKey(t *testing.T) {
 		},
 		{
 			name:      "override key match",
-			payload:   newPayloadCheckServiceNodeWithKey("proxy", "ns1", "srv1"),
+			payload:   newPayloadCheckServiceNodeWithOverride("proxy", "ns1", "srv1", ""),
 			key:       "srv1",
 			namespace: "ns1",
 			expected:  true,
 		},
 		{
-			name:      "override key match",
-			payload:   newPayloadCheckServiceNodeWithKey("proxy", "ns1", "srv2"),
+			name:      "override key mismatch",
+			payload:   newPayloadCheckServiceNodeWithOverride("proxy", "ns1", "srv2", ""),
+			key:       "proxy",
+			namespace: "ns1",
+			expected:  false,
+		},
+		{
+			name:      "override namespace match",
+			payload:   newPayloadCheckServiceNodeWithOverride("proxy", "ns1", "", "ns2"),
+			key:       "proxy",
+			namespace: "ns2",
+			expected:  true,
+		},
+		{
+			name:      "override namespace mismatch",
+			payload:   newPayloadCheckServiceNodeWithOverride("proxy", "ns1", "", "ns3"),
+			key:       "proxy",
+			namespace: "ns1",
+			expected:  false,
+		},
+		{
+			name:      "override both key and namespace match",
+			payload:   newPayloadCheckServiceNodeWithOverride("proxy", "ns1", "srv1", "ns2"),
+			key:       "srv1",
+			namespace: "ns2",
+			expected:  true,
+		},
+		{
+			name:      "override both key and namespace mismatch namespace",
+			payload:   newPayloadCheckServiceNodeWithOverride("proxy", "ns1", "srv2", "ns3"),
 			key:       "proxy",
 			namespace: "ns1",
 			expected:  false,
@@ -2300,7 +2331,8 @@ func newPayloadCheckServiceNode(service, namespace string) EventPayloadCheckServ
 	}
 }
 
-func newPayloadCheckServiceNodeWithKey(service, namespace, key string) EventPayloadCheckServiceNode {
+func newPayloadCheckServiceNodeWithOverride(
+	service, namespace, overrideKey, overrideNamespace string) EventPayloadCheckServiceNode {
 	return EventPayloadCheckServiceNode{
 		Value: &structs.CheckServiceNode{
 			Service: &structs.NodeService{
@@ -2308,6 +2340,7 @@ func newPayloadCheckServiceNodeWithKey(service, namespace, key string) EventPayl
 				EnterpriseMeta: structs.NewEnterpriseMeta(namespace),
 			},
 		},
-		key: key,
+		overrideKey:       overrideKey,
+		overrideNamespace: overrideNamespace,
 	}
 }
