@@ -21,6 +21,7 @@ Feature: dc / acls / auth-methods / sorting
     Then I see 4 authMethod models
     When I click selected on the sort
     When I click options.1.button on the sort
+    And pause for 3000
     Then I see name on the authMethods vertically like yaml
     ---
     - "system-D"
