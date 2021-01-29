@@ -1,3 +1,3 @@
-export default ({ properties }) => (key = 'Name:asc') => {
-  return properties(['Name', 'MaxTokenTTL'])(key);
+export default ({ properties }) => (key = 'MethodName:asc') => {
+  return properties(['MethodName', 'MaxTokenTTL'])(key);
 };

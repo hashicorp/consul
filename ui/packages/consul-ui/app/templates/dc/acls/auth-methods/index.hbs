@@ -7,7 +7,7 @@
 {{#let
 
   (hash
-    value=(or sortBy "Name:desc")
+    value=(or sortBy "MethodName:asc")
     change=(action (mut sortBy) value="target.selected")
   )
 

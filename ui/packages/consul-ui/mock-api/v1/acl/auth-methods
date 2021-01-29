@@ -19,7 +19,11 @@ ${typeof location.search.ns !== 'undefined' ? `
 ` : ``}
             "Type": "${fake.helpers.randomize(['kubernetes', 'jwt', 'oidc'])}",
             "Description": "${fake.lorem.sentence()}",
+${i%2 ? `
             "DisplayName": "${fake.hacker.noun()}",
+` : `
+            "DisplayName": "",
+`}
             "MaxTokenTTL": "${fake.random.number({min: 0, max: 60})}m${fake.random.number({min: 0, max: 60})}s",
             "TokenLocality": "${fake.helpers.randomize(['local', 'global', ''])}",
             "CreateIndex": ${fake.random.number()},

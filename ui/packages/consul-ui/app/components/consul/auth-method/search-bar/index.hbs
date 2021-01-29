@@ -121,8 +121,8 @@ as |key value|}}
         <BlockSlot @name="selected">
           <span>
             {{#let (from-entries (array
-                  (array "Name:asc" (t "common.sort.alpha.asc"))
-                  (array "Name:desc" (t "common.sort.alpha.desc"))
+                  (array "MethodName:asc" (t "common.sort.alpha.asc"))
+                  (array "MethodName:desc" (t "common.sort.alpha.desc"))
                   (array "MaxTokenTTL:desc" (t "common.sort.duration.asc"))
                   (array "MaxTokenTTL:asc" (t "common.sort.duration.desc"))
                 ))
@@ -135,8 +135,8 @@ as |key value|}}
         <BlockSlot @name="options">
   {{#let components.Optgroup components.Option as |Optgroup Option|}}
         <Optgroup @label={{t "common.ui.name"}}>
-          <Option @value="Name:asc" @selected={{eq "Name:asc" @sort.value}}>{{t "common.sort.alpha.asc"}}</Option>
-          <Option @value="Name:desc" @selected={{eq "Name:desc" @sort.value}}>{{t "common.sort.alpha.desc"}}</Option>
+          <Option @value="MethodName:asc" @selected={{eq "MethodName:asc" @sort.value}}>{{t "common.sort.alpha.asc"}}</Option>
+          <Option @value="MethodName:desc" @selected={{eq "MethodName:desc" @sort.value}}>{{t "common.sort.alpha.desc"}}</Option>
         </Optgroup>
         <Optgroup @label={{t "common.ui.maxttl"}}>
           <Option @value="MaxTokenTTL:desc" @selected={{eq "MaxTokenTTL:desc" @sort.value}}>{{t "common.sort.duration.asc"}}</Option>
