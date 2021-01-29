@@ -312,7 +312,9 @@ func ServiceHealthEventsFromChanges(tx ReadTxn, changes Changes) ([]stream.Event
 					e.Topic = topicServiceHealthConnect
 					payload := e.Payload.(EventPayloadCheckServiceNode)
 					payload.overrideKey = serviceName.Name
-					payload.overrideNamespace = serviceName.EnterpriseMeta.GetNamespace()
+					if gatewayName.EnterpriseMeta.GetNamespace() != serviceName.EnterpriseMeta.GetNamespace() {
+						payload.overrideNamespace = serviceName.EnterpriseMeta.GetNamespace()
+					}
 					e.Payload = payload
 
 					events = append(events, e)
@@ -334,7 +336,9 @@ func ServiceHealthEventsFromChanges(tx ReadTxn, changes Changes) ([]stream.Event
 				e.Topic = topicServiceHealthConnect
 				payload := e.Payload.(EventPayloadCheckServiceNode)
 				payload.overrideKey = serviceName.Name
-				payload.overrideNamespace = serviceName.EnterpriseMeta.GetNamespace()
+				if gatewayName.EnterpriseMeta.GetNamespace() != serviceName.EnterpriseMeta.GetNamespace() {
+					payload.overrideNamespace = serviceName.EnterpriseMeta.GetNamespace()
+				}
 				e.Payload = payload
 
 				events = append(events, e)
@@ -450,7 +454,10 @@ func copyEventForService(event stream.Event, service structs.ServiceName) stream
 	event.Topic = topicServiceHealthConnect
 	payload := event.Payload.(EventPayloadCheckServiceNode)
 	payload.overrideKey = service.Name
-	payload.overrideNamespace = service.EnterpriseMeta.GetNamespace()
+	if payload.Value.Service.EnterpriseMeta.GetNamespace() != service.EnterpriseMeta.GetNamespace() {
+		payload.overrideNamespace = service.EnterpriseMeta.GetNamespace()
+	}
+
 	event.Payload = payload
 	return event
 }

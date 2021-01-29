@@ -1717,8 +1717,9 @@ func testServiceHealthEvent(t *testing.T, svc string, opts ...eventOption) strea
 	csn.Node.Address = "10.10.10.10"
 
 	for _, opt := range opts {
-		err := opt(&e)
-		require.NoError(t, err)
+		if err := opt(&e); err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
 	}
 	return e
 }
