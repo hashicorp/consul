@@ -33,7 +33,7 @@ ${
       }",
       "Type": "${type}",
       "Description": "${fake.lorem.sentence()}",
-      "DisplayName": "${fake.hacker.noun()}",
+      "DisplayName": "${fake.hacker.noun()}-${i}",
       "MaxTokenTTL": "${fake.random.number({min: 0, max: 60})}m${fake.random.number({min: 0, max: 60})}s",
       "TokenLocality": "${fake.helpers.randomize(['local', 'global', ''])}",
       "Config": ${JSON.stringify(config)},
