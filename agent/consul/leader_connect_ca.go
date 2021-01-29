@@ -873,12 +873,13 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 				"You can try again with ForceWithoutCrossSigningSet but this may cause " +
 				"disruption - see documentation for more.")
 		}
-		if !canXSign && args.Config.ForceWithoutCrossSigning {
-			c.logger.Warn("current CA doesn't support cross signing but " +
-				"CA reconfiguration forced anyway with ForceWithoutCrossSigning")
+		if args.Config.ForceWithoutCrossSigning {
+			c.logger.Warn("ForceWithoutCrossSigning set, CA reconfiguration skipping cross-signing")
 		}
 
-		if canXSign {
+		// If ForceWithoutCrossSigning wasn't set, attempt to have the old CA generate a
+		// cross-signed intermediate.
+		if canXSign && !args.Config.ForceWithoutCrossSigning {
 			// Have the old provider cross-sign the new root
 			xcCert, err := oldProvider.CrossSignCA(newRoot)
 			if err != nil {

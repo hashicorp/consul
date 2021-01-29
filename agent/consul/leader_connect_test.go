@@ -1305,3 +1305,130 @@ func TestLeader_Consul_BadCAConfigShouldntPreventLeaderEstablishment(t *testing.
 	require.NotEmpty(t, rootsList.Roots)
 	require.NotNil(t, activeRoot)
 }
+
+func TestLeader_Consul_ForceWithoutCrossSigning(t *testing.T) {
+	require := require.New(t)
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	waitForLeaderEstablishment(t, s1)
+
+	// Get the current root
+	rootReq := &structs.DCSpecificRequest{
+		Datacenter: "dc1",
+	}
+	var rootList structs.IndexedCARoots
+	require.Nil(msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", rootReq, &rootList))
+	require.Len(rootList.Roots, 1)
+	oldRoot := rootList.Roots[0]
+
+	// Update the provider config to use a new private key, which should
+	// cause a rotation.
+	_, newKey, err := connect.GeneratePrivateKey()
+	require.NoError(err)
+	newConfig := &structs.CAConfiguration{
+		Provider: "consul",
+		Config: map[string]interface{}{
+			"LeafCertTTL":    "500ms",
+			"PrivateKey":     newKey,
+			"RootCert":       "",
+			"RotationPeriod": "2160h",
+			"SkipValidate":   true,
+		},
+		ForceWithoutCrossSigning: true,
+	}
+	{
+		args := &structs.CARequest{
+			Datacenter: "dc1",
+			Config:     newConfig,
+		}
+		var reply interface{}
+
+		require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply))
+	}
+
+	// Old root should no longer be active.
+	_, roots, err := s1.fsm.State().CARoots(nil)
+	require.NoError(err)
+	require.Len(roots, 2)
+	for _, r := range roots {
+		if r.ID == oldRoot.ID {
+			require.False(r.Active)
+		} else {
+			require.True(r.Active)
+		}
+	}
+}
+
+func TestLeader_Vault_ForceWithoutCrossSigning(t *testing.T) {
+	ca.SkipIfVaultNotPresent(t)
+
+	require := require.New(t)
+	testVault := ca.NewTestVaultServer(t)
+	defer testVault.Stop()
+
+	_, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Build = "1.9.1"
+		c.PrimaryDatacenter = "dc1"
+		c.CAConfig = &structs.CAConfiguration{
+			Provider: "vault",
+			Config: map[string]interface{}{
+				"Address":             testVault.Addr,
+				"Token":               testVault.RootToken,
+				"RootPKIPath":         "pki-root/",
+				"IntermediatePKIPath": "pki-intermediate/",
+			},
+		}
+	})
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	waitForLeaderEstablishment(t, s1)
+
+	// Get the current root
+	rootReq := &structs.DCSpecificRequest{
+		Datacenter: "dc1",
+	}
+	var rootList structs.IndexedCARoots
+	require.Nil(msgpackrpc.CallWithCodec(codec, "ConnectCA.Roots", rootReq, &rootList))
+	require.Len(rootList.Roots, 1)
+	oldRoot := rootList.Roots[0]
+
+	// Update the provider config to use a new PKI path, which should
+	// cause a rotation.
+	newConfig := &structs.CAConfiguration{
+		Provider: "vault",
+		Config: map[string]interface{}{
+			"Address":             testVault.Addr,
+			"Token":               testVault.RootToken,
+			"RootPKIPath":         "pki-root-2/",
+			"IntermediatePKIPath": "pki-intermediate/",
+		},
+		ForceWithoutCrossSigning: true,
+	}
+	{
+		args := &structs.CARequest{
+			Datacenter: "dc1",
+			Config:     newConfig,
+		}
+		var reply interface{}
+
+		require.NoError(msgpackrpc.CallWithCodec(codec, "ConnectCA.ConfigurationSet", args, &reply))
+	}
+
+	// Old root should no longer be active.
+	_, roots, err := s1.fsm.State().CARoots(nil)
+	require.NoError(err)
+	require.Len(roots, 2)
+	for _, r := range roots {
+		if r.ID == oldRoot.ID {
+			require.False(r.Active)
+		} else {
+			require.True(r.Active)
+		}
+	}
+}
