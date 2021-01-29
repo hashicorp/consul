@@ -1,0 +1,3 @@
+```release-note:bug
+ui: Fixed a bug that would cause missing or duplicate service instance healthcheck listings.
+```
