@@ -323,4 +323,9 @@ export default [
     name: 'Troubleshoot',
     content: ['common-errors', 'faq'],
   },
+  {
+    category: 'release-notes',
+    name: 'Release Notes',
+    content: ['1-9-0'],
+  },
 ]
