@@ -18,7 +18,7 @@ Feature: dc / acls / auth-methods / index: ACL Auth Methods List
     - Name: kube
       DisplayName: minikube
     - Name: agent
-      DisplayName: miniagent
+      DisplayName: ''
     - Name: node
       DisplayName: mininode
     ---
@@ -33,16 +33,16 @@ Feature: dc / acls / auth-methods / index: ACL Auth Methods List
     s: kube
     ---
     And I see 1 authMethod model
-    And I see 1 authMethod model with the displayName "minikube"
+    And I see 1 authMethod model with the name "minikube"
     Then I fill in with yaml
     ---
     s: agent
     ---
     And I see 1 authMethod model
-    And I see 1 authMethod model with the displayName "miniagent"
+    And I see 1 authMethod model with the name "agent"
     Then I fill in with yaml
     ---
     s: ode
     ---
     And I see 1 authMethod model
-    And I see 1 authMethod model with the displayName "mininode"
+    And I see 1 authMethod model with the name "mininode"
