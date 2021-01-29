@@ -306,4 +306,8 @@ export default [
     name: 'Troubleshoot',
     content: ['common-errors', 'faq'],
   },
+  {
+    title: 'Glossary',
+    href: '/docs/glossary',
+  },
 ]
