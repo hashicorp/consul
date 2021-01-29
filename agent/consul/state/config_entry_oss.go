@@ -3,63 +3,10 @@
 package state
 
 import (
-	"github.com/hashicorp/consul/agent/structs"
 	memdb "github.com/hashicorp/go-memdb"
-)
 
-// configTableSchema returns a new table schema used to store global
-// config entries.
-func configTableSchema() *memdb.TableSchema {
-	return &memdb.TableSchema{
-		Name: configTableName,
-		Indexes: map[string]*memdb.IndexSchema{
-			"id": {
-				Name:         "id",
-				AllowMissing: false,
-				Unique:       true,
-				Indexer: &memdb.CompoundIndex{
-					Indexes: []memdb.Indexer{
-						&memdb.StringFieldIndex{
-							Field:     "Kind",
-							Lowercase: true,
-						},
-						&memdb.StringFieldIndex{
-							Field:     "Name",
-							Lowercase: true,
-						},
-					},
-				},
-			},
-			"kind": {
-				Name:         "kind",
-				AllowMissing: false,
-				Unique:       false,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "Kind",
-					Lowercase: true,
-				},
-			},
-			"link": {
-				Name:         "link",
-				AllowMissing: true,
-				Unique:       false,
-				Indexer:      &ConfigEntryLinkIndex{},
-			},
-			"intention-legacy-id": {
-				Name:         "intention-legacy-id",
-				AllowMissing: true,
-				Unique:       true,
-				Indexer:      &ServiceIntentionLegacyIDIndex{},
-			},
-			"intention-source": {
-				Name:         "intention-source",
-				AllowMissing: true,
-				Unique:       false,
-				Indexer:      &ServiceIntentionSourceIndex{},
-			},
-		},
-	}
-}
+	"github.com/hashicorp/consul/agent/structs"
+)
 
 func firstConfigEntryWithTxn(tx ReadTxn, kind, name string, _ *structs.EnterpriseMeta) (interface{}, error) {
 	return tx.First(configTableName, "id", kind, name)

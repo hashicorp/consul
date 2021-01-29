@@ -12,10 +12,6 @@ import (
 	"github.com/hashicorp/consul/lib"
 )
 
-const (
-	configTableName = "config-entries"
-)
-
 type ConfigEntryLinkIndex struct {
 }
 
