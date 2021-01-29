@@ -1,8 +1,9 @@
 import Model, { attr, belongsTo } from '@ember-data/model';
 import { fragmentArray } from 'ember-data-model-fragments/attributes';
-import { computed, get, set } from '@ember/object';
+import { computed, get } from '@ember/object';
 import { or, filter, alias } from '@ember/object/computed';
 import { tracked } from '@glimmer/tracking';
+import mergeChecks from 'consul-ui/utils/merge-checks';
 
 export const PRIMARY_KEY = 'uid';
 export const SLUG_KEY = 'Node.Node,Service.ID';
@@ -52,29 +53,15 @@ export default class ServiceInstance extends Model {
   @filter('Checks.@each.Kind', (item, i, arr) => item.Kind === 'node') NodeChecks;
 
   // MeshChecks are a concatenation of Checks for the Instance and Checks for
-  // the ProxyInstance. Checks is an ember-data-model-fragment, so we can't just
-  // concat it, we have to loop through all the items in order to merge
-  @computed('Checks', 'ProxyInstance{Checks,ServiceProxy.Expose.Checks}')
+  // the ProxyInstance.
+  @computed('Checks.[]', 'ProxyInstance.{Checks.[],ServiceProxy.Expose.Checks}')
   get MeshChecks() {
-    return (get(this, 'Checks') || [])
-      .map(item => {
-        set(
-          item,
-          'Exposed',
-          get(this, 'ProxyInstance.ServiceProxy.Expose.Checks') && get(item, 'Exposable')
-        );
-        return item;
-      })
-      .concat(
-        (get(this, 'ProxyInstance.Checks') || []).map(item => {
-          set(
-            item,
-            'Exposed',
-            get(this, 'ProxyInstance.ServiceProxy.Expose.Checks') && get(item, 'Exposable')
-          );
-          return item;
-        })
-      );
+    // merge the instance and proxy checks together, avoiding duplicate node
+    // checks and additionally setting any checks to exposed if required
+    return mergeChecks(
+      [get(this, 'Checks'), get(this, 'ProxyInstance.Checks')],
+      get(this, 'ProxyInstance.ServiceProxy.Expose.Checks')
+    );
   }
 
   @computed('Service.Meta')
