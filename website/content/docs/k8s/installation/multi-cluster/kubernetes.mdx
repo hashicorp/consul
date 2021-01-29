@@ -176,7 +176,9 @@ spec:
 
 The `spec.meshGateway.mode` can be set to `local` or `remote`. If set to `local`,
 traffic from one datacenter to another will egress through the local mesh gateway.
-If set to `remote`, traffic will be routed directly to the remote mesh gateway
+This may be useful if you prefer all your cross-cluster network traffic to egress
+from the same locations.
+If set to `remote`, traffic will be routed directly from the pod to the remote mesh gateway
 (resulting in one less hop).
 
 Verify that the resource was synced to Consul:
