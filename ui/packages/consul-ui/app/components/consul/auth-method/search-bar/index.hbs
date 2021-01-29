@@ -142,10 +142,6 @@ as |key value|}}
           <Option @value="MaxTokenTTL:desc" @selected={{eq "MaxTokenTTL:desc" @sort.value}}>{{t "common.sort.duration.asc"}}</Option>
           <Option @value="MaxTokenTTL:asc" @selected={{eq "MaxTokenTTL:asc" @sort.value}}>{{t "common.sort.duration.desc"}}</Option>
         </Optgroup>
-        <Optgroup @label={{t "common.ui.maxttl"}}>
-          <Option @value="MaxTokenTTL:desc" @selected={{eq "MaxTokenTTL:desc" @sort.value}}>{{t "common.sort.duration.asc"}}</Option>
-          <Option @value="MaxTokenTTL:asc" @selected={{eq "MaxTokenTTL:asc" @sort.value}}>{{t "common.sort.duration.desc"}}</Option>
-        </Optgroup>
   {{/let}}
         </BlockSlot>
       </search.Select>
