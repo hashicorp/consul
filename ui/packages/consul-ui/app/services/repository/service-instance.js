@@ -48,10 +48,13 @@ export default class ServiceInstanceService extends RepositoryService {
     // }
 
     // Copy over all the things to the ProxyServiceInstance
-    ['Service', 'Node'].forEach(prop => {
+    ['Service', 'Node', 'meta'].forEach(prop => {
       set(proxy, prop, instance[prop]);
     });
     ['Checks'].forEach(prop => {
+      // completely wipe out any previous values so we don't accumulate things
+      // eternally
+      proxy.set(prop, []);
       instance[prop].forEach(item => {
         if (typeof item !== 'undefined') {
           proxy[prop].addFragment(item.copy());
