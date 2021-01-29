@@ -509,7 +509,14 @@ func (a *Agent) Checks() (map[string]*AgentCheck, error) {
 // ChecksWithFilter returns a subset of the locally registered checks that match
 // the given filter expression
 func (a *Agent) ChecksWithFilter(filter string) (map[string]*AgentCheck, error) {
+	return a.ChecksWithFilterOpts(filter, nil)
+}
+
+// ChecksWithFilterOpts returns a subset of the locally registered checks that match
+// the given filter expression and QueryOptions.
+func (a *Agent) ChecksWithFilterOpts(filter string, q *QueryOptions) (map[string]*AgentCheck, error) {
 	r := a.c.newRequest("GET", "/v1/agent/checks")
+	r.setQueryOptions(q)
 	r.filterQuery(filter)
 	_, resp, err := requireOK(a.c.doRequest(r))
 	if err != nil {
@@ -532,7 +539,14 @@ func (a *Agent) Services() (map[string]*AgentService, error) {
 // ServicesWithFilter returns a subset of the locally registered services that match
 // the given filter expression
 func (a *Agent) ServicesWithFilter(filter string) (map[string]*AgentService, error) {
+	return a.ServicesWithFilterOpts(filter, nil)
+}
+
+// ServicesWithFilterOpts returns a subset of the locally registered services that match
+// the given filter expression and QueryOptions.
+func (a *Agent) ServicesWithFilterOpts(filter string, q *QueryOptions) (map[string]*AgentService, error) {
 	r := a.c.newRequest("GET", "/v1/agent/services")
+	r.setQueryOptions(q)
 	r.filterQuery(filter)
 	_, resp, err := requireOK(a.c.doRequest(r))
 	if err != nil {
@@ -727,6 +741,19 @@ func (a *Agent) ServiceDeregister(serviceID string) error {
 	return nil
 }
 
+// ServiceDeregisterOpts is used to deregister a service with
+// the local agent with QueryOptions.
+func (a *Agent) ServiceDeregisterOpts(serviceID string, q *QueryOptions) error {
+	r := a.c.newRequest("PUT", "/v1/agent/service/deregister/"+serviceID)
+	r.setQueryOptions(q)
+	_, resp, err := requireOK(a.c.doRequest(r))
+	if err != nil {
+		return err
+	}
+	resp.Body.Close()
+	return nil
+}
+
 // PassTTL is used to set a TTL check to the passing state.
 //
 // DEPRECATION NOTICE: This interface is deprecated in favor of UpdateTTL().
@@ -801,6 +828,10 @@ type checkUpdate struct {
 // strings for compatibility (though a newer version of Consul will still be
 // required to use this API).
 func (a *Agent) UpdateTTL(checkID, output, status string) error {
+	return a.UpdateTTLOpts(checkID, output, status, nil)
+}
+
+func (a *Agent) UpdateTTLOpts(checkID, output, status string, q *QueryOptions) error {
 	switch status {
 	case "pass", HealthPassing:
 		status = HealthPassing
@@ -814,6 +845,7 @@ func (a *Agent) UpdateTTL(checkID, output, status string) error {
 
 	endpoint := fmt.Sprintf("/v1/agent/check/update/%s", checkID)
 	r := a.c.newRequest("PUT", endpoint)
+	r.setQueryOptions(q)
 	r.obj = &checkUpdate{
 		Status: status,
 		Output: output,
@@ -843,7 +875,14 @@ func (a *Agent) CheckRegister(check *AgentCheckRegistration) error {
 // CheckDeregister is used to deregister a check with
 // the local agent
 func (a *Agent) CheckDeregister(checkID string) error {
+	return a.CheckDeregisterOpts(checkID, nil)
+}
+
+// CheckDeregisterOpts is used to deregister a check with
+// the local agent using query options
+func (a *Agent) CheckDeregisterOpts(checkID string, q *QueryOptions) error {
 	r := a.c.newRequest("PUT", "/v1/agent/check/deregister/"+checkID)
+	r.setQueryOptions(q)
 	_, resp, err := requireOK(a.c.doRequest(r))
 	if err != nil {
 		return err
