@@ -273,20 +273,20 @@ func deleteConfigEntryTxn(tx WriteTxn, idx uint64, kind, name string, entMeta *s
 	sn := structs.NewServiceName(name, entMeta)
 
 	if kind == structs.TerminatingGateway || kind == structs.IngressGateway {
-		if _, err := tx.DeleteAll(gatewayServicesTableName, "gateway", sn); err != nil {
+		if _, err := tx.DeleteAll(tableGatewayServices, "gateway", sn); err != nil {
 			return fmt.Errorf("failed to truncate gateway services table: %v", err)
 		}
-		if err := indexUpdateMaxTxn(tx, idx, gatewayServicesTableName); err != nil {
+		if err := indexUpdateMaxTxn(tx, idx, tableGatewayServices); err != nil {
 			return fmt.Errorf("failed updating gateway-services index: %v", err)
 		}
 	}
 	// Also clean up associations in the mesh topology table for ingress gateways
 	if kind == structs.IngressGateway {
-		if _, err := tx.DeleteAll(topologyTableName, "downstream", sn); err != nil {
-			return fmt.Errorf("failed to truncate %s table: %v", topologyTableName, err)
+		if _, err := tx.DeleteAll(tableMeshTopology, "downstream", sn); err != nil {
+			return fmt.Errorf("failed to truncate %s table: %v", tableMeshTopology, err)
 		}
-		if err := indexUpdateMaxTxn(tx, idx, topologyTableName); err != nil {
-			return fmt.Errorf("failed updating %s index: %v", topologyTableName, err)
+		if err := indexUpdateMaxTxn(tx, idx, tableMeshTopology); err != nil {
+			return fmt.Errorf("failed updating %s index: %v", tableMeshTopology, err)
 		}
 	}
 

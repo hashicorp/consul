@@ -18,15 +18,9 @@ import (
 	"github.com/hashicorp/consul/types"
 )
 
-const (
-	servicesTableName        = "services"
-	gatewayServicesTableName = "gateway-services"
-	topologyTableName        = "mesh-topology"
-
-	// serviceLastExtinctionIndexName keeps track of the last raft index when the last instance
-	// of any service was unregistered. This is used by blocking queries on missing services.
-	serviceLastExtinctionIndexName = "service_last_extinction"
-)
+// indexServiceExtinction keeps track of the last raft index when the last instance
+// of any service was unregistered. This is used by blocking queries on missing services.
+const indexServiceExtinction = "service_last_extinction"
 
 const (
 	// minUUIDLookupLen is used as a minimum length of a node name required before
@@ -2087,7 +2081,7 @@ func (s *Store) GatewayServices(ws memdb.WatchSet, gateway string, entMeta *stru
 	if err != nil {
 		return 0, nil, err
 	}
-	idx := maxIndexTxn(tx, gatewayServicesTableName)
+	idx := maxIndexTxn(tx, tableGatewayServices)
 
 	return lib.MaxUint64(maxIdx, idx), results, nil
 }
@@ -2361,7 +2355,7 @@ func updateGatewayServices(tx WriteTxn, idx uint64, conf structs.ConfigEntry, en
 	// Delete all associated with gateway first, to avoid keeping mappings that were removed
 	sn := structs.NewServiceName(conf.GetName(), entMeta)
 
-	if _, err := tx.DeleteAll(gatewayServicesTableName, "gateway", sn); err != nil {
+	if _, err := tx.DeleteAll(tableGatewayServices, "gateway", sn); err != nil {
 		return fmt.Errorf("failed to truncate gateway services table: %v", err)
 	}
 	if err := truncateGatewayServiceTopologyMappings(tx, idx, sn, conf.GetKind()); err != nil {
@@ -2389,7 +2383,7 @@ func updateGatewayServices(tx WriteTxn, idx uint64, conf structs.ConfigEntry, en
 		}
 	}
 
-	if err := indexUpdateMaxTxn(tx, idx, gatewayServicesTableName); err != nil {
+	if err := indexUpdateMaxTxn(tx, idx, tableGatewayServices); err != nil {
 		return fmt.Errorf("failed updating gateway-services index: %v", err)
 	}
 	return nil
@@ -2499,7 +2493,7 @@ func updateGatewayNamespace(tx WriteTxn, idx uint64, service *structs.GatewaySer
 			continue
 		}
 
-		existing, err := tx.First(gatewayServicesTableName, "id", service.Gateway, sn.CompoundServiceName(), service.Port)
+		existing, err := tx.First(tableGatewayServices, "id", service.Gateway, sn.CompoundServiceName(), service.Port)
 		if err != nil {
 			return fmt.Errorf("gateway service lookup failed: %s", err)
 		}
@@ -2534,7 +2528,7 @@ func updateGatewayNamespace(tx WriteTxn, idx uint64, service *structs.GatewaySer
 func updateGatewayService(tx WriteTxn, idx uint64, mapping *structs.GatewayService) error {
 	// Check if mapping already exists in table if it's already in the table
 	// Avoid insert if nothing changed
-	existing, err := tx.First(gatewayServicesTableName, "id", mapping.Gateway, mapping.Service, mapping.Port)
+	existing, err := tx.First(tableGatewayServices, "id", mapping.Gateway, mapping.Service, mapping.Port)
 	if err != nil {
 		return fmt.Errorf("gateway service lookup failed: %s", err)
 	}
@@ -2549,11 +2543,11 @@ func updateGatewayService(tx WriteTxn, idx uint64, mapping *structs.GatewayServi
 	}
 	mapping.ModifyIndex = idx
 
-	if err := tx.Insert(gatewayServicesTableName, mapping); err != nil {
+	if err := tx.Insert(tableGatewayServices, mapping); err != nil {
 		return fmt.Errorf("failed inserting gateway service mapping: %s", err)
 	}
 
-	if err := indexUpdateMaxTxn(tx, idx, gatewayServicesTableName); err != nil {
+	if err := indexUpdateMaxTxn(tx, idx, tableGatewayServices); err != nil {
 		return fmt.Errorf("failed updating gateway-services index: %v", err)
 	}
 
@@ -2613,10 +2607,10 @@ func cleanupGatewayWildcards(tx WriteTxn, idx uint64, svc *structs.ServiceNode) 
 		// Otherwise the service was specified in the config entry, and the association should be maintained
 		// for when the service is re-registered
 		if m.FromWildcard {
-			if err := tx.Delete(gatewayServicesTableName, m); err != nil {
+			if err := tx.Delete(tableGatewayServices, m); err != nil {
 				return fmt.Errorf("failed to truncate gateway services table: %v", err)
 			}
-			if err := indexUpdateMaxTxn(tx, idx, gatewayServicesTableName); err != nil {
+			if err := indexUpdateMaxTxn(tx, idx, tableGatewayServices); err != nil {
 				return fmt.Errorf("failed updating gateway-services index: %v", err)
 			}
 			if err := deleteGatewayServiceTopologyMapping(tx, idx, m); err != nil {
@@ -2630,18 +2624,18 @@ func cleanupGatewayWildcards(tx WriteTxn, idx uint64, svc *structs.ServiceNode) 
 // serviceGateways returns all GatewayService entries with the given service name. This effectively looks up
 // all the gateways mapped to this service.
 func serviceGateways(tx ReadTxn, name string, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get(gatewayServicesTableName, "service", structs.NewServiceName(name, entMeta))
+	return tx.Get(tableGatewayServices, "service", structs.NewServiceName(name, entMeta))
 }
 
 func gatewayServices(tx ReadTxn, name string, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get(gatewayServicesTableName, "gateway", structs.NewServiceName(name, entMeta))
+	return tx.Get(tableGatewayServices, "gateway", structs.NewServiceName(name, entMeta))
 }
 
 func (s *Store) DumpGatewayServices(ws memdb.WatchSet) (uint64, structs.GatewayServices, error) {
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
-	iter, err := tx.Get(gatewayServicesTableName, "id")
+	iter, err := tx.Get(tableGatewayServices, "id")
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to dump gateway-services: %s", err)
 	}
@@ -2651,7 +2645,7 @@ func (s *Store) DumpGatewayServices(ws memdb.WatchSet) (uint64, structs.GatewayS
 	if err != nil {
 		return 0, nil, err
 	}
-	idx := maxIndexTxn(tx, gatewayServicesTableName)
+	idx := maxIndexTxn(tx, tableGatewayServices)
 
 	return lib.MaxUint64(maxIdx, idx), results, nil
 }
@@ -2968,9 +2962,9 @@ func linkedFromRegistrationTxn(tx ReadTxn, ws memdb.WatchSet, service structs.Se
 		index = "upstream"
 	}
 
-	iter, err := tx.Get(topologyTableName, index, service)
+	iter, err := tx.Get(tableMeshTopology, index, service)
 	if err != nil {
-		return 0, nil, fmt.Errorf("%q lookup failed: %v", topologyTableName, err)
+		return 0, nil, fmt.Errorf("%q lookup failed: %v", tableMeshTopology, err)
 	}
 	ws.Add(iter.WatchCh())
 
@@ -2993,7 +2987,7 @@ func linkedFromRegistrationTxn(tx ReadTxn, ws memdb.WatchSet, service structs.Se
 
 	// TODO (freddy) This needs a tombstone to avoid the index sliding back on mapping deletion
 	//  Using the table index here means that blocking queries will wake up more often than they should
-	tableIdx := maxIndexTxn(tx, topologyTableName)
+	tableIdx := maxIndexTxn(tx, tableMeshTopology)
 	if tableIdx > idx {
 		idx = tableIdx
 	}
@@ -3024,9 +3018,9 @@ func updateMeshTopology(tx WriteTxn, idx uint64, node string, svc *structs.NodeS
 		upstreamMeta := structs.EnterpriseMetaInitializer(u.DestinationNamespace)
 		upstream := structs.NewServiceName(u.DestinationName, &upstreamMeta)
 
-		obj, err := tx.First(topologyTableName, "id", upstream, downstream)
+		obj, err := tx.First(tableMeshTopology, "id", upstream, downstream)
 		if err != nil {
-			return fmt.Errorf("%q lookup failed: %v", topologyTableName, err)
+			return fmt.Errorf("%q lookup failed: %v", tableMeshTopology, err)
 		}
 		sid := svc.CompoundServiceID()
 		uid := structs.UniqueID(node, sid.String())
@@ -3057,22 +3051,22 @@ func updateMeshTopology(tx WriteTxn, idx uint64, node string, svc *structs.NodeS
 				},
 			}
 		}
-		if err := tx.Insert(topologyTableName, mapping); err != nil {
-			return fmt.Errorf("failed inserting %s mapping: %s", topologyTableName, err)
+		if err := tx.Insert(tableMeshTopology, mapping); err != nil {
+			return fmt.Errorf("failed inserting %s mapping: %s", tableMeshTopology, err)
 		}
-		if err := indexUpdateMaxTxn(tx, idx, topologyTableName); err != nil {
-			return fmt.Errorf("failed updating %s index: %v", topologyTableName, err)
+		if err := indexUpdateMaxTxn(tx, idx, tableMeshTopology); err != nil {
+			return fmt.Errorf("failed updating %s index: %v", tableMeshTopology, err)
 		}
 		inserted[upstream] = true
 	}
 
 	for u := range oldUpstreams {
 		if !inserted[u] {
-			if _, err := tx.DeleteAll(topologyTableName, "id", u, downstream); err != nil {
-				return fmt.Errorf("failed to truncate %s table: %v", topologyTableName, err)
+			if _, err := tx.DeleteAll(tableMeshTopology, "id", u, downstream); err != nil {
+				return fmt.Errorf("failed to truncate %s table: %v", tableMeshTopology, err)
 			}
-			if err := indexUpdateMaxTxn(tx, idx, topologyTableName); err != nil {
-				return fmt.Errorf("failed updating %s index: %v", topologyTableName, err)
+			if err := indexUpdateMaxTxn(tx, idx, tableMeshTopology); err != nil {
+				return fmt.Errorf("failed updating %s index: %v", tableMeshTopology, err)
 			}
 		}
 	}
@@ -3090,9 +3084,9 @@ func cleanupMeshTopology(tx WriteTxn, idx uint64, service *structs.ServiceNode) 
 	sid := service.CompoundServiceID()
 	uid := structs.UniqueID(service.Node, sid.String())
 
-	iter, err := tx.Get(topologyTableName, "downstream", sn)
+	iter, err := tx.Get(tableMeshTopology, "downstream", sn)
 	if err != nil {
-		return fmt.Errorf("%q lookup failed: %v", topologyTableName, err)
+		return fmt.Errorf("%q lookup failed: %v", tableMeshTopology, err)
 	}
 
 	mappings := make([]*structs.UpstreamDownstream, 0)
@@ -3118,17 +3112,17 @@ func cleanupMeshTopology(tx WriteTxn, idx uint64, service *structs.ServiceNode) 
 
 		delete(copy.Refs, uid)
 		if len(copy.Refs) == 0 {
-			if err := tx.Delete(topologyTableName, m); err != nil {
-				return fmt.Errorf("failed to truncate %s table: %v", topologyTableName, err)
+			if err := tx.Delete(tableMeshTopology, m); err != nil {
+				return fmt.Errorf("failed to truncate %s table: %v", tableMeshTopology, err)
 			}
-			if err := indexUpdateMaxTxn(tx, idx, topologyTableName); err != nil {
-				return fmt.Errorf("failed updating %s index: %v", topologyTableName, err)
+			if err := indexUpdateMaxTxn(tx, idx, tableMeshTopology); err != nil {
+				return fmt.Errorf("failed updating %s index: %v", tableMeshTopology, err)
 			}
 			continue
 
 		}
-		if err := tx.Insert(topologyTableName, copy); err != nil {
-			return fmt.Errorf("failed inserting %s mapping: %s", topologyTableName, err)
+		if err := tx.Insert(tableMeshTopology, copy); err != nil {
+			return fmt.Errorf("failed inserting %s mapping: %s", tableMeshTopology, err)
 		}
 	}
 	return nil
@@ -3145,11 +3139,11 @@ func insertGatewayServiceTopologyMapping(tx WriteTxn, idx uint64, gs *structs.Ga
 		Downstream: gs.Gateway,
 		RaftIndex:  gs.RaftIndex,
 	}
-	if err := tx.Insert(topologyTableName, &mapping); err != nil {
-		return fmt.Errorf("failed inserting %s mapping: %s", topologyTableName, err)
+	if err := tx.Insert(tableMeshTopology, &mapping); err != nil {
+		return fmt.Errorf("failed inserting %s mapping: %s", tableMeshTopology, err)
 	}
-	if err := indexUpdateMaxTxn(tx, idx, topologyTableName); err != nil {
-		return fmt.Errorf("failed updating %s index: %v", topologyTableName, err)
+	if err := indexUpdateMaxTxn(tx, idx, tableMeshTopology); err != nil {
+		return fmt.Errorf("failed updating %s index: %v", tableMeshTopology, err)
 	}
 
 	return nil
@@ -3161,11 +3155,11 @@ func deleteGatewayServiceTopologyMapping(tx WriteTxn, idx uint64, gs *structs.Ga
 		return nil
 	}
 
-	if _, err := tx.DeleteAll(topologyTableName, "id", gs.Service, gs.Gateway); err != nil {
-		return fmt.Errorf("failed to truncate %s table: %v", topologyTableName, err)
+	if _, err := tx.DeleteAll(tableMeshTopology, "id", gs.Service, gs.Gateway); err != nil {
+		return fmt.Errorf("failed to truncate %s table: %v", tableMeshTopology, err)
 	}
-	if err := indexUpdateMaxTxn(tx, idx, topologyTableName); err != nil {
-		return fmt.Errorf("failed updating %s index: %v", topologyTableName, err)
+	if err := indexUpdateMaxTxn(tx, idx, tableMeshTopology); err != nil {
+		return fmt.Errorf("failed updating %s index: %v", tableMeshTopology, err)
 	}
 
 	return nil
@@ -3177,11 +3171,11 @@ func truncateGatewayServiceTopologyMappings(tx WriteTxn, idx uint64, gateway str
 		return nil
 	}
 
-	if _, err := tx.DeleteAll(topologyTableName, "downstream", gateway); err != nil {
-		return fmt.Errorf("failed to truncate %s table: %v", topologyTableName, err)
+	if _, err := tx.DeleteAll(tableMeshTopology, "downstream", gateway); err != nil {
+		return fmt.Errorf("failed to truncate %s table: %v", tableMeshTopology, err)
 	}
-	if err := indexUpdateMaxTxn(tx, idx, topologyTableName); err != nil {
-		return fmt.Errorf("failed updating %s index: %v", topologyTableName, err)
+	if err := indexUpdateMaxTxn(tx, idx, tableMeshTopology); err != nil {
+		return fmt.Errorf("failed updating %s index: %v", tableMeshTopology, err)
 	}
 
 	return nil
