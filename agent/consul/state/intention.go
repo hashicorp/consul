@@ -718,7 +718,7 @@ func (s *Store) LegacyIntentionDeleteAll(idx uint64) error {
 	// Also bump the index for the config entry table so that
 	// secondaries can correctly know when they've replicated all of the service-intentions
 	// config entries that USED to exist in the old intentions table.
-	if err := tx.Insert("index", &IndexEntry{configTableName, idx}); err != nil {
+	if err := tx.Insert("index", &IndexEntry{tableConfigEntries, idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 

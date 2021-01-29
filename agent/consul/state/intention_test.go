@@ -4,13 +4,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-memdb"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/go-memdb"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -90,7 +91,7 @@ func TestStore_IntentionSetGet_basic(t *testing.T) {
 
 			// Make sure the right index got updated.
 			require.Equal(t, lastIndex, s.maxIndex(intentionsTableName))
-			require.Equal(t, uint64(0), s.maxIndex(configTableName))
+			require.Equal(t, uint64(0), s.maxIndex(tableConfigEntries))
 
 			expected = &structs.Intention{
 				ID:              legacyIxn.ID,
@@ -131,7 +132,7 @@ func TestStore_IntentionSetGet_basic(t *testing.T) {
 			require.NoError(t, s.EnsureConfigEntry(lastIndex, configEntry.Clone(), nil))
 
 			// Make sure the config entry index got updated instead of the old intentions one
-			require.Equal(t, lastIndex, s.maxIndex(configTableName))
+			require.Equal(t, lastIndex, s.maxIndex(tableConfigEntries))
 			require.Equal(t, uint64(0), s.maxIndex(intentionsTableName))
 
 			expected = &structs.Intention{
@@ -178,7 +179,7 @@ func TestStore_IntentionSetGet_basic(t *testing.T) {
 
 			// Make sure the index got updated.
 			require.Equal(t, lastIndex, s.maxIndex(intentionsTableName))
-			require.Equal(t, uint64(0), s.maxIndex(configTableName))
+			require.Equal(t, uint64(0), s.maxIndex(tableConfigEntries))
 
 			expected.SourceNS = legacyIxn.SourceNS
 			expected.Action = structs.IntentionActionDeny
@@ -201,7 +202,7 @@ func TestStore_IntentionSetGet_basic(t *testing.T) {
 			require.NoError(t, s.EnsureConfigEntry(lastIndex, configEntry.Clone(), nil))
 
 			// Make sure the config entry index got updated instead of the old intentions one
-			require.Equal(t, lastIndex, s.maxIndex(configTableName))
+			require.Equal(t, lastIndex, s.maxIndex(tableConfigEntries))
 			require.Equal(t, uint64(0), s.maxIndex(intentionsTableName))
 
 			expected.Description = configEntry.Sources[0].Description
@@ -240,7 +241,7 @@ func TestStore_IntentionSetGet_basic(t *testing.T) {
 
 			// Make sure the index did NOT get updated.
 			require.Equal(t, lastIndex-1, s.maxIndex(intentionsTableName))
-			require.Equal(t, uint64(0), s.maxIndex(configTableName))
+			require.Equal(t, uint64(0), s.maxIndex(tableConfigEntries))
 			require.False(t, watchFired(ws), "watch not fired")
 		}
 	})
@@ -815,7 +816,7 @@ func TestStore_LegacyIntentionSet_emptyId(t *testing.T) {
 
 	// Index is not updated if nothing is saved.
 	require.Equal(t, s.maxIndex(intentionsTableName), uint64(0))
-	require.Equal(t, uint64(0), s.maxIndex(configTableName))
+	require.Equal(t, uint64(0), s.maxIndex(tableConfigEntries))
 
 	require.False(t, watchFired(ws), "watch fired")
 }
@@ -1005,7 +1006,7 @@ func TestStore_IntentionDelete(t *testing.T) {
 
 			// Make sure the index got updated.
 			require.Equal(t, s.maxIndex(intentionsTableName), lastIndex)
-			require.Equal(t, uint64(0), s.maxIndex(configTableName))
+			require.Equal(t, uint64(0), s.maxIndex(tableConfigEntries))
 		} else {
 			conf := &structs.ServiceIntentionsConfigEntry{
 				Kind: structs.ServiceIntentions,
@@ -1027,7 +1028,7 @@ func TestStore_IntentionDelete(t *testing.T) {
 			require.NoError(t, s.EnsureConfigEntry(1, conf.Clone(), nil))
 
 			// Make sure the index got updated.
-			require.Equal(t, s.maxIndex(configTableName), lastIndex)
+			require.Equal(t, s.maxIndex(tableConfigEntries), lastIndex)
 			require.Equal(t, uint64(0), s.maxIndex(intentionsTableName))
 		}
 		require.True(t, watchFired(ws), "watch fired")
@@ -1045,13 +1046,13 @@ func TestStore_IntentionDelete(t *testing.T) {
 
 			// Make sure the index got updated.
 			require.Equal(t, s.maxIndex(intentionsTableName), lastIndex)
-			require.Equal(t, uint64(0), s.maxIndex(configTableName))
+			require.Equal(t, uint64(0), s.maxIndex(tableConfigEntries))
 		} else {
 			lastIndex++
 			require.NoError(t, s.DeleteConfigEntry(lastIndex, structs.ServiceIntentions, "web", nil))
 
 			// Make sure the index got updated.
-			require.Equal(t, s.maxIndex(configTableName), lastIndex)
+			require.Equal(t, s.maxIndex(tableConfigEntries), lastIndex)
 			require.Equal(t, uint64(0), s.maxIndex(intentionsTableName))
 		}
 		require.True(t, watchFired(ws), "watch fired")

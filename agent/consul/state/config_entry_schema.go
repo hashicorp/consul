@@ -3,7 +3,7 @@ package state
 import "github.com/hashicorp/go-memdb"
 
 const (
-	configTableName = "config-entries"
+	tableConfigEntries = "config-entries"
 
 	indexLink              = "link"
 	indexIntentionLegacyID = "intention-legacy-id"
@@ -14,7 +14,7 @@ const (
 // config entries.
 func configTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
-		Name: configTableName,
+		Name: tableConfigEntries,
 		Indexes: map[string]*memdb.IndexSchema{
 			indexID: {
 				Name:         indexID,
