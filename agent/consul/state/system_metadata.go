@@ -3,18 +3,19 @@ package state
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul/agent/structs"
 	memdb "github.com/hashicorp/go-memdb"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
-const systemMetadataTableName = "system-metadata"
+const tableSystemMetadata = "system-metadata"
 
 func systemMetadataTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
-		Name: systemMetadataTableName,
+		Name: tableSystemMetadata,
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": {
-				Name:         "id",
+			indexID: {
+				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
 				Indexer: &memdb.StringFieldIndex{
@@ -31,7 +32,7 @@ func init() {
 
 // SystemMetadataEntries used to pull all the system metadata entries for the snapshot.
 func (s *Snapshot) SystemMetadataEntries() ([]*structs.SystemMetadataEntry, error) {
-	entries, err := s.tx.Get(systemMetadataTableName, "id")
+	entries, err := s.tx.Get(tableSystemMetadata, "id")
 	if err != nil {
 		return nil, err
 	}
@@ -47,10 +48,10 @@ func (s *Snapshot) SystemMetadataEntries() ([]*structs.SystemMetadataEntry, erro
 // SystemMetadataEntry is used when restoring from a snapshot.
 func (s *Restore) SystemMetadataEntry(entry *structs.SystemMetadataEntry) error {
 	// Insert
-	if err := s.tx.Insert(systemMetadataTableName, entry); err != nil {
+	if err := s.tx.Insert(tableSystemMetadata, entry); err != nil {
 		return fmt.Errorf("failed restoring system metadata object: %s", err)
 	}
-	if err := indexUpdateMaxTxn(s.tx, entry.ModifyIndex, systemMetadataTableName); err != nil {
+	if err := indexUpdateMaxTxn(s.tx, entry.ModifyIndex, tableSystemMetadata); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
@@ -78,7 +79,7 @@ func systemMetadataSetTxn(tx *txn, idx uint64, entry *structs.SystemMetadataEntr
 
 	// Check for existing.
 	var existing *structs.SystemMetadataEntry
-	existingRaw, err := tx.First(systemMetadataTableName, "id", entry.Key)
+	existingRaw, err := tx.First(tableSystemMetadata, "id", entry.Key)
 	if err != nil {
 		return fmt.Errorf("failed system metadata lookup: %s", err)
 	}
@@ -97,10 +98,10 @@ func systemMetadataSetTxn(tx *txn, idx uint64, entry *structs.SystemMetadataEntr
 	}
 
 	// Insert the system metadata and update the index
-	if err := tx.Insert(systemMetadataTableName, entry); err != nil {
+	if err := tx.Insert(tableSystemMetadata, entry); err != nil {
 		return fmt.Errorf("failed inserting system metadata: %s", err)
 	}
-	if err := tx.Insert("index", &IndexEntry{systemMetadataTableName, idx}); err != nil {
+	if err := tx.Insert("index", &IndexEntry{tableSystemMetadata, idx}); err != nil {
 		return fmt.Errorf("failed updating index: %v", err)
 	}
 
@@ -116,10 +117,10 @@ func (s *Store) SystemMetadataGet(ws memdb.WatchSet, key string) (uint64, *struc
 
 func systemMetadataGetTxn(tx ReadTxn, ws memdb.WatchSet, key string) (uint64, *structs.SystemMetadataEntry, error) {
 	// Get the index
-	idx := maxIndexTxn(tx, systemMetadataTableName)
+	idx := maxIndexTxn(tx, tableSystemMetadata)
 
 	// Get the existing contents.
-	watchCh, existing, err := tx.FirstWatch(systemMetadataTableName, "id", key)
+	watchCh, existing, err := tx.FirstWatch(tableSystemMetadata, "id", key)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed system metadata lookup: %s", err)
 	}
@@ -146,9 +147,9 @@ func (s *Store) SystemMetadataList(ws memdb.WatchSet) (uint64, []*structs.System
 
 func systemMetadataListTxn(tx ReadTxn, ws memdb.WatchSet) (uint64, []*structs.SystemMetadataEntry, error) {
 	// Get the index
-	idx := maxIndexTxn(tx, systemMetadataTableName)
+	idx := maxIndexTxn(tx, tableSystemMetadata)
 
-	iter, err := tx.Get(systemMetadataTableName, "id")
+	iter, err := tx.Get(tableSystemMetadata, "id")
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed system metadata lookup: %s", err)
 	}
@@ -174,7 +175,7 @@ func (s *Store) SystemMetadataDelete(idx uint64, entry *structs.SystemMetadataEn
 
 func systemMetadataDeleteTxn(tx *txn, idx uint64, key string) error {
 	// Try to retrieve the existing system metadata.
-	existing, err := tx.First(systemMetadataTableName, "id", key)
+	existing, err := tx.First(tableSystemMetadata, "id", key)
 	if err != nil {
 		return fmt.Errorf("failed system metadata lookup: %s", err)
 	}
@@ -183,10 +184,10 @@ func systemMetadataDeleteTxn(tx *txn, idx uint64, key string) error {
 	}
 
 	// Delete the system metadata from the DB and update the index.
-	if err := tx.Delete(systemMetadataTableName, existing); err != nil {
+	if err := tx.Delete(tableSystemMetadata, existing); err != nil {
 		return fmt.Errorf("failed removing system metadata: %s", err)
 	}
-	if err := tx.Insert("index", &IndexEntry{systemMetadataTableName, idx}); err != nil {
+	if err := tx.Insert("index", &IndexEntry{tableSystemMetadata, idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 	return nil
