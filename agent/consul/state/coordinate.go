@@ -3,9 +3,10 @@ package state
 import (
 	"fmt"
 
+	"github.com/hashicorp/go-memdb"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/go-memdb"
 )
 
 // coordinatesTableSchema returns a new table schema used for storing
@@ -45,10 +46,6 @@ func coordinatesTableSchema() *memdb.TableSchema {
 			},
 		},
 	}
-}
-
-func init() {
-	registerSchema(coordinatesTableSchema)
 }
 
 // Coordinates is used to pull all the coordinates from the snapshot.

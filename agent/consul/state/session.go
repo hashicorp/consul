@@ -6,8 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 // sessionsTableSchema returns a new table schema used for storing session
@@ -127,11 +128,6 @@ func (index *CheckIDIndex) PrefixFromArgs(args ...interface{}) ([]byte, error) {
 		return val[:n-1], nil
 	}
 	return val, nil
-}
-
-func init() {
-	registerSchema(sessionsTableSchema)
-	registerSchema(sessionChecksTableSchema)
 }
 
 // Sessions is used to pull the full list of sessions for use during snapshots.

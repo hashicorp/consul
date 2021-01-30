@@ -347,11 +347,3 @@ func (index *ServiceNameIndex) PrefixFromArgs(args ...interface{}) ([]byte, erro
 	}
 	return val, nil
 }
-
-func init() {
-	registerSchema(nodesTableSchema)
-	registerSchema(servicesTableSchema)
-	registerSchema(checksTableSchema)
-	registerSchema(gatewayServicesTableSchema)
-	registerSchema(meshTopologyTableSchema)
-}

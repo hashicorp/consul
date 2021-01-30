@@ -26,9 +26,6 @@ func systemMetadataTableSchema() *memdb.TableSchema {
 		},
 	}
 }
-func init() {
-	registerSchema(systemMetadataTableSchema)
-}
 
 // SystemMetadataEntries used to pull all the system metadata entries for the snapshot.
 func (s *Snapshot) SystemMetadataEntries() ([]*structs.SystemMetadataEntry, error) {

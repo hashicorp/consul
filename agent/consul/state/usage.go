@@ -31,10 +31,6 @@ func usageTableSchema() *memdb.TableSchema {
 	}
 }
 
-func init() {
-	registerSchema(usageTableSchema)
-}
-
 // UsageEntry represents a count of some arbitrary identifier within the
 // state store, along with the last seen index.
 type UsageEntry struct {
