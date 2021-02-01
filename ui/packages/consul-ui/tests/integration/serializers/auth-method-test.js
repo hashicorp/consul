@@ -1,4 +1,4 @@
-import { module, test } from 'qunit';
+import { module, test, skip } from 'qunit';
 import { setupTest } from 'ember-qunit';
 import { get } from 'consul-ui/tests/helpers/api';
 import {
@@ -39,7 +39,7 @@ module('Integration | Serializer | auth-method', function(hooks) {
         assert.deepEqual(actual, expected);
       });
     });
-    test(`respondForQueryRecord returns the correct data for item endpoint when nspace is ${nspace}`, function(assert) {
+    skip(`respondForQueryRecord returns the correct data for item endpoint when nspace is ${nspace}`, function(assert) {
       const serializer = this.owner.lookup('serializer:auth-method');
       const request = {
         url: `/v1/acl/auth-method/${id}?dc=${dc}${
