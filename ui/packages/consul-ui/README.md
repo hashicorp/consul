@@ -144,6 +144,7 @@ URLs i.e. `javascript:Routes()`
 | Variable | Arguments | Description |
 | -------- | --------- | ----------- |
 | `Routes(url)` | url: The url to pass the DSL to, if left `undefined` just use a blank tab | Provides a way to easily print out Embers Route DSL for the application or to pass it straight to any third party utility such as ember-diagonal |
+| `Scenario(str)` | str: 'Cookie formatted' string, if left `undefined` open a new tab with a lonk to the current Scenario | Provides a way to easily save and reload scenarios of configurations via URLs or bookmarklets |
 
 ### Code Generators
 
