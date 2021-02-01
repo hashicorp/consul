@@ -1,11 +1,11 @@
 import UseCases from '@hashicorp/react-use-cases'
 import BasicHero from '../../components/basic-hero'
 import ConsulEnterpriseComparison from '../../components/enterprise-comparison/consul'
-import CloudOfferingsList from '../../components/cloud-offerings-list'
 import PrefooterCTA from '../../components/prefooter-cta'
 import LearnCallout from '../../components/learn-callout'
 import CaseStudyCarousel from '../../components/case-study-carousel'
 import ProductFeaturesList from '@hashicorp/react-product-features-list'
+import HcpCalloutSection from 'components/hcp-callout-section'
 import MiniCTA from '../../components/mini-cta'
 
 export default function HomePage() {
@@ -220,40 +220,24 @@ export default function HomePage() {
         />
       </div>
 
-      <section
-        id="cloud-offerings"
-        className="cloud-offerings g-grid-container"
-      >
-        <h2 className="g-type-display-2">
-          Learn more about Consul cloud offerings
-        </h2>
-        <CloudOfferingsList
-          offerings={[
-            {
-              image: require('./img/cloud/hcs.jpg?url'),
-              eyebrow: 'General Availability',
-              title: 'HashiCorp Consul Service on Azure',
-              description: 'Native Azure Experience',
-              link: {
-                text: 'Get Started',
-                url: 'https://learn.hashicorp.com/consul/hcs-azure/deploy',
-                type: 'outbound',
-              },
-            },
-            {
-              image: require('./img/cloud/hcp.jpg?url'),
-              eyebrow: 'General Availability',
-              title: 'HCP Consul on AWS',
-              description: 'HashiCorp Cloud Platform',
-              link: {
-                text: 'Get Started',
-                url: 'https://portal.cloud.hashicorp.com',
-                type: 'outbound',
-              },
-            },
-          ]}
-        />
-      </section>
+      <HcpCalloutSection
+        header="Learn more about Consul cloud offerings"
+        title="HCP Consul"
+        chin="Available on AWS"
+        description="A fully managed service mesh for managing connections across any application, on any platform."
+        image={require('./img/hcp-consul.svg?url')}
+        links={[
+          {
+            text: 'Learn More',
+            url: 'https://cloud.hashicorp.com/',
+          },
+          {
+            text: 'Looking for Consul Service on Azure?',
+            url: 'https://www.hashicorp.com/products/consul/service-on-azure',
+            type: 'inbound',
+          },
+        ]}
+      />
 
       <ConsulEnterpriseComparison />
       <PrefooterCTA />
