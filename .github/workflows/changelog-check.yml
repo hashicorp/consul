@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v2
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-      - name: Trigger CircleCI Load Test Pipeline
+      - name: Check for changelog entry in diff
         run: |
           # check if there is a diff in the .changelog directory
           changelog_files=$(git --no-pager diff --name-only HEAD "$(git merge-base HEAD "${{ github.event.pull_request.base.ref }}")" -- .changelog/)
