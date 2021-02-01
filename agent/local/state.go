@@ -243,7 +243,7 @@ func (l *State) serviceToken(id structs.ServiceID) string {
 		token = s.Token
 	}
 	if token == "" {
-		token = l.tokens.UserToken()
+		token = l.tokens.AgentToken()
 	}
 	return token
 }
@@ -457,7 +457,7 @@ func (l *State) checkToken(id structs.CheckID) string {
 		token = c.Token
 	}
 	if token == "" {
-		token = l.tokens.UserToken()
+		token = l.tokens.AgentToken()
 	}
 	return token
 }
