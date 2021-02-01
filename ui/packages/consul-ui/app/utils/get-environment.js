@@ -23,14 +23,14 @@ export default function(config = {}, win = window, doc = document) {
             .startsWith('CONSUL_')
         );
     };
-    window.Scenario = function(str = '') {
+    win.Scenario = function(str = '') {
       if (str.length > 0) {
         cookies(str).forEach(item => (doc.cookie = `${item};Path=/`));
         win.location.hash = '';
         location.reload();
       } else {
         str = cookies(doc.cookie).join(';');
-        const tab = window.open('', '_blank');
+        const tab = win.open('', '_blank');
         tab.document.write(
           `<body><pre>${location.href}#${str}</pre><br /><a href="javascript:Scenario('${str}')">Scenario</a></body>`
         );
@@ -41,7 +41,7 @@ export default function(config = {}, win = window, doc = document) {
       typeof win.location.hash === 'string' &&
       win.location.hash.length > 0
     ) {
-      Scenario(win.location.hash.substr(1));
+      win.Scenario(win.location.hash.substr(1));
     }
   });
   const dev = function(str = doc.cookie) {
