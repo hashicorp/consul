@@ -248,7 +248,7 @@ export default function HomePage() {
               description: 'HashiCorp Cloud Platform',
               link: {
                 text: 'Get Started',
-                url: 'https://portal.cloud.hashicorp.com',
+                url: 'https://cloud.hashicorp.com',
                 type: 'outbound',
               },
             },
