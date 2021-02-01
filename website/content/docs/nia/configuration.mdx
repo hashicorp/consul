@@ -190,15 +190,47 @@ task {
 }
 ```
 
+~> **Note**: Provider arguments configured in Consul-Terraform-Sync configuration files are written in plain text to the generated [`terraform.tfvars`](/docs/nia/network-drivers#terraform-tfvars) file for each Terraform workspace that references the provider. To exclude arguments or dynamic values from rendering to local files in plain text, use [`task_env` in addition to using dynamic configuration](#securely-configure-terraform-providers).
+
 ### Securely Configure Terraform Providers
 
-The `terraform_provider` block supports dynamically loading arguments from other sources. This can be used to securely configure your Terraform provider from the shell environment, Consul KV, or Vault. Using the template syntax below, you can avoid including sensitive values or credentials in plain text within configuration files for Consul-Terraform-Sync.
+The `terraform_provider` block supports dynamically loading arguments and the local environment from other sources. This can be used to securely configure your Terraform provider from the shell environment, Consul KV, or Vault. Using the `task_env` meta-argument and template syntax below, you can avoid exposing sensitive values or credentials in plain text within configuration files for Consul-Terraform-Sync.
 
-Template syntax is only supported within the `terraform_provider` block.
+`task_env` and the template syntax for dynamic values are only supported within the `terraform_provider` block.
 
--> **Note**: The dynamic values will be included in the [`terraform.tfvars`](/docs/nia/network-drivers#terraform-tfvars) file for each Terraform workspace that references the provider. To exclude dynamic values from rendering to local files in plain text, check out this section on how to configure [provider environment variables](#provider-environment-variables) using dynamic configuration.
+#### Provider Environment Variables
 
-#### Env
+Terraform providers may support shell environment variables as values for some of their arguments. When available, we recommend using environment variables as a way to keep credentials out of plain-text configuration files. Refer to the official provider docs hosted on the [Terraform Registry](https://registry.terraform.io/browse/providers) to find supported environment variables for a provider. By default, Consul-Terraform-Sync enables all Terraform workspaces to inherit from its environment.
+
+The `task_env` block is a meta-argument available for the `terraform_provider` block that can be used to rename or scope the available environment to a selected set of variables. Passing sensitive values as environment variables will scope the values to only the tasks that require the provider.
+
+```hcl
+terraform_provider "foo" {
+  // Direct assignment of provider arguments are rendered in plain-text within
+  // the Consul-Terraform-Sync configuration and the generated terraform.tfvars
+  // file for the corresponding Terraform workspaces.
+  // token = "<token value>"
+
+  // Instead of configuring the token argument directly for the provider,
+  // use the provider's supported environment variable for the token argument.
+  // For example,
+  // $ export FOO_TOKEN = "<token value>"
+
+  // Dynamically assign the task's environment from the shell env, Consul KV,
+  // Vault.
+  task_env {
+    "FOO_TOKEN" = "{{ env \"CTS_FOO_TOKEN\" }}"
+  }
+}
+```
+
+-> **Note**: Consul-Terraform-Sync does not prevent sensitive values from being written to Terraform state files. We recommend securing state files in addition to securely configuring Terraform providers. Options for securing state files can be set within [`driver.backend`](#backend) based on the backend used. For example, Consul KV is the default backend and can be secured with ACLs for KV path. For other backends, we recommend enabling encryption, if applicable.
+
+#### Load Dynamic Values
+
+Load dynamic values for Terraform providers with integrated template syntax.
+
+##### Env
 
 `env` reads the given environment variable accessible to Consul-Terraform-Sync.
 
@@ -220,7 +252,7 @@ terraform_provider "example" {
 
 #### Vault
 
-`with secret` queries the [Vault KV secrets engine](https://www.vaultproject.io/api-docs/secret/kv). Vault is an optional source that will require operators to configure the Vault client. Access the secret using template dot notation `Data.data.<secret_key>`.
+`with secret` queries the [Vault KV secrets engine](https://www.vaultproject.io/api-docs/secret/kv). Vault is an optional source that require operators to configure the Vault client with a [`vault` block](#vault-configuration). Access the secret using template dot notation `Data.data.<secret_key>`.
 
 ```hcl
 vault {
@@ -250,32 +282,7 @@ terraform_provider "example" {
 - `transport` - [(transport block)](#transport) Transport configures the low-level network connection details.
 - `unwrap_token` - (bool) Unwraps the provided Vault token as a wrapped token.
 
-~> Note: Vault credentials are not accessible by tasks and the associated Terraform configurations, including automated Terraform modules. If the task requires Vault, you will need to seprately configure the Vault provider and explicitly include it in the `task.providers` list.
-
-### Provider Environment Variables
-
-Terraform providers may support shell environment variables as values for some of their arguments. When available, we recommend using environment variables as a way to keep credentials out of plain-text configuration files. Refer to the official provider docs hosted on the [Terraform Registry](https://registry.terraform.io/browse/providers) to find supported environment variables for a provider. By default, Consul-Terraform-Sync enables all Terraform workspaces for each task to inherit from its environment.
-
-The `task_env` block is a meta-argument available for the `terraform_provider` block that can be used to rename or scope the available environment to a selected set of variables.
-
-```hcl
-terraform_provider "foo" {
-  // Direct assignment of provider arguments are rendered in plain-text in the
-  // generated terraform.tfvars file for the corresponding Terraform workspaces.
-  // token = "<token value>"
-
-  // Instead of configuring the token argument directly for the provider,
-  // use the provider's supported environment variable for the token argument.
-  // For example,
-  // $ export FOO_TOKEN = "<token value>"
-
-  // Alternatively, the task_env block allows you to rename the shell
-  // environment to the expected name by the provider.
-  task_env {
-    "FOO_TOKEN" = "{{ env \"CTS_FOO_TOKEN\" }}"
-  }
-}
-```
+-> Note: Vault credentials are not accessible by tasks and the associated Terraform configurations, including automated Terraform modules. If the task requires Vault, you will need to seprately configure the Vault provider and explicitly include it in the `task.providers` list.
 
 ### Multiple Provider Configurations
 
