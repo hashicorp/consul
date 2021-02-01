@@ -1,5 +1,26 @@
 ## UNRELEASED
 
+## 1.9.3 (February 01, 2021)
+
+FEATURES:
+
+* ui: Add additional search/filter status pills for viewing and removing current
+filters in listing views [[GH-9442](https://github.com/hashicorp/consul/issues/9442)]
+
+IMPROVEMENTS:
+
+* cli: Add new `-cluster-id` and `common-name` to `consul tls ca create` to support creating a CA for Consul Connect. [[GH-9585](https://github.com/hashicorp/consul/issues/9585)]
+* license: **(Enterprise only)** Temporary client license duration was increased from 30m to 6h.
+* server: **(Enterprise Only)** Validate source namespaces in service-intentions config entries. [[GH-9527](https://github.com/hashicorp/consul/issues/9527)]
+* server: use the presense of stored federation state data as a sign that we already activated the federation state feature flag [[GH-9519](https://github.com/hashicorp/consul/issues/9519)]
+
+BUG FIXES:
+
+* autopilot: Fixed a bug that would cause snapshot restoration to stop autopilot on the leader. [[GH-9626](https://github.com/hashicorp/consul/issues/9626)]
+* server: When wan federating via mesh gateways after initial federation default to using the local mesh gateways unless the heuristic indicates a bypass is required. [[GH-9528](https://github.com/hashicorp/consul/issues/9528)]
+* server: When wan federating via mesh gateways only do heuristic primary DC bypass on the leader. [[GH-9366](https://github.com/hashicorp/consul/issues/9366)]
+* ui: Fixed a bug that would cause missing or duplicate service instance healthcheck listings. [[GH-9660](https://github.com/hashicorp/consul/issues/9660)]
+
 ## 1.9.2 (January 20, 2021)
 
 FEATURES:
