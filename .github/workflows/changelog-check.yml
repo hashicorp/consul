@@ -2,6 +2,9 @@
 # here: https://securitylab.github.com/research/github-actions-preventing-pwn-requests. But
 # due to this workflow only running a git diff check and not building or publishing anything,
 # there is no harm in checking out the PR HEAD code.
+#
+# All the code checked out in this workflow should be considered untrusted. This workflow must 
+# never call any makefiles or scripts. It must never be changed to run any code from the checkout.
 on:
   pull_request_target:
     # Runs on PRs to master and all release branches
