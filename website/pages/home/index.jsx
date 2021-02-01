@@ -221,6 +221,7 @@ export default function HomePage() {
       </div>
 
       <HcpCalloutSection
+        id="cloud-offerings"
         header="Learn more about Consul cloud offerings"
         title="HCP Consul"
         chin="Available on AWS"

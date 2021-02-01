@@ -2,6 +2,7 @@ import styles from './HCPCalloutSection.module.css'
 import Button from '@hashicorp/react-button'
 
 export default function HcpCalloutSection({
+  id,
   header,
   title,
   description,
@@ -10,7 +11,7 @@ export default function HcpCalloutSection({
   links,
 }) {
   return (
-    <div className={styles.hcpCalloutSection}>
+    <div className={styles.hcpCalloutSection} id={id}>
       <div className={styles.header}>
         <h2>{header}</h2>
       </div>
