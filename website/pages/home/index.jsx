@@ -27,7 +27,7 @@ export default function HomePage() {
             type: 'download',
           },
           {
-            text: 'Learn more about Consul cloud offerings',
+            text: 'Learn about Consul cloud offerings',
             url: '/#cloud-offerings',
             type: 'inbound',
           },
@@ -93,8 +93,7 @@ export default function HomePage() {
             title: 'Secure Consul with Vault',
             category: 'Step-by-Step Tutorials',
             time: '45 mins',
-            link:
-              'https://learn.hashicorp.com/collections/consul/vault-secure',
+            link: 'https://learn.hashicorp.com/collections/consul/vault-secure',
             image: require('./img/learn/Vault.svg?url'),
           },
         ]}
