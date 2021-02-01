@@ -11,12 +11,37 @@ export default function(config = {}, win = window, doc = document) {
   // look at the hash in the URL and transfer anything after the hash into
   // cookies to enable linking of the UI with various settings enabled
   runInDebug(() => {
+    const cookies = function(str) {
+      return str
+        .split(';')
+        .map(item => item.trim())
+        .filter(item => item !== '')
+        .filter(item =>
+          item
+            .split('=')
+            .shift()
+            .startsWith('CONSUL_')
+        );
+    };
+    window.Scenario = function(str = '') {
+      if (str.length > 0) {
+        cookies(str).forEach(item => (doc.cookie = `${item};Path=/`));
+        win.location.hash = '';
+        location.reload();
+      } else {
+        str = cookies(doc.cookie).join(';');
+        const tab = window.open('', '_blank');
+        tab.document.write(
+          `<body><pre>${location.href}#${str}</pre><br /><a href="javascript:Scenario('${str}')">Scenario</a></body>`
+        );
+      }
+    };
     if (
       typeof win.location !== 'undefined' &&
       typeof win.location.hash === 'string' &&
       win.location.hash.length > 0
     ) {
-      doc.cookie = win.location.hash.substr(1);
+      Scenario(win.location.hash.substr(1));
     }
   });
   const dev = function(str = doc.cookie) {
