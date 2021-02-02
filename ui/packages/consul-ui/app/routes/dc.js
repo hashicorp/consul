@@ -24,6 +24,7 @@ const findActiveNspace = function(nspaces, nspace) {
 };
 export default class DcRoute extends Route {
   @service('repository/dc') repo;
+  @service('repository/permission') permissionsRepo;
   @service('repository/nspace/disabled') nspacesRepo;
   @service('settings') settingsRepo;
 
@@ -44,7 +45,7 @@ export default class DcRoute extends Route {
     let permissions;
     if (get(token, 'SecretID')) {
       // When disabled nspaces is [], so nspace is undefined
-      permissions = await this.nspacesRepo.authorize(params.dc, get(nspace || {}, 'Name'));
+      permissions = await this.permissionsRepo.findAll(params.dc, get(nspace || {}, 'Name'));
     }
     return {
       dc,
@@ -81,7 +82,7 @@ export default class DcRoute extends Route {
       const controller = this.controllerFor('application');
       Promise.all([
         this.nspacesRepo.findAll(),
-        this.nspacesRepo.authorize(get(controller, 'dc.Name'), get(controller, 'nspace.Name')),
+        this.permissionsRepo.findAll(get(controller, 'dc.Name'), get(controller, 'nspace.Name')),
       ]).then(([nspaces, permissions]) => {
         if (typeof controller !== 'undefined') {
           controller.setProperties({
