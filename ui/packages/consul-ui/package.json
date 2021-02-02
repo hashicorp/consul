@@ -88,6 +88,7 @@
     "d3-shape": "^2.0.0",
     "dayjs": "^1.9.3",
     "ember-auto-import": "^1.5.3",
+    "ember-can": "^3.0.0",
     "ember-changeset-conditional-validations": "^0.6.0",
     "ember-changeset-validations": "^3.9.0",
     "ember-cli": "~3.20.2",
