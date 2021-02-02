@@ -100,9 +100,11 @@ The modules listed below are availabe to use and are compatible with Consul-Terr
 
 ### How to Create a Compatible Terraform Module
 
--> **Note:** Consul-Terraform-Sync is currently in Technology Preview. Specifications in this section may change going into Beta release.
+-> **Note:** Consul-Terraform-Sync is currently in Beta. Specifications in this section may change going into the General Availability release.
 
 You can read more on how to [create a module](https://www.terraform.io/docs/modules/index.html) or work through a [tutorial to build a module](https://learn.hashicorp.com/tutorials/terraform/module-create). Consul-Terraform-Sync is designed to integrate with any module that satisfies the specifications in the following section.
+
+The repository [hashicorp/consul-terraform-sync-template-module](https://github.com/hashicorp/consul-terraform-sync-template-module) can be cloned and used as a starting point for structuring a compatible Terraform module.
 
 #### Module Specifications
 
@@ -182,7 +184,9 @@ Consider authoring modules with low complexity to reduce the run time for Terraf
 
 ##### Providers
 
-Provider configurations belong in the root module of a Terraform configuration and should not be included within the authored module for network integrations. End users will configure the providers through Consul-Terraform-Sync, and Consul-Terraform-Sync will then translate provider configuration to the generated root module appropriately.
+The Terraform module must declare which providers it requires within the [`terraform.required_providers` block](https://www.terraform.io/docs/language/providers/requirements.html#requiring-providers). We suggest to also include a version constraint for the provider to specify which versions the module is compatible with.
+
+Aside from the `required_providers` block, provider configurations should not be included within the sharable module for network integrations. End users will configure the providers through Consul-Terraform-Sync, and Consul-Terraform-Sync will then translate provider configuration to the generated root module appropriately.
 
 ##### Documentation
 
