@@ -22,7 +22,8 @@ export default function HomePage() {
           },
           {
             text: 'Try Cloud',
-            url: 'https://cloud.hashicorp.com/',
+            url:
+              'https://cloud.hashicorp.com/?utm_source=consul_io&utm_content=hero',
           },
           {
             text: 'Download CLI',
@@ -227,7 +228,8 @@ export default function HomePage() {
         links={[
           {
             text: 'Learn More',
-            url: 'https://cloud.hashicorp.com/',
+            url:
+              'https://cloud.hashicorp.com/?utm_source=consul_io&utm_content=hcp_consul_detail',
           },
           {
             text: 'Looking for Consul Service on Azure?',

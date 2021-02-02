@@ -18,7 +18,11 @@ export default function ConsulSubnav() {
         },
 
         { text: 'Download', url: '/downloads' },
-        { text: 'Try Cloud', url: 'https://cloud.hashicorp.com' },
+        {
+          text: 'Try Cloud',
+          url:
+            'https://cloud.hashicorp.com/?utm_source=consul_io&utm_content=top_nav',
+        },
       ]}
       currentPath={router.pathname}
       menuItemsAlign="right"

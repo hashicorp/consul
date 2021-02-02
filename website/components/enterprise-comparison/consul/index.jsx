@@ -27,7 +27,8 @@ export default function ConsulEnterpriseComparison() {
         links: [
           {
             text: 'View Cloud Features',
-            url: 'https://cloud.hashicorp.com',
+            url:
+              'https://cloud.hashicorp.com/?utm_source=consul_io&utm_content=ent_comparison',
             type: 'outbound',
           },
           {
