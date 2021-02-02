@@ -21,11 +21,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0 # by default the checkout action doesn't checkout all branches
       - name: Check for changelog entry in diff
         run: |
-          # by default the checkout action doesn't checkout all branches
-          git fetch origin ${{ github.event.pull_request.base.ref }}
-
           # check if there is a diff in the .changelog directory
           changelog_files=$(git --no-pager diff --name-only HEAD "$(git merge-base HEAD "${{ github.event.pull_request.base.ref }}")" -- .changelog/)
 
