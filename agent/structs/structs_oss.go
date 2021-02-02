@@ -50,7 +50,7 @@ func (m *EnterpriseMeta) NamespaceOrEmpty() string {
 	return ""
 }
 
-func EnterpriseMetaInitializer(_ string) EnterpriseMeta {
+func NewEnterpriseMeta(_ string) EnterpriseMeta {
 	return emptyEnterpriseMeta
 }
 
