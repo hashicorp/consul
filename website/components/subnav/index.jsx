@@ -6,13 +6,23 @@ export default function ConsulSubnav() {
   const router = useRouter()
   return (
     <Subnav
+      hideGithubStars={true}
       titleLink={{
         text: 'consul',
         url: '/',
       }}
       ctaLinks={[
-        { text: 'GitHub', url: 'https://www.github.com/hashicorp/consul' },
+        {
+          text: 'GitHub',
+          url: 'https://www.github.com/hashicorp/consul',
+        },
+
         { text: 'Download', url: '/downloads' },
+        {
+          text: 'Try Cloud',
+          url:
+            'https://cloud.hashicorp.com/?utm_source=consul_io&utm_content=top_nav',
+        },
       ]}
       currentPath={router.pathname}
       menuItemsAlign="right"
