@@ -224,7 +224,7 @@ terraform_provider "foo" {
 }
 ```
 
--> **Note**: Consul-Terraform-Sync does not prevent sensitive values from being written to Terraform state files. We recommend securing state files in addition to securely configuring Terraform providers. Options for securing state files can be set within [`driver.backend`](#backend) based on the backend used. For example, Consul KV is the default backend and can be secured with ACLs for KV path. For other backends, we recommend enabling encryption, if applicable.
+!> **Security note**: Consul-Terraform-Sync does not prevent sensitive values from being written to Terraform state files. We recommend securing state files in addition to securely configuring Terraform providers. Options for securing state files can be set within [`driver.backend`](#backend) based on the backend used. For example, Consul KV is the default backend and can be secured with ACLs for KV path. For other backends, we recommend enabling encryption, if applicable.
 
 #### Load Dynamic Values
 
