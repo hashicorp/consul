@@ -3,7 +3,7 @@
 # due to this workflow only running a git diff check and not building or publishing anything,
 # there is no harm in checking out the PR HEAD code.
 #
-# All the code checked out in this workflow should be considered untrusted. This workflow must 
+# All the code checked out in this workflow should be considered untrusted. This workflow must
 # never call any makefiles or scripts. It must never be changed to run any code from the checkout.
 on:
   pull_request_target:
@@ -23,6 +23,7 @@ jobs:
       - uses: actions/checkout@v2
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0 # by default the checkout action doesn't checkout all branches
       - name: Check for changelog entry in diff
         run: |
           # check if there is a diff in the .changelog directory
