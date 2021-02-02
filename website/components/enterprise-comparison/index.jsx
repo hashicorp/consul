@@ -21,12 +21,17 @@ export default function EnterpriseComparison({
             <h4 className="g-type-display-4">{itemOne.title}</h4>
 
             <p className="g-type-body">{itemOne.description}</p>
-            <Button
-              url={itemOne.link.url}
-              title={itemOne.link.text}
-              linkType={itemOne.link.type}
-              theme={{ variant: 'tertiary', brand }}
-            />
+
+            {itemOne.links.map((link) => (
+              <div key="stable">
+                <Button
+                  url={link.url}
+                  title={link.text}
+                  linkType={link.type}
+                  theme={{ variant: 'tertiary', brand }}
+                />
+              </div>
+            ))}
           </div>
           <div className="spacer">
             <div className="vertical-spacer"></div>
@@ -38,12 +43,17 @@ export default function EnterpriseComparison({
             <h4 className="g-type-display-4">{itemTwo.title}</h4>
 
             <p className="g-type-body">{itemTwo.description}</p>
-            <Button
-              url={itemTwo.link.url}
-              title={itemTwo.link.text}
-              linkType={itemTwo.link.type}
-              theme={{ variant: 'tertiary', brand }}
-            />
+            {itemTwo.links.map((link) => (
+              <div key="stable">
+                <Button
+                  key="stable"
+                  url={link.url}
+                  title={link.text}
+                  linkType={link.type}
+                  theme={{ variant: 'tertiary', brand }}
+                />
+              </div>
+            ))}
           </div>
         </div>
       </div>

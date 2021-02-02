@@ -49,16 +49,11 @@
     display: flex;
     justify-content: center;
     margin-top: 32px;
-
     & a {
-      display: flex;
-      align-items: center;
-      color: var(--gray-4);
-
-      & .icon {
-        margin-left: 8px;
-        height: 24px;
-      }
+      color: var(--gray-3);
+    }
+    & svg * {
+      stroke: var(--gray-2) !important;
     }
   }
 
