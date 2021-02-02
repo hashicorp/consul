@@ -7,8 +7,8 @@
 # never call any makefiles or scripts. It must never be changed to run any code from the checkout.
 on:
   pull_request_target:
+    types: [opened]
     # Runs on PRs to master and all release branches
-    # By default it triggers on opened, synchronize, or reopened PRs
     branches:
       - master
       - release/*
