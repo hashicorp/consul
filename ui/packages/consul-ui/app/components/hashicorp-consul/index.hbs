@@ -18,7 +18,7 @@
   {{#if @dc}}
       <ul>
     {{#let (or this.nspaces @nspaces) as |nspaces|}}
-    {{#if (and (env 'CONSUL_NSPACES_ENABLED') (gt nspaces.length 0))}}
+    {{#if (can "choose nspaces" nspaces=nspaces)}}
           <li
             class="nspaces"
             data-test-nspace-menu
@@ -52,7 +52,7 @@
                       </BlockSlot>
                     </MenuItem>
                   {{/each}}
-          {{#if this.canManageNspaces}}
+          {{#if (can 'manage nspaces')}}
                     <MenuSeparator />
                     <MenuItem
                       data-test-main-nav-nspaces
@@ -104,18 +104,27 @@
               </PopoverMenu>
 
           </li>
+{{#if (can "read services")}}
           <li data-test-main-nav-services class={{if (is-href 'dc.services' @dc.Name) 'is-active'}}>
               <a href={{href-to 'dc.services' @dc.Name}}>Services</a>
           </li>
+{{/if}}
+{{#if (can "read nodes")}}
           <li data-test-main-nav-nodes class={{if (is-href 'dc.nodes' @dc.Name) 'is-active'}}>
               <a href={{href-to 'dc.nodes' @dc.Name}}>Nodes</a>
           </li>
+{{/if}}
+{{#if (can "read kv")}}
           <li data-test-main-nav-kvs class={{if (is-href 'dc.kv' @dc.Name) 'is-active'}}>
               <a href={{href-to 'dc.kv' @dc.Name}}>Key/Value</a>
           </li>
+{{/if}}
+{{#if (can "read intentions")}}
           <li data-test-main-nav-intentions class={{if (is-href 'dc.intentions' @dc.Name) 'is-active'}}>
               <a href={{href-to 'dc.intentions' @dc.Name}}>Intentions</a>
           </li>
+{{/if}}
+{{#if (can "read acls")}}
           <li role="separator">Access Controls</li>
           <li data-test-main-nav-tokens class={{if (is-href 'dc.acls.tokens' @dc.Name) 'is-active'}}>
               <a href={{href-to 'dc.acls.tokens' @dc.Name}}>Tokens</a>
@@ -129,6 +138,7 @@
           <li data-test-main-nav-auth-methods class={{if (is-href 'dc.acls.auth-methods' @dc.Name) 'is-active'}}>
               <a href={{href-to 'dc.acls.auth-methods' @dc.Name}}>Auth Methods</a>
           </li>
+{{/if}}
       </ul>
   {{/if}}
 
@@ -175,7 +185,7 @@
           <li data-test-main-nav-settings class={{if (is-href 'settings') 'is-active'}}>
               <a href={{href-to 'settings'}}>Settings</a>
           </li>
-  {{#if (env 'CONSUL_ACLS_ENABLED')}}
+  {{#if (can 'authenticate')}}
           <li data-test-main-nav-auth>
             <AuthDialog
               @dc={{@dc.Name}}
