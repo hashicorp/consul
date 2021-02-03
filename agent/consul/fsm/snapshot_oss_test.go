@@ -5,6 +5,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/hashicorp/go-raftchunking"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -12,9 +16,6 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/go-msgpack/codec"
-	"github.com/hashicorp/go-raftchunking"
-	"github.com/stretchr/testify/require"
 )
 
 func TestFSM_SnapshotRestore_OSS(t *testing.T) {
@@ -226,8 +227,8 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		Kind: structs.ProxyDefaults,
 		Name: "global",
 	}
-	require.NoError(t, fsm.state.EnsureConfigEntry(18, serviceConfig, structs.DefaultEnterpriseMeta()))
-	require.NoError(t, fsm.state.EnsureConfigEntry(19, proxyConfig, structs.DefaultEnterpriseMeta()))
+	require.NoError(t, fsm.state.EnsureConfigEntry(18, serviceConfig))
+	require.NoError(t, fsm.state.EnsureConfigEntry(19, proxyConfig))
 
 	ingress := &structs.IngressGatewayConfigEntry{
 		Kind: structs.IngressGateway,
@@ -244,7 +245,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 			},
 		},
 	}
-	require.NoError(t, fsm.state.EnsureConfigEntry(20, ingress, structs.DefaultEnterpriseMeta()))
+	require.NoError(t, fsm.state.EnsureConfigEntry(20, ingress))
 	_, gatewayServices, err := fsm.state.GatewayServices(nil, "ingress", structs.DefaultEnterpriseMeta())
 	require.NoError(t, err)
 
@@ -416,7 +417,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 			},
 		},
 	}
-	require.NoError(t, fsm.state.EnsureConfigEntry(26, serviceIxn, structs.DefaultEnterpriseMeta()))
+	require.NoError(t, fsm.state.EnsureConfigEntry(26, serviceIxn))
 
 	// Snapshot
 	snap, err := fsm.Snapshot()

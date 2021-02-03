@@ -169,11 +169,11 @@ func configEntriesByKindTxn(tx ReadTxn, ws memdb.WatchSet, kind string, entMeta 
 }
 
 // EnsureConfigEntry is called to do an upsert of a given config entry.
-func (s *Store) EnsureConfigEntry(idx uint64, conf structs.ConfigEntry, entMeta *structs.EnterpriseMeta) error {
+func (s *Store) EnsureConfigEntry(idx uint64, conf structs.ConfigEntry) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
-	if err := ensureConfigEntryTxn(tx, idx, conf, entMeta); err != nil {
+	if err := ensureConfigEntryTxn(tx, idx, conf); err != nil {
 		return err
 	}
 
@@ -181,9 +181,9 @@ func (s *Store) EnsureConfigEntry(idx uint64, conf structs.ConfigEntry, entMeta 
 }
 
 // ensureConfigEntryTxn upserts a config entry inside of a transaction.
-func ensureConfigEntryTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry, entMeta *structs.EnterpriseMeta) error {
+func ensureConfigEntryTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry) error {
 	// Check for existing configuration.
-	existing, err := firstConfigEntryWithTxn(tx, conf.GetKind(), conf.GetName(), entMeta)
+	existing, err := firstConfigEntryWithTxn(tx, conf.GetKind(), conf.GetName(), conf.GetEnterpriseMeta())
 	if err != nil {
 		return fmt.Errorf("failed configuration lookup: %s", err)
 	}
@@ -204,7 +204,7 @@ func ensureConfigEntryTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry, ent
 	}
 	raftIndex.ModifyIndex = idx
 
-	err = validateProposedConfigEntryInGraph(tx, conf.GetKind(), conf.GetName(), conf, entMeta)
+	err = validateProposedConfigEntryInGraph(tx, conf.GetKind(), conf.GetName(), conf, conf.GetEnterpriseMeta())
 	if err != nil {
 		return err // Err is already sufficiently decorated.
 	}
@@ -217,12 +217,12 @@ func ensureConfigEntryTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry, ent
 }
 
 // EnsureConfigEntryCAS is called to do a check-and-set upsert of a given config entry.
-func (s *Store) EnsureConfigEntryCAS(idx, cidx uint64, conf structs.ConfigEntry, entMeta *structs.EnterpriseMeta) (bool, error) {
+func (s *Store) EnsureConfigEntryCAS(idx, cidx uint64, conf structs.ConfigEntry) (bool, error) {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
 	// Check for existing configuration.
-	existing, err := firstConfigEntryWithTxn(tx, conf.GetKind(), conf.GetName(), entMeta)
+	existing, err := firstConfigEntryWithTxn(tx, conf.GetKind(), conf.GetName(), conf.GetEnterpriseMeta())
 	if err != nil {
 		return false, fmt.Errorf("failed configuration lookup: %s", err)
 	}
@@ -243,7 +243,7 @@ func (s *Store) EnsureConfigEntryCAS(idx, cidx uint64, conf structs.ConfigEntry,
 		return false, nil
 	}
 
-	if err := ensureConfigEntryTxn(tx, idx, conf, entMeta); err != nil {
+	if err := ensureConfigEntryTxn(tx, idx, conf); err != nil {
 		return false, err
 	}
 
