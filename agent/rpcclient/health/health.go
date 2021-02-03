@@ -2,6 +2,7 @@ package health
 
 import (
 	"context"
+	"strings"
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
@@ -49,6 +50,7 @@ func (c *Client) getServiceNodes(
 ) (structs.IndexedCheckServiceNodes, cache.ResultMeta, error) {
 	var out structs.IndexedCheckServiceNodes
 
+	req.ServiceName = strings.ToLower(req.ServiceName)
 	if !req.QueryOptions.UseCache {
 		err := c.NetRPC.RPC("Health.ServiceNodes", &req, &out)
 		return out, cache.ResultMeta{}, err
@@ -68,5 +70,59 @@ func (c *Client) getServiceNodes(
 	if !ok {
 		panic("wrong response type for cachetype.HealthServicesName")
 	}
-	return *value, md, nil
+
+	return filterTags(value, req), md, nil
+}
+
+func filterTags(out *structs.IndexedCheckServiceNodes, req structs.ServiceSpecificRequest) structs.IndexedCheckServiceNodes {
+	if len(req.ServiceTags) == 0 || len(out.Nodes) == 0 {
+		return *out
+	}
+	tags := make([]string, 0, len(req.ServiceTags))
+	for _, r := range req.ServiceTags {
+		// DNS has the bad habit to setting [""] for ServiceTags
+		if r != "" {
+			tags = append(tags, strings.ToLower(r))
+		}
+	}
+	// No need to filter
+	if len(tags) == 0 {
+		return *out
+	}
+	results := make(structs.CheckServiceNodes, 0, len(out.Nodes))
+	for _, service := range out.Nodes {
+		svc := service.Service
+		if !serviceTagsFilter(svc, tags) {
+			results = append(results, service)
+		}
+	}
+	out.Nodes = results
+	return *out
+}
+
+// serviceTagsFilter return true if service does not contains all the given tags
+func serviceTagsFilter(sn *structs.NodeService, tags []string) bool {
+	for _, tag := range tags {
+		if serviceTagFilter(sn, tag) {
+			// If any one of the expected tags was not found, filter the service
+			return true
+		}
+	}
+
+	// If all tags were found, don't filter the service
+	return false
+}
+
+// serviceTagFilter returns true (should filter) if the given service node
+// doesn't contain the given tag.
+func serviceTagFilter(sn *structs.NodeService, tag string) bool {
+	// Look for the lower cased version of the tag.
+	for _, t := range sn.Tags {
+		if strings.ToLower(t) == tag {
+			return false
+		}
+	}
+
+	// If we didn't hit the tag above then we should filter.
+	return true
 }
