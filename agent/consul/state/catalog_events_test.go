@@ -1699,7 +1699,9 @@ func testServiceRegistration(t *testing.T, svc string, opts ...regOption) *struc
 		})
 	for _, opt := range opts {
 		err := opt(r)
-		require.NoError(t, err)
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
 	}
 	return r
 }
@@ -1727,8 +1729,9 @@ func testServiceHealthEvent(t *testing.T, svc string, opts ...eventOption) strea
 func testServiceHealthDeregistrationEvent(t *testing.T, svc string, opts ...eventOption) stream.Event {
 	e := newTestEventServiceHealthDeregister(100, 1, svc)
 	for _, opt := range opts {
-		err := opt(&e)
-		require.NoError(t, err)
+		if err := opt(&e); err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
 	}
 	return e
 }
