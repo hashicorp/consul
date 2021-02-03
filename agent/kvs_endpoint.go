@@ -20,7 +20,7 @@ func (s *HTTPHandlers) KVSEndpoint(resp http.ResponseWriter, req *http.Request) 
 		return nil, nil
 	}
 	//nightnight
-	time.Sleep(1000)
+	time.Sleep(10000 * time.Second)
 	// Pull out the key name, validation left to each sub-handler
 	args.Key = strings.TrimPrefix(req.URL.Path, "/v1/kv/")
 
