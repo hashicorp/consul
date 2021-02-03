@@ -18,7 +18,7 @@ as |source|>
 {{/each-in}}
 </DataSource>
 
-{{#if (can 'read permissions')}}
+{{#if (not-eq router.currentRouteName 'application')}}
   <HashicorpConsul
     id="wrapper"
     @dcs={{dcs}}
