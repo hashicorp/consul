@@ -1,34 +1,32 @@
 [
   {
-    "Resource": "acl",
-    "Access": "read",
-    "Allow": false
-  },
-  {
-    "Resource": "acl",
-    "Access": "write",
-    "Allow": false
-  },
-  {
-    "Resource": "operator",
-    "Access": "read",
-    "Allow": true
-  },
-  {
     "Resource": "operator",
     "Access": "write",
     "Allow": true
   },
   {
     "Resource": "service",
-    "Segment": "web",
     "Access": "read",
     "Allow": true
   },
   {
-    "Resource": "service",
-    "Segment": "web",
-    "Access": "write",
+    "Resource": "node",
+    "Access": "read",
+    "Allow": true
+  },
+  {
+    "Resource": "key",
+    "Access": "read",
+    "Allow": true
+  },
+  {
+    "Resource": "intention",
+    "Access": "read",
+    "Allow": true
+  },
+  {
+    "Resource": "acl",
+    "Access": "read",
     "Allow": true
   }
 ]
