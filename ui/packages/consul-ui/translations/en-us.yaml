@@ -138,8 +138,11 @@ components:
       search-bar:
         kind:
           name: Type
-        source:
+        locality:
           name: Source
+        options:
+            local: local
+            global: global
     kv:
       search-bar:
         kind:

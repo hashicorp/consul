@@ -91,21 +91,30 @@ as |key value|}}
         </BlockSlot>
       </search.Select>
       <search.Select
-        class="type-source"
+        class="type-locality"
         @position="left"
         @onchange={{action @filter.source.change}}
         @multiple={{true}}
       as |components|>
         <BlockSlot @name="selected">
           <span>
-            {{t "components.consul.auth-method.search-bar.source.name"}}
+            {{t "components.consul.auth-method.search-bar.locality.name"}}
           </span>
         </BlockSlot>
         <BlockSlot @name="options">
-        {{#let components.Optgroup components.Option as |Optgroup Option|}}
-          <Option class="local" @value="local" @selected={{contains 'local' @filter.types}}>Creates local tokens</Option>
-          <Option class="global" @value="global" @selected={{contains 'global' @filter.types}}>Creates global tokens</Option>
-        {{/let}}
+      {{#let components.Optgroup components.Option as |Optgroup Option|}}
+        {{#each (array "local" "global") as |option|}}
+          <Option class="{{option}}" @value={{option}} @selected={{contains option @filter.types}}>
+            Creates
+            {{t (concat "components.consul.auth-method.search-bar.locality.options." option)
+                default=(array
+                  (concat "common.brand." option)
+                )
+            }}
+            tokens
+          </Option>
+        {{/each}}
+      {{/let}}
         </BlockSlot>
       </search.Select>
     </:filter>
