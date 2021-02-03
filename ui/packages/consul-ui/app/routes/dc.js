@@ -42,11 +42,8 @@ export default class DcRoute extends Route {
     nspace =
       app.nspaces.length > 1 ? findActiveNspace(app.nspaces, nspace) : app.nspaces.firstObject;
 
-    let permissions;
-    if (get(token, 'SecretID')) {
-      // When disabled nspaces is [], so nspace is undefined
-      permissions = await this.permissionsRepo.findAll(params.dc, get(nspace || {}, 'Name'));
-    }
+    // When disabled nspaces is [], so nspace is undefined
+    const permissions = await this.permissionsRepo.findAll(params.dc, get(nspace || {}, 'Name'));
     return {
       dc,
       nspace,
