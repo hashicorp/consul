@@ -246,10 +246,17 @@ In order to enable [Prometheus](https://prometheus.io/) support, you need to use
 configuration directive
 [`prometheus_retention_time`](/docs/agent/options#telemetry-prometheus_retention_time).
 
-Note: If your metric includes labels that use the same key name multiple times
-(i.e. tag=tag2 and tag=tag1), only the sorted last value (tag=tag2) will be visible on
-this endpoint due to a display issue. The complete label set is correctly applied and
-passed to external metrics providers even though it is not visible through this endpoint.
+Since Consul 1.7.2 this endpoint will also automatically switch output format if 
+the request contains an `Accept` header with a compatible MIME type such as 
+`application/openmetrics-text`. This means that recent versions of Prometheus are able to 
+scrape _without_ the `?format` parameter and will still get the correct format results 
+simplifying scrape configuration.
+
+Note: If using the default format and your metric includes labels that use the same key 
+name multiple times (i.e. tag=tag2 and tag=tag1), only the sorted last value (tag=tag2) 
+will be visible on this endpoint due to a display issue. The complete label set is correctly 
+applied and passed to external metrics providers even though it is not visible through this 
+endpoint.
 
 | Method | Path                               | Produces                                   |
 | ------ | ---------------------------------- | ------------------------------------------ |
