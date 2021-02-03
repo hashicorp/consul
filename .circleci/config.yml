@@ -909,45 +909,55 @@ jobs:
       - run:
           name: setup TF_VARs
           command: |
-            short_ref=$(git rev-parse --short << pipeline.parameters.commit>>)
+            # if pipeline.parameters.commit="" it was not triggered/set through the API
+            # so we use the latest commit from _this_ branch. This is the case for nightly tests.
+            if [ "<< pipeline.parameters.commit >>" = "" ]; then
+              LOCAL_COMMIT_SHA=$(git rev-parse HEAD)
+            else
+              LOCAL_COMMIT_SHA="<< pipeline.parameters.commit >>"
+            fi
+            echo "export LOCAL_COMMIT_SHA=${LOCAL_COMMIT_SHA}" >> $BASH_ENV
+
+            short_ref=$(git rev-parse --short ${LOCAL_COMMIT_SHA})
             echo "export TF_VAR_ami_owners=$LOAD_TEST_AMI_OWNERS" >> $BASH_ENV
             echo "export TF_VAR_vpc_name=$short_ref" >> $BASH_ENV
             echo "export TF_VAR_cluster_name=$short_ref" >> $BASH_ENV
-            echo "export TF_VAR_consul_download_url=https://${S3_ARTIFACT_BUCKET}.s3.${AWS_DEFAULT_REGION}.amazonaws.com/${S3_ARTIFACT_PATH}/<< pipeline.parameters.commit>>.zip" >> $BASH_ENV
+            echo "export TF_VAR_consul_download_url=https://${S3_ARTIFACT_BUCKET}.s3.${AWS_DEFAULT_REGION}.amazonaws.com/${S3_ARTIFACT_PATH}/${LOCAL_COMMIT_SHA}.zip" >> $BASH_ENV
       - run:
           name: wait for dev build from test-integrations workflow
           shell: /usr/bin/env bash -euo pipefail -c
           command: |
-            echo "curl-ing https://${S3_ARTIFACT_BUCKET}.s3.${AWS_DEFAULT_REGION}.amazonaws.com/${S3_ARTIFACT_PATH}/<< pipeline.parameters.commit>>.zip"
+            echo "curl-ing https://${S3_ARTIFACT_BUCKET}.s3.${AWS_DEFAULT_REGION}.amazonaws.com/${S3_ARTIFACT_PATH}/${LOCAL_COMMIT_SHA}.zip"
             until [ $SECONDS -ge 300 ] && exit 1; do
-              curl -o /dev/null --fail --silent "https://${S3_ARTIFACT_BUCKET}.s3.${AWS_DEFAULT_REGION}.amazonaws.com/${S3_ARTIFACT_PATH}/<< pipeline.parameters.commit>>.zip" && exit
+              curl -o /dev/null --fail --silent "https://${S3_ARTIFACT_BUCKET}.s3.${AWS_DEFAULT_REGION}.amazonaws.com/${S3_ARTIFACT_PATH}/${LOCAL_COMMIT_SHA}.zip" && exit
               echo -n "."
               sleep 2
             done
       - run:
           working_directory: .circleci/terraform/load-test
           name: terraform init
+          shell: /usr/bin/env bash -euo pipefail -c
           command: |
-            source $BASH_ENV
-            echo "commit is << pipeline.parameters.commit >>"
+            echo "commit is ${LOCAL_COMMIT_SHA}"
             terraform init \
             -backend-config="bucket=${BUCKET}" \
-            -backend-config="key=<< pipeline.parameters.commit >>" \
+            -backend-config="key=${LOCAL_COMMIT_SHA}" \
             -backend-config="region=${AWS_DEFAULT_REGION}" \
             -backend-config="role_arn=${ROLE_ARN_LOAD_TEST}"
       - run:
           working_directory: .circleci/terraform/load-test
           name: run terraform apply
+          shell: /usr/bin/env bash -euo pipefail -c
           command: |
-            source $BASH_ENV
             terraform apply -auto-approve
       - run:
           working_directory: .circleci/terraform/load-test
           when: always
           name: terraform destroy
+          shell: /usr/bin/env bash -euo pipefail -c
           command: |
-            source $BASH_ENV
             terraform destroy -auto-approve
+      - run: *notify-slack-failure
 
 workflows:
   version: 2
@@ -1109,5 +1119,16 @@ workflows:
                 - master
   load-test:
     when: << pipeline.parameters.trigger-load-test >>
+    jobs:
+      - load-test
+
+  nightly-jobs:
+    triggers:
+      - schedule:
+          cron: "0 4 * * *" # 4AM UTC <> 12AM EST <> 9PM PST should have no impact
+          filters:
+            branches:
+              only:
+                - master
     jobs:
       - load-test
