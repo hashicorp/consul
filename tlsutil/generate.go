@@ -5,6 +5,7 @@ import (
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
@@ -174,6 +175,7 @@ func GenerateCert(signer crypto.Signer, ca string, sn *big.Int, name string, day
 func keyID(raw interface{}) ([]byte, error) {
 	switch raw.(type) {
 	case *ecdsa.PublicKey:
+	case *rsa.PublicKey:
 	default:
 		return nil, fmt.Errorf("invalid key type: %T", raw)
 	}
@@ -208,18 +210,7 @@ func parseCert(pemValue string) (*x509.Certificate, error) {
 // ParseSigner parses a crypto.Signer from a PEM-encoded key. The private key
 // is expected to be the first block in the PEM value.
 func ParseSigner(pemValue string) (crypto.Signer, error) {
-	// The _ result below is not an error but the remaining PEM bytes.
-	block, _ := pem.Decode([]byte(pemValue))
-	if block == nil {
-		return nil, fmt.Errorf("no PEM-encoded data found")
-	}
-
-	switch block.Type {
-	case "EC PRIVATE KEY":
-		return x509.ParseECPrivateKey(block.Bytes)
-	default:
-		return nil, fmt.Errorf("unknown PEM block type for signing key: %s", block.Type)
-	}
+	return connect.ParseSigner(pemValue)
 }
 
 func Verify(caString, certString, dns string) error {
