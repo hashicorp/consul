@@ -4,7 +4,7 @@
   margin: 24px 0;
   padding: 0;
 
-  @media (--medium) {
+  @media (--medium-up) {
     grid-template-columns: 1fr 1fr 1fr;
   }
 }
