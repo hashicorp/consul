@@ -105,13 +105,7 @@ as |key value|}}
       {{#let components.Optgroup components.Option as |Optgroup Option|}}
         {{#each (array "local" "global") as |option|}}
           <Option class="{{option}}" @value={{option}} @selected={{contains option @filter.types}}>
-            Creates
-            {{t (concat "components.consul.auth-method.search-bar.locality.options." option)
-                default=(array
-                  (concat "common.brand." option)
-                )
-            }}
-            tokens
+            {{t (concat "components.consul.auth-method.search-bar.locality.options." option)}}
           </Option>
         {{/each}}
       {{/let}}

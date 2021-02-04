@@ -140,9 +140,9 @@ components:
           name: Type
         locality:
           name: Source
-        options:
-            local: local
-            global: global
+          options:
+            local: Creates local tokens
+            global: Creates global tokens
     kv:
       search-bar:
         kind:
