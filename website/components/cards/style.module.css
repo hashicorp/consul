@@ -4,7 +4,7 @@
   margin: 24px 0;
   padding: 0;
 
-  @media only screen and (min-width: 410px) {
+  @media (--medium) {
     grid-template-columns: 1fr 1fr 1fr;
   }
 }
