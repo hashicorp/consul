@@ -4,7 +4,7 @@ import Icon from '../icon'
 import style from './introduction.module.css'
 import Modal from '../modal'
 
-function Introduction({ brand, description, speakerName, speakerTitle }) {
+function Introduction({ brand, description }) {
   const [isModalShow, setIsModalShow] = useState(false)
 
   return (
@@ -25,10 +25,12 @@ function Introduction({ brand, description, speakerName, speakerTitle }) {
         </button>
         <div className={style.content}>
           <p className="g-type-display-5 mt-zero mb-zero">
-            Introduction to HashiCorp {brand}
+            Introduction to HashiCorp Consul
           </p>
-          <p className="mt-zero mb-zero">{speakerName}</p>
-          <p className="g-type-label mt-zero mb-zero">{speakerTitle}</p>
+          <p className="mt-zero mb-zero">Armon Dadgar</p>
+          <p className="g-type-label mt-zero mb-zero">
+            HashiCorp CTO and Co-founder
+          </p>
         </div>
       </div>
     </div>
