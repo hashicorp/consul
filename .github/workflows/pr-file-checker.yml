@@ -34,7 +34,7 @@ jobs:
           if [ -z "$changelog_files" ]; then
             # post PR comment to GitHub when no .changelog entry was found on PR
             echo "changelog-check: Did not find a .changelog entry, posting a reminder in the PR"
-            github_message="🤔 Double check that this PR does not require a changelog entry in the .changelog directory. [Reference](https://github.com/hashicorp/consul/pull/8387)"
+            github_message="🤔 Double check that this PR does not require a changelog entry in the \`.changelog\` directory. [Reference](https://github.com/hashicorp/consul/pull/8387)"
             curl -f -s -H "Authorization: token ${{ secrets.PR_COMMENT_TOKEN }}" \
                 -X POST \
                 -d "{ \"body\": \"${github_message}\"}" \
@@ -63,7 +63,7 @@ jobs:
           if [ -n "$website_files" ]; then
             # post PR comment to GitHub to check if a 'type/docs-cherrypick' label needs to be applied to the PR
             echo "website-check: Did not find a 'type/docs-cherrypick' label, posting a reminder in the PR"
-            github_message="🤔 This PR has changes in the `website/` directory but does not have a `type/docs-cherrypick` label. If the changes are for the next version, this can be ignored. If they are updates to current docs, attach the label to auto cherrypick to the `stable-website` branch after merging."
+            github_message="🤔 This PR has changes in the \`website/\` directory but does not have a \`type/docs-cherrypick\` label. If the changes are for the next version, this can be ignored. If they are updates to current docs, attach the label to auto cherrypick to the \`stable-website\` branch after merging."
             curl -f -s -H "Authorization: token ${{ secrets.PR_COMMENT_TOKEN }}" \
                 -X POST \
                 -d "{ \"body\": \"${github_message}\"}" \
