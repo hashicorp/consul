@@ -1,40 +1,46 @@
 import { useState } from 'react'
-
-import Icon from '../icon'
-import style from './introduction.module.css'
+import InlineSvg from '@hashicorp/react-inline-svg'
+import svgPlay from './play.svg?include'
+import s from './introduction.module.css'
 import Modal from '../modal'
 
-function Introduction({ brand, description }) {
-  const [isModalShow, setIsModalShow] = useState(false)
+// TODO - we could rename this component's folder and module.css file to video-modal,
+// didn't want to jump the gun on that just to keep the diff clean.
+function VideoModal({ brand, videoEmbedSrc, title, presenter, presenterRole }) {
+  const [isModalShown, setIsModalShown] = useState(false)
 
   return (
-    <div>
-      <Modal show={isModalShow} close={setIsModalShow}>
+    <div
+      // Set the brand CSS variables used in the component based on the brand prop
+      // Note: we have an RFC related to theming that might be worth referencing
+      // once it has been finalized:
+      // https://app.asana.com/0/1100423001970639/1199652658988771/f
+      style={{
+        '--brand': `var(--${brand})`,
+        '--brand-l1': `var(--${brand}-l1)`,
+      }}
+    >
+      <Modal show={isModalShown} close={() => setIsModalShown(false)}>
         <iframe
-          className="video"
-          src="https://www.youtube.com/embed/mxeMdl0KvBI"
-          frameborder="0"
-          allowfullscreen
+          title={title}
+          className={s.videoIframe}
+          src={videoEmbedSrc}
+          frameBorder="0"
+          allowFullScreen
         ></iframe>
       </Modal>
-      <p className="g-type-display-3 mt-xl mb-zero">What is {brand}?</p>
-      <p className="mt-zero">{description}</p>
-      <div id="btn-play-video" className={style.video}>
-        <button className={style.button} onClick={() => setIsModalShow(true)}>
-          <Icon icon="play" />
+      <div className={s.video}>
+        <button className={s.button} onClick={() => setIsModalShown(true)}>
+          <InlineSvg src={svgPlay} />
         </button>
-        <div className={style.content}>
-          <p className="g-type-display-5 mt-zero mb-zero">
-            Introduction to HashiCorp Consul
-          </p>
-          <p className="mt-zero mb-zero">Armon Dadgar</p>
-          <p className="g-type-label mt-zero mb-zero">
-            HashiCorp CTO and Co-founder
-          </p>
+        <div className={s.content}>
+          <span className={s.title}>{title}</span>
+          <span className={s.presenter}>{presenter}</span>
+          <span className={s.presenterRole}>{presenterRole}</span>
         </div>
       </div>
     </div>
   )
 }
 
-export default Introduction
+export default VideoModal

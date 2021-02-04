@@ -8,11 +8,18 @@ import {
 import ConfigEntryReference from 'components/config-entry-reference'
 
 import Button from '@hashicorp/react-button'
-import Introduction from '../../components/introduction'
+import VideoModalCta from '../../components/introduction'
 import Card from '../../components/card'
+import Cards from '../../components/cards'
 
 const subpath = 'docs'
-const additionalComponents = { ConfigEntryReference, Button, Introduction, Card }
+const additionalComponents = {
+  ConfigEntryReference,
+  Button,
+  VideoModalCta,
+  Card,
+  Cards,
+}
 
 export default function DocsLayout(props) {
   return (

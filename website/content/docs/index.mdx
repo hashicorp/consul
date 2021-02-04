@@ -6,59 +6,73 @@ description: >-
   for all available features and options of Consul.
 ---
 
-<p className="g-type-display-2 mt-xl">Consul Documentation</p>
+# Consul Documentation
+
 <p className="g-type-body-large">
   Documentation, guides, and help topics for network operators, application
   developers, and engineers. Covers using service discovery, health checks, mTLS
   encryption, and everything you need to make the most of Consul.
 </p>
 
-<Introduction
-  brand="Consul"
-  description="Consul is a service mesh solution providing a full featured control plane with service discovery, configuration, and segmentation functionality."
+## What is Consul?
+
+Consul is a service mesh solution providing a full featured control plane with service discovery, configuration, and segmentation functionality.
+
+<VideoModalCta
+  title="Introduction to HashiCorp Consul"
+  presenter="Armon Dadgar"
+  presenterRole="HashiCorp CTO and Co-founder"
+  videoEmbedSrc="https://www.youtube.com/embed/mxeMdl0KvBI"
+  brand="consul"
 />
 
-<p className="g-type-display-4 mt-xl">Getting started with Consul</p>
-<div className="cards">
+## Getting started with Consul
+
+<Cards>
   <Card
     icon="video"
-    url="//learn.hashicorp.com/tutorials/consul/get-started-install"
+    url="https://learn.hashicorp.com/tutorials/consul/get-started-install"
     brand="consul"
+    themedCard={true}
   >
     <strong>View tutorial</strong> to use Consul on your local machine.
   </Card>
-  <Card icon="download" url="/docs/install" brand="consul">
+  <Card icon="download" url="/docs/install" brand="consul" themedCard={true}>
     <strong>Install Consul</strong> using precompiled binaries or source.
   </Card>
-</div>
+</Cards>
 
-<p className="g-type-display-4 mt-xl">Featured resources</p>
-<div className="cards mb-m">
+## Featured resources
+
+<Cards>
   <Card
-    type="Demo"
+    label="Demo"
     url="https://www.hashicorp.com/resources/connecting-apps-across-the-cloud"
+    brand="consul"
   >
     <strong>Learn how</strong> to connect apps across a multi-cloud environment
     using Consul.
   </Card>
   <Card
-    type="Customer Story"
+    label="Customer Story"
     url="https://www.hashicorp.com/case-studies/mercedes"
+    brand="consul"
   >
     <strong>Read how</strong> Mercedes-Benz deployed Consul for service
     networking.
   </Card>
   <Card
-    type="Certification"
+    label="Certification"
     url="https://www.hashicorp.com/certification/consul-associate"
+    brand="consul"
   >
     <strong>Become certified</strong> with HashiCorp Networking Automation
     Certification.
   </Card>
-</div>
+</Cards>
 
 <Button
-  title="View all Consul recources"
+  title="View all Consul resources"
   url="https://www.hashicorp.com/resources?product=Consul&language=English"
   linkType="inbound"
   theme={{

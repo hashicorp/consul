@@ -2,6 +2,38 @@
   display: grid;
   grid-template-rows: 80px auto;
   gap: 0;
+
+  @media only screen and (min-width: 410px) {
+    grid-template-columns: 80px auto;
+    column-gap: 24px;
+  }
+}
+
+.videoIframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.title {
+  display: block;
+  composes: g-type-display-5 from global;
+  margin: 0;
+}
+
+.presenter {
+  display: block;
+  margin: 0;
+}
+
+.presenterRole {
+  display: block;
+  composes: g-type-label from global;
+  margin: 0;
+  color: var(--gray-4);
 }
 
 .button {
@@ -11,22 +43,13 @@
   width: 80px;
   height: 80px;
   border-radius: 3px;
-  background-color: #ca2171;
+  background-color: var(--brand);
   border: none;
   cursor: pointer;
   transition: background-color 0.3s ease;
   outline: none;
 
   &:hover {
-    /* Products/Consul L1 */
-    background-color: #e07eac;
-  }
-}
-
-@media only screen and (min-width: 410px) {
-  .video {
-    display: grid;
-    grid-template-columns: 80px auto;
-    column-gap: 24px;
+    background-color: var(--brand-l1);
   }
 }

@@ -2,40 +2,43 @@
   display: inline-block;
   margin: 0;
   padding: 16px 20px;
-  border: 1px solid #dcdde0;
+  border: 1px solid var(--border-color);
+  background-color: var(--background-color);
   border-radius: 3px;
   color: black;
-  transition: transform 0.15s linear;
+  transition: all 0.15s linear;
   hyphens: auto;
+
+  &:hover {
+    box-shadow: 0 8px 12px rgba(37, 38, 45, 0.08);
+    transform: translateY(-2px);
+  }
 }
 
-.card[data-brand='consul'] {
-  border: 1px solid #f8d9e7;
-  background-color: #fff2f8;
-}
+.icon {
+  margin-bottom: 20px;
 
-.card p.g-type-label.mt-zero.mb-zero {
-  color: var(--gray-4) !important;
-  background-color: yellow;
+  & > svg {
+    display: block;
+
+    & [stroke] {
+      stroke: var(--brand);
+    }
+  }
 }
 
 .label {
-  margin: 0 !important;
-  font-family: Gilmer, sans-serif;
-  font-style: normal;
-  font-weight: 500;
-  font-size: 12px;
-  line-height: 18px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: #76767d;
+  composes: g-type-label from global;
+  display: block;
+  margin-bottom: 8px;
+  color: var(--gray-4);
 }
 
-.card p strong {
-  color: var(--consul);
-}
+.cardContent {
+  composes: g-type-body-small-strong from global;
+  display: block;
 
-.card:hover {
-  box-shadow: 0 8px 12px rgba(37, 38, 45, 0.08);
-  transform: translateY(-2px);
+  & > strong {
+    color: var(--brand-text);
+  }
 }
