@@ -42,6 +42,7 @@
       @onsubmit={{if (eq parent.Key '/') (transition-to 'dc.kv.index') (transition-to 'dc.kv.folder' parent.Key)}}
       @parent={{parent}}
     />
+  {{! we only have session data if you have read perms}}
   {{#if session}}
     <Consul::LockSession::Form
       @item={{session}}

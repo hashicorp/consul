@@ -11,8 +11,11 @@
   as |api|
 >
   <BlockSlot @name="content">
+{{#let (cannot 'write kv' item=api.data) as |disabld|}}
     <form onsubmit={{action api.submit}}>
-      <fieldset disabled={{api.disabled}}>
+      <fieldset
+        {{disabled (or disabld api.disabled)}}
+      >
 {{#if api.isCreate}}
         <label class="type-text{{if api.data.error.Key ' has-error'}}">
             <span>Key or folder</span>
@@ -24,27 +27,47 @@
         <div>
             <div class="type-toggle">
               <label>
-                  <input type="checkbox" name="json" checked={{if json 'checked'}} onchange={{action api.change}} />
+                  <input
+                    type="checkbox"
+                    name="json"
+                    {{disabled false}}
+                    checked={{if json 'checked'}}
+                    onchange={{action api.change}}
+                  />
                   <span>Code</span>
               </label>
             </div>
             <label for="" class="type-text{{if api.data.error.Value ' has-error'}}">
                 <span>Value</span>
 {{#if json}}
-                <CodeEditor @name="value" @value={{atob api.data.Value}} @onkeyup={{action api.change "value"}} />
+                <CodeEditor
+                  @name="value"
+                  @readonly={{or disabld api.disabled}}
+                  @value={{atob api.data.Value}}
+                  @onkeyup={{action api.change "value"}}
+                />
 {{else}}
-                <textarea autofocus={{not api.isCreate}} name="value" oninput={{action api.change}}>{{atob api.data.Value}}</textarea>
+                <textarea
+                  {{disabled (or disabld api.disabled)}}
+                  autofocus={{not api.isCreate}}
+                  name="value"
+                  oninput={{action api.change}}>{{atob api.data.Value}}</textarea>
 {{/if}}
             </label>
         </div>
 {{/if}}
     </fieldset>
     {{#if api.isCreate}}
+{{#if (not disabld)}}
         <button type="submit" disabled={{or api.data.isPristine api.data.isInvalid api.disabled}}>Save</button>
+{{/if}}
         <button type="reset" onclick={{action oncancel api.data}} disabled={{api.disabled}}>Cancel</button>
     {{else}}
+{{#if (not disabld)}}
         <button type="submit" disabled={{or api.data.isInvalid api.disabled}}>Save</button>
+{{/if}}
         <button type="reset" onclick={{action oncancel api.data}} disabled={{api.disabled}}>Cancel</button>
+{{#if (not disabld)}}
         <ConfirmationDialog @message="Are you sure you want to delete this key?">
           <BlockSlot @name="action" as |confirm|>
             <button data-test-delete type="button" class="type-delete" {{action confirm api.delete}} disabled={{api.disabled}}>Delete</button>
@@ -54,6 +77,8 @@
           </BlockSlot>
         </ConfirmationDialog>
     {{/if}}
+{{/if}}
       </form>
+{{/let}}
     </BlockSlot>
 </DataForm>

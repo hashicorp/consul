@@ -5,10 +5,13 @@
     background-color: $white;
     padding: 1px 1px;
     &:hover {
-      cursor:pointer;
+      cursor: pointer;
     }
     &:active, &:focus {
       outline: none;
+    }
+    &:disabled {
+      cursor: default;
     }
   }
   &.deny .informed-action header::before {

@@ -50,6 +50,7 @@
       </dd>
     </dl>
   </BlockSlot>
+{{#if (can "delete sessions")}}
   <BlockSlot @name="actions">
     <ConfirmationDialog @message="Are you sure you want to invalidate this session?">
       <BlockSlot @name="action" as |confirm|>
@@ -70,5 +71,6 @@
       </BlockSlot>
     </ConfirmationDialog>
   </BlockSlot>
+{{/if}}
 </ListCollection>
 {{/if}}
