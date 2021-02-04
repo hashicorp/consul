@@ -1,4 +1,5 @@
-import Icon from '../icon'
+import InlineSvg from '@hashicorp/react-inline-svg'
+import svgCloseRefined from './close-refined.svg?include'
 import s from './modal.module.css'
 
 function Modal({ show, close, children }) {
@@ -10,7 +11,7 @@ function Modal({ show, close, children }) {
         <div className={s.grid}>
           <div className={s.contents}>{children}</div>
           <button className={s.close} onClick={() => close(false)}>
-            <Icon icon="closeRefined" />
+            <InlineSvg src={svgCloseRefined} />
           </button>
         </div>
       </div>

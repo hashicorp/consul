@@ -1,66 +1,8 @@
-/* hack to fix overflow scrollbar issue */
+/*
+hack to fix overflow scrollbar issue,
+we should move this to @hashicorp/react-docs-page:
+https://github.com/hashicorp/react-components/blob/9618f185141dcfaf4c0ee80828f2f7a65a685289/packages/docs-page/style.css#L19
+*/
 #__next #p-docs #inner {
   overflow: unset;
-}
-
-div.cards {
-  display: grid;
-  gap: 24px;
-  margin: 0;
-  padding: 0;
-  @media only screen and (min-width: 410px) {
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 24px;
-  }
-}
-
-div.card p.label {
-  margin-bottom: 1em !important;
-  color: var(--gray-4);
-}
-
-p.g-type-display-4.mt-xl {
-  margin-top: 2em !important;
-}
-
-hr.short {
-  margin: 3em 0;
-  width: 2em;
-  height: 4px;
-  color: #bdbec2;
-  background-color: #bdbec2;
-}
-
-.note {
-  /* font-style: italic; */
-  color: #f0f;
-}
-
-.mt-zero {
-  margin-top: 0 !important;
-}
-
-.mt-s {
-  margin-top: 8px !important;
-}
-
-.mb-m {
-  margin-bottom: 12px !important;
-}
-
-.mt-xl {
-  margin-top: 48px !important;
-}
-
-.mb-zero {
-  margin-bottom: 0 !important;
-}
-
-.video {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  border: 0;
 }
