@@ -14,23 +14,27 @@ export default class BaseAbility extends Ability {
     return this.permissions.generate(this.resource, action);
   }
 
-  get canCreate() {
-    return this.permissions.has(this.generate(ACCESS_WRITE));
-  }
-
-  get canDelete() {
-    return this.permissions.has(this.generate(ACCESS_WRITE));
-  }
-
   get canRead() {
     return this.permissions.has(this.generate(ACCESS_READ));
   }
 
   get canList() {
-    return this.permissions.has(this.generate(ACCESS_LIST));
+    return this.canRead;
+  }
+
+  get canWrite() {
+    return this.permissions.has(this.generate(ACCESS_WRITE));
+  }
+
+  get canCreate() {
+    return this.canWrite;
+  }
+
+  get canDelete() {
+    return this.canWrite;
   }
 
   get canUpdate() {
-    return this.permissions.has(this.generate(ACCESS_WRITE));
+    return this.canWrite;
   }
 }
