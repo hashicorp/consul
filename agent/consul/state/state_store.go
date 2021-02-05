@@ -134,12 +134,6 @@ type Restore struct {
 	tx    *txn
 }
 
-// IndexEntry keeps a record of the last index per-table.
-type IndexEntry struct {
-	Key   string
-	Value uint64
-}
-
 // sessionCheck is used to create a many-to-one table such that
 // each check registered by a session can be mapped back to the
 // session table. This is only used internally in the state

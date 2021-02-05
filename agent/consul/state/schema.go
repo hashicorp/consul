@@ -52,8 +52,19 @@ func addTableSchemas(db *memdb.DBSchema, schemas ...func() *memdb.TableSchema) {
 	}
 }
 
-// indexTableSchema returns a new table schema used for tracking various indexes
-// for the Raft log.
+// IndexEntry keeps a record of the last index of a table or entity within a table.
+type IndexEntry struct {
+	Key   string
+	Value uint64
+}
+
+// indexTableSchema returns a new table schema used for tracking various the
+// latest raft index for a table or entities within a table.
+//
+// The index table is necessary for tables that do not use tombstones. If the latest
+// items in the table are deleted, the max index of a table would appear to go
+// backwards. With the index table we can keep track of the latest update to a
+// table, even when that update is a delete of the most recent item.
 func indexTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: "index",
