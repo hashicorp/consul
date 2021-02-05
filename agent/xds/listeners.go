@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/url"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -190,8 +191,12 @@ func (s *Server) listenersFromSnapshotMeshGateway(cInfo connectionInfo, cfgSnap 
 		s.Logger.Warn("failed to parse Connect.Proxy.Config", "error", err)
 	}
 
-	// TODO - prevent invalid configurations of binding to the same port/addr
-	//        twice including with the any addresses
+	// We'll collect all of the desired listeners first, and deduplicate them later.
+	type namedAddress struct {
+		name string
+		structs.ServiceAddress
+	}
+	addrs := make([]namedAddress, 0)
 
 	var resources []proto.Message
 	if !cfg.NoDefaultBind {
@@ -200,25 +205,50 @@ func (s *Server) listenersFromSnapshotMeshGateway(cInfo connectionInfo, cfgSnap 
 			addr = "0.0.0.0"
 		}
 
-		l, err := s.makeGatewayListener("default", addr, cfgSnap.Port, cfgSnap)
-		if err != nil {
-			return nil, err
+		a := structs.ServiceAddress{
+			Address: addr,
+			Port:    cfgSnap.Port,
 		}
-		resources = append(resources, l)
+		addrs = append(addrs, namedAddress{name: "default", ServiceAddress: a})
 	}
 
 	if cfg.BindTaggedAddresses {
 		for name, addrCfg := range cfgSnap.TaggedAddresses {
-			l, err := s.makeGatewayListener(name, addrCfg.Address, addrCfg.Port, cfgSnap)
-			if err != nil {
-				return nil, err
+			a := structs.ServiceAddress{
+				Address: addrCfg.Address,
+				Port:    addrCfg.Port,
 			}
-			resources = append(resources, l)
+			addrs = append(addrs, namedAddress{name: name, ServiceAddress: a})
 		}
 	}
 
 	for name, addrCfg := range cfg.BindAddresses {
-		l, err := s.makeGatewayListener(name, addrCfg.Address, addrCfg.Port, cfgSnap)
+		a := structs.ServiceAddress{
+			Address: addrCfg.Address,
+			Port:    addrCfg.Port,
+		}
+		addrs = append(addrs, namedAddress{name: name, ServiceAddress: a})
+	}
+
+	// Prevent invalid configurations of binding to the same port/addr twice
+	// including with the any addresses
+	//
+	// Sort the list and then if two items share a service address, take the
+	// first one to ensure we generate one listener per address and it's
+	// stable.
+	sort.Slice(addrs, func(i, j int) bool {
+		return addrs[i].name < addrs[j].name
+	})
+
+	// Make listeners and deduplicate on the fly.
+	seen := make(map[structs.ServiceAddress]bool)
+	for _, a := range addrs {
+		if seen[a.ServiceAddress] {
+			continue
+		}
+		seen[a.ServiceAddress] = true
+
+		l, err := s.makeGatewayListener(a.name, a.Address, a.Port, cfgSnap)
 		if err != nil {
 			return nil, err
 		}
