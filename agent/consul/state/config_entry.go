@@ -74,10 +74,6 @@ func (s *ConfigEntryLinkIndex) PrefixFromArgs(args ...interface{}) ([]byte, erro
 	return val, nil
 }
 
-func init() {
-	registerSchema(configTableSchema)
-}
-
 // ConfigEntries is used to pull all the config entries for the snapshot.
 func (s *Snapshot) ConfigEntries() ([]structs.ConfigEntry, error) {
 	entries, err := s.tx.Get(tableConfigEntries, "id")

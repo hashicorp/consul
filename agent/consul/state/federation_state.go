@@ -27,10 +27,6 @@ func federationStateTableSchema() *memdb.TableSchema {
 	}
 }
 
-func init() {
-	registerSchema(federationStateTableSchema)
-}
-
 // FederationStates is used to pull all the federation states for the snapshot.
 func (s *Snapshot) FederationStates() ([]*structs.FederationState, error) {
 	configs, err := s.tx.Get(tableFederationStates, "id")

@@ -73,12 +73,6 @@ func caRootTableSchema() *memdb.TableSchema {
 	}
 }
 
-func init() {
-	registerSchema(caBuiltinProviderTableSchema)
-	registerSchema(caConfigTableSchema)
-	registerSchema(caRootTableSchema)
-}
-
 // CAConfig is used to pull the CA config from the snapshot.
 func (s *Snapshot) CAConfig() (*structs.CAConfiguration, error) {
 	c, err := s.tx.First(tableConnectCAConfig, "id")

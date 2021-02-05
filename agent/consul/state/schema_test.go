@@ -15,7 +15,7 @@ import (
 )
 
 func TestStateStoreSchema(t *testing.T) {
-	schema := stateStoreSchema()
+	schema := newDBSchema()
 	require.NoError(t, schema.Validate())
 
 	_, err := memdb.NewMemDB(schema)

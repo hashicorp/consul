@@ -95,10 +95,6 @@ func intentionsTableSchema() *memdb.TableSchema {
 	}
 }
 
-func init() {
-	registerSchema(intentionsTableSchema)
-}
-
 // LegacyIntentions is used to pull all the intentions from the snapshot.
 //
 // Deprecated: service-intentions config entries are handled as config entries
