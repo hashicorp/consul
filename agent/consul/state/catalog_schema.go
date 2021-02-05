@@ -30,8 +30,8 @@ func nodesTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: tableNodes,
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": {
-				Name:         "id",
+			indexID: {
+				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
 				Indexer: &memdb.StringFieldIndex{
@@ -211,8 +211,8 @@ func gatewayServicesTableNameSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: gatewayServicesTableName,
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": {
-				Name:         "id",
+			indexID: {
+				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
 				Indexer: &memdb.CompoundIndex{
@@ -255,8 +255,8 @@ func topologyTableNameSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: topologyTableName,
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": {
-				Name:         "id",
+			indexID: {
+				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
 				Indexer: &memdb.CompoundIndex{
