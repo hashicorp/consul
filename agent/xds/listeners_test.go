@@ -418,14 +418,14 @@ func TestListenersFromSnapshot(t *testing.T) {
 					"envoy_gateway_no_default_bind":       true,
 					"envoy_gateway_bind_tagged_addresses": true,
 					"envoy_gateway_bind_addresses": map[string]structs.ServiceAddress{
+						// This bind address should not get a listener due to deduplication and it sorts to the end
+						"z-duplicate-of-tagged-wan-addr": {
+							Address: "198.18.0.1",
+							Port:    443,
+						},
 						"foo": {
 							Address: "198.17.2.3",
 							Port:    8080,
-						},
-						// This bind address should not get a listener due to deduplication
-						"duplicate-of-tagged-wan-addr": {
-							Address: "198.18.0.1",
-							Port:    443,
 						},
 					},
 				}
