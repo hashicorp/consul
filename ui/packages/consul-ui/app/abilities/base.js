@@ -19,7 +19,7 @@ export default class BaseAbility extends Ability {
   }
 
   get canList() {
-    return this.canRead;
+    return this.permissions.has(this.generate(ACCESS_LIST));
   }
 
   get canWrite() {
