@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/url"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -198,13 +199,11 @@ func (s *Server) listenersFromSnapshotGateway(cInfo connectionInfo, cfgSnap *pro
 		s.Logger.Warn("failed to parse Connect.Proxy.Config", "error", err)
 	}
 
-	// Prevent invalid configurations of binding to the same port/addr twice
-	// including with the any addresses
+	// We'll collect all of the desired listeners first, and deduplicate them later.
 	type namedAddress struct {
 		name string
 		structs.ServiceAddress
 	}
-	seen := make(map[structs.ServiceAddress]bool)
 	addrs := make([]namedAddress, 0)
 
 	var resources []proto.Message
@@ -218,10 +217,7 @@ func (s *Server) listenersFromSnapshotGateway(cInfo connectionInfo, cfgSnap *pro
 			Address: addr,
 			Port:    cfgSnap.Port,
 		}
-		if !seen[a] {
-			addrs = append(addrs, namedAddress{name: "default", ServiceAddress: a})
-			seen[a] = true
-		}
+		addrs = append(addrs, namedAddress{name: "default", ServiceAddress: a})
 	}
 
 	if cfg.BindTaggedAddresses {
@@ -230,10 +226,7 @@ func (s *Server) listenersFromSnapshotGateway(cInfo connectionInfo, cfgSnap *pro
 				Address: addrCfg.Address,
 				Port:    addrCfg.Port,
 			}
-			if !seen[a] {
-				addrs = append(addrs, namedAddress{name: name, ServiceAddress: a})
-				seen[a] = true
-			}
+			addrs = append(addrs, namedAddress{name: name, ServiceAddress: a})
 		}
 	}
 
@@ -242,14 +235,27 @@ func (s *Server) listenersFromSnapshotGateway(cInfo connectionInfo, cfgSnap *pro
 			Address: addrCfg.Address,
 			Port:    addrCfg.Port,
 		}
-		if !seen[a] {
-			addrs = append(addrs, namedAddress{name: name, ServiceAddress: a})
-			seen[a] = true
-		}
+		addrs = append(addrs, namedAddress{name: name, ServiceAddress: a})
 	}
 
-	// Make listeners once deduplicated
+	// Prevent invalid configurations of binding to the same port/addr twice
+	// including with the any addresses
+	//
+	// Sort the list and then if two items share a service address, take the
+	// first one to ensure we generate one listener per address and it's
+	// stable.
+	sort.Slice(addrs, func(i, j int) bool {
+		return addrs[i].name < addrs[j].name
+	})
+
+	// Make listeners and deduplicate on the fly.
+	seen := make(map[structs.ServiceAddress]bool)
 	for _, a := range addrs {
+		if seen[a.ServiceAddress] {
+			continue
+		}
+		seen[a.ServiceAddress] = true
+
 		var l *envoy.Listener
 
 		switch cfgSnap.Kind {
