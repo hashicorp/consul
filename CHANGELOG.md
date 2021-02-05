@@ -12,7 +12,7 @@ IMPROVEMENTS:
 * cli: Add new `-cluster-id` and `common-name` to `consul tls ca create` to support creating a CA for Consul Connect. [[GH-9585](https://github.com/hashicorp/consul/issues/9585)]
 * license: **(Enterprise only)** Temporary client license duration was increased from 30m to 6h.
 * server: **(Enterprise Only)** Validate source namespaces in service-intentions config entries. [[GH-9527](https://github.com/hashicorp/consul/issues/9527)]
-* server: use the presense of stored federation state data as a sign that we already activated the federation state feature flag [[GH-9519](https://github.com/hashicorp/consul/issues/9519)]
+* server: use the presence of stored federation state data as a sign that we already activated the federation state feature flag [[GH-9519](https://github.com/hashicorp/consul/issues/9519)]
 
 BUG FIXES:
 
