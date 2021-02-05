@@ -583,8 +583,6 @@ func (s *state) initialConfigSnapshot() ConfigSnapshot {
 }
 
 func (s *state) run() {
-	logger := s.logger.Named(logging.ProxyConfig)
-
 	// Close the channel we return from Watch when we stop so consumers can stop
 	// watching and clean up their goroutines. It's important we do this here and
 	// not in Close since this routine sends on this chan and so might panic if it
@@ -605,12 +603,10 @@ func (s *state) run() {
 		case <-s.ctx.Done():
 			return
 		case u := <-s.ch:
-			logger.Trace("A blocking query returned; handling snapshot update",
-				"proxy-id", s.proxyID.String(),
-			)
+			s.logger.Trace("A blocking query returned; handling snapshot update")
 
 			if err := s.handleUpdate(u, &snap); err != nil {
-				logger.Error("Failed to handle update from watch",
+				s.logger.Error("Failed to handle update from watch",
 					"id", u.CorrelationID, "error", err,
 				)
 				continue
@@ -621,8 +617,8 @@ func (s *state) run() {
 			// etc on future updates.
 			snapCopy, err := snap.Clone()
 			if err != nil {
-				logger.Error("Failed to copy config snapshot for proxy",
-					"proxy-id", s.proxyID.String(), "error", err,
+				s.logger.Error("Failed to copy config snapshot for proxy",
+					"error", err,
 				)
 				continue
 			}
@@ -630,15 +626,11 @@ func (s *state) run() {
 			select {
 			// try to send
 			case s.snapCh <- *snapCopy:
-				logger.Trace("Delivered new snapshot to proxy config watchers",
-					"proxy-id", s.proxyID.String(),
-				)
+				s.logger.Trace("Delivered new snapshot to proxy config watchers")
 
 			// avoid blocking if a snapshot is already buffered
 			default:
-				logger.Trace("Failed to deliver new snapshot to proxy config watchers",
-					"proxy-id", s.proxyID.String(),
-				)
+				s.logger.Trace("Failed to deliver new snapshot to proxy config watchers")
 			}
 
 			// Allow the next change to trigger a send
@@ -649,25 +641,21 @@ func (s *state) run() {
 			continue
 
 		case replyCh := <-s.reqCh:
-			logger.Trace("A proxy config snapshot was requested",
-				"proxy-id", s.proxyID.String(),
-			)
+			s.logger.Trace("A proxy config snapshot was requested")
 
 			if !snap.Valid() {
 				// Not valid yet just respond with nil and move on to next task.
 				replyCh <- nil
 
-				logger.Trace("The proxy's config snapshot is not valid yet",
-					"proxy-id", s.proxyID.String(),
-				)
+				s.logger.Trace("The proxy's config snapshot is not valid yet")
 				continue
 			}
 			// Make a deep copy of snap so we don't mutate any of the embedded structs
 			// etc on future updates.
 			snapCopy, err := snap.Clone()
 			if err != nil {
-				logger.Error("Failed to copy config snapshot for proxy",
-					"proxy-id", s.proxyID.String(), "error", err,
+				s.logger.Error("Failed to copy config snapshot for proxy",
+					"error", err,
 				)
 				continue
 			}
