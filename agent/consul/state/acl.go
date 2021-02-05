@@ -285,7 +285,7 @@ func (s *Store) ACLBootstrap(idx, resetIndex uint64, token *structs.ACLToken, le
 	defer tx.Abort()
 
 	// We must have initialized before this will ever be possible.
-	existing, err := tx.First("index", "id", "acl-token-bootstrap")
+	existing, err := tx.First(tableIndex, indexID, "acl-token-bootstrap")
 	if err != nil {
 		return fmt.Errorf("bootstrap check failed: %v", err)
 	}
@@ -300,7 +300,7 @@ func (s *Store) ACLBootstrap(idx, resetIndex uint64, token *structs.ACLToken, le
 	if err := aclTokenSetTxn(tx, idx, token, ACLTokenSetOptions{Legacy: legacy}); err != nil {
 		return fmt.Errorf("failed inserting bootstrap token: %v", err)
 	}
-	if err := tx.Insert("index", &IndexEntry{"acl-token-bootstrap", idx}); err != nil {
+	if err := tx.Insert(tableIndex, &IndexEntry{"acl-token-bootstrap", idx}); err != nil {
 		return fmt.Errorf("failed to mark ACL bootstrapping as complete: %v", err)
 	}
 	return tx.Commit()
@@ -311,7 +311,7 @@ func (s *Store) CanBootstrapACLToken() (bool, uint64, error) {
 	tx := s.db.Txn(false)
 
 	// Lookup the bootstrap sentinel
-	out, err := tx.First("index", "id", "acl-token-bootstrap")
+	out, err := tx.First(tableIndex, indexID, "acl-token-bootstrap")
 	if err != nil {
 		return false, 0, err
 	}

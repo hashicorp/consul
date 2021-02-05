@@ -58,6 +58,8 @@ type IndexEntry struct {
 	Value uint64
 }
 
+const tableIndex = "index"
+
 // indexTableSchema returns a new table schema used for tracking various the
 // latest raft index for a table or entities within a table.
 //
@@ -67,10 +69,10 @@ type IndexEntry struct {
 // table, even when that update is a delete of the most recent item.
 func indexTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
-		Name: "index",
+		Name: tableIndex,
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": {
-				Name:         "id",
+			indexID: {
+				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
 				Indexer: &memdb.StringFieldIndex{
