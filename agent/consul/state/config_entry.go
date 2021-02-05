@@ -12,10 +12,6 @@ import (
 	"github.com/hashicorp/consul/lib"
 )
 
-const (
-	configTableName = "config-entries"
-)
-
 type ConfigEntryLinkIndex struct {
 }
 
@@ -84,7 +80,7 @@ func init() {
 
 // ConfigEntries is used to pull all the config entries for the snapshot.
 func (s *Snapshot) ConfigEntries() ([]structs.ConfigEntry, error) {
-	entries, err := s.tx.Get(configTableName, "id")
+	entries, err := s.tx.Get(tableConfigEntries, "id")
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +107,7 @@ func (s *Store) ConfigEntry(ws memdb.WatchSet, kind, name string, entMeta *struc
 
 func configEntryTxn(tx ReadTxn, ws memdb.WatchSet, kind, name string, entMeta *structs.EnterpriseMeta) (uint64, structs.ConfigEntry, error) {
 	// Get the index
-	idx := maxIndexTxn(tx, configTableName)
+	idx := maxIndexTxn(tx, tableConfigEntries)
 
 	// Get the existing config entry.
 	watchCh, existing, err := firstWatchConfigEntryWithTxn(tx, kind, name, entMeta)
@@ -146,7 +142,7 @@ func (s *Store) ConfigEntriesByKind(ws memdb.WatchSet, kind string, entMeta *str
 
 func configEntriesByKindTxn(tx ReadTxn, ws memdb.WatchSet, kind string, entMeta *structs.EnterpriseMeta) (uint64, []structs.ConfigEntry, error) {
 	// Get the index and watch for updates
-	idx := maxIndexWatchTxn(tx, ws, configTableName)
+	idx := maxIndexWatchTxn(tx, ws, tableConfigEntries)
 
 	// Lookup by kind, or all if kind is empty
 	var iter memdb.ResultIterator
@@ -300,10 +296,10 @@ func deleteConfigEntryTxn(tx WriteTxn, idx uint64, kind, name string, entMeta *s
 	}
 
 	// Delete the config entry from the DB and update the index.
-	if err := tx.Delete(configTableName, existing); err != nil {
+	if err := tx.Delete(tableConfigEntries, existing); err != nil {
 		return fmt.Errorf("failed removing config entry: %s", err)
 	}
-	if err := tx.Insert("index", &IndexEntry{configTableName, idx}); err != nil {
+	if err := tx.Insert("index", &IndexEntry{tableConfigEntries, idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
@@ -324,10 +320,10 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 	}
 
 	// Insert the config entry and update the index
-	if err := tx.Insert(configTableName, conf); err != nil {
+	if err := tx.Insert(tableConfigEntries, conf); err != nil {
 		return fmt.Errorf("failed inserting config entry: %s", err)
 	}
-	if err := indexUpdateMaxTxn(tx, idx, configTableName); err != nil {
+	if err := indexUpdateMaxTxn(tx, idx, tableConfigEntries); err != nil {
 		return fmt.Errorf("failed updating index: %v", err)
 	}
 
@@ -433,7 +429,7 @@ func (s *Store) discoveryChainSourcesTxn(tx ReadTxn, ws memdb.WatchSet, dc strin
 	queue := []structs.ServiceName{destination}
 	for len(queue) > 0 {
 		// The "link" index returns config entries that reference a service
-		iter, err := tx.Get(configTableName, "link", queue[0].ToServiceID())
+		iter, err := tx.Get(tableConfigEntries, "link", queue[0].ToServiceID())
 		if err != nil {
 			return 0, nil, err
 		}
@@ -605,7 +601,7 @@ func validateProposedConfigEntryInServiceGraph(
 		sid := structs.NewServiceID(name, entMeta)
 		checkChains[sid] = struct{}{}
 
-		iter, err := tx.Get(configTableName, "link", sid)
+		iter, err := tx.Get(tableConfigEntries, "link", sid)
 		if err != nil {
 			return err
 		}
