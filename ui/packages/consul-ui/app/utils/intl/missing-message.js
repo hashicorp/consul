@@ -4,6 +4,7 @@ export default function missingMessage(key, locales) {
   const last = key
     .split('.')
     .pop()
-    .replaceAll('-', ' ');
+    .split('-')
+    .join(' ');
   return `${last.substr(0, 1).toUpperCase()}${last.substr(1)}`;
 }

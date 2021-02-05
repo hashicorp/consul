@@ -21,7 +21,10 @@ export default class Element extends Component {
     }
   }
   get prop() {
-    return `${this.args.name.toLowerCase().replaceAll('.', '-')}`;
+    return `${this.args.name
+      .toLowerCase()
+      .split('.')
+      .join('-')}`;
   }
   get state() {
     const error = this.touched && this.args.error;
