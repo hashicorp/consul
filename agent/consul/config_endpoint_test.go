@@ -5,12 +5,13 @@ import (
 	"testing"
 	"time"
 
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
-	"github.com/stretchr/testify/require"
 )
 
 func TestConfigEntry_Apply(t *testing.T) {
@@ -253,7 +254,7 @@ func TestConfigEntry_Get(t *testing.T) {
 		Name: "foo",
 	}
 	state := s1.fsm.State()
-	require.NoError(state.EnsureConfigEntry(1, entry, nil))
+	require.NoError(state.EnsureConfigEntry(1, entry))
 
 	args := structs.ConfigEntryQuery{
 		Kind:       structs.ServiceDefaults,
@@ -316,11 +317,11 @@ operator = "read"
 	require.NoError(state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
 		Name: structs.ProxyConfigGlobal,
-	}, nil))
+	}))
 	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
 		Name: "foo",
-	}, nil))
+	}))
 
 	// This should fail since we don't have write perms for the "db" service.
 	args := structs.ConfigEntryQuery{
@@ -374,8 +375,8 @@ func TestConfigEntry_List(t *testing.T) {
 			},
 		},
 	}
-	require.NoError(state.EnsureConfigEntry(1, expected.Entries[0], nil))
-	require.NoError(state.EnsureConfigEntry(2, expected.Entries[1], nil))
+	require.NoError(state.EnsureConfigEntry(1, expected.Entries[0]))
+	require.NoError(state.EnsureConfigEntry(2, expected.Entries[1]))
 
 	args := structs.ConfigEntryQuery{
 		Kind:       structs.ServiceDefaults,
@@ -428,10 +429,10 @@ func TestConfigEntry_ListAll(t *testing.T) {
 			},
 		},
 	}
-	require.NoError(t, state.EnsureConfigEntry(1, entries[0], nil))
-	require.NoError(t, state.EnsureConfigEntry(2, entries[1], nil))
-	require.NoError(t, state.EnsureConfigEntry(3, entries[2], nil))
-	require.NoError(t, state.EnsureConfigEntry(4, entries[3], nil))
+	require.NoError(t, state.EnsureConfigEntry(1, entries[0]))
+	require.NoError(t, state.EnsureConfigEntry(2, entries[1]))
+	require.NoError(t, state.EnsureConfigEntry(3, entries[2]))
+	require.NoError(t, state.EnsureConfigEntry(4, entries[3]))
 
 	t.Run("all kinds", func(t *testing.T) {
 		args := structs.ConfigEntryListAllRequest{
@@ -529,15 +530,15 @@ operator = "read"
 	require.NoError(state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
 		Name: structs.ProxyConfigGlobal,
-	}, nil))
+	}))
 	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
 		Name: "foo",
-	}, nil))
+	}))
 	require.NoError(state.EnsureConfigEntry(3, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
 		Name: "db",
-	}, nil))
+	}))
 
 	// This should filter out the "db" service since we don't have permissions for it.
 	args := structs.ConfigEntryQuery{
@@ -614,15 +615,15 @@ operator = "read"
 	require.NoError(state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
 		Name: structs.ProxyConfigGlobal,
-	}, nil))
+	}))
 	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
 		Name: "foo",
-	}, nil))
+	}))
 	require.NoError(state.EnsureConfigEntry(3, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
 		Name: "db",
-	}, nil))
+	}))
 
 	// This should filter out the "db" service since we don't have permissions for it.
 	args := structs.ConfigEntryListAllRequest{
@@ -687,7 +688,7 @@ func TestConfigEntry_Delete(t *testing.T) {
 		Name: "foo",
 	}
 	state := s1.fsm.State()
-	require.NoError(t, state.EnsureConfigEntry(1, entry, nil))
+	require.NoError(t, state.EnsureConfigEntry(1, entry))
 
 	// Verify it's there.
 	_, existing, err := state.ConfigEntry(nil, structs.ServiceDefaults, "foo", nil)
@@ -773,11 +774,11 @@ operator = "write"
 	require.NoError(state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
 		Name: structs.ProxyConfigGlobal,
-	}, nil))
+	}))
 	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
 		Name: "foo",
-	}, nil))
+	}))
 
 	// This should fail since we don't have write perms for the "db" service.
 	args := structs.ConfigEntryRequest{
@@ -848,17 +849,17 @@ func TestConfigEntry_ResolveServiceConfig(t *testing.T) {
 		Config: map[string]interface{}{
 			"foo": 1,
 		},
-	}, nil))
+	}))
 	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind:     structs.ServiceDefaults,
 		Name:     "foo",
 		Protocol: "http",
-	}, nil))
+	}))
 	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind:     structs.ServiceDefaults,
 		Name:     "bar",
 		Protocol: "grpc",
-	}, nil))
+	}))
 
 	args := structs.ServiceConfigRequest{
 		Name:       "foo",
@@ -918,17 +919,17 @@ func TestConfigEntry_ResolveServiceConfig_Blocking(t *testing.T) {
 		Config: map[string]interface{}{
 			"global": 1,
 		},
-	}, nil))
+	}))
 	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind:     structs.ServiceDefaults,
 		Name:     "foo",
 		Protocol: "grpc",
-	}, nil))
+	}))
 	require.NoError(state.EnsureConfigEntry(3, &structs.ServiceConfigEntry{
 		Kind:     structs.ServiceDefaults,
 		Name:     "bar",
 		Protocol: "http",
-	}, nil))
+	}))
 
 	var index uint64
 
@@ -1084,24 +1085,24 @@ func TestConfigEntry_ResolveServiceConfig_UpstreamProxyDefaultsProtocol(t *testi
 		Config: map[string]interface{}{
 			"protocol": "http",
 		},
-	}, nil))
+	}))
 	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
 		Name: "foo",
-	}, nil))
+	}))
 	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
 		Name: "bar",
-	}, nil))
+	}))
 	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
 		Name: "other",
-	}, nil))
+	}))
 	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind:     structs.ServiceDefaults,
 		Name:     "alreadyprotocol",
 		Protocol: "grpc",
-	}, nil))
+	}))
 
 	args := structs.ServiceConfigRequest{
 		Name:       "foo",
@@ -1158,7 +1159,7 @@ func TestConfigEntry_ResolveServiceConfig_ProxyDefaultsProtocol_UsedForAllUpstre
 		Config: map[string]interface{}{
 			"protocol": "http",
 		},
-	}, nil))
+	}))
 
 	args := structs.ServiceConfigRequest{
 		Name:       "foo",
@@ -1264,15 +1265,15 @@ operator = "write"
 	require.NoError(state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
 		Name: structs.ProxyConfigGlobal,
-	}, nil))
+	}))
 	require.NoError(state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
 		Name: "foo",
-	}, nil))
+	}))
 	require.NoError(state.EnsureConfigEntry(3, &structs.ServiceConfigEntry{
 		Kind: structs.ServiceDefaults,
 		Name: "db",
-	}, nil))
+	}))
 
 	// This should fail since we don't have write perms for the "db" service.
 	args := structs.ServiceConfigRequest{

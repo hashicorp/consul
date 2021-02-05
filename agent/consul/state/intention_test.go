@@ -4,13 +4,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-memdb"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/go-memdb"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -128,7 +129,7 @@ func TestStore_IntentionSetGet_basic(t *testing.T) {
 			lastIndex++
 			require.NoError(t, configEntry.LegacyNormalize())
 			require.NoError(t, configEntry.LegacyValidate())
-			require.NoError(t, s.EnsureConfigEntry(lastIndex, configEntry.Clone(), nil))
+			require.NoError(t, s.EnsureConfigEntry(lastIndex, configEntry.Clone()))
 
 			// Make sure the config entry index got updated instead of the old intentions one
 			require.Equal(t, lastIndex, s.maxIndex(configTableName))
@@ -190,7 +191,7 @@ func TestStore_IntentionSetGet_basic(t *testing.T) {
 			lastIndex++
 			require.NoError(t, configEntry.LegacyNormalize())
 			require.NoError(t, configEntry.LegacyValidate())
-			require.NoError(t, s.EnsureConfigEntry(lastIndex, configEntry.Clone(), nil))
+			require.NoError(t, s.EnsureConfigEntry(lastIndex, configEntry.Clone()))
 
 			// Change a value that isn't in the unique 4 tuple and check we don't
 			// incorrectly consider this a duplicate when updating.
@@ -198,7 +199,7 @@ func TestStore_IntentionSetGet_basic(t *testing.T) {
 			lastIndex++
 			require.NoError(t, configEntry.LegacyNormalize())
 			require.NoError(t, configEntry.LegacyValidate())
-			require.NoError(t, s.EnsureConfigEntry(lastIndex, configEntry.Clone(), nil))
+			require.NoError(t, s.EnsureConfigEntry(lastIndex, configEntry.Clone()))
 
 			// Make sure the config entry index got updated instead of the old intentions one
 			require.Equal(t, lastIndex, s.maxIndex(configTableName))
@@ -783,7 +784,7 @@ func testStore_IntentionMutation(t *testing.T, s *Store) {
 					Type:           structs.IntentionSourceConsul,
 				},
 			},
-		}, nil))
+		}))
 
 		lastIndex++
 
@@ -867,7 +868,7 @@ func TestStore_IntentionSet_updateCreatedAt(t *testing.T) {
 
 			require.NoError(t, conf.LegacyNormalize())
 			require.NoError(t, conf.LegacyValidate())
-			require.NoError(t, s.EnsureConfigEntry(1, conf.Clone(), nil))
+			require.NoError(t, s.EnsureConfigEntry(1, conf.Clone()))
 		}
 
 		// Read it back and verify
@@ -915,7 +916,7 @@ func TestStore_IntentionSet_metaNil(t *testing.T) {
 			// Insert
 			require.NoError(t, conf.LegacyNormalize())
 			require.NoError(t, conf.LegacyValidate())
-			require.NoError(t, s.EnsureConfigEntry(1, conf.Clone(), nil))
+			require.NoError(t, s.EnsureConfigEntry(1, conf.Clone()))
 		}
 
 		// Read it back and verify
@@ -968,7 +969,7 @@ func TestStore_IntentionSet_metaSet(t *testing.T) {
 			// Insert
 			require.NoError(t, conf.LegacyNormalize())
 			require.NoError(t, conf.LegacyValidate())
-			require.NoError(t, s.EnsureConfigEntry(1, conf.Clone(), nil))
+			require.NoError(t, s.EnsureConfigEntry(1, conf.Clone()))
 		}
 
 		// Read it back and verify
@@ -1024,7 +1025,7 @@ func TestStore_IntentionDelete(t *testing.T) {
 			// Insert
 			require.NoError(t, conf.LegacyNormalize())
 			require.NoError(t, conf.LegacyValidate())
-			require.NoError(t, s.EnsureConfigEntry(1, conf.Clone(), nil))
+			require.NoError(t, s.EnsureConfigEntry(1, conf.Clone()))
 
 			// Make sure the index got updated.
 			require.Equal(t, s.maxIndex(configTableName), lastIndex)
@@ -1163,7 +1164,7 @@ func TestStore_IntentionsList(t *testing.T) {
 				require.NoError(t, conf.LegacyNormalize())
 				require.NoError(t, conf.LegacyValidate())
 				lastIndex++
-				require.NoError(t, s.EnsureConfigEntry(lastIndex, conf, nil))
+				require.NoError(t, s.EnsureConfigEntry(lastIndex, conf))
 			}
 
 			expectIDs = []string{
@@ -1315,7 +1316,7 @@ func TestStore_IntentionMatch_table(t *testing.T) {
 				require.NoError(t, conf.LegacyNormalize())
 				require.NoError(t, conf.LegacyValidate())
 				lastIndex++
-				require.NoError(t, s.EnsureConfigEntry(lastIndex, conf, &conf.EnterpriseMeta))
+				require.NoError(t, s.EnsureConfigEntry(lastIndex, conf))
 			}
 		}
 
@@ -1503,7 +1504,7 @@ func TestStore_IntentionMatchOne_table(t *testing.T) {
 				require.NoError(t, conf.LegacyNormalize())
 				require.NoError(t, conf.LegacyValidate())
 				lastIndex++
-				require.NoError(t, s.EnsureConfigEntry(lastIndex, conf, &conf.EnterpriseMeta))
+				require.NoError(t, s.EnsureConfigEntry(lastIndex, conf))
 			}
 		}
 
@@ -1590,7 +1591,7 @@ func TestStore_IntentionMatch_WatchesDuringUpgrade(t *testing.T) {
 			{Name: "web", Action: structs.IntentionActionAllow},
 		},
 	}
-	require.NoError(t, s.EnsureConfigEntry(1, conf, &conf.EnterpriseMeta))
+	require.NoError(t, s.EnsureConfigEntry(1, conf))
 
 	require.True(t, watchFired(ws))
 }
@@ -1755,7 +1756,7 @@ func TestStore_IntentionDecision(t *testing.T) {
 
 	s := testConfigStateStore(t)
 	for _, entry := range entries {
-		require.NoError(t, s.EnsureConfigEntry(1, entry, nil))
+		require.NoError(t, s.EnsureConfigEntry(1, entry))
 	}
 
 	tt := []struct {
