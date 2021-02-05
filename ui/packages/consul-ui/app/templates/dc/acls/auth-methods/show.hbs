@@ -1,0 +1,35 @@
+{{#if isAuthorized }}
+  {{page-title item.Name}}
+{{else}}
+  {{page-title 'Access Controls'}}
+{{/if}}
+<AppView
+  @authorized={{isAuthorized}}
+  @enabled={{isEnabled}}
+  >
+    <BlockSlot @name="breadcrumbs">
+        <ol>
+            <li><a data-test-back href={{href-to 'dc.acls.auth-methods'}}>All Auth Methods</a></li>
+        </ol>
+    </BlockSlot>
+    <BlockSlot @name="header">
+      <h1>
+      {{#if isAuthorized }}
+        {{item.Name}}
+      {{else}}
+        Access Controls
+      {{/if}}
+      </h1>
+      <Consul::AuthMethod::Type @item={{item}} />
+    </BlockSlot>
+    <BlockSlot @name="nav">
+      <TabNav @items={{
+      compact
+        (array
+          (hash label="General info" href=(href-to "dc.acls.auth-methods.show.general") selected=(is-href "dc.acls.auth-methods.show.general"))
+          (hash label="Namespace rules" href=(href-to "dc.acls.auth-methods.show.namespace") selected=(is-href "dc.acls.auth-methods.show.namespace"))
+          (hash label="Binding rules" href=(href-to "dc.acls.auth-methods.show.binding") selected=(is-href "dc.acls.auth-methods.show.binding"))
+        )
+      }}/>
+    </BlockSlot>
+</AppView>
