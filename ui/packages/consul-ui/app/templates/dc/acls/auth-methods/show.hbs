@@ -32,4 +32,11 @@
         )
       }}/>
     </BlockSlot>
+    <BlockSlot @name="content">
+      <Outlet
+        @name={{routeName}}
+      as |o|>
+        {{outlet}}
+      </Outlet>
+    </BlockSlot>
 </AppView>
