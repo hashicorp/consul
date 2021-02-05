@@ -328,7 +328,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 			defer watchCancel()
 
 			logger.Trace("watching proxy, pending initial proxycfg snapshot",
-				"proxy-id", proxyID.String())
+				"service_id", proxyID.String())
 
 			// Now wait for the config so we can check ACL
 			state = statePendingInitialConfig
@@ -342,7 +342,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 			state = stateRunning
 
 			logger.Trace("Got initial config snapshot",
-				"proxy-id", cfgSnap.ProxyID.String())
+				"service_id", cfgSnap.ProxyID.String())
 
 			// Lets actually process the config we just got or we'll mis responding
 			fallthrough
@@ -356,7 +356,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 			extendAuthTimer()
 
 			logger.Trace("Invoking all xDS resource handlers and sending new data if there is any",
-				"proxy-id", cfgSnap.ProxyID.String())
+				"service_id", cfgSnap.ProxyID.String())
 
 			// See if any handlers need to have the current (possibly new) config
 			// sent. Note the order here is actually significant so we can't just
