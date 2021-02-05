@@ -5,11 +5,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 func TestStore_CAConfig(t *testing.T) {
@@ -201,7 +202,7 @@ func TestStore_CARootSetList(t *testing.T) {
 	assert.True(ok)
 
 	// Make sure the index got updated.
-	assert.Equal(s.maxIndex(caRootTableName), uint64(1))
+	assert.Equal(s.maxIndex(tableConnectCARoots), uint64(1))
 	assert.True(watchFired(ws), "watch fired")
 
 	// Read it back out and verify it.
@@ -239,7 +240,7 @@ func TestStore_CARootSet_emptyID(t *testing.T) {
 	assert.False(ok)
 
 	// Make sure the index got updated.
-	assert.Equal(s.maxIndex(caRootTableName), uint64(0))
+	assert.Equal(s.maxIndex(tableConnectCARoots), uint64(0))
 	assert.False(watchFired(ws), "watch fired")
 
 	// Read it back out and verify it.

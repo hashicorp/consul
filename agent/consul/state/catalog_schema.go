@@ -11,9 +11,11 @@ import (
 )
 
 const (
-	tableNodes    = "nodes"
-	tableServices = "services"
-	tableChecks   = "checks"
+	tableNodes           = "nodes"
+	tableServices        = "services"
+	tableChecks          = "checks"
+	tableGatewayServices = "gateway-services"
+	tableMeshTopology    = "mesh-topology"
 
 	indexID               = "id"
 	indexServiceName      = "service"
@@ -205,11 +207,11 @@ func checksTableSchema() *memdb.TableSchema {
 	}
 }
 
-//  gatewayServicesTableNameSchema returns a new table schema used to store information
+//  gatewayServicesTableSchema returns a new table schema used to store information
 // about services associated with terminating gateways.
-func gatewayServicesTableNameSchema() *memdb.TableSchema {
+func gatewayServicesTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
-		Name: gatewayServicesTableName,
+		Name: tableGatewayServices,
 		Indexes: map[string]*memdb.IndexSchema{
 			indexID: {
 				Name:         indexID,
@@ -249,11 +251,11 @@ func gatewayServicesTableNameSchema() *memdb.TableSchema {
 	}
 }
 
-// topologyTableNameSchema returns a new table schema used to store information
+// meshTopologyTableSchema returns a new table schema used to store information
 // relating upstream and downstream services
-func topologyTableNameSchema() *memdb.TableSchema {
+func meshTopologyTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
-		Name: topologyTableName,
+		Name: tableMeshTopology,
 		Indexes: map[string]*memdb.IndexSchema{
 			indexID: {
 				Name:         indexID,
@@ -350,6 +352,6 @@ func init() {
 	registerSchema(nodesTableSchema)
 	registerSchema(servicesTableSchema)
 	registerSchema(checksTableSchema)
-	registerSchema(gatewayServicesTableNameSchema)
-	registerSchema(topologyTableNameSchema)
+	registerSchema(gatewayServicesTableSchema)
+	registerSchema(meshTopologyTableSchema)
 }

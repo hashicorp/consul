@@ -3,16 +3,17 @@ package state
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 const (
-	caBuiltinProviderTableName    = "connect-ca-builtin"
-	caBuiltinProviderSerialNumber = "connect-ca-builtin-serial"
-	caConfigTableName             = "connect-ca-config"
-	caRootTableName               = "connect-ca-roots"
-	caLeafIndexName               = "connect-ca-leaf-certs"
+	tableConnectCABuiltin       = "connect-ca-builtin"
+	tableConnectCABuiltinSerial = "connect-ca-builtin-serial"
+	tableConnectCAConfig        = "connect-ca-config"
+	tableConnectCARoots         = "connect-ca-roots"
+	tableConnectCALeafCerts     = "connect-ca-leaf-certs"
 )
 
 // caBuiltinProviderTableSchema returns a new table schema used for storing
@@ -20,7 +21,7 @@ const (
 // the internal Consul CA provider.
 func caBuiltinProviderTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
-		Name: caBuiltinProviderTableName,
+		Name: tableConnectCABuiltin,
 		Indexes: map[string]*memdb.IndexSchema{
 			"id": {
 				Name:         "id",
@@ -38,7 +39,7 @@ func caBuiltinProviderTableSchema() *memdb.TableSchema {
 // the CA config for Connect.
 func caConfigTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
-		Name: caConfigTableName,
+		Name: tableConnectCAConfig,
 		Indexes: map[string]*memdb.IndexSchema{
 			// This table only stores one row, so this just ignores the ID field
 			// and always overwrites the same config object.
@@ -58,7 +59,7 @@ func caConfigTableSchema() *memdb.TableSchema {
 // CA roots for Connect.
 func caRootTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
-		Name: caRootTableName,
+		Name: tableConnectCARoots,
 		Indexes: map[string]*memdb.IndexSchema{
 			"id": {
 				Name:         "id",
@@ -80,7 +81,7 @@ func init() {
 
 // CAConfig is used to pull the CA config from the snapshot.
 func (s *Snapshot) CAConfig() (*structs.CAConfiguration, error) {
-	c, err := s.tx.First(caConfigTableName, "id")
+	c, err := s.tx.First(tableConnectCAConfig, "id")
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +102,7 @@ func (s *Restore) CAConfig(config *structs.CAConfiguration) error {
 		return nil
 	}
 
-	if err := s.tx.Insert(caConfigTableName, config); err != nil {
+	if err := s.tx.Insert(tableConnectCAConfig, config); err != nil {
 		return fmt.Errorf("failed restoring CA config: %s", err)
 	}
 
@@ -118,7 +119,7 @@ func (s *Store) CAConfig(ws memdb.WatchSet) (uint64, *structs.CAConfiguration, e
 
 func caConfigTxn(tx ReadTxn, ws memdb.WatchSet) (uint64, *structs.CAConfiguration, error) {
 	// Get the CA config
-	ch, c, err := tx.FirstWatch(caConfigTableName, "id")
+	ch, c, err := tx.FirstWatch(tableConnectCAConfig, "id")
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed CA config lookup: %s", err)
 	}
@@ -153,7 +154,7 @@ func (s *Store) CACheckAndSetConfig(idx, cidx uint64, config *structs.CAConfigur
 	defer tx.Abort()
 
 	// Check for an existing config
-	existing, err := tx.First(caConfigTableName, "id")
+	existing, err := tx.First(tableConnectCAConfig, "id")
 	if err != nil {
 		return false, fmt.Errorf("failed CA config lookup: %s", err)
 	}
@@ -176,7 +177,7 @@ func (s *Store) CACheckAndSetConfig(idx, cidx uint64, config *structs.CAConfigur
 
 func (s *Store) caSetConfigTxn(idx uint64, tx *txn, config *structs.CAConfiguration) error {
 	// Check for an existing config
-	prev, err := tx.First(caConfigTableName, "id")
+	prev, err := tx.First(tableConnectCAConfig, "id")
 	if err != nil {
 		return fmt.Errorf("failed CA config lookup: %s", err)
 	}
@@ -194,7 +195,7 @@ func (s *Store) caSetConfigTxn(idx uint64, tx *txn, config *structs.CAConfigurat
 	}
 	config.ModifyIndex = idx
 
-	if err := tx.Insert(caConfigTableName, config); err != nil {
+	if err := tx.Insert(tableConnectCAConfig, config); err != nil {
 		return fmt.Errorf("failed updating CA config: %s", err)
 	}
 	return nil
@@ -202,7 +203,7 @@ func (s *Store) caSetConfigTxn(idx uint64, tx *txn, config *structs.CAConfigurat
 
 // CARoots is used to pull all the CA roots for the snapshot.
 func (s *Snapshot) CARoots() (structs.CARoots, error) {
-	ixns, err := s.tx.Get(caRootTableName, "id")
+	ixns, err := s.tx.Get(tableConnectCARoots, "id")
 	if err != nil {
 		return nil, err
 	}
@@ -218,10 +219,10 @@ func (s *Snapshot) CARoots() (structs.CARoots, error) {
 // CARoots is used when restoring from a snapshot.
 func (s *Restore) CARoot(r *structs.CARoot) error {
 	// Insert
-	if err := s.tx.Insert(caRootTableName, r); err != nil {
+	if err := s.tx.Insert(tableConnectCARoots, r); err != nil {
 		return fmt.Errorf("failed restoring CA root: %s", err)
 	}
-	if err := indexUpdateMaxTxn(s.tx, r.ModifyIndex, caRootTableName); err != nil {
+	if err := indexUpdateMaxTxn(s.tx, r.ModifyIndex, tableConnectCARoots); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
@@ -238,10 +239,10 @@ func (s *Store) CARoots(ws memdb.WatchSet) (uint64, structs.CARoots, error) {
 
 func caRootsTxn(tx ReadTxn, ws memdb.WatchSet) (uint64, structs.CARoots, error) {
 	// Get the index
-	idx := maxIndexTxn(tx, caRootTableName)
+	idx := maxIndexTxn(tx, tableConnectCARoots)
 
 	// Get all
-	iter, err := tx.Get(caRootTableName, "id")
+	iter, err := tx.Get(tableConnectCARoots, "id")
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed CA root lookup: %s", err)
 	}
@@ -293,7 +294,7 @@ func (s *Store) CARootSetCAS(idx, cidx uint64, rs []*structs.CARoot) (bool, erro
 	}
 
 	// Get the current max index
-	if midx := maxIndexTxn(tx, caRootTableName); midx != cidx {
+	if midx := maxIndexTxn(tx, tableConnectCARoots); midx != cidx {
 		return false, nil
 	}
 
@@ -304,7 +305,7 @@ func (s *Store) CARootSetCAS(idx, cidx uint64, rs []*structs.CARoot) (bool, erro
 			return false, ErrMissingCARootID
 		}
 
-		existing, err := tx.First(caRootTableName, "id", r.ID)
+		existing, err := tx.First(tableConnectCARoots, "id", r.ID)
 		if err != nil {
 			return false, fmt.Errorf("failed CA root lookup: %s", err)
 		}
@@ -318,20 +319,20 @@ func (s *Store) CARootSetCAS(idx, cidx uint64, rs []*structs.CARoot) (bool, erro
 	}
 
 	// Delete all
-	_, err := tx.DeleteAll(caRootTableName, "id")
+	_, err := tx.DeleteAll(tableConnectCARoots, "id")
 	if err != nil {
 		return false, err
 	}
 
 	// Insert all
 	for _, r := range rs {
-		if err := tx.Insert(caRootTableName, r); err != nil {
+		if err := tx.Insert(tableConnectCARoots, r); err != nil {
 			return false, err
 		}
 	}
 
 	// Update the index
-	if err := tx.Insert("index", &IndexEntry{caRootTableName, idx}); err != nil {
+	if err := tx.Insert("index", &IndexEntry{tableConnectCARoots, idx}); err != nil {
 		return false, fmt.Errorf("failed updating index: %s", err)
 	}
 
@@ -341,7 +342,7 @@ func (s *Store) CARootSetCAS(idx, cidx uint64, rs []*structs.CARoot) (bool, erro
 
 // CAProviderState is used to pull the built-in provider states from the snapshot.
 func (s *Snapshot) CAProviderState() ([]*structs.CAConsulProviderState, error) {
-	ixns, err := s.tx.Get(caBuiltinProviderTableName, "id")
+	ixns, err := s.tx.Get(tableConnectCABuiltin, "id")
 	if err != nil {
 		return nil, err
 	}
@@ -356,10 +357,10 @@ func (s *Snapshot) CAProviderState() ([]*structs.CAConsulProviderState, error) {
 
 // CAProviderState is used when restoring from a snapshot.
 func (s *Restore) CAProviderState(state *structs.CAConsulProviderState) error {
-	if err := s.tx.Insert(caBuiltinProviderTableName, state); err != nil {
+	if err := s.tx.Insert(tableConnectCABuiltin, state); err != nil {
 		return fmt.Errorf("failed restoring built-in CA state: %s", err)
 	}
-	if err := indexUpdateMaxTxn(s.tx, state.ModifyIndex, caBuiltinProviderTableName); err != nil {
+	if err := indexUpdateMaxTxn(s.tx, state.ModifyIndex, tableConnectCABuiltin); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
@@ -372,10 +373,10 @@ func (s *Store) CAProviderState(id string) (uint64, *structs.CAConsulProviderSta
 	defer tx.Abort()
 
 	// Get the index
-	idx := maxIndexTxn(tx, caBuiltinProviderTableName)
+	idx := maxIndexTxn(tx, tableConnectCABuiltin)
 
 	// Get the provider config
-	c, err := tx.First(caBuiltinProviderTableName, "id", id)
+	c, err := tx.First(tableConnectCABuiltin, "id", id)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed built-in CA state lookup: %s", err)
 	}
@@ -394,7 +395,7 @@ func (s *Store) CASetProviderState(idx uint64, state *structs.CAConsulProviderSt
 	defer tx.Abort()
 
 	// Check for an existing config
-	existing, err := tx.First(caBuiltinProviderTableName, "id", state.ID)
+	existing, err := tx.First(tableConnectCABuiltin, "id", state.ID)
 	if err != nil {
 		return false, fmt.Errorf("failed built-in CA state lookup: %s", err)
 	}
@@ -407,12 +408,12 @@ func (s *Store) CASetProviderState(idx uint64, state *structs.CAConsulProviderSt
 	}
 	state.ModifyIndex = idx
 
-	if err := tx.Insert(caBuiltinProviderTableName, state); err != nil {
+	if err := tx.Insert(tableConnectCABuiltin, state); err != nil {
 		return false, fmt.Errorf("failed updating built-in CA state: %s", err)
 	}
 
 	// Update the index
-	if err := tx.Insert("index", &IndexEntry{caBuiltinProviderTableName, idx}); err != nil {
+	if err := tx.Insert("index", &IndexEntry{tableConnectCABuiltin, idx}); err != nil {
 		return false, fmt.Errorf("failed updating index: %s", err)
 	}
 
@@ -427,7 +428,7 @@ func (s *Store) CADeleteProviderState(idx uint64, id string) error {
 	defer tx.Abort()
 
 	// Check for an existing config
-	existing, err := tx.First(caBuiltinProviderTableName, "id", id)
+	existing, err := tx.First(tableConnectCABuiltin, "id", id)
 	if err != nil {
 		return fmt.Errorf("failed built-in CA state lookup: %s", err)
 	}
@@ -438,10 +439,10 @@ func (s *Store) CADeleteProviderState(idx uint64, id string) error {
 	providerState := existing.(*structs.CAConsulProviderState)
 
 	// Do the delete and update the index
-	if err := tx.Delete(caBuiltinProviderTableName, providerState); err != nil {
+	if err := tx.Delete(tableConnectCABuiltin, providerState); err != nil {
 		return err
 	}
-	if err := tx.Insert("index", &IndexEntry{caBuiltinProviderTableName, idx}); err != nil {
+	if err := tx.Insert("index", &IndexEntry{tableConnectCABuiltin, idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
@@ -452,7 +453,7 @@ func (s *Store) CALeafSetIndex(idx uint64, index uint64) error {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
-	return indexUpdateMaxTxn(tx, index, caLeafIndexName)
+	return indexUpdateMaxTxn(tx, index, tableConnectCALeafCerts)
 }
 
 func (s *Store) CARootsAndConfig(ws memdb.WatchSet) (uint64, structs.CARoots, *structs.CAConfiguration, error) {
@@ -481,7 +482,7 @@ func (s *Store) CAIncrementProviderSerialNumber(idx uint64) (uint64, error) {
 	tx := s.db.WriteTxn(idx)
 	defer tx.Abort()
 
-	existing, err := tx.First("index", "id", caBuiltinProviderSerialNumber)
+	existing, err := tx.First("index", "id", tableConnectCABuiltinSerial)
 	if err != nil {
 		return 0, fmt.Errorf("failed built-in CA serial number lookup: %s", err)
 	}
@@ -492,11 +493,11 @@ func (s *Store) CAIncrementProviderSerialNumber(idx uint64) (uint64, error) {
 	} else {
 		// Serials used to be based on the raft indexes in the provider table,
 		// so bootstrap off of that.
-		last = maxIndexTxn(tx, caBuiltinProviderTableName)
+		last = maxIndexTxn(tx, tableConnectCABuiltin)
 	}
 	next := last + 1
 
-	if err := tx.Insert("index", &IndexEntry{caBuiltinProviderSerialNumber, next}); err != nil {
+	if err := tx.Insert("index", &IndexEntry{tableConnectCABuiltinSerial, next}); err != nil {
 		return 0, fmt.Errorf("failed updating index: %s", err)
 	}
 

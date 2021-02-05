@@ -54,7 +54,7 @@ func catalogUpdateServiceIndexes(tx WriteTxn, serviceName string, idx uint64, _ 
 }
 
 func catalogUpdateServiceExtinctionIndex(tx WriteTxn, idx uint64, _ *structs.EnterpriseMeta) error {
-	if err := tx.Insert("index", &IndexEntry{serviceLastExtinctionIndexName, idx}); err != nil {
+	if err := tx.Insert("index", &IndexEntry{indexServiceExtinction, idx}); err != nil {
 		return fmt.Errorf("failed updating missing service extinction index: %s", err)
 	}
 	return nil
@@ -110,7 +110,7 @@ func catalogServiceNodeList(tx ReadTxn, name string, index string, _ *structs.En
 }
 
 func catalogServiceLastExtinctionIndex(tx ReadTxn, _ *structs.EnterpriseMeta) (interface{}, error) {
-	return tx.First("index", "id", serviceLastExtinctionIndexName)
+	return tx.First("index", "id", indexServiceExtinction)
 }
 
 func catalogMaxIndex(tx ReadTxn, _ *structs.EnterpriseMeta, checks bool) uint64 {

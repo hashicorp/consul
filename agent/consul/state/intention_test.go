@@ -90,7 +90,7 @@ func TestStore_IntentionSetGet_basic(t *testing.T) {
 			require.NoError(t, s.LegacyIntentionSet(lastIndex, legacyIxn))
 
 			// Make sure the right index got updated.
-			require.Equal(t, lastIndex, s.maxIndex(intentionsTableName))
+			require.Equal(t, lastIndex, s.maxIndex(tableConnectIntentions))
 			require.Equal(t, uint64(0), s.maxIndex(tableConfigEntries))
 
 			expected = &structs.Intention{
@@ -133,7 +133,7 @@ func TestStore_IntentionSetGet_basic(t *testing.T) {
 
 			// Make sure the config entry index got updated instead of the old intentions one
 			require.Equal(t, lastIndex, s.maxIndex(tableConfigEntries))
-			require.Equal(t, uint64(0), s.maxIndex(intentionsTableName))
+			require.Equal(t, uint64(0), s.maxIndex(tableConnectIntentions))
 
 			expected = &structs.Intention{
 				ID:              srcID,
@@ -178,7 +178,7 @@ func TestStore_IntentionSetGet_basic(t *testing.T) {
 			require.NoError(t, s.LegacyIntentionSet(lastIndex, legacyIxn))
 
 			// Make sure the index got updated.
-			require.Equal(t, lastIndex, s.maxIndex(intentionsTableName))
+			require.Equal(t, lastIndex, s.maxIndex(tableConnectIntentions))
 			require.Equal(t, uint64(0), s.maxIndex(tableConfigEntries))
 
 			expected.SourceNS = legacyIxn.SourceNS
@@ -203,7 +203,7 @@ func TestStore_IntentionSetGet_basic(t *testing.T) {
 
 			// Make sure the config entry index got updated instead of the old intentions one
 			require.Equal(t, lastIndex, s.maxIndex(tableConfigEntries))
-			require.Equal(t, uint64(0), s.maxIndex(intentionsTableName))
+			require.Equal(t, uint64(0), s.maxIndex(tableConnectIntentions))
 
 			expected.Description = configEntry.Sources[0].Description
 			expected.Action = structs.IntentionActionDeny
@@ -240,7 +240,7 @@ func TestStore_IntentionSetGet_basic(t *testing.T) {
 			require.Error(t, s.LegacyIntentionSet(lastIndex, legacyIxn))
 
 			// Make sure the index did NOT get updated.
-			require.Equal(t, lastIndex-1, s.maxIndex(intentionsTableName))
+			require.Equal(t, lastIndex-1, s.maxIndex(tableConnectIntentions))
 			require.Equal(t, uint64(0), s.maxIndex(tableConfigEntries))
 			require.False(t, watchFired(ws), "watch not fired")
 		}
@@ -815,7 +815,7 @@ func TestStore_LegacyIntentionSet_emptyId(t *testing.T) {
 	require.Contains(t, err.Error(), ErrMissingIntentionID.Error())
 
 	// Index is not updated if nothing is saved.
-	require.Equal(t, s.maxIndex(intentionsTableName), uint64(0))
+	require.Equal(t, s.maxIndex(tableConnectIntentions), uint64(0))
 	require.Equal(t, uint64(0), s.maxIndex(tableConfigEntries))
 
 	require.False(t, watchFired(ws), "watch fired")
@@ -1005,7 +1005,7 @@ func TestStore_IntentionDelete(t *testing.T) {
 			require.NoError(t, s.LegacyIntentionSet(lastIndex, ixn))
 
 			// Make sure the index got updated.
-			require.Equal(t, s.maxIndex(intentionsTableName), lastIndex)
+			require.Equal(t, s.maxIndex(tableConnectIntentions), lastIndex)
 			require.Equal(t, uint64(0), s.maxIndex(tableConfigEntries))
 		} else {
 			conf := &structs.ServiceIntentionsConfigEntry{
@@ -1029,7 +1029,7 @@ func TestStore_IntentionDelete(t *testing.T) {
 
 			// Make sure the index got updated.
 			require.Equal(t, s.maxIndex(tableConfigEntries), lastIndex)
-			require.Equal(t, uint64(0), s.maxIndex(intentionsTableName))
+			require.Equal(t, uint64(0), s.maxIndex(tableConnectIntentions))
 		}
 		require.True(t, watchFired(ws), "watch fired")
 
@@ -1045,7 +1045,7 @@ func TestStore_IntentionDelete(t *testing.T) {
 			require.NoError(t, s.LegacyIntentionDelete(lastIndex, id))
 
 			// Make sure the index got updated.
-			require.Equal(t, s.maxIndex(intentionsTableName), lastIndex)
+			require.Equal(t, s.maxIndex(tableConnectIntentions), lastIndex)
 			require.Equal(t, uint64(0), s.maxIndex(tableConfigEntries))
 		} else {
 			lastIndex++
@@ -1053,7 +1053,7 @@ func TestStore_IntentionDelete(t *testing.T) {
 
 			// Make sure the index got updated.
 			require.Equal(t, s.maxIndex(tableConfigEntries), lastIndex)
-			require.Equal(t, uint64(0), s.maxIndex(intentionsTableName))
+			require.Equal(t, uint64(0), s.maxIndex(tableConnectIntentions))
 		}
 		require.True(t, watchFired(ws), "watch fired")
 
