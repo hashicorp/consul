@@ -13,8 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	"strings"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestSerialNumber(t *testing.T) {
@@ -91,15 +92,15 @@ func TestGenerateCA(t *testing.T) {
 	require.Equal(t, x509.KeyUsageCertSign|x509.KeyUsageCRLSign|x509.KeyUsageDigitalSignature, cert.KeyUsage)
 
 	// Test what happens with a correct RSA Key
-	s, err = rsa.GenerateKey(rand.Reader, 2048)
+	s, err := rsa.GenerateKey(rand.Reader, 2048)
 	require.Nil(t, err)
-	ca, err = GenerateCA(s, sn, 365, nil)
-	require.Nil(t, err)
+	ca, _, err = GenerateCA(CAOpts{Signer: &TestSigner{public: s.Public()}})
+	require.NoError(t, err)
 	require.NotEmpty(t, ca)
 
 	cert, err = parseCert(ca)
-	require.Nil(t, err)
-	require.Equal(t, fmt.Sprintf("Consul Agent CA %d", sn), cert.Subject.CommonName)
+	require.NoError(t, err)
+	require.True(t, strings.HasPrefix(cert.Subject.CommonName, "Consul Agent CA"))
 	require.Equal(t, true, cert.IsCA)
 	require.Equal(t, true, cert.BasicConstraintsValid)
 
@@ -107,7 +108,6 @@ func TestGenerateCA(t *testing.T) {
 	require.WithinDuration(t, cert.NotAfter, time.Now().AddDate(0, 0, 365), time.Minute)
 
 	require.Equal(t, x509.KeyUsageCertSign|x509.KeyUsageCRLSign|x509.KeyUsageDigitalSignature, cert.KeyUsage)
-
 }
 
 func TestGenerateCert(t *testing.T) {
