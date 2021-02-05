@@ -4,6 +4,7 @@
     display: flex;
     position: relative;
     height: var(--height);
+    width: 100%;
   }
   &_input,
   & > label {
