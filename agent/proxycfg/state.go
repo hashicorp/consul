@@ -628,17 +628,26 @@ func (s *state) run() {
 			case s.snapCh <- *snapCopy:
 				s.logger.Trace("Delivered new snapshot to proxy config watchers")
 
-			// avoid blocking if a snapshot is already buffered
+				// Allow the next change to trigger a send
+				coalesceTimer = nil
+
+				// Skip rest of loop - there is nothing to send since nothing changed on
+				// this iteration
+				continue
+
+			// avoid blocking if a snapshot is already buffered, but queue up a retry with a timer
 			default:
 				s.logger.Trace("Failed to deliver new snapshot to proxy config watchers")
+
+				if coalesceTimer == nil {
+					coalesceTimer = time.AfterFunc(coalesceTimeout, func() {
+						sendCh <- struct{}{}
+					})
+				}
+
+				// Do not reset coalesceTimer since we just queued a timer-based refresh
+				continue
 			}
-
-			// Allow the next change to trigger a send
-			coalesceTimer = nil
-
-			// Skip rest of loop - there is nothing to send since nothing changed on
-			// this iteration
-			continue
 
 		case replyCh := <-s.reqCh:
 			s.logger.Trace("A proxy config snapshot was requested")
