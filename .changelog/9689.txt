@@ -1,0 +1,3 @@
+```release-note:bug
+proxycfg: avoid potential deadlock in delivering proxy snapshot to watchers.
+```
