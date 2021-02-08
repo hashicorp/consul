@@ -58,11 +58,6 @@ module.exports = function(defaults) {
         implementation: require('sass'),
         sourceMapEmbed: sourcemaps,
       },
-      autoprefixer: {
-        sourcemap: sourcemaps,
-        grid: true,
-        browsers: ['defaults', 'ie 11'],
-      },
     }
   );
   // Use `app.import` to add additional libraries to the generated
