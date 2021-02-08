@@ -385,10 +385,14 @@ test-vault-ca-provider:
 ifeq ("$(CIRCLECI)","true")
 # Run in CI
 	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report.xml" -- $(CURDIR)/agent/connect/ca/* -run 'TestVault(CA)?Provider'
+	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report-leader.xml" -- $(CURDIR)/agent/consul -run 'TestLeader_Vault_'
+	gotestsum --format=short-verbose --junitfile "$(TEST_RESULTS_DIR)/gotestsum-report-agent.xml" -- $(CURDIR)/agent -run '.*_Vault_'
 else
 # Run locally
 	@echo "Running /agent/connect/ca TestVault(CA)?Provider tests in verbose mode"
 	@go test $(CURDIR)/agent/connect/ca/* -run 'TestVault(CA)?Provider' -v
+	@go test $(CURDIR)/agent/consul -run 'TestLeader_Vault_' -v
+	@go test $(CURDIR)/agent -run '.*_Vault_' -v
 endif
 
 proto-delete:

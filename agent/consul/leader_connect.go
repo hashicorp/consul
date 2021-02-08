@@ -264,7 +264,7 @@ func (s *Server) initializeRootCA(provider ca.Provider, conf *structs.CAConfigur
 	if err != nil {
 		return fmt.Errorf("error generating intermediate cert: %v", err)
 	}
-	_, err = connect.ParseCert(interPEM)
+	intermediateCert, err := connect.ParseCert(interPEM)
 	if err != nil {
 		return fmt.Errorf("error getting intermediate cert: %v", err)
 	}
@@ -287,6 +287,13 @@ func (s *Server) initializeRootCA(provider ca.Provider, conf *structs.CAConfigur
 		}
 	}
 
+	// Versions prior to 1.9.3, 1.8.8, and 1.7.12 incorrectly used the primary
+	// rootCA's subjectKeyID here instead of the intermediate. For
+	// provider=consul this didn't matter since there are no intermediates in
+	// the primaryDC, but for vault it does matter.
+	expectedSigningKeyID := connect.EncodeSigningKeyID(intermediateCert.SubjectKeyId)
+	needsSigningKeyUpdate := (rootCA.SigningKeyID != expectedSigningKeyID)
+
 	// Check if the CA root is already initialized and exit if it is,
 	// adding on any existing intermediate certs since they aren't directly
 	// tied to the provider.
@@ -297,7 +304,9 @@ func (s *Server) initializeRootCA(provider ca.Provider, conf *structs.CAConfigur
 	if err != nil {
 		return err
 	}
-	if activeRoot != nil {
+	if activeRoot != nil && needsSigningKeyUpdate {
+		s.logger.Info("Correcting stored SigningKeyID value", "previous", rootCA.SigningKeyID, "updated", expectedSigningKeyID)
+	} else if activeRoot != nil && !needsSigningKeyUpdate {
 		// This state shouldn't be possible to get into because we update the root and
 		// CA config in the same FSM operation.
 		if activeRoot.ID != rootCA.ID {
@@ -308,6 +317,10 @@ func (s *Server) initializeRootCA(provider ca.Provider, conf *structs.CAConfigur
 		s.setCAProvider(provider, rootCA)
 
 		return nil
+	}
+
+	if needsSigningKeyUpdate {
+		rootCA.SigningKeyID = expectedSigningKeyID
 	}
 
 	// Get the highest index
