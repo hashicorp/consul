@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/hashicorp/consul/logging"
 	"sync/atomic"
 	"time"
 
@@ -164,6 +165,8 @@ const (
 )
 
 func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest) error {
+	logger := s.Logger.Named(logging.XDS)
+
 	// xDS requires a unique nonce to correlate response/request pairs
 	var nonce uint64
 
@@ -324,6 +327,9 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 			// state machine.
 			defer watchCancel()
 
+			logger.Trace("watching proxy, pending initial proxycfg snapshot",
+				"service_id", proxyID.String())
+
 			// Now wait for the config so we can check ACL
 			state = statePendingInitialConfig
 		case statePendingInitialConfig:
@@ -335,6 +341,9 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 			// Got config, try to authenticate next.
 			state = stateRunning
 
+			logger.Trace("Got initial config snapshot",
+				"service_id", cfgSnap.ProxyID.String())
+
 			// Lets actually process the config we just got or we'll mis responding
 			fallthrough
 		case stateRunning:
@@ -345,6 +354,9 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy.DiscoveryRequest)
 			// For the first time through the state machine, this is when the
 			// timer is first started.
 			extendAuthTimer()
+
+			logger.Trace("Invoking all xDS resource handlers and sending new data if there is any",
+				"service_id", cfgSnap.ProxyID.String())
 
 			// See if any handlers need to have the current (possibly new) config
 			// sent. Note the order here is actually significant so we can't just
