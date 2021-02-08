@@ -1,7 +1,20 @@
 ${
-	[1].map(() => {
+	[1].map(i => {
     const type = `${fake.helpers.randomize(['kubernetes', 'jwt', 'oidc'])}`;
-    const fakeIP = `${fake.internet.ip()}`;
+    let sourceType;
+
+    if (type !== 'kubernetes') {
+      sourceType = `${fake.helpers.randomize(['JWTValidationPubKeys', 'JWKSURL', 'OIDCDiscoveryURL'])}`;
+    }
+
+    const claimMappings = {
+      "http://example.com/example-1": `${fake.hacker.noun()}`,
+      "http://example.com/example-2": `${fake.hacker.noun()}`
+    }
+    const listClaimMappings = {
+      "http://example.com/example-1": `${fake.hacker.noun()}`
+    }
+
     let config = {};
     switch(type) {
       case 'kubernetes':
@@ -14,14 +27,34 @@ ${
       case 'oidc':
         config = {
           OIDCDiscoveryURL: `https://${fake.internet.ip()}:8443`,
+          ClaimMappings: claimMappings,
+          ListClaimMappings: listClaimMappings
         };
         break;
       case 'jwt':
         config = {
-          JWTValidationPubKeys: `-----BEGIN CERTIFICATE-----${fake.internet.password(1357)}-----END CERTIFICATE-----`,
-          JWKSURL: `https://${fake.internet.ip()}:8443`,
-          OIDCDiscoveryURL: `https://${fake.internet.ip()}:8443`,
+          JWTSupportedAlgs: ["RS256", "RS257"],
+          BoundAudiences: ["aud_example_0", "aud_example_1"],
+          BoundIssuer: `${fake.hacker.noun()}-issuer`,
+          ExpirationLeeway: `${fake.random.number({min: 0, max: 60})}`,
+          NotBeforeLeeway: `${fake.random.number({min: 0, max: 60})}`,
+          ClockSkewLeeway: `${fake.random.number({min: 0, max: 60})}`,
+          ClaimMappings: claimMappings,
+          ListClaimMappings: listClaimMappings
         };
+        break;
+    }
+
+    switch(sourceType) {
+      case 'JWTValidationPubKeys':
+        config.JWTValidationPubKeys = `-----BEGIN CERTIFICATE-----${fake.internet.password(1357)}-----END CERTIFICATE-----`;
+        break;
+      case 'JWKSURL':
+        config.JWKSURL = `https://${fake.internet.ip()}:8443`;
+        config.JWKSCACert = `-----BEGIN CERTIFICATE-----${fake.internet.password(1357)}-----END CERTIFICATE-----`;
+        break;
+      case 'OIDCDiscoveryURL':
+        config.OIDCDiscoveryURL = `https://${fake.internet.ip()}:8443`;
         break;
     }
 
