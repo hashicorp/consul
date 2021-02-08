@@ -77,17 +77,13 @@ as |key value|}}
           </span>
         </BlockSlot>
         <BlockSlot @name="options">
-  {{#let components.Optgroup components.Option as |Optgroup Option|}}
-    {{#each (array "kubernetes" "oidc" "jwt") as |type|}}
-          <Option class="{{type}}" @value={{type}} @selected={{contains type @filter.kind.value}}>
-            {{t (concat "components.consul.auth-method.search-bar.kind.options." type)
-                default=(array
-                  (concat "common.brand." type)
-                )
-            }}
-          </Option>
-    {{/each}}
-  {{/let}}
+        {{#let components.Optgroup components.Option as |Optgroup Option|}}
+          <Option class="kubernetes" @value="kubernetes" @selected={{contains 'kubernetes' @filter.kind.value}}>Kubernetes</Option>
+          <Option class="jwt" @value="jwt" @selected={{contains 'jwt' @filter.kind.value}}>JWT</Option>
+        {{#if (env 'CONSUL_SSO_ENABLED')}}
+          <Option class="oidc" @value="oidc" @selected={{contains 'oidc' @filter.kind.value}}>OIDC</Option>
+        {{/if}}
+        {{/let}}
         </BlockSlot>
       </search.Select>
       <search.Select
