@@ -71,7 +71,7 @@ func (c *Client) getServiceNodes(
 		panic("wrong response type for cachetype.HealthServicesName")
 	}
 
-	return filterTags(value, req), md, nil
+	return filterTags(filterNodeMeta(value, req), req), md, nil
 }
 
 func filterTags(out *structs.IndexedCheckServiceNodes, req structs.ServiceSpecificRequest) structs.IndexedCheckServiceNodes {
@@ -125,4 +125,19 @@ func serviceTagFilter(sn *structs.NodeService, tag string) bool {
 
 	// If we didn't hit the tag above then we should filter.
 	return true
+}
+
+func filterNodeMeta(out *structs.IndexedCheckServiceNodes, req structs.ServiceSpecificRequest) *structs.IndexedCheckServiceNodes {
+	if len(req.NodeMetaFilters) == 0 || len(out.Nodes) == 0 {
+		return out
+	}
+	results := make(structs.CheckServiceNodes, 0, len(out.Nodes))
+	for _, service := range out.Nodes {
+		serviceNode := service.Node
+		if structs.SatisfiesMetaFilters(serviceNode.Meta, req.NodeMetaFilters) {
+			results = append(results, service)
+		}
+	}
+	out.Nodes = results
+	return out
 }
