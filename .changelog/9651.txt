@@ -1,0 +1,3 @@
+```release-note:bug
+xds: prevent LDS flaps in mesh gateways due to unstable datacenter lists; also prevent some flaps in terminating gateways as well
+```

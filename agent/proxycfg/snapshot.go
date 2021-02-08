@@ -3,6 +3,7 @@ package proxycfg
 import (
 	"context"
 	"fmt"
+	"sort"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/mitchellh/copystructure"
@@ -183,6 +184,10 @@ func (c *configSnapshotMeshGateway) Datacenters() []string {
 			dcs = append(dcs, dc)
 		}
 	}
+
+	// Always sort the results to ensure we generate deterministic things over
+	// xDS, such as mesh-gateway listener filter chains.
+	sort.Strings(dcs)
 	return dcs
 }
 
