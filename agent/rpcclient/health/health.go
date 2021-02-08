@@ -2,7 +2,6 @@ package health
 
 import (
 	"context"
-	"strings"
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
@@ -70,66 +69,5 @@ func (c *Client) getServiceNodes(
 		panic("wrong response type for cachetype.HealthServicesName")
 	}
 
-	return filterTags(filterNodeMeta(value, req), req), md, nil
-}
-
-func filterTags(out *structs.IndexedCheckServiceNodes, req structs.ServiceSpecificRequest) structs.IndexedCheckServiceNodes {
-	if !req.TagFilter || len(req.ServiceTags) == 0 || len(out.Nodes) == 0 {
-		return *out
-	}
-	tags := make([]string, 0, len(req.ServiceTags))
-	for _, r := range req.ServiceTags {
-		tags = append(tags, strings.ToLower(r))
-	}
-	results := make(structs.CheckServiceNodes, 0, len(out.Nodes))
-	for _, service := range out.Nodes {
-		svc := service.Service
-		if !serviceTagsFilter(svc, tags) {
-			results = append(results, service)
-		}
-	}
-	out.Nodes = results
-	return *out
-}
-
-// serviceTagsFilter return true if service does not contains all the given tags
-func serviceTagsFilter(sn *structs.NodeService, tags []string) bool {
-	for _, tag := range tags {
-		if serviceTagFilter(sn, tag) {
-			// If any one of the expected tags was not found, filter the service
-			return true
-		}
-	}
-
-	// If all tags were found, don't filter the service
-	return false
-}
-
-// serviceTagFilter returns true (should filter) if the given service node
-// doesn't contain the given tag.
-func serviceTagFilter(sn *structs.NodeService, tag string) bool {
-	// Look for the lower cased version of the tag.
-	for _, t := range sn.Tags {
-		if strings.ToLower(t) == tag {
-			return false
-		}
-	}
-
-	// If we didn't hit the tag above then we should filter.
-	return true
-}
-
-func filterNodeMeta(out *structs.IndexedCheckServiceNodes, req structs.ServiceSpecificRequest) *structs.IndexedCheckServiceNodes {
-	if len(req.NodeMetaFilters) == 0 || len(out.Nodes) == 0 {
-		return out
-	}
-	results := make(structs.CheckServiceNodes, 0, len(out.Nodes))
-	for _, service := range out.Nodes {
-		serviceNode := service.Node
-		if structs.SatisfiesMetaFilters(serviceNode.Meta, req.NodeMetaFilters) {
-			results = append(results, service)
-		}
-	}
-	out.Nodes = results
-	return out
+	return *value, md, nil
 }

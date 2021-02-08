@@ -3100,7 +3100,7 @@ func TestDNS_CaseInsensitiveServiceLookup(t *testing.T) {
 					}
 
 					if len(in.Answer) != 1 {
-						t.Fatalf("empty lookup: %#v", in)
+						t.Fatalf("question %v, empty lookup: %#v", question, in)
 					}
 				})
 			}
