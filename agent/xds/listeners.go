@@ -775,6 +775,16 @@ func (s *Server) makeTerminatingGatewayListener(
 		}
 	}
 
+	// Before we add the fallback, sort these chains by the matched name. All
+	// of these filter chains are independent, but envoy requires them to be in
+	// some order. If we put them in a random order then every xDS iteration
+	// envoy will force the listener to be replaced. Sorting these has no
+	// effect on how they operate, but it does mean that we won't churn
+	// listeners at idle.
+	sort.Slice(l.FilterChains, func(i, j int) bool {
+		return l.FilterChains[i].FilterChainMatch.ServerNames[0] < l.FilterChains[j].FilterChainMatch.ServerNames[0]
+	})
+
 	// This fallback catch-all filter ensures a listener will be present for health checks to pass
 	// Envoy will reset these connections since known endpoints are caught by filter chain matches above
 	tcpProxy, err := makeTCPProxyFilter(name, "", "terminating_gateway.")
