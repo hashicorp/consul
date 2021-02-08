@@ -1,4 +1,4 @@
-import { Tabs, Tab } from '@hashicorp/nextjs-scripts/lib/providers/docs'
+import Tabs, { Tab } from '@hashicorp/react-tabs'
 import EnterpriseAlertBase from '@hashicorp/react-enterprise-alert'
 
 /**
