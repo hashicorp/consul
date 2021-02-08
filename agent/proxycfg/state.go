@@ -603,10 +603,11 @@ func (s *state) run() {
 		case <-s.ctx.Done():
 			return
 		case u := <-s.ch:
+			s.logger.Trace("A blocking query returned; handling snapshot update")
+
 			if err := s.handleUpdate(u, &snap); err != nil {
-				s.logger.Error("watch error",
-					"id", u.CorrelationID,
-					"error", err,
+				s.logger.Error("Failed to handle update from watch",
+					"id", u.CorrelationID, "error", err,
 				)
 				continue
 			}
@@ -617,23 +618,47 @@ func (s *state) run() {
 			snapCopy, err := snap.Clone()
 			if err != nil {
 				s.logger.Error("Failed to copy config snapshot for proxy",
-					"proxy", s.proxyID,
 					"error", err,
 				)
 				continue
 			}
-			s.snapCh <- *snapCopy
-			// Allow the next change to trigger a send
-			coalesceTimer = nil
 
-			// Skip rest of loop - there is nothing to send since nothing changed on
-			// this iteration
-			continue
+			select {
+			// Try to send
+			case s.snapCh <- *snapCopy:
+				s.logger.Trace("Delivered new snapshot to proxy config watchers")
+
+				// Allow the next change to trigger a send
+				coalesceTimer = nil
+
+				// Skip rest of loop - there is nothing to send since nothing changed on
+				// this iteration
+				continue
+
+			// Avoid blocking if a snapshot is already buffered in snapCh as this can result in a deadlock.
+			// See PR #9689 for more details.
+			default:
+				s.logger.Trace("Failed to deliver new snapshot to proxy config watchers")
+
+				// Reset the timer to retry later. This is to ensure we attempt to redeliver the updated snapshot shortly.
+				if coalesceTimer == nil {
+					coalesceTimer = time.AfterFunc(coalesceTimeout, func() {
+						sendCh <- struct{}{}
+					})
+				}
+
+				// Do not reset coalesceTimer since we just queued a timer-based refresh
+				continue
+			}
 
 		case replyCh := <-s.reqCh:
+			s.logger.Trace("A proxy config snapshot was requested")
+
 			if !snap.Valid() {
 				// Not valid yet just respond with nil and move on to next task.
 				replyCh <- nil
+
+				s.logger.Trace("The proxy's config snapshot is not valid yet")
 				continue
 			}
 			// Make a deep copy of snap so we don't mutate any of the embedded structs
@@ -641,7 +666,6 @@ func (s *state) run() {
 			snapCopy, err := snap.Clone()
 			if err != nil {
 				s.logger.Error("Failed to copy config snapshot for proxy",
-					"proxy", s.proxyID,
 					"error", err,
 				)
 				continue

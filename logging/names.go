@@ -56,5 +56,6 @@ const (
 	UIMetricsProxy     string = "ui_metrics_proxy"
 	WAN                string = "wan"
 	Watch              string = "watch"
+	XDS                string = "xds"
 	Vault              string = "vault"
 )
