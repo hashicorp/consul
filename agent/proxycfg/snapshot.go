@@ -2,6 +2,7 @@ package proxycfg
 
 import (
 	"context"
+	"sort"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/mitchellh/copystructure"
@@ -53,6 +54,20 @@ type configSnapshotMeshGateway struct {
 	ServiceResolvers map[structs.ServiceID]*structs.ServiceResolverConfigEntry
 	// map of datacenter names to services of kind mesh-gateway in that datacenter
 	GatewayGroups map[string]structs.CheckServiceNodes
+}
+
+func (c *configSnapshotMeshGateway) Datacenters() []string {
+	sz := len(c.GatewayGroups)
+
+	dcs := make([]string, 0, sz)
+	for dc := range c.GatewayGroups {
+		dcs = append(dcs, dc)
+	}
+
+	// Always sort the results to ensure we generate deterministic things over
+	// xDS, such as mesh-gateway listener filter chains.
+	sort.Strings(dcs)
+	return dcs
 }
 
 func (c *configSnapshotMeshGateway) IsEmpty() bool {

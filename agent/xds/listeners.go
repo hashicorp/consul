@@ -549,7 +549,8 @@ func (s *Server) makeGatewayListener(name, addr string, port int, cfgSnap *proxy
 
 	// TODO (mesh-gateway) - Do we need to create clusters for all the old trust domains as well?
 	// We need 1 Filter Chain per datacenter
-	for dc := range cfgSnap.MeshGateway.GatewayGroups {
+	datacenters := cfgSnap.MeshGateway.Datacenters()
+	for _, dc := range datacenters {
 		clusterName := connect.DatacenterSNI(dc, cfgSnap.Roots.TrustDomain)
 		filterName := fmt.Sprintf("%s_%s", name, dc)
 		dcTCPProxy, err := makeTCPProxyFilter(filterName, clusterName, "mesh_gateway_remote_")
