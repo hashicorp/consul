@@ -609,7 +609,7 @@ func TestLeader_Vault_PrimaryCA_FixSigningKeyID_OnRestart(t *testing.T) {
 
 	testrpc.WaitForLeader(t, s1pre.RPC, "dc1")
 
-	// Restore the pre-1.9.2/1.8.8/1.7.12 behavior of the SigningKeyID not being derived
+	// Restore the pre-1.9.3/1.8.8/1.7.12 behavior of the SigningKeyID not being derived
 	// from the intermediates in the primary (which only matters for provider=vault).
 	var primaryRootSigningKeyID string
 	{
