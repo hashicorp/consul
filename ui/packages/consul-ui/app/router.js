@@ -196,12 +196,6 @@ export const routes = {
           general: {
             _options: { path: '/general-info' },
           },
-          namespace: {
-            _options: { path: '/namespace-rules' },
-          },
-          binding: {
-            _options: { path: '/binding-rules' },
-          },
         },
       },
     },
