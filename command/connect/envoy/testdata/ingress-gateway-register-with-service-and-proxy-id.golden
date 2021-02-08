@@ -13,7 +13,7 @@
     "id": "my-gateway-123",
     "metadata": {
       "namespace": "default",
-      "envoy_version": "1.14.5"
+      "envoy_version": "1.14.6"
     }
   },
   "static_resources": {
