@@ -6,7 +6,10 @@ const modelName = 'permission';
 export default class PermissionService extends RepositoryService {
   @service('env') env;
   @service('can') _can;
-  // move this to the store
+  // TODO: move this to the store, if we want it to use ember-data
+  // currently this overwrites an inherited permissions service (this service)
+  // which isn't ideal, but if the name of this changes be aware that we'd
+  // probably have some circular dependency happening here
   @tracked permissions = [];
 
   getModelName() {
@@ -29,9 +32,35 @@ export default class PermissionService extends RepositoryService {
       Resource: resource,
       Access: action,
     };
+    if (typeof segment !== 'undefined') {
+      req.Segment = segment;
+    }
     return req;
   }
 
+  async findBySlug(dc, nspace, model, segment) {
+    let ability;
+    try {
+      ability = this._can.abilityFor(model);
+    } catch (e) {
+      return [];
+    }
+    const resources = ability.generateForSegment(segment.toString());
+    if (!this.env.var('CONSUL_ACLS_ENABLED')) {
+      return resources.map(item => {
+        return {
+          ...item,
+          Allow: true,
+        };
+      });
+    } else {
+      return await this.store
+        .authorize('nspace', { dc: dc, ns: nspace, permissions: resources })
+        .catch(function(e) {
+          return [];
+        });
+    }
+  }
   async findAll(dc, nspace) {
     const perms = [
       {

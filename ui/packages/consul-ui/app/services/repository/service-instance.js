@@ -19,7 +19,7 @@ export default class ServiceInstanceService extends RepositoryService {
       query.index = configuration.cursor;
       query.uri = configuration.uri;
     }
-    return this.store.query(this.getModelName(), query);
+    return this.addResources(() => this.store.query(this.getModelName(), query), slug, dc, nspace);
   }
 
   async findBySlug(serviceId, node, service, dc, nspace, configuration = {}) {
@@ -34,7 +34,12 @@ export default class ServiceInstanceService extends RepositoryService {
       query.index = configuration.cursor;
       query.uri = configuration.uri;
     }
-    return this.store.queryRecord(this.getModelName(), query);
+    return this.addResources(
+      () => this.store.queryRecord(this.getModelName(), query),
+      service,
+      dc,
+      nspace
+    );
   }
 
   async findProxyBySlug(serviceId, node, service, dc, nspace, configuration = {}) {

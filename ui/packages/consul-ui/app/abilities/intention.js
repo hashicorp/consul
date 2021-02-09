@@ -1,4 +1,5 @@
 import BaseAbility from './base';
+import { get } from '@ember/object';
 
 export default class IntentionAbility extends BaseAbility {
   resource = 'intention';

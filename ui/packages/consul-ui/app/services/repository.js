@@ -1,10 +1,14 @@
 import Service, { inject as service } from '@ember/service';
 import { assert } from '@ember/debug';
 import { typeOf } from '@ember/utils';
-import { get } from '@ember/object';
+import { get, set } from '@ember/object';
 import { isChangeset } from 'validated-changeset';
+import HTTPError from 'consul-ui/utils/http/error';
 
 export default class RepositoryService extends Service {
+  @service('store') store;
+  @service('repository/permission') permissions;
+
   getModelName() {
     assert('RepositoryService.getModelName should be overridden', false);
   }
@@ -16,10 +20,6 @@ export default class RepositoryService extends Service {
   getSlugKey() {
     assert('RepositoryService.getSlugKey should be overridden', false);
   }
-
-  //
-  @service('store')
-  store;
 
   reconcile(meta = {}) {
     // unload anything older than our current sync date/time
@@ -59,7 +59,23 @@ export default class RepositoryService extends Service {
     return this.store.query(this.getModelName(), query);
   }
 
-  findBySlug(slug, dc, nspace, configuration = {}) {
+  async addResources(cb, slug, dc, nspace) {
+    // inspect the permissions for this segment/slug remotely, if we have zero
+    // permissions fire a fake 403 so we don't even request the model/resource
+    const resources = await this.permissions.findBySlug(dc, nspace, this.getModelName(), slug);
+    if (resources.length > 0 && resources.every(item => item.Allow === false)) {
+      throw new HTTPError(403);
+    }
+    const item = await cb();
+    // add the `Resource` information to the record/model so we can inspect
+    // them in other places like templates etc
+    if (get(item, 'Resources')) {
+      set(item, 'Resources', resources);
+    }
+    return item;
+  }
+
+  async findBySlug(slug, dc, nspace, configuration = {}) {
     const query = {
       dc: dc,
       ns: nspace,
@@ -69,7 +85,12 @@ export default class RepositoryService extends Service {
       query.index = configuration.cursor;
       query.uri = configuration.uri;
     }
-    return this.store.queryRecord(this.getModelName(), query);
+    return this.addResources(
+      () => this.store.queryRecord(this.getModelName(), query),
+      slug,
+      dc,
+      nspace
+    );
   }
 
   create(obj) {

@@ -14,31 +14,27 @@ export default class KvService extends RepositoryService {
   }
 
   // this one gives you the full object so key,values and meta
-  findBySlug(key, dc, nspace, configuration = {}) {
-    if (isFolder(key)) {
+  async findBySlug(slug, dc, nspace, configuration = {}) {
+    if (isFolder(slug)) {
+      const resources = await this.permissions.findBySlug(dc, nspace, this.getModelName(), slug);
+      if (resources.every(item => item.Allow === false)) {
+        throw new HTTPError(403);
+      }
       // TODO: This very much shouldn't be here,
       // needs to eventually use ember-datas generateId thing
       // in the meantime at least our fingerprinter
-      const id = JSON.stringify([nspace, dc, key]);
+      const id = JSON.stringify([nspace, dc, slug]);
       let item = this.store.peekRecord(this.getModelName(), id);
       if (!item) {
         item = this.create({
-          Key: key,
+          Key: slug,
           Datacenter: dc,
           Namespace: nspace,
         });
       }
-      return Promise.resolve(item);
+      return item;
     }
-    const query = {
-      id: key,
-      dc: dc,
-      ns: nspace,
-    };
-    if (typeof configuration.cursor !== 'undefined') {
-      query.index = configuration.cursor;
-    }
-    return this.store.queryRecord(this.getModelName(), query);
+    return super.findBySlug(slug, dc, nspace, configuration);
   }
 
   // this one only gives you keys

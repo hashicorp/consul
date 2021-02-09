@@ -60,7 +60,7 @@ export default class NspaceAdapter extends Adapter {
 
   requestForAuthorize(request, { dc, ns, permissions, index }) {
     return request`
-      POST /v1/internal/acl/authorize?${{ dc, ns, index }}
+      POST /v1/internal/acl/authorize?${{ dc, ...this.formatNspace(ns), index }}
 
       ${permissions}
     `;
