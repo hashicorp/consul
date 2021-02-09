@@ -1,0 +1,3 @@
+```release-note:bug
+xds: deduplicate mesh gateway listeners by address in a stable way to prevent some LDS churn
+```
