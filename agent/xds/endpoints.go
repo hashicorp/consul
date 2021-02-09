@@ -169,10 +169,17 @@ func (s *Server) filterSubsetEndpoints(subset *structs.ServiceResolverSubset, en
 }
 
 func (s *Server) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
-	resources := make([]proto.Message, 0, len(cfgSnap.MeshGateway.GatewayGroups)+len(cfgSnap.MeshGateway.ServiceGroups))
+	datacenters := cfgSnap.MeshGateway.Datacenters()
+	resources := make([]proto.Message, 0, len(datacenters)+len(cfgSnap.MeshGateway.ServiceGroups))
 
 	// generate the endpoints for the gateways in the remote datacenters
-	for dc, endpoints := range cfgSnap.MeshGateway.GatewayGroups {
+	for _, dc := range datacenters {
+		endpoints, ok := cfgSnap.MeshGateway.GatewayGroups[dc]
+		if !ok { // not possible
+			s.Logger.Error("skipping mesh gateway endpoints because no definition found", "datacenter", dc)
+			continue
+		}
+
 		clusterName := connect.DatacenterSNI(dc, cfgSnap.Roots.TrustDomain)
 		la := makeLoadAssignment(
 			clusterName,

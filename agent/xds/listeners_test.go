@@ -298,11 +298,14 @@ func TestListenersFromSnapshot(t *testing.T) {
 						ProxyFeatures: sf,
 					}
 					listeners, err := s.listenersFromSnapshot(cInfo, snap)
+					require.NoError(err)
+
+					// The order of listeners returned via LDS isn't relevant, so it's safe
+					// to sort these for the purposes of test comparisons.
 					sort.Slice(listeners, func(i, j int) bool {
 						return listeners[i].(*envoy.Listener).Name < listeners[j].(*envoy.Listener).Name
 					})
 
-					require.NoError(err)
 					r, err := createResponse(ListenerType, "00000001", "00000001", listeners)
 					require.NoError(err)
 
