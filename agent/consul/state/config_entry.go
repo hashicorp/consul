@@ -106,7 +106,7 @@ func configEntryTxn(tx ReadTxn, ws memdb.WatchSet, kind, name string, entMeta *s
 	idx := maxIndexTxn(tx, tableConfigEntries)
 
 	// Get the existing config entry.
-	watchCh, existing, err := firstWatchConfigEntryWithTxn(tx, kind, name, entMeta)
+	watchCh, existing, err := tx.FirstWatch(tableConfigEntries, "id", NewConfigEntryKindName(kind, name, entMeta))
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed config entry lookup: %s", err)
 	}
@@ -175,7 +175,7 @@ func (s *Store) EnsureConfigEntry(idx uint64, conf structs.ConfigEntry) error {
 // ensureConfigEntryTxn upserts a config entry inside of a transaction.
 func ensureConfigEntryTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry) error {
 	// Check for existing configuration.
-	existing, err := firstConfigEntryWithTxn(tx, conf.GetKind(), conf.GetName(), conf.GetEnterpriseMeta())
+	existing, err := tx.First(tableConfigEntries, indexID, newConfigEntryQuery(conf))
 	if err != nil {
 		return fmt.Errorf("failed configuration lookup: %s", err)
 	}
@@ -214,7 +214,7 @@ func (s *Store) EnsureConfigEntryCAS(idx, cidx uint64, conf structs.ConfigEntry)
 	defer tx.Abort()
 
 	// Check for existing configuration.
-	existing, err := firstConfigEntryWithTxn(tx, conf.GetKind(), conf.GetName(), conf.GetEnterpriseMeta())
+	existing, err := tx.First(tableConfigEntries, indexID, newConfigEntryQuery(conf))
 	if err != nil {
 		return false, fmt.Errorf("failed configuration lookup: %s", err)
 	}
@@ -254,9 +254,9 @@ func (s *Store) DeleteConfigEntry(idx uint64, kind, name string, entMeta *struct
 	return tx.Commit()
 }
 
+// TODO: accept structs.ConfigEntry instead of individual fields
 func deleteConfigEntryTxn(tx WriteTxn, idx uint64, kind, name string, entMeta *structs.EnterpriseMeta) error {
-	// Try to retrieve the existing config entry.
-	existing, err := firstConfigEntryWithTxn(tx, kind, name, entMeta)
+	existing, err := tx.First(tableConfigEntries, indexID, NewConfigEntryKindName(kind, name, entMeta))
 	if err != nil {
 		return fmt.Errorf("failed config entry lookup: %s", err)
 	}
@@ -1241,4 +1241,8 @@ func NewConfigEntryKindName(kind, name string, entMeta *structs.EnterpriseMeta) 
 	ret.EnterpriseMeta = *entMeta
 	ret.EnterpriseMeta.Normalize()
 	return ret
+}
+
+func newConfigEntryQuery(c structs.ConfigEntry) ConfigEntryKindName {
+	return NewConfigEntryKindName(c.GetKind(), c.GetName(), c.GetEnterpriseMeta())
 }

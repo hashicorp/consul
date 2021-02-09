@@ -3,22 +3,40 @@
 package state
 
 import (
+	"fmt"
+	"strings"
+
 	memdb "github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-func firstConfigEntryWithTxn(tx ReadTxn, kind, name string, _ *structs.EnterpriseMeta) (interface{}, error) {
-	return tx.First(tableConfigEntries, "id", kind, name)
+func indexFromConfigEntryKindName(arg interface{}) ([]byte, error) {
+	n, ok := arg.(ConfigEntryKindName)
+	if !ok {
+		return nil, fmt.Errorf("invalid type for ConfigEntryKindName query: %T", arg)
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(n.Kind))
+	b.String(strings.ToLower(n.Name))
+	return b.Bytes(), nil
 }
 
-func firstWatchConfigEntryWithTxn(
-	tx ReadTxn,
-	kind string,
-	name string,
-	_ *structs.EnterpriseMeta,
-) (<-chan struct{}, interface{}, error) {
-	return tx.FirstWatch(tableConfigEntries, "id", kind, name)
+func indexFromConfigEntry(raw interface{}) ([]byte, error) {
+	c, ok := raw.(structs.ConfigEntry)
+	if !ok {
+		return nil, fmt.Errorf("type must be structs.ConfigEntry: %T", raw)
+	}
+
+	if c.GetName() == "" || c.GetKind() == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(c.GetKind()))
+	b.String(strings.ToLower(c.GetName()))
+	return b.Bytes(), nil
 }
 
 func validateConfigEntryEnterprise(_ ReadTxn, _ structs.ConfigEntry) error {
