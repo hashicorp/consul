@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -1183,3 +1184,143 @@ func TestCacheGet_nonBlockingType(t *testing.T) {
 	time.Sleep(20 * time.Millisecond)
 	typ.AssertExpectations(t)
 }
+
+func TestCache_RefreshLifeCycle(t *testing.T) {
+	typ := &MockType{}
+	t.Cleanup(func() { typ.AssertExpectations(t) })
+
+	makeRequest := func(index uint64) fakeRequest {
+		return fakeRequest{
+			info: RequestInfo{
+				Key:        "v1",
+				Token:      "token",
+				Datacenter: "dc1",
+				MinIndex:   index,
+			},
+		}
+	}
+
+	typ.On("SupportsBlocking").Return(true).Times(0)
+
+	typ.On("Fetch", mock.Anything, mock.Anything).Once().Return(FetchResult{
+		Value: true,
+		Index: 2,
+	}, nil)
+
+	releaseSecondReq := make(chan time.Time)
+	typ.On("Fetch", mock.Anything, mock.Anything).Once().Return(FetchResult{}, acl.PermissionDeniedError{Cause: "forced error"}).WaitUntil(releaseSecondReq)
+
+	releaseThirdReq := make(chan time.Time)
+	typ.On("Fetch", mock.Anything, mock.Anything).Once().Return(FetchResult{}, acl.ErrNotFound).WaitUntil(releaseThirdReq)
+
+	c := TestCache(t)
+	c.RegisterType("t", typ, &RegisterOptions{
+		// Maintain a blocking query, retry dropped connections quickly
+		Refresh:        true,
+		RefreshTimer:   0 * time.Second,
+		RefreshTimeout: 10 * time.Minute,
+	})
+
+	key := makeEntryKey("t", "dc1", "token", "v1")
+
+	// get the background refresh going
+	result, _, err := c.Get("t", makeRequest(1))
+	require.NoError(t, err)
+	require.Equal(t, true, result)
+
+	// ensure that the entry is fetching again
+	c.entriesLock.Lock()
+	entry, ok := c.entries[key]
+	require.True(t, ok)
+	require.True(t, entry.Fetching)
+	c.entriesLock.Unlock()
+
+	requestChan := make(chan error, 1)
+
+	getError := func(index uint64) {
+		_, _, err := c.Get("t", makeRequest(index))
+		requestChan <- err
+	}
+
+	// background a call that will wait for a newer version
+	go getError(2)
+
+	// I really dislike the arbitrary sleep here. However we want to test out some of the
+	// branching in getWithIndex (called by Get) and that doesn't expose any way for us to
+	// know when that go routine has gotten far enough and is waiting on the latest value.
+	// Therefore the only thing we can do for now is to sleep long enough to let that
+	// go routine progress far enough.
+	time.Sleep(100 * time.Millisecond)
+
+	// release the blocking query to simulate an ACL permission denied error
+	close(releaseSecondReq)
+
+	// ensure we were woken up and see the permission denied error
+	select {
+	case err := <-requestChan:
+		require.True(t, acl.IsErrPermissionDenied(err))
+	case <-time.After(500 * time.Millisecond):
+		require.Fail(t, "blocking cache Get never returned")
+	}
+
+	// ensure that the entry is fetching again
+	c.entriesLock.Lock()
+	entry, ok = c.entries[key]
+	require.True(t, ok)
+	require.True(t, entry.Fetching)
+	c.entriesLock.Unlock()
+
+	// background a call that will wait for a newer version - will result in an acl not found error
+	go getError(5)
+
+	// Same arbitrary sleep as the one after the second request and the same reasoning.
+	time.Sleep(100 * time.Millisecond)
+
+	// release the blocking query to simulate an ACL not found error
+	close(releaseThirdReq)
+
+	// ensure we were woken up and see the ACL not found error
+	select {
+	case err := <-requestChan:
+		require.True(t, acl.IsErrNotFound(err))
+	case <-time.After(500 * time.Millisecond):
+		require.Fail(t, "blocking cache Get never returned")
+	}
+
+	// ensure that the ACL not found error killed off the background refresh
+	// but didn't remove it from the cache
+	c.entriesLock.Lock()
+	entry, ok = c.entries[key]
+	require.True(t, ok)
+	require.False(t, entry.Fetching)
+	c.entriesLock.Unlock()
+}
+
+type fakeType struct {
+	index uint64
+}
+
+func (f fakeType) Fetch(_ FetchOptions, _ Request) (FetchResult, error) {
+	idx := atomic.LoadUint64(&f.index)
+	return FetchResult{Value: int(idx * 2), Index: idx}, nil
+}
+
+func (f fakeType) RegisterOptions() RegisterOptions {
+	return RegisterOptions{Refresh: true}
+}
+
+func (f fakeType) SupportsBlocking() bool {
+	return true
+}
+
+var _ Type = (*fakeType)(nil)
+
+type fakeRequest struct {
+	info RequestInfo
+}
+
+func (f fakeRequest) CacheInfo() RequestInfo {
+	return f.info
+}
+
+var _ Request = (*fakeRequest)(nil)
