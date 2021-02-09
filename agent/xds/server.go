@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/logging"
 	"sync/atomic"
 	"time"
 
