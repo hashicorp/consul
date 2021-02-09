@@ -270,14 +270,59 @@ type ACLAuthMethodNamespaceRule struct {
 type ACLAuthMethodListEntry struct {
 	Name        string
 	Type        string
-	DisplayName string `json:",omitempty"`
-	Description string `json:",omitempty"`
-	CreateIndex uint64
-	ModifyIndex uint64
+	DisplayName string        `json:",omitempty"`
+	Description string        `json:",omitempty"`
+	MaxTokenTTL time.Duration `json:",omitempty"`
+
+	// TokenLocality defines the kind of token that this auth method produces.
+	// This can be either 'local' or 'global'. If empty 'local' is assumed.
+	TokenLocality string `json:",omitempty"`
+	CreateIndex   uint64
+	ModifyIndex   uint64
 
 	// Namespace is the namespace the ACLAuthMethodListEntry is associated with.
 	// Namespacing is a Consul Enterprise feature.
 	Namespace string `json:",omitempty"`
+}
+
+// This is nearly identical to the ACLAuthMethod MarshalJSON
+func (m *ACLAuthMethodListEntry) MarshalJSON() ([]byte, error) {
+	type Alias ACLAuthMethodListEntry
+	exported := &struct {
+		MaxTokenTTL string `json:",omitempty"`
+		*Alias
+	}{
+		MaxTokenTTL: m.MaxTokenTTL.String(),
+		Alias:       (*Alias)(m),
+	}
+	if m.MaxTokenTTL == 0 {
+		exported.MaxTokenTTL = ""
+	}
+
+	return json.Marshal(exported)
+}
+
+// This is nearly identical to the ACLAuthMethod UnmarshalJSON
+func (m *ACLAuthMethodListEntry) UnmarshalJSON(data []byte) error {
+	type Alias ACLAuthMethodListEntry
+	aux := &struct {
+		MaxTokenTTL string
+		*Alias
+	}{
+		Alias: (*Alias)(m),
+	}
+
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	var err error
+	if aux.MaxTokenTTL != "" {
+		if m.MaxTokenTTL, err = time.ParseDuration(aux.MaxTokenTTL); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // ParseKubernetesAuthMethodConfig takes a raw config map and returns a parsed

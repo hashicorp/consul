@@ -1090,13 +1090,16 @@ func (rules ACLBindingRules) Sort() {
 	})
 }
 
+// Note: this is a subset of ACLAuthMethod's fields
 type ACLAuthMethodListStub struct {
-	Name        string
-	Type        string
-	DisplayName string `json:",omitempty"`
-	Description string `json:",omitempty"`
-	CreateIndex uint64
-	ModifyIndex uint64
+	Name          string
+	Type          string
+	DisplayName   string        `json:",omitempty"`
+	Description   string        `json:",omitempty"`
+	MaxTokenTTL   time.Duration `json:",omitempty"`
+	TokenLocality string        `json:",omitempty"`
+	CreateIndex   uint64
+	ModifyIndex   uint64
 	EnterpriseMeta
 }
 
@@ -1106,10 +1109,32 @@ func (p *ACLAuthMethod) Stub() *ACLAuthMethodListStub {
 		Type:           p.Type,
 		DisplayName:    p.DisplayName,
 		Description:    p.Description,
+		MaxTokenTTL:    p.MaxTokenTTL,
+		TokenLocality:  p.TokenLocality,
 		CreateIndex:    p.CreateIndex,
 		ModifyIndex:    p.ModifyIndex,
 		EnterpriseMeta: p.EnterpriseMeta,
 	}
+}
+
+// This is nearly identical to the ACLAuthMethod MarshalJSON
+// Unmarshaling is not implemented because the API is read only
+func (m *ACLAuthMethodListStub) MarshalJSON() ([]byte, error) {
+	type Alias ACLAuthMethodListStub
+	exported := &struct {
+		MaxTokenTTL string `json:",omitempty"`
+		*Alias
+	}{
+		MaxTokenTTL: m.MaxTokenTTL.String(),
+		Alias:       (*Alias)(m),
+	}
+	if m.MaxTokenTTL == 0 {
+		exported.MaxTokenTTL = ""
+	}
+
+	data, err := json.Marshal(exported)
+
+	return data, err
 }
 
 type ACLAuthMethods []*ACLAuthMethod

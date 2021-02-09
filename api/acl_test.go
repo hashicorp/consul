@@ -3,6 +3,7 @@ package api
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 
@@ -655,6 +656,101 @@ func TestAPI_ACLToken_Clone(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, read)
 	require.Equal(t, cloned, read)
+}
+
+//
+func TestAPI_AuthMethod_List(t *testing.T) {
+	t.Parallel()
+	c, s := makeACLClient(t)
+	defer s.Stop()
+
+	acl := c.ACL()
+	s.WaitForSerfCheck(t)
+
+	method1 := ACLAuthMethod{
+		Name:          "test_1",
+		Type:          "kubernetes",
+		Description:   "test 1",
+		MaxTokenTTL:   260 * time.Second,
+		TokenLocality: "global",
+		Config:        AuthMethodCreateKubernetesConfigHelper(),
+	}
+
+	created1, wm, err := acl.AuthMethodCreate(&method1, nil)
+
+	require.NoError(t, err)
+	require.NotNil(t, created1)
+	require.NotEqual(t, "", created1.Name)
+	require.NotEqual(t, 0, wm.RequestTime)
+
+	method2 := ACLAuthMethod{
+		Name:          "test_2",
+		Type:          "kubernetes",
+		Description:   "test 2",
+		MaxTokenTTL:   0,
+		TokenLocality: "local",
+		Config:        AuthMethodCreateKubernetesConfigHelper(),
+	}
+
+	_, _, err = acl.AuthMethodCreate(&method2, nil)
+	require.NoError(t, err)
+
+	entries, _, err := acl.AuthMethodList(nil)
+	require.NoError(t, err)
+	require.NotNil(t, entries)
+	require.Equal(t, 2, len(entries))
+
+	{
+		entry := entries[0]
+		require.Equal(t, "test_1", entry.Name)
+		require.Equal(t, 260*time.Second, entry.MaxTokenTTL)
+		require.Equal(t, "global", entry.TokenLocality)
+	}
+	{
+		entry := entries[1]
+		require.Equal(t, "test_2", entry.Name)
+		require.Equal(t, time.Duration(0), entry.MaxTokenTTL)
+		require.Equal(t, "local", entry.TokenLocality)
+	}
+}
+
+func AuthMethodCreateKubernetesConfigHelper() (result map[string]interface{}) {
+	var pemData = `
+-----BEGIN CERTIFICATE-----
+MIIE1DCCArwCCQC2kx7TchbxAzANBgkqhkiG9w0BAQsFADAsMQswCQYDVQQGEwJV
+UzELMAkGA1UECAwCV0ExEDAOBgNVBAcMB1NlYXR0bGUwHhcNMjEwMTI3MDIzNDA1
+WhcNMjIwMTI3MDIzNDA1WjAsMQswCQYDVQQGEwJVUzELMAkGA1UECAwCV0ExEDAO
+BgNVBAcMB1NlYXR0bGUwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQCt
+j3zRFLg2A2DcZFwoc1HvIsGzqcfvxjee/OQjKyIuXbdpbJGIahB2piNYtd49zU/5
+ofRAuqIQOco3V9LfL52I7NchNBvPQOrXjbpcM3qF2qQvunVlnnaPCIf8S5hsFMaq
+w2/+jnLjaUdXGJ9bold5E/bms87uRahvhUpY7MhkSDNsAen+YThpwucc9JFRmrz3
+EXGtTzcpyEn9b0s6ut9mum2UVqghAQyLeW8cNx1zeg6Bi5USjOKF6CQgF7o4kZ9X
+D0Nk5vB9eePs/q5N9LHkDFKVCmzAYgzcQeGZFEzNcgK7N5y+aB2xXKpH3tydpwRd
+uS+g05Jvk8M8P34wteUb8tq3jZuY7UYzlINMSrPuZdFhcGjmxPjC5hl1SZy4vF1s
+GAD9RsleTZ8yeC6Cfo4mba214C9CqYkC2NBw2HO53pzO/tYI844QPhjmVBJ7bb35
+S052HD7m+AzbfY6w9CDH4D4mzIM4u1yRB6OlXdXTH58BhgxHdEnugLYr13QlVWRW
+4nZgMFKiTY7cBscpPcVRsne/VR9VwSatp3adj+G8+WUtwQLJC2OcCFYvmHfdSOs0
+B15LH/tGeJcfKViKC9ifPq5abVZByr66jTQMAdBWet03OBnmLqJs9TI4wci0MkK/
+HlHYdy734rReD81LY9fCRCRFV4ZtMx2rfj7cqgKLlwIDAQABMA0GCSqGSIb3DQEB
+CwUAA4ICAQB6ji6wA9ROFx8ZhLPlEnDiielSUN8LR2K8cmAjxxffJo3GxRH/zZYl
+CM+DzU5VVzW6RGWuTNzcFNsxlaRx20sj5RyXLH90wFYLO2Rrs1XKWmqpfdN0Iiue
+W7rYdNPV7YPjIVQVoijEt8kwx24jE9mU5ILXe4+WKPWavG+dHA1r8lQdg7wmE/8R
+E/nSVtusuX0JRVdL96iy2HB37DYj+rJEE0C7fKAk51o0C4F6fOzUsWCaP/23pZNI
+rA6hCq2CJeT4ObVukCIrnylrckZs8ElcZ7PvJ9bCNvma+dAxbL0uEkv0q0feLeVh
+OTttNIVTUjYjr3KE6rtE1Rr35R/6HCK+zZDOkKf+TVEQsFuI4DRVEuntzjo9bgZf
+fAL6G+UXpzW440BJzmzADnSthawMZFdqVrrBzpzb+B2d9VLDEoyCCFzaJyj/Gyff
+kqxRFTHZJRKC/3iIRXOX64bIr1YmXHFHCBkcq7eyh1oeaTrGZ43HimaveWwcsPv/
+SxTJANJHqf4BiFtVjN7LZXi3HUIRAsceEbd0TfW5be9SQ0tbDyyGYt/bXtBLGTIh
+9kerr9eWDHlpHMTyP01+Ua3EacbfgrmvD9sa3s6gC4SnwlvLdubmyLwoorCs77eF
+15bSOU7NsVZfwLw+M+DyNWPxI1BR/XOP+YoyTgIEChIC9eYnmlWU2Q==
+-----END CERTIFICATE-----`
+
+	result = map[string]interface{}{
+		"Host":              "https://192.0.2.42:8443",
+		"CACert":            pemData,
+		"ServiceAccountJWT": `eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImp0aSI6ImQxYTZiYzE5LWZiODItNDI5ZC05NmUxLTg1YTFjYjEyNGQ3MCIsImlhdCI6MTYxMTcxNTQ5NiwiZXhwIjoxNjExNzE5MDk2fQ.rrVS5h1Yw20eI41RsTl2YAqzKKikKNg3qMkDmspTPQs`,
+	}
+	return
 }
 
 func TestAPI_RulesTranslate_FromToken(t *testing.T) {
