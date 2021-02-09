@@ -17,11 +17,14 @@ package cache
 import (
 	"container/heap"
 	"fmt"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/armon/go-metrics"
+
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/lib"
 )
 
@@ -540,6 +543,8 @@ func (c *Cache) fetch(t, key string, r Request, allowNew bool, attempt uint, min
 			newEntry.State = result.State
 		}
 
+		preventRefresh := acl.IsErrNotFound(err)
+
 		// Error handling
 		if err == nil {
 			metrics.IncrCounter([]string{"consul", "cache", "fetch_success"}, 1)
@@ -571,8 +576,10 @@ func (c *Cache) fetch(t, key string, r Request, allowNew bool, attempt uint, min
 				newEntry.RefreshLostContact = time.Time{}
 			}
 		} else {
-			metrics.IncrCounter([]string{"consul", "cache", "fetch_error"}, 1)
-			metrics.IncrCounter([]string{"consul", "cache", t, "fetch_error"}, 1)
+			labels := []metrics.Label{{Name: "fatal", Value: strconv.FormatBool(preventRefresh)}}
+
+			metrics.IncrCounterWithLabels([]string{"consul", "cache", "fetch_error"}, 1, labels)
+			metrics.IncrCounterWithLabels([]string{"consul", "cache", t, "fetch_error"}, 1, labels)
 
 			// Increment attempt counter
 			attempt++
@@ -612,7 +619,7 @@ func (c *Cache) fetch(t, key string, r Request, allowNew bool, attempt uint, min
 
 		// If refresh is enabled, run the refresh in due time. The refresh
 		// below might block, but saves us from spawning another goroutine.
-		if tEntry.Opts.Refresh {
+		if tEntry.Opts.Refresh && !preventRefresh {
 			c.refresh(tEntry.Opts, attempt, t, key, r)
 		}
 	}()
