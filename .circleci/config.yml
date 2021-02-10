@@ -694,18 +694,18 @@ jobs:
       ENVOY_VERSION: "1.12.7"
     steps: *ENVOY_INTEGRATION_TEST_STEPS
 
-  envoy-integration-test-1_13_6:
+  envoy-integration-test-1_13_7:
     docker:
       - image: *GOLANG_IMAGE
     environment:
-      ENVOY_VERSION: "1.13.6"
+      ENVOY_VERSION: "1.13.7"
     steps: *ENVOY_INTEGRATION_TEST_STEPS
 
-  envoy-integration-test-1_14_5:
+  envoy-integration-test-1_14_6:
     docker:
       - image: *GOLANG_IMAGE
     environment:
-      ENVOY_VERSION: "1.14.5"
+      ENVOY_VERSION: "1.14.6"
     steps: *ENVOY_INTEGRATION_TEST_STEPS
 
   # run integration tests for the connect ca providers
@@ -846,10 +846,10 @@ workflows:
       - envoy-integration-test-1_12_7:
           requires:
             - dev-build
-      - envoy-integration-test-1_13_6:
+      - envoy-integration-test-1_13_7:
           requires:
             - dev-build
-      - envoy-integration-test-1_14_5:
+      - envoy-integration-test-1_14_6:
           requires:
             - dev-build
   website:
