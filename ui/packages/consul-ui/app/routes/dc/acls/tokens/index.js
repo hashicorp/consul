@@ -35,10 +35,10 @@ export default class IndexRoute extends Route.extend(WithTokenActions) {
   model(params) {
     return hash({
       ...this.repo.status({
-        items: this.repo.findAllByDatacenter(
-          this.modelFor('dc').dc.Name,
-          this.modelFor('nspace').nspace.substr(1)
-        ),
+        items: this.repo.findAllByDatacenter({
+          ns: this.modelFor('nspace').nspace.substr(1),
+          dc: this.modelFor('dc').dc.Name,
+        }),
       }),
       nspace: this.modelFor('nspace').nspace.substr(1),
       token: this.settings.findBySlug('token'),

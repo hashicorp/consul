@@ -5,6 +5,7 @@ import { get, set } from '@ember/object';
 import { isChangeset } from 'validated-changeset';
 import HTTPError from 'consul-ui/utils/http/error';
 import { ACCESS_READ } from 'consul-ui/abilities/base';
+import dataSource from 'consul-ui/decorators/data-source';
 
 export default class RepositoryService extends Service {
   @service('store') store;
@@ -102,34 +103,33 @@ export default class RepositoryService extends Service {
     return this.store.peekRecord(this.getModelName(), id);
   }
 
-  findAllByDatacenter(dc, nspace, configuration = {}) {
-    const query = {
-      dc: dc,
-      ns: nspace,
-    };
+  @dataSource('/:ns/:dc/:modelName')
+  findAllByDatacenter(params, configuration = {}) {
     if (typeof configuration.cursor !== 'undefined') {
-      query.index = configuration.cursor;
-      query.uri = configuration.uri;
+      params.index = configuration.cursor;
+      params.uri = configuration.uri;
     }
-    return this.store.query(this.getModelName(), query);
+    return this.store.query(this.getModelName(), params);
   }
 
-  async findBySlug(slug, dc, nspace, configuration = {}) {
-    const query = {
-      dc: dc,
-      ns: nspace,
-      id: slug,
-    };
+  @dataSource('/:ns/:dc/:modelName/:id')
+  async findBySlug(params, configuration = {}) {
+    if (params.id === '') {
+      return this.create({
+        Datacenter: params.dc,
+        Namespace: params.ns,
+      });
+    }
     if (typeof configuration.cursor !== 'undefined') {
-      query.index = configuration.cursor;
-      query.uri = configuration.uri;
+      params.index = configuration.cursor;
+      params.uri = configuration.uri;
     }
     return this.authorizeBySlug(
-      () => this.store.queryRecord(this.getModelName(), query),
+      () => this.store.queryRecord(this.getModelName(), params),
       ACCESS_READ,
-      slug,
-      dc,
-      nspace
+      params.slug,
+      params.dc,
+      params.nspace
     );
   }
 

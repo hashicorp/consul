@@ -3,6 +3,7 @@ import isFolder from 'consul-ui/utils/isFolder';
 import { get } from '@ember/object';
 import { PRIMARY_KEY } from 'consul-ui/models/kv';
 import { ACCESS_LIST } from 'consul-ui/abilities/base';
+import dataSource from 'consul-ui/decorators/data-source';
 
 const modelName = 'kv';
 export default class KvService extends RepositoryService {
@@ -15,8 +16,9 @@ export default class KvService extends RepositoryService {
   }
 
   // this one gives you the full object so key,values and meta
-  async findBySlug(slug, dc, nspace, configuration = {}) {
-    if (isFolder(slug)) {
+  @dataSource('/:ns/:dc/kv/*id')
+  async findBySlug(params, configuration = {}) {
+    if (isFolder(params.id)) {
       // we only use findBySlug for a folder when we are looking to create a
       // parent for a key for retriveing something Model shaped. Therefore we
       // only use existing records or a fake record with the correct Key,
@@ -26,60 +28,56 @@ export default class KvService extends RepositoryService {
       // TODO: This very much shouldn't be here,
       // needs to eventually use ember-datas generateId thing
       // in the meantime at least our fingerprinter
-      const id = JSON.stringify([nspace, dc, slug]);
-      let item = this.store.peekRecord(this.getModelName(), id);
+      const uid = JSON.stringify([params.ns, params.dc, params.id]);
+      let item = this.store.peekRecord(this.getModelName(), uid);
       if (!item) {
         item = this.create({
-          Key: slug,
-          Datacenter: dc,
-          Namespace: nspace,
+          Key: params.id,
+          Datacenter: params.dc,
+          Namespace: params.ns,
         });
       }
       return item;
-    } else {
-      return super.findBySlug(slug, dc, nspace, configuration);
     }
+    if (typeof configuration.cursor !== 'undefined') {
+      params.index = configuration.cursor;
+    }
+    return this.store.queryRecord(this.getModelName(), params);
   }
 
   // this one only gives you keys
   // https://www.consul.io/api/kv.html
-  findAllBySlug(key, dc, nspace, configuration = {}) {
-    if (key === '/') {
-      key = '';
+  findAllBySlug(params, configuration = {}) {
+    if (params.id === '/') {
+      params.id = '';
     }
     return this.authorizeBySlug(
       async () => {
-        const query = {
-          id: key,
-          dc: dc,
-          ns: nspace,
-          separator: '/',
-        };
+        params.separator = '/';
         if (typeof configuration.cursor !== 'undefined') {
-          query.index = configuration.cursor;
+          params.index = configuration.cursor;
         }
         let items;
         try {
-          items = await this.store.query(this.getModelName(), query);
+          items = await this.store.query(this.getModelName(), params);
         } catch (e) {
           if (get(e, 'errors.firstObject.status') === '404') {
             // TODO: This very much shouldn't be here,
             // needs to eventually use ember-datas generateId thing
             // in the meantime at least our fingerprinter
-            const id = JSON.stringify([dc, key]);
-            const record = this.store.peekRecord(this.getModelName(), id);
+            const uid = JSON.stringify([params.ns, params.dc, params.id]);
+            const record = this.store.peekRecord(this.getModelName(), uid);
             if (record) {
               record.unloadRecord();
             }
-          }
           throw e;
         }
-        return items.filter(item => key !== get(item, 'Key'));
+        return items.filter(item => params.id !== get(item, 'Key'));
       },
       ACCESS_LIST,
-      key,
-      dc,
-      nspace
+      params.id,
+      params.dc,
+      params.nspace
     );
   }
 }

@@ -2,6 +2,7 @@ import { inject as service } from '@ember/service';
 import RepositoryService from 'consul-ui/services/repository';
 import { getOwner } from '@ember/application';
 import { set } from '@ember/object';
+import dataSource from 'consul-ui/decorators/data-source';
 
 const modelName = 'oidc-provider';
 const OAUTH_PROVIDER_NAME = 'oidc-with-url';
@@ -18,15 +19,19 @@ export default class OidcProviderService extends RepositoryService {
     return modelName;
   }
 
-  authorize(id, code, state, dc, nspace, configuration = {}) {
-    const query = {
-      id: id,
-      code: code,
-      state: state,
-      dc: dc,
-      ns: nspace,
-    };
-    return this.store.authorize(this.getModelName(), query);
+  @dataSource('/:ns/:dc/oidc/providers')
+  async findAllByDatacenter() {
+    return super.findAllByDatacenter(...arguments);
+  }
+
+  @dataSource('/:ns/:dc/oidc/provider/:id')
+  async findBySlug() {
+    return super.findBySlug(...arguments);
+  }
+
+  @dataSource('/:ns/:dc/oidc/authorize/:id/:code/:state')
+  authorize(params, configuration = {}) {
+    return this.store.authorize(this.getModelName(), params);
   }
 
   logout(id, code, state, dc, nspace, configuration = {}) {

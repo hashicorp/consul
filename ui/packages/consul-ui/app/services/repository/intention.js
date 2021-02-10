@@ -1,6 +1,7 @@
 import { set, get } from '@ember/object';
 import RepositoryService from 'consul-ui/services/repository';
 import { PRIMARY_KEY } from 'consul-ui/models/intention';
+import dataSource from 'consul-ui/decorators/data-source';
 
 const modelName = 'intention';
 export default class IntentionRepository extends RepositoryService {
@@ -56,11 +57,22 @@ export default class IntentionRepository extends RepositoryService {
     return res;
   }
 
-  async findByService(slug, dc, nspace, configuration = {}) {
+  @dataSource('/:ns/:dc/intentions')
+  async findAllByDatacenter() {
+    return super.findAllByDatacenter(...arguments);
+  }
+
+  @dataSource('/:ns/:dc/intention/:id')
+  async findBySlug() {
+    return super.findBySlug(...arguments);
+  }
+
+  @dataSource('/:ns/:dc/intentions/for-service/:slug')
+  async findByService(params, configuration = {}) {
     const query = {
-      dc,
-      nspace,
-      filter: `SourceName == "${slug}" or DestinationName == "${slug}" or SourceName == "*" or DestinationName == "*"`,
+      dc: params.dc,
+      nspace: params.nspace,
+      filter: `SourceName == "${params.slug}" or DestinationName == "${params.slug}" or SourceName == "*" or DestinationName == "*"`,
     };
     if (typeof configuration.cursor !== 'undefined') {
       query.index = configuration.cursor;

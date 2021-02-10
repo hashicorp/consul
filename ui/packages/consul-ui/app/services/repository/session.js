@@ -1,5 +1,6 @@
 import { inject as service } from '@ember/service';
 import RepositoryService from 'consul-ui/services/repository';
+import dataSource from 'consul-ui/decorators/data-source';
 
 const modelName = 'session';
 export default class SessionService extends RepositoryService {
@@ -10,21 +11,18 @@ export default class SessionService extends RepositoryService {
     return modelName;
   }
 
-  findByNode(node, dc, nspace, configuration = {}) {
-    const query = {
-      id: node,
-      dc: dc,
-      ns: nspace,
-    };
+  @dataSource('/:ns/:dc/sessions/for-node/:id')
+  findByNode(params, configuration = {}) {
     if (typeof configuration.cursor !== 'undefined') {
-      query.index = configuration.cursor;
-      query.uri = configuration.uri;
+      params.index = configuration.cursor;
+      params.uri = configuration.uri;
     }
-    return this.store.query(this.getModelName(), query);
+    return this.store.query(this.getModelName(), params);
   }
 
   // TODO: Why Key? Probably should be findBySlug like the others
-  findByKey(slug, dc, nspace) {
+  @dataSource('/:ns/:dc/sessions/for-key/:id')
+  findByKey(params, configuration = {}) {
     return this.findBySlug(...arguments);
   }
 }

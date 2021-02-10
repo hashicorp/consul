@@ -11,7 +11,11 @@ export default class EditRoute extends Route {
 
     let item;
     if (typeof intention_id !== 'undefined') {
-      item = await this.repo.findBySlug(intention_id, dc, nspace);
+      item = await this.repo.findBySlug({
+        ns: nspace,
+        dc: dc,
+        id: intention_id,
+      });
     } else {
       const defaultNspace = this.env.var('CONSUL_NSPACES_ENABLED') ? '*' : 'default';
       item = await this.repo.create({
