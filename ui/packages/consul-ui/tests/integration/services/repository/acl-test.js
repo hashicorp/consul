@@ -19,7 +19,7 @@ test('findByDatacenter returns the correct data for list endpoint', function(ass
       });
     },
     function performTest(service) {
-      return service.findAllByDatacenter(dc);
+      return service.findAllByDatacenter({ dc });
     },
     function performAssertion(actual, expected) {
       assert.deepEqual(
@@ -47,7 +47,7 @@ test('findBySlug returns the correct data for item endpoint', function(assert) {
       return stub(`/v1/acl/info/${id}?dc=${dc}`);
     },
     function performTest(service) {
-      return service.findBySlug(id, dc);
+      return service.findBySlug({ id, dc });
     },
     function performAssertion(actual, expected) {
       assert.deepEqual(

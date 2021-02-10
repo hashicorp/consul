@@ -25,7 +25,7 @@ test('findByDatacenter returns the correct data for list endpoint', function(ass
       });
     },
     function performTest(service) {
-      return service.findAllByDatacenter(dc);
+      return service.findAllByDatacenter({ dc });
     },
     function performAssertion(actual, expected) {
       actual.forEach(item => {
@@ -44,7 +44,7 @@ test('findBySlug returns the correct data for item endpoint', function(assert) {
       return stub(`/v1/internal/ui/node/${id}?dc=${dc}`);
     },
     function(service) {
-      return service.findBySlug(id, dc);
+      return service.findBySlug({ id, dc });
     },
     function(actual, expected) {
       assert.equal(actual.uid, `["${nspace}","${dc}","${actual.ID}"]`);

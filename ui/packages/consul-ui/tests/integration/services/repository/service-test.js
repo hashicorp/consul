@@ -33,7 +33,7 @@ const undefinedNspace = 'default';
         );
       },
       function performTest(service) {
-        return service.findGatewayBySlug(gateway, dc, nspace || undefinedNspace, conf);
+        return service.findGatewayBySlug({ gateway, dc, ns: nspace || undefinedNspace }, conf);
       },
       function performAssertion(actual, expected) {
         const result = expected(function(payload) {

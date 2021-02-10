@@ -23,7 +23,7 @@ const undefinedNspace = 'default';
         );
       },
       function performTest(service) {
-        return service.findAllBySlug(id, dc, nspace || undefinedNspace);
+        return service.findAllBySlug({ id, dc, ns: nspace || undefinedNspace });
       },
       function performAssertion(actual, expected) {
         assert.deepEqual(
@@ -51,7 +51,7 @@ const undefinedNspace = 'default';
         return stub(`/v1/kv/${id}?dc=${dc}${typeof nspace !== 'undefined' ? `&ns=${nspace}` : ``}`);
       },
       function(service) {
-        return service.findBySlug(id, dc, nspace || undefinedNspace);
+        return service.findBySlug({ id, dc, ns: nspace || undefinedNspace });
       },
       function(actual, expected) {
         assert.deepEqual(

@@ -29,7 +29,7 @@ const undefinedNspace = 'default';
         );
       },
       function performTest(service) {
-        return service.findAllByDatacenter(dc, nspace || undefinedNspace);
+        return service.findAllByDatacenter({ dc, ns: nspace || undefinedNspace });
       },
       function performAssertion(actual, expected) {
         assert.deepEqual(
@@ -59,7 +59,7 @@ const undefinedNspace = 'default';
         );
       },
       function performTest(service) {
-        return service.findBySlug(id, dc, nspace || undefinedNspace);
+        return service.findBySlug({ id, dc, ns: nspace || undefinedNspace });
       },
       function performAssertion(actual, expected) {
         assert.deepEqual(
