@@ -10,6 +10,12 @@ import (
 	"github.com/hashicorp/go-memdb"
 	"github.com/mitchellh/hashstructure"
 
+	"github.com/hashicorp/go-bexpr"
+	"github.com/hashicorp/serf/coordinate"
+	"github.com/hashicorp/serf/serf"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/debug"
@@ -22,11 +28,6 @@ import (
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/logging/monitor"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-bexpr"
-	"github.com/hashicorp/serf/coordinate"
-	"github.com/hashicorp/serf/serf"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type Self struct {
@@ -991,25 +992,29 @@ func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.
 		replaceExistingChecks = true
 	}
 
-	if replaceExistingChecks {
-		if err := s.agent.AddServiceAndReplaceChecks(ns, chkTypes, true, token, ConfigSourceRemote); err != nil {
-			return nil, err
-		}
-	} else {
-		if err := s.agent.AddService(ns, chkTypes, true, token, ConfigSourceRemote); err != nil {
-			return nil, err
-		}
+	addReq := AddServiceRequest{
+		Service:               ns,
+		chkTypes:              chkTypes,
+		persist:               true,
+		token:                 token,
+		Source:                ConfigSourceRemote,
+		replaceExistingChecks: replaceExistingChecks,
 	}
-	// Add sidecar.
+	if err := s.agent.AddService(addReq); err != nil {
+		return nil, err
+	}
+
 	if sidecar != nil {
-		if replaceExistingChecks {
-			if err := s.agent.AddServiceAndReplaceChecks(sidecar, sidecarChecks, true, sidecarToken, ConfigSourceRemote); err != nil {
-				return nil, err
-			}
-		} else {
-			if err := s.agent.AddService(sidecar, sidecarChecks, true, sidecarToken, ConfigSourceRemote); err != nil {
-				return nil, err
-			}
+		addReq := AddServiceRequest{
+			Service:               sidecar,
+			chkTypes:              sidecarChecks,
+			persist:               true,
+			token:                 sidecarToken,
+			Source:                ConfigSourceRemote,
+			replaceExistingChecks: replaceExistingChecks,
+		}
+		if err := s.agent.AddService(addReq); err != nil {
+			return nil, err
 		}
 	}
 	s.syncChanges()

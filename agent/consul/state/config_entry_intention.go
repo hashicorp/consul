@@ -126,7 +126,7 @@ func (s *ServiceIntentionSourceIndex) FromArgs(args ...interface{}) ([]byte, err
 func (s *Store) configIntentionsListTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.Intentions, bool, error) {
 	// unrolled part of configEntriesByKindTxn
 
-	idx := maxIndexTxn(tx, configTableName)
+	idx := maxIndexTxn(tx, tableConfigEntries)
 
 	iter, err := getConfigEntryKindsWithTxn(tx, structs.ServiceIntentions, structs.WildcardEnterpriseMeta())
 	if err != nil {
@@ -145,12 +145,12 @@ func (s *Store) configIntentionsListTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *
 }
 
 func (s *Store) configIntentionGetTxn(tx ReadTxn, ws memdb.WatchSet, id string) (uint64, *structs.ServiceIntentionsConfigEntry, *structs.Intention, error) {
-	idx := maxIndexTxn(tx, configTableName)
+	idx := maxIndexTxn(tx, tableConfigEntries)
 	if idx < 1 {
 		idx = 1
 	}
 
-	watchCh, existing, err := tx.FirstWatch(configTableName, "intention-legacy-id", id)
+	watchCh, existing, err := tx.FirstWatch(tableConfigEntries, "intention-legacy-id", id)
 	if err != nil {
 		return 0, nil, nil, fmt.Errorf("failed config entry lookup: %s", err)
 	}
@@ -239,7 +239,7 @@ func configIntentionMatchOneTxn(
 }
 
 func readSourceIntentionsFromConfigEntriesTxn(tx ReadTxn, ws memdb.WatchSet, serviceName string, entMeta *structs.EnterpriseMeta) (uint64, structs.Intentions, error) {
-	idx := maxIndexTxn(tx, configTableName)
+	idx := maxIndexTxn(tx, tableConfigEntries)
 
 	var (
 		results structs.Intentions
@@ -265,7 +265,7 @@ func readSourceIntentionsFromConfigEntriesTxn(tx ReadTxn, ws memdb.WatchSet, ser
 func readSourceIntentionsFromConfigEntriesForServiceTxn(tx ReadTxn, ws memdb.WatchSet, serviceName string, entMeta *structs.EnterpriseMeta, results structs.Intentions) (structs.Intentions, error) {
 	sn := structs.NewServiceName(serviceName, entMeta)
 
-	iter, err := tx.Get(configTableName, "intention-source", sn)
+	iter, err := tx.Get(tableConfigEntries, "intention-source", sn)
 	if err != nil {
 		return nil, fmt.Errorf("failed config entry lookup: %s", err)
 	}
@@ -284,7 +284,7 @@ func readSourceIntentionsFromConfigEntriesForServiceTxn(tx ReadTxn, ws memdb.Wat
 }
 
 func readDestinationIntentionsFromConfigEntriesTxn(tx ReadTxn, ws memdb.WatchSet, serviceName string, entMeta *structs.EnterpriseMeta) (uint64, structs.Intentions, error) {
-	idx := maxIndexTxn(tx, configTableName)
+	idx := maxIndexTxn(tx, tableConfigEntries)
 
 	var results structs.Intentions
 

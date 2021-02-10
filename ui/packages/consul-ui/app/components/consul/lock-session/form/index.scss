@@ -1,5 +1,6 @@
 .consul-lock-session-form {
   h2 {
+    @extend %h200;
     border-bottom: $decor-border-200;
     border-color: $gray-200;
     padding-bottom: .2em;

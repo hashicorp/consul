@@ -219,7 +219,10 @@ func (s *HTTPHandlers) healthServiceNodes(resp http.ResponseWriter, req *http.Re
 		return nil, nil
 	}
 
-	useStreaming := s.agent.config.UseStreamingBackend && args.MinQueryIndex > 0
+	// useStreaming when a blocking query is requested, but not when the near
+	// query parameter is set, because that requires data only available to the server
+	// to sort the results.
+	useStreaming := s.agent.config.UseStreamingBackend && args.MinQueryIndex > 0 && args.Source.Node == ""
 	args.QueryOptions.UseCache = s.agent.config.HTTPUseCache && (args.QueryOptions.UseCache || useStreaming)
 
 	out, md, err := s.agent.rpcClientHealth.ServiceNodes(req.Context(), args)

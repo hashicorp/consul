@@ -8,11 +8,12 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
-	"fmt"
 	"io"
 	"net"
 	"testing"
 	"time"
+
+	"strings"
 
 	"github.com/stretchr/testify/require"
 )
@@ -62,32 +63,44 @@ func (s *TestSigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts)
 
 func TestGenerateCA(t *testing.T) {
 	t.Parallel()
-	sn, err := GenerateSerialNumber()
-	require.Nil(t, err)
-	var s crypto.Signer
-
-	// test what happens without key
-	s = &TestSigner{}
-	ca, err := GenerateCA(s, sn, 0, nil)
+	ca, pk, err := GenerateCA(CAOpts{Signer: &TestSigner{}})
 	require.Error(t, err)
 	require.Empty(t, ca)
+	require.Empty(t, pk)
 
 	// test what happens with wrong key
-	s = &TestSigner{public: &rsa.PublicKey{}}
-	ca, err = GenerateCA(s, sn, 0, nil)
+	ca, pk, err = GenerateCA(CAOpts{Signer: &TestSigner{public: &rsa.PublicKey{}}})
 	require.Error(t, err)
 	require.Empty(t, ca)
+	require.Empty(t, pk)
 
 	// test what happens with correct key
-	s, err = ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	require.Nil(t, err)
-	ca, err = GenerateCA(s, sn, 365, nil)
+	ca, pk, err = GenerateCA(CAOpts{})
 	require.Nil(t, err)
 	require.NotEmpty(t, ca)
+	require.NotEmpty(t, pk)
 
 	cert, err := parseCert(ca)
 	require.Nil(t, err)
-	require.Equal(t, fmt.Sprintf("Consul Agent CA %d", sn), cert.Subject.CommonName)
+	require.True(t, strings.HasPrefix(cert.Subject.CommonName, "Consul Agent CA"))
+	require.Equal(t, true, cert.IsCA)
+	require.Equal(t, true, cert.BasicConstraintsValid)
+
+	require.WithinDuration(t, cert.NotBefore, time.Now(), time.Minute)
+	require.WithinDuration(t, cert.NotAfter, time.Now().AddDate(0, 0, 365), time.Minute)
+
+	require.Equal(t, x509.KeyUsageCertSign|x509.KeyUsageCRLSign|x509.KeyUsageDigitalSignature, cert.KeyUsage)
+
+	// Test what happens with a correct RSA Key
+	s, err := rsa.GenerateKey(rand.Reader, 2048)
+	require.Nil(t, err)
+	ca, _, err = GenerateCA(CAOpts{Signer: &TestSigner{public: s.Public()}})
+	require.NoError(t, err)
+	require.NotEmpty(t, ca)
+
+	cert, err = parseCert(ca)
+	require.NoError(t, err)
+	require.True(t, strings.HasPrefix(cert.Subject.CommonName, "Consul Agent CA"))
 	require.Equal(t, true, cert.IsCA)
 	require.Equal(t, true, cert.BasicConstraintsValid)
 
@@ -99,14 +112,12 @@ func TestGenerateCA(t *testing.T) {
 
 func TestGenerateCert(t *testing.T) {
 	t.Parallel()
-	sn, err := GenerateSerialNumber()
-	require.Nil(t, err)
 	signer, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	require.Nil(t, err)
-	ca, err := GenerateCA(signer, sn, 365, nil)
+	ca, _, err := GenerateCA(CAOpts{Signer: signer})
 	require.Nil(t, err)
 
-	sn, err = GenerateSerialNumber()
+	sn, err := GenerateSerialNumber()
 	require.Nil(t, err)
 	DNSNames := []string{"server.dc1.consul"}
 	IPAddresses := []net.IP{net.ParseIP("123.234.243.213")}

@@ -6,6 +6,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -575,7 +576,7 @@ func (c *FSM) applyConfigEntryOperation(buf []byte, index uint64) interface{} {
 	case structs.ConfigEntryUpsertCAS:
 		defer metrics.MeasureSinceWithLabels([]string{"fsm", "config_entry", req.Entry.GetKind()}, time.Now(),
 			[]metrics.Label{{Name: "op", Value: "upsert"}})
-		updated, err := c.state.EnsureConfigEntryCAS(index, req.Entry.GetRaftIndex().ModifyIndex, req.Entry, req.Entry.GetEnterpriseMeta())
+		updated, err := c.state.EnsureConfigEntryCAS(index, req.Entry.GetRaftIndex().ModifyIndex, req.Entry)
 		if err != nil {
 			return err
 		}
@@ -583,7 +584,7 @@ func (c *FSM) applyConfigEntryOperation(buf []byte, index uint64) interface{} {
 	case structs.ConfigEntryUpsert:
 		defer metrics.MeasureSinceWithLabels([]string{"fsm", "config_entry", req.Entry.GetKind()}, time.Now(),
 			[]metrics.Label{{Name: "op", Value: "upsert"}})
-		if err := c.state.EnsureConfigEntry(index, req.Entry, req.Entry.GetEnterpriseMeta()); err != nil {
+		if err := c.state.EnsureConfigEntry(index, req.Entry); err != nil {
 			return err
 		}
 		return true

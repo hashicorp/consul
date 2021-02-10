@@ -11,12 +11,37 @@ export default function(config = {}, win = window, doc = document) {
   // look at the hash in the URL and transfer anything after the hash into
   // cookies to enable linking of the UI with various settings enabled
   runInDebug(() => {
+    const cookies = function(str) {
+      return str
+        .split(';')
+        .map(item => item.trim())
+        .filter(item => item !== '')
+        .filter(item =>
+          item
+            .split('=')
+            .shift()
+            .startsWith('CONSUL_')
+        );
+    };
+    win.Scenario = function(str = '') {
+      if (str.length > 0) {
+        cookies(str).forEach(item => (doc.cookie = `${item};Path=/`));
+        win.location.hash = '';
+        location.reload();
+      } else {
+        str = cookies(doc.cookie).join(';');
+        const tab = win.open('', '_blank');
+        tab.document.write(
+          `<body><pre>${location.href}#${str}</pre><br /><a href="javascript:Scenario('${str}')">Scenario</a></body>`
+        );
+      }
+    };
     if (
       typeof win.location !== 'undefined' &&
       typeof win.location.hash === 'string' &&
       win.location.hash.length > 0
     ) {
-      doc.cookie = win.location.hash.substr(1);
+      win.Scenario(win.location.hash.substr(1));
     }
   });
   const dev = function(str = doc.cookie) {
@@ -43,7 +68,10 @@ export default function(config = {}, win = window, doc = document) {
       return {};
     }
   };
-  const ui_config = JSON.parse(unescape(doc.getElementsByName('consul-ui/ui_config')[0].content));
+  const operatorConfig = JSON.parse(
+    doc.querySelector(`[data-${config.modulePrefix}-config]`).textContent
+  );
+  const ui_config = operatorConfig.UIConfig || {};
   const scripts = doc.getElementsByTagName('script');
   // we use the currently executing script as a reference
   // to figure out where we are for other things such as
@@ -57,6 +85,18 @@ export default function(config = {}, win = window, doc = document) {
   const operator = function(str, env) {
     let protocol, dashboards, provider, proxy;
     switch (str) {
+      case 'CONSUL_NSPACES_ENABLED':
+        return typeof operatorConfig.NamespacesEnabled === 'undefined'
+          ? false
+          : operatorConfig.NamespacesEnabled;
+      case 'CONSUL_SSO_ENABLED':
+        return typeof operatorConfig.SSOEnabled === 'undefined' ? false : operatorConfig.SSOEnabled;
+      case 'CONSUL_ACLS_ENABLED':
+        return typeof operatorConfig.ACLsEnabled === 'undefined'
+          ? false
+          : operatorConfig.ACLsEnabled;
+      case 'CONSUL_DATACENTER_LOCAL':
+        return operatorConfig.LocalDatacenter;
       case 'CONSUL_UI_CONFIG':
         dashboards = {};
         provider = env('CONSUL_METRICS_PROVIDER');
@@ -155,6 +195,10 @@ export default function(config = {}, win = window, doc = document) {
         // these are strings
         return user(str) || ui(str);
       case 'CONSUL_UI_CONFIG':
+      case 'CONSUL_DATACENTER_LOCAL':
+      case 'CONSUL_ACLS_ENABLED':
+      case 'CONSUL_NSPACES_ENABLED':
+      case 'CONSUL_SSO_ENABLED':
       case 'CONSUL_METRICS_PROVIDER':
       case 'CONSUL_METRICS_PROXY_ENABLE':
       case 'CONSUL_SERVICE_DASHBOARD_URL':

@@ -1,24 +1,60 @@
 import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
-import { get, action } from '@ember/object';
+import { set, get, action } from '@ember/object';
 
 export default class TopologyRoute extends Route {
   @service('ui-config') config;
   @service('data-source/service') data;
   @service('repository/intention') repo;
+  @service('feedback') feedback;
 
   @action
   async createIntention(source, destination) {
-    const model = this.repo.create({
-      Datacenter: source.Datacenter,
-      SourceName: source.Name,
-      SourceNS: source.Namespace || 'default',
-      DestinationName: destination.Name,
-      DestinationNS: destination.Namespace || 'default',
-      Action: 'allow',
-    });
-    await this.repo.persist(model);
+    // begin with a create action as it makes more sense if the we can't even
+    // get a list of intentions
+    let notification = this.feedback.notification('create');
+    try {
+      // intentions will be a proxy object
+      let intentions = await this.intentions;
+      let intention = intentions.find(item => {
+        return (
+          item.Datacenter === source.Datacenter &&
+          item.SourceName === source.Name &&
+          item.SourceNS === source.Namespace &&
+          item.DestinationName === destination.Name &&
+          item.DestinationNS === destination.Namespace
+        );
+      });
+      if (typeof intention === 'undefined') {
+        intention = this.repo.create({
+          Datacenter: source.Datacenter,
+          SourceName: source.Name,
+          SourceNS: source.Namespace || 'default',
+          DestinationName: destination.Name,
+          DestinationNS: destination.Namespace || 'default',
+        });
+      } else {
+        // we found an intention in the find higher up, so we are updating
+        notification = this.feedback.notification('update');
+      }
+      set(intention, 'Action', 'allow');
+      await this.repo.persist(intention);
+      notification.success(intention);
+    } catch (e) {
+      notification.error(e);
+    }
     this.refresh();
+  }
+
+  afterModel(model, transition) {
+    this.intentions = this.data.source(
+      uri => uri`/${model.nspace}/${model.dc.Name}/intentions/for-service/${model.slug}`
+    );
+  }
+
+  async deactivate(transition) {
+    const intentions = await this.intentions;
+    intentions.destroy();
   }
 
   async model() {

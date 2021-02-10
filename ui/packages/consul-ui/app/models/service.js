@@ -1,6 +1,8 @@
 import Model, { attr } from '@ember-data/model';
 import { computed } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
+import { fragment } from 'ember-data-model-fragments/attributes';
+import { nullValue } from 'consul-ui/decorators/replace';
 
 export const PRIMARY_KEY = 'uid';
 export const SLUG_KEY = 'Name';
@@ -20,7 +22,6 @@ export const Collection = class Collection {
     return [...new Set(sources)].filter(Boolean).sort();
   }
 };
-
 export default class Service extends Model {
   @attr('string') uid;
   @attr('string') Name;
@@ -37,15 +38,26 @@ export default class Service extends Model {
   @attr('number') SyncTime;
   @attr('number') CreateIndex;
   @attr('number') ModifyIndex;
-  @attr({ defaultValue: () => [] }) Tags;
+
+  @nullValue([]) @attr({ defaultValue: () => [] }) Tags;
 
   @attr() Nodes; // array
   @attr() Proxy; // Service
-  @attr() GatewayConfig; // {AssociatedServiceCount: 0}
-  @attr() ExternalSources; // array
+  @fragment('gateway-config') GatewayConfig;
+  @nullValue([]) @attr() ExternalSources; // array
   @attr() Meta; // {}
 
   @attr() meta; // {}
+
+  @computed('ChecksPassing', 'ChecksWarning', 'ChecksCritical')
+  get ChecksTotal() {
+    return this.ChecksPassing + this.ChecksWarning + this.ChecksCritical;
+  }
+
+  @computed('MeshChecksPassing', 'MeshChecksWarning', 'MeshChecksCritical')
+  get MeshChecksTotal() {
+    return this.MeshChecksPassing + this.MeshChecksWarning + this.MeshChecksCritical;
+  }
 
   /* Mesh properties involve both the service and the associated proxy */
   @computed('ConnectedWithProxy', 'ConnectedWithGateway')

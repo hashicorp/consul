@@ -1,0 +1,3 @@
+```release-note:feature
+connect: Add local_request_timeout_ms to allow configuring the Envoy request timeout on local_app
+```

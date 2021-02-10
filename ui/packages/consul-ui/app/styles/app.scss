@@ -3,10 +3,6 @@
 /* all variables and custom queries including generic base variables */
 @import 'variables';
 
-/*TODO: Move this to its own local component*/
-@import 'ember-power-select';
-/**/
-
 /* all components including generic base components */
 @import 'components';
 /* cascading typography */
@@ -15,3 +11,5 @@
 @import 'layout';
 /* pinpoint individual overwrites for those 'just on this page' problems */
 @import 'routes';
+/* global control of themeable components */
+@import 'themes';

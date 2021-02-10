@@ -1,102 +1,140 @@
-<form
-  class="consul-intention-search-bar filter-bar"
+<SearchBar
+  class="consul-intention-search-bar"
   ...attributes
+  @filter={{@filter}}
 >
-  <div class="search">
-    <FreetextFilter
-      @onsearch={{action @onsearch}}
-      @value={{@search}}
-      @placeholder="Search"
-    >
-      <PopoverSelect
-        class="type-search-properties"
-        @position="right"
-        @onchange={{action @onfilter.searchproperty}}
+    <:status as |search|>
+
+{{#let
+
+  (t (concat "components.consul.intention.search-bar." search.status.key)
+      default=(array
+        (concat "common.search." search.status.key)
+        (concat "common.consul." search.status.key)
+      )
+  )
+
+  (t (concat "components.consul.intention.search-bar." search.status.value)
+      default=(array
+        (concat "common.search." search.status.value)
+        (concat "common.consul." search.status.value)
+      )
+  )
+
+as |key value|}}
+      <search.RemoveFilter
+        aria-label={{t "common.ui.remove" item=(concat key " " value)}}
+      >
+        <dl>
+          <dt>{{key}}</dt>
+          <dd>{{value}}</dd>
+        </dl>
+      </search.RemoveFilter>
+{{/let}}
+
+    </:status>
+    <:search as |search|>
+      <search.Search
+        @onsearch={{action @onsearch}}
+        @value={{@search}}
+        @placeholder={{t "common.search.search"}}
+      >
+{{#if @filter.searchproperty}}
+        <search.Select
+          class="type-search-properties"
+          @position="right"
+          @onchange={{action @filter.searchproperty.change}}
+          @multiple={{true}}
+          @required={{true}}
+        as |components|>
+          <BlockSlot @name="selected">
+            <span>
+              {{t "common.search.searchproperty"}}
+            </span>
+          </BlockSlot>
+          <BlockSlot @name="options">
+    {{#let components.Optgroup components.Option as |Optgroup Option|}}
+            {{#each @filter.searchproperty.default as |prop|}}
+              <Option @value={{prop}} @selected={{contains prop @filter.searchproperty.value}}>
+                {{t (concat "common.consul." (lowercase prop))}}
+              </Option>
+            {{/each}}
+    {{/let}}
+          </BlockSlot>
+        </search.Select>
+  {{/if}}
+      </search.Search>
+    </:search>
+    <:filter as |search|>
+      <search.Select
+        class="type-access"
+        @position="left"
+        @onchange={{action @filter.access.change}}
         @multiple={{true}}
       as |components|>
         <BlockSlot @name="selected">
           <span>
-            Search across
+            {{t "components.consul.intention.search-bar.access.name"}}
           </span>
         </BlockSlot>
         <BlockSlot @name="options">
   {{#let components.Optgroup components.Option as |Optgroup Option|}}
-          <Option @value="SourceName" @selected={{contains 'SourceName' @filter.searchproperties}}>Source Name</Option>
-          <Option @value="DestinationName" @selected={{contains 'DestinationName' @filter.searchproperties}}>Destination Name</Option>
+    {{#each (array "allow" "deny" "") as |item|}}
+          <Option class={{concat 'value-' item}} @value={{or item 'app-aware'}} @selected={{contains (or item 'app-aware') @filter.access.value}}>
+            <span>{{t (concat "components.consul.intention.search-bar.access.options." (or item 'app-aware'))}}</span>
+          </Option>
+    {{/each}}
   {{/let}}
         </BlockSlot>
-      </PopoverSelect>
-    </FreetextFilter>
-  </div>
-  <div class="filters">
-    <PopoverSelect
-      @position="left"
-      @onchange={{action @onfilter.access}}
-      @multiple={{true}}
-    as |components|>
-      <BlockSlot @name="selected">
-        <span>
-          Permission
-        </span>
-      </BlockSlot>
-      <BlockSlot @name="options">
-{{#let components.Optgroup components.Option as |Optgroup Option|}}
-        <Option class="value-allow" @value="allow" @selected={{contains 'allow'
-        @filter.accesses}}><span>Allow</span></Option>
-        <Option class="value-deny" @value="deny" @selected={{contains 'deny'
-        @filter.accesses}}><span>Deny</span></Option>
-        <Option class="value-" @value="app-aware" @selected={{contains
-        'app-aware' @filter.accesses}}><span>App aware</span></Option>
-{{/let}}
-      </BlockSlot>
-    </PopoverSelect>
-  </div>
-  <div class="sort">
-    <PopoverSelect
-      class="type-sort"
-      data-test-sort-control
-      @position="right"
-      @onchange={{action @onsort}}
-      @multiple={{false}}
-    as |components|>
-      <BlockSlot @name="selected">
-        <span>
-          {{#let (from-entries (array
-              (array "Action:asc" "Allow to Deny")
-              (array "Action:desc" "Deny to Allow")
-              (array "SourceName:asc" "Source: A to Z")
-              (array "SourceName:desc" "Source: Z to A")
-              (array "DestinationName:asc" "Destination: A to Z")
-              (array "DestinationName:desc" "Destination: Z to A")
-              (array "Precedence:asc" "Precedence: Ascending")
-              (array "Precedence:desc" "Precedence: Descending")
-              ))
-            as |selectable|
-          }}
-            {{get selectable @sort}}
-          {{/let}}
-        </span>
-      </BlockSlot>
-      <BlockSlot @name="options">
-{{#let components.Optgroup components.Option as |Optgroup Option|}}
-        <Optgroup @label="Permission">
-          <Option @value="Action:asc" @selected={{eq "Action:asc" @sort}}>Allow to Deny</Option>
-          <Option @value="Action:desc" @selected={{eq "Action:desc" @sort}}>Deny to Allow</Option>
+      </search.Select>
+    </:filter>
+    <:sort as |search|>
+      <search.Select
+        class="type-sort"
+        data-test-sort-control
+        @position="right"
+        @onchange={{action @sort.change}}
+        @multiple={{false}}
+        @required={{true}}
+      as |components|>
+        <BlockSlot @name="selected">
+          <span>
+            {{#let (from-entries (array
+                  (array "Action:asc" (t "components.consul.intention.search-bar.sort.access.asc"))
+                  (array "Action:desc" (t "components.consul.intention.search-bar.sort.access.desc"))
+                  (array "SourceName:asc" (t "components.consul.intention.search-bar.sort.source-name.asc"))
+                  (array "SourceName:desc" (t "components.consul.intention.search-bar.sort.source-name.desc"))
+                  (array "DestinationName:asc" (t "components.consul.intention.search-bar.sort.destination-name.asc"))
+                  (array "DestinationName:desc" (t "components.consul.intention.search-bar.sort.destination-name.desc"))
+                  (array "Precedence:asc" (t "common.sort.numeric.asc"))
+                  (array "Precedence:desc" (t "common.sort.numeric.desc"))
+                ))
+              as |selectable|
+            }}
+              {{get selectable @sort.value}}
+            {{/let}}
+          </span>
+        </BlockSlot>
+        <BlockSlot @name="options">
+  {{#let components.Optgroup components.Option as |Optgroup Option|}}
+        <Optgroup @label={{t "components.consul.intention.search-bar.sort.access.name"}}>
+          <Option @value="Action:asc" @selected={{eq "Action:asc" @sort.value}}>{{t "components.consul.intention.search-bar.sort.access.asc"}}</Option>
+          <Option @value="Action:desc" @selected={{eq "Action:desc" @sort.value}}>{{t "components.consul.intention.search-bar.sort.access.desc"}}</Option>
         </Optgroup>
-        <Optgroup @label="Source">
-          <Option @value="SourceName:asc" @selected={{eq "SourceName:asc" @sort}}>A to Z</Option>
-          <Option @value="SourceName:desc" @selected={{eq "SourceName:desc" @sort}}>Z to A</Option>
+        <Optgroup @label={{t "components.consul.intention.search-bar.sort.source-name.name"}}>
+          <Option @value="SourceName:asc" @selected={{eq "SourceName:asc" @sort.value}}>{{t "common.sort.alpha.asc"}}</Option>
+          <Option @value="SourceName:desc" @selected={{eq "SourceName:desc" @sort.value}}>{{t "common.sort.alpha.desc"}}</Option>
         </Optgroup>
-        <Optgroup @label="Destination">
-          <Option @value="DestinationName:asc" @selected={{eq "DestinationName:asc" @sort}}>A to Z</Option>
-          <Option @value="DestinationName:desc" @selected={{eq "DestinationName:desc" @sort}}>Z to A</Option>
+        <Optgroup @label={{t "components.consul.intention.search-bar.sort.destination-name.name"}}>
+          <Option @value="DestinationName:asc" @selected={{eq "DestinationName:asc" @sort.value}}>{{t "common.sort.alpha.asc"}}</Option>
+          <Option @value="DestinationName:desc" @selected={{eq "DestinationName:desc" @sort.value}}>{{t "common.sort.alpha.desc"}}</Option>
         </Optgroup>
-        <Optgroup @label="Precedence">
-          <Option @value="Precedence:asc" @selected={{eq "Precedence:asc" @sort}}>Ascending</Option>
-          <Option @value="Precedence:desc" @selected={{eq "Precedence:desc" @sort}}>Descending</Option>
+        <Optgroup @label={{t "components.consul.intention.search-bar.sort.precedence.name"}}>
+          <Option @value="Precedence:asc" @selected={{eq "Precedence:asc" @sort.value}}>{{t "common.sort.numeric.asc"}}</Option>
+          <Option @value="Precedence:desc" @selected={{eq "Precedence:desc" @sort.value}}>{{t "common.sort.numeric.desc"}}</Option>
         </Optgroup>
-{{/let}}
-      </BlockSlot>
-    </PopoverSelect>
-  </div>
-</form>
+  {{/let}}
+        </BlockSlot>
+      </search.Select>
+    </:sort>
+</SearchBar>

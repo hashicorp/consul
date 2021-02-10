@@ -1,7 +1,0 @@
-@import './main-header-horizontal/index';
-[role='banner'] {
-  @extend %main-header-horizontal;
-}
-%main-header-horizontal::before {
-  background-color: var(--swatch-brand-600, $black);
-}

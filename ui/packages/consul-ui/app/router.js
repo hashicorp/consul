@@ -1,6 +1,7 @@
 import EmberRouter from '@ember/routing/router';
+import { runInDebug } from '@ember/debug';
 import { env } from 'consul-ui/env';
-import walk from 'consul-ui/utils/routing/walk';
+import walk, { dump } from 'consul-ui/utils/routing/walk';
 
 export const routes = {
   // Our parent datacenter resource sets the namespace
@@ -184,3 +185,23 @@ export default class Router extends EmberRouter {
 }
 
 Router.map(walk(routes));
+
+// To print the Ember route DSL use `Routes()` in Web Inspectors console
+// or `javascript:Routes()` in the location bar of your browser
+runInDebug(() => {
+  window.Routes = (endpoint = env('DEBUG_ROUTES_ENDPOINT')) => {
+    if (!endpoint) {
+      endpoint = 'data:,%s';
+    }
+    let win;
+    const str = dump(routes);
+    if (endpoint.startsWith('data:,')) {
+      win = window.open('', '_blank');
+      win.document.write(`<body><pre>${str}</pre></body>`);
+    } else {
+      win = window.open(endpoint.replace('%s', encodeURIComponent(str)), '_blank');
+    }
+    win.focus();
+    return;
+  };
+});

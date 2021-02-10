@@ -1,0 +1,633 @@
+---
+layout: docs
+page_title: 'Configuration Entry Kind: Service Intentions'
+sidebar_title: Service Intentions
+description: >-
+  The service-intentions config entry kind controls Connect traffic
+  authorization for both networking layer 4 (e.g. TCP) and networking layer 7
+  (e.g. HTTP).
+---
+
+# Service Intentions ((#service-intentions))
+
+-> **1.9.0+:** This config entry is available in Consul versions 1.9.0 and newer.
+
+The `service-intentions` config entry kind (`ServiceIntentions` on Kubernetes) controls Connect traffic
+authorization for both networking layer 4 (e.g. TCP) and networking layer 7
+(e.g. HTTP).
+
+Service intentions config entries represent a collection of
+[intentions](/docs/connect/intentions) sharing a specific destination. All
+intentions governing access to a specific destination are stored in a single
+`service-intentions` config entry.
+
+A single config entry may define a mix of both L4 and L7 style intentions, but
+for a specific source L4 and L7 intentions are mutually exclusive. Only one
+will apply at a time. Default behavior for L4 is configurable (regardless of
+global setting) by defining a low precedence intention for that destination.
+
+## Interaction with other Config Entries
+
+L7 intentions within a config entry are restricted to only destination services
+that define their protocol as HTTP-based via a corresponding
+[`service-defaults`](/docs/connect/config-entries/service-defaults) config entry
+or globally via [`proxy-defaults`](/docs/connect/config-entries/proxy-defaults) .
+
+## Sample Config Entries
+
+### REST Access
+
+<Tabs>
+<Tab heading="HCL">
+
+Grant some clients more REST access than others:
+
+```hcl
+Kind = "service-intentions"
+Name = "api"
+Sources = [
+  {
+    Name = "admin-dashboard"
+    Permissions = [
+      {
+        Action = "allow"
+        HTTP {
+          PathPrefix = "/v2"
+          Methods    = ["GET", "PUT", "POST", "DELETE", "HEAD"]
+        }
+      }
+    ]
+  },
+  {
+    Name = "report-generator"
+    Permissions = [
+      {
+        Action = "allow"
+        HTTP {
+          PathPrefix = "/v2/widgets"
+          Methods    = ["GET"]
+        }
+      }
+    ]
+  }
+  # NOTE: a default catch-all based on the default ACL policy will apply to
+  # unmatched connections and requests. Typically this will be DENY.
+]
+```
+
+</Tab>
+<Tab heading="Kubernetes YAML">
+
+Grant some clients more REST access than others:
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+metadata:
+  name: api
+spec:
+  destination:
+    name: api
+  sources:
+    - name: admin-dashboard
+      permissions:
+        - action: allow
+          http:
+            pathPrefix: /v2
+            methods: ['GET', 'PUT', 'POST', 'DELETE', 'HEAD']
+    - name: report-generator
+      permissions:
+        - action: allow
+          http:
+            pathPrefix: /v2/widgets
+            methods: ['GET']
+    # NOTE: a default catch-all based on the default ACL policy will apply to
+    # unmatched connections and requests. Typically this will be DENY.
+```
+
+</Tab>
+</Tabs>
+
+### gRPC
+
+<Tabs>
+<Tab heading="HCL">
+
+Selectively deny some gRPC service methods. Since gRPC method calls [are
+HTTP/2](https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md), we can
+use an HTTP path match rule to control traffic:
+
+```hcl
+Kind = "service-intentions"
+Name = "billing"
+Sources = [
+  {
+    Name = "frontend-web"
+    Permissions = [
+      # The frontend website can execute all billing service methods except
+      # issuing refunds.
+      {
+        Action = "deny"
+        HTTP {
+          PathExact = "/mycompany.BillingService/IssueRefund"
+        }
+      },
+      {
+        Action = "allow"
+        HTTP {
+          PathPrefix = "/mycompany.BillingService/"
+        }
+      }
+    ]
+  },
+  {
+    Name = "support-portal"
+    Permissions = [
+      # But the support team portal page can execute all methods.
+      {
+        Action = "allow"
+        HTTP {
+          PathPrefix = "/mycompany.BillingService/"
+        }
+      }
+    ]
+  }
+  # NOTE: a default catch-all based on the default ACL policy will apply to
+  # unmatched connections and requests. Typically this will be DENY.
+]
+```
+
+</Tab>
+<Tab heading="Kubernetes YAML">
+
+Selectively deny some gRPC service methods. Since gRPC method calls [are
+HTTP/2](https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md), we can
+use an HTTP path match rule to control traffic:
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+metadata:
+  name: billing
+spec:
+  destination:
+    name: billing
+  sources:
+    # The frontend website can execute all billing service methods except
+    # issuing refunds.
+    - name: frontend-web
+      permissions:
+        - action: deny
+          http:
+            pathExact: /mycompany.BillingService/IssueRefund
+        - action: allow
+          http:
+            pathPrefix: '/mycompany.BillingService/'
+    - name: support-protocol
+      # But the support team portal page can execute all methods.
+      permissions:
+        - action: allow
+          http:
+            pathPrefix: '/mycompany.BillingService/'
+    # NOTE: a default catch-all based on the default ACL policy will apply to
+    # unmatched connections and requests. Typically this will be DENY.
+```
+
+</Tab>
+</Tabs>
+
+### L4 and L7
+
+<Tabs>
+<Tab heading="HCL">
+
+You can mix and match L4 and L7 intentions per source:
+
+```hcl
+Kind = "service-intentions"
+Name = "api"
+Sources = [
+  {
+    Name   = "hackathon-project"
+    Action = "deny"
+  },
+  {
+    Name   = "web"
+    Action = "allow"
+  },
+  {
+    Name = "nightly-reconciler"
+    Permissions = [
+      {
+        Action = "allow"
+        HTTP {
+          PathExact = "/v1/reconcile-data"
+          Methods   = ["POST"]
+        }
+      }
+    ]
+  },
+  # NOTE: a default catch-all based on the default ACL policy will apply to
+  # unmatched connections and requests. Typically this will be DENY.
+]
+```
+
+</Tab>
+<Tab heading="Kubernetes YAML">
+
+You can mix and match L4 and L7 intentions per source:
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+metadata:
+  name: api
+spec:
+  destination:
+    name: api
+  sources:
+    - name: hackathon-project
+      action: deny
+    - name: web
+      action: allow
+    - name: nightly-reconciler
+      permissions:
+        - action: allow
+          http:
+            pathExact: /v1/reconcile-data
+            methods: ['POST']
+    # NOTE: a default catch-all based on the default ACL policy will apply to
+    # unmatched connections and requests. Typically this will be DENY.
+```
+
+</Tab>
+</Tabs>
+
+## Available Fields
+
+<ConfigEntryReference
+  keys={[
+    {
+      name: 'apiVersion',
+      description: 'Must be set to `consul.hashicorp.com/v1alpha1`',
+      hcl: false,
+    },
+    {
+      name: 'Kind',
+      description: {
+        hcl: 'Must be set to `service-intentions`',
+        yaml: 'Must be set to `ServiceIntentions`',
+      },
+    },
+    {
+      name: 'Name',
+      description:
+        "The name of the destination service for all intentions defined in this config entry. This may be set to the wildcard character (`*`) to match all services that don't otherwise have intentions defined.",
+      type: 'string: <required>',
+      yaml: false,
+    },
+    {
+      name: 'Namespace',
+      type: `string: "default"`,
+      enterprise: true,
+      description:
+        "Specifies the namespaces the config entry will apply to. This may be set to the wildcard character (`*`) to match all services in all namespaces that don't otherwise have intentions defined.",
+      yaml: false,
+    },
+    {
+      name: 'Meta',
+      type: 'map<string|string>: nil',
+      description: 'Specifies arbitrary KV metadata pairs.',
+      yaml: false,
+    },
+    {
+      name: 'metadata',
+      children: [
+        {
+          name: 'name',
+          description:
+            'Unlike other config entries, the `metadata.name` field is not used to set the name of the service being configured. Instead, that is set in `spec.destination.name`. Thus this name can be set to anything. See [ServiceIntentions Special Case (OSS)](/docs/k8s/crds#serviceintentions-special-case) or [ServiceIntentions Special Case (Enterprise)](/docs/k8s/crds#serviceintentions-special-case-enterprise) for more details.',
+        },
+        {
+          name: 'namespace',
+          description:
+            'If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/docs/k8s/crds#consul-enterprise) for more details.',
+        },
+      ],
+      hcl: false,
+    },
+    {
+      name: 'destination',
+      hcl: false,
+      children: [
+        {
+          name: 'name',
+          hcl: false,
+          type: 'string: <required>',
+          description:
+            "The name of the destination service for all intentions defined in this config entry. This may be set to the wildcard character (`*`) to match all services that don't otherwise have intentions defined.",
+        },
+        {
+          name: 'namespace',
+          hcl: false,
+          enterprise: true,
+          type: 'string: <optional>',
+          description:
+            "Specifies the namespaces the config entry will apply to. This may be set to the wildcard character (`*`) to match all services in all namespaces that don't otherwise have intentions defined. If not set, the namespace used will depend on the `connectInject.consulNamespaces` configuration. See [ServiceIntentions Special Case (Enterprise)](/docs/k8s/crds#serviceintentions-special-case-enterprise) for more details.",
+        },
+      ],
+    },
+    {
+      name: 'Sources',
+      type: 'array<SourceIntention>',
+      description: `The list of all [intention sources and the authorization granted to those sources](#sourceintention). The order of
+        this list does not matter, but out of convenience Consul will always store
+        this reverse sorted by intention precedence, as that is the order that they
+        will be evaluated at enforcement time.`,
+    },
+  ]}
+/>
+
+### `SourceIntention`
+
+<ConfigEntryReference
+  topLevel={false}
+  keys={[
+    {
+      name: 'Name',
+      type: 'string: <required>',
+      description: {
+        hcl:
+          "The source of the intention. For a `Type` of `consul` this is the name of a Consul service. The service doesn't need to be registered.",
+        yaml:
+          "The source of the intention. For a `type` of `consul` this is the name of a Consul service. The service doesn't need to be registered.",
+      },
+    },
+    {
+      name: 'Namespace',
+      type: 'string',
+      description: {
+        hcl:
+          "The namespace of the source service. Defaults to the namespace of the destination service (i.e. the config entry's namespace)",
+        yaml:
+          'The namespace of the source service. Defaults to the namespace of the destination service (i.e. `spec.destination.namespace`)',
+      },
+      enterprise: true,
+    },
+    {
+      name: 'Action',
+      type: 'string: ""',
+      description: {
+        hcl:
+          'For an L4 intention this is required, and should be set to one of `"allow"` or `"deny"` for the action that should be taken if this intention matches a request.' +
+          '<br><br>This should be omitted for an L7 intention as it is mutually exclusive with the `Permissions` field.',
+        yaml:
+          'For an L4 intention this is required, and should be set to one of `"allow"` or `"deny"` for the action that should be taken if this intention matches a request.' +
+          '<br><br>This should be omitted for an L7 intention as it is mutually exclusive with the `permissions` field.',
+      },
+    },
+    {
+      name: 'Permissions',
+      type: 'array<IntentionPermission>',
+      description: {
+        hcl: `The list of all [additional L7 attributes](#intentionpermission) that extend the intention match criteria.<br><br>
+                      Permission precedence is applied top to bottom. For any given request the
+                      first permission to match in the list is terminal and stops further
+                      evaluation. As with L4 intentions, traffic that fails to match any of the
+                      provided permissions in this intention will be subject to the default
+                      intention behavior is defined by the default [ACL policy](/docs/agent/options#acl_default_policy).<br><br>
+                      This should be omitted for an L4 intention as it is mutually exclusive with
+                      the \`Action\` field.`,
+        yaml: `The list of all [additional L7 attributes](#intentionpermission) that extend the intention match criteria.<br><br>
+                      Permission precedence is applied top to bottom. For any given request the
+                      first permission to match in the list is terminal and stops further
+                      evaluation. As with L4 intentions, traffic that fails to match any of the
+                      provided permissions in this intention will be subject to the default
+                      intention behavior is defined by the default [ACL policy](/docs/agent/options#acl_default_policy).<br><br>
+                      This should be omitted for an L4 intention as it is mutually exclusive with
+                      the \`action\` field.`,
+      },
+    },
+    {
+      name: 'Precedence',
+      type: 'int: <read-only>',
+      description:
+        'An [integer precedence value](/docs/connect/intentions#precedence-and-match-order) computed from the source and destination naming components.',
+      yaml: false,
+    },
+    {
+      name: 'Type',
+      type: 'string: "consul"',
+      description: {
+        hcl:
+          'The type for the `Name` value. This can be only "consul" today to represent a Consul service. If not provided, this will be defaulted to "consul".',
+        yaml:
+          'The type for the `name` value. This can be only "consul" today to represent a Consul service. If not provided, this will be defaulted to "consul".',
+      },
+    },
+    {
+      name: 'Description',
+      type: 'string: ""',
+      description:
+        'Description for the intention. This is not used by Consul, but is presented in API responses to assist tooling.',
+    },
+    {
+      name: 'LegacyID',
+      type: 'string: <read-only>',
+      description: `This is the UUID to uniquely identify
+                      this intention in the system. Cannot be set directly and is exposed here as
+                      an artifact of the config entry migration and is primarily used to allow
+                      legacy intention [API](/api-docs/connect/intentions#update-intention-by-id)
+                      [endpoints](/api-docs/connect/intentions#read-specific-intention-by-id) to
+                      continue to function for a period of time after [upgrading to 1.9.0](/docs/upgrading/upgrade-specific#consul-1-9-0).`,
+      yaml: false,
+    },
+    {
+      name: 'LegacyMeta',
+      type: 'map<string|string>: <read-only>',
+      description: `Specified arbitrary KV
+                      metadata pairs attached to the intention, rather than to the enclosing config
+                      entry. Cannot be set directly and is exposed here as an artifact of the
+                      config entry migration and is primarily used to allow legacy intention
+                      [API](/api-docs/connect/intentions#update-intention-by-id)
+                      [endpoints](/api-docs/connect/intentions#read-specific-intention-by-id) to
+                      continue to function for a period of time after [upgrading to 1.9.0](/docs/upgrading/upgrade-specific#consul-1-9-0).`,
+      yaml: false,
+    },
+    {
+      name: 'LegacyCreateTime',
+      type: 'time: optional',
+      description: `The timestamp that this intention was
+                      created. Cannot be set directly and is exposed here as an artifact of the
+                      config entry migration and is primarily used to allow legacy intention
+                      [API](/api-docs/connect/intentions#update-intention-by-id)
+                      [endpoints](/api-docs/connect/intentions#read-specific-intention-by-id) to
+                      continue to function for a period of time after [upgrading to 1.9.0](/docs/upgrading/upgrade-specific#consul-1-9-0).`,
+      yaml: false,
+    },
+    {
+      name: 'LegacyUpdateTime',
+      type: 'time: optional',
+      description: `The timestamp that this intention was
+                      last updated. Cannot be set directly and is exposed here as an artifact of the
+                      config entry migration and is primarily used to allow legacy intention
+                      [API](/api-docs/connect/intentions#update-intention-by-id)
+                      [endpoints](/api-docs/connect/intentions#read-specific-intention-by-id) to
+                      continue to function for a period of time after [upgrading to 1.9.0](/docs/upgrading/upgrade-specific#consul-1-9-0).`,
+      yaml: false,
+    },
+  ]}
+/>
+
+### `IntentionPermission`
+
+<ConfigEntryReference
+  topLevel={false}
+  keys={[
+    {
+      name: 'Action',
+      type: 'string: <required>',
+      description:
+        'This is one of "allow" or "deny" for the action that should be taken if this permission matches a request.',
+    },
+    {
+      name: 'HTTP',
+      type: 'IntentionHTTPPermission: <required>',
+      description:
+        'A set of [HTTP-specific authorization criteria](#intentionhttppermission)',
+    },
+  ]}
+/>
+
+### `IntentionHTTPPermission`
+
+<ConfigEntryReference
+  topLevel={false}
+  keys={[
+    {
+      name: 'PathExact',
+      type: 'string: ""',
+      description: {
+        hcl:
+          'Exact path to match on the HTTP request path.<br><br>At most only one of `PathExact`, `PathPrefix`, or `PathRegex` may be configured.',
+        yaml:
+          'Exact path to match on the HTTP request path.<br><br>At most only one of `pathExact`, `pathPrefix`, or `pathRegex` may be configured.',
+      },
+    },
+    {
+      name: 'PathPrefix',
+      type: 'string: ""',
+      description: {
+        hcl:
+          'Path prefix to match on the HTTP request path.<br><br>At most only one of `PathExact`, `PathPrefix`, or `PathRegex` may be configured.',
+        yaml:
+          'Path prefix to match on the HTTP request path.<br><br>At most only one of `pathExact`, `pathPrefix`, or `pathRegex` may be configured.',
+      },
+    },
+    {
+      name: 'PathRegex',
+      type: 'string: ""',
+      description: {
+        hcl:
+          'Regular expression to match on the HTTP request path.<br><br>The syntax is [described below](#regular-expression-syntax).<br><br>At most only one of `PathExact`, `PathPrefix`, or `PathRegex` may be configured.',
+        yaml:
+          'Regular expression to match on the HTTP request path.<br><br>The syntax is [described below](#regular-expression-syntax).<br><br>At most only one of `pathExact`, `pathPrefix`, or `pathRegex` may be configured.',
+      },
+    },
+    {
+      name: 'Methods',
+      type: 'array<string>',
+      description:
+        'A list of HTTP methods for which this match applies. If unspecified all HTTP methods are matched. If provided the names must be a valid [method](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods).',
+    },
+    {
+      name: 'Header',
+      type: 'array<IntentionHTTPHeaderPermission>',
+      description:
+        'A set of criteria that can match on HTTP request headers. If more than one is configured all must match for the overall match to apply.',
+      children: [
+        {
+          name: 'Name',
+          type: 'string: <required>',
+          description: 'Name of the header to match',
+        },
+        {
+          name: 'Present',
+          type: 'bool: false',
+          description: {
+            hcl:
+              'Match if the header with the given name is present with any value.<br><br> At most only one of `Exact`, `Prefix`, `Suffix`, `Regex`, or `Present` may be configured.',
+            yaml:
+              'Match if the header with the given name is present with any value.<br><br> At most only one of `exact`, `prefix`, `suffix`, `regex`, or `present` may be configured.',
+          },
+        },
+        {
+          name: 'Exact',
+          type: 'string: ""',
+          description: {
+            hcl:
+              'Match if the header with the given name is this value.<br><br> At most only one of `Exact`, `Prefix`, `Suffix`, `Regex`, or `Present` may be configured.',
+            yaml:
+              'Match if the header with the given name is this value.<br><br> At most only one of `exact`, `prefix`, `suffix`, `regex`, or `present` may be configured.',
+          },
+        },
+        {
+          name: 'Prefix',
+          type: 'string: ""',
+          description: {
+            hcl:
+              'Match if the header with the given name has this prefix.<br><br> At most only one of `Exact`, `Prefix`, `Suffix`, `Regex`, or `Present` may be configured.',
+            yaml:
+              'Match if the header with the given name has this prefix.<br><br> At most only one of `exact`, `prefix`, `suffix`, `regex`, or `present` may be configured.',
+          },
+        },
+        {
+          name: 'Suffix',
+          type: 'string: ""',
+          description: {
+            hcl:
+              'Match if the header with the given name has this suffix.<br><br> At most only one of `Exact`, `Prefix`, `Suffix`, `Regex`, or `Present` may be configured.',
+            yaml:
+              'Match if the header with the given name has this suffix.<br><br> At most only one of `exact`, `prefix`, `suffix`, `regex`, or `present` may be configured.',
+          },
+        },
+        {
+          name: 'Regex',
+          type: 'string: ""',
+          description: {
+            hcl:
+              'Match if the header with the given name matches this pattern.<br><br>The syntax is [described below](#regular-expression-syntax).<br><br> At most only one of `Exact`, `Prefix`, `Suffix`, `Regex`, or `Present` may be configured.',
+            yaml:
+              'Match if the header with the given name matches this pattern.<br><br>The syntax is [described below](#regular-expression-syntax).<br><br> At most only one of `exact`, `prefix`, `suffix`, `regex`, or `present` may be configured.',
+          },
+        },
+        {
+          name: 'Invert',
+          type: 'bool: false',
+          description: 'Inverts the logic of the match',
+        },
+      ],
+    },
+  ]}
+/>
+
+## ACLs
+
+Configuration entries may be protected by [ACLs](/docs/security/acl).
+
+Reading a `service-intentions` config entry requires `intentions:read` on the resource.
+
+Creating, updating, or deleting a `service-intentions` config entry requires
+`intentions:write` on the resource.
+
+Intention ACL rules are specified as part of a `service` rule. See [Intention
+Management Permissions](/docs/connect/intentions#intention-management-permissions) for
+more details.
+
+## Regular Expression Syntax
+
+The actual syntax of the regular expression fields described here is entirely
+proxy-specific.
+
+When using [Envoy](/docs/connect/proxies/envoy) as a proxy, the syntax for
+these fields is [RE2](https://github.com/google/re2/wiki/Syntax).

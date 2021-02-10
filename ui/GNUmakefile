@@ -1,4 +1,4 @@
-.PHONY: clean dist dist-docker dist-netlify test-workspace
+.PHONY: clean dist dist-docker dist-vercel test-workspace
 
 # make is run with no target from the consul root Makefile ui target but from
 # within docker during release, so that we keep that as the default target
@@ -21,19 +21,18 @@ dist: clean
 		CONSUL_UI_INSTALL_FLAGS=--focus \
 		$(MAKE)
 
-# Build a distribution of the UI for Netlify previews.
+# Build a distribution of the UI for Vercel previews.
 # The distribution must be copied into the ui/ subfolder
 # in order to mirror the go binary
 #
-# Netlify Settings:
+# Vercel Settings:
 # ---
-# base-directory: ui
-# build command: make dist-netlify
-# publish directory: ui/dist
-dist-netlify: clean
+# Base Directory: ui
+# Build Command: make dist-vercel
+# Publish Directory: ui/dist
+dist-vercel: clean
 	mkdir -p dist/ui && \
 	cd packages/consul-ui && \
 		CONSUL_UI_INSTALL_FLAGS=--focus \
 		$(MAKE) build-staging && \
-		mv dist/* ../../dist/ui && \
-		cp _redirects ../../dist/_redirects
+		mv dist/* ../../dist/ui

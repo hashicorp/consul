@@ -43,16 +43,17 @@ func NewTestACLAgent(t *testing.T, name string, hcl string, resolveAuthz authzRe
 	dataDir := testutil.TempDir(t, "acl-agent")
 
 	logBuffer := testutil.NewLogBuffer(t)
-	loader := func(source config.Source) (*config.RuntimeConfig, []string, error) {
+	loader := func(source config.Source) (config.LoadResult, error) {
 		dataDir := fmt.Sprintf(`data_dir = "%s"`, dataDir)
-		opts := config.BuilderOpts{
-			HCL: []string{TestConfigHCL(NodeID()), hcl, dataDir},
+		opts := config.LoadOpts{
+			HCL:           []string{TestConfigHCL(NodeID()), hcl, dataDir},
+			DefaultConfig: source,
 		}
-		cfg, warnings, err := config.Load(opts, source)
-		if cfg != nil {
-			cfg.Telemetry.Disable = true
+		result, err := config.Load(opts)
+		if result.RuntimeConfig != nil {
+			result.RuntimeConfig.Telemetry.Disable = true
 		}
-		return cfg, warnings, err
+		return result, err
 	}
 	bd, err := NewBaseDeps(loader, logBuffer)
 	require.NoError(t, err)
@@ -162,7 +163,7 @@ func (a *TestACLAgent) Shutdown() error {
 func (a *TestACLAgent) Stats() map[string]map[string]string {
 	return nil
 }
-func (a *TestACLAgent) ReloadConfig(config *consul.Config) error {
+func (a *TestACLAgent) ReloadConfig(_ consul.ReloadableConfig) error {
 	return fmt.Errorf("Unimplemented")
 }
 

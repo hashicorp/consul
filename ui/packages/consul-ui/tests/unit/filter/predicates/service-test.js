@@ -20,7 +20,7 @@ module('Unit | Filter | Predicates | service', function() {
     expected = [items[0]];
     actual = items.filter(
       predicate({
-        instances: ['registered'],
+        instance: ['registered'],
       })
     );
     assert.deepEqual(actual, expected);
@@ -28,7 +28,7 @@ module('Unit | Filter | Predicates | service', function() {
     expected = [items[1]];
     actual = items.filter(
       predicate({
-        instances: ['not-registered'],
+        instance: ['not-registered'],
       })
     );
     assert.deepEqual(actual, expected);
@@ -36,7 +36,7 @@ module('Unit | Filter | Predicates | service', function() {
     expected = items;
     actual = items.filter(
       predicate({
-        instances: ['registered', 'not-registered'],
+        instance: ['registered', 'not-registered'],
       })
     );
     assert.deepEqual(actual, expected);
@@ -60,7 +60,7 @@ module('Unit | Filter | Predicates | service', function() {
     expected = [items[0]];
     actual = items.filter(
       predicate({
-        statuses: ['passing'],
+        status: ['passing'],
       })
     );
     assert.deepEqual(actual, expected);
@@ -68,7 +68,7 @@ module('Unit | Filter | Predicates | service', function() {
     expected = [items[1]];
     actual = items.filter(
       predicate({
-        statuses: ['warning'],
+        status: ['warning'],
       })
     );
     assert.deepEqual(actual, expected);
@@ -76,7 +76,7 @@ module('Unit | Filter | Predicates | service', function() {
     expected = items;
     actual = items.filter(
       predicate({
-        statuses: ['passing', 'warning', 'critical'],
+        status: ['passing', 'warning', 'critical'],
       })
     );
     assert.deepEqual(actual, expected);
@@ -98,7 +98,7 @@ module('Unit | Filter | Predicates | service', function() {
     expected = [items[0]];
     actual = items.filter(
       predicate({
-        kinds: ['ingress-gateway'],
+        kind: ['ingress-gateway'],
       })
     );
     assert.deepEqual(actual, expected);
@@ -106,7 +106,7 @@ module('Unit | Filter | Predicates | service', function() {
     expected = [items[1]];
     actual = items.filter(
       predicate({
-        kinds: ['mesh-gateway'],
+        kind: ['mesh-gateway'],
       })
     );
     assert.deepEqual(actual, expected);
@@ -114,7 +114,7 @@ module('Unit | Filter | Predicates | service', function() {
     expected = items;
     actual = items.filter(
       predicate({
-        kinds: ['ingress-gateway', 'mesh-gateway', 'service'],
+        kind: ['ingress-gateway', 'mesh-gateway', 'service'],
       })
     );
     assert.deepEqual(actual, expected);
@@ -142,9 +142,9 @@ module('Unit | Filter | Predicates | service', function() {
     expected = [items[0]];
     actual = items.filter(
       predicate({
-        kinds: ['ingress-gateway'],
-        statuses: ['passing'],
-        instances: ['registered'],
+        kind: ['ingress-gateway'],
+        status: ['passing'],
+        instance: ['registered'],
       })
     );
     assert.deepEqual(actual, expected);
@@ -152,9 +152,9 @@ module('Unit | Filter | Predicates | service', function() {
     expected = [items[1]];
     actual = items.filter(
       predicate({
-        kinds: ['mesh-gateway'],
-        statuses: ['warning'],
-        instances: ['registered'],
+        kind: ['mesh-gateway'],
+        status: ['warning'],
+        instance: ['registered'],
       })
     );
     assert.deepEqual(actual, expected);
@@ -162,9 +162,9 @@ module('Unit | Filter | Predicates | service', function() {
     expected = items;
     actual = items.filter(
       predicate({
-        kinds: ['ingress-gateway', 'mesh-gateway', 'service'],
-        statuses: ['passing', 'warning', 'critical'],
-        instances: ['registered', 'not-registered'],
+        kind: ['ingress-gateway', 'mesh-gateway', 'service'],
+        status: ['passing', 'warning', 'critical'],
+        instance: ['registered', 'not-registered'],
       })
     );
     assert.deepEqual(actual, expected);

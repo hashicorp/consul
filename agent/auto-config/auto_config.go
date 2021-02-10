@@ -103,17 +103,17 @@ func New(config Config) (*AutoConfig, error) {
 func (ac *AutoConfig) ReadConfig() (*config.RuntimeConfig, error) {
 	ac.Lock()
 	defer ac.Unlock()
-	cfg, warnings, err := ac.acConfig.Loader(ac.autoConfigSource)
+	result, err := ac.acConfig.Loader(ac.autoConfigSource)
 	if err != nil {
-		return cfg, err
+		return result.RuntimeConfig, err
 	}
 
-	for _, w := range warnings {
+	for _, w := range result.Warnings {
 		ac.logger.Warn(w)
 	}
 
-	ac.config = cfg
-	return cfg, nil
+	ac.config = result.RuntimeConfig
+	return ac.config, nil
 }
 
 // InitialConfiguration will perform a one-time RPC request to the configured servers

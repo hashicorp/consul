@@ -7,8 +7,10 @@ import (
 	"net"
 	"net/url"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoyauth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
@@ -198,13 +200,11 @@ func (s *Server) listenersFromSnapshotGateway(cInfo connectionInfo, cfgSnap *pro
 		s.Logger.Warn("failed to parse Connect.Proxy.Config", "error", err)
 	}
 
-	// Prevent invalid configurations of binding to the same port/addr twice
-	// including with the any addresses
+	// We'll collect all of the desired listeners first, and deduplicate them later.
 	type namedAddress struct {
 		name string
 		structs.ServiceAddress
 	}
-	seen := make(map[structs.ServiceAddress]bool)
 	addrs := make([]namedAddress, 0)
 
 	var resources []proto.Message
@@ -218,10 +218,7 @@ func (s *Server) listenersFromSnapshotGateway(cInfo connectionInfo, cfgSnap *pro
 			Address: addr,
 			Port:    cfgSnap.Port,
 		}
-		if !seen[a] {
-			addrs = append(addrs, namedAddress{name: "default", ServiceAddress: a})
-			seen[a] = true
-		}
+		addrs = append(addrs, namedAddress{name: "default", ServiceAddress: a})
 	}
 
 	if cfg.BindTaggedAddresses {
@@ -230,10 +227,7 @@ func (s *Server) listenersFromSnapshotGateway(cInfo connectionInfo, cfgSnap *pro
 				Address: addrCfg.Address,
 				Port:    addrCfg.Port,
 			}
-			if !seen[a] {
-				addrs = append(addrs, namedAddress{name: name, ServiceAddress: a})
-				seen[a] = true
-			}
+			addrs = append(addrs, namedAddress{name: name, ServiceAddress: a})
 		}
 	}
 
@@ -242,14 +236,27 @@ func (s *Server) listenersFromSnapshotGateway(cInfo connectionInfo, cfgSnap *pro
 			Address: addrCfg.Address,
 			Port:    addrCfg.Port,
 		}
-		if !seen[a] {
-			addrs = append(addrs, namedAddress{name: name, ServiceAddress: a})
-			seen[a] = true
-		}
+		addrs = append(addrs, namedAddress{name: name, ServiceAddress: a})
 	}
 
-	// Make listeners once deduplicated
+	// Prevent invalid configurations of binding to the same port/addr twice
+	// including with the any addresses
+	//
+	// Sort the list and then if two items share a service address, take the
+	// first one to ensure we generate one listener per address and it's
+	// stable.
+	sort.Slice(addrs, func(i, j int) bool {
+		return addrs[i].name < addrs[j].name
+	})
+
+	// Make listeners and deduplicate on the fly.
+	seen := make(map[structs.ServiceAddress]bool)
 	for _, a := range addrs {
+		if seen[a.ServiceAddress] {
+			continue
+		}
+		seen[a.ServiceAddress] = true
+
 		var l *envoy.Listener
 
 		switch cfgSnap.Kind {
@@ -555,14 +562,15 @@ func (s *Server) makePublicListener(cInfo connectionInfo, cfgSnap *proxycfg.Conf
 		l = makeListener(PublicListenerName, addr, port)
 
 		opts := listenerFilterOpts{
-			useRDS:     false,
-			protocol:   cfg.Protocol,
-			filterName: "public_listener",
-			routeName:  "public_listener",
-			cluster:    LocalAppClusterName,
-			statPrefix: "",
-			routePath:  "",
-			ingress:    true,
+			useRDS:           false,
+			protocol:         cfg.Protocol,
+			filterName:       "public_listener",
+			routeName:        "public_listener",
+			cluster:          LocalAppClusterName,
+			statPrefix:       "",
+			routePath:        "",
+			ingress:          true,
+			requestTimeoutMs: cfg.LocalRequestTimeoutMs,
 		}
 
 		if useHTTPFilter {
@@ -768,6 +776,16 @@ func (s *Server) makeTerminatingGatewayListener(
 			}
 		}
 	}
+
+	// Before we add the fallback, sort these chains by the matched name. All
+	// of these filter chains are independent, but envoy requires them to be in
+	// some order. If we put them in a random order then every xDS iteration
+	// envoy will force the listener to be replaced. Sorting these has no
+	// effect on how they operate, but it does mean that we won't churn
+	// listeners at idle.
+	sort.Slice(l.FilterChains, func(i, j int) bool {
+		return l.FilterChains[i].FilterChainMatch.ServerNames[0] < l.FilterChains[j].FilterChainMatch.ServerNames[0]
+	})
 
 	// This fallback catch-all filter ensures a listener will be present for health checks to pass
 	// Envoy will reset these connections since known endpoints are caught by filter chain matches above
@@ -1099,15 +1117,16 @@ func getAndModifyUpstreamConfigForListener(logger hclog.Logger, u *structs.Upstr
 }
 
 type listenerFilterOpts struct {
-	useRDS          bool
-	protocol        string
-	filterName      string
-	routeName       string
-	cluster         string
-	statPrefix      string
-	routePath       string
-	ingress         bool
-	httpAuthzFilter *envoyhttp.HttpFilter
+	useRDS           bool
+	protocol         string
+	filterName       string
+	routeName        string
+	cluster          string
+	statPrefix       string
+	routePath        string
+	ingress          bool
+	requestTimeoutMs *int
+	httpAuthzFilter  *envoyhttp.HttpFilter
 }
 
 func makeListenerFilter(opts listenerFilterOpts) (*envoylistener.Filter, error) {
@@ -1197,6 +1216,7 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoylistener.Filter, error) {
 		if opts.cluster == "" {
 			return nil, fmt.Errorf("must specify cluster name when not using RDS")
 		}
+
 		route := &envoyroute.Route{
 			Match: &envoyroute.RouteMatch{
 				PathSpecifier: &envoyroute.RouteMatch_Prefix{
@@ -1216,6 +1236,12 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoylistener.Filter, error) {
 				},
 			},
 		}
+
+		if opts.requestTimeoutMs != nil {
+			r := route.GetRoute()
+			r.Timeout = pbtypes.DurationProto(time.Duration(*opts.requestTimeoutMs) * time.Millisecond)
+		}
+
 		// If a path is provided, do not match on a catch-all prefix
 		if opts.routePath != "" {
 			route.Match.PathSpecifier = &envoyroute.RouteMatch_Path{Path: opts.routePath}

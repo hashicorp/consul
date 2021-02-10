@@ -2138,7 +2138,7 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 
     - `path_allowlist` ((#ui_config_metrics_provider_path_allowlist)) - This
       specifies the paths that may be proxies to when appended to the
-      `base_url`. It will defaults to `["/api/v1/query_range", "/api/v1/query"]`
+      `base_url`. It defaults to `["/api/v1/query_range", "/api/v1/query"]`
       which are the endpoints required for the built-in Prometheus provider. If
       a [custom
       provider](/docs/connect/observability/ui-visualization#custom-metrics-providers)

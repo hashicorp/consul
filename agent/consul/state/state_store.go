@@ -155,7 +155,7 @@ type sessionCheck struct {
 // NewStateStore creates a new in-memory state storage layer.
 func NewStateStore(gc *TombstoneGC) *Store {
 	// Create the in-memory DB.
-	schema := stateStoreSchema()
+	schema := newDBSchema()
 	db, err := memdb.NewMemDB(schema)
 	if err != nil {
 		// the only way for NewMemDB to error is if the schema is invalid. The

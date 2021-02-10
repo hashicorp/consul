@@ -4,11 +4,12 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/mitchellh/cli"
+	"github.com/mitchellh/mapstructure"
+
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/mitchellh/cli"
-	"github.com/mitchellh/mapstructure"
 )
 
 // ServicesFromFiles returns the list of agent service registration structs
@@ -18,26 +19,22 @@ func ServicesFromFiles(ui cli.Ui, files []string) ([]*api.AgentServiceRegistrati
 	// configuration. devMode doesn't set any services by default so this
 	// is okay since we only look at services.
 	devMode := true
-	b, err := config.NewBuilder(config.BuilderOpts{
+	r, err := config.Load(config.LoadOpts{
 		ConfigFiles: files,
 		DevMode:     &devMode,
 	})
 	if err != nil {
 		return nil, err
 	}
-
-	cfg, err := b.BuildAndValidate()
-	if err != nil {
-		return nil, err
-	}
-	for _, w := range b.Warnings {
+	for _, w := range r.Warnings {
 		ui.Warn(w)
 	}
 
 	// The services are now in "structs.ServiceDefinition" form and we need
 	// them in "api.AgentServiceRegistration" form so do the conversion.
-	result := make([]*api.AgentServiceRegistration, 0, len(cfg.Services))
-	for _, svc := range cfg.Services {
+	services := r.RuntimeConfig.Services
+	result := make([]*api.AgentServiceRegistration, 0, len(services))
+	for _, svc := range services {
 		apiSvc, err := serviceToAgentService(svc)
 		if err != nil {
 			return nil, err

@@ -42,7 +42,14 @@ export default class HrefToHelper extends Helper {
   @service('router') router;
 
   compute(params, hash) {
-    return hrefTo(this, this.router, params, hash);
+    let href;
+    try {
+      href = hrefTo(this, this.router, params, hash);
+    } catch (e) {
+      e.message = `${e.message} For "${params[0]}:${JSON.stringify(params.slice(1))}"`;
+      throw e;
+    }
+    return href;
   }
 
   @observes('router.currentURL')

@@ -1,0 +1,33 @@
+%menu-panel {
+  border: $decor-border-100;
+  border-radius: $decor-radius-200;
+  box-shadow: $decor-elevation-600;
+}
+%menu-panel > ul > li {
+  list-style-type: none;
+}
+%menu-panel-separator {
+  text-transform: uppercase;
+}
+%menu-panel-header + ul,
+%menu-panel-separator:not(:first-child) {
+  border-top: $decor-border-100;
+}
+%menu-panel .is-active > *::after {
+  @extend %with-check-plain-mask, %as-pseudo;
+}
+%menu-panel {
+  border-color: var(--gray-300);
+  background-color: var(--gray-000);
+}
+%menu-panel dd {
+  color: $gray-500;
+}
+%menu-panel-separator {
+  color: var(--gray-400);
+}
+%menu-panel-header + ul,
+%menu-panel-separator:not(:first-child) {
+  border-color: var(--gray-300);
+}
+

@@ -1,0 +1,14 @@
+.hashicorp-consul {
+  [role="banner"] a svg {
+    fill: var(--brand-600);
+  }
+  .docs-link a::after {
+    @extend %with-docs-mask, %as-pseudo;
+  }
+  .learn-link a::after {
+    @extend %with-learn-mask, %as-pseudo;
+  }
+  .feedback-link a::after {
+    @extend %with-logo-github-monochrome-mask, %as-pseudo;
+  }
+}

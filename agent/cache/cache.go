@@ -27,6 +27,7 @@ import (
 	"github.com/armon/go-metrics/prometheus"
 	"golang.org/x/time/rate"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/ttlcache"
 )
@@ -686,6 +687,8 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 			newEntry.State = result.State
 		}
 
+		preventRefresh := acl.IsErrNotFound(err)
+
 		// Error handling
 		if err == nil {
 			labels := []metrics.Label{{Name: "result_not_modified", Value: strconv.FormatBool(result.NotModified)}}
@@ -719,9 +722,13 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 				newEntry.RefreshLostContact = time.Time{}
 			}
 		} else {
+			// TODO (mkeeler) maybe change the name of this label to be more indicative of it just
+			// stopping the background refresh
+			labels := []metrics.Label{{Name: "fatal", Value: strconv.FormatBool(preventRefresh)}}
+
 			// TODO(kit): Add tEntry.Name to label on fetch_error and deprecate second write
-			metrics.IncrCounter([]string{"consul", "cache", "fetch_error"}, 1)
-			metrics.IncrCounter([]string{"consul", "cache", tEntry.Name, "fetch_error"}, 1)
+			metrics.IncrCounterWithLabels([]string{"consul", "cache", "fetch_error"}, 1, labels)
+			metrics.IncrCounterWithLabels([]string{"consul", "cache", tEntry.Name, "fetch_error"}, 1, labels)
 
 			// Increment attempt counter
 			attempt++
@@ -756,7 +763,13 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 
 		// If refresh is enabled, run the refresh in due time. The refresh
 		// below might block, but saves us from spawning another goroutine.
-		if tEntry.Opts.Refresh {
+		//
+		// We want to have ACL not found errors stop cache refresh for the cases
+		// where the token used for the query was deleted. If the request
+		// was coming from a cache notification then it will start the
+		// request back up again shortly but in the general case this prevents
+		// spamming the logs with tons of ACL not found errors for days.
+		if tEntry.Opts.Refresh && !preventRefresh {
 			// Check if cache was stopped
 			if atomic.LoadUint32(&c.stopped) == 1 {
 				return

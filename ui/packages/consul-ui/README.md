@@ -9,6 +9,7 @@
 - [Yarn Commands](#yarn-commands)
 - [Running / Development](#running--development)
   - [Browser 'Environment' Variables](#browser-environment-variables)
+  - [Browser 'Debug Utility' Functions](#browser-debug-utility-functions)
   - [Code Generators](#code-generators)
   - [Running Tests](#running-tests)
   - [Linting](#linting)
@@ -127,8 +128,21 @@ token/secret.
 | `CONSUL_EXPOSED_COUNT` | (random) | Configure the number of exposed paths that the API returns. |
 | `CONSUL_CHECK_COUNT` | (random) | Configure the number of health checks that the API returns. |
 | `CONSUL_OIDC_PROVIDER_COUNT` | (random) | Configure the number of OIDC providers that the API returns. |
+| `DEBUG_ROUTES_ENDPOINT` | undefined | When using the window.Routes() debug utility ([see utility functions](#browser-debug-utility-functions)), use a URL to pass the route DSL to. %s in the URL will be replaced with the route DSL - http://url.com?routes=%s  |
 
 See `./mock-api` for more details.
+
+### Browser 'Debug Utility' Functions
+
+We currently have one 'debug utility', that only exists during development (they
+are removed from the production build using Embers `runInDebug`). You can call
+these either straight from the console in WebInspector, or by using javascript
+URLs i.e. `javascript:Routes()`
+
+| Variable | Arguments | Description |
+| -------- | --------- | ----------- |
+| `Routes(url)` | url: The url to pass the DSL to, if left `undefined` just use a blank tab | Provides a way to easily print out Embers Route DSL for the application or to pass it straight to any third party utility such as ember-diagonal |
+| `Scenario(str)` | str: 'Cookie formatted' string, if left `undefined` open a new tab with a link/bookmarklet to the current Scenario | Provides a way to easily save and reload scenarios of configurations via URLs or bookmarklets |
 
 ### Code Generators
 

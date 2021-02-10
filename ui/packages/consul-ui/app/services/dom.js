@@ -1,5 +1,4 @@
-import Service from '@ember/service';
-import { getOwner } from '@ember/application';
+import Service, { inject as service } from '@ember/service';
 import { guidFor } from '@ember/object/internals';
 
 // selecting
@@ -24,13 +23,12 @@ let $_;
 let inViewportCallbacks;
 const clickFirstAnchor = clickFirstAnchorFactory(closest);
 export default class DomService extends Service {
-  doc = document;
-  win = window;
+  @service('-document') doc;
 
-  init() {
-    super.init(...arguments);
+  constructor(owner) {
+    super(...arguments);
     inViewportCallbacks = new WeakMap();
-    $_ = getComponentFactory(getOwner(this));
+    $_ = getComponentFactory(owner);
   }
 
   willDestroy() {
@@ -44,11 +42,27 @@ export default class DomService extends Service {
   }
 
   viewport() {
-    return this.win;
+    return this.doc.defaultView;
   }
 
   guid(el) {
     return guidFor(el);
+  }
+
+  focus($el) {
+    if (typeof $el === 'string') {
+      $el = this.element($el);
+    }
+    if (typeof $el !== 'undefined') {
+      let previousIndex = $el.getAttribute('tabindex');
+      $el.setAttribute('tabindex', '0');
+      $el.focus();
+      if (previousIndex === null) {
+        $el.removeAttribute('tabindex');
+      } else {
+        $el.setAttribute('tabindex', previousIndex);
+      }
+    }
   }
 
   // TODO: should this be here? Needs a better name at least

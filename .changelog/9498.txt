@@ -1,0 +1,15 @@
+```release-note:bug
+leader: Fixed a bug that could cause Connect CA initialization failures from allowing leader establishment to complete resulting in potentially infinite leader elections.
+```
+
+```release-note:bug
+connect: Fixed a bug in the Vault Connect CA provider that could cause the intermediate PKI path to be deleted after reconfiguring the CA
+```
+
+```release-note:bug
+connect: Fixed a bug in the AWS PCA Connect CA provider that could cause the intermediate PKI path to be deleted after reconfiguring the CA
+```
+
+```release-note:bug
+connect: Fixed an issue that would prevent updating the Connect CA configuration if the CA provider didn't complete initialization previously.
+```

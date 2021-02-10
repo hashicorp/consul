@@ -48,6 +48,7 @@ import (
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/file"
+	"github.com/hashicorp/consul/lib/mutex"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
@@ -145,7 +146,7 @@ type delegate interface {
 	SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer, replyFn structs.SnapshotReplyFn) error
 	Shutdown() error
 	Stats() map[string]map[string]string
-	ReloadConfig(config *consul.Config) error
+	ReloadConfig(config consul.ReloadableConfig) error
 	enterpriseDelegate
 }
 
@@ -222,7 +223,7 @@ type Agent struct {
 	exposedPorts map[string]int
 
 	// stateLock protects the agent state
-	stateLock sync.Mutex
+	stateLock *mutex.Mutex
 
 	// dockerClient is the client for performing docker health checks.
 	dockerClient *checks.DockerClient
@@ -358,6 +359,7 @@ func New(bd BaseDeps) (*Agent, error) {
 		retryJoinCh:     make(chan error),
 		shutdownCh:      make(chan struct{}),
 		endpoints:       make(map[string]string),
+		stateLock:       mutex.New(),
 
 		baseDeps:        bd,
 		tokens:          bd.Tokens,
@@ -512,10 +514,10 @@ func (a *Agent) Start(ctx context.Context) error {
 	if err := a.baseDeps.AutoConfig.Start(&lib.StopChannelContext{StopCh: a.shutdownCh}); err != nil {
 		return fmt.Errorf("AutoConf failed to start certificate monitor: %w", err)
 	}
-	a.serviceManager.Start()
 
 	// Load checks/services/metadata.
-	if err := a.loadServices(c, nil); err != nil {
+	emptyCheckSnapshot := map[structs.CheckID]*structs.HealthCheck{}
+	if err := a.loadServices(c, emptyCheckSnapshot); err != nil {
 		return err
 	}
 	if err := a.loadChecks(c, nil); err != nil {
@@ -1143,7 +1145,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 
 	// Rate limiting for RPC calls.
 	if runtimeCfg.RPCRateLimit > 0 {
-		cfg.RPCRate = runtimeCfg.RPCRateLimit
+		cfg.RPCRateLimit = runtimeCfg.RPCRateLimit
 	}
 	if runtimeCfg.RPCMaxBurst > 0 {
 		cfg.RPCMaxBurst = runtimeCfg.RPCMaxBurst
@@ -1890,119 +1892,86 @@ func (a *Agent) readPersistedServiceConfigs() (map[structs.ServiceID]*structs.Se
 	return out, nil
 }
 
-// AddServiceAndReplaceChecks is used to add a service entry and its check. Any check for this service missing from chkTypes will be deleted.
+// AddService is used to add a service entry and its check. Any check for this service missing from chkTypes will be deleted.
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered
-func (a *Agent) AddServiceAndReplaceChecks(service *structs.NodeService, chkTypes []*structs.CheckType, persist bool, token string, source configSource) error {
+func (a *Agent) AddService(req AddServiceRequest) error {
 	a.stateLock.Lock()
 	defer a.stateLock.Unlock()
-	return a.addServiceLocked(&addServiceRequest{
-		service:               service,
-		chkTypes:              chkTypes,
-		previousDefaults:      nil,
-		waitForCentralConfig:  true,
-		persist:               persist,
-		persistServiceConfig:  true,
-		token:                 token,
-		replaceExistingChecks: true,
-		source:                source,
-		snap:                  a.snapshotCheckState(),
-	})
-}
 
-// AddService is used to add a service entry.
-// This entry is persistent and the agent will make a best effort to
-// ensure it is registered
-func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.CheckType, persist bool, token string, source configSource) error {
-	a.stateLock.Lock()
-	defer a.stateLock.Unlock()
-	return a.addServiceLocked(&addServiceRequest{
-		service:               service,
-		chkTypes:              chkTypes,
-		previousDefaults:      nil,
-		waitForCentralConfig:  true,
-		persist:               persist,
-		persistServiceConfig:  true,
-		token:                 token,
-		replaceExistingChecks: false,
-		source:                source,
-		snap:                  a.snapshotCheckState(),
-	})
+	rl := addServiceLockedRequest{
+		AddServiceRequest:    req,
+		serviceDefaults:      serviceDefaultsFromCache(a.baseDeps, req),
+		persistServiceConfig: true,
+	}
+	return a.addServiceLocked(rl)
 }
 
 // addServiceLocked adds a service entry to the service manager if enabled, or directly
 // to the local state if it is not. This function assumes the state lock is already held.
-func (a *Agent) addServiceLocked(req *addServiceRequest) error {
-	req.fixupForAddServiceLocked()
+func (a *Agent) addServiceLocked(req addServiceLockedRequest) error {
+	req.Service.EnterpriseMeta.Normalize()
 
-	req.service.EnterpriseMeta.Normalize()
-
-	if err := a.validateService(req.service, req.chkTypes); err != nil {
+	if err := a.validateService(req.Service, req.chkTypes); err != nil {
 		return err
 	}
 
-	if a.config.EnableCentralServiceConfig {
+	if a.config.EnableCentralServiceConfig && (req.Service.IsSidecarProxy() || req.Service.IsGateway()) {
 		return a.serviceManager.AddService(req)
 	}
 
-	// previousDefaults are ignored here because they are only relevant for central config.
-	req.persistService = nil
-	req.persistDefaults = nil
 	req.persistServiceConfig = false
-
-	return a.addServiceInternal(req)
+	return a.addServiceInternal(addServiceInternalRequest{addServiceLockedRequest: req})
 }
 
-// addServiceRequest is the union of arguments for calling both
-// addServiceLocked and addServiceInternal. The overlap was significant enough
-// to warrant merging them and indicating which fields are meant to be set only
-// in one of the two contexts.
-//
-// Before using the request struct one of the fixupFor*() methods should be
-// invoked to clear irrelevant fields.
-//
-// The ServiceManager.AddService signature is largely just a passthrough for
-// addServiceLocked and should be treated as such.
-type addServiceRequest struct {
-	service               *structs.NodeService
+type addServiceLockedRequest struct {
+	AddServiceRequest
+
+	persistServiceConfig bool
+
+	// serviceDefaults is a function which will return centralized service
+	// configuration.
+	// When loading service definitions from disk this will return a copy
+	// loaded from a persisted file. Otherwise it will query a Server for the
+	// centralized config.
+	// serviceDefaults is called when the Agent.stateLock is held, so it must
+	// never attempt to acquire that lock.
+	serviceDefaults func(context.Context) (*structs.ServiceConfigResponse, error)
+
+	// checkStateSnapshot may optionally be set to a snapshot of the checks in
+	// the local.State. If checkStateSnapshot is nil, addServiceInternal will
+	// callState.Checks to get the snapshot.
+	checkStateSnapshot map[structs.CheckID]*structs.HealthCheck
+}
+
+// AddServiceRequest contains the fields used to register a service on the local
+// agent using Agent.AddService.
+type AddServiceRequest struct {
+	Service               *structs.NodeService
 	chkTypes              []*structs.CheckType
-	previousDefaults      *structs.ServiceConfigResponse // just for: addServiceLocked
-	waitForCentralConfig  bool                           // just for: addServiceLocked
-	persistService        *structs.NodeService           // just for: addServiceInternal
-	persistDefaults       *structs.ServiceConfigResponse // just for: addServiceInternal
 	persist               bool
-	persistServiceConfig  bool
 	token                 string
 	replaceExistingChecks bool
-	source                configSource
-	snap                  map[structs.CheckID]*structs.HealthCheck
+	Source                configSource
 }
 
-func (r *addServiceRequest) fixupForAddServiceLocked() {
-	r.persistService = nil
-	r.persistDefaults = nil
-}
+type addServiceInternalRequest struct {
+	addServiceLockedRequest
 
-func (r *addServiceRequest) fixupForAddServiceInternal() {
-	r.previousDefaults = nil
-	r.waitForCentralConfig = false
+	// persistService may be set to a NodeService definition to indicate to
+	// addServiceInternal that if persist=true, it should persist this definition
+	// of the service, not the one from the Service field. This is necessary so
+	// that the service is persisted without the serviceDefaults.
+	persistService *structs.NodeService
+
+	// persistServiceDefaults may be set to a ServiceConfigResponse to indicate to
+	// addServiceInternal that it should persist the value in a file.
+	persistServiceDefaults *structs.ServiceConfigResponse
 }
 
 // addServiceInternal adds the given service and checks to the local state.
-func (a *Agent) addServiceInternal(req *addServiceRequest) error {
-	req.fixupForAddServiceInternal()
-	var (
-		service               = req.service
-		chkTypes              = req.chkTypes
-		persistService        = req.persistService
-		persistDefaults       = req.persistDefaults
-		persist               = req.persist
-		persistServiceConfig  = req.persistServiceConfig
-		token                 = req.token
-		replaceExistingChecks = req.replaceExistingChecks
-		source                = req.source
-		snap                  = req.snap
-	)
+func (a *Agent) addServiceInternal(req addServiceInternalRequest) error {
+	service := req.Service
 
 	// Pause the service syncs during modification
 	a.PauseSync()
@@ -2037,12 +2006,19 @@ func (a *Agent) addServiceInternal(req *addServiceRequest) error {
 		existingChecks[check.CompoundCheckID()] = false
 	}
 
+	// Note, this is explicitly a nil check instead of len() == 0 because
+	// Agent.Start does not have a snapshot, and we don't want to query
+	// State.Checks each time.
+	if req.checkStateSnapshot == nil {
+		req.checkStateSnapshot = a.State.Checks(structs.WildcardEnterpriseMeta())
+	}
+
 	// Create an associated health check
-	for i, chkType := range chkTypes {
+	for i, chkType := range req.chkTypes {
 		checkID := string(chkType.CheckID)
 		if checkID == "" {
 			checkID = fmt.Sprintf("service:%s", service.ID)
-			if len(chkTypes) > 1 {
+			if len(req.chkTypes) > 1 {
 				checkID += fmt.Sprintf(":%d", i+1)
 			}
 		}
@@ -2071,7 +2047,7 @@ func (a *Agent) addServiceInternal(req *addServiceRequest) error {
 		}
 
 		// Restore the fields from the snapshot.
-		prev, ok := snap[cid]
+		prev, ok := req.checkStateSnapshot[cid]
 		if ok {
 			check.Output = prev.Output
 			check.Status = prev.Status
@@ -2098,20 +2074,22 @@ func (a *Agent) addServiceInternal(req *addServiceRequest) error {
 		}
 	}
 
-	err := a.State.AddServiceWithChecks(service, checks, token)
+	err := a.State.AddServiceWithChecks(service, checks, req.token)
 	if err != nil {
 		a.cleanupRegistration(cleanupServices, cleanupChecks)
 		return err
 	}
 
+	source := req.Source
+	persist := req.persist
 	for i := range checks {
-		if err := a.addCheck(checks[i], chkTypes[i], service, token, source); err != nil {
+		if err := a.addCheck(checks[i], req.chkTypes[i], service, req.token, source); err != nil {
 			a.cleanupRegistration(cleanupServices, cleanupChecks)
 			return err
 		}
 
 		if persist && a.config.DataDir != "" {
-			if err := a.persistCheck(checks[i], chkTypes[i], source); err != nil {
+			if err := a.persistCheck(checks[i], req.chkTypes[i], source); err != nil {
 				a.cleanupRegistration(cleanupServices, cleanupChecks)
 				return err
 
@@ -2134,10 +2112,10 @@ func (a *Agent) addServiceInternal(req *addServiceRequest) error {
 		a.resetExposedChecks(psid)
 	}
 
-	if persistServiceConfig && a.config.DataDir != "" {
+	if req.persistServiceConfig && a.config.DataDir != "" {
 		var err error
-		if persistDefaults != nil {
-			err = a.persistServiceConfig(service.CompoundServiceID(), persistDefaults)
+		if req.persistServiceDefaults != nil {
+			err = a.persistServiceConfig(service.CompoundServiceID(), req.persistServiceDefaults)
 		} else {
 			err = a.purgeServiceConfig(service.CompoundServiceID())
 		}
@@ -2150,17 +2128,17 @@ func (a *Agent) addServiceInternal(req *addServiceRequest) error {
 
 	// Persist the service to a file
 	if persist && a.config.DataDir != "" {
-		if persistService == nil {
-			persistService = service
+		if req.persistService == nil {
+			req.persistService = service
 		}
 
-		if err := a.persistService(persistService, source); err != nil {
+		if err := a.persistService(req.persistService, source); err != nil {
 			a.cleanupRegistration(cleanupServices, cleanupChecks)
 			return err
 		}
 	}
 
-	if replaceExistingChecks {
+	if req.replaceExistingChecks {
 		for checkID, keep := range existingChecks {
 			if !keep {
 				a.removeCheckLocked(checkID, persist)
@@ -2372,7 +2350,7 @@ func (a *Agent) removeServiceLocked(serviceID structs.ServiceID, persist bool) e
 }
 
 func (a *Agent) removeServiceSidecars(serviceID structs.ServiceID, persist bool) error {
-	sidecarSID := structs.NewServiceID(a.sidecarServiceID(serviceID.ID), &serviceID.EnterpriseMeta)
+	sidecarSID := structs.NewServiceID(sidecarServiceID(serviceID.ID), &serviceID.EnterpriseMeta)
 	if sidecar := a.State.Service(sidecarSID); sidecar != nil {
 		// Double check that it's not just an ID collision and we actually added
 		// this from a sidecar.
@@ -3126,17 +3104,18 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 		ns.Connect.SidecarService = nil
 
 		sid := ns.CompoundServiceID()
-		err = a.addServiceLocked(&addServiceRequest{
-			service:               ns,
-			chkTypes:              chkTypes,
-			previousDefaults:      persistedServiceConfigs[sid],
-			waitForCentralConfig:  false, // exclusively use cached values
-			persist:               false, // don't rewrite the file with the same data we just read
-			persistServiceConfig:  false, // don't rewrite the file with the same data we just read
-			token:                 service.Token,
-			replaceExistingChecks: false, // do default behavior
-			source:                ConfigSourceLocal,
-			snap:                  snap,
+		err = a.addServiceLocked(addServiceLockedRequest{
+			AddServiceRequest: AddServiceRequest{
+				Service:               ns,
+				chkTypes:              chkTypes,
+				persist:               false, // don't rewrite the file with the same data we just read
+				token:                 service.Token,
+				replaceExistingChecks: false, // do default behavior
+				Source:                ConfigSourceLocal,
+			},
+			serviceDefaults:      serviceDefaultsFromStruct(persistedServiceConfigs[sid]),
+			persistServiceConfig: false, // don't rewrite the file with the same data we just read
+			checkStateSnapshot:   snap,
 		})
 		if err != nil {
 			return fmt.Errorf("Failed to register service %q: %v", service.Name, err)
@@ -3145,17 +3124,18 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 		// If there is a sidecar service, register that too.
 		if sidecar != nil {
 			sidecarServiceID := sidecar.CompoundServiceID()
-			err = a.addServiceLocked(&addServiceRequest{
-				service:               sidecar,
-				chkTypes:              sidecarChecks,
-				previousDefaults:      persistedServiceConfigs[sidecarServiceID],
-				waitForCentralConfig:  false, // exclusively use cached values
-				persist:               false, // don't rewrite the file with the same data we just read
-				persistServiceConfig:  false, // don't rewrite the file with the same data we just read
-				token:                 sidecarToken,
-				replaceExistingChecks: false, // do default behavior
-				source:                ConfigSourceLocal,
-				snap:                  snap,
+			err = a.addServiceLocked(addServiceLockedRequest{
+				AddServiceRequest: AddServiceRequest{
+					Service:               sidecar,
+					chkTypes:              sidecarChecks,
+					persist:               false, // don't rewrite the file with the same data we just read
+					token:                 sidecarToken,
+					replaceExistingChecks: false, // do default behavior
+					Source:                ConfigSourceLocal,
+				},
+				serviceDefaults:      serviceDefaultsFromStruct(persistedServiceConfigs[sidecarServiceID]),
+				persistServiceConfig: false, // don't rewrite the file with the same data we just read
+				checkStateSnapshot:   snap,
 			})
 			if err != nil {
 				return fmt.Errorf("Failed to register sidecar for service %q: %v", service.Name, err)
@@ -3242,17 +3222,18 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 				"service", serviceID.String(),
 				"file", file,
 			)
-			err = a.addServiceLocked(&addServiceRequest{
-				service:               p.Service,
-				chkTypes:              nil,
-				previousDefaults:      persistedServiceConfigs[serviceID],
-				waitForCentralConfig:  false, // exclusively use cached values
-				persist:               false, // don't rewrite the file with the same data we just read
-				persistServiceConfig:  false, // don't rewrite the file with the same data we just read
-				token:                 p.Token,
-				replaceExistingChecks: false, // do default behavior
-				source:                source,
-				snap:                  snap,
+			err = a.addServiceLocked(addServiceLockedRequest{
+				AddServiceRequest: AddServiceRequest{
+					Service:               p.Service,
+					chkTypes:              nil,
+					persist:               false, // don't rewrite the file with the same data we just read
+					token:                 p.Token,
+					replaceExistingChecks: false, // do default behavior
+					Source:                source,
+				},
+				serviceDefaults:      serviceDefaultsFromStruct(persistedServiceConfigs[serviceID]),
+				persistServiceConfig: false, // don't rewrite the file with the same data we just read
+				checkStateSnapshot:   snap,
 			})
 			if err != nil {
 				return fmt.Errorf("failed adding service %q: %s", serviceID, err)
@@ -3517,11 +3498,6 @@ func (a *Agent) DisableNodeMaintenance() {
 	a.logger.Info("Node left maintenance mode")
 }
 
-func (a *Agent) loadLimits(conf *config.RuntimeConfig) {
-	a.config.RPCRateLimit = conf.RPCRateLimit
-	a.config.RPCMaxBurst = conf.RPCMaxBurst
-}
-
 // ReloadConfig will atomically reload all configuration, including
 // all services, checks, tokens, metadata, dnsServer configs, etc.
 // It will also reload all ongoing watches.
@@ -3602,8 +3578,6 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 		return fmt.Errorf("Failed reloading watches: %v", err)
 	}
 
-	a.loadLimits(newCfg)
-
 	a.httpConnLimiter.SetConfig(connlimit.Config{
 		MaxConnsPerClientIP: newCfg.HTTPMaxConnsPerClient,
 	})
@@ -3614,24 +3588,18 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 		}
 	}
 
-	// this only gets used by the consulConfig function and since
-	// that is only ever done during init and reload here then
-	// an in place modification is safe as reloads cannot be
-	// concurrent due to both gaining a full lock on the stateLock
-	a.config.ConfigEntryBootstrap = newCfg.ConfigEntryBootstrap
-
 	err := a.reloadEnterprise(newCfg)
 	if err != nil {
 		return err
 	}
 
-	// create the config for the rpc server/client
-	consulCfg, err := newConsulConfig(a.config, a.logger)
-	if err != nil {
-		return err
+	cc := consul.ReloadableConfig{
+		RPCRateLimit:         newCfg.RPCRateLimit,
+		RPCMaxBurst:          newCfg.RPCMaxBurst,
+		RPCMaxConnsPerClient: newCfg.RPCMaxConnsPerClient,
+		ConfigEntryBootstrap: newCfg.ConfigEntryBootstrap,
 	}
-
-	if err := a.delegate.ReloadConfig(consulCfg); err != nil {
+	if err := a.delegate.ReloadConfig(cc); err != nil {
 		return err
 	}
 

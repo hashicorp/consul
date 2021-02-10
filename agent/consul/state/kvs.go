@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 // kvsTableSchema returns a new table schema used for storing key/value data for
@@ -46,11 +47,6 @@ func tombstonesTableSchema() *memdb.TableSchema {
 			},
 		},
 	}
-}
-
-func init() {
-	registerSchema(kvsTableSchema)
-	registerSchema(tombstonesTableSchema)
 }
 
 // KVs is used to pull the full list of KVS entries for use during snapshots.

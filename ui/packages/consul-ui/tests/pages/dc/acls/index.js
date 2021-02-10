@@ -1,4 +1,4 @@
-export default function(visitable, deletable, creatable, clickable, attribute, collection, filter) {
+export default function(visitable, deletable, creatable, clickable, attribute, collection) {
   return creatable({
     visit: visitable('/:dc/acls'),
     acls: collection(
@@ -11,6 +11,5 @@ export default function(visitable, deletable, creatable, clickable, attribute, c
         confirmUse: clickable('[data-test-confirm-use]'),
       })
     ),
-    filter: filter('[data-test-acl-filter]'),
   });
 }

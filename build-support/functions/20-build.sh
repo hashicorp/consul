@@ -1,3 +1,21 @@
+function supported_osarch {
+   # Arguments:
+   #   $1 - osarch - example, linux/amd64
+   #
+   # Returns:
+   #   0 - supported
+   #   * - not supported
+   local osarch="$1"
+   for valid in $(go tool dist list)
+   do
+      if test "${osarch}" = "${valid}"
+      then
+         return 0
+      fi
+   done
+   return 1
+}
+
 function refresh_docker_images {
    # Arguments:
    #   $1 - Path to top level Consul source
@@ -409,43 +427,10 @@ function build_consul_local {
          outdir="pkg.bin.new/${extra_dir}${os}_${arch}"
          osarch="${os}/${arch}"
 
-         case "${os}" in
-            "darwin" )
-               # Do not build ARM binaries for macOS
-               if test "${arch}" == "arm" -o "${arch}" == "arm64"
-               then
-                  continue
-               fi
-               ;;
-            "windows" )
-               # Do not build ARM binaries for Windows
-               if test "${arch}" == "arm" -o "${arch}" == "arm64"
-               then
-                  continue
-               fi
-               ;;
-            "freebsd" )
-               # Do not build ARM binaries for FreeBSD
-               if test "${arch}" == "arm" -o "${arch}" == "arm64"
-               then
-                  continue
-               fi
-               ;;
-            "solaris" )
-               # Only build amd64 for Solaris
-               if test "${arch}" != "amd64"
-               then
-                  continue
-               fi
-               ;;
-            "linux" )
-               # build all the binaries for Linux
-               ;;
-            *)
-               continue
-            ;;
-         esac
-
+         if ! supported_osarch "${osarch}"
+         then
+            continue
+         fi
          echo "--->   ${osarch}"
 
          mkdir -p "${outdir}"

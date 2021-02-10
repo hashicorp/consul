@@ -1,0 +1,86 @@
+{{#let (hash
+  main=(concat guid '-main')
+) as |exported|}}
+
+<div
+  class="app"
+  ...attributes
+>
+  <ModalLayer />
+
+  <div
+    class="skip-links"
+    {{on "click" this.focus}}
+  >
+    <a href={{concat '#' exported.main}}>{{t 'components.app.skip_to_content'}}</a>
+    {{!--
+      In order to add further skip links from within other templates use:
+      <Portal @target="app-skip-links">
+        <a href="#sub-content">Skip to subcontent</a>
+      </Portal>
+      from within your template
+    --}}
+    <PortalTarget
+      @name="app-skip-links"
+      @mutiple={{true}}
+    ></PortalTarget>
+  </div>
+
+  <input
+    type="checkbox"
+    id={{concat guid "-main-nav-toggle"}}
+  />
+  <header
+    role="banner"
+  >
+    <label
+      tabindex="0"
+      for={{concat guid "-main-nav-toggle"}}
+      aria-label={{t 'components.app.toggle_menu'}}
+      {{on "keypress" this.keypressClick}}
+      {{on "mouseup" this.unfocus}}
+    ></label>
+      {{yield exported to="home-nav"}}
+      <div
+        data-test-navigation
+      >
+{{!--
+  The viewport tolerances here give us a 10 pixel buffer to make sure the menu
+  is marked as out of the viewport, we use all sides so we don't need to change
+  this should any CSS change
+--}}
+        <nav
+          aria-label={{t 'components.app.main'}}
+          class={{if this.navInViewport 'in-viewport'}}
+          {{in-viewport
+            onEnter=(set this 'navInViewport' true)
+            onExit=(set this 'navInViewport' false)
+            viewportTolerance=(hash top=-10 bottom =-10 left=-10 right=-10)
+          }}
+        >
+          {{yield exported to="main-nav"}}
+        </nav>
+{{!--
+  Whilst this has a role of navigation, it is 'complementary navigation' we
+  don't want to change the navigation role here, but we do want to label it as
+  'complementary' to the main content. The phrase 'complementary navigation' as
+  read by a screenreader should convey the meaning we are after here.
+--}}
+        <nav aria-label={{t 'components.app.complementary'}}>
+          {{yield exported to="complementary-nav"}}
+        </nav>
+
+      </div>
+  </header>
+  <main id={{concat guid '-main'}}>
+    {{yield exported to="main"}}
+  </main>
+  <footer
+    role="contentinfo"
+    data-test-footer
+  >
+    {{yield exported to="content-info"}}
+  </footer>
+</div>
+
+{{/let}}

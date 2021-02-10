@@ -1,0 +1,4 @@
+```release-note:feature
+ui: Add additional search/filter status pills for viewing and removing current
+filters in listing views
+```

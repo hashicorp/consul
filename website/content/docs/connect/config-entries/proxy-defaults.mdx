@@ -1,0 +1,292 @@
+---
+layout: docs
+page_title: 'Configuration Entry Kind: Proxy Defaults'
+sidebar_title: Proxy Defaults
+description: >-
+  The proxy-defaults config entry kind allows for configuring global config
+  defaults across all services for Connect proxy configuration. Currently, only
+  one global entry is supported.
+---
+
+# Proxy Defaults
+
+-> **v1.8.4+:** On Kubernetes, the `ProxyDefaults` custom resource is supported in Consul versions 1.8.4+.<br />
+**v1.5.0+:** On other platforms, this config entry is supported in Consul versions 1.5.0+.
+
+The `proxy-defaults` config entry kind (`ProxyDefaults` on Kubernetes) allows for configuring global config
+defaults across all services for Connect proxy configuration. Currently, only
+one global entry is supported.
+
+## Sample Config Entries
+
+### Default protocol
+
+<Tabs>
+<Tab heading="HCL">
+
+Set the default protocol for all sidecar proxies:
+
+```hcl
+Kind      = "proxy-defaults"
+Name      = "global"
+Config {
+  protocol = "http"
+}
+```
+
+</Tab>
+<Tab heading="HCL (Consul Enterprise)">
+
+Set the default protocol for all sidecar proxies.
+
+**NOTE:** The `proxy-defaults` config entry can only be created in the `default`
+namespace and it will configure proxies in **all** namespaces.
+
+```hcl
+Kind      = "proxy-defaults"
+Name      = "global"
+Namespace = "default" # Can only be set to "default".
+Config {
+  protocol = "http"
+}
+```
+
+</Tab>
+<Tab heading="Kubernetes YAML">
+
+Set the default protocol for all sidecar proxies:
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ProxyDefaults
+metadata:
+  name: global
+spec:
+  config:
+    protocol: http
+```
+
+</Tab>
+<Tab heading="Kubernetes YAML (Consul Enterprise)">
+
+Set the default protocol for all sidecar proxies:
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ProxyDefaults
+metadata:
+  name: global
+spec:
+  config:
+    protocol: http
+```
+
+</Tab>
+</Tabs>
+
+### Prometheus
+
+<Tabs>
+<Tab heading="HCL">
+
+Expose prometheus metrics:
+
+```hcl
+Kind      = "proxy-defaults"
+Name      = "global"
+Config {
+  envoy_prometheus_bind_addr = "0.0.0.0:9102"
+}
+```
+
+</Tab>
+<Tab heading="Kubernetes YAML">
+
+Expose prometheus metrics:
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ProxyDefaults
+metadata:
+  name: global
+spec:
+  config:
+    envoy_prometheus_bind_addr: '0.0.0.0:9102'
+```
+
+</Tab>
+</Tabs>
+
+### Proxy-specific defaults
+
+<Tabs>
+<Tab heading="HCL">
+
+Set proxy-specific defaults:
+
+```hcl
+Kind      = "proxy-defaults"
+Name      = "global"
+Config {
+  local_connect_timeout_ms = 1000
+  handshake_timeout_ms     = 10000
+}
+```
+
+</Tab>
+<Tab heading="Kubernetes YAML">
+
+Set proxy-specific defaults:
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ProxyDefaults
+metadata:
+  name: global
+spec:
+  config:
+    local_connect_timeout_ms: 1000
+    handshake_timeout_ms: 10000
+```
+
+</Tab>
+</Tabs>
+
+## Available Fields
+
+<ConfigEntryReference
+  keys={[
+    {
+      name: 'apiVersion',
+      description: 'Must be set to `consul.hashicorp.com/v1alpha1`',
+      hcl: false,
+    },
+    {
+      name: 'Kind',
+      description: {
+        hcl: 'Must be set to `proxy-defaults`',
+        yaml: 'Must be set to `ProxyDefaults`',
+      },
+    },
+    {
+      name: 'Name',
+      description: 'Must be set to `global`',
+      yaml: false,
+    },
+    {
+      name: 'Namespace',
+      type: `string: "default"`,
+      enterprise: true,
+      description: 'Specifies the namespace the config entry will apply to.',
+      yaml: false,
+    },
+    {
+      name: 'Meta',
+      type: 'map<string|string>: nil',
+      description:
+        'Specifies arbitrary KV metadata pairs. Added in Consul 1.8.4.',
+      yaml: false,
+    },
+    {
+      name: 'metadata',
+      children: [
+        {
+          name: 'name',
+          description: 'Must be set to `global`',
+        },
+        {
+          name: 'namespace',
+          description:
+            'If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/docs/k8s/crds#consul-enterprise) for more details.',
+        },
+      ],
+      hcl: false,
+    },
+    {
+      name: 'Config',
+      type: 'map[string]arbitrary',
+      description: `An arbitrary map of configuration values used by Connect proxies.
+    The available configurations depend on the Connect proxy you use.
+     Any values that your proxy allows can be configured globally here. To explore these options please see the documentation for your chosen proxy.
+     <ul><li>[Envoy](/docs/connect/proxies/envoy#bootstrap-configuration)</li>
+     <li>[Consul's built-in proxy](/docs/connect/proxies/built-in)</li></ul>`,
+    },
+    {
+      name: 'MeshGateway',
+      type: 'MeshGatewayConfig: <optional>',
+      description: `Controls the default
+      [mesh gateway configuration](/docs/connect/mesh-gateway#connect-proxy-configuration)
+      for all proxies. Added in v1.6.0.`,
+      children: [
+        {
+          name: 'Mode',
+          type: 'string: ""',
+          description: 'One of `none`, `local`, or `remote`.',
+        },
+      ],
+    },
+    {
+      name: 'Expose',
+      type: 'ExposeConfig: <optional>',
+      description: `Controls the default
+                      [expose path configuration](/docs/connect/registration/service-registration#expose-paths-configuration-reference)
+                      for Envoy. Added in v1.6.2.<br><br>
+                      Exposing paths through Envoy enables a service to protect itself by only listening on localhost, while still allowing
+                      non-Connect-enabled applications to contact an HTTP endpoint.
+                      Some examples include: exposing a \`/metrics\` path for Prometheus or \`/healthz\` for kubelet liveness checks.`,
+      children: [
+        {
+          name: 'Checks',
+          type: 'bool: false',
+          description: `If enabled, all HTTP and gRPC checks registered with the agent are exposed through Envoy.
+        Envoy will expose listeners for these checks and will only accept connections originating from localhost or Consul's
+        [advertise address](/docs/agent/options#advertise). The port for these listeners are dynamically allocated from
+        [expose_min_port](/docs/agent/options#expose_min_port) to [expose_max_port](/docs/agent/options#expose_max_port).
+        This flag is useful when a Consul client cannot reach registered services over localhost. One example is when running
+        Consul on Kubernetes, and Consul agents run in their own pods.`,
+        },
+        {
+          name: 'Paths',
+          type: 'array<Path>: []',
+          description: 'A list of paths to expose through Envoy.',
+          children: [
+            {
+              name: 'Path',
+              type: 'string: ""',
+              description:
+                'The HTTP path to expose. The path must be prefixed by a slash. ie: `/metrics`.',
+            },
+            {
+              name: 'LocalPathPort',
+              type: 'int: 0',
+              description:
+                'The port where the local service is listening for connections to the path.',
+            },
+            {
+              name: 'ListenerPort',
+              type: 'int: 0',
+              description: `The port where the proxy will listen for connections. This port must be available
+           for the listener to be set up. If the port is not free then Envoy will not expose a listener for the path,
+           but the proxy registration will not fail.`,
+            },
+            {
+              name: 'Protocol',
+              type: 'string: "http"',
+              description:
+                'Sets the protocol of the listener. One of `http` or `http2`. For gRPC use `http2`.',
+            },
+          ],
+        },
+      ],
+    },
+  ]}
+/>
+
+## ACLs
+
+Configuration entries may be protected by [ACLs](/docs/security/acl).
+
+Reading a `proxy-defaults` config entry requires no specific privileges.
+
+Creating, updating, or deleting a `proxy-defaults` config entry requires
+`operator:write`.

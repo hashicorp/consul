@@ -1,6 +1,6 @@
 import Component from '@glimmer/component';
 import { inject as service } from '@ember/service';
-import { computed, action } from '@ember/object';
+import { computed, get, action } from '@ember/object';
 import { alias } from '@ember/object/computed';
 import { tracked } from '@glimmer/tracking';
 import { sort } from '@ember/object/computed';
@@ -32,18 +32,19 @@ export default class DataCollectionComponent extends Component {
     return this.term || this.args.search || '';
   }
 
-  @computed('type', 'searchMethod', 'filtered', 'searchProperties')
+  @computed('type', 'searchMethod', 'filtered', 'args.filters')
   get searchable() {
+    const searchproperties =
+      get(this, 'args.filters.searchproperty.value') || get(this, 'args.filters.searchproperty');
     const Searchable =
       typeof this.searchMethod === 'string'
         ? this.searchableMap[this.searchMethod]
         : this.args.searchable;
+
     return new Searchable(this.filtered, {
       finders: Object.fromEntries(
         Object.entries(this.searchService.predicate(this.type)).filter(([key, value]) => {
-          return typeof this.searchProperties === 'undefined'
-            ? true
-            : this.searchProperties.includes(key);
+          return typeof searchproperties === 'undefined' ? true : searchproperties.includes(key);
         })
       ),
     });
@@ -89,7 +90,13 @@ export default class DataCollectionComponent extends Component {
     if (typeof predicate === 'undefined') {
       return this.content.slice();
     }
-    return this.content.filter(predicate(this.args.filters));
+    const filters = Object.entries(this.args.filters)
+      .filter(([key, value]) => Boolean(value))
+      .map(([key, value]) => {
+        const val = typeof value !== 'string' ? value.value : value;
+        return [key, val];
+      });
+    return this.content.filter(predicate(Object.fromEntries(filters)));
   }
 
   @computed('args.{items.[],items.content.[]}')
@@ -97,10 +104,11 @@ export default class DataCollectionComponent extends Component {
     // TODO: Temporary little hack to ensure we detect DataSource proxy
     // objects but not any other special Ember Proxy object like ember-data
     // things. Remove this once we no longer need the Proxies
-    if (this.args.items.dispatchEvent === 'function') {
-      return this.args.items.content;
+    const items = this.args.items || [];
+    if (typeof items.dispatchEvent === 'function') {
+      return items.content;
     }
-    return this.args.items;
+    return items;
   }
 
   @action

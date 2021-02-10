@@ -43,9 +43,10 @@ type GatewayLocator struct {
 	primaryDatacenter string
 
 	// these ONLY contain ones that have the wanfed:1 meta
-	gatewaysLock    sync.Mutex
-	primaryGateways []string // WAN addrs
-	localGateways   []string // LAN addrs
+	gatewaysLock      sync.Mutex
+	primaryGateways   []string // WAN addrs
+	localGateways     []string // LAN addrs
+	populatedGateways bool
 
 	// primaryMeshGatewayDiscoveredAddresses is the current fallback addresses
 	// for the mesh gateways in the primary datacenter.
@@ -59,11 +60,12 @@ type GatewayLocator struct {
 	// these are a collection of measurements that factor into deciding if we
 	// should directly dial the primary's mesh gateways or if we should try to
 	// route through our local gateways (if they are up).
-	lastReplLock      sync.Mutex
-	lastReplSuccess   time.Time
-	lastReplFailure   time.Time
-	lastReplSuccesses uint64
-	lastReplFailures  uint64
+	lastReplLock         sync.Mutex
+	lastReplSuccess      time.Time
+	lastReplFailure      time.Time
+	lastReplSuccesses    uint64
+	lastReplFailures     uint64
+	useReplicationSignal bool // this should be set to true on the leader
 }
 
 // SetLastFederationStateReplicationError is used to indicate if the federation
@@ -74,14 +76,23 @@ type GatewayLocator struct {
 // our chosen mesh-gateway configuration can reach the primary's servers (like
 // a ping or status RPC) we cheat and use the federation state replicator
 // goroutine's success or failure as a proxy.
-func (g *GatewayLocator) SetLastFederationStateReplicationError(err error) {
+func (g *GatewayLocator) SetLastFederationStateReplicationError(err error, fromReplication bool) {
+	if g == nil {
+		return
+	}
+
 	g.lastReplLock.Lock()
 	defer g.lastReplLock.Unlock()
+
 	oldChoice := g.dialPrimaryThroughLocalGateway()
 	if err == nil {
 		g.lastReplSuccess = time.Now().UTC()
 		g.lastReplSuccesses++
 		g.lastReplFailures = 0
+		if fromReplication {
+			// If we get info from replication, assume replication is operating.
+			g.useReplicationSignal = true
+		}
 	} else {
 		g.lastReplFailure = time.Now().UTC()
 		g.lastReplFailures++
@@ -91,6 +102,16 @@ func (g *GatewayLocator) SetLastFederationStateReplicationError(err error) {
 	if oldChoice != newChoice {
 		g.logPrimaryDialingMessage(newChoice)
 	}
+}
+
+func (g *GatewayLocator) SetUseReplicationSignal(newValue bool) {
+	if g == nil {
+		return
+	}
+
+	g.lastReplLock.Lock()
+	g.useReplicationSignal = newValue
+	g.lastReplLock.Unlock()
 }
 
 func (g *GatewayLocator) logPrimaryDialingMessage(useLocal bool) {
@@ -140,6 +161,12 @@ func (g *GatewayLocator) DialPrimaryThroughLocalGateway() bool {
 const localFederationStateReplicatorFailuresBeforeDialingDirectly = 3
 
 func (g *GatewayLocator) dialPrimaryThroughLocalGateway() bool {
+	if !g.useReplicationSignal {
+		// Followers should blindly assume these gateways work. The leader will
+		// try to bypass them and correct the replicated federation state info
+		// that the followers will eventually pick up on.
+		return true
+	}
 	if g.lastReplSuccess.IsZero() && g.lastReplFailure.IsZero() {
 		return false // no data yet
 	}
@@ -178,6 +205,10 @@ func (g *GatewayLocator) pickGateway(primary bool) string {
 func (g *GatewayLocator) listGateways(primary bool) []string {
 	g.gatewaysLock.Lock()
 	defer g.gatewaysLock.Unlock()
+
+	if !g.populatedGateways {
+		return nil // don't even do anything yet
+	}
 
 	var addrs []string
 	if primary {
@@ -241,6 +272,7 @@ type serverDelegate interface {
 	blockingQuery(queryOpts structs.QueryOptionsCompat, queryMeta structs.QueryMetaCompat, fn queryFn) error
 	IsLeader() bool
 	LeaderLastContact() time.Time
+	setDatacenterSupportsFederationStates()
 }
 
 func NewGatewayLocator(
@@ -257,6 +289,8 @@ func NewGatewayLocator(
 		primaryGatewaysReadyCh: make(chan struct{}),
 	}
 	g.logPrimaryDialingMessage(g.DialPrimaryThroughLocalGateway())
+	// initialize
+	g.SetLastFederationStateReplicationError(nil, false)
 	return g
 }
 
@@ -266,7 +300,10 @@ func (g *GatewayLocator) Run(ctx context.Context) {
 	var lastFetchIndex uint64
 	retryLoopBackoff(ctx, func() error {
 		idx, err := g.runOnce(lastFetchIndex)
-		if err != nil {
+		if errors.Is(err, errGatewayLocalStateNotInitialized) {
+			// don't do exponential backoff for something that's not broken
+			return nil
+		} else if err != nil {
 			return err
 		}
 
@@ -274,9 +311,7 @@ func (g *GatewayLocator) Run(ctx context.Context) {
 
 		return nil
 	}, func(err error) {
-		if !errors.Is(err, errGatewayLocalStateNotInitialized) {
-			g.logger.Error("error tracking primary and local mesh gateways", "error", err)
-		}
+		g.logger.Error("error tracking primary and local mesh gateways", "error", err)
 	})
 }
 
@@ -341,6 +376,10 @@ func (g *GatewayLocator) checkLocalStateIsReady() error {
 }
 
 func (g *GatewayLocator) updateFromState(results []*structs.FederationState) {
+	if len(results) > 0 {
+		g.srv.setDatacenterSupportsFederationStates()
+	}
+
 	var (
 		local   structs.CheckServiceNodes
 		primary structs.CheckServiceNodes
@@ -361,6 +400,8 @@ func (g *GatewayLocator) updateFromState(results []*structs.FederationState) {
 
 	g.gatewaysLock.Lock()
 	defer g.gatewaysLock.Unlock()
+
+	g.populatedGateways = true
 
 	changed := false
 	primaryReady := false

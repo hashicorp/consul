@@ -62,10 +62,10 @@ func (e enterpriseConfigKeyError) Error() string {
 	return fmt.Sprintf("%q is a Consul Enterprise configuration and will have no effect", e.key)
 }
 
-func (*Builder) BuildEnterpriseRuntimeConfig(_ *RuntimeConfig, _ *Config) error {
+func (*builder) BuildEnterpriseRuntimeConfig(_ *RuntimeConfig, _ *Config) error {
 	return nil
 }
 
-func (*Builder) validateEnterpriseConfig(_ RuntimeConfig) error {
+func (*builder) validateEnterpriseConfig(_ RuntimeConfig) error {
 	return nil
 }

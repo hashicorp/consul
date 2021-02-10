@@ -1,3 +1,5 @@
+import { runInDebug } from '@ember/debug';
+
 export const walk = function(routes) {
   const keys = Object.keys(routes);
   keys.forEach((item, i) => {
@@ -35,46 +37,48 @@ export default function(routes) {
   };
 }
 
-// The following code is purposefully commented out to prevent it from ending up
-// in the production codebase. In future it would be good to figure out how to do this
-// without having to use comments.
+export let dump = () => {};
 
-// const indent = function(num) {
-//   return Array(num).fill('  ', 0, num).join('')
-// }
-// /**
-//  * String dumper to produce Router.map code
-//  * Uses { walk } to recursively walk through a JSON object of routes
-//  * to produce the code necessary to define your routes for your ember application
-//  *
-//  * @param {object} routes - JSON representation of routes
-//  * @example `console.log(dump(routes));`
-//  */
-// export const dump = function(routes) {
-//   let level = 2;
-//   const obj = {
-//     out: '',
-//     route: function(name, options, cb) {
-//       this.out += `${indent(level)}this.route('${name}', ${JSON.stringify(options)}`;
-//       if(cb) {
-//         level ++;
-//         this.out += `, function() {
-// `;
-//         cb.apply(this, []);
-//         level --;
-//         this.out += `${indent(level)}});
-// `;
-//       } else {
-//         this.out += ');';
-//       }
-//       this.out += `
-// `;
-//     }
-//   };
-//   walk.apply(obj, [routes])
-//   return `Router.map(
-//   function() {
-// ${obj.out}
-//   }
-// );`;
-// }
+runInDebug(() => {
+  const indent = function(num) {
+    return Array(num)
+      .fill('  ', 0, num)
+      .join('');
+  };
+  /**
+   * String dumper to produce Router.map code
+   * Uses { walk } to recursively walk through a JSON object of routes
+   * to produce the code necessary to define your routes for your ember application
+   *
+   * @param {object} routes - JSON representation of routes
+   * @example `console.log(dump(routes));`
+   */
+  dump = function(routes) {
+    let level = 2;
+    const obj = {
+      out: '',
+      route: function(name, options, cb) {
+        this.out += `${indent(level)}this.route('${name}', ${JSON.stringify(options)}`;
+        if (cb) {
+          level++;
+          this.out += `, function() {
+`;
+          cb.apply(this, []);
+          level--;
+          this.out += `${indent(level)}});
+`;
+        } else {
+          this.out += ');';
+        }
+        this.out += `
+`;
+      },
+    };
+    walk.apply(obj, [routes]);
+    return `Router.map(
+  function() {
+${obj.out}
+  }
+);`;
+  };
+});

@@ -212,14 +212,6 @@ func (s *TokenExpirationIndex) FromArgs(args ...interface{}) ([]byte, error) {
 	return buf, nil
 }
 
-func init() {
-	registerSchema(tokensTableSchema)
-	registerSchema(policiesTableSchema)
-	registerSchema(rolesTableSchema)
-	registerSchema(bindingRulesTableSchema)
-	registerSchema(authMethodsTableSchema)
-}
-
 // ACLTokens is used when saving a snapshot
 func (s *Snapshot) ACLTokens() (memdb.ResultIterator, error) {
 	iter, err := s.tx.Get("acl-tokens", "id")

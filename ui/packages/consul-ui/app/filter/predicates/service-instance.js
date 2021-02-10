@@ -1,12 +1,13 @@
 import setHelpers from 'mnemonist/set';
 
 export default {
-  statuses: {
+  status: {
     passing: (item, value) => item.Status === value,
     warning: (item, value) => item.Status === value,
     critical: (item, value) => item.Status === value,
+    empty: (item, value) => item.MeshChecks.length === 0,
   },
-  sources: (item, values) => {
+  source: (item, values) => {
     return setHelpers.intersectionSize(values, new Set(item.ExternalSources || [])) !== 0;
   },
 };

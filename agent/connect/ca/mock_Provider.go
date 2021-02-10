@@ -55,13 +55,13 @@ func (_m *MockProvider) ActiveRoot() (string, error) {
 	return r0, r1
 }
 
-// Cleanup provides a mock function with given fields:
-func (_m *MockProvider) Cleanup() error {
-	ret := _m.Called()
+// Cleanup provides a mock function with given fields: providerTypeChange, config
+func (_m *MockProvider) Cleanup(providerTypeChange bool, config map[string]interface{}) error {
+	ret := _m.Called(providerTypeChange, config)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func() error); ok {
-		r0 = rf()
+	if rf, ok := ret.Get(0).(func(bool, map[string]interface{}) error); ok {
+		r0 = rf(providerTypeChange, config)
 	} else {
 		r0 = ret.Error(0)
 	}

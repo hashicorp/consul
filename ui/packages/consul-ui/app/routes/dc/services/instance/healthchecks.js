@@ -4,7 +4,6 @@ export default class HealthchecksRoute extends Route {
   queryParams = {
     sortBy: 'sort',
     status: 'status',
-    kind: 'kind',
     check: 'check',
     searchproperty: {
       as: 'searchproperty',

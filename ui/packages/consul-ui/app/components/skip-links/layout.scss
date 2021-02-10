@@ -1,0 +1,13 @@
+%skip-links {
+  display: flex;
+  flex-direction: column;
+  position: absolute;
+  left: 50%;
+  padding: 20px;
+  top: -100px;
+  transform: translateX(-50%);
+}
+%skip-links:focus-within {
+  top: 0px;
+}
+

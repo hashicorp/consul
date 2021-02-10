@@ -2178,7 +2178,7 @@ func TestStateStore_ConnectServiceNodes_Gateways(t *testing.T) {
 				Name: "db",
 			},
 		},
-	}, nil))
+	}))
 	assert.True(watchFired(ws))
 
 	// Read everything back.
@@ -3644,7 +3644,7 @@ func TestStateStore_CheckConnectServiceNodes_Gateways(t *testing.T) {
 				Name: "db",
 			},
 		},
-	}, nil))
+	}))
 	assert.True(watchFired(ws))
 
 	ws = memdb.NewWatchSet()
@@ -4528,7 +4528,7 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 				Name: "api",
 			},
 		},
-	}, nil))
+	}))
 	assert.True(t, watchFired(ws))
 
 	// Read everything back.
@@ -4572,7 +4572,7 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 				Name: "api",
 			},
 		},
-	}, nil))
+	}))
 	assert.False(t, watchFired(ws))
 
 	idx, out, err = s.GatewayServices(ws, "gateway", nil)
@@ -4625,7 +4625,7 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 				SNI:      "my-alt-domain",
 			},
 		},
-	}, nil))
+	}))
 	assert.True(t, watchFired(ws))
 
 	// Read everything back.
@@ -4756,7 +4756,7 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 				Name: "db",
 			},
 		},
-	}, nil))
+	}))
 	assert.True(t, watchFired(ws))
 
 	idx, out, err = s.GatewayServices(ws, "gateway", nil)
@@ -4787,7 +4787,7 @@ func TestStateStore_GatewayServices_Terminating(t *testing.T) {
 				Name: "*",
 			},
 		},
-	}, nil))
+	}))
 
 	ws = memdb.NewWatchSet()
 	idx, out, err = s.GatewayServices(ws, "gateway2", nil)
@@ -4862,7 +4862,7 @@ func TestStateStore_GatewayServices_ServiceDeletion(t *testing.T) {
 				CAFile: "my_ca.pem",
 			},
 		},
-	}, nil))
+	}))
 	assert.True(t, watchFired(ws))
 
 	// Listing with no results returns an empty list.
@@ -4881,7 +4881,7 @@ func TestStateStore_GatewayServices_ServiceDeletion(t *testing.T) {
 				Name: "*",
 			},
 		},
-	}, nil))
+	}))
 	assert.True(t, watchFired(ws))
 
 	// Read everything back for first gateway.
@@ -5299,7 +5299,7 @@ func TestStateStore_GatewayServices_Ingress(t *testing.T) {
 		_, _, err := s.GatewayServices(ws, "ingress1", nil)
 		require.NoError(t, err)
 
-		require.Nil(t, s.EnsureConfigEntry(20, ingress1, nil))
+		require.Nil(t, s.EnsureConfigEntry(20, ingress1))
 		require.False(t, watchFired(ws))
 
 		expected := structs.GatewayServices{
@@ -5344,7 +5344,7 @@ func TestStateStore_GatewayServices_Ingress(t *testing.T) {
 		_, _, err := s.GatewayServices(ws, "ingress1", nil)
 		require.NoError(t, err)
 
-		require.Nil(t, s.EnsureConfigEntry(20, ingress1, nil))
+		require.Nil(t, s.EnsureConfigEntry(20, ingress1))
 		require.True(t, watchFired(ws))
 
 		idx, results, err := s.GatewayServices(ws, "ingress1", nil)
@@ -5437,7 +5437,7 @@ func TestStateStore_GatewayServices_IngressProtocolFiltering(t *testing.T) {
 		testRegisterNode(t, s, 0, "node1")
 		testRegisterService(t, s, 1, "node1", "service1")
 		testRegisterService(t, s, 2, "node1", "service2")
-		assert.NoError(t, s.EnsureConfigEntry(4, ingress1, nil))
+		assert.NoError(t, s.EnsureConfigEntry(4, ingress1))
 	})
 
 	t.Run("no services from default tcp protocol", func(t *testing.T) {
@@ -5470,7 +5470,7 @@ func TestStateStore_GatewayServices_IngressProtocolFiltering(t *testing.T) {
 			Kind:     structs.ServiceDefaults,
 			Protocol: "http",
 		}
-		assert.NoError(t, s.EnsureConfigEntry(5, svcDefaults, nil))
+		assert.NoError(t, s.EnsureConfigEntry(5, svcDefaults))
 		idx, results, err := s.GatewayServices(nil, "ingress1", nil)
 		require.NoError(err)
 		require.Equal(uint64(5), idx)
@@ -5513,7 +5513,7 @@ func TestStateStore_GatewayServices_IngressProtocolFiltering(t *testing.T) {
 				"protocol": "http",
 			},
 		}
-		assert.NoError(t, s.EnsureConfigEntry(6, proxyDefaults, nil))
+		assert.NoError(t, s.EnsureConfigEntry(6, proxyDefaults))
 
 		idx, results, err := s.GatewayServices(nil, "ingress1", nil)
 		require.NoError(err)
@@ -5543,7 +5543,7 @@ func TestStateStore_GatewayServices_IngressProtocolFiltering(t *testing.T) {
 			Kind:     structs.ServiceDefaults,
 			Protocol: "grpc",
 		}
-		assert.NoError(t, s.EnsureConfigEntry(7, svcDefaults, nil))
+		assert.NoError(t, s.EnsureConfigEntry(7, svcDefaults))
 
 		idx, results, err := s.GatewayServices(nil, "ingress1", nil)
 		require.NoError(err)
@@ -5583,7 +5583,7 @@ func TestStateStore_GatewayServices_IngressProtocolFiltering(t *testing.T) {
 				},
 			},
 		}
-		assert.NoError(t, s.EnsureConfigEntry(8, ingress1, nil))
+		assert.NoError(t, s.EnsureConfigEntry(8, ingress1))
 
 		idx, results, err := s.GatewayServices(nil, "ingress1", nil)
 		require.NoError(err)
@@ -5622,7 +5622,7 @@ func setupIngressState(t *testing.T, s *Store) memdb.WatchSet {
 			"protocol": "http",
 		},
 	}
-	assert.NoError(t, s.EnsureConfigEntry(11, proxyDefaults, nil))
+	assert.NoError(t, s.EnsureConfigEntry(11, proxyDefaults))
 
 	// Register some ingress config entries.
 	wildcardIngress := &structs.IngressGatewayConfigEntry{
@@ -5640,7 +5640,7 @@ func setupIngressState(t *testing.T, s *Store) memdb.WatchSet {
 			},
 		},
 	}
-	assert.NoError(t, s.EnsureConfigEntry(12, wildcardIngress, nil))
+	assert.NoError(t, s.EnsureConfigEntry(12, wildcardIngress))
 
 	ingress1 := &structs.IngressGatewayConfigEntry{
 		Kind: "ingress-gateway",
@@ -5667,7 +5667,7 @@ func setupIngressState(t *testing.T, s *Store) memdb.WatchSet {
 			},
 		},
 	}
-	assert.NoError(t, s.EnsureConfigEntry(13, ingress1, nil))
+	assert.NoError(t, s.EnsureConfigEntry(13, ingress1))
 	assert.True(t, watchFired(ws))
 
 	ingress2 := &structs.IngressGatewayConfigEntry{
@@ -5685,7 +5685,7 @@ func setupIngressState(t *testing.T, s *Store) memdb.WatchSet {
 			},
 		},
 	}
-	assert.NoError(t, s.EnsureConfigEntry(14, ingress2, nil))
+	assert.NoError(t, s.EnsureConfigEntry(14, ingress2))
 	assert.True(t, watchFired(ws))
 
 	ingress3 := &structs.IngressGatewayConfigEntry{
@@ -5712,7 +5712,7 @@ func setupIngressState(t *testing.T, s *Store) memdb.WatchSet {
 			},
 		},
 	}
-	assert.NoError(t, s.EnsureConfigEntry(15, ingress3, nil))
+	assert.NoError(t, s.EnsureConfigEntry(15, ingress3))
 	assert.True(t, watchFired(ws))
 
 	nothingIngress := &structs.IngressGatewayConfigEntry{
@@ -5720,7 +5720,7 @@ func setupIngressState(t *testing.T, s *Store) memdb.WatchSet {
 		Name:      "nothingIngress",
 		Listeners: []structs.IngressListener{},
 	}
-	assert.NoError(t, s.EnsureConfigEntry(16, nothingIngress, nil))
+	assert.NoError(t, s.EnsureConfigEntry(16, nothingIngress))
 	assert.True(t, watchFired(ws))
 
 	return ws
@@ -5788,7 +5788,7 @@ func TestStateStore_DumpGatewayServices(t *testing.T) {
 					SNI:      "my-alt-domain",
 				},
 			},
-		}, nil))
+		}))
 		assert.True(t, watchFired(ws))
 
 		// Read everything back.
@@ -5849,7 +5849,7 @@ func TestStateStore_DumpGatewayServices(t *testing.T) {
 					SNI:      "my-alt-domain",
 				},
 			},
-		}, nil))
+		}))
 		assert.False(t, watchFired(ws))
 
 		idx, out, err := s.DumpGatewayServices(ws)
@@ -5984,7 +5984,7 @@ func TestStateStore_DumpGatewayServices(t *testing.T) {
 					Name: "db",
 				},
 			},
-		}, nil))
+		}))
 		assert.True(t, watchFired(ws))
 
 		idx, out, err := s.DumpGatewayServices(ws)
@@ -6013,7 +6013,7 @@ func TestStateStore_DumpGatewayServices(t *testing.T) {
 			Kind:     structs.ServiceDefaults,
 			Protocol: "http",
 		}
-		assert.NoError(t, s.EnsureConfigEntry(25, svcDefault, nil))
+		assert.NoError(t, s.EnsureConfigEntry(25, svcDefault))
 
 		// Associate gateway with db and api
 		assert.Nil(t, s.EnsureConfigEntry(26, &structs.IngressGatewayConfigEntry{
@@ -6040,7 +6040,7 @@ func TestStateStore_DumpGatewayServices(t *testing.T) {
 					},
 				},
 			},
-		}, nil))
+		}))
 		assert.True(t, watchFired(ws))
 
 		// Read everything back.
@@ -6719,7 +6719,7 @@ func TestCatalog_upstreamsFromRegistration_Watches(t *testing.T) {
 
 	ws = memdb.NewWatchSet()
 	tx = s.db.ReadTxn()
-	idx, _, err = upstreamsFromRegistrationTxn(tx, ws, web)
+	idx, names, err = upstreamsFromRegistrationTxn(tx, ws, web)
 
 	require.NoError(t, err)
 
@@ -6728,7 +6728,72 @@ func TestCatalog_upstreamsFromRegistration_Watches(t *testing.T) {
 		idx: 5,
 	}
 	require.Equal(t, exp.idx, idx)
-	require.Empty(t, exp.names)
+	require.Equal(t, exp.names, names)
+}
+
+func TestCatalog_topologyCleanupPanic(t *testing.T) {
+	s := testStateStore(t)
+
+	require.NoError(t, s.EnsureNode(0, &structs.Node{
+		ID:   "c73b8fdf-4ef8-4e43-9aa2-59e85cc6a70c",
+		Node: "foo",
+	}))
+
+	defaultMeta := structs.DefaultEnterpriseMeta()
+	web := structs.NewServiceName("web", defaultMeta)
+
+	ws := memdb.NewWatchSet()
+	tx := s.db.ReadTxn()
+	idx, names, err := upstreamsFromRegistrationTxn(tx, ws, web)
+	require.NoError(t, err)
+	assert.Zero(t, idx)
+	assert.Len(t, names, 0)
+
+	svc := structs.NodeService{
+		Kind:    structs.ServiceKindConnectProxy,
+		ID:      "web-proxy-1",
+		Service: "web-proxy",
+		Address: "127.0.0.2",
+		Port:    443,
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "web",
+			Upstreams: structs.Upstreams{
+				structs.Upstream{
+					DestinationName: "db",
+				},
+			},
+		},
+		EnterpriseMeta: *defaultMeta,
+	}
+	require.NoError(t, s.EnsureService(1, "foo", &svc))
+	assert.True(t, watchFired(ws))
+
+	svc = structs.NodeService{
+		Kind:    structs.ServiceKindConnectProxy,
+		ID:      "web-proxy-2",
+		Service: "web-proxy",
+		Address: "127.0.0.2",
+		Port:    443,
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "web",
+			Upstreams: structs.Upstreams{
+				structs.Upstream{
+					DestinationName: "db",
+				},
+				structs.Upstream{
+					DestinationName: "cache",
+				},
+			},
+		},
+		EnterpriseMeta: *defaultMeta,
+	}
+	require.NoError(t, s.EnsureService(2, "foo", &svc))
+	assert.True(t, watchFired(ws))
+
+	// Now delete the node Foo, and this would panic because of the deletion within an iterator
+	require.NoError(t, s.DeleteNode(3, "foo"))
+	assert.True(t, watchFired(ws))
+
 }
 
 func TestCatalog_upstreamsFromRegistration_Ingress(t *testing.T) {
@@ -6749,7 +6814,7 @@ func TestCatalog_upstreamsFromRegistration_Ingress(t *testing.T) {
 		Config: map[string]interface{}{
 			"protocol": "http",
 		},
-	}, nil))
+	}))
 
 	defaultMeta := structs.DefaultEnterpriseMeta()
 	ingress := structs.NewServiceName("ingress", defaultMeta)
@@ -6781,7 +6846,7 @@ func TestCatalog_upstreamsFromRegistration_Ingress(t *testing.T) {
 				},
 			},
 		},
-	}, nil))
+	}))
 	assert.True(t, watchFired(ws))
 
 	ws = memdb.NewWatchSet()
@@ -6816,7 +6881,7 @@ func TestCatalog_upstreamsFromRegistration_Ingress(t *testing.T) {
 				},
 			},
 		},
-	}, nil))
+	}))
 	assert.True(t, watchFired(ws))
 
 	ws = memdb.NewWatchSet()
@@ -6850,7 +6915,7 @@ func TestCatalog_upstreamsFromRegistration_Ingress(t *testing.T) {
 				},
 			},
 		},
-	}, nil))
+	}))
 	assert.True(t, watchFired(ws))
 
 	ws = memdb.NewWatchSet()
@@ -6913,7 +6978,7 @@ func TestCatalog_upstreamsFromRegistration_Ingress(t *testing.T) {
 				},
 			},
 		},
-	}, nil))
+	}))
 	assert.True(t, watchFired(ws))
 
 	ws = memdb.NewWatchSet()
@@ -6941,6 +7006,75 @@ func TestCatalog_upstreamsFromRegistration_Ingress(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, uint64(8), idx)
 	require.Len(t, names, 0)
+}
+
+func TestCatalog_cleanupGatewayWildcards_panic(t *testing.T) {
+	s := testStateStore(t)
+
+	require.NoError(t, s.EnsureNode(0, &structs.Node{
+		ID:   "c73b8fdf-4ef8-4e43-9aa2-59e85cc6a70c",
+		Node: "foo",
+	}))
+	require.NoError(t, s.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: structs.ProxyConfigGlobal,
+		Config: map[string]interface{}{
+			"protocol": "http",
+		},
+	}))
+
+	defaultMeta := structs.DefaultEnterpriseMeta()
+
+	// Register two different gateways that target services via wildcard
+	require.NoError(t, s.EnsureConfigEntry(2, &structs.TerminatingGatewayConfigEntry{
+		Kind: "terminating-gateway",
+		Name: "my-gateway-1-terminating",
+		Services: []structs.LinkedService{
+			{
+				Name:           "*",
+				EnterpriseMeta: *defaultMeta,
+			},
+		},
+	}))
+
+	require.NoError(t, s.EnsureConfigEntry(3, &structs.IngressGatewayConfigEntry{
+		Kind: "ingress-gateway",
+		Name: "my-gateway-2-ingress",
+		Listeners: []structs.IngressListener{
+			{
+				Port:     1111,
+				Protocol: "http",
+				Services: []structs.IngressService{
+					{
+						Name:           "*",
+						EnterpriseMeta: *defaultMeta,
+					},
+				},
+			},
+		},
+	}))
+
+	// Register two services that share a prefix, both will be covered by gateway wildcards above
+	api := structs.NodeService{
+		ID:             "api",
+		Service:        "api",
+		Address:        "127.0.0.2",
+		Port:           443,
+		EnterpriseMeta: *defaultMeta,
+	}
+	require.NoError(t, s.EnsureService(4, "foo", &api))
+
+	api2 := structs.NodeService{
+		ID:             "api-2",
+		Service:        "api-2",
+		Address:        "127.0.0.2",
+		Port:           443,
+		EnterpriseMeta: *defaultMeta,
+	}
+	require.NoError(t, s.EnsureService(5, "foo", &api2))
+
+	// Now delete the node "foo", and this would panic because of the deletion within an iterator
+	require.NoError(t, s.DeleteNode(6, "foo"))
 }
 
 func TestCatalog_DownstreamsForService(t *testing.T) {
@@ -7061,7 +7195,7 @@ func TestCatalog_DownstreamsForService(t *testing.T) {
 
 			for _, entry := range tc.entries {
 				require.NoError(t, entry.Normalize())
-				require.NoError(t, s.EnsureConfigEntry(i, entry, nil))
+				require.NoError(t, s.EnsureConfigEntry(i, entry))
 				i++
 			}
 
@@ -7166,7 +7300,7 @@ func TestCatalog_DownstreamsForService_Updates(t *testing.T) {
 		},
 	}
 	require.NoError(t, defaults.Normalize())
-	require.NoError(t, s.EnsureConfigEntry(5, &defaults, nil))
+	require.NoError(t, s.EnsureConfigEntry(5, &defaults))
 
 	router := structs.ServiceRouterConfigEntry{
 		Kind: structs.ServiceRouter,
@@ -7185,7 +7319,7 @@ func TestCatalog_DownstreamsForService_Updates(t *testing.T) {
 		},
 	}
 	require.NoError(t, router.Normalize())
-	require.NoError(t, s.EnsureConfigEntry(6, &router, nil))
+	require.NoError(t, s.EnsureConfigEntry(6, &router))
 
 	// We updated a relevant config entry
 	require.True(t, watchFired(ws))
@@ -7368,7 +7502,7 @@ func TestProtocolForIngressGateway(t *testing.T) {
 				require.NoError(t, entry.Normalize())
 				require.NoError(t, entry.Validate())
 
-				require.NoError(t, s.EnsureConfigEntry(tc.idx, entry, structs.DefaultEnterpriseMeta()))
+				require.NoError(t, s.EnsureConfigEntry(tc.idx, entry))
 			}
 
 			tx := s.db.ReadTxn()

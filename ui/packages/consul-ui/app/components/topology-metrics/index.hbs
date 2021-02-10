@@ -3,7 +3,7 @@
 <div
   {{did-insert (action this.calculate)}}
   {{did-update (action this.calculate) @topology.Upstreams @topology.Downstreams}}
-  class="topology-container"
+  class="topology-container consul-topology-metrics"
 >
 {{#if (gt @topology.Downstreams.length 0)}}
   <div id="downstream-container">

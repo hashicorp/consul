@@ -1,10 +1,10 @@
 $ideal-width: 1260px;
 
-$--horizontal-filters: '(min-width: 1080px)';
-$--lt-horizontal-filters: '(max-width: 1079px)';
+$--horizontal-filters: '(min-width: 1300px)';
+$--lt-horizontal-filters: '(max-width: 1379px)';
 
-$--horizontal-selects: '(min-width: 696px)';
-$--lt-horizontal-selects: '(max-width: 695px)';
+$--horizontal-selects: '(min-width: 996px)';
+$--lt-horizontal-selects: '(max-width: 995px)';
 
 $--horizontal-nav: '(min-width: 850px)';
 $--lt-horizontal-nav: '(max-width: 849px)';
@@ -35,8 +35,5 @@ $--lt-wide-form: '(max-width: 420px)';
 $--wide-table: '(min-width: 421px)';
 $--lt-wide-table: '(max-width: 420px)';
 
-$--medium-table: '(min-width: 850px)';
-$--lt-medium-table: '(max-width: 849px)';
-/* */
-$--fixed-grid: '(min-width: 1260px)';
-$--lt-fixed-grid: '(max-width: 1259px)';
+$--sidebar-open: '(min-width: 900px)';
+$--lt-sidebar-open: '(max-width: 899px)';

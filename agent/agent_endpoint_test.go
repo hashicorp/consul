@@ -18,9 +18,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/serf/serf"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"golang.org/x/time/rate"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/connect/ca"
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/debug"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
@@ -33,10 +41,6 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/serf/serf"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func makeReadOnlyAgentACL(t *testing.T, srv *HTTPHandlers) string {
@@ -733,21 +737,21 @@ func TestAgent_HealthServiceByID(t *testing.T) {
 		ID:      "mysql",
 		Service: "mysql",
 	}
-	if err := a.AddService(service, nil, false, "", ConfigSourceLocal); err != nil {
+	if err := a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	service = &structs.NodeService{
 		ID:      "mysql2",
 		Service: "mysql2",
 	}
-	if err := a.AddService(service, nil, false, "", ConfigSourceLocal); err != nil {
+	if err := a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	service = &structs.NodeService{
 		ID:      "mysql3",
 		Service: "mysql3",
 	}
-	if err := a.AddService(service, nil, false, "", ConfigSourceLocal); err != nil {
+	if err := a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -931,42 +935,42 @@ func TestAgent_HealthServiceByName(t *testing.T) {
 		ID:      "mysql1",
 		Service: "mysql-pool-r",
 	}
-	if err := a.AddService(service, nil, false, "", ConfigSourceLocal); err != nil {
+	if err := a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	service = &structs.NodeService{
 		ID:      "mysql2",
 		Service: "mysql-pool-r",
 	}
-	if err := a.AddService(service, nil, false, "", ConfigSourceLocal); err != nil {
+	if err := a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	service = &structs.NodeService{
 		ID:      "mysql3",
 		Service: "mysql-pool-rw",
 	}
-	if err := a.AddService(service, nil, false, "", ConfigSourceLocal); err != nil {
+	if err := a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	service = &structs.NodeService{
 		ID:      "mysql4",
 		Service: "mysql-pool-rw",
 	}
-	if err := a.AddService(service, nil, false, "", ConfigSourceLocal); err != nil {
+	if err := a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	service = &structs.NodeService{
 		ID:      "httpd1",
 		Service: "httpd",
 	}
-	if err := a.AddService(service, nil, false, "", ConfigSourceLocal); err != nil {
+	if err := a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	service = &structs.NodeService{
 		ID:      "httpd2",
 		Service: "httpd",
 	}
-	if err := a.AddService(service, nil, false, "", ConfigSourceLocal); err != nil {
+	if err := a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1178,13 +1182,13 @@ func TestAgent_HealthServicesACLEnforcement(t *testing.T) {
 		ID:      "mysql1",
 		Service: "mysql",
 	}
-	require.NoError(t, a.AddService(service, nil, false, "", ConfigSourceLocal))
+	require.NoError(t, a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal))
 
 	service = &structs.NodeService{
 		ID:      "foo1",
 		Service: "foo",
 	}
-	require.NoError(t, a.AddService(service, nil, false, "", ConfigSourceLocal))
+	require.NoError(t, a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal))
 
 	// no token
 	t.Run("no-token-health-by-id", func(t *testing.T) {
@@ -1452,6 +1456,8 @@ func TestAgent_Reload(t *testing.T) {
 		`,
 	})
 
+	shim := &delegateConfigReloadShim{delegate: a.delegate}
+	a.delegate = shim
 	if err := a.reloadConfigInternal(cfg2); err != nil {
 		t.Fatalf("got error %v want nil", err)
 	}
@@ -1459,19 +1465,24 @@ func TestAgent_Reload(t *testing.T) {
 		t.Fatal("missing redis-reloaded service")
 	}
 
-	if a.config.RPCRateLimit != 2 {
-		t.Fatalf("RPC rate not set correctly.  Got %v. Want 2", a.config.RPCRateLimit)
-	}
-
-	if a.config.RPCMaxBurst != 200 {
-		t.Fatalf("RPC max burst not set correctly.  Got %v. Want 200", a.config.RPCMaxBurst)
-	}
+	require.Equal(t, rate.Limit(2), shim.newCfg.RPCRateLimit)
+	require.Equal(t, 200, shim.newCfg.RPCMaxBurst)
 
 	for _, wp := range a.watchPlans {
 		if !wp.IsStopped() {
 			t.Fatalf("Reloading configs should stop watch plans of the previous configuration")
 		}
 	}
+}
+
+type delegateConfigReloadShim struct {
+	delegate
+	newCfg consul.ReloadableConfig
+}
+
+func (s *delegateConfigReloadShim) ReloadConfig(cfg consul.ReloadableConfig) error {
+	s.newCfg = cfg
+	return s.delegate.ReloadConfig(cfg)
 }
 
 // TestAgent_ReloadDoesNotTriggerWatch Ensure watches not triggered after reload
@@ -4005,10 +4016,10 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 			testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 			if tt.preRegister != nil {
-				require.NoError(a.AddService(tt.preRegister, nil, false, "", ConfigSourceLocal))
+				require.NoError(a.addServiceFromSource(tt.preRegister, nil, false, "", ConfigSourceLocal))
 			}
 			if tt.preRegister2 != nil {
-				require.NoError(a.AddService(tt.preRegister2, nil, false, "", ConfigSourceLocal))
+				require.NoError(a.addServiceFromSource(tt.preRegister2, nil, false, "", ConfigSourceLocal))
 			}
 
 			// Create an ACL token with require policy
@@ -4310,7 +4321,7 @@ func TestAgent_DeregisterService(t *testing.T) {
 		ID:      "test",
 		Service: "test",
 	}
-	if err := a.AddService(service, nil, false, "", ConfigSourceLocal); err != nil {
+	if err := a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -4342,7 +4353,7 @@ func TestAgent_DeregisterService_ACLDeny(t *testing.T) {
 		ID:      "test",
 		Service: "test",
 	}
-	if err := a.AddService(service, nil, false, "", ConfigSourceLocal); err != nil {
+	if err := a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -4420,7 +4431,7 @@ func TestAgent_ServiceMaintenance_Enable(t *testing.T) {
 		ID:      "test",
 		Service: "test",
 	}
-	if err := a.AddService(service, nil, false, "", ConfigSourceLocal); err != nil {
+	if err := a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -4467,7 +4478,7 @@ func TestAgent_ServiceMaintenance_Disable(t *testing.T) {
 		ID:      "test",
 		Service: "test",
 	}
-	if err := a.AddService(service, nil, false, "", ConfigSourceLocal); err != nil {
+	if err := a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -4508,7 +4519,7 @@ func TestAgent_ServiceMaintenance_ACLDeny(t *testing.T) {
 		ID:      "test",
 		Service: "test",
 	}
-	if err := a.AddService(service, nil, false, "", ConfigSourceLocal); err != nil {
+	if err := a.addServiceFromSource(service, nil, false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -5775,6 +5786,131 @@ func TestAgentConnectCALeafCert_goodNotLocal(t *testing.T) {
 				r.Fatalf("should be a cache hit")
 			}
 		})
+	}
+}
+
+func TestAgentConnectCALeafCert_Vault_doesNotChurnLeafCertsAtIdle(t *testing.T) {
+	ca.SkipIfVaultNotPresent(t)
+
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	testVault := ca.NewTestVaultServer(t)
+	defer testVault.Stop()
+
+	assert := assert.New(t)
+	require := require.New(t)
+	a := StartTestAgent(t, TestAgent{Overrides: fmt.Sprintf(`
+		connect {
+			test_ca_leaf_root_change_spread = "1ns"
+			ca_provider = "vault"
+			ca_config {
+				address = %[1]q
+				token = %[2]q
+				root_pki_path = "pki-root/"
+				intermediate_pki_path = "pki-intermediate/"
+			}
+		}
+	`, testVault.Addr, testVault.RootToken)})
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	testrpc.WaitForActiveCARoot(t, a.RPC, "dc1", nil)
+
+	var ca1 *structs.CARoot
+	{
+		args := &structs.DCSpecificRequest{Datacenter: "dc1"}
+		var reply structs.IndexedCARoots
+		require.NoError(a.RPC("ConnectCA.Roots", args, &reply))
+		for _, r := range reply.Roots {
+			if r.ID == reply.ActiveRootID {
+				ca1 = r
+				break
+			}
+		}
+		require.NotNil(ca1)
+	}
+
+	{
+		// Register a local service
+		args := &structs.ServiceDefinition{
+			ID:      "foo",
+			Name:    "test",
+			Address: "127.0.0.1",
+			Port:    8000,
+			Check: structs.CheckType{
+				TTL: 15 * time.Second,
+			},
+		}
+		req, _ := http.NewRequest("PUT", "/v1/agent/service/register", jsonReader(args))
+		resp := httptest.NewRecorder()
+		_, err := a.srv.AgentRegisterService(resp, req)
+		require.NoError(err)
+		if !assert.Equal(200, resp.Code) {
+			t.Log("Body: ", resp.Body.String())
+		}
+	}
+
+	// List
+	req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test", nil)
+	resp := httptest.NewRecorder()
+	obj, err := a.srv.AgentConnectCALeafCert(resp, req)
+	require.NoError(err)
+	require.Equal("MISS", resp.Header().Get("X-Cache"))
+
+	// Get the issued cert
+	issued, ok := obj.(*structs.IssuedCert)
+	assert.True(ok)
+
+	// Verify that the cert is signed by the CA
+	requireLeafValidUnderCA(t, issued, ca1)
+
+	// Verify blocking index
+	assert.True(issued.ModifyIndex > 0)
+	assert.Equal(fmt.Sprintf("%d", issued.ModifyIndex),
+		resp.Header().Get("X-Consul-Index"))
+
+	// Test caching
+	{
+		// Fetch it again
+		resp := httptest.NewRecorder()
+		obj2, err := a.srv.AgentConnectCALeafCert(resp, req)
+		require.NoError(err)
+		require.Equal(obj, obj2)
+
+		// Should cache hit this time and not make request
+		require.Equal("HIT", resp.Header().Get("X-Cache"))
+	}
+
+	// Test that we aren't churning leaves for no reason at idle.
+	{
+		ch := make(chan error, 1)
+		go func() {
+			req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test?index="+strconv.Itoa(int(issued.ModifyIndex)), nil)
+			resp := httptest.NewRecorder()
+			obj, err := a.srv.AgentConnectCALeafCert(resp, req)
+			if err != nil {
+				ch <- err
+			} else {
+				issued2 := obj.(*structs.IssuedCert)
+				if issued.CertPEM == issued2.CertPEM {
+					ch <- fmt.Errorf("leaf woke up unexpectedly with same cert")
+				} else {
+					ch <- fmt.Errorf("leaf woke up unexpectedly with new cert")
+				}
+			}
+		}()
+
+		start := time.Now()
+
+		select {
+		case <-time.After(5 * time.Second):
+		case err := <-ch:
+			dur := time.Since(start)
+			t.Fatalf("unexpected return from blocking query; leaf churned during idle period, took %s: %v", dur, err)
+		}
 	}
 }
 

@@ -57,6 +57,19 @@ export default [
       'connect-internals',
       'configuration',
       {
+        category: 'config-entries',
+        content: [
+          'ingress-gateway',
+          'proxy-defaults',
+          'service-defaults',
+          'service-intentions',
+          'service-resolver',
+          'service-router',
+          'service-splitter',
+          'terminating-gateway',
+        ],
+      },
+      {
         category: 'proxies',
         content: ['envoy', 'built-in', 'integrate'],
       },
@@ -157,7 +170,6 @@ export default [
           },
         ],
       },
-      'tls-on-existing-cluster',
       {
         category: 'connect',
         content: [
@@ -178,7 +190,25 @@ export default [
         category: 'upgrade',
         content: ['compatibility'],
       },
-      'uninstall',
+      {
+        category: 'operations',
+        name: 'Operations',
+        content: ['uninstall', 'certificate-rotation', 'tls-on-existing-cluster'],
+      },
+      {
+        name: 'Troubleshoot',
+        content: [
+          {
+            title: 'Common Error Messages',
+            href:
+              '/docs/troubleshoot/common-errors#common-errors-on-kubernetes',
+          },
+          {
+            title: 'FAQ',
+            href: '/docs/troubleshoot/faq#consul-on-kubernetes',
+          },
+        ],
+      },
       'helm',
     ],
   },
@@ -207,23 +237,7 @@ export default [
   },
   {
     category: 'agent',
-    content: [
-      'options',
-      {
-        category: 'config-entries',
-        content: [
-          'ingress-gateway',
-          'proxy-defaults',
-          'service-defaults',
-          'service-intentions',
-          'service-resolver',
-          'service-router',
-          'service-splitter',
-          'terminating-gateway',
-        ],
-      },
-      'telemetry',
-    ],
+    content: ['options', 'config-entries', 'telemetry'],
   },
   {
     category: 'security',
@@ -241,10 +255,7 @@ export default [
       'encryption',
       {
         category: 'security-models',
-        content: [
-          'core',
-          'nia',
-        ],
+        content: ['core', 'nia'],
       },
     ],
   },
@@ -311,5 +322,10 @@ export default [
     category: 'troubleshoot',
     name: 'Troubleshoot',
     content: ['common-errors', 'faq'],
+  },
+  {
+    category: 'release-notes',
+    name: 'Release Notes',
+    content: ['1-9-0'],
   },
 ]

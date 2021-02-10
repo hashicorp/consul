@@ -9,7 +9,7 @@
     (component 'popover-select/optgroup' components=components)
     (component 'popover-select/option'
       select=this components=components
-      onclick=(queue
+      onclick=(pipe
         (action "click")
         (if multiple (noop) menu.toggle)
       )

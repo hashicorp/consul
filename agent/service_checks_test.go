@@ -5,12 +5,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/stretchr/testify/require"
 )
 
 // Integration test for ServiceHTTPBasedChecks cache-type
@@ -62,7 +63,7 @@ func TestAgent_ServiceHTTPChecksNotification(t *testing.T) {
 		},
 	}
 	// Adding TTL type should lead to a timeout, since only HTTP-based checks are watched
-	if err := a.AddService(&service, chkTypes[2:], false, "", ConfigSourceLocal); err != nil {
+	if err := a.addServiceFromSource(&service, chkTypes[2:], false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("failed to add service: %v", err)
 	}
 
@@ -74,7 +75,7 @@ func TestAgent_ServiceHTTPChecksNotification(t *testing.T) {
 	}
 
 	// Adding service with HTTP checks should lead notification for them
-	if err := a.AddService(&service, chkTypes[0:2], false, "", ConfigSourceLocal); err != nil {
+	if err := a.addServiceFromSource(&service, chkTypes[0:2], false, "", ConfigSourceLocal); err != nil {
 		t.Fatalf("failed to add service: %v", err)
 	}
 

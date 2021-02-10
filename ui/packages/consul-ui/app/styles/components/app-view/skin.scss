@@ -4,6 +4,9 @@
 %app-view-title {
   border-bottom: $decor-border-100;
 }
+%app-view-title > *:first-child {
+  @extend %h100;
+}
 %app-view-content form:not(.filter-bar) fieldset {
   border-bottom: $decor-border-200;
 }

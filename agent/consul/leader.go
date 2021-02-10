@@ -343,10 +343,6 @@ func (s *Server) establishLeadership(ctx context.Context) error {
 	s.getOrCreateAutopilotConfig()
 	s.autopilot.Start(ctx)
 
-	if err := s.caManager.InitializeCA(); err != nil {
-		return err
-	}
-
 	s.startConfigReplication()
 
 	s.startFederationStateReplication()
@@ -391,7 +387,7 @@ func (s *Server) revokeLeadership() {
 	s.stopConnectLeader()
 
 	s.caManager.setCAProvider(nil, nil)
-	s.caManager.setState(CAStateUninitialized, false)
+	s.caManager.setState(caStateUninitialized, false)
 
 	s.stopACLTokenReaping()
 
@@ -399,7 +395,9 @@ func (s *Server) revokeLeadership() {
 
 	s.resetConsistentReadReady()
 
-	s.autopilot.Stop()
+	// Stop returns a chan and we want to block until it is closed
+	// which indicates that autopilot is actually stopped.
+	<-s.autopilot.Stop()
 }
 
 // DEPRECATED (ACL-Legacy-Compat) - Remove once old ACL compatibility is removed
@@ -982,12 +980,22 @@ func (s *Server) startFederationStateReplication() {
 		return
 	}
 
+	if s.gatewayLocator != nil {
+		s.gatewayLocator.SetUseReplicationSignal(true)
+		s.gatewayLocator.SetLastFederationStateReplicationError(nil, false)
+	}
+
 	s.leaderRoutineManager.Start(federationStateReplicationRoutineName, s.federationStateReplicator.Run)
 }
 
 func (s *Server) stopFederationStateReplication() {
 	// will be a no-op when not started
 	s.leaderRoutineManager.Stop(federationStateReplicationRoutineName)
+
+	if s.gatewayLocator != nil {
+		s.gatewayLocator.SetUseReplicationSignal(false)
+		s.gatewayLocator.SetLastFederationStateReplicationError(nil, false)
+	}
 }
 
 // getOrCreateAutopilotConfig is used to get the autopilot config, initializing it if necessary
@@ -1478,6 +1486,10 @@ func (s *Server) reapTombstones(index uint64) {
 	}
 }
 
+func (s *Server) setDatacenterSupportsFederationStates() {
+	atomic.StoreInt32(&s.dcSupportsFederationStates, 1)
+}
+
 func (s *Server) DatacenterSupportsFederationStates() bool {
 	if atomic.LoadInt32(&s.dcSupportsFederationStates) != 0 {
 		return true
@@ -1502,7 +1514,7 @@ func (s *Server) DatacenterSupportsFederationStates() bool {
 	s.router.CheckServers(s.config.Datacenter, state.update)
 
 	if state.supported && state.found {
-		atomic.StoreInt32(&s.dcSupportsFederationStates, 1)
+		s.setDatacenterSupportsFederationStates()
 		return true
 	}
 

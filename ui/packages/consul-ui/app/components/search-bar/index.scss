@@ -1,0 +1,60 @@
+.search-bar {
+  &-status {
+    & {
+      border-bottom: $decor-border-100;
+      border-bottom-color: $gray-200;
+    }
+    .remove-all button {
+      @extend %anchor;
+    }
+    li:not(.remove-all) {
+      & {
+        @extend %pill-200;
+        border: $decor-border-100;
+        border-color: $gray-200;
+        color: $gray-600;
+      }
+      button {
+        cursor: pointer;
+      }
+      button::before {
+        @extend %with-cancel-plain-mask, %as-pseudo;
+        color: $gray-600;
+        margin-top: 1px;
+        margin-right: 0.2rem;
+      }
+    }
+    & {
+      padding: .5rem 0;
+      padding-left: .5rem;
+    }
+    dt::after {
+      content: ':';
+      padding-right: 0.3rem;
+    }
+    & > dl > dt {
+      float: left;
+    }
+    dt {
+      white-space: nowrap;
+    }
+    li {
+      display: inline-flex;
+    }
+    li:not(:last-child) {
+      margin-right: 0.3rem;
+      margin-bottom: 0.3rem;
+    }
+    li:not(.remove-all) {
+      & {
+        padding: 0 0.2rem;
+      }
+      dl {
+        display: flex;
+      }
+      button {
+        padding: 0;
+      }
+    }
+  }
+}

@@ -6,6 +6,9 @@
   border: $decor-border-100;
   outline: none;
 }
+%form h2 {
+  @extend %h200;
+}
 %form fieldset > p,
 %form-element-note,
 %form-element-text-input::placeholder {

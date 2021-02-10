@@ -3,18 +3,19 @@ package state
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul/agent/structs"
 	memdb "github.com/hashicorp/go-memdb"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
-const federationStateTableName = "federation-states"
+const tableFederationStates = "federation-states"
 
 func federationStateTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
-		Name: federationStateTableName,
+		Name: tableFederationStates,
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": {
-				Name:         "id",
+			indexID: {
+				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
 				Indexer: &memdb.StringFieldIndex{
@@ -26,13 +27,9 @@ func federationStateTableSchema() *memdb.TableSchema {
 	}
 }
 
-func init() {
-	registerSchema(federationStateTableSchema)
-}
-
 // FederationStates is used to pull all the federation states for the snapshot.
 func (s *Snapshot) FederationStates() ([]*structs.FederationState, error) {
-	configs, err := s.tx.Get(federationStateTableName, "id")
+	configs, err := s.tx.Get(tableFederationStates, "id")
 	if err != nil {
 		return nil, err
 	}
@@ -48,10 +45,10 @@ func (s *Snapshot) FederationStates() ([]*structs.FederationState, error) {
 // FederationState is used when restoring from a snapshot.
 func (s *Restore) FederationState(g *structs.FederationState) error {
 	// Insert
-	if err := s.tx.Insert(federationStateTableName, g); err != nil {
+	if err := s.tx.Insert(tableFederationStates, g); err != nil {
 		return fmt.Errorf("failed restoring federation state object: %s", err)
 	}
-	if err := indexUpdateMaxTxn(s.tx, g.ModifyIndex, federationStateTableName); err != nil {
+	if err := indexUpdateMaxTxn(s.tx, g.ModifyIndex, tableFederationStates); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
@@ -91,7 +88,7 @@ func federationStateSetTxn(tx *txn, idx uint64, config *structs.FederationState)
 
 	// Check for existing.
 	var existing *structs.FederationState
-	existingRaw, err := tx.First(federationStateTableName, "id", config.Datacenter)
+	existingRaw, err := tx.First(tableFederationStates, "id", config.Datacenter)
 	if err != nil {
 		return fmt.Errorf("failed federation state lookup: %s", err)
 	}
@@ -117,10 +114,10 @@ func federationStateSetTxn(tx *txn, idx uint64, config *structs.FederationState)
 	}
 
 	// Insert the federation state and update the index
-	if err := tx.Insert(federationStateTableName, config); err != nil {
+	if err := tx.Insert(tableFederationStates, config); err != nil {
 		return fmt.Errorf("failed inserting federation state: %s", err)
 	}
-	if err := tx.Insert("index", &IndexEntry{federationStateTableName, idx}); err != nil {
+	if err := tx.Insert("index", &IndexEntry{tableFederationStates, idx}); err != nil {
 		return fmt.Errorf("failed updating index: %v", err)
 	}
 
@@ -136,10 +133,10 @@ func (s *Store) FederationStateGet(ws memdb.WatchSet, datacenter string) (uint64
 
 func federationStateGetTxn(tx ReadTxn, ws memdb.WatchSet, datacenter string) (uint64, *structs.FederationState, error) {
 	// Get the index
-	idx := maxIndexTxn(tx, federationStateTableName)
+	idx := maxIndexTxn(tx, tableFederationStates)
 
 	// Get the existing contents.
-	watchCh, existing, err := tx.FirstWatch(federationStateTableName, "id", datacenter)
+	watchCh, existing, err := tx.FirstWatch(tableFederationStates, "id", datacenter)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed federation state lookup: %s", err)
 	}
@@ -166,9 +163,9 @@ func (s *Store) FederationStateList(ws memdb.WatchSet) (uint64, []*structs.Feder
 
 func federationStateListTxn(tx ReadTxn, ws memdb.WatchSet) (uint64, []*structs.FederationState, error) {
 	// Get the index
-	idx := maxIndexTxn(tx, federationStateTableName)
+	idx := maxIndexTxn(tx, tableFederationStates)
 
-	iter, err := tx.Get(federationStateTableName, "id")
+	iter, err := tx.Get(tableFederationStates, "id")
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed federation state lookup: %s", err)
 	}
@@ -207,7 +204,7 @@ func (s *Store) FederationStateBatchDelete(idx uint64, datacenters []string) err
 
 func federationStateDeleteTxn(tx *txn, idx uint64, datacenter string) error {
 	// Try to retrieve the existing federation state.
-	existing, err := tx.First(federationStateTableName, "id", datacenter)
+	existing, err := tx.First(tableFederationStates, "id", datacenter)
 	if err != nil {
 		return fmt.Errorf("failed federation state lookup: %s", err)
 	}
@@ -216,10 +213,10 @@ func federationStateDeleteTxn(tx *txn, idx uint64, datacenter string) error {
 	}
 
 	// Delete the federation state from the DB and update the index.
-	if err := tx.Delete(federationStateTableName, existing); err != nil {
+	if err := tx.Delete(tableFederationStates, existing); err != nil {
 		return fmt.Errorf("failed removing federation state: %s", err)
 	}
-	if err := tx.Insert("index", &IndexEntry{federationStateTableName, idx}); err != nil {
+	if err := tx.Insert("index", &IndexEntry{tableFederationStates, idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 	return nil

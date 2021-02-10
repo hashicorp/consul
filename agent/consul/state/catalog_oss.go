@@ -5,154 +5,12 @@ package state
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul/agent/structs"
 	memdb "github.com/hashicorp/go-memdb"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
-// servicesTableSchema returns a new table schema used to store information
-// about services.
-func servicesTableSchema() *memdb.TableSchema {
-	return &memdb.TableSchema{
-		Name: "services",
-		Indexes: map[string]*memdb.IndexSchema{
-			"id": {
-				Name:         "id",
-				AllowMissing: false,
-				Unique:       true,
-				Indexer: &memdb.CompoundIndex{
-					Indexes: []memdb.Indexer{
-						&memdb.StringFieldIndex{
-							Field:     "Node",
-							Lowercase: true,
-						},
-						&memdb.StringFieldIndex{
-							Field:     "ServiceID",
-							Lowercase: true,
-						},
-					},
-				},
-			},
-			"node": {
-				Name:         "node",
-				AllowMissing: false,
-				Unique:       false,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "Node",
-					Lowercase: true,
-				},
-			},
-			"service": {
-				Name:         "service",
-				AllowMissing: true,
-				Unique:       false,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "ServiceName",
-					Lowercase: true,
-				},
-			},
-			"connect": {
-				Name:         "connect",
-				AllowMissing: true,
-				Unique:       false,
-				Indexer:      &IndexConnectService{},
-			},
-			"kind": {
-				Name:         "kind",
-				AllowMissing: false,
-				Unique:       false,
-				Indexer:      &IndexServiceKind{},
-			},
-		},
-	}
-}
-
-// checksTableSchema returns a new table schema used for storing and indexing
-// health check information. Health checks have a number of different attributes
-// we want to filter by, so this table is a bit more complex.
-func checksTableSchema() *memdb.TableSchema {
-	return &memdb.TableSchema{
-		Name: "checks",
-		Indexes: map[string]*memdb.IndexSchema{
-			"id": {
-				Name:         "id",
-				AllowMissing: false,
-				Unique:       true,
-				Indexer: &memdb.CompoundIndex{
-					Indexes: []memdb.Indexer{
-						&memdb.StringFieldIndex{
-							Field:     "Node",
-							Lowercase: true,
-						},
-						&memdb.StringFieldIndex{
-							Field:     "CheckID",
-							Lowercase: true,
-						},
-					},
-				},
-			},
-			"status": {
-				Name:         "status",
-				AllowMissing: false,
-				Unique:       false,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "Status",
-					Lowercase: false,
-				},
-			},
-			"service": {
-				Name:         "service",
-				AllowMissing: true,
-				Unique:       false,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "ServiceName",
-					Lowercase: true,
-				},
-			},
-			"node": {
-				Name:         "node",
-				AllowMissing: true,
-				Unique:       false,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "Node",
-					Lowercase: true,
-				},
-			},
-			"node_service_check": {
-				Name:         "node_service_check",
-				AllowMissing: true,
-				Unique:       false,
-				Indexer: &memdb.CompoundIndex{
-					Indexes: []memdb.Indexer{
-						&memdb.StringFieldIndex{
-							Field:     "Node",
-							Lowercase: true,
-						},
-						&memdb.FieldSetIndex{
-							Field: "ServiceID",
-						},
-					},
-				},
-			},
-			"node_service": {
-				Name:         "node_service",
-				AllowMissing: true,
-				Unique:       false,
-				Indexer: &memdb.CompoundIndex{
-					Indexes: []memdb.Indexer{
-						&memdb.StringFieldIndex{
-							Field:     "Node",
-							Lowercase: true,
-						},
-						&memdb.StringFieldIndex{
-							Field:     "ServiceID",
-							Lowercase: true,
-						},
-					},
-				},
-			},
-		},
-	}
-}
+func withEnterpriseSchema(_ *memdb.DBSchema) {}
 
 func serviceIndexName(name string, _ *structs.EnterpriseMeta) string {
 	return fmt.Sprintf("service.%s", name)
@@ -196,7 +54,7 @@ func catalogUpdateServiceIndexes(tx WriteTxn, serviceName string, idx uint64, _ 
 }
 
 func catalogUpdateServiceExtinctionIndex(tx WriteTxn, idx uint64, _ *structs.EnterpriseMeta) error {
-	if err := tx.Insert("index", &IndexEntry{serviceLastExtinctionIndexName, idx}); err != nil {
+	if err := tx.Insert("index", &IndexEntry{indexServiceExtinction, idx}); err != nil {
 		return fmt.Errorf("failed updating missing service extinction index: %s", err)
 	}
 	return nil
@@ -252,7 +110,7 @@ func catalogServiceNodeList(tx ReadTxn, name string, index string, _ *structs.En
 }
 
 func catalogServiceLastExtinctionIndex(tx ReadTxn, _ *structs.EnterpriseMeta) (interface{}, error) {
-	return tx.First("index", "id", serviceLastExtinctionIndexName)
+	return tx.First("index", "id", indexServiceExtinction)
 }
 
 func catalogMaxIndex(tx ReadTxn, _ *structs.EnterpriseMeta, checks bool) uint64 {

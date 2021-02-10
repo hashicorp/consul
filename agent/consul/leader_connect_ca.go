@@ -17,14 +17,14 @@ import (
 	uuid "github.com/hashicorp/go-uuid"
 )
 
-type CAState string
+type caState string
 
 const (
-	CAStateUninitialized     CAState = "UNINITIALIZED"
-	CAStateInitializing              = "INITIALIZING"
-	CAStateReady                     = "READY"
-	CAStateRenewIntermediate         = "RENEWING"
-	CAStateReconfig                  = "RECONFIGURING"
+	caStateUninitialized     caState = "UNINITIALIZED"
+	caStateInitializing              = "INITIALIZING"
+	caStateInitialized               = "INITIALIZED"
+	caStateRenewIntermediate         = "RENEWING"
+	caStateReconfig                  = "RECONFIGURING"
 )
 
 // caServerDelegate is an interface for server operations for facilitating
@@ -61,9 +61,11 @@ type CAManager struct {
 
 	// stateLock protects the internal state used for administrative CA tasks.
 	stateLock         sync.Mutex
-	state             CAState
+	state             caState
 	primaryRoots      structs.IndexedCARoots // The most recently seen state of the root CAs from the primary datacenter.
 	actingSecondaryCA bool                   // True if this datacenter has been initialized as a secondary CA.
+
+	leaderRoutineManager *LeaderRoutineManager
 }
 
 type caDelegateWithState struct {
@@ -74,36 +76,47 @@ func (c *caDelegateWithState) State() *state.Store {
 	return c.fsm.State()
 }
 
-func NewCAManager(delegate caServerDelegate, logger hclog.Logger, config *Config) *CAManager {
+func NewCAManager(delegate caServerDelegate, leaderRoutineManager *LeaderRoutineManager, logger hclog.Logger, config *Config) *CAManager {
 	return &CAManager{
-		delegate:   delegate,
-		logger:     logger,
-		serverConf: config,
-		state:      CAStateUninitialized,
+		delegate:             delegate,
+		logger:               logger,
+		serverConf:           config,
+		state:                caStateUninitialized,
+		leaderRoutineManager: leaderRoutineManager,
 	}
 }
 
 func (c *CAManager) reset() {
-	c.state = CAStateUninitialized
+	c.state = caStateUninitialized
 	c.primaryRoots = structs.IndexedCARoots{}
 	c.actingSecondaryCA = false
 	c.setCAProvider(nil, nil)
 }
 
 // setState attempts to update the CA state to the given state.
-// If the current state is not READY, this will fail. The only exception is when
-// the current state is UNINITIALIZED, and the function is called with CAStateInitializing.
-func (c *CAManager) setState(newState CAState, validateState bool) error {
+// Valid state transitions are:
+//
+// caStateInitialized -> <any state>
+// caStateUninitialized -> caStateInitializing
+// caStateUninitialized -> caStateReconfig
+//
+// Other state transitions may be forced if the validateState parameter is set to false.
+// This will mainly be used in deferred functions which aim to set the final status based
+// a successful/error return.
+func (c *CAManager) setState(newState caState, validateState bool) (caState, error) {
 	c.stateLock.Lock()
 	defer c.stateLock.Unlock()
 	state := c.state
 
-	if !validateState || state == CAStateReady || (state == CAStateUninitialized && newState == CAStateInitializing) {
+	if !validateState ||
+		state == caStateInitialized ||
+		(state == caStateUninitialized && newState == caStateInitializing) ||
+		(state == caStateUninitialized && newState == caStateReconfig) {
 		c.state = newState
 	} else {
-		return fmt.Errorf("CA is already in state %q", state)
+		return state, fmt.Errorf("CA is already in state %q", state)
 	}
-	return nil
+	return state, nil
 }
 
 // setPrimaryRoots updates the most recently seen roots from the primary.
@@ -111,7 +124,7 @@ func (c *CAManager) setPrimaryRoots(newRoots structs.IndexedCARoots) error {
 	c.stateLock.Lock()
 	defer c.stateLock.Unlock()
 
-	if c.state == CAStateInitializing || c.state == CAStateReconfig {
+	if c.state == caStateInitializing || c.state == caStateReconfig {
 		c.primaryRoots = newRoots
 	} else {
 		return fmt.Errorf("Cannot update primary roots in state %q", c.state)
@@ -234,21 +247,87 @@ func (c *CAManager) setCAProvider(newProvider ca.Provider, root *structs.CARoot)
 	c.providerLock.Unlock()
 }
 
+func (c *CAManager) Start() {
+	// Attempt to initialize the Connect CA now. This will
+	// happen during leader establishment and it would be great
+	// if the CA was ready to go once that process was finished.
+	if err := c.InitializeCA(); err != nil {
+		c.logger.Error("Failed to initialize Connect CA", "error", err)
+
+		// we failed to fully initialize the CA so we need to spawn a
+		// go routine to retry this process until it succeeds or we lose
+		// leadership and the go routine gets stopped.
+		c.leaderRoutineManager.Start(backgroundCAInitializationRoutineName, c.backgroundCAInitialization)
+	} else {
+		// We only start these if CA initialization was successful. If not the completion of the
+		// background CA initialization will start these routines.
+		c.startPostInitializeRoutines()
+	}
+}
+
+func (c *CAManager) Stop() {
+	c.leaderRoutineManager.Stop(secondaryCARootWatchRoutineName)
+	c.leaderRoutineManager.Stop(intermediateCertRenewWatchRoutineName)
+	c.leaderRoutineManager.Stop(backgroundCAInitializationRoutineName)
+}
+
+func (c *CAManager) startPostInitializeRoutines() {
+	// Start the Connect secondary DC actions if enabled.
+	if c.serverConf.Datacenter != c.serverConf.PrimaryDatacenter {
+		c.leaderRoutineManager.Start(secondaryCARootWatchRoutineName, c.secondaryCARootWatch)
+	}
+
+	c.leaderRoutineManager.Start(intermediateCertRenewWatchRoutineName, c.intermediateCertRenewalWatch)
+}
+
+func (c *CAManager) backgroundCAInitialization(ctx context.Context) error {
+	retryLoopBackoffAbortOnSuccess(ctx, c.InitializeCA, func(err error) {
+		c.logger.Error("Failed to initialize Connect CA",
+			"routine", backgroundCAInitializationRoutineName,
+			"error", err,
+		)
+	})
+
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	c.logger.Info("Successfully initialized the Connect CA")
+
+	c.startPostInitializeRoutines()
+	return nil
+}
+
 // InitializeCA sets up the CA provider when gaining leadership, either bootstrapping
 // the CA if this is the primary DC or making a remote RPC for intermediate signing
 // if this is a secondary DC.
-func (c *CAManager) InitializeCA() error {
+func (c *CAManager) InitializeCA() (reterr error) {
 	// Bail if connect isn't enabled.
 	if !c.serverConf.ConnectEnabled {
 		return nil
 	}
 
 	// Update the state before doing anything else.
-	err := c.setState(CAStateInitializing, true)
+	oldState, err := c.setState(caStateInitializing, true)
+	// if we were already in the initialized state then there is nothing to be done.
+	if oldState == caStateInitialized {
+		return nil
+	}
 	if err != nil {
 		return err
 	}
-	defer c.setState(CAStateReady, false)
+
+	defer func() {
+		// Using named return values in deferred funcs isnt too common in our code
+		// but it is first class Go functionality. The error erturned from the
+		// main func will be available by its given name within deferred functions.
+		// See: https://blog.golang.org/defer-panic-and-recover
+		if reterr == nil {
+			c.setState(caStateInitialized, false)
+		} else {
+			c.setState(caStateUninitialized, false)
+		}
+	}()
 
 	// Initialize the provider based on the current config.
 	conf, err := c.initializeCAConfig()
@@ -337,7 +416,7 @@ func (c *CAManager) initializeRootCA(provider ca.Provider, conf *structs.CAConfi
 	if err != nil {
 		return fmt.Errorf("error generating intermediate cert: %v", err)
 	}
-	_, err = connect.ParseCert(interPEM)
+	intermediateCert, err := connect.ParseCert(interPEM)
 	if err != nil {
 		return fmt.Errorf("error getting intermediate cert: %v", err)
 	}
@@ -360,6 +439,13 @@ func (c *CAManager) initializeRootCA(provider ca.Provider, conf *structs.CAConfi
 		}
 	}
 
+	// Versions prior to 1.9.3, 1.8.8, and 1.7.12 incorrectly used the primary
+	// rootCA's subjectKeyID here instead of the intermediate. For
+	// provider=consul this didn't matter since there are no intermediates in
+	// the primaryDC, but for vault it does matter.
+	expectedSigningKeyID := connect.EncodeSigningKeyID(intermediateCert.SubjectKeyId)
+	needsSigningKeyUpdate := (rootCA.SigningKeyID != expectedSigningKeyID)
+
 	// Check if the CA root is already initialized and exit if it is,
 	// adding on any existing intermediate certs since they aren't directly
 	// tied to the provider.
@@ -370,7 +456,10 @@ func (c *CAManager) initializeRootCA(provider ca.Provider, conf *structs.CAConfi
 	if err != nil {
 		return err
 	}
-	if activeRoot != nil {
+	if activeRoot != nil && needsSigningKeyUpdate {
+		c.logger.Info("Correcting stored SigningKeyID value", "previous", rootCA.SigningKeyID, "updated", expectedSigningKeyID)
+
+	} else if activeRoot != nil && !needsSigningKeyUpdate {
 		// This state shouldn't be possible to get into because we update the root and
 		// CA config in the same FSM operation.
 		if activeRoot.ID != rootCA.ID {
@@ -381,6 +470,10 @@ func (c *CAManager) initializeRootCA(provider ca.Provider, conf *structs.CAConfi
 		c.setCAProvider(provider, rootCA)
 
 		return nil
+	}
+
+	if needsSigningKeyUpdate {
+		rootCA.SigningKeyID = expectedSigningKeyID
 	}
 
 	// Get the highest index
@@ -613,12 +706,29 @@ func (c *CAManager) persistNewRootAndConfig(provider ca.Provider, newActiveRoot 
 	return nil
 }
 
-func (c *CAManager) UpdateConfiguration(args *structs.CARequest) error {
+func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) {
 	// Attempt to update the state first.
-	if err := c.setState(CAStateReconfig, true); err != nil {
+	oldState, err := c.setState(caStateReconfig, true)
+	if err != nil {
 		return err
 	}
-	defer c.setState(CAStateReady, false)
+	defer func() {
+		// Using named return values in deferred funcs isnt too common in our code
+		// but it is first class Go functionality. The error erturned from the
+		// main func will be available by its given name within deferred functions.
+		// See: https://blog.golang.org/defer-panic-and-recover
+		if reterr == nil {
+			c.setState(caStateInitialized, false)
+		} else {
+			c.setState(oldState, false)
+		}
+	}()
+
+	// Attempt to initialize the config if we failed to do so in InitializeCA for some reason
+	_, err = c.initializeCAConfig()
+	if err != nil {
+		return err
+	}
 
 	// Exit early if it's a no-op change
 	state := c.delegate.State()
@@ -674,7 +784,7 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) error {
 	cleanupNewProvider := true
 	defer func() {
 		if cleanupNewProvider {
-			if err := newProvider.Cleanup(); err != nil {
+			if err := newProvider.Cleanup(args.Config.Provider != config.Provider, args.Config.Config); err != nil {
 				c.logger.Warn("failed to clean up CA provider while handling startup failure", "provider", newProvider, "error", err)
 			}
 		}
@@ -739,51 +849,60 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) error {
 		return nil
 	}
 
-	// At this point, we know the config change has trigged a root rotation,
-	// either by swapping the provider type or changing the provider's config
-	// to use a different root certificate.
-
-	// First up, sanity check that the current provider actually supports
-	// cross-signing.
+	// get the old CA provider to be used for Cross Signing and to clean it up at the end
+	// of the functi8on.
 	oldProvider, _ := c.getCAProvider()
 	if oldProvider == nil {
 		return fmt.Errorf("internal error: CA provider is nil")
 	}
-	canXSign, err := oldProvider.SupportsCrossSigning()
-	if err != nil {
-		return fmt.Errorf("CA provider error: %s", err)
-	}
-	if !canXSign && !args.Config.ForceWithoutCrossSigning {
-		return errors.New("The current CA Provider does not support cross-signing. " +
-			"You can try again with ForceWithoutCrossSigningSet but this may cause " +
-			"disruption - see documentation for more.")
-	}
-	if !canXSign && args.Config.ForceWithoutCrossSigning {
-		c.logger.Warn("current CA doesn't support cross signing but " +
-			"CA reconfiguration forced anyway with ForceWithoutCrossSigning")
-	}
 
-	// If it's a config change that would trigger a rotation (different provider/root):
-	// 1. Get the root from the new provider.
-	// 2. Call CrossSignCA on the old provider to sign the new root with the old one to
-	// get a cross-signed certificate.
-	// 3. Take the active root for the new provider and append the intermediate from step 2
-	// to its list of intermediates.
-	newRoot, err := connect.ParseCert(newRootPEM)
-	if err != nil {
-		return err
-	}
-
-	if canXSign {
-		// Have the old provider cross-sign the new root
-		xcCert, err := oldProvider.CrossSignCA(newRoot)
+	// We only even think about cross signing if the current provider has a root cert
+	// In some cases such as having a bad CA configuration during startup the provider
+	// may not have been able to generate a cert. We then want to be able to prevent
+	// an attempt to cross sign the cert which will definitely fail.
+	if root != nil {
+		// If it's a config change that would trigger a rotation (different provider/root):
+		// 1. Get the root from the new provider.
+		// 2. Call CrossSignCA on the old provider to sign the new root with the old one to
+		// get a cross-signed certificate.
+		// 3. Take the active root for the new provider and append the intermediate from step 2
+		// to its list of intermediates.
+		newRoot, err := connect.ParseCert(newRootPEM)
 		if err != nil {
 			return err
 		}
 
-		// Add the cross signed cert to the new CA's intermediates (to be attached
-		// to leaf certs).
-		newActiveRoot.IntermediateCerts = []string{xcCert}
+		// At this point, we know the config change has triggered a root rotation,
+		// either by swapping the provider type or changing the provider's config
+		// to use a different root certificate.
+
+		// First up, check that the current provider actually supports
+		// cross-signing.
+		canXSign, err := oldProvider.SupportsCrossSigning()
+		if err != nil {
+			return fmt.Errorf("CA provider error: %s", err)
+		}
+		if !canXSign && !args.Config.ForceWithoutCrossSigning {
+			return errors.New("The current CA Provider does not support cross-signing. " +
+				"You can try again with ForceWithoutCrossSigningSet but this may cause " +
+				"disruption - see documentation for more.")
+		}
+		if !canXSign && args.Config.ForceWithoutCrossSigning {
+			c.logger.Warn("current CA doesn't support cross signing but " +
+				"CA reconfiguration forced anyway with ForceWithoutCrossSigning")
+		}
+
+		if canXSign {
+			// Have the old provider cross-sign the new root
+			xcCert, err := oldProvider.CrossSignCA(newRoot)
+			if err != nil {
+				return err
+			}
+
+			// Add the cross signed cert to the new CA's intermediates (to be attached
+			// to leaf certs).
+			newActiveRoot.IntermediateCerts = []string{xcCert}
+		}
 	}
 
 	intermediate, err := newProvider.GenerateIntermediate()
@@ -831,8 +950,8 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) error {
 	cleanupNewProvider = false
 	c.setCAProvider(newProvider, newActiveRoot)
 
-	if err := oldProvider.Cleanup(); err != nil {
-		c.logger.Warn("failed to clean up old provider", "provider", config.Provider)
+	if err := oldProvider.Cleanup(args.Config.Provider != config.Provider, args.Config.Config); err != nil {
+		c.logger.Warn("failed to clean up old provider", "provider", config.Provider, "error", err)
 	}
 
 	c.logger.Info("CA rotated to new root under provider", "provider", args.Config.Provider)
@@ -924,10 +1043,10 @@ func (c *CAManager) intermediateCertRenewalWatch(ctx context.Context) error {
 func (c *CAManager) RenewIntermediate(ctx context.Context, isPrimary bool) error {
 	// Grab the 'lock' right away so the provider/config can't be changed out while we check
 	// the intermediate.
-	if err := c.setState(CAStateRenewIntermediate, true); err != nil {
+	if _, err := c.setState(caStateRenewIntermediate, true); err != nil {
 		return err
 	}
-	defer c.setState(CAStateReady, false)
+	defer c.setState(caStateInitialized, false)
 
 	provider, _ := c.getCAProvider()
 	if provider == nil {
@@ -1053,10 +1172,10 @@ func (c *CAManager) secondaryCARootWatch(ctx context.Context) error {
 // certificate if necessary.
 func (c *CAManager) UpdateRoots(roots structs.IndexedCARoots) error {
 	// Update the state first to claim the 'lock'.
-	if err := c.setState(CAStateReconfig, true); err != nil {
+	if _, err := c.setState(caStateReconfig, true); err != nil {
 		return err
 	}
-	defer c.setState(CAStateReady, false)
+	defer c.setState(caStateInitialized, false)
 
 	// Update the cached primary roots now that the lock is held.
 	if err := c.setPrimaryRoots(roots); err != nil {
@@ -1125,7 +1244,7 @@ func (c *CAManager) setSecondaryCA() error {
 	c.stateLock.Lock()
 	defer c.stateLock.Unlock()
 
-	if c.state == CAStateInitializing || c.state == CAStateReconfig {
+	if c.state == caStateInitializing || c.state == caStateReconfig {
 		c.actingSecondaryCA = true
 	} else {
 		return fmt.Errorf("Cannot update secondary CA flag in state %q", c.state)

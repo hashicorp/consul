@@ -4,13 +4,28 @@
   {{page-title 'Access Controls'}}
 {{/if}}
 
-{{#let (hash
-  searchproperties=(if (not-eq searchproperty undefined)
-    (split searchproperty ',')
-    (array 'Name' 'Description' 'Policy')
+{{#let
+
+  (hash
+    value=(or sortBy "Name:asc")
+    change=(action (mut sortBy) value="target.selected")
   )
-) as |filters|}}
-  {{#let (or sortBy "Name:asc") as |sort|}}
+
+  (hash
+    searchproperty=(hash
+      value=(if (not-eq searchproperty undefined)
+        (split searchproperty ',')
+        searchProperties
+      )
+      change=(action (mut searchproperty) value="target.selectedItems")
+      default=searchProperties
+    )
+  )
+
+  items
+
+as |sort filters items|}}
+
   <AppView
     @authorized={{isAuthorized}}
     @enabled={{isEnabled}}
@@ -25,13 +40,8 @@
     </BlockSlot>
     <BlockSlot @name="header">
       <h1>
-        Access Controls
+        Roles
       </h1>
-    </BlockSlot>
-    <BlockSlot @name="nav">
-  {{#if isAuthorized }}
-      {{partial 'dc/acls/nav'}}
-  {{/if}}
     </BlockSlot>
     <BlockSlot @name="actions">
       <a data-test-create href="{{href-to 'dc.acls.roles.create'}}" class="type-create">Create</a>
@@ -43,19 +53,15 @@
         @onsearch={{action (mut search) value="target.value"}}
 
         @sort={{sort}}
-        @onsort={{action (mut sortBy) value="target.selected"}}
 
         @filter={{filters}}
-        @onfilter={{hash
-          searchproperty=(action (mut searchproperty) value="target.selectedItems")
-        }}
       />
     {{/if}}
     </BlockSlot>
     <BlockSlot @name="content">
       <DataCollection
         @type="role"
-        @sort={{sort}}
+        @sort={{sort.value}}
         @filters={{filters}}
         @search={{search}}
         @items={{items}}
@@ -99,5 +105,4 @@
       </DataCollection>
     </BlockSlot>
   </AppView>
-  {{/let}}
 {{/let}}

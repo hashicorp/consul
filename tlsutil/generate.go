@@ -5,6 +5,7 @@ import (
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
@@ -15,6 +16,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/connect"
+	"net/url"
 )
 
 // GenerateSerialNumber returns random bigint generated with crypto/rand
@@ -32,18 +34,61 @@ func GeneratePrivateKey() (crypto.Signer, string, error) {
 	return connect.GeneratePrivateKey()
 }
 
+type CAOpts struct {
+	Signer              crypto.Signer
+	Serial              *big.Int
+	ClusterID           string
+	Days                int
+	PermittedDNSDomains []string
+	Domain              string
+	Name                string
+}
+
 // GenerateCA generates a new CA for agent TLS (not to be confused with Connect TLS)
-func GenerateCA(signer crypto.Signer, sn *big.Int, days int, constraints []string) (string, error) {
-	id, err := keyID(signer.Public())
-	if err != nil {
-		return "", err
+func GenerateCA(opts CAOpts) (string, string, error) {
+	signer := opts.Signer
+	var pk string
+	if signer == nil {
+		var err error
+		signer, pk, err = GeneratePrivateKey()
+		if err != nil {
+			return "", "", err
+		}
 	}
 
-	name := fmt.Sprintf("Consul Agent CA %d", sn)
+	id, err := keyID(signer.Public())
+	if err != nil {
+		return "", "", err
+	}
+
+	sn := opts.Serial
+	if sn == nil {
+		var err error
+		sn, err = GenerateSerialNumber()
+		if err != nil {
+			return "", "", err
+		}
+	}
+	name := opts.Name
+	if name == "" {
+		name = fmt.Sprintf("Consul Agent CA %d", sn)
+	}
+
+	days := opts.Days
+	if opts.Days == 0 {
+		days = 365
+	}
+
+	var uris []*url.URL
+	if opts.ClusterID != "" {
+		spiffeID := connect.SpiffeIDSigning{ClusterID: opts.ClusterID, Domain: opts.Domain}
+		uris = []*url.URL{spiffeID.URI()}
+	}
 
 	// Create the CA cert
 	template := x509.Certificate{
 		SerialNumber: sn,
+		URIs:         uris,
 		Subject: pkix.Name{
 			Country:       []string{"US"},
 			PostalCode:    []string{"94105"},
@@ -62,23 +107,23 @@ func GenerateCA(signer crypto.Signer, sn *big.Int, days int, constraints []strin
 		SubjectKeyId:          id,
 	}
 
-	if len(constraints) > 0 {
+	if len(opts.PermittedDNSDomains) > 0 {
 		template.PermittedDNSDomainsCritical = true
-		template.PermittedDNSDomains = constraints
+		template.PermittedDNSDomains = opts.PermittedDNSDomains
 	}
 	bs, err := x509.CreateCertificate(
 		rand.Reader, &template, &template, signer.Public(), signer)
 	if err != nil {
-		return "", fmt.Errorf("error generating CA certificate: %s", err)
+		return "", "", fmt.Errorf("error generating CA certificate: %s", err)
 	}
 
 	var buf bytes.Buffer
 	err = pem.Encode(&buf, &pem.Block{Type: "CERTIFICATE", Bytes: bs})
 	if err != nil {
-		return "", fmt.Errorf("error encoding private key: %s", err)
+		return "", "", fmt.Errorf("error encoding private key: %s", err)
 	}
 
-	return buf.String(), nil
+	return buf.String(), pk, nil
 }
 
 // GenerateCert generates a new certificate for agent TLS (not to be confused with Connect TLS)
@@ -130,6 +175,7 @@ func GenerateCert(signer crypto.Signer, ca string, sn *big.Int, name string, day
 func keyID(raw interface{}) ([]byte, error) {
 	switch raw.(type) {
 	case *ecdsa.PublicKey:
+	case *rsa.PublicKey:
 	default:
 		return nil, fmt.Errorf("invalid key type: %T", raw)
 	}
@@ -164,18 +210,7 @@ func parseCert(pemValue string) (*x509.Certificate, error) {
 // ParseSigner parses a crypto.Signer from a PEM-encoded key. The private key
 // is expected to be the first block in the PEM value.
 func ParseSigner(pemValue string) (crypto.Signer, error) {
-	// The _ result below is not an error but the remaining PEM bytes.
-	block, _ := pem.Decode([]byte(pemValue))
-	if block == nil {
-		return nil, fmt.Errorf("no PEM-encoded data found")
-	}
-
-	switch block.Type {
-	case "EC PRIVATE KEY":
-		return x509.ParseECPrivateKey(block.Bytes)
-	default:
-		return nil, fmt.Errorf("unknown PEM block type for signing key: %s", block.Type)
-	}
+	return connect.ParseSigner(pemValue)
 }
 
 func Verify(caString, certString, dns string) error {

@@ -94,8 +94,8 @@
 }
 
 %internal-button {
-  color: $gray-900;
-  background-color: $white;
+  color: var(--gray-900);
+  background-color: var(--gray-000);
 }
 %internal-button-dangerous {
   @extend %frame-red-300;
@@ -104,7 +104,7 @@
   @extend %frame-red-700;
 }
 %internal-button-intent {
-  background-color: $gray-050;
+  background-color: var(--gray-050);
 }
 %internal-button:focus,
 %internal-button:hover {

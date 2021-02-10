@@ -2,37 +2,25 @@ body,
 %form-element-text-input {
   @extend %typo-body;
 }
-h1 {
-  @extend %h1;
-  font-size: $typo-header-100;
-}
-h2 {
-  @extend %h2;
-  font-size: $typo-header-200;
-}
-h3 {
-  @extend %h3;
-  font-size: $typo-header-300;
-}
 %radio-card header,
 fieldset > header,
 %main-nav-horizontal-action,
-%app-view-content div > dl > dt,
+%definition-table dt,
 %table caption,
 %tbody-th,
 %form-element > span {
-  @extend %h4;
+  @extend %h400;
 }
 %internal-button,
 %breadcrumbs li > *,
 %tab-nav {
-  @extend %h5;
+  @extend %h500;
 }
 %healthcheck-output dt,
 %table th,
 %table td strong,
 %sliding-toggle label span {
-  @extend %h6;
+  @extend %h600;
 }
 
 pre code,

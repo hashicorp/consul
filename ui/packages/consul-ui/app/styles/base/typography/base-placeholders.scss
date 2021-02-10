@@ -12,42 +12,49 @@
 %typo-header {
   line-height: $typo-lead-200;
 }
-%h1,
-%h2,
-%h3,
-%h4,
-%h5,
-%h6 {
+%h000,
+%h100,
+%h200,
+%h300,
+%h400,
+%h500,
+%h600,
+%h400,
+%h500,
+%h600 {
   @extend %typo-header;
 }
-%h1 {
+%h100 {
   font-weight: $typo-weight-bold;
 }
-%h2,
-%h3,
-%h4 {
+%h200,
+%h300,
+%h400 {
   font-weight: $typo-weight-semibold;
 }
-%h5,
-%h6 {
+%h500,
+%h600 {
   font-weight: $typo-weight-medium;
 }
-%h1 {
+%h000 {
   font-size: $typo-size-100;
 }
-%h2 {
+%h100 {
   font-size: $typo-size-200;
 }
-%h3 {
+%h200 {
   font-size: $typo-size-300;
 }
+%h300 {
+  font-size: $typo-size-500;
+}
 /*p1 strong, differing weights */
-%h4,
-%h5 {
+%h400,
+%h500 {
   font-size: $typo-size-600;
 }
 /*p2 strong */
-%h6 {
+%h600 {
   font-size: $typo-size-700;
 }
 %typo-p {

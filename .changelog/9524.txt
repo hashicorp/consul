@@ -1,0 +1,3 @@
+```release-note:bug
+ui: Fixes an issue where clicking backwards and forwards between a service instance can result in a 404 error
+```

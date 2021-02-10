@@ -38,6 +38,9 @@ export default function(type) {
     case 'nspace':
       requests = ['/v1/namespaces', '/v1/namespace/'];
       break;
+    case 'topology':
+      requests = ['/v1/internal/ui/service-topology'];
+      break;
   }
   // TODO: An instance of URL should come in here (instead of 2 args)
   return function(url, method) {

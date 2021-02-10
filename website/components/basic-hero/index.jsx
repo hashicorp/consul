@@ -1,6 +1,4 @@
 import Button from '@hashicorp/react-button'
-import InlineSvg from '@hashicorp/react-inline-svg'
-import RightArrowIcon from './img/right-arrow-icon.svg?include'
 
 export default function BasicHero({
   heading,
@@ -19,13 +17,11 @@ export default function BasicHero({
             <div className="links">
               {links.slice(0, 2).map((link, stableIdx) => {
                 const buttonVariant = stableIdx === 0 ? 'primary' : 'secondary'
-                const linkType = link.type || 'inbound'
-
                 return (
                   <Button
                     // eslint-disable-next-line react/no-array-index-key
                     key={stableIdx}
-                    linkType={linkType}
+                    linkType={link.type}
                     theme={{
                       variant: buttonVariant,
                       brand,
@@ -39,16 +35,17 @@ export default function BasicHero({
             </div>
             {links[2] && (
               <div className="third-link">
-                <a
-                  href={links[2].url}
-                >
-                  <span className="g-type-buttons-and-standalone-links">
-                    {links[2].text}
-                  </span>
-                  <span className="icon">
-                    <InlineSvg src={RightArrowIcon} />
-                  </span>
-                </a>
+                <Button
+                  // eslint-disable-next-line react/no-array-index-key
+                  linkType={links[2].type}
+                  theme={{
+                    variant: 'tertiary-neutral',
+                    brand,
+                    background: 'light',
+                  }}
+                  title={links[2].text}
+                  url={links[2].url}
+                />
               </div>
             )}
           </>

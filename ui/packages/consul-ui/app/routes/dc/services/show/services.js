@@ -25,13 +25,12 @@ export default class ServicesRoute extends Route {
       .slice(0, -1)
       .join('.');
     const name = this.modelFor(parent).slug;
-    const gatewayServices = await this.data.source(
-      uri => uri`/${nspace}/${dc}/gateways/for-service/${name}`
-    );
+    const items = await this.data.source(uri => uri`/${nspace}/${dc}/gateways/for-service/${name}`);
     return {
       dc,
       nspace,
-      gatewayServices,
+      items,
+      searchProperties: this.queryParams.searchproperty.empty[0],
     };
   }
 

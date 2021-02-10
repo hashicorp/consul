@@ -261,7 +261,12 @@ RPC:
 	}
 
 	summaries, _ := summarizeServices(out.Dump, s.agent.config, args.Datacenter)
-	return prepSummaryOutput(summaries, false), nil
+
+	prepped := prepSummaryOutput(summaries, false)
+	if prepped == nil {
+		prepped = make([]*ServiceSummary, 0)
+	}
+	return prepped, nil
 }
 
 // UIServiceTopology returns the list of upstreams and downstreams for a Connect enabled service.
@@ -449,6 +454,8 @@ func summarizeServices(dump structs.ServiceDump, cfg *config.RuntimeConfig, dc s
 
 func prepSummaryOutput(summaries map[structs.ServiceName]*ServiceSummary, excludeSidecars bool) []*ServiceSummary {
 	var resp []*ServiceSummary
+	// Ensure at least a zero length slice
+	resp = make([]*ServiceSummary, 0)
 
 	// Collect and sort resp for display
 	for _, sum := range summaries {

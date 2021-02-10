@@ -4,15 +4,31 @@
 
 {{#let
 
-  (or sortBy "Status:asc")
+  (hash
+    value=(or sortBy "Status:asc")
+    change=(action (mut sortBy) value="target.selected")
+  )
 
   (hash
-    statuses=(if status (split status ',') undefined)
-    kinds=(if kind (split kind ',') undefined)
-    sources=(if source (split source ',') undefined)
-    searchproperties=(if (not-eq searchproperty undefined)
-      (split searchproperty ',')
-      (array 'Name' 'Tags')
+    status=(hash
+      value=(if status (split status ',') undefined)
+      change=(action (mut status) value="target.selectedItems")
+    )
+    kind=(hash
+      value=(if kind (split kind ',') undefined)
+      change=(action (mut kind) value="target.selectedItems")
+    )
+    source=(hash
+      value=(if source (split source ',') undefined)
+      change=(action (mut source) value="target.selectedItems")
+    )
+    searchproperty=(hash
+      value=(if (not-eq searchproperty undefined)
+        (split searchproperty ',')
+        searchProperties
+      )
+      change=(action (mut searchproperty) value="target.selectedItems")
+      default=searchProperties
     )
   )
 
@@ -36,22 +52,16 @@ as |sort filters items|}}
           @onsearch={{action (mut search) value="target.value"}}
 
           @sort={{sort}}
-          @onsort={{action (mut sortBy) value="target.selected"}}
 
           @filter={{filters}}
-          @onfilter={{hash
-            searchproperty=(action (mut searchproperty) value="target.selectedItems")
-            status=(action (mut status) value="target.selectedItems")
-            kind=(action (mut kind) value="target.selectedItems")
-            source=(action (mut source) value="target.selectedItems")
-          }}
+
         />
       {{/if}}
     </BlockSlot>
     <BlockSlot @name="content">
       <DataCollection
         @type="service"
-        @sort={{sort}}
+        @sort={{sort.value}}
         @filters={{filters}}
         @search={{search}}
         @items={{items}}

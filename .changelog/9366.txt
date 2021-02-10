@@ -1,0 +1,4 @@
+```release-note:bug
+server: When wan federating via mesh gateways only do heuristic primary DC bypass on the leader.
+```
+

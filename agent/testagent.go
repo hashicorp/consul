@@ -3,8 +3,6 @@ package agent
 import (
 	"bytes"
 	"context"
-	"crypto/ecdsa"
-	"crypto/elliptic"
 	"crypto/x509"
 	"fmt"
 	"io"
@@ -18,11 +16,12 @@ import (
 	"time"
 
 	metrics "github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-hclog"
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/sdk/testutil"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
@@ -170,23 +169,24 @@ func (a *TestAgent) Start(t *testing.T) (err error) {
 
 	// Create NodeID outside the closure, so that it does not change
 	testHCLConfig := TestConfigHCL(NodeID())
-	loader := func(source config.Source) (*config.RuntimeConfig, []string, error) {
-		opts := config.BuilderOpts{
-			HCL: []string{testHCLConfig, portsConfig, a.HCL, hclDataDir},
+	loader := func(source config.Source) (config.LoadResult, error) {
+		opts := config.LoadOpts{
+			DefaultConfig: source,
+			HCL:           []string{testHCLConfig, portsConfig, a.HCL, hclDataDir},
+			Overrides: []config.Source{
+				config.FileSource{
+					Name:   "test-overrides",
+					Format: "hcl",
+					Data:   a.Overrides},
+				config.DefaultConsulSource(),
+				config.DevConsulSource(),
+			},
 		}
-		overrides := []config.Source{
-			config.FileSource{
-				Name:   "test-overrides",
-				Format: "hcl",
-				Data:   a.Overrides},
-			config.DefaultConsulSource(),
-			config.DevConsulSource(),
+		result, err := config.Load(opts)
+		if result.RuntimeConfig != nil {
+			result.RuntimeConfig.Telemetry.Disable = true
 		}
-		cfg, warnings, err := config.Load(opts, source, overrides...)
-		if cfg != nil {
-			cfg.Telemetry.Disable = true
-		}
-		return cfg, warnings, err
+		return result, err
 	}
 	bd, err := NewBaseDeps(loader, logOutput)
 	require.NoError(t, err)
@@ -410,8 +410,7 @@ func NodeID() string {
 	return id
 }
 
-// TestConfig returns a unique default configuration for testing an
-// agent.
+// TestConfig returns a unique default configuration for testing an agent.
 func TestConfig(logger hclog.Logger, sources ...config.Source) *config.RuntimeConfig {
 	nodeID := NodeID()
 	testsrc := config.FileSource{
@@ -437,29 +436,25 @@ func TestConfig(logger hclog.Logger, sources ...config.Source) *config.RuntimeCo
 		`,
 	}
 
-	b, err := config.NewBuilder(config.BuilderOpts{})
-	if err != nil {
-		panic("NewBuilder failed: " + err.Error())
+	opts := config.LoadOpts{
+		DefaultConfig: testsrc,
+		Overrides:     sources,
 	}
-	b.Head = append(b.Head, testsrc)
-	b.Tail = append(b.Tail, config.DefaultConsulSource(), config.DevConsulSource())
-	b.Tail = append(b.Tail, sources...)
-
-	cfg, err := b.BuildAndValidate()
+	r, err := config.Load(opts)
 	if err != nil {
-		panic("Error building config: " + err.Error())
+		panic("config.Load failed: " + err.Error())
 	}
-
-	for _, w := range b.Warnings {
+	for _, w := range r.Warnings {
 		logger.Warn(w)
 	}
 
+	cfg := r.RuntimeConfig
 	// Effectively disables the delay after root rotation before requesting CSRs
 	// to make test deterministic. 0 results in default jitter being applied but a
 	// tiny delay is effectively thre same.
 	cfg.ConnectTestCALeafRootChangeSpread = 1 * time.Nanosecond
 
-	return &cfg
+	return cfg
 }
 
 // TestACLConfig returns a default configuration for testing an agent
@@ -569,22 +564,17 @@ func TestACLConfigWithParams(params *TestACLConfigParams) string {
 // testTLSCertificates Generates a TLS CA and server key/cert and returns them
 // in PEM encoded form.
 func testTLSCertificates(serverName string) (cert string, key string, cacert string, err error) {
-	// generate CA
-	serial, err := tlsutil.GenerateSerialNumber()
-	if err != nil {
-		return "", "", "", err
-	}
-	signer, err := ecdsa.GenerateKey(elliptic.P256(), rand.New(rand.NewSource(99)))
-	if err != nil {
-		return "", "", "", err
-	}
-	ca, err := tlsutil.GenerateCA(signer, serial, 365, nil)
+	signer, _, err := tlsutil.GeneratePrivateKey()
 	if err != nil {
 		return "", "", "", err
 	}
 
-	// generate leaf
-	serial, err = tlsutil.GenerateSerialNumber()
+	ca, _, err := tlsutil.GenerateCA(tlsutil.CAOpts{Signer: signer})
+	if err != nil {
+		return "", "", "", err
+	}
+
+	serial, err := tlsutil.GenerateSerialNumber()
 	if err != nil {
 		return "", "", "", err
 	}

@@ -12,18 +12,16 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-const (
-	intentionsTableName = "connect-intentions"
-)
+const tableConnectIntentions = "connect-intentions"
 
 // intentionsTableSchema returns a new table schema used for storing
 // intentions for Connect.
 func intentionsTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
-		Name: intentionsTableName,
+		Name: tableConnectIntentions,
 		Indexes: map[string]*memdb.IndexSchema{
-			"id": {
-				Name:         "id",
+			indexID: {
+				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
 				Indexer: &memdb.UUIDFieldIndex{
@@ -97,16 +95,12 @@ func intentionsTableSchema() *memdb.TableSchema {
 	}
 }
 
-func init() {
-	registerSchema(intentionsTableSchema)
-}
-
 // LegacyIntentions is used to pull all the intentions from the snapshot.
 //
 // Deprecated: service-intentions config entries are handled as config entries
 // in the snapshot.
 func (s *Snapshot) LegacyIntentions() (structs.Intentions, error) {
-	ixns, err := s.tx.Get(intentionsTableName, "id")
+	ixns, err := s.tx.Get(tableConnectIntentions, "id")
 	if err != nil {
 		return nil, err
 	}
@@ -125,10 +119,10 @@ func (s *Snapshot) LegacyIntentions() (structs.Intentions, error) {
 // in the snapshot.
 func (s *Restore) LegacyIntention(ixn *structs.Intention) error {
 	// Insert the intention
-	if err := s.tx.Insert(intentionsTableName, ixn); err != nil {
+	if err := s.tx.Insert(tableConnectIntentions, ixn); err != nil {
 		return fmt.Errorf("failed restoring intention: %s", err)
 	}
-	if err := indexUpdateMaxTxn(s.tx, ixn.ModifyIndex, intentionsTableName); err != nil {
+	if err := indexUpdateMaxTxn(s.tx, ixn.ModifyIndex, tableConnectIntentions); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
@@ -181,7 +175,7 @@ func (s *Store) Intentions(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (
 
 func (s *Store) legacyIntentionsListTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.Intentions, bool, error) {
 	// Get the index
-	idx := maxIndexTxn(tx, intentionsTableName)
+	idx := maxIndexTxn(tx, tableConnectIntentions)
 	if idx < 1 {
 		idx = 1
 	}
@@ -290,7 +284,7 @@ func (s *Store) intentionMutationLegacyCreate(
 		return err
 	}
 
-	if err := ensureConfigEntryTxn(tx, idx, upsertEntry, upsertEntry.GetEnterpriseMeta()); err != nil {
+	if err := ensureConfigEntryTxn(tx, idx, upsertEntry); err != nil {
 		return err
 	}
 
@@ -334,7 +328,7 @@ func (s *Store) intentionMutationLegacyUpdate(
 		return err
 	}
 
-	if err := ensureConfigEntryTxn(tx, idx, upsertEntry, upsertEntry.GetEnterpriseMeta()); err != nil {
+	if err := ensureConfigEntryTxn(tx, idx, upsertEntry); err != nil {
 		return err
 	}
 
@@ -380,7 +374,7 @@ func (s *Store) intentionMutationDelete(
 		return err
 	}
 
-	if err := ensureConfigEntryTxn(tx, idx, upsertEntry, upsertEntry.GetEnterpriseMeta()); err != nil {
+	if err := ensureConfigEntryTxn(tx, idx, upsertEntry); err != nil {
 		return err
 	}
 
@@ -428,7 +422,7 @@ func (s *Store) intentionMutationLegacyDelete(
 		return err
 	}
 
-	if err := ensureConfigEntryTxn(tx, idx, upsertEntry, upsertEntry.GetEnterpriseMeta()); err != nil {
+	if err := ensureConfigEntryTxn(tx, idx, upsertEntry); err != nil {
 		return err
 	}
 
@@ -476,7 +470,7 @@ func (s *Store) intentionMutationUpsert(
 		return err
 	}
 
-	if err := ensureConfigEntryTxn(tx, idx, upsertEntry, upsertEntry.GetEnterpriseMeta()); err != nil {
+	if err := ensureConfigEntryTxn(tx, idx, upsertEntry); err != nil {
 		return err
 	}
 
@@ -530,7 +524,7 @@ func legacyIntentionSetTxn(tx WriteTxn, idx uint64, ixn *structs.Intention) erro
 	ixn.UpdatePrecedence()
 
 	// Check for an existing intention
-	existing, err := tx.First(intentionsTableName, "id", ixn.ID)
+	existing, err := tx.First(tableConnectIntentions, "id", ixn.ID)
 	if err != nil {
 		return fmt.Errorf("failed intention lookup: %s", err)
 	}
@@ -544,7 +538,7 @@ func legacyIntentionSetTxn(tx WriteTxn, idx uint64, ixn *structs.Intention) erro
 	ixn.ModifyIndex = idx
 
 	// Check for duplicates on the 4-tuple.
-	duplicate, err := tx.First(intentionsTableName, "source_destination",
+	duplicate, err := tx.First(tableConnectIntentions, "source_destination",
 		ixn.SourceNS, ixn.SourceName, ixn.DestinationNS, ixn.DestinationName)
 	if err != nil {
 		return fmt.Errorf("failed intention lookup: %s", err)
@@ -564,10 +558,10 @@ func legacyIntentionSetTxn(tx WriteTxn, idx uint64, ixn *structs.Intention) erro
 	}
 
 	// Insert
-	if err := tx.Insert(intentionsTableName, ixn); err != nil {
+	if err := tx.Insert(tableConnectIntentions, ixn); err != nil {
 		return err
 	}
-	if err := tx.Insert("index", &IndexEntry{intentionsTableName, idx}); err != nil {
+	if err := tx.Insert("index", &IndexEntry{tableConnectIntentions, idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
@@ -592,13 +586,13 @@ func (s *Store) IntentionGet(ws memdb.WatchSet, id string) (uint64, *structs.Ser
 
 func (s *Store) legacyIntentionGetTxn(tx ReadTxn, ws memdb.WatchSet, id string) (uint64, *structs.Intention, error) {
 	// Get the table index.
-	idx := maxIndexTxn(tx, intentionsTableName)
+	idx := maxIndexTxn(tx, tableConnectIntentions)
 	if idx < 1 {
 		idx = 1
 	}
 
 	// Look up by its ID.
-	watchCh, intention, err := tx.FirstWatch(intentionsTableName, "id", id)
+	watchCh, intention, err := tx.FirstWatch(tableConnectIntentions, "id", id)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed intention lookup: %s", err)
 	}
@@ -635,13 +629,13 @@ func (s *Store) legacyIntentionGetExactTxn(tx ReadTxn, ws memdb.WatchSet, args *
 	}
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, intentionsTableName)
+	idx := maxIndexTxn(tx, tableConnectIntentions)
 	if idx < 1 {
 		idx = 1
 	}
 
 	// Look up by its full name.
-	watchCh, intention, err := tx.FirstWatch(intentionsTableName, "source_destination",
+	watchCh, intention, err := tx.FirstWatch(tableConnectIntentions, "source_destination",
 		args.SourceNS, args.SourceName, args.DestinationNS, args.DestinationName)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed intention lookup: %s", err)
@@ -683,7 +677,7 @@ func (s *Store) LegacyIntentionDelete(idx uint64, id string) error {
 // with the proper indexes into the state store.
 func legacyIntentionDeleteTxn(tx WriteTxn, idx uint64, queryID string) error {
 	// Pull the query.
-	wrapped, err := tx.First(intentionsTableName, "id", queryID)
+	wrapped, err := tx.First(tableConnectIntentions, "id", queryID)
 	if err != nil {
 		return fmt.Errorf("failed intention lookup: %s", err)
 	}
@@ -692,10 +686,10 @@ func legacyIntentionDeleteTxn(tx WriteTxn, idx uint64, queryID string) error {
 	}
 
 	// Delete the query and update the index.
-	if err := tx.Delete(intentionsTableName, wrapped); err != nil {
+	if err := tx.Delete(tableConnectIntentions, wrapped); err != nil {
 		return fmt.Errorf("failed intention delete: %s", err)
 	}
-	if err := tx.Insert("index", &IndexEntry{intentionsTableName, idx}); err != nil {
+	if err := tx.Insert("index", &IndexEntry{tableConnectIntentions, idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
@@ -709,16 +703,16 @@ func (s *Store) LegacyIntentionDeleteAll(idx uint64) error {
 	defer tx.Abort()
 
 	// Delete the table and update the index.
-	if _, err := tx.DeleteAll(intentionsTableName, "id"); err != nil {
+	if _, err := tx.DeleteAll(tableConnectIntentions, "id"); err != nil {
 		return fmt.Errorf("failed intention delete-all: %s", err)
 	}
-	if err := tx.Insert("index", &IndexEntry{intentionsTableName, idx}); err != nil {
+	if err := tx.Insert("index", &IndexEntry{tableConnectIntentions, idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 	// Also bump the index for the config entry table so that
 	// secondaries can correctly know when they've replicated all of the service-intentions
 	// config entries that USED to exist in the old intentions table.
-	if err := tx.Insert("index", &IndexEntry{configTableName, idx}); err != nil {
+	if err := tx.Insert("index", &IndexEntry{tableConfigEntries, idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
@@ -822,7 +816,7 @@ func (s *Store) IntentionMatch(ws memdb.WatchSet, args *structs.IntentionQueryMa
 
 func (s *Store) legacyIntentionMatchTxn(tx ReadTxn, ws memdb.WatchSet, args *structs.IntentionQueryMatch) (uint64, []structs.Intentions, error) {
 	// Get the table index.
-	idx := maxIndexTxn(tx, intentionsTableName)
+	idx := maxIndexTxn(tx, tableConnectIntentions)
 	if idx < 1 {
 		idx = 1
 	}
@@ -876,7 +870,7 @@ func legacyIntentionMatchOneTxn(
 	matchType structs.IntentionMatchType,
 ) (uint64, structs.Intentions, error) {
 	// Get the table index.
-	idx := maxIndexTxn(tx, intentionsTableName)
+	idx := maxIndexTxn(tx, tableConnectIntentions)
 	if idx < 1 {
 		idx = 1
 	}
@@ -907,7 +901,7 @@ func intentionMatchOneTxn(tx ReadTxn, ws memdb.WatchSet,
 	// Perform each call and accumulate the result.
 	var result structs.Intentions
 	for _, params := range getParams {
-		iter, err := tx.Get(intentionsTableName, string(matchType), params...)
+		iter, err := tx.Get(tableConnectIntentions, string(matchType), params...)
 		if err != nil {
 			return nil, fmt.Errorf("failed intention lookup: %s", err)
 		}

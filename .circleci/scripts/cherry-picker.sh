@@ -51,8 +51,8 @@ function cherry_pick_with_slack_notification {
     local pr_url="$3"
 
     git checkout "$branch" || exit 1
-    # If git cherry-pick fails, we send a failure notification
-    if ! git cherry-pick --mainline 1 "$commit"; then
+    # If git cherry-pick fails or it fails to push, we send a failure notification
+    if ! (git cherry-pick --mainline 1 "$commit" && git push origin "$branch"); then
         status "🍒❌ Cherry pick of commit ${commit:0:7} from $pr_url onto $branch failed!"
 
         # send slack notification
@@ -85,8 +85,6 @@ function cherry_pick_with_slack_notification {
     # Else we send a success notification
     else
         status "🍒✅ Cherry picking of PR commit ${commit:0:7} from ${pr_url} succeeded!"
-        # push changes to the specified branch
-        git push origin "$branch"
         curl -X POST -H 'Content-type: application/json' \
         --data \
         "{ \
@@ -186,6 +184,8 @@ for label in $labels; do
         cherry_pick_with_slack_notification "$branch" "$CIRCLE_SHA1" "$pr_url"
         backport_failures=$((backport_failures + "$?"))
     fi
+    # reset the working directory for the next label
+    git reset --hard
 done
 
 if [ "$backport_failures" -ne 0 ]; then

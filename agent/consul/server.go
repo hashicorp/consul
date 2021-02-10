@@ -108,6 +108,7 @@ const (
 	intentionMigrationRoutineName         = "intention config entry migration"
 	secondaryCARootWatchRoutineName       = "secondary CA roots watch"
 	intermediateCertRenewWatchRoutineName = "intermediate cert renew watch"
+	backgroundCAInitializationRoutineName = "CA initialization"
 )
 
 var (
@@ -395,7 +396,7 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 		return nil, err
 	}
 
-	s.rpcLimiter.Store(rate.NewLimiter(config.RPCRate, config.RPCMaxBurst))
+	s.rpcLimiter.Store(rate.NewLimiter(config.RPCRateLimit, config.RPCMaxBurst))
 
 	configReplicatorConfig := ReplicatorConfig{
 		Name:     logging.ConfigEntry,
@@ -468,7 +469,7 @@ func NewServer(config *Config, flat Deps) (*Server, error) {
 		return nil, fmt.Errorf("Failed to start Raft: %v", err)
 	}
 
-	s.caManager = NewCAManager(&caDelegateWithState{s}, s.loggers.Named(logging.Connect), s.config)
+	s.caManager = NewCAManager(&caDelegateWithState{s}, s.leaderRoutineManager, s.loggers.Named(logging.Connect), s.config)
 	if s.config.ConnectEnabled && (s.config.AutoEncryptAllowTLS || s.config.AutoConfigAuthzEnabled) {
 		go s.connectCARootsMonitor(&lib.StopChannelContext{StopCh: s.shutdownCh})
 	}
@@ -1384,8 +1385,8 @@ func (s *Server) GetLANCoordinate() (lib.CoordinateSet, error) {
 
 // ReloadConfig is used to have the Server do an online reload of
 // relevant configuration information
-func (s *Server) ReloadConfig(config *Config) error {
-	s.rpcLimiter.Store(rate.NewLimiter(config.RPCRate, config.RPCMaxBurst))
+func (s *Server) ReloadConfig(config ReloadableConfig) error {
+	s.rpcLimiter.Store(rate.NewLimiter(config.RPCRateLimit, config.RPCMaxBurst))
 	s.rpcConnLimiter.SetConfig(connlimit.Config{
 		MaxConnsPerClientIP: config.RPCMaxConnsPerClient,
 	})

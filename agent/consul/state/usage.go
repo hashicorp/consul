@@ -3,8 +3,9 @@ package state
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul/agent/structs"
 	memdb "github.com/hashicorp/go-memdb"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 const (
@@ -28,10 +29,6 @@ func usageTableSchema() *memdb.TableSchema {
 			},
 		},
 	}
-}
-
-func init() {
-	registerSchema(usageTableSchema)
 }
 
 // UsageEntry represents a count of some arbitrary identifier within the
@@ -101,7 +98,7 @@ func updateUsage(tx WriteTxn, changes Changes) error {
 	// This will happen when restoring from a snapshot, just take the max index
 	// of the tables we are tracking.
 	if idx == 0 {
-		idx = maxIndexTxn(tx, "nodes", servicesTableName)
+		idx = maxIndexTxn(tx, "nodes", tableServices)
 	}
 
 	return writeUsageDeltas(tx, idx, usageDeltas)
@@ -110,7 +107,7 @@ func updateUsage(tx WriteTxn, changes Changes) error {
 func updateServiceNameUsage(tx WriteTxn, usageDeltas map[string]int, serviceNameChanges map[structs.ServiceName]int) (map[structs.ServiceName]uniqueServiceState, error) {
 	serviceStates := make(map[structs.ServiceName]uniqueServiceState, len(serviceNameChanges))
 	for svc, delta := range serviceNameChanges {
-		serviceIter, err := getWithTxn(tx, servicesTableName, "service", svc.Name, &svc.EnterpriseMeta)
+		serviceIter, err := getWithTxn(tx, tableServices, "service", svc.Name, &svc.EnterpriseMeta)
 		if err != nil {
 			return nil, err
 		}
@@ -226,7 +223,7 @@ func (s *Store) ServiceUsage() (uint64, ServiceUsage, error) {
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
-	serviceInstances, err := firstUsageEntry(tx, servicesTableName)
+	serviceInstances, err := firstUsageEntry(tx, tableServices)
 	if err != nil {
 		return 0, ServiceUsage{}, fmt.Errorf("failed services lookup: %s", err)
 	}

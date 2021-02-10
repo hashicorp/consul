@@ -35,7 +35,7 @@ intentions to control Connect traffic authorization either at networking layer
 
 - **Application-aware** - Some intentions may additionally enforce access based
   on [L7 request
-  attributes](/docs/agent/config-entries/service-intentions#permissions) in
+  attributes](/docs/connect/config-entries/service-intentions#permissions) in
   addition to connection identity. These may only be defined for services with
   a [protocol] that is HTTP-based. These can also be thought of as **L7
   intentions**.
@@ -59,16 +59,16 @@ denied by default.
 ## Intention Basics
 
 Intentions are managed primarily via
-[`service-intentions`](/docs/agent/config-entries/service-intentions) config
+[`service-intentions`](/docs/connect/config-entries/service-intentions) config
 entries or the UI. Some simpler tasks can also be achieved with the older
 [API](/api-docs/connect/intentions) or [CLI](/commands/intention). Please see
 the respective documentation for each for full details on options, flags, etc.
 
 Below is an example of a basic
-[`service-intentions`](/docs/agent/config-entries/service-intentions) config
+[`service-intentions`](/docs/connect/config-entries/service-intentions) config
 entry representing two simple intentions. The full data model complete with
 more examples can be found in the
-[`service-intentions`](/docs/agent/config-entries/service-intentions) config
+[`service-intentions`](/docs/connect/config-entries/service-intentions) config
 entry documentation.
 
 ```hcl
@@ -160,7 +160,7 @@ top to bottom, with larger numbers being evaluated first.
 | `*`              | `*`         | `*`                   | `*`              | 1          |
 
 The precedence value can be read from a
-[field](/docs/agent/config-entries/service-intentions#precedence) on the
+[field](/docs/connect/config-entries/service-intentions#precedence) on the
 `service-intentions` config entry after it is modified. Precedence cannot be
 manually overridden today.
 
@@ -240,6 +240,6 @@ connection authorization continues to work indefinitely. Changes to intentions
 will not be picked up until the partition heals, but will then automatically
 take effect when connectivity is restored.
 
-[protocol]: /docs/agent/config-entries/service-defaults#protocol
+[protocol]: /docs/connect/config-entries/service-defaults#protocol
 [proxies]: /docs/connect/proxies
 [envoy]: /docs/connect/proxies/envoy

@@ -1,11 +1,11 @@
 import UseCases from '@hashicorp/react-use-cases'
 import BasicHero from '../../components/basic-hero'
 import ConsulEnterpriseComparison from '../../components/enterprise-comparison/consul'
-import CloudOfferingsList from '../../components/cloud-offerings-list'
 import PrefooterCTA from '../../components/prefooter-cta'
 import LearnCallout from '../../components/learn-callout'
 import CaseStudyCarousel from '../../components/case-study-carousel'
 import ProductFeaturesList from '@hashicorp/react-product-features-list'
+import HcpCalloutSection from 'components/hcp-callout-section'
 import MiniCTA from '../../components/mini-cta'
 
 export default function HomePage() {
@@ -19,17 +19,16 @@ export default function HomePage() {
           {
             text: 'Get Started',
             url: 'https://learn.hashicorp.com/consul',
-            type: 'outbound',
           },
           {
-            text: 'Download',
+            text: 'Try Cloud',
+            url:
+              'https://cloud.hashicorp.com/?utm_source=consul_io&utm_content=hero',
+          },
+          {
+            text: 'Download CLI',
             url: '/downloads',
             type: 'download',
-          },
-          {
-            text: 'Learn more about Consul cloud offerings',
-            url: '/#cloud-offerings',
-            type: 'inbound',
           },
         ]}
         backgroundImage
@@ -93,8 +92,7 @@ export default function HomePage() {
             title: 'Secure Consul with Vault',
             category: 'Step-by-Step Tutorials',
             time: '45 mins',
-            link:
-              'https://learn.hashicorp.com/collections/consul/vault-secure',
+            link: 'https://learn.hashicorp.com/collections/consul/vault-secure',
             image: require('./img/learn/Vault.svg?url'),
           },
         ]}
@@ -221,40 +219,25 @@ export default function HomePage() {
         />
       </div>
 
-      <section
+      <HcpCalloutSection
         id="cloud-offerings"
-        className="cloud-offerings g-grid-container"
-      >
-        <h2 className="g-type-display-2">
-          Learn more about Consul cloud offerings
-        </h2>
-        <CloudOfferingsList
-          offerings={[
-            {
-              image: require('./img/cloud/hcs.jpg?url'),
-              eyebrow: 'General Availability',
-              title: 'HashiCorp Consul Service on Azure',
-              description: 'Native Azure Experience',
-              link: {
-                text: 'Get Started',
-                url: 'https://learn.hashicorp.com/consul/hcs-azure/deploy',
-                type: 'outbound',
-              },
-            },
-            {
-              image: require('./img/cloud/hcp.jpg?url'),
-              eyebrow: 'Private Beta',
-              title: 'HCP Consul on AWS',
-              description: 'HashiCorp Cloud Platform',
-              link: {
-                text: 'Request Access',
-                url: 'https://www.hashicorp.com/cloud-platform/request-access/',
-                type: 'outbound',
-              },
-            },
-          ]}
-        />
-      </section>
+        title="HCP Consul"
+        chin="Available on AWS"
+        description="A fully managed service mesh to discover and securely connect any service."
+        image={require('./img/hcp-consul.svg?url')}
+        links={[
+          {
+            text: 'Learn More',
+            url:
+              'https://cloud.hashicorp.com/?utm_source=consul_io&utm_content=hcp_consul_detail',
+          },
+          {
+            text: 'Looking for Consul Service on Azure?',
+            url: 'https://www.hashicorp.com/products/consul/service-on-azure',
+            type: 'inbound',
+          },
+        ]}
+      />
 
       <ConsulEnterpriseComparison />
       <PrefooterCTA />

@@ -1,5 +1,15 @@
 ---
-version: 2
+version: 2.1
+
+parameters:
+  commit:
+    type: string
+    default: ""
+    description: "Commit to run load tests against"
+  trigger-load-test:
+    type: boolean
+    default: false
+    description: "Boolean whether to run the load test workflow"
 
 references:
   images:
@@ -43,16 +53,6 @@ steps:
         unzip awscliv2.zip
         sudo ./aws/install
 
-  aws-assume-role: &aws-assume-role
-    run:
-      name: assume-role aws creds
-      command: |
-        # assume role has duration of 15 min (the minimum allowed)
-        CREDENTIALS="$(aws sts assume-role --duration-seconds 900 --role-arn ${ROLE_ARN} --role-session-name build-${CIRCLE_SHA1} | jq '.Credentials')"
-        echo "export AWS_ACCESS_KEY_ID=$(echo $CREDENTIALS | jq -r '.AccessKeyId')" >> $BASH_ENV
-        echo "export AWS_SECRET_ACCESS_KEY=$(echo $CREDENTIALS | jq -r '.SecretAccessKey')" >> $BASH_ENV
-        echo "export AWS_SESSION_TOKEN=$(echo $CREDENTIALS | jq -r '.SessionToken')" >> $BASH_ENV
-
   # This step MUST be at the end of any set of steps due to the 'when' condition
   notify-slack-failure: &notify-slack-failure
     name: notify-slack-failure
@@ -79,6 +79,30 @@ steps:
       else
         echo "Not posting slack failure notifications for non-master branch"
       fi
+
+commands:
+  assume-role:
+    description: "Assume role to an ARN"
+    parameters:
+      access-key:
+        type: env_var_name
+        default: AWS_ACCESS_KEY_ID
+      secret-key:
+        type: env_var_name
+        default: AWS_SECRET_ACCESS_KEY
+      role-arn:
+        type: env_var_name
+        default: ROLE_ARN
+    steps:
+      - run: |
+          export AWS_ACCESS_KEY_ID="${<< parameters.access-key >>}"
+          export AWS_SECRET_ACCESS_KEY="${<< parameters.secret-key >>}"
+          export ROLE_ARN="${<< parameters.role-arn >>}"
+          # assume role has duration of 15 min (the minimum allowed)
+          CREDENTIALS="$(aws sts assume-role --duration-seconds 900 --role-arn ${ROLE_ARN} --role-session-name build-${CIRCLE_SHA1} | jq '.Credentials')"
+          echo "export AWS_ACCESS_KEY_ID=$(echo $CREDENTIALS | jq -r '.AccessKeyId')" >> $BASH_ENV
+          echo "export AWS_SECRET_ACCESS_KEY=$(echo $CREDENTIALS | jq -r '.SecretAccessKey')" >> $BASH_ENV
+          echo "export AWS_SESSION_TOKEN=$(echo $CREDENTIALS | jq -r '.SessionToken')" >> $BASH_ENV
 
 jobs:
   # lint consul tests
@@ -129,8 +153,9 @@ jobs:
       - run:
           command: make update-vendor
       - run: |
-          if ! git diff --exit-code; then
-            echo "Git directory has vendor changes"
+          if [[ -n $(git status -s) ]]; then
+            echo "Git directory has changes"
+            git status -s
             exit 1
           fi
       - run: *notify-slack-failure
@@ -415,20 +440,23 @@ jobs:
     steps:
       - checkout
       - *get-aws-cli
-      - *aws-assume-role
+      - assume-role:
+          access-key: AWS_ACCESS_KEY_ID_S3_UPLOAD
+          secret-key: AWS_SECRET_ACCESS_KEY_S3_UPLOAD
+          role-arn: ROLE_ARN_S3_UPLOAD
       # get consul binary
       - attach_workspace:
           at: bin/
       - run:
           name: package binary
-          command: tar -czf consul.tar.gz -C bin/ consul
+          command: zip -j consul.zip bin/consul
       - run:
           name: Upload to s3
           command: |
             if [ -n "${S3_ARTIFACT_PATH}" ]; then
               aws s3 cp \
               --metadata "CIRCLECI=${CIRCLECI},CIRCLE_BUILD_URL=${CIRCLE_BUILD_URL},CIRCLE_BRANCH=${CIRCLE_BRANCH}" \
-              "consul.tar.gz" "s3://${S3_ARTIFACT_BUCKET}/${S3_ARTIFACT_PATH}/${CIRCLE_SHA1}.tar.gz"
+              "consul.zip" "s3://${S3_ARTIFACT_BUCKET}/${S3_ARTIFACT_PATH}/${CIRCLE_SHA1}.zip" --acl public-read
             else
               echo "CircleCI - S3_ARTIFACT_PATH was not set"
               exit 1
@@ -751,7 +779,7 @@ jobs:
           command: bash <(curl -s https://codecov.io/bash) -v -c -C $CIRCLE_SHA1 -F ui
       - run: *notify-slack-failure
 
-  envoy-integration-test-1.13.6: &ENVOY_TESTS
+  envoy-integration-test-1_13_6: &ENVOY_TESTS
     docker:
       # We only really need bash and docker-compose which is installed on all
       # Circle images but pick Go since we have to pick one of them.
@@ -791,17 +819,17 @@ jobs:
           path: *TEST_RESULTS_DIR
       - run: *notify-slack-failure
 
-  envoy-integration-test-1.14.5:
+  envoy-integration-test-1_14_5:
     <<: *ENVOY_TESTS
     environment:
       ENVOY_VERSION: "1.14.5"
 
-  envoy-integration-test-1.15.2:
+  envoy-integration-test-1_15_2:
     <<: *ENVOY_TESTS
     environment:
       ENVOY_VERSION: "1.15.2"
 
-  envoy-integration-test-1.16.0:
+  envoy-integration-test-1_16_0:
     <<: *ENVOY_TESTS
     environment:
       ENVOY_VERSION: "1.16.0"
@@ -859,9 +887,82 @@ jobs:
                     "https://circleci.com/api/v1.1/project/github/hashicorp/consul-enterprise/tree/${CIRCLE_BRANCH}" | jq -r '.build_url'
       - run: *notify-slack-failure
 
+  # Run load tests against a commit
+  load-test:
+    docker:
+      - image: hashicorp/terraform:latest
+    environment:
+      AWS_DEFAULT_REGION: us-east-2
+      BUCKET: consul-ci-load-tests
+    steps:
+      - checkout
+      - run: apk add jq curl bash
+      - run:
+          name: export load-test credentials
+          command: |
+            echo "export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID_LOAD_TEST" >> $BASH_ENV
+            echo "export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY_LOAD_TEST" >> $BASH_ENV
+      - run:
+          name: export role arn
+          command: |
+            echo "export TF_VAR_role_arn=$ROLE_ARN_LOAD_TEST" >> $BASH_ENV
+      - run:
+          name: setup TF_VARs
+          command: |
+            # if pipeline.parameters.commit="" it was not triggered/set through the API
+            # so we use the latest commit from _this_ branch. This is the case for nightly tests.
+            if [ "<< pipeline.parameters.commit >>" = "" ]; then
+              LOCAL_COMMIT_SHA=$(git rev-parse HEAD)
+            else
+              LOCAL_COMMIT_SHA="<< pipeline.parameters.commit >>"
+            fi
+            echo "export LOCAL_COMMIT_SHA=${LOCAL_COMMIT_SHA}" >> $BASH_ENV
+
+            short_ref=$(git rev-parse --short ${LOCAL_COMMIT_SHA})
+            echo "export TF_VAR_ami_owners=$LOAD_TEST_AMI_OWNERS" >> $BASH_ENV
+            echo "export TF_VAR_vpc_name=$short_ref" >> $BASH_ENV
+            echo "export TF_VAR_cluster_name=$short_ref" >> $BASH_ENV
+            echo "export TF_VAR_consul_download_url=https://${S3_ARTIFACT_BUCKET}.s3.${AWS_DEFAULT_REGION}.amazonaws.com/${S3_ARTIFACT_PATH}/${LOCAL_COMMIT_SHA}.zip" >> $BASH_ENV
+      - run:
+          name: wait for dev build from test-integrations workflow
+          shell: /usr/bin/env bash -euo pipefail -c
+          command: |
+            echo "curl-ing https://${S3_ARTIFACT_BUCKET}.s3.${AWS_DEFAULT_REGION}.amazonaws.com/${S3_ARTIFACT_PATH}/${LOCAL_COMMIT_SHA}.zip"
+            until [ $SECONDS -ge 300 ] && exit 1; do
+              curl -o /dev/null --fail --silent "https://${S3_ARTIFACT_BUCKET}.s3.${AWS_DEFAULT_REGION}.amazonaws.com/${S3_ARTIFACT_PATH}/${LOCAL_COMMIT_SHA}.zip" && exit
+              echo -n "."
+              sleep 2
+            done
+      - run:
+          working_directory: .circleci/terraform/load-test
+          name: terraform init
+          shell: /usr/bin/env bash -euo pipefail -c
+          command: |
+            echo "commit is ${LOCAL_COMMIT_SHA}"
+            terraform init \
+            -backend-config="bucket=${BUCKET}" \
+            -backend-config="key=${LOCAL_COMMIT_SHA}" \
+            -backend-config="region=${AWS_DEFAULT_REGION}" \
+            -backend-config="role_arn=${ROLE_ARN_LOAD_TEST}"
+      - run:
+          working_directory: .circleci/terraform/load-test
+          name: run terraform apply
+          shell: /usr/bin/env bash -euo pipefail -c
+          command: |
+            terraform apply -auto-approve
+      - run:
+          working_directory: .circleci/terraform/load-test
+          when: always
+          name: terraform destroy
+          shell: /usr/bin/env bash -euo pipefail -c
+          command: |
+            terraform destroy -auto-approve
+      - run: *notify-slack-failure
+
 workflows:
   version: 2
   go-tests:
+    unless: << pipeline.parameters.trigger-load-test >>
     jobs:
       - check-vendor: &filter-ignore-non-go-branches
           filters:
@@ -882,6 +983,7 @@ workflows:
       - go-test-race: *filter-ignore-non-go-branches
       - go-test-sdk: *filter-ignore-non-go-branches
   build-distros:
+    unless: << pipeline.parameters.trigger-load-test >>
     jobs:
       - check-vendor: *filter-ignore-non-go-branches
       - build-386: &require-check-vendor
@@ -920,6 +1022,7 @@ workflows:
             - dev-build
           context: consul-ci
   test-integrations:
+    unless: << pipeline.parameters.trigger-load-test >>
     jobs:
       - dev-build: *filter-ignore-non-go-branches
       - dev-upload-s3: &dev-upload
@@ -939,19 +1042,20 @@ workflows:
       - nomad-integration-0_8:
           requires:
             - dev-build
-      - envoy-integration-test-1.13.6:
+      - envoy-integration-test-1_13_6:
           requires:
             - dev-build
-      - envoy-integration-test-1.14.5:
+      - envoy-integration-test-1_14_5:
           requires:
             - dev-build
-      - envoy-integration-test-1.15.2:
+      - envoy-integration-test-1_15_2:
           requires:
             - dev-build
-      - envoy-integration-test-1.16.0:
+      - envoy-integration-test-1_16_0:
           requires:
             - dev-build
   website:
+    unless: << pipeline.parameters.trigger-load-test >>
     jobs:
       - build-website-docker-image:
           context: website-docker-image
@@ -966,6 +1070,7 @@ workflows:
               only:
                 - stable-website
   frontend:
+    unless: << pipeline.parameters.trigger-load-test >>
     jobs:
       - frontend-cache:
           filters:
@@ -997,6 +1102,7 @@ workflows:
           requires:
             - ember-build-ent
   workflow-automation:
+    unless: << pipeline.parameters.trigger-load-test >>
     jobs:
       - trigger-oss-merge:
           context: team-consul
@@ -1011,3 +1117,18 @@ workflows:
             branches:
               only:
                 - master
+  load-test:
+    when: << pipeline.parameters.trigger-load-test >>
+    jobs:
+      - load-test
+
+  nightly-jobs:
+    triggers:
+      - schedule:
+          cron: "0 4 * * *" # 4AM UTC <> 12AM EST <> 9PM PST should have no impact
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      - load-test
