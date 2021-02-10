@@ -454,8 +454,11 @@ func (g *GatewayService) Addresses(defaultHosts []string) []string {
 	}
 
 	var addresses []string
+	// loop through the hosts and format that into domain.name:port format,
+	// ensuring we trim any trailing DNS . characters from the domain name as we
+	// go
 	for _, h := range hosts {
-		addresses = append(addresses, fmt.Sprintf("%s:%d", h, g.Port))
+		addresses = append(addresses, fmt.Sprintf("%s:%d", strings.TrimRight(h, "."), g.Port))
 	}
 	return addresses
 }
