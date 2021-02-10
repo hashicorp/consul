@@ -24,7 +24,7 @@ test('findAllByDatacenter returns the correct data for list endpoint', function(
       });
     },
     function performTest(service) {
-      return service.findAllByDatacenter(dc);
+      return service.findAllByDatacenter({ dc });
     },
     function performAssertion(actual, expected) {
       assert.deepEqual(
@@ -51,11 +51,11 @@ test('findAllByNode calls findAllByDatacenter with the correct arguments', funct
     cursor: 1,
   };
   const service = this.subject();
-  service.findAllByDatacenter = function(dc, configuration) {
+  service.findAllByDatacenter = function(params, configuration) {
     assert.equal(arguments.length, 2, 'Expected to be called with the correct number of arguments');
-    assert.equal(dc, datacenter);
+    assert.equal(params.dc, datacenter);
     assert.deepEqual(configuration, conf);
     return Promise.resolve([]);
   };
-  return service.findAllByNode('node-name', datacenter, conf);
+  return service.findAllByNode({ node: 'node-name', dc: datacenter }, conf);
 });

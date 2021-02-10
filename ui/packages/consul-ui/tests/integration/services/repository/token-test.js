@@ -26,7 +26,7 @@ const undefinedNspace = 'default';
         );
       },
       function performTest(service) {
-        return service.findAllByDatacenter(dc, nspace || undefinedNspace);
+        return service.findAllByDatacenter({ dc, ns: nspace || undefinedNspace });
       },
       function performAssertion(actual, expected) {
         assert.deepEqual(
@@ -57,7 +57,7 @@ const undefinedNspace = 'default';
         );
       },
       function performTest(service) {
-        return service.findBySlug(id, dc, nspace || undefinedNspace);
+        return service.findBySlug({ id, dc, ns: nspace || undefinedNspace });
       },
       function performAssertion(actual, expected) {
         assert.deepEqual(
@@ -99,7 +99,7 @@ const undefinedNspace = 'default';
         );
       },
       function performTest(service) {
-        return service.findByPolicy(policy, dc, nspace || undefinedNspace);
+        return service.findByPolicy({ id: policy, dc, ns: nspace || undefinedNspace });
       },
       function performAssertion(actual, expected) {
         assert.deepEqual(
@@ -136,7 +136,7 @@ const undefinedNspace = 'default';
         );
       },
       function performTest(service) {
-        return service.findByRole(role, dc, nspace || undefinedNspace);
+        return service.findByRole({ id: role, dc, ns: nspace || undefinedNspace });
       },
       function performAssertion(actual, expected) {
         assert.deepEqual(

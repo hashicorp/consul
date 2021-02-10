@@ -18,7 +18,7 @@ test('findBySlug returns the correct data for item endpoint', function(assert) {
       });
     },
     function performTest(service) {
-      return service.findBySlug(id, dc);
+      return service.findBySlug({ id, dc });
     },
     function performAssertion(actual, expected) {
       const result = expected(function(payload) {
