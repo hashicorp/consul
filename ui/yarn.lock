@@ -13317,6 +13317,11 @@ nan@^2.12.1:
   resolved "https://registry.yarnpkg.com/nan/-/nan-2.14.2.tgz#f5376400695168f4cc694ac9393d0c9585eeea19"
   integrity sha512-M2ufzIiINKCuDfBSAUr1vWQ+vuVcA9kqx8JJUsbQi6yf1uGRyb7HfpdfUr5qLXf3B/t8dPvcjhKMmlfnP47EzQ==
 
+nanoassert@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/nanoassert/-/nanoassert-1.1.0.tgz#4f3152e09540fde28c76f44b19bbcd1d5a42478d"
+  integrity sha1-TzFS4JVA/eKMdvRLGbvNHVpCR40=
+
 nanomatch@^1.2.9:
   version "1.2.13"
   resolved "https://registry.yarnpkg.com/nanomatch/-/nanomatch-1.2.13.tgz#b87a8aa4fc0de8fe6be88895b38983ff265bd119"
@@ -17828,6 +17833,13 @@ watchpack@^1.5.0, watchpack@^1.7.4:
   optionalDependencies:
     chokidar "^3.4.1"
     watchpack-chokidar2 "^2.0.0"
+
+wayfarer@^7.0.1:
+  version "7.0.1"
+  resolved "https://registry.yarnpkg.com/wayfarer/-/wayfarer-7.0.1.tgz#17a64d351d49f9d3d6c508155867df7658184ce3"
+  integrity sha512-yf+kAlOYnJRjLxflLy+1+xEclb6222EAVvAjSY+Yz2qAIDrXeN5wLl/G302Mwv3E0KMg1HT/WDGsvSymX0U7Rw==
+  dependencies:
+    nanoassert "^1.1.0"
 
 wcwidth@^1.0.1:
   version "1.0.1"
