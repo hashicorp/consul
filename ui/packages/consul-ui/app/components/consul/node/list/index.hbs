@@ -30,7 +30,7 @@ as |item index|>
     <span class="leader" data-test-leader={{@leader.Address}}>Leader</span>
   {{/if}}
     <span>
-      {{format-number item.Services.length}} {{pluralize item.Services.length 'Service' without-count=true}}
+      {{format-number item.MeshServiceInstances.length}} {{pluralize item.MeshServiceInstances.length 'Service' without-count=true}}
     </span>
     <dl>
       <dt>
