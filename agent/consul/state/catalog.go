@@ -1317,7 +1317,7 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 
 	// Delete any checks associated with the service. This will invalidate
 	// sessions as necessary.
-	checks, err := catalogChecksForNodeService(tx, nodeName, serviceID, entMeta)
+	checks, err := catalogListServiceChecks(tx, nodeName, serviceID, entMeta)
 	if err != nil {
 		return fmt.Errorf("failed service check lookup: %s", err)
 	}

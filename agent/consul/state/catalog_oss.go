@@ -157,11 +157,11 @@ func catalogListChecks(tx ReadTxn, _ *structs.EnterpriseMeta) (memdb.ResultItera
 }
 
 func catalogListNodeChecks(tx ReadTxn, node string) (memdb.ResultIterator, error) {
-	return tx.Get("checks", "node_service_check", node, false)
+	return tx.Get("checks", indexNodeServiceCheck, node, false)
 }
 
 func catalogListServiceChecks(tx ReadTxn, node string, service string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get("checks", "node_service", node, service)
+	return tx.Get("checks", indexNodeService, node, service)
 }
 
 func catalogInsertCheck(tx WriteTxn, chk *structs.HealthCheck, idx uint64) error {
@@ -175,10 +175,6 @@ func catalogInsertCheck(tx WriteTxn, chk *structs.HealthCheck, idx uint64) error
 	}
 
 	return nil
-}
-
-func catalogChecksForNodeService(tx ReadTxn, node string, service string, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get("checks", "node_service", node, service)
 }
 
 func validateRegisterRequestTxn(_ ReadTxn, _ *structs.RegisterRequest, _ bool) (*structs.EnterpriseMeta, error) {
