@@ -28,7 +28,7 @@ export default class EditRoute extends Route.extend(WithNspaceActions) {
               },
             })
           )
-        : repo.findBySlug(params.name),
+        : repo.findBySlug({ id: params.name }),
     });
   }
 
