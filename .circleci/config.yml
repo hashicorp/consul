@@ -671,11 +671,11 @@ jobs:
       ENVOY_VERSIONS: "1.12.7"
     steps: *ENVOY_INTEGRATION_TEST_STEPS
 
-  envoy-integration-test-1_13_6:
+  envoy-integration-test-1_13_7:
     docker:
       - image: *GOLANG_IMAGE
     environment:
-      ENVOY_VERSIONS: "1.13.6"
+      ENVOY_VERSIONS: "1.13.7"
     steps: *ENVOY_INTEGRATION_TEST_STEPS
 
   # run tests on vault ca provider integration tests
@@ -784,7 +784,7 @@ workflows:
       - envoy-integration-test-1_12_7:
           requires:
             - dev-build
-      - envoy-integration-test-1_13_6:
+      - envoy-integration-test-1_13_7:
           requires:
             - dev-build
       - vault-ca-provider:

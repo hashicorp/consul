@@ -7,6 +7,7 @@ unset CDPATH
 cd "$(dirname "$0")"
 
 versions=(
+    1.13.7
     1.13.6
     1.13.4
     1.13.5
