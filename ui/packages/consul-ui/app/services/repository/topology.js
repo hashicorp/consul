@@ -1,6 +1,7 @@
 import { inject as service } from '@ember/service';
 import RepositoryService from 'consul-ui/services/repository';
 import { get, set } from '@ember/object';
+import dataSource from 'consul-ui/decorators/data-source';
 
 const modelName = 'topology';
 const ERROR_MESH_DISABLED = 'Connect must be enabled in order to use this endpoint';
@@ -13,24 +14,19 @@ export default class TopologyService extends RepositoryService {
     return modelName;
   }
 
-  findBySlug(slug, kind, dc, nspace, configuration = {}) {
-    const datacenter = this.dcs.peekOne(dc);
+  @dataSource('/:ns/:dc/topology/:id/:kind')
+  findBySlug(params, configuration = {}) {
+    const datacenter = this.dcs.peekOne(params.dc);
     if (datacenter !== null && !get(datacenter, 'MeshEnabled')) {
       return Promise.resolve();
     }
-    const query = {
-      dc: dc,
-      ns: nspace,
-      id: slug,
-      kind: kind,
-    };
     if (typeof configuration.cursor !== 'undefined') {
-      query.index = configuration.cursor;
-      query.uri = configuration.uri;
+      params.index = configuration.cursor;
+      params.uri = configuration.uri;
     }
-    return this.store.queryRecord(this.getModelName(), query).catch(e => {
+    return this.store.queryRecord(this.getModelName(), params).catch(e => {
       const code = get(e, 'errors.firstObject.status');
-      const body = get(e, 'errors.firstObject.detail').trim();
+      const body = (get(e, 'errors.firstObject.detail') || '').trim();
       switch (code) {
         case '500':
           if (datacenter !== null && body.endsWith(ERROR_MESH_DISABLED)) {

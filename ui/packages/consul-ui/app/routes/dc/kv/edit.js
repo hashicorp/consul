@@ -26,14 +26,26 @@ export default class EditRoute extends Route {
       nspace: nspace || 'default',
       parent:
         typeof key !== 'undefined'
-          ? this.repo.findBySlug(ascend(key, 1) || '/', dc, nspace)
-          : this.repo.findBySlug('/', dc, nspace),
+          ? this.repo.findBySlug({
+              ns: nspace,
+              dc: dc,
+              id: ascend(key, 1) || '/',
+            })
+          : this.repo.findBySlug({
+              ns: nspace,
+              dc: dc,
+              id: '/',
+            }),
       item: create
         ? this.repo.create({
             Datacenter: dc,
             Namespace: nspace,
           })
-        : this.repo.findBySlug(key, dc, nspace),
+        : this.repo.findBySlug({
+            ns: nspace,
+            dc: dc,
+            id: key,
+          }),
       session: null,
     }).then(model => {
       // TODO: Consider loading this after initial page load
@@ -43,7 +55,11 @@ export default class EditRoute extends Route {
           return hash({
             ...model,
             ...{
-              session: this.sessionRepo.findByKey(session, dc, nspace),
+              session: this.sessionRepo.findByKey({
+                ns: nspace,
+                dc: dc,
+                id: session,
+              }),
             },
           });
         }

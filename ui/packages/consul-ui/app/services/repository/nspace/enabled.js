@@ -24,7 +24,7 @@ export default class EnabledService extends RepositoryService {
     return modelName;
   }
 
-  findAll(configuration = {}) {
+  findAll(params, configuration = {}) {
     const query = {};
     if (typeof configuration.cursor !== 'undefined') {
       query.index = configuration.cursor;

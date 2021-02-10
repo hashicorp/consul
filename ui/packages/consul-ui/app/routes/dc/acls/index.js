@@ -30,7 +30,7 @@ export default class IndexRoute extends Route.extend(WithAclActions) {
   }
 
   async model(params) {
-    const _items = this.repo.findAllByDatacenter(this.modelFor('dc').dc.Name);
+    const _items = this.repo.findAllByDatacenter({ dc: this.modelFor('dc').dc.Name });
     const _token = this.settings.findBySlug('token');
     return {
       items: await _items,

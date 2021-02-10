@@ -1,6 +1,8 @@
 import RepositoryService from 'consul-ui/services/repository';
 import { PRIMARY_KEY } from 'consul-ui/models/proxy';
 import { get, set } from '@ember/object';
+import dataSource from 'consul-ui/decorators/data-source';
+
 const modelName = 'proxy';
 export default class ProxyService extends RepositoryService {
   getModelName() {
@@ -11,17 +13,13 @@ export default class ProxyService extends RepositoryService {
     return PRIMARY_KEY;
   }
 
-  findAllBySlug(slug, dc, nspace, configuration = {}) {
-    const query = {
-      id: slug,
-      ns: nspace,
-      dc: dc,
-    };
+  @dataSource('/:ns/:dc/proxies/for-service/:id')
+  findAllBySlug(params, configuration = {}) {
     if (typeof configuration.cursor !== 'undefined') {
-      query.index = configuration.cursor;
-      query.uri = configuration.uri;
+      params.index = configuration.cursor;
+      params.uri = configuration.uri;
     }
-    return this.store.query(this.getModelName(), query).then(items => {
+    return this.store.query(this.getModelName(), params).then(items => {
       items.forEach(item => {
         // swap out the id for the services id
         // so we can then assign the proxy to it if it exists
@@ -37,17 +35,18 @@ export default class ProxyService extends RepositoryService {
     });
   }
 
-  findInstanceBySlug(id, node, slug, dc, nspace, configuration) {
-    return this.findAllBySlug(slug, dc, nspace, configuration).then(function(items) {
+  @dataSource('/:ns/:dc/proxy-instance/:serviceId/:node/:id')
+  findInstanceBySlug(params, nspace, configuration) {
+    return this.findAllBySlug(params, configuration).then(function(items) {
       let res = {};
       if (get(items, 'length') > 0) {
         let instance = items
-          .filterBy('ServiceProxy.DestinationServiceID', id)
-          .findBy('NodeName', node);
+          .filterBy('ServiceProxy.DestinationServiceID', params.serviceId)
+          .findBy('NodeName', params.node);
         if (instance) {
           res = instance;
         } else {
-          instance = items.findBy('ServiceProxy.DestinationServiceName', slug);
+          instance = items.findBy('ServiceProxy.DestinationServiceName', params.id);
           if (instance) {
             res = instance;
           }

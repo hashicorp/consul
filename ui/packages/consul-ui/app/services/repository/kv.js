@@ -2,6 +2,7 @@ import RepositoryService from 'consul-ui/services/repository';
 import isFolder from 'consul-ui/utils/isFolder';
 import { get } from '@ember/object';
 import { PRIMARY_KEY } from 'consul-ui/models/kv';
+import dataSource from 'consul-ui/decorators/data-source';
 
 const modelName = 'kv';
 export default class KvService extends RepositoryService {
@@ -14,53 +15,44 @@ export default class KvService extends RepositoryService {
   }
 
   // this one gives you the full object so key,values and meta
-  findBySlug(key, dc, nspace, configuration = {}) {
-    if (isFolder(key)) {
+  @dataSource('/:ns/:dc/kv/*id')
+  findBySlug(params, configuration = {}) {
+    if (isFolder(params.id)) {
       // TODO: This very much shouldn't be here,
       // needs to eventually use ember-datas generateId thing
       // in the meantime at least our fingerprinter
-      const id = JSON.stringify([nspace, dc, key]);
-      let item = this.store.peekRecord(this.getModelName(), id);
+      const uid = JSON.stringify([params.ns, params.dc, params.id]);
+      let item = this.store.peekRecord(this.getModelName(), uid);
       if (!item) {
         item = this.create({
-          Key: key,
-          Datacenter: dc,
-          Namespace: nspace,
+          Key: params.id,
+          Datacenter: params.dc,
+          Namespace: params.ns,
         });
       }
       return Promise.resolve(item);
     }
-    const query = {
-      id: key,
-      dc: dc,
-      ns: nspace,
-    };
     if (typeof configuration.cursor !== 'undefined') {
-      query.index = configuration.cursor;
+      params.index = configuration.cursor;
     }
-    return this.store.queryRecord(this.getModelName(), query);
+    return this.store.queryRecord(this.getModelName(), params);
   }
 
   // this one only gives you keys
   // https://www.consul.io/api/kv.html
-  findAllBySlug(key, dc, nspace, configuration = {}) {
-    if (key === '/') {
-      key = '';
+  findAllBySlug(params, configuration = {}) {
+    if (params.id === '/') {
+      params.id = '';
     }
-    const query = {
-      id: key,
-      dc: dc,
-      ns: nspace,
-      separator: '/',
-    };
+    params.separator = '/';
     if (typeof configuration.cursor !== 'undefined') {
-      query.index = configuration.cursor;
+      params.index = configuration.cursor;
     }
     return this.store
-      .query(this.getModelName(), query)
+      .query(this.getModelName(), params)
       .then(function(items) {
         return items.filter(function(item) {
-          return key !== get(item, 'Key');
+          return params.id !== get(item, 'Key');
         });
       })
       .catch(e => {
@@ -71,8 +63,8 @@ export default class KvService extends RepositoryService {
           // TODO: This very much shouldn't be here,
           // needs to eventually use ember-datas generateId thing
           // in the meantime at least our fingerprinter
-          const id = JSON.stringify([dc, key]);
-          const record = this.store.peekRecord(this.getModelName(), id);
+          const uid = JSON.stringify([params.ns, params.dc, params.id]);
+          const record = this.store.peekRecord(this.getModelName(), uid);
           if (record) {
             record.unloadRecord();
           }

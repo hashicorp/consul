@@ -21,15 +21,21 @@ export default class EditRoute extends SingleRoute.extend(WithPolicyActions) {
         ...model,
         ...{
           routeName: this.routeName,
-          items: tokenRepo.findByPolicy(get(model.item, 'ID'), dc, nspace).catch(function(e) {
-            switch (get(e, 'errors.firstObject.status')) {
-              case '403':
-              case '401':
-                // do nothing the SingleRoute will have caught it already
-                return;
-            }
-            throw e;
-          }),
+          items: tokenRepo
+            .findByPolicy({
+              ns: nspace,
+              dc: dc,
+              id: get(model.item, 'ID'),
+            })
+            .catch(function(e) {
+              switch (get(e, 'errors.firstObject.status')) {
+                case '403':
+                case '401':
+                  // do nothing the SingleRoute will have caught it already
+                  return;
+              }
+              throw e;
+            }),
         },
       });
     });

@@ -1,15 +1,19 @@
 import { inject as service } from '@ember/service';
 import RepositoryService from 'consul-ui/services/repository';
+import dataSource from 'consul-ui/decorators/data-source';
 
 // CONSUL_METRICS_POLL_INTERVAL controls how long between each poll to the
 // metrics provider
-
 export default class MetricsService extends RepositoryService {
   @service('ui-config') config;
   @service('env') env;
   @service('client/http') client;
 
   error = null;
+
+  getModelName() {
+    return 'metrics';
+  }
 
   init() {
     super.init(...arguments);
@@ -34,13 +38,26 @@ export default class MetricsService extends RepositoryService {
     }
   }
 
-  findServiceSummary(protocol, slug, dc, nspace, configuration = {}) {
+  @dataSource('/:ns/:dc/metrics/summary-for-service/:slug/:protocol')
+  findServiceSummary(params, configuration = {}) {
     if (this.error) {
       return Promise.reject(this.error);
     }
     const promises = [
-      this.provider.serviceRecentSummarySeries(slug, dc, nspace, protocol, {}),
-      this.provider.serviceRecentSummaryStats(slug, dc, nspace, protocol, {}),
+      this.provider.serviceRecentSummarySeries(
+        params.slug,
+        params.dc,
+        params.ns,
+        params.protocol,
+        {}
+      ),
+      this.provider.serviceRecentSummaryStats(
+        params.slug,
+        params.dc,
+        params.ns,
+        params.protocol,
+        {}
+      ),
     ];
     return Promise.all(promises).then(results => {
       return {
@@ -53,27 +70,33 @@ export default class MetricsService extends RepositoryService {
     });
   }
 
-  findUpstreamSummary(slug, dc, nspace, configuration = {}) {
+  @dataSource('/:ns/:dc/metrics/upstream-summary-for-service/:slug/:protocol')
+  findUpstreamSummary(params, configuration = {}) {
     if (this.error) {
       return Promise.reject(this.error);
     }
-    return this.provider.upstreamRecentSummaryStats(slug, dc, nspace, {}).then(result => {
-      result.meta = {
-        interval: this.env.var('CONSUL_METRICS_POLL_INTERVAL') || 10000,
-      };
-      return result;
-    });
+    return this.provider
+      .upstreamRecentSummaryStats(params.slug, params.dc, params.ns, {})
+      .then(result => {
+        result.meta = {
+          interval: this.env.var('CONSUL_METRICS_POLL_INTERVAL') || 10000,
+        };
+        return result;
+      });
   }
 
-  findDownstreamSummary(slug, dc, nspace, configuration = {}) {
+  @dataSource('/:ns/:dc/metrics/downstream-summary-for-service/:slug/:protocol')
+  findDownstreamSummary(params, configuration = {}) {
     if (this.error) {
       return Promise.reject(this.error);
     }
-    return this.provider.downstreamRecentSummaryStats(slug, dc, nspace, {}).then(result => {
-      result.meta = {
-        interval: this.env.var('CONSUL_METRICS_POLL_INTERVAL') || 10000,
-      };
-      return result;
-    });
+    return this.provider
+      .downstreamRecentSummaryStats(params.slug, params.dc, params.ns, {})
+      .then(result => {
+        result.meta = {
+          interval: this.env.var('CONSUL_METRICS_POLL_INTERVAL') || 10000,
+        };
+        return result;
+      });
   }
 }

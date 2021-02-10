@@ -1,5 +1,6 @@
 import RepositoryService from 'consul-ui/services/repository';
 import { PRIMARY_KEY, SLUG_KEY } from 'consul-ui/models/nspace';
+import dataSource from 'consul-ui/decorators/data-source';
 
 const modelName = 'nspace';
 export default class NspaceService extends RepositoryService {
@@ -37,7 +38,8 @@ export default class NspaceService extends RepositoryService {
     return res;
   }
 
-  findAll(configuration = {}) {
+  @dataSource('/:ns/:dc/namespaces')
+  findAll(params, configuration = {}) {
     const query = {};
     if (typeof configuration.cursor !== 'undefined') {
       query.index = configuration.cursor;

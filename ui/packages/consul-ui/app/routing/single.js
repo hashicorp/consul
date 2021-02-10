@@ -27,7 +27,11 @@ export default Route.extend({
                 Namespace: nspace,
               })
             )
-          : repo.findBySlug(params.id, dc, nspace),
+          : repo.findBySlug({
+              ns: nspace,
+              dc: dc,
+              id: params.id,
+            }),
       }),
     });
   },

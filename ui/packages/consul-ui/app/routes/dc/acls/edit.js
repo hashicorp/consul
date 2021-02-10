@@ -13,7 +13,10 @@ export default class EditRoute extends Route.extend(WithAclActions) {
 
   model(params) {
     return hash({
-      item: this.repo.findBySlug(params.id, this.modelFor('dc').dc.Name),
+      item: this.repo.findBySlug({
+        dc: this.modelFor('dc').dc.Name,
+        id: params.id,
+      }),
       types: ['management', 'client'],
     });
   }

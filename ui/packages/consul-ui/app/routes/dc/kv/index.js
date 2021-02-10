@@ -31,20 +31,30 @@ export default class IndexRoute extends Route {
     const dc = this.modelFor('dc').dc.Name;
     const nspace = this.modelFor('nspace').nspace.substr(1);
     return hash({
-      parent: this.repo.findBySlug(key, dc, nspace),
+      parent: this.repo.findBySlug({
+        ns: nspace,
+        dc: dc,
+        id: key,
+      }),
     }).then(model => {
       return hash({
         ...model,
         ...{
-          items: this.repo.findAllBySlug(get(model.parent, 'Key'), dc, nspace).catch(e => {
-            const status = get(e, 'errors.firstObject.status');
-            switch (status) {
-              case '403':
-                return this.transitionTo('dc.acls.tokens');
-              default:
-                return this.transitionTo('dc.kv.index');
-            }
-          }),
+          items: this.repo
+            .findAllBySlug({
+              ns: nspace,
+              dc: dc,
+              id: get(model.parent, 'Key'),
+            })
+            .catch(e => {
+              const status = get(e, 'errors.firstObject.status');
+              switch (status) {
+                case '403':
+                  return this.transitionTo('dc.acls.tokens');
+                default:
+                  return this.transitionTo('dc.kv.index');
+              }
+            }),
         },
       });
     });

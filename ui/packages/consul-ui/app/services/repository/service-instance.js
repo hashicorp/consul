@@ -1,6 +1,7 @@
 import RepositoryService from 'consul-ui/services/repository';
 import { inject as service } from '@ember/service';
 import { set } from '@ember/object';
+import dataSource from 'consul-ui/decorators/data-source';
 
 const modelName = 'service-instance';
 export default class ServiceInstanceService extends RepositoryService {
@@ -9,35 +10,26 @@ export default class ServiceInstanceService extends RepositoryService {
     return modelName;
   }
 
-  async findByService(slug, dc, nspace, configuration = {}) {
-    const query = {
-      dc: dc,
-      ns: nspace,
-      id: slug,
-    };
+  @dataSource('/:ns/:dc/service-instances/for-service/:id')
+  async findByService(params, configuration = {}) {
     if (typeof configuration.cursor !== 'undefined') {
-      query.index = configuration.cursor;
-      query.uri = configuration.uri;
+      params.index = configuration.cursor;
+      params.uri = configuration.uri;
     }
-    return this.store.query(this.getModelName(), query);
+    return this.store.query(this.getModelName(), params);
   }
 
-  async findBySlug(serviceId, node, service, dc, nspace, configuration = {}) {
-    const query = {
-      dc: dc,
-      ns: nspace,
-      serviceId: serviceId,
-      node: node,
-      id: service,
-    };
+  @dataSource('/:ns/:dc/service-instance/:serviceId/:node/:id')
+  async findBySlug(params, configuration = {}) {
     if (typeof configuration.cursor !== 'undefined') {
-      query.index = configuration.cursor;
-      query.uri = configuration.uri;
+      params.index = configuration.cursor;
+      params.uri = configuration.uri;
     }
-    return this.store.queryRecord(this.getModelName(), query);
+    return this.store.queryRecord(this.getModelName(), params);
   }
 
-  async findProxyBySlug(serviceId, node, service, dc, nspace, configuration = {}) {
+  @dataSource('/:ns/:dc/proxy-service-instance/:serviceId/:node/:id')
+  async findProxyBySlug(params, configuration = {}) {
     const instance = await this.findBySlug(...arguments);
     let proxy = this.store.peekRecord('proxy', instance.uid);
     // Currently, we call the proxy endpoint before this endpoint
