@@ -1,0 +1,3 @@
+```release-note:bug
+ui: Exclude proxies when showing the total number of instances on a node.
+```
