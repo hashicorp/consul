@@ -1171,12 +1171,16 @@ func (d *DNSServer) trimDNSResponse(cfg *dnsConfig, network string, req, resp *d
 
 // lookupServiceNodes returns nodes with a given service.
 func (d *DNSServer) lookupServiceNodes(cfg *dnsConfig, lookup serviceLookup) (structs.IndexedCheckServiceNodes, error) {
+	serviceTags := []string{}
+	if lookup.Tag != "" {
+		serviceTags = []string{lookup.Tag}
+	}
 	args := structs.ServiceSpecificRequest{
 		Connect:     lookup.Connect,
 		Ingress:     lookup.Ingress,
 		Datacenter:  lookup.Datacenter,
 		ServiceName: lookup.Service,
-		ServiceTags: []string{lookup.Tag},
+		ServiceTags: serviceTags,
 		TagFilter:   lookup.Tag != "",
 		QueryOptions: structs.QueryOptions{
 			Token:            d.agent.tokens.UserToken(),

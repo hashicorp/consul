@@ -50,7 +50,6 @@ func (c *Client) getServiceNodes(
 ) (structs.IndexedCheckServiceNodes, cache.ResultMeta, error) {
 	var out structs.IndexedCheckServiceNodes
 
-	req.ServiceName = strings.ToLower(req.ServiceName)
 	if !req.QueryOptions.UseCache {
 		err := c.NetRPC.RPC("Health.ServiceNodes", &req, &out)
 		return out, cache.ResultMeta{}, err
@@ -75,19 +74,12 @@ func (c *Client) getServiceNodes(
 }
 
 func filterTags(out *structs.IndexedCheckServiceNodes, req structs.ServiceSpecificRequest) structs.IndexedCheckServiceNodes {
-	if len(req.ServiceTags) == 0 || len(out.Nodes) == 0 {
+	if !req.TagFilter || len(req.ServiceTags) == 0 || len(out.Nodes) == 0 {
 		return *out
 	}
 	tags := make([]string, 0, len(req.ServiceTags))
 	for _, r := range req.ServiceTags {
-		// DNS has the bad habit to setting [""] for ServiceTags
-		if r != "" {
-			tags = append(tags, strings.ToLower(r))
-		}
-	}
-	// No need to filter
-	if len(tags) == 0 {
-		return *out
+		tags = append(tags, strings.ToLower(r))
 	}
 	results := make(structs.CheckServiceNodes, 0, len(out.Nodes))
 	for _, service := range out.Nodes {
