@@ -67,25 +67,30 @@ func formatIndexer(buf *bytes.Buffer, indexer memdb.Indexer) {
 	for i := 0; i < typ.NumField(); i++ {
 		fmt.Fprintf(buf, " %v=", typ.Field(i).Name)
 
-		field := v.Field(i)
-		switch typ.Field(i).Type.Kind() {
-		case reflect.Slice:
-			buf.WriteString("[")
-			for j := 0; j < field.Len(); j++ {
-				if j != 0 {
-					buf.WriteString(", ")
-				}
-				// TODO: handle other types of slices
-				formatIndexer(buf, v.Field(i).Index(j).Interface().(memdb.Indexer))
+		formatField(buf, v.Field(i))
+	}
+}
+
+func formatField(buf *bytes.Buffer, field reflect.Value) {
+	switch field.Type().Kind() {
+	case reflect.Slice:
+		buf.WriteString("[")
+		for j := 0; j < field.Len(); j++ {
+			if j != 0 {
+				buf.WriteString(", ")
 			}
-			buf.WriteString("]")
-		case reflect.Func:
-			// Functions are printed as pointer addresses, which change frequently.
-			// Instead use the name.
-			buf.WriteString(runtime.FuncForPC(field.Pointer()).Name())
-		default:
-			fmt.Fprintf(buf, "%v", field)
+			// TODO: handle other types of slices
+			formatIndexer(buf, field.Index(j).Interface().(memdb.Indexer))
 		}
+		buf.WriteString("]")
+	case reflect.Func:
+		// Functions are printed as pointer addresses, which change frequently.
+		// Instead use the name.
+		buf.WriteString(runtime.FuncForPC(field.Pointer()).Name())
+	case reflect.Interface:
+		formatField(buf, field.Elem())
+	default:
+		fmt.Fprintf(buf, "%v", field)
 	}
 }
 

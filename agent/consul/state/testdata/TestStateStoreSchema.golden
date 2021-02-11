@@ -52,7 +52,7 @@ table=checks
   index=node allow-missing
     indexer=github.com/hashicorp/go-memdb.StringFieldIndex Field=Node Lowercase=true
   index=node_service allow-missing
-    indexer=github.com/hashicorp/consul/agent/consul/state.indexerSingle fromArgsIndexer=github.com/hashicorp/consul/agent/consul/state.indexFromSingleArg.func1 fromObjectIndexer=github.com/hashicorp/consul/agent/consul/state.indexNodeServiceFromHealthCheck
+    indexer=github.com/hashicorp/consul/agent/consul/state.indexerSingle readIndex=github.com/hashicorp/consul/agent/consul/state.indexFromNodeServiceQuery writeIndex=github.com/hashicorp/consul/agent/consul/state.indexNodeServiceFromHealthCheck
   index=service allow-missing
     indexer=github.com/hashicorp/go-memdb.StringFieldIndex Field=ServiceName Lowercase=true
   index=status

@@ -174,8 +174,8 @@ func checksTableSchema() *memdb.TableSchema {
 				AllowMissing: true,
 				Unique:       false,
 				Indexer: indexerSingle{
-					fromArgsIndexer:   indexFromSingleArg(indexFromNodeServiceQuery),
-					fromObjectIndexer: indexFromObject(indexNodeServiceFromHealthCheck),
+					readIndex:  readIndex(indexFromNodeServiceQuery),
+					writeIndex: writeIndex(indexNodeServiceFromHealthCheck),
 				},
 			},
 		},
