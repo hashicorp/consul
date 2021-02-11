@@ -229,5 +229,6 @@ to each cluster and can be looked up by examining the `TrustDomain` field in
 the [List CA Roots](/api-docs/connect/ca#list-ca-root-certificates) endpoint.
 
 The contents of the generated cert and private key files from the above step should then be used with
-the [Update CA Configuration](/api/connect/ca#update-ca-configuration) endpoint to enable using the new CA for
-any future requests.
+the [Update CA Configuration](/api/connect/ca#update-ca-configuration) endpoint. Once the CA configuration is
+updated on the primary datacenter, all secondary datacenters will pick up the changes and regenerate their intermediate
+and leaf certificates, after which any new requests that require certificate verification will succeed.
