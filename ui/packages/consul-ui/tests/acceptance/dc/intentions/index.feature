@@ -10,6 +10,20 @@ Feature: dc / intentions / index
     Then the url should be /dc-1/intentions
     And the title should be "Intentions - Consul"
     Then I see 3 intention models on the intentionList component
+  Scenario: Viewing intentions with no write access
+    Given 1 datacenter model with the value "dc-1"
+    And 3 intention models
+    And permissions from yaml
+    ---
+    intention:
+      write: false
+    ---
+    When I visit the intentions page for yaml
+    ---
+      dc: dc-1
+    ---
+    Then the url should be /dc-1/intentions
+    And I don't see create
   Scenario: Viewing intentions in the listing live updates
     Given 1 datacenter model with the value "dc-1"
     Given 3 intention models
