@@ -211,3 +211,24 @@ servers.
 Currently both Consul and Vault CA providers _do_ support cross signing. As more
 providers are added this documentation will list any that this section applies
 to.
+
+### Recovering From Expired Certificates
+If the built-in CA provider is misconfigured or unavailable, Consul service mesh requests eventually
+stop functioning due to expiration of intermediate and root certificates. To recover manually, use the
+[CLI helper](/commands/tls/ca#consul-tls-ca-create) to generate CA certificates.
+
+
+#### Example - Regenerating the built in CA
+```shell-session
+$ consul tls ca create -cluster-id test -common-name "Consul Agent CA" -days=365 -domain consul
+  ==> Saved consul-agent-ca.pem
+  ==> Saved consul-agent-ca-key.pem
+```
+The example above generates a new CA with a validity of 365 days. The cluster-id argument is specific
+to each cluster and can be looked up by examining the `TrustDomain` field in
+the [List CA Roots](/api-docs/connect/ca#list-ca-root-certificates) endpoint.
+
+The contents of the generated cert and private key files from the above step should then be used with
+the [Update CA Configuration](/api/connect/ca#update-ca-configuration) endpoint. Once the CA configuration is
+updated on the primary datacenter, all secondary datacenters will pick up the changes and regenerate their intermediate
+and leaf certificates, after which any new requests that require certificate verification will succeed.
