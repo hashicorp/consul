@@ -143,6 +143,16 @@ components:
           options:
             local: Creates local tokens
             global: Creates global tokens
+      definition-list:
+        Type: Type
+        MaxTokenTTL: Maximum token TTL
+        TokenLocality: Token locality
+        DisplayName: Display Name
+        Description: Description
+        config:
+          Host: Host
+          CACert: CA Cert
+          ServiceAccountJWT: Service account JSON Web Token
     kv:
       search-bar:
         kind:

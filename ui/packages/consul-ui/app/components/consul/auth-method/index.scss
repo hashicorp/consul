@@ -4,3 +4,36 @@
     margin-right: 4px;
   }
 }
+
+.consul-auth-method-definition-list {
+  font-size: $typo-size-600;
+  display: grid;
+  dl {
+    padding: 15px 0;
+    border-top: 1px solid $gray-300 !important;
+    display: flex;
+    flex-wrap: wrap;
+    overflow-x: hidden !important;
+  }
+  dl:last-child {
+    border-bottom: 1px solid $gray-300 !important;
+  }
+  dt {
+    font-weight: $typo-weight-bold;
+    width: 20%;
+  }
+  dd {
+    color: $black !important;
+    margin-left: auto;
+    width: 80%;
+    display: flex;
+  }
+  dl.cert dd {
+    background-color: $gray-050;
+    color: $gray-600;
+    position: relative;
+  }
+  dl.cert dd pre {
+    margin-right: 40px;
+  }
+}
