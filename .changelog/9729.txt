@@ -1,0 +1,3 @@
+```release-note:improvement
+ui: Use older (~2016) native ES6 features to reduce transpilation and UI JS payload
+```
