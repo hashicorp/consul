@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/serf/serf"
 )
 
-// FloodAddrPortFn gets the address and port to use for a given server when
+// FloodAddrFn gets the address and port to use for a given server when
 // flood-joining. This will return false if it doesn't have one.
 type FloodAddrFn func(*metadata.Server) (string, error)
 
