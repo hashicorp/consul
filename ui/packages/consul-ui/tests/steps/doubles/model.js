@@ -27,7 +27,6 @@ export default function(scenario, create, set, win = window, doc = document) {
       doc.cookie = `CONSUL_UI_CONFIG=${JSON.stringify(data)}`;
     })
     .given(['permissions from yaml\n$yaml'], function(data) {
-      const resources = [];
       Object.entries(data).forEach(([key, value]) => {
         const resource = `CONSUL_RESOURCE_${key.toUpperCase()}`;
         Object.entries(value).forEach(([key, value]) => {
