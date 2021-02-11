@@ -17,6 +17,7 @@ as |item index|>
         More
       </BlockSlot>
       <BlockSlot @name="menu" as |confirm send keypressClick|>
+      {{#if (can 'write kv' item=item)}}
           <li role="none">
             <a data-test-edit role="menuitem" tabindex="-1" href={{href-to (if item.isFolder 'dc.kv.folder' 'dc.kv.edit') item.Key}}>{{if item.isFolder 'View' 'Edit'}}</a>
           </li>
@@ -55,6 +56,11 @@ as |item index|>
               </InformedAction>
             </div>
           </li>
+        {{else}}
+          <li role="none">
+            <a data-test-edit role="menuitem" tabindex="-1" href={{href-to (if item.isFolder 'dc.kv.folder' 'dc.kv.edit') item.Key}}>View</a>
+          </li>
+        {{/if}}
       </BlockSlot>
     </PopoverMenu>
   </BlockSlot>
