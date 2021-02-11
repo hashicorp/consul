@@ -1,0 +1,8 @@
+/*
+hack to fix overflow scrollbar issue,
+we should move this to @hashicorp/react-docs-page:
+https://github.com/hashicorp/react-components/blob/9618f185141dcfaf4c0ee80828f2f7a65a685289/packages/docs-page/style.css#L19
+*/
+#__next #p-docs #inner {
+  overflow: unset;
+}

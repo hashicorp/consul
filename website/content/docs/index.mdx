@@ -8,13 +8,75 @@ description: >-
 
 # Consul Documentation
 
-Welcome to the Consul documentation! The documentation is reference material
-for all available features and options of Consul
+<p className="g-type-body-large">
+  Documentation, guides, and help topics for network operators, application
+  developers, and engineers. Covers using service discovery, health checks, mTLS
+  encryption, and everything you need to make the most of Consul.
+</p>
 
-In the Quick Links below, you will find the most commonly used documentation
-and a link to our guides that walk you through common tasks. Note that the
-guides are located on the HashiCorp Learn site.
+## What is Consul?
 
-- Follow [the documentation](/docs/install) to install Consul either with a precompiled binary or from source.
-- Read more about the [configuration options](/docs/agent/options) for Consul servers and clients.
-- Get started using Consul with our step-by-step guides at [HashiCorp Learn](https://learn.hashicorp.com/consul).
+Consul is a service mesh solution providing a full featured control plane with service discovery, configuration, and segmentation functionality.
+
+<VideoModalCta
+  title="Introduction to HashiCorp Consul"
+  presenter="Armon Dadgar"
+  presenterRole="HashiCorp CTO and Co-founder"
+  videoEmbedSrc="https://www.youtube.com/embed/mxeMdl0KvBI"
+  brand="consul"
+/>
+
+## Getting started with Consul
+
+<Cards>
+  <Card
+    icon="video"
+    url="https://learn.hashicorp.com/tutorials/consul/get-started-install"
+    brand="consul"
+    themedCard={true}
+  >
+    <strong>View tutorial</strong> to use Consul on your local machine.
+  </Card>
+  <Card icon="download" url="/docs/install" brand="consul" themedCard={true}>
+    <strong>Install Consul</strong> using precompiled binaries or source.
+  </Card>
+</Cards>
+
+## Featured resources
+
+<Cards>
+  <Card
+    label="Demo"
+    url="https://www.hashicorp.com/resources/connecting-apps-across-the-cloud"
+    brand="consul"
+  >
+    <strong>Learn how</strong> to connect apps across a multi-cloud environment
+    using Consul.
+  </Card>
+  <Card
+    label="Customer Story"
+    url="https://www.hashicorp.com/case-studies/mercedes"
+    brand="consul"
+  >
+    <strong>Read how</strong> Mercedes-Benz deployed Consul for service
+    networking.
+  </Card>
+  <Card
+    label="Certification"
+    url="https://www.hashicorp.com/certification/consul-associate"
+    brand="consul"
+  >
+    <strong>Become certified</strong> with HashiCorp Networking Automation
+    Certification.
+  </Card>
+</Cards>
+
+<Button
+  title="View all Consul resources"
+  url="https://www.hashicorp.com/resources?product=Consul&language=English"
+  linkType="inbound"
+  theme={{
+    variant: 'tertiary-neutral',
+    brand: 'consul',
+  }}
+/>

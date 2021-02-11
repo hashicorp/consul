@@ -7,8 +7,19 @@ import {
 } from '@hashicorp/react-docs-page/server'
 import ConfigEntryReference from 'components/config-entry-reference'
 
+import Button from '@hashicorp/react-button'
+import VideoModalCta from '../../components/introduction'
+import Card from '../../components/card'
+import Cards from '../../components/cards'
+
 const subpath = 'docs'
-const additionalComponents = { ConfigEntryReference }
+const additionalComponents = {
+  ConfigEntryReference,
+  Button,
+  VideoModalCta,
+  Card,
+  Cards,
+}
 
 export default function DocsLayout(props) {
   return (

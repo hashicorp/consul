@@ -1,0 +1,44 @@
+.card {
+  display: inline-block;
+  margin: 0;
+  padding: 16px 20px;
+  border: 1px solid var(--border-color);
+  background-color: var(--background-color);
+  border-radius: 3px;
+  color: black;
+  transition: all 0.15s linear;
+  hyphens: auto;
+
+  &:hover {
+    box-shadow: 0 8px 12px rgba(37, 38, 45, 0.08);
+    transform: translateY(-2px);
+  }
+}
+
+.icon {
+  margin-bottom: 20px;
+
+  & > svg {
+    display: block;
+
+    & [stroke] {
+      stroke: var(--brand);
+    }
+  }
+}
+
+.label {
+  composes: g-type-label from global;
+  display: block;
+  margin-bottom: 8px;
+  color: var(--gray-4);
+}
+
+.cardContent {
+  composes: g-type-body-small-strong from global;
+  display: block;
+
+  & > strong {
+    color: var(--brand-text);
+  }
+}
