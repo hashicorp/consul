@@ -1,0 +1,3 @@
+```release-note:bug
+ui: Fixed a bug in older browsers relating to String.replaceAll and fieldset w/flexbox usage
+```
