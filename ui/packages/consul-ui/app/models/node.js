@@ -1,5 +1,6 @@
 import Model, { attr, hasMany } from '@ember-data/model';
 import { computed } from '@ember/object';
+import { filter } from '@ember/object/computed';
 import { fragmentArray } from 'ember-data-model-fragments/attributes';
 
 export const PRIMARY_KEY = 'uid';
@@ -18,8 +19,13 @@ export default class Node extends Model {
   @attr() meta; // {}
   @attr() Meta; // {}
   @attr() TaggedAddresses; // {lan, wan}
+  // Services are reshaped to a different shape to what you sometimes get from
+  // the response, see models/node.js
   @hasMany('service-instance') Services; // TODO: Rename to ServiceInstances
   @fragmentArray('health-check') Checks;
+  // MeshServiceInstances are all instances that aren't connect-proxies this
+  // currently includes gateways as these need to show up in listings
+  @filter('Services', item => item.Service.Kind !== 'connect-proxy') MeshServiceInstances;
 
   @computed('Checks.[]', 'ChecksCritical', 'ChecksPassing', 'ChecksWarning')
   get Status() {
