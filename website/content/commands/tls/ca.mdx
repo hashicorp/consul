@@ -40,3 +40,8 @@ Usage: `consul tls ca create [filename-prefix] [options]`
   will be added to the allowed DNS. If the UI is going to be served over HTTPS
   its DNS has to be added with `-additional-constraint`. It is not possible to
   add that after the fact! Defaults to false.
+
+- `cluster-id` - ClusterID of the consul cluster, requires `-domain` to be set as well.
+   When used this will cause URIs to be set with spiffeid.
+
+- `common-name` - Common Name of CA. Defaults to Consul Agent CA.
