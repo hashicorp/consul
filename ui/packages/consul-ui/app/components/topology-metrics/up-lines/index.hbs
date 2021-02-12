@@ -1,7 +1,6 @@
-{{on-window 'resize' (action this.getIconPositions)}}
-
 {{#if (gt @lines.length 0)}}
   <svg
+    {{on-resize this.getIconPositions }}
     {{did-insert this.getIconPositions}}
     {{did-update this.getIconPositions @lines}}
     viewBox={{concat @center.x ' ' @view.y ' ' @view.width ' ' @view.height}}
