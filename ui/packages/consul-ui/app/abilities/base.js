@@ -6,6 +6,13 @@ export const ACCESS_READ = 'read';
 export const ACCESS_WRITE = 'write';
 export const ACCESS_LIST = 'list';
 
+// None of the permission inspection here is namespace aware, this is due to
+// the fact that we only have one set of permission from one namespace at one
+// time, therefore all the permissions are relevant to the namespace you are
+// currently in, when you choose a different namespace we refresh the
+// permissions list. This is also fine for permission inspection for single
+// items/models as we only request the permissions for the namespace you are
+// in, we don't need to recheck that namespace here
 export default class BaseAbility extends Ability {
   @service('repository/permission') permissions;
 
