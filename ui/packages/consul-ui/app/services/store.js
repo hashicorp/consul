@@ -63,8 +63,8 @@ export default class StoreService extends Store {
     });
   }
 
-  // TODO: This one is only for nspaces and OIDC, should fail nicely if you call it
-  // for anything other than nspaces/OIDC for good DX
+  // TODO: This one is only for permissions and OIDC, should fail nicely if you call it
+  // for anything other than permissions/OIDC for good DX
   authorize(modelName, query = {}) {
     const adapter = this.adapterFor(modelName);
     const serializer = this.serializerFor(modelName);
