@@ -1062,6 +1062,85 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "ingress-gateway: custom tracing",
+			body: `
+			{
+				"Kind": "ingress-gateway",
+				"Name": "ingress-web",
+				"TracingStrategy": "client_sampling",
+				"TracingPercentage": 42.0,
+				"Meta" : {
+					"foo": "bar",
+					"gir": "zim"
+				},
+				"Tls": {
+					"Enabled": true
+				},
+				"Listeners": [
+					{
+						"Port": 8080,
+						"Protocol": "http",
+						"Services": [
+							{
+								"Name": "web",
+								"Namespace": "foo"
+							},
+							{
+								"Name": "db"
+							}
+						]
+					},
+					{
+						"Port": 9999,
+						"Protocol": "tcp",
+						"Services": [
+							{
+								"Name": "mysql"
+							}
+						]
+					}
+				]
+			}
+			`,
+			expect: &IngressGatewayConfigEntry{
+				Kind:              "ingress-gateway",
+				Name:              "ingress-web",
+				TracingStrategy:   "client_sampling",
+				TracingPercentage: 42.0,
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
+				TLS: GatewayTLSConfig{
+					Enabled: true,
+				},
+				Listeners: []IngressListener{
+					{
+						Port:     8080,
+						Protocol: "http",
+						Services: []IngressService{
+							{
+								Name:      "web",
+								Namespace: "foo",
+							},
+							{
+								Name: "db",
+							},
+						},
+					},
+					{
+						Port:     9999,
+						Protocol: "tcp",
+						Services: []IngressService{
+							{
+								Name: "mysql",
+							},
+						},
+					},
+				},
+			},
+		},
 	} {
 		tc := tc
 

@@ -2373,6 +2373,158 @@ func TestParseConfigEntry(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "ingress-gateway: custom tracing",
+			snake: `
+				kind               = "ingress-gateway"
+				name               = "ingress-web"
+				tracing_strategy   = "client_sampling"
+				tracing_percentage = 42.0
+				meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+				tls {
+					enabled = true
+				}
+				listeners = [
+					{
+						port = 8080
+						protocol = "http"
+						services = [
+							{
+								name = "web"
+								hosts = ["test.example.com"]
+							},
+							{
+								name = "db"
+								namespace = "foo"
+							}
+						]
+					}
+				]
+			`,
+			camel: `
+				Kind              = "ingress-gateway"
+				Name              = "ingress-web"
+				TracingStrategy   = "client_sampling"
+				TracingPercentage = 42.0
+				Meta {
+					"foo" = "bar"
+					"gir" = "zim"
+				}
+				Tls {
+					Enabled = true
+				}
+				Listeners = [
+					{
+						Port = 8080
+						Protocol = "http"
+						Services = [
+							{
+								Name = "web"
+								Hosts = ["test.example.com"]
+							},
+							{
+								Name = "db"
+								Namespace = "foo"
+							}
+						]
+					}
+				]
+			`,
+			snakeJSON: `
+			{
+				"kind": "ingress-gateway",
+				"name": "ingress-web",
+				"tracing_strategy": "client_sampling",
+				"tracing_percentage": 42.0,
+				"meta" : {
+					"foo": "bar",
+					"gir": "zim"
+				},
+				"tls": {
+					"enabled": true
+				},
+				"listeners": [
+					{
+						"port": 8080,
+						"protocol": "http",
+						"services": [
+							{
+								"name": "web",
+								"hosts": ["test.example.com"]
+							},
+							{
+								"name": "db",
+								"namespace": "foo"
+							}
+						]
+					}
+				]
+			}
+			`,
+			camelJSON: `
+			{
+				"Kind": "ingress-gateway",
+				"Name": "ingress-web",
+				"TracingStrategy": "client_sampling",
+				"TracingPercentage": 42.0,
+				"Meta" : {
+					"foo": "bar",
+					"gir": "zim"
+				},
+				"Tls": {
+					"Enabled": true
+				},
+				"Listeners": [
+					{
+						"Port": 8080,
+						"Protocol": "http",
+						"Services": [
+							{
+								"Name": "web",
+								"Hosts": ["test.example.com"]
+							},
+							{
+								"Name": "db",
+								"Namespace": "foo"
+							}
+						]
+					}
+				]
+			}
+			`,
+			expect: &api.IngressGatewayConfigEntry{
+				Kind:              "ingress-gateway",
+				Name:              "ingress-web",
+				TracingStrategy:   "client_sampling",
+				TracingPercentage: 42.0,
+				Meta: map[string]string{
+					"foo": "bar",
+					"gir": "zim",
+				},
+				TLS: api.GatewayTLSConfig{
+					Enabled: true,
+				},
+				Listeners: []api.IngressListener{
+					{
+						Port:     8080,
+						Protocol: "http",
+						Services: []api.IngressService{
+							{
+								Name:  "web",
+								Hosts: []string{"test.example.com"},
+							},
+							{
+								Name:      "db",
+								Namespace: "foo",
+							},
+						},
+					},
+				},
+			},
+		},
 	} {
 		tc := tc
 

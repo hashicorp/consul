@@ -210,8 +210,9 @@ func TestIngressConfigEntry_Validate(t *testing.T) {
 		{
 			name: "http features: wildcard",
 			entry: IngressGatewayConfigEntry{
-				Kind: "ingress-gateway",
-				Name: "ingress-web",
+				Kind:            "ingress-gateway",
+				Name:            "ingress-web",
+				TracingStrategy: "random_sampling",
 				Listeners: []IngressListener{
 					{
 						Port:     1111,
@@ -419,8 +420,9 @@ func TestIngressConfigEntry_Validate(t *testing.T) {
 		{
 			name: "wildcard specifier is only allowed in the leftmost label",
 			entry: IngressGatewayConfigEntry{
-				Kind: "ingress-gateway",
-				Name: "ingress-web",
+				Kind:            "ingress-gateway",
+				Name:            "ingress-web",
+				TracingStrategy: "random_sampling",
 				Listeners: []IngressListener{
 					{
 						Port:     1111,
@@ -478,8 +480,9 @@ func TestIngressConfigEntry_Validate(t *testing.T) {
 		{
 			name: "wildcard specifier is allowed for hosts when TLS is disabled",
 			entry: IngressGatewayConfigEntry{
-				Kind: "ingress-gateway",
-				Name: "ingress-web",
+				Kind:            "ingress-gateway",
+				Name:            "ingress-web",
+				TracingStrategy: "random_sampling",
 				Listeners: []IngressListener{
 					{
 						Port:     1111,

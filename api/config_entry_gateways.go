@@ -17,11 +17,11 @@ type IngressGatewayConfigEntry struct {
 	// TracingStrategy declares which trace sampling strategy to use on the listener.
 	// The value must be one of the sampling methods supported by Envoy Connection
 	// Manager.
-	TracingStrategy string
+	TracingStrategy string `alias:"tracing_strategy"`
 
 	// TracingPercentage is a value between 0 and 100 inclusive to determine the
 	// total percentage of incoming requests to sample.
-	TracingPercentage float64
+	TracingPercentage float64 `alias:"tracing_percentage"`
 
 	// TLS holds the TLS configuration for this gateway.
 	TLS GatewayTLSConfig
