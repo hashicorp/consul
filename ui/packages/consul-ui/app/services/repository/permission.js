@@ -115,7 +115,7 @@ export default class PermissionService extends RepositoryService {
     }
   }
 
-  async findBySlug(dc, nspace, model, segment) {
+  async findBySlug(segment, model, dc, nspace) {
     let ability;
     try {
       ability = this._can.abilityFor(model);

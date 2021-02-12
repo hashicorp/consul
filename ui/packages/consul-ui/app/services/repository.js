@@ -4,6 +4,7 @@ import { typeOf } from '@ember/utils';
 import { get, set } from '@ember/object';
 import { isChangeset } from 'validated-changeset';
 import HTTPError from 'consul-ui/utils/http/error';
+import { ACCESS_READ } from 'consul-ui/abilities/base';
 
 export default class RepositoryService extends Service {
   @service('store') store;
@@ -59,12 +60,15 @@ export default class RepositoryService extends Service {
     return this.store.query(this.getModelName(), query);
   }
 
-  async addResources(cb, slug, dc, nspace) {
+  async authorizeBySlug(cb, access, slug, dc, nspace) {
     // inspect the permissions for this segment/slug remotely, if we have zero
     // permissions fire a fake 403 so we don't even request the model/resource
-    const resources = await this.permissions.findBySlug(dc, nspace, this.getModelName(), slug);
-    if (resources.length > 0 && resources.every(item => item.Allow === false)) {
-      throw new HTTPError(403);
+    const resources = await this.permissions.findBySlug(slug, this.getModelName(), dc, nspace);
+    if (resources.length > 0) {
+      const resource = resources.find(item => item.Access === access);
+      if (resource && resource.Allow === false) {
+        throw new HTTPError(403);
+      }
     }
     const item = await cb();
     // add the `Resource` information to the record/model so we can inspect
@@ -85,8 +89,9 @@ export default class RepositoryService extends Service {
       query.index = configuration.cursor;
       query.uri = configuration.uri;
     }
-    return this.addResources(
+    return this.authorizeBySlug(
       () => this.store.queryRecord(this.getModelName(), query),
+      ACCESS_READ,
       slug,
       dc,
       nspace

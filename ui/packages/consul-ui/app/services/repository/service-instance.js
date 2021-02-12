@@ -1,6 +1,7 @@
 import RepositoryService from 'consul-ui/services/repository';
 import { inject as service } from '@ember/service';
 import { set } from '@ember/object';
+import { ACCESS_READ } from 'consul-ui/abilities/base';
 
 const modelName = 'service-instance';
 export default class ServiceInstanceService extends RepositoryService {
@@ -19,7 +20,13 @@ export default class ServiceInstanceService extends RepositoryService {
       query.index = configuration.cursor;
       query.uri = configuration.uri;
     }
-    return this.addResources(() => this.store.query(this.getModelName(), query), slug, dc, nspace);
+    return this.authorizeBySlug(
+      async () => this.store.query(this.getModelName(), query),
+      ACCESS_READ,
+      slug,
+      dc,
+      nspace
+    );
   }
 
   async findBySlug(serviceId, node, service, dc, nspace, configuration = {}) {
@@ -34,8 +41,9 @@ export default class ServiceInstanceService extends RepositoryService {
       query.index = configuration.cursor;
       query.uri = configuration.uri;
     }
-    return this.addResources(
-      () => this.store.queryRecord(this.getModelName(), query),
+    return this.authorizeBySlug(
+      async () => this.store.queryRecord(this.getModelName(), query),
+      ACCESS_READ,
       service,
       dc,
       nspace
