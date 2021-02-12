@@ -9,7 +9,7 @@ export default class ApplicationAdapter extends Adapter {
   @service('env') env;
 
   formatNspace(nspace) {
-    if (this.env.env('CONSUL_NSPACES_ENABLED')) {
+    if (this.env.var('CONSUL_NSPACES_ENABLED')) {
       return nspace !== '' ? { [NSPACE_QUERY_PARAM]: nspace } : undefined;
     }
   }
