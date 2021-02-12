@@ -68,6 +68,27 @@ export default class TopologyMetrics extends Component {
 
   // =actions
   @action
+  setHeight() {
+    if (document.querySelector('#downstream-container')) {
+      const downContainer = document.querySelector('#downstream-container').getBoundingClientRect();
+
+      document
+        .querySelector('#downstream-lines')
+        .setAttribute('style', `height:${downContainer.height}px`);
+    }
+
+    if (document.querySelector('#upstream-container')) {
+      const upContainer = document.querySelector('#upstream-container').getBoundingClientRect();
+
+      document
+        .querySelector('#upstream-lines')
+        .setAttribute('style', `height:${upContainer.height}px`);
+    }
+
+    this.calculate();
+  }
+
+  @action
   calculate() {
     if (this.args.isRemoteDC) {
       this.noMetricsReason = 'Unable to fetch metrics for a remote datacenter';

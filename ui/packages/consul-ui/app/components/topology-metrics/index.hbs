@@ -1,7 +1,7 @@
 <div
   {{on-resize this.calculate}}
-  {{did-insert this.calculate}}
-  {{did-update this.calculate @topology.Upstreams @topology.Downstreams}}
+  {{did-insert this.setHeight}}
+  {{did-update this.setHeight @topology.Upstreams @topology.Downstreams}}
   class="topology-container consul-topology-metrics"
 >
 {{#if (gt @topology.Downstreams.length 0)}}
