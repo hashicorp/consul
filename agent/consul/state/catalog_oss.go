@@ -69,6 +69,24 @@ func indexFromNodeQuery(arg interface{}) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
+func indexFromNodeIdentity(raw interface{}) ([]byte, error) {
+	n, ok := raw.(interface {
+		NodeIdentity() structs.Identity
+	})
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for index, type must provide NodeIdentity()", raw)
+	}
+
+	id := n.NodeIdentity()
+	if id.ID == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(id.ID))
+	return b.Bytes(), nil
+}
+
 func serviceIndexName(name string, _ *structs.EnterpriseMeta) string {
 	return fmt.Sprintf("service.%s", name)
 }
@@ -159,7 +177,7 @@ func catalogServiceListByKind(tx ReadTxn, kind structs.ServiceKind, _ *structs.E
 }
 
 func catalogServiceListByNode(tx ReadTxn, node string, _ *structs.EnterpriseMeta, _ bool) (memdb.ResultIterator, error) {
-	return tx.Get("services", "node", node)
+	return tx.Get(tableServices, indexNode, Query{Value: node})
 }
 
 func catalogServiceNodeList(tx ReadTxn, name string, index string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
@@ -196,8 +214,8 @@ func catalogChecksMaxIndex(tx ReadTxn, _ *structs.EnterpriseMeta) uint64 {
 	return maxIndexTxn(tx, "checks")
 }
 
-func catalogListChecksByNode(tx ReadTxn, node string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get("checks", "node", node)
+func catalogListChecksByNode(tx ReadTxn, q Query) (memdb.ResultIterator, error) {
+	return tx.Get(tableChecks, indexNode, q)
 }
 
 func catalogListChecksByService(tx ReadTxn, service string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
