@@ -1298,7 +1298,7 @@ func TestStateStore_DeleteNode(t *testing.T) {
 	// the DB to make sure it is actually gone.
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	services, err := getCompoundWithTxn(tx, "services", "id", nil, "node1", "service1")
+	services, err := tx.Get(tableServices, indexID, NodeServiceQuery{Node: "node1", Service: "service1"})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

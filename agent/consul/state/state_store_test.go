@@ -105,7 +105,7 @@ func testRegisterServiceWithChange(t *testing.T, s *Store, idx uint64, nodeID, s
 
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	_, service, err := firstWatchCompoundWithTxn(tx, "services", "id", nil, nodeID, serviceID)
+	_, service, err := tx.FirstWatch(tableServices, indexID, NodeServiceQuery{Node: nodeID, Service: serviceID})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -138,7 +138,7 @@ func testRegisterIngressService(t *testing.T, s *Store, idx uint64, nodeID, serv
 
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	_, service, err := firstWatchCompoundWithTxn(tx, "services", "id", nil, nodeID, serviceID)
+	_, service, err := tx.FirstWatch(tableServices, indexID, NodeServiceQuery{Node: nodeID, Service: serviceID})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

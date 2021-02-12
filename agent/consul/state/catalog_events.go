@@ -95,6 +95,7 @@ func serviceHealthSnapshot(db ReadDB, topic stream.Topic) stream.SnapshotFunc {
 	}
 }
 
+// TODO: this could use NodeServiceQuery
 type nodeServiceTuple struct {
 	Node      string
 	ServiceID string
@@ -569,7 +570,7 @@ func newServiceHealthEventForService(tx ReadTxn, idx uint64, tuple nodeServiceTu
 		return stream.Event{}, err
 	}
 
-	svc, err := getCompoundWithTxn(tx, "services", "id", &tuple.EntMeta, tuple.Node, tuple.ServiceID)
+	svc, err := tx.Get(tableServices, indexID, NodeServiceQuery{EnterpriseMeta: tuple.EntMeta, Node: tuple.Node, Service: tuple.ServiceID})
 	if err != nil {
 		return stream.Event{}, err
 	}
