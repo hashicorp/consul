@@ -1307,7 +1307,7 @@ func TestStateStore_DeleteNode(t *testing.T) {
 	}
 
 	// Associated health check was removed.
-	checks, err := getCompoundWithTxn(tx, "checks", "id", nil, "node1", "check1")
+	checks, err := tx.Get(tableChecks, indexID, NodeCheckID{Node: "node1", CheckID: "check1"})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -2067,7 +2067,7 @@ func TestStateStore_DeleteService(t *testing.T) {
 	// that it actually is removed in the state store.
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	_, check, err := firstWatchCompoundWithTxn(tx, "checks", "id", nil, "node1", "check1")
+	_, check, err := tx.FirstWatch(tableChecks, indexID, NodeCheckID{Node: "node1", CheckID: "check1"})
 	if err != nil || check != nil {
 		t.Fatalf("bad: %#v (err: %s)", check, err)
 	}

@@ -103,6 +103,38 @@ func indexFromServiceNode(raw interface{}) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
+func indexFromHealthCheck(raw interface{}) ([]byte, error) {
+	hc, ok := raw.(*structs.HealthCheck)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.HealthCheck index", raw)
+	}
+
+	if hc.Node == "" || hc.CheckID == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(hc.Node))
+	b.String(strings.ToLower(string(hc.CheckID)))
+	return b.Bytes(), nil
+}
+
+func indexFromNodeCheckID(raw interface{}) ([]byte, error) {
+	hc, ok := raw.(NodeCheckID)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for NodeCheckID index", raw)
+	}
+
+	if hc.Node == "" || hc.CheckID == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(hc.Node))
+	b.String(strings.ToLower(hc.CheckID))
+	return b.Bytes(), nil
+}
+
 func serviceIndexName(name string, _ *structs.EnterpriseMeta) string {
 	return fmt.Sprintf("service.%s", name)
 }
@@ -241,10 +273,6 @@ func catalogListChecksByService(tx ReadTxn, service string, _ *structs.Enterpris
 func catalogListChecksInState(tx ReadTxn, state string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	// simpler than normal due to the use of the CompoundMultiIndex
 	return tx.Get("checks", "status", state)
-}
-
-func catalogListChecks(tx ReadTxn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get("checks", "id")
 }
 
 func catalogInsertCheck(tx WriteTxn, chk *structs.HealthCheck, idx uint64) error {

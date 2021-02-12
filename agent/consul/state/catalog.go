@@ -194,7 +194,7 @@ func ensureNoNodeWithSimilarNameTxn(tx ReadTxn, node *structs.Node, allowClashWi
 		if strings.EqualFold(node.Node, enode.Node) && node.ID != enode.ID {
 			// Look up the existing node's Serf health check to see if it's failed.
 			// If it is, the node can be renamed.
-			_, enodeCheck, err := firstWatchCompoundWithTxn(tx, "checks", "id", structs.DefaultEnterpriseMeta(), enode.Node, string(structs.SerfCheckID))
+			_, enodeCheck, err := tx.FirstWatch(tableChecks, indexID, NodeCheckID{EnterpriseMeta: *structs.DefaultEnterpriseMeta(), Node: enode.Node, CheckID: string(structs.SerfCheckID)})
 			if err != nil {
 				return fmt.Errorf("Cannot get status of node %s: %s", enode.Node, err)
 			}
@@ -1471,7 +1471,7 @@ func (s *Store) ensureCheckCASTxn(tx WriteTxn, idx uint64, hc *structs.HealthChe
 // checks with no matching node or service.
 func (s *Store) ensureCheckTxn(tx WriteTxn, idx uint64, preserveIndexes bool, hc *structs.HealthCheck) error {
 	// Check if we have an existing health check
-	_, existing, err := firstWatchCompoundWithTxn(tx, "checks", "id", &hc.EnterpriseMeta, hc.Node, string(hc.CheckID))
+	_, existing, err := tx.FirstWatch(tableChecks, indexID, NodeCheckID{EnterpriseMeta: hc.EnterpriseMeta, Node: hc.Node, CheckID: string(hc.CheckID)})
 	if err != nil {
 		return fmt.Errorf("failed health check lookup: %s", err)
 	}
@@ -1578,8 +1578,13 @@ func getNodeCheckTxn(tx ReadTxn, nodeName string, checkID types.CheckID, entMeta
 	// Get the table index.
 	idx := catalogChecksMaxIndex(tx, entMeta)
 
+	// TODO: accept non-pointer value
+	if entMeta == nil {
+		entMeta = structs.DefaultEnterpriseMeta()
+	}
+
 	// Return the check.
-	_, check, err := firstWatchCompoundWithTxn(tx, "checks", "id", entMeta, nodeName, string(checkID))
+	_, check, err := tx.FirstWatch(tableChecks, indexID, NodeCheckID{EnterpriseMeta: *entMeta, Node: nodeName, CheckID: string(checkID)})
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed check lookup: %s", err)
 	}
@@ -1702,7 +1707,7 @@ func checksInStateTxn(tx ReadTxn, ws memdb.WatchSet, state string, entMeta *stru
 	var iter memdb.ResultIterator
 	var err error
 	if state == api.HealthAny {
-		iter, err = catalogListChecks(tx, entMeta)
+		iter, err = tx.Get(tableChecks, indexID+"_prefix", entMeta)
 	} else {
 		iter, err = catalogListChecksInState(tx, state, entMeta)
 	}
@@ -1800,8 +1805,12 @@ type NodeServiceQuery struct {
 // deleteCheckTxn is the inner method used to call a health
 // check deletion within an existing transaction.
 func (s *Store) deleteCheckTxn(tx WriteTxn, idx uint64, node string, checkID types.CheckID, entMeta *structs.EnterpriseMeta) error {
+	if entMeta == nil {
+		entMeta = structs.DefaultEnterpriseMeta()
+	}
+
 	// Try to retrieve the existing health check.
-	_, hc, err := firstWatchCompoundWithTxn(tx, "checks", "id", entMeta, node, string(checkID))
+	_, hc, err := tx.FirstWatch(tableChecks, indexID, NodeCheckID{EnterpriseMeta: *entMeta, Node: node, CheckID: string(checkID)})
 	if err != nil {
 		return fmt.Errorf("check lookup failed: %s", err)
 	}
@@ -2149,7 +2158,7 @@ func parseCheckServiceNodes(
 	// We need a similar fallback for checks. Since services need the
 	// status of node + service-specific checks, we pull in a top-level
 	// watch over all checks.
-	allChecks, err := tx.Get("checks", "id")
+	allChecks, err := tx.Get(tableChecks, indexID)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed checks lookup: %s", err)
 	}
@@ -2310,7 +2319,7 @@ func parseNodes(tx ReadTxn, ws memdb.WatchSet, idx uint64,
 	allServicesCh := allServices.WatchCh()
 
 	// We need a similar fallback for checks.
-	allChecks, err := tx.Get("checks", "id")
+	allChecks, err := tx.Get(tableChecks, indexID)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed checks lookup: %s", err)
 	}

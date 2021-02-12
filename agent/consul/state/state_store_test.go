@@ -163,7 +163,7 @@ func testRegisterCheck(t *testing.T, s *Store, idx uint64,
 
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	_, c, err := firstWatchCompoundWithTxn(tx, "checks", "id", nil, nodeID, string(checkID))
+	_, c, err := tx.FirstWatch(tableChecks, indexID, NodeCheckID{Node: nodeID, CheckID: string(checkID)})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
