@@ -1,6 +1,7 @@
 import RepositoryService from 'consul-ui/services/repository';
 import { inject as service } from '@ember/service';
 import { tracked } from '@glimmer/tracking';
+import { runInDebug } from '@ember/debug';
 
 const modelName = 'permission';
 // The set of permissions/resources required globally by the UI in order to
@@ -76,6 +77,10 @@ export default class PermissionService extends RepositoryService {
     return this._can.can(can);
   }
 
+  abilityFor(str) {
+    return this._can.abilityFor(str);
+  }
+
   generate(resource, action, segment) {
     const req = {
       Resource: resource,
@@ -109,6 +114,7 @@ export default class PermissionService extends RepositoryService {
           permissions: resources,
         });
       } catch (e) {
+        runInDebug(() => console.error(e));
         // passthrough
       }
       return permissions;
@@ -127,8 +133,12 @@ export default class PermissionService extends RepositoryService {
     return this.authorize(resources, dc, nspace);
   }
 
+  async findByPermissions(resources, dc, nspace) {
+    return this.authorize(resources, dc, nspace);
+  }
+
   async findAll(dc, nspace) {
-    this.permissions = await this.authorize(REQUIRED_PERMISSIONS, dc, nspace);
+    this.permissions = await this.findByPermissions(REQUIRED_PERMISSIONS, dc, nspace);
     return this.permissions;
   }
 }

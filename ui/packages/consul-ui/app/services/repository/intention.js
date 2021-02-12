@@ -32,6 +32,17 @@ export default class IntentionRepository extends RepositoryService {
     return this.managedByCRDs;
   }
 
+  // legacy intentions are strange that in order to read/write you need access
+  // to either/or the destination or source
+  async authorizeBySlug(cb, access, slug, dc, nspace) {
+    const [, source, , destination] = slug.split(':');
+    const ability = this.permissions.abilityFor(this.getModelName());
+    const permissions = ability
+      .generateForSegment(source)
+      .concat(ability.generateForSegment(destination));
+    return this.authorizeByPermissions(cb, permissions, access, dc, nspace);
+  }
+
   async persist(obj) {
     const res = await super.persist(...arguments);
     // if Action is set it means we are an l4 type intention

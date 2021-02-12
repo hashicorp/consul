@@ -61,12 +61,32 @@ export default class RepositoryService extends Service {
   }
 
   async authorizeBySlug(cb, access, slug, dc, nspace) {
+    return this.validatePermissions(
+      cb,
+      await this.permissions.findBySlug(slug, this.getModelName(), dc, nspace),
+      access,
+      dc,
+      nspace
+    );
+  }
+
+  async authorizeByPermissions(cb, permissions, access, dc, nspace) {
+    return this.validatePermissions(
+      cb,
+      await this.permissions.authorize(permissions, dc, nspace),
+      access,
+      dc,
+      nspace
+    );
+  }
+
+  async validatePermissions(cb, permissions, access, dc, nspace) {
     // inspect the permissions for this segment/slug remotely, if we have zero
     // permissions fire a fake 403 so we don't even request the model/resource
-    const resources = await this.permissions.findBySlug(slug, this.getModelName(), dc, nspace);
-    if (resources.length > 0) {
-      const resource = resources.find(item => item.Access === access);
-      if (resource && resource.Allow === false) {
+    console.log(permissions);
+    if (permissions.length > 0) {
+      const permission = permissions.find(item => item.Access === access);
+      if (permission && permission.Allow === false) {
         throw new HTTPError(403);
       }
     }
@@ -74,7 +94,7 @@ export default class RepositoryService extends Service {
     // add the `Resource` information to the record/model so we can inspect
     // them in other places like templates etc
     if (get(item, 'Resources')) {
-      set(item, 'Resources', resources);
+      set(item, 'Resources', permissions);
     }
     return item;
   }

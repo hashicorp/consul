@@ -2,8 +2,7 @@ import RepositoryService from 'consul-ui/services/repository';
 import isFolder from 'consul-ui/utils/isFolder';
 import { get } from '@ember/object';
 import { PRIMARY_KEY } from 'consul-ui/models/kv';
-import HTTPError from 'consul-ui/utils/http/error';
-import { ACCESS_READ, ACCESS_LIST } from 'consul-ui/abilities/base';
+import { ACCESS_LIST } from 'consul-ui/abilities/base';
 
 const modelName = 'kv';
 export default class KvService extends RepositoryService {
