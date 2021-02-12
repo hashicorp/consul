@@ -3,9 +3,58 @@ import { inject as service } from '@ember/service';
 import { tracked } from '@glimmer/tracking';
 
 const modelName = 'permission';
+// The set of permissions/resources required globally by the UI in order to
+// run correctly
+const REQUIRED_PERMISSIONS = [
+  {
+    Resource: 'operator',
+    Access: 'write',
+  },
+  {
+    Resource: 'service',
+    Access: 'read',
+  },
+  {
+    Resource: 'node',
+    Access: 'read',
+  },
+  {
+    Resource: 'session',
+    Access: 'read',
+  },
+  {
+    Resource: 'session',
+    Access: 'write',
+  },
+  {
+    Resource: 'key',
+    Access: 'read',
+  },
+  {
+    Resource: 'key',
+    Access: 'write',
+  },
+  {
+    Resource: 'intention',
+    Access: 'read',
+  },
+  {
+    Resource: 'intention',
+    Access: 'write',
+  },
+  {
+    Resource: 'acl',
+    Access: 'read',
+  },
+  {
+    Resource: 'acl',
+    Access: 'write',
+  },
+];
 export default class PermissionService extends RepositoryService {
   @service('env') env;
   @service('can') _can;
+
   // TODO: move this to the store, if we want it to use ember-data
   // currently this overwrites an inherited permissions service (this service)
   // which isn't ideal, but if the name of this changes be aware that we'd
@@ -38,14 +87,12 @@ export default class PermissionService extends RepositoryService {
     return req;
   }
 
-  async findBySlug(dc, nspace, model, segment) {
-    let ability;
-    try {
-      ability = this._can.abilityFor(model);
-    } catch (e) {
-      return [];
-    }
-    const resources = ability.generateForSegment(segment.toString());
+  /**
+   * Requests the access for the defined resources/permissions from the backend.
+   * If ACLs are disabled, then you have access to everything, hence we check
+   * that here and only make the request if ACLs are enabled
+   */
+  async authorize(resources, dc, nspace) {
     if (!this.env.var('CONSUL_ACLS_ENABLED')) {
       return resources.map(item => {
         return {
@@ -54,74 +101,34 @@ export default class PermissionService extends RepositoryService {
         };
       });
     } else {
-      return await this.store
-        .authorize('nspace', { dc: dc, ns: nspace, permissions: resources })
-        .catch(function(e) {
-          return [];
+      let permissions = [];
+      try {
+        permissions = await this.store.authorize('permission', {
+          dc: dc,
+          ns: nspace,
+          permissions: resources,
         });
+      } catch (e) {
+        // passthrough
+      }
+      return permissions;
     }
   }
-  async findAll(dc, nspace) {
-    const perms = [
-      {
-        Resource: 'operator',
-        Access: 'write',
-      },
-      {
-        Resource: 'service',
-        Access: 'read',
-      },
-      {
-        Resource: 'node',
-        Access: 'read',
-      },
-      {
-        Resource: 'session',
-        Access: 'read',
-      },
-      {
-        Resource: 'session',
-        Access: 'write',
-      },
-      {
-        Resource: 'key',
-        Access: 'read',
-      },
-      {
-        Resource: 'key',
-        Access: 'write',
-      },
-      {
-        Resource: 'intention',
-        Access: 'read',
-      },
-      {
-        Resource: 'intention',
-        Access: 'write',
-      },
-      {
-        Resource: 'acl',
-        Access: 'read',
-      },
-      {
-        Resource: 'acl',
-        Access: 'write',
-      },
-    ];
-    if (!this.env.var('CONSUL_ACLS_ENABLED')) {
-      this.permissions = perms.map(item => {
-        return {
-          ...item,
-          Allow: true,
-        };
-      });
-    } else {
-      this.permissions = await this.store
-        .authorize('nspace', { dc: dc, ns: nspace, permissions: perms })
-        .catch(function(e) {
-          return [];
-        });
+
+  async findBySlug(dc, nspace, model, segment) {
+    let ability;
+    try {
+      ability = this._can.abilityFor(model);
+    } catch (e) {
+      return [];
     }
+
+    const resources = ability.generateForSegment(segment.toString());
+    return this.authorize(resources, dc, nspace);
+  }
+
+  async findAll(dc, nspace) {
+    this.permissions = await this.authorize(REQUIRED_PERMISSIONS, dc, nspace);
     return this.permissions;
   }
 }

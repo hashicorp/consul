@@ -35,6 +35,7 @@ export default class Service extends Model {
   @attr('number') InstanceCount;
   @attr('boolean') ConnectedWithGateway;
   @attr('boolean') ConnectedWithProxy;
+  @attr({ defaultValue: () => [] }) Resources; // []
   @attr('number') SyncTime;
   @attr('number') CreateIndex;
   @attr('number') ModifyIndex;

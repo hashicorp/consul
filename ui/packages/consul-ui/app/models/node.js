@@ -18,6 +18,7 @@ export default class Node extends Model {
   @attr() meta; // {}
   @attr() Meta; // {}
   @attr() TaggedAddresses; // {lan, wan}
+  @attr({ defaultValue: () => [] }) Resources; // []
   @hasMany('service-instance') Services; // TODO: Rename to ServiceInstances
   @fragmentArray('health-check') Checks;
 

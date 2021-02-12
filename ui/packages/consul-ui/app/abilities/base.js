@@ -24,7 +24,7 @@ export default class BaseAbility extends Ability {
 
   get canRead() {
     if (typeof this.item !== 'undefined') {
-      const perm = get(this, 'item.Resources').find(item => item.Access === ACCESS_READ);
+      const perm = (get(this, 'item.Resources') || []).find(item => item.Access === ACCESS_READ);
       if (perm) {
         return perm.Allow;
       }
@@ -34,7 +34,7 @@ export default class BaseAbility extends Ability {
 
   get canList() {
     if (typeof this.item !== 'undefined') {
-      const perm = get(this, 'item.Resources').find(item => item.Access === ACCESS_LIST);
+      const perm = (get(this, 'item.Resources') || []).find(item => item.Access === ACCESS_LIST);
       if (perm) {
         return perm.Allow;
       }
@@ -44,7 +44,7 @@ export default class BaseAbility extends Ability {
 
   get canWrite() {
     if (typeof this.item !== 'undefined') {
-      const perm = get(this, 'item.Resources').find(item => item.Access === ACCESS_WRITE);
+      const perm = (get(this, 'item.Resources') || []).find(item => item.Access === ACCESS_WRITE);
       if (perm) {
         return perm.Allow;
       }
