@@ -28,7 +28,7 @@ const (
 	minUUIDLookupLen = 2
 )
 
-// Query is type used to query any single value index that may include an
+// Query is a type used to query any single value index that may include an
 // enterprise identifier.
 type Query struct {
 	Value string

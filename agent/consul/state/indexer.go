@@ -53,7 +53,7 @@ func (f readIndex) FromArgs(args ...interface{}) ([]byte, error) {
 
 var errMissingValueForIndex = fmt.Errorf("object is missing a value for this index")
 
-// writeIndex implements memdb.SingleIndexer. It is used so that a function
+// writeIndex implements memdb.SingleIndexer. It exists so that a function
 // can be used to provide this interface.
 //
 // Instead of a bool return value, writeIndex expects errMissingValueForIndex to
@@ -69,7 +69,7 @@ func (f writeIndex) FromObject(raw interface{}) (bool, []byte, error) {
 	return err == nil, v, err
 }
 
-// writeIndexMulti implements memdb.MultiIndexer. It is used so that a function
+// writeIndexMulti implements memdb.MultiIndexer. It exists so that a function
 // can be used to provide this interface.
 //
 // Instead of a bool return value, writeIndexMulti expects errMissingValueForIndex to
