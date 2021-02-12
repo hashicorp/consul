@@ -97,6 +97,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 	d.RuntimeConfig = cfg
 	d.Tokens = new(token.Store)
 
+	cfg.Cache.Logger = d.Logger.Named("cache")
 	// cache-types are not registered yet, but they won't be used until the components are started.
 	d.Cache = cache.New(cfg.Cache)
 	d.ConnPool = newConnPool(cfg, d.Logger, d.TLSConfigurator)
