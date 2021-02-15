@@ -52,17 +52,19 @@ type cmd struct {
 	directOut io.Writer
 
 	// flags
-	meshGateway          bool
-	gateway              string
-	proxyID              string
-	sidecarFor           string
-	adminAccessLogPath   string
-	adminBind            string
-	envoyBin             string
-	bootstrap            bool
-	disableCentralConfig bool
-	grpcAddr             string
-	envoyVersion         string
+	meshGateway           bool
+	gateway               string
+	proxyID               string
+	sidecarFor            string
+	adminAccessLogPath    string
+	adminBind             string
+	envoyBin              string
+	bootstrap             bool
+	disableCentralConfig  bool
+	grpcAddr              string
+	envoyVersion          string
+	prometheusBackendPort string
+	prometheusScrapePath  string
 
 	// mesh gateway registration information
 	register           bool
@@ -164,6 +166,19 @@ func (c *cmd) init() {
 		"In Consul 1.9.0 the format of metric tags for Envoy clusters was updated from consul.[service|dc|...] to "+
 			"consul.destination.[service|dc|...]. The old tags were preserved for backward compatibility,"+
 			"but can be disabled with this flag.")
+
+	c.flags.StringVar(&c.prometheusBackendPort, "prometheus-backend-port", "",
+		"Sets the backend port for the 'prometheus_backend' cluster that envoy_prometheus_bind_addr will point to. "+
+			"Without this flag, envoy_prometheus_bind_addr would point to the 'self_admin' cluster where Envoy metrics are exposed. "+
+			"The metrics merging feature in consul-k8s uses this to point to the merged metrics endpoint combining Envoy and service metrics. "+
+			"Only applicable when envoy_prometheus_bind_addr is set in proxy config.")
+
+	c.flags.StringVar(&c.prometheusScrapePath, "prometheus-scrape-path", "/metrics",
+		"Sets the path where Envoy will expose metrics on envoy_prometheus_bind_addr listener. "+
+			"For example, if envoy_prometheus_bind_addr is 0.0.0.0:20200, and this flag is "+
+			"set to /scrape-metrics, prometheus metrics would be scrapeable at "+
+			"0.0.0.0:20200/scrape-metrics. "+
+			"Only applicable when envoy_prometheus_bind_addr is set in proxy config.")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -479,6 +494,8 @@ func (c *cmd) templateArgs() (*BootstrapTplArgs, error) {
 		Namespace:             httpCfg.Namespace,
 		EnvoyVersion:          c.envoyVersion,
 		Datacenter:            httpCfg.Datacenter,
+		PrometheusBackendPort: c.prometheusBackendPort,
+		PrometheusScrapePath:  c.prometheusScrapePath,
 	}, nil
 }
 
