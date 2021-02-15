@@ -38,6 +38,11 @@ export default class NspaceService extends RepositoryService {
     return res;
   }
 
+  @dataSource('/:ns/:dc/namespace/:id')
+  async findBySlug() {
+    return super.findBySlug(...arguments);
+  }
+
   @dataSource('/:ns/:dc/namespaces')
   findAll(params, configuration = {}) {
     const query = {};

@@ -3,7 +3,6 @@ import { assert } from '@ember/debug';
 import { typeOf } from '@ember/utils';
 import { get } from '@ember/object';
 import { isChangeset } from 'validated-changeset';
-import dataSource from 'consul-ui/decorators/data-source';
 
 export default class RepositoryService extends Service {
   getModelName() {
@@ -48,7 +47,6 @@ export default class RepositoryService extends Service {
     return this.store.peekRecord(this.getModelName(), id);
   }
 
-  @dataSource('/:ns/:dc/:modelName')
   findAllByDatacenter(params, configuration = {}) {
     if (typeof configuration.cursor !== 'undefined') {
       params.index = configuration.cursor;
@@ -57,7 +55,6 @@ export default class RepositoryService extends Service {
     return this.store.query(this.getModelName(), params);
   }
 
-  @dataSource('/:ns/:dc/:modelName/:id')
   async findBySlug(params, configuration = {}) {
     if (params.id === '') {
       return this.create({
