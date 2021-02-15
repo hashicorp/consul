@@ -16,13 +16,23 @@ export const ACCESS_LIST = 'list';
 export default class BaseAbility extends Ability {
   @service('repository/permission') permissions;
 
+  // the name of the resource used for this ability in the backend, e.g
+  // service, key, operator, node
   resource = '';
+  // whether you can ask the backend for a segment for this resource, e.g. you
+  // can ask for a specific service or KV, but not a specific nspace or token
+  segmented = true;
 
   generate(action) {
     return this.permissions.generate(this.resource, action);
   }
 
   generateForSegment(segment) {
+    // if this ability isn't segmentable just return empty which means we
+    // won't request the permissions/resources form the backend
+    if (!this.segmented) {
+      return [];
+    }
     return [
       this.permissions.generate(this.resource, ACCESS_READ, segment),
       this.permissions.generate(this.resource, ACCESS_WRITE, segment),

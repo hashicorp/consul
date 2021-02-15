@@ -130,6 +130,11 @@ export default class PermissionService extends RepositoryService {
     }
 
     const resources = ability.generateForSegment(segment.toString());
+    // if we get no resources for a segment it means that this
+    // ability/permission isn't segmentable
+    if (resources.length === 0) {
+      return [];
+    }
     return this.authorize(resources, dc, nspace);
   }
 

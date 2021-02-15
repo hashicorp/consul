@@ -5,6 +5,7 @@ export default class NspaceAbility extends BaseAbility {
   @service('env') env;
 
   resource = 'operator';
+  segmented = false;
 
   get canManage() {
     return this.canCreate;
