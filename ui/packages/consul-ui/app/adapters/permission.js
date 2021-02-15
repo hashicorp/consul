@@ -4,7 +4,7 @@ import { inject as service } from '@ember/service';
 export default class PermissionAdapter extends Adapter {
   @service('env') env;
 
-  requestForAuthorize(request, { dc, ns, permissions, index }) {
+  requestForAuthorize(request, { dc, ns, permissions = [], index }) {
     // the authorize endpoint is slightly different to all others in that it
     // ignores an ns parameter, but accepts a Namespace property on each
     // resource. Here we hide this different from the rest of the app as
