@@ -62,10 +62,17 @@
           </Notification>
         {{/yield-slot}}
     </State>
-
-    <YieldSlot @name="loaded">
-      {{yield api}}
-    </YieldSlot>
+    {{#if (eq error.status "403")}}
+      {{#yield-slot name="error"}}
+        {{yield api}}
+      {{else}}
+        <ErrorState @error={{error}} />
+      {{/yield-slot}}
+    {{else}}
+      <YieldSlot @name="loaded">
+        {{yield api}}
+      </YieldSlot>
+    {{/if}}
 
   </State>
 

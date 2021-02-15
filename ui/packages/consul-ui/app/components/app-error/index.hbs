@@ -5,6 +5,6 @@
     </h1>
   </BlockSlot>
   <BlockSlot @name="content">
-    <ErrorState @error={{@error}} @allowLogin={{eq @error.status 403}} />
+    <ErrorState @error={{@error}} @allowLogin={{eq @error.status "403"}} />
   </BlockSlot>
 </AppView>

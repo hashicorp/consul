@@ -18,6 +18,13 @@
           This node no longer exists in the catalog.
         </p>
       </Notification>
+    {{else if (eq loader.error.status "403")}}
+      <Notification @sticky={{true}}>
+        <p data-notification role="alert" class="error notification-update">
+          <strong>Error!</strong>
+          You no longer have access to this service
+        </p>
+      </Notification>
     {{else}}
       <Notification @sticky={{true}}>
         <p data-notification role="alert" class="warning notification-update">

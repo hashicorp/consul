@@ -22,6 +22,60 @@ export default class RepositoryService extends Service {
     assert('RepositoryService.getSlugKey should be overridden', false);
   }
 
+  /**
+   * Creates a set of permissions base don a slug, loads in the access
+   * permissions for themand checks/validates
+   */
+  async authorizeBySlug(cb, access, slug, dc, nspace) {
+    return this.validatePermissions(
+      cb,
+      await this.permissions.findBySlug(slug, this.getModelName(), dc, nspace),
+      access,
+      dc,
+      nspace
+    );
+  }
+
+  /**
+   * Loads in the access permissions and checks/validates them for a set of
+   * permissions
+   */
+  async authorizeByPermissions(cb, permissions, access, dc, nspace) {
+    return this.validatePermissions(
+      cb,
+      await this.permissions.authorize(permissions, dc, nspace),
+      access,
+      dc,
+      nspace
+    );
+  }
+
+  /**
+   * Checks already loaded permissions for certain access before calling cb to
+   * return the thing you wanted to check the permissions on
+   */
+  async validatePermissions(cb, permissions, access, dc, nspace) {
+    // inspect the permissions for this segment/slug remotely, if we have zero
+    // permissions fire a fake 403 so we don't even request the model/resource
+    if (permissions.length > 0) {
+      const permission = permissions.find(item => item.Access === access);
+      if (permission && permission.Allow === false) {
+        // TODO: Here we temporarily make a hybrid HTTPError/ember-data HTTP error
+        // we should eventually use HTTPError's everywhere
+        const e = new HTTPError(403);
+        e.errors = [{ status: '403' }];
+        throw e;
+      }
+    }
+    const item = await cb();
+    // add the `Resource` information to the record/model so we can inspect
+    // them in other places like templates etc
+    if (get(item, 'Resources')) {
+      set(item, 'Resources', permissions);
+    }
+    return item;
+  }
+
   reconcile(meta = {}) {
     // unload anything older than our current sync date/time
     if (typeof meta.date !== 'undefined') {
@@ -58,45 +112,6 @@ export default class RepositoryService extends Service {
       query.uri = configuration.uri;
     }
     return this.store.query(this.getModelName(), query);
-  }
-
-  async authorizeBySlug(cb, access, slug, dc, nspace) {
-    return this.validatePermissions(
-      cb,
-      await this.permissions.findBySlug(slug, this.getModelName(), dc, nspace),
-      access,
-      dc,
-      nspace
-    );
-  }
-
-  async authorizeByPermissions(cb, permissions, access, dc, nspace) {
-    return this.validatePermissions(
-      cb,
-      await this.permissions.authorize(permissions, dc, nspace),
-      access,
-      dc,
-      nspace
-    );
-  }
-
-  async validatePermissions(cb, permissions, access, dc, nspace) {
-    // inspect the permissions for this segment/slug remotely, if we have zero
-    // permissions fire a fake 403 so we don't even request the model/resource
-    console.log(permissions);
-    if (permissions.length > 0) {
-      const permission = permissions.find(item => item.Access === access);
-      if (permission && permission.Allow === false) {
-        throw new HTTPError(403);
-      }
-    }
-    const item = await cb();
-    // add the `Resource` information to the record/model so we can inspect
-    // them in other places like templates etc
-    if (get(item, 'Resources')) {
-      set(item, 'Resources', permissions);
-    }
-    return item;
   }
 
   async findBySlug(slug, dc, nspace, configuration = {}) {
