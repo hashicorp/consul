@@ -1,0 +1,4 @@
+```release-note:bug
+streaming: fixes a bug caused by caching an incorrect snapshot, that would cause clients
+to error until the cache expired.
+```
