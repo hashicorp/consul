@@ -43,7 +43,7 @@ func TestStreamingHealthServices_EmptySnapshot(t *testing.T) {
 	req := &structs.ServiceSpecificRequest{
 		Datacenter:     "dc1",
 		ServiceName:    "web",
-		EnterpriseMeta: structs.EnterpriseMetaInitializer(namespace),
+		EnterpriseMeta: structs.NewEnterpriseMeta(namespace),
 	}
 	empty := &structs.IndexedCheckServiceNodes{
 		Nodes: structs.CheckServiceNodes{},
@@ -228,7 +228,7 @@ func requireResultsSame(t *testing.T, want, got *structs.IndexedCheckServiceNode
 // returns the empty string. It allows the same tests to work in both oss and ent
 // without duplicating the tests.
 func getNamespace(ns string) string {
-	meta := structs.EnterpriseMetaInitializer(ns)
+	meta := structs.NewEnterpriseMeta(ns)
 	return meta.GetNamespace()
 }
 
@@ -312,7 +312,7 @@ func TestStreamingHealthServices_FullSnapshot(t *testing.T) {
 	req := &structs.ServiceSpecificRequest{
 		Datacenter:     "dc1",
 		ServiceName:    "web",
-		EnterpriseMeta: structs.EnterpriseMetaInitializer(namespace),
+		EnterpriseMeta: structs.NewEnterpriseMeta(namespace),
 	}
 
 	gatherNodes := func(res interface{}) []string {
@@ -442,7 +442,7 @@ func TestStreamingHealthServices_EventBatches(t *testing.T) {
 	req := &structs.ServiceSpecificRequest{
 		Datacenter:     "dc1",
 		ServiceName:    "web",
-		EnterpriseMeta: structs.EnterpriseMetaInitializer(namespace),
+		EnterpriseMeta: structs.NewEnterpriseMeta(namespace),
 	}
 
 	gatherNodes := func(res interface{}) []string {
@@ -514,7 +514,7 @@ func TestStreamingHealthServices_Filtering(t *testing.T) {
 	req := &structs.ServiceSpecificRequest{
 		Datacenter:     "dc1",
 		ServiceName:    "web",
-		EnterpriseMeta: structs.EnterpriseMetaInitializer(namespace),
+		EnterpriseMeta: structs.NewEnterpriseMeta(namespace),
 		QueryOptions: structs.QueryOptions{
 			Filter: `Node.Node == "node2"`,
 		},

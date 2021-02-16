@@ -1539,7 +1539,7 @@ func newPayloadCheckServiceNode(service, namespace string) EventPayloadCheckServ
 		Value: &structs.CheckServiceNode{
 			Service: &structs.NodeService{
 				Service:        service,
-				EnterpriseMeta: structs.EnterpriseMetaInitializer(namespace),
+				EnterpriseMeta: structs.NewEnterpriseMeta(namespace),
 			},
 		},
 	}
@@ -1550,7 +1550,7 @@ func newPayloadCheckServiceNodeWithKey(service, namespace, key string) EventPayl
 		Value: &structs.CheckServiceNode{
 			Service: &structs.NodeService{
 				Service:        service,
-				EnterpriseMeta: structs.EnterpriseMetaInitializer(namespace),
+				EnterpriseMeta: structs.NewEnterpriseMeta(namespace),
 			},
 		},
 		key: key,
