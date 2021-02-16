@@ -480,25 +480,7 @@ func (b *builder) Build() (rt RuntimeConfig, err error) {
 	advertiseAddr := makeIPAddr(b.expandFirstIP("advertise_addr", c.AdvertiseAddrLAN), bindAddr)
 
 	if ipaddr.IsAny(advertiseAddr) {
-
-		var addrtyp string
-		var detect func() ([]*net.IPAddr, error)
-		switch {
-		case ipaddr.IsAnyV4(advertiseAddr):
-			addrtyp = "private IPv4"
-			detect = b.opts.getPrivateIPv4
-			if detect == nil {
-				detect = ipaddr.GetPrivateIPv4
-			}
-
-		case ipaddr.IsAnyV6(advertiseAddr):
-			addrtyp = "public IPv6"
-			detect = b.opts.getPublicIPv6
-			if detect == nil {
-				detect = ipaddr.GetPublicIPv6
-			}
-		}
-
+		addrtyp, detect := advertiseAddrFunc(b.opts, advertiseAddr)
 		advertiseAddrs, err := detect()
 		if err != nil {
 			return RuntimeConfig{}, fmt.Errorf("Error detecting %s address: %s", addrtyp, err)
@@ -1148,6 +1130,27 @@ func (b *builder) Build() (rt RuntimeConfig, err error) {
 	}
 
 	return rt, nil
+}
+
+func advertiseAddrFunc(opts LoadOpts, advertiseAddr *net.IPAddr) (string, func() ([]*net.IPAddr, error)) {
+	switch {
+	case ipaddr.IsAnyV4(advertiseAddr):
+		fn := opts.getPrivateIPv4
+		if fn == nil {
+			fn = ipaddr.GetPrivateIPv4
+		}
+		return "private IPv4", fn
+
+	case ipaddr.IsAnyV6(advertiseAddr):
+		fn := opts.getPublicIPv6
+		if fn == nil {
+			fn = ipaddr.GetPublicIPv6
+		}
+		return "public IPv6", fn
+
+	default:
+		panic("unsupported net.IPAddr Type")
+	}
 }
 
 // reBasicName validates that a field contains only lower case alphanumerics,

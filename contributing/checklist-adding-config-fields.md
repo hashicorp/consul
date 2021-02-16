@@ -39,11 +39,11 @@ There are four specific cases covered with increasing complexity:
  - [ ] **If** your new config field needed some validation as it's only valid in
    some cases or with some values (often true).
       - [ ] Add validation to Validate in `agent/config/builder.go`.
-      - [ ] Add a test case to the table test `TestConfigFlagsAndEdgeCases` in
+      - [ ] Add a test case to the table test `TestLoad_IntegrationWithFlags` in
         `agent/config/runtime_test.go`.
  - [ ] **If** your new config field needs a non-zero-value default.
       - [ ] Add that to `DefaultSource` in `agent/config/defaults.go`.
-      - [ ] Add a test case to the table test `TestConfigFlagsAndEdgeCases` in
+      - [ ] Add a test case to the table test `TestLoad_IntegrationWithFlags` in
         `agent/config/runtime_test.go`.
  - [ ] **If** your config should take effect on a reload/HUP.
       - [ ] Add necessary code to to trigger a safe (locked or atomic) update to
@@ -72,7 +72,7 @@ If the config field also needs a CLI flag, then follow these steps.
  - [ ] Add the new flag to `agent/config/flags.go`.
  - [ ] Add a test case to TestParseFlags in `agent/config/flag_test.go`.
  - [ ] Add a test case (or extend one if appropriate) to the table test
-   `TestConfigFlagsAndEdgeCases` in `agent/config/runtime_test.go` to ensure setting the
+   `TestLoad_IntegrationWithFlags` in `agent/config/runtime_test.go` to ensure setting the
    flag works.
  - [ ] Add flag (as well as config file) documentation to
    `website/source/docs/agent/options.html.md`.
