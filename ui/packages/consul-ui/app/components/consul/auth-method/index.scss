@@ -18,6 +18,18 @@
   dl:last-child {
     border-bottom: 1px solid $gray-300 !important;
   }
+  dl.cert dd {
+    background-color: $gray-050;
+    color: $gray-600;
+  }
+  dl.cert dd pre {
+    margin-right: 30px;
+    overflow-x: hidden;
+    text-overflow: ellipsis;
+  }
+  dl.cert dd .copy-button {
+    margin-right: 10px;
+  }
   dt {
     font-weight: $typo-weight-bold;
     width: 20%;
@@ -28,12 +40,11 @@
     width: 80%;
     display: flex;
   }
-  dl.cert dd {
-    background-color: $gray-050;
-    color: $gray-600;
-    position: relative;
+  dd .copy-button button {
+    padding: 0 !important;
+    margin: 0 4px 0 0 !important;
   }
-  dl.cert dd pre {
-    margin-right: 40px;
+  dd .copy-button button::before {
+    background-color: $black;
   }
 }

@@ -1,12 +1,15 @@
 <div class="consul-auth-method-definition-list">
   {{#each (array "Type" "MaxTokenTTL" "TokenLocality" "DisplayName" "Description") as |value|}}
+    {{#if (get @item value)}}
     <dl>
       <dt>{{t (concat "components.consul.auth-method.definition-list." value)}}</dt>
       <dd>{{get @item value}}</dd>
     </dl>
+    {{/if}}
   {{/each}}
 
 {{#if (eq @item.Type 'kubernetes')}}
+  {{#if @item.Config.Host}}
   <dl>
     <dt>Host</dt>
     <dd>
@@ -14,6 +17,8 @@
       <span>{{@item.Config.Host}}</span>
     </dd>
   </dl>
+  {{/if}}
+  {{#if @item.Config.CACert}}
   <dl class="cert">
     <dt>CA Cert</dt>
     <dd>
@@ -21,6 +26,8 @@
       <CopyButton @value={{@item.Config.CACert}} @name="CA Cert" />
     </dd>
   </dl>
+  {{/if}}
+  {{#if @item.Config.ServiceAccountJWT}}
   <dl>
     <dt>Service account JSON Web Token</dt>
     <dd>
@@ -30,5 +37,6 @@
       </span>
     </dd>
   </dl>
+  {{/if}}
 {{/if}}
 </div>
