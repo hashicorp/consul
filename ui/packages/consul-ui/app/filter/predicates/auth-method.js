@@ -5,7 +5,8 @@ export default {
     oidc: (item, value) => item.Type === value,
   },
   source: {
-    local: (item, value) => item.TokenLocality === value || item.TokenLocality === '',
+    local: (item, value) =>
+      item.TokenLocality === value || typeof item.TokenLocality === 'undefined',
     global: (item, value) => item.TokenLocality === value,
   },
 };

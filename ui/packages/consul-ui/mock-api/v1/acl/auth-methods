@@ -24,8 +24,14 @@ ${i%2 ? `
 ` : `
             "DisplayName": "",
 `}
+${i%2 ? `
             "MaxTokenTTL": "${fake.random.number({min: 0, max: 60})}m${fake.random.number({min: 0, max: 60})}s",
+` : `
+`}
+${i%2 ? `
             "TokenLocality": "${fake.helpers.randomize(['local', 'global', ''])}",
+` : `
+`}
             "CreateIndex": ${fake.random.number()},
             "ModifyIndex": 10
           }

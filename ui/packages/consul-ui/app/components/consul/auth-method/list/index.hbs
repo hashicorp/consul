@@ -17,6 +17,7 @@ as |item|>
   {{#if (eq item.TokenLocality 'global')}}
     <span class="locality">creates global tokens</span>
   {{/if}}
+  {{#if item.MaxTokenTTL}}
     <dl class="ttl">
       <dt>
         <Tooltip>
@@ -25,5 +26,6 @@ as |item|>
       </dt>
       <dd>{{item.MaxTokenTTL}}</dd>
     </dl>
+  {{/if}}
   </BlockSlot>
 </ListCollection>
