@@ -18,27 +18,27 @@ export default function CommunityPage() {
           {
             header: 'Community Forum',
             body:
-              '[Consul Community Forum](https://discuss.hashicorp.com/c/consul)',
+              '<a href="https://discuss.hashicorp.com/c/consul">Consul Community Forum</a>',
           },
           {
             header: 'Bug Tracker',
             body:
-              '[Issue tracker on GitHub](https://github.com/hashicorp/consul/issues). Please only use this for reporting bugs. Do not ask for general help here; use Gitter or the mailing list for that.',
+              '<a href="https://github.com/hashicorp/consul/issues">Issue tracker on GitHub</a>. Please only use this for reporting bugs. Do not ask for general help here; use Gitter or the mailing list for that.',
           },
           {
             header: 'Community Tools',
             body:
-              '[Download Community Tools](/docs/download-tools). Please check out some of the awesome Consul tooling our amazing community has helped build.',
+              '<a href="/docs/download-tools">Download Community Tools</a>. Please check out some of the awesome Consul tooling our amazing community has helped build.',
           },
           {
             header: 'Training',
             body:
-              'Paid [HashiCorp training courses](https://www.hashicorp.com/training) are also available in a city near you. Private training courses are also available.',
+              'Paid <a href="https://www.hashicorp.com/training">HashiCorp training courses</a> are also available in a city near you. Private training courses are also available.',
           },
           {
             header: 'Certification',
             body:
-              "Learn more about our [Cloud Engineer Certification program](https://www.hashicorp.com/certification/) and [HashiCorp's Networking Automation Certification ](https://www.hashicorp.com/certification/consul-associate/) exams.",
+              'Learn more about our <a href="https://www.hashicorp.com/certification/">Cloud Engineer Certification program</a> and <a href="https://www.hashicorp.com/certification/consul-associate/">HashiCorp&apos;s Networking Automation Certification </a> exams.',
           },
         ]}
       />
