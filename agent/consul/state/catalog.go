@@ -324,7 +324,7 @@ func (s *Store) ensureNodeTxn(tx WriteTxn, idx uint64, preserveIndexes bool, nod
 	if err := tx.Insert("nodes", node); err != nil {
 		return fmt.Errorf("failed inserting node: %s", err)
 	}
-	if err := tx.Insert("index", &IndexEntry{"nodes", idx}); err != nil {
+	if err := tx.Insert(tableIndex, &IndexEntry{"nodes", idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 	// Update the node's service indexes as the node information is included
@@ -557,7 +557,7 @@ func (s *Store) deleteNodeTxn(tx WriteTxn, idx uint64, nodeName string) error {
 		if err := tx.Delete("coordinates", coord); err != nil {
 			return fmt.Errorf("failed deleting coordinate: %s", err)
 		}
-		if err := tx.Insert("index", &IndexEntry{"coordinates", idx}); err != nil {
+		if err := tx.Insert(tableIndex, &IndexEntry{"coordinates", idx}); err != nil {
 			return fmt.Errorf("failed updating index: %s", err)
 		}
 	}
@@ -566,7 +566,7 @@ func (s *Store) deleteNodeTxn(tx WriteTxn, idx uint64, nodeName string) error {
 	if err := tx.Delete("nodes", node); err != nil {
 		return fmt.Errorf("failed deleting node: %s", err)
 	}
-	if err := tx.Insert("index", &IndexEntry{"nodes", idx}); err != nil {
+	if err := tx.Insert(tableIndex, &IndexEntry{"nodes", idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
@@ -1367,7 +1367,7 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 			_, serviceIndex, err := catalogServiceMaxIndex(tx, svc.ServiceName, entMeta)
 			if err == nil && serviceIndex != nil {
 				// we found service.<serviceName> index, garbage collect it
-				if errW := tx.Delete("index", serviceIndex); errW != nil {
+				if errW := tx.Delete(tableIndex, serviceIndex); errW != nil {
 					return fmt.Errorf("[FAILED] deleting serviceIndex %s: %s", svc.ServiceName, err)
 				}
 			}

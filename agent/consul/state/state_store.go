@@ -134,12 +134,6 @@ type Restore struct {
 	tx    *txn
 }
 
-// IndexEntry keeps a record of the last index per-table.
-type IndexEntry struct {
-	Key   string
-	Value uint64
-}
-
 // sessionCheck is used to create a many-to-one table such that
 // each check registered by a session can be mapped back to the
 // session table. This is only used internally in the state
@@ -215,16 +209,12 @@ func (s *Snapshot) LastIndex() uint64 {
 }
 
 func (s *Snapshot) Indexes() (memdb.ResultIterator, error) {
-	iter, err := s.tx.Get("index", "id")
-	if err != nil {
-		return nil, err
-	}
-	return iter, nil
+	return s.tx.Get(tableIndex, indexID)
 }
 
 // IndexRestore is used to restore an index
 func (s *Restore) IndexRestore(idx *IndexEntry) error {
-	if err := s.tx.Insert("index", idx); err != nil {
+	if err := s.tx.Insert(tableIndex, idx); err != nil {
 		return fmt.Errorf("index insert failed: %v", err)
 	}
 	return nil
@@ -285,7 +275,7 @@ func maxIndexTxn(tx ReadTxn, tables ...string) uint64 {
 func maxIndexWatchTxn(tx ReadTxn, ws memdb.WatchSet, tables ...string) uint64 {
 	var lindex uint64
 	for _, table := range tables {
-		ch, ti, err := tx.FirstWatch("index", "id", table)
+		ch, ti, err := tx.FirstWatch(tableIndex, "id", table)
 		if err != nil {
 			panic(fmt.Sprintf("unknown index: %s err: %s", table, err))
 		}
@@ -300,21 +290,22 @@ func maxIndexWatchTxn(tx ReadTxn, ws memdb.WatchSet, tables ...string) uint64 {
 // indexUpdateMaxTxn is used when restoring entries and sets the table's index to
 // the given idx only if it's greater than the current index.
 func indexUpdateMaxTxn(tx WriteTxn, idx uint64, table string) error {
-	ti, err := tx.First("index", "id", table)
+	ti, err := tx.First(tableIndex, indexID, table)
 	if err != nil {
 		return fmt.Errorf("failed to retrieve existing index: %s", err)
 	}
 
 	// Always take the first update, otherwise do the > check.
 	if ti == nil {
-		if err := tx.Insert("index", &IndexEntry{table, idx}); err != nil {
+		if err := tx.Insert(tableIndex, &IndexEntry{table, idx}); err != nil {
 			return fmt.Errorf("failed updating index %s", err)
 		}
-	} else if cur, ok := ti.(*IndexEntry); ok && idx > cur.Value {
-		if err := tx.Insert("index", &IndexEntry{table, idx}); err != nil {
+		return nil
+	}
+	if cur, ok := ti.(*IndexEntry); ok && idx > cur.Value {
+		if err := tx.Insert(tableIndex, &IndexEntry{table, idx}); err != nil {
 			return fmt.Errorf("failed updating index %s", err)
 		}
 	}
-
 	return nil
 }

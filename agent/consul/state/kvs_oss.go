@@ -5,8 +5,9 @@ package state
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-memdb"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 func kvsIndexer() *memdb.StringFieldIndex {
@@ -26,7 +27,7 @@ func insertKVTxn(tx WriteTxn, entry *structs.DirEntry, updateMax bool, _ bool) e
 			return fmt.Errorf("failed updating kvs index: %v", err)
 		}
 	} else {
-		if err := tx.Insert("index", &IndexEntry{"kvs", entry.ModifyIndex}); err != nil {
+		if err := tx.Insert(tableIndex, &IndexEntry{"kvs", entry.ModifyIndex}); err != nil {
 			return fmt.Errorf("failed updating kvs index: %s", err)
 		}
 	}
@@ -70,7 +71,7 @@ func (s *Store) kvsDeleteTreeTxn(tx WriteTxn, idx uint64, prefix string, entMeta
 			}
 		}
 
-		if err := tx.Insert("index", &IndexEntry{"kvs", idx}); err != nil {
+		if err := tx.Insert(tableIndex, &IndexEntry{"kvs", idx}); err != nil {
 			return fmt.Errorf("failed updating index: %s", err)
 		}
 	}
@@ -87,7 +88,7 @@ func kvsDeleteWithEntry(tx WriteTxn, entry *structs.DirEntry, idx uint64) error 
 		return fmt.Errorf("failed deleting kvs entry: %s", err)
 	}
 
-	if err := tx.Insert("index", &IndexEntry{"kvs", idx}); err != nil {
+	if err := tx.Insert(tableIndex, &IndexEntry{"kvs", idx}); err != nil {
 		return fmt.Errorf("failed updating kvs index: %s", err)
 	}
 
