@@ -248,8 +248,10 @@ configuration directive
 
 Since Consul 1.7.2 this endpoint will also automatically switch output format if 
 the request contains an `Accept` header with a compatible MIME type such as 
-`application/openmetrics-text`. This means that recent versions of Prometheus are able to 
-scrape _without_ the `?format` parameter and will still get the correct format results 
+`application/openmetrics-text`. Prometheus v2.5.0 and newer pass this header in scraping
+queries, and so will get a compatible format by default. Older versions of Prometheus may 
+work by default as several previously used MIME types are also detected, but the `?format` 
+query parameter may also be used to specify the output format manually if needed.
 simplifying scrape configuration.
 
 Note: If using the default format and your metric includes labels that use the same key 
