@@ -68,21 +68,10 @@ export default class TopologyMetrics extends Component {
 
   // =actions
   @action
-  setHeight() {
-    if (document.querySelector('#downstream-container')) {
-      const downContainer = document.querySelector('#downstream-container').getBoundingClientRect();
-
-      document
-        .querySelector('#downstream-lines')
-        .setAttribute('style', `height:${downContainer.height}px`);
-    }
-
-    if (document.querySelector('#upstream-container')) {
-      const upContainer = document.querySelector('#upstream-container').getBoundingClientRect();
-
-      document
-        .querySelector('#upstream-lines')
-        .setAttribute('style', `height:${upContainer.height}px`);
+  setHeight(el, item) {
+    if (el) {
+      const container = el.getBoundingClientRect();
+      document.getElementById(`${item[0]}`).setAttribute('style', `height:${container.height}px`);
     }
 
     this.calculate();
@@ -99,8 +88,8 @@ export default class TopologyMetrics extends Component {
     }
 
     // Calculate viewBox dimensions
-    this.downView = document.querySelector('#downstream-lines').getBoundingClientRect();
-    this.upView = document.querySelector('#upstream-lines').getBoundingClientRect();
+    this.downView = document.getElementById('downstream-lines').getBoundingClientRect();
+    this.upView = document.getElementById('upstream-lines').getBoundingClientRect();
 
     // Get Card elements positions
     const downCards = [...document.querySelectorAll('#downstream-container .card')];
