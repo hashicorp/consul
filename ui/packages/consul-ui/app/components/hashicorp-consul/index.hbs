@@ -126,6 +126,9 @@
           <li data-test-main-nav-roles class={{if (is-href 'dc.acls.roles' @dc.Name) 'is-active'}}>
               <a href={{href-to 'dc.acls.roles' @dc.Name}}>Roles</a>
           </li>
+          <li data-test-main-nav-auth-methods class={{if (is-href 'dc.acls.auth-methods' @dc.Name) 'is-active'}}>
+              <a href={{href-to 'dc.acls.auth-methods' @dc.Name}}>Auth Methods</a>
+          </li>
       </ul>
   {{/if}}
 

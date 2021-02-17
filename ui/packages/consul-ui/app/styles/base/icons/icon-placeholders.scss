@@ -778,6 +778,16 @@
   mask-image: $info-circle-outline-svg;
 }
 
+%with-jwt-logo-icon {
+  @extend %with-icon;
+  background-image: $jwt-logo-svg;
+}
+%with-jwt-logo-mask {
+  @extend %with-mask;
+  -webkit-mask-image: $jwt-logo-svg;
+  mask-image: $jwt-logo-svg;
+}
+
 %with-key-icon {
   @extend %with-icon;
   background-image: $key-svg;
@@ -1314,6 +1324,16 @@
   @extend %with-mask;
   -webkit-mask-image: $notification-outline-svg;
   mask-image: $notification-outline-svg;
+}
+
+%with-oidc-logo-icon {
+  @extend %with-icon;
+  background-image: $oidc-logo-svg;
+}
+%with-oidc-logo-mask {
+  @extend %with-mask;
+  -webkit-mask-image: $oidc-logo-svg;
+  mask-image: $oidc-logo-svg;
 }
 
 %with-outline-icon {

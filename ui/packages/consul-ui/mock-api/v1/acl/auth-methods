@@ -1,0 +1,42 @@
+[
+  ${
+    range(
+      env(
+        'CONSUL_AUTH_METHOD_COUNT',
+        Math.floor(
+          (
+            Math.random() * env('CONSUL_AUTH_METHOD_MAX', 10)
+          ) + parseInt(env('CONSUL_AUTH_METHOD_MIN', 1))
+        )
+      )
+    ).map(
+      function(item, i) {
+        return `
+          {
+            "Name": "${fake.hacker.noun()}-${i}",
+${typeof location.search.ns !== 'undefined' ? `
+            "Namespace": "${location.search.ns}",
+` : ``}
+            "Type": "${fake.helpers.randomize(['kubernetes', 'jwt', 'oidc'])}",
+            "Description": "${fake.lorem.sentence()}",
+${i%2 ? `
+            "DisplayName": "${fake.hacker.noun()}-${i}",
+` : `
+            "DisplayName": "",
+`}
+${i%2 ? `
+            "MaxTokenTTL": "${fake.random.number({min: 0, max: 60})}m${fake.random.number({min: 0, max: 60})}s",
+` : `
+`}
+${i%2 ? `
+            "TokenLocality": "${fake.helpers.randomize(['local', 'global', ''])}",
+` : `
+`}
+            "CreateIndex": ${fake.random.number()},
+            "ModifyIndex": 10
+          }
+        `
+      }
+    )
+  }
+]

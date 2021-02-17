@@ -6,11 +6,14 @@ common:
     vault: Vault
     aws: AWS
     kubernetes: Kubernetes
+    jwt: JWT
+    oidc: OIDC
   ui:
     remove: Remove {item}
     filtered-by: Filtered by {item}
     name: Name
     creation: Creation
+    maxttl: Max TTL
   consul:
     name: Name
     passing: Passing
@@ -35,6 +38,7 @@ common:
     localbindport: Local Bind Port
     destinationname: Destination Name
     sourcename: Source Name
+    displayname: Display Name
   search:
     search: Search
     searchproperty: Search Across
@@ -52,6 +56,9 @@ common:
     age:
       asc: Oldest to Newest
       desc: Newest to Oldest
+    duration:
+      asc: Longest to shortest
+      desc: Shortest to longest
     status:
       asc: Unhealthy to Healthy
       desc: Healthy to Unhealthy
@@ -127,6 +134,15 @@ components:
           options:
             global-management: Global Management
             standard: Standard
+    auth-method:
+      search-bar:
+        kind:
+          name: Type
+        locality:
+          name: Source
+          options:
+            local: Creates local tokens
+            global: Creates global tokens
     kv:
       search-bar:
         kind:

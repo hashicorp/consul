@@ -149,6 +149,12 @@ export const routes = {
           _options: { path: '/create' },
         },
       },
+      'auth-methods': {
+        _options: { path: '/auth-methods' },
+        show: {
+          _options: { path: '/show' },
+        },
+      },
     },
   },
   // Shows a datacenter picker. If you only have one

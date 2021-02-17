@@ -1,0 +1,31 @@
+<ListCollection
+  class="consul-auth-method-list"
+  @items={{@items}}
+as |item|>
+  <BlockSlot @name="header">
+  {{#if (not-eq item.DisplayName '')}}
+    <p data-test-auth-method>{{item.DisplayName}}</p>
+  {{else}}
+    <p data-test-auth-method>{{item.Name}}</p>
+  {{/if}}
+  </BlockSlot>
+  <BlockSlot @name="details">
+    <Consul::AuthMethod::Type @item={{item}} />
+  {{#if (not-eq item.DisplayName '')}}
+    <span data-test-display-name>{{item.Name}}</span>
+  {{/if}}
+  {{#if (eq item.TokenLocality 'global')}}
+    <span class="locality">creates global tokens</span>
+  {{/if}}
+  {{#if item.MaxTokenTTL}}
+    <dl class="ttl">
+      <dt>
+        <Tooltip>
+          Maximum Time to Live: the maximum life of any token created by this auth method
+        </Tooltip>
+      </dt>
+      <dd>{{item.MaxTokenTTL}}</dd>
+    </dl>
+  {{/if}}
+  </BlockSlot>
+</ListCollection>

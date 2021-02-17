@@ -99,7 +99,10 @@ export function initialize(container) {
             register(container, index, indexed);
           }
         }
-        register(container, route, item);
+
+        if (typeof route !== 'undefined') {
+          register(container, route, item);
+        }
       });
   }
 }

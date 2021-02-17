@@ -1,0 +1,9 @@
+.consul-auth-method-list ul {
+  .consul-auth-method-type {
+    @extend %pill-200, %frame-gray-600;
+  }
+  .locality::before {
+    @extend %with-public-default-mask, %as-pseudo;
+    margin-right: 4px;
+  }
+}
