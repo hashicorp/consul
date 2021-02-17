@@ -1,0 +1,3 @@
+```release-note:improvement
+acl: extend the auth-methods list endpoint to include MaxTokenTTL and TokenLocality fields.
+```
