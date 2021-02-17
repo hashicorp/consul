@@ -216,7 +216,7 @@ and consider if they're appropriate for your deployment.
       `<global.name>-federation` (if setting `global.name`), otherwise
       `<helm-release-name>-consul-federation`. Requires consul-k8s 0.15.0+.
 
-  - `lifecycleSidecarContainer` ((#v-global-lifecyclesidecarcontainer)) (`map`) - The lifecycle sidecar ensures the Consul services
+  - `consulSidecarContainer` ((#v-global-consulsidecarcontainer)) (`map`) - The consul sidecar ensures the Consul services
     are always registered with their local Consul clients and is used by the
     ingress/terminating/mesh gateways as well as with every Connect-injected service.
 
@@ -278,7 +278,7 @@ and consider if they're appropriate for your deployment.
       enable `server.exposeGossipAndRPCPorts` and `client.exposeGossipPorts`,
       that will configure the LAN gossip ports on the servers and clients to be
       hostPorts, so if you are running clients and servers on the same node the
-      ports will conflict if they are both 8301. When you enable
+      ports will conflict if they are both 8301.  When you enable
       `server.exposeGossipAndRPCPorts` and `client.exposeGossipPorts`, you must
       change this from the default to an unused port on the host, e.g. 9301. By
       default the LAN gossip port is 8301 and configured as a containerPort on
@@ -645,6 +645,16 @@ and consider if they're appropriate for your deployment.
       "sample/annotation2": "bar"
     ```
 
+  - `extraLabels` ((#v-client-extralabels)) (`map`) - Extra labels to attach to the client pods. This should be a regular YAML map.
+
+    Example:
+
+    ```yaml
+    extraLabels:
+      labelKey: label-value
+      anotherLabelKey: another-label-value
+    ```
+
   - `extraEnvironmentVars` ((#v-client-extraenvironmentvars)) (`map`) - A list of extra environment variables to set within the stateful set.
     These could be used to include proxy settings required for cloud auto-join
     feature, in case kubernetes cluster is behind egress http proxies. Additionally,
@@ -972,6 +982,16 @@ and consider if they're appropriate for your deployment.
     - `reconcilePeriod` ((#v-connectinject-healthchecks-reconcileperiod)) (`string: 1m`) - If `healthChecks.enabled` is set to `true`, `reconcilePeriod` defines how often a full state
       reconcile is done after the initial reconcile at startup is completed.
 
+  - `cleanupController` ((#v-connectinject-cleanupcontroller)) - Cleanup controller cleans up Consul service instances that remain registered
+    despite their pods no longer running. This could happen if the pod's `preStop`
+    hook failed to execute for some reason.
+
+    - `reconcilePeriod` ((#v-connectinject-cleanupcontroller-reconcileperiod)) (`string: 5m`) - How often to do a full reconcile where the controller looks at all pods
+      and service instances and ensure the state is correct.
+      The controller reacts to each delete event immediately but if it misses
+      an event due to being down or a network issue, the reconcile loop will
+      handle cleaning up any missed deleted pods.
+
   - `envoyExtraArgs` ((#v-connectinject-envoyextraargs)) (`string: null`) - Used to pass arguments to the injected envoy sidecar.
     Valid arguments to pass to envoy can be found here: https://www.envoyproxy.io/docs/envoy/latest/operations/cli
     e.g "--log-level debug --disable-hot-restart"
@@ -1156,6 +1176,25 @@ and consider if they're appropriate for your deployment.
     This should be a multi-line string matching the affinity object
 
   - `priorityClassName` ((#v-controller-priorityclassname)) (`string: ""`) - Optional priorityClassName.
+
+  - `aclToken` ((#v-controller-acltoken)) - Refers to a Kubernetes secret that you have created that contains
+    an ACL token for your Consul cluster which grants the controller process the correct
+    permissions. This is only needed if you are managing ACLs yourself (i.e. not using
+    `global.acls.manageSystemACLs`).
+
+    If running Consul OSS, requires permissions:
+    ```hcl
+    operator = "write"
+    service_prefix "" {
+      policy = "write"
+      intentions = "write"
+    }
+    ```
+    If running Consul Enterprise, talk to your account manager for assistance.
+
+    - `secretName` ((#v-controller-acltoken-secretname)) (`string: null`) - The name of the Kubernetes secret.
+
+    - `secretKey` ((#v-controller-acltoken-secretkey)) (`string: null`) - The key of the Kubernetes secret.
 
 - `meshGateway` ((#v-meshgateway)) - Mesh Gateways enable Consul Connect to work across Consul datacenters.
 
