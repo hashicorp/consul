@@ -1111,25 +1111,6 @@ and consider if they're appropriate for your deployment.
 
     - `secretKey` ((#v-connectinject-aclinjecttoken-secretkey)) (`string: null`) - The key of the Kubernetes secret.
 
-  - `centralConfig` ((#v-connectinject-centralconfig)) - Requires Consul >= v1.5 and consul-k8s >= v0.8.1.
-
-    - `enabled` ((#v-connectinject-centralconfig-enabled)) (`boolean: true`) - Controls whether central config is enabled on all servers and clients.
-      See https://www.consul.io/docs/agent/options.html#enable_central_service_config.
-      If changing this after installation, servers and clients must be restarted
-      for the change to take effect.
-
-    - `defaultProtocol` ((#v-connectinject-centralconfig-defaultprotocol)) (`string: null`) - Allows you to specify a convenience default protocol if
-      most of your services are of the same protocol type. The individual annotation
-      on any given pod will override this value.
-      Valid values are "http", "http2", "grpc" and "tcp".
-
-    - `proxyDefaults` ((#v-connectinject-centralconfig-proxydefaults)) (`string: {}`) - Raw json string that will be written as the value of
-      the "config" key of the global proxy-defaults config entry.
-      See: https://www.consul.io/docs/agent/config-entries/proxy-defaults.html
-      NOTE: Changes to this value after the chart is first installed have _no_
-      effect. In order to change the proxy-defaults config after installation,
-      you must use the Consul API.
-
   - `sidecarProxy` ((#v-connectinject-sidecarproxy))
 
     - `resources` ((#v-connectinject-sidecarproxy-resources)) (`map`) - Set default resources for sidecar proxy. If null, that resource won't
@@ -1183,15 +1164,6 @@ and consider if they're appropriate for your deployment.
     See https://www.consul.io/docs/connect/mesh_gateway.html
     Requirements: consul 1.6.0+ and consul-k8s 0.15.0+ if using
     global.acls.manageSystemACLs.
-
-  - `globalMode` ((#v-meshgateway-globalmode)) (`string: local`) - Globally configure which mode the gateway should run in.
-    Can be set to either "remote", "local", "none" or empty string or null.
-    See https://consul.io/docs/connect/mesh_gateway.html#modes-of-operation for
-    a description of each mode.
-    If set to anything other than "" or null, connectInject.centralConfig.enabled
-    should be set to true so that the global config will actually be used.
-    If set to the empty string, no global default will be set and the gateway mode
-    will need to be set individually for each service.
 
   - `replicas` ((#v-meshgateway-replicas)) (`integer: 2`) - Number of replicas for the Deployment.
 
