@@ -11,6 +11,7 @@ export default class HttpService extends Service {
   @service('repository/service-instance') 'proxy-service-instance';
   @service('repository/proxy') 'proxy-instance';
   @service('repository/nspace') namespaces;
+  @service('repository/metrics') metrics;
   @service('repository/oidc-provider') oidc;
 
   @service('data-source/protocols/http/blocking') type;
