@@ -68,6 +68,9 @@ connectInject:
   # Consul Connect service mesh must be enabled for federation.
   enabled: true
 
+controller:
+  enabled: true
+
 meshGateway:
   # Mesh gateways are gateways between datacenters. They must be enabled
   # for federation in Kubernetes since the communication between datacenters
@@ -114,8 +117,7 @@ Modifications:
    see the [Helm reference](/docs/k8s/helm#v-meshgateway) for that setting.
 
 With your `config.yaml` ready to go, follow our [Installation Guide](/docs/k8s/installation/install)
-to install Consul on your primary cluster and then skip ahead to the [Federation Secret](#federation-secret)
-section.
+to install Consul on your primary cluster.
 
 -> **NOTE:** You must be using consul-helm 0.21.0+. To update, run `helm repo update`.
 
@@ -155,7 +157,43 @@ If you've set `enableAutoEncrypt: true`, this is also supported.
 With the above settings added to your existing config, follow the [Upgrading](/docs/k8s/operations/upgrading)
 guide to upgrade your cluster and then come back to the [Federation Secret](#federation-secret) section.
 
--> **NOTE:** You must be using consul-helm 0.21.0+. To update, run `helm repo update`.
+-> **NOTE:** You must be using consul-helm 0.21.0+.
+
+#### ProxyDefaults
+
+If you are using consul-helm 0.30.0+ you must also create a [`ProxyDefaults`](/docs/connect/config-entries/proxy-defaults)
+resource to configure Consul to use the mesh gateways for service mesh traffic.
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ProxyDefaults
+metadata:
+  name: global
+spec:
+  meshGateway:
+    mode: 'local'
+```
+
+The `spec.meshGateway.mode` can be set to `local` or `remote`. If set to `local`,
+traffic from one datacenter to another will egress through the local mesh gateway.
+This may be useful if you prefer all your cross-cluster network traffic to egress
+from the same locations.
+If set to `remote`, traffic will be routed directly from the pod to the remote mesh gateway
+(resulting in one less hop).
+
+Verify that the resource was synced to Consul:
+
+```shell-session
+$ kubectl get proxydefaults global
+NAME              SYNCED   AGE
+global            True     1s
+```
+
+Its `SYNCED` status should be `True`.
+
+-> **NOTE:** The `ProxyDefaults` resource can be created in any namespace, but
+we recommend creating it in the same namespace that Consul is installed in.
+Its name must be `global`.
 
 ## Federation Secret
 
@@ -285,6 +323,8 @@ global:
     secretName: consul-federation
     secretKey: gossipEncryptionKey
 connectInject:
+  enabled: true
+controller:
   enabled: true
 meshGateway:
   enabled: true

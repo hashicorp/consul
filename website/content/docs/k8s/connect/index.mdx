@@ -248,14 +248,6 @@ Annotations can be used to configure the injection behavior.
       "consul.hashicorp.com/connect-service-upstreams":"[service-name]:[port]:[optional datacenter],prepared_query:[query name]:[port]"
     ```
 
-- `consul.hashicorp.com/connect-service-protocol` - For pods that will be
-  registered with Consul's [central configuration](/docs/agent/config-entries)
-  feature, information about the protocol the service uses is required. Users
-  can define the protocol directly using this annotation on the pod spec, or by
-  defining a default value for all services using the Helm chart's
-  [defaultProtocol](/docs/k8s/helm#v-connectinject-centralconfig-defaultprotocol)
-  option. Specific annotations will always override the default value.
-
 - `consul.hashicorp.com/envoy-extra-args` - A space-separated list of [arguments](https://www.envoyproxy.io/docs/envoy/latest/operations/cli)
   to be passed to the injected envoy binary.
 
@@ -345,16 +337,13 @@ Installation of the mutating admission webhook is automated using the
 To install the Connect injector, enable the Connect injection feature using
 [Helm values](/docs/k8s/helm#configuration-values) and
 upgrade the installation using `helm upgrade` for existing installs or
-`helm install` for a fresh install. The Connect injector **also requires**
-[client agents](/docs/k8s/helm#v-client) are enabled on
-the node with pods that are using Connect and that
-[gRPC is enabled](/docs/k8s/helm#v-client-grpc).
+`helm install` for a fresh install.
 
 ```yaml
 connectInject:
   enabled: true
 
-client:
+controller:
   enabled: true
 ```
 
@@ -362,10 +351,6 @@ This will configure the injector to inject when the
 [injection annotation](#consul-hashicorp-com-connect-inject)
 is set to `true`. Other values in the Helm chart can be used to limit the namespaces
 the injector runs in, enable injection by default, and more.
-
-~> NOTE: If setting `global.bootstrapACLs: true`, it's important that your pod's `ServiceAccount`
-has the **same name** as the Consul service that's being registered. If not, the init
-container will log: `Error logging in: Unexpected response code: 403 (rpc error making call: rpc error making call: Permission denied)`.
 
 ### Controlling Injection Via Annotation
 
