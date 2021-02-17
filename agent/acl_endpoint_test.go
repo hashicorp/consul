@@ -1201,6 +1201,8 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 				Config: map[string]interface{}{
 					"SessionID": testSessionID,
 				},
+				TokenLocality: "global",
+				MaxTokenTTL:   500_000_000_000,
 			}
 
 			req, _ := http.NewRequest("PUT", "/v1/acl/auth-method?token=root", jsonBody(methodInput))
@@ -1284,6 +1286,7 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 			resp := httptest.NewRecorder()
 			raw, err := a.srv.ACLAuthMethodList(resp, req)
 			require.NoError(t, err)
+
 			methods, ok := raw.(structs.ACLAuthMethodListStubs)
 			require.True(t, ok)
 
@@ -1297,6 +1300,8 @@ func TestACL_LoginProcedure_HTTP(t *testing.T) {
 						require.Equal(t, expected.Name, actual.Name)
 						require.Equal(t, expected.Type, actual.Type)
 						require.Equal(t, expected.Description, actual.Description)
+						require.Equal(t, expected.MaxTokenTTL, actual.MaxTokenTTL)
+						require.Equal(t, expected.TokenLocality, actual.TokenLocality)
 						require.Equal(t, expected.CreateIndex, actual.CreateIndex)
 						require.Equal(t, expected.ModifyIndex, actual.ModifyIndex)
 						found = true
