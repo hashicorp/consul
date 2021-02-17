@@ -6,6 +6,7 @@ import (
 	"sort"
 	"testing"
 	"text/template"
+	"time"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
@@ -16,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/types"
 )
 
 func TestListenersFromSnapshot(t *testing.T) {
@@ -31,6 +33,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		// test input.
 		setup              func(snap *proxycfg.ConfigSnapshot)
 		overrideGoldenName string
+		serverSetup        func(*Server)
 	}{
 		{
 			name:   "defaults",
@@ -305,6 +308,38 @@ func TestListenersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			// NOTE: if IPv6 is not supported in the kernel per
+			// kernelSupportsIPv6() then this test will fail because the golden
+			// files were generated assuming ipv6 support was present
+			name:   "expose-checks",
+			create: proxycfg.TestConfigSnapshotExposeConfig,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.Proxy.Expose = structs.ExposeConfig{
+					Checks: true,
+				}
+			},
+			serverSetup: func(s *Server) {
+				s.CfgFetcher = configFetcherFunc(func() string {
+					return "192.0.2.1"
+				})
+
+				s.CheckFetcher = httpCheckFetcherFunc(func(sid structs.ServiceID) []structs.CheckType {
+					if sid != structs.NewServiceID("web", nil) {
+						return nil
+					}
+					return []structs.CheckType{{
+						CheckID:   types.CheckID("http"),
+						Name:      "http",
+						HTTP:      "http://127.0.0.1:8181/debug",
+						ProxyHTTP: "http://:21500/debug",
+						Method:    "GET",
+						Interval:  10 * time.Second,
+						Timeout:   1 * time.Second,
+					}}
+				})
+			},
+		},
+		{
 			name:   "mesh-gateway",
 			create: proxycfg.TestConfigSnapshotMeshGateway,
 		},
@@ -519,6 +554,9 @@ func TestListenersFromSnapshot(t *testing.T) {
 
 					// Need server just for logger dependency
 					s := Server{Logger: testutil.Logger(t)}
+					if tt.serverSetup != nil {
+						tt.serverSetup(&s)
+					}
 
 					cInfo := connectionInfo{
 						Token:         "my-token",
@@ -776,4 +814,20 @@ func customHTTPListenerJSON(t *testing.T, opts customHTTPListenerJSONOptions) st
 	var buf bytes.Buffer
 	require.NoError(t, customHTTPListenerJSONTemplate.Execute(&buf, opts))
 	return buf.String()
+}
+
+type httpCheckFetcherFunc func(serviceID structs.ServiceID) []structs.CheckType
+
+var _ HTTPCheckFetcher = (httpCheckFetcherFunc)(nil)
+
+func (f httpCheckFetcherFunc) ServiceHTTPBasedChecks(serviceID structs.ServiceID) []structs.CheckType {
+	return f(serviceID)
+}
+
+type configFetcherFunc func() string
+
+var _ ConfigFetcher = (configFetcherFunc)(nil)
+
+func (f configFetcherFunc) AdvertiseAddrLAN() string {
+	return f()
 }
