@@ -1,0 +1,3 @@
+```release-note:bug
+streaming: return X-Consul-KnownLeader properly set when using streaming
+```

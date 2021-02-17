@@ -156,12 +156,14 @@ func newHealthView(filterExpr string) (*healthView, error) {
 // (IndexedCheckServiceNodes) and update it in place for each event - that
 // involves re-sorting each time etc. though.
 type healthView struct {
-	state  map[string]structs.CheckServiceNode
-	filter filterEvaluator
+	state       map[string]structs.CheckServiceNode
+	filter      filterEvaluator
+	knownLeader bool
 }
 
 // Update implements View
 func (s *healthView) Update(events []*pbsubscribe.Event) error {
+	s.knownLeader = true
 	for _, event := range events {
 		serviceHealth := event.GetServiceHealth()
 		if serviceHealth == nil {
@@ -227,6 +229,9 @@ func (s *healthView) Result(index uint64) (interface{}, error) {
 		Nodes: make(structs.CheckServiceNodes, 0, len(s.state)),
 		QueryMeta: structs.QueryMeta{
 			Index: index,
+			// TODO: fill properly those fields, see https://github.com/hashicorp/consul/issues/9776
+			KnownLeader: s.knownLeader,
+			LastContact: 0,
 		},
 	}
 	for _, node := range s.state {
@@ -238,5 +243,6 @@ func (s *healthView) Result(index uint64) (interface{}, error) {
 }
 
 func (s *healthView) Reset() {
+	s.knownLeader = false
 	s.state = make(map[string]structs.CheckServiceNode)
 }
