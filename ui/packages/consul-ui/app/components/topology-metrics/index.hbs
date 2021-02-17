@@ -1,12 +1,13 @@
-{{on-window 'resize' (action this.calculate)}}
-
 <div
-  {{did-insert (action this.calculate)}}
-  {{did-update (action this.calculate) @topology.Upstreams @topology.Downstreams}}
+  {{on-resize this.calculate}}
   class="topology-container consul-topology-metrics"
 >
 {{#if (gt @topology.Downstreams.length 0)}}
-  <div id="downstream-container">
+  <div
+    id="downstream-container"
+    {{did-insert this.setHeight 'downstream-lines'}}
+    {{did-update this.setHeight 'downstream-lines' @topology.Downstreams}}
+  >
     <div>
       <p>{{@dc}}</p>
       <span>
@@ -83,7 +84,11 @@
 {{#if (gt @topology.Upstreams.length 0)}}
   <div id="upstream-column">
   {{#each-in (group-by "Datacenter" @topology.Upstreams) as |dc upstreams|}}
-    <div id="upstream-container">
+    <div
+      id="upstream-container"
+      {{did-insert this.setHeight 'upstream-lines'}}
+      {{did-update this.setHeight 'upstream-lines' @topology.Upstreams}}
+    >
       <p>{{dc}}</p>
     {{#each upstreams as |item|}}
       <TopologyMetrics::Card

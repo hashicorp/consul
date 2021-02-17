@@ -68,6 +68,16 @@ export default class TopologyMetrics extends Component {
 
   // =actions
   @action
+  setHeight(el, item) {
+    if (el) {
+      const container = el.getBoundingClientRect();
+      document.getElementById(`${item[0]}`).setAttribute('style', `height:${container.height}px`);
+    }
+
+    this.calculate();
+  }
+
+  @action
   calculate() {
     if (this.args.isRemoteDC) {
       this.noMetricsReason = 'Unable to fetch metrics for a remote datacenter';
@@ -78,8 +88,8 @@ export default class TopologyMetrics extends Component {
     }
 
     // Calculate viewBox dimensions
-    this.downView = document.querySelector('#downstream-lines').getBoundingClientRect();
-    this.upView = document.querySelector('#upstream-lines').getBoundingClientRect();
+    this.downView = document.getElementById('downstream-lines').getBoundingClientRect();
+    this.upView = document.getElementById('upstream-lines').getBoundingClientRect();
 
     // Get Card elements positions
     const downCards = [...document.querySelectorAll('#downstream-container .card')];
