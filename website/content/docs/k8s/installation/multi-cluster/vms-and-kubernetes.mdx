@@ -21,8 +21,8 @@ must be the [primary](/docs/k8s/installation/multi-cluster/kubernetes#primary-da
 If your primary datacenter is running on Kubernetes, use the Helm config from the
 [Primary Datacenter](/docs/k8s/installation/multi-cluster/kubernetes#primary-datacenter) section to install Consul.
 
-Once installed, you'll need to export the following information from the primary Kubernetes
-cluster:
+Once installed, and with the `ProxyDefaults` [resource created](/docs/k8s/installation/multi-cluster/kubernetes#proxydefaults),
+you'll need to export the following information from the primary Kubernetes cluster:
 
 1. The certificate authority cert:
 
@@ -271,6 +271,8 @@ global:
 
 connectInject:
   enabled: true
+controller:
+  enabled: true
 meshGateway:
   enabled: true
 server:
@@ -290,5 +292,9 @@ to install Consul on your secondary cluster(s).
 
 ## Next Steps
 
-Read the [Verifying Federation](/docs/k8s/installation/multi-cluster/kubernetes#verifying-federation)
+After installation, if you're using consul-helm 0.30.0+, [create the
+`ProxyDefaults` resource](/docs/k8s/installation/multi-cluster/kubernetes#proxydefaults)
+to allow traffic between datacenters.
+
+Follow the [Verifying Federation](/docs/k8s/installation/multi-cluster/kubernetes#verifying-federation)
 section to verify that federation is working as expected.
