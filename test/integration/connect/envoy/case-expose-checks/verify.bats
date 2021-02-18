@@ -37,6 +37,5 @@ load helpers
 }
 
 @test "s2 exposes checks on a new listener" {
-exit 1
-    assert_envoy_expose_checks_listener_count localhost:19001 /debug
+  assert_envoy_expose_checks_listener_count localhost:19001 /debug
 }
