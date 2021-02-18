@@ -81,19 +81,19 @@ export default function HomePage() {
         brand="consul"
         items={[
           {
-            title: 'Try Consul Service Mesh on kind',
+            title: 'Deploy HCP Consul with Terraform',
             category: 'Step-by-Step Tutorial',
-            time: '15 mins',
+            time: '12 mins',
             link:
-              'https://learn.hashicorp.com/tutorials/consul/kubernetes-kind',
+              'https://learn.hashicorp.com/tutorials/cloud/terraform-hcp-consul-provider',
             image: require('./img/learn/getting-started.svg?url'),
           },
           {
-            title: 'Secure Consul with Vault',
+            title: 'Migrate to Microservices on Kubernetes',
             category: 'Step-by-Step Tutorials',
             time: '45 mins',
-            link: 'https://learn.hashicorp.com/collections/consul/vault-secure',
-            image: require('./img/learn/Vault.svg?url'),
+            link: 'https://learn.hashicorp.com/collections/consul/microservices',
+            image: require('./img/learn/kubernetes.svg?url'),
           },
         ]}
       />
