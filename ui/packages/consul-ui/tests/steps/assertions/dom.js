@@ -1,3 +1,4 @@
+const dont = `( don't| shouldn't| can't)?`;
 export default function(scenario, assert, pauseUntil, find, currentURL, clipboard) {
   scenario
     .then('pause until I see the text "$text" in "$selector"', function(text, selector) {
@@ -41,13 +42,17 @@ export default function(scenario, assert, pauseUntil, find, currentURL, clipboar
         .dom(document.querySelector(selector))
         .hasClass(cls, `Expected [class] to contain ${cls} on ${selector}`);
     })
-    .then([`I don't see the "$selector" element`], function(selector) {
-      assert.equal(document.querySelector(selector), null, `Expected not to see ${selector}`);
-    })
     .then(['"$selector" doesn\'t have the "$class" class'], function(selector, cls) {
       assert.ok(
         !document.querySelector(selector).classList.contains(cls),
         `Expected [class] not to contain ${cls} on ${selector}`
+      );
+    })
+    .then([`I${dont} see the "$selector" element`], function(negative, selector) {
+      assert[negative ? 'equal' : 'notEqual'](
+        document.querySelector(selector),
+        null,
+        `Expected${negative ? ' not' : ''} to see ${selector}`
       );
     })
     // TODO: Make this accept a 'contains' word so you can search for text containing also
