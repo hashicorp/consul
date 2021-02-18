@@ -152,7 +152,9 @@ export default {
       radiogroup
     )
   ),
-  service: create(service(visitable, clickable, attribute, collection, text, consulIntentionList, tabgroup)),
+  service: create(
+    service(visitable, clickable, attribute, collection, text, consulIntentionList, tabgroup)
+  ),
   instance: create(
     instance(
       visitable,
@@ -179,7 +181,7 @@ export default {
     )
   ),
   kvs: create(kvs(visitable, creatable, consulKvList)),
-  kv: create(kv(visitable, attribute, submitable, deletable, cancelable, clickable)),
+  kv: create(kv(visitable, attribute, isPresent, submitable, deletable, cancelable, clickable)),
   acls: create(acls(visitable, deletable, creatable, clickable, attribute, collection)),
   acl: create(acl(visitable, submitable, deletable, cancelable, clickable)),
   policies: create(policies(visitable, creatable, consulPolicyList, popoverSelect)),

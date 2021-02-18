@@ -6,11 +6,9 @@ import { get } from '@ember/object';
 import ascend from 'consul-ui/utils/ascend';
 
 export default class EditRoute extends Route {
-  @service('repository/kv')
-  repo;
-
-  @service('repository/session')
-  sessionRepo;
+  @service('repository/kv') repo;
+  @service('repository/session') sessionRepo;
+  @service('repository/permission') permissions;
 
   model(params) {
     const create =
@@ -39,7 +37,7 @@ export default class EditRoute extends Route {
       // TODO: Consider loading this after initial page load
       if (typeof model.item !== 'undefined') {
         const session = get(model.item, 'Session');
-        if (session) {
+        if (session && this.permissions.can('read sessions')) {
           return hash({
             ...model,
             ...{

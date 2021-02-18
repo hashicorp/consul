@@ -80,6 +80,9 @@ export function initialize(container) {
       .filter(function(item) {
         return item.startsWith('dc');
       })
+      .filter(function(item) {
+        return item.endsWith('path');
+      })
       .map(function(item) {
         return item.replace('._options.path', '').replace(dotRe, '/');
       })

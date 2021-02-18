@@ -50,11 +50,13 @@ as |sort filters items|}}
     {{/if}}
       </BlockSlot>
       <BlockSlot @name="actions">
+{{#if (can 'create kvs')}}
     {{#if (not-eq parent.Key '/') }}
           <a data-test-create href="{{href-to 'dc.kv.create' parent.Key}}" class="type-create">Create</a>
     {{else}}
           <a data-test-create href="{{href-to 'dc.kv.root-create'}}" class="type-create">Create</a>
     {{/if}}
+{{/if}}
       </BlockSlot>
       <BlockSlot @name="content">
         <DataWriter

@@ -38,9 +38,11 @@ as |api|>
 
 as |sort filters items|}}
   <div class="tab-section">
+{{#if (can 'create intentions')}}
       <Portal @target="app-view-actions">
         <a data-test-create href={{href-to 'dc.services.show.intentions.create'}} class="type-create">Create</a>
       </Portal>
+{{/if}}
 {{#if (gt items.length 0) }}
       <Consul::Intention::SearchBar
         @search={{search}}

@@ -128,6 +128,7 @@ token/secret.
 | `CONSUL_EXPOSED_COUNT` | (random) | Configure the number of exposed paths that the API returns. |
 | `CONSUL_CHECK_COUNT` | (random) | Configure the number of health checks that the API returns. |
 | `CONSUL_OIDC_PROVIDER_COUNT` | (random) | Configure the number of OIDC providers that the API returns. |
+| `CONSUL_RESOURCE_<singular-resource-name>_<access-type>` | true | Configure permissions e.g `CONSUL_RESOURCE_INTENTION_WRITE=false`. |
 | `DEBUG_ROUTES_ENDPOINT` | undefined | When using the window.Routes() debug utility ([see utility functions](#browser-debug-utility-functions)), use a URL to pass the route DSL to. %s in the URL will be replaced with the route DSL - http://url.com?routes=%s  |
 
 See `./mock-api` for more details.

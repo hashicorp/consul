@@ -91,10 +91,16 @@ export const routes = {
     intentions: {
       _options: { path: '/intentions' },
       edit: {
-        _options: { path: '/:intention_id' },
+        _options: {
+          path: '/:intention_id',
+          abilities: ['read intentions'],
+        },
       },
       create: {
-        _options: { path: '/create' },
+        _options: {
+          path: '/create',
+          abilities: ['create intentions'],
+        },
       },
     },
     // Key/Value
@@ -107,10 +113,16 @@ export const routes = {
         _options: { path: '/*key/edit' },
       },
       create: {
-        _options: { path: '/*key/create' },
+        _options: {
+          path: '/*key/create',
+          abilities: ['create kvs'],
+        },
       },
       'root-create': {
-        _options: { path: '/create' },
+        _options: {
+          path: '/create',
+          abilities: ['create kvs'],
+        },
       },
     },
     // ACLs

@@ -96,6 +96,7 @@
       returns=(set this 'popoverController')
     }}
     {{on 'click' (fn (optional this.popoverController.show))}}
+    {{disabled (cannot 'update intention' item=item.Intention)}}
     type="button"
     style={{{concat 'top:' @position.y 'px;left:' @position.x 'px;'}}}
     aria-label={{if (eq @type 'deny') 'Add intention' 'View intention'}}
