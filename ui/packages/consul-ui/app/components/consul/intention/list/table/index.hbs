@@ -59,7 +59,7 @@ as |item index|>
           More
         </BlockSlot>
         <BlockSlot @name="menu" as |confirm send keypressClick change|>
-        {{#if item.IsEditable}}
+        {{#if (can "write intention" item=item)}}
             <li role="none">
               <a role="menuitem" tabindex="-1" href={{href-to (or routeName 'dc.intentions.edit') item.ID}}>Edit</a>
             </li>

@@ -36,7 +36,7 @@ export default Route.extend(WithBlockingActions, {
     error: function(e, transition) {
       // TODO: Normalize all this better
       let error = {
-        status: e.code || '',
+        status: e.code || e.statusCode || '',
         message: e.message || e.detail || 'Error',
       };
       if (e.errors && e.errors[0]) {

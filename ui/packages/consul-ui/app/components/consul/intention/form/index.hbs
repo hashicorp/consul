@@ -32,7 +32,7 @@ as |api|>
 
     <BlockSlot @name="form">
 {{#let api.data as |item|}}
-  {{#if item.IsEditable}}
+{{#if (can 'write intention' item=item)}}
 
 {{#if this.warn}}
   {{#let (changeset-get item 'Action') as |newAction|}}

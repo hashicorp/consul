@@ -24,9 +24,11 @@
       </h1>
   </BlockSlot>
   <BlockSlot @name="content">
-  {{#if session}}
+  {{! if a KV has a session `Session` will always be populated despite any specific session permissions }}
+  {{#if item.Session}}
     <Notice
       @type="warning"
+      data-test-session-warning
     as |notice|>
       <notice.Body>
         <p>
@@ -42,6 +44,7 @@
       @onsubmit={{if (eq parent.Key '/') (transition-to 'dc.kv.index') (transition-to 'dc.kv.folder' parent.Key)}}
       @parent={{parent}}
     />
+  {{! session is slightly different to item.Session as we only have session if you have session:read perms}}
   {{#if session}}
     <Consul::LockSession::Form
       @item={{session}}

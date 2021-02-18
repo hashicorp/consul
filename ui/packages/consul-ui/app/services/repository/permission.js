@@ -5,7 +5,7 @@ import { tracked } from '@glimmer/tracking';
 const modelName = 'permission';
 export default class PermissionService extends RepositoryService {
   @service('env') env;
-
+  @service('can') _can;
   // move this to the store
   @tracked permissions = [];
 
@@ -18,6 +18,10 @@ export default class PermissionService extends RepositoryService {
     return this.permissions.some(item => {
       return keys.every(key => item[key] === permission[key]) && item.Allow === true;
     });
+  }
+
+  can(can) {
+    return this._can.can(can);
   }
 
   generate(resource, action, segment) {
@@ -43,16 +47,36 @@ export default class PermissionService extends RepositoryService {
         Access: 'read',
       },
       {
+        Resource: 'session',
+        Access: 'read',
+      },
+      {
+        Resource: 'session',
+        Access: 'write',
+      },
+      {
         Resource: 'key',
         Access: 'read',
+      },
+      {
+        Resource: 'key',
+        Access: 'write',
       },
       {
         Resource: 'intention',
         Access: 'read',
       },
       {
+        Resource: 'intention',
+        Access: 'write',
+      },
+      {
         Resource: 'acl',
         Access: 'read',
+      },
+      {
+        Resource: 'acl',
+        Access: 'write',
       },
     ];
     if (!this.env.var('CONSUL_ACLS_ENABLED')) {

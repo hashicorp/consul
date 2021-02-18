@@ -97,7 +97,7 @@ export default function({
   const clipboard = function() {
     return window.localStorage.getItem('clipboard');
   };
-  models(library, create);
+  models(library, create, setCookie);
   http(library, respondWith, setCookie);
   visit(library, pages, utils.setCurrentPage, reset);
   click(library, utils.find, helpers.click);

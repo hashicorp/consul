@@ -6,6 +6,11 @@
   border: $decor-border-100;
   outline: none;
 }
+textarea:disabled + .CodeMirror,
+%form-element-text-input:disabled,
+%form-element-text-input:read-only {
+  cursor: not-allowed;
+}
 %form h2 {
   @extend %h200;
 }

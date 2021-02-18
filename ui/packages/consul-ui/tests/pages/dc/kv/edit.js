@@ -1,4 +1,4 @@
-export default function(visitable, attribute, submitable, deletable, cancelable) {
+export default function(visitable, attribute, present, submitable, deletable, cancelable) {
   return {
     visit: visitable(['/:dc/kv/:kv/edit', '/:dc/kv/create'], function(str) {
       // this will encode the parts of the key path but means you can no longer
@@ -12,6 +12,7 @@ export default function(visitable, attribute, submitable, deletable, cancelable)
     ...cancelable(),
     ...deletable(),
     session: {
+      warning: present('[data-test-session-warning]'),
       ID: attribute('data-test-session', '[data-test-session]'),
       ...deletable({}, '[data-test-session]'),
     },
