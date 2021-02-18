@@ -22,5 +22,8 @@ export default function(scenario, create, win = window, doc = document) {
     })
     .given(['ui_config from yaml\n$yaml'], function(data) {
       doc.cookie = `CONSUL_UI_CONFIG=${JSON.stringify(data)}`;
+    })
+    .given(['the local datacenter is "$value"'], function(value) {
+      doc.cookie = `CONSUL_DATACENTER_LOCAL=${value}`;
     });
 }
