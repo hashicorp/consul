@@ -723,6 +723,22 @@ func (c *Cache) fetch(key string, r getOptions, allowNew bool, attempt uint, ign
 		// Set our entry
 		c.entriesLock.Lock()
 
+		if _, ok := c.entries[key]; !ok {
+			// This entry was evicted during our fetch. DON'T re-insert it or fall
+			// through to the refresh loop below otherwise it will live forever! In
+			// theory there should not be any Get calls waiting on entry.Waiter since
+			// they would have prevented the eviction, but in practice there may be
+			// due to timing and the fact that we don't update the TTL on the entry if
+			// errors are being returned for a while. So we do need to unblock them,
+			// which will mean they recreate the entry again right away and so "reset"
+			// to a good state anyway!
+			c.entriesLock.Unlock()
+
+			// Trigger any waiters that are around.
+			close(entry.Waiter)
+			return
+		}
+
 		// If this is a new entry (not in the heap yet), then setup the
 		// initial expiry information and insert. If we're already in
 		// the heap we do nothing since we're reusing the same entry.
