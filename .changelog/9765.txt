@@ -1,0 +1,3 @@
+```release-note:improvement
+xds: only try to create an ipv6 expose checks listener if ipv6 is supported by the kernel
+```
