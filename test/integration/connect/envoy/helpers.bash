@@ -172,9 +172,9 @@ function assert_envoy_expose_checks_listener_count {
 
   HCM=$(echo "$BODY" | jq '.active_state.listener.filter_chains[0].filters[0]')
   HCM_NAME=$(echo "$HCM" | jq -r '.name')
-  HCM_PATH=$(echo "$HCM" | jq -r '.config.route_config.virtual_hosts[0].routes[0].match.path')
+  HCM_PATH=$(echo "$HCM" | jq -r '.typed_config.route_config.virtual_hosts[0].routes[0].match.path')
   echo "HCM = $HCM"
-  [ "${HCM_NAME:-}" == "envoy.http_connection_manager" ]
+  [ "${HCM_NAME:-}" == "envoy.filters.network.http_connection_manager" ]
   [ "${HCM_PATH:-}" == "${EXPECT_PATH}" ]
 }
 
