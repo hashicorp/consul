@@ -25,6 +25,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/go-hclog"
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/acl"
@@ -170,6 +171,8 @@ type ResultMeta struct {
 
 // Options are options for the Cache.
 type Options struct {
+	Logger hclog.Logger
+
 	// EntryFetchMaxBurst max burst size of RateLimit for a single cache entry
 	EntryFetchMaxBurst int
 	// EntryFetchRate represents the max calls/sec for a single cache entry
@@ -188,6 +191,9 @@ func applyDefaultValuesOnOptions(options Options) Options {
 	}
 	if options.EntryFetchMaxBurst == 0 {
 		options.EntryFetchMaxBurst = DefaultEntryFetchMaxBurst
+	}
+	if options.Logger == nil {
+		options.Logger = hclog.New(nil)
 	}
 	return options
 }

@@ -121,6 +121,12 @@ func (c *Cache) notifyBlockingQuery(ctx context.Context, r getOptions, correlati
 		} else {
 			failures++
 			wait = backOffWait(failures)
+
+			c.options.Logger.
+				With("error", err).
+				With("cache-type", r.TypeEntry.Name).
+				With("index", index).
+				Warn("handling error in Cache.Notify")
 		}
 
 		if wait > 0 {
@@ -177,6 +183,11 @@ func (c *Cache) notifyPollingQuery(ctx context.Context, r getOptions, correlatio
 			failures = 0
 		} else {
 			failures++
+			c.options.Logger.
+				With("error", err).
+				With("cache-type", r.TypeEntry.Name).
+				With("index", index).
+				Warn("handling error in Cache.Notify")
 		}
 
 		var wait time.Duration
