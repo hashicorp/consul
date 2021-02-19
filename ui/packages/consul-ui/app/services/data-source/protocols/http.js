@@ -2,94 +2,27 @@ import Service, { inject as service } from '@ember/service';
 import { get } from '@ember/object';
 import { getOwner } from '@ember/application';
 import { match } from 'consul-ui/decorators/data-source';
+import { singularize } from 'ember-inflector';
 
 export default class HttpService extends Service {
-  @service('repository/dc')
-  datacenters;
+  @service('repository/dc') datacenters;
+  @service('repository/node') leader;
+  @service('repository/service') gateways;
+  @service('repository/service-instance') 'proxy-service-instance';
+  @service('repository/proxy') 'proxy-instance';
+  @service('repository/nspace') namespaces;
+  @service('repository/metrics') metrics;
+  @service('repository/oidc-provider') oidc;
 
-  @service('repository/node')
-  nodes;
-
-  @service('repository/node')
-  node;
-
-  @service('repository/node')
-  leader;
-
-  @service('repository/service')
-  gateways;
-
-  @service('repository/service')
-  services;
-
-  @service('repository/service')
-  service;
-
-  @service('repository/service-instance')
-  'service-instance';
-
-  @service('repository/service-instance')
-  'proxy-service-instance';
-
-  @service('repository/service-instance')
-  'service-instances';
-
-  @service('repository/proxy')
-  proxies;
-
-  @service('repository/proxy')
-  'proxy-instance';
-
-  @service('repository/discovery-chain')
-  'discovery-chain';
-
-  @service('repository/topology')
-  topology;
-
-  @service('repository/coordinate')
-  coordinates;
-
-  @service('repository/session')
-  sessions;
-
-  @service('repository/nspace')
-  namespaces;
-
-  @service('repository/intention')
-  intentions;
-
-  @service('repository/intention')
-  intention;
-
-  @service('repository/kv')
-  kv;
-
-  @service('repository/token')
-  token;
-
-  @service('repository/policy')
-  policies;
-
-  @service('repository/policy')
-  policy;
-
-  @service('repository/role')
-  roles;
-
-  @service('repository/oidc-provider')
-  oidc;
-
-  @service('repository/metrics')
-  metrics;
-
-  @service('data-source/protocols/http/blocking')
-  type;
+  @service('data-source/protocols/http/blocking') type;
 
   source(src, configuration) {
     const [, , , model] = src.split('/');
-    const repo = this[model];
+    const owner = getOwner(this);
     const route = match(src);
-    const find = route.cb(route.params, getOwner(this));
+    const find = route.cb(route.params, owner);
+
+    const repo = this[model] || owner.lookup(`service:repository/${singularize(model)}`);
     configuration.createEvent = function(result = {}, configuration) {
       const event = {
         type: 'message',

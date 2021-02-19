@@ -5,7 +5,6 @@ import { get, set } from '@ember/object';
 import { isChangeset } from 'validated-changeset';
 import HTTPError from 'consul-ui/utils/http/error';
 import { ACCESS_READ } from 'consul-ui/abilities/base';
-import dataSource from 'consul-ui/decorators/data-source';
 
 export default class RepositoryService extends Service {
   @service('store') store;
@@ -103,7 +102,6 @@ export default class RepositoryService extends Service {
     return this.store.peekRecord(this.getModelName(), id);
   }
 
-  @dataSource('/:ns/:dc/:modelName')
   findAllByDatacenter(params, configuration = {}) {
     if (typeof configuration.cursor !== 'undefined') {
       params.index = configuration.cursor;
@@ -112,7 +110,6 @@ export default class RepositoryService extends Service {
     return this.store.query(this.getModelName(), params);
   }
 
-  @dataSource('/:ns/:dc/:modelName/:id')
   async findBySlug(params, configuration = {}) {
     if (params.id === '') {
       return this.create({
