@@ -152,6 +152,39 @@ function assert_envoy_version {
   echo $VERSION | grep "/$ENVOY_VERSION/"
 }
 
+function assert_envoy_expose_checks_listener_count {
+  local HOSTPORT=$1
+  local EXPECT_PATH=$2
+
+  # scrape this once
+  BODY=$(get_envoy_expose_checks_listener_once $HOSTPORT)
+  echo "BODY = $BODY"
+
+  CHAINS=$(echo "$BODY" | jq '.active_state.listener.filter_chains | length')
+  echo "CHAINS = $CHAINS (expect 1)"
+  [ "${CHAINS:-0}" -eq 1 ]
+
+  RANGES=$(echo "$BODY" | jq '.active_state.listener.filter_chains[0].filter_chain_match.source_prefix_ranges | length')
+  echo "RANGES = $RANGES (expect 3)"
+  # note: if IPv6 is not supported in the kernel per
+  # agent/xds:kernelSupportsIPv6() then this will only be 2
+  [ "${RANGES:-0}" -eq 3 ]
+
+  HCM=$(echo "$BODY" | jq '.active_state.listener.filter_chains[0].filters[0]')
+  HCM_NAME=$(echo "$HCM" | jq -r '.name')
+  HCM_PATH=$(echo "$HCM" | jq -r '.config.route_config.virtual_hosts[0].routes[0].match.path')
+  echo "HCM = $HCM"
+  [ "${HCM_NAME:-}" == "envoy.http_connection_manager" ]
+  [ "${HCM_PATH:-}" == "${EXPECT_PATH}" ]
+}
+
+function get_envoy_expose_checks_listener_once {
+  local HOSTPORT=$1
+  run curl -s -f $HOSTPORT/config_dump
+  [ "$status" -eq 0 ]
+  echo "$output" | jq --raw-output '.configs[] | select(.["@type"] == "type.googleapis.com/envoy.admin.v3.ListenersConfigDump") | .dynamic_listeners[] | select(.name | startswith("exposed_path_"))'
+}
+
 function assert_envoy_http_rbac_policy_count {
   local HOSTPORT=$1
   local EXPECT_COUNT=$2
