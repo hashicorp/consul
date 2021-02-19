@@ -146,7 +146,7 @@ func (s *Store) CoordinateBatchUpdate(idx uint64, updates structs.Coordinates) e
 		// don't carefully sequence this, and since it will fix itself
 		// on the next coordinate update from that node, we don't return
 		// an error or log anything.
-		node, err := tx.First("nodes", "id", update.Node)
+		node, err := tx.First(tableNodes, indexID, Query{Value: update.Node})
 		if err != nil {
 			return fmt.Errorf("failed node lookup: %s", err)
 		}

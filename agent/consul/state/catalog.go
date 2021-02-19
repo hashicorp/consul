@@ -29,6 +29,13 @@ const (
 	minUUIDLookupLen = 2
 )
 
+// Query is type used to query any single value index that may include an
+// enterprise identifier.
+type Query struct {
+	Value string
+	structs.EnterpriseMeta
+}
+
 func resizeNodeLookupKey(s string) string {
 	l := len(s)
 
@@ -41,7 +48,7 @@ func resizeNodeLookupKey(s string) string {
 
 // Nodes is used to pull the full list of nodes for use during snapshots.
 func (s *Snapshot) Nodes() (memdb.ResultIterator, error) {
-	iter, err := s.tx.Get("nodes", "id")
+	iter, err := s.tx.Get(tableNodes, indexID)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +135,7 @@ func (s *Store) ensureRegistrationTxn(tx WriteTxn, idx uint64, preserveIndexes b
 	// modify the node at all so we prevent watch churn and useless writes
 	// and modify index bumps on the node.
 	{
-		existing, err := tx.First("nodes", "id", node.Node)
+		existing, err := tx.First(tableNodes, indexID, Query{Value: node.Node})
 		if err != nil {
 			return fmt.Errorf("node lookup failed: %s", err)
 		}
@@ -187,7 +194,7 @@ func (s *Store) EnsureNode(idx uint64, node *structs.Node) error {
 // If allowClashWithoutID then, getting a conflict on another node without ID will be allowed
 func ensureNoNodeWithSimilarNameTxn(tx ReadTxn, node *structs.Node, allowClashWithoutID bool) error {
 	// Retrieve all of the nodes
-	enodes, err := tx.Get("nodes", "id")
+	enodes, err := tx.Get(tableNodes, indexID)
 	if err != nil {
 		return fmt.Errorf("Cannot lookup all nodes: %s", err)
 	}
@@ -289,7 +296,7 @@ func (s *Store) ensureNodeTxn(tx WriteTxn, idx uint64, preserveIndexes bool, nod
 
 	// Check for an existing node by name to support nodes with no IDs.
 	if n == nil {
-		existing, err := tx.First("nodes", "id", node.Node)
+		existing, err := tx.First(tableNodes, indexID, Query{Value: node.Node})
 		if err != nil {
 			return fmt.Errorf("node name lookup failed: %s", err)
 		}
@@ -354,7 +361,7 @@ func (s *Store) GetNode(id string) (uint64, *structs.Node, error) {
 }
 
 func getNodeTxn(tx ReadTxn, nodeName string) (*structs.Node, error) {
-	node, err := tx.First("nodes", "id", nodeName)
+	node, err := tx.First(tableNodes, indexID, Query{Value: nodeName})
 	if err != nil {
 		return nil, fmt.Errorf("node lookup failed: %s", err)
 	}
@@ -403,7 +410,7 @@ func (s *Store) Nodes(ws memdb.WatchSet) (uint64, structs.Nodes, error) {
 	idx := maxIndexTxn(tx, "nodes")
 
 	// Retrieve all of the nodes
-	nodes, err := tx.Get("nodes", "id")
+	nodes, err := tx.Get(tableNodes, indexID)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed nodes lookup: %s", err)
 	}
@@ -493,7 +500,7 @@ func (s *Store) deleteNodeCASTxn(tx WriteTxn, idx, cidx uint64, nodeName string)
 // the store within a given transaction.
 func (s *Store) deleteNodeTxn(tx WriteTxn, idx uint64, nodeName string) error {
 	// Look up the node.
-	node, err := tx.First("nodes", "id", nodeName)
+	node, err := tx.First(tableNodes, indexID, Query{Value: nodeName})
 	if err != nil {
 		return fmt.Errorf("node lookup failed: %s", err)
 	}
@@ -654,7 +661,7 @@ func ensureServiceTxn(tx WriteTxn, idx uint64, node string, preserveIndexes bool
 	// That's always populated when we read from the state store.
 	entry := svc.ToServiceNode(node)
 	// Get the node
-	n, err := tx.First("nodes", "id", node)
+	n, err := tx.First(tableNodes, indexID, Query{Value: node})
 	if err != nil {
 		return fmt.Errorf("failed node lookup: %s", err)
 	}
@@ -1082,7 +1089,7 @@ func (s *Store) ServiceAddressNodes(ws memdb.WatchSet, address string, entMeta *
 func parseServiceNodes(tx ReadTxn, ws memdb.WatchSet, services structs.ServiceNodes) (structs.ServiceNodes, error) {
 	// We don't want to track an unlimited number of nodes, so we pull a
 	// top-level watch to use as a fallback.
-	allNodes, err := tx.Get("nodes", "id")
+	allNodes, err := tx.Get(tableNodes, indexID)
 	if err != nil {
 		return nil, fmt.Errorf("failed nodes lookup: %s", err)
 	}
@@ -1097,7 +1104,7 @@ func parseServiceNodes(tx ReadTxn, ws memdb.WatchSet, services structs.ServiceNo
 		s := sn.PartialClone()
 
 		// Grab the corresponding node record.
-		watchCh, n, err := tx.FirstWatch("nodes", "id", sn.Node)
+		watchCh, n, err := tx.FirstWatch(tableNodes, indexID, Query{Value: sn.Node})
 		if err != nil {
 			return nil, fmt.Errorf("failed node lookup: %s", err)
 		}
@@ -1158,7 +1165,7 @@ func (s *Store) nodeServices(ws memdb.WatchSet, nodeNameOrID string, entMeta *st
 	idx := catalogMaxIndex(tx, entMeta, false)
 
 	// Query the node by node name
-	watchCh, n, err := tx.FirstWatch("nodes", "id", nodeNameOrID)
+	watchCh, n, err := tx.FirstWatch(tableNodes, indexID, Query{Value: nodeNameOrID})
 	if err != nil {
 		return true, 0, nil, nil, fmt.Errorf("node lookup failed: %s", err)
 	}
@@ -1476,7 +1483,7 @@ func (s *Store) ensureCheckTxn(tx WriteTxn, idx uint64, preserveIndexes bool, hc
 	}
 
 	// Get the node
-	node, err := tx.First("nodes", "id", hc.Node)
+	node, err := tx.First(tableNodes, indexID, Query{Value: hc.Node})
 	if err != nil {
 		return fmt.Errorf("failed node lookup: %s", err)
 	}
@@ -1702,7 +1709,7 @@ func parseChecksByNodeMeta(tx ReadTxn, ws memdb.WatchSet,
 
 	// We don't want to track an unlimited number of nodes, so we pull a
 	// top-level watch to use as a fallback.
-	allNodes, err := tx.Get("nodes", "id")
+	allNodes, err := tx.Get(tableNodes, indexID)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed nodes lookup: %s", err)
 	}
@@ -1712,7 +1719,7 @@ func parseChecksByNodeMeta(tx ReadTxn, ws memdb.WatchSet,
 	var results structs.HealthChecks
 	for check := iter.Next(); check != nil; check = iter.Next() {
 		healthCheck := check.(*structs.HealthCheck)
-		watchCh, node, err := tx.FirstWatch("nodes", "id", healthCheck.Node)
+		watchCh, node, err := tx.FirstWatch(tableNodes, indexID, Query{Value: healthCheck.Node})
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed node lookup: %s", err)
 		}
@@ -2117,7 +2124,7 @@ func parseCheckServiceNodes(
 
 	// We don't want to track an unlimited number of nodes, so we pull a
 	// top-level watch to use as a fallback.
-	allNodes, err := tx.Get("nodes", "id")
+	allNodes, err := tx.Get(tableNodes, indexID)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed nodes lookup: %s", err)
 	}
@@ -2135,7 +2142,7 @@ func parseCheckServiceNodes(
 	results := make(structs.CheckServiceNodes, 0, len(services))
 	for _, sn := range services {
 		// Retrieve the node.
-		watchCh, n, err := tx.FirstWatch("nodes", "id", sn.Node)
+		watchCh, n, err := tx.FirstWatch(tableNodes, indexID, Query{Value: sn.Node})
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed node lookup: %s", err)
 		}
@@ -2191,7 +2198,7 @@ func (s *Store) NodeInfo(ws memdb.WatchSet, node string, entMeta *structs.Enterp
 	idx := catalogMaxIndex(tx, entMeta, true)
 
 	// Query the node by the passed node
-	nodes, err := tx.Get("nodes", "id", node)
+	nodes, err := tx.Get(tableNodes, indexID, Query{Value: node})
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed node lookup: %s", err)
 	}
@@ -2210,7 +2217,7 @@ func (s *Store) NodeDump(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (ui
 	idx := catalogMaxIndex(tx, entMeta, true)
 
 	// Fetch all of the registered nodes
-	nodes, err := tx.Get("nodes", "id")
+	nodes, err := tx.Get(tableNodes, indexID)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed node lookup: %s", err)
 	}

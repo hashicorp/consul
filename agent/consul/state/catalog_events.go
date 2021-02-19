@@ -384,7 +384,7 @@ func newServiceHealthEventsForNode(tx ReadTxn, idx uint64, node string) ([]strea
 // the full list of checks for a specific service on that node.
 func getNodeAndChecks(tx ReadTxn, node string) (*structs.Node, serviceChecksFunc, error) {
 	// Fetch the node
-	nodeRaw, err := tx.First("nodes", "id", node)
+	nodeRaw, err := tx.First(tableNodes, indexID, Query{Value: node})
 	if err != nil {
 		return nil, nil, err
 	}

@@ -129,6 +129,7 @@ func TestNewDBSchema_Indexers(t *testing.T) {
 
 	var testcases = map[string]func() map[string]indexerTestCase{
 		tableChecks: testIndexerTableChecks,
+		tableNodes:  testIndexerTableNodes,
 	}
 
 	for _, table := range schema.Tables {

@@ -41,6 +41,34 @@ func indexFromNodeServiceQuery(arg interface{}) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
+func indexFromNode(raw interface{}) ([]byte, error) {
+	n, ok := raw.(*structs.Node)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.Node index", raw)
+	}
+
+	if n.Node == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(n.Node))
+	return b.Bytes(), nil
+}
+
+// indexFromNodeQuery builds an index key where Query.Value is lowercase, and is
+// a required value.
+func indexFromNodeQuery(arg interface{}) ([]byte, error) {
+	q, ok := arg.(Query)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for Query index", arg)
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(q.Value))
+	return b.Bytes(), nil
+}
+
 func serviceIndexName(name string, _ *structs.EnterpriseMeta) string {
 	return fmt.Sprintf("service.%s", name)
 }

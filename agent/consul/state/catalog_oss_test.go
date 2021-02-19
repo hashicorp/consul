@@ -24,3 +24,18 @@ func testIndexerTableChecks() map[string]indexerTestCase {
 		},
 	}
 }
+
+func testIndexerTableNodes() map[string]indexerTestCase {
+	return map[string]indexerTestCase{
+		indexID: {
+			read: indexValue{
+				source:   Query{Value: "NoDeId"},
+				expected: []byte("nodeid\x00"),
+			},
+			write: indexValue{
+				source:   &structs.Node{Node: "NoDeId"},
+				expected: []byte("nodeid\x00"),
+			},
+		},
+	}
+}

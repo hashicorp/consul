@@ -130,7 +130,7 @@ table=mesh-topology
 
 table=nodes
   index=id unique
-    indexer=github.com/hashicorp/go-memdb.StringFieldIndex Field=Node Lowercase=true
+    indexer=github.com/hashicorp/consul/agent/consul/state.indexerSingle readIndex=github.com/hashicorp/consul/agent/consul/state.indexFromNodeQuery writeIndex=github.com/hashicorp/consul/agent/consul/state.indexFromNode
   index=meta allow-missing
     indexer=github.com/hashicorp/go-memdb.StringMapFieldIndex Field=Meta Lowercase=false
   index=uuid unique allow-missing
