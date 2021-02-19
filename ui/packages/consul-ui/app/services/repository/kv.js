@@ -70,6 +70,7 @@ export default class KvService extends RepositoryService {
             if (record) {
               record.unloadRecord();
             }
+          }
           throw e;
         }
         return items.filter(item => params.id !== get(item, 'Key'));
