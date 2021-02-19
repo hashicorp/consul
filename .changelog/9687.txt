@@ -1,0 +1,3 @@
+```release-note:improvement
+ui: restrict the viewing/editing of certain UI elements based on the users ACL token
+```
