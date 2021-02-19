@@ -8,6 +8,7 @@ export default class ACLAbility extends BaseAbility {
   @service('env') env;
 
   resource = 'acl';
+  segmented = false;
 
   get canRead() {
     return this.env.var('CONSUL_ACLS_ENABLED') && super.canRead;

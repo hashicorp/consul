@@ -10,6 +10,7 @@ export default class Nspace extends Model {
 
   @attr('number') SyncTime;
   @attr('string', { defaultValue: () => '' }) Description;
+  @attr({ defaultValue: () => [] }) Resources; // []
   // TODO: Is there some sort of date we can use here
   @attr('string') DeletedAt;
   @attr({

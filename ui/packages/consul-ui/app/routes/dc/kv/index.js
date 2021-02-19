@@ -36,15 +36,7 @@ export default class IndexRoute extends Route {
       return hash({
         ...model,
         ...{
-          items: this.repo.findAllBySlug(get(model.parent, 'Key'), dc, nspace).catch(e => {
-            const status = get(e, 'errors.firstObject.status');
-            switch (status) {
-              case '403':
-                return this.transitionTo('dc.acls.tokens');
-              default:
-                return this.transitionTo('dc.kv.index');
-            }
-          }),
+          items: this.repo.findAllBySlug(get(model.parent, 'Key'), dc, nspace),
         },
       });
     });
@@ -55,7 +47,8 @@ export default class IndexRoute extends Route {
     if (e.errors && e.errors[0] && e.errors[0].status == '404') {
       return this.transitionTo('dc.kv.index');
     }
-    throw e;
+    // let the route above handle the error
+    return true;
   }
 
   setupController(controller, model) {

@@ -19,6 +19,7 @@ export default class Node extends Model {
   @attr() meta; // {}
   @attr() Meta; // {}
   @attr() TaggedAddresses; // {lan, wan}
+  @attr({ defaultValue: () => [] }) Resources; // []
   // Services are reshaped to a different shape to what you sometimes get from
   // the response, see models/node.js
   @hasMany('service-instance') Services; // TODO: Rename to ServiceInstances

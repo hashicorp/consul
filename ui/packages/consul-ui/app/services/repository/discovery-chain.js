@@ -19,7 +19,7 @@ export default class DiscoveryChainService extends RepositoryService {
     }
     return super.findBySlug(...arguments).catch(e => {
       const code = get(e, 'errors.firstObject.status');
-      const body = get(e, 'errors.firstObject.detail').trim();
+      const body = (get(e, 'errors.firstObject.detail') || '').trim();
       switch (code) {
         case '500':
           if (datacenter !== null && body.endsWith(ERROR_MESH_DISABLED)) {

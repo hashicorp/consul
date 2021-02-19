@@ -27,6 +27,7 @@ export default class Intention extends Model {
   @attr('number') CreateIndex;
   @attr('number') ModifyIndex;
   @attr() Meta; // {}
+  @attr({ defaultValue: () => [] }) Resources; // []
   @fragmentArray('intention-permission') Permissions;
 
   @computed('Meta')

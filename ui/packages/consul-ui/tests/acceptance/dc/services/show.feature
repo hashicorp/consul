@@ -119,3 +119,44 @@ Feature: dc / services / show: Show Service
     ---
     # The Metrics dashboard should use the Service.Name not the ID
     And I see href on the metricsAnchor like "https://something.com?service-0&dc1"
+  Scenario: With no access to service
+    Given 1 datacenter model with the value "dc1"
+    And permissions from yaml
+    ---
+    service:
+      read: false
+    ---
+    When I visit the service page for yaml
+    ---
+      dc: dc1
+      service: service-0
+    ---
+    Then I see status on the error like "403"
+  Scenario: When access is removed from a service
+    Given 1 datacenter model with the value "dc1"
+    And 1 node models
+    And 1 service model from yaml
+    And a network latency of 100
+    And permissions from yaml
+    ---
+    service:
+      read: true
+    ---
+    When I visit the service page for yaml
+    ---
+      dc: dc1
+      service: service-0
+    ---
+    And I click instances on the tabs
+    And I see 1 instance model
+    Given permissions from yaml
+    ---
+    service:
+      read: false
+    ---
+    # authorization requests are not blocking so we just wait until the next
+    # service blocking query responds
+    Then pause until I see the text "no longer have access" in "[data-notification]"
+    And "[data-notification]" has the "error" class
+    And I see status on the error like "403"
+
