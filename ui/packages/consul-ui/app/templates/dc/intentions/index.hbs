@@ -40,7 +40,9 @@ as |sort filters items|}}
         <label for="toolbar-toggle"></label>
     </BlockSlot>
     <BlockSlot @name="actions">
+{{#if (can 'create intentions')}}
         <a data-test-create href="{{href-to 'dc.intentions.create'}}" class="type-create">Create</a>
+{{/if}}
     </BlockSlot>
     <BlockSlot @name="toolbar">
 

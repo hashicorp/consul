@@ -20,6 +20,7 @@ export default class Kv extends Model {
   @attr('number') CreateIndex;
   @attr('number') ModifyIndex;
   @attr('string') Session;
+  @attr({ defaultValue: () => [] }) Resources; // []
 
   @computed('isFolder')
   get Kind() {

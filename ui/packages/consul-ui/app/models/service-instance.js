@@ -37,6 +37,7 @@ export default class ServiceInstance extends Model {
   @fragmentArray('health-check') Checks;
   @attr('number') SyncTime;
   @attr() meta;
+  @attr({ defaultValue: () => [] }) Resources; // []
 
   // The name is the Name of the Service (the grouping of instances)
   @alias('Service.Service') Name;

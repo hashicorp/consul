@@ -7,6 +7,9 @@ export default function(scenario, respondWith, set) {
       });
     })
     .given(['the url "$endpoint" responds with from yaml\n$yaml'], function(url, data) {
+      if (typeof data.body !== 'string') {
+        data.body = JSON.stringify(data.body);
+      }
       respondWith(url, data);
     })
     .given('a network latency of $number', function(number) {

@@ -1,34 +1,14 @@
 [
-  {
-    "Resource": "acl",
-    "Access": "read",
-    "Allow": false
-  },
-  {
-    "Resource": "acl",
-    "Access": "write",
-    "Allow": false
-  },
-  {
-    "Resource": "operator",
-    "Access": "read",
-    "Allow": true
-  },
-  {
-    "Resource": "operator",
-    "Access": "write",
-    "Allow": true
-  },
-  {
-    "Resource": "service",
-    "Segment": "web",
-    "Access": "read",
-    "Allow": true
-  },
-  {
-    "Resource": "service",
-    "Segment": "web",
-    "Access": "write",
-    "Allow": true
-  }
+${
+  http.body.map(item => {
+    return JSON.stringify(
+      Object.assign(
+        item,
+        {
+          Allow: !!JSON.parse(env(`CONSUL_RESOURCE_${item.Resource.toUpperCase()}_${item.Access.toUpperCase()}`, 'true'))
+        }
+      )
+    );
+  })
+}
 ]

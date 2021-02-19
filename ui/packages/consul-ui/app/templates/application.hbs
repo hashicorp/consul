@@ -21,7 +21,6 @@ as |source|>
 {{#if (not-eq router.currentRouteName 'application')}}
   <HashicorpConsul
     id="wrapper"
-    @permissions={{permissions}}
     @dcs={{dcs}}
     @dc={{or dc dcs.firstObject}}
     @nspaces={{nspaces}}

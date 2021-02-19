@@ -41,6 +41,7 @@
           </dd>
 {{/if}}
         </dl>
+{{#if (can 'delete session' item=api.data)}}
         <ConfirmationDialog @message="Are you sure you want to invalidate this session?">
           <BlockSlot @name="action" as |confirm|>
             <button type="button" data-test-delete class="type-delete" {{action confirm api.delete session}} disabled={{api.disabled}}>Invalidate Session</button>
@@ -53,6 +54,7 @@
             <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
           </BlockSlot>
         </ConfirmationDialog>
+{{/if}}
       </div>
     </BlockSlot>
 </DataForm>
