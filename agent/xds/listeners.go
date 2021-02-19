@@ -688,12 +688,22 @@ func (s *Server) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSnapshot, clus
 			advertiseLen = 128
 		}
 
+		ranges := make([]*envoycore.CidrRange, 0, 3)
+		ranges = append(ranges,
+			&envoycore.CidrRange{AddressPrefix: "127.0.0.1", PrefixLen: &wrappers.UInt32Value{Value: 8}},
+			&envoycore.CidrRange{AddressPrefix: advertise, PrefixLen: &wrappers.UInt32Value{Value: uint32(advertiseLen)}},
+		)
+
+		if ok, err := kernelSupportsIPv6(); err != nil {
+			return nil, err
+		} else if ok {
+			ranges = append(ranges,
+				&envoycore.CidrRange{AddressPrefix: "::1", PrefixLen: &wrappers.UInt32Value{Value: 128}},
+			)
+		}
+
 		chain.FilterChainMatch = &envoylistener.FilterChainMatch{
-			SourcePrefixRanges: []*envoycore.CidrRange{
-				{AddressPrefix: "127.0.0.1", PrefixLen: &wrappers.UInt32Value{Value: 8}},
-				{AddressPrefix: "::1", PrefixLen: &wrappers.UInt32Value{Value: 128}},
-				{AddressPrefix: advertise, PrefixLen: &wrappers.UInt32Value{Value: uint32(advertiseLen)}},
-			},
+			SourcePrefixRanges: ranges,
 		}
 	}
 
