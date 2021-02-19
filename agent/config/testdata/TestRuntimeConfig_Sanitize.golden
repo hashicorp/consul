@@ -74,7 +74,8 @@
     "CAPath": "",
     "Cache": {
         "EntryFetchMaxBurst": 42,
-        "EntryFetchRate": 0.334
+        "EntryFetchRate": 0.334,
+        "Logger": null
     },
     "CertFile": "",
     "CheckDeregisterIntervalMin": "0s",
