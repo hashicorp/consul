@@ -29,7 +29,7 @@
                 },
                 "httpFilters": [
                   {
-                    "name": "envoy.grpc_http1_bridge"
+                    "name": "envoy.filters.http.grpc_http1_bridge"
                   },
                   {
                     "name": "envoy.filters.http.router"

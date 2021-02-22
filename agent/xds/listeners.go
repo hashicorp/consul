@@ -1274,7 +1274,7 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 	if opts.protocol == "grpc" {
 		// Add grpc bridge before router and authz
 		cfg.HttpFilters = append([]*envoy_http_v3.HttpFilter{{
-			Name: "envoy.grpc_http1_bridge", // TODO: NAMING?
+			Name: "envoy.filters.http.grpc_http1_bridge",
 		}}, cfg.HttpFilters...)
 	}
 
