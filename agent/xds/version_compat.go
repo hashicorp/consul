@@ -296,11 +296,6 @@ func convertTypedConfigsToV2(pbuf *proto.Buffer, pb proto.Message) error {
 				}
 			}
 		}
-		if x.LrsServer != nil { // TODO: NOPE
-			if err := convertTypedConfigsToV2(pbuf, x.LrsServer); err != nil {
-				return fmt.Errorf("%T: %w", x, err)
-			}
-		}
 		return nil
 	case *envoy_api_v2.RouteConfiguration:
 		for _, vhost := range x.VirtualHosts {
