@@ -1,0 +1,3 @@
+```release-note:improvement
+xds: remove deprecated usages of xDS and drop support for envoy 1.13.x
+```
