@@ -19,6 +19,8 @@ type Store struct {
 type entry struct {
 	materializer *Materializer
 	expiry       *ttlcache.Entry
+	stop         func()
+	// TODO: add watchCount
 }
 
 // TODO: start expiration loop
@@ -29,13 +31,47 @@ func NewStore() *Store {
 	}
 }
 
-var ttl = 20 * time.Minute
+// Run the expiration loop until the context is cancelled.
+func (s *Store) Run(ctx context.Context) {
+	for {
+		s.lock.RLock()
+		timer := s.expiryHeap.Next()
+		s.lock.RUnlock()
+
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return
+		case <-s.expiryHeap.NotifyCh:
+			timer.Stop()
+			continue
+
+		case <-timer.Wait():
+			s.lock.Lock()
+
+			he := timer.Entry
+			s.expiryHeap.Remove(he.Index())
+
+			// TODO: expiry here
+			// if e.watchCount == 0 {}
+			e := s.byKey[he.Key()]
+			e.stop()
+			//delete(s.entries, entry.Key())
+
+			s.lock.Unlock()
+		}
+	}
+}
+
+// TODO: godoc
+var idleTTL = 20 * time.Minute
 
 // Get a value from the store, blocking if the store has not yet seen the
 // req.Index value.
 // See agent/cache.Cache.Get for complete documentation.
 func (s *Store) Get(
 	ctx context.Context,
+	// TODO: remove typ param, make it part of the Request interface.
 	typ string,
 	req Request,
 	// TODO: only the Index field of ResultMeta is relevant, return a result struct instead.
@@ -45,7 +81,7 @@ func (s *Store) Get(
 	e := s.getEntry(key, req.NewMaterializer)
 
 	// TODO: requires a lock to update the heap.
-	s.expiryHeap.Update(e.expiry.Index(), ttl)
+	//s.expiryHeap.Update(e.expiry.Index(), info.Timeout + ttl)
 
 	// TODO: no longer any need to return cache.FetchResult from Materializer.Fetch
 	// TODO: pass context instead of Done chan, also replaces Timeout param
@@ -114,12 +150,18 @@ func (s *Store) getEntry(key string, newMat func() *Materializer) entry {
 
 	s.lock.Lock()
 	defer s.lock.Unlock()
+	// Check again after acquiring the write lock, in case we raced to create the entry.
 	e, ok = s.byKey[key]
 	if ok {
 		return e
 	}
 
 	e = entry{materializer: newMat()}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	e.stop = cancel
+	go e.materializer.Run(ctx)
+
 	s.byKey[key] = e
 	return e
 }
