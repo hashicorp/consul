@@ -1666,7 +1666,7 @@ var cmpPartialOrderEvents = cmp.Options{
 			if payload.overrideKey != "" {
 				name = payload.overrideKey
 			}
-			ns := csn.Service.EnterpriseMeta.GetNamespace()
+			ns := csn.Service.EnterpriseMeta.NamespaceOrDefault()
 			if payload.overrideNamespace != "" {
 				ns = payload.overrideNamespace
 			}
