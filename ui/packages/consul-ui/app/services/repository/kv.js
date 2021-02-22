@@ -22,7 +22,7 @@ export default class KvService extends RepositoryService {
       // we only use findBySlug for a folder when we are looking to create a
       // parent for a key for retriveing something Model shaped. Therefore we
       // only use existing records or a fake record with the correct Key,
-      // which means we don't need to inpsect permissions as its an already
+      // which means we don't need to inspect permissions as its an already
       // existing KV or a fake one
 
       // TODO: This very much shouldn't be here,
@@ -38,11 +38,9 @@ export default class KvService extends RepositoryService {
         });
       }
       return item;
+    } else {
+      return super.findBySlug(...arguments);
     }
-    if (typeof configuration.cursor !== 'undefined') {
-      params.index = configuration.cursor;
-    }
-    return this.store.queryRecord(this.getModelName(), params);
   }
 
   // this one only gives you keys
@@ -76,9 +74,7 @@ export default class KvService extends RepositoryService {
         return items.filter(item => params.id !== get(item, 'Key'));
       },
       ACCESS_LIST,
-      params.id,
-      params.dc,
-      params.nspace
+      params
     );
   }
 }

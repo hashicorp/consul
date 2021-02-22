@@ -20,9 +20,7 @@ export default class ServiceInstanceService extends RepositoryService {
     return this.authorizeBySlug(
       async () => this.store.query(this.getModelName(), params),
       ACCESS_READ,
-      params.id,
-      params.dc,
-      params.nspace
+      params
     );
   }
 
@@ -35,9 +33,7 @@ export default class ServiceInstanceService extends RepositoryService {
     return this.authorizeBySlug(
       async () => this.store.queryRecord(this.getModelName(), params),
       ACCESS_READ,
-      params.id,
-      params.dc,
-      params.nspace
+      params
     );
   }
 

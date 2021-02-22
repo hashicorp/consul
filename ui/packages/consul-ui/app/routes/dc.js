@@ -43,7 +43,10 @@ export default class DcRoute extends Route {
       app.nspaces.length > 1 ? findActiveNspace(app.nspaces, nspace) : app.nspaces.firstObject;
 
     // When disabled nspaces is [], so nspace is undefined
-    const permissions = await this.permissionsRepo.findAll(params.dc, get(nspace || {}, 'Name'));
+    const permissions = await this.permissionsRepo.findAll({
+      dc: params.dc,
+      nspace: get(nspace || {}, 'Name'),
+    });
     return {
       dc,
       nspace,
@@ -79,7 +82,10 @@ export default class DcRoute extends Route {
       const controller = this.controllerFor('application');
       Promise.all([
         this.nspacesRepo.findAll(),
-        this.permissionsRepo.findAll(get(controller, 'dc.Name'), get(controller, 'nspace.Name')),
+        this.permissionsRepo.findAll({
+          dc: get(controller, 'dc.Name'),
+          nspace: get(controller, 'nspace.Name'),
+        }),
       ]).then(([nspaces, permissions]) => {
         if (typeof controller !== 'undefined') {
           controller.setProperties({
