@@ -23,43 +23,33 @@ export default class RepositoryService extends Service {
   }
 
   /**
-   * Creates a set of permissions base don a slug, loads in the access
-   * permissions for themand checks/validates
+   * Creates a set of permissions based on an id/slug, loads in the access
+   * permissions for them and checks/validates
    */
-  async authorizeBySlug(cb, access, slug, dc, nspace) {
-    return this.validatePermissions(
-      cb,
-      await this.permissions.findBySlug(slug, this.getModelName(), dc, nspace),
-      access,
-      dc,
-      nspace
-    );
+  async authorizeBySlug(cb, access, params) {
+    params.resources = await this.permissions.findBySlug(params, this.getModelName());
+    return this.validatePermissions(cb, access, params);
   }
 
   /**
    * Loads in the access permissions and checks/validates them for a set of
    * permissions
    */
-  async authorizeByPermissions(cb, permissions, access, dc, nspace) {
-    return this.validatePermissions(
-      cb,
-      await this.permissions.authorize(permissions, dc, nspace),
-      access,
-      dc,
-      nspace
-    );
+  async authorizeByPermissions(cb, access, params) {
+    params.resources = await this.permissions.authorize(params);
+    return this.validatePermissions(cb, access, params);
   }
 
   /**
    * Checks already loaded permissions for certain access before calling cb to
    * return the thing you wanted to check the permissions on
    */
-  async validatePermissions(cb, permissions, access, dc, nspace) {
+  async validatePermissions(cb, access, params) {
     // inspect the permissions for this segment/slug remotely, if we have zero
     // permissions fire a fake 403 so we don't even request the model/resource
-    if (permissions.length > 0) {
-      const permission = permissions.find(item => item.Access === access);
-      if (permission && permission.Allow === false) {
+    if (params.resources.length > 0) {
+      const resource = params.resources.find(item => item.Access === access);
+      if (resource && resource.Allow === false) {
         // TODO: Here we temporarily make a hybrid HTTPError/ember-data HTTP error
         // we should eventually use HTTPError's everywhere
         const e = new HTTPError(403);
@@ -71,7 +61,7 @@ export default class RepositoryService extends Service {
     // add the `Resource` information to the record/model so we can inspect
     // them in other places like templates etc
     if (get(item, 'Resources')) {
-      set(item, 'Resources', permissions);
+      set(item, 'Resources', params.resources);
     }
     return item;
   }
@@ -124,9 +114,7 @@ export default class RepositoryService extends Service {
     return this.authorizeBySlug(
       () => this.store.queryRecord(this.getModelName(), params),
       ACCESS_READ,
-      params.slug,
-      params.dc,
-      params.nspace
+      params
     );
   }
 

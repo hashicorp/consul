@@ -35,13 +35,13 @@ export default class IntentionRepository extends RepositoryService {
 
   // legacy intentions are strange that in order to read/write you need access
   // to either/or the destination or source
-  async authorizeBySlug(cb, access, slug, dc, nspace) {
-    const [, source, , destination] = slug.split(':');
+  async authorizeBySlug(cb, access, params) {
+    const [, source, , destination] = params.id.split(':');
     const ability = this.permissions.abilityFor(this.getModelName());
-    const permissions = ability
+    params.resources = ability
       .generateForSegment(source)
       .concat(ability.generateForSegment(destination));
-    return this.authorizeByPermissions(cb, permissions, access, dc, nspace);
+    return this.authorizeByPermissions(cb, access, params);
   }
 
   async persist(obj) {
@@ -67,12 +67,12 @@ export default class IntentionRepository extends RepositoryService {
     return super.findBySlug(...arguments);
   }
 
-  @dataSource('/:ns/:dc/intentions/for-service/:slug')
+  @dataSource('/:ns/:dc/intentions/for-service/:id')
   async findByService(params, configuration = {}) {
     const query = {
       dc: params.dc,
       nspace: params.nspace,
-      filter: `SourceName == "${params.slug}" or DestinationName == "${params.slug}" or SourceName == "*" or DestinationName == "*"`,
+      filter: `SourceName == "${params.id}" or DestinationName == "${params.id}" or SourceName == "*" or DestinationName == "*"`,
     };
     if (typeof configuration.cursor !== 'undefined') {
       query.index = configuration.cursor;

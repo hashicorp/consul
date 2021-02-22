@@ -97,31 +97,27 @@ export default class PermissionService extends RepositoryService {
    * If ACLs are disabled, then you have access to everything, hence we check
    * that here and only make the request if ACLs are enabled
    */
-  async authorize(resources, dc, nspace) {
+  async authorize(params) {
     if (!this.env.var('CONSUL_ACLS_ENABLED')) {
-      return resources.map(item => {
+      return params.resources.map(item => {
         return {
           ...item,
           Allow: true,
         };
       });
     } else {
-      let permissions = [];
+      let resources = [];
       try {
-        permissions = await this.store.authorize('permission', {
-          dc: dc,
-          ns: nspace,
-          permissions: resources,
-        });
+        resources = await this.store.authorize('permission', params);
       } catch (e) {
         runInDebug(() => console.error(e));
         // passthrough
       }
-      return permissions;
+      return resources;
     }
   }
 
-  async findBySlug(segment, model, dc, nspace) {
+  async findBySlug(params, model) {
     let ability;
     try {
       ability = this._can.abilityFor(model);
@@ -129,21 +125,23 @@ export default class PermissionService extends RepositoryService {
       return [];
     }
 
-    const resources = ability.generateForSegment(segment.toString());
+    const resources = ability.generateForSegment(params.id.toString());
     // if we get no resources for a segment it means that this
     // ability/permission isn't segmentable
     if (resources.length === 0) {
       return [];
     }
-    return this.authorize(resources, dc, nspace);
+    params.resources = resources;
+    return this.authorize(params);
   }
 
-  async findByPermissions(resources, dc, nspace) {
-    return this.authorize(resources, dc, nspace);
+  async findByPermissions(params) {
+    return this.authorize(params);
   }
 
-  async findAll(dc, nspace) {
-    this.permissions = await this.findByPermissions(REQUIRED_PERMISSIONS, dc, nspace);
+  async findAll(params) {
+    params.resources = REQUIRED_PERMISSIONS;
+    this.permissions = await this.findByPermissions(params);
     return this.permissions;
   }
 }
