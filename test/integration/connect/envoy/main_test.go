@@ -26,6 +26,7 @@ func TestEnvoy(t *testing.T) {
 		"case-cfg-splitter-features",
 		"case-consul-exec",
 		"case-dogstatsd-udp",
+		"case-expose-checks",
 		"case-gateways-local",
 		"case-gateways-remote",
 		"case-gateway-without-services",
