@@ -1260,7 +1260,6 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 	}
 
 	if opts.protocol == "http2" || opts.protocol == "grpc" {
-		// TODO(rb): this is deprecated
 		cfg.Http2ProtocolOptions = &envoy_core_v3.Http2ProtocolOptions{}
 	}
 

@@ -370,7 +370,6 @@ func (s *Server) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, name, pathProt
 		protocol = cfg.Protocol
 	}
 	if protocol == "http2" || protocol == "grpc" {
-		// TODO(rb): this is deprecated
 		c.Http2ProtocolOptions = &envoy_core_v3.Http2ProtocolOptions{}
 	}
 
@@ -420,7 +419,6 @@ func (s *Server) makeUpstreamClusterForPreparedQuery(upstream structs.Upstream, 
 			OutlierDetection: cfg.PassiveHealthCheck.AsOutlierDetection(),
 		}
 		if cfg.Protocol == "http2" || cfg.Protocol == "grpc" {
-			// TODO(rb): this is deprecated
 			c.Http2ProtocolOptions = &envoy_core_v3.Http2ProtocolOptions{}
 		}
 	}
@@ -547,7 +545,6 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 		}
 
 		if proto == "http2" || proto == "grpc" {
-			// TODO(rb): this is deprecated
 			c.Http2ProtocolOptions = &envoy_core_v3.Http2ProtocolOptions{}
 		}
 
