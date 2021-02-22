@@ -157,8 +157,6 @@ func convertHttpFilterToV2(pbuf *proto.Buffer, filter *envoy_http_v3.HttpFilter)
 
 // Responses
 func convertTypedConfigsToV2(pbuf *proto.Buffer, pb proto.Message) error {
-	// TODO: api/resource version downgrades
-	// TODO: config sources and xDS things
 	switch x := pb.(type) {
 	case *envoy_api_v2.DiscoveryResponse:
 		if err := convertTypeUrlsToV2(&x.TypeUrl); err != nil {
