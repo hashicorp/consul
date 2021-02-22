@@ -1282,18 +1282,15 @@ func makeHTTPFilter(opts listenerFilterOpts) (*envoy_listener_v3.Filter, error) 
 }
 
 func makeFilter(name string, cfg proto.Message) (*envoy_listener_v3.Filter, error) {
-	filter := &envoy_listener_v3.Filter{
-		Name: name,
-	}
 	any, err := ptypes.MarshalAny(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	filter.ConfigType = &envoy_listener_v3.Filter_TypedConfig{TypedConfig: any}
-	// TODO: REFACTOR METHOD
-
-	return filter, nil
+	return &envoy_listener_v3.Filter{
+		Name:       name,
+		ConfigType: &envoy_listener_v3.Filter_TypedConfig{TypedConfig: any},
+	}, nil
 }
 
 func makeEnvoyHTTPFilter(name string, cfg proto.Message) (*envoy_http_v3.HttpFilter, error) {
