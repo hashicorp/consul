@@ -220,7 +220,7 @@
                   </ModalDialog>
                 </BlockSlot>
                 <BlockSlot @name="authorized">
-                  <ModalDialog @name={{concat guid "-login-toggle"}} @onclose={{this.close}} @onopen={{this.open}} as |api|>
+                  <ModalDialog @name="login-toggle" @onclose={{this.close}} @onopen={{this.open}} as |api|>
                     <Ref @target={{this}} @name="modal" @value={{api}} />
                     <BlockSlot @name="header">
                       <h2>Log in with a different token</h2>
