@@ -83,14 +83,13 @@ func (s *adsStreamV3Shim) Recv() (*envoy_discovery_v3.DiscoveryRequest, error) {
 }
 
 func convertDiscoveryRequestToV3(req *envoy_api_v2.DiscoveryRequest) (*envoy_discovery_v3.DiscoveryRequest, error) {
-	// TODO: improve this
-	b, err := proto.Marshal(req)
-	if err != nil {
+	var pbuf proto.Buffer
+	if err := pbuf.Marshal(req); err != nil {
 		return nil, err
 	}
 
 	var reqV3 envoy_discovery_v3.DiscoveryRequest
-	if err := proto.Unmarshal(b, &reqV3); err != nil {
+	if err := pbuf.Unmarshal(&reqV3); err != nil {
 		return nil, err
 	}
 
@@ -103,56 +102,53 @@ func convertDiscoveryRequestToV3(req *envoy_api_v2.DiscoveryRequest) (*envoy_dis
 }
 
 func convertDiscoveryResponseToV2(resp *envoy_discovery_v3.DiscoveryResponse) (*envoy_api_v2.DiscoveryResponse, error) {
-	// TODO: improve this
-	b, err := proto.Marshal(resp)
-	if err != nil {
+	var pbuf proto.Buffer
+	if err := pbuf.Marshal(resp); err != nil {
 		return nil, err
 	}
 
 	var respV2 envoy_api_v2.DiscoveryResponse
-	if err := proto.Unmarshal(b, &respV2); err != nil {
+	if err := pbuf.Unmarshal(&respV2); err != nil {
 		return nil, err
 	}
 
-	if err := convertTypedConfigsToV2(&respV2); err != nil {
+	if err := convertTypedConfigsToV2(&pbuf, &respV2); err != nil {
 		return nil, err
 	}
 
 	return &respV2, nil
 }
 
-func convertNetFilterToV2(filter *envoy_listener_v3.Filter) (*envoy_listener_v2.Filter, error) {
-	// TODO: improve this
-	b, err := proto.Marshal(filter)
-	if err != nil {
+func convertNetFilterToV2(pbuf *proto.Buffer, filter *envoy_listener_v3.Filter) (*envoy_listener_v2.Filter, error) {
+	pbuf.Reset()
+	if err := pbuf.Marshal(filter); err != nil {
 		return nil, err
 	}
 
 	var filterV2 envoy_listener_v2.Filter
-	if err := proto.Unmarshal(b, &filterV2); err != nil {
+	if err := pbuf.Unmarshal(&filterV2); err != nil {
 		return nil, err
 	}
 
-	if err := convertTypedConfigsToV2(&filterV2); err != nil {
+	if err := convertTypedConfigsToV2(pbuf, &filterV2); err != nil {
 		return nil, err
 	}
 
 	return &filterV2, nil
 }
 
-func convertHttpFilterToV2(filter *envoy_http_v3.HttpFilter) (*envoy_http_v2.HttpFilter, error) {
-	// TODO: improve this
-	b, err := proto.Marshal(filter)
-	if err != nil {
+func convertHttpFilterToV2(pbuf *proto.Buffer, filter *envoy_http_v3.HttpFilter) (*envoy_http_v2.HttpFilter, error) {
+	pbuf.Reset()
+	if err := pbuf.Marshal(filter); err != nil {
 		return nil, err
 	}
 
 	var filterV2 envoy_http_v2.HttpFilter
-	if err := proto.Unmarshal(b, &filterV2); err != nil {
+	if err := pbuf.Unmarshal(&filterV2); err != nil {
 		return nil, err
 	}
 
-	if err := convertTypedConfigsToV2(&filterV2); err != nil {
+	if err := convertTypedConfigsToV2(pbuf, &filterV2); err != nil {
 		return nil, err
 	}
 
@@ -160,10 +156,7 @@ func convertHttpFilterToV2(filter *envoy_http_v3.HttpFilter) (*envoy_http_v2.Htt
 }
 
 // Responses
-func convertTypedConfigsToV2(pb proto.Message) error {
-	// if true {
-	// 	return nil
-	// }
+func convertTypedConfigsToV2(pbuf *proto.Buffer, pb proto.Message) error {
 	// TODO: api/resource version downgrades
 	// TODO: config sources and xDS things
 	switch x := pb.(type) {
@@ -172,7 +165,7 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 			return fmt.Errorf("%T: %w", x, err)
 		}
 		for _, res := range x.Resources {
-			if err := convertTypedConfigsToV2(res); err != nil {
+			if err := convertTypedConfigsToV2(pbuf, res); err != nil {
 				return fmt.Errorf("%T: %w", x, err)
 			}
 		}
@@ -191,7 +184,7 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 
 		// handle the contents and then put them back in the any.Any
 		// handle contents first
-		if err := convertTypedConfigsToV2(dynAny.Message); err != nil {
+		if err := convertTypedConfigsToV2(pbuf, dynAny.Message); err != nil {
 			return fmt.Errorf("%T(%s) convert type urls in body: %w", x, x.TypeUrl, err)
 		}
 		anyFixed, err := ptypes.MarshalAny(dynAny.Message)
@@ -202,17 +195,17 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 		return nil
 	case *envoy_api_v2.Listener:
 		for _, chain := range x.FilterChains {
-			if err := convertTypedConfigsToV2(chain); err != nil {
+			if err := convertTypedConfigsToV2(pbuf, chain); err != nil {
 				return fmt.Errorf("%T: %w", x, err)
 			}
 		}
 		for _, filter := range x.ListenerFilters {
-			if err := convertTypedConfigsToV2(filter); err != nil {
+			if err := convertTypedConfigsToV2(pbuf, filter); err != nil {
 				return fmt.Errorf("%T: %w", x, err)
 			}
 		}
 		if x.UdpListenerConfig != nil {
-			if err := convertTypedConfigsToV2(x.UdpListenerConfig); err != nil {
+			if err := convertTypedConfigsToV2(pbuf, x.UdpListenerConfig); err != nil {
 				return fmt.Errorf("%T: %w", x, err)
 			}
 		}
@@ -224,7 +217,7 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 				return fmt.Errorf("%T: ConfigType type %T not handled", x, x.ConfigType)
 			}
 			if tc.TypedConfig != nil {
-				if err := convertTypedConfigsToV2(tc.TypedConfig); err != nil {
+				if err := convertTypedConfigsToV2(pbuf, tc.TypedConfig); err != nil {
 					return fmt.Errorf("%T: %w", x, err)
 				}
 			}
@@ -237,7 +230,7 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 				return fmt.Errorf("%T: ConfigType type %T not handled", x, x.ConfigType)
 			}
 			if tc.TypedConfig != nil {
-				if err := convertTypedConfigsToV2(tc.TypedConfig); err != nil {
+				if err := convertTypedConfigsToV2(pbuf, tc.TypedConfig); err != nil {
 					return fmt.Errorf("%T: %w", x, err)
 				}
 			}
@@ -245,12 +238,12 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 		return nil
 	case *envoy_listener_v2.FilterChain:
 		for _, filter := range x.Filters {
-			if err := convertTypedConfigsToV2(filter); err != nil {
+			if err := convertTypedConfigsToV2(pbuf, filter); err != nil {
 				return fmt.Errorf("%T: %w", x, err)
 			}
 		}
 		if x.TransportSocket != nil {
-			if err := convertTypedConfigsToV2(x.TransportSocket); err != nil {
+			if err := convertTypedConfigsToV2(pbuf, x.TransportSocket); err != nil {
 				return fmt.Errorf("%T: %w", x, err)
 			}
 		}
@@ -262,7 +255,7 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 				return fmt.Errorf("%T: ConfigType type %T not handled", x, x.ConfigType)
 			}
 			if tc.TypedConfig != nil {
-				if err := convertTypedConfigsToV2(tc.TypedConfig); err != nil {
+				if err := convertTypedConfigsToV2(pbuf, tc.TypedConfig); err != nil {
 					return fmt.Errorf("%T: %w", x, err)
 				}
 			}
@@ -275,7 +268,7 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 				return fmt.Errorf("%T: ConfigType type %T not handled", x, x.ConfigType)
 			}
 			if tc.TypedConfig != nil {
-				if err := convertTypedConfigsToV2(tc.TypedConfig); err != nil {
+				if err := convertTypedConfigsToV2(pbuf, tc.TypedConfig); err != nil {
 					return fmt.Errorf("%T: %w", x, err)
 				}
 			}
@@ -285,57 +278,57 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 		return nil
 	case *envoy_api_v2.Cluster:
 		if x.TransportSocket != nil {
-			if err := convertTypedConfigsToV2(x.TransportSocket); err != nil {
+			if err := convertTypedConfigsToV2(pbuf, x.TransportSocket); err != nil {
 				return fmt.Errorf("%T: %w", x, err)
 			}
 		}
 		for _, tsm := range x.TransportSocketMatches {
 			if tsm.TransportSocket != nil {
-				if err := convertTypedConfigsToV2(tsm.TransportSocket); err != nil {
+				if err := convertTypedConfigsToV2(pbuf, tsm.TransportSocket); err != nil {
 					return fmt.Errorf("%T: %w", x, err)
 				}
 			}
 		}
 		if x.EdsClusterConfig != nil {
 			if x.EdsClusterConfig.EdsConfig != nil {
-				if err := convertTypedConfigsToV2(x.EdsClusterConfig.EdsConfig); err != nil {
+				if err := convertTypedConfigsToV2(pbuf, x.EdsClusterConfig.EdsConfig); err != nil {
 					return fmt.Errorf("%T: %w", x, err)
 				}
 			}
 		}
 		if x.LrsServer != nil { // TODO: NOPE
-			if err := convertTypedConfigsToV2(x.LrsServer); err != nil {
+			if err := convertTypedConfigsToV2(pbuf, x.LrsServer); err != nil {
 				return fmt.Errorf("%T: %w", x, err)
 			}
 		}
 		return nil
 	case *envoy_api_v2.RouteConfiguration:
 		for _, vhost := range x.VirtualHosts {
-			if err := convertTypedConfigsToV2(vhost); err != nil {
+			if err := convertTypedConfigsToV2(pbuf, vhost); err != nil {
 				return fmt.Errorf("%T: %w", x, err)
 			}
 		}
 		if x.Vhds != nil && x.Vhds.ConfigSource != nil {
-			if err := convertTypedConfigsToV2(x.Vhds.ConfigSource); err != nil {
+			if err := convertTypedConfigsToV2(pbuf, x.Vhds.ConfigSource); err != nil {
 				return fmt.Errorf("%T: %w", x, err)
 			}
 		}
 		return nil
 	case *envoy_route_v2.VirtualHost:
 		if x.RetryPolicy != nil {
-			if err := convertTypedConfigsToV2(x.RetryPolicy); err != nil {
+			if err := convertTypedConfigsToV2(pbuf, x.RetryPolicy); err != nil {
 				return fmt.Errorf("%T: %w", x, err)
 			}
 		}
 		return nil
 	case *envoy_route_v2.RetryPolicy:
 		if x.RetryPriority != nil {
-			if err := convertTypedConfigsToV2(x.RetryPriority); err != nil {
+			if err := convertTypedConfigsToV2(pbuf, x.RetryPriority); err != nil {
 				return fmt.Errorf("%T: %w", x, err)
 			}
 		}
 		for _, pred := range x.RetryHostPredicate {
-			if err := convertTypedConfigsToV2(pred); err != nil {
+			if err := convertTypedConfigsToV2(pbuf, pred); err != nil {
 				return fmt.Errorf("%T: %w", x, err)
 			}
 		}
@@ -348,7 +341,7 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 			}
 			if tc.TypedConfig != nil {
 				// TODO: add some of these?
-				if err := convertTypedConfigsToV2(tc.TypedConfig); err != nil {
+				if err := convertTypedConfigsToV2(pbuf, tc.TypedConfig); err != nil {
 					return fmt.Errorf("%T: %w", x, err)
 				}
 			}
@@ -362,7 +355,7 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 			}
 			if tc.TypedConfig != nil {
 				// TODO: add some of these?
-				if err := convertTypedConfigsToV2(tc.TypedConfig); err != nil {
+				if err := convertTypedConfigsToV2(pbuf, tc.TypedConfig); err != nil {
 					return fmt.Errorf("%T: %w", x, err)
 				}
 			}
@@ -375,7 +368,7 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 				return fmt.Errorf("%T: ConfigType type %T not handled", x, x.ConfigType)
 			}
 			if tc.TypedConfig != nil {
-				if err := convertTypedConfigsToV2(tc.TypedConfig); err != nil {
+				if err := convertTypedConfigsToV2(pbuf, tc.TypedConfig); err != nil {
 					return fmt.Errorf("%T: %w", x, err)
 				}
 			}
@@ -394,13 +387,13 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 			switch spec := x.RouteSpecifier.(type) {
 			case *envoy_http_v2.HttpConnectionManager_Rds:
 				if spec.Rds != nil && spec.Rds.ConfigSource != nil {
-					if err := convertTypedConfigsToV2(spec.Rds.ConfigSource); err != nil {
+					if err := convertTypedConfigsToV2(pbuf, spec.Rds.ConfigSource); err != nil {
 						return fmt.Errorf("%T: %w", x, err)
 					}
 				}
 			case *envoy_http_v2.HttpConnectionManager_RouteConfig:
 				if spec.RouteConfig != nil {
-					if err := convertTypedConfigsToV2(spec.RouteConfig); err != nil {
+					if err := convertTypedConfigsToV2(pbuf, spec.RouteConfig); err != nil {
 						return fmt.Errorf("%T: %w", x, err)
 					}
 				}
@@ -409,7 +402,7 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 			}
 		}
 		for _, filter := range x.HttpFilters {
-			if err := convertTypedConfigsToV2(filter); err != nil {
+			if err := convertTypedConfigsToV2(pbuf, filter); err != nil {
 				return fmt.Errorf("%T: %w", x, err)
 			}
 		}
@@ -418,7 +411,7 @@ func convertTypedConfigsToV2(pb proto.Message) error {
 			if !ok {
 				return fmt.Errorf("%T: Tracing.Provider.ConfigType type %T not handled", x, x.Tracing.Provider.ConfigType)
 			}
-			if err := convertTypedConfigsToV2(tc.TypedConfig); err != nil {
+			if err := convertTypedConfigsToV2(pbuf, tc.TypedConfig); err != nil {
 				return fmt.Errorf("%T: %w", x, err)
 			}
 		}
