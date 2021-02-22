@@ -82,6 +82,8 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 	secret, err := client.Auth().Token().LookupSelf()
 	if err != nil {
 		return err
+	} else if secret == nil {
+		return fmt.Errorf("Could not look up Vault provider token: not found")
 	}
 	var token struct {
 		Renewable bool
