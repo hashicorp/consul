@@ -1,231 +1,239 @@
 {
   "name": "envoy.filters.http.rbac",
-  "config": {
-      "rules": {
-            "policies": {
-                  "consul-intentions-layer7-0": {
-                        "permissions": [
-                              {
-                                    "and_rules": {
-                                          "rules": [
-                                                {
-                                                      "url_path": {
-                                                            "path": {
-                                                                  "prefix": "/v1"
-                                                                }
-                                                          }
-                                                    },
-                                                {
-                                                      "not_rule": {
-                                                            "url_path": {
-                                                                  "path": {
-                                                                        "exact": "/v1/secret"
-                                                                      }
-                                                                }
-                                                          }
-                                                    }
-                                              ]
-                                        }
-                                  },
-                              {
-                                    "and_rules": {
-                                          "rules": [
-                                                {
-                                                      "and_rules": {
-                                                            "rules": [
-                                                                  {
-                                                                        "url_path": {
-                                                                              "path": {
-                                                                                    "safe_regex": {
-                                                                                          "google_re2": {
-                                                                                              },
-                                                                                          "regex": "/v[123]"
-                                                                                        }
-                                                                                  }
-                                                                            }
-                                                                      },
-                                                                  {
-                                                                        "header": {
-                                                                              "name": ":method",
-                                                                              "safe_regex_match": {
-                                                                                    "google_re2": {
-                                                                                        },
-                                                                                    "regex": "GET|HEAD|OPTIONS"
-                                                                                  }
-                                                                            }
-                                                                      }
-                                                                ]
-                                                          }
-                                                    },
-                                                {
-                                                      "not_rule": {
-                                                            "url_path": {
-                                                                  "path": {
-                                                                        "prefix": "/v1"
-                                                                      }
-                                                                }
-                                                          }
-                                                    },
-                                                {
-                                                      "not_rule": {
-                                                            "url_path": {
-                                                                  "path": {
-                                                                        "exact": "/v1/secret"
-                                                                      }
-                                                                }
-                                                          }
-                                                    }
-                                              ]
-                                        }
-                                  },
-                              {
-                                    "and_rules": {
-                                          "rules": [
-                                                {
-                                                      "and_rules": {
-                                                            "rules": [
-                                                                  {
-                                                                        "header": {
-                                                                              "name": "x-foo",
-                                                                              "present_match": true
-                                                                            }
-                                                                      },
-                                                                  {
-                                                                        "header": {
-                                                                              "exact_match": "xyz",
-                                                                              "name": "x-bar"
-                                                                            }
-                                                                      },
-                                                                  {
-                                                                        "header": {
-                                                                              "name": "x-dib",
-                                                                              "prefix_match": "gaz"
-                                                                            }
-                                                                      },
-                                                                  {
-                                                                        "header": {
-                                                                              "name": "x-gir",
-                                                                              "suffix_match": "zim"
-                                                                            }
-                                                                      },
-                                                                  {
-                                                                        "header": {
-                                                                              "name": "x-zim",
-                                                                              "safe_regex_match": {
-                                                                                    "google_re2": {
-                                                                                        },
-                                                                                    "regex": "gi[rR]"
-                                                                                  }
-                                                                            }
-                                                                      },
-                                                                  {
-                                                                        "header": {
-                                                                              "invert_match": true,
-                                                                              "name": "z-foo",
-                                                                              "present_match": true
-                                                                            }
-                                                                      },
-                                                                  {
-                                                                        "header": {
-                                                                              "exact_match": "xyz",
-                                                                              "invert_match": true,
-                                                                              "name": "z-bar"
-                                                                            }
-                                                                      },
-                                                                  {
-                                                                        "header": {
-                                                                              "invert_match": true,
-                                                                              "name": "z-dib",
-                                                                              "prefix_match": "gaz"
-                                                                            }
-                                                                      },
-                                                                  {
-                                                                        "header": {
-                                                                              "invert_match": true,
-                                                                              "name": "z-gir",
-                                                                              "suffix_match": "zim"
-                                                                            }
-                                                                      },
-                                                                  {
-                                                                        "header": {
-                                                                              "invert_match": true,
-                                                                              "name": "z-zim",
-                                                                              "safe_regex_match": {
-                                                                                    "google_re2": {
-                                                                                        },
-                                                                                    "regex": "gi[rR]"
-                                                                                  }
-                                                                            }
-                                                                      }
-                                                                ]
-                                                          }
-                                                    },
-                                                {
-                                                      "not_rule": {
-                                                            "and_rules": {
-                                                                  "rules": [
-                                                                        {
-                                                                              "url_path": {
-                                                                                    "path": {
-                                                                                          "safe_regex": {
-                                                                                                "google_re2": {
-                                                                                                    },
-                                                                                                "regex": "/v[123]"
-                                                                                              }
-                                                                                        }
-                                                                                  }
-                                                                            },
-                                                                        {
-                                                                              "header": {
-                                                                                    "name": ":method",
-                                                                                    "safe_regex_match": {
-                                                                                          "google_re2": {
-                                                                                              },
-                                                                                          "regex": "GET|HEAD|OPTIONS"
-                                                                                        }
-                                                                                  }
-                                                                            }
-                                                                      ]
-                                                                }
-                                                          }
-                                                    },
-                                                {
-                                                      "not_rule": {
-                                                            "url_path": {
-                                                                  "path": {
-                                                                        "prefix": "/v1"
-                                                                      }
-                                                                }
-                                                          }
-                                                    },
-                                                {
-                                                      "not_rule": {
-                                                            "url_path": {
-                                                                  "path": {
-                                                                        "exact": "/v1/secret"
-                                                                      }
-                                                                }
-                                                          }
-                                                    }
-                                              ]
-                                        }
-                                  }
-                            ],
-                        "principals": [
-                              {
-                                    "authenticated": {
-                                          "principal_name": {
-                                                "safe_regex": {
-                                                      "google_re2": {
-                                                          },
-                                                      "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/web$"
-                                                    }
-                                              }
-                                        }
-                                  }
-                            ]
+  "typedConfig": {
+    "@type": "type.googleapis.com/envoy.config.filter.http.rbac.v2.RBAC",
+    "rules": {
+      "policies": {
+        "consul-intentions-layer7-0": {
+          "permissions": [
+            {
+              "andRules": {
+                "rules": [
+                  {
+                    "urlPath": {
+                      "path": {
+                        "prefix": "/v1"
                       }
+                    }
+                  },
+                  {
+                    "notRule": {
+                      "urlPath": {
+                        "path": {
+                          "exact": "/v1/secret"
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "andRules": {
+                "rules": [
+                  {
+                    "andRules": {
+                      "rules": [
+                        {
+                          "urlPath": {
+                            "path": {
+                              "safeRegex": {
+                                "googleRe2": {
+
+                                },
+                                "regex": "/v[123]"
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "header": {
+                            "name": ":method",
+                            "safeRegexMatch": {
+                              "googleRe2": {
+
+                              },
+                              "regex": "GET|HEAD|OPTIONS"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "notRule": {
+                      "urlPath": {
+                        "path": {
+                          "prefix": "/v1"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "notRule": {
+                      "urlPath": {
+                        "path": {
+                          "exact": "/v1/secret"
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "andRules": {
+                "rules": [
+                  {
+                    "andRules": {
+                      "rules": [
+                        {
+                          "header": {
+                            "name": "x-foo",
+                            "presentMatch": true
+                          }
+                        },
+                        {
+                          "header": {
+                            "name": "x-bar",
+                            "exactMatch": "xyz"
+                          }
+                        },
+                        {
+                          "header": {
+                            "name": "x-dib",
+                            "prefixMatch": "gaz"
+                          }
+                        },
+                        {
+                          "header": {
+                            "name": "x-gir",
+                            "suffixMatch": "zim"
+                          }
+                        },
+                        {
+                          "header": {
+                            "name": "x-zim",
+                            "safeRegexMatch": {
+                              "googleRe2": {
+
+                              },
+                              "regex": "gi[rR]"
+                            }
+                          }
+                        },
+                        {
+                          "header": {
+                            "name": "z-foo",
+                            "presentMatch": true,
+                            "invertMatch": true
+                          }
+                        },
+                        {
+                          "header": {
+                            "name": "z-bar",
+                            "exactMatch": "xyz",
+                            "invertMatch": true
+                          }
+                        },
+                        {
+                          "header": {
+                            "name": "z-dib",
+                            "prefixMatch": "gaz",
+                            "invertMatch": true
+                          }
+                        },
+                        {
+                          "header": {
+                            "name": "z-gir",
+                            "suffixMatch": "zim",
+                            "invertMatch": true
+                          }
+                        },
+                        {
+                          "header": {
+                            "name": "z-zim",
+                            "safeRegexMatch": {
+                              "googleRe2": {
+
+                              },
+                              "regex": "gi[rR]"
+                            },
+                            "invertMatch": true
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "notRule": {
+                      "andRules": {
+                        "rules": [
+                          {
+                            "urlPath": {
+                              "path": {
+                                "safeRegex": {
+                                  "googleRe2": {
+
+                                  },
+                                  "regex": "/v[123]"
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "header": {
+                              "name": ":method",
+                              "safeRegexMatch": {
+                                "googleRe2": {
+
+                                },
+                                "regex": "GET|HEAD|OPTIONS"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "notRule": {
+                      "urlPath": {
+                        "path": {
+                          "prefix": "/v1"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "notRule": {
+                      "urlPath": {
+                        "path": {
+                          "exact": "/v1/secret"
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "principals": [
+            {
+              "authenticated": {
+                "principalName": {
+                  "safeRegex": {
+                    "googleRe2": {
+
+                    },
+                    "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/web$"
+                  }
                 }
-          }
+              }
+            }
+          ]
+        }
+      }
     }
+  }
 }

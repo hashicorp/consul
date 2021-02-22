@@ -172,9 +172,9 @@ function assert_envoy_expose_checks_listener_count {
 
   HCM=$(echo "$BODY" | jq '.active_state.listener.filter_chains[0].filters[0]')
   HCM_NAME=$(echo "$HCM" | jq -r '.name')
-  HCM_PATH=$(echo "$HCM" | jq -r '.config.route_config.virtual_hosts[0].routes[0].match.path')
+  HCM_PATH=$(echo "$HCM" | jq -r '.typed_config.route_config.virtual_hosts[0].routes[0].match.path')
   echo "HCM = $HCM"
-  [ "${HCM_NAME:-}" == "envoy.http_connection_manager" ]
+  [ "${HCM_NAME:-}" == "envoy.filters.network.http_connection_manager" ]
   [ "${HCM_PATH:-}" == "${EXPECT_PATH}" ]
 }
 
@@ -198,7 +198,7 @@ function get_envoy_http_rbac_once {
   local HOSTPORT=$1
   run curl -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
-  echo "$output" | jq --raw-output '.configs[2].dynamic_listeners[].active_state.listener.filter_chains[0].filters[0].config.http_filters[] | select(.name == "envoy.filters.http.rbac") | .config'
+  echo "$output" | jq --raw-output '.configs[2].dynamic_listeners[].active_state.listener.filter_chains[0].filters[0].typed_config.http_filters[] | select(.name == "envoy.filters.http.rbac") | .typed_config'
 }
 
 function assert_envoy_network_rbac_policy_count {
@@ -214,7 +214,7 @@ function get_envoy_network_rbac_once {
   local HOSTPORT=$1
   run curl -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
-  echo "$output" | jq --raw-output '.configs[2].dynamic_listeners[].active_state.listener.filter_chains[0].filters[] | select(.name == "envoy.filters.network.rbac") | .config'
+  echo "$output" | jq --raw-output '.configs[2].dynamic_listeners[].active_state.listener.filter_chains[0].filters[] | select(.name == "envoy.filters.network.rbac") | .typed_config'
 }
 
 function get_envoy_listener_filters {
@@ -228,7 +228,7 @@ function get_envoy_http_filters {
   local HOSTPORT=$1
   run retry_default curl -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
-  echo "$output" | jq --raw-output '.configs[2].dynamic_listeners[].active_state.listener | "\(.name) \( .filter_chains[0].filters[] | select(.name == "envoy.http_connection_manager") | .config.http_filters | map(.name) | join(","))"'
+  echo "$output" | jq --raw-output '.configs[2].dynamic_listeners[].active_state.listener | "\(.name) \( .filter_chains[0].filters[] | select(.name == "envoy.filters.network.http_connection_manager") | .typed_config.http_filters | map(.name) | join(","))"'
 }
 
 function get_envoy_cluster_config {

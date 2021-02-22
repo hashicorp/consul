@@ -5,14 +5,13 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/mitchellh/copystructure"
-
-	"github.com/stretchr/testify/require"
-
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoyendpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
+
+	"github.com/mitchellh/copystructure"
 	testinf "github.com/mitchellh/go-testing-interface"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
@@ -317,8 +316,7 @@ func Test_endpointsFromSnapshot(t *testing.T) {
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
 					customAppClusterJSON(t, customClusterJSONOptions{
-						Name:        "myservice",
-						IncludeType: false,
+						Name: "myservice",
 					})
 			},
 		},

@@ -19,11 +19,12 @@
           },
           "filters": [
             {
-              "name": "envoy.tcp_proxy",
-              "config": {
-                  "cluster": "dc2.internal.11111111-2222-3333-4444-555555555555.consul",
-                  "stat_prefix": "mesh_gateway_remote.bar.dc2"
-                }
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "statPrefix": "mesh_gateway_remote.bar.dc2",
+                "cluster": "dc2.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
             }
           ]
         },
@@ -35,11 +36,12 @@
           },
           "filters": [
             {
-              "name": "envoy.tcp_proxy",
-              "config": {
-                  "cluster": "dc4.internal.11111111-2222-3333-4444-555555555555.consul",
-                  "stat_prefix": "mesh_gateway_remote.bar.dc4"
-                }
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "statPrefix": "mesh_gateway_remote.bar.dc4",
+                "cluster": "dc4.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
             }
           ]
         },
@@ -51,11 +53,12 @@
           },
           "filters": [
             {
-              "name": "envoy.tcp_proxy",
-              "config": {
-                  "cluster": "dc6.internal.11111111-2222-3333-4444-555555555555.consul",
-                  "stat_prefix": "mesh_gateway_remote.bar.dc6"
-                }
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "statPrefix": "mesh_gateway_remote.bar.dc6",
+                "cluster": "dc6.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
             }
           ]
         },
@@ -65,18 +68,19 @@
               "name": "envoy.filters.network.sni_cluster"
             },
             {
-              "name": "envoy.tcp_proxy",
-              "config": {
-                  "cluster": "",
-                  "stat_prefix": "mesh_gateway_local.bar"
-                }
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "statPrefix": "mesh_gateway_local.bar",
+                "cluster": ""
+              }
             }
           ]
         }
       ],
       "listenerFilters": [
         {
-          "name": "envoy.listener.tls_inspector"
+          "name": "envoy.filters.listener.tls_inspector"
         }
       ]
     },
@@ -98,11 +102,12 @@
           },
           "filters": [
             {
-              "name": "envoy.tcp_proxy",
-              "config": {
-                  "cluster": "dc2.internal.11111111-2222-3333-4444-555555555555.consul",
-                  "stat_prefix": "mesh_gateway_remote.baz.dc2"
-                }
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "statPrefix": "mesh_gateway_remote.baz.dc2",
+                "cluster": "dc2.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
             }
           ]
         },
@@ -114,11 +119,12 @@
           },
           "filters": [
             {
-              "name": "envoy.tcp_proxy",
-              "config": {
-                  "cluster": "dc4.internal.11111111-2222-3333-4444-555555555555.consul",
-                  "stat_prefix": "mesh_gateway_remote.baz.dc4"
-                }
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "statPrefix": "mesh_gateway_remote.baz.dc4",
+                "cluster": "dc4.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
             }
           ]
         },
@@ -130,11 +136,12 @@
           },
           "filters": [
             {
-              "name": "envoy.tcp_proxy",
-              "config": {
-                  "cluster": "dc6.internal.11111111-2222-3333-4444-555555555555.consul",
-                  "stat_prefix": "mesh_gateway_remote.baz.dc6"
-                }
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "statPrefix": "mesh_gateway_remote.baz.dc6",
+                "cluster": "dc6.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
             }
           ]
         },
@@ -144,18 +151,19 @@
               "name": "envoy.filters.network.sni_cluster"
             },
             {
-              "name": "envoy.tcp_proxy",
-              "config": {
-                  "cluster": "",
-                  "stat_prefix": "mesh_gateway_local.baz"
-                }
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "statPrefix": "mesh_gateway_local.baz",
+                "cluster": ""
+              }
             }
           ]
         }
       ],
       "listenerFilters": [
         {
-          "name": "envoy.listener.tls_inspector"
+          "name": "envoy.filters.listener.tls_inspector"
         }
       ]
     },
@@ -177,11 +185,12 @@
           },
           "filters": [
             {
-              "name": "envoy.tcp_proxy",
-              "config": {
-                  "cluster": "dc2.internal.11111111-2222-3333-4444-555555555555.consul",
-                  "stat_prefix": "mesh_gateway_remote.default.dc2"
-                }
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "statPrefix": "mesh_gateway_remote.default.dc2",
+                "cluster": "dc2.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
             }
           ]
         },
@@ -193,11 +202,12 @@
           },
           "filters": [
             {
-              "name": "envoy.tcp_proxy",
-              "config": {
-                  "cluster": "dc4.internal.11111111-2222-3333-4444-555555555555.consul",
-                  "stat_prefix": "mesh_gateway_remote.default.dc4"
-                }
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "statPrefix": "mesh_gateway_remote.default.dc4",
+                "cluster": "dc4.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
             }
           ]
         },
@@ -209,11 +219,12 @@
           },
           "filters": [
             {
-              "name": "envoy.tcp_proxy",
-              "config": {
-                  "cluster": "dc6.internal.11111111-2222-3333-4444-555555555555.consul",
-                  "stat_prefix": "mesh_gateway_remote.default.dc6"
-                }
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "statPrefix": "mesh_gateway_remote.default.dc6",
+                "cluster": "dc6.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
             }
           ]
         },
@@ -223,18 +234,19 @@
               "name": "envoy.filters.network.sni_cluster"
             },
             {
-              "name": "envoy.tcp_proxy",
-              "config": {
-                  "cluster": "",
-                  "stat_prefix": "mesh_gateway_local.default"
-                }
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "statPrefix": "mesh_gateway_local.default",
+                "cluster": ""
+              }
             }
           ]
         }
       ],
       "listenerFilters": [
         {
-          "name": "envoy.listener.tls_inspector"
+          "name": "envoy.filters.listener.tls_inspector"
         }
       ]
     },
@@ -256,11 +268,12 @@
           },
           "filters": [
             {
-              "name": "envoy.tcp_proxy",
-              "config": {
-                  "cluster": "dc2.internal.11111111-2222-3333-4444-555555555555.consul",
-                  "stat_prefix": "mesh_gateway_remote.foo.dc2"
-                }
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "statPrefix": "mesh_gateway_remote.foo.dc2",
+                "cluster": "dc2.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
             }
           ]
         },
@@ -272,11 +285,12 @@
           },
           "filters": [
             {
-              "name": "envoy.tcp_proxy",
-              "config": {
-                  "cluster": "dc4.internal.11111111-2222-3333-4444-555555555555.consul",
-                  "stat_prefix": "mesh_gateway_remote.foo.dc4"
-                }
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "statPrefix": "mesh_gateway_remote.foo.dc4",
+                "cluster": "dc4.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
             }
           ]
         },
@@ -288,11 +302,12 @@
           },
           "filters": [
             {
-              "name": "envoy.tcp_proxy",
-              "config": {
-                  "cluster": "dc6.internal.11111111-2222-3333-4444-555555555555.consul",
-                  "stat_prefix": "mesh_gateway_remote.foo.dc6"
-                }
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "statPrefix": "mesh_gateway_remote.foo.dc6",
+                "cluster": "dc6.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
             }
           ]
         },
@@ -302,18 +317,19 @@
               "name": "envoy.filters.network.sni_cluster"
             },
             {
-              "name": "envoy.tcp_proxy",
-              "config": {
-                  "cluster": "",
-                  "stat_prefix": "mesh_gateway_local.foo"
-                }
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "statPrefix": "mesh_gateway_local.foo",
+                "cluster": ""
+              }
             }
           ]
         }
       ],
       "listenerFilters": [
         {
-          "name": "envoy.listener.tls_inspector"
+          "name": "envoy.filters.listener.tls_inspector"
         }
       ]
     }

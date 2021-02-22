@@ -12,6 +12,7 @@ import (
 	envoynetrbac "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/rbac/v2"
 	envoyrbac "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v2"
 	envoymatcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
+
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -25,7 +26,7 @@ func makeRBACNetworkFilter(intentions structs.Intentions, intentionDefaultAllow 
 		StatPrefix: "connect_authz",
 		Rules:      rules,
 	}
-	return makeFilter("envoy.filters.network.rbac", cfg, false)
+	return makeFilter("envoy.filters.network.rbac", cfg)
 }
 
 func makeRBACHTTPFilter(intentions structs.Intentions, intentionDefaultAllow bool) (*envoyhttp.HttpFilter, error) {

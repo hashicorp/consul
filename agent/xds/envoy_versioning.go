@@ -2,24 +2,18 @@ package xds
 
 import (
 	"fmt"
-	"regexp"
 
 	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+
 	"github.com/hashicorp/go-version"
 )
 
 var (
 	// minSupportedVersion is the oldest mainline version we support. This should always be
 	// the zero'th point release of the last element of proxysupport.EnvoyVersions.
-	minSupportedVersion = version.Must(version.NewVersion("1.13.0"))
+	minSupportedVersion = version.Must(version.NewVersion("1.14.0"))
 
-	specificUnsupportedVersions = []unsupportedVersion{
-		{
-			Version:   version.Must(version.NewVersion("1.13.0")),
-			UpgradeTo: "1.13.1+",
-			Why:       "does not support RBAC rules using url_path",
-		},
-	}
+	specificUnsupportedVersions = []unsupportedVersion{}
 )
 
 type unsupportedVersion struct {
@@ -68,26 +62,13 @@ func determineSupportedProxyFeaturesFromVersion(version *version.Version) (suppo
 	return supportedProxyFeatures{}, nil
 }
 
-// example: 1580db37e9a97c37e410bad0e1507ae1a0fd9e77/1.12.4/Clean/RELEASE/BoringSSL
-var buildVersionPattern = regexp.MustCompile(`^[a-f0-9]{40}/([^/]+)/Clean/RELEASE/BoringSSL$`)
-
 func determineEnvoyVersionFromNode(node *envoycore.Node) *version.Version {
 	if node == nil {
 		return nil
 	}
 
 	if node.UserAgentVersionType == nil {
-		if node.BuildVersion == "" {
-			return nil
-		}
-
-		// Must be an older pre-1.13 envoy
-		m := buildVersionPattern.FindStringSubmatch(node.BuildVersion)
-		if m == nil {
-			return nil
-		}
-
-		return version.Must(version.NewVersion(m[1]))
+		return nil
 	}
 
 	if node.UserAgentName != "envoy" {

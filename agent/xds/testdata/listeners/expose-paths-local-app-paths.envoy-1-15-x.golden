@@ -14,44 +14,47 @@
         {
           "filters": [
             {
-              "name": "envoy.http_connection_manager",
-              "config": {
-                  "http_filters": [
-                        {
-                              "name": "envoy.router"
-                            }
+              "name": "envoy.filters.network.http_connection_manager",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager",
+                "statPrefix": "exposed_path_filter_health1_21500",
+                "routeConfig": {
+                  "name": "exposed_path_filter_health1_21500",
+                  "virtualHosts": [
+                    {
+                      "name": "exposed_path_filter_health1_21500",
+                      "domains": [
+                        "*"
                       ],
-                  "route_config": {
-                        "name": "exposed_path_filter_health1_21500",
-                        "virtual_hosts": [
-                              {
-                                    "domains": [
-                                          "*"
-                                        ],
-                                    "name": "exposed_path_filter_health1_21500",
-                                    "routes": [
-                                          {
-                                                "match": {
-                                                      "path": "/health1"
-                                                    },
-                                                "route": {
-                                                      "cluster": "local_app"
-                                                    }
-                                              }
-                                        ]
-                                  }
-                            ]
-                      },
-                  "stat_prefix": "exposed_path_filter_health1_21500",
-                  "tracing": {
-                        "random_sampling": {
-                            }
-                      }
+                      "routes": [
+                        {
+                          "match": {
+                            "path": "/health1"
+                          },
+                          "route": {
+                            "cluster": "local_app"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "httpFilters": [
+                  {
+                    "name": "envoy.filters.http.router"
+                  }
+                ],
+                "tracing": {
+                  "randomSampling": {
+
+                  }
                 }
+              }
             }
           ]
         }
-      ]
+      ],
+      "trafficDirection": "INBOUND"
     },
     {
       "@type": "type.googleapis.com/envoy.api.v2.Listener",
@@ -66,44 +69,47 @@
         {
           "filters": [
             {
-              "name": "envoy.http_connection_manager",
-              "config": {
-                  "http_filters": [
-                        {
-                              "name": "envoy.router"
-                            }
+              "name": "envoy.filters.network.http_connection_manager",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager",
+                "statPrefix": "exposed_path_filter_health2_21501",
+                "routeConfig": {
+                  "name": "exposed_path_filter_health2_21501",
+                  "virtualHosts": [
+                    {
+                      "name": "exposed_path_filter_health2_21501",
+                      "domains": [
+                        "*"
                       ],
-                  "route_config": {
-                        "name": "exposed_path_filter_health2_21501",
-                        "virtual_hosts": [
-                              {
-                                    "domains": [
-                                          "*"
-                                        ],
-                                    "name": "exposed_path_filter_health2_21501",
-                                    "routes": [
-                                          {
-                                                "match": {
-                                                      "path": "/health2"
-                                                    },
-                                                "route": {
-                                                      "cluster": "local_app"
-                                                    }
-                                              }
-                                        ]
-                                  }
-                            ]
-                      },
-                  "stat_prefix": "exposed_path_filter_health2_21501",
-                  "tracing": {
-                        "random_sampling": {
-                            }
-                      }
+                      "routes": [
+                        {
+                          "match": {
+                            "path": "/health2"
+                          },
+                          "route": {
+                            "cluster": "local_app"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "httpFilters": [
+                  {
+                    "name": "envoy.filters.http.router"
+                  }
+                ],
+                "tracing": {
+                  "randomSampling": {
+
+                  }
                 }
+              }
             }
           ]
         }
-      ]
+      ],
+      "trafficDirection": "INBOUND"
     },
     {
       "@type": "type.googleapis.com/envoy.api.v2.Listener",
@@ -116,28 +122,36 @@
       },
       "filterChains": [
         {
-          "tlsContext": {
-            "requireClientCertificate": true
-          },
           "filters": [
             {
               "name": "envoy.filters.network.rbac",
-              "config": {
-                  "rules": {
-                      },
-                  "stat_prefix": "connect_authz"
-                }
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.rbac.v2.RBAC",
+                "rules": {
+
+                },
+                "statPrefix": "connect_authz"
+              }
             },
             {
-              "name": "envoy.tcp_proxy",
-              "config": {
-                  "cluster": "local_app",
-                  "stat_prefix": "public_listener"
-                }
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
+                "statPrefix": "public_listener",
+                "cluster": "local_app"
+              }
             }
-          ]
+          ],
+          "transportSocket": {
+            "name": "tls",
+            "typedConfig": {
+              "@type": "type.googleapis.com/envoy.api.v2.auth.DownstreamTlsContext",
+              "requireClientCertificate": true
+            }
+          }
         }
-      ]
+      ],
+      "trafficDirection": "INBOUND"
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.api.v2.Listener",

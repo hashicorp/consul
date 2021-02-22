@@ -8,6 +8,7 @@ import (
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoyroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+
 	"github.com/golang/protobuf/ptypes"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
@@ -288,7 +289,7 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 	var tests = []struct {
 		name     string
 		lb       *structs.LoadBalancer
-		expected envoyroute.RouteAction
+		expected *envoyroute.RouteAction
 	}{
 		{
 			name: "empty",
@@ -296,7 +297,7 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 				Policy: "",
 			},
 			// we only modify route actions for hash-based LB policies
-			expected: envoyroute.RouteAction{},
+			expected: &envoyroute.RouteAction{},
 		},
 		{
 			name: "least request",
@@ -307,7 +308,7 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 				},
 			},
 			// we only modify route actions for hash-based LB policies
-			expected: envoyroute.RouteAction{},
+			expected: &envoyroute.RouteAction{},
 		},
 		{
 			name: "headers",
@@ -325,7 +326,7 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 					},
 				},
 			},
-			expected: envoyroute.RouteAction{
+			expected: &envoyroute.RouteAction{
 				HashPolicy: []*envoyroute.RouteAction_HashPolicy{
 					{
 						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Header_{
@@ -354,7 +355,7 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 					},
 				},
 			},
-			expected: envoyroute.RouteAction{
+			expected: &envoyroute.RouteAction{
 				HashPolicy: []*envoyroute.RouteAction_HashPolicy{
 					{
 						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Cookie_{
@@ -389,7 +390,7 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 					},
 				},
 			},
-			expected: envoyroute.RouteAction{
+			expected: &envoyroute.RouteAction{
 				HashPolicy: []*envoyroute.RouteAction_HashPolicy{
 					{
 						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Cookie_{
@@ -416,7 +417,7 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 					},
 				},
 			},
-			expected: envoyroute.RouteAction{
+			expected: &envoyroute.RouteAction{
 				HashPolicy: []*envoyroute.RouteAction_HashPolicy{
 					{
 						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Cookie_{
@@ -441,7 +442,7 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 					},
 				},
 			},
-			expected: envoyroute.RouteAction{
+			expected: &envoyroute.RouteAction{
 				HashPolicy: []*envoyroute.RouteAction_HashPolicy{
 					{
 						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_ConnectionProperties_{
@@ -486,7 +487,7 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 					},
 				},
 			},
-			expected: envoyroute.RouteAction{
+			expected: &envoyroute.RouteAction{
 				HashPolicy: []*envoyroute.RouteAction_HashPolicy{
 					{
 						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_ConnectionProperties_{
@@ -533,7 +534,7 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 			err := injectLBToRouteAction(tc.lb, &ra)
 			require.NoError(t, err)
 
-			require.Equal(t, &tc.expected, &ra)
+			require.Equal(t, tc.expected, &ra)
 		})
 	}
 }

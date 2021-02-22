@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-version"

@@ -1,57 +1,59 @@
 {
   "name": "envoy.filters.http.rbac",
-  "config": {
-      "rules": {
-            "policies": {
-                  "consul-intentions-layer7-0": {
-                        "permissions": [
-                              {
-                                    "and_rules": {
-                                          "rules": [
-                                                {
-                                                      "url_path": {
-                                                            "path": {
-                                                                  "prefix": "/"
-                                                                }
-                                                          }
-                                                    },
-                                                {
-                                                      "not_rule": {
-                                                            "url_path": {
-                                                                  "path": {
-                                                                        "exact": "/v1/admin"
-                                                                      }
-                                                                }
-                                                          }
-                                                    },
-                                                {
-                                                      "not_rule": {
-                                                            "url_path": {
-                                                                  "path": {
-                                                                        "exact": "/v1/secret"
-                                                                      }
-                                                                }
-                                                          }
-                                                    }
-                                              ]
-                                        }
-                                  }
-                            ],
-                        "principals": [
-                              {
-                                    "authenticated": {
-                                          "principal_name": {
-                                                "safe_regex": {
-                                                      "google_re2": {
-                                                          },
-                                                      "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/web$"
-                                                    }
-                                              }
-                                        }
-                                  }
-                            ]
+  "typedConfig": {
+    "@type": "type.googleapis.com/envoy.config.filter.http.rbac.v2.RBAC",
+    "rules": {
+      "policies": {
+        "consul-intentions-layer7-0": {
+          "permissions": [
+            {
+              "andRules": {
+                "rules": [
+                  {
+                    "urlPath": {
+                      "path": {
+                        "prefix": "/"
                       }
+                    }
+                  },
+                  {
+                    "notRule": {
+                      "urlPath": {
+                        "path": {
+                          "exact": "/v1/admin"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "notRule": {
+                      "urlPath": {
+                        "path": {
+                          "exact": "/v1/secret"
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "principals": [
+            {
+              "authenticated": {
+                "principalName": {
+                  "safeRegex": {
+                    "googleRe2": {
+
+                    },
+                    "regex": "^spiffe://[^/]+/ns/default/dc/[^/]+/svc/web$"
+                  }
                 }
-          }
+              }
+            }
+          ]
+        }
+      }
     }
+  }
 }

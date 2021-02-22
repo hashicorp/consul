@@ -7,20 +7,22 @@ services {
         upstreams = [
           {
             destination_name = "s2"
-            local_bind_port = 5000
+            local_bind_port  = 5000
             config {
               protocol = "http"
             }
           }
         ]
         config {
-          protocol = "http"
-          envoy_tracing_json = <<EOF
+          protocol                         = "http"
+          envoy_tracing_json               = <<EOF
 {
   "http": {
-    "name": "envoy.zipkin",
-    "config": {
+    "name": "envoy.tracers.zipkin",
+    "typedConfig": {
+      "@type": "type.googleapis.com/envoy.config.trace.v2.ZipkinConfig",
       "collector_cluster": "zipkin",
+      "collector_endpoint_version": "HTTP_JSON",
       "collector_endpoint": "/api/v1/spans",
       "shared_span_context": false
     }

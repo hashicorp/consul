@@ -5,11 +5,13 @@ import (
 	"time"
 
 	envoycluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
+
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"github.com/mitchellh/mapstructure"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/decode"
-	"github.com/mitchellh/mapstructure"
 )
 
 // ProxyConfig describes the keys we understand from Connect.Proxy.Config. Note

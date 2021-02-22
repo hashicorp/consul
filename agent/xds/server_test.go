@@ -8,6 +8,7 @@ import (
 	"time"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -148,7 +149,7 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 	envoy.SendReq(t, EndpointType, 1, 2)
 
 	// And should get a response immediately.
-	assertResponseSent(t, envoy.stream.sendCh, expectListenerJSON(t, snap, 1, 3))
+	assertResponseSent(t, envoy.stream.sendCh, expectListenerJSON(snap, 1, 3))
 
 	// Now send Route request along with next listener one
 	envoy.SendReq(t, RouteType, 0, 0)
@@ -175,7 +176,7 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 	// which is reasonable anyway to ensure consistency of the config Envoy sees.
 	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(snap, 2, 4))
 	assertResponseSent(t, envoy.stream.sendCh, expectEndpointsJSON(2, 5))
-	assertResponseSent(t, envoy.stream.sendCh, expectListenerJSON(t, snap, 2, 6))
+	assertResponseSent(t, envoy.stream.sendCh, expectListenerJSON(snap, 2, 6))
 
 	// Let's pretend that Envoy doesn't like that new listener config. It will ACK
 	// all the others (same version) but NACK the listener. This is the most
@@ -212,7 +213,7 @@ func TestServer_StreamAggregatedResources_BasicProtocol(t *testing.T) {
 
 	assertResponseSent(t, envoy.stream.sendCh, expectClustersJSON(snap, 3, 7))
 	assertResponseSent(t, envoy.stream.sendCh, expectEndpointsJSON(3, 8))
-	assertResponseSent(t, envoy.stream.sendCh, expectListenerJSON(t, snap, 3, 9))
+	assertResponseSent(t, envoy.stream.sendCh, expectListenerJSON(snap, 3, 9))
 }
 
 func expectEndpointsJSON(v, n uint64) string {
@@ -293,15 +294,20 @@ func expectEndpointsJSON(v, n uint64) string {
 	}`
 }
 
-func expectedUpstreamTLSContextJSON(snap *proxycfg.ConfigSnapshot, sni string) string {
-	return expectedTLSContextJSON(snap, false, sni)
+func expectedUpstreamTransportSocketJSON(snap *proxycfg.ConfigSnapshot, sni string) string {
+	return expectedTransportSocketJSON(snap, "type.googleapis.com/envoy.api.v2.auth.UpstreamTlsContext", false, sni)
 }
 
-func expectedPublicTLSContextJSON(t *testing.T, snap *proxycfg.ConfigSnapshot) string {
-	return expectedTLSContextJSON(snap, true, "")
+func expectedPublicTransportSocketJSON(snap *proxycfg.ConfigSnapshot) string {
+	return expectedTransportSocketJSON(snap, "type.googleapis.com/envoy.api.v2.auth.DownstreamTlsContext", true, "")
 }
 
-func expectedTLSContextJSON(snap *proxycfg.ConfigSnapshot, requireClientCert bool, sni string) string {
+func expectedTransportSocketJSON(
+	snap *proxycfg.ConfigSnapshot,
+	extType string,
+	requireClientCert bool,
+	sni string,
+) string {
 	// Assume just one root for now, can get fancier later if needed.
 	caPEM := snap.Roots.Roots[0].RootCert
 	reqClient := ""
@@ -317,6 +323,9 @@ func expectedTLSContextJSON(snap *proxycfg.ConfigSnapshot, requireClientCert boo
 	}
 
 	return `{
+	"name": "tls",
+	"typedConfig": {
+		"@type": "` + extType + `",
 		"commonTlsContext": {
 			"tlsParams": {},
 			"tlsCertificates": [
@@ -337,6 +346,7 @@ func expectedTLSContextJSON(snap *proxycfg.ConfigSnapshot, requireClientCert boo
 		}
 		` + reqClient + `
 		` + upstreamSNI + `
+ 		}
 	}`
 }
 
@@ -476,7 +486,7 @@ func TestServer_StreamAggregatedResources_ACLEnforcement(t *testing.T) {
 			envoy.SendReq(t, ListenerType, 0, 0)
 
 			if !tt.wantDenied {
-				assertResponseSent(t, envoy.stream.sendCh, expectListenerJSON(t, snap, 1, 1))
+				assertResponseSent(t, envoy.stream.sendCh, expectListenerJSON(snap, 1, 1))
 				// Close the client stream since all is well. We _don't_ do this in the
 				// expected error case because we want to verify the error closes the
 				// stream from server side.
@@ -726,20 +736,20 @@ func TestServer_StreamAggregatedResources_IngressEmptyResponse(t *testing.T) {
 
 	emptyClusterJSON := `{
 		"versionInfo": "` + hexString(1) + `",
-		"resources": [],
 		"typeUrl": "type.googleapis.com/envoy.api.v2.Cluster",
+		"resources": [],
 		"nonce": "` + hexString(1) + `"
 		}`
 	emptyListenerJSON := `{
 		"versionInfo": "` + hexString(1) + `",
-		"resources": [],
 		"typeUrl": "type.googleapis.com/envoy.api.v2.Listener",
+		"resources": [],
 		"nonce": "` + hexString(2) + `"
 		}`
 	emptyRouteJSON := `{
 		"versionInfo": "` + hexString(1) + `",
-		"resources": [],
 		"typeUrl": "type.googleapis.com/envoy.api.v2.RouteConfiguration",
+		"resources": [],
 		"nonce": "` + hexString(3) + `"
 		}`
 

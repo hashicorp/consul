@@ -9,6 +9,7 @@ import (
 	"time"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+
 	"github.com/golang/protobuf/ptypes/wrappers"
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
@@ -44,20 +45,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Config["envoy_local_cluster_json"] =
 					customAppClusterJSON(t, customClusterJSONOptions{
-						Name:        "mylocal",
-						IncludeType: false,
-					})
-			},
-		},
-		{
-			name:               "custom-local-app-typed",
-			create:             proxycfg.TestConfigSnapshot,
-			overrideGoldenName: "custom-local-app",
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.Config["envoy_local_cluster_json"] =
-					customAppClusterJSON(t, customClusterJSONOptions{
-						Name:        "mylocal",
-						IncludeType: true,
+						Name: "mylocal",
 					})
 			},
 		},
@@ -67,8 +55,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
 					customAppClusterJSON(t, customClusterJSONOptions{
-						Name:        "myservice",
-						IncludeType: false,
+						Name: "myservice",
 					})
 			},
 		},
@@ -78,20 +65,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
 					customAppClusterJSON(t, customClusterJSONOptions{
-						Name:        "myservice",
-						IncludeType: false,
-					})
-			},
-		},
-		{
-			name:               "custom-upstream-typed",
-			create:             proxycfg.TestConfigSnapshot,
-			overrideGoldenName: "custom-upstream",
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
-					customAppClusterJSON(t, customClusterJSONOptions{
-						Name:        "myservice",
-						IncludeType: true,
+						Name: "myservice",
 					})
 			},
 		},
@@ -102,10 +76,9 @@ func TestClustersFromSnapshot(t *testing.T) {
 			setup: func(snap *proxycfg.ConfigSnapshot) {
 				snap.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
 					customAppClusterJSON(t, customClusterJSONOptions{
-						Name:        "myservice",
-						IncludeType: true,
+						Name: "myservice",
 						// Attempt to override the TLS context should be ignored
-						TLSContext: `{"commonTlsContext": {}}`,
+						TLSContext: `"allowRenegotiation": false`,
 					})
 			},
 		},
@@ -745,7 +718,7 @@ func expectClustersJSONResources(snap *proxycfg.ConfigSnapshot) map[string]strin
 					"healthyPanicThreshold": {}
 				},
 				"connectTimeout": "5s",
-				"tlsContext": ` + expectedUpstreamTLSContextJSON(snap, "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul") + `
+				"transportSocket": ` + expectedUpstreamTransportSocketJSON(snap, "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul") + `
 			}`,
 		"prepared_query:geo-cache": `
 			{
@@ -766,7 +739,7 @@ func expectClustersJSONResources(snap *proxycfg.ConfigSnapshot) map[string]strin
 
 				},
 				"connectTimeout": "5s",
-				"tlsContext": ` + expectedUpstreamTLSContextJSON(snap, "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul") + `
+				"transportSocket": ` + expectedUpstreamTransportSocketJSON(snap, "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul") + `
 			}`,
 	}
 }
@@ -804,17 +777,20 @@ func expectClustersJSON(snap *proxycfg.ConfigSnapshot, v, n uint64) string {
 }
 
 type customClusterJSONOptions struct {
-	Name        string
-	IncludeType bool
-	TLSContext  string
+	Name       string
+	TLSContext string
 }
 
 var customAppClusterJSONTpl = `{
-	{{ if .IncludeType -}}
 	"@type": "type.googleapis.com/envoy.api.v2.Cluster",
-	{{- end }}
 	{{ if .TLSContext -}}
-	"tlsContext": {{ .TLSContext }},
+	"transport_socket": {
+		"name": "tls",
+		"typed_config": {
+			"@type": "type.googleapis.com/envoy.api.v2.auth.UpstreamTlsContext",
+			{{ .TLSContext }}
+		}
+	},
 	{{- end }}
 	"name": "{{ .Name }}",
 	"connectTimeout": "15s",
@@ -858,35 +834,35 @@ func TestEnvoyLBConfig_InjectToCluster(t *testing.T) {
 	var tests = []struct {
 		name     string
 		lb       *structs.LoadBalancer
-		expected envoy.Cluster
+		expected *envoy.Cluster
 	}{
 		{
 			name: "skip empty",
 			lb: &structs.LoadBalancer{
 				Policy: "",
 			},
-			expected: envoy.Cluster{},
+			expected: &envoy.Cluster{},
 		},
 		{
 			name: "round robin",
 			lb: &structs.LoadBalancer{
 				Policy: structs.LBPolicyRoundRobin,
 			},
-			expected: envoy.Cluster{LbPolicy: envoy.Cluster_ROUND_ROBIN},
+			expected: &envoy.Cluster{LbPolicy: envoy.Cluster_ROUND_ROBIN},
 		},
 		{
 			name: "random",
 			lb: &structs.LoadBalancer{
 				Policy: structs.LBPolicyRandom,
 			},
-			expected: envoy.Cluster{LbPolicy: envoy.Cluster_RANDOM},
+			expected: &envoy.Cluster{LbPolicy: envoy.Cluster_RANDOM},
 		},
 		{
 			name: "maglev",
 			lb: &structs.LoadBalancer{
 				Policy: structs.LBPolicyMaglev,
 			},
-			expected: envoy.Cluster{LbPolicy: envoy.Cluster_MAGLEV},
+			expected: &envoy.Cluster{LbPolicy: envoy.Cluster_MAGLEV},
 		},
 		{
 			name: "ring_hash",
@@ -897,7 +873,7 @@ func TestEnvoyLBConfig_InjectToCluster(t *testing.T) {
 					MaximumRingSize: 7,
 				},
 			},
-			expected: envoy.Cluster{
+			expected: &envoy.Cluster{
 				LbPolicy: envoy.Cluster_RING_HASH,
 				LbConfig: &envoy.Cluster_RingHashLbConfig_{
 					RingHashLbConfig: &envoy.Cluster_RingHashLbConfig{
@@ -915,7 +891,7 @@ func TestEnvoyLBConfig_InjectToCluster(t *testing.T) {
 					ChoiceCount: 3,
 				},
 			},
-			expected: envoy.Cluster{
+			expected: &envoy.Cluster{
 				LbPolicy: envoy.Cluster_LEAST_REQUEST,
 				LbConfig: &envoy.Cluster_LeastRequestLbConfig_{
 					LeastRequestLbConfig: &envoy.Cluster_LeastRequestLbConfig{
@@ -932,7 +908,7 @@ func TestEnvoyLBConfig_InjectToCluster(t *testing.T) {
 			err := injectLBToCluster(tc.lb, &c)
 			require.NoError(t, err)
 
-			require.Equal(t, tc.expected, c)
+			require.Equal(t, tc.expected, &c)
 		})
 	}
 }
