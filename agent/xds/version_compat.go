@@ -317,44 +317,6 @@ func convertTypedConfigsToV2(pbuf *proto.Buffer, pb proto.Message) error {
 		}
 		return nil
 	case *envoy_route_v2.RetryPolicy:
-		if x.RetryPriority != nil {
-			if err := convertTypedConfigsToV2(pbuf, x.RetryPriority); err != nil {
-				return fmt.Errorf("%T: %w", x, err)
-			}
-		}
-		for _, pred := range x.RetryHostPredicate {
-			if err := convertTypedConfigsToV2(pbuf, pred); err != nil {
-				return fmt.Errorf("%T: %w", x, err)
-			}
-		}
-		return nil
-	case *envoy_route_v2.RetryPolicy_RetryPriority:
-		if x.ConfigType != nil {
-			tc, ok := x.ConfigType.(*envoy_route_v2.RetryPolicy_RetryPriority_TypedConfig)
-			if !ok {
-				return fmt.Errorf("%T: ConfigType type %T not handled", x, x.ConfigType)
-			}
-			if tc.TypedConfig != nil {
-				// TODO: add some of these?
-				if err := convertTypedConfigsToV2(pbuf, tc.TypedConfig); err != nil {
-					return fmt.Errorf("%T: %w", x, err)
-				}
-			}
-		}
-		return nil
-	case *envoy_route_v2.RetryPolicy_RetryHostPredicate:
-		if x.ConfigType != nil {
-			tc, ok := x.ConfigType.(*envoy_route_v2.RetryPolicy_RetryHostPredicate_TypedConfig)
-			if !ok {
-				return fmt.Errorf("%T: ConfigType type %T not handled", x, x.ConfigType)
-			}
-			if tc.TypedConfig != nil {
-				// TODO: add some of these?
-				if err := convertTypedConfigsToV2(pbuf, tc.TypedConfig); err != nil {
-					return fmt.Errorf("%T: %w", x, err)
-				}
-			}
-		}
 		return nil
 	case *envoy_http_v2.HttpFilter:
 		if x.ConfigType != nil {
