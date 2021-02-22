@@ -204,9 +204,8 @@ func (m *Materializer) notifyUpdateLocked(err error) {
 	m.updateCh = make(chan struct{})
 }
 
-// Fetch implements the logic a StreamingCacheType will need during it's Fetch
-// call. Cache types that use streaming should just be able to proxy to this
-// once they have a subscription object and return it's results directly.
+// Fetch the value stored in the View. Fetch blocks until the index of the View
+// is greater than opts.MinIndex, or the context is cancelled.
 func (m *Materializer) Fetch(done <-chan struct{}, opts cache.FetchOptions) (cache.FetchResult, error) {
 	var result cache.FetchResult
 
