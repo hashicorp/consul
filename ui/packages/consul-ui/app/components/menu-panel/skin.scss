@@ -6,8 +6,20 @@
 %menu-panel > ul > li {
   list-style-type: none;
 }
+%menu-panel dt {
+  font-weight: $typo-weight-bold;
+}
+%menu-panel dl,
+%menu-panel-header {
+  @extend %p2;
+}
 %menu-panel-separator {
+  @extend %p3;
   text-transform: uppercase;
+  font-weight: $typo-weight-medium;
+}
+%menu-panel dt span {
+  font-weight: $typo-weight-normal;
 }
 %menu-panel-header + ul,
 %menu-panel-separator:not(:first-child) {

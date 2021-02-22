@@ -2,14 +2,17 @@
   cursor: pointer;
   border-right: $decor-border-400;
   border-color: $transparent;
-  font-size: $typo-size-600;
+  @extend %p1;
 }
 %main-nav-vertical-action > a {
   color: inherit;
   font-size: inherit;
 }
 %main-nav-vertical [role="separator"] {
+  @extend %p3;
   text-transform: uppercase;
+  font-weight: $typo-weight-medium;
+  color: var(--gray-400);
 }
 %main-nav-vertical-action-intent {
   text-decoration: underline;

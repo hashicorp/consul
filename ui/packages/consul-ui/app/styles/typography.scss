@@ -31,7 +31,6 @@ pre code,
 %tab-section p {
   @extend %p1;
 }
-%menu-panel dl,
 %empty-state-anchor,
 .type-dialog,
 %table td p,
@@ -40,7 +39,6 @@ pre code,
 %form-element-label,
 %stats-card header a span,
 %footer,
-%menu-panel-header,
 %app-view h1 span.kind-proxy {
   @extend %p2;
 }
@@ -49,7 +47,6 @@ pre code,
 %button,
 %main-content p,
 %form-element-note,
-%menu-panel-separator,
 %form-element-error > strong {
   @extend %p3;
 }
@@ -67,14 +64,10 @@ pre code,
 %button {
   font-weight: $typo-weight-semibold;
 }
-%menu-panel dt,
 %route-card section dt,
 %route-card header:not(.short) dd,
 %splitter-card > header {
   font-weight: $typo-weight-bold;
-}
-%menu-panel-separator {
-  font-weight: $typo-weight-medium;
 }
 /**/
 
