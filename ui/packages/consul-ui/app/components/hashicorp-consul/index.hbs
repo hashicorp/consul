@@ -153,6 +153,11 @@
               </BlockSlot>
               <BlockSlot @name="menu">
                 {{#let components.MenuItem components.MenuSeparator as |MenuItem MenuSeparator|}}
+                  <MenuSeparator>
+                    <BlockSlot @name="label">
+                      Consul v{{env 'CONSUL_VERSION'}}
+                    </BlockSlot>
+                  </MenuSeparator>
                   <MenuItem
                     class="docs-link"
                     @href={{env 'CONSUL_DOCS_URL'}}
@@ -194,10 +199,10 @@
             >
               {{#let components.AuthForm components.AuthProfile as |AuthForm AuthProfile|}}
                 <BlockSlot @name="unauthorized">
-                  <label tabindex="0" for={{concat guid "-login-toggle"}} onkeypress={{this.keypressClick}}>
+                  <label tabindex="0" for="login-toggle" onkeypress={{this.keypressClick}}>
                     <span>Log in</span>
                   </label>
-                  <ModalDialog @name={{concat guid "-login-toggle"}} @onclose={{this.close}} @onopen={{this.open}} as |api|>
+                  <ModalDialog @name="login-toggle" @onclose={{this.close}} @onopen={{this.open}} as |api|>
                     <Ref @target={{this}} @name="modal" @value={{api}} />
                     <BlockSlot @name="header">
                       <h2>Log in to Consul</h2>
@@ -268,21 +273,6 @@
     </:main>
 
     <:content-info>
-      <Action
-        @href={{concat (env 'CONSUL_COPYRIGHT_URL') '/'}}
-        @external={{true}}
-      >
-        &copy; {{env 'CONSUL_COPYRIGHT_YEAR'}} HashiCorp
-      </Action>
-      <p>
-        Consul {{env 'CONSUL_VERSION'}}
-      </p>
-      <Action
-        @href={{env 'CONSUL_DOCS_URL'}}
-        @external={{true}}
-      >
-        Documentation
-      </Action>
       {{{concat '<!-- ' (env 'CONSUL_GIT_SHA') '-->'}}}
     </:content-info>
   </App>
