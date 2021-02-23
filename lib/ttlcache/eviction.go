@@ -76,8 +76,10 @@ func (h *ExpiryHeap) Add(key string, expiry time.Duration) *Entry {
 	return entry
 }
 
-// Update the entry that is currently at idx with the new expiry time. The heap
-// will be rebalanced after the entry is updated.
+// Update the entry that is currently at idx with the new expiry time, if the new
+// expiry time is further into the future. The heap will be rebalanced after the
+// entry is updated. If the new expiry time is earlier than the existing expiry
+// time than the expiry is not modified.
 //
 // Must be synchronized by the caller.
 func (h *ExpiryHeap) Update(idx int, expiry time.Duration) {
@@ -86,11 +88,15 @@ func (h *ExpiryHeap) Update(idx int, expiry time.Duration) {
 		return
 	}
 	entry := h.entries[idx]
-	entry.expiry = time.Now().Add(expiry)
+	newExpiry := time.Now().Add(expiry)
+
+	// Ignore the new expiry if the time is earlier than the existing expiry.
+	if entry.expiry.After(newExpiry) {
+		return
+	}
+	entry.expiry = newExpiry
 	heap.Fix((*entryHeap)(h), idx)
 
-	// If the previous index and current index are both zero then Fix did not
-	// swap the entry, and notify must be called here.
 	if idx == 0 || entry.heapIndex == 0 {
 		h.notify()
 	}
