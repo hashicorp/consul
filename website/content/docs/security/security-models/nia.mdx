@@ -17,7 +17,7 @@ When considering Consul NIA's security model, it helps to think of the following
 - **System Administrator** - This is someone who has access to the underlying infrastructure of the
   NIA daemon ([`consul-terraform-sync`](https://github.com/hashicorp/consul-terraform-sync)), and possibly the core Consul service. Often she has access to SSH directly
   into a server within a cluster through a bastion host. Ultimately they have read, write, and
-  execute permissions for the [`consul-terraform-sync`] binary. These users potentially have sudo,
+  execute permissions for the `consul-terraform-sync` binary. These users potentially have sudo,
   administrative, or some other privileged access to the underlying compute resource. Users like
   these are essentially totally trusted by NIA as they have administrative rights to the system.
 - **Consul NIA Operator** - This is someone who has access
