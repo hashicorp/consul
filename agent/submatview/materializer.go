@@ -215,17 +215,17 @@ func (m *Materializer) notifyUpdateLocked(err error) {
 	m.updateCh = make(chan struct{})
 }
 
-type viewResult struct {
+type Result struct {
 	Index uint64
 	Value interface{}
 }
 
 // getFromView blocks until the index of the View is greater than opts.MinIndex,
 //or the context is cancelled.
-func (m *Materializer) getFromView(ctx context.Context, minIndex uint64) (viewResult, error) {
+func (m *Materializer) getFromView(ctx context.Context, minIndex uint64) (Result, error) {
 	m.lock.Lock()
 
-	result := viewResult{
+	result := Result{
 		Index: m.index,
 		Value: m.view.Result(m.index),
 	}

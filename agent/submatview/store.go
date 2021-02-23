@@ -25,7 +25,6 @@ type entry struct {
 	requests int
 }
 
-// TODO: start expiration loop
 func NewStore() *Store {
 	return &Store{
 		byKey:      make(map[string]entry),
@@ -77,11 +76,7 @@ type Request interface {
 // Get a value from the store, blocking if the store has not yet seen the
 // req.Index value.
 // See agent/cache.Cache.Get for complete documentation.
-func (s *Store) Get(
-	ctx context.Context,
-	req Request,
-	// TODO: only the Index field of ResultMeta is relevant, return a result struct instead.
-) (interface{}, cache.ResultMeta, error) {
+func (s *Store) Get(ctx context.Context, req Request) (Result, error) {
 	info := req.CacheInfo()
 	key, e := s.getEntry(req)
 	defer s.releaseEntry(key)
@@ -94,7 +89,7 @@ func (s *Store) Get(
 	// TODO: does context.DeadlineExceeded need to be translated into a nil error
 	// to match the old interface?
 
-	return result.Value, cache.ResultMeta{Index: result.Index}, err
+	return result, err
 }
 
 // Notify the updateCh when there are updates to the entry identified by req.

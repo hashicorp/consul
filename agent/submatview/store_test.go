@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
-func TestStore_Get_Fresh(t *testing.T) {
+func TestStore_Get(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -30,25 +30,102 @@ func TestStore_Get_Fresh(t *testing.T) {
 		newEventServiceHealthRegister(10, 1, "srv1"),
 		newEventServiceHealthRegister(22, 2, "srv1"))
 
-	result, md, err := store.Get(ctx, req)
-	require.NoError(t, err)
-	require.Equal(t, uint64(22), md.Index)
+	runStep(t, "from empty store, starts materializer", func(t *testing.T) {
+		result, err := store.Get(ctx, req)
+		require.NoError(t, err)
+		require.Equal(t, uint64(22), result.Index)
 
-	r, ok := result.(fakeResult)
-	require.True(t, ok)
-	require.Len(t, r.srvs, 2)
-	require.Equal(t, uint64(22), r.index)
+		r, ok := result.Value.(fakeResult)
+		require.True(t, ok)
+		require.Len(t, r.srvs, 2)
+		require.Equal(t, uint64(22), r.index)
 
-	store.lock.Lock()
-	require.Len(t, store.byKey, 1)
-	e := store.byKey[makeEntryKey(req.Type(), req.CacheInfo())]
-	require.Equal(t, 0, e.expiry.Index())
+		store.lock.Lock()
+		defer store.lock.Unlock()
+		require.Len(t, store.byKey, 1)
+		e := store.byKey[makeEntryKey(req.Type(), req.CacheInfo())]
+		require.Equal(t, 0, e.expiry.Index())
+		require.Equal(t, 0, e.requests)
 
-	defer store.lock.Unlock()
-	require.Equal(t, store.expiryHeap.Next().Entry, e.expiry)
+		require.Equal(t, store.expiryHeap.Next().Entry, e.expiry)
+	})
+
+	runStep(t, "with an index that already exists in the view", func(t *testing.T) {
+		req.index = 21
+		result, err := store.Get(ctx, req)
+		require.NoError(t, err)
+		require.Equal(t, uint64(22), result.Index)
+
+		r, ok := result.Value.(fakeResult)
+		require.True(t, ok)
+		require.Len(t, r.srvs, 2)
+		require.Equal(t, uint64(22), r.index)
+
+		store.lock.Lock()
+		defer store.lock.Unlock()
+		require.Len(t, store.byKey, 1)
+		e := store.byKey[makeEntryKey(req.Type(), req.CacheInfo())]
+		require.Equal(t, 0, e.expiry.Index())
+		require.Equal(t, 0, e.requests)
+
+		require.Equal(t, store.expiryHeap.Next().Entry, e.expiry)
+	})
+
+	runStep(t, "blocks with an index that is not yet in the view", func(t *testing.T) {
+		req.index = 23
+
+		chResult := make(chan resultOrError, 1)
+		go func() {
+			result, err := store.Get(ctx, req)
+			chResult <- resultOrError{Result: result, Err: err}
+		}()
+
+		select {
+		case <-chResult:
+			t.Fatalf("expected Get to block")
+		case <-time.After(50 * time.Millisecond):
+		}
+
+		store.lock.Lock()
+		e := store.byKey[makeEntryKey(req.Type(), req.CacheInfo())]
+		store.lock.Unlock()
+		require.Equal(t, 1, e.requests)
+
+		req.client.QueueEvents(newEventServiceHealthRegister(24, 1, "srv1"))
+
+		var getResult resultOrError
+		select {
+		case getResult = <-chResult:
+		case <-time.After(100 * time.Millisecond):
+			t.Fatalf("expected Get to unblock when new events are received")
+		}
+
+		require.NoError(t, getResult.Err)
+		require.Equal(t, uint64(24), getResult.Result.Index)
+
+		r, ok := getResult.Result.Value.(fakeResult)
+		require.True(t, ok)
+		require.Len(t, r.srvs, 2)
+		require.Equal(t, uint64(24), r.index)
+
+		store.lock.Lock()
+		defer store.lock.Unlock()
+		require.Len(t, store.byKey, 1)
+		e = store.byKey[makeEntryKey(req.Type(), req.CacheInfo())]
+		require.Equal(t, 0, e.expiry.Index())
+		require.Equal(t, 0, e.requests)
+
+		require.Equal(t, store.expiryHeap.Next().Entry, e.expiry)
+	})
+}
+
+type resultOrError struct {
+	Result Result
+	Err    error
 }
 
 type fakeRequest struct {
+	index  uint64
 	client *TestStreamingClient
 }
 
@@ -58,6 +135,7 @@ func (r *fakeRequest) CacheInfo() cache.RequestInfo {
 		Token:      "abcd",
 		Datacenter: "dc1",
 		Timeout:    4 * time.Second,
+		MinIndex:   r.index,
 	}
 }
 
@@ -125,12 +203,18 @@ func (f *fakeView) Reset() {
 	f.srvs = make(map[string]*pbservice.CheckServiceNode)
 }
 
-// TODO: Get with an entry that already has index
-// TODO: Get with an entry that is not yet at index
+// TODO: Get with Notify
 
 func TestStore_Notify(t *testing.T) {
 	// TODO: Notify with no existing entry
 	// TODO: Notify with Get
 	// TODO: Notify multiple times same key
 	// TODO: Notify no update if index is not past MinIndex.
+}
+
+func runStep(t *testing.T, name string, fn func(t *testing.T)) {
+	t.Helper()
+	if !t.Run(name, fn) {
+		t.FailNow()
+	}
 }
