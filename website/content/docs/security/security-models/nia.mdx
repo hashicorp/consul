@@ -12,9 +12,6 @@ Network Infrastructure Automation (NIA) enables dynamic updates to network infra
 
 ### Personas
 
-When thinking about Consul NIA, it helps to consider the following types of base personas when managing the security
-requirements for the cluster deployment.
-
 - **System Administrator** - This is someone who has access to the underlying infrastructure to the
   Consul NIA daemon, and possibly the core Consul service. Often she has access to SSH directly
   into a server within a cluster through a bastion host. Ultimately they have read, write and
@@ -26,6 +23,8 @@ requirements for the cluster deployment.
   to define the Consul NIA daemon configuration, and possibly a Consul ACL token, and other secrets to
   run the daemon against various network infrastructure APIs. They also have total rights to all of
   the parts in the Consul NIA system including the ability to configure, start, and stop the daemon.
+
+When considering Consul NIA's security model, it helps to think of the following personas.
 
 - **Developer** - This is someone who is responsible for creating, and possibly deploying applications
   connected, or configured with Consul. In some cases they may have no access, or limited capabilities
