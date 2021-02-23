@@ -25,7 +25,10 @@ const undefinedNspace = 'default';
         );
       },
       function performTest(service) {
-        return service.findAllByDatacenter(dc, nspace || undefinedNspace);
+        return service.findAllByDatacenter({
+          dc: dc,
+          nspace: nspace || undefinedNspace,
+        });
       },
       function performAssertion(actual, expected) {
         assert.deepEqual(

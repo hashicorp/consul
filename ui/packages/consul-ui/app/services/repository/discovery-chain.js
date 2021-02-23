@@ -1,6 +1,7 @@
 import { inject as service } from '@ember/service';
 import { get, set } from '@ember/object';
 import RepositoryService from 'consul-ui/services/repository';
+import dataSource from 'consul-ui/decorators/data-source';
 
 const modelName = 'discovery-chain';
 const ERROR_MESH_DISABLED = 'Connect must be enabled in order to use this endpoint';
@@ -12,8 +13,9 @@ export default class DiscoveryChainService extends RepositoryService {
     return modelName;
   }
 
-  findBySlug(slug, dc, nspace, configuration = {}) {
-    const datacenter = this.dcs.peekOne(dc);
+  @dataSource('/:ns/:dc/discovery-chain/:id')
+  findBySlug(params, configuration = {}) {
+    const datacenter = this.dcs.peekOne(params.dc);
     if (datacenter !== null && !get(datacenter, 'MeshEnabled')) {
       return Promise.resolve();
     }

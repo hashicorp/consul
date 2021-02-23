@@ -2,6 +2,7 @@ import { inject as service } from '@ember/service';
 import RepositoryService from 'consul-ui/services/repository';
 import { get } from '@ember/object';
 import Error from '@ember/error';
+import dataSource from 'consul-ui/decorators/data-source';
 
 const modelName = 'dc';
 export default class DcService extends RepositoryService {
@@ -12,7 +13,8 @@ export default class DcService extends RepositoryService {
     return modelName;
   }
 
-  async findAll() {
+  @dataSource('/:ns/:dc/datacenters')
+  async findAll(params, configuration = {}) {
     return this.store.query(this.getModelName(), {});
   }
 

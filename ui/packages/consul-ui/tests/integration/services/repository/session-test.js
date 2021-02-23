@@ -29,7 +29,7 @@ const undefinedNspace = 'default';
         );
       },
       function performTest(service) {
-        return service.findByNode(id, dc, nspace || undefinedNspace);
+        return service.findByNode({ id, dc, ns: nspace || undefinedNspace });
       },
       function performAssertion(actual, expected) {
         assert.deepEqual(
@@ -59,7 +59,7 @@ const undefinedNspace = 'default';
         );
       },
       function(service) {
-        return service.findByKey(id, dc, nspace || undefinedNspace);
+        return service.findByKey({ id, dc, ns: nspace || undefinedNspace });
       },
       function(actual, expected) {
         assert.deepEqual(

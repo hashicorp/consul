@@ -1,4 +1,5 @@
 import RepositoryService from 'consul-ui/services/repository';
+import dataSource from 'consul-ui/decorators/data-source';
 
 const modelName = 'node';
 export default class NodeService extends RepositoryService {
@@ -6,13 +7,21 @@ export default class NodeService extends RepositoryService {
     return modelName;
   }
 
-  findLeader(dc, configuration = {}) {
-    const query = {
-      dc: dc,
-    };
+  @dataSource('/:ns/:dc/nodes')
+  async findAllByDatacenter() {
+    return super.findAllByDatacenter(...arguments);
+  }
+
+  @dataSource('/:ns/:dc/node/:id')
+  async findBySlug() {
+    return super.findBySlug(...arguments);
+  }
+
+  @dataSource('/:ns/:dc/leader')
+  findLeader(params, configuration = {}) {
     if (typeof configuration.refresh !== 'undefined') {
-      query.uri = configuration.uri;
+      params.uri = configuration.uri;
     }
-    return this.store.queryLeader(this.getModelName(), query);
+    return this.store.queryLeader(this.getModelName(), params);
   }
 }

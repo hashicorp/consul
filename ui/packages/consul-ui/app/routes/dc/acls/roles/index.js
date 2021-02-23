@@ -22,10 +22,10 @@ export default class IndexRoute extends Route.extend(WithRoleActions) {
   model(params) {
     return hash({
       ...this.repo.status({
-        items: this.repo.findAllByDatacenter(
-          this.modelFor('dc').dc.Name,
-          this.modelFor('nspace').nspace.substr(1)
-        ),
+        items: this.repo.findAllByDatacenter({
+          ns: this.modelFor('nspace').nspace.substr(1),
+          dc: this.modelFor('dc').dc.Name,
+        }),
       }),
       searchProperties: this.queryParams.searchproperty.empty[0],
     });
