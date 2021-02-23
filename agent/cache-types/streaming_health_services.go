@@ -139,7 +139,7 @@ func (s *streamingHealthState) Close() error {
 }
 
 func (s *streamingHealthState) Fetch(opts cache.FetchOptions) (cache.FetchResult, error) {
-	result, err := s.materializer.Fetch(s.done, opts)
+	result, err := s.materializer.getFromView(s.done, opts)
 	result.State = s
 	return result, err
 }
@@ -274,7 +274,7 @@ func sortCheckServiceNodes(serviceNodes *structs.IndexedCheckServiceNodes) {
 }
 
 // Result returns the structs.IndexedCheckServiceNodes stored by this view.
-func (s *healthView) Result(index uint64) (interface{}, error) {
+func (s *healthView) Result(index uint64) interface{} {
 	result := structs.IndexedCheckServiceNodes{
 		Nodes: make(structs.CheckServiceNodes, 0, len(s.state)),
 		QueryMeta: structs.QueryMeta{
@@ -286,7 +286,7 @@ func (s *healthView) Result(index uint64) (interface{}, error) {
 	}
 	sortCheckServiceNodes(&result)
 
-	return &result, nil
+	return &result
 }
 
 func (s *healthView) Reset() {

@@ -108,12 +108,12 @@ func (f *fakeView) Update(events []*pbsubscribe.Event) error {
 	return nil
 }
 
-func (f *fakeView) Result(index uint64) (interface{}, error) {
+func (f *fakeView) Result(index uint64) interface{} {
 	srvs := make([]*pbservice.CheckServiceNode, 0, len(f.srvs))
 	for _, srv := range f.srvs {
 		srvs = append(srvs, srv)
 	}
-	return fakeResult{srvs: srvs, index: index}, nil
+	return fakeResult{srvs: srvs, index: index}
 }
 
 type fakeResult struct {

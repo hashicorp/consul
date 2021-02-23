@@ -86,18 +86,22 @@ func (s *Store) Get(
 	key, e := s.getEntry(req)
 	defer s.releaseEntry(key)
 
-	// TODO: no longer any need to return cache.FetchResult from Materializer.Fetch
-	// TODO: pass context instead of Done chan, also replaces Timeout param
-	result, err := e.materializer.Fetch(ctx.Done(), cache.FetchOptions{
-		MinIndex: info.MinIndex,
-		Timeout:  info.Timeout,
-	})
+	ctx, cancel := context.WithTimeout(ctx, info.Timeout)
+	defer cancel()
+
+	result, err := e.materializer.getFromView(ctx, info.MinIndex)
+
+	// TODO: does context.DeadlineExceeded need to be translated into a nil error
+	// to match the old interface?
 
 	return result.Value, cache.ResultMeta{Index: result.Index}, err
 }
 
 // Notify the updateCh when there are updates to the entry identified by req.
 // See agent/cache.Cache.Notify for complete documentation.
+//
+// Request.CacheInfo().Timeout is ignored because it is not really relevant in
+// this case. Instead set a deadline on the context.
 func (s *Store) Notify(
 	ctx context.Context,
 	req Request,
@@ -112,7 +116,7 @@ func (s *Store) Notify(
 
 		index := info.MinIndex
 		for {
-			result, err := e.materializer.Fetch(ctx.Done(), cache.FetchOptions{MinIndex: index})
+			result, err := e.materializer.getFromView(ctx, index)
 			switch {
 			case ctx.Err() != nil:
 				return
