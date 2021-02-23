@@ -1,8 +1,5 @@
-/*eslint ember/no-observers: "warn"*/
-// TODO: Remove ^
 import Helper from '@ember/component/helper';
 import { inject as service } from '@ember/service';
-import { observes } from '@ember-decorators/object';
 import { action } from '@ember/object';
 
 export default class IsHrefHelper extends Helper {
@@ -31,9 +28,4 @@ export default class IsHrefHelper extends Helper {
   willDestroy() {
     this.router.off('routeWillChange', this.routeWillChange);
   }
-
-  // @observes('router.currentURL')
-  // onURLChange() {
-  //   this.recompute();
-  // }
 }
