@@ -6,11 +6,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/lib/ttlcache"
 )
 
 type Store struct {
+	logger     hclog.Logger
 	lock       sync.RWMutex
 	byKey      map[string]entry
 	expiryHeap *ttlcache.ExpiryHeap
@@ -25,8 +28,9 @@ type entry struct {
 	requests int
 }
 
-func NewStore() *Store {
+func NewStore(logger hclog.Logger) *Store {
 	return &Store{
+		logger:     logger,
 		byKey:      make(map[string]entry),
 		expiryHeap: ttlcache.NewExpiryHeap(),
 	}
@@ -117,8 +121,13 @@ func (s *Store) Notify(
 				return
 			case err != nil:
 				// TODO: cache.Notify sends errors on updateCh, should this do the same?
-				// It seems like only fetch errors would ever get sent along.
-				// TODO: log warning
+				// It seems like only fetch errors would ever get sent along and eventually
+				// logged, so sending may not provide any benefit here.
+
+				s.logger.Warn("handling error in Store.Notify",
+					"error", err,
+					"request-type", req.Type(),
+					"index", index)
 				continue
 			}
 
