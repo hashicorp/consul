@@ -8,9 +8,7 @@ description: >-
 
 ## Overview
 
-Consul Network Infrastructure Automation (NIA) enables declarative workflows to handle Day-2 network security
-infrastructure tasks for network, security, and operations teams. NIA uses [Terraform](https://www.terraform.io/)
-to propagate Consul catalog changes, and relevant configuration to network appliances, or network APIs.
+Network Infrastructure Automation (NIA) enables dynamic updates to network infrastructure devices triggered by service changes using the [Consul Terraform Sync](https://github.com/hashicorp/consul-terraform-sync) (`consul-terraform-sync`) daemon. This daemon uses Consul catalog to monitor networking information about services along with [Terraform](https://www.terraform.io/)'s provider ecosystem to apply relevant changes to network infrastructure.
 
 ### Personas
 
