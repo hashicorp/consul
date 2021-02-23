@@ -30,7 +30,7 @@ func TestStore_Get_Fresh(t *testing.T) {
 		newEventServiceHealthRegister(10, 1, "srv1"),
 		newEventServiceHealthRegister(22, 2, "srv1"))
 
-	result, md, err := store.Get(ctx, "test", req)
+	result, md, err := store.Get(ctx, req)
 	require.NoError(t, err)
 	require.Equal(t, uint64(22), md.Index)
 
@@ -39,11 +39,11 @@ func TestStore_Get_Fresh(t *testing.T) {
 	require.Len(t, r.srvs, 2)
 	require.Equal(t, uint64(22), r.index)
 
+	store.lock.Lock()
 	require.Len(t, store.byKey, 1)
-	e := store.byKey[makeEntryKey("test", req.CacheInfo())]
+	e := store.byKey[makeEntryKey(req.Type(), req.CacheInfo())]
 	require.Equal(t, 0, e.expiry.Index())
 
-	store.lock.Lock()
 	defer store.lock.Unlock()
 	require.Equal(t, store.expiryHeap.Next().Entry, e.expiry)
 }
@@ -78,6 +78,10 @@ func (r *fakeRequest) NewMaterializer() *Materializer {
 			return req
 		},
 	})
+}
+
+func (r *fakeRequest) Type() string {
+	return fmt.Sprintf("%T", r)
 }
 
 type fakeView struct {

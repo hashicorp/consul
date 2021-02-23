@@ -32,6 +32,7 @@ type View interface {
 	// separately and passed in in case the return type needs an Index field
 	// populating. This allows implementations to not worry about maintaining
 	// indexes seen during Update.
+	// TODO: remove error return value.
 	Result(index uint64) (interface{}, error)
 
 	// Reset the view to the zero state, done in preparation for receiving a new
