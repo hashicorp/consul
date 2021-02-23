@@ -17,7 +17,9 @@ Top level options are reserved for configuring Consul-Terraform-Sync.
 ```hcl
 log_level = "INFO"
 port = 8558
-syslog {}
+syslog {
+  facility = "local2"
+}
 buffer_period {
   enabled = true
   min = "5s"
@@ -33,7 +35,7 @@ buffer_period {
 - `port` - (int: 8558) The port for Consul-Terraform-Sync to use to serve API requests.
 - `syslog` - Specifies the syslog server for logging.
   - `enabled` - (bool) Enable syslog logging. Specifying other option also enables syslog logging.
-  - `facility` - (string) Name of the syslog facility to log to.
+  - `facility` - (string: "local0") Name of the syslog facility to log to.
   - `name` - (string: "consul-terraform-sync") Name to use for the daemon process when logging to syslog.
 
 ## Consul
