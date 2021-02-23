@@ -5,7 +5,6 @@
 %main-nav-vertical > ul > li > span {
   @extend %main-nav-vertical-action;
 }
-%main-nav-vertical > ul > li > a:active,
 %main-nav-vertical > ul > li.is-active > a {
   @extend %main-nav-vertical-action-active;
 }

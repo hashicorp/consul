@@ -9,7 +9,6 @@
   @extend %main-nav-horizontal-action;
 }
 %main-nav-horizontal .popover-menu [type='checkbox']:checked + label > *,
-%main-nav-horizontal > ul > li > a:active,
 %main-nav-horizontal > ul > li.is-active > a,
 %main-nav-horizontal > ul > li.is-active > label > * {
   @extend %main-nav-horizontal-action-active;
