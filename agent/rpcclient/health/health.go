@@ -20,6 +20,7 @@ type NetRPC interface {
 
 type CacheGetter interface {
 	Get(ctx context.Context, t string, r cache.Request) (interface{}, cache.ResultMeta, error)
+	Notify(ctx context.Context, t string, r cache.Request, cID string, ch chan<- cache.UpdateEvent) error
 }
 
 func (c *Client) ServiceNodes(
@@ -63,4 +64,13 @@ func (c *Client) getServiceNodes(
 	}
 
 	return *value, md, nil
+}
+
+func (c *Client) Notify(
+	ctx context.Context,
+	req structs.ServiceSpecificRequest,
+	correlationID string,
+	ch chan<- cache.UpdateEvent,
+) error {
+	return c.Cache.Notify(ctx, c.CacheName, &req, correlationID, ch)
 }

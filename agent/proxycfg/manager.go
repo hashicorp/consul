@@ -59,6 +59,8 @@ type ManagerConfig struct {
 	// Cache is the agent's cache instance that can be used to retrieve, store and
 	// monitor state for the proxies.
 	Cache *cache.Cache
+	// Health provides service health updates on a notification channel.
+	Health Health
 	// state is the agent's local state to be watched for new proxy registrations.
 	State *local.State
 	// source describes the current agent's identity, it's used directly for
@@ -71,9 +73,6 @@ type ManagerConfig struct {
 	// logger is the agent's logger to be used for logging logs.
 	Logger          hclog.Logger
 	TLSConfigurator *tlsutil.Configurator
-
-	// TODO: replace this field with a type that exposes Notify
-	ServiceHealthCacheName string
 
 	// IntentionDefaultAllow is set by the agent so that we can pass this
 	// information to proxies that need to make intention decisions on their
@@ -191,7 +190,7 @@ func (m *Manager) ensureProxyServiceLocked(ns *structs.NodeService, token string
 	}
 
 	var err error
-	state, err = newState(ns, token, m.ManagerConfig.ServiceHealthCacheName)
+	state, err = newState(ns, token)
 	if err != nil {
 		return err
 	}
@@ -199,6 +198,7 @@ func (m *Manager) ensureProxyServiceLocked(ns *structs.NodeService, token string
 	// Set the necessary dependencies
 	state.logger = m.Logger.With("service_id", sid.String())
 	state.cache = m.Cache
+	state.health = m.Health
 	state.source = m.Source
 	state.dnsConfig = m.DNSConfig
 	state.intentionDefaultAllow = m.IntentionDefaultAllow

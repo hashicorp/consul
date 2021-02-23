@@ -536,12 +536,9 @@ func (a *Agent) Start(ctx context.Context) error {
 	}
 
 	// Start the proxy config manager.
-	cacheName := cachetype.HealthServicesName
-	if a.config.UseStreamingBackend {
-		cacheName = cachetype.StreamingHealthServicesName
-	}
 	a.proxyConfig, err = proxycfg.NewManager(proxycfg.ManagerConfig{
 		Cache:  a.cache,
+		Health: a.rpcClientHealth,
 		Logger: a.logger.Named(logging.ProxyConfig),
 		State:  a.State,
 		Source: &structs.QuerySource{
@@ -553,9 +550,8 @@ func (a *Agent) Start(ctx context.Context) error {
 			Domain:    a.config.DNSDomain,
 			AltDomain: a.config.DNSAltDomain,
 		},
-		TLSConfigurator:        a.tlsConfigurator,
-		IntentionDefaultAllow:  intentionDefaultAllow,
-		ServiceHealthCacheName: cacheName,
+		TLSConfigurator:       a.tlsConfigurator,
+		IntentionDefaultAllow: intentionDefaultAllow,
 	})
 	if err != nil {
 		return err

@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
+	"github.com/hashicorp/consul/agent/rpcclient/health"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
@@ -112,7 +113,7 @@ func TestStateChanged(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			require := require.New(t)
-			state, err := newState(tt.ns, tt.token, cachetype.HealthServicesName)
+			state, err := newState(tt.ns, tt.token)
 			require.NoError(err)
 			otherNS, otherToken := tt.mutate(*tt.ns, tt.token)
 			require.Equal(tt.want, state.Changed(otherNS, otherToken))
@@ -142,6 +143,10 @@ func (cn *testCacheNotifier) Notify(ctx context.Context, t string, r cache.Reque
 	cn.notifiers[correlationId] = testCacheNotifierRequest{t, r, ch}
 	cn.lock.Unlock()
 	return nil
+}
+
+func (cn *testCacheNotifier) Get(ctx context.Context, t string, r cache.Request) (interface{}, cache.ResultMeta, error) {
+	panic("Get: not implemented")
 }
 
 func (cn *testCacheNotifier) getNotifierRequest(t testing.TB, correlationId string) testCacheNotifierRequest {
@@ -1510,7 +1515,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			state, err := newState(&tc.ns, "", cachetype.HealthServicesName)
+			state, err := newState(&tc.ns, "")
 
 			// verify building the initial state worked
 			require.NoError(t, err)
@@ -1522,6 +1527,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 			// setup a new testing cache notifier
 			cn := newTestCacheNotifier()
 			state.cache = cn
+			state.health = &health.Client{Cache: cn, CacheName: cachetype.HealthServicesName}
 
 			// setup the local datacenter information
 			state.source = &structs.QuerySource{
