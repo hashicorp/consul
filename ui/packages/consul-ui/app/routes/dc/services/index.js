@@ -3,7 +3,6 @@ import Route from 'consul-ui/routing/route';
 
 export default class IndexRoute extends Route {
   @service('data-source/service') data;
-  @service('routlet') routlet;
 
   queryParams = {
     sortBy: 'sort',
@@ -24,7 +23,6 @@ export default class IndexRoute extends Route {
     const nspace = this.modelFor('nspace').nspace.substr(1);
     const dc = this.modelFor('dc').dc.Name;
     const items = this.data.source(uri => uri`/${nspace}/${dc}/services`);
-    await this.routlet.ready();
     return {
       dc,
       nspace,

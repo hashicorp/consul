@@ -7,7 +7,6 @@ export default class TopologyRoute extends Route {
   @service('data-source/service') data;
   @service('repository/intention') repo;
   @service('feedback') feedback;
-  @service('routlet') routlet;
 
   @action
   async createIntention(source, destination) {
@@ -78,7 +77,6 @@ export default class TopologyRoute extends Route {
     let hasMetricsProvider = await this.config.findByPath('metrics_provider');
     hasMetricsProvider = !!hasMetricsProvider;
 
-    await this.routlet.ready();
     return {
       ...model,
       topology,
