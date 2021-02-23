@@ -1,1 +1,33 @@
-@import './containers';
+// workaround bulma's sweeping box-sizing
+
+%viewport-container {
+  box-sizing: content-box;
+}
+%modal-dialog > *,
+%content-container > * {
+  box-sizing: border-box;
+}
+%content-container-restricted {
+  max-width: 1260px;
+}
+%viewport-container {
+  padding-left: 25px;
+  padding-right: 25px;
+}
+
+fieldset [role='group'] {
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: row;
+}
+[role='group'] fieldset {
+  width: 50%;
+}
+[role='group'] fieldset:not(:first-of-type) {
+  padding-left: 20px;
+  border-left: 1px solid;
+  border-left: $gray-500;
+}
+[role='group'] fieldset:not(:last-of-type) {
+  padding-right: 20px;
+}

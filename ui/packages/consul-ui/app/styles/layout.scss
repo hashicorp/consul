@@ -60,6 +60,7 @@ html:not(.has-nspaces) [class*='nspace-'] {
 }
 main {
   position: relative;
+  flex: 1;
 }
 main,
 #wrapper > footer {

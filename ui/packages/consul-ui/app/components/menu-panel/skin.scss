@@ -32,8 +32,12 @@
   border-color: var(--gray-300);
   background-color: var(--gray-000);
 }
+%menu-panel dt,
 %menu-panel dd {
-  color: $gray-500;
+  color: var(--gray-800);
+}
+%menu-panel dt span {
+  color: var(--gray-600);
 }
 %menu-panel-separator {
   color: var(--gray-400);
