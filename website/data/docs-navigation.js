@@ -223,7 +223,11 @@ export default [
       },
       'architecture',
       'api',
-      'cli',
+      {
+        category: 'cli',
+        name: 'CLI',
+        content: ['cli-overview'],
+      },
       'configuration',
       'tasks',
       'network-drivers',
