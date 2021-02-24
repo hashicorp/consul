@@ -1,14 +1,16 @@
 import Adapter from './application';
 
-export default Adapter.extend({
-  requestForQuery: function(request, { dc, index }) {
+export default class <%= classifiedModuleName %>Adapter extends Adapter {
+
+  requestForQuery(request, { ns, dc, index }) {
     return request`
       GET /v1/<%= dasherizedModuleName %>?${{ dc }}
 
       ${{ index }}
     `;
-  },
-  requestForQueryRecord: function(request, { dc, index, id }) {
+  }
+
+  requestForQueryRecord(request, { ns, dc, index, id }) {
     if (typeof id === 'undefined') {
       throw new Error('You must specify an id');
     }
@@ -17,5 +19,6 @@ export default Adapter.extend({
 
       ${{ index }}
     `;
-  },
-});
+  }
+
+};
