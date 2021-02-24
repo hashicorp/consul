@@ -12,15 +12,22 @@ import (
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_http_rbac_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/rbac/v2"
+	envoy_tls_inspector_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/listener/tls_inspector/v2"
 	envoy_http_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	envoy_network_rbac_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/rbac/v2"
+	envoy_sni_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/sni_cluster/v2"
 	envoy_tcp_proxy_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	envoy_metrics_v2 "github.com/envoyproxy/go-control-plane/envoy/config/metrics/v2"
+	envoy_metrics_v3 "github.com/envoyproxy/go-control-plane/envoy/config/metrics/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_trace_v2 "github.com/envoyproxy/go-control-plane/envoy/config/trace/v2"
+	envoy_trace_v3 "github.com/envoyproxy/go-control-plane/envoy/config/trace/v3"
 	envoy_http_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/rbac/v3"
+	envoy_tls_inspector_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/tls_inspector/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoy_network_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/rbac/v3"
+	envoy_sni_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/sni_cluster/v3"
 	envoy_tcp_proxy_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoy_discovery_v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
@@ -200,32 +207,17 @@ func convertTypedConfigsToV2(pbuf *proto.Buffer, pb proto.Message) error {
 			}
 		}
 		for _, filter := range x.ListenerFilters {
+			// We only ever plumb up the tls_inspector listener filter.
 			if err := convertTypedConfigsToV2(pbuf, filter); err != nil {
-				return fmt.Errorf("%T: %w", x, err)
-			}
-		}
-		if x.UdpListenerConfig != nil {
-			if err := convertTypedConfigsToV2(pbuf, x.UdpListenerConfig); err != nil {
 				return fmt.Errorf("%T: %w", x, err)
 			}
 		}
 		return nil
 	case *envoy_listener_v2.ListenerFilter:
+		// This is really only here for when the tls inspector is for some
+		// random reason plumbed using the @type instead of the name.
 		if x.ConfigType != nil {
 			tc, ok := x.ConfigType.(*envoy_listener_v2.ListenerFilter_TypedConfig)
-			if !ok {
-				return fmt.Errorf("%T: ConfigType type %T not handled", x, x.ConfigType)
-			}
-			if tc.TypedConfig != nil {
-				if err := convertTypedConfigsToV2(pbuf, tc.TypedConfig); err != nil {
-					return fmt.Errorf("%T: %w", x, err)
-				}
-			}
-		}
-		return nil
-	case *envoy_listener_v2.UdpListenerConfig:
-		if x.ConfigType != nil {
-			tc, ok := x.ConfigType.(*envoy_listener_v2.UdpListenerConfig_TypedConfig)
 			if !ok {
 				return fmt.Errorf("%T: ConfigType type %T not handled", x, x.ConfigType)
 			}
@@ -249,6 +241,10 @@ func convertTypedConfigsToV2(pbuf *proto.Buffer, pb proto.Message) error {
 		}
 		return nil
 	case *envoy_listener_v2.Filter:
+		// "envoy.filters.network.tcp_proxy"
+		// "envoy.filters.network.http_connection_manager"
+		// "envoy.filters.network.rbac"
+		// "envoy.filters.network.sni_cluster"
 		if x.ConfigType != nil {
 			tc, ok := x.ConfigType.(*envoy_listener_v2.Filter_TypedConfig)
 			if !ok {
@@ -339,7 +335,7 @@ func convertTypedConfigsToV2(pbuf *proto.Buffer, pb proto.Message) error {
 		}
 		x.ResourceApiVersion = envoy_core_v2.ApiVersion_V2
 		return nil
-	case *envoy_http_v2.HttpConnectionManager:
+	case *envoy_http_v2.HttpConnectionManager: // "envoy.filters.network.http_connection_manager"
 		if x.RouteSpecifier != nil {
 			switch spec := x.RouteSpecifier.(type) {
 			case *envoy_http_v2.HttpConnectionManager_Rds:
@@ -373,9 +369,13 @@ func convertTypedConfigsToV2(pbuf *proto.Buffer, pb proto.Message) error {
 			}
 		}
 		return nil
-	case *envoy_tcp_proxy_v2.TcpProxy:
+	case *envoy_tls_inspector_v2.TlsInspector: // "envoy.filters.listener.tls_inspector"
 		return nil
-	case *envoy_network_rbac_v2.RBAC:
+	case *envoy_tcp_proxy_v2.TcpProxy: // "envoy.filters.network.tcp_proxy"
+		return nil
+	case *envoy_network_rbac_v2.RBAC: // "envoy.filters.network.rbac"
+		return nil
+	case *envoy_sni_v2.SniCluster: // "envoy.filters.network.sni_cluster"
 		return nil
 	case *envoy_http_rbac_v2.RBAC:
 		return nil
@@ -457,16 +457,15 @@ func init() {
 	reg2(&envoy_tcp_proxy_v2.TcpProxy{}, &envoy_tcp_proxy_v3.TcpProxy{})                 // "envoy.filters.network.tcp_proxy"
 	reg2(&envoy_network_rbac_v2.RBAC{}, &envoy_network_rbac_v3.RBAC{})                   // "envoy.filters.network.rbac"
 	reg2(&envoy_http_rbac_v2.RBAC{}, &envoy_http_rbac_v3.RBAC{})                         // "envoy.filters.http.rbac
+	reg2(&envoy_tls_inspector_v2.TlsInspector{}, &envoy_tls_inspector_v3.TlsInspector{}) // "envoy.filters.listener.tls_inspector"
+	reg2(&envoy_sni_v2.SniCluster{}, &envoy_sni_v3.SniCluster{})                         // "envoy.filters.network.sni_cluster"
 
 	// cluster tls
 	reg2(&envoy_tls_v2.UpstreamTlsContext{}, &envoy_tls_v3.UpstreamTlsContext{})
 	reg2(&envoy_tls_v2.DownstreamTlsContext{}, &envoy_tls_v3.DownstreamTlsContext{})
 
 	// extension elements
-	reg("type.googleapis.com/envoy.config.metrics.v2.DogStatsdSink",
-		"type.googleapis.com/envoy.config.metrics.v3.DogStatsdSink")
-	reg("type.googleapis.com/envoy.config.metrics.v2.StatsdSink",
-		"type.googleapis.com/envoy.config.metrics.v3.StatsdSink")
-	reg("type.googleapis.com/envoy.config.trace.v2.ZipkinConfig",
-		"type.googleapis.com/envoy.config.trace.v3.ZipkinConfig")
+	reg2(&envoy_metrics_v2.DogStatsdSink{}, &envoy_metrics_v3.DogStatsdSink{})
+	reg2(&envoy_metrics_v2.StatsdSink{}, &envoy_metrics_v3.StatsdSink{})
+	reg2(&envoy_trace_v2.ZipkinConfig{}, &envoy_trace_v3.ZipkinConfig{})
 }
