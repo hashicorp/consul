@@ -1,15 +1,15 @@
 ---
 layout: docs
-page_title: Task Subcommands
+page_title: Task Command
 sidebar_title: task
 description: >-
-  Consul-Terraform-Sync supports task subcommands for users to modify tasks while the daemon is running
+  Consul-Terraform-Sync supports task commands for users to modify tasks while the daemon is running
 ---
 # task
 
 ## task enable
 
-`task enable` subcommand enables an existing task so that it will run and update task resources. If the task is already enabled, it will return a success. The subcommand generates and outputs an inspect plan of how resources will be modified if task becomes enabled. If resources changes are detected, the subcommand will ask for user approval before enabling the task. If no resources are detected, the subcommand will go ahead and enable the task.
+`task enable` command enables an existing task so that it will run and update task resources. If the task is already enabled, it will return a success. The command generates and outputs a Terraform plan, similar to [inspect-mode](/docs/nia/cli/cli-overview#inspect-mode), of how resources will be modified if task becomes enabled. If resources changes are detected, the command will ask for user approval before enabling the task. If no resources are detected, the command will go ahead and enable the task.
 
 ### Usage
 `consul-terraform-sync task enable [options] <task_name>`
@@ -55,7 +55,7 @@ Enter a value: yes
 
 ## task disable
 
-`task disable` subcommand disables an existing task so that it will no longer run and update task resources. If the task is already disabled, it will return a success.
+`task disable` command disables an existing task so that it will no longer run and update task resources. If the task is already disabled, it will return a success.
 
 ### Usage
 `consul-terraform-sync task disable [options] <task_name>`
