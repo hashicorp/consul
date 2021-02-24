@@ -642,6 +642,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 		},
 	}
 
+	latestEnvoyVersion := proxysupport.EnvoyVersions[0]
 	for _, envoyVersion := range proxysupport.EnvoyVersions {
 		sf, err := determineSupportedProxyFeaturesFromString(envoyVersion)
 		require.NoError(t, err)
@@ -684,7 +685,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 						gName = tt.overrideGoldenName
 					}
 
-					require.JSONEq(goldenEnvoy(t, filepath.Join("clusters", gName), envoyVersion, gotJSON), gotJSON)
+					require.JSONEq(goldenEnvoy(t, filepath.Join("clusters", gName), envoyVersion, latestEnvoyVersion, gotJSON), gotJSON)
 				})
 			}
 		})
@@ -839,15 +840,15 @@ func setupTLSRootsAndLeaf(t *testing.T, snap *proxycfg.ConfigSnapshot) {
 	if snap.Leaf() != nil {
 		switch snap.Kind {
 		case structs.ServiceKindConnectProxy:
-			snap.ConnectProxy.Leaf.CertPEM = golden(t, "test-leaf-cert", "", "")
-			snap.ConnectProxy.Leaf.PrivateKeyPEM = golden(t, "test-leaf-key", "", "")
+			snap.ConnectProxy.Leaf.CertPEM = loadTestResource(t, "test-leaf-cert")
+			snap.ConnectProxy.Leaf.PrivateKeyPEM = loadTestResource(t, "test-leaf-key")
 		case structs.ServiceKindIngressGateway:
-			snap.IngressGateway.Leaf.CertPEM = golden(t, "test-leaf-cert", "", "")
-			snap.IngressGateway.Leaf.PrivateKeyPEM = golden(t, "test-leaf-key", "", "")
+			snap.IngressGateway.Leaf.CertPEM = loadTestResource(t, "test-leaf-cert")
+			snap.IngressGateway.Leaf.PrivateKeyPEM = loadTestResource(t, "test-leaf-key")
 		}
 	}
 	if snap.Roots != nil {
-		snap.Roots.Roots[0].RootCert = golden(t, "test-root-cert", "", "")
+		snap.Roots.Roots[0].RootCert = loadTestResource(t, "test-root-cert")
 	}
 }
 
