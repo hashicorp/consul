@@ -250,7 +250,7 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 
 				gotJSON := protoToJSON(t, filter)
 
-				require.JSONEq(t, golden(t, filepath.Join("rbac", name), "", "", gotJSON), gotJSON)
+				require.JSONEq(t, goldenSimple(t, filepath.Join("rbac", name), gotJSON), gotJSON)
 			})
 			t.Run("http filter", func(t *testing.T) {
 				filter, err := makeRBACHTTPFilter(tt.intentions, tt.intentionDefaultAllow)
@@ -258,7 +258,7 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 
 				gotJSON := protoToJSON(t, filter)
 
-				require.JSONEq(t, golden(t, filepath.Join("rbac", name+"--httpfilter"), "", "", gotJSON), gotJSON)
+				require.JSONEq(t, goldenSimple(t, filepath.Join("rbac", name+"--httpfilter"), gotJSON), gotJSON)
 			})
 		})
 	}
