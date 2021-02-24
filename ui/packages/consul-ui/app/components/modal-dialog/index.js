@@ -1,6 +1,6 @@
 import Component from '@ember/component';
 import Slotted from 'block-slots';
-import A11yDialog from 'a11y-dialog'
+import A11yDialog from 'a11y-dialog';
 
 export default Component.extend(Slotted, {
   tagName: '',
@@ -9,14 +9,8 @@ export default Component.extend(Slotted, {
   actions: {
     connect: function($el) {
       this.dialog = new A11yDialog($el);
-      this.dialog.on(
-        'hide',
-        () => this.onclose()
-      );
-      this.dialog.on(
-        'show',
-        () => this.onopen()
-      );
+      this.dialog.on('hide', () => this.onclose({ target: $el }));
+      this.dialog.on('show', () => this.onopen({ target: $el }));
     },
     disconnect: function($el) {
       this.dialog.destroy();

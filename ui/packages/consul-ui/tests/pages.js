@@ -6,6 +6,7 @@ import {
   collection,
   text,
   isPresent,
+  isVisible,
 } from 'ember-cli-page-object';
 
 import { alias } from 'ember-cli-page-object/macros';
@@ -204,7 +205,7 @@ export default {
     intention(
       visitable,
       clickable,
-      isPresent,
+      isVisible,
       submitable,
       deletable,
       cancelable,
