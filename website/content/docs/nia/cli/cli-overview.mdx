@@ -8,7 +8,9 @@ description: >-
 
 # Consul-Terraform-Sync Command (CLI)
 
-Consul-Terraform-Sync is controlled via an easy to use command-line interface (CLI). Consul-Terraform-Sync is only a single command-line application: `consul-terraform-sync`.
+Consul-Terraform-Sync is controlled via an easy to use command-line interface (CLI). Consul-Terraform-Sync is only a single command-line application: `consul-terraform-sync`. The Consul-Terraform-Sync's main process can be run using additional flags. It also has a subcommands that can be used to interact with Consul-Terraform-Sync when running in daemon mode. The complete list of subcommands is in the navigation to the left. Both the main process and subcommands will return a non-zero exit status on error.
+
+## Main Process
 
 Since there is no default configuration to run Consul-Terraform-Sync in a meaningful way, setting a configuration flag `-config-file` or `-config-dir` is required. For example:
 
@@ -18,11 +20,11 @@ $ consul-terraform-sync -config-file=config.hcl
 
 To view a list of available flags, use the `-help` or `-h` flag.
 
-## Modes
+### Modes
 
-Consul-Terraform-Sync can be run in different modes.
+Consul-Terraform-Sync's main process can be run in different modes.
 
-### Daemon Mode
+#### Daemon Mode
 
 Flag: none
 
@@ -30,7 +32,7 @@ Behavior: This is the default mode in which Consul-Terraform-Sync passes through
 
 Usage: Intended to be run as a long running process after running once-mode successfully for given configuration and tasks.
 
-### Inspect Mode
+#### Inspect Mode
 
 Flag: `-inspect`
 
@@ -46,10 +48,39 @@ Behavior: This has similar behavior as `-inspect` mode for the selected task. Th
 
 Usage: Useful to debug one or more tasks to confirm configuration is accurate and the selected tasks would update network infrastructure as expected.
 
-### Once Mode
+#### Once Mode
 
 Flag: `-once`
 
 Behavior: Consul-Terraform-Sync will run all tasks once with buffer periods disabled and exit. On encountering an error before completing, Consul-Terraform-Sync will exit with a non-zero status.
 
 Usage: Intended to be run before daemon-mode in order to confirm configuration is accurate and tasks update network infrastructure as expected.
+
+## Subcommands
+
+In addition to running the main process, Consul-Terraform-Sync features a set of subcommands to provide a user-friendly experience interacting with the main process. This functionality uses the APIs but does not correspond one-to-one with it. Please see the individual subcommands in the left navigation for more details.
+
+To get help for a subcommand, run: `consul-terraform-sync <subcommand> -h`
+
+
+### CLI Structure
+
+Consul-Terraform-Sync subcommands follow the below structure
+
+```shell-session
+consul-terraform-sync <subcommand> [options] [args]
+```
+- `options`: Flags to specify additional settings. There are general options that can be used across all subcommands and subcommand specific options.
+- `args`: Required arguments specific to a subcommand
+
+Example:
+
+```shell-session
+consul-terraform-sync task disable -port=2000 task_a
+```
+
+### General Options
+
+Below are options that can be used across all subcommands:
+
+- `-port=<port>` - (int: 8558) The port that the Consul-Terraform-Sync main process serves its API.
