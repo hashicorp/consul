@@ -42,6 +42,8 @@ buffer_period {
 
 The `consul` block is used to configure Consul-Terraform-Sync connection with a Consul agent to perform queries to the Consul Catalog and Consul KV pertaining to task execution.
 
+-> **Note:** For improved performance of Consul-Terraform-Sync communicating with the local Consul process you can use HTTP/2. To use HTTP/2 the local Consul needs to have [TLS/HTTPS configured](/docs/agent/options) with, at least, the [cert_file](/docs/agent/options#cert_file) and [key_file](/docs/agent/options#key_file) set. Consul-Terraform-Sync's configuration for HTTP/2 requires `tls.enabled = true` and it must have the address set to the HTTPS URL, `address = example.consul.com:8501`. Optionally you'll need to set `tls.verify = false` if using self-signed certificates for Consul. Using HTTP/2 can solve issues hitting Consul's maximum connections limits as well as just generally perform more efficiently when processing lots of blocking queries.
+
 To read more on suggestions for configuring the Consul agent, see [run an agent](/docs/nia/installation/requirements#run-an-agent).
 
 ```hcl
