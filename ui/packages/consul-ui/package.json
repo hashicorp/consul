@@ -70,6 +70,7 @@
     "@storybook/ember": "^6.0.27",
     "@storybook/ember-cli-storybook": "^0.2.1",
     "@xstate/fsm": "^1.4.0",
+    "a11y-dialog": "^6.0.1",
     "babel-eslint": "^10.0.3",
     "babel-loader": "^8.1.0",
     "babel-plugin-ember-modules-api-polyfill": "^3.2.0",
