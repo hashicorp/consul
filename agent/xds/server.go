@@ -90,6 +90,10 @@ const (
 	// DefaultAuthCheckFrequency is the default value for
 	// Server.AuthCheckFrequency to use when the zero value is provided.
 	DefaultAuthCheckFrequency = 5 * time.Minute
+
+	// DefaultDeltaRetryFrequency is the default value for
+	// Server.DeltaRetryFrequency to use when the zero value is provided.
+	DefaultDeltaRetryFrequency = 30 * time.Second
 )
 
 // ACLResolverFunc is a shim to resolve ACLs. Since ACL enforcement is so far
@@ -136,13 +140,28 @@ type Server struct {
 	// there has been no recent DiscoveryRequest).
 	AuthCheckFrequency time.Duration
 
+	// DeltaRetryFrequency is how long to wait before trying to send an update
+	// after a failure to originally do so at the scheduled time.
+	DeltaRetryFrequency time.Duration
+
 	DisableV2Protocol bool
 }
 
 // StreamAggregatedResources implements
 // envoy_discovery_v3.AggregatedDiscoveryServiceServer. This is the ADS endpoint which is
 // the only xDS API we directly support for now.
+//
+// Deprecated: use DeltaAggregatedResources instead
 func (s *Server) StreamAggregatedResources(stream ADSStream) error {
+	return errors.New("not implemented")
+}
+
+// Deprecated: remove when xDS v2 is no longer supported
+func (s *Server) streamAggregatedResources(stream ADSStream) error {
+	// Note: despite dealing entirely in v3 protobufs, this function is
+	// exclusively used from the xDS v2 shim RPC handler, so the logging below
+	// will refer to it as "v2".
+
 	// a channel for receiving incoming requests
 	reqCh := make(chan *envoy_discovery_v3.DiscoveryRequest)
 	reqStop := int32(0)
@@ -162,7 +181,7 @@ func (s *Server) StreamAggregatedResources(stream ADSStream) error {
 
 	err := s.process(stream, reqCh)
 	if err != nil {
-		s.Logger.Error("Error handling ADS stream", "xdsVersion", "v3", "error", err)
+		s.Logger.Error("Error handling ADS stream", "xdsVersion", "v2", "error", err)
 	}
 
 	// prevents writing to a closed channel if send failed on blocked recv
@@ -177,6 +196,7 @@ const (
 	stateRunning
 )
 
+// Deprecated: remove when xDS v2 is no longer supported
 func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.DiscoveryRequest) error {
 	// xDS requires a unique nonce to correlate response/request pairs
 	var nonce uint64
@@ -200,9 +220,10 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.Disc
 	)
 
 	g := newResourceGenerator(
-		s.Logger.Named(logging.XDS),
+		s.Logger.Named(logging.XDS).With("xdsVersion", "v2"),
 		s.CheckFetcher,
 		s.CfgFetcher,
+		false,
 	)
 
 	// need to run a small state machine to get through initial authentication.
@@ -276,6 +297,9 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.Disc
 				// there's no point in blocking on that.
 				return nil
 			}
+
+			g.logTraceRequest("SOTW xDS v2", req)
+
 			if req.TypeUrl == "" {
 				return status.Errorf(codes.InvalidArgument, "type URL is required for ADS")
 			}
@@ -379,6 +403,7 @@ func (s *Server) process(stream ADSStream, reqCh <-chan *envoy_discovery_v3.Disc
 	}
 }
 
+// Deprecated: remove when xDS v2 is no longer supported
 type xDSType struct {
 	generator *ResourceGenerator
 	typeURL   string
@@ -443,6 +468,8 @@ func (t *xDSType) SendIfNew(cfgSnap *proxycfg.ConfigSnapshot, version uint64, no
 		return err
 	}
 
+	t.generator.logTraceResponse("SOTW xDS v2", resp)
+
 	err = t.stream.Send(resp)
 	if err != nil {
 		return err
@@ -462,11 +489,6 @@ func tokenFromContext(ctx context.Context) string {
 		return toks[0]
 	}
 	return ""
-}
-
-// DeltaAggregatedResources implements envoy_discovery_v3.AggregatedDiscoveryServiceServer
-func (s *Server) DeltaAggregatedResources(_ envoy_discovery_v3.AggregatedDiscoveryService_DeltaAggregatedResourcesServer) error {
-	return errors.New("not implemented")
 }
 
 // GRPCServer returns a server instance that can handle xDS requests.

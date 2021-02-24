@@ -104,6 +104,12 @@ func TestDetermineSupportedProxyFeaturesFromString(t *testing.T) {
 	for _, v := range []string{
 		"1.14.1", "1.14.2", "1.14.3", "1.14.4", "1.14.5", "1.14.6",
 		"1.15.0", "1.15.1", "1.15.2", "1.15.3",
+	} {
+		cases[v] = testcase{expect: supportedProxyFeatures{
+			GatewaysNeedStubClusterWhenEmptyWithIncrementalXDS: true,
+		}}
+	}
+	for _, v := range []string{
 		"1.16.0", "1.16.1", "1.16.2",
 		"1.17.0",
 	} {

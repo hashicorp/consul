@@ -13,6 +13,8 @@ var (
 	// the zero'th point release of the last element of proxysupport.EnvoyVersions.
 	minSupportedVersion = version.Must(version.NewVersion("1.14.0"))
 
+	minVersionAllowingEmptyGatewayClustersWithIncrementalXDS = version.Must(version.NewVersion("1.16.0"))
+
 	specificUnsupportedVersions = []unsupportedVersion{}
 )
 
@@ -24,6 +26,8 @@ type unsupportedVersion struct {
 
 type supportedProxyFeatures struct {
 	// add version dependent feature flags here
+
+	GatewaysNeedStubClusterWhenEmptyWithIncrementalXDS bool
 }
 
 func determineSupportedProxyFeatures(node *envoy_core_v3.Node) (supportedProxyFeatures, error) {
@@ -59,7 +63,13 @@ func determineSupportedProxyFeaturesFromVersion(version *version.Version) (suppo
 		}
 	}
 
-	return supportedProxyFeatures{}, nil
+	sf := supportedProxyFeatures{}
+
+	if version.LessThan(minVersionAllowingEmptyGatewayClustersWithIncrementalXDS) {
+		sf.GatewaysNeedStubClusterWhenEmptyWithIncrementalXDS = true
+	}
+
+	return sf, nil
 }
 
 func determineEnvoyVersionFromNode(node *envoy_core_v3.Node) *version.Version {

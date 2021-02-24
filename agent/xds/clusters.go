@@ -32,14 +32,54 @@ func (s *ResourceGenerator) clustersFromSnapshot(cfgSnap *proxycfg.ConfigSnapsho
 	case structs.ServiceKindConnectProxy:
 		return s.clustersFromSnapshotConnectProxy(cfgSnap)
 	case structs.ServiceKindTerminatingGateway:
-		return s.makeGatewayServiceClusters(cfgSnap, cfgSnap.TerminatingGateway.ServiceGroups, cfgSnap.TerminatingGateway.ServiceResolvers)
+		res, err := s.makeGatewayServiceClusters(cfgSnap, cfgSnap.TerminatingGateway.ServiceGroups, cfgSnap.TerminatingGateway.ServiceResolvers)
+		if err != nil {
+			return nil, err
+		}
+		return s.maybeInjectStubClusterForGateways(res)
 	case structs.ServiceKindMeshGateway:
-		return s.clustersFromSnapshotMeshGateway(cfgSnap)
+		res, err := s.clustersFromSnapshotMeshGateway(cfgSnap)
+		if err != nil {
+			return nil, err
+		}
+		return s.maybeInjectStubClusterForGateways(res)
 	case structs.ServiceKindIngressGateway:
-		return s.clustersFromSnapshotIngressGateway(cfgSnap)
+		res, err := s.clustersFromSnapshotIngressGateway(cfgSnap)
+		if err != nil {
+			return nil, err
+		}
+		return s.maybeInjectStubClusterForGateways(res)
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
+}
+
+func (s *ResourceGenerator) maybeInjectStubClusterForGateways(resources []proto.Message) ([]proto.Message, error) {
+	switch {
+	case !s.IncrementalXDS:
+		return resources, nil
+	case !s.ProxyFeatures.GatewaysNeedStubClusterWhenEmptyWithIncrementalXDS:
+		return resources, nil
+	case len(resources) > 0:
+		return resources, nil
+	}
+
+	// For some reason Envoy versions prior to 1.16.0 when sent an empty CDS
+	// list via the incremental xDS protocol will correctly ack the message and
+	// just never request LDS resources.
+
+	const stubName = "consul-stub-cluster-working-around-envoy-bug-ignore"
+	return []proto.Message{
+		&envoy_cluster_v3.Cluster{
+			Name: stubName,
+			LoadAssignment: &envoy_endpoint_v3.ClusterLoadAssignment{
+				ClusterName: stubName,
+				Endpoints: []*envoy_endpoint_v3.LocalityLbEndpoints{
+					{LbEndpoints: []*envoy_endpoint_v3.LbEndpoint{}},
+				},
+			},
+		},
+	}, nil
 }
 
 // clustersFromSnapshot returns the xDS API representation of the "clusters"

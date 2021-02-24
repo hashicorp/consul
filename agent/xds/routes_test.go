@@ -256,7 +256,7 @@ func TestRoutesFromSnapshot(t *testing.T) {
 						tt.setup(snap)
 					}
 
-					g := newResourceGenerator(testutil.Logger(t), nil, nil)
+					g := newResourceGenerator(testutil.Logger(t), nil, nil, false)
 					g.ProxyFeatures = sf
 
 					routes, err := g.routesFromSnapshot(snap)

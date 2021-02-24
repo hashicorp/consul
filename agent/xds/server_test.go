@@ -694,8 +694,6 @@ func TestServer_StreamAggregatedResources_v2_ACLTokenDeleted_StreamTerminatedInB
 	}
 }
 
-// NOTE: this test sidesteps the v3-only-does-incremental so it can test
-// v2-state-of-the-world-xDS indirectly via the v3 version
 func TestServer_StreamAggregatedResources_v2_IngressEmptyResponse(t *testing.T) {
 	aclResolve := func(id string) (acl.Authorizer, error) {
 		// Allow all

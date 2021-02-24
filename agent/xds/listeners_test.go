@@ -574,7 +574,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					}
 
 					// Need server just for logger dependency
-					g := newResourceGenerator(testutil.Logger(t), nil, nil)
+					g := newResourceGenerator(testutil.Logger(t), nil, nil, false)
 					g.ProxyFeatures = sf
 					if tt.generatorSetup != nil {
 						tt.generatorSetup(g)

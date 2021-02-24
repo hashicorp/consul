@@ -30,6 +30,10 @@ load helpers
   assert_service_has_healthy_instances s2 1 secondary
 }
 
+@test "gateway-secondary should be up and listening" {
+  retry_long nc -z consul-secondary:4432
+}
+
 ################
 # PHASE 1: we show that by default requests are served from the primary
 

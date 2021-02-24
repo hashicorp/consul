@@ -27,11 +27,13 @@ func (s *ResourceGenerator) routesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot)
 
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
-		return routesForConnectProxy(cfgSnap.ConnectProxy.DiscoveryChain)
+		return s.routesForConnectProxy(cfgSnap.ConnectProxy.DiscoveryChain)
 	case structs.ServiceKindIngressGateway:
-		return routesForIngressGateway(cfgSnap.IngressGateway.Upstreams, cfgSnap.IngressGateway.DiscoveryChain)
+		return s.routesForIngressGateway(cfgSnap.IngressGateway.Upstreams, cfgSnap.IngressGateway.DiscoveryChain)
 	case structs.ServiceKindTerminatingGateway:
 		return s.routesFromSnapshotTerminatingGateway(cfgSnap)
+	case structs.ServiceKindMeshGateway:
+		return nil, nil // mesh gateways will never have routes
 	default:
 		return nil, fmt.Errorf("Invalid service kind: %v", cfgSnap.Kind)
 	}
@@ -39,8 +41,7 @@ func (s *ResourceGenerator) routesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot)
 
 // routesFromSnapshotConnectProxy returns the xDS API representation of the
 // "routes" in the snapshot.
-func routesForConnectProxy(chains map[string]*structs.CompiledDiscoveryChain) ([]proto.Message, error) {
-
+func (s *ResourceGenerator) routesForConnectProxy(chains map[string]*structs.CompiledDiscoveryChain) ([]proto.Message, error) {
 	var resources []proto.Message
 	for id, chain := range chains {
 		if chain.IsDefault() {
@@ -158,7 +159,7 @@ func makeNamedDefaultRouteWithLB(clusterName string, lb *structs.LoadBalancer, a
 
 // routesForIngressGateway returns the xDS API representation of the
 // "routes" in the snapshot.
-func routesForIngressGateway(
+func (s *ResourceGenerator) routesForIngressGateway(
 	upstreams map[proxycfg.IngressListenerKey]structs.Upstreams,
 	chains map[string]*structs.CompiledDiscoveryChain,
 ) ([]proto.Message, error) {

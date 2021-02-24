@@ -128,6 +128,27 @@ func newTestServerScenario(
 	token string,
 	authCheckFrequency time.Duration,
 ) *testServerScenario {
+	return newTestServerScenarioInner(t, resolveToken, proxyID, token, authCheckFrequency, false)
+}
+
+func newTestServerDeltaScenario(
+	t *testing.T,
+	resolveToken ACLResolverFunc,
+	proxyID string,
+	token string,
+	authCheckFrequency time.Duration,
+) *testServerScenario {
+	return newTestServerScenarioInner(t, resolveToken, proxyID, token, authCheckFrequency, true)
+}
+
+func newTestServerScenarioInner(
+	t *testing.T,
+	resolveToken ACLResolverFunc,
+	proxyID string,
+	token string,
+	authCheckFrequency time.Duration,
+	incremental bool,
+) *testServerScenario {
 	mgr := newTestManager(t)
 	envoy := NewTestEnvoy(t, proxyID, token)
 	t.Cleanup(func() {
@@ -135,16 +156,21 @@ func newTestServerScenario(
 	})
 
 	s := &Server{
-		Logger:             testutil.Logger(t),
-		CfgMgr:             mgr,
-		ResolveToken:       resolveToken,
-		AuthCheckFrequency: authCheckFrequency,
+		Logger:              testutil.Logger(t),
+		CfgMgr:              mgr,
+		ResolveToken:        resolveToken,
+		AuthCheckFrequency:  authCheckFrequency,
+		DeltaRetryFrequency: 250 * time.Millisecond,
 	}
 
 	errCh := make(chan error, 1)
 	go func() {
-		shim := &adsServerV2Shim{srv: s}
-		errCh <- shim.StreamAggregatedResources(envoy.stream)
+		if incremental {
+			errCh <- s.DeltaAggregatedResources(envoy.deltaStream)
+		} else {
+			shim := &adsServerV2Shim{srv: s}
+			errCh <- shim.StreamAggregatedResources(envoy.stream)
+		}
 	}()
 
 	return &testServerScenario{
@@ -276,6 +302,42 @@ func xdsNewFilter(t *testing.T, name string, cfg proto.Message) *envoy_listener_
 	f, err := makeFilter(name, cfg)
 	require.NoError(t, err)
 	return f
+}
+
+func mustHashResource(t *testing.T, res proto.Message) string {
+	v, err := hashResource(res)
+	require.NoError(t, err)
+	return v
+}
+
+func makeTestResources(t *testing.T, resources ...interface{}) []*envoy_discovery_v3.Resource {
+	var ret []*envoy_discovery_v3.Resource
+	for _, res := range resources {
+		ret = append(ret, makeTestResource(t, res))
+	}
+	return ret
+}
+
+func makeTestResource(t *testing.T, raw interface{}) *envoy_discovery_v3.Resource {
+	switch res := raw.(type) {
+	case string:
+		return &envoy_discovery_v3.Resource{
+			Name: res,
+		}
+	case proto.Message:
+
+		any, err := ptypes.MarshalAny(res)
+		require.NoError(t, err)
+
+		return &envoy_discovery_v3.Resource{
+			Name:     getResourceName(res),
+			Version:  mustHashResource(t, res),
+			Resource: any,
+		}
+	default:
+		t.Fatalf("unexpected type: %T", res)
+		return nil // not possible
+	}
 }
 
 func makeTestCluster(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName string) *envoy_cluster_v3.Cluster {

@@ -661,7 +661,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 					}
 
 					// Need server just for logger dependency
-					g := newResourceGenerator(testutil.Logger(t), nil, nil)
+					g := newResourceGenerator(testutil.Logger(t), nil, nil, false)
 					g.ProxyFeatures = sf
 
 					clusters, err := g.clustersFromSnapshot(snap)

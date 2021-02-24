@@ -70,7 +70,7 @@ func (s *adsServerV2Shim) StreamAggregatedResources(stream ADSStream_v2) error {
 		stream:       stream,
 		ServerStream: stream,
 	}
-	return s.srv.StreamAggregatedResources(shim)
+	return s.srv.streamAggregatedResources(shim)
 }
 
 // DeltaAggregatedResources implements envoy_discovery_v2.AggregatedDiscoveryServiceServer

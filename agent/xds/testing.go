@@ -11,14 +11,52 @@ import (
 
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_core_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 
 	"github.com/mitchellh/go-testing-interface"
+	status "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
 )
+
+// TestADSDeltaStream mocks
+// discovery.AggregatedDiscoveryService_DeltaAggregatedResourcesServer to allow
+// testing the ADS handler.
+type TestADSDeltaStream struct {
+	stubGrpcServerStream
+	sendCh chan *envoy_discovery_v3.DeltaDiscoveryResponse
+	recvCh chan *envoy_discovery_v3.DeltaDiscoveryRequest
+}
+
+var _ ADSDeltaStream = (*TestADSDeltaStream)(nil)
+
+func NewTestADSDeltaStream(t testing.T, ctx context.Context) *TestADSDeltaStream {
+	s := &TestADSDeltaStream{
+		sendCh: make(chan *envoy_discovery_v3.DeltaDiscoveryResponse, 1),
+		recvCh: make(chan *envoy_discovery_v3.DeltaDiscoveryRequest, 1),
+	}
+	s.stubGrpcServerStream.ctx = ctx
+	return s
+}
+
+// Send implements ADSDeltaStream
+func (s *TestADSDeltaStream) Send(r *envoy_discovery_v3.DeltaDiscoveryResponse) error {
+	s.sendCh <- r
+	return nil
+}
+
+// Recv implements ADSDeltaStream
+func (s *TestADSDeltaStream) Recv() (*envoy_discovery_v3.DeltaDiscoveryRequest, error) {
+	r := <-s.recvCh
+	if r == nil {
+		return nil, io.EOF
+	}
+	return r, nil
+}
 
 // TestADSStream mocks
 // discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer to allow
@@ -64,7 +102,8 @@ type TestEnvoy struct {
 	proxyID string
 	token   string
 
-	stream *TestADSStream // SoTW v2
+	stream      *TestADSStream      // SoTW v2
+	deltaStream *TestADSDeltaStream // Incremental v3
 }
 
 // NewTestEnvoy creates a TestEnvoy instance.
@@ -83,7 +122,8 @@ func NewTestEnvoy(t testing.T, proxyID, token string) *TestEnvoy {
 		proxyID: proxyID,
 		token:   token,
 
-		stream: NewTestADSStream(t, ctx),
+		stream:      NewTestADSStream(t, ctx),
+		deltaStream: NewTestADSDeltaStream(t, ctx),
 	}
 }
 
@@ -157,6 +197,69 @@ func (e *TestEnvoy) SendReq(t testing.T, typeURL string, version, nonce uint64) 
 	}
 }
 
+// SendDeltaReq sends a delta request from the test server.
+//
+// NOTE: the input request is mutated before sending by injecting the node.
+func (e *TestEnvoy) SendDeltaReq(
+	t testing.T,
+	typeURL string,
+	req *envoy_discovery_v3.DeltaDiscoveryRequest, // optional
+) {
+	e.sendDeltaReq(t, typeURL, nil, req)
+}
+func (e *TestEnvoy) SendDeltaReqACK(
+	t testing.T,
+	typeURL string,
+	nonce uint64,
+	ack bool,
+	errorDetail *status.Status,
+) {
+	req := &envoy_discovery_v3.DeltaDiscoveryRequest{}
+	if !ack {
+		req.ErrorDetail = errorDetail
+	}
+	e.sendDeltaReq(t, typeURL, &nonce, req)
+}
+func (e *TestEnvoy) sendDeltaReq(
+	t testing.T,
+	typeURL string,
+	nonce *uint64,
+	req *envoy_discovery_v3.DeltaDiscoveryRequest, // optional
+) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	ev, valid := stringToEnvoyVersion(proxysupport.EnvoyVersions[0])
+	if !valid {
+		t.Fatal("envoy version is not valid: %s", proxysupport.EnvoyVersions[0])
+	}
+
+	if req == nil {
+		req = &envoy_discovery_v3.DeltaDiscoveryRequest{}
+	}
+	if nonce != nil {
+		req.ResponseNonce = hexString(*nonce)
+	}
+	req.TypeUrl = typeURL
+
+	req.Node = &envoy_core_v3.Node{
+		Id:            e.proxyID,
+		Cluster:       e.proxyID,
+		UserAgentName: "envoy",
+		UserAgentVersionType: &envoy_core_v3.Node_UserAgentBuildVersion{
+			UserAgentBuildVersion: &envoy_core_v3.BuildVersion{
+				Version: ev,
+			},
+		},
+	}
+
+	select {
+	case e.deltaStream.recvCh <- req:
+	case <-time.After(50 * time.Millisecond):
+		t.Fatalf("send to delta stream blocked for too long")
+	}
+}
+
 // Close closes the client and cancels it's request context.
 func (e *TestEnvoy) Close() error {
 	e.mu.Lock()
@@ -166,6 +269,10 @@ func (e *TestEnvoy) Close() error {
 	if e.stream != nil && e.stream.recvCh != nil {
 		close(e.stream.recvCh)
 		e.stream = nil
+	}
+	if e.deltaStream != nil && e.deltaStream.recvCh != nil {
+		close(e.deltaStream.recvCh)
+		e.deltaStream = nil
 	}
 	if e.cancel != nil {
 		e.cancel()
