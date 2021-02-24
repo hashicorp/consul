@@ -1,6 +1,4 @@
 import Component from '@ember/component';
-import { get, set } from '@ember/object';
-import { inject as service } from '@ember/service';
 import Slotted from 'block-slots';
 import A11yDialog from 'a11y-dialog'
 
