@@ -12,7 +12,6 @@
   @extend %p3;
   text-transform: uppercase;
   font-weight: $typo-weight-medium;
-  color: var(--gray-400);
 }
 %main-nav-vertical-action-intent {
   text-decoration: underline;
