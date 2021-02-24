@@ -1,0 +1,76 @@
+---
+layout: docs
+page_title: Task Subcommands
+sidebar_title: task
+description: >-
+  Consul-Terraform-Sync supports task subcommands for users to modify tasks while the daemon is running
+---
+# task
+
+## task enable
+
+`task enable` subcommand enables an existing task so that it will run and update task resources. If the task is already enabled, it will return a success. The subcommand generates and outputs an inspect plan of how resources will be modified if task becomes enabled. If resources changes are detected, the subcommand will ask for user approval before enabling the task. If no resources are detected, the subcommand will go ahead and enable the task.
+
+### Usage
+`consul-terraform-sync task enable [options] <task_name>`
+
+**Arguments:**
+- `task_name` - (string: required) The name of the task to enable
+
+**Options:** Currently only supporting [general options](/docs/nia/cli/cli-overview#general-options)
+
+
+### Example
+
+```shell-session
+$ consul-terraform-sync task enable task_a
+==> Inspecting changes to resource if enabling 'task_a'...
+
+    Generating plan that Consul Terraform Sync will use Terraform to execute
+
+An execution plan has been generated and is shown below.
+Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+// <diff truncated>
+
+Plan: 3 to add, 0 to change, 0 to destroy.
+
+==> Enabling the task will perform the actions described above.
+    Do you want to perform these actions for 'task_a'?
+     - This action cannot be undone.
+     - Consul Terraform Sync cannot guarantee Terraform will perform
+       these exact actions if monitored services have changed.
+
+    Only 'yes' will be accepted to approve.
+
+Enter a value: yes
+
+==> Enabling and running 'task_a'...
+
+==> 'task_a' enable complete!
+```
+
+## task disable
+
+`task disable` subcommand disables an existing task so that it will no longer run and update task resources. If the task is already disabled, it will return a success.
+
+### Usage
+`consul-terraform-sync task disable [options] <task_name>`
+
+**Arguments:**
+- `task_name` - (string: required) The name of the task to disable
+
+**Options:** Currently only supporting [general options](/docs/nia/cli/cli-overview#general-options)
+
+
+### Example
+
+```shell-session
+$ consul-terraform-sync task disable task_b
+==> Waiting to disable 'task_b'...
+
+==> 'task_b' disable complete!
+```

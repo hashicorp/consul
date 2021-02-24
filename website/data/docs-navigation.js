@@ -226,7 +226,7 @@ export default [
       {
         category: 'cli',
         name: 'CLI',
-        content: ['cli-overview'],
+        content: ['cli-overview', 'task'],
       },
       'configuration',
       'tasks',
