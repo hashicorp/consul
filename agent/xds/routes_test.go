@@ -238,6 +238,7 @@ func TestRoutesFromSnapshot(t *testing.T) {
 		},
 	}
 
+	latestEnvoyVersion := proxysupport.EnvoyVersions[0]
 	for _, envoyVersion := range proxysupport.EnvoyVersions {
 		sf, err := determineSupportedProxyFeaturesFromString(envoyVersion)
 		require.NoError(t, err)
@@ -278,7 +279,7 @@ func TestRoutesFromSnapshot(t *testing.T) {
 						gName = tt.overrideGoldenName
 					}
 
-					require.JSONEq(goldenEnvoy(t, filepath.Join("routes", gName), envoyVersion, gotJSON), gotJSON)
+					require.JSONEq(goldenEnvoy(t, filepath.Join("routes", gName), envoyVersion, latestEnvoyVersion, gotJSON), gotJSON)
 				})
 			}
 		})
