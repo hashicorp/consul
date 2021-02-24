@@ -119,8 +119,9 @@ func convertDiscoveryResponseToV2(resp *envoy_discovery_v3.DiscoveryResponse) (*
 	return &respV2, nil
 }
 
-func convertNetFilterToV2(pbuf *proto.Buffer, filter *envoy_listener_v3.Filter) (*envoy_listener_v2.Filter, error) {
-	pbuf.Reset()
+// convertNetFilterToV2 is only used in tests.
+func convertNetFilterToV2(filter *envoy_listener_v3.Filter) (*envoy_listener_v2.Filter, error) {
+	var pbuf proto.Buffer
 	if err := pbuf.Marshal(filter); err != nil {
 		return nil, err
 	}
@@ -130,15 +131,16 @@ func convertNetFilterToV2(pbuf *proto.Buffer, filter *envoy_listener_v3.Filter) 
 		return nil, err
 	}
 
-	if err := convertTypedConfigsToV2(pbuf, &filterV2); err != nil {
+	if err := convertTypedConfigsToV2(&pbuf, &filterV2); err != nil {
 		return nil, err
 	}
 
 	return &filterV2, nil
 }
 
-func convertHttpFilterToV2(pbuf *proto.Buffer, filter *envoy_http_v3.HttpFilter) (*envoy_http_v2.HttpFilter, error) {
-	pbuf.Reset()
+// convertHttpFilterToV2 is only used in tests.
+func convertHttpFilterToV2(filter *envoy_http_v3.HttpFilter) (*envoy_http_v2.HttpFilter, error) {
+	var pbuf proto.Buffer
 	if err := pbuf.Marshal(filter); err != nil {
 		return nil, err
 	}
@@ -148,7 +150,7 @@ func convertHttpFilterToV2(pbuf *proto.Buffer, filter *envoy_http_v3.HttpFilter)
 		return nil, err
 	}
 
-	if err := convertTypedConfigsToV2(pbuf, &filterV2); err != nil {
+	if err := convertTypedConfigsToV2(&pbuf, &filterV2); err != nil {
 		return nil, err
 	}
 

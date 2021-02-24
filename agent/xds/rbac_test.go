@@ -6,7 +6,6 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -256,7 +255,7 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 				})
 
 				t.Run("v2-compat", func(t *testing.T) {
-					filterV2, err := convertNetFilterToV2(&proto.Buffer{}, filter)
+					filterV2, err := convertNetFilterToV2(filter)
 					require.NoError(t, err)
 
 					gotJSON := protoToJSON(t, filterV2)
@@ -275,7 +274,7 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 				})
 
 				t.Run("v2-compat", func(t *testing.T) {
-					filterV2, err := convertHttpFilterToV2(&proto.Buffer{}, filter)
+					filterV2, err := convertHttpFilterToV2(filter)
 					require.NoError(t, err)
 
 					gotJSON := protoToJSON(t, filterV2)
