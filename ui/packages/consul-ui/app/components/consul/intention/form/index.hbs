@@ -34,13 +34,12 @@ as |api|>
 {{#let api.data as |item|}}
 {{#if (can 'write intention' item=item)}}
 
-{{#if this.warn}}
   {{#let (changeset-get item 'Action') as |newAction|}}
       <ModalDialog
         class="consul-intention-action-warn-modal warning"
         data-test-action-warning
-        @onclose={{action (mut this.warn) false}}
-      >
+      as |modal|>
+        <Ref @target={{this}} @name="modal" @value={{modal}} />
         <BlockSlot @name="header">
           <h2>Set intention to {{newAction}}?</h2>
         </BlockSlot>
@@ -69,7 +68,6 @@ as |api|>
         </BlockSlot>
       </ModalDialog>
   {{/let}}
-{{/if}}
 
       <DataSource
         @src={{concat '/*/' @dc '/services'}}
