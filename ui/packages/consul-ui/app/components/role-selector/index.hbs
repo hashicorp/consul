@@ -3,7 +3,8 @@
   data-test-role-form
   @onclose={{action (mut state) "role"}}
   @name="new-role-toggle"
->
+as |modal|>
+  <Ref @target={{this}} @name="modal" @value={{modal}} />
   <BlockSlot @name="header">
 {{#if (eq state 'role')}}
     <h2>New Role</h2>
@@ -63,7 +64,9 @@
     Apply an existing role
   </BlockSlot>
   <BlockSlot @name="create">
-    <label class="type-dialog" for="new-role-toggle">
+    <label class="type-dialog"
+      {{on "click" (optional this.modal.open)}}
+    >
       <span>Create new role</span>
     </label>
 
