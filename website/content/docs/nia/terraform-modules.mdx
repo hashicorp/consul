@@ -17,7 +17,31 @@ Consul-Terraform-Sync automates execution of Terraform modules through tasks. A 
 Compatible modules for Consul-Terraform-Sync follow the [standard module](https://www.terraform.io/docs/modules/index.html#standard-module-structure) structure. Modules can use syntax supported by Terraform version 0.13 and newer. There are **2 required elements for compatibility:**
 
 1. **Root module** - Terraform has one requirement for files in the root directory of the repository to function as the primary entrypoint for the module. It should encapsulate the core logic to be used by Consul-Terraform-Sync for task automation. `main.tf` is the recommended filename for the main file where resources are created.
-2. **`services` input variable** - Consul-Terraform-Sync requires all modules to have the following input variable declared within the root module. The declaration of the `services` variable can be included at the top of the suggested `variables.tf` file where other input variables are commonly declared. This variable functions as the response object from the Consul catalog API and surfaces network information to be consumed by the module. It is structured as a map of objects.
+2. [**`services` input variable**](#services-variable) - Consul-Terraform-Sync requires all modules to have the following input variable declared within the root module. The declaration of the `services` variable can be included at the top of the suggested `variables.tf` file where other input variables are commonly declared. This variable functions as the response object from the Consul catalog API and surfaces network information to be consumed by the module. It is structured as a map of objects.
+
+## How to Create a Compatible Terraform Module
+
+You can read more on how to [create a module](https://www.terraform.io/docs/modules/index.html) or work through a [tutorial to build a module](https://learn.hashicorp.com/tutorials/terraform/module-create). Consul-Terraform-Sync is designed to integrate with any module that satisfies the specifications in the following section.
+
+The repository [hashicorp/consul-terraform-sync-template-module](https://github.com/hashicorp/consul-terraform-sync-template-module) can be cloned and used as a starting point for structuring a compatible Terraform module. The template repository has the files described in the next steps prepared.
+
+First, create a directory to organize Terraform configuration files that make up the module. You can start off with creating two files `main.tf` and `variables.tf` and expand from there based on your module and network infrastructure automation needs.
+
+The `main.tf` is the entry point of the module and this is where you can begin authoring your module. It can contain multiple Terraform resources related to an automation task that uses Consul service discovery information, particularly the required [`services` input variable](#services-variable). The code example below shows a resource using the `services` variable. When this example is used in automation with Consul-Terraform-Sync, the content of the local file would dynamically update as Consul service discovery information changes.
+
+```hcl
+# Create a file with service names and their node addresses
+resource "local_file" "consul_services" {
+  content = join("\n", [
+    for _, service in var.services : "${service.name} ${service.id} ${service.node_address}"
+  ])
+  filename = "consul_services.txt"
+}
+```
+
+### Services variable
+
+To satisfy the specification requirements for a compatible module, copy the `services` variable declaration to the `variables.tf` file. Your module can optionally have other [variable declarations](#module-input-variables) in addition to `var.services`.
 
 ```hcl
 variable "services" {
@@ -48,28 +72,6 @@ variable "services" {
 ```
 
 Keys of the `services` map are unique identifiers of the service across Consul agents and data centers. Keys follow the format `service-id.node.datacenter` (or `service-id.node.namespace.datacenter` for Consul Enterprise). A complete list of attributes available for the `services` variable is included in the [documentation for Consul-Terraform-Sync tasks](/docs/nia/tasks#task-execution).
-
-## How to Create a Compatible Terraform Module
-
-You can read more on how to [create a module](https://www.terraform.io/docs/modules/index.html) or work through a [tutorial to build a module](https://learn.hashicorp.com/tutorials/terraform/module-create). Consul-Terraform-Sync is designed to integrate with any module that satisfies the specifications in the following section.
-
-The repository [hashicorp/consul-terraform-sync-template-module](https://github.com/hashicorp/consul-terraform-sync-template-module) can be cloned and used as a starting point for structuring a compatible Terraform module.
-
-First, create a directory to organize Terraform configuration files that make up the module. You can start of with creating two files `main.tf` and `variables.tf` and expand from there based on your module and network infrastructure automation needs. The `main.tf` is the entry point of the module and this is where you can begin authoring your module. It can contain multiple Terraform resources related to an automation task that uses Consul service discovery information, particularly the required `services` input variable.
-
-The code example below shows a resource using the `services` variable. When this example is used in automation with Consul-Terraform-Sync, the content of the local file would dynamically update as Consul service discovery information changes.
-
-```hcl
-# Create a file with service names and their node addresses
-resource "local_file" "consul_services" {
-  content = join("\n", [
-    for _, service in var.services : "${service.name} ${service.id} ${service.node_address}"
-  ])
-  filename = "consul_services.txt"
-}
-```
-
-For the second file, copy the `services` variable declaration, found above, to the `variables.tf` file. Your module can optionally have other [variable declarations](#module-input-variables) in addition to `var.services`.
 
 Terraform variables when passed as module arguments can be [lossy for object types](https://www.terraform.io/docs/configuration/types.html#conversion-of-complex-types). This allows Consul-Terraform-Sync to declare the full variable with every object attribute in the generated root module, and pass the variable to a child module that contains a subset of these attributes for its variable declaration. Modules compatible with Consul-Terraform-Sync may simplify the `var.services` declaration within the module by omitting unused attributes. For example, the following services variable has 4 attributes with the rest omitted.
 
