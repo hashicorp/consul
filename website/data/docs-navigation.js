@@ -230,6 +230,7 @@ export default [
       },
       'configuration',
       'tasks',
+      'terraform-modules',
       'network-drivers',
     ],
   },
