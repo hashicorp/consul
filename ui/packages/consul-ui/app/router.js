@@ -1,3 +1,4 @@
+/* globals requirejs */
 import EmberRouter from '@ember/routing/router';
 import { runInDebug } from '@ember/debug';
 import { env } from 'consul-ui/env';
