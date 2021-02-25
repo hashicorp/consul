@@ -313,6 +313,7 @@ type AgentServiceCheck struct {
 	TCP                    string              `json:",omitempty"`
 	Status                 string              `json:",omitempty"`
 	Notes                  string              `json:",omitempty"`
+	TLSServerName          string              `json:",omitempty"`
 	TLSSkipVerify          bool                `json:",omitempty"`
 	GRPC                   string              `json:",omitempty"`
 	GRPCUseTLS             bool                `json:",omitempty"`
