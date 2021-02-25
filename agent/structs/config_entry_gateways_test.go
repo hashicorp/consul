@@ -663,9 +663,11 @@ func TestGatewayService_Addresses(t *testing.T) {
 			argument: []string{
 				"service.ingress.dc.domain",
 				"service.ingress.dc.alt.domain",
+				"service.ingress.dc.alt.domain.",
 			},
 			expected: []string{
 				"service.ingress.dc.domain:8080",
+				"service.ingress.dc.alt.domain:8080",
 				"service.ingress.dc.alt.domain:8080",
 			},
 		},
@@ -673,13 +675,13 @@ func TestGatewayService_Addresses(t *testing.T) {
 			name: "user-defined hosts",
 			input: GatewayService{
 				Port:  8080,
-				Hosts: []string{"*.test.example.com", "other.example.com"},
+				Hosts: []string{"*.test.example.com", "other.example.com", "other.example.com."},
 			},
 			argument: []string{
 				"service.ingress.dc.domain",
 				"service.ingress.alt.domain",
 			},
-			expected: []string{"*.test.example.com:8080", "other.example.com:8080"},
+			expected: []string{"*.test.example.com:8080", "other.example.com:8080", "other.example.com:8080"},
 		},
 	}
 
