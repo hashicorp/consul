@@ -225,7 +225,7 @@ export default [
       {
         category: 'api',
         name: 'API',
-        content: ['api-overview', 'status'],
+        content: ['api-overview', 'status', 'tasks'],
       },
       {
         category: 'cli',
