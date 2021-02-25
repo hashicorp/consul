@@ -22,11 +22,13 @@ Example: `localhost:8558/v1/status`
 
 ### Error
 
-Successful API requests will receive a 2XX success status code. For other unsuccessful status codes, when possible, more details will be provided in a response body. The response will be a JSON map with an "error" key.
+Successful API requests will receive a 2XX success status code. For other unsuccessful status codes, when possible, more details will be provided in a response body containing an error object.
 
 Example: Status 400 Bad Request
 ```json
 {
-  "error": "example error message: unsupported status parameter value"
+  "error": {
+    "message": "example error message: unsupported status parameter value"
+  }
 }
 ```

@@ -24,10 +24,15 @@ Currently no request parameters are offered for the overall status API.
 
 #### Response Fields
 
-* `task_summary` - Summary of the count of tasks for each health status. See [Task Status API](/docs/nia/api#task-status) to learn more about how health status is determined.
-  * `successful` - (int) The number of tasks that have a 'successful' health status
-  * `errored` - (int) The number of tasks that have a 'errored' health status
-  * `critical` - (int) The number of tasks that have a 'critical' health status
+* `task_summary` - Summary of task information. See [Task Status API](/docs/nia/api#task-status) to learn more about how health status is determined.
+  * `status` - Summary count of how many tasks have each health status value
+    * `successful` - (int) The number of tasks that have a 'successful' health status
+    * `errored` - (int) The number of tasks that have a 'errored' health status
+    * `critical` - (int) The number of tasks that have a 'critical' health status
+    * `unknown` - (int) The number of tasks that have an 'unknown' health status
+  * `enabled` - Summary count of how many tasks are enabled or disabled
+    * `true` - (int) The number of tasks that are enabled
+    * `false` - (int) The number of tasks that are disabled
 
 
 #### Example
@@ -41,9 +46,16 @@ Response:
 ```json
 {
   "task_summary": {
-    "successful": 28,
-    "errored": 5,
-    "critical": 1
+    "status": {
+      "successful": 28,
+      "errored": 5,
+      "critical": 1,
+      "unknown": 0
+    },
+    "enabled": {
+      "true": 32,
+      "false": 2
+    }
   }
 }
 ```
@@ -74,6 +86,7 @@ The response is a JSON map of task name to a status information structure with t
 
 * `task_name` - (string) Name that task is configured with in Consul-Terraform-Sync.
 * `status` - (string) Values are "successful", "errored", "critical", or "unknown". This is determined by the success or failure of all stored events on the network infrastructure update process for the task, as described earlier.
+* `enabled` - (bool) Whether the task is enabled or not.
 * `services` - (list[string]) List of the services configured for the task.
 * `providers` - (list[string]) List of the providers configured for the task.
 * `events_url` - (string) Relative URL to retrieve the event data stored for the task.
@@ -108,6 +121,7 @@ Response:
   "task_a": {
     "task_name": "task_a",
     "status": "successful",
+    "enabled": true,
     "providers": [
       "local"
     ],
@@ -119,6 +133,7 @@ Response:
   "task_b": {
     "task_name": "task_b",
     "status": "errored",
+    "enabled": false,
     "providers": [
       "null"
     ],
@@ -143,6 +158,7 @@ Response:
   "task_b": {
     "task_name": "task_b",
     "status": "errored",
+    "enabled": false,
     "providers": [
       "null"
     ],
