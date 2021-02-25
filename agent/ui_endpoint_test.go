@@ -832,11 +832,13 @@ func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
 	require.Nil(t, err)
 	assertIndex(t, resp)
 
-	// Construct expected addresses so that differences between OSS/Ent are handled by code
-	webDNS := serviceIngressDNSName("web", "dc1", "consul.", structs.DefaultEnterpriseMeta())
-	webDNSAlt := serviceIngressDNSName("web", "dc1", "alt.consul.", structs.DefaultEnterpriseMeta())
-	dbDNS := serviceIngressDNSName("db", "dc1", "consul.", structs.DefaultEnterpriseMeta())
-	dbDNSAlt := serviceIngressDNSName("db", "dc1", "alt.consul.", structs.DefaultEnterpriseMeta())
+	// Construct expected addresses so that differences between OSS/Ent are
+	// handled by code. We specifically don't include the trailing DNS . here as
+	// we are constructing what we are expecting, not the actual value
+	webDNS := serviceIngressDNSName("web", "dc1", "consul", structs.DefaultEnterpriseMeta())
+	webDNSAlt := serviceIngressDNSName("web", "dc1", "alt.consul", structs.DefaultEnterpriseMeta())
+	dbDNS := serviceIngressDNSName("db", "dc1", "consul", structs.DefaultEnterpriseMeta())
+	dbDNSAlt := serviceIngressDNSName("db", "dc1", "alt.consul", structs.DefaultEnterpriseMeta())
 
 	dump := obj.([]*ServiceSummary)
 	expect := []*ServiceSummary{
