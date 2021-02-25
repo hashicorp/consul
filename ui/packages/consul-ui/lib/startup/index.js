@@ -41,13 +41,11 @@ module.exports = {
   },
   treeFor: function(name) {
     const tree = this._super.treeFor.apply(this, arguments);
-    const prodlike = ['production', 'staging'];
-    const isProdLike = prodlike.indexOf(this.app.project.env) > -1;
-    if (isProdLike && name === 'app') {
-      return mergeTrees([
-        this._super.treeFor.apply(this, arguments),
-        writeFile('components/debug/navigation/index.hbs', ''),
-      ]);
+    if (name === 'app') {
+      const prodlike = ['production', 'staging'];
+      if (prodlike.includes(process.env.EMBER_ENV)) {
+        return mergeTrees([tree, writeFile('components/debug/navigation/index.hbs', '')]);
+      }
     }
     return tree;
   },
