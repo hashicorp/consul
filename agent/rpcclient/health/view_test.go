@@ -589,7 +589,7 @@ func TestNewFilterEvaluator(t *testing.T) {
 	}
 
 	fn := func(t *testing.T, tc testCase) {
-		e, err := newFilterEvaluator(&tc.req)
+		e, err := newFilterEvaluator(tc.req)
 		require.NoError(t, err)
 		actual, err := e.Evaluate(tc.data)
 		require.NoError(t, err)

@@ -8,31 +8,27 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul/fsm"
-
 	"github.com/armon/go-metrics/prometheus"
-
-	"github.com/hashicorp/consul/agent/consul/usagemetrics"
-	"github.com/hashicorp/consul/agent/local"
-
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc/grpclog"
 	grpcresolver "google.golang.org/grpc/resolver"
 
 	autoconf "github.com/hashicorp/consul/agent/auto-config"
 	"github.com/hashicorp/consul/agent/cache"
-	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
+	"github.com/hashicorp/consul/agent/consul/fsm"
+	"github.com/hashicorp/consul/agent/consul/usagemetrics"
 	"github.com/hashicorp/consul/agent/grpc"
 	"github.com/hashicorp/consul/agent/grpc/resolver"
+	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/router"
+	"github.com/hashicorp/consul/agent/submatview"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto/pbsubscribe"
 	"github.com/hashicorp/consul/tlsutil"
 )
 
@@ -46,6 +42,7 @@ type BaseDeps struct {
 	MetricsHandler MetricsHandler
 	AutoConfig     *autoconf.AutoConfig // TODO: use an interface
 	Cache          *cache.Cache
+	ViewStore      *submatview.Store
 }
 
 // MetricsHandler provides an http.Handler for displaying metrics.
@@ -100,6 +97,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 	cfg.Cache.Logger = d.Logger.Named("cache")
 	// cache-types are not registered yet, but they won't be used until the components are started.
 	d.Cache = cache.New(cfg.Cache)
+	d.ViewStore = submatview.NewStore(d.Logger.Named("viewstore"))
 	d.ConnPool = newConnPool(cfg, d.Logger, d.TLSConfigurator)
 
 	builder := resolver.NewServerResolverBuilder(resolver.Config{})
@@ -122,31 +120,7 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer) (BaseDeps, error) 
 		return d, err
 	}
 
-	if err := registerCacheTypes(d); err != nil {
-		return d, err
-	}
-
 	return d, nil
-}
-
-// registerCacheTypes on bd.Cache.
-//
-// Note: most cache types are still registered in Agent.registerCache. This
-// function is for registering newer cache-types which no longer have a dependency
-// on Agent.
-func registerCacheTypes(bd BaseDeps) error {
-	if bd.RuntimeConfig.UseStreamingBackend {
-		conn, err := bd.GRPCConnPool.ClientConn(bd.RuntimeConfig.Datacenter)
-		if err != nil {
-			return err
-		}
-		matDeps := cachetype.MaterializerDeps{
-			Client: pbsubscribe.NewStateChangeSubscriptionClient(conn),
-			Logger: bd.Logger,
-		}
-		bd.Cache.RegisterType(cachetype.StreamingHealthServicesName, cachetype.NewStreamingHealthServices(matDeps))
-	}
-	return nil
 }
 
 func newConnPool(config *config.RuntimeConfig, logger hclog.Logger, tls *tlsutil.Configurator) *pool.ConnPool {
