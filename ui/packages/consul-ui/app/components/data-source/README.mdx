@@ -1,14 +1,14 @@
 ## DataSource
 
-```handlebars
+```hbs preview-template
 <DataSource
   @src="/nspace/dc/services"
   @loading="eager"
   @disabled={{false}}
-  @onchange={{action (mut items) value="data"}}
-  @onerror={{action (mut error) value="error"}}
 as |source|>
-  <source.Source @src="" />
+{{#each source.data as |service|}}
+{{service.Name}}<br />
+{{/each}}
 </DataSource>
 ```
 
@@ -38,7 +38,7 @@ Behind the scenes in the Consul UI we map URIs back to our `ember-data` backed `
 
 Straightforward usage can use `mut` to easily update data within a template using an event handler approach.
 
-```handlebars
+```hbs
   {{! listen for HTTP API changes}}
   <DataSource
     @src="/nspace/dc/services"
@@ -68,7 +68,7 @@ Straightforward usage can use `mut` to easily update data within a template usin
 
 A property approach to easily update data within a template
 
-```handlebars
+```hbs
   {{! listen for HTTP API changes}}
   <DataSource
     @src="/nspace/dc/services"
@@ -90,7 +90,7 @@ Both approaches can be used in tandem.
 
 DataSources can also be recursively nested for loading in series as opposed to in parallel. Nested DataSources will not start loading until the immediate parent has loaded (ie. it has data) as they are not placed into the DOM until this has happened. However, if a DataSource has started loading, and the immediate parent errors, the nested DataSource will stop receiving updates yet it and its properties will remain accessible within the DOM.
 
-```handlebars
+```hbs
 
   {{! straightforwards error/loading states}}
   {{#if error}}

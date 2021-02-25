@@ -1,6 +1,6 @@
 ## DataSink
 
-```handlebars
+```hbs
 <DataSink
   @sink="/dc/nspace/intentions/{{intentions.uid}}"
   @onchange={{action (mut items) value="data"}}
@@ -33,7 +33,7 @@ Behind the scenes in the Consul UI we map URIs back to our `ember-data` backed `
 
 ### Examples
 
-```handlebars
+```hbs
   <DataSink @src="/dc/nspace/intentions/{{intention.uid}}"
     @onchange={{action (mut item) value="data"}}
     @onerror={{action (mut error) value="error"}}
@@ -45,7 +45,7 @@ Behind the scenes in the Consul UI we map URIs back to our `ember-data` backed `
   {{item.Name}}
 ```
 
-```handlebars
+```hbs
   <DataSink @src="/dc/nspace/intentions/{{intention.uid}}"
     @data=(hash Name="New Name")
     @onchange={{action (mut item) value="data"}}
