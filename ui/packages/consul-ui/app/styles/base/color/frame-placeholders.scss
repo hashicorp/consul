@@ -151,7 +151,7 @@
 }
 %frame-red-300 {
   @extend %frame-border-000;
-  background-color: $white;
+  background-color: $transparent;
   border-color: $red-500;
   color: $red-500;
 }

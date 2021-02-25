@@ -54,13 +54,13 @@ html:not(.has-nspaces) [class*='nspace-'] {
 }
 #wrapper {
   @extend %viewport-container;
-}
-#wrapper {
-  @extend %with-sticky-footer;
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
 }
 main {
-  @extend %with-sticky-footer-content;
   position: relative;
+  flex: 1;
 }
 main,
 #wrapper > footer {

@@ -6,8 +6,20 @@
 %menu-panel > ul > li {
   list-style-type: none;
 }
+%menu-panel dt {
+  font-weight: $typo-weight-bold;
+}
+%menu-panel dl,
+%menu-panel-header {
+  @extend %p2;
+}
 %menu-panel-separator {
+  @extend %p3;
   text-transform: uppercase;
+  font-weight: $typo-weight-medium;
+}
+%menu-panel dt span {
+  font-weight: $typo-weight-normal;
 }
 %menu-panel-header + ul,
 %menu-panel-separator:not(:first-child) {
@@ -20,11 +32,15 @@
   border-color: var(--gray-300);
   background-color: var(--gray-000);
 }
+%menu-panel dt,
 %menu-panel dd {
-  color: $gray-500;
+  color: var(--gray-800);
+}
+%menu-panel dt span {
+  color: var(--gray-600);
 }
 %menu-panel-separator {
-  color: var(--gray-400);
+  color: var(--gray-600);
 }
 %menu-panel-header + ul,
 %menu-panel-separator:not(:first-child) {

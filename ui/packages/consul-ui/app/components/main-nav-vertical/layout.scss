@@ -14,7 +14,7 @@
 %main-nav-vertical li.nspaces,
 %main-nav-vertical li.dcs {
   margin-bottom: 25px;
-  padding: 0 20px;
+  padding: 0 26px;
 }
 // TODO: We no longer have the rule that menu-panel buttons only contain two
 // items, left and right aligned. We should remove this and look to use
@@ -37,5 +37,5 @@
 }
 
 %main-nav-vertical-menu-panel {
-  min-width: 260px;
+  min-width: 248px;
 }
