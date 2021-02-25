@@ -1,4 +1,14 @@
-package cachetype
+package health
+
+import (
+	"testing"
+
+	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/structs"
+)
+
+/*
 
 import (
 	"errors"
@@ -568,6 +578,7 @@ func runStep(t *testing.T, name string, fn func(t *testing.T)) {
 		t.FailNow()
 	}
 }
+*/
 
 func TestNewFilterEvaluator(t *testing.T) {
 	type testCase struct {
