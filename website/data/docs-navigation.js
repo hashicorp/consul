@@ -222,7 +222,11 @@ export default [
         content: ['install', 'requirements', 'configure', 'run'],
       },
       'architecture',
-      'api',
+      {
+        category: 'api',
+        name: 'API',
+        content: ['api-overview', 'status', 'tasks'],
+      },
       {
         category: 'cli',
         name: 'CLI',

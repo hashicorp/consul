@@ -1,43 +1,17 @@
 ---
 layout: docs
-page_title: Consul-Terraform-Sync API
-sidebar_title: API
+page_title: Consul-Terraform-Sync Status API
+sidebar_title: Status
 description: >-
-  How to use the Consul-Terraform-Sync API
+  Consul-Terraform-Sync Status API
 ---
-
-# Consul-Terraform-Sync API
-
-When running in [daemon mode](/docs/nia/cli#daemon-mode), Consul-Terraform-Sync serves an HTTP API interface.
-
-### Port
-
-The API is served at the default port `8558` or a different port if set with [`port` configuration](/docs/nia/configuration#port)
-
-### Version Prefix
-
-All API routes are prefixed with `/v1/`. This documentation is for v1 of the API, which is the only version currently.
-
-Example: `localhost:8558/v1/status`
-
-### Error
-
-Successful API requests will receive a 2XX success status code. For other unsuccessful status codes, when possible, more details will be provided in a response body. The response will be a JSON map with an "error" key.
-
-Example: Status 400 Bad Request
-```json
-{
-  "error": "example error message: unsupported status parameter value"
-}
-```
-
-## Status
+# Status
 
 The `/status` endpoints share status-related information for tasks. This information is available for understanding the status of individual tasks and across tasks.
 
 The health status value is determined by aggregating the success or failure of the event of a task detecting changes in Consul services and then updating network infrastructure. Currently, only the 5 most recent events are stored in Consul-Terraform-Sync. For more information on the hierarchy of status information and how it is collected, see [Status Information](/docs/nia/tasks#status-information).
 
-### Overall Status
+## Overall Status
 
 This endpoint currently returns the overall status information for all tasks.
 
@@ -74,7 +48,7 @@ Response:
 }
 ```
 
-### Task Status
+## Task Status
 
 This endpoint returns the individual task status information for a single specified task or for all tasks.
 
