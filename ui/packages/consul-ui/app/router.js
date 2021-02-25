@@ -197,6 +197,36 @@ if (env('CONSUL_NSPACES_ENABLED')) {
     dc: routes.dc,
   };
 }
+runInDebug(() => {
+  // check to see if we are running docfy and if so add its routes to our
+  // route config
+  const docfyOutput = requirejs.entries['consul-ui/docfy-output'];
+  if (typeof docfyOutput !== 'undefined') {
+    const output = {};
+    docfyOutput.callback(output);
+    // see https://github.com/josemarluedke/docfy/blob/904529641279975586402431108895713d156b55/packages/ember/addon/index.ts
+    (function addPage(route, page) {
+      if (page.name !== '/') {
+        route = route[page.name] = {
+          _options: { path: page.name },
+        };
+      }
+      page.pages.forEach(page => {
+        const url = page.relativeUrl;
+        if (typeof url === 'string') {
+          if (url !== '') {
+            route[url] = {
+              _options: { path: url },
+            };
+          }
+        }
+      });
+      page.children.forEach(child => {
+        addPage(route, child);
+      });
+    })(routes, output.default.nested);
+  }
+});
 export default class Router extends EmberRouter {
   location = env('locationType');
   rootURL = env('rootURL');
