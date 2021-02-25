@@ -9,6 +9,9 @@ module.exports = ({ appName, environment, rootURL, config }) => `
   <link integrity="" rel="stylesheet" href="${rootURL}assets/vendor.css">
   <link integrity="" rel="stylesheet" href="${rootURL}assets/${appName}.css">
   ${
+    environment === 'development' ? `<link rel="stylesheet" href="${rootURL}assets/debug.css">` : ``
+  }
+  ${
     environment === 'test' ? `<link rel="stylesheet" href="${rootURL}assets/test-support.css">` : ``
   }
 `;
