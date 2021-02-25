@@ -1,44 +1,18 @@
 ---
 layout: docs
-page_title: Consul-Terraform-Sync API
-sidebar_title: API
+page_title: Consul-Terraform-Sync Status API
+sidebar_title: Status
 description: >-
-  How to use the Consul-Terraform-Sync API
+  Consul-Terraform-Sync Status API
 ---
 
-# Consul-Terraform-Sync API
-
-When running in [daemon mode](/docs/nia/cli#daemon-mode), Consul-Terraform-Sync serves an HTTP API interface.
-
-### Port
-
-The API is served at the default port `8558` or a different port if set with [`port` configuration](/docs/nia/configuration#port)
-
-### Version Prefix
-
-All API routes are prefixed with `/v1/`. This documentation is for v1 of the API, which is the only version currently.
-
-Example: `localhost:8558/v1/status`
-
-### Error
-
-Successful API requests will receive a 2XX success status code. For other unsuccessful status codes, when possible, more details will be provided in a response body. The response will be a JSON map with an "error" key.
-
-Example: Status 400 Bad Request
-
-```json
-{
-  "error": "example error message: unsupported status parameter value"
-}
-```
-
-## Status
+# Status
 
 The `/status` endpoints share status-related information for tasks. This information is available for understanding the status of individual tasks and across tasks.
 
 The health status value is determined by aggregating the success or failure of the event of a task detecting changes in Consul services and then updating network infrastructure. Currently, only the 5 most recent events are stored in Consul-Terraform-Sync. For more information on the hierarchy of status information and how it is collected, see [Status Information](/docs/nia/tasks#status-information).
 
-### Overall Status
+## Overall Status
 
 This endpoint currently returns the overall status information for all tasks.
 
@@ -52,10 +26,15 @@ Currently no request parameters are offered for the overall status API.
 
 #### Response Fields
 
-- `task_summary` - Summary of the count of tasks for each health status. See [Task Status API](/docs/nia/api#task-status) to learn more about how health status is determined.
-  - `successful` - (int) The number of tasks that have a 'successful' health status
-  - `errored` - (int) The number of tasks that have a 'errored' health status
-  - `critical` - (int) The number of tasks that have a 'critical' health status
+- `task_summary` - Summary of task information. See [Task Status API](/docs/nia/api#task-status) to learn more about how health status is determined.
+  - `status` - Summary count of how many tasks have each health status value
+    - `successful` - (int) The number of tasks that have a 'successful' health status
+    - `errored` - (int) The number of tasks that have a 'errored' health status
+    - `critical` - (int) The number of tasks that have a 'critical' health status
+    - `unknown` - (int) The number of tasks that have an 'unknown' health status
+  - `enabled` - Summary count of how many tasks are enabled or disabled
+    - `true` - (int) The number of tasks that are enabled
+    - `false` - (int) The number of tasks that are disabled
 
 #### Example
 
@@ -70,14 +49,21 @@ Response:
 ```json
 {
   "task_summary": {
-    "successful": 28,
-    "errored": 5,
-    "critical": 1
+    "status": {
+      "successful": 28,
+      "errored": 5,
+      "critical": 1,
+      "unknown": 0
+    },
+    "enabled": {
+      "true": 32,
+      "false": 2
+    }
   }
 }
 ```
 
-### Task Status
+## Task Status
 
 This endpoint returns the individual task status information for a single specified task or for all tasks.
 
@@ -104,6 +90,7 @@ The response is a JSON map of task name to a status information structure with t
 
 - `task_name` - (string) Name that task is configured with in Consul-Terraform-Sync.
 - `status` - (string) Values are "successful", "errored", "critical", or "unknown". This is determined by the success or failure of all stored events on the network infrastructure update process for the task, as described earlier.
+- `enabled` - (bool) Whether the task is enabled or not.
 - `services` - (list[string]) List of the services configured for the task.
 - `providers` - (list[string]) List of the providers configured for the task.
 - `events_url` - (string) Relative URL to retrieve the event data stored for the task.
@@ -140,6 +127,7 @@ Response:
   "task_a": {
     "task_name": "task_a",
     "status": "successful",
+    "enabled": true,
     "providers": ["local"],
     "services": ["api"],
     "events_url": "/v1/status/tasks/task_a?include=events"
@@ -147,6 +135,7 @@ Response:
   "task_b": {
     "task_name": "task_b",
     "status": "errored",
+    "enabled": false,
     "providers": ["null"],
     "services": ["web"],
     "events_url": "/v1/status/tasks/task_b?include=events"
@@ -169,6 +158,7 @@ Response:
   "task_b": {
     "task_name": "task_b",
     "status": "errored",
+    "enabled": false,
     "providers": ["null"],
     "services": ["web"],
     "events_url": "/v1/status/tasks/task_b?include=events",

@@ -1,34 +1,27 @@
 ---
 layout: docs
 page_title: Consul NIA Security Model
-sidebar_title: Network Infrastructure Automation <sup>Tech Preview</sup>
+sidebar_title: Network Infrastructure Automation <sup>Beta</sup>
 description: >-
   Security model including requirements, recommendations, and threats for Consul Network Infrastructure Automation (NIA).
 ---
 
 ## Overview
 
-Consul Network Infrastructure Automation (NIA) enables declarative workflows to handle Day-2 network security
-infrastructure tasks for network, security, and operations teams. NIA uses [Terraform](https://www.terraform.io/)
-to propagate Consul catalog changes, and relevant configuration to network appliances, or network APIs.
+Network Infrastructure Automation (NIA) enables dynamic updates to network infrastructure devices triggered by service changes using the [Consul Terraform Sync](https://github.com/hashicorp/consul-terraform-sync) (`consul-terraform-sync`) daemon. This daemon uses Consul's catalog to monitor networking information about services along with [Terraform](https://www.terraform.io/)'s provider ecosystem to apply relevant changes to network infrastructure.
 
 ### Personas
 
-When thinking about Consul NIA, it helps to consider the following types of base personas when managing the security
-requirements for the cluster deployment.
+When considering Consul NIA's security model, it helps to think of the following personas.
 
-- **System Administrator** - This is someone who has access to the underlying infrastructure to the
-  Consul NIA daemon, and possibly the core Consul service. Often she has access to SSH directly
-  into a server within a cluster through a bastion host. Ultimately they have read, write and
-  execute permissions for the actual NIA daemon binary. These users potentially have sudo,
-  administrative, or some other super-user access to the underlying compute resource. Users like
-  these are essentially totally trusted by Consul NIA as they have administrative rights to the
-  system and can start or stop the daemon.
-- **Consul NIA Operator** - This is someone (probably the same System Administrator) who has access
-  to define the Consul NIA daemon configuration, and possibly a Consul ACL token, and other secrets to
-  run the daemon against various network infrastructure APIs. They also have total rights to all of
-  the parts in the Consul NIA system including the ability to configure, start, and stop the daemon.
-
+- **System Administrator** - This is someone who has access to the underlying infrastructure of the
+  NIA daemon ([`consul-terraform-sync`](https://github.com/hashicorp/consul-terraform-sync)), and possibly the core Consul service. Often she has access to SSH directly
+  into a server within a cluster through a bastion host. Ultimately they have read, write, and
+  execute permissions for the `consul-terraform-sync` binary. These users potentially have sudo,
+  administrative, or some other privileged access to the underlying compute resource. Users like
+  these are essentially totally trusted by NIA as they have administrative rights to the system.
+- **Consul NIA Operator** - This is someone who has access
+  to define the `consul-terraform-sync` configuration, and possibly a Consul ACL token, and other secrets used to interact with various network infrastructure APIs. They have full access to all parts of `consul-terraform-sync` including the ability to configure, start, and stop the daemon.
 - **Developer** - This is someone who is responsible for creating, and possibly deploying applications
   connected, or configured with Consul. In some cases they may have no access, or limited capabilities
   to view Consul information, such as through metrics, or logs.
@@ -39,15 +32,15 @@ requirements for the cluster deployment.
 ### Secure Configuration
 
 Consul NIA’s security model is applicable only if all parts of the system are running with a secure
-configuration; the daemon is not secure-by-default. Without the following mechanisms enabled in the
+configuration; `consul-terraform-sync` is not secure-by-default. Without the following mechanisms enabled in the
 daemon’s configuration, it may be possible to abuse access to the daemon. Like all security
 considerations, one must determine what concerns are appropriate for their environment, and adapt these
 security concerns accordingly.
 
 #### Requirements
 
-- **Protect Configuration Files & Directories** - A dedicated NIA daemon user and group with limited
-  permissions should be created for production, along with directory and file permissions appropriately
+- **Protect Configuration Files and Directories** - A dedicated NIA user and group with limited
+  permissions should be created for production, along with directory, and file permissions appropriately
   scoped for your operating environment.
 
   Example commands to illustrate creating a dedicated `consul-nia` system user, along with the supporting
@@ -63,8 +56,8 @@ security concerns accordingly.
   $ chmod -R 0750 consul-nia/
   ```
 
-- **Protect Consul KV Path or Namespaces** - Note the NIA daemon can monitor Consul services in other Namespaces.
-  This can be limited based on the ACL token used for the NIA daemon.
+- **Protect Consul KV Path or Namespaces** - Note the daemon can monitor Consul services in other Namespaces.
+  This can be limited based on the ACL token used for the daemon.
 
 - **Use Consul ACLs** - The Access Control List (ACL) system within Consul can be used to restrict access to
   only the required parts of Consul for the NIA daemon to operate.
@@ -76,8 +69,6 @@ security concerns accordingly.
 
 - **Use Dedicated Host** - The NIA daemon will potentially have access to critical secrets for your environment’s
   network infrastructure. Using a hardened, dedicated host, for supporting these sensitive operations is highly.
-  Workload orchestrators, such as [HashiCorp Nomad](https://www.nomadproject.io/), also provide benefits of ensuring
-  uptime and isolation.
 
 - **Run without Root** - The NIA daemon does not require root or other administrative privileges to operate.
 
@@ -85,7 +76,7 @@ security concerns accordingly.
   protected using Consul Connect and appropriate firewall rules.
 
 - **Use a centralized logging solution** - Export log entries within [syslog](https://en.wikipedia.org/wiki/Syslog)
-  generated from the NIA daemon to a centralized logging solution.
+  generated from `consul-terraform-sync` to a centralized logging solution.
 
 - **Audit used Terraform providers** - [Terraform providers](https://www.terraform.io/docs/providers/index.html) that
   are configured with the NIA daemon should be audited to ensure you’re only using providers from sources that
@@ -125,7 +116,7 @@ a production deployment:
 - **Access (read or write) to the Consul NIA Consul KV Path** - Access to the daemon’s Consul KV path may leak sensitive
   information such as usernames, passwords, certificates, and tokens used by Terraform to provision infrastructure.
 
-- **Memory Access to a Running Consul NIA Daemon Process** - Direct access to the memory of running the daemon process
+- **Memory Access to a Running Consul-Terraform-Sync Process** - Direct access to the memory of running the daemon process
   allows an attacker to extract sensitive information.
 
 - **Memory Access to a Running Terraform Process** - Direct access to the memory of running the Terraform process
@@ -134,7 +125,7 @@ a production deployment:
 - **Access to the Terraform Binary** - Direct access to the Terraform binary used by the NIA daemon can allow an
   attacker to extract sensitive information.
 
-- **Access to the Consul NIA Daemon Binary** - Direct access to the system binary used to start the NIA daemon can allow
+- **Access to the Consul-Terraform-Sync Binary** - Direct access to the system binary used to start the NIA daemon can allow
   an attacker to extract sensitive information.
 
 #### Internal Threats
