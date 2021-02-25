@@ -1,0 +1,40 @@
+@import './base/reset/index';
+@import './base/index';
+@import 'prism-coldark-dark';
+
+.docs {
+  main {
+    background-color: white;
+  }
+  [class^='docfy'] {
+    margin-bottom: 1em;
+  }
+  h1,
+  h2,
+  h3 {
+    margin-bottom: 1em;
+  }
+  h1 {
+    padding-top: 20px;
+    @extend %h100;
+  }
+  h2 {
+    @extend %h200;
+  }
+  h3 {
+    @extend %h300;
+  }
+  p {
+    @extend %p1;
+  }
+  table {
+    margin-bottom: 3em;
+  }
+  td {
+    font-weight: normal !important;
+    cursor: default !important;
+  }
+  tr:hover {
+    box-shadow: none;
+  }
+}
