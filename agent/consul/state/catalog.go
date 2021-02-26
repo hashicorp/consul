@@ -2089,6 +2089,10 @@ func (s *Store) GatewayServices(ws memdb.WatchSet, gateway string, entMeta *stru
 // parseCheckServiceNodes is used to parse through a given set of services,
 // and query for an associated node and a set of checks. This is the inner
 // method used to return a rich set of results from a more simple query.
+//
+// TODO: idx parameter is not used except as a return value. Remove it.
+// TODO: err parameter is only used for early return. Remove it and check from the
+// caller.
 func parseCheckServiceNodes(
 	tx ReadTxn, ws memdb.WatchSet, idx uint64,
 	services structs.ServiceNodes,
