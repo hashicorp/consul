@@ -1,4 +1,230 @@
 
 <div class="tab-section">
-  <Consul::AuthMethod::DefinitionList @item={{item}} />
+  <div class="auth-method">
+  {{#if (eq item.Type 'kubernetes')}}
+    <dl>
+      <dt>Type</dt>
+      <dd><Consul::AuthMethod::Type @item={{item}} /></dd>
+
+    {{#each (array "MaxTokenTTL" "TokenLocality" "DisplayName" "Description") as |value|}}
+      {{#if (get item value)}}
+      <dt>{{t (concat "components.consul.auth-method.definition-list." value)}}</dt>
+      <dd>{{get item value}}</dd>
+      {{/if}}
+    {{/each}}
+      {{#if item.Config.Host}}
+      <dt>Host</dt>
+      <dd>
+        <CopyButton @value={{item.Config.Host}} @name="Host"/>
+        <span>{{item.Config.Host}}</span>
+      </dd>
+      {{/if}}
+      {{#if item.Config.CACert}}
+      <dt class="cert">CA Cert</dt>
+      <dd>
+        <pre><code>{{item.Config.CACert}}</code></pre>
+        <CopyButton @value={{item.Config.CACert}} @name="CA Cert" />
+      </dd>
+      {{/if}}
+      {{#if item.Config.ServiceAccountJWT}}
+      <dt>Service account JSON Web Token</dt>
+      <dd>
+        <CopyButton @value={{item.Config.ServiceAccountJWT}} @name="Service account JSON Web Token" />
+        <span>
+          {{item.Config.ServiceAccountJWT}}
+        </span>
+      </dd>
+      {{/if}}
+    </dl>
+  {{else}}
+    <section class="meta">
+      <dl>
+        <dt>Type</dt>
+        <dd><Consul::AuthMethod::Type @item={{item}} /></dd>
+
+      {{#each (array "MaxTokenTTL" "TokenLocality" "DisplayName" "Description") as |value|}}
+        {{#if (get item value)}}
+        <dt>{{t (concat "components.consul.auth-method.definition-list." value)}}</dt>
+        <dd>{{get item value}}</dd>
+        {{/if}}
+      {{/each}}
+
+      {{#if (eq item.Type 'jwt')}}
+        {{#if item.Config.JWKSURL}}
+        <dt>JWKS URL</dt>
+        <dd>
+          <CopyButton @value={{item.Config.JWKSURL}} @name="JWKS URL" />
+          <span>{{item.Config.JWKSURL}}</span>
+        </dd>
+        <dt class="cert">JWKS CA Cert</dt>
+        <dd>
+          <pre><code>{{item.Config.JWKSCACert}}</code></pre>
+          <CopyButton @value={{item.Config.JWKSCACert}} @name="JWKS CA Cert" />
+        </dd>
+        {{/if}}
+        {{#if item.Config.JWTValidationPubKeys}}
+        <dt class="cert">JWT validation pub keys</dt>
+        <dd>
+          <pre><code>{{item.Config.JWTValidationPubKeys}}</code></pre>
+          <CopyButton @value={{item.Config.JWTValidationPubKeys}} @name="JWT Validation Pub Keys" />
+        </dd>
+        {{/if}}
+        {{#if item.Config.OIDCDiscoveryURL}}
+        <dt>OIDC discovery URL</dt>
+        <dd>
+          <CopyButton @value={{item.Config.OIDCDiscoveryURL}} @name="OIDC discovery URL" />
+          <span>{{item.Config.OIDCDiscoveryURL}}</span>
+        </dd>
+        {{/if}}
+        {{#if item.Config.JWTSupportedAlgs}}
+        <dt>JWT supported algorithms</dt>
+        <dd>{{item.Config.JWTSupportedAlgs}}</dd>
+        {{/if}}
+        {{#if item.Config.BoundAudiences}}
+          <dt>Bound audiences</dt>
+          <dd>
+            <ul>
+              {{#each item.Config.BoundAudiences as |bond|}}
+              <li>
+                <span>{{bond}}</span>
+              </li>
+              {{/each}}
+            </ul>
+          </dd>
+        {{/if}}
+        {{#if item.Config.BoundIssuer}}
+        <dt>Bound issuer</dt>
+        <dd>{{item.Config.BoundIssuer}}</dd>
+        {{/if}}
+        {{#if item.Config.ExpirationLeeway}}
+        <dt>Expiration leeway</dt>
+        <dd>{{item.Config.ExpirationLeeway}}</dd>
+        {{/if}}
+        {{#if item.Config.NotBeforeLeeway}}
+        <dt>Not before leeway</dt>
+        <dd>{{item.Config.NotBeforeLeeway}}</dd>
+        {{/if}}
+        {{#if item.Config.ClockSkewLeeway}}
+        <dt>Clocks skew leeway</dt>
+        <dd>{{item.Config.ClockSkewLeeway}}</dd>
+        {{/if}}
+        {{#if item.Config.ExpirationLeeway}}
+        <dt>Expiration leeway</dt>
+        <dd>{{item.Config.ExpirationLeeway}}</dd>
+        {{/if}}
+        {{#if item.Config.NotBeforeLeeway}}
+        <dt>Not before leeway</dt>
+        <dd>{{item.Config.NotBeforeLeeway}}</dd>
+        {{/if}}
+        {{#if item.Config.ClockSkewLeeway}}
+        <dt>Clocks skew leeway</dt>
+        <dd>{{item.Config.ClockSkewLeeway}}</dd>
+        {{/if}}
+      {{else if (eq item.Type 'oidc')}}
+        {{#if item.Config.OIDCDiscoveryURL}}
+        <dt>Discovery URL</dt>
+        <dd>
+          <CopyButton @value={{item.Config.OIDCDiscoveryURL}} @name="Discovery URL" />
+          <span>{{item.Config.OIDCDiscoveryURL}}</span>
+        </dd>
+        {{/if}}
+        {{#if item.Config.OIDCDiscoveryCACert}}
+        <dt class="cert">OIDC Cert</dt>
+        <dd>
+          <pre><code>{{item.Config.OIDCDiscoveryCACert}}</code></pre>
+          <CopyButton @value={{item.Config.OIDCDiscoveryCACert}} @name="OIDC Cert" />
+        </dd>
+        {{/if}}
+        {{#if item.Config.OIDCClientID}}
+          <dt>OIDC Client ID</dt>
+          <dd>{{item.Config.OIDCClientID}}</dd>
+        {{/if}}
+        {{#if item.Config.OIDCClientSecret}}
+          <dt>Client Secret</dt>
+          <dd>{{item.Config.OIDCClientSecret}}</dd>
+        {{/if}}
+        {{#if item.Config.AllowedRedirectURIs}}
+          <dt>Allowed redirect URIs</dt>
+          <dd>
+            <ul>
+              {{#each item.Config.AllowedRedirectURIs as |uri|}}
+              <li>
+                <CopyButton @value={{uri}} @name="Redirect URI" />
+                <span>{{uri}}</span>
+              </li>
+              {{/each}}
+            </ul>
+          </dd>
+        {{/if}}
+        {{#if item.Config.BoundAudiences}}
+          <dt>Bound audiences</dt>
+          <dd>
+            <ul>
+              {{#each item.Config.BoundAudiences as |bond|}}
+              <li>
+                <span>{{bond}}</span>
+              </li>
+              {{/each}}
+            </ul>
+          </dd>
+        {{/if}}
+        {{#if item.Config.OIDCScopes}}
+          <dt>OIDC scopes</dt>
+          <dd>
+            <ul>
+              {{#each item.Config.OIDCScopes as |scope|}}
+              <li>
+                <span>{{scope}}</span>
+              </li>
+              {{/each}}
+            </ul>
+          </dd>
+        {{/if}}
+        {{#if item.Config.JWTSupportedAlgs}}
+        <dt>JWT supported algorithms</dt>
+        <dd>{{item.Config.JWTSupportedAlgs}}</dd>
+        {{/if}}
+        {{#if item.Config.VerboseOIDCLogging}}
+        <dt>Verbose OIDC logging</dt>
+        <dd>{{item.Config.VerboseOIDCLogging}}</dd>
+        {{/if}}
+      {{/if}}
+      </dl>
+    </section>
+
+    <hr />
+
+    {{#if item.Config.ClaimMappings}}
+    <section class="claim-mappings">
+      <h2>Claim Mappings</h2>
+      <p>Use this if the claim you are capturing is singular. When mapped, the values can be any of a number, string, or boolean and will all be stringified when returned.</p>
+      <dl>
+      {{#each-in item.Config.ClaimMappings as |key value|}}
+        <dt>{{key}}</dt>
+        <dd>{{value}}</dd>
+      {{/each-in}}
+      </dl>
+    </section>
+    {{/if}}
+
+    <hr />
+
+    {{#if item.Config.ListClaimMappings}}
+    <section class="list-claim-mappings">
+      <h2>List Claim Mappings</h2>
+      <p>Use this if the claim you are capturing is list-like (such as groups). When mapped, the values can be any of a number, string, or boolean and will all be stringified when returned.</p>
+      <dl>
+      {{#each-in item.Config.ListClaimMappings as |key value|}}
+        <dt>{{key}}</dt>
+        <dd>{{value}}</dd>
+      {{/each-in}}
+      {{#each-in item.Config.ListClaimMappings as |key value|}}
+        <dt>{{key}}</dt>
+        <dd>{{value}}</dd>
+      {{/each-in}}
+      </dl>
+    </section>
+    {{/if}}
+  {{/if}}
+  </div>
 </div>
