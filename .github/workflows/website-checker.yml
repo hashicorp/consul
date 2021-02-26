@@ -5,6 +5,11 @@
 #
 # All the code checked out in this workflow should be considered untrusted. This workflow must
 # never call any makefiles or scripts. It must never be changed to run any code from the checkout.
+
+# This workflow posts a message to a PR to remind maintainers that there are website/ changes
+# in the PR and if they need to be cherry-picked to the stable-website branch, the
+# 'type/docs-cherrypick' label needs to be applied.
+
 on:
   pull_request_target:
     types: [opened]
@@ -14,39 +19,10 @@ on:
       - release/*
 
 jobs:
-  # checks that a .changelog entry is present for a PR
-  changelog-check:
-    # If there  a `pr/no-changelog` label we ignore this check
-    if: "!${{ contains(github.event.pull_request.labels.*.name, 'pr/no-changelog')}}"
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          fetch-depth: 0 # by default the checkout action doesn't checkout all branches
-      - name: Check for changelog entry in diff
-        run: |
-          # check if there is a diff in the .changelog directory
-          changelog_files=$(git --no-pager diff --name-only HEAD "$(git merge-base HEAD "origin/${{ github.event.pull_request.base.ref }}")" -- .changelog/)
-
-          # If we do not find a file in .changelog/, we post a comment to the PR
-          if [ -z "$changelog_files" ]; then
-            # post PR comment to GitHub when no .changelog entry was found on PR
-            echo "changelog-check: Did not find a .changelog entry, posting a reminder in the PR"
-            github_message="🤔 Double check that this PR does not require a changelog entry in the \`.changelog\` directory. [Reference](https://github.com/hashicorp/consul/pull/8387)"
-            curl -f -s -H "Authorization: token ${{ secrets.PR_COMMENT_TOKEN }}" \
-                -X POST \
-                -d "{ \"body\": \"${github_message}\"}" \
-                "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/${{ github.event.pull_request.number }}/comments"
-          else
-            echo "changelog-check: Found .changelog entry in PR!"
-          fi
-
   # checks that a 'type/docs-cherrypick' label is attached to PRs with website/ changes
   website-check:
     # If there's a `type/docs-cherrypick` label we ignore this check
-    if: "!${{ contains(github.event.pull_request.labels.*.name, 'type/docs-cherrypick')}}"
+    if: "!contains(github.event.pull_request.labels.*.name, 'type/docs-cherrypick')"
     runs-on: ubuntu-latest
 
     steps:
