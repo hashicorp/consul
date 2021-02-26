@@ -53,7 +53,7 @@
         </BlockSlot>
       </ConfirmationDialog>
   {{/if}}
-  {{#if (not (token/is-legacy item))}}
+  {{#if (can "duplicate token" item=item)}}
       <button data-test-clone type="button" {{ action "clone" item }}>Duplicate</button>
   {{/if}}
 {{/if}}

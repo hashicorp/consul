@@ -25,6 +25,7 @@
         <CopyButton @value={{item.ID}} @name="token ID">
             Copy token ID
         </CopyButton>
+  {{#if (can "duplicate acl" item=item)}}
         <button type="button" {{ action "clone" item }}>Clone token</button>
         <ConfirmationDialog @message="Are you sure you want to use this ACL token?">
             <BlockSlot @name="action" as |confirm|>
@@ -38,6 +39,7 @@
                 <button type="button" class="type-cancel" {{action cancel}}>Cancel</button>
             </BlockSlot>
         </ConfirmationDialog>
+  {{/if}}
 {{/if}}
     </BlockSlot>
     <BlockSlot @name="content">
