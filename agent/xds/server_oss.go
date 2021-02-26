@@ -3,11 +3,11 @@
 package xds
 
 import (
-	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-func parseEnterpriseMeta(node *envoycore.Node) *structs.EnterpriseMeta {
+func parseEnterpriseMeta(node *envoy_core_v3.Node) *structs.EnterpriseMeta {
 	return structs.DefaultEnterpriseMeta()
 }

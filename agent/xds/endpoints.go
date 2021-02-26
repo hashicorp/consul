@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 
-	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	envoyendpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
+	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 
 	"github.com/golang/protobuf/proto"
 	bexpr "github.com/hashicorp/go-bexpr"
@@ -163,26 +163,26 @@ func (s *Server) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 
 	// generate endpoints for our servers if WAN federation is enabled
 	if cfgSnap.ServiceMeta[structs.MetaWANFederationKey] == "1" && cfgSnap.ServerSNIFn != nil {
-		var allServersLbEndpoints []*envoyendpoint.LbEndpoint
+		var allServersLbEndpoints []*envoy_endpoint_v3.LbEndpoint
 
 		for _, srv := range cfgSnap.MeshGateway.ConsulServers {
 			clusterName := cfgSnap.ServerSNIFn(cfgSnap.Datacenter, srv.Node.Node)
 
 			addr, port := srv.BestAddress(false /*wan*/)
 
-			lbEndpoint := &envoyendpoint.LbEndpoint{
-				HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
-					Endpoint: &envoyendpoint.Endpoint{
+			lbEndpoint := &envoy_endpoint_v3.LbEndpoint{
+				HostIdentifier: &envoy_endpoint_v3.LbEndpoint_Endpoint{
+					Endpoint: &envoy_endpoint_v3.Endpoint{
 						Address: makeAddress(addr, port),
 					},
 				},
-				HealthStatus: envoycore.HealthStatus_UNKNOWN,
+				HealthStatus: envoy_core_v3.HealthStatus_UNKNOWN,
 			}
 
-			cla := &envoy.ClusterLoadAssignment{
+			cla := &envoy_endpoint_v3.ClusterLoadAssignment{
 				ClusterName: clusterName,
-				Endpoints: []*envoyendpoint.LocalityLbEndpoints{{
-					LbEndpoints: []*envoyendpoint.LbEndpoint{lbEndpoint},
+				Endpoints: []*envoy_endpoint_v3.LocalityLbEndpoints{{
+					LbEndpoints: []*envoy_endpoint_v3.LbEndpoint{lbEndpoint},
 				}},
 			}
 			allServersLbEndpoints = append(allServersLbEndpoints, lbEndpoint)
@@ -192,9 +192,9 @@ func (s *Server) endpointsFromSnapshotMeshGateway(cfgSnap *proxycfg.ConfigSnapsh
 
 		// And add one catch all so that remote datacenters can dial ANY server
 		// in this datacenter without knowing its name.
-		resources = append(resources, &envoy.ClusterLoadAssignment{
+		resources = append(resources, &envoy_endpoint_v3.ClusterLoadAssignment{
 			ClusterName: cfgSnap.ServerSNIFn(cfgSnap.Datacenter, ""),
-			Endpoints: []*envoyendpoint.LocalityLbEndpoints{{
+			Endpoints: []*envoy_endpoint_v3.LocalityLbEndpoints{{
 				LbEndpoints: allServersLbEndpoints,
 			}},
 		})
@@ -290,10 +290,10 @@ func (s *Server) endpointsFromSnapshotIngressGateway(cfgSnap *proxycfg.ConfigSna
 	return resources, nil
 }
 
-func makeEndpoint(host string, port int) *envoyendpoint.LbEndpoint {
-	return &envoyendpoint.LbEndpoint{
-		HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
-			Endpoint: &envoyendpoint.Endpoint{
+func makeEndpoint(host string, port int) *envoy_endpoint_v3.LbEndpoint {
+	return &envoy_endpoint_v3.LbEndpoint{
+		HostIdentifier: &envoy_endpoint_v3.LbEndpoint_Endpoint{
+			Endpoint: &envoy_endpoint_v3.Endpoint{
 				Address: makeAddress(host, port),
 			},
 		},
@@ -320,7 +320,7 @@ func (s *Server) endpointsFromDiscoveryChain(
 			"error", err)
 	}
 
-	var escapeHatchCluster *envoy.Cluster
+	var escapeHatchCluster *envoy_cluster_v3.Cluster
 	if cfg.ClusterJSON != "" {
 		if chain.IsDefault() {
 			// If you haven't done anything to setup the discovery chain, then
@@ -418,17 +418,17 @@ func (s *Server) endpointsFromDiscoveryChain(
 type loadAssignmentEndpointGroup struct {
 	Endpoints      structs.CheckServiceNodes
 	OnlyPassing    bool
-	OverrideHealth envoycore.HealthStatus
+	OverrideHealth envoy_core_v3.HealthStatus
 }
 
-func makeLoadAssignment(clusterName string, endpointGroups []loadAssignmentEndpointGroup, localDatacenter string) *envoy.ClusterLoadAssignment {
-	cla := &envoy.ClusterLoadAssignment{
+func makeLoadAssignment(clusterName string, endpointGroups []loadAssignmentEndpointGroup, localDatacenter string) *envoy_endpoint_v3.ClusterLoadAssignment {
+	cla := &envoy_endpoint_v3.ClusterLoadAssignment{
 		ClusterName: clusterName,
-		Endpoints:   make([]*envoyendpoint.LocalityLbEndpoints, 0, len(endpointGroups)),
+		Endpoints:   make([]*envoy_endpoint_v3.LocalityLbEndpoints, 0, len(endpointGroups)),
 	}
 
 	if len(endpointGroups) > 1 {
-		cla.Policy = &envoy.ClusterLoadAssignment_Policy{
+		cla.Policy = &envoy_endpoint_v3.ClusterLoadAssignment_Policy{
 			// We choose such a large value here that the failover math should
 			// in effect not happen until zero instances are healthy.
 			OverprovisioningFactor: makeUint32Value(100000),
@@ -437,20 +437,20 @@ func makeLoadAssignment(clusterName string, endpointGroups []loadAssignmentEndpo
 
 	for priority, endpointGroup := range endpointGroups {
 		endpoints := endpointGroup.Endpoints
-		es := make([]*envoyendpoint.LbEndpoint, 0, len(endpoints))
+		es := make([]*envoy_endpoint_v3.LbEndpoint, 0, len(endpoints))
 
 		for _, ep := range endpoints {
 			// TODO (mesh-gateway) - should we respect the translate_wan_addrs configuration here or just always use the wan for cross-dc?
 			addr, port := ep.BestAddress(localDatacenter != ep.Node.Datacenter)
 			healthStatus, weight := calculateEndpointHealthAndWeight(ep, endpointGroup.OnlyPassing)
 
-			if endpointGroup.OverrideHealth != envoycore.HealthStatus_UNKNOWN {
+			if endpointGroup.OverrideHealth != envoy_core_v3.HealthStatus_UNKNOWN {
 				healthStatus = endpointGroup.OverrideHealth
 			}
 
-			es = append(es, &envoyendpoint.LbEndpoint{
-				HostIdentifier: &envoyendpoint.LbEndpoint_Endpoint{
-					Endpoint: &envoyendpoint.Endpoint{
+			es = append(es, &envoy_endpoint_v3.LbEndpoint{
+				HostIdentifier: &envoy_endpoint_v3.LbEndpoint_Endpoint{
+					Endpoint: &envoy_endpoint_v3.Endpoint{
 						Address: makeAddress(addr, port),
 					},
 				},
@@ -459,7 +459,7 @@ func makeLoadAssignment(clusterName string, endpointGroups []loadAssignmentEndpo
 			})
 		}
 
-		cla.Endpoints = append(cla.Endpoints, &envoyendpoint.LocalityLbEndpoints{
+		cla.Endpoints = append(cla.Endpoints, &envoy_endpoint_v3.LocalityLbEndpoints{
 			Priority:    uint32(priority),
 			LbEndpoints: es,
 		})
@@ -505,11 +505,11 @@ func makeLoadAssignmentEndpointGroup(
 	}
 
 	// But we will use the health from the actual backend service.
-	overallHealth := envoycore.HealthStatus_UNHEALTHY
+	overallHealth := envoy_core_v3.HealthStatus_UNHEALTHY
 	for _, ep := range realEndpoints {
 		health, _ := calculateEndpointHealthAndWeight(ep, target.Subset.OnlyPassing)
-		if health == envoycore.HealthStatus_HEALTHY {
-			overallHealth = envoycore.HealthStatus_HEALTHY
+		if health == envoy_core_v3.HealthStatus_HEALTHY {
+			overallHealth = envoy_core_v3.HealthStatus_HEALTHY
 			break
 		}
 	}
@@ -523,8 +523,8 @@ func makeLoadAssignmentEndpointGroup(
 func calculateEndpointHealthAndWeight(
 	ep structs.CheckServiceNode,
 	onlyPassing bool,
-) (envoycore.HealthStatus, int) {
-	healthStatus := envoycore.HealthStatus_HEALTHY
+) (envoy_core_v3.HealthStatus, int) {
+	healthStatus := envoy_core_v3.HealthStatus_HEALTHY
 	weight := 1
 	if ep.Service.Weights != nil {
 		weight = ep.Service.Weights.Passing
@@ -532,10 +532,10 @@ func calculateEndpointHealthAndWeight(
 
 	for _, chk := range ep.Checks {
 		if chk.Status == api.HealthCritical {
-			healthStatus = envoycore.HealthStatus_UNHEALTHY
+			healthStatus = envoy_core_v3.HealthStatus_UNHEALTHY
 		}
 		if onlyPassing && chk.Status != api.HealthPassing {
-			healthStatus = envoycore.HealthStatus_UNHEALTHY
+			healthStatus = envoy_core_v3.HealthStatus_UNHEALTHY
 		}
 		if chk.Status == api.HealthWarning && ep.Service.Weights != nil {
 			weight = ep.Service.Weights.Warning
@@ -545,7 +545,7 @@ func calculateEndpointHealthAndWeight(
 	// (likely) or Passing (weirdly) weight has been set to 0 effectively making
 	// this instance unhealthy and should not be sent traffic.
 	if weight < 1 {
-		healthStatus = envoycore.HealthStatus_UNHEALTHY
+		healthStatus = envoy_core_v3.HealthStatus_UNHEALTHY
 		weight = 1
 	}
 	if weight > 128 {

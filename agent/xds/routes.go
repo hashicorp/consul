@@ -7,9 +7,8 @@ import (
 	"strings"
 	"time"
 
-	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	envoyroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-	envoymatcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
+	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
@@ -64,9 +63,9 @@ func routesForConnectProxy(
 				return nil, err
 			}
 
-			route := &envoy.RouteConfiguration{
+			route := &envoy_route_v3.RouteConfiguration{
 				Name:         upstreamID,
-				VirtualHosts: []*envoyroute.VirtualHost{virtualHost},
+				VirtualHosts: []*envoy_route_v3.VirtualHost{virtualHost},
 				// ValidateClusters defaults to true when defined statically and false
 				// when done via RDS. Re-set the sane value of true to prevent
 				// null-routing traffic.
@@ -135,20 +134,20 @@ func (s *Server) routesFromSnapshotTerminatingGateway(_ connectionInfo, cfgSnap 
 	return resources, nil
 }
 
-func makeNamedDefaultRouteWithLB(clusterName string, lb *structs.LoadBalancer) (*envoy.RouteConfiguration, error) {
+func makeNamedDefaultRouteWithLB(clusterName string, lb *structs.LoadBalancer) (*envoy_route_v3.RouteConfiguration, error) {
 	action := makeRouteActionFromName(clusterName)
 
 	if err := injectLBToRouteAction(lb, action.Route); err != nil {
 		return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
 	}
 
-	return &envoy.RouteConfiguration{
+	return &envoy_route_v3.RouteConfiguration{
 		Name: clusterName,
-		VirtualHosts: []*envoyroute.VirtualHost{
+		VirtualHosts: []*envoy_route_v3.VirtualHost{
 			{
 				Name:    clusterName,
 				Domains: []string{"*"},
-				Routes: []*envoyroute.Route{
+				Routes: []*envoy_route_v3.Route{
 					{
 						Match:  makeDefaultRouteMatch(),
 						Action: action,
@@ -178,7 +177,7 @@ func routesForIngressGateway(
 			continue
 		}
 
-		upstreamRoute := &envoy.RouteConfiguration{
+		upstreamRoute := &envoy_route_v3.RouteConfiguration{
 			Name: listenerKey.RouteName(),
 			// ValidateClusters defaults to true when defined statically and false
 			// when done via RDS. Re-set the sane value of true to prevent
@@ -257,8 +256,8 @@ func makeUpstreamRouteForDiscoveryChain(
 	routeName string,
 	chain *structs.CompiledDiscoveryChain,
 	serviceDomains []string,
-) (*envoyroute.VirtualHost, error) {
-	var routes []*envoyroute.Route
+) (*envoy_route_v3.VirtualHost, error) {
+	var routes []*envoy_route_v3.Route
 
 	startNode := chain.Nodes[chain.StartNode]
 	if startNode == nil {
@@ -267,13 +266,13 @@ func makeUpstreamRouteForDiscoveryChain(
 
 	switch startNode.Type {
 	case structs.DiscoveryGraphNodeTypeRouter:
-		routes = make([]*envoyroute.Route, 0, len(startNode.Routes))
+		routes = make([]*envoy_route_v3.Route, 0, len(startNode.Routes))
 
 		for _, discoveryRoute := range startNode.Routes {
 			routeMatch := makeRouteMatchForDiscoveryRoute(cInfo, discoveryRoute)
 
 			var (
-				routeAction *envoyroute.Route_Route
+				routeAction *envoy_route_v3.Route_Route
 				err         error
 			)
 
@@ -319,7 +318,7 @@ func makeUpstreamRouteForDiscoveryChain(
 				}
 
 				if destination.HasRetryFeatures() {
-					retryPolicy := &envoyroute.RetryPolicy{}
+					retryPolicy := &envoy_route_v3.RetryPolicy{}
 					if destination.NumRetries > 0 {
 						retryPolicy.NumRetries = makeUint32Value(int(destination.NumRetries))
 					}
@@ -341,7 +340,7 @@ func makeUpstreamRouteForDiscoveryChain(
 				}
 			}
 
-			routes = append(routes, &envoyroute.Route{
+			routes = append(routes, &envoy_route_v3.Route{
 				Match:  routeMatch,
 				Action: routeAction,
 			})
@@ -361,12 +360,12 @@ func makeUpstreamRouteForDiscoveryChain(
 			return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
 		}
 
-		defaultRoute := &envoyroute.Route{
+		defaultRoute := &envoy_route_v3.Route{
 			Match:  makeDefaultRouteMatch(),
 			Action: routeAction,
 		}
 
-		routes = []*envoyroute.Route{defaultRoute}
+		routes = []*envoy_route_v3.Route{defaultRoute}
 
 	case structs.DiscoveryGraphNodeTypeResolver:
 		routeAction := makeRouteActionForChainCluster(startNode.Resolver.Target, chain)
@@ -379,18 +378,18 @@ func makeUpstreamRouteForDiscoveryChain(
 			return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
 		}
 
-		defaultRoute := &envoyroute.Route{
+		defaultRoute := &envoy_route_v3.Route{
 			Match:  makeDefaultRouteMatch(),
 			Action: routeAction,
 		}
 
-		routes = []*envoyroute.Route{defaultRoute}
+		routes = []*envoy_route_v3.Route{defaultRoute}
 
 	default:
 		return nil, fmt.Errorf("unknown first node in discovery chain of type: %s", startNode.Type)
 	}
 
-	host := &envoyroute.VirtualHost{
+	host := &envoy_route_v3.VirtualHost{
 		Name:    routeName,
 		Domains: serviceDomains,
 		Routes:  routes,
@@ -399,59 +398,59 @@ func makeUpstreamRouteForDiscoveryChain(
 	return host, nil
 }
 
-func makeRouteMatchForDiscoveryRoute(_ connectionInfo, discoveryRoute *structs.DiscoveryRoute) *envoyroute.RouteMatch {
+func makeRouteMatchForDiscoveryRoute(_ connectionInfo, discoveryRoute *structs.DiscoveryRoute) *envoy_route_v3.RouteMatch {
 	match := discoveryRoute.Definition.Match
 	if match == nil || match.IsEmpty() {
 		return makeDefaultRouteMatch()
 	}
 
-	em := &envoyroute.RouteMatch{}
+	em := &envoy_route_v3.RouteMatch{}
 
 	switch {
 	case match.HTTP.PathExact != "":
-		em.PathSpecifier = &envoyroute.RouteMatch_Path{
+		em.PathSpecifier = &envoy_route_v3.RouteMatch_Path{
 			Path: match.HTTP.PathExact,
 		}
 	case match.HTTP.PathPrefix != "":
-		em.PathSpecifier = &envoyroute.RouteMatch_Prefix{
+		em.PathSpecifier = &envoy_route_v3.RouteMatch_Prefix{
 			Prefix: match.HTTP.PathPrefix,
 		}
 	case match.HTTP.PathRegex != "":
-		em.PathSpecifier = &envoyroute.RouteMatch_SafeRegex{
+		em.PathSpecifier = &envoy_route_v3.RouteMatch_SafeRegex{
 			SafeRegex: makeEnvoyRegexMatch(match.HTTP.PathRegex),
 		}
 	default:
-		em.PathSpecifier = &envoyroute.RouteMatch_Prefix{
+		em.PathSpecifier = &envoy_route_v3.RouteMatch_Prefix{
 			Prefix: "/",
 		}
 	}
 
 	if len(match.HTTP.Header) > 0 {
-		em.Headers = make([]*envoyroute.HeaderMatcher, 0, len(match.HTTP.Header))
+		em.Headers = make([]*envoy_route_v3.HeaderMatcher, 0, len(match.HTTP.Header))
 		for _, hdr := range match.HTTP.Header {
-			eh := &envoyroute.HeaderMatcher{
+			eh := &envoy_route_v3.HeaderMatcher{
 				Name: hdr.Name,
 			}
 
 			switch {
 			case hdr.Exact != "":
-				eh.HeaderMatchSpecifier = &envoyroute.HeaderMatcher_ExactMatch{
+				eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_ExactMatch{
 					ExactMatch: hdr.Exact,
 				}
 			case hdr.Regex != "":
-				eh.HeaderMatchSpecifier = &envoyroute.HeaderMatcher_SafeRegexMatch{
+				eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_SafeRegexMatch{
 					SafeRegexMatch: makeEnvoyRegexMatch(hdr.Regex),
 				}
 			case hdr.Prefix != "":
-				eh.HeaderMatchSpecifier = &envoyroute.HeaderMatcher_PrefixMatch{
+				eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_PrefixMatch{
 					PrefixMatch: hdr.Prefix,
 				}
 			case hdr.Suffix != "":
-				eh.HeaderMatchSpecifier = &envoyroute.HeaderMatcher_SuffixMatch{
+				eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_SuffixMatch{
 					SuffixMatch: hdr.Suffix,
 				}
 			case hdr.Present:
-				eh.HeaderMatchSpecifier = &envoyroute.HeaderMatcher_PresentMatch{
+				eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_PresentMatch{
 					PresentMatch: true,
 				}
 			default:
@@ -469,9 +468,9 @@ func makeRouteMatchForDiscoveryRoute(_ connectionInfo, discoveryRoute *structs.D
 	if len(match.HTTP.Methods) > 0 {
 		methodHeaderRegex := strings.Join(match.HTTP.Methods, "|")
 
-		eh := &envoyroute.HeaderMatcher{
+		eh := &envoy_route_v3.HeaderMatcher{
 			Name: ":method",
-			HeaderMatchSpecifier: &envoyroute.HeaderMatcher_SafeRegexMatch{
+			HeaderMatchSpecifier: &envoy_route_v3.HeaderMatcher_SafeRegexMatch{
 				SafeRegexMatch: makeEnvoyRegexMatch(methodHeaderRegex),
 			},
 		}
@@ -480,31 +479,31 @@ func makeRouteMatchForDiscoveryRoute(_ connectionInfo, discoveryRoute *structs.D
 	}
 
 	if len(match.HTTP.QueryParam) > 0 {
-		em.QueryParameters = make([]*envoyroute.QueryParameterMatcher, 0, len(match.HTTP.QueryParam))
+		em.QueryParameters = make([]*envoy_route_v3.QueryParameterMatcher, 0, len(match.HTTP.QueryParam))
 		for _, qm := range match.HTTP.QueryParam {
-			eq := &envoyroute.QueryParameterMatcher{
+			eq := &envoy_route_v3.QueryParameterMatcher{
 				Name: qm.Name,
 			}
 
 			switch {
 			case qm.Exact != "":
-				eq.QueryParameterMatchSpecifier = &envoyroute.QueryParameterMatcher_StringMatch{
-					StringMatch: &envoymatcher.StringMatcher{
-						MatchPattern: &envoymatcher.StringMatcher_Exact{
+				eq.QueryParameterMatchSpecifier = &envoy_route_v3.QueryParameterMatcher_StringMatch{
+					StringMatch: &envoy_matcher_v3.StringMatcher{
+						MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{
 							Exact: qm.Exact,
 						},
 					},
 				}
 			case qm.Regex != "":
-				eq.QueryParameterMatchSpecifier = &envoyroute.QueryParameterMatcher_StringMatch{
-					StringMatch: &envoymatcher.StringMatcher{
-						MatchPattern: &envoymatcher.StringMatcher_SafeRegex{
+				eq.QueryParameterMatchSpecifier = &envoy_route_v3.QueryParameterMatcher_StringMatch{
+					StringMatch: &envoy_matcher_v3.StringMatcher{
+						MatchPattern: &envoy_matcher_v3.StringMatcher_SafeRegex{
 							SafeRegex: makeEnvoyRegexMatch(qm.Regex),
 						},
 					},
 				}
 			case qm.Present:
-				eq.QueryParameterMatchSpecifier = &envoyroute.QueryParameterMatcher_PresentMatch{
+				eq.QueryParameterMatchSpecifier = &envoy_route_v3.QueryParameterMatcher_PresentMatch{
 					PresentMatch: true,
 				}
 			default:
@@ -518,9 +517,9 @@ func makeRouteMatchForDiscoveryRoute(_ connectionInfo, discoveryRoute *structs.D
 	return em
 }
 
-func makeDefaultRouteMatch() *envoyroute.RouteMatch {
-	return &envoyroute.RouteMatch{
-		PathSpecifier: &envoyroute.RouteMatch_Prefix{
+func makeDefaultRouteMatch() *envoy_route_v3.RouteMatch {
+	return &envoy_route_v3.RouteMatch{
+		PathSpecifier: &envoy_route_v3.RouteMatch_Prefix{
 			Prefix: "/",
 		},
 		// TODO(banks) Envoy supports matching only valid GRPC
@@ -531,23 +530,23 @@ func makeDefaultRouteMatch() *envoyroute.RouteMatch {
 	}
 }
 
-func makeRouteActionForChainCluster(targetID string, chain *structs.CompiledDiscoveryChain) *envoyroute.Route_Route {
+func makeRouteActionForChainCluster(targetID string, chain *structs.CompiledDiscoveryChain) *envoy_route_v3.Route_Route {
 	target := chain.Targets[targetID]
 	return makeRouteActionFromName(CustomizeClusterName(target.Name, chain))
 }
 
-func makeRouteActionFromName(clusterName string) *envoyroute.Route_Route {
-	return &envoyroute.Route_Route{
-		Route: &envoyroute.RouteAction{
-			ClusterSpecifier: &envoyroute.RouteAction_Cluster{
+func makeRouteActionFromName(clusterName string) *envoy_route_v3.Route_Route {
+	return &envoy_route_v3.Route_Route{
+		Route: &envoy_route_v3.RouteAction{
+			ClusterSpecifier: &envoy_route_v3.RouteAction_Cluster{
 				Cluster: clusterName,
 			},
 		},
 	}
 }
 
-func makeRouteActionForSplitter(splits []*structs.DiscoverySplit, chain *structs.CompiledDiscoveryChain) (*envoyroute.Route_Route, error) {
-	clusters := make([]*envoyroute.WeightedCluster_ClusterWeight, 0, len(splits))
+func makeRouteActionForSplitter(splits []*structs.DiscoverySplit, chain *structs.CompiledDiscoveryChain) (*envoy_route_v3.Route_Route, error) {
+	clusters := make([]*envoy_route_v3.WeightedCluster_ClusterWeight, 0, len(splits))
 	for _, split := range splits {
 		nextNode := chain.Nodes[split.NextNode]
 
@@ -562,7 +561,7 @@ func makeRouteActionForSplitter(splits []*structs.DiscoverySplit, chain *structs
 
 		// The smallest representable weight is 1/10000 or .01% but envoy
 		// deals with integers so scale everything up by 100x.
-		cw := &envoyroute.WeightedCluster_ClusterWeight{
+		cw := &envoy_route_v3.WeightedCluster_ClusterWeight{
 			Weight: makeUint32Value(int(split.Weight * 100)),
 			Name:   clusterName,
 		}
@@ -570,10 +569,10 @@ func makeRouteActionForSplitter(splits []*structs.DiscoverySplit, chain *structs
 		clusters = append(clusters, cw)
 	}
 
-	return &envoyroute.Route_Route{
-		Route: &envoyroute.RouteAction{
-			ClusterSpecifier: &envoyroute.RouteAction_WeightedClusters{
-				WeightedClusters: &envoyroute.WeightedCluster{
+	return &envoy_route_v3.Route_Route{
+		Route: &envoy_route_v3.RouteAction{
+			ClusterSpecifier: &envoy_route_v3.RouteAction_WeightedClusters{
+				WeightedClusters: &envoy_route_v3.WeightedCluster{
 					Clusters:    clusters,
 					TotalWeight: makeUint32Value(10000), // scaled up 100%
 				},
@@ -582,17 +581,17 @@ func makeRouteActionForSplitter(splits []*structs.DiscoverySplit, chain *structs
 	}, nil
 }
 
-func injectLBToRouteAction(lb *structs.LoadBalancer, action *envoyroute.RouteAction) error {
+func injectLBToRouteAction(lb *structs.LoadBalancer, action *envoy_route_v3.RouteAction) error {
 	if lb == nil || !lb.IsHashBased() {
 		return nil
 	}
 
-	result := make([]*envoyroute.RouteAction_HashPolicy, 0, len(lb.HashPolicies))
+	result := make([]*envoy_route_v3.RouteAction_HashPolicy, 0, len(lb.HashPolicies))
 	for _, policy := range lb.HashPolicies {
 		if policy.SourceIP {
-			result = append(result, &envoyroute.RouteAction_HashPolicy{
-				PolicySpecifier: &envoyroute.RouteAction_HashPolicy_ConnectionProperties_{
-					ConnectionProperties: &envoyroute.RouteAction_HashPolicy_ConnectionProperties{
+			result = append(result, &envoy_route_v3.RouteAction_HashPolicy{
+				PolicySpecifier: &envoy_route_v3.RouteAction_HashPolicy_ConnectionProperties_{
+					ConnectionProperties: &envoy_route_v3.RouteAction_HashPolicy_ConnectionProperties{
 						SourceIp: true,
 					},
 				},
@@ -604,16 +603,16 @@ func injectLBToRouteAction(lb *structs.LoadBalancer, action *envoyroute.RouteAct
 
 		switch policy.Field {
 		case structs.HashPolicyHeader:
-			result = append(result, &envoyroute.RouteAction_HashPolicy{
-				PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Header_{
-					Header: &envoyroute.RouteAction_HashPolicy_Header{
+			result = append(result, &envoy_route_v3.RouteAction_HashPolicy{
+				PolicySpecifier: &envoy_route_v3.RouteAction_HashPolicy_Header_{
+					Header: &envoy_route_v3.RouteAction_HashPolicy_Header{
 						HeaderName: policy.FieldValue,
 					},
 				},
 				Terminal: policy.Terminal,
 			})
 		case structs.HashPolicyCookie:
-			cookie := envoyroute.RouteAction_HashPolicy_Cookie{
+			cookie := envoy_route_v3.RouteAction_HashPolicy_Cookie{
 				Name: policy.FieldValue,
 			}
 			if policy.CookieConfig != nil {
@@ -628,16 +627,16 @@ func injectLBToRouteAction(lb *structs.LoadBalancer, action *envoyroute.RouteAct
 					cookie.Ttl = ptypes.DurationProto(0 * time.Second)
 				}
 			}
-			result = append(result, &envoyroute.RouteAction_HashPolicy{
-				PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Cookie_{
+			result = append(result, &envoy_route_v3.RouteAction_HashPolicy{
+				PolicySpecifier: &envoy_route_v3.RouteAction_HashPolicy_Cookie_{
 					Cookie: &cookie,
 				},
 				Terminal: policy.Terminal,
 			})
 		case structs.HashPolicyQueryParam:
-			result = append(result, &envoyroute.RouteAction_HashPolicy{
-				PolicySpecifier: &envoyroute.RouteAction_HashPolicy_QueryParameter_{
-					QueryParameter: &envoyroute.RouteAction_HashPolicy_QueryParameter{
+			result = append(result, &envoy_route_v3.RouteAction_HashPolicy{
+				PolicySpecifier: &envoy_route_v3.RouteAction_HashPolicy_QueryParameter_{
+					QueryParameter: &envoy_route_v3.RouteAction_HashPolicy_QueryParameter{
 						Name: policy.FieldValue,
 					},
 				},

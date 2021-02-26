@@ -9,16 +9,13 @@ import (
 	"sync"
 	"time"
 
-	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	envoycore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	envoyauth "github.com/envoyproxy/go-control-plane/envoy/service/auth/v2"
-	envoytype "github.com/envoyproxy/go-control-plane/envoy/type"
+	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 
+	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/mitchellh/go-testing-interface"
 	"google.golang.org/grpc/metadata"
-
-	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/xds/proxysupport"
 )
 
 // TestADSStream mocks
@@ -26,27 +23,27 @@ import (
 // testing ADS handler.
 type TestADSStream struct {
 	ctx    context.Context
-	sendCh chan *envoy.DiscoveryResponse
-	recvCh chan *envoy.DiscoveryRequest
+	sendCh chan *envoy_discovery_v3.DiscoveryResponse
+	recvCh chan *envoy_discovery_v3.DiscoveryRequest
 }
 
 // NewTestADSStream makes a new TestADSStream
 func NewTestADSStream(t testing.T, ctx context.Context) *TestADSStream {
 	return &TestADSStream{
 		ctx:    ctx,
-		sendCh: make(chan *envoy.DiscoveryResponse, 1),
-		recvCh: make(chan *envoy.DiscoveryRequest, 1),
+		sendCh: make(chan *envoy_discovery_v3.DiscoveryResponse, 1),
+		recvCh: make(chan *envoy_discovery_v3.DiscoveryRequest, 1),
 	}
 }
 
 // Send implements ADSStream
-func (s *TestADSStream) Send(r *envoy.DiscoveryResponse) error {
+func (s *TestADSStream) Send(r *envoy_discovery_v3.DiscoveryResponse) error {
 	s.sendCh <- r
 	return nil
 }
 
 // Recv implements ADSStream
-func (s *TestADSStream) Recv() (*envoy.DiscoveryRequest, error) {
+func (s *TestADSStream) Recv() (*envoy_discovery_v3.DiscoveryRequest, error) {
 	r := <-s.recvCh
 	if r == nil {
 		return nil, io.EOF
@@ -124,7 +121,7 @@ func hexString(v uint64) string {
 	return fmt.Sprintf("%08x", v)
 }
 
-func stringToEnvoyVersion(vs string) (*envoytype.SemanticVersion, bool) {
+func stringToEnvoyVersion(vs string) (*envoy_type_v3.SemanticVersion, bool) {
 	parts := strings.Split(vs, ".")
 	if len(parts) != 3 {
 		return nil, false
@@ -143,7 +140,7 @@ func stringToEnvoyVersion(vs string) (*envoytype.SemanticVersion, bool) {
 		return nil, false
 	}
 
-	return &envoytype.SemanticVersion{
+	return &envoy_type_v3.SemanticVersion{
 		MajorNumber: uint32(major),
 		MinorNumber: uint32(minor),
 		Patch:       uint32(patch),
@@ -160,14 +157,14 @@ func (e *TestEnvoy) SendReq(t testing.T, typeURL string, version, nonce uint64) 
 		t.Fatal("envoy version is not valid: %s", proxysupport.EnvoyVersions[0])
 	}
 
-	req := &envoy.DiscoveryRequest{
+	req := &envoy_discovery_v3.DiscoveryRequest{
 		VersionInfo: hexString(version),
-		Node: &envoycore.Node{
+		Node: &envoy_core_v3.Node{
 			Id:            e.proxyID,
 			Cluster:       e.proxyID,
 			UserAgentName: "envoy",
-			UserAgentVersionType: &envoycore.Node_UserAgentBuildVersion{
-				UserAgentBuildVersion: &envoycore.BuildVersion{
+			UserAgentVersionType: &envoy_core_v3.Node_UserAgentBuildVersion{
+				UserAgentBuildVersion: &envoy_core_v3.BuildVersion{
 					Version: ev,
 				},
 			},
@@ -196,27 +193,4 @@ func (e *TestEnvoy) Close() error {
 		e.cancel()
 	}
 	return nil
-}
-
-// TestCheckRequest creates an envoyauth.CheckRequest with the source and
-// destination service names.
-func TestCheckRequest(t testing.T, source, dest string) *envoyauth.CheckRequest {
-	return &envoyauth.CheckRequest{
-		Attributes: &envoyauth.AttributeContext{
-			Source:      makeAttributeContextPeer(t, source),
-			Destination: makeAttributeContextPeer(t, dest),
-		},
-	}
-}
-
-func makeAttributeContextPeer(t testing.T, svc string) *envoyauth.AttributeContext_Peer {
-	spiffeID := connect.TestSpiffeIDService(t, svc)
-	return &envoyauth.AttributeContext_Peer{
-		// We don't care about IP for now might later though
-		Address: makeAddress("10.0.0.1", 1234),
-		// Note we don't set Service since that is an advisory only mechanism in
-		// Envoy triggered by self-declared headers. We rely on the actual TLS Peer
-		// identity.
-		Principal: spiffeID.URI().String(),
-	}
 }

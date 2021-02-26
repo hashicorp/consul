@@ -8,8 +8,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-version"
@@ -128,10 +126,6 @@ func loadTestResource(t *testing.T, name string) string {
 	expected, err := ioutil.ReadFile(filepath.Join("testdata", name+".golden"))
 	require.NoError(t, err)
 	return string(expected)
-}
-
-func responseToJSON(t *testing.T, r *envoy.DiscoveryResponse) string {
-	return protoToJSON(t, r)
 }
 
 func protoToJSON(t *testing.T, pb proto.Message) string {

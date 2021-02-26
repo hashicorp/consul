@@ -116,6 +116,8 @@ type GRPC struct {
 	AgentSocket string
 }
 
+// bootstrapTemplate sets '"ignore_health_on_host_removal": false' JUST to force this to be detected as a v3 bootstrap
+// config.
 const bootstrapTemplate = `{
   "admin": {
     "access_log_path": "{{ .AdminAccessLogPath }}",
@@ -138,20 +140,21 @@ const bootstrapTemplate = `{
     "clusters": [
       {
         "name": "{{ .LocalAgentClusterName }}",
+        "ignore_health_on_host_removal": false,
         "connect_timeout": "1s",
         "type": "STATIC",
         {{- if .AgentTLS -}}
         "transport_socket": {
           "name": "tls",
           "typed_config": {
-            "@type": "type.googleapis.com/envoy.api.v2.auth.UpstreamTlsContext",
+            "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
             "common_tls_context": {
               "validation_context": {
                 "trusted_ca": {
                   "inline_string": "{{ .AgentCAPEM }}"
                 }
-               }
-             }
+              }
+            }
           }
         },
         {{- end }}
@@ -178,7 +181,7 @@ const bootstrapTemplate = `{
                   }
                 }
               ]
-             }
+            }
           ]
         }
       }
@@ -206,10 +209,17 @@ const bootstrapTemplate = `{
   "tracing": {{ .TracingConfigJSON }},
   {{- end }}
   "dynamic_resources": {
-    "lds_config": { "ads": {} },
-    "cds_config": { "ads": {} },
+    "lds_config": {
+      "ads": {},
+      "resource_api_version": "V3"
+    },
+    "cds_config": {
+      "ads": {},
+      "resource_api_version": "V3"
+    },
     "ads_config": {
       "api_type": "GRPC",
+      "transport_api_version": "V3",
       "grpc_services": {
         "initial_metadata": [
           {

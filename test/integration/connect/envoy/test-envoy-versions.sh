@@ -18,8 +18,11 @@ cd "$(dirname "$0")"
     # 1.13.2
     # 1.13.3
     # 1.13.4
+    # 1.13.5
+    # 1.13.7
     # 1.13.6
     # 1.13.7
+
 versions=(
     1.14.1
     1.14.2
@@ -34,8 +37,10 @@ versions=(
     1.16.0
     1.16.1
     1.16.2
+    1.17.0
 )
 
+set +e
 for v in "${versions[@]}"; do
     echo "ENVOY_VERSION=${v}"
     export ENVOY_VERSION="${v}"
