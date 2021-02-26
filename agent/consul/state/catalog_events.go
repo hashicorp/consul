@@ -1,6 +1,8 @@
 package state
 
 import (
+	"strings"
+
 	memdb "github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
@@ -42,7 +44,7 @@ func (e EventPayloadCheckServiceNode) MatchesKey(key, namespace string) bool {
 		name = e.key
 	}
 	ns := e.Value.Service.EnterpriseMeta.GetNamespace()
-	return (key == "" || key == name) && (namespace == "" || namespace == ns)
+	return (key == "" || strings.EqualFold(key, name)) && (namespace == "" || namespace == ns)
 }
 
 // serviceHealthSnapshot returns a stream.SnapshotFunc that provides a snapshot

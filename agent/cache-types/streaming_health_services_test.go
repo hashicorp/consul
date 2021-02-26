@@ -568,3 +568,211 @@ func runStep(t *testing.T, name string, fn func(t *testing.T)) {
 		t.FailNow()
 	}
 }
+
+func TestNewFilterEvaluator(t *testing.T) {
+	type testCase struct {
+		name     string
+		req      structs.ServiceSpecificRequest
+		data     structs.CheckServiceNode
+		expected bool
+	}
+
+	fn := func(t *testing.T, tc testCase) {
+		e, err := newFilterEvaluator(&tc.req)
+		require.NoError(t, err)
+		actual, err := e.Evaluate(tc.data)
+		require.NoError(t, err)
+		require.Equal(t, tc.expected, actual)
+	}
+
+	var testCases = []testCase{
+		{
+			name: "single ServiceTags match",
+			req: structs.ServiceSpecificRequest{
+				ServiceTags: []string{"match"},
+				TagFilter:   true,
+			},
+			data: structs.CheckServiceNode{
+				Service: &structs.NodeService{
+					Tags: []string{"extra", "match"},
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "single deprecated ServiceTag match",
+			req: structs.ServiceSpecificRequest{
+				ServiceTag: "match",
+				TagFilter:  true,
+			},
+			data: structs.CheckServiceNode{
+				Service: &structs.NodeService{
+					Tags: []string{"extra", "match"},
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "single ServiceTags mismatch",
+			req: structs.ServiceSpecificRequest{
+				ServiceTags: []string{"other"},
+				TagFilter:   true,
+			},
+			data: structs.CheckServiceNode{
+				Service: &structs.NodeService{
+					Tags: []string{"extra", "match"},
+				},
+			},
+			expected: false,
+		},
+		{
+			name: "multiple ServiceTags match",
+			req: structs.ServiceSpecificRequest{
+				ServiceTags: []string{"match", "second"},
+				TagFilter:   true,
+			},
+			data: structs.CheckServiceNode{
+				Service: &structs.NodeService{
+					Tags: []string{"extra", "match", "second"},
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "multiple ServiceTags mismatch",
+			req: structs.ServiceSpecificRequest{
+				ServiceTags: []string{"match", "not"},
+				TagFilter:   true,
+			},
+			data: structs.CheckServiceNode{
+				Service: &structs.NodeService{
+					Tags: []string{"extra", "match"},
+				},
+			},
+			expected: false,
+		},
+		{
+			name: "single NodeMetaFilter match",
+			req: structs.ServiceSpecificRequest{
+				NodeMetaFilters: map[string]string{"meta1": "match"},
+			},
+			data: structs.CheckServiceNode{
+				Node: &structs.Node{
+					Meta: map[string]string{
+						"meta1": "match",
+						"extra": "some",
+					},
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "single NodeMetaFilter mismatch",
+			req: structs.ServiceSpecificRequest{
+				NodeMetaFilters: map[string]string{
+					"meta1": "match",
+				},
+			},
+			data: structs.CheckServiceNode{
+				Node: &structs.Node{
+					Meta: map[string]string{
+						"meta1": "other",
+						"extra": "some",
+					},
+				},
+			},
+			expected: false,
+		},
+		{
+			name: "multiple NodeMetaFilter match",
+			req: structs.ServiceSpecificRequest{
+				NodeMetaFilters: map[string]string{"meta1": "match", "meta2": "a"},
+			},
+			data: structs.CheckServiceNode{
+				Node: &structs.Node{
+					Meta: map[string]string{
+						"meta1": "match",
+						"meta2": "a",
+						"extra": "some",
+					},
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "multiple NodeMetaFilter mismatch",
+			req: structs.ServiceSpecificRequest{
+				NodeMetaFilters: map[string]string{
+					"meta1": "match",
+					"meta2": "beta",
+				},
+			},
+			data: structs.CheckServiceNode{
+				Node: &structs.Node{
+					Meta: map[string]string{
+						"meta1": "other",
+						"meta2": "gamma",
+					},
+				},
+			},
+			expected: false,
+		},
+		{
+			name: "QueryOptions.Filter match",
+			req: structs.ServiceSpecificRequest{
+				QueryOptions: structs.QueryOptions{
+					Filter: `Node.Node == "node3"`,
+				},
+			},
+			data: structs.CheckServiceNode{
+				Node: &structs.Node{Node: "node3"},
+			},
+			expected: true,
+		},
+		{
+			name: "QueryOptions.Filter mismatch",
+			req: structs.ServiceSpecificRequest{
+				QueryOptions: structs.QueryOptions{
+					Filter: `Node.Node == "node2"`,
+				},
+			},
+			data: structs.CheckServiceNode{
+				Node: &structs.Node{Node: "node3"},
+			},
+			expected: false,
+		},
+		{
+			name: "all match",
+			req: structs.ServiceSpecificRequest{
+				QueryOptions: structs.QueryOptions{
+					Filter: `Node.Node == "node3"`,
+				},
+				ServiceTags: []string{"tag1", "tag2"},
+				NodeMetaFilters: map[string]string{
+					"meta1": "match1",
+					"meta2": "match2",
+				},
+			},
+			data: structs.CheckServiceNode{
+				Node: &structs.Node{
+					Node: "node3",
+					Meta: map[string]string{
+						"meta1": "match1",
+						"meta2": "match2",
+						"extra": "other",
+					},
+				},
+				Service: &structs.NodeService{
+					Tags: []string{"tag1", "tag2", "extra"},
+				},
+			},
+			expected: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			fn(t, tc)
+		})
+	}
+}

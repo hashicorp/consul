@@ -68,5 +68,6 @@ func (c *Client) getServiceNodes(
 	if !ok {
 		panic("wrong response type for cachetype.HealthServicesName")
 	}
+
 	return *value, md, nil
 }

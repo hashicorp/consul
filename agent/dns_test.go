@@ -3016,72 +3016,95 @@ func TestDNS_CaseInsensitiveServiceLookup(t *testing.T) {
 	}
 
 	t.Parallel()
-	a := NewTestAgent(t, "")
-	defer a.Shutdown()
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
-
-	// Register a node with a service.
-	{
-		args := &structs.RegisterRequest{
-			Datacenter: "dc1",
-			Node:       "foo",
-			Address:    "127.0.0.1",
-			Service: &structs.NodeService{
-				Service: "Db",
-				Tags:    []string{"Primary"},
-				Port:    12345,
-			},
-		}
-
-		var out struct{}
-		if err := a.RPC("Catalog.Register", args, &out); err != nil {
-			t.Fatalf("err: %v", err)
-		}
+	tests := []struct {
+		name   string
+		config string
+	}{
+		// UDP + EDNS
+		{"normal", ""},
+		{"cache", `dns_config{ allow_stale=true, max_stale="3h", use_cache=true, "cache_max_age"="3h"}`},
+		{"cache-with-streaming", `
+			rpc{
+				enable_streaming=true
+			}
+			use_streaming_backend=true
+			dns_config{ allow_stale=true, max_stale="3h", use_cache=true, "cache_max_age"="3h"}
+		    `},
 	}
+	for _, tst := range tests {
+		t.Run(fmt.Sprintf("A lookup %v", tst.name), func(t *testing.T) {
+			a := NewTestAgent(t, tst.config)
+			defer a.Shutdown()
+			testrpc.WaitForLeader(t, a.RPC, "dc1")
 
-	// Register an equivalent prepared query, as well as a name.
-	var id string
-	{
-		args := &structs.PreparedQueryRequest{
-			Datacenter: "dc1",
-			Op:         structs.PreparedQueryCreate,
-			Query: &structs.PreparedQuery{
-				Name: "somequery",
-				Service: structs.ServiceQuery{
-					Service: "db",
-				},
-			},
-		}
-		if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}
+			// Register a node with a service.
+			{
+				args := &structs.RegisterRequest{
+					Datacenter: "dc1",
+					Node:       "foo",
+					Address:    "127.0.0.1",
+					Service: &structs.NodeService{
+						Service: "Db",
+						Tags:    []string{"Primary"},
+						Port:    12345,
+					},
+				}
 
-	// Try some variations to make sure case doesn't matter.
-	questions := []string{
-		"primary.db.service.consul.",
-		"pRIMARY.dB.service.consul.",
-		"PRIMARY.dB.service.consul.",
-		"db.service.consul.",
-		"DB.service.consul.",
-		"Db.service.consul.",
-		"somequery.query.consul.",
-		"SomeQuery.query.consul.",
-		"SOMEQUERY.query.consul.",
-	}
-	for _, question := range questions {
-		m := new(dns.Msg)
-		m.SetQuestion(question, dns.TypeSRV)
+				var out struct{}
+				if err := a.RPC("Catalog.Register", args, &out); err != nil {
+					t.Fatalf("err: %v", err)
+				}
+			}
 
-		c := new(dns.Client)
-		in, _, err := c.Exchange(m, a.DNSAddr())
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
+			// Register an equivalent prepared query, as well as a name.
+			var id string
+			{
+				args := &structs.PreparedQueryRequest{
+					Datacenter: "dc1",
+					Op:         structs.PreparedQueryCreate,
+					Query: &structs.PreparedQuery{
+						Name: "somequery",
+						Service: structs.ServiceQuery{
+							Service: "db",
+						},
+					},
+				}
+				if err := a.RPC("PreparedQuery.Apply", args, &id); err != nil {
+					t.Fatalf("err: %v", err)
+				}
+			}
 
-		if len(in.Answer) != 1 {
-			t.Fatalf("empty lookup: %#v", in)
-		}
+			// Try some variations to make sure case doesn't matter.
+			questions := []string{
+				"primary.Db.service.consul.",
+				"primary.db.service.consul.",
+				"pRIMARY.dB.service.consul.",
+				"PRIMARY.dB.service.consul.",
+				"db.service.consul.",
+				"DB.service.consul.",
+				"Db.service.consul.",
+				"somequery.query.consul.",
+				"SomeQuery.query.consul.",
+				"SOMEQUERY.query.consul.",
+			}
+
+			for _, question := range questions {
+				m := new(dns.Msg)
+				m.SetQuestion(question, dns.TypeSRV)
+
+				c := new(dns.Client)
+				retry.Run(t, func(r *retry.R) {
+					in, _, err := c.Exchange(m, a.DNSAddr())
+					if err != nil {
+						t.Fatalf("err: %v", err)
+					}
+
+					if len(in.Answer) != 1 {
+						t.Fatalf("question %v, empty lookup: %#v", question, in)
+					}
+				})
+			}
+		})
 	}
 }
 

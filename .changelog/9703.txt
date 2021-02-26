@@ -1,0 +1,3 @@
+```release-note:bug
+streaming: lookup in health properly handle case-sensitivity and perform filtering based on tags and node-meta
+```

@@ -602,7 +602,7 @@ func (r *ServiceSpecificRequest) CacheInfo() cache.RequestInfo {
 	sort.Strings(r.ServiceTags)
 	v, err := hashstructure.Hash([]interface{}{
 		r.NodeMetaFilters,
-		r.ServiceName,
+		strings.ToLower(r.ServiceName),
 		// DEPRECATED (singular-service-tag) - remove this when upgrade RPC compat
 		// with 1.2.x is not required. We still need this in because <1.3 agents
 		// might still send RPCs with singular tag set. In fact the only place we
