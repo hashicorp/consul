@@ -1832,10 +1832,10 @@ bind_addr = "{{ GetPrivateInterfaces | include \"network\" \"10.0.0.0/8\" | attr
 
 - `rpc` configuration for Consul servers.
 
-  - `enable_streaming` ((#rpc_enable_streaming)) (experimental) enables the gRPC subscribe endpoint on a Consul Server. All
+  - `enable_streaming` ((#rpc_enable_streaming)) defaults to true. If set to false it will disable
+    the gRPC subscribe endpoint on a Consul Server. All
     servers in all federated datacenters must have this enabled before any client can use
     [`use_streaming_backend`](#use_streaming_backend).
-    This setting will default to true in a future version of Consul.
 
 - `segment` <EnterpriseAlert inline /> - Equivalent to the [`-segment` command-line flag](#_segment).
 
