@@ -203,7 +203,7 @@ func ServiceHealthEventsFromChanges(tx ReadTxn, changes Changes) ([]stream.Event
 					markService(newNodeServiceTupleFromServiceHealthCheck(obj), serviceChangeIndirect)
 				}
 			}
-		case gatewayServicesTableName:
+		case tableGatewayServices:
 			gs := changeObject(change).(*structs.GatewayService)
 			if gs.GatewayKind != structs.ServiceKindTerminatingGateway {
 				continue

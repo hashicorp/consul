@@ -1030,7 +1030,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 					},
 					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 				}
-				return ensureConfigEntryTxn(tx, tx.Index, configEntry, structs.DefaultEnterpriseMeta())
+				return ensureConfigEntryTxn(tx, tx.Index, configEntry)
 			},
 			WantEvents: []stream.Event{},
 		},
@@ -1052,7 +1052,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 					},
 					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 				}
-				return ensureConfigEntryTxn(tx, tx.Index, configEntry, structs.DefaultEnterpriseMeta())
+				return ensureConfigEntryTxn(tx, tx.Index, configEntry)
 			},
 			Mutate: func(s *Store, tx *txn) error {
 				if err := s.ensureRegistrationTxn(
@@ -1111,7 +1111,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 					},
 					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 				}
-				err := ensureConfigEntryTxn(tx, tx.Index, configEntry, structs.DefaultEnterpriseMeta())
+				err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
 				if err != nil {
 					return err
 				}
@@ -1172,7 +1172,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 					},
 					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 				}
-				return ensureConfigEntryTxn(tx, tx.Index, configEntry, structs.DefaultEnterpriseMeta())
+				return ensureConfigEntryTxn(tx, tx.Index, configEntry)
 			},
 			WantEvents: []stream.Event{
 				testServiceHealthEvent(t,
@@ -1201,7 +1201,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 					},
 					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 				}
-				err := ensureConfigEntryTxn(tx, tx.Index, configEntry, structs.DefaultEnterpriseMeta())
+				err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
 				if err != nil {
 					return err
 				}
@@ -1224,7 +1224,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 					},
 					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 				}
-				return ensureConfigEntryTxn(tx, tx.Index, configEntry, structs.DefaultEnterpriseMeta())
+				return ensureConfigEntryTxn(tx, tx.Index, configEntry)
 			},
 			WantEvents: []stream.Event{
 				testServiceHealthEvent(t,
@@ -1252,7 +1252,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 					},
 					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 				}
-				err := ensureConfigEntryTxn(tx, tx.Index, configEntry, structs.DefaultEnterpriseMeta())
+				err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
 				if err != nil {
 					return err
 				}
@@ -1271,7 +1271,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 					},
 					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 				}
-				return ensureConfigEntryTxn(tx, tx.Index, configEntry, structs.DefaultEnterpriseMeta())
+				return ensureConfigEntryTxn(tx, tx.Index, configEntry)
 			},
 			WantEvents: []stream.Event{
 				testServiceHealthDeregistrationEvent(t,
@@ -1294,7 +1294,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 					},
 					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 				}
-				err := ensureConfigEntryTxn(tx, tx.Index, configEntry, structs.DefaultEnterpriseMeta())
+				err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
 				if err != nil {
 					return err
 				}
@@ -1314,7 +1314,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 					},
 					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 				}
-				return ensureConfigEntryTxn(tx, tx.Index, configEntry, structs.DefaultEnterpriseMeta())
+				return ensureConfigEntryTxn(tx, tx.Index, configEntry)
 			},
 			WantEvents: []stream.Event{
 				testServiceHealthDeregistrationEvent(t,
@@ -1342,7 +1342,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 					},
 					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 				}
-				err := ensureConfigEntryTxn(tx, tx.Index, configEntry, structs.DefaultEnterpriseMeta())
+				err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
 				if err != nil {
 					return err
 				}
@@ -1384,7 +1384,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 					},
 					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 				}
-				err := ensureConfigEntryTxn(tx, tx.Index, configEntry, structs.DefaultEnterpriseMeta())
+				err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
 				if err != nil {
 					return err
 				}
@@ -1412,7 +1412,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 					},
 					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 				}
-				err := ensureConfigEntryTxn(tx, tx.Index, configEntry, structs.DefaultEnterpriseMeta())
+				err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
 				if err != nil {
 					return err
 				}
@@ -1444,7 +1444,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 					},
 					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 				}
-				err := ensureConfigEntryTxn(tx, tx.Index, configEntry, structs.DefaultEnterpriseMeta())
+				err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
 				if err != nil {
 					return err
 				}
@@ -1459,7 +1459,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 					},
 					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 				}
-				err = ensureConfigEntryTxn(tx, tx.Index, configEntry, structs.DefaultEnterpriseMeta())
+				err = ensureConfigEntryTxn(tx, tx.Index, configEntry)
 				if err != nil {
 					return err
 				}
@@ -1518,7 +1518,7 @@ func TestServiceHealthEventsFromChanges(t *testing.T) {
 					},
 					EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 				}
-				err := ensureConfigEntryTxn(tx, tx.Index, configEntry, structs.DefaultEnterpriseMeta())
+				err := ensureConfigEntryTxn(tx, tx.Index, configEntry)
 				if err != nil {
 					return err
 				}
