@@ -127,42 +127,69 @@ export const routes = {
     },
     // ACLs
     acls: {
-      _options: { path: '/acls' },
+      _options: {
+        path: '/acls',
+        abilities: ['read acls'],
+      },
       edit: {
         _options: { path: '/:id' },
       },
       create: {
-        _options: { path: '/create' },
+        _options: {
+          path: '/create',
+          abilities: ['create acls'],
+        },
       },
       policies: {
-        _options: { path: '/policies' },
+        _options: {
+          path: '/policies',
+          abilities: ['read policies'],
+        },
         edit: {
           _options: { path: '/:id' },
         },
         create: {
-          _options: { path: '/create' },
+          _options: {
+            path: '/create',
+            abilities: ['create policies'],
+          },
         },
       },
       roles: {
-        _options: { path: '/roles' },
+        _options: {
+          path: '/roles',
+          abilities: ['read roles'],
+        },
         edit: {
           _options: { path: '/:id' },
         },
         create: {
-          _options: { path: '/create' },
+          _options: {
+            path: '/create',
+            abilities: ['create roles'],
+          },
         },
       },
       tokens: {
-        _options: { path: '/tokens' },
+        _options: {
+          path: '/tokens',
+          abilities: ['read tokens'],
+        },
         edit: {
           _options: { path: '/:id' },
         },
         create: {
-          _options: { path: '/create' },
+          _options: {
+            path: '/create',
+            abilities: ['create tokens'],
+          },
         },
       },
       'auth-methods': {
-        _options: { path: '/auth-methods' },
+        _options: {
+          path: '/auth-methods',
+          abilities: ['read auth-methods'],
+        },
         show: {
           _options: { path: '/show' },
         },
