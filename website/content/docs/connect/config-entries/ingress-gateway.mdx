@@ -836,6 +836,23 @@ spec:
       yaml: false,
     },
     {
+      name: "TracingStrategy",
+      type: `string: "random_sampling"`,
+      yaml: false,
+      description:
+        'Specifies the request tracing strategy to be used by the underlying http connection manager. Possible values '+
+        'are `random_sampling` or `client_sampling`.'
+    },
+    {
+      name: "TracingPercentage",
+      type: `float: 0`,
+      yaml: false,
+      description:
+        'Target percentage of requests received by the gateway that should be traced. ' + 
+        'When `TracingStrategy` is set to `client_sampling` this percentage applies to requests containing the `x-client-trace-id` header. ' +
+        'With the `random_sampling` tracing strategy this percentage applies to requests that do not contain the `x-client-trace-id` header.'
+    },
+    {
       name: 'Meta',
       type: 'map<string|string>: nil',
       description:
