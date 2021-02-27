@@ -71,21 +71,24 @@ func serviceHealthSnapshot(db ReadDB, topic stream.Topic) stream.SnapshotFunc {
 			event := stream.Event{
 				Index: idx,
 				Topic: topic,
-			}
-			payload := EventPayloadCheckServiceNode{
-				Op:    pbsubscribe.CatalogOp_Register,
-				Value: &n,
-			}
-
-			if connect && n.Service.Kind == structs.ServiceKindConnectProxy {
-				payload.overrideKey = n.Service.Proxy.DestinationServiceName
+				Payload: EventPayloadCheckServiceNode{
+					Op:    pbsubscribe.CatalogOp_Register,
+					Value: &n,
+				},
 			}
 
-			event.Payload = payload
+			if !connect {
+				// append each event as a separate item so that they can be serialized
+				// separately, to prevent the encoding of one massive message.
+				buf.Append([]stream.Event{event})
+				continue
+			}
 
-			// append each event as a separate item so that they can be serialized
-			// separately, to prevent the encoding of one massive message.
-			buf.Append([]stream.Event{event})
+			events, err := connectEventsByServiceKind(tx, event)
+			if err != nil {
+				return idx, err
+			}
+			buf.Append(events)
 		}
 
 		return idx, err
@@ -413,41 +416,54 @@ func serviceHealthToConnectEvents(
 			// Skip non-health or any events already emitted to Connect topic
 			continue
 		}
-		node := getPayloadCheckServiceNode(event.Payload)
-		if node.Service == nil {
-			continue
+
+		connectEvents, err := connectEventsByServiceKind(tx, event)
+		if err != nil {
+			return nil, err
 		}
 
-		connectEvent := event
-		connectEvent.Topic = topicServiceHealthConnect
-
-		switch {
-		case node.Service.Connect.Native:
-			result = append(result, connectEvent)
-
-		case node.Service.Kind == structs.ServiceKindConnectProxy:
-			payload := event.Payload.(EventPayloadCheckServiceNode)
-			payload.overrideKey = node.Service.Proxy.DestinationServiceName
-			connectEvent.Payload = payload
-			result = append(result, connectEvent)
-
-		case node.Service.Kind == structs.ServiceKindTerminatingGateway:
-			iter, err := gatewayServices(tx, node.Service.Service, &node.Service.EnterpriseMeta)
-			if err != nil {
-				return nil, err
-			}
-
-			// similar to checkServiceNodesTxn -> serviceGatewayNodes
-			for obj := iter.Next(); obj != nil; obj = iter.Next() {
-				result = append(result, copyEventForService(event, obj.(*structs.GatewayService).Service))
-			}
-
-		default:
-			// All other cases are not relevant to the connect topic
-		}
+		result = append(result, connectEvents...)
 	}
 
 	return result, nil
+}
+
+func connectEventsByServiceKind(tx ReadTxn, origEvent stream.Event) ([]stream.Event, error) {
+	node := getPayloadCheckServiceNode(origEvent.Payload)
+	if node.Service == nil {
+		return nil, nil
+	}
+
+	event := origEvent // shallow copy the event
+	event.Topic = topicServiceHealthConnect
+
+	if node.Service.Connect.Native {
+		return []stream.Event{event}, nil
+	}
+
+	switch node.Service.Kind {
+	case structs.ServiceKindConnectProxy:
+		payload := event.Payload.(EventPayloadCheckServiceNode)
+		payload.overrideKey = node.Service.Proxy.DestinationServiceName
+		event.Payload = payload
+		return []stream.Event{event}, nil
+
+	case structs.ServiceKindTerminatingGateway:
+		var result []stream.Event
+		iter, err := gatewayServices(tx, node.Service.Service, &node.Service.EnterpriseMeta)
+		if err != nil {
+			return nil, err
+		}
+
+		// similar to checkServiceNodesTxn -> serviceGatewayNodes
+		for obj := iter.Next(); obj != nil; obj = iter.Next() {
+			result = append(result, copyEventForService(event, obj.(*structs.GatewayService).Service))
+		}
+		return result, nil
+	default:
+		// All other cases are not relevant to the connect topic
+	}
+	return nil, nil
 }
 
 func copyEventForService(event stream.Event, service structs.ServiceName) stream.Event {

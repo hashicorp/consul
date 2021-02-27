@@ -85,6 +85,23 @@ func TestServiceHealthSnapshot_ConnectTopic(t *testing.T) {
 	err = store.EnsureRegistration(counter.Next(), testServiceRegistration(t, "web", regNode2, regSidecar))
 	require.NoError(t, err)
 
+	configEntry := &structs.TerminatingGatewayConfigEntry{
+		Kind: structs.TerminatingGateway,
+		Name: "tgate1",
+		Services: []structs.LinkedService{
+			{
+				Name:           "web",
+				EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+			},
+		},
+		EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+	}
+	err = store.EnsureConfigEntry(counter.Next(), configEntry)
+	require.NoError(t, err)
+
+	err = store.EnsureRegistration(counter.Next(), testServiceRegistration(t, "tgate1", regTerminatingGateway))
+	require.NoError(t, err)
+
 	fn := serviceHealthSnapshot((*readDB)(store.db.db), topicServiceHealthConnect)
 	buf := &snapshotAppender{}
 	req := stream.SubscribeRequest{Key: "web", Topic: topicServiceHealthConnect}
@@ -95,10 +112,9 @@ func TestServiceHealthSnapshot_ConnectTopic(t *testing.T) {
 
 	expected := [][]stream.Event{
 		{
-			testServiceHealthEvent(t, "web", evSidecar, evConnectTopic, func(e *stream.Event) error {
+			testServiceHealthEvent(t, "web", evConnectTopic, evSidecar, func(e *stream.Event) error {
 				e.Index = counter.Last()
 				ep := e.Payload.(EventPayloadCheckServiceNode)
-				ep.overrideKey = "web"
 				e.Payload = ep
 				csn := ep.Value
 				csn.Node.CreateIndex = 1
@@ -113,10 +129,9 @@ func TestServiceHealthSnapshot_ConnectTopic(t *testing.T) {
 			}),
 		},
 		{
-			testServiceHealthEvent(t, "web", evNode2, evSidecar, evConnectTopic, func(e *stream.Event) error {
+			testServiceHealthEvent(t, "web", evConnectTopic, evNode2, evSidecar, func(e *stream.Event) error {
 				e.Index = counter.Last()
 				ep := e.Payload.(EventPayloadCheckServiceNode)
-				ep.overrideKey = "web"
 				e.Payload = ep
 				csn := ep.Value
 				csn.Node.CreateIndex = 4
@@ -129,6 +144,26 @@ func TestServiceHealthSnapshot_ConnectTopic(t *testing.T) {
 				csn.Checks[1].ModifyIndex = 5
 				return nil
 			}),
+		},
+		{
+			testServiceHealthEvent(t, "tgate1",
+				evConnectTopic,
+				evServiceTermingGateway("web"),
+				func(e *stream.Event) error {
+					e.Index = counter.Last()
+					ep := e.Payload.(EventPayloadCheckServiceNode)
+					e.Payload = ep
+					csn := ep.Value
+					csn.Node.CreateIndex = 1
+					csn.Node.ModifyIndex = 1
+					csn.Service.CreateIndex = 7
+					csn.Service.ModifyIndex = 7
+					csn.Checks[0].CreateIndex = 1
+					csn.Checks[0].ModifyIndex = 1
+					csn.Checks[1].CreateIndex = 7
+					csn.Checks[1].ModifyIndex = 7
+					return nil
+				}),
 		},
 	}
 	assertDeepEqual(t, expected, buf.events, cmpEvents)
@@ -160,18 +195,6 @@ func newIndexCounter() *indexCounter {
 }
 
 var _ stream.SnapshotAppender = (*snapshotAppender)(nil)
-
-func evIndexes(idx, create, modify uint64) func(e *stream.Event) error {
-	return func(e *stream.Event) error {
-		e.Index = idx
-		csn := getPayloadCheckServiceNode(e.Payload)
-		csn.Node.CreateIndex = create
-		csn.Node.ModifyIndex = modify
-		csn.Service.CreateIndex = create
-		csn.Service.ModifyIndex = modify
-		return nil
-	}
-}
 
 type serviceHealthTestCase struct {
 	Name       string
@@ -1593,15 +1616,6 @@ func evServiceTermingGateway(name string) func(e *stream.Event) error {
 
 		csn.Service.Kind = structs.ServiceKindTerminatingGateway
 		csn.Service.Port = 22000
-
-		// Convert the check to point to the right ID now. This isn't totally
-		// realistic - sidecars should have alias checks etc but this is good enough
-		// to test this code path.
-		//if len(csn.Checks) >= 2 {
-		//	csn.Checks[1].CheckID = types.CheckID("service:" + svc + "_terminating_gateway")
-		//	csn.Checks[1].ServiceID = svc + "_terminating_gateway"
-		//	csn.Checks[1].ServiceName = svc + "_terminating_gateway"
-		//}
 
 		if e.Topic == topicServiceHealthConnect {
 			payload := e.Payload.(EventPayloadCheckServiceNode)
