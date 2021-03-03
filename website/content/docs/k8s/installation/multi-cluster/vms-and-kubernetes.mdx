@@ -24,19 +24,19 @@ If your primary datacenter is running on Kubernetes, use the Helm config from th
 Once installed, and with the `ProxyDefaults` [resource created](/docs/k8s/installation/multi-cluster/kubernetes#proxydefaults),
 you'll need to export the following information from the primary Kubernetes cluster:
 
-1. The certificate authority cert:
+* The certificate authority cert:
 
-```sh
-kubectl get secrets/consul-ca-cert --template='{{index .data "tls.crt" }}' |
-  base64 -D > consul-agent-ca.pem
-```
+  ```sh
+  kubectl get secrets/consul-ca-cert --template='{{index .data "tls.crt" }}' |
+    base64 -D > consul-agent-ca.pem
+  ```
 
-and the certificate authority signing key:
+* The certificate authority signing key:
 
-```sh
-kubectl get secrets/consul-ca-key --template='{{index .data "tls.key" }}' |
-   base64 -D > consul-agent-ca-key.pem
-```
+  ```sh
+  kubectl get secrets/consul-ca-key --template='{{index .data "tls.key" }}' |
+     base64 -D > consul-agent-ca-key.pem
+  ```
 
 With the `consul-agent-ca.pem` and `consul-agent-ca-key.pem` files you can
 create certificates for your servers and clients running on VMs that share the
@@ -44,18 +44,22 @@ same certificate authority as your Kubernetes servers.
 
 You can use the `consul tls` commands to generate those certificates:
 
-```sh
-# NOTE: consul-agent-ca.pem and consul-agent-ca-key.pem must be in the current
-# directory.
-$ consul tls cert create -server -dc=vm-dc
-==> WARNING: Server Certificates grants authority to become a
-    server and access all state in the cluster including root keys
-    and all ACL tokens. Do not distribute them to production hosts
-    that are not server nodes. Store them as securely as CA keys.
-==> Using consul-agent-ca.pem and consul-agent-ca-key.pem
-==> Saved vm-dc-server-consul-0.pem
-==> Saved vm-dc-server-consul-0-key.pem
-```
+  ```sh
+  # NOTE: consul-agent-ca.pem and consul-agent-ca-key.pem must be in the current
+  # directory.
+  $ consul tls cert create -server -dc=vm-dc -node <node_name>
+  ==> WARNING: Server Certificates grants authority to become a
+      server and access all state in the cluster including root keys
+      and all ACL tokens. Do not distribute them to production hosts
+      that are not server nodes. Store them as securely as CA keys.
+  ==> Using consul-agent-ca.pem and consul-agent-ca-key.pem
+  ==> Saved vm-dc-server-consul-0.pem
+  ==> Saved vm-dc-server-consul-0-key.pem
+  ```
+
+-> Note the `-node` option in the above command. This should be same as the node name of the [Consul Agent](https://www.consul.io/docs/agent#running-an-agent).  This is a [requirement](https://www.consul.io/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways#tls) for Consul Federation to work. Alternatively, if you plan to use the same certificate and key pair on all your Consul server nodes, or you don't know the nodename in advance, use `-node "*"` instead.
+Not satisfying this requirement would result in the following error in the Consul Server logs:
+`[ERROR] agent.server.rpc: TLS handshake failed: conn=from= error="remote error: tls: bad certificate"`
 
 See the help for output of `consul tls cert create -h` to see more options
 for generating server certificates.
