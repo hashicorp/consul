@@ -95,6 +95,14 @@ type BootstrapTplArgs struct {
 	// EnvoyVersion is the envoy version, which is necessary to generate the
 	// correct configuration.
 	EnvoyVersion string
+
+	// PrometheusBackendPort will configure a "prometheus_backend" cluster which
+	// envoy_prometheus_bind_addr will point to.
+	PrometheusBackendPort string
+
+	// PrometheusScrapePath will configure the path where metrics are exposed on
+	// the envoy_prometheus_bind_addr listener.
+	PrometheusScrapePath string
 }
 
 // GRPC settings used in the bootstrap template.
