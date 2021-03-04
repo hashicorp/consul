@@ -15,6 +15,10 @@ type Query struct {
 	structs.EnterpriseMeta
 }
 
+func (q Query) IDValue() string {
+	return q.Value
+}
+
 // NamespaceOrDefault exists because structs.EnterpriseMeta uses a pointer
 // receiver for this method. Remove once that is fixed.
 func (q Query) NamespaceOrDefault() string {

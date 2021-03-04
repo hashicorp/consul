@@ -137,6 +137,13 @@ func (b *indexBuilder) Bytes() []byte {
 	return (*bytes.Buffer)(b).Bytes()
 }
 
+// singleValueID is an interface that may be implemented by any type that should
+// be indexed by a single ID and a structs.EnterpriseMeta to scope the ID.
+type singleValueID interface {
+	IDValue() string
+	NamespaceOrDefault() string
+}
+
 func (b *indexBuilder) Bool(v bool) {
 	b.Raw([]byte{intFromBool(v)})
 }

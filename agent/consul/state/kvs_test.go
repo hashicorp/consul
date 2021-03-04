@@ -500,7 +500,8 @@ func TestStateStore_KVSDelete(t *testing.T) {
 	// The entry was removed from the state store
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	e, err := firstWithTxn(tx, "kvs", "id", "foo", nil)
+
+	e, err := tx.First(tableKVs, indexID, Query{Value: "foo"})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -509,7 +510,7 @@ func TestStateStore_KVSDelete(t *testing.T) {
 	}
 
 	// Try fetching the other keys to ensure they still exist
-	e, err = firstWithTxn(tx, "kvs", "id", "foo/bar", nil)
+	e, err = tx.First(tableKVs, indexID, Query{Value: "foo/bar"})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -658,7 +659,7 @@ func TestStateStore_KVSSetCAS(t *testing.T) {
 
 	// Check that nothing was actually stored
 	tx := s.db.Txn(false)
-	if e, err := firstWithTxn(tx, "kvs", "id", "foo", nil); e != nil || err != nil {
+	if e, err := tx.First(tableKVs, indexID, Query{Value: "foo"}); e != nil || err != nil {
 		t.Fatalf("expected (nil, nil), got: (%#v, %#v)", e, err)
 	}
 	tx.Abort()
@@ -865,7 +866,7 @@ func TestStateStore_KVSDeleteTree(t *testing.T) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	entries, err := tx.Get("kvs", "id")
+	entries, err := tx.Get(tableKVs, indexID)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
