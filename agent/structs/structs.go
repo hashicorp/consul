@@ -2245,7 +2245,7 @@ func (d *DirEntry) Equal(o *DirEntry) bool {
 		d.Session == o.Session
 }
 
-// IDValue implements the state.singleValueID interface for indexing.
+// IDValue implementas the state.singleValueID interface for indexing.
 func (d *DirEntry) IDValue() string {
 	return d.Key
 }

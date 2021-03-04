@@ -12,12 +12,39 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 )
 
-func kvsIndexer() indexerSingleWithPrefix {
-	return indexerSingleWithPrefix{
-		readIndex:   readIndex(indexFromIDValue),
-		writeIndex:  writeIndex(indexFromIDValue),
-		prefixIndex: prefixIndex(prefixIndexForIDValue),
+// indexFromKVEntry creates an index key from a structs.DirEntry, Query, or
+// *Tombstone. The index is case sensitive.
+func indexFromKVEntry(raw interface{}) ([]byte, error) {
+	e, ok := raw.(singleValueID)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T, does not implement singleValueID", raw)
 	}
+
+	v := e.IDValue()
+	if v == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(v)
+	return b.Bytes(), nil
+}
+
+func prefixIndexForKVEntry(arg interface{}) ([]byte, error) {
+	var b indexBuilder
+	switch v := arg.(type) {
+	// DeletePrefix always uses a string, pass it along unmodified
+	case string:
+		return []byte(v), nil
+	case structs.EnterpriseMeta:
+		return nil, nil
+	case singleValueID:
+		// Omit null terminator, because we want to prefix match keys
+		(*bytes.Buffer)(&b).WriteString(v.IDValue())
+		return b.Bytes(), nil
+	}
+
+	return nil, fmt.Errorf("unexpected type %T for singleValueID prefix index", arg)
 }
 
 func prefixIndexForIDValue(arg interface{}) ([]byte, error) {
