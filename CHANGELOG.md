@@ -1,4 +1,4 @@
-## UNRELEASED
+## 1.7.13 (March 04, 2021)
 
 IMPROVEMENTS:
 
