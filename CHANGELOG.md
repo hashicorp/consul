@@ -1,16 +1,17 @@
 ## UNRELEASED
 
-## 1.8.9-beta1 (February 11, 2021)
-
 IMPROVEMENTS:
 
 * cli: Add new `-cluster-id` and `common-name` to `consul tls ca create` to support creating a CA for Consul Connect. [[GH-9585](https://github.com/hashicorp/consul/issues/9585)]
+* connect: if the token given to the vault provider returns no data avoid a panic [[GH-9806](https://github.com/hashicorp/consul/issues/9806)]
 * connect: update supported envoy point releases to 1.14.6, 1.13.7, 1.12.7, 1.11.2 [[GH-9739](https://github.com/hashicorp/consul/issues/9739)]
 * license: **(Enterprise only)** Temporary client license duration was increased from 30m to 6h.
 * server: use the presense of stored federation state data as a sign that we already activated the federation state feature flag [[GH-9519](https://github.com/hashicorp/consul/issues/9519)]
+* xds: only try to create an ipv6 expose checks listener if ipv6 is supported by the kernel [[GH-9765](https://github.com/hashicorp/consul/issues/9765)]
 
 BUG FIXES:
 
+* api: Remove trailing periods from the gateway internal HTTP API endpoint [[GH-9752](https://github.com/hashicorp/consul/issues/9752)]
 * cache: Prevent spamming the logs for days when a cached request encounters an "ACL not found" error. [[GH-9738](https://github.com/hashicorp/consul/issues/9738)]
 * connect: connect CA Roots in the primary datacenter should use a SigningKeyID derived from their local intermediate [[GH-9428](https://github.com/hashicorp/consul/issues/9428)]
 * proxycfg: avoid potential deadlock in delivering proxy snapshot to watchers. [[GH-9689](https://github.com/hashicorp/consul/issues/9689)]
