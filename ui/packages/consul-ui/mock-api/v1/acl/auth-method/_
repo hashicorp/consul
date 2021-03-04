@@ -1,6 +1,6 @@
 ${
 	[1].map(i => {
-    const type = `${fake.helpers.randomize(['kubernetes'])}`;
+    const type = `${fake.helpers.randomize(['kubernetes', 'jwt', 'oidc'])}`;
     let sourceType;
 
     if (type !== 'kubernetes') {

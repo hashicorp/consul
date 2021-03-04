@@ -1,14 +1,13 @@
-.consul-auth-method-list ul {
+.consul-consul-auth-method-view-list ul {
   .locality::before {
     @extend %with-public-default-mask, %as-pseudo;
     margin-right: 4px;
   }
 }
-.auth-method {
-  height: 65vh;
-  overflow-y: scroll;
+.consul-auth-method-view {
+  margin-bottom: 32px;
 }
-.auth-method section {
+.consul-auth-method-view section {
   @extend %p1;
   width: 100%;
   position: relative;
@@ -18,14 +17,15 @@
     padding-bottom: 12px;
   }
 }
-.auth-method hr {
+.consul-auth-method-view hr {
   background-color: $gray-200;
 }
-.auth-method > dl,
-.auth-method section dl {
+.consul-auth-method-view > dl,
+.consul-auth-method-view section dl {
   display: flex;
   flex-wrap: wrap;
   overflow-x: hidden !important;
+  list-style-type: none;
   > dt:last-of-type,
   > dd:last-of-type {
     border-bottom: 1px solid $gray-300 !important;
@@ -51,11 +51,6 @@
   dd > ul li:not(:last-of-type) {
     padding-bottom: 12px;
   }
-}
-
-.auth-method > dl,
-.auth-method section.meta dl {
-  list-style-type: none;
   dd .copy-button button {
     padding: 0 !important;
     margin: 0 4px 0 0 !important;
@@ -78,3 +73,4 @@
     margin-right: 10px;
   }
 }
+
