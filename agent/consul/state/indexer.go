@@ -141,14 +141,8 @@ func (b *indexBuilder) Bytes() []byte {
 // be indexed by a single ID and a structs.EnterpriseMeta to scope the ID.
 type singleValueID interface {
 	IDValue() string
-	PartitionOrDefault() string
 	NamespaceOrDefault() string
 }
-
-var _ singleValueID = (*structs.DirEntry)(nil)
-var _ singleValueID = (*Tombstone)(nil)
-var _ singleValueID = (*Query)(nil)
-var _ singleValueID = (*structs.Session)(nil)
 
 func (b *indexBuilder) Bool(v bool) {
 	b.Raw([]byte{intFromBool(v)})
