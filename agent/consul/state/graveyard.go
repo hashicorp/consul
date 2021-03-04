@@ -54,6 +54,30 @@ func (g *Graveyard) InsertTxn(tx WriteTxn, key string, idx uint64, entMeta *stru
 	return nil
 }
 
+// GetMaxIndexTxn returns the highest index tombstone whose key matches the
+// given context, using a prefix match.
+func (g *Graveyard) GetMaxIndexTxn(tx ReadTxn, prefix string, entMeta *structs.EnterpriseMeta) (uint64, error) {
+	if entMeta == nil {
+		entMeta = structs.DefaultEnterpriseMeta()
+	}
+
+	// TODO: wildcard namespace handling (previously broken?)
+	q := Query{Value: prefix, EnterpriseMeta: *entMeta}
+	stones, err := tx.Get(tableTombstones, indexID+"_prefix", q)
+	if err != nil {
+		return 0, fmt.Errorf("failed querying tombstones: %s", err)
+	}
+
+	var lindex uint64
+	for stone := stones.Next(); stone != nil; stone = stones.Next() {
+		s := stone.(*Tombstone)
+		if s.Index > lindex {
+			lindex = s.Index
+		}
+	}
+	return lindex, nil
+}
+
 // DumpTxn returns all the tombstones.
 func (g *Graveyard) DumpTxn(tx ReadTxn) (memdb.ResultIterator, error) {
 	return tx.Get(tableTombstones, indexID)
