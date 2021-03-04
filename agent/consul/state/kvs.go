@@ -25,7 +25,11 @@ func kvsTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer:      kvsIndexer(),
+				Indexer: indexerSingleWithPrefix{
+					readIndex:   readIndex(indexFromKVEntry),
+					writeIndex:  writeIndex(indexFromKVEntry),
+					prefixIndex: prefixIndex(prefixIndexForKVEntry),
+				},
 			},
 			indexSession: {
 				Name:         indexSession,
@@ -66,7 +70,11 @@ func tombstonesTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer:      kvsIndexer(),
+				Indexer: indexerSingleWithPrefix{
+					readIndex:   readIndex(indexFromKVEntry),
+					writeIndex:  writeIndex(indexFromKVEntry),
+					prefixIndex: prefixIndex(prefixIndexForKVEntry),
+				},
 			},
 		},
 	}
@@ -182,7 +190,7 @@ func (s *Store) KVSGet(ws memdb.WatchSet, key string, entMeta *structs.Enterpris
 
 	// TODO: accept non-pointer entMeta
 	if entMeta == nil {
-		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
+		entMeta = structs.DefaultEnterpriseMeta()
 	}
 
 	return kvsGetTxn(tx, ws, key, *entMeta)
@@ -219,7 +227,7 @@ func (s *Store) KVSList(ws memdb.WatchSet,
 
 	// TODO: accept non-pointer entMeta
 	if entMeta == nil {
-		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
+		entMeta = structs.DefaultEnterpriseMeta()
 	}
 
 	return s.kvsListTxn(tx, ws, prefix, *entMeta)
@@ -279,7 +287,7 @@ func (s *Store) KVSDelete(idx uint64, key string, entMeta *structs.EnterpriseMet
 func (s *Store) kvsDeleteTxn(tx WriteTxn, idx uint64, key string, entMeta *structs.EnterpriseMeta) error {
 
 	if entMeta == nil {
-		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
+		entMeta = structs.DefaultEnterpriseMeta()
 	}
 
 	// Look up the entry in the state store.
@@ -320,7 +328,7 @@ func (s *Store) KVSDeleteCAS(idx, cidx uint64, key string, entMeta *structs.Ente
 // transaction.
 func (s *Store) kvsDeleteCASTxn(tx WriteTxn, idx, cidx uint64, key string, entMeta *structs.EnterpriseMeta) (bool, error) {
 	if entMeta == nil {
-		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
+		entMeta = structs.DefaultEnterpriseMeta()
 	}
 	entry, err := tx.First(tableKVs, indexID, Query{Value: key, EnterpriseMeta: *entMeta})
 	if err != nil {
@@ -530,7 +538,7 @@ func kvsCheckSessionTxn(tx WriteTxn,
 	key string, session string, entMeta *structs.EnterpriseMeta) (*structs.DirEntry, error) {
 
 	if entMeta == nil {
-		entMeta = structs.DefaultEnterpriseMetaInDefaultPartition()
+		entMeta = structs.DefaultEnterpriseMeta()
 	}
 
 	entry, err := tx.First(tableKVs, indexID, Query{Value: key, EnterpriseMeta: *entMeta})
