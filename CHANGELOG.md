@@ -1,5 +1,18 @@
 ## UNRELEASED
 
+IMPROVEMENTS:
+
+* connect: update supported envoy point releases to 1.13.7, 1.12.7, 1.11.2, 1.10.0 [[GH-9740](https://github.com/hashicorp/consul/issues/9740)]
+* license: **(Enterprise only)** Temporary client license duration was increased from 30m to 6h.
+* xds: only try to create an ipv6 expose checks listener if ipv6 is supported by the kernel [[GH-9765](https://github.com/hashicorp/consul/issues/9765)]
+
+BUG FIXES:
+
+* cache: Prevent spamming the logs for days when a cached request encounters an "ACL not found" error. [[GH-9738](https://github.com/hashicorp/consul/issues/9738)]
+* connect: connect CA Roots in the primary datacenter should use a SigningKeyID derived from their local intermediate [[GH-9428](https://github.com/hashicorp/consul/issues/9428)]
+* xds: deduplicate mesh gateway listeners by address in a stable way to prevent some LDS churn [[GH-9650](https://github.com/hashicorp/consul/issues/9650)]
+* xds: prevent LDS flaps in mesh gateways due to unstable datacenter lists; also prevent some flaps in terminating gateways as well [[GH-9651](https://github.com/hashicorp/consul/issues/9651)]
+
 ## 1.7.12 (January 22, 2021)
 
 BUG FIXES:
