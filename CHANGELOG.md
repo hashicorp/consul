@@ -1,5 +1,25 @@
 ## UNRELEASED
 
+IMPROVEMENTS:
+
+* connect: if the token given to the vault provider returns no data avoid a panic [[GH-9806](https://github.com/hashicorp/consul/issues/9806)]
+* connect: update supported envoy point releases to 1.16.2, 1.15.3, 1.14.6, 1.13.7 [[GH-9737](https://github.com/hashicorp/consul/issues/9737)]
+* xds: only try to create an ipv6 expose checks listener if ipv6 is supported by the kernel [[GH-9765](https://github.com/hashicorp/consul/issues/9765)]
+
+BUG FIXES:
+
+* api: Remove trailing periods from the gateway internal HTTP API endpoint [[GH-9752](https://github.com/hashicorp/consul/issues/9752)]
+* cache: Prevent spamming the logs for days when a cached request encounters an "ACL not found" error. [[GH-9738](https://github.com/hashicorp/consul/issues/9738)]
+* connect: connect CA Roots in the primary datacenter should use a SigningKeyID derived from their local intermediate [[GH-9428](https://github.com/hashicorp/consul/issues/9428)]
+* proxycfg: avoid potential deadlock in delivering proxy snapshot to watchers. [[GH-9689](https://github.com/hashicorp/consul/issues/9689)]
+* replication: Correctly log all replication warnings that should not be suppressed [[GH-9320](https://github.com/hashicorp/consul/issues/9320)]
+* streaming: fixes a bug caused by caching an incorrect snapshot, that would cause clients
+to error until the cache expired. [[GH-9772](https://github.com/hashicorp/consul/issues/9772)]
+* ui: Exclude proxies when showing the total number of instances on a node. [[GH-9749](https://github.com/hashicorp/consul/issues/9749)]
+* ui: Fixed a bug in older browsers relating to String.replaceAll and fieldset w/flexbox usage [[GH-9715](https://github.com/hashicorp/consul/issues/9715)]
+* xds: deduplicate mesh gateway listeners by address in a stable way to prevent some LDS churn [[GH-9650](https://github.com/hashicorp/consul/issues/9650)]
+* xds: prevent LDS flaps in mesh gateways due to unstable datacenter lists; also prevent some flaps in terminating gateways as well [[GH-9651](https://github.com/hashicorp/consul/issues/9651)]
+
 ## 1.9.3 (February 01, 2021)
 
 FEATURES:
