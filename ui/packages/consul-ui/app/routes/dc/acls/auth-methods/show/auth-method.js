@@ -1,6 +1,6 @@
 import Route from 'consul-ui/routing/route';
 
-export default class GeneralRoute extends Route {
+export default class AuthMethodRoute extends Route {
   model() {
     const parent = this.routeName
       .split('.')

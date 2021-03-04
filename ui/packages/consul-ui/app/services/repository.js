@@ -28,6 +28,7 @@ export default class RepositoryService extends Service {
    */
   async authorizeBySlug(cb, access, params) {
     params.resources = await this.permissions.findBySlug(params, this.getModelName());
+    console.log(params.resources);
     return this.validatePermissions(cb, access, params);
   }
 

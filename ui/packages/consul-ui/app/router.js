@@ -193,8 +193,8 @@ export const routes = {
         },
         show: {
           _options: { path: '/:id' },
-          general: {
-            _options: { path: '/general-info' },
+          'auth-method': {
+            _options: { path: '/auth-method' },
           },
         },
       },

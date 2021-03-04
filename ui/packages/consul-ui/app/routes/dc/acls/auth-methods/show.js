@@ -6,12 +6,15 @@ export default class ShowRoute extends SingleRoute {
   @service('repository/auth-method') repo;
 
   model(params) {
-    const dc = this.modelFor('dc').dc.Name;
     return super.model(...arguments).then(model => {
       return hash({
         ...model,
         ...{
-          item: this.repo.findBySlug(params.id, dc),
+          item: this.repo.findBySlug({
+            id: params.id,
+            dc: this.modelFor('dc').dc.Name,
+            ns: this.modelFor('nspace').nspace.substr(1),
+          }),
         },
       });
     });
