@@ -3,7 +3,7 @@
 .DEFAULT_GOAL=install
 
 hcl:
-	git clone https://github.com/hashicorp/hcl.git ./hcl
+	git clone --depth 1 --branch v1.0.0 https://github.com/hashicorp/hcl.git ./hcl
 
 install:
 	yarn
