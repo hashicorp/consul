@@ -149,10 +149,6 @@ components:
         TokenLocality: Token locality
         DisplayName: Display Name
         Description: Description
-        config:
-          Host: Host
-          CACert: CA Cert
-          ServiceAccountJWT: Service account JSON Web Token
     kv:
       search-bar:
         kind:
