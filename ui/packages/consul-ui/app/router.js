@@ -211,12 +211,18 @@ export const routes = {
 };
 if (env('CONSUL_NSPACES_ENABLED')) {
   routes.dc.nspaces = {
-    _options: { path: '/namespaces' },
+    _options: {
+      path: '/namespaces',
+      abilities: ['read nspaces'],
+    },
     edit: {
       _options: { path: '/:name' },
     },
     create: {
-      _options: { path: '/create' },
+      _options: {
+        path: '/create',
+        abilities: ['create nspaces'],
+      },
     },
   };
   routes.nspace = {
