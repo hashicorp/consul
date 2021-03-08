@@ -42,7 +42,7 @@ func sessionDeleteWithSession(tx WriteTxn, session *structs.Session, idx uint64)
 	}
 
 	// Update the indexes
-	err := tx.Insert("index", &IndexEntry{"sessions", idx})
+	err := tx.Insert(tableIndex, &IndexEntry{"sessions", idx})
 	if err != nil {
 		return fmt.Errorf("failed updating sessions index: %v", err)
 	}
@@ -72,7 +72,7 @@ func insertSessionTxn(tx WriteTxn, session *structs.Session, idx uint64, updateM
 			return fmt.Errorf("failed updating sessions index: %v", err)
 		}
 	} else {
-		err := tx.Insert("index", &IndexEntry{"sessions", idx})
+		err := tx.Insert(tableIndex, &IndexEntry{"sessions", idx})
 		if err != nil {
 			return fmt.Errorf("failed updating sessions index: %v", err)
 		}

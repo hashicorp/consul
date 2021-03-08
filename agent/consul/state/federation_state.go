@@ -117,7 +117,7 @@ func federationStateSetTxn(tx WriteTxn, idx uint64, config *structs.FederationSt
 	if err := tx.Insert(tableFederationStates, config); err != nil {
 		return fmt.Errorf("failed inserting federation state: %s", err)
 	}
-	if err := tx.Insert("index", &IndexEntry{tableFederationStates, idx}); err != nil {
+	if err := tx.Insert(tableIndex, &IndexEntry{tableFederationStates, idx}); err != nil {
 		return fmt.Errorf("failed updating index: %v", err)
 	}
 
@@ -216,7 +216,7 @@ func federationStateDeleteTxn(tx WriteTxn, idx uint64, datacenter string) error 
 	if err := tx.Delete(tableFederationStates, existing); err != nil {
 		return fmt.Errorf("failed removing federation state: %s", err)
 	}
-	if err := tx.Insert("index", &IndexEntry{tableFederationStates, idx}); err != nil {
+	if err := tx.Insert(tableIndex, &IndexEntry{tableFederationStates, idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 	return nil

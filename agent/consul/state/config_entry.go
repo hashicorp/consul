@@ -295,7 +295,7 @@ func deleteConfigEntryTxn(tx WriteTxn, idx uint64, kind, name string, entMeta *s
 	if err := tx.Delete(tableConfigEntries, existing); err != nil {
 		return fmt.Errorf("failed removing config entry: %s", err)
 	}
-	if err := tx.Insert("index", &IndexEntry{tableConfigEntries, idx}); err != nil {
+	if err := tx.Insert(tableIndex, &IndexEntry{tableConfigEntries, idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 

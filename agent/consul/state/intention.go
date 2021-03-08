@@ -561,7 +561,7 @@ func legacyIntentionSetTxn(tx WriteTxn, idx uint64, ixn *structs.Intention) erro
 	if err := tx.Insert(tableConnectIntentions, ixn); err != nil {
 		return err
 	}
-	if err := tx.Insert("index", &IndexEntry{tableConnectIntentions, idx}); err != nil {
+	if err := tx.Insert(tableIndex, &IndexEntry{tableConnectIntentions, idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
@@ -689,7 +689,7 @@ func legacyIntentionDeleteTxn(tx WriteTxn, idx uint64, queryID string) error {
 	if err := tx.Delete(tableConnectIntentions, wrapped); err != nil {
 		return fmt.Errorf("failed intention delete: %s", err)
 	}
-	if err := tx.Insert("index", &IndexEntry{tableConnectIntentions, idx}); err != nil {
+	if err := tx.Insert(tableIndex, &IndexEntry{tableConnectIntentions, idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
@@ -706,13 +706,13 @@ func (s *Store) LegacyIntentionDeleteAll(idx uint64) error {
 	if _, err := tx.DeleteAll(tableConnectIntentions, "id"); err != nil {
 		return fmt.Errorf("failed intention delete-all: %s", err)
 	}
-	if err := tx.Insert("index", &IndexEntry{tableConnectIntentions, idx}); err != nil {
+	if err := tx.Insert(tableIndex, &IndexEntry{tableConnectIntentions, idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 	// Also bump the index for the config entry table so that
 	// secondaries can correctly know when they've replicated all of the service-intentions
 	// config entries that USED to exist in the old intentions table.
-	if err := tx.Insert("index", &IndexEntry{tableConfigEntries, idx}); err != nil {
+	if err := tx.Insert(tableIndex, &IndexEntry{tableConfigEntries, idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 

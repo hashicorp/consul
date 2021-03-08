@@ -234,7 +234,7 @@ func preparedQuerySetTxn(tx WriteTxn, idx uint64, query *structs.PreparedQuery) 
 	if err := tx.Insert("prepared-queries", &queryWrapper{query, ct}); err != nil {
 		return fmt.Errorf("failed inserting prepared query: %s", err)
 	}
-	if err := tx.Insert("index", &IndexEntry{"prepared-queries", idx}); err != nil {
+	if err := tx.Insert(tableIndex, &IndexEntry{"prepared-queries", idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
@@ -269,7 +269,7 @@ func preparedQueryDeleteTxn(tx WriteTxn, idx uint64, queryID string) error {
 	if err := tx.Delete("prepared-queries", wrapped); err != nil {
 		return fmt.Errorf("failed prepared query delete: %s", err)
 	}
-	if err := tx.Insert("index", &IndexEntry{"prepared-queries", idx}); err != nil {
+	if err := tx.Insert(tableIndex, &IndexEntry{"prepared-queries", idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
