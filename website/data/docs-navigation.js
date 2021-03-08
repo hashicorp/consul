@@ -196,6 +196,11 @@ export default [
         content: ['uninstall', 'certificate-rotation', 'tls-on-existing-cluster'],
       },
       {
+        category: 'observability',
+        name: 'Observability',
+        content: ['metrics'],
+      },
+      {
         name: 'Troubleshoot',
         content: [
           {
