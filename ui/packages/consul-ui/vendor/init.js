@@ -1,4 +1,20 @@
 (function(doc, appName) {
+  const fs = JSON.parse(doc.querySelector(`[data-${appName}-fs]`).textContent);
+  const appendScript = function(src) {
+    var $script = doc.createElement('script');
+    $script.src = src;
+    doc.body.appendChild($script);
+  };
+
+  // polyfills
+  if (!('TextDecoder' in window)) {
+    appendScript(fs['text-encoding/encoding-indexes.js']);
+    appendScript(fs['text-encoding/encoding.js']);
+  }
+  if (!(window.CSS && window.CSS.escape)) {
+    appendScript(fs['css.escape/css.escape.js']);
+  }
+
   try {
     const $appMeta = doc.querySelector(`[name="${appName}/config/environment"]`);
     // pick out the operatorConfig from our application/json script tag
