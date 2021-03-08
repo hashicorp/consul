@@ -169,7 +169,7 @@ func (s *Store) CACheckAndSetConfig(idx, cidx uint64, config *structs.CAConfigur
 	return err == nil, err
 }
 
-func (s *Store) caSetConfigTxn(idx uint64, tx *txn, config *structs.CAConfiguration) error {
+func (s *Store) caSetConfigTxn(idx uint64, tx WriteTxn, config *structs.CAConfiguration) error {
 	// Check for an existing config
 	prev, err := tx.First(tableConnectCAConfig, "id")
 	if err != nil {

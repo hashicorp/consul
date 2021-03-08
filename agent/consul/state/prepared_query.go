@@ -139,7 +139,7 @@ func (s *Store) PreparedQuerySet(idx uint64, query *structs.PreparedQuery) error
 
 // preparedQuerySetTxn is the inner method used to insert a prepared query with
 // the proper indexes into the state store.
-func preparedQuerySetTxn(tx *txn, idx uint64, query *structs.PreparedQuery) error {
+func preparedQuerySetTxn(tx WriteTxn, idx uint64, query *structs.PreparedQuery) error {
 	// Check that the ID is set.
 	if query.ID == "" {
 		return ErrMissingQueryID
