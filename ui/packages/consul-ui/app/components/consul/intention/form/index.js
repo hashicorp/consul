@@ -14,7 +14,7 @@ export default class ConsulIntentionForm extends Component {
 
   @tracked isManagedByCRDs;
 
-  model = null; // reference to the warning modal
+  modal = null; // reference to the warning modal
 
   @service('repository/intention') repo;
 
