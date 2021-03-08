@@ -21,7 +21,7 @@ This can be thought of as providing the public API for the component, the author
 
 Here we provide a public API for a form component whilst authoring.
 
-```handlebars
+```hbs
 {{! /components/form/index.hbs }}
 <form onsubmit={{action "submit"}}>
   {{yield (hash
@@ -36,7 +36,7 @@ Here we provide a public API for a form component whilst authoring.
 
 The user of the component now has access to the public API of the ember/glimmer `<Form>` component, in the same way that using the `{{ref}}` modifier gives the user access to the public API of native DOM elements (for example `<input {{ref this 'input'}}/>` / `this.input.focus()`).
 
-```handlebars
+```hbs
 {{! /templates/index.hbs}}
 <Form as |api|>
   <Ref @target={{this}} @name="form" @value={{api}} />

@@ -1,7 +1,7 @@
 ## AuthDialog
 
-```handlebars
-<AuthDialog @dc={{dc}} @nspace={{}} @onchange={{action 'change'}} as |api components|>
+```hbs
+<AuthDialog @dc={{dc}} @nspace={{ns}} @onchange={{action 'change'}} as |api components|>
   {{#let components.AuthForm components.AuthProfile as |AuthForm AuthProfile|}}
     <BlockSlot @name="unauthorized">
       Here's the login form:
