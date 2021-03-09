@@ -452,13 +452,13 @@ jobs:
           path: *TEST_RESULTS_DIR
 
   # run integration tests on nomad/master
-  nomad-integration-master:
+  nomad-integration-main:
     docker:
       - image: *GOLANG_IMAGE
     environment:
       <<: *ENVIRONMENT
       NOMAD_WORKING_DIR: /go/src/github.com/hashicorp/nomad
-      NOMAD_VERSION: master
+      NOMAD_VERSION: main
     steps: *NOMAD_INTEGRATION_TEST_STEPS
 
   build-website-docker-image:
@@ -834,7 +834,7 @@ workflows:
       - dev-upload-docker:
           <<: *dev-upload
           context: consul-ci
-      - nomad-integration-master:
+      - nomad-integration-main:
           requires:
             - dev-build
       - nomad-integration-0_8:
