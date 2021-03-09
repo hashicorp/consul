@@ -332,6 +332,36 @@ func TestDecodeConfigEntry(t *testing.T) {
 				"ExternalSNI": "abc-123",
 				"MeshGateway": {
 					"Mode": "remote"
+				},
+				"Connect": {
+					"UpstreamConfigs": {
+						"redis": {
+							"PassiveHealthCheck": {
+								"MaxFailures": 3,
+								"Interval": "2s"
+							}
+						},
+						"finance/billing": {
+							"MeshGateway": {
+								"Mode": "remote"
+							}
+						}
+					},
+					"UpstreamDefaults": {
+						"ClusterJSON": "zip",
+						"ListenerJSON": "zop",
+						"ConnectTimeoutMs": 5000,
+						"Protocol": "http",
+						"Limits": {
+							"MaxConnections": 3,
+							"MaxPendingRequests": 4,
+							"MaxConcurrentRequests": 5
+						},
+						"PassiveHealthCheck": {
+								"MaxFailures": 5,
+								"Interval": "4s"
+						}
+					}
 				}
 			}
 			`,
@@ -346,6 +376,34 @@ func TestDecodeConfigEntry(t *testing.T) {
 				ExternalSNI: "abc-123",
 				MeshGateway: MeshGatewayConfig{
 					Mode: MeshGatewayModeRemote,
+				},
+				Connect: ConnectConfiguration{
+					UpstreamConfigs: map[string]UpstreamConfig{
+						"redis": {
+							PassiveHealthCheck: PassiveHealthCheck{
+								MaxFailures: 3,
+								Interval:    2 * time.Second,
+							},
+						},
+						"finance/billing": {
+							MeshGateway: MeshGatewayConfig{Mode: "remote"},
+						},
+					},
+					UpstreamDefaults: UpstreamConfig{
+						ClusterJSON:      "zip",
+						ListenerJSON:     "zop",
+						Protocol:         "http",
+						ConnectTimeoutMs: 5000,
+						Limits: UpstreamLimits{
+							MaxConnections:        3,
+							MaxPendingRequests:    4,
+							MaxConcurrentRequests: 5,
+						},
+						PassiveHealthCheck: PassiveHealthCheck{
+							MaxFailures: 5,
+							Interval:    4 * time.Second,
+						},
+					},
 				},
 			},
 		},

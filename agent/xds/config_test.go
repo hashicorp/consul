@@ -172,12 +172,12 @@ func TestParseUpstreamConfig(t *testing.T) {
 	tests := []struct {
 		name  string
 		input map[string]interface{}
-		want  UpstreamConfig
+		want  structs.UpstreamConfig
 	}{
 		{
 			name:  "defaults - nil",
 			input: nil,
-			want: UpstreamConfig{
+			want: structs.UpstreamConfig{
 				ConnectTimeoutMs: 5000,
 				Protocol:         "tcp",
 			},
@@ -185,7 +185,7 @@ func TestParseUpstreamConfig(t *testing.T) {
 		{
 			name:  "defaults - empty",
 			input: map[string]interface{}{},
-			want: UpstreamConfig{
+			want: structs.UpstreamConfig{
 				ConnectTimeoutMs: 5000,
 				Protocol:         "tcp",
 			},
@@ -196,7 +196,7 @@ func TestParseUpstreamConfig(t *testing.T) {
 				"foo":       "bar",
 				"envoy_foo": "envoy_bar",
 			},
-			want: UpstreamConfig{
+			want: structs.UpstreamConfig{
 				ConnectTimeoutMs: 5000,
 				Protocol:         "tcp",
 			},
@@ -206,7 +206,7 @@ func TestParseUpstreamConfig(t *testing.T) {
 			input: map[string]interface{}{
 				"protocol": "http",
 			},
-			want: UpstreamConfig{
+			want: structs.UpstreamConfig{
 				ConnectTimeoutMs: 5000,
 				Protocol:         "http",
 			},
@@ -216,7 +216,7 @@ func TestParseUpstreamConfig(t *testing.T) {
 			input: map[string]interface{}{
 				"connect_timeout_ms": "1000",
 			},
-			want: UpstreamConfig{
+			want: structs.UpstreamConfig{
 				ConnectTimeoutMs: 1000,
 				Protocol:         "tcp",
 			},
@@ -226,7 +226,7 @@ func TestParseUpstreamConfig(t *testing.T) {
 			input: map[string]interface{}{
 				"connect_timeout_ms": float64(1000.0),
 			},
-			want: UpstreamConfig{
+			want: structs.UpstreamConfig{
 				ConnectTimeoutMs: 1000,
 				Protocol:         "tcp",
 			},
@@ -236,7 +236,7 @@ func TestParseUpstreamConfig(t *testing.T) {
 			input: map[string]interface{}{
 				"connect_timeout_ms": 1000,
 			},
-			want: UpstreamConfig{
+			want: structs.UpstreamConfig{
 				ConnectTimeoutMs: 1000,
 				Protocol:         "tcp",
 			},
@@ -250,10 +250,10 @@ func TestParseUpstreamConfig(t *testing.T) {
 					"max_concurrent_requests": 70,
 				},
 			},
-			want: UpstreamConfig{
+			want: structs.UpstreamConfig{
 				ConnectTimeoutMs: 5000,
 				Protocol:         "tcp",
-				Limits: UpstreamLimits{
+				Limits: structs.UpstreamLimits{
 					MaxConnections:        intPointer(50),
 					MaxPendingRequests:    intPointer(60),
 					MaxConcurrentRequests: intPointer(70),
@@ -269,10 +269,10 @@ func TestParseUpstreamConfig(t *testing.T) {
 					"max_concurrent_requests": 0,
 				},
 			},
-			want: UpstreamConfig{
+			want: structs.UpstreamConfig{
 				ConnectTimeoutMs: 5000,
 				Protocol:         "tcp",
-				Limits: UpstreamLimits{
+				Limits: structs.UpstreamLimits{
 					MaxConnections:        intPointer(0),
 					MaxPendingRequests:    intPointer(0),
 					MaxConcurrentRequests: intPointer(0),
@@ -287,10 +287,10 @@ func TestParseUpstreamConfig(t *testing.T) {
 					"max_failures": 7,
 				},
 			},
-			want: UpstreamConfig{
+			want: structs.UpstreamConfig{
 				ConnectTimeoutMs: 5000,
 				Protocol:         "tcp",
-				PassiveHealthCheck: PassiveHealthCheck{
+				PassiveHealthCheck: structs.PassiveHealthCheck{
 					Interval:    22 * time.Second,
 					MaxFailures: 7,
 				},

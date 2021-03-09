@@ -87,11 +87,7 @@ type ServiceConfigEntry struct {
 
 	ExternalSNI string `json:",omitempty" alias:"external_sni"`
 
-	// TODO(banks): enable this once we have upstreams supported too. Enabling
-	// sidecars actually makes no sense and adds complications when you don't
-	// allow upstreams to be specified centrally too.
-	//
-	// Connect ConnectConfiguration
+	Connect *ConnectConfiguration `json:",omitempty"`
 
 	Meta           map[string]string `json:",omitempty"`
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -131,13 +127,20 @@ func (e *ServiceConfigEntry) Normalize() error {
 	e.Kind = ServiceDefaults
 	e.Protocol = strings.ToLower(e.Protocol)
 
+	e.Connect.Normalize()
 	e.EnterpriseMeta.Normalize()
 
 	return nil
 }
 
 func (e *ServiceConfigEntry) Validate() error {
-	return validateConfigEntryMeta(e.Meta)
+	validationErr := validateConfigEntryMeta(e.Meta)
+
+	if err := e.Connect.Validate(); err != nil {
+		validationErr = multierror.Append(validationErr, err)
+	}
+
+	return validationErr
 }
 
 func (e *ServiceConfigEntry) CanRead(authz acl.Authorizer) bool {
@@ -169,7 +172,38 @@ func (e *ServiceConfigEntry) GetEnterpriseMeta() *EnterpriseMeta {
 }
 
 type ConnectConfiguration struct {
-	SidecarProxy bool
+	// UpstreamConfigs is a map of <namespace/>service to per-upstream configuration
+	UpstreamConfigs map[string]*UpstreamConfig `json:",omitempty" alias:"upstream_configs"`
+
+	// UpstreamDefaults contains default configuration for all upstreams of a given service
+	UpstreamDefaults *UpstreamConfig `json:",omitempty" alias:"upstream_defaults"`
+}
+
+func (cfg *ConnectConfiguration) Normalize() {
+	if cfg == nil {
+		return
+	}
+	for _, v := range cfg.UpstreamConfigs {
+		v.Normalize()
+	}
+
+	cfg.UpstreamDefaults.Normalize()
+}
+
+func (cfg ConnectConfiguration) Validate() error {
+	var validationErr error
+
+	for k, v := range cfg.UpstreamConfigs {
+		if err := v.Validate(); err != nil {
+			validationErr = multierror.Append(validationErr, fmt.Errorf("error in upstream config for %s: %v", k, err))
+		}
+	}
+
+	if err := cfg.UpstreamDefaults.Validate(); err != nil {
+		validationErr = multierror.Append(validationErr, fmt.Errorf("error in upstream defaults %v", err))
+	}
+
+	return validationErr
 }
 
 // ProxyConfigEntry is the top-level struct for global proxy configuration defaults.
@@ -592,13 +626,125 @@ func (r *ServiceConfigRequest) CacheInfo() cache.RequestInfo {
 }
 
 type UpstreamConfig struct {
+	// ListenerJSON is a complete override ("escape hatch") for the upstream's
+	// listener.
+	//
+	// Note: This escape hatch is NOT compatible with the discovery chain and
+	// will be ignored if a discovery chain is active.
+	ListenerJSON string `json:",omitempty" alias:"listener_json"`
+
+	// ClusterJSON is a complete override ("escape hatch") for the upstream's
+	// cluster. The Connect client TLS certificate and context will be injected
+	// overriding any TLS settings present.
+	//
+	// Note: This escape hatch is NOT compatible with the discovery chain and
+	// will be ignored if a discovery chain is active.
+	ClusterJSON string `alias:"cluster_json"`
+
+	// Protocol describes the upstream's service protocol. Valid values are "tcp",
+	// "http" and "grpc". Anything else is treated as tcp. The enables protocol
+	// aware features like per-request metrics and connection pooling, tracing,
+	// routing etc.
+	Protocol string
+
+	// ConnectTimeoutMs is the number of milliseconds to timeout making a new
+	// connection to this upstream. Defaults to 5000 (5 seconds) if not set.
+	ConnectTimeoutMs int `alias:"connect_timeout_ms"`
+
+	// Limits are the set of limits that are applied to the proxy for a specific upstream of a
+	// service instance.
+	Limits UpstreamLimits
+
+	// PassiveHealthCheck configuration determines how upstream proxy instances will
+	// be monitored for removal from the load balancing pool.
+	PassiveHealthCheck PassiveHealthCheck `json:",omitempty" alias:"passive_health_check"`
+
+	// MeshGatewayConfig controls how Mesh Gateways are configured and used
+	MeshGateway MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway" `
+}
+
+func (cfg *UpstreamConfig) Normalize() {
+	if cfg.Protocol == "" {
+		cfg.Protocol = "tcp"
+	} else {
+		cfg.Protocol = strings.ToLower(cfg.Protocol)
+	}
+
+	if cfg.ConnectTimeoutMs < 1 {
+		cfg.ConnectTimeoutMs = 5000
+	}
+}
+
+func (cfg UpstreamConfig) Validate() error {
+	var validationErr error
+
+	if err := cfg.PassiveHealthCheck.Validate(); err != nil {
+		validationErr = multierror.Append(validationErr, err)
+	}
+	if err := cfg.Limits.Validate(); err != nil {
+		validationErr = multierror.Append(validationErr, err)
+	}
+
+	return validationErr
+}
+
+type PassiveHealthCheck struct {
+	// Interval between health check analysis sweeps. Each sweep may remove
+	// hosts or return hosts to the pool.
+	Interval time.Duration
+
+	// MaxFailures is the count of consecutive failures that results in a host
+	// being removed from the pool.
+	MaxFailures uint32 `alias:"max_failures"`
+}
+
+func (chk PassiveHealthCheck) Validate() error {
+	if chk.Interval <= 0*time.Second {
+		return fmt.Errorf("passive health check interval must be greater than 0s")
+	}
+	return nil
+}
+
+// UpstreamLimits describes the limits that are associated with a specific
+// upstream of a service instance.
+type UpstreamLimits struct {
+	// MaxConnections is the maximum number of connections the local proxy can
+	// make to the upstream service.
+	MaxConnections *int `alias:"max_connections"`
+
+	// MaxPendingRequests is the maximum number of requests that will be queued
+	// waiting for an available connection. This is mostly applicable to HTTP/1.1
+	// clusters since all HTTP/2 requests are streamed over a single
+	// connection.
+	MaxPendingRequests *int `alias:"max_pending_requests"`
+
+	// MaxConcurrentRequests is the maximum number of in-flight requests that will be allowed
+	// to the upstream cluster at a point in time. This is mostly applicable to HTTP/2
+	// clusters since all HTTP/1.1 requests are limited by MaxConnections.
+	MaxConcurrentRequests *int `alias:"max_concurrent_requests"`
+}
+
+func (ul UpstreamLimits) Validate() error {
+	if ul.MaxConnections != nil && *ul.MaxConnections <= 0 {
+		return fmt.Errorf("max connections must be at least 0")
+	}
+	if ul.MaxPendingRequests != nil && *ul.MaxPendingRequests <= 0 {
+		return fmt.Errorf("max pending requests must be at least 0")
+	}
+	if ul.MaxConcurrentRequests != nil && *ul.MaxConcurrentRequests <= 0 {
+		return fmt.Errorf("max concurrent requests must be at least 0")
+	}
+	return nil
+}
+
+type OpaqueUpstreamConfig struct {
 	Upstream ServiceID
 	Config   map[string]interface{}
 }
 
-type UpstreamConfigs []UpstreamConfig
+type OpaqueUpstreamConfigs []OpaqueUpstreamConfig
 
-func (configs UpstreamConfigs) GetUpstreamConfig(sid ServiceID) (config map[string]interface{}, found bool) {
+func (configs OpaqueUpstreamConfigs) GetUpstreamConfig(sid ServiceID) (config map[string]interface{}, found bool) {
 	for _, usconf := range configs {
 		if usconf.Upstream.Matches(sid) {
 			return usconf.Config, true
@@ -611,7 +757,7 @@ func (configs UpstreamConfigs) GetUpstreamConfig(sid ServiceID) (config map[stri
 type ServiceConfigResponse struct {
 	ProxyConfig       map[string]interface{}
 	UpstreamConfigs   map[string]map[string]interface{}
-	UpstreamIDConfigs UpstreamConfigs
+	UpstreamIDConfigs OpaqueUpstreamConfigs
 	MeshGateway       MeshGatewayConfig `json:",omitempty"`
 	Expose            ExposeConfig      `json:",omitempty"`
 	QueryMeta

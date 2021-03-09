@@ -1071,9 +1071,9 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 	return l, nil
 }
 
-func getAndModifyUpstreamConfigForListener(logger hclog.Logger, u *structs.Upstream, chain *structs.CompiledDiscoveryChain) UpstreamConfig {
+func getAndModifyUpstreamConfigForListener(logger hclog.Logger, u *structs.Upstream, chain *structs.CompiledDiscoveryChain) structs.UpstreamConfig {
 	var (
-		cfg UpstreamConfig
+		cfg structs.UpstreamConfig
 		err error
 	)
 

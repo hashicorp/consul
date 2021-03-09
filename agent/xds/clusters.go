@@ -416,7 +416,7 @@ func (s *Server) makeUpstreamClusterForPreparedQuery(upstream structs.Upstream, 
 			CircuitBreakers: &envoy_cluster_v3.CircuitBreakers{
 				Thresholds: makeThresholdsIfNeeded(cfg.Limits),
 			},
-			OutlierDetection: cfg.PassiveHealthCheck.AsOutlierDetection(),
+			OutlierDetection: ToOutlierDetection(cfg.PassiveHealthCheck),
 		}
 		if cfg.Protocol == "http2" || cfg.Protocol == "grpc" {
 			c.Http2ProtocolOptions = &envoy_core_v3.Http2ProtocolOptions{}
@@ -524,7 +524,7 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 			CircuitBreakers: &envoy_cluster_v3.CircuitBreakers{
 				Thresholds: makeThresholdsIfNeeded(cfg.Limits),
 			},
-			OutlierDetection: cfg.PassiveHealthCheck.AsOutlierDetection(),
+			OutlierDetection: ToOutlierDetection(cfg.PassiveHealthCheck),
 		}
 
 		var lb *structs.LoadBalancer
@@ -734,8 +734,8 @@ func (s *Server) makeGatewayCluster(snap *proxycfg.ConfigSnapshot, opts gatewayC
 	return cluster
 }
 
-func makeThresholdsIfNeeded(limits UpstreamLimits) []*envoy_cluster_v3.CircuitBreakers_Thresholds {
-	var empty UpstreamLimits
+func makeThresholdsIfNeeded(limits structs.UpstreamLimits) []*envoy_cluster_v3.CircuitBreakers_Thresholds {
+	var empty structs.UpstreamLimits
 	// Make sure to not create any thresholds when passed the zero-value in order
 	// to rely on Envoy defaults
 	if limits == empty {
@@ -743,6 +743,7 @@ func makeThresholdsIfNeeded(limits UpstreamLimits) []*envoy_cluster_v3.CircuitBr
 	}
 
 	threshold := &envoy_cluster_v3.CircuitBreakers_Thresholds{}
+
 	// Likewise, make sure to not set any threshold values on the zero-value in
 	// order to rely on Envoy defaults
 	if limits.MaxConnections != nil {

@@ -112,6 +112,33 @@ func TestDecodeConfigEntry(t *testing.T) {
 				mesh_gateway {
 					mode = "remote"
 				}
+				connect {
+					upstream_configs {
+						redis {
+							passive_health_check {
+								interval = "2s"
+								max_failures = 3
+							}
+						}
+					
+						"finance/billing" {
+							mesh_gateway {
+								mode = "remote"
+							}
+						}
+					}
+					upstream_defaults {
+						connect_timeout_ms = 5
+						protocol = "http"
+						listener_json = "foo"
+						cluster_json = "bar"
+						limits {
+							max_connections = 3
+							max_pending_requests = 4
+							max_concurrent_requests = 5
+						}
+					}
+				}
 			`,
 			camel: `
 				Kind = "service-defaults"
@@ -125,6 +152,33 @@ func TestDecodeConfigEntry(t *testing.T) {
 				MeshGateway {
 					Mode = "remote"
 				}
+				Connect {
+					UpstreamConfigs {
+						"redis" {
+							PassiveHealthCheck {
+								MaxFailures = 3
+								Interval = "2s"
+							}
+						}
+					
+						"finance/billing" {
+							MeshGateway {
+								Mode = "remote"
+							}
+						}
+					}
+					UpstreamDefaults {
+						ListenerJSON = "foo"
+						ClusterJSON = "bar"
+						ConnectTimeoutMs = 5
+						Protocol = "http"
+						Limits {
+							MaxConnections = 3
+							MaxPendingRequests = 4
+							MaxConcurrentRequests = 5
+						}
+					}
+				}
 			`,
 			expect: &ServiceConfigEntry{
 				Kind: "service-defaults",
@@ -137,6 +191,30 @@ func TestDecodeConfigEntry(t *testing.T) {
 				ExternalSNI: "abc-123",
 				MeshGateway: MeshGatewayConfig{
 					Mode: MeshGatewayModeRemote,
+				},
+				Connect: &ConnectConfiguration{
+					UpstreamConfigs: map[string]*UpstreamConfig{
+						"redis": {
+							PassiveHealthCheck: PassiveHealthCheck{
+								MaxFailures: 3,
+								Interval:    2 * time.Second,
+							},
+						},
+						"finance/billing": {
+							MeshGateway: MeshGatewayConfig{Mode: MeshGatewayModeRemote},
+						},
+					},
+					UpstreamDefaults: &UpstreamConfig{
+						ListenerJSON:     "foo",
+						ClusterJSON:      "bar",
+						ConnectTimeoutMs: 5,
+						Protocol:         "http",
+						Limits: UpstreamLimits{
+							MaxConnections:        intPointer(3),
+							MaxPendingRequests:    intPointer(4),
+							MaxConcurrentRequests: intPointer(5),
+						},
+					},
 				},
 			},
 		},
@@ -1330,7 +1408,199 @@ func TestConfigEntryResponseMarshalling(t *testing.T) {
 	}
 }
 
+func TestPassiveHealthCheck_Validate(t *testing.T) {
+	tt := []struct {
+		name    string
+		input   PassiveHealthCheck
+		wantErr bool
+		wantMsg string
+	}{
+		{
+			name:    "valid-interval",
+			input:   PassiveHealthCheck{Interval: 2 * time.Second},
+			wantErr: false,
+		},
+		{
+			name:    "negative-interval",
+			input:   PassiveHealthCheck{Interval: -1 * time.Second},
+			wantErr: true,
+			wantMsg: "greater than 0s",
+		},
+		{
+			name:    "zero-interval",
+			input:   PassiveHealthCheck{Interval: 0 * time.Second},
+			wantErr: true,
+			wantMsg: "greater than 0s",
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.input.Validate()
+			if err == nil {
+				require.False(t, tc.wantErr)
+				return
+			}
+			require.Contains(t, err.Error(), tc.wantMsg)
+		})
+	}
+}
+
+func TestUpstreamLimits_Validate(t *testing.T) {
+	tt := []struct {
+		name    string
+		input   UpstreamLimits
+		wantErr bool
+		wantMsg string
+	}{
+		{
+			name:    "valid-max-conns",
+			input:   UpstreamLimits{MaxConnections: intPointer(1)},
+			wantErr: false,
+		},
+		{
+			name:    "zero-max-conns",
+			input:   UpstreamLimits{MaxConnections: intPointer(0)},
+			wantErr: true,
+			wantMsg: "at least 0",
+		},
+		{
+			name:    "negative-max-conns",
+			input:   UpstreamLimits{MaxConnections: intPointer(-1)},
+			wantErr: true,
+			wantMsg: "at least 0",
+		},
+		{
+			name:    "valid-max-concurrent",
+			input:   UpstreamLimits{MaxConcurrentRequests: intPointer(1)},
+			wantErr: false,
+		},
+		{
+			name:    "zero-max-concurrent",
+			input:   UpstreamLimits{MaxConcurrentRequests: intPointer(0)},
+			wantErr: true,
+			wantMsg: "at least 0",
+		},
+		{
+			name:    "negative-max-concurrent",
+			input:   UpstreamLimits{MaxConcurrentRequests: intPointer(-1)},
+			wantErr: true,
+			wantMsg: "at least 0",
+		},
+		{
+			name:    "valid-max-pending",
+			input:   UpstreamLimits{MaxPendingRequests: intPointer(1)},
+			wantErr: false,
+		},
+		{
+			name:    "zero-max-pending",
+			input:   UpstreamLimits{MaxPendingRequests: intPointer(0)},
+			wantErr: true,
+			wantMsg: "at least 0",
+		},
+		{
+			name:    "negative-max-pending",
+			input:   UpstreamLimits{MaxPendingRequests: intPointer(-1)},
+			wantErr: true,
+			wantMsg: "at least 0",
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.input.Validate()
+			if err == nil {
+				require.False(t, tc.wantErr)
+				return
+			}
+			require.Contains(t, err.Error(), tc.wantMsg)
+		})
+	}
+}
+
+func TestServiceConfigEntry_Normalize(t *testing.T) {
+	tt := []struct {
+		name   string
+		input  ServiceConfigEntry
+		expect ServiceConfigEntry
+	}{
+		{
+			name: "fill-in-kind",
+			input: ServiceConfigEntry{
+				Name: "web",
+			},
+			expect: ServiceConfigEntry{
+				Kind: ServiceDefaults,
+				Name: "web",
+			},
+		},
+		{
+			name: "lowercase-protocol",
+			input: ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "web",
+				Protocol: "PrOtoCoL",
+			},
+			expect: ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "web",
+				Protocol: "protocol",
+			},
+		},
+		{
+			name: "connect-kitchen-sink",
+			input: ServiceConfigEntry{
+				Kind: ServiceDefaults,
+				Name: "web",
+				Connect: &ConnectConfiguration{
+					UpstreamConfigs: map[string]*UpstreamConfig{
+						"redis": {
+							Protocol: "TcP",
+						},
+						"memcached": {
+							ConnectTimeoutMs: -1,
+						},
+					},
+					UpstreamDefaults: &UpstreamConfig{ConnectTimeoutMs: -20},
+				},
+			},
+			expect: ServiceConfigEntry{
+				Kind: ServiceDefaults,
+				Name: "web",
+				Connect: &ConnectConfiguration{
+					UpstreamConfigs: map[string]*UpstreamConfig{
+						"redis": {
+							Protocol:         "tcp",
+							ConnectTimeoutMs: 5000,
+						},
+						"memcached": {
+							Protocol:         "tcp",
+							ConnectTimeoutMs: 5000,
+						},
+					},
+					UpstreamDefaults: &UpstreamConfig{
+						Protocol:         "tcp",
+						ConnectTimeoutMs: 5000,
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.input.Normalize()
+			require.NoError(t, err)
+			require.Equal(t, tc.expect, tc.input)
+		})
+	}
+}
+
 func requireContainsLower(t *testing.T, haystack, needle string) {
 	t.Helper()
 	require.Contains(t, strings.ToLower(haystack), strings.ToLower(needle))
+}
+
+func intPointer(i int) *int {
+	return &i
 }
