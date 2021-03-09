@@ -24,8 +24,8 @@ export default class BaseRoute extends Route {
     const routeName = this.routeName
       .split('.')
       .filter(item => item !== 'index')
-      .join('.');
-    const abilities = get(routes, `${routeName}._options.abilities`) || [];
+      .join('.route.');
+    const abilities = get(routes, `route.${path}.abilities`) || [];
     if (abilities.length > 0) {
       if (!abilities.every(ability => this.permissions.can(ability))) {
         throw new HTTPError('403');

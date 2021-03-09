@@ -17,6 +17,7 @@ export default class IndexRoute extends Route {
   };
 
   beforeModel() {
+    super.beforeModel(...arguments);
     // we are index or folder, so if the key doesn't have a trailing slash
     // add one to force a fake findBySlug
     const params = this.paramsFor(this.routeName);
