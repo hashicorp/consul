@@ -75,7 +75,7 @@ func (c *StreamingHealthServices) Fetch(opts cache.FetchOptions, req cache.Reque
 			Token:      srvReq.Token,
 			Datacenter: srvReq.Datacenter,
 			Index:      index,
-			Namespace:  srvReq.EnterpriseMeta.GetNamespace(),
+			Namespace:  srvReq.EnterpriseMeta.NamespaceOrEmpty(),
 		}
 		if srvReq.Connect {
 			req.Topic = pbsubscribe.Topic_ServiceHealthConnect

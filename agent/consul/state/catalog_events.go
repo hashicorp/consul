@@ -44,7 +44,7 @@ func (e EventPayloadCheckServiceNode) MatchesKey(key, namespace string) bool {
 	if e.overrideKey != "" {
 		name = e.overrideKey
 	}
-	ns := e.Value.Service.EnterpriseMeta.GetNamespace()
+	ns := e.Value.Service.EnterpriseMeta.NamespaceOrDefault()
 	if e.overrideNamespace != "" {
 		ns = e.overrideNamespace
 	}
@@ -315,8 +315,8 @@ func ServiceHealthEventsFromChanges(tx ReadTxn, changes Changes) ([]stream.Event
 					e.Topic = topicServiceHealthConnect
 					payload := e.Payload.(EventPayloadCheckServiceNode)
 					payload.overrideKey = serviceName.Name
-					if gatewayName.EnterpriseMeta.GetNamespace() != serviceName.EnterpriseMeta.GetNamespace() {
-						payload.overrideNamespace = serviceName.EnterpriseMeta.GetNamespace()
+					if gatewayName.EnterpriseMeta.NamespaceOrDefault() != serviceName.EnterpriseMeta.NamespaceOrDefault() {
+						payload.overrideNamespace = serviceName.EnterpriseMeta.NamespaceOrDefault()
 					}
 					e.Payload = payload
 
@@ -339,8 +339,8 @@ func ServiceHealthEventsFromChanges(tx ReadTxn, changes Changes) ([]stream.Event
 				e.Topic = topicServiceHealthConnect
 				payload := e.Payload.(EventPayloadCheckServiceNode)
 				payload.overrideKey = serviceName.Name
-				if gatewayName.EnterpriseMeta.GetNamespace() != serviceName.EnterpriseMeta.GetNamespace() {
-					payload.overrideNamespace = serviceName.EnterpriseMeta.GetNamespace()
+				if gatewayName.EnterpriseMeta.NamespaceOrDefault() != serviceName.EnterpriseMeta.NamespaceOrDefault() {
+					payload.overrideNamespace = serviceName.EnterpriseMeta.NamespaceOrDefault()
 				}
 				e.Payload = payload
 
@@ -470,8 +470,8 @@ func copyEventForService(event stream.Event, service structs.ServiceName) stream
 	event.Topic = topicServiceHealthConnect
 	payload := event.Payload.(EventPayloadCheckServiceNode)
 	payload.overrideKey = service.Name
-	if payload.Value.Service.EnterpriseMeta.GetNamespace() != service.EnterpriseMeta.GetNamespace() {
-		payload.overrideNamespace = service.EnterpriseMeta.GetNamespace()
+	if payload.Value.Service.EnterpriseMeta.NamespaceOrDefault() != service.EnterpriseMeta.NamespaceOrDefault() {
+		payload.overrideNamespace = service.EnterpriseMeta.NamespaceOrDefault()
 	}
 
 	event.Payload = payload
