@@ -1,0 +1,69 @@
+{
+  "name": "ember-cli-hcl-module",
+  "version": "0.0.0",
+  "description": "The default blueprint for ember-cli addons.",
+  "keywords": [
+    "ember-addon"
+  ],
+  "repository": "",
+  "license": "MIT",
+  "author": "",
+  "directories": {
+    "doc": "doc",
+    "test": "tests"
+  },
+  "scripts": {
+    "build": "ember build --environment=production",
+    "lint": "npm-run-all --aggregate-output --continue-on-error --parallel lint:*",
+    "lint:hbs": "ember-template-lint .",
+    "lint:js": "eslint .",
+    "start": "ember serve",
+    "test": "npm-run-all lint:* test:*",
+    "test:ember": "ember test",
+    "test:ember-compatibility": "ember try:each"
+  },
+  "dependencies": {
+    "broccoli-persistent-filter": "^3.1.2",
+    "ember-cli-babel": "^7.21.0",
+    "ember-cli-htmlbars": "^5.2.0",
+    "micro-hcl": "*"
+  },
+  "devDependencies": {
+    "@ember/optional-features": "^1.3.0",
+    "@glimmer/component": "^1.0.1",
+    "@glimmer/tracking": "^1.0.0",
+    "babel-eslint": "^10.1.0",
+    "broccoli-asset-rev": "^3.0.0",
+    "ember-auto-import": "^1.6.0",
+    "ember-cli": "~3.20.2",
+    "ember-cli-dependency-checker": "^3.2.0",
+    "ember-cli-inject-live-reload": "^2.0.2",
+    "ember-cli-sri": "^2.1.1",
+    "ember-cli-uglify": "^3.0.0",
+    "ember-disable-prototype-extensions": "^1.1.3",
+    "ember-export-application-global": "^2.0.1",
+    "ember-load-initializers": "^2.1.1",
+    "ember-maybe-import-regenerator": "^0.1.6",
+    "ember-qunit": "^4.6.0",
+    "ember-resolver": "^8.0.0",
+    "ember-source": "~3.20.2",
+    "ember-source-channel-url": "^2.0.1",
+    "ember-template-lint": "^2.9.1",
+    "ember-try": "^1.4.0",
+    "eslint": "^7.5.0",
+    "eslint-plugin-ember": "^8.9.1",
+    "eslint-plugin-node": "^11.1.0",
+    "loader.js": "^4.7.0",
+    "npm-run-all": "^4.1.5",
+    "qunit-dom": "^1.2.0"
+  },
+  "engines": {
+    "node": "10.* || >= 12"
+  },
+  "ember": {
+    "edition": "octane"
+  },
+  "ember-addon": {
+    "configPath": "tests/dummy/config"
+  }
+}
