@@ -7,9 +7,57 @@ description: Metrics for Consul on Kubernetes
 
 # Metrics
 
-Consul on Kubernetes integrates with Prometheus to provide metrics for Consul Service Mesh components, including: service metrics, sidecar proxy metrics, Consul agent (server and client) metrics, and gateway metrics. Service metrics can also be seen in the Consul UI Topology Visualization view. This section documents how to enable them.
+Consul on Kubernetes integrates with Prometheus and Grafana to provide metrics for Consul Service Mesh, including: service metrics, sidecar proxy metrics, Consul agent metrics, and gateway metrics. Service metrics can also be seen in the Consul UI Topology Visualization view. This section documents how to enable each of these.
+
+**Note:** Metrics will be supported in Consul-helm 0.31.0 and Consul-k8s 0.25.0. However, enabling the [metrics merging feature](#connect-service-and-sidecar-metrics-with-metrics-merging) with Helm value (`defaultEnableMerging`) or annotation (`consul.hashicorp.com/enable-metrics-merging`) can only be used with Consul `1.10.0-alpha1` and above. The other metrics configuration can still be used before Consul `1.10.0-alpha1`.
 
 ## Connect Service and Sidecar Metrics with Metrics Merging
+
+Prometheus annotations are used to scrape metrics. Prometheus annotations only support scraping from one endpoint on a Pod, so Consul on Kubernetes supports metrics merging so the service metrics and sidecar proxy metrics are merged into one endpoint. If there are no service metrics, it also supports just scraping the sidecar proxy metrics.
+
+The diagram below illustrates how the metrics integration works when merging is enabled:
+
+[![Metrics Merging Architecture](/img/metrics-arch.png)](/img/metrics-arch.png)
+
+Connect service metrics can be configured with the Helm values nested under [`connectInject.metrics`](/docs/k8s/helm#v-connectinject).
+
+Metrics and metrics merging can be enabled by default for all connect-injectedPods with the following Helm values:
+```yaml
+connectInject:
+    metrics:
+        defaultEnabled: true
+        defaultEnableMerging: true
+```
+They can also be overridden on a per-Pod basis using the annotations `consul.hashicorp.com/enable-metrics` and `consul.hashicorp.com/enable-metrics-merging`.
+
+The Prometheus annotations configure the endpoint to scrape the metrics from. As shown in the diagram, the annotations point to a listener on `0.0.0.0:20200` on the Envoy sidecar. This listener and the corresponding Prometheus annotations can be configured with the following Helm values (or overridden on a per-Pod basis with Consul annotations `consul.hashicorp.com/prometheus-scrape-port` and `consul.hashicorp.com/prometheus-scrape-path`):
+```yaml
+connectInject:
+    metrics:
+        defaultPrometheusScrapePort: 20200
+        defaultPrometheusScrapePath: "/metrics"
+```
+Those Helm values will result in the following Prometheus annotations being automatically added to the Pod for scraping:
+```yaml
+metadata:
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/path: /metrics
+    prometheus.io/port: "20200"
+```
+
+When metrics alone are enabled, the listener in the diagram on `0.0.0.0:20200` would point directly at the sidecar metrics endpoint, rather than the merged metrics endpoint. The Prometheus scraping annotations would stay the same.
+
+When metrics and metrics merging are *both* enabled, metrics are combined from the service and the sidecar proxy, and exposed via a local server on the consul sidecar for scraping. This endpoint is called the merged metrics endpoint and defaults to `127.0.0.1:20100/stats/prometheus`. The listener will target the merged metrics endpoint in the above case. It can be configured with the following Helm values (or overridden on a per-Pod basis with `consul.hashicorp.com/merged-metrics-port`):
+```yaml
+connectInject:
+    metrics:
+        defaultMergedMetricsPort: 20100
+```
+
+The endpoint to scrape service metrics from can be configured only on a per-Pod basis via the Pod annotations `consul.hashicorp.com/service-metrics-port` and `consul.hashicorp.com/service-metrics-path`. If these are not configured, the service metrics port will default to the port used to register the service with Consul (`consul.hashicorp.com/connect-service-port`), which in turn defaults to the first port on the first container of the Pod. The service metrics path will default to `/metrics`.
+
+## Metrics in the UI Topology Visualization
 
 ## Consul Agent Metrics
 
