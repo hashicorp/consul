@@ -7,14 +7,25 @@ description: Metrics for Consul on Kubernetes
 
 # Metrics
 
-Consul on Kubernetes integrates with Prometheus and Grafana to provide metrics for Consul Service Mesh, including: service metrics, sidecar proxy metrics, Consul agent metrics, and gateway metrics. Service metrics can also be seen in the Consul UI Topology Visualization view. This section documents how to enable each of these.
-
-## Deploying Prometheus and Grafana
+Consul on Kubernetes integrates with Prometheus to provide metrics for Consul Service Mesh components, including: service metrics, sidecar proxy metrics, Consul agent (server and client) metrics, and gateway metrics. Service metrics can also be seen in the Consul UI Topology Visualization view. This section documents how to enable them.
 
 ## Connect Service and Sidecar Metrics with Metrics Merging
 
-## Metrics in the UI Topology Visualization
-
 ## Consul Agent Metrics
 
+Metrics from the Server Pods and Client Pods can be scraped via Prometheus by setting the field `global.metrics.enableAgentMetrics` to `true`. Additionally, one can configure the metrics retention time on the agents by configuring
+the field `global.metrics.agentMetricsRetentionTime` which expects a duration and defaults to `"1m"`. As the Prometheus deployment currently does not support scraping TLS endpoints, agent metrics are currently *unsupported* when TLS is enabled.
+
+```yaml
+global:
+  metrics:
+    enabled: true
+    enableAgentMetrics: true
+    agentMetricsRetentionTime: "1m"
+```
+
 ## Gateway Metrics
+
+## Metrics in the UI Topology Visualization
+
+## Deploying Prometheus and Grafana (_for demo and non-production use-cases only_)
