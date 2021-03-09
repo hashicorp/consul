@@ -13,8 +13,8 @@ Consul on Kubernetes integrates with Prometheus to provide metrics for Consul Se
 
 ## Consul Agent Metrics
 
-Metrics from the Server Pods and Client Pods can be scraped via Prometheus by setting the field `global.metrics.enableAgentMetrics` to `true`. Additionally, one can configure the metrics retention time on the agents by configuring
-the field `global.metrics.agentMetricsRetentionTime` which expects a duration and defaults to `"1m"`. As the Prometheus deployment currently does not support scraping TLS endpoints, agent metrics are currently *unsupported* when TLS is enabled.
+Metrics from the Consul server and client Pods can be scraped via Prometheus by setting the field `global.metrics.enableAgentMetrics` to `true`. Additionally, one can configure the metrics retention time on the agents by configuring
+the field `global.metrics.agentMetricsRetentionTime` which expects a duration and defaults to `"1m"`. This value must be greater than `"0m"` for the Consul servers and clients to emit metrics at all. As the Prometheus deployment currently does not support scraping TLS endpoints, agent metrics are currently *unsupported* when TLS is enabled.
 
 ```yaml
 global:
