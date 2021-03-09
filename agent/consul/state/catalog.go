@@ -900,18 +900,19 @@ func maxIndexAndWatchChsForServiceNodes(tx ReadTxn,
 // compatible destination for the given service name. This will include
 // both proxies and native integrations.
 func (s *Store) ConnectServiceNodes(ws memdb.WatchSet, serviceName string, entMeta *structs.EnterpriseMeta) (uint64, structs.ServiceNodes, error) {
-	return s.serviceNodes(ws, serviceName, true, entMeta)
+	tx := s.db.ReadTxn()
+	defer tx.Abort()
+	return serviceNodesTxn(tx, ws, serviceName, true, entMeta)
 }
 
 // ServiceNodes returns the nodes associated with a given service name.
 func (s *Store) ServiceNodes(ws memdb.WatchSet, serviceName string, entMeta *structs.EnterpriseMeta) (uint64, structs.ServiceNodes, error) {
-	return s.serviceNodes(ws, serviceName, false, entMeta)
+	tx := s.db.ReadTxn()
+	defer tx.Abort()
+	return serviceNodesTxn(tx, ws, serviceName, false, entMeta)
 }
 
-func (s *Store) serviceNodes(ws memdb.WatchSet, serviceName string, connect bool, entMeta *structs.EnterpriseMeta) (uint64, structs.ServiceNodes, error) {
-	tx := s.db.Txn(false)
-	defer tx.Abort()
-
+func serviceNodesTxn(tx ReadTxn, ws memdb.WatchSet, serviceName string, connect bool, entMeta *structs.EnterpriseMeta) (uint64, structs.ServiceNodes, error) {
 	// Function for lookup
 	index := "service"
 	if connect {
