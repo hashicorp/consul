@@ -1651,14 +1651,26 @@ func assertDeepEqual(t *testing.T, x, y interface{}, opts ...cmp.Option) {
 }
 
 // cmpPartialOrderEvents returns a compare option which sorts events so that
-// all events for a particular node/service are grouped together. The sort is
-// stable so events with the same node/service retain their relative order.
+// all events for a particular topic are grouped together. The sort is
+// stable so events with the same key retain their relative order.
+//
+// This sort should match the logic in EventPayloadCheckServiceNode.MatchesKey
+// to avoid masking bugs.
 var cmpPartialOrderEvents = cmp.Options{
 	cmpopts.SortSlices(func(i, j stream.Event) bool {
 		key := func(e stream.Event) string {
-			csn := getPayloadCheckServiceNode(e.Payload)
-			// TODO: double check this sort key is correct.
-			return fmt.Sprintf("%s/%s/%s/%s", e.Topic, csn.Node.Node, csn.Service.Service, e.Payload.(EventPayloadCheckServiceNode).overrideKey)
+			payload := e.Payload.(EventPayloadCheckServiceNode)
+			csn := payload.Value
+
+			name := csn.Service.Service
+			if payload.overrideKey != "" {
+				name = payload.overrideKey
+			}
+			ns := csn.Service.EnterpriseMeta.GetNamespace()
+			if payload.overrideNamespace != "" {
+				ns = payload.overrideNamespace
+			}
+			return fmt.Sprintf("%s/%s/%s/%s", e.Topic, csn.Node.Node, ns, name)
 		}
 		return key(i) < key(j)
 	}),
