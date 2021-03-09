@@ -24,7 +24,7 @@
 }
 
 start
-  = Body 
+  = body:Body { return body; } 
 
 Body "body"
   = __ body:(Block / Attribute)* { 
@@ -34,10 +34,17 @@ Body "body"
           prev,
           Object.entries(item).reduce(
             (prev, item) => {
-              prev[item[0]] = item[1];
+              if(typeof item[1] === 'string' || Array.isArray(item[1])) {
+                prev[item[0]] = item[1];
+                return prev;
+              }
+              if(typeof prev[item[0]] === 'undefined') {
+                prev[item[0]] = {};
+              }
+              Object.assign(prev[item[0]], item[1]);
               return prev;
             },
-            {}
+            prev
           )
         );
       },
