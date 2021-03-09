@@ -17,4 +17,9 @@ export default class HashiCorpConsul extends Component {
     this.modal.close();
     this.args.onchange(e);
   }
+
+  @action
+  keypressClick(e) {
+    e.target.dispatchEvent(new MouseEvent('click'));
+  }
 }

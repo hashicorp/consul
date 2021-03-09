@@ -9,7 +9,7 @@ Feature: dc / intentions / permissions / create: Intention Permission Create
     Then the url should be /datacenter/intentions/create
     And the title should be "New Intention - Consul"
     # Specifically set L7
-    And I click "[value='']"
+    And I click ".value-"
 
     And I click the permissions.create object
     And I click the permissions.form.Action.option.Deny object

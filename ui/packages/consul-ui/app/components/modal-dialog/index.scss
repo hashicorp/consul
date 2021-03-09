@@ -1,14 +1,11 @@
 @import './skin';
 @import './layout';
-.modal-dialog-modal {
+.modal-layer {
+  @extend %modal-layer;
+}
+.modal-dialog {
   @extend %modal-dialog;
 }
-input[name='modal'] {
-  @extend %modal-control;
-}
-html.template-with-modal {
-  @extend %with-modal;
-}
-%modal-dialog table {
-  min-height: 149px;
+%modal-dialog [role="document"] {
+  @extend %modal-window;
 }

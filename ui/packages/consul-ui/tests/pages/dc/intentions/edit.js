@@ -1,7 +1,7 @@
 export default function(
   visitable,
   clickable,
-  isPresent,
+  isVisible,
   submitable,
   deletable,
   cancelable,
@@ -22,7 +22,7 @@ export default function(
     warning: {
       scope: '[data-test-action-warning]',
       resetScope: true,
-      present: isPresent(),
+      see: isVisible(),
       confirm: {
         scope: '[data-test-action-warning-confirm]',
         click: clickable(),

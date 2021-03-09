@@ -19,7 +19,12 @@
 
 {{#if (not empty)}}
   {{#if data.labels}}
-  <a class="sparkline-key-link" {{action (mut shouldShowKey) true}}>Key</a>
+    <a
+      class="sparkline-key-link"
+      {{on "click" (optional this.modal.open)}}
+    >
+      Key
+    </a>
   {{/if}}
 {{/if}}
 
@@ -36,11 +41,10 @@
   <svg class="sparkline"></svg>
 </div>
 
-{{#if shouldShowKey}}
 <ModalDialog
   class="sparkline-key"
-  @onclose={{action (mut shouldShowKey) false}}
   as |modal|>
+    <Ref @target={{this}} @name="modal" @value={{modal}} />
     <BlockSlot @name="header">
       <h3>Metrics Key</h3>
     </BlockSlot>
@@ -68,4 +72,3 @@
       </button>
     </BlockSlot>
 </ModalDialog>
-{{/if}}

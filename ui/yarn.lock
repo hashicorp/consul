@@ -2200,6 +2200,13 @@ JSV@^4.0.x:
   resolved "https://registry.yarnpkg.com/JSV/-/JSV-4.0.2.tgz#d077f6825571f82132f9dffaed587b4029feff57"
   integrity sha1-0Hf2glVx+CEy+d/67Vh7QCn+/1c=
 
+a11y-dialog@^6.0.1:
+  version "6.0.1"
+  resolved "https://registry.yarnpkg.com/a11y-dialog/-/a11y-dialog-6.0.1.tgz#0b6b4d4cbfeb0e3b5034e07b8484cffd17393c8d"
+  integrity sha512-d/I0nUjQFbJgBGU7olFwt9ZBvVHTNjpzJArr8oR+Vhobwcl153KFU/Pgppq7fIf9hSwJnLLTbK+2u7ald56uCA==
+  dependencies:
+    focusable-selectors "^0.2.0"
+
 abab@^2.0.0, abab@^2.0.3:
   version "2.0.5"
   resolved "https://registry.yarnpkg.com/abab/-/abab-2.0.5.tgz#c0b678fb32d60fc1219c784d6a826fe385aeb79a"
@@ -7930,6 +7937,11 @@ flush-write-stream@^1.0.0:
   dependencies:
     inherits "^2.0.3"
     readable-stream "^2.3.6"
+
+focusable-selectors@^0.2.0:
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/focusable-selectors/-/focusable-selectors-0.2.0.tgz#ae8aeb730e8e70bcd2572542fcdba3f89548922a"
+  integrity sha512-v6a8tiRtsiO0TvRDtrnpzhvUDb7L52MM8SrcO+pzC5azbekuvMLjijbyWeZ30efBGhVdgMv5zn0z7Y1bLkjc0w==
 
 follow-redirects@^1.0.0:
   version "1.13.0"

@@ -14,7 +14,7 @@ export default class ConsulIntentionForm extends Component {
 
   @tracked isManagedByCRDs;
 
-  @tracked warn = false;
+  modal = null; // reference to the warning modal
 
   @service('repository/intention') repo;
 
@@ -55,7 +55,7 @@ export default class ConsulIntentionForm extends Component {
     // if the action of the intention has changed and its non-empty then warn
     // the user
     if (typeof item.change.Action !== 'undefined' && typeof item.data.Action === 'undefined') {
-      this.warn = true;
+      this.modal.open();
     } else {
       submit();
     }

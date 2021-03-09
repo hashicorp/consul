@@ -201,39 +201,45 @@
             >
               {{#let components.AuthForm components.AuthProfile as |AuthForm AuthProfile|}}
                 <BlockSlot @name="unauthorized">
-                  <label tabindex="0" for="login-toggle" onkeypress={{this.keypressClick}}>
+                  <label
+                    tabindex="0"
+                    {{on 'keypress' this.keypressClick}}
+                    {{on "click" (optional this.modal.open)}}
+                  >
                     <span>Log in</span>
                   </label>
-                  <ModalDialog @name="login-toggle" @onclose={{this.close}} @onopen={{this.open}} as |api|>
-                    <Ref @target={{this}} @name="modal" @value={{api}} />
+                  <ModalDialog @name="login-toggle" @onclose={{this.close}} @onopen={{this.open}} as |modal|>
+                    <Ref @target={{this}} @name="modal" @value={{modal}} />
                     <BlockSlot @name="header">
                       <h2>Log in to Consul</h2>
                     </BlockSlot>
                     <BlockSlot @name="body">
-                      <AuthForm as |api|>
-                        <Ref @target={{this}} @name="authForm" @value={{api}} />
+                      <AuthForm as |authForm|>
+                        <Ref @target={{this}} @name="authForm" @value={{authForm}} />
                       </AuthForm>
                     </BlockSlot>
-                    <BlockSlot @name="actions" as |close|>
-                      <button type="button" onclick={{action close}}>
+                    <BlockSlot @name="actions">
+                      <button type="button"
+                        {{on "click" modal.close}}
+                      >
                         Continue without logging in
                       </button>
                     </BlockSlot>
                   </ModalDialog>
                 </BlockSlot>
                 <BlockSlot @name="authorized">
-                  <ModalDialog @name="login-toggle" @onclose={{this.close}} @onopen={{this.open}} as |api|>
-                    <Ref @target={{this}} @name="modal" @value={{api}} />
+                  <ModalDialog @name="login-toggle" @onclose={{this.close}} @onopen={{this.open}} as |modal|>
+                    <Ref @target={{this}} @name="modal" @value={{modal}} />
                     <BlockSlot @name="header">
                       <h2>Log in with a different token</h2>
                     </BlockSlot>
                     <BlockSlot @name="body">
-                      <AuthForm as |api|>
-                        <Ref @target={{this}} @name="authForm" @value={{api}} />
+                      <AuthForm as |authForm|>
+                        <Ref @target={{this}} @name="authForm" @value={{authForm}} />
                       </AuthForm>
                     </BlockSlot>
-                    <BlockSlot @name="actions" as |close|>
-                      <button type="button" onclick={{action close}}>
+                    <BlockSlot @name="actions">
+                      <button type="button" onclick={{action modal.close}}>
                         Continue without logging in
                       </button>
                     </BlockSlot>
@@ -271,7 +277,9 @@
     </:complementary-nav>
 
     <:main>
-      {{yield}}
+      {{yield (hash
+        modal=this.modal
+      )}}
     </:main>
 
     <:content-info>
