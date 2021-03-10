@@ -86,3 +86,15 @@ global:
 ## Metrics in the UI Topology Visualization
 
 ## Deploying Prometheus and Grafana (_for demo and non-production use-cases only_)
+
+The Helm chart now contains manifests for Prometheus and Grafana. They can be installed with Helm via `prometheus.enabled` and `grafana.enabled`. These manifests are based on the community manifests for Prometheus and Grafana.
+These are designed to allow quick bootstrapping for trial and demo use cases and not for production use-cases.
+
+Prometheus and Grafana will be installed in the same namespace that Consul will be installed in and shall share their lifecycle with the Consul installation.
+
+```yaml
+prometheus:
+  enabled: false
+grafana:
+  enabled: false
+```
