@@ -44,11 +44,11 @@ func validateConfigEntryEnterprise(_ ReadTxn, _ structs.ConfigEntry) error {
 }
 
 func getAllConfigEntriesWithTxn(tx ReadTxn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get(tableConfigEntries, "id")
+	return tx.Get(tableConfigEntries, indexID)
 }
 
 func getConfigEntryKindsWithTxn(tx ReadTxn, kind string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get(tableConfigEntries, "kind", kind)
+	return tx.Get(tableConfigEntries, indexKind, kind)
 }
 
 func configIntentionsConvertToList(iter memdb.ResultIterator, _ *structs.EnterpriseMeta) structs.Intentions {

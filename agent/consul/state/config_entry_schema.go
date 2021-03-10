@@ -22,9 +22,10 @@ func configTableSchema() *memdb.TableSchema {
 				Name:         indexID,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: indexerSingle{
-					readIndex:  readIndex(indexFromConfigEntryKindName),
-					writeIndex: writeIndex(indexFromConfigEntry),
+				Indexer: indexerSingleWithPrefix{
+					readIndex:   readIndex(indexFromConfigEntryKindName),
+					writeIndex:  writeIndex(indexFromConfigEntry),
+					prefixIndex: prefixIndex(indexFromConfigEntryKindName),
 				},
 			},
 			indexKind: {

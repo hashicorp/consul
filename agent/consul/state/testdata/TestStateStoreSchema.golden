@@ -60,7 +60,7 @@ table=checks
 
 table=config-entries
   index=id unique
-    indexer=github.com/hashicorp/consul/agent/consul/state.indexerSingle readIndex=github.com/hashicorp/consul/agent/consul/state.indexFromConfigEntryKindName writeIndex=github.com/hashicorp/consul/agent/consul/state.indexFromConfigEntry
+    indexer=github.com/hashicorp/consul/agent/consul/state.indexerSingleWithPrefix readIndex=github.com/hashicorp/consul/agent/consul/state.indexFromConfigEntryKindName writeIndex=github.com/hashicorp/consul/agent/consul/state.indexFromConfigEntry prefixIndex=github.com/hashicorp/consul/agent/consul/state.indexFromConfigEntryKindName
   index=intention-legacy-id unique allow-missing
     indexer=github.com/hashicorp/consul/agent/consul/state.ServiceIntentionLegacyIDIndex uuidFieldIndex={}
   index=intention-source allow-missing
