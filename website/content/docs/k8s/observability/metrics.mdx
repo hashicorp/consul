@@ -9,7 +9,7 @@ description: Metrics for Consul on Kubernetes
 
 Consul on Kubernetes integrates with Prometheus and Grafana to provide metrics for Consul Service Mesh, including: service metrics, sidecar proxy metrics, Consul agent metrics, and gateway metrics. Service metrics can also be seen in the Consul UI Topology Visualization view. This section documents how to enable each of these.
 
-**Note:** Metrics will be supported in Consul-helm 0.31.0 and Consul-k8s 0.25.0. However, enabling the [metrics merging feature](#connect-service-and-sidecar-metrics-with-metrics-merging) with Helm value (`defaultEnableMerging`) or annotation (`consul.hashicorp.com/enable-metrics-merging`) can only be used with Consul `1.10.0-alpha1` and above. The other metrics configuration can still be used before Consul `1.10.0-alpha1`.
+**Note:** Metrics will be supported in Consul-helm `0.31.0` and Consul-k8s `0.25.0`. However, enabling the [metrics merging feature](#connect-service-and-sidecar-metrics-with-metrics-merging) with Helm value (`defaultEnableMerging`) or annotation (`consul.hashicorp.com/enable-metrics-merging`) can only be used with Consul `1.10.0-alpha1` and above. The other metrics configuration can still be used before Consul `1.10.0-alpha1`.
 
 ## Connect Service and Sidecar Metrics with Metrics Merging
 
@@ -42,7 +42,7 @@ Those Helm values will result in the following Prometheus annotations being auto
 metadata:
   annotations:
     prometheus.io/scrape: "true"
-    prometheus.io/path: /metrics
+    prometheus.io/path: "/metrics"
     prometheus.io/port: "20200"
 ```
 
