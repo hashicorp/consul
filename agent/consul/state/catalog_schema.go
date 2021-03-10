@@ -17,13 +17,12 @@ const (
 	tableGatewayServices = "gateway-services"
 	tableMeshTopology    = "mesh-topology"
 
-	indexID               = "id"
-	indexServiceName      = "service"
-	indexConnect          = "connect"
-	indexKind             = "kind"
-	indexStatus           = "status"
-	indexNodeServiceCheck = "node_service_check"
-	indexNodeService      = "node_service"
+	indexID          = "id"
+	indexServiceName = "service"
+	indexConnect     = "connect"
+	indexKind        = "kind"
+	indexStatus      = "status"
+	indexNodeService = "node_service"
 )
 
 // nodesTableSchema returns a new table schema used for storing node
@@ -170,37 +169,13 @@ func checksTableSchema() *memdb.TableSchema {
 					Lowercase: true,
 				},
 			},
-			indexNodeServiceCheck: {
-				Name:         indexNodeServiceCheck,
-				AllowMissing: true,
-				Unique:       false,
-				Indexer: &memdb.CompoundIndex{
-					Indexes: []memdb.Indexer{
-						&memdb.StringFieldIndex{
-							Field:     "Node",
-							Lowercase: true,
-						},
-						&memdb.FieldSetIndex{
-							Field: "ServiceID",
-						},
-					},
-				},
-			},
 			indexNodeService: {
 				Name:         indexNodeService,
 				AllowMissing: true,
 				Unique:       false,
-				Indexer: &memdb.CompoundIndex{
-					Indexes: []memdb.Indexer{
-						&memdb.StringFieldIndex{
-							Field:     "Node",
-							Lowercase: true,
-						},
-						&memdb.StringFieldIndex{
-							Field:     "ServiceID",
-							Lowercase: true,
-						},
-					},
+				Indexer: indexerSingle{
+					readIndex:  readIndex(indexFromNodeServiceQuery),
+					writeIndex: writeIndex(indexNodeServiceFromHealthCheck),
 				},
 			},
 		},

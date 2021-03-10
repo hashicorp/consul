@@ -4,6 +4,7 @@ package state
 
 import (
 	"fmt"
+	"strings"
 
 	memdb "github.com/hashicorp/go-memdb"
 
@@ -11,6 +12,34 @@ import (
 )
 
 func withEnterpriseSchema(_ *memdb.DBSchema) {}
+
+func indexNodeServiceFromHealthCheck(raw interface{}) ([]byte, error) {
+	hc, ok := raw.(*structs.HealthCheck)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.HealthCheck index", raw)
+	}
+
+	if hc.Node == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(hc.Node))
+	b.String(strings.ToLower(hc.ServiceID))
+	return b.Bytes(), nil
+}
+
+func indexFromNodeServiceQuery(arg interface{}) ([]byte, error) {
+	hc, ok := arg.(NodeServiceQuery)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for NodeServiceQuery index", arg)
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(hc.Node))
+	b.String(strings.ToLower(hc.Service))
+	return b.Bytes(), nil
+}
 
 func serviceIndexName(name string, _ *structs.EnterpriseMeta) string {
 	return fmt.Sprintf("service.%s", name)
@@ -156,14 +185,6 @@ func catalogListChecks(tx ReadTxn, _ *structs.EnterpriseMeta) (memdb.ResultItera
 	return tx.Get("checks", "id")
 }
 
-func catalogListNodeChecks(tx ReadTxn, node string) (memdb.ResultIterator, error) {
-	return tx.Get("checks", "node_service_check", node, false)
-}
-
-func catalogListServiceChecks(tx ReadTxn, node string, service string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get("checks", "node_service", node, service)
-}
-
 func catalogInsertCheck(tx WriteTxn, chk *structs.HealthCheck, idx uint64) error {
 	// Insert the check
 	if err := tx.Insert("checks", chk); err != nil {
@@ -175,10 +196,6 @@ func catalogInsertCheck(tx WriteTxn, chk *structs.HealthCheck, idx uint64) error
 	}
 
 	return nil
-}
-
-func catalogChecksForNodeService(tx ReadTxn, node string, service string, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get("checks", "node_service", node, service)
 }
 
 func validateRegisterRequestTxn(_ ReadTxn, _ *structs.RegisterRequest, _ bool) (*structs.EnterpriseMeta, error) {

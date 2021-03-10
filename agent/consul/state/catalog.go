@@ -1316,9 +1316,14 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 		return nil
 	}
 
+	// TODO: accept a non-pointer value for EnterpriseMeta
+	if entMeta == nil {
+		entMeta = structs.DefaultEnterpriseMeta()
+	}
 	// Delete any checks associated with the service. This will invalidate
 	// sessions as necessary.
-	checks, err := catalogChecksForNodeService(tx, nodeName, serviceID, entMeta)
+	q := NodeServiceQuery{Node: nodeName, Service: serviceID, EnterpriseMeta: *entMeta}
+	checks, err := tx.Get(tableChecks, indexNodeService, q)
 	if err != nil {
 		return fmt.Errorf("failed service check lookup: %s", err)
 	}
@@ -1767,6 +1772,13 @@ func (s *Store) deleteCheckCASTxn(tx WriteTxn, idx, cidx uint64, node string, ch
 	return true, nil
 }
 
+// NodeServiceQuery is a type used to query the checks table.
+type NodeServiceQuery struct {
+	Node    string
+	Service string
+	structs.EnterpriseMeta
+}
+
 // deleteCheckTxn is the inner method used to call a health
 // check deletion within an existing transaction.
 func (s *Store) deleteCheckTxn(tx WriteTxn, idx uint64, node string, checkID types.CheckID, entMeta *structs.EnterpriseMeta) error {
@@ -2142,7 +2154,8 @@ func parseCheckServiceNodes(
 		// First add the node-level checks. These always apply to any
 		// service on the node.
 		var checks structs.HealthChecks
-		iter, err := catalogListNodeChecks(tx, sn.Node)
+		q := NodeServiceQuery{Node: sn.Node, EnterpriseMeta: *structs.DefaultEnterpriseMeta()}
+		iter, err := tx.Get(tableChecks, indexNodeService, q)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -2152,7 +2165,8 @@ func parseCheckServiceNodes(
 		}
 
 		// Now add the service-specific checks.
-		iter, err = catalogListServiceChecks(tx, sn.Node, sn.ServiceID, &sn.EnterpriseMeta)
+		q = NodeServiceQuery{Node: sn.Node, Service: sn.ServiceID, EnterpriseMeta: sn.EnterpriseMeta}
+		iter, err = tx.Get(tableChecks, indexNodeService, q)
 		if err != nil {
 			return 0, nil, err
 		}
