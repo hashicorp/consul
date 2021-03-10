@@ -228,7 +228,7 @@ and consider if they're appropriate for your deployment.
     - `agentMetricsRetentionTime` ((#v-global-metrics-agentmetricsretentiontime)) (`string: 1m`) - Configures the retention time for metrics in Consul clients and
       servers. This must be greater than 0 for Consul clients and servers
       to expose any metrics at all.
-      Only applicable if global.metrics.enabled is true.
+      Only applicable if `global.metrics.enabled` is true.
 
     - `enableGatewayMetrics` ((#v-global-metrics-enablegatewaymetrics)) (`boolean: true`) - If true, mesh, terminating, and ingress gateways will expose their
       Envoy metrics on port `20200` at the `/metrics` path and all gateway pods
@@ -831,7 +831,7 @@ and consider if they're appropriate for your deployment.
 
     - `provider` ((#v-ui-metrics-provider)) (`string: prometheus`) - Provider for metrics. See
       https://www.consul.io/docs/agent/options#ui_config_metrics_provider
-      This value is only used if ui.enabled is set to true.
+      This value is only used if `ui.enabled` is set to true.
 
     - `baseURL` ((#v-ui-metrics-baseurl)) (`string: http://prometheus-server`) - baseURL is the URL of the prometheus server, usually the service URL.
       This value is only used if `ui.enabled` is set to true.
@@ -1042,7 +1042,7 @@ and consider if they're appropriate for your deployment.
       `consul.hashicorp.com/service-metrics-port` annotation.
 
     - `defaultPrometheusScrapePath` ((#v-connectinject-metrics-defaultprometheusscrapepath)) (`string: /metrics`) - Configures the path Prometheus will scrape metrics from, by configuring the pod
-      annotation prometheus.io/path and the corresponding handler in the Envoy
+      annotation `prometheus.io/path` and the corresponding handler in the Envoy
       sidecar.
       NOTE: This is *not* the path that your application exposes metrics on.
       That can be configured with the
