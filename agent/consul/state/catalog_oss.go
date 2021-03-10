@@ -106,6 +106,10 @@ func indexFromServiceNode(raw interface{}) ([]byte, error) {
 func prefixIndexFromQuery(arg interface{}) ([]byte, error) {
 	var b indexBuilder
 	switch v := arg.(type) {
+	case *structs.EnterpriseMeta:
+		return nil, nil
+	case structs.EnterpriseMeta:
+		return nil, nil
 	case Query:
 		b.String(strings.ToLower(v.Value))
 		return b.Bytes(), nil
@@ -195,7 +199,7 @@ func catalogServiceKindMaxIndex(tx ReadTxn, ws memdb.WatchSet, kind structs.Serv
 	return maxIndexWatchTxn(tx, ws, serviceKindIndexName(kind, nil))
 }
 
-func catalogServiceList(tx ReadTxn, _ *structs.EnterpriseMeta, _ bool) (memdb.ResultIterator, error) {
+func catalogServiceListNoWildcard(tx ReadTxn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
 	return tx.Get(tableServices, indexID)
 }
 
