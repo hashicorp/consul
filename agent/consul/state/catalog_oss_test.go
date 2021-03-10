@@ -145,6 +145,36 @@ func testIndexerTableNodes() map[string]indexerTestCase {
 
 func testIndexerTableServices() map[string]indexerTestCase {
 	return map[string]indexerTestCase{
+		indexID: {
+			read: indexValue{
+				source: NodeServiceQuery{
+					Node:    "NoDeId",
+					Service: "SeRvIcE",
+				},
+				expected: []byte("nodeid\x00service\x00"),
+			},
+			write: indexValue{
+				source: &structs.ServiceNode{
+					Node:      "NoDeId",
+					ServiceID: "SeRviCe",
+				},
+				expected: []byte("nodeid\x00service\x00"),
+			},
+			prefix: []indexValue{
+				{
+					source:   (*structs.EnterpriseMeta)(nil),
+					expected: nil,
+				},
+				{
+					source:   structs.EnterpriseMeta{},
+					expected: nil,
+				},
+				{
+					source:   Query{Value: "NoDeId"},
+					expected: []byte("nodeid\x00"),
+				},
+			},
+		},
 		indexNode: {
 			read: indexValue{
 				source: Query{
