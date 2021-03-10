@@ -137,7 +137,7 @@ type Config struct {
 	AdvertiseAddrLANIPv6             *string             `mapstructure:"advertise_addr_ipv6"`
 	AdvertiseAddrWAN                 *string             `mapstructure:"advertise_addr_wan"`
 	AdvertiseAddrWANIPv4             *string             `mapstructure:"advertise_addr_wan_ipv4"`
-	AdvertiseAddrWANIPv6             *string             `mapstructure:"advertise_addr_ipv6"`
+	AdvertiseAddrWANIPv6             *string             `mapstructure:"advertise_addr_wan_ipv6"`
 	AdvertiseReconnectTimeout        *string             `mapstructure:"advertise_reconnect_timeout"`
 	AutoConfig                       AutoConfigRaw       `mapstructure:"auto_config"`
 	Autopilot                        Autopilot           `mapstructure:"autopilot"`
