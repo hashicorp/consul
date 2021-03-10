@@ -23,6 +23,9 @@
   background-color: var(--gray-050);
   color: var(--gray-700);
 }
+%main-nav-vertical li:not([role="separator"]) > span {
+  color: var(--gray-300);
+}
 %main-nav-vertical [role="separator"] {
   color: var(--gray-600);
 }

@@ -10,10 +10,16 @@ export default class ACLAbility extends BaseAbility {
   get canRead() {
     return this.env.var('CONSUL_ACLS_ENABLED') && super.canRead;
   }
+
   get canDuplicate() {
     return this.env.var('CONSUL_ACLS_ENABLED') && super.canWrite;
   }
+
   get canDelete() {
     return this.env.var('CONSUL_ACLS_ENABLED') && this.item.ID !== 'anonymous' && super.canWrite;
+  }
+
+  get canUse() {
+    return this.env.var('CONSUL_ACLS_ENABLED');
   }
 }
