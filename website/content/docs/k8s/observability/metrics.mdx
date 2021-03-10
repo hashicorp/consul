@@ -74,8 +74,7 @@ global:
 
 ## Gateway Metrics
 
-Metrics from the Consul gateways, namely the Ingress Gateway, Terminating Gateway and the Mesh Gateway can be scraped via Prometheus by setting the field `global.metrics.enableGatewayMetrics`. Since the gateways run Envoy proxies,
-the metrics from them are proxy metrics. To ensure that the metrics are not exposed to the public internet (as Mesh and Ingress gateways can have public IPs), their metrics endpoints are exposed on the Pod IP of the respective gateway instance.
+Metrics from the Consul gateways, namely the Ingress Gateway, Terminating Gateway and the Mesh Gateway can be scraped via Prometheus by setting the field `global.metrics.enableGatewayMetrics`. The gateways emit standard Envoy proxy metrics. To ensure that the metrics are not exposed to the public internet (as Mesh and Ingress gateways can have public IPs), their metrics endpoints are exposed on the Pod IP of the respective gateway instance, rather than on all interfaces on `0.0.0.0`.
 
 ```yaml
 global:
