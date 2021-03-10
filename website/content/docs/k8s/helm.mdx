@@ -216,6 +216,24 @@ and consider if they're appropriate for your deployment.
       `<global.name>-federation` (if setting `global.name`), otherwise
       `<helm-release-name>-consul-federation`. Requires consul-k8s 0.15.0+.
 
+  - `metrics` ((#v-global-metrics)) - Configures metrics for Consul service mesh
+
+    - `enabled` ((#v-global-metrics-enabled)) (`boolean: false`) - Configures the Helm chart’s components
+      to expose Prometheus metrics for the Consul service mesh. By default
+      this includes gateway metrics and sidecar metrics.
+
+    - `enableAgentMetrics` ((#v-global-metrics-enableagentmetrics)) (`boolean: false`) - Configures consul agent metrics. Only applicable if
+      `global.metrics.enabled` is true.
+
+    - `agentMetricsRetentionTime` ((#v-global-metrics-agentmetricsretentiontime)) (`string: 1m`) - Configures the retention time for metrics in Consul clients and
+      servers. This must be greater than 0 for Consul clients and servers
+      to expose any metrics at all.
+      Only applicable if global.metrics.enabled is true.
+
+    - `enableGatewayMetrics` ((#v-global-metrics-enablegatewaymetrics)) (`boolean: true`) - If true, mesh, terminating, and ingress gateways will expose their
+      Envoy metrics on port `20200` at the `/metrics` path and all gateway pods
+      will have Prometheus scrape annotations. Only applicable if `global.metrics.enabled` is true.
+
   - `consulSidecarContainer` ((#v-global-consulsidecarcontainer)) (`map`) - The consul sidecar ensures the Consul services
     are always registered with their local Consul clients and is used by the
     ingress/terminating/mesh gateways as well as with every Connect-injected service.
@@ -278,7 +296,7 @@ and consider if they're appropriate for your deployment.
       enable `server.exposeGossipAndRPCPorts` and `client.exposeGossipPorts`,
       that will configure the LAN gossip ports on the servers and clients to be
       hostPorts, so if you are running clients and servers on the same node the
-      ports will conflict if they are both 8301.  When you enable
+      ports will conflict if they are both 8301. When you enable
       `server.exposeGossipAndRPCPorts` and `client.exposeGossipPorts`, you must
       change this from the default to an unused port on the host, e.g. 9301. By
       default the LAN gossip port is 8301 and configured as a containerPort on
@@ -806,6 +824,18 @@ and consider if they're appropriate for your deployment.
         'annotation-key': annotation-value
       ```
 
+  - `metrics` ((#v-ui-metrics)) - Configurations for displaying metrics in the UI.
+
+    - `enabled` ((#v-ui-metrics-enabled)) (`boolean: global.metrics.enabled`) - Enable displaying metrics in the UI. The default value of "-"
+      will inherit from `global.metrics.enabled` value.
+
+    - `provider` ((#v-ui-metrics-provider)) (`string: prometheus`) - Provider for metrics. See
+      https://www.consul.io/docs/agent/options#ui_config_metrics_provider
+      This value is only used if ui.enabled is set to true.
+
+    - `baseURL` ((#v-ui-metrics-baseurl)) (`string: http://prometheus-server`) - baseURL is the URL of the prometheus server, usually the service URL.
+      This value is only used if `ui.enabled` is set to true.
+
 - `syncCatalog` ((#v-synccatalog)) - Configure the catalog sync process to sync K8S with Consul
   services. This can run bidirectional (default) or unidirectionally (Consul
   to K8S or K8S to Consul only).
@@ -981,6 +1011,42 @@ and consider if they're appropriate for your deployment.
 
     - `reconcilePeriod` ((#v-connectinject-healthchecks-reconcileperiod)) (`string: 1m`) - If `healthChecks.enabled` is set to `true`, `reconcilePeriod` defines how often a full state
       reconcile is done after the initial reconcile at startup is completed.
+
+  - `metrics` ((#v-connectinject-metrics)) - Configures metrics for Consul Connect services. All values are overridable
+    via annotations on a per-pod basis.
+
+    - `defaultEnabled` ((#v-connectinject-metrics-defaultenabled)) (`string: -`) - If true, the connect-injector will automatically
+      add prometheus annotations to connect-injected pods. It will also
+      add a listener on the Envoy sidecar to expose metrics. The exposed
+      metrics will depend on whether metrics merging is enabled:
+        - If metrics merging is enabled:
+          the Consul sidecar will run a merged metrics server
+          combining Envoy sidecar and Connect service metrics,
+          i.e. if your service exposes its own Prometheus metrics.
+        - If metrics merging is disabled:
+          the listener will just expose Envoy sidecar metrics.
+      This will inherit from `global.metrics.enabled`.
+
+    - `defaultEnableMerging` ((#v-connectinject-metrics-defaultenablemerging)) (`boolean: false`) - Configures the Consul sidecar to run a merged metrics server
+      to combine and serve both Envoy and Connect service metrics.
+
+    - `defaultMergedMetricsPort` ((#v-connectinject-metrics-defaultmergedmetricsport)) (`integer: 20100`) - Configures the port at which the Consul sidecar will listen on to return
+      combined metrics. This port only needs to be changed if it conflicts with
+      the application's ports.
+
+    - `defaultPrometheusScrapePort` ((#v-connectinject-metrics-defaultprometheusscrapeport)) (`integer: 20200`) - Configures the port Prometheus will scrape metrics from, by configuring
+      the Pod annotation `prometheus.io/port` and the corresponding listener in
+      the Envoy sidecar.
+      NOTE: This is *not* the port that your application exposes metrics on.
+      That can be configured with the
+      `consul.hashicorp.com/service-metrics-port` annotation.
+
+    - `defaultPrometheusScrapePath` ((#v-connectinject-metrics-defaultprometheusscrapepath)) (`string: /metrics`) - Configures the path Prometheus will scrape metrics from, by configuring the pod
+      annotation prometheus.io/path and the corresponding handler in the Envoy
+      sidecar.
+      NOTE: This is *not* the path that your application exposes metrics on.
+      That can be configured with the
+      `consul.hashicorp.com/service-metrics-path` annotation.
 
   - `cleanupController` ((#v-connectinject-cleanupcontroller)) - Cleanup controller cleans up Consul service instances that remain registered
     despite their pods no longer running. This could happen if the pod's `preStop`
@@ -1461,6 +1527,16 @@ and consider if they're appropriate for your deployment.
     case of annotations where both will be applied.
 
     - `name` ((#v-terminatinggateways-gateways-name)) (`string: terminating-gateway`)
+
+- `prometheus` ((#v-prometheus)) - Configures a demo Prometheus installation.
+
+  - `enabled` ((#v-prometheus-enabled)) (`boolean: false`) - When true, the Helm chart will install a demo Prometheus server instance
+    alongside Consul.
+
+- `grafana` ((#v-grafana)) - Configures a demo Grafana installation.
+
+  - `enabled` ((#v-grafana-enabled)) (`boolean: false`) - When true, the Helm chart will install a demo Grafana instance
+    alongside Consul.
 
 - `tests` ((#v-tests)) - Control whether a test Pod manifest is generated when running helm template.
   When using helm install, the test Pod is not submitted to the cluster so this
