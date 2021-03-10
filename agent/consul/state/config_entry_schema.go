@@ -32,9 +32,9 @@ func configTableSchema() *memdb.TableSchema {
 				Name:         indexKind,
 				AllowMissing: false,
 				Unique:       false,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "Kind",
-					Lowercase: true,
+				Indexer: indexerSingle{
+					readIndex:  readIndex(indexFromConfigEntryKindQuery),
+					writeIndex: writeIndex(indexKindFromConfigEntry),
 				},
 			},
 			indexLink: {

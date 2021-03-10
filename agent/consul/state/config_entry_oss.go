@@ -39,6 +39,33 @@ func indexFromConfigEntry(raw interface{}) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
+// indexKindFromConfigEntry indexes kinds, it is a shim for enterprise.
+func indexKindFromConfigEntry(raw interface{}) ([]byte, error) {
+	c, ok := raw.(structs.ConfigEntry)
+	if !ok {
+		return nil, fmt.Errorf("type must be structs.ConfigEntry: %T", raw)
+	}
+
+	if c.GetKind() == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(c.GetKind()))
+	return b.Bytes(), nil
+}
+
+func indexFromConfigEntryKindQuery(raw interface{}) ([]byte, error) {
+	q, ok := raw.(ConfigEntryKindQuery)
+	if !ok {
+		return nil, fmt.Errorf("type must be structs.ConfigEntry: %T", raw)
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(q.Kind))
+	return b.Bytes(), nil
+}
+
 func validateConfigEntryEnterprise(_ ReadTxn, _ structs.ConfigEntry) error {
 	return nil
 }
@@ -48,7 +75,7 @@ func getAllConfigEntriesWithTxn(tx ReadTxn, _ *structs.EnterpriseMeta) (memdb.Re
 }
 
 func getConfigEntryKindsWithTxn(tx ReadTxn, kind string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get(tableConfigEntries, indexKind, kind)
+	return tx.Get(tableConfigEntries, indexKind, ConfigEntryKindQuery{Kind: kind})
 }
 
 func configIntentionsConvertToList(iter memdb.ResultIterator, _ *structs.EnterpriseMeta) structs.Intentions {

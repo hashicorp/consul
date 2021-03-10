@@ -1246,3 +1246,9 @@ func NewConfigEntryKindName(kind, name string, entMeta *structs.EnterpriseMeta) 
 func newConfigEntryQuery(c structs.ConfigEntry) ConfigEntryKindName {
 	return NewConfigEntryKindName(c.GetKind(), c.GetName(), c.GetEnterpriseMeta())
 }
+
+// ConfigEntryKindQuery is used to lookup config entries by their kind.
+type ConfigEntryKindQuery struct {
+	Kind string
+	structs.EnterpriseMeta
+}
