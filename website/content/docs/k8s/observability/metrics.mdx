@@ -57,8 +57,6 @@ connectInject:
 
 The endpoint to scrape service metrics from can be configured only on a per-Pod basis via the Pod annotations `consul.hashicorp.com/service-metrics-port` and `consul.hashicorp.com/service-metrics-path`. If these are not configured, the service metrics port will default to the port used to register the service with Consul (`consul.hashicorp.com/connect-service-port`), which in turn defaults to the first port on the first container of the Pod. The service metrics path will default to `/metrics`.
 
-## Metrics in the UI Topology Visualization
-
 ## Consul Agent Metrics
 
 Metrics from the Consul server and client Pods can be scraped via Prometheus by setting the field `global.metrics.enableAgentMetrics` to `true`. Additionally, one can configure the metrics retention time on the agents by configuring
@@ -75,5 +73,22 @@ global:
 ## Gateway Metrics
 
 ## Metrics in the UI Topology Visualization
+
+Consul’s built in UI has a topology visualization for services part of the Consul-Connect service mesh. The topology visualization has the ability to fetch basic metrics from a metrics provider for each service and display those metrics as part of the topology visualization.
+
+The diagram below illustrates how the UI display service metrics for a sample application:
+
+[![Metrics Merging Architecture](/img/ui-topology.png)](/img/ui-topology.png)
+
+This could previously be configured by previously setting up `server.extraConfig` but can now be configured using fields under `ui.metrics`. This will enable the Consul UI to query the provider specified by `ui.metrics.provider` at the baseURL `ui.metrics.baseURL` to display
+service metrics. When `global.metrics.enabled` and `ui.enabled` are both set to true, we will configure the server to display Prometheus metrics in the UI.
+
+```yaml
+ui:
+  metrics:
+    enabled: "-"
+    provider: "prometheus"
+    baseURL: http://prometheus-server
+```
 
 ## Deploying Prometheus and Grafana (_for demo and non-production use-cases only_)
