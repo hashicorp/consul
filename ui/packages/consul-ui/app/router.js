@@ -1,29 +1,35 @@
 /* globals requirejs */
 import EmberRouter from '@ember/routing/router';
 import { runInDebug } from '@ember/debug';
+import merge from 'deepmerge';
 import { env } from 'consul-ui/env';
 import walk, { dump } from 'consul-ui/utils/routing/walk';
-import routesOSS from './router.oss.hcl';
 
-export const routes = routesOSS;
+import routesOSS from './router.oss.hcl';
+export let routes = routesOSS;
 
 if (env('CONSUL_NSPACES_ENABLED')) {
-  routes.route.dc.route.nspaces = {
-    path: '/namespaces',
-    route: {
-      edit: {
-        path: '/:name',
-      },
-      create: {
-        path: '/create',
-      },
-    },
-  };
-  routes.route.nspace = {
-    path: '/:nspace',
-    route: {
-      dc: routes.route.dc,
-    },
+  routes = merge(
+    routes,
+    hcl`
+    route "dc" {
+      route "nspaces" {
+        path = "/namespaces"
+        route "edit" {
+          path = "/:name"
+        }
+        route "create" {
+          path = "/create"
+        }
+      }
+    }
+    route "nspace" {
+      path = "/:nspace"
+    }
+  `
+  );
+  routes.route.nspace.route = {
+    dc: routes.route.dc,
   };
 }
 

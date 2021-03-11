@@ -4,10 +4,10 @@
   "main": "index.js",
   "license": "MPL-2.0",
   "dependencies": {
-    "micro-hcl": "*",
     "@babel/helper-plugin-utils": "^7.0.0",
     "@babel/parser": "^7.3.2",
-    "babel-literal-to-ast": "^2.1.0"
+    "babel-literal-to-ast": "^2.1.0",
+    "micro-hcl": "*"
   },
   "devDependencies": {
     "tape": "^5.2.2"
