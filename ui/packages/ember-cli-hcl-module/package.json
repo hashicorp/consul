@@ -1,12 +1,12 @@
 {
   "name": "ember-cli-hcl-module",
   "version": "0.0.0",
-  "description": "The default blueprint for ember-cli addons.",
+  "description": "ember-cli addon for importing/transpiling HCL into JSON",
   "keywords": [
     "ember-addon"
   ],
   "repository": "",
-  "license": "MIT",
+  "license": "MPL-2.0",
   "author": "",
   "directories": {
     "doc": "doc",

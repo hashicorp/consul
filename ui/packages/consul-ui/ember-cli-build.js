@@ -54,7 +54,7 @@ module.exports = function(defaults) {
         only: ['div'],
       },
       babel: {
-        plugins: ['@babel/plugin-proposal-object-rest-spread'],
+        plugins: ['@babel/plugin-proposal-object-rest-spread', 'babel-plugin-hcl-tag'],
         sourceMaps: sourcemaps ? 'inline' : false,
       },
       autoImport: {
