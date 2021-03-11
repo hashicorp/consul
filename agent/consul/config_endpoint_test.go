@@ -2,6 +2,7 @@ package consul
 
 import (
 	"os"
+	"sort"
 	"testing"
 	"time"
 
@@ -890,6 +891,550 @@ func TestConfigEntry_ResolveServiceConfig(t *testing.T) {
 	proxyConf, ok := entry.(*structs.ProxyConfigEntry)
 	require.True(ok)
 	require.Equal(map[string]interface{}{"foo": 1}, proxyConf.Config)
+}
+
+func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	t.Parallel()
+
+	tt := []struct {
+		name     string
+		entries  []structs.ConfigEntry
+		request  structs.ServiceConfigRequest
+		proxyCfg structs.ConnectProxyConfig
+		expect   structs.ServiceConfigResponse
+	}{
+		{
+			name: "upstream config entries from Upstreams and service-defaults",
+			entries: []structs.ConfigEntry{
+				&structs.ProxyConfigEntry{
+					Kind: structs.ProxyDefaults,
+					Name: structs.ProxyConfigGlobal,
+					Config: map[string]interface{}{
+						"protocol": "grpc",
+					},
+				},
+				&structs.ServiceConfigEntry{
+					Kind: structs.ServiceDefaults,
+					Name: "foo",
+					Connect: &structs.ConnectConfiguration{
+						UpstreamConfigs: map[string]*structs.UpstreamConfig{
+							"zip": {
+								Protocol: "http",
+							},
+						},
+					},
+				},
+			},
+			request: structs.ServiceConfigRequest{
+				Name:       "foo",
+				ID:         "foo-proxy-1",
+				NodeName:   "foo-node",
+				Datacenter: "dc1",
+				Upstreams:  []string{"zap"},
+			},
+			expect: structs.ServiceConfigResponse{
+				ProxyConfig: map[string]interface{}{
+					"protocol": "grpc",
+				},
+				UpstreamConfigs: map[string]map[string]interface{}{
+					"zip": {
+						"protocol": "http",
+					},
+					"zap": {
+						"protocol": "grpc",
+					},
+				},
+			},
+		},
+		{
+			name: "upstream config entries from UpstreamIDs and service-defaults",
+			entries: []structs.ConfigEntry{
+				&structs.ProxyConfigEntry{
+					Kind: structs.ProxyDefaults,
+					Name: structs.ProxyConfigGlobal,
+					Config: map[string]interface{}{
+						"protocol": "grpc",
+					},
+				},
+				&structs.ServiceConfigEntry{
+					Kind: structs.ServiceDefaults,
+					Name: "foo",
+					Connect: &structs.ConnectConfiguration{
+						UpstreamConfigs: map[string]*structs.UpstreamConfig{
+							"zip": {
+								Protocol: "http",
+							},
+						},
+					},
+				},
+			},
+			request: structs.ServiceConfigRequest{
+				Name:        "foo",
+				ID:          "foo-proxy-1",
+				NodeName:    "foo-node",
+				Datacenter:  "dc1",
+				UpstreamIDs: []structs.ServiceID{{ID: "zap"}},
+			},
+			expect: structs.ServiceConfigResponse{
+				ProxyConfig: map[string]interface{}{
+					"protocol": "grpc",
+				},
+				UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+					{
+						Upstream: structs.ServiceID{
+							ID:             "zap",
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+						Config: map[string]interface{}{
+							"protocol": "grpc",
+						},
+					},
+					{
+						Upstream: structs.ServiceID{
+							ID:             "zip",
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+						Config: map[string]interface{}{
+							"protocol": "http",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "proxy registration overrides upstream_defaults",
+			entries: []structs.ConfigEntry{
+				&structs.ServiceConfigEntry{
+					Kind: structs.ServiceDefaults,
+					Name: "foo",
+					Connect: &structs.ConnectConfiguration{
+						UpstreamDefaults: &structs.UpstreamConfig{
+							MeshGateway: structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeRemote},
+						},
+					},
+				},
+			},
+			request: structs.ServiceConfigRequest{
+				Name:       "foo",
+				ID:         "foo-proxy-1",
+				NodeName:   "foo-node",
+				Datacenter: "dc1",
+				UpstreamIDs: []structs.ServiceID{
+					{ID: "zap"},
+				},
+			},
+			proxyCfg: structs.ConnectProxyConfig{
+				MeshGateway: structs.MeshGatewayConfig{
+					Mode: structs.MeshGatewayModeNone,
+				},
+			},
+			expect: structs.ServiceConfigResponse{
+				UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+					{
+						Upstream: structs.ServiceID{
+							ID:             "zap",
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+						Config: map[string]interface{}{
+							"mesh_gateway": map[string]interface{}{
+								"Mode": "none",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "upstream_configs overrides all",
+			entries: []structs.ConfigEntry{
+				&structs.ProxyConfigEntry{
+					Kind: structs.ProxyDefaults,
+					Name: structs.ProxyConfigGlobal,
+					Config: map[string]interface{}{
+						"protocol": "udp",
+					},
+				},
+				&structs.ServiceConfigEntry{
+					Kind:     structs.ServiceDefaults,
+					Name:     "foo",
+					Protocol: "tcp",
+				},
+				&structs.ServiceConfigEntry{
+					Kind: structs.ServiceDefaults,
+					Name: "foo",
+					Connect: &structs.ConnectConfiguration{
+						UpstreamDefaults: &structs.UpstreamConfig{
+							Protocol:    "http",
+							MeshGateway: structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeRemote},
+							PassiveHealthCheck: structs.PassiveHealthCheck{
+								Interval:    10,
+								MaxFailures: 2,
+							},
+						},
+						UpstreamConfigs: map[string]*structs.UpstreamConfig{
+							"zap": {
+								Protocol:    "grpc",
+								MeshGateway: structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeLocal},
+							},
+						},
+					},
+				},
+			},
+			request: structs.ServiceConfigRequest{
+				Name:       "foo",
+				ID:         "foo-proxy-1",
+				NodeName:   "foo-node",
+				Datacenter: "dc1",
+				UpstreamIDs: []structs.ServiceID{
+					{ID: "zap"},
+				},
+			},
+			proxyCfg: structs.ConnectProxyConfig{
+				MeshGateway: structs.MeshGatewayConfig{
+					Mode: structs.MeshGatewayModeNone,
+				},
+			},
+			expect: structs.ServiceConfigResponse{
+				ProxyConfig: map[string]interface{}{
+					"protocol": "udp",
+				},
+				UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+					{
+						Upstream: structs.ServiceID{
+							ID:             "zap",
+							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+						},
+						Config: map[string]interface{}{
+							"passive_health_check": map[string]interface{}{
+								"Interval":    int64(10),
+								"MaxFailures": int64(2),
+							},
+							"mesh_gateway": map[string]interface{}{
+								"Mode": "local",
+							},
+							"protocol": "grpc",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			dir1, s1 := testServer(t)
+			defer os.RemoveAll(dir1)
+			defer s1.Shutdown()
+
+			codec := rpcClient(t, s1)
+			defer codec.Close()
+
+			state := s1.fsm.State()
+
+			// Boostrap the config entries
+			idx := uint64(1)
+			for _, conf := range tc.entries {
+				require.NoError(t, state.EnsureConfigEntry(idx, conf))
+				idx++
+			}
+
+			// The config endpoints pulls the proxy registration if a proxy ID is provided.
+			if tc.request.ID != "" {
+				require.NoError(t, state.EnsureNode(4, &structs.Node{
+					ID:   "9c6e733c-c39d-4555-8d41-0f174a31c489",
+					Node: tc.request.NodeName,
+				}))
+				require.NoError(t, state.EnsureService(5, tc.request.NodeName, &structs.NodeService{
+					ID:      tc.request.ID,
+					Service: tc.request.ID,
+					Proxy:   tc.proxyCfg,
+				}))
+			}
+
+			var out structs.ServiceConfigResponse
+			require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig", &tc.request, &out))
+
+			// Don't know what this is deterministically, so we grab it from the response
+			tc.expect.QueryMeta = out.QueryMeta
+
+			// Order of this slice is also not deterministic since it's populated from a map
+			sort.SliceStable(out.UpstreamIDConfigs, func(i, j int) bool {
+				return out.UpstreamIDConfigs[i].Upstream.String() < out.UpstreamIDConfigs[j].Upstream.String()
+			})
+
+			require.Equal(t, tc.expect, out)
+		})
+	}
+}
+
+func TestConfigEntry_ResolveServiceConfig_Upstreams_RegistrationBlocking(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	t.Parallel()
+
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+
+	nodeName := "foo-node"
+
+	// Create a dummy proxy/service config in the state store to look up.
+	state := s1.fsm.State()
+	require.NoError(t, state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: structs.ProxyConfigGlobal,
+		Config: map[string]interface{}{
+			"foo": 1,
+		},
+	}))
+	require.NoError(t, state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
+		Kind:     structs.ServiceDefaults,
+		Name:     "foo",
+		Protocol: "http",
+	}))
+	require.NoError(t, state.EnsureConfigEntry(3, &structs.ServiceConfigEntry{
+		Kind:     structs.ServiceDefaults,
+		Name:     "bar",
+		Protocol: "grpc",
+	}))
+	require.NoError(t, state.EnsureNode(4, &structs.Node{
+		ID:   "9c6e733c-c39d-4555-8d41-0f174a31c489",
+		Node: nodeName,
+	}))
+
+	args := structs.ServiceConfigRequest{
+		Name:       "foo",
+		ID:         "foo-proxy",
+		NodeName:   nodeName,
+		Datacenter: s1.config.Datacenter,
+		Upstreams:  []string{"bar", "baz"},
+	}
+	var out structs.ServiceConfigResponse
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig", &args, &out))
+
+	var index uint64
+	expected := structs.ServiceConfigResponse{
+		ProxyConfig: map[string]interface{}{
+			"foo":      int64(1),
+			"protocol": "http",
+		},
+		// This mesh gateway configuration is pulled from foo-proxy's registration
+		UpstreamConfigs: map[string]map[string]interface{}{
+			"bar": {
+				"protocol": "grpc",
+			},
+		},
+		// Don't know what this is deterministically
+		QueryMeta: out.QueryMeta,
+	}
+	require.Equal(t, expected, out)
+	index = out.Index
+
+	// Now setup a blocking query for 'foo' while we add the proxy registration for foo-proxy.
+	// Adding the foo proxy registration should cause the blocking query to fire because it is
+	// watched when the ID and NodeName are provided.
+	{
+		// Async cause a change
+		start := time.Now()
+		go func() {
+			time.Sleep(100 * time.Millisecond)
+			require.NoError(t, state.EnsureService(index+1, nodeName, &structs.NodeService{
+				ID:      "foo-proxy",
+				Service: "foo-proxy",
+				Proxy: structs.ConnectProxyConfig{
+					MeshGateway: structs.MeshGatewayConfig{
+						Mode: structs.MeshGatewayModeLocal,
+					},
+				},
+			}))
+		}()
+
+		// Re-run the query
+		var out structs.ServiceConfigResponse
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig",
+			&structs.ServiceConfigRequest{
+				Name:       "foo",
+				ID:         "foo-proxy",
+				NodeName:   nodeName,
+				Datacenter: "dc1",
+				Upstreams:  []string{"bar", "baz"},
+				QueryOptions: structs.QueryOptions{
+					MinQueryIndex: index,
+					MaxQueryTime:  time.Second,
+				},
+			},
+			&out,
+		))
+
+		// Should block at least 100ms
+		require.True(t, time.Since(start) >= 100*time.Millisecond, "too fast")
+
+		// Check the indexes
+		require.Equal(t, out.Index, index+1)
+
+		// The mesh gateway config from the proxy registration should no longer be present
+		expected := structs.ServiceConfigResponse{
+			ProxyConfig: map[string]interface{}{
+				"foo":      int64(1),
+				"protocol": "http",
+			},
+			UpstreamConfigs: map[string]map[string]interface{}{
+				"bar": {
+					"protocol":     "grpc",
+					"mesh_gateway": map[string]interface{}{"Mode": string(structs.MeshGatewayModeLocal)},
+				},
+				"baz": {
+					"mesh_gateway": map[string]interface{}{"Mode": string(structs.MeshGatewayModeLocal)},
+				},
+			},
+			// Don't know what this is deterministically
+			QueryMeta: out.QueryMeta,
+		}
+		require.Equal(t, expected, out)
+	}
+}
+
+func TestConfigEntry_ResolveServiceConfig_Upstreams_DegistrationBlocking(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	t.Parallel()
+
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
+
+	nodeName := "foo-node"
+
+	// Create a dummy proxy/service config in the state store to look up.
+	state := s1.fsm.State()
+	require.NoError(t, state.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: structs.ProxyConfigGlobal,
+		Config: map[string]interface{}{
+			"foo": 1,
+		},
+	}))
+	require.NoError(t, state.EnsureConfigEntry(2, &structs.ServiceConfigEntry{
+		Kind:     structs.ServiceDefaults,
+		Name:     "foo",
+		Protocol: "http",
+	}))
+	require.NoError(t, state.EnsureConfigEntry(3, &structs.ServiceConfigEntry{
+		Kind:     structs.ServiceDefaults,
+		Name:     "bar",
+		Protocol: "grpc",
+	}))
+	require.NoError(t, state.EnsureNode(4, &structs.Node{
+		ID:   "9c6e733c-c39d-4555-8d41-0f174a31c489",
+		Node: nodeName,
+	}))
+	require.NoError(t, state.EnsureService(5, nodeName, &structs.NodeService{
+		ID:      "foo-proxy",
+		Service: "foo-proxy",
+		Proxy: structs.ConnectProxyConfig{
+			MeshGateway: structs.MeshGatewayConfig{
+				Mode: structs.MeshGatewayModeLocal,
+			},
+		},
+	}))
+
+	args := structs.ServiceConfigRequest{
+		Name:       "foo",
+		ID:         "foo-proxy",
+		NodeName:   nodeName,
+		Datacenter: s1.config.Datacenter,
+		Upstreams:  []string{"bar", "baz"},
+	}
+	var out structs.ServiceConfigResponse
+	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig", &args, &out))
+
+	var index uint64
+	expected := structs.ServiceConfigResponse{
+		ProxyConfig: map[string]interface{}{
+			"foo":      int64(1),
+			"protocol": "http",
+		},
+		// This mesh gateway configuration is pulled from foo-proxy's registration
+		UpstreamConfigs: map[string]map[string]interface{}{
+			"bar": {
+				"protocol":     "grpc",
+				"mesh_gateway": map[string]interface{}{"Mode": string(structs.MeshGatewayModeLocal)},
+			},
+			"baz": {
+				"mesh_gateway": map[string]interface{}{"Mode": string(structs.MeshGatewayModeLocal)},
+			},
+		},
+		// Don't know what this is deterministically
+		QueryMeta: out.QueryMeta,
+	}
+	require.Equal(t, expected, out)
+	index = out.Index
+
+	// Now setup a blocking query for 'foo' while we erase the proxy registration for foo-proxy.
+	// Deleting the foo proxy registration should cause the blocking query to fire because it is
+	// watched when the ID and NodeName are provided.
+	{
+		// Async cause a change
+		start := time.Now()
+		go func() {
+			time.Sleep(100 * time.Millisecond)
+			require.NoError(t, state.DeleteService(index+1, nodeName, "foo-proxy", nil))
+		}()
+
+		// Re-run the query
+		var out structs.ServiceConfigResponse
+		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig",
+			&structs.ServiceConfigRequest{
+				Name:       "foo",
+				ID:         "foo-proxy",
+				NodeName:   nodeName,
+				Datacenter: "dc1",
+				Upstreams:  []string{"bar", "baz"},
+				QueryOptions: structs.QueryOptions{
+					MinQueryIndex: index,
+					MaxQueryTime:  time.Second,
+				},
+			},
+			&out,
+		))
+
+		// Should block at least 100ms
+		require.True(t, time.Since(start) >= 100*time.Millisecond, "too fast")
+
+		// Check the indexes
+		require.Equal(t, out.Index, index+1)
+
+		// The mesh gateway config from the proxy registration should no longer be present
+		expected := structs.ServiceConfigResponse{
+			ProxyConfig: map[string]interface{}{
+				"foo":      int64(1),
+				"protocol": "http",
+			},
+			UpstreamConfigs: map[string]map[string]interface{}{
+				"bar": {
+					"protocol": "grpc",
+				},
+			},
+			// Don't know what this is deterministically
+			QueryMeta: out.QueryMeta,
+		}
+		require.Equal(t, expected, out)
+	}
 }
 
 func TestConfigEntry_ResolveServiceConfig_Blocking(t *testing.T) {

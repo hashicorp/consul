@@ -309,8 +309,13 @@ func (w *serviceConfigWatch) handleUpdate(ctx context.Context, event cache.Updat
 }
 
 func makeConfigRequest(bd BaseDeps, addReq AddServiceRequest) *structs.ServiceConfigRequest {
-	ns := addReq.Service
-	name := ns.Service
+	var (
+		ns   = addReq.Service
+		name = ns.Service
+		id   = ns.ID
+		node = addReq.nodeName
+	)
+
 	var upstreams []structs.ServiceID
 
 	// Note that only sidecar proxies should even make it here for now although
@@ -333,6 +338,8 @@ func makeConfigRequest(bd BaseDeps, addReq AddServiceRequest) *structs.ServiceCo
 
 	req := &structs.ServiceConfigRequest{
 		Name:           name,
+		ID:             id,
+		NodeName:       node,
 		Datacenter:     bd.RuntimeConfig.Datacenter,
 		QueryOptions:   structs.QueryOptions{Token: addReq.token},
 		UpstreamIDs:    upstreams,
@@ -365,7 +372,6 @@ func mergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 	if err := mergo.Merge(&ns.Proxy.Config, defaults.ProxyConfig); err != nil {
 		return nil, err
 	}
-
 	if err := mergo.Merge(&ns.Proxy.Expose, defaults.Expose); err != nil {
 		return nil, err
 	}
@@ -382,16 +388,27 @@ func mergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 			continue
 		}
 
-		// default the upstreams gateway mode if it didn't specify one
-		if us.MeshGateway.Mode == structs.MeshGatewayModeDefault {
-			us.MeshGateway.Mode = ns.Proxy.MeshGateway.Mode
-		}
-
 		usCfg, ok := defaults.UpstreamIDConfigs.GetUpstreamConfig(us.DestinationID())
 		if !ok {
 			// No config defaults to merge
 			continue
 		}
+
+		// MeshGateway mode is fetched separately since it is a first class field and not read from us.Config
+		parsed, err := structs.ParseUpstreamConfig(usCfg)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse upstream config map for %s: %v", us.Identifier(), err)
+		}
+
+		// The local upstream config mode has the highest precedence, so only overwrite when it's set to the default
+		if us.MeshGateway.Mode == structs.MeshGatewayModeDefault {
+			us.MeshGateway.Mode = parsed.MeshGateway.Mode
+		}
+
+		// Delete the mesh gateway key since this is the only place it is read from an opaque map.
+		delete(usCfg, "mesh_gateway")
+
+		// Merge in everything else that is read from the map
 		if err := mergo.Merge(&us.Config, usCfg); err != nil {
 			return nil, err
 		}

@@ -578,13 +578,17 @@ func (r *ConfigEntryListAllRequest) RequestDatacenter() string {
 // for a service.
 type ServiceConfigRequest struct {
 	Name       string
+	ID         string
+	NodeName   string
 	Datacenter string
+
+	UpstreamIDs []ServiceID
+
 	// DEPRECATED
 	// Upstreams is a list of upstream service names to use for resolving the service config
 	// UpstreamIDs should be used instead which can encode more than just the name to
 	// uniquely identify a service.
-	Upstreams   []string
-	UpstreamIDs []ServiceID
+	Upstreams []string
 
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	QueryOptions

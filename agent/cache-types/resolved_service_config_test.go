@@ -25,6 +25,8 @@ func TestResolvedServiceConfig(t *testing.T) {
 			require.Equal(uint64(24), req.QueryOptions.MinQueryIndex)
 			require.Equal(1*time.Second, req.QueryOptions.MaxQueryTime)
 			require.Equal("foo", req.Name)
+			require.Equal("foo-1", req.ID)
+			require.Equal("foo-node", req.NodeName)
 			require.True(req.AllowStale)
 
 			reply := args.Get(2).(*structs.ServiceConfigResponse)
@@ -48,6 +50,8 @@ func TestResolvedServiceConfig(t *testing.T) {
 	}, &structs.ServiceConfigRequest{
 		Datacenter: "dc1",
 		Name:       "foo",
+		ID:         "foo-1",
+		NodeName:   "foo-node",
 	})
 	require.NoError(err)
 	require.Equal(cache.FetchResult{

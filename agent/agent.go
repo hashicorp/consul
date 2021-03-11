@@ -1948,6 +1948,7 @@ type addServiceLockedRequest struct {
 // agent using Agent.AddService.
 type AddServiceRequest struct {
 	Service               *structs.NodeService
+	nodeName              string
 	chkTypes              []*structs.CheckType
 	persist               bool
 	token                 string
@@ -3107,6 +3108,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 		err = a.addServiceLocked(addServiceLockedRequest{
 			AddServiceRequest: AddServiceRequest{
 				Service:               ns,
+				nodeName:              a.config.NodeName,
 				chkTypes:              chkTypes,
 				persist:               false, // don't rewrite the file with the same data we just read
 				token:                 service.Token,
@@ -3127,6 +3129,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 			err = a.addServiceLocked(addServiceLockedRequest{
 				AddServiceRequest: AddServiceRequest{
 					Service:               sidecar,
+					nodeName:              a.config.NodeName,
 					chkTypes:              sidecarChecks,
 					persist:               false, // don't rewrite the file with the same data we just read
 					token:                 sidecarToken,
@@ -3225,6 +3228,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 			err = a.addServiceLocked(addServiceLockedRequest{
 				AddServiceRequest: AddServiceRequest{
 					Service:               p.Service,
+					nodeName:              a.config.NodeName,
 					chkTypes:              nil,
 					persist:               false, // don't rewrite the file with the same data we just read
 					token:                 p.Token,
