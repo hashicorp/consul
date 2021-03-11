@@ -21,7 +21,7 @@ export default class BaseRoute extends Route {
    */
   async beforeModel() {
     // remove any references to index as it is the same as the root routeName
-    const routeName = this.routeName
+    const path = this.routeName
       .split('.')
       .filter(item => item !== 'index')
       .join('.route.');
