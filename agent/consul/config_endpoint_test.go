@@ -1069,7 +1069,7 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 						UpstreamDefaults: &structs.UpstreamConfig{
 							Protocol:    "http",
 							MeshGateway: structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeRemote},
-							PassiveHealthCheck: structs.PassiveHealthCheck{
+							PassiveHealthCheck: &structs.PassiveHealthCheck{
 								Interval:    10,
 								MaxFailures: 2,
 							},

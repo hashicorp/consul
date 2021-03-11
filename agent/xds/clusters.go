@@ -734,11 +734,8 @@ func (s *Server) makeGatewayCluster(snap *proxycfg.ConfigSnapshot, opts gatewayC
 	return cluster
 }
 
-func makeThresholdsIfNeeded(limits structs.UpstreamLimits) []*envoy_cluster_v3.CircuitBreakers_Thresholds {
-	var empty structs.UpstreamLimits
-	// Make sure to not create any thresholds when passed the zero-value in order
-	// to rely on Envoy defaults
-	if limits == empty {
+func makeThresholdsIfNeeded(limits *structs.UpstreamLimits) []*envoy_cluster_v3.CircuitBreakers_Thresholds {
+	if limits == nil {
 		return nil
 	}
 

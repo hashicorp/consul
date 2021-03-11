@@ -127,11 +127,11 @@ type UpstreamConfig struct {
 
 	// Limits are the set of limits that are applied to the proxy for a specific upstream of a
 	// service instance.
-	Limits UpstreamLimits
+	Limits *UpstreamLimits
 
 	// PassiveHealthCheck configuration determines how upstream proxy instances will
 	// be monitored for removal from the load balancing pool.
-	PassiveHealthCheck PassiveHealthCheck `json:",omitempty" alias:"passive_health_check"`
+	PassiveHealthCheck *PassiveHealthCheck `json:",omitempty" alias:"passive_health_check"`
 
 	// MeshGatewayConfig controls how Mesh Gateways are configured and used
 	MeshGateway MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway" `

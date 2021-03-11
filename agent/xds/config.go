@@ -151,8 +151,12 @@ func ParseGatewayConfig(m map[string]interface{}) (GatewayConfig, error) {
 // Return an envoy.OutlierDetection populated by the values from this struct.
 // If all values are zero a default empty OutlierDetection will be returned to
 // enable outlier detection with default values.
-func ToOutlierDetection(p structs.PassiveHealthCheck) *envoy_cluster_v3.OutlierDetection {
+func ToOutlierDetection(p *structs.PassiveHealthCheck) *envoy_cluster_v3.OutlierDetection {
 	od := &envoy_cluster_v3.OutlierDetection{}
+	if p == nil {
+		return od
+	}
+
 	if p.Interval != 0 {
 		od.Interval = ptypes.DurationProto(p.Interval)
 	}

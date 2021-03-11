@@ -196,7 +196,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				Connect: &ConnectConfiguration{
 					UpstreamConfigs: map[string]*UpstreamConfig{
 						"redis": {
-							PassiveHealthCheck: PassiveHealthCheck{
+							PassiveHealthCheck: &PassiveHealthCheck{
 								MaxFailures: 3,
 								Interval:    2 * time.Second,
 							},
@@ -210,7 +210,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 						ClusterJSON:      "bar",
 						ConnectTimeoutMs: 5,
 						Protocol:         "http",
-						Limits: UpstreamLimits{
+						Limits: &UpstreamLimits{
 							MaxConnections:        intPointer(3),
 							MaxPendingRequests:    intPointer(4),
 							MaxConcurrentRequests: intPointer(5),
@@ -1613,12 +1613,12 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 				ClusterJSON:      "bar",
 				ConnectTimeoutMs: 5,
 				Protocol:         "http",
-				Limits: UpstreamLimits{
+				Limits: &UpstreamLimits{
 					MaxConnections:        intPointer(3),
 					MaxPendingRequests:    intPointer(4),
 					MaxConcurrentRequests: intPointer(5),
 				},
-				PassiveHealthCheck: PassiveHealthCheck{
+				PassiveHealthCheck: &PassiveHealthCheck{
 					MaxFailures: 3,
 					Interval:    2 * time.Second,
 				},
@@ -1630,12 +1630,12 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 				"cluster_json":       "bar",
 				"connect_timeout_ms": 5,
 				"protocol":           "http",
-				"limits": UpstreamLimits{
+				"limits": &UpstreamLimits{
 					MaxConnections:        intPointer(3),
 					MaxPendingRequests:    intPointer(4),
 					MaxConcurrentRequests: intPointer(5),
 				},
-				"passive_health_check": PassiveHealthCheck{
+				"passive_health_check": &PassiveHealthCheck{
 					MaxFailures: 3,
 					Interval:    2 * time.Second,
 				},
@@ -1650,12 +1650,12 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 				ClusterJSON:      "bar",
 				ConnectTimeoutMs: 5,
 				Protocol:         "http",
-				Limits: UpstreamLimits{
+				Limits: &UpstreamLimits{
 					MaxConnections:        intPointer(3),
 					MaxPendingRequests:    intPointer(4),
 					MaxConcurrentRequests: intPointer(5),
 				},
-				PassiveHealthCheck: PassiveHealthCheck{
+				PassiveHealthCheck: &PassiveHealthCheck{
 					MaxFailures: 3,
 					Interval:    2 * time.Second,
 				},
@@ -1666,12 +1666,12 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 				"cluster_json":       "zap",
 				"connect_timeout_ms": 10,
 				"protocol":           "grpc",
-				"limits": UpstreamLimits{
+				"limits": &UpstreamLimits{
 					MaxConnections:        intPointer(10),
 					MaxPendingRequests:    intPointer(11),
 					MaxConcurrentRequests: intPointer(12),
 				},
-				"passive_health_check": PassiveHealthCheck{
+				"passive_health_check": &PassiveHealthCheck{
 					MaxFailures: 13,
 					Interval:    14 * time.Second,
 				},
@@ -1682,12 +1682,12 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 				"cluster_json":       "bar",
 				"connect_timeout_ms": 5,
 				"protocol":           "http",
-				"limits": UpstreamLimits{
+				"limits": &UpstreamLimits{
 					MaxConnections:        intPointer(3),
 					MaxPendingRequests:    intPointer(4),
 					MaxConcurrentRequests: intPointer(5),
 				},
-				"passive_health_check": PassiveHealthCheck{
+				"passive_health_check": &PassiveHealthCheck{
 					MaxFailures: 3,
 					Interval:    2 * time.Second,
 				},
@@ -1716,12 +1716,12 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 				"cluster_json":       "zap",
 				"connect_timeout_ms": 10,
 				"protocol":           "grpc",
-				"limits": UpstreamLimits{
+				"limits": &UpstreamLimits{
 					MaxConnections:        intPointer(10),
 					MaxPendingRequests:    intPointer(11),
 					MaxConcurrentRequests: intPointer(12),
 				},
-				"passive_health_check": PassiveHealthCheck{
+				"passive_health_check": &PassiveHealthCheck{
 					MaxFailures: 13,
 					Interval:    14 * time.Second,
 				},
@@ -1732,12 +1732,12 @@ func TestUpstreamConfig_MergeInto(t *testing.T) {
 				"cluster_json":       "zap",
 				"connect_timeout_ms": 10,
 				"protocol":           "grpc",
-				"limits": UpstreamLimits{
+				"limits": &UpstreamLimits{
 					MaxConnections:        intPointer(10),
 					MaxPendingRequests:    intPointer(11),
 					MaxConcurrentRequests: intPointer(12),
 				},
-				"passive_health_check": PassiveHealthCheck{
+				"passive_health_check": &PassiveHealthCheck{
 					MaxFailures: 13,
 					Interval:    14 * time.Second,
 				},
@@ -1845,7 +1845,7 @@ func TestParseUpstreamConfig(t *testing.T) {
 			want: UpstreamConfig{
 				ConnectTimeoutMs: 5000,
 				Protocol:         "tcp",
-				Limits: UpstreamLimits{
+				Limits: &UpstreamLimits{
 					MaxConnections:        intPointer(50),
 					MaxPendingRequests:    intPointer(60),
 					MaxConcurrentRequests: intPointer(70),
@@ -1864,7 +1864,7 @@ func TestParseUpstreamConfig(t *testing.T) {
 			want: UpstreamConfig{
 				ConnectTimeoutMs: 5000,
 				Protocol:         "tcp",
-				Limits: UpstreamLimits{
+				Limits: &UpstreamLimits{
 					MaxConnections:        intPointer(0),
 					MaxPendingRequests:    intPointer(0),
 					MaxConcurrentRequests: intPointer(0),
@@ -1882,7 +1882,7 @@ func TestParseUpstreamConfig(t *testing.T) {
 			want: UpstreamConfig{
 				ConnectTimeoutMs: 5000,
 				Protocol:         "tcp",
-				PassiveHealthCheck: PassiveHealthCheck{
+				PassiveHealthCheck: &PassiveHealthCheck{
 					Interval:    22 * time.Second,
 					MaxFailures: 7,
 				},

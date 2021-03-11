@@ -469,7 +469,7 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 			// usConfigs stores the opaque config map for each upstream and is keyed on the upstream's ID.
 			usConfigs := make(map[structs.ServiceID]map[string]interface{})
 
-			for upstream, _ := range seenUpstreams {
+			for upstream := range seenUpstreams {
 				resolvedCfg := make(map[string]interface{})
 
 				// The protocol of an upstream is resolved in this order:

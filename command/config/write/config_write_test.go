@@ -615,7 +615,7 @@ func TestParseConfigEntry(t *testing.T) {
 				Connect: api.ConnectConfiguration{
 					UpstreamConfigs: map[string]api.UpstreamConfig{
 						"redis": {
-							PassiveHealthCheck: api.PassiveHealthCheck{
+							PassiveHealthCheck: &api.PassiveHealthCheck{
 								MaxFailures: 3,
 								Interval:    2 * time.Second,
 							},
@@ -631,12 +631,12 @@ func TestParseConfigEntry(t *testing.T) {
 						ListenerJSON:     "zop",
 						Protocol:         "http",
 						ConnectTimeoutMs: 5000,
-						Limits: api.UpstreamLimits{
+						Limits: &api.UpstreamLimits{
 							MaxConnections:        3,
 							MaxPendingRequests:    4,
 							MaxConcurrentRequests: 5,
 						},
-						PassiveHealthCheck: api.PassiveHealthCheck{
+						PassiveHealthCheck: &api.PassiveHealthCheck{
 							MaxFailures: 5,
 							Interval:    4 * time.Second,
 						},

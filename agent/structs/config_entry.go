@@ -660,11 +660,11 @@ type UpstreamConfig struct {
 
 	// Limits are the set of limits that are applied to the proxy for a specific upstream of a
 	// service instance.
-	Limits UpstreamLimits
+	Limits *UpstreamLimits `json:",omitempty"`
 
 	// PassiveHealthCheck configuration determines how upstream proxy instances will
 	// be monitored for removal from the load balancing pool.
-	PassiveHealthCheck PassiveHealthCheck `json:",omitempty" alias:"passive_health_check"`
+	PassiveHealthCheck *PassiveHealthCheck `json:",omitempty" alias:"passive_health_check"`
 
 	// MeshGatewayConfig controls how Mesh Gateways are configured and used
 	MeshGateway MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway" `
@@ -697,10 +697,10 @@ func (cfg UpstreamConfig) MergeInto(dst map[string]interface{}, legacy bool) {
 	if !cfg.MeshGateway.IsZero() {
 		dst["mesh_gateway"] = cfg.MeshGateway
 	}
-	if !cfg.Limits.IsZero() {
+	if cfg.Limits != nil {
 		dst["limits"] = cfg.Limits
 	}
-	if !cfg.PassiveHealthCheck.IsZero() {
+	if cfg.PassiveHealthCheck != nil {
 		dst["passive_health_check"] = cfg.PassiveHealthCheck
 	}
 }
@@ -720,11 +720,18 @@ func (cfg *UpstreamConfig) Normalize() {
 func (cfg UpstreamConfig) Validate() error {
 	var validationErr error
 
-	if err := cfg.PassiveHealthCheck.Validate(); err != nil {
-		validationErr = multierror.Append(validationErr, err)
+	if cfg.PassiveHealthCheck != nil {
+		err := cfg.PassiveHealthCheck.Validate()
+		if err != nil {
+			validationErr = multierror.Append(validationErr, err)
+		}
 	}
-	if err := cfg.Limits.Validate(); err != nil {
-		validationErr = multierror.Append(validationErr, err)
+
+	if cfg.Limits != nil {
+		err := cfg.Limits.Validate()
+		if err != nil {
+			validationErr = multierror.Append(validationErr, err)
+		}
 	}
 
 	return validationErr
