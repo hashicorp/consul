@@ -638,7 +638,7 @@ type UpstreamConfig struct {
 	//
 	// Note: This escape hatch is NOT compatible with the discovery chain and
 	// will be ignored if a discovery chain is active.
-	ListenerJSON string `json:",omitempty" alias:"listener_json"`
+	ListenerJSON string `json:",omitempty" alias:"listener_json,envoy_listener_json"`
 
 	// ClusterJSON is a complete override ("escape hatch") for the upstream's
 	// cluster. The Connect client TLS certificate and context will be injected
@@ -646,7 +646,7 @@ type UpstreamConfig struct {
 	//
 	// Note: This escape hatch is NOT compatible with the discovery chain and
 	// will be ignored if a discovery chain is active.
-	ClusterJSON string `alias:"cluster_json"`
+	ClusterJSON string `alias:"cluster_json,envoy_cluster_json"`
 
 	// Protocol describes the upstream's service protocol. Valid values are "tcp",
 	// "http" and "grpc". Anything else is treated as tcp. The enables protocol
