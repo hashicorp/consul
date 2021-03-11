@@ -171,6 +171,11 @@ var expectedFieldConfigUpstreams bexpr.FieldConfigurations = bexpr.FieldConfigur
 		StructFieldName: "MeshGateway",
 		SubFields:       expectedFieldConfigMeshGatewayConfig,
 	},
+	"CentrallyConfigured": &bexpr.FieldConfiguration{
+		StructFieldName:     "CentrallyConfigured",
+		CoerceFn:            bexpr.CoerceBool,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+	},
 }
 
 var expectedFieldConfigConnectProxyConfig bexpr.FieldConfigurations = bexpr.FieldConfigurations{

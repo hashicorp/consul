@@ -108,6 +108,7 @@ func TestUpstream_MarshalJSON(t *testing.T) {
 				"DestinationName": "foo",
 				"Datacenter": "dc1",
 				"LocalBindPort": 1234,
+				"CentrallyConfigured": false,
 				"MeshGateway": {}
 			}`,
 			wantErr: false,
@@ -125,6 +126,7 @@ func TestUpstream_MarshalJSON(t *testing.T) {
 				"DestinationName": "foo",
 				"Datacenter": "dc1",
 				"LocalBindPort": 1234,
+				"CentrallyConfigured": false,
 				"MeshGateway": {}
 			}`,
 			wantErr: false,
