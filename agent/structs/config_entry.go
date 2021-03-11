@@ -136,8 +136,11 @@ func (e *ServiceConfigEntry) Normalize() error {
 func (e *ServiceConfigEntry) Validate() error {
 	validationErr := validateConfigEntryMeta(e.Meta)
 
-	if err := e.Connect.Validate(); err != nil {
-		validationErr = multierror.Append(validationErr, err)
+	if e.Connect != nil {
+		err := e.Connect.Validate()
+		if err != nil {
+			validationErr = multierror.Append(validationErr, err)
+		}
 	}
 
 	return validationErr
@@ -663,6 +666,41 @@ type UpstreamConfig struct {
 	MeshGateway MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway" `
 }
 
+func (cfg UpstreamConfig) MergeInto(dst map[string]interface{}, legacy bool) {
+	var (
+		listenerKey = "listener_json"
+		clusterKey  = "cluster_json"
+	)
+	// Starting in Consul 1.10, the "envoy_" prefix was removed from these flags
+	if legacy {
+		listenerKey = fmt.Sprintf("envoy_%s", listenerKey)
+		clusterKey = fmt.Sprintf("envoy_%s", clusterKey)
+	}
+
+	// Avoid storing empty values in the map, since these can act as overrides
+	if cfg.ListenerJSON != "" {
+		dst[listenerKey] = cfg.ListenerJSON
+	}
+	if cfg.ClusterJSON != "" {
+		dst[clusterKey] = cfg.ClusterJSON
+	}
+	if cfg.Protocol != "" {
+		dst["protocol"] = cfg.Protocol
+	}
+	if cfg.ConnectTimeoutMs != 0 {
+		dst["connect_timeout_ms"] = cfg.ConnectTimeoutMs
+	}
+	if !cfg.MeshGateway.IsZero() {
+		dst["mesh_gateway"] = cfg.MeshGateway
+	}
+	if !cfg.Limits.IsZero() {
+		dst["limits"] = cfg.Limits
+	}
+	if !cfg.PassiveHealthCheck.IsZero() {
+		dst["passive_health_check"] = cfg.PassiveHealthCheck
+	}
+}
+
 func (cfg *UpstreamConfig) Normalize() {
 	if cfg.Protocol == "" {
 		cfg.Protocol = "tcp"
@@ -688,6 +726,39 @@ func (cfg UpstreamConfig) Validate() error {
 	return validationErr
 }
 
+func ParseUpstreamConfigNoDefaults(m map[string]interface{}) (UpstreamConfig, error) {
+	var cfg UpstreamConfig
+	config := &mapstructure.DecoderConfig{
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			decode.HookWeakDecodeFromSlice,
+			decode.HookTranslateKeys,
+			mapstructure.StringToTimeDurationHookFunc(),
+		),
+		Result:           &cfg,
+		WeaklyTypedInput: true,
+	}
+
+	decoder, err := mapstructure.NewDecoder(config)
+	if err != nil {
+		return cfg, err
+	}
+
+	err = decoder.Decode(m)
+	return cfg, err
+}
+
+// ParseUpstreamConfig returns the UpstreamConfig parsed from an opaque map.
+// If an error occurs during parsing it is returned along with the default
+// config this allows caller to choose whether and how to report the error.
+func ParseUpstreamConfig(m map[string]interface{}) (UpstreamConfig, error) {
+	cfg, err := ParseUpstreamConfigNoDefaults(m)
+
+	// Set defaults (even if error is returned)
+	cfg.Normalize()
+
+	return cfg, err
+}
+
 type PassiveHealthCheck struct {
 	// Interval between health check analysis sweeps. Each sweep may remove
 	// hosts or return hosts to the pool.
@@ -696,6 +767,11 @@ type PassiveHealthCheck struct {
 	// MaxFailures is the count of consecutive failures that results in a host
 	// being removed from the pool.
 	MaxFailures uint32 `alias:"max_failures"`
+}
+
+func (chk *PassiveHealthCheck) IsZero() bool {
+	zeroVal := PassiveHealthCheck{}
+	return *chk == zeroVal
 }
 
 func (chk PassiveHealthCheck) Validate() error {
@@ -722,6 +798,11 @@ type UpstreamLimits struct {
 	// to the upstream cluster at a point in time. This is mostly applicable to HTTP/2
 	// clusters since all HTTP/1.1 requests are limited by MaxConnections.
 	MaxConcurrentRequests *int `alias:"max_concurrent_requests"`
+}
+
+func (ul *UpstreamLimits) IsZero() bool {
+	zeroVal := UpstreamLimits{}
+	return *ul == zeroVal
 }
 
 func (ul UpstreamLimits) Validate() error {

@@ -1078,7 +1078,7 @@ func getAndModifyUpstreamConfigForListener(logger hclog.Logger, u *structs.Upstr
 	)
 
 	if chain == nil || chain.IsDefault() {
-		cfg, err = ParseUpstreamConfig(u.Config)
+		cfg, err = structs.ParseUpstreamConfig(u.Config)
 		if err != nil {
 			// Don't hard fail on a config typo, just warn. The parse func returns
 			// default config if there is an error so it's safe to continue.
@@ -1087,7 +1087,7 @@ func getAndModifyUpstreamConfigForListener(logger hclog.Logger, u *structs.Upstr
 	} else {
 		// Use NoDefaults here so that we can set the protocol to the chain
 		// protocol if necessary
-		cfg, err = ParseUpstreamConfigNoDefaults(u.Config)
+		cfg, err = structs.ParseUpstreamConfigNoDefaults(u.Config)
 		if err != nil {
 			// Don't hard fail on a config typo, just warn. The parse func returns
 			// default config if there is an error so it's safe to continue.

@@ -161,36 +161,3 @@ func ToOutlierDetection(p structs.PassiveHealthCheck) *envoy_cluster_v3.OutlierD
 	}
 	return od
 }
-
-func ParseUpstreamConfigNoDefaults(m map[string]interface{}) (structs.UpstreamConfig, error) {
-	var cfg structs.UpstreamConfig
-	config := &mapstructure.DecoderConfig{
-		DecodeHook: mapstructure.ComposeDecodeHookFunc(
-			decode.HookWeakDecodeFromSlice,
-			decode.HookTranslateKeys,
-			mapstructure.StringToTimeDurationHookFunc(),
-		),
-		Result:           &cfg,
-		WeaklyTypedInput: true,
-	}
-
-	decoder, err := mapstructure.NewDecoder(config)
-	if err != nil {
-		return cfg, err
-	}
-
-	err = decoder.Decode(m)
-	return cfg, err
-}
-
-// ParseUpstreamConfig returns the UpstreamConfig parsed from an opaque map.
-// If an error occurs during parsing it is returned along with the default
-// config this allows caller to choose whether and how to report the error.
-func ParseUpstreamConfig(m map[string]interface{}) (structs.UpstreamConfig, error) {
-	cfg, err := ParseUpstreamConfigNoDefaults(m)
-
-	// Set defaults (even if error is returned)
-	cfg.Normalize()
-
-	return cfg, err
-}

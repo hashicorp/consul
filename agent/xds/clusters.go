@@ -386,7 +386,7 @@ func (s *Server) makeUpstreamClusterForPreparedQuery(upstream structs.Upstream, 
 	}
 	sni := connect.UpstreamSNI(&upstream, "", dc, cfgSnap.Roots.TrustDomain)
 
-	cfg, err := ParseUpstreamConfig(upstream.Config)
+	cfg, err := structs.ParseUpstreamConfig(upstream.Config)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
 		// default config if there is an error so it's safe to continue.
@@ -448,7 +448,7 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 		return nil, fmt.Errorf("cannot create upstream cluster without discovery chain for %s", upstream.Identifier())
 	}
 
-	cfg, err := ParseUpstreamConfigNoDefaults(upstream.Config)
+	cfg, err := structs.ParseUpstreamConfigNoDefaults(upstream.Config)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
 		// default config if there is an error so it's safe to continue.

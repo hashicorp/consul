@@ -312,7 +312,7 @@ func (s *Server) endpointsFromDiscoveryChain(
 		return resources
 	}
 
-	cfg, err := ParseUpstreamConfigNoDefaults(upstream.Config)
+	cfg, err := structs.ParseUpstreamConfigNoDefaults(upstream.Config)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
 		// default config if there is an error so it's safe to continue.
