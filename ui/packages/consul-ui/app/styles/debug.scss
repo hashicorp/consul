@@ -1,13 +1,52 @@
 @import './base/reset/index';
 @import './base/index';
 @import 'prism-coldark-dark';
-
 .docs {
-  main {
-    background-color: white;
+  nav:first-of-type {
+    & {
+      padding-top: 0 !important;
+    }
+    ul {
+      margin-bottom: 100px;
+      padding-top: 0 !important;
+    }
   }
-  [class^='docfy'] {
-    margin-bottom: 1em;
+  main {
+    & {
+      background-color: white;
+      margin-bottom: 2rem;
+    }
+    ol,
+    ul {
+      list-style-position: inside;
+      margin-bottom: 1rem;
+    }
+  }
+  .docfy-demo {
+    & {
+      margin-bottom: 1rem;
+    }
+    &__example {
+      & {
+        border-top: 1px solid;
+        border-left: 1px solid;
+        border-right: 1px solid;
+        border-color: var(--gray-200);
+        padding: 1rem;
+        margin-bottom: 0;
+      }
+      ol,
+      ul {
+        margin-bottom: 0;
+      }
+    }
+    &__snippet {
+      pre {
+        margin: 0 !important;
+        border-bottom-left-radius: 5px;
+        border-bottom-right-radius: 5px;
+      }
+    }
   }
   h1,
   h2,

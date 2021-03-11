@@ -21,10 +21,43 @@ module.exports = {
   ],
   sources: [
     {
+      root: path.resolve(__dirname, 'app/modifiers'),
+      pattern: '**/*.mdx',
+      urlSchema: 'auto',
+      urlPrefix: 'docs/modifiers',
+    },
+    {
+      root: path.resolve(__dirname, 'app/routing'),
+      pattern: '**/*.mdx',
+      urlSchema: 'auto',
+      urlPrefix: 'docs/routing',
+    },
+    {
+      root: path.resolve(__dirname, 'app/helpers'),
+      pattern: '**/*.mdx',
+      urlSchema: 'auto',
+      urlPrefix: 'docs/helpers',
+    },
+    {
+      root: path.resolve(__dirname, 'app/services'),
+      pattern: '**/*.mdx',
+      urlSchema: 'auto',
+      urlPrefix: 'docs/services',
+    },
+    {
       root: path.resolve(__dirname, 'app/components'),
-      pattern: '**/README.mdx',
+      pattern: '**(!consul)/README.mdx',
       urlSchema: 'auto',
       urlPrefix: 'docs/components',
+    },
+    {
+      root: path.resolve(__dirname, 'app/components/consul'),
+      pattern: '**/README.mdx',
+      urlSchema: 'auto',
+      urlPrefix: 'docs/consul',
     }
   ],
+  labels: {
+    "consul": "Consul Components"
+  }
 };
