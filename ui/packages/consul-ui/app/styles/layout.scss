@@ -70,6 +70,9 @@ html[data-route$='create'] main,
 html[data-route$='edit'] main {
   @extend %content-container-restricted;
 }
+html:not([data-route$='index']):not([data-route$='instances']) main {
+  margin-bottom: 2em;
+}
 
 @media #{$--lt-spacious-page-header} {
   .actions button.copy-btn {

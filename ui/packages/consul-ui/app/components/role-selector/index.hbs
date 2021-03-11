@@ -59,7 +59,7 @@ as |modal|>
   </BlockSlot>
 </ModalDialog>
 
-<ChildSelector @repo={{repo}} @dc={{dc}} @nspace={{nspace}} @type="role" @placeholder="Search for role" @items={{items}}>
+<ChildSelector @disabled={{disabled}} @repo={{repo}} @dc={{dc}} @nspace={{nspace}} @type="role" @placeholder="Search for role" @items={{items}}>
   <BlockSlot @name="label">
     Apply an existing role
   </BlockSlot>
@@ -70,7 +70,6 @@ as |modal|>
     >
       <span>Create new role</span>
     </label>
-
   </BlockSlot>
   <BlockSlot @name="option" as |option|>
     {{option.Name}}
@@ -100,8 +99,15 @@ as |modal|>
           </BlockSlot>
           <BlockSlot @name="menu" as |confirm send keypressClick|>
               <li role="none">
-                <a role="menuitem" tabindex="-1" href={{href-to 'dc.acls.roles.edit' item.ID}}>Edit</a>
+                <a role="menuitem" tabindex="-1" href={{href-to 'dc.acls.roles.edit' item.ID}}>
+{{#if (can "edit role" item=item)}}
+                  Edit
+{{else}}
+                  View
+{{/if}}
+                </a>
               </li>
+{{#if (not disabled)}}
               <li role="none" class="dangerous">
                 <label for={{confirm}} role="menuitem" tabindex="-1" onkeypress={{keypressClick}} data-test-delete>Remove</label>
                 <div role="menu">
@@ -125,6 +131,7 @@ as |modal|>
                   </div>
                 </div>
               </li>
+{{/if}}
           </BlockSlot>
         </PopoverMenu>
       </BlockSlot>

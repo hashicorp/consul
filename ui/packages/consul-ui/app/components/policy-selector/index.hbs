@@ -1,4 +1,13 @@
-<ChildSelector ...attributes @repo={{repo}} @dc={{dc}} @nspace={{nspace}} @type="policy" @placeholder="Search for policy" @items={{items}}>
+<ChildSelector
+  @disabled={{disabled}}
+  @repo={{repo}}
+  @dc={{dc}}
+  @nspace={{nspace}}
+  @type="policy"
+  @placeholder="Search for policy"
+  @items={{items}}
+  ...attributes
+>
   {{yield}}
   <BlockSlot @name="label">
     Apply an existing policy
@@ -112,6 +121,7 @@
             />
 {{/if}}
           </label>
+{{#if (not disabled)}}
           <div>
             <ConfirmationDialog @message="Are you sure you want to remove this policy from this token?">
               <BlockSlot @name="action" as |confirm|>
@@ -127,6 +137,7 @@
               </BlockSlot>
             </ConfirmationDialog>
           </div>
+{{/if}}
       </BlockSlot>
     </TabularDetails>
 

@@ -11,6 +11,10 @@ export default class NspaceAbility extends BaseAbility {
     return this.canCreate;
   }
 
+  get canDelete() {
+    return this.item.Name !== 'default' && super.canDelete;
+  }
+
   get canChoose() {
     return this.env.var('CONSUL_NSPACES_ENABLED') && this.nspaces.length > 0;
   }
