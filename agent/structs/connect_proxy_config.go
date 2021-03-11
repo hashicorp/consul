@@ -265,6 +265,10 @@ type Upstream struct {
 	// an ingress gateway. This cannot and should not be set by a user, it is
 	// used internally to store the association of hosts to an upstream service.
 	IngressHosts []string `json:"-" bexpr:"-"`
+
+	// CentrallyConfigured indicates whether the upstream was defined in a proxy
+	// instance registration or whether it was generated from a config entry.
+	CentrallyConfigured bool
 }
 
 func (t *Upstream) UnmarshalJSON(data []byte) (err error) {
@@ -321,7 +325,7 @@ func (u *Upstream) Validate() error {
 		return fmt.Errorf("upstream destination name cannot be empty")
 	}
 
-	if u.LocalBindPort == 0 {
+	if u.LocalBindPort == 0 && !u.CentrallyConfigured {
 		return fmt.Errorf("upstream local bind port cannot be zero")
 	}
 	return nil

@@ -383,38 +383,72 @@ func mergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 		ns.Proxy.TransparentProxy = defaults.TransparentProxy
 	}
 
-	// Merge upstream defaults if there were any returned
+	// seenUpstreams stores the upstreams seen from the local registration so that we can also add synthetic entries.
+	// for upstream configuration that was defined via service-defaults.UpstreamConfigs. In TransparentProxy mode
+	// ns.Proxy.Upstreams will likely be empty because users do not need to define upstreams explicitly.
+	// So to store upstream-specific flags from central config, we add entries to ns.Proxy.Upstream with thosee values.
+	remoteUpstreams := make(map[structs.ServiceID]structs.Upstream)
+
+	for _, us := range defaults.UpstreamIDConfigs {
+		parsed, err := structs.ParseUpstreamConfig(us.Config)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse upstream config map for %s: %v", us.Upstream.String(), err)
+		}
+
+		// Delete the mesh gateway key since this is the only place it is read from an opaque map.
+		// Later reads use Proxy.MeshGateway.
+		delete(us.Config, "mesh_gateway")
+
+		remoteUpstreams[us.Upstream] = structs.Upstream{
+			DestinationNamespace: us.Upstream.NamespaceOrDefault(),
+			DestinationName:      us.Upstream.ID,
+			Config:               us.Config,
+			MeshGateway:          parsed.MeshGateway,
+			CentrallyConfigured:  true,
+		}
+	}
+
+	localUpstreams := make(map[structs.ServiceID]struct{})
+
+	// Merge upstream defaults into the local registration
 	for i := range ns.Proxy.Upstreams {
 		// Get a pointer not a value copy of the upstream struct
 		us := &ns.Proxy.Upstreams[i]
 		if us.DestinationType != "" && us.DestinationType != structs.UpstreamDestTypeService {
 			continue
 		}
+		localUpstreams[us.DestinationID()] = struct{}{}
 
-		usCfg, ok := defaults.UpstreamIDConfigs.GetUpstreamConfig(us.DestinationID())
+		usCfg, ok := remoteUpstreams[us.DestinationID()]
 		if !ok {
 			// No config defaults to merge
 			continue
 		}
 
-		// MeshGateway mode is fetched separately since it is a first class field and not read from us.Config
-		parsed, err := structs.ParseUpstreamConfig(usCfg)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse upstream config map for %s: %v", us.Identifier(), err)
-		}
-
 		// The local upstream config mode has the highest precedence, so only overwrite when it's set to the default
 		if us.MeshGateway.Mode == structs.MeshGatewayModeDefault {
-			us.MeshGateway.Mode = parsed.MeshGateway.Mode
+			us.MeshGateway.Mode = usCfg.MeshGateway.Mode
 		}
 
-		// Delete the mesh gateway key since this is the only place it is read from an opaque map.
-		delete(usCfg, "mesh_gateway")
-
 		// Merge in everything else that is read from the map
-		if err := mergo.Merge(&us.Config, usCfg); err != nil {
+		if err := mergo.Merge(&us.Config, usCfg.Config); err != nil {
 			return nil, err
 		}
 	}
+
+	// Ensure upstreams present in central config are represented in the local configuration.
+	// This does not apply outside of TransparentProxy mode because in that situation every upstream needs to be defined
+	// explicitly and locally with a local bind port.
+	if ns.Proxy.TransparentProxy {
+		for id, remote := range remoteUpstreams {
+			if _, ok := localUpstreams[id]; ok {
+				// Remote upstream is already present locally
+				continue
+			}
+
+			ns.Proxy.Upstreams = append(ns.Proxy.Upstreams, remote)
+		}
+	}
+
 	return ns, err
 }
