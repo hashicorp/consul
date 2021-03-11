@@ -118,6 +118,10 @@ type ConnectProxyConfig struct {
 
 	// Expose defines whether checks or paths are exposed through the proxy
 	Expose ExposeConfig `json:",omitempty"`
+
+	// TransparentProxy toggles whether inbound and outbound traffic is being
+	// redirected to the proxy.
+	TransparentProxy bool `json:",omitempty" alias:"transparent_proxy"`
 }
 
 func (t *ConnectProxyConfig) UnmarshalJSON(data []byte) (err error) {
@@ -128,6 +132,7 @@ func (t *ConnectProxyConfig) UnmarshalJSON(data []byte) (err error) {
 		LocalServiceAddressSnake    string            `json:"local_service_address"`
 		LocalServicePortSnake       int               `json:"local_service_port"`
 		MeshGatewaySnake            MeshGatewayConfig `json:"mesh_gateway"`
+		TransparentProxySnake       bool              `json:"transparent_proxy"`
 
 		*Alias
 	}{
@@ -150,6 +155,9 @@ func (t *ConnectProxyConfig) UnmarshalJSON(data []byte) (err error) {
 	}
 	if t.MeshGateway.Mode == "" {
 		t.MeshGateway.Mode = aux.MeshGatewaySnake.Mode
+	}
+	if !t.TransparentProxy {
+		t.TransparentProxy = aux.TransparentProxySnake
 	}
 
 	return nil
@@ -183,6 +191,7 @@ func (c *ConnectProxyConfig) ToAPI() *api.AgentServiceConnectProxyConfig {
 		Upstreams:              c.Upstreams.ToAPI(),
 		MeshGateway:            c.MeshGateway.ToAPI(),
 		Expose:                 c.Expose.ToAPI(),
+		TransparentProxy:       c.TransparentProxy,
 	}
 }
 

@@ -167,17 +167,18 @@ type UpstreamLimits struct {
 }
 
 type ServiceConfigEntry struct {
-	Kind        string
-	Name        string
-	Namespace   string               `json:",omitempty"`
-	Protocol    string               `json:",omitempty"`
-	MeshGateway MeshGatewayConfig    `json:",omitempty" alias:"mesh_gateway"`
-	Connect     ConnectConfiguration `json:",omitempty"`
-	Expose      ExposeConfig         `json:",omitempty"`
-	ExternalSNI string               `json:",omitempty" alias:"external_sni"`
-	Meta        map[string]string    `json:",omitempty"`
-	CreateIndex uint64
-	ModifyIndex uint64
+	Kind             string
+	Name             string
+	Namespace        string               `json:",omitempty"`
+	Protocol         string               `json:",omitempty"`
+	MeshGateway      MeshGatewayConfig    `json:",omitempty" alias:"mesh_gateway"`
+	Connect          ConnectConfiguration `json:",omitempty"`
+	Expose           ExposeConfig         `json:",omitempty"`
+	TransparentProxy bool                 `json:",omitempty" alias:"transparent_proxy"`
+	ExternalSNI      string               `json:",omitempty" alias:"external_sni"`
+	Meta             map[string]string    `json:",omitempty"`
+	CreateIndex      uint64
+	ModifyIndex      uint64
 }
 
 func (s *ServiceConfigEntry) GetKind() string {
@@ -205,15 +206,16 @@ func (s *ServiceConfigEntry) GetModifyIndex() uint64 {
 }
 
 type ProxyConfigEntry struct {
-	Kind        string
-	Name        string
-	Namespace   string                 `json:",omitempty"`
-	Config      map[string]interface{} `json:",omitempty"`
-	MeshGateway MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
-	Expose      ExposeConfig           `json:",omitempty"`
-	Meta        map[string]string      `json:",omitempty"`
-	CreateIndex uint64
-	ModifyIndex uint64
+	Kind             string
+	Name             string
+	Namespace        string                 `json:",omitempty"`
+	Config           map[string]interface{} `json:",omitempty"`
+	MeshGateway      MeshGatewayConfig      `json:",omitempty" alias:"mesh_gateway"`
+	Expose           ExposeConfig           `json:",omitempty"`
+	TransparentProxy bool                   `json:",omitempty" alias:"transparent_proxy"`
+	Meta             map[string]string      `json:",omitempty"`
+	CreateIndex      uint64
+	ModifyIndex      uint64
 }
 
 func (p *ProxyConfigEntry) GetKind() string {

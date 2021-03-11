@@ -197,6 +197,7 @@ func TestAgent_Services_Sidecar(t *testing.T) {
 		Proxy: structs.ConnectProxyConfig{
 			DestinationServiceName: "db",
 			Upstreams:              structs.TestUpstreams(t),
+			TransparentProxy:       true,
 		},
 	}
 	a.State.AddService(srv1, "")

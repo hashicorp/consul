@@ -207,6 +207,11 @@ var expectedFieldConfigConnectProxyConfig bexpr.FieldConfigurations = bexpr.Fiel
 		StructFieldName: "Expose",
 		SubFields:       expectedFieldConfigExposeConfig,
 	},
+	"TransparentProxy": &bexpr.FieldConfiguration{
+		StructFieldName:     "TransparentProxy",
+		CoerceFn:            bexpr.CoerceBool,
+		SupportedOperations: []bexpr.MatchOperator{bexpr.MatchEqual, bexpr.MatchNotEqual},
+	},
 }
 
 var expectedFieldConfigServiceConnect bexpr.FieldConfigurations = bexpr.FieldConfigurations{

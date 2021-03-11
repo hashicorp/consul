@@ -122,6 +122,7 @@ type AgentServiceConnectProxyConfig struct {
 	Upstreams              []Upstream             `json:",omitempty"`
 	MeshGateway            MeshGatewayConfig      `json:",omitempty"`
 	Expose                 ExposeConfig           `json:",omitempty"`
+	TransparentProxy       bool                   `json:",omitempty"`
 }
 
 const (

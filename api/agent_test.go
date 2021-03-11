@@ -437,6 +437,7 @@ func TestAPI_AgentServices_ExternalConnectProxy(t *testing.T) {
 		Port: 8001,
 		Proxy: &AgentServiceConnectProxyConfig{
 			DestinationServiceName: "foo",
+			TransparentProxy:       true,
 		},
 	}
 	if err := agent.ServiceRegister(reg); err != nil {
@@ -452,6 +453,9 @@ func TestAPI_AgentServices_ExternalConnectProxy(t *testing.T) {
 	}
 	if _, ok := services["foo-proxy"]; !ok {
 		t.Fatalf("missing proxy service: %v", services)
+	}
+	if !services["foo-proxy"].Proxy.TransparentProxy {
+		t.Fatalf("expected transparent proxy mode to be enabled")
 	}
 
 	if err := agent.ServiceDeregister("foo"); err != nil {

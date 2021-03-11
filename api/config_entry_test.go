@@ -296,7 +296,8 @@ func TestDecodeConfigEntry(t *testing.T) {
 				},
 				"MeshGateway": {
 					"Mode": "remote"
-				}
+				},
+				"TransparentProxy": true
 			}
 			`,
 			expect: &ProxyConfigEntry{
@@ -316,6 +317,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				MeshGateway: MeshGatewayConfig{
 					Mode: MeshGatewayModeRemote,
 				},
+				TransparentProxy: true,
 			},
 		},
 		{
@@ -333,6 +335,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				"MeshGateway": {
 					"Mode": "remote"
 				},
+				"TransparentProxy": true,
 				"Connect": {
 					"UpstreamConfigs": {
 						"redis": {
@@ -377,6 +380,7 @@ func TestDecodeConfigEntry(t *testing.T) {
 				MeshGateway: MeshGatewayConfig{
 					Mode: MeshGatewayModeRemote,
 				},
+				TransparentProxy: true,
 				Connect: ConnectConfiguration{
 					UpstreamConfigs: map[string]UpstreamConfig{
 						"redis": {

@@ -79,11 +79,12 @@ type UpdatableConfigEntry interface {
 // ServiceConfiguration is the top-level struct for the configuration of a service
 // across the entire cluster.
 type ServiceConfigEntry struct {
-	Kind        string
-	Name        string
-	Protocol    string
-	MeshGateway MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway"`
-	Expose      ExposeConfig      `json:",omitempty"`
+	Kind             string
+	Name             string
+	Protocol         string
+	MeshGateway      MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway"`
+	Expose           ExposeConfig      `json:",omitempty"`
+	TransparentProxy bool              `json:",omitempty" alias:"transparent_proxy"`
 
 	ExternalSNI string `json:",omitempty" alias:"external_sni"`
 
@@ -211,11 +212,12 @@ func (cfg ConnectConfiguration) Validate() error {
 
 // ProxyConfigEntry is the top-level struct for global proxy configuration defaults.
 type ProxyConfigEntry struct {
-	Kind        string
-	Name        string
-	Config      map[string]interface{}
-	MeshGateway MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway"`
-	Expose      ExposeConfig      `json:",omitempty"`
+	Kind             string
+	Name             string
+	Config           map[string]interface{}
+	MeshGateway      MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway"`
+	Expose           ExposeConfig      `json:",omitempty"`
+	TransparentProxy bool              `json:",omitempty" alias:"transparent_proxy"`
 
 	Meta           map[string]string `json:",omitempty"`
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -852,6 +854,7 @@ type ServiceConfigResponse struct {
 	UpstreamIDConfigs OpaqueUpstreamConfigs
 	MeshGateway       MeshGatewayConfig `json:",omitempty"`
 	Expose            ExposeConfig      `json:",omitempty"`
+	TransparentProxy  bool              `json:",omitempty"`
 	QueryMeta
 }
 

@@ -893,6 +893,105 @@ func TestConfigEntry_ResolveServiceConfig(t *testing.T) {
 	require.Equal(map[string]interface{}{"foo": 1}, proxyConf.Config)
 }
 
+func TestConfigEntry_ResolveServiceConfig_TransparentProxy(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	tt := []struct {
+		name     string
+		entries  []structs.ConfigEntry
+		request  structs.ServiceConfigRequest
+		proxyCfg structs.ConnectProxyConfig
+		expect   structs.ServiceConfigResponse
+	}{
+		{
+			name: "from proxy-defaults",
+			entries: []structs.ConfigEntry{
+				&structs.ProxyConfigEntry{
+					Kind:             structs.ProxyDefaults,
+					Name:             structs.ProxyConfigGlobal,
+					TransparentProxy: true,
+				},
+			},
+			request: structs.ServiceConfigRequest{
+				Name:       "foo",
+				Datacenter: "dc1",
+			},
+			expect: structs.ServiceConfigResponse{
+				TransparentProxy: true,
+			},
+		},
+		{
+			name: "from service-defaults",
+			entries: []structs.ConfigEntry{
+				&structs.ServiceConfigEntry{
+					Kind:             structs.ServiceDefaults,
+					Name:             "foo",
+					TransparentProxy: true,
+				},
+			},
+			request: structs.ServiceConfigRequest{
+				Name:       "foo",
+				Datacenter: "dc1",
+			},
+			expect: structs.ServiceConfigResponse{
+				TransparentProxy: true,
+			},
+		},
+		{
+			name: "service-defaults overrides proxy-defaults",
+			entries: []structs.ConfigEntry{
+				&structs.ProxyConfigEntry{
+					Kind:             structs.ProxyDefaults,
+					Name:             structs.ProxyConfigGlobal,
+					TransparentProxy: false,
+				},
+				&structs.ServiceConfigEntry{
+					Kind:             structs.ServiceDefaults,
+					Name:             "foo",
+					TransparentProxy: true,
+				},
+			},
+			request: structs.ServiceConfigRequest{
+				Name:       "foo",
+				Datacenter: "dc1",
+			},
+			expect: structs.ServiceConfigResponse{
+				TransparentProxy: true,
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			dir1, s1 := testServer(t)
+			defer os.RemoveAll(dir1)
+			defer s1.Shutdown()
+
+			codec := rpcClient(t, s1)
+			defer codec.Close()
+
+			// Boostrap the config entries
+			idx := uint64(1)
+			for _, conf := range tc.entries {
+				require.NoError(t, s1.fsm.State().EnsureConfigEntry(idx, conf))
+				idx++
+			}
+
+			var out structs.ServiceConfigResponse
+			require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig", &tc.request, &out))
+
+			// Don't know what this is deterministically, so we grab it from the response
+			tc.expect.QueryMeta = out.QueryMeta
+
+			require.Equal(t, tc.expect, out)
+		})
+	}
+}
+
 func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

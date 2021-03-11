@@ -379,6 +379,9 @@ func mergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 	if ns.Proxy.MeshGateway.Mode == structs.MeshGatewayModeDefault {
 		ns.Proxy.MeshGateway.Mode = defaults.MeshGateway.Mode
 	}
+	if !ns.Proxy.TransparentProxy {
+		ns.Proxy.TransparentProxy = defaults.TransparentProxy
+	}
 
 	// Merge upstream defaults if there were any returned
 	for i := range ns.Proxy.Upstreams {

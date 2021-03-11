@@ -181,6 +181,7 @@ func TestParseConfigEntry(t *testing.T) {
 				mesh_gateway {
 					mode = "remote"
 				}
+				transparent_proxy = true
 			`,
 			camel: `
 				Kind = "proxy-defaults"
@@ -199,6 +200,7 @@ func TestParseConfigEntry(t *testing.T) {
 				MeshGateway {
 					Mode = "remote"
 				}
+				TransparentProxy = true
 			`,
 			snakeJSON: `
 			{
@@ -217,7 +219,8 @@ func TestParseConfigEntry(t *testing.T) {
 				},
 				"mesh_gateway": {
 					"mode": "remote"
-				}
+				},
+				"transparent_proxy": true
 			}
 			`,
 			camelJSON: `
@@ -237,7 +240,8 @@ func TestParseConfigEntry(t *testing.T) {
 				},
 				"MeshGateway": {
 					"Mode": "remote"
-				}
+				},
+				"TransparentProxy": true
 			}
 			`,
 			expect: &api.ProxyConfigEntry{
@@ -257,6 +261,7 @@ func TestParseConfigEntry(t *testing.T) {
 				MeshGateway: api.MeshGatewayConfig{
 					Mode: api.MeshGatewayModeRemote,
 				},
+				TransparentProxy: true,
 			},
 			expectJSON: &api.ProxyConfigEntry{
 				Kind: "proxy-defaults",
@@ -275,6 +280,7 @@ func TestParseConfigEntry(t *testing.T) {
 				MeshGateway: api.MeshGatewayConfig{
 					Mode: api.MeshGatewayModeRemote,
 				},
+				TransparentProxy: true,
 			},
 		},
 		{
@@ -436,6 +442,7 @@ func TestParseConfigEntry(t *testing.T) {
 				mesh_gateway {
 					mode = "remote"
 				}
+				transparent_proxy = true
 				connect {
 					upstream_configs {
 						"redis" {
@@ -479,6 +486,7 @@ func TestParseConfigEntry(t *testing.T) {
 				MeshGateway {
 					Mode = "remote"
 				}
+				TransparentProxy = true
 				connect = {
 					upstream_configs = {
 						"redis" = {
@@ -523,6 +531,7 @@ func TestParseConfigEntry(t *testing.T) {
 				"mesh_gateway": {
 					"mode": "remote"
 				},
+				"transparent_proxy": true,
 				"connect": {
 					"upstream_configs": {
 						"redis": {
@@ -568,6 +577,7 @@ func TestParseConfigEntry(t *testing.T) {
 				"MeshGateway": {
 					"Mode": "remote"
 				},
+				"TransparentProxy": true,
 				"Connect": {
 					"UpstreamConfigs": {
 						"redis": {
@@ -612,6 +622,7 @@ func TestParseConfigEntry(t *testing.T) {
 				MeshGateway: api.MeshGatewayConfig{
 					Mode: api.MeshGatewayModeRemote,
 				},
+				TransparentProxy: true,
 				Connect: api.ConnectConfiguration{
 					UpstreamConfigs: map[string]api.UpstreamConfig{
 						"redis": {
