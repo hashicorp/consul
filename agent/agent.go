@@ -377,8 +377,6 @@ func New(bd BaseDeps) (*Agent, error) {
 		Cache:     bd.Cache,
 		NetRPC:    &a,
 		CacheName: cacheName,
-		// Temporarily until streaming supports all connect events
-		CacheNameConnect: cachetype.HealthServicesName,
 	}
 
 	a.serviceManager = NewServiceManager(&a)
@@ -540,6 +538,7 @@ func (a *Agent) Start(ctx context.Context) error {
 	// Start the proxy config manager.
 	a.proxyConfig, err = proxycfg.NewManager(proxycfg.ManagerConfig{
 		Cache:  a.cache,
+		Health: a.rpcClientHealth,
 		Logger: a.logger.Named(logging.ProxyConfig),
 		State:  a.State,
 		Source: &structs.QuerySource{
