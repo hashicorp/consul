@@ -1,8 +1,20 @@
-## ConsulMetadataList
-
-`<ConsulMetadataList @items={{meta}} />`
+---
+class: ember
+---
+# Consul::Metadata::List
 
 A presentational component for presenting Consul Metadata
+
+The following example shows how to construct the required structure from the Consul API using ember-componsable-helpers' `entries` helper.
+
+```hbs
+<DataSource @src="/default/dc-1/service-instance/service-id/node-0/service-0" as |source|>
+  <Consul::Metadata::List
+    @items={{entries source.data.firstObject.Meta}}
+  />
+</DataSource>
+```
+
 
 ### Arguments
 
@@ -10,14 +22,6 @@ A presentational component for presenting Consul Metadata
 | --- | --- | --- | --- |
 | `items` | `array` |  | An array of entries or `[key, value]` pairs as returned by `Object.entries()` |
 
-### Example
-
-The following example shows how to construct the required structure from the
-Consul API using a `object-entries` helper.
-
-```hbs
-  <ConsulMetadataList @items={{object-entries item.Meta}} />
-```
 
 ### See
 
