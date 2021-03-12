@@ -21,6 +21,12 @@ module.exports = {
   ],
   sources: [
     {
+      root: path.resolve(__dirname, 'docs'),
+      pattern: '**/*.mdx',
+      urlSchema: 'auto',
+      urlPrefix: 'docs',
+    },
+    {
       root: path.resolve(__dirname, 'app/modifiers'),
       pattern: '**/*.mdx',
       urlSchema: 'auto',
