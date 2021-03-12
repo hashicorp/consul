@@ -2,9 +2,11 @@ package api
 
 import (
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPI_OperatorAutopilotGetSetConfiguration(t *testing.T) {
@@ -122,4 +124,61 @@ func TestAPI_OperatorAutopilotState(t *testing.T) {
 			r.Fatalf("bad: %v", out)
 		}
 	})
+}
+
+func TestAPI_OperatorAutopilotServerHealth_429(t *testing.T) {
+	mapi, client := setupMockAPI(t)
+
+	reply := OperatorHealthReply{
+		Healthy:          false,
+		FailureTolerance: 0,
+		Servers: []ServerHealth{
+			{
+				ID:          "d9fdded2-27ae-4db2-9232-9d8d0114ac98",
+				Name:        "foo",
+				Address:     "198.18.0.1:8300",
+				SerfStatus:  "alive",
+				Version:     "1.8.3",
+				Leader:      true,
+				LastContact: NewReadableDuration(0),
+				LastTerm:    4,
+				LastIndex:   99,
+				Healthy:     true,
+				Voter:       true,
+				StableSince: time.Date(2020, 9, 2, 12, 0, 0, 0, time.UTC),
+			},
+			{
+				ID:          "1bcdda01-b896-41bc-a763-1a62b4260777",
+				Name:        "bar",
+				Address:     "198.18.0.2:8300",
+				SerfStatus:  "alive",
+				Version:     "1.8.3",
+				Leader:      false,
+				LastContact: NewReadableDuration(10 * time.Millisecond),
+				LastTerm:    4,
+				LastIndex:   99,
+				Healthy:     true,
+				Voter:       true,
+				StableSince: time.Date(2020, 9, 2, 12, 0, 0, 0, time.UTC),
+			},
+			{
+				ID:          "661d1eac-81be-436b-bfe1-d51ffd665b9d",
+				Name:        "baz",
+				Address:     "198.18.0.3:8300",
+				SerfStatus:  "failed",
+				Version:     "1.8.3",
+				Leader:      false,
+				LastContact: NewReadableDuration(10 * time.Millisecond),
+				LastTerm:    4,
+				LastIndex:   99,
+				Healthy:     false,
+				Voter:       true,
+			},
+		},
+	}
+	mapi.withReply("GET", "/v1/operator/autopilot/health", nil, 429, reply).Once()
+
+	out, err := client.Operator().AutopilotServerHealth(nil)
+	require.NoError(t, err)
+	require.Equal(t, &reply, out)
 }

@@ -1,0 +1,3 @@
+```release-note:improvement
+api: `AutopilotServerHelath` now handles the 429 status code returned by the v1/operator/autopilot/health endpoint and still returned the parsed reply which will indicate server healthiness
+```
