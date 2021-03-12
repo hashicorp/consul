@@ -2,6 +2,10 @@
 @import './base/index';
 @import 'prism-coldark-dark';
 .docs {
+  .tabular-collection,
+  .list-collection {
+    height: 300px !important;
+  }
   nav:first-of-type {
     & {
       padding-top: 0 !important;
@@ -9,6 +13,15 @@
     ul {
       margin-bottom: 100px;
       padding-top: 0 !important;
+    }
+    li.consul-components a::before,
+    li.components a::before {
+      @extend %with-glimmer-logo-color-icon, %as-pseudo;
+      margin-right: 5px;
+    }
+    li.consul-components.ember-component a::before,
+    li.components.ember-component a::before {
+      @extend %with-ember-circle-logo-color-icon, %as-pseudo;
     }
   }
   main {
@@ -40,6 +53,9 @@
         margin-bottom: 0;
       }
     }
+    // &__snippets__tabs__button {
+    //   display: none;
+    // }
     &__snippet {
       pre {
         margin: 0 !important;
