@@ -40,7 +40,7 @@ export default modifier(($element, [content], hash = {}) => {
     // amount of time specified by the delay
     const delay = options.delay || [];
     if (typeof delay[1] !== 'undefined') {
-      hash.options.onShown = popover => {
+      options.onShown = popover => {
         clearInterval(interval);
         interval = setTimeout(() => {
           popover.hide();
@@ -58,7 +58,7 @@ export default modifier(($element, [content], hash = {}) => {
     plugins: [typeof options.followCursor !== 'undefined' ? followCursor : undefined].filter(item =>
       Boolean(item)
     ),
-    ...hash.options,
+    ...options,
   });
   if (hash.returns) {
     hash.returns(popover);
