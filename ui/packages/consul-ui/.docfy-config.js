@@ -33,12 +33,6 @@ module.exports = {
       urlPrefix: 'docs/modifiers',
     },
     {
-      root: path.resolve(__dirname, 'app/routing'),
-      pattern: '**/*.mdx',
-      urlSchema: 'auto',
-      urlPrefix: 'docs/routing',
-    },
-    {
       root: path.resolve(__dirname, 'app/helpers'),
       pattern: '**/*.mdx',
       urlSchema: 'auto',
