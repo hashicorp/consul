@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
@@ -1760,16 +1759,19 @@ func TestStore_IntentionDecision(t *testing.T) {
 	}
 
 	tt := []struct {
-		name            string
-		src             string
-		dst             string
-		defaultDecision acl.EnforcementDecision
-		expect          structs.IntentionDecisionSummary
+		name             string
+		src              string
+		dst              string
+		matchType        structs.IntentionMatchType
+		defaultDecision  acl.EnforcementDecision
+		allowPermissions bool
+		expect           structs.IntentionDecisionSummary
 	}{
 		{
 			name:            "no matching intention and default deny",
 			src:             "does-not-exist",
 			dst:             "ditto",
+			matchType:       structs.IntentionMatchDestination,
 			defaultDecision: acl.Deny,
 			expect:          structs.IntentionDecisionSummary{Allowed: false},
 		},
@@ -1777,13 +1779,15 @@ func TestStore_IntentionDecision(t *testing.T) {
 			name:            "no matching intention and default allow",
 			src:             "does-not-exist",
 			dst:             "ditto",
+			matchType:       structs.IntentionMatchDestination,
 			defaultDecision: acl.Allow,
 			expect:          structs.IntentionDecisionSummary{Allowed: true},
 		},
 		{
-			name: "denied with permissions",
-			src:  "web",
-			dst:  "redis",
+			name:      "denied with permissions",
+			src:       "web",
+			dst:       "redis",
+			matchType: structs.IntentionMatchDestination,
 			expect: structs.IntentionDecisionSummary{
 				Allowed:        false,
 				HasPermissions: true,
@@ -1791,9 +1795,22 @@ func TestStore_IntentionDecision(t *testing.T) {
 			},
 		},
 		{
-			name: "denied without permissions",
-			src:  "api",
-			dst:  "redis",
+			name:             "allowed with permissions",
+			src:              "web",
+			dst:              "redis",
+			allowPermissions: true,
+			matchType:        structs.IntentionMatchDestination,
+			expect: structs.IntentionDecisionSummary{
+				Allowed:        true,
+				HasPermissions: true,
+				HasExact:       true,
+			},
+		},
+		{
+			name:      "denied without permissions",
+			src:       "api",
+			dst:       "redis",
+			matchType: structs.IntentionMatchDestination,
 			expect: structs.IntentionDecisionSummary{
 				Allowed:        false,
 				HasPermissions: false,
@@ -1801,9 +1818,10 @@ func TestStore_IntentionDecision(t *testing.T) {
 			},
 		},
 		{
-			name: "allowed from external source",
-			src:  "api",
-			dst:  "web",
+			name:      "allowed from external source",
+			src:       "api",
+			dst:       "web",
+			matchType: structs.IntentionMatchDestination,
 			expect: structs.IntentionDecisionSummary{
 				Allowed:        true,
 				HasPermissions: false,
@@ -1812,9 +1830,21 @@ func TestStore_IntentionDecision(t *testing.T) {
 			},
 		},
 		{
-			name: "allowed by source wildcard not exact",
-			src:  "anything",
-			dst:  "mysql",
+			name:      "allowed by source wildcard not exact",
+			src:       "anything",
+			dst:       "mysql",
+			matchType: structs.IntentionMatchDestination,
+			expect: structs.IntentionDecisionSummary{
+				Allowed:        true,
+				HasPermissions: false,
+				HasExact:       false,
+			},
+		},
+		{
+			name:      "allowed by matching on source",
+			src:       "web",
+			dst:       "api",
+			matchType: structs.IntentionMatchSource,
 			expect: structs.IntentionDecisionSummary{
 				Allowed:        true,
 				HasPermissions: false,
@@ -1824,13 +1854,193 @@ func TestStore_IntentionDecision(t *testing.T) {
 	}
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			uri := connect.SpiffeIDService{
-				Service:   tc.src,
+			entry := structs.IntentionMatchEntry{
 				Namespace: structs.IntentionDefaultNamespace,
+				Name:      tc.src,
 			}
-			decision, err := s.IntentionDecision(&uri, tc.dst, structs.IntentionDefaultNamespace, tc.defaultDecision)
+			_, intentions, err := s.IntentionMatchOne(nil, entry, structs.IntentionMatchSource)
+			if err != nil {
+				require.NoError(t, err)
+			}
+			decision, err := s.IntentionDecision(tc.dst, structs.IntentionDefaultNamespace, intentions, tc.matchType, tc.defaultDecision, tc.allowPermissions)
 			require.NoError(t, err)
 			require.Equal(t, tc.expect, decision)
+		})
+	}
+}
+
+func TestAuthorizeIntentionTarget(t *testing.T) {
+	cases := []struct {
+		name      string
+		target    string
+		targetNS  string
+		ixn       *structs.Intention
+		matchType structs.IntentionMatchType
+		auth      bool
+		match     bool
+	}{
+		// Source match type
+		{
+			name:     "match exact source, not matching namespace",
+			target:   "web",
+			targetNS: structs.IntentionDefaultNamespace,
+			ixn: &structs.Intention{
+				SourceName: "db",
+				SourceNS:   "different",
+			},
+			matchType: structs.IntentionMatchSource,
+			auth:      false,
+			match:     false,
+		},
+		{
+			name:     "match exact source, not matching name",
+			target:   "web",
+			targetNS: structs.IntentionDefaultNamespace,
+			ixn: &structs.Intention{
+				SourceName: "db",
+				SourceNS:   structs.IntentionDefaultNamespace,
+			},
+			matchType: structs.IntentionMatchSource,
+			auth:      false,
+			match:     false,
+		},
+		{
+			name:     "match exact source, allow",
+			target:   "web",
+			targetNS: structs.IntentionDefaultNamespace,
+			ixn: &structs.Intention{
+				SourceName: "web",
+				SourceNS:   structs.IntentionDefaultNamespace,
+				Action:     structs.IntentionActionAllow,
+			},
+			matchType: structs.IntentionMatchSource,
+			auth:      true,
+			match:     true,
+		},
+		{
+			name:     "match exact source, deny",
+			target:   "web",
+			targetNS: structs.IntentionDefaultNamespace,
+			ixn: &structs.Intention{
+				SourceName: "web",
+				SourceNS:   structs.IntentionDefaultNamespace,
+				Action:     structs.IntentionActionDeny,
+			},
+			matchType: structs.IntentionMatchSource,
+			auth:      false,
+			match:     true,
+		},
+		{
+			name:     "match exact sourceNS for wildcard service, deny",
+			target:   "web",
+			targetNS: structs.IntentionDefaultNamespace,
+			ixn: &structs.Intention{
+				SourceName: structs.WildcardSpecifier,
+				SourceNS:   structs.IntentionDefaultNamespace,
+				Action:     structs.IntentionActionDeny,
+			},
+			matchType: structs.IntentionMatchSource,
+			auth:      false,
+			match:     true,
+		},
+		{
+			name:     "match exact sourceNS for wildcard service, allow",
+			target:   "web",
+			targetNS: structs.IntentionDefaultNamespace,
+			ixn: &structs.Intention{
+				SourceName: structs.WildcardSpecifier,
+				SourceNS:   structs.IntentionDefaultNamespace,
+				Action:     structs.IntentionActionAllow,
+			},
+			matchType: structs.IntentionMatchSource,
+			auth:      true,
+			match:     true,
+		},
+
+		// Destination match type
+		{
+			name:     "match exact destination, not matching namespace",
+			target:   "web",
+			targetNS: structs.IntentionDefaultNamespace,
+			ixn: &structs.Intention{
+				DestinationName: "db",
+				DestinationNS:   "different",
+			},
+			matchType: structs.IntentionMatchDestination,
+			auth:      false,
+			match:     false,
+		},
+		{
+			name:     "match exact destination, not matching name",
+			target:   "web",
+			targetNS: structs.IntentionDefaultNamespace,
+			ixn: &structs.Intention{
+				DestinationName: "db",
+				DestinationNS:   structs.IntentionDefaultNamespace,
+			},
+			matchType: structs.IntentionMatchDestination,
+			auth:      false,
+			match:     false,
+		},
+		{
+			name:     "match exact destination, allow",
+			target:   "web",
+			targetNS: structs.IntentionDefaultNamespace,
+			ixn: &structs.Intention{
+				DestinationName: "web",
+				DestinationNS:   structs.IntentionDefaultNamespace,
+				Action:          structs.IntentionActionAllow,
+			},
+			matchType: structs.IntentionMatchDestination,
+			auth:      true,
+			match:     true,
+		},
+		{
+			name:     "match exact destination, deny",
+			target:   "web",
+			targetNS: structs.IntentionDefaultNamespace,
+			ixn: &structs.Intention{
+				DestinationName: "web",
+				DestinationNS:   structs.IntentionDefaultNamespace,
+				Action:          structs.IntentionActionDeny,
+			},
+			matchType: structs.IntentionMatchDestination,
+			auth:      false,
+			match:     true,
+		},
+		{
+			name:     "match exact destinationNS for wildcard service, deny",
+			target:   "web",
+			targetNS: structs.IntentionDefaultNamespace,
+			ixn: &structs.Intention{
+				DestinationName: structs.WildcardSpecifier,
+				DestinationNS:   structs.IntentionDefaultNamespace,
+				Action:          structs.IntentionActionDeny,
+			},
+			matchType: structs.IntentionMatchDestination,
+			auth:      false,
+			match:     true,
+		},
+		{
+			name:     "match exact destinationNS for wildcard service, allow",
+			target:   "web",
+			targetNS: structs.IntentionDefaultNamespace,
+			ixn: &structs.Intention{
+				DestinationName: structs.WildcardSpecifier,
+				DestinationNS:   structs.IntentionDefaultNamespace,
+				Action:          structs.IntentionActionAllow,
+			},
+			matchType: structs.IntentionMatchDestination,
+			auth:      true,
+			match:     true,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			auth, match := AuthorizeIntentionTarget(tc.target, tc.targetNS, tc.ixn, tc.matchType)
+			assert.Equal(t, tc.auth, auth)
+			assert.Equal(t, tc.match, match)
 		})
 	}
 }

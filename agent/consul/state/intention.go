@@ -8,7 +8,6 @@ import (
 	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -732,35 +731,19 @@ func (s *Store) LegacyIntentionDeleteAll(idx uint64) error {
 	return tx.Commit()
 }
 
-// IntentionDecision returns whether a connection should be allowed from a source URI to some destination
-// It returns true or false for the enforcement, and also a boolean for whether
+// IntentionDecision returns whether a connection should be allowed to a source or destination given a set of intentions.
+//
+// allowPermissions determines whether the presence of L7 permissions leads to a DENY decision.
+// This should be false when evaluating a connection between a source and destination, but not the request that will be sent.
 func (s *Store) IntentionDecision(
-	srcURI connect.CertURI, dstName, dstNS string, defaultDecision acl.EnforcementDecision,
+	target, targetNS string, intentions structs.Intentions, matchType structs.IntentionMatchType,
+	defaultDecision acl.EnforcementDecision, allowPermissions bool,
 ) (structs.IntentionDecisionSummary, error) {
-
-	_, matches, err := s.IntentionMatch(nil, &structs.IntentionQueryMatch{
-		Type: structs.IntentionMatchDestination,
-		Entries: []structs.IntentionMatchEntry{
-			{
-				Namespace: dstNS,
-				Name:      dstName,
-			},
-		},
-	})
-	if err != nil {
-		return structs.IntentionDecisionSummary{}, err
-	}
-	if len(matches) != 1 {
-		// This should never happen since the documented behavior of the
-		// Match call is that it'll always return exactly the number of results
-		// as entries passed in. But we guard against misbehavior.
-		return structs.IntentionDecisionSummary{}, errors.New("internal error loading matches")
-	}
 
 	// Figure out which source matches this request.
 	var ixnMatch *structs.Intention
-	for _, ixn := range matches[0] {
-		if _, ok := srcURI.Authorize(ixn); ok {
+	for _, ixn := range intentions {
+		if _, ok := AuthorizeIntentionTarget(target, targetNS, ixn, matchType); ok {
 			ixnMatch = ixn
 			break
 		}
@@ -778,7 +761,7 @@ func (s *Store) IntentionDecision(
 	if len(ixnMatch.Permissions) > 0 {
 		// If there are L7 permissions, DENY.
 		// We are only evaluating source and destination, not the request that will be sent.
-		resp.Allowed = false
+		resp.Allowed = allowPermissions
 		resp.HasPermissions = true
 	}
 	resp.ExternalSource = ixnMatch.Meta[structs.MetaExternalSource]
@@ -790,6 +773,37 @@ func (s *Store) IntentionDecision(
 	}
 
 	return resp, nil
+}
+
+// AuthorizeIntentionTarget determines whether the destination is covered by the given intention
+// and whether the intention action allows a connection.
+func AuthorizeIntentionTarget(target, targetNS string, ixn *structs.Intention, matchType structs.IntentionMatchType) (bool, bool) {
+	switch matchType {
+	case structs.IntentionMatchDestination:
+		if ixn.DestinationNS != structs.WildcardSpecifier && ixn.DestinationNS != targetNS {
+			// Non-matching namespace
+			return false, false
+		}
+
+		if ixn.DestinationName != structs.WildcardSpecifier && ixn.DestinationName != target {
+			// Non-matching name
+			return false, false
+		}
+
+	case structs.IntentionMatchSource:
+		if ixn.SourceNS != structs.WildcardSpecifier && ixn.SourceNS != targetNS {
+			// Non-matching namespace
+			return false, false
+		}
+
+		if ixn.SourceName != structs.WildcardSpecifier && ixn.SourceName != target {
+			// Non-matching name
+			return false, false
+		}
+	}
+
+	// The name and namespace match, so the destination is covered
+	return ixn.Action == structs.IntentionActionAllow, true
 }
 
 // IntentionMatch returns the list of intentions that match the namespace and

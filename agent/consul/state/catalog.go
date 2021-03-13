@@ -11,7 +11,6 @@ import (
 	"github.com/mitchellh/copystructure"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
@@ -2859,16 +2858,20 @@ func (s *Store) ServiceTopology(
 
 	upstreamDecisions := make(map[string]structs.IntentionDecisionSummary)
 
-	// The given service is the source relative to upstreams
-	sourceURI := connect.SpiffeIDService{
+	matchEntry := structs.IntentionMatchEntry{
 		Namespace: entMeta.NamespaceOrDefault(),
-		Service:   service,
+		Name:      service,
+	}
+	// The given service is a source relative to its upstreams
+	_, intentions, err := s.IntentionMatchOne(ws, matchEntry, structs.IntentionMatchSource)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to query intentions for %s", sn.String())
 	}
 	for _, un := range upstreamNames {
-		decision, err := s.IntentionDecision(&sourceURI, un.Name, un.NamespaceOrDefault(), defaultAllow)
+		decision, err := s.IntentionDecision(un.Name, un.NamespaceOrDefault(), intentions, structs.IntentionMatchDestination, defaultAllow, false)
 		if err != nil {
-			return 0, nil, fmt.Errorf("failed to get intention decision from (%s/%s) to (%s/%s): %v",
-				sourceURI.Namespace, sourceURI.Service, un.Name, un.NamespaceOrDefault(), err)
+			return 0, nil, fmt.Errorf("failed to get intention decision from (%s) to (%s): %v",
+				sn.String(), un.String(), err)
 		}
 		upstreamDecisions[un.String()] = decision
 	}
@@ -2888,17 +2891,17 @@ func (s *Store) ServiceTopology(
 		maxIdx = idx
 	}
 
+	// The given service is a destination relative to its downstreams
+	_, intentions, err = s.IntentionMatchOne(ws, matchEntry, structs.IntentionMatchDestination)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to query intentions for %s", sn.String())
+	}
 	downstreamDecisions := make(map[string]structs.IntentionDecisionSummary)
 	for _, dn := range downstreamNames {
-		// Downstreams are the source relative to the given service
-		sourceURI := connect.SpiffeIDService{
-			Namespace: dn.NamespaceOrDefault(),
-			Service:   dn.Name,
-		}
-		decision, err := s.IntentionDecision(&sourceURI, service, entMeta.NamespaceOrDefault(), defaultAllow)
+		decision, err := s.IntentionDecision(dn.Name, dn.NamespaceOrDefault(), intentions, structs.IntentionMatchSource, defaultAllow, false)
 		if err != nil {
-			return 0, nil, fmt.Errorf("failed to get intention decision from (%s/%s) to (%s/%s): %v",
-				sourceURI.Namespace, sourceURI.Service, service, dn.NamespaceOrDefault(), err)
+			return 0, nil, fmt.Errorf("failed to get intention decision from (%s) to (%s): %v",
+				dn.String(), sn.String(), err)
 		}
 		downstreamDecisions[dn.String()] = decision
 	}

@@ -8,7 +8,6 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
@@ -684,19 +683,6 @@ func (s *Intention) Check(args *structs.IntentionQueryRequest, reply *structs.In
 		return fmt.Errorf("Invalid destination namespace %q: %v", query.DestinationNS, err)
 	}
 
-	// Build the URI
-	var uri connect.CertURI
-	switch query.SourceType {
-	case structs.IntentionSourceConsul:
-		uri = &connect.SpiffeIDService{
-			Namespace: query.SourceNS,
-			Service:   query.SourceName,
-		}
-
-	default:
-		return fmt.Errorf("unsupported SourceType: %q", query.SourceType)
-	}
-
 	// Perform the ACL check. For Check we only require ServiceRead and
 	// NOT IntentionRead because the Check API only returns pass/fail and
 	// returns no other information about the intentions used. We could check
@@ -732,7 +718,17 @@ func (s *Intention) Check(args *structs.IntentionQueryRequest, reply *structs.In
 	}
 
 	state := s.srv.fsm.State()
-	decision, err := state.IntentionDecision(uri, query.DestinationName, query.DestinationNS, defaultDecision)
+
+	entry := structs.IntentionMatchEntry{
+		Namespace: query.SourceNS,
+		Name:      query.SourceName,
+	}
+	_, intentions, err := state.IntentionMatchOne(nil, entry, structs.IntentionMatchSource)
+	if err != nil {
+		return fmt.Errorf("failed to query intentions for %s/%s", query.SourceNS, query.SourceName)
+	}
+
+	decision, err := state.IntentionDecision(query.DestinationName, query.DestinationNS, intentions, structs.IntentionMatchDestination, defaultDecision, false)
 	if err != nil {
 		return fmt.Errorf("failed to get intention decision from (%s/%s) to (%s/%s): %v",
 			query.SourceNS, query.SourceName, query.DestinationNS, query.DestinationName, err)
