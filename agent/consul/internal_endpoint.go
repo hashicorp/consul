@@ -188,6 +188,49 @@ func (m *Internal) ServiceTopology(args *structs.ServiceSpecificRequest, reply *
 		})
 }
 
+// IntentionUpstreams returns the upstreams or downstreams of a service. Upstreams and downstreams are inferred from intentions.
+// If intentions allow a connection from the target to some candidate service, the candidate service is considered
+// an upstream of the target.
+func (m *Internal) IntentionUpstreams(args *structs.ServiceSpecificRequest, reply *structs.IndexedServiceList) error {
+	// Exit early if Connect hasn't been enabled.
+	if !m.srv.config.ConnectEnabled {
+		return ErrConnectNotEnabled
+	}
+	if args.ServiceName == "" {
+		return fmt.Errorf("Must provide a service name")
+	}
+	if done, err := m.srv.ForwardRPC("Internal.IntentionUpstreams", args, args, reply); done {
+		return err
+	}
+
+	authz, err := m.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, nil)
+	if err != nil {
+		return err
+	}
+	if err := m.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
+	return m.srv.blockingQuery(
+		&args.QueryOptions,
+		&reply.QueryMeta,
+		func(ws memdb.WatchSet, state *state.Store) error {
+			defaultDecision := acl.Allow
+			if authz != nil {
+				defaultDecision = authz.IntentionDefaultAllow(nil)
+			}
+
+			sn := structs.NewServiceName(args.ServiceName, &args.EnterpriseMeta)
+			index, services, err := state.IntentionTopology(ws, sn, false, defaultDecision)
+			if err != nil {
+				return err
+			}
+
+			reply.Index, reply.Services = index, services
+			return m.srv.filterACLWithAuthorizer(authz, reply)
+		})
+}
+
 // GatewayServiceNodes returns all the nodes for services associated with a gateway along with their gateway config
 func (m *Internal) GatewayServiceDump(args *structs.ServiceSpecificRequest, reply *structs.IndexedServiceDump) error {
 	if done, err := m.srv.ForwardRPC("Internal.GatewayServiceDump", args, args, reply); done {
