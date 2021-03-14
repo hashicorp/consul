@@ -724,14 +724,16 @@ func (s *Store) Services(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (ui
 	return idx, results, nil
 }
 
-func (s *Store) ServiceList(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.ServiceList, error) {
+func (s *Store) ServiceList(ws memdb.WatchSet,
+	include func(svc *structs.ServiceNode) bool, entMeta *structs.EnterpriseMeta) (uint64, structs.ServiceList, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	return serviceListTxn(tx, ws, entMeta)
+	return serviceListTxn(tx, ws, include, entMeta)
 }
 
-func serviceListTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.ServiceList, error) {
+func serviceListTxn(tx ReadTxn, ws memdb.WatchSet,
+	include func(svc *structs.ServiceNode) bool, entMeta *structs.EnterpriseMeta) (uint64, structs.ServiceList, error) {
 	idx := catalogServicesMaxIndex(tx, entMeta)
 
 	services, err := catalogServiceList(tx, entMeta, true)
@@ -743,7 +745,11 @@ func serviceListTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *structs.EnterpriseMe
 	unique := make(map[structs.ServiceName]struct{})
 	for service := services.Next(); service != nil; service = services.Next() {
 		svc := service.(*structs.ServiceNode)
-		unique[svc.CompoundServiceName()] = struct{}{}
+		// TODO (freddy) This is a hack to exclude certain kinds.
+		//				 Need a new index to query by kind and namespace, have to coordinate with consul foundations first
+		if include != nil && include(svc) {
+			unique[svc.CompoundServiceName()] = struct{}{}
+		}
 	}
 
 	results := make(structs.ServiceList, 0, len(unique))

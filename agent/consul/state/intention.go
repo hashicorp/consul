@@ -950,3 +950,88 @@ func intentionMatchGetParams(entry structs.IntentionMatchEntry) ([][]interface{}
 	result = append(result, []interface{}{entry.Namespace, entry.Name})
 	return result, nil
 }
+
+// IntentionTopology returns the upstreams or downstreams of a service. Upstreams and downstreams are inferred from
+// intentions. If intentions allow a connection from the target to some candidate service, the candidate service is considered
+// an upstream of the target.
+func (s *Store) IntentionTopology(ws memdb.WatchSet,
+	target structs.ServiceName, downstreams bool, defaultDecision acl.EnforcementDecision) (uint64, structs.ServiceList, error) {
+	var maxIdx uint64
+
+	// If querying the upstreams for a service, we first query intentions that apply to the target service as a source.
+	// That way we can check whether intentions from the source allow connections to upstream candidates.
+	matchType := structs.IntentionMatchSource
+	if downstreams {
+		matchType = structs.IntentionMatchDestination
+	}
+	entry := structs.IntentionMatchEntry{
+		Namespace: target.NamespaceOrDefault(),
+		Name:      target.Name,
+	}
+	index, intentions, err := s.IntentionMatchOne(ws, entry, matchType)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to query intentions for %s", target.String())
+	}
+	if index > maxIdx {
+		maxIdx = index
+	}
+
+	// Reset the matchType since next it is used for evaluating the upstreams or downstreams against a set of intentions.
+	// When evaluating upstreams, the match type is now destination because we are evaluating upstream candidates
+	// as eligible destinations for intentions that have the target service as a source.
+	// The reverse is true for downstreams.
+	matchType = structs.IntentionMatchDestination
+	if downstreams {
+		matchType = structs.IntentionMatchSource
+	}
+
+	// Check for a wildcard intention (* -> *) since it overrides the default decision from ACLs
+	if len(intentions) > 0 {
+		// Intentions with wildcard source and destination have the lowest precedence, so they are last in the list
+		ixn := intentions[len(intentions)-1]
+
+		// TODO (freddy) This needs an enterprise split to account for (*/* -> */*)
+		//				 Maybe ixn.HasWildcardSource() && ixn.HasWildcardDestination()
+		if ixn.SourceName == structs.WildcardSpecifier && ixn.DestinationName == structs.WildcardSpecifier {
+			defaultDecision = acl.Allow
+			if ixn.Action == structs.IntentionActionDeny {
+				defaultDecision = acl.Deny
+			}
+		}
+	}
+
+	index, allServices, err := s.ServiceList(ws, func(svc *structs.ServiceNode) bool {
+		// Only include ingress gateways as downstreams, since they cannot receive service mesh traffic
+		// TODO(freddy): One remaining issue is that this includes non-Connect services (typical services without a proxy)
+		//				 Ideally those should be excluded as well, since they can't be upstreams/downstreams without a proxy.
+		//				 Maybe start tracking services represented by proxies? (both sidecar and ingress)
+		if svc.ServiceKind == structs.ServiceKindTypical || (svc.ServiceKind == structs.ServiceKindIngressGateway && downstreams) {
+			return true
+		}
+		return false
+	}, structs.WildcardEnterpriseMeta())
+	if err != nil {
+		return index, nil, fmt.Errorf("failed to fetch catalog service list: %v", err)
+	}
+	if index > maxIdx {
+		maxIdx = index
+	}
+
+	result := make(structs.ServiceList, 0, len(allServices))
+	for _, candidate := range allServices {
+		decision, err := s.IntentionDecision(candidate.Name, candidate.NamespaceOrDefault(), intentions, matchType, defaultDecision, true)
+		if err != nil {
+			src, dst := target, candidate
+			if downstreams {
+				src, dst = candidate, target
+			}
+			return 0, nil, fmt.Errorf("failed to get intention decision from (%s) to (%s): %v",
+				src.String(), dst.String(), err)
+		}
+		if !decision.Allowed || target.Matches(candidate) {
+			continue
+		}
+		result = append(result, candidate)
+	}
+	return maxIdx, result, err
+}
