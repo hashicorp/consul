@@ -312,8 +312,6 @@ func makeConfigRequest(bd BaseDeps, addReq AddServiceRequest) *structs.ServiceCo
 	var (
 		ns   = addReq.Service
 		name = ns.Service
-		id   = ns.ID
-		node = addReq.nodeName
 	)
 
 	var upstreams []structs.ServiceID
@@ -338,10 +336,9 @@ func makeConfigRequest(bd BaseDeps, addReq AddServiceRequest) *structs.ServiceCo
 
 	req := &structs.ServiceConfigRequest{
 		Name:           name,
-		ID:             id,
-		NodeName:       node,
 		Datacenter:     bd.RuntimeConfig.Datacenter,
 		QueryOptions:   structs.QueryOptions{Token: addReq.token},
+		MeshGateway:    ns.Proxy.MeshGateway,
 		UpstreamIDs:    upstreams,
 		EnterpriseMeta: ns.EnterpriseMeta,
 	}
