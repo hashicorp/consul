@@ -646,17 +646,17 @@ type UpstreamConfig struct {
 	//
 	// Note: This escape hatch is NOT compatible with the discovery chain and
 	// will be ignored if a discovery chain is active.
-	ClusterJSON string `alias:"cluster_json,envoy_cluster_json"`
+	ClusterJSON string `json:",omitempty" alias:"cluster_json,envoy_cluster_json"`
 
 	// Protocol describes the upstream's service protocol. Valid values are "tcp",
 	// "http" and "grpc". Anything else is treated as tcp. The enables protocol
 	// aware features like per-request metrics and connection pooling, tracing,
 	// routing etc.
-	Protocol string
+	Protocol string `json:",omitempty"`
 
 	// ConnectTimeoutMs is the number of milliseconds to timeout making a new
 	// connection to this upstream. Defaults to 5000 (5 seconds) if not set.
-	ConnectTimeoutMs int `alias:"connect_timeout_ms"`
+	ConnectTimeoutMs int `json:",omitempty" alias:"connect_timeout_ms"`
 
 	// Limits are the set of limits that are applied to the proxy for a specific upstream of a
 	// service instance.
@@ -773,11 +773,11 @@ func ParseUpstreamConfig(m map[string]interface{}) (UpstreamConfig, error) {
 type PassiveHealthCheck struct {
 	// Interval between health check analysis sweeps. Each sweep may remove
 	// hosts or return hosts to the pool.
-	Interval time.Duration
+	Interval time.Duration `json:",omitempty"`
 
 	// MaxFailures is the count of consecutive failures that results in a host
 	// being removed from the pool.
-	MaxFailures uint32 `alias:"max_failures"`
+	MaxFailures uint32 `json:",omitempty" alias:"max_failures"`
 }
 
 func (chk *PassiveHealthCheck) IsZero() bool {
@@ -797,18 +797,18 @@ func (chk PassiveHealthCheck) Validate() error {
 type UpstreamLimits struct {
 	// MaxConnections is the maximum number of connections the local proxy can
 	// make to the upstream service.
-	MaxConnections *int `alias:"max_connections"`
+	MaxConnections *int `json:",omitempty" alias:"max_connections"`
 
 	// MaxPendingRequests is the maximum number of requests that will be queued
 	// waiting for an available connection. This is mostly applicable to HTTP/1.1
 	// clusters since all HTTP/2 requests are streamed over a single
 	// connection.
-	MaxPendingRequests *int `alias:"max_pending_requests"`
+	MaxPendingRequests *int `json:",omitempty" alias:"max_pending_requests"`
 
 	// MaxConcurrentRequests is the maximum number of in-flight requests that will be allowed
 	// to the upstream cluster at a point in time. This is mostly applicable to HTTP/2
 	// clusters since all HTTP/1.1 requests are limited by MaxConnections.
-	MaxConcurrentRequests *int `alias:"max_concurrent_requests"`
+	MaxConcurrentRequests *int `json:",omitempty" alias:"max_concurrent_requests"`
 }
 
 func (ul *UpstreamLimits) IsZero() bool {

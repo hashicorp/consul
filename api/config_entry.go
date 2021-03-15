@@ -113,21 +113,21 @@ type UpstreamConfig struct {
 	//
 	// Note: This escape hatch is NOT compatible with the discovery chain and
 	// will be ignored if a discovery chain is active.
-	ClusterJSON string `alias:"cluster_json"`
+	ClusterJSON string `json:",omitempty" alias:"cluster_json"`
 
 	// Protocol describes the upstream's service protocol. Valid values are "tcp",
 	// "http" and "grpc". Anything else is treated as tcp. The enables protocol
 	// aware features like per-request metrics and connection pooling, tracing,
 	// routing etc.
-	Protocol string
+	Protocol string `json:",omitempty"`
 
 	// ConnectTimeoutMs is the number of milliseconds to timeout making a new
 	// connection to this upstream. Defaults to 5000 (5 seconds) if not set.
-	ConnectTimeoutMs int `alias:"connect_timeout_ms"`
+	ConnectTimeoutMs int `json:",omitempty" alias:"connect_timeout_ms"`
 
 	// Limits are the set of limits that are applied to the proxy for a specific upstream of a
 	// service instance.
-	Limits *UpstreamLimits
+	Limits *UpstreamLimits `json:",omitempty"`
 
 	// PassiveHealthCheck configuration determines how upstream proxy instances will
 	// be monitored for removal from the load balancing pool.
@@ -140,7 +140,7 @@ type UpstreamConfig struct {
 type PassiveHealthCheck struct {
 	// Interval between health check analysis sweeps. Each sweep may remove
 	// hosts or return hosts to the pool.
-	Interval time.Duration
+	Interval time.Duration `json:",omitempty"`
 
 	// MaxFailures is the count of consecutive failures that results in a host
 	// being removed from the pool.
