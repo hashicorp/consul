@@ -7,28 +7,46 @@ description: Metrics for Consul on Kubernetes
 
 # Metrics
 
-Consul on Kubernetes integrates with Prometheus and Grafana to provide metrics for Consul Service Mesh, including: service metrics, sidecar proxy metrics, Consul agent metrics, and gateway metrics. Service metrics can also be seen in the Consul UI Topology Visualization view. This section documents how to enable each of these.
+Consul on Kubernetes integrates with Prometheus and Grafana to provide metrics for Consul Service Mesh. The metrics
+available are:
 
-**Note:** Metrics will be supported in Consul-helm `0.31.0` and Consul-k8s `0.25.0`. However, enabling the [metrics merging feature](#connect-service-and-sidecar-metrics-with-metrics-merging) with Helm value (`defaultEnableMerging`) or annotation (`consul.hashicorp.com/enable-metrics-merging`) can only be used with Consul `1.10.0-alpha1` and above. The other metrics configuration can still be used before Consul `1.10.0-alpha1`.
+* Connect Service metrics
+* Sidecar proxy metrics
+* Consul agent metrics
+* Ingress, Terminating and Mesh Gateway metrics
+
+Service metrics can also be seen in the Consul UI Topology Visualization view. This section documents how to enable each of these.
+
+-> **Note:** Metrics will be supported in Consul-helm >= `0.31.0` and consul-k8s >= `0.25.0`. However, enabling the [metrics
+*merging feature](#connect-service-and-sidecar-metrics-with-metrics-merging) with Helm value (`defaultEnableMerging`) or
+*annotation (`consul.hashicorp.com/enable-metrics-merging`) can only be used with Consul `1.10.0-alpha1` and above. The
+*other metrics configuration can still be used before Consul `1.10.0-alpha1`.
 
 ## Connect Service and Sidecar Metrics with Metrics Merging
 
-Prometheus annotations are used to scrape metrics. Prometheus annotations only support scraping from one endpoint on a Pod, so Consul on Kubernetes supports metrics merging so the service metrics and sidecar proxy metrics are merged into one endpoint. If there are no service metrics, it also supports just scraping the sidecar proxy metrics.
+Prometheus annotations are used to instruct Prometheus to scrape metrics from Pods. Prometheus annotations only support
+scraping from one endpoint on a Pod, so Consul on Kubernetes supports metrics merging whereby service metrics and
+sidecar proxy metrics are merged into one endpoint. If there are no service metrics, it also supports just scraping the
+sidecar proxy metrics.
 
 The diagram below illustrates how the metrics integration works when merging is enabled:
 
 [![Metrics Merging Architecture](/img/metrics-arch.png)](/img/metrics-arch.png)
 
-Connect service metrics can be configured with the Helm values nested under [`connectInject.metrics`](/docs/k8s/helm#v-connectinject).
+Connect service metrics can be configured with the Helm values nested under [`connectInject.metrics`](/docs/k8s/helm#v-connectinject-metrics).
 
-Metrics and metrics merging can be enabled by default for all connect-injectedPods with the following Helm values:
+Metrics and metrics merging can be enabled by default for all connect-injected Pods with the following Helm values:
 ```yaml
 connectInject:
   metrics:
-    defaultEnabled: true
+    defaultEnabled: true # by default, this inherits from the value global.metrics.enabled
     defaultEnableMerging: true
 ```
-They can also be overridden on a per-Pod basis using the annotations `consul.hashicorp.com/enable-metrics` and `consul.hashicorp.com/enable-metrics-merging`.
+They can also be overridden on a per-Pod basis using the annotations `consul.hashicorp.com/enable-metrics` and
+`consul.hashicorp.com/enable-metrics-merging`.
+
+~> In most cases, the default settings will be sufficient. If you are encountering issues with colliding ports or service
+metrics not being merged, you may need to change the defaults.
 
 The Prometheus annotations configure the endpoint to scrape the metrics from. As shown in the diagram, the annotations point to a listener on `0.0.0.0:20200` on the Envoy sidecar. This listener and the corresponding Prometheus annotations can be configured with the following Helm values (or overridden on a per-Pod basis with Consul annotations `consul.hashicorp.com/prometheus-scrape-port` and `consul.hashicorp.com/prometheus-scrape-path`):
 ```yaml
@@ -46,9 +64,14 @@ metadata:
     prometheus.io/port: "20200"
 ```
 
-When metrics alone are enabled, the listener in the diagram on `0.0.0.0:20200` would point directly at the sidecar metrics endpoint, rather than the merged metrics endpoint. The Prometheus scraping annotations would stay the same.
+When metrics alone are enabled, the listener in the diagram on `0.0.0.0:20200` would point directly at the sidecar
+metrics endpoint, rather than the merged metrics endpoint. The Prometheus scraping annotations would stay the same.
 
-When metrics and metrics merging are *both* enabled, metrics are combined from the service and the sidecar proxy, and exposed via a local server on the consul sidecar for scraping. This endpoint is called the merged metrics endpoint and defaults to `127.0.0.1:20100/stats/prometheus`. The listener will target the merged metrics endpoint in the above case. It can be configured with the following Helm values (or overridden on a per-Pod basis with `consul.hashicorp.com/merged-metrics-port`):
+When metrics and metrics merging are *both* enabled, metrics are combined from the service and the sidecar proxy, and
+exposed via a local server on the Consul sidecar for scraping. This endpoint is called the merged metrics endpoint and
+defaults to `127.0.0.1:20100/stats/prometheus`. The listener will target the merged metrics endpoint in the above case.
+It can be configured with the following Helm values (or overridden on a per-Pod basis with
+`consul.hashicorp.com/merged-metrics-port`):
 ```yaml
 connectInject:
   metrics:
@@ -72,7 +95,11 @@ global:
 
 ## Gateway Metrics
 
-Metrics from the Consul gateways, namely the Ingress Gateway, Terminating Gateway and the Mesh Gateway can be scraped via Prometheus by setting the field `global.metrics.enableGatewayMetrics`. The gateways emit standard Envoy proxy metrics. To ensure that the metrics are not exposed to the public internet (as Mesh and Ingress gateways can have public IPs), their metrics endpoints are exposed on the Pod IP of the respective gateway instance, rather than on all interfaces on `0.0.0.0`.
+Metrics from the Consul gateways, namely the Ingress Gateways, Terminating Gateways and the Mesh Gateways can be scraped
+via Prometheus by setting the field `global.metrics.enableGatewayMetrics` to `true`. The gateways emit standard Envoy proxy
+metrics. To ensure that the metrics are not exposed to the public internet (as Mesh and Ingress gateways can have public
+IPs), their metrics endpoints are exposed on the Pod IP of the respective gateway instance, rather than on all
+interfaces on `0.0.0.0`.
 
 ```yaml
 global:
@@ -83,13 +110,13 @@ global:
 
 ## Metrics in the UI Topology Visualization
 
-Consul’s built in UI has a topology visualization for services part of the Consul-Connect service mesh. The topology visualization has the ability to fetch basic metrics from a metrics provider for each service and display those metrics as part of the [topology visualization](/docs/connect/observability/ui-visualization).
+Consul’s built-in UI has a topology visualization for services part of the Consul Service Mesh. The topology visualization has the ability to fetch basic metrics from a metrics provider for each service and display those metrics as part of the [topology visualization](/docs/connect/observability/ui-visualization).
 
 The diagram below illustrates how the UI displays service metrics for a sample application:
 
 [![UI Topology View](/img/ui-topology.png)](/img/ui-topology.png)
 
-This could previously be configured via `server.extraConfig` but can now be configured under `ui.metrics`. This will enable the Consul UI to query the provider specified by `ui.metrics.provider` at the URL of the Prometheus server `ui.metrics.baseURL` to display
+The topology view is configured under `ui.metrics`. This will enable the Consul UI to query the provider specified by `ui.metrics.provider` at the URL of the Prometheus server `ui.metrics.baseURL` to display
 service metrics. When `global.metrics.enabled` and `ui.enabled` are both set to true, the UI will display Prometheus metrics.
 
 ```yaml
@@ -102,14 +129,15 @@ ui:
 
 ## Deploying Prometheus and Grafana (_for demo and non-production use-cases only_)
 
-The Helm chart now contains manifests for Prometheus and Grafana. They can be installed with Helm via `prometheus.enabled` and `grafana.enabled`. These manifests are based on the community manifests for Prometheus and Grafana.
+The Helm chart contains demo manifests for Prometheus and Grafana. They can be installed with Helm via `prometheus.enabled` and `grafana.enabled`. These manifests are based on the community manifests for Prometheus and Grafana.
 These are designed to allow quick bootstrapping for trial and demo use cases and not for production use-cases.
 
-Prometheus and Grafana will be installed in the same namespace that Consul will be installed in and shall share their lifecycle with the Consul installation.
+Prometheus and Grafana will be installed in the same namespace that Consul will be installed in and will be installed
+and uninstalled along with the Consul installation.
 
 ```yaml
 prometheus:
-  enabled: false
+  enabled: true
 grafana:
-  enabled: false
+  enabled: true
 ```
