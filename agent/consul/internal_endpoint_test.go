@@ -1908,7 +1908,7 @@ func TestInternal_IntentionUpstreams(t *testing.T) {
 	// Intentions
 	// * -> * (deny) intention
 	// web -> api (allow)
-	registetIntentionUpstreamEntries(t, codec, "")
+	registerIntentionUpstreamEntries(t, codec, "")
 
 	t.Run("web", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
@@ -1957,7 +1957,7 @@ func TestInternal_IntentionUpstreams_ACL(t *testing.T) {
 	// Intentions
 	// * -> * (deny) intention
 	// web -> api (allow)
-	registetIntentionUpstreamEntries(t, codec, TestDefaultMasterToken)
+	registerIntentionUpstreamEntries(t, codec, TestDefaultMasterToken)
 
 	t.Run("valid token", func(t *testing.T) {
 		// Token grants read to read api service

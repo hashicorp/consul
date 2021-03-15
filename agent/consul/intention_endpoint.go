@@ -683,6 +683,10 @@ func (s *Intention) Check(args *structs.IntentionQueryRequest, reply *structs.In
 		return fmt.Errorf("Invalid destination namespace %q: %v", query.DestinationNS, err)
 	}
 
+	if query.SourceType != structs.IntentionSourceConsul {
+		return fmt.Errorf("unsupported SourceType: %q", query.SourceType)
+	}
+
 	// Perform the ACL check. For Check we only require ServiceRead and
 	// NOT IntentionRead because the Check API only returns pass/fail and
 	// returns no other information about the intentions used. We could check

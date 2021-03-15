@@ -747,7 +747,7 @@ func serviceListTxn(tx ReadTxn, ws memdb.WatchSet,
 		svc := service.(*structs.ServiceNode)
 		// TODO (freddy) This is a hack to exclude certain kinds.
 		//				 Need a new index to query by kind and namespace, have to coordinate with consul foundations first
-		if include != nil && include(svc) {
+		if include == nil || include(svc) {
 			unique[svc.CompoundServiceName()] = struct{}{}
 		}
 	}

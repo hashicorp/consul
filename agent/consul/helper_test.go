@@ -911,7 +911,7 @@ func registerTestTopologyEntries(t *testing.T, codec rpc.ClientCodec, token stri
 	}
 }
 
-func registetIntentionUpstreamEntries(t *testing.T, codec rpc.ClientCodec, token string) {
+func registerIntentionUpstreamEntries(t *testing.T, codec rpc.ClientCodec, token string) {
 	t.Helper()
 
 	// api and api-proxy on node foo

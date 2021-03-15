@@ -188,7 +188,7 @@ func (m *Internal) ServiceTopology(args *structs.ServiceSpecificRequest, reply *
 		})
 }
 
-// IntentionUpstreams returns the upstreams or downstreams of a service. Upstreams and downstreams are inferred from intentions.
+// IntentionUpstreams returns the upstreams of a service. Upstreams are inferred from intentions.
 // If intentions allow a connection from the target to some candidate service, the candidate service is considered
 // an upstream of the target.
 func (m *Internal) IntentionUpstreams(args *structs.ServiceSpecificRequest, reply *structs.IndexedServiceList) error {
