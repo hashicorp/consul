@@ -706,11 +706,7 @@ func (cfg UpstreamConfig) MergeInto(dst map[string]interface{}, legacy bool) {
 }
 
 func (cfg *UpstreamConfig) Normalize() {
-	if cfg.Protocol == "" {
-		cfg.Protocol = "tcp"
-	} else {
-		cfg.Protocol = strings.ToLower(cfg.Protocol)
-	}
+	cfg.Protocol = strings.ToLower(cfg.Protocol)
 
 	if cfg.ConnectTimeoutMs < 1 {
 		cfg.ConnectTimeoutMs = 5000

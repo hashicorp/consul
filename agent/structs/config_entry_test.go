@@ -1575,12 +1575,10 @@ func TestServiceConfigEntry_Normalize(t *testing.T) {
 							ConnectTimeoutMs: 5000,
 						},
 						"memcached": {
-							Protocol:         "tcp",
 							ConnectTimeoutMs: 5000,
 						},
 					},
 					UpstreamDefaults: &UpstreamConfig{
-						Protocol:         "tcp",
 						ConnectTimeoutMs: 5000,
 					},
 				},
@@ -1771,7 +1769,6 @@ func TestParseUpstreamConfig(t *testing.T) {
 			input: nil,
 			want: UpstreamConfig{
 				ConnectTimeoutMs: 5000,
-				Protocol:         "tcp",
 			},
 		},
 		{
@@ -1779,7 +1776,6 @@ func TestParseUpstreamConfig(t *testing.T) {
 			input: map[string]interface{}{},
 			want: UpstreamConfig{
 				ConnectTimeoutMs: 5000,
-				Protocol:         "tcp",
 			},
 		},
 		{
@@ -1790,7 +1786,6 @@ func TestParseUpstreamConfig(t *testing.T) {
 			},
 			want: UpstreamConfig{
 				ConnectTimeoutMs: 5000,
-				Protocol:         "tcp",
 			},
 		},
 		{
@@ -1810,7 +1805,6 @@ func TestParseUpstreamConfig(t *testing.T) {
 			},
 			want: UpstreamConfig{
 				ConnectTimeoutMs: 1000,
-				Protocol:         "tcp",
 			},
 		},
 		{
@@ -1820,7 +1814,6 @@ func TestParseUpstreamConfig(t *testing.T) {
 			},
 			want: UpstreamConfig{
 				ConnectTimeoutMs: 1000,
-				Protocol:         "tcp",
 			},
 		},
 		{
@@ -1830,7 +1823,6 @@ func TestParseUpstreamConfig(t *testing.T) {
 			},
 			want: UpstreamConfig{
 				ConnectTimeoutMs: 1000,
-				Protocol:         "tcp",
 			},
 		},
 		{
@@ -1844,7 +1836,6 @@ func TestParseUpstreamConfig(t *testing.T) {
 			},
 			want: UpstreamConfig{
 				ConnectTimeoutMs: 5000,
-				Protocol:         "tcp",
 				Limits: &UpstreamLimits{
 					MaxConnections:        intPointer(50),
 					MaxPendingRequests:    intPointer(60),
@@ -1863,7 +1854,6 @@ func TestParseUpstreamConfig(t *testing.T) {
 			},
 			want: UpstreamConfig{
 				ConnectTimeoutMs: 5000,
-				Protocol:         "tcp",
 				Limits: &UpstreamLimits{
 					MaxConnections:        intPointer(0),
 					MaxPendingRequests:    intPointer(0),
@@ -1881,7 +1871,6 @@ func TestParseUpstreamConfig(t *testing.T) {
 			},
 			want: UpstreamConfig{
 				ConnectTimeoutMs: 5000,
-				Protocol:         "tcp",
 				PassiveHealthCheck: &PassiveHealthCheck{
 					Interval:    22 * time.Second,
 					MaxFailures: 7,
@@ -1897,7 +1886,6 @@ func TestParseUpstreamConfig(t *testing.T) {
 			},
 			want: UpstreamConfig{
 				ConnectTimeoutMs: 5000,
-				Protocol:         "tcp",
 				MeshGateway: MeshGatewayConfig{
 					Mode: MeshGatewayModeRemote,
 				},
