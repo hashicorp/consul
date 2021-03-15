@@ -1136,45 +1136,12 @@ func (s *Store) NodeService(nodeName string, serviceID string, entMeta *structs.
 	return idx, service, nil
 }
 
-// NodeServiceWatch is used to retrieve a specific service associated with the given
-// node, and add it to the watch set.
-func (s *Store) NodeServiceWatch(ws memdb.WatchSet, nodeName string, serviceID string, entMeta *structs.EnterpriseMeta) (uint64, *structs.NodeService, error) {
-	tx := s.db.Txn(false)
-	defer tx.Abort()
-
-	// Get the table index.
-	idx := catalogServicesMaxIndex(tx, entMeta)
-
-	// Query the service
-	service, err := getNodeServiceWatchTxn(tx, ws, nodeName, serviceID, entMeta)
-	if err != nil {
-		return 0, nil, fmt.Errorf("failed querying service for node %q: %s", nodeName, err)
-	}
-
-	return idx, service, nil
-}
-
 func getNodeServiceTxn(tx ReadTxn, nodeName, serviceID string, entMeta *structs.EnterpriseMeta) (*structs.NodeService, error) {
 	// Query the service
 	_, service, err := firstWatchCompoundWithTxn(tx, "services", "id", entMeta, nodeName, serviceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed querying service for node %q: %s", nodeName, err)
 	}
-
-	if service != nil {
-		return service.(*structs.ServiceNode).ToNodeService(), nil
-	}
-
-	return nil, nil
-}
-
-func getNodeServiceWatchTxn(tx ReadTxn, ws memdb.WatchSet, nodeName, serviceID string, entMeta *structs.EnterpriseMeta) (*structs.NodeService, error) {
-	// Query the service
-	watchCh, service, err := firstWatchCompoundWithTxn(tx, "services", "id", entMeta, nodeName, serviceID)
-	if err != nil {
-		return nil, fmt.Errorf("failed querying service for node %q: %s", nodeName, err)
-	}
-	ws.Add(watchCh)
 
 	if service != nil {
 		return service.(*structs.ServiceNode).ToNodeService(), nil
