@@ -1,13 +1,12 @@
 import Helper from '@ember/component/helper';
 import { inject as service } from '@ember/service';
-import { action } from '@ember/object';
-import config from 'consul-ui/config/environment';
 
 export default class ToRouteHelper extends Helper {
   @service('router') router;
+  @service('env') env;
 
   compute([url]) {
-    const info = this.router.recognize(`${config.rootURL}${url}`);
+    const info = this.router.recognize(`${this.env.var('rootURL')}${url}`);
     return info.name;
   }
 }
