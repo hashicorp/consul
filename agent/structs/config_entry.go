@@ -633,20 +633,20 @@ func (r *ServiceConfigRequest) CacheInfo() cache.RequestInfo {
 }
 
 type UpstreamConfig struct {
-	// ListenerJSON is a complete override ("escape hatch") for the upstream's
+	// EnvoyListenerJSON is a complete override ("escape hatch") for the upstream's
 	// listener.
 	//
 	// Note: This escape hatch is NOT compatible with the discovery chain and
 	// will be ignored if a discovery chain is active.
-	ListenerJSON string `json:",omitempty" alias:"listener_json,envoy_listener_json"`
+	EnvoyListenerJSON string `json:",omitempty" alias:"envoy_listener_json"`
 
-	// ClusterJSON is a complete override ("escape hatch") for the upstream's
+	// EnvoyClusterJSON is a complete override ("escape hatch") for the upstream's
 	// cluster. The Connect client TLS certificate and context will be injected
 	// overriding any TLS settings present.
 	//
 	// Note: This escape hatch is NOT compatible with the discovery chain and
 	// will be ignored if a discovery chain is active.
-	ClusterJSON string `json:",omitempty" alias:"cluster_json,envoy_cluster_json"`
+	EnvoyClusterJSON string `json:",omitempty" alias:"envoy_cluster_json"`
 
 	// Protocol describes the upstream's service protocol. Valid values are "tcp",
 	// "http" and "grpc". Anything else is treated as tcp. The enables protocol
@@ -670,23 +670,13 @@ type UpstreamConfig struct {
 	MeshGateway MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway" `
 }
 
-func (cfg UpstreamConfig) MergeInto(dst map[string]interface{}, legacy bool) {
-	var (
-		listenerKey = "listener_json"
-		clusterKey  = "cluster_json"
-	)
-	// Starting in Consul 1.10, the "envoy_" prefix was removed from these flags
-	if legacy {
-		listenerKey = fmt.Sprintf("envoy_%s", listenerKey)
-		clusterKey = fmt.Sprintf("envoy_%s", clusterKey)
-	}
-
+func (cfg UpstreamConfig) MergeInto(dst map[string]interface{}) {
 	// Avoid storing empty values in the map, since these can act as overrides
-	if cfg.ListenerJSON != "" {
-		dst[listenerKey] = cfg.ListenerJSON
+	if cfg.EnvoyListenerJSON != "" {
+		dst["envoy_listener_json"] = cfg.EnvoyListenerJSON
 	}
-	if cfg.ClusterJSON != "" {
-		dst[clusterKey] = cfg.ClusterJSON
+	if cfg.EnvoyClusterJSON != "" {
+		dst["envoy_cluster_json"] = cfg.EnvoyClusterJSON
 	}
 	if cfg.Protocol != "" {
 		dst["protocol"] = cfg.Protocol

@@ -498,7 +498,7 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 
 				// Merge centralized defaults for all upstreams before configuration for specific upstreams
 				if upstreamDefaults != nil {
-					upstreamDefaults.MergeInto(resolvedCfg, args.ID == "")
+					upstreamDefaults.MergeInto(resolvedCfg)
 				}
 				// The value from the proxy registration overrides the one from upstream_defaults because
 				// it is specific to the proxy instance
@@ -507,7 +507,7 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 				}
 
 				if upstreamConfigs[upstream.String()] != nil {
-					upstreamConfigs[upstream.String()].MergeInto(resolvedCfg, args.ID == "")
+					upstreamConfigs[upstream.String()].MergeInto(resolvedCfg)
 				}
 
 				if len(resolvedCfg) > 0 {

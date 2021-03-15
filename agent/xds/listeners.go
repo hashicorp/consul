@@ -987,8 +987,8 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 	l := makeListener(upstreamID, address, u.LocalBindPort, envoy_core_v3.TrafficDirection_OUTBOUND)
 
 	cfg := getAndModifyUpstreamConfigForListener(s.Logger, u, chain)
-	if cfg.ListenerJSON != "" {
-		return makeListenerFromUserConfig(cfg.ListenerJSON)
+	if cfg.EnvoyListenerJSON != "" {
+		return makeListenerFromUserConfig(cfg.EnvoyListenerJSON)
 	}
 
 	useRDS := true
@@ -1094,12 +1094,12 @@ func getAndModifyUpstreamConfigForListener(logger hclog.Logger, u *structs.Upstr
 			logger.Warn("failed to parse", "upstream", u.Identifier(), "error", err)
 		}
 
-		if cfg.ListenerJSON != "" {
+		if cfg.EnvoyListenerJSON != "" {
 			logger.Warn("ignoring escape hatch setting because already configured for",
 				"discovery chain", chain.ServiceName, "upstream", u.Identifier(), "config", "envoy_listener_json")
 
 			// Remove from config struct so we don't use it later on
-			cfg.ListenerJSON = ""
+			cfg.EnvoyListenerJSON = ""
 		}
 
 		proto := cfg.Protocol

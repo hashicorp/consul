@@ -100,20 +100,20 @@ type ConnectConfiguration struct {
 }
 
 type UpstreamConfig struct {
-	// ListenerJSON is a complete override ("escape hatch") for the upstream's
+	// EnvoyListenerJSON is a complete override ("escape hatch") for the upstream's
 	// listener.
 	//
 	// Note: This escape hatch is NOT compatible with the discovery chain and
 	// will be ignored if a discovery chain is active.
-	ListenerJSON string `json:",omitempty" alias:"listener_json"`
+	EnvoyListenerJSON string `json:",omitempty" alias:"envoy_listener_json"`
 
-	// ClusterJSON is a complete override ("escape hatch") for the upstream's
+	// EnvoyClusterJSON is a complete override ("escape hatch") for the upstream's
 	// cluster. The Connect client TLS certificate and context will be injected
 	// overriding any TLS settings present.
 	//
 	// Note: This escape hatch is NOT compatible with the discovery chain and
 	// will be ignored if a discovery chain is active.
-	ClusterJSON string `json:",omitempty" alias:"cluster_json"`
+	EnvoyClusterJSON string `json:",omitempty" alias:"envoy_cluster_json"`
 
 	// Protocol describes the upstream's service protocol. Valid values are "tcp",
 	// "http" and "grpc". Anything else is treated as tcp. The enables protocol
