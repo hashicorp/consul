@@ -407,7 +407,7 @@ type Upstream struct {
 	LocalBindPort        int                    `json:",omitempty"`
 	Config               map[string]interface{} `json:",omitempty" bexpr:"-"`
 	MeshGateway          MeshGatewayConfig      `json:",omitempty"`
-	CentrallyConfigured  bool                   `json:",omitempty"`
+	CentrallyConfigured  bool                   `json:",omitempty" bexpr:"-"`
 }
 
 // Agent can be used to query the Agent endpoints
