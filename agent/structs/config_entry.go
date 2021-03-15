@@ -578,9 +578,10 @@ func (r *ConfigEntryListAllRequest) RequestDatacenter() string {
 // for a service.
 type ServiceConfigRequest struct {
 	Name       string
-	ID         string
-	NodeName   string
 	Datacenter string
+
+	// MeshGateway contains the mesh gateway configuration from the requesting proxy's registration
+	MeshGateway MeshGatewayConfig
 
 	UpstreamIDs []ServiceID
 

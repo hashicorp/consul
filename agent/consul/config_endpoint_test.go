@@ -930,8 +930,6 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 			},
 			request: structs.ServiceConfigRequest{
 				Name:       "foo",
-				ID:         "foo-proxy-1",
-				NodeName:   "foo-node",
 				Datacenter: "dc1",
 				Upstreams:  []string{"zap"},
 			},
@@ -973,8 +971,6 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 			},
 			request: structs.ServiceConfigRequest{
 				Name:        "foo",
-				ID:          "foo-proxy-1",
-				NodeName:    "foo-node",
 				Datacenter:  "dc1",
 				UpstreamIDs: []structs.ServiceID{{ID: "zap"}},
 			},
@@ -1019,16 +1015,12 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 			},
 			request: structs.ServiceConfigRequest{
 				Name:       "foo",
-				ID:         "foo-proxy-1",
-				NodeName:   "foo-node",
 				Datacenter: "dc1",
-				UpstreamIDs: []structs.ServiceID{
-					{ID: "zap"},
-				},
-			},
-			proxyCfg: structs.ConnectProxyConfig{
 				MeshGateway: structs.MeshGatewayConfig{
 					Mode: structs.MeshGatewayModeNone,
+				},
+				UpstreamIDs: []structs.ServiceID{
+					{ID: "zap"},
 				},
 			},
 			expect: structs.ServiceConfigResponse{
@@ -1085,16 +1077,12 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 			},
 			request: structs.ServiceConfigRequest{
 				Name:       "foo",
-				ID:         "foo-proxy-1",
-				NodeName:   "foo-node",
 				Datacenter: "dc1",
-				UpstreamIDs: []structs.ServiceID{
-					{ID: "zap"},
-				},
-			},
-			proxyCfg: structs.ConnectProxyConfig{
 				MeshGateway: structs.MeshGatewayConfig{
 					Mode: structs.MeshGatewayModeNone,
+				},
+				UpstreamIDs: []structs.ServiceID{
+					{ID: "zap"},
 				},
 			},
 			expect: structs.ServiceConfigResponse{
@@ -1139,19 +1127,6 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 			for _, conf := range tc.entries {
 				require.NoError(t, state.EnsureConfigEntry(idx, conf))
 				idx++
-			}
-
-			// The config endpoints pulls the proxy registration if a proxy ID is provided.
-			if tc.request.ID != "" {
-				require.NoError(t, state.EnsureNode(4, &structs.Node{
-					ID:   "9c6e733c-c39d-4555-8d41-0f174a31c489",
-					Node: tc.request.NodeName,
-				}))
-				require.NoError(t, state.EnsureService(5, tc.request.NodeName, &structs.NodeService{
-					ID:      tc.request.ID,
-					Service: tc.request.ID,
-					Proxy:   tc.proxyCfg,
-				}))
 			}
 
 			var out structs.ServiceConfigResponse
@@ -1213,8 +1188,6 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams_RegistrationBlocking(t *test
 
 	args := structs.ServiceConfigRequest{
 		Name:       "foo",
-		ID:         "foo-proxy",
-		NodeName:   nodeName,
 		Datacenter: s1.config.Datacenter,
 		Upstreams:  []string{"bar", "baz"},
 	}
@@ -1263,8 +1236,6 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams_RegistrationBlocking(t *test
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig",
 			&structs.ServiceConfigRequest{
 				Name:       "foo",
-				ID:         "foo-proxy",
-				NodeName:   nodeName,
 				Datacenter: "dc1",
 				Upstreams:  []string{"bar", "baz"},
 				QueryOptions: structs.QueryOptions{
@@ -1343,7 +1314,8 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams_DegistrationBlocking(t *test
 		ID:   "9c6e733c-c39d-4555-8d41-0f174a31c489",
 		Node: nodeName,
 	}))
-	require.NoError(t, state.EnsureService(5, nodeName, &structs.NodeService{
+
+	registration := structs.NodeService{
 		ID:      "foo-proxy",
 		Service: "foo-proxy",
 		Proxy: structs.ConnectProxyConfig{
@@ -1351,14 +1323,14 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams_DegistrationBlocking(t *test
 				Mode: structs.MeshGatewayModeLocal,
 			},
 		},
-	}))
+	}
+	require.NoError(t, state.EnsureService(5, nodeName, &registration))
 
 	args := structs.ServiceConfigRequest{
-		Name:       "foo",
-		ID:         "foo-proxy",
-		NodeName:   nodeName,
-		Datacenter: s1.config.Datacenter,
-		Upstreams:  []string{"bar", "baz"},
+		Name:        "foo",
+		Datacenter:  s1.config.Datacenter,
+		MeshGateway: registration.Proxy.MeshGateway,
+		Upstreams:   []string{"bar", "baz"},
 	}
 	var out structs.ServiceConfigResponse
 	require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig", &args, &out))
@@ -1400,11 +1372,10 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams_DegistrationBlocking(t *test
 		var out structs.ServiceConfigResponse
 		require.NoError(t, msgpackrpc.CallWithCodec(codec, "ConfigEntry.ResolveServiceConfig",
 			&structs.ServiceConfigRequest{
-				Name:       "foo",
-				ID:         "foo-proxy",
-				NodeName:   nodeName,
-				Datacenter: "dc1",
-				Upstreams:  []string{"bar", "baz"},
+				Name:        "foo",
+				Datacenter:  "dc1",
+				MeshGateway: registration.Proxy.MeshGateway,
+				Upstreams:   []string{"bar", "baz"},
 				QueryOptions: structs.QueryOptions{
 					MinQueryIndex: index,
 					MaxQueryTime:  time.Second,

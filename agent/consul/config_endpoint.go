@@ -445,27 +445,6 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 				}
 			}
 
-			// The goal is to flatten the mesh gateway mode in this order:
-			// 	0. Value from centralized upstream_defaults
-			// 	1. Value from local proxy registration
-			// 	2. Value from centralized upstream_configs
-			// 	3. Value from local upstream definition. This last step is done in the client's service manager.
-			var registrationMGConfig structs.MeshGatewayConfig
-
-			if args.ID != "" && args.NodeName != "" {
-				index, registration, err := state.NodeServiceWatch(ws, args.NodeName, args.ID, &args.EnterpriseMeta)
-				if err != nil {
-					return fmt.Errorf("failed to query service registration")
-				}
-				if index > reply.Index {
-					reply.Index = index
-				}
-
-				if registration != nil && !registration.Proxy.MeshGateway.IsZero() {
-					registrationMGConfig = registration.Proxy.MeshGateway
-				}
-			}
-
 			// usConfigs stores the opaque config map for each upstream and is keyed on the upstream's ID.
 			usConfigs := make(map[structs.ServiceID]map[string]interface{})
 
@@ -500,10 +479,17 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 				if upstreamDefaults != nil {
 					upstreamDefaults.MergeInto(resolvedCfg)
 				}
-				// The value from the proxy registration overrides the one from upstream_defaults because
-				// it is specific to the proxy instance
-				if !registrationMGConfig.IsZero() {
-					resolvedCfg["mesh_gateway"] = registrationMGConfig
+
+				// The MeshGateway value from the proxy registration overrides the one from upstream_defaults
+				// because it is specific to the proxy instance.
+				//
+				// The goal is to flatten the mesh gateway mode in this order:
+				// 	0. Value from centralized upstream_defaults
+				// 	1. Value from local proxy registration
+				// 	2. Value from centralized upstream_configs
+				// 	3. Value from local upstream definition. This last step is done in the client's service manager.
+				if !args.MeshGateway.IsZero() {
+					resolvedCfg["mesh_gateway"] = args.MeshGateway
 				}
 
 				if upstreamConfigs[upstream.String()] != nil {
