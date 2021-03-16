@@ -322,3 +322,18 @@ func (index *ServiceNameIndex) PrefixFromArgs(args ...interface{}) ([]byte, erro
 	}
 	return val, nil
 }
+
+// upstreamDownstream pairs come from individual proxy registrations, which can be updated independently.
+type upstreamDownstream struct {
+	Upstream   structs.ServiceName
+	Downstream structs.ServiceName
+
+	// Refs stores the registrations that contain this pairing.
+	// When there are no remaining Refs, the upstreamDownstream can be deleted.
+	//
+	// Note: This map must be treated as immutable when accessed in MemDB.
+	//       The entire upstreamDownstream structure must be deep copied on updates.
+	Refs map[string]struct{}
+
+	structs.RaftIndex
+}

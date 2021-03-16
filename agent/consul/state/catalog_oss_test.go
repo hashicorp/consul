@@ -41,7 +41,7 @@ func testIndexerTableChecks() map[string]indexerTestCase {
 }
 
 func testIndexerTableMeshTopology() map[string]indexerTestCase {
-	obj := structs.UpstreamDownstream{
+	obj := upstreamDownstream{
 		Upstream:   structs.ServiceName{Name: "UpStReAm"},
 		Downstream: structs.ServiceName{Name: "DownStream"},
 	}

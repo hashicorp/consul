@@ -2474,19 +2474,3 @@ func (m MessageType) String() string {
 	return "Unknown(" + strconv.Itoa(int(m)) + ")"
 
 }
-
-// UpstreamDownstream pairs come from individual proxy registrations, which can be updated independently.
-// TODO: move to state package
-type UpstreamDownstream struct {
-	Upstream   ServiceName
-	Downstream ServiceName
-
-	// Refs stores the registrations that contain this pairing.
-	// When there are no remaining Refs, the UpstreamDownstream can be deleted.
-	//
-	// Note: This map must be treated as immutable when accessed in MemDB.
-	//       The entire UpstreamDownstream structure must be deep copied on updates.
-	Refs map[string]struct{}
-
-	RaftIndex
-}

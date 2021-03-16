@@ -3008,7 +3008,7 @@ func linkedFromRegistrationTxn(tx ReadTxn, ws memdb.WatchSet, service structs.Se
 		resp []structs.ServiceName
 	)
 	for raw := iter.Next(); raw != nil; raw = iter.Next() {
-		entry := raw.(*structs.UpstreamDownstream)
+		entry := raw.(*upstreamDownstream)
 		if entry.ModifyIndex > idx {
 			idx = entry.ModifyIndex
 		}
@@ -3060,13 +3060,13 @@ func updateMeshTopology(tx WriteTxn, idx uint64, node string, svc *structs.NodeS
 		sid := svc.CompoundServiceID()
 		uid := structs.UniqueID(node, sid.String())
 
-		var mapping *structs.UpstreamDownstream
-		if existing, ok := obj.(*structs.UpstreamDownstream); ok {
+		var mapping *upstreamDownstream
+		if existing, ok := obj.(*upstreamDownstream); ok {
 			rawCopy, err := copystructure.Copy(existing)
 			if err != nil {
 				return fmt.Errorf("failed to copy existing topology mapping: %v", err)
 			}
-			mapping, ok = rawCopy.(*structs.UpstreamDownstream)
+			mapping, ok = rawCopy.(*upstreamDownstream)
 			if !ok {
 				return fmt.Errorf("unexpected topology type %T", rawCopy)
 			}
@@ -3076,7 +3076,7 @@ func updateMeshTopology(tx WriteTxn, idx uint64, node string, svc *structs.NodeS
 			inserted[upstream] = true
 		}
 		if mapping == nil {
-			mapping = &structs.UpstreamDownstream{
+			mapping = &upstreamDownstream{
 				Upstream:   upstream,
 				Downstream: downstream,
 				Refs:       map[string]struct{}{uid: {}},
@@ -3124,9 +3124,9 @@ func cleanupMeshTopology(tx WriteTxn, idx uint64, service *structs.ServiceNode) 
 		return fmt.Errorf("%q lookup failed: %v", tableMeshTopology, err)
 	}
 
-	mappings := make([]*structs.UpstreamDownstream, 0)
+	mappings := make([]*upstreamDownstream, 0)
 	for raw := iter.Next(); raw != nil; raw = iter.Next() {
-		mappings = append(mappings, raw.(*structs.UpstreamDownstream))
+		mappings = append(mappings, raw.(*upstreamDownstream))
 	}
 
 	// Do the updates in a separate loop so we don't trash the iterator.
@@ -3135,7 +3135,7 @@ func cleanupMeshTopology(tx WriteTxn, idx uint64, service *structs.ServiceNode) 
 		if err != nil {
 			return fmt.Errorf("failed to copy existing topology mapping: %v", err)
 		}
-		copy, ok := rawCopy.(*structs.UpstreamDownstream)
+		copy, ok := rawCopy.(*upstreamDownstream)
 		if !ok {
 			return fmt.Errorf("unexpected topology type %T", rawCopy)
 		}
@@ -3169,7 +3169,7 @@ func insertGatewayServiceTopologyMapping(tx WriteTxn, idx uint64, gs *structs.Ga
 		return nil
 	}
 
-	mapping := structs.UpstreamDownstream{
+	mapping := upstreamDownstream{
 		Upstream:   gs.Service,
 		Downstream: gs.Gateway,
 		RaftIndex:  gs.RaftIndex,
