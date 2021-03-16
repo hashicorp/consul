@@ -132,6 +132,7 @@ func TestNewDBSchema_Indexers(t *testing.T) {
 		tableServices:      testIndexerTableServices,
 		tableNodes:         testIndexerTableNodes,
 		tableConfigEntries: testIndexerTableConfigEntries,
+		tableMeshTopology:  testIndexerTableMeshTopology,
 	}
 
 	for _, table := range schema.Tables {

@@ -40,6 +40,51 @@ func testIndexerTableChecks() map[string]indexerTestCase {
 	}
 }
 
+func testIndexerTableMeshTopology() map[string]indexerTestCase {
+	obj := structs.UpstreamDownstream{
+		Upstream:   structs.ServiceName{Name: "UpStReAm"},
+		Downstream: structs.ServiceName{Name: "DownStream"},
+	}
+
+	return map[string]indexerTestCase{
+		indexID: {
+			read: indexValue{
+				source: []interface{}{
+					structs.ServiceName{Name: "UpStReAm"},
+					structs.ServiceName{Name: "DownStream"},
+				},
+				expected: []byte("upstream\x00downstream\x00"),
+			},
+			write: indexValue{
+				source:   obj,
+				expected: []byte("upstream\x00downstream\x00"),
+			},
+		},
+		indexUpstream: {
+			read: indexValue{
+				source: structs.ServiceName{Name: "UpStReAm"},
+
+				expected: []byte("upstream\x00"),
+			},
+			write: indexValue{
+				source:   obj,
+				expected: []byte("upstream\x00"),
+			},
+		},
+		indexDownstream: {
+			read: indexValue{
+				source: structs.ServiceName{Name: "DownStream"},
+
+				expected: []byte("downstream\x00"),
+			},
+			write: indexValue{
+				source:   obj,
+				expected: []byte("downstream\x00"),
+			},
+		},
+	}
+}
+
 func testIndexerTableNodes() map[string]indexerTestCase {
 	return map[string]indexerTestCase{
 		indexID: {

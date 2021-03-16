@@ -2476,6 +2476,7 @@ func (m MessageType) String() string {
 }
 
 // UpstreamDownstream pairs come from individual proxy registrations, which can be updated independently.
+// TODO: move to state package
 type UpstreamDownstream struct {
 	Upstream   ServiceName
 	Downstream ServiceName
