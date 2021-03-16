@@ -3,6 +3,7 @@ package state
 import (
 	"errors"
 	"fmt"
+	"github.com/hashicorp/consul/agent/connect"
 	"sort"
 
 	"github.com/hashicorp/go-memdb"
@@ -743,7 +744,7 @@ func (s *Store) IntentionDecision(
 	// Figure out which source matches this request.
 	var ixnMatch *structs.Intention
 	for _, ixn := range intentions {
-		if _, ok := AuthorizeIntentionTarget(target, targetNS, ixn, matchType); ok {
+		if _, ok := connect.AuthorizeIntentionTarget(target, targetNS, ixn, matchType); ok {
 			ixnMatch = ixn
 			break
 		}
@@ -773,37 +774,6 @@ func (s *Store) IntentionDecision(
 	}
 
 	return resp, nil
-}
-
-// AuthorizeIntentionTarget determines whether the destination is covered by the given intention
-// and whether the intention action allows a connection.
-func AuthorizeIntentionTarget(target, targetNS string, ixn *structs.Intention, matchType structs.IntentionMatchType) (bool, bool) {
-	switch matchType {
-	case structs.IntentionMatchDestination:
-		if ixn.DestinationNS != structs.WildcardSpecifier && ixn.DestinationNS != targetNS {
-			// Non-matching namespace
-			return false, false
-		}
-
-		if ixn.DestinationName != structs.WildcardSpecifier && ixn.DestinationName != target {
-			// Non-matching name
-			return false, false
-		}
-
-	case structs.IntentionMatchSource:
-		if ixn.SourceNS != structs.WildcardSpecifier && ixn.SourceNS != targetNS {
-			// Non-matching namespace
-			return false, false
-		}
-
-		if ixn.SourceName != structs.WildcardSpecifier && ixn.SourceName != target {
-			// Non-matching name
-			return false, false
-		}
-	}
-
-	// The name and namespace match, so the destination is covered
-	return ixn.Action == structs.IntentionActionAllow, true
 }
 
 // IntentionMatch returns the list of intentions that match the namespace and

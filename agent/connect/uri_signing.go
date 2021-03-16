@@ -28,12 +28,6 @@ func (id *SpiffeIDSigning) Host() string {
 	return strings.ToLower(fmt.Sprintf("%s.%s", id.ClusterID, id.Domain))
 }
 
-// CertURI impl.
-func (id *SpiffeIDSigning) Authorize(ixn *structs.Intention) (bool, bool) {
-	// Never authorize as a client.
-	return false, true
-}
-
 // CanSign takes any CertURI and returns whether or not this signing entity is
 // allowed to sign CSRs for that entity (i.e. represents the trust domain for
 // that entity).
