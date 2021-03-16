@@ -62,8 +62,7 @@ func testIndexerTableMeshTopology() map[string]indexerTestCase {
 		},
 		indexUpstream: {
 			read: indexValue{
-				source: structs.ServiceName{Name: "UpStReAm"},
-
+				source:   structs.ServiceName{Name: "UpStReAm"},
 				expected: []byte("upstream\x00"),
 			},
 			write: indexValue{
@@ -73,13 +72,57 @@ func testIndexerTableMeshTopology() map[string]indexerTestCase {
 		},
 		indexDownstream: {
 			read: indexValue{
-				source: structs.ServiceName{Name: "DownStream"},
-
+				source:   structs.ServiceName{Name: "DownStream"},
 				expected: []byte("downstream\x00"),
 			},
 			write: indexValue{
 				source:   obj,
 				expected: []byte("downstream\x00"),
+			},
+		},
+	}
+}
+
+func testIndexerTableGatewayServices() map[string]indexerTestCase {
+	obj := &structs.GatewayService{
+		Gateway: structs.ServiceName{Name: "GateWay"},
+		Service: structs.ServiceName{Name: "SerVice"},
+		Port:    50123,
+	}
+	encodedPort := string([]byte{0x96, 0x8f, 0x06, 0, 0, 0, 0, 0, 0, 0})
+	return map[string]indexerTestCase{
+		indexID: {
+			read: indexValue{
+				source: []interface{}{
+					structs.ServiceName{Name: "GateWay"},
+					structs.ServiceName{Name: "SerVice"},
+					50123,
+				},
+				expected: []byte("gateway\x00service\x00" + encodedPort),
+			},
+			write: indexValue{
+				source:   obj,
+				expected: []byte("gateway\x00service\x00" + encodedPort),
+			},
+		},
+		indexGateway: {
+			read: indexValue{
+				source:   structs.ServiceName{Name: "GateWay"},
+				expected: []byte("gateway\x00"),
+			},
+			write: indexValue{
+				source:   obj,
+				expected: []byte("gateway\x00"),
+			},
+		},
+		indexService: {
+			read: indexValue{
+				source:   structs.ServiceName{Name: "SerVice"},
+				expected: []byte("service\x00"),
+			},
+			write: indexValue{
+				source:   obj,
+				expected: []byte("service\x00"),
 			},
 		},
 	}
