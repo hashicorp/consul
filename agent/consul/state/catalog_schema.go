@@ -24,6 +24,8 @@ const (
 	indexStatus      = "status"
 	indexNodeService = "node_service"
 	indexNode        = "node"
+	indexUpstream    = "upstream"
+	indexDownstream  = "downstream"
 )
 
 // nodesTableSchema returns a new table schema used for storing struct.Node.
@@ -245,16 +247,16 @@ func meshTopologyTableSchema() *memdb.TableSchema {
 					},
 				},
 			},
-			"upstream": {
-				Name:         "upstream",
+			indexUpstream: {
+				Name:         indexUpstream,
 				AllowMissing: true,
 				Unique:       false,
 				Indexer: &ServiceNameIndex{
 					Field: "Upstream",
 				},
 			},
-			"downstream": {
-				Name:         "downstream",
+			indexDownstream: {
+				Name:         indexDownstream,
 				AllowMissing: false,
 				Unique:       false,
 				Indexer: &ServiceNameIndex{

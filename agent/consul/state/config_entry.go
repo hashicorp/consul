@@ -278,7 +278,7 @@ func deleteConfigEntryTxn(tx WriteTxn, idx uint64, kind, name string, entMeta *s
 	}
 	// Also clean up associations in the mesh topology table for ingress gateways
 	if kind == structs.IngressGateway {
-		if _, err := tx.DeleteAll(tableMeshTopology, "downstream", sn); err != nil {
+		if _, err := tx.DeleteAll(tableMeshTopology, indexDownstream, sn); err != nil {
 			return fmt.Errorf("failed to truncate %s table: %v", tableMeshTopology, err)
 		}
 		if err := indexUpdateMaxTxn(tx, idx, tableMeshTopology); err != nil {

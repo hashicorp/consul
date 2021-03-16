@@ -2992,9 +2992,9 @@ func downstreamsFromRegistrationTxn(tx ReadTxn, ws memdb.WatchSet, sn structs.Se
 func linkedFromRegistrationTxn(tx ReadTxn, ws memdb.WatchSet, service structs.ServiceName, downstreams bool) (uint64, []structs.ServiceName, error) {
 	// To fetch upstreams we query services that have the input listed as a downstream
 	// To fetch downstreams we query services that have the input listed as an upstream
-	index := "downstream"
+	index := indexDownstream
 	if downstreams {
-		index = "upstream"
+		index = indexUpstream
 	}
 
 	iter, err := tx.Get(tableMeshTopology, index, service)
@@ -3053,7 +3053,7 @@ func updateMeshTopology(tx WriteTxn, idx uint64, node string, svc *structs.NodeS
 		upstreamMeta := structs.NewEnterpriseMeta(u.DestinationNamespace)
 		upstream := structs.NewServiceName(u.DestinationName, &upstreamMeta)
 
-		obj, err := tx.First(tableMeshTopology, "id", upstream, downstream)
+		obj, err := tx.First(tableMeshTopology, indexID, upstream, downstream)
 		if err != nil {
 			return fmt.Errorf("%q lookup failed: %v", tableMeshTopology, err)
 		}
@@ -3097,7 +3097,7 @@ func updateMeshTopology(tx WriteTxn, idx uint64, node string, svc *structs.NodeS
 
 	for u := range oldUpstreams {
 		if !inserted[u] {
-			if _, err := tx.DeleteAll(tableMeshTopology, "id", u, downstream); err != nil {
+			if _, err := tx.DeleteAll(tableMeshTopology, indexID, u, downstream); err != nil {
 				return fmt.Errorf("failed to truncate %s table: %v", tableMeshTopology, err)
 			}
 			if err := indexUpdateMaxTxn(tx, idx, tableMeshTopology); err != nil {
@@ -3119,7 +3119,7 @@ func cleanupMeshTopology(tx WriteTxn, idx uint64, service *structs.ServiceNode) 
 	sid := service.CompoundServiceID()
 	uid := structs.UniqueID(service.Node, sid.String())
 
-	iter, err := tx.Get(tableMeshTopology, "downstream", sn)
+	iter, err := tx.Get(tableMeshTopology, indexDownstream, sn)
 	if err != nil {
 		return fmt.Errorf("%q lookup failed: %v", tableMeshTopology, err)
 	}
@@ -3190,7 +3190,7 @@ func deleteGatewayServiceTopologyMapping(tx WriteTxn, idx uint64, gs *structs.Ga
 		return nil
 	}
 
-	if _, err := tx.DeleteAll(tableMeshTopology, "id", gs.Service, gs.Gateway); err != nil {
+	if _, err := tx.DeleteAll(tableMeshTopology, indexID, gs.Service, gs.Gateway); err != nil {
 		return fmt.Errorf("failed to truncate %s table: %v", tableMeshTopology, err)
 	}
 	if err := indexUpdateMaxTxn(tx, idx, tableMeshTopology); err != nil {
@@ -3206,7 +3206,7 @@ func truncateGatewayServiceTopologyMappings(tx WriteTxn, idx uint64, gateway str
 		return nil
 	}
 
-	if _, err := tx.DeleteAll(tableMeshTopology, "downstream", gateway); err != nil {
+	if _, err := tx.DeleteAll(tableMeshTopology, indexDownstream, gateway); err != nil {
 		return fmt.Errorf("failed to truncate %s table: %v", tableMeshTopology, err)
 	}
 	if err := indexUpdateMaxTxn(tx, idx, tableMeshTopology); err != nil {
