@@ -33,7 +33,7 @@ ${
           BoundAudiences: ["aud_example_0", "aud_example_1"],
           OIDCScopes: ["scope_01", "scope_02", "scope_03"],
           JWTSupportedAlgs: ["RS256", "RS257"],
-          VerboseOIDCLogging: false,
+          VerboseOIDCLogging: true,
           AllowedRedirectURIs: ["http://example.com/example-1", "http://example.com/example-2", "http://example.com/example-3"],
           ClaimMappings: claimMappings,
           ListClaimMappings: listClaimMappings

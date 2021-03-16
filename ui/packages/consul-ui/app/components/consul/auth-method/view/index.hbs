@@ -18,10 +18,9 @@
       </dd>
       {{/if}}
       {{#if @item.Config.CACert}}
-      <dt class="cert">CA Cert</dt>
+      <dt>CA Cert</dt>
       <dd>
-        <pre><code>{{@item.Config.CACert}}</code></pre>
-        <CopyButton @value={{@item.Config.CACert}} @name="CA Cert" />
+        <Certificate @item={{@item.Config.CACert}} @name={{t 'models.auth-method.Config.CACert'}} />
       </dd>
       {{/if}}
       {{#if @item.Config.ServiceAccountJWT}}
@@ -42,44 +41,42 @@
 
       {{#each (array "MaxTokenTTL" "TokenLocality" "DisplayName" "Description") as |value|}}
         {{#if (get @item value)}}
-        <dt>{{t (concat "components.consul.auth-method.definition-list." value)}}</dt>
+        <dt>{{t (concat "models.auth-method." value)}}</dt>
         <dd>{{get @item value}}</dd>
         {{/if}}
       {{/each}}
 
       {{#if (eq @item.Type 'jwt')}}
         {{#if @item.Config.JWKSURL}}
-        <dt>JWKS URL</dt>
+        <dt>{{t 'models.auth-method.Config.JWKSURL'}}</dt>
         <dd>
-          <CopyButton @value={{@item.Config.JWKSURL}} @name="JWKS URL" />
+          <CopyButton @value={{@item.Config.JWKSURL}} @name={{t 'models.auth-method.Config.JWKSURL'}} />
           <span>{{@item.Config.JWKSURL}}</span>
         </dd>
-        <dt class="cert">JWKS CA Cert</dt>
+        <dt>{{t 'models.auth-method.Config.JWKSCACert'}}</dt>
         <dd>
-          <pre><code>{{@item.Config.JWKSCACert}}</code></pre>
-          <CopyButton @value={{@item.Config.JWKSCACert}} @name="JWKS CA Cert" />
+          <Certificate @item={{@item.Config.JWKSCACert}} @name={{t 'models.auth-method.Config.JWKSCACert'}} />
         </dd>
         {{/if}}
         {{#if @item.Config.JWTValidationPubKeys}}
-        <dt class="cert">JWT validation pub keys</dt>
+        <dt>{{t 'models.auth-method.Config.JWTValidationPubKeys'}}</dt>
         <dd>
-          <pre><code>{{@item.Config.JWTValidationPubKeys}}</code></pre>
-          <CopyButton @value={{@item.Config.JWTValidationPubKeys}} @name="JWT Validation Pub Keys" />
+          <Certificate @item={{@item.Config.JWTValidationPubKeys}} @name={{t 'models.auth-method.Config.JWTValidationPubKeys'}} />
         </dd>
         {{/if}}
         {{#if @item.Config.OIDCDiscoveryURL}}
-        <dt>OIDC discovery URL</dt>
+        <dt>{{t 'models.auth-method.Config.OIDCDiscoveryURL'}}</dt>
         <dd>
-          <CopyButton @value={{@item.Config.OIDCDiscoveryURL}} @name="OIDC discovery URL" />
+          <CopyButton @value={{@item.Config.OIDCDiscoveryURL}} @name={{t 'models.auth-method.Config.OIDCDiscoveryURL'}} />
           <span>{{@item.Config.OIDCDiscoveryURL}}</span>
         </dd>
         {{/if}}
         {{#if @item.Config.JWTSupportedAlgs}}
-        <dt>JWT supported algorithms</dt>
-        <dd>{{@item.Config.JWTSupportedAlgs}}</dd>
+        <dt>{{t 'models.auth-method.Config.JWTSupportedAlgs'}}</dt>
+        <dd>{{join ', ' @item.Config.JWTSupportedAlgs}}</dd>
         {{/if}}
         {{#if @item.Config.BoundAudiences}}
-          <dt>Bound audiences</dt>
+          <dt>{{t 'models.auth-method.Config.BoundAudiences'}}</dt>
           <dd>
             <ul>
               {{#each @item.Config.BoundAudiences as |bond|}}
@@ -90,59 +87,36 @@
             </ul>
           </dd>
         {{/if}}
-        {{#if @item.Config.BoundIssuer}}
-        <dt>Bound issuer</dt>
-        <dd>{{@item.Config.BoundIssuer}}</dd>
-        {{/if}}
-        {{#if @item.Config.ExpirationLeeway}}
-        <dt>Expiration leeway</dt>
-        <dd>{{@item.Config.ExpirationLeeway}}</dd>
-        {{/if}}
-        {{#if @item.Config.NotBeforeLeeway}}
-        <dt>Not before leeway</dt>
-        <dd>{{@item.Config.NotBeforeLeeway}}</dd>
-        {{/if}}
-        {{#if @item.Config.ClockSkewLeeway}}
-        <dt>Clocks skew leeway</dt>
-        <dd>{{@item.Config.ClockSkewLeeway}}</dd>
-        {{/if}}
-        {{#if @item.Config.ExpirationLeeway}}
-        <dt>Expiration leeway</dt>
-        <dd>{{@item.Config.ExpirationLeeway}}</dd>
-        {{/if}}
-        {{#if @item.Config.NotBeforeLeeway}}
-        <dt>Not before leeway</dt>
-        <dd>{{@item.Config.NotBeforeLeeway}}</dd>
-        {{/if}}
-        {{#if @item.Config.ClockSkewLeeway}}
-        <dt>Clocks skew leeway</dt>
-        <dd>{{@item.Config.ClockSkewLeeway}}</dd>
-        {{/if}}
+        {{#each (array "BoundIssuer" "ExpirationLeeway" "NotBeforeLeeway" "ClockSkewLeeway") as |value|}}
+          {{#if (get @item.Config value)}}
+          <dt>{{t (concat "models.auth-method.Config." value)}}</dt>
+          <dd>{{get @item.Config value}}</dd>
+          {{/if}}
+        {{/each}}
       {{else if (eq @item.Type 'oidc')}}
         {{#if @item.Config.OIDCDiscoveryURL}}
-        <dt>Discovery URL</dt>
+        <dt>{{t 'models.auth-method.Config.OIDCDiscoveryURL'}}</dt>
         <dd>
-          <CopyButton @value={{@item.Config.OIDCDiscoveryURL}} @name="Discovery URL" />
+          <CopyButton @value={{@item.Config.OIDCDiscoveryURL}} @name={{t 'models.auth-method.Config.OIDCDiscoveryURL'}} />
           <span>{{@item.Config.OIDCDiscoveryURL}}</span>
         </dd>
         {{/if}}
         {{#if @item.Config.OIDCDiscoveryCACert}}
-        <dt class="cert">OIDC Cert</dt>
+        <dt>{{t 'models.auth-method.Config.OIDCDiscoveryCACert'}}</dt>
         <dd>
-          <pre><code>{{@item.Config.OIDCDiscoveryCACert}}</code></pre>
-          <CopyButton @value={{@item.Config.OIDCDiscoveryCACert}} @name="OIDC Cert" />
+          <Certificate @item={{@item.Config.OIDCDiscoveryCACert}} @name={{t 'models.auth-method.Config.OIDCDiscoveryCACert'}} />
         </dd>
         {{/if}}
         {{#if @item.Config.OIDCClientID}}
-          <dt>OIDC Client ID</dt>
+          <dt>{{t 'models.auth-method.Config.OIDCClientID'}}</dt>
           <dd>{{@item.Config.OIDCClientID}}</dd>
         {{/if}}
         {{#if @item.Config.OIDCClientSecret}}
-          <dt>Client Secret</dt>
+          <dt>{{t 'models.auth-method.Config.OIDCClientSecret'}}</dt>
           <dd>{{@item.Config.OIDCClientSecret}}</dd>
         {{/if}}
         {{#if @item.Config.AllowedRedirectURIs}}
-          <dt>Allowed redirect URIs</dt>
+          <dt>{{t 'models.auth-method.Config.AllowedRedirectURIs'}}</dt>
           <dd>
             <ul>
               {{#each @item.Config.AllowedRedirectURIs as |uri|}}
@@ -155,7 +129,7 @@
           </dd>
         {{/if}}
         {{#if @item.Config.BoundAudiences}}
-          <dt>Bound audiences</dt>
+          <dt>{{t 'models.auth-method.Config.BoundAudiences'}}</dt>
           <dd>
             <ul>
               {{#each @item.Config.BoundAudiences as |bond|}}
@@ -167,7 +141,7 @@
           </dd>
         {{/if}}
         {{#if @item.Config.OIDCScopes}}
-          <dt>OIDC scopes</dt>
+          <dt>{{t 'models.auth-method.Config.OIDCScopes'}}</dt>
           <dd>
             <ul>
               {{#each @item.Config.OIDCScopes as |scope|}}
@@ -179,12 +153,12 @@
           </dd>
         {{/if}}
         {{#if @item.Config.JWTSupportedAlgs}}
-        <dt>JWT supported algorithms</dt>
-        <dd>{{@item.Config.JWTSupportedAlgs}}</dd>
+        <dt>{{t 'models.auth-method.Config.JWTSupportedAlgs'}}</dt>
+        <dd>{{join ', ' @item.Config.JWTSupportedAlgs}}</dd>
         {{/if}}
         {{#if @item.Config.VerboseOIDCLogging}}
-        <dt>Verbose OIDC logging</dt>
-        <dd>{{@item.Config.VerboseOIDCLogging}}</dd>
+        <dt class="check">{{t 'models.auth-method.Config.VerboseOIDCLogging'}}</dt>
+        <dd><input type="checkbox" disabled="disabled" checked={{@item.Config.VerboseOIDCLogging}}></dd>
         {{/if}}
       {{/if}}
       </dl>
@@ -196,12 +170,22 @@
     <section class="claim-mappings">
       <h2>Claim Mappings</h2>
       <p>Use this if the claim you are capturing is singular. When mapped, the values can be any of a number, string, or boolean and will all be stringified when returned.</p>
-      <dl>
-      {{#each-in @item.Config.ClaimMappings as |key value|}}
-        <dt>{{key}}</dt>
-        <dd>{{value}}</dd>
-      {{/each-in}}
-      </dl>
+      <table>
+        <thead>
+          <tr>
+            <td>Key</td>
+            <td>Value</td>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each (entries @item.Config.ClaimMappings) as |entry|}}
+          <tr>
+            <td>{{get entry 0}}</td>
+            <td>{{get entry 1}}</td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
     </section>
     {{/if}}
 
@@ -211,16 +195,22 @@
     <section class="list-claim-mappings">
       <h2>List Claim Mappings</h2>
       <p>Use this if the claim you are capturing is list-like (such as groups). When mapped, the values can be any of a number, string, or boolean and will all be stringified when returned.</p>
-      <dl>
-      {{#each-in @item.Config.ListClaimMappings as |key value|}}
-        <dt>{{key}}</dt>
-        <dd>{{value}}</dd>
-      {{/each-in}}
-      {{#each-in @item.Config.ListClaimMappings as |key value|}}
-        <dt>{{key}}</dt>
-        <dd>{{value}}</dd>
-      {{/each-in}}
-      </dl>
+            <table>
+        <thead>
+          <tr>
+            <td>Key</td>
+            <td>Value</td>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each (entries @item.Config.ListClaimMappings) as |entry|}}
+          <tr>
+            <td>{{get entry 0}}</td>
+            <td>{{get entry 1}}</td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
     </section>
     {{/if}}
   {{/if}}
