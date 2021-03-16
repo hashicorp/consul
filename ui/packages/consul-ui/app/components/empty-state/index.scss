@@ -13,6 +13,6 @@
 %empty-state > ul > li > label > button {
   @extend %empty-state-anchor;
 }
-%empty-state label {
+%empty-state div > button {
   @extend %primary-button;
 }
