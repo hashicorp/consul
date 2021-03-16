@@ -178,6 +178,7 @@ export default [
           'connect-ca-provider',
           'ambassador',
           'health',
+          { category: 'observability', content: ['metrics'], name: "Observability" },
         ],
       },
       'service-sync',
@@ -194,11 +195,6 @@ export default [
         category: 'operations',
         name: 'Operations',
         content: ['uninstall', 'certificate-rotation', 'tls-on-existing-cluster'],
-      },
-      {
-        category: 'observability',
-        name: 'Observability',
-        content: ['metrics'],
       },
       {
         name: 'Troubleshoot',

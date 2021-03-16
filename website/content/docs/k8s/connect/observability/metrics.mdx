@@ -15,12 +15,11 @@ available are:
 * Consul agent metrics
 * Ingress, Terminating and Mesh Gateway metrics
 
-Service metrics can also be seen in the Consul UI Topology Visualization view. This section documents how to enable each of these.
+Specific sidecar proxy metrics can also be seen in the Consul UI Topology Visualization view. This section documents how to enable each of these.
 
--> **Note:** Metrics will be supported in Consul-helm >= `0.31.0` and consul-k8s >= `0.25.0`. However, enabling the [metrics
-*merging feature](#connect-service-and-sidecar-metrics-with-metrics-merging) with Helm value (`defaultEnableMerging`) or
-*annotation (`consul.hashicorp.com/enable-metrics-merging`) can only be used with Consul `1.10.0-alpha1` and above. The
-*other metrics configuration can still be used before Consul `1.10.0-alpha1`.
+-> **Note:** Metrics will be supported in Consul-helm >= `0.31.0` and consul-k8s >= `0.25.0`. However, enabling the [metrics merging feature](#connect-service-and-sidecar-metrics-with-metrics-merging) with Helm value (`defaultEnableMerging`) or
+annotation (`consul.hashicorp.com/enable-metrics-merging`) can only be used with Consul `1.10.0-alpha1` and above. The
+other metrics configuration can still be used before Consul `1.10.0-alpha1`.
 
 ## Connect Service and Sidecar Metrics with Metrics Merging
 
@@ -116,13 +115,17 @@ The diagram below illustrates how the UI displays service metrics for a sample a
 
 [![UI Topology View](/img/ui-topology.png)](/img/ui-topology.png)
 
-The topology view is configured under `ui.metrics`. This will enable the Consul UI to query the provider specified by `ui.metrics.provider` at the URL of the Prometheus server `ui.metrics.baseURL` to display
-service metrics. When `global.metrics.enabled` and `ui.enabled` are both set to true, the UI will display Prometheus metrics.
+The topology view is configured under `ui.metrics`. This will enable the Consul UI to query the provider specified by
+`ui.metrics.provider` at the URL of the Prometheus server `ui.metrics.baseURL` to display sidecar proxy metrics for the
+service. The UI will display some specific sidecar proxy Prometheus metrics when `ui.metrics.enabled` is `true` and
+`ui.enabled` is true. The value of `ui.metrics.enabled` defaults to `"-"` which means it will inherit from the value of
+`global.metrics.enabled.`
 
 ```yaml
 ui:
+  enabled: true
   metrics:
-    enabled: "-"
+    enabled: true # by default, this inherits from the value global.metrics.enabled
     provider: "prometheus"
     baseURL: http://prometheus-server
 ```
