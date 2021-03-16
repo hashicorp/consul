@@ -237,7 +237,7 @@ func (s *Restore) ACLPolicy(policy *structs.ACLPolicy) error {
 
 // ACLRoles is used when saving a snapshot
 func (s *Snapshot) ACLRoles() (memdb.ResultIterator, error) {
-	iter, err := s.tx.Get("acl-roles", "id")
+	iter, err := s.tx.Get(tableACLRoles, indexID)
 	if err != nil {
 		return nil, err
 	}
@@ -1440,7 +1440,7 @@ func (s *Store) ACLRoleBatchGet(ws memdb.WatchSet, ids []string) (uint64, struct
 		}
 	}
 
-	idx := maxIndexTxn(tx, "acl-roles")
+	idx := maxIndexTxn(tx, tableACLRoles)
 
 	return idx, roles, nil
 }

@@ -144,48 +144,48 @@ func (s *Store) ACLTokenUpsertValidateEnterprise(token *structs.ACLToken, existi
 
 func aclRoleInsert(tx *txn, role *structs.ACLRole) error {
 	// insert the role into memdb
-	if err := tx.Insert("acl-roles", role); err != nil {
+	if err := tx.Insert(tableACLRoles, role); err != nil {
 		return fmt.Errorf("failed inserting acl role: %v", err)
 	}
 
 	// update the overall acl-roles index
-	if err := indexUpdateMaxTxn(tx, role.ModifyIndex, "acl-roles"); err != nil {
+	if err := indexUpdateMaxTxn(tx, role.ModifyIndex, tableACLRoles); err != nil {
 		return fmt.Errorf("failed updating acl roles index: %v", err)
 	}
 	return nil
 }
 
 func aclRoleGetByID(tx ReadTxn, id string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
-	return tx.FirstWatch("acl-roles", "id", id)
+	return tx.FirstWatch(tableACLRoles, indexID, id)
 }
 
 func aclRoleGetByName(tx ReadTxn, name string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
-	return tx.FirstWatch("acl-roles", "name", name)
+	return tx.FirstWatch(tableACLRoles, indexName, name)
 }
 
 func aclRoleList(tx ReadTxn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get("acl-roles", "id")
+	return tx.Get(tableACLRoles, indexID)
 }
 
 func aclRoleListByPolicy(tx ReadTxn, policy string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get("acl-roles", "policies", policy)
+	return tx.Get(tableACLRoles, indexPolicies, policy)
 }
 
 func aclRoleDeleteWithRole(tx *txn, role *structs.ACLRole, idx uint64) error {
 	// remove the role
-	if err := tx.Delete("acl-roles", role); err != nil {
+	if err := tx.Delete(tableACLRoles, role); err != nil {
 		return fmt.Errorf("failed deleting acl role: %v", err)
 	}
 
 	// update the overall acl-roles index
-	if err := indexUpdateMaxTxn(tx, idx, "acl-roles"); err != nil {
+	if err := indexUpdateMaxTxn(tx, idx, tableACLRoles); err != nil {
 		return fmt.Errorf("failed updating acl policies index: %v", err)
 	}
 	return nil
 }
 
 func aclRoleMaxIndex(tx ReadTxn, _ *structs.ACLRole, _ *structs.EnterpriseMeta) uint64 {
-	return maxIndexTxn(tx, "acl-roles")
+	return maxIndexTxn(tx, tableACLRoles)
 }
 
 func aclRoleUpsertValidateEnterprise(tx *txn, role *structs.ACLRole, existing *structs.ACLRole) error {

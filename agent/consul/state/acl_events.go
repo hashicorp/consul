@@ -20,7 +20,7 @@ func aclChangeUnsubscribeEvent(tx ReadTxn, changes Changes) ([]stream.Event, err
 			token := changeObject(change).(*structs.ACLToken)
 			secretIDs = append(secretIDs, token.SecretID)
 
-		case "acl-roles":
+		case tableACLRoles:
 			role := changeObject(change).(*structs.ACLRole)
 			tokens, err := aclTokenListByRole(tx, role.ID, &role.EnterpriseMeta)
 			if err != nil {
