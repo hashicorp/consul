@@ -1,0 +1,35 @@
+# Route
+
+The `Route` component should be used for the top-level component for *every*
+route/page template. It provides/will provide functionality (along with the
+`<Outlet />` component) for setting and announcing the title of the page,
+passing data down through the route/template hierarchy, automatic
+orchestration of nested routing and visual animating/transitioning between
+routes.
+
+## Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `name` | `String` | `undefined` | The name of the route in ember routeName format e.g. `dc.services.index`. This is generally the `routeName` variable that is available to you in all Consul UI route/page level templates.|
+| `title` | `String` | `undefined` | The title for this page (eventually passed through to the `{{page-title}}` helper. This argument should be omitted if a title change isn't required. |
+| `titleSeparator` | `String` | `undefined` | This can be used in the top-level route to configure the separator for the `{{page-title}}` helper |
+
+## Exports
+
+| export | Type | Default | Description |
+| --- | --- | --- | --- |
+| `model` | `Object` | `undefined` | Arbitrary hash of data passed down from the parent route/outlet |
+
+```hbs
+<Route
+  @name={{routeName}}
+  @title="Page Title"
+  @titleSeparator=" - "
+as |route|>
+  {{route.model.dc.Name}}
+</Route>
+```
+
+Every page/route template has a `routeName` variable exposed specifically to
+allow you to use this to set the `@name` of the route.
