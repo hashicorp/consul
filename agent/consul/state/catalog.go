@@ -2092,7 +2092,7 @@ func (s *Store) GatewayServices(ws memdb.WatchSet, gateway string, entMeta *stru
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	iter, err := gatewayServices(tx, gateway, entMeta)
+	iter, err := tx.Get(tableGatewayServices, indexGateway, structs.NewServiceName(gateway, entMeta))
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed gateway services lookup: %s", err)
 	}
@@ -2386,7 +2386,7 @@ func updateGatewayServices(tx WriteTxn, idx uint64, conf structs.ConfigEntry, en
 	// Delete all associated with gateway first, to avoid keeping mappings that were removed
 	sn := structs.NewServiceName(conf.GetName(), entMeta)
 
-	if _, err := tx.DeleteAll(tableGatewayServices, "gateway", sn); err != nil {
+	if _, err := tx.DeleteAll(tableGatewayServices, indexGateway, sn); err != nil {
 		return fmt.Errorf("failed to truncate gateway services table: %v", err)
 	}
 	if err := truncateGatewayServiceTopologyMappings(tx, idx, sn, conf.GetKind()); err != nil {
@@ -2597,7 +2597,8 @@ func checkGatewayWildcardsAndUpdate(tx WriteTxn, idx uint64, svc *structs.NodeSe
 		return nil
 	}
 
-	svcGateways, err := serviceGateways(tx, structs.WildcardSpecifier, &svc.EnterpriseMeta)
+	sn := structs.ServiceName{Name: structs.WildcardSpecifier, EnterpriseMeta: svc.EnterpriseMeta}
+	svcGateways, err := tx.Get(tableGatewayServices, indexService, sn)
 	if err != nil {
 		return fmt.Errorf("failed gateway lookup for %q: %s", svc.Service, err)
 	}
@@ -2620,7 +2621,8 @@ func checkGatewayWildcardsAndUpdate(tx WriteTxn, idx uint64, svc *structs.NodeSe
 
 func cleanupGatewayWildcards(tx WriteTxn, idx uint64, svc *structs.ServiceNode) error {
 	// Clean up association between service name and gateways if needed
-	gateways, err := serviceGateways(tx, svc.ServiceName, &svc.EnterpriseMeta)
+	sn := structs.ServiceName{Name: svc.ServiceName, EnterpriseMeta: svc.EnterpriseMeta}
+	gateways, err := tx.Get(tableGatewayServices, indexService, sn)
 	if err != nil {
 		return fmt.Errorf("failed gateway lookup for %q: %s", svc.ServiceName, err)
 	}
@@ -2650,16 +2652,6 @@ func cleanupGatewayWildcards(tx WriteTxn, idx uint64, svc *structs.ServiceNode) 
 		}
 	}
 	return nil
-}
-
-// serviceGateways returns all GatewayService entries with the given service name. This effectively looks up
-// all the gateways mapped to this service.
-func serviceGateways(tx ReadTxn, name string, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get(tableGatewayServices, "service", structs.NewServiceName(name, entMeta))
-}
-
-func gatewayServices(tx ReadTxn, name string, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get(tableGatewayServices, "gateway", structs.NewServiceName(name, entMeta))
 }
 
 func (s *Store) DumpGatewayServices(ws memdb.WatchSet) (uint64, structs.GatewayServices, error) {
@@ -2709,7 +2701,7 @@ func (s *Store) collectGatewayServices(tx ReadTxn, ws memdb.WatchSet, iter memdb
 // We might need something like the service_last_extinction index?
 func serviceGatewayNodes(tx ReadTxn, ws memdb.WatchSet, service string, kind structs.ServiceKind, entMeta *structs.EnterpriseMeta) (uint64, structs.ServiceNodes, error) {
 	// Look up gateway name associated with the service
-	gws, err := serviceGateways(tx, service, entMeta)
+	gws, err := tx.Get(tableGatewayServices, indexService, structs.NewServiceName(service, entMeta))
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed gateway lookup: %s", err)
 	}
