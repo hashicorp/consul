@@ -983,7 +983,7 @@ func (s *Store) IntentionTopology(ws memdb.WatchSet,
 		}
 	}
 
-	index, allServices, err := s.ServiceList(ws, func(svc *structs.ServiceNode) bool {
+	index, allServices, err := serviceListTxn(tx, ws, func(svc *structs.ServiceNode) bool {
 		// Only include ingress gateways as downstreams, since they cannot receive service mesh traffic
 		// TODO(freddy): One remaining issue is that this includes non-Connect services (typical services without a proxy)
 		//				 Ideally those should be excluded as well, since they can't be upstreams/downstreams without a proxy.
