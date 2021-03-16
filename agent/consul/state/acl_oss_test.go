@@ -23,7 +23,7 @@ func testIndexerTableACLPolicies() map[string]indexerTestCase {
 		},
 		indexName: {
 			read: indexValue{
-				source:   []interface{}{"PolicyName"},
+				source:   Query{Value: "PolicyName"},
 				expected: []byte("policyname\x00"),
 			},
 			write: indexValue{

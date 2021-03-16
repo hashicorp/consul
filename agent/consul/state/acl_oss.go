@@ -4,6 +4,7 @@ package state
 
 import (
 	"fmt"
+	"strings"
 
 	memdb "github.com/hashicorp/go-memdb"
 
@@ -22,16 +23,23 @@ func aclPolicyInsert(tx *txn, policy *structs.ACLPolicy) error {
 	return nil
 }
 
+func indexNameFromACLPolicy(raw interface{}) ([]byte, error) {
+	p, ok := raw.(*structs.ACLPolicy)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.ACLPolicy index", raw)
+	}
+
+	if p.Name == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(p.Name))
+	return b.Bytes(), nil
+}
+
 func aclPolicyGetByID(tx ReadTxn, id string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
 	return tx.FirstWatch(tableACLPolicies, indexID, id)
-}
-
-func aclPolicyGetByName(tx ReadTxn, name string, _ *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
-	return tx.FirstWatch(tableACLPolicies, indexName, name)
-}
-
-func aclPolicyList(tx ReadTxn, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get(tableACLPolicies, indexID)
 }
 
 func aclPolicyDeleteWithPolicy(tx *txn, policy *structs.ACLPolicy, idx uint64) error {
