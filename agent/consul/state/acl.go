@@ -228,7 +228,7 @@ func (s *Restore) ACLToken(token *structs.ACLToken) error {
 
 // ACLPolicies is used when saving a snapshot
 func (s *Snapshot) ACLPolicies() (memdb.ResultIterator, error) {
-	iter, err := s.tx.Get("acl-policies", "id")
+	iter, err := s.tx.Get(tableACLPolicies, indexID)
 	if err != nil {
 		return nil, err
 	}
@@ -1212,8 +1212,8 @@ func (s *Store) ACLPolicyBatchGet(ws memdb.WatchSet, ids []string) (uint64, stru
 	}
 
 	// We are specifically not wanting to call aclPolicyMaxIndex here as we always want the
-	// index entry for the "acl-policies" table.
-	idx := maxIndexTxn(tx, "acl-policies")
+	// index entry for the tableACLPolicies table.
+	idx := maxIndexTxn(tx, tableACLPolicies)
 
 	return idx, policies, nil
 }
