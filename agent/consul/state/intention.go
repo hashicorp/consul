@@ -943,29 +943,21 @@ func (s *Store) IntentionTopology(ws memdb.WatchSet,
 
 	// If querying the upstreams for a service, we first query intentions that apply to the target service as a source.
 	// That way we can check whether intentions from the source allow connections to upstream candidates.
-	matchType := structs.IntentionMatchSource
+	// The reverse is true for downstreams.
+	intentionMatchType := structs.IntentionMatchSource
 	if downstreams {
-		matchType = structs.IntentionMatchDestination
+		intentionMatchType = structs.IntentionMatchDestination
 	}
 	entry := structs.IntentionMatchEntry{
 		Namespace: target.NamespaceOrDefault(),
 		Name:      target.Name,
 	}
-	index, intentions, err := compatIntentionMatchOneTxn(tx, ws, entry, matchType)
+	index, intentions, err := compatIntentionMatchOneTxn(tx, ws, entry, intentionMatchType)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to query intentions for %s", target.String())
 	}
 	if index > maxIdx {
 		maxIdx = index
-	}
-
-	// Reset the matchType since next it is used for evaluating the upstreams or downstreams against a set of intentions.
-	// When evaluating upstreams, the match type is now destination because we are evaluating upstream candidates
-	// as eligible destinations for intentions that have the target service as a source.
-	// The reverse is true for downstreams.
-	matchType = structs.IntentionMatchDestination
-	if downstreams {
-		matchType = structs.IntentionMatchSource
 	}
 
 	// Check for a wildcard intention (* -> *) since it overrides the default decision from ACLs
@@ -1000,9 +992,16 @@ func (s *Store) IntentionTopology(ws memdb.WatchSet,
 		maxIdx = index
 	}
 
+	// When checking authorization to upstreams, the match type for the decision is `destination` because we are deciding
+	// if upstream candidates are covered by intentions that have the target service as a source.
+	// The reverse is true for downstreams.
+	decisionMatchType := structs.IntentionMatchDestination
+	if downstreams {
+		decisionMatchType = structs.IntentionMatchSource
+	}
 	result := make(structs.ServiceList, 0, len(allServices))
 	for _, candidate := range allServices {
-		decision, err := s.IntentionDecision(candidate.Name, candidate.NamespaceOrDefault(), intentions, matchType, defaultDecision, true)
+		decision, err := s.IntentionDecision(candidate.Name, candidate.NamespaceOrDefault(), intentions, decisionMatchType, defaultDecision, true)
 		if err != nil {
 			src, dst := target, candidate
 			if downstreams {
