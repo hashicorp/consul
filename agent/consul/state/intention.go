@@ -760,8 +760,8 @@ func (s *Store) IntentionDecision(
 	// Intention found, combine action + permissions
 	resp.Allowed = ixnMatch.Action == structs.IntentionActionAllow
 	if len(ixnMatch.Permissions) > 0 {
-		// If there are L7 permissions, DENY.
-		// We are only evaluating source and destination, not the request that will be sent.
+		// If any permissions are present, fall back to allowPermissions.
+		// We are not evaluating requests so we cannot know whether the L7 permission requirements will be met.
 		resp.Allowed = allowPermissions
 		resp.HasPermissions = true
 	}
@@ -836,6 +836,16 @@ func (s *Store) IntentionMatchOne(
 ) (uint64, structs.Intentions, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
+
+	return compatIntentionMatchOneTxn(tx, ws, entry, matchType)
+}
+
+func compatIntentionMatchOneTxn(
+	tx ReadTxn,
+	ws memdb.WatchSet,
+	entry structs.IntentionMatchEntry,
+	matchType structs.IntentionMatchType,
+) (uint64, structs.Intentions, error) {
 
 	usingConfigEntries, err := areIntentionsInConfigEntries(tx, ws)
 	if err != nil {
@@ -926,6 +936,9 @@ func intentionMatchGetParams(entry structs.IntentionMatchEntry) ([][]interface{}
 // an upstream of the target.
 func (s *Store) IntentionTopology(ws memdb.WatchSet,
 	target structs.ServiceName, downstreams bool, defaultDecision acl.EnforcementDecision) (uint64, structs.ServiceList, error) {
+	tx := s.db.ReadTxn()
+	defer tx.Abort()
+
 	var maxIdx uint64
 
 	// If querying the upstreams for a service, we first query intentions that apply to the target service as a source.
@@ -938,7 +951,7 @@ func (s *Store) IntentionTopology(ws memdb.WatchSet,
 		Namespace: target.NamespaceOrDefault(),
 		Name:      target.Name,
 	}
-	index, intentions, err := s.IntentionMatchOne(ws, entry, matchType)
+	index, intentions, err := compatIntentionMatchOneTxn(tx, ws, entry, matchType)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to query intentions for %s", target.String())
 	}

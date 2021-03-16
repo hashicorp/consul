@@ -2869,12 +2869,12 @@ func (s *Store) ServiceTopology(
 		Name:      service,
 	}
 	// The given service is a source relative to its upstreams
-	_, intentions, err := s.IntentionMatchOne(ws, matchEntry, structs.IntentionMatchSource)
+	_, srcIntentions, err := compatIntentionMatchOneTxn(tx, ws, matchEntry, structs.IntentionMatchSource)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to query intentions for %s", sn.String())
 	}
 	for _, un := range upstreamNames {
-		decision, err := s.IntentionDecision(un.Name, un.NamespaceOrDefault(), intentions, structs.IntentionMatchDestination, defaultAllow, false)
+		decision, err := s.IntentionDecision(un.Name, un.NamespaceOrDefault(), srcIntentions, structs.IntentionMatchDestination, defaultAllow, false)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed to get intention decision from (%s) to (%s): %v",
 				sn.String(), un.String(), err)
@@ -2898,13 +2898,13 @@ func (s *Store) ServiceTopology(
 	}
 
 	// The given service is a destination relative to its downstreams
-	_, intentions, err = s.IntentionMatchOne(ws, matchEntry, structs.IntentionMatchDestination)
+	_, dstIntentions, err := compatIntentionMatchOneTxn(tx, ws, matchEntry, structs.IntentionMatchDestination)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed to query intentions for %s", sn.String())
 	}
 	downstreamDecisions := make(map[string]structs.IntentionDecisionSummary)
 	for _, dn := range downstreamNames {
-		decision, err := s.IntentionDecision(dn.Name, dn.NamespaceOrDefault(), intentions, structs.IntentionMatchSource, defaultAllow, false)
+		decision, err := s.IntentionDecision(dn.Name, dn.NamespaceOrDefault(), dstIntentions, structs.IntentionMatchSource, defaultAllow, false)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed to get intention decision from (%s) to (%s): %v",
 				dn.String(), sn.String(), err)
