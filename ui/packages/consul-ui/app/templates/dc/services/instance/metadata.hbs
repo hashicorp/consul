@@ -1,30 +1,34 @@
-<div class="tab-section">
-    <section class="tags">
-      <h2>Tags</h2>
-    {{#if (gt item.Tags.length 0) }}
-      <TagList @item={{item}} />
-    {{else}}
-      <EmptyState>
-        <BlockSlot @name="body">
-          <p>
-            There are no tags.
-          </p>
-        </BlockSlot>
-      </EmptyState>
-    {{/if}}
-    </section>
-    <section class="metadata">
-      <h2>Meta</h2>
-    {{#if item.Meta}}
-      <Consul::Metadata::List @items={{entries item.Meta}} />
-    {{else}}
-      <EmptyState>
-        <BlockSlot @name="body">
-          <p>
-            This instance has no metadata.
-          </p>
-        </BlockSlot>
-      </EmptyState>
-    {{/if}}
-    </section>
-</div>
+<Route
+  @name={{routeName}}
+as |route|>
+  <div class="tab-section">
+      <section class="tags">
+        <h2>Tags</h2>
+      {{#if (gt item.Tags.length 0) }}
+        <TagList @item={{item}} />
+      {{else}}
+        <EmptyState>
+          <BlockSlot @name="body">
+            <p>
+              There are no tags.
+            </p>
+          </BlockSlot>
+        </EmptyState>
+      {{/if}}
+      </section>
+      <section class="metadata">
+        <h2>Meta</h2>
+      {{#if item.Meta}}
+        <Consul::Metadata::List @items={{entries item.Meta}} />
+      {{else}}
+        <EmptyState>
+          <BlockSlot @name="body">
+            <p>
+              This instance has no metadata.
+            </p>
+          </BlockSlot>
+        </EmptyState>
+      {{/if}}
+      </section>
+  </div>
+</Route>

@@ -1,15 +1,19 @@
-<div class="tab-section">
-{{#let (flatten (map-by "Tags" items)) as |tags|}}
-  {{#if (gt tags.length 0) }}
-      <TagList @item={{hash Tags=tags}} />
-  {{else}}
-      <EmptyState>
-        <BlockSlot @name="body">
-          <p>
-            There are no tags.
-          </p>
-        </BlockSlot>
-      </EmptyState>
-  {{/if}}
-{{/let}}
-</div>
+<Route
+  @name={{routeName}}
+as |route|>
+  <div class="tab-section">
+  {{#let (flatten (map-by "Tags" items)) as |tags|}}
+    {{#if (gt tags.length 0) }}
+        <TagList @item={{hash Tags=tags}} />
+    {{else}}
+        <EmptyState>
+          <BlockSlot @name="body">
+            <p>
+              There are no tags.
+            </p>
+          </BlockSlot>
+        </EmptyState>
+    {{/if}}
+  {{/let}}
+  </div>
+</Route>

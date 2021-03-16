@@ -1,33 +1,33 @@
-{{#if create }}
-  {{page-title 'New Namespace'}}
-{{else}}
-  {{page-title 'Edit Namespace'}}
-{{/if}}
-<AppView>
-  <BlockSlot @name="notification" as |status type item error|>
-    <Consul::Nspace::Notifications
-      @type={{type}}
-      @status={{status}}
-      @error={{error}}
-    />
-  </BlockSlot>
-  <BlockSlot @name="breadcrumbs">
-    <ol>
-        <li><a data-test-back href={{href-to 'dc.nspaces'}}>All Namespaces</a></li>
-    </ol>
-  </BlockSlot>
-  <BlockSlot @name="header">
-    <h1>
-{{#if create }}
-      New Namespace
-{{else}}
-      Edit {{item.Name}}
-{{/if}}
-    </h1>
-  </BlockSlot>
-  <BlockSlot @name="actions">
-  </BlockSlot>
-  <BlockSlot @name="content">
-    {{ partial 'dc/nspaces/form'}}
-  </BlockSlot>
-</AppView>
+<Route
+  @name={{routeName}}
+  @title={{if create 'New Namespace' 'Edit Namespace'}}
+as |route|>
+  <AppView>
+    <BlockSlot @name="notification" as |status type item error|>
+      <Consul::Nspace::Notifications
+        @type={{type}}
+        @status={{status}}
+        @error={{error}}
+      />
+    </BlockSlot>
+    <BlockSlot @name="breadcrumbs">
+      <ol>
+          <li><a data-test-back href={{href-to 'dc.nspaces'}}>All Namespaces</a></li>
+      </ol>
+    </BlockSlot>
+    <BlockSlot @name="header">
+      <h1>
+  {{#if create }}
+        New Namespace
+  {{else}}
+        Edit {{item.Name}}
+  {{/if}}
+      </h1>
+    </BlockSlot>
+    <BlockSlot @name="actions">
+    </BlockSlot>
+    <BlockSlot @name="content">
+      {{ partial 'dc/nspaces/form'}}
+    </BlockSlot>
+  </AppView>
+</Route>

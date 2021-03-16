@@ -1,4 +1,7 @@
-{{page-title 'Key/Value'}}
+<Route
+  @name={{routeName}}
+  @title="Key/Value"
+as |route|>
 {{#let
 
   (hash
@@ -81,7 +84,9 @@ as |sort filters items|}}
                 />
               </collection.Collection>
               <collection.Empty>
-                <EmptyState @allowLogin={{true}}>
+                <EmptyState
+                  @login={{route.model.app.login.open}}
+                >
                   <BlockSlot @name="header">
                     <h2>
                       {{#if (gt items.length 0)}}
@@ -116,3 +121,4 @@ as |sort filters items|}}
       </BlockSlot>
     </AppView>
 {{/let}}
+</Route>

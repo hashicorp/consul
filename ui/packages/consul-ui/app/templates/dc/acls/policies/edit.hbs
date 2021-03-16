@@ -1,61 +1,58 @@
-{{#if isAuthorized }}
-  {{#if create }}
-      {{page-title 'New Policy'}}
-  {{else}}
-      {{page-title 'Edit Policy'}}
-  {{/if}}
-{{else}}
-  {{page-title 'Access Controls'}}
-{{/if}}
-<AppView
-  @authorized={{isAuthorized}}
-  @enabled={{isEnabled}}
-  >
-    <BlockSlot @name="notification" as |status type item error|>
-      <Consul::Policy::Notifications
-        @type={{type}}
-        @status={{status}}
-        @item={{item}}
-        @error={{error}}
-      />
-    </BlockSlot>
-    <BlockSlot @name="breadcrumbs">
-        <ol>
-            <li><a data-test-back href={{href-to 'dc.acls.policies'}}>All Policies</a></li>
-        </ol>
-    </BlockSlot>
-    <BlockSlot @name="header">
-        <h1>
-{{#if isAuthorized }}
-  {{#if create }}
-          New Policy
-  {{else}}
-    {{#if (can "write policy" item=item)}}
-          Edit Policy
+<Route
+  @name={{routeName}}
+  @title={{if isAuthorized (if create 'New Policy' 'Edit Policy') 'Access Controls'}}
+as |route|>
+  <AppView
+    @authorized={{isAuthorized}}
+    @enabled={{isEnabled}}
+    @login={{route.model.app.login.open}}
+    >
+      <BlockSlot @name="notification" as |status type item error|>
+        <Consul::Policy::Notifications
+          @type={{type}}
+          @status={{status}}
+          @item={{item}}
+          @error={{error}}
+        />
+      </BlockSlot>
+      <BlockSlot @name="breadcrumbs">
+          <ol>
+              <li><a data-test-back href={{href-to 'dc.acls.policies'}}>All Policies</a></li>
+          </ol>
+      </BlockSlot>
+      <BlockSlot @name="header">
+          <h1>
+  {{#if isAuthorized }}
+    {{#if create }}
+            New Policy
     {{else}}
-          View Policy
+      {{#if (can "write policy" item=item)}}
+            Edit Policy
+      {{else}}
+            View Policy
+      {{/if}}
     {{/if}}
+  {{else}}
+              Access Controls
   {{/if}}
-{{else}}
-            Access Controls
-{{/if}}
-        </h1>
-    </BlockSlot>
-    <BlockSlot @name="content">
-{{#if (not create) }}
-      <div class="definition-table">
-          <dl>
-            <dt>Policy ID</dt>
-            <dd>
-              <CopyButton @value={{item.ID}} @name="Policy ID" @position="top-start" /> {{item.ID}}
-            </dd>
-          </dl>
-      </div>
-{{/if}}
-{{#if (eq (policy/typeof item) 'policy-management')}}
-      {{ partial 'dc/acls/policies/view'}}
-{{else}}
-      {{ partial 'dc/acls/policies/form'}}
-{{/if}}
-    </BlockSlot>
-</AppView>
+          </h1>
+      </BlockSlot>
+      <BlockSlot @name="content">
+  {{#if (not create) }}
+        <div class="definition-table">
+            <dl>
+              <dt>Policy ID</dt>
+              <dd>
+                <CopyButton @value={{item.ID}} @name="Policy ID" @position="top-start" /> {{item.ID}}
+              </dd>
+            </dl>
+        </div>
+  {{/if}}
+  {{#if (eq (policy/typeof item) 'policy-management')}}
+        {{ partial 'dc/acls/policies/view'}}
+  {{else}}
+        {{ partial 'dc/acls/policies/form'}}
+  {{/if}}
+      </BlockSlot>
+  </AppView>
+</Route>

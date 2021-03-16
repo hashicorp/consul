@@ -1,7 +1,10 @@
-<EventSource @src={{chain}} />
-<div class="tab-section">
-  <Consul::DiscoveryChain
-    @chain={{chain.Chain}}
-  />
-</div>
-
+<Route
+  @name={{routeName}}
+as |route|>
+  <EventSource @src={{chain}} />
+  <div class="tab-section">
+    <Consul::DiscoveryChain
+      @chain={{chain.Chain}}
+    />
+  </div>
+</Route>

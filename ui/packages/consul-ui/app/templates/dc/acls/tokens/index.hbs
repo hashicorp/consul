@@ -1,122 +1,124 @@
-{{#if isAuthorized }}
-  {{page-title 'Tokens'}}
-{{else}}
-  {{page-title 'Access Controls'}}
-{{/if}}
+<Route
+  @name={{routeName}}
+  @title="Tokens"
+as |route|>
+  {{#let
 
-{{#let
-
-  (hash
-    value=(or sortBy "CreateTime:desc")
-    change=(action (mut sortBy) value="target.selected")
-  )
-
-  (hash
-    kind=(hash
-      value=(if kind (split kind ',') undefined)
-      change=(action (mut kind) value="target.selectedItems")
+    (hash
+      value=(or sortBy "CreateTime:desc")
+      change=(action (mut sortBy) value="target.selected")
     )
-    searchproperty=(hash
-      value=(if (not-eq searchproperty undefined)
-        (split searchproperty ',')
-        searchProperties
+
+    (hash
+      kind=(hash
+        value=(if kind (split kind ',') undefined)
+        change=(action (mut kind) value="target.selectedItems")
       )
-      change=(action (mut searchproperty) value="target.selectedItems")
-      default=searchProperties
+      searchproperty=(hash
+        value=(if (not-eq searchproperty undefined)
+          (split searchproperty ',')
+          searchProperties
+        )
+        change=(action (mut searchproperty) value="target.selectedItems")
+        default=searchProperties
+      )
     )
-  )
 
-  items
+    items
 
-as |sort filters items|}}
+  as |sort filters items|}}
 
-  <AppView
-    @authorized={{isAuthorized}}
-    @enabled={{isEnabled}}
-    >
-    <BlockSlot @name="notification" as |status type item error|>
-      <Consul::Token::Notifications
-        @type={{type}}
-        @status={{status}}
-        @item={{item}}
-        @error={{error}}
-      />
-    </BlockSlot>
-    <BlockSlot @name="header">
-      <h1>
-        Tokens
-      </h1>
-    </BlockSlot>
-    <BlockSlot @name="actions">
-{{#if (can "create tokens")}}
-        <a data-test-create href="{{href-to 'dc.acls.tokens.create'}}" class="type-create">Create</a>
-{{/if}}
-    </BlockSlot>
-    <BlockSlot @name="toolbar">
-  {{#if (gt items.length 0)}}
-      <Consul::Token::SearchBar
-        @search={{search}}
-        @onsearch={{action (mut search) value="target.value"}}
-
-        @sort={{sort}}
-
-        @filter={{filters}}
-      />
+    <AppView
+      @authorized={{isAuthorized}}
+      @enabled={{isEnabled}}
+      @login={{route.model.app.login.open}}
+      >
+      <BlockSlot @name="notification" as |status type item error|>
+        <Consul::Token::Notifications
+          @type={{type}}
+          @status={{status}}
+          @item={{item}}
+          @error={{error}}
+        />
+      </BlockSlot>
+      <BlockSlot @name="header">
+        <h1>
+          Tokens
+        </h1>
+      </BlockSlot>
+      <BlockSlot @name="actions">
+  {{#if (can "create tokens")}}
+          <a data-test-create href="{{href-to 'dc.acls.tokens.create'}}" class="type-create">Create</a>
   {{/if}}
-    </BlockSlot>
-    <BlockSlot @name="content">
-  {{#if (token/is-legacy items)}}
-      <Notice
-        @type="info"
-      as |notice|>
-        <notice.Header>
-          <h2>Update</h2>
-        </notice.Header>
-        <notice.Body>
-          <p data-test-notification-update>We have upgraded our ACL System to allow the creation of reusable policies that can be applied to tokens. Read more about the changes and how to upgrade legacy tokens in our <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl-migrate-tokens.html" target="_blank" rel="noopener noreferrer">documentation</a>.</p>
-        </notice.Body>
-      </Notice>
-  {{/if}}
-      <DataCollection
-        @type="token"
-        @sort={{sort.value}}
-        @filters={{filters}}
-        @search={{search}}
-        @items={{items}}
-      as |collection|>
-        <collection.Collection>
-          <Consul::Token::List
-            @items={{collection.items}}
-            @token={{token}}
-            @onuse={{route-action 'use'}}
-            @ondelete={{route-action 'delete'}}
-            @onlogout={{route-action 'logout'}}
-            @onclone={{route-action 'clone'}}
-          />
-        </collection.Collection>
-        <collection.Empty>
-          <EmptyState @allowLogin={{true}}>
-            <BlockSlot @name="header">
-              <h2>
-                {{#if (gt items.length 0)}}
-                  No tokens found
-                {{else}}
-                  Welcome to ACL Tokens
-                {{/if}}
-              </h2>
-            </BlockSlot>
-            <BlockSlot @name="body">
-              <p>
-                {{#if (gt items.length 0)}}
-                  No tokens where found matching that search, or you may not have access to view the tokens you are searching for.
-                {{else}}
-                  There don't seem to be any tokens, or you may not have access to view tokens yet.
-                {{/if}}
-              </p>
-            </BlockSlot>
-          </EmptyState>
-        </collection.Empty>
-      </DataCollection>
-    </BlockSlot>
-  </AppView>
-{{/let}}
+      </BlockSlot>
+      <BlockSlot @name="toolbar">
+    {{#if (gt items.length 0)}}
+        <Consul::Token::SearchBar
+          @search={{search}}
+          @onsearch={{action (mut search) value="target.value"}}
+
+          @sort={{sort}}
+
+          @filter={{filters}}
+        />
+    {{/if}}
+      </BlockSlot>
+      <BlockSlot @name="content">
+    {{#if (token/is-legacy items)}}
+        <Notice
+          @type="info"
+        as |notice|>
+          <notice.Header>
+            <h2>Update</h2>
+          </notice.Header>
+          <notice.Body>
+            <p data-test-notification-update>We have upgraded our ACL System to allow the creation of reusable policies that can be applied to tokens. Read more about the changes and how to upgrade legacy tokens in our <a href="{{env 'CONSUL_DOCS_URL'}}/guides/acl-migrate-tokens.html" target="_blank" rel="noopener noreferrer">documentation</a>.</p>
+          </notice.Body>
+        </Notice>
+    {{/if}}
+        <DataCollection
+          @type="token"
+          @sort={{sort.value}}
+          @filters={{filters}}
+          @search={{search}}
+          @items={{items}}
+        as |collection|>
+          <collection.Collection>
+            <Consul::Token::List
+              @items={{collection.items}}
+              @token={{token}}
+              @onuse={{route-action 'use'}}
+              @ondelete={{route-action 'delete'}}
+              @onlogout={{route-action 'logout'}}
+              @onclone={{route-action 'clone'}}
+            />
+          </collection.Collection>
+          <collection.Empty>
+            <EmptyState
+              @login={{route.model.app.login.open}}
+            >
+              <BlockSlot @name="header">
+                <h2>
+                  {{#if (gt items.length 0)}}
+                    No tokens found
+                  {{else}}
+                    Welcome to ACL Tokens
+                  {{/if}}
+                </h2>
+              </BlockSlot>
+              <BlockSlot @name="body">
+                <p>
+                  {{#if (gt items.length 0)}}
+                    No tokens where found matching that search, or you may not have access to view the tokens you are searching for.
+                  {{else}}
+                    There don't seem to be any tokens, or you may not have access to view tokens yet.
+                  {{/if}}
+                </p>
+              </BlockSlot>
+            </EmptyState>
+          </collection.Empty>
+        </DataCollection>
+      </BlockSlot>
+    </AppView>
+  {{/let}}
+</Route>

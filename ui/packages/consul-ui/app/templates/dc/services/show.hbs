@@ -1,8 +1,8 @@
+{{#let items.firstObject as |item|}}
 <Route
   @name={{routeName}}
+  @title={{item.Service.Service}}
 as |route|>
-  {{#let items.firstObject as |item|}}
-  {{page-title item.Service.Service}}
     <DataLoader as |loader|>
 
       <BlockSlot @name="data">
@@ -14,7 +14,10 @@ as |route|>
       </BlockSlot>
 
       <BlockSlot @name="error">
-        <AppError @error={{loader.error}} />
+        <AppError
+          @error={{loader.error}}
+          @login={{route.model.app.login.open}}
+        />
       </BlockSlot>
 
       <BlockSlot @name="disconnected" as |Notification|>
@@ -107,6 +110,7 @@ as |route|>
           <BlockSlot @name="content">
             <Outlet
               @name={{routeName}}
+              @model={{route.model}}
             as |o|>
               {{outlet}}
             </Outlet>
@@ -114,5 +118,5 @@ as |route|>
         </AppView>
       </BlockSlot>
     </DataLoader>
-  {{/let}}
 </Route>
+{{/let}}

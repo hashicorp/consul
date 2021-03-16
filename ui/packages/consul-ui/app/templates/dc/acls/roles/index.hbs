@@ -1,108 +1,110 @@
-{{#if isAuthorized }}
-  {{page-title 'Roles'}}
-{{else}}
-  {{page-title 'Access Controls'}}
-{{/if}}
+<Route
+  @name={{routeName}}
+  @title="Roles"
+as |route|>
+  {{#let
 
-{{#let
-
-  (hash
-    value=(or sortBy "Name:asc")
-    change=(action (mut sortBy) value="target.selected")
-  )
-
-  (hash
-    searchproperty=(hash
-      value=(if (not-eq searchproperty undefined)
-        (split searchproperty ',')
-        searchProperties
-      )
-      change=(action (mut searchproperty) value="target.selectedItems")
-      default=searchProperties
+    (hash
+      value=(or sortBy "Name:asc")
+      change=(action (mut sortBy) value="target.selected")
     )
-  )
 
-  items
+    (hash
+      searchproperty=(hash
+        value=(if (not-eq searchproperty undefined)
+          (split searchproperty ',')
+          searchProperties
+        )
+        change=(action (mut searchproperty) value="target.selectedItems")
+        default=searchProperties
+      )
+    )
 
-as |sort filters items|}}
+    items
 
-  <AppView
-    @authorized={{isAuthorized}}
-    @enabled={{isEnabled}}
-    >
-    <BlockSlot @name="notification" as |status type item error|>
-      <Consul::Role::Notifications
-        @type={{type}}
-        @status={{status}}
-        @item={{item}}
-        @error={{error}}
-      />
-    </BlockSlot>
-    <BlockSlot @name="header">
-      <h1>
-        Roles
-      </h1>
-    </BlockSlot>
-    <BlockSlot @name="actions">
-      <a data-test-create href="{{href-to 'dc.acls.roles.create'}}" class="type-create">Create</a>
-    </BlockSlot>
-    <BlockSlot @name="toolbar">
-    {{#if (gt items.length 0) }}
-      <Consul::Role::SearchBar
-        @search={{search}}
-        @onsearch={{action (mut search) value="target.value"}}
+  as |sort filters items|}}
 
-        @sort={{sort}}
+    <AppView
+      @authorized={{isAuthorized}}
+      @enabled={{isEnabled}}
+      @login={{route.model.app.login.open}}
+      >
+      <BlockSlot @name="notification" as |status type item error|>
+        <Consul::Role::Notifications
+          @type={{type}}
+          @status={{status}}
+          @item={{item}}
+          @error={{error}}
+        />
+      </BlockSlot>
+      <BlockSlot @name="header">
+        <h1>
+          Roles
+        </h1>
+      </BlockSlot>
+      <BlockSlot @name="actions">
+        <a data-test-create href="{{href-to 'dc.acls.roles.create'}}" class="type-create">Create</a>
+      </BlockSlot>
+      <BlockSlot @name="toolbar">
+      {{#if (gt items.length 0) }}
+        <Consul::Role::SearchBar
+          @search={{search}}
+          @onsearch={{action (mut search) value="target.value"}}
 
-        @filter={{filters}}
-      />
-    {{/if}}
-    </BlockSlot>
-    <BlockSlot @name="content">
-      <DataCollection
-        @type="role"
-        @sort={{sort.value}}
-        @filters={{filters}}
-        @search={{search}}
-        @items={{items}}
-      as |collection|>
-        <collection.Collection>
-          <Consul::Role::List
-            @items={{collection.items}}
-            @ondelete={{route-action 'delete'}}
-          />
-        </collection.Collection>
-        <collection.Empty>
-          <EmptyState @allowLogin={{true}}>
-            <BlockSlot @name="header">
-              <h2>
-                {{#if (gt items.length 0)}}
-                  No roles found
-                {{else}}
-                  Welcome to Roles
-                {{/if}}
-              </h2>
-            </BlockSlot>
-            <BlockSlot @name="body">
-              <p>
-                {{#if (gt items.length 0)}}
-                  No roles where found matching that search, or you may not have access to view the roles you are searching for.
-                {{else}}
-                  There don't seem to be any roles, or you may not have access to view roles yet.
-                {{/if}}
-              </p>
-            </BlockSlot>
-            <BlockSlot @name="actions">
-              <li class="docs-link">
-                <a href="{{env 'CONSUL_DOCS_URL'}}/commands/acl/role" rel="noopener noreferrer" target="_blank">Documentation on roles</a>
-              </li>
-              <li class="learn-link">
-                <a href="{{env 'CONSUL_DOCS_API_URL'}}/acl/roles.html" rel="noopener noreferrer" target="_blank">Read the API Docs</a>
-              </li>
-            </BlockSlot>
-          </EmptyState>
-        </collection.Empty>
-      </DataCollection>
-    </BlockSlot>
-  </AppView>
-{{/let}}
+          @sort={{sort}}
+
+          @filter={{filters}}
+        />
+      {{/if}}
+      </BlockSlot>
+      <BlockSlot @name="content">
+        <DataCollection
+          @type="role"
+          @sort={{sort.value}}
+          @filters={{filters}}
+          @search={{search}}
+          @items={{items}}
+        as |collection|>
+          <collection.Collection>
+            <Consul::Role::List
+              @items={{collection.items}}
+              @ondelete={{route-action 'delete'}}
+            />
+          </collection.Collection>
+          <collection.Empty>
+            <EmptyState
+              @login={{route.model.app.login.open}}
+            >
+              <BlockSlot @name="header">
+                <h2>
+                  {{#if (gt items.length 0)}}
+                    No roles found
+                  {{else}}
+                    Welcome to Roles
+                  {{/if}}
+                </h2>
+              </BlockSlot>
+              <BlockSlot @name="body">
+                <p>
+                  {{#if (gt items.length 0)}}
+                    No roles where found matching that search, or you may not have access to view the roles you are searching for.
+                  {{else}}
+                    There don't seem to be any roles, or you may not have access to view roles yet.
+                  {{/if}}
+                </p>
+              </BlockSlot>
+              <BlockSlot @name="actions">
+                <li class="docs-link">
+                  <a href="{{env 'CONSUL_DOCS_URL'}}/commands/acl/role" rel="noopener noreferrer" target="_blank">Documentation on roles</a>
+                </li>
+                <li class="learn-link">
+                  <a href="{{env 'CONSUL_DOCS_API_URL'}}/acl/roles.html" rel="noopener noreferrer" target="_blank">Read the API Docs</a>
+                </li>
+              </BlockSlot>
+            </EmptyState>
+          </collection.Empty>
+        </DataCollection>
+      </BlockSlot>
+    </AppView>
+  {{/let}}
+</Route>

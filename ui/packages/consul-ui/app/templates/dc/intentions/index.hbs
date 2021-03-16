@@ -1,122 +1,131 @@
-{{page-title 'Intentions'}}
-<DataLoader @src={{concat '/' nspace '/' dc '/intentions'}} as |api|>
+<Route
+  @name={{routeName}}
+  @title="Intentions"
+as |route|>
+  <DataLoader @src={{concat '/' nspace '/' dc '/intentions'}} as |api|>
 
-  <BlockSlot @name="error">
-    <AppError @error={{api.error}} />
-  </BlockSlot>
-
-  <BlockSlot @name="loaded">
-{{#let
-
-  (hash
-    value=(or sortBy "Action:asc")
-    change=(action (mut sortBy) value="target.selected")
-  )
-
-  (hash
-    access=(hash
-      value=(if access (split access ',') undefined)
-      change=(action (mut access) value="target.selectedItems")
-    )
-    searchproperty=(hash
-      value=(if (not-eq searchproperty undefined)
-        (split searchproperty ',')
-        searchProperties
-      )
-      change=(action (mut searchproperty) value="target.selectedItems")
-      default=searchProperties
-    )
-  )
-
-  api.data
-
-as |sort filters items|}}
-
-  <AppView>
-    <BlockSlot @name="header">
-        <h1>
-            Intentions <em>{{format-number items.length}} total</em>
-        </h1>
-        <label for="toolbar-toggle"></label>
-    </BlockSlot>
-    <BlockSlot @name="actions">
-{{#if (can 'create intentions')}}
-        <a data-test-create href="{{href-to 'dc.intentions.create'}}" class="type-create">Create</a>
-{{/if}}
-    </BlockSlot>
-    <BlockSlot @name="toolbar">
-
-{{#if (gt items.length 0) }}
-      <Consul::Intention::SearchBar
-        @search={{search}}
-        @onsearch={{action (mut search) value="target.value"}}
-
-        @sort={{sort}}
-
-        @filter={{filters}}
+    <BlockSlot @name="error">
+      <AppError
+        @error={{api.error}}
+        @login={{route.model.app.login.open}}
       />
-{{/if}}
-
     </BlockSlot>
-    <BlockSlot @name="content">
-      <DataWriter
-        @sink={{concat '/' dc '/' nspace '/intention/'}}
-        @type="intention"
-        @ondelete={{refresh-route}}
-      as |writer|>
-        <BlockSlot @name="content">
-          <DataCollection
-            @type="intention"
-            @sort={{sort.value}}
-            @filters={{filters}}
-            @search={{search}}
-            @items={{items}}
-          as |collection|>
-            <collection.Collection>
-              <Consul::Intention::List
-                @items={{collection.items}}
-                @delete={{writer.delete}}
-              as |list|>
-                  <list.CustomResourceNotice />
-                  <list.Table />
-              </Consul::Intention::List>
-            </collection.Collection>
-            <collection.Empty>
-              <EmptyState @allowLogin={{true}}>
-                <BlockSlot @name="header">
-                  <h2>
-                    {{#if (gt items.length 0)}}
-                      No intentions found
-                    {{else}}
-                      Welcome to Intentions
-                    {{/if}}
-                  </h2>
-                </BlockSlot>
-                <BlockSlot @name="body">
-                  <p>
-                    {{#if (gt items.length 0)}}
-                      No intentions where found matching that search, or you may not have access to view the intentions you are searching for.
-                    {{else}}
-                      There don't seem to be any intentions, or you may not have access to view intentions yet.
-                    {{/if}}
-                  </p>
-                </BlockSlot>
-                <BlockSlot @name="actions">
-                  <li class="docs-link">
-                    <a href="{{env 'CONSUL_DOCS_URL'}}/commands/intention" rel="noopener noreferrer" target="_blank">Documentation on intentions</a>
-                  </li>
-                  <li class="learn-link">
-                    <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/getting-started/connect" rel="noopener noreferrer" target="_blank">Read the guide</a>
-                  </li>
-                </BlockSlot>
-              </EmptyState>
-            </collection.Empty>
-          </DataCollection>
-        </BlockSlot>
-      </DataWriter>
-    </BlockSlot>
-  </AppView>
 
-{{/let}}
-  </BlockSlot>
-</DataLoader>
+    <BlockSlot @name="loaded">
+  {{#let
+
+    (hash
+      value=(or sortBy "Action:asc")
+      change=(action (mut sortBy) value="target.selected")
+    )
+
+    (hash
+      access=(hash
+        value=(if access (split access ',') undefined)
+        change=(action (mut access) value="target.selectedItems")
+      )
+      searchproperty=(hash
+        value=(if (not-eq searchproperty undefined)
+          (split searchproperty ',')
+          searchProperties
+        )
+        change=(action (mut searchproperty) value="target.selectedItems")
+        default=searchProperties
+      )
+    )
+
+    api.data
+
+  as |sort filters items|}}
+
+    <AppView>
+      <BlockSlot @name="header">
+          <h1>
+              Intentions <em>{{format-number items.length}} total</em>
+          </h1>
+          <label for="toolbar-toggle"></label>
+      </BlockSlot>
+      <BlockSlot @name="actions">
+  {{#if (can 'create intentions')}}
+          <a data-test-create href="{{href-to 'dc.intentions.create'}}" class="type-create">Create</a>
+  {{/if}}
+      </BlockSlot>
+      <BlockSlot @name="toolbar">
+
+  {{#if (gt items.length 0) }}
+        <Consul::Intention::SearchBar
+          @search={{search}}
+          @onsearch={{action (mut search) value="target.value"}}
+
+          @sort={{sort}}
+
+          @filter={{filters}}
+        />
+  {{/if}}
+
+      </BlockSlot>
+      <BlockSlot @name="content">
+        <DataWriter
+          @sink={{concat '/' dc '/' nspace '/intention/'}}
+          @type="intention"
+          @ondelete={{refresh-route}}
+        as |writer|>
+          <BlockSlot @name="content">
+            <DataCollection
+              @type="intention"
+              @sort={{sort.value}}
+              @filters={{filters}}
+              @search={{search}}
+              @items={{items}}
+            as |collection|>
+              <collection.Collection>
+                <Consul::Intention::List
+                  @items={{collection.items}}
+                  @delete={{writer.delete}}
+                as |list|>
+                    <list.CustomResourceNotice />
+                    <list.Table />
+                </Consul::Intention::List>
+              </collection.Collection>
+              <collection.Empty>
+                <EmptyState
+                  @login={{route.model.app.login.open}}
+                >
+                  <BlockSlot @name="header">
+                    <h2>
+                      {{#if (gt items.length 0)}}
+                        No intentions found
+                      {{else}}
+                        Welcome to Intentions
+                      {{/if}}
+                    </h2>
+                  </BlockSlot>
+                  <BlockSlot @name="body">
+                    <p>
+                      {{#if (gt items.length 0)}}
+                        No intentions where found matching that search, or you may not have access to view the intentions you are searching for.
+                      {{else}}
+                        There don't seem to be any intentions, or you may not have access to view intentions yet.
+                      {{/if}}
+                    </p>
+                  </BlockSlot>
+                  <BlockSlot @name="actions">
+                    <li class="docs-link">
+                      <a href="{{env 'CONSUL_DOCS_URL'}}/commands/intention" rel="noopener noreferrer" target="_blank">Documentation on intentions</a>
+                    </li>
+                    <li class="learn-link">
+                      <a href="{{env 'CONSUL_DOCS_LEARN_URL'}}/consul/getting-started/connect" rel="noopener noreferrer" target="_blank">Read the guide</a>
+                    </li>
+                  </BlockSlot>
+                </EmptyState>
+              </collection.Empty>
+            </DataCollection>
+          </BlockSlot>
+        </DataWriter>
+      </BlockSlot>
+    </AppView>
+
+  {{/let}}
+    </BlockSlot>
+  </DataLoader>
+</Route>

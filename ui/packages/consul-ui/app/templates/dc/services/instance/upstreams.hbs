@@ -1,60 +1,64 @@
-<div class="tab-section">
-{{#let
+<Route
+  @name={{routeName}}
+as |route|>
+  <div class="tab-section">
+  {{#let
 
-  (hash
-    value=(or sortBy "DestinationName:asc")
-    change=(action (mut sortBy) value="target.selected")
-  )
-
-  (hash
-    searchproperty=(hash
-      value=(if (not-eq searchproperty undefined)
-        (split searchproperty ',')
-        searchProperties
-      )
-      change=(action (mut searchproperty) value="target.selectedItems")
-      default=searchProperties
+    (hash
+      value=(or sortBy "DestinationName:asc")
+      change=(action (mut sortBy) value="target.selected")
     )
-  )
 
-  proxy.Service.Proxy.Upstreams
+    (hash
+      searchproperty=(hash
+        value=(if (not-eq searchproperty undefined)
+          (split searchproperty ',')
+          searchProperties
+        )
+        change=(action (mut searchproperty) value="target.selectedItems")
+        default=searchProperties
+      )
+    )
 
-as |sort filters items|}}
-    {{#if (gt items.length 0)}}
-      <input type="checkbox" id="toolbar-toggle" />
-      <Consul::UpstreamInstance::SearchBar
-        @search={{search}}
-        @onsearch={{action (mut search) value="target.value"}}
-        @searchproperties={{searchProperties}}
+    proxy.Service.Proxy.Upstreams
 
-        @sort={{sort}}
+  as |sort filters items|}}
+      {{#if (gt items.length 0)}}
+        <input type="checkbox" id="toolbar-toggle" />
+        <Consul::UpstreamInstance::SearchBar
+          @search={{search}}
+          @onsearch={{action (mut search) value="target.value"}}
+          @searchproperties={{searchProperties}}
 
-        @filter={{filters}}
-      />
-    {{/if}}
-    <DataCollection
-      @type="upstream-instance"
-      @sort={{sort.value}}
-      @filters={{filters}}
-      @search={{search}}
-      @items={{items}}
-    as |collection|>
-      <collection.Collection>
-        <Consul::UpstreamInstance::List
-          @items={{collection.items}}
-          @dc={{dc}}
-          @nspace={{nspace}}
+          @sort={{sort}}
+
+          @filter={{filters}}
         />
-      </collection.Collection>
-      <collection.Empty>
-        <EmptyState>
-          <BlockSlot @name="body">
-            <p>
-              This service has no upstreams{{#if (gt items.length 0)}} matching that search{{/if}}.
-            </p>
-          </BlockSlot>
-        </EmptyState>
-      </collection.Empty>
-    </DataCollection>
-{{/let}}
-</div>
+      {{/if}}
+      <DataCollection
+        @type="upstream-instance"
+        @sort={{sort.value}}
+        @filters={{filters}}
+        @search={{search}}
+        @items={{items}}
+      as |collection|>
+        <collection.Collection>
+          <Consul::UpstreamInstance::List
+            @items={{collection.items}}
+            @dc={{dc}}
+            @nspace={{nspace}}
+          />
+        </collection.Collection>
+        <collection.Empty>
+          <EmptyState>
+            <BlockSlot @name="body">
+              <p>
+                This service has no upstreams{{#if (gt items.length 0)}} matching that search{{/if}}.
+              </p>
+            </BlockSlot>
+          </EmptyState>
+        </collection.Empty>
+      </DataCollection>
+  {{/let}}
+  </div>
+</Route>

@@ -1,82 +1,90 @@
-{{page-title item.Node}}
-<DataLoader as |loader|>
+<Route
+  @name={{routeName}}
+  @title={{item.Node}}
+as |route|>
+  <DataLoader as |loader|>
 
-  <BlockSlot @name="data">
-    <EventSource @src={{item}} @onerror={{action loader.dispatchError}} />
-    <EventSource @src={{tomography}} />
-  </BlockSlot>
+    <BlockSlot @name="data">
+      <EventSource @src={{item}} @onerror={{action loader.dispatchError}} />
+      <EventSource @src={{tomography}} />
+    </BlockSlot>
 
-  <BlockSlot @name="error">
-    <AppError @error={{loader.error}} />
-  </BlockSlot>
+    <BlockSlot @name="error">
+      <AppError
+        @error={{loader.error}}
+        @login={{route.model.app.login.open}}
+      />
+    </BlockSlot>
 
-  <BlockSlot @name="disconnected" as |Notification|>
-    {{#if (eq loader.error.status "404")}}
-      <Notification @sticky={{true}}>
-        <p data-notification role="alert" class="warning notification-update">
-          <strong>Warning!</strong>
-          This node no longer exists in the catalog.
-        </p>
-      </Notification>
-    {{else if (eq loader.error.status "403")}}
-      <Notification @sticky={{true}}>
-        <p data-notification role="alert" class="error notification-update">
-          <strong>Error!</strong>
-          You no longer have access to this node
-        </p>
-      </Notification>
-    {{else}}
-      <Notification @sticky={{true}}>
-        <p data-notification role="alert" class="warning notification-update">
-          <strong>Warning!</strong>
-          An error was returned whilst loading this data, refresh to try again.
-        </p>
-      </Notification>
-    {{/if}}
-  </BlockSlot>
+    <BlockSlot @name="disconnected" as |Notification|>
+      {{#if (eq loader.error.status "404")}}
+        <Notification @sticky={{true}}>
+          <p data-notification role="alert" class="warning notification-update">
+            <strong>Warning!</strong>
+            This node no longer exists in the catalog.
+          </p>
+        </Notification>
+      {{else if (eq loader.error.status "403")}}
+        <Notification @sticky={{true}}>
+          <p data-notification role="alert" class="error notification-update">
+            <strong>Error!</strong>
+            You no longer have access to this node
+          </p>
+        </Notification>
+      {{else}}
+        <Notification @sticky={{true}}>
+          <p data-notification role="alert" class="warning notification-update">
+            <strong>Warning!</strong>
+            An error was returned whilst loading this data, refresh to try again.
+          </p>
+        </Notification>
+      {{/if}}
+    </BlockSlot>
 
-  <BlockSlot @name="loaded">
-    <AppView>
-        <BlockSlot @name="notification" as |status type|>
-          <Consul::LockSession::Notifications
-            @type={{type}}
-            @status={{status}}
-          />
-        </BlockSlot>
-        <BlockSlot @name="breadcrumbs">
-            <ol>
-                <li><a data-test-back href={{href-to 'dc.nodes'}}>All Nodes</a></li>
-            </ol>
-        </BlockSlot>
-        <BlockSlot @name="header">
-            <h1>
-              {{ item.Node }}
-            </h1>
-            <label for="toolbar-toggle"></label>
-        </BlockSlot>
-        <BlockSlot @name="nav">
-            <TabNav @items={{
-              compact
-                  (array
-                              (hash label="Health Checks" href=(href-to "dc.nodes.show.healthchecks") selected=(is-href "dc.nodes.show.healthchecks"))
-                              (hash label="Service Instances" href=(href-to "dc.nodes.show.services") selected=(is-href "dc.nodes.show.services"))
-    (if tomography.distances  (hash label="Round Trip Time" href=(href-to "dc.nodes.show.rtt") selected=(is-href "dc.nodes.show.rtt")) '')
-                              (hash label="Lock Sessions" href=(href-to "dc.nodes.show.sessions") selected=(is-href "dc.nodes.show.sessions"))
-                              (hash label="Metadata" href=(href-to "dc.nodes.show.metadata") selected=(is-href "dc.nodes.show.metadata"))
-                  )
-            }}/>
-        </BlockSlot>
-        <BlockSlot @name="actions">
-          <CopyButton @value={{item.Address}} @name="Address">{{item.Address}}</CopyButton>
-        </BlockSlot>
-        <BlockSlot @name="content">
-          <Outlet
-            @name={{routeName}}
-          as |o|>
-            {{outlet}}
-          </Outlet>
-        </BlockSlot>
-    </AppView>
+    <BlockSlot @name="loaded">
+      <AppView>
+          <BlockSlot @name="notification" as |status type|>
+            <Consul::LockSession::Notifications
+              @type={{type}}
+              @status={{status}}
+            />
+          </BlockSlot>
+          <BlockSlot @name="breadcrumbs">
+              <ol>
+                  <li><a data-test-back href={{href-to 'dc.nodes'}}>All Nodes</a></li>
+              </ol>
+          </BlockSlot>
+          <BlockSlot @name="header">
+              <h1>
+                {{ item.Node }}
+              </h1>
+              <label for="toolbar-toggle"></label>
+          </BlockSlot>
+          <BlockSlot @name="nav">
+              <TabNav @items={{
+                compact
+                    (array
+                                (hash label="Health Checks" href=(href-to "dc.nodes.show.healthchecks") selected=(is-href "dc.nodes.show.healthchecks"))
+                                (hash label="Service Instances" href=(href-to "dc.nodes.show.services") selected=(is-href "dc.nodes.show.services"))
+      (if tomography.distances  (hash label="Round Trip Time" href=(href-to "dc.nodes.show.rtt") selected=(is-href "dc.nodes.show.rtt")) '')
+                                (hash label="Lock Sessions" href=(href-to "dc.nodes.show.sessions") selected=(is-href "dc.nodes.show.sessions"))
+                                (hash label="Metadata" href=(href-to "dc.nodes.show.metadata") selected=(is-href "dc.nodes.show.metadata"))
+                    )
+              }}/>
+          </BlockSlot>
+          <BlockSlot @name="actions">
+            <CopyButton @value={{item.Address}} @name="Address">{{item.Address}}</CopyButton>
+          </BlockSlot>
+          <BlockSlot @name="content">
+            <Outlet
+              @name={{routeName}}
+              @model={{route.model}}
+            as |o|>
+              {{outlet}}
+            </Outlet>
+          </BlockSlot>
+      </AppView>
 
-  </BlockSlot>
-</DataLoader>
+    </BlockSlot>
+  </DataLoader>
+</Route>

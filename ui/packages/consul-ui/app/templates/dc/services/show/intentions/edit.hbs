@@ -1,9 +1,13 @@
-<Consul::Intention::Form
-  @nspace={{nspace}}
-  @dc={{dc}}
-  @src={{src}}
-  @autofill={{hash
-    DestinationName=service
-  }}
-  @onsubmit={{transition-to 'dc.services.show.intentions.index'}}
-/>
+<Route
+  @name={{routeName}}
+as |route|>
+  <Consul::Intention::Form
+    @nspace={{nspace}}
+    @dc={{dc}}
+    @src={{src}}
+    @autofill={{hash
+      DestinationName=service
+    }}
+    @onsubmit={{transition-to 'dc.services.show.intentions.index'}}
+  />
+</Route>

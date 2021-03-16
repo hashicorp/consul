@@ -1,115 +1,118 @@
-{{#if isAuthorized }}
-  {{page-title 'Policies'}}
-{{else}}
-  {{page-title 'Access Controls'}}
-{{/if}}
-{{#let
+<Route
+  @name={{routeName}}
+  @title="Policies"
+as |route|>
+  {{#let
 
-  (hash
-    value=(or sortBy "Name:asc")
-    change=(action (mut sortBy) value="target.selected")
-  )
+    (hash
+      value=(or sortBy "Name:asc")
+      change=(action (mut sortBy) value="target.selected")
+    )
 
-  (hash
-    kind=(hash
-      value=(if kind (split kind ',') undefined)
-      change=(action (mut kind) value="target.selectedItems")
-    )
-    datacenter=(hash
-      value=(if datacenter (split datacenter ',') undefined)
-      change=(action (mut datacenter) value="target.selectedItems")
-    )
-    searchproperty=(hash
-      value=(if (not-eq searchproperty undefined)
-        (split searchproperty ',')
-        searchProperties
+    (hash
+      kind=(hash
+        value=(if kind (split kind ',') undefined)
+        change=(action (mut kind) value="target.selectedItems")
       )
-      change=(action (mut searchproperty) value="target.selectedItems")
-      default=searchProperties
+      datacenter=(hash
+        value=(if datacenter (split datacenter ',') undefined)
+        change=(action (mut datacenter) value="target.selectedItems")
+      )
+      searchproperty=(hash
+        value=(if (not-eq searchproperty undefined)
+          (split searchproperty ',')
+          searchProperties
+        )
+        change=(action (mut searchproperty) value="target.selectedItems")
+        default=searchProperties
+      )
     )
-  )
 
-  items
+    items
 
-as |sort filters items|}}
-  <AppView
-    @authorized={{isAuthorized}}
-    @enabled={{isEnabled}}
-    >
-    <BlockSlot @name="notification" as |status type item error|>
-      <Consul::Policy::Notifications
-        @type={{type}}
-        @status={{status}}
-        @item={{item}}
-        @error={{error}}
-      />
-    </BlockSlot>
-    <BlockSlot @name="header">
-      <h1>
-        Policies
-      </h1>
-    </BlockSlot>
-    <BlockSlot @name="actions">
-        <a data-test-create href="{{href-to 'dc.acls.policies.create'}}" class="type-create">Create</a>
-    </BlockSlot>
-    <BlockSlot @name="toolbar">
-    {{#if (gt items.length 0) }}
-      <Consul::Policy::SearchBar
-        @search={{search}}
-        @onsearch={{action (mut search) value="target.value"}}
+  as |sort filters items|}}
+    <AppView
+      @authorized={{isAuthorized}}
+      @enabled={{isEnabled}}
+      @login={{route.model.app.login.open}}
+      >
+      <BlockSlot @name="notification" as |status type item error|>
+        <Consul::Policy::Notifications
+          @type={{type}}
+          @status={{status}}
+          @item={{item}}
+          @error={{error}}
+        />
+      </BlockSlot>
+      <BlockSlot @name="header">
+        <h1>
+          Policies
+        </h1>
+      </BlockSlot>
+      <BlockSlot @name="actions">
+          <a data-test-create href="{{href-to 'dc.acls.policies.create'}}" class="type-create">Create</a>
+      </BlockSlot>
+      <BlockSlot @name="toolbar">
+      {{#if (gt items.length 0) }}
+        <Consul::Policy::SearchBar
+          @search={{search}}
+          @onsearch={{action (mut search) value="target.value"}}
 
-        @sort={{sort}}
+          @sort={{sort}}
 
-        @filter={{filters}}
-      />
-    {{/if}}
-    </BlockSlot>
-    <BlockSlot @name="content">
-      <DataCollection
-        @type="policy"
-        @sort={{sort.value}}
-        @filters={{filters}}
-        @search={{search}}
-        @items={{items}}
-      as |collection|>
-        <collection.Collection>
-          <Consul::Policy::List
-            @items={{collection.items}}
-            @ondelete={{route-action 'delete'}}
-          />
-        </collection.Collection>
-        <collection.Empty>
-          <EmptyState @allowLogin={{true}}>
-            <BlockSlot @name="header">
-              <h2>
-                {{#if (gt items.length 0)}}
-                  No policies found
-                {{else}}
-                  Welcome to Policies
-                {{/if}}
-              </h2>
-            </BlockSlot>
-            <BlockSlot @name="body">
-              <p>
-                {{#if (gt items.length 0)}}
-                  No policies where found matching that search, or you may not have access to view the policies you are searching for.
-                {{else}}
-                  There don't seem to be any policies, or you may not have access to view policies yet.
-                {{/if}}
-              </p>
-            </BlockSlot>
-            <BlockSlot @name="actions">
-              <li class="docs-link">
-                <a href="{{env 'CONSUL_DOCS_URL'}}/commands/acl/policy" rel="noopener noreferrer" target="_blank">Documentation on policies</a>
-              </li>
-              <li class="learn-link">
-                <a href="{{env 'CONSUL_LEARN_URL'}}/consul/security-networking/managing-acl-policies" rel="noopener noreferrer" target="_blank">Read the guide</a>
-              </li>
-            </BlockSlot>
-          </EmptyState>
-        </collection.Empty>
-      </DataCollection>
-    </BlockSlot>
-  </AppView>
+          @filter={{filters}}
+        />
+      {{/if}}
+      </BlockSlot>
+      <BlockSlot @name="content">
+        <DataCollection
+          @type="policy"
+          @sort={{sort.value}}
+          @filters={{filters}}
+          @search={{search}}
+          @items={{items}}
+        as |collection|>
+          <collection.Collection>
+            <Consul::Policy::List
+              @items={{collection.items}}
+              @ondelete={{route-action 'delete'}}
+            />
+          </collection.Collection>
+          <collection.Empty>
+            <EmptyState
+              @login={{route.model.app.login.open}}
+            >
+              <BlockSlot @name="header">
+                <h2>
+                  {{#if (gt items.length 0)}}
+                    No policies found
+                  {{else}}
+                    Welcome to Policies
+                  {{/if}}
+                </h2>
+              </BlockSlot>
+              <BlockSlot @name="body">
+                <p>
+                  {{#if (gt items.length 0)}}
+                    No policies where found matching that search, or you may not have access to view the policies you are searching for.
+                  {{else}}
+                    There don't seem to be any policies, or you may not have access to view policies yet.
+                  {{/if}}
+                </p>
+              </BlockSlot>
+              <BlockSlot @name="actions">
+                <li class="docs-link">
+                  <a href="{{env 'CONSUL_DOCS_URL'}}/commands/acl/policy" rel="noopener noreferrer" target="_blank">Documentation on policies</a>
+                </li>
+                <li class="learn-link">
+                  <a href="{{env 'CONSUL_LEARN_URL'}}/consul/security-networking/managing-acl-policies" rel="noopener noreferrer" target="_blank">Read the guide</a>
+                </li>
+              </BlockSlot>
+            </EmptyState>
+          </collection.Empty>
+        </DataCollection>
+      </BlockSlot>
+    </AppView>
 
-{{/let}}
+  {{/let}}
+</Route>
