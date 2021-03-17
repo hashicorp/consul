@@ -23,6 +23,7 @@ func CheckTypeToStructs(s CheckType) structs.CheckType {
 	t.Shell = s.Shell
 	t.GRPC = s.GRPC
 	t.GRPCUseTLS = s.GRPCUseTLS
+	t.TLSServerName = s.TLSServerName
 	t.TLSSkipVerify = s.TLSSkipVerify
 	t.Timeout = s.Timeout
 	t.TTL = s.TTL
@@ -53,6 +54,7 @@ func NewCheckTypeFromStructs(t structs.CheckType) CheckType {
 	s.Shell = t.Shell
 	s.GRPC = t.GRPC
 	s.GRPCUseTLS = t.GRPCUseTLS
+	s.TLSServerName = t.TLSServerName
 	s.TLSSkipVerify = t.TLSSkipVerify
 	s.Timeout = t.Timeout
 	s.TTL = t.TTL
@@ -101,6 +103,7 @@ func NewHealthCheckFromStructs(t structs.HealthCheck) HealthCheck {
 func HealthCheckDefinitionToStructs(s HealthCheckDefinition) structs.HealthCheckDefinition {
 	var t structs.HealthCheckDefinition
 	t.HTTP = s.HTTP
+	t.TLSServerName = s.TLSServerName
 	t.TLSSkipVerify = s.TLSSkipVerify
 	t.Header = MapHeadersToStructs(s.Header)
 	t.Method = s.Method
@@ -123,6 +126,7 @@ func HealthCheckDefinitionToStructs(s HealthCheckDefinition) structs.HealthCheck
 func NewHealthCheckDefinitionFromStructs(t structs.HealthCheckDefinition) HealthCheckDefinition {
 	var s HealthCheckDefinition
 	s.HTTP = t.HTTP
+	s.TLSServerName = t.TLSServerName
 	s.TLSSkipVerify = t.TLSSkipVerify
 	s.Header = NewMapHeadersFromStructs(t.Header)
 	s.Method = t.Method

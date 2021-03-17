@@ -33,6 +33,7 @@ type CheckDefinition struct {
 	Shell                          string
 	GRPC                           string
 	GRPCUseTLS                     bool
+	TLSServerName                  string
 	TLSSkipVerify                  bool
 	AliasNode                      string
 	AliasService                   string
@@ -62,6 +63,7 @@ func (t *CheckDefinition) UnmarshalJSON(data []byte) (err error) {
 		ScriptArgsSnake                     []string    `json:"script_args"`
 		DeregisterCriticalServiceAfterSnake interface{} `json:"deregister_critical_service_after"`
 		DockerContainerIDSnake              string      `json:"docker_container_id"`
+		TLSServerNameSnake                  string      `json:"tls_server_name"`
 		TLSSkipVerifySnake                  bool        `json:"tls_skip_verify"`
 		GRPCUseTLSSnake                     bool        `json:"grpc_use_tls"`
 		ServiceIDSnake                      string      `json:"service_id"`
@@ -86,6 +88,9 @@ func (t *CheckDefinition) UnmarshalJSON(data []byte) (err error) {
 	}
 	if t.DockerContainerID == "" {
 		t.DockerContainerID = aux.DockerContainerIDSnake
+	}
+	if t.TLSServerName == "" {
+		t.TLSServerName = aux.TLSServerNameSnake
 	}
 	if aux.TLSSkipVerifySnake {
 		t.TLSSkipVerify = aux.TLSSkipVerifySnake
@@ -182,6 +187,7 @@ func (c *CheckDefinition) CheckType() *CheckType {
 		Interval:                       c.Interval,
 		DockerContainerID:              c.DockerContainerID,
 		Shell:                          c.Shell,
+		TLSServerName:                  c.TLSServerName,
 		TLSSkipVerify:                  c.TLSSkipVerify,
 		Timeout:                        c.Timeout,
 		TTL:                            c.TTL,

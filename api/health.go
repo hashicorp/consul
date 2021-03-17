@@ -58,6 +58,7 @@ type HealthCheckDefinition struct {
 	Header                                 map[string][]string
 	Method                                 string
 	Body                                   string
+	TLSServerName                          string
 	TLSSkipVerify                          bool
 	TCP                                    string
 	IntervalDuration                       time.Duration `json:"-"`

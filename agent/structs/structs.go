@@ -1429,6 +1429,7 @@ func (hc *HealthCheck) CompoundCheckID() CheckID {
 
 type HealthCheckDefinition struct {
 	HTTP                           string              `json:",omitempty"`
+	TLSServerName                  string              `json:",omitempty"`
 	TLSSkipVerify                  bool                `json:",omitempty"`
 	Header                         map[string][]string `json:",omitempty"`
 	Method                         string              `json:",omitempty"`
@@ -1583,6 +1584,7 @@ func (c *HealthCheck) CheckType() *CheckType {
 		Interval:                       c.Definition.Interval,
 		DockerContainerID:              c.Definition.DockerContainerID,
 		Shell:                          c.Definition.Shell,
+		TLSServerName:                  c.Definition.TLSServerName,
 		TLSSkipVerify:                  c.Definition.TLSSkipVerify,
 		Timeout:                        c.Definition.Timeout,
 		TTL:                            c.Definition.TTL,

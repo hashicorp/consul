@@ -405,6 +405,7 @@ type CheckDefinition struct {
 	Shell                          *string             `mapstructure:"shell"`
 	GRPC                           *string             `mapstructure:"grpc"`
 	GRPCUseTLS                     *bool               `mapstructure:"grpc_use_tls"`
+	TLSServerName                  *string             `mapstructure:"tls_server_name"`
 	TLSSkipVerify                  *bool               `mapstructure:"tls_skip_verify" alias:"tlsskipverify"`
 	AliasNode                      *string             `mapstructure:"alias_node"`
 	AliasService                   *string             `mapstructure:"alias_service"`

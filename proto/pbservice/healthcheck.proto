@@ -56,6 +56,7 @@ message HeaderValue {
 // name=Structs
 message HealthCheckDefinition {
     string HTTP = 1;
+    string TLSServerName = 19;
     bool TLSSkipVerify = 2;
 
     // mog: func-to=MapHeadersToStructs func-from=NewMapHeadersFromStructs
@@ -117,6 +118,7 @@ message CheckType {
     string Shell = 13;
     string GRPC = 14;
     bool GRPCUseTLS = 15;
+    string TLSServerName = 27;
     bool TLSSkipVerify = 16;
     google.protobuf.Duration Timeout = 17
     [(gogoproto.stdduration) = true, (gogoproto.nullable) = false];
