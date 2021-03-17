@@ -151,9 +151,10 @@ func rolesTableSchema() *memdb.TableSchema {
 				Name:         indexName,
 				AllowMissing: false,
 				Unique:       true,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "Name",
-					Lowercase: true,
+				Indexer: indexerSingleWithPrefix{
+					readIndex:   readIndex(indexFromQuery),
+					writeIndex:  writeIndex(indexNameFromACLRole),
+					prefixIndex: prefixIndex(prefixIndexFromQuery),
 				},
 			},
 			indexPolicies: {

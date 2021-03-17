@@ -1371,7 +1371,8 @@ func aclRoleSetTxn(tx *txn, idx uint64, role *structs.ACLRole, allowMissing bool
 	}
 
 	// ensure the name is unique (cannot conflict with another role with a different ID)
-	_, nameMatch, err := aclRoleGetByName(tx, role.Name, &role.EnterpriseMeta)
+	q := Query{EnterpriseMeta: role.EnterpriseMeta, Value: role.Name}
+	nameMatch, err := tx.First(tableACLRoles, indexName, q)
 	if err != nil {
 		return fmt.Errorf("failed acl role lookup: %v", err)
 	}
@@ -1422,6 +1423,15 @@ func (s *Store) ACLRoleGetByID(ws memdb.WatchSet, id string, entMeta *structs.En
 
 func (s *Store) ACLRoleGetByName(ws memdb.WatchSet, name string, entMeta *structs.EnterpriseMeta) (uint64, *structs.ACLRole, error) {
 	return s.aclRoleGet(ws, name, aclRoleGetByName, entMeta)
+}
+
+func aclRoleGetByName(tx ReadTxn, name string, entMeta *structs.EnterpriseMeta) (<-chan struct{}, interface{}, error) {
+	// TODO: accept non-pointer value
+	if entMeta == nil {
+		entMeta = structs.DefaultEnterpriseMeta()
+	}
+	q := Query{EnterpriseMeta: *entMeta, Value: name}
+	return tx.FirstWatch(tableACLRoles, indexName, q)
 }
 
 func (s *Store) ACLRoleBatchGet(ws memdb.WatchSet, ids []string) (uint64, structs.ACLRoles, error) {
@@ -1488,7 +1498,7 @@ func (s *Store) ACLRoleList(ws memdb.WatchSet, policy string, entMeta *structs.E
 	if policy != "" {
 		iter, err = aclRoleListByPolicy(tx, policy, entMeta)
 	} else {
-		iter, err = aclRoleList(tx, entMeta)
+		iter, err = tx.Get(tableACLRoles, indexName+"_prefix", entMeta)
 	}
 
 	if err != nil {

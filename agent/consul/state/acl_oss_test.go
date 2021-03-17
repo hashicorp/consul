@@ -56,7 +56,7 @@ func testIndexerTableACLRoles() map[string]indexerTestCase {
 		},
 		indexName: {
 			read: indexValue{
-				source:   "RoLe",
+				source:   Query{Value: "RoLe"},
 				expected: []byte("role\x00"),
 			},
 			write: indexValue{
