@@ -48,11 +48,6 @@ func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 		len(cfgSnap.ConnectProxy.PreparedQueryEndpoints)+len(cfgSnap.ConnectProxy.WatchedUpstreamEndpoints))
 
 	for id, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
-		// Prepared queries get handled in the second loop below
-		if conf, ok := cfgSnap.ConnectProxy.UpstreamConfig[id]; ok && conf.DestinationType == structs.UpstreamDestTypePreparedQuery {
-			continue
-		}
-
 		es := s.endpointsFromDiscoveryChain(
 			id,
 			chain,
@@ -64,9 +59,9 @@ func (s *Server) endpointsFromSnapshotConnectProxy(cfgSnap *proxycfg.ConfigSnaps
 		resources = append(resources, es...)
 	}
 
-	// Looping over explicit upstreams is only needed for prepared queries and escape hatch clusters
+	// Looping over explicit upstreams is only needed for prepared queries because they do not have discovery chains
 	for _, u := range cfgSnap.Proxy.Upstreams {
-		if u.DestinationType != structs.UpstreamDestTypePreparedQuery || u.Config["envoy_cluster_json"] == "" {
+		if u.DestinationType != structs.UpstreamDestTypePreparedQuery {
 			continue
 		}
 		id := u.Identifier()
