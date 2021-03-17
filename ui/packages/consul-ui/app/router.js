@@ -1,4 +1,5 @@
-/* globals requirejs */
+/* globals requirejs, hcl */
+// TODO: Remove at least hcl global ^
 import EmberRouter from '@ember/routing/router';
 import { runInDebug } from '@ember/debug';
 import merge from 'deepmerge';
@@ -12,21 +13,21 @@ if (env('CONSUL_NSPACES_ENABLED')) {
   routes = merge(
     routes,
     hcl`
-    route "dc" {
-      route "nspaces" {
-        path = "/namespaces"
-        route "edit" {
-          path = "/:name"
-        }
-        route "create" {
-          path = "/create"
+      route "dc" {
+        route "nspaces" {
+          path = "/namespaces"
+          route "edit" {
+            path = "/:name"
+          }
+          route "create" {
+            path = "/create"
+          }
         }
       }
-    }
-    route "nspace" {
-      path = "/:nspace"
-    }
-  `
+      route "nspace" {
+        path = "/:nspace"
+      }
+    `
   );
   routes.route.nspace.route = {
     dc: routes.route.dc,
