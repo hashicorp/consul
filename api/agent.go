@@ -314,6 +314,7 @@ type AgentServiceCheck struct {
 	TCP                    string              `json:",omitempty"`
 	Status                 string              `json:",omitempty"`
 	Notes                  string              `json:",omitempty"`
+	TLSServerName          string              `json:",omitempty"`
 	TLSSkipVerify          bool                `json:",omitempty"`
 	GRPC                   string              `json:",omitempty"`
 	GRPCUseTLS             bool                `json:",omitempty"`
@@ -407,7 +408,7 @@ type Upstream struct {
 	LocalBindPort        int                    `json:",omitempty"`
 	Config               map[string]interface{} `json:",omitempty" bexpr:"-"`
 	MeshGateway          MeshGatewayConfig      `json:",omitempty"`
-	CentrallyConfigured  bool                   `json:",omitempty"`
+	CentrallyConfigured  bool                   `json:",omitempty" bexpr:"-"`
 }
 
 // Agent can be used to query the Agent endpoints

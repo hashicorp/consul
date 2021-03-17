@@ -580,9 +580,10 @@ func (r *ConfigEntryListAllRequest) RequestDatacenter() string {
 // for a service.
 type ServiceConfigRequest struct {
 	Name       string
-	ID         string
-	NodeName   string
 	Datacenter string
+
+	// MeshGateway contains the mesh gateway configuration from the requesting proxy's registration
+	MeshGateway MeshGatewayConfig
 
 	UpstreamIDs []ServiceID
 
@@ -635,30 +636,30 @@ func (r *ServiceConfigRequest) CacheInfo() cache.RequestInfo {
 }
 
 type UpstreamConfig struct {
-	// ListenerJSON is a complete override ("escape hatch") for the upstream's
+	// EnvoyListenerJSON is a complete override ("escape hatch") for the upstream's
 	// listener.
 	//
 	// Note: This escape hatch is NOT compatible with the discovery chain and
 	// will be ignored if a discovery chain is active.
-	ListenerJSON string `json:",omitempty" alias:"listener_json,envoy_listener_json"`
+	EnvoyListenerJSON string `json:",omitempty" alias:"envoy_listener_json"`
 
-	// ClusterJSON is a complete override ("escape hatch") for the upstream's
+	// EnvoyClusterJSON is a complete override ("escape hatch") for the upstream's
 	// cluster. The Connect client TLS certificate and context will be injected
 	// overriding any TLS settings present.
 	//
 	// Note: This escape hatch is NOT compatible with the discovery chain and
 	// will be ignored if a discovery chain is active.
-	ClusterJSON string `alias:"cluster_json,envoy_cluster_json"`
+	EnvoyClusterJSON string `json:",omitempty" alias:"envoy_cluster_json"`
 
 	// Protocol describes the upstream's service protocol. Valid values are "tcp",
 	// "http" and "grpc". Anything else is treated as tcp. The enables protocol
 	// aware features like per-request metrics and connection pooling, tracing,
 	// routing etc.
-	Protocol string
+	Protocol string `json:",omitempty"`
 
 	// ConnectTimeoutMs is the number of milliseconds to timeout making a new
 	// connection to this upstream. Defaults to 5000 (5 seconds) if not set.
-	ConnectTimeoutMs int `alias:"connect_timeout_ms"`
+	ConnectTimeoutMs int `json:",omitempty" alias:"connect_timeout_ms"`
 
 	// Limits are the set of limits that are applied to the proxy for a specific upstream of a
 	// service instance.
@@ -672,23 +673,13 @@ type UpstreamConfig struct {
 	MeshGateway MeshGatewayConfig `json:",omitempty" alias:"mesh_gateway" `
 }
 
-func (cfg UpstreamConfig) MergeInto(dst map[string]interface{}, legacy bool) {
-	var (
-		listenerKey = "listener_json"
-		clusterKey  = "cluster_json"
-	)
-	// Starting in Consul 1.10, the "envoy_" prefix was removed from these flags
-	if legacy {
-		listenerKey = fmt.Sprintf("envoy_%s", listenerKey)
-		clusterKey = fmt.Sprintf("envoy_%s", clusterKey)
-	}
-
+func (cfg UpstreamConfig) MergeInto(dst map[string]interface{}) {
 	// Avoid storing empty values in the map, since these can act as overrides
-	if cfg.ListenerJSON != "" {
-		dst[listenerKey] = cfg.ListenerJSON
+	if cfg.EnvoyListenerJSON != "" {
+		dst["envoy_listener_json"] = cfg.EnvoyListenerJSON
 	}
-	if cfg.ClusterJSON != "" {
-		dst[clusterKey] = cfg.ClusterJSON
+	if cfg.EnvoyClusterJSON != "" {
+		dst["envoy_cluster_json"] = cfg.EnvoyClusterJSON
 	}
 	if cfg.Protocol != "" {
 		dst["protocol"] = cfg.Protocol
@@ -708,11 +699,7 @@ func (cfg UpstreamConfig) MergeInto(dst map[string]interface{}, legacy bool) {
 }
 
 func (cfg *UpstreamConfig) Normalize() {
-	if cfg.Protocol == "" {
-		cfg.Protocol = "tcp"
-	} else {
-		cfg.Protocol = strings.ToLower(cfg.Protocol)
-	}
+	cfg.Protocol = strings.ToLower(cfg.Protocol)
 
 	if cfg.ConnectTimeoutMs < 1 {
 		cfg.ConnectTimeoutMs = 5000
@@ -775,11 +762,11 @@ func ParseUpstreamConfig(m map[string]interface{}) (UpstreamConfig, error) {
 type PassiveHealthCheck struct {
 	// Interval between health check analysis sweeps. Each sweep may remove
 	// hosts or return hosts to the pool.
-	Interval time.Duration
+	Interval time.Duration `json:",omitempty"`
 
 	// MaxFailures is the count of consecutive failures that results in a host
 	// being removed from the pool.
-	MaxFailures uint32 `alias:"max_failures"`
+	MaxFailures uint32 `json:",omitempty" alias:"max_failures"`
 }
 
 func (chk *PassiveHealthCheck) IsZero() bool {
@@ -799,18 +786,18 @@ func (chk PassiveHealthCheck) Validate() error {
 type UpstreamLimits struct {
 	// MaxConnections is the maximum number of connections the local proxy can
 	// make to the upstream service.
-	MaxConnections *int `alias:"max_connections"`
+	MaxConnections *int `json:",omitempty" alias:"max_connections"`
 
 	// MaxPendingRequests is the maximum number of requests that will be queued
 	// waiting for an available connection. This is mostly applicable to HTTP/1.1
 	// clusters since all HTTP/2 requests are streamed over a single
 	// connection.
-	MaxPendingRequests *int `alias:"max_pending_requests"`
+	MaxPendingRequests *int `json:",omitempty" alias:"max_pending_requests"`
 
 	// MaxConcurrentRequests is the maximum number of in-flight requests that will be allowed
 	// to the upstream cluster at a point in time. This is mostly applicable to HTTP/2
 	// clusters since all HTTP/1.1 requests are limited by MaxConnections.
-	MaxConcurrentRequests *int `alias:"max_concurrent_requests"`
+	MaxConcurrentRequests *int `json:",omitempty" alias:"max_concurrent_requests"`
 }
 
 func (ul *UpstreamLimits) IsZero() bool {
@@ -978,30 +965,6 @@ func (c *ConfigEntryResponse) UnmarshalBinary(data []byte) error {
 	}
 
 	return nil
-}
-
-// ConfigEntryKindName is a value type useful for maps. You can use:
-//     map[ConfigEntryKindName]Payload
-// instead of:
-//     map[string]map[string]Payload
-type ConfigEntryKindName struct {
-	Kind string
-	Name string
-	EnterpriseMeta
-}
-
-func NewConfigEntryKindName(kind, name string, entMeta *EnterpriseMeta) ConfigEntryKindName {
-	ret := ConfigEntryKindName{
-		Kind: kind,
-		Name: name,
-	}
-	if entMeta == nil {
-		entMeta = DefaultEnterpriseMeta()
-	}
-
-	ret.EnterpriseMeta = *entMeta
-	ret.EnterpriseMeta.Normalize()
-	return ret
 }
 
 func validateConfigEntryMeta(meta map[string]string) error {

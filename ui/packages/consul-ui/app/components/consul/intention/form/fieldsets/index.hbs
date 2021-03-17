@@ -147,7 +147,7 @@
     <button
       data-test-create-permission
       type="button"
-      onclick={{action (mut shouldShowPermissionForm) true}}
+      {{on "click" (optional this.modal.open)}}
     >
       Add permission
     </button>
@@ -156,7 +156,7 @@
     <Consul::Intention::Notice::Permissions />
     <Consul::Intention::Permission::List
       @items={{item.Permissions}}
-      @onclick={{queue (action (mut permission)) (action (mut shouldShowPermissionForm) true)}}
+      @onclick={{queue (action (mut permission)) (action (optional this.modal.open))}}
       @ondelete={{action 'delete' 'Permissions' item}}
     />
 {{else}}
@@ -190,11 +190,11 @@
     </label>
   </fieldset>
 
-{{#if shouldShowPermissionForm}}
   <ModalDialog
     class="consul-intention-permission-modal"
-    @onclose={{queue (action (mut shouldShowPermissionForm) false) (action (mut permission) undefined)}}
+    @onclose={{action (mut permission) undefined}}
   as |modal|>
+    <Ref @target={{this}} @name="modal" @value={{modal}} />
     <BlockSlot @name="header">
       <h3>Edit Permission</h3>
     </BlockSlot>
@@ -225,6 +225,5 @@
       </button>
     </BlockSlot>
   </ModalDialog>
-{{/if}}
 
 </div>

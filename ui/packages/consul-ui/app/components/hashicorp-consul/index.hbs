@@ -125,11 +125,18 @@
               <a href={{href-to 'dc.intentions' @dc.Name}}>Intentions</a>
           </li>
 {{/if}}
-{{#if (can "read acls")}}
-          <li role="separator">Access Controls</li>
+          <li class="acls-separator" role="separator">
+            Access Controls
+{{#if (not (can "use acls"))}}
+            <span
+              {{tooltip "ACLs are not currently enabled in this cluster"}}
+            ></span>
+{{/if}}
+          </li>
           <li data-test-main-nav-tokens class={{if (is-href 'dc.acls.tokens' @dc.Name) 'is-active'}}>
               <a href={{href-to 'dc.acls.tokens' @dc.Name}}>Tokens</a>
           </li>
+{{#if (can "read acls")}}
           <li data-test-main-nav-policies class={{if (is-href 'dc.acls.policies' @dc.Name) 'is-active'}}>
               <a href={{href-to 'dc.acls.policies' @dc.Name}}>Policies</a>
           </li>
@@ -138,6 +145,16 @@
           </li>
           <li data-test-main-nav-auth-methods class={{if (is-href 'dc.acls.auth-methods' @dc.Name) 'is-active'}}>
               <a href={{href-to 'dc.acls.auth-methods' @dc.Name}}>Auth Methods</a>
+          </li>
+{{else if (not (can "use acls"))}}
+          <li data-test-main-nav-policies class={{if (is-href 'dc.acls.policies' @dc.Name) 'is-active'}}>
+              <span>Policies</span>
+          </li>
+          <li data-test-main-nav-roles class={{if (is-href 'dc.acls.roles' @dc.Name) 'is-active'}}>
+              <span>Roles</span>
+          </li>
+          <li data-test-main-nav-auth-methods class={{if (is-href 'dc.acls.auth-methods' @dc.Name) 'is-active'}}>
+              <span>Auth Methods</span>
           </li>
 {{/if}}
       </ul>
@@ -201,39 +218,45 @@
             >
               {{#let components.AuthForm components.AuthProfile as |AuthForm AuthProfile|}}
                 <BlockSlot @name="unauthorized">
-                  <label tabindex="0" for="login-toggle" onkeypress={{this.keypressClick}}>
+                  <label
+                    tabindex="0"
+                    {{on 'keypress' this.keypressClick}}
+                    {{on "click" (optional this.modal.open)}}
+                  >
                     <span>Log in</span>
                   </label>
-                  <ModalDialog @name="login-toggle" @onclose={{this.close}} @onopen={{this.open}} as |api|>
-                    <Ref @target={{this}} @name="modal" @value={{api}} />
+                  <ModalDialog @name="login-toggle" @onclose={{this.close}} @onopen={{this.open}} as |modal|>
+                    <Ref @target={{this}} @name="modal" @value={{modal}} />
                     <BlockSlot @name="header">
                       <h2>Log in to Consul</h2>
                     </BlockSlot>
                     <BlockSlot @name="body">
-                      <AuthForm as |api|>
-                        <Ref @target={{this}} @name="authForm" @value={{api}} />
+                      <AuthForm as |authForm|>
+                        <Ref @target={{this}} @name="authForm" @value={{authForm}} />
                       </AuthForm>
                     </BlockSlot>
-                    <BlockSlot @name="actions" as |close|>
-                      <button type="button" onclick={{action close}}>
+                    <BlockSlot @name="actions">
+                      <button type="button"
+                        {{on "click" modal.close}}
+                      >
                         Continue without logging in
                       </button>
                     </BlockSlot>
                   </ModalDialog>
                 </BlockSlot>
                 <BlockSlot @name="authorized">
-                  <ModalDialog @name="login-toggle" @onclose={{this.close}} @onopen={{this.open}} as |api|>
-                    <Ref @target={{this}} @name="modal" @value={{api}} />
+                  <ModalDialog @name="login-toggle" @onclose={{this.close}} @onopen={{this.open}} as |modal|>
+                    <Ref @target={{this}} @name="modal" @value={{modal}} />
                     <BlockSlot @name="header">
                       <h2>Log in with a different token</h2>
                     </BlockSlot>
                     <BlockSlot @name="body">
-                      <AuthForm as |api|>
-                        <Ref @target={{this}} @name="authForm" @value={{api}} />
+                      <AuthForm as |authForm|>
+                        <Ref @target={{this}} @name="authForm" @value={{authForm}} />
                       </AuthForm>
                     </BlockSlot>
-                    <BlockSlot @name="actions" as |close|>
-                      <button type="button" onclick={{action close}}>
+                    <BlockSlot @name="actions">
+                      <button type="button" onclick={{action modal.close}}>
                         Continue without logging in
                       </button>
                     </BlockSlot>
@@ -271,7 +294,9 @@
     </:complementary-nav>
 
     <:main>
-      {{yield}}
+      {{yield (hash
+        modal=this.modal
+      )}}
     </:main>
 
     <:content-info>

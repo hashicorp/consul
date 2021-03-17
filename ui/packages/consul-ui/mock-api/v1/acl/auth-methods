@@ -17,7 +17,11 @@
 ${typeof location.search.ns !== 'undefined' ? `
             "Namespace": "${location.search.ns}",
 ` : ``}
+${env('CONSUL_NSPACES_ENABLE', false) ? `
             "Type": "${fake.helpers.randomize(['kubernetes', 'jwt', 'oidc'])}",
+` : `
+            "Type": "${fake.helpers.randomize(['kubernetes', 'jwt'])}",
+`}
             "Description": "${fake.lorem.sentence()}",
 ${i%2 ? `
             "DisplayName": "${fake.hacker.noun()}-${i}",

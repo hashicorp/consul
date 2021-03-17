@@ -1571,6 +1571,7 @@ func (b *builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		Shell:                          stringVal(v.Shell),
 		GRPC:                           stringVal(v.GRPC),
 		GRPCUseTLS:                     boolVal(v.GRPCUseTLS),
+		TLSServerName:                  stringVal(v.TLSServerName),
 		TLSSkipVerify:                  boolVal(v.TLSSkipVerify),
 		AliasNode:                      stringVal(v.AliasNode),
 		AliasService:                   stringVal(v.AliasService),

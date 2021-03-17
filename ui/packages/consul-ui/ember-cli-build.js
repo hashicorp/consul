@@ -57,6 +57,10 @@ module.exports = function(defaults) {
         plugins: ['@babel/plugin-proposal-object-rest-spread'],
         sourceMaps: sourcemaps ? 'inline' : false,
       },
+      autoImport: {
+        // allows use of a CSP without 'unsafe-eval' directive
+        forbidEval: true,
+      },
       codemirror: {
         keyMaps: ['sublime'],
         addonFiles: [

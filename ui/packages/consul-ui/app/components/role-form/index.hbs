@@ -1,5 +1,9 @@
 {{yield}}
-<fieldset class="role-form" data-test-role-form>
+<fieldset
+  disabled={{if (not (can "write role" item=item)) "disabled"}}
+  class="role-form"
+  data-test-role-form
+>
     <label class="type-text{{if item.error.Name ' has-error'}}">
         <span>Name</span>
         <input type="text" value={{item.Name}} name="role[Name]" autofocus="autofocus" oninput={{action 'change'}} />
@@ -21,6 +25,11 @@
   {{#yield-slot name='policy' params=(block-params item)}}
     {{yield}}
   {{else}}
-    <PolicySelector @dc={{dc}} @nspace={{nspace}} @items={{item.Policies}} />
+    <PolicySelector
+      @disabled={{not (can "write role" item=item)}}
+      @dc={{dc}}
+      @nspace={{nspace}}
+      @items={{item.Policies}}
+    />
   {{/yield-slot}}
 </fieldset>

@@ -4,6 +4,7 @@ package state
 
 import (
 	"fmt"
+	"strings"
 
 	memdb "github.com/hashicorp/go-memdb"
 
@@ -11,6 +12,80 @@ import (
 )
 
 func withEnterpriseSchema(_ *memdb.DBSchema) {}
+
+func indexNodeServiceFromHealthCheck(raw interface{}) ([]byte, error) {
+	hc, ok := raw.(*structs.HealthCheck)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.HealthCheck index", raw)
+	}
+
+	if hc.Node == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(hc.Node))
+	b.String(strings.ToLower(hc.ServiceID))
+	return b.Bytes(), nil
+}
+
+func indexFromNodeServiceQuery(arg interface{}) ([]byte, error) {
+	hc, ok := arg.(NodeServiceQuery)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for NodeServiceQuery index", arg)
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(hc.Node))
+	b.String(strings.ToLower(hc.Service))
+	return b.Bytes(), nil
+}
+
+func indexFromNode(raw interface{}) ([]byte, error) {
+	n, ok := raw.(*structs.Node)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for structs.Node index", raw)
+	}
+
+	if n.Node == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(n.Node))
+	return b.Bytes(), nil
+}
+
+// indexFromNodeQuery builds an index key where Query.Value is lowercase, and is
+// a required value.
+func indexFromNodeQuery(arg interface{}) ([]byte, error) {
+	q, ok := arg.(Query)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for Query index", arg)
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(q.Value))
+	return b.Bytes(), nil
+}
+
+func indexFromNodeIdentity(raw interface{}) ([]byte, error) {
+	n, ok := raw.(interface {
+		NodeIdentity() structs.Identity
+	})
+	if !ok {
+		return nil, fmt.Errorf("unexpected type %T for index, type must provide NodeIdentity()", raw)
+	}
+
+	id := n.NodeIdentity()
+	if id.ID == "" {
+		return nil, errMissingValueForIndex
+	}
+
+	var b indexBuilder
+	b.String(strings.ToLower(id.ID))
+	return b.Bytes(), nil
+}
 
 func serviceIndexName(name string, _ *structs.EnterpriseMeta) string {
 	return fmt.Sprintf("service.%s", name)
@@ -102,7 +177,7 @@ func catalogServiceListByKind(tx ReadTxn, kind structs.ServiceKind, _ *structs.E
 }
 
 func catalogServiceListByNode(tx ReadTxn, node string, _ *structs.EnterpriseMeta, _ bool) (memdb.ResultIterator, error) {
-	return tx.Get("services", "node", node)
+	return tx.Get(tableServices, indexNode, Query{Value: node})
 }
 
 func catalogServiceNodeList(tx ReadTxn, name string, index string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
@@ -139,8 +214,8 @@ func catalogChecksMaxIndex(tx ReadTxn, _ *structs.EnterpriseMeta) uint64 {
 	return maxIndexTxn(tx, "checks")
 }
 
-func catalogListChecksByNode(tx ReadTxn, node string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get("checks", "node", node)
+func catalogListChecksByNode(tx ReadTxn, q Query) (memdb.ResultIterator, error) {
+	return tx.Get(tableChecks, indexNode, q)
 }
 
 func catalogListChecksByService(tx ReadTxn, service string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
@@ -156,14 +231,6 @@ func catalogListChecks(tx ReadTxn, _ *structs.EnterpriseMeta) (memdb.ResultItera
 	return tx.Get("checks", "id")
 }
 
-func catalogListNodeChecks(tx ReadTxn, node string) (memdb.ResultIterator, error) {
-	return tx.Get("checks", "node_service_check", node, false)
-}
-
-func catalogListServiceChecks(tx ReadTxn, node string, service string, _ *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get("checks", "node_service", node, service)
-}
-
 func catalogInsertCheck(tx WriteTxn, chk *structs.HealthCheck, idx uint64) error {
 	// Insert the check
 	if err := tx.Insert("checks", chk); err != nil {
@@ -175,10 +242,6 @@ func catalogInsertCheck(tx WriteTxn, chk *structs.HealthCheck, idx uint64) error
 	}
 
 	return nil
-}
-
-func catalogChecksForNodeService(tx ReadTxn, node string, service string, entMeta *structs.EnterpriseMeta) (memdb.ResultIterator, error) {
-	return tx.Get("checks", "node_service", node, service)
 }
 
 func validateRegisterRequestTxn(_ ReadTxn, _ *structs.RegisterRequest, _ bool) (*structs.EnterpriseMeta, error) {

@@ -994,7 +994,6 @@ func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.
 
 	addReq := AddServiceRequest{
 		Service:               ns,
-		nodeName:              s.agent.config.NodeName,
 		chkTypes:              chkTypes,
 		persist:               true,
 		token:                 token,
@@ -1008,7 +1007,6 @@ func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.
 	if sidecar != nil {
 		addReq := AddServiceRequest{
 			Service:               sidecar,
-			nodeName:              s.agent.config.NodeName,
 			chkTypes:              sidecarChecks,
 			persist:               true,
 			token:                 sidecarToken,

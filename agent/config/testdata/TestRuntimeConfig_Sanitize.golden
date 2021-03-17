@@ -107,6 +107,7 @@
             "Status": "",
             "SuccessBeforePassing": 0,
             "TCP": "",
+            "TLSServerName": "",
             "TLSSkipVerify": false,
             "TTL": "0s",
             "Timeout": "0s",
@@ -307,6 +308,7 @@
                 "Status": "",
                 "SuccessBeforePassing": 0,
                 "TCP": "",
+                "TLSServerName": "",
                 "TLSSkipVerify": false,
                 "TTL": "0s",
                 "Timeout": "0s"

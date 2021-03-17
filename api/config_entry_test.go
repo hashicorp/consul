@@ -351,8 +351,8 @@ func TestDecodeConfigEntry(t *testing.T) {
 						}
 					},
 					"UpstreamDefaults": {
-						"ClusterJSON": "zip",
-						"ListenerJSON": "zop",
+						"EnvoyClusterJSON": "zip",
+						"EnvoyListenerJSON": "zop",
 						"ConnectTimeoutMs": 5000,
 						"Protocol": "http",
 						"Limits": {
@@ -394,10 +394,10 @@ func TestDecodeConfigEntry(t *testing.T) {
 						},
 					},
 					UpstreamDefaults: UpstreamConfig{
-						ClusterJSON:      "zip",
-						ListenerJSON:     "zop",
-						Protocol:         "http",
-						ConnectTimeoutMs: 5000,
+						EnvoyClusterJSON:  "zip",
+						EnvoyListenerJSON: "zop",
+						Protocol:          "http",
+						ConnectTimeoutMs:  5000,
 						Limits: &UpstreamLimits{
 							MaxConnections:        3,
 							MaxPendingRequests:    4,

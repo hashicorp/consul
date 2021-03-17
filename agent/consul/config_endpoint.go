@@ -330,10 +330,10 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 		func(ws memdb.WatchSet, state *state.Store) error {
 			reply.Reset()
 			reply.MeshGateway.Mode = structs.MeshGatewayModeDefault
-
+			// TODO(freddy) Refactor this into smaller set of state store functions
 			// Pass the WatchSet to both the service and proxy config lookups. If either is updated during the
 			// blocking query, this function will be rerun and these state store lookups will both be current.
-			// We use the default enterprise meta to look up the global proxy defaults because their are not namespaced.
+			// We use the default enterprise meta to look up the global proxy defaults because they are not namespaced.
 			_, proxyEntry, err := state.ConfigEntry(ws, structs.ProxyDefaults, structs.ProxyConfigGlobal, structs.DefaultEnterpriseMeta())
 			if err != nil {
 				return err
@@ -449,27 +449,6 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 				}
 			}
 
-			// The goal is to flatten the mesh gateway mode in this order:
-			// 	0. Value from centralized upstream_defaults
-			// 	1. Value from local proxy registration
-			// 	2. Value from centralized upstream_configs
-			// 	3. Value from local upstream definition. This last step is done in the client's service manager.
-			var registrationMGConfig structs.MeshGatewayConfig
-
-			if args.ID != "" && args.NodeName != "" {
-				index, registration, err := state.NodeServiceWatch(ws, args.NodeName, args.ID, &args.EnterpriseMeta)
-				if err != nil {
-					return fmt.Errorf("failed to query service registration")
-				}
-				if index > reply.Index {
-					reply.Index = index
-				}
-
-				if registration != nil && !registration.Proxy.MeshGateway.IsZero() {
-					registrationMGConfig = registration.Proxy.MeshGateway
-				}
-			}
-
 			// usConfigs stores the opaque config map for each upstream and is keyed on the upstream's ID.
 			usConfigs := make(map[structs.ServiceID]map[string]interface{})
 
@@ -502,16 +481,23 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 
 				// Merge centralized defaults for all upstreams before configuration for specific upstreams
 				if upstreamDefaults != nil {
-					upstreamDefaults.MergeInto(resolvedCfg, args.ID == "")
+					upstreamDefaults.MergeInto(resolvedCfg)
 				}
-				// The value from the proxy registration overrides the one from upstream_defaults because
-				// it is specific to the proxy instance
-				if !registrationMGConfig.IsZero() {
-					resolvedCfg["mesh_gateway"] = registrationMGConfig
+
+				// The MeshGateway value from the proxy registration overrides the one from upstream_defaults
+				// because it is specific to the proxy instance.
+				//
+				// The goal is to flatten the mesh gateway mode in this order:
+				// 	0. Value from centralized upstream_defaults
+				// 	1. Value from local proxy registration
+				// 	2. Value from centralized upstream_configs
+				// 	3. Value from local upstream definition. This last step is done in the client's service manager.
+				if !args.MeshGateway.IsZero() {
+					resolvedCfg["mesh_gateway"] = args.MeshGateway
 				}
 
 				if upstreamConfigs[upstream.String()] != nil {
-					upstreamConfigs[upstream.String()].MergeInto(resolvedCfg, args.ID == "")
+					upstreamConfigs[upstream.String()].MergeInto(resolvedCfg)
 				}
 
 				if len(resolvedCfg) > 0 {

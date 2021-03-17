@@ -34,7 +34,11 @@ const dont = `( don't| shouldn't| can't)?`;
 export default function(scenario, assert, find, currentPage, $) {
   scenario
     .then([`I${dont} $verb the $pageObject object`], function(negative, verb, element, next) {
-      assert[negative ? 'notOk' : 'ok'](element[verb]());
+      let res = element[verb];
+      if (typeof res === 'function') {
+        res = res.call(element);
+      }
+      assert[negative ? 'notOk' : 'ok'](res, this.step);
       setTimeout(() => next());
     })
     .then(

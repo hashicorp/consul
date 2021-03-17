@@ -154,7 +154,7 @@ func (s *Store) LegacyIntentions(ws memdb.WatchSet, entMeta *structs.EnterpriseM
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	idx, results, _, err := s.legacyIntentionsListTxn(tx, ws, entMeta)
+	idx, results, _, err := legacyIntentionsListTxn(tx, ws, entMeta)
 	return idx, results, err
 }
 
@@ -168,12 +168,12 @@ func (s *Store) Intentions(ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (
 		return 0, nil, false, err
 	}
 	if !usingConfigEntries {
-		return s.legacyIntentionsListTxn(tx, ws, entMeta)
+		return legacyIntentionsListTxn(tx, ws, entMeta)
 	}
-	return s.configIntentionsListTxn(tx, ws, entMeta)
+	return configIntentionsListTxn(tx, ws, entMeta)
 }
 
-func (s *Store) legacyIntentionsListTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.Intentions, bool, error) {
+func legacyIntentionsListTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.Intentions, bool, error) {
 	// Get the index
 	idx := maxIndexTxn(tx, tableConnectIntentions)
 	if idx < 1 {
@@ -578,13 +578,13 @@ func (s *Store) IntentionGet(ws memdb.WatchSet, id string) (uint64, *structs.Ser
 		return 0, nil, nil, err
 	}
 	if !usingConfigEntries {
-		idx, ixn, err := s.legacyIntentionGetTxn(tx, ws, id)
+		idx, ixn, err := legacyIntentionGetTxn(tx, ws, id)
 		return idx, nil, ixn, err
 	}
-	return s.configIntentionGetTxn(tx, ws, id)
+	return configIntentionGetTxn(tx, ws, id)
 }
 
-func (s *Store) legacyIntentionGetTxn(tx ReadTxn, ws memdb.WatchSet, id string) (uint64, *structs.Intention, error) {
+func legacyIntentionGetTxn(tx ReadTxn, ws memdb.WatchSet, id string) (uint64, *structs.Intention, error) {
 	// Get the table index.
 	idx := maxIndexTxn(tx, tableConnectIntentions)
 	if idx < 1 {

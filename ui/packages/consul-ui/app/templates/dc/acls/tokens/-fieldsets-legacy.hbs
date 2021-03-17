@@ -1,4 +1,6 @@
-    <fieldset>
+    <fieldset
+      disabled={{if (not (can "write token" item=item)) "disabled"}}
+    >
         <label class="type-text{{if item.error.Name ' has-error'}}">
             <span>Name</span>
             <Input @value={{item.Description}} @name="name" @autofocus="autofocus" />

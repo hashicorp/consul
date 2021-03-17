@@ -6,6 +6,7 @@ import {
   collection,
   text,
   isPresent,
+  isVisible,
 } from 'ember-cli-page-object';
 
 import { alias } from 'ember-cli-page-object/macros';
@@ -92,7 +93,7 @@ const emptyState = emptyStateFactory(isPresent);
 
 const consulHealthCheckList = consulHealthCheckListFactory(collection, text);
 const consulUpstreamInstanceList = consulUpstreamInstanceListFactory(collection, text);
-const consulAuthMethodList = consulAuthMethodListFactory(collection, text);
+const consulAuthMethodList = consulAuthMethodListFactory(collection, clickable, text);
 const consulIntentionList = consulIntentionListFactory(
   collection,
   clickable,
@@ -204,7 +205,7 @@ export default {
     intention(
       visitable,
       clickable,
-      isPresent,
+      isVisible,
       submitable,
       deletable,
       cancelable,

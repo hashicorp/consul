@@ -383,7 +383,7 @@ func (s *TestServer) waitForAPI() error {
 // waitForLeader waits for the Consul server's HTTP API to become
 // available, and then waits for a known leader and an index of
 // 2 or more to be observed to confirm leader election is done.
-func (s *TestServer) WaitForLeader(t *testing.T) {
+func (s *TestServer) WaitForLeader(t testing.TB) {
 	retry.Run(t, func(r *retry.R) {
 		// Query the API and check the status code.
 		url := s.url("/v1/catalog/nodes")
@@ -412,7 +412,7 @@ func (s *TestServer) WaitForLeader(t *testing.T) {
 
 // WaitForActiveCARoot waits until the server can return a Connect CA meaning
 // connect has completed bootstrapping and is ready to use.
-func (s *TestServer) WaitForActiveCARoot(t *testing.T) {
+func (s *TestServer) WaitForActiveCARoot(t testing.TB) {
 	// don't need to fully decode the response
 	type rootsResponse struct {
 		ActiveRootID string
@@ -452,7 +452,7 @@ func (s *TestServer) WaitForActiveCARoot(t *testing.T) {
 // WaitForServiceIntentions waits until the server can accept config entry
 // kinds of service-intentions meaning any migration bootstrapping from pre-1.9
 // intentions has completed.
-func (s *TestServer) WaitForServiceIntentions(t *testing.T) {
+func (s *TestServer) WaitForServiceIntentions(t testing.TB) {
 	const fakeConfigName = "Sa4ohw5raith4si0Ohwuqu3lowiethoh"
 	retry.Run(t, func(r *retry.R) {
 		// Try to delete a non-existent service-intentions config entry. The
@@ -472,7 +472,7 @@ func (s *TestServer) WaitForServiceIntentions(t *testing.T) {
 
 // WaitForSerfCheck ensures we have a node with serfHealth check registered
 // Behavior mirrors testrpc.WaitForTestAgent but avoids the dependency cycle in api pkg
-func (s *TestServer) WaitForSerfCheck(t *testing.T) {
+func (s *TestServer) WaitForSerfCheck(t testing.TB) {
 	retry.Run(t, func(r *retry.R) {
 		// Query the API and check the status code.
 		url := s.url("/v1/catalog/nodes?index=0")

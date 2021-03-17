@@ -1,0 +1,29 @@
+---
+title: Introduction
+---
+# Consul UI Engineering Docs
+
+Welcome to Consul UIs engineering documentation.
+
+## Adding documentation
+
+Our documentation use [docfy](https://docfy.dev/docs) for rendering our markdown+glimmer-component documentation. In order to live render any code examples use the `preview-template` meta, for example:
+
+~~~md
+```hbs preview-template
+<YourComponent
+  @thing={{var}}
+/>
+```
+~~~
+
+The above will render the same code snippet in a box above the snippet.
+
+The location and name of markdown files within the project differs slightly depending on what you need to add documentation for:
+
+- **docs**: `docs/filename.mdx`
+- **components**: `components/your-component-name/README.mdx`
+- **helpers**: `helpers/your-helper-name.mdx`
+- **modifiers**: `modifiers/your-modifier-name.mdx`
+- **services**: `services/your-service-name.mdx` (eventually these will partly use jsdoc code style generation)
+

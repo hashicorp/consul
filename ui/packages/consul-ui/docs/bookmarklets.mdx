@@ -1,0 +1,21 @@
+# Debug/Engineering Utilities
+
+The Consul UI has a set of debug/engineering utility functions that only exist in non-production environments (they are noop'ed from production builds using Ember's `runInDebug`). You can call these either straight from Web Inspectors `console`, or by using `javascript:` URLs i.e. `javascript:Routes()`.
+
+Below is a list of the most commonly used functions as bookmarklets followed by more detailed documentation on these utilities. The bookmarklets can be added to your browser by dragging the bookmarklet link into your browsers Bookmarks Bar.
+
+| Link/Bookmarklet | Description |
+| ---- | ----------- |
+| [Print Routing DSL](javascript:Routes()) | Print out Ember's Route DSL for the application |
+| [Save Current Scenario](javascript:Scenario()) | Opens a tab with links to allow you to create a bookmarklet or share a URL of your current scenario (your Consul UI relarted development/debug cookies) |
+| [Enable ACLs](javascript:Scenario('CONSUL_ACLS_ENABLE=1')) | Enable ACLs |
+| [Enable Nspaces](javascript:Scenario('CONSUL_NSPACES_ENABLE=1')) | Enable Namespace Support |
+| [Enable SSO ](javascript:Scenario('CONSUL_SSO_ENABLE=1')) | Enable SSO Support |
+| [Enable Metrics](javascript:Scenario('CONSUL_METRICS_PROXY_ENABLE=1;CONSUL_METRICS_PROVIDER=prometheus')) | Enable all configuration required for viewing the full Metrics Visualization |
+
+| Function | Arguments | Description |
+| -------- | --------- | ----------- |
+| `Routes(url)` | url: The url to pass the DSL to, if left `undefined` just use a blank tab | Provides a way to easily print out Embers Route DSL for the application or to pass it straight to any third party utility such as ember-diagonal |
+| `Scenario(str)` | str: 'Cookie formatted' string, if left `undefined` open a new tab with a link/bookmarklet to the current Scenario | Provides a way to easily save and reload scenarios of configurations via URLs or bookmarklets |
+
+
