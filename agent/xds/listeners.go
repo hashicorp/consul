@@ -33,6 +33,7 @@ import (
 )
 
 const (
+	// TODO (freddy) Make this configurable
 	TProxyOutboundPort = 15001
 )
 
@@ -88,9 +89,6 @@ func (s *Server) listenersFromSnapshotConnectProxy(cInfo connectionInfo, cfgSnap
 
 	for id, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
 		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[id]
-		if upstreamCfg != nil && upstreamCfg.DestinationType == structs.UpstreamDestTypePreparedQuery {
-			continue
-		}
 		cfg := getAndModifyUpstreamConfigForListener(s.Logger, id, upstreamCfg, chain)
 
 		// If escape hatch is present, create a listener from it and move on to the next
@@ -718,6 +716,30 @@ func (s *Server) makeInboundListener(cInfo connectionInfo, cfgSnap *proxycfg.Con
 			return nil, err
 		}
 
+		// For HTTP-like services attach an RBAC http filter and do a best-effort insert
+		if useHTTPFilter {
+			httpAuthzFilter, err := makeRBACHTTPFilter(
+				cfgSnap.ConnectProxy.Intentions,
+				cfgSnap.IntentionDefaultAllow,
+			)
+			if err != nil {
+				return nil, err
+			}
+
+			// Try our best to inject the HTTP RBAC filter.
+			if err := injectHTTPFilterOnFilterChains(l, httpAuthzFilter); err != nil {
+				s.Logger.Warn(
+					"could not inject the HTTP RBAC filter to enforce intentions on user-provided "+
+						"'envoy_public_listener_json' config; falling back on the RBAC network filter instead",
+					"proxy", cfgSnap.ProxyID,
+					"error", err,
+				)
+
+				// If we get an error inject the RBAC network filter instead.
+				useHTTPFilter = false
+			}
+		}
+
 		err := s.finalizePublicListenerFromConfig(l, cInfo, cfgSnap, useHTTPFilter)
 		if err != nil {
 			return nil, fmt.Errorf("failed to attach Consul filters and TLS context to custom public listener: %v", err)
@@ -725,7 +747,7 @@ func (s *Server) makeInboundListener(cInfo connectionInfo, cfgSnap *proxycfg.Con
 		return l, nil
 	}
 
-	// No user config, use default listener address
+	// No JSON user config, use default listener address
 	// Default to listening on all addresses, but override with bind address if one is set.
 	addr := cfgSnap.Address
 	if addr == "" {
@@ -738,9 +760,6 @@ func (s *Server) makeInboundListener(cInfo connectionInfo, cfgSnap *proxycfg.Con
 	// Override with bind port if one is set, otherwise default to
 	// proxy service's address
 	port := cfgSnap.Port
-	// if cfgSnap.Proxy.TransparentProxy {
-	// 	port = TProxyInboundPort
-	// }
 	if cfg.BindPort != 0 {
 		port = cfg.BindPort
 	}
@@ -775,47 +794,18 @@ func (s *Server) makeInboundListener(cInfo connectionInfo, cfgSnap *proxycfg.Con
 		},
 	}
 
-	if !useHTTPFilter {
-		// Authz filters for non-HTTP services need to be inserted at the head of the list of filters
-		// on the filter chain.
-		if err := s.injectConnectFilters(cInfo, cfgSnap, l); err != nil {
-			return nil, err
-		}
-	}
-	if err := s.injectConnectTLSOnFilterChains(cInfo, cfgSnap, l); err != nil {
-		return nil, err
+	err = s.finalizePublicListenerFromConfig(l, cInfo, cfgSnap, useHTTPFilter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to attach Consul filters and TLS context to custom public listener: %v", err)
 	}
 
 	return l, err
 }
 
-// finalizePublicListenerFromConfig is used for best-effort injection of Consul filter-chains onto custom public listeners.
+// finalizePublicListenerFromConfig is used for best-effort injection of Consul filter-chains onto listeners.
+// This include L4 authorization filters and TLS context.
 func (s *Server) finalizePublicListenerFromConfig(l *envoy_listener_v3.Listener,
 	cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot, useHTTPFilter bool) error {
-
-	// For HTTP-like services attach an RBAC http filter and do a best-effort insert
-	if useHTTPFilter {
-		httpAuthzFilter, err := makeRBACHTTPFilter(
-			cfgSnap.ConnectProxy.Intentions,
-			cfgSnap.IntentionDefaultAllow,
-		)
-		if err != nil {
-			return err
-		}
-
-		// We're using the listener escape hatch, so try our best to inject the HTTP RBAC filter.
-		if err := injectHTTPFilterOnFilterChains(l, httpAuthzFilter); err != nil {
-			s.Logger.Warn(
-				"could not inject the HTTP RBAC filter to enforce intentions on user-provided "+
-					"'envoy_public_listener_json' config; falling back on the RBAC network filter instead",
-				"proxy", cfgSnap.ProxyID,
-				"error", err,
-			)
-
-			// If we get an error inject the RBAC network filter instead.
-			useHTTPFilter = false
-		}
-	}
 	if !useHTTPFilter {
 		// Best-effort injection of L4 intentions
 		if err := s.injectConnectFilters(cInfo, cfgSnap, l); err != nil {

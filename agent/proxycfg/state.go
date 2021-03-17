@@ -311,7 +311,9 @@ func (s *state) initWatchesConnectProxy(snap *ConfigSnapshot) error {
 	}
 
 	// Watch for updates to service endpoints for all upstreams
-	for _, u := range s.proxyCfg.Upstreams {
+	for i := range s.proxyCfg.Upstreams {
+		u := s.proxyCfg.Upstreams[i]
+
 		// This can be true if the upstream is a synthetic entry populated from centralized upstream config.
 		// Watches should not be created for them.
 		if u.CentrallyConfigured {
