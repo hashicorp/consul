@@ -1084,10 +1084,10 @@
     unist-util-visit "^2.0.2"
     yaml "^1.9.2"
 
-"@docfy/ember@^0.4.0":
-  version "0.4.0"
-  resolved "https://registry.yarnpkg.com/@docfy/ember/-/ember-0.4.0.tgz#0eee5438970a0f41caeb521c4c65438b027cd9ba"
-  integrity sha512-I7n8qrwtnCsHxVdcIQTiFZqdnZXHczoOZbVQgFyhrQSX+q+2GablTEJFxicQx7AZSuXgJp9gipD6Ln59QZfvDA==
+"@docfy/ember@^0.4.1":
+  version "0.4.1"
+  resolved "https://registry.yarnpkg.com/@docfy/ember/-/ember-0.4.1.tgz#1a46a21392ec07b87006f94eab4d5ebb4df77bf9"
+  integrity sha512-TBCc4WntXUydZZd9muF6S0DtMR0eTQkfJVC5v3+5dloOnY/avyz0fNwaldIrDIHXudl1cYentnEaxRP9Bp4o9g==
   dependencies:
     "@docfy/core" "^0.4.0"
     broccoli-bridge "^1.0.0"
