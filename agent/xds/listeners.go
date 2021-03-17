@@ -242,9 +242,9 @@ func (s *Server) listenersFromSnapshotConnectProxy(cInfo connectionInfo, cfgSnap
 		resources = append(resources, outboundListener)
 	}
 
+	// Looping over explicit upstreams is only needed for prepared queries because they do not have discovery chains
 	for id, u := range cfgSnap.ConnectProxy.UpstreamConfig {
-		if _, ok := cfgSnap.ConnectProxy.DiscoveryChain[id]; ok && u.DestinationType != structs.UpstreamDestTypePreparedQuery {
-			// This upstream is already covered above
+		if u.DestinationType != structs.UpstreamDestTypePreparedQuery {
 			continue
 		}
 
@@ -258,10 +258,7 @@ func (s *Server) listenersFromSnapshotConnectProxy(cInfo connectionInfo, cfgSnap
 		if u.LocalBindAddress != "" {
 			address = u.LocalBindAddress
 		}
-		// This is the case where upstream config is centralized but no port was specified
-		if u.LocalBindPort == 0 {
-			continue
-		}
+
 		upstreamListener := makeListener(id, address, u.LocalBindPort, envoy_core_v3.TrafficDirection_OUTBOUND)
 
 		filterChain, err := s.makeUpstreamFilterChainForDiscoveryChain(
