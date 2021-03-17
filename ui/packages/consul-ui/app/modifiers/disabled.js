@@ -1,6 +1,6 @@
 import { modifier } from 'ember-modifier';
 
-export default modifier(function enabled($element, [bool], hash) {
+export default modifier(function enabled($element, [bool = true], hash) {
   if (['input', 'textarea', 'select', 'button'].includes($element.nodeName.toLowerCase())) {
     if (bool) {
       $element.disabled = bool;
