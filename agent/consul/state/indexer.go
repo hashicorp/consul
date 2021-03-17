@@ -30,6 +30,13 @@ type indexerMulti struct {
 	writeIndexMulti
 }
 
+// indexerSingleWithPrefix is a indexerSingle which also supports prefix queries.
+type indexerSingleWithPrefix struct {
+	readIndex
+	writeIndex
+	prefixIndex
+}
+
 // readIndex implements memdb.Indexer. It exists so that a function can be used
 // to provide the interface.
 //
@@ -76,6 +83,17 @@ func (f writeIndexMulti) FromObject(raw interface{}) (bool, [][]byte, error) {
 		return false, nil, nil
 	}
 	return err == nil, v, err
+}
+
+// prefixIndex implements memdb.PrefixIndexer. It exists so that a function
+// can be used to provide this interface.
+type prefixIndex func(args interface{}) ([]byte, error)
+
+func (f prefixIndex) PrefixFromArgs(args ...interface{}) ([]byte, error) {
+	if len(args) != 1 {
+		return nil, fmt.Errorf("index supports only a single arg")
+	}
+	return f(args[0])
 }
 
 const null = "\x00"

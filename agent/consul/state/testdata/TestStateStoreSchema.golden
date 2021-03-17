@@ -60,13 +60,13 @@ table=checks
 
 table=config-entries
   index=id unique
-    indexer=github.com/hashicorp/go-memdb.CompoundIndex Indexes=[github.com/hashicorp/go-memdb.StringFieldIndex Field=Kind Lowercase=true, github.com/hashicorp/go-memdb.StringFieldIndex Field=Name Lowercase=true] AllowMissing=false
+    indexer=github.com/hashicorp/consul/agent/consul/state.indexerSingleWithPrefix readIndex=github.com/hashicorp/consul/agent/consul/state.indexFromConfigEntryKindName writeIndex=github.com/hashicorp/consul/agent/consul/state.indexFromConfigEntry prefixIndex=github.com/hashicorp/consul/agent/consul/state.indexFromConfigEntryKindName
   index=intention-legacy-id unique allow-missing
     indexer=github.com/hashicorp/consul/agent/consul/state.ServiceIntentionLegacyIDIndex uuidFieldIndex={}
   index=intention-source allow-missing
     indexer=github.com/hashicorp/consul/agent/consul/state.ServiceIntentionSourceIndex
   index=kind
-    indexer=github.com/hashicorp/go-memdb.StringFieldIndex Field=Kind Lowercase=true
+    indexer=github.com/hashicorp/consul/agent/consul/state.indexerSingle readIndex=github.com/hashicorp/consul/agent/consul/state.indexFromConfigEntryKindQuery writeIndex=github.com/hashicorp/consul/agent/consul/state.indexKindFromConfigEntry
   index=link allow-missing
     indexer=github.com/hashicorp/consul/agent/consul/state.ConfigEntryLinkIndex
 

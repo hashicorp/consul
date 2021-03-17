@@ -123,7 +123,7 @@ func (s *ServiceIntentionSourceIndex) FromArgs(args ...interface{}) ([]byte, err
 	return []byte(arg.String() + "\x00"), nil
 }
 
-func (s *Store) configIntentionsListTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.Intentions, bool, error) {
+func configIntentionsListTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *structs.EnterpriseMeta) (uint64, structs.Intentions, bool, error) {
 	// unrolled part of configEntriesByKindTxn
 
 	idx := maxIndexTxn(tx, tableConfigEntries)
@@ -144,7 +144,7 @@ func (s *Store) configIntentionsListTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *
 	return idx, results, true, nil
 }
 
-func (s *Store) configIntentionGetTxn(tx ReadTxn, ws memdb.WatchSet, id string) (uint64, *structs.ServiceIntentionsConfigEntry, *structs.Intention, error) {
+func configIntentionGetTxn(tx ReadTxn, ws memdb.WatchSet, id string) (uint64, *structs.ServiceIntentionsConfigEntry, *structs.Intention, error) {
 	idx := maxIndexTxn(tx, tableConfigEntries)
 	if idx < 1 {
 		idx = 1
