@@ -12,7 +12,7 @@
   button.show::before {
     @extend %with-visibility-show-icon, %as-pseudo;
   }
-  div.key {
+  code {
     background-color: var(--gray-050);
     overflow-wrap: anywhere;
   }
