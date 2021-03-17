@@ -1,4 +1,7 @@
-## DataCollection
+---
+class: ember
+---
+# DataCollection
 
 ```hbs
 <DataCollection
@@ -7,7 +10,7 @@
   @filter={{hash
     searchproperties=(array)
   }}
-  @items={{array}}
+  @items={{array 'hi'}}
 as |collection|>
   {{collection.items.length}}
   <collection.Collection>

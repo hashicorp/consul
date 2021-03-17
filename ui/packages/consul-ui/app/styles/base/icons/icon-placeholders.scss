@@ -488,6 +488,11 @@
   mask-image: $edit-svg;
 }
 
+%with-ember-circle-logo-color-icon {
+  @extend %with-icon;
+  background-image: $ember-circle-logo-color-svg;
+}
+
 %with-envelope-sealed-fill-icon {
   @extend %with-icon;
   background-image: $envelope-sealed-fill-svg;
@@ -698,6 +703,10 @@
   mask-image: $git-repository-svg;
 }
 
+%with-glimmer-logo-color-icon {
+  @extend %with-icon;
+  background-image: $glimmer-logo-color-svg;
+}
 %with-hashicorp-logo-icon {
   @extend %with-icon;
   background-image: $hashicorp-logo-svg;

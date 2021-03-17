@@ -1,0 +1,39 @@
+# disabled
+
+The disabled modifer works similarly to the [`<fieldset disabled>`
+attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/fieldset#attr-disabled),
+in that it will disable all form elements within the fieldset, which is really
+useful for controlling disabled states of entire forms with just one
+modifier/attributes
+
+There are three downsides to the `<fieldset disabled>` attribute:
+
+1. It only works for fieldsets and its descendants.
+2. fieldsets can cause trouble with flex-box
+3. You cannot opt out for an individual form element. Say if you want to say 'all but one of these form elements should be disabled'
+
+Therefore we use a `{{disabled true|false}}` modifier to work around these
+downsides.
+
+The following shows a disabling a group of form elements but excluding one
+single form element from being disabled.
+
+<style>
+  input {
+    border: 1px solid black;
+  }
+</style>
+
+```hbs preview-template
+<div
+  {{disabled true}}
+>
+  Disabled: <input type="text" placeholder="Disabled" /><br />
+  Disabled: <input type="checkbox" /><br />
+  Enabled: <input
+    {{disabled false}}
+    placeholder="Not disabled"
+    type="text"
+  />
+</div>
+```

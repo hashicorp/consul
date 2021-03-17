@@ -1,7 +1,10 @@
-## AuthDialog
+---
+class: ember
+---
+# AuthDialog
 
-```hbs
-<AuthDialog @dc={{dc}} @nspace={{ns}} @onchange={{action 'change'}} as |api components|>
+```hbs preview-template
+<AuthDialog @dc={{'dc-1'}} @nspace={{'default'}} @onchange={{action (noop)}} as |api components|>
   {{#let components.AuthForm components.AuthProfile as |AuthForm AuthProfile|}}
     <BlockSlot @name="unauthorized">
       Here's the login form:
@@ -10,7 +13,7 @@
     <BlockSlot @name="authorized">
       Here's your profile:
       <AuthProfile />
-      <button onclick={{action api.logout}} />
+      <button onclick={{action api.logout}}>Logout</button>
     </BlockSlot>
   {{/let}}
 </AuthDialog>
