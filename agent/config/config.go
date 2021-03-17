@@ -473,6 +473,10 @@ type ServiceProxy struct {
 
 	// Expose defines whether checks or paths are exposed through the proxy
 	Expose *ExposeConfig `mapstructure:"expose"`
+
+	// TransparentProxy toggles whether inbound and outbound traffic is being
+	// redirected to the proxy.
+	TransparentProxy *bool `mapstructure:"transparent_proxy"`
 }
 
 // Upstream represents a single upstream dependency for a service or proxy. It

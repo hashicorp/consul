@@ -923,6 +923,125 @@ func Test_mergeServiceConfig_UpstreamOverrides(t *testing.T) {
 			},
 		},
 		{
+			name: "remote upstream config expands local upstream list in tproxy mode",
+			args: args{
+				defaults: &structs.ServiceConfigResponse{
+					UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+						{
+							Upstream: structs.ServiceID{
+								ID:             "zap",
+								EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+							},
+							Config: map[string]interface{}{
+								"protocol": "grpc",
+							},
+						},
+					},
+				},
+				service: &structs.NodeService{
+					ID:      "foo-proxy",
+					Service: "foo-proxy",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "foo",
+						DestinationServiceID:   "foo",
+						TransparentProxy:       true,
+						Upstreams: structs.Upstreams{
+							structs.Upstream{
+								DestinationNamespace: "default",
+								DestinationName:      "zip",
+								LocalBindPort:        8080,
+								Config: map[string]interface{}{
+									"protocol": "http",
+								},
+							},
+						},
+					},
+				},
+			},
+			want: &structs.NodeService{
+				ID:      "foo-proxy",
+				Service: "foo-proxy",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "foo",
+					DestinationServiceID:   "foo",
+					TransparentProxy:       true,
+					Upstreams: structs.Upstreams{
+						structs.Upstream{
+							DestinationNamespace: "default",
+							DestinationName:      "zip",
+							LocalBindPort:        8080,
+							Config: map[string]interface{}{
+								"protocol": "http",
+							},
+						},
+						structs.Upstream{
+							DestinationNamespace: "default",
+							DestinationName:      "zap",
+							Config: map[string]interface{}{
+								"protocol": "grpc",
+							},
+							CentrallyConfigured: true,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "remote upstream config not added to local upstream list outside of tproxy mode",
+			args: args{
+				defaults: &structs.ServiceConfigResponse{
+					UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
+						{
+							Upstream: structs.ServiceID{
+								ID:             "zap",
+								EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
+							},
+							Config: map[string]interface{}{
+								"protocol": "grpc",
+							},
+						},
+					},
+				},
+				service: &structs.NodeService{
+					ID:      "foo-proxy",
+					Service: "foo-proxy",
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "foo",
+						DestinationServiceID:   "foo",
+						TransparentProxy:       false,
+						Upstreams: structs.Upstreams{
+							structs.Upstream{
+								DestinationNamespace: "default",
+								DestinationName:      "zip",
+								LocalBindPort:        8080,
+								Config: map[string]interface{}{
+									"protocol": "http",
+								},
+							},
+						},
+					},
+				},
+			},
+			want: &structs.NodeService{
+				ID:      "foo-proxy",
+				Service: "foo-proxy",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "foo",
+					DestinationServiceID:   "foo",
+					Upstreams: structs.Upstreams{
+						structs.Upstream{
+							DestinationNamespace: "default",
+							DestinationName:      "zip",
+							LocalBindPort:        8080,
+							Config: map[string]interface{}{
+								"protocol": "http",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
 			name: "upstream mode from remote defaults overrides local default",
 			args: args{
 				defaults: &structs.ServiceConfigResponse{

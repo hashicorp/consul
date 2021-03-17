@@ -2582,6 +2582,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 											}
 										]
 									},
+									"transparent_proxy": true,
 									"upstreams": [
 										{
 											"destination_name": "db",
@@ -2617,7 +2618,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 											protocol = "http"
 										}
 									]
-								},
+								}
+								transparent_proxy = true
 								upstreams = [
 									{
 										destination_name = "db"
@@ -2657,6 +2659,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 										},
 									},
 								},
+								TransparentProxy: true,
 								Upstreams: structs.Upstreams{
 									structs.Upstream{
 										DestinationType: "service",
@@ -2711,6 +2714,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 											}
 										]
 									},
+									"transparent_proxy": true,
 									"upstreams": [
 										{
 											"destination_name": "db",
@@ -2746,7 +2750,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 											protocol = "http"
 										}
 									]
-								},
+								}
+								transparent_proxy = true,
 								upstreams = [
 									{
 										destination_name = "db"
@@ -2786,6 +2791,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 										},
 									},
 								},
+								TransparentProxy: true,
 								Upstreams: structs.Upstreams{
 									structs.Upstream{
 										DestinationType: "service",
@@ -3428,7 +3434,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 							},
 							"mesh_gateway": {
 								"mode": "remote"
-							}
+							},
+							"transparent_proxy": true
 						}
 					]
 				}
@@ -3447,6 +3454,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						mesh_gateway {
 							mode = "remote"
 						}
+						transparent_proxy = true
 					}
 				}`},
 		expected: func(rt *RuntimeConfig) {
@@ -3465,6 +3473,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					MeshGateway: structs.MeshGatewayConfig{
 						Mode: structs.MeshGatewayModeRemote,
 					},
+					TransparentProxy: true,
 				},
 			}
 		},
@@ -3486,7 +3495,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 							},
 							"MeshGateway": {
 								"Mode": "remote"
-							}
+							},
+							"TransparentProxy": true
 						}
 					]
 				}
@@ -3505,6 +3515,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						MeshGateway {
 							Mode = "remote"
 						}
+						TransparentProxy = true
 					}
 				}`},
 		expected: func(rt *RuntimeConfig) {
@@ -3523,6 +3534,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					MeshGateway: structs.MeshGatewayConfig{
 						Mode: structs.MeshGatewayModeRemote,
 					},
+					TransparentProxy: true,
 				},
 			}
 		},
@@ -3544,7 +3556,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 							"external_sni": "abc-123",
 							"mesh_gateway": {
 								"mode": "remote"
-							}
+							},
+							"transparent_proxy": true
 						}
 					]
 				}
@@ -3563,6 +3576,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						mesh_gateway {
 							mode = "remote"
 						}
+						transparent_proxy = true
 					}
 				}`},
 		expected: func(rt *RuntimeConfig) {
@@ -3581,6 +3595,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					MeshGateway: structs.MeshGatewayConfig{
 						Mode: structs.MeshGatewayModeRemote,
 					},
+					TransparentProxy: true,
 				},
 			}
 		},
@@ -3602,7 +3617,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 							"ExternalSNI": "abc-123",
 							"MeshGateway": {
 								"Mode": "remote"
-							}
+							},
+							"TransparentProxy": true
 						}
 					]
 				}
@@ -3621,6 +3637,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 						MeshGateway {
 							Mode = "remote"
 						}
+						TransparentProxy = true
 					}
 				}`},
 		expected: func(rt *RuntimeConfig) {
@@ -3639,6 +3656,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 					MeshGateway: structs.MeshGatewayConfig{
 						Mode: structs.MeshGatewayModeRemote,
 					},
+					TransparentProxy: true,
 				},
 			}
 		},
@@ -5464,6 +5482,7 @@ func TestLoad_FullConfig(t *testing.T) {
 							},
 						},
 					},
+					TransparentProxy: true,
 				},
 				Weights: &structs.Weights{
 					Passing: 1,

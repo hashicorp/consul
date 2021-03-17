@@ -582,6 +582,7 @@ services = [
                     }
                 ]
             }
+            transparent_proxy = true
         }
     },
     {

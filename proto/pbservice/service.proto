@@ -69,6 +69,10 @@ message ConnectProxyConfig {
 
     // Expose defines whether checks or paths are exposed through the proxy
     ExposeConfig Expose = 8 [(gogoproto.nullable) = false];
+
+    // TransparentProxy enables configuring the service mesh as if all inbound
+    // and outbound traffic is being redirected to this proxy
+    bool TransparentProxy = 9;
 }
 
 // Upstream represents a single upstream dependency for a service or proxy. It
@@ -116,6 +120,10 @@ message Upstream {
 
     // MeshGateway is the configuration for mesh gateway usage of this upstream
     MeshGatewayConfig MeshGateway = 8  [(gogoproto.nullable) = false];
+
+    // CentrallyConfigured indicates whether the upstream was defined in a proxy
+    // instance registration or whether it was generated from a config entry.
+    bool CentrallyConfigured = 9;
 }
 
 // ServiceConnect are the shared Connect settings between all service

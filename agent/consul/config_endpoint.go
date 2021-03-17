@@ -357,6 +357,7 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 				reply.ProxyConfig = mapCopy.(map[string]interface{})
 				reply.MeshGateway = proxyConf.MeshGateway
 				reply.Expose = proxyConf.Expose
+				reply.TransparentProxy = proxyConf.TransparentProxy
 
 				// Extract the global protocol from proxyConf for upstream configs.
 				rawProtocol := proxyConf.Config["protocol"]
@@ -394,6 +395,9 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 						reply.ProxyConfig = make(map[string]interface{})
 					}
 					reply.ProxyConfig["protocol"] = serviceConf.Protocol
+				}
+				if serviceConf.TransparentProxy {
+					reply.TransparentProxy = serviceConf.TransparentProxy
 				}
 			}
 

@@ -563,6 +563,7 @@
             }
           ]
         },
+        "transparent_proxy": true,
         "upstreams": [
           {
             "destination_name": "KPtAj2cb",
