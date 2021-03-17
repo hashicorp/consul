@@ -15,14 +15,3 @@ func TestSpiffeIDAgentURI(t *testing.T) {
 
 	require.Equal(t, "spiffe://1234.consul/agent/client/dc/dc1/id/123", agent.URI().String())
 }
-
-func TestSpiffeIDAgentAuthorize(t *testing.T) {
-	agent := &SpiffeIDAgent{
-		Host:  "1234.consul",
-		Agent: "uuid",
-	}
-
-	auth, match := agent.Authorize(nil)
-	require.False(t, auth)
-	require.False(t, match)
-}

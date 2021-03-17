@@ -3,12 +3,12 @@ package state
 import (
 	"errors"
 	"fmt"
+	"github.com/hashicorp/consul/agent/connect"
 	"sort"
 
 	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -732,35 +732,19 @@ func (s *Store) LegacyIntentionDeleteAll(idx uint64) error {
 	return tx.Commit()
 }
 
-// IntentionDecision returns whether a connection should be allowed from a source URI to some destination
-// It returns true or false for the enforcement, and also a boolean for whether
+// IntentionDecision returns whether a connection should be allowed to a source or destination given a set of intentions.
+//
+// allowPermissions determines whether the presence of L7 permissions leads to a DENY decision.
+// This should be false when evaluating a connection between a source and destination, but not the request that will be sent.
 func (s *Store) IntentionDecision(
-	srcURI connect.CertURI, dstName, dstNS string, defaultDecision acl.EnforcementDecision,
+	target, targetNS string, intentions structs.Intentions, matchType structs.IntentionMatchType,
+	defaultDecision acl.EnforcementDecision, allowPermissions bool,
 ) (structs.IntentionDecisionSummary, error) {
-
-	_, matches, err := s.IntentionMatch(nil, &structs.IntentionQueryMatch{
-		Type: structs.IntentionMatchDestination,
-		Entries: []structs.IntentionMatchEntry{
-			{
-				Namespace: dstNS,
-				Name:      dstName,
-			},
-		},
-	})
-	if err != nil {
-		return structs.IntentionDecisionSummary{}, err
-	}
-	if len(matches) != 1 {
-		// This should never happen since the documented behavior of the
-		// Match call is that it'll always return exactly the number of results
-		// as entries passed in. But we guard against misbehavior.
-		return structs.IntentionDecisionSummary{}, errors.New("internal error loading matches")
-	}
 
 	// Figure out which source matches this request.
 	var ixnMatch *structs.Intention
-	for _, ixn := range matches[0] {
-		if _, ok := srcURI.Authorize(ixn); ok {
+	for _, ixn := range intentions {
+		if _, ok := connect.AuthorizeIntentionTarget(target, targetNS, ixn, matchType); ok {
 			ixnMatch = ixn
 			break
 		}
@@ -776,9 +760,9 @@ func (s *Store) IntentionDecision(
 	// Intention found, combine action + permissions
 	resp.Allowed = ixnMatch.Action == structs.IntentionActionAllow
 	if len(ixnMatch.Permissions) > 0 {
-		// If there are L7 permissions, DENY.
-		// We are only evaluating source and destination, not the request that will be sent.
-		resp.Allowed = false
+		// If any permissions are present, fall back to allowPermissions.
+		// We are not evaluating requests so we cannot know whether the L7 permission requirements will be met.
+		resp.Allowed = allowPermissions
 		resp.HasPermissions = true
 	}
 	resp.ExternalSource = ixnMatch.Meta[structs.MetaExternalSource]
@@ -852,6 +836,16 @@ func (s *Store) IntentionMatchOne(
 ) (uint64, structs.Intentions, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
+
+	return compatIntentionMatchOneTxn(tx, ws, entry, matchType)
+}
+
+func compatIntentionMatchOneTxn(
+	tx ReadTxn,
+	ws memdb.WatchSet,
+	entry structs.IntentionMatchEntry,
+	matchType structs.IntentionMatchType,
+) (uint64, structs.Intentions, error) {
 
 	usingConfigEntries, err := areIntentionsInConfigEntries(tx, ws)
 	if err != nil {
@@ -935,4 +929,91 @@ func intentionMatchGetParams(entry structs.IntentionMatchEntry) ([][]interface{}
 	// Search for the exact NS/N value.
 	result = append(result, []interface{}{entry.Namespace, entry.Name})
 	return result, nil
+}
+
+// IntentionTopology returns the upstreams or downstreams of a service. Upstreams and downstreams are inferred from
+// intentions. If intentions allow a connection from the target to some candidate service, the candidate service is considered
+// an upstream of the target.
+func (s *Store) IntentionTopology(ws memdb.WatchSet,
+	target structs.ServiceName, downstreams bool, defaultDecision acl.EnforcementDecision) (uint64, structs.ServiceList, error) {
+	tx := s.db.ReadTxn()
+	defer tx.Abort()
+
+	var maxIdx uint64
+
+	// If querying the upstreams for a service, we first query intentions that apply to the target service as a source.
+	// That way we can check whether intentions from the source allow connections to upstream candidates.
+	// The reverse is true for downstreams.
+	intentionMatchType := structs.IntentionMatchSource
+	if downstreams {
+		intentionMatchType = structs.IntentionMatchDestination
+	}
+	entry := structs.IntentionMatchEntry{
+		Namespace: target.NamespaceOrDefault(),
+		Name:      target.Name,
+	}
+	index, intentions, err := compatIntentionMatchOneTxn(tx, ws, entry, intentionMatchType)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to query intentions for %s", target.String())
+	}
+	if index > maxIdx {
+		maxIdx = index
+	}
+
+	// Check for a wildcard intention (* -> *) since it overrides the default decision from ACLs
+	if len(intentions) > 0 {
+		// Intentions with wildcard source and destination have the lowest precedence, so they are last in the list
+		ixn := intentions[len(intentions)-1]
+
+		// TODO (freddy) This needs an enterprise split to account for (*/* -> */*)
+		//				 Maybe ixn.HasWildcardSource() && ixn.HasWildcardDestination()
+		if ixn.SourceName == structs.WildcardSpecifier && ixn.DestinationName == structs.WildcardSpecifier {
+			defaultDecision = acl.Allow
+			if ixn.Action == structs.IntentionActionDeny {
+				defaultDecision = acl.Deny
+			}
+		}
+	}
+
+	index, allServices, err := serviceListTxn(tx, ws, func(svc *structs.ServiceNode) bool {
+		// Only include ingress gateways as downstreams, since they cannot receive service mesh traffic
+		// TODO(freddy): One remaining issue is that this includes non-Connect services (typical services without a proxy)
+		//				 Ideally those should be excluded as well, since they can't be upstreams/downstreams without a proxy.
+		//				 Maybe start tracking services represented by proxies? (both sidecar and ingress)
+		if svc.ServiceKind == structs.ServiceKindTypical || (svc.ServiceKind == structs.ServiceKindIngressGateway && downstreams) {
+			return true
+		}
+		return false
+	}, structs.WildcardEnterpriseMeta())
+	if err != nil {
+		return index, nil, fmt.Errorf("failed to fetch catalog service list: %v", err)
+	}
+	if index > maxIdx {
+		maxIdx = index
+	}
+
+	// When checking authorization to upstreams, the match type for the decision is `destination` because we are deciding
+	// if upstream candidates are covered by intentions that have the target service as a source.
+	// The reverse is true for downstreams.
+	decisionMatchType := structs.IntentionMatchDestination
+	if downstreams {
+		decisionMatchType = structs.IntentionMatchSource
+	}
+	result := make(structs.ServiceList, 0, len(allServices))
+	for _, candidate := range allServices {
+		decision, err := s.IntentionDecision(candidate.Name, candidate.NamespaceOrDefault(), intentions, decisionMatchType, defaultDecision, true)
+		if err != nil {
+			src, dst := target, candidate
+			if downstreams {
+				src, dst = candidate, target
+			}
+			return 0, nil, fmt.Errorf("failed to get intention decision from (%s) to (%s): %v",
+				src.String(), dst.String(), err)
+		}
+		if !decision.Allowed || target.Matches(candidate) {
+			continue
+		}
+		result = append(result, candidate)
+	}
+	return maxIdx, result, err
 }
