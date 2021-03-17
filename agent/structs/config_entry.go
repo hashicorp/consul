@@ -739,30 +739,6 @@ func (c *ConfigEntryResponse) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-// ConfigEntryKindName is a value type useful for maps. You can use:
-//     map[ConfigEntryKindName]Payload
-// instead of:
-//     map[string]map[string]Payload
-type ConfigEntryKindName struct {
-	Kind string
-	Name string
-	EnterpriseMeta
-}
-
-func NewConfigEntryKindName(kind, name string, entMeta *EnterpriseMeta) ConfigEntryKindName {
-	ret := ConfigEntryKindName{
-		Kind: kind,
-		Name: name,
-	}
-	if entMeta == nil {
-		entMeta = DefaultEnterpriseMeta()
-	}
-
-	ret.EnterpriseMeta = *entMeta
-	ret.EnterpriseMeta.Normalize()
-	return ret
-}
-
 func validateConfigEntryMeta(meta map[string]string) error {
 	var err error
 	if len(meta) > metaMaxKeyPairs {
