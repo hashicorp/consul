@@ -3,11 +3,6 @@
 ) as |aria|}}
   <Portal @target="modal">
     {{yield}}
-    <input
-      id={{@name}}
-      type="checkbox"
-      {{on 'change' (action 'change')}}
-    />
     <div
       class="modal-dialog"
       aria-hidden="true"
