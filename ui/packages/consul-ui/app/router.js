@@ -192,7 +192,10 @@ export const routes = {
           abilities: ['read auth-methods'],
         },
         show: {
-          _options: { path: '/show' },
+          _options: { path: '/:id' },
+          'auth-method': {
+            _options: { path: '/auth-method' },
+          },
         },
       },
     },

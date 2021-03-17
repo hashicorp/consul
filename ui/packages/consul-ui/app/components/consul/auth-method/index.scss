@@ -1,9 +1,74 @@
-.consul-auth-method-list ul {
-  .consul-auth-method-type {
-    @extend %pill-200, %frame-gray-600;
-  }
+.consul-consul-auth-method-view-list ul {
   .locality::before {
     @extend %with-public-default-mask, %as-pseudo;
     margin-right: 4px;
   }
 }
+.consul-auth-method-view {
+  margin-bottom: 32px;
+  > hr {
+    background-color: var(--gray-200);
+  }
+  section {
+    @extend %p1;
+    width: 100%;
+    position: relative;
+    overflow-y: auto;
+    h2 {
+      @extend %h200;
+      padding-bottom: 12px;
+    }
+    table {
+      thead td {
+        color: var(--gray-500);
+        font-weight: $typo-weight-semibold;
+        font-size: $typo-size-700;
+      }
+      tbody td {
+        font-size: $typo-size-600;
+        color: $black;
+      }
+    }
+  }
+  dl,
+  section dl {
+    display: flex;
+    flex-wrap: wrap;
+    > dt:last-of-type,
+    > dd:last-of-type {
+      border-bottom: 1px solid var(--gray-300) !important;
+    }
+    dt, dd {
+      padding: 12px 0;
+      margin: 0;
+      border-top: 1px solid var(--gray-300) !important;
+      color: $black !important;
+    }
+    dt {
+      width: 20%;
+      font-weight: $typo-weight-bold;
+    }
+    dd {
+      margin-left: auto;
+      width: 80%;
+      display: flex;
+    }
+    dd > ul li {
+      display: flex;
+    }
+    dd > ul li:not(:last-of-type) {
+      padding-bottom: 12px;
+    }
+    dd .copy-button button {
+      padding: 0 !important;
+      margin: 0 4px 0 0 !important;
+    }
+    dd .copy-button button::before {
+      background-color: $black;
+    }
+    dt.check + dd {
+      padding-top: 16px;
+    }
+  }
+}
+

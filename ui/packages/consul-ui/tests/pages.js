@@ -93,7 +93,7 @@ const emptyState = emptyStateFactory(isPresent);
 
 const consulHealthCheckList = consulHealthCheckListFactory(collection, text);
 const consulUpstreamInstanceList = consulUpstreamInstanceListFactory(collection, text);
-const consulAuthMethodList = consulAuthMethodListFactory(collection, text);
+const consulAuthMethodList = consulAuthMethodListFactory(collection, clickable, text);
 const consulIntentionList = consulIntentionListFactory(
   collection,
   clickable,
