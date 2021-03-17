@@ -833,6 +833,10 @@ type ServiceNode struct {
 	RaftIndex `bexpr:"-"`
 }
 
+func (s *ServiceNode) NodeIdentity() Identity {
+	return Identity{ID: s.Node}
+}
+
 // PartialClone() returns a clone of the given service node, minus the node-
 // related fields that get filled in later, Address and TaggedAddresses.
 func (s *ServiceNode) PartialClone() *ServiceNode {
@@ -1400,6 +1404,10 @@ type HealthCheck struct {
 	EnterpriseMeta `hcl:",squash" mapstructure:",squash" bexpr:"-"`
 
 	RaftIndex `bexpr:"-"`
+}
+
+func (hc *HealthCheck) NodeIdentity() Identity {
+	return Identity{ID: hc.Node}
 }
 
 func (hc *HealthCheck) CompoundServiceID() ServiceID {

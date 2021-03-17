@@ -50,7 +50,7 @@ table=checks
   index=id unique
     indexer=github.com/hashicorp/go-memdb.CompoundIndex Indexes=[github.com/hashicorp/go-memdb.StringFieldIndex Field=Node Lowercase=true, github.com/hashicorp/go-memdb.StringFieldIndex Field=CheckID Lowercase=true] AllowMissing=false
   index=node allow-missing
-    indexer=github.com/hashicorp/go-memdb.StringFieldIndex Field=Node Lowercase=true
+    indexer=github.com/hashicorp/consul/agent/consul/state.indexerSingle readIndex=github.com/hashicorp/consul/agent/consul/state.indexFromNodeQuery writeIndex=github.com/hashicorp/consul/agent/consul/state.indexFromNodeIdentity
   index=node_service allow-missing
     indexer=github.com/hashicorp/consul/agent/consul/state.indexerSingle readIndex=github.com/hashicorp/consul/agent/consul/state.indexFromNodeServiceQuery writeIndex=github.com/hashicorp/consul/agent/consul/state.indexNodeServiceFromHealthCheck
   index=service allow-missing
@@ -154,7 +154,7 @@ table=services
   index=kind
     indexer=github.com/hashicorp/consul/agent/consul/state.IndexServiceKind
   index=node
-    indexer=github.com/hashicorp/go-memdb.StringFieldIndex Field=Node Lowercase=true
+    indexer=github.com/hashicorp/consul/agent/consul/state.indexerSingle readIndex=github.com/hashicorp/consul/agent/consul/state.indexFromNodeQuery writeIndex=github.com/hashicorp/consul/agent/consul/state.indexFromNodeIdentity
   index=service allow-missing
     indexer=github.com/hashicorp/go-memdb.StringFieldIndex Field=ServiceName Lowercase=true
 

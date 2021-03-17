@@ -23,6 +23,7 @@ const (
 	indexKind        = "kind"
 	indexStatus      = "status"
 	indexNodeService = "node_service"
+	indexNode        = "node"
 )
 
 // nodesTableSchema returns a new table schema used for storing struct.Node.
@@ -81,13 +82,13 @@ func servicesTableSchema() *memdb.TableSchema {
 					},
 				},
 			},
-			"node": {
-				Name:         "node",
+			indexNode: {
+				Name:         indexNode,
 				AllowMissing: false,
 				Unique:       false,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "Node",
-					Lowercase: true,
+				Indexer: indexerSingle{
+					readIndex:  readIndex(indexFromNodeQuery),
+					writeIndex: writeIndex(indexFromNodeIdentity),
 				},
 			},
 			indexServiceName: {
@@ -157,13 +158,13 @@ func checksTableSchema() *memdb.TableSchema {
 					Lowercase: true,
 				},
 			},
-			"node": {
-				Name:         "node",
+			indexNode: {
+				Name:         indexNode,
 				AllowMissing: true,
 				Unique:       false,
-				Indexer: &memdb.StringFieldIndex{
-					Field:     "Node",
-					Lowercase: true,
+				Indexer: indexerSingle{
+					readIndex:  readIndex(indexFromNodeQuery),
+					writeIndex: writeIndex(indexFromNodeIdentity),
 				},
 			},
 			indexNodeService: {

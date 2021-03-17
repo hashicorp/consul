@@ -491,7 +491,7 @@ func getPayloadCheckServiceNode(payload stream.Payload) *structs.CheckServiceNod
 // parseCheckServiceNodes but is more efficient since we know they are all on
 // the same node.
 func newServiceHealthEventsForNode(tx ReadTxn, idx uint64, node string) ([]stream.Event, error) {
-	services, err := catalogServiceListByNode(tx, node, structs.WildcardEnterpriseMeta(), true)
+	services, err := tx.Get(tableServices, indexNode, Query{Value: node})
 	if err != nil {
 		return nil, err
 	}
@@ -525,7 +525,7 @@ func getNodeAndChecks(tx ReadTxn, node string) (*structs.Node, serviceChecksFunc
 	}
 	n := nodeRaw.(*structs.Node)
 
-	iter, err := catalogListChecksByNode(tx, node, structs.WildcardEnterpriseMeta())
+	iter, err := tx.Get(tableChecks, indexNode, Query{Value: node})
 	if err != nil {
 		return nil, nil, err
 	}

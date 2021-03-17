@@ -128,8 +128,9 @@ func TestNewDBSchema_Indexers(t *testing.T) {
 	require.NoError(t, schema.Validate())
 
 	var testcases = map[string]func() map[string]indexerTestCase{
-		tableChecks: testIndexerTableChecks,
-		tableNodes:  testIndexerTableNodes,
+		tableChecks:   testIndexerTableChecks,
+		tableServices: testIndexerTableServices,
+		tableNodes:    testIndexerTableNodes,
 	}
 
 	for _, table := range schema.Tables {
