@@ -166,9 +166,9 @@
 
     <hr />
 
-    {{#if @item.Config.ClaimMappings}}
     <section class="claim-mappings">
       <h2>Claim Mappings</h2>
+    {{#if @item.Config.ClaimMappings}}
       <p>Use this if the claim you are capturing is singular. When mapped, the values can be any of a number, string, or boolean and will all be stringified when returned.</p>
       <table>
         <thead>
@@ -186,16 +186,34 @@
           {{/each}}
         </tbody>
       </table>
-    </section>
+    {{else}}
+      <EmptyState>
+        <BlockSlot @name="header">
+          <h2>No claim mappings</h2>
+        </BlockSlot>
+        <BlockSlot @name="body">
+          <p>Use this if the claim you are capturing is singular. When mapped, the values can be any of a number, string, or boolean and will all be stringified when returned.</p>
+        </BlockSlot>
+        <BlockSlot @name="actions">
+          <li class="docs-link">
+          {{#if (eq @item.Type 'jwt')}}
+            <a href="{{env 'CONSUL_DOCS_URL'}}/security/acl/auth-methods/jwt#claimmappings" rel="noopener noreferrer" target="_blank">Read the documentation</a>
+          {{else}}
+            <a href="{{env 'CONSUL_DOCS_URL'}}/security/acl/auth-methods/oidc#claimmappings" rel="noopener noreferrer" target="_blank">Read the documentation</a>
+          {{/if}}
+          </li>
+        </BlockSlot>
+      </EmptyState>
     {{/if}}
+    </section>
 
     <hr />
 
-    {{#if @item.Config.ListClaimMappings}}
     <section class="list-claim-mappings">
       <h2>List Claim Mappings</h2>
+    {{#if @item.Config.ListClaimMappings}}
       <p>Use this if the claim you are capturing is list-like (such as groups). When mapped, the values can be any of a number, string, or boolean and will all be stringified when returned.</p>
-            <table>
+      <table>
         <thead>
           <tr>
             <td>Key</td>
@@ -211,7 +229,25 @@
           {{/each}}
         </tbody>
       </table>
-    </section>
+    {{else}}
+      <EmptyState>
+        <BlockSlot @name="header">
+          <h2>No list claim mappings</h2>
+        </BlockSlot>
+        <BlockSlot @name="body">
+          <p>Use this if the claim you are capturing is list-like (such as groups). When mapped, the values can be any of a number, string, or boolean and will all be stringified when returned.</p>
+        </BlockSlot>
+        <BlockSlot @name="actions">
+          <li class="docs-link">
+          {{#if (eq @item.Type 'jwt')}}
+            <a href="{{env 'CONSUL_DOCS_URL'}}/security/acl/auth-methods/jwt#listclaimmappings" rel="noopener noreferrer" target="_blank">Read the documentation</a>
+          {{else}}
+            <a href="{{env 'CONSUL_DOCS_URL'}}/security/acl/auth-methods/oidc#listclaimmappings" rel="noopener noreferrer" target="_blank">Read the documentation</a>
+          {{/if}}
+          </li>
+        </BlockSlot>
+      </EmptyState>
     {{/if}}
+    </section>
   {{/if}}
   </div>
