@@ -2,22 +2,19 @@ package xds
 
 import (
 	"bytes"
-	"path/filepath"
-	"sort"
-	"testing"
-	"text/template"
-	"time"
-
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-
-	testinf "github.com/mitchellh/go-testing-interface"
-	"github.com/stretchr/testify/require"
-
+	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/types"
+	testinf "github.com/mitchellh/go-testing-interface"
+	"github.com/stretchr/testify/require"
+	"path/filepath"
+	"sort"
+	"testing"
+	"text/template"
 )
 
 func TestListenersFromSnapshot(t *testing.T) {
@@ -35,446 +32,477 @@ func TestListenersFromSnapshot(t *testing.T) {
 		overrideGoldenName string
 		serverSetup        func(*Server)
 	}{
+		// {
+		// 	name:   "defaults",
+		// 	create: proxycfg.TestConfigSnapshot,
+		// 	setup:  nil, // Default snapshot
+		// },
+		// {
+		// 	name:   "listener-bind-address",
+		// 	create: proxycfg.TestConfigSnapshot,
+		// 	setup: func(snap *proxycfg.ConfigSnapshot) {
+		// 		snap.Proxy.Config["bind_address"] = "127.0.0.2"
+		// 	},
+		// },
+		// {
+		// 	name:   "listener-bind-port",
+		// 	create: proxycfg.TestConfigSnapshot,
+		// 	setup: func(snap *proxycfg.ConfigSnapshot) {
+		// 		snap.Proxy.Config["bind_port"] = 8888
+		// 	},
+		// },
+		// {
+		// 	name:   "listener-bind-address-port",
+		// 	create: proxycfg.TestConfigSnapshot,
+		// 	setup: func(snap *proxycfg.ConfigSnapshot) {
+		// 		snap.Proxy.Config["bind_address"] = "127.0.0.2"
+		// 		snap.Proxy.Config["bind_port"] = 8888
+		// 	},
+		// },
+		// {
+		// 	name:   "http-public-listener",
+		// 	create: proxycfg.TestConfigSnapshot,
+		// 	setup: func(snap *proxycfg.ConfigSnapshot) {
+		// 		snap.Proxy.Config["protocol"] = "http"
+		// 	},
+		// },
+		// {
+		// 	name:   "http-listener-with-timeouts",
+		// 	create: proxycfg.TestConfigSnapshot,
+		// 	setup: func(snap *proxycfg.ConfigSnapshot) {
+		// 		snap.Proxy.Config["protocol"] = "http"
+		// 		snap.Proxy.Config["local_connect_timeout_ms"] = 1234
+		// 		snap.Proxy.Config["local_request_timeout_ms"] = 2345
+		// 	},
+		// },
+		// {
+		// 	name:   "http-upstream",
+		// 	create: proxycfg.TestConfigSnapshot,
+		// 	setup: func(snap *proxycfg.ConfigSnapshot) {
+		// 		snap.Proxy.Upstreams[0].Config["protocol"] = "http"
+		// 	},
+		// },
+		// {
+		// 	name:   "custom-public-listener",
+		// 	create: proxycfg.TestConfigSnapshot,
+		// 	setup: func(snap *proxycfg.ConfigSnapshot) {
+		// 		snap.Proxy.Config["envoy_public_listener_json"] =
+		// 			customListenerJSON(t, customListenerJSONOptions{
+		// 				Name: "custom-public-listen",
+		// 			})
+		// 	},
+		// },
+		// {
+		// 	name:   "custom-public-listener-http",
+		// 	create: proxycfg.TestConfigSnapshot,
+		// 	setup: func(snap *proxycfg.ConfigSnapshot) {
+		// 		snap.Proxy.Config["protocol"] = "http"
+		// 		snap.Proxy.Config["envoy_public_listener_json"] =
+		// 			customHTTPListenerJSON(t, customHTTPListenerJSONOptions{
+		// 				Name: "custom-public-listen",
+		// 			})
+		// 	},
+		// },
+		// {
+		// 	name:   "custom-public-listener-http-2",
+		// 	create: proxycfg.TestConfigSnapshot,
+		// 	setup: func(snap *proxycfg.ConfigSnapshot) {
+		// 		snap.Proxy.Config["protocol"] = "http"
+		// 		snap.Proxy.Config["envoy_public_listener_json"] =
+		// 			customHTTPListenerJSON(t, customHTTPListenerJSONOptions{
+		// 				Name:                      "custom-public-listen",
+		// 				HTTPConnectionManagerName: httpConnectionManagerNewName,
+		// 			})
+		// 	},
+		// },
+		// {
+		// 	name:   "custom-public-listener-http-missing",
+		// 	create: proxycfg.TestConfigSnapshot,
+		// 	setup: func(snap *proxycfg.ConfigSnapshot) {
+		// 		snap.Proxy.Config["protocol"] = "http"
+		// 		snap.Proxy.Config["envoy_public_listener_json"] =
+		// 			customListenerJSON(t, customListenerJSONOptions{
+		// 				Name: "custom-public-listen",
+		// 			})
+		// 	},
+		// },
+		// {
+		// 	name:               "custom-public-listener-ignores-tls",
+		// 	create:             proxycfg.TestConfigSnapshot,
+		// 	overrideGoldenName: "custom-public-listener", // should be the same
+		// 	setup: func(snap *proxycfg.ConfigSnapshot) {
+		// 		snap.Proxy.Config["envoy_public_listener_json"] =
+		// 			customListenerJSON(t, customListenerJSONOptions{
+		// 				Name: "custom-public-listen",
+		// 				// Attempt to override the TLS context should be ignored
+		// 				TLSContext: `"allowRenegotiation": false`,
+		// 			})
+		// 	},
+		// },
+		// {
+		// 	name:   "custom-upstream",
+		// 	create: proxycfg.TestConfigSnapshot,
+		// 	setup: func(snap *proxycfg.ConfigSnapshot) {
+		// 		snap.Proxy.Upstreams[0].Config["envoy_listener_json"] =
+		// 			customListenerJSON(t, customListenerJSONOptions{
+		// 				Name: "custom-upstream",
+		// 			})
+		// 	},
+		// },
+		// {
+		// 	name:   "custom-upstream-ignored-with-disco-chain",
+		// 	create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailover,
+		// 	setup: func(snap *proxycfg.ConfigSnapshot) {
+		// 		snap.Proxy.Upstreams[0].Config["envoy_listener_json"] =
+		// 			customListenerJSON(t, customListenerJSONOptions{
+		// 				Name: "custom-upstream",
+		// 			})
+		// 	},
+		// },
+		// {
+		// 	name:   "splitter-with-resolver-redirect",
+		// 	create: proxycfg.TestConfigSnapshotDiscoveryChain_SplitterWithResolverRedirectMultiDC,
+		// 	setup:  nil,
+		// },
+		// {
+		// 	name:   "connect-proxy-with-tcp-chain",
+		// 	create: proxycfg.TestConfigSnapshotDiscoveryChain,
+		// 	setup:  nil,
+		// },
+		// {
+		// 	name: "connect-proxy-with-http-chain",
+		// 	create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+		// 		return proxycfg.TestConfigSnapshotDiscoveryChainWithEntries(t,
+		// 			&structs.ProxyConfigEntry{
+		// 				Kind: structs.ProxyDefaults,
+		// 				Name: structs.ProxyConfigGlobal,
+		// 				Config: map[string]interface{}{
+		// 					"protocol": "http",
+		// 				},
+		// 			},
+		// 		)
+		// 	},
+		// 	setup: nil,
+		// },
+		// {
+		// 	name: "connect-proxy-with-http2-chain",
+		// 	create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+		// 		return proxycfg.TestConfigSnapshotDiscoveryChainWithEntries(t,
+		// 			&structs.ProxyConfigEntry{
+		// 				Kind: structs.ProxyDefaults,
+		// 				Name: structs.ProxyConfigGlobal,
+		// 				Config: map[string]interface{}{
+		// 					"protocol": "http2",
+		// 				},
+		// 			},
+		// 		)
+		// 	},
+		// 	setup: nil,
+		// },
+		// {
+		// 	name: "connect-proxy-with-grpc-chain",
+		// 	create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+		// 		return proxycfg.TestConfigSnapshotDiscoveryChainWithEntries(t,
+		// 			&structs.ProxyConfigEntry{
+		// 				Kind: structs.ProxyDefaults,
+		// 				Name: structs.ProxyConfigGlobal,
+		// 				Config: map[string]interface{}{
+		// 					"protocol": "grpc",
+		// 				},
+		// 			},
+		// 		)
+		// 	},
+		// 	setup: nil,
+		// },
+		// {
+		// 	name:   "connect-proxy-with-chain-external-sni",
+		// 	create: proxycfg.TestConfigSnapshotDiscoveryChainExternalSNI,
+		// 	setup:  nil,
+		// },
+		// {
+		// 	name:   "connect-proxy-with-chain-and-overrides",
+		// 	create: proxycfg.TestConfigSnapshotDiscoveryChainWithOverrides,
+		// 	setup:  nil,
+		// },
+		// {
+		// 	name:   "connect-proxy-with-tcp-chain-failover-through-remote-gateway",
+		// 	create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailoverThroughRemoteGateway,
+		// 	setup:  nil,
+		// },
+		// {
+		// 	name:   "connect-proxy-with-tcp-chain-failover-through-local-gateway",
+		// 	create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailoverThroughLocalGateway,
+		// 	setup:  nil,
+		// },
+		// {
+		// 	name:   "expose-paths-local-app-paths",
+		// 	create: proxycfg.TestConfigSnapshotExposeConfig,
+		// },
+		// {
+		// 	name:   "expose-paths-new-cluster-http2",
+		// 	create: proxycfg.TestConfigSnapshotExposeConfig,
+		// 	setup: func(snap *proxycfg.ConfigSnapshot) {
+		// 		snap.Proxy.Expose.Paths[1] = structs.ExposePath{
+		// 			LocalPathPort: 9090,
+		// 			Path:          "/grpc.health.v1.Health/Check",
+		// 			ListenerPort:  21501,
+		// 			Protocol:      "http2",
+		// 		}
+		// 	},
+		// },
+		// {
+		// 	// NOTE: if IPv6 is not supported in the kernel per
+		// 	// kernelSupportsIPv6() then this test will fail because the golden
+		// 	// files were generated assuming ipv6 support was present
+		// 	name:   "expose-checks",
+		// 	create: proxycfg.TestConfigSnapshotExposeConfig,
+		// 	setup: func(snap *proxycfg.ConfigSnapshot) {
+		// 		snap.Proxy.Expose = structs.ExposeConfig{
+		// 			Checks: true,
+		// 		}
+		// 	},
+		// 	serverSetup: func(s *Server) {
+		// 		s.CfgFetcher = configFetcherFunc(func() string {
+		// 			return "192.0.2.1"
+		// 		})
+		//
+		// 		s.CheckFetcher = httpCheckFetcherFunc(func(sid structs.ServiceID) []structs.CheckType {
+		// 			if sid != structs.NewServiceID("web", nil) {
+		// 				return nil
+		// 			}
+		// 			return []structs.CheckType{{
+		// 				CheckID:   types.CheckID("http"),
+		// 				Name:      "http",
+		// 				HTTP:      "http://127.0.0.1:8181/debug",
+		// 				ProxyHTTP: "http://:21500/debug",
+		// 				Method:    "GET",
+		// 				Interval:  10 * time.Second,
+		// 				Timeout:   1 * time.Second,
+		// 			}}
+		// 		})
+		// 	},
+		// },
+		// {
+		// 	name:   "mesh-gateway",
+		// 	create: proxycfg.TestConfigSnapshotMeshGateway,
+		// },
+		// {
+		// 	name:   "mesh-gateway-using-federation-states",
+		// 	create: proxycfg.TestConfigSnapshotMeshGatewayUsingFederationStates,
+		// },
+		// {
+		// 	name:   "mesh-gateway-no-services",
+		// 	create: proxycfg.TestConfigSnapshotMeshGatewayNoServices,
+		// },
+		// {
+		// 	name:   "mesh-gateway-tagged-addresses",
+		// 	create: proxycfg.TestConfigSnapshotMeshGateway,
+		// 	setup: func(snap *proxycfg.ConfigSnapshot) {
+		// 		snap.Proxy.Config = map[string]interface{}{
+		// 			"envoy_mesh_gateway_no_default_bind":       true,
+		// 			"envoy_mesh_gateway_bind_tagged_addresses": true,
+		// 		}
+		// 	},
+		// },
+		// {
+		// 	name:   "mesh-gateway-custom-addresses",
+		// 	create: proxycfg.TestConfigSnapshotMeshGateway,
+		// 	setup: func(snap *proxycfg.ConfigSnapshot) {
+		// 		snap.Proxy.Config = map[string]interface{}{
+		// 			"envoy_mesh_gateway_bind_addresses": map[string]structs.ServiceAddress{
+		// 				"foo": {
+		// 					Address: "198.17.2.3",
+		// 					Port:    8080,
+		// 				},
+		// 				"bar": {
+		// 					Address: "2001:db8::ff",
+		// 					Port:    9999,
+		// 				},
+		// 				"baz": {
+		// 					Address: "127.0.0.1",
+		// 					Port:    8765,
+		// 				},
+		// 			},
+		// 		}
+		// 	},
+		// },
+		// {
+		// 	name:   "ingress-gateway",
+		// 	create: proxycfg.TestConfigSnapshotIngressGateway,
+		// 	setup:  nil,
+		// },
+		// {
+		// 	name:   "ingress-gateway-bind-addrs",
+		// 	create: proxycfg.TestConfigSnapshotIngressGateway,
+		// 	setup: func(snap *proxycfg.ConfigSnapshot) {
+		// 		snap.TaggedAddresses = map[string]structs.ServiceAddress{
+		// 			"lan": {Address: "10.0.0.1"},
+		// 			"wan": {Address: "172.16.0.1"},
+		// 		}
+		// 		snap.Proxy.Config = map[string]interface{}{
+		// 			"envoy_gateway_no_default_bind":       true,
+		// 			"envoy_gateway_bind_tagged_addresses": true,
+		// 			"envoy_gateway_bind_addresses": map[string]structs.ServiceAddress{
+		// 				"foo": {Address: "8.8.8.8"},
+		// 			},
+		// 		}
+		// 	},
+		// },
+		// {
+		// 	name:   "ingress-gateway-no-services",
+		// 	create: proxycfg.TestConfigSnapshotIngressGatewayNoServices,
+		// 	setup:  nil,
+		// },
+		// {
+		// 	name:   "ingress-with-chain-external-sni",
+		// 	create: proxycfg.TestConfigSnapshotIngressExternalSNI,
+		// 	setup:  nil,
+		// },
+		// {
+		// 	name:   "ingress-with-chain-and-overrides",
+		// 	create: proxycfg.TestConfigSnapshotIngressWithOverrides,
+		// 	setup:  nil,
+		// },
+		// {
+		// 	name:   "ingress-with-tcp-chain-failover-through-remote-gateway",
+		// 	create: proxycfg.TestConfigSnapshotIngressWithFailoverThroughRemoteGateway,
+		// 	setup:  nil,
+		// },
+		// {
+		// 	name:   "ingress-with-tcp-chain-failover-through-local-gateway",
+		// 	create: proxycfg.TestConfigSnapshotIngressWithFailoverThroughLocalGateway,
+		// 	setup:  nil,
+		// },
+		// {
+		// 	name:   "ingress-splitter-with-resolver-redirect",
+		// 	create: proxycfg.TestConfigSnapshotIngress_SplitterWithResolverRedirectMultiDC,
+		// 	setup:  nil,
+		// },
+		// {
+		// 	name:   "terminating-gateway",
+		// 	create: proxycfg.TestConfigSnapshotTerminatingGateway,
+		// 	setup:  nil,
+		// },
+		// {
+		// 	name:   "terminating-gateway-no-services",
+		// 	create: proxycfg.TestConfigSnapshotTerminatingGatewayNoServices,
+		// 	setup:  nil,
+		// },
+		// {
+		// 	name:   "terminating-gateway-custom-and-tagged-addresses",
+		// 	create: proxycfg.TestConfigSnapshotTerminatingGateway,
+		// 	setup: func(snap *proxycfg.ConfigSnapshot) {
+		// 		snap.Proxy.Config = map[string]interface{}{
+		// 			"envoy_gateway_no_default_bind":       true,
+		// 			"envoy_gateway_bind_tagged_addresses": true,
+		// 			"envoy_gateway_bind_addresses": map[string]structs.ServiceAddress{
+		// 				// This bind address should not get a listener due to deduplication and it sorts to the end
+		// 				"z-duplicate-of-tagged-wan-addr": {
+		// 					Address: "198.18.0.1",
+		// 					Port:    443,
+		// 				},
+		// 				"foo": {
+		// 					Address: "198.17.2.3",
+		// 					Port:    8080,
+		// 				},
+		// 			},
+		// 		}
+		// 	},
+		// },
+		// {
+		// 	name:   "terminating-gateway-service-subsets",
+		// 	create: proxycfg.TestConfigSnapshotTerminatingGateway,
+		// 	setup: func(snap *proxycfg.ConfigSnapshot) {
+		// 		snap.TerminatingGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
+		// 			structs.NewServiceName("web", nil): {
+		// 				Kind: structs.ServiceResolver,
+		// 				Name: "web",
+		// 				Subsets: map[string]structs.ServiceResolverSubset{
+		// 					"v1": {
+		// 						Filter: "Service.Meta.version == 1",
+		// 					},
+		// 					"v2": {
+		// 						Filter:      "Service.Meta.version == 2",
+		// 						OnlyPassing: true,
+		// 					},
+		// 				},
+		// 			},
+		// 		}
+		// 		snap.TerminatingGateway.ServiceConfigs[structs.NewServiceName("web", nil)] = &structs.ServiceConfigResponse{
+		// 			ProxyConfig: map[string]interface{}{"protocol": "http"},
+		// 		}
+		// 	},
+		// },
+		// {
+		// 	name:   "ingress-http-multiple-services",
+		// 	create: proxycfg.TestConfigSnapshotIngress_HTTPMultipleServices,
+		// 	setup: func(snap *proxycfg.ConfigSnapshot) {
+		// 		snap.IngressGateway.Upstreams = map[proxycfg.IngressListenerKey]structs.Upstreams{
+		// 			{Protocol: "http", Port: 8080}: {
+		// 				{
+		// 					DestinationName: "foo",
+		// 					LocalBindPort:   8080,
+		// 				},
+		// 				{
+		// 					DestinationName: "bar",
+		// 					LocalBindPort:   8080,
+		// 				},
+		// 			},
+		// 			{Protocol: "http", Port: 443}: {
+		// 				{
+		// 					DestinationName: "baz",
+		// 					LocalBindPort:   443,
+		// 				},
+		// 				{
+		// 					DestinationName: "qux",
+		// 					LocalBindPort:   443,
+		// 				},
+		// 			},
+		// 		}
+		// 	},
+		// },
+		// {
+		// 	name:   "terminating-gateway-no-api-cert",
+		// 	create: proxycfg.TestConfigSnapshotTerminatingGateway,
+		// 	setup: func(snap *proxycfg.ConfigSnapshot) {
+		// 		snap.TerminatingGateway.ServiceLeaves[structs.NewServiceName("api", nil)] = nil
+		// 	},
+		// },
+		// {
+		// 	name:   "ingress-with-tls-listener",
+		// 	create: proxycfg.TestConfigSnapshotIngressWithTLSListener,
+		// 	setup:  nil,
+		// },
 		{
-			name:   "defaults",
+			name:   "transparent-proxy",
 			create: proxycfg.TestConfigSnapshot,
-			setup:  nil, // Default snapshot
-		},
-		{
-			name:   "listener-bind-address",
-			create: proxycfg.TestConfigSnapshot,
 			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.Config["bind_address"] = "127.0.0.2"
-			},
-		},
-		{
-			name:   "listener-bind-port",
-			create: proxycfg.TestConfigSnapshot,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.Config["bind_port"] = 8888
-			},
-		},
-		{
-			name:   "listener-bind-address-port",
-			create: proxycfg.TestConfigSnapshot,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.Config["bind_address"] = "127.0.0.2"
-				snap.Proxy.Config["bind_port"] = 8888
-			},
-		},
-		{
-			name:   "http-public-listener",
-			create: proxycfg.TestConfigSnapshot,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.Config["protocol"] = "http"
-			},
-		},
-		{
-			name:   "http-listener-with-timeouts",
-			create: proxycfg.TestConfigSnapshot,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.Config["protocol"] = "http"
-				snap.Proxy.Config["local_connect_timeout_ms"] = 1234
-				snap.Proxy.Config["local_request_timeout_ms"] = 2345
-			},
-		},
-		{
-			name:   "http-upstream",
-			create: proxycfg.TestConfigSnapshot,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.Upstreams[0].Config["protocol"] = "http"
-			},
-		},
-		{
-			name:   "custom-public-listener",
-			create: proxycfg.TestConfigSnapshot,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.Config["envoy_public_listener_json"] =
-					customListenerJSON(t, customListenerJSONOptions{
-						Name: "custom-public-listen",
-					})
-			},
-		},
-		{
-			name:   "custom-public-listener-http",
-			create: proxycfg.TestConfigSnapshot,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.Config["protocol"] = "http"
-				snap.Proxy.Config["envoy_public_listener_json"] =
-					customHTTPListenerJSON(t, customHTTPListenerJSONOptions{
-						Name: "custom-public-listen",
-					})
-			},
-		},
-		{
-			name:   "custom-public-listener-http-2",
-			create: proxycfg.TestConfigSnapshot,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.Config["protocol"] = "http"
-				snap.Proxy.Config["envoy_public_listener_json"] =
-					customHTTPListenerJSON(t, customHTTPListenerJSONOptions{
-						Name:                      "custom-public-listen",
-						HTTPConnectionManagerName: httpConnectionManagerNewName,
-					})
-			},
-		},
-		{
-			name:   "custom-public-listener-http-missing",
-			create: proxycfg.TestConfigSnapshot,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.Config["protocol"] = "http"
-				snap.Proxy.Config["envoy_public_listener_json"] =
-					customListenerJSON(t, customListenerJSONOptions{
-						Name: "custom-public-listen",
-					})
-			},
-		},
-		{
-			name:               "custom-public-listener-ignores-tls",
-			create:             proxycfg.TestConfigSnapshot,
-			overrideGoldenName: "custom-public-listener", // should be the same
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.Config["envoy_public_listener_json"] =
-					customListenerJSON(t, customListenerJSONOptions{
-						Name: "custom-public-listen",
-						// Attempt to override the TLS context should be ignored
-						TLSContext: `"allowRenegotiation": false`,
-					})
-			},
-		},
-		{
-			name:   "custom-upstream",
-			create: proxycfg.TestConfigSnapshot,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.Upstreams[0].Config["envoy_listener_json"] =
-					customListenerJSON(t, customListenerJSONOptions{
-						Name: "custom-upstream",
-					})
-			},
-		},
-		{
-			name:   "custom-upstream-ignored-with-disco-chain",
-			create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailover,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.Upstreams[0].Config["envoy_listener_json"] =
-					customListenerJSON(t, customListenerJSONOptions{
-						Name: "custom-upstream",
-					})
-			},
-		},
-		{
-			name:   "splitter-with-resolver-redirect",
-			create: proxycfg.TestConfigSnapshotDiscoveryChain_SplitterWithResolverRedirectMultiDC,
-			setup:  nil,
-		},
-		{
-			name:   "connect-proxy-with-tcp-chain",
-			create: proxycfg.TestConfigSnapshotDiscoveryChain,
-			setup:  nil,
-		},
-		{
-			name: "connect-proxy-with-http-chain",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChainWithEntries(t,
-					&structs.ProxyConfigEntry{
-						Kind: structs.ProxyDefaults,
-						Name: structs.ProxyConfigGlobal,
-						Config: map[string]interface{}{
-							"protocol": "http",
-						},
-					},
-				)
-			},
-			setup: nil,
-		},
-		{
-			name: "connect-proxy-with-http2-chain",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChainWithEntries(t,
-					&structs.ProxyConfigEntry{
-						Kind: structs.ProxyDefaults,
-						Name: structs.ProxyConfigGlobal,
-						Config: map[string]interface{}{
-							"protocol": "http2",
-						},
-					},
-				)
-			},
-			setup: nil,
-		},
-		{
-			name: "connect-proxy-with-grpc-chain",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChainWithEntries(t,
-					&structs.ProxyConfigEntry{
-						Kind: structs.ProxyDefaults,
-						Name: structs.ProxyConfigGlobal,
-						Config: map[string]interface{}{
-							"protocol": "grpc",
-						},
-					},
-				)
-			},
-			setup: nil,
-		},
-		{
-			name:   "connect-proxy-with-chain-external-sni",
-			create: proxycfg.TestConfigSnapshotDiscoveryChainExternalSNI,
-			setup:  nil,
-		},
-		{
-			name:   "connect-proxy-with-chain-and-overrides",
-			create: proxycfg.TestConfigSnapshotDiscoveryChainWithOverrides,
-			setup:  nil,
-		},
-		{
-			name:   "connect-proxy-with-tcp-chain-failover-through-remote-gateway",
-			create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailoverThroughRemoteGateway,
-			setup:  nil,
-		},
-		{
-			name:   "connect-proxy-with-tcp-chain-failover-through-local-gateway",
-			create: proxycfg.TestConfigSnapshotDiscoveryChainWithFailoverThroughLocalGateway,
-			setup:  nil,
-		},
-		{
-			name:   "expose-paths-local-app-paths",
-			create: proxycfg.TestConfigSnapshotExposeConfig,
-		},
-		{
-			name:   "expose-paths-new-cluster-http2",
-			create: proxycfg.TestConfigSnapshotExposeConfig,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.Expose.Paths[1] = structs.ExposePath{
-					LocalPathPort: 9090,
-					Path:          "/grpc.health.v1.Health/Check",
-					ListenerPort:  21501,
-					Protocol:      "http2",
-				}
-			},
-		},
-		{
-			// NOTE: if IPv6 is not supported in the kernel per
-			// kernelSupportsIPv6() then this test will fail because the golden
-			// files were generated assuming ipv6 support was present
-			name:   "expose-checks",
-			create: proxycfg.TestConfigSnapshotExposeConfig,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.Expose = structs.ExposeConfig{
-					Checks: true,
-				}
-			},
-			serverSetup: func(s *Server) {
-				s.CfgFetcher = configFetcherFunc(func() string {
-					return "192.0.2.1"
-				})
+				snap.Proxy.TransparentProxy = true
 
-				s.CheckFetcher = httpCheckFetcherFunc(func(sid structs.ServiceID) []structs.CheckType {
-					if sid != structs.NewServiceID("web", nil) {
-						return nil
-					}
-					return []structs.CheckType{{
-						CheckID:   types.CheckID("http"),
-						Name:      "http",
-						HTTP:      "http://127.0.0.1:8181/debug",
-						ProxyHTTP: "http://:21500/debug",
-						Method:    "GET",
-						Interval:  10 * time.Second,
-						Timeout:   1 * time.Second,
-					}}
-				})
-			},
-		},
-		{
-			name:   "mesh-gateway",
-			create: proxycfg.TestConfigSnapshotMeshGateway,
-		},
-		{
-			name:   "mesh-gateway-using-federation-states",
-			create: proxycfg.TestConfigSnapshotMeshGatewayUsingFederationStates,
-		},
-		{
-			name:   "mesh-gateway-no-services",
-			create: proxycfg.TestConfigSnapshotMeshGatewayNoServices,
-		},
-		{
-			name:   "mesh-gateway-tagged-addresses",
-			create: proxycfg.TestConfigSnapshotMeshGateway,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.Config = map[string]interface{}{
-					"envoy_mesh_gateway_no_default_bind":       true,
-					"envoy_mesh_gateway_bind_tagged_addresses": true,
-				}
-			},
-		},
-		{
-			name:   "mesh-gateway-custom-addresses",
-			create: proxycfg.TestConfigSnapshotMeshGateway,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.Config = map[string]interface{}{
-					"envoy_mesh_gateway_bind_addresses": map[string]structs.ServiceAddress{
-						"foo": {
-							Address: "198.17.2.3",
-							Port:    8080,
-						},
-						"bar": {
-							Address: "2001:db8::ff",
-							Port:    9999,
-						},
-						"baz": {
-							Address: "127.0.0.1",
-							Port:    8765,
-						},
-					},
-				}
-			},
-		},
-		{
-			name:   "ingress-gateway",
-			create: proxycfg.TestConfigSnapshotIngressGateway,
-			setup:  nil,
-		},
-		{
-			name:   "ingress-gateway-bind-addrs",
-			create: proxycfg.TestConfigSnapshotIngressGateway,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.TaggedAddresses = map[string]structs.ServiceAddress{
-					"lan": {Address: "10.0.0.1"},
-					"wan": {Address: "172.16.0.1"},
-				}
-				snap.Proxy.Config = map[string]interface{}{
-					"envoy_gateway_no_default_bind":       true,
-					"envoy_gateway_bind_tagged_addresses": true,
-					"envoy_gateway_bind_addresses": map[string]structs.ServiceAddress{
-						"foo": {Address: "8.8.8.8"},
-					},
-				}
-			},
-		},
-		{
-			name:   "ingress-gateway-no-services",
-			create: proxycfg.TestConfigSnapshotIngressGatewayNoServices,
-			setup:  nil,
-		},
-		{
-			name:   "ingress-with-chain-external-sni",
-			create: proxycfg.TestConfigSnapshotIngressExternalSNI,
-			setup:  nil,
-		},
-		{
-			name:   "ingress-with-chain-and-overrides",
-			create: proxycfg.TestConfigSnapshotIngressWithOverrides,
-			setup:  nil,
-		},
-		{
-			name:   "ingress-with-tcp-chain-failover-through-remote-gateway",
-			create: proxycfg.TestConfigSnapshotIngressWithFailoverThroughRemoteGateway,
-			setup:  nil,
-		},
-		{
-			name:   "ingress-with-tcp-chain-failover-through-local-gateway",
-			create: proxycfg.TestConfigSnapshotIngressWithFailoverThroughLocalGateway,
-			setup:  nil,
-		},
-		{
-			name:   "ingress-splitter-with-resolver-redirect",
-			create: proxycfg.TestConfigSnapshotIngress_SplitterWithResolverRedirectMultiDC,
-			setup:  nil,
-		},
-		{
-			name:   "terminating-gateway",
-			create: proxycfg.TestConfigSnapshotTerminatingGateway,
-			setup:  nil,
-		},
-		{
-			name:   "terminating-gateway-no-services",
-			create: proxycfg.TestConfigSnapshotTerminatingGatewayNoServices,
-			setup:  nil,
-		},
-		{
-			name:   "terminating-gateway-custom-and-tagged-addresses",
-			create: proxycfg.TestConfigSnapshotTerminatingGateway,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.Proxy.Config = map[string]interface{}{
-					"envoy_gateway_no_default_bind":       true,
-					"envoy_gateway_bind_tagged_addresses": true,
-					"envoy_gateway_bind_addresses": map[string]structs.ServiceAddress{
-						// This bind address should not get a listener due to deduplication and it sorts to the end
-						"z-duplicate-of-tagged-wan-addr": {
-							Address: "198.18.0.1",
-							Port:    443,
-						},
-						"foo": {
-							Address: "198.17.2.3",
-							Port:    8080,
-						},
-					},
-				}
-			},
-		},
-		{
-			name:   "terminating-gateway-service-subsets",
-			create: proxycfg.TestConfigSnapshotTerminatingGateway,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.TerminatingGateway.ServiceResolvers = map[structs.ServiceName]*structs.ServiceResolverConfigEntry{
-					structs.NewServiceName("web", nil): {
-						Kind: structs.ServiceResolver,
-						Name: "web",
-						Subsets: map[string]structs.ServiceResolverSubset{
-							"v1": {
-								Filter: "Service.Meta.version == 1",
+				// DiscoveryChain without an UpstreamConfig should yield a filter chain when in TransparentProxy mode
+				snap.ConnectProxy.DiscoveryChain["google"] = discoverychain.TestCompileConfigEntries(
+					t, "google", "default", "dc1",
+					connect.TestClusterID+".consul", "dc1", nil)
+				snap.ConnectProxy.WatchedUpstreamEndpoints["google"] = map[string]structs.CheckServiceNodes{
+					"google.default.dc1": {
+						structs.CheckServiceNode{
+							Node: &structs.Node{
+								Address:    "8.8.8.8",
+								Datacenter: "dc1",
 							},
-							"v2": {
-								Filter:      "Service.Meta.version == 2",
-								OnlyPassing: true,
+							Service: &structs.NodeService{
+								Service: "google",
+								Port:    9090,
 							},
 						},
 					},
 				}
-				snap.TerminatingGateway.ServiceConfigs[structs.NewServiceName("web", nil)] = &structs.ServiceConfigResponse{
-					ProxyConfig: map[string]interface{}{"protocol": "http"},
-				}
+
+				// DiscoveryChains without endpoints do not get a filter chain because there are no addresses to match on.
+				snap.ConnectProxy.DiscoveryChain["no-endpoints"] = discoverychain.TestCompileConfigEntries(
+					t, "no-endpoints", "default", "dc1",
+					connect.TestClusterID+".consul", "dc1", nil)
 			},
-		},
-		{
-			name:   "ingress-http-multiple-services",
-			create: proxycfg.TestConfigSnapshotIngress_HTTPMultipleServices,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.IngressGateway.Upstreams = map[proxycfg.IngressListenerKey]structs.Upstreams{
-					{Protocol: "http", Port: 8080}: {
-						{
-							DestinationName: "foo",
-							LocalBindPort:   8080,
-						},
-						{
-							DestinationName: "bar",
-							LocalBindPort:   8080,
-						},
-					},
-					{Protocol: "http", Port: 443}: {
-						{
-							DestinationName: "baz",
-							LocalBindPort:   443,
-						},
-						{
-							DestinationName: "qux",
-							LocalBindPort:   443,
-						},
-					},
-				}
-			},
-		},
-		{
-			name:   "terminating-gateway-no-api-cert",
-			create: proxycfg.TestConfigSnapshotTerminatingGateway,
-			setup: func(snap *proxycfg.ConfigSnapshot) {
-				snap.TerminatingGateway.ServiceLeaves[structs.NewServiceName("api", nil)] = nil
-			},
-		},
-		{
-			name:   "ingress-with-tls-listener",
-			create: proxycfg.TestConfigSnapshotIngressWithTLSListener,
-			setup:  nil,
 		},
 	}
 

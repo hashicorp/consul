@@ -67,6 +67,15 @@ func TestClustersFromSnapshot(t *testing.T) {
 					customAppClusterJSON(t, customClusterJSONOptions{
 						Name: "myservice",
 					})
+				snap.ConnectProxy.UpstreamConfig = map[string]*structs.Upstream{
+					"db": {
+						Config: map[string]interface{}{
+							"envoy_cluster_json": customAppClusterJSON(t, customClusterJSONOptions{
+								Name: "myservice",
+							}),
+						},
+					},
+				}
 			},
 		},
 		{
@@ -615,6 +624,13 @@ func TestClustersFromSnapshot(t *testing.T) {
 			name:   "ingress-multiple-listeners-duplicate-service",
 			create: proxycfg.TestConfigSnapshotIngress_MultipleListenersDuplicateService,
 			setup:  nil,
+		},
+		{
+			name:   "transparent-proxy",
+			create: proxycfg.TestConfigSnapshot,
+			setup: func(snap *proxycfg.ConfigSnapshot) {
+				snap.Proxy.TransparentProxy = true
+			},
 		},
 	}
 
