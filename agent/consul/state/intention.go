@@ -1001,6 +1001,9 @@ func (s *Store) IntentionTopology(ws memdb.WatchSet,
 	}
 	result := make(structs.ServiceList, 0, len(allServices))
 	for _, candidate := range allServices {
+		if candidate.Name == structs.ConsulServiceName {
+			continue
+		}
 		decision, err := s.IntentionDecision(candidate.Name, candidate.NamespaceOrDefault(), intentions, decisionMatchType, defaultDecision, true)
 		if err != nil {
 			src, dst := target, candidate
