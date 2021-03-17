@@ -330,7 +330,7 @@ func (c *ConfigEntry) ResolveServiceConfig(args *structs.ServiceConfigRequest, r
 		func(ws memdb.WatchSet, state *state.Store) error {
 			reply.Reset()
 			reply.MeshGateway.Mode = structs.MeshGatewayModeDefault
-
+			// TODO(freddy) Refactor this into smaller set of state store functions
 			// Pass the WatchSet to both the service and proxy config lookups. If either is updated during the
 			// blocking query, this function will be rerun and these state store lookups will both be current.
 			// We use the default enterprise meta to look up the global proxy defaults because they are not namespaced.
