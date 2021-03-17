@@ -1,32 +1,32 @@
   <div class="consul-auth-method-view">
   {{#if (eq @item.Type 'kubernetes')}}
     <dl>
-      <dt>Type</dt>
+      <dt>{{t 'models.auth-method.Type'}}</dt>
       <dd><Consul::AuthMethod::Type @item={{@item}} /></dd>
 
     {{#each (array "MaxTokenTTL" "TokenLocality" "DisplayName" "Description") as |value|}}
       {{#if (get @item value)}}
-      <dt>{{t (concat "components.consul.auth-method.definition-list." value)}}</dt>
+      <dt>{{t (concat "models.auth-method." value)}}</dt>
       <dd>{{get @item value}}</dd>
       {{/if}}
     {{/each}}
       {{#if @item.Config.Host}}
-      <dt>Host</dt>
+      <dt>{{t 'models.auth-method.Config.Host'}}</dt>
       <dd>
-        <CopyButton @value={{@item.Config.Host}} @name="Host"/>
+        <CopyButton @value={{@item.Config.Host}} @name={{t 'models.auth-method.Config.Host'}}/>
         <span>{{@item.Config.Host}}</span>
       </dd>
       {{/if}}
       {{#if @item.Config.CACert}}
-      <dt>CA Cert</dt>
+      <dt>{{t 'models.auth-method.Config.CACert'}}</dt>
       <dd>
         <Certificate @item={{@item.Config.CACert}} @name={{t 'models.auth-method.Config.CACert'}} />
       </dd>
       {{/if}}
       {{#if @item.Config.ServiceAccountJWT}}
-      <dt>Service account JSON Web Token</dt>
+      <dt>{{t 'models.auth-method.Config.ServiceAccountJWT'}}</dt>
       <dd>
-        <CopyButton @value={{@item.Config.ServiceAccountJWT}} @name="Service account JSON Web Token" />
+        <CopyButton @value={{@item.Config.ServiceAccountJWT}} @name={{t 'models.auth-method.Config.ServiceAccountJWT'}} />
         <span>
           {{@item.Config.ServiceAccountJWT}}
         </span>

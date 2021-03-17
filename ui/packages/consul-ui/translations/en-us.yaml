@@ -200,7 +200,7 @@ models:
       BoundIssuer: Bound issuer
       ExpirationLeeway: Expiration leeway
       NotBeforeLeeway: Not before leeway
-      ClockSkewLeeway: Clocks skew leeway
+      ClockSkewLeeway: Clock skew leeway
       OIDCDiscoveryCACert: OIDC discovery CA cert
       OIDCClientID: Client ID
       OIDCClientSecret: Client secret
