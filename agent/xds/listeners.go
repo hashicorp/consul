@@ -85,7 +85,7 @@ func (s *Server) listenersFromSnapshotConnectProxy(cInfo connectionInfo, cfgSnap
 		}
 	}
 
-	var hasChains bool
+	var hasFilterChains bool
 
 	for id, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
 		upstreamCfg := cfgSnap.ConnectProxy.UpstreamConfig[id]
@@ -212,11 +212,11 @@ func (s *Server) listenersFromSnapshotConnectProxy(cInfo connectionInfo, cfgSnap
 		if len(ranges) > 0 {
 			outboundListener.FilterChains = append(outboundListener.FilterChains, filterChain)
 		}
-		hasChains = true
+		hasFilterChains = true
 	}
 
 	// Only create the outbound listener when there are upstreams and filter chains are present
-	if outboundListener != nil && hasChains {
+	if outboundListener != nil && hasFilterChains {
 		// Filter chains are stable sorted to avoid draining if the list is provided out of order
 		sort.SliceStable(outboundListener.FilterChains, func(i, j int) bool {
 			return outboundListener.FilterChains[i].Name < outboundListener.FilterChains[j].Name
