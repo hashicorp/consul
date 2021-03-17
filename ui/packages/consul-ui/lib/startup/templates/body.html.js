@@ -17,23 +17,19 @@ module.exports = ({ appName, environment, rootURL, config }) => `
   <script type="application/json" data-consul-ui-config>
 ${environment === 'production' ? `{{jsonEncode .}}` : JSON.stringify(config.operatorConfig)}
   </script>
+  <script type="application/json" data-consul-ui-fs>
+  {
+    "text-encoding/encoding-indexes.js": "${rootURL}assets/encoding-indexes.js",
+    "text-encoding/encoding.js": "${rootURL}assets/encoding-indexes.js",
+    "css.escape/css.escape.js": "${rootURL}assets/css.escape.js",
+    "codemirror/mode/javascript/javascript.js": "${rootURL}assets/codemirror/mode/javascript/javascript.js",
+    "codemirror/mode/ruby/ruby.js": "${rootURL}assets/codemirror/mode/ruby/ruby.js",
+    "codemirror/mode/yaml/yaml.js": "${rootURL}assets/codemirror/mode/yaml/yaml.js"
+  }
+  </script>
   <script src="${rootURL}assets/init.js"></script>
   <script src="${rootURL}assets/vendor.js"></script>
   ${environment === 'test' ? `<script src="${rootURL}assets/test-support.js"></script>` : ``}
-  <script>
-    var appendScript = function(src) {
-      var $script = document.createElement('script');
-      $script.src = src;
-      document.body.appendChild($script);
-    }
-    if(!('TextDecoder' in window)) {
-      appendScript('${rootURL}assets/encoding-indexes.js');
-      appendScript('${rootURL}assets/encoding.js');
-    }
-    if(!(window.CSS && window.CSS.escape)) {
-      appendScript('${rootURL}assets/css.escape.js');
-    }
-  </script>
   <script src="${rootURL}assets/metrics-providers/consul.js"></script>
   <script src="${rootURL}assets/metrics-providers/prometheus.js"></script>
   ${
@@ -42,19 +38,5 @@ ${environment === 'production' ? `{{jsonEncode .}}` : JSON.stringify(config.oper
       : ``
   }
   <script src="${rootURL}assets/${appName}.js"></script>
-  <script>
-    CodeMirror.modeURL = {
-      replace: function(n, mode) {
-        switch(mode) {
-          case 'javascript':
-            return '${rootURL}assets/codemirror/mode/javascript/javascript.js';
-          case 'ruby':
-            return '${rootURL}assets/codemirror/mode/ruby/ruby.js';
-          case 'yaml':
-            return '${rootURL}assets/codemirror/mode/yaml/yaml.js';
-        }
-      }
-    };
-  </script>
   ${environment === 'test' ? `<script src="${rootURL}assets/tests.js"></script>` : ``}
 `;
