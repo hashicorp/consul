@@ -12,7 +12,7 @@ route "dc" {
   	  route "intentions" {
   	    path = "/intentions"
   	    route "edit" {
-  	      path = "/intention_id"
+  	      path = "/:intention_id"
   	    }
   	    route "create" {
   	      path = "/create"
@@ -38,7 +38,7 @@ route "dc" {
   	route "instance" {
   	  path = "/:name/instances/:node/:id"
   	  route "healthchecks" {
-  	    path = "/healthchecks"
+  	    path = "/health-checks"
   	  }
   	  route "upstreams" {
   	    path = "/upstreams"
@@ -63,7 +63,7 @@ route "dc" {
     route "show" {
   	  path = "/:name"
       route "healthchecks" {
-  	    path = "/:health-checks"
+  	    path = "/health-checks"
       }
       route "services" {
   	    path = "/service-instances"
