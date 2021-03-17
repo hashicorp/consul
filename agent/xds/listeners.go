@@ -57,9 +57,10 @@ func (s *Server) listenersFromSnapshotConnectProxy(cInfo connectionInfo, cfgSnap
 	// One listener for each upstream plus the public one
 	resources := make([]proto.Message, len(cfgSnap.Proxy.Upstreams)+1)
 
-	// Configure public listener
 	var err error
-	resources[0], err = s.makePublicListener(cInfo, cfgSnap)
+
+	// Configure inbound listener.
+	resources[0], err = s.makeInboundListener(cInfo, cfgSnap, PublicListenerName)
 	if err != nil {
 		return nil, err
 	}
@@ -423,7 +424,7 @@ const (
 )
 
 // Locate the existing http connect manager L4 filter and inject our RBAC filter at the top.
-func (s *Server) injectHTTPFilterOnFilterChains(
+func injectHTTPFilterOnFilterChains(
 	listener *envoy_listener_v3.Listener,
 	authzFilter *envoy_http_v3.HttpFilter,
 ) error {
@@ -503,7 +504,7 @@ func (s *Server) injectConnectTLSOnFilterChains(_ connectionInfo, cfgSnap *proxy
 	return nil
 }
 
-func (s *Server) makePublicListener(cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot) (proto.Message, error) {
+func (s *Server) makeInboundListener(cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot, name string) (proto.Message, error) {
 	var l *envoy_listener_v3.Listener
 	var err error
 
@@ -514,104 +515,124 @@ func (s *Server) makePublicListener(cInfo connectionInfo, cfgSnap *proxycfg.Conf
 		s.Logger.Warn("failed to parse Connect.Proxy.Config", "error", err)
 	}
 
-	if cfg.PublicListenerJSON != "" {
-		l, err = makeListenerFromUserConfig(cfg.PublicListenerJSON)
-		if err != nil {
-			return l, err
-		}
-		// In the happy path don't return yet as we need to inject TLS and authz config still.
-	}
-
 	// This controls if we do L4 or L7 intention checks.
 	useHTTPFilter := structs.IsProtocolHTTPLike(cfg.Protocol)
 
-	if l == nil {
-		// No user config, use default listener
-		addr := cfgSnap.Address
-
-		// Override with bind address if one is set, otherwise default
-		// to 0.0.0.0
-		if cfg.BindAddress != "" {
-			addr = cfg.BindAddress
-		} else if addr == "" {
-			addr = "0.0.0.0"
-		}
-
-		// Override with bind port if one is set, otherwise default to
-		// proxy service's address
-		port := cfgSnap.Port
-		if cfg.BindPort != 0 {
-			port = cfg.BindPort
-		}
-
-		l = makeListener(PublicListenerName, addr, port, envoy_core_v3.TrafficDirection_INBOUND)
-
-		opts := listenerFilterOpts{
-			useRDS:           false,
-			protocol:         cfg.Protocol,
-			filterName:       "public_listener",
-			routeName:        "public_listener",
-			cluster:          LocalAppClusterName,
-			statPrefix:       "",
-			routePath:        "",
-			requestTimeoutMs: cfg.LocalRequestTimeoutMs,
-		}
-
-		if useHTTPFilter {
-			opts.httpAuthzFilter, err = makeRBACHTTPFilter(
-				cfgSnap.ConnectProxy.Intentions,
-				cfgSnap.IntentionDefaultAllow,
-			)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		filter, err := makeListenerFilter(opts)
+	// Generate and return custom public listener from config if one was provided.
+	if cfg.PublicListenerJSON != "" {
+		l, err = makeListenerFromUserConfig(cfg.PublicListenerJSON)
 		if err != nil {
 			return nil, err
 		}
-		l.FilterChains = []*envoy_listener_v3.FilterChain{
-			{
-				Filters: []*envoy_listener_v3.Filter{
-					filter,
-				},
-			},
-		}
 
-	} else if useHTTPFilter {
-		httpAuthzFilter, err := makeRBACHTTPFilter(
+		err := s.finalizePublicListenerFromConfig(l, cInfo, cfgSnap, useHTTPFilter)
+		if err != nil {
+			return nil, fmt.Errorf("failed to attach Consul filters and TLS context to custom public listener: %v", err)
+		}
+		return l, nil
+	}
+
+	// No user config, use default listener
+	addr := cfgSnap.Address
+
+	// Override with bind address if one is set, otherwise default
+	// to 0.0.0.0
+	if cfg.BindAddress != "" {
+		addr = cfg.BindAddress
+	} else if addr == "" {
+		addr = "0.0.0.0"
+	}
+
+	// Override with bind port if one is set, otherwise default to
+	// proxy service's address
+	port := cfgSnap.Port
+	if cfg.BindPort != 0 {
+		port = cfg.BindPort
+	}
+
+	l = makeListener(PublicListenerName, addr, port, envoy_core_v3.TrafficDirection_INBOUND)
+
+	filterOpts := listenerFilterOpts{
+		protocol:         cfg.Protocol,
+		filterName:       name,
+		routeName:        name,
+		cluster:          LocalAppClusterName,
+		requestTimeoutMs: cfg.LocalRequestTimeoutMs,
+	}
+	if useHTTPFilter {
+		filterOpts.httpAuthzFilter, err = makeRBACHTTPFilter(
 			cfgSnap.ConnectProxy.Intentions,
 			cfgSnap.IntentionDefaultAllow,
 		)
 		if err != nil {
 			return nil, err
 		}
-
-		// We're using the listener escape hatch, so try our best to inject the
-		// HTTP RBAC filter, but if we can't then just inject the RBAC Network
-		// filter instead.
-		if err := s.injectHTTPFilterOnFilterChains(l, httpAuthzFilter); err != nil {
-			s.Logger.Warn(
-				"could not inject the HTTP RBAC filter to enforce intentions on user-provided 'envoy_public_listener_json' config; falling back on the RBAC network filter instead",
-				"proxy", cfgSnap.ProxyID,
-				"error", err,
-			)
-			useHTTPFilter = false
-		}
+	}
+	filter, err := makeListenerFilter(filterOpts)
+	if err != nil {
+		return nil, err
+	}
+	l.FilterChains = []*envoy_listener_v3.FilterChain{
+		{
+			Filters: []*envoy_listener_v3.Filter{
+				filter,
+			},
+		},
 	}
 
 	if !useHTTPFilter {
+		// Authz filters for non-HTTP services need to be inserted at the head of the list of filters
+		// on the filter chain.
 		if err := s.injectConnectFilters(cInfo, cfgSnap, l); err != nil {
 			return nil, err
 		}
 	}
-
 	if err := s.injectConnectTLSOnFilterChains(cInfo, cfgSnap, l); err != nil {
 		return nil, err
 	}
 
 	return l, err
+}
+
+// finalizePublicListenerFromConfig is used for best-effort injection of Consul filter-chains onto custom public listeners.
+func (s *Server) finalizePublicListenerFromConfig(l *envoy_listener_v3.Listener,
+	cInfo connectionInfo, cfgSnap *proxycfg.ConfigSnapshot, useHTTPFilter bool) error {
+
+	// For HTTP-like services attach an RBAC http filter and do a best-effort insert
+	if useHTTPFilter {
+		httpAuthzFilter, err := makeRBACHTTPFilter(
+			cfgSnap.ConnectProxy.Intentions,
+			cfgSnap.IntentionDefaultAllow,
+		)
+		if err != nil {
+			return err
+		}
+
+		// We're using the listener escape hatch, so try our best to inject the HTTP RBAC filter.
+		if err := injectHTTPFilterOnFilterChains(l, httpAuthzFilter); err != nil {
+			s.Logger.Warn(
+				"could not inject the HTTP RBAC filter to enforce intentions on user-provided "+
+					"'envoy_public_listener_json' config; falling back on the RBAC network filter instead",
+				"proxy", cfgSnap.ProxyID,
+				"error", err,
+			)
+
+			// If we get an error inject the RBAC network filter instead.
+			useHTTPFilter = false
+		}
+	}
+	if !useHTTPFilter {
+		// Best-effort injection of L4 intentions
+		if err := s.injectConnectFilters(cInfo, cfgSnap, l); err != nil {
+			return nil
+		}
+	}
+
+	// Always apply TLS certificates
+	if err := s.injectConnectTLSOnFilterChains(cInfo, cfgSnap, l); err != nil {
+		return nil
+	}
+	return nil
 }
 
 func (s *Server) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSnapshot, cluster string, path structs.ExposePath) (proto.Message, error) {
