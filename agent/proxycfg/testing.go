@@ -653,6 +653,8 @@ func TestConfigSnapshot(t testing.T) *ConfigSnapshot {
 		t, "db", "default", "dc1",
 		connect.TestClusterID+".consul", "dc1", nil)
 
+	upstreams := structs.TestUpstreams(t)
+
 	return &ConfigSnapshot{
 		Kind:    structs.ServiceKindConnectProxy,
 		Service: "web-sidecar-proxy",
@@ -667,12 +669,13 @@ func TestConfigSnapshot(t testing.T) *ConfigSnapshot {
 			Config: map[string]interface{}{
 				"foo": "bar",
 			},
-			Upstreams: structs.TestUpstreams(t),
+			Upstreams: upstreams,
 		},
 		Roots: roots,
 		ConnectProxy: configSnapshotConnectProxy{
 			ConfigSnapshotUpstreams: ConfigSnapshotUpstreams{
-				Leaf: leaf,
+				Leaf:           leaf,
+				UpstreamConfig: upstreams.ToMap(),
 				DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
 					"db": dbChain,
 				},
@@ -1315,6 +1318,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 
 	dbChain := discoverychain.TestCompileConfigEntries(t, "db", "default", "dc1", connect.TestClusterID+".consul", "dc1", compileSetup, entries...)
 
+	upstreams := structs.TestUpstreams(t)
 	snap := ConfigSnapshotUpstreams{
 		Leaf: leaf,
 		DiscoveryChain: map[string]*structs.CompiledDiscoveryChain{
@@ -1325,6 +1329,7 @@ func setupTestVariationConfigEntriesAndSnapshot(
 				"db.default.dc1": TestUpstreamNodes(t),
 			},
 		},
+		UpstreamConfig: upstreams.ToMap(),
 	}
 
 	switch variation {

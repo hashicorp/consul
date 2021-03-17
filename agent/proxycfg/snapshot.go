@@ -18,6 +18,13 @@ type ConfigSnapshotUpstreams struct {
 	// targeted by this upstream. We then instantiate watches for those targets.
 	DiscoveryChain map[string]*structs.CompiledDiscoveryChain
 
+	// WatchedDiscoveryChains is a map of upstream.Identifier() -> CancelFunc's
+	// in order to cancel any watches when the proxy's configuration is
+	// changed. Ingress gateways and transparent proxies need this because
+	// discovery chain watches are added and removed through the lifecycle
+	// of a single proxycfg state instance.
+	WatchedDiscoveryChains map[string]context.CancelFunc
+
 	// WatchedUpstreams is a map of upstream.Identifier() -> (map of TargetID ->
 	// CancelFunc's) in order to cancel any watches when the configuration is
 	// changed.
@@ -36,6 +43,9 @@ type ConfigSnapshotUpstreams struct {
 	// TargetID -> CheckServiceNodes) and is used to determine the backing
 	// endpoints of a mesh gateway.
 	WatchedGatewayEndpoints map[string]map[string]structs.CheckServiceNodes
+
+	// UpstreamConfig is a map to an upstream's configuration.
+	UpstreamConfig map[string]*structs.Upstream
 }
 
 type configSnapshotConnectProxy struct {
@@ -58,12 +68,14 @@ func (c *configSnapshotConnectProxy) IsEmpty() bool {
 	return c.Leaf == nil &&
 		!c.IntentionsSet &&
 		len(c.DiscoveryChain) == 0 &&
+		len(c.WatchedDiscoveryChains) == 0 &&
 		len(c.WatchedUpstreams) == 0 &&
 		len(c.WatchedUpstreamEndpoints) == 0 &&
 		len(c.WatchedGateways) == 0 &&
 		len(c.WatchedGatewayEndpoints) == 0 &&
 		len(c.WatchedServiceChecks) == 0 &&
-		len(c.PreparedQueryEndpoints) == 0
+		len(c.PreparedQueryEndpoints) == 0 &&
+		len(c.UpstreamConfig) == 0
 }
 
 type configSnapshotTerminatingGateway struct {
@@ -287,12 +299,6 @@ type configSnapshotIngressGateway struct {
 	// to. This is constructed from the ingress-gateway config entry, and uses
 	// the GatewayServices RPC to retrieve them.
 	Upstreams map[IngressListenerKey]structs.Upstreams
-
-	// WatchedDiscoveryChains is a map of upstream.Identifier() -> CancelFunc's
-	// in order to cancel any watches when the ingress gateway configuration is
-	// changed. Ingress gateways need this because discovery chain watches are
-	// added and removed through the lifecycle of single proxycfg.state instance.
-	WatchedDiscoveryChains map[string]context.CancelFunc
 }
 
 func (c *configSnapshotIngressGateway) IsEmpty() bool {
@@ -301,7 +307,6 @@ func (c *configSnapshotIngressGateway) IsEmpty() bool {
 	}
 	return len(c.Upstreams) == 0 &&
 		len(c.DiscoveryChain) == 0 &&
-		len(c.WatchedDiscoveryChains) == 0 &&
 		len(c.WatchedUpstreams) == 0 &&
 		len(c.WatchedUpstreamEndpoints) == 0
 }
