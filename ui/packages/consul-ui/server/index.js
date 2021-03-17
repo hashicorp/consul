@@ -25,6 +25,14 @@ module.exports = function(app, options) {
     }
     next();
   });
+
+  // sets the base CSP policy for the UI
+  app.use(function(request, response, next) {
+    response.set({
+      'Content-Security-Policy': `default-src 'self' ws: localhost:${options.liveReloadPort} http: localhost:${options.liveReloadPort}; img-src 'self' data: ; style-src 'self' 'unsafe-inline'`,
+    });
+    next();
+  });
   // Serve the coverage folder for easy viewing during development
   app.use('/coverage', express.static('coverage'));
 };
