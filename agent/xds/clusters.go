@@ -386,14 +386,14 @@ func (s *Server) makeUpstreamClusterForPreparedQuery(upstream structs.Upstream, 
 	}
 	sni := connect.UpstreamSNI(&upstream, "", dc, cfgSnap.Roots.TrustDomain)
 
-	cfg, err := ParseUpstreamConfig(upstream.Config)
+	cfg, err := structs.ParseUpstreamConfig(upstream.Config)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
 		// default config if there is an error so it's safe to continue.
 		s.Logger.Warn("failed to parse", "upstream", upstream.Identifier(), "error", err)
 	}
-	if cfg.ClusterJSON != "" {
-		c, err = makeClusterFromUserConfig(cfg.ClusterJSON)
+	if cfg.EnvoyClusterJSON != "" {
+		c, err = makeClusterFromUserConfig(cfg.EnvoyClusterJSON)
 		if err != nil {
 			return c, err
 		}
@@ -416,7 +416,7 @@ func (s *Server) makeUpstreamClusterForPreparedQuery(upstream structs.Upstream, 
 			CircuitBreakers: &envoy_cluster_v3.CircuitBreakers{
 				Thresholds: makeThresholdsIfNeeded(cfg.Limits),
 			},
-			OutlierDetection: cfg.PassiveHealthCheck.AsOutlierDetection(),
+			OutlierDetection: ToOutlierDetection(cfg.PassiveHealthCheck),
 		}
 		if cfg.Protocol == "http2" || cfg.Protocol == "grpc" {
 			c.Http2ProtocolOptions = &envoy_core_v3.Http2ProtocolOptions{}
@@ -448,7 +448,7 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 		return nil, fmt.Errorf("cannot create upstream cluster without discovery chain for %s", upstream.Identifier())
 	}
 
-	cfg, err := ParseUpstreamConfigNoDefaults(upstream.Config)
+	cfg, err := structs.ParseUpstreamConfigNoDefaults(upstream.Config)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
 		// default config if there is an error so it's safe to continue.
@@ -457,11 +457,11 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 	}
 
 	var escapeHatchCluster *envoy_cluster_v3.Cluster
-	if cfg.ClusterJSON != "" {
+	if cfg.EnvoyClusterJSON != "" {
 		if chain.IsDefault() {
 			// If you haven't done anything to setup the discovery chain, then
 			// you can use the envoy_cluster_json escape hatch.
-			escapeHatchCluster, err = makeClusterFromUserConfig(cfg.ClusterJSON)
+			escapeHatchCluster, err = makeClusterFromUserConfig(cfg.EnvoyClusterJSON)
 			if err != nil {
 				return nil, err
 			}
@@ -524,7 +524,7 @@ func (s *Server) makeUpstreamClustersForDiscoveryChain(
 			CircuitBreakers: &envoy_cluster_v3.CircuitBreakers{
 				Thresholds: makeThresholdsIfNeeded(cfg.Limits),
 			},
-			OutlierDetection: cfg.PassiveHealthCheck.AsOutlierDetection(),
+			OutlierDetection: ToOutlierDetection(cfg.PassiveHealthCheck),
 		}
 
 		var lb *structs.LoadBalancer
@@ -734,15 +734,13 @@ func (s *Server) makeGatewayCluster(snap *proxycfg.ConfigSnapshot, opts gatewayC
 	return cluster
 }
 
-func makeThresholdsIfNeeded(limits UpstreamLimits) []*envoy_cluster_v3.CircuitBreakers_Thresholds {
-	var empty UpstreamLimits
-	// Make sure to not create any thresholds when passed the zero-value in order
-	// to rely on Envoy defaults
-	if limits == empty {
+func makeThresholdsIfNeeded(limits *structs.UpstreamLimits) []*envoy_cluster_v3.CircuitBreakers_Thresholds {
+	if limits == nil {
 		return nil
 	}
 
 	threshold := &envoy_cluster_v3.CircuitBreakers_Thresholds{}
+
 	// Likewise, make sure to not set any threshold values on the zero-value in
 	// order to rely on Envoy defaults
 	if limits.MaxConnections != nil {

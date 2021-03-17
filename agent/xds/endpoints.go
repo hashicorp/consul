@@ -312,7 +312,7 @@ func (s *Server) endpointsFromDiscoveryChain(
 		return resources
 	}
 
-	cfg, err := ParseUpstreamConfigNoDefaults(upstream.Config)
+	cfg, err := structs.ParseUpstreamConfigNoDefaults(upstream.Config)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
 		// default config if there is an error so it's safe to continue.
@@ -321,11 +321,11 @@ func (s *Server) endpointsFromDiscoveryChain(
 	}
 
 	var escapeHatchCluster *envoy_cluster_v3.Cluster
-	if cfg.ClusterJSON != "" {
+	if cfg.EnvoyClusterJSON != "" {
 		if chain.IsDefault() {
 			// If you haven't done anything to setup the discovery chain, then
 			// you can use the envoy_cluster_json escape hatch.
-			escapeHatchCluster, err = makeClusterFromUserConfig(cfg.ClusterJSON)
+			escapeHatchCluster, err = makeClusterFromUserConfig(cfg.EnvoyClusterJSON)
 			if err != nil {
 				return resources
 			}

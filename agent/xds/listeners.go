@@ -987,8 +987,8 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 	l := makeListener(upstreamID, address, u.LocalBindPort, envoy_core_v3.TrafficDirection_OUTBOUND)
 
 	cfg := getAndModifyUpstreamConfigForListener(s.Logger, u, chain)
-	if cfg.ListenerJSON != "" {
-		return makeListenerFromUserConfig(cfg.ListenerJSON)
+	if cfg.EnvoyListenerJSON != "" {
+		return makeListenerFromUserConfig(cfg.EnvoyListenerJSON)
 	}
 
 	useRDS := true
@@ -1071,14 +1071,14 @@ func (s *Server) makeUpstreamListenerForDiscoveryChain(
 	return l, nil
 }
 
-func getAndModifyUpstreamConfigForListener(logger hclog.Logger, u *structs.Upstream, chain *structs.CompiledDiscoveryChain) UpstreamConfig {
+func getAndModifyUpstreamConfigForListener(logger hclog.Logger, u *structs.Upstream, chain *structs.CompiledDiscoveryChain) structs.UpstreamConfig {
 	var (
-		cfg UpstreamConfig
+		cfg structs.UpstreamConfig
 		err error
 	)
 
 	if chain == nil || chain.IsDefault() {
-		cfg, err = ParseUpstreamConfig(u.Config)
+		cfg, err = structs.ParseUpstreamConfig(u.Config)
 		if err != nil {
 			// Don't hard fail on a config typo, just warn. The parse func returns
 			// default config if there is an error so it's safe to continue.
@@ -1087,19 +1087,19 @@ func getAndModifyUpstreamConfigForListener(logger hclog.Logger, u *structs.Upstr
 	} else {
 		// Use NoDefaults here so that we can set the protocol to the chain
 		// protocol if necessary
-		cfg, err = ParseUpstreamConfigNoDefaults(u.Config)
+		cfg, err = structs.ParseUpstreamConfigNoDefaults(u.Config)
 		if err != nil {
 			// Don't hard fail on a config typo, just warn. The parse func returns
 			// default config if there is an error so it's safe to continue.
 			logger.Warn("failed to parse", "upstream", u.Identifier(), "error", err)
 		}
 
-		if cfg.ListenerJSON != "" {
+		if cfg.EnvoyListenerJSON != "" {
 			logger.Warn("ignoring escape hatch setting because already configured for",
 				"discovery chain", chain.ServiceName, "upstream", u.Identifier(), "config", "envoy_listener_json")
 
 			// Remove from config struct so we don't use it later on
-			cfg.ListenerJSON = ""
+			cfg.EnvoyListenerJSON = ""
 		}
 
 		proto := cfg.Protocol

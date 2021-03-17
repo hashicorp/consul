@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/hcl"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -112,6 +113,33 @@ func TestDecodeConfigEntry(t *testing.T) {
 				mesh_gateway {
 					mode = "remote"
 				}
+				connect {
+					upstream_configs {
+						redis {
+							passive_health_check {
+								interval = "2s"
+								max_failures = 3
+							}
+						}
+					
+						"finance/billing" {
+							mesh_gateway {
+								mode = "remote"
+							}
+						}
+					}
+					upstream_defaults {
+						connect_timeout_ms = 5
+						protocol = "http"
+						envoy_listener_json = "foo"
+						envoy_cluster_json = "bar"
+						limits {
+							max_connections = 3
+							max_pending_requests = 4
+							max_concurrent_requests = 5
+						}
+					}
+				}
 			`,
 			camel: `
 				Kind = "service-defaults"
@@ -125,6 +153,33 @@ func TestDecodeConfigEntry(t *testing.T) {
 				MeshGateway {
 					Mode = "remote"
 				}
+				Connect {
+					UpstreamConfigs {
+						"redis" {
+							PassiveHealthCheck {
+								MaxFailures = 3
+								Interval = "2s"
+							}
+						}
+					
+						"finance/billing" {
+							MeshGateway {
+								Mode = "remote"
+							}
+						}
+					}
+					UpstreamDefaults {
+						EnvoyListenerJSON = "foo"
+						EnvoyClusterJSON = "bar"
+						ConnectTimeoutMs = 5
+						Protocol = "http"
+						Limits {
+							MaxConnections = 3
+							MaxPendingRequests = 4
+							MaxConcurrentRequests = 5
+						}
+					}
+				}
 			`,
 			expect: &ServiceConfigEntry{
 				Kind: "service-defaults",
@@ -137,6 +192,30 @@ func TestDecodeConfigEntry(t *testing.T) {
 				ExternalSNI: "abc-123",
 				MeshGateway: MeshGatewayConfig{
 					Mode: MeshGatewayModeRemote,
+				},
+				Connect: &ConnectConfiguration{
+					UpstreamConfigs: map[string]*UpstreamConfig{
+						"redis": {
+							PassiveHealthCheck: &PassiveHealthCheck{
+								MaxFailures: 3,
+								Interval:    2 * time.Second,
+							},
+						},
+						"finance/billing": {
+							MeshGateway: MeshGatewayConfig{Mode: MeshGatewayModeRemote},
+						},
+					},
+					UpstreamDefaults: &UpstreamConfig{
+						EnvoyListenerJSON: "foo",
+						EnvoyClusterJSON:  "bar",
+						ConnectTimeoutMs:  5,
+						Protocol:          "http",
+						Limits: &UpstreamLimits{
+							MaxConnections:        intPointer(3),
+							MaxPendingRequests:    intPointer(4),
+							MaxConcurrentRequests: intPointer(5),
+						},
+					},
 				},
 			},
 		},
@@ -1330,7 +1409,485 @@ func TestConfigEntryResponseMarshalling(t *testing.T) {
 	}
 }
 
+func TestPassiveHealthCheck_Validate(t *testing.T) {
+	tt := []struct {
+		name    string
+		input   PassiveHealthCheck
+		wantErr bool
+		wantMsg string
+	}{
+		{
+			name:    "valid-interval",
+			input:   PassiveHealthCheck{Interval: 2 * time.Second},
+			wantErr: false,
+		},
+		{
+			name:    "negative-interval",
+			input:   PassiveHealthCheck{Interval: -1 * time.Second},
+			wantErr: true,
+			wantMsg: "greater than 0s",
+		},
+		{
+			name:    "zero-interval",
+			input:   PassiveHealthCheck{Interval: 0 * time.Second},
+			wantErr: true,
+			wantMsg: "greater than 0s",
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.input.Validate()
+			if err == nil {
+				require.False(t, tc.wantErr)
+				return
+			}
+			require.Contains(t, err.Error(), tc.wantMsg)
+		})
+	}
+}
+
+func TestUpstreamLimits_Validate(t *testing.T) {
+	tt := []struct {
+		name    string
+		input   UpstreamLimits
+		wantErr bool
+		wantMsg string
+	}{
+		{
+			name:    "valid-max-conns",
+			input:   UpstreamLimits{MaxConnections: intPointer(1)},
+			wantErr: false,
+		},
+		{
+			name:    "zero-max-conns",
+			input:   UpstreamLimits{MaxConnections: intPointer(0)},
+			wantErr: true,
+			wantMsg: "at least 0",
+		},
+		{
+			name:    "negative-max-conns",
+			input:   UpstreamLimits{MaxConnections: intPointer(-1)},
+			wantErr: true,
+			wantMsg: "at least 0",
+		},
+		{
+			name:    "valid-max-concurrent",
+			input:   UpstreamLimits{MaxConcurrentRequests: intPointer(1)},
+			wantErr: false,
+		},
+		{
+			name:    "zero-max-concurrent",
+			input:   UpstreamLimits{MaxConcurrentRequests: intPointer(0)},
+			wantErr: true,
+			wantMsg: "at least 0",
+		},
+		{
+			name:    "negative-max-concurrent",
+			input:   UpstreamLimits{MaxConcurrentRequests: intPointer(-1)},
+			wantErr: true,
+			wantMsg: "at least 0",
+		},
+		{
+			name:    "valid-max-pending",
+			input:   UpstreamLimits{MaxPendingRequests: intPointer(1)},
+			wantErr: false,
+		},
+		{
+			name:    "zero-max-pending",
+			input:   UpstreamLimits{MaxPendingRequests: intPointer(0)},
+			wantErr: true,
+			wantMsg: "at least 0",
+		},
+		{
+			name:    "negative-max-pending",
+			input:   UpstreamLimits{MaxPendingRequests: intPointer(-1)},
+			wantErr: true,
+			wantMsg: "at least 0",
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.input.Validate()
+			if err == nil {
+				require.False(t, tc.wantErr)
+				return
+			}
+			require.Contains(t, err.Error(), tc.wantMsg)
+		})
+	}
+}
+
+func TestServiceConfigEntry_Normalize(t *testing.T) {
+	tt := []struct {
+		name   string
+		input  ServiceConfigEntry
+		expect ServiceConfigEntry
+	}{
+		{
+			name: "fill-in-kind",
+			input: ServiceConfigEntry{
+				Name: "web",
+			},
+			expect: ServiceConfigEntry{
+				Kind: ServiceDefaults,
+				Name: "web",
+			},
+		},
+		{
+			name: "lowercase-protocol",
+			input: ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "web",
+				Protocol: "PrOtoCoL",
+			},
+			expect: ServiceConfigEntry{
+				Kind:     ServiceDefaults,
+				Name:     "web",
+				Protocol: "protocol",
+			},
+		},
+		{
+			name: "connect-kitchen-sink",
+			input: ServiceConfigEntry{
+				Kind: ServiceDefaults,
+				Name: "web",
+				Connect: &ConnectConfiguration{
+					UpstreamConfigs: map[string]*UpstreamConfig{
+						"redis": {
+							Protocol: "TcP",
+						},
+						"memcached": {
+							ConnectTimeoutMs: -1,
+						},
+					},
+					UpstreamDefaults: &UpstreamConfig{ConnectTimeoutMs: -20},
+				},
+			},
+			expect: ServiceConfigEntry{
+				Kind: ServiceDefaults,
+				Name: "web",
+				Connect: &ConnectConfiguration{
+					UpstreamConfigs: map[string]*UpstreamConfig{
+						"redis": {
+							Protocol:         "tcp",
+							ConnectTimeoutMs: 5000,
+						},
+						"memcached": {
+							ConnectTimeoutMs: 5000,
+						},
+					},
+					UpstreamDefaults: &UpstreamConfig{
+						ConnectTimeoutMs: 5000,
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.input.Normalize()
+			require.NoError(t, err)
+			require.Equal(t, tc.expect, tc.input)
+		})
+	}
+}
+
+func TestUpstreamConfig_MergeInto(t *testing.T) {
+	tt := []struct {
+		name        string
+		source      UpstreamConfig
+		destination map[string]interface{}
+		want        map[string]interface{}
+	}{
+		{
+			name: "kitchen sink",
+			source: UpstreamConfig{
+				EnvoyListenerJSON: "foo",
+				EnvoyClusterJSON:  "bar",
+				ConnectTimeoutMs:  5,
+				Protocol:          "http",
+				Limits: &UpstreamLimits{
+					MaxConnections:        intPointer(3),
+					MaxPendingRequests:    intPointer(4),
+					MaxConcurrentRequests: intPointer(5),
+				},
+				PassiveHealthCheck: &PassiveHealthCheck{
+					MaxFailures: 3,
+					Interval:    2 * time.Second,
+				},
+				MeshGateway: MeshGatewayConfig{Mode: MeshGatewayModeRemote},
+			},
+			destination: make(map[string]interface{}),
+			want: map[string]interface{}{
+				"envoy_listener_json": "foo",
+				"envoy_cluster_json":  "bar",
+				"connect_timeout_ms":  5,
+				"protocol":            "http",
+				"limits": &UpstreamLimits{
+					MaxConnections:        intPointer(3),
+					MaxPendingRequests:    intPointer(4),
+					MaxConcurrentRequests: intPointer(5),
+				},
+				"passive_health_check": &PassiveHealthCheck{
+					MaxFailures: 3,
+					Interval:    2 * time.Second,
+				},
+				"mesh_gateway": MeshGatewayConfig{Mode: MeshGatewayModeRemote},
+			},
+		},
+		{
+			name: "kitchen sink override of destination",
+			source: UpstreamConfig{
+				EnvoyListenerJSON: "foo",
+				EnvoyClusterJSON:  "bar",
+				ConnectTimeoutMs:  5,
+				Protocol:          "http",
+				Limits: &UpstreamLimits{
+					MaxConnections:        intPointer(3),
+					MaxPendingRequests:    intPointer(4),
+					MaxConcurrentRequests: intPointer(5),
+				},
+				PassiveHealthCheck: &PassiveHealthCheck{
+					MaxFailures: 3,
+					Interval:    2 * time.Second,
+				},
+				MeshGateway: MeshGatewayConfig{Mode: MeshGatewayModeRemote},
+			},
+			destination: map[string]interface{}{
+				"envoy_listener_json": "zip",
+				"envoy_cluster_json":  "zap",
+				"connect_timeout_ms":  10,
+				"protocol":            "grpc",
+				"limits": &UpstreamLimits{
+					MaxConnections:        intPointer(10),
+					MaxPendingRequests:    intPointer(11),
+					MaxConcurrentRequests: intPointer(12),
+				},
+				"passive_health_check": &PassiveHealthCheck{
+					MaxFailures: 13,
+					Interval:    14 * time.Second,
+				},
+				"mesh_gateway": MeshGatewayConfig{Mode: MeshGatewayModeLocal},
+			},
+			want: map[string]interface{}{
+				"envoy_listener_json": "foo",
+				"envoy_cluster_json":  "bar",
+				"connect_timeout_ms":  5,
+				"protocol":            "http",
+				"limits": &UpstreamLimits{
+					MaxConnections:        intPointer(3),
+					MaxPendingRequests:    intPointer(4),
+					MaxConcurrentRequests: intPointer(5),
+				},
+				"passive_health_check": &PassiveHealthCheck{
+					MaxFailures: 3,
+					Interval:    2 * time.Second,
+				},
+				"mesh_gateway": MeshGatewayConfig{Mode: MeshGatewayModeRemote},
+			},
+		},
+		{
+			name:   "empty source leaves destination intact",
+			source: UpstreamConfig{},
+			destination: map[string]interface{}{
+				"envoy_listener_json": "zip",
+				"envoy_cluster_json":  "zap",
+				"connect_timeout_ms":  10,
+				"protocol":            "grpc",
+				"limits": &UpstreamLimits{
+					MaxConnections:        intPointer(10),
+					MaxPendingRequests:    intPointer(11),
+					MaxConcurrentRequests: intPointer(12),
+				},
+				"passive_health_check": &PassiveHealthCheck{
+					MaxFailures: 13,
+					Interval:    14 * time.Second,
+				},
+				"mesh_gateway": MeshGatewayConfig{Mode: MeshGatewayModeLocal},
+			},
+			want: map[string]interface{}{
+				"envoy_listener_json": "zip",
+				"envoy_cluster_json":  "zap",
+				"connect_timeout_ms":  10,
+				"protocol":            "grpc",
+				"limits": &UpstreamLimits{
+					MaxConnections:        intPointer(10),
+					MaxPendingRequests:    intPointer(11),
+					MaxConcurrentRequests: intPointer(12),
+				},
+				"passive_health_check": &PassiveHealthCheck{
+					MaxFailures: 13,
+					Interval:    14 * time.Second,
+				},
+				"mesh_gateway": MeshGatewayConfig{Mode: MeshGatewayModeLocal},
+			},
+		},
+		{
+			name:        "empty source and destination is a noop",
+			source:      UpstreamConfig{},
+			destination: make(map[string]interface{}),
+			want:        map[string]interface{}{},
+		},
+	}
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.source.MergeInto(tc.destination)
+			assert.Equal(t, tc.want, tc.destination)
+		})
+	}
+}
+
+func TestParseUpstreamConfig(t *testing.T) {
+	tests := []struct {
+		name  string
+		input map[string]interface{}
+		want  UpstreamConfig
+	}{
+		{
+			name:  "defaults - nil",
+			input: nil,
+			want: UpstreamConfig{
+				ConnectTimeoutMs: 5000,
+			},
+		},
+		{
+			name:  "defaults - empty",
+			input: map[string]interface{}{},
+			want: UpstreamConfig{
+				ConnectTimeoutMs: 5000,
+			},
+		},
+		{
+			name: "defaults - other stuff",
+			input: map[string]interface{}{
+				"foo":       "bar",
+				"envoy_foo": "envoy_bar",
+			},
+			want: UpstreamConfig{
+				ConnectTimeoutMs: 5000,
+			},
+		},
+		{
+			name: "protocol override",
+			input: map[string]interface{}{
+				"protocol": "http",
+			},
+			want: UpstreamConfig{
+				ConnectTimeoutMs: 5000,
+				Protocol:         "http",
+			},
+		},
+		{
+			name: "connect timeout override, string",
+			input: map[string]interface{}{
+				"connect_timeout_ms": "1000",
+			},
+			want: UpstreamConfig{
+				ConnectTimeoutMs: 1000,
+			},
+		},
+		{
+			name: "connect timeout override, float ",
+			input: map[string]interface{}{
+				"connect_timeout_ms": float64(1000.0),
+			},
+			want: UpstreamConfig{
+				ConnectTimeoutMs: 1000,
+			},
+		},
+		{
+			name: "connect timeout override, int ",
+			input: map[string]interface{}{
+				"connect_timeout_ms": 1000,
+			},
+			want: UpstreamConfig{
+				ConnectTimeoutMs: 1000,
+			},
+		},
+		{
+			name: "connect limits map",
+			input: map[string]interface{}{
+				"limits": map[string]interface{}{
+					"max_connections":         50,
+					"max_pending_requests":    60,
+					"max_concurrent_requests": 70,
+				},
+			},
+			want: UpstreamConfig{
+				ConnectTimeoutMs: 5000,
+				Limits: &UpstreamLimits{
+					MaxConnections:        intPointer(50),
+					MaxPendingRequests:    intPointer(60),
+					MaxConcurrentRequests: intPointer(70),
+				},
+			},
+		},
+		{
+			name: "connect limits map zero",
+			input: map[string]interface{}{
+				"limits": map[string]interface{}{
+					"max_connections":         0,
+					"max_pending_requests":    0,
+					"max_concurrent_requests": 0,
+				},
+			},
+			want: UpstreamConfig{
+				ConnectTimeoutMs: 5000,
+				Limits: &UpstreamLimits{
+					MaxConnections:        intPointer(0),
+					MaxPendingRequests:    intPointer(0),
+					MaxConcurrentRequests: intPointer(0),
+				},
+			},
+		},
+		{
+			name: "passive health check map",
+			input: map[string]interface{}{
+				"passive_health_check": map[string]interface{}{
+					"interval":     "22s",
+					"max_failures": 7,
+				},
+			},
+			want: UpstreamConfig{
+				ConnectTimeoutMs: 5000,
+				PassiveHealthCheck: &PassiveHealthCheck{
+					Interval:    22 * time.Second,
+					MaxFailures: 7,
+				},
+			},
+		},
+		{
+			name: "mesh gateway map",
+			input: map[string]interface{}{
+				"mesh_gateway": map[string]interface{}{
+					"Mode": "remote",
+				},
+			},
+			want: UpstreamConfig{
+				ConnectTimeoutMs: 5000,
+				MeshGateway: MeshGatewayConfig{
+					Mode: MeshGatewayModeRemote,
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ParseUpstreamConfig(tt.input)
+			require.NoError(t, err)
+			require.Equal(t, tt.want, got)
+		})
+	}
+}
+
 func requireContainsLower(t *testing.T, haystack, needle string) {
 	t.Helper()
 	require.Contains(t, strings.ToLower(haystack), strings.ToLower(needle))
+}
+
+func intPointer(i int) *int {
+	return &i
 }
