@@ -450,7 +450,12 @@ func connectEventsByServiceKind(tx ReadTxn, origEvent stream.Event) ([]stream.Ev
 
 	case structs.ServiceKindTerminatingGateway:
 		var result []stream.Event
-		iter, err := gatewayServices(tx, node.Service.Service, &node.Service.EnterpriseMeta)
+
+		sn := structs.ServiceName{
+			Name:           node.Service.Service,
+			EnterpriseMeta: node.Service.EnterpriseMeta,
+		}
+		iter, err := tx.Get(tableGatewayServices, indexGateway, sn)
 		if err != nil {
 			return nil, err
 		}

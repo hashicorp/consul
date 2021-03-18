@@ -18,12 +18,15 @@ const (
 	tableMeshTopology    = "mesh-topology"
 
 	indexID          = "id"
-	indexServiceName = "service"
+	indexService     = "service"
 	indexConnect     = "connect"
 	indexKind        = "kind"
 	indexStatus      = "status"
 	indexNodeService = "node_service"
 	indexNode        = "node"
+	indexUpstream    = "upstream"
+	indexDownstream  = "downstream"
+	indexGateway     = "gateway"
 )
 
 // nodesTableSchema returns a new table schema used for storing struct.Node.
@@ -91,8 +94,8 @@ func servicesTableSchema() *memdb.TableSchema {
 					writeIndex: writeIndex(indexFromNodeIdentity),
 				},
 			},
-			indexServiceName: {
-				Name:         indexServiceName,
+			indexService: {
+				Name:         indexService,
 				AllowMissing: true,
 				Unique:       false,
 				Indexer: &memdb.StringFieldIndex{
@@ -149,8 +152,8 @@ func checksTableSchema() *memdb.TableSchema {
 					Lowercase: false,
 				},
 			},
-			indexServiceName: {
-				Name:         indexServiceName,
+			indexService: {
+				Name:         indexService,
 				AllowMissing: true,
 				Unique:       false,
 				Indexer: &memdb.StringFieldIndex{
@@ -204,16 +207,16 @@ func gatewayServicesTableSchema() *memdb.TableSchema {
 					},
 				},
 			},
-			"gateway": {
-				Name:         "gateway",
+			indexGateway: {
+				Name:         indexGateway,
 				AllowMissing: false,
 				Unique:       false,
 				Indexer: &ServiceNameIndex{
 					Field: "Gateway",
 				},
 			},
-			"service": {
-				Name:         "service",
+			indexService: {
+				Name:         indexService,
 				AllowMissing: true,
 				Unique:       false,
 				Indexer: &ServiceNameIndex{
@@ -245,16 +248,16 @@ func meshTopologyTableSchema() *memdb.TableSchema {
 					},
 				},
 			},
-			"upstream": {
-				Name:         "upstream",
+			indexUpstream: {
+				Name:         indexUpstream,
 				AllowMissing: true,
 				Unique:       false,
 				Indexer: &ServiceNameIndex{
 					Field: "Upstream",
 				},
 			},
-			"downstream": {
-				Name:         "downstream",
+			indexDownstream: {
+				Name:         indexDownstream,
 				AllowMissing: false,
 				Unique:       false,
 				Indexer: &ServiceNameIndex{
@@ -319,4 +322,19 @@ func (index *ServiceNameIndex) PrefixFromArgs(args ...interface{}) ([]byte, erro
 		return val[:n-1], nil
 	}
 	return val, nil
+}
+
+// upstreamDownstream pairs come from individual proxy registrations, which can be updated independently.
+type upstreamDownstream struct {
+	Upstream   structs.ServiceName
+	Downstream structs.ServiceName
+
+	// Refs stores the registrations that contain this pairing.
+	// When there are no remaining Refs, the upstreamDownstream can be deleted.
+	//
+	// Note: This map must be treated as immutable when accessed in MemDB.
+	//       The entire upstreamDownstream structure must be deep copied on updates.
+	Refs map[string]struct{}
+
+	structs.RaftIndex
 }
