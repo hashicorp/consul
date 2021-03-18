@@ -701,8 +701,8 @@ func (cfg UpstreamConfig) MergeInto(dst map[string]interface{}) {
 func (cfg *UpstreamConfig) Normalize() {
 	cfg.Protocol = strings.ToLower(cfg.Protocol)
 
-	if cfg.ConnectTimeoutMs < 1 {
-		cfg.ConnectTimeoutMs = 5000
+	if cfg.ConnectTimeoutMs < 0 {
+		cfg.ConnectTimeoutMs = 0
 	}
 }
 
@@ -744,6 +744,8 @@ func ParseUpstreamConfigNoDefaults(m map[string]interface{}) (UpstreamConfig, er
 	}
 
 	err = decoder.Decode(m)
+	cfg.Normalize()
+
 	return cfg, err
 }
 
@@ -753,11 +755,12 @@ func ParseUpstreamConfigNoDefaults(m map[string]interface{}) (UpstreamConfig, er
 func ParseUpstreamConfig(m map[string]interface{}) (UpstreamConfig, error) {
 	cfg, err := ParseUpstreamConfigNoDefaults(m)
 
-	cfg.Normalize()
-
 	// Set default (even if error is returned)
 	if cfg.Protocol == "" {
 		cfg.Protocol = "tcp"
+	}
+	if cfg.ConnectTimeoutMs == 0 {
+		cfg.ConnectTimeoutMs = 5000
 	}
 
 	return cfg, err

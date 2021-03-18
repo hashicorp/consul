@@ -384,7 +384,7 @@ func mergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 	remoteUpstreams := make(map[structs.ServiceID]structs.Upstream)
 
 	for _, us := range defaults.UpstreamIDConfigs {
-		parsed, err := structs.ParseUpstreamConfig(us.Config)
+		parsed, err := structs.ParseUpstreamConfigNoDefaults(us.Config)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse upstream config map for %s: %v", us.Upstream.String(), err)
 		}
