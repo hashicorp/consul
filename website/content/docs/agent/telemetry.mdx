@@ -95,9 +95,15 @@ These are some metrics emitted that can help you understand the health of your c
 | :------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------- | :---- |
 | `consul.autopilot.healthy` | Tracks the overall health of the local server cluster. If all servers are considered healthy by Autopilot, this will be set to 1. If any are unhealthy, this will be 0. | health state | gauge |
 
-**Why it's important:** Obviously, you want your cluster to be healthy.
+**Why it's important:** Autopilot can expose the overall health of your cluster with a simple boolean.
 
-**What to look for:** Alert if `healthy` is 0.
+**What to look for:** Alert if `healthy` is 0. Some other indicators of an unhealthy cluster would be: 
+- `consul.raft.commitTime` - This can help reflect the speed of state store
+changes being performmed by the agent. If this number is rising, the server may
+be experiencing an issue due to degraded resources on the host.
+- [Leadership change metrics](#leadership-changes) - Check for deviation from
+the recommended values. This can indicate failed leadership elections or
+flapping nodes.
 
 ### Memory usage
 
@@ -192,7 +198,7 @@ This is a full list of metrics emitted by Consul.
 | `consul.dns.ptr_query.`                                  | Measures the time spent handling a reverse DNS query for the given node.                                                                                                                                                                                                                                                                                                                                       | ms                   | timer   |
 | `consul.dns.domain_query.`                               | Measures the time spent handling a domain query for the given node.                                                                                                                                                                                                                                                                                                                                            | ms                   | timer   |
 | `consul.http...`                                         | DEPRECATED IN 1.9: Tracks how long it takes to service the given HTTP request for the given verb and path. Paths do not include details like service or key names, for these an underscore will be present as a placeholder (eg. `consul.http.GET.v1.kv._`)                                                                                                                                                    | ms                   | timer   |
-| `consul.version                                          | Measures the count of running agents.                                                                                                                                                                                                                                                                                                                                                                   | agents               | guage   |
+| `consul.version`                                          | Measures the count of running agents.                                                                                                                                                                                                                                                                                                                                                                   | agents               | guage   |
 
 ## Server Health
 
