@@ -1638,6 +1638,7 @@ func (s *state) watchDiscoveryChain(snap *ConfigSnapshot, cfg reducedUpstreamCon
 	case structs.ServiceKindConnectProxy:
 		snap.ConnectProxy.WatchedDiscoveryChains[id] = cancel
 	default:
+		cancel()
 		return fmt.Errorf("unsupported kind %s", s.kind)
 	}
 
