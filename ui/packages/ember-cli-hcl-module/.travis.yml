@@ -1,0 +1,66 @@
+---
+language: node_js
+node_js:
+  # we recommend testing addons with the same minimum supported node version as Ember CLI
+  # so that your addon works for all apps
+  - "10"
+
+dist: xenial
+
+addons:
+  chrome: stable
+
+cache:
+  yarn: true
+
+env:
+  global:
+    # See https://git.io/vdao3 for details.
+    - JOBS=1
+
+branches:
+  only:
+    - master
+    # npm version tags
+    - /^v\d+\.\d+\.\d+/
+
+jobs:
+  fast_finish: true
+  allow_failures:
+    - env: EMBER_TRY_SCENARIO=ember-canary
+
+  include:
+    # runs linting and tests with current locked deps
+    - stage: "Tests"
+      name: "Tests"
+      script:
+        - yarn lint
+        - yarn test:ember
+
+    - stage: "Additional Tests"
+      name: "Floating Dependencies"
+      install:
+        - yarn install --no-lockfile --non-interactive
+      script:
+        - yarn test:ember
+
+    # we recommend new addons test the current and previous LTS
+    # as well as latest stable release (bonus points to beta/canary)
+    - env: EMBER_TRY_SCENARIO=ember-lts-3.12
+    - env: EMBER_TRY_SCENARIO=ember-lts-3.16
+    - env: EMBER_TRY_SCENARIO=ember-lts-3.20
+    - env: EMBER_TRY_SCENARIO=ember-release
+    - env: EMBER_TRY_SCENARIO=ember-beta
+    - env: EMBER_TRY_SCENARIO=ember-canary
+    - env: EMBER_TRY_SCENARIO=ember-default-with-jquery
+    - env: EMBER_TRY_SCENARIO=ember-classic
+
+before_install:
+  - curl -o- -L https://yarnpkg.com/install.sh | bash
+  - export PATH=$HOME/.yarn/bin:$PATH
+
+install:
+  - yarn install --non-interactive
+
+script:
+  - node_modules/.bin/ember try:one $EMBER_TRY_SCENARIO

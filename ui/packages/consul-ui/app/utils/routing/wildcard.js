@@ -3,7 +3,8 @@ export default function(routes) {
   return function(name) {
     let wildcard = false;
     try {
-      wildcard = get(routes, name)._options.path.indexOf('*') !== -1;
+      const path = `route.${name.split('.').join('.route.')}`;
+      wildcard = get(routes, path).path.indexOf('*') !== -1;
     } catch (e) {
       // passthrough
     }

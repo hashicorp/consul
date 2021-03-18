@@ -75,16 +75,22 @@ export function initialize(container) {
     container.inject('route:application', 'nspacesRepo', 'service:repository/nspace/enabled');
 
     const dotRe = /\./g;
+    const pathRe = /\.path$/g;
+    const routeRe = /route\//g;
     // register automatic 'index' routes and controllers that start with 'dc'
     Object.keys(flat(routes))
       .filter(function(item) {
-        return item.startsWith('dc');
+        return item.startsWith('route.dc');
       })
       .filter(function(item) {
         return item.endsWith('path');
       })
       .map(function(item) {
-        return item.replace('._options.path', '').replace(dotRe, '/');
+        const path = item
+          .replace(pathRe, '.')
+          .replace(dotRe, '/')
+          .replace(routeRe, '');
+        return path.substr(0, path.length - 1);
       })
       .forEach(function(item) {
         let route = container.resolveRegistration(`route:${item}`);

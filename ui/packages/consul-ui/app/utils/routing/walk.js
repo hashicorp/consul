@@ -1,27 +1,25 @@
 import { runInDebug } from '@ember/debug';
 
 export const walk = function(routes) {
-  const keys = Object.keys(routes);
+  const route = routes.route || {};
+  if (typeof route.index === 'undefined') {
+    route.index = {
+      path: '',
+    };
+  }
+  const keys = Object.keys(route);
   keys.forEach((item, i) => {
-    if (item === '_options') {
-      return;
-    }
-    const options = routes[item]._options;
+    const options = {
+      path: route[item].path,
+    };
     let cb;
-    if (Object.keys(routes[item]).length > 1) {
+    if (typeof route[item].route !== 'undefined') {
       cb = function() {
-        walk.apply(this, [routes[item]]);
+        walk.apply(this, [route[item]]);
       };
     }
     this.route(item, options, cb);
   });
-  if (typeof routes.index === 'undefined') {
-    routes.index = {
-      _options: {
-        path: '',
-      },
-    };
-  }
 };
 
 /**
