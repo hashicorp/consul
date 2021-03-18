@@ -5,7 +5,7 @@ export default (clickable, deletable, collection, alias, policyForm) => (
   return {
     scope: scope,
     create: clickable(createSelector),
-    form: policyForm('#new-policy-toggle + div'),
+    form: policyForm('#new-policy'),
     policies: alias('selectedOptions'),
     selectedOptions: collection(
       '[data-test-policies] [data-test-tabular-row]',

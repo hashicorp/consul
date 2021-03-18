@@ -27,8 +27,8 @@
       {{!the modal has to go here so that if you provide a slot to trigger it doesn't get rendered}}
       <ModalDialog
         data-test-policy-form
+        id="new-policy"
         @onopen={{action "open"}}
-        @name="new-policy-toggle"
         @aria={{hash
           label='New Policy'
         }}
