@@ -1,5 +1,40 @@
 ## UNRELEASED
 
+FEATURES:
+
+* cli: Add prefix option to kv import command [[GH-9792](https://github.com/hashicorp/consul/issues/9792)]
+* cli: snapshot inspect command provides KV usage breakdown [[GH-9098](https://github.com/hashicorp/consul/issues/9098)]
+* cli: snapshot inspect command supports JSON output [[GH-9006](https://github.com/hashicorp/consul/issues/9006)]
+* connect: Add local_request_timeout_ms to allow configuring the Envoy request timeout on local_app [[GH-9554](https://github.com/hashicorp/consul/issues/9554)]
+
+IMPROVEMENTS:
+
+* acl: extend the auth-methods list endpoint to include MaxTokenTTL and TokenLocality fields. [[GH-9741](https://github.com/hashicorp/consul/issues/9741)]
+* acl: use the presence of a management policy in the state store as a sign that we already migrated to v2 acls [[GH-9505](https://github.com/hashicorp/consul/issues/9505)]
+* api: `AutopilotServerHelath` now handles the 429 status code returned by the v1/operator/autopilot/health endpoint and still returned the parsed reply which will indicate server healthiness [[GH-8599](https://github.com/hashicorp/consul/issues/8599)]
+* cli: added a `-force-without-cross-signing` flag to the `ca set-config` command.
+connect/ca: The ForceWithoutCrossSigning field will now work as expected for CA providers that support cross signing. [[GH-9672](https://github.com/hashicorp/consul/issues/9672)]
+* connect: Add support for transparently proxying traffic through Envoy. [experimental] [[GH-9894](https://github.com/hashicorp/consul/issues/9894)]
+* connect: Allow per-upstream configuration to be set in service-defaults. [experimental] [[GH-9872](https://github.com/hashicorp/consul/issues/9872)]
+* connect: adds new flags `prometheus-backend-port` and `prometheus-scrape-port` to `consul connect envoy` to support envoy_prometheus_bind_addr pointing to the merged metrics port when using Consul Connect on K8s. [[GH-9768](https://github.com/hashicorp/consul/issues/9768)]
+* ui: Move to a sidebar based main navigation [[GH-9553](https://github.com/hashicorp/consul/issues/9553)]
+* ui: Use older (~2016) native ES6 features to reduce transpilation and UI JS payload [[GH-9729](https://github.com/hashicorp/consul/issues/9729)]
+* ui: add permanently visible indicator when ACLs are disabled [[GH-9864](https://github.com/hashicorp/consul/issues/9864)]
+* ui: improve accessibility of modal dialogs [[GH-9819](https://github.com/hashicorp/consul/issues/9819)]
+* ui: restrict the viewing/editing of certain UI elements based on the users ACL token [[GH-9687](https://github.com/hashicorp/consul/issues/9687)]
+* ui: support stricter content security policies [[GH-9847](https://github.com/hashicorp/consul/issues/9847)]
+* xds: add support for envoy 1.17.0 [[GH-9658](https://github.com/hashicorp/consul/issues/9658)]
+* xds: default to speaking xDS v3, but allow for v2 to be spoken upon request [[GH-9658](https://github.com/hashicorp/consul/issues/9658)]
+* xds: remove deprecated usages of xDS and drop support for envoy 1.13.x [[GH-9602](https://github.com/hashicorp/consul/issues/9602)]
+
+BUG FIXES:
+
+* checks: add TLSServerName field to allow setting the TLS server name for HTTPS health checks. [[GH-9475](https://github.com/hashicorp/consul/issues/9475)]
+* config: Fixed a bug where `rpc_max_conns_per_client` could not be changed by reloading the
+config. [[GH-8696](https://github.com/hashicorp/consul/issues/8696)]
+* config: correct config key from `advertise_addr_ipv6` to `advertise_addr_wan_ipv6` [[GH-9851](https://github.com/hashicorp/consul/issues/9851)]
+* streaming: lookup in health properly handle case-sensitivity and perform filtering based on tags and node-meta [[GH-9703](https://github.com/hashicorp/consul/issues/9703)]
+
 ## 1.9.3 (February 01, 2021)
 
 FEATURES:
