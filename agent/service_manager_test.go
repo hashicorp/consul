@@ -112,8 +112,9 @@ func TestServiceManager_RegisterSidecar(t *testing.T) {
 			LocalServicePort:       8000,
 			Upstreams: structs.Upstreams{
 				{
-					DestinationName: "redis",
-					LocalBindPort:   5000,
+					DestinationName:      "redis",
+					DestinationNamespace: "default",
+					LocalBindPort:        5000,
 				},
 			},
 		},
@@ -141,8 +142,9 @@ func TestServiceManager_RegisterSidecar(t *testing.T) {
 			},
 			Upstreams: structs.Upstreams{
 				{
-					DestinationName: "redis",
-					LocalBindPort:   5000,
+					DestinationName:      "redis",
+					DestinationNamespace: "default",
+					LocalBindPort:        5000,
 					Config: map[string]interface{}{
 						"protocol": "tcp",
 					},
@@ -341,8 +343,9 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 			LocalServicePort:       8000,
 			Upstreams: structs.Upstreams{
 				{
-					DestinationName: "redis",
-					LocalBindPort:   5000,
+					DestinationName:      "redis",
+					DestinationNamespace: "default",
+					LocalBindPort:        5000,
 				},
 			},
 		},
@@ -366,8 +369,9 @@ func TestServiceManager_PersistService_API(t *testing.T) {
 			},
 			Upstreams: structs.Upstreams{
 				{
-					DestinationName: "redis",
-					LocalBindPort:   5000,
+					DestinationName:      "redis",
+					DestinationNamespace: "default",
+					LocalBindPort:        5000,
 					Config: map[string]interface{}{
 						"protocol": "tcp",
 					},
@@ -550,6 +554,7 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 			local_service_port       = 8000
 			upstreams = [{
 			  destination_name = "redis"
+			  destination_namespace = "default"
 			  local_bind_port  = 5000
 			}]
 		  }
@@ -592,9 +597,10 @@ func TestServiceManager_PersistService_ConfigFiles(t *testing.T) {
 			},
 			Upstreams: structs.Upstreams{
 				{
-					DestinationType: "service",
-					DestinationName: "redis",
-					LocalBindPort:   5000,
+					DestinationType:      "service",
+					DestinationName:      "redis",
+					DestinationNamespace: "default",
+					LocalBindPort:        5000,
 					Config: map[string]interface{}{
 						"protocol": "tcp",
 					},

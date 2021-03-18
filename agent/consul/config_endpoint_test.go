@@ -998,6 +998,9 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 	}
 	t.Parallel()
 
+	mysql := structs.NewServiceID("mysql", structs.DefaultEnterpriseMeta())
+	cache := structs.NewServiceID("cache", structs.DefaultEnterpriseMeta())
+
 	tt := []struct {
 		name     string
 		entries  []structs.ConfigEntry
@@ -1017,10 +1020,10 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 				},
 				&structs.ServiceConfigEntry{
 					Kind: structs.ServiceDefaults,
-					Name: "foo",
+					Name: "api",
 					Connect: &structs.ConnectConfiguration{
 						UpstreamConfigs: map[string]*structs.UpstreamConfig{
-							"zip": {
+							mysql.String(): {
 								Protocol: "http",
 							},
 						},
@@ -1028,19 +1031,19 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 				},
 			},
 			request: structs.ServiceConfigRequest{
-				Name:       "foo",
+				Name:       "api",
 				Datacenter: "dc1",
-				Upstreams:  []string{"zap"},
+				Upstreams:  []string{"cache"},
 			},
 			expect: structs.ServiceConfigResponse{
 				ProxyConfig: map[string]interface{}{
 					"protocol": "grpc",
 				},
 				UpstreamConfigs: map[string]map[string]interface{}{
-					"zip": {
+					"mysql": {
 						"protocol": "http",
 					},
-					"zap": {
+					"cache": {
 						"protocol": "grpc",
 					},
 				},
@@ -1058,10 +1061,10 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 				},
 				&structs.ServiceConfigEntry{
 					Kind: structs.ServiceDefaults,
-					Name: "foo",
+					Name: "api",
 					Connect: &structs.ConnectConfiguration{
 						UpstreamConfigs: map[string]*structs.UpstreamConfig{
-							"zip": {
+							mysql.String(): {
 								Protocol: "http",
 							},
 						},
@@ -1069,9 +1072,11 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 				},
 			},
 			request: structs.ServiceConfigRequest{
-				Name:        "foo",
-				Datacenter:  "dc1",
-				UpstreamIDs: []structs.ServiceID{{ID: "zap"}},
+				Name:       "api",
+				Datacenter: "dc1",
+				UpstreamIDs: []structs.ServiceID{
+					cache,
+				},
 			},
 			expect: structs.ServiceConfigResponse{
 				ProxyConfig: map[string]interface{}{
@@ -1079,17 +1084,14 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 				},
 				UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
 					{
-						Upstream: structs.ServiceID{
-							ID:             "zap",
-							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
-						},
+						Upstream: cache,
 						Config: map[string]interface{}{
 							"protocol": "grpc",
 						},
 					},
 					{
 						Upstream: structs.ServiceID{
-							ID:             "zip",
+							ID:             "mysql",
 							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
 						},
 						Config: map[string]interface{}{
@@ -1104,7 +1106,7 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 			entries: []structs.ConfigEntry{
 				&structs.ServiceConfigEntry{
 					Kind: structs.ServiceDefaults,
-					Name: "foo",
+					Name: "api",
 					Connect: &structs.ConnectConfiguration{
 						UpstreamDefaults: &structs.UpstreamConfig{
 							MeshGateway: structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeRemote},
@@ -1113,22 +1115,19 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 				},
 			},
 			request: structs.ServiceConfigRequest{
-				Name:       "foo",
+				Name:       "api",
 				Datacenter: "dc1",
 				MeshGateway: structs.MeshGatewayConfig{
 					Mode: structs.MeshGatewayModeNone,
 				},
 				UpstreamIDs: []structs.ServiceID{
-					{ID: "zap"},
+					mysql,
 				},
 			},
 			expect: structs.ServiceConfigResponse{
 				UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
 					{
-						Upstream: structs.ServiceID{
-							ID:             "zap",
-							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
-						},
+						Upstream: mysql,
 						Config: map[string]interface{}{
 							"mesh_gateway": map[string]interface{}{
 								"Mode": "none",
@@ -1150,12 +1149,12 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 				},
 				&structs.ServiceConfigEntry{
 					Kind:     structs.ServiceDefaults,
-					Name:     "foo",
+					Name:     "api",
 					Protocol: "tcp",
 				},
 				&structs.ServiceConfigEntry{
 					Kind: structs.ServiceDefaults,
-					Name: "foo",
+					Name: "api",
 					Connect: &structs.ConnectConfiguration{
 						UpstreamDefaults: &structs.UpstreamConfig{
 							Protocol:    "http",
@@ -1166,7 +1165,7 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 							},
 						},
 						UpstreamConfigs: map[string]*structs.UpstreamConfig{
-							"zap": {
+							mysql.String(): {
 								Protocol:    "grpc",
 								MeshGateway: structs.MeshGatewayConfig{Mode: structs.MeshGatewayModeLocal},
 							},
@@ -1175,13 +1174,13 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 				},
 			},
 			request: structs.ServiceConfigRequest{
-				Name:       "foo",
+				Name:       "api",
 				Datacenter: "dc1",
 				MeshGateway: structs.MeshGatewayConfig{
 					Mode: structs.MeshGatewayModeNone,
 				},
 				UpstreamIDs: []structs.ServiceID{
-					{ID: "zap"},
+					mysql,
 				},
 			},
 			expect: structs.ServiceConfigResponse{
@@ -1190,10 +1189,7 @@ func TestConfigEntry_ResolveServiceConfig_Upstreams(t *testing.T) {
 				},
 				UpstreamIDConfigs: structs.OpaqueUpstreamConfigs{
 					{
-						Upstream: structs.ServiceID{
-							ID:             "zap",
-							EnterpriseMeta: *structs.DefaultEnterpriseMeta(),
-						},
+						Upstream: mysql,
 						Config: map[string]interface{}{
 							"passive_health_check": map[string]interface{}{
 								"Interval":    int64(10),
