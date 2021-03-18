@@ -12,7 +12,15 @@ description: >-
 
 The Consul agent collects various runtime metrics about the performance of
 different libraries and subsystems. These metrics are aggregated on a ten
-second interval and are retained for one minute.
+second (10s) interval and are retained for one minute. An _interval_ is the period of time between instances of data being collected and aggregated. 
+
+When telemetry is being streamed to an external metrics store, the interval is defined to be that store's flush interval.
+
+|External Store|Interval (seconds)|
+|:--------|:--------|
+|[dogstatsd](https://docs.datadoghq.com/developers/dogstatsd/?tab=hostagent#how-it-works)|10s|
+|[Prometheus](https://vector.dev/docs/reference/configuration/sinks/prometheus_exporter/#flush_period_secshttps://vector.dev/docs/reference/configuration/sinks/prometheus_exporter/#flush_period_secs)| 60s|
+|[statsd](https://github.com/statsd/statsd/blob/master/docs/metric_types.md#timing)|10s|
 
 To view this data, you must send a signal to the Consul process: on Unix,
 this is `USR1` while on Windows it is `BREAK`. Once Consul receives the signal,
@@ -128,10 +136,6 @@ you will need to apply a function such as InfluxDB's [`non_negative_difference()
 **What to look for:**
 Sudden large changes to the `consul.client.rpc` metrics (greater than 50% deviation from baseline).
 `consul.client.rpc.exceeded` or `consul.client.rpc.failed` count > 0, as it implies that an agent is being rate-limited or fails to make an RPC request to a Consul server
-
-When telemetry is being streamed to an external metrics store, the interval is defined to
-be that store's flush interval. Otherwise, the interval can be assumed to be 10 seconds
-when retrieving metrics from the built-in store using the above described signals.
 
 ## Metrics Reference
 
